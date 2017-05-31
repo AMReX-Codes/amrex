@@ -465,50 +465,146 @@ irregularity to the data and algorithms, there is regularity at the
 block/{\tt Box} level due to rectangular domain and the data structure
 at the {\tt Box} level is conceptually simple.  {\tt BaseFab} is a
 class template for multi-dimensional array-like data structure on a
-{\tt Box}.  The dimensionality of the array is {\tt AMREX\_SPACEDIM}
-plus one.  The additional dimensional is for the number of components.
-The data are internally stored in a contiguous block of memory in
-Fortran array order (i.e., column-major order) for
-$(x,y,z,\mathrm{component})$, and each component also occupies a
-contiguous block of memory because of the ordering.  For example, a
-{\tt BaseFab<Real>} with 4 components defined on a three-dimensional
-{\tt Box(IntVect\{-4,8,32\},IntVect\{32,64,48\})} is like a Fortran
-array of {\tt real(amrex\_real), dimension(-4:32,8:64,32:48,0:3)}.
-Note that the convention in \cpp\ part of \amrex\ is the component
-index is zero based.
+{\tt Box}.  The template parameter is typically basic types such as
+{\tt Real}, {\tt int} or {\tt char}.  The dimensionality of the array
+is {\tt AMREX\_SPACEDIM} plus one.  The additional dimensional is for
+the number of components.  The data are internally stored in a
+contiguous block of memory in Fortran array order (i.e., column-major
+order) for $(x,y,z,\mathrm{component})$, and each component also
+occupies a contiguous block of memory because of the ordering.  For
+example, a {\tt BaseFab<Real>} with 4 components defined on a
+three-dimensional {\tt Box(IntVect\{-4,8,32\},IntVect\{32,64,48\})} is
+like a Fortran array of {\tt real(amrex\_real),
+  dimension(-4:32,8:64,32:48,0:3)}.  Note that the convention in \cpp\
+part of \amrex\ is the component index is zero based.  The code for
+constructing such an object is as follows,
+\begin{lstlisting}[language=cpp]
+  Box bx(IntVect{-4,8,32}, IntVect{32,64,48});
+  int numcomps = 4;
+  BaseFab<Real> fab(bx,numcomps);
+\end{lstlisting}
 
 Most applications do not use {\tt BaseFab} directly, but utilize
-specialized classes (e.g., {\tt FArrayBox} and {\tt IArrayBox})
-derived from {\tt BaseFab}.  These derived classes also obtain many
-{\tt BaseFab} member functions via inheritance.  Below is a list of
-some commonly used functions in {\tt BaseFab} class.
+specialized classes derived from {\tt BaseFab}.  The most common types
+are {\tt FArrayBox} derived from {\tt BaseFab<Real>} and {\tt
+  IArrayBox} derived from {\tt BaseFab<int>}.
+
+These derived classes also obtain many {\tt BaseFab} member functions
+via inheritance.  We now show some common usages of these functions.
+To get the {\tt Box} where a {\tt BaseFab} or its derived object is
+defined, one can call
 \begin{lstlisting}[language=cpp]
-  const Box& box() const;  // Box where this is defined
-  int nComp() const;       // Number of components
+  const Box& box() const;
+\end{lstlisting}
+To the number of component, one can call
+\begin{lstlisting}[language=cpp]
+  int nComp() const;
+\end{lstlisting}
+To get a pointer to the array data, one can call
+\begin{lstlisting}[language=cpp]
   T* dataPtr(int n=0);     // Data pointer to the nth component
                            // T is template parameter (e.g., Real)
   const T* dataPtr(int n=0) const; // const version
+\end{lstlisting}
+The typical usage of the returned pointer is then to pass it to a
+Fortran or C function that works on the array data (see
+Section~\ref{sec:basics:fortran}).
+{\tt BaseFab} has several functions that set the array data to a
+constant value (e.g., 0).  Two examples are as follows.  
+\begin{lstlisting}[language=cpp]
   void setVal(T x);        // Set all data to x
-  // Set the sub-region specified by bx to value x starting
-  // from component nstart.  ncomp is the total number of component to
-  // be set.
+  // Set the sub-region specified by bx to value x starting from component
+  // nstart.  ncomp is the total number of component to be set.
   void setVal(T x, const Box& bx, int nstart, int ncomp);
 \end{lstlisting}
+One can copy data from one {\tt BaseFab} to another.
+\begin{lstlisting}[language=cpp]
+  BaseFab<T>& copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
+                    const Box& destbox, int destcomp, int numcomp);
+\end{lstlisting}
+Here the function copies the data from the region specified by {\tt
+  srcbox} in the source {\tt BaseFab src} into the region specified by
+{\tt destbox} in the destination {\tt BaseFab} that invokes the
+function.  Note that although {\tt srcbox} and {\tt destbox} may be
+different, they must be the same size and shape, otherwise a runtime
+error occurs.  The user also specifies how many components ({\tt int
+  numcomp}) are copied starting at component {\tt srccomp} in {\tt
+  src} and stored starting at component {\tt destcomp}.  {\tt BaseFab}
+has functions returning the minimum or maximum value.
+\begin{lstlisting}[language=cpp] 
+  T min (int comp=0) const;  // Minimum value of given component.
+  T min (const Box& subbox, int comp=0) const; // Minimum value of given 
+                                               // component in given subbox.
+  T max (int comp=0) const;  // Maximum value of given component.
+  T max (const Box& subbox, int comp=0) const; // Maximum value of given 
+                                               // component in given subbox.
+\end{lstlisting}
 
+{\tt BaseFab} also has many arithmetic functions.  Here are some
+examples using {\tt FArrayBox}.
+\begin{lstlisting}[language=cpp]
+  Box box(IntVect{0,0,0}, IntVect{63,63,63});
+  int ncomp = 2;
+  FArrayBox fab1(box, ncomp);
+  FArrayBox fab2(box, ncomp);
+  fab1.setVal(1.0);    // Fill fab1 with 1.0
+  fab1.mult(10.0, 0);  // Multiply component 0 by 10.0
+  fab2.setVal(2.0);    // Fill fab2 with 2.0
+  Real a = 3.0;
+  fab2.saxpy(a, fab1); // For both components, fab2 <- a * fab1 + fab2
+\end{lstlisting}
+For more complicated expressions that not supported, one can write
+Fortran or C functions for those (Section~\ref{sec:basics:fortran}).
+Note that {\tt BaseFab} does provide operators for accessing the
+data directly in \cpp.  For example, the {\tt saxpy} example above can
+be done with
+\begin{lstlisting}[language=cpp]
+  // Iterate over all components
+  for (int icomp=0; icomp < fab1.nComp(); ++icomp) {
+      // Iterate over all cells in Box
+      for (BoxIterator bit(fab1.box()); bit.ok(); ++bit) {
+          // bit() returns IntVect
+          fab2(bit(),icomp) = a * fab1(bit(),icomp) + fab2(bit(),icomp);
+      }
+  }
+\end{lstlisting}
+But this approach is generally not recommended for performance reason.
+However, it can be handy for debugging.
 
-% copy
+{\tt BaseFab} and its derived classes are containers data on {\tt
+  Box}.  We recall that {\tt Box} has types
+(Section~\ref{sec:basics:box}).  The examples in this section so far
+use the default cell based type.  However, some functions will result
+in a runtime error if the types mismatch.  For example.
+\begin{lstlisting}[language=cpp]
+  Box ccbx ({16,16,16}, {31,31,31});           // cell centered box
+  Box ndbx ({16,16,16}, {31,31,31}, {1,1,1});  // nodal box
+  FArrayBox ccfab(ccbx);
+  FArrayBox ndfab(ndbx);
+  ccfab.setVal(0.0);
+  ndfab.copy(ccfab);   // runtime error due to type mismatch
+\end{lstlisting}
 
-% min max
-
-% plus, minus
-
-% saxpy
-
-% [](IntVect) avoid but could be useful
-
-% copy ... 
-% make alias
-% resize
+Because it typically contains a lot of data, {\tt BaseFab}'s copy
+constructor and copy assignment operator are disabled for performance
+reason.  However, it does provide a move constructor.  In addition, it
+also provides a constructor for making an alias of an existing
+object.  Here is an example using {\tt FArrayBox}.
+\begin{lstlisting}[language=cpp]
+  FArrayBox orig_fab(box, 4);  // 4-component FArrayBox
+  // Make a 2-component FArrayBox that is an alias of rhs
+  // starting from component 1.
+  FArrayBox alias_fab(rhs, amrex::make_alias, 1, 2);
+\end{lstlisting}
+In the example, the alias {\tt FArrayBox} has only two components even
+though the original one has four components.  The alias has a sliced
+component view of the original {\tt FArrayBox}.  This is possible
+because of the array ordering.  It is however not possible to slice in
+the real space (i.e., the first {\tt AMREX\_SPACEDIM} dimensions).
+Note that no new memory is allocated in constructing the alias and the
+alias contains a non-owning pointer.  It should be emphasized that the
+alias will contain a dangling pointer when the original {\tt
+  FArrayBox} reaches its end of life.
 
 \section{BoxArray}
 
@@ -522,6 +618,7 @@ some commonly used functions in {\tt BaseFab} class.
 \section{MFIter and Tiling}
 
 \section{Calling Fortan or C}
+\label{sec:basics:fortran}
 
 \section{Physical Boundary}
 
@@ -529,4 +626,7 @@ some commonly used functions in {\tt BaseFab} class.
 
 \section{Memory Allocation}
 
+% resize
+
 \section{Abort, Assertion, Floating-Point Exceptions, and Backtrace}
+% FArrayBox init nan check nan .... contains_nan
