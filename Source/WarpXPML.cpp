@@ -59,7 +59,7 @@ namespace
         int ohi = overlap.bigEnd(idim);
         int slo = sigma.m_lo;
         int sslo = sigma_star.m_lo;
-        std::fill(sigma.begin()+(olo-slo), sigma.begin()+(ohi+1-slo), 0.0);
+        std::fill(sigma.begin()+(olo-slo), sigma.begin()+(ohi+2-slo), 0.0);
         std::fill(sigma_star.begin()+(olo-sslo), sigma_star.begin()+(ohi+1-sslo), 0.0);
     }
 }
