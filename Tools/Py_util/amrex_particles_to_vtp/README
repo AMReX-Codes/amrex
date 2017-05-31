@@ -1,0 +1,8 @@
+use amrex_particles_vtp.py as
+
+python amrex_particles_vtp.py <minfilenum> <maxfilenum> fileprefix
+
+example
+python amrex_particles_vtp.py 0 2 samplefiles/particles
+
+The vtp files are written in the folder where the amrex particle files reside. 
