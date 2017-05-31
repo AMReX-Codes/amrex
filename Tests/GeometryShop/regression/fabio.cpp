@@ -162,6 +162,69 @@ namespace amrex
     }
     return 0;
   }
+
+  /****/
+  int checkGraphs(  const FabArray<EBGraph > & a_ebg1,
+                    const FabArray<EBGraph > & a_ebg2,
+                    const EBLevelGrid                   & a_eblg)
+  {
+    
+    for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
+    {
+      EBGraph ebg1 = a_ebg1[mfi];
+      EBGraph ebg2 = a_ebg2[mfi];
+      if(ebg1.getDomain() != ebg2.getDomain())
+      {
+        amrex::Print() << "checkgraph: domain mismatch" << endl;
+        return -1;
+      }
+      if(ebg1.getRegion() != ebg2.getRegion())
+      {
+        amrex::Print() << "checkgraph: region mismatch" << endl;
+        return -2;
+      }
+      const Box& grid = a_eblg.getDBL()[mfi];
+      IntVectSet ivs(grid);
+      VoFIterator vofit1(ivs, ebg1);
+      VoFIterator vofit2(ivs, ebg2);
+      vector<VolIndex> vvof1 = vofit1.getVector();
+      vector<VolIndex> vvof2 = vofit2.getVector();
+      if(vvof1.size() != vvof2.size())
+      {
+        amrex::Print() << "checkgraph: vector vof size mismatch" << endl;
+        return -3;
+      }
+      for(int ivec = 0; ivec < vvof1.size(); ivec++)
+      {
+        if(vvof1[ivec] != vvof2[ivec])
+        {
+          amrex::Print() << "checkgraph: vof mismatch at ivec = "<< ivec << endl;
+          return -4;
+        }
+      }
+      for(int facedir = 0; facedir < SpaceDim; facedir++)
+      {
+        FaceIterator faceit1(ivs, ebg1, facedir, FaceStop::SurroundingWithBoundary);
+        FaceIterator faceit2(ivs, ebg2, facedir, FaceStop::SurroundingWithBoundary);
+        vector<FaceIndex> vfac1 = faceit1.getVector();
+        vector<FaceIndex> vfac2 = faceit2.getVector();
+        if(vfac1.size() != vfac2.size())
+        {
+          amrex::Print() << "checkgraph: vector face size mismatch" << endl;
+          return -5;
+        }
+        for(int ivec = 0; ivec < vfac1.size(); ivec++)
+        {
+          if(vfac1[ivec] != vfac2[ivec])
+          {
+            amrex::Print() << "checkgraph: face mismatch at ivec = "<< ivec << endl;
+            return -6;
+          }
+        }
+      }
+    }
+    return 0;
+  }
   /***************/
   int testIO()
   {
@@ -175,6 +238,14 @@ namespace amrex
     ba.maxSize(maxboxsize);
     DistributionMapping dm(ba);
     EBLevelGrid eblg(ba, dm, domain, 2);
+    shared_ptr<FabArray<EBGraph> > allgraphsptr = eblg.getEBISL().getAllGraphs();
+    FabArray<EBGraph>& graphsout = *allgraphsptr;
+    FabArrayIO<EBGraph>::write(graphsout, string("ebgraph.plt"));
+
+    FabArray<EBGraph> graphsin;
+    FabArrayIO<EBGraph>::read(graphsin, string("ebgraph.plt"));
+
+    checkGraphs(graphsin, graphsout, eblg);
     int ncomp = 1;
     BaseEBCellFactory<int>  ebcellfact(eblg.getEBISL());
     FabArray<BaseEBCellFAB<int> >  cellout(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);

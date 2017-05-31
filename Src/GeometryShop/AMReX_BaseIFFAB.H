@@ -185,6 +185,31 @@ namespace amrex
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
+
+    ///includes all meta data
+    std::size_t nBytesFull() const
+      {
+        amrex::Error("not implemented");
+        return 0;
+      }
+
+
+    ///includes all meta data
+    std::size_t copyToMemFull(const void* src) const
+      {
+        amrex::Error("not implemented");
+        return 0;
+      }
+
+
+
+    ///includes all meta data
+    std::size_t copyFromMemFull(const void* src)
+      {
+        amrex::Error("not implemented");
+        return 0;
+      }
+
 ///
     int numFaces() const
       {

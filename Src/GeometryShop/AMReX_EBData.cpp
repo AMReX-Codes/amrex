@@ -740,7 +740,7 @@ namespace amrex
 
     for(int idir = 0; idir < SpaceDim; idir++)
     {
-      retval += m_faceData[idir].copyToMem(bx, 0, F_FACENUMBER, buf);
+      incrval = m_faceData[idir].copyToMem(bx, 0, F_FACENUMBER, buf);
       retval += incrval;
       buf    += incrval;
     }
@@ -764,10 +764,89 @@ namespace amrex
 
     for(int idir = 0; idir < SpaceDim; idir++)
     {
-      retval += m_faceData[idir].copyFromMem(bx, 0, F_FACENUMBER, buf);
+      incrval = m_faceData[idir].copyFromMem(bx, 0, F_FACENUMBER, buf);
       retval += incrval;
       buf    += incrval;
     }
+    return retval;
+  }
+/*******************************/
+  std::size_t 
+  EBDataImplem::
+  nBytesFull() const
+  {
+    //first the region
+    size_t retval = m_region.linearSize();
+    retval +=   m_graph.nBytesFull();
+    retval += m_volData.nBytesFull();
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval += m_faceData[idir].nBytesFull();
+    }
+    return retval;
+  }
+/*******************************/
+
+  std::size_t 
+  EBDataImplem::
+  copyToMemFull(void* dst) const
+  {
+    size_t retval  = 0;
+    size_t incrval = 0;
+    unsigned char* buf = (unsigned char*) dst;
+    m_region.linearOut(buf);
+    incrval = m_region.linearSize();
+    buf += incrval;
+    retval += incrval;
+
+    incrval = m_graph.copyToMemFull(buf);
+    retval += incrval;
+    buf    += incrval;
+
+    incrval = m_volData.copyToMemFull(buf);
+    retval += incrval;
+    buf    += incrval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      incrval = m_faceData[idir].copyToMemFull(buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+    return retval;
+  }
+
+/*******************************/
+
+  std::size_t 
+  EBDataImplem::
+  copyFromMemFull(const void* src)
+  {
+    
+    size_t retval  = 0;
+    size_t incrval = 0;
+    unsigned char* buf = (unsigned char*) src;
+    m_region.linearIn(buf);
+    incrval = m_region.linearSize();
+    buf += incrval;
+    retval += incrval;
+
+    incrval = m_graph.copyFromMemFull(buf);
+    retval += incrval;
+    buf    += incrval;
+
+    incrval = m_volData.copyFromMemFull(buf);
+    retval += incrval;
+    buf    += incrval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      incrval = m_faceData[idir].copyFromMemFull(buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+    return retval;
+    m_isDefined = true;
     return retval;
   }
 

@@ -143,27 +143,14 @@ namespace amrex
 
 
     ///this includes all metadata
-    std::size_t nBytesFull() const
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
+    std::size_t nBytesFull() const;
+
+    ///this includes all metadata
+    std::size_t copyToMemFull(void*      dst) const;
 
 
     ///this includes all metadata
-    std::size_t copyToMemFull(void*      dst) const
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
-
-
-    ///this includes all metadata
-    std::size_t copyFromMemFull(const void* src)
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
+    std::size_t copyFromMemFull(const void* src);
 
 
     ///

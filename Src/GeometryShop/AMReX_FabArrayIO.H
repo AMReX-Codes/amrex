@@ -173,7 +173,7 @@ namespace amrex
         BL_PROFILE("FabArrayIO::write");
         BL_ASSERT(a_directory_name[a_directory_name.length() - 1] != '/');
 
-        UtilCreateCleanDirectory(a_directory_name, true);
+        UtilCreateDirectoryDestructive(a_directory_name, true);
 
         //first make and write the header.  This is the only blocking bit of this
         FAIOHeader<T> header(a_data);
@@ -247,7 +247,7 @@ namespace amrex
           //cannot do this one in one fell swoop because distribution may have changed
           std::fstream fileStream;
           fileStream.open(datafile.c_str(),          
-                          std::ios::in | std::ios::trunc | std::ios::binary);
+                          std::ios::in  | std::ios::binary);
           size_t boxsize = elem.m_boxlen;
           char*  inbuf = new char[boxsize];
           fileStream.read(inbuf, boxsize);

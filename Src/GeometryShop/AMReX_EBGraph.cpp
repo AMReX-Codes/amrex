@@ -699,7 +699,8 @@ namespace amrex
     buf    += incrval;
     retval += incrval;
 
-    m_graph.box().linearOut(buf);
+    Box graphbox = m_graph.box();
+    graphbox.linearOut(buf);
     incrval = m_graph.box().linearSize();
     buf    += incrval;
     retval += incrval;

@@ -32,7 +32,7 @@ namespace amrex
   write(const string& a_filename) const
   {
 //    //this creates the directory of all the stuff
-//    UtilCreateCleanDirectory(a_filename, true);
+//    UtilCreateDirectoryDestructive(a_filename, true);
 //    writeHeader(a_filename);
 //    for(int ilev = 0; ilev < m_nlevels; ilev++)
 //    {

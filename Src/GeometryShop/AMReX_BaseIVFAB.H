@@ -77,6 +77,7 @@ namespace amrex
                         const EBGraph&    a_ebgraph,
                         const int&        a_nvarin);
 
+    ///
     BaseIVFAB<T>& copy(const BaseIVFAB<T> & src,
                        const Box&        srcbox,
                        int               srccomp,
@@ -93,19 +94,46 @@ namespace amrex
                        int               destcomp,
                        int               numcomp=1);
 
+    ///stuff to get copy and fillbndry to work
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
 
+    ///stuff to get copy and fillbndry to work
     std::size_t copyToMem (const Box& srcbox,
                            int        srccomp,
                            int        numcomp,
                            void*      dst) const;
 
-
+    ///stuff to get copy and fillbndry to work
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
 
+    ///includes all meta data
+    std::size_t nBytesFull() const
+      {
+        amrex::Error("not implemented");
+        return 0;
+      }
+
+
+    ///includes all meta data
+    std::size_t copyToMemFull(const void* src) const
+      {
+        amrex::Error("not implemented");
+        return 0;
+      }
+
+
+
+    ///includes all meta data
+    std::size_t copyFromMemFull(const void* src)
+      {
+        amrex::Error("not implemented");
+        return 0;
+      }
+
+    ///
     std::vector<VolIndex>  getVoFs() const;
 
     ///slow!

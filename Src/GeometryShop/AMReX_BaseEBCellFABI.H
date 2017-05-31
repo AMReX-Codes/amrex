@@ -112,7 +112,9 @@ namespace amrex
 
     //these make the ebisbox
     retval +=  m_ebisBox.getEBGraph().nBytesFull();
-    retval +=  m_ebisBox.getEBData( ).nBytesFull();
+    //components here are ignored
+    Box ebgregion = m_ebisBox.getEBGraph().getRegion();
+    retval +=  m_ebisBox.getEBData( ).nBytes(ebgregion, 0, 1);
     //from the above we can call define
     //now for the data
     retval +=  m_regFAB.nBytes(m_regFAB.box(), 0, nComp());
@@ -157,7 +159,9 @@ namespace amrex
     incrval =  m_ebisBox.getEBGraph().copyToMemFull(buffer);
     buffer += incrval;
     retval += incrval;
-    incrval =  m_ebisBox.getEBData( ).copyToMemFull(buffer);
+    //components here are ignored
+    Box ebgregion = m_ebisBox.getEBGraph().getRegion();
+    incrval =  m_ebisBox.getEBData( ).copyToMem(ebgregion, 0, 1, buffer);
     buffer += incrval;
     retval += incrval;
     //from the above we can call define
@@ -211,7 +215,10 @@ namespace amrex
     incrval =  ebgraph.copyFromMemFull(buffer);
     buffer += incrval;
     retval += incrval;
-    incrval =   ebdata.copyFromMemFull(buffer);
+    Box ebgregion = ebgraph.getRegion();
+    ebdata.define(ebgraph, ebgregion);
+    //the components here are ignored.
+    incrval =   ebdata.copyFromMem(ebgregion, 0, ncomp, buffer);
     buffer += incrval;
     retval += incrval;
     //from the above we can call define
