@@ -107,7 +107,9 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
     {
         int jdim = (idim+1) % BL_SPACEDIM;
+#if (BL_SPACEDIM == 3)
         int kdim = (idim+2) % BL_SPACEDIM;
+#endif
 
         Array<int> direct_faces, side_faces, direct_side_edges, side_side_edges, corners;
         for (const auto& kv : isects)
@@ -122,6 +124,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             {
                 side_faces.push_back(kv.first);
             }
+#if (BL_SPACEDIM == 3)
             else if (amrex::grow(grid_box, kdim, ncell).intersects(box))
             {
                 side_faces.push_back(kv.first);
@@ -141,6 +144,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             {
                 side_side_edges.push_back(kv.first);
             }
+#endif
             else
             {
                 corners.push_back(kv.first);
@@ -152,13 +156,21 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             const Box& grid_box = grids[gid];
 
             Box lobox = amrex::adjCellLo(grid_box, idim, ncell);
-            Box looverlap = lobox.grow(jdim,ncell).grow(kdim,ncell) & box;
+            lobox.grow(jdim,ncell);
+#if (BL_SPACEDIM == 3)
+            lobox.grow(kdim,ncell);
+#endif
+            Box looverlap = lobox & box;
             if (looverlap.ok()) {
                 FillLo(idim, sigma[idim], sigma_star[idim], looverlap, grid_box, fac[idim]);
             }
 
             Box hibox = amrex::adjCellHi(grid_box, idim, ncell);
-            Box hioverlap = hibox.grow(jdim,ncell).grow(kdim,ncell) & box;
+            hibox.grow(jdim,ncell);
+#if (BL_SPACEDIM == 3)
+            hibox.grow(kdim,ncell);
+#endif
+            Box hioverlap = hibox & box;
             if (hioverlap.ok()) {
                 FillHi(idim, sigma[idim], sigma_star[idim], hioverlap, grid_box, fac[idim]);
             }
@@ -168,6 +180,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
             }
         }
 
+#if (BL_SPACEDIM == 3)
         for (auto gid : side_side_edges)
         {
             const Box& grid_box = grids[gid];
@@ -210,6 +223,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
             }    
         }
+#endif
 
         for (auto gid : direct_faces)
         {
