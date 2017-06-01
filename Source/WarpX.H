@@ -24,6 +24,8 @@ class WarpX
 {
 public:
 
+    friend class PML;
+
     static WarpX& GetInstance ();
     static void ResetInstance ();
 
@@ -217,6 +219,8 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
+
+    static amrex::Array<amrex::Real> B_init;
 
     // PML
     int do_pml = 1;
