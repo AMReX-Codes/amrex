@@ -29,7 +29,6 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
     BL_PROFILE("PhysicalParticleContainer::AddParticles()");
 
     if (plasma_injector->add_single_particle) {
-        Real weight;
         AddNParticles(lev, 1, 
                       &(plasma_injector->single_particle_pos[0]),
                       &(plasma_injector->single_particle_pos[1]),
@@ -37,7 +36,7 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
                       &(plasma_injector->single_particle_vel[0]),
                       &(plasma_injector->single_particle_vel[1]),
                       &(plasma_injector->single_particle_vel[2]),
-                      1, &weight, 0);
+                      1, &(plasma_injector->single_particle_weight), 0);
         return;
     }
 

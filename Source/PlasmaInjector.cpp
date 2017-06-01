@@ -164,6 +164,9 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     } else if (part_pos_s == "singleparticle") {
         pp.getarr("single_particle_pos", single_particle_pos);
         pp.getarr("single_particle_vel", single_particle_vel);
+        for (auto& x : single_particle_vel) {
+            x *= PhysConst::c;
+        }
         pp.get("single_particle_weight", single_particle_weight);
         add_single_particle = true;
         return;
