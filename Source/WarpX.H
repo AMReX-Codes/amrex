@@ -12,6 +12,7 @@
 #include <AMReX_AmrCore.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
+#include <AMReX_RealVect.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
@@ -258,6 +259,9 @@ private:
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
+
+    amrex::RealVect fine_tag_lo;
+    amrex::RealVect fine_tag_hi;
 
     bool is_synchronized = true;
 };

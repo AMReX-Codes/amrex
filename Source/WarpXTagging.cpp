@@ -9,13 +9,8 @@ using namespace amrex;
 void
 WarpX::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
 {
-    const auto& gm = Geom(lev);
-    const Box& domain = gm.Domain();
-    const IntVect& sz = domain.size();
-    IntVect ctr = sz / 2;
-
-    // for testing, let's tag a sphere with a radius of
-    const Real R = 0.025*std::min({D_DECL(sz[0],sz[1],sz[2])});
+    const Real* problo = Geometry::ProbLo();
+    const Real* dx = Geom(lev).CellSize();
 
     for (MFIter mfi(tags); mfi.isValid(); ++mfi)
     {
@@ -24,12 +19,10 @@ WarpX::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
         for (BoxIterator bi(bx); bi.ok(); ++bi)
         {
             const IntVect& cell = bi();
-            Real rsq = 0.0;
-            for (int idim=0; idim<BL_SPACEDIM; ++idim) {
-                Real d = cell[idim]-ctr[idim]+0.5;
-                rsq += d*d;
-            }
-            if (rsq < R*R) {
+            RealVect pos {AMREX_D_DECL((cell[0]+0.5)*dx[0]+problo[0],
+                                       (cell[1]+0.5)*dx[1]+problo[1],
+                                       (cell[2]+0.5)*dx[2]+problo[2])};
+            if (pos > fine_tag_lo && pos < fine_tag_hi) {
                 fab(cell) = TagBox::SET;
             }
         }

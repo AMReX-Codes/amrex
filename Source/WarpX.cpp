@@ -207,6 +207,14 @@ WarpX::ReadParameters ()
             pp.query("plot_finepatch", plot_finepatch);
             pp.query("plot_crsepatch", plot_crsepatch);
         }
+
+        if (maxLevel() > 0) {
+            Array<Real> lo, hi;
+            pp.getarr("fine_tag_lo", lo);
+            pp.getarr("fine_tag_hi", hi);
+            fine_tag_lo = RealVect{lo};
+            fine_tag_hi = RealVect{hi};
+        }
     }
 
     {
