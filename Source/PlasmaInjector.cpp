@@ -162,8 +162,8 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     if (part_pos_s == "python") {
         return;
     } else if (part_pos_s == "singleparticle") {
-        pp.getarr("single_particle_pos", single_particle_pos);
-        pp.getarr("single_particle_vel", single_particle_vel);
+        pp.getarr("single_particle_pos", single_particle_pos, 0, 3);
+        pp.getarr("single_particle_vel", single_particle_vel, 0, 3);
         for (auto& x : single_particle_vel) {
             x *= PhysConst::c;
         }
