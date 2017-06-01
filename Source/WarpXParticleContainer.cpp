@@ -138,16 +138,20 @@ WarpXParticleContainer::AddNParticles (int lev,
         particle_tile.push_back(p);
     }
 
-    particle_tile.push_back_real(PIdx::w , weight + ibegin, weight + iend);
-    particle_tile.push_back_real(PIdx::ux,     vx + ibegin,     vx + iend);
-    particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
-    particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
-
     std::size_t np = iend-ibegin;
-    for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
+
+    if (np > 0)
     {
-        particle_tile.push_back_real(comp, np, 0.0);
-    }
+        particle_tile.push_back_real(PIdx::w , weight + ibegin, weight + iend);
+        particle_tile.push_back_real(PIdx::ux,     vx + ibegin,     vx + iend);
+        particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
+        particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
+        
+        for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
+        {
+            particle_tile.push_back_real(comp, np, 0.0);
+        }
+    }        
 
     Redistribute();
 }

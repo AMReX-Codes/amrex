@@ -376,7 +376,7 @@ WarpX::WritePlotFile () const
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current[lev][1], 0, 1);
+            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
 #endif
             if (lev == 0)
             {

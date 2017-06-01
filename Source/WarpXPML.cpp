@@ -401,12 +401,17 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
         bx &= domain;
         
         Array<Box> bndryboxes;
-        for (int kk = -1; kk <= 1; ++kk) {
+#if (BL_SPACEDIM == 3)
+        int kbegin = -1, kend = 1;
+#else
+        int kbegin =  0, kend = 0;
+#endif
+        for (int kk = kbegin; kk <= kend; ++kk) {
             for (int jj = -1; jj <= 1; ++jj) {
                 for (int ii = -1; ii <= 1; ++ii) {
                     if (ii != 0 || jj != 0 || kk != 0) {
                         Box b = grid_bx;
-                        b.shift(grid_bx_sz * IntVect{ii,jj,kk});
+                        b.shift(grid_bx_sz * IntVect{D_DECL(ii,jj,kk)});
                         b &= bx;
                         if (b.ok()) {
                             bndryboxes.push_back(b);
@@ -415,7 +420,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
                 }
             }
         }
-    
+
         const BoxList& noncovered = grid_ba.complementIn(bx);
         for (const Box& b : noncovered) {
             for (const auto& bb : bndryboxes) {

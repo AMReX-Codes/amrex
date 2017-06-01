@@ -24,6 +24,18 @@
 
 #else
 
+#define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x)  \
+    (x).sigma_star_fac1[0].data(), (x).sigma_star_fac1[0].m_lo, (x).sigma_star_fac1[0].m_hi, \
+    (x).sigma_star_fac2[0].data(), (x).sigma_star_fac2[0].m_lo, (x).sigma_star_fac2[0].m_hi, \
+    (x).sigma_star_fac1[1].data(), (x).sigma_star_fac1[1].m_lo, (x).sigma_star_fac1[1].m_hi, \
+    (x).sigma_star_fac2[1].data(), (x).sigma_star_fac2[1].m_lo, (x).sigma_star_fac2[1].m_hi
+
+#define WRPX_PML_SIGMA_TO_FORTRAN(x)  \
+    (x).sigma_fac1[0].data(), (x).sigma_fac1[0].m_lo, (x).sigma_fac1[0].m_hi, \
+    (x).sigma_fac2[0].data(), (x).sigma_fac2[0].m_lo, (x).sigma_fac2[0].m_hi, \
+    (x).sigma_fac1[1].data(), (x).sigma_fac1[1].m_lo, (x).sigma_fac1[1].m_hi, \
+    (x).sigma_fac2[1].data(), (x).sigma_fac2[1].m_lo, (x).sigma_fac2[1].m_hi
+
 #endif
 
 struct Sigma : amrex::Array<amrex::Real>
