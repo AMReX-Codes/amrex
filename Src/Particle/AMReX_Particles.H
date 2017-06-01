@@ -678,7 +678,9 @@ public:
 
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
 
-    void WritePlotFile (const std::string& dir, const std::string& name) const;
+    void WritePlotFile (const std::string& dir, const std::string& name, 
+                        const Array<std::string>& real_comp_names = Array<std::string>(),
+                        const Array<std::string>&  int_comp_names = Array<std::string>()) const;
 
     void WriteAsciiFile (const std::string& file);
 
