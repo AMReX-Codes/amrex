@@ -98,6 +98,7 @@ endif
 
 ifdef CUDA
   CPPFLAGS += -DCUDA
+  FPPFLAGS += -DCUDA
 endif
 
 F_C_LINK := UNDERSCORE
