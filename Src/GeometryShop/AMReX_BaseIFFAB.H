@@ -173,42 +173,29 @@ namespace amrex
       }
 
 
+    ///for copy and fillboundary where stuff is already defined
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
 
+    ///for copy and fillboundary where stuff is already defined
     std::size_t copyToMem (const Box& srcbox,
                            int        srccomp,
                            int        numcomp,
                            void*      dst) const;
 
-
+    ///for copy and fillboundary where stuff is already defined
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
 
     ///includes all meta data
-    std::size_t nBytesFull() const
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
-
+    std::size_t nBytesFull() const;
 
     ///includes all meta data
-    std::size_t copyToMemFull(const void* src) const
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
-
-
+    std::size_t copyToMemFull(void* src) const;
 
     ///includes all meta data
-    std::size_t copyFromMemFull(const void* src)
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
+    std::size_t copyFromMemFull(const void* src);
 
 ///
     int numFaces() const
@@ -232,12 +219,12 @@ namespace amrex
     void   getFaceSubset(std::vector<FaceIndex>& a_subFaces, const Box& a_subBox) const;
   protected:
 
-    IntVectSet m_ivs;
-    T* m_data;
-    std::vector<FaceIndex> m_faces;
     int m_nFaces;
     int m_nComp;
     int m_direction;
+    IntVectSet m_ivs;
+    std::vector<FaceIndex> m_faces;
+    T* m_data;
 
     bool    m_isDefined;
   private:

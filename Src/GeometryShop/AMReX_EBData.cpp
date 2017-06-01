@@ -711,6 +711,10 @@ namespace amrex
       }
     }
   }
+/******************/
+  /// Below lies serialization land.  Enter at thy own risk.
+  /// Management is not responsible for any gibbering madness resulting 
+  /// from ignoring this warning.
 /*******************************/
   std::size_t 
   EBDataImplem::
@@ -845,7 +849,7 @@ namespace amrex
       retval += incrval;
       buf    += incrval;
     }
-    return retval;
+
     m_isDefined = true;
     return retval;
   }

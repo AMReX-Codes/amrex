@@ -18,7 +18,7 @@ namespace amrex
   ///
   size_t 
   IntVectSet::
-  linearSize()
+  linearSize() const
   {
     //the one is for the size
     size_t retval = sizeof(int);
@@ -50,7 +50,7 @@ namespace amrex
   ///
   void 
   IntVectSet::
-  linearIn(void* a_buffer )
+  linearIn(const void* const a_buffer )
   {
     int* intbuf = (int *) a_buffer;
     int numpts = *intbuf;

@@ -645,265 +645,6 @@ namespace amrex
     return secretCode;
   }
         
-  /*******************************/
-  std::size_t 
-  EBGraphImplem::
-  nBytesFull() const
-  {
-    //first the region and domain
-    BL_PROFILE("EBGraphImplem::nbytesFull");
-    size_t retval = 0;
-    //the tag
-    retval += sizeof(int);
-
-    //region, domain, graphnode box
-    retval +=  3*Box::linearSize();
-    if(m_tag == HasIrregular)
-    {
-      for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
-      {
-        const GraphNode& node = m_graph(bit(), 0);
-        int nodeSize = node.linearSize();
-        retval += nodeSize;
-      }
-      retval += m_irregIVS->linearSize();
-      retval += m_multiIVS->linearSize();
-    }
-    return retval;
-  }
-  /*******************************/
-  std::size_t
-  EBGraphImplem::
-  copyToMemFull(void*      a_buf) const
-  {
-    //first the region and domain
-    BL_PROFILE("EBGraphImplem::copyToMemFulll");
-    size_t retval = 0;
-    size_t incrval = 0;
-    //the tag
-    int* intbuf = (int *) a_buf;
-    int secretCode = getSecretCode(m_tag);
-    *intbuf = secretCode;
-    intbuf++;
-
-    //now into byte mode
-    //region, domain, graphnode box
-    unsigned char* buf = (unsigned char*) intbuf;
-    m_region.linearOut(buf);
-    incrval = m_region.linearSize();
-    buf    += incrval;
-    retval += incrval;
-
-    m_domain.linearOut(buf);
-    incrval = m_region.linearSize();
-    buf    += incrval;
-    retval += incrval;
-
-    Box graphbox = m_graph.box();
-    graphbox.linearOut(buf);
-    incrval = m_graph.box().linearSize();
-    buf    += incrval;
-    retval += incrval;
-
-    if(m_tag == HasIrregular)
-    {
-      for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
-      {
-        const GraphNode& node = m_graph(bit(), 0);
-        node.linearOut(buf);
-        incrval = node.linearSize();
-        buf    += incrval;
-        retval += incrval;
-
-      }
-      m_irregIVS->linearOut(buf);
-      incrval =  m_irregIVS->linearSize();
-      buf    += incrval;
-      retval += incrval;
-      m_multiIVS->linearOut(buf);
-      incrval =  m_multiIVS->linearSize();
-      buf    += incrval;
-      retval += incrval;
-    }
-    return retval;
-  }
-        
-  /*******************************/
-  std::size_t 
-  EBGraphImplem::
-  copyFromMemFull(const void* a_buf)
-  {
-    //first the region and domain
-    BL_PROFILE("EBGraphImplem::copyFromMemFulll");
-    size_t retval = 0;
-    size_t incrval = 0;
-    //the tag
-    int* intbuf = (int *) a_buf;
-    int secretCode = *intbuf;
-    intbuf++;
-    m_tag = getTag(secretCode);
-
-    //now into byte mode
-    //region, domain, graphnode box
-    unsigned char* buf = (unsigned char*) intbuf;
-    m_region.linearIn(buf);
-    incrval = m_region.linearSize();
-    buf    += incrval;
-    retval += incrval;
-
-    m_domain.linearIn(buf);
-    incrval = m_region.linearSize();
-    buf    += incrval;
-    retval += incrval;
-
-    Box graphbox;
-    graphbox.linearIn(buf);
-    incrval = m_graph.box().linearSize();
-    buf    += incrval;
-    retval += incrval;
-
-    if(m_tag == HasIrregular)
-    {
-      m_graph.resize(graphbox, 1);
-      for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
-      {
-        GraphNode& node = m_graph(bit(), 0);
-        node.linearIn(buf);
-        incrval = node.linearSize();
-        buf    += incrval;
-        retval += incrval;
-
-      }
-      m_irregIVS = new IntVectSet();
-      m_multiIVS = new IntVectSet();
-      m_irregIVS->linearIn(buf);
-      incrval =  m_irregIVS->linearSize();
-      buf    += incrval;
-      retval += incrval;
-
-      m_multiIVS->linearIn(buf);
-      incrval =  m_multiIVS->linearSize();
-      buf    += incrval;
-      retval += incrval;
-    }
-
-    m_isDefined   = true;
-    m_isDomainSet = true;
-    m_isMaskBuilt = false;
-    return retval;
-  }
-  /*******************************/
-  std::size_t 
-  EBGraphImplem::
-  nBytes(const Box& a_region, int start_comp, int ncomps) const
-  {
-    //regular irregular covered code
-    std::size_t linearSize = sizeof(int);
-    if (!isRegular(a_region) && !isCovered(a_region))
-    {
-      for (BoxIterator bit(a_region); bit.ok(); ++bit)
-      {
-        const GraphNode& node = m_graph(bit(), 0);
-        int nodeSize = node.linearSize();
-        linearSize += nodeSize;
-      }
-    }
-    return linearSize;
-  }
-        
-  /*******************************/
-  std::size_t
-  EBGraphImplem::
-  copyToMem (const Box& a_region,
-             int        srccomp,
-             int        numcomp,
-             void*      a_buf) const
-  {
-    assert(isDefined());
-    assert(isDomainSet());
-    int secretCode = getSecretCode(m_tag);
-    std::size_t retval = 0;
-
-        
-    int* intbuf = (int*) a_buf;
-    retval += sizeof(int);
-    *intbuf = secretCode;
-    intbuf++;
-        
-    if (!isRegular(a_region) && !isCovered(a_region))
-    {
-      unsigned char* buffer = (unsigned char*) intbuf;
-      for (BoxIterator bit(a_region); bit.ok(); ++bit)
-      {
-        const GraphNode& node = m_graph(bit(), 0);
-        int nodeSize = node.linearSize();
-        node.linearOut(buffer);
-        buffer += nodeSize;
-        retval += nodeSize;
-      }
-    }
-    return retval;
-  }
-        
-  /*******************************/
-  std::size_t 
-  EBGraphImplem::
-  copyFromMem (const Box&  a_region,
-               int         dstcomp,
-               int         numcomp,
-               const void* a_buf)
-  {
-    assert(isDefined());
-    assert(isDomainSet());
-    assert(isDefined());
-    assert(isDomainSet());
-    std::size_t retval = 0;
-    int* intbuf = (int*) a_buf;
-    int secretCode = *intbuf;
-    retval += sizeof(int);
-    intbuf++;
-    TAG tag = getTag(secretCode);    
-    if (tag == AllCovered)
-    {
-      //all covered input
-      EBGraphImplem ebgraphSrc(a_region);
-      ebgraphSrc.setDomain(m_domain);
-      ebgraphSrc.setToAllCovered();
-      copy(ebgraphSrc, a_region, 0, a_region, 0, 1);
-    }
-    else if (tag == AllRegular)
-    {
-      //all regular input
-      EBGraphImplem ebgraphSrc(a_region);
-      ebgraphSrc.setDomain(m_domain);
-      ebgraphSrc.setToAllRegular();
-      copy(ebgraphSrc, a_region, 0, a_region, 0, 1);
-    }
-    else
-    {
-      unsigned char* buffer = (unsigned char*) intbuf;
-      if (isAllRegular() || isAllCovered())
-      {
-        m_tag = HasIrregular;
-        if (m_irregIVS != NULL) delete m_irregIVS;
-        if (m_multiIVS != NULL) delete m_multiIVS;
-        m_multiIVS = new IntVectSet();
-        m_irregIVS = new IntVectSet();
-        m_graph.resize(m_region, 1);
-      }
-      for (BoxIterator bit(a_region); bit.ok(); ++bit)
-      {
-        GraphNode& node = m_graph(bit(), 0);
-        node.linearIn(buffer);
-        if (node.isIrregular()>0) (*m_irregIVS)|=bit();
-        if (node.size()>1) (*m_multiIVS)|=bit();
-        int nodeSize = node.linearSize();
-        buffer += nodeSize;
-        retval += nodeSize;
-      }
-    }
-    return retval;
-  }
         
   /*******************************/
   bool EBGraph::hasIrregular() const
@@ -1927,4 +1668,266 @@ namespace amrex
     m_implem->define(a_box);
   }
   /*******************************/
+  /// below lies serialization land.  enter at thy own risk
+  ///management is not responsible for any gibbering madness resulting 
+  ///from ignoring this warning.
+  /*******************************/
+  std::size_t 
+  EBGraphImplem::
+  nBytesFull() const
+  {
+    //first the region and domain
+    BL_PROFILE("EBGraphImplem::nbytesFull");
+    size_t retval = 0;
+    //the tag
+    retval += sizeof(int);
+
+    //region, domain, graphnode box
+    retval +=  3*Box::linearSize();
+    if(m_tag == HasIrregular)
+    {
+      for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
+      {
+        const GraphNode& node = m_graph(bit(), 0);
+        int nodeSize = node.linearSize();
+        retval += nodeSize;
+      }
+      retval += m_irregIVS->linearSize();
+      retval += m_multiIVS->linearSize();
+    }
+    return retval;
+  }
+  /*******************************/
+  std::size_t
+  EBGraphImplem::
+  copyToMemFull(void*      a_buf) const
+  {
+    //first the region and domain
+    BL_PROFILE("EBGraphImplem::copyToMemFulll");
+    size_t retval = 0;
+    size_t incrval = 0;
+    //the tag
+    int* intbuf = (int *) a_buf;
+    int secretCode = getSecretCode(m_tag);
+    *intbuf = secretCode;
+    intbuf++;
+
+    //now into byte mode
+    //region, domain, graphnode box
+    unsigned char* buf = (unsigned char*) intbuf;
+    m_region.linearOut(buf);
+    incrval = m_region.linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    m_domain.linearOut(buf);
+    incrval = m_region.linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    Box graphbox = m_graph.box();
+    graphbox.linearOut(buf);
+    incrval = m_graph.box().linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    if(m_tag == HasIrregular)
+    {
+      for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
+      {
+        const GraphNode& node = m_graph(bit(), 0);
+        node.linearOut(buf);
+        incrval = node.linearSize();
+        buf    += incrval;
+        retval += incrval;
+
+      }
+      m_irregIVS->linearOut(buf);
+      incrval =  m_irregIVS->linearSize();
+      buf    += incrval;
+      retval += incrval;
+      m_multiIVS->linearOut(buf);
+      incrval =  m_multiIVS->linearSize();
+      buf    += incrval;
+      retval += incrval;
+    }
+    return retval;
+  }
+        
+  /*******************************/
+  std::size_t 
+  EBGraphImplem::
+  copyFromMemFull(const void* a_buf)
+  {
+    //first the region and domain
+    BL_PROFILE("EBGraphImplem::copyFromMemFulll");
+    size_t retval = 0;
+    size_t incrval = 0;
+    //the tag
+    int* intbuf = (int *) a_buf;
+    int secretCode = *intbuf;
+    intbuf++;
+    m_tag = getTag(secretCode);
+
+    //now into byte mode
+    //region, domain, graphnode box
+    unsigned char* buf = (unsigned char*) intbuf;
+    m_region.linearIn(buf);
+    incrval = m_region.linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    m_domain.linearIn(buf);
+    incrval = m_region.linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    Box graphbox;
+    graphbox.linearIn(buf);
+    incrval = m_graph.box().linearSize();
+    buf    += incrval;
+    retval += incrval;
+
+    if(m_tag == HasIrregular)
+    {
+      m_graph.resize(graphbox, 1);
+      for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
+      {
+        GraphNode& node = m_graph(bit(), 0);
+        node.linearIn(buf);
+        incrval = node.linearSize();
+        buf    += incrval;
+        retval += incrval;
+
+      }
+      m_irregIVS = new IntVectSet();
+      m_multiIVS = new IntVectSet();
+      m_irregIVS->linearIn(buf);
+      incrval =  m_irregIVS->linearSize();
+      buf    += incrval;
+      retval += incrval;
+
+      m_multiIVS->linearIn(buf);
+      incrval =  m_multiIVS->linearSize();
+      buf    += incrval;
+      retval += incrval;
+    }
+
+    m_isDefined   = true;
+    m_isDomainSet = true;
+    m_isMaskBuilt = false;
+    return retval;
+  }
+  /*******************************/
+  std::size_t 
+  EBGraphImplem::
+  nBytes(const Box& a_region, int start_comp, int ncomps) const
+  {
+    //regular irregular covered code
+    std::size_t linearSize = sizeof(int);
+    if (!isRegular(a_region) && !isCovered(a_region))
+    {
+      for (BoxIterator bit(a_region); bit.ok(); ++bit)
+      {
+        const GraphNode& node = m_graph(bit(), 0);
+        int nodeSize = node.linearSize();
+        linearSize += nodeSize;
+      }
+    }
+    return linearSize;
+  }
+        
+  /*******************************/
+  std::size_t
+  EBGraphImplem::
+  copyToMem (const Box& a_region,
+             int        srccomp,
+             int        numcomp,
+             void*      a_buf) const
+  {
+    assert(isDefined());
+    assert(isDomainSet());
+    int secretCode = getSecretCode(m_tag);
+    std::size_t retval = 0;
+
+        
+    int* intbuf = (int*) a_buf;
+    retval += sizeof(int);
+    *intbuf = secretCode;
+    intbuf++;
+        
+    if (!isRegular(a_region) && !isCovered(a_region))
+    {
+      unsigned char* buffer = (unsigned char*) intbuf;
+      for (BoxIterator bit(a_region); bit.ok(); ++bit)
+      {
+        const GraphNode& node = m_graph(bit(), 0);
+        int nodeSize = node.linearSize();
+        node.linearOut(buffer);
+        buffer += nodeSize;
+        retval += nodeSize;
+      }
+    }
+    return retval;
+  }
+        
+  /*******************************/
+  std::size_t 
+  EBGraphImplem::
+  copyFromMem (const Box&  a_region,
+               int         dstcomp,
+               int         numcomp,
+               const void* a_buf)
+  {
+    assert(isDefined());
+    assert(isDomainSet());
+    assert(isDefined());
+    assert(isDomainSet());
+    std::size_t retval = 0;
+    int* intbuf = (int*) a_buf;
+    int secretCode = *intbuf;
+    retval += sizeof(int);
+    intbuf++;
+    TAG tag = getTag(secretCode);    
+    if (tag == AllCovered)
+    {
+      //all covered input
+      EBGraphImplem ebgraphSrc(a_region);
+      ebgraphSrc.setDomain(m_domain);
+      ebgraphSrc.setToAllCovered();
+      copy(ebgraphSrc, a_region, 0, a_region, 0, 1);
+    }
+    else if (tag == AllRegular)
+    {
+      //all regular input
+      EBGraphImplem ebgraphSrc(a_region);
+      ebgraphSrc.setDomain(m_domain);
+      ebgraphSrc.setToAllRegular();
+      copy(ebgraphSrc, a_region, 0, a_region, 0, 1);
+    }
+    else
+    {
+      unsigned char* buffer = (unsigned char*) intbuf;
+      if (isAllRegular() || isAllCovered())
+      {
+        m_tag = HasIrregular;
+        if (m_irregIVS != NULL) delete m_irregIVS;
+        if (m_multiIVS != NULL) delete m_multiIVS;
+        m_multiIVS = new IntVectSet();
+        m_irregIVS = new IntVectSet();
+        m_graph.resize(m_region, 1);
+      }
+      for (BoxIterator bit(a_region); bit.ok(); ++bit)
+      {
+        GraphNode& node = m_graph(bit(), 0);
+        node.linearIn(buffer);
+        if (node.isIrregular()>0) (*m_irregIVS)|=bit();
+        if (node.size()>1) (*m_multiIVS)|=bit();
+        int nodeSize = node.linearSize();
+        buffer += nodeSize;
+        retval += nodeSize;
+      }
+    }
+    return retval;
+  }
 }
