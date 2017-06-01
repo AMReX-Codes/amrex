@@ -58,8 +58,7 @@ namespace amrex
     ///
     bool hasVoFs() const
       {
-        if(m_vofs) return true;
-        return false;
+        return (m_vofs.size() != 0);
       }
 
     ///
@@ -110,39 +109,26 @@ namespace amrex
                              const void* src);
 
     ///includes all meta data
-    std::size_t nBytesFull() const
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
+    std::size_t nBytesFull() const;
 
 
     ///includes all meta data
-    std::size_t copyToMemFull(const void* src) const
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
-
-
+    std::size_t copyToMemFull(void* src) const;
 
     ///includes all meta data
-    std::size_t copyFromMemFull(const void* src)
-      {
-        amrex::Error("not implemented");
-        return 0;
-      }
+    std::size_t copyFromMemFull(const void* src);
+
 
     ///
-    std::vector<VolIndex>  getVoFs() const;
+    const std::vector<VolIndex>&  getVoFs() const;
 
     ///slow!
     IntVectSet getIVS() const
       {
         IntVectSet retval;
-        for (unsigned int i=0; i<m_vofs->size(); i++)
+        for (unsigned int i=0; i<m_vofs.size(); i++)
         {
-          retval |= (*m_vofs)[i].gridIndex();
+          retval |= m_vofs[i].gridIndex();
         }
         return retval;
 
@@ -160,14 +146,12 @@ namespace amrex
     
     inline T* dataPtr(int a_ivar)
       {
-        if(m_vofs) return m_data+a_ivar*m_vofs->size();
-        return m_data;
+        return m_data+a_ivar*(m_vofs.size());
       }
   
     const T* dataPtr(int a_ivar) const
       {
-        if(m_vofs) return m_data+a_ivar*m_vofs->size();
-        return m_data;
+        return m_data + (a_ivar*m_vofs.size());
       }
   
     void setVal(const T& a_val);
@@ -196,13 +180,27 @@ namespace amrex
     ///for AggStencil
     long offset(const BaseIndex& a_vof, const int& a_ivar) const
       {
-        const VolIndex* vof = dynamic_cast< const VolIndex* >(&a_vof);
-        if (vof == NULL) amrex::Error("cast failed:BaseIVFAB only takes vofs for indexing");
-        unsigned int i = 0;
-        for(;i<m_vofs->size(); i++)
-          if(*vof == (*m_vofs)[i]) break;
-        i+=a_ivar*m_vofs->size();
-        return i;
+        const VolIndex* vofptr = dynamic_cast< const VolIndex* >(&a_vof);
+        if (vofptr == NULL) amrex::Error("cast failed:BaseIVFAB only takes vofs for indexing");
+
+        int ivof = -1;
+        bool found = false;
+        const VolIndex& vof =  *vofptr;
+        for(int ivec = 0;ivec < m_vofs.size(); ivec++)
+        {
+          if(vof == m_vofs[ivec])
+          {
+            ivof = ivec;
+            found = true;
+            break;
+          }
+        }
+        if(!found)
+        {
+          amrex::Error("baseivfab::offset: vof not found in set");
+        }
+        ivof += a_ivar*m_vofs.size();
+        return ivof;
       }
 
     ///
@@ -215,19 +213,21 @@ namespace amrex
         return *(getIndex(a_vof, a_comp));
       }
 
-    template <typename F>
-    void forall(const BaseIVFAB& a_src, const Box& a_box, int a_srccomp, int a_destcomp, int a_numcomp, bool sameRegBox, const F& func);
-
     int numVoFs() const;
 
     int nComp() const {return m_nComp;}
+
+    template<typename F>
+    void forall(const BaseIVFAB<T>& a_src, const Box& a_box, int a_srccomp, int a_dstcomp, 
+                int a_numcomp, bool sameRegBox, const F& func);
   private:
 
   protected:
-    EBGraph m_ebgraph;
-    shared_ptr<std::vector<VolIndex> > m_vofs;
-    shared_ptr<std::vector<T> > m_Memory;
     int m_nComp = 0;
+
+    IntVectSet m_ivs;
+    std::vector<VolIndex>  m_vofs;
+    std::vector<T>  m_Memory;
     T* m_data   = nullptr;
 
   };

@@ -181,6 +181,10 @@ namespace amrex
       {
         return m_faceData[a_idir];
       }
+    const Box& getRegion() const
+      {
+        return m_region;
+      }
 
   private:
 
@@ -266,6 +270,11 @@ namespace amrex
       {
       }
 
+
+    const Box& getRegion() const
+      {
+        return m_implem->getRegion();
+      }
 
     ///this is just a way around smart pointers being too smart.
     ///this keeps the input pointer from being deleted.  Not for the faint of heart.
