@@ -96,6 +96,10 @@ ifndef NDEBUG
   CPPFLAGS += -DDEBUG
 endif
 
+ifdef CUDA
+  CPPFLAGS += -DCUDA
+endif
+
 F_C_LINK := UNDERSCORE
 
 odir=.
