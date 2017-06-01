@@ -597,7 +597,6 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     
     const int nlocal = imap.size();
     const int ng = m_ngrow;
-    const IndexType& typ = ba.ixType();
     std::vector< std::pair<int,Box> > isects;
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
