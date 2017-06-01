@@ -350,6 +350,8 @@ public:
     //! Apply Box::convert(IndexType) to each Box in the BoxArray.
     BoxArray& convert (IndexType typ);
 
+    BoxArray& convert (const IntVect& typ);
+
     //! Apply function (*fp)(Box) to each Box in the BoxArray.
     BoxArray& convert (Box (*fp)(const Box&));
 

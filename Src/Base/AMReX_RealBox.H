@@ -3,6 +3,7 @@
 #define _RealBox_H_ 
 
 #include <iosfwd>
+#include <array>
 
 #include <AMReX_Array.H>
 #include <AMReX_REAL.H>
@@ -21,6 +22,9 @@ public:
     //! Construct region given diagonal points.
     RealBox (const Real* lo,
              const Real* hi);
+
+    RealBox (const std::array<Real,BL_SPACEDIM>& lo,
+             const std::array<Real,BL_SPACEDIM>& hi);
 
     /**
     * \brief Construct region given index box, cell spacing

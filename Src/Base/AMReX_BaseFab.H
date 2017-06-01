@@ -48,7 +48,7 @@ namespace amrex
 *  BaseFabs in C++, and they provide a convenient interface to
 *  Fortran when it is necessary to retreat into that language.
         
-*  BaseFab is a template class.  Through use of the
+*  BaseFab is a class template.  Through use of the
 *  template, a BaseFab may be based upon any class.  So far at least,
 *  most applications have been based upon simple types like integers,
 *  real*4s, or real*8s.  Most applications do not use BaseFabs 

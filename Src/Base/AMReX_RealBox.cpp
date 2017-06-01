@@ -38,6 +38,13 @@ RealBox::RealBox (const Real* lo,
     AMREX_D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
 }
 
+RealBox::RealBox (const std::array<Real,BL_SPACEDIM>& lo,
+                  const std::array<Real,BL_SPACEDIM>& hi)
+{
+    AMREX_D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
+    AMREX_D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
+}
+
 RealBox::RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
                   AMREX_D_DECL(Real x1, Real y1, Real z1))
 {

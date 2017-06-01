@@ -618,6 +618,15 @@ BoxArray::convert (IndexType typ)
 }
 
 BoxArray&
+BoxArray::convert (const IntVect& iv)
+{
+    IndexType typ(iv);
+    m_transformer->setIxType(typ);
+    m_typ = typ;
+    return *this;
+}
+
+BoxArray&
 BoxArray::convert (Box (*fp)(const Box&))
 {
     BL_ASSERT(!(fp == 0));
