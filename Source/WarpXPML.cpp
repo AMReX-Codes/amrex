@@ -362,12 +362,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     pml_E_fp[0]->setVal(0.0);
     pml_E_fp[1]->setVal(0.0);
     pml_E_fp[2]->setVal(0.0);
-    pml_B_fp[0]->setVal(WarpX::B_init[0],0,1,1);
-    pml_B_fp[0]->setVal(0.0             ,1,1,1);
-    pml_B_fp[1]->setVal(WarpX::B_init[1],0,1,1);
-    pml_B_fp[1]->setVal(0.0             ,1,1,1);
-    pml_B_fp[2]->setVal(WarpX::B_init[2],0,1,1);
-    pml_B_fp[2]->setVal(0.0             ,1,1,1);
+    pml_B_fp[0]->setVal(0.0);
+    pml_B_fp[1]->setVal(0.0);
+    pml_B_fp[2]->setVal(0.0);
 
     sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell));
 
@@ -389,12 +386,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_E_cp[0]->setVal(0.0);
         pml_E_cp[1]->setVal(0.0);
         pml_E_cp[2]->setVal(0.0);
-        pml_B_cp[0]->setVal(WarpX::B_init[0],0,1,1);
-        pml_B_cp[0]->setVal(0.0             ,1,1,1);
-        pml_B_cp[1]->setVal(WarpX::B_init[1],0,1,1);
-        pml_B_cp[1]->setVal(0.0             ,1,1,1);
-        pml_B_cp[2]->setVal(WarpX::B_init[2],0,1,1);
-        pml_B_cp[2]->setVal(0.0             ,1,1,1);
+        pml_B_cp[0]->setVal(0.0);
+        pml_B_cp[1]->setVal(0.0);
+        pml_B_cp[2]->setVal(0.0);
 
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell));
     }

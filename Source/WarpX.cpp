@@ -19,7 +19,7 @@
 
 using namespace amrex;
 
-Array<Real> WarpX::B_init(3, 0.0);
+Array<Real> WarpX::B_external(3, 0.0);
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -155,8 +155,7 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
 
-        B_init.resize(3, 0.0);
-        pp.queryarr("B_init", B_init, 0, 3);
+        pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)

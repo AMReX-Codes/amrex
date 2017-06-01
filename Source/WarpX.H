@@ -45,6 +45,9 @@ public:
 
     static void GotoNextLine (std::istream& is);
 
+    // External fields
+    static amrex::Array<amrex::Real> B_external;
+
     // Algorithms
     static long current_deposition_algo;
     static long charge_deposition_algo;
@@ -219,8 +222,6 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
-
-    static amrex::Array<amrex::Real> B_init;
 
     // PML
     int do_pml = 1;
