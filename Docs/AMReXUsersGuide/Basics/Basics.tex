@@ -458,7 +458,139 @@ domain and the indexing space domain.  For example,
 \end{lstlisting}
 
 
+\section{BoxArray}
+\label{sec:basics:ba}
+
+{\tt BoxArray} is a class for storing a collection of {\tt Box}es.
+One can make a {\tt BoxArray} out of a single {\tt Box} and then chop
+it into multiple {\tt Box}es.
+\begin{lstlisting}[language=cpp]
+  Box domain(IntVect{0,0,0}, IntVect{127,127,127});
+  BoxArray ba(domain);  // Make a new BoxArray out of a single Box
+  Print() << "BoxArray size is " << ba.size() << "\n";  // 1
+  ba.maxSize(64);       // Chop into boxes of 64^3 cells
+  Print() << ba;
+\end{lstlisting}
+The output is like below,
+\begin{verbatim}
+  (BoxArray maxbox(8)
+         m_ref->m_hash_sig(0)
+  ((0,0,0) (63,63,63) (0,0,0)) ((64,0,0) (127,63,63) (0,0,0))
+  ((0,64,0) (63,127,63) (0,0,0)) ((64,64,0) (127,127,63) (0,0,0))
+  ((0,0,64) (63,63,127) (0,0,0)) ((64,0,64) (127,63,127) (0,0,0))
+  ((0,64,64) (63,127,127) (0,0,0)) ((64,64,64) (127,127,127) (0,0,0)) )
+\end{verbatim}
+It shows that {\tt ba} now has 8 {\tt Box}es, and it also prints out
+each {\tt Box}es.  
+
+In \amrex, {\tt BoxArray} is a global data structure.  It holds all
+the {\tt Box}es in a collection, even though a single process in a
+parallel run only owns some of the {\tt Box}es via domain
+decomposition.  In the example above, a 4-process run may divide the
+work and each process owns say 2 {\tt Box}es
+(Section~\ref{sec:basics:dm}).  Each process can then allocate memory
+for the floating point data on the {\tt Box}es it owns
+(Sections~\ref{sec:basics:multifab} \& \ref{sec:basics:fab}). 
+
+{\tt BoxArray} has an indexing type, just like {\tt Box}.  Each {\tt
+  Box} in a {\tt BoxArray} has the same type as the {\tt BoxArray}
+itself.  In the following example, we show how one can convert {\tt
+  BoxArray} to a different type. 
+\begin{lstlisting}[language=cpp]
+  BoxArray cellba(Box(IntVect{0,0,0}, IntVect{63,127,127}));
+  cellba.maxSize(64);
+  BoxArray faceba = cellba;
+  // convert to index type (cell, cell, node)
+  faceba.convert(IntVect{0,0,1});
+  // Return an all node BoxArray
+  const BoxArray& nodeba = amrex::convert(faceba, IntVect{1,1,1});
+  Print() << cellba[0] << "\n";  // ((0,0,0) (63,63,63) (0,0,0))
+  Print() << faceba[0] << "\n";  // ((0,0,0) (63,63,64) (0,0,1))  
+  Print() << nodeba[0] << "\n";  // ((0,0,0) (64,64,64) (1,1,1))
+\end{lstlisting}
+
+As shown in the example above, {\tt BoxArray} has an {\tt operator[]}
+that returns a {\tt Box} given an index.  It should be emphasized that
+there is a difference between its behavior and the usual behavior of
+an subscript operator one might expect.  The subscript operator in
+{\tt BoxArray} returns by value instead of reference.  This means code
+like below is meaningless because it modifies a temporary return
+value. 
+\begin{lstlisting}[language=cpp]
+  ba[3].coarsen(2);  // DO NOT DO THIS!  Doesn't do what one might expect.
+\end{lstlisting}
+
+{\tt BoxArray} has a number of member functions that allow the {\tt
+  Box}es to be modified.  For example,
+\begin{lstlisting}[language=cpp]
+  BoxArray& refine (int refinement_ratio);   // Refine each Box in BoxArray
+  BoxArray& refine (const IntVect& refinement_ratio);
+  BoxArray& coarsen (int refinement_ratio);  // Coarsen each Box in BoxArray
+  BoxArray& coarsen (const IntVect& refinement_ratio);
+\end{lstlisting}
+
+We have mentioned at the beginning of this section that {\tt BoxArray}
+is a global data structure storing {\tt Box}es owned by all processes.
+The operation of deep copy is thus undesirable because the operation
+itself is expensive and the extra copy wastes memory.  The
+implementation of the {\tt BoxArray} class uses {\tt std::shared\_ptr}
+to an internal container holding the actual {\tt Box} data.  Thus
+making a copy of {\tt BoxArray} is a quite cheap operation.  The
+conversion of types and coarsening are also cheap because they can
+share the internal data with the original {\tt BoxArray}.  Function
+{\tt refine} does create a new deep copy of the original data.  Also
+note that a {\tt BoxArray} and its variant with a different type share
+the same internal data is an implementation detail.  We discuss this
+so that the users are aware of the performance and resource cost.
+Conceptually we can think of them as completely independent of each
+other.
+
+For advanced users, \amrex\ provides functions performing the
+intersection of a {\tt BoxArray} and a {\tt Box}.  These functions are
+much faster than a naive implementation of performing intersection of
+the {\tt Box} with each {\tt Box} in the {\tt BoxArray}.  If one needs
+to perform those intersections, functions {\tt amrex::intersect}, {\tt
+  BoxArray:: intersects} and {\tt BoxArray::intersections} should be
+used.
+
+\section{DistributionMapping}
+\label{sec:basics:dm}
+
+{\tt DistributionMapping} is a class describes which process owns the
+data living on the domains specified by the {\tt Box}es in a {\tt
+  BoxArray}.  Like {\tt BoxArray}, {\tt DistributionMapping} has an
+element for each {\tt Box}, including the ones owned by other parallel
+processes.  A way to construct a {\tt DistributionMapping} object
+given a {\tt BoxArray} is as follows.
+\begin{lstlisting}[language=cpp]
+  DistributionMapping dm {ba};
+\end{lstlisting}
+Oftentimes what one needs is simply making a copy. 
+\begin{lstlisting}[language=cpp]
+  DistributionMapping dm {another_dm};
+\end{lstlisting}
+Note that this class is built using {\tt std::shared\_ptr}.  Thus
+making a copy is relatively cheap in terms of performance and memory
+resources.  This class has a subscript operator that returns the
+process ID at a given index.
+
+By default, {\tt DistributionMapping} uses an algorithm based on space
+filling curve to determine distribution.  One can change the default
+via {\tt ParmParse} paramter {\tt DistributionMapping.strategy}.  {\tt
+  KNAPSACK} is a common choice that is optimized for load balance.
+One can also explicitly construct a certain type of distribution.
+{\tt DistributionMapping} class allows the user to have complete control by
+passing an array of integers. 
+\begin{lstlisting}[language=cpp]
+  DistributionMapping dm;   // empty object
+  Array<int> pmap;
+  // The user fills the pmap array with the values specifying owner processes
+  dm.define(pmap);  // Build DistributionMapping given an array of process IDs.
+\end{lstlisting}
+
+
 \section{BaseFab, FArrayBox and IArrayBox}
+\label{sec:basics:fab}
 
 \amrex\ is a block-structured AMR framework.  Although AMR introduces
 irregularity to the data and algorithms, there is regularity at the
@@ -603,12 +735,8 @@ because of the array ordering.  It is however not possible to slice in
 the real space (i.e., the first {\tt AMREX\_SPACEDIM} dimensions).
 Note that no new memory is allocated in constructing the alias and the
 alias contains a non-owning pointer.  It should be emphasized that the
-alias will contain a dangling pointer when the original {\tt
+alias will contain a dangling pointer after the original {\tt
   FArrayBox} reaches its end of life.
-
-\section{BoxArray}
-
-\section{DistributionMapping}
 
 \section{FabArray, MultiFab and iMultiFab}
 \label{sec:basics:multifab}
