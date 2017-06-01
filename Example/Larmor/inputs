@@ -1,0 +1,74 @@
+# Maximum number of time steps
+max_step = 800
+
+# number of grid points
+amr.n_cell =  64  64
+
+# The lo and hi ends of grids are multipliers of blocking factor
+amr.blocking_factor = 32
+
+# Maximum allowable size of each subdomain in the problem domain;
+#    this is used to decompose the domain for parallel calculations.
+amr.max_grid_size = 64
+
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+amr.max_level = 0
+
+warpx.fine_tag_lo = -10.e-6   -10.e-6
+warpx.fine_tag_hi =  10.e-6    10.e-6
+
+amr.plot_int = 10   # How often to write plotfiles.  "<= 0" means no plotfiles.
+
+warpx.plot_raw_fields = 1
+warpx.plot_divb = 1
+warpx.plot_finepatch = 1
+warpx.plot_crsepatch = 1
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 0     0     0      # Is periodic?
+geometry.prob_lo     = -30.e-6   -30.e-6  # physical domain
+geometry.prob_hi     =  30.e-6    30.e-6
+
+# PML
+warpx.do_pml = 1
+warpx.pml_ncell = 10
+
+warpx.B_init = 0.0  40.0  0.0
+
+# Verbosity
+warpx.verbose = 1
+
+# Algorithms
+algo.current_deposition = 1
+algo.charge_deposition = 1
+algo.field_gathering = 1
+algo.particle_pusher = 0
+
+# CFL
+warpx.cfl = 1.0
+
+# particles
+particles.nspecies = 1
+particles.species_names = electrons
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = "SingleParticle"
+electrons.single_particle_pos = 0.0  0.0  6.e-6
+electrons.single_particle_vel = 0.3  0.0  0.0   # gamma*beta
+electrons.single_particle_weight = 1.0
+
+# interpolation
+interpolation.nox = 1
+interpolation.noy = 1
+interpolation.noz = 1
+
+# Moving window
+warpx.do_moving_window = 0
+
+# Particle Injection
+warpx.do_plasma_injection = 0
+
+# Laser
+warpx.use_laser    = 0
