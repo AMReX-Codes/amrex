@@ -152,22 +152,6 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
                    ::tolower);
     mass = parseMassString(mass_s);
 
-    // parse plasma boundaries
-    xmin = std::numeric_limits<amrex::Real>::lowest();
-    ymin = std::numeric_limits<amrex::Real>::lowest();
-    zmin = std::numeric_limits<amrex::Real>::lowest();
-
-    xmax = std::numeric_limits<amrex::Real>::max();
-    ymax = std::numeric_limits<amrex::Real>::max();
-    zmax = std::numeric_limits<amrex::Real>::max();
-
-    pp.query("xmin", xmin);
-    pp.query("ymin", ymin);
-    pp.query("zmin", zmin);
-    pp.query("xmax", xmax);
-    pp.query("ymax", ymax);
-    pp.query("zmax", zmax);
-
     // parse injection style
     std::string part_pos_s;
     pp.get("injection_style", part_pos_s);
@@ -176,6 +160,12 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
                    part_pos_s.begin(),
                    ::tolower);
     if (part_pos_s == "python") {
+        return;
+    } else if (part_pos_s == "singleparticle") {
+        pp.getarr("single_particle_pos", single_particle_pos);
+        pp.getarr("single_particle_vel", single_particle_vel);
+        pp.get("single_particle_weight", single_particle_weight);
+        add_single_particle = true;
         return;
     } else if (part_pos_s == "ndiagpercell") {
         pp.query("num_particles_per_cell", num_particles_per_cell);
@@ -196,6 +186,22 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     } else {
         StringParseAbortMessage("Injection style", part_pos_s);
     }
+
+    // parse plasma boundaries
+    xmin = std::numeric_limits<amrex::Real>::lowest();
+    ymin = std::numeric_limits<amrex::Real>::lowest();
+    zmin = std::numeric_limits<amrex::Real>::lowest();
+
+    xmax = std::numeric_limits<amrex::Real>::max();
+    ymax = std::numeric_limits<amrex::Real>::max();
+    zmax = std::numeric_limits<amrex::Real>::max();
+
+    pp.query("xmin", xmin);
+    pp.query("ymin", ymin);
+    pp.query("zmin", zmin);
+    pp.query("xmax", xmax);
+    pp.query("ymax", ymax);
+    pp.query("zmax", zmax);
 
     // parse density information
     std::string rho_prof_s;
