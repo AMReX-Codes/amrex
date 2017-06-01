@@ -1,3 +1,5 @@
+#include <array>
+
 #ifndef WARPX_PML_H_
 #define WARPX_PML_H_
 
