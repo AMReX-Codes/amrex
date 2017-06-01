@@ -32,6 +32,7 @@
 #include "AMReX_IrregFABFactory.H"
 #include "AMReX_BaseEBCellFactory.H"
 #include "AMReX_IrregFAB.H"
+#include "AMReX_EBDataVarMacros.H"
 #include "AMReX_FabArrayIO.H"
 
 namespace amrex
@@ -166,7 +167,7 @@ namespace amrex
   /****/
   int checkGraphs(  const FabArray<EBGraph > & a_ebg1,
                     const FabArray<EBGraph > & a_ebg2,
-                    const EBLevelGrid                   & a_eblg)
+                    const EBLevelGrid        & a_eblg)
   {
     
     for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
@@ -225,6 +226,96 @@ namespace amrex
     }
     return 0;
   }
+  /****/
+  int checkData(  const FabArray<EBData> & a_ebd1,
+                  const FabArray<EBData> & a_ebd2,
+                  const EBLevelGrid      & a_eblg)
+  {
+    
+    for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
+    {
+      EBData ebd1 = a_ebd1[mfi];
+      EBData ebd2 = a_ebd2[mfi];
+      if(ebd1.getRegion() != ebd2.getRegion())
+      {
+        amrex::Print() << "checkgraph: region mismatch" << endl;
+        return -2;
+      }
+      //check the volume data
+      BaseIVFAB<Real>& vdata1 = ebd1.getVolData();
+      BaseIVFAB<Real>& vdata2 = ebd2.getVolData();
+      if((vdata1.nComp() != V_VOLNUMBER) || (vdata2.nComp() != V_VOLNUMBER))
+      {
+        amrex::Print() << "checkdata: vdata comps wrong" << endl;
+        return -5;
+      }
+      const vector<VolIndex>& vvof1 = vdata1.getVoFs();
+      const vector<VolIndex>& vvof2 = vdata2.getVoFs();
+      if(vvof1.size() != vvof2.size())
+      {
+        amrex::Print() << "checkdata: vector vof size mismatch" << endl;
+        return -3;
+      }
+      for(int ivec = 0; ivec < vvof1.size(); ivec++)
+      {
+        if(vvof1[ivec] != vvof2[ivec])
+        {
+          amrex::Print() << "checkvof: vof mismatch at ivec = "<< ivec << endl;
+          return -4;
+        }
+        for(int icomp = 0; icomp <  V_VOLNUMBER; icomp++)
+        {
+          Real val1 = vdata1(vvof1[ivec], icomp);
+          Real val2 = vdata2(vvof2[ivec], icomp);
+          Real tol = 1.0e-9;
+          if(std::abs(val1-val2) > tol)
+          {
+            amrex::Print() << "checkvof: value mismatch at ivec, ivar = "<< ivec  << ","<< icomp<< endl;
+            return -6;
+          }
+        }
+      }
+      //check the face data
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        BaseIFFAB<Real>& fdata1 = ebd1.getFaceData(idir);
+        BaseIFFAB<Real>& fdata2 = ebd2.getFaceData(idir);
+        if((fdata1.nComp() != F_FACENUMBER) || (fdata2.nComp() != F_FACENUMBER))
+        {
+          amrex::Print() << "checkdata: fdata comps wrong" << endl;
+          return -7;
+        }
+        const vector<FaceIndex>& vfac1 = fdata1.getFaces();
+        const vector<FaceIndex>& vfac2 = fdata2.getFaces();
+        if(vfac1.size() != vfac2.size())
+        {
+          amrex::Print() << "checkdata: vector face size mismatch" << endl;
+          return -8;
+        }
+        for(int ivec = 0; ivec < vfac1.size(); ivec++)
+        {
+          if(vfac1[ivec] != vfac2[ivec])
+          {
+            amrex::Print() << "checkvof: vof mismatch at ivec = "<< ivec << endl;
+            return -9;
+          }
+          for(int icomp = 0; icomp <  V_VOLNUMBER; icomp++)
+          {
+            Real val1 = fdata1(vfac1[ivec], icomp);
+            Real val2 = fdata2(vfac2[ivec], icomp);
+            Real tol = 1.0e-9;
+            if(std::abs(val1-val2) > tol)
+            {
+              amrex::Print() << "checkvof: value mismatch at ivec, ivar = "<< ivec  << ","<< icomp<< endl;
+              return -10;
+            }
+          }
+        }
+      }
+    }        
+
+    return 0;
+  }
   /***************/
   int testIO()
   {
@@ -238,6 +329,8 @@ namespace amrex
     ba.maxSize(maxboxsize);
     DistributionMapping dm(ba);
     EBLevelGrid eblg(ba, dm, domain, 2);
+    int retval = 0;
+    //ebgraph
     shared_ptr<FabArray<EBGraph> > allgraphsptr = eblg.getEBISL().getAllGraphs();
     FabArray<EBGraph>& graphsout = *allgraphsptr;
     FabArrayIO<EBGraph>::write(graphsout, string("ebgraph.plt"));
@@ -245,7 +338,28 @@ namespace amrex
     FabArray<EBGraph> graphsin;
     FabArrayIO<EBGraph>::read(graphsin, string("ebgraph.plt"));
 
-    checkGraphs(graphsin, graphsout, eblg);
+    retval = checkGraphs(graphsin, graphsout, eblg);
+    if(retval != 0) 
+    {
+      amrex::Print() << "ebgraph does not match" << endl;
+      return retval;
+    }
+
+    ///ebdata
+    shared_ptr<FabArray<EBData> > alldataptr = eblg.getEBISL().getAllData();
+    FabArray<EBData>&  dataout = *alldataptr;
+    FabArrayIO<EBData>::write(dataout, string("ebdata.plt"));
+
+    FabArray<EBData> datain;
+    FabArrayIO<EBGraph>::read(graphsin, string("ebdata.plt"));
+
+    retval = checkData(datain, dataout, eblg);
+    if(retval != 0) 
+    {
+      amrex::Print() << "ebdata does not match" << endl;
+      return retval;
+    }
+    //baseebcellfab
     int ncomp = 1;
     BaseEBCellFactory<int>  ebcellfact(eblg.getEBISL());
     FabArray<BaseEBCellFAB<int> >  cellout(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);
@@ -254,7 +368,7 @@ namespace amrex
 
     FabArray<BaseEBCellFAB<int> > cellin;
     FabArrayIO<BaseEBCellFAB<int> >::read(cellin, string("baseebcfint_data.plt"));
-    int retval = checkEquality(cellin, cellout, eblg);
+    retval = checkEquality(cellin, cellout, eblg);
     if(retval != 0) 
     {
       amrex::Print() << "ebcf<int> does not match" << endl;
