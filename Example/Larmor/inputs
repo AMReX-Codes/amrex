@@ -34,7 +34,7 @@ geometry.prob_hi     =  30.e-6    30.e-6
 warpx.do_pml = 1
 warpx.pml_ncell = 10
 
-warpx.B_init = 0.0  40.0  0.0
+warpx.B_external = 0.0  40.0  0.0
 
 # Verbosity
 warpx.verbose = 1
