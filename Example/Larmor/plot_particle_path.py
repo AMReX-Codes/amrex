@@ -116,21 +116,27 @@ if __name__ == "__main__":
     import pylab as plt
     import glob
 
-    x = []
-    y = []
+    x0 = []
+    y0 = []
+    x1 = []
+    y1 = []
     
     fn_list = glob.glob("plt?????")
     fn_list.sort()
     
     for fn in fn_list:
-        idata, rdata = read_particle_data(fn)
-        x.append(rdata[0][0])
-        y.append(rdata[0][1])
+        idata, rdata = read_particle_data(fn, ptype="particle0")
+        x0.append(rdata[0][0])
+        y0.append(rdata[0][1])
+        idata, rdata = read_particle_data(fn, ptype="particle1")
+        x1.append(rdata[0][0])
+        y1.append(rdata[0][1])
 
     fig = plt.gcf()
     fig.set_size_inches(8, 8)
-    plt.plot(x, y, '.')
-    plt.axis((-30e-6, 30e-6, -30e-6, 30e-6))
+    plt.plot(x0, y0, 'r.')
+    plt.plot(x1, y1, 'b.')
+    plt.axis((-2., 2., -2., 2.))
     ax = plt.gca()
     ax.set_xlabel(r'$x$')
     ax.set_ylabel(r'$y$')

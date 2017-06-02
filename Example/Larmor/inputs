@@ -57,13 +57,14 @@ electron.mass = m_e
 electron.injection_style = "SingleParticle"
 electron.single_particle_pos = 0.0  0.0  -1.0
 electron.single_particle_vel = -0.45825756949558416  0.0  0.0   # gamma*beta
-electron.single_particle_weight = 1.0e12
 
 positron.charge = q_e
 positron.mass = m_e
 positron.injection_style = "SingleParticle"
 positron.single_particle_pos = 0.0  0.0  -1.0
 positron.single_particle_vel = 0.45825756949558416  0.0  0.0   # gamma*beta
+
+electron.single_particle_weight = 1.0e12
 positron.single_particle_weight = 1.0e12
 
 # interpolation
