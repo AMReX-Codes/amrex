@@ -330,7 +330,7 @@ namespace amrex
                                             D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
                                                    BL_TO_FORTRAN_ANYD(cyfab),
                                                    BL_TO_FORTRAN_ANYD(czfab)),
-                                            dx, &ref_ratio);
+                                            &ref_ratio);
                     }
                     else
                     {
