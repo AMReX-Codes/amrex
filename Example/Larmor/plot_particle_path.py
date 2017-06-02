@@ -1,6 +1,20 @@
 import numpy as np
 
 class AMReXParticleHeader(object):
+    '''
+
+    This class is designed to parse and store the information 
+    contained in an AMReX particle header file. 
+
+    Usage:
+
+        header = AMReXParticleHeader("plt00000/particle0/Header")
+        print(header.num_particles)
+        print(header.version_string)
+
+    etc...
+
+    '''
 
     def __init__(self, header_filename):
 
@@ -53,6 +67,21 @@ class AMReXParticleHeader(object):
 
                     
 def read_particle_data(fn, ptype="particle0"):
+    '''
+
+    This function returns the particle data stored in a particular 
+    plot file and particle type. It returns two numpy arrays, the
+    first containing the particle integer data, and the second the
+    particle real data. For example, if a dataset has 3000 particles,
+    which have two integer and five real components, this function will
+    return two numpy arrays, one with the shape (3000, 2) and the other
+    with the shape (3000, 5).
+
+    Usage:
+    
+        idata, rdata = read_particle_data("plt00000", "particle0")
+
+    '''
     base_fn = fn + "/" + ptype
     header = AMReXParticleHeader(base_fn + "/Header")
     
