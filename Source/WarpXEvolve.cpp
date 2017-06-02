@@ -42,8 +42,6 @@ WarpX::Evolve (int numsteps)
         // Beyond one step, we have B^{n-1/2} and E^{n}.
         // Particles have p^{n-1/2} and x^{n}.
 
-#if 0
-        // xxxxx
         if (is_synchronized) {
             // on first step, push E and X by 0.5*dt
             FillBoundaryB();
@@ -52,7 +50,6 @@ WarpX::Evolve (int numsteps)
             mypc->Redistribute();  // Redistribute particles
             is_synchronized = false;
         }
-#endif
 
         ExchangeWithPML();
 
@@ -77,15 +74,12 @@ WarpX::Evolve (int numsteps)
         // Fill B's ghost cells because of the next step of evolving E.
         FillBoundaryB();
 
-#if 0
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
             EvolveE(0.5*dt[0]); // We now have E^{n+1/2}
             mypc->PushX(-0.5*dt[0]);
             is_synchronized = true;
         } else {
-#endif
-        {
             EvolveE(dt[0]); // We now have E^{n+1}
         }
         
