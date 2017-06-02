@@ -358,6 +358,40 @@ contains
     integer, intent(in) :: lo(2), hi(2), flo(2), fhi(2), clo(2), chi(2), dir
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
+
+    integer :: i,j,ii,jj
+
+    if (dir == 0) then
+       do j = lo(2), hi(2)
+          jj = j*2
+          do i = lo(1), hi(1)
+             ii = i*2
+             crse(i,j) = 0.25d0 * (fine(ii,jj) + fine(ii+1,jj) &
+                  + 0.5d0*(fine(ii,jj-1) + fine(ii+1,jj-1) + fine(ii,jj+1) + fine(ii+1,jj+1)) )
+          end do
+       end do
+    else if (dir == 1) then
+       do j = lo(2), hi(2)
+          jj = j*2
+          do i = lo(1), hi(1)
+             ii = i*2
+             crse(i,j) = 0.25d0 * (fine(ii,jj) + fine(ii,jj+1) &
+                  + 0.5d0*(fine(ii-1,jj) + fine(ii-1,jj+1) + fine(ii+1,jj) + fine(ii+1,jj+1)) )
+          end do
+       end do
+    else
+       do j = lo(2), hi(2)
+          jj = j*2
+          do i = lo(1), hi(1)
+             ii = i*2
+             crse(i,j) = 0.25d0 * &
+                     ( fine(ii,jj) + 0.5d0 *(fine(ii-1,jj  )+fine(ii+1,jj  ) &
+                     &                     + fine(ii  ,jj-1)+fine(ii  ,jj+1)) &
+                     &             + 0.25d0*(fine(ii-1,jj-1)+fine(ii+1,jj-1) &
+                     &                     + fine(ii+1,jj-1)+fine(ii+1,jj+1)) ) 
+          end do
+       end do
+    end if
   end subroutine warpx_sync_current_2d
 
   subroutine warpx_sync_current_3d (lo, hi, crse, clo, chi, fine, flo, fhi, dir) &

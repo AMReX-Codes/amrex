@@ -191,9 +191,13 @@ private:
 
     void AverageDownEorCurrent (amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>,3> >& data);
 
-    void SyncCurrent (const std::array<const amrex::MultiFab*,BL_SPACEDIM>& fine,
-                      const std::array<      amrex::MultiFab*,BL_SPACEDIM>& crse,
-                      int ref_ratio);
+    void SyncCurrent3D (const std::array<const amrex::MultiFab*,3>& fine,
+                        const std::array<      amrex::MultiFab*,3>& crse,
+                        int ref_ratio);
+
+    void SyncCurrent2D (const std::array<const amrex::MultiFab*,3>& fine,
+                        const std::array<      amrex::MultiFab*,3>& crse,
+                        int ref_ratio);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?

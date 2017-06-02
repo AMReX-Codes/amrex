@@ -5,7 +5,7 @@ max_step = 200
 amr.n_cell =  32  32
 
 # The lo and hi ends of grids are multipliers of blocking factor
-amr.blocking_factor = 32
+amr.blocking_factor = 16
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
@@ -14,8 +14,8 @@ amr.max_grid_size = 64
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
 
-warpx.fine_tag_lo = -10.e-6   -10.e-6
-warpx.fine_tag_hi =  10.e-6    10.e-6
+warpx.fine_tag_lo = -0.8  -0.8
+warpx.fine_tag_hi =  0.8   0.8
 
 amr.plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
@@ -55,17 +55,17 @@ particles.species_names = electron positron
 electron.charge = -q_e
 electron.mass = m_e
 electron.injection_style = "SingleParticle"
-electron.single_particle_pos = 0.0  0.0  -1.0
+electron.single_particle_pos = 0.0  0.0  -1.25
 electron.single_particle_vel = -0.45825756949558416  0.0  0.0   # gamma*beta
 
 positron.charge = q_e
 positron.mass = m_e
 positron.injection_style = "SingleParticle"
-positron.single_particle_pos = 0.0  0.0  -1.0
+positron.single_particle_pos = 0.0  0.0  -1.25
 positron.single_particle_vel = 0.45825756949558416  0.0  0.0   # gamma*beta
 
-electron.single_particle_weight = 8.0e12
-positron.single_particle_weight = 8.0e12
+electron.single_particle_weight = 6.0e12
+positron.single_particle_weight = 6.0e12
 
 # interpolation
 interpolation.nox = 3
