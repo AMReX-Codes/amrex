@@ -74,12 +74,12 @@ def read_particle_data(fn, ptype="particle0"):
             with open(fn, 'rb') as f:
                 f.seek(where)
                 ints   = np.fromfile(f, dtype = idtype, count=count)
-                floats = np.fromfile(f, dtype = fdtype, count=count)                    
+                floats = np.fromfile(f, dtype = fdtype, count=count)
 
-            idata[ip] = ints
-            rdata[ip] = floats            
-            ip += 1
-            
+            idata[ip:ip+count] = ints
+            rdata[ip:ip+count] = floats            
+            ip += count
+
     return idata, rdata
 
 
