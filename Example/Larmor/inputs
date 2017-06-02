@@ -1,8 +1,8 @@
 # Maximum number of time steps
-max_step = 800
+max_step = 200
 
 # number of grid points
-amr.n_cell =  64  64
+amr.n_cell =  32  32
 
 # The lo and hi ends of grids are multipliers of blocking factor
 amr.blocking_factor = 32
@@ -17,7 +17,7 @@ amr.max_level = 0
 warpx.fine_tag_lo = -10.e-6   -10.e-6
 warpx.fine_tag_hi =  10.e-6    10.e-6
 
-amr.plot_int = 10   # How often to write plotfiles.  "<= 0" means no plotfiles.
+amr.plot_int = 1   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 warpx.plot_raw_fields = 1
 warpx.plot_divb = 1
@@ -27,14 +27,14 @@ warpx.plot_crsepatch = 1
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 0     0     0      # Is periodic?
-geometry.prob_lo     = -30.e-6   -30.e-6  # physical domain
-geometry.prob_hi     =  30.e-6    30.e-6
+geometry.prob_lo     = -2.0  -2.0  # physical domain
+geometry.prob_hi     =  2.0   2.0
 
 # PML
 warpx.do_pml = 1
 warpx.pml_ncell = 10
 
-warpx.B_external = 0.0  40.0  0.0
+warpx.B_external = 0.0  0.00078110417851950768  0.0
 
 # Verbosity
 warpx.verbose = 1
@@ -49,15 +49,22 @@ algo.particle_pusher = 0
 warpx.cfl = 1.0
 
 # particles
-particles.nspecies = 1
-particles.species_names = electrons
+particles.nspecies = 2
+particles.species_names = electron positron
 
-electrons.charge = -q_e
-electrons.mass = m_e
-electrons.injection_style = "SingleParticle"
-electrons.single_particle_pos = 0.0  0.0  6.e-6
-electrons.single_particle_vel = 0.3  0.0  0.0   # gamma*beta
-electrons.single_particle_weight = 1.0
+electron.charge = -q_e
+electron.mass = m_e
+electron.injection_style = "SingleParticle"
+electron.single_particle_pos = 0.0  0.0  -1.0
+electron.single_particle_vel = -0.45825756949558416  0.0  0.0   # gamma*beta
+electron.single_particle_weight = 1.0e12
+
+positron.charge = q_e
+positron.mass = m_e
+positron.injection_style = "SingleParticle"
+positron.single_particle_pos = 0.0  0.0  -1.0
+positron.single_particle_vel = 0.45825756949558416  0.0  0.0   # gamma*beta
+positron.single_particle_weight = 1.0e12
 
 # interpolation
 interpolation.nox = 1
