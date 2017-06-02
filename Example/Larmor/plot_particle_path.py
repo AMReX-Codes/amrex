@@ -56,10 +56,11 @@ class AMReXParticleHeader(object):
                 self.num_int = 0
 
             self.grids_per_level = np.zeros(self.num_levels, dtype='int64')
+            self.grids = []
             for level_num in range(self.num_levels):
                 self.grids_per_level[level_num] = int(f.readline().strip())
+                self.grids.append([])
 
-            self.grids = [[]*level_num]
             for level_num in range(self.num_levels):
                 for grid_num in range(self.grids_per_level[level_num]):
                     entry = [int(val) for val in f.readline().strip().split()]
