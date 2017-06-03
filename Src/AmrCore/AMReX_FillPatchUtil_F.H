@@ -22,7 +22,7 @@ extern "C" {
 #if (BL_SPACEDIM > 2)
                                        , const amrex_real* cz, const int* czlo, const int* czhi
 #endif
-                                       , const amrex_real* dx, const int* rr);
+                                       , const amrex_real* dx, const int* rr, const int* use_limiter);
 
     void amrex_interp_efield (const int* lo, const int* hi
                                   , amrex_real* bx, const int* bxlo, const int* bxhi
@@ -39,7 +39,7 @@ extern "C" {
 #if (BL_SPACEDIM > 2)
                                   , const amrex_real* cz, const int* czlo, const int* czhi
 #endif
-                                  , const int* rr);
+                                  , const int* rr, const int* use_limiter);
 
 #ifdef __cplusplus
 
@@ -47,7 +47,7 @@ extern "C" {
     void amrex_interp_cc_bfield (const int* lo, const int* hi,
                                  amrex_real* by, const int* bylo, const int* byhi,
                                  const amrex_real* cy, const int* cylo, const int* cyhi,
-                                 const int* rr);
+                                 const int* rr, const int* use_limiter);
 
     void amrex_interp_nd_efield (const int* lo, const int* hi,
                                  amrex_real* ey, const int* eylo, const int* eyhi,

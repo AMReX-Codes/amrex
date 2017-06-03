@@ -1,12 +1,12 @@
 
 subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, &
-     cx, cxlo, cxhi, cy, cylo, cyhi, cz, czlo, czhi, dx, rr) bind(c)
+     cx, cxlo, cxhi, cy, cylo, cyhi, cz, czlo, czhi, dx, rr, use_limiter) bind(c)
   use amrex_fort_module, only : amrex_real, amrex_coarsen_intvect
   use mempool_module
   implicit none
 
   integer, intent(in) :: lo(3), hi(3), bxlo(3), bxhi(3), bylo(3), byhi(3), bzlo(3), bzhi(3), &
-       cxlo(3), cxhi(3), cylo(3), cyhi(3), czlo(3), czhi(3), rr
+       cxlo(3), cxhi(3), cylo(3), cyhi(3), czlo(3), czhi(3), rr, use_limiter
   real(amrex_real), intent(in) :: dx(3)
   real(amrex_real), intent(inout) :: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3))
   real(amrex_real), intent(inout) :: by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
@@ -38,55 +38,76 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
 
   do       k = clo(3), chi(3)
      do    j = clo(2), chi(2)
-        do i = clo(1), chi(1)+1
-           c1 = theta*(cx(i,j  ,k)-cx(i,j-1,k))
-           c2 = 0.5d0*(cx(i,j+1,k)-cx(i,j-1,k))
-           c3 = theta*(cx(i,j+1,k)-cx(i,j  ,k))
-           dCxdy(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-
-           c1 = theta*(cx(i,j,k  )-cx(i,j,k-1))
-           c2 = 0.5d0*(cx(i,j,k+1)-cx(i,j,k-1))
-           c3 = theta*(cx(i,j,k+1)-cx(i,j,k  ))
-           dCxdz(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-        end do
+        if (use_limiter .eq. 0) then
+           do i = clo(1), chi(1)+1
+              dCxdy(i,j,k) = 0.5d0*(cx(i,j+1,k)-cx(i,j-1,k))
+              dCxdz(i,j,k) = 0.5d0*(cx(i,j,k+1)-cx(i,j,k-1))
+           end do
+        else
+           do i = clo(1), chi(1)+1
+              c1 = theta*(cx(i,j  ,k)-cx(i,j-1,k))
+              c2 = 0.5d0*(cx(i,j+1,k)-cx(i,j-1,k))
+              c3 = theta*(cx(i,j+1,k)-cx(i,j  ,k))
+              dCxdy(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+              
+              c1 = theta*(cx(i,j,k  )-cx(i,j,k-1))
+              c2 = 0.5d0*(cx(i,j,k+1)-cx(i,j,k-1))
+              c3 = theta*(cx(i,j,k+1)-cx(i,j,k  ))
+              dCxdz(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+           end do
+        end if
      end do
   end do
 
   do       k = clo(3), chi(3)
      do    j = clo(2), chi(2)+1
-        do i = clo(1), chi(1)
-           c1 = theta*(cy(i  ,j,k)-cy(i-1,j,k))
-           c2 = 0.5d0*(cy(i+1,j,k)-cy(i-1,j,k))
-           c3 = theta*(cy(i+1,j,k)-cy(i  ,j,k))
-           dCydx(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-
-           c1 = theta*(cy(i,j,k  )-cy(i,j,k-1))
-           c2 = 0.5d0*(cy(i,j,k+1)-cy(i,j,k-1))
-           c3 = theta*(cy(i,j,k+1)-cy(i,j,k  ))
-           dCydz(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-        end do
+        if (use_limiter .eq. 0) then
+           do i = clo(1), chi(1)
+              dCydx(i,j,k) = 0.5d0*(cy(i+1,j,k)-cy(i-1,j,k))
+              dCydz(i,j,k) = 0.5d0*(cy(i,j,k+1)-cy(i,j,k-1))
+           end do
+        else
+           do i = clo(1), chi(1)
+              c1 = theta*(cy(i  ,j,k)-cy(i-1,j,k))
+              c2 = 0.5d0*(cy(i+1,j,k)-cy(i-1,j,k))
+              c3 = theta*(cy(i+1,j,k)-cy(i  ,j,k))
+              dCydx(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+              
+              c1 = theta*(cy(i,j,k  )-cy(i,j,k-1))
+              c2 = 0.5d0*(cy(i,j,k+1)-cy(i,j,k-1))
+              c3 = theta*(cy(i,j,k+1)-cy(i,j,k  ))
+              dCydz(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+           end do
+        end if
      end do
   end do
 
   do       k = clo(3), chi(3)+1
      do    j = clo(2), chi(2)
-        do i = clo(1), chi(1)
-           c1 = theta*(cz(i  ,j,k)-cz(i-1,j,k))
-           c2 = 0.5d0*(cz(i+1,j,k)-cz(i-1,j,k))
-           c3 = theta*(cz(i+1,j,k)-cz(i  ,j,k))
-           dCzdx(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-
-           c1 = theta*(cz(i,j  ,k)-cz(i,j-1,k))
-           c2 = 0.5d0*(cz(i,j+1,k)-cz(i,j-1,k))
-           c3 = theta*(cz(i,j+1,k)-cz(i,j  ,k))
-           dCzdy(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-        end do
+        if (use_limiter .eq. 0) then
+           do i = clo(1), chi(1)
+              dCzdx(i,j,k) = 0.5d0*(cz(i+1,j,k)-cz(i-1,j,k))
+              dCzdy(i,j,k) = 0.5d0*(cz(i,j+1,k)-cz(i,j-1,k))
+           end do
+        else
+           do i = clo(1), chi(1)
+              c1 = theta*(cz(i  ,j,k)-cz(i-1,j,k))
+              c2 = 0.5d0*(cz(i+1,j,k)-cz(i-1,j,k))
+              c3 = theta*(cz(i+1,j,k)-cz(i  ,j,k))
+              dCzdx(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+              
+              c1 = theta*(cz(i,j  ,k)-cz(i,j-1,k))
+              c2 = 0.5d0*(cz(i,j+1,k)-cz(i,j-1,k))
+              c3 = theta*(cz(i,j+1,k)-cz(i,j  ,k))
+              dCzdy(i,j,k) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+           end do
+        end if
      end do
   end do
 
@@ -177,13 +198,13 @@ end subroutine amrex_interp_div_free_bfield
 
 
 subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo, ezhi, &
-     cx, cxlo, cxhi, cy, cylo, cyhi, cz, czlo, czhi, rr) bind(c)
+     cx, cxlo, cxhi, cy, cylo, cyhi, cz, czlo, czhi, rr, use_limiter) bind(c)
   use amrex_fort_module, only : amrex_real, amrex_coarsen_intvect
   use mempool_module
   implicit none
 
   integer, intent(in) :: lo(3), hi(3), exlo(3), exhi(3), eylo(3), eyhi(3), ezlo(3), ezhi(3), &
-       cxlo(3), cxhi(3), cylo(3), cyhi(3), czlo(3), czhi(3), rr
+       cxlo(3), cxhi(3), cylo(3), cyhi(3), czlo(3), czhi(3), rr, use_limiter
 
   real(amrex_real), intent(inout) :: ex(exlo(1):exhi(1),exlo(2):exhi(2),exlo(3):exhi(3))
   real(amrex_real), intent(inout) :: ey(eylo(1):eyhi(1),eylo(2):eyhi(2),eylo(3):eyhi(3))
@@ -228,16 +249,24 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
            
   do       k  =  lo(3), hi(3)+1
      do    j  =  lo(2), hi(2)+1
-        do ic = clo(1),chi(1)
-           c1 = theta*(tmpx(ic  ,j,k) - tmpx(ic-1,j,k))
-           c2 = 0.5d0*(tmpx(ic+1,j,k) - tmpx(ic-1,j,k))
-           c3 = theta*(tmpx(ic+1,j,k) - tmpx(ic  ,j,k))
-           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-
-           ex(ic*2  ,j,k) = tmpx(ic,j,k) - 0.25d0*dc
-           ex(ic*2+1,j,k) = tmpx(ic,j,k) + 0.25d0*dc
-        end do
+        if (use_limiter .eq. 0) then
+           do ic = clo(1),chi(1)
+              dc = 0.5d0*(tmpx(ic+1,j,k) - tmpx(ic-1,j,k))              
+              ex(ic*2  ,j,k) = tmpx(ic,j,k) - 0.25d0*dc
+              ex(ic*2+1,j,k) = tmpx(ic,j,k) + 0.25d0*dc
+           end do
+        else
+           do ic = clo(1),chi(1)
+              c1 = theta*(tmpx(ic  ,j,k) - tmpx(ic-1,j,k))
+              c2 = 0.5d0*(tmpx(ic+1,j,k) - tmpx(ic-1,j,k))
+              c3 = theta*(tmpx(ic+1,j,k) - tmpx(ic  ,j,k))
+              dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+              
+              ex(ic*2  ,j,k) = tmpx(ic,j,k) - 0.25d0*dc
+              ex(ic*2+1,j,k) = tmpx(ic,j,k) + 0.25d0*dc
+           end do
+        end if
      end do
   end do
 
@@ -263,16 +292,24 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
   
   do       k  =  lo(3),  hi(3)+1
      do    jc = clo(2), chi(2)
-        do i  =  lo(1),  hi(1)+1
-           c1 = theta*(tmpy(i,jc  ,k) - tmpy(i,jc-1,k))
-           c2 = 0.5d0*(tmpy(i,jc+1,k) - tmpy(i,jc-1,k))
-           c3 = theta*(tmpy(i,jc+1,k) - tmpy(i,jc  ,k))
-           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-
-           ey(i,jc*2  ,k) = tmpy(i,jc,k) - 0.25d0*dc
-           ey(i,jc*2+1,k) = tmpy(i,jc,k) + 0.25d0*dc
-        end do
+        if (use_limiter .eq. 0) then
+           do i  =  lo(1),  hi(1)+1
+              dc = 0.5d0*(tmpy(i,jc+1,k) - tmpy(i,jc-1,k))              
+              ey(i,jc*2  ,k) = tmpy(i,jc,k) - 0.25d0*dc
+              ey(i,jc*2+1,k) = tmpy(i,jc,k) + 0.25d0*dc
+           end do
+        else
+           do i  =  lo(1),  hi(1)+1
+              c1 = theta*(tmpy(i,jc  ,k) - tmpy(i,jc-1,k))
+              c2 = 0.5d0*(tmpy(i,jc+1,k) - tmpy(i,jc-1,k))
+              c3 = theta*(tmpy(i,jc+1,k) - tmpy(i,jc  ,k))
+              dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+              
+              ey(i,jc*2  ,k) = tmpy(i,jc,k) - 0.25d0*dc
+              ey(i,jc*2+1,k) = tmpy(i,jc,k) + 0.25d0*dc
+           end do
+        end if
      end do
   end do
 
@@ -297,16 +334,24 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo
 
   do       kc = clo(3), chi(3)
      do    j  =  lo(2),  hi(2)+1
-        do i  =  lo(1),  hi(1)+1
-           c1 = theta*(tmpz(i,j,kc  ) - tmpz(i,j,kc-1))
-           c2 = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))
-           c3 = theta*(tmpz(i,j,kc+1) - tmpz(i,j,kc  ))
-           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-                *min(abs(c1),abs(c2),abs(c3))
-
-           ez(i,j,kc*2  ) = tmpz(i,j,kc) - 0.25d0*dc
-           ez(i,j,kc*2+1) = tmpz(i,j,kc) + 0.25d0*dc
-        end do
+        if (use_limiter .eq. 0) then
+           do i  =  lo(1),  hi(1)+1
+              dc = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))              
+              ez(i,j,kc*2  ) = tmpz(i,j,kc) - 0.25d0*dc
+              ez(i,j,kc*2+1) = tmpz(i,j,kc) + 0.25d0*dc
+           end do
+        else
+           do i  =  lo(1),  hi(1)+1
+              c1 = theta*(tmpz(i,j,kc  ) - tmpz(i,j,kc-1))
+              c2 = 0.5d0*(tmpz(i,j,kc+1) - tmpz(i,j,kc-1))
+              c3 = theta*(tmpz(i,j,kc+1) - tmpz(i,j,kc  ))
+              dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                   *min(abs(c1),abs(c2),abs(c3))
+              
+              ez(i,j,kc*2  ) = tmpz(i,j,kc) - 0.25d0*dc
+              ez(i,j,kc*2+1) = tmpz(i,j,kc) + 0.25d0*dc
+           end do
+        end if
      end do
   end do
   

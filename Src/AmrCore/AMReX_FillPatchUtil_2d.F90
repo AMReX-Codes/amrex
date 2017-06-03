@@ -1,12 +1,12 @@
 
 subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi, &
-     cx, cxlo, cxhi, cy, cylo, cyhi, dx, rr) bind(c)
+     cx, cxlo, cxhi, cy, cylo, cyhi, dx, rr, use_limiter) bind(c)
   use amrex_fort_module, only : amrex_real, amrex_coarsen_intvect
   use mempool_module
   implicit none
 
   integer, intent(in) :: lo(2), hi(2), bxlo(2), bxhi(2), bylo(2), byhi(2), &
-       cxlo(2), cxhi(2), cylo(2), cyhi(2), rr
+       cxlo(2), cxhi(2), cylo(2), cyhi(2), rr, use_limiter
   real(amrex_real), intent(in) :: dx(2)
   real(amrex_real), intent(inout) :: bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2))
   real(amrex_real), intent(inout) :: by(bylo(1):byhi(1),bylo(2):byhi(2))
@@ -31,22 +31,32 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
   call bl_allocate(dCydx, clo(1),chi(1)  ,clo(2),chi(2)+1)
 
   do    j = clo(2), chi(2)
-     do i = clo(1), chi(1)+1
-        c1 = theta*(cx(i,j  )-cx(i,j-1))
-        c2 = 0.5d0*(cx(i,j+1)-cx(i,j-1))
-        c3 = theta*(cx(i,j+1)-cx(i,j  ))
-        dCxdy(i,j) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-             *min(abs(c1),abs(c2),abs(c3))
-     end do
+     if (use_limiter .eq. 0) then
+        do i = clo(1), chi(1)+1
+           dCxdy(i,j) = 0.5d0*(cx(i,j+1)-cx(i,j-1))
+        end do
+     else
+        do i = clo(1), chi(1)+1
+           c1 = theta*(cx(i,j  )-cx(i,j-1))
+           c2 = 0.5d0*(cx(i,j+1)-cx(i,j-1))
+           c3 = theta*(cx(i,j+1)-cx(i,j  ))
+           dCxdy(i,j) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+        end do
+     end if
   end do
 
   do    j = clo(2), chi(2)+1
      do i = clo(1), chi(1)
-        c1 = theta*(cy(i  ,j)-cy(i-1,j))
-        c2 = 0.5d0*(cy(i+1,j)-cy(i-1,j))
-        c3 = theta*(cy(i+1,j)-cy(i  ,j))
-        dCydx(i,j) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-             *min(abs(c1),abs(c2),abs(c3))
+        if (use_limiter .eq. 0) then
+           dCydx(i,j) = 0.5d0*(cy(i+1,j)-cy(i-1,j))
+        else
+           c1 = theta*(cy(i  ,j)-cy(i-1,j))
+           c2 = 0.5d0*(cy(i+1,j)-cy(i-1,j))
+           c3 = theta*(cy(i+1,j)-cy(i  ,j))
+           dCydx(i,j) = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+        endif
      end do
   end do
 
@@ -96,13 +106,13 @@ subroutine amrex_interp_div_free_bfield (lo, hi, bx, bxlo, bxhi, by, bylo, byhi,
 end subroutine amrex_interp_div_free_bfield
 
 subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
-     cx, cxlo, cxhi, cy, cylo, cyhi, rr) bind(c)
+     cx, cxlo, cxhi, cy, cylo, cyhi, rr, use_limiter) bind(c)
   use amrex_fort_module, only : amrex_real, amrex_coarsen_intvect
   use mempool_module
   implicit none
 
   integer, intent(in) :: lo(2), hi(2), exlo(2), exhi(2), eylo(2), eyhi(2), &
-       cxlo(2), cxhi(2), cylo(2), cyhi(2), rr
+       cxlo(2), cxhi(2), cylo(2), cyhi(2), rr, use_limiter
   real(amrex_real), intent(inout) :: ex(exlo(1):exhi(1),exlo(2):exhi(2))
   real(amrex_real), intent(inout) :: ey(eylo(1):eyhi(1),eylo(2):eyhi(2))
   real(amrex_real), intent(in   ) :: cx(cxlo(1):cxhi(1),cxlo(2):cxhi(2))
@@ -132,16 +142,24 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
   end do
 
   do    j  =  lo(2), hi(2)+1
-     do ic = clo(1),chi(1)
-        c1 = theta*(tmpx(ic  ,j) - tmpx(ic-1,j))
-        c2 = 0.5d0*(tmpx(ic+1,j) - tmpx(ic-1,j))
-        c3 = theta*(tmpx(ic+1,j) - tmpx(ic  ,j))
-        dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-             *min(abs(c1),abs(c2),abs(c3))
-
-        ex(ic*2  ,j) = tmpx(ic,j) - 0.25d0*dc
-        ex(ic*2+1,j) = tmpx(ic,j) + 0.25d0*dc
-     end do
+     if (use_limiter .eq. 0) then
+        do ic = clo(1),chi(1)
+           dc = 0.5d0*(tmpx(ic+1,j) - tmpx(ic-1,j))           
+           ex(ic*2  ,j) = tmpx(ic,j) - 0.25d0*dc
+           ex(ic*2+1,j) = tmpx(ic,j) + 0.25d0*dc
+        end do
+     else
+        do ic = clo(1),chi(1)
+           c1 = theta*(tmpx(ic  ,j) - tmpx(ic-1,j))
+           c2 = 0.5d0*(tmpx(ic+1,j) - tmpx(ic-1,j))
+           c3 = theta*(tmpx(ic+1,j) - tmpx(ic  ,j))
+           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+           
+           ex(ic*2  ,j) = tmpx(ic,j) - 0.25d0*dc
+           ex(ic*2+1,j) = tmpx(ic,j) + 0.25d0*dc
+        end do
+     end if
   end do
 
   ! ey
@@ -155,16 +173,24 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
   end do
 
   do    jc = clo(2), chi(2)
-     do i  =  lo(1),  hi(1)+1
-        c1 = theta*(tmpy(i,jc  ) - tmpy(i,jc-1))
-        c2 = 0.5d0*(tmpy(i,jc+1) - tmpy(i,jc-1))
-        c3 = theta*(tmpy(i,jc+1) - tmpy(i,jc  ))
-        dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-             *min(abs(c1),abs(c2),abs(c3))
-
-        ey(i,jc*2  ) = tmpy(i,jc) - 0.25d0*dc
-        ey(i,jc*2+1) = tmpy(i,jc) + 0.25d0*dc
-     end do
+     if (use_limiter .eq. 0) then
+        do i  =  lo(1),  hi(1)+1
+           dc = 0.5d0*(tmpy(i,jc+1) - tmpy(i,jc-1))           
+           ey(i,jc*2  ) = tmpy(i,jc) - 0.25d0*dc
+           ey(i,jc*2+1) = tmpy(i,jc) + 0.25d0*dc
+        end do
+     else
+        do i  =  lo(1),  hi(1)+1
+           c1 = theta*(tmpy(i,jc  ) - tmpy(i,jc-1))
+           c2 = 0.5d0*(tmpy(i,jc+1) - tmpy(i,jc-1))
+           c3 = theta*(tmpy(i,jc+1) - tmpy(i,jc  ))
+           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+           
+           ey(i,jc*2  ) = tmpy(i,jc) - 0.25d0*dc
+           ey(i,jc*2+1) = tmpy(i,jc) + 0.25d0*dc
+        end do
+     end if
   end do
 
   call bl_deallocate(tmpx)
@@ -172,12 +198,12 @@ subroutine amrex_interp_efield (lo, hi, ex, exlo, exhi, ey, eylo, eyhi, &
 
 end subroutine amrex_interp_efield
 
-subroutine amrex_interp_cc_bfield (lo, hi, by, bylo, byhi, cy, cylo, cyhi, rr) bind(c)
+subroutine amrex_interp_cc_bfield (lo, hi, by, bylo, byhi, cy, cylo, cyhi, rr, use_limiter) bind(c)
   use amrex_fort_module, only : amrex_real, amrex_coarsen_intvect
   use mempool_module
   implicit none
 
-  integer, intent(in) :: lo(2), hi(2), bylo(2), byhi(2), cylo(2), cyhi(2), rr
+  integer, intent(in) :: lo(2), hi(2), bylo(2), byhi(2), cylo(2), cyhi(2), rr, use_limiter
   real(amrex_real), intent(inout) :: by(bylo(1):byhi(1),bylo(2):byhi(2))
   real(amrex_real), intent(in   ) :: cy(cylo(1):cyhi(1),cylo(2):cyhi(2))
 
@@ -193,27 +219,43 @@ subroutine amrex_interp_cc_bfield (lo, hi, by, bylo, byhi, cy, cylo, cyhi, rr) b
   call bl_allocate(tmp,lo(1),hi(1),clo(2)-1,chi(2)+1)
 
   do    jc = clo(2)-1, chi(2)+1
-     do ic = clo(1)  , chi(1)
-        c1 = theta*(cy(ic  ,jc) - cy(ic-1,jc))
-        c2 = 0.5d0*(cy(ic+1,jc) - cy(ic-1,jc))
-        c3 = theta*(cy(ic+1,jc) - cy(ic  ,jc))
-        dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-             *min(abs(c1),abs(c2),abs(c3))
-        tmp(ic*2  ,jc) = cy(ic,jc) - 0.25d0*dc
-        tmp(ic*2+1,jc) = cy(ic,jc) + 0.25d0*dc
-     end do
+     if (use_limiter .eq. 0) then
+        do ic = clo(1)  , chi(1)
+           dc = 0.5d0*(cy(ic+1,jc) - cy(ic-1,jc))
+           tmp(ic*2  ,jc) = cy(ic,jc) - 0.25d0*dc
+           tmp(ic*2+1,jc) = cy(ic,jc) + 0.25d0*dc
+        end do
+     else
+        do ic = clo(1)  , chi(1)
+           c1 = theta*(cy(ic  ,jc) - cy(ic-1,jc))
+           c2 = 0.5d0*(cy(ic+1,jc) - cy(ic-1,jc))
+           c3 = theta*(cy(ic+1,jc) - cy(ic  ,jc))
+           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+           tmp(ic*2  ,jc) = cy(ic,jc) - 0.25d0*dc
+           tmp(ic*2+1,jc) = cy(ic,jc) + 0.25d0*dc
+        end do
+     end if
   end do
 
   do    jc = clo(2), chi(2)
-     do i  =  lo(1),  hi(1)
-        c1 = theta*(tmp(i,jc  ) - tmp(i,jc-1))
-        c2 = 0.5d0*(tmp(i,jc+1) - tmp(i,jc-1))
-        c3 = theta*(tmp(i,jc+1) - tmp(i,jc  ))
-        dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
-             *min(abs(c1),abs(c2),abs(c3))
-        by(i,jc*2  ) = tmp(i,jc) - 0.25d0*dc
-        by(i,jc*2+1) = tmp(i,jc) + 0.25d0*dc
-     end do
+     if (use_limiter .eq. 0) then
+        do i  =  lo(1),  hi(1)
+           dc = 0.5d0*(tmp(i,jc+1) - tmp(i,jc-1))
+           by(i,jc*2  ) = tmp(i,jc) - 0.25d0*dc
+           by(i,jc*2+1) = tmp(i,jc) + 0.25d0*dc
+        end do
+     else
+        do i  =  lo(1),  hi(1)
+           c1 = theta*(tmp(i,jc  ) - tmp(i,jc-1))
+           c2 = 0.5d0*(tmp(i,jc+1) - tmp(i,jc-1))
+           c3 = theta*(tmp(i,jc+1) - tmp(i,jc  ))
+           dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
+                *min(abs(c1),abs(c2),abs(c3))
+           by(i,jc*2  ) = tmp(i,jc) - 0.25d0*dc
+           by(i,jc*2+1) = tmp(i,jc) + 0.25d0*dc
+        end do
+     end if
   end do
 
   call bl_deallocate(tmp)
