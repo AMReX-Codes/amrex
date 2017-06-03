@@ -61,6 +61,8 @@ WarpX::UpdateAuxiliaryData ()
         Efield_fp[lev][2]->FillBoundary(period);
     }
 
+    const int use_limiter = 0;
+
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& crse_period = Geom(lev-1).periodicity();
@@ -107,18 +109,18 @@ WarpX::UpdateAuxiliaryData ()
                                                  BL_TO_FORTRAN_ANYD(cxfab),
                                                  BL_TO_FORTRAN_ANYD(cyfab),
                                                  BL_TO_FORTRAN_ANYD(czfab),
-                                                 dx, &ref_ratio);
+                                                 dx, &ref_ratio,&use_limiter);
 #else
                     amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
                                                  BL_TO_FORTRAN_ANYD(bfab[0]),
                                                  BL_TO_FORTRAN_ANYD(bfab[2]),
                                                  BL_TO_FORTRAN_ANYD(cxfab),
                                                  BL_TO_FORTRAN_ANYD(czfab),
-                                                 dx, &ref_ratio);
+                                                 dx, &ref_ratio,&use_limiter);
                     amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
                                            BL_TO_FORTRAN_ANYD(bfab[1]),
                                            BL_TO_FORTRAN_ANYD(cyfab),
-                                           &ref_ratio);
+                                           &ref_ratio,&use_limiter);
 #endif
                     
                     for (int idim = 0; idim < 3; ++idim)
@@ -172,14 +174,14 @@ WarpX::UpdateAuxiliaryData ()
                                         BL_TO_FORTRAN_ANYD(cxfab),
                                         BL_TO_FORTRAN_ANYD(cyfab),
                                         BL_TO_FORTRAN_ANYD(czfab),
-                                        &ref_ratio);
+                                        &ref_ratio,&use_limiter);
 #else
                     amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
                                         BL_TO_FORTRAN_ANYD(efab[0]),
                                         BL_TO_FORTRAN_ANYD(efab[2]),
                                         BL_TO_FORTRAN_ANYD(cxfab),
                                         BL_TO_FORTRAN_ANYD(czfab),
-                                        &ref_ratio);
+                                        &ref_ratio,&use_limiter);
                     amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
                                            BL_TO_FORTRAN_ANYD(efab[1]),
                                            BL_TO_FORTRAN_ANYD(cyfab),
