@@ -1,6 +1,7 @@
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIter (ContainerType& pc, int level)
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBase 
+  (ContainerRef pc, int level)
     : 
     MFIter(*pc.m_dummy_mf[level],
            pc.do_tiling ? pc.tile_size : IntVect::TheZeroVector()),
@@ -33,11 +34,11 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIter (ContainerType&
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template<class>
 void
-ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition (AMREX_D_DECL(const Array<Real>& x,
-                                                                             const Array<Real>& y,
-                                                                             const Array<Real>& z))
+ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
+  (AMREX_D_DECL(const Array<Real>& x, const Array<Real>& y, const Array<Real>& z)) const
 {
     auto& aos = GetArrayOfStructs();
     BL_ASSERT(AMREX_D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));
@@ -47,11 +48,10 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition (AMREX_D_DE
                                 AMREX_D_DECL(x.data(), y.data(), z.data()));
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition (AMREX_D_DECL(Array<Real>& x,
-                                                                             Array<Real>& y,
-                                                                             Array<Real>& z)) const
+ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition
+  (AMREX_D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z)) const
 {
     const auto& aos = GetArrayOfStructs();
     const auto  p     = aos.data();
