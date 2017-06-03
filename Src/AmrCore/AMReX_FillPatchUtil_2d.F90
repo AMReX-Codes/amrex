@@ -200,7 +200,7 @@ subroutine amrex_interp_cc_bfield (lo, hi, by, bylo, byhi, cy, cylo, cyhi, rr) b
         dc = 0.25d0*(sign(1.d0,c1)+sign(1.d0,c2))*(sign(1.d0,c1)+sign(1.d0,c3)) &
              *min(abs(c1),abs(c2),abs(c3))
         tmp(ic*2  ,jc) = cy(ic,jc) - 0.25d0*dc
-        tmp(ic*2+1,jc) = cy(ic,jc) - 0.25d0*dc
+        tmp(ic*2+1,jc) = cy(ic,jc) + 0.25d0*dc
      end do
   end do
 
