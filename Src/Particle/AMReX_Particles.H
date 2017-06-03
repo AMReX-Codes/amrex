@@ -864,7 +864,7 @@ template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, in
 class ParIterBase
     : public MFIter
 {
-public:
+private:
     using PCType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
     using ParticleTileRef = typename std::conditional
@@ -876,6 +876,7 @@ public:
     using SoARef          = typename std::conditional
         <is_const, typename PCType::SoA const&, typename PCType::SoA&>::type;
 
+public:
     ParIterBase (ContainerRef pc, int level);
 
     void operator++ () {
@@ -890,16 +891,11 @@ public:
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
 
-    void SetPosition (AMREX_D_DECL(const Array<Real>& x,
-                                   const Array<Real>& y,
-                                   const Array<Real>& z)) const;
-
     void GetPosition (AMREX_D_DECL(Array<Real>& x,
                                    Array<Real>& y,
                                    Array<Real>& z)) const;
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
-
 protected:
     int m_level;
     int m_pariter_index;
@@ -922,6 +918,10 @@ public:
     ParIter (ContainerType& pc, int level)
         : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
         {}
+
+    void SetPosition (AMREX_D_DECL(const Array<Real>& x,
+                                   const Array<Real>& y,
+                                   const Array<Real>& z)) const;
 };
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
