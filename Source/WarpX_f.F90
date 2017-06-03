@@ -413,11 +413,11 @@ contains
                      ( fine(ii  ,jj,kk) + 0.5d0 *(fine(ii  ,jj-1,kk  )+fine(ii  ,jj+1,kk  ) &
                      &                          + fine(ii  ,jj  ,kk-1)+fine(ii  ,jj  ,kk+1)) &
                      &                  + 0.25d0*(fine(ii  ,jj-1,kk-1)+fine(ii  ,jj+1,kk-1) &
-                     &                          + fine(ii  ,jj+1,kk-1)+fine(ii  ,jj+1,kk+1)) &
+                     &                          + fine(ii  ,jj-1,kk+1)+fine(ii  ,jj+1,kk+1)) &
                      + fine(ii+1,jj,kk) + 0.5d0 *(fine(ii+1,jj-1,kk  )+fine(ii+1,jj+1,kk  ) &
                      &                          + fine(ii+1,jj  ,kk-1)+fine(ii+1,jj  ,kk+1)) &
                      &                  + 0.25d0*(fine(ii+1,jj-1,kk-1)+fine(ii+1,jj+1,kk-1) &
-                     &                          + fine(ii+1,jj+1,kk-1)+fine(ii+1,jj+1,kk+1)) )
+                     &                          + fine(ii+1,jj-1,kk+1)+fine(ii+1,jj+1,kk+1)) )
              end do
           end do
        end do
@@ -432,11 +432,11 @@ contains
                      ( fine(ii,jj  ,kk) + 0.5d0 *(fine(ii-1,jj  ,kk  )+fine(ii+1,jj  ,kk  ) &
                      &                          + fine(ii  ,jj  ,kk-1)+fine(ii  ,jj  ,kk+1)) &
                      &                  + 0.25d0*(fine(ii-1,jj  ,kk-1)+fine(ii+1,jj  ,kk-1) &
-                     &                          + fine(ii+1,jj  ,kk-1)+fine(ii+1,jj  ,kk+1)) &
+                     &                          + fine(ii-1,jj  ,kk+1)+fine(ii+1,jj  ,kk+1)) &
                      + fine(ii,jj+1,kk) + 0.5d0 *(fine(ii-1,jj+1,kk  )+fine(ii+1,jj+1,kk  ) &
                      &                          + fine(ii  ,jj+1,kk-1)+fine(ii  ,jj+1,kk+1)) &
                      &                  + 0.25d0*(fine(ii-1,jj+1,kk-1)+fine(ii+1,jj+1,kk-1) &
-                     &                          + fine(ii+1,jj+1,kk-1)+fine(ii+1,jj+1,kk+1)) )
+                     &                          + fine(ii-1,jj+1,kk+1)+fine(ii+1,jj+1,kk+1)) )
              end do
           end do
        end do
@@ -451,11 +451,11 @@ contains
                      ( fine(ii,jj,kk  ) + 0.5d0 *(fine(ii-1,jj  ,kk  )+fine(ii+1,jj  ,kk  ) &
                      &                          + fine(ii  ,jj-1,kk  )+fine(ii  ,jj+1,kk  )) &
                      &                  + 0.25d0*(fine(ii-1,jj-1,kk  )+fine(ii+1,jj-1,kk  ) &
-                     &                          + fine(ii+1,jj-1,kk  )+fine(ii+1,jj+1,kk  )) &
+                     &                          + fine(ii-1,jj+1,kk  )+fine(ii+1,jj+1,kk  )) &
                      + fine(ii,jj,kk+1) + 0.5d0 *(fine(ii-1,jj  ,kk+1)+fine(ii+1,jj  ,kk+1) &
                      &                          + fine(ii  ,jj-1,kk+1)+fine(ii  ,jj+1,kk+1)) &
                      &                  + 0.25d0*(fine(ii-1,jj-1,kk+1)+fine(ii+1,jj-1,kk+1) &
-                     &                          + fine(ii+1,jj-1,kk+1)+fine(ii+1,jj+1,kk+1)) )
+                     &                          + fine(ii-1,jj+1,kk+1)+fine(ii+1,jj+1,kk+1)) )
              end do
           end do
        end do
