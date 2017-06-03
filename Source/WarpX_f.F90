@@ -370,7 +370,7 @@ contains
                   + 0.5d0*(fine(ii,jj-1) + fine(ii+1,jj-1) + fine(ii,jj+1) + fine(ii+1,jj+1)) )
           end do
        end do
-    else if (dir == 1) then
+    else if (dir == 2) then
        do j = lo(2), hi(2)
           jj = j*2
           do i = lo(1), hi(1)
@@ -388,7 +388,7 @@ contains
                      ( fine(ii,jj) + 0.5d0 *(fine(ii-1,jj  )+fine(ii+1,jj  ) &
                      &                     + fine(ii  ,jj-1)+fine(ii  ,jj+1)) &
                      &             + 0.25d0*(fine(ii-1,jj-1)+fine(ii+1,jj-1) &
-                     &                     + fine(ii+1,jj-1)+fine(ii+1,jj+1)) ) 
+                     &                     + fine(ii-1,jj+1)+fine(ii+1,jj+1)) ) 
           end do
        end do
     end if
