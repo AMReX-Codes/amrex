@@ -890,7 +890,6 @@ public:
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
 
-    template<class = typename std::enable_if<!is_const>::type>
     void SetPosition (AMREX_D_DECL(const Array<Real>& x,
                                    const Array<Real>& y,
                                    const Array<Real>& z)) const;

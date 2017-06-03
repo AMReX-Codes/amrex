@@ -35,7 +35,6 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
 }
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-template<class>
 void
 ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
   (AMREX_D_DECL(const Array<Real>& x, const Array<Real>& y, const Array<Real>& z)) const
