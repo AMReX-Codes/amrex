@@ -64,8 +64,8 @@ positron.injection_style = "SingleParticle"
 positron.single_particle_pos = 0.0  0.0  -1.25
 positron.single_particle_vel = 0.45825756949558416  0.0  0.0   # gamma*beta
 
-electron.single_particle_weight = 16.0e12
-positron.single_particle_weight = 16.0e12
+electron.single_particle_weight = 8.0e12
+positron.single_particle_weight = 8.0e12
 
 # interpolation
 interpolation.nox = 3
