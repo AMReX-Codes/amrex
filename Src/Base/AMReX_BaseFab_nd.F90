@@ -11,7 +11,7 @@ contains
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n,off(3)
 
 #ifdef CUDA
@@ -31,8 +31,8 @@ contains
        end do
     end do
   end subroutine fort_fab_copy_doit
-    
-  
+
+
   ! copy from multi-d array to 1d array
   function fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) result(nelems) &
        bind(c,name='fort_fab_copytomem')
@@ -89,7 +89,7 @@ contains
 
     nelems = offset - (1-lo(1))
   end function fort_fab_copyfrommem
-  
+
 
 
   subroutine fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
@@ -103,7 +103,7 @@ contains
     attributes(device) :: dst
 #endif
 
-    !$cuf kernel do <<<*, 256>>>
+    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -130,7 +130,7 @@ contains
 
     nrm = 0.0_amrex_real
     if (p .eq. 0) then ! max norm
-       !$cuf kernel do <<<*, 256>>>
+       !$cuf kernel do(4) <<<*, 256>>>
        do n = 1, ncomp
           do       k = lo(3), hi(3)
              do    j = lo(2), hi(2)
@@ -141,7 +141,7 @@ contains
           end do
        end do
     else if (p .eq. 1) then
-       !$cuf kernel do <<<*, 256>>>
+       !$cuf kernel do(4) <<<*, 256>>>
        do n = 1, ncomp
           do       k = lo(3), hi(3)
              do    j = lo(2), hi(2)
@@ -155,15 +155,19 @@ contains
   end function fort_fab_norm_doit
 
 
-  function fort_fab_sum (lo, hi, src, slo, shi, ncomp) result(sm) &
-       bind(c,name='fort_fab_sum')
+  function fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp) result(sm)
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real) :: sm
 
     integer :: i,j,k,n
 
+#ifdef CUDA
+    attributes(device) :: src
+#endif
+
     sm = 0.0_amrex_real
+    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -173,19 +177,23 @@ contains
           end do
        end do
     end do
-  end function fort_fab_sum
+  end function fort_fab_sum_doit
 
 
-  subroutine fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
-       bind(c,name='fort_fab_plus')
+  subroutine fort_fab_plus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n,off(3)
+
+#ifdef CUDA
+    attributes(device) :: src, dst, off
+#endif
 
     off = sblo - lo
 
+    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -195,19 +203,23 @@ contains
           end do
        end do
     end do
-  end subroutine fort_fab_plus
+  end subroutine fort_fab_plus_doit
 
 
-  subroutine fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
-       bind(c,name='fort_fab_minus')
+  subroutine fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n,off(3)
+
+#ifdef CUDA
+    attributes(device) :: src, dst, off
+#endif
 
     off = sblo - lo
 
+    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -217,19 +229,23 @@ contains
           end do
        end do
     end do
-  end subroutine fort_fab_minus
+  end subroutine fort_fab_minus_doit
 
 
-  subroutine fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
-       bind(c,name='fort_fab_mult')
+  subroutine fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n,off(3)
+
+#ifdef CUDA
+    attributes(device) :: src, dst, off
+#endif
 
     off = sblo - lo
 
+    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -239,19 +255,23 @@ contains
           end do
        end do
     end do
-  end subroutine fort_fab_mult
+  end subroutine fort_fab_mult_doit
 
 
-  subroutine fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
-       bind(c,name='fort_fab_divide')
+  subroutine fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n,off(3)
+
+#ifdef CUDA
+    attributes(device) :: src, dst, off
+#endif
 
     off = sblo - lo
 
+    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -261,7 +281,7 @@ contains
           end do
        end do
     end do
-  end subroutine fort_fab_divide
+  end subroutine fort_fab_divide_doit
 
 
   subroutine fort_fab_protdivide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
@@ -269,7 +289,7 @@ contains
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n,off(3)
 
     off = sblo - lo
@@ -294,7 +314,7 @@ contains
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
     real(amrex_real), intent(in   ) :: a
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n
 
     do n = 1, ncomp
@@ -315,7 +335,7 @@ contains
     real(amrex_real), intent(in   ) :: a
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n,off(3)
 
 #ifdef CUDA
@@ -324,7 +344,7 @@ contains
 
     off = sblo - lo
 
-    !$cuf kernel do <<<*, 256>>>
+    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -344,7 +364,7 @@ contains
     real(amrex_real), intent(in   ) :: a
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
     integer :: i,j,k,n,off(3)
 
     off = sblo - lo
@@ -370,7 +390,7 @@ contains
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
     real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
     real(amrex_real), intent(in   ) ::   y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
-    
+
     integer :: i,j,k,n,xoff(3),yoff(3)
 
     xoff = xblo - lo
@@ -395,7 +415,7 @@ contains
     real(amrex_real), intent(in   ) :: src1(s1lo(1):s1hi(1),s1lo(2):s1hi(2),s1lo(3):s1hi(3),ncomp)
     real(amrex_real), intent(in   ) :: src2(s2lo(1):s2hi(1),s2lo(2):s2hi(2),s2lo(3):s2hi(3),ncomp)
     real(amrex_real), intent(inout) ::  dst( dlo(1): dhi(1), dlo(2): dhi(2), dlo(3): dhi(3),ncomp)
-    
+
     integer :: i,j,k,n
 
     do n = 1, ncomp
@@ -408,7 +428,7 @@ contains
        end do
     end do
   end subroutine fort_fab_addproduct
-  
+
   ! dot_product
   function fort_fab_dot(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp) result(dp) &
        bind(c,name='fort_fab_dot')
@@ -443,7 +463,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_copy_doit
 #ifdef CUDA
-    use cudafor, only: cudaDeviceSynchronize
+    use cuda_module, only: gpu_synchronize
 #endif
 
     implicit none
@@ -451,16 +471,15 @@ end module basefab_nd_module
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    
+
 #ifdef CUDA
     attributes(device) :: src, dst
-    integer :: cuda_result
 #endif
 
     call fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
 #ifdef CUDA
-    cuda_result = cudaDeviceSynchronize()
+    call gpu_synchronize()
 #endif
 
   end subroutine fort_fab_copy
@@ -473,7 +492,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_setval_doit
 #ifdef CUDA
-    use cudafor, only: cudaDeviceSynchronize
+    use cuda_module, only: gpu_synchronize
 #endif
 
     implicit none
@@ -484,13 +503,12 @@ end module basefab_nd_module
 
 #ifdef CUDA
     attributes(device) :: dst
-    integer :: cuda_result
 #endif
 
     call fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
-    
+
 #ifdef CUDA
-    cuda_result = cudaDeviceSynchronize()
+    call gpu_synchronize()
 #endif
 
   end subroutine fort_fab_setval
@@ -504,7 +522,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_norm_doit
 #ifdef CUDA
-    use cudafor, only: cudaDeviceSynchronize
+    use cuda_module, only: gpu_synchronize
 #endif
 
     implicit none
@@ -515,13 +533,12 @@ end module basefab_nd_module
 
 #ifdef CUDA
     attributes(device) :: src
-    integer :: cuda_result
 #endif
 
     nrm = fort_fab_norm_doit(lo, hi, src, slo, shi, ncomp, p)
 
 #ifdef CUDA
-    cuda_result = cudaDeviceSynchronize()
+    call gpu_synchronize()
 #endif
 
   end function fort_fab_norm
@@ -533,7 +550,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_saxpy_doit
 #ifdef CUDA
-    use cudafor, only: cudaDeviceSynchronize
+    use cuda_module, only: gpu_synchronize
 #endif
 
     implicit none
@@ -544,14 +561,156 @@ end module basefab_nd_module
 
 #ifdef CUDA
     attributes(device) :: src, dst
-    integer :: cuda_result
 #endif
-    
+
     call fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
-    
+
 #ifdef CUDA
-    cuda_result = cudaDeviceSynchronize()
+    call gpu_synchronize()
 #endif
 
   end subroutine fort_fab_saxpy
+
+
+
+  subroutine fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+                           bind(c,name='fort_fab_plus')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_plus_doit
+#ifdef CUDA
+    use cuda_module, only: gpu_synchronize
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+#ifdef CUDA
+    attributes(device) :: src, dst
+#endif
+
+    call fort_fab_plus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+
+#ifdef CUDA
+    call gpu_synchronize()
+#endif
+
+  end subroutine fort_fab_plus
+
+
+
+  function fort_fab_sum(lo, hi, src, slo, shi, ncomp) result(sm) &
+                        bind(c,name='fort_fab_sum')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_sum_doit
+#ifdef CUDA
+    use cuda_module, only: gpu_synchronize
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
+    real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real) :: sm
+
+#ifdef CUDA
+    attributes(device) :: src
+#endif
+
+    sm = fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp)
+
+#ifdef CUDA
+    call gpu_synchronize()
+#endif
+
+  end function fort_fab_sum
+
+
+
+  subroutine fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+                            bind(c,name='fort_fab_minus')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_minus_doit
+#ifdef CUDA
+    use cuda_module, only: gpu_synchronize
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+#ifdef CUDA
+    attributes(device) :: src, dst
+#endif
+
+    call fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+
+#ifdef CUDA
+    call gpu_synchronize()
+#endif
+  end subroutine fort_fab_minus
+
+
+
+  subroutine fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+                           bind(c,name='fort_fab_mult')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_mult_doit
+#ifdef CUDA
+    use cuda_module, only: gpu_synchronize
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+#ifdef CUDA
+    attributes(device) :: src, dst
+#endif
+
+    call fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+
+#ifdef CUDA
+    call gpu_synchronize()
+#endif
+
+  end subroutine fort_fab_mult
+
+
+  subroutine fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+                             bind(c,name='fort_fab_divide')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_divide_doit
+#ifdef CUDA
+    use cuda_module, only: gpu_synchronize
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+#ifdef CUDA
+    attributes(device) :: src, dst
+#endif
+
+    call fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+
+#ifdef CUDA
+    call gpu_synchronize()
+#endif
+
+  end subroutine fort_fab_divide
 
