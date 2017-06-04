@@ -209,7 +209,7 @@ WarpX::EvolveB (int lev, Real dt)
         }
     }
 
-    if (do_pml)
+    if (do_pml && pml[lev]->ok())
     {
         pml[lev]->ComputePMLFactorsB(dt);
 
@@ -327,7 +327,7 @@ WarpX::EvolveE (int lev, Real dt)
         }
     }
 
-    if (do_pml)
+    if (do_pml && pml[lev]->ok())
     {
         pml[lev]->ComputePMLFactorsE(dt);
 

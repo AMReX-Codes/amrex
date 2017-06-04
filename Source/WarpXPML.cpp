@@ -350,6 +350,13 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
       m_cgeom(cgeom)
 {
     const BoxArray& ba = MakeBoxArray(*geom, grid_ba, ncell);
+    if (ba.size() == 0) {
+        m_ok = false;
+        return;
+    } else {
+        m_ok = true;
+    }
+
     DistributionMapping dm{ba};
 
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 2, 0));
@@ -496,10 +503,13 @@ void
 PML::ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
                 const std::array<amrex::MultiFab*,3>& B_cp)
 {
-    Exchange(*pml_B_fp[0], *B_fp[0], *m_geom);
-    Exchange(*pml_B_fp[1], *B_fp[1], *m_geom);
-    Exchange(*pml_B_fp[2], *B_fp[2], *m_geom);
-    if (B_cp[0])
+    if (pml_B_fp[0]) 
+    {
+        Exchange(*pml_B_fp[0], *B_fp[0], *m_geom);
+        Exchange(*pml_B_fp[1], *B_fp[1], *m_geom);
+        Exchange(*pml_B_fp[2], *B_fp[2], *m_geom);
+    }
+    if (B_cp[0] && pml_B_cp[0])
     {
         Exchange(*pml_B_cp[0], *B_cp[0], *m_cgeom);
         Exchange(*pml_B_cp[1], *B_cp[1], *m_cgeom);
@@ -511,10 +521,13 @@ void
 PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
                 const std::array<amrex::MultiFab*,3>& E_cp)
 {
-    Exchange(*pml_E_fp[0], *E_fp[0], *m_geom);
-    Exchange(*pml_E_fp[1], *E_fp[1], *m_geom);
-    Exchange(*pml_E_fp[2], *E_fp[2], *m_geom);
-    if (E_cp[0])
+    if (pml_E_fp[0])
+    {
+        Exchange(*pml_E_fp[0], *E_fp[0], *m_geom);
+        Exchange(*pml_E_fp[1], *E_fp[1], *m_geom);
+        Exchange(*pml_E_fp[2], *E_fp[2], *m_geom);
+    }
+    if (E_cp[0] && pml_E_cp[0])
     {
         Exchange(*pml_E_cp[0], *E_cp[0], *m_cgeom);
         Exchange(*pml_E_cp[1], *E_cp[1], *m_cgeom);
@@ -573,11 +586,14 @@ PML::FillBoundaryE ()
 void
 PML::FillBoundaryB ()
 {
-    const auto& period = m_geom->periodicity();
-    pml_B_fp[0]->FillBoundary(period);
-    pml_B_fp[1]->FillBoundary(period);
-    pml_B_fp[2]->FillBoundary(period);
-    
+    if (pml_B_fp[0])
+    {
+        const auto& period = m_geom->periodicity();
+        pml_B_fp[0]->FillBoundary(period);
+        pml_B_fp[1]->FillBoundary(period);
+        pml_B_fp[2]->FillBoundary(period);
+    }    
+
     if (pml_B_cp[0])
     {
         const auto& period = m_cgeom->periodicity();

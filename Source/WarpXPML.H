@@ -121,7 +121,11 @@ public:
     void FillBoundaryE ();
     void FillBoundaryB ();
 
+    bool ok () const { return m_ok; }
+
 private:
+    bool m_ok;
+
     const amrex::Geometry* m_geom;
     const amrex::Geometry* m_cgeom;
 

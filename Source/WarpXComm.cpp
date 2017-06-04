@@ -12,7 +12,7 @@ using namespace amrex;
 void
 WarpX::ExchangeWithPmlB (int lev)
 {
-    if (do_pml) {
+    if (do_pml && pml[lev]->ok()) {
         pml[lev]->ExchangeB({ Bfield_fp[lev][0].get(),
                               Bfield_fp[lev][1].get(),
                               Bfield_fp[lev][2].get() },
@@ -25,7 +25,7 @@ WarpX::ExchangeWithPmlB (int lev)
 void
 WarpX::ExchangeWithPmlE (int lev)
 {
-    if (do_pml) {
+    if (do_pml && pml[lev]->ok()) {
         pml[lev]->ExchangeE({ Efield_fp[lev][0].get(),
                               Efield_fp[lev][1].get(),
                               Efield_fp[lev][2].get() },
@@ -196,7 +196,7 @@ WarpX::FillBoundaryE(int lev)
 {
     const auto& period = Geom(lev).periodicity();
 
-    if (do_pml) {
+    if (do_pml && pml[lev]->ok()) {
         ExchangeWithPmlE(lev);
         pml[lev]->FillBoundaryE();
     }
@@ -219,7 +219,7 @@ WarpX::FillBoundaryB(int lev)
 {
     const auto& period = Geom(lev).periodicity();
 
-    if (do_pml)
+    if (do_pml && pml[lev]->ok())
     {
         ExchangeWithPmlB(lev);
         pml[lev]->FillBoundaryB();
