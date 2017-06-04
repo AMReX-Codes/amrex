@@ -59,6 +59,10 @@ TinyProfiler::start ()
 
 	Stats& st = statsmap[fname];
 	++st.depth;
+
+#ifdef CUDA
+	nvtx_id = nvtxRangeStartA(fname.c_str());
+#endif
     }
 }
 
@@ -99,6 +103,10 @@ TinyProfiler::stop ()
 		std::pair<Real,Real>& parent = ttstack.top();
 		parent.second += dtin;
 	    }
+
+#ifdef CUDA
+	    nvtxRangeEnd(nvtx_id);
+#endif
 	} else {
 	    improperly_nested_timers.insert(fname);
 	} 
