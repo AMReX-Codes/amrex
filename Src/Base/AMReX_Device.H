@@ -5,6 +5,10 @@
 #include <cstdlib>
 
 #ifdef CUDA
+#include "nvToolsExt.h"
+#endif
+
+#ifdef CUDA
 extern "C" {
     void initialize_cuda();
     void gpu_malloc(void** p, const std::size_t* sz);
