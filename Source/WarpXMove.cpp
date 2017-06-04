@@ -6,8 +6,6 @@ using namespace amrex;
 void
 WarpX::MoveWindow (bool move_j)
 {
-// xxxxx
-#if 0
     if (do_moving_window == 0) return;
 
     if (max_level > 0) {
@@ -39,23 +37,22 @@ WarpX::MoveWindow (bool move_j)
     geom[lev].ProbDomain(new_box);
 
     // shift the mesh fields (Note - only on level 0 for now)
-    shiftMF(*Bfield[lev][0], geom[lev], num_shift, dir);
-    shiftMF(*Bfield[lev][1], geom[lev], num_shift, dir);
-    shiftMF(*Bfield[lev][2], geom[lev], num_shift, dir);
-    shiftMF(*Efield[lev][0], geom[lev], num_shift, dir);
-    shiftMF(*Efield[lev][1], geom[lev], num_shift, dir);
-    shiftMF(*Efield[lev][2], geom[lev], num_shift, dir);
+    shiftMF(*Bfield_fp[lev][0], geom[lev], num_shift, dir);
+    shiftMF(*Bfield_fp[lev][1], geom[lev], num_shift, dir);
+    shiftMF(*Bfield_fp[lev][2], geom[lev], num_shift, dir);
+    shiftMF(*Efield_fp[lev][0], geom[lev], num_shift, dir);
+    shiftMF(*Efield_fp[lev][1], geom[lev], num_shift, dir);
+    shiftMF(*Efield_fp[lev][2], geom[lev], num_shift, dir);
     if (move_j) {
-        shiftMF(*current[lev][0], geom[lev], num_shift, dir);
-        shiftMF(*current[lev][1], geom[lev], num_shift, dir);
-        shiftMF(*current[lev][2], geom[lev], num_shift, dir);
+        shiftMF(*current_fp[lev][0], geom[lev], num_shift, dir);
+        shiftMF(*current_fp[lev][1], geom[lev], num_shift, dir);
+        shiftMF(*current_fp[lev][2], geom[lev], num_shift, dir);
     }
 
     InjectPlasma(num_shift, dir);
 
     // Redistribute (note - this removes particles that are outside of the box)
     mypc->Redistribute();
-#endif
 }
 
 void
