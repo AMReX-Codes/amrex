@@ -2831,7 +2831,7 @@ BaseFab<T>::toDevice(int idx)
 	gpu_htod_memcpy_async(dptr_d, dptr, &sz, &idx);
     } else {
 #ifdef CUDA_UM
-	gpu_htod_memprefetch_async(dptr, &sz, &idx);
+//	gpu_htod_memprefetch_async(dptr, &sz, &idx);
 #endif
     }
 #endif
@@ -2848,7 +2848,7 @@ BaseFab<T>::toHost(int idx)
 	gpu_dtoh_memcpy_async(dptr, dptr_d, &sz, &idx);
     } else {
 #ifdef CUDA_UM
-	gpu_dtoh_memprefetch_async(dptr, &sz, &idx);
+//	gpu_dtoh_memprefetch_async(dptr, &sz, &idx);
 #endif
     }
 #endif

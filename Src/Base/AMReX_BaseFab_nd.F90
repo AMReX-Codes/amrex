@@ -7,16 +7,20 @@ module basefab_nd_module
 contains
 
   ! dst = src
-  subroutine fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
-       bind(c,name='fort_fab_copy')
+  subroutine fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
     
     integer :: i,j,k,n,off(3)
 
+#ifdef CUDA
+    attributes(device) :: src, dst, off
+#endif
+
     off = sblo - lo
 
+    !$cuf kernel do <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -26,7 +30,7 @@ contains
           end do
        end do
     end do
-  end subroutine fort_fab_copy
+  end subroutine fort_fab_copy_doit
     
   
   ! copy from multi-d array to 1d array
@@ -88,14 +92,18 @@ contains
   
 
 
-  subroutine fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
-       bind(c,name='fort_fab_setval')
+  subroutine fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
     real(amrex_real), intent(in) :: val
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
     integer :: i, j, k, n
 
+#ifdef CUDA
+    attributes(device) :: dst
+#endif
+
+    !$cuf kernel do <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -105,19 +113,24 @@ contains
           end do
        end do
     end do
-  end subroutine fort_fab_setval
+
+  end subroutine fort_fab_setval_doit
 
 
-  function fort_fab_norm (lo, hi, src, slo, shi, ncomp, p) result(nrm) &
-       bind(c,name='fort_fab_norm')
+  function fort_fab_norm_doit (lo, hi, src, slo, shi, ncomp, p) result(nrm)
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp, p
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real) :: nrm
 
     integer :: i,j,k,n
 
+#ifdef CUDA
+    attributes(device) :: src
+#endif
+
     nrm = 0.0_amrex_real
     if (p .eq. 0) then ! max norm
+       !$cuf kernel do <<<*, 256>>>
        do n = 1, ncomp
           do       k = lo(3), hi(3)
              do    j = lo(2), hi(2)
@@ -128,6 +141,7 @@ contains
           end do
        end do
     else if (p .eq. 1) then
+       !$cuf kernel do <<<*, 256>>>
        do n = 1, ncomp
           do       k = lo(3), hi(3)
              do    j = lo(2), hi(2)
@@ -138,7 +152,7 @@ contains
           end do
        end do
     end if
-  end function fort_fab_norm
+  end function fort_fab_norm_doit
 
 
   function fort_fab_sum (lo, hi, src, slo, shi, ncomp) result(sm) &
@@ -296,8 +310,7 @@ contains
 
 
   ! dst += a*src
-  subroutine fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) &
-       bind(c,name='fort_fab_saxpy')
+  subroutine fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: a
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -305,8 +318,13 @@ contains
     
     integer :: i,j,k,n,off(3)
 
+#ifdef CUDA
+    attributes(device) :: src, dst, off
+#endif
+
     off = sblo - lo
 
+    !$cuf kernel do <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -316,7 +334,7 @@ contains
           end do
        end do
     end do
-  end subroutine fort_fab_saxpy
+  end subroutine fort_fab_saxpy_doit
 
 
   ! dst = src + a*dst
@@ -417,3 +435,123 @@ contains
   end function fort_fab_dot
 
 end module basefab_nd_module
+
+
+  subroutine fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
+                           bind(c,name='fort_fab_copy')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_copy_doit
+#ifdef CUDA
+    use cudafor, only: cudaDeviceSynchronize
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    
+#ifdef CUDA
+    attributes(device) :: src, dst
+    integer :: cuda_result
+#endif
+
+    call fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+
+#ifdef CUDA
+    cuda_result = cudaDeviceSynchronize()
+#endif
+
+  end subroutine fort_fab_copy
+
+
+
+  subroutine fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
+                             bind(c,name='fort_fab_setval')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_setval_doit
+#ifdef CUDA
+    use cudafor, only: cudaDeviceSynchronize
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
+    real(amrex_real), intent(in) :: val
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+#ifdef CUDA
+    attributes(device) :: dst
+    integer :: cuda_result
+#endif
+
+    call fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
+    
+#ifdef CUDA
+    cuda_result = cudaDeviceSynchronize()
+#endif
+
+  end subroutine fort_fab_setval
+
+
+
+
+  function fort_fab_norm (lo, hi, src, slo, shi, ncomp, p) result(nrm) &
+       bind(c,name='fort_fab_norm')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_norm_doit
+#ifdef CUDA
+    use cudafor, only: cudaDeviceSynchronize
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp, p
+    real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real) :: nrm
+
+#ifdef CUDA
+    attributes(device) :: src
+    integer :: cuda_result
+#endif
+
+    nrm = fort_fab_norm_doit(lo, hi, src, slo, shi, ncomp, p)
+
+#ifdef CUDA
+    cuda_result = cudaDeviceSynchronize()
+#endif
+
+  end function fort_fab_norm
+
+
+
+  subroutine fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) bind(c,name='fort_fab_saxpy')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_saxpy_doit
+#ifdef CUDA
+    use cudafor, only: cudaDeviceSynchronize
+#endif
+
+    implicit none
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    real(amrex_real), intent(in   ) :: a
+    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+#ifdef CUDA
+    attributes(device) :: src, dst
+    integer :: cuda_result
+#endif
+    
+    call fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
+    
+#ifdef CUDA
+    cuda_result = cudaDeviceSynchronize()
+#endif
+
+  end subroutine fort_fab_saxpy
+
