@@ -462,9 +462,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_copy_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
 
@@ -478,10 +475,6 @@ end module basefab_nd_module
 
     call fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
-
   end subroutine fort_fab_copy
 
 
@@ -491,9 +484,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_setval_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
 
@@ -507,10 +497,6 @@ end module basefab_nd_module
 
     call fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
 
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
-
   end subroutine fort_fab_setval
 
 
@@ -521,9 +507,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_norm_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
 
@@ -537,10 +520,6 @@ end module basefab_nd_module
 
     nrm = fort_fab_norm_doit(lo, hi, src, slo, shi, ncomp, p)
 
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
-
   end function fort_fab_norm
 
 
@@ -549,9 +528,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_saxpy_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
@@ -565,9 +541,6 @@ end module basefab_nd_module
 
     call fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
 
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
 
   end subroutine fort_fab_saxpy
 
@@ -578,9 +551,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_plus_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
 
@@ -594,10 +564,6 @@ end module basefab_nd_module
 
     call fort_fab_plus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
-
   end subroutine fort_fab_plus
 
 
@@ -607,9 +573,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_sum_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
 
@@ -623,10 +586,6 @@ end module basefab_nd_module
 
     sm = fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp)
 
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
-
   end function fort_fab_sum
 
 
@@ -636,9 +595,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_minus_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
 
@@ -652,9 +608,6 @@ end module basefab_nd_module
 
     call fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
   end subroutine fort_fab_minus
 
 
@@ -664,9 +617,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_mult_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
 
@@ -680,10 +630,6 @@ end module basefab_nd_module
 
     call fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
-
   end subroutine fort_fab_mult
 
 
@@ -692,9 +638,6 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_divide_doit
-#ifdef CUDA
-    use cuda_module, only: gpu_synchronize
-#endif
 
     implicit none
 
@@ -707,10 +650,6 @@ end module basefab_nd_module
 #endif
 
     call fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-
-#ifdef CUDA
-    call gpu_synchronize()
-#endif
 
   end subroutine fort_fab_divide
 
