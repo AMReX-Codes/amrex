@@ -20,7 +20,7 @@ contains
 
     off = sblo - lo
 
-    !$cuf kernel do <<<*, 256>>>
+    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
