@@ -247,4 +247,21 @@ contains
 
   end subroutine gpu_synchronize
 
+
+
+  subroutine mem_advise_set_preferred(p, sz, device) bind(c, name='mem_advise_set_preferred')
+
+    use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetPreferredLocation
+    use iso_c_binding, only: c_size_t, c_int
+
+    type(c_devptr) :: p
+    integer(c_size_t) :: sz
+    integer(c_int) :: device
+
+    integer :: cudaResult
+
+    cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)
+
+  end subroutine mem_advise_set_preferred
+
 end module cuda_module
