@@ -72,6 +72,7 @@ public:
     void EvolveB (int lev, amrex::Real dt);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
+    void PushParticlesandDepose (         amrex::Real cur_time);
 
     // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
     // Caller must make sure fp and cp have ghost cells filled.

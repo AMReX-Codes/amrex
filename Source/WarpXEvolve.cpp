@@ -60,15 +60,7 @@ WarpX::Evolve (int numsteps)
 
         UpdateAuxilaryData();
 
-        for (int lev = 0; lev <= finest_level; ++lev) {
-	    // Evolve particles to p^{n+1/2} and x^{n+1}
-	    // Depose current, j^{n+1/2}
-	    mypc->Evolve(lev,
-			 *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
-			 *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
-			 *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
-                         cur_time, dt[lev]);
-        }
+        PushParticlesandDepose(cur_time);
 
         EvolveB(0.5*dt[0]); // We now B^{n+1/2}
 
@@ -372,19 +364,23 @@ WarpX::EvolveE (int lev, Real dt)
 }
 
 void
-WarpX::PushParticlesandDepose(int lev, Real cur_time)
+WarpX::PushParticlesandDepose (Real cur_time)
 {
     // Evolve particles to p^{n+1/2} and x^{n+1}
     // Depose current, j^{n+1/2}
-// xxxxx
-#if 0
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        PushParticlesandDepose(lev, cur_time);
+    }
+}
+
+void
+WarpX::PushParticlesandDepose (int lev, Real cur_time)
+{
     mypc->Evolve(lev,
-		 *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
-		 *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2],
-		 *current[lev][0],*current[lev][1],*current[lev][2],
-                 bndry4fine[lev].get(), bndry4crse[lev].get(),
+                 *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                 *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
+                 *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
                  cur_time, dt[lev]);
-#endif
 }
 
 void
