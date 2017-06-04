@@ -17,8 +17,6 @@
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
 
-/*! A test class */
-
 class WarpX
     : public amrex::AmrCore
 {
@@ -61,7 +59,6 @@ public:
 
     static bool use_laser;
 
-    // xxxxx
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}
     const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield_fp[lev][direction];}
@@ -76,7 +73,9 @@ public:
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
 
-    void UpdateAuxiliaryData ();
+    // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
+    // Caller must make sure fp and cp have ghost cells filled.
+    void UpdateAuxilaryData ();
 
     // Fill boundary cells including coarse/fine boundaries
     void FillBoundaryB ();
@@ -84,12 +83,6 @@ public:
     void FillBoundaryE (int lev);
     void FillBoundaryB (int lev);
 
-    void ExchangeWithPML ();
-    void ExchangeWithPML (int lev);
-
-    void AverageDownB ();
-    void AverageDownE ();
-    void AverageDownCurrent ();
     void SyncCurrent ();
 
     int getistep (int lev) const {return istep[lev];}
@@ -189,8 +182,6 @@ private:
                              const amrex::Array<const amrex::MultiFab*>& B,
                              const amrex::Real* dx);
 
-    void AverageDownEorCurrent (amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>,3> >& data);
-
     void SyncCurrent3D (const std::array<const amrex::MultiFab*,3>& fine,
                         const std::array<      amrex::MultiFab*,3>& crse,
                         int ref_ratio);
@@ -198,6 +189,9 @@ private:
     void SyncCurrent2D (const std::array<const amrex::MultiFab*,3>& fine,
                         const std::array<      amrex::MultiFab*,3>& crse,
                         int ref_ratio);
+
+    void ExchangeWithPmlB (int lev);
+    void ExchangeWithPmlE (int lev);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?

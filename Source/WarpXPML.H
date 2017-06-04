@@ -112,10 +112,10 @@ public:
     const MultiSigmaBox& GetMultiSigmaBox_cp () const 
         { return *sigba_cp; }
 
-    void Exchange (const std::array<amrex::MultiFab*,3>& E_fp,
-                   const std::array<amrex::MultiFab*,3>& B_fp,
-                   const std::array<amrex::MultiFab*,3>& E_cp,
-                   const std::array<amrex::MultiFab*,3>& B_cp);
+    void ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
+                    const std::array<amrex::MultiFab*,3>& B_cp);
+    void ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
+                    const std::array<amrex::MultiFab*,3>& E_cp);
 
     void FillBoundary ();
     void FillBoundaryE ();

@@ -42,20 +42,23 @@ WarpX::Evolve (int numsteps)
         // Beyond one step, we have B^{n-1/2} and E^{n}.
         // Particles have p^{n-1/2} and x^{n}.
 
+        FillBoundaryB();
+
         if (is_synchronized) {
             // on first step, push E and X by 0.5*dt
-            FillBoundaryB();
             EvolveE(0.5*dt[0]);
             mypc->PushX(0.5*dt[0]);
             mypc->Redistribute();  // Redistribute particles
             is_synchronized = false;
         }
 
-        ExchangeWithPML();
+        FillBoundaryE();
 
         EvolveB(0.5*dt[0]); // We now B^{n}
 
-        UpdateAuxiliaryData(); // This will also fill the boundary of fine and coarse patches
+        FillBoundaryB();
+
+        UpdateAuxilaryData();
 
         for (int lev = 0; lev <= finest_level; ++lev) {
 	    // Evolve particles to p^{n+1/2} and x^{n+1}
@@ -106,16 +109,18 @@ WarpX::Evolve (int numsteps)
 	    t_new[i] = cur_time;
 	}
 
-	if (to_make_plot) {
-            UpdateAuxiliaryData();
-// xxxxx
-#if 0
+	if (to_make_plot)
+        {
+            FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
+
             for (int lev = 0; lev <= finest_level; ++lev) {
                 mypc->FieldGather(lev,
-                                  *Efield[lev][0],*Efield[lev][1],*Efield[lev][2],
-                                  *Bfield[lev][0],*Bfield[lev][1],*Bfield[lev][2]);
+                                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
-#endif
+
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}

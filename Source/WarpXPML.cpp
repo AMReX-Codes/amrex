@@ -493,25 +493,32 @@ PML::GetB_cp ()
 }
 
 void
-PML::Exchange (const std::array<amrex::MultiFab*,3>& E_fp,
-               const std::array<amrex::MultiFab*,3>& B_fp,
-               const std::array<amrex::MultiFab*,3>& E_cp,
-               const std::array<amrex::MultiFab*,3>& B_cp)
+PML::ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
+                const std::array<amrex::MultiFab*,3>& B_cp)
+{
+    Exchange(*pml_B_fp[0], *B_fp[0], *m_geom);
+    Exchange(*pml_B_fp[1], *B_fp[1], *m_geom);
+    Exchange(*pml_B_fp[2], *B_fp[2], *m_geom);
+    if (B_cp[0])
+    {
+        Exchange(*pml_B_cp[0], *B_cp[0], *m_cgeom);
+        Exchange(*pml_B_cp[1], *B_cp[1], *m_cgeom);
+        Exchange(*pml_B_cp[2], *B_cp[2], *m_cgeom);
+    }
+}
+
+void
+PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
+                const std::array<amrex::MultiFab*,3>& E_cp)
 {
     Exchange(*pml_E_fp[0], *E_fp[0], *m_geom);
     Exchange(*pml_E_fp[1], *E_fp[1], *m_geom);
     Exchange(*pml_E_fp[2], *E_fp[2], *m_geom);
-    Exchange(*pml_B_fp[0], *B_fp[0], *m_geom);
-    Exchange(*pml_B_fp[1], *B_fp[1], *m_geom);
-    Exchange(*pml_B_fp[2], *B_fp[2], *m_geom);
     if (E_cp[0])
     {
         Exchange(*pml_E_cp[0], *E_cp[0], *m_cgeom);
         Exchange(*pml_E_cp[1], *E_cp[1], *m_cgeom);
         Exchange(*pml_E_cp[2], *E_cp[2], *m_cgeom);
-        Exchange(*pml_B_cp[0], *B_cp[0], *m_cgeom);
-        Exchange(*pml_B_cp[1], *B_cp[1], *m_cgeom);
-        Exchange(*pml_B_cp[2], *B_cp[2], *m_cgeom);
     }
 }
 
