@@ -255,6 +255,9 @@ ifeq ($(USE_CUDA),TRUE)
     endif
     LIBRARIES += -lnvToolsExt
     LIBRARY_LOCATIONS += $(CUDA_PATH)/lib64
+    CUDASuffix := .CUDA
+else
+    CUDASuffix :=
 endif
 
 ifeq ($(PRECISION),FLOAT)
@@ -331,7 +334,7 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(CUDASuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
