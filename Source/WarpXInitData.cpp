@@ -27,22 +27,9 @@ WarpX::InitData ()
         }
     }
 
-    if (ParallelDescriptor::NProcs() > 1) {
-        if (okToRegrid(0)) RegridBaseLevel();
-    }
-
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "\nGrids Summary:\n";
         printGridSummary(std::cout, 0, finestLevel());
-    }
-
-    if (do_pml) {
-        pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr, pml_ncell, 0));
-        for (int lev = 1; lev <= finest_level; ++lev)
-        {
-            pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
-                                   &Geom(lev), &Geom(lev-1), pml_ncell, refRatio(lev-1)[0]));
-        }
     }
 
     if (restart_chkfile.empty())
@@ -69,6 +56,15 @@ WarpX::InitFromScratch ()
 #ifdef USE_OPENBC_POISSON
     InitOpenbc();
 #endif
+
+    if (do_pml) {
+        pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr, pml_ncell, 0));
+        for (int lev = 1; lev <= finest_level; ++lev)
+        {
+            pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
+                                   &Geom(lev), &Geom(lev-1), pml_ncell, refRatio(lev-1)[0]));
+        }
+    }
 }
 
 void
