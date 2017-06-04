@@ -253,6 +253,8 @@ ifeq ($(USE_CUDA),TRUE)
     ifeq ($(USE_CUDA_UM),TRUE)
         CPPFLAGS    += -DCUDA_UM
     endif
+    LIBRARIES += -lnvToolsExt
+    LIBRARY_LOCATIONS += $(CUDA_PATH)/lib64
 endif
 
 ifeq ($(PRECISION),FLOAT)
