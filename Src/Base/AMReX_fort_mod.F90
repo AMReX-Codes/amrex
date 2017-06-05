@@ -13,4 +13,20 @@ module amrex_fort_module
   integer, parameter :: amrex_real = c_double
 #endif
 
+contains
+
+  function amrex_coarsen_intvect (n, iv, rr) result(civ)
+    integer, intent(in) :: n, rr
+    integer, intent(in) :: iv(n)
+    integer :: civ(n)
+    integer :: i
+    do i = 1, n
+       if (iv(i) .lt. 0) then
+          civ(i) = -abs(iv(i)+1)/rr - 1
+       else
+          civ(i) = iv(i)/rr
+       end if
+    end do
+  end function amrex_coarsen_intvect
+
 end module amrex_fort_module

@@ -1,8 +1,8 @@
 import numpy as np
 from sys import argv
-from write_pview_file import *
+from write_pview_file import write_paraview_file_particles
 
-def read_amrex_particle_file(fname):
+def read_amrex_ascii_particle_file(fname):
 
     infile=open(fname,'r')
     line=infile.readline()
@@ -19,16 +19,17 @@ def read_amrex_particle_file(fname):
     return(particle_pos,nparticles)
 
 
-#main
-filenum_min=int(argv[1])
-filenum_max=int(argv[2])
-file_prefix=argv[3]
+if __name__ == "__main__":
 
-nfiles=filenum_max-filenum_min+1
-ncdata=np.array([])
-for i in range(nfiles):
-    filename=file_prefix+"%5.5d"%(filenum_min+i)
-    (ppos,npart)=read_amrex_particle_file(filename)
-    write_paraview_file_particles(filename+".vtp",ppos,ncdata)
+    filenum_min=int(argv[1])
+    filenum_max=int(argv[2])
+    file_prefix=argv[3]
+
+    nfiles=filenum_max-filenum_min+1
+    ncdata=np.array([])
+    for i in range(nfiles):
+        filename=file_prefix+"%5.5d"%(filenum_min+i)
+        (ppos,npart)=read_amrex_ascii_particle_file(filename)
+        write_paraview_file_particles(filename+".vtp",ppos,ncdata)
 
 
