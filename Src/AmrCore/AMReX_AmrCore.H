@@ -1,6 +1,7 @@
 #ifndef BL_AMRCORE_H_
 #define BL_AMRCORE_H_
 
+#include <ostream>
 #include <memory>
 
 #include <AMReX_AmrMesh.H>
@@ -49,6 +50,8 @@ public:
 
     static void Initialize ();
     static void Finalize ();
+
+    void printGridSummary (std::ostream& os, int min_lev, int max_lev) const;
 
 protected:
 

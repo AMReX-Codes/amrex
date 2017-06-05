@@ -419,12 +419,13 @@ struct ParticleInitType
     int    int_array_data[NArrayInt];
 };
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> class ParIter;
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> class ParIterBase;
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParticleContainer
 {
-    friend class ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    friend class ParIterBase<true,NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    friend class ParIterBase<false,NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
 public:
     //
@@ -678,7 +679,9 @@ public:
 
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
 
-    void WritePlotFile (const std::string& dir, const std::string& name) const;
+    void WritePlotFile (const std::string& dir, const std::string& name, 
+                        const Array<std::string>& real_comp_names = Array<std::string>(),
+                        const Array<std::string>&  int_comp_names = Array<std::string>()) const;
 
     void WriteAsciiFile (const std::string& file);
 
@@ -856,9 +859,54 @@ private:
     Array<std::unique_ptr<MultiFab> > m_dummy_mf;
 };
 
+
+template <bool is_const, int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+class ParIterBase
+    : public MFIter
+{
+private:
+    using PCType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
+    using ParticleTileRef = typename std::conditional
+        <is_const, typename PCType::ParticleTileType const&, typename PCType::ParticleTileType &>::type;
+    using ParticleTilePtr = typename std::conditional
+        <is_const, typename PCType::ParticleTileType const*, typename PCType::ParticleTileType *>::type;
+    using AoSRef          = typename std::conditional
+        <is_const, typename PCType::AoS const&, typename PCType::AoS&>::type;
+    using SoARef          = typename std::conditional
+        <is_const, typename PCType::SoA const&, typename PCType::SoA&>::type;
+
+public:
+    ParIterBase (ContainerRef pc, int level);
+
+    void operator++ () {
+        ++m_pariter_index;
+        currentIndex = m_valid_index[m_pariter_index];
+    }
+    
+    ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
+
+    AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
+
+    SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
+
+
+    void GetPosition (AMREX_D_DECL(Array<Real>& x,
+                                   Array<Real>& y,
+                                   Array<Real>& z)) const;
+
+    int numParticles () const { return GetArrayOfStructs().numParticles(); }    
+protected:
+    int m_level;
+    int m_pariter_index;
+    Array<int> m_valid_index;
+    Array<ParticleTilePtr> m_particle_tiles;
+};
+
+
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParIter
-    : public MFIter
+    : public ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>
 {
 public:
     using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
@@ -867,38 +915,31 @@ public:
     using SoA              = typename ContainerType::SoA;
     using ParticleType     = typename ContainerType::ParticleType;
 
-    ParIter (ContainerType& pc, int level);
-
-    void operator++ () {
-        ++m_pariter_index;
-        currentIndex = m_valid_index[m_pariter_index];
-    }
-    
-    const ParticleTileType& GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
-    ParticleTileType      & GetParticleTile ()       { return *m_particle_tiles[m_pariter_index]; }
-
-    const AoS& GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
-    AoS&       GetArrayOfStructs ()       { return GetParticleTile().GetArrayOfStructs(); }
-
-    const SoA& GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
-    SoA&       GetStructOfArrays ()       { return GetParticleTile().GetStructOfArrays(); }
+    ParIter (ContainerType& pc, int level)
+        : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
+        {}
 
     void SetPosition (AMREX_D_DECL(const Array<Real>& x,
-                             const Array<Real>& y,
-                             const Array<Real>& z));
-
-    void GetPosition (AMREX_D_DECL(Array<Real>& x,
-                             Array<Real>& y,
-                             Array<Real>& z)) const;
-
-    int numParticles () const { return GetArrayOfStructs().numParticles(); }    
-
-private:
-    int m_level;
-    int m_pariter_index;
-    Array<int> m_valid_index;
-    Array<ParticleTileType*> m_particle_tiles;
+                                   const Array<Real>& y,
+                                   const Array<Real>& z)) const;
 };
+
+template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
+class ParConstIter
+    : public ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>
+{
+public:
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleTileType = typename ContainerType::ParticleTileType;
+    using AoS              = typename ContainerType::AoS;
+    using SoA              = typename ContainerType::SoA;
+    using ParticleType     = typename ContainerType::ParticleType;
+
+    ParConstIter (ContainerType const& pc, int level)
+        : ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
+        {}
+};
+
 
 #include "AMReX_ParticleI.H"
 #include "AMReX_ParticleInit.H"

@@ -1913,8 +1913,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WritePlotFile (const std::string& dir,
-					      const std::string& name) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+WritePlotFile ( const std::string&        dir,
+                const std::string&        name,
+                const Array<std::string>& real_comp_names,
+                const Array<std::string>& int_comp_names) const
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WritePlotFile()");
     BL_ASSERT(OK());
@@ -1924,7 +1927,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WritePlotFile
     // Anyway, it's not too bad to have particle ids on disk,
     // think of merger trees or backtracing of particles for nested ics
     // is_checkpoint = true; 
-    Checkpoint(dir,name,is_checkpoint);
+    Checkpoint(dir,name,is_checkpoint,real_comp_names,int_comp_names);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
