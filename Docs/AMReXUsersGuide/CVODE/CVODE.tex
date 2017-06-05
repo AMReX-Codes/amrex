@@ -1,0 +1,46 @@
+\amrex\ supports ODE integration using the \cvode\ solver,\footnote{\url{https://computation.llnl.gov/projects/sundials/cvode}} which is part of the \sundials\ framework.\footnote{\url{https://computation.llnl.gov/projects/sundials}}
+\cvode\ contains solvers for stiff and non-stiff ODEs, and as such is well suited for solving e.g., the complex chemistry networks in combustion simulations, or the nuclear reaction networks in astrophysical simulations.
+
+Most of \cvode\ is written in C, but many functions also come with two distinct Fortran interfaces.
+One interface is \fcvode, which is bundled with the stable release of \cvode.
+Its usage is described in the CVODE documentation (\url{https://computation.llnl.gov/sites/default/files/public/cv_guide.pdf}).
+
+The second, newer Fortran interface to \cvode\ uses the \texttt{iso\_c\_binding} feature of the Fortran 2003 standard to implement a ``thinner,'' more direct interface to the C functions in \cvode.
+In contrast to the \fcvode\ interface, the Fortran 2003 interface calls C functions directly, with identical arguments.
+When compiling \cvode, one need not build the Fortran interface to \cvode\ at all to use this new interface.
+The examples provided in \amrex\ use this new interface.
+
+To use \cvode\ in an \amrex\ application, follow these steps:
+
+\begin{enumerate}
+
+  \item Obtain the \cvode\ source code, which is hosted here: \url{https://computation.llnl.gov/projects/sundials/sundials-software}.
+
+  One can download either the complete \sundials\ package, or just the \cvode\ components.
+
+  \item Unpack the \cvode/\sundials\ tarball, and create a new ``build'' directory (it can be anywhere).
+
+  \item Navigate to the new, empty build directory, and type
+
+  \begin{verbatim}
+  cmake \
+    -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install/dir \
+    /path/to/cvode/or/sundials/top/level/source/dir
+  \end{verbatim}
+
+  The \texttt{CMAKE\_INSTALL\_DIR} option tells CMake where to install the libraries.
+  Note that CMake will attempt to deduce the compilers automatically, but respects certain environment variables if they are defined, such as \texttt{CC} (for the C compiler), \texttt{CXX} (for the C++ compiler), and \texttt{FC} (for the Fortran compiler).
+  So one may modify the above CMake invocation to be something like the following:
+
+  \begin{verbatim}
+  CC=/path/to/gcc \
+  CXX=/path/to/g++ \
+  FC=/path/to/gfortran \
+    cmake \
+    -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install/dir \
+    /path/to/cvode/or/sundials/top/level/source/dir
+  \end{verbatim}
+
+  \item In the \texttt{GNUmakefile} for the \amrex\ application which uses the Fortran 2003 interface to \cvode, add \texttt{USE\_CVODE = TRUE}, which will compile the Fortran 2003 interfaces and link the \cvode\ libraries.
+  Note that one must define the \texttt{CVODE\_LIB\_DIR} environment variable to point to the location where the libraries are installed.
+\end{enumerate}
