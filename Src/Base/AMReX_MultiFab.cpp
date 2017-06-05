@@ -71,9 +71,10 @@ MultiFab::Add (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
 
 #ifdef CUDA
@@ -99,9 +100,10 @@ MultiFab::Copy (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
+            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp, idx);
     }
 
 #ifdef CUDA
@@ -127,9 +129,10 @@ MultiFab::Subtract (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
 }
 
@@ -151,9 +154,10 @@ MultiFab::Multiply (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
 
 #ifdef CUDA
@@ -179,9 +183,10 @@ MultiFab::Divide (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
 
 #ifdef CUDA
