@@ -60,7 +60,6 @@ contains
   subroutine threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     use cudafor, only: dim3
-    use prob_params_module, only: dim
 
     implicit none
 
@@ -69,11 +68,11 @@ contains
 
     integer :: tile_size(3)
 
-    if (dim .eq. 1) then
+    if (BL_SPACEDIM .eq. 1) then
        numThreads % x = 256
        numThreads % y = 1
        numThreads % z = 1
-    else if (dim .eq. 2) then
+    else if (BL_SPACEDIM .eq. 2) then
        numThreads % x = 16
        numThreads % y = 16
        numThreads % z = 1
