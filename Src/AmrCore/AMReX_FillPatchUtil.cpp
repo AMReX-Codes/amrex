@@ -286,6 +286,8 @@ namespace amrex
 
             const Real* dx = cgeom.CellSize();
 
+            const int use_limiter = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -319,7 +321,7 @@ namespace amrex
                                                      D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
                                                             BL_TO_FORTRAN_ANYD(cyfab),
                                                             BL_TO_FORTRAN_ANYD(czfab)),
-                                                     dx, &ref_ratio);
+                                                     dx, &ref_ratio, &use_limiter);
                     }
                     else if (interp_type == InterpE)
                     {
@@ -330,7 +332,7 @@ namespace amrex
                                             D_DECL(BL_TO_FORTRAN_ANYD(cxfab),
                                                    BL_TO_FORTRAN_ANYD(cyfab),
                                                    BL_TO_FORTRAN_ANYD(czfab)),
-                                            dx, &ref_ratio);
+                                            &ref_ratio, &use_limiter);
                     }
                     else
                     {
