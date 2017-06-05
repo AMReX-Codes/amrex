@@ -157,16 +157,38 @@ are therefore used be default.  For example, one can run with
 \end{verbatim}
 to change the value of {\tt ncells} and {\tt hydro.cfl}.
 
+\section{Example of AMR Grids}
+\label{sec:basics:amrgrids}
+
+In block-structured AMR, there is a hierarchy of logically rectangular
+grids.  The computational domain on each AMR level is decomposed into
+a union of rectangular domains.  Figure~\ref{fig:basics:amrgrids} shows
+an example of AMR grids.  There are three total levels in the example.
+The coarsest grid ({\emph{black}) covers the domain with $16^2$
+cells. Bold lines represent grid boundaries.  There are two
+intermediate resolution grids ({\emph{blue}}) are at level 1 and the
+cells are a factor of two finer than those at level 0.  The two
+finest grids ({\emph{red}}) are at level 2 and the cells are a
+factor of two finer than the level 1 cells.  Note that there is no
+direct parent-child connection.  In this chapter, we will focus on
+single levels.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=3in]{./Basics/amrgrids.pdf}
+  \caption{\label{fig:basics:amrgrids} Example of AMR grids.  There are
+    three levels in total.}
+\end{figure}
+
 \section{Box, IntVect and IndexType}
 \label{sec:basics:box}
 
-In \amrex, the computational domain (on each AMR level) is decomposed
-into a union of rectangular domains.  {\tt Box} is the data
-structure for representing such rectangular domains in indexing space.
+{\tt Box} is the data structure for representing a rectangular domain
+in indexing space.  For example, in Figure~\ref{fig:basics:amrgrids},
+there are 1, 2 and 2 {\tt Box}es on levels 0, 1 and 2, respectively.
 {\tt Box} is a dimension dependent class.  It has lower and upper
-corners (represented by {\tt IntVect} and an index type
-(represented by {\tt IndexType}).  There are no floating-point data in
-the object.
+corners (represented by {\tt IntVect} and an index type (represented
+by {\tt IndexType}).  There are no floating-point data in the object.
 
 \subsection{IntVect}
 
@@ -461,9 +483,9 @@ domain and the indexing space domain.  For example,
 \section{BoxArray}
 \label{sec:basics:ba}
 
-{\tt BoxArray} is a class for storing a collection of {\tt Box}es.
-One can make a {\tt BoxArray} out of a single {\tt Box} and then chop
-it into multiple {\tt Box}es.
+{\tt BoxArray} is a class for storing a collection of {\tt Box}es on
+a single AMR level.  One can make a {\tt BoxArray} out of a single {\tt Box}
+and then chop it into multiple {\tt Box}es.
 \begin{lstlisting}[language=cpp]
   Box domain(IntVect{0,0,0}, IntVect{127,127,127});
   BoxArray ba(domain);  // Make a new BoxArray out of a single Box
@@ -741,7 +763,62 @@ alias will contain a dangling pointer after the original {\tt
 \section{FabArray, MultiFab and iMultiFab}
 \label{sec:basics:multifab}
 
+{\tt FabArray<FAB>} is a class template for a collection of {\tt FAB}s
+on the same AMR level associated with a {\tt BoxArray}
+(Section~\ref{sec:basics:ba}).  The template parameter {\tt FAB} is
+usually {\tt BaseFab<T>} or its derived classes (e.g., {\tt
+  FArrayBox}).  However, it can also be used to hold other data
+structures.  To construct a {\tt FabArray}, a {\tt BoxArray} must be
+provided because it is intended to hold {\emph{grid}} data defined on
+a union of rectangular regions embedded in a uniform index space.  For
+example, an {\tt FabArray} object can be used to hold data for one
+level of the example grids of Figure~\ref{fig:basics:amrgrids}.  The
+{\tt BoxArray} on level 2 ({\emph{red}) has two {\tt Box}es.
+
+{\tt FabArray} is a parallel data structure that the data (i.e.,
+{\tt FAB}) are distributed among parallel processes.  On each process,
+the {\tt FabArray} contains only the {\tt FAB} objects owned by this
+process, and the process operates only on its local data.  For
+operations that require data owned by other processes, remote
+communications are involved.  Thus, the construction of a {\tt
+  FabArray} requires a {\tt DistributionMapping}
+(Section~\ref{sec:basics:dm}) that specifies which process owns which
+{\tt Box}.  For level 2 ({\emph{red}) in
+Figure~\ref{fig:basics:amrgrids}, there are two {\tt Box}es.  Suppose
+there are two parallel processes, and we use a {\tt
+  DistributionMapping} that assigns one {\tt Box} to each process.
+For {\tt FabArray} on each process, it is built on a {\tt BoxArray} with
+2 {\tt Box}es, but contains only one {\tt FAB}.  
+
+In \amrex, there are some specialized classes derived from {\tt
+  FabArray}.  The {\tt iMultiFab} class is derived from {\tt
+  FabArray<IArrayBox>}.  The most commonly used {\tt FabArray} kind
+class is {\tt MultiFab} derived from {\tt FabArray<FArrayBox>}.  {\tt
+  MultiFab} has a number of constructors.  For example,
+\begin{lstlisting}[language=cpp]
+  // ba is BoxArray
+  // dm is DistributionMapping
+  int ncomp = 4;
+  int ngrow = 1;
+  MultiFab mf(ba, mf, ncomp, ngrow);
+\end{lstlisting}
+Here we define a {\tt MultiFab} with 4 components and 1 ghost cell.  A
+{\tt MultiFab} contains a number of {\tt FArrayBox}es
+(Section~\ref{sec:basics:fab}) defined on {\tt Box}es grown by the
+number of ghost cells (1 in this example).  That is the {\tt Box} in
+the {\tt FArrayBox} is not exactly the same as in the {\tt BoxArray}.
+If the {\tt BoxArray} has a {\tt Box\{(8,8,8) (15,15,15)\}}, the one
+used for constructing {\tt FArrayBox} will be {\tt Box\{(8,8,8)
+  (16,16,16)\}} in this example.  Note that {\tt FArrayBox} itself
+does not have the concept of ghost cell, whereas ghost cell is a key
+concept of %{\tt 
+
 % make alias
+% no alloc?
+
+%ghost cells We note that while the grids themselves are 
+%non-intersecting boxes, the data in an FArrayBox may be defined
+%on a Box larger than the grid if ghost (or halo) cells are needed.
 
 \section{MFIter and Tiling}
 
