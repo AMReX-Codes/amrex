@@ -2179,7 +2179,8 @@ FabArray<FAB>::setVal (value_type val)
     for (MFIter fai(*this,true); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox();
-        get(fai).setVal(val, bx, 0, n_comp);
+	const int idx = fai.tileIndex();
+        get(fai).setVal(val, bx, 0, n_comp, idx);
     }
 }
 

@@ -316,7 +316,8 @@ public:
     void setVal (T          x,
                  const Box& bx,
                  int        nstart,
-                 int        ncomp);
+                 int        ncomp,
+	         int        index=0);
     //! Same as above, except the number of modified components is one. N is the component to be modified.
     void setVal (T          x,
                  const Box& bx,
@@ -359,7 +360,8 @@ public:
                       int               srccomp,
                       const Box&        destbox,
                       int               destcomp,
-                      int               numcomp);
+                      int               numcomp,
+	              int               index=0);
 
   //for debugging
   BaseFab<T>&
@@ -626,14 +628,16 @@ public:
                       const Box&        destbox,
                       int               srccomp,
                       int               destcomp,
-                      int               numcomp=1);
+                      int               numcomp=1,
+	              int               index=0);
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
                        const Box&        srcbox,
                        const Box&        destbox,
                        int               srccomp,
                        int               destcomp,
-                       int               numcomp=1);
+                       int               numcomp=1,
+	               int               index=0);
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x);
 
@@ -693,7 +697,8 @@ public:
                        const Box&        destbox,
                        int               srccomp,
                        int               destcomp,
-                       int               numcomp=1);
+                       int               numcomp=1,
+	               int               index=0);
     //! Scalar multiplication (a[i] <- a[i] * r), in place.
     BaseFab<T>& operator*= (T r);
 
@@ -748,7 +753,8 @@ public:
                       const Box&        destbox,
                       int               srccomp,
                       int               destcomp,
-                      int               numcomp=1);
+                      int               numcomp=1,
+	              int               index=0);
     //! Scalar division (a[i] <- a[i] / r), in place.
     BaseFab<T>& operator/= (T r);
 
@@ -801,7 +807,8 @@ public:
                         const Box&        destbox,
                         int               srccomp,
                         int               destcomp,
-                        int               numcomp=1);
+                        int               numcomp=1,
+	                int               index=0);
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
     */
@@ -917,13 +924,15 @@ protected:
                       int               srccomp,
                       const Box&        destbox,
                       int               destcomp,
-                      int               numcomp);
+                      int               numcomp,
+	              int               index=0);
 
     //! This function is called by the BaseFab setVal operations.
     void performSetVal (T          x,
                         const Box& bx,
                         int        nstart,
-                        int        numcomp);
+                        int        numcomp,
+	                int        index=0);
 protected:
 
     Box     domain;   // My index space.
@@ -1076,9 +1085,10 @@ void
 BaseFab<T>::setVal (T          x,
                     const Box& b,
                     int        ns,
-                    int        num)
+                    int        num,
+                    int        index)
 {
-    performSetVal(x,b,ns,num);
+    performSetVal(x,b,ns,num,index);
 }
 
 template <class T>
@@ -1088,7 +1098,8 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               srccomp,
                   const Box&        destbox,
                   int               destcomp,
-                  int               numcomp)
+                  int               numcomp,
+                  int               index)
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(srcbox.sameSize(destbox));
@@ -1096,7 +1107,7 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     BL_ASSERT(domain.contains(destbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
-    performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+    performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp,index);
     return *this;
 }
 
@@ -1398,7 +1409,8 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                          int               srccomp,
                          const Box&        destbox,
                          int               destcomp,
-                         int               numcomp)
+                         int               numcomp,
+                         int               index)
 {
     BL_ASSERT(src.box().contains(srcbox));
     BL_ASSERT(box().contains(destbox));
@@ -1528,7 +1540,8 @@ void
 BaseFab<T>::performSetVal (T          val,
                            const Box& bx,
                            int        ns,
-                           int        num)
+                           int        num,
+                           int        idx)
 {
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(ns >= 0 && ns + num <= nvar);
@@ -1725,7 +1738,8 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             int                  srccomp,
                             const Box&           destbox,
                             int                  destcomp,
-                            int                  numcomp);
+                            int                  numcomp,
+                            int                  index);
 template <>
 std::size_t
 BaseFab<Real>::copyToMem (const Box& srcbox,
@@ -1743,7 +1757,8 @@ void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
                               int        ns,
-                              int        num);
+                              int        num,
+                              int        index);
 template <>
 Real
 BaseFab<Real>::norm (const Box& subbox,
@@ -1763,7 +1778,8 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
                      const Box&           destbox,
                      int                  srccomp,
                      int                  destcomp,
-                     int                  numcomp);
+                     int                  numcomp,
+                     int                  index);
 template <>
 BaseFab<Real>&
 BaseFab<Real>::mult (const BaseFab<Real>& src,
@@ -1771,7 +1787,8 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                      const Box&           destbox,
                      int                  srccomp,
                      int                  destcomp,
-                     int                  numcomp);
+                     int                  numcomp,
+                     int                  index);
 template <>
 BaseFab<Real>&
 BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
@@ -1779,7 +1796,8 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
                       const Box&        destbox,
                       int               srccomp,
                       int               destcomp,
-                      int               numcomp);
+                      int               numcomp,
+                      int               index);
 
 template <>
 BaseFab<Real>&
@@ -1788,7 +1806,8 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
                       const Box&           destbox,
                       int                  srccomp,
                       int                  destcomp,
-                      int                  numcomp);
+                      int                  numcomp,
+                      int                  index);
 template <>
 BaseFab<Real>&
 BaseFab<Real>::divide (const BaseFab<Real>& src,
@@ -1796,7 +1815,8 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
                        const Box&           destbox,
                        int                  srccomp,
                        int                  destcomp,
-                       int                  numcomp);
+                       int                  numcomp,
+                       int                  index);
 template <>
 BaseFab<Real>&
 BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
@@ -2467,7 +2487,8 @@ BaseFab<T>::plus (const BaseFab<T>& src,
                   const Box&        destbox,
                   int               srccomp,
                   int               destcomp,
-                  int               numcomp)
+                  int               numcomp,
+                  int               index)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2518,7 +2539,8 @@ BaseFab<T>::minus (const BaseFab<T>& src,
                    const Box&        destbox,
                    int               srccomp,
                    int               destcomp,
-                   int               numcomp)
+                   int               numcomp,
+                   int               index)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2599,7 +2621,8 @@ BaseFab<T>::mult (const BaseFab<T>& src,
                   const Box&        destbox,
                   int               srccomp,
                   int               destcomp,
-                  int               numcomp)
+                  int               numcomp,
+                  int               index)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2680,7 +2703,8 @@ BaseFab<T>::divide (const BaseFab<T>& src,
                     const Box&        destbox,
                     int               srccomp,
                     int               destcomp,
-                    int               numcomp)
+                    int               numcomp,
+                    int               index)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
