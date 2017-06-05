@@ -251,6 +251,13 @@ namespace amrex
         m_region = a_region;
       }
 
+    //same as above. 
+    void resize (const Box& b,
+                 int        N = 1)
+      {
+        m_region = b;
+      }
+
     ///
     const EBISBox& getEBISBox() const;
 

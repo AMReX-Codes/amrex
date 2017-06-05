@@ -342,7 +342,7 @@ namespace amrex
   BaseIVFAB<T>::
   copyToMemFull(void*      a_buf) const
   {
-    unsigned char* buf = (unsigned char*)buf;
+    unsigned char* buf = (unsigned char*)a_buf;
     
     size_t retval = 0;
     size_t incval = 0;
@@ -388,7 +388,7 @@ namespace amrex
   BaseIVFAB<T>::
   copyFromMemFull(const void* a_buf)
   {
-    unsigned char* buf = (unsigned char*)buf;
+    unsigned char* buf = (unsigned char*)a_buf;
     
     size_t retval = 0;
     size_t incval = 0;
@@ -435,9 +435,11 @@ namespace amrex
       const VolIndex& vof = m_vofs[ivof];
       for(int icomp = 0; icomp < m_nComp; icomp++)
       {
-        const T& value = (*this)(vof, icomp);
-        linearOut(buf, value);
+        T value;
+        linearIn(value, buf);
         incval = linearSize(value);
+
+        (*this)(vof, icomp) = value;
         retval += incval;
         buf    += incval;
       }

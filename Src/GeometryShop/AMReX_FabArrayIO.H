@@ -50,13 +50,53 @@ namespace amrex
     void linearOut(void* buffer ) const;
 
     ///
-    void linearIn(void* buffer );
+    void linearIn(const void* const buffer );
 
     string      m_filename;
     int         m_procid;  // used to create the filename
     long        m_head;    // Offset to start of FAB in file.
     int         m_boxid;   // integer into the box array
     long        m_boxlen;  //size of this box's data
+  };
+
+
+  ///
+  class FAIOElementVec
+  {
+  public:
+
+
+    ///
+    FAIOElementVec(const vector<FAIOElement>& a_vec)
+      {
+        m_vec = a_vec;
+      }
+
+    FAIOElementVec()
+      {
+      }
+
+    ///
+    int linearSize() const
+      {
+        return linearListSize(m_vec);
+      }
+
+    ///
+    void linearOut(void* buffer ) const
+      {
+        linearListOut(buffer, m_vec);
+      }
+
+    ///
+    void linearIn(const void* const buffer )
+      {
+        linearListIn(m_vec, buffer);
+      }
+
+    ///
+    vector<FAIOElement> m_vec;
+
   };
 
   ///write a header to   disk in ascii
@@ -93,19 +133,21 @@ namespace amrex
           ielem++;
           offset += numBytesThisBox;
         }
-        
-        vector<vector<FAIOElement> > allElements;
-        gather(allElements, localElements, 0);
+        FAIOElementVec localVec(localElements);
+        vector<FAIOElementVec> allVecs;
+        gather(allVecs, localVec, 0);
+        FAIOElementVec globalVec;
         if(procID() == 0)
         {
           m_vecElem.resize(0);
-          for(int ivec = 0; ivec < allElements.size();  ivec++)
+          for(int ivec = 0; ivec < allVecs.size();  ivec++)
           {
-            const vector<FAIOElement>& onevec = allElements[ivec];
-            m_vecElem.insert(m_vecElem.end(), onevec.begin(), onevec.end());
+            const vector<FAIOElement>& onevec = allVecs[ivec].m_vec;
+            globalVec.m_vec.insert(globalVec.m_vec.end(), onevec.begin(), onevec.end());
           }
         }
-        broadcast(m_vecElem, 0);
+        broadcast(globalVec, 0);
+        m_vecElem = globalVec.m_vec;
         std::sort(m_vecElem.begin(), m_vecElem.end()); //this should get them in the same order as the boxarray
       }
 

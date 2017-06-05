@@ -44,6 +44,7 @@ _progs  += ebnormalizeTest
 _progs  += levelRedistTest
 _progs  += dataArith
 _progs  += fabio
+_progs  += serialization
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
