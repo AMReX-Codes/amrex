@@ -11,8 +11,8 @@
  */
 
 
-#ifndef _EBISBOX_H_
-#define _EBISBOX_H_
+#ifndef _EBISBOX_H___
+#define _EBISBOX_H___
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"

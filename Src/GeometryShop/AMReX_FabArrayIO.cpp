@@ -71,7 +71,7 @@ namespace amrex
   ///
   void 
   FAIOElement::
-  linearIn(void* buffer )
+  linearIn(const void* const buffer )
   {
     int* intbuf = (int*)buffer;
     m_procid = *intbuf;
