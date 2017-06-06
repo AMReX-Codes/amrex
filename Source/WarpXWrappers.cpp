@@ -93,7 +93,6 @@ extern "C"
 	auto & mypc = WarpX::GetInstance().GetPartContainer();
 	auto & myspc = mypc.GetParticleContainer(speciesnumber);
         const int lev = 0;
-        amrex::Abort("warpx_addNParticles needs to be updated to include lev argument");
 	myspc.AddNParticles(lev, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
     }
 
@@ -184,25 +183,33 @@ extern "C"
         warpx.MoveWindow (true);
     }
 
-    void warpx_EvolveE (int lev, double dt) {
+    void warpx_EvolveE (double dt) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveE (lev, dt);
+        warpx.EvolveE (dt);
     }
-    void warpx_EvolveB (int lev, double dt) {
+    void warpx_EvolveB (double dt) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveB (lev, dt);
+        warpx.EvolveB (dt);
     }
-    void warpx_FillBoundaryE (int lev) {
+    void warpx_FillBoundaryE () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.FillBoundaryE (lev);
+        warpx.FillBoundaryE ();
     }
-    void warpx_FillBoundaryB (int lev) {
+    void warpx_FillBoundaryB () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.FillBoundaryB (lev);
+        warpx.FillBoundaryB ();
     }
-    void warpx_PushParticlesandDepose (int lev, double cur_time) {
+    void warpx_SyncCurrent () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.PushParticlesandDepose (lev, cur_time);
+        warpx.SyncCurrent ();
+    }
+    void warpx_UpdateAuxilaryData () {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.UpdateAuxilaryData ();
+    }
+    void warpx_PushParticlesandDepose (double cur_time) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.PushParticlesandDepose (cur_time);
     }
 
     int warpx_getistep (int lev) {

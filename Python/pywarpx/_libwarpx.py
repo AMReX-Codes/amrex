@@ -86,14 +86,14 @@ f.restype = LP_LP_c_double
 f = libwarpx.warpx_getCurrentDensity
 f.restype = LP_LP_c_double
 
-f = libwarpx.warpx_getPMLSigma
-f.restype = LP_c_double
-
-f = libwarpx.warpx_getPMLSigmaStar
-f.restype = LP_c_double
-
-f = libwarpx.warpx_ComputePMLFactors
-f.argtypes = (ctypes.c_int, ctypes.c_double)
+#f = libwarpx.warpx_getPMLSigma
+#f.restype = LP_c_double
+#
+#f = libwarpx.warpx_getPMLSigmaStar
+#f.restype = LP_c_double
+#
+#f = libwarpx.warpx_ComputePMLFactors
+#f.argtypes = (ctypes.c_int, ctypes.c_double)
 
 f = libwarpx.warpx_addNParticles
 f.argtypes = (ctypes.c_int, ctypes.c_int,
@@ -116,11 +116,13 @@ libwarpx.warpx_checkInt.restype = ctypes.c_int
 libwarpx.warpx_plotInt.restype = ctypes.c_int
 libwarpx.warpx_finestLevel.restype = ctypes.c_int
 
-libwarpx.warpx_EvolveE.argtypes = [ctypes.c_int, ctypes.c_double]
-libwarpx.warpx_EvolveB.argtypes = [ctypes.c_int, ctypes.c_double]
-libwarpx.warpx_FillBoundaryE.argtypes = [ctypes.c_int, ctypes.c_bool]
-libwarpx.warpx_FillBoundaryB.argtypes = [ctypes.c_int, ctypes.c_bool]
-libwarpx.warpx_PushParticlesandDepose.argtypes = [ctypes.c_int, ctypes.c_double]
+libwarpx.warpx_EvolveE.argtypes = [ctypes.c_double]
+libwarpx.warpx_EvolveB.argtypes = [ctypes.c_double]
+libwarpx.warpx_FillBoundaryE.argtypes = []
+libwarpx.warpx_FillBoundaryB.argtypes = []
+libwarpx.warpx_UpdateAuxilaryData.argtypes = []
+libwarpx.warpx_SyncCurrent.argtypes = []
+libwarpx.warpx_PushParticlesandDepose.argtypes = [ctypes.c_double]
 libwarpx.warpx_getistep.argtypes = [ctypes.c_int]
 libwarpx.warpx_setistep.argtypes = [ctypes.c_int, ctypes.c_int]
 libwarpx.warpx_gett_new.argtypes = [ctypes.c_int]
@@ -187,46 +189,46 @@ def evolve(num_steps=-1):
     libwarpx.warpx_evolve(num_steps);
 
 
-def get_sigma(direction):
-    '''
-
-    Return the 'sigma' PML coefficients for the electric field
-    in a given direction.
-
-    '''
-
-    size = ctypes.c_int(0)
-    data = libwarpx.warpx_getPMLSigma(direction, ctypes.byref(size))
-    arr = np.ctypeslib.as_array(data, (size.value,))
-    arr.setflags(write=1)
-    return arr
-
-
-def get_sigma_star(direction):
-    '''
-
-    Return the 'sigma*' PML coefficients for the magnetic field 
-    in the given direction.
-
-    '''
-
-    size = ctypes.c_int(0)
-    data = libwarpx.warpx_getPMLSigmaStar(direction, ctypes.byref(size))
-    arr = np.ctypeslib.as_array(data, (size.value,))
-    arr.setflags(write=1)
-    return arr
-
-
-def compute_pml_factors(lev, dt):
-    '''
-
-    This recomputes the PML coefficients for a given level, using the 
-    time step dt. This needs to be called after modifying the coefficients
-    from Python.
-
-    '''
-
-    libwarpx.warpx_ComputePMLFactors(lev, dt)
+#def get_sigma(direction):
+#    '''
+#
+#    Return the 'sigma' PML coefficients for the electric field
+#    in a given direction.
+#
+#    '''
+#
+#    size = ctypes.c_int(0)
+#    data = libwarpx.warpx_getPMLSigma(direction, ctypes.byref(size))
+#    arr = np.ctypeslib.as_array(data, (size.value,))
+#    arr.setflags(write=1)
+#    return arr
+#
+#
+#def get_sigma_star(direction):
+#    '''
+#
+#    Return the 'sigma*' PML coefficients for the magnetic field 
+#    in the given direction.
+#
+#    '''
+#
+#    size = ctypes.c_int(0)
+#    data = libwarpx.warpx_getPMLSigmaStar(direction, ctypes.byref(size))
+#    arr = np.ctypeslib.as_array(data, (size.value,))
+#    arr.setflags(write=1)
+#    return arr
+#
+#
+#def compute_pml_factors(lev, dt):
+#    '''
+#
+#    This recomputes the PML coefficients for a given level, using the 
+#    time step dt. This needs to be called after modifying the coefficients
+#    from Python.
+#
+#    '''
+#
+#    libwarpx.warpx_ComputePMLFactors(lev, dt)
 
 def add_particles(species_number=0,
                   x=0., y=0., z=0., ux=0., uy=0., uz=0., attr=0.,

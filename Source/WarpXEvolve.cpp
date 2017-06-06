@@ -42,10 +42,9 @@ WarpX::Evolve (int numsteps)
         // Beyond one step, we have B^{n-1/2} and E^{n}.
         // Particles have p^{n-1/2} and x^{n}.
 
-        FillBoundaryB();
-
         if (is_synchronized) {
             // on first step, push E and X by 0.5*dt
+            FillBoundaryB();
             EvolveE(0.5*dt[0]);
             mypc->PushX(0.5*dt[0]);
             mypc->Redistribute();  // Redistribute particles

@@ -21,30 +21,29 @@ class TimeStepper(object):
         #if (ParallelDescriptor::NProcs() > 1)
         #   if (okToRegrid(step)) RegridBaseLevel();
 
-        libwarpx.warpx_ComputeDt()
         dt = libwarpx.warpx_getdt(0)
-
-        # --- Advance level 0 by dt
-        lev = 0
 
         # --- At the beginning, we have B^{n-1/2} and E^{n}.
         # --- Particles have p^{n-1/2} and x^{n}.
-        libwarpx.warpx_EvolveB(lev, 0.5*dt) # We now B^{n}
+        libwarpx.warpx_FillBoundaryE()
+        libwarpx.warpx_EvolveB(0.5*dt) # We now B^{n}
 
-        libwarpx.warpx_FillBoundaryE(lev, False)
-        libwarpx.warpx_FillBoundaryB(lev, False)
+        libwarpx.warpx_FillBoundaryB()
+        libwarpx.warpx_UpdateAuxilaryData()
 
         # --- Evolve particles to p^{n+1/2} and x^{n+1}
         # --- Depose current, j^{n+1/2}
-        libwarpx.warpx_PushParticlesandDepose(lev, self.cur_time)
+        libwarpx.warpx_PushParticlesandDepose(self.cur_time)
 
         libwarpx.mypc_Redistribute() # Redistribute particles
 
-        libwarpx.warpx_EvolveB(lev, 0.5*dt) # We now B^{n+1/2}
+        libwarpx.warpx_FillBoundaryE()
+        libwarpx.warpx_EvolveB(0.5*dt) # We now B^{n+1/2}
 
-        libwarpx.warpx_FillBoundaryB(lev, True)
+        libwarpx.warpx_SyncCurrent()
 
-        libwarpx.warpx_EvolveE(lev, dt) # We now have E^{n+1}
+        libwarpx.warpx_FillBoundaryB()
+        libwarpx.warpx_EvolveE(dt) # We now have E^{n+1}
 
         self.istep += 1
 
