@@ -20,7 +20,9 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 void PhysicalParticleContainer::InitData()
 {
     AddParticles(0); // Note - only one level right now
-    Redistribute();  // We then redistribute
+    if (maxLevel() > 0) {
+        Redistribute();  // We then redistribute
+    }
 }
 
 void
