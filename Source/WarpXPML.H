@@ -123,6 +123,9 @@ public:
 
     bool ok () const { return m_ok; }
 
+    void CheckPoint (const std::string& dir) const;
+    void Restart (const std::string& dir);
+
 private:
     bool m_ok;
 

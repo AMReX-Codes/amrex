@@ -172,6 +172,8 @@ private:
 
     void InitOpenbc ();
 
+    void InitPML ();
+
     void InjectPlasma(int num_shift, int dir);
 
     void WriteWarpXHeader(const std::string& name) const;

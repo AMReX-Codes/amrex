@@ -95,8 +95,6 @@ WarpX::WriteWarpXHeader(const std::string& name) const
 void
 WarpX::WriteCheckPointFile() const
 {
-// xxxxx
-#if 0
     BL_PROFILE("WarpX::WriteCheckPointFile()");
 
     const std::string& checkpointname = amrex::Concatenate(check_file,istep[0]);
@@ -115,59 +113,65 @@ WarpX::WriteCheckPointFile() const
 
     for (int lev = 0; lev < nlevels; ++lev)
     {
-	VisMF::Write(*Efield[lev][0],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex"));
-	VisMF::Write(*Efield[lev][1],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey"));
-	VisMF::Write(*Efield[lev][2],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez"));
-	VisMF::Write(*Bfield[lev][0],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx"));
-	VisMF::Write(*Bfield[lev][1],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
-	VisMF::Write(*Bfield[lev][2],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
+	VisMF::Write(*Efield_fp[lev][0],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex_fp"));
+	VisMF::Write(*Efield_fp[lev][1],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey_fp"));
+	VisMF::Write(*Efield_fp[lev][2],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez_fp"));
+	VisMF::Write(*Bfield_fp[lev][0],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx_fp"));
+	VisMF::Write(*Bfield_fp[lev][1],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By_fp"));
+	VisMF::Write(*Bfield_fp[lev][2],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz_fp"));
         if (is_synchronized) {
             // Need to save j if synchronized because after restart we need j to evolve E by dt/2.
-            VisMF::Write(*current[lev][0],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jx"));
-            VisMF::Write(*current[lev][1],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jy"));
-            VisMF::Write(*current[lev][2],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz"));
+            VisMF::Write(*current_fp[lev][0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jx_fp"));
+            VisMF::Write(*current_fp[lev][1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jy_fp"));
+            VisMF::Write(*current_fp[lev][2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz_fp"));
         }
 
-//xxxxx
-#if 0
-        if (do_pml) {
-            const int lev = 0;
-            VisMF::Write(*pml_E[0],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ex"));
-            VisMF::Write(*pml_E[1],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ey"));
-            VisMF::Write(*pml_E[2],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ez"));
-            VisMF::Write(*pml_B[0],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Bx"));
-            VisMF::Write(*pml_B[1],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_By"));
-            VisMF::Write(*pml_B[2],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Bz"));
+        if (lev > 0)
+        {
+            VisMF::Write(*Efield_cp[lev][0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex_cp"));
+            VisMF::Write(*Efield_cp[lev][1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey_cp"));
+            VisMF::Write(*Efield_cp[lev][2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez_cp"));
+            VisMF::Write(*Bfield_cp[lev][0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx_cp"));
+            VisMF::Write(*Bfield_cp[lev][1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By_cp"));
+            VisMF::Write(*Bfield_cp[lev][2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz_cp"));
+            if (is_synchronized) {
+                // Need to save j if synchronized because after restart we need j to evolve E by dt/2.
+                VisMF::Write(*current_cp[lev][0],
+                             amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jx_cp"));
+                VisMF::Write(*current_cp[lev][1],
+                             amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jy_cp"));
+                VisMF::Write(*current_cp[lev][2],
+                             amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz_cp"));
+            }
         }
-#endif
+
+        if (do_pml && pml[lev]) {
+            pml[lev]->CheckPoint(amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml"));
+        }
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
-#endif
 }
 
 
 void
 WarpX::InitFromCheckpoint ()
 {
-// xxxxx
-#if 0
-
     BL_PROFILE("WarpX::InitFromCheckpoint()");
 
     amrex::Print() << "  Restart from checkpoint " << restart_chkfile << "\n";
@@ -281,66 +285,89 @@ WarpX::InitFromCheckpoint ()
 	mypc->ReadHeader(is);
     }
 
+    const int nlevs = finestLevel()+1;
+
     // Initialize the field data
-    for (int lev = 0, nlevs=finestLevel()+1; lev < nlevs; ++lev)
+    for (int lev = 0; lev < nlevs; ++lev)
     {
-	for (int i = 0; i < 3; ++i) {
-	    Efield[lev][i]->setVal(0.0);
-	    Bfield[lev][i]->setVal(0.0);
-	    current[lev][i]->setVal(0.0);
-	}
+        for (int i = 0; i < 3; ++i) {
+            current_fp[lev][i]->setVal(0.0);
+            Efield_fp[lev][i]->setVal(0.0);
+            Bfield_fp[lev][i]->setVal(0.0);
+        }
+        
+        if (lev > 0) {
+            for (int i = 0; i < 3; ++i) {
+                Efield_aux[lev][i]->setVal(0.0);
+                Bfield_aux[lev][i]->setVal(0.0);
+                
+                current_cp[lev][i]->setVal(0.0);
+                Efield_cp[lev][i]->setVal(0.0);
+                Bfield_cp[lev][i]->setVal(0.0);
+            }
+        }
 
-        VisMF::Read(*Efield[lev][0],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
-        VisMF::Read(*Efield[lev][1],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
-        VisMF::Read(*Efield[lev][2],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
+        VisMF::Read(*Efield_fp[lev][0],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex_fp"));
+        VisMF::Read(*Efield_fp[lev][1],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey_fp"));
+        VisMF::Read(*Efield_fp[lev][2],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez_fp"));
 
-        VisMF::Read(*Bfield[lev][0],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
-        VisMF::Read(*Bfield[lev][1],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
-        VisMF::Read(*Bfield[lev][2],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
+        VisMF::Read(*Bfield_fp[lev][0],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx_fp"));
+        VisMF::Read(*Bfield_fp[lev][1],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By_fp"));
+        VisMF::Read(*Bfield_fp[lev][2],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz_fp"));
 
         if (is_synchronized) {
-            VisMF::Read(*current[lev][0],
-                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jx"));
-            VisMF::Read(*current[lev][1],
-                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy"));
-            VisMF::Read(*current[lev][2],
-                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz"));    
+            VisMF::Read(*current_fp[lev][0],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jx_fp"));
+            VisMF::Read(*current_fp[lev][1],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy_fp"));
+            VisMF::Read(*current_fp[lev][2],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz_fp"));    
+        }
+
+        if (lev > 0)
+        {
+            VisMF::Read(*Efield_cp[lev][0],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex_cp"));
+            VisMF::Read(*Efield_cp[lev][1],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey_cp"));
+            VisMF::Read(*Efield_cp[lev][2],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez_cp"));
+            
+            VisMF::Read(*Bfield_cp[lev][0],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx_cp"));
+            VisMF::Read(*Bfield_cp[lev][1],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By_cp"));
+            VisMF::Read(*Bfield_cp[lev][2],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz_cp"));
+            
+            if (is_synchronized) {
+                VisMF::Read(*current_cp[lev][0],
+                            amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jx_cp"));
+                VisMF::Read(*current_cp[lev][1],
+                            amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy_cp"));
+                VisMF::Read(*current_cp[lev][2],
+                            amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz_cp"));
+            }
         }
     }
 
-// xxxxx
-#if 0
     if (do_pml)
     {
         InitPML();
-
-        const int lev = 0;
-        VisMF::Read(*pml_E[0],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ex"));
-        VisMF::Read(*pml_E[1],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ey"));
-        VisMF::Read(*pml_E[2],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ez"));
-
-        VisMF::Read(*pml_B[0],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Bx"));
-        VisMF::Read(*pml_B[1],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_By"));
-        VisMF::Read(*pml_B[2],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Bz"));
+        for (int lev = 0; lev < nlevs; ++lev) {
+            pml[lev]->Restart(amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml"));
+        }
     }
-#endif
 
     // Initilize particles
     mypc->AllocData();
     mypc->Restart(restart_chkfile, "particle");
-#endif
 }
 
 

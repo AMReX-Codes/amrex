@@ -57,7 +57,14 @@ WarpX::InitFromScratch ()
     InitOpenbc();
 #endif
 
-    if (do_pml) {
+    InitPML();
+}
+
+void
+WarpX::InitPML ()
+{
+    if (do_pml)
+    {
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr, pml_ncell, 0));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
