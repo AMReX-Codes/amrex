@@ -602,50 +602,6 @@ namespace amrex
     return m_tag == AllRegular;
   }
         
-  ///
-  EBGraphImplem::TAG 
-  EBGraphImplem::
-  getTag(int a_secretCode) 
-  {
-    ///shhhh
-    TAG retval;
-    if(a_secretCode == 0)
-    {
-      retval = AllCovered;
-    }
-    else if(a_secretCode == 1)
-    {
-      retval = AllRegular;
-    }
-    else
-    {
-      retval = HasIrregular;
-    }
-    return retval;
-  }
-  ///
-  int
-  EBGraphImplem::
-  getSecretCode(TAG a_tag)
-  {
-    ///shhh
-    int secretCode;
-    if (a_tag == AllCovered)
-    {
-      secretCode = 0;
-    }
-    else if (a_tag == AllRegular)
-    {
-      secretCode = 1;
-    }
-    else
-    {
-      secretCode = 2;
-    }
-    return secretCode;
-  }
-        
-        
   /*******************************/
   bool EBGraph::hasIrregular() const
   {
@@ -1680,7 +1636,7 @@ namespace amrex
     BL_PROFILE("EBGraphImplem::nbytesFull");
     size_t retval = 0;
     //the tag
-    retval += sizeof(int);
+    retval += sizeof(TAG);
 
     //region, domain, graphnode box
     retval +=  3*Box::linearSize();
@@ -1707,9 +1663,9 @@ namespace amrex
     size_t retval = 0;
     size_t incrval = 0;
     //the tag
-    int* intbuf = (int *) a_buf;
-    int secretCode = getSecretCode(m_tag);
-    *intbuf = secretCode;
+    TAG* intbuf = (TAG *) a_buf;
+    *intbuf = m_tag;
+    retval += sizeof(TAG);
     intbuf++;
 
     //now into byte mode
@@ -1764,10 +1720,10 @@ namespace amrex
     size_t retval = 0;
     size_t incrval = 0;
     //the tag
-    int* intbuf = (int *) a_buf;
-    int secretCode = *intbuf;
+    TAG* intbuf = (TAG*) a_buf;
+    m_tag = *intbuf;
+    retval += sizeof(TAG);
     intbuf++;
-    m_tag = getTag(secretCode);
 
     //now into byte mode
     //region, domain, graphnode box
@@ -1823,7 +1779,7 @@ namespace amrex
   EBGraphImplem::
   nBytes(const Box& a_region, int start_comp, int ncomps) const
   {
-    //regular irregular covered code
+    //regular irregular covered flag
     std::size_t linearSize = sizeof(int);
     if (!isRegular(a_region) && !isCovered(a_region))
     {
@@ -1834,6 +1790,7 @@ namespace amrex
         linearSize += nodeSize;
       }
     }
+    //cout << "proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
     return linearSize;
   }
         
@@ -1847,16 +1804,27 @@ namespace amrex
   {
     assert(isDefined());
     assert(isDomainSet());
-    int secretCode = getSecretCode(m_tag);
-    std::size_t retval = 0;
+    TAG boxtag;
+    if (isRegular(a_region))
+    {
+      boxtag = AllRegular;
+    }
+    else if(isCovered(a_region))
+    {
+      boxtag = AllCovered;
+    }
+    else
+    {
+      boxtag = HasIrregular;
+    }
 
-        
-    int* intbuf = (int*) a_buf;
+    std::size_t retval = 0;
+    TAG* intbuf = (TAG*) a_buf;
     retval += sizeof(int);
-    *intbuf = secretCode;
+    *intbuf = boxtag;
     intbuf++;
         
-    if (!isRegular(a_region) && !isCovered(a_region))
+    if (boxtag == HasIrregular)
     {
       unsigned char* buffer = (unsigned char*) intbuf;
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
@@ -1883,13 +1851,14 @@ namespace amrex
     assert(isDomainSet());
     assert(isDefined());
     assert(isDomainSet());
+
     std::size_t retval = 0;
-    int* intbuf = (int*) a_buf;
-    int secretCode = *intbuf;
+    TAG* intbuf = (TAG*) a_buf;
+    TAG boxtag = *intbuf;
     retval += sizeof(int);
     intbuf++;
-    TAG tag = getTag(secretCode);    
-    if (tag == AllCovered)
+
+    if (boxtag == AllCovered)
     {
       //all covered input
       EBGraphImplem ebgraphSrc(a_region);
@@ -1897,7 +1866,7 @@ namespace amrex
       ebgraphSrc.setToAllCovered();
       copy(ebgraphSrc, a_region, 0, a_region, 0, 1);
     }
-    else if (tag == AllRegular)
+    else if (boxtag == AllRegular)
     {
       //all regular input
       EBGraphImplem ebgraphSrc(a_region);

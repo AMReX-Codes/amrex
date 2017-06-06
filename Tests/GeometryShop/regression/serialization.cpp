@@ -178,6 +178,72 @@ namespace amrex
   }
 
   /***************/
+  int EBG_checkEquality(EBGraph            & a_ebg1,
+                        EBGraph            & a_ebg2,
+                        const Box          & a_checkRegion,
+                        const EBISBox      & a_ebis)
+  {
+    if(a_ebg1.getDomain() != a_ebg2.getDomain())
+    {
+      amrex::Print() << "ebg_checkequality: domain mismatch" << endl;
+      return -1;
+    }
+    if(a_ebg1.getRegion() != a_ebg2.getRegion())
+    {
+      amrex::Print() << "ebg_checkequality: region mismatch" << endl;
+      return -2;
+    }
+    for(BoxIterator bit(a_ebg1.getRegion()); bit.ok(); ++bit)
+    {
+      if(a_checkRegion.contains(bit()))
+        {
+          vector<VolIndex> vvofs1 = a_ebg1.getVoFs(bit());
+          vector<VolIndex> vvofs2 = a_ebg1.getVoFs(bit());
+          if(vvofs1.size() != vvofs2.size())
+          {
+            amrex::Print() << "ebg_checkequality: vector vof size mismatch" << endl;
+            return -3;
+          }
+          for(int ivof = 0; ivof < vvofs1.size(); ivof++)
+          {
+            const VolIndex& vof1 = vvofs1[ivof];
+            const VolIndex& vof2 = vvofs2[ivof];
+            if(vof1 != vof2)
+            {
+              amrex::Print() << "ebg_checkequality: vof mismatch" << endl;
+              return -4;
+            }
+            for(int idir = 0; idir < SpaceDim; idir++)
+            {
+              for(SideIterator sit; sit.ok(); ++sit)
+              {
+                vector<FaceIndex> vfaces1 = a_ebg1.getFaces(vof1, idir, sit());
+                vector<FaceIndex> vfaces2 = a_ebg2.getFaces(vof2, idir, sit());
+                if(vfaces1.size() != vfaces2.size())
+                {
+                  amrex::Print() << "ebg_checkequality: vector vof size mismatch 2" << endl;
+                  return -5;
+                }
+                for(int iface = 0; iface < vfaces1.size(); iface++)
+                {
+                  const FaceIndex& face1 = vfaces1[iface];
+                  const FaceIndex& face2 = vfaces2[iface];
+                  if(face1 != face2)
+                  {
+                    amrex::Print() << "ebg_checkequality: face mismatch" << endl;
+                    return -6;
+                  }
+                }
+
+              }
+            }
+          }
+        }
+        
+    }
+    return 0;
+  }
+  /***************/
   int cerealTest()
   {
     Box domain;
@@ -203,58 +269,127 @@ namespace amrex
       IntVectSet ivsGrown = ebis.getIrregIVS(grownBox);
 
       //BaseIVFAB      
-      BaseIVFAB<int> srcBIV(ivsGrown, ebis.getEBGraph(), nvar);
-      BIVF_fillWithSomething(srcBIV);
       {
-        //full serialization (all meta data included)
-        std::size_t nbytesbiv1 = srcBIV.nBytesFull();
-        unsigned char* charbiv =  new unsigned char[nbytesbiv1];
-        size_t nbytesbiv2 = srcBIV.copyToMemFull(charbiv);
-        if(nbytesbiv1 != nbytesbiv2)
+        BaseIVFAB<int> srcBIV(ivsGrown, ebis.getEBGraph(), nvar);
+        BIVF_fillWithSomething(srcBIV);
         {
-          amrex::Print() << "byte size mismatch" << endl;
-          return -10;
-        }
-        BaseIVFAB<int> dstBIV;
-        size_t nbytesbiv3 = dstBIV.copyFromMemFull(charbiv);
-        if(nbytesbiv1 != nbytesbiv3)
-        {
-          amrex::Print() << "byte size mismatch" << endl;
-          return -11;
-        }
-        delete[] charbiv;
+          //full serialization (all meta data included)
+          std::size_t nbytesbiv1 = srcBIV.nBytesFull();
+          unsigned char* charbiv =  new unsigned char[nbytesbiv1];
+          size_t nbytesbiv2 = srcBIV.copyToMemFull(charbiv);
+          if(nbytesbiv1 != nbytesbiv2)
+          {
+            amrex::Print() << "byte size mismatch" << endl;
+            return -10;
+          }
+          BaseIVFAB<int> dstBIV;
+          size_t nbytesbiv3 = dstBIV.copyFromMemFull(charbiv);
+          if(nbytesbiv1 != nbytesbiv3)
+          {
+            amrex::Print() << "byte size mismatch" << endl;
+            return -11;
+          }
 
-        retval = BIVF_checkEquality(srcBIV, dstBIV, grownBox, ebis);
-        if(retval != 0)
+          retval = BIVF_checkEquality(srcBIV, dstBIV, grownBox, ebis);
+          if(retval != 0)
+          {
+            amrex::Print() << "biv equality test (full) returned error" << endl;
+            return retval;
+          }
+          delete[] charbiv;
+        }
         {
-          amrex::Print() << "biv equality test (full) returned error" << endl;
-          return retval;
+          //now test the more limited serialization stuff
+          BaseIVFAB<int> dstBIV(ivsGrown, ebis.getEBGraph(), nvar);
+          int startcomp = 0;
+          size_t nbytesbiv1 = srcBIV.nBytes(valid, startcomp, nvar);
+          unsigned char* charbiv = new unsigned char[nbytesbiv1];
+          size_t nbytesbiv2 = srcBIV.copyToMem(valid, startcomp, nvar, charbiv);
+          if(nbytesbiv1 != nbytesbiv2)
+          {
+            amrex::Print() << "byte size mismatch" << endl;
+            return -12;
+          }
+
+          size_t nbytesbiv3 = dstBIV.copyFromMem(valid, startcomp, nvar, charbiv);
+          if(nbytesbiv3 != nbytesbiv2)
+          {
+            amrex::Print() << "byte size mismatch" << endl;
+            return -112;
+          }
+
+          retval = BIVF_checkEquality(srcBIV, dstBIV, valid, ebis);
+          if(retval != 0)
+          {
+            amrex::Print() << "biv equality test (part) returned error" << endl;
+            return retval;
+          }
+          delete[] charbiv;
+
         }
       }
+
+
+      //EBGraph
       {
-        //now test the more limited serialization stuff
-        BaseIVFAB<int> dstBIV(ivsGrown, ebis.getEBGraph(), nvar);
-        int startcomp = 0;
-        size_t nbytesbiv1 = srcBIV.nBytes(valid, startcomp, nvar);
-        unsigned char* charbiv = new unsigned char[nbytesbiv1];
-        size_t nbytesbiv2 = srcBIV.copyToMem(valid, startcomp, nvar, charbiv);
-        if(nbytesbiv1 != nbytesbiv2)
+        EBGraph src = ebis.getEBGraph();
         {
-          amrex::Print() << "byte size mismatch" << endl;
-          return -12;
-        }
-        delete[] charbiv;
+          //full serialization (all meta data included)
+          std::size_t nbytes1 = src.nBytesFull();
+          unsigned char* buff =  new unsigned char[nbytes1];
+          size_t nbytes2 = src.copyToMemFull(buff);
+          if(nbytes1 != nbytes2)
+          {
+            amrex::Print() << "ebg byte size mismatch" << endl;
+            return -13;
+          }
+          EBGraph dst;
+          size_t nbytes3 = dst.copyFromMemFull(buff);
+          if(nbytes1 != nbytes3)
+          {
+            amrex::Print() << "ebg byte size mismatch 2" << endl;
+            return -14;
+          }
 
-        dstBIV.copyFromMem(valid, startcomp, nvar, charbiv);
-        retval = BIVF_checkEquality(srcBIV, dstBIV, valid, ebis);
-        if(retval != 0)
+          retval = EBG_checkEquality(src, dst, grownBox, ebis);
+          if(retval != 0)
+          {
+            amrex::Print() << " ebg equality test (full) returned error" << endl;
+            return retval;
+          }
+          delete[] buff;
+        }
         {
-          amrex::Print() << "biv equality test (part) returned error" << endl;
-          return retval;
-        }
+          //now test the more limited serialization stuff
+          EBGraph dst(grownBox);
+          dst.setDomain(src.getDomain());
+          int startcomp = 0;
+          size_t nbytes1 = src.nBytes(valid, startcomp, nvar);
+          unsigned char* buff = new unsigned char[nbytes1];
+          size_t nbytes2 = src.copyToMem(valid, startcomp, nvar, buff);
+          if(nbytes1 != nbytes2)
+          {
+            amrex::Print() << "ebg byte size mismatch 3" << endl;
+            return -15;
+          }
 
+          size_t nbytes3 = dst.copyFromMem(valid, startcomp, nvar, buff);
+          if(nbytes1 != nbytes3)
+          {
+            amrex::Print() << "ebg byte size mismatch 4" << endl;
+            return -16;
+          }
+
+          retval = EBG_checkEquality(src, dst, valid, ebis);
+          if(retval != 0)
+          {
+            amrex::Print() << "equality test (part) returned error" << endl;
+            return retval;
+          }
+          delete[] buff;
+
+        }
       }
-      
       
     }
 

@@ -53,12 +53,6 @@ namespace amrex
     };
 
     
-    //used in IO
-    static TAG getTag(int a_secretCode);
-
-    //used in IO
-    static int getSecretCode(TAG a_tag);
-
     ///
     /**
        Makes an EBGraphImplem whose contents are undefined.
