@@ -278,7 +278,7 @@ The class provides various functions including
 \end{lstlisting}
 
 Index type is a very important concept in \amrex.  It is a way of
-representing the notion of indices $i$ and $i+1/2$.  
+representing the notion of indices $i$ and $i+1/2$.
 
 \subsection{Box}
 
@@ -304,13 +304,26 @@ Depending the dimensionality, the output of the code above is
 For simplicity, we will assume it is 3D for the rest of this section.
 In the output, three integer tuples for each box are the lower corner
 indices, upper corner indices, and the index types.  Note that {\tt 0}
-and {\tt 1} denote cell and node, respecitively.  For each tuple like
+and {\tt 1} denote cell and node, respectively.  For each tuple like
 {\tt (64,64,64)}, the 3 numbers are for 3 directions.  The two {\tt
   Box}es in the code above represent different indexing views of the
 same domain of $64^3$ cells.  Note that in \amrex\ convention, the
 lower side of a cell has the same integer value as the cell centered
 index.  That is if we consider a cell based index represent $i$, the
-nodal index with the same integer value represents $i-1/2$.  
+nodal index with the same integer value represents $i-1/2$.
+Figure~\ref{fig:basics:indextypes} shows a 2D example of various index
+types.  
+
+\begin{figure}
+  \centering
+  \includegraphics[width=5in]{./Basics/indextypes.pdf}
+  \caption{\label{fig:basics:indextypes} Some of the different index
+    types in two dimensions: (a) cell-centered, (b) face-centered,
+    i.e., nodal in one dimensions ($x$) only, and (c) corner/nodal,
+    i.e., nodal in all dimensions.  Note that for data that is nodal
+    in one or more direction, the integer index corresponds to the
+    lower boundary in that direction.}
+\end{figure}
 
 There are a number of ways of converting a {\tt Box} from one type to
 another.
@@ -793,8 +806,11 @@ For {\tt FabArray} on each process, it is built on a {\tt BoxArray} with
 In \amrex, there are some specialized classes derived from {\tt
   FabArray}.  The {\tt iMultiFab} class is derived from {\tt
   FabArray<IArrayBox>}.  The most commonly used {\tt FabArray} kind
-class is {\tt MultiFab} derived from {\tt FabArray<FArrayBox>}.  {\tt
-  MultiFab} has a number of constructors.  For example,
+class is {\tt MultiFab} derived from {\tt FabArray<FArrayBox>}.  In
+the rest of this section, we use {\tt MultiFab} as example.  However,
+these concepts are equally applicable to other types of {\tt
+  FabArray}s.  There are many ways to define a {\tt MultiFab}.  For
+example,
 \begin{lstlisting}[language=cpp]
   // ba is BoxArray
   // dm is DistributionMapping
@@ -808,19 +824,91 @@ Here we define a {\tt MultiFab} with 4 components and 1 ghost cell.  A
 number of ghost cells (1 in this example).  That is the {\tt Box} in
 the {\tt FArrayBox} is not exactly the same as in the {\tt BoxArray}.
 If the {\tt BoxArray} has a {\tt Box\{(8,8,8) (15,15,15)\}}, the one
-used for constructing {\tt FArrayBox} will be {\tt Box\{(8,8,8)
+used for constructing {\tt FArrayBox} will be {\tt Box\{(7,7,7)
   (16,16,16)\}} in this example.  Note that {\tt FArrayBox} itself
 does not have the concept of ghost cell, whereas ghost cell is a key
-concept of %{\tt 
+concept of {\tt MultiFab} that allows for local operations on ghost
+cell data originated from remote processes.  We will discuss how to
+fill ghost cells later in this section.  {\tt MultiFab} also has a
+default constructor.  One can define an empty {\tt MultiFab} first and
+then call the {\tt define} function as follows.
+\begin{lstlisting}[language=cpp]
+  MultiFab mf;
+  // ba is BoxArray
+  // dm is DistributionMapping
+  int ncomp = 4;
+  int ngrow = 1;
+  mf.define(ba, mf, ncomp, ngrow);
+\end{lstlisting}
+Given an existing {\tt MultiFab}, one can also make an alias {\tt
+  MultiFab} as follows.
+\begin{lstlisting}[language=cpp]
+  // orig_mf is an existing Multifab
+  int start_comp = 3;
+  int num_comps = 1;
+  MultiFab alias_mf(orig_mf, amrex::make_alias, start_comp, num_comps);
+\end{lstlisting}
+Here the first integer parameter is the starting component in the
+original {\tt MultiFab} that will become component 0 in the alias {\tt
+  MultiFab} and the second integer parameter is the number of
+components in the alias.  It's a runtime error if the sum of the two
+integer parameters is greater than the number of the components in the
+original {\tt MultiFab}.  Note that the alias {\tt MultiFab} has
+exactly the same number of ghost cells as the original {\tt MultiFab}.
 
-% make alias
-% no alloc?
+We often need to build new {\tt MultiFab}s that have the same {\tt
+  BoxArray} and {\tt DistributionMapping} as a given {\tt MultiFab}.
+Below is an example of how to achieve this.
+\begin{lstlisting}[language=cpp]
+  // mf0 is an already defined MultiFab
+  const BoxArray& ba = mf0.boxArray();
+  const DistributionMapping& dm = mf0.DistributionMap();
+  int ncomp = mf0.nComp();
+  int ngrow = mf0.ngrow();
+  MultiFab mf1(ba,dm,ncomp,ngrow);  // new MF with the same ncomp and ngrow
+  MultiFab mf2(ba,dm,ncomp,0);      // new MF with no ghost cells
+  // new MF with 1 component and 2 ghost cells
+  MultiFab mf3(mf0.boxArray(), mf0.DistributionMap(), 1, 2);               
+\end{lstlisting}
+
+As we have repeatedly mentioned in this chapter that {\tt Box} and
+{\tt BoxArray} have various index types.  Thus, {\tt MultiFab} also
+has an index type that is obtained from the {\tt BoxArray} used for
+defining the {\tt MultiFab}.  It should be noted again that index type
+is a very important concept in \amrex.  Let's consider an example of a
+finite-volume code, in which the state is defined as cell averaged
+variables and the fluxes are defined as face averaged variables.
+\begin{lstlisting}[language=cpp]
+  // ba is cell-centered BoxArray
+  // dm is DistributionMap
+  int ncomp = 3;  // Suppose the system has 3 components
+  int ngrow = 0;  // no ghost cells
+  MultiFab state(ba, dm, ncomp, ngrow);
+  MultiFab xflux(amrex::convert(ba, IntVect{1,0,0}), dm, ncomp, 0);
+  MultiFab yflux(amrex::convert(ba, IntVect{0,1,0}), dm, ncomp, 0);
+  MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
+\end{lstlisting}
+Here all {\tt MultiFab} use the same {\tt DistributionMapping}, but
+their {\tt BoxArray}s have different.  The state is cell based,
+whereas the fluxes are on the faces.  Suppose the cell based {\tt
+  BoxArray} contains a {\tt Box\{(8,8,16), (15,15,31)\}}.  The state
+on that {\tt Box} is conceptually a Fortran Array with the dimension
+of {\tt (8:15,8:15,16:31,0:2)}.  The fluxes are arrays with slightly
+different indices.  For example, the $x$-direction flux for that {\tt
+  Box} has the dimension of {\tt (8:16,8:15,16:31,0:2)}.  Note there is
+an extra element in $x$-direction.  
+
+
+% common operations like Copy, Add, etc.
 
 %ghost cells We note that while the grids themselves are 
 %non-intersecting boxes, the data in an FArrayBox may be defined
 %on a Box larger than the grid if ghost (or halo) cells are needed.
+%
+% parallel communication
 
 \section{MFIter and Tiling}
+\label{sec:basics:mfiter}
 
 \section{Calling Fortan or C}
 \label{sec:basics:fortran}
