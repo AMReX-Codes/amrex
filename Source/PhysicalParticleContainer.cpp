@@ -204,7 +204,6 @@ PhysicalParticleContainer::Evolve (int lev,
 
     {
 	Array<Real> xp, yp, zp, giv;
-        FArrayBox jx_bnd, jy_bnd, jz_bnd;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
