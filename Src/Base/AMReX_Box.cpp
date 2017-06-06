@@ -183,7 +183,7 @@ Box::enclosedCells ()
 
 Box
 grow (const Box& b,
-              int        i)
+      int        i)
 {
     Box result = b;
     result.grow(i);
@@ -192,10 +192,18 @@ grow (const Box& b,
 
 Box
 grow (const Box&     b,
-              const IntVect& v)
+      const IntVect& v)
 {
     Box result = b;
     result.grow(v);
+    return result;
+}
+
+Box
+grow (const Box& b, int idir, int n_cell)
+{
+    Box result = b;
+    result.grow(idir, n_cell);
     return result;
 }
 
