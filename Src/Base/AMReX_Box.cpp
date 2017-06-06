@@ -207,6 +207,22 @@ grow (const Box& b, int idir, int n_cell)
     return result;
 }
 
+Box
+growLo (const Box& b, int idir, int n_cell)
+{
+    Box result = b;
+    result.growLo(idir, n_cell);
+    return result;
+}
+
+Box
+growHi (const Box& b, int idir, int n_cell)
+{
+    Box result = b;
+    result.growHi(idir, n_cell);
+    return result;
+}
+
 Box&
 Box::grow (Orientation face,
            int         n_cell)
