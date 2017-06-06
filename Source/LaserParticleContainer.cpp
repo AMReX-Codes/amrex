@@ -252,7 +252,6 @@ LaserParticleContainer::Evolve (int lev,
 
     {
 	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
-        FArrayBox jx_bnd, jy_bnd, jz_bnd;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
