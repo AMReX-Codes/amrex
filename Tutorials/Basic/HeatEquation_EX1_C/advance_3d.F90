@@ -128,7 +128,7 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
   integer, device :: fxlo_d(3), fxhi_d(3) 
   integer, device :: fylo_d(3), fyhi_d(3)
   integer, device :: fzlo_d(3), fzhi_d(3)
-  real(amrex_real) :: dx_d(3)
+  real(amrex_real), device :: dx_d(3)
 
   cuda_result = cudaMemcpyAsync(lo_d, lo, 3, cudaMemcpyHostToDevice, stream)
   cuda_result = cudaMemcpyAsync(hi_d, hi, 3, cudaMemcpyHostToDevice, stream)
@@ -152,7 +152,7 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
   call cuda_compute_flux<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, phi, philo_d, phihi_d, &
                                                                fluxx, fxlo_d, fxhi_d, &
                                                                fluxy, fylo_d, fyhi_d, &
-                                                               fluxy, fzlo_d, fzhi_d, dx_d)
+                                                               fluxz, fzlo_d, fzhi_d, dx_d)
 
   cuda_result = cudaStreamSynchronize(stream)
 
