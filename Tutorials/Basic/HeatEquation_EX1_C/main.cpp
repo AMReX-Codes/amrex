@@ -79,6 +79,11 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 #endif
                    dx, dt, &idx);
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
+
 }
 
 void main_main ()
