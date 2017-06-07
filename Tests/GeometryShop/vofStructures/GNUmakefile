@@ -9,8 +9,8 @@ COMP         = g++
 DEBUG        = FALSE
 DEBUG        = TRUE
 
-USE_MPI      = FALSE
 USE_MPI      = TRUE
+USE_MPI      = FALSE
 
 USE_OMP      = TRUE
 USE_OMP      = FALSE
