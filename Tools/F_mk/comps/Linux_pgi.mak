@@ -9,8 +9,8 @@
     else
         CC  := pgcc
         CXX := pgc++
-        FC  := pgf95
-        F90 := pgf95
+        FC  := pgfortran
+        F90 := pgfortran
     endif
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
@@ -63,4 +63,8 @@
     ifneq ($(findstring titan, $(HOST)), titan)
         #The wrappers should pick this up on Titan, so don't add it in that case.
         LDFLAGS += -pgc++libs
+    endif
+
+    ifeq ($(findstring summit, $(HOST)), summit)
+       libraries += -L /sw/summitdev/gcc/5.4.0new/lib64/ -latomic
     endif
