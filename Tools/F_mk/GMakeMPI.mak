@@ -137,7 +137,7 @@ ifeq ($(findstring titan, $(HOST)), titan)
 endif
 ifeq ($(findstring summit, $(HOST)), summit)
     #
-    # titan (Oak Ridge, OLCF machine)
+    # summit (Oak Ridge, OLCF machine)
 		#
 		# Cray machines require you use their compiler wrappers
 		# even if you aren't using Cray compiler
