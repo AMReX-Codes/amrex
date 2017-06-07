@@ -4,6 +4,8 @@
 
 #include <AMReX_CArena.H>
 
+#include <AMReX_Device.H>
+
 namespace amrex {
 
 CArena::CArena (size_t hunk_size)
@@ -21,7 +23,11 @@ CArena::CArena (size_t hunk_size)
 CArena::~CArena ()
 {
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
+#ifdef CUDA
+	gpu_free(m_alloc[i]);
+#else
         ::operator delete(m_alloc[i]);
+#endif
 }
 
 void*
@@ -43,7 +49,11 @@ CArena::alloc (size_t nbytes)
     {
         const size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
+#if (defined(CUDA) && defined(CUDA_UM))
+	gpu_malloc_managed(&vp, &N);
+#else
         vp = ::operator new(N);
+#endif
 
         m_used += N;
 
