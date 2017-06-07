@@ -129,8 +129,6 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
 
   call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
-  print *, lo, hi, numBlocks, numThreads
-
   call cuda_compute_flux<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, phi, philo_d, phihi_d, &
                                                                fluxx, fxlo_d, fxhi_d, &
                                                                fluxy, fylo_d, fyhi_d, dx_d)
