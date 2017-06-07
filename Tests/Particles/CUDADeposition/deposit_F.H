@@ -10,6 +10,8 @@
 extern "C"
 {
 #endif
+
+  void process_particles(void*, int ns, int np);
   
   void deposit_cic(const amrex_real*, int ns, int np,
 		   amrex_real* rho, const int* lo, const int* hi,

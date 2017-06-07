@@ -21,6 +21,18 @@ public:
   void InitParticles(int num_particles, Real mass);
   
   void Deposit(MultiFab& partMF);
+
+  void ComputeError();
+
+private:
+
+  void CopyParticlesToDevice();
+  void CopyParticlesFromDevice();
+
+  int m_np;
+  size_t psize;
+  ParticleType* device_particles;
+
 };
 
 }
