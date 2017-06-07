@@ -1411,13 +1411,29 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    send_rank.reserve(N_snds);
             send_reqs.reserve(N_snds);
 	    send_cctc.reserve(N_snds);
+            indv_send_size.reserve(N_snds);
 
             for (auto const& kv : *thecpc.m_SndVols)
 	    {
+                Array<int> iss;                
+                auto const& cctc = thecpc.m_SndTags->at(kv.first);
+
                 std::size_t nbytes = 0;
-                for (auto const& cct : kv.second)
+                if (FAB::preAllocatable())
                 {
-                    nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
+                    for (auto const& cct : kv.second)
+                    {
+                        nbytes += src[cct.srcIndex].nBytes(cct.sbox,SC,NC);
+                    }
+                }
+                else
+                {
+                    for (auto const& tag : cctc)
+                    {
+                        std::size_t b = src[tag.srcIndex].nBytes(tag.sbox,SC,NC);
+                        nbytes += b;
+                        iss.push_back(static_cast<int>(b));
+                    }
                 }
 		
 		BL_ASSERT(nbytes < std::numeric_limits<int>::max());
@@ -1437,12 +1453,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 send_size.push_back(static_cast<int>(nbytes));
                 send_rank.push_back(kv.first);
                 send_reqs.push_back(MPI_REQUEST_NULL);
-                send_cctc.push_back(&(thecpc.m_SndTags->at(kv.first)));
+                send_cctc.push_back(&cctc);
+                indv_send_size.push_back(std::move(iss));
 	    }
 
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
-
-            indv_send_size.resize(N_snds);
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -1458,16 +1473,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                         const Box& bx = tag.sbox;
                         auto n = src[tag.srcIndex].copyToMem(bx,SC,NC,dptr);
                         dptr += n;
-                        if (!FAB::preAllocatable()) {
-                            indv_send_size[j].push_back(static_cast<int>(n));
-                        }
                     }
                     BL_ASSERT(dptr == send_data[j] + send_size[j]);
 		}
-                else if (!FAB::preAllocatable())
-                {
-                    indv_send_size[j].resize(send_cctc[j]->size(),0);
-                }
 	    }
 
 #ifdef BL_USE_UPCXX
@@ -1999,6 +2007,10 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
+    int preSeqNum;
+    if (!FAB::preAllocatable()) {
+        preSeqNum = ParallelDescriptor::SeqNum();
+    }
     const int SeqNum = ParallelDescriptor::SeqNum();
 
     if (thecpc.m_LocTags->empty() && thecpc.m_RcvTags->empty() && thecpc.m_SndTags->empty()) {
@@ -2030,7 +2042,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         if (N_rcvs > 0) {
             dest->PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
                            recv_data, recv_size, recv_from, recv_reqs, 
-                           SC, NC, SeqNum, -1, commBoth);
+                           SC, NC, SeqNum, preSeqNum, commBoth);
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
         }
 
@@ -2044,6 +2056,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 	Array<int>                         send_rank;
 	Array<MPI_Request>                 send_reqs;
 	Array<const CopyComTagsContainer*> send_cctc;
+        Array<Array<int> >                 indv_send_size;
 
         int actual_n_snds = 0;
         if (N_snds > 0)
@@ -2053,13 +2066,29 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
             send_rank.reserve(N_snds);
             send_reqs.reserve(N_snds);
             send_cctc.reserve(N_snds);
+            indv_send_size.reserve(N_snds);
             
             for (auto const& kv : *thecpc.m_SndVols)
             {
+                Array<int> iss;                
+                auto const& cctc = thecpc.m_SndTags->at(kv.first);
+
                 std::size_t nbytes = 0;
-                for (auto const& cct : kv.second)
+                if (FAB::preAllocatable())
                 {
-                    nbytes += (*src)[cct.srcIndex].nBytes(cct.sbox,SC,NC);
+                    for (auto const& cct : kv.second)
+                    {
+                        nbytes += (*src)[cct.srcIndex].nBytes(cct.sbox,SC,NC);
+                    }
+                }
+                else
+                {
+                    for (auto const& tag : cctc)
+                    {
+                        std::size_t b = (*src)[tag.srcIndex].nBytes(tag.sbox,SC,NC);
+                        nbytes += b;
+                        iss.push_back(static_cast<int>(b));
+                    }
                 }
                 
                 BL_ASSERT(nbytes < std::numeric_limits<int>::max());
@@ -2073,7 +2102,8 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 send_size.push_back(static_cast<int>(nbytes));
                 send_rank.push_back(kv.first);
                 send_reqs.push_back(MPI_REQUEST_NULL);
-                send_cctc.push_back(&(thecpc.m_SndTags->at(kv.first)));
+                send_cctc.push_back(&cctc);
+                indv_send_size.push_back(std::move(iss));
             }
 
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
@@ -2097,23 +2127,54 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 }
             }
 
-            if (FabArrayBase::do_async_sends)
+            Array<MPI_Request> pre_reqs(N_snds,MPI_REQUEST_NULL);
+            if (!FAB::preAllocatable())
             {
                 for (int j=0; j<N_snds; ++j)
                 {
-                    if (send_size[j] > 0) {
-                        send_reqs[j] = ParallelDescriptor::Asend
-                            (send_data[j],send_size[j],send_rank[j],SeqNum, commBoth).req();
-                    }
+                    pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
+                                                            indv_send_size[j].size(),
+                                                            send_rank[j],preSeqNum).req();
                 }
-            } else {
-                for (int j=0; j<N_snds; ++j)
+            }
+
+            int send_counter = 0;
+            while (send_counter < N_snds)
+            {
+                int j;
+
+                if (FAB::preAllocatable())
                 {
-                    if (send_size[j] > 0) {
-                        ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum, commBoth);
-                        amrex::The_Arena()->free(send_data[j]);
+                    j = send_counter;
+                }
+                else
+                {
+                    MPI_Status status;
+                    MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
+                }
+                
+                BL_ASSERT(send_size[j] > 0);
+
+                if (FabArrayBase::do_async_sends)
+                {
+                    for (int j=0; j<N_snds; ++j)
+                    {
+                        if (send_size[j] > 0) {
+                            send_reqs[j] = ParallelDescriptor::Asend
+                                (send_data[j],send_size[j],send_rank[j],SeqNum, commBoth).req();
+                        }
+                    }
+                } else {
+                    for (int j=0; j<N_snds; ++j)
+                    {
+                        if (send_size[j] > 0) {
+                            ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum, commBoth);
+                            amrex::The_Arena()->free(send_data[j]);
+                        }
                     }
                 }
+
+                ++send_counter;
             }
         }
 
@@ -3064,13 +3125,29 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 	send_rank.reserve(N_snds);
         send_reqs.reserve(N_snds);
 	send_cctc.reserve(N_snds);
+        indv_send_size.reserve(N_snds);
 
         for (auto const& kv : *TheFB.m_SndVols)
         {
+            Array<int> iss;                
+            auto const& cctc = TheFB.m_SndTags->at(kv.first);
+
             std::size_t nbytes = 0;
-            for (auto const& cct : kv.second)
+            if (FAB::preAllocatable())
             {
-                nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
+                for (auto const& cct : kv.second)
+                {
+                    nbytes += (*this)[cct.srcIndex].nBytes(cct.sbox,scomp,ncomp);
+                }
+            }
+            else
+            {
+                for (auto const& tag : cctc)
+                {
+                    std::size_t b = (*this)[tag.srcIndex].nBytes(tag.sbox,scomp,ncomp);
+                    nbytes += b;
+                    iss.push_back(static_cast<int>(b));
+                }
             }
             
             BL_ASSERT(nbytes < std::numeric_limits<int>::max());
@@ -3090,12 +3167,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
             send_size.push_back(static_cast<int>(nbytes));
             send_rank.push_back(kv.first);
             send_reqs.push_back(MPI_REQUEST_NULL);
-            send_cctc.push_back(&(TheFB.m_SndTags->at(kv.first)));
+            send_cctc.push_back(&cctc);
+            indv_send_size.push_back(std::move(iss));
         }
         
         actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
-
-        indv_send_size.resize(N_snds);
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -3111,15 +3187,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                     const Box& bx = tag.sbox;
                     auto n = (*this)[tag.srcIndex].copyToMem(bx,scomp,ncomp,dptr);
                     dptr += n;
-                    if (!FAB::preAllocatable()) {
-                        indv_send_size[j].push_back(static_cast<int>(n));
-                    }
                 }
                 BL_ASSERT(dptr == send_data[j] + send_size[j]);
-            }
-            else if (!FAB::preAllocatable())
-            {
-                indv_send_size[j].resize(send_cctc[j]->size(),0);
             }
 	}
 
