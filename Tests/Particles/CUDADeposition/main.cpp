@@ -60,10 +60,11 @@ void test_assign_density(TestParams& parms)
 
   myPC.Deposit(partMF);
 
-  std::cout << myPC.sumParticleMass(0, 0) << std::endl;
+  std::cout << "Total particle mass is: " << myPC.sumParticleMass(0, 0) << std::endl;
+  std::cout << "Total mesh mass is: " << partMF.sum(0) << std::endl;
   
-  //  WriteSingleLevelPlotfile("plt00000", partMF, {"density"}, geom, 0.0, 0);
-  //  myPC.Checkpoint("plt00000", "particle0", true);
+  WriteSingleLevelPlotfile("plt00000", partMF, {"density"}, geom, 0.0, 0);
+  myPC.Checkpoint("plt00000", "particle0", true);
 }
 
 int main(int argc, char* argv[])

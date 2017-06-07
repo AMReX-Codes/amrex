@@ -56,24 +56,24 @@ void MyParticleContainer::Deposit(MultiFab& partMF) {
 
   CopyParticlesToDevice();
 
-  process_particles(device_particles, 5, m_np);
+  // process_particles(device_particles, 5, m_np);
 
-  CopyParticlesFromDevice();
+  const int lev = 0;
+  const Geometry& gm  = Geom(lev);
+  const Real*     plo = gm.ProbLo();
+  const Real*     dx  = gm.CellSize();  
 
-  // const int lev = 0;
-  // const Geometry& gm  = Geom(lev);
-  // const Real*     plo = gm.ProbLo();
-  // const Real*     dx  = gm.CellSize();  
-
-  // for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
-  //   const auto& particles = pti.GetArrayOfStructs();
-  //   int nstride = particles.dataShape().first;
-  //   const long np  = pti.numParticles();    
-  //   FArrayBox& rhofab = partMF[pti];
-  //   const Box& box    = rhofab.box();        
+  for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
+    const auto& particles = pti.GetArrayOfStructs();
+    int nstride = particles.dataShape().first;
+    const long np  = pti.numParticles();    
+    FArrayBox& rhofab = partMF[pti];
+    const Box& box    = rhofab.box();        
     
-  //   deposit_cic(particles.data(), nstride, np,
-  // 		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
-  // 		plo, dx);
-  // }
+    deposit_cic(particles.data(), nstride, np,
+  		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
+  		plo, dx);
+  }
+  
+  CopyParticlesFromDevice();
 }
