@@ -61,7 +61,7 @@ class AMReXParticleHeader(object):
             for level_num in range(self.num_levels):
                 self.grids_per_level[level_num] = int(f.readline().strip())
 
-            self.grids = [[] for _ in self.num_levels]
+            self.grids = [[] for _ in range(self.num_levels)]
             for level_num in range(self.num_levels):
                 for grid_num in range(self.grids_per_level[level_num]):
                     entry = [int(val) for val in f.readline().strip().split()]

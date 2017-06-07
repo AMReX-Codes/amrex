@@ -13,6 +13,8 @@ def typechecker(argv):
     parser.add_argument("--output", required=True)
     script_args = parser.parse_args()
 
+    debug = True
+
     funcs_to_check = []
 
     # (1) let's collect all c functions we are going to check into a list
@@ -23,6 +25,8 @@ def typechecker(argv):
     for f in os.listdir(script_args.workdir):
         if f.endswith('-cppd.h'):
             fname = os.path.join(script_args.workdir,f)
+            if debug:
+                print("Checking {0}...".format(f))
             ast = parse_file(fname)
             v = FuncDeclVisitor()
             v.visit(ast)
