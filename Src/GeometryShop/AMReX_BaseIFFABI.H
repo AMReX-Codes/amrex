@@ -510,7 +510,7 @@ namespace amrex
     }
     
     m_data = new T[m_nFaces*m_nComp];
-
+    m_isDefined = true;
     //data
     for(int iface = 0; iface< m_nFaces; iface++)
     {
@@ -525,7 +525,7 @@ namespace amrex
       }
     }
 
-    m_isDefined = true;
+
     return retval;
   }
   /********************/
