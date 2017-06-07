@@ -620,7 +620,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         {
             auto n = m_RcvTags.at(recv_from[k]).size();
             indv_recv_size[k].resize(n);
-            ParallelDescriptor::Arecv(indv_recv_size[k].data(), n, recv_from[k], preSeqNum, comm).req();
+            pre_reqs[k] = ParallelDescriptor::Arecv(indv_recv_size[k].data(),
+                                                    n, recv_from[k], preSeqNum, comm).req();
         }
     }
 
@@ -1358,50 +1359,17 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     {
         const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
 
-        Array<int>         recv_from;
-        Array<char*>       recv_data;
-        Array<int>         recv_size;
-        Array<MPI_Request> recv_reqs;
-#ifdef BL_USE_MPI3
-	Array<MPI_Aint>    recv_disp;
-#endif
         //
-        // Post rcvs. Allocate one chunk of space to hold'm all.
+        // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
         //
-        char* the_recv_data = nullptr;
 
-        int actual_n_rcvs = 0;
-	if (N_rcvs > 0) {
-#ifdef BL_USE_UPCXX
-	    PostRcvs_PGAS(*thecpc.m_RcvVols, the_recv_data, recv_data,
-                          recv_size, recv_from, 
-                          SC, NC, SeqNum, &BLPgas::cp_recv_event);
-#else
-	    if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-                PostRcvs_MPI_Onesided(*thecpc.m_RcvVols, the_recv_data, recv_data, 
-                                      recv_size, recv_from, recv_reqs, recv_disp,
-                                      SC, NC, SeqNum, ParallelDescriptor::cp_win);
-		MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
-		MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
-#endif
-	    } else {
-                PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
-                         recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
-	    }
-#endif
-            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
-	}
-
-	//
-	// Post send's
-	// 
 	Array<char*>                       send_data;
 	Array<int>                         send_size;
 	Array<int>                         send_rank;
 	Array<MPI_Request>                 send_reqs;
 	Array<const CopyComTagsContainer*> send_cctc;
         Array<Array<int> >                 indv_send_size;
+        Array<MPI_Request>                 pre_reqs;
 
         int actual_n_snds = 0;
 	if (N_snds > 0)
@@ -1458,7 +1426,59 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    }
 
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
+        }
 
+        if (!FAB::preAllocatable())
+        {
+            pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
+            for (int j=0; j<N_snds; ++j)
+            {
+                pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
+                                                        indv_send_size[j].size(),
+                                                        send_rank[j],preSeqNum).req();
+            }
+        }
+
+        Array<int>         recv_from;
+        Array<char*>       recv_data;
+        Array<int>         recv_size;
+        Array<MPI_Request> recv_reqs;
+#ifdef BL_USE_MPI3
+	Array<MPI_Aint>    recv_disp;
+#endif
+        //
+        // Post rcvs. Allocate one chunk of space to hold'm all.
+        //
+        char* the_recv_data = nullptr;
+
+        int actual_n_rcvs = 0;
+	if (N_rcvs > 0) {
+#ifdef BL_USE_UPCXX
+	    PostRcvs_PGAS(*thecpc.m_RcvVols, the_recv_data, recv_data,
+                          recv_size, recv_from, 
+                          SC, NC, SeqNum, &BLPgas::cp_recv_event);
+#else
+	    if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+                PostRcvs_MPI_Onesided(*thecpc.m_RcvVols, the_recv_data, recv_data, 
+                                      recv_size, recv_from, recv_reqs, recv_disp,
+                                      SC, NC, SeqNum, ParallelDescriptor::cp_win);
+		MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
+		MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
+#endif
+	    } else {
+                PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
+                         recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
+	    }
+#endif
+            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
+	}
+
+	//
+	// Post send's
+	// 
+	if (N_snds > 0)
+	{
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -1531,17 +1551,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 	    }
             else
             {
-                Array<MPI_Request> pre_reqs(N_snds,MPI_REQUEST_NULL);
-                if (!FAB::preAllocatable())
-                {
-                    for (int j=0; j<N_snds; ++j)
-                    {
-                        pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
-                                                                indv_send_size[j].size(),
-                                                                send_rank[j],preSeqNum).req();
-                    }
-                }
-
                 int send_counter = 0;
                 while (send_counter < N_snds)
                 {
@@ -1557,18 +1566,19 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                         MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
                     }
                         
-                    BL_ASSERT(send_size[j] > 0);
-
-                    if (FabArrayBase::do_async_sends)
+                    if (send_size[j] > 0)
                     {
-                        send_reqs[j] = ParallelDescriptor::Asend
-                            (send_data[j],send_size[j],send_rank[j],SeqNum).req();
-		    }
-                    else
-                    {
-                        ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum);
-                        amrex::The_Arena()->free(send_data[j]);
-		    }
+                        if (FabArrayBase::do_async_sends)
+                        {
+                            send_reqs[j] = ParallelDescriptor::Asend
+                                (send_data[j],send_size[j],send_rank[j],SeqNum).req();
+                        }
+                        else
+                        {
+                            ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum);
+                            amrex::The_Arena()->free(send_data[j]);
+                        }
+                    }
 
                     ++send_counter;
 		}
@@ -2028,27 +2038,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
     {
         const int NC = std::min(NCompLeft,FabArrayBase::MaxComp);
 
-        Array<MPI_Status>  stats;
-        Array<int>         recv_from;
-        Array<char*>       recv_data;
-        Array<int>         recv_size;
-        Array<MPI_Request> recv_reqs;
         //
-        // Post rcvs. Allocate one chunk of space to hold'm all.
+        // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
         //
-        char* the_recv_data = nullptr;
-        const int N_rcvs = thecpc.m_RcvTags->size();
-        int actual_n_rcvs = 0;
-        if (N_rcvs > 0) {
-            dest->PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
-                           recv_data, recv_size, recv_from, recv_reqs, 
-                           SC, NC, SeqNum, preSeqNum, commBoth);
-            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
-        }
-
-	//
-	// Post sends
-	// 
 	const int N_snds = thecpc.m_SndTags->size();
 
 	Array<char*>                       send_data;
@@ -2057,6 +2049,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 	Array<MPI_Request>                 send_reqs;
 	Array<const CopyComTagsContainer*> send_cctc;
         Array<Array<int> >                 indv_send_size;
+        Array<MPI_Request>                 pre_reqs;
 
         int actual_n_snds = 0;
         if (N_snds > 0)
@@ -2107,7 +2100,42 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
             }
 
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
+        }
 
+        if (!FAB::preAllocatable())
+        {
+            pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
+            for (int j=0; j<N_snds; ++j)
+            {
+                pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
+                                                        indv_send_size[j].size(),
+                                                        send_rank[j],preSeqNum).req();
+            }
+        }
+
+        Array<MPI_Status>  stats;
+        Array<int>         recv_from;
+        Array<char*>       recv_data;
+        Array<int>         recv_size;
+        Array<MPI_Request> recv_reqs;
+        //
+        // Post rcvs. Allocate one chunk of space to hold'm all.
+        //
+        char* the_recv_data = nullptr;
+        const int N_rcvs = thecpc.m_RcvTags->size();
+        int actual_n_rcvs = 0;
+        if (N_rcvs > 0) {
+            dest->PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
+                           recv_data, recv_size, recv_from, recv_reqs, 
+                           SC, NC, SeqNum, preSeqNum, commBoth);
+            actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
+        }
+
+	//
+	// Post sends
+	// 
+        if (N_snds > 0)
+        {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -2127,17 +2155,6 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 }
             }
 
-            Array<MPI_Request> pre_reqs(N_snds,MPI_REQUEST_NULL);
-            if (!FAB::preAllocatable())
-            {
-                for (int j=0; j<N_snds; ++j)
-                {
-                    pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
-                                                            indv_send_size[j].size(),
-                                                            send_rank[j],preSeqNum).req();
-                }
-            }
-
             int send_counter = 0;
             while (send_counter < N_snds)
             {
@@ -2153,24 +2170,17 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                     MPI_Waitany(N_snds, pre_reqs.data(), &j, &status);
                 }
                 
-                BL_ASSERT(send_size[j] > 0);
-
-                if (FabArrayBase::do_async_sends)
+                if (send_size[j] > 0)
                 {
-                    for (int j=0; j<N_snds; ++j)
+                    if (FabArrayBase::do_async_sends)
                     {
-                        if (send_size[j] > 0) {
-                            send_reqs[j] = ParallelDescriptor::Asend
-                                (send_data[j],send_size[j],send_rank[j],SeqNum, commBoth).req();
-                        }
+                        send_reqs[j] = ParallelDescriptor::Asend
+                            (send_data[j],send_size[j],send_rank[j],SeqNum, commBoth).req();
                     }
-                } else {
-                    for (int j=0; j<N_snds; ++j)
+                    else
                     {
-                        if (send_size[j] > 0) {
-                            ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum, commBoth);
-                            amrex::The_Arena()->free(send_data[j]);
-                        }
+                        ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum, commBoth);
+                        amrex::The_Arena()->free(send_data[j]);
                     }
                 }
 
@@ -3070,55 +3080,21 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
         return;
 
     //
-    // Post rcvs. Allocate one chunk of space to hold'm all.
+    // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
     //
-#ifdef BL_USE_MPI3
-    MPI_Group tgroup, rgroup, sgroup;
-    if (ParallelDescriptor::MPIOneSided()) {
-	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
-    }
-#endif
+    Array<char*> &                     send_data = fb_send_data;
+    Array<int>                         send_size;
+    Array<int>                         send_rank;
+    Array<MPI_Request>&                send_reqs = fb_send_reqs;
+    Array<const CopyComTagsContainer*> send_cctc;
+    Array<Array<int> >                 indv_send_size;
+    Array<MPI_Request>                 pre_reqs;
 
-    fb_the_recv_data = nullptr;
-    int actual_n_rcvs = 0;
-    if (N_rcvs > 0) {
-#ifdef BL_USE_UPCXX
-	PostRcvs_PGAS(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
-                      fb_recv_size, fb_recv_from,
-                      scomp, ncomp, SeqNum, &BLPgas::fb_recv_event);
-#else
-	if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-	    PostRcvs_MPI_Onesided(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
-                                  fb_recv_size, fb_recv_from, fb_recv_reqs, fb_recv_disp,
-                                  scomp, ncomp, SeqNum, ParallelDescriptor::fb_win);
-	    MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
-	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
-#endif
-	} else {
-	    PostRcvs(*TheFB.m_RcvVols, *TheFB.m_RcvTags,
-                     fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
-                     scomp, ncomp, SeqNum, preSeqNum);
-	}
-#endif
-        actual_n_rcvs = N_rcvs - std::count(fb_recv_size.begin(), fb_recv_size.end(), 0);
-    }
-
-    //
-    // Post send's
-    //
     int actual_n_snds = 0;
     if (N_snds > 0)
     {
         fb_send_data.clear();
         fb_send_reqs.clear();
-
-        Array<char*> &                     send_data = fb_send_data;
-	Array<int>                         send_size;
-	Array<int>                         send_rank;
-        Array<MPI_Request>&                send_reqs = fb_send_reqs;
-	Array<const CopyComTagsContainer*> send_cctc;
-        Array<Array<int> >                 indv_send_size;
 
 	send_data.reserve(N_snds);
 	send_size.reserve(N_snds);
@@ -3172,7 +3148,59 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
         }
         
         actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
+    }
 
+    if (!FAB::preAllocatable())
+    {
+        pre_reqs.resize(N_snds,MPI_REQUEST_NULL);
+        for (int j=0; j<N_snds; ++j)
+        {
+            pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
+                                                    indv_send_size[j].size(),
+                                                    send_rank[j],preSeqNum).req();
+        }
+    }
+
+    //
+    // Post rcvs. Allocate one chunk of space to hold'm all.
+    //
+#ifdef BL_USE_MPI3
+    MPI_Group tgroup, rgroup, sgroup;
+    if (ParallelDescriptor::MPIOneSided()) {
+	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
+    }
+#endif
+
+    fb_the_recv_data = nullptr;
+    int actual_n_rcvs = 0;
+    if (N_rcvs > 0) {
+#ifdef BL_USE_UPCXX
+	PostRcvs_PGAS(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
+                      fb_recv_size, fb_recv_from,
+                      scomp, ncomp, SeqNum, &BLPgas::fb_recv_event);
+#else
+	if (ParallelDescriptor::MPIOneSided()) {
+#if defined(BL_USE_MPI3)
+	    PostRcvs_MPI_Onesided(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
+                                  fb_recv_size, fb_recv_from, fb_recv_reqs, fb_recv_disp,
+                                  scomp, ncomp, SeqNum, ParallelDescriptor::fb_win);
+	    MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
+	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
+#endif
+	} else {
+	    PostRcvs(*TheFB.m_RcvVols, *TheFB.m_RcvTags,
+                     fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
+                     scomp, ncomp, SeqNum, preSeqNum);
+	}
+#endif
+        actual_n_rcvs = N_rcvs - std::count(fb_recv_size.begin(), fb_recv_size.end(), 0);
+    }
+
+    //
+    // Post send's
+    //
+    if (N_snds > 0)
+    {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -3245,17 +3273,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 	} 
 	else 
 	{
-            Array<MPI_Request> pre_reqs(N_snds,MPI_REQUEST_NULL);
-            if (!FAB::preAllocatable())
-            {
-                for (int j=0; j<N_snds; ++j)
-                {
-                    pre_reqs[j] = ParallelDescriptor::Asend(indv_send_size[j].data(),
-                                                            indv_send_size[j].size(),
-                                                            send_rank[j],preSeqNum).req();
-                }
-            }
-
             int send_counter = 0;
             while (send_counter < N_snds)
             {
