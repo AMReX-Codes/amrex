@@ -135,8 +135,8 @@ public:
     void resize (const Box& b,
                  int        N = 1);
 
-  ///for AggStencil and its minions
-  virtual long offset(const IntVect& a_iv, const int& a_ivar) const
+    ///for AggStencil and its minions
+    virtual long offset(const IntVect& a_iv, const int& a_ivar) const
     {
       BL_ASSERT(a_ivar >= 0);
       BL_ASSERT(a_ivar < nvar);
@@ -159,14 +159,16 @@ public:
       return offset;
     }
 
-  /**
-   * \brief The function returns the BaseFab to the invalid state.
-   * The memory is freed.
-   */
-  void clear ();
+    /**
+     * \brief The function returns the BaseFab to the invalid state.
+     * The memory is freed.
+     */
+    void clear ();
 
     //! Returns how many bytes used
     std::size_t nBytes () const { return truesize*sizeof(T); }
+
+    static bool preAllocatable () { return true; }
 
     //! Returns bytes used in the Box for those components
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
@@ -175,8 +177,8 @@ public:
     //! Returns the number of components
     int nComp () const { return nvar; }
 
-  int* nCompPtr() {return &nvar;}
-  const int* nCompPtr() const {return &nvar;}
+    int* nCompPtr() {return &nvar;}
+    const int* nCompPtr() const {return &nvar;}
 
     //! Returns the number of points 
     long nPts () const { return numpts; }
