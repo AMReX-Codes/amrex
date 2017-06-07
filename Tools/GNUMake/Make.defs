@@ -249,9 +249,9 @@ else
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-    CPPFLAGS    += -DCUDA
+    DEFINES += -DCUDA
     ifeq ($(USE_CUDA_UM),TRUE)
-        CPPFLAGS    += -DCUDA_UM
+        DEFINES += -DCUDA_UM
     endif
     LIBRARIES += -lnvToolsExt
     LIBRARY_LOCATIONS += $(CUDA_PATH)/lib64

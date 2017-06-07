@@ -15,6 +15,19 @@ namespace amrex {
 //
 bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
+
+#ifdef CUDA
+
+#if BL_SPACEDIM == 1
+IntVect FabArrayBase::mfiter_tile_size(1024000);
+#elif BL_SPACEDIM == 2
+IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
+#else
+IntVect FabArrayBase::mfiter_tile_size(1024000,1024000,1024000);
+#endif
+
+#else
+
 #if BL_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
 #elif BL_SPACEDIM == 2
@@ -22,6 +35,9 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 #endif
+
+#endif
+
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
 
@@ -1315,7 +1331,7 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
     CFinfo* new_cfinfo = new CFinfo(finefa, finegm, ng, include_periodic, include_physbndry);
 
 #ifdef BL_MEM_PROFILING
-    m_CFinfo_stats.bytes += new_fpc->bytes();
+    m_CFinfo_stats.bytes += new_cfinfo->bytes();
     m_CFinfo_stats.bytes_hwm = std::max(m_CFinfo_stats.bytes_hwm, m_CFinfo_stats.bytes);
 #endif
 
@@ -1336,7 +1352,7 @@ FabArrayBase::flushCFinfo (bool no_assertion)
     for (auto it = er_it.first; it != er_it.second; ++it)
     {
 #ifdef BL_MEM_PROFILING
-        m_CFinfo_stats.bytes -= it->second-bytes();
+        m_CFinfo_stats.bytes -= it->second->bytes();
 #endif
         m_CFinfo_stats.recordErase(it->second->m_nuse);
         delete it->second;
