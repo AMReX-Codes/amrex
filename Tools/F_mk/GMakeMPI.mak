@@ -135,6 +135,20 @@ ifeq ($(findstring titan, $(HOST)), titan)
         F90 := ftn
     endif
 endif
+ifeq ($(findstring summit, $(HOST)), summit)
+    #
+    # titan (Oak Ridge, OLCF machine)
+		#
+		# Cray machines require you use their compiler wrappers
+		# even if you aren't using Cray compiler
+    #
+    ifdef MPI
+        CXX := mpicc
+        CC  := mpicxx
+        FC  := mpif77
+        F90 := mpif90
+    endif
+endif
 ifeq ($(findstring chester, $(HOST)), chester)
     #
     # titan (Oak Ridge, OLCF machine)
