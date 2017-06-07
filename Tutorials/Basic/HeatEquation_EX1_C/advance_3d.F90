@@ -1,11 +1,11 @@
 subroutine compute_flux (lo, hi, phi, philo, phihi, &
      fluxx, fxlo, fxhi, fluxy, fylo, fyhi, fluxz, fzlo, fzhi, &
-     dx) bind(C, name="compute_flux")
+     dx, idx) bind(C, name="compute_flux")
 
   use amrex_fort_module, only : amrex_real
   implicit none
 
-  integer lo(3), hi(3), philo(3), phihi(3), fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3)
+  integer lo(3), hi(3), philo(3), phihi(3), fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3), idx
   real(amrex_real), intent(in)    :: phi  (philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
   real(amrex_real), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2), fxlo(3): fxhi(3))
   real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2), fylo(3): fyhi(3))
