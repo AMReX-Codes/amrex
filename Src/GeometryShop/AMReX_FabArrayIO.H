@@ -290,6 +290,7 @@ namespace amrex
           std::fstream fileStream;
           fileStream.open(datafile.c_str(),          
                           std::ios::in  | std::ios::binary);
+          fileStream.seekg(elem.m_head, std::ios::beg);
           size_t boxsize = elem.m_boxlen;
           char*  inbuf = new char[boxsize];
           fileStream.read(inbuf, boxsize);

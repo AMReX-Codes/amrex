@@ -126,17 +126,17 @@ namespace amrex
     void fixRegularNextToMultiValued();
          
     ///write to file
-    void write(const string& a_filename) const;
+    void write(const string& a_dirname) const;
 
     ///define from file
-    void  read(const string& a_filename);
+    void  read(const string& a_dirname);
 
 
     ///write to file
-    void writeHeader(const string& a_directoryname) const;
+    void writeHeader(const string& a_dirname) const;
 
     ///define from file
-    void  readHeader(const string& a_directoryname);
+    void  readHeader(const string& a_dirname);
 
   private:
     int m_nCellMax;

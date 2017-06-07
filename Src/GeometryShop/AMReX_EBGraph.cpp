@@ -1689,8 +1689,14 @@ namespace amrex
 
     if(m_tag == HasIrregular)
     {
+      IntVect ivdeb(D_DECL(10, 7, 0));
       for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
       {
+        int ideb = 0;
+        if(bit() == ivdeb)
+        {
+          ideb = 1;
+        }
         const GraphNode& node = m_graph(bit(), 0);
         node.linearOut(buf);
         incrval = node.linearSize();
@@ -1746,9 +1752,15 @@ namespace amrex
 
     if(m_tag == HasIrregular)
     {
+      IntVect ivdeb(D_DECL(10, 7, 0));
       m_graph.resize(graphbox, 1);
       for (BoxIterator bit(m_graph.box()); bit.ok(); ++bit)
       {
+        int ideb = 0;
+        if(bit() == ivdeb)
+        {
+          ideb = 1;
+        }
         GraphNode& node = m_graph(bit(), 0);
         node.linearIn(buf);
         incrval = node.linearSize();

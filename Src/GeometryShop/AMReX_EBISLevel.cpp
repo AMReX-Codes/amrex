@@ -21,42 +21,78 @@
 #include "AMReX_EBDataFactory.H"
 #include "AMReX_FaceIterator.H"
 #include "AMReX_FabArrayIO.H"
+#include "AMReX_Utility.H"
 
 
 namespace amrex
 {
   void 
   EBISLevel::
-  write(const string& a_filename) const
+  write(const string& a_dirname) const
   {
     //this creates the directory of all the stuff
-    UtilCreateCleanDirectory(a_filename, true);
-    writeHeader(a_filename);
-    string graphdirname = a_filename + "_graph";
-    string  datadirname = a_filename + "_data";
-    UtilCreateCleanDirectory(graphdirname, true);
-    UtilCreateCleanDirectory( datadirname, true);
+    UtilCreateDirectoryDestructive(a_dirname, true);
+    writeHeader(a_dirname);
+    string graphdirname = a_dirname + "/_graph";
+    string  datadirname = a_dirname + "/_data";
+    UtilCreateDirectoryDestructive(graphdirname, true);
+    UtilCreateDirectoryDestructive( datadirname, true);
+    FabArrayIO<EBGraph>::write(m_graph, graphdirname);
+    FabArrayIO<EBData >::write(m_data ,  datadirname);
   }
 
 
   void 
   EBISLevel::
-  writeHeader(const string& a_filename) const
+  read(const string& a_dirname)
   {
+    readHeader(a_dirname);
+    string graphdirname = a_dirname + "/_graph";
+    string  datadirname = a_dirname + "/_data";
+
+    FabArrayIO<EBGraph>::read(m_graph, graphdirname);
+    FabArrayIO<EBData >::read(m_data ,  datadirname);
   }
+  void 
+  EBISLevel::
+  writeHeader(const string& a_dirname) const
+  {
+    std::ofstream headerfile;
+    string filename = a_dirname + string("/headerfile");
+    headerfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
+    headerfile << m_nCellMax << endl;
+    headerfile << m_domain  << endl;
+    headerfile << m_origin  << endl;
+    headerfile << m_dx  << endl;
+
+    //why box array has to be weird, who knows?
+    //putting this last because it probably leaves the is in the wrong
+    //place
+    m_grids.writeOn(headerfile);
+
+    headerfile.flush();
+    headerfile.close();
+  }
+
 
   void 
   EBISLevel::
-  read(const string& a_filename)
+  readHeader(const string& a_dirname)
   {
-    
+    std::ifstream headerfile;
+    string filename = a_dirname + string("/headerfile");
+    headerfile.open(filename.c_str(), std::ios::in);
+    headerfile >> m_nCellMax;
+    headerfile >> m_domain;
+    headerfile >> m_origin;
+    headerfile >> m_dx;
 
-  }
-
-  void 
-  EBISLevel::
-  readHeader(const string& a_filename)
-  {
+    //why box array has to be weird, who knows?
+    //putting this last because it probably leaves the is in the wrong
+    //place
+    readBoxArray(m_grids, headerfile, false);
+ 
+    headerfile.close();
   }
     
   void null_deleter_fab_ebg(FabArray<EBGraph>* a_ptr)
