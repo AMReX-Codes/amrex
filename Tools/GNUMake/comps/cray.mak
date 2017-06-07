@@ -45,7 +45,7 @@ FFLAGS   += -N 255 -I $(fmoddir) -J $(fmoddir) -em
 
 ########################################################################
 
-GENERIC_COMP_FLAGS =
+GENERIC_COMP_FLAGS = -h list=a
 
 ifneq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -h noomp
