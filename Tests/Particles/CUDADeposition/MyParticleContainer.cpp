@@ -66,10 +66,12 @@ void MyParticleContainer::Deposit(MultiFab& partMF) {
     FArrayBox& rhofab = partMF[pti];
     const Box& box    = rhofab.box();        
     
-    deposit_cic(particles.data(), nstride, np,
+    deposit_cic((Real*) device_particles, nstride, np,
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
   }
   
+  partMF.SumBoundary(gm.periodicity());
+
   CopyParticlesFromDevice();
 }
