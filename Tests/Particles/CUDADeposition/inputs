@@ -18,7 +18,7 @@ nz = 128 # number of grid points along the z axis
 max_grid_size = 128
 
 # Number of particles per cell
-nppc = 100
+nppc = 10
 
 # Verbosity
 verbose = true   # set to true to get more verbosity 
