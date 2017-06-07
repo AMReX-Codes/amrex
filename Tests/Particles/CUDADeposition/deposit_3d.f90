@@ -1,8 +1,48 @@
+
+attributes(global) subroutine double_mass(particles)
+  
+  use amrex_fort_module, only : amrex_real  
+  implicit none
+  
+  integer, value       :: ns, np
+  real(amrex_real)     :: particles(5, 20971520)
+  integer i
+
+  i = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  if (i <= np) particles(4, i) = particles(4, i)*2.d0
+ 
+end subroutine double_mass
+
+subroutine process_particles(particles, ns, np) &
+     bind(c,name='process_particles')
+  
+  use iso_c_binding
+  use amrex_fort_module, only : amrex_real
+  use cudafor
+  
+  implicit none
+  
+  integer, value   :: ns, np
+  real(amrex_real) :: particles(5, 20971520)
+  integer block_size
+  integer num_blocks
+  type(dim3) :: grid, tBlock
+
+  attributes(device) :: particles
+
+  tBlock = dim3(256,1,1)
+  grid = dim3(ceiling(real(np)/tBlock%x),1,1)
+
+  call double_mass<<<grid, tBlock>>>(particles)
+
+end subroutine process_particles
+
 subroutine deposit_cic(particles, ns, np, rho, lo, hi, plo, dx) &
      bind(c,name='deposit_cic')
   
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
+  use cudafor
   
   implicit none
   
