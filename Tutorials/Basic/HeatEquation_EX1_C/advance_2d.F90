@@ -76,7 +76,7 @@ end module advance_module
 
 
 subroutine compute_flux (lo, hi, phi, philo, phihi, &
-     fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx) bind(C, name="compute_flux")
+     fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, idx) bind(C, name="compute_flux")
 
   use amrex_fort_module, only : amrex_real
   use advance_module, only: compute_flux_doit
@@ -88,7 +88,7 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
 
   implicit none
 
-  integer lo(2), hi(2), philo(2), phihi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2)
+  integer lo(2), hi(2), philo(2), phihi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2), idx
   real(amrex_real), intent(in)    :: phi  (philo(1):phihi(1),philo(2):phihi(2))
   real(amrex_real), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2))
   real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
@@ -107,7 +107,7 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
   integer, device :: fylo_d(2), fyhi_d(2)
   real(amrex_real), device :: dx_d(2)
 
-  stream = cuda_streams(stream_from_index(0)+1)
+  stream = cuda_streams(stream_from_index(idx)+1)
 
   cuda_result = cudaMemcpyAsync(lo_d, lo, 2, cudaMemcpyHostToDevice, stream)
   cuda_result = cudaMemcpyAsync(hi_d, hi, 2, cudaMemcpyHostToDevice, stream)
