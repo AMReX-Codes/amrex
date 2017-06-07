@@ -37,10 +37,10 @@
     endif
 
     ifdef CUDA
-      F90FLAGS += -Mcuda
-      FFLAGS += -Mcuda
-      CFLAGS += -Mcuda
-      CXXFLAGS += -Mcuda
+      F90FLAGS += -Mcuda=cuda8.0
+      FFLAGS += -Mcuda=cuda8.0
+      CFLAGS += -Mcuda=cuda8.0
+      CXXFLAGS += -Mcuda=cuda8.0
     endif
 
     ifdef NDEBUG
