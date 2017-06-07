@@ -63,30 +63,44 @@ contains
 
     implicit none
 
-    integer, intent(in)       :: lo(3), hi(3)
+    integer, intent(in)       :: lo(BL_SPACEDIM), hi(BL_SPACEDIM)
     type(dim3), intent(inout) :: numBlocks, numThreads
 
-    integer :: tile_size(3)
-
-    if (BL_SPACEDIM .eq. 1) then
-       numThreads % x = 256
-       numThreads % y = 1
-       numThreads % z = 1
-    else if (BL_SPACEDIM .eq. 2) then
-       numThreads % x = 16
-       numThreads % y = 16
-       numThreads % z = 1
-    else
-       numThreads % x = 8
-       numThreads % y = 8
-       numThreads % z = 8
-    endif
+    integer :: tile_size(BL_SPACEDIM)
 
     tile_size = hi - lo + 1
 
-    numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
-    numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
-    numBlocks % z = (tile_size(3) + numThreads % z - 1) / numThreads % z
+    if (BL_SPACEDIM .eq. 1) then
+
+       numThreads % x = 256
+       numThreads % y = 1
+       numThreads % z = 1
+
+       numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
+       numBlocks % y = 1
+       numBlocks % z = 1
+
+    else if (BL_SPACEDIM .eq. 2) then
+
+       numThreads % x = 16
+       numThreads % y = 16
+       numThreads % z = 1
+
+       numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
+       numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
+       numBlocks % z = 1
+
+    else
+
+       numThreads % x = 8
+       numThreads % y = 8
+       numThreads % z = 8
+
+       numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
+       numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
+       numBlocks % z = (tile_size(3) + numThreads % z - 1) / numThreads % z
+
+    endif
 
   end subroutine threads_and_blocks
 
