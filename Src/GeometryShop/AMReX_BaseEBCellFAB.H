@@ -241,7 +241,7 @@ namespace amrex
     std::size_t copyFromMemFull(const void* src);
 
 
-    ///invalid but necessary for leveldata to compile
+    ///invalid but necessary for fabarray to compile in certain cases
     BaseEBCellFAB(const Box& a_region,
                   int        n = 1,
                   bool       alloc = true,

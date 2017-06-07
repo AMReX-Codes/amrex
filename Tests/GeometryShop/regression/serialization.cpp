@@ -132,6 +132,65 @@ namespace amrex
       }
     }
   }
+
+  /***************/
+  void BEBCF_fillWithSomething(BaseEBCellFAB<int>      & a_fab)
+  {
+    Box region = a_fab.box();
+    EBGraph ebis = a_fab.getEBISBox().getEBGraph();
+    region &= ebis.getDomain();
+    IntVectSet ivs(region);
+    a_fab.setVal(-1);
+    
+    int ival = 0;
+    for(VoFIterator vofit(ivs, ebis); vofit.ok(); ++vofit)
+    {
+      const VolIndex& vof = vofit();
+      for(int icomp = 0; icomp < a_fab.nComp(); icomp++)
+      {
+        a_fab(vof, icomp) = ival;
+        ival++;
+      }
+    }
+  }
+
+  /***************/
+  int BEBCF_checkEquality(BaseEBCellFAB<int>      & a_fab1,
+                          BaseEBCellFAB<int>      & a_fab2,
+                          const Box               & a_checkRegion)
+  {
+    if(a_fab1.box() != a_fab2.box())
+    {
+      amrex::Print() << "bebcf box mismatch" << endl;
+      return -1;
+    }
+    if(a_fab1.nComp() != a_fab2.nComp())
+    {
+      amrex::Print() << "bebcf box mismatch" << endl;
+      return -3;
+    }
+    Box region = a_fab1.box();
+    EBGraph ebis = a_fab1.getEBISBox().getEBGraph();
+    region &= ebis.getDomain();
+    region &= a_checkRegion;
+    IntVectSet ivs(region);
+    
+    for(VoFIterator vofit(ivs, ebis); vofit.ok(); ++vofit)
+    {
+      const VolIndex& vof = vofit();
+      for(int icomp = 0; icomp < a_fab1.nComp(); icomp++)
+      {
+        int val1 = a_fab1(vof, icomp);
+        int val2 = a_fab1(vof, icomp);
+        if(val1 != val2)
+        {
+          amrex::Print() << "bebcf data mismatch" << endl;
+          return -2;
+        }
+      }
+    }
+    return 0;
+  }
   /***************/
   void BIFF_fillWithSomething(BaseIFFAB<int>      & a_fab)
   {
@@ -148,12 +207,14 @@ namespace amrex
     }
   }
   /****/
+  //some slight of hand to keep from having to write code twice.
   template< class T> 
   void
   getTolerance(T& tolval)
   {
   }
 
+  /***/
   template < > 
   void
   getTolerance(int& tolval)
@@ -171,7 +232,7 @@ namespace amrex
   template <class T>
   int BIVF_checkEquality(BaseIVFAB<T>     & a_fab1,
                          BaseIVFAB<T>     & a_fab2,
-                         const Box          & a_checkRegion)
+                         const Box        & a_checkRegion)
   {
     
     const vector<VolIndex>& vvofs1 = a_fab1.getVoFs();
@@ -449,6 +510,69 @@ namespace amrex
       }
 
 
+
+      //BaseEBCellFAB      
+      {
+        BaseEBCellFAB<int> src(ebis, grownBox, nvar);
+        BEBCF_fillWithSomething(src);
+        {
+          //full serialization (all meta data included)
+          std::size_t nbytes1 = src.nBytesFull();
+          unsigned char* charbuf =  new unsigned char[nbytes1];
+          size_t nbytes2 = src.copyToMemFull(charbuf);
+          if(nbytes1 != nbytes2)
+          {
+            amrex::Print() << "byte size mismatch" << endl;
+            return -210;
+          }
+          BaseEBCellFAB<int> dst;
+          size_t nbytes3 = dst.copyFromMemFull(charbuf);
+          if(nbytes1 != nbytes3)
+          {
+            amrex::Print() << "byte size mismatch" << endl;
+            return -211;
+          }
+
+          retval = BEBCF_checkEquality(src, dst, grownBox);
+          if(retval != 0)
+          {
+            amrex::Print() << "ebcf equality test (full) returned error" << endl;
+            return retval;
+          }
+          delete[] charbuf;
+        }
+        {
+          //now test the more limited serialization stuff
+          BaseEBCellFAB<int> dst(ebis, grownBox, nvar);
+          int startcomp = 0;
+          size_t nbytes1 = src.nBytes(valid, startcomp, nvar);
+          unsigned char* charbuf = new unsigned char[nbytes1];
+          size_t nbytes2 = src.copyToMem(valid, startcomp, nvar, charbuf);
+          if(nbytes1 != nbytes2)
+          {
+            amrex::Print() << "byte size mismatch" << endl;
+            return -212;
+          }
+
+          size_t nbytes3 = dst.copyFromMem(valid, startcomp, nvar, charbuf);
+          if(nbytes3 != nbytes2)
+          {
+            amrex::Print() << "byte size mismatch" << endl;
+            return -213;
+          }
+
+          retval = BEBCF_checkEquality(src, dst, valid);
+          if(retval != 0)
+          {
+            amrex::Print() << "ebcf equality test (part) returned error" << endl;
+            return retval;
+          }
+          delete[] charbuf;
+
+        }
+      }
+
+
       //BaseIFFAB      
       for(int idir = 0; idir < SpaceDim; idir++)
       {
@@ -547,7 +671,7 @@ namespace amrex
         }
         {
           //now test the more limited serialization stuff
-          EBGraph dst(grownBox);
+          EBGraph dst(src.getRegion());
           dst.setDomain(src.getDomain());
           int startcomp = 0;
           size_t nbytes1 = src.nBytes(valid, startcomp, nvar);
@@ -610,7 +734,7 @@ namespace amrex
         {
           //now test the more limited serialization stuff
           EBData dst;
-          dst.define(ebis.getEBGraph(), grownBox);
+          dst.define(ebis.getEBGraph(), src.getRegion());
 
           int startcomp = 0;
           size_t nbytes1 = src.nBytes(valid, startcomp, nvar);

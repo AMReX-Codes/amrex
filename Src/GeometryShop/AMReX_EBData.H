@@ -186,7 +186,16 @@ namespace amrex
         return m_region;
       }
 
-  private:
+    ///invalid but necessary for fabarray to compile in certain cases
+    EBDataImplem(const Box& a_region,
+                 int        n ,
+                 bool       alloc,
+                 bool       shared)
+      {
+        //this strictly for checkpointing 
+        m_region = a_region;
+      }
+private:
 
     Box m_region;
 
@@ -265,6 +274,15 @@ namespace amrex
       {
       }
 
+    ///invalid but necessary for fabarray to compile in certain cases
+    EBData(const Box& a_region,
+           int        n,
+           bool       alloc,
+           bool       shared)
+      : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem(a_region, n, alloc, shared) ) )
+
+      {
+      }
     ///
     ~EBData()
       {

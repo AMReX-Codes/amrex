@@ -299,7 +299,7 @@ namespace amrex
             amrex::Print() << "checkvof: vof mismatch at ivec = "<< ivec << endl;
             return -9;
           }
-          for(int icomp = 0; icomp <  V_VOLNUMBER; icomp++)
+          for(int icomp = 0; icomp <  F_FACENUMBER; icomp++)
           {
             Real val1 = fdata1(vfac1[ivec], icomp);
             Real val2 = fdata2(vfac2[ivec], icomp);
@@ -351,7 +351,7 @@ namespace amrex
     FabArrayIO<EBData>::write(dataout, string("ebdata.plt"));
 
     FabArray<EBData> datain;
-    FabArrayIO<EBGraph>::read(graphsin, string("ebdata.plt"));
+    FabArrayIO<EBData>::read(datain, string("ebdata.plt"));
 
     retval = checkData(datain, dataout, eblg);
     if(retval != 0) 
