@@ -518,7 +518,7 @@ def test_suite(argv):
             else:
                 base_cmd += " amr.checkpoint_files_output=0"
 
-            base_cmd += "{} {}".format(suite.globalAddToExecString, test.runtime_params)
+            base_cmd += " {} {}".format(suite.globalAddToExecString, test.runtime_params)
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
