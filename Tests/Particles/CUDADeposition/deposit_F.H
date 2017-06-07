@@ -14,6 +14,8 @@ extern "C"
   void process_particles(void*, int ns, int np);
   
   void deposit_cic(const amrex_real*, int ns, int np,
+		   const int* counts, const int* offsets, 
+		   int ngrids, int gid,
 		   amrex_real* rho, const int* lo, const int* hi,
 		   const amrex_real* plo, const amrex_real* dx);
   
