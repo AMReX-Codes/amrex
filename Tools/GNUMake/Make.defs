@@ -252,6 +252,7 @@ ifeq ($(USE_CUDA),TRUE)
     DEFINES += -DCUDA
     ifeq ($(USE_CUDA_UM),TRUE)
         DEFINES += -DCUDA_UM
+	DEFINES += -DBL_COALESCE_FABS
     endif
     LIBRARIES += -lnvToolsExt
     LIBRARY_LOCATIONS += $(CUDA_PATH)/lib64
