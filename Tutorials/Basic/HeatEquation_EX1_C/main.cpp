@@ -58,11 +58,16 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 #endif
                      dx, &idx);
     }
-    
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
+
     // Advance the solution one grid at a time
     for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
+	const int idx = mfi.tileIndex();
         
         update_phi(bx.loVect(), bx.hiVect(),
                    BL_TO_FORTRAN_ANYD(old_phi[mfi]),
@@ -72,7 +77,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 #if (BL_SPACEDIM == 3)   
                    BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                   dx, dt);
+                   dx, dt, &idx);
     }
 }
 
