@@ -47,6 +47,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
+	const int idx = mfi.tileIndex();
 
         compute_flux(bx.loVect(), bx.hiVect(),
                      BL_TO_FORTRAN_ANYD(old_phi[mfi]),
@@ -55,7 +56,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 #if (BL_SPACEDIM == 3)   
                      BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                     dx);
+                     dx, &idx);
     }
     
     // Advance the solution one grid at a time
