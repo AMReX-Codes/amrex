@@ -105,7 +105,9 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
   integer, device :: philo_d(2), phihi_d(2)
   integer, device :: fxlo_d(2), fxhi_d(2)
   integer, device :: fylo_d(2), fyhi_d(2)
-  real(amrex_real) :: dx_d(2)
+  real(amrex_real), device :: dx_d(2)
+
+  stream = cuda_streams(stream_from_index(0)+1)
 
   cuda_result = cudaMemcpyAsync(lo_d, lo, 2, cudaMemcpyHostToDevice, stream)
   cuda_result = cudaMemcpyAsync(hi_d, hi, 2, cudaMemcpyHostToDevice, stream)
