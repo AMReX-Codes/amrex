@@ -1,4 +1,3 @@
-
 attributes(global) subroutine push_kernel(particles)
   
   use amrex_fort_module, only : amrex_real  
@@ -65,28 +64,26 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, &
   implicit none
 
   integer              :: ns, np, ngrids, gid
-  integer              :: counts(ngrids)
-  integer              :: offsets(ngrids)
   real(amrex_real)     :: particles(ns, np)
+  integer              :: counts(ngrids), offsets(ngrids)
   integer, intent(in)  :: lo(3), hi(3)
   real(amrex_real)     :: rho(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
   real(amrex_real)     :: plo(3)
   real(amrex_real)     :: dx(3)
   
   integer i, j, k, n
-  integer offset, count
+  integer count, offset
   real(amrex_real) retval
   real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
   real(amrex_real) lx, ly, lz
   real(amrex_real) inv_dx(3)
   inv_dx = 1.0d0/dx
 
+  count = counts(gid+1)
   offset = offsets(gid+1)
-  count  = counts (gid+1)
 
   n = offset + blockDim%x * (blockIdx%x - 1) + threadIdx%x
   if (n > offset .and. n <= offset + count) then
-
      lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
      ly = (particles(2, n) - plo(2))*inv_dx(2) + 0.5d0
      lz = (particles(3, n) - plo(3))*inv_dx(3) + 0.5d0
@@ -117,7 +114,7 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, &
 end subroutine deposit_kernel
 
 subroutine deposit_cic(particles, ns, np, &
-     counts, offsets, ngrids, gid, & 
+     counts, offsets, ngrids, gid, &
      rho, lo, hi, plo, dx) &
      bind(c,name='deposit_cic')
   
@@ -129,21 +126,20 @@ subroutine deposit_cic(particles, ns, np, &
   
   integer, value       :: ns, np, ngrids, gid
   real(amrex_real)     :: particles(ns,np)
-  integer              :: counts(ngrids)
-  integer              :: offsets(ngrids)
+  integer              :: counts(ngrids), offsets(ngrids)
   integer              :: lo(3)
   integer              :: hi(3)
   real(amrex_real)     :: rho(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
   real(amrex_real)     :: plo(3)
   real(amrex_real)     :: dx(3)
   
-  attributes(device)         :: particles
-  attributes(device)         :: rho
-  attributes(device)         :: counts
-  attributes(device)         :: offsets
+  attributes(device) :: particles
+  attributes(device) :: rho
+  attributes(device) :: counts
+  attributes(device) :: offsets
   integer,  device           :: lo_d(3), hi_d(3)
   real(amrex_real), device   :: plo_d(3), dx_d(3)
-  integer, device            :: ns_d, np_d, gid_d, ngrids_d
+  integer, device            :: ns_d, np_d, ngrids_d, gid_d
 
   integer :: cuda_result
   integer(kind=cuda_stream_kind) :: stream
@@ -155,11 +151,11 @@ subroutine deposit_cic(particles, ns, np, &
   cuda_result = cudaMemcpy(plo_d, plo, 3, cudaMemcpyHostToDevice)
   cuda_result = cudaMemcpy(dx_d,  dx,  3, cudaMemcpyHostToDevice)
 
-  cuda_result = cudaMemcpy(ns_d,  ns,  1, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(np_d,  np,  1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpy(ns_d, ns, 1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpy(np_d, np, 1, cudaMemcpyHostToDevice)
 
-  cuda_result = cudaMemcpy(gid_d, gid, 1, cudaMemcpyHostToDevice)
   cuda_result = cudaMemcpy(ngrids_d, ngrids, 1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpy(gid_d, gid, 1, cudaMemcpyHostToDevice)
 
   numThreads = dim3(256,1,1)
   numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
@@ -200,7 +196,6 @@ attributes(global) subroutine interpolate_kernel(particles, ns, np, &
 
   n = offset + blockDim%x * (blockIdx%x - 1) + threadIdx%x
   if (n > offset .and. n <= offset + count) then
-
      lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
      ly = (particles(2, n) - plo(2))*inv_dx(2) + 0.5d0
      lz = (particles(3, n) - plo(3))*inv_dx(3) + 0.5d0
