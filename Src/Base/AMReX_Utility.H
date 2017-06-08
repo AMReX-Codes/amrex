@@ -79,6 +79,15 @@ namespace amrex
     //! Create a new directory, renaming the old one if it exists
     void UtilCreateCleanDirectory (const std::string &path,
                                    bool callbarrier = true);
+
+    ///
+    /**
+       Create a new directory, removing old one if it exists.
+       This will only work on unix systems, as it has a system call.
+     */
+    void UtilCreateDirectoryDestructive(const std::string &path,
+                                        bool callbarrier = true);
+
     //! Rename a current directory if it exists
     void UtilRenameDirectoryToOld (const std::string &path,
                                    bool callbarrier = true);

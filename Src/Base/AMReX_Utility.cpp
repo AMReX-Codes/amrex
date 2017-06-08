@@ -278,6 +278,32 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
   }
 }
 
+
+void
+amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
+{
+  if(ParallelDescriptor::IOProcessor()) 
+  {
+    if(amrex::FileExists(path)) 
+    {
+      std::cout << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
+                << " exists.  I am destroying it.  " << std::endl;
+      char command[2000];
+      sprintf(command, "\\rm -rf %s", path.c_str());;
+      std::system(command);
+    }
+    if( ! amrex::UtilCreateDirectory(path, 0755)) 
+    {
+      amrex::CreateDirectoryFailed(path);
+    }
+  }
+  if(callbarrier) 
+  {
+    // Force other processors to wait until directory is built.
+    ParallelDescriptor::Barrier("amrex::UtilCreateCleanDirectoryDestructive");
+  }
+}
+
 void
 amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
 {
