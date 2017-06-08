@@ -423,7 +423,6 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp, const Array<const MultiFab*>& B, 
 void
 WarpX::ComputeDivE (MultiFab& divE, int dcomp, const Array<const MultiFab*>& E, const Real* dx)
 {
-#if 0
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -437,5 +436,4 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp, const Array<const MultiFab*>& E, 
                                   BL_TO_FORTRAN_ANYD((*E[2])[mfi])),
                            dx);
     }
-#endif
 }

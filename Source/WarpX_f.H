@@ -4,8 +4,8 @@
 #if (BL_SPACEDIM == 3)
 
 #define WARPX_COMPUTE_DIVB               warpx_compute_divb_3d
+#define WARPX_COMPUTE_DIVE               warpx_compute_dive_3d
 #define WARPX_SYNC_CURRENT               warpx_sync_current_3d
-
 #define WARPX_CLEAN_EVEC                 warpx_clean_evec_3d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
@@ -16,8 +16,8 @@
 #elif (BL_SPACEDIM == 2)
 
 #define WARPX_COMPUTE_DIVB               warpx_compute_divb_2d
+#define WARPX_COMPUTE_DIVE               warpx_compute_dive_2d
 #define WARPX_SYNC_CURRENT               warpx_sync_current_2d
-
 #define WARPX_CLEAN_EVEC                 warpx_clean_evec_2d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
@@ -143,6 +143,13 @@ extern "C"
 
     void WARPX_COMPUTE_DIVB (const int* lo, const int* hi,
                              BL_FORT_FAB_ARG_ANYD(divb),
+                             D_DECL(const BL_FORT_FAB_ARG_ANYD(Bx),
+                                    const BL_FORT_FAB_ARG_ANYD(By),
+                                    const BL_FORT_FAB_ARG_ANYD(Bz)),
+                             const amrex::Real* dx);
+
+    void WARPX_COMPUTE_DIVE (const int* lo, const int* hi,
+                             BL_FORT_FAB_ARG_ANYD(dive),
                              D_DECL(const BL_FORT_FAB_ARG_ANYD(Bx),
                                     const BL_FORT_FAB_ARG_ANYD(By),
                                     const BL_FORT_FAB_ARG_ANYD(Bz)),
