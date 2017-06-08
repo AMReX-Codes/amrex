@@ -26,6 +26,12 @@ namespace amrex
     //! Grow Box in each direction by specified amount.
     Box grow (const Box& b, const IntVect& v);
 
+    //! Grow Box in direction idir be n_cell cells
+    Box grow (const Box& b, int idir, int n_cell);
+
+    Box growLo (const Box& b, int idir, int n_cell);
+    Box growHi (const Box& b, int idir, int n_cell);
+
     /**
     * \brief Coarsen Box by given (positive) refinement ratio.
     * NOTE: if type(dir) = CELL centered: lo <- lo/ratio and

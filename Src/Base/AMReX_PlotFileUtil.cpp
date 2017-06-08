@@ -13,15 +13,15 @@ std::string LevelPath (int level, const std::string &levelPrefix)
 }
 
 std::string MultiFabHeaderPath (int level,
-					const std::string &levelPrefix,
-                                        const std::string &mfPrefix)
+                                const std::string &levelPrefix,
+                                const std::string &mfPrefix)
 {
     return LevelPath(level, levelPrefix) + '/' + mfPrefix;  // e.g., Level_4/Cell
 }
 
 std::string LevelFullPath (int level,
-                                   const std::string &plotfilename,
-                                   const std::string &levelPrefix)
+                           const std::string &plotfilename,
+                           const std::string &levelPrefix)
 {
     std::string r(plotfilename);
     if ( ! r.empty() && r.back() != '/') {
@@ -32,9 +32,9 @@ std::string LevelFullPath (int level,
 }
 
 std::string MultiFabFileFullPrefix (int level,
-                                            const std::string& plotfilename,
-					    const std::string &levelPrefix,
-					    const std::string &mfPrefix)
+                                    const std::string& plotfilename,
+                                    const std::string &levelPrefix,
+                                    const std::string &mfPrefix)
 {
     std::string r(plotfilename);
     if ( ! r.empty() && r.back() != '/') {
@@ -47,8 +47,8 @@ std::string MultiFabFileFullPrefix (int level,
 
 void
 PreBuildDirectorHierarchy (const std::string &dirName,
-                                   const std::string &subDirPrefix,
-                                   int nSubDirs, bool callBarrier)
+                           const std::string &subDirPrefix,
+                           int nSubDirs, bool callBarrier)
 {
   UtilCreateCleanDirectory(dirName, false);  // ---- dont call barrier
   for(int i(0); i < nSubDirs; ++i) {
@@ -64,16 +64,16 @@ PreBuildDirectorHierarchy (const std::string &dirName,
 
 void
 WriteGenericPlotfileHeader (std::ostream &HeaderFile,
-                                    int nlevels,
-				    const Array<BoxArray> &bArray,
-				    const Array<std::string> &varnames,
-				    const Array<Geometry> &geom,
-				    Real time,
-				    const Array<int> &level_steps,
-				    const Array<IntVect> &ref_ratio,
-				    const std::string &versionName,
-				    const std::string &levelPrefix,
-				    const std::string &mfPrefix)
+                            int nlevels,
+                            const Array<BoxArray> &bArray,
+                            const Array<std::string> &varnames,
+                            const Array<Geometry> &geom,
+                            Real time,
+                            const Array<int> &level_steps,
+                            const Array<IntVect> &ref_ratio,
+                            const std::string &versionName,
+                            const std::string &levelPrefix,
+                            const std::string &mfPrefix)
 {
         BL_PROFILE("WriteGenericPlotfileHeader()");
 
@@ -149,10 +149,10 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 
 void
 WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
-				 const Array<const MultiFab*>& mf,
-				 const Array<std::string>& varnames,
-				 const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
-				 const Array<IntVect>& ref_ratio)
+                         const Array<const MultiFab*>& mf,
+                         const Array<std::string>& varnames,
+                         const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
+                         const Array<IntVect>& ref_ratio)
 {
     BL_PROFILE("WriteMultiLevelPlotfile()");
 
@@ -198,7 +198,18 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 
     for (int level = 0; level <= finest_level; ++level)
     {
-	VisMF::Write(*mf[level], MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
+        const MultiFab* data;
+        std::unique_ptr<MultiFab> mf_tmp;
+        if (mf[level]->nGrow() > 0) {
+            mf_tmp.reset(new MultiFab(mf[level]->boxArray(),
+                                      mf[level]->DistributionMap(),
+                                      mf[level]->nComp(), 0));
+            MultiFab::Copy(*mf_tmp, *mf[level], 0, 0, mf[level]->nComp(), 0);
+            data = mf_tmp.get();
+        } else {
+            data = mf[level];
+        }
+	VisMF::Write(*data, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
     }
 
     VisMF::SetNOutFiles(saveNFiles);
@@ -206,8 +217,8 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 
 void
 WriteSingleLevelPlotfile (const std::string& plotfilename,
-				  const MultiFab& mf, const Array<std::string>& varnames,
-				  const Geometry& geom, Real time, int level_step)
+                          const MultiFab& mf, const Array<std::string>& varnames,
+                          const Geometry& geom, Real time, int level_step)
 {
     Array<const MultiFab*> mfarr(1,&mf);
     Array<Geometry> geomarr(1,geom);
@@ -215,7 +226,7 @@ WriteSingleLevelPlotfile (const std::string& plotfilename,
     Array<IntVect> ref_ratio;
 
     WriteMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
-				    level_steps, ref_ratio);
+                            level_steps, ref_ratio);
 }
 
 }

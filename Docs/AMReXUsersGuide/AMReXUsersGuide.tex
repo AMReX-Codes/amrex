@@ -53,6 +53,9 @@
 \usepackage{colortbl}
 \definecolor{tableShade}{rgb}{0.945,0.961,0.980}
 
+% caption
+\usepackage{caption}
+\captionsetup[figure]{font=small,labelfont=small}
 
 % make the MarginPars look pretty
 \setlength{\marginparwidth}{0.75in}
@@ -218,7 +221,12 @@
 
 \lstdefinelanguage{cpp}{
   language     = C++,
-  morekeywords = [2]{amrex,IntVect,Array,IndexType,Box,BaseFab,FArrayBox,IArrayBox,BoxArray,DistributionMapping,ParallelDescriptor,FabArray,MultiFab,MFIter,BL_SPACEDIM,AMREX_D_DECL},
+  morekeywords =
+  [2]{amrex,amrex_real,
+      Array,BaseFab,Box,BoxArray,DistributionMapping,FabArray,FArrayBox,
+      Geometry,IArrayBox,IntVect,IndexType,MFIter,MultiFab,
+      ParallelDescriptor,ParmParse,Real,RealBox,
+      AMREX_SPACEDIM,AMREX_D_DECL},
   keywordstyle = [2]\color{red}\footnotesize\ttfamily,
 }
 
@@ -309,8 +317,26 @@
 \chapter{The Basics}\label{Chap:Basics}
 \input{Basics/Basics.tex}
 
+\chapter{AMR Core Infrastructure}\label{Chap:AmrCore}
+\input{AmrCore/AmrCore}
+
+\chapter{Particles}\label{Chap:Particles}
+\input{Particle/Particle}
+
+\chapter{{\tt AmrLevel} Class}\label{Chap:AmrLevel}
+\input{AmrLevel/AmrLevel}
+
 \chapter{Visualization}\label{Chap:Visualization}
 \input{Visualization/Visualization}
+
+\chapter{Profiling}\label{Chap:Profiling}
+\input{Profiling/Profiling}
+
+\chapter{Debugging}\label{Chap:Debugging}
+\input{Debugging/Debugging}
+
+\chapter{CVODE}\label{Chap:CVODE}
+\input{CVODE/CVODE}
 
 %------------------------------------------------------------------------------
 \backmatter

@@ -137,6 +137,8 @@ namespace ParallelDescriptor
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
     extern int m_nProcs_sub;
+    extern Array<int> m_num_procs_clr;
+    extern Array<int> m_first_procs_clr;
     extern Array<int> m_nProcs_sidecar;
     extern int nSidecars;
     extern int inWhichSidecar;
@@ -210,6 +212,10 @@ namespace ParallelDescriptor
         BL_ASSERT(m_MyId_comp != myId_undefined);
         return (m_MyId_comp >= 0);
     }
+
+    /* Define variables `m_nProcs_sub' and `m_MyCommSubColor' */
+    void
+    init_clr_vars();
 
     /**
     * \brief This sets the number of MPI ranks in the sidecar and
@@ -630,7 +636,7 @@ namespace ParallelDescriptor
 	if (color == DefaultColor()) {
 	    return NProcs();
 	} else if (color.valid()) {
-	    return m_nProcs_sub; 
+	    return m_num_procs_clr[color.to_int()];
 	} else {
 	    return 0;
 	}
@@ -645,16 +651,12 @@ namespace ParallelDescriptor
 	    return MPI_COMM_NULL;
 	}
     }
-    inline int Translate(int rc, Color color) // Given rc, rank in colored comm, return rank in CommComp
-    {
-	if (color == DefaultColor()) {
-	    return rc;
-	} else if (color.valid()) {
-	    return NProcs(color) * color.to_int() + rc;
-	} else {
-	    return MPI_PROC_NULL;
-	}
-    }
+
+    /* Given `rk_clrd', i.e. the rank in the colored `comm', return the
+    rank in the global `CommComp' */
+    int
+    Translate(int rk_clrd,Color clr);
+
     inline bool
     IOProcessor (Color color)
     {

@@ -43,17 +43,17 @@ int main(int argc, char* argv[])
     
     DistributionMapping dmap(ba);
    
-    int num_ghost = 1;
-    ShortRangeParticleContainer myPC(geom, dmap, ba, num_ghost);
+    int num_neighbor_cells = 1;
+    ShortRangeParticleContainer myPC(geom, dmap, ba, num_neighbor_cells);
 
     myPC.InitParticles();
 
     for (int i = 0; i < max_step; i++) {
         if (write_particles) myPC.writeParticles(i);
         
-        myPC.fillGhosts();
+        myPC.fillNeighbors();
         myPC.computeForces();
-        myPC.clearGhosts();
+        myPC.clearNeighbors();
 
         myPC.moveParticles(dt);
 

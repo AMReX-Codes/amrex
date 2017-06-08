@@ -618,6 +618,15 @@ BoxArray::convert (IndexType typ)
 }
 
 BoxArray&
+BoxArray::convert (const IntVect& iv)
+{
+    IndexType typ(iv);
+    m_transformer->setIxType(typ);
+    m_typ = typ;
+    return *this;
+}
+
+BoxArray&
 BoxArray::convert (Box (*fp)(const Box&))
 {
     BL_ASSERT(!(fp == 0));
@@ -999,7 +1008,7 @@ BoxArray::clear_hash_bin () const
 // Currently this assumes your Boxes are cell-centered.
 //
 void
-BoxArray::removeOverlap ()
+BoxArray::removeOverlap (bool simplify)
 {
     if (! ixType().cellCentered()) {
         amrex::Abort("BoxArray::removeOverlap() supports cell-centered only");
@@ -1060,7 +1069,10 @@ BoxArray::removeOverlap ()
             bl.push_back(b);
         }
     }
-    bl.simplify();
+    
+    if (simplify) {
+        bl.simplify();
+    }
 
     BoxArray nba(std::move(bl));
 
@@ -1142,28 +1154,25 @@ BoxArray::getHashMap () const
             // Calculate the bounding box & maximum extent of the boxes.
             //
 	    IntVect maxext = IntVect::TheUnitVector();
+            Box boundingbox = m_ref->m_abox[0];
 
 	    const int N = size();
 	    for (int i = 0; i < N; ++i)
             {
                 const Box& bx = m_ref->m_abox[i];
                 maxext = amrex::max(maxext, bx.size());
+                boundingbox.minBox(bx);
             }
-
-	    IntVect lob = IntVect::TheMaxVector();
-	    IntVect hib = IntVect::TheMinVector();
 
             for (int i = 0; i < N; i++)
             {
                 const IntVect& crsnsmlend 
 		    = amrex::coarsen(m_ref->m_abox[i].smallEnd(),maxext);
                 BoxHashMap[crsnsmlend].push_back(i);
-		lob = amrex::min(lob, crsnsmlend);
-		hib = amrex::max(hib, crsnsmlend);
             }
 
             m_ref->crsn = maxext;
-            m_ref->bbox = Box(lob,hib);
+            m_ref->bbox =boundingbox.coarsen(maxext);
 	    
 #ifdef BL_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);

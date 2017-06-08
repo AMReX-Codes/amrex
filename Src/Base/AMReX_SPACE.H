@@ -1,13 +1,20 @@
 
-#ifndef BL_SPACE_H
-#define BL_SPACE_H
+#ifndef AMREX_SPACE_H
+#define AMREX_SPACE_H
 
-#if defined(BL_SPACEDIM) && !defined(SPACEDIM)
-#define SPACEDIM BL_SPACEDIM
-#elif defined(SPACEDIM) && !defined(BL_SPACEDIM)
+/* for backward compatibility */
+#if defined(BL_SPACEDIM) && !defined(AMREX_SPACEDIM)
+#define AMREX_SPACEDIM BL_SPACEDIM
+#endif
+#if !defined(BL_SPACEDIM)
+#define BL_SPACEDIM AMREX_SPACEDIM
+#endif
+#if !defined(SPACEDIM)
+#define SPACEDIM AMREX_SPACEDIM
+#endif
 
 /*
-  The BL_SPACEDIM macro specifies the dimension of the AMReX library
+  The AMREX_SPACEDIM macro specifies the dimension of the AMReX library
   to be built.  Acceptable values are either 1, 2, or 3.  This macro
   must be set for every compilation as many of the data structures of
   AMReX rely on it being set.
@@ -15,51 +22,43 @@
   Code that depends on the dimensionality of the problem that you're
   trying to solve should be cast in terms of this macro.
 */
-#define BL_SPACEDIM SPACEDIM
-#elif defined(BL_SPACEDIM) && defined(SPACEDIM)
-#elif BL_SPACEDIM != SPACEDIM
-#error SPACEDIM and BL_SPACEDIM must be identically defined
-#else
-#error At least one of BL_SPACEDIM or SPACEDIM must be defined
+
+#if !defined(AMREX_SPACEDIM)
+#error AMREX_SPACEDIM must be defined
 #endif
 
-#if  (BL_SPACEDIM != 1 && BL_SPACEDIM !=2 && BL_SPACEDIM != 3)
-#error BL_SPACEDIM must be either 1, 2, or 3
+#if  (AMREX_SPACEDIM != 1 && AMREX_SPACEDIM !=2 && AMREX_SPACEDIM != 3)
+#error AMREX_SPACEDIM must be either 1, 2, or 3
 #endif
-
-#if !defined(BL_LANG_FORT)
-
 
 /*
   The SpaceDim C++ integer constant specifies the dimension of the
   AMReX library to be built.  It is initialized to the value of
-  the macro BL_SPACEDIM.  Hence it will have one of the values 1, 2, or 3.
+  the macro AMREX_SPACEDIM.  Hence it will have one of the values 1, 2, or 3.
 
   C++ code that depends on the dimensionality of the problem that
   you're trying to solve should be cast in terms of this constant,
-  instead of the BL_SPACEDIM macro, if possible, as constants are
+  instead of the AMREX_SPACEDIM macro, if possible, as constants are
   visible to debuggers while macros are not.
 */
-
 #ifdef __cplusplus
 namespace amrex
 {
-    const int SpaceDim = BL_SPACEDIM;
+    const int SpaceDim = AMREX_SPACEDIM;
 }
 #endif
 
-#endif
 
-#if BL_SPACEDIM==1
+#if AMREX_SPACEDIM==1
 
 /*
   The AMREX_D_EXPR(a,b,c) macro expands to a comma expression that will
   evaluate SpaceDim of its arguments, counting from the left; i.e.
-  BL_SPACEDIM==1 implies only a is evaluated, BL_SPACEDIM==2
-  implies both a and b, and BL_SPACEDIM==3 implies all three
+  AMREX_SPACEDIM==1 implies only a is evaluated, AMREX_SPACEDIM==2
+  implies both a and b, and AMREX_SPACEDIM==3 implies all three
   arguments are evaluated.  This macro can be used to enhance
   the portability of code that works with structures whose size
-  depends on BL_SPACEDIM.
+  depends on AMREX_SPACEDIM.
            
   For example:
 
@@ -73,16 +72,16 @@ namespace amrex
 
      ((void)((a),(b),(c),0))
 
-  corresponding to BL_SPACEDIM values of 1, 2, or 3.
+  corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
 */
 #  define AMREX_D_EXPR(a,b,c) ((void)((a),0))
 
 /*
   The AMREX_D_DECL(a,b,c) macro expands to a comma-separated list of
   1, 2, or all 3 of the arguments of the call, depending on the
-  value of BL_SPACEDIM.  This can be used to write portable
+  value of AMREX_SPACEDIM.  This can be used to write portable
   function calls that depend on 1, 2, or 3 arguments, corresponding
-  to the value of BL_SPACEDIM.
+  to the value of AMREX_SPACEDIM.
 
   For example:
 
@@ -96,16 +95,16 @@ namespace amrex
 
      a,b,c
 
-  corresponding to BL_SPACEDIM values of 1, 2, or 3.
+  corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
 */
 #  define AMREX_D_DECL(a,b,c) a
 
 /*
   The AMREX_D_TERM(a,b,c) macro expands to a whitespace-separated list of
   1, 2, or all 3 of the arguments of the call, depending on the value
-  of BL_SPACEDIM.  This can be used to write program logic
+  of AMREX_SPACEDIM.  This can be used to write program logic
   that depend on 1, 2, or 3 arguments, corresponding to
-  the value of BL_SPACEDIM.
+  the value of AMREX_SPACEDIM.
 
   For example:
 
@@ -119,15 +118,15 @@ namespace amrex
 
      a b c
 
-  corresponding to BL_SPACEDIM values of 1, 2, or 3.
+  corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
 */
 #  define AMREX_D_TERM(a,b,c) a
 
 /*
   The AMREX_D_PICK(a,b,c) macro expands to a single result equal to the
   1st, 2nd, or 3rd of the arguments of the call, depending on the value
-  of BL_SPACEDIM.  This can be used to write program logic
-  that depend on the value of BL_SPACEDIM.
+  of AMREX_SPACEDIM.  This can be used to write program logic
+  that depend on the value of AMREX_SPACEDIM.
 
   For example:
 
@@ -141,15 +140,15 @@ namespace amrex
 
      maxsize = 32;
 
-  corresponding to BL_SPACEDIM values of 1, 2, or 3.
+  corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
 */
 #  define AMREX_D_PICK(a,b,c) a
-#elif BL_SPACEDIM==2
+#elif AMREX_SPACEDIM==2
 #  define AMREX_D_EXPR(a,b,c) ((void)((a),(b),0))
 #  define AMREX_D_DECL(a,b,c) a,b
 #  define AMREX_D_TERM(a,b,c) a b
 #  define AMREX_D_PICK(a,b,c) b
-#elif BL_SPACEDIM==3
+#elif AMREX_SPACEDIM==3
 #  define AMREX_D_EXPR(a,b,c) ((void)((a),(b),(c),0))
 #  define AMREX_D_DECL(a,b,c) a,b,c
 #  define AMREX_D_TERM(a,b,c) a b c
@@ -157,17 +156,17 @@ namespace amrex
 #endif
 
 /* for backward compatibility */
-#if (BL_SPACEDIM == 1)
+#if (AMREX_SPACEDIM == 1)
 #  define D_DECL(a,b,c) a
 #  define D_EXPR(a,b,c) ((void)((a),0))
 #  define D_PICK(a,b,c) a
 #  define D_TERM(a,b,c) a
-#elif (BL_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
 #  define D_DECL(a,b,c) a,b
 #  define D_EXPR(a,b,c) ((void)((a),(b),0))
 #  define D_PICK(a,b,c) b
 #  define D_TERM(a,b,c) a b
-#elif (BL_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
 #  define D_DECL(a,b,c) a,b,c
 #  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
 #  define D_PICK(a,b,c) c
