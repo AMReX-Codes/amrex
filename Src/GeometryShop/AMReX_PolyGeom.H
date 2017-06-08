@@ -94,7 +94,7 @@ namespace amrex
             notNormal[idir] += Real(idir+1);
           }
           dotProd = PolyGeom::dot(notNormal, a_normal);
-          CH_assert(std::abs(dotProd) > 1.0e-6);
+          BL_ASSERT(std::abs(dotProd) > 1.0e-6);
         }
         Real sumSquare;
         PolyGeom::unifyVector(notNormal, sumSquare);

@@ -26,6 +26,11 @@
                                  const int*  fineboxlo, const int* fineboxhi, 
                                  const int* refrat, const int* isrc, const int* idst, const int* ncomp);
 
+    void ebfnd_pwqinterp_nobound(amrex::Real*       fine, const int* finelo, const int* finehi, const int* incofine,
+                                 const amrex::Real* coar, const int* coarlo, const int* coarhi, const int* incocoar,
+                                 const int*  fineboxlo, const int* fineboxhi, 
+                                 const int* refrat, const int* isrc, const int* idst, const int* ncomp);
+
 
     void ebfnd_pwl_incr_at_bound(amrex::Real*       fine, const int* finelo, const int* finehi, const int* incofine,
                                  const amrex::Real* coar, const int* coarlo, const int* coarhi, const int* incocoar,
@@ -39,5 +44,8 @@
 #ifdef __cplusplus
   }
 #endif
+
+
+  
 
 #endif
