@@ -11,13 +11,19 @@ extern "C"
 {
 #endif
 
-  void process_particles(void*, int ns, int np);
+  void push_particles(void*, int ns, int np);
   
   void deposit_cic(const amrex_real*, int ns, int np,
 		   const int* counts, const int* offsets, 
 		   int ngrids, int gid,
 		   amrex_real* rho, const int* lo, const int* hi,
 		   const amrex_real* plo, const amrex_real* dx);
+  
+  void interpolate_cic(const amrex_real*, int ns, int np,
+		       const int* counts, const int* offsets, 
+		       int ngrids, int gid,
+		       amrex_real* acc, const int* lo, const int* hi,
+		       const amrex_real* plo, const amrex_real* dx);
   
 #ifdef __cplusplus
 };
