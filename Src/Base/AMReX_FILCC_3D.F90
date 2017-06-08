@@ -4,11 +4,8 @@
 #define BL_LANG_FORT
 #endif
 
-#include "AMReX_REAL.H"
 #include "AMReX_CONSTANTS.H"
 #include "AMReX_BC_TYPES.H"
-
-#define SDIM 3
 
 ! ::: -----------------------------------------------------------
 ! ::: This routine is intended to be a generic fill function
@@ -31,18 +28,20 @@
 
 subroutine filcc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo,bc)
 
+  use amrex_fort_module, only: rt => amrex_real
+
   implicit none
 
-  integer    q_l1, q_l2, q_l3, q_h1, q_h2, q_h3
-  integer    domlo(SDIM), domhi(SDIM)
-  REAL_T     xlo(SDIM), dx(SDIM)
-  REAL_T     q(q_l1:q_h1,q_l2:q_h2,q_l3:q_h3)
-  integer    bc(SDIM,2)
+  integer,  intent(in   ) :: q_l1, q_l2, q_l3, q_h1, q_h2, q_h3
+  integer,  intent(in   ) :: domlo(3), domhi(3)
+  real(rt), intent(in   ) :: xlo(3), dx(3)
+  real(rt), intent(inout) :: q(q_l1:q_h1,q_l2:q_h2,q_l3:q_h3)
+  integer,  intent(in   ) :: bc(3,2)
 
-  integer    nlft, nrgt, nbot, ntop, nup, ndwn
-  integer    ilo, ihi, jlo, jhi, klo, khi
-  integer    is,  ie,  js,  je,  ks,  ke
-  integer    i, j, k
+  integer :: nlft, nrgt, nbot, ntop, nup, ndwn
+  integer :: ilo, ihi, jlo, jhi, klo, khi
+  integer :: is,  ie,  js,  je,  ks,  ke
+  integer :: i, j, k
 
   is = max(q_l1,domlo(1))
   ie = min(q_h1,domhi(1))
@@ -885,19 +884,23 @@ subroutine filcc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo,bc)
 
 end subroutine filcc
 
+
+
 subroutine hoextraptocc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo)
+
+  use amrex_fort_module, only: rt => amrex_real
 
   implicit none
 
-  integer    q_l1, q_l2, q_l3, q_h1, q_h2, q_h3
-  integer    domlo(SDIM), domhi(SDIM)
-  REAL_T     xlo(SDIM), dx(SDIM)
-  REAL_T     q(q_l1:q_h1,q_l2:q_h2,q_l3:q_h3)
+  integer,  intent(in   ) :: q_l1, q_l2, q_l3, q_h1, q_h2, q_h3
+  integer,  intent(in   ) :: domlo(3), domhi(3)
+  real(rt), intent(in   ) :: xlo(3), dx(3)
+  real(rt), intent(inout) :: q(q_l1:q_h1,q_l2:q_h2,q_l3:q_h3)
 
-  integer    nlft, nrgt, nbot, ntop, nup, ndwn
-  integer    ilo, ihi, jlo, jhi, klo, khi
-  integer    is,  ie,  js,  je,  ks,  ke
-  integer    i, j, k
+  integer :: nlft, nrgt, nbot, ntop, nup, ndwn
+  integer :: ilo, ihi, jlo, jhi, klo, khi
+  integer :: is,  ie,  js,  je,  ks,  ke
+  integer :: i, j, k
 
   is = max(q_l1,domlo(1))
   ie = min(q_h1,domhi(1))
