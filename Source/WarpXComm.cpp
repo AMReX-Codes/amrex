@@ -256,11 +256,7 @@ WarpX::SyncCurrent ()
         std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
                                              current_cp[lev][1].get(),
                                              current_cp[lev][2].get() };
-#if (BL_SPACEDIM == 3)
-        SyncCurrent3D(fine, crse, ref_ratio[0]);
-#else
-        SyncCurrent2D(fine, crse, ref_ratio[0]);
-#endif
+        SyncCurrent(fine, crse, ref_ratio[0]);
     }
 
     // Sum up fine patch
@@ -294,9 +290,9 @@ WarpX::SyncCurrent ()
 }
 
 void
-WarpX::SyncCurrent3D (const std::array<const amrex::MultiFab*,3>& fine,
-                      const std::array<      amrex::MultiFab*,3>& crse,
-                      int ref_ratio)
+WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
+                    const std::array<      amrex::MultiFab*,3>& crse,
+                    int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
     int ng = fine[0]->nGrow()/ref_ratio;
@@ -326,33 +322,64 @@ WarpX::SyncCurrent3D (const std::array<const amrex::MultiFab*,3>& fine,
 }
 
 void
-WarpX::SyncCurrent2D (const std::array<const amrex::MultiFab*,3>& fine,
-                      const std::array<      amrex::MultiFab*,3>& crse,
-                      int ref_ratio)
+WarpX::SyncRho ()
+{
+    if (!rho_fp[0]) return;
+
+    // Restrict fine patch current onto the coarse patch, before fine patch SumBoundary
+    for (int lev = 1; lev <= finest_level; ++lev) 
+    {
+        rho_cp[lev]->setVal(0.0);      
+        const IntVect& ref_ratio = refRatio(lev-1);
+        SyncRho(*rho_fp[lev], *rho_cp[lev], ref_ratio[0]);
+    }
+
+    // Sum up fine patch
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        const auto& period = Geom(lev).periodicity();
+        rho_fp[lev]->SumBoundary(period);
+    }
+
+    // Add fine level's coarse patch to coarse level's fine patch
+    for (int lev = 0; lev < finest_level; ++lev)
+    {
+        const auto& period = Geom(lev).periodicity();
+        const int ngsrc = rho_cp[lev+1]->nGrow();
+        const int ngdst = 0;
+        rho_fp[lev]->copy(*rho_cp[lev+1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+    }
+
+    // Sum up coarse patch
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        const auto& period = Geom(lev).periodicity();
+        rho_cp[lev]->SumBoundary(period);
+    }
+}
+
+void
+WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    int ng = fine[0]->nGrow()/ref_ratio;
+    int ng = fine.nGrow()/ref_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel
 #endif
     {
         FArrayBox ffab;
-        for (int idim = 0; idim < 3; ++idim)
+        for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
         {
-            for (MFIter mfi(*crse[idim],true); mfi.isValid(); ++mfi)
-            {
-                const Box& bx = mfi.growntilebox(ng);
-                Box fbx = amrex::grow(amrex::refine(bx,ref_ratio),1);
-                ffab.resize(fbx);
-                fbx &= (*fine[idim])[mfi].box();
-                ffab.setVal(0.0);
-                ffab.copy((*fine[idim])[mfi], fbx, 0, fbx, 0, 1);
-                WARPX_SYNC_CURRENT(bx.loVect(), bx.hiVect(),
-                                   BL_TO_FORTRAN_ANYD((*crse[idim])[mfi]),
-                                   BL_TO_FORTRAN_ANYD(ffab),
-                                   &idim);
-            }
+            const Box& bx = mfi.growntilebox(ng);
+            Box fbx = amrex::grow(amrex::refine(bx,ref_ratio),1);
+            ffab.resize(fbx);
+            fbx &= fine[mfi].box();
+            ffab.setVal(0.0);
+            ffab.copy(fine[mfi], fbx, 0, fbx, 0, 1);
+            WARPX_SYNC_RHO(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_ANYD(crse[mfi]),
+                           BL_TO_FORTRAN_ANYD(ffab));
         }
     }
 }

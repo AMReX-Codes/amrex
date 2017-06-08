@@ -6,6 +6,7 @@
 #define WARPX_COMPUTE_DIVB               warpx_compute_divb_3d
 #define WARPX_COMPUTE_DIVE               warpx_compute_dive_3d
 #define WARPX_SYNC_CURRENT               warpx_sync_current_3d
+#define WARPX_SYNC_RHO                   warpx_sync_rho_3d
 #define WARPX_CLEAN_EVEC                 warpx_clean_evec_3d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
@@ -18,6 +19,7 @@
 #define WARPX_COMPUTE_DIVB               warpx_compute_divb_2d
 #define WARPX_COMPUTE_DIVE               warpx_compute_dive_2d
 #define WARPX_SYNC_CURRENT               warpx_sync_current_2d
+#define WARPX_SYNC_RHO                   warpx_sync_rho_2d
 #define WARPX_CLEAN_EVEC                 warpx_clean_evec_2d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
@@ -195,6 +197,10 @@ extern "C"
                              BL_FORT_FAB_ARG_ANYD(crse),
                              const BL_FORT_FAB_ARG_ANYD(fine),
                              const int* dir);
+
+    void WARPX_SYNC_RHO (const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_ANYD(crse),
+                         const BL_FORT_FAB_ARG_ANYD(fine));
 
     void WARPX_CLEAN_EVEC (const int* xlo, const int* xhi,
                            const int* ylo, const int* yhi,

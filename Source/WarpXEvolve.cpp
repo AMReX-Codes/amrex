@@ -69,8 +69,9 @@ WarpX::Evolve (int numsteps)
 
         SyncCurrent();
 
-        // xxxxx SyncRho and then evolve F if ...
-        // We now have F^{n+1/2}
+        SyncRho();
+
+        EvolveF(dt[0]);
 
         // Fill B's ghost cells because of the next step of evolving E.
         FillBoundaryB();
@@ -381,6 +382,22 @@ WarpX::EvolveE (int lev, Real dt)
             }
         }
     }
+}
+
+void
+WarpX::EvolveF (Real dt)
+{
+    if (!do_dive_cleaning) return;
+
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        EvolveF(lev, dt);
+    }
+}
+
+void
+WarpX::EvolveF (int lev, Real dt)
+{
+    if (!do_dive_cleaning) return;
 }
 
 void

@@ -587,4 +587,60 @@ contains
 
   end subroutine warpx_clean_evec_3d
 
+
+  subroutine warpx_sync_rho_2d (lo, hi, crse, clo, chi, fine, flo, fhi) &
+       bind(c, name='warpx_sync_rho_2d')
+    integer, intent(in) :: lo(2), hi(2), flo(2), fhi(2), clo(2), chi(2)
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
+    
+    integer :: i,j,ii,jj
+
+    do j = lo(2), hi(2)
+       jj = j*2
+       do i = lo(1), hi(1)
+          ii = i*2
+          crse(i,j) = 0.25d0 * &
+               ( fine(ii,jj) + 0.5d0 *(fine(ii-1,jj  )+fine(ii+1,jj  ) &
+               &                     + fine(ii  ,jj-1)+fine(ii  ,jj+1)) &
+               &             + 0.25d0*(fine(ii-1,jj-1)+fine(ii+1,jj-1) &
+               &                     + fine(ii-1,jj+1)+fine(ii+1,jj+1)) ) 
+       end do
+    end do
+  end subroutine warpx_sync_rho_2d
+
+  subroutine warpx_sync_rho_3d (lo, hi, crse, clo, chi, fine, flo, fhi) &
+       bind(c, name='warpx_sync_rho_3d')
+    integer, intent(in) :: lo(3), hi(3), flo(3), fhi(3), clo(3), chi(3)
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+
+    integer :: i,j,k,ii,jj,kk
+
+    do k = lo(3), hi(3)
+       kk = k*2
+       do j = lo(2), hi(2)
+          jj = j*2
+          do i = lo(1), hi(1)
+             ii = i*2
+             crse(i,j,k) = 0.125d0 * &
+                  (fine(ii,jj,kk) + 0.5d0  *(fine(ii-1,jj  ,kk  )+fine(ii+1,jj  ,kk  ) &
+                  &                        + fine(ii  ,jj-1,kk  )+fine(ii  ,jj+1,kk  ) &
+                  &                        + fine(ii  ,jj  ,kk-1)+fine(ii  ,jj  ,kk+1)) &
+                  &               + 0.25d0 *(fine(ii-1,jj-1,kk  )+fine(ii+1,jj-1,kk  ) &
+                  &                        + fine(ii-1,jj+1,kk  )+fine(ii+1,jj+1,kk  ) &
+                  &                        + fine(ii-1,jj  ,kk-1)+fine(ii+1,jj  ,kk-1) &
+                  &                        + fine(ii-1,jj  ,kk+1)+fine(ii+1,jj  ,kk+1) &
+                  &                        + fine(ii  ,jj-1,kk-1)+fine(ii  ,jj+1,kk-1) &
+                  &                        + fine(ii  ,jj-1,kk+1)+fine(ii  ,jj+1,kk+1)) &
+                  &               + 0.125d0*(fine(ii-1,jj-1,kk-1)+fine(ii-1,jj-1,kk+1) &
+                  &                        + fine(ii-1,jj+1,kk-1)+fine(ii-1,jj+1,kk+1) &
+                  &                        + fine(ii+1,jj-1,kk-1)+fine(ii+1,jj-1,kk+1) &
+                  &                        + fine(ii+1,jj+1,kk-1)+fine(ii+1,jj+1,kk+1)))
+          end do
+       end do
+    end do
+
+  end subroutine warpx_sync_rho_3d
+
 end module warpx_module
