@@ -10,4 +10,5 @@ regression/dataArith checks to see that the arithmetic functions of EBCellFAB an
 regression/ebnormalizeTest checks the correctness of EBNormalizeByVolume fraction (kappa div f^c-> divF^nc)
 regression/levelDivTest checks that redistribution is conservative.
 regresson/fabio tests i/o for various FabArray<T>'s
+regresson/ebio tests i/o for the EBIndexSpace singleton
 regression/serialization tests serialization of several data holders

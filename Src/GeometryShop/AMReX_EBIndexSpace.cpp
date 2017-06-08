@@ -63,6 +63,7 @@ namespace amrex
       string levdirname = a_dirname + "/_lev_" + EBArith::convertInt(ilev);
       m_ebisLevel[ilev]->read(levdirname);
     }
+    m_isDefined = true;
   }
 
   ///

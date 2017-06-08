@@ -289,7 +289,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
       std::cout << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
                 << " exists.  I am destroying it.  " << std::endl;
       char command[2000];
-      sprintf(command, "rm -rf %s", path.c_str());;
+      sprintf(command, "\\rm -rf %s", path.c_str());;
       std::system(command);
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) 

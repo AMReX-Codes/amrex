@@ -238,7 +238,7 @@ namespace amrex
       EBData ebd2 = a_ebd2[mfi];
       if(ebd1.getRegion() != ebd2.getRegion())
       {
-        amrex::Print() << "checkgraph: region mismatch" << endl;
+        amrex::Print() << "checkdata: region mismatch" << endl;
         return -2;
       }
       //check the volume data
