@@ -121,7 +121,8 @@ subroutine cuda_deposit_cic(particles, ns, np, &
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
   use cudafor
-  
+  use cuda_module
+
   implicit none
   
   integer, value       :: ns, np, ngrids, gid
@@ -145,22 +146,24 @@ subroutine cuda_deposit_cic(particles, ns, np, &
   integer(kind=cuda_stream_kind) :: stream
   type(dim3) :: numThreads, numBlocks
 
-  cuda_result = cudaMemcpy(lo_d, lo, 3, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(hi_d, hi, 3, cudaMemcpyHostToDevice)
+  stream = cuda_streams(mod(gid, max_cuda_streams) + 1)
 
-  cuda_result = cudaMemcpy(plo_d, plo, 3, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(dx_d,  dx,  3, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpyAsync(lo_d, lo, 3, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(hi_d, hi, 3, cudaMemcpyHostToDevice, stream)
 
-  cuda_result = cudaMemcpy(ns_d, ns, 1, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(np_d, np, 1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpyAsync(plo_d, plo, 3, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(dx_d,  dx,  3, cudaMemcpyHostToDevice, stream)
 
-  cuda_result = cudaMemcpy(ngrids_d, ngrids, 1, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(gid_d, gid, 1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpyAsync(ns_d, ns, 1, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(np_d, np, 1, cudaMemcpyHostToDevice, stream)
+
+  cuda_result = cudaMemcpyAsync(ngrids_d, ngrids, 1, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(gid_d, gid, 1, cudaMemcpyHostToDevice, stream)
 
   numThreads = dim3(512,1,1)
   numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
 
-  call deposit_kernel<<<numBlocks, numThreads>>>(particles, ns_d, np_d, &
+  call deposit_kernel<<<numBlocks, numThreads, 0, stream>>>(particles, ns_d, np_d, &
        counts, offsets, ngrids_d, gid_d, &
        rho, lo_d, hi_d, &
        plo_d, dx_d)
@@ -234,6 +237,7 @@ subroutine cuda_interpolate_cic(particles, ns, np, &
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
   use cudafor
+  use cuda_module
   
   implicit none
   
@@ -259,22 +263,24 @@ subroutine cuda_interpolate_cic(particles, ns, np, &
   integer(kind=cuda_stream_kind) :: stream
   type(dim3) :: numThreads, numBlocks
 
-  cuda_result = cudaMemcpy(lo_d, lo, 3, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(hi_d, hi, 3, cudaMemcpyHostToDevice)
+  stream = cuda_streams(mod(gid, max_cuda_streams) + 1)
 
-  cuda_result = cudaMemcpy(plo_d, plo, 3, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(dx_d,  dx,  3, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpyAsync(lo_d, lo, 3, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(hi_d, hi, 3, cudaMemcpyHostToDevice, stream)
 
-  cuda_result = cudaMemcpy(ns_d,  ns,  1, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(np_d,  np,  1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpyAsync(plo_d, plo, 3, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(dx_d,  dx,  3, cudaMemcpyHostToDevice, stream)
 
-  cuda_result = cudaMemcpy(gid_d, gid, 1, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(ngrids_d, ngrids, 1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpyAsync(ns_d,  ns,  1, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(np_d,  np,  1, cudaMemcpyHostToDevice, stream)
+
+  cuda_result = cudaMemcpyAsync(gid_d, gid, 1, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(ngrids_d, ngrids, 1, cudaMemcpyHostToDevice, stream)
 
   numThreads = dim3(512,1,1)
   numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
 
-  call interpolate_kernel<<<numBlocks, numThreads>>>(particles, ns_d, np_d, &
+  call interpolate_kernel<<<numBlocks, numThreads, 0, stream>>>(particles, ns_d, np_d, &
        counts, offsets, ngrids_d, gid_d, &
        acc, lo_d, hi_d, &
        plo_d, dx_d)
