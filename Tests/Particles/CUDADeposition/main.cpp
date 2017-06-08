@@ -27,6 +27,8 @@ void solve_for_accel(const Array<MultiFab*>& rhs,
 		     int base_level, int finest_level, Real offset);
 
 void field_solve(MultiFab& density, MultiFab& phi, MultiFab& E, const Geometry& geom) {
+
+  BL_PROFILE("Field Solve.")
   
   MultiFab tmp(density.boxArray(), density.DistributionMap(), 1, 0);
   MultiFab::Copy(tmp, density, 0, 0, 1, 0);
