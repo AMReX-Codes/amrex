@@ -17,7 +17,7 @@ using namespace amrex;
 
 static const int NmvMAX = 4;
 static const int COVERED_CELL = -1;
-static const int FLUID_CELL = -2;
+static const int REGULAR_CELL = -2;
 
 //
 // Structure to contain all necessary graph and geometry data for cut cells at an IntVect
@@ -171,7 +171,7 @@ int myTest()
                                         }
                                         else if (ebis_box.isRegular(iv_nbr))
                                         {
-                                            gn.cells[icc].nbr[idir][iside][iface] = FLUID_CELL;
+                                            gn.cells[icc].nbr[idir][iside][iface] = REGULAR_CELL;
                                         } else
                                         {
                                             gn.cells[icc].nbr[idir][iside][iface] = faces[iface].cellIndex(sit());
@@ -186,7 +186,7 @@ int myTest()
         }
 
         BaseFab<int>& mask_fab = ebmask[mfi];
-        mask_fab.setVal(FLUID_CELL);
+        mask_fab.setVal(REGULAR_CELL);
         for (int inode=0; inode<graphNodes[gid].size(); ++inode)
         {
             IntVect iv; 
