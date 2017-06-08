@@ -41,7 +41,8 @@ struct Node
 
 extern "C"
 {
-    void do_eb_work(Node* nodes, const int* num,
+    void do_eb_work(const int* lo, const int* hi,
+                    Node* nodes, const int* num,
                     const BL_FORT_IFAB_ARG(mask));
 }
 
@@ -61,6 +62,7 @@ Copy(IntVect& out, const intDIM& in)
     }    
 }
 
+#if 0
 static void
 dumpInts(const intDIM& iv)
 {
@@ -69,6 +71,7 @@ dumpInts(const intDIM& iv)
     }
     std::cout << '\n';
 }
+#endif
 
 void
 get_EGLG(EBLevelGrid& eblg)
@@ -88,7 +91,8 @@ get_EGLG(EBLevelGrid& eblg)
     {
         center[idir] = centervec[idir];
     }
-    bool insideRegular = false;
+    //bool insideRegular = false;
+    bool insideRegular = true;
     SphereIF sphere(radius, center, insideRegular);
     int verbosity = 0;
 
@@ -138,13 +142,11 @@ int myTest()
     int nGrow = 1;
     iMultiFab ebmask(ba,dm,1,nGrow); // Will contain location of Node in graphNodes vector
 
-    bool first = true;
-
     for (MFIter mfi(ebmask); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
-        const Box& gbox = ebmask[mfi].box();
         EBISBox ebis_box = eblg.getEBISL()[mfi];
+        const Box gbox = ebmask[mfi].box() & ebis_box.getDomain();
 
         if (!ebis_box.isAllRegular())
         {
@@ -194,6 +196,8 @@ int myTest()
             }
         }
 
+        // TODO: Fix up nbr ptrs to reference vector<Node> ordering
+
         BaseFab<int>& mask_fab = ebmask[mfi];
         mask_fab.setVal(REGULAR_CELL);
         for (int inode=0; inode<graphNodes[gid].size(); ++inode)
@@ -210,13 +214,15 @@ int myTest()
             for (BoxIterator bit(gbox); bit.ok(); ++bit)
             {
                 if (ebis_box.isCovered(bit())) {
-                    mask_fab.setVal(COVERED_CELL);
+                    mask_fab(bit(),0) = COVERED_CELL;
                 }
             }
         }
 
+        const Box& vbox = mfi.validbox();
         int s = graphNodes[mfi.index()].size();
-        do_eb_work(graphNodes[mfi.index()].data(), &s,
+        do_eb_work(vbox.loVect(), vbox.hiVect(),
+                   graphNodes[mfi.index()].data(), &s,
                    BL_TO_FORTRAN_N(mask_fab,0));
 
 
