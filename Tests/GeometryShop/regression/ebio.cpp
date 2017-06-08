@@ -42,8 +42,11 @@ namespace amrex
                    Real& a_dx)
   {
     int eekflag =  0;
+    int maxbox;
     //parse input file
+
     ParmParse pp;
+    pp.get("maxboxsize", maxbox);
     RealVect origin = RealVect::Zero;
     std::vector<int> n_cell;
     pp.getarr("n_cell", n_cell, 0, SpaceDim);
@@ -75,7 +78,7 @@ namespace amrex
       amrex::Print() << "all regular geometry" << "\n";
       AllRegularService regserv;
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, regserv);
+      ebisPtr->define(a_domain, origin, a_dx, regserv, maxbox);
     }
     else if (whichgeom == 1)
     {
@@ -104,7 +107,7 @@ namespace amrex
       GeometryShop workshop(ramp,0, a_dx);
       //this generates the new EBIS
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop);
+      ebisPtr->define(a_domain, origin, a_dx, workshop, maxbox);
     }
     else
     {
@@ -115,53 +118,6 @@ namespace amrex
     }
 
     return eekflag;
-  }
-  /***************/
-  void fillEBCFWithSomething(FabArray<BaseEBCellFAB<int> >& a_ebcf,
-                             const EBLevelGrid            & a_eblg)
-  {
-    for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
-    {
-      Box     grid = a_eblg.getDBL()  [mfi];
-      EBISBox ebis = a_eblg.getEBISL()[mfi];
-      IntVectSet ivs(grid);
-      a_ebcf[mfi].setVal(-1);
-      int ival = 0;
-      for(VoFIterator vofit(ivs, ebis.getEBGraph()); vofit.ok(); ++vofit)
-      {
-        for(int icomp = 0; icomp < a_ebcf.nComp(); icomp++)
-        {
-          a_ebcf[mfi](vofit(), icomp) = ival;
-          ival++;
-        }
-      }
-    }
-  }
-  /****/
-  int checkEquality(const FabArray<BaseEBCellFAB<int> > & a_ebcf1,
-                    const FabArray<BaseEBCellFAB<int> > & a_ebcf2,
-                    const EBLevelGrid                   & a_eblg)
-  {
-    for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
-    {
-      Box     grid = a_eblg.getDBL()  [mfi];
-      EBISBox ebis = a_eblg.getEBISL()[mfi];
-      IntVectSet ivs(grid);
-      for(VoFIterator vofit(ivs, ebis.getEBGraph()); vofit.ok(); ++vofit)
-      {
-        for(int icomp = 0; icomp < a_ebcf1.nComp(); icomp++)
-        {
-          int val1 = a_ebcf1[mfi](vofit(), icomp);
-          int val2 = a_ebcf2[mfi](vofit(), icomp);
-          if(val1 != val2)
-          {
-            amrex::Print() << "ebcf values do not match at " << vofit().gridIndex();
-            return -1;
-          }
-        }
-      }
-    }
-    return 0;
   }
 
   /****/
@@ -238,7 +194,7 @@ namespace amrex
       EBData ebd2 = a_ebd2[mfi];
       if(ebd1.getRegion() != ebd2.getRegion())
       {
-        amrex::Print() << "checkgraph: region mismatch" << endl;
+        amrex::Print() << "checkdata: region mismatch" << endl;
         return -2;
       }
       //check the volume data
@@ -317,64 +273,80 @@ namespace amrex
     return 0;
   }
   /***************/
-  int testIO()
+  int testEBIO()
   {
     Box domain;
     Real dx;
+    //make the initial geometry
     makeGeometry(domain, dx);
-    int maxboxsize;
-    ParmParse pp;
-    pp.get("maxboxsize", maxboxsize);
-    BoxArray ba(domain);
-    ba.maxSize(maxboxsize);
-    DistributionMapping dm(ba);
-    EBLevelGrid eblg(ba, dm, domain, 2);
-    int retval = 0;
-    //ebgraph
-    shared_ptr<FabArray<EBGraph> > allgraphsptr = eblg.getEBISL().getAllGraphs();
-    FabArray<EBGraph>& graphsout = *allgraphsptr;
-    FabArrayIO<EBGraph>::write(graphsout, string("ebgraph.plt"));
-
-    FabArray<EBGraph> graphsin;
-    FabArrayIO<EBGraph>::read(graphsin, string("ebgraph.plt"));
-
-    retval = checkGraphs(graphsin, graphsout, eblg);
-    if(retval != 0) 
-    {
-      amrex::Print() << "ebgraph does not match" << endl;
-      return retval;
-    }
-
-    ///ebdata
-    shared_ptr<FabArray<EBData> > alldataptr = eblg.getEBISL().getAllData();
-    FabArray<EBData>&  dataout = *alldataptr;
-    FabArrayIO<EBData>::write(dataout, string("ebdata.plt"));
-
-    FabArray<EBData> datain;
-    FabArrayIO<EBData>::read(datain, string("ebdata.plt"));
-
-    retval = checkData(datain, dataout, eblg);
-    if(retval != 0) 
-    {
-      amrex::Print() << "ebdata does not match" << endl;
-      return retval;
-    }
-    //baseebcellfab
-    int ncomp = 1;
-    BaseEBCellFactory<int>  ebcellfact(eblg.getEBISL());
-    FabArray<BaseEBCellFAB<int> >  cellout(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);
-    fillEBCFWithSomething(cellout, eblg);
-    FabArrayIO<BaseEBCellFAB<int> >::write(cellout, string("baseebcfint_data.plt"));
-
-    FabArray<BaseEBCellFAB<int> > cellin;
-    FabArrayIO<BaseEBCellFAB<int> >::read(cellin, string("baseebcfint_data.plt"));
-    retval = checkEquality(cellin, cellout, eblg);
-    if(retval != 0) 
-    {
-      amrex::Print() << "ebcf<int> does not match" << endl;
-      return retval;
-    }
+    //extract all the info we can from the singleton
+    EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+    int numLevelsIn = ebisPtr->getNumLevels();
+    vector<Box> domainsIn = ebisPtr->getDomains();
+    int nCellMaxIn = ebisPtr->getNCellMax();
       
+    vector<EBLevelGrid> eblgIn(numLevelsIn);
+    for(int ilev = 0; ilev < numLevelsIn; ilev++)
+    {
+      Box domlev = domainsIn[ilev];
+      BoxArray ba(domlev);
+      ba.maxSize(nCellMaxIn);
+      DistributionMapping dm(ba);
+      eblgIn[ilev]= EBLevelGrid(ba, dm, domain, 2);
+    }
+    //write the singleton and erase it.
+    ebisPtr->write("ebis.plt");
+    ebisPtr->clear();
+
+    //now read it back in and get all that info again
+    ebisPtr->read("ebis.plt");
+    int numLevelsOut = ebisPtr->getNumLevels();
+    vector<Box> domainsOut = ebisPtr->getDomains();
+    int nCellMaxOut = ebisPtr->getNCellMax();
+      
+    vector<EBLevelGrid> eblgOut(numLevelsOut);
+    for(int ilev = 0; ilev < numLevelsOut; ilev++)
+    {
+      Box domlev = domainsOut[ilev];
+      BoxArray ba(domlev);
+      ba.maxSize(nCellMaxOut);
+      DistributionMapping dm(ba);
+      eblgOut[ilev]= EBLevelGrid(ba, dm, domain, 2);
+    }
+
+    //now check that in==out
+    if(numLevelsOut != numLevelsIn)
+    {
+      amrex::Print() << "num levels mismatch" << endl;
+      return -1;
+    }
+    if(nCellMaxOut != nCellMaxIn)
+    {
+      amrex::Print() << "ncell max mismatch" << endl;
+      return -2;
+    }
+    for(int ilev = 0; ilev < numLevelsIn; ilev++)
+    {
+      if(domainsIn[ilev] != domainsOut[ilev])
+      {
+        amrex::Print() << "domains mismatch" << endl;
+        return -3;
+      }
+      EBISLayout ebislIn  = eblgIn [ilev].getEBISL();
+      EBISLayout ebislOut = eblgOut[ilev].getEBISL();
+      int retgraph = checkGraphs(*ebislIn.getAllGraphs(), *ebislOut.getAllGraphs(), eblgIn[ilev]);
+      if(retgraph != 0)
+      {
+        amrex::Print() << "graph mismatch" << endl;
+        return retgraph;
+      }
+      int retdata  = checkData(  *ebislIn.getAllData  (), *ebislOut.getAllData  (), eblgIn[ilev]);
+      if(retdata != 0)
+      {
+        amrex::Print() << "data mismatch" << endl;
+        return retdata;
+      }
+    }
 
     return 0;
   }
@@ -386,14 +358,14 @@ main(int argc, char* argv[])
   int retval = 0;
   amrex::Initialize(argc,argv);
 
-  retval = amrex::testIO();
+  retval = amrex::testEBIO();
   if(retval != 0)
   {
-    amrex::Print() << "simple io test failed with code " << retval << "\n";
+    amrex::Print() << "EBIndexSpace I/O test failed with code " << retval << "\n";
   }
   else
   {
-    amrex::Print() << "simple io test passed \n";
+    amrex::Print() << "EBIndexSpace I/O test passed \n";
   }
   amrex::Finalize();
   return retval;
