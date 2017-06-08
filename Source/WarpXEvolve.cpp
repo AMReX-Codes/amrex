@@ -276,8 +276,9 @@ WarpX::EvolveE (int lev, Real dt)
         int patch_level = (ipatch == 0) ? lev : lev-1;
         const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
         const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
+        const std::array<Real,3> dtdx = {dt/dx[0], dt/dx[1], dt/dx[2]};
 
-        MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz;
+        MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz, *F;
         if (ipatch == 0)
         {
             Ex = Efield_fp[lev][0].get();
@@ -289,6 +290,7 @@ WarpX::EvolveE (int lev, Real dt)
             jx = current_fp[lev][0].get();
             jy = current_fp[lev][1].get();
             jz = current_fp[lev][2].get();
+            F  = F_fp[lev].get();
         }
         else
         {
@@ -301,6 +303,7 @@ WarpX::EvolveE (int lev, Real dt)
             jx = current_cp[lev][0].get();
             jy = current_cp[lev][1].get();
             jz = current_cp[lev][2].get();
+            F  = F_cp[lev].get();
         }
         
         // Loop through the grids, and over the tiles within each grid
@@ -330,6 +333,17 @@ WarpX::EvolveE (int lev, Real dt)
                 &mu_c2_dt,
                 &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
                 &norder);
+
+            if (F) {
+                WARPX_CLEAN_EVEC(tex.loVect(), tex.hiVect(),
+                                 tey.loVect(), tey.hiVect(),
+                                 tez.loVect(), tez.hiVect(),
+                                 BL_TO_FORTRAN_3D((*Ex)[mfi]),
+                                 BL_TO_FORTRAN_3D((*Ey)[mfi]),
+                                 BL_TO_FORTRAN_3D((*Ez)[mfi]),
+                                 BL_TO_FORTRAN_3D((*F)[mfi]),
+                                 &dtdx[0]);
+            }
         }
     }
 
