@@ -110,7 +110,7 @@ C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
 ifneq ($(BL_NO_FORT),TRUE)
   F$(AMREX_BASE)_sources += AMReX_COORDSYS_$(DIM)D.F
   F$(AMREX_BASE)_headers += AMReX_COORDSYS_F.H
-  F$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F
+  F90$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F90
 
   f$(AMREX_BASE)_sources += AMReX_BLutil_F.f
   f$(AMREX_BASE)_sources += AMReX_BLParmParse_F.f
