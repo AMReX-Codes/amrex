@@ -279,6 +279,7 @@ fortran_fdecl_headers_cppd = $(addprefix $(tmpEXETempDir)/, $(fortran_fdecl_head
 #
 
 DEFINES	+= -DBL_SPACEDIM=$(DIM)				\
+           -DAMREX_SPACEDIM=$(DIM)                      \
            -DBL_FORT_USE_$(FORTLINK)			\
            -DBL_$(shell uname)
 
@@ -304,7 +305,6 @@ fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 
 CPPFLAGS	+= $(DEFINES)
-F_CPPFLAGS := $(addprefix $(CPP_PREFIX), $(CPPFLAGS))
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
 
@@ -377,4 +377,9 @@ endif
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
+endif
+
+ifeq ($(USE_CVODE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
 endif

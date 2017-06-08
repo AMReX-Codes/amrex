@@ -95,9 +95,6 @@ public:
     //! The the number of tiles in the current grid;
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
-    //! Return a unique index associated with the current box and/or tile.
-    int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
-
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
     * When AllBoxes is on, local_index_map is a nullptr and local index is current index.

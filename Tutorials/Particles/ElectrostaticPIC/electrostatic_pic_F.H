@@ -17,13 +17,15 @@ extern "C"
                      const amrex::Real* weights, 
                      const amrex::Real* charge,
                      amrex::Real* rho, const int* lo, const int* hi,
-                     const amrex::Real* plo, const amrex::Real* dx);
+                     const amrex::Real* plo, const amrex::Real* dx,
+                     const int* ng);
     
     void interpolate_cic(const amrex::Real* particles, int ns, int np,
                          amrex::Real* Ex_p, amrex::Real* Ey_p, amrex::Real* Ez_p,
                          const amrex::Real* Ex, const amrex::Real* Ey, const amrex::Real* Ez,
                          const int* lo, const int* hi,
-                         const amrex::Real* plo, const amrex::Real* dx);
+                         const amrex::Real* plo, const amrex::Real* dx,
+                         const int* ng);
 
     void push_leapfrog(amrex::Real* particles, int ns, int np, 
                        amrex::Real* vx_p, amrex::Real* vy_p, amrex::Real* vz_p,
@@ -33,7 +35,8 @@ extern "C"
 
     void push_leapfrog_positions(amrex::Real* particles, int ns, int np, 
                                  const amrex::Real* vx_p, const amrex::Real* vy_p, 
-                                 const amrex::Real* vz_p, const amrex::Real* dt);
+                                 const amrex::Real* vz_p, const amrex::Real* dt,
+                                 const amrex::Real* prob_lo, const amrex::Real* prob_hi);
 
 #ifdef __cplusplus
 }

@@ -60,6 +60,12 @@ BL_FORT_PROC_DECL(BL_AVGDOWN, bl_avgdown)
    BL_FORT_FAB_ARG(crse),
    const int* ratio, const int* ncomp);
 
+BL_FORT_PROC_DECL(BL_AVGDOWN_NODES, bl_avgdown_nodes)
+  (const int* ovlp_lo, const int* ovlp_hi,
+   const BL_FORT_FAB_ARG(fine),
+   BL_FORT_FAB_ARG(crse),
+   const int* ratio, const int* ncomp);
+
 BL_FORT_PROC_DECL(BL_AVGDOWN_WITH_VOL, bl_avgdown_with_vol)
   (const int* ovlp_lo, const int* ovlp_hi,
    const BL_FORT_FAB_ARG(fine),

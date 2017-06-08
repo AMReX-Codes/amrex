@@ -592,14 +592,11 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     const DistributionMapping& dm       = fa.DistributionMap();
     const Array<int>&          imap     = fa.IndexArray();
 
-    BL_ASSERT(amrex::convert(ba,IndexType::TheCellType()).isDisjoint());
-
     // For local copy, all workers in the same team will have the identical copy of tags
     // so that they can share work.  But for remote communication, they are all different.
     
     const int nlocal = imap.size();
     const int ng = m_ngrow;
-    const IndexType& typ = ba.ixType();
     std::vector< std::pair<int,Box> > isects;
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
@@ -647,13 +644,6 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	check_local = true;
     }
 
-    if (typ.cellCentered()) {
-	m_threadsafe_loc = true;
-	m_threadsafe_rcv = true;
-	check_local = false;
-	check_remote = false;
-    }
-    
     for (int i = 0; i < nlocal; ++i)
     {
 	const int   krcv = imap[i];
@@ -1225,14 +1215,18 @@ FabArrayBase::flushFPinfo (bool no_assertion)
 
 FabArrayBase::CFinfo::CFinfo (const FabArrayBase& finefa,
                               const Geometry&     finegm,
-                              int                 ng)
+                              int                 ng,
+                              bool                include_periodic,
+                              bool                include_physbndry)
     : m_fine_bdk (finefa.getBDKey()),
       m_ng       (ng),
+      m_include_periodic(include_periodic),
+      m_include_physbndry(include_physbndry),
       m_nuse     (0)
 {
     BL_PROFILE("CFinfo::CFinfo()");
     
-    m_fine_domain = Domain(finegm, ng);
+    m_fine_domain = Domain(finegm, ng, include_periodic, include_physbndry);
 
     const BoxArray& fba = amrex::convert(finefa.boxArray(), IndexType::TheCellType());
     const DistributionMapping& fdm = finefa.DistributionMap();
@@ -1265,12 +1259,19 @@ FabArrayBase::CFinfo::CFinfo (const FabArrayBase& finefa,
 }
 
 Box
-FabArrayBase::CFinfo::Domain (const Geometry& geom, int ng)
+FabArrayBase::CFinfo::Domain (const Geometry& geom, int ng,
+                              bool include_periodic, bool include_physbndry)
 {
     Box bx = geom.Domain();
     for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
-            bx.grow(idim, ng);
+            if (include_periodic) {
+                bx.grow(idim, ng);
+            }
+        } else {
+            if (include_physbndry) {
+                bx.grow(idim, ng);
+            }
         }
     }
     return bx;
@@ -1288,7 +1289,9 @@ FabArrayBase::CFinfo::bytes () const
 const FabArrayBase::CFinfo&
 FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
                          const Geometry&     finegm,
-                         int                 ng)
+                         int                 ng,
+                         bool                include_periodic,
+                         bool                include_physbndry)
 {
     BL_PROFILE("FabArrayBase::TheCFinfo()");
 
@@ -1297,7 +1300,9 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
     for (auto it = er_it.first; it != er_it.second; ++it)
     {
         if (it->second->m_fine_bdk    == key                        &&
-            it->second->m_fine_domain == CFinfo::Domain(finegm, ng) &&
+            it->second->m_fine_domain == CFinfo::Domain(finegm, ng,
+                                                        include_periodic,
+                                                        include_physbndry) &&
             it->second->m_ng          == ng)
         {
             ++(it->second->m_nuse);
@@ -1307,10 +1312,10 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
     }
 
     // Have to build a new one
-    CFinfo* new_cfinfo = new CFinfo(finefa, finegm, ng);
+    CFinfo* new_cfinfo = new CFinfo(finefa, finegm, ng, include_periodic, include_physbndry);
 
 #ifdef BL_MEM_PROFILING
-    m_CFinfo_stats.bytes += new_fpc->bytes();
+    m_CFinfo_stats.bytes += new_cfinfo->bytes();
     m_CFinfo_stats.bytes_hwm = std::max(m_CFinfo_stats.bytes_hwm, m_CFinfo_stats.bytes);
 #endif
 
@@ -1331,7 +1336,7 @@ FabArrayBase::flushCFinfo (bool no_assertion)
     for (auto it = er_it.first; it != er_it.second; ++it)
     {
 #ifdef BL_MEM_PROFILING
-        m_CFinfo_stats.bytes -= it->second-bytes();
+        m_CFinfo_stats.bytes -= it->second->bytes();
 #endif
         m_CFinfo_stats.recordErase(it->second->m_nuse);
         delete it->second;

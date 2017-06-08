@@ -1,0 +1,249 @@
+In addition to the tools for working with mesh data described in previous chapters, $\tt{AMReX}$ provides data structures and iterators for performing data-parallel particle simulations. 
+Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example use cases include Particle-in-Cell
+simulations, Lagrangian tracers, or particles that exert a drag force onto a fluid, such as in multi-phase flow calculations. The overall goals of $\tt{AMReX}$'s particle 
+tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data as much as is practical.
+In the following sections, we give an overview of $\tt{AMReX}$'s particle classes and how to use them.
+
+\section{The Particle}
+\label{sec:Particles:Particle}
+
+The particle classes can be used by including the header $\tt{AMReX\_Particles.H}$. The most basic particle data structure is the particle struct itself: 
+
+\begin{lstlisting}[language=cpp]
+  Particle<3, 2> p;
+\end{lstlisting}
+
+This is a templated data type, designed to allow users flexibility in specifying the number and type of variables that the particles carry. The first template parameter is
+the number of extra $\tt{Real}$ variables this particle will have (either single or double precision), while the second is the number of extra integer variables. It is imporant to note
+that this is the number of $\emph{extra}$ real and integer variables; a particle will always have at least $\tt{BL\_SPACEDIM}$ $\tt{Real}$ components that store the particle's position
+and $\tt{2}$ integer components that store the particle's $\tt{id}$ and $\tt{cpu}$ numbers.
+\footnote{Note that $\tt{cpu}$ stores the number of the process the particle was $\emph{generated}$
+on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle $\tt{id}$. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.}
+
+The particle struct is designed to store these variables in a way that minimizes padding, which in practice means that the $\tt{Real}$ components always come first, and the integer
+components second. Additionally, the required particle variables are stored before the optional ones, for both the real and the integer components. For example, say we want to define
+a particle type that stores a mass, three velocity components, and two extra integer flags. Our particle struct would be set up like:
+
+\begin{lstlisting}[language=cpp]
+  Particle<4, 2> p;
+\end{lstlisting}
+
+and the order of the particle components in would be: x y z m vx vy vz id cpu flag1 flag2. \footnote{Note that for the extra particle components, which component refers to which
+variable is an application-specific convention - the particles have 4 extra real comps, but which one is ``mass'' is up to the user. We suggest using an \tt{enum} to keep these indices straight; please see Section~\ref{sec:Particles:Initializing} below for an example of this.} 
+
+\subsection{Setting Particle data}
+
+The $\tt{Particle}$ struct provides a number of methods for getting and setting a particle's data. For the required particle components, there are special, named methods. For the 
+``extra'' real and integer data, you can use the $\tt{rdata}$ and $\tt{idata}$ methods, respectively. 
+
+\begin{lstlisting}[language=cpp]
+  Particle<2, 2> p;
+
+  p.pos(0) = 1.0;
+  p.pos(1) = 2.0;
+  p.pos(2) = 3.0;
+  p.id()   = 1;
+  p.cpu()  = 0;
+
+  // p.rdata(0) is the first extra real component, not the 
+  // first real component overall
+  p.rdata(0) = 5.0;
+  p.rdata(1) = 5.0;
+
+  // and likewise for p.idata(0);
+  p.rdata(0) = 17;
+  p.idata(1) = -64;  
+\end{lstlisting}
+
+\section{The ParticleContainer}
+\label{sec:Particles:ParticleContainer}
+ 
+One particle by itself is not very useful. To do real calculations, a collection of particles needs to be defined, and the location of the particles within the AMR hierarchy
+(and the corresponding MPI process) needs to be tracked as the particle positions change. To do this, we provide the $\tt{ParticleContainer}$ class:
+
+\begin{lstlisting}[language=cpp]
+  ParticleContainer<3, 2, 4, 4> mypc;
+\end{lstlisting}
+   
+\subsection{Arrays-of-Structs and Structs-of-Arrays}
+
+Like the $\tt{Particle}$ class itself, the $\tt{ParticleContainer}$ class is templated. The first two template parameters have the same meaning as before: they define the number of each type of variables that the particles in this container will store. In addition, there are two more optional template parameters that allow the user to specify additional particle
+variables that will be stored in Struct-of-Array form. The difference between Array-of-Struct and Struct-of-Array data is in how the data is laid
+out in memory. For the Array-of-Struct data, all the variables associated with particle 1 are next to each other in memory, followed by all the variables associated with particle
+2, and so on. For variables stored in Struct-of-Array style, all the particle data for a given component is next to each other in memory, and each component is stored in a seperate
+array. For convenience, we (arbitrarily) refer to the components in the particle struct as particle $\emph{data}$, and components stored in the Struct-of-Arrays as particle
+$\emph{attributes}$. See Figure XXX for an illustration.
+
+To see why the distinction between Array-of-Struct and Struct-of-Array data is important, consider the following extreme case. Say you have particles that carry 100 different components,
+but that most of the time, you only need to do calculations involving 3 of them (say, the particle positions) at once. In this case, storing all 100 particle variables in the particle
+struct is clearly inefficient, since most of the time you are reading 97 extra variables into cache that you will never use. By splitting up the particle variables into stuff that gets 
+used all the time (stored in the Array-of-Structs) and stuff that only gets used infrequently (stored in the Struct-of-Arrays), you can in principle acheive much better cache reuse. Of course, the usage pattern of your application likely won't be so clear-cut. Flexibility in how the particle data is stored also makes it easier to interface between $\tt{AMReX}$ and already-existing Fortran subroutines.
+
+Note that while ``extra'' particle data can be stored in either Struct-of-Array or Array-of-Struct style, the particle positions and id numbers are $\emph{always}$ stored in the particle
+structs. This is because these particle variables are special and used internally by $\tt{AMReX}$ to assign the particles to grids and to mark particles as valid or invalid, respectively.
+
+\subsection{Constructing ParticleContainers}
+
+A particle container is always associated with a particular set of AMR grids and a particular set of $\tt{DistributionMap}$s that describes which MPI processes those grids live on.
+For example, if you only have one level, you can define a $\tt{ParticleContainer}$ to store particles on that level using the following constructor:
+
+\begin{lstlisting}[language=cpp]
+    ParticleContainer (const Geometry            & geom,
+                       const DistributionMapping & dmap,
+                       const BoxArray            & ba);
+\end{lstlisting}
+
+Or, if you have multiple levels, you can use following constructor instead:
+
+\begin{lstlisting}[language=cpp]
+    ParticleContainer (const Array<Geometry>            & geom,
+                       const Array<DistributionMapping> & dmap,
+                       const Array<BoxArray>            & ba,
+                       const Array<int>                 & rr);
+\end{lstlisting}
+
+Note the set of grids used to define the $\tt{ParticleContainer}$ doesn't have to be the same set used to define the simulation's mesh data. However, it is often desirable to have
+the two hierarchies track each other. If you are using an $\tt{AmrCore}$ class in your simulation (see Chapter~\ref{Chap:AmrCore}), you can achieve this by using 
+the $\tt{AmrParticleContainer}$ class. The constructor for this class takes a pointer to your $\tt{AmrCore}$ derived class, instead:
+
+\begin{lstlisting}[language=cpp]
+  AmrTracerParticleContainer (AmrCore* amr_core);
+\end{lstlisting}
+
+In this case, the $\tt{Array<BoxArray>}$ and $\tt{Array<DistributionMap>}$ used by your $\tt{ParticleContainer}$ will be updated automatically to match those in
+your $\tt{AmrCore}$. 
+
+The $\tt{ParticleContainer}$ stores the particle data in a manner prescribed by the set of AMR grids used to define it. If tiling is turned off, then every grid has its own 
+Array-of-Structs and Struct-of-Arrays. Which AMR grid a particle is assigned to is determined by examining its position and binning it, using the domain left edge as an offset. 
+By default, a particle is assigned to the finest level that contains its position, although this behavior can be tweaked (see Section~\ref{sec:Particles:Subcycling} below). 
+When tiling is enabled, then each $\emph{tile}$ gets its own Struct-of-Arrays and Array-of-Structs instead. As with mesh data, the particle tile size can be tuned so that an 
+entire tile's worth of particles will fit into a cache line at once.
+
+Once the particles move, their data may no longer be in the right place in the container. They can be reassigned by calling the $\tt{Redistribute()}$ method of $\tt{ParticleContainer}$.
+After calling this method, all the particle will be moved to their proper places in the container, and all invalid particles (particles with id set to $-1$) will be removed. All the 
+MPI communication needed to this happens automatically; their is no need for application developers to worry about communicating particle data themselves.
+
+As you build your application, you will likely want to create your own derived $\tt{ParticleContainer}$ class that specializes the template parameters and adds additional 
+functionality, like setting the particle initial conditions, moving the particles, etc. See Section~\ref{sec:Particles:Initializing} for an example.
+
+\section{Initializing Particle Data}
+\label{sec:Particles:Initializing}
+
+In the following code snippet, we create a derived particle container with 2 real components and 2 integer components, both stored in the Struct-of-Arrays.
+We give our derived class an $\tt{InitParticles}$ method that creates one particle per cell on the coarse level, and shows how to set the particle attributes
+and add them to the proper container. 
+
+\begin{lstlisting}[language=cpp]
+
+  // These enums are used to keep track of what index means what
+  // for the real... 
+  struct RealIdx {
+    enum {
+      eggs = 0,
+      ham,
+      nattribs
+    };
+  };
+  
+  // ... and the integer attributes.
+  struct IntIdx {
+    enum {
+      foo = 0,
+      bar,
+      nattribs
+    };
+  };
+
+  // Now we define our ParticleContainer subclass, 
+  // passing in the appropriate template parameters.
+  class MyParticleContainer
+  : public ParticleContainer<0, 0,
+                             RealIdx::nattribs,
+                             IntIdx::nattribs>
+  {
+    public:
+    
+    MyParticleContainer (const Array<Geometry>            & geom,
+                         const Array<DistributionMapping> & dmap,
+                         const Array<BoxArray>            & ba,
+                         const Array<int>                 & rr)
+        : ParticleContainer<0, 0,
+                            RealIdx::nattribs,
+                            IntIdx::nattribs> (geom, dmap, ba, rr) {}
+
+    void InitParticles() {
+        const int lev = 0;
+        const Geometry& geom = Geom(lev);
+        const Real* dx  = geom.CellSize();
+
+        ParticleType p;
+        for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+            const Box& tile_box = mfi.tilebox();
+            const RealBox tile_real_box { tile_box, dx, geom.ProbLo() };
+
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id, tile_id)];
+
+            const auto& boxlo = tile_box.smallEnd();
+            for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
+
+                // set the particle id and cpu (in the particle struct)
+                p.id() = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();
+
+                // set the particle positions (also in the struct)
+                AMREX_D_TERM(p.pos(0) = tile_real_box.lo(0) + (iv[0]- boxlo[0] + 0.5)*dx[0];,
+                       p.pos(1) = tile_real_box.lo(1) + (iv[1]- boxlo[1] + 0.5)*dx[1];,
+                       p.pos(2) = tile_real_box.lo(2) + (iv[2]- boxlo[2] + 0.5)*dx[2];);
+
+                // set this particle's real attributes
+                std::array<double, RealIdx::nattribs> real_attribs;
+                real_attribs[RealIdx::ham]  = 7.0;  // Probably want to do something more... 
+                real_attribs[RealIdx::eggs] = 9.0;  // interesting here.
+
+                // set this particle's integer attributes
+                std::array<int, IntIdx::nattribs> int_attribs;
+                int_attribs[IntIdx::foo]  = -1; // ditto...
+                int_attribs[IntIdx::bar]  = 12; 
+
+                particle_tile.push_back(p);
+                particle_tile.push_back_real(real_attribs);
+                particle_tile.push_back_int(int_attribs);
+            }
+        }
+    }
+};
+
+\end{lstlisting}
+
+\section{Iterating over Particles}
+\label{sec:Particles:Iterating}
+
+The Particle Iterator. Const and Non-Const versions. Defining you own particle iterator. Example that does particle push.
+
+\section{Passing particle data into Fortran}
+\label{sec:Particles:Fortran}
+
+Plain-Old-Data. Defining a fortran derived type for your particles. Demonstrate same push as above in fortran.
+
+\section{Interacting with Mesh Data}
+\label{sec:Particles:Interacting}
+
+SumBoundary. Syncing across levels. ElectrostaticPIC tutorial.
+
+\section{Short Range Forces}
+\label{sec:Particles:ShortRange}
+
+Neighbor particles. Optional communication. The ShortRangeParticles tutorial.
+
+\section{Particle IO}
+\label{sec:Particles:IO}
+
+IO Routines (ASCII and binary), Visualization options. Converter python script.
+
+\section{Subcycling with Particles}
+\label{sec:Particles:Subcycling}
+
+This is hard. Ghosts and Virtuals. 
+
