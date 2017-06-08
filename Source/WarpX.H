@@ -185,6 +185,10 @@ private:
                              const amrex::Array<const amrex::MultiFab*>& B,
                              const amrex::Real* dx);
 
+    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                             const amrex::Array<const amrex::MultiFab*>& B,
+                             const amrex::Real* dx);
+
     void SyncCurrent3D (const std::array<const amrex::MultiFab*,3>& fine,
                         const std::array<      amrex::MultiFab*,3>& crse,
                         int ref_ratio);
@@ -215,14 +219,23 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_aux;
 
     // Fine patch
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > F_fp;
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > rho_fp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp;
 
     // Coarse patch
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > F_cp;
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > rho_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
+
+
+
+    // div E cleaning
+    int do_dive_cleaning = 1;
 
     // PML
     int do_pml = 1;
@@ -261,6 +274,7 @@ private:
     bool plot_part_per_grid = true;
     bool plot_part_per_proc = true;
     bool plot_proc_number   = true;
+    bool plot_dive          = false;
     bool plot_divb          = false;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;

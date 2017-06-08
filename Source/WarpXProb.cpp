@@ -22,4 +22,20 @@ WarpX::InitLevelData (int lev, Real time)
             Bfield_cp[lev][i]->setVal(0.0);
         }
     }
+
+    if (F_fp[lev]) {
+        F_fp[lev]->setVal(0.0);
+    }
+
+    if (rho_fp[lev]) {
+        rho_fp[lev]->setVal(0.0);
+    }
+
+    if (F_cp[lev]) {
+        F_cp[lev]->setVal(0.0);
+    }
+
+    if (rho_cp[lev]) {
+        rho_cp[lev]->setVal(0.0);
+    }
 }

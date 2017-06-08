@@ -561,7 +561,7 @@ WarpX::WritePlotFile () const
                                        varnames, Geom(), t_new[0], istep, refRatio());
     }
 
-    if (plot_raw_fields || plot_crsepatch)
+    if (plot_raw_fields || plot_crsepatch || plot_dive)
     {
         const int raw_plot_nfiles = 64;  // could make this parameter
         VisMF::SetNOutFiles(raw_plot_nfiles);
@@ -615,6 +615,12 @@ WarpX::WritePlotFile () const
                 VisMF::Write(*Bfield_cp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_cp"));
                 VisMF::Write(*Bfield_cp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
                 VisMF::Write(*Bfield_cp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
+            }
+
+            if (plot_dive)
+            {
+//                std::unique_ptr<MultiFab> rho = mypc->GetChargeDensity();
+//xxxxx                std::unique_ptr<MultiFab> dive = ComputeDivE
             }
         }
     }

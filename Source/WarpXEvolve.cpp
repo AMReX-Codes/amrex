@@ -41,6 +41,7 @@ WarpX::Evolve (int numsteps)
 
         // Beyond one step, we have B^{n-1/2} and E^{n}.
         // Particles have p^{n-1/2} and x^{n}.
+        // F for div E cleaning is at n-1/2.
 
         if (is_synchronized) {
             // on first step, push E and X by 0.5*dt
@@ -59,11 +60,17 @@ WarpX::Evolve (int numsteps)
 
         UpdateAuxilaryData();
 
+        // Push particle from x^{n} to x{n+1}
+        // Deposit current j^{n+1/2}
+        // Deposit charge density rho^{n}
         PushParticlesandDepose(cur_time);
 
         EvolveB(0.5*dt[0]); // We now B^{n+1/2}
 
         SyncCurrent();
+
+        // xxxxx SyncRho and then evolve F if ...
+        // We now have F^{n+1/2}
 
         // Fill B's ghost cells because of the next step of evolving E.
         FillBoundaryB();
