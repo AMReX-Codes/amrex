@@ -695,7 +695,7 @@ end module basefab_nd_module
 
 #else
 
-    call fort_fab_saxpy_doit(lo, hi, lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp, index)
+    call fort_fab_saxpy_doit(lo, hi, lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
 
 #endif
 
@@ -770,7 +770,7 @@ end module basefab_nd_module
 
 #else
 
-    call fort_fab_plus_doit(lo, hi, lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index)
+    call fort_fab_plus_doit(lo, hi, lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
 #endif
 
