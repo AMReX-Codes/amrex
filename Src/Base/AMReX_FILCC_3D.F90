@@ -1523,3 +1523,111 @@ subroutine hoextraptocc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo)
   end if
 
 end subroutine hoextraptocc
+
+
+
+
+
+module filcc_module
+
+  use amrex_fort_module, only: rt => amrex_real
+
+  implicit none
+
+contains
+
+  ! Note: this only works with FOEXTRAP for now.
+
+#ifdef CUDA
+  attributes(device) &
+#endif
+  subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc, n)
+
+    implicit none
+
+    integer,  intent(in   ) :: blo(3), bhi(3)
+    integer,  intent(in   ) :: q_lo(3), q_hi(3)
+    integer,  intent(in   ) :: domlo(3), domhi(3)
+    real(rt), intent(in   ) :: xlo(3), dx(3)
+    real(rt), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
+    integer,  intent(in   ) :: bc(3,2,ncomp)
+    integer,  intent(in   ) :: ncomp, n
+
+    integer :: ilo, ihi, jlo, jhi, klo, khi
+    integer :: i, j, k
+
+    ilo = domlo(1)
+
+    do k = blo(3),bhi(3)
+       do j = blo(2),bhi(2)
+          do i = blo(1), bhi(1)
+             if (i < ilo) then
+                q(i,j,k,n) = q(ilo,j,k,n)
+             end if
+          end do
+       end do
+    end do
+
+    ihi = domhi(1)
+
+    do k = blo(3), bhi(3)
+       do j = blo(2), bhi(2)
+          do i = blo(1), bhi(1)
+             if (i > ihi) then
+                q(i,j,k,n) = q(ihi,j,k,n)
+             end if
+          end do
+       end do
+    end do
+
+    jlo = domlo(2)
+
+    do k = blo(3), bhi(3)
+       do j = blo(2), bhi(2)
+          do i = blo(1), bhi(1)
+             if (j < jlo) then
+                q(i,j,k,n) = q(i,jlo,k,n)
+             end if
+          end do
+       end do
+    end do
+
+    jhi = domhi(2)
+
+    do k = blo(3), bhi(3)
+       do j = blo(2), bhi(2)
+          do i = blo(1), bhi(1)
+             if (j > jhi) then
+                q(i,j,k,n) = q(i,jhi,k,n)
+             end if
+          end do
+       end do
+    end do
+
+    klo = domlo(3)
+
+    do k = blo(3), bhi(3)
+       do j = blo(2), bhi(2)
+          do i = blo(1), bhi(1)
+             if (k < klo) then
+                q(i,j,k,n) = q(i,j,klo,n)
+             end if
+          end do
+       end do
+    end do
+
+    khi = domhi(3)
+
+    do k = blo(3), bhi(3)
+       do j = blo(2), bhi(2)
+          do i = blo(1), bhi(1)
+             if (k > khi) then
+                q(i,j,k,n) = q(i,j,khi,n)
+             end if
+          end do
+       end do
+    end do
+
+  end subroutine filccn
+
+end module filcc_module
