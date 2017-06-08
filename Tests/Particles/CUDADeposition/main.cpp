@@ -50,7 +50,7 @@ void test_assign_density(TestParams& parms)
   partMF.setVal(0.0);
 
   MultiFab acc(ba, dmap, 3, 1);
-  partMF.setVal(5.0, 1);
+  acc.setVal(5.0, 1);
 
   MyParticleContainer myPC(geom, dmap, ba);
 
