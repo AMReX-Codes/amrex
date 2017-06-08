@@ -1,14 +1,10 @@
-# -*- mode: cmake -*-
-# Require cmake 2.8.8 or higher
-cmake_minimum_required(VERSION 2.8.8)
+cmake_minimum_required(VERSION 3.6)
 
-if ("${CMAKE_PATCH_VERSION}" GREATER 3)
-  set(ADJUST_POLICY "True")
-endif()
+enable_language(CXX)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (${ADJUST_POLICY})
-  cmake_policy(SET CMP0017 NEW)
-endif()
+enable_language(Fortran)
 
 #
 # Usage:
@@ -112,7 +108,6 @@ ADD_INSTALL_INCLUDE_FILE(${CCSE_PERL_DIR}/AMReX_buildInfo.H)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEOptions.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindCCSE.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/PreprocessAMReXFortran.cmake)
-ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/PreprocessAMReXFortran90.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in)
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
