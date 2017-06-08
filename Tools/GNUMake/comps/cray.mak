@@ -23,8 +23,8 @@ ifeq ($(DEBUG),TRUE)
 
   CXXFLAGS += -g -O0
   CFLAGS   += -g -O0
-  FFLAGS   += -g -O0
-  F90FLAGS += -g -O0
+  FFLAGS   += -g -O0 -e i
+  F90FLAGS += -g -O0 -e i
 
 else
 
