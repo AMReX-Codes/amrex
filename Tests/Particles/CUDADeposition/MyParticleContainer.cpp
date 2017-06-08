@@ -85,7 +85,7 @@ void MyParticleContainer::CopyParticlesFromDevice() {
 
 void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
 
-  BL_PROFILE("Particle Deposit.");
+  BL_PROFILE("Particle Process.");
 
   CopyParticlesToDevice();
 
