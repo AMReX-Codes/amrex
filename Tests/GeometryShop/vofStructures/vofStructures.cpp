@@ -134,7 +134,9 @@ int myTest()
 
     IntVect tilesize(AMREX_D_DECL(10240,8,32));
     std::map<int,std::vector<Node> > graphNodes;
-    iMultiFab ebmask(ba,dm,1,0); // Will contain location of Node in graphNodes vector
+
+    int nGrow = 1;
+    iMultiFab ebmask(ba,dm,1,nGrow); // Will contain location of Node in graphNodes vector
 
     bool first = true;
 
