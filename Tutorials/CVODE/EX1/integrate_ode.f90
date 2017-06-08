@@ -20,15 +20,15 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   integer(c_int) :: ierr ! CVODE return status
   real(c_double) :: atol, rtol
   real(c_double) :: t0, t1
-  real(c_double) :: yvec_dummy(neq)
   real(c_double), pointer :: yvec(:)
   type(c_ptr) :: sunvec_y
   type(c_ptr) :: CVmem
 
-  ! Allocate a CVODE C struct from the array of variables to be integrated. Note that we do not need to assign initial conditions to
-  ! yvec_dummy before this call because we will re-initialize them inside the (i,j,k) loop. We just need yvec_dummy to be allocated
-  ! so that CVODE can allocate the C struct with the correct size.
-  sunvec_y = N_VMake_Serial(neq, yvec_dummy)
+  allocate(yvec(neq))
+
+  ! Allocate a CVODE C struct from the array of variables to be integrated. The resulting C struct points to the same memory as the
+  ! Fortran pointer array.
+  sunvec_y = N_VMake_Serial(neq, yvec)
   if (.not. c_associated(sunvec_y)) call amrex_abort("integrate_ode: failed in N_VMake_Serial()")
 
   CVmem = FCVodeCreate(CV_BDF, CV_NEWTON)
@@ -59,7 +59,6 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
      do j=lo(2),hi(2)
         do i=lo(1),hi(1)
 
-           call N_VGetData_Serial(sunvec_y, neq, yvec)
            ! Set initial conditions for the ODE for this cell.
            yvec(1) = real(i+j+k, c_double)
 
@@ -80,5 +79,7 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   ! Free memory
   call N_VDestroy_Serial(sunvec_y)
   call FCVodeFree(cvmem)
+
+  deallocate(yvec)
 
 end subroutine integrate_ode
