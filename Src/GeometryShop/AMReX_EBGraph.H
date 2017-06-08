@@ -54,6 +54,9 @@ namespace amrex
 
     
     ///
+    static bool preAllocatable () { return false; }
+
+    ///
     /**
        Makes an EBGraphImplem whose contents are undefined.
     */
@@ -804,6 +807,8 @@ namespace amrex
     ///
     std::vector<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box) const;
         
+    ///
+    static bool preAllocatable () { return false; }
         
   private:
         

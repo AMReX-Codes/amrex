@@ -167,10 +167,6 @@ namespace amrex
 ///
     const T* dataPtr(const int& a_comp) const;
 
-    static int preAllocatable()
-      {
-        return 1; // symmetric preallocatable
-      }
 
 
     ///for copy and fillboundary where stuff is already defined
@@ -188,6 +184,9 @@ namespace amrex
                              int         numcomp,
                              const void* src);
 
+    ///default false. can make this true with template specialization if you are sure.
+    static bool preAllocatable () { return false; }
+
     ///includes all meta data
     std::size_t nBytesFull() const;
 
@@ -197,7 +196,7 @@ namespace amrex
     ///includes all meta data
     std::size_t copyFromMemFull(const void* src);
 
-///
+    ///
     int numFaces() const
       {
         return m_nFaces;

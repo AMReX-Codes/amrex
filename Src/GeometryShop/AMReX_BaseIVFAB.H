@@ -76,6 +76,9 @@ namespace amrex
                         const EBGraph&    a_ebgraph,
                         const int&        a_nvarin);
 
+    ///default false.   can make it true for T where you  they are fixed size
+    static bool preAllocatable () { return false; }
+
     ///
     BaseIVFAB<T>& copy(const BaseIVFAB<T> & src,
                        const Box&        srcbox,
