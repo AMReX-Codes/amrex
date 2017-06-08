@@ -398,6 +398,41 @@ void
 WarpX::EvolveF (int lev, Real dt)
 {
     if (!do_dive_cleaning) return;
+
+    BL_PROFILE("WarpX::EvolveF()");
+
+    const Real mu_c2 = (PhysConst::mu0*PhysConst::c*PhysConst::c);
+
+    int npatches = (lev == 0) ? 1 : 2;
+
+    for (int ipatch = 0; ipatch < npatches; ++ipatch)
+    {
+        int patch_level = (ipatch == 0) ? lev : lev-1;
+        const Real* dx = Geom(patch_level).CellSize();
+
+        MultiFab *Ex, *Ey, *Ez, *rho, *F;
+        if (ipatch == 0)
+        {
+            Ex = Efield_fp[lev][0].get();
+            Ey = Efield_fp[lev][1].get();
+            Ez = Efield_fp[lev][2].get();
+            rho = rho_fp[lev].get();
+            F = F_fp[lev].get();
+        }
+        else
+        {
+            Ex = Efield_cp[lev][0].get();
+            Ey = Efield_cp[lev][1].get();
+            Ez = Efield_cp[lev][2].get();
+            rho = rho_cp[lev].get();
+            F = F_cp[lev].get();
+        }
+
+        MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
+        ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
+        MultiFab::Saxpy(src, -mu_c2, *rho, 0, 0, 1, 0);
+        MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
+    }
 }
 
 void
