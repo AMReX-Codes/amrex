@@ -226,6 +226,8 @@ namespace amrex
                            int        numcomp,
                            void*      dst) const;
 
+    ///default false.   can make it true for T where you  they are fixed size
+    static bool preAllocatable () { return false; }
 
     ///this includes all meta data
     std::size_t copyToMemFull(void*      dst) const;

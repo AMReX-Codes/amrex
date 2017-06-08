@@ -122,6 +122,9 @@ namespace amrex
     const Real& bndryArea(const VolIndex& a_vof) const;
 
     ///
+    static bool preAllocatable () { return false; }
+
+    ///
     RealVect normal(const VolIndex& a_vof) const;
 
     ///this is for copy and fillboundary where the metadata is already filled in
@@ -310,6 +313,9 @@ private:
       {
         m_implem->define(a_box, a_comps);
       }
+
+    ///
+    static bool preAllocatable () { return false; }
 
     ///
     /**
