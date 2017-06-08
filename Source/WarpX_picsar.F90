@@ -212,9 +212,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   ! Optimized subroutines
   CASE DEFAULT
 
-!     CALL pxr_depose_rho_n_2dxz(rho,np,xp,yp,zp,w,q,xmin,zmin,dx,dz,nx,nz,&
-!          nxguard,nzguard,nox,noz, &
-!          .TRUE._c_long,.FALSE._c_long)
+     CALL pxr_depose_rho_n_2dxz(rho,np,xp,yp,zp,w,q,xmin,zmin,dx,dz,nx,nz,&
+          nxguard,nzguard,nox,noz, &
+          .TRUE._c_long, .FALSE._c_long, .FALSE._c_long, 0_c_long)
 
   end SELECT
 
