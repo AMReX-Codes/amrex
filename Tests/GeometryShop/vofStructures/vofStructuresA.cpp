@@ -161,22 +161,21 @@ int myTest()
                                 {
                                     int iside = sit() == Side::Lo ? 0 : 1;
                                     std::vector<FaceIndex> faces = ebgr.getFaces(vof,idir,sit());
-                                    gn.cells[icc].Nnbr[idir][iside] = faces.size();
+
+                                    int nValid = 0;
                                     for (int iface=0; iface<faces.size(); ++iface)
                                     {
                                         IntVect iv_nbr = iv + sign(sit())*BASISV(idir);
-                                        if (ebis_box.isCovered(iv_nbr))
+                                        if (ebis_box.isRegular(iv_nbr))
                                         {
-                                            gn.cells[icc].nbr[idir][iside][iface] = COVERED_CELL;
+                                            gn.cells[icc].nbr[idir][iside][nValid++] = REGULAR_CELL;
                                         }
-                                        else if (ebis_box.isRegular(iv_nbr))
+                                        else if (!ebis_box.isCovered(iv_nbr))
                                         {
-                                            gn.cells[icc].nbr[idir][iside][iface] = REGULAR_CELL;
-                                        } else
-                                        {
-                                            gn.cells[icc].nbr[idir][iside][iface] = faces[iface].cellIndex(sit());
+                                            gn.cells[icc].nbr[idir][iside][nValid++] = faces[iface].cellIndex(sit());
                                         }
                                     }
+                                    gn.cells[icc].Nnbr[idir][iside] = nValid;
                                 }
                             }
                         }
