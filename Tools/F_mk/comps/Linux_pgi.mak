@@ -25,10 +25,10 @@
     endif
 
     ifdef ACC
-      F90FLAGS += -acc -Minfo=acc
-      FFLAGS += -acc -Minfo=acc
-      CFLAGS += -acc -Minfo=acc
-      CXXFLAGS += -acc -Minfo=acc
+      F90FLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
+      FFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
+      CFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
+      CXXFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
     else
       F90FLAGS += -noacc
       FFLAGS += -noacc
