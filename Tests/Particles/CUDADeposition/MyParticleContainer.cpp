@@ -10,7 +10,7 @@ using namespace amrex;
 MyParticleContainer::MyParticleContainer(const Geometry            & geom,
 					 const DistributionMapping & dmap,
 					 const BoxArray            & ba)
-  : ParticleContainer<1> (geom, dmap, ba)
+  : ParticleContainer<1+2*BL_SPACEDIM> (geom, dmap, ba)
 {
   m_np = 0;
   m_ngrids = 0;
@@ -20,7 +20,7 @@ MyParticleContainer::MyParticleContainer(const Geometry            & geom,
 void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   bool serialize = true;
   int iseed = 451;
-  ParticleInitData pdata = {mass};
+  ParticleInitData pdata = {mass, 0, 0, 0, 0, 0, 0};
   InitRandom(num_particles, iseed, pdata, serialize);
   m_np = num_particles;
   
@@ -78,7 +78,7 @@ void MyParticleContainer::CopyParticlesFromDevice() {
   }
 }
 
-void MyParticleContainer::Deposit(MultiFab& partMF) {
+void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
 
   BL_PROFILE("Particle GPU Deposit.");
 
@@ -94,6 +94,7 @@ void MyParticleContainer::Deposit(MultiFab& partMF) {
     int nstride = particles.dataShape().first;
     const long np  = pti.numParticles();    
     FArrayBox& rhofab = partMF[pti];
+    FArrayBox& accfab = acc[pti];
     const Box& box    = rhofab.box();        
     
     deposit_cic((Real*) device_particles, nstride, np,
@@ -101,6 +102,15 @@ void MyParticleContainer::Deposit(MultiFab& partMF) {
 		m_ngrids, pti.index(),
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
+
+    interpolate_cic((Real*) device_particles, nstride, np,
+		    device_particle_counts, device_particle_offsets, 
+		    m_ngrids, pti.index(),
+		    accfab.dataPtr(), box.loVect(), box.hiVect(), 
+		    plo, dx);
+
+    push_particles(device_particles, nstride, np);
+
   }
   
   partMF.SumBoundary(gm.periodicity());

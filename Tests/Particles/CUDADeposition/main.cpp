@@ -49,6 +49,9 @@ void test_assign_density(TestParams& parms)
   MultiFab partMF(ba, dmap, 1, 1);
   partMF.setVal(0.0);
 
+  MultiFab acc(ba, dmap, 3, 1);
+  partMF.setVal(5.0, 1);
+
   MyParticleContainer myPC(geom, dmap, ba);
 
   int num_particles = parms.nppc * parms.nx * parms.ny * parms.nz;
@@ -58,7 +61,7 @@ void test_assign_density(TestParams& parms)
   Real mass = 10.0;
   myPC.InitParticles(num_particles, mass);
 
-  myPC.Deposit(partMF);
+  myPC.Deposit(partMF, acc);
 
   std::cout << "Total particle mass is: " << myPC.sumParticleMass(0, 0) << std::endl;
   std::cout << "Total mesh mass is: " << partMF.sum(0) << std::endl;
