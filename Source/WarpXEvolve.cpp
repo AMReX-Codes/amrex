@@ -386,7 +386,7 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
                  *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
-                 cur_time, dt[lev]);
+                 rho_fp[lev].get(), cur_time, dt[lev]);
 }
 
 void

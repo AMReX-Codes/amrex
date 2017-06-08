@@ -185,7 +185,7 @@ PhysicalParticleContainer::Evolve (int lev,
 				   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 				   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 				   MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                   Real t, Real dt)
+                                   MultiFab* rho, Real t, Real dt)
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
@@ -199,6 +199,8 @@ PhysicalParticleContainer::Evolve (int lev,
     long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ = jx.nGrow();
+
+    long ngRho = (rho) ? rho->nGrow() : 0;
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
@@ -253,6 +255,29 @@ PhysicalParticleContainer::Evolve (int lev,
 
             const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
 
+	    long lvect = 8;
+
+            if (rho)
+            {
+                FArrayBox& rhofab = (*rho)[pti];
+                const int* rholen = rhofab.length();
+#if (BL_SPACEDIM == 3)
+                const long nx = rholen[0]-1;
+                const long ny = rholen[1]-1;
+                const long nz = rholen[2]-1;
+#else
+                const long nx = rholen[0]-1;
+                const long ny = 0;
+                const long nz = rholen[1]-1;
+#endif
+            	warpx_charge_deposition(rhofab.dataPtr(),
+                                        &np, xp.data(), yp.data(), zp.data(), wp.data(),
+                                        &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
+                                        &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                                        &ngRho, &ngRho, &ngRho, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                        &lvect, &WarpX::charge_deposition_algo);
+            }
+
 	    //
 	    // Field Gather of Aux Data (i.e., the full solution)
 	    //
@@ -293,7 +318,6 @@ PhysicalParticleContainer::Evolve (int lev,
 	    // Current Deposition onto fine patch
 	    // xxxxx this part needs to be thread safe if we have OpenMP over tiles
 	    //
-	    long lvect = 8;
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
 	    warpx_current_deposition(
                 jxfab.dataPtr(), &ngJ, jxfab.length(),
