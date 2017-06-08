@@ -11,6 +11,7 @@
 #include "AMReX_EBGraph.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_MultiFab.H"
+#include "AMReX_iMultiFab.H"
 #include "AMReX_VisMF.H"
 #include "AMReX_BLProfiler.H"
 using namespace amrex;
@@ -181,14 +182,18 @@ int myTest()
     IntVect tilesize(AMREX_D_DECL(10240,8,32));
     MultiFab mf(ba,dm,1,0);
     std::map<int,std::vector<CutCell> > cutCells;
+    iMultiFab mask(ba,dm,1,0);
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
         const Box& gbox = mf[mfi].box();
         EBISBox ebis_box = eblg.getEBISL()[mfi];
+        BaseFab<int>& ifab = mask[mfi];
+        ifab.setVal(-1); // -1 means regular cell : TODO Set body
 
         int offset = 0;
+        int iIrreg = 0;
 
         if (!ebis_box.isAllRegular())
         {
@@ -197,6 +202,9 @@ int myTest()
             {
                 const IntVect iv = bit();
                 if (ebis_box.isIrregular(iv)) {
+
+                    ifab(iv,0) = iIrreg++;
+
                     std::vector<VolIndex> gbox_vofs = ebis_box.getVoFs(iv);
                     if (gbox_vofs.size() > 0)
                     {

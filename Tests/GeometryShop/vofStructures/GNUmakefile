@@ -43,7 +43,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 #_progs  := tFB
 #_progs  := tRABcast.cpp
 #_progs  := ebgraphSG
-_progs  := vofStructures
+_progs  := vofStructuresA
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
