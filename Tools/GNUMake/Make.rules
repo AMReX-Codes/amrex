@@ -25,11 +25,11 @@ endif
 #
 $(executable):	$(objForExecs)
 	@echo Linking $@ ...
-	@if [ $(USE_CUDA) == TRUE ]; then \
-		$(SILENT) $(FC) $(FFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries); \
-	else \
-		$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries); \
-	fi
+ifeq ($(USE_CUDA),TRUE)
+	$(SILENT) $(FC) $(FFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+else
+	$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+endif
 #	@echo SUCCESS
 
 
