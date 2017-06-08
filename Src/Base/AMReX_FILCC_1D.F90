@@ -7,7 +7,6 @@
 #include "AMReX_REAL.H"
 #include "AMReX_CONSTANTS.H"
 #include "AMReX_BC_TYPES.H"
-#include "AMReX_ArrayLim.H"
 
 #define SDIM 1
 
@@ -29,26 +28,26 @@
 ! ::: NOTE: all corner as well as edge data is filled if not EXT_DIR
 ! ::: -----------------------------------------------------------
 
-subroutine filcc(q,DIMS(q),domlo,domhi,dx,xlo,bc)
+subroutine filcc(q,q_l1,q_h1,domlo,domhi,dx,xlo,bc)
 
   implicit none
 
-  integer    DIMDEC(q)
+  integer    q_l1, q_h1
   integer    domlo(SDIM), domhi(SDIM)
   integer    bc(SDIM,2)
   REAL_T     xlo(SDIM), dx(SDIM)
-  REAL_T     q(DIMV(q))
+  REAL_T     q(q_l1:q_h1)
 
   integer    nlft, nrgt
   integer    ilo, ihi
   integer    i
   integer    is, ie
   
-  nlft = max(0,domlo(1)-ARG_L1(q))
-  nrgt = max(0,ARG_H1(q)-domhi(1))
+  nlft = max(0,domlo(1)-q_l1)
+  nrgt = max(0,q_h1-domhi(1))
 
-  is = max(ARG_L1(q),domlo(1))
-  ie = min(ARG_H1(q),domhi(1))
+  is = max(q_l1,domlo(1))
+  ie = min(q_h1,domhi(1))
 
   !     ::::: first fill sides
   if (nlft .gt. 0) then
