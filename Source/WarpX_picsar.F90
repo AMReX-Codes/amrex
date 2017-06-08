@@ -202,21 +202,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   ! Dimension 2
 #elif (BL_SPACEDIM==2)
 
-  SELECT CASE(charge_depo_algo)
-
-  ! Scalar classical charge deposition subroutines
-  CASE(1)
-
-     call amrex_abort("charge_depo_alog=1 in 2D not implemented");
-     
-  ! Optimized subroutines
-  CASE DEFAULT
-
-     CALL pxr_depose_rho_n_2dxz(rho,np,xp,yp,zp,w,q,xmin,zmin,dx,dz,nx,nz,&
-          nxguard,nzguard,nox,noz, &
-          .TRUE._c_long, .FALSE._c_long, .FALSE._c_long, 0_c_long)
-
-  end SELECT
+  CALL pxr_depose_rho_n_2dxz(rho,np,xp,yp,zp,w,q,xmin,zmin,dx,dz,nx,nz,&
+       nxguard,nzguard,nox,noz, &
+       .TRUE._c_long, .FALSE._c_long, .FALSE._c_long, 0_c_long)
 
 #endif
 
