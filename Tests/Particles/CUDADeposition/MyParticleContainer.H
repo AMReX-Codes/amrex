@@ -8,11 +8,11 @@
 namespace amrex {
 
 class MyParticleContainer
-    : public ParticleContainer<1>
+    : public ParticleContainer<1+2*BL_SPACEDIM>
 {
 public:
   
-  using MyParIter = amrex::ParIter<1>;
+  using MyParIter = amrex::ParIter<1+2*BL_SPACEDIM>;
   
   MyParticleContainer(const Geometry            & geom, 
 		      const DistributionMapping & dmap,
@@ -20,7 +20,7 @@ public:
   
   void InitParticles(int num_particles, Real mass);
   
-  void Deposit(MultiFab& partMF);
+  void Deposit(MultiFab& partMF, MultiFab& acc);
 
   void ComputeError();
 
