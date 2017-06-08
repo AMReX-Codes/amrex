@@ -36,6 +36,8 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
     BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Dot()");
+
     Real sm = 0.0;
 
 #ifdef _OPENMP
@@ -64,6 +66,8 @@ MultiFab::Add (MultiFab&       dst,
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    BL_PROFILE("MultiFab::Add()");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -94,6 +98,8 @@ MultiFab::Copy (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost); // && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Copy()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -123,6 +129,8 @@ MultiFab::Subtract (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Subtract()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -147,6 +155,8 @@ MultiFab::Multiply (MultiFab&       dst,
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    BL_PROFILE("MultiFab::Multiply()");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -176,6 +186,8 @@ MultiFab::Divide (MultiFab&       dst,
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    BL_PROFILE("MultiFab::Divide()");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -207,6 +219,8 @@ MultiFab::Saxpy (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Saxpy()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -235,6 +249,8 @@ MultiFab::Xpay (MultiFab&       dst,
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    BL_PROFILE("MultiFab::Xpay()");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -266,6 +282,8 @@ MultiFab::LinComb (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == y.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && x.nGrow() >= nghost && y.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::LinComb()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -293,6 +311,8 @@ MultiFab::AddProduct (MultiFab&       dst,
     BL_ASSERT(dst.boxArray() == src2.boxArray());
     BL_ASSERT(dst.distributionMap == src2.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src1.nGrow() >= nghost && src2.nGrow() >= nghost);
+
+    BL_PROFILE("MultiFab::AddProduct()");
 
 #ifdef _OPENMP
 #pragma omp parallel

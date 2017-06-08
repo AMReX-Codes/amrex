@@ -2173,6 +2173,7 @@ template <class>
 void
 FabArray<FAB>::setVal (value_type val)
 {
+    BL_PROFILE("FabArray::setVal(val)");
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -2203,6 +2204,8 @@ FabArray<FAB>::setVal (value_type val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
+    BL_PROFILE("FabArray::setVal(val,comp,ncomp,nghost)");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -2224,6 +2227,8 @@ FabArray<FAB>::setVal (value_type val,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
+
+    BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
 #pragma omp parallel
