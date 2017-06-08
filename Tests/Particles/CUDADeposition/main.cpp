@@ -26,6 +26,27 @@ void solve_for_accel(const Array<MultiFab*>& rhs,
                      const Array<Geometry>& geom,
 		     int base_level, int finest_level, Real offset);
 
+void field_solve(MultiFab& density, MultiFab& phi, MultiFab& E, const Geometry& geom) {
+  
+  MultiFab tmp(density.boxArray(), density.DistributionMap(), 1, 0);
+  MultiFab::Copy(tmp, density, 0, 0, 1, 0);
+
+  Array<MultiFab*> rhs_in(1);
+  Array<MultiFab*> phi_in(1);
+  Array<MultiFab*> gradphi_in(1);
+  Array<Geometry> geom_in(1);
+
+  Real offset = 209715200.0;
+
+  rhs_in[0]     = &tmp;
+  phi_in[0]     = &phi;
+  gradphi_in[0] = &E;
+  geom_in[0]    = geom;
+
+  solve_for_accel(rhs_in, phi_in, gradphi_in, geom_in, 0, 0, offset);
+
+}
+
 void test_assign_density(TestParams& parms)
 {
 
@@ -53,11 +74,13 @@ void test_assign_density(TestParams& parms)
 
   DistributionMapping dmap(ba);
 
-  MultiFab partMF(ba, dmap, 1, 1);
-  partMF.setVal(0.0);
+  MultiFab density(ba, dmap, 1, 1);
+  MultiFab E(ba, dmap, 3, 1);
+  MultiFab phi(ba, dmap, 1, 1);
 
-  MultiFab acc(ba, dmap, 3, 1);
-  acc.setVal(5.0, 1);
+  density.setVal(0.0);
+  phi.setVal(0.0);
+  E.setVal(0.0);
 
   MyParticleContainer myPC(geom, dmap, ba);
 
@@ -68,12 +91,14 @@ void test_assign_density(TestParams& parms)
   Real mass = 10.0;
   myPC.InitParticles(num_particles, mass);
 
-  myPC.Deposit(partMF, acc);
+  myPC.Deposit(density, E);
 
   std::cout << "Total particle mass is: " << myPC.sumParticleMass(0, 0) << std::endl;
-  std::cout << "Total mesh mass is: " << partMF.sum(0) << std::endl;
+  std::cout << "Total mesh mass is: " << density.sum(0) << std::endl;
   
-  WriteSingleLevelPlotfile("plt00000", partMF, {"density"}, geom, 0.0, 0);
+  field_solve(density, phi, E, geom);
+
+  WriteSingleLevelPlotfile("plt00000", density, {"density"}, geom, 0.0, 0);
   myPC.Checkpoint("plt00000", "particle0", true);
 }
 
