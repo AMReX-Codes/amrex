@@ -28,8 +28,8 @@ attributes(global) subroutine push_kernel(particles)
  
 end subroutine push_kernel
 
-subroutine push_particles(particles, ns, np) &
-     bind(c,name='push_particles')
+subroutine cuda_push_particles(particles, ns, np) &
+     bind(c,name='cuda_push_particles')
   
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
@@ -54,7 +54,7 @@ subroutine push_particles(particles, ns, np) &
 
   call push_kernel<<<numBlocks, numThreads>>>(particles, ns_d, np_d)
 
-end subroutine push_particles
+end subroutine cuda_push_particles
 
 attributes(global) subroutine deposit_kernel(particles, ns, np, &
      counts, offsets, ngrids, gid, &
@@ -113,10 +113,10 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, &
  
 end subroutine deposit_kernel
 
-subroutine deposit_cic(particles, ns, np, &
+subroutine cuda_deposit_cic(particles, ns, np, &
      counts, offsets, ngrids, gid, &
      rho, lo, hi, plo, dx) &
-     bind(c,name='deposit_cic')
+     bind(c,name='cuda_deposit_cic')
   
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
@@ -165,7 +165,7 @@ subroutine deposit_cic(particles, ns, np, &
        rho, lo_d, hi_d, &
        plo_d, dx_d)
 
-end subroutine deposit_cic
+end subroutine cuda_deposit_cic
 
 attributes(global) subroutine interpolate_kernel(particles, ns, np, &
      counts, offsets, ngrids, gid, &
@@ -226,10 +226,10 @@ attributes(global) subroutine interpolate_kernel(particles, ns, np, &
  
 end subroutine interpolate_kernel
 
-subroutine interpolate_cic(particles, ns, np, &
+subroutine cuda_interpolate_cic(particles, ns, np, &
      counts, offsets, ngrids, gid, & 
      acc, lo, hi, plo, dx) &
-     bind(c,name='interpolate_cic')
+     bind(c,name='cuda_interpolate_cic')
   
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
@@ -279,4 +279,4 @@ subroutine interpolate_cic(particles, ns, np, &
        acc, lo_d, hi_d, &
        plo_d, dx_d)
 
-end subroutine interpolate_cic
+end subroutine cuda_interpolate_cic
