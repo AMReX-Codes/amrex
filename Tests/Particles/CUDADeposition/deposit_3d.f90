@@ -82,9 +82,9 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, &
   inv_dx = 1.0d0/dx
 
   offset = offsets(gid+1)
-  count  = counts(gid+1)
+  count  = counts (gid+1)
 
-  n = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  n = offset + blockDim%x * (blockIdx%x - 1) + threadIdx%x
   if (n > offset .and. n <= offset + count) then
 
      lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
@@ -198,7 +198,7 @@ attributes(global) subroutine interpolate_kernel(particles, ns, np, &
   offset = offsets(gid+1)
   count  = counts(gid+1)
 
-  n = blockDim%x * (blockIdx%x - 1) + threadIdx%x
+  n = offset + blockDim%x * (blockIdx%x - 1) + threadIdx%x
   if (n > offset .and. n <= offset + count) then
 
      lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
