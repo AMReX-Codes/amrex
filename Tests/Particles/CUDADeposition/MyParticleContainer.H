@@ -10,7 +10,7 @@ namespace amrex {
 class MyParticleContainer
     : public ParticleContainer<1+2*BL_SPACEDIM>
 {
-public:
+ public:
   
   using MyParIter = amrex::ParIter<1+2*BL_SPACEDIM>;
   
@@ -21,29 +21,29 @@ public:
   void InitParticles(int num_particles, Real mass);
   
   void Deposit(MultiFab& partMF);
-
+  
   void Interpolate(MultiFab& acc);
-
+  
   void Push();
-
+  
   void Redistribute();
-
-private:
-
+  
+ private:
+  
   void CopyParticlesToDevice();
   void CopyParticlesFromDevice();
-
+  
   int m_np;
   int m_ngrids;
   size_t psize;
-
+  
   std::vector<int> particle_counts;
   std::vector<int> particle_offsets;
-
-  ParticleType* device_particles;
-  int* device_particle_offsets;
-  int* device_particle_counts;  
-
+  
+  ParticleType* device_particles = NULL;
+  int* device_particle_offsets = NULL;
+  int* device_particle_counts = NULL;  
+  
 };
 
 }
