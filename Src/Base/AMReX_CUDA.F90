@@ -57,6 +57,7 @@ contains
 
 
 
+#ifdef BL_SPACEDIM
   subroutine threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     use cudafor, only: dim3
@@ -103,6 +104,7 @@ contains
     endif
 
   end subroutine threads_and_blocks
+#endif
 
 
 
