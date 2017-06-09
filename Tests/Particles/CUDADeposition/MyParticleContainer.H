@@ -20,9 +20,13 @@ public:
   
   void InitParticles(int num_particles, Real mass);
   
-  void Deposit(MultiFab& partMF, MultiFab& acc);
+  void Deposit(MultiFab& partMF);
 
-  void ComputeError();
+  void Interpolate(MultiFab& acc);
+
+  void Push();
+
+  void Redistribute();
 
 private:
 
