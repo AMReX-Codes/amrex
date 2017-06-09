@@ -26,7 +26,7 @@ void solve_for_accel(const Array<MultiFab*>& rhs,
                      const Array<Geometry>& geom,
 		     int base_level, int finest_level, Real offset);
 
-void field_solve(MultiFab& density, MultiFab& phi, MultiFab& E, const Geometry& geom) {
+void field_solve(MultiFab& density, MultiFab& phi, MultiFab& E, const Geometry& geom, Real offset) {
 
   BL_PROFILE("Field Solve.")
   
@@ -37,8 +37,6 @@ void field_solve(MultiFab& density, MultiFab& phi, MultiFab& E, const Geometry& 
   Array<MultiFab*> phi_in(1);
   Array<MultiFab*> gradphi_in(1);
   Array<Geometry> geom_in(1);
-
-  Real offset = 209715200.0;
 
   rhs_in[0]     = &tmp;
   phi_in[0]     = &phi;
@@ -95,10 +93,12 @@ void test_assign_density(TestParams& parms)
 
   myPC.Deposit(density, E);
 
-  std::cout << "Total particle mass is: " << myPC.sumParticleMass(0, 0) << std::endl;
+  Real offset = myPC.sumParticleMass(0, 0);
+
+  std::cout << "Total particle mass is: " << offset << std::endl;
   std::cout << "Total mesh mass is: " << density.sum(0) << std::endl;
   
-  field_solve(density, phi, E, geom);
+  field_solve(density, phi, E, geom, offset);
 
   WriteSingleLevelPlotfile("plt00000", density, {"density"}, geom, 0.0, 0);
   myPC.Checkpoint("plt00000", "particle0", true);

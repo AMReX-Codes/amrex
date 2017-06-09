@@ -13,13 +13,13 @@ extern "C"
 
   void cuda_push_particles(void*, int ns, int np);
   
-  void cuda_deposit_cic(const amrex_real*, int ns, int np,
+  void cuda_deposit_cic(const amrex_real*, int ns, int np, int np_loc,
 		   const int* counts, const int* offsets, 
 		   int ngrids, int gid,
 		   amrex_real* rho, const int* lo, const int* hi,
 		   const amrex_real* plo, const amrex_real* dx);
   
-  void cuda_interpolate_cic(const amrex_real*, int ns, int np,
+  void cuda_interpolate_cic(const amrex_real*, int ns, int np, int np_loc,
 		       const int* counts, const int* offsets, 
 		       int ngrids, int gid,
 		       amrex_real* acc, const int* lo, const int* hi,
