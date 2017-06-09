@@ -12,12 +12,12 @@ extern "C"
 #endif
 
     void amrex_particle_set_position (amrex_real*, int ns, int np,
-                                      D_DECL(const amrex_real* x,
+                                      AMREX_D_DECL(const amrex_real* x,
                                              const amrex_real* y,
                                              const amrex_real* z));
 
     void amrex_particle_get_position (const amrex_real*, int ns, int np,
-                                      D_DECL(amrex_real* x,
+                                      AMREX_D_DECL(amrex_real* x,
                                              amrex_real* y,
                                              amrex_real* z));
 

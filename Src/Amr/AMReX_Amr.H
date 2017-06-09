@@ -361,10 +361,6 @@ protected:
                         int           min_lev,
                         int           max_lev);
 
-    void printGridSummary (std::ostream& os,
-                           int           min_lev,
-                           int           max_lev);
-
     void setRecordGridInfo (const std::string&);
 
     void setRecordRunInfo (const std::string&);

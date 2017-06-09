@@ -394,15 +394,15 @@ ABec4::invalidate_b_to_level (int lev)
 }
 
 void
-ABec4::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+ABec4::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		 MultiFab& in, const BC_Mode& bc_mode,
 		 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
-  compFlux(D_DECL(xflux, yflux, zflux), in, true, bc_mode, src_comp, dst_comp, num_comp, bnd_comp);
+  compFlux(AMREX_D_DECL(xflux, yflux, zflux), in, true, bc_mode, src_comp, dst_comp, num_comp, bnd_comp);
 }
 
 void
-ABec4::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+ABec4::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		 MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode,
 		 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
@@ -422,14 +422,14 @@ ABec4::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 #endif
     for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
+        AMREX_D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
 	       const Box& ybx   = inmfi.nodaltilebox(1);,
 	       const Box& zbx   = inmfi.nodaltilebox(2););
 
         FArrayBox& infab = in[inmfi];
 	const FArrayBox& bfab = b[inmfi];
 
-        D_TERM(FArrayBox& xfluxfab = xflux[inmfi];,
+        AMREX_D_TERM(FArrayBox& xfluxfab = xflux[inmfi];,
                FArrayBox& yfluxfab = yflux[inmfi];,
                FArrayBox& zfluxfab = zflux[inmfi];);
 

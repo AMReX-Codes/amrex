@@ -689,9 +689,9 @@ void HypreABecLap::setBndry(int level, BndryData& _bd)
 static void 
 TransverseInterpolant(AuxVarBox& cintrp, const Mask& msk,
                       const Box& reg, const Box& creg,
-                      D_DECL(const IntVect& rat, const IntVect& vj1, const IntVect& vk1),
-                      D_DECL(const IntVect& ve,  const IntVect& vjr, const IntVect& vkr),
-                      D_DECL(int idir, int jdir, int kdir),
+                      AMREX_D_DECL(const IntVect& rat, const IntVect& vj1, const IntVect& vk1),
+                      AMREX_D_DECL(const IntVect& ve,  const IntVect& vjr, const IntVect& vkr),
+                      AMREX_D_DECL(int idir, int jdir, int kdir),
                       int clevel)
 {
   for (IntVect vc = creg.smallEnd(); vc <= creg.bigEnd(); creg.next(vc)) {
@@ -969,9 +969,9 @@ void HypreABecLap::buildMatrixStructure()
         const Mask &msk = *(bd[level].bndryMasks(i)[ori]);
 
         TransverseInterpolant(cintrp[level](ori)[i], msk, reg, creg,
-                              D_DECL(rat,  vj1,  vk1),
-                              D_DECL(ve,   vjr,  vkr),
-                              D_DECL(idir, jdir, kdir),
+                              AMREX_D_DECL(rat,  vj1,  vk1),
+                              AMREX_D_DECL(ve,   vjr,  vkr),
+                              AMREX_D_DECL(idir, jdir, kdir),
                               level-1);
 
         NormalDerivative(ederiv[level](ori)[i],
@@ -1095,9 +1095,9 @@ void HypreABecLap::buildMatrixStructure()
           const Mask &msk = c_cintrp[level].mask(ori)[i][j]; // fine mask
 
           TransverseInterpolant(c_cintrp[level](ori)[i][j], msk, reg, creg,
-                                D_DECL(rat,  vj1,  vk1),
-                                D_DECL(ve,   vjr,  vkr),
-                                D_DECL(idir, jdir, kdir),
+                                AMREX_D_DECL(rat,  vj1,  vk1),
+                                AMREX_D_DECL(ve,   vjr,  vkr),
+                                AMREX_D_DECL(idir, jdir, kdir),
                                 level-1);
 
           NormalDerivative(c_ederiv[level](ori)[i][j],
