@@ -16,28 +16,7 @@
 #include <AMReX_BLFort.H>
 using namespace amrex;
 
-static const int NmvMAX = 4;
-static const int COVERED_CELL = -1;
-static const int REGULAR_CELL = -2;
-
-//
-// Structure to contain all necessary graph and geometry data for cut cells at an IntVect
-//
-
-typedef std::array<int,BL_SPACEDIM>  intDIM;
-
-struct Node
-{
-    struct CutCellGraphNode
-    {
-        int Nnbr[BL_SPACEDIM][2];
-        int nbr[BL_SPACEDIM][2][NmvMAX];
-        int ebID;
-    };
-    int nCells;
-    intDIM iv;
-    CutCellGraphNode cells[NmvMAX];
-};
+#include <Node.H>
 
 extern "C"
 {
@@ -218,14 +197,18 @@ int myTest()
                 }
             }
         }
+    }
 
+    MultiFab state(ba,dm,1,nGrow);
+
+    for (MFIter mfi(ebmask); mfi.isValid(); ++mfi)
+    {
         const Box& vbox = mfi.validbox();
+        BaseFab<int>& mask_fab = ebmask[mfi];
         int s = graphNodes[mfi.index()].size();
         do_eb_work(vbox.loVect(), vbox.hiVect(),
                    graphNodes[mfi.index()].data(), &s,
                    BL_TO_FORTRAN_N(mask_fab,0));
-
-
     }
 
     return 0;

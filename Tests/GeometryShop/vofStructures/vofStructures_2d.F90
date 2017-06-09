@@ -1,3 +1,4 @@
+#include <Node.H>
 
 module stencil_test_module
 
@@ -37,17 +38,17 @@ contains
        do i=lo(1),hi(1)
           mC = mask(i  ,j)
           mL = mask(i-1,j)
-          if (mC .eq. -2) then         ! C is regular
-             if (mL .eq. -2) then      ! L is regular
+          if (mC .eq. REGULAR_CELL) then         ! C is regular
+             if (mL .eq. REGULAR_CELL) then      ! L is regular
                 nL = 0
-             else if (mL .eq. -1) then ! L is covered
+             else if (mL .eq. COVERED_CELL) then ! L is covered
                 call bl_pd_abort('ERROR: cannot have covered next to regular cell')
              else                      ! L is irregular
                 nC = 0
                 nL = nodes(mL) % nCells
                 print *,i,j,'i r'
              endif
-          else if (mC .ne. -1) then    ! C is irregular
+          else if (mC .ne. COVERED_CELL) then    ! C is irregular
              if (mC .lt. 0  .or.  mC .ge. num) then
                 call bl_pd_abort('ERROR: cut cell index OOB')
              endif

@@ -33,6 +33,7 @@ _progs  := vofStructures
 ifeq ($(_progs), vofStructures)
   DEFINES+=-DNCELLMAX=4
   F90EXE_sources += vofStructures_$(DIM)d.F90
+  CEXE_headers += Node.H
 endif
 
 include $(AMREX_HOME)/Src/Base/Make.package
