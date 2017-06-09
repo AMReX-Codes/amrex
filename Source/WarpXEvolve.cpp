@@ -402,6 +402,7 @@ WarpX::EvolveF (int lev, Real dt)
     BL_PROFILE("WarpX::EvolveF()");
 
     const Real mu_c2 = (PhysConst::mu0*PhysConst::c*PhysConst::c);
+    const Real c2dt = (PhysConst::c*PhysConst::c)*dt;
 
     int npatches = (lev == 0) ? 1 : 2;
 
@@ -431,7 +432,7 @@ WarpX::EvolveF (int lev, Real dt)
         MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
         ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
         MultiFab::Saxpy(src, -mu_c2, *rho, 0, 0, 1, 0);
-        MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
+        MultiFab::Saxpy(*F, c2dt, src, 0, 0, 1, 0);
     }
 }
 
