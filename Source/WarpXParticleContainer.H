@@ -106,6 +106,8 @@ protected:
 
     amrex::Real charge;
     amrex::Real mass;
+
+    static int do_not_push;
 };
 
 #endif

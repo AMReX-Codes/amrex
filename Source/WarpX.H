@@ -234,7 +234,7 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
 
     // div E cleaning
-    int do_dive_cleaning = 1;
+    int do_dive_cleaning = 0;
 
     // PML
     int do_pml = 1;

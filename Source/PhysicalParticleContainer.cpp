@@ -278,66 +278,69 @@ PhysicalParticleContainer::Evolve (int lev,
                                         &lvect, &WarpX::charge_deposition_algo);
             }
 
-	    //
-	    // Field Gather of Aux Data (i.e., the full solution)
-	    //
-	    const int ll4symtry          = false;
-	    const int l_lower_order_in_v = true;
-            long lvect_fieldgathe = 64;
-	    BL_PROFILE_VAR_START(blp_pxr_fg);
-	    warpx_geteb_energy_conserving(
-                &np, xp.data(), yp.data(), zp.data(),
-                Exp.data(),Eyp.data(),Ezp.data(),
-                Bxp.data(),Byp.data(),Bzp.data(),
-                &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                &dx[0], &dx[1], &dx[2],
-                &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                exfab.dataPtr(), &ngE, exfab.length(),
-                eyfab.dataPtr(), &ngE, eyfab.length(),
-                ezfab.dataPtr(), &ngE, ezfab.length(),
-                bxfab.dataPtr(), &ngE, bxfab.length(),
-                byfab.dataPtr(), &ngE, byfab.length(),
-                bzfab.dataPtr(), &ngE, bzfab.length(),
-                &ll4symtry, &l_lower_order_in_v,
-                &lvect_fieldgathe, &WarpX::field_gathering_algo);
-	    BL_PROFILE_VAR_STOP(blp_pxr_fg);
-
-	    //
-	    // Particle Push
-	    //
-	    BL_PROFILE_VAR_START(blp_pxr_pp);
-	    warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
-				  uxp.data(), uyp.data(), uzp.data(), giv.data(),
-				  Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-				  Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-				  &this->charge, &this->mass, &dt,
-				  &WarpX::particle_pusher_algo);
-	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
-
-	    //
-	    // Current Deposition onto fine patch
-	    // xxxxx this part needs to be thread safe if we have OpenMP over tiles
-	    //
-	    BL_PROFILE_VAR_START(blp_pxr_cd);
-	    warpx_current_deposition(
-                jxfab.dataPtr(), &ngJ, jxfab.length(),
-                jyfab.dataPtr(), &ngJ, jyfab.length(),
-                jzfab.dataPtr(), &ngJ, jzfab.length(),
-                &np, xp.data(), yp.data(), zp.data(),
-                uxp.data(), uyp.data(), uzp.data(),
-                giv.data(), wp.data(), &this->charge,
-                &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                &dt, &dx[0], &dx[1], &dx[2],
-                &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                &lvect,&WarpX::current_deposition_algo);
-	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
-
-            //
-	    // copy particle data back
-	    //
-	    BL_PROFILE_VAR_START(blp_copy);
-            pti.SetPosition(xp, yp, zp);
-            BL_PROFILE_VAR_STOP(blp_copy);
+            if (! do_not_push)
+            {
+                //
+                // Field Gather of Aux Data (i.e., the full solution)
+                //
+                const int ll4symtry          = false;
+                const int l_lower_order_in_v = true;
+                long lvect_fieldgathe = 64;
+                BL_PROFILE_VAR_START(blp_pxr_fg);
+                warpx_geteb_energy_conserving(
+                    &np, xp.data(), yp.data(), zp.data(),
+                    Exp.data(),Eyp.data(),Ezp.data(),
+                    Bxp.data(),Byp.data(),Bzp.data(),
+                    &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                    &dx[0], &dx[1], &dx[2],
+                    &WarpX::nox, &WarpX::noy, &WarpX::noz,
+                    exfab.dataPtr(), &ngE, exfab.length(),
+                    eyfab.dataPtr(), &ngE, eyfab.length(),
+                    ezfab.dataPtr(), &ngE, ezfab.length(),
+                    bxfab.dataPtr(), &ngE, bxfab.length(),
+                    byfab.dataPtr(), &ngE, byfab.length(),
+                    bzfab.dataPtr(), &ngE, bzfab.length(),
+                    &ll4symtry, &l_lower_order_in_v,
+                    &lvect_fieldgathe, &WarpX::field_gathering_algo);
+                BL_PROFILE_VAR_STOP(blp_pxr_fg);
+                
+                //
+                // Particle Push
+                //
+                BL_PROFILE_VAR_START(blp_pxr_pp);
+                warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
+                                      uxp.data(), uyp.data(), uzp.data(), giv.data(),
+                                      Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
+                                      Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
+                                      &this->charge, &this->mass, &dt,
+                                      &WarpX::particle_pusher_algo);
+                BL_PROFILE_VAR_STOP(blp_pxr_pp);
+                
+                //
+                // Current Deposition onto fine patch
+                // xxxxx this part needs to be thread safe if we have OpenMP over tiles
+                //
+                BL_PROFILE_VAR_START(blp_pxr_cd);
+                warpx_current_deposition(
+                    jxfab.dataPtr(), &ngJ, jxfab.length(),
+                    jyfab.dataPtr(), &ngJ, jyfab.length(),
+                    jzfab.dataPtr(), &ngJ, jzfab.length(),
+                    &np, xp.data(), yp.data(), zp.data(),
+                    uxp.data(), uyp.data(), uzp.data(),
+                    giv.data(), wp.data(), &this->charge,
+                    &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                    &dt, &dx[0], &dx[1], &dx[2],
+                    &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                    &lvect,&WarpX::current_deposition_algo);
+                BL_PROFILE_VAR_STOP(blp_pxr_cd);
+                
+                //
+                // copy particle data back
+                //
+                BL_PROFILE_VAR_START(blp_copy);
+                pti.SetPosition(xp, yp, zp);
+                BL_PROFILE_VAR_STOP(blp_copy);
+            }
 	}
     }
 }
