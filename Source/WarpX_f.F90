@@ -120,9 +120,9 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             dive(i,j,k) = dxinv(1) * (Ex(i,j,k  ) - Ex(i-1,j,k)) &
-                  +        dxinv(2) * (Ey(i,j,k  ) - Ey(i,j-1,k)) &
-                  +        dxinv(3) * (Ez(i,j,k+1) - Ez(i,j,k-1))
+             dive(i,j,k) = dxinv(1) * (Ex(i,j,k) - Ex(i-1,j,k)) &
+                  +        dxinv(2) * (Ey(i,j,k) - Ey(i,j-1,k)) &
+                  +        dxinv(3) * (Ez(i,j,k) - Ez(i,j,k-1))
           end do
        end do
     end do
