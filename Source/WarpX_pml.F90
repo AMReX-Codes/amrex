@@ -291,19 +291,22 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             f(i,j,k,1) = sigx1(i)*f(i,j,k,1) + sigx2(i)*((Ex(i,j,k,1)-Ex(i-1,j,k,1)) &
-                  &                                     + (Ex(i,j,k,2)-Ex(i-1,j,k,2)) &
-                  &                                     + (Ex(i,j,k,3)-Ex(i-1,j,k,3)))
+             f(i,j,k,1) = sigx1(i)*f(i,j,k,1) + sigx2(i)* &
+                  &                             ((Ex(i,j,k,1)-Ex(i-1,j,k,1)) &
+                  &                            + (Ex(i,j,k,2)-Ex(i-1,j,k,2)) &
+                  &                            + (Ex(i,j,k,3)-Ex(i-1,j,k,3)))
           end do
           do i = lo(1), hi(1)
-             f(i,j,k,2) = sigy1(j)*f(i,j,k,2) + sigy2(j)*((Ey(i,j,k,1)-Ey(i,j-1,k,1)) &
-                  &                                     + (Ey(i,j,k,2)-Ey(i,j-1,k,2)) &
-                  &                                     + (Ey(i,j,k,3)-Ey(i,j-1,k,3)))
+             f(i,j,k,2) = sigy1(j)*f(i,j,k,2) + sigy2(j)* &
+                  &                             ((Ey(i,j,k,1)-Ey(i,j-1,k,1)) &
+                  &                            + (Ey(i,j,k,2)-Ey(i,j-1,k,2)) &
+                  &                            + (Ey(i,j,k,3)-Ey(i,j-1,k,3)))
           end do
           do i = lo(1), hi(1)
-             f(i,j,k,3) = sigz1(k)*f(i,j,k,3) + sigz2(k)*((Ez(i,j,k,1)-Ez(i,j,k-1,1)) &
-                  &                                     + (Ez(i,j,k,2)-Ez(i,j,k-1,2)) &
-                  &                                     + (Ez(i,j,k,3)-Ez(i,j,k-1,3)))
+             f(i,j,k,3) = sigz1(k)*f(i,j,k,3) + sigz2(k)* &
+                  &                             ((Ez(i,j,k,1)-Ez(i,j,k-1,1)) &
+                  &                            + (Ez(i,j,k,2)-Ez(i,j,k-1,2)) &
+                  &                            + (Ez(i,j,k,3)-Ez(i,j,k-1,3)))
           end do
        end do
     end do
@@ -336,14 +339,16 @@ contains
 
     do    k = lo(2), hi(2)
        do i = lo(1), hi(1)
-          f(i,k,1) = sigx1(i)*f(i,k,1) + sigx2(i)*((Ex(i,k,1)-Ex(i-1,k,1)) &
-               &                                 + (Ex(i,k,2)-Ex(i-1,k,2)) &
-               &                                 + (Ex(i,k,3)-Ex(i-1,k,3)))
+          f(i,k,1) = sigx1(i)*f(i,k,1) + sigx2(i)* &
+               &                         ((Ex(i,k,1)-Ex(i-1,k,1)) &
+               &                        + (Ex(i,k,2)-Ex(i-1,k,2)) &
+               &                        + (Ex(i,k,3)-Ex(i-1,k,3)))
        end do
        do i = lo(1), hi(1)
-          f(i,k,3) = sigz1(k)*f(i,k,3) + sigz2(k)*((Ez(i,k,1)-Ez(i,k-1,1)) &
-               &                                 + (Ez(i,k,2)-Ez(i,k-1,2)) &
-               &                                 + (Ez(i,k,3)-Ez(i,k-1,3)))
+          f(i,k,3) = sigz1(k)*f(i,k,3) + sigz2(k)* &
+               &                         ((Ez(i,k,1)-Ez(i,k-1,1)) &
+               &                        + (Ez(i,k,2)-Ez(i,k-1,2)) &
+               &                        + (Ez(i,k,3)-Ez(i,k-1,3)))
        end do
     end do
   end subroutine warpx_push_pml_f_2d
@@ -382,7 +387,7 @@ contains
     do       k = xlo(3), xhi(3)
        do    j = xlo(2), xhi(2)
           do i = xlo(1), xhi(1)
-             Ex(i,j,k,3) = sigx1(i)*Ex(i,j,k,3) + sigx1(i)*((f(i+1,j,k,1)-f(i,j,k,1)) &
+             Ex(i,j,k,3) = sigx1(i)*Ex(i,j,k,3) + sigx2(i)*((f(i+1,j,k,1)-f(i,j,k,1)) &
                   &                                       + (f(i+1,j,k,2)-f(i,j,k,2)) &
                   &                                       + (f(i+1,j,k,3)-f(i,j,k,3)))
           end do
@@ -392,7 +397,7 @@ contains
     do       k = ylo(3), yhi(3)
        do    j = ylo(2), yhi(2)
           do i = ylo(1), yhi(1)
-             Ey(i,j,k,3) = sigy1(j)*Ey(i,j,k,3) + sigy1(j)*((f(i,j+1,k,1)-f(i,j,k,1)) &
+             Ey(i,j,k,3) = sigy1(j)*Ey(i,j,k,3) + sigy2(j)*((f(i,j+1,k,1)-f(i,j,k,1)) &
                   &                                       + (f(i,j+1,k,2)-f(i,j,k,2)) &
                   &                                       + (f(i,j+1,k,3)-f(i,j,k,3)))
           end do
@@ -402,7 +407,7 @@ contains
     do       k = zlo(3), zhi(3)
        do    j = zlo(2), zhi(2)
           do i = zlo(1), zhi(1)
-             Ez(i,j,k,3) = sigz1(k)*Ez(i,j,k,3) + sigz1(k)*((f(i,j,k+1,1)-f(i,j,k,1)) &
+             Ez(i,j,k,3) = sigz1(k)*Ez(i,j,k,3) + sigz2(k)*((f(i,j,k+1,1)-f(i,j,k,1)) &
                   &                                       + (f(i,j,k+1,2)-f(i,j,k,2)) &
                   &                                       + (f(i,j,k+1,3)-f(i,j,k,3)))
           end do
@@ -439,7 +444,7 @@ contains
 
     do    k = xlo(2), xhi(2)
        do i = xlo(1), xhi(1)
-          Ex(i,k,3) = sigx1(i)*Ex(i,k,3) + sigx1(i)*((f(i+1,k,1)-f(i,k,1)) &
+          Ex(i,k,3) = sigx1(i)*Ex(i,k,3) + sigx2(i)*((f(i+1,k,1)-f(i,k,1)) &
                &                                   + (f(i+1,k,2)-f(i,k,2)) &
                &                                   + (f(i+1,k,3)-f(i,k,3)))
        end do
@@ -447,7 +452,7 @@ contains
 
     do    k = zlo(2), zhi(2)
        do i = zlo(1), zhi(1)
-          Ez(i,k,3) = sigz1(k)*Ez(i,k,3) + sigz1(k)*((f(i,k+1,1)-f(i,k,1)) &
+          Ez(i,k,3) = sigz1(k)*Ez(i,k,3) + sigz2(k)*((f(i,k+1,1)-f(i,k,1)) &
                &                                   + (f(i,k+1,2)-f(i,k,2)) &
                &                                   + (f(i,k+1,3)-f(i,k,3)))
        end do

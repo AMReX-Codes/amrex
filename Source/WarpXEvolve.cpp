@@ -420,8 +420,9 @@ WarpX::EvolveF (int lev, Real dt)
         pml[lev]->ComputePMLFactorsE(dt);
     }
 
-    const Real mu_c2 = (PhysConst::mu0*PhysConst::c*PhysConst::c);
-    const Real c2dt = (PhysConst::c*PhysConst::c)*dt;
+    static constexpr Real c2 = PhysConst::c*PhysConst::c;
+    static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
+    const Real c2dt = c2*dt;
 
     int npatches = (lev == 0) ? 1 : 2;
 
@@ -473,7 +474,7 @@ WarpX::EvolveF (int lev, Real dt)
                                 BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
                                 BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
                                 WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]));
-            }            
+            }
         }
     }
 }
