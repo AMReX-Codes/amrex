@@ -5,6 +5,6 @@ cxxsources += AMReX_Arena.cpp
 f90sources += AMReX_mempool_f.f90
 
 ifdef CUDA
-  F90_sources += AMReX_CUDA.F90
+  F90sources += AMReX_CUDA.F90
   cxxsources += AMReX_Device.cpp
 endif
