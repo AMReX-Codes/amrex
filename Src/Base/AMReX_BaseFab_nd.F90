@@ -1,6 +1,6 @@
 module basefab_nd_module
 
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only: amrex_real, get_loop_bounds
 #ifdef CUDA
   use cuda_module, only: stream_from_index, cuda_streams
   use cudafor, only: cuda_stream_kind
@@ -12,16 +12,19 @@ contains
 
   ! dst = src
 #ifdef CUDA
-  attributes(device) &
+  attributes(global) &
 #endif
-  subroutine fort_fab_copy_doit(blo, bhi, lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-    integer, intent(in) :: blo(3), bhi(3), lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+  subroutine fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
     integer :: i,j,k,n,off(3)
+    integer :: blo(3), bhi(3)
 
     off = sblo - lo
+
+    call get_loop_bounds(blo, bhi, lo, hi)
 
     do n = 1, ncomp
        do       k = blo(3), bhi(3)
@@ -95,14 +98,17 @@ contains
 
 
 #ifdef CUDA
-  attributes(device) &
+  attributes(global) &
 #endif
-  subroutine fort_fab_setval_doit(blo, bhi, lo, hi, dst, dlo, dhi, ncomp, val)
-    integer, intent(in) :: blo(3), bhi(3), lo(3), hi(3), dlo(3), dhi(3), ncomp
+  subroutine fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
     real(amrex_real), intent(in) :: val
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
     integer :: i, j, k, n
+    integer :: blo(3), bhi(3)
+
+    call get_loop_bounds(blo, bhi, lo, hi)
 
     do n = 1, ncomp
        do       k = blo(3), bhi(3)
@@ -181,16 +187,19 @@ contains
 
 
 #ifdef CUDA
-  attributes(device) &
+  attributes(global) &
 #endif
-  subroutine fort_fab_plus_doit(blo, bhi, lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-    integer, intent(in) :: blo(3), bhi(3), lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+  subroutine fort_fab_plus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
     integer :: i,j,k,n,off(3)
+    integer :: blo(3), bhi(3)
 
     off = sblo - lo
+
+    call get_loop_bounds(blo, bhi, lo, hi)
 
     do n = 1, ncomp
        do       k = blo(3), bhi(3)
@@ -335,17 +344,20 @@ contains
 
   ! dst += a*src
 #ifdef CUDA
-  attributes(device) &
+  attributes(global) &
 #endif
-  subroutine fort_fab_saxpy_doit(blo, bhi, lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
-    integer, intent(in) :: blo(3), bhi(3), lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+  subroutine fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: a
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
     integer :: i,j,k,n,off(3)
+    integer :: blo(3), bhi(3)
 
     off = sblo - lo
+
+    call get_loop_bounds(blo, bhi, lo, hi)
 
     do n = 1, ncomp
        do       k = blo(3), bhi(3)
@@ -510,7 +522,7 @@ end module basefab_nd_module
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
-    call cuda_fort_fab_copy<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, &
+    call fort_fab_copy_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, &
                                                                   src, slo_d, shi_d, sblo_d, ncomp_d(1))
 
     cuda_result = cudaStreamSynchronize(stream)
@@ -526,7 +538,7 @@ end module basefab_nd_module
 
 #else
 
-    call fort_fab_copy_doit(lo, hi, lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+    call fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
 #endif
 
@@ -581,7 +593,7 @@ end module basefab_nd_module
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
-    call cuda_fort_fab_setval<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, ncomp_d(1), val_d(1))
+    call fort_fab_setval_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, ncomp_d(1), val_d(1))
 
     cuda_result = cudaStreamSynchronize(stream)
 
@@ -594,7 +606,7 @@ end module basefab_nd_module
 
 #else
 
-    call fort_fab_setval_doit(lo, hi, lo, hi, dst, dlo, dhi, ncomp, val)
+    call fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
 
 #endif
 
@@ -678,7 +690,7 @@ end module basefab_nd_module
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
-    call cuda_fort_fab_saxpy<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, a_d(1), &
+    call fort_fab_saxpy_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, a_d(1), &
                                                                    src, slo_d, shi_d, sblo_d, ncomp_d(1))
 
     cuda_result = cudaStreamSynchronize(stream)
@@ -695,7 +707,7 @@ end module basefab_nd_module
 
 #else
 
-    call fort_fab_saxpy_doit(lo, hi, lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
+    call fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
 
 #endif
 
@@ -754,7 +766,7 @@ end module basefab_nd_module
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
-    call cuda_fort_fab_plus<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, &
+    call fort_fab_plus_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, &
                                                                   src, slo_d, shi_d, sblo_d, ncomp_d(1))
 
     cuda_result = cudaStreamSynchronize(stream)
@@ -770,7 +782,7 @@ end module basefab_nd_module
 
 #else
 
-    call fort_fab_plus_doit(lo, hi, lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+    call fort_fab_plus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
 #endif
 
@@ -862,122 +874,3 @@ end module basefab_nd_module
     call fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index)
 
   end subroutine fort_fab_divide
-
-
-
-#ifdef CUDA
-  attributes(global) &
-  subroutine cuda_fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-
-    use amrex_fort_module, only: amrex_real
-    use basefab_nd_module, only: fort_fab_copy_doit
-
-    implicit none
-
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
-    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
-    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-
-    integer :: idx(3)
-
-    ! Get our spatial index based on the CUDA thread index
-
-    idx(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
-    idx(2) = lo(2) + (threadIdx%y - 1) + blockDim%y * (blockIdx%y - 1)
-    idx(3) = lo(3) + (threadIdx%z - 1) + blockDim%z * (blockIdx%z - 1)
-
-    if (idx(1) .gt. hi(1) .or. idx(2) .gt. hi(2) .or. idx(3) .gt. hi(3)) return
-
-    call fort_fab_copy_doit(idx, idx, lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-
-  end subroutine cuda_fort_fab_copy
-#endif
-
-
-
-#ifdef CUDA
-  attributes(global) &
-  subroutine cuda_fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val)
-
-    use amrex_fort_module, only: amrex_real
-    use basefab_nd_module, only: fort_fab_setval_doit
-
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
-    real(amrex_real), intent(in) :: val
-    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-
-    integer :: idx(3)
-
-    ! Get our spatial index based on the CUDA thread index
-
-    idx(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
-    idx(2) = lo(2) + (threadIdx%y - 1) + blockDim%y * (blockIdx%y - 1)
-    idx(3) = lo(3) + (threadIdx%z - 1) + blockDim%z * (blockIdx%z - 1)
-
-    if (idx(1) .gt. hi(1) .or. idx(2) .gt. hi(2) .or. idx(3) .gt. hi(3)) return
-
-    call fort_fab_setval_doit(idx, idx, lo, hi, dst, dlo, dhi, ncomp, val)
-
-  end subroutine cuda_fort_fab_setval
-#endif
-
-
-
-#ifdef CUDA
-  attributes(global) &
-  subroutine cuda_fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
-
-    use amrex_fort_module, only: amrex_real
-    use basefab_nd_module, only: fort_fab_saxpy_doit
-
-    implicit none
-
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
-    real(amrex_real), intent(in   ) :: a
-    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
-    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-
-    integer :: idx(3)
-
-    ! Get our spatial index based on the CUDA thread index
-
-    idx(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
-    idx(2) = lo(2) + (threadIdx%y - 1) + blockDim%y * (blockIdx%y - 1)
-    idx(3) = lo(3) + (threadIdx%z - 1) + blockDim%z * (blockIdx%z - 1)
-
-    if (idx(1) .gt. hi(1) .or. idx(2) .gt. hi(2) .or. idx(3) .gt. hi(3)) return
-
-    call fort_fab_saxpy_doit(idx, idx, lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
-
-  end subroutine cuda_fort_fab_saxpy
-#endif
-
-
-
-#ifdef CUDA
-  attributes(global) &
-  subroutine cuda_fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-
-    use amrex_fort_module, only: amrex_real
-    use basefab_nd_module, only: fort_fab_plus_doit
-
-    implicit none
-
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
-    real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
-    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-
-    integer :: idx(3)
-
-    ! Get our spatial index based on the CUDA thread index
-
-    idx(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
-    idx(2) = lo(2) + (threadIdx%y - 1) + blockDim%y * (blockIdx%y - 1)
-    idx(3) = lo(3) + (threadIdx%z - 1) + blockDim%z * (blockIdx%z - 1)
-
-    if (idx(1) .gt. hi(1) .or. idx(2) .gt. hi(2) .or. idx(3) .gt. hi(3)) return
-
-    call fort_fab_plus_doit(idx, idx, lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-
-  end subroutine cuda_fort_fab_plus
-#endif
