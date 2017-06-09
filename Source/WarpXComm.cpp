@@ -312,7 +312,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                 fbx &= (*fine[idim])[mfi].box();
                 ffab.setVal(0.0);
                 ffab.copy((*fine[idim])[mfi], fbx, 0, fbx, 0, 1);
-                WARPX_SYNC_CURRENT(bx.loVect(), bx.hiVect(),
+                WRPX_SYNC_CURRENT(bx.loVect(), bx.hiVect(),
                                    BL_TO_FORTRAN_ANYD((*crse[idim])[mfi]),
                                    BL_TO_FORTRAN_ANYD(ffab),
                                    &idim);
@@ -377,7 +377,7 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
             fbx &= fine[mfi].box();
             ffab.setVal(0.0);
             ffab.copy(fine[mfi], fbx, 0, fbx, 0, 1);
-            WARPX_SYNC_RHO(bx.loVect(), bx.hiVect(),
+            WRPX_SYNC_RHO(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_ANYD(crse[mfi]),
                            BL_TO_FORTRAN_ANYD(ffab));
         }

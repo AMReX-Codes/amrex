@@ -413,7 +413,7 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
     for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        WARPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
+        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
                            BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
                            BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
@@ -433,7 +433,7 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        WARPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
+        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
                            BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
                            BL_TO_FORTRAN_ANYD((*E[1])[mfi]),

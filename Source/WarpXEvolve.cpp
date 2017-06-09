@@ -336,7 +336,7 @@ WarpX::EvolveE (int lev, Real dt)
                 &norder);
 
             if (F) {
-                WARPX_CLEAN_EVEC(tex.loVect(), tex.hiVect(),
+                WRPX_CLEAN_EVEC(tex.loVect(), tex.hiVect(),
                                  tey.loVect(), tey.hiVect(),
                                  tez.loVect(), tez.hiVect(),
                                  BL_TO_FORTRAN_3D((*Ex)[mfi]),
@@ -358,6 +358,7 @@ WarpX::EvolveE (int lev, Real dt)
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
             const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
                                             : pml[lev]->GetMultiSigmaBox_cp();
+            const MultiFab* pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -379,6 +380,19 @@ WarpX::EvolveE (int lev, Real dt)
                     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
                     WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]));
+
+                if (pml_F)
+                {
+                    WRPX_PUSH_PML_EVEC_F(
+                        tex.loVect(), tex.hiVect(),
+                        tey.loVect(), tey.hiVect(),
+                        tez.loVect(), tez.hiVect(),
+                        BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                        BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                        BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                        BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
+                        WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]));
+                }
             }
         }
     }
@@ -433,6 +447,29 @@ WarpX::EvolveF (int lev, Real dt)
         ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
         MultiFab::Saxpy(src, -mu_c2, *rho, 0, 0, 1, 0);
         MultiFab::Saxpy(*F, c2dt, src, 0, 0, 1, 0);
+
+        if (do_pml && pml[lev]->ok())
+        {
+            const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+            const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
+                                            : pml[lev]->GetMultiSigmaBox_cp();
+
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for ( MFIter mfi(*pml_F,true); mfi.isValid(); ++mfi )
+            {
+                const Box& bx = mfi.tilebox();
+                WRPX_PUSH_PML_F(bx.loVect(), bx.hiVect(),
+                                BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
+                                BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
+                                BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
+                                BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
+                                WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi]));
+            }            
+        }
     }
 }
 
