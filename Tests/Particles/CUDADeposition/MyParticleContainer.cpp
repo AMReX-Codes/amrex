@@ -27,7 +27,13 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   m_np = num_particles;
 
 #ifdef CUDA  
-  cudaMalloc((void**) &device_particles, m_np*psize); 
+
+  cudaError_t err_code;
+  err_code = cudaMalloc((void**) &device_particles, m_np*psize); 
+  if (err_code != cudaSuccess) {
+    amrex::Print() << "Could not allocate device memory in InitParticles. \n";
+    amrex::Abort();
+  }
 
   const int lev = 0;
   int offset = 0;
@@ -40,8 +46,18 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   }
 
   m_ngrids = particle_counts.size();
-  cudaMalloc((void**) &device_particle_offsets, m_ngrids*sizeof(int)); 
-  cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int)); 
+  err_code = cudaMalloc((void**) &device_particle_offsets, m_ngrids*sizeof(int)); 
+  if (err_code != cudaSuccess) {
+    amrex::Print() << "Could not allocate device memory in InitParticles. \n";
+    amrex::Abort();
+  }
+  
+  err_code = cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int)); 
+  if (err_code != cudaSuccess) {
+    amrex::Print() << "Could not allocate device memory in InitParticles. \n";
+    amrex::Abort();
+  }
+
 #endif
 }
 
@@ -56,8 +72,8 @@ void MyParticleContainer::CopyParticlesToDevice() {
     const long np  = pti.numParticles();
     cudaMemcpy(device_particles + offset,
 	       particles.data(), np*psize, cudaMemcpyHostToDevice);
-    particle_counts.clear();
-    particle_offsets.clear();
+    particle_counts.push_back(np);
+    particle_offsets.push_back(offset);
     offset += np;
   }
 
@@ -66,6 +82,7 @@ void MyParticleContainer::CopyParticlesToDevice() {
 
   cudaMemcpy(device_particle_offsets, particle_offsets.data(),
 	     m_ngrids*sizeof(int), cudaMemcpyHostToDevice);
+
 #endif
 }
 
@@ -103,9 +120,9 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
     const Box& box    = rhofab.box();        
 
 #if CUDA
-    cuda_deposit_cic((Real*) device_particles, nstride, np,
+    cuda_deposit_cic((Real*) device_particles, nstride, m_np, np, 
 		device_particle_counts, device_particle_offsets, 
-		m_ngrids, pti.index(),
+		m_ngrids, pti.uniqueIndex(),
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
 #else 
@@ -124,13 +141,13 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
     const Box& box    = rhofab.box();        
 
 #if CUDA    
-    cuda_interpolate_cic((Real*) device_particles, nstride, np,
+    cuda_interpolate_cic((Real*) device_particles, nstride, m_np, np,
 			 device_particle_counts, device_particle_offsets, 
-			 m_ngrids, pti.index(),
+			 m_ngrids, pti.uniqueIndex(),
 			 accfab.dataPtr(), box.loVect(), box.hiVect(), 
 			 plo, dx);
 #else
-    interpolate_cic(particles.data(), nstride, np,
+    interpolate_cic(particles.data(), nstride, m_np,
 		    accfab.dataPtr(), box.loVect(), box.hiVect(), 
 		    plo, dx);
 #endif // CUDA    
@@ -153,7 +170,6 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
     
   partMF.SumBoundary(gm.periodicity());
   
-  CopyParticlesFromDevice();
+  //  CopyParticlesFromDevice();
 
-}   
-    
+}
