@@ -506,8 +506,9 @@ WarpX::WritePlotFile () const
 
             if (plot_divb)
             {
-                PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
-                ComputeDivB(*mf[lev], dcomp, srcmf, Geom(lev).CellSize());
+                ComputeDivB(*mf[lev], dcomp,
+                            {Bfield_aux[lev][0].get(),Bfield_aux[lev][1].get(),Bfield_aux[lev][2].get()},
+                            WarpX::CellSize(lev));
                 if (lev == 0)
                 {
                     varnames.push_back("divB");
@@ -619,9 +620,18 @@ WarpX::WritePlotFile () const
 
             if (plot_dive)
             {
-//                std::unique_ptr<MultiFab> rho = mypc->GetChargeDensity();
-//xxxxx                std::unique_ptr<MultiFab> dive = ComputeDivE
+                const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
+                MultiFab dive(ba,DistributionMap(lev),1,0);
+                ComputeDivE(dive, 0,
+                            {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(), Efield_aux[lev][2].get()},
+                            WarpX::CellSize(lev));
+                VisMF::Write(dive, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "divE"));                
             }
+
+            if (F_fp[lev]) {
+                VisMF::Write(*F_fp[lev], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "F_fp"));
+            }
+
         }
     }
 

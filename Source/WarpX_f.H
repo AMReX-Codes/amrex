@@ -145,16 +145,16 @@ extern "C"
 
     void WARPX_COMPUTE_DIVB (const int* lo, const int* hi,
                              BL_FORT_FAB_ARG_ANYD(divb),
-                             D_DECL(const BL_FORT_FAB_ARG_ANYD(Bx),
-                                    const BL_FORT_FAB_ARG_ANYD(By),
-                                    const BL_FORT_FAB_ARG_ANYD(Bz)),
+                             const BL_FORT_FAB_ARG_ANYD(Bx),
+                             const BL_FORT_FAB_ARG_ANYD(By),
+                             const BL_FORT_FAB_ARG_ANYD(Bz),
                              const amrex::Real* dx);
 
     void WARPX_COMPUTE_DIVE (const int* lo, const int* hi,
                              BL_FORT_FAB_ARG_ANYD(dive),
-                             D_DECL(const BL_FORT_FAB_ARG_ANYD(ex),
-                                    const BL_FORT_FAB_ARG_ANYD(ey),
-                                    const BL_FORT_FAB_ARG_ANYD(ez)),
+                             const BL_FORT_FAB_ARG_ANYD(ex),
+                             const BL_FORT_FAB_ARG_ANYD(ey),
+                             const BL_FORT_FAB_ARG_ANYD(ez),
                              const amrex::Real* dx);
 
     void WRPX_PUSH_PML_BVEC(const int* xlo, const int* xhi,

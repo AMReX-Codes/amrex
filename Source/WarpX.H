@@ -185,12 +185,12 @@ private:
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
-                             const amrex::Array<const amrex::MultiFab*>& B,
-                             const amrex::Real* dx);
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx);
 
     static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
-                             const amrex::Array<const amrex::MultiFab*>& B,
-                             const amrex::Real* dx);
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx);
 
     void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                       const std::array<      amrex::MultiFab*,3>& crse,

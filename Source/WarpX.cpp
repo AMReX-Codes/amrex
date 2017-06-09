@@ -403,7 +403,9 @@ WarpX::UpperCorner(const Box& bx, int lev)
 }
 
 void
-WarpX::ComputeDivB (MultiFab& divB, int dcomp, const Array<const MultiFab*>& B, const Real* dx)
+WarpX::ComputeDivB (MultiFab& divB, int dcomp,
+                    const std::array<const MultiFab*, 3>& B,
+                    const std::array<Real,3>& dx)
 {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -413,15 +415,17 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp, const Array<const MultiFab*>& B, 
         const Box& bx = mfi.tilebox();
         WARPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
-                           D_DECL(BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*B[2])[mfi])),
-                           dx);
+                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
+                           dx.data());
     }
 }
 
 void
-WarpX::ComputeDivE (MultiFab& divE, int dcomp, const Array<const MultiFab*>& E, const Real* dx)
+WarpX::ComputeDivE (MultiFab& divE, int dcomp,
+                    const std::array<const MultiFab*, 3>& E,
+                    const std::array<Real,3>& dx)
 {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -431,9 +435,9 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp, const Array<const MultiFab*>& E, 
         const Box& bx = mfi.tilebox();
         WARPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
-                           D_DECL(BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*E[2])[mfi])),
-                           dx);
+                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
+                           dx.data());
     }
 }

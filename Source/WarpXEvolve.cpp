@@ -409,7 +409,7 @@ WarpX::EvolveF (int lev, Real dt)
     for (int ipatch = 0; ipatch < npatches; ++ipatch)
     {
         int patch_level = (ipatch == 0) ? lev : lev-1;
-        const Real* dx = Geom(patch_level).CellSize();
+        const auto& dx = WarpX::CellSize(patch_level);
 
         MultiFab *Ex, *Ey, *Ez, *rho, *F;
         if (ipatch == 0)
