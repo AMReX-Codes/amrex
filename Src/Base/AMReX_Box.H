@@ -26,6 +26,12 @@ namespace amrex
     //! Grow Box in each direction by specified amount.
     Box grow (const Box& b, const IntVect& v);
 
+    //! Grow Box in direction idir be n_cell cells
+    Box grow (const Box& b, int idir, int n_cell);
+
+    Box growLo (const Box& b, int idir, int n_cell);
+    Box growHi (const Box& b, int idir, int n_cell);
+
     /**
     * \brief Coarsen Box by given (positive) refinement ratio.
     * NOTE: if type(dir) = CELL centered: lo <- lo/ratio and
@@ -232,7 +238,7 @@ public:
     //! Return the length of the Box.
     IntVect size () const
     {
-        return IntVect(D_DECL(bigend[0]-smallend[0] + 1,
+        return IntVect(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
                               bigend[1]-smallend[1] + 1,
                               bigend[2]-smallend[2] + 1));
     }
@@ -438,6 +444,42 @@ public:
         return *this;
     }
 
+    /// for serialization
+    static size_t 
+    linearSize()
+    {
+      size_t retval = 2*IntVect::linearSize();
+      return retval;
+    }
+
+    /// for serialization
+    void 
+    linearOut(void* a_buffer ) const
+    {
+      unsigned char* buf = (unsigned char*) a_buffer;
+      const IntVect& ivlo = this->smallEnd();
+      const IntVect& ivhi = this->bigEnd();
+      ivlo.linearOut(buf);
+      buf += ivlo.linearSize();
+      ivhi.linearOut(buf);
+      buf += ivhi.linearSize();
+    }
+
+    /// for serialization
+    void 
+    linearIn(void* a_buffer )
+    {
+      unsigned char* buf = (unsigned char*) a_buffer;
+      IntVect ivlo;
+      IntVect ivhi;
+      ivlo.linearIn(buf);
+      buf += ivlo.linearSize();
+      ivhi.linearIn(buf);
+      buf += ivhi.linearSize();
+
+      *this = Box(ivlo, ivhi);
+    }
+
     /**
     * \brief Modify Box to that of the minimum Box containing both
     * the original Box and the argument.
@@ -558,7 +600,7 @@ public:
     bool isSquare() const;
 
     bool coarsenable(int refrat) const {
-        return coarsenable(IntVect(D_DECL(refrat,refrat,refrat)));
+        return coarsenable(IntVect(AMREX_D_DECL(refrat,refrat,refrat)));
     }
 
     bool coarsenable(const IntVect& refrat) const

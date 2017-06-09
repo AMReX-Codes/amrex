@@ -9,7 +9,14 @@ pdf_source = $(eps_source:.eps=.pdf)
 section_sources = Preface/Preface.tex \
                   Introduction/Introduction.tex \
                   GettingStarted/GettingStarted.tex \
-                  BuildingAMReX/BuildingAMReX.tex
+                  BuildingAMReX/BuildingAMReX.tex \
+                  Basics/Basics.tex \
+                  AmrCore/AmrCore.tex \
+                  Particle/Particle.tex \
+                  AmrLevel/AmrLevel.tex \
+                  Visualization/Visualization.tex \
+                  Profiling/Profiling.tex \
+                  Debugging/Debugging.tex
 
 AMReXUsersGuide.pdf: AMReXUsersGuide.tex $(pdf_source) $(section_sources) $(pdf_source)
 	pdflatex AMReXUsersGuide.tex < /dev/null

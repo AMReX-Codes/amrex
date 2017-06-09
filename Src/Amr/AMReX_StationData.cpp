@@ -11,7 +11,7 @@ namespace amrex {
 
 StationRec::StationRec ()
 {
-    D_TERM(pos[0],=pos[1],=pos[2]) = -1;
+    AMREX_D_TERM(pos[0],=pos[1],=pos[2]) = -1;
     id = level = grd = -1;
     own = false;
 }
@@ -83,7 +83,7 @@ StationData::init (const Array<std::unique_ptr<AmrLevel> >& levels, const int fi
 
             if(Geometry::ProbDomain().contains(data.dataPtr())) {
 
-              D_TERM(m_stn[k].pos[0] = data[0];,
+              AMREX_D_TERM(m_stn[k].pos[0] = data[0];,
                      m_stn[k].pos[1] = data[1];,
                      m_stn[k].pos[2] = data[2];);
 
@@ -99,7 +99,7 @@ StationData::init (const Array<std::unique_ptr<AmrLevel> >& levels, const int fi
 	        std::cout << std::endl;
 	        std::cout << "     Moving point to the domain center." << std::endl;
 	      }
-              D_TERM(m_stn[k].pos[0] = rbPD.lo(0) + (0.5 * rbPD.length(0));,
+              AMREX_D_TERM(m_stn[k].pos[0] = rbPD.lo(0) + (0.5 * rbPD.length(0));,
                      m_stn[k].pos[1] = rbPD.lo(1) + (0.5 * rbPD.length(1));,
                      m_stn[k].pos[2] = rbPD.lo(2) + (0.5 * rbPD.length(2));)
 	    }
@@ -235,7 +235,7 @@ StationData::report (Real            time,
 
                     Real pos[BL_SPACEDIM];
 
-                    D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
+                    AMREX_D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
                            pos[1] = m_stn[i].pos[1] + .5 * ityp[1];,
                            pos[2] = m_stn[i].pos[2] + .5 * ityp[2];);
 
@@ -258,7 +258,7 @@ StationData::report (Real            time,
 
                     Real pos[BL_SPACEDIM];
 
-                    D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
+                    AMREX_D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
                            pos[1] = m_stn[i].pos[1] + .5 * ityp[1];,
                            pos[2] = m_stn[i].pos[2] + .5 * ityp[2];);
 

@@ -56,7 +56,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
     BL_ASSERT(nm == 0);
     const MultiFab& a   = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
+    AMREX_D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
 
@@ -77,7 +77,7 @@ ABecLaplacian::norm (int nm, int level, const bool local)
 	    const Box&       tbx  = amfi.tilebox();
 	    const FArrayBox& afab = a[amfi];
 	    
-	    D_TERM(const FArrayBox& bxfab = bX[amfi];,
+	    AMREX_D_TERM(const FArrayBox& bxfab = bX[amfi];,
 		   const FArrayBox& byfab = bY[amfi];,
 		   const FArrayBox& bzfab = bZ[amfi];);
 	    
@@ -311,15 +311,15 @@ ABecLaplacian::invalidate_b_to_level (int lev)
 }
 
 void
-ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+ABecLaplacian::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			 MultiFab& in, const BC_Mode& bc_mode,
 			 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
-  compFlux(D_DECL(xflux, yflux, zflux), in, true, bc_mode, src_comp, dst_comp, num_comp, bnd_comp);
+  compFlux(AMREX_D_DECL(xflux, yflux, zflux), in, true, bc_mode, src_comp, dst_comp, num_comp, bnd_comp);
 }
 
 void
-ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+ABecLaplacian::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
                          MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode,
 			 int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
@@ -333,7 +333,7 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 
     const MultiFab& a = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    AMREX_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -344,17 +344,17 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 #endif
     for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
+        AMREX_D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
 	       const Box& ybx   = inmfi.nodaltilebox(1);,
 	       const Box& zbx   = inmfi.nodaltilebox(2););
 
         FArrayBox& infab = in[inmfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[inmfi];,
+        AMREX_D_TERM(const FArrayBox& bxfab = bX[inmfi];,
                const FArrayBox& byfab = bY[inmfi];,
                const FArrayBox& bzfab = bZ[inmfi];);
 
-        D_TERM(FArrayBox& xfluxfab = xflux[inmfi];,
+        AMREX_D_TERM(FArrayBox& xfluxfab = xflux[inmfi];,
                FArrayBox& yfluxfab = yflux[inmfi];,
                FArrayBox& zfluxfab = zflux[inmfi];);
 
@@ -419,7 +419,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 #endif    
     const MultiFab& a = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    AMREX_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -458,7 +458,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
         const FArrayBox& rhsfab  = rhsL[solnLmfi];
         const FArrayBox& afab    = a[solnLmfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+        AMREX_D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
                const FArrayBox& byfab = bY[solnLmfi];,
                const FArrayBox& bzfab = bZ[solnLmfi];);
 
@@ -535,7 +535,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
 #endif    
     const MultiFab& a = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+    AMREX_D_TERM(const MultiFab& bX = bCoefficients(0,level);,
            const MultiFab& bY = bCoefficients(1,level);,
            const MultiFab& bZ = bCoefficients(2,level););
 
@@ -571,7 +571,7 @@ ABecLaplacian::Fsmooth_jacobi (MultiFab&       solnL,
         const FArrayBox& rhsfab  = rhsL[solnLmfi];
         const FArrayBox& afab    = a[solnLmfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
+        AMREX_D_TERM(const FArrayBox& bxfab = bX[solnLmfi];,
                const FArrayBox& byfab = bY[solnLmfi];,
                const FArrayBox& bzfab = bZ[solnLmfi];);
 
@@ -656,7 +656,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
 
     const MultiFab& a   = aCoefficients(level);
 
-    D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
+    AMREX_D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
 
@@ -672,7 +672,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
         const FArrayBox& xfab = x[ymfi];
         const FArrayBox& afab = a[ymfi];
 
-        D_TERM(const FArrayBox& bxfab = bX[ymfi];,
+        AMREX_D_TERM(const FArrayBox& bxfab = bX[ymfi];,
                const FArrayBox& byfab = bY[ymfi];,
                const FArrayBox& bzfab = bZ[ymfi];);
 

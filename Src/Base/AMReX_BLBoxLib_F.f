@@ -4,7 +4,7 @@ c-----------------------------------------------------------------------
       integer NSTR
       parameter (NSTR = 128)
       integer istr(NSTR)
-      call flush(6)
+      flush(6)
       call blstr2int(istr, NSTR, str)
       call bl_error_cpp(istr, NSTR)
       end
@@ -14,7 +14,7 @@ c-----------------------------------------------------------------------
       integer NSTR
       parameter (NSTR = 128)
       integer istr(NSTR)
-      call flush(6)
+      flush(6)
       call blstr2int(istr, NSTR, str)
       call bl_warning_cpp(istr, NSTR)
       end
@@ -24,7 +24,7 @@ c-----------------------------------------------------------------------
       integer NSTR
       parameter (NSTR = 128)
       integer istr(NSTR)
-      call flush(6)
+      flush(6)
       call blstr2int(istr, NSTR, str)
       call bl_abort_cpp(istr, NSTR)
       end

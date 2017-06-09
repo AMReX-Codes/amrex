@@ -53,6 +53,9 @@
 \usepackage{colortbl}
 \definecolor{tableShade}{rgb}{0.945,0.961,0.980}
 
+% caption
+\usepackage{caption}
+\captionsetup[figure]{font=small,labelfont=small}
 
 % make the MarginPars look pretty
 \setlength{\marginparwidth}{0.75in}
@@ -213,12 +216,17 @@
 \lstset{language=C++,
                 basicstyle=\footnotesize\ttfamily,
                 keywordstyle=\color{blue}\footnotesize\ttfamily,
-                commentstyle=\color{green}\footnotesize\ttfamily
+                commentstyle=\color{cyan}\footnotesize\ttfamily
 }
 
 \lstdefinelanguage{cpp}{
   language     = C++,
-  morekeywords = [2]{amrex},
+  morekeywords =
+  [2]{amrex,amrex_real,
+      Array,BaseFab,Box,BoxArray,DistributionMapping,FabArray,FArrayBox,
+      Geometry,IArrayBox,IntVect,IndexType,MFIter,MultiFab,
+      ParallelDescriptor,ParmParse,Real,RealBox,
+      AMREX_SPACEDIM,AMREX_D_DECL},
   keywordstyle = [2]\color{red}\footnotesize\ttfamily,
 }
 
@@ -293,18 +301,42 @@
 
 \chapter*{Preface}
 \addcontentsline{toc}{chapter}{Preface}
-\input Preface/Preface
+\input{Preface/Preface}
 
 \mainmatter
 
 \chapter{Introduction}\label{Chap:Introduction}
-\input Introduction/Introduction
+\input{Introduction/Introduction}
 
 \chapter{Getting Started}\label{Chap:GettingStarted}
-\input GettingStarted/GettingStarted
+\input{GettingStarted/GettingStarted}
 
 \chapter{Building AMReX}\label{Chap:BuildingAMReX}
-\input BuildingAMReX/BuildingAMReX
+\input{BuildingAMReX/BuildingAMReX}
+
+\chapter{The Basics}\label{Chap:Basics}
+\input{Basics/Basics.tex}
+
+\chapter{AMR Core Infrastructure}\label{Chap:AmrCore}
+\input{AmrCore/AmrCore}
+
+\chapter{Particles}\label{Chap:Particles}
+\input{Particle/Particle}
+
+\chapter{{\tt AmrLevel} Class}\label{Chap:AmrLevel}
+\input{AmrLevel/AmrLevel}
+
+\chapter{Visualization}\label{Chap:Visualization}
+\input{Visualization/Visualization}
+
+\chapter{Profiling}\label{Chap:Profiling}
+\input{Profiling/Profiling}
+
+\chapter{Debugging}\label{Chap:Debugging}
+\input{Debugging/Debugging}
+
+\chapter{CVODE}\label{Chap:CVODE}
+\input{CVODE/CVODE}
 
 %------------------------------------------------------------------------------
 \backmatter

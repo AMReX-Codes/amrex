@@ -39,4 +39,87 @@ contains
     end do
   end subroutine amrex_particle_get_position
 
+  subroutine amrex_deposit_cic(particles, ns, np, rho, lo, hi, plo, dx) &
+       bind(c,name='amrex_deposit_cic')
+    integer, value       :: ns, np
+    real(amrex_real)     :: particles(ns,np)
+    integer              :: lo(2)
+    integer              :: hi(2)
+    real(amrex_real)     :: rho(lo(1):hi(1), lo(2):hi(2))
+    real(amrex_real)     :: plo(2)
+    real(amrex_real)     :: dx(2)
+
+    integer i, j, n
+    real(amrex_real) wx_lo, wy_lo, wx_hi, wy_hi
+    real(amrex_real) lx, ly
+    real(amrex_real) inv_dx(2)
+    inv_dx = 1.0d0/dx
+
+    do n = 1, np
+       lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
+       ly = (particles(2, n) - plo(2))*inv_dx(2) + 0.5d0
+
+       i = floor(lx)
+       j = floor(ly)
+
+       wx_hi = lx - i
+       wy_hi = ly - j
+
+       wx_lo = 1.0d0 - wx_hi
+       wy_lo = 1.0d0 - wy_hi
+
+       rho(i-1, j-1)   = rho(i-1, j-1)   + wx_lo*wy_lo*particles(3, n)
+       rho(i-1, j  )   = rho(i-1, j  )   + wx_lo*wy_hi*particles(3, n)
+       rho(i,   j-1)   = rho(i,   j-1)   + wx_hi*wy_lo*particles(3, n)
+       rho(i,   j  )   = rho(i,   j  )   + wx_hi*wy_hi*particles(3, n)
+
+    end do
+
+  end subroutine amrex_deposit_cic
+
+  subroutine amrex_interpolate_cic(particles, ns, np, acc, lo, hi, ncomp, plo, dx) &
+       bind(c,name='amrex_interpolate_cic')
+    integer, value       :: ns, np, ncomp
+    real(amrex_real)     :: particles(ns,np)
+    integer              :: lo(2)
+    integer              :: hi(2)
+    real(amrex_real)     :: acc(lo(1):hi(1), lo(2):hi(2), ncomp)
+    real(amrex_real)     :: plo(2)
+    real(amrex_real)     :: dx(2)
+    real(amrex_real)     :: acceleration(ncomp)
+
+    integer i, j, n, nc
+    real(amrex_real) wx_lo, wy_lo, wx_hi, wy_hi
+    real(amrex_real) lx, ly
+    real(amrex_real) inv_dx(2)
+    inv_dx = 1.0d0/dx
+
+    do n = 1, np
+       lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
+       ly = (particles(2, n) - plo(2))*inv_dx(2) + 0.5d0
+
+       i = floor(lx)
+       j = floor(ly)
+
+       wx_hi = lx - i
+       wy_hi = ly - j
+
+       wx_lo = 1.0d0 - wx_hi
+       wy_lo = 1.0d0 - wy_hi
+
+       do nc = 1, ncomp
+          acceleration(nc) = wx_lo*wy_lo*acc(i-1, j-1, nc) + &
+                             wx_lo*wy_hi*acc(i-1, j,   nc) + &
+                             wx_hi*wy_lo*acc(i,   j-1, nc) + &
+                             wx_hi*wy_hi*acc(i,   j,   nc)
+       
+          if (abs(acceleration(nc) - 5.d0) .ge. 1.0d-9) then
+             print *, particles(1, n), particles(2, n)
+          end if
+
+       end do
+    end do
+
+  end subroutine amrex_interpolate_cic
+
 end module amrex_particle_module

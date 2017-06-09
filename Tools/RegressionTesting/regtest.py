@@ -518,7 +518,7 @@ def test_suite(argv):
             else:
                 base_cmd += " amr.checkpoint_files_output=0"
 
-            base_cmd += "{} {}".format(suite.globalAddToExecString, test.runtime_params)
+            base_cmd += " {} {}".format(suite.globalAddToExecString, test.runtime_params)
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
@@ -661,6 +661,16 @@ def test_suite(argv):
 
                         if ierr == 0:
                             test.compare_successful = True
+
+                        if test.compareParticles:
+                            for ptype in test.particleTypes.strip().split():
+                                command = "{} {} {} {}".format(
+                                    suite.tools["particle_compare"], bench_file, output_file, ptype)
+
+                                sout, serr, ierr = test_util.run(command,
+                                                                 outfile="{}.compare.out".format(test.name), store_command=True)
+
+                                test.compare_successful = test.compare_successful and not ierr
 
                     else:
                         suite.log.warn("unable to do a comparison")
@@ -819,7 +829,7 @@ def test_suite(argv):
                             suite.log.log("doing the visualization...")
                             tool = suite.tools["fsnapshot{}d".format(test.dim)]
                             test_util.run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
-                                tool, suite.compare_tool_dir, test.visVar, output_file))
+                                tool, suite.f_compare_tool_dir, test.visVar, output_file))
 
                             # convert the .ppm files into .png files
                             ppm_file = test_util.get_recent_filename(output_dir, "", ".ppm")
