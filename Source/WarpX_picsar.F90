@@ -143,19 +143,17 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
   use amrex_error_module
   
-  integer(c_long), intent(IN)                                  :: np
-  integer(c_long), intent(IN)                                  :: nx,ny,nz
-  integer(c_long), intent(IN)                                  :: nxguard,nyguard,nzguard
-  integer(c_long), intent(IN)                                  :: nox,noy,noz
-  real(amrex_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-       &                                  -nyguard:ny+nyguard,&
-       &                                  -nzguard:nz+nzguard) :: rho
-  real(amrex_real), intent(IN)                                     :: q
-  real(amrex_real), intent(IN)                                     :: dx,dy,dz
-  real(amrex_real), intent(IN)                                     :: xmin,ymin,zmin
-  real(amrex_real), intent(IN),  dimension(np)                     :: xp,yp,zp,w
-  integer(c_long), intent(IN)                                  :: lvect
-  integer(c_long), intent(IN)                                  :: charge_depo_algo
+  integer(c_long), intent(IN)                   :: np
+  integer(c_long), intent(IN)                   :: nx,ny,nz
+  integer(c_long), intent(IN)                   :: nxguard,nyguard,nzguard
+  integer(c_long), intent(IN)                   :: nox,noy,noz
+  real(amrex_real), intent(IN OUT)              :: rho(*)
+  real(amrex_real), intent(IN)                  :: q
+  real(amrex_real), intent(IN)                  :: dx,dy,dz
+  real(amrex_real), intent(IN)                  :: xmin,ymin,zmin
+  real(amrex_real), intent(IN),  dimension(np)  :: xp,yp,zp,w
+  integer(c_long), intent(IN)                   :: lvect
+  integer(c_long), intent(IN)                   :: charge_depo_algo
 
 
   ! Dimension 3
