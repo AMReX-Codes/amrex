@@ -27,27 +27,26 @@ void solve_for_accel(const Array<MultiFab*>& rhs,
 		     int base_level, int finest_level, Real offset);
 
 void field_solve(MultiFab& density, MultiFab& phi, MultiFab& E, const Geometry& geom, Real offset) {
-
-  BL_PROFILE("Field Solve.")
+  
+  BL_PROFILE("Field Solve.");
   
   MultiFab tmp(density.boxArray(), density.DistributionMap(), 1, 0);
   MultiFab::Copy(tmp, density, 0, 0, 1, 0);
-
+  
   Array<MultiFab*> rhs_in(1);
   Array<MultiFab*> phi_in(1);
   Array<MultiFab*> gradphi_in(1);
   Array<Geometry> geom_in(1);
-
+  
   rhs_in[0]     = &tmp;
   phi_in[0]     = &phi;
   gradphi_in[0] = &E;
   geom_in[0]    = geom;
-
-  solve_for_accel(rhs_in, phi_in, gradphi_in, geom_in, 0, 0, offset);
-
+  
+  solve_for_accel(rhs_in, phi_in, gradphi_in, geom_in, 0, 0, offset);  
 }
 
-void test_assign_density(TestParams& parms)
+void test_cuda_pic(TestParams& parms)
 {
 
   RealBox real_box;
@@ -94,16 +93,16 @@ void test_assign_density(TestParams& parms)
   myPC.Deposit(density);
 
   Real offset = myPC.sumParticleMass(0, 0);
-
+  
   std::cout << "Total particle mass is: " << offset << std::endl;
   std::cout << "Total mesh mass is: " << density.sum(0) << std::endl;
   
   field_solve(density, phi, E, geom, offset);
-
+  
   myPC.Interpolate(E);
-
+  
   myPC.Push();
-
+    
   WriteSingleLevelPlotfile("plt00000", density, {"density"}, geom, 0.0, 0);
   myPC.Checkpoint("plt00000", "particle0", true);
 }
@@ -135,7 +134,7 @@ int main(int argc, char* argv[])
     std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
   }
   
-  test_assign_density(parms);
+  test_cuda_pic(parms);
   
   amrex::Finalize();
 }
