@@ -26,6 +26,15 @@
 #include <vector>
 #include <string>
 
+#ifdef BL_USE_MPI
+#  ifdef BL_USE_FLOAT /* precision */
+     typedef float Real;
+#    define MPI_CH_REAL         MPI_FLOAT
+#  else   /* precision */
+     typedef double Real;
+#    define MPI_CH_REAL         MPI_DOUBLE
+#  endif  /* precision */
+#  endif  /*mpi*/
 
 namespace amrex
 {

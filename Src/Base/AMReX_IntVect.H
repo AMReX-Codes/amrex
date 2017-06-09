@@ -318,6 +318,41 @@ public:
     IntVect& coarsen (const IntVect& p);
     //! Modify IntVect by component-wise integer projection.
     IntVect& coarsen (int p);
+
+    /// for serialization
+    static size_t 
+    linearSize()
+    {
+      size_t retval = SpaceDim*sizeof(int);
+      return retval;
+    }
+
+    /// for serialization
+    void 
+    linearOut(void* a_buffer ) const
+    {
+      int* intbuf = (int *) a_buffer;
+      const IntVect& iv = *this;
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        *intbuf = iv[idir];
+        intbuf++;
+      }
+    }
+
+    /// for serialization
+    void 
+    linearIn(void* a_buffer )
+    {
+      int* intbuf = (int *) a_buffer;
+      IntVect& iv = *this;
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        iv[idir] = *intbuf;
+        intbuf++;
+      }
+    }
+
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose BL_SPACEDIM arguments are set to zero (0).

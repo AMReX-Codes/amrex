@@ -286,7 +286,11 @@ namespace amrex
       }
     }
   }
-/*********************/
+   /*********************/
+  /// Below lies serialization land.  Enter at thy own risk.
+  /// Management is not responsible for any gibbering madness resulting 
+  /// from ignoring this warning.
+  /******************/
   template <class T> inline
   std::size_t 
   BaseIFFAB<T>::
@@ -317,7 +321,7 @@ namespace amrex
 
     return retval;
   }
-/********************/
+  /********************/
   template <class T> inline
   std::size_t 
   BaseIFFAB<T>::
@@ -353,7 +357,7 @@ namespace amrex
     size_t retval = nBytes(a_region, srccomp, numcomp);
     return retval;
   }
-/********************/
+  /********************/
   template <class T> inline
   std::size_t
   BaseIFFAB<T>::
@@ -385,7 +389,146 @@ namespace amrex
     size_t retval = nBytes(dstbox, dstcomp, numcomp);
     return retval;
   }
-/********************/
+  /********************/
+  template <class T> inline
+  std::size_t 
+  BaseIFFAB<T>::
+  nBytesFull() const
+  {
+    size_t retval = 0;
+    //nfaces, ncomp, direction
+    retval += 3*sizeof(int);
+    //set
+    retval += linearSize(m_ivs);
+    //faces
+    retval += linearListSize(m_faces);
+    //data
+    for(int iface = 0; iface< m_nFaces; iface++)
+    {
+      const FaceIndex face = m_faces[iface];
+      for(int icomp = 0; icomp < m_nComp; icomp++)
+      {
+        const T& value = (*this)(face, icomp);
+        retval += linearSize(value);
+      }
+    }
+    return retval;
+  }
+  /********************/
+  template <class T> inline
+  std::size_t 
+  BaseIFFAB<T>::
+  copyToMemFull(void*      a_buf) const
+  {
+    size_t retval = 0;
+    size_t incval = 0;
+
+    //nfaces, ncomp, direction
+    unsigned char* buf = (unsigned char*) a_buf;
+    int* intbuf = (int*) a_buf;
+
+    *intbuf = m_nFaces;
+    intbuf++;
+    *intbuf = m_nComp;
+    intbuf++;
+    *intbuf = m_direction;
+    intbuf++;
+
+    incval = 3*sizeof(int);
+    retval += incval;
+    buf    += incval;
+
+    //set
+    linearOut(buf, m_ivs);
+    incval = linearSize(m_ivs);
+    retval += incval;
+    buf    += incval;
+
+
+    //faces
+    linearListOut(buf, m_faces);
+    incval = linearListSize(m_faces);
+    retval += incval;
+    buf    += incval;
+
+    //data
+    for(int iface = 0; iface< m_nFaces; iface++)
+    {
+      const FaceIndex face = m_faces[iface];
+      for(int icomp = 0; icomp < m_nComp; icomp++)
+      {
+        const T& value = (*this)(face, icomp);
+        linearOut(buf, value);
+        incval = linearSize(value);
+        retval += incval;
+        buf    += incval;
+      }
+    }
+    return retval;
+ }
+  /********************/
+  template <class T> inline
+  std::size_t
+  BaseIFFAB<T>::
+  copyFromMemFull(const void* a_buf)
+  {
+    size_t retval = 0;
+    size_t incval = 0;
+
+    //nfaces, ncomp, direction
+    unsigned char* buf = (unsigned char*) a_buf;
+    int* intbuf = (int*) a_buf;
+
+    m_nFaces = *intbuf;
+    intbuf++;
+    m_nComp = *intbuf;
+    intbuf++;
+    m_direction = *intbuf;
+    intbuf++;
+
+    incval = 3*sizeof(int);
+    retval += incval;
+    buf    += incval;
+
+    //set
+    linearIn(m_ivs, buf);
+    incval = linearSize(m_ivs);
+    retval += incval;
+    buf    += incval;
+
+
+    //faces
+    linearListIn(m_faces, buf);
+    incval = linearListSize(m_faces);
+    retval += incval;
+    buf    += incval;
+
+    if(m_data != NULL)
+    {
+      delete[] m_data;
+      m_data = NULL;
+    }
+    
+    m_data = new T[m_nFaces*m_nComp];
+    m_isDefined = true;
+    //data
+    for(int iface = 0; iface< m_nFaces; iface++)
+    {
+      const FaceIndex face = m_faces[iface];
+      for(int icomp = 0; icomp < m_nComp; icomp++)
+      {
+        T& value = (*this)(face, icomp);
+        linearIn(value, buf);
+        incval = linearSize(value);
+        retval += incval;
+        buf    += incval;
+      }
+    }
+
+
+    return retval;
+  }
+  /********************/
 /******************/
 
 }
