@@ -127,6 +127,7 @@ int myTest()
         EBISBox ebis_box = eblg.getEBISL()[mfi];
         const Box gbox = ebmask[mfi].box() & ebis_box.getDomain();
 
+        int ebID = 0; // Reset to zero for each box
         if (!ebis_box.isAllRegular())
         {
             const EBGraph& ebgr = ebis_box.getEBGraph();
@@ -145,6 +146,7 @@ int myTest()
 
                         for (int icc=0; icc<gn.nCells; ++icc)
                         {
+                            gn.cells[icc].ebID = ebID++;
                             const VolIndex& vof = gbox_vofs[icc];
                             for (int idir = 0; idir < SpaceDim; idir++)
                             {
@@ -175,7 +177,7 @@ int myTest()
             }
         }
 
-        // TODO: Fix up nbr ptrs to reference vector<Node> ordering
+        std::cout << "gid,Nnodes " << mfi.index() << " " << ebID << std::endl;
 
         BaseFab<int>& mask_fab = ebmask[mfi];
         mask_fab.setVal(REGULAR_CELL);
@@ -183,7 +185,7 @@ int myTest()
         {
             IntVect iv; 
             Copy(iv,graphNodes[gid][inode].iv);
-            mask_fab(iv,0) = graphNodes[gid][inode].nCells;
+            mask_fab(iv,0) = inode;
         }
         if (ebis_box.isAllCovered()) {
             mask_fab.setVal(COVERED_CELL);
