@@ -326,7 +326,7 @@ WarpX::SyncRho ()
 {
     if (!rho_fp[0]) return;
 
-    // Restrict fine patch current onto the coarse patch, before fine patch SumBoundary
+    // Restrict fine patch onto the coarse patch, before fine patch SumBoundary
     for (int lev = 1; lev <= finest_level; ++lev) 
     {
         rho_cp[lev]->setVal(0.0);      
