@@ -262,13 +262,13 @@ PhysicalParticleContainer::Evolve (int lev,
                 FArrayBox& rhofab = (*rho)[pti];
                 const int* rholen = rhofab.length();
 #if (BL_SPACEDIM == 3)
-                const long nx = rholen[0]-1;
-                const long ny = rholen[1]-1;
-                const long nz = rholen[2]-1;
+                const long nx = rholen[0]-1-2*ngRho;
+                const long ny = rholen[1]-1-2*ngRho;
+                const long nz = rholen[2]-1-2*ngRho;
 #else
-                const long nx = rholen[0]-1;
+                const long nx = rholen[0]-1-2*ngRho;
                 const long ny = 0;
-                const long nz = rholen[1]-1;
+                const long nz = rholen[1]-1-2*ngRho;
 #endif
             	warpx_charge_deposition(rhofab.dataPtr(),
                                         &np, xp.data(), yp.data(), zp.data(), wp.data(),
