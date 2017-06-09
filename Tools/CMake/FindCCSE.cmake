@@ -160,7 +160,9 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
     endif()
 
     # Now, make sure the rest are in the same place
-    set(CCSE_LIBRARIES cboxlib;fboxlib;cfboxlib;box_camrdata)
+    # fboxlib is repeated twice to take care of circulr dependency
+    # when ENABALE_MPI=1
+    set(CCSE_LIBRARIES fboxlib;cboxlib;fboxlib;cfboxlib;box_camrdata)
 
     foreach (L ${CCSE_LIBRARIES})
 
@@ -177,9 +179,9 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
     set(CCSE_LIBRARY_DIRS ${CCSE_LIBRARY_DIR})
 
     # Add this to fix circular dependency
-    if (ENABLE_MPI)
-      set(CCSE_LIBRARIES fboxlib;cboxlib;fboxlib;cfboxlib;box_camrdata)
-    endif (ENABLE_MPI)
+    #if (ENABLE_MPI)
+     # set(CCSE_LIBRARIES fboxlib;cboxlib;fboxlib;cfboxlib;box_camrdata)
+    #endif (ENABLE_MPI)
 
     # Search for perl scripts
     # Search order preference:
