@@ -17,18 +17,101 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_PolyGeom.H"
+#include "AMReX_Utility.H"
+#include <string>
+#include "AMReX_Utility.H"
+#include "AMReX_FabArrayIO.H"
+#include <iostream>
+#include <sstream>
 
 
 namespace amrex
 {
+  ///
+  void 
+  EBIndexSpace::
+  write(const string& a_dirname) const
+  {
+    //this creates the directory of all the stuff
+    UtilCreateDirectoryDestructive(a_dirname, true);
+    writeHeader(a_dirname);
+    for(int ilev = 0; ilev < m_nlevels; ilev++)
+    {
+      string levdirname = a_dirname + "/_lev_" + EBArith::convertInt(ilev);
+      UtilCreateDirectoryDestructive(levdirname, true);
+      m_ebisLevel[ilev]->write(levdirname);
+    }
+  }
 
 
-  void EBIndexSpace::define(const Box              & a_domain,
-                            const RealVect         & a_origin,
-                            const Real             & a_dx,
-                            const GeometryService  & a_geoserver,
-                            int                      a_nCellMax,
-                            int                      a_maxCoarsenings)
+  ///
+  void 
+  EBIndexSpace::
+  read(const string& a_dirname)
+  {
+    readHeader(a_dirname);
+    m_ebisLevel.resize(m_nlevels);
+    for(int ilev = 0; ilev < m_ebisLevel.size(); ilev++)
+    {
+      delete m_ebisLevel[ilev];
+    }
+    m_ebisLevel.resize(m_nlevels, NULL);
+
+    for(int ilev = 0; ilev < m_nlevels; ilev++)
+    {
+      m_ebisLevel[ilev] = new EBISLevel();
+      string levdirname = a_dirname + "/_lev_" + EBArith::convertInt(ilev);
+      m_ebisLevel[ilev]->read(levdirname);
+    }
+    m_isDefined = true;
+  }
+
+  ///
+  void 
+  EBIndexSpace::
+  writeHeader(const string& a_dirname) const
+  {
+    std::ofstream headerfile;
+    string filename = a_dirname + string("/headerfile");
+    headerfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
+    headerfile << m_nlevels  << endl;
+    headerfile << m_nCellMax << endl;
+    for(int ilev = 0; ilev < m_domainLevel.size(); ilev++)
+    {
+      headerfile << m_domainLevel[ilev] << endl;
+    }
+
+    headerfile.flush();
+    headerfile.close();
+  }
+
+  ///
+  void 
+  EBIndexSpace::
+  readHeader(const string& a_dirname)
+  {
+    std::ifstream headerfile;
+    string filename = a_dirname + string("/headerfile");
+    headerfile.open(filename.c_str(), std::ios::in);
+    headerfile >> m_nlevels ;
+    headerfile >> m_nCellMax;
+    m_domainLevel.resize(m_nlevels);
+    for(int ilev = 0; ilev < m_domainLevel.size(); ilev++)
+    {
+      headerfile >> m_domainLevel[ilev];
+    }
+    headerfile.close();
+    
+  }
+  ///
+  void 
+  EBIndexSpace::
+  define(const Box              & a_domain,
+         const RealVect         & a_origin,
+         const Real             & a_dx,
+         const GeometryService  & a_geoserver,
+         int                      a_nCellMax,
+         int                      a_maxCoarsenings)
   {
     BL_PROFILE("EBIndexSpace::define_geoserver_domain0");
 

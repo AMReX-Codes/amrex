@@ -1,13 +1,12 @@
 
-
 /*
- *      .o.       ooo        ooooo ooooooooo.             ooooooo  ooooo 
- *     .888.      `88.       .888' `888   `Y88.            `8888    d8'  
- *    .8"888.      888b     d'888   888   .d88'  .ooooo.     Y888..8P    
- *   .8' `888.     8 Y88. .P  888   888ooo88P'  d88' `88b     `8888'     
- *  .88ooo8888.    8  `888'   888   888`88b.    888ooo888    .8PY888.    
- * .8'     `888.   8    Y     888   888  `88b.  888    .o   d8'  `888b   
- *o88o     o8888o o8o        o888o o888o  o888o `Y8bod8P' o888o  o88888o 
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
  *
  */
 
@@ -16,6 +15,57 @@
 #include "AMReX_IntVectSet.H"
 namespace amrex
 {
+  ///
+  size_t 
+  IntVectSet::
+  linearSize() const
+  {
+    //the one is for the size
+    size_t retval = sizeof(int);
+    retval += numPts()*IntVect::linearSize();
+    return retval;
+  }
+
+  ///
+  void 
+  IntVectSet::
+  linearOut(void* a_buffer ) const
+  {
+    int* intbuf = (int *) a_buffer;
+    int numpts = numPts();
+    *intbuf = numpts;
+    intbuf++;
+    unsigned char* buf = (unsigned char*) intbuf;
+    int icount = 0;
+    for(IVSIterator ivsit(*this); ivsit.ok(); ++ivsit)
+    {
+      const IntVect& iv = ivsit();
+      iv.linearOut(buf);
+      buf += IntVect::linearSize();
+      icount++;
+    }
+    BL_ASSERT(icount == numpts);
+  }
+
+  ///
+  void 
+  IntVectSet::
+  linearIn(const void* const a_buffer )
+  {
+    int* intbuf = (int *) a_buffer;
+    int numpts = *intbuf;
+    intbuf++;
+    unsigned char* buf = (unsigned char*) intbuf;
+    for(int ivec = 0; ivec < numpts; ivec++)
+    {
+      IntVect iv;
+      iv.linearIn(buf);
+      buf += IntVect::linearSize();
+
+      *this |= iv;
+    }
+  }
+
   ///
   IntVectSet::
   IntVectSet(const Box& a_box)
