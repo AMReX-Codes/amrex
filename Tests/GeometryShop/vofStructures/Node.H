@@ -1,8 +1,8 @@
 #ifndef _Node_H
 #define _Node_H
 
-#define COVERED_CELL -1
-#define REGULAR_CELL -2
+#define COVERED_CELL  -1
+#define REGULAR_CELL  -2
 
 #ifndef BL_LANG_FORT
 //
