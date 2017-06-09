@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 enable_language(Fortran)
 
+# Make verbose output the default ( this is useful for debugging )
+set( CMAKE_VERBOSE_MAKEFILE on ) 
 #
 # Usage:
 #
