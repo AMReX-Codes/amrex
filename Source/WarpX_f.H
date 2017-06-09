@@ -198,20 +198,21 @@ extern "C"
                             const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
 
     void WRPX_PUSH_PML_EVEC_F(const int* xlo, const int* xhi,
-                            const int* ylo, const int* yhi,
-                            const int* zlo, const int* zhi,
-                            BL_FORT_FAB_ARG_3D(ex),
-                            BL_FORT_FAB_ARG_3D(ey),
-                            BL_FORT_FAB_ARG_3D(ez),
-                            const BL_FORT_FAB_ARG_3D(f),
-                            const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi, 
-                            const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi, 
+                              const int* ylo, const int* yhi,
+                              const int* zlo, const int* zhi,
+                              BL_FORT_FAB_ARG_3D(ex),
+                              BL_FORT_FAB_ARG_3D(ey),
+                              BL_FORT_FAB_ARG_3D(ez),
+                              const BL_FORT_FAB_ARG_3D(f),
+                              const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi, 
+                              const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi, 
 #if (BL_SPACEDIM == 3)
-                            const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi, 
-                            const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi, 
+                              const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi, 
+                              const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi, 
 #endif
-                            const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
-                            const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
+                              const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
+                              const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi,
+                              const amrex::Real* c2);
 
     void WRPX_PUSH_PML_F(const int* lo, const int* hi,
                          BL_FORT_FAB_ARG_3D(f),
@@ -225,7 +226,8 @@ extern "C"
                          const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi, 
 #endif
                          const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
-                         const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
+                         const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi,
+                         const amrex::Real* c2inv);
 
     void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
                              BL_FORT_FAB_ARG_ANYD(crse),

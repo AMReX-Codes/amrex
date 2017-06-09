@@ -268,7 +268,7 @@ contains
        &                          sigy1, sigy1_lo, sigy1_hi, &
        &                          sigy2, sigy2_lo, sigy2_hi, &
        &                          sigz1, sigz1_lo, sigz1_hi, &
-       &                          sigz2, sigz2_lo, sigz2_hi) &
+       &                          sigz2, sigz2_lo, sigz2_hi, c2inv) &
        bind(c,name='warpx_push_pml_f_3d')
     integer, intent(in) :: lo(3), hi(3), Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), &
          flo(3), fhi(3)
@@ -285,25 +285,26 @@ contains
     real(amrex_real), intent(in) :: sigy2(sigy2_lo:sigy2_hi)
     real(amrex_real), intent(in) :: sigz1(sigz1_lo:sigz1_hi)
     real(amrex_real), intent(in) :: sigz2(sigz2_lo:sigz2_hi)
+    real(amrex_real), intent(in) :: c2inv
 
     integer :: i, j, k
 
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             f(i,j,k,1) = sigx1(i)*f(i,j,k,1) + sigx2(i)* &
+             f(i,j,k,1) = sigx1(i)*f(i,j,k,1) + sigx2(i)*c2inv* &
                   &                             ((Ex(i,j,k,1)-Ex(i-1,j,k,1)) &
                   &                            + (Ex(i,j,k,2)-Ex(i-1,j,k,2)) &
                   &                            + (Ex(i,j,k,3)-Ex(i-1,j,k,3)))
           end do
           do i = lo(1), hi(1)
-             f(i,j,k,2) = sigy1(j)*f(i,j,k,2) + sigy2(j)* &
+             f(i,j,k,2) = sigy1(j)*f(i,j,k,2) + sigy2(j)*c2inv* &
                   &                             ((Ey(i,j,k,1)-Ey(i,j-1,k,1)) &
                   &                            + (Ey(i,j,k,2)-Ey(i,j-1,k,2)) &
                   &                            + (Ey(i,j,k,3)-Ey(i,j-1,k,3)))
           end do
           do i = lo(1), hi(1)
-             f(i,j,k,3) = sigz1(k)*f(i,j,k,3) + sigz2(k)* &
+             f(i,j,k,3) = sigz1(k)*f(i,j,k,3) + sigz2(k)*c2inv* &
                   &                             ((Ez(i,j,k,1)-Ez(i,j,k-1,1)) &
                   &                            + (Ez(i,j,k,2)-Ez(i,j,k-1,2)) &
                   &                            + (Ez(i,j,k,3)-Ez(i,j,k-1,3)))
@@ -320,7 +321,7 @@ contains
        &                          sigx1, sigx1_lo, sigx1_hi, &
        &                          sigx2, sigx2_lo, sigx2_hi, &
        &                          sigz1, sigz1_lo, sigz1_hi, &
-       &                          sigz2, sigz2_lo, sigz2_hi) &
+       &                          sigz2, sigz2_lo, sigz2_hi, c2inv) &
        bind(c,name='warpx_push_pml_f_2d')
     integer, intent(in) :: lo(2), hi(2), Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), &
          flo(2), fhi(2)
@@ -334,18 +335,19 @@ contains
     real(amrex_real), intent(in) :: sigx2(sigx2_lo:sigx2_hi)
     real(amrex_real), intent(in) :: sigz1(sigz1_lo:sigz1_hi)
     real(amrex_real), intent(in) :: sigz2(sigz2_lo:sigz2_hi)
+    real(amrex_real), intent(in) :: c2inv
 
     integer :: i, k
 
     do    k = lo(2), hi(2)
        do i = lo(1), hi(1)
-          f(i,k,1) = sigx1(i)*f(i,k,1) + sigx2(i)* &
+          f(i,k,1) = sigx1(i)*f(i,k,1) + sigx2(i)*c2inv* &
                &                         ((Ex(i,k,1)-Ex(i-1,k,1)) &
                &                        + (Ex(i,k,2)-Ex(i-1,k,2)) &
                &                        + (Ex(i,k,3)-Ex(i-1,k,3)))
        end do
        do i = lo(1), hi(1)
-          f(i,k,3) = sigz1(k)*f(i,k,3) + sigz2(k)* &
+          f(i,k,3) = sigz1(k)*f(i,k,3) + sigz2(k)*c2inv* &
                &                         ((Ez(i,k,1)-Ez(i,k-1,1)) &
                &                        + (Ez(i,k,2)-Ez(i,k-1,2)) &
                &                        + (Ez(i,k,3)-Ez(i,k-1,3)))
@@ -364,7 +366,7 @@ contains
        &                             sigy1, sigy1_lo, sigy1_hi, &
        &                             sigy2, sigy2_lo, sigy2_hi, &
        &                             sigz1, sigz1_lo, sigz1_hi, &
-       &                             sigz2, sigz2_lo, sigz2_hi) &
+       &                             sigz2, sigz2_lo, sigz2_hi, c2) &
        bind(c,name='warpx_push_pml_evec_f_3d')
     integer, intent(in) :: xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3), &
          Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), flo(3), fhi(3)
@@ -381,15 +383,16 @@ contains
     real(amrex_real), intent(in) :: sigy2(sigy2_lo:sigy2_hi)
     real(amrex_real), intent(in) :: sigz1(sigz1_lo:sigz1_hi)
     real(amrex_real), intent(in) :: sigz2(sigz2_lo:sigz2_hi)
+    real(amrex_real), intent(in) :: c2
 
     integer :: i, j, k
 
     do       k = xlo(3), xhi(3)
        do    j = xlo(2), xhi(2)
           do i = xlo(1), xhi(1)
-             Ex(i,j,k,3) = sigx1(i)*Ex(i,j,k,3) + sigx2(i)*((f(i+1,j,k,1)-f(i,j,k,1)) &
-                  &                                       + (f(i+1,j,k,2)-f(i,j,k,2)) &
-                  &                                       + (f(i+1,j,k,3)-f(i,j,k,3)))
+             Ex(i,j,k,3) = sigx1(i)*Ex(i,j,k,3) + sigx2(i)*c2*((f(i+1,j,k,1)-f(i,j,k,1)) &
+                  &                                          + (f(i+1,j,k,2)-f(i,j,k,2)) &
+                  &                                          + (f(i+1,j,k,3)-f(i,j,k,3)))
           end do
        end do
     end do
@@ -397,9 +400,9 @@ contains
     do       k = ylo(3), yhi(3)
        do    j = ylo(2), yhi(2)
           do i = ylo(1), yhi(1)
-             Ey(i,j,k,3) = sigy1(j)*Ey(i,j,k,3) + sigy2(j)*((f(i,j+1,k,1)-f(i,j,k,1)) &
-                  &                                       + (f(i,j+1,k,2)-f(i,j,k,2)) &
-                  &                                       + (f(i,j+1,k,3)-f(i,j,k,3)))
+             Ey(i,j,k,3) = sigy1(j)*Ey(i,j,k,3) + sigy2(j)*c2*((f(i,j+1,k,1)-f(i,j,k,1)) &
+                  &                                          + (f(i,j+1,k,2)-f(i,j,k,2)) &
+                  &                                          + (f(i,j+1,k,3)-f(i,j,k,3)))
           end do
        end do
     end do
@@ -407,9 +410,9 @@ contains
     do       k = zlo(3), zhi(3)
        do    j = zlo(2), zhi(2)
           do i = zlo(1), zhi(1)
-             Ez(i,j,k,3) = sigz1(k)*Ez(i,j,k,3) + sigz2(k)*((f(i,j,k+1,1)-f(i,j,k,1)) &
-                  &                                       + (f(i,j,k+1,2)-f(i,j,k,2)) &
-                  &                                       + (f(i,j,k+1,3)-f(i,j,k,3)))
+             Ez(i,j,k,3) = sigz1(k)*Ez(i,j,k,3) + sigz2(k)*c2*((f(i,j,k+1,1)-f(i,j,k,1)) &
+                  &                                          + (f(i,j,k+1,2)-f(i,j,k,2)) &
+                  &                                          + (f(i,j,k+1,3)-f(i,j,k,3)))
           end do
        end do
     end do
@@ -425,7 +428,7 @@ contains
        &                             sigx1, sigx1_lo, sigx1_hi, &
        &                             sigx2, sigx2_lo, sigx2_hi, &
        &                             sigz1, sigz1_lo, sigz1_hi, &
-       &                             sigz2, sigz2_lo, sigz2_hi) &
+       &                             sigz2, sigz2_lo, sigz2_hi, c2) &
        bind(c,name='warpx_push_pml_evec_f_2d')
     integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
          Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), flo(2), fhi(2)
@@ -439,22 +442,23 @@ contains
     real(amrex_real), intent(in) :: sigx2(sigx2_lo:sigx2_hi)
     real(amrex_real), intent(in) :: sigz1(sigz1_lo:sigz1_hi)
     real(amrex_real), intent(in) :: sigz2(sigz2_lo:sigz2_hi)
+    real(amrex_real), intent(in) :: c2
 
     integer :: i, k
 
     do    k = xlo(2), xhi(2)
        do i = xlo(1), xhi(1)
-          Ex(i,k,3) = sigx1(i)*Ex(i,k,3) + sigx2(i)*((f(i+1,k,1)-f(i,k,1)) &
-               &                                   + (f(i+1,k,2)-f(i,k,2)) &
-               &                                   + (f(i+1,k,3)-f(i,k,3)))
+          Ex(i,k,3) = sigx1(i)*Ex(i,k,3) + sigx2(i)*c2*((f(i+1,k,1)-f(i,k,1)) &
+               &                                      + (f(i+1,k,2)-f(i,k,2)) &
+               &                                      + (f(i+1,k,3)-f(i,k,3)))
        end do
     end do
 
     do    k = zlo(2), zhi(2)
        do i = zlo(1), zhi(1)
-          Ez(i,k,3) = sigz1(k)*Ez(i,k,3) + sigz2(k)*((f(i,k+1,1)-f(i,k,1)) &
-               &                                   + (f(i,k+1,2)-f(i,k,2)) &
-               &                                   + (f(i,k+1,3)-f(i,k,3)))
+          Ez(i,k,3) = sigz1(k)*Ez(i,k,3) + sigz2(k)*c2*((f(i,k+1,1)-f(i,k,1)) &
+               &                                      + (f(i,k+1,2)-f(i,k,2)) &
+               &                                      + (f(i,k+1,3)-f(i,k,3)))
        end do
     end do
 

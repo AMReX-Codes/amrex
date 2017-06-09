@@ -267,6 +267,7 @@ WarpX::EvolveE (int lev, Real dt)
 
     // Parameters of the solver: order and mesh spacing
     const int norder = 2;
+    static constexpr Real c2 = PhysConst::c*PhysConst::c;
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
     const Real foo = (PhysConst::c*PhysConst::c) * dt;
 
@@ -277,7 +278,6 @@ WarpX::EvolveE (int lev, Real dt)
         int patch_level = (ipatch == 0) ? lev : lev-1;
         const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
         const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
-        const std::array<Real,3> dtdx = {dt/dx[0], dt/dx[1], dt/dx[2]};
 
         MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz, *F;
         if (ipatch == 0)
@@ -337,13 +337,13 @@ WarpX::EvolveE (int lev, Real dt)
 
             if (F) {
                 WRPX_CLEAN_EVEC(tex.loVect(), tex.hiVect(),
-                                 tey.loVect(), tey.hiVect(),
-                                 tez.loVect(), tez.hiVect(),
-                                 BL_TO_FORTRAN_3D((*Ex)[mfi]),
-                                 BL_TO_FORTRAN_3D((*Ey)[mfi]),
-                                 BL_TO_FORTRAN_3D((*Ez)[mfi]),
-                                 BL_TO_FORTRAN_3D((*F)[mfi]),
-                                 &dtdx[0]);
+                                tey.loVect(), tey.hiVect(),
+                                tez.loVect(), tez.hiVect(),
+                                BL_TO_FORTRAN_3D((*Ex)[mfi]),
+                                BL_TO_FORTRAN_3D((*Ey)[mfi]),
+                                BL_TO_FORTRAN_3D((*Ez)[mfi]),
+                                BL_TO_FORTRAN_3D((*F)[mfi]),
+                                &dtsdx_c2[0]);
             }
         }
     }
@@ -391,7 +391,8 @@ WarpX::EvolveE (int lev, Real dt)
                         BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
                         BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
                         BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                        WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi]));
+                        WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi]),
+                        &c2);
                 }
             }
         }
@@ -420,9 +421,8 @@ WarpX::EvolveF (int lev, Real dt)
         pml[lev]->ComputePMLFactorsE(dt);
     }
 
-    static constexpr Real c2 = PhysConst::c*PhysConst::c;
+    static constexpr Real c2inv = 1.0/(PhysConst::c*PhysConst::c);
     static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
-    const Real c2dt = c2*dt;
 
     int npatches = (lev == 0) ? 1 : 2;
 
@@ -452,7 +452,7 @@ WarpX::EvolveF (int lev, Real dt)
         MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
         ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
         MultiFab::Saxpy(src, -mu_c2, *rho, 0, 0, 1, 0);
-        MultiFab::Saxpy(*F, c2dt, src, 0, 0, 1, 0);
+        MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
 
         if (do_pml && pml[lev]->ok())
         {
@@ -473,7 +473,8 @@ WarpX::EvolveF (int lev, Real dt)
                                 BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
                                 BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
                                 BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
-                                WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]));
+                                WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]),
+                                &c2inv);
             }
         }
     }
