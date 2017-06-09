@@ -390,6 +390,7 @@ WarpX::WritePlotFile () const
             + static_cast<int>(plot_part_per_proc)
             + static_cast<int>(plot_proc_number)
             + static_cast<int>(plot_divb)
+            + static_cast<int>(plot_dive)
             + static_cast<int>(plot_finepatch)*6;
 
 	for (int lev = 0; lev <= finest_level; ++lev)
@@ -516,6 +517,21 @@ WarpX::WritePlotFile () const
                 dcomp += 1;
             }
 
+            if (plot_dive)
+            {
+                const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
+                MultiFab dive(ba,DistributionMap(lev),1,0);
+                ComputeDivE(dive, 0,
+                            {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(), Efield_aux[lev][2].get()},
+                            WarpX::CellSize(lev));
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp, dive, 0, 1);
+                if (lev == 0)
+                {
+                    varnames.push_back("divE");
+                }                
+                dcomp += 1;
+            }
+
             if (plot_finepatch)
             {
                 PackPlotDataPtrs(srcmf, Efield_fp[lev]);
@@ -562,7 +578,7 @@ WarpX::WritePlotFile () const
                                        varnames, Geom(), t_new[0], istep, refRatio());
     }
 
-    if (plot_raw_fields || plot_crsepatch || plot_dive)
+    if (plot_raw_fields || plot_crsepatch)
     {
         const int raw_plot_nfiles = 64;  // could make this parameter
         VisMF::SetNOutFiles(raw_plot_nfiles);
@@ -618,17 +634,7 @@ WarpX::WritePlotFile () const
                 VisMF::Write(*Bfield_cp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
             }
 
-            if (plot_dive)
-            {
-                const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
-                MultiFab dive(ba,DistributionMap(lev),1,0);
-                ComputeDivE(dive, 0,
-                            {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(), Efield_aux[lev][2].get()},
-                            WarpX::CellSize(lev));
-                VisMF::Write(dive, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "divE"));                
-            }
-
-            if (F_fp[lev]) {
+            if (plot_raw_fields && F_fp[lev]) {
                 VisMF::Write(*F_fp[lev], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "F_fp"));
             }
 
