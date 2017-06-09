@@ -361,10 +361,11 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     DistributionMapping dm{ba};
 
     int nce = (do_dive_cleaning) ? 3 : 2;
+    int nge = (do_dive_cleaning) ? 1 : 0;
 
-    pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, nce, 0));
-    pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, nce, 0));
-    pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, nce, 0));
+    pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, nce, nge));
+    pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, nce, nge));
+    pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, nce, nge));
     pml_B_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Bx_nodal_flag), dm, 2, 1));
     pml_B_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::By_nodal_flag), dm, 2, 1));
     pml_B_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Bz_nodal_flag), dm, 2, 1));
@@ -392,9 +393,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         DistributionMapping cdm{cba};
 
-        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), cdm, nce, 0));
-        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), cdm, nce, 0));
-        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), cdm, nce, 0));
+        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), cdm, nce, nge));
+        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), cdm, nce, nge));
+        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), cdm, nce, nge));
         pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), cdm, 2, 1));
         pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), cdm, 2, 1));
         pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), cdm, 2, 1));
@@ -619,7 +620,21 @@ PML::FillBoundary ()
 void
 PML::FillBoundaryE ()
 {
-    // no ghost cells
+    if (pml_E_fp[0] && pml_E_fp[0]->nGrow() > 0)
+    {
+        const auto& period = m_geom->periodicity();
+        pml_E_fp[0]->FillBoundary(period);
+        pml_E_fp[1]->FillBoundary(period);
+        pml_E_fp[2]->FillBoundary(period);
+    }    
+
+    if (pml_E_cp[0] && pml_E_cp[0]->nGrow() > 0)
+    {
+        const auto& period = m_cgeom->periodicity();
+        pml_E_cp[0]->FillBoundary(period);
+        pml_E_cp[1]->FillBoundary(period);
+        pml_E_cp[2]->FillBoundary(period);
+    }
 }
 
 void
