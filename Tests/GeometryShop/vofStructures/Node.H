@@ -11,17 +11,32 @@
 
 typedef std::array<int,BL_SPACEDIM>  intDIM;
 
-struct Node
+struct CNode
 {
     struct CutCell
     {
         int Nnbr[BL_SPACEDIM][2];
         int nbr[BL_SPACEDIM][2][NCELLMAX];
-        int ebID;
+        int faceID[BL_SPACEDIM][2][NCELLMAX];
+        int ebCellID;
     };
     int nCells;
     intDIM iv;
     CutCell cells[NCELLMAX];
+};
+
+
+struct FNode
+{
+    struct CutFace
+    {
+        int cellHi;
+        int cellLo;
+        int ebFaceID;
+    };
+    int nFaces;
+    intDIM iv;
+    CutFace faces[NFACEMAX];
 };
 
 #endif

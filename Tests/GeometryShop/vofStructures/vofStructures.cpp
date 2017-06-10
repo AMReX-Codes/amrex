@@ -21,7 +21,7 @@ using namespace amrex;
 extern "C"
 {
     void do_eb_work(const int* lo, const int* hi,
-                    Node* nodes, const int* num,
+                    CNode* nodes, const int* num,
                     const BL_FORT_IFAB_ARG(mask));
 }
 
@@ -104,11 +104,60 @@ get_EGLG(EBLevelGrid& eblg)
     eblg.define(ba, dm, domain, nGrowEBLG);
 }
 
+struct tface
+{
+    tface() : mL(-1), mR(-1), ebFaceID(-1) {}
+    tface(int L, int R, const SideIterator& s) : mL(L), mR(R), ebFaceID(-1) {if (s()==Side::Lo) flip();}
+    bool operator< (const tface& rhs) const {
+	if (mL == rhs.mL)
+	{
+	    return mR < rhs.mR;
+	}
+	return mL < rhs.mL;
+    }
+    void flip ()
+	{
+	    int t=mL;
+	    mL = mR;
+	    mR = t;
+	}
+    int mL, mR;
+    int ebFaceID;
+};
+
+static void
+AssignFaces(CNode&              cnode,
+	    const FNode&        fnode,
+	    int                 idir,
+	    const SideIterator& sit)
+{
+    int iside = sit() == Side::Lo ? 0 : 1;
+    for (int L=0; L<cnode.nCells; ++L) {
+	for (int nc=0; nc<cnode.cells[L].Nnbr[idir][iside]; ++nc) {
+	    
+	    cnode.cells[L].faceID[idir][iside][nc] = -1;
+
+	    int c1=L;
+	    int c2=cnode.cells[L].nbr[idir][iside][nc];
+
+	    for (int nf=0; nf<fnode.nFaces; ++nf) {
+		FNode::CutFace cf = fnode.faces[nf];
+		int f1 = cf.cellLo;
+		int f2 = cf.cellHi;		
+		if ( (f1==c1 && f2==c2) || (f1==c2 && f2==c1) ) {
+		    //cnode.cells[L].faceID[idir][iside][nc] = nf; // Use local numbering
+		    cnode.cells[L].faceID[idir][iside][nc] = cf.ebFaceID; // Use box-wide numbering
+		}
+	    }
+	}
+    }
+}
+
 int myTest()
 {
 
-    std::cout << "Is POD: " << std::is_pod<Node>::value << std::endl;
-    std::cout << "Size: " << sizeof(Node)/sizeof(int) << " ints" << std::endl;
+    std::cout << "Is POD: " << std::is_pod<CNode>::value << std::endl;
+    std::cout << "Size: " << sizeof(CNode)/sizeof(int) << " ints" << std::endl;
 
     EBLevelGrid eblg;
     get_EGLG(eblg);
@@ -116,10 +165,11 @@ int myTest()
     const DistributionMapping& dm = eblg.getDM();
 
     IntVect tilesize(AMREX_D_DECL(10240,8,32));
-    std::map<int,std::vector<Node> > graphNodes;
+    std::map<int,std::vector<CNode> > graphCNodes;
+    std::map<int,std::array<std::vector<FNode>, BL_SPACEDIM> > graphFNodes;
 
     int nGrow = 1;
-    iMultiFab ebmask(ba,dm,1,nGrow); // Will contain location of Node in graphNodes vector
+    iMultiFab ebmask(ba,dm,1,nGrow); // Will contain location of CNode in graphCNodes vector
 
     for (MFIter mfi(ebmask); mfi.isValid(); ++mfi)
     {
@@ -127,26 +177,29 @@ int myTest()
         EBISBox ebis_box = eblg.getEBISL()[mfi];
         const Box gbox = ebmask[mfi].box() & ebis_box.getDomain();
 
-        int ebID = 0; // Reset to zero for each box
+	int ebCellID = 0; // Reset to zero for each box
         if (!ebis_box.isAllRegular())
         {
+	    std::array<std::map<IntVect, std::set<tface> >, BL_SPACEDIM> tf;
+	    
             const EBGraph& ebgr = ebis_box.getEBGraph();
             for (BoxIterator bit(gbox); bit.ok(); ++bit)
             {
                 const IntVect iv = bit();
                 if (ebis_box.isIrregular(iv))
                 {
+		    // Set up cnode data structure
                     std::vector<VolIndex> gbox_vofs = ebis_box.getVoFs(iv);
                     if (gbox_vofs.size() > 0)
                     {
-                        graphNodes[gid].push_back(Node());
-                        Node& gn = graphNodes[gid].back();
+                        graphCNodes[gid].push_back(CNode());
+                        CNode& gn = graphCNodes[gid].back();
                         Copy(gn.iv,iv);
                         gn.nCells = gbox_vofs.size();
 
                         for (int icc=0; icc<gn.nCells; ++icc)
                         {
-                            gn.cells[icc].ebID = ebID++;
+                            gn.cells[icc].ebCellID = ebCellID++;
                             const VolIndex& vof = gbox_vofs[icc];
                             for (int idir = 0; idir < SpaceDim; idir++)
                             {
@@ -155,36 +208,103 @@ int myTest()
                                     int iside = sit() == Side::Lo ? 0 : 1;
                                     std::vector<FaceIndex> faces = ebgr.getFaces(vof,idir,sit());
 
+				    IntVect iv_nbr = iv + sign(sit())*BASISV(idir);
+				    IntVect iv_face = iv + iside*BASISV(idir);
+				    
                                     int nValid = 0;
                                     for (int iface=0; iface<faces.size(); ++iface)
                                     {
-                                        IntVect iv_nbr = iv + sign(sit())*BASISV(idir);
-                                        if (ebis_box.isRegular(iv_nbr))
-                                        {
-                                            gn.cells[icc].nbr[idir][iside][nValid++] = REGULAR_CELL;
-                                        }
-                                        else if (!ebis_box.isCovered(iv_nbr))
+                                        if (!ebis_box.isCovered(iv_nbr))
                                         {
                                             gn.cells[icc].nbr[idir][iside][nValid++] = faces[iface].cellIndex(sit());
+					    BL_ASSERT(nValid<NCELLMAX);
+					    tf[idir][iv_face].insert(tface(icc,faces[iface].cellIndex(sit()),sit));
                                         }
                                     }
+				    if (faces.size()==0 && ebis_box.isRegular(iv_nbr))
+				    {
+					gn.cells[icc].nbr[idir][iside][nValid++] = REGULAR_CELL;
+					BL_ASSERT(nValid<NCELLMAX);
+					tf[idir][iv_face].insert(tface(icc,REGULAR_CELL,sit));
+				    }
                                     gn.cells[icc].Nnbr[idir][iside] = nValid;
                                 }
-                            }
+                            }			    
                         }
                     }
                 }
             }
-        }
 
-        std::cout << "gid,Nnodes " << mfi.index() << " " << ebID << std::endl;
+	    std::cout << "gid,Nnodes " << mfi.index() << " " << ebCellID << std::endl;
+
+	    const Box& vbox = mfi.validbox();
+	    std::array<std::map<IntVect,int>,BL_SPACEDIM> fnodeAtIV;
+	    for (int idir = 0; idir < SpaceDim; idir++)
+	    {
+		int ebFaceID = 0;
+		const Box fbox = amrex::surroundingNodes(vbox,idir);
+		for (BoxIterator bit(fbox); bit.ok(); ++bit)
+		{
+		    const IntVect& iv_face = bit();
+		    std::map<IntVect, std::set<tface> >::const_iterator it=tf[idir].find(iv_face);
+		    if (it!=tf[idir].end()) {
+			graphFNodes[gid][idir].push_back(FNode());
+			FNode& fn = graphFNodes[gid][idir].back();
+			const std::set<tface>& tfiv=it->second;
+			fn.nFaces = tfiv.size();
+			Copy(fn.iv,iv_face);
+			int cnt = 0;
+			for (std::set<tface>::iterator fit=tfiv.begin(); fit!=tfiv.end(); ++fit)
+			{
+			    fn.faces[cnt].cellLo = fit->mL;
+			    fn.faces[cnt].cellHi = fit->mR;
+			    fn.faces[cnt].ebFaceID = ebFaceID++;
+			    cnt++;
+			}
+			if (cnt!=0)
+			{
+			    fnodeAtIV[idir][iv_face] = graphFNodes[gid][idir].size() - 1;
+			}
+		    }
+		}
+		std::cout << "gid,idir,Nfaces " << mfi.index() << " " << idir << " " << ebFaceID << std::endl;
+
+	    }
+
+	    for (int ic=0; ic<graphCNodes[gid].size(); ++ic)
+	    {
+		CNode& gn = graphCNodes[gid][ic];
+		IntVect iv;
+		Copy(iv,gn.iv);
+		for (int icc=0; icc<gn.nCells; ++icc)
+		{
+		    for (int idir = 0; idir < SpaceDim; idir++)
+		    {
+			for (SideIterator sit; sit.ok(); ++sit)
+			{
+			    int iside = sit() == Side::Lo ? 0 : 1;
+			    IntVect iv_face = iv + iside*BASISV(idir);
+			    std::map<IntVect,int>::const_iterator it = fnodeAtIV[idir].find(iv_face);
+			    if (it!=fnodeAtIV[idir].end());
+			    {
+				for (int iface=0; iface<gn.cells[icc].Nnbr[idir][iside]; ++iface)
+				{
+				    const FNode& fn = graphFNodes[gid][idir][it->second];
+				    AssignFaces(gn,fn,idir,sit);
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
 
         BaseFab<int>& mask_fab = ebmask[mfi];
         mask_fab.setVal(REGULAR_CELL);
-        for (int inode=0; inode<graphNodes[gid].size(); ++inode)
+        for (int inode=0; inode<graphCNodes[gid].size(); ++inode)
         {
-            IntVect iv; 
-            Copy(iv,graphNodes[gid][inode].iv);
+            IntVect iv;
+            Copy(iv,graphCNodes[gid][inode].iv);
             mask_fab(iv,0) = inode;
         }
         if (ebis_box.isAllCovered()) {
@@ -207,9 +327,9 @@ int myTest()
     {
         const Box& vbox = mfi.validbox();
         BaseFab<int>& mask_fab = ebmask[mfi];
-        int s = graphNodes[mfi.index()].size();
+        int s = graphCNodes[mfi.index()].size();
         do_eb_work(vbox.loVect(), vbox.hiVect(),
-                   graphNodes[mfi.index()].data(), &s,
+                   graphCNodes[mfi.index()].data(), &s,
                    BL_TO_FORTRAN_N(mask_fab,0));
     }
 
