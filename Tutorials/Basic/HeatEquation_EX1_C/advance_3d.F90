@@ -110,7 +110,7 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
   implicit none
 
   integer lo(3), hi(3), philo(3), phihi(3), fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3), idx
-  real(rt), intent(in   )    :: phi  (philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
+  real(rt), intent(in   ) :: phi  (philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
   real(rt), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2), fxlo(3): fxhi(3))
   real(rt), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2), fylo(3): fyhi(3))
   real(rt), intent(inout) :: fluxz( fzlo(1): fzhi(1), fzlo(2): fzhi(2), fzlo(3): fzhi(3))
@@ -124,7 +124,7 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
   integer(kind=cuda_stream_kind) :: stream
   type(dim3) :: numThreads, numBlocks
 
-  integer, device :: blo_d(2), bhi_d(2)
+  integer, device :: blo_d(3), bhi_d(3)
   integer, device :: philo_d(3), phihi_d(3) 
   integer, device :: fxlo_d(3), fxhi_d(3) 
   integer, device :: fylo_d(3), fyhi_d(3)
