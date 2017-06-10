@@ -221,6 +221,8 @@ int myTest()
 					    tf[idir][iv_face].insert(tface(icc,faces[iface].cellIndex(sit()),sit));
                                         }
                                     }
+				    // this will add regular edges that bound cut cells
+				    // (these are excluded from getFaces call above, so must be added explicitly)
 				    if (faces.size()==0 && ebis_box.isRegular(iv_nbr))
 				    {
 					gn.cells[icc].nbr[idir][iside][nValid++] = REGULAR_CELL;
