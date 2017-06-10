@@ -73,6 +73,18 @@ namespace amrex
       m_stencil.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
     }
 
+    //for m_orderOfPolynomial > 1, make the domain into an embedded boundary 
+    //because writing mixed derivs in fortran is nighmarish when you have to figure out
+    //one-sided-ness
+    IntVectSet ivsDomain;
+    if(m_orderOfPolynomial > 1)
+    {
+      ivsDomain = IntVectSet(m_eblgFine.getDomain());
+      Box shrunkbox = m_eblgFine.getDomain();
+      shrunkbox.grow(-m_refRat);
+      ivsDomain -= shrunkbox;
+    }
+      
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
       std::vector< std::shared_ptr<BaseIndex  > > baseDstVoFs;
@@ -86,6 +98,14 @@ namespace amrex
       //slope  can reach into covered cells.
       ivsIrreg.grow(m_refRat);
       ivsIrreg &= gridFine;
+      
+      if(m_orderOfPolynomial > 1)
+      {
+        IntVectSet localDom(gridFine);
+        localDom &= ivsDomain;
+        ivsIrreg |= localDom;
+      }
+
       VoFIterator vofit(ivsIrreg, ebisFine.getEBGraph());
       const std::vector<VolIndex>& volvec = vofit.getVector();
       baseDstVoFs.resize(volvec.size());
@@ -225,8 +245,15 @@ namespace amrex
       }
       else
       {
-        //because mixed derivatives suck, only doing first derivs at domain boundaries.
-        amrex::Abort("case not implemented");
+        Box internalFine = gridFine;
+        Box shrunkDom = m_eblgFine.getDomain();
+        shrunkDom.grow(-m_refRat);
+        internalFine &= shrunkDom;
+
+        ebfnd_pwqinterp_nobound(BL_TO_FORTRAN_FAB(regFine),
+                                BL_TO_FORTRAN_FAB(regCoar),
+                                BL_TO_FORTRAN_BOX(internalFine),
+                                &m_refRat, &isrc, &idst, &inco);
       }
 
       if(m_slowMode)

@@ -82,7 +82,7 @@ namespace amrex
     int getLevel(const Box& a_domain) const;
 
 
-    int getNCellMax(const Box& a_domain) const
+    int getNCellMax() const
       {
         return m_nCellMax;
       }
@@ -109,6 +109,28 @@ namespace amrex
     //only AMReX_EBIS can make one
     friend class AMReX_EBIS;
 
+    ///write to file
+    void write(const string& a_filename) const;
+
+    ///define from file
+    void  read(const string& a_filename);
+    ///write to file
+    void writeHeader(const string& a_filename) const;
+
+    ///define from file
+    void  readHeader(const string& a_filename);
+
+    //for testing
+    int getNumLevels() const
+      {
+        return m_nlevels;
+      }
+    //for testing
+    vector<Box> getDomains() const
+      {
+        return m_domainLevel;
+      }
+    
   private:
 
     //only AMReX_EBIS can make one

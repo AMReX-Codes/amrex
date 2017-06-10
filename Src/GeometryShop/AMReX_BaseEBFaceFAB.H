@@ -219,7 +219,10 @@ namespace amrex
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
-       
+
+    /// default false but you can make  make this true for your T if you are sure.
+    static bool preAllocatable () { return false; }
+
     ///
     /**
        Box going into this should be CELL CENTERED.
