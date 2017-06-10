@@ -7,32 +7,30 @@ contains
 #ifdef CUDA
   attributes(device) &
 #endif
-  subroutine compute_flux_doit (lo, hi, phi, philo, phihi, &
-       fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx)
+  subroutine compute_flux_doit (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir)
 
-    use amrex_fort_module, only : amrex_real
+    use amrex_fort_module, only: rt => amrex_real
+
     implicit none
 
-    integer lo(2), hi(2), philo(2), phihi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2)
-    real(amrex_real), intent(in)    :: phi  (philo(1):phihi(1),philo(2):phihi(2))
-    real(amrex_real), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2))
-    real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
-    real(amrex_real), intent(in)    :: dx(2)
+    integer,  intent(in   ) :: lo(2), hi(2), p_lo(2), p_hi(2), f_lo(2), f_hi(2)
+    real(rt), intent(in   ) :: phi(p_lo(1):p_hi(1),p_lo(2):p_hi(2))
+    real(rt), intent(inout) :: flx(f_lo(1):f_hi(1),f_lo(2):f_hi(2))
+    real(rt), intent(in   ) :: dx(2)
+    integer,  intent(in   ) :: idir
 
     ! local variables
-    integer i,j
+    integer :: i, j
 
-    ! x-fluxes
     do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)+1
-          fluxx(i,j) = ( phi(i,j) - phi(i-1,j) ) / dx(1)
-       end do
-    end do
-
-    ! y-fluxes
-    do    j = lo(2), hi(2)+1
        do i = lo(1), hi(1)
-          fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx(2)
+          if (idir .eq. 1) then
+             ! x-flux
+             flx(i,j) = ( phi(i,j) - phi(i-1,j) ) / dx(1)
+          else
+             ! y-flux
+             flx(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx(2)
+          endif
        end do
     end do
 
@@ -44,22 +42,23 @@ contains
   attributes(device) &
 #endif
   subroutine update_phi_doit (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-       fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt)
+                              fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt)
 
-    use amrex_fort_module, only : amrex_real
+    use amrex_fort_module, only: rt => amrex_real
+
     implicit none
 
     integer lo(2), hi(2), polo(2), pohi(2), pnlo(2), pnhi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2)
-    real(amrex_real), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2))
-    real(amrex_real), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
-    real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
-    real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
-    real(amrex_real), intent(in)    :: dx(2)
-    real(amrex_real), value         :: dt
+    real(rt), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2))
+    real(rt), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
+    real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
+    real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
+    real(rt), intent(in   ) :: dx(2)
+    real(rt), intent(in   ) :: dt
 
     ! local variables
     integer i,j
-    real(amrex_real) :: dtdx(2)
+    real(rt) :: dtdx(2)
 
     dtdx = dt/dx
 
@@ -82,7 +81,7 @@ end module advance_module
 subroutine compute_flux (lo, hi, phi, philo, phihi, &
      fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, idx) bind(C, name="compute_flux")
 
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only: rt => amrex_real
   use advance_module, only: compute_flux_doit
 #ifdef CUDA
   use cuda_module, only: cuda_streams, stream_from_index, threads_and_blocks
@@ -93,10 +92,12 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
   implicit none
 
   integer lo(2), hi(2), philo(2), phihi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2), idx
-  real(amrex_real), intent(in)    :: phi  (philo(1):phihi(1),philo(2):phihi(2))
-  real(amrex_real), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2))
-  real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
-  real(amrex_real), intent(in)    :: dx(2)
+  real(rt), intent(in   ) :: phi  (philo(1):phihi(1),philo(2):phihi(2))
+  real(rt), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2))
+  real(rt), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
+  real(rt), intent(in   ) :: dx(2)
+
+  integer :: blo(2), bhi(2), idir
 
 #ifdef CUDA
   attributes(device) :: phi, fluxx, fluxy
@@ -105,16 +106,14 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
   integer(kind=cuda_stream_kind) :: stream
   type(dim3) :: numThreads, numBlocks
 
-  integer, device :: lo_d(2), hi_d(2)
+  integer, device :: blo_d(2), bhi_d(2)
   integer, device :: philo_d(2), phihi_d(2)
   integer, device :: fxlo_d(2), fxhi_d(2)
   integer, device :: fylo_d(2), fyhi_d(2)
-  real(amrex_real), device :: dx_d(2)
+  real(rt), device :: dx_d(2)
+  integer, device :: idir_d
 
   stream = cuda_streams(stream_from_index(idx)+1)
-
-  cuda_result = cudaMemcpyAsync(lo_d, lo, 2, cudaMemcpyHostToDevice, stream)
-  cuda_result = cudaMemcpyAsync(hi_d, hi, 2, cudaMemcpyHostToDevice, stream)
 
   cuda_result = cudaMemcpyAsync(philo_d, philo, 2, cudaMemcpyHostToDevice, stream)
   cuda_result = cudaMemcpyAsync(phihi_d, phihi, 2, cudaMemcpyHostToDevice, stream)
@@ -127,15 +126,46 @@ subroutine compute_flux (lo, hi, phi, philo, phihi, &
 
   cuda_result = cudaMemcpyAsync(dx_d, dx, 2, cudaMemcpyHostToDevice, stream)
 
-  call threads_and_blocks(lo, hi, numBlocks, numThreads)
+  blo = [lo(1),   lo(2)]
+  bhi = [hi(1)+1, hi(2)]
 
-  call cuda_compute_flux<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, phi, philo_d, phihi_d, &
-                                                               fluxx, fxlo_d, fxhi_d, &
-                                                               fluxy, fylo_d, fyhi_d, dx_d)
+  cuda_result = cudaMemcpyAsync(blo_d, blo, 2, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(bhi_d, bhi, 2, cudaMemcpyHostToDevice, stream)
+
+  idir = 1
+  cuda_result = cudaMemcpyAsync(idir_d, idir, 1, cudaMemcpyHostToDevice, stream)
+
+  call threads_and_blocks(blo, bhi, numBlocks, numThreads)
+
+  call cuda_compute_flux<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo_d, phihi_d, &
+                                                               fluxx, fxlo_d, fxhi_d, dx_d, idir_d)
+
+  bhi = [hi(1), hi(2)+1]
+
+  cuda_result = cudaMemcpyAsync(bhi_d, bhi, 2, cudaMemcpyHostToDevice, stream)
+
+  idir = 2
+  cuda_result = cudaMemcpyAsync(idir_d, idir, 1, cudaMemcpyHostToDevice, stream)
+
+  call threads_and_blocks(blo, bhi, numBlocks, numThreads)
+
+  call cuda_compute_flux<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo_d, phihi_d, &
+                                                               fluxy, fylo_d, fyhi_d, dx_d, idir_d)
 
 #else
 
-  call compute_flux_doit(lo, hi, phi, philo, phihi, fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx)
+  blo = [lo(1),   lo(2)]
+  bhi = [hi(1)+1, hi(2)]
+
+  idir = 1
+
+  call compute_flux_doit(blo, bhi, phi, philo, phihi, fluxx, fxlo, fxhi, dx, idir)
+
+  bhi = [hi(1), hi(2)+1]
+
+  idir = 2
+
+  call compute_flux_doit(blo, bhi, phi, philo, phihi, fluxy, fylo, fyhi, dx, idir)
 
 #endif
 
@@ -146,18 +176,18 @@ end subroutine compute_flux
 #ifdef CUDA
 attributes(global) &
 subroutine cuda_compute_flux (lo, hi, phi, philo, phihi, &
-     fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx)
+                              flux, flo, fhi, dx, idir)
 
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only: rt => amrex_real
   use advance_module, only: compute_flux_doit
 
   implicit none
 
-  integer lo(2), hi(2), philo(2), phihi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2)
-  real(amrex_real), intent(in)    :: phi  (philo(1):phihi(1),philo(2):phihi(2))
-  real(amrex_real), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2))
-  real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
-  real(amrex_real), intent(in)    :: dx(2)
+  integer lo(2), hi(2), philo(2), phihi(2), flo(2), fhi(2)
+  real(rt), intent(in   ) :: phi (philo(1):phihi(1),philo(2):phihi(2))
+  real(rt), intent(inout) :: flux(  flo(1):  fhi(1),  flo(2):  fhi(2))
+  real(rt), intent(in   ) :: dx(2)
+  integer,  intent(in   ) :: idir
 
   integer :: idx(2)
 
@@ -168,7 +198,7 @@ subroutine cuda_compute_flux (lo, hi, phi, philo, phihi, &
 
   if (idx(1) .gt. hi(1) .or. idx(2) .gt. hi(2)) return
 
-  call compute_flux_doit(idx, idx, phi, philo, phihi, fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx)
+  call compute_flux_doit(idx, idx, phi, philo, phihi, flux, flo, fhi, dx, idir)
 
 end subroutine cuda_compute_flux
 #endif
@@ -178,7 +208,7 @@ end subroutine cuda_compute_flux
 subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
      fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt, idx) bind(C, name="update_phi")
 
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only: rt => amrex_real
   use advance_module, only: update_phi_doit
 #ifdef CUDA
   use cuda_module, only: cuda_streams, stream_from_index, threads_and_blocks
@@ -189,15 +219,15 @@ subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
   implicit none
 
   integer lo(2), hi(2), polo(2), pohi(2), pnlo(2), pnhi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2), idx
-  real(amrex_real), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2))
-  real(amrex_real), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
-  real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
-  real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
-  real(amrex_real), intent(in)    :: dx(2)
-  real(amrex_real), value         :: dt
+  real(rt), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2))
+  real(rt), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
+  real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
+  real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
+  real(rt), intent(in   ) :: dx(2)
+  real(rt), intent(in   ) :: dt
 
 #ifdef CUDA
-  attributes(device) :: phi, fluxx, fluxy
+  attributes(device) :: phiold, phinew, fluxx, fluxy
 
   integer :: cuda_result
   integer(kind=cuda_stream_kind) :: stream
@@ -208,7 +238,7 @@ subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
   integer, device :: pnlo_d(2), pnhi_d(2)
   integer, device :: fxlo_d(2), fxhi_d(2)
   integer, device :: fylo_d(2), fyhi_d(2)
-  real(amrex_real), device :: dx_d(2), dt_d
+  real(rt), device :: dx_d(2), dt_d
 
   stream = cuda_streams(stream_from_index(idx)+1)
 
@@ -251,20 +281,20 @@ end subroutine update_phi
 #ifdef CUDA
 attributes(global) &
 subroutine cuda_update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-     fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt)
+                            fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt)
 
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only: rt => amrex_real
   use advance_module, only: update_phi_doit
 
   implicit none
 
   integer lo(2), hi(2), polo(2), pohi(2), pnlo(2), pnhi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2)
-  real(amrex_real), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2))
-  real(amrex_real), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
-  real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
-  real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
-  real(amrex_real), intent(in)    :: dx(2)
-  real(amrex_real), value         :: dt
+  real(rt), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2))
+  real(rt), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
+  real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
+  real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
+  real(rt), intent(in   ) :: dx(2)
+  real(rt), intent(in   ) :: dt
 
   integer :: idx(2)
 
