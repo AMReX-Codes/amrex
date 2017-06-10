@@ -12,6 +12,7 @@
 #include "AMReX_GraphNode.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_SPMD.H"
+#include <iostream>
 
 namespace amrex
 {
@@ -405,7 +406,7 @@ namespace amrex
     }
 
     int* intbuf = (int *) a_buf;
-
+    
     //regular/irregular covered
     *intbuf = secretCode;
     intbuf++;
@@ -456,7 +457,14 @@ namespace amrex
     else
     {
       //secret code for irregular or regular with multi-valued parent.
-      assert(secretCode == 2);
+      //assert(secretCode == 2);
+      bool printStuff = false;
+      if(secretCode != 2)
+      {
+        std::cout << "procID =" << procID() << std::endl;
+        std::cout << "secret code wrong = " << secretCode << std::endl;
+        printStuff = true;
+      }
 
       //regular/irregular covered
       //number of vofs
