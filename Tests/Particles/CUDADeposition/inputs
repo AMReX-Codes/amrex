@@ -22,3 +22,5 @@ nppc = 10
 
 # Verbosity
 verbose = true   # set to true to get more verbosity 
+
+particles.do_tiling = true

@@ -134,6 +134,16 @@ namespace amrex
 
 
     void define(const std::vector<IntVect>& a_vect);
+
+    ///
+    size_t linearSize() const;
+
+    ///
+    void linearOut(void* buffer ) const;
+
+    ///
+    void linearIn(const void* const buffer );
+    
   private:
 
     void getVectorIV(std::vector<IntVect>& a_vect) const;

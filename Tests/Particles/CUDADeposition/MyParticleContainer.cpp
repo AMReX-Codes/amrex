@@ -27,7 +27,13 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   m_np = num_particles;
 
 #ifdef CUDA  
-  cudaMalloc((void**) &device_particles, m_np*psize); 
+
+  cudaError_t err_code;
+  err_code = cudaMalloc((void**) &device_particles, m_np*psize); 
+  if (err_code != cudaSuccess) {
+    amrex::Print() << "Could not allocate device memory in InitParticles. \n";
+    amrex::Abort();
+  }
 
   const int lev = 0;
   int offset = 0;
@@ -40,9 +46,21 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   }
 
   m_ngrids = particle_counts.size();
-  cudaMalloc((void**) &device_particle_offsets, m_ngrids*sizeof(int)); 
-  cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int)); 
+  err_code = cudaMalloc((void**) &device_particle_offsets, m_ngrids*sizeof(int)); 
+  if (err_code != cudaSuccess) {
+    amrex::Print() << "Could not allocate device memory in InitParticles. \n";
+    amrex::Abort();
+  }
+  
+  err_code = cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int)); 
+  if (err_code != cudaSuccess) {
+    amrex::Print() << "Could not allocate device memory in InitParticles. \n";
+    amrex::Abort();
+  }
+
 #endif
+
+  CopyParticlesToDevice();
 }
 
 void MyParticleContainer::CopyParticlesToDevice() {
@@ -56,8 +74,8 @@ void MyParticleContainer::CopyParticlesToDevice() {
     const long np  = pti.numParticles();
     cudaMemcpy(device_particles + offset,
 	       particles.data(), np*psize, cudaMemcpyHostToDevice);
-    particle_counts.clear();
-    particle_offsets.clear();
+    particle_counts.push_back(np);
+    particle_offsets.push_back(offset);
     offset += np;
   }
 
@@ -66,6 +84,7 @@ void MyParticleContainer::CopyParticlesToDevice() {
 
   cudaMemcpy(device_particle_offsets, particle_offsets.data(),
 	     m_ngrids*sizeof(int), cudaMemcpyHostToDevice);
+
 #endif
 }
 
@@ -83,11 +102,9 @@ void MyParticleContainer::CopyParticlesFromDevice() {
 #endif
 }
 
-void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
+void MyParticleContainer::Deposit(MultiFab& partMF) {
 
-  BL_PROFILE("Particle Process.");
-
-  CopyParticlesToDevice();
+  BL_PROFILE("Particle Deposit.");
 
   const int lev = 0;
   const Geometry& gm  = Geom(lev);
@@ -99,13 +116,12 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
     int nstride = particles.dataShape().first;
     const long np  = pti.numParticles();    
     FArrayBox& rhofab = partMF[pti];
-    FArrayBox& accfab = acc[pti];
     const Box& box    = rhofab.box();        
 
 #if CUDA
-    cuda_deposit_cic((Real*) device_particles, nstride, np,
+    cuda_deposit_cic((Real*) device_particles, nstride, m_np, np, 
 		device_particle_counts, device_particle_offsets, 
-		m_ngrids, pti.index(),
+		m_ngrids, pti.uniqueIndex(),
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
 #else 
@@ -114,46 +130,68 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
   		plo, dx);
 #endif // CUDA    
   }
+  partMF.SumBoundary(gm.periodicity());
+}
+
+void MyParticleContainer::Interpolate(MultiFab& acc) {
+  
+  BL_PROFILE("Particle Interpolate.");
+  
+  const int lev = 0;
+  const Geometry& gm  = Geom(lev);
+  const Real*     plo = gm.ProbLo();
+  const Real*     dx  = gm.CellSize();  
 
   for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
     const auto& particles = pti.GetArrayOfStructs();
     int nstride = particles.dataShape().first;
     const long np  = pti.numParticles();    
-    FArrayBox& rhofab = partMF[pti];
     FArrayBox& accfab = acc[pti];
-    const Box& box    = rhofab.box();        
+    const Box& box    = accfab.box();
 
 #if CUDA    
-    cuda_interpolate_cic((Real*) device_particles, nstride, np,
+    cuda_interpolate_cic((Real*) device_particles, nstride, m_np, np,
 			 device_particle_counts, device_particle_offsets, 
-			 m_ngrids, pti.index(),
+			 m_ngrids, pti.uniqueIndex(),
 			 accfab.dataPtr(), box.loVect(), box.hiVect(), 
 			 plo, dx);
 #else
-    interpolate_cic(particles.data(), nstride, np,
+    interpolate_cic(particles.data(), nstride, m_np,
 		    accfab.dataPtr(), box.loVect(), box.hiVect(), 
 		    plo, dx);
 #endif // CUDA    
   }
+}
+
+void MyParticleContainer::Push() {
+  
+  BL_PROFILE("Particle Push.");
 
 #if CUDA
     cuda_push_particles((Real*) device_particles, 11, m_np);
 #else
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
-    const auto& particles = pti.GetArrayOfStructs();
-    int nstride = particles.dataShape().first;
-    const long np  = pti.numParticles();    
-    FArrayBox& rhofab = partMF[pti];
-    FArrayBox& accfab = acc[pti];
-    const Box& box    = rhofab.box();        
-    
-    push_particles(particles.data(), nstride, np);    
-  }
-#endif // CUDA    
-    
-  partMF.SumBoundary(gm.periodicity());
-  
-  CopyParticlesFromDevice();
+    const int lev = 0;
+    const Geometry& gm  = Geom(lev);
+    const Real*     plo = gm.ProbLo();
+    const Real*     dx  = gm.CellSize();
 
-}   
-    
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+      const auto& particles = pti.GetArrayOfStructs();
+      int nstride = particles.dataShape().first;
+      const long np  = pti.numParticles();
+      push_particles(particles.data(), nstride, np);
+    }
+#endif // CUDA
+}
+
+void MyParticleContainer::Redistribute() {
+#if CUDA
+  CopyParticlesFromDevice();
+#endif
+  
+  Redistribute();
+  
+#if CUDA
+  CopyParticlesToDevice();
+#endif
+}
