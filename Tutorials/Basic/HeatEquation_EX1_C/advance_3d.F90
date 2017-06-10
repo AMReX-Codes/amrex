@@ -72,8 +72,8 @@ contains
     real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
     real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
     real(amrex_real), intent(in   ) :: fluxz (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
-    real(amrex_real), intent(in)    :: dx(3)
-    real(amrex_real), value         :: dt
+    real(amrex_real), intent(in   ) :: dx(3)
+    real(amrex_real), intent(in   ) :: dt
 
     ! local variables
     integer i,j,k
@@ -222,16 +222,16 @@ subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
 
     integer lo(3), hi(3), polo(3), pohi(3), pnlo(3), pnhi(3), &
        fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3), idx
-  real(amrex_real), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
+  real(amrex_real), intent(in   ) :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
   real(amrex_real), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2),pnlo(3):pnhi(3))
   real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
   real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
   real(amrex_real), intent(in   ) :: fluxz (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
-  real(amrex_real), intent(in)    :: dx(3)
-  real(amrex_real), value         :: dt
+  real(amrex_real), intent(in   ) :: dx(3)
+  real(amrex_real), intent(in   ) :: dt
 
 #ifdef CUDA
-  attributes(device) :: phi, fluxx, fluxy, fluxz
+  attributes(device) :: phiold, phinew, fluxx, fluxy, fluxz
 
   integer :: cuda_result
   integer(kind=cuda_stream_kind) :: stream
@@ -300,13 +300,13 @@ subroutine cuda_update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
 
     integer lo(3), hi(3), polo(3), pohi(3), pnlo(3), pnhi(3), &
        fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3)
-  real(amrex_real), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
+  real(amrex_real), intent(in   ) :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
   real(amrex_real), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2),pnlo(3):pnhi(3))
   real(amrex_real), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
   real(amrex_real), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
   real(amrex_real), intent(in   ) :: fluxz (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
-  real(amrex_real), intent(in)    :: dx(3)
-  real(amrex_real), value         :: dt
+  real(amrex_real), intent(in   ) :: dx(3)
+  real(amrex_real), intent(in   ) :: dt
 
   integer :: idx(3)
 
@@ -317,7 +317,6 @@ subroutine cuda_update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
   idx(3) = lo(3) + (threadIdx%z - 1) + blockDim%z * (blockIdx%z - 1)
 
   if (idx(1) .gt. hi(1) .or. idx(2) .gt. hi(2) .or. idx(3) .gt. hi(3)) return
-
 
   call update_phi_doit(idx, idx, phiold, polo, pohi, phinew, pnlo, pnhi, &
                        fluxx, fxlo, fxhi, fluxy, fylo, fyhi, fluxz, fzlo, fzhi, &

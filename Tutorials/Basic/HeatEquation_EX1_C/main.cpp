@@ -77,7 +77,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 #if (BL_SPACEDIM == 3)   
                    BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                   dx, dt, &idx);
+                   dx, &dt, &idx);
     }
 
 #ifdef CUDA
