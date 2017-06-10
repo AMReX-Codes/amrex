@@ -1793,6 +1793,8 @@ namespace amrex
   {
     //regular irregular covered flag
     std::size_t linearSize = sizeof(int);
+    //domain
+    linearSize +=  Box::linearSize();
     if (!isRegular(a_region) && !isCovered(a_region))
     {
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
@@ -1802,7 +1804,7 @@ namespace amrex
         linearSize += nodeSize;
       }
     }
-    //cout << "proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
+    cout << "nbytes proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
     return linearSize;
   }
         
@@ -1815,7 +1817,6 @@ namespace amrex
              void*      a_buf) const
   {
     assert(isDefined());
-    assert(isDomainSet());
     TAG boxtag;
     if (isRegular(a_region))
     {
@@ -1836,9 +1837,15 @@ namespace amrex
     *intbuf = boxtag;
     intbuf++;
         
+    unsigned char* buffer = (unsigned char*) intbuf;
+
+    m_domain.linearOut(buffer);
+    size_t incrval = Box::linearSize();
+    buffer    += incrval;
+    retval += incrval;
+
     if (boxtag == HasIrregular)
     {
-      unsigned char* buffer = (unsigned char*) intbuf;
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
       {
         const GraphNode& node = m_graph(bit(), 0);
@@ -1848,6 +1855,7 @@ namespace amrex
         retval += nodeSize;
       }
     }
+    cout << "copytomem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
     return retval;
   }
         
@@ -1860,15 +1868,20 @@ namespace amrex
                const void* a_buf)
   {
     assert(isDefined());
-    assert(isDomainSet());
-    assert(isDefined());
-    assert(isDomainSet());
 
     std::size_t retval = 0;
     TAG* intbuf = (TAG*) a_buf;
     TAG boxtag = *intbuf;
     retval += sizeof(int);
     intbuf++;
+
+    unsigned char* buffer = (unsigned char*) intbuf;
+
+    m_domain.linearIn(buffer);
+    m_isDomainSet = true;
+    size_t incrval = Box::linearSize();
+    buffer    += incrval;
+    retval += incrval;
 
     if (boxtag == AllCovered)
     {
@@ -1888,7 +1901,6 @@ namespace amrex
     }
     else
     {
-      unsigned char* buffer = (unsigned char*) intbuf;
       if (isAllRegular() || isAllCovered())
       {
         m_tag = HasIrregular;
@@ -1909,6 +1921,7 @@ namespace amrex
         retval += nodeSize;
       }
     }
+    cout << "copyfrommem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
     return retval;
   }
 }
