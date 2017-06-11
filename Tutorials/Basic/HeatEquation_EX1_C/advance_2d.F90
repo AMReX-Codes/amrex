@@ -25,7 +25,7 @@ contains
     integer :: blo(2), bhi(2), idir
 
 #ifdef CUDA
-    attributes(device) :: phi, fluxx, fluxy
+    attributes(device) :: phi, fluxx, fluxy, dx
 
     integer :: cuda_result
     integer(kind=cuda_stream_kind) :: stream
@@ -35,7 +35,6 @@ contains
     integer, device :: philo_d(2), phihi_d(2)
     integer, device :: fxlo_d(2), fxhi_d(2)
     integer, device :: fylo_d(2), fyhi_d(2)
-    real(rt), device :: dx_d(2)
     integer, device :: idir_d
 
     stream = cuda_streams(stream_from_index(idx)+1)
@@ -49,8 +48,6 @@ contains
     cuda_result = cudaMemcpyAsync(fylo_d, fylo, 2, cudaMemcpyHostToDevice, stream)
     cuda_result = cudaMemcpyAsync(fyhi_d, fyhi, 2, cudaMemcpyHostToDevice, stream)
 
-    cuda_result = cudaMemcpyAsync(dx_d, dx, 2, cudaMemcpyHostToDevice, stream)
-
     blo = [lo(1),   lo(2)]
     bhi = [hi(1)+1, hi(2)]
 
@@ -63,7 +60,7 @@ contains
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
     call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo_d, phihi_d, &
-                                                                 fluxx, fxlo_d, fxhi_d, dx_d, idir_d)
+                                                                 fluxx, fxlo_d, fxhi_d, dx, idir_d)
 
     bhi = [hi(1), hi(2)+1]
 
@@ -75,7 +72,7 @@ contains
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
     call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo_d, phihi_d, &
-                                                                 fluxy, fylo_d, fyhi_d, dx_d, idir_d)
+                                                                 fluxy, fylo_d, fyhi_d, dx, idir_d)
 
 #else
 
@@ -119,7 +116,7 @@ contains
     real(rt), intent(in   ) :: dt
 
 #ifdef CUDA
-    attributes(device) :: phiold, phinew, fluxx, fluxy
+    attributes(device) :: phiold, phinew, fluxx, fluxy, dx
 
     integer :: cuda_result
     integer(kind=cuda_stream_kind) :: stream
@@ -130,7 +127,7 @@ contains
     integer, device :: pnlo_d(2), pnhi_d(2)
     integer, device :: fxlo_d(2), fxhi_d(2)
     integer, device :: fylo_d(2), fyhi_d(2)
-    real(rt), device :: dx_d(2), dt_d
+    real(rt), device :: dt_d
 
     stream = cuda_streams(stream_from_index(idx)+1)
 
@@ -149,15 +146,13 @@ contains
     cuda_result = cudaMemcpyAsync(fylo_d, fylo, 2, cudaMemcpyHostToDevice, stream)
     cuda_result = cudaMemcpyAsync(fyhi_d, fyhi, 2, cudaMemcpyHostToDevice, stream)
 
-    cuda_result = cudaMemcpyAsync(dx_d, dx, 2, cudaMemcpyHostToDevice, stream)
-
     cuda_result = cudaMemcpyAsync(dt_d, dt, 1, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     call update_phi_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, phiold, polo_d, pohi_d, &
                                                                phinew, pnlo_d, pnhi_d, fluxx, fxlo_d, fxhi_d, &
-                                                               fluxy, fylo_d, fyhi_d, dx_d, dt_d)
+                                                               fluxy, fylo_d, fyhi_d, dx, dt_d)
 
 #else
 
