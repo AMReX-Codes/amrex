@@ -140,6 +140,11 @@ namespace amrex
         return m_ebGraph;
       } 
 
+    shared_ptr<FabArray<EBData> > getAllData() const
+      {
+        return m_ebData;
+      }
+ 
     EBISLayoutImplem(const Box               & a_domain,
                      const BoxArray          & a_grids,
                      const DistributionMapping & a_dm,
@@ -351,6 +356,11 @@ namespace amrex
      shared_ptr<FabArray<EBGraph> > getAllGraphs() const
       {
         return m_implem->getAllGraphs();
+      }
+
+     shared_ptr<FabArray<EBData> > getAllData() const
+      {
+        return m_implem->getAllData();
       }
 
     int getGhost() const

@@ -6,50 +6,70 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
-ifndef PRECISION
-  PRECISION = DOUBLE
+ifdef PRECISION
+  PRECISION := $(strip $(PRECISION))
+else
+  PRECISION := DOUBLE
 endif
 
-ifndef DEBUG
-  DEBUG	= TRUE
+ifdef DEBUG
+  DEBUG := $(strip $(DEBUG))
+else
+  DEBUG := TRUE
 endif
 
-ifndef PROFILE
-  PROFILE = FALSE
+ifdef PROFILE
+  PROFILE := $(strip $(PROFILE))
+else
+  PROFILE := FALSE
 endif
 
-ifndef TRACE_PROFILE
-  TRACE_PROFILE = FALSE
+ifdef TRACE_PROFILE
+  TRACE_PROFILE := $(strip $(TRACE_PROFILE))
+else
+  TRACE_PROFILE := FALSE
 endif
 ifeq ($(TRACE_PROFILE),TRUE)
-  PROFILE = TRUE
+  PROFILE := TRUE
 endif
 
-ifndef COMM_PROFILE
-  COMM_PROFILE = FALSE
+ifdef COMM_PROFILE
+  COMM_PROFILE := $(strip $(COMM_PROFILE))
+else
+  COMM_PROFILE := FALSE
 endif
 ifeq ($(COMM_PROFILE),TRUE)
-  PROFILE = TRUE
+  PROFILE := TRUE
 endif
 
-ifndef MEM_PROFILE
-  MEM_PROFILE = FALSE
+ifdef MEM_PROFILE
+  MEM_PROFILE := $(strip $(MEM_PROFILE))
+else
+  MEM_PROFILE := FALSE
 endif
 
-ifndef TEST
-  TEST = FALSE
+ifdef TEST
+  TEST := $(strip $(TEST))
+else
+  TEST := FALSE
 endif
 
-ifndef USE_ASSERTION
-  USE_ASSERTION = FALSE
+ifdef USE_ASSERTION
+  USE_ASSERTION := $(strip $(USE_ASSERTION))
+else
+  USE_ASSERTION := FALSE
 endif
 
-ifndef BACKTRACE
-  BACKTRACE = FALSE
+ifdef BACKTRACE
+  BACKTRACE := $(strip $(BACKTRACE))
+else
+  BACKTRACE := FALSE
 endif
 
-ifndef LAZY
-  LAZY = FALSE
+ifdef LAZY
+  LAZY := $(strip $(LAZY))
+else
+  LAZY := FALSE
 endif
 
 ifndef DIM
@@ -58,24 +78,49 @@ else
   DIM := $(strip $(DIM))
 endif
 
-ifndef USE_MPI
-  USE_MPI = FALSE
+ifdef USE_MPI
+  USE_MPI := $(strip $(USE_MPI))
+else
+  USE_MPI := FALSE
 endif
 
+ifdef USE_UPCXX
+  USE_UPCXX := $(strip $(USE_UPCXX))
+else
+  USE_UPCXX := FALSE
+endif
 ifeq ($(USE_UPCXX),TRUE)
-  USE_MPI = TRUE
+  USE_MPI := TRUE
 endif
 
+ifdef USE_MPI3
+  USE_MPI3 := $(strip $(USE_MPI3))
+else
+  USE_MPI3 := FALSE
+endif
 ifeq ($(USE_MPI3),TRUE)
-  USE_MPI = TRUE
+  USE_MPI := TRUE
 endif
 
-ifndef DIMENSION_AGNOSTIC
-  DIMENSION_AGNOSTIC = FALSE
+
+ifndef USE_CUDA
+  USE_CUDA = FALSE
 endif
 
-ifndef EBASE
-  EBASE = main
+ifndef USE_CUDA_UM
+  USE_CUDA_UM = TRUE
+endif
+
+ifdef DIMENSION_AGNOSTIC
+  DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
+else
+  DIMENSION_AGNOSTIC := FALSE
+endif
+
+ifdef EBASE
+  EBASE := $(strip $(EBASE))
+else
+  EBASE := main
 endif
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
@@ -120,8 +165,12 @@ else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
+else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),cuda))
+  lowercase_comp = cuda
+  $(info LOADING $(AMREX_HOME)/Tools/GNUMake/comps/cuda.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/cuda.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, and llvm)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, and cuda)
 endif
 
 ifeq ($(MAKECMDGOALS),check_fortran)
@@ -236,6 +285,20 @@ else
     OMPSuffix	:=
 endif
 
+ifeq ($(USE_CUDA),TRUE)
+    DEFINES += -DCUDA
+    ifeq ($(USE_CUDA_UM),TRUE)
+        DEFINES += -DCUDA_UM
+	DEFINES += -DBL_COALESCE_FABS
+    endif
+    LIBRARIES += -lnvToolsExt
+    LIBRARY_LOCATIONS += $(CUDA_PATH)/lib64 
+    INCLUDE_LOCATIONS += $(CUDA_PATH)/include
+    CUDASuffix := .CUDA
+else
+    CUDASuffix :=
+endif
+
 ifeq ($(PRECISION),FLOAT)
     DEFINES += -DBL_USE_FLOAT
     PrecisionSuffix := .$(PRECISION)
@@ -310,7 +373,7 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(CUDASuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 

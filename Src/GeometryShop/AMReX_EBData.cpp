@@ -711,38 +711,147 @@ namespace amrex
       }
     }
   }
+/******************/
+  /// Below lies serialization land.  Enter at thy own risk.
+  /// Management is not responsible for any gibbering madness resulting 
+  /// from ignoring this warning.
 /*******************************/
   std::size_t 
   EBDataImplem::
-  nBytes (const Box& bx, int start_comp, int ncomps) const
+  nBytes (const Box& bx, int a_srccomp, int a_ncomps) const
   {
-    amrex::Error("not implemented");
-    return 0;
+    size_t retval = m_volData.nBytes(bx, 0, V_VOLNUMBER);
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval += m_faceData[idir].nBytes(bx, 0, F_FACENUMBER);
+    }
+    return retval;
   }
 /*******************************/
 
   std::size_t 
   EBDataImplem::
-  copyToMem (const Box& srcbox,
+  copyToMem (const Box& bx,
              int        srccomp,
-             int        numcomp,
+             int        ncomps,
              void*      dst) const
   {
-    amrex::Error("not implemented");
-    return 0;
+    size_t retval = 0;
+    unsigned char* buf = (unsigned char*) dst;
+    size_t incrval = m_volData.copyToMem(bx, 0, V_VOLNUMBER, buf);
+    retval += incrval;
+    buf    += incrval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      incrval = m_faceData[idir].copyToMem(bx, 0, F_FACENUMBER, buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+    return retval;
   }
 
 /*******************************/
 
   std::size_t 
   EBDataImplem::
-  copyFromMem (const Box&  dstbox,
+  copyFromMem (const Box&  bx,
                int         dstcomp,
                int         numcomp,
                const void* src)
   {
-    amrex::Error("not implemented");
-    return 0;
+    size_t retval = 0;
+    unsigned char* buf = (unsigned char*) src;
+    size_t incrval = m_volData.copyFromMem(bx, 0, V_VOLNUMBER, buf);
+    retval += incrval;
+    buf    += incrval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      incrval = m_faceData[idir].copyFromMem(bx, 0, F_FACENUMBER, buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+    return retval;
+  }
+/*******************************/
+  std::size_t 
+  EBDataImplem::
+  nBytesFull() const
+  {
+    //first the region
+    size_t retval = m_region.linearSize();
+    retval +=   m_graph.nBytesFull();
+    retval += m_volData.nBytesFull();
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      retval += m_faceData[idir].nBytesFull();
+    }
+    return retval;
+  }
+/*******************************/
+
+  std::size_t 
+  EBDataImplem::
+  copyToMemFull(void* dst) const
+  {
+    size_t retval  = 0;
+    size_t incrval = 0;
+    unsigned char* buf = (unsigned char*) dst;
+    m_region.linearOut(buf);
+    incrval = m_region.linearSize();
+    buf += incrval;
+    retval += incrval;
+
+    incrval = m_graph.copyToMemFull(buf);
+    retval += incrval;
+    buf    += incrval;
+
+    incrval = m_volData.copyToMemFull(buf);
+    retval += incrval;
+    buf    += incrval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      incrval = m_faceData[idir].copyToMemFull(buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+    return retval;
+  }
+
+/*******************************/
+
+  std::size_t 
+  EBDataImplem::
+  copyFromMemFull(const void* src)
+  {
+    
+    size_t retval  = 0;
+    size_t incrval = 0;
+    unsigned char* buf = (unsigned char*) src;
+    m_region.linearIn(buf);
+    incrval = m_region.linearSize();
+    buf += incrval;
+    retval += incrval;
+
+    incrval = m_graph.copyFromMemFull(buf);
+    retval += incrval;
+    buf    += incrval;
+
+    incrval = m_volData.copyFromMemFull(buf);
+    retval += incrval;
+    buf    += incrval;
+
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      incrval = m_faceData[idir].copyFromMemFull(buf);
+      retval += incrval;
+      buf    += incrval;
+    }
+
+    m_isDefined = true;
+    return retval;
   }
 
 /*******************************/

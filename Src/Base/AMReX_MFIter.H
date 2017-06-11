@@ -81,7 +81,7 @@ public:
     Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
-    void operator++ () { ++currentIndex; }
+    void operator++ ();
 
     //! Is the iterator valid i.e. is it associated with a FAB?
     bool isValid () const { return currentIndex < endIndex; }
@@ -94,6 +94,18 @@ public:
   
     //! The the number of tiles in the current grid;
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
+
+    //! Return a unique index associated with the current box and/or tile.
+    int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
+
+    //! Maintain a record of all FABs that have been sent to the device.
+    template<class FAB>
+    bool registerFab(const FAB& fab, int idx = -1) const { return false; }
+
+    bool registerFab(const FArrayBox& fab, int idx = -1) const;
+
+    //! Return all data from the device to the host.
+    void releaseDeviceData();
 
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
@@ -125,9 +137,27 @@ protected:
     const Array<Box>* tile_array;
     const Array<int>* local_tile_index_map;
     const Array<int>* num_local_tiles;
+
+    mutable Array<FArrayBox*> registered_fabs;
+    mutable Array<int> registered_fabs_indices;
   
     void Initialize ();
 };
+
+// Store a FAB in our list. Return true if we registered it;
+// return false if we had already registered it.
+inline
+bool
+MFIter::registerFab(const FArrayBox& fab, int idx) const
+{
+    FArrayBox* fab_p = const_cast<FArrayBox*>(&fab);
+    if (std::find(registered_fabs.begin(), registered_fabs.end(), fab_p) == registered_fabs.end()) {
+	registered_fabs.push_back(fab_p);
+	registered_fabs_indices.push_back(idx);
+	return true;
+    }
+    return false;
+}
 
 //! Iterate over ghost cells.  Lots of MFIter functions do not work.
 class MFGhostIter

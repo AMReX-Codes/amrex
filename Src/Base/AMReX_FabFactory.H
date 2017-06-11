@@ -10,11 +10,17 @@ namespace amrex
 struct FabInfo
 {
     bool alloc = true;
+    bool device = false;
     bool shared = false;
 
     FabInfo& SetAlloc (bool a) {
         alloc = a;
         return *this;
+    }
+
+    FabInfo& SetDevice (bool d) {
+	device = d;
+	return *this;
     }
 
     FabInfo& SetShared (bool s) {
@@ -38,7 +44,9 @@ class DefaultFabFactory
 public:
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
     {
-        return new FAB(box, ncomps, info.alloc, info.shared);
+        FAB* fab = new FAB(box, ncomps, info.alloc, info.shared);
+	if (info.device) fab->allocate_device();
+	return fab;
     }
 };
 

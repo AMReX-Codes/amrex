@@ -47,7 +47,7 @@ def load_params(args):
 
     try: cp.read(args.input_file[0])
     except:
-        log.fail("ERROR: unable to read parameter file {}".format(file))
+        log.fail("ERROR: unable to read parameter file {}".format(args.input_file[0]))
 
     # "main" is a special section containing the global suite parameters.
     mysuite = suite.Suite(args)

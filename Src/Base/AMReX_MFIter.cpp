@@ -2,6 +2,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
+#include <AMReX_Device.H>
 
 namespace amrex {
 
@@ -105,6 +106,7 @@ MFIter::~MFIter ()
     if ( ! (flags & NoTeamBarrier) )
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
+    releaseDeviceData();
 }
 
 void 
@@ -296,6 +298,25 @@ MFIter::grownnodaltilebox (int dir, int ng) const
 	}
     }
     return bx;
+}
+
+void
+MFIter::operator++ () {
+
+    ++currentIndex;
+
+    releaseDeviceData();
+
+}
+
+void
+MFIter::releaseDeviceData() {
+    if (Device::inDeviceLaunchRegion()) {
+	for (int i = 0; i < registered_fabs.size(); ++i)
+	    registered_fabs[i]->toHost(registered_fabs_indices[i]);
+	registered_fabs.clear();
+	registered_fabs_indices.clear();
+    }
 }
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)

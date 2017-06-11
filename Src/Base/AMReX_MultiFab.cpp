@@ -36,6 +36,8 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
     BL_ASSERT(x.nGrow() >= nghost && y.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Dot()");
+
     Real sm = 0.0;
 
 #ifdef _OPENMP
@@ -65,16 +67,23 @@ MultiFab::Add (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Add()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
 }
 
 void
@@ -89,16 +98,23 @@ MultiFab::Copy (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost); // && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Copy()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
+            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp, idx);
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
 }
 
 void
@@ -113,15 +129,18 @@ MultiFab::Subtract (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Subtract()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
 }
 
@@ -137,16 +156,23 @@ MultiFab::Multiply (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Multiply()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
 }
 
 void
@@ -161,16 +187,23 @@ MultiFab::Divide (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Divide()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+	const int idx = mfi.tileIndex();
 
         if (bx.ok())
-            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
 }
 
 void
@@ -186,6 +219,8 @@ MultiFab::Saxpy (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::Saxpy()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -196,6 +231,10 @@ MultiFab::Saxpy (MultiFab&       dst,
         if (bx.ok())
             dst[mfi].saxpy(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
 }
 
 void
@@ -210,6 +249,8 @@ MultiFab::Xpay (MultiFab&       dst,
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    BL_PROFILE("MultiFab::Xpay()");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -241,6 +282,8 @@ MultiFab::LinComb (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == y.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && x.nGrow() >= nghost && y.nGrow() >= nghost);
 
+    BL_PROFILE("MultiFab::LinComb()");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -268,6 +311,8 @@ MultiFab::AddProduct (MultiFab&       dst,
     BL_ASSERT(dst.boxArray() == src2.boxArray());
     BL_ASSERT(dst.distributionMap == src2.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src1.nGrow() >= nghost && src2.nGrow() >= nghost);
+
+    BL_PROFILE("MultiFab::AddProduct()");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -388,6 +433,10 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
     :
     FabArray<FArrayBox>(rhs, maketype, scomp, ncomp)
 {
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
@@ -395,16 +444,16 @@ MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp
     :
     FabArray<FArrayBox>(ba, dm, ncomp, ngrow, p)
 {
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::~MultiFab()
 {
 #ifdef BL_MEM_PROFILING
-    if (m_status != StatusType::moved     &&
-        m_status != StatusType::is_alias) 
-    {
-	--num_multifabs;
-    }
+    --num_multifabs;
 #endif
 }
 

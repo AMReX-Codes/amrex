@@ -82,52 +82,6 @@ namespace amrex
     return *this;
   }
       
-  /*************/
-  template <class T>
-  std::size_t 
-  BaseEBCellFAB<T>::
-  nBytes (const Box& bx, int start_comp, int ncomps) const
-  {
-    BL_PROFILE("BaseEBCellFAB::size");
-    size_t retval =  m_regFAB.nBytes(bx, start_comp, ncomps);
-    retval += m_irrFAB.nBytes(bx, start_comp, ncomps);
-    return retval;
-  }
-      
-  /*************/
-  template <class T>
-  std::size_t 
-  BaseEBCellFAB<T>::
-  copyToMem (const Box& srcbox,
-             int        srccomp,
-             int        numcomp,
-             void*      dst) const
-  {
-    BL_PROFILE("BaseEBCellFAB::linearOut");
-    unsigned char* buffer = (unsigned char*) dst;
-    size_t retval = 0;
-    retval = m_regFAB.copyToMem(srcbox, srccomp, numcomp, buffer);
-    buffer += retval;
-    retval += m_irrFAB.copyToMem(srcbox, srccomp, numcomp, buffer);
-    return retval;
-  }
-  /*************/
-  template <class T>
-  std::size_t 
-  BaseEBCellFAB<T>::
-  copyFromMem (const Box&  dstbox,
-               int         dstcomp,
-               int         numcomp,
-               const void* src)
-  {
-    BL_PROFILE("BaseEBCellFAB::linearIn");
-    unsigned char* buffer = (unsigned char*) src;
-    size_t retval = 0;
-    retval = m_regFAB.copyFromMem(dstbox, dstcomp, numcomp, buffer);
-    buffer += retval;
-    retval += m_irrFAB.copyFromMem(dstbox, dstcomp, numcomp, buffer);
-    return retval;
-  }
       
   /*************/
   /*************/
@@ -439,6 +393,201 @@ namespace amrex
     return m_ebisBox;
   }
       
+  /******************/
+  /// Below lies serialization land.  Enter at thy own risk.
+  /// Management is not responsible for any gibbering madness resulting 
+  /// from ignoring this warning.
+  /******************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  nBytes (const Box& bx, int start_comp, int ncomps) const
+  {
+    BL_PROFILE("BaseEBCellFAB::size");
+    size_t retval =  m_regFAB.nBytes(bx, start_comp, ncomps);
+    retval += m_irrFAB.nBytes(bx, start_comp, ncomps);
+    return retval;
+  }
+
+
+  /*************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  nBytesFull() const
+  {
+    BL_PROFILE("BaseEBCellFAB::nbytesfull");
+    size_t retval = 0;
+    //first the meta data
+    //ncomp
+    retval += sizeof(int);
+    //region and regfab region
+    retval += m_region.linearSize();
+    retval += m_regFAB.box().linearSize();
+
+    //these make the ebisbox
+    retval +=  m_ebisBox.getEBGraph().nBytesFull();
+    //components here are ignored
+    Box ebgregion = m_ebisBox.getEBGraph().getRegion();
+    retval +=  m_ebisBox.getEBData( ).nBytes(ebgregion, 0, 1);
+    //from the above we can call define
+    //now for the data
+    retval +=  m_regFAB.nBytes(m_regFAB.box(), 0, nComp());
+    retval +=  m_irrFAB.nBytes(      m_region, 0, nComp());
+
+    return retval;
+  }
+      
+  /*************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  copyToMemFull(void*      dst) const
+  {
+    BL_PROFILE("BaseEBCellFAB::copyToMemFull");
+    size_t retval = 0;
+    //first the meta data
+    //ncomp
+    int* intbuf = (int *) dst;
+    *intbuf = m_regFAB.nComp();    
+    intbuf++;
+    retval += sizeof(int);
+    size_t incrval  = 0;
+
+    //back to byte stream 
+    unsigned char* buffer = (unsigned char*) intbuf;
+    //region and box for fab
+    Box  regfabbox = m_regFAB.box();
+
+    m_region.linearOut(buffer);
+    incrval = m_region.linearSize();
+    buffer += incrval;
+    retval += incrval;
+
+    regfabbox.linearOut(buffer);
+    incrval = regfabbox.linearSize();
+    buffer += incrval;
+    retval += incrval;
+
+
+    //these make the ebisbox
+    incrval =  m_ebisBox.getEBGraph().copyToMemFull(buffer);
+    buffer += incrval;
+    retval += incrval;
+    //components here are ignored
+    Box ebgregion = m_ebisBox.getEBGraph().getRegion();
+    incrval =  m_ebisBox.getEBData( ).copyToMem(ebgregion, 0, 1, buffer);
+    buffer += incrval;
+    retval += incrval;
+    //from the above we can call define
+    //now for the data
+
+    incrval =  m_regFAB.copyToMem(regfabbox, 0, nComp(), buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval =  m_irrFAB.copyToMem( m_region, 0, nComp(), buffer);
+    buffer += incrval;
+    retval += incrval;
+    return retval;
+  }
+  /*************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  copyFromMemFull(const void* src)
+  {
+    BL_PROFILE("BaseEBCellFAB::copyFromMemFull");
+
+    size_t retval = 0;
+
+    //first the meta data
+    //ncomp
+    int* intbuf = (int *) src;
+    int ncomp = *intbuf;
+    *intbuf = m_regFAB.nComp();    
+    intbuf++;
+    retval += sizeof(int);
+
+    unsigned char* buffer = (unsigned char*) intbuf;
+    Box region;
+    Box regfabbox;
+    size_t incrval  = 0;
+
+    //back to byte stream 
+    region.linearIn(buffer);
+    incrval = m_region.linearSize();
+    buffer += incrval;
+    retval += incrval;
+
+    regfabbox.linearIn(buffer);
+    incrval = regfabbox.linearSize();
+    buffer += incrval;
+    retval += incrval;
+
+    //these make the ebisbox
+    EBGraph ebgraph;
+    EBData  ebdata;
+    incrval =  ebgraph.copyFromMemFull(buffer);
+    buffer += incrval;
+    retval += incrval;
+    Box ebgregion = ebgraph.getRegion();
+    ebdata.define(ebgraph, ebgregion);
+    //the components here are ignored.
+    incrval =   ebdata.copyFromMem(ebgregion, 0, ncomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    //from the above we can call define
+    EBISBox ebisBox(ebgraph, ebdata);
+    //need to send regfabbox because that is what defines the reg fab
+    //the region is intersected with the domain
+    this->define(ebisBox, regfabbox, ncomp);
+
+    BL_ASSERT(m_regFAB.box() == regfabbox);
+    BL_ASSERT(        region == getRegion());
+
+    //now for the data 
+    incrval =  m_regFAB.copyFromMem(regfabbox, 0, ncomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    incrval =  m_irrFAB.copyFromMem(region   , 0, ncomp, buffer);
+    buffer += incrval;
+    retval += incrval;
+    return retval;
+  }
+  /*************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  copyToMem (const Box& srcbox,
+             int        srccomp,
+             int        numcomp,
+             void*      dst) const
+  {
+    BL_PROFILE("BaseEBCellFAB::linearOut");
+    unsigned char* buffer = (unsigned char*) dst;
+    size_t retval = 0;
+    retval = m_regFAB.copyToMem(srcbox, srccomp, numcomp, buffer);
+    buffer += retval;
+    retval += m_irrFAB.copyToMem(srcbox, srccomp, numcomp, buffer);
+    return retval;
+  }
+  /*************/
+  template <class T>
+  std::size_t 
+  BaseEBCellFAB<T>::
+  copyFromMem (const Box&  dstbox,
+               int         dstcomp,
+               int         numcomp,
+               const void* src)
+  {
+    BL_PROFILE("BaseEBCellFAB::linearIn");
+    unsigned char* buffer = (unsigned char*) src;
+    size_t retval = 0;
+    retval = m_regFAB.copyFromMem(dstbox, dstcomp, numcomp, buffer);
+    buffer += retval;
+    retval += m_irrFAB.copyFromMem(dstbox, dstcomp, numcomp, buffer);
+    return retval;
+  }
 }
       
 #endif

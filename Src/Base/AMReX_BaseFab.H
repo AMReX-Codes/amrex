@@ -15,6 +15,7 @@
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_CArena.H>
+#include <AMReX_Device.H>
 #include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
@@ -48,7 +49,7 @@ namespace amrex
 *  BaseFabs in C++, and they provide a convenient interface to
 *  Fortran when it is necessary to retreat into that language.
         
-*  BaseFab is a class template.  Through use of the
+*  BaseFab is a template class.  Through use of the
 *  template, a BaseFab may be based upon any class.  So far at least,
 *  most applications have been based upon simple types like integers,
 *  real*4s, or real*8s.  Most applications do not use BaseFabs 
@@ -159,14 +160,16 @@ public:
       return offset;
     }
 
-  /**
-   * \brief The function returns the BaseFab to the invalid state.
-   * The memory is freed.
-   */
-  void clear ();
+    /**
+     * \brief The function returns the BaseFab to the invalid state.
+     * The memory is freed.
+     */
+    void clear ();
 
     //! Returns how many bytes used
     std::size_t nBytes () const { return truesize*sizeof(T); }
+
+    static bool preAllocatable () { return true; }
 
     //! Returns bytes used in the Box for those components
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
@@ -175,8 +178,8 @@ public:
     //! Returns the number of components
     int nComp () const { return nvar; }
 
-  int* nCompPtr() {return &nvar;}
-  const int* nCompPtr() const {return &nvar;}
+    //! for calls to fortran.  
+    const int* nCompPtr() const {return &nvar;}
 
     //! Returns the number of points 
     long nPts () const { return numpts; }
@@ -246,16 +249,36 @@ public:
     * order, with the component index coming last.   In other words,
     * dataPtr returns a pointer to all the Nth components.
     */
-    T* dataPtr (int n = 0) { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    T* dataPtr (int n = 0) {
+	if (Device::inDeviceLaunchRegion() && device_copy) {
+	    BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts];
+	} else {
+	    BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts];
+	}
+    }
 
     //! Same as above except works on const FABs.
-    const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    const T* dataPtr (int n = 0) const {
+	if (Device::inDeviceLaunchRegion() && device_copy) {
+	    BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts];
+	} else {
+	    BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts];
+	}
+    }
 
+    //! Returns the pointer to the device copy.
+    T* devicePtr (int n = 0) { BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts]; }
+
+    //! Same as above exept works on const FABs.
+    const T* devicePtr (int n = 0) const { BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts]; }
     
     void setPtr (T* p, long sz) { BL_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
     //! Returns true if the data for the FAB has been allocated.
     bool isAllocated () const { return dptr != 0; }
+
+    //! Returns true if the device copy of the data has been allocated.
+    bool isDeviceAllocated () const { return dptr_d != 0; }
 
     /**
     * \brief Returns a reference to the Nth component value
@@ -295,7 +318,8 @@ public:
     void setVal (T          x,
                  const Box& bx,
                  int        nstart,
-                 int        ncomp);
+                 int        ncomp,
+	         int        index=0);
     //! Same as above, except the number of modified components is one. N is the component to be modified.
     void setVal (T          x,
                  const Box& bx,
@@ -338,7 +362,8 @@ public:
                       int               srccomp,
                       const Box&        destbox,
                       int               destcomp,
-                      int               numcomp);
+                      int               numcomp,
+	              int               index=0);
 
   //for debugging
   BaseFab<T>&
@@ -387,6 +412,16 @@ public:
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
+
+    //! Allocates memory for the device copy.
+    void allocate_device ();
+
+    //! Transfer data from the host to the device on the stream corresponding to MFIter index idx.
+    void toDevice(int idx = -1);
+
+    //! Transfer data from the device to the host on the stream corresponding to MFIter index idx.
+    void toHost(int idx = -1);
+
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
@@ -595,14 +630,16 @@ public:
                       const Box&        destbox,
                       int               srccomp,
                       int               destcomp,
-                      int               numcomp=1);
+                      int               numcomp=1,
+	              int               index=0);
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
                        const Box&        srcbox,
                        const Box&        destbox,
                        int               srccomp,
                        int               destcomp,
-                       int               numcomp=1);
+                       int               numcomp=1,
+	               int               index=0);
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x);
 
@@ -662,7 +699,8 @@ public:
                        const Box&        destbox,
                        int               srccomp,
                        int               destcomp,
-                       int               numcomp=1);
+                       int               numcomp=1,
+	               int               index=0);
     //! Scalar multiplication (a[i] <- a[i] * r), in place.
     BaseFab<T>& operator*= (T r);
 
@@ -717,7 +755,8 @@ public:
                       const Box&        destbox,
                       int               srccomp,
                       int               destcomp,
-                      int               numcomp=1);
+                      int               numcomp=1,
+	              int               index=0);
     //! Scalar division (a[i] <- a[i] / r), in place.
     BaseFab<T>& operator/= (T r);
 
@@ -770,7 +809,8 @@ public:
                         const Box&        destbox,
                         int               srccomp,
                         int               destcomp,
-                        int               numcomp=1);
+                        int               numcomp=1,
+	                int               index=0);
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
     */
@@ -886,13 +926,15 @@ protected:
                       int               srccomp,
                       const Box&        destbox,
                       int               destcomp,
-                      int               numcomp);
+                      int               numcomp,
+	              int               index=0);
 
     //! This function is called by the BaseFab setVal operations.
     void performSetVal (T          x,
                         const Box& bx,
                         int        nstart,
-                        int        numcomp);
+                        int        numcomp,
+	                int        index=0);
 protected:
 
     Box     domain;   // My index space.
@@ -901,7 +943,9 @@ protected:
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
     T*      dptr;     // The data pointer.
+    T*      dptr_d;   // The device copy of the data pointer.
     bool    ptr_owner;// Owner of T*?
+    bool    device_copy;    // Should we have a device copy of the data?
     bool    shared_memory;  // Is the memory allocated in shared memory?
 };
 
@@ -1043,9 +1087,10 @@ void
 BaseFab<T>::setVal (T          x,
                     const Box& b,
                     int        ns,
-                    int        num)
+                    int        num,
+                    int        index)
 {
-    performSetVal(x,b,ns,num);
+    performSetVal(x,b,ns,num,index);
 }
 
 template <class T>
@@ -1055,7 +1100,8 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               srccomp,
                   const Box&        destbox,
                   int               destcomp,
-                  int               numcomp)
+                  int               numcomp,
+                  int               index)
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(srcbox.sameSize(destbox));
@@ -1063,7 +1109,7 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     BL_ASSERT(domain.contains(destbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
-    performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+    performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp,index);
     return *this;
 }
 
@@ -1143,6 +1189,7 @@ BaseFab<T>::define ()
 {
     BL_ASSERT(nvar > 0);
     BL_ASSERT(dptr == 0);
+    BL_ASSERT(dptr_d == 0);
     BL_ASSERT(numpts > 0);
     BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
@@ -1172,7 +1219,9 @@ BaseFab<T>::BaseFab ()
     numpts(0),
     truesize(0),
     dptr(0),
+    dptr_d(0),
     ptr_owner(false),
+    device_copy(false),
     shared_memory(false)
 {}
 
@@ -1188,7 +1237,9 @@ BaseFab<T>::BaseFab (const Box& bx,
     numpts(bx.numPts()),
     truesize(0),
     dptr(0),
+    dptr_d(0),
     ptr_owner(false),
+    device_copy(false),
     shared_memory(shared)
 {
     if (!shared_memory && alloc) define();
@@ -1203,6 +1254,8 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     numpts(rhs.numpts),
     truesize(ncomp*rhs.numpts),
     dptr(const_cast<T*>(rhs.dataPtr(scomp))),
+    dptr_d(0),
+    device_copy(false),
     ptr_owner(false),
     shared_memory(false)
 {
@@ -1228,6 +1281,8 @@ BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
     numpts(bx.numPts()),
     truesize(bx.numPts()*ncomp),
     dptr(p),
+    dptr_d(0),
+    device_copy(false),
     ptr_owner(false),
     shared_memory(false)
 {
@@ -1248,6 +1303,7 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
     numpts(rhs.numpts),
     truesize(rhs.truesize),
     dptr(rhs.dptr),
+    dptr_d(0),
     ptr_owner(rhs.ptr_owner),
     shared_memory(rhs.shared_memory)
 {
@@ -1291,6 +1347,17 @@ BaseFab<T>::resize (const Box& b,
     }
 }
 
+// Allocates a device copy of the data.
+
+template <class T>
+void
+BaseFab<T>::allocate_device() {
+
+    device_copy = true;
+    dptr_d = static_cast<T*>(amrex::The_Arena()->alloc_device(truesize*sizeof(T)));
+
+}
+
 template <class T>
 void
 BaseFab<T>::clear ()
@@ -1314,6 +1381,9 @@ BaseFab<T>::clear ()
 		ptr->~T();
 	    }
 	    amrex::The_Arena()->free(dptr);
+
+	    if (dptr_d)
+		amrex::The_Arena()->free_device(dptr_d);
 	    
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
@@ -1323,6 +1393,7 @@ BaseFab<T>::clear ()
 	}
 
 	dptr = 0;
+	dptr_d = 0;
 	truesize = 0;
     }
 }
@@ -1340,7 +1411,8 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                          int               srccomp,
                          const Box&        destbox,
                          int               destcomp,
-                         int               numcomp)
+                         int               numcomp,
+                         int               index)
 {
     BL_ASSERT(src.box().contains(srcbox));
     BL_ASSERT(box().contains(destbox));
@@ -1470,7 +1542,8 @@ void
 BaseFab<T>::performSetVal (T          val,
                            const Box& bx,
                            int        ns,
-                           int        num)
+                           int        num,
+                           int        idx)
 {
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(ns >= 0 && ns + num <= nvar);
@@ -1667,7 +1740,8 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             int                  srccomp,
                             const Box&           destbox,
                             int                  destcomp,
-                            int                  numcomp);
+                            int                  numcomp,
+                            int                  index);
 template <>
 std::size_t
 BaseFab<Real>::copyToMem (const Box& srcbox,
@@ -1685,7 +1759,8 @@ void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
                               int        ns,
-                              int        num);
+                              int        num,
+                              int        index);
 template <>
 Real
 BaseFab<Real>::norm (const Box& subbox,
@@ -1705,7 +1780,8 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
                      const Box&           destbox,
                      int                  srccomp,
                      int                  destcomp,
-                     int                  numcomp);
+                     int                  numcomp,
+                     int                  index);
 template <>
 BaseFab<Real>&
 BaseFab<Real>::mult (const BaseFab<Real>& src,
@@ -1713,7 +1789,8 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                      const Box&           destbox,
                      int                  srccomp,
                      int                  destcomp,
-                     int                  numcomp);
+                     int                  numcomp,
+                     int                  index);
 template <>
 BaseFab<Real>&
 BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
@@ -1721,7 +1798,8 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
                       const Box&        destbox,
                       int               srccomp,
                       int               destcomp,
-                      int               numcomp);
+                      int               numcomp,
+                      int               index);
 
 template <>
 BaseFab<Real>&
@@ -1730,7 +1808,8 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
                       const Box&           destbox,
                       int                  srccomp,
                       int                  destcomp,
-                      int                  numcomp);
+                      int                  numcomp,
+                      int                  index);
 template <>
 BaseFab<Real>&
 BaseFab<Real>::divide (const BaseFab<Real>& src,
@@ -1738,7 +1817,8 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
                        const Box&           destbox,
                        int                  srccomp,
                        int                  destcomp,
-                       int                  numcomp);
+                       int                  numcomp,
+                       int                  index);
 template <>
 BaseFab<Real>&
 BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
@@ -2409,7 +2489,8 @@ BaseFab<T>::plus (const BaseFab<T>& src,
                   const Box&        destbox,
                   int               srccomp,
                   int               destcomp,
-                  int               numcomp)
+                  int               numcomp,
+                  int               index)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2460,7 +2541,8 @@ BaseFab<T>::minus (const BaseFab<T>& src,
                    const Box&        destbox,
                    int               srccomp,
                    int               destcomp,
-                   int               numcomp)
+                   int               numcomp,
+                   int               index)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2541,7 +2623,8 @@ BaseFab<T>::mult (const BaseFab<T>& src,
                   const Box&        destbox,
                   int               srccomp,
                   int               destcomp,
-                  int               numcomp)
+                  int               numcomp,
+                  int               index)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2622,7 +2705,8 @@ BaseFab<T>::divide (const BaseFab<T>& src,
                     const Box&        destbox,
                     int               srccomp,
                     int               destcomp,
-                    int               numcomp)
+                    int               numcomp,
+                    int               index)
 {
     ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
     {
@@ -2761,6 +2845,39 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
         thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
     } EndForTX
     return *this;
+}
+
+template<class T>
+void
+BaseFab<T>::toDevice(int idx)
+{
+    size_t sz = nBytes();
+#ifdef CUDA
+    if (device_copy && dptr_d && dptr) {
+	gpu_htod_memcpy_async(dptr_d, dptr, &sz, &idx);
+    } else {
+#ifdef CUDA_UM
+	gpu_htod_memprefetch_async(dptr, &sz, &idx);
+#endif
+    }
+#endif
+    
+}
+
+template<class T>
+void
+BaseFab<T>::toHost(int idx)
+{
+    size_t sz = nBytes();
+#ifdef CUDA
+    if (device_copy && dptr_d && dptr) {
+	gpu_dtoh_memcpy_async(dptr, dptr_d, &sz, &idx);
+    } else {
+#ifdef CUDA_UM
+	gpu_dtoh_memprefetch_async(dptr, &sz, &idx);
+#endif
+    }
+#endif
 }
 
     // \cond CODEGEN
