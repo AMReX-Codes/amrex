@@ -388,6 +388,10 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
     :
     FabArray<FArrayBox>(rhs, maketype, scomp, ncomp)
 {
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
@@ -395,16 +399,16 @@ MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp
     :
     FabArray<FArrayBox>(ba, dm, ncomp, ngrow, p)
 {
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
 }
 
 MultiFab::~MultiFab()
 {
 #ifdef BL_MEM_PROFILING
-    if (m_status != StatusType::moved     &&
-        m_status != StatusType::is_alias) 
-    {
-	--num_multifabs;
-    }
+    --num_multifabs;
 #endif
 }
 

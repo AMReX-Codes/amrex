@@ -39,10 +39,11 @@ namespace amrex
     Real x = xloc[0];
     Real y = xloc[1];
 
-    retval = (1.0 + x*x + y*y + x*x*x + y*y*y);
-    //  retval = 2.*xloc[0];
+    retval = (1.0 + x*x + y*y + x*x*x + y*y*y +x*y +x*x*y + y*y*x);
     //retval  = x;
-    //  retval = xloc[0]*xloc[0];
+    //retval = x*x;
+    //retval = x*y;
+    //retval = x*x*x;
     return retval;
   }
 /***************/
@@ -61,6 +62,8 @@ namespace amrex
     FabArray<EBCellFAB> phiFineExac(a_eblgFine.getDBL(), a_eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
     FabArray<EBCellFAB> phiFineCalc(a_eblgFine.getDBL(), a_eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
     FabArray<EBCellFAB> phiCoarExac(a_eblgCoar.getDBL(), a_eblgCoar.getDM(), nvar, nghost, MFInfo(), factCoar);
+    FabArray<EBCellFAB> phiFineQuadratic(a_eblgFine.getDBL(), a_eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
+    FabArray<EBCellFAB> phiFineLinear(a_eblgFine.getDBL(), a_eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
 
     for(MFIter mfi(a_eblgFine.getDBL(), a_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
@@ -107,17 +110,10 @@ namespace amrex
       for (VoFIterator vofit(ivsBox, a_eblgFine.getEBISL()[mfi].getEBGraph()); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
-//begin debug    
-//        int ideb = 0;
-//        const IntVect& iv = vof.gridIndex();
-//        if((iv[0] == 30)  && (iv[1] == 24) )
-//        {
-//          ideb = 1;
-//        }
-//end debug
         Real calcval = calcFAB(vof, 0);
         Real exacval = exacFAB(vof, 0);
         Real diff = std::abs(calcval - exacval);
+
         a_error[mfi](vof, 0) = diff;
       }
     }
@@ -244,9 +240,12 @@ namespace amrex
     FabArray<EBCellFAB> errorFine(eblgFine.getDBL(), eblgFine.getDM(), nvar, nghost, MFInfo(), factFine);
     FabArray<EBCellFAB> errorMedi(eblgMedi.getDBL(), eblgMedi.getDM(), nvar, nghost, MFInfo(), factMedi);
 
-    int maxOrder = 1; //got to get this to 2
-
-    for( int iorder = 1; iorder <= maxOrder; iorder++)
+    int maxOrder = 2; //got to get this to 2
+    int minOrder = 0;
+    ParmParse pp; 
+    pp.query("max_order", maxOrder);
+    pp.query("min_order", minOrder);
+    for( int iorder = minOrder; iorder <= maxOrder; iorder++)
     {
       amrex::Print() << "testing interpolation with order = " << iorder << endl;
       getError(errorFine, eblgFine, eblgMedi, dxFine, dxMedi, iorder);

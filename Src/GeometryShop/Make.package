@@ -40,8 +40,8 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBDebugOut.cpp AMReX_EBFaceFAB.cpp AMRe
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_RedistStencil.H   AMReX_EBLevelRedist.H   AMReX_EBFluxFAB.H   AMReX_IrregFAB.H   AMReX_EBFluxFactory.H   AMReX_IrregFABFactory.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_RedistStencil.cpp AMReX_EBLevelRedist.cpp AMReX_EBFluxFAB.cpp AMReX_IrregFAB.cpp AMReX_EBFluxFactory.cpp AMReX_IrregFABFactory.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBNormalizeByVolumeFraction.H   AMReX_EBLoHiCenter.H
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBNormalizeByVolumeFraction.cpp AMReX_EBLoHiCenter.cpp
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBNormalizeByVolumeFraction.H   AMReX_EBLoHiCenter.H   AMReX_FabArrayIO.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBNormalizeByVolumeFraction.cpp AMReX_EBLoHiCenter.cpp AMReX_FabArrayIO.cpp
 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop
