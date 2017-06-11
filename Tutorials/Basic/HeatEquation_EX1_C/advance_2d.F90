@@ -232,8 +232,8 @@ contains
 
     dtdx = dt/dx
 
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
+    do    j = blo(2), bhi(2)
+       do i = blo(1), bhi(1)
 
           phinew(i,j) = phiold(i,j) &
                + dtdx(1) * (fluxx(i+1,j  ) - fluxx(i,j)) &
