@@ -228,7 +228,7 @@ contains
     integer :: blo(2), bhi(2)
     real(rt) :: dtdx(2)
 
-    call get_loop_bounds(blo, bhi, lo, hi)
+    call get_loop_bounds(blo, bhi, [lo(1), lo(2), 0], [hi(1), hi(2), 0])
 
     dtdx = dt/dx
 
