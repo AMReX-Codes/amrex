@@ -225,7 +225,7 @@ contains
 
     ! local variables
     integer i,j
-    integer :: blo(2), bhi(2)
+    integer :: blo(3), bhi(3)
     real(rt) :: dtdx(2)
 
     call get_loop_bounds(blo, bhi, [lo(1), lo(2), 0], [hi(1), hi(2), 0])
