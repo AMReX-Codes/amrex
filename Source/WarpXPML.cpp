@@ -579,27 +579,31 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     const int ncp = pml.nComp();
     const auto& period = geom.periodicity();
 
-    MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
-    MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
-    if (ncp == 3) {
-        MultiFab::Add(totpmlmf,pml,2,0,1,0);
-    }
-
     MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
-    MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
-    tmpregmf.copy(totpmlmf, 0, 0, 1, 0, ngr, period);
 
+    if (ngp > 0)  // Copy from pml to the ghost cells of regular data
+    {
+        MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
+        MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
+        if (ncp == 3) {
+            MultiFab::Add(totpmlmf,pml,2,0,1,0);
+        }
+        
+        MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
+        tmpregmf.copy(totpmlmf, 0, 0, 1, 0, ngr, period);
+        
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(reg); mfi.isValid(); ++mfi)
-    {
-        const FArrayBox& src = tmpregmf[mfi];
-        FArrayBox& dst = reg[mfi];
-        const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-        for (const Box& bx : bl)
+        for (MFIter mfi(reg); mfi.isValid(); ++mfi)
         {
-            dst.copy(src, bx, 0, bx, 0, 1);
+            const FArrayBox& src = tmpregmf[mfi];
+            FArrayBox& dst = reg[mfi];
+            const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
+            for (const Box& bx : bl)
+            {
+                dst.copy(src, bx, 0, bx, 0, 1);
+            }
         }
     }
 
@@ -607,7 +611,7 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
     // Zero out the second (and third) component
     MultiFab::Copy(tmpregmf,reg,0,0,1,0);
     tmpregmf.setVal(0.0, 1, ncp-1, 0);
-    pml.copy (tmpregmf, 0, 0, 2, 0, ngp, period);
+    pml.copy (tmpregmf, 0, 0, ncp, 0, ngp, period);
 }
 
 void
