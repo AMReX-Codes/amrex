@@ -90,35 +90,19 @@ namespace amrex
 
     if (!locRegion.isEmpty())
     {
-      if (locRegion == m_region && locRegion == a_src.m_region)
+      IntVectSet ivsMulti = a_src.getIVS();
+      ivsMulti &= getIVS();
+      ivsMulti &= locRegion;
+      for(int ivof = 0; ivof < m_vofs.size(); ivof++)
       {
-        Real* l = dataPtr(a_destcomp);
-        const Real* r = a_src.dataPtr(a_srccomp);
-        int nvof = numVoFs();
-        BL_ASSERT(nvof == a_src.numVoFs());
-        for (int i=0; i<a_numcomp*nvof; i++)
+        const VolIndex& vof = m_vofs[ivof];
+        const IntVect& iv = vof.gridIndex();
+        if(ivsMulti.contains(iv))
         {
-          a_op.func(l[i], r[i]);
-        }
-
-      }
-      else
-      {
-        IntVectSet ivsMulti = a_src.getIVS();
-        ivsMulti &= getIVS();
-        ivsMulti &= locRegion;
-        for (IVSIterator ivsit(ivsMulti); ivsit.ok(); ++ivsit)
-        {
-          const IntVect& iv = ivsit();
-          std::vector<VolIndex> vofs = m_ebgraph.getVoFs(iv);
-          for (int ivof = 0; ivof < vofs.size(); ivof++)
+          for (int icomp = 0; icomp < a_numcomp; ++icomp)
           {
-            const VolIndex& vof = vofs[ivof];
-            for (int icomp = 0; icomp < a_numcomp; ++icomp)
-            {
-              a_op.func((*this)(vof, a_destcomp+icomp),
-                        a_src(  vof, a_srccomp+icomp));
-            }
+            a_op.func((*this)(vof, a_destcomp+icomp),
+                      a_src(  vof, a_srccomp+icomp));
           }
         }
       }

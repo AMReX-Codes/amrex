@@ -28,6 +28,14 @@ else
 	@$(LINK.f90) -o $@ $< $(objects) $(libraries)
 endif
 
+%.$(suf).exe:%.F90 $(objects)
+ifdef MKVERBOSE
+	$(LINK.f90) -o $@ $< $(objects) $(libraries)
+else
+	@echo "Linking $@ ... "
+	@$(LINK.f90) -o $@ $< $(objects) $(libraries)
+endif
+
 endif
 
 
@@ -124,12 +132,13 @@ ${hdir}/%.html: %.f
 # we do not preprocess the Fortran files before doing the dependency check.
 # If this is an issue, then it is easy to change it, following what is done
 # in C_mk/Make.rules
+CPP_ARGS := -E -traditional
 $(tdir)/f90.depends: $(fsources) $(f90sources) $(F90sources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
 	@echo "Building f90/F90/f dependency File ..."
 	$(MODDEP) --prefix $(odir) \
             --temp_dir $(tdir) \
-            --cpp "cpp -E -traditional" \
+            --cpp "cpp $(CPP_ARGS)" \
             --defines "$(FPPFLAGS) $(FPP_DEFINES)" $^ > $(tdir)/f90.depends 
 	@if [ $$? -ne 0 ]; then exit "make fail"; fi
 

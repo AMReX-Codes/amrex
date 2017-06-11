@@ -48,7 +48,7 @@ namespace amrex
 *  BaseFabs in C++, and they provide a convenient interface to
 *  Fortran when it is necessary to retreat into that language.
         
-*  BaseFab is a class template.  Through use of the
+*  BaseFab is a template class.  Through use of the
 *  template, a BaseFab may be based upon any class.  So far at least,
 *  most applications have been based upon simple types like integers,
 *  real*4s, or real*8s.  Most applications do not use BaseFabs 
@@ -159,14 +159,16 @@ public:
       return offset;
     }
 
-  /**
-   * \brief The function returns the BaseFab to the invalid state.
-   * The memory is freed.
-   */
-  void clear ();
+    /**
+     * \brief The function returns the BaseFab to the invalid state.
+     * The memory is freed.
+     */
+    void clear ();
 
     //! Returns how many bytes used
     std::size_t nBytes () const { return truesize*sizeof(T); }
+
+    static bool preAllocatable () { return true; }
 
     //! Returns bytes used in the Box for those components
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
@@ -175,8 +177,8 @@ public:
     //! Returns the number of components
     int nComp () const { return nvar; }
 
-  int* nCompPtr() {return &nvar;}
-  const int* nCompPtr() const {return &nvar;}
+    //! for calls to fortran.  
+    const int* nCompPtr() const {return &nvar;}
 
     //! Returns the number of points 
     long nPts () const { return numpts; }

@@ -1315,7 +1315,7 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
     CFinfo* new_cfinfo = new CFinfo(finefa, finegm, ng, include_periodic, include_physbndry);
 
 #ifdef BL_MEM_PROFILING
-    m_CFinfo_stats.bytes += new_fpc->bytes();
+    m_CFinfo_stats.bytes += new_cfinfo->bytes();
     m_CFinfo_stats.bytes_hwm = std::max(m_CFinfo_stats.bytes_hwm, m_CFinfo_stats.bytes);
 #endif
 
@@ -1336,7 +1336,7 @@ FabArrayBase::flushCFinfo (bool no_assertion)
     for (auto it = er_it.first; it != er_it.second; ++it)
     {
 #ifdef BL_MEM_PROFILING
-        m_CFinfo_stats.bytes -= it->second-bytes();
+        m_CFinfo_stats.bytes -= it->second->bytes();
 #endif
         m_CFinfo_stats.recordErase(it->second->m_nuse);
         delete it->second;
