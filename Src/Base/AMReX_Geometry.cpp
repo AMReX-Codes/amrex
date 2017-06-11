@@ -84,7 +84,10 @@ Geometry::define (const Box&     dom,
 		inv_dx[k] = 1.0/dx[k];
             }
 	}
-    } 
+    }
+
+    init_device();
+    set_device();
 }
 
 void

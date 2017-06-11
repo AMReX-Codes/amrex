@@ -42,6 +42,9 @@ public:
     //! Initialize after construction.
     void define (const Real* cell_dx);
 
+    void init_device();
+    void set_device();
+
     //! Set the CoordType.
     static void SetCoord (CoordType coord) { c_sys = coord; }
 
@@ -70,7 +73,14 @@ public:
     static Real Offset (int dir) { return offset[dir]; }
 
     //! Returns the cellsize for each coordinate direction.
-    const Real* CellSize () const { BL_ASSERT(ok); return dx; }
+    const Real* CellSize () const {
+	BL_ASSERT(ok);
+#ifdef CUDA
+	return dx_d.get();
+#else
+	return dx;
+#endif
+    }
 
     //! Returns the cellsize for the specified coordinate direction.
     Real CellSize (int dir) const { BL_ASSERT(ok); return dx[dir]; }
@@ -260,6 +270,11 @@ protected:
     Real dx[BL_SPACEDIM];
     Real inv_dx[BL_SPACEDIM];
     bool ok;
+
+#ifdef CUDA
+    std::shared_ptr<Real> dx_d;
+#endif
+
 };
 
 inline
