@@ -71,8 +71,6 @@ namespace amrex
     m_isDefined = true;
     m_direction = a_direction;
 
-    std::set<FaceIndex, std::less<FaceIndex> > resultSet;
-
     bool doLo = ((a_location == FaceStop::SurroundingNoBoundary) ||
                  (a_location == FaceStop::SurroundingWithBoundary) ||
                  (a_location == FaceStop::LoWithBoundary) ||
@@ -99,47 +97,34 @@ namespace amrex
     //if this fails, invalid location.
     assert(doLo || doHi || doBoundaryOnly);
 
-    Side::LoHiSide sides[2] =
-      {
-        doLo ? Side::Lo : Side::Invalid,
-        doHi ? Side::Hi : Side::Invalid
-      };
 
+    m_faces.resize(0);
     for (IVSIterator ivsit(a_ivs); ivsit.ok(); ++ivsit)
     {
       std::vector<VolIndex> vofs = a_ebgraph.getVoFs(ivsit());
       for (int ivof=0; ivof<vofs.size(); ++ivof)
       {
-        for (int iside=0; iside<2; ++iside )
+        for(SideIterator sit; sit.ok(); ++sit)
         {
-          if ( sides[iside] == Side::Invalid )
+          if( ((sit() == Side::Lo) && doLo) ||  ((sit() == Side::Hi) && doHi))
           {
-            continue;
-          }
-          std::vector<FaceIndex> faces(
-            a_ebgraph.getFaces( vofs[ivof], a_direction, sides[iside] ) );
+            std::vector<FaceIndex> faces = 
+              a_ebgraph.getFaces( vofs[ivof], a_direction, sit() );
 
-          for (int iface=0; iface<faces.size(); ++iface)
-          {
-            const FaceIndex& face =  faces[iface];
-            if (   (  face.isBoundary()  && doBoundary)
-                   || ((!face.isBoundary()) && doInterior) )
+            for (int iface=0; iface<faces.size(); ++iface)
             {
-              resultSet.insert( face );
+              const FaceIndex& face =  faces[iface];
+              if (   (  face.isBoundary()  && doBoundary)
+                     || ((!face.isBoundary()) && doInterior) )
+              {
+                m_faces.push_back( face );
+              }
             }
           }
         }
       }
     }
 
-    m_faces.clear();
-    m_faces.reserve( resultSet.size() );
-    for ( std::set<FaceIndex>::const_iterator i = resultSet.begin();
-          i != resultSet.end();
-          ++i )
-    {
-      m_faces.push_back( *i );
-    }
     reset();
   }
 
