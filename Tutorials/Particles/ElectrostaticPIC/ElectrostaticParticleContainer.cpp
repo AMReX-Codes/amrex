@@ -1,4 +1,7 @@
+#include <iomanip>
+
 #include "ElectrostaticParticleContainer.H"
+#include "AMReX_PlotFileUtil.H"
 
 #include "electrostatic_pic_F.H"
 
@@ -14,6 +17,9 @@ void ElectrostaticParticleContainer::InitParticles() {
         p.cpu()  = ParallelDescriptor::MyProc(); 
         
         p.pos(0) = -5.0e-6; 
+        //        p.pos(0) = -9.6259612695841248E-006;
+        p.pos(0) = -9.6939737569373156E-006;
+        p.pos(0) =  -0.5e-5;
         p.pos(1) =  0.0;
         p.pos(2) =  0.0;
         
@@ -50,7 +56,8 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    NodeBilinear mapper;
+    //    NodeBilinear mapper;
+    PCInterp mapper;
     
     // temporary MF with zero ghost cells
     Array<std::unique_ptr<MultiFab> > tmp(num_levels);
@@ -95,12 +102,12 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
         rho[lev]->SumBoundary(gm.periodicity());
         
         // handle coarse particles that deposit some of their mass onto fine
-        if (lev < finest_level) {
-            amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *rho[lev], 0, 0, 1, 
-                                         m_gdb->Geom(lev), m_gdb->Geom(lev+1),
-                                         cphysbc, fphysbc,
-                                         m_gdb->refRatio(lev), &mapper, bcs);
-        }
+//        if (lev < finest_level) {
+//            amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *rho[lev], 0, 0, 1, 
+//                                         m_gdb->Geom(lev), m_gdb->Geom(lev+1),
+//                                         cphysbc, fphysbc,
+//                                         m_gdb->refRatio(lev), &mapper, bcs);
+//        }
 
         // handle fine particles that deposit some of their mass onto coarse
         // Note - this will double count the mass on the coarse level in 
@@ -111,19 +118,40 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
         //                                      m_gdb->refRatio(lev-1), m_gdb->Geom(lev-1), m_gdb->Geom(lev));
         //        }
 
-        rho[lev]->plus(*tmp[lev], 0, 1, 0);     
+        rho[lev]->plus(*tmp[lev], 0, 1, 0);  
     }
 
     std::unique_ptr<MultiFab> crse;
     for (int lev = finest_level - 1; lev >= 0; --lev) {
-        BoxArray cba = rho[lev+1]->boxArray();
-        const DistributionMapping& fdm = rho[lev+1]->DistributionMap();
-        cba.coarsen(m_gdb->refRatio(lev));
-        crse.reset(new MultiFab(cba, fdm, 1, 0));
-        amrex::average_down_nodal(*rho[lev+1], *crse, m_gdb->refRatio(lev));
-        rho[lev]->copy(*crse, m_gdb->Geom(lev).periodicity());
+        const BoxArray& fine_BA = rho[lev+1]->boxArray();
+        const DistributionMapping& fine_dm = rho[lev+1]->DistributionMap();
+        BoxArray coarsened_fine_BA = fine_BA;
+        coarsened_fine_BA.coarsen(m_gdb->refRatio(lev));
+        
+        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
+        coarsened_fine_data.setVal(0.0);
+        
+        IntVect ratio(2, 2, 2);
+        
+        for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            const Box& crse_box = coarsened_fine_data[mfi].box();
+            const Box& fine_box = (*rho[lev+1])[mfi].box();
+            sum_fine_to_crse_nodal(bx.loVect(), bx.hiVect(), ratio.getVect(),
+                                   coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
+                                   (*rho[lev+1])[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
+        }
+        
+        rho[lev]->copy(coarsened_fine_data, m_gdb->Geom(lev).periodicity(), FabArrayBase::ADD);
+        
+        // BoxArray cba = rho[lev+1]->boxArray();
+        // const DistributionMapping& fdm = rho[lev+1]->DistributionMap();
+        // cba.coarsen(m_gdb->refRatio(lev));
+        // crse.reset(new MultiFab(cba, fdm, 1, 0));
+        // amrex::average_down_nodal(*rho[lev+1], *crse, m_gdb->refRatio(lev));
+        // rho[lev]->copy(*crse, m_gdb->Geom(lev).periodicity());
     }
-
+    
     for (int lev = 0; lev < num_levels; ++lev) {
         rho[lev]->mult(-1.0/PhysConst::ep0, 1);
     }
@@ -131,10 +159,27 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
 
 void
 ElectrostaticParticleContainer::
-FieldGather(const VectorMeshData& E) {
+FieldGather(const VectorMeshData& E, int step) {
 
     const int num_levels = E.size();
     const int ng = E[0][0]->nGrow();
+
+    const BoxArray& fine_BA = E[1][0]->boxArray();
+    const DistributionMapping& fine_dm = E[1][0]->DistributionMap();
+    BoxArray coarsened_fine_BA = fine_BA;
+    coarsened_fine_BA.coarsen(IntVect(2,2,2));
+
+    MultiFab coarse_Ex(coarsened_fine_BA, fine_dm, 1, 1);
+    MultiFab coarse_Ey(coarsened_fine_BA, fine_dm, 1, 1);
+    MultiFab coarse_Ez(coarsened_fine_BA, fine_dm, 1, 1);
+    
+    coarse_Ex.copy(*E[0][0], 0, 0, 1, 1, 1);
+    coarse_Ey.copy(*E[0][1], 0, 0, 1, 1, 1);
+    coarse_Ez.copy(*E[0][2], 0, 0, 1, 1, 1);
+
+    std::stringstream ss;
+    ss << "tmp" << std::setfill('0') << std::setw(5) << step;
+//    VisMF::Write(coarse_Ex, amrex::MultiFabFileFullPrefix(0, ss.str(), "Level_", "crseEx"));
 
     for (int lev = 0; lev < num_levels; ++lev) {
         const auto& gm = m_gdb->Geom(lev);
@@ -160,18 +205,34 @@ FieldGather(const VectorMeshData& E) {
             auto& Eyp = attribs[PIdx::Ey];
             auto& Ezp = attribs[PIdx::Ez];
 
-            const FArrayBox& exfab = (*E[lev][0])[pti];
-            const FArrayBox& eyfab = (*E[lev][1])[pti];
-            const FArrayBox& ezfab = (*E[lev][2])[pti];
-
             Exp.assign(np,0.0);
             Eyp.assign(np,0.0);
             Ezp.assign(np,0.0);
 
-            interpolate_cic(particles.data(), nstride, np,
-                            Exp.data(), Eyp.data(), Ezp.data(),
-                            exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                            box.loVect(), box.hiVect(), plo, dx, &ng);
+            const FArrayBox& exfab = (*E[lev][0])[pti];
+            const FArrayBox& eyfab = (*E[lev][1])[pti];
+            const FArrayBox& ezfab = (*E[lev][2])[pti];
+
+            const FArrayBox& exfab_coarse = coarse_Ex[pti];
+            const FArrayBox& eyfab_coarse = coarse_Ey[pti];
+            const FArrayBox& ezfab_coarse = coarse_Ez[pti];
+
+            const Box& coarse_box = coarsened_fine_BA[pti];
+            const Real* coarse_dx = Geom(0).CellSize();
+
+            // interpolate_cic(particles.data(), nstride, np,
+            //                 Exp.data(), Eyp.data(), Ezp.data(),
+            //                 exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+            //                 box.loVect(), box.hiVect(), plo, dx, &ng);
+
+            interpolate_cic_two_levels(particles.data(), nstride, np,
+                                       Exp.data(), Eyp.data(), Ezp.data(),
+                                       exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+                                       box.loVect(), box.hiVect(), dx, 
+                                       exfab_coarse.dataPtr(), eyfab_coarse.dataPtr(),
+                                       ezfab_coarse.dataPtr(),
+                                       coarse_box.loVect(), coarse_box.hiVect(), coarse_dx,
+                                       plo, &ng, &lev);
         }
     }
 };
@@ -219,17 +280,17 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
             const FArrayBox& eyfab  = (*E[lev][1])[pti];
             const FArrayBox& ezfab  = (*E[lev][2])[pti];
             
-            Exp.assign(np,0.0);
-            Eyp.assign(np,0.0);
-            Ezp.assign(np,0.0);
+//            Exp.assign(np,0.0);
+//            Eyp.assign(np,0.0);
+//            Ezp.assign(np,0.0);
             
             //
             // Field Gather
             //
-            interpolate_cic(particles.data(), nstride, np, 
-                            Exp.data(), Eyp.data(), Ezp.data(),
-                            exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                            box.loVect(), box.hiVect(), plo, dx, &ng);
+//            interpolate_cic(particles.data(), nstride, np, 
+//                            Exp.data(), Eyp.data(), Ezp.data(),
+//                            exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+//                            box.loVect(), box.hiVect(), plo, dx, &ng);
             
             //
             // Particle Push

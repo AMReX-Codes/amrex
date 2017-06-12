@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <random>
 #include <cassert>
 
@@ -15,6 +16,16 @@
 #include "electrostatic_pic_F.H"
 
 using namespace amrex;
+
+class NoOpPhysBC
+    : public amrex::PhysBCFunctBase
+{
+public:
+    NoOpPhysBC () {}
+    virtual ~NoOpPhysBC () {}
+    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time) override { }
+    using amrex::PhysBCFunctBase::FillBoundary;
+};
 
 void WritePlotFile(const ScalarMeshData& rhs,
                    const ScalarMeshData& phi,
@@ -75,7 +86,7 @@ void WritePlotFile(const ScalarMeshData& rhs,
 
 void computeE(      VectorMeshData& E,
               const ScalarMeshData& phi, 
-              const Array<Geometry>& geom) {
+                    const Array<Geometry>& geom, int step) {
 
     const int num_levels = E.size();
     const int finest_level = num_levels - 1;
@@ -98,25 +109,102 @@ void computeE(      VectorMeshData& E,
         E[lev][0]->FillBoundary(gm.periodicity());
         E[lev][1]->FillBoundary(gm.periodicity());
         E[lev][2]->FillBoundary(gm.periodicity());
+        
+        std::stringstream ss;
+        ss << "tmp" << std::setfill('0') << std::setw(5) << step;
+//        VisMF::Write(*E[lev][0], amrex::MultiFabFileFullPrefix(lev, ss.str(), "Level_", "Ex"));
+         
+    }
+}
+
+void zeroOutBoundary(MultiFab& input_data,
+                     MultiFab& bndry_data,
+                     const FabArray<BaseFab<int> >& mask) {
+    bndry_data.setVal(0.0, 1);
+    for (MFIter mfi(input_data); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        zero_out_bndry(bx.loVect(), bx.hiVect(),
+                       input_data[mfi].dataPtr(),
+                       bndry_data[mfi].dataPtr(),
+                       mask[mfi].dataPtr());
+    }
+    bndry_data.FillBoundary();
+}
+
+void sumFineToCrseNodal(const MultiFab& fine, MultiFab& crse, 
+                        const Geometry& cgeom, const IntVect& ratio) {
+    
+    const BoxArray& fine_BA = fine.boxArray();
+    const DistributionMapping& fine_dm = fine.DistributionMap();
+    BoxArray coarsened_fine_BA = fine_BA;
+    coarsened_fine_BA.coarsen(ratio);
+    
+    MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
+    coarsened_fine_data.setVal(0.0);
+    
+    for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const Box& crse_box = coarsened_fine_data[mfi].box();
+        const Box& fine_box = fine[mfi].box();
+        sum_fine_to_crse_nodal(bx.loVect(), bx.hiVect(), ratio.getVect(),
+                               coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
+                               fine[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
+    }
+
+    crse.copy(coarsened_fine_data, cgeom.periodicity(), FabArrayBase::ADD);    
+}
+
+void fixRHSForSolve(Array<std::unique_ptr<MultiFab> >& rhs,
+                    const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
+                    const Array<Geometry>& geom, const IntVect& ratio) {
+    int num_levels = rhs.size();
+    for (int lev = 0; lev < num_levels; ++lev) {
+        MultiFab& fine_rhs = *rhs[lev];
+        const FabArray<BaseFab<int> >& mask = *masks[lev];
+        
+        const BoxArray& fine_ba = fine_rhs.boxArray();
+        const DistributionMapping& fine_dm = fine_rhs.DistributionMap();
+        MultiFab fine_bndry_data(fine_ba, fine_dm, 1, 1);
+
+        zeroOutBoundary(fine_rhs, fine_bndry_data, mask);
+
+//        if (lev > 0) {
+//            MultiFab& crse_rhs = *rhs[lev-1];
+//            const Geometry& cgeom = geom[lev-1];
+//            sumFineToCrseNodal(fine_bndry_data, crse_rhs, cgeom, ratio);
+//        }
     }
 }
 
 void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
                 Array<BoxArray>& grids,
                 Array<DistributionMapping>& dm,
-                Array<Geometry>& geom) {
+                Array<Geometry>& geom,
+                Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks, int step) {
 
     int num_levels = rhs.size();
+    int finest_level = num_levels - 1;
 
+    Array<std::unique_ptr<MultiFab> > tmp_phi(num_levels);
+    Array<std::unique_ptr<MultiFab> > tmp_rhs(num_levels);    
     for (int lev = 0; lev < num_levels; ++lev) {
-        phi[lev]->setVal(0.0);
+        tmp_rhs[lev].reset(new MultiFab(rhs[lev]->boxArray(), dm[lev], 1, 0));
+        MultiFab::Copy(*tmp_rhs[lev], *rhs[lev], 0, 0, 1, 0);
+        tmp_phi[lev].reset(new MultiFab(phi[lev]->boxArray(), dm[lev], 1, 2));
+        tmp_phi[lev]->setVal(0.0, 2);
+        std::stringstream ss;
+        ss << "tmp" << std::setfill('0') << std::setw(5) << step;
+//        VisMF::Write(*tmp_rhs[lev], amrex::MultiFabFileFullPrefix(lev, ss.str(), "Level_", "rhs"));
     }
     
-    PhysBCFunct cphysbc, fphysbc;
-    int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};   
-    int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-    Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    NodeBilinear mapper;
+    IntVect ratio(2, 2, 2);
+    fixRHSForSolve(tmp_rhs, masks, geom, ratio);
+
+    for (int lev = 0; lev < num_levels; ++lev) {
+        std::stringstream ss;
+        ss << "tmp" << std::setfill('0') << std::setw(5) << step;
+//        VisMF::Write(*tmp_rhs[lev], amrex::MultiFabFileFullPrefix(lev, ss.str(), "Level_", "fixed_rhs"));
+    }
 
     bool nodal = true;
     bool have_rhcc = false;
@@ -125,71 +213,201 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     int stencil = ND_CROSS_STENCIL;
     int verbose = 0;
     Array<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
-    Real rel_tol = 1.0e-9;
-    Real abs_tol = 1.0e-9;
+    Real rel_tol = 1.0e-12;
+    Real abs_tol = 1.0e-12;
 
-    MGT_Solver solver(geom, mg_bc.dataPtr(), grids, dm, nodal,
-                      stencil, have_rhcc, nc, Ncomp, verbose);
+    Array<Geometry>            level_geom(1);
+    Array<BoxArray>            level_grids(1);
+    Array<DistributionMapping> level_dm(1);
+    Array<MultiFab*>           level_phi(1);
+    Array<MultiFab*>           level_rhs(1);
     
-    solver.set_nodal_const_coefficients(1.0);
-    
-    solver.solve_nodal(amrex::GetArrOfPtrs(phi), amrex::GetArrOfPtrs(rhs), rel_tol, abs_tol);
-
     for (int lev = 0; lev < num_levels; ++lev) {
-        const auto& gm = geom[lev];
-        phi[lev]->FillBoundary(gm.periodicity());
-    }
+        level_phi[0]   = phi[lev].get();
+        level_rhs[0]   = tmp_rhs[lev].get();
+        level_geom[0]  = geom[lev];
+        level_grids[0] = grids[lev];
+        level_dm[0]    = dm[lev];
         
-    for (int lev = 0; lev < num_levels-1; ++lev) {
-        // info for coarse/fine interpolation
-        PhysBCFunct cphysbc, fphysbc;
-        int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-        int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-        Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-        NodeBilinear mapper;
+        MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids, 
+                          level_dm, nodal,
+                          stencil, have_rhcc, nc, Ncomp, verbose);
+        
+        solver.set_nodal_const_coefficients(1.0);
+        
+        solver.solve_nodal(level_phi, level_rhs, rel_tol, abs_tol);
 
-        MultiFab tmp(phi[lev+1]->boxArray(), phi[lev+1]->DistributionMap(), 1, 1);
-                    Array<MultiFab*> crse(1);
+        if (lev < num_levels-1) {
+
+            NoOpPhysBC cphysbc, fphysbc;
+            int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+            int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+            Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+            NodeBilinear mapper;
+
+            MultiFab tmp(phi[lev+1]->boxArray(), phi[lev+1]->DistributionMap(), 1, 2);
+            Array<MultiFab*> crse(1);
             crse[0] = phi[lev].get();
             Array<Real> ctime(1, 0.0);
-            Array<Real> ftime(1, 0.0);            
+            Array<Real> ftime(1, 0.0);
             Array<MultiFab*> fine(1);
             fine[0] = phi[lev+1].get();
-            amrex::FillPatchTwoLevels(tmp, 0.0, crse, ctime, fine, ftime, 
-                                      0, 0, 1, 
-                                      geom[lev], geom[lev+1], cphysbc, fphysbc,
-                                      IntVect(2, 2, 2), &mapper, bcs);
-            MultiFab::Copy(*phi[lev+1], tmp, 0, 0, 1, 1);
+//            amrex::FillPatchTwoLevels(tmp, 0.0, crse, ctime, fine, ftime, 
+//                                      0, 0, 1, 
+//                                      geom[lev], geom[lev+1], cphysbc, fphysbc,
+//                                      ratio, &mapper, bcs);
+//            MultiFab::Copy(*phi[lev+1], tmp, 0, 0, 1, 2);
+
+            amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
+                                         0, 0, 1, geom[lev], geom[lev+1],
+                                         cphysbc, fphysbc,
+                                         IntVect(2, 2, 2), &mapper, bcs);            
+        }
+    }
+    
+    for (int lev = 0; lev < num_levels; ++lev) {
+        const Geometry& gm = geom[lev];
+        phi[lev]->FillBoundary(gm.periodicity());
     }
 
-    // Array<Geometry>            level_geom(1);
-    // Array<BoxArray>            level_grids(1);
-    // Array<DistributionMapping> level_dm(1);
-    // Array<MultiFab*>           level_phi(1);
-    // Array<MultiFab*>           level_rhs(1);
+    for (int lev = 0; lev < num_levels; ++lev) {
+        std::stringstream ss;
+        ss << "tmp" << std::setfill('0') << std::setw(5) << step;
+//        VisMF::Write(*phi[lev], amrex::MultiFabFileFullPrefix(lev, ss.str(), "Level_", "phi"));
+    }
+    
+    // bool nodal = true;
+    // bool have_rhcc = false;
+    // int  nc = 0;
+    // int Ncomp = 1;
+    // int stencil = ND_CROSS_STENCIL;
+    // int verbose = 0;
+    // Array<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
+    // Real rel_tol = 1.0e-12;
+    // Real abs_tol = 1.0e-12;
+
+    // MGT_Solver solver(geom, mg_bc.dataPtr(), grids, dm, nodal,
+    //                   stencil, have_rhcc, nc, Ncomp, verbose);
+    
+    // solver.set_nodal_const_coefficients(1.0);
+    
+    // solver.solve_nodal(amrex::GetArrOfPtrs(tmp_phi), 
+    //                    amrex::GetArrOfPtrs(tmp_rhs), rel_tol, abs_tol);
+
+    // for (int lev = 0; lev < num_levels; ++lev) {
+    //     const auto& gm = geom[lev];
+    //     phi[lev]->FillBoundary(gm.periodicity());
+    // }
+        
+    // for (int lev = 0; lev < num_levels-1; ++lev) {
+    //     // info for coarse/fine interpolation
+    //     NoOpPhysBC cphysbc, fphysbc;
+    //     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    //     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    //     Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+    //     NodeBilinear mapper;
+
+    //     MultiFab tmp(phi[lev+1]->boxArray(), phi[lev+1]->DistributionMap(), 1, 2);
+    //     Array<MultiFab*> crse(1);
+    //     crse[0] = tmp_phi[lev].get();
+    //     Array<Real> ctime(1, 0.0);
+    //     Array<Real> ftime(1, 0.0);
+    //     Array<MultiFab*> fine(1);
+    //     fine[0] = tmp_phi[lev+1].get();
+    //     amrex::FillPatchTwoLevels(tmp, 0.0, crse, ctime, fine, ftime, 
+    //                               0, 0, 1, 
+    //                               geom[lev], geom[lev+1], cphysbc, fphysbc,
+    //                               ratio, &mapper, bcs);
+    //     MultiFab::Copy(*tmp_phi[lev+1], tmp, 0, 0, 1, 2);
+    // }
     
     // for (int lev = 0; lev < num_levels; ++lev) {
-    //     level_phi[0]   = phi[lev].get();
-    //     level_rhs[0]   = rhs[lev].get();
-    //     level_geom[0]  = geom[lev];
-    //     level_grids[0] = grids[lev];
-    //     level_dm[0]    = dm[lev];
-        
-    //     MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids, 
-    //                       level_dm, nodal,
-    //                       stencil, have_rhcc, nc, Ncomp, verbose);
-        
-    //     solver.set_nodal_const_coefficients(1.0);
-        
-    //     solver.solve_nodal(level_phi, level_rhs, rel_tol, abs_tol);
-
-    //     if (lev < num_levels-1) {
-    //         amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
-    //                                      0, 0, 1, geom[lev], geom[lev+1],
-    //                                      cphysbc, fphysbc,
-    //                                      IntVect(2, 2, 2), &mapper, bcs);
-    //     }
+    //     MultiFab::Copy(*phi[lev], *tmp_phi[lev], 0, 0, 1, 2);
     // }
+    
+    // for (int lev = 0; lev < num_levels; ++lev) {
+    //     const Geometry& gm = geom[lev];
+    //     phi[lev]->FillBoundary(gm.periodicity());
+    // }
+
+    // // std::unique_ptr<MultiFab> crse;
+    // // for (int lev = finest_level - 1; lev >= 0; --lev) {
+    // //     BoxArray cba = phi[lev+1]->boxArray();
+    // //     const DistributionMapping& fdm = phi[lev+1]->DistributionMap();
+    // //     cba.coarsen(ratio);
+    // //     crse.reset(new MultiFab(cba, fdm, 1, 0));
+    // //     amrex::average_down_nodal(*phi[lev+1], *crse, ratio);
+    // //     phi[lev]->copy(*crse, geom[lev].periodicity());
+    // // }
+    
+    // for (int lev = 0; lev < num_levels; ++lev) {
+    //     std::stringstream ss;
+    //     ss << "tmp" << std::setfill('0') << std::setw(5) << step;
+    //     VisMF::Write(*phi[lev], amrex::MultiFabFileFullPrefix(lev, ss.str(), "Level_", "phi"));
+    // }
+
+//     Array<Geometry>            level_geom(1);
+//     Array<BoxArray>            level_grids(1);
+//     Array<DistributionMapping> level_dm(1);
+//     Array<MultiFab*>           level_phi(1);
+//     Array<MultiFab*>           level_rhs(1);
+    
+//     for (int lev = 0; lev < num_levels; ++lev) {
+//         level_phi[0]   = phi[lev].get();
+//         level_rhs[0]   = tmp_rhs[lev].get();
+//         level_geom[0]  = geom[lev];
+//         level_grids[0] = grids[lev];
+//         level_dm[0]    = dm[lev];
+        
+//         MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids, 
+//                           level_dm, nodal,
+//                           stencil, have_rhcc, nc, Ncomp, verbose);
+        
+//         solver.set_nodal_const_coefficients(1.0);
+        
+//         solver.solve_nodal(level_phi, level_rhs, rel_tol, abs_tol);
+
+//         if (lev < num_levels-1) {
+//             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
+//                                          0, 0, 1, geom[lev], geom[lev+1],
+//                                          cphysbc, fphysbc,
+//                                          IntVect(2, 2, 2), &mapper, bcs);
+//         }
+//     }
+
+//     for (int lev = 0; lev < num_levels; ++lev) {
+//         const Geometry& gm = geom[lev];
+//         phi[lev]->FillBoundary(gm.periodicity());
+//     }
+}
+
+void
+getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
+              const Array<BoxArray>& grids,
+              const Array<DistributionMapping>& dmap,
+              const Array<Geometry>& geom) {
+    int num_levels = grids.size();
+    BL_ASSERT(num_levels == dmap.size());
+
+    int covered = 0;
+    int notcovered = 1;
+    int physbnd = 1;
+    int interior = 0;
+    
+    for (int lev = 0; lev < num_levels; ++lev) {
+        BoxArray nba = grids[lev];
+        nba.surroundingNodes();
+        
+        FabArray<BaseFab<int> > tmp_mask(nba, dmap[lev], 1, 1);
+        tmp_mask.BuildMask(geom[lev].Domain(), geom[lev].periodicity(),
+                           covered, notcovered, physbnd, interior);
+        masks[lev].reset(new FabArray<BaseFab<int> >(nba, dmap[lev], 1, 0));
+        for (MFIter mfi(tmp_mask); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            build_mask(bx.loVect(), bx.hiVect(),
+                       tmp_mask[mfi].dataPtr(), (*masks[lev])[mfi].dataPtr());
+        }            
+    }
 }
 
 int main(int argc, char* argv[])
@@ -228,7 +446,7 @@ int main(int argc, char* argv[])
     
     // This sets the boundary conditions to be doubly or triply periodic
     for (int i = 0; i < BL_SPACEDIM; i++) {
-        is_periodic[i] = 1;
+        is_periodic[i] = 0;
     }
 
     IntVect dom_lo(IntVect(D_DECL(0,0,0)));
@@ -256,9 +474,9 @@ int main(int argc, char* argv[])
         grids[1].define(refined_patch);
     }
     
-    for (int lev = 0; lev < num_levels; lev++) {
-        grids[lev].maxSize(max_grid_size);
-    }
+    //    for (int lev = 0; lev < num_levels; lev++) {
+    //        grids[lev].maxSize(max_grid_size);
+    //    }
     
     int Nghost = 1;
     int Ncomp  = 1;
@@ -267,17 +485,18 @@ int main(int argc, char* argv[])
     Array<std::unique_ptr<MultiFab> > phi(num_levels);
     Array<std::unique_ptr<MultiFab> > rhs(num_levels);
     Array<std::array<std::unique_ptr<MultiFab>, 3> > eField(num_levels);
+
     for (int lev = 0; lev < num_levels; ++lev) {
         BoxArray nba = grids[lev];
         nba.surroundingNodes();
         dm[lev].define(grids[lev]);
 
-        rhs[lev].reset(new MultiFab(nba, dm[lev], Ncomp, Nghost));
-        phi[lev].reset(new MultiFab(nba, dm[lev], Ncomp, Nghost));
+        rhs[lev].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
+        phi[lev].reset(new MultiFab(nba, dm[lev], Ncomp, 2));
         
-        eField[lev][0].reset(new MultiFab(nba, dm[lev], Ncomp, Nghost));
-        eField[lev][1].reset(new MultiFab(nba, dm[lev], Ncomp, Nghost));
-        eField[lev][2].reset(new MultiFab(nba, dm[lev], Ncomp, Nghost));
+        eField[lev][0].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
+        eField[lev][1].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
+        eField[lev][2].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
 
         rhs[lev]->setVal(0.0);
         phi[lev]->setVal(0.0);
@@ -286,6 +505,9 @@ int main(int argc, char* argv[])
         eField[lev][1]->setVal(0.0);
         eField[lev][2]->setVal(0.0);
     }
+
+    Array<std::unique_ptr<FabArray<BaseFab<int> > > > masks(num_levels); 
+    getLevelMasks(masks, grids, dm, geom);
     
     ElectrostaticParticleContainer myPC(geom, dm, grids, rr);
 
@@ -293,15 +515,19 @@ int main(int argc, char* argv[])
 
     for (int step = 0; step <= max_step; ++step) {
 
+        std::stringstream ss;
+        ss << "tmp" << std::setfill('0') << std::setw(5) << step;        
+        //        amrex::PreBuildDirectorHierarchy(ss.str(), "Level", num_levels, true);
+
         myPC.DepositCharge(rhs);
 
-        computePhi(rhs, phi, grids, dm, geom);
+        computePhi(rhs, phi, grids, dm, geom, masks, step);
         
-        computeE(eField, phi, geom);
+        computeE(eField, phi, geom, step);
 
-        //        WritePlotFile(rhs, phi, eField, myPC, geom, step);
+        myPC.FieldGather(eField, step);
 
-        myPC.FieldGather(eField);
+//        WritePlotFile(rhs, phi, eField, myPC, geom, step);
 
         myPC.writeParticles(step);
         
