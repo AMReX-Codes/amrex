@@ -13,9 +13,11 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
+//#include "AMReX_parstream.H"
 
 namespace amrex
 {
+  Box f_debbox(IntVect(D_DECL(16,8,0)), IntVect(D_DECL(16,15,0)));
   /*******************************/
   std::vector<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
                                                       const Box&  a_box) const
@@ -1804,7 +1806,10 @@ namespace amrex
         linearSize += nodeSize;
       }
     }
-    cout << "nbytes proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
+    if(a_region == f_debbox)
+    {
+//      pout() << "nbytes proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
+    }
     return linearSize;
   }
         
@@ -1817,6 +1822,8 @@ namespace amrex
              void*      a_buf) const
   {
     assert(isDefined());
+    bool blab = (a_region == f_debbox);
+
     TAG boxtag;
     if (isRegular(a_region))
     {
@@ -1836,6 +1843,10 @@ namespace amrex
     retval += sizeof(int);
     *intbuf = boxtag;
     intbuf++;
+    if(blab)
+    {
+//      pout() << "copytomem retval after tag = " << retval << endl;
+    }
         
     unsigned char* buffer = (unsigned char*) intbuf;
 
@@ -1844,6 +1855,10 @@ namespace amrex
     buffer    += incrval;
     retval += incrval;
 
+    if(blab)
+    {
+//      pout()  << "copytomem after domain retval = " << 
+    }
     if (boxtag == HasIrregular)
     {
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
@@ -1855,7 +1870,10 @@ namespace amrex
         retval += nodeSize;
       }
     }
-    cout << "copytomem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
+    if(blab)
+    {
+//      pout() << "copytomem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
+    }
     return retval;
   }
         
@@ -1921,7 +1939,10 @@ namespace amrex
         retval += nodeSize;
       }
     }
-    cout << "copyfrommem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
+    if(a_region == f_debbox)
+    {
+//      pout() << "copyfrommem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
+    }
     return retval;
   }
 }

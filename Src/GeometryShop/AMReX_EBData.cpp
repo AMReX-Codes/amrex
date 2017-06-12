@@ -54,11 +54,11 @@ namespace amrex
 
       //redefine member data with new IVS and copy old data back
       //into it.
-      m_volData.define(ivsNew, m_graph, 1);
+      m_volData.define(ivsNew, m_graph, V_VOLNUMBER);
       m_volData.copy(oldVolData, minBox, 0, minBox, 0, nvolcomp);
       for (int idir = 0; idir < SpaceDim; idir++)
       {
-        m_faceData[idir].define(ivsNew, m_graph, idir, 1);
+        m_faceData[idir].define(ivsNew, m_graph, idir, F_FACENUMBER);
         m_faceData[idir].copy(oldFaceData[idir], minBox, 0, minBox, 0, nfaccomp);
       }
 
