@@ -67,7 +67,7 @@ public:
 
     void DepositCharge(ScalarMeshData& rho);
 
-    void FieldGather(const VectorMeshData& E);
+    void FieldGather(const VectorMeshData& E, int step);
 
     void Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt);
 
