@@ -221,19 +221,19 @@ int myTest()
                                     {
                                         if (!ebis_box.isCovered(iv_nbr))
                                         {
-                                            gn.cells[icc].nbr[idir][iside][nValid++] = faces[iface].cellIndex(sit());
+                                            if (ebis_box.isRegular(iv_nbr))
+                                            {
+                                                gn.cells[icc].nbr[idir][iside][nValid] = REGULAR_CELL;
+                                            }
+                                            else 
+                                            {
+                                                gn.cells[icc].nbr[idir][iside][nValid] = faces[iface].cellIndex(sit());
+                                            }
+					    tf[idir][iv_face].insert(tface(icc,gn.cells[icc].nbr[idir][iside][nValid],sit));
+                                            nValid++;
 					    BL_ASSERT(nValid<NCELLMAX);
-					    tf[idir][iv_face].insert(tface(icc,faces[iface].cellIndex(sit()),sit));
                                         }
                                     }
-				    // this will add regular edges that bound cut cells
-				    // (these are excluded from getFaces call above, so must be added explicitly)
-				    if (faces.size()==0 && ebis_box.isRegular(iv_nbr))
-				    {
-					gn.cells[icc].nbr[idir][iside][nValid++] = REGULAR_CELL;
-					BL_ASSERT(nValid<NCELLMAX);
-					tf[idir][iv_face].insert(tface(icc,REGULAR_CELL,sit));
-				    }
                                     gn.cells[icc].Nnbr[idir][iside] = nValid;
                                 }
                             }			    

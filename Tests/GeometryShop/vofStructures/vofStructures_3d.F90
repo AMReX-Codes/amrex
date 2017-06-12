@@ -25,7 +25,7 @@ contains
     type(fnode), intent(in) :: fnodesJ(0:fnum(2)-1)
     type(fnode), intent(in) :: fnodesK(0:fnum(3)-1)
 
-    integer :: i, j, k, mC, mL, nC, nL, iL, iC, iLL
+    integer :: i, j, k, mC, mL, nC, nL, iL, iC, iLL, iFL
 
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -46,6 +46,22 @@ contains
                       call bl_pd_abort('ERROR: Should not be any mv cut cells here')
                    endif
                    iL = cnodes(mL)%cells(0)%ebCellID
+                   if (cnodes(mL)%cells(0)%Nnbr(0,1) .ne. 1) then
+                      call bl_pd_abort('ERROR: Irreg L does not see reg C neighbor')
+                   else
+                      if (cnodes(mL)%cells(0)%nbr(0,1,0) .ne. REGULAR_CELL) then
+                         call bl_pd_abort('ERROR: Irreg L does not see reg C neighbor as regular cell')
+                      endif
+                   endif
+                   iFL = cnodes(mL)%cells(0)%faceID(0,1,0);
+                   if (iFL .lt. 0) then
+                      call bl_pd_abort('ERROR: iFL face ID is invalid')
+                   else
+                      if (fnodesI(iFL)%nFaces .ne. 1) then
+                         call bl_pd_abort('ERROR: Wrong number of I faces on iFL')
+                      endif
+                      print *,'FACE id,lo,hi',fnodesI(iFL)%faces(0)%ebFaceID,fnodesI(iFL)%faces(0)%cellLo,fnodesI(iFL)%faces(0)%cellHi
+                   endif
                 endif
              else if (mC .eq. COVERED_CELL) then    ! C is covered
                 iC = COVERED_CELL
@@ -83,7 +99,7 @@ contains
                    endif
                 endif
              endif
-             print *,i,j,k,'left=',iL,' cent=',iC
+             !print *,i,j,k,'left=',iL,' cent=',iC
           enddo
        enddo
     enddo
