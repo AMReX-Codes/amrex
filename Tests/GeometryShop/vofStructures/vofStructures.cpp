@@ -8,6 +8,7 @@
 #include "AMReX_ParmParse.H"
 #include "AMReX_RealVect.H"
 #include "AMReX_SphereIF.H"
+#include "AMReX_FlatPlateGeom.H"
 #include "AMReX_EBGraph.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_MultiFab.H"
@@ -64,39 +65,69 @@ get_EGLG(EBLevelGrid& eblg)
     std::vector<int>  ncellsvec(SpaceDim);
 
     ParmParse pp;
-    pp.getarr(  "n_cell"       , ncellsvec, 0, SpaceDim);
-    pp.get(   "sphere_radius", radius);
-    pp.getarr("sphere_center", centervec, 0, SpaceDim);
+
+    std::string geom_type;
+
     pp.get("domain_length", domlen);                     
-    RealVect center;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-        center[idir] = centervec[idir];
-    }
-    //bool insideRegular = false;
-    bool insideRegular = true;
-    SphereIF sphere(radius, center, insideRegular);
-    int verbosity = 0;
-
-    pp.get("verbosity", verbosity);
-    GeometryShop gshop(sphere, verbosity);
-    BaseFab<int> regIrregCovered;
-    std::vector<IrregNode> nodes;
-
+    pp.getarr(  "n_cell"       , ncellsvec, 0, SpaceDim);
     IntVect ivlo = IntVect::TheZeroVector();
     IntVect ivhi;
     for(int idir = 0; idir < SpaceDim; idir++)
     {
         ivhi[idir] = ncellsvec[idir] - 1;
     }
-
-
     Box domain(ivlo, ivhi);
     RealVect origin = RealVect::Zero;
     Real dx = domlen/ncellsvec[0];
 
+    int verbosity = 0;
+    pp.get("verbosity", verbosity);
+
     EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-    ebisPtr->define(domain, origin, dx, gshop);
+    pp.get("geom_type",geom_type);
+    if (geom_type == "sphere")
+    {
+        pp.get(   "sphere_radius", radius);
+        pp.getarr("sphere_center", centervec, 0, SpaceDim);
+        RealVect center;
+        for(int idir = 0; idir < SpaceDim; idir++)
+        {
+            center[idir] = centervec[idir];
+        }
+
+        //bool insideRegular = false;
+        bool insideRegular = true;
+        SphereIF sphere(radius, center, insideRegular);
+
+        GeometryShop gshop(sphere, verbosity);
+        ebisPtr->define(domain, origin, dx, gshop);
+    }
+    else if (geom_type == "flat_plate") 
+    {
+        std::vector<Real>  platelovec(SpaceDim);
+        std::vector<Real>  platehivec(SpaceDim);
+
+        int normalDir;
+        Real plateLoc;
+    
+        pp.getarr("plate_lo", platelovec, 0, SpaceDim);
+        pp.getarr("plate_hi", platehivec, 0, SpaceDim);
+        pp.get("plate_location", plateLoc);
+        pp.get("plate_normal", normalDir);
+
+        RealVect plateLo, plateHi;
+        for(int idir = 0; idir < SpaceDim; idir++)
+        {
+            plateLo[idir] = platelovec[idir];
+            plateHi[idir] = platehivec[idir];
+        }
+        FlatPlateGeom flat_plate(normalDir, plateLoc, plateLo, plateHi);
+        ebisPtr->define(domain, origin, dx, flat_plate);
+    }
+    else
+    {
+        amrex::Abort("Unknown geom_type");
+    }
 
     BoxArray ba(domain);
     int maxboxsize = 16;
