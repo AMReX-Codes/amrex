@@ -13,14 +13,16 @@ module stencil_test_module
 
 contains
 
-  subroutine do_eb_work(lo, hi, cnodes, num,&
+  subroutine do_eb_work(lo, hi, cnodes, cnum, fnodesI, fnodesJ, fnum,&
        mask, mask_l1, mask_l2, mask_h1, mask_h2) bind(C,name="do_eb_work")
 
     integer,     intent(in) :: lo(dim), hi(dim)
-    integer,     intent(in) :: num
+    integer,     intent(in) :: cnum, fnum(dim)
     integer,     intent(in) :: mask_l1,mask_l2,mask_h1,mask_h2
     integer,     intent(in) :: mask(mask_l1:mask_h1,mask_l2:mask_h2)
-    type(cnode), intent(in) :: cnodes(0:num-1) 
+    type(cnode), intent(in) :: cnodes(0:cnum-1)
+    type(fnode), intent(in) :: fnodesI(0:fnum(1)-1)
+    type(fnode), intent(in) :: fnodesJ(0:fnum(2)-1)
 
     integer :: i, j, mC, mL, nC, nL, iL, iC, iLL
 
@@ -47,7 +49,7 @@ contains
              iC = COVERED_CELL
              iL = mask(i-1,j)
           else                                   ! C is irregular
-             if (mC .lt. 0  .or.  mC .ge. num) then
+             if (mC .lt. 0  .or.  mC .ge. cnum) then
                 call bl_pd_abort('ERROR: cut cell index OOB')
              endif
              nC = cnodes(mC)%nCells

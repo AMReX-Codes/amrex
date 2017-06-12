@@ -21,7 +21,10 @@ using namespace amrex;
 extern "C"
 {
     void do_eb_work(const int* lo, const int* hi,
-                    CNode* nodes, const int* num,
+                    CNode* cnodes, const int* cnum,
+                    D_DECL(FNode* fnodes0,
+                           FNode* fnodes1,
+                           FNode* fnodes2), const int* fnum,
                     const BL_FORT_IFAB_ARG(mask));
 }
 
@@ -156,8 +159,10 @@ AssignFaces(CNode&              cnode,
 int myTest()
 {
 
-    std::cout << "Is POD: " << std::is_pod<CNode>::value << std::endl;
-    std::cout << "Size: " << sizeof(CNode)/sizeof(int) << " ints" << std::endl;
+    std::cout << "CNode is POD: " << std::is_pod<CNode>::value << std::endl;
+    std::cout << "FNode is POD: " << std::is_pod<FNode>::value << std::endl;
+    std::cout << "Size of CNode: " << sizeof(CNode)/sizeof(int) << " ints" << std::endl;
+    std::cout << "Size of FNode: " << sizeof(FNode)/sizeof(int) << " ints" << std::endl;
 
     EBLevelGrid eblg;
     get_EGLG(eblg);
@@ -329,9 +334,17 @@ int myTest()
     {
         const Box& vbox = mfi.validbox();
         BaseFab<int>& mask_fab = ebmask[mfi];
-        int s = graphCNodes[mfi.index()].size();
+        int cnum = graphCNodes[mfi.index()].size();
+        int fnum[BL_SPACEDIM];
+        for (int idir=0; idir<BL_SPACEDIM; ++idir) 
+        {
+            fnum[idir] = graphFNodes[idir][mfi.index()].size();
+        }
         do_eb_work(vbox.loVect(), vbox.hiVect(),
-                   graphCNodes[mfi.index()].data(), &s,
+                   graphCNodes[mfi.index()].data(), &cnum,
+                   D_DECL(graphFNodes[0][mfi.index()].data(),
+                          graphFNodes[1][mfi.index()].data(),
+                          graphFNodes[2][mfi.index()].data()),fnum,
                    BL_TO_FORTRAN_N(mask_fab,0));
     }
 
