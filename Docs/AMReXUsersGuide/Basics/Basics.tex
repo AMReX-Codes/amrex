@@ -995,9 +995,103 @@ which source is used is unspecified.
 \section{MFIter and Tiling}
 \label{sec:basics:mfiter}
 
+In this section, we will first show how {\tt MFIter} works without
+tiling.  Then we will introduce the concept of logical tiling.
+Finally we will show how logical tiling can be launched via {\tt
+  MFIter}. 
+
+\subsection{MFIter without Tiling}
+
+In Section~\ref{sec:basics:multifab}, we have shown some of the
+arithmetic functionalities of {\tt MultiFab}, such as adding two {\tt
+  MultiFab}s together.  In this section, we will show how you can
+operate on the {\tt MultiFab} data with your own functions.  \amrex\
+provides an iterator, {\tt MFIter} for looping over the {\tt
+  FArrayBox}es in a {\tt MultiFab}.  For example,
+\begin{lstlisting}[language=cpp]
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi) // Loop over grids
+  {
+      // This is the valid Box of the current FArrayBox.
+      // By "valid", we mean the original ungrown Box in BoxArray.
+      const Box& vbox = mfi.validbox();
+
+      // A reference to the current FArrayBox in this loop iteration.
+      FArrayBox& fab = mf[mfi];
+
+      // Pointer to the floating point data of this FArrayBox.
+      Real* a = fab.dataPtr();
+
+      // This is the Box on which the FArrayBox is defined.
+      // Note that "abox" includes ghost cells (if there are any),
+      // and is thus larger than or equal to "vbox".
+      const Box& abox = fab.box();
+
+      // We can now pass the information to a function that does
+      // work on the region specified by vbox of the data pointed
+      // by Real* a.  The data should be viewed as a multidimensional
+      // with bounds specified by abox.
+      // Function f1 has the signature of
+      // void f1(const int*, const int*, Real*, const int*, const int*);
+      f1(vbox.loVect(), vbox.hiVect(), a, abox.loVect(), abox.hiVect());
+  }
+\end{lstlisting}
+Here function {\tt f1} is usually a Fortran subroutine with ISO C
+binding interface (see Section~\ref{sec:basics:fortran} for more
+details).  In the example above, {\tt MultiFab} is assumed to have a
+single component.  If it has multiple component, we can call {\tt
+int nc = mf.nComp()} to get the number of components and pass it to
+the kernel function.  There is only one {\tt MultiFab} in the example
+above.  Below is an example of working with multiple {\tt MultiFab}s.
+Note that these two {\tt MultiFab}s are not necessarily built on the
+same {\tt BoxArray}.  But they must have the same {\tt
+  DistributionMapping}, and their {\tt BoxArray}s are typically
+related (e.g., they are different due to index types).
+\begin{lstlisting}[language=cpp]
+  // U and F are MultiFabs
+  int ncU = U.nComp();   # number of components
+  int ncF = F.nComp();
+  for (MFIter mfi(F); mfi.isValid(); ++mfi) // Loop over grids
+  {
+      const Box& vbox = mfi.validbox();
+
+      const FArrayBox& ufab = U[mfi];
+      FArrayBox&       ffab = F[mfi];
+
+      Real* up = ufab.dataPtr();
+      Real* fp = ufab.dataPtr();
+
+      const Box& ubox = ufab.box();
+      const Box& fbox = ffab.box();
+
+      // Function f2 has the signature of 
+      // void f2(const int*, const int*,
+      //         const Real*, const int*, const int*, const int*
+      //               Real*, const int*, const int*, const int*);
+      // This will compute f using u as inputs.
+      f2(vbox.loVect(), vbox.hiVect(),
+         up, ubox.loVect(), ubox.hiVect(), &ncU,
+         fp, fbox.loVect(), fbox.hiVect(), &ncF);
+  }
+\end{lstlisting}
+Here again function {\tt f2} is usually a Fortran subroutine with ISO
+C binding interface (see Section~\ref{sec:basics:fortran} for more
+details).
+
+
+\subsection{Logical Tiling}
+
+\subsection{MFIter with Tiling}
+
+% mfs with tiling
+
+% all kinds of tile boxes
+
 \section{Calling Fortan or C}
 \label{sec:basics:fortran}
 
+% pass by reference or value
+% macros and anyd,
+ 
 \section{Physical Boundary}
 
 \section{I/O}
