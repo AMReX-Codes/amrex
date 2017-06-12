@@ -949,9 +949,48 @@ communication is {\tt FillBoundary}.
 Note that {\tt FillBoundary} does not modify any valid cells.  Also
 note that {\tt MultiFab} itself does not have the concept of
 periodicity boundary, but {\tt Geometry} has, and we can provide that
-information so that periodic boundaries can be filled as well.
+information so that periodic boundaries can be filled as well.  You
+might have noticed that a ghost cell could overlap with multiple valid
+cells from different {\tt FArrayBox}es in the case of nodal index
+type.  In that case, it is unspecified that which valid cell's value
+is used to fill the ghost cell.  It ought to be the case the values in
+those overlapping valid cells are the same.
 
-% parallel communication copy
+Another type of parallel communication is copying data from one {\tt
+  MultiFab} to another {\tt MultiFab} with a different {\tt BoxArray}
+or the same {\tt BoxArray} with a different {\tt
+  DistributionMapping}.   The data copy is performed on the regions of
+intersection.  The most generic interface for this is
+\begin{lstlisting}[language=cpp]
+  mfdst.ParallelCopy(mfsrc, sc, dc, nc, sng, snd, period, op);
+\end{lstlisting}
+Here {\tt mfdst} and {\tt mfsrc} are destination and source {\tt
+  MultiFab}s, respectively.  Parameters {\tt sc}, {\tt dc}, and {\tt
+  nc} are integers specifying the range of components.  The copy is
+performed on {\tt nc} components starting from component {\tt sc} of
+{\tt mfsrc} and component {\tt dc} of {\tt mfdst}.  Parameters {\tt
+  sng} and {\tt snd} specify the number of ghost cells involved for
+the source and destination, respectively.  Parameter {\tt period} is
+optional, and by default no periodic copy is performed.  Like {\tt
+  FillBoundary}, one can use {\tt Geometry::periodicity()} to provide
+the periodicity information.  The last parameter is also optional and
+is set to {\tt FabArrayBase::COPY} by default.  One could also use
+{\tt FabArrayBase::ADD}.  This determines whether the function copies
+or adds data from the source to the destination.  Same as {\tt
+  FillBoundary}, if a destination cell has multiple cells as source,
+it is unspecified that which source cell is used.  This function has
+two variants, in which the periodicity and operation type are also
+optional.
+\begin{lstlisting}[language=cpp]
+  mfdst.ParallelCopy(mfsrc, period, op);  // mfdst and mfsrc must have the same
+                                          // number of components
+  mfdst.ParallelCopy(mfsrc, sc, dc, nc, period, op);
+\end{lstlisting}
+Here the number of ghost cells involved is zero if unspecified, and
+the copy is performed on all components (assuming the two {\tt
+  MultiFab}s have the same number of components).  Similar to {\tt
+  FillBoundary}, a destination cell may have multiple sources and
+which source is used is unspecified.  
 
 \section{MFIter and Tiling}
 \label{sec:basics:mfiter}
