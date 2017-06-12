@@ -276,11 +276,6 @@ contains
        wy_lo = 1.0d0 - wy_hi
        wz_lo = 1.0d0 - wz_hi
 
-       print *, particles(1, n), wx_lo, wx_hi, wy_lo, wy_hi, wz_lo, wz_hi
-       print *, i, j, k
-       print *,  Ex(i, j+1, k+1)
-       print *,  Ex(i+1, j+1, k+1)
-
        Ex_p(n) = wx_lo*wy_lo*wz_lo*Ex(i,   j,   k  ) + &
                  wx_lo*wy_lo*wz_hi*Ex(i,   j,   k+1) + &
                  wx_lo*wy_hi*wz_lo*Ex(i,   j+1, k  ) + &
@@ -289,8 +284,6 @@ contains
                  wx_hi*wy_lo*wz_hi*Ex(i+1, j,   k+1) + &
                  wx_hi*wy_hi*wz_lo*Ex(i+1, j+1, k  ) + &
                  wx_hi*wy_hi*wz_hi*Ex(i+1, j+1, k+1)
-
-       print *, Ex_p(n)
 
        Ey_p(n) = wx_lo*wy_lo*wz_lo*Ey(i,   j,   k  ) + &
                  wx_lo*wy_lo*wz_hi*Ey(i,   j,   k+1) + &
@@ -349,8 +342,6 @@ contains
 
        if (lev .eq. 1 .and. (particles(1, n) .lt. -1.0d-5 + 4.d0*dx(1) .or. particles(1, n) .gt. 1.0d-5 - 4.d0*dx(1))) then
 
-          print *, "doing coarsened interpolation" 
-
           lx = (particles(1, n) - plo(1))*inv_cdx(1)
           ly = (particles(2, n) - plo(2))*inv_cdx(2)
           lz = (particles(3, n) - plo(3))*inv_cdx(3)
@@ -374,11 +365,6 @@ contains
           wx_lo = 1.0d0 - wx_hi
           wy_lo = 1.0d0 - wy_hi
           wz_lo = 1.0d0 - wz_hi
-
-          print *, particles(1, n), i, j, k
-          print *, wx_lo, wx_hi, wy_lo, wy_hi, wz_lo, wz_hi
-          print *, cEx(i, j+1, k+1)
-          print *, cEx(i+1, j+1, k+1)
           
           Ex_p(n) = wx_lo*wy_lo*wz_lo*cEx(i,   j,   k  ) + &
                     wx_lo*wy_lo*wz_hi*cEx(i,   j,   k+1) + &
@@ -388,8 +374,6 @@ contains
                     wx_hi*wy_lo*wz_hi*cEx(i+1, j,   k+1) + &
                     wx_hi*wy_hi*wz_lo*cEx(i+1, j+1, k  ) + &
                     wx_hi*wy_hi*wz_hi*cEx(i+1, j+1, k+1)
-
-          print *, Ex_p(n)
 
           Ey_p(n) = wx_lo*wy_lo*wz_lo*cEy(i,   j,   k  ) + &
                     wx_lo*wy_lo*wz_hi*cEy(i,   j,   k+1) + &
@@ -427,10 +411,6 @@ contains
           wy_lo = 1.0d0 - wy_hi
           wz_lo = 1.0d0 - wz_hi
 
-          print *, i, j, k
-          print *, Ex(i, j, k), Ex(i, j, k+1), Ex(i, j+1, k+1), Ex(i, j+1, k)
-          print *, Ex(i+1, j, k), Ex(i+1, j, k+1), Ex(i+1, j+1, k+1), Ex(i+1, j+1, k)
-          
           Ex_p(n) = wx_lo*wy_lo*wz_lo*Ex(i,   j,   k  ) + &
                wx_lo*wy_lo*wz_hi*Ex(i,   j,   k+1) + &
                wx_lo*wy_hi*wz_lo*Ex(i,   j+1, k  ) + &
@@ -440,8 +420,6 @@ contains
                wx_hi*wy_hi*wz_lo*Ex(i+1, j+1, k  ) + &
                wx_hi*wy_hi*wz_hi*Ex(i+1, j+1, k+1)
           
-          print *, Ex_p(n)
-
           Ey_p(n) = wx_lo*wy_lo*wz_lo*Ey(i,   j,   k  ) + &
                wx_lo*wy_lo*wz_hi*Ey(i,   j,   k+1) + &
                wx_lo*wy_hi*wz_lo*Ey(i,   j+1, k  ) + &
