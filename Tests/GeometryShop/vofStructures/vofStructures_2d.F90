@@ -3,20 +3,9 @@
 module stencil_test_module
 
   use amrex_fort_module, only : dim=>bl_spacedim
+  use amrex_ebstruct_module, only : cnode, fnode
+
   implicit none
-
-  type, bind(c) :: cutcell
-     integer :: Nnbr(0:1,0:dim-1)
-     integer :: nbr(0:NCELLMAX-1,0:1,0:dim-1)
-     integer :: faceID(0:NCELLMAX-1,0:1,0:dim-1)
-     integer :: ebCellID
-  end type cutcell
-
-  type, bind(c) :: cnode
-     integer :: nCells
-     integer :: iv(0:dim-1)
-     type(cutcell) :: cells(0:NCELLMAX-1)
-  end type cnode
 
   private
 
