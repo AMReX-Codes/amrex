@@ -20,7 +20,7 @@ module amrex_ebstruct_module
   type, bind(c) :: fnode
      integer :: nFaces
      integer :: iv(0:dim-1)
-     type(cutcell) :: faces(0:NFACEMAX-1)
+     type(cutface) :: faces(0:NFACEMAX-1)
   end type fnode
 
   type, bind(c) :: cnode
