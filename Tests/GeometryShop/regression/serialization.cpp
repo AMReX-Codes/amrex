@@ -35,6 +35,7 @@
 #include "AMReX_EBDataVarMacros.H"
 #include "AMReX_FabArrayIO.H"
 #include "AMReX_EBISBox.H"
+#include "AMReX_SphereIF.H"
 
 namespace amrex
 {
@@ -48,6 +49,8 @@ namespace amrex
     RealVect origin = RealVect::Zero;
     std::vector<int> n_cell;
     pp.getarr("n_cell", n_cell, 0, SpaceDim);
+    int maxboxsize;
+    pp.get("maxboxsize", maxboxsize);
 
     IntVect lo = IntVect::TheZeroVector();
     IntVect hi;
@@ -76,7 +79,7 @@ namespace amrex
       amrex::Print() << "all regular geometry" << "\n";
       AllRegularService regserv;
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, regserv);
+      ebisPtr->define(a_domain, origin, a_dx, regserv, maxboxsize);
     }
     else if (whichgeom == 1)
     {
@@ -105,7 +108,28 @@ namespace amrex
       GeometryShop workshop(ramp,0, a_dx);
       //this generates the new EBIS
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-      ebisPtr->define(a_domain, origin, a_dx, workshop);
+      ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
+    }
+    else if(whichgeom == 5)
+    {
+      Real sphereRadius;
+      RealVect sphereCenter;
+      pp.get("sphere_radius", sphereRadius);
+      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+      
+      vector<Real> sphereCenterVect;
+      pp.getarr("sphere_center",sphereCenterVect, 0, SpaceDim);
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        sphereCenter[idir] = sphereCenterVect[idir];
+      }
+
+      amrex::Print() << "using a sphere implicit function" << "\n";
+
+      bool negativeInside = false;
+      SphereIF lalaBall(sphereRadius, sphereCenter, negativeInside);
+      GeometryShop workshop(lalaBall);
+      ebisPtr->define(a_domain, origin, a_dx, workshop, maxboxsize);
     }
     else
     {
