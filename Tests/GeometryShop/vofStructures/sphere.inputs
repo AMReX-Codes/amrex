@@ -1,3 +1,4 @@
+geom_type = sphere
 n_cell = 128 128 128
 n_cell = 32 32 32
 maxboxsize = 32
