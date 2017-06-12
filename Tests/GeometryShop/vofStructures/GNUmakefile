@@ -34,6 +34,7 @@ ifeq ($(_progs), vofStructures)
   DEFINES+=-DNCELLMAX=4
   DEFINES+=-DNFACEMAX=5
   F90EXE_sources += vofStructures_$(DIM)d.F90
+  F90EXE_sources += AMReX_ebstruct_mod.F90
   CEXE_headers += Node.H
 endif
 
