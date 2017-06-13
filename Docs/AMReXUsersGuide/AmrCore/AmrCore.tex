@@ -1,2 +1,117 @@
-On AmrCore
+The {\tt amrex/Src/AmrCore/} directory contains libraries for the following:
+\begin{itemize}
+\item Storing information about the grid layout and processor distribution mapping
+at each level of refinement.
+\item Functions to create grids at different levels of refinement, including tagging
+operationrs.
+\item Operations on data at different levels of refinement, such as interpolation and
+restriction operators.
+\item Flux registers used to store and manipulate fluxes at coarse-fine interfaces.
+\item Particle support for AMR.
+\end{itemize}
 
+There is another source directory, {\tt amrex/Src/Amr/}, which contains
+classes used to manage the time-stepping for AMR simulations.
+
+\section{{\tt AmrMesh} and {\tt AmrCore}}
+
+For single-level simulations
+(see e.g., {\tt amrex/Tutorials/Basic/HeatEquation\_EX1\_C/main.cpp})
+the user needs to build {\tt Geometry}, {\tt DistributionMapping},
+and {\tt BoxArray} objects associated with the simulation.  For simulations
+with multiple levels of refinement, the {\tt AmrMesh} class can be thought
+of as a container to store arrays of these objects (one for each level), and
+information about the current grid structure.  The protected data
+members of the {\tt AmrMesh} class are:
+\begin{lstlisting}[language=cpp]
+protected:
+    int            verbose;
+    int            max_level;       // Maximum allowed level.
+    Array<IntVect> ref_ratio;       // Refinement ratios [0:finest_level-1]
+
+    int            finest_level;    // Current finest level.
+
+    Array<int>     n_error_buf;     // Buffer cells around each tagged cell.
+    Array<int>     blocking_factor; // Blocking factor in grid generation 
+                                    // (by level).
+    Array<int>     max_grid_size;   // Maximum allowable grid size (by level).
+    Real           grid_eff;        // Grid efficiency.
+    int            n_proper;        // # cells required for proper nesting.
+
+    bool use_fixed_coarse_grids;
+    int  use_fixed_upto_level;
+    bool refine_grid_layout;        // chop up grids to have the number of 
+                                    // grids no less the number of procs
+
+    Array<Geometry>            geom;
+    Array<DistributionMapping> dmap;
+    Array<BoxArray>            grids;    
+\end{lstlisting}
+
+{\tt AmrCore.cpp/H} contains the class {\tt AmrCore}, which is derived from
+the {\tt AmrMesh} class.
+
+\section{{\tt Cluster}, {\tt ErrorList}, and {\tt TagBox}}
+
+\section{{\tt Interpolater}}
+
+{\tt AMReX\_Interpolater.cpp/H} contains the virtual base class {\tt Interpolater}, which provides
+an interface for coarse-to-fine spatial interpolation operators.  Within {\tt AMReX\_Interpolater.cpp/H}
+are the derived classes:
+\begin{itemize}
+\item {\tt NodeBilinear}
+\item {\tt CellBilinear}
+\item {\tt CellConservativeLinear}
+\item {\tt CellConservativeProtected}
+\item {\tt CellQuadratic}
+\item {\tt PCInterp}
+\item {\tt CellConservativeQuartic}
+\end{itemize}
+The fortran routines that perform the actual work associated with {\tt Interpolater} are 
+contained in the files {\tt AMReX\_INTERP\_F.H} and {\tt AMReX\_INTERP\_xD.F}.
+
+\section{{\tt FillPatchUtil}}
+{\tt AMReX\_FillPatchUtil.cpp/H} contains as assortment of functions to check for proper nesting
+and to help with interpolation.
+
+\section{{\tt FluxRegister}}
+
+{\tt AMReX\_FluxRegister.cpp/H} contains the class {\tt FluxRegister}, which is derived from
+the class {\tt BndryRegister} (in {\tt Src/Boundary/AMReX\_BndryRegister}).
+In the most general terms, a {\tt FluxRegister} is a special type of {\tt BndryRegister} that
+stores and manipulates fluxes at coarse-fine interfaces.
+A simple usage scenario comes from a conservative discretization of a hyperbolic system:
+\begin{equation}
+\frac{\partial\phi}{\partial t} = \nabla\cdot{\bf F}
+\rightarrow
+\frac{\phi_{i,j}^{n+1}-\phi_{i,j}^n}{\Delta t} = \frac{F_{i+\myhalf,j}-F_{i-\myhalf,j}}{\Delta x} + \frac{F_{i,j+\myhalf} - F_{i,j-\myhalf}}{\Delta y}.
+\end{equation}
+Consider a two-level, two-dimensional simulation.  A standard methdology for advancing the solution in 
+time is to first advance the coarse grid solution ignoring the fine level, and then advance the fine 
+grid solution using the coarse level only to supply boundary conditions.  At the coarse-fine interface, 
+the area weighted fluxes from the fine grid advance do not in general match the underlying flux from 
+the coarse grid face, resulting in a lack of conservation.  Note that for subcycling-in-time algorithms
+(where for each coarse grid advance, the fine grid is advanced $r$ times using a coarse grid time step 
+reduced by a factor of $r$, where $r$ is the refinement ratio), the coarse grid flux must 
+be compared to the area {\it and} time-weighted fine grid fluxes.  A {\tt FluxRegister} accumulates 
+and ultimately stores the net difference in fluxes between the coarse grid and fine grid advance over 
+each face over a given coarse time step.  The simplest possible synchronization step is to modify
+the coarse grid solution in coarse cells immediately adjacent to the coarse-fine interface are updated
+to account for the mismatch stored in the {\tt FluxRegister}.
+
+The fortran routines that perform the actual work associated with {\tt FluxRegister} are 
+contained in the files {\tt AMReX\_FLUXREG\_F.H} and {\tt AMReX\_FLUXREG\_xD.F}.
+
+\section{{\tt AmrParticles} and {\tt AmrParGDB}}
+
+The {\tt AmrCore/} directory contains derived class for dealing with particles 
+in a multi-level framework.  The description of the base classes
+are given in Chapter \ref{Chap:Particles}.
+
+{\tt AMReX\_AmrParticles.cpp/H} contains the classes {\tt AmrParticleContainer}
+and {\tt AmrTracerParticleContainer}, which are derived from the classes
+{\tt ParticleContainer} (in {\tt Src/Particle/AMReX\_Particles})
+and {\tt TracerParticleContainer} (in {\tt Src/Particle/AMReX\_TracerParticles}).
+
+{\tt AMReX\_AmrParGDB.cpp/H} contains the class {\tt AmrParGDB}, which is derived from
+the class {\tt ParGDBBase} (in {\tt Src/Particle/AMReX\_ParGDB}).
