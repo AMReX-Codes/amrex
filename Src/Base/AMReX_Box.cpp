@@ -10,6 +10,44 @@
 
 namespace amrex {
 
+#ifdef CUDA
+int Box_init::m_cnt = 0;
+
+namespace
+{
+    Arena* the_box_arena = 0;
+}
+
+Box_init::Box_init ()
+{
+    if (m_cnt++ == 0)
+    {
+        BL_ASSERT(the_box_arena == 0);
+
+#if defined(BL_COALESCE_FABS)
+        the_box_arena = new CArena;
+#else
+        the_box_arena = new BArena;
+#endif
+
+    }
+}
+
+Box_init::~Box_init ()
+{
+    if (--m_cnt == 0)
+        delete the_box_arena;
+}
+
+Arena*
+The_Box_Arena ()
+{
+    BL_ASSERT(the_box_arena != 0);
+
+    return the_box_arena;
+}
+#endif
+
 const Box&
 Box::TheUnitBox ()
 {
@@ -75,14 +113,12 @@ Box::initialize_device_memory()
 #ifdef CUDA
     const size_t sz = 3 * sizeof(int);
 
-    int* lo_temp;
-    gpu_malloc_managed((void**) &lo_temp, &sz);
-    lo_d.reset(lo_temp, [](int* ptr) { gpu_free(ptr); });
+    int* lo_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
+    lo_d.reset(lo_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
     copy_lo();
 
-    int* hi_temp;
-    gpu_malloc_managed((void**) &hi_temp, &sz);
-    hi_d.reset(hi_temp, [](int* ptr) { gpu_free(ptr); });
+    int* hi_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
+    hi_d.reset(hi_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
     copy_hi();
 #endif
 }
