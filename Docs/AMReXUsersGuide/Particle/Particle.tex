@@ -1,7 +1,7 @@
 In addition to the tools for working with mesh data described in previous chapters, $\tt{AMReX}$ provides data structures and iterators for performing data-parallel particle simulations. 
 Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example use cases include Particle-in-Cell
 simulations, Lagrangian tracers, or particles that exert a drag force onto a fluid, such as in multi-phase flow calculations. The overall goals of $\tt{AMReX}$'s particle 
-tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data as much as is practical.
+tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data automatically.
 In the following sections, we give an overview of $\tt{AMReX}$'s particle classes and how to use them.
 
 \section{The Particle}
@@ -42,7 +42,7 @@ The $\tt{Particle}$ struct provides a number of methods for getting and setting 
   p.pos(0) = 1.0;
   p.pos(1) = 2.0;
   p.pos(2) = 3.0;
-  p.id()   = 1;
+  p.id() = 1;
   p.cpu()  = 0;
 
   // p.rdata(0) is the first extra real component, not the 
@@ -116,8 +116,9 @@ your $\tt{AmrCore}$.
 The $\tt{ParticleContainer}$ stores the particle data in a manner prescribed by the set of AMR grids used to define it. If tiling is turned off, then every grid has its own 
 Array-of-Structs and Struct-of-Arrays. Which AMR grid a particle is assigned to is determined by examining its position and binning it, using the domain left edge as an offset. 
 By default, a particle is assigned to the finest level that contains its position, although this behavior can be tweaked (see Section~\ref{sec:Particles:Subcycling} below). 
-When tiling is enabled, then each $\emph{tile}$ gets its own Struct-of-Arrays and Array-of-Structs instead. As with mesh data, the particle tile size can be tuned so that an 
-entire tile's worth of particles will fit into a cache line at once.
+When tiling is enabled, then each $\emph{tile}$ gets its own Struct-of-Arrays and Array-of-Structs instead. Note that this is different than what happens with mesh data. With mesh
+data, the tiling is strictly logical; the data is laid out in memory the same whether tiling is turned on or off. With particle data, however, the particles are actually stored in 
+a different arrays when tiling is enabled. As with mesh data, the particle tile size can be tuned so that an entire tile's worth of particles will fit into a cache line at once.
 
 Once the particles move, their data may no longer be in the right place in the container. They can be reassigned by calling the $\tt{Redistribute()}$ method of $\tt{ParticleContainer}$.
 After calling this method, all the particle will be moved to their proper places in the container, and all invalid particles (particles with id set to $-1$) will be removed. All the 
@@ -183,28 +184,34 @@ and add them to the proper container.
 
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
-            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id, tile_id)];
+            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id, 
+                                                                   tile_id)];
 
             const auto& boxlo = tile_box.smallEnd();
-            for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
+            for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); 
+                 tile_box.next(iv)) {
 
                 // set the particle id and cpu (in the particle struct)
                 p.id() = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
 
                 // set the particle positions (also in the struct)
-                AMREX_D_TERM(p.pos(0) = tile_real_box.lo(0) + (iv[0]- boxlo[0] + 0.5)*dx[0];,
-                       p.pos(1) = tile_real_box.lo(1) + (iv[1]- boxlo[1] + 0.5)*dx[1];,
-                       p.pos(2) = tile_real_box.lo(2) + (iv[2]- boxlo[2] + 0.5)*dx[2];);
+                AMREX_D_TERM(
+                p.pos(0) = tile_real_box.lo(0) + (iv[0]- boxlo[0] + 0.5)*dx[0];,
+                p.pos(1) = tile_real_box.lo(1) + (iv[1]- boxlo[1] + 0.5)*dx[1];,
+                p.pos(2) = tile_real_box.lo(2) + (iv[2]- boxlo[2] + 0.5)*dx[2];
+                );
 
                 // set this particle's real attributes
+                // (Probably want to do something more 
+                // interesting here... )
                 std::array<double, RealIdx::nattribs> real_attribs;
-                real_attribs[RealIdx::ham]  = 7.0;  // Probably want to do something more... 
-                real_attribs[RealIdx::eggs] = 9.0;  // interesting here.
+                real_attribs[RealIdx::ham]  = 7.0;
+                real_attribs[RealIdx::eggs] = 9.0;
 
-                // set this particle's integer attributes
+                // set this particle's integer attributes (ditto)
                 std::array<int, IntIdx::nattribs> int_attribs;
-                int_attribs[IntIdx::foo]  = -1; // ditto...
+                int_attribs[IntIdx::foo]  = -1;
                 int_attribs[IntIdx::bar]  = 12; 
 
                 particle_tile.push_back(p);
@@ -217,15 +224,54 @@ and add them to the proper container.
 
 \end{lstlisting}
 
+In the above code, because each process only generates particles in grids that it owns, the particles are already in the right place in the container. 
+In general, however, users may need to call $\tt{Redistribute()}$ after adding particles, if the processes generate particles they don't own (for example,
+if the particle positions are perturbed from the cell centers and thus end up outside their parent grid).
+
 \section{Iterating over Particles}
 \label{sec:Particles:Iterating}
 
-The Particle Iterator. Const and Non-Const versions. Defining you own particle iterator. Example that does particle push.
+To iterate over the particles on a given level in your container, you can use the $\tt{ParIter}$ class, which comes in 
+both const and non-const flavors. For example:
 
-\section{Passing particle data into Fortran}
+\begin{lstlisting}[language=cpp]
+
+for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+    auto& particles = pti.GetArrayOfStructs();
+    for (unsigned i = 0; i < pti.numParticles(); ++i) {
+        const ParticleType& p = particles[i];
+        // do stuff with p...
+    }
+}
+\end{lstlisting}
+
+The outer loop will execute once every grid (or tile, if tiling is enabled) \emph{that contains particles}; grids or tiles
+that don't have any particles will be skipped. 
+
+\section{Passing particle data into Fortran routines}
 \label{sec:Particles:Fortran}
 
-Plain-Old-Data. Defining a fortran derived type for your particles. Demonstrate same push as above in fortran.
+Because the $\tt{AMReX}$ particle struct is a Plain-Old-Data type, it is interoperable with FORTRAN when the $\tt{bind(C)}$
+attribute is used. It is therefore possible to pass a grid or tile worth of particles into fortran routines for processing,
+instead of iterating over them in C++. You can also define a Fortran derived type that is equivalent to C struct used for the
+particles. For example:
+
+\begin{lstlisting}[language=fortran]
+
+    use amrex_fort_module, only: amrex_real
+    use iso_c_binding ,    only: c_int
+
+    type, bind(C)  :: particle_t
+       real(amrex_real) :: pos(3)
+       real(amrex_real) :: vel(3)
+       real(amrex_real) :: acc(3)
+       integer(c_int)   :: id
+       integer(c_int)   :: cpu
+    end type particle_t
+
+\end{lstlisting}
+
+is equivalent to particle struct you get with $\tt{Particle<6, 0>}$.
 
 \section{Interacting with Mesh Data}
 \label{sec:Particles:Interacting}
@@ -240,10 +286,10 @@ Neighbor particles. Optional communication. The ShortRangeParticles tutorial.
 \section{Particle IO}
 \label{sec:Particles:IO}
 
-IO Routines (ASCII and binary), Visualization options. Converter python script.
+IO Routines (ASCII and binary), visualization options. Converter python script.
 
 \section{Subcycling with Particles}
 \label{sec:Particles:Subcycling}
 
-This is hard. Ghosts and Virtuals. 
+This is hard. Ghosts and Virtuals.  
 

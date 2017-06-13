@@ -19,7 +19,7 @@ set(FPP_source_files AMReX_FLUXREG_${BL_SPACEDIM}D.F AMReX_INTERP_${BL_SPACEDIM}
 set(F90PP_source_files  AMReX_FillPatchUtil_${BL_SPACEDIM}d.F90)
 
 set(CXX_header_files AMReX_AmrCore.H AMReX_Cluster.H AMReX_ErrorList.H AMReX_FillPatchUtil.H AMReX_FluxRegister.H AMReX_Interpolater.H AMReX_TagBox.H AMReX_AmrMesh.H AMReX_INTERP_F.H AMReX_FillPatchUtil_F.H)
-set(FPP_header_files AMReX_FLUXREG_F.H )
+set(FPP_header_files AMReX_FLUXREG_F.H AMReX_FillPatchUtil_F.H)
 set(F77_header_files)
 set(F90_header_files)
 
