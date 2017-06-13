@@ -15,6 +15,7 @@
 #include "AMReX_iMultiFab.H"
 #include "AMReX_BLProfiler.H"
 #include <AMReX_BLFort.H>
+#include <AMReX_EBDebugDump.H>
 using namespace amrex;
 
 #include <Node.H>

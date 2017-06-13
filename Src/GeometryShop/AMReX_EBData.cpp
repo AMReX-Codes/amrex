@@ -32,7 +32,12 @@ namespace amrex
     {
       //calculate set by adding in new intvects
       const IntVectSet& ivsOld = m_volData.getIVS();
-      IntVectSet ivsNew = m_graph.getIrregCells(m_region);
+      IntVectSet ivsIrreg = m_graph.getIrregCells(m_region);
+      IntVectSet ivscomp1 = ivsIrreg;
+      ivscomp1 -= ivsOld;
+      IntVectSet ivscomp2 = ivsOld;
+      ivscomp2 -= ivsIrreg;
+      IntVectSet ivsNew = ivsOld;
       ivsNew |= a_vofsToChange;
 
       int nfaccomp = F_FACENUMBER;
@@ -132,9 +137,10 @@ namespace amrex
             }
            }
           m_faceData[idir](faceit(), F_AREAFRAC) = areaFrac;
-          for (int idir = 0; idir < SpaceDim; idir++)
+          //idir = face direction, jdir= centroid direction
+          for (int jdir = 0; jdir < SpaceDim; jdir++)
           {
-            m_faceData[idir](faceit(), F_FACECENTROIDX+idir) = faceCentroid[idir];
+            m_faceData[idir](faceit(), F_FACECENTROIDX+jdir) = faceCentroid[idir];
           }
         }
       }

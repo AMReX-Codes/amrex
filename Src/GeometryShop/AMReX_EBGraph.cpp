@@ -13,7 +13,7 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
-//#include "AMReX_parstream.H"
+#include "AMReX_parstream.H"
 
 namespace amrex
 {
@@ -1941,7 +1941,7 @@ namespace amrex
     }
     if(a_region == f_debbox)
     {
-      pout() << "copyfrommem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
+//      pout() << "copyfrommem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
     }
     return retval;
   }
