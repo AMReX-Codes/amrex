@@ -17,7 +17,7 @@ extern "C"
                         const int* mask);
 
     void build_mask(const int* lo, const int* hi,
-                    const int* tmp_mask, const int* mask);
+                    const int* tmp_mask, const int* mask, const int* ncells);
 
     void compute_E_nodal (const int* lo, const int* hi,
                           const amrex::Real* phi,

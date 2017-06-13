@@ -248,7 +248,8 @@ void
 getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
               const Array<BoxArray>& grids,
               const Array<DistributionMapping>& dmap,
-              const Array<Geometry>& geom) {
+              const Array<Geometry>& geom,
+              int ncells = 1) {
     int num_levels = grids.size();
     BL_ASSERT(num_levels == dmap.size());
 
@@ -268,7 +269,7 @@ getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
         for (MFIter mfi(tmp_mask); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
             build_mask(bx.loVect(), bx.hiVect(),
-                       tmp_mask[mfi].dataPtr(), (*masks[lev])[mfi].dataPtr());
+                       tmp_mask[mfi].dataPtr(), (*masks[lev])[mfi].dataPtr(), &ncells);
         }            
     }
 }
