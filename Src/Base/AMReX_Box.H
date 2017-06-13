@@ -705,6 +705,23 @@ public:
 
 inline BoxConverter::~BoxConverter () { }
 
+#ifdef CUDA
+    // \cond CODEGEN
+    class Box_init
+    {
+    public:
+        Box_init ();
+        ~Box_init ();
+    private:
+        static int m_cnt;
+    };
+    // \endcond
+#endif
+
 }
+
+#ifdef CUDA
+static amrex::Box_init file_scope_Box_init_object;
+#endif
 
 #endif /*BL_BOX_H*/
