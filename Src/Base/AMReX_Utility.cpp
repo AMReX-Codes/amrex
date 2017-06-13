@@ -1189,7 +1189,6 @@ void amrex::BroadcastDistributionMapping(DistributionMapping &dM,
 
 void amrex::USleep(double sleepsec) {
   constexpr unsigned int msps = 1000000;
-  //usleep(sleepsec * msps);
-  usleep(sleepsec * msps / 10.0);
+  usleep(sleepsec * msps);
 }
 
