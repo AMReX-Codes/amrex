@@ -73,9 +73,10 @@ contains
 
   end subroutine zero_out_bndry
 
-  subroutine build_mask (lo, hi, tmp_mask, mask) &
+  subroutine build_mask (lo, hi, tmp_mask, mask, ncells) &
        bind(c,name='build_mask')
-    integer(c_int),   intent(in)    :: lo(3), hi(3)
+    integer(c_int),   intent(in   ) :: lo(3), hi(3)
+    integer(c_int),   intent(in   ) :: ncells
     integer(c_int),   intent(in   ) :: tmp_mask(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
     integer(c_int),   intent(inout) :: mask (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
 
@@ -86,9 +87,9 @@ contains
           do i = lo(1), hi(1)
 
              total = 0
-             do ii = i-1, i+1
-                do jj = j-1, j+1
-                   do kk = k-1, k+1
+             do ii = i-ncells, i+ncells
+                do jj = j-ncells, j+ncells
+                   do kk = k-ncells, k+ncells
                       total = total + tmp_mask(ii, jj, kk)
                    end do
                 end do
