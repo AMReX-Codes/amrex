@@ -21,7 +21,7 @@ void ElectrostaticParticleContainer::InitParticles() {
         p.pos(2) =  0.0;
         
         std::array<Real,PIdx::nattribs> attribs;
-        attribs[PIdx::w] = 1.0;
+        attribs[PIdx::w]  = 1.0;
         attribs[PIdx::vx] = 0.0;
         attribs[PIdx::vy] = 0.0;
         attribs[PIdx::vz] = 0.0;
@@ -114,7 +114,8 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
 
 void
 ElectrostaticParticleContainer::
-FieldGather(const VectorMeshData& E) {
+FieldGather(const VectorMeshData& E,
+            const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) {
 
     const int num_levels = E.size();
     const int ng = E[0][0]->nGrow();
@@ -219,6 +220,7 @@ FieldGather(const VectorMeshData& E) {
                                        box.loVect(), box.hiVect(), dx, 
                                        exfab_coarse.dataPtr(), eyfab_coarse.dataPtr(),
                                        ezfab_coarse.dataPtr(),
+                                       (*masks[1])[pti].dataPtr(),
                                        coarse_box.loVect(), coarse_box.hiVect(), coarse_dx,
                                        plo, &ng, &lev);
         }
