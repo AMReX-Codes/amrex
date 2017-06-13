@@ -249,7 +249,7 @@ getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
               const Array<BoxArray>& grids,
               const Array<DistributionMapping>& dmap,
               const Array<Geometry>& geom,
-              int ncells = 1) {
+              const int ncells = 1) {
     int num_levels = grids.size();
     BL_ASSERT(num_levels == dmap.size());
 
@@ -262,7 +262,7 @@ getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
         BoxArray nba = grids[lev];
         nba.surroundingNodes();
         
-        FabArray<BaseFab<int> > tmp_mask(nba, dmap[lev], 1, 1);
+        FabArray<BaseFab<int> > tmp_mask(nba, dmap[lev], 1, ncells);
         tmp_mask.BuildMask(geom[lev].Domain(), geom[lev].periodicity(),
                            covered, notcovered, physbnd, interior);
         masks[lev].reset(new FabArray<BaseFab<int> >(nba, dmap[lev], 1, 0));
@@ -270,7 +270,7 @@ getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
             const Box& bx = mfi.validbox();
             build_mask(bx.loVect(), bx.hiVect(),
                        tmp_mask[mfi].dataPtr(), (*masks[lev])[mfi].dataPtr(), &ncells);
-        }            
+        }
     }
 }
 
@@ -372,6 +372,9 @@ int main(int argc, char* argv[])
 
     Array<std::unique_ptr<FabArray<BaseFab<int> > > > masks(num_levels); 
     getLevelMasks(masks, grids, dm, geom);
+
+    Array<std::unique_ptr<FabArray<BaseFab<int> > > > gather_masks(num_levels);
+    getLevelMasks(gather_masks, grids, dm, geom, 8);
     
     ElectrostaticParticleContainer myPC(geom, dm, grids, rr);
 
@@ -385,7 +388,7 @@ int main(int argc, char* argv[])
         
         computeE(eField, phi, geom);
 
-        myPC.FieldGather(eField);
+        myPC.FieldGather(eField, gather_masks);
 
         myPC.writeParticles(step);
         

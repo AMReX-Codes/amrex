@@ -36,6 +36,7 @@ extern "C"
                                     const amrex::Real* Ex, const amrex::Real* Ey, const amrex::Real* Ez,
                                     const int* lo, const int* hi, const amrex::Real* dx,
                                     const amrex::Real* cEx, const amrex::Real* cEy, const amrex::Real* cEz,
+                                    const int* mask,
                                     const int* clo, const int* chi, const amrex::Real* cdx,
                                     const amrex::Real* plo, const int* ng, const int* lev);
 
