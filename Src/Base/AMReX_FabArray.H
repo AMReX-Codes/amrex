@@ -35,11 +35,13 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
-
+#include <iostream>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_parstream.H>
+#include <AMReX_SPMD.H>
 
 namespace amrex {
 
@@ -1401,6 +1403,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                         std::size_t b = src[tag.srcIndex].nBytes(tag.sbox,SC,NC);
                         nbytes += b;
                         iss.push_back(static_cast<int>(b));
+                        pout() << "copy for procid =  "<< procID() <<  ", box =  " << tag.sbox << ", nbytes size = "  << b << std::endl;
                     }
                 }
 		
@@ -2081,6 +2084,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                         std::size_t b = (*src)[tag.srcIndex].nBytes(tag.sbox,SC,NC);
                         nbytes += b;
                         iss.push_back(static_cast<int>(b));
+                        pout() << "copyInter for procid =  "<< procID() <<  ", box =  " << tag.sbox << ", nbytes size = "  << b << std::endl;
                     }
                 }
                 
@@ -3123,6 +3127,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                     std::size_t b = (*this)[tag.srcIndex].nBytes(tag.sbox,scomp,ncomp);
                     nbytes += b;
                     iss.push_back(static_cast<int>(b));
+                    pout() << "FBEP_nowait, procid = " << procID() << ", box = " << tag.sbox << ",nbytes size =  " << b << std::endl;
                 }
             }
             
@@ -3405,6 +3410,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFB.m_threadsafe_rcv)
 #endif
+        int procid = procID();
 	for (int k = 0; k < N_rcvs; k++) 
 	{
 	    const char* dptr = fb_recv_data[k];
@@ -3416,7 +3422,13 @@ FabArray<FAB>::FillBoundary_finish ()
                     const Box& bx  = tag.dbox;
                     std::size_t n = (*this)[tag.dstIndex].copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
                     dptr += n;
+                    pout() << "filbndryfinish for procid  =  "<< procid <<  ", box =  " << bx << ",copyFromMem size = "  << n << std::endl;
                 }
+                if(dptr != (fb_recv_data[k] + fb_recv_size[k]))
+                {
+                  pout() << "fillbndryfinish: just before error, procid =  "<< procid <<  ", receive size = "  << fb_recv_size[k] << std::endl;
+                }
+
                 BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
             }
 	}
