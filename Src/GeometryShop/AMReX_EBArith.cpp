@@ -1898,7 +1898,22 @@ namespace amrex
 
 #if BL_SPACEDIM==3
           int dir1, dir2;
-          EBArith::getDir1Dir2(dir1, dir2, idir);
+          if(idir == 0)
+          {
+            dir1 = 1;
+            dir2 = 2;
+          }
+          else if(idir == 1)
+          {
+            dir1 = 0;
+            dir2 = 2;
+          }
+          else
+          {
+            dir1 = 0;
+            dir2 = 1;
+          }
+
           if ((dir1 != a_noExtrapThisDir) && (dir2 != a_noExtrapThisDir))
           {
             VoFStencil mixedDSten;

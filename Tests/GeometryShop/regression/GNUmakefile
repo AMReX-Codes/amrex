@@ -13,8 +13,8 @@ DEBUG        = TRUE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
-PROFILE       = TRUE
-COMM_PROFILE  = TRUE
+PROFILE       = FALSE
+COMM_PROFILE  = FALSE
 TRACE_PROFILE = FALSE
 #DEFINES += -DBL_PROFILING_SPECIAL
 
@@ -43,6 +43,9 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 _progs  += ebnormalizeTest
 _progs  += levelRedistTest
 _progs  += dataArith
+_progs  += fabio
+_progs  += ebio
+_progs  += serialization
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

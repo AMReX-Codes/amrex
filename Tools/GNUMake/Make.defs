@@ -6,50 +6,70 @@ endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
-ifndef PRECISION
-  PRECISION = DOUBLE
+ifdef PRECISION
+  PRECISION := $(strip $(PRECISION))
+else
+  PRECISION := DOUBLE
 endif
 
-ifndef DEBUG
-  DEBUG	= TRUE
+ifdef DEBUG
+  DEBUG := $(strip $(DEBUG))
+else
+  DEBUG := TRUE
 endif
 
-ifndef PROFILE
-  PROFILE = FALSE
+ifdef PROFILE
+  PROFILE := $(strip $(PROFILE))
+else
+  PROFILE := FALSE
 endif
 
-ifndef TRACE_PROFILE
-  TRACE_PROFILE = FALSE
+ifdef TRACE_PROFILE
+  TRACE_PROFILE := $(strip $(TRACE_PROFILE))
+else
+  TRACE_PROFILE := FALSE
 endif
 ifeq ($(TRACE_PROFILE),TRUE)
-  PROFILE = TRUE
+  PROFILE := TRUE
 endif
 
-ifndef COMM_PROFILE
-  COMM_PROFILE = FALSE
+ifdef COMM_PROFILE
+  COMM_PROFILE := $(strip $(COMM_PROFILE))
+else
+  COMM_PROFILE := FALSE
 endif
 ifeq ($(COMM_PROFILE),TRUE)
-  PROFILE = TRUE
+  PROFILE := TRUE
 endif
 
-ifndef MEM_PROFILE
-  MEM_PROFILE = FALSE
+ifdef MEM_PROFILE
+  MEM_PROFILE := $(strip $(MEM_PROFILE))
+else
+  MEM_PROFILE := FALSE
 endif
 
-ifndef TEST
-  TEST = FALSE
+ifdef TEST
+  TEST := $(strip $(TEST))
+else
+  TEST := FALSE
 endif
 
-ifndef USE_ASSERTION
-  USE_ASSERTION = FALSE
+ifdef USE_ASSERTION
+  USE_ASSERTION := $(strip $(USE_ASSERTION))
+else
+  USE_ASSERTION := FALSE
 endif
 
-ifndef BACKTRACE
-  BACKTRACE = FALSE
+ifdef BACKTRACE
+  BACKTRACE := $(strip $(BACKTRACE))
+else
+  BACKTRACE := FALSE
 endif
 
-ifndef LAZY
-  LAZY = FALSE
+ifdef LAZY
+  LAZY := $(strip $(LAZY))
+else
+  LAZY := FALSE
 endif
 
 ifndef DIM
@@ -58,24 +78,40 @@ else
   DIM := $(strip $(DIM))
 endif
 
-ifndef USE_MPI
-  USE_MPI = FALSE
+ifdef USE_MPI
+  USE_MPI := $(strip $(USE_MPI))
+else
+  USE_MPI := FALSE
 endif
 
+ifdef USE_UPCXX
+  USE_UPCXX := $(strip $(USE_UPCXX))
+else
+  USE_UPCXX := FALSE
+endif
 ifeq ($(USE_UPCXX),TRUE)
-  USE_MPI = TRUE
+  USE_MPI := TRUE
 endif
 
+ifdef USE_MPI3
+  USE_MPI3 := $(strip $(USE_MPI3))
+else
+  USE_MPI3 := FALSE
+endif
 ifeq ($(USE_MPI3),TRUE)
-  USE_MPI = TRUE
+  USE_MPI := TRUE
 endif
 
-ifndef DIMENSION_AGNOSTIC
-  DIMENSION_AGNOSTIC = FALSE
+ifdef DIMENSION_AGNOSTIC
+  DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
+else
+  DIMENSION_AGNOSTIC := FALSE
 endif
 
-ifndef EBASE
-  EBASE = main
+ifdef EBASE
+  EBASE := $(strip $(EBASE))
+else
+  EBASE := main
 endif
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
