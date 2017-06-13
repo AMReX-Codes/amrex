@@ -140,6 +140,9 @@ get_EGLG(EBLevelGrid& eblg)
 
 struct tface
 {
+    /*
+      A simple class to simplify uniquifying faces
+     */
     tface() : mL(-1), mR(-1), ebFaceID(-1) {}
     tface(int L, int R, const SideIterator& s) : mL(L), mR(R), ebFaceID(-1) {if (s()==Side::Lo) flip();}
     bool operator< (const tface& rhs) const {
@@ -187,26 +190,12 @@ AssignFaces(CNode&              cnode,
     }
 }
 
-int myTest()
+static void
+BuildFortranGraphNodes(std::map<int,std::vector<CNode> >& graphCNodes,
+                       std::map<int,std::array<std::vector<FNode>, BL_SPACEDIM> >& graphFNodes,
+                       iMultiFab& ebmask,
+                       const EBLevelGrid& eblg)
 {
-
-    std::cout << "CNode is POD: " << std::is_pod<CNode>::value << std::endl;
-    std::cout << "FNode is POD: " << std::is_pod<FNode>::value << std::endl;
-    std::cout << "Size of CNode: " << sizeof(CNode)/sizeof(int) << " ints" << std::endl;
-    std::cout << "Size of FNode: " << sizeof(FNode)/sizeof(int) << " ints" << std::endl;
-
-    EBLevelGrid eblg;
-    get_EGLG(eblg);
-    const BoxArray& ba = eblg.getBoxArray();
-    const DistributionMapping& dm = eblg.getDM();
-
-    IntVect tilesize(AMREX_D_DECL(10240,8,32));
-    std::map<int,std::vector<CNode> > graphCNodes;
-    std::map<int,std::array<std::vector<FNode>, BL_SPACEDIM> > graphFNodes;
-
-    int nGrow = 1;
-    iMultiFab ebmask(ba,dm,1,nGrow); // Will contain location of CNode in graphCNodes vector
-
     for (MFIter mfi(ebmask); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
@@ -260,6 +249,7 @@ int myTest()
                                             {
                                                 gn.cells[icc].nbr[idir][iside][nValid] = faces[iface].cellIndex(sit());
                                             }
+                                            // Add this face to the set of faces (and including faces between cut and regular cells)
 					    tf[idir][iv_face].insert(tface(icc,gn.cells[icc].nbr[idir][iside][nValid],sit));
                                             nValid++;
 					    BL_ASSERT(nValid<NCELLMAX);
@@ -272,8 +262,6 @@ int myTest()
                     }
                 }
             }
-
-	    std::cout << "gid,Nnodes " << mfi.index() << " " << ebCellID << std::endl;
 
 	    const Box& vbox = mfi.validbox();
 	    std::array<std::map<IntVect,int>,BL_SPACEDIM> fnodeAtIV;
@@ -305,8 +293,6 @@ int myTest()
 			}
 		    }
 		}
-		std::cout << "gid,idir,Nfaces " << mfi.index() << " " << idir << " " << ebFaceID << std::endl;
-
 	    }
 
 	    for (int ic=0; ic<graphCNodes[gid].size(); ++ic)
@@ -358,7 +344,30 @@ int myTest()
             }
         }
     }
+}
 
+
+int myTest()
+{
+
+    std::cout << "CNode is POD: " << std::is_pod<CNode>::value << std::endl;
+    std::cout << "FNode is POD: " << std::is_pod<FNode>::value << std::endl;
+    std::cout << "Size of CNode: " << sizeof(CNode)/sizeof(int) << " ints" << std::endl;
+    std::cout << "Size of FNode: " << sizeof(FNode)/sizeof(int) << " ints" << std::endl;
+
+    EBLevelGrid eblg;
+    get_EGLG(eblg);
+    const BoxArray& ba = eblg.getBoxArray();
+    const DistributionMapping& dm = eblg.getDM();
+
+    IntVect tilesize(AMREX_D_DECL(10240,8,32));
+    std::map<int,std::vector<CNode> > graphCNodes;
+    std::map<int,std::array<std::vector<FNode>, BL_SPACEDIM> > graphFNodes;
+    int nGrow = 1;
+    iMultiFab ebmask(ba,dm,1,nGrow);
+
+    BuildFortranGraphNodes(graphCNodes,graphFNodes,ebmask,eblg);
+    
     MultiFab state(ba,dm,1,nGrow);
 
     for (MFIter mfi(ebmask); mfi.isValid(); ++mfi)
