@@ -47,32 +47,44 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
+	const int idx = mfi.tileIndex();
 
         compute_flux(bx.loVect(), bx.hiVect(),
-                     BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                     BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                     BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+                     old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
+                     flux[0][mfi].dataPtr(), flux[0][mfi].loVect(), flux[0][mfi].hiVect(),
+                     flux[1][mfi].dataPtr(), flux[1][mfi].loVect(), flux[1][mfi].hiVect(),
 #if (BL_SPACEDIM == 3)   
-                     BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+                     flux[2][mfi].dataPtr(), flux[2][mfi].loVect(), flux[2][mfi].hiVect(),
 #endif
-                     dx);
+                     dx, &idx);
+
     }
-    
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
+
     // Advance the solution one grid at a time
     for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
-        
+	const int idx = mfi.tileIndex();
+
         update_phi(bx.loVect(), bx.hiVect(),
-                   BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(new_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+                   old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
+                   new_phi[mfi].dataPtr(), new_phi[mfi].loVect(), new_phi[mfi].hiVect(),
+                   flux[0][mfi].dataPtr(), flux[0][mfi].loVect(), flux[0][mfi].hiVect(),
+                   flux[1][mfi].dataPtr(), flux[1][mfi].loVect(), flux[1][mfi].hiVect(),
 #if (BL_SPACEDIM == 3)   
-                   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+                   flux[2][mfi].dataPtr(), flux[2][mfi].loVect(), flux[2][mfi].hiVect(),
 #endif
-                   dx, dt);
+                   dx, &dt, &idx);
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
+
 }
 
 void main_main ()
@@ -109,8 +121,8 @@ void main_main ()
     BoxArray ba;
     Geometry geom;
     {
-        IntVect dom_lo(IntVect(AMREX_D_DECL(0,0,0)));
-        IntVect dom_hi(IntVect(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1)));
+        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
         Box domain(dom_lo, dom_hi);
 
         // Initialize the boxarray "ba" from the single box "bx"
@@ -118,24 +130,18 @@ void main_main ()
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         ba.maxSize(max_grid_size);
 
-        // This defines the physical size of the box.  Right now the box is [-1,1] in each direction.
-        RealBox real_box;
-        for (int n = 0; n < BL_SPACEDIM; n++) {
-            real_box.setLo(n,-1.0);
-            real_box.setHi(n, 1.0);
-        }
+       // This defines the physical box, [-1,1] in each direction.
+        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
         // This says we are using Cartesian coordinates
         int coord = 0;
 	
         // This sets the boundary conditions to be doubly or triply periodic
-        int is_periodic[BL_SPACEDIM];
-        for (int i = 0; i < BL_SPACEDIM; ++i) {
-            is_periodic[i] = 1;
-        }
+        std::array<int,BL_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
         
         // This defines a Geometry object
-        geom.define(domain,&real_box,coord,is_periodic);
+        geom.define(domain,&real_box,coord,is_periodic.data());
     }
 
     // Nghost = number of ghost cells for each array 
