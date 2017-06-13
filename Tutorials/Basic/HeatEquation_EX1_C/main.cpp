@@ -50,13 +50,14 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 	const int idx = mfi.tileIndex();
 
         compute_flux(bx.loVect(), bx.hiVect(),
-                     BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                     BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                     BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+                     old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
+                     flux[0][mfi].dataPtr(), flux[0][mfi].loVect(), flux[0][mfi].hiVect(),
+                     flux[1][mfi].dataPtr(), flux[1][mfi].loVect(), flux[1][mfi].hiVect(),
 #if (BL_SPACEDIM == 3)   
-                     BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+                     flux[2][mfi].dataPtr(), flux[2][mfi].loVect(), flux[2][mfi].hiVect(),
 #endif
                      dx, &idx);
+
     }
 
 #ifdef CUDA
@@ -68,14 +69,14 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
 	const int idx = mfi.tileIndex();
-        
+
         update_phi(bx.loVect(), bx.hiVect(),
-                   BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(new_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+                   old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
+                   new_phi[mfi].dataPtr(), new_phi[mfi].loVect(), new_phi[mfi].hiVect(),
+                   flux[0][mfi].dataPtr(), flux[0][mfi].loVect(), flux[0][mfi].hiVect(),
+                   flux[1][mfi].dataPtr(), flux[1][mfi].loVect(), flux[1][mfi].hiVect(),
 #if (BL_SPACEDIM == 3)   
-                   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+                   flux[2][mfi].dataPtr(), flux[2][mfi].loVect(), flux[2][mfi].hiVect(),
 #endif
                    dx, &dt, &idx);
     }

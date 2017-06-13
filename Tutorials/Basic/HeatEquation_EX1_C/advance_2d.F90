@@ -25,28 +25,17 @@ contains
     integer :: blo(2), bhi(2), idir
 
 #ifdef CUDA
-    attributes(device) :: phi, fluxx, fluxy, dx
+    attributes(device) :: phi, fluxx, fluxy, dx, philo, phihi, fxlo, fxhi, fylo, fyhi
+    attributes(managed) :: lo, hi
 
     integer :: cuda_result
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
     integer, device :: blo_d(2), bhi_d(2)
-    integer, device :: philo_d(2), phihi_d(2)
-    integer, device :: fxlo_d(2), fxhi_d(2)
-    integer, device :: fylo_d(2), fyhi_d(2)
     integer, device :: idir_d
 
     stream = cuda_streams(stream_from_index(idx)+1)
-
-    cuda_result = cudaMemcpyAsync(philo_d, philo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(phihi_d, phihi, 2, cudaMemcpyHostToDevice, stream)
-
-    cuda_result = cudaMemcpyAsync(fxlo_d, fxlo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(fxhi_d, fxhi, 2, cudaMemcpyHostToDevice, stream)
-
-    cuda_result = cudaMemcpyAsync(fylo_d, fylo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(fyhi_d, fyhi, 2, cudaMemcpyHostToDevice, stream)
 
     blo = [lo(1),   lo(2)]
     bhi = [hi(1)+1, hi(2)]
@@ -59,8 +48,8 @@ contains
 
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
-    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo_d, phihi_d, &
-                                                                 fluxx, fxlo_d, fxhi_d, dx, idir_d)
+    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
+                                                                 fluxx, fxlo, fxhi, dx, idir_d)
 
     bhi = [hi(1), hi(2)+1]
 
@@ -71,8 +60,8 @@ contains
 
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
-    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo_d, phihi_d, &
-                                                                 fluxy, fylo_d, fyhi_d, dx, idir_d)
+    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
+                                                                 fluxy, fylo, fyhi, dx, idir_d)
 
 #else
 
@@ -116,43 +105,24 @@ contains
     real(rt), intent(in   ) :: dt
 
 #ifdef CUDA
-    attributes(device) :: phiold, phinew, fluxx, fluxy, dx
+    attributes(device) :: phiold, phinew, fluxx, fluxy, dx, polo, pohi, pnlo, pnhi, fxlo, fxhi, fylo, fyhi
+    attributes(managed) :: lo, hi
 
     integer :: cuda_result
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    integer, device :: lo_d(2), hi_d(2)
-    integer, device :: polo_d(2), pohi_d(2)
-    integer, device :: pnlo_d(2), pnhi_d(2)
-    integer, device :: fxlo_d(2), fxhi_d(2)
-    integer, device :: fylo_d(2), fyhi_d(2)
     real(rt), device :: dt_d
 
     stream = cuda_streams(stream_from_index(idx)+1)
-
-    cuda_result = cudaMemcpyAsync(lo_d, lo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(hi_d, hi, 2, cudaMemcpyHostToDevice, stream)
-
-    cuda_result = cudaMemcpyAsync(polo_d, polo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(pohi_d, pohi, 2, cudaMemcpyHostToDevice, stream)
-
-    cuda_result = cudaMemcpyAsync(pnlo_d, pnlo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(pnhi_d, pnhi, 2, cudaMemcpyHostToDevice, stream)
-
-    cuda_result = cudaMemcpyAsync(fxlo_d, fxlo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(fxhi_d, fxhi, 2, cudaMemcpyHostToDevice, stream)
-
-    cuda_result = cudaMemcpyAsync(fylo_d, fylo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(fyhi_d, fyhi, 2, cudaMemcpyHostToDevice, stream)
 
     cuda_result = cudaMemcpyAsync(dt_d, dt, 1, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
-    call update_phi_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, phiold, polo_d, pohi_d, &
-                                                               phinew, pnlo_d, pnhi_d, fluxx, fxlo_d, fxhi_d, &
-                                                               fluxy, fylo_d, fyhi_d, dx, dt_d)
+    call update_phi_doit<<<numBlocks, numThreads, 0, stream>>>(lo, hi, phiold, polo, pohi, &
+                                                               phinew, pnlo, pnhi, fluxx, fxlo, fxhi, &
+                                                               fluxy, fylo, fyhi, dx, dt_d)
 
 #else
 
