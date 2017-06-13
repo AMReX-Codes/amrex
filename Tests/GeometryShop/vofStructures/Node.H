@@ -3,6 +3,7 @@
 
 #define COVERED_CELL  -1
 #define REGULAR_CELL  -2
+#define REGULAR_FACE  -2
 
 #ifndef BL_LANG_FORT
 //

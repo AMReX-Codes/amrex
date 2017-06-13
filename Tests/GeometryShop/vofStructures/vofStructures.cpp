@@ -171,7 +171,7 @@ AssignFaces(CNode&              cnode,
     for (int L=0; L<cnode.nCells; ++L) {
 	for (int nc=0; nc<cnode.cells[L].Nnbr[idir][iside]; ++nc) {
 	    
-	    cnode.cells[L].faceID[idir][iside][nc] = -1;
+	    cnode.cells[L].faceID[idir][iside][nc] = REGULAR_FACE;
 
 	    int c1=L;
 	    int c2=cnode.cells[L].nbr[idir][iside][nc];
@@ -283,11 +283,23 @@ BuildFortranGraphNodes(std::map<int,std::vector<CNode> >& graphCNodes,
 			{
 			    fn.faces[cnt].cellLo = fit->mL;
 			    fn.faces[cnt].cellHi = fit->mR;
-			    fn.faces[cnt].ebFaceID = ebFaceID++;
-			    cnt++;
+                            bool is_face_between_reg_and_cut_cells
+                                = fn.faces[cnt].cellLo==REGULAR_CELL
+                                || fn.faces[cnt].cellHi==REGULAR_CELL;
+
+                            if ( !is_face_between_reg_and_cut_cells )
+                            {
+                                fn.faces[cnt].ebFaceID = ebFaceID++;
+                                cnt++;
+                            }
+                            else
+                            {
+                                fn.faces[cnt].ebFaceID = REGULAR_FACE;
+                            }
 			}
 			if (cnt!=0)
 			{
+                            // Number the FNode (vs. CutFaces, this is one per IntVect)
 			    fnodeAtIV[idir][iv_face] = graphFNodes[gid][idir].size() - 1;
 			}
 		    }
