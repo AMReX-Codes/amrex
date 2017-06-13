@@ -143,8 +143,8 @@ struct tface
     /*
       A simple class to simplify uniquifying faces
      */
-    tface() : mL(-1), mR(-1), ebFaceID(-1) {}
-    tface(int L, int R, const SideIterator& s) : mL(L), mR(R), ebFaceID(-1) {if (s()==Side::Lo) flip();}
+    tface() : mL(-1), mR(-1) {}
+    tface(int L, int R, const SideIterator& s) : mL(L), mR(R) {if (s()==Side::Lo) flip();}
     bool operator< (const tface& rhs) const {
 	if (mL == rhs.mL)
 	{
@@ -159,7 +159,6 @@ struct tface
 	    mR = t;
 	}
     int mL, mR;
-    int ebFaceID;
 };
 
 static void
