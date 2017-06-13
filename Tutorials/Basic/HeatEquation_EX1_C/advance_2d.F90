@@ -10,8 +10,7 @@ contains
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
     use cuda_module, only: cuda_streams, stream_from_index, threads_and_blocks
-    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, cudaStreamSynchronize, &
-                       cuda_stream_kind, dim3
+    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, cuda_stream_kind, dim3
 #endif
 
     implicit none
@@ -33,7 +32,6 @@ contains
     type(dim3) :: numThreads, numBlocks
 
     integer, device :: blo_d(2), bhi_d(2)
-    integer, device :: idir_d
 
     stream = cuda_streams(stream_from_index(idx)+1)
 
@@ -44,24 +42,22 @@ contains
     cuda_result = cudaMemcpyAsync(bhi_d, bhi, 2, cudaMemcpyHostToDevice, stream)
 
     idir = 1
-    cuda_result = cudaMemcpyAsync(idir_d, idir, 1, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
     call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxx, fxlo, fxhi, dx, idir_d)
+                                                                 fluxx, fxlo, fxhi, dx, idir)
 
     bhi = [hi(1), hi(2)+1]
 
     cuda_result = cudaMemcpyAsync(bhi_d, bhi, 2, cudaMemcpyHostToDevice, stream)
 
     idir = 2
-    cuda_result = cudaMemcpyAsync(idir_d, idir, 1, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
     call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxy, fylo, fyhi, dx, idir_d)
+                                                                 fluxy, fylo, fyhi, dx, idir)
 
 #else
 
@@ -90,8 +86,7 @@ contains
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
     use cuda_module, only: cuda_streams, stream_from_index, threads_and_blocks
-    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, cudaStreamSynchronize, &
-                       cuda_stream_kind, dim3
+    use cudafor, only: cuda_stream_kind, dim3
 #endif
 
     implicit none
@@ -112,17 +107,13 @@ contains
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    real(rt), device :: dt_d
-
     stream = cuda_streams(stream_from_index(idx)+1)
-
-    cuda_result = cudaMemcpyAsync(dt_d, dt, 1, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     call update_phi_doit<<<numBlocks, numThreads, 0, stream>>>(lo, hi, phiold, polo, pohi, &
                                                                phinew, pnlo, pnhi, fluxx, fxlo, fxhi, &
-                                                               fluxy, fylo, fyhi, dx, dt_d)
+                                                               fluxy, fylo, fyhi, dx, dt)
 
 #else
 
@@ -146,7 +137,7 @@ contains
     real(rt), intent(in   ) :: phi(p_lo(1):p_hi(1),p_lo(2):p_hi(2))
     real(rt), intent(inout) :: flx(f_lo(1):f_hi(1),f_lo(2):f_hi(2))
     real(rt), intent(in   ) :: dx(2)
-    integer,  intent(in   ) :: idir
+    integer,  intent(in   ), value :: idir
 
     ! local variables
     integer :: i, j
@@ -186,7 +177,7 @@ contains
     real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
     real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
     real(rt), intent(in   ) :: dx(2)
-    real(rt), intent(in   ) :: dt
+    real(rt), intent(in   ), value :: dt
 
     ! local variables
     integer i,j
