@@ -16,6 +16,7 @@ extern "C" {
     void gpu_htod_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
     void gpu_dtoh_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
     void mem_advise_set_preferred(void* p, const std::size_t* sz, const int* device);
+    void mem_advise_set_readonly(void* p, const std::size_t* sz);
 }
 #endif
 

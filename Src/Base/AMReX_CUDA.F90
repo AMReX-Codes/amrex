@@ -279,4 +279,21 @@ contains
 
   end subroutine mem_advise_set_preferred
 
+
+
+  subroutine mem_advise_set_readonly(p, sz) bind(c, name='mem_advise_set_readonly')
+
+    use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetReadMostly, cudaCpuDeviceId
+    use iso_c_binding, only: c_size_t
+
+    type(c_devptr) :: p
+    integer(c_size_t) :: sz
+
+    integer :: cudaResult
+
+    ! Note: the device argument in this call is ignored, so we arbitrarily pick the CPU.
+    cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)
+
+  end subroutine mem_advise_set_readonly
+
 end module cuda_module
