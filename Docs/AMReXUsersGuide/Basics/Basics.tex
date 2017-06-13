@@ -1001,6 +1001,7 @@ Finally we will show how logical tiling can be launched via {\tt
   MFIter}. 
 
 \subsection{MFIter without Tiling}
+\label{sec:basics:mfiter:notiling}
 
 In Section~\ref{sec:basics:multifab}, we have shown some of the
 arithmetic functionalities of {\tt MultiFab}, such as adding two {\tt
@@ -1013,7 +1014,7 @@ provides an iterator, {\tt MFIter} for looping over the {\tt
   {
       // This is the valid Box of the current FArrayBox.
       // By "valid", we mean the original ungrown Box in BoxArray.
-      const Box& vbox = mfi.validbox();
+      const Box& box = mfi.validbox();
 
       // A reference to the current FArrayBox in this loop iteration.
       FArrayBox& fab = mf[mfi];
@@ -1023,24 +1024,50 @@ provides an iterator, {\tt MFIter} for looping over the {\tt
 
       // This is the Box on which the FArrayBox is defined.
       // Note that "abox" includes ghost cells (if there are any),
-      // and is thus larger than or equal to "vbox".
+      // and is thus larger than or equal to "box".
       const Box& abox = fab.box();
 
       // We can now pass the information to a function that does
-      // work on the region specified by vbox of the data pointed
+      // work on the region specified by box of the data pointed
       // by Real* a.  The data should be viewed as a multidimensional
       // with bounds specified by abox.
       // Function f1 has the signature of
       // void f1(const int*, const int*, Real*, const int*, const int*);
-      f1(vbox.loVect(), vbox.hiVect(), a, abox.loVect(), abox.hiVect());
+      f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
   }
 \end{lstlisting}
 Here function {\tt f1} is usually a Fortran subroutine with ISO C
-binding interface (see Section~\ref{sec:basics:fortran} for more
-details).  In the example above, {\tt MultiFab} is assumed to have a
-single component.  If it has multiple component, we can call {\tt
-int nc = mf.nComp()} to get the number of components and pass it to
-the kernel function.  There is only one {\tt MultiFab} in the example
+binding interface like below,
+\begin{lstlisting}[language=fortran]
+  subroutine f1(lo, hi, a, alo, ahi) bind(c)
+    use amrex_fort_module, only : amrex_real
+    integer, intent(in) :: lo(3), hi(3), alo(3), ahi(3)
+    real(amrex_real),intent(inout)::a(alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
+    integer :: i,j,k
+    do     k = lo(3), hi(3)
+      do   j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+          a(i,j,k) = ...
+        end do
+      end do
+    end do
+  end subroutine f1
+\end{lstlisting}
+Here {\tt amrex\_fort\_module} is a Fortran module in \amrex\ and {\tt
+  amrex\_real} is a Fortran kind parameter that matches {\tt
+  amrex::Real} in \cpp.
+
+{\tt MFIter} only loops over grids owned by the processes.  For
+example, suppose there are 5 {\tt Box}es in total and processes 0 and
+1 owns 2 and 3 {\tt Box}es, respectively.  That is the {\tt MultiFab}
+on process 0 has 2 {\tt FArrayBox}es, whereas there are 3 {\tt
+  FArrayBox}es on process 1.  Thus the numbers of iterations of {\tt
+  MFIter} are 2 and 3 on processes 0 and 1, respectively.
+
+In the example above, {\tt MultiFab} is assumed to have a single
+component.  If it has multiple component, we can call {\tt int nc =
+  mf.nComp()} to get the number of components and pass it to the
+kernel function.  There is only one {\tt MultiFab} in the example
 above.  Below is an example of working with multiple {\tt MultiFab}s.
 Note that these two {\tt MultiFab}s are not necessarily built on the
 same {\tt BoxArray}.  But they must have the same {\tt
@@ -1052,7 +1079,7 @@ related (e.g., they are different due to index types).
   int ncF = F.nComp();
   for (MFIter mfi(F); mfi.isValid(); ++mfi) // Loop over grids
   {
-      const Box& vbox = mfi.validbox();
+      const Box& box = mfi.validbox();
 
       const FArrayBox& ufab = U[mfi];
       FArrayBox&       ffab = F[mfi];
@@ -1068,23 +1095,228 @@ related (e.g., they are different due to index types).
       //         const Real*, const int*, const int*, const int*
       //               Real*, const int*, const int*, const int*);
       // This will compute f using u as inputs.
-      f2(vbox.loVect(), vbox.hiVect(),
+      f2(box.loVect(), box.hiVect(),
          up, ubox.loVect(), ubox.hiVect(), &ncU,
          fp, fbox.loVect(), fbox.hiVect(), &ncF);
   }
 \end{lstlisting}
 Here again function {\tt f2} is usually a Fortran subroutine with ISO
-C binding interface (see Section~\ref{sec:basics:fortran} for more
-details).
-
-
-\subsection{Logical Tiling}
+C binding interface like below,
+\begin{lstlisting}[language=fortran]
+subroutine f1(lo, hi, u, ulo, uhi, nu, f, flo, fhi, nf) bind(c)
+  use amrex_fort_module, only : amrex_real
+  integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),nu,flo(3),fhi(3),nf
+  real(amrex_real),intent(in   )::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nu)
+  real(amrex_real),intent(inout)::f(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),nf)
+  integer :: i,j,k
+  do n = 1, nf
+    do     k = lo(3), hi(3)
+      do   j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+          f(i,j,k,n) = ... u(...) ...
+        end do
+      end do
+    end do
+  end do
+end subroutine f1
+\end{lstlisting}
 
 \subsection{MFIter with Tiling}
+\label{sec:basics:mfiter:tiling}
 
-% mfs with tiling
+Tiling, also known as cache blocking, is a well known loop
+transformation technique for improving data locality.  This is often
+done by transforming the loops into tiling loops that iterate over
+tiles and element loops that iterate over the data elements within a
+tile.  For example, the original loops might look like
+\begin{lstlisting}[language=fortran]
+  do j = jmin, jmax
+    do i = imin, imax
+      A(i,j) = B(i+1,j) + B(i-1,j) + B(i,j+1) + B(i,j-1) - 4.0d0 * B(i,j)
+    end do
+  end do
+\end{lstlisting}
+And the manually tiled loops might look like
+\begin{lstlisting}[language=fortran]
+  jblocksize = 11
+  jblocks = (jmax-jmin+jblocksize-1)/jblocksize
+  do jb = 0, jblocks-1
+    do j = jb*jblocksize, min((jb+1)*jblocksize-1,jmax)
+      do i = imin, imax
+        A(i,j) = B(i+1,j) + B(i-1,j) + B(i,j+1) + B(i,j-1) - 4.0d0 * B(i,j)
+      end
+    end do
+  end do
+\end{lstlisting}
+As we can see, to manually tile individual loops is very
+labor-intensive and error-prone for large applications.  \amrex\ has
+incorporated the tiling construct into {\tt MFIter} so that the
+application codes can get the benefit of tiling easily.  An {\tt
+  MFIter} loop with tiling is almost the same as the non-tiling
+version.  The first example in
+Section~\ref{sec:basics:mfiter:notiling} requires only two minor
+changes: (1) using {\tt true} when defining {\tt MFIter} to indicate
+tiling; (2) calling {\tt tilebox} instead of {\tt validbox} to obtain
+the work region for the loop iteration.
+\begin{lstlisting}[language=cpp]
+  //               * true *  turns on tiling
+  for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) // Loop over tiles
+  {
+      //                   tilebox() instead of validbox()
+      const Box& box = mfi.tilebox();
 
-% all kinds of tile boxes
+      FArrayBox& fab = mf[mfi];
+      Real* a = fab.dataPtr();
+      const Box& abox = fab.box();
+
+      f1(box.loVect(), box.hiVect(), a, abox.loVect(), abox.hiVect());
+  }
+\end{lstlisting}
+The second example in Section~\ref{sec:basics:mfiter:notiling} also
+requires only two minor changes.
+\begin{lstlisting}[language=cpp]
+  //              * true *  turns on tiling  
+  for (MFIter mfi(F,true); mfi.isValid(); ++mfi) // Loop over tiles
+  {
+      //                   tilebox() instead of validbox()
+      const Box& box = mfi.tilebox();
+
+      const FArrayBox& ufab = U[mfi];
+      FArrayBox&       ffab = F[mfi];
+
+      Real* up = ufab.dataPtr();
+      Real* fp = ufab.dataPtr();
+
+      const Box& ubox = ufab.box();
+      const Box& fbox = ffab.box();
+
+      f2(box.loVect(), box.hiVect(),
+         up, ubox.loVect(), ubox.hiVect(), &ncU,
+         fp, fbox.loVect(), fbox.hiVect(), &ncF);
+  }
+\end{lstlisting}
+The kernels functions like {\tt f1} and {\tt f2} in the two examples
+here usually require very little changes.
+
+\begin{figure}
+  \centering
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{./Basics/cc_validbox.pdf}
+    \caption{\label{fig:basics:cc_validbox} Example of cell-centered valid boxes. There are two
+    valid boxes in this example. Each has $8^2$ cells.}
+  \end{minipage}\hfill
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{./Basics/cc_tilebox.pdf}
+    \caption{\label{fig:basics:cc_tilebox} Example of cell-centered tile boxes.
+      Each grid is {\emph{logically}} broken into 4 tiles, and each
+      tile has $4^2$ cells.  There are 8 tiles in total.}
+  \end{minipage}
+\end{figure}
+
+Figures~\ref{fig:basics:cc_validbox} \& \ref{fig:basics:cc_tilebox}
+show an example of the difference between {\tt validbox} and {\tt
+  tilebox}.  In this example, there are two grids of cell-centered
+index type.  Function {\tt validbox} always return a {\tt Box} for the
+valid region of an {\tt FArrayBox} no matter whether or not tiling is
+enabled, whereas function {\tt tilebox} returns a {\tt Box} for a
+tile.  (Note that when tiling is disabled, {\tt tilebox} returns the
+same {\tt Box} as {\tt validbox}.)  The number of loop iteration is 2
+in the non-tiling version, whereas in the tiling version the kernel
+function is called 8 times.
+
+The tile size can be explicitly set when defining {\tt MFIter}.
+\begin{lstlisting}[language=cpp]
+  // No tiling in x-direction.
+  for (MFIter mfi(mf,IntVect(1024000,16,32)); mfi.isValid(); ++mfi) {...}
+\end{lstlisting}
+An {\tt IntVect} is used to specify the tile size for every dimension.
+A tile size larger than the grid size simply means tiling is disable
+in that direction.  \amrex\ has a default tile size {\tt
+  IntVect\{1024000,8,8\}} in 3D and no tiling in 2D.  This is used when
+tile size is not explicitly set.  One can change the default size
+using {\tt ParmParse} parameter {\tt fabarray.mfiter\_tile\_size}.
+
+\begin{figure}
+  \centering
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{./Basics/ec_validbox.pdf}
+    \caption{\label{fig:basics:ec_validbox} Example of face valid
+      boxes. There are two valid boxes in this example. Each has $9
+      \times 8$ points.  Note that points in one {\tt Box} may overlap
+      with points in the other {\tt Box}.  However, the memory locations
+      for storing floating point data of those points do not overlap,
+      because they belong to separate {\tt FArrayBox}es.}
+  \end{minipage}\hfill
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{./Basics/ec_tilebox.pdf}
+    \caption{\label{fig:basics:ec_tilebox} Example of face tile boxes.
+      Each grid is {\emph{logically}} broken into 4 tiles as indicated
+      by the symbols.  There are 8 tiles in total.  Some tiles have $5
+      \times 4$ points, whereas others have $4 \times 4$ points.
+      Points from different {\tt Box}es may overlap, but points from
+      different tiles of the same {\tt Box} do not.}
+  \end{minipage}
+\end{figure}
+
+Usually {\tt MFIter} is used for accessing multiple {\tt MultiFab}s
+like the second example, in which two {\tt MultiFab}s, {\tt U} and
+{\tt F}, use {\tt MFIter} via {\tt operator []}.  These different {\tt
+  MultiFab}s may have different {\tt BoxArray}s.  For example, {\tt U}
+might be cell-centered, whereas {\tt F} might be nodal in
+$x$-direction and cell in other directions.  The {\tt
+  MFIter::validbox} and {\tt tilebox} functions return {\tt Box}es of
+the same type as the {\tt MultiFab} used in defining the {\tt MFIter}
+({\tt F} in this example).  Figures~\ref{fig:basics:ec_validbox} \&
+\ref{fig:basics:ec_tilebox} show an example of non-cell-centered valid
+and tile boxes.  Besides {\tt validbox} and {\tt tilebox}, {\tt
+  MFIter} has a number of functions returning various {\tt Box}es.
+Examples include,
+\begin{lstlisting}[language=cpp]
+  Box fabbox() const;       // Return the Box of the FArrayBox
+
+  // Return grown tile box.  By default it grows by the number of
+  // ghost cells of the MultiFab used for defining the MFIter.
+  Box growntilebox(int ng=-1000000) const;
+
+  // Return tilebox with provided nodal flag as if the MFIter
+  // is constructed with MultiFab of such flag.
+  Box tilebox(const IntVect& nodal_flag); 
+\end{lstlisting} 
+It should be noted that function {\tt growntilebox} does not grow the
+tile {\tt Box} like a normal {\tt Box}.  Growing a {\tt Box} normally
+means the {\tt Box} is extended in every face of every dimension.
+However, function {\tt growntilebox} only extends the tile {\tt Box}
+in such a way that tiles from the same grid do not overlap.  This is
+the basic design principle of these various tiling functions.  Tiling
+is a way of domain decomposition for work sharing.  Overlapping tiles
+is undesirable because works would be wasted and for multi-threaded
+codes race conditions could occur.
+Figures~\ref{fig:basics:cc_growbox} \& \ref{fig:basics:ec_growbox}
+show examples of {\tt growntilebox}.
+
+\begin{figure}[t]
+  \centering
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{./Basics/cc_growbox.pdf}
+    \caption{\label{fig:basics:cc_growbox} Example of cell-centered
+      grown tile boxes. As indicated by symbols, there are 8 tiles and
+      four in each grid in this example. Tiles from the same grid do
+      not overlap.  But tiles from different grids may overlap.}
+  \end{minipage}\hfill
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{./Basics/ec_growbox.pdf}
+    \caption{\label{fig:basics:ec_growbox} Example of face type grown
+      tile boxes.   As indicated by symbols, there are 8 tiles and
+      four in each grid in this example. Tiles from the same grid do
+      not overlap even though they have face index type. }
+  \end{minipage}
+\end{figure}
 
 \section{Calling Fortan or C}
 \label{sec:basics:fortran}
