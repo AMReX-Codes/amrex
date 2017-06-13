@@ -13,8 +13,7 @@ contains
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
     use cuda_module, only: cuda_streams, stream_from_index, threads_and_blocks
-    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, cudaStreamSynchronize, &
-                       cuda_stream_kind, dim3
+    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, cuda_stream_kind, dim3
 #endif
 
     implicit none
@@ -40,7 +39,6 @@ contains
     type(dim3) :: numThreads, numBlocks
 
     integer, device :: blo_d(3), bhi_d(3)
-    integer, device :: idir_d
 
     stream = cuda_streams(stream_from_index(idx)+1)
 
@@ -52,36 +50,33 @@ contains
     bhi = [hi(1)+1, hi(2),  hi(3)]
 
     cuda_result = cudaMemcpyAsync(bhi_d, bhi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(idir_d, idir, 1, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
     call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxx, fxlo, fxhi, dx, idir_d)
+                                                                 fluxx, fxlo, fxhi, dx, idir)
 
     ! y-direction
     idir = 2
     bhi = [hi(1), hi(2)+1,  hi(3)]
 
     cuda_result = cudaMemcpyAsync(bhi_d, bhi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(idir_d, idir, 1, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
     call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxy, fylo, fyhi, dx, idir_d)
+                                                                 fluxy, fylo, fyhi, dx, idir)
 
     ! z-direction
     idir = 3
     bhi = [hi(1), hi(2),  hi(3)+1]
 
     cuda_result = cudaMemcpyAsync(bhi_d, bhi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(idir_d, idir, 1, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
     call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxz, fzlo, fzhi, dx, idir_d)
+                                                                 fluxz, fzlo, fzhi, dx, idir)
 
 
 #else
@@ -113,16 +108,15 @@ contains
 
 
   subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-                       fluxx, fxlo, fxhi, &
-                       fluxy, fylo, fyhi, &
-                       fluxz, fzlo, fzhi, &
-                       dx, dt, idx) bind(C, name="update_phi")
+                         fluxx, fxlo, fxhi, &
+                         fluxy, fylo, fyhi, &
+                         fluxz, fzlo, fzhi, &
+                         dx, dt, idx) bind(C, name="update_phi")
 
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
     use cuda_module, only: cuda_streams, stream_from_index, threads_and_blocks
-    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, cudaStreamSynchronize, &
-                       cuda_stream_kind, dim3
+    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, cuda_stream_kind, dim3
 #endif
 
     implicit none
@@ -153,8 +147,6 @@ contains
 
     stream = cuda_streams(stream_from_index(idx)+1)
 
-    cuda_result = cudaMemcpyAsync(dt_d, dt, 1, cudaMemcpyHostToDevice, stream)
-
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     call update_phi_doit<<<numBlocks, numThreads, 0, stream>>>(lo, hi, phiold, polo, pohi, &
@@ -162,7 +154,7 @@ contains
                                                                fluxx, fxlo, fxhi, &
                                                                fluxy, fylo, fyhi, &
                                                                fluxz, fzlo, fzhi, &
-                                                               dx, dt_d)
+                                                               dx, dt)
 
 #else
 
@@ -189,7 +181,7 @@ contains
     real(rt), intent(in   ) :: phi(p_lo(1):p_hi(1),p_lo(2):p_hi(2),p_lo(3):p_hi(3))
     real(rt), intent(inout) :: flx(f_lo(1):f_hi(1),f_lo(2):f_hi(2),f_lo(3):f_hi(3))
     real(rt), intent(in   ) :: dx(3)
-    integer,  intent(in   ) :: idir
+    integer,  intent(in   ), value :: idir
 
     ! local variables
     integer :: i, j, k
@@ -241,7 +233,7 @@ contains
     real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
     real(rt), intent(in   ) :: fluxz (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
     real(rt), intent(in   ) :: dx(3)
-    real(rt), intent(in   ) :: dt
+    real(rt), intent(in   ), value :: dt
 
     ! local variables
     integer i,j,k
