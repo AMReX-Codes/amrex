@@ -1,4 +1,4 @@
-#include <Node.H>
+#include <AMReX_EBStruct.H>
 
 module amrex_ebstruct_module
 
