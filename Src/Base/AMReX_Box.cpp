@@ -5,6 +5,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
 #include <AMReX_Box.H>
+#include <AMReX_BaseFab.H>
 #include <AMReX_Print.H>
 
 namespace amrex {
@@ -21,7 +22,9 @@ Box::Box ()
     smallend(IntVect::TheUnitVector()),
     bigend(IntVect::TheZeroVector()),
     btype()
-{}
+{
+  initialize_device_memory();
+}
 
 Box::Box (const IntVect& small,
           const int*     vec_len)
@@ -30,7 +33,9 @@ Box::Box (const IntVect& small,
     bigend(AMREX_D_DECL(small[0]+vec_len[0]-1,
                   small[1]+vec_len[1]-1,
                   small[2]+vec_len[2]-1))
-{}
+{
+  initialize_device_memory();
+}
 
 Box::Box (const IntVect& small,
           const IntVect& big,
@@ -39,14 +44,18 @@ Box::Box (const IntVect& small,
     smallend(small),
     bigend(big),
     btype(t)
-{}
+{
+  initialize_device_memory();
+}
 
 Box::Box (const IntVect& small,
           const IntVect& big)
     :
     smallend(small),
     bigend(big)
-{}
+{
+  initialize_device_memory();
+}
 
 Box::Box (const IntVect& small,
           const IntVect& big,
@@ -57,6 +66,54 @@ Box::Box (const IntVect& small,
     btype(typ)
 {
     BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+    initialize_device_memory();
+}
+
+void
+Box::initialize_device_memory()
+{
+#ifdef CUDA
+    const size_t sz = 3 * sizeof(int);
+
+    int* lo_temp;
+    gpu_malloc_managed((void**) &lo_temp, &sz);
+    lo_d.reset(lo_temp, [](int* ptr) { gpu_free(ptr); });
+    copy_lo();
+
+    int* hi_temp;
+    gpu_malloc_managed((void**) &hi_temp, &sz);
+    hi_d.reset(hi_temp, [](int* ptr) { gpu_free(ptr); });
+    copy_hi();
+#endif
+}
+
+void
+Box::copy_device_memory()
+{
+  copy_lo();
+  copy_hi();
+}
+
+void
+Box::copy_lo()
+{
+#ifdef CUDA
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+	lo_d.get()[i] = smallend[i];
+    for (int i = BL_SPACEDIM; i < 3; ++i)
+	lo_d.get()[i] = 0;
+#endif
+}
+
+void
+Box::copy_hi()
+{
+#ifdef CUDA
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+	hi_d.get()[i] = bigend[i];
+    for (int i = BL_SPACEDIM; i < 3; ++i)
+	hi_d.get()[i] = 0;
+#endif
 }
 
 Box&
@@ -65,6 +122,7 @@ Box::convert (const IntVect& typ)
     BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
     IntVect shft(typ - btype.ixType());
     bigend += shft;
+    copy_device_memory();
     btype = IndexType(typ);
     return *this;
 }
@@ -80,6 +138,7 @@ Box::convert (IndexType t)
       bigend.shift(dir,off);
       btype.setType(dir, (IndexType::CellIndex) typ);
    }
+   copy_device_memory();
    return *this;
 }
 
@@ -87,6 +146,7 @@ Box
 convert (const Box& b, const IntVect& typ)
 {
     Box bx(b);
+    bx.initialize_device_memory();
     bx.convert(typ);
     return bx;
 }
@@ -95,6 +155,7 @@ Box
 convert (const Box& b, const IndexType& t)
 {
     Box bx(b);
+    bx.initialize_device_memory();
     bx.convert(t);
     return bx;
 }
@@ -104,6 +165,7 @@ surroundingNodes (const Box& b,
                           int        dir)
 {
     Box bx(b);
+    bx.initialize_device_memory();
     bx.surroundingNodes(dir);
     return bx;
 }
@@ -119,6 +181,7 @@ Box::surroundingNodes (int dir)
         //
         btype.set(dir);
     }
+    copy_device_memory();
     return *this;
 }
 
@@ -126,6 +189,7 @@ Box
 surroundingNodes (const Box& b)
 {
     Box bx(b);
+    bx.initialize_device_memory();
     bx.surroundingNodes();
     return bx;
 }
@@ -137,6 +201,7 @@ Box::surroundingNodes ()
         if ((btype[i] == 0))
             bigend.shift(i,1);
     btype.setall();
+    copy_device_memory();
     return *this;
 }
 
@@ -145,6 +210,7 @@ enclosedCells (const Box& b,
                        int        dir)
 {
     Box bx(b);
+    bx.initialize_device_memory();
     bx.enclosedCells(dir);
     return bx;
 }
@@ -160,6 +226,7 @@ Box::enclosedCells (int dir)
         //
         btype.unset(dir);
     }
+    copy_device_memory();
     return *this;
 }
 
@@ -167,6 +234,7 @@ Box
 enclosedCells (const Box& b)
 {
     Box bx(b);
+    bx.initialize_device_memory();
     bx.enclosedCells();
     return bx;
 }
@@ -178,6 +246,7 @@ Box::enclosedCells ()
         if (btype[i])
             bigend.shift(i,-1);
     btype.clear();
+    copy_device_memory();
     return *this;
 }
 
@@ -186,6 +255,7 @@ grow (const Box& b,
       int        i)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.grow(i);
     return result;
 }
@@ -195,6 +265,7 @@ grow (const Box&     b,
       const IntVect& v)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.grow(v);
     return result;
 }
@@ -203,6 +274,7 @@ Box
 grow (const Box& b, int idir, int n_cell)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.grow(idir, n_cell);
     return result;
 }
@@ -211,6 +283,7 @@ Box
 growLo (const Box& b, int idir, int n_cell)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.growLo(idir, n_cell);
     return result;
 }
@@ -219,6 +292,7 @@ Box
 growHi (const Box& b, int idir, int n_cell)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.growHi(idir, n_cell);
     return result;
 }
@@ -228,10 +302,12 @@ Box::grow (Orientation face,
            int         n_cell)
 {
     int idir = face.coordDir();
-    if (face.isLow())
+    if (face.isLow()) {
         smallend.shift(idir, -n_cell);
-    else
+    } else {
         bigend.shift(idir,n_cell);
+    }
+    copy_device_memory();
     return *this;
 }
 
@@ -277,6 +353,7 @@ Box::shiftHalf (int dir,
         nshift += (bit_dir ? 0 : nbit);
     smallend.shift(dir,nshift);
     bigend.shift(dir,nshift);
+    copy_device_memory();
     return *this;
 }
 
@@ -316,6 +393,7 @@ refine (const Box& b,
                 int        ref_ratio)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.refine(IntVect(AMREX_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
     return result;
 }
@@ -331,6 +409,7 @@ refine (const Box&     b,
                 const IntVect& ref_ratio)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.refine(ref_ratio);
     return result;
 }
@@ -345,6 +424,7 @@ Box::refine (const IntVect& ref_ratio)
         bigend += shft;
         bigend *= ref_ratio;
         bigend -= shft;
+	copy_device_memory();
     }
     return *this;
 }
@@ -353,6 +433,7 @@ Box
 shift (const Box& b, int dir, int nzones)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.shift(dir, nzones);
     return result;
 }
@@ -446,6 +527,7 @@ Box::chop (int dir,
         //
         bigend.setVal(dir,chop_pnt-1);
     }
+    copy_device_memory();
     return Box(sm,bg,btype);
 }
 
@@ -454,6 +536,7 @@ coarsen (const Box& b,
                  int        ref_ratio)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.coarsen(IntVect(AMREX_D_DECL(ref_ratio,ref_ratio,ref_ratio)));
     return result;
 }
@@ -469,6 +552,7 @@ coarsen (const Box&     b,
                  const IntVect& ref_ratio)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.coarsen(ref_ratio);
     return result;
 }
@@ -494,6 +578,8 @@ Box::coarsen (const IntVect& ref_ratio)
     {
         bigend.coarsen(ref_ratio);
     }
+
+    copy_device_memory();
 
     return *this;
 }
@@ -576,6 +662,7 @@ minBox (const Box& b,
                 const Box& o)
 {
     Box result = b;
+    result.initialize_device_memory();
     result.minBox(o);
     return result;
 }
@@ -587,6 +674,7 @@ Box::minBox (const Box &b)
     BL_ASSERT(sameType(b));
     smallend.min(b.smallend);
     bigend.max(b.bigend);
+    copy_device_memory();
     return *this;
 }
 
@@ -748,6 +836,7 @@ Box::setRange (int dir,
 {
     smallend.setVal(dir,sm_index);
     bigend.setVal(dir,sm_index+n_cells-1);
+    copy_device_memory();
     return *this;
 }
 

@@ -210,6 +210,16 @@ public:
          const IntVect& big,
          IndexType      t);
 
+    //
+    // Operations for keeping a CUDA managed memory copy
+    // of the dimensions up to date. These have no effect
+    // if CUDA is not defined.
+    //
+    void initialize_device_memory();
+    void copy_device_memory();
+    void copy_lo();
+    void copy_hi();
+
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     //! Get the smallend of the box.
@@ -247,10 +257,24 @@ public:
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
-    const int* loVect () const& { return smallend.getVect(); }
+    const int* loVect () const& {
+#ifdef CUDA
+	return lo_d.get();
+#else
+	return smallend.getVect();
+#endif
+    }
+
     const int* loVect () && = delete;
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
-    const int* hiVect () const& { return bigend.getVect(); }
+    const int* hiVect () const& {
+#ifdef CUDA
+	return hi_d.get();
+#else
+	return bigend.getVect();
+#endif
+    }
+
     const int* hiVect () && = delete;
 
     //! Returns the coordinate normal to given face.
@@ -356,16 +380,32 @@ public:
     long index (const IntVect& v) const;
 
     //! Redefine the small end of the Box.
-    Box& setSmall (const IntVect& sm) { smallend = sm; return *this; }
+    Box& setSmall (const IntVect& sm) {
+	smallend = sm;
+	copy_lo();
+	return *this;
+    }
 
     //! Redefine the small end of the Box.
-    Box& setSmall (int dir, int sm_index)  { smallend.setVal(dir,sm_index); return *this; }
+    Box& setSmall (int dir, int sm_index)  {
+	smallend.setVal(dir,sm_index);
+	copy_lo();
+	return *this;
+    }
 
     //! Redefine the big end of the Box.
-    Box& setBig (const IntVect& bg) { bigend = bg; return *this; }
+    Box& setBig (const IntVect& bg) {
+	bigend = bg;
+	copy_hi();
+	return *this;
+    }
 
     //! Redefine the big end of the Box.
-    Box& setBig (int dir, int bg_index) { bigend.setVal(dir,bg_index); return *this; }
+    Box& setBig (int dir, int bg_index) {
+	bigend.setVal(dir,bg_index);
+	copy_hi();
+	return *this;
+    }
 
     /**
     * \brief Set the entire range in a given direction, starting at
@@ -380,10 +420,10 @@ public:
     Box& setType (const IndexType& t) { btype = t; return *this; }
 
     //! Shift this Box nzones indexing positions in coordinate direction dir.
-    Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); return *this; }
+    Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); copy_device_memory(); return *this; }
 
     //! Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
-    Box& shift (const IntVect& iv) { smallend.shift(iv); bigend.shift(iv); return *this; }
+    Box& shift (const IntVect& iv) { smallend.shift(iv); bigend.shift(iv); copy_device_memory(); return *this; }
 
     /**
     * \brief This member shifts the Box by "half" indicies, thereby
@@ -488,16 +528,16 @@ public:
     Box& minBox (const Box&);
 
     //! Shift Box (relative) by given IntVect.
-    Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; return *this; }
+    Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; copy_device_memory(); return *this; }
 
     //! Shift Box (relative) by given IntVect.
-    Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
+    Box operator+ (const IntVect& v) const { Box r(*this); r.initialize_device_memory(); r += v; return r; }
 
     //! Shift Box (relative) by given IntVect.
-    Box& operator-= (const IntVect& v) { smallend -= v; bigend -= v; return *this; }
+    Box& operator-= (const IntVect& v) { smallend -= v; bigend -= v; copy_device_memory(); return *this; }
 
     //! Shift Box (relative) by given IntVect.
-    Box operator- (const IntVect& v) const { Box r(*this); r -= v; return r; }
+    Box operator- (const IntVect& v) const { Box r(*this); r.initialize_device_memory(); r -= v; return r; }
 
     /**
     * \brief Chop the Box at the chop_pnt in the dir direction
@@ -517,29 +557,29 @@ public:
     * \brief Grow Box in all directions by given amount.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    Box& grow (int i) { smallend.diagShift(-i); bigend.diagShift(i); return *this; }
+    Box& grow (int i) { smallend.diagShift(-i); bigend.diagShift(i); copy_device_memory(); return *this; }
 
     //! Grow Box in each direction by specified amount.
-    Box& grow (const IntVect& v) { smallend -= v; bigend += v; return *this;}
+    Box& grow (const IntVect& v) { smallend -= v; bigend += v; copy_device_memory(); return *this;}
 
     /**
     * \brief Grow the Box on the low and high end by n_cell cells
     * in direction idir.
     */
-    Box& grow (int idir, int n_cell) { smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); return *this; }
+    Box& grow (int idir, int n_cell) { smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); copy_device_memory(); return *this; }
 
     /**
     * \brief Grow the Box on the low end by n_cell cells in direction idir.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    Box& growLo (int idir, int n_cell = 1) { smallend.shift(idir, -n_cell); return *this; }
+    Box& growLo (int idir, int n_cell = 1) { smallend.shift(idir, -n_cell); copy_device_memory(); return *this; }
 
     /**
     * \brief Grow the Box on the high end by n_cell cells in
     * direction idir.  NOTE: n_cell negative shrinks the Box by that
     * number of cells.
     */
-    Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); return *this; }
+    Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); copy_device_memory(); return *this; }
 
     //! Grow in the direction of the given face.
     Box& grow (Orientation face, int n_cell = 1);
@@ -615,6 +655,11 @@ private:
     IntVect         smallend;
     IntVect         bigend;
     IndexType       btype;
+
+#ifdef CUDA
+    std::shared_ptr<int> lo_d;
+    std::shared_ptr<int> hi_d;
+#endif
 };
 
 inline
