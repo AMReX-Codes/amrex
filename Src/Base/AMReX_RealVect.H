@@ -503,6 +503,7 @@ public:
   friend std::ostream& operator<< (std::ostream& ostr,
                                    const RealVect& p);
 
+  friend std::istream& operator>> (std::istream& is, RealVect& iv);
   friend class HDF5Handle;
 
   static size_t io_offset;

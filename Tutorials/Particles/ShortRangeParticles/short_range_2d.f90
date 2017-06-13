@@ -10,7 +10,7 @@
     type, bind(C)  :: particle_t
        real(amrex_real) :: pos(2)     !< Position
        real(amrex_real) :: vel(2)     !< Particle velocity
-       real(amrex_real) :: acc(2)     !< Particle velocity
+       real(amrex_real) :: acc(2)     !< Particle acceleration
        integer(c_int)   :: id         !< Particle id
        integer(c_int)   :: cpu        !< Particle cpu
     end type particle_t
@@ -18,7 +18,7 @@
     type, bind(C)  :: neighbor_t
        real(amrex_real) :: pos(2)     !< Position
        real(amrex_real) :: vel(2)     !< Particle velocity
-       real(amrex_real) :: acc(2)     !< Particle velocity
+       real(amrex_real) :: acc(2)     !< Particle acceleration
     end type neighbor_t
     
   end module short_range_particle_module

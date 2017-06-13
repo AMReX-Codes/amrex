@@ -13,7 +13,7 @@
 
 #include "AMReX_SPACE.H"
 #include "AMReX_RealVect.H"
-
+#include "AMReX_Utility.H"
 using std::ostream;
 using std::istream;
 using std::ws;
@@ -269,4 +269,29 @@ namespace amrex
     return ostr;
   }
 
+  std::istream&
+  operator>> (std::istream& is,
+              RealVect&      iv)
+  {
+    is >> std::ws;
+    char c;
+    is >> c;
+
+    if (c == '(')
+    {
+        AMREX_D_EXPR(is >> iv[0],
+               is.ignore(BL_IGNORE_MAX, ',') >> iv[1],
+               is.ignore(BL_IGNORE_MAX, ',') >> iv[2]);
+        is.ignore(BL_IGNORE_MAX, ')');
+    }
+    else
+    {
+        amrex::Error("operator>>(istream&,IntVect&): expected \'(\'");
+    }
+
+    if (is.fail())
+        amrex::Error("operator>>(istream&,IntVect&) failed");
+
+    return is;
+}
 } //namespace amrex

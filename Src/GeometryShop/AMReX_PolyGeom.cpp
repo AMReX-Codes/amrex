@@ -355,7 +355,7 @@ namespace amrex
       det = a_A[0][0];,
 
       det = a_A[0][0]*a_A[1][1]
-      - a_A[0][1]*a_A[1][0])
+      - a_A[0][1]*a_A[1][0]);
 
     return det;
   }

@@ -53,6 +53,9 @@
 \usepackage{colortbl}
 \definecolor{tableShade}{rgb}{0.945,0.961,0.980}
 
+% caption
+\usepackage{caption}
+\captionsetup[figure]{font=small,labelfont=small}
 
 % make the MarginPars look pretty
 \setlength{\marginparwidth}{0.75in}
@@ -317,7 +320,7 @@
 \chapter{AMR Core Infrastructure}\label{Chap:AmrCore}
 \input{AmrCore/AmrCore}
 
-\chapter{Particle}\label{Chap:Particle}
+\chapter{Particles}\label{Chap:Particles}
 \input{Particle/Particle}
 
 \chapter{{\tt AmrLevel} Class}\label{Chap:AmrLevel}
@@ -331,6 +334,9 @@
 
 \chapter{Debugging}\label{Chap:Debugging}
 \input{Debugging/Debugging}
+
+\chapter{CVODE}\label{Chap:CVODE}
+\input{CVODE/CVODE}
 
 %------------------------------------------------------------------------------
 \backmatter

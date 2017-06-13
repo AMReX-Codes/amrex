@@ -157,16 +157,38 @@ are therefore used be default.  For example, one can run with
 \end{verbatim}
 to change the value of {\tt ncells} and {\tt hydro.cfl}.
 
+\section{Example of AMR Grids}
+\label{sec:basics:amrgrids}
+
+In block-structured AMR, there is a hierarchy of logically rectangular
+grids.  The computational domain on each AMR level is decomposed into
+a union of rectangular domains.  Figure~\ref{fig:basics:amrgrids} shows
+an example of AMR grids.  There are three total levels in the example.
+The coarsest grid ({\emph{black}) covers the domain with $16^2$
+cells. Bold lines represent grid boundaries.  There are two
+intermediate resolution grids ({\emph{blue}}) are at level 1 and the
+cells are a factor of two finer than those at level 0.  The two
+finest grids ({\emph{red}}) are at level 2 and the cells are a
+factor of two finer than the level 1 cells.  Note that there is no
+direct parent-child connection.  In this chapter, we will focus on
+single levels.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=3in]{./Basics/amrgrids.pdf}
+  \caption{\label{fig:basics:amrgrids} Example of AMR grids.  There are
+    three levels in total.}
+\end{figure}
+
 \section{Box, IntVect and IndexType}
 \label{sec:basics:box}
 
-In \amrex, the computational domain (on each AMR level) is decomposed
-into a union of rectangular domains.  {\tt Box} is the data
-structure for representing such rectangular domains in indexing space.
+{\tt Box} is the data structure for representing a rectangular domain
+in indexing space.  For example, in Figure~\ref{fig:basics:amrgrids},
+there are 1, 2 and 2 {\tt Box}es on levels 0, 1 and 2, respectively.
 {\tt Box} is a dimension dependent class.  It has lower and upper
-corners (represented by {\tt IntVect} and an index type
-(represented by {\tt IndexType}).  There are no floating-point data in
-the object.
+corners (represented by {\tt IntVect} and an index type (represented
+by {\tt IndexType}).  There are no floating-point data in the object.
 
 \subsection{IntVect}
 
@@ -256,7 +278,7 @@ The class provides various functions including
 \end{lstlisting}
 
 Index type is a very important concept in \amrex.  It is a way of
-representing the notion of indices $i$ and $i+1/2$.  
+representing the notion of indices $i$ and $i+1/2$.
 
 \subsection{Box}
 
@@ -282,13 +304,26 @@ Depending the dimensionality, the output of the code above is
 For simplicity, we will assume it is 3D for the rest of this section.
 In the output, three integer tuples for each box are the lower corner
 indices, upper corner indices, and the index types.  Note that {\tt 0}
-and {\tt 1} denote cell and node, respecitively.  For each tuple like
+and {\tt 1} denote cell and node, respectively.  For each tuple like
 {\tt (64,64,64)}, the 3 numbers are for 3 directions.  The two {\tt
   Box}es in the code above represent different indexing views of the
 same domain of $64^3$ cells.  Note that in \amrex\ convention, the
 lower side of a cell has the same integer value as the cell centered
 index.  That is if we consider a cell based index represent $i$, the
-nodal index with the same integer value represents $i-1/2$.  
+nodal index with the same integer value represents $i-1/2$.
+Figure~\ref{fig:basics:indextypes} shows a 2D example of various index
+types.  
+
+\begin{figure}
+  \centering
+  \includegraphics[width=5in]{./Basics/indextypes.pdf}
+  \caption{\label{fig:basics:indextypes} Some of the different index
+    types in two dimensions: (a) cell-centered, (b) face-centered,
+    i.e., nodal in one dimensions ($x$) only, and (c) corner/nodal,
+    i.e., nodal in all dimensions.  Note that for data that is nodal
+    in one or more direction, the integer index corresponds to the
+    lower boundary in that direction.}
+\end{figure}
 
 There are a number of ways of converting a {\tt Box} from one type to
 another.
@@ -461,9 +496,9 @@ domain and the indexing space domain.  For example,
 \section{BoxArray}
 \label{sec:basics:ba}
 
-{\tt BoxArray} is a class for storing a collection of {\tt Box}es.
-One can make a {\tt BoxArray} out of a single {\tt Box} and then chop
-it into multiple {\tt Box}es.
+{\tt BoxArray} is a class for storing a collection of {\tt Box}es on
+a single AMR level.  One can make a {\tt BoxArray} out of a single {\tt Box}
+and then chop it into multiple {\tt Box}es.
 \begin{lstlisting}[language=cpp]
   Box domain(IntVect{0,0,0}, IntVect{127,127,127});
   BoxArray ba(domain);  // Make a new BoxArray out of a single Box
@@ -741,13 +776,322 @@ alias will contain a dangling pointer after the original {\tt
 \section{FabArray, MultiFab and iMultiFab}
 \label{sec:basics:multifab}
 
-% make alias
+{\tt FabArray<FAB>} is a class template for a collection of {\tt FAB}s
+on the same AMR level associated with a {\tt BoxArray}
+(Section~\ref{sec:basics:ba}).  The template parameter {\tt FAB} is
+usually {\tt BaseFab<T>} or its derived classes (e.g., {\tt
+  FArrayBox}).  However, it can also be used to hold other data
+structures.  To construct a {\tt FabArray}, a {\tt BoxArray} must be
+provided because it is intended to hold {\emph{grid}} data defined on
+a union of rectangular regions embedded in a uniform index space.  For
+example, an {\tt FabArray} object can be used to hold data for one
+level of the example grids of Figure~\ref{fig:basics:amrgrids}.  The
+{\tt BoxArray} on level 2 ({\emph{red}) has two {\tt Box}es.
+
+{\tt FabArray} is a parallel data structure that the data (i.e.,
+{\tt FAB}) are distributed among parallel processes.  On each process,
+the {\tt FabArray} contains only the {\tt FAB} objects owned by this
+process, and the process operates only on its local data.  For
+operations that require data owned by other processes, remote
+communications are involved.  Thus, the construction of a {\tt
+  FabArray} requires a {\tt DistributionMapping}
+(Section~\ref{sec:basics:dm}) that specifies which process owns which
+{\tt Box}.  For level 2 ({\emph{red}) in
+Figure~\ref{fig:basics:amrgrids}, there are two {\tt Box}es.  Suppose
+there are two parallel processes, and we use a {\tt
+  DistributionMapping} that assigns one {\tt Box} to each process.
+For {\tt FabArray} on each process, it is built on a {\tt BoxArray} with
+2 {\tt Box}es, but contains only one {\tt FAB}.  
+
+In \amrex, there are some specialized classes derived from {\tt
+  FabArray}.  The {\tt iMultiFab} class is derived from {\tt
+  FabArray<IArrayBox>}.  The most commonly used {\tt FabArray} kind
+class is {\tt MultiFab} derived from {\tt FabArray<FArrayBox>}.  In
+the rest of this section, we use {\tt MultiFab} as example.  However,
+these concepts are equally applicable to other types of {\tt
+  FabArray}s.  There are many ways to define a {\tt MultiFab}.  For
+example,
+\begin{lstlisting}[language=cpp]
+  // ba is BoxArray
+  // dm is DistributionMapping
+  int ncomp = 4;
+  int ngrow = 1;
+  MultiFab mf(ba, mf, ncomp, ngrow);
+\end{lstlisting}
+Here we define a {\tt MultiFab} with 4 components and 1 ghost cell.  A
+{\tt MultiFab} contains a number of {\tt FArrayBox}es
+(Section~\ref{sec:basics:fab}) defined on {\tt Box}es grown by the
+number of ghost cells (1 in this example).  That is the {\tt Box} in
+the {\tt FArrayBox} is not exactly the same as in the {\tt BoxArray}.
+If the {\tt BoxArray} has a {\tt Box\{(8,8,8) (15,15,15)\}}, the one
+used for constructing {\tt FArrayBox} will be {\tt Box\{(7,7,7)
+  (16,16,16)\}} in this example.  For cells in {\tt FArrayBox}, we
+call those in the original {\tt Box} valid cells and the grown part
+ghost cells.  Note that {\tt FArrayBox} itself alone does not have the
+concept of ghost cell, whereas ghost cell is a key concept of {\tt
+  MultiFab} that allows for local operations on ghost cell data
+originated from remote processes.  We will discuss how to fill ghost
+cells with data from valid cells later in this section.  {\tt
+  MultiFab} also has a default constructor.  One can define an empty
+{\tt MultiFab} first and then call the {\tt define} function as
+follows.
+\begin{lstlisting}[language=cpp]
+  MultiFab mf;
+  // ba is BoxArray
+  // dm is DistributionMapping
+  int ncomp = 4;
+  int ngrow = 1;
+  mf.define(ba, mf, ncomp, ngrow);
+\end{lstlisting}
+Given an existing {\tt MultiFab}, one can also make an alias {\tt
+  MultiFab} as follows.
+\begin{lstlisting}[language=cpp]
+  // orig_mf is an existing Multifab
+  int start_comp = 3;
+  int num_comps = 1;
+  MultiFab alias_mf(orig_mf, amrex::make_alias, start_comp, num_comps);
+\end{lstlisting}
+Here the first integer parameter is the starting component in the
+original {\tt MultiFab} that will become component 0 in the alias {\tt
+  MultiFab} and the second integer parameter is the number of
+components in the alias.  It's a runtime error if the sum of the two
+integer parameters is greater than the number of the components in the
+original {\tt MultiFab}.  Note that the alias {\tt MultiFab} has
+exactly the same number of ghost cells as the original {\tt MultiFab}.
+
+We often need to build new {\tt MultiFab}s that have the same {\tt
+  BoxArray} and {\tt DistributionMapping} as a given {\tt MultiFab}.
+Below is an example of how to achieve this.
+\begin{lstlisting}[language=cpp]
+  // mf0 is an already defined MultiFab
+  const BoxArray& ba = mf0.boxArray();
+  const DistributionMapping& dm = mf0.DistributionMap();
+  int ncomp = mf0.nComp();
+  int ngrow = mf0.ngrow();
+  MultiFab mf1(ba,dm,ncomp,ngrow);  // new MF with the same ncomp and ngrow
+  MultiFab mf2(ba,dm,ncomp,0);      // new MF with no ghost cells
+  // new MF with 1 component and 2 ghost cells
+  MultiFab mf3(mf0.boxArray(), mf0.DistributionMap(), 1, 2);               
+\end{lstlisting}
+
+As we have repeatedly mentioned in this chapter that {\tt Box} and
+{\tt BoxArray} have various index types.  Thus, {\tt MultiFab} also
+has an index type that is obtained from the {\tt BoxArray} used for
+defining the {\tt MultiFab}.  It should be noted again that index type
+is a very important concept in \amrex.  Let's consider an example of a
+finite-volume code, in which the state is defined as cell averaged
+variables and the fluxes are defined as face averaged variables.
+\begin{lstlisting}[language=cpp]
+  // ba is cell-centered BoxArray
+  // dm is DistributionMap
+  int ncomp = 3;  // Suppose the system has 3 components
+  int ngrow = 0;  // no ghost cells
+  MultiFab state(ba, dm, ncomp, ngrow);
+  MultiFab xflux(amrex::convert(ba, IntVect{1,0,0}), dm, ncomp, 0);
+  MultiFab yflux(amrex::convert(ba, IntVect{0,1,0}), dm, ncomp, 0);
+  MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
+\end{lstlisting}
+Here all {\tt MultiFab} use the same {\tt DistributionMapping}, but
+their {\tt BoxArray}s have different.  The state is cell based,
+whereas the fluxes are on the faces.  Suppose the cell based {\tt
+  BoxArray} contains a {\tt Box\{(8,8,16), (15,15,31)\}}.  The state
+on that {\tt Box} is conceptually a Fortran Array with the dimension
+of {\tt (8:15,8:15,16:31,0:2)}.  The fluxes are arrays with slightly
+different indices.  For example, the $x$-direction flux for that {\tt
+  Box} has the dimension of {\tt (8:16,8:15,16:31,0:2)}.  Note there is
+an extra element in $x$-direction.  
+
+The {\tt MultiFab} provides many functions performing common
+arithmetic operations on a {\tt MultiFab} or between {\tt MultiFab}s
+built with the {\emph{same}} {\tt BoxArray} and {\tt DistributionMap}.
+For example,
+\begin{lstlisting}[language=cpp]
+  Real dmin = mf.min(3);   // Minimum value in component 3 of MultiFab mf
+                           // no ghost cells included
+  Real dmax = mf.max(3,1); // Maximum value in component 3 of MultiFab mf
+                           // including 1 ghost cell
+  mf.setVal(0.0);          // Set all values to zero including ghost cells
+
+  MultiFab::Add(mfdst, mfsrc, sc, dc, nc, ng);  // Add mfsrc to mfdst
+  MultiFab::Copy(mfdst, mfsrc, sc, dc, nc, ng); // Copy from mfsrc to mfdst
+  // MultiFab mfdst: destination 
+  // MultiFab mfsrc: source
+  // int      sc   : starting component index in mfsrc for this operation
+  // int      dc   : starting component index in mfdst for this operation
+  // int      sc   : number of components for this operation
+  // int      ng   : number of ghost cells involved in this operation
+\end{lstlisting}
+We refer the reader to {\tt Src/Base/AMReX\_MultiFab.H} and {\tt
+  Src/Base/AMReX\_FabArray.H} for more details.  It should be noted
+again it is a runtime error if the two {\tt MultiFab}s passed to functions
+like {\tt MultiFab::Copy} are not built with the {\emph{same}} {\tt
+  BoxArray} (including index type) and {\tt DistributionMap}. 
+
+It is usually the case that the {\tt Box}es in the {\tt BoxArray} used
+for building a {\tt MultiFab} are non-intersecting except that they
+can be overlapping due to nodal index type.  However, {\tt MultiFab}
+can have ghost cells, and in that case {\tt FArrayBox}es are defined
+on {\tt Box}es larger than the {\tt Box}es in the {\tt BoxArray}.
+Parallel communication is then needed to fill the ghost cells with
+valid cell data from other {\tt FArrayBox}es possibly on other
+parallel processes.  The function for performing this type of
+communication is {\tt FillBoundary}.
+\begin{lstlisting}[language=cpp]
+  MultiFab mf(...parameters omitted...);
+  Geometry geom(...parameters omitted...);
+  mf.FillBoundary();                    // Fill ghost cells for all components
+                                        // Periodic boundaries are not filled.
+  mf.FillBoundary(geom.periodicity());  // Fill ghost cells for all components
+                                        // Periodic boundaries are not filled.
+  mf.FillBoundary(2, 3);        // Fill 3 components starting from component 2
+  mf.FillBoundary(geom.periodicity(), 2, 3);
+\end{lstlisting}
+Note that {\tt FillBoundary} does not modify any valid cells.  Also
+note that {\tt MultiFab} itself does not have the concept of
+periodicity boundary, but {\tt Geometry} has, and we can provide that
+information so that periodic boundaries can be filled as well.  You
+might have noticed that a ghost cell could overlap with multiple valid
+cells from different {\tt FArrayBox}es in the case of nodal index
+type.  In that case, it is unspecified that which valid cell's value
+is used to fill the ghost cell.  It ought to be the case the values in
+those overlapping valid cells are the same.
+
+Another type of parallel communication is copying data from one {\tt
+  MultiFab} to another {\tt MultiFab} with a different {\tt BoxArray}
+or the same {\tt BoxArray} with a different {\tt
+  DistributionMapping}.   The data copy is performed on the regions of
+intersection.  The most generic interface for this is
+\begin{lstlisting}[language=cpp]
+  mfdst.ParallelCopy(mfsrc, sc, dc, nc, sng, snd, period, op);
+\end{lstlisting}
+Here {\tt mfdst} and {\tt mfsrc} are destination and source {\tt
+  MultiFab}s, respectively.  Parameters {\tt sc}, {\tt dc}, and {\tt
+  nc} are integers specifying the range of components.  The copy is
+performed on {\tt nc} components starting from component {\tt sc} of
+{\tt mfsrc} and component {\tt dc} of {\tt mfdst}.  Parameters {\tt
+  sng} and {\tt snd} specify the number of ghost cells involved for
+the source and destination, respectively.  Parameter {\tt period} is
+optional, and by default no periodic copy is performed.  Like {\tt
+  FillBoundary}, one can use {\tt Geometry::periodicity()} to provide
+the periodicity information.  The last parameter is also optional and
+is set to {\tt FabArrayBase::COPY} by default.  One could also use
+{\tt FabArrayBase::ADD}.  This determines whether the function copies
+or adds data from the source to the destination.  Same as {\tt
+  FillBoundary}, if a destination cell has multiple cells as source,
+it is unspecified that which source cell is used.  This function has
+two variants, in which the periodicity and operation type are also
+optional.
+\begin{lstlisting}[language=cpp]
+  mfdst.ParallelCopy(mfsrc, period, op);  // mfdst and mfsrc must have the same
+                                          // number of components
+  mfdst.ParallelCopy(mfsrc, sc, dc, nc, period, op);
+\end{lstlisting}
+Here the number of ghost cells involved is zero if unspecified, and
+the copy is performed on all components (assuming the two {\tt
+  MultiFab}s have the same number of components).  Similar to {\tt
+  FillBoundary}, a destination cell may have multiple sources and
+which source is used is unspecified.  
 
 \section{MFIter and Tiling}
+\label{sec:basics:mfiter}
+
+In this section, we will first show how {\tt MFIter} works without
+tiling.  Then we will introduce the concept of logical tiling.
+Finally we will show how logical tiling can be launched via {\tt
+  MFIter}. 
+
+\subsection{MFIter without Tiling}
+
+In Section~\ref{sec:basics:multifab}, we have shown some of the
+arithmetic functionalities of {\tt MultiFab}, such as adding two {\tt
+  MultiFab}s together.  In this section, we will show how you can
+operate on the {\tt MultiFab} data with your own functions.  \amrex\
+provides an iterator, {\tt MFIter} for looping over the {\tt
+  FArrayBox}es in a {\tt MultiFab}.  For example,
+\begin{lstlisting}[language=cpp]
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi) // Loop over grids
+  {
+      // This is the valid Box of the current FArrayBox.
+      // By "valid", we mean the original ungrown Box in BoxArray.
+      const Box& vbox = mfi.validbox();
+
+      // A reference to the current FArrayBox in this loop iteration.
+      FArrayBox& fab = mf[mfi];
+
+      // Pointer to the floating point data of this FArrayBox.
+      Real* a = fab.dataPtr();
+
+      // This is the Box on which the FArrayBox is defined.
+      // Note that "abox" includes ghost cells (if there are any),
+      // and is thus larger than or equal to "vbox".
+      const Box& abox = fab.box();
+
+      // We can now pass the information to a function that does
+      // work on the region specified by vbox of the data pointed
+      // by Real* a.  The data should be viewed as a multidimensional
+      // with bounds specified by abox.
+      // Function f1 has the signature of
+      // void f1(const int*, const int*, Real*, const int*, const int*);
+      f1(vbox.loVect(), vbox.hiVect(), a, abox.loVect(), abox.hiVect());
+  }
+\end{lstlisting}
+Here function {\tt f1} is usually a Fortran subroutine with ISO C
+binding interface (see Section~\ref{sec:basics:fortran} for more
+details).  In the example above, {\tt MultiFab} is assumed to have a
+single component.  If it has multiple component, we can call {\tt
+int nc = mf.nComp()} to get the number of components and pass it to
+the kernel function.  There is only one {\tt MultiFab} in the example
+above.  Below is an example of working with multiple {\tt MultiFab}s.
+Note that these two {\tt MultiFab}s are not necessarily built on the
+same {\tt BoxArray}.  But they must have the same {\tt
+  DistributionMapping}, and their {\tt BoxArray}s are typically
+related (e.g., they are different due to index types).
+\begin{lstlisting}[language=cpp]
+  // U and F are MultiFabs
+  int ncU = U.nComp();   # number of components
+  int ncF = F.nComp();
+  for (MFIter mfi(F); mfi.isValid(); ++mfi) // Loop over grids
+  {
+      const Box& vbox = mfi.validbox();
+
+      const FArrayBox& ufab = U[mfi];
+      FArrayBox&       ffab = F[mfi];
+
+      Real* up = ufab.dataPtr();
+      Real* fp = ufab.dataPtr();
+
+      const Box& ubox = ufab.box();
+      const Box& fbox = ffab.box();
+
+      // Function f2 has the signature of 
+      // void f2(const int*, const int*,
+      //         const Real*, const int*, const int*, const int*
+      //               Real*, const int*, const int*, const int*);
+      // This will compute f using u as inputs.
+      f2(vbox.loVect(), vbox.hiVect(),
+         up, ubox.loVect(), ubox.hiVect(), &ncU,
+         fp, fbox.loVect(), fbox.hiVect(), &ncF);
+  }
+\end{lstlisting}
+Here again function {\tt f2} is usually a Fortran subroutine with ISO
+C binding interface (see Section~\ref{sec:basics:fortran} for more
+details).
+
+
+\subsection{Logical Tiling}
+
+\subsection{MFIter with Tiling}
+
+% mfs with tiling
+
+% all kinds of tile boxes
 
 \section{Calling Fortan or C}
 \label{sec:basics:fortran}
 
+% pass by reference or value
+% macros and anyd,
+ 
 \section{Physical Boundary}
 
 \section{I/O}
