@@ -220,15 +220,15 @@ contains
 
     ! local variables
     integer i,j
-    integer :: blo(2), bhi(2)
+    integer :: blo(3), bhi(3)
     real(rt) :: dtdx(2)
 
-    call get_loop_bounds(blo, bhi, lo, hi)
+    call get_loop_bounds(blo, bhi, [lo(1), lo(2), 0], [hi(1), hi(2), 0])
 
     dtdx = dt/dx
 
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
+    do    j = blo(2), bhi(2)
+       do i = blo(1), bhi(1)
 
           phinew(i,j) = phiold(i,j) &
                + dtdx(1) * (fluxx(i+1,j  ) - fluxx(i,j)) &
