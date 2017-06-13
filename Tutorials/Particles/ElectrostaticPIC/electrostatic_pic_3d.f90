@@ -77,10 +77,12 @@ contains
        bind(c,name='build_mask')
     integer(c_int),   intent(in   ) :: lo(3), hi(3)
     integer(c_int),   intent(in   ) :: ncells
-    integer(c_int),   intent(in   ) :: tmp_mask(lo(1)-1:hi(1)+1,lo(2)-1:hi(2)+1,lo(3)-1:hi(3)+1)
+    integer(c_int),   intent(in   ) :: tmp_mask(lo(1)-ncells:hi(1)+ncells,lo(2)-ncells:hi(2)+ncells,lo(3)-ncells:hi(3)+ncells)
     integer(c_int),   intent(inout) :: mask (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
 
     integer :: i, j, k, ii, jj, kk, total
+
+    print *, ncells
 
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
@@ -313,6 +315,7 @@ contains
                                         Ex,   Ey,   Ez,         &
                                         lo,   hi,   dx,         &
                                         cEx,  cEy,  cEz,        &
+                                        mask,                   &
                                         clo,  chi,  cdx,        &
                                         plo,  ng,   lev)        &
        bind(c,name='interpolate_cic_two_levels')
@@ -328,6 +331,7 @@ contains
     real(amrex_real)     :: cEx(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
     real(amrex_real)     :: cEy(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
     real(amrex_real)     :: cEz(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
+    integer(c_int)       :: mask (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
     real(amrex_real)     :: plo(3)
     real(amrex_real)     :: dx(3), cdx(3)
 
@@ -341,7 +345,16 @@ contains
 
     do n = 1, np
 
-       if (lev .eq. 1 .and. (particles(1, n) .lt. -1.0d-5 + 4.d0*dx(1) .or. particles(1, n) .gt. 1.0d-5 - 4.d0*dx(1))) then
+       lx = (particles(1, n) - plo(1))*inv_dx(1)
+       ly = (particles(2, n) - plo(2))*inv_dx(2)
+       lz = (particles(3, n) - plo(3))*inv_dx(3)
+       
+       i = floor(lx)
+       j = floor(ly)
+       k = floor(lz)
+
+!       if (lev .eq. 1 .and. (particles(1, n) .lt. -1.0d-5 + 4.d0*dx(1) .or. particles(1, n) .gt. 1.0d-5 - 4.d0*dx(1))) then
+       if (lev .eq. 1 .and. mask(i,j,k) .eq. 1) then
 
           lx = (particles(1, n) - plo(1))*inv_cdx(1)
           ly = (particles(2, n) - plo(2))*inv_cdx(2)
@@ -396,14 +409,6 @@ contains
           
        else
 
-          lx = (particles(1, n) - plo(1))*inv_dx(1)
-          ly = (particles(2, n) - plo(2))*inv_dx(2)
-          lz = (particles(3, n) - plo(3))*inv_dx(3)
-          
-          i = floor(lx)
-          j = floor(ly)
-          k = floor(lz)
-          
           wx_hi = lx - i
           wy_hi = ly - j
           wz_hi = lz - k
