@@ -119,6 +119,48 @@ FieldGather(const VectorMeshData& E) {
     const int num_levels = E.size();
     const int ng = E[0][0]->nGrow();
 
+    if (num_levels == 1) {
+        const int lev = 0;
+        const auto& gm = m_gdb->Geom(lev);
+        const auto& ba = m_gdb->ParticleBoxArray(lev);
+
+        BoxArray nba = ba;
+        nba.surroundingNodes();
+
+        const Real* dx  = gm.CellSize();
+        const Real* plo = gm.ProbLo();
+
+        BL_ASSERT(OnSameGrids(lev, *E[lev][0]));
+
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            const Box& box = nba[pti];
+
+            const auto& particles = pti.GetArrayOfStructs();
+            int nstride = particles.dataShape().first;
+            const long np  = pti.numParticles();
+
+            auto& attribs = pti.GetAttribs();
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+            auto& Ezp = attribs[PIdx::Ez];
+
+            Exp.assign(np,0.0);
+            Eyp.assign(np,0.0);
+            Ezp.assign(np,0.0);
+
+            const FArrayBox& exfab = (*E[lev][0])[pti];
+            const FArrayBox& eyfab = (*E[lev][1])[pti];
+            const FArrayBox& ezfab = (*E[lev][2])[pti];
+
+            interpolate_cic(particles.data(), nstride, np,
+                            Exp.data(), Eyp.data(), Ezp.data(),
+                            exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+                            box.loVect(), box.hiVect(), plo, dx, &ng);
+        }
+
+        return;
+    }
+
     const BoxArray& fine_BA = E[1][0]->boxArray();
     const DistributionMapping& fine_dm = E[1][0]->DistributionMap();
     BoxArray coarsened_fine_BA = fine_BA;
