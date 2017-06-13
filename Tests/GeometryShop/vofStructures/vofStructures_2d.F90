@@ -1,4 +1,4 @@
-#include <Node.H>
+#include <AMReX_EBStruct.H>
 
 module stencil_test_module
 

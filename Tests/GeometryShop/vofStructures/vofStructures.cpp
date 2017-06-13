@@ -15,9 +15,10 @@
 #include "AMReX_iMultiFab.H"
 #include "AMReX_BLProfiler.H"
 #include <AMReX_BLFort.H>
-using namespace amrex;
 
-#include <Node.H>
+#include <AMReX_EBStruct.H>
+
+using namespace amrex;
 
 extern "C"
 {
