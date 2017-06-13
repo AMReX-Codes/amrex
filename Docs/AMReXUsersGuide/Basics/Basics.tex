@@ -825,13 +825,16 @@ number of ghost cells (1 in this example).  That is the {\tt Box} in
 the {\tt FArrayBox} is not exactly the same as in the {\tt BoxArray}.
 If the {\tt BoxArray} has a {\tt Box\{(8,8,8) (15,15,15)\}}, the one
 used for constructing {\tt FArrayBox} will be {\tt Box\{(7,7,7)
-  (16,16,16)\}} in this example.  Note that {\tt FArrayBox} itself
-does not have the concept of ghost cell, whereas ghost cell is a key
-concept of {\tt MultiFab} that allows for local operations on ghost
-cell data originated from remote processes.  We will discuss how to
-fill ghost cells later in this section.  {\tt MultiFab} also has a
-default constructor.  One can define an empty {\tt MultiFab} first and
-then call the {\tt define} function as follows.
+  (16,16,16)\}} in this example.  For cells in {\tt FArrayBox}, we
+call those in the original {\tt Box} valid cells and the grown part
+ghost cells.  Note that {\tt FArrayBox} itself alone does not have the
+concept of ghost cell, whereas ghost cell is a key concept of {\tt
+  MultiFab} that allows for local operations on ghost cell data
+originated from remote processes.  We will discuss how to fill ghost
+cells with data from valid cells later in this section.  {\tt
+  MultiFab} also has a default constructor.  One can define an empty
+{\tt MultiFab} first and then call the {\tt define} function as
+follows.
 \begin{lstlisting}[language=cpp]
   MultiFab mf;
   // ba is BoxArray
@@ -898,21 +901,197 @@ different indices.  For example, the $x$-direction flux for that {\tt
   Box} has the dimension of {\tt (8:16,8:15,16:31,0:2)}.  Note there is
 an extra element in $x$-direction.  
 
+The {\tt MultiFab} provides many functions performing common
+arithmetic operations on a {\tt MultiFab} or between {\tt MultiFab}s
+built with the {\emph{same}} {\tt BoxArray} and {\tt DistributionMap}.
+For example,
+\begin{lstlisting}[language=cpp]
+  Real dmin = mf.min(3);   // Minimum value in component 3 of MultiFab mf
+                           // no ghost cells included
+  Real dmax = mf.max(3,1); // Maximum value in component 3 of MultiFab mf
+                           // including 1 ghost cell
+  mf.setVal(0.0);          // Set all values to zero including ghost cells
 
-% common operations like Copy, Add, etc.
+  MultiFab::Add(mfdst, mfsrc, sc, dc, nc, ng);  // Add mfsrc to mfdst
+  MultiFab::Copy(mfdst, mfsrc, sc, dc, nc, ng); // Copy from mfsrc to mfdst
+  // MultiFab mfdst: destination 
+  // MultiFab mfsrc: source
+  // int      sc   : starting component index in mfsrc for this operation
+  // int      dc   : starting component index in mfdst for this operation
+  // int      sc   : number of components for this operation
+  // int      ng   : number of ghost cells involved in this operation
+\end{lstlisting}
+We refer the reader to {\tt Src/Base/AMReX\_MultiFab.H} and {\tt
+  Src/Base/AMReX\_FabArray.H} for more details.  It should be noted
+again it is a runtime error if the two {\tt MultiFab}s passed to functions
+like {\tt MultiFab::Copy} are not built with the {\emph{same}} {\tt
+  BoxArray} (including index type) and {\tt DistributionMap}. 
 
-%ghost cells We note that while the grids themselves are 
-%non-intersecting boxes, the data in an FArrayBox may be defined
-%on a Box larger than the grid if ghost (or halo) cells are needed.
-%
-% parallel communication
+It is usually the case that the {\tt Box}es in the {\tt BoxArray} used
+for building a {\tt MultiFab} are non-intersecting except that they
+can be overlapping due to nodal index type.  However, {\tt MultiFab}
+can have ghost cells, and in that case {\tt FArrayBox}es are defined
+on {\tt Box}es larger than the {\tt Box}es in the {\tt BoxArray}.
+Parallel communication is then needed to fill the ghost cells with
+valid cell data from other {\tt FArrayBox}es possibly on other
+parallel processes.  The function for performing this type of
+communication is {\tt FillBoundary}.
+\begin{lstlisting}[language=cpp]
+  MultiFab mf(...parameters omitted...);
+  Geometry geom(...parameters omitted...);
+  mf.FillBoundary();                    // Fill ghost cells for all components
+                                        // Periodic boundaries are not filled.
+  mf.FillBoundary(geom.periodicity());  // Fill ghost cells for all components
+                                        // Periodic boundaries are not filled.
+  mf.FillBoundary(2, 3);        // Fill 3 components starting from component 2
+  mf.FillBoundary(geom.periodicity(), 2, 3);
+\end{lstlisting}
+Note that {\tt FillBoundary} does not modify any valid cells.  Also
+note that {\tt MultiFab} itself does not have the concept of
+periodicity boundary, but {\tt Geometry} has, and we can provide that
+information so that periodic boundaries can be filled as well.  You
+might have noticed that a ghost cell could overlap with multiple valid
+cells from different {\tt FArrayBox}es in the case of nodal index
+type.  In that case, it is unspecified that which valid cell's value
+is used to fill the ghost cell.  It ought to be the case the values in
+those overlapping valid cells are the same.
+
+Another type of parallel communication is copying data from one {\tt
+  MultiFab} to another {\tt MultiFab} with a different {\tt BoxArray}
+or the same {\tt BoxArray} with a different {\tt
+  DistributionMapping}.   The data copy is performed on the regions of
+intersection.  The most generic interface for this is
+\begin{lstlisting}[language=cpp]
+  mfdst.ParallelCopy(mfsrc, sc, dc, nc, sng, snd, period, op);
+\end{lstlisting}
+Here {\tt mfdst} and {\tt mfsrc} are destination and source {\tt
+  MultiFab}s, respectively.  Parameters {\tt sc}, {\tt dc}, and {\tt
+  nc} are integers specifying the range of components.  The copy is
+performed on {\tt nc} components starting from component {\tt sc} of
+{\tt mfsrc} and component {\tt dc} of {\tt mfdst}.  Parameters {\tt
+  sng} and {\tt snd} specify the number of ghost cells involved for
+the source and destination, respectively.  Parameter {\tt period} is
+optional, and by default no periodic copy is performed.  Like {\tt
+  FillBoundary}, one can use {\tt Geometry::periodicity()} to provide
+the periodicity information.  The last parameter is also optional and
+is set to {\tt FabArrayBase::COPY} by default.  One could also use
+{\tt FabArrayBase::ADD}.  This determines whether the function copies
+or adds data from the source to the destination.  Same as {\tt
+  FillBoundary}, if a destination cell has multiple cells as source,
+it is unspecified that which source cell is used.  This function has
+two variants, in which the periodicity and operation type are also
+optional.
+\begin{lstlisting}[language=cpp]
+  mfdst.ParallelCopy(mfsrc, period, op);  // mfdst and mfsrc must have the same
+                                          // number of components
+  mfdst.ParallelCopy(mfsrc, sc, dc, nc, period, op);
+\end{lstlisting}
+Here the number of ghost cells involved is zero if unspecified, and
+the copy is performed on all components (assuming the two {\tt
+  MultiFab}s have the same number of components).  Similar to {\tt
+  FillBoundary}, a destination cell may have multiple sources and
+which source is used is unspecified.  
 
 \section{MFIter and Tiling}
 \label{sec:basics:mfiter}
 
+In this section, we will first show how {\tt MFIter} works without
+tiling.  Then we will introduce the concept of logical tiling.
+Finally we will show how logical tiling can be launched via {\tt
+  MFIter}. 
+
+\subsection{MFIter without Tiling}
+
+In Section~\ref{sec:basics:multifab}, we have shown some of the
+arithmetic functionalities of {\tt MultiFab}, such as adding two {\tt
+  MultiFab}s together.  In this section, we will show how you can
+operate on the {\tt MultiFab} data with your own functions.  \amrex\
+provides an iterator, {\tt MFIter} for looping over the {\tt
+  FArrayBox}es in a {\tt MultiFab}.  For example,
+\begin{lstlisting}[language=cpp]
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi) // Loop over grids
+  {
+      // This is the valid Box of the current FArrayBox.
+      // By "valid", we mean the original ungrown Box in BoxArray.
+      const Box& vbox = mfi.validbox();
+
+      // A reference to the current FArrayBox in this loop iteration.
+      FArrayBox& fab = mf[mfi];
+
+      // Pointer to the floating point data of this FArrayBox.
+      Real* a = fab.dataPtr();
+
+      // This is the Box on which the FArrayBox is defined.
+      // Note that "abox" includes ghost cells (if there are any),
+      // and is thus larger than or equal to "vbox".
+      const Box& abox = fab.box();
+
+      // We can now pass the information to a function that does
+      // work on the region specified by vbox of the data pointed
+      // by Real* a.  The data should be viewed as a multidimensional
+      // with bounds specified by abox.
+      // Function f1 has the signature of
+      // void f1(const int*, const int*, Real*, const int*, const int*);
+      f1(vbox.loVect(), vbox.hiVect(), a, abox.loVect(), abox.hiVect());
+  }
+\end{lstlisting}
+Here function {\tt f1} is usually a Fortran subroutine with ISO C
+binding interface (see Section~\ref{sec:basics:fortran} for more
+details).  In the example above, {\tt MultiFab} is assumed to have a
+single component.  If it has multiple component, we can call {\tt
+int nc = mf.nComp()} to get the number of components and pass it to
+the kernel function.  There is only one {\tt MultiFab} in the example
+above.  Below is an example of working with multiple {\tt MultiFab}s.
+Note that these two {\tt MultiFab}s are not necessarily built on the
+same {\tt BoxArray}.  But they must have the same {\tt
+  DistributionMapping}, and their {\tt BoxArray}s are typically
+related (e.g., they are different due to index types).
+\begin{lstlisting}[language=cpp]
+  // U and F are MultiFabs
+  int ncU = U.nComp();   # number of components
+  int ncF = F.nComp();
+  for (MFIter mfi(F); mfi.isValid(); ++mfi) // Loop over grids
+  {
+      const Box& vbox = mfi.validbox();
+
+      const FArrayBox& ufab = U[mfi];
+      FArrayBox&       ffab = F[mfi];
+
+      Real* up = ufab.dataPtr();
+      Real* fp = ufab.dataPtr();
+
+      const Box& ubox = ufab.box();
+      const Box& fbox = ffab.box();
+
+      // Function f2 has the signature of 
+      // void f2(const int*, const int*,
+      //         const Real*, const int*, const int*, const int*
+      //               Real*, const int*, const int*, const int*);
+      // This will compute f using u as inputs.
+      f2(vbox.loVect(), vbox.hiVect(),
+         up, ubox.loVect(), ubox.hiVect(), &ncU,
+         fp, fbox.loVect(), fbox.hiVect(), &ncF);
+  }
+\end{lstlisting}
+Here again function {\tt f2} is usually a Fortran subroutine with ISO
+C binding interface (see Section~\ref{sec:basics:fortran} for more
+details).
+
+
+\subsection{Logical Tiling}
+
+\subsection{MFIter with Tiling}
+
+% mfs with tiling
+
+% all kinds of tile boxes
+
 \section{Calling Fortan or C}
 \label{sec:basics:fortran}
 
+% pass by reference or value
+% macros and anyd,
+ 
 \section{Physical Boundary}
 
 \section{I/O}
