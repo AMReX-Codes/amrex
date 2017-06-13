@@ -29,7 +29,7 @@ bool VisMF::setBuf(true);
 bool VisMF::useSingleRead(false);
 bool VisMF::useSingleWrite(false);
 bool VisMF::checkFilePositions(false);
-bool VisMF::usePersistentIFStreams(true);
+bool VisMF::usePersistentIFStreams(false);
 bool VisMF::useSynchronousReads(false);
 bool VisMF::useDynamicSetSelection(true);
 
@@ -1360,13 +1360,10 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     Real startTime(ParallelDescriptor::second());
     static Real totalTime(0.0);
     int myProc(ParallelDescriptor::MyProc());
-    int nProcs(ParallelDescriptor::NProcs());
-
-    // ---- This limits the number of concurrent readers per file.
-    int nOpensPerFile(nMFFileInStreams), messTotal(0);
+    int messTotal(0);
 
     if(verbose && myProc == coordinatorProc) {
-      std::cout << "VisMF::Read:  about to read:  " << mf_name << std::endl;
+      std::cout << myProc << "::VisMF::Read:  about to read:  " << mf_name << std::endl;
     }
 
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
@@ -1388,8 +1385,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         hEndTime = ParallelDescriptor::second();
     }
 
-    bool noFabHeader(NoFabHeader(hdr));
-
     if (mf.empty()) {
 	DistributionMapping dm(hdr.m_ba);
 	mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow);
@@ -1398,6 +1393,11 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
 #ifdef BL_USE_MPI
+
+  // ---- This limits the number of concurrent readers per file.
+  int nOpensPerFile(nMFFileInStreams);
+  int nProcs(ParallelDescriptor::NProcs());
+  bool noFabHeader(NoFabHeader(hdr));
 
   if(noFabHeader && useSynchronousReads) {
 
@@ -1764,6 +1764,20 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
   }
 
+#else
+    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
+      VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
+    }
+#endif
+
+    if(VisMF::GetUsePersistentIFStreams()) {
+      for(int idx(0); idx < hdr.m_fod.size(); ++idx) {
+        std::string FullName(VisMF::DirName(mf_name));
+        FullName += hdr.m_fod[idx].m_name;
+        VisMF::DeleteStream(FullName);
+      }
+    }
+
     if(myProc == coordinatorProc && verbose) {
       Real mfReadTime = ParallelDescriptor::second() - startTime;
       totalTime += mfReadTime;
@@ -1774,13 +1788,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       std::cout << "FARead ::  mfReadTime = " << mfReadTime
                 << "  totalTime = " << totalTime << std::endl;
     }
-
-#else
-    for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-      VisMF::readFAB(mf,mfi.index(), mf_name, hdr);
-    }
-
-#endif
 
     BL_ASSERT(mf.ok());
 }
@@ -1806,7 +1813,7 @@ VisMF::Check (const std::string& mf_name)
   int v1(true);
 
   if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "---------------- VisMF::Check:  about to check:  " << mf_name << std::endl;
+    std::cout << "---------------- VisMF::Check:  about to check:  " << mf_name << std::endl;
 
     char c;
     int nBadFabs(0);
@@ -1972,6 +1979,17 @@ void VisMF::CloseStream(const std::string &fileName, bool forceClose)
     pifs.isOpen = false;
   }
   pifs.ioBuffer.clear();
+}
+
+
+void VisMF::DeleteStream(const std::string &fileName)
+{
+  if(usePersistentIFStreams) {
+    auto psIter = VisMF::persistentIFStreams.find(fileName);
+    if(psIter != VisMF::persistentIFStreams.end()) {
+      VisMF::persistentIFStreams.erase(psIter);
+    }
+  }
 }
 
 
