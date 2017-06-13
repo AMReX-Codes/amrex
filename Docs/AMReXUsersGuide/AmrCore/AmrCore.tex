@@ -1,4 +1,5 @@
-The {\tt amrex/Src/AmrCore/} directory contains libraries for the following:
+In this Chapter we give an overview of functionality contained in the {\tt amrex/Src/AmrCore} source code.
+This directory contains source code for the following:
 \begin{itemize}
 \item Storing information about the grid layout and processor distribution mapping
 at each level of refinement.
@@ -9,9 +10,100 @@ restriction operators.
 \item Flux registers used to store and manipulate fluxes at coarse-fine interfaces.
 \item Particle support for AMR.
 \end{itemize}
-
 There is another source directory, {\tt amrex/Src/Amr/}, which contains
-classes used to manage the time-stepping for AMR simulations.
+additional classes used to manage the time-stepping for AMR simulations.
+However, it is possible to build a fully adaptive, subcycling-in-time simulation code
+without these additional classes.
+
+In this Chapter, we restrict our use to the {\tt amrex/Src/AmrCore} source code
+and present a tutorial that performs an adaptive, subcycling-in-time simulation
+of the advection equation for a passively advected scalar.
+The accompanying tutorial code is available in {\tt amrex/Tutorials/Amr/Advection\_AmrCore}
+with build/run directory {\tt Exec/SingleVortex}.  In this example, a Gaussian profile is
+initially displaced but returns to its original configuration at the final time.
+The boundary conditions are periodic and we use a refinement ratio of $r=2$ between each AMR level.
+The results of the simulation are depicted in Figure \ref{fig:Adv}.
+\begin{figure}
+  \centering
+  \includegraphics[width=1in]{./AmrCore/figs/Adv1}
+  \includegraphics[width=1in]{./AmrCore/figs/Adv2}
+  \includegraphics[width=1in]{./AmrCore/figs/Adv3}
+  \includegraphics[width=1in]{./AmrCore/figs/Adv4}
+  \includegraphics[width=1in]{./AmrCore/figs/Adv5}
+  \caption{\label{fig:Adv} Time sequence ($t=0,0.5,1,1.5,2$~s) of advection of a Gaussian profile using the 
+{\tt SingleVortex} tutorial.  The red, green, and blue boxes indicate grids at AMR levels $\ell=0,1$, and $2$.}
+\end{figure}
+
+\section{The Advection Equation}
+We seek to solve the advection equation on a multi-level, adaptive grid structure:
+\begin{equation}
+\frac{\partial\phi}{\partial t} = -\nabla\cdot(\phi{\bf U}).
+\end{equation}
+The velocity field is a specified function of space and time.  The initial scalar field is a
+Gaussian profile.  To integrate these equations on a given level, we use a simple conservative update,
+\begin{equation}
+\frac{\phi_{i,j}^{n+1}-\phi_{i,j}^n}{\Delta t} = \frac{(\phi u)_{i+\myhalf,j}^{n+\myhalf}-(\phi u)_{i-\myhalf,j}^{n+\myhalf}}{\Delta x} + \frac{(\phi v)_{i,j+\myhalf}^{n+\myhalf} - (\phi v)_{i,j-\myhalf}^{n+\myhalf}}{\Delta y},
+\end{equation}
+where the velocities on faces are prescribed functions of space and time, and the scalars on faces
+are computed using a Godunov advection integration scheme.  The fluxes in this case are the face-centered,
+time-centered ``$\phi u$'' terms.
+
+We use a subcycling-in-time approach where finer levels are advanced with smaller
+time steps than coarser levels, and then synchronization is later performed between levels.
+More specifically, the multi-level procedure can most
+easily be thought of as a recursive algorithm in which, to advance level $\ell$,
+$0\le\ell\le\ell_{\rm max}$, the following steps are taken:
+\begin{itemize}
+\item Advance level $\ell$ in time by one time step, $\Delta t^{\ell}$, as if it is
+the only level.  If $\ell>0$, obtain boundary data using time-interpolated data from 
+the grids at $\ell-1$ where appropriate.
+\item If $\ell<\ell_{\rm max}$
+\begin{itemize}
+\item Advance level $(\ell+1)$ for $r$ time steps, 
+$\Delta t^{\ell+1} = \frac{1}{r}\Delta t^{\ell}$, using level-$\ell$ data and the 
+physical boundary conditions.
+\item Synchronize the data between levels $\ell$ and $\ell+1$, and interpolate corrections
+to finer levels $[\ell+2,\cdots,\ell_{\rm max}]$.
+\end{itemize}
+\end{itemize}
+Specifically, for a 3-level simulation, depicted graphically in Figure \ref{fig:subcycling}:
+\begin{enumerate}
+\item Integrate $\ell=0$ over $\Delta t$.
+\item Integrate $\ell=1$ over $\Delta t/2$.
+\item Integrate $\ell=2$ over $\Delta t/4$.
+\item Integrate $\ell=2$ over $\Delta t/4$.
+\item Synchronize levels $\ell=1,2$.
+\item Integrate $\ell=1$ over $\Delta t/2$.
+\item Integrate $\ell=2$ over $\Delta t/4$.
+\item Integrate $\ell=2$ over $\Delta t/4$.
+\item Synchronize levels $\ell=1,2$.
+\item Synchronize levels $\ell=0,1$.
+\end{enumerate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=4in]{./AmrCore/figs/subcycling}
+\caption{\label{fig:subcycling} Schematic of subcycling-in-time algorithm.}
+\end{center}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+For the scalar field, we keep track volume and time-weighted fluxes at coarse-fine interfaces.
+
+The idea behind the level $\ell/(\ell+1)$ synchronization step is to correct for sources of mismatch in the composite solution:
+\begin{enumerate}
+\item The data at level $\ell$ that underlie the level  $\ell+1$ data are not synchronized with the level $\ell+1$ data.
+This is simply corrected by overwriting covered coarse cells to be the average of the overlying fine cells.
+\item The fluxes from the level $\ell$ faces and the level $\ell+1$ faces
+do not agree at the $\ell/(\ell+1)$ interface, resulting in a loss of conservation.  
+The remedy is to modify the solution in the coarse cells immediately next to the coarse-fine interface
+to account for the mismatch stored in the flux register (computed by taking the coarse-level divergence of the
+flux register data).
+\end{enumerate}
+
+
+
+
+
 
 \section{{\tt AmrMesh} and {\tt AmrCore}}
 
