@@ -25,7 +25,7 @@ contains
     type(fnode), intent(in) :: fnodesJ(0:fnum(2)-1)
     type(fnode), intent(in) :: fnodesK(0:fnum(3)-1)
 
-    integer :: i, j, k, mC, mL, nC, nL, iL, iC, iLL, iFL
+    integer :: i, j, k, mC, mL, nC, nL, iL, iC, iFL
 
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
@@ -54,13 +54,8 @@ contains
                       endif
                    endif
                    iFL = cnodes(mL)%cells(0)%faceID(0,1,0);
-                   if (iFL .lt. 0) then
-                      call bl_pd_abort('ERROR: iFL face ID is invalid')
-                   else
-                      if (fnodesI(iFL)%nFaces .ne. 1) then
-                         call bl_pd_abort('ERROR: Wrong number of I faces on iFL')
-                      endif
-                      print *,'FACE id,lo,hi',fnodesI(iFL)%faces(0)%ebFaceID,fnodesI(iFL)%faces(0)%cellLo,fnodesI(iFL)%faces(0)%cellHi
+                   if (iFL .ne. REGULAR_FACE) then
+                      call bl_pd_abort('ERROR: Should not be a cut face between regular and cut cells')
                    endif
                 endif
              else if (mC .eq. COVERED_CELL) then    ! C is covered
@@ -80,26 +75,27 @@ contains
                 else if (mask(i-1,j,k) .eq. COVERED_CELL) then
                    iL = COVERED_CELL
                 else
-                   nL = cnodes(mask(i-1,j,k))%nCells
-                   if (nL .ge. 0) then                 ! ... and L is irregular
-                      if (mask(i-1,j,k) .lt. 0) then
-                         call bl_pd_abort('ERROR: C thinks L is irregular, but it isnt')
+                   if (mL .eq. REGULAR_CELL) then          ! ... and L is regular
+                      call bl_pd_abort('should have seen this already')
+                   else if (mL .eq. COVERED_CELL) then     ! ... and L is covered
+                      nL = 0
+                   else                                    ! ... and L is irregular
+                      nL = cnodes(mC)%cells(0)%Nnbr(0,0)
+                      iL = cnodes(mL)%cells(0)%ebCellID
+                      if (nL .ne. 1) then
+                         call bl_pd_abort('ERROR: C thinks L is mv')
                       endif
-                      iLL = cnodes(mask(i,j,k))%cells(0)%nbr(0,0,0)
-                      if (iLL .ne. 0) then
-                         call bl_pd_abort('ERROR: C thinks his neighbor is a mv cell')
+                      if (cnodes(mC)%cells(0)%nbr(0,0,0) .ne. 0) then
+                         call bl_pd_abort('ERROR: C thinks L has index != 0')
                       endif
-                      iL = cnodes(mask(i-1,j,k))%cells(iLL)%ebCellID
-                   else if (nL .eq. REGULAR_CELL) then
-                      iL = REGULAR_CELL
-                   else
-                      if (mask(i-1,j,k) .ne. COVERED_CELL) then
-                         call bl_pd_abort('ERROR: C thinks L is covered but it isnt')
+                      iFL = cnodes(mC)%cells(0)%faceID(0,0,0)
+                      if (iFL .ne. cnodes(mL)%cells(0)%faceID(0,1,0)) then
+                         call bl_pd_abort('ERROR: inconsistent faceID')
                       endif
+                      print *,i,j,'left=',iL,' cent=',iC,'faceID',iFL
                    endif
                 endif
              endif
-             !print *,i,j,k,'left=',iL,' cent=',iC
           enddo
        enddo
     enddo
