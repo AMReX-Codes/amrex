@@ -10,7 +10,12 @@ amrex::BArena::alloc (std::size_t _sz)
 #if (defined(CUDA) && defined(CUDA_UM))
     gpu_malloc_managed(&pt, &_sz);
     const int device = Device::cudaDeviceId();
-    mem_advise_set_preferred(&pt, &_sz, &device);
+    if (device_set_readonly)
+	mem_advise_set_readonly(&pt, &_sz);
+    if (device_set_preferred) {
+	const int device = Device::cudaDeviceId();
+	mem_advise_set_preferred(&pt, &_sz, &device);
+    }
 #else
     pt = operator new(_sz);
 #endif

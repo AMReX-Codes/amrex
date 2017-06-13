@@ -47,6 +47,11 @@ public:
     */
     static std::size_t align (std::size_t sz);
 
+#ifdef CUDA
+    void SetReadOnly() { device_set_readonly = true; }
+    void SetPreferred() { device_set_preferred = true; }
+#endif
+
 protected:
 
 #if 0
@@ -61,6 +66,12 @@ protected:
 #endif
 
     static const unsigned int align_size = 16;
+
+#ifdef CUDA
+    bool device_set_readonly = false;
+    bool device_set_preferred = false;
+#endif
+
 };
 
 }
