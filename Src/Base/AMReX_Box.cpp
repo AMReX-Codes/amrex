@@ -30,6 +30,7 @@ Box_init::Box_init ()
         the_box_arena = new BArena;
 #endif
 
+	the_box_arena->SetReadOnly();
     }
 }
 
