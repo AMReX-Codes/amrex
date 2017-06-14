@@ -5,7 +5,7 @@ module advance_module
 contains
 
   subroutine compute_flux (lo, hi, phi, philo, phihi, &
-       fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, idx) bind(C, name="compute_flux")
+                           flux, flo, fhi, dx, idir, idx) bind(C, name="compute_flux")
 
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
@@ -15,16 +15,16 @@ contains
 
     implicit none
 
-    integer lo(2), hi(2), philo(2), phihi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2), idx
-    real(rt), intent(in   ) :: phi  (philo(1):phihi(1),philo(2):phihi(2))
-    real(rt), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2))
-    real(rt), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
+    integer,  intent(in   ) :: lo(2), hi(2), philo(2), phihi(2), flo(2), fhi(2)
+    real(rt), intent(in   ) :: phi (philo(1):phihi(1),philo(2):phihi(2))
+    real(rt), intent(inout) :: flux(  flo(1):  fhi(1),  flo(2):  fhi(2))
     real(rt), intent(in   ) :: dx(2)
+    integer,  intent(in   ), value :: idx, idir
 
-    integer :: blo(2), bhi(2), idir
+    integer :: blo(2), bhi(2)
 
 #ifdef CUDA
-    attributes(device) :: phi, fluxx, fluxy, dx, philo, phihi, fxlo, fxhi, fylo, fyhi
+    attributes(device) :: phi, flux, dx, philo, phihi, flo, fhi
     attributes(managed) :: lo, hi
 
     integer :: cuda_result
@@ -34,45 +34,29 @@ contains
     integer, device :: blo_d(2), bhi_d(2)
 
     stream = cuda_streams(stream_from_index(idx)+1)
+#endif
 
-    blo = [lo(1),   lo(2)]
-    bhi = [hi(1)+1, hi(2)]
+    blo = [lo(1), lo(2)]
+
+    if (idir .eq. 1) then
+       bhi = [hi(1)+1, hi(2)]
+    else
+       bhi = [hi(1), hi(2)+1]
+    endif
+
+#ifdef CUDA
 
     cuda_result = cudaMemcpyAsync(blo_d, blo, 2, cudaMemcpyHostToDevice, stream)
     cuda_result = cudaMemcpyAsync(bhi_d, bhi, 2, cudaMemcpyHostToDevice, stream)
 
-    idir = 1
-
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
-    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxx, fxlo, fxhi, dx, idir)
-
-    bhi = [hi(1), hi(2)+1]
-
-    cuda_result = cudaMemcpyAsync(bhi_d, bhi, 2, cudaMemcpyHostToDevice, stream)
-
-    idir = 2
-
-    call threads_and_blocks(blo, bhi, numBlocks, numThreads)
-
-    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxy, fylo, fyhi, dx, idir)
+    call compute_flux_doit <<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
+                                                                  flux, flo, fhi, dx, idir)
 
 #else
 
-    blo = [lo(1),   lo(2)]
-    bhi = [hi(1)+1, hi(2)]
-
-    idir = 1
-
-    call compute_flux_doit(blo, bhi, phi, philo, phihi, fluxx, fxlo, fxhi, dx, idir)
-
-    bhi = [hi(1), hi(2)+1]
-
-    idir = 2
-
-    call compute_flux_doit(blo, bhi, phi, philo, phihi, fluxy, fylo, fyhi, dx, idir)
+    call compute_flux_doit(blo, bhi, phi, philo, phihi, flux, flo, fhi, dx, idir)
 
 #endif
 
