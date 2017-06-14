@@ -41,6 +41,10 @@ BF_init::BF_init ()
         the_arena = new BArena;
 #endif
 
+#ifdef CUDA
+        the_arena->SetPreferred();
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel
 	{
