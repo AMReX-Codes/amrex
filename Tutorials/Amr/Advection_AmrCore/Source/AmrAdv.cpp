@@ -54,22 +54,15 @@ AmrAdv::ReadParameters ()
 	ParmParse pp("amr"); // Traditionally, these have prefix, amr.
 
 	pp.query("regrid_int", regrid_int);
-
-	pp.query("check_file", check_file);
-	pp.query("check_int", check_int);
-
 	pp.query("plot_file", plot_file);
 	pp.query("plot_int", plot_int);
-
-	pp.query("restart", restart_chkfile);
     }
 
     {
 	ParmParse pp("adv");
 	
 	pp.query("cfl", cfl);
-	
-	pp.query("do_reflux", do_reflux);
+        pp.query("do_reflux", do_reflux);
     }
 }
 
