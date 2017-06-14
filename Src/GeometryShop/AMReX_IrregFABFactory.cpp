@@ -9,7 +9,7 @@ namespace amrex
   {
     EBGraph& graph       = (*m_graphs)[box_index];
     IntVectSet ivs;
-    if(m_sets)
+    if(m_useSets)
     {
       ivs   = (*m_sets)[box_index];
     }
