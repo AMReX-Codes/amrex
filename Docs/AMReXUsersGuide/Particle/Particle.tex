@@ -1,6 +1,5 @@
 In addition to the tools for working with mesh data described in previous chapters, $\tt{AMReX}$ provides data structures and iterators for performing data-parallel particle simulations. 
-Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example use cases include Particle-in-Cell
-simulations, Lagrangian tracers, or particles that exert a drag force onto a fluid, such as in multi-phase flow calculations. The overall goals of $\tt{AMReX}$'s particle 
+Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example use cases include Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert a drag force onto a fluid, such as in multi-phase flow calculations. The overall goals of $\tt{AMReX}$'s particle 
 tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data automatically.
 In the following sections, we give an overview of $\tt{AMReX}$'s particle classes and how to use them.
 
@@ -297,7 +296,11 @@ For a complete example of an electrostatic PIC calculation that includes multi-l
 \section{Short Range Forces}
 \label{sec:Particles:ShortRange}
 
-Neighbor particles. Optional communication. The ShortRangeParticles tutorial.
+In a PIC calculation, the particles don't interact with each other directly; they only see each other through the mesh. An alternative use case is particles that exert short-range forces on each other. 
+
+Neighbor particles. Optional communication.
+
+For a complete example of a $\tt{ParticleContainer}$ that does neighbor finding, please see amrex/Tutorials/Particles/ShortRangeParticles.
 
 \section{Particle IO}
 \label{sec:Particles:IO}
