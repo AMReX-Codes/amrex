@@ -314,7 +314,7 @@ namespace amrex
                     // interpolate from cmf to fmf
                     if (interp_type == InterpB)
                     {
-                        amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                        amrex_interp_div_free_bfield(BL_TO_FORTRAN_BOX(ccbx),
                                                      D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
                                                             BL_TO_FORTRAN_ANYD(bfab[1]),
                                                             BL_TO_FORTRAN_ANYD(bfab[2])),
@@ -325,7 +325,7 @@ namespace amrex
                     }
                     else if (interp_type == InterpE)
                     {
-                        amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                        amrex_interp_efield(BL_TO_FORTRAN_BOX(ccbx),
                                             D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
                                                    BL_TO_FORTRAN_ANYD(bfab[1]),
                                                    BL_TO_FORTRAN_ANYD(bfab[2])),
