@@ -7,7 +7,7 @@
 using namespace amrex;
 
 void
-AmrAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
+AmrAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
     static bool first = true;
     static Array<Real> phierr;
