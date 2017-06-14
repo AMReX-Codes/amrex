@@ -49,14 +49,14 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
         const Box& bx = mfi.validbox();
 	const int idx = mfi.tileIndex();
 
-        compute_flux(bx.loVect(), bx.hiVect(),
-                     old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
-                     flux[0][mfi].dataPtr(), flux[0][mfi].loVect(), flux[0][mfi].hiVect(),
-                     flux[1][mfi].dataPtr(), flux[1][mfi].loVect(), flux[1][mfi].hiVect(),
-#if (BL_SPACEDIM == 3)   
-                     flux[2][mfi].dataPtr(), flux[2][mfi].loVect(), flux[2][mfi].hiVect(),
-#endif
-                     dx, &idx);
+	for (int idir = 1; idir <= BL_SPACEDIM; ++idir) {
+
+	    compute_flux(bx.loVect(), bx.hiVect(),
+                         old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
+			 flux[idir-1][mfi].dataPtr(), flux[idir-1][mfi].loVect(), flux[idir-1][mfi].hiVect(),
+			 dx, idir, idx);
+
+	}
 
     }
 

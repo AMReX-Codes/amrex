@@ -5,10 +5,7 @@ module advance_module
 contains
 
   subroutine compute_flux (lo, hi, phi, philo, phihi, &
-                           fluxx, fxlo, fxhi, &
-                           fluxy, fylo, fyhi, &
-                           fluxz, fzlo, fzhi, &
-                           dx, idx) bind(C, name="compute_flux")
+                           flux, flo, fhi, dx, idir, idx) bind(C, name="compute_flux")
 
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
@@ -18,20 +15,16 @@ contains
 
     implicit none
 
-    integer lo(3), hi(3), philo(3), phihi(3), idx, & 
-        fxlo(3), fxhi(3), &
-        fylo(3), fyhi(3), &
-        fzlo(3), fzhi(3) 
-    real(rt), intent(in   ) :: phi  (philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
-    real(rt), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2), fxlo(3): fxhi(3))
-    real(rt), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2), fylo(3): fyhi(3))
-    real(rt), intent(inout) :: fluxz( fzlo(1): fzhi(1), fzlo(2): fzhi(2), fzlo(3): fzhi(3))
+    integer,  intent(in   ) :: lo(3), hi(3), philo(3), phihi(3), flo(3), fhi(3)
+    real(rt), intent(in   ) :: phi (philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
+    real(rt), intent(inout) :: flux(  flo(1):  fhi(1),  flo(2):  fhi(2),  flo(3):  fhi(3))
     real(rt), intent(in   ) :: dx(3)
+    integer,  intent(in   ), value :: idx, idir
 
-    integer :: blo(3), bhi(3), idir
+    integer :: blo(3), bhi(3)
 
 #ifdef CUDA
-    attributes(device) :: phi, fluxx, fluxy, fluxz, philo, phihi, fxlo, fxhi, fylo, fyhi, fzlo, fzhi, dx
+    attributes(device) :: phi, flux, philo, phihi, flo, fhi, dx
     attributes(managed) :: lo, hi
 
     integer :: cuda_result
@@ -41,65 +34,31 @@ contains
     integer, device :: blo_d(3), bhi_d(3)
 
     stream = cuda_streams(stream_from_index(idx)+1)
+#endif
 
     blo = [lo(1),   lo(2),  lo(3)]
+
+    if (idir == 1) then
+       bhi = [hi(1)+1, hi(2),  hi(3)]
+    else if (idir == 2) then
+       bhi = [hi(1), hi(2)+1,  hi(3)]
+    else
+       bhi = [hi(1), hi(2),  hi(3)+1]
+    endif
+
+#ifdef CUDA
+
     cuda_result = cudaMemcpyAsync(blo_d, blo, 3, cudaMemcpyHostToDevice, stream)
-
-    ! x-direction
-    idir = 1
-    bhi = [hi(1)+1, hi(2),  hi(3)]
-
     cuda_result = cudaMemcpyAsync(bhi_d, bhi, 3, cudaMemcpyHostToDevice, stream)
 
     call threads_and_blocks(blo, bhi, numBlocks, numThreads)
 
     call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxx, fxlo, fxhi, dx, idir)
-
-    ! y-direction
-    idir = 2
-    bhi = [hi(1), hi(2)+1,  hi(3)]
-
-    cuda_result = cudaMemcpyAsync(bhi_d, bhi, 3, cudaMemcpyHostToDevice, stream)
-
-    call threads_and_blocks(blo, bhi, numBlocks, numThreads)
-
-    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxy, fylo, fyhi, dx, idir)
-
-    ! z-direction
-    idir = 3
-    bhi = [hi(1), hi(2),  hi(3)+1]
-
-    cuda_result = cudaMemcpyAsync(bhi_d, bhi, 3, cudaMemcpyHostToDevice, stream)
-
-    call threads_and_blocks(blo, bhi, numBlocks, numThreads)
-
-    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 fluxz, fzlo, fzhi, dx, idir)
-
+                                                                 flux, flo, fhi, dx, idir)
 
 #else
 
-    blo = [lo(1),   lo(2), lo(3)]
-
-    ! x-direction
-    idir = 1
-    bhi = [hi(1)+1, hi(2), hi(3)]
-
-    call compute_flux_doit(blo, bhi, phi, philo, phihi, fluxx, fxlo, fxhi, dx, idir)
-
-    ! y-direction
-    idir = 2
-    bhi = [hi(1), hi(2)+1, hi(3)]
-
-    call compute_flux_doit(blo, bhi, phi, philo, phihi, fluxy, fylo, fyhi, dx, idir)
-
-    ! z-direction
-    idir = 3
-    bhi = [hi(1), hi(2), hi(3)+1]
-
-    call compute_flux_doit(blo, bhi, phi, philo, phihi, fluxz, fzlo, fzhi, dx, idir)
+    call compute_flux_doit(blo, bhi, phi, philo, phihi, flux, flo, fhi, dx, idir)
 
 #endif
 
