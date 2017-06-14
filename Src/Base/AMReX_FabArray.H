@@ -284,9 +284,13 @@ public:
     * is performed on the region of intersection.  The intersection
     * is restricted to the valid regions.
     */
+    void ParallelCopy (const FabArray<FAB>& fa,
+                       const Periodicity&   period = Periodicity::NonPeriodic(),
+                       CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& fa,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
-               CpOp                 op = FabArrayBase::COPY);
+               CpOp                 op = FabArrayBase::COPY)
+        { ParallelCopy(fa,period,op); }
 
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
@@ -296,14 +300,29 @@ public:
     * in the FabArray src, with the destination components in this
     * FabArray starting at dest_comp.
     */
+    void ParallelCopy (const FabArray<FAB>& src,
+                       int                  src_comp,
+                       int                  dest_comp,
+                       int                  num_comp,
+                       const Periodicity&   period = Periodicity::NonPeriodic(),
+                       CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
-               CpOp                 op = FabArrayBase::COPY);
+               CpOp                 op = FabArrayBase::COPY)
+        { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively 
+    void ParallelCopy (const FabArray<FAB>& src,
+                       int                  src_comp,
+                       int                  dest_comp,
+                       int                  num_comp,
+                       int                  src_nghost,
+                       int                  dst_nghost,
+                       const Periodicity&   period = Periodicity::NonPeriodic(),
+                       CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -311,7 +330,8 @@ public:
 	       int                  src_nghost,
 	       int                  dst_nghost,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
-               CpOp                 op = FabArrayBase::COPY);
+               CpOp                 op = FabArrayBase::COPY)
+        { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,op); }
 
     //
     // In the following copyTo functions, the destination FAB is identical on each process!!
@@ -1243,16 +1263,16 @@ FabArray<FAB>::setDomainBndry (value_type val,
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src,
-                     int                  scomp,
-                     int                  dcomp,
-                     int                  ncomp,
-		     int                  snghost,
-		     int                  dnghost,
-		     const Periodicity&   period,
-                     CpOp                 op)
+FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
+                             int                  scomp,
+                             int                  dcomp,
+                             int                  ncomp,
+                             int                  snghost,
+                             int                  dnghost,
+                             const Periodicity&   period,
+                             CpOp                 op)
 {
-    BL_PROFILE("FabArray::copy()");
+    BL_PROFILE("FabArray::ParallelCopy()");
 
     if (size() == 0 || src.size() == 0) return;
 
@@ -1796,19 +1816,19 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src,
-                     int                  scomp,
-                     int                  dcomp,
-                     int                  ncomp,
-		     const Periodicity&   period,
-                     CpOp                 op)
+FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
+                             int                  scomp,
+                             int                  dcomp,
+                             int                  ncomp,
+                             const Periodicity&   period,
+                             CpOp                 op)
 {
-    copy(src,scomp,dcomp,ncomp,0,0,period,op);
+    ParallelCopy(src,scomp,dcomp,ncomp,0,0,period,op);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src, const Periodicity& period, CpOp op)
+FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src, const Periodicity& period, CpOp op)
 {
     copy(src,0,0,nComp(),0,0,period,op);
 }

@@ -67,7 +67,8 @@ public:
 
     void DepositCharge(ScalarMeshData& rho);
 
-    void FieldGather(const VectorMeshData& E);
+    void FieldGather(const VectorMeshData& E,
+                     const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks);
 
     void Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt);
 
