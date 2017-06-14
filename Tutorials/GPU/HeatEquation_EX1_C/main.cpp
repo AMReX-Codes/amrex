@@ -82,7 +82,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 #if (BL_SPACEDIM == 3)   
                    flux[2][mfi].dataPtr(), flux[2][mfi].loVect(), flux[2][mfi].hiVect(),
 #endif
-                   dx, &dt, &idx);
+                   dx, dt, idx);
     }
 
 #ifdef CUDA
