@@ -21,8 +21,6 @@ contains
     real(rt), intent(in   ) :: dx(3)
     integer,  intent(in   ), value :: idx, idir
 
-    integer :: blo(3), bhi(3)
-
 #ifdef CUDA
     attributes(device) :: phi, flux, philo, phihi, flo, fhi, dx
     attributes(managed) :: lo, hi
@@ -31,36 +29,16 @@ contains
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    integer, device :: blo_d(3), bhi_d(3)
-
     stream = cuda_streams(stream_from_index(idx)+1)
+
+    call threads_and_blocks(lo, hi, numBlocks, numThreads)
 #endif
 
-    blo = [lo(1),   lo(2),  lo(3)]
-
-    if (idir == 1) then
-       bhi = [hi(1)+1, hi(2),  hi(3)]
-    else if (idir == 2) then
-       bhi = [hi(1), hi(2)+1,  hi(3)]
-    else
-       bhi = [hi(1), hi(2),  hi(3)+1]
-    endif
-
+    call compute_flux_doit &
 #ifdef CUDA
-
-    cuda_result = cudaMemcpyAsync(blo_d, blo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(bhi_d, bhi, 3, cudaMemcpyHostToDevice, stream)
-
-    call threads_and_blocks(blo, bhi, numBlocks, numThreads)
-
-    call compute_flux_doit<<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                 flux, flo, fhi, dx, idir)
-
-#else
-
-    call compute_flux_doit(blo, bhi, phi, philo, phihi, flux, flo, fhi, dx, idir)
-
+         <<<numBlocks, numThreads, 0, stream>>> &
 #endif
+         (lo, hi, phi, philo, phihi, flux, flo, fhi, dx, idir)
 
   end subroutine compute_flux
 
