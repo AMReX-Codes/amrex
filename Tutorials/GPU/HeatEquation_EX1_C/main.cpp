@@ -43,6 +43,8 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     // and we do not have to use flux MultiFab.
     // 
 
+    Box sbx[BL_SPACEDIM];
+
     // Compute fluxes one grid at a time
     for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
     {
@@ -51,7 +53,9 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 
 	for (int idir = 1; idir <= BL_SPACEDIM; ++idir) {
 
-	    compute_flux(bx.loVect(), bx.hiVect(),
+	    sbx[idir-1] = surroundingNodes(bx, idir-1);
+
+	    compute_flux(sbx[idir-1].loVect(), sbx[idir-1].hiVect(),
                          old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
 			 flux[idir-1][mfi].dataPtr(), flux[idir-1][mfi].loVect(), flux[idir-1][mfi].hiVect(),
 			 dx, idir, idx);

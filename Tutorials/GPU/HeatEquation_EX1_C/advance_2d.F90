@@ -21,8 +21,6 @@ contains
     real(rt), intent(in   ) :: dx(2)
     integer,  intent(in   ), value :: idx, idir
 
-    integer :: blo(2), bhi(2)
-
 #ifdef CUDA
     attributes(device) :: phi, flux, dx, philo, phihi, flo, fhi
     attributes(managed) :: lo, hi
@@ -31,41 +29,23 @@ contains
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    integer, device :: blo_d(2), bhi_d(2)
-
     stream = cuda_streams(stream_from_index(idx)+1)
+
+    call threads_and_blocks(lo, hi, numBlocks, numThreads)
 #endif
 
-    blo = [lo(1), lo(2)]
-
-    if (idir .eq. 1) then
-       bhi = [hi(1)+1, hi(2)]
-    else
-       bhi = [hi(1), hi(2)+1]
-    endif
-
+    call compute_flux_doit &
 #ifdef CUDA
-
-    cuda_result = cudaMemcpyAsync(blo_d, blo, 2, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(bhi_d, bhi, 2, cudaMemcpyHostToDevice, stream)
-
-    call threads_and_blocks(blo, bhi, numBlocks, numThreads)
-
-    call compute_flux_doit <<<numBlocks, numThreads, 0, stream>>>(blo_d, bhi_d, phi, philo, phihi, &
-                                                                  flux, flo, fhi, dx, idir)
-
-#else
-
-    call compute_flux_doit(blo, bhi, phi, philo, phihi, flux, flo, fhi, dx, idir)
-
+         <<<numBlocks, numThreads, 0, stream>>> &
 #endif
+         (lo, hi, phi, philo, phihi, flux, flo, fhi, dx, idir)
 
   end subroutine compute_flux
 
 
 
   subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-       fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt, idx) bind(C, name="update_phi")
+                         fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt, idx) bind(C, name="update_phi")
 
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
@@ -75,8 +55,8 @@ contains
 
     implicit none
 
-    integer lo(2), hi(2), polo(2), pohi(2), pnlo(2), pnhi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2), idx
-    real(rt), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2))
+    integer,  intent(in   ) :: lo(2), hi(2), polo(2), pohi(2), pnlo(2), pnhi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2), idx
+    real(rt), intent(in   ) :: phiold(polo(1):pohi(1),polo(2):pohi(2))
     real(rt), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
     real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
     real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
