@@ -1520,6 +1520,178 @@ data from the last valid cell).
 
 \section{I/O}
 
+In this section, we will discuss parallel I/O capabilities for mesh
+data in \amrex.  Section~\ref{sec:Particles:IO} will discuss I/O for
+particle data.
+
+\subsection{Plotfile}
+
+\amrex\ has its native plotfile format.  Many visualization tools are
+available for \amrex\ plotifles
+(Chapter~\ref{Chap:Visualization}).  \amrex\ provides the following
+two functions for writing a generic \amrex\ plotfile.  Many \amrex\
+application codes may have their own plotifile routines that store
+additional information such as compiler options, git hashes of the
+source codes and {\tt ParmParse} runtime parameters.
+\begin{lstlisting}[language=cpp]
+  void WriteSingleLevelPlotfile (const std::string &plotfilename,
+                                 const MultiFab &mf,
+                                 const Array<std::string> &varnames,
+                                 const Geometry &geom,
+                                 Real time,
+                                 int level_step);
+
+  void WriteMultiLevelPlotfile (const std::string &plotfilename,
+                                int nlevels,
+                                const Array<const MultiFab*> &mf,
+                                const Array<std::string> &varnames,
+                                const Array<Geometry> &geom,
+                                Real time,
+                                const Array<int> &level_steps,
+                                const Array<IntVect> &ref_ratio);
+\end{lstlisting}
+{\tt WriteSingleLevelPlotfile} is for single level runs and {\tt
+WriteMultiLevelPlotfile} is for multiple levels.  The name of the
+plotfile is specified by the `plotfilename` argument.  This is the
+directory name and for the plotfile.  In \amrex\ convention, the
+plotfile name consist of letters followed by numbers (e.g., {\tt
+plt00258}).  {\tt amrex::Concatenate} is a useful helper function for
+making such strings,
+\begin{lstlisting}[language=cpp]
+  int istep = 258;
+  const std::string& pfname = amrex::Concatenate("plt",istep); // plt00258
+
+  // By default there are 5 digits, but we can change it to say 4.
+  const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258  
+
+  istep =1234567;  // Having more than 5 digits is OK.
+  const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
+\end{lstlisting}
+Argument {\tt mf} ({\tt MultiFab} for single level and {\tt
+Array<const Multifab*} for multi-level) is the data to be written to
+the disk.  Note that many visualization tools expect this to be
+cell-centered data.  So for nodal data, we need to convert them
+cell-centered data through some kind of averaging.  Also note that if
+you have data at each AMR level in several {\tt MulitiFab}s, you need
+to build a new {\tt MultiFab} at each level to hold all the data.
+This involves local data copy in memory and is not expected to
+increase the total wall time for writing data to the disk.  For the
+multi-level version, the function expects {\tt Array<const
+MultiFab*>}, whereas the multi-level data are often stored as {\tt
+Array<std::unique\_ptr<MultiFab>>}.  \amrex\ has a helper function for
+this and one can use it as follows,
+\begin{lstlisting}[language=cpp]
+   WriteMultiLevelPlotfile(......, amrex::GetArrOfConstPtrs(mf), ......);
+\end{lstlisting}
+Argument {\tt varnames} has the names for each component of the {\tt
+MultiFab} data.  The size of the {\tt Array} should be equal to the
+number of components.  Argument {\tt geom} is for passing {\tt
+Geometry} objects that contain the physical domain
+information. Argument {\tt time} is for the time associated with the
+data.  Argument {\tt level\_step} is for the current time step
+associated with the data.  For multi-level plotfiles, argument {\tt
+nlevels} is the total number of levels, and we also need to provide
+the refinement ratio via an {\tt Array} of size {\tt nlevels-1}.
+
+We note that \amrex\ does not overwrite old plotfiles if the new
+plotfile has the same name.  The old plotfiles will be renamed to
+new directories named like {\tt plt00350.old.46576787980}.
+
+\subsection{Checkpoint File}
+
+Checkpoint files are used for restarting simulations from where the
+checkpoints are written.  Each application code has its own set of
+data needed for restart.  \amrex\ provides I/O functions for basic
+data structures like {\tt MultiFab} and {\tt BoxArray}.  These
+functions can be used to build codes for reading and writing
+checkpoint files.  Since each application code has its own
+requirement, there is no standard \amrex\ checkpoint format.
+
+Typically a checkpoint file is a directory containing some text files
+and sub-directories (e.g., {\tt Level\_0} and {\tt Level\_1}).  For
+example, to build directories {\tt chk00016}, {\tt chk00016/Level\_0},
+and {\tt chk00016/Level\_1}, we do
+\begin{lstlisting}[language=cpp]
+  const std::string& chkname {"chk00016"};
+  const std::string& subDirPrefix {"Level_"};
+  const int nSubDirs = 2;
+  const bool callBarrier = true; // Parallel barrier after directories are built.
+  PreBuildDirectorHierarchy(chkname, subDirPrefix, nSubDirs, callBarrier);
+\end{lstlisting}
+
+A checkpoint file of \amrex\ application codes often has a clear text
+{\tt Header} file that only the I/O process writes to it using {\tt
+std::ofstream}.  The {\tt Header} file contains information such as
+the time, the physical domain size, grids, etc. that are necessary for
+restarting the simulation.  To guarantee that precision is not lost
+for storing floating point number like time in clear text file, the
+file stream's precision needs to be set properly.  And a stream buffer
+can also be used.  For example,
+\begin{lstlisting}[language=cpp]
+  if (ParallelDescriptor::IOProcessor())
+  {
+      const std::string& chkname = "chk00016";
+      std::string HeaderFileName(chkname+"/Header");
+      std::ofstream HeaderFile(HeaderFileName.c_str(),
+           std::ofstream::out | std::ofstream::trunc | std::ofstream::binary);
+      HeaderFile.precision(std::numeric_limits<Real>::max_digits10);
+      VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+      HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+      HeaderFile << "Checkpoint version 1.0\n";
+      HeaderFile << time << "\n";
+      HeaderFile << domain_box << "\n";
+      // HeaderFile << ......;
+      box_array.writeOn(HeaderFile); // write BoxArray
+      // HeaderFile << ......;
+  }
+\end{lstlisting}
+For reading the {\tt Header} file, \amrex\ can have the I/O process
+read the file from the disk and broadcast it to others as {\tt
+Array<char>}.  Then all processes can read the information with {\tt
+std::istringstream}.  For example,
+\begin{lstlisting}[language=cpp]
+  std::string HeaderFileName {"chk00016/Header"};
+  Array<char> fileChar;
+  ParallelDescriptor::ReadAndBcastFile(HeaderFileName, fileChar);
+  std::istringstream is(std::string{fileChar.data()}, std::istringstream::in);
+  // is >> ....;
+  BoxArray ba;
+  ba.readFrom(is);
+  // is >> ....;
+\end{lstlisting}
+
+{\tt amrex::VisMF} is a class that can be used to perform parallel
+read and write {\tt MultiFab}s on the disk.  How many processes are
+allowed to perform I/O simultaneously can be set via
+\begin{lstlisting}[language=cpp]
+  VisMF::SetNOutFiles(64);  // up to 64 processes, which is also the default.
+\end{lstlisting}
+The optimal number is of course system dependent.  The following code
+shows how to write and read a {\tt MultiFab}.
+\begin{lstlisting}[language=cpp]
+  const std::string name {"state"};
+
+  VisMF::Write(mf, name);  // Write MultiFab to disk
+
+  // Read the data to a new MultiFab
+  // WARNING: mf2 may have a completely different DistributionMapping!
+  MultiFab mf2;
+  VisMF::Read(mf2, name);
+
+  // Read the data to a new MultiFab with identical
+  // BoxArray, DistributionMapping, and number of components and ghost cells.
+  MultiFab mf3(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
+  VisMF::Read(mf3, name);
+\end{lstlisting}
+It should be emphasized that calling {\tt VisMF::Read} with an empty
+{\tt MultiFab} (i.e., no memory allocated for floating point data)
+will result in a {\tt MuitiFab} with a new {\tt DistributionMapping}
+that could be different from any other existing {\tt
+DistributionMapping} objects.  It should also be noted that all the
+data including those in ghost cells are written/read by {\tt
+VisMF::Write/Read}. 
+
 \section{Memory Allocation}
 
 % resize
