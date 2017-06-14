@@ -162,22 +162,24 @@ to change the value of {\tt ncells} and {\tt hydro.cfl}.
 
 In block-structured AMR, there is a hierarchy of logically rectangular
 grids.  The computational domain on each AMR level is decomposed into
-a union of rectangular domains.  Figure~\ref{fig:basics:amrgrids} shows
-an example of AMR grids.  There are three total levels in the example.
-The coarsest grid ({\emph{black}) covers the domain with $16^2$
+a union of rectangular domains.  Figure~\ref{fig:basics:amrgrids}
+shows an example of AMR grids.  There are three total levels in the
+example.  In \amrex\ numbering convention, the coarsest level is level
+0.  The coarsest grid ({\emph{black}) covers the domain with $16^2$
 cells. Bold lines represent grid boundaries.  There are two
 intermediate resolution grids ({\emph{blue}}) are at level 1 and the
-cells are a factor of two finer than those at level 0.  The two
-finest grids ({\emph{red}}) are at level 2 and the cells are a
-factor of two finer than the level 1 cells.  Note that there is no
-direct parent-child connection.  In this chapter, we will focus on
-single levels.
+cells are a factor of two finer than those at level 0.  The two finest
+grids ({\emph{red}}) are at level 2 and the cells are a factor of two
+finer than the level 1 cells.  Note that there is no direct
+parent-child connection.  In this chapter, we will focus on single
+levels.
 
 \begin{figure}
   \centering
   \includegraphics[width=3in]{./Basics/amrgrids.pdf}
   \caption{\label{fig:basics:amrgrids} Example of AMR grids.  There are
-    three levels in total.}
+    three levels in total.  There are 1, 2 and 2 {\tt Box}es on levels
+  0, 1, and 2, respectively.}
 \end{figure}
 
 \section{Box, IntVect and IndexType}
@@ -942,7 +944,7 @@ communication is {\tt FillBoundary}.
   mf.FillBoundary();                    // Fill ghost cells for all components
                                         // Periodic boundaries are not filled.
   mf.FillBoundary(geom.periodicity());  // Fill ghost cells for all components
-                                        // Periodic boundaries are not filled.
+                                        // Periodic boundaries are filled.
   mf.FillBoundary(2, 3);        // Fill 3 components starting from component 2
   mf.FillBoundary(geom.periodicity(), 2, 3);
 \end{lstlisting}
@@ -1133,21 +1135,31 @@ done by transforming the loops into tiling loops that iterate over
 tiles and element loops that iterate over the data elements within a
 tile.  For example, the original loops might look like
 \begin{lstlisting}[language=fortran]
-  do j = jmin, jmax
-    do i = imin, imax
-      A(i,j) = B(i+1,j) + B(i-1,j) + B(i,j+1) + B(i,j-1) - 4.0d0 * B(i,j)
+  do k = kmin, kmax
+    do j = jmin, jmax
+      do i = imin, imax
+        A(i,j,k) = B(i+1,j,k)+B(i-1,j,k)+B(i,j+1,k)+B(i,j-1,k) &
+                   B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)
+      end do
     end do
   end do
 \end{lstlisting}
 And the manually tiled loops might look like
 \begin{lstlisting}[language=fortran]
   jblocksize = 11
+  kblocksize = 16
   jblocks = (jmax-jmin+jblocksize-1)/jblocksize
-  do jb = 0, jblocks-1
-    do j = jb*jblocksize, min((jb+1)*jblocksize-1,jmax)
-      do i = imin, imax
-        A(i,j) = B(i+1,j) + B(i-1,j) + B(i,j+1) + B(i,j-1) - 4.0d0 * B(i,j)
-      end
+  kblocks = (kmax-kmin+kblocksize-1)/kblocksize
+  do kb = 0, kblocks-1
+    do jb = 0, jblocks-1
+      do k = kb*kblocksize, min((kb+1)*kblocksize-1,kmax)
+        do j = jb*jblocksize, min((jb+1)*jblocksize-1,jmax)
+          do i = imin, imax
+            A(i,j,k) = B(i+1,j,k)+B(i-1,j,k)+B(i,j+1,k)+B(i,j-1,k) &
+                       B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)          
+          end do
+        end do
+      end do
     end do
   end do
 \end{lstlisting}
@@ -1449,7 +1461,62 @@ subroutine f(u, ulo, uhi,nu) bind(c)
 end subroutine f
 \end{lstlisting}
 
-\section{Physical Boundary}
+\section{Boundary}
+
+\amrex\ uses {\tt MultiFab} as the data container for floating point
+data on multiple {\tt Box}es on a single AMR level.  Each rectangular
+Box has its own boundaries.  A {\tt MultiFab} can have ghost cells for
+storing data outside its grid {\tt Box} boundaries.  This allows us to
+perform stencil type of operations on regular arrays.  There are three
+basic types of boundaries: (1) interior boundary; (2) coarse/fine
+boundary; and (3) physical boundary.  Periodic boundary is not
+considered a basic type in the discussion here because after periodic
+transformation it becomes either interior boundary or coarse/fine
+boundary. 
+
+Interior boundary is the border among the grid {\tt Box}es themselves.
+For example, in Figure~\ref{fig:basics:amrgrids}, the two blue grid
+{\tt Box}es on level 1 share an interior boundary that is 6 cells
+long.  For a {\tt MultiFab} with ghost cells on level 1, we can use
+the {\tt MultiFab::FillBoundary} function introduced in
+Section~\ref{sec:basics:multifab} to fill ghost cells at the interior
+boundary with valid cell data from other {\tt Box}es.
+
+Coarse/fine boundary is the border between two AMR levels.  {\tt
+FillBoundary} does not fill these ghost cells.  These ghost cells on
+the fine level need to be interpolated from the coarse level data.
+This is a subject that will be discussed in
+Section~\ref{sec:amrcore:fillpatch}. 
+
+The third type of boundary is the physical boundary at the physical
+domain.  Note that both coarse and fine AMR levels could have grids
+touching the physical boundary.  It is up to the application codes to
+properly fill the ghost cells at the physical boundary.
+However, \amrex\ does provide support for some common operations.
+Here is an example of filling ghost cells at the physical boundary
+with first-order extrapolation (i.e., filling the ghost cells with the
+data from the last valid cell).
+\begin{lstlisting}[language=cpp]
+  // mf : MultiFab
+  // geom : Geometry
+  const Box& domain_box = geom.Domain(); // Box for the whole domain
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+  {
+      FArrayBox& fab = mf[mfi];
+      const Box& fab_box = fab.box(); // including ghost cells
+      if (!domain_box.contains(fab_box))
+      {
+          // This FArrayBox touches the domain boundary.
+          my_physbc_f();
+      }
+  }
+\end{lstlisting}
+\begin{lstlisting}[language=fortran]
+  subroutine my_physbc_f(u) bind(c)
+    use amrex_fillcc_module, only : amrex_filcc
+    call amrex_filcc(u,ulo,uhi...)
+  end subroutine my_physbc_f
+\end{lstlisting}
 
 \section{I/O}
 
@@ -1457,5 +1524,6 @@ end subroutine f
 
 % resize
 
-\section{Abort, Assertion, Floating-Point Exceptions, and Backtrace}
-% FArrayBox init nan check nan .... contains_nan
+\section{Abort, Assertion}
+
+
