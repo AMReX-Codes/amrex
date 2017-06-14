@@ -37,7 +37,7 @@ public:
 					  const amrex::DistributionMapping& dm) override;
 
     // in AmrAdvError.cpp
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override;
+    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
 
     // in AmrAdvEvolve.cpp
     void Evolve ();
@@ -54,7 +54,8 @@ private:
     long CountCells (int lev);
     void FillPatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
     void FillCoarsePatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
-    void GetData (int lev, amrex::Real time, amrex::Array<amrex::MultiFab*>& data, amrex::Array<amrex::Real>& datatime);
+    void GetData (int lev, amrex::Real time, amrex::Array<amrex::MultiFab*>& data,
+                  amrex::Array<amrex::Real>& datatime);
 
     // in AmrAdvEvolve.cpp
     void timeStep (int lev, amrex::Real time, int iteration);
