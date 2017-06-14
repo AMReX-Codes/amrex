@@ -1797,18 +1797,36 @@ namespace amrex
     std::size_t linearSize = sizeof(int);
     //domain
     linearSize +=  Box::linearSize();
+//    bool blab = (a_region == f_debbox);
+//    if(blab)
+//    {
+//      pout() << "nbytes after domain retval = " << linearSize << endl;
+//    }
     if (!isRegular(a_region) && !isCovered(a_region))
     {
+//      if(blab)
+//      {
+//        pout() << "nbytes inside irregular bit "  << endl;
+//      }
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
       {
         const GraphNode& node = m_graph(bit(), 0);
+//        if(blab && (bit()==IntVect(D_DECL(16,12,0))))
+//        {
+//          node.m_verbose = true;
+//        }
         int nodeSize = node.linearSize();
+//        if(blab)
+//        {
+//          node.m_verbose = false;
+//          pout() << "nbytes node for iv  "<< bit() << " size = " << nodeSize  << endl;
+//        }
         linearSize += nodeSize;
       }
     }
     if(a_region == f_debbox)
     {
-//      pout() << "nbytes proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
+      pout() << "nbytes proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
     }
     return linearSize;
   }
@@ -1822,7 +1840,7 @@ namespace amrex
              void*      a_buf) const
   {
     assert(isDefined());
-    bool blab = (a_region == f_debbox);
+//    bool blab = (a_region == f_debbox);
 
     TAG boxtag;
     if (isRegular(a_region))
@@ -1843,10 +1861,11 @@ namespace amrex
     retval += sizeof(int);
     *intbuf = boxtag;
     intbuf++;
-    if(blab)
-    {
+//    if(blab)
+//    {
 //      pout() << "copytomem retval after tag = " << retval << endl;
-    }
+//      pout() << "copytomem boxtag = " <<  boxtag << endl;
+//    }
         
     unsigned char* buffer = (unsigned char*) intbuf;
 
@@ -1855,10 +1874,10 @@ namespace amrex
     buffer    += incrval;
     retval += incrval;
 
-    if(blab)
-    {
-//      pout()  << "copytomem after domain retval = " << 
-    }
+//    if(blab)
+//    {
+//      pout()  << "copytomem after domain retval = " <<  retval << endl;
+//    }
     if (boxtag == HasIrregular)
     {
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
@@ -1870,10 +1889,10 @@ namespace amrex
         retval += nodeSize;
       }
     }
-    if(blab)
-    {
+//    if(blab)
+//    {
 //      pout() << "copytomem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
-    }
+//    }
     return retval;
   }
         
@@ -1887,11 +1906,18 @@ namespace amrex
   {
     assert(isDefined());
 
+//    bool blab = (a_region == f_debbox);
+
+
     std::size_t retval = 0;
     TAG* intbuf = (TAG*) a_buf;
     TAG boxtag = *intbuf;
     retval += sizeof(int);
     intbuf++;
+//    if(blab)
+//    {
+//      pout() << "copyfrommem retval after tag = " << retval << endl;
+//    }
 
     unsigned char* buffer = (unsigned char*) intbuf;
 
@@ -1901,6 +1927,11 @@ namespace amrex
     buffer    += incrval;
     retval += incrval;
 
+//    if(blab)
+//    {
+//      pout()  << "copyfrommem after domain retval = " <<  retval << endl;
+//      pout()  << "copyfrommem boxtag = " <<  boxtag << endl;
+//    }
     if (boxtag == AllCovered)
     {
       //all covered input
@@ -1931,18 +1962,28 @@ namespace amrex
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
       {
         GraphNode& node = m_graph(bit(), 0);
+//        if(blab && (bit()==IntVect(D_DECL(16,12,0))))
+//        {
+//          node.m_verbose = true;
+//        }
         node.linearIn(buffer);
         if (node.isIrregular()>0) (*m_irregIVS)|=bit();
         if (node.size()>1) (*m_multiIVS)|=bit();
         int nodeSize = node.linearSize();
         buffer += nodeSize;
         retval += nodeSize;
+
+//        if(blab)
+//        {
+//          node.m_verbose = false;
+//          pout() << "copyfrommem node for iv  "<< bit() << " size = " << nodeSize  << endl;
+//        }
       }
     }
-    if(a_region == f_debbox)
-    {
+//    if(blab)
+//    {
 //      pout() << "copyfrommem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
-    }
+//    }
     return retval;
   }
 }
