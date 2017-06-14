@@ -1826,7 +1826,7 @@ namespace amrex
     }
     if(a_region == f_debbox)
     {
-      pout() << "nbytes proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
+//      pout() << "nbytes proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
     }
     return linearSize;
   }
