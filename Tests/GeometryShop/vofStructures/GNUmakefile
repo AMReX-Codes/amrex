@@ -4,7 +4,6 @@
 DIM          = 3
 DIM          = 2
 
-
 COMP         = g++
 
 DEBUG        = FALSE
@@ -12,6 +11,9 @@ DEBUG        = TRUE
 
 USE_MPI      = TRUE
 USE_MPI      = FALSE
+
+USE_OMP      = TRUE
+USE_OMP      = FALSE
 
 PROFILE       = FALSE
 COMM_PROFILE  = FALSE
@@ -26,21 +28,15 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-#_progs += tVisMF tDir t8BIT tFB tFAC tCArena
-#_progs += tRan
-#_progs  := tread
-#_progs  := tParmParse
-#_progs  := tCArena
-#_progs  := tBA
-#_progs  := tDM
-#_progs  := tFillFab
-#_progs  := tMF
-#_progs  := tFB
-#_progs  := tMFcopy
-#_progs  := AMRProfTestBL
-#_progs  := tFB
-#_progs  := tRABcast.cpp
-_progs  := flatPlateTest
+_progs  := vofStructures
+
+ifeq ($(_progs), vofStructures)
+  DEFINES+=-DNCELLMAX=4
+  DEFINES+=-DNFACEMAX=5
+  F90EXE_sources += vofStructures_$(DIM)d.F90
+  F90EXE_sources += AMReX_ebstruct_mod.F90
+  CEXE_headers += Node.H
+endif
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
