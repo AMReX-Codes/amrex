@@ -29,6 +29,13 @@ C$(AMREX_BASE)_headers += AMReX_BLFort.H
 C$(AMREX_BASE)_sources += AMReX_NFiles.cpp
 C$(AMREX_BASE)_headers += AMReX_NFiles.H
 
+
+C$(AMREX_BASE)_headers += AMReX_SPMD.H AMReX_SPMDI.H 
+C$(AMREX_BASE)_sources += AMReX_SPMD.cpp
+
+C$(AMREX_BASE)_headers += AMReX_parstream.H
+C$(AMREX_BASE)_sources += AMReX_parstream.cpp
+
 #
 # FAB I/O stuff.
 #
