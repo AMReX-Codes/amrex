@@ -58,18 +58,16 @@ contains
 
     implicit none
 
-    integer lo(3), hi(3), polo(3), pohi(3), pnlo(3), pnhi(3), &
-        fxlo(3), fxhi(3), &
-        fylo(3), fyhi(3), &
-        fzlo(3), fzhi(3), &
-        idx
-    real(rt), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
+    integer,  intent(in   ) :: lo(3), hi(3), polo(3), pohi(3), pnlo(3), pnhi(3), &
+                               fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3)
+    real(rt), intent(in   ) :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
     real(rt), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2),pnlo(3):pnhi(3))
     real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
     real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
     real(rt), intent(in   ) :: fluxz (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
     real(rt), intent(in   ) :: dx(3)
-    real(rt), intent(in   ) :: dt
+    integer,  intent(in   ), value :: idx
+    real(rt), intent(in   ), value :: dt
 
 #ifdef CUDA
     attributes(device) :: phiold, phinew, fluxx, fluxy, fluxz, polo, pohi, pnlo, pnhi, &
@@ -80,28 +78,21 @@ contains
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    real(rt), device :: dx_d(3), dt_d
-
     stream = cuda_streams(stream_from_index(idx)+1)
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
-
-    call update_phi_doit<<<numBlocks, numThreads, 0, stream>>>(lo, hi, phiold, polo, pohi, &
-                                                               phinew, pnlo, pnhi, &
-                                                               fluxx, fxlo, fxhi, &
-                                                               fluxy, fylo, fyhi, &
-                                                               fluxz, fzlo, fzhi, &
-                                                               dx, dt)
-
-#else
-
-    call update_phi_doit(lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-                         fluxx, fxlo, fxhi, &
-                         fluxy, fylo, fyhi, &
-                         fluxz, fzlo, fzhi, &
-                         dx, dt)
-
 #endif
+
+    call update_phi_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, stream>>> &
+#endif
+         (lo, hi, phiold, polo, pohi, &
+          phinew, pnlo, pnhi, &
+          fluxx, fxlo, fxhi, &
+          fluxy, fylo, fyhi, &
+          fluxz, fzlo, fzhi, &
+          dx, dt)
 
   end subroutine update_phi
 
@@ -160,11 +151,9 @@ contains
 
     implicit none
 
-    integer lo(3), hi(3), polo(3), pohi(3), pnlo(3), pnhi(3), &
-        fxlo(3), fxhi(3), &
-        fylo(3), fyhi(3), &
-        fzlo(3), fzhi(3)
-    real(rt), intent(in)    :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
+    integer,  intent(in   ) :: lo(3), hi(3), polo(3), pohi(3), pnlo(3), pnhi(3), &
+                               fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3)
+    real(rt), intent(in   ) :: phiold(polo(1):pohi(1),polo(2):pohi(2),polo(3):pohi(3))
     real(rt), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2),pnlo(3):pnhi(3))
     real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
     real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
