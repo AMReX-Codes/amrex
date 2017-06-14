@@ -302,7 +302,19 @@ Neighbor particles. Optional communication. The ShortRangeParticles tutorial.
 \section{Particle IO}
 \label{sec:Particles:IO}
 
-IO Routines (ASCII and binary), visualization options. Converter python script.
+AMReX provides routines for writing particle data to disk for analysis, visualization, and for checkpoint / restart. The most important methods are the $\tt{WritePlotFile}$, $\tt{Checkpoint}$, and $\tt{Restart}$ methods of $\tt{ParticleContainer}$, which all use a parallel-aware binary file format for reading and writing particle data on a grid-by-grid basis. These methods are designed to complement the functions in $\tt{AMReX_PlotFileUtil.H}$ for performing mesh data IO. For example:
+
+\begin{lstlisting}[language=cpp]
+
+    WriteMultiLevelPlotfile(``plt00000'', output_levs, GetArrOfConstPtrs(output),
+                            varnames, geom, 0.0, level_steps, outputRR);
+    pc.Checkpoint(``plt00000'', ``particle0'');
+
+\end{lstlisting}
+
+will create a plot file called ``plt00000'' and write the mesh data in $\tt{output}$ to it, and then write the particle data in a subdirectory called ``particle0''. There is also the $\tt{WriteAsciiFile}$ method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
+
+The binary file format is currently readable by $\tt{yt}$. In additional, there is a Python conversion script in amrex/Tools/Py\_util/amrex\_particles\_to\_vtp that can convert both the ASCII and the binary particle files to a format readable by Paraview. 
 
 \section{Load Balancing with Particles}
 \label{sec:Particles:Balancing}

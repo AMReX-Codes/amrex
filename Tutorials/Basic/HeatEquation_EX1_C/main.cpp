@@ -48,7 +48,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
 
-        compute_flux(bx.loVect(), bx.hiVect(),
+        compute_flux(BL_TO_FORTRAN_BOX(bx),
                      BL_TO_FORTRAN_ANYD(old_phi[mfi]),
                      BL_TO_FORTRAN_ANYD(flux[0][mfi]),
                      BL_TO_FORTRAN_ANYD(flux[1][mfi]),
@@ -63,7 +63,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
         
-        update_phi(bx.loVect(), bx.hiVect(),
+        update_phi(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_ANYD(old_phi[mfi]),
                    BL_TO_FORTRAN_ANYD(new_phi[mfi]),
                    BL_TO_FORTRAN_ANYD(flux[0][mfi]),
@@ -157,7 +157,7 @@ void main_main ()
     {
         const Box& bx = mfi.validbox();
 
-        init_phi(bx.loVect(), bx.hiVect(),
+        init_phi(BL_TO_FORTRAN_BOX(bx),
                  BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
     }
