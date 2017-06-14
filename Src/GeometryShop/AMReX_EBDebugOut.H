@@ -1,4 +1,3 @@
-
 /*
  *       {_       {__       {__{_______              {__      {__
  *      {_ __     {_ {__   {___{__    {__             {__   {__  
@@ -71,6 +70,11 @@ namespace amrex
   ///
   void dumpEBFace(const EBFaceFAB* a_fab);
 
+  /// 
+  void dumpVVoFs(const vector<VolIndex>* vvofs);
+
+  /// 
+  void dumpVFaces(const vector<FaceIndex>* vvofs);
 
 }
 #endif
