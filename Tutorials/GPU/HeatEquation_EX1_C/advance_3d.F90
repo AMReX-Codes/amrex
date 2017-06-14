@@ -96,9 +96,9 @@ contains
 
   end subroutine update_phi
 
-#ifdef CUDA
-  attributes(global) &
-#endif
+
+
+  DEVICE_LAUNCH_PROCEDURE
   subroutine compute_flux_doit (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir)
 
     use amrex_fort_module, only: rt => amrex_real, get_loop_bounds
@@ -138,9 +138,7 @@ contains
 
 
 
-#ifdef CUDA
-  attributes(global) &
-#endif
+  DEVICE_LAUNCH_PROCEDURE
   subroutine update_phi_doit (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
                               fluxx, fxlo, fxhi, &
                               fluxy, fylo, fyhi, &

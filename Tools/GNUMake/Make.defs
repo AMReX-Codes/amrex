@@ -295,7 +295,11 @@ ifeq ($(USE_CUDA),TRUE)
     LIBRARY_LOCATIONS += $(CUDA_PATH)/lib64 
     INCLUDE_LOCATIONS += $(CUDA_PATH)/include
     CUDASuffix := .CUDA
+    DEFINES += -DDEVICE_LAUNCH_PROCEDURE='attributes(global) &'
+    DEFINES += -DDEVICE_PROCEDURE='attributes(device) &'
 else
+    DEFINES += -DDEVICE_LAUNCH_PROCEDURE=""
+    DEFINES += -DDEVICE_PROCEDURE=""
     CUDASuffix :=
 endif
 
