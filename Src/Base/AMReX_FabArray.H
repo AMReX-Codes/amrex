@@ -3439,7 +3439,6 @@ FabArray<FAB>::FillBoundary_finish ()
                     const Box& bx  = tag.dbox;
                     std::size_t n = (*this)[tag.dstIndex].copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
                     dptr += n;
-                    Box debbox(IntVect(D_DECL(16,8,0)), IntVect(D_DECL(16,15,0)));
                 }
 
                 BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
