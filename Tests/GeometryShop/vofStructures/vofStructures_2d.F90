@@ -36,24 +36,24 @@ contains
                 nL = 0
                 iL = REGULAR_CELL
              else if (mL .eq. COVERED_CELL) then ! ... and L is covered
-                call bl_pd_abort('ERROR: cannot have covered next to regular cell')
+                stop 'ERROR: cannot have covered next to regular cell'
              else                                ! ... and L is irregular
                 nC = 0
                 nL = cnodes(mL)%nCells
                 if (nL .ne. 1) then
-                   call bl_pd_abort('ERROR: Should not be any mv cut cells here')
+                   stop 'ERROR: Should not be any mv cut cells here'
                 endif
                 iL = cnodes(mL)%cells(0)%ebCellID
                 if (cnodes(mL)%cells(0)%Nnbr(0,1) .ne. 1) then
-                   call bl_pd_abort('ERROR: Irreg L does not see reg C neighbor')
+                   stop 'ERROR: Irreg L does not see reg C neighbor'
                 else
                    if (cnodes(mL)%cells(0)%nbr(0,1,0) .ne. REGULAR_CELL) then
-                      call bl_pd_abort('ERROR: Irreg L does not see reg C neighbor as regular cell')
+                      stop 'ERROR: Irreg L does not see reg C neighbor as regular cell'
                    endif
                 endif
                 iFL = cnodes(mL)%cells(0)%faceID(0,1,0);
                 if (iFL .ne. REGULAR_FACE) then
-                   call bl_pd_abort('ERROR: Should not be a cut face between regular and cut cells')
+                   stop 'ERROR: Should not be a cut face between regular and cut cells'
                 endif
              endif
           else if (mC .eq. COVERED_CELL) then    ! C is covered
@@ -61,11 +61,11 @@ contains
              iL = mask(i-1,j)
           else                                   ! C is irregular
              if (mC .lt. 0  .or.  mC .ge. cnum) then
-                call bl_pd_abort('ERROR: cut cell index OOB')
+                stop 'ERROR: cut cell index OOB'
              endif
              nC = cnodes(mC)%nCells
              if (nC .gt. 1) then
-                call bl_pd_abort('ERROR: Should not be any mv cut cells here')
+                stop 'ERROR: Should not be any mv cut cells here'
              endif
              iC = cnodes(mC)%cells(0)%ebCellID
              if (mask(i-1,j) .eq. REGULAR_CELL) then
@@ -74,27 +74,27 @@ contains
                 iL = COVERED_CELL
              else
                 if (mL .eq. REGULAR_CELL) then          ! ... and L is regular
-                   call bl_pd_abort('should have seen this already')
+                   stop 'should have seen this already'
                 else if (mL .eq. COVERED_CELL) then     ! ... and L is covered
                    nL = cnodes(mC)%cells(0)%Nnbr(0,0)
                    if (nL .ne. 0) then
-                      call bl_pd_abort('ERROR: C thinks a face connect it to a covered cell')
+                      stop 'ERROR: C thinks a face connect it to a covered cell'
                    endif
                 else                                    ! ... and L is irregular
                    nL = cnodes(mC)%cells(0)%Nnbr(0,0)
                    iL = cnodes(mL)%cells(0)%ebCellID
                    if (nL .ne. 1) then
-                      call bl_pd_abort('ERROR: C thinks it has mutliple L neighbors')
+                      stop 'ERROR: C thinks it has mutliple L neighbors'
                    endif
                    if (cnodes(mC)%cells(0)%nbr(0,0,0) .ne. 0) then
-                      call bl_pd_abort('ERROR: C thinks L has index != 0')
+                      stop 'ERROR: C thinks L has index != 0'
                    endif
                    iFL = cnodes(mC)%cells(0)%faceID(0,0,0)
                    if (iFL .lt. 0) then
-                      call bl_pd_abort('ERROR: C thinks face between cut cells is not cut')
+                      stop 'ERROR: C thinks face between cut cells is not cut'
                    endif
                    if (iFL .ne. cnodes(mL)%cells(0)%faceID(0,1,0)) then
-                      call bl_pd_abort('ERROR: inconsistent faceID')
+                      stop 'ERROR: inconsistent faceID'
                    endif
                    print *,i,j,'left=',iL,' cent=',iC,'faceID',iFL
                 endif

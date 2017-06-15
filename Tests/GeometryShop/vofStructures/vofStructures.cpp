@@ -16,6 +16,7 @@
 #include "AMReX_BLProfiler.H"
 #include <AMReX_BLFort.H>
 
+#include <AMReX_MeshRefine.H>
 #include <AMReX_EBStruct.H>
 
 using namespace amrex;
@@ -57,38 +58,30 @@ dumpInts(const intDIM& iv)
 }
 #endif
 
-void
-get_EGLG(EBLevelGrid& eblg)
+static void
+get_EBLGs(EBLevelGrid& eblg_fine,
+          EBLevelGrid& eblg_crse,
+          int&         ratio)
 {
-    Real radius = 0.5;
-    Real domlen = 1;
-    std::vector<Real> centervec(SpaceDim);
-    std::vector<int>  ncellsvec(SpaceDim);
+    GridParameters paramsCrse, paramsFine;
+    getGridParameters(paramsCrse, 0, true);
+
+    paramsFine = paramsCrse;
+    ratio = 2;
+    paramsFine.refine(ratio);
 
     ParmParse pp;
 
-    std::string geom_type;
-
-    pp.get("domain_length", domlen);                     
-    pp.getarr(  "n_cell"       , ncellsvec, 0, SpaceDim);
-    IntVect ivlo = IntVect::TheZeroVector();
-    IntVect ivhi;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-        ivhi[idir] = ncellsvec[idir] - 1;
-    }
-    Box domain(ivlo, ivhi);
-    RealVect origin = RealVect::Zero;
-    Real dx = domlen/ncellsvec[0];
-
-    int verbosity = 0;
-    pp.get("verbosity", verbosity);
-
     EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
-    pp.get("geom_type",geom_type);
-    if (geom_type == "sphere")
+    int which_geom = paramsCrse.whichGeom;
+    bool verbosity=true;
+    pp.query("verbosity",verbosity);
+    if (which_geom == 0)
     {
-        pp.get(   "sphere_radius", radius);
+        RealVect origin = RealVect::Zero;
+        Real radius = 0.5;
+        pp.get("sphere_radius", radius);
+        std::vector<Real> centervec(SpaceDim);
         pp.getarr("sphere_center", centervec, 0, SpaceDim);
         RealVect center;
         for(int idir = 0; idir < SpaceDim; idir++)
@@ -101,10 +94,11 @@ get_EGLG(EBLevelGrid& eblg)
         SphereIF sphere(radius, center, insideRegular);
 
         GeometryShop gshop(sphere, verbosity);
-        ebisPtr->define(domain, origin, dx, gshop);
+        ebisPtr->define(paramsFine.coarsestDomain, origin, paramsFine.coarsestDx, gshop);
     }
-    else if (geom_type == "flat_plate") 
+    else if (which_geom == 1) 
     {
+        RealVect origin = RealVect::Zero;
         std::vector<Real>  platelovec(SpaceDim);
         std::vector<Real>  platehivec(SpaceDim);
 
@@ -123,20 +117,23 @@ get_EGLG(EBLevelGrid& eblg)
             plateHi[idir] = platehivec[idir];
         }
         FlatPlateGeom flat_plate(normalDir, plateLoc, plateLo, plateHi);
-        ebisPtr->define(domain, origin, dx, flat_plate);
+        ebisPtr->define(paramsFine.coarsestDomain, origin, paramsFine.coarsestDx, flat_plate);
     }
     else
     {
         amrex::Abort("Unknown geom_type");
     }
 
-    BoxArray ba(domain);
-    int maxboxsize = 16;
-    pp.query("maxboxsize",maxboxsize);
-    ba.maxSize(maxboxsize);
+    BoxArray ba(paramsCrse.coarsestDomain);
+    int max_grid_size = 16;
+    pp.query("max_grid_size",max_grid_size);
+    ba.maxSize(max_grid_size);
     DistributionMapping dm(ba);
-    int nGrowEBLG = 2;
-    eblg.define(ba, dm, domain, nGrowEBLG);
+    std::vector<EBLevelGrid> eblg_tmp;
+    getAllIrregEBLG(eblg_tmp, paramsFine);
+    eblg_fine = eblg_tmp[0];
+    getAllIrregEBLG(eblg_tmp, paramsCrse);
+    eblg_crse = eblg_tmp[0];
 }
 
 struct tface
@@ -367,38 +364,52 @@ int myTest()
     std::cout << "Size of CNode: " << sizeof(CNode)/sizeof(int) << " ints" << std::endl;
     std::cout << "Size of FNode: " << sizeof(FNode)/sizeof(int) << " ints" << std::endl;
 
-    EBLevelGrid eblg;
-    get_EGLG(eblg);
-    const BoxArray& ba = eblg.getBoxArray();
-    const DistributionMapping& dm = eblg.getDM();
+    EBLevelGrid eblg_fine, eblg_crse;
+    int ratio;
+    get_EBLGs(eblg_fine,eblg_crse,ratio);
+    const BoxArray& ba_crse = eblg_crse.getBoxArray();
+    const DistributionMapping& dm_crse = eblg_crse.getDM();
 
     IntVect tilesize(AMREX_D_DECL(10240,8,32));
-    std::map<int,std::vector<CNode> > graphCNodes;
-    std::map<int,std::array<std::vector<FNode>, BL_SPACEDIM> > graphFNodes;
+    std::map<int,std::vector<CNode> > cnodes_crse, cnodes_fine;
+    std::map<int,std::array<std::vector<FNode>, BL_SPACEDIM> > fnodes_crse, fnodes_fine;
     int nGrow = 1;
-    iMultiFab ebmask(ba,dm,1,nGrow);
+    iMultiFab ebmask_crse(ba_crse,dm_crse,1,nGrow);
+    iMultiFab ebmask_fine(ba_crse,dm_crse,1,nGrow);
 
-    BuildFortranGraphNodes(graphCNodes,graphFNodes,ebmask,eblg);
+    BuildFortranGraphNodes(cnodes_crse,fnodes_crse,ebmask_crse,eblg_crse);
+    BuildFortranGraphNodes(cnodes_fine,fnodes_fine,ebmask_fine,eblg_fine);
     
-    MultiFab state(ba,dm,1,nGrow);
-
-    for (MFIter mfi(ebmask); mfi.isValid(); ++mfi)
+    for (MFIter mfi(ebmask_crse); mfi.isValid(); ++mfi)
     {
         const Box& vbox = mfi.validbox();
-        BaseFab<int>& mask_fab = ebmask[mfi];
-        int cnum = graphCNodes[mfi.index()].size();
+        BaseFab<int>& mask_fab = ebmask_crse[mfi];
+        int cnum = cnodes_crse[mfi.index()].size();
         int fnum[BL_SPACEDIM];
         for (int idir=0; idir<BL_SPACEDIM; ++idir) 
         {
-            fnum[idir] = graphFNodes[idir][mfi.index()].size();
+            fnum[idir] = fnodes_crse[idir][mfi.index()].size();
         }
         do_eb_work(vbox.loVect(), vbox.hiVect(),
-                   graphCNodes[mfi.index()].data(), &cnum,
-                   D_DECL(graphFNodes[0][mfi.index()].data(),
-                          graphFNodes[1][mfi.index()].data(),
-                          graphFNodes[2][mfi.index()].data()),fnum,
+                   cnodes_crse[mfi.index()].data(), &cnum,
+                   D_DECL(fnodes_crse[0][mfi.index()].data(),
+                          fnodes_crse[1][mfi.index()].data(),
+                          fnodes_crse[2][mfi.index()].data()),fnum,
                    BL_TO_FORTRAN_N(mask_fab,0));
     }
+
+    // Level transfers
+    // for (MFIter mfi(eblg_fine.getBoxArray(),eblg_fine.getDM()); mfi.isValid(); ++mfi)
+    // {
+    //     const Box& fbox = mfi.validbox();
+    //     const Box cbox = amrex::coarsen(fbox,ratio);
+    //     int cnum_crse = cnodes_crse[mfi.index()].size();
+    //     average(fbox.loVect(), fbox.hiVect(),
+    //             cnodes_crse[mfi.index()].data(), &cnum_crse,
+    //             cnodes_fine[mfi.index()].data(), &cnum_fine,
+    //             BL_TO_FORTRAN_N(ebmask_crse[mfi],0),
+    //             BL_TO_FORTRAN_N(ebmask_fine[mfi],0));
+    // }
 
     return 0;
 }

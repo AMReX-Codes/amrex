@@ -1,4 +1,4 @@
-geom_type = flat_plate
+which_geom = 1
 
 # n_cell = 40 40 40 
  n_cell = 32 32 32
