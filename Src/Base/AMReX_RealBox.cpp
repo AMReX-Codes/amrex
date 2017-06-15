@@ -27,22 +27,29 @@ RealBox::RealBox (const Box&  bx,
 
 RealBox::RealBox ()
 {
-    D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
-    D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
+    AMREX_D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
+    AMREX_D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
 }
 
 RealBox::RealBox (const Real* lo,
                   const Real* hi)
 {
-    D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
-    D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
+    AMREX_D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
+    AMREX_D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
 }
 
-RealBox::RealBox (D_DECL(Real x0, Real y0, Real z0),
-                  D_DECL(Real x1, Real y1, Real z1))
+RealBox::RealBox (const std::array<Real,BL_SPACEDIM>& lo,
+                  const std::array<Real,BL_SPACEDIM>& hi)
 {
-    D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
-    D_EXPR(xhi[0] = x1 , xhi[1] = y1 , xhi[2] = z1);
+    AMREX_D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
+    AMREX_D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
+}
+
+RealBox::RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
+                  AMREX_D_DECL(Real x1, Real y1, Real z1))
+{
+    AMREX_D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
+    AMREX_D_EXPR(xhi[0] = x1 , xhi[1] = y1 , xhi[2] = z1);
 }
 
 bool
@@ -67,7 +74,7 @@ RealBox::ok () const
 bool
 RealBox::contains (const Real* point) const
 {
-    return  D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
+    return  AMREX_D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
                    && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps),
                    && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
 }

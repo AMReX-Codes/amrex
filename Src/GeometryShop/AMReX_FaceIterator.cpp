@@ -71,7 +71,7 @@ namespace amrex
     m_isDefined = true;
     m_direction = a_direction;
 
-    std::set<FaceIndex, std::less<FaceIndex> > resultSet;
+    std::set<FaceIndex, std::less<FaceIndex>>  resultSet;
 
     bool doLo = ((a_location == FaceStop::SurroundingNoBoundary) ||
                  (a_location == FaceStop::SurroundingWithBoundary) ||
@@ -97,7 +97,7 @@ namespace amrex
     bool doInterior = !doBoundaryOnly;
 
     //if this fails, invalid location.
-    assert(doLo || doHi || doBoundaryOnly);
+    BL_ASSERT(doLo || doHi || doBoundaryOnly);
 
     Side::LoHiSide sides[2] =
       {

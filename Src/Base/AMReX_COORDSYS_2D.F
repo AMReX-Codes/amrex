@@ -78,34 +78,6 @@ c
        end
 
 c========================================================
-c========================================================
-        subroutine FORT_SETVOLPT(vol,
-     $          ro, ri, po, pi,  dx, coord)
-        implicit none
-        integer coord
-        REAL_T dx(SDIM)
-        REAL_T     vol
-        REAL_T     ro, po, pi
-        REAL_T     ri
-
-        REAL_T     RZFACTOR
-        parameter (RZFACTOR = 2*Pi)
-
-        if(coord .eq. 0) then
-           vol = (ro-ri)*dx(2)
-        elseif(coord .eq. 1) then
-           vol = half*RZFACTOR*dx(2)*(ro**2 - ri**2)
-           vol = abs(vol)
-        elseif(coord .eq. 2) then
-           vol = RZFACTOR*(ro**3-ri**3)*(cos(pi)-cos(po))/three
-        else
-            call bl_abort('bogus value of coord ... bndrylib::SETVOLPT')
-        endif
-
-        return
-        end
-
-
 
 c :: ----------------------------------------------------------
 c :: SETDLOGA

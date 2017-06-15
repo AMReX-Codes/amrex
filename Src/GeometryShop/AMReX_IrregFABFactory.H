@@ -51,7 +51,7 @@ namespace amrex
         m_graphs = a_ebisl.getAllGraphs();
         m_sets = shared_ptr<LayoutData<IntVectSet> >
           (new LayoutData<IntVectSet>(a_ebisl.getDBL(), a_ebisl.getDM()));
-        for(MFIter mfi(*m_sets); mfi.isValid(); ++mfi)
+        for(MFIter mfi(*m_graphs); mfi.isValid(); ++mfi)
         {
           Box grid = a_ebisl.getDBL()[mfi];
           (*m_sets)[mfi] = (*m_graphs)[mfi].getIrregCells(grid); 

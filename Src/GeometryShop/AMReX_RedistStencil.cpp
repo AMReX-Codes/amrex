@@ -39,7 +39,7 @@ namespace amrex
     m_redistRadius = a_redistRadius;
     m_stencil.define(m_eblg.getDBL(), m_eblg.getDM());
     m_volsten.define(m_eblg.getDBL(), m_eblg.getDM());
-    for (MFIter mfi(m_stencil); mfi.isValid(); ++mfi)
+    for (MFIter  mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       Box region = m_eblg.getDBL()[mfi];
       region.grow(m_redistRadius);

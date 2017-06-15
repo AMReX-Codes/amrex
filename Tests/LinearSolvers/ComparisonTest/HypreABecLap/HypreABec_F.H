@@ -39,7 +39,9 @@
 
 #include <AMReX_ArrayLim.H>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
   void FORT_HPACOEF(Real* mat, Real* acoefs, ARLIM_P(alo), ARLIM_P(ahi),
 		    const int* lo, const int* hi, const Real& sa);
   void FORT_HPBCOEF(Real* mat, Real* bcoefs, ARLIM_P(blo), ARLIM_P(bhi),
@@ -63,7 +65,9 @@ extern "C" {
 		    const int& idim, const int& bct, const Real& bcl, 
 		    const int* msk, ARLIM_P(mlo), ARLIM_P(mhi),
 		    const Real* bcv, ARLIM_P(bvlo), ARLIM_P(bvhi));
+#ifdef __cplusplus
 };
+#endif
 
 #endif
 

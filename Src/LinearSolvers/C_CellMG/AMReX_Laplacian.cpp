@@ -24,7 +24,7 @@ Laplacian::norm (int nm, int level, const bool local)
 }
 
 void
-Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+Laplacian::compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		     MultiFab& in, const BC_Mode& bc_mode,
 		     int src_comp, int dst_comp, int num_comp, int bnd_comp)
 {
@@ -39,13 +39,13 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 #endif
     for (MFIter inmfi(in,tiling); inmfi.isValid(); ++inmfi)
     {
-        D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
+        AMREX_D_TERM(const Box& xbx   = inmfi.nodaltilebox(0);,
 	       const Box& ybx   = inmfi.nodaltilebox(1);,
 	       const Box& zbx   = inmfi.nodaltilebox(2););
 
         FArrayBox& infab = in[inmfi];
 
-        D_TERM(FArrayBox& xfab  = xflux[inmfi];,
+        AMREX_D_TERM(FArrayBox& xfab  = xflux[inmfi];,
                FArrayBox& yfab  = yflux[inmfi];,
                FArrayBox& zfab  = zflux[inmfi];);
 

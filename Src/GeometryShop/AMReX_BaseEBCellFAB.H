@@ -214,24 +214,50 @@ namespace amrex
     ///
     BaseEBCellFAB<T>& copy(const BaseEBCellFAB<T>& source);
 
-
+    ///this is for copy and fillboundary when meta data is already filled
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
 
+    ///this includes all meta data
+    std::size_t nBytesFull() const;
+
+    ///this is for copy and fillboundary when meta data is already filled
     std::size_t copyToMem (const Box& srcbox,
                            int        srccomp,
                            int        numcomp,
                            void*      dst) const;
 
+    ///default false.   can make it true for T where you  they are fixed size
+    static bool preAllocatable () { return false; }
 
+    ///this includes all meta data
+    std::size_t copyToMemFull(void*      dst) const;
+
+
+    ///this is for copy and fillboundary when meta data is already filled
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
 
-    ///invalid but necessary for leveldata to compile
-    BaseEBCellFAB(const Box& a_region, int a_nVar)
+    ///this includes all meta data
+    std::size_t copyFromMemFull(const void* src);
+
+
+    ///invalid but necessary for fabarray to compile in certain cases
+    BaseEBCellFAB(const Box& a_region,
+                  int        n = 1,
+                  bool       alloc = true,
+                  bool       shared = false)
       {
-        amrex::Error("invalid constructor called for baseebcellfab");
+        //this strictly for checkpointing 
+        m_region = a_region;
+      }
+
+    //same as above. 
+    void resize (const Box& b,
+                 int        N = 1)
+      {
+        m_region = b;
       }
 
     ///

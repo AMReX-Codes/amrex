@@ -11,6 +11,7 @@
 
 #include "AMReX_VolIndex.H"
 #include <cassert>
+#include <iostream>
 
 
 
@@ -26,7 +27,7 @@ namespace amrex
   {
     assert(m_isDefined);
     int* buf = (int*)a_outBuf;
-    D_TERM(buf[0]=m_iv[0],; buf[1]=m_iv[1],; buf[2]=m_iv[2]);
+    AMREX_D_TERM(buf[0]=m_iv[0],; buf[1]=m_iv[1],; buf[2]=m_iv[2]);
     buf[BL_SPACEDIM]=m_cellIndex;
 
   }
@@ -34,7 +35,7 @@ namespace amrex
   void VolIndex::linearIn(const void* const inBuf)
   {
     int* buf = (int*)inBuf;
-    D_TERM(m_iv[0]=buf[0],; m_iv[1]=buf[1],; m_iv[2]=buf[2]);
+    AMREX_D_TERM(m_iv[0]=buf[0],; m_iv[1]=buf[1],; m_iv[2]=buf[2]);
     m_cellIndex = buf[BL_SPACEDIM];
     m_isDefined = true;
   }
@@ -116,5 +117,26 @@ namespace amrex
   {
   }
 
+/*****************************************/
+  ostream&
+  operator<< (ostream&       os,
+              const VolIndex& p)
+  {
+    IntVect iv = p.gridIndex();
+    int vofind = p.cellIndex();
+    os <<  std::string("((");
+    for(int idir = 0; idir < SpaceDim; idir ++)
+    {
+      os << iv[0];
+      if(idir != SpaceDim-1)
+      {
+        os << std::string(",");
+      }
+    }
+    os << std::string(")(") << vofind << std::string("))") ;
+    if (os.fail())
+      amrex::Error("operator<<(ostream&,VolIndex&) failed");
+    return os;
+  }
 }
 

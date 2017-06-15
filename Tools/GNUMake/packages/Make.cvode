@@ -1,0 +1,12 @@
+include $(AMREX_HOME)/Src/Extern/CVODE/Make.package
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/CVODE
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/CVODE
+
+CPPFLAGS += -DUSE_CVODE
+
+CVODE_LIB_DIR ?= $(HOME)/cvode/lib
+
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_fcvode
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_fnvecserial -lsundials_nvecserial

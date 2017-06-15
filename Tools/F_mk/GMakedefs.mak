@@ -166,6 +166,10 @@ ifeq ($(ARCH),Linux)
   ifeq ($(COMP),Lahey)
     include $(AMREX_HOME)/Tools/F_mk/comps/Linux_lahey.mak
   endif
+
+  ifeq ($(findstring summit, $(HOST)), summit)
+    override CPP_ARGS := -E
+  endif
 endif
 
 ifeq ($(ARCH),AIX)

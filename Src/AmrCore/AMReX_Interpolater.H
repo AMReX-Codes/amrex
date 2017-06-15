@@ -334,8 +334,6 @@ private:
 //
 // Piecewise Constant interpolation on cell centered data.
 //
-// Piecewise Constant interpolation on cell centered data.
-//
 
 class PCInterp
     :

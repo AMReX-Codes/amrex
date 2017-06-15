@@ -18,6 +18,7 @@
 #include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
 
 namespace amrex
@@ -142,7 +143,9 @@ public:
       BL_ASSERT(domain.contains(a_iv));
 
       IntVect ivDiff = a_iv - domain.smallEnd();
+#if BL_SPACEDIM > 1
       IntVect ivSize = domain.size();
+#endif
       long offset = ivDiff[0];
 
 #if BL_SPACEDIM > 1
@@ -156,14 +159,16 @@ public:
       return offset;
     }
 
-  /**
-   * \brief The function returns the BaseFab to the invalid state.
-   * The memory is freed.
-   */
-  void clear ();
+    /**
+     * \brief The function returns the BaseFab to the invalid state.
+     * The memory is freed.
+     */
+    void clear ();
 
     //! Returns how many bytes used
     std::size_t nBytes () const { return truesize*sizeof(T); }
+
+    static bool preAllocatable () { return true; }
 
     //! Returns bytes used in the Box for those components
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
@@ -171,6 +176,9 @@ public:
 
     //! Returns the number of components
     int nComp () const { return nvar; }
+
+    //! for calls to fortran.  
+    const int* nCompPtr() const {return &nvar;}
 
     //! Returns the number of points 
     long nPts () const { return numpts; }
@@ -333,6 +341,15 @@ public:
                       const Box&        destbox,
                       int               destcomp,
                       int               numcomp);
+
+  //for debugging
+  BaseFab<T>&
+  slowCopy(const BaseFab<T>& src,
+           const Box&        srcbox,
+           int               srccomp,
+           const Box&        destbox,
+           int               destcomp,
+           int               numcomp);
     /**
     * \brief As above, except the destination Box and the source Box
     * are taken to be the entire domain of the destination.   A copy
@@ -1049,6 +1066,33 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
     performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::slowCopy(const BaseFab<T>& src,
+                     const Box&        srcbox,
+                     int               srccomp,
+                     const Box&        destbox,
+                     int               destcomp,
+                     int               numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(srcbox.sameSize(destbox));
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(domain.contains(destbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
+    for(BoxIterator bit(destbox); bit.ok(); ++bit)
+    {
+      for(int icomp = 0; icomp < numcomp; icomp++)
+      {
+        int isrc =  srccomp  + icomp;
+        int idst =  destcomp + icomp;
+        (*this)(bit(), idst) = src(bit(), isrc);
+      }
+    }
     return *this;
 }
 
@@ -1940,7 +1984,7 @@ BaseFab<T>::minIndex (const Box& subbox,
         if (thisR < _min_val)
         {
             _min_val = thisR;
-            D_EXPR(_min_loc[0] = iR,
+            AMREX_D_EXPR(_min_loc[0] = iR,
                    _min_loc[1] = jR,
                    _min_loc[2] = kR);
         }
@@ -1968,7 +2012,7 @@ BaseFab<T>::maxIndex (const Box& subbox,
         if (thisR > _max_val)
         {
             _max_val = thisR;
-            D_EXPR(_max_loc[0] = iR,
+            AMREX_D_EXPR(_max_loc[0] = iR,
                    _max_loc[1] = jR,
                    _max_loc[2] = kR);
         }
@@ -1991,7 +2035,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR < val)
         {
             mptr[ix] = 1;
@@ -2016,7 +2060,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR <= val)
         {
             mptr[ix] = 1;
@@ -2041,7 +2085,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR == val)
         {
             mptr[ix] = 1;
@@ -2066,7 +2110,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR > val)
         {
             mptr[ix] = 1;
@@ -2091,7 +2135,7 @@ BaseFab<T>::maskGE(BaseFab<int>& mask,
 
     ForAllThisCBNN(T,domain,comp,1)
     {
-        int ix = D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
+        int ix = AMREX_D_TERM(_i, +_j*_b_len[0], +_k*_b_len[0]*_b_len[1]);
         if (thisR >= val)
         {
             mptr[ix] = 1;
@@ -2173,7 +2217,7 @@ BaseFab<T>::patternFill (int mark)
 {
     ForAllThis(T)
     {
-        thisR = D_TERM(iR*100, +jR*10, + kR) + 1000*nR + 10000*mark;
+        thisR = AMREX_D_TERM(iR*100, +jR*10, + kR) + 1000*nR + 10000*mark;
     } EndFor
 }
 

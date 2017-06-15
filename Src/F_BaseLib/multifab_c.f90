@@ -137,14 +137,14 @@ contains
     call shift_bound_d4(fp, lo, mfs(nmf)%mf%fbs(fidx)%p)
     ! mfs(nmf)%mf%fbs(i)(lo(1):,lo(2):,lo(3):,lo(4):) => fp  ! some compilers do not support it yet
     
-  contains
-    subroutine shift_bound_d4 (fp, lo, a)
+  end subroutine share_fab_with_f
+
+  subroutine shift_bound_d4 (fp, lo, a)
       integer, intent(in) :: lo(4)
       double precision, target, intent(in) :: fp(lo(1):,lo(2):,lo(3):,lo(4):)
       double precision, pointer, intent(inout) :: a(:,:,:,:)
       a => fp
     end subroutine shift_bound_d4
-  end subroutine share_fab_with_f
 
   subroutine get_mf_c (mf, name, ierr)
     type(multifab), intent(inout) :: mf
