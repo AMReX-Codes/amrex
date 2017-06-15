@@ -57,7 +57,11 @@ namespace amrex
 				   const Array<std::string> &varnames,
 				   const Geometry &geom,
 				   Real t,
-				   int level_step);
+				   int level_step,
+                                   const std::string &versionName = "HyperCLaw-V1.1",
+                                   const std::string &levelPrefix = "Level_",
+                                   const std::string &mfPrefix = "Cell");
+
 
     void WriteMultiLevelPlotfile (const std::string &plotfilename,
                                   int nlevels,
@@ -66,7 +70,10 @@ namespace amrex
 				  const Array<Geometry> &geom,
 				  Real time,
 				  const Array<int> &level_steps,
-				  const Array<IntVect> &ref_ratio);
+				  const Array<IntVect> &ref_ratio,
+                                  const std::string &versionName = "HyperCLaw-V1.1",
+                                  const std::string &levelPrefix = "Level_",
+                                  const std::string &mfPrefix = "Cell");
 }
 
 #endif
