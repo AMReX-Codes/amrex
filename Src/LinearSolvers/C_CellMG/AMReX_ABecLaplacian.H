@@ -88,11 +88,11 @@ public:
     //
     // Compute extensive (area-weighted) flux associated with the op
     //
-    virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+    virtual void compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
 			   int src_comp=0, int dst_comp=0, int num_comp=1, int bnd_comp=0) override;
 
-    void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+    void compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
                    MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
 		   int src_comp=0, int dst_comp=0, int num_comp=1, int bnd_comp=0);
     //

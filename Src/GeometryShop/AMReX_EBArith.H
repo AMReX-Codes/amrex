@@ -17,6 +17,7 @@
 #include "AMReX_EBISBox.H"
 #include "AMReX_Stencils.H"
 #include "AMReX_IntVectSet.H"
+#include <sstream>
 
 
 namespace amrex
@@ -37,6 +38,71 @@ namespace amrex
     ~EBArith()
       {   }
 
+    static int gradIndex(int ivar, int gradDir)
+      {
+        return ivar*SpaceDim + gradDir;
+      }
+
+    ///
+    /**
+       Return true if there is a unique adjacent face in the
+       given direction.  False if either covered or multivalued.
+    */
+    static
+    bool
+    getAdjacentFace(FaceIndex           & a_adjacentFace,
+                    const FaceIndex     & a_face,
+                    const EBISBox       & a_ebisBox,
+                    const Box           & a_domain,
+                    const int           & a_idir,
+                    const Side::LoHiSide& a_side);
+
+    ///
+    static string convertInt(int number)
+      {
+        stringstream ss;//create a stringstream
+        ss << number;//add number to the stream
+        return ss.str();//return a string with the contents of the stream
+      }
+
+    ///
+    static string convertReal(Real number)
+      {
+        stringstream ss;//create a stringstream
+        ss << number;//add number to the stream
+        return ss.str();//return a string with the contents of the stream
+      }
+
+    ///for hyperbolics, heaven help us all.
+    static
+    void
+    computeCoveredFaces(vector<VolIndex>&     a_coveredFace,
+                        IntVectSet&           a_coveredSets,
+                        IntVectSet&           a_irregIVS,
+                        const int&            a_idir,
+                        const Side::LoHiSide& a_sd,
+                        const EBISBox&        a_ebisBox,
+                        const Box&            a_region);
+
+    ///
+    static FaceStencil getInterpStencil(const FaceIndex&     a_face,
+                                        const IntVectSet&    a_coarseFineIVS,
+                                        const EBISBox&       a_ebisBox,
+                                        const Box          & a_domainBox);
+
+    ///
+    static void getInterpStencil2D(FaceStencil&          a_sten,
+                                   const FaceIndex&      a_face,
+                                   const IntVectSet&     a_coarseFineIVS,
+                                   const EBISBox&        a_ebisBox,
+                                   const Box          &  a_domainBox) ;
+
+    ///
+    static void getInterpStencil3D(FaceStencil&         a_sten,
+                                   const FaceIndex&     a_face,
+                                   const IntVectSet&    a_coarseFineIVS,
+                                   const EBISBox&       a_ebisBox,
+                                   const Box          & a_domainBox);
     ///
     /** Returns all vofs that can be reached from a_vof via a
         monotone path of length <= than radius
@@ -70,6 +136,8 @@ namespace amrex
        the reason for the last argument is that you might not want the stencil
        to leak over in the noExtrap direction even though you have set a_dist to zero.
        This happens in CF interpolation where you have to really worry about stencil width.
+       If orderOfPolynomial = 0,  no first or second derivative stencils included
+       If orderOfPolynomial = 1,  no second derivative stencils included
     **/
     static int
     getExtrapolationStencil(VoFStencil&     a_stencil,
@@ -77,6 +145,7 @@ namespace amrex
                             const RealVect& a_dx,
                             const VolIndex& a_startVoF,
                             const EBISBox&  a_ebisBox,
+                            int a_orderOfPolynomial = 2,
                             int a_noExtrapThisDirection = -1,
                             IntVectSet*    a_cfivsPtr = NULL,
                             int ivar = 0);

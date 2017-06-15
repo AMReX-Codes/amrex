@@ -11,6 +11,7 @@ module amrex_geometry_module
 
   public :: amrex_pmask, amrex_problo, amrex_probhi
   public :: amrex_geometry_build, amrex_geometry_destroy, amrex_geometry_init_data
+  public :: amrex_is_periodic, amrex_is_any_periodic, amrex_is_all_periodic
 
   logical, save :: amrex_pmask(3)  = .false.  
   real(amrex_real), save :: amrex_problo(3) = 0.0_amrex_real
@@ -27,8 +28,9 @@ module amrex_geometry_module
      real(amrex_real) :: dx(3)     = 0.0_amrex_real
      type(amrex_box)  :: domain
    contains
-     generic :: assignment(=) => amrex_geometry_assign  ! shallow copy
-     procedure, private :: amrex_geometry_assign
+     generic :: assignment(=)           => amrex_geometry_assign, amrex_geometry_install  ! shallow copy
+     procedure :: get_physical_location => amrex_geometry_get_ploc
+     procedure, private :: amrex_geometry_assign, amrex_geometry_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_geometry_destroy
 #endif
@@ -123,4 +125,36 @@ contains
     dst%domain = src%domain
   end subroutine amrex_geometry_assign
 
+  subroutine amrex_geometry_install (this, p)
+    class(amrex_geometry), intent(inout) :: this
+    type(c_ptr), intent(in) :: p
+    this%owner  = .false.
+    this%p      = p
+    call amrex_geometry_init_data(this)
+  end subroutine amrex_geometry_install
+
+  logical function amrex_is_periodic (dir)
+    integer, intent(in) :: dir
+    amrex_is_periodic = amrex_pmask(dir)
+  end function amrex_is_periodic
+
+  logical function amrex_is_any_periodic ()
+    amrex_is_any_periodic = any(amrex_pmask(1:ndims))
+  end function amrex_is_any_periodic
+
+  logical function amrex_is_all_periodic ()
+    amrex_is_all_periodic = all(amrex_pmask(1:ndims))
+  end function amrex_is_all_periodic
+
+  ! give integer location, compute real location
+  function amrex_geometry_get_ploc (this, iloc) result (ploc)
+    class(amrex_geometry), intent(in) :: this
+    integer, intent(in) :: iloc(ndims)
+    real(amrex_real) :: ploc(ndims)
+    integer :: i
+    do i = 1, ndims
+       ploc(i) = amrex_problo(i) + (iloc(i) - this%domain%lo(i)) * this%dx(i)
+    end do
+  end function amrex_geometry_get_ploc
+    
 end module amrex_geometry_module

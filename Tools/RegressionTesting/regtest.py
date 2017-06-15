@@ -139,6 +139,8 @@ def copy_benchmarks(old_full_test_dir, full_web_dir, test_list, bench_dir, log):
                     tg.extractall()
                 except:
                     log.fail("ERROR extracting tarfile")
+                else:
+                    tg.close()
                 idx = p.rfind(".tgz")
                 p = p[:idx]
 
@@ -516,7 +518,7 @@ def test_suite(argv):
             else:
                 base_cmd += " amr.checkpoint_files_output=0"
 
-            base_cmd += "{} {}".format(suite.globalAddToExecString, test.runtime_params)
+            base_cmd += " {} {}".format(suite.globalAddToExecString, test.runtime_params)
 
         elif suite.sourceTree == "F_Src" or test.testSrcTree == "F_Src":
 
@@ -660,6 +662,16 @@ def test_suite(argv):
                         if ierr == 0:
                             test.compare_successful = True
 
+                        if test.compareParticles:
+                            for ptype in test.particleTypes.strip().split():
+                                command = "{} {} {} {}".format(
+                                    suite.tools["particle_compare"], bench_file, output_file, ptype)
+
+                                sout, serr, ierr = test_util.run(command,
+                                                                 outfile="{}.compare.out".format(test.name), store_command=True)
+
+                                test.compare_successful = test.compare_successful and not ierr
+
                     else:
                         suite.log.warn("unable to do a comparison")
 
@@ -782,10 +794,11 @@ def test_suite(argv):
                         suite.log.warn("unable to open the job_info file")
                     else:
                         job_file_lines = jif.readlines()
-
+                        jif.close()
+                        
                         if suite.summary_job_info_field1 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field1) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field1.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field1 = _tmp[idx:]
@@ -793,7 +806,7 @@ def test_suite(argv):
 
                         if suite.summary_job_info_field2 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field2) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field2.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field2 = _tmp[idx:]
@@ -801,7 +814,7 @@ def test_suite(argv):
 
                         if suite.summary_job_info_field3 is not "":
                             for l in job_file_lines:
-                                if l.find(suite.summary_job_info_field3) >= 0 and l.find(":") >= 0:
+                                if l.startswith(suite.summary_job_info_field3.strip()) and l.find(":") >= 0:
                                     _tmp = l.split(":")[1]
                                     idx = _tmp.rfind("/") + 1
                                     test.job_info_field3 = _tmp[idx:]
@@ -816,7 +829,7 @@ def test_suite(argv):
                             suite.log.log("doing the visualization...")
                             tool = suite.tools["fsnapshot{}d".format(test.dim)]
                             test_util.run('{} --palette {}/Palette -cname "{}" -p "{}"'.format(
-                                tool, suite.compare_tool_dir, test.visVar, output_file))
+                                tool, suite.f_compare_tool_dir, test.visVar, output_file))
 
                             # convert the .ppm files into .png files
                             ppm_file = test_util.get_recent_filename(output_dir, "", ".ppm")

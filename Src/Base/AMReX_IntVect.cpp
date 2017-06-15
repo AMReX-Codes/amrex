@@ -13,22 +13,46 @@
 
 namespace amrex {
 
-const IntVect IntVect::Zero(D_DECL(0, 0, 0));
-const IntVect IntVect::Unit(D_DECL(1, 1, 1));
 
 const IntVect&
 IntVect::TheUnitVector ()
 {
-    static const IntVect Unit(D_DECL(1,1,1));
+    static const IntVect Unit(AMREX_D_DECL(1,1,1));
     return Unit;
 }
 
 const IntVect&
 IntVect::TheZeroVector ()
 {
-    static const IntVect Zero(D_DECL(0,0,0));
+    static const IntVect Zero(AMREX_D_DECL(0,0,0));
     return Zero;
 }
+
+//
+// Static object initialization.
+//
+int IntVect::InitStatics()
+{
+  IntVect* pz = const_cast<IntVect*>( &IntVect::Zero );
+  *pz = IntVect(AMREX_D_DECL(0,0,0));
+
+  IntVect* pu = const_cast<IntVect*>( &IntVect::Unit );
+  *pu = IntVect(AMREX_D_DECL(1,1,1));
+
+  // No danger of IntVect::Zero and Unit not having been allocated, as ARM section
+  // 3.4 says "The initialization of nonlocal static objects in a translation unit
+  // is done before the first use of any function...defined in that translation
+  // unit."
+  //
+  // Had to go through the const_cast stuff because it's nice to be able to declare
+  // IntVect::Zero and IntVect::Unit as const.
+
+  return 0; // arbitrary
+}
+
+const IntVect IntVect::Zero;
+const IntVect IntVect::Unit;
+static int s_dummyForIntVectCpp( IntVect::InitStatics() );
 
 const IntVect&
 IntVect::TheDimensionVector (int d)
@@ -36,17 +60,17 @@ IntVect::TheDimensionVector (int d)
     switch (d) {
     case (0) :
     {
-	static const IntVect xdim(D_DECL(1,0,0));
+	static const IntVect xdim(AMREX_D_DECL(1,0,0));
 	return xdim;
     }
     case (1) :
     {
-	static const IntVect ydim(D_DECL(0,1,0));
+	static const IntVect ydim(AMREX_D_DECL(0,1,0));
 	return ydim;
     }
     default:
     {
-	static const IntVect zdim(D_DECL(0,0,1));
+	static const IntVect zdim(AMREX_D_DECL(0,0,1));
 	return zdim;
     }
     };
@@ -55,21 +79,21 @@ IntVect::TheDimensionVector (int d)
 const IntVect&
 IntVect::TheNodeVector ()
 {
-    static const IntVect Node(D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
+    static const IntVect Node(AMREX_D_DECL(IndexType::NODE,IndexType::NODE,IndexType::NODE));
     return Node;
 }
 
 const IntVect&
 IntVect::TheCellVector ()
 {
-    static const IntVect Cell(D_DECL(IndexType::CELL,IndexType::CELL,IndexType::CELL));
+    static const IntVect Cell(AMREX_D_DECL(IndexType::CELL,IndexType::CELL,IndexType::CELL));
     return Cell;
 }
 
 const IntVect&
 IntVect::TheMaxVector ()
 {
-    static const IntVect mx(D_DECL(std::numeric_limits<int>::max(),
+    static const IntVect mx(AMREX_D_DECL(std::numeric_limits<int>::max(),
                                    std::numeric_limits<int>::max(),
                                    std::numeric_limits<int>::max()));
     return mx;
@@ -78,7 +102,7 @@ IntVect::TheMaxVector ()
 const IntVect&
 IntVect::TheMinVector ()
 {
-    static const IntVect mn(D_DECL(std::numeric_limits<int>::min(),
+    static const IntVect mn(AMREX_D_DECL(std::numeric_limits<int>::min(),
                                    std::numeric_limits<int>::min(),
                                    std::numeric_limits<int>::min()));
     return mn;
@@ -86,13 +110,13 @@ IntVect::TheMinVector ()
 
 IntVect::IntVect (const int *a)
 {
-    D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
+    AMREX_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
 IntVect::IntVect (const Array<int> &a)
 {
     BL_ASSERT(a.size() == BL_SPACEDIM);
-    D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
+    AMREX_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
 IntVect
@@ -125,7 +149,7 @@ BASISV (int dir)
 IntVect
 scale (const IntVect& p, int s)
 {
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+    return IntVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 IntVect
@@ -142,7 +166,7 @@ reflect (const IntVect& a,
 IntVect
 diagShift (const IntVect& p, int s)
 {
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
+    return IntVect(AMREX_D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 IntVect
@@ -151,7 +175,7 @@ coarsen (const IntVect& p,
 {
     BL_ASSERT(s > 0);
     IntVect v = p;
-    v.coarsen(IntVect(D_DECL(s,s,s)));
+    v.coarsen(IntVect(AMREX_D_DECL(s,s,s)));
     return v;
 }
 
@@ -168,7 +192,7 @@ IntVect&
 IntVect::coarsen (int s)
 {
     BL_ASSERT(s > 0);
-    return this->coarsen(IntVect(D_DECL(s,s,s)));
+    return this->coarsen(IntVect(AMREX_D_DECL(s,s,s)));
 }
 
 IntVect&
@@ -194,7 +218,7 @@ std::ostream&
 operator<< (std::ostream&  os,
             const IntVect& p)
 {
-    os << D_TERM( '(' << p[0] , <<
+    os << AMREX_D_TERM( '(' << p[0] , <<
                   ',' << p[1] , <<
                   ',' << p[2])  << ')';
     if (os.fail())
@@ -217,7 +241,7 @@ operator>> (std::istream& is,
 
     if (c == '(')
     {
-        D_EXPR(is >> iv[0],
+        AMREX_D_EXPR(is >> iv[0],
                is.ignore(BL_IGNORE_MAX, ',') >> iv[1],
                is.ignore(BL_IGNORE_MAX, ',') >> iv[2]);
         is.ignore(BL_IGNORE_MAX, ')');

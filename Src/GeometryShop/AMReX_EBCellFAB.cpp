@@ -100,15 +100,17 @@ namespace amrex
   EBCellFAB::
   kappaWeight()
   {
-    std::vector<VolIndex>  irrvofs = m_irrFAB.getVoFs();
-    for(int ivof = 0; ivof < irrvofs.size(); ivof++)
+    const EBISBox& ebbox = getEBISBox();
+    const Box& box = BaseEBCellFAB<Real>::box();
+    const IntVectSet irregCells = ebbox.getIrregIVS(box);
+    for (VoFIterator vit(irregCells, ebbox.getEBGraph()); vit.ok(); ++vit)
     {
-        for (int icomp = 0; icomp < nComp(); icomp++)
-        {
-          const VolIndex& vof = irrvofs[ivof];
-          Real kappa = m_ebisBox.volFrac(vof);
-          m_irrFAB(vof, icomp) *= kappa; 
-        }
+      VolIndex vof = vit();
+      Real kappa = ebbox.volFrac(vof);
+      for(int icomp = 0; icomp< nComp(); icomp++)
+      {
+        (*this)(vof, icomp) *= kappa;
+      }
     }
   }
 

@@ -1,17 +1,22 @@
 #ifndef _MultiFab_C_F_H_
 #define _MultiFab_C_F_H_
 
+#include <AMReX_REAL.H>
+
+#ifdef __cplusplus
 #include <string>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
 extern "C" {
+#endif
     void build_layout_from_c (int nb, int dm, const int* lo, const int* hi, 
 			      const int* pd_lo, const int* pd_hi,
 			      const int* pmask, const int* pmap);
     void destroy_multifab_c ();
     void share_multifab_with_f (const char* fmf_name, int nc, int ng, const int* nodal);
-    void share_fab_with_f (int i, const amrex::Real* p);
+    void share_fab_with_f (int i, const amrex_real* p);
+#ifdef __cplusplus
 }
 
 namespace amrex {
@@ -40,5 +45,6 @@ private:
 };
 
 }
+#endif
 
 #endif

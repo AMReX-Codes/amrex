@@ -9,7 +9,7 @@ BL_FORT_PROC_DECL(LST_COMP_NORM, lst_comp_norm)
    const BL_FORT_FAB_ARG(exac),
    const BL_FORT_FAB_ARG(mask),
    const BL_FORT_FAB_ARG(volb),
-   amrex::Real* norm2, amrex::Real* norm0,
-   amrex::Real* volume, int* nsoln);
+   amrex_real* norm2, amrex_real* norm0,
+   amrex_real* volume, int* nsoln);
 
 #endif

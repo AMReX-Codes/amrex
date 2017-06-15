@@ -33,7 +33,7 @@ public:
     public:
 	std::size_t operator()(const IntVect& vec) const
         {
-	    D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
+	    AMREX_D_DECL(std::size_t ret0 = vec[0], ret1 = vec[1], ret2 = vec[2]);
 #if BL_SPACEDIM == 1
 	    return ret0;
 #elif BL_SPACEDIM == 2
@@ -56,18 +56,23 @@ public:
     */
     static const IntVect Unit;
 
+    /**
+     Initializes Zero and Unit.
+    */
+    static int InitStatics();
+
     ///
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
-    IntVect () { D_EXPR(vect[0] = 0, vect[1] = 0, vect[2] = 0); }
+    IntVect () { AMREX_D_EXPR(vect[0] = 0, vect[1] = 0, vect[2] = 0); }
 
     /**
     * \brief Construct an IntVect given the specific values for its
-    * coordinates.  D_DECL is a macro that sets the constructor
+    * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take BL_SPACEDIM arguments.
     */
-    IntVect (D_DECL(int i, int j, int k)) { D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
+    IntVect (AMREX_D_DECL(int i, int j, int k)) { AMREX_D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
 
     /**
     * \brief Construct an IntVect setting the coordinates to the
@@ -88,7 +93,7 @@ public:
     int& operator[] (int i) { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
-    int operator[] (int i) const { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
+    const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < BL_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
     IntVect& setVal (int i, int val)
@@ -107,24 +112,24 @@ public:
     //! Returns true if all components are equal to the argument val.
     bool operator== (int val) const
     {
-        return D_TERM(vect[0] == val, && vect[1] == val, && vect[2] == val);
+        return AMREX_D_TERM(vect[0] == val, && vect[1] == val, && vect[2] == val);
     }
 
     //! Returns true if any component is not equal to the argument val.
     bool operator!= (int val) const
     {
-        return D_TERM(vect[0] != val, || vect[1] != val, || vect[2] != val);
+        return AMREX_D_TERM(vect[0] != val, || vect[1] != val, || vect[2] != val);
     }
 
     //! Returns true if this is equivalent to rhs.
     bool operator== (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);
+        return AMREX_D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);
     }
     //! Returns true if this is different from rhs.
     bool operator!= (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
+        return AMREX_D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
     }
     //! Return ture if this is lexicographically less than rhs.
     bool operator< (const IntVect& rhs) const
@@ -159,7 +164,7 @@ public:
     */	
     bool allLT (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] < rhs[0], && vect[1] < rhs[1], && vect[2] < rhs[2]);
+        return AMREX_D_TERM(vect[0] < rhs[0], && vect[1] < rhs[1], && vect[2] < rhs[2]);
     }
     /**
     * \brief Returns true if this is less than or equal to argument for all components.
@@ -167,7 +172,7 @@ public:
     */
     bool allLE (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] <= rhs[0], && vect[1] <= rhs[1], && vect[2] <= rhs[2]);
+        return AMREX_D_TERM(vect[0] <= rhs[0], && vect[1] <= rhs[1], && vect[2] <= rhs[2]);
     }
     /**
     * \brief Returns true if this is greater than argument for all components.
@@ -175,7 +180,7 @@ public:
     */
     bool allGT (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] > rhs[0], && vect[1] > rhs[1], && vect[2] > rhs[2]);
+        return AMREX_D_TERM(vect[0] > rhs[0], && vect[1] > rhs[1], && vect[2] > rhs[2]);
     }
     /**
     * \brief Returns true if this is greater than or equal to argument for all components.
@@ -183,96 +188,96 @@ public:
     */
     bool allGE (const IntVect& rhs) const
     {
-        return D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
+        return AMREX_D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
     }
     //! Unary plus -- for completeness.
     const IntVect operator+ () const { return *this; }
     //! Unary Minus -- negates all components.
-    IntVect operator- () const { return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] )); }
+    IntVect operator- () const { return IntVect(AMREX_D_DECL(-vect[0], -vect[1], -vect[2] )); }
     //! Modifies IntVect by addition of a scalar to each component.
     IntVect& operator+= (int s)
     {
-        D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
+        AMREX_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
     }
     //! Modifies IntVect by component-wise addition with argument.
     IntVect& operator+= (const IntVect& p)
     {
-        D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]); return *this;
+        AMREX_D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]); return *this;
     }
     //! Modifies IntVect by multiplication of a scalar to each component.
     IntVect& operator*= (int s)
     {
-        D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this;
+        AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this;
     }
     //! Modifies IntVect by component-wise multiplication with argument.
     IntVect& operator*= (const IntVect& p)
     {
-        D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]); return *this;
+        AMREX_D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]); return *this;
     }
     //! Modifies IntVect by division by a scalar to each component.
     IntVect& operator/= (int s)
     {
-        D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s); return *this;
+        AMREX_D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s); return *this;
     }
     //! Modifies IntVect by component-wise division with argument.
     IntVect& operator/= (const IntVect& p)
     {
-        D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]); return *this;
+        AMREX_D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]); return *this;
     }
     //! Modifies IntVect by subtraction of a scalar to each component.
     IntVect& operator-= (int s)
     {
-        D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s); return *this;
+        AMREX_D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s); return *this;
     }
     //! Modifies IntVect by component-wise subtraction with argument.
     IntVect& operator-= (const IntVect& p)
     {
-        D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]); return *this;
+        AMREX_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]); return *this;
     }
     //! Returns component-wise sum of IntVect and argument.
     IntVect operator+ (const IntVect& p) const
     {
-        return IntVect(D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
+        return IntVect(AMREX_D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
     }
     //! Return an IntVect that is this IntVect + s.
     IntVect operator+ (int s) const
     {
-        return IntVect(D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
+        return IntVect(AMREX_D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
     }
     //! Returns component-wise difference of IntVect and argument.
     IntVect operator- (const IntVect& p) const
     {
-        return IntVect(D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
+        return IntVect(AMREX_D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
     }
     //! Return an IntVect that is this IntVect - s.
     IntVect operator- (int s) const
     {
-        return IntVect(D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
+        return IntVect(AMREX_D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
     }
     //! Returns component-wise product of IntVect and argument.
     IntVect operator* (const IntVect& p) const
     {
-        return IntVect(D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
+        return IntVect(AMREX_D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
     }
     //! Returns component-wise product of IntVect and s.
     IntVect operator* (int s) const
     {
-        return IntVect(D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
+        return IntVect(AMREX_D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
     }
     //! Returns component-wise division of IntVect by argument.
     IntVect operator/ (const IntVect& p) const
     {
-        return IntVect(D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
+        return IntVect(AMREX_D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
     }
     //! Returns component-wise division of IntVect by s.
     IntVect operator/ (int s) const
     {
-        return IntVect(D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
+        return IntVect(AMREX_D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
     }
     //! Modifies IntVect by taking component-wise min with argument.
     IntVect& min (const IntVect& p)
     {
-        D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
+        AMREX_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
                vect[1] = std::min(vect[1], p.vect[1]),
                vect[2] = std::min(vect[2], p.vect[2]));
         return *this;
@@ -280,13 +285,13 @@ public:
     //! Modifies IntVect by taking component-wise max with argument.
     IntVect& max (const IntVect& p)
     {
-        D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
+        AMREX_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
                vect[1] = std::max(vect[1], p.vect[1]),
                vect[2] = std::max(vect[2], p.vect[2]));
         return *this;
     }
     //! Modify IntVect by multiplying each coordinate by s.
-    IntVect& scale (int s) { D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this; }
+    IntVect& scale (int s) { AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this; }
     /**
     * \brief Modify IntVect by reflecting it in the plane defined by
     * the index ref_ix and with normal in the direction of idir.
@@ -307,12 +312,47 @@ public:
     //! Modify IntVect by adding s to each coordinate.
     IntVect& diagShift (int s)
     {
-        D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
+        AMREX_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
     }
     //! Modify IntVect by component-wise integer projection.
     IntVect& coarsen (const IntVect& p);
     //! Modify IntVect by component-wise integer projection.
     IntVect& coarsen (int p);
+
+    /// for serialization
+    static size_t 
+    linearSize()
+    {
+      size_t retval = SpaceDim*sizeof(int);
+      return retval;
+    }
+
+    /// for serialization
+    void 
+    linearOut(void* a_buffer ) const
+    {
+      int* intbuf = (int *) a_buffer;
+      const IntVect& iv = *this;
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        *intbuf = iv[idir];
+        intbuf++;
+      }
+    }
+
+    /// for serialization
+    void 
+    linearIn(void* a_buffer )
+    {
+      int* intbuf = (int *) a_buffer;
+      IntVect& iv = *this;
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        iv[idir] = *intbuf;
+        intbuf++;
+      }
+    }
+
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose BL_SPACEDIM arguments are set to zero (0).
@@ -356,6 +396,15 @@ private:
 
     int vect[BL_SPACEDIM];
 };
+
+//
+// Static initialization.  Gotta make sure there are no static object
+// definitions above here (except possibly stuff in headers).  Otherwise,
+// the danger is that some static object's constructor calls IntVect::Zero or
+// IntVect::Unit -- the very things the following definition is supposed to
+// initialize.
+//
+static int s_dummyForIntVectH = IntVect::InitStatics();
 
     /**
     * \brief Returns a basis vector in the given coordinate direction;
@@ -405,19 +454,19 @@ private:
 inline
 IntVect operator+ (int s, const IntVect& p)
 {
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
+    return IntVect(AMREX_D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 //! Returns -p + s.
 inline
 IntVect operator- (int s, const IntVect& p)
 {
-    return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
+    return IntVect(AMREX_D_DECL(s - p[0], s - p[1], s - p[2]));
 }
 //! Returns p * s.
 inline
 IntVect operator* (int s, const IntVect& p)
 {
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+    return IntVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 }

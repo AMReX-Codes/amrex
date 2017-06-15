@@ -60,10 +60,10 @@ public:
   ///
   /**
      Construct a RealVect given the specific values for its
-     coordinates.  D_DECL6 is a macro that sets the constructor to
-     take CH_SPACEDIM arguments.
+     coordinates.  AMREX_D_DECL is a macro that sets the constructor to
+     take BL_SPACEDIM arguments.
   */
-  RealVect (D_DECL(Real i, Real j, Real k));
+  RealVect (AMREX_D_DECL(Real i, Real j, Real k));
 
   ///
   /**
@@ -503,6 +503,7 @@ public:
   friend std::ostream& operator<< (std::ostream& ostr,
                                    const RealVect& p);
 
+  friend std::istream& operator>> (std::istream& is, RealVect& iv);
   friend class HDF5Handle;
 
   static size_t io_offset;
@@ -530,14 +531,14 @@ inline const Real& RealVect::operator[] (int i) const
 
 inline RealVect::RealVect (const RealVect &iv)
 {
-  D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
+  AMREX_D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
 }
 
 inline
 RealVect&
 RealVect::operator-= (Real s)
 {
-  D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s);
+  AMREX_D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s);
   return *this;
 }
 
@@ -545,7 +546,7 @@ inline
 RealVect&
 RealVect::operator-= (const RealVect& p)
 {
-  D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
+  AMREX_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
 
   return *this;
 }
@@ -561,14 +562,14 @@ inline
 RealVect
 RealVect::operator- () const
 {
-  return RealVect(D_DECL(-vect[0], -vect[1], -vect[2]));
+  return RealVect(AMREX_D_DECL(-vect[0], -vect[1], -vect[2]));
 }
 
 inline
 RealVect&
 RealVect::scale (Real s)
 {
-  D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
+  AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
   return *this;
 }
 
@@ -576,7 +577,7 @@ inline
 Real
 RealVect::sum () const
 {
-  return D_TERM(vect[0], + vect[1], + vect[2]);
+  return AMREX_D_TERM(vect[0], + vect[1], + vect[2]);
 }
 
 inline
@@ -606,7 +607,7 @@ inline
 Real
 RealVect::product () const
 {
-  return D_TERM(vect[0], * vect[1], * vect[2]);
+  return AMREX_D_TERM(vect[0], * vect[1], * vect[2]);
 }
 
 inline
@@ -614,42 +615,42 @@ RealVect
 scale (const RealVect& p,
        Real            s)
 {
-  return RealVect(D_DECL(s * p[0], s * p[1], s * p[2]));
+  return RealVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 inline
 bool
 RealVect::operator< (const RealVect& p) const
 {
-  return D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
+  return AMREX_D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
 }
 
 inline
 bool
 RealVect::operator<= (const RealVect& p) const
 {
-  return D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
+  return AMREX_D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
 }
 
 inline
 bool
 RealVect::operator> (const RealVect& p) const
 {
-  return D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
+  return AMREX_D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
 }
 
 inline
 bool
 RealVect::operator>= (const RealVect& p) const
 {
-  return D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
+  return AMREX_D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
 }
 
 inline
 RealVect&
 RealVect::min (const RealVect& p)
 {
-  D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
+  AMREX_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
          vect[1] = std::min(vect[1], p.vect[1]),
          vect[2] = std::min(vect[2], p.vect[2]));
 
@@ -660,7 +661,7 @@ inline
 RealVect&
 RealVect::max (const RealVect& p)
 {
-  D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
+  AMREX_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
          vect[1] = std::max(vect[1], p.vect[1]),
          vect[2] = std::max(vect[2], p.vect[2]));
   return *this;

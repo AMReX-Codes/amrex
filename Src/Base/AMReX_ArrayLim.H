@@ -4,7 +4,7 @@
 
 #include <AMReX_REAL.H>
 
-#if !defined(BL_LANG_FORT)
+#ifdef __cplusplus
 
 #include <array>
 
@@ -16,27 +16,50 @@
 #define ARLIM_P(x)  const int&
 #define ARLIM(x)  (x)[0]
 #define ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
+#define ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
 #define BCREC_3D(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
+#define BCREC_ANYD(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
 #elif   BL_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1]
 #define ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
+#define ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
 #define BCREC_3D(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
+#define BCREC_ANYD(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
 #elif   BL_SPACEDIM==3
 #define ARLIM_P(x)  const int&,const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1],(x)[2]
 #define ARLIM_3D(x) x
+#define ARLIM_ANYD(x) x
 #define ZFILL(x) x
 #define BCREC_3D(x) x
+#define BCREC_ANYD(x) x
 #endif
 
 #define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
+#define BL_TO_FORTRAN_FAB(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect()), x.nCompPtr()
+#define BL_TO_FORTRAN_BOX(x) ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
 #define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), ARLIM((x).loVect()), ARLIM((x).hiVect())
 
 #define BL_TO_FORTRAN_3D(x) (x).dataPtr(), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_ANYD(x) (x).dataPtr(), ARLIM_ANYD((x).loVect()), ARLIM_ANYD((x).hiVect())
 #define BL_TO_FORTRAN_N_3D(x,n) (x).dataPtr(n), ARLIM_3D((x).loVect()), ARLIM_3D((x).hiVect())
+#define BL_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), ARLIM_ANYD((x).loVect()), ARLIM_ANYD((x).hiVect())
+
+#else
+
+#if !defined(BL_LANG_FORT)
+
+/* C stuff */
+#if BL_SPACEDIM == 1
+#define ARLIM_P(x) const int*
+#elif BL_SPACEDIM == 2
+#define ARLIM_P(x) const int*, const int*
+#else
+#define ARLIM_P(x) const int*, const int*, const int*
+#endif
 
 #else
 
@@ -134,6 +157,8 @@
 
 #endif /*__STDC__==1*/
 
-#endif /*!defined(BL_LANG_FORT)*/
+#endif /*else of !defined(BL_LANG_FORT)*/
+
+#endif /*else of __cplusplus*/
 
 #endif /*BL_ARRAYLIM_H*/
