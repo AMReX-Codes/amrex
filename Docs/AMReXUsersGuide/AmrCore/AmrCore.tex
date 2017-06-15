@@ -145,7 +145,45 @@ protected:
 {\tt AMReX\_AmrCore.cpp/H} contains the class {\tt AmrCore}, which is derived from
 the {\tt AmrMesh} class.
 
-\subsection{{\tt Cluster}, {\tt ErrorList}, and {\tt TagBox}}
+There are 5 pure virtual functions in the {\tt AmrCore} class:
+
+\begin{lstlisting}[language=cpp]
+//! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
+virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, 
+                       int ngrow) override = 0;
+
+//! Make a new level from scratch using provided BoxArray and DistributionMapping.
+//! Only used during initialization.
+virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, 
+                                      const DistributionMapping& dm) override = 0;
+
+//! Make a new level using provided BoxArray and DistributionMapping and fill 
+//  with interpolated coarse level data.
+virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, 
+                                     const DistributionMapping& dm) = 0;
+
+//! Remake an existing level using provided BoxArray and DistributionMapping 
+//  and fill with existing fine and coarse data.
+virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, 
+                          const DistributionMapping& dm) = 0;
+
+//! Delete level data
+virtual void ClearLevel (int lev) = 0;
+\end{lstlisting}
+Refer to the {\tt AmrAdv} class in the {\tt amrex/Tutorials/Amr/AmrCore\_Advection/Source} code for a sample implementation.
+
+\subsection{{\tt TagBox}, and {\tt Cluster}}
+These classes are used in the grid generation process.  They are largely
+hidden from any application codes.
+
+The {\tt TagBox} class is essentially a data structure that marks which
+cells are ``tagged'' for refinement.
+
+{\tt Cluster} (and {\tt ClusterList} contained within the same file) are classes
+that help sort tagged cells and generate a grid structure that contains all
+the tagged cells.
+
+
 
 \subsection{{\tt FillPatchUtil}}\label{sec:amrcore:fillpatch}
 
@@ -227,10 +265,8 @@ the class {\tt ParGDBBase} (in {\tt Src/Particle/AMReX\_ParGDB}).
 
 \section{{\tt Advection\_AmrCore} Example}
 This example uses the class {\tt AmrAdv}, which is derived from the class {\tt AmrCore} 
-(which is derived from {\tt AmrMesh}).  The function definitions are given in {\tt AmrAdv.H}.
-The function implementations are split among 5 files 
-({\tt AmrAdv.cpp}, {\tt AmrAdvInit.cpp}, {\tt AmrAdvEvolve.cpp}, {\tt AmrAdvIO.cpp}, and {\tt AmrAdvError.cpp}).
-
+(which is derived from {\tt AmrMesh}).  The function definitions/implementations
+are given in {\tt AmrAdv.H/cpp}.  
 Here is a high-level pseudo-code of the flow of the program:
 \begin{lstlisting}[language=cpp]
 /* Advection_AmrCore Pseudocode */
@@ -275,7 +311,7 @@ main()
 \end{lstlisting}
 
 \subsection{{\tt FluxRegister}s}
-The function {\tt AmrAdv::Advance()} (in {\tt AmrAdvEvolve.cpp}) calls the fortran
+The function {\tt AmrAdv::Advance()} calls the fortran
 subroutine, {\tt advect} (in {\tt ./Src\_xd/Adv\_xd.f90}).  {\tt advect} computes
 and returns the time-advanced state as well as the fluxes used to update the state.
 These fluxes are used to set or increment the flux registers.
