@@ -13,7 +13,7 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
-//#include "AMReX_parstream.H"
+#include "AMReX_parstream.H"
 
 namespace amrex
 {
