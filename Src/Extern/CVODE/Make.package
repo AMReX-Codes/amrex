@@ -1,0 +1,4 @@
+f90EXE_sources += cvode_interface.f90
+f90EXE_sources += fnvector_serial.f90
+f90EXE_sources += sundials_fdlsmat.f90
+f90EXE_sources += integrator_stats.f90

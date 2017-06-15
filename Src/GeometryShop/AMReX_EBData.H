@@ -122,20 +122,39 @@ namespace amrex
     const Real& bndryArea(const VolIndex& a_vof) const;
 
     ///
+    static bool preAllocatable () { return false; }
+
+    ///
     RealVect normal(const VolIndex& a_vof) const;
 
+    ///this is for copy and fillboundary where the metadata is already filled in
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
 
+    ///this is for copy and fillboundary where the metadata is already filled in
     std::size_t copyToMem (const Box& srcbox,
                            int        srccomp,
                            int        numcomp,
                            void*      dst) const;
 
 
+    ///this is for copy and fillboundary where the metadata is already filled in
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
+
+
+
+    ///this includes all metadata
+    std::size_t nBytesFull() const;
+
+    ///this includes all metadata
+    std::size_t copyToMemFull(void*      dst) const;
+
+
+    ///this includes all metadata
+    std::size_t copyFromMemFull(const void* src);
+
 
     ///
     void addFullIrregularVoFs(const IntVectSet& a_vofsToChange,
@@ -165,8 +184,21 @@ namespace amrex
       {
         return m_faceData[a_idir];
       }
+    const Box& getRegion() const
+      {
+        return m_region;
+      }
 
-  private:
+    ///invalid but necessary for fabarray to compile in certain cases
+    EBDataImplem(const Box& a_region,
+                 int        n ,
+                 bool       alloc,
+                 bool       shared)
+      {
+        //this strictly for checkpointing 
+        m_region = a_region;
+      }
+private:
 
     Box m_region;
 
@@ -245,11 +277,25 @@ namespace amrex
       {
       }
 
+    ///invalid but necessary for fabarray to compile in certain cases
+    EBData(const Box& a_region,
+           int        n,
+           bool       alloc,
+           bool       shared)
+      : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem(a_region, n, alloc, shared) ) )
+
+      {
+      }
     ///
     ~EBData()
       {
       }
 
+
+    const Box& getRegion() const
+      {
+        return m_implem->getRegion();
+      }
 
     ///this is just a way around smart pointers being too smart.
     ///this keeps the input pointer from being deleted.  Not for the faint of heart.
@@ -269,11 +315,34 @@ namespace amrex
       }
 
     ///
+    static bool preAllocatable () { return false; }
+
+    ///
     /**
     */
     EBData(const Box& a_box, int a_comps)
       : m_implem( shared_ptr<EBDataImplem>( new EBDataImplem(a_box, a_comps) ) )
       {
+      }
+
+    ///this includes all metadata
+    std::size_t nBytesFull() const
+      {
+        return m_implem->nBytesFull();
+      }
+
+
+    ///this includes all metadata
+    std::size_t copyToMemFull(void*      dst) const
+      {
+        return m_implem->copyToMemFull(dst);
+      }
+
+
+    ///this includes all metadata
+    std::size_t copyFromMemFull(const void* src)
+      {
+        return m_implem->copyFromMemFull(src);
       }
 
     ///
@@ -391,11 +460,13 @@ namespace amrex
         return *this;
       }
 
+    ///this is for copy or fillboundary where the meta data is already filled
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
       {
         return m_implem->nBytes(bx, start_comp, ncomps);
       }
 
+    ///this is for copy or fillboundary where the meta data is already filled
     std::size_t copyToMem (const Box& srcbox,
                            int        srccomp,
                            int        numcomp,
@@ -405,6 +476,7 @@ namespace amrex
       }
 
 
+    ///this is for copy or fillboundary where the meta data is already filled
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
@@ -412,6 +484,8 @@ namespace amrex
       {
         return m_implem->copyFromMem(dstbox, dstcomp, numcomp, src);
       }
+
+
 
 
     ///

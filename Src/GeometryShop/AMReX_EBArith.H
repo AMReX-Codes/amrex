@@ -17,6 +17,7 @@
 #include "AMReX_EBISBox.H"
 #include "AMReX_Stencils.H"
 #include "AMReX_IntVectSet.H"
+#include <sstream>
 
 
 namespace amrex
@@ -55,6 +56,23 @@ namespace amrex
                     const Box           & a_domain,
                     const int           & a_idir,
                     const Side::LoHiSide& a_side);
+
+    ///
+    static string convertInt(int number)
+      {
+        stringstream ss;//create a stringstream
+        ss << number;//add number to the stream
+        return ss.str();//return a string with the contents of the stream
+      }
+
+    ///
+    static string convertReal(Real number)
+      {
+        stringstream ss;//create a stringstream
+        ss << number;//add number to the stream
+        return ss.str();//return a string with the contents of the stream
+      }
+
     ///for hyperbolics, heaven help us all.
     static
     void
