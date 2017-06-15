@@ -302,7 +302,8 @@ namespace amrex
       IntVectSet vofsToChange;
       Box valid = mfi.validbox();
       m_graph[mfi].getRegNextToMultiValued(vofsToChange, valid);
-      m_data[ mfi].addFullIrregularVoFs( vofsToChange, valid);
+      m_graph[mfi].addFullIrregularVoFs(vofsToChange);
+      m_data[ mfi].addFullIrregularVoFs(vofsToChange, valid);
 
     }
     m_data .FillBoundary();

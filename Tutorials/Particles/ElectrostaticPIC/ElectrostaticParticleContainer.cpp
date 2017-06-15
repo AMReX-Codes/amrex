@@ -207,22 +207,30 @@ FieldGather(const VectorMeshData& E,
             const FArrayBox& eyfab = (*E[lev][1])[pti];
             const FArrayBox& ezfab = (*E[lev][2])[pti];
 
-            const FArrayBox& exfab_coarse = coarse_Ex[pti];
-            const FArrayBox& eyfab_coarse = coarse_Ey[pti];
-            const FArrayBox& ezfab_coarse = coarse_Ez[pti];
-
-            const Box& coarse_box = coarsened_fine_BA[pti];
-            const Real* coarse_dx = Geom(0).CellSize();
-
-            interpolate_cic_two_levels(particles.data(), nstride, np,
-                                       Exp.data(), Eyp.data(), Ezp.data(),
-                                       exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                                       box.loVect(), box.hiVect(), dx, 
-                                       exfab_coarse.dataPtr(), eyfab_coarse.dataPtr(),
-                                       ezfab_coarse.dataPtr(),
-                                       (*masks[1])[pti].dataPtr(),
-                                       coarse_box.loVect(), coarse_box.hiVect(), coarse_dx,
-                                       plo, &ng, &lev);
+            if (lev == 0) {
+                interpolate_cic(particles.data(), nstride, np,
+                                Exp.data(), Eyp.data(), Ezp.data(),
+                                exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+                                box.loVect(), box.hiVect(), plo, dx, &ng);                
+            } else {
+                
+                const FArrayBox& exfab_coarse = coarse_Ex[pti];
+                const FArrayBox& eyfab_coarse = coarse_Ey[pti];
+                const FArrayBox& ezfab_coarse = coarse_Ez[pti];
+                
+                const Box& coarse_box = coarsened_fine_BA[pti];
+                const Real* coarse_dx = Geom(0).CellSize();
+                
+                interpolate_cic_two_levels(particles.data(), nstride, np,
+                                           Exp.data(), Eyp.data(), Ezp.data(),
+                                           exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+                                           box.loVect(), box.hiVect(), dx, 
+                                           exfab_coarse.dataPtr(), eyfab_coarse.dataPtr(),
+                                           ezfab_coarse.dataPtr(),
+                                           (*masks[1])[pti].dataPtr(),
+                                           coarse_box.loVect(), coarse_box.hiVect(), coarse_dx,
+                                           plo, &ng, &lev);
+            }
         }
     }
 };
@@ -269,18 +277,6 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
             const FArrayBox& exfab  = (*E[lev][0])[pti];
             const FArrayBox& eyfab  = (*E[lev][1])[pti];
             const FArrayBox& ezfab  = (*E[lev][2])[pti];
-            
-//            Exp.assign(np,0.0);
-//            Eyp.assign(np,0.0);
-//            Ezp.assign(np,0.0);
-            
-            //
-            // Field Gather
-            //
-//            interpolate_cic(particles.data(), nstride, np, 
-//                            Exp.data(), Eyp.data(), Ezp.data(),
-//                            exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-//                            box.loVect(), box.hiVect(), plo, dx, &ng);
             
             //
             // Particle Push
