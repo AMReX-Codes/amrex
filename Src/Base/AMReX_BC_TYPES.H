@@ -54,9 +54,24 @@ REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
 
 #endif
 
-#ifndef BL_LANG_FORT
+#ifdef __cplusplus
+namespace amrex {
+
 enum physicalBndryTypes {Interior,Inflow,Outflow,Symmetry,
                          SlipWall,NoSlipWall};
+
+namespace BCType {
+enum mathematicalBndryTypes {
+    reflect_odd  = -1,
+    int_dir      =  0,
+    reflect_even =  1,
+    foextrap     =  2,
+    ext_dir      =  3,
+    hoextrap     =  4
+};
+};
+
+};
 #endif
 
 #define BOGUS_BC -666

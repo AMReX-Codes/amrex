@@ -162,22 +162,24 @@ to change the value of {\tt ncells} and {\tt hydro.cfl}.
 
 In block-structured AMR, there is a hierarchy of logically rectangular
 grids.  The computational domain on each AMR level is decomposed into
-a union of rectangular domains.  Figure~\ref{fig:basics:amrgrids} shows
-an example of AMR grids.  There are three total levels in the example.
-The coarsest grid ({\emph{black}) covers the domain with $16^2$
+a union of rectangular domains.  Figure~\ref{fig:basics:amrgrids}
+shows an example of AMR grids.  There are three total levels in the
+example.  In \amrex\ numbering convention, the coarsest level is level
+0.  The coarsest grid ({\emph{black}) covers the domain with $16^2$
 cells. Bold lines represent grid boundaries.  There are two
 intermediate resolution grids ({\emph{blue}}) are at level 1 and the
-cells are a factor of two finer than those at level 0.  The two
-finest grids ({\emph{red}}) are at level 2 and the cells are a
-factor of two finer than the level 1 cells.  Note that there is no
-direct parent-child connection.  In this chapter, we will focus on
-single levels.
+cells are a factor of two finer than those at level 0.  The two finest
+grids ({\emph{red}}) are at level 2 and the cells are a factor of two
+finer than the level 1 cells.  Note that there is no direct
+parent-child connection.  In this chapter, we will focus on single
+levels.
 
 \begin{figure}
   \centering
   \includegraphics[width=3in]{./Basics/amrgrids.pdf}
   \caption{\label{fig:basics:amrgrids} Example of AMR grids.  There are
-    three levels in total.}
+    three levels in total.  There are 1, 2 and 2 {\tt Box}es on levels
+  0, 1, and 2, respectively.}
 \end{figure}
 
 \section{Box, IntVect and IndexType}
@@ -942,7 +944,7 @@ communication is {\tt FillBoundary}.
   mf.FillBoundary();                    // Fill ghost cells for all components
                                         // Periodic boundaries are not filled.
   mf.FillBoundary(geom.periodicity());  // Fill ghost cells for all components
-                                        // Periodic boundaries are not filled.
+                                        // Periodic boundaries are filled.
   mf.FillBoundary(2, 3);        // Fill 3 components starting from component 2
   mf.FillBoundary(geom.periodicity(), 2, 3);
 \end{lstlisting}
@@ -1055,7 +1057,10 @@ binding interface like below,
 \end{lstlisting}
 Here {\tt amrex\_fort\_module} is a Fortran module in \amrex\ and {\tt
   amrex\_real} is a Fortran kind parameter that matches {\tt
-  amrex::Real} in \cpp.
+  amrex::Real} in \cpp.  In this example, we assume the spatial
+dimension is 3.  In 2D, the function interface is different.  In
+Section~\ref{sec:basics:fortran}, we will present a dimension agnostic
+approach using macros provided by \amrex.
 
 {\tt MFIter} only loops over grids owned by the processes.  For
 example, suppose there are 5 {\tt Box}es in total and processes 0 and
@@ -1130,21 +1135,31 @@ done by transforming the loops into tiling loops that iterate over
 tiles and element loops that iterate over the data elements within a
 tile.  For example, the original loops might look like
 \begin{lstlisting}[language=fortran]
-  do j = jmin, jmax
-    do i = imin, imax
-      A(i,j) = B(i+1,j) + B(i-1,j) + B(i,j+1) + B(i,j-1) - 4.0d0 * B(i,j)
+  do k = kmin, kmax
+    do j = jmin, jmax
+      do i = imin, imax
+        A(i,j,k) = B(i+1,j,k)+B(i-1,j,k)+B(i,j+1,k)+B(i,j-1,k) &
+                   B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)
+      end do
     end do
   end do
 \end{lstlisting}
 And the manually tiled loops might look like
 \begin{lstlisting}[language=fortran]
   jblocksize = 11
+  kblocksize = 16
   jblocks = (jmax-jmin+jblocksize-1)/jblocksize
-  do jb = 0, jblocks-1
-    do j = jb*jblocksize, min((jb+1)*jblocksize-1,jmax)
-      do i = imin, imax
-        A(i,j) = B(i+1,j) + B(i-1,j) + B(i,j+1) + B(i,j-1) - 4.0d0 * B(i,j)
-      end
+  kblocks = (kmax-kmin+kblocksize-1)/kblocksize
+  do kb = 0, kblocks-1
+    do jb = 0, jblocks-1
+      do k = kb*kblocksize, min((kb+1)*kblocksize-1,kmax)
+        do j = jb*jblocksize, min((jb+1)*jblocksize-1,jmax)
+          do i = imin, imax
+            A(i,j,k) = B(i+1,j,k)+B(i-1,j,k)+B(i,j+1,k)+B(i,j-1,k) &
+                       B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)          
+          end do
+        end do
+      end do
     end do
   end do
 \end{lstlisting}
@@ -1318,19 +1333,427 @@ show examples of {\tt growntilebox}.
   \end{minipage}
 \end{figure}
 
+These functions in {\tt MFIter} return {\tt Box} by value.  There are
+two ways of using these functions.
+\begin{lstlisting}[language=cpp]
+  const Box& bx = mfi.validbox();  // const& to temporary object is legal
+
+  // Make a copy if Box needs to be modified later.
+  // Compilers can optimize away the temporary object.
+  Box bx2 = mfi.validbox();
+  bx2.surroundingNodes();
+\end{lstlisting}
+But {\tt Box\& bx = mfi.validbox()} is not legal and will not compile.  
+
 \section{Calling Fortan or C}
 \label{sec:basics:fortran}
 
-% pass by reference or value
-% macros and anyd,
- 
-\section{Physical Boundary}
+In Section~\ref{sec:basics:mfiter}, we have shown that a typical
+pattern for working with {\tt MultiFab}s is use {\tt MFIter} to
+iterate over the data.  In each iteration, a kernel function is called
+to work on the data and the work region is specified by a {\tt Box}.
+When tiling is used, the work region is a tile.  The tiling is logical
+in the sense that there is no data layout transformation.  The kernel
+function still gets the whole arrays in {\tt FArrayBox}es, even though
+it is supposed to work on a tile region of the arrays.  To \cpp, these
+kernel functions are C functions, whose function signatures are
+typically declared in a header file named {\tt *\_f.H} or {\tt
+  *\_F.H}.  We recommend the users to follow this convention.
+Examples of these function declarations are as follows.
+\begin{lstlisting}[language=cpp]
+  #include <AMReX_BLFort.H>
+  #ifdef __cplusplus
+  extern "C"
+  {
+  #endif
+      void f1(const int*, const int*, amrex_real*, const int*, const int*);
+      void f2(const int*, const int*,
+              const amrex_real*, const int*, const int*, const int*
+              amrex_real*, const int*, const int*, const int*);
+  #ifdef __cplusplus
+  }
+  #endif
+\end{lstlisting}
+One can write the functions in C and should include the header
+containing the function declarations in the C source code to ensure
+type safety.  However, we typically write these kernel functions in
+Fortran because of the native multi-dimensional array support.   As we
+have seen in Section~\ref{sec:basics:mfiter}, these Fortran functions
+take C pointers and view them as multi-dimensional arrays of the shape
+specified by the additional integer arguments.  Note that Fortran
+takes arguments by reference unless the {\tt value} keyword is used.
+So an integer argument on the Fortran side matches an integer pointer
+on the \cpp\ side.  Thanks to Fortran 2003, function name mangling is
+easily achieved by declaring the Fortran function as {\tt bind(c)}.
+
+\amrex\ provides many macros for passing an {\tt FArrayBox}'s data
+into Fortran/C.  For example
+\begin{lstlisting}[language=cpp]
+  for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+  {
+      const Box& box = mfi.tilebox();
+      f(BL_TO_FORTRAN_BOX(box),
+        BL_TO_FORTRAN_ANYD(mf[mfi]));
+  }
+\end{lstlisting}
+Here {\tt BL\_TO\_FORTRAN\_BOX} takes a {\tt Box} and provides two
+{\tt int*}s specifying the lower and upper bounds of the {\tt Box}.
+{\tt BL\_TO\_FORTRAN\_ANYD} takes an {\tt FArrayBox} returned by {\tt
+  mf[mfi]} and the preprocessor turns it into {\tt Real*, int*, int*},
+where {\tt Real*} is the data pointer that matches real array argument
+in Fortran, the first {\tt int*} (which matches an integer argument in
+Fortran) specifies the lower bounds, and the second {\tt int*} the
+upper bounds of the spatial dimensions of the array.  Similar to we
+have seen in Section~\ref{sec:basics:mfiter}, a matching Fortran
+function is shown below,
+\begin{lstlisting}[language=fortran]
+subroutine f(lo, hi, u, ulo, uhi) bind(c)
+  use amrex_fort_module, only : amrex_real
+  integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3)
+  real(amrex_real),intent(inout)::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3))
+end subroutine f
+\end{lstlisting}
+Here, the size of the integer arrays is 3, the maximal number of
+spatial dimensions.  If the actual spatial dimension is less than 3,
+the degenerate dimensions are set to zero.  So the Fortran function
+interface does not have to change according to the spatial
+dimensionality, and the bound of the third dimension of the data array
+simply becomes {\tt 0:0}.  With the data passed by {\tt
+  BL\_TO\_FORTRAN\_BOX} and {\tt BL\_FORTRAN\_ANYD}, this version of
+Fortran function interface works for any spatial dimensions.  If one
+wants to write a special version just for 2D and would like to use 2D
+arrays, one can use
+\begin{lstlisting}[language=fortran]
+subroutine f2d(lo, hi, u, ulo, uhi) bind(c)
+  use amrex_fort_module, only : amrex_real
+  integer, intent(in) :: lo(2),hi(2),ulo(2),uhi(2)
+  real(amrex_real),intent(inout)::u(ulo(1):uhi(1),ulo(2):uhi(2))
+end subroutine f2d
+\end{lstlisting}
+Note that this does not require any changes in \cpp\ part, because
+when \cpp\ passes an integer pointer pointing to an array of three
+integers Fortran can treat it as a 2-element integer array.
+
+Another commonly used macro is {\tt BL\_TO\_FORTRAN}.  This macro
+takes an {\tt FArrayBox} and provides a real pointer for the floating
+point data array and a number of integer pointers for the bounds.
+However, the number of the integers depends on the dimensionality.
+More specifically, there are 6 and 4 integers for 2D and 3D,
+respectively.  The first half of the integers are the lower bounds for
+each spatial dimension and the second half the upper bounds.  For
+example,
+\begin{lstlisting}[language=fortran]
+subroutine f2d(u, ulo1, ulo2, uhi1, uhi2) bind(c)
+  use amrex_fort_module, only : amrex_real
+  integer, intent(in) :: ulo1, ulo2, uhi1, uhi2
+  real(amrex_real),intent(inout)::u(ulo1:uhi1,ulo2:uhi2)
+end subroutine f2d
+
+subroutine f3d(u, ulo1, ulo2, ulo3, uhi1, uhi2, uhi3) bind(c)
+  use amrex_fort_module, only : amrex_real
+  integer, intent(in) :: ulo1, ulo2, ulo3, uhi1, uhi2, uhi3
+  real(amrex_real),intent(inout)::u(ulo1:uhi1,ulo2:uhi2,ulo3:uhi3)
+end subroutine f3d
+\end{lstlisting}
+Here for simplicity we have omitted passing the tile {\tt Box}.
+
+Usually {\tt MultiFab}s have multiple components.  Thus we often also
+need to pass the number of component into Fortran functions.  We can
+obtain the number by calling the {\tt MultiFab::nComp()} function, and
+pass it to Fortran as we have seen in Section~\ref{sec:basics:mfiter}.
+We can also use the {\tt BL\_TO\_FORTRAN\_FAB} macro that is similar
+to {\tt BL\_TO\_FORTRAN\_ANYD} except that it provides an additional
+{\tt int*} for the number of components.  The Fortran function
+matching {\tt BL\_TO\_FORTRAN\_FAB(fab)} is then like below,
+\begin{lstlisting}[language=fortran]
+subroutine f(u, ulo, uhi,nu) bind(c)
+  use amrex_fort_module, only : amrex_real
+  integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),nu
+  real(amrex_real),intent(inout)::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nu)
+end subroutine f
+\end{lstlisting}
+
+\section{Boundary}
+
+\amrex\ uses {\tt MultiFab} as the data container for floating point
+data on multiple {\tt Box}es on a single AMR level.  Each rectangular
+Box has its own boundaries.  A {\tt MultiFab} can have ghost cells for
+storing data outside its grid {\tt Box} boundaries.  This allows us to
+perform stencil type of operations on regular arrays.  There are three
+basic types of boundaries: (1) interior boundary; (2) coarse/fine
+boundary; and (3) physical boundary.  Periodic boundary is not
+considered a basic type in the discussion here because after periodic
+transformation it becomes either interior boundary or coarse/fine
+boundary. 
+
+Interior boundary is the border among the grid {\tt Box}es themselves.
+For example, in Figure~\ref{fig:basics:amrgrids}, the two blue grid
+{\tt Box}es on level 1 share an interior boundary that is 6 cells
+long.  For a {\tt MultiFab} with ghost cells on level 1, we can use
+the {\tt MultiFab::FillBoundary} function introduced in
+Section~\ref{sec:basics:multifab} to fill ghost cells at the interior
+boundary with valid cell data from other {\tt Box}es.
+
+Coarse/fine boundary is the border between two AMR levels.  {\tt
+FillBoundary} does not fill these ghost cells.  These ghost cells on
+the fine level need to be interpolated from the coarse level data.
+This is a subject that will be discussed in
+Section~\ref{sec:amrcore:fillpatch}. 
+
+The third type of boundary is the physical boundary at the physical
+domain.  Note that both coarse and fine AMR levels could have grids
+touching the physical boundary.  It is up to the application codes to
+properly fill the ghost cells at the physical boundary.
+However, \amrex\ does provide support for some common operations.
+Here is an example of filling ghost cells at the physical boundary
+with first-order extrapolation (i.e., filling the ghost cells with the
+data from the last valid cell).
+\begin{lstlisting}[language=cpp]
+  // mf : MultiFab
+  // geom : Geometry
+  const Box& domain_box = geom.Domain(); // Box for the whole domain
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+  {
+      FArrayBox& fab = mf[mfi];
+      const Box& fab_box = fab.box(); // including ghost cells
+      if (!domain_box.contains(fab_box))
+      {
+          // This FArrayBox touches the domain boundary.
+          my_physbc_f();
+      }
+  }
+\end{lstlisting}
+\begin{lstlisting}[language=fortran]
+  subroutine my_physbc_f(u) bind(c)
+    use amrex_fillcc_module, only : amrex_filcc
+    call amrex_filcc(u,ulo,uhi...)
+  end subroutine my_physbc_f
+\end{lstlisting}
 
 \section{I/O}
 
+In this section, we will discuss parallel I/O capabilities for mesh
+data in \amrex.  Section~\ref{sec:Particles:IO} will discuss I/O for
+particle data.
+
+\subsection{Plotfile}
+
+\amrex\ has its native plotfile format.  Many visualization tools are
+available for \amrex\ plotifles
+(Chapter~\ref{Chap:Visualization}).  \amrex\ provides the following
+two functions for writing a generic \amrex\ plotfile.  Many \amrex\
+application codes may have their own plotifile routines that store
+additional information such as compiler options, git hashes of the
+source codes and {\tt ParmParse} runtime parameters.
+\begin{lstlisting}[language=cpp]
+  void WriteSingleLevelPlotfile (const std::string &plotfilename,
+                                 const MultiFab &mf,
+                                 const Array<std::string> &varnames,
+                                 const Geometry &geom,
+                                 Real time,
+                                 int level_step);
+
+  void WriteMultiLevelPlotfile (const std::string &plotfilename,
+                                int nlevels,
+                                const Array<const MultiFab*> &mf,
+                                const Array<std::string> &varnames,
+                                const Array<Geometry> &geom,
+                                Real time,
+                                const Array<int> &level_steps,
+                                const Array<IntVect> &ref_ratio);
+\end{lstlisting}
+{\tt WriteSingleLevelPlotfile} is for single level runs and {\tt
+WriteMultiLevelPlotfile} is for multiple levels.  The name of the
+plotfile is specified by the `plotfilename` argument.  This is the
+directory name and for the plotfile.  In \amrex\ convention, the
+plotfile name consist of letters followed by numbers (e.g., {\tt
+plt00258}).  {\tt amrex::Concatenate} is a useful helper function for
+making such strings,
+\begin{lstlisting}[language=cpp]
+  int istep = 258;
+  const std::string& pfname = amrex::Concatenate("plt",istep); // plt00258
+
+  // By default there are 5 digits, but we can change it to say 4.
+  const std::string& pfname2 = amrex::Concatenate("plt",istep,4); // plt0258  
+
+  istep =1234567;  // Having more than 5 digits is OK.
+  const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
+\end{lstlisting}
+Argument {\tt mf} ({\tt MultiFab} for single level and {\tt
+Array<const Multifab*} for multi-level) is the data to be written to
+the disk.  Note that many visualization tools expect this to be
+cell-centered data.  So for nodal data, we need to convert them
+cell-centered data through some kind of averaging.  Also note that if
+you have data at each AMR level in several {\tt MulitiFab}s, you need
+to build a new {\tt MultiFab} at each level to hold all the data.
+This involves local data copy in memory and is not expected to
+increase the total wall time for writing data to the disk.  For the
+multi-level version, the function expects {\tt Array<const
+MultiFab*>}, whereas the multi-level data are often stored as {\tt
+Array<std::unique\_ptr<MultiFab>>}.  \amrex\ has a helper function for
+this and one can use it as follows,
+\begin{lstlisting}[language=cpp]
+   WriteMultiLevelPlotfile(......, amrex::GetArrOfConstPtrs(mf), ......);
+\end{lstlisting}
+Argument {\tt varnames} has the names for each component of the {\tt
+MultiFab} data.  The size of the {\tt Array} should be equal to the
+number of components.  Argument {\tt geom} is for passing {\tt
+Geometry} objects that contain the physical domain
+information. Argument {\tt time} is for the time associated with the
+data.  Argument {\tt level\_step} is for the current time step
+associated with the data.  For multi-level plotfiles, argument {\tt
+nlevels} is the total number of levels, and we also need to provide
+the refinement ratio via an {\tt Array} of size {\tt nlevels-1}.
+
+We note that \amrex\ does not overwrite old plotfiles if the new
+plotfile has the same name.  The old plotfiles will be renamed to
+new directories named like {\tt plt00350.old.46576787980}.
+
+\subsection{Checkpoint File}
+
+Checkpoint files are used for restarting simulations from where the
+checkpoints are written.  Each application code has its own set of
+data needed for restart.  \amrex\ provides I/O functions for basic
+data structures like {\tt MultiFab} and {\tt BoxArray}.  These
+functions can be used to build codes for reading and writing
+checkpoint files.  Since each application code has its own
+requirement, there is no standard \amrex\ checkpoint format.
+
+Typically a checkpoint file is a directory containing some text files
+and sub-directories (e.g., {\tt Level\_0} and {\tt Level\_1}).  For
+example, to build directories {\tt chk00016}, {\tt chk00016/Level\_0},
+and {\tt chk00016/Level\_1}, we do
+\begin{lstlisting}[language=cpp]
+  const std::string& chkname {"chk00016"};
+  const std::string& subDirPrefix {"Level_"};
+  const int nSubDirs = 2;
+  const bool callBarrier = true; // Parallel barrier after directories are built.
+  PreBuildDirectorHierarchy(chkname, subDirPrefix, nSubDirs, callBarrier);
+\end{lstlisting}
+
+A checkpoint file of \amrex\ application codes often has a clear text
+{\tt Header} file that only the I/O process writes to it using {\tt
+std::ofstream}.  The {\tt Header} file contains information such as
+the time, the physical domain size, grids, etc. that are necessary for
+restarting the simulation.  To guarantee that precision is not lost
+for storing floating point number like time in clear text file, the
+file stream's precision needs to be set properly.  And a stream buffer
+can also be used.  For example,
+\begin{lstlisting}[language=cpp]
+  if (ParallelDescriptor::IOProcessor())
+  {
+      const std::string& chkname = "chk00016";
+      std::string HeaderFileName(chkname+"/Header");
+      std::ofstream HeaderFile(HeaderFileName.c_str(),
+           std::ofstream::out | std::ofstream::trunc | std::ofstream::binary);
+      HeaderFile.precision(std::numeric_limits<Real>::max_digits10);
+      VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+      HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
+      HeaderFile << "Checkpoint version 1.0\n";
+      HeaderFile << time << "\n";
+      HeaderFile << domain_box << "\n";
+      // HeaderFile << ......;
+      box_array.writeOn(HeaderFile); // write BoxArray
+      // HeaderFile << ......;
+  }
+\end{lstlisting}
+For reading the {\tt Header} file, \amrex\ can have the I/O process
+read the file from the disk and broadcast it to others as {\tt
+Array<char>}.  Then all processes can read the information with {\tt
+std::istringstream}.  For example,
+\begin{lstlisting}[language=cpp]
+  std::string HeaderFileName {"chk00016/Header"};
+  Array<char> fileChar;
+  ParallelDescriptor::ReadAndBcastFile(HeaderFileName, fileChar);
+  std::istringstream is(std::string{fileChar.data()}, std::istringstream::in);
+  // is >> ....;
+  BoxArray ba;
+  ba.readFrom(is);
+  // is >> ....;
+\end{lstlisting}
+
+{\tt amrex::VisMF} is a class that can be used to perform parallel
+read and write {\tt MultiFab}s on the disk.  How many processes are
+allowed to perform I/O simultaneously can be set via
+\begin{lstlisting}[language=cpp]
+  VisMF::SetNOutFiles(64);  // up to 64 processes, which is also the default.
+\end{lstlisting}
+The optimal number is of course system dependent.  The following code
+shows how to write and read a {\tt MultiFab}.
+\begin{lstlisting}[language=cpp]
+  const std::string name {"state"};
+
+  VisMF::Write(mf, name);  // Write MultiFab to disk
+
+  // Read the data to a new MultiFab
+  // WARNING: mf2 may have a completely different DistributionMapping!
+  MultiFab mf2;
+  VisMF::Read(mf2, name);
+
+  // Read the data to a new MultiFab with identical
+  // BoxArray, DistributionMapping, and number of components and ghost cells.
+  MultiFab mf3(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
+  VisMF::Read(mf3, name);
+\end{lstlisting}
+It should be emphasized that calling {\tt VisMF::Read} with an empty
+{\tt MultiFab} (i.e., no memory allocated for floating point data)
+will result in a {\tt MuitiFab} with a new {\tt DistributionMapping}
+that could be different from any other existing {\tt
+DistributionMapping} objects.  It should also be noted that all the
+data including those in ghost cells are written/read by {\tt
+VisMF::Write/Read}. 
+
 \section{Memory Allocation}
 
-% resize
+\amrex\ has a Fortran module, {\tt mempool\_module} that can be used to
+allocate memory for Fortran pointers.  The reason that such a module
+exists in \amrex\ is memory allocation is often very slow in
+multi-threaded OpenMP parallel regions.  \amrex\ {\tt mempool\_module}
+provides a much faster alternative approach, in which each thread has
+its own memory pool.  Here are examples of using the module.
+\begin{lstlisting}[language=fortran]
+  use mempool_module, only : bl_allocate, bl_deallocate
+  real(amrex_real), pointer, contiguous :: a(:,:,:), b(:,:,:,:)
+  integer :: lo1, hi1, lo2, hi2, lo3, hi3, lo(4), hi(4)
+  // lo1 = ...
+  // a(lo1:hi1, lo2:hi2, lo3:hi3)
+  call bl_allocate(a, lo1, hi1, lo2, hi2, lo3, hi3)
+  // b(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),lo(4):hi(4))
+  call bl_allocate(b, lo, hi)
+  // ......
+  call bl_deallocate(a)
+  call bl_deallocate(b)
+\end{lstlisting}
+The downside of this is we have to use {\tt pointer} instead of {\tt
+allocatable}.  This means we must explicitly free the memory via {\tt
+bl\_deallocate} and we need to declare the pointers as {\tt
+contiguous} for performance reason.
 
-\section{Abort, Assertion, Floating-Point Exceptions, and Backtrace}
-% FArrayBox init nan check nan .... contains_nan
+\section{Abort and Assertion}
+
+{\tt amrex::Abort(const char* message)} is used to terminate a run
+usually when something goes wrong.  This function takes a message and
+write it to stderr.  Files named like {\tt Backtrace.rg\_1\_rl\_1}
+(where {\tt rg\_1\_rl\_1} means process \# 1) are produced containing
+backtrace information of the call stack.  In Fortran, we can call {\tt
+amrex\_abort} from the {\tt amrex\_error\_module}, which takes a
+Fortran {\tt character} variable with assumed size (i.e., {\tt len=*})
+as a message.
+
+{\tt AMREX\_ASSERT} is a macro that takes a Boolean expression.  For
+debug build (e.g., {\tt DEBUG=TRUE} using the GNU Make build system),
+if the expression at runtime is evaluated to false, {\tt amrex::Abort}
+will be called and the run is thus terminated.  For optimized build
+(e.g., {\tt DEBUG=TRUE} using the GNU Make build system), the {\tt
+AMREX\_ASSERT} statement is removed at compile time and thus has no
+effect at runtime.  We often use this as a means of putting debug
+statement in the code without adding any extra cost for production
+runs.  For example,
+\begin{lstlisting}[language=cpp]
+  AMREX_ASSERT(mf.nGrow() > 0 && mf.nComp() == mf2.nComp());
+\end{lstlisting}
+Here for debug build we like to assert that {\tt MultiFab} {\tt mf}
+has ghost cells and it also has the same number of components as {\tt
+MultiFab} {\tt mf2}.  If we always want the assertion, we can use {\tt
+AMREX\_ALWAYS\_ASSERT}.

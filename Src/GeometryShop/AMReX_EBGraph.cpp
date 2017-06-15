@@ -13,9 +13,11 @@
 #include "AMReX_BoxIterator.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
+#include "AMReX_parstream.H"
 
 namespace amrex
 {
+  Box f_debbox(IntVect(D_DECL(16,8,0)), IntVect(D_DECL(16,15,0)));
   /*******************************/
   std::vector<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
                                                       const Box&  a_box) const
@@ -1793,16 +1795,39 @@ namespace amrex
   {
     //regular irregular covered flag
     std::size_t linearSize = sizeof(int);
+    //domain
+    linearSize +=  Box::linearSize();
+//    bool blab = (a_region == f_debbox);
+//    if(blab)
+//    {
+//      pout() << "nbytes after domain retval = " << linearSize << endl;
+//    }
     if (!isRegular(a_region) && !isCovered(a_region))
     {
+//      if(blab)
+//      {
+//        pout() << "nbytes inside irregular bit "  << endl;
+//      }
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
       {
         const GraphNode& node = m_graph(bit(), 0);
+//        if(blab && (bit()==IntVect(D_DECL(16,12,0))))
+//        {
+//          node.m_verbose = true;
+//        }
         int nodeSize = node.linearSize();
+//        if(blab)
+//        {
+//          node.m_verbose = false;
+//          pout() << "nbytes node for iv  "<< bit() << " size = " << nodeSize  << endl;
+//        }
         linearSize += nodeSize;
       }
     }
-    //cout << "proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
+    if(a_region == f_debbox)
+    {
+      pout() << "nbytes proc id = " << procID() << ", box = " << a_region << " nbytes = " << linearSize << endl;
+    }
     return linearSize;
   }
         
@@ -1815,7 +1840,8 @@ namespace amrex
              void*      a_buf) const
   {
     assert(isDefined());
-    assert(isDomainSet());
+//    bool blab = (a_region == f_debbox);
+
     TAG boxtag;
     if (isRegular(a_region))
     {
@@ -1835,10 +1861,25 @@ namespace amrex
     retval += sizeof(int);
     *intbuf = boxtag;
     intbuf++;
+//    if(blab)
+//    {
+//      pout() << "copytomem retval after tag = " << retval << endl;
+//      pout() << "copytomem boxtag = " <<  boxtag << endl;
+//    }
         
+    unsigned char* buffer = (unsigned char*) intbuf;
+
+    m_domain.linearOut(buffer);
+    size_t incrval = Box::linearSize();
+    buffer    += incrval;
+    retval += incrval;
+
+//    if(blab)
+//    {
+//      pout()  << "copytomem after domain retval = " <<  retval << endl;
+//    }
     if (boxtag == HasIrregular)
     {
-      unsigned char* buffer = (unsigned char*) intbuf;
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
       {
         const GraphNode& node = m_graph(bit(), 0);
@@ -1848,6 +1889,10 @@ namespace amrex
         retval += nodeSize;
       }
     }
+//    if(blab)
+//    {
+//      pout() << "copytomem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
+//    }
     return retval;
   }
         
@@ -1860,16 +1905,33 @@ namespace amrex
                const void* a_buf)
   {
     assert(isDefined());
-    assert(isDomainSet());
-    assert(isDefined());
-    assert(isDomainSet());
+
+//    bool blab = (a_region == f_debbox);
+
 
     std::size_t retval = 0;
     TAG* intbuf = (TAG*) a_buf;
     TAG boxtag = *intbuf;
     retval += sizeof(int);
     intbuf++;
+//    if(blab)
+//    {
+//      pout() << "copyfrommem retval after tag = " << retval << endl;
+//    }
 
+    unsigned char* buffer = (unsigned char*) intbuf;
+
+    m_domain.linearIn(buffer);
+    m_isDomainSet = true;
+    size_t incrval = Box::linearSize();
+    buffer    += incrval;
+    retval += incrval;
+
+//    if(blab)
+//    {
+//      pout()  << "copyfrommem after domain retval = " <<  retval << endl;
+//      pout()  << "copyfrommem boxtag = " <<  boxtag << endl;
+//    }
     if (boxtag == AllCovered)
     {
       //all covered input
@@ -1888,7 +1950,6 @@ namespace amrex
     }
     else
     {
-      unsigned char* buffer = (unsigned char*) intbuf;
       if (isAllRegular() || isAllCovered())
       {
         m_tag = HasIrregular;
@@ -1901,14 +1962,28 @@ namespace amrex
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
       {
         GraphNode& node = m_graph(bit(), 0);
+//        if(blab && (bit()==IntVect(D_DECL(16,12,0))))
+//        {
+//          node.m_verbose = true;
+//        }
         node.linearIn(buffer);
         if (node.isIrregular()>0) (*m_irregIVS)|=bit();
         if (node.size()>1) (*m_multiIVS)|=bit();
         int nodeSize = node.linearSize();
         buffer += nodeSize;
         retval += nodeSize;
+
+//        if(blab)
+//        {
+//          node.m_verbose = false;
+//          pout() << "copyfrommem node for iv  "<< bit() << " size = " << nodeSize  << endl;
+//        }
       }
     }
+//    if(blab)
+//    {
+//      pout() << "copyfrommem proc id = " << procID() << ", box = " << a_region << " nbytes = " << retval  << endl;
+//    }
     return retval;
   }
 }

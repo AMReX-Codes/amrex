@@ -37,10 +37,3 @@ AmrAdv::WritePlotFile () const
     amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
 				    Geom(), t_new[0], istep, refRatio());
 }
-
-void
-AmrAdv::InitFromCheckpoint ()
-{
-    amrex::Abort("AmrAdv::InitFromCheckpoint: todo");
-}
-

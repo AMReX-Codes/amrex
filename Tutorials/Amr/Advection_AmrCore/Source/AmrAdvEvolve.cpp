@@ -15,7 +15,7 @@ AmrAdv::Evolve ()
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
 	if (ParallelDescriptor::IOProcessor()) {
-	    std::cout << "\nSTEP " << step+1 << " starts ..." << std::endl;
+	    std::cout << "\nCoarse STEP " << step+1 << " starts ..." << std::endl;
 	}
 
 	ComputeDt();
@@ -27,7 +27,7 @@ AmrAdv::Evolve ()
 	cur_time += dt[0];
 
 	if (ParallelDescriptor::IOProcessor()) {
-	    std::cout << "STEP " << step+1 << " ends." << " TIME = " << cur_time << " DT = " << dt[0]
+	    std::cout << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time << " DT = " << dt[0]
 		      << std::endl;
 	}
 
@@ -56,12 +56,14 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
     {
         static Array<int> last_regrid_step(max_level+1, 0);
 
-        // regrid doesn't change the base level, so we don't regrid on max_level
+        // regrid changes level "lev+1" so we don't regrid on max_level
         if (lev < max_level && istep[lev] > last_regrid_step[lev])
         {
             if (istep[lev] % regrid_int == 0)
             {
-		int old_finest = finest_level; // regrid changes finest_level
+                // regrid could change finest_level if finest_level < max_level
+                // so we save the previous finest level index
+		int old_finest = finest_level; 
 		regrid(lev, time);
 
 		for (int k = lev; k <= finest_level; ++k) {
