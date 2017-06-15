@@ -34,6 +34,10 @@ if(BL_USE_PARTICLES EQUAL 1)
   list(APPEND F90_source_files AMReX_Particle_mod_${BL_SPACEDIM}d.F90)
 endif()
 
+if(BL_USE_OMP EQUAL 1)
+  list(APPEND F90_source_files AMReX_OMPDepositionHelper_${BL_SPACEDIM}d.F90)
+endif()
+
 preprocess_boxlib_fortran(FPP_out_files ${FPP_source_files})
 set(local_source_files ${CXX_source_files} ${F77_source_files} ${FPP_out_files} ${F90_source_files})
 set(local_header_files ${CXX_header_files} ${F77_header_files} ${FPP_header_files} ${F90_header_files})
