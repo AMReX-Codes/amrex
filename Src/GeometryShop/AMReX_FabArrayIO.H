@@ -174,7 +174,14 @@ namespace amrex
     {
       a_os << a_hd.m_vecElem[ivec] << endl;
     }
-    a_hd.m_ba.writeOn(a_os);
+    long bxsize = a_hd.m_ba.size();
+
+    //box array does not have proper ostream, istream functions.
+    a_os << bxsize << endl;
+    for(int ibox = 0; ibox < bxsize; ibox++)
+    {
+      a_os << a_hd.m_ba[ibox] << endl;
+    }
     return a_os;
   }
 
@@ -191,10 +198,18 @@ namespace amrex
     {
       a_is >> a_hd.m_vecElem[ivec];
     }
-    //why box array has to be weird, who knows?
-    //putting this last because it probably leaves the is in the wrong
-    //place
-    readBoxArray(a_hd.m_ba, a_is, false);
+
+    long bxsize;
+
+    //box array does not have proper ostream, istream functions.
+    a_is >> bxsize;
+    vector<Box> boxes(bxsize);
+    for(int ibox = 0; ibox < bxsize; ibox++)
+    {
+      a_is >> boxes[ibox];
+    }
+    
+    a_hd.m_ba = BoxArray(&boxes[0], bxsize);
     return a_is;
   }
 
