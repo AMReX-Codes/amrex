@@ -12,11 +12,32 @@
 #include "AMReX_EBDebugOut.H"
 #include "AMReX_Print.H"
 #include "AMReX_BoxArray.H"
+#include "AMReX_VolIndex.H"
+#include "AMReX_FaceIndex.H"
+#include "AMReX_parstream.H"
 #include <iomanip>
 
 
 namespace amrex
 {
+  void dumpVVoFs(const vector<VolIndex>* a_vofs)
+  {
+    const vector<VolIndex>& vofs = *a_vofs;
+    pout() << "vector<volindex> contains:" << endl;
+    for(int ivof = 0; ivof < vofs.size(); ivof++)
+    {
+      amrex::Print() << vofs[ivof] << std::endl;
+    }
+  }
+  void dumpVFaces(const vector<FaceIndex>* a_faces)
+  {
+    const vector<FaceIndex>& faces = *a_faces;
+    pout() << "vector<FaceIndex> contains:" << endl;
+    for(int iface = 0; iface < faces.size(); iface++)
+    {
+      amrex::Print() << iface << ":" << faces[iface] << endl;
+    }
+  }
   void dumpDBL(const BoxArray* a_fabPtr)
   {
     amrex::Print() << "BoxArray contains:"  << *a_fabPtr << endl;
