@@ -15,7 +15,9 @@ namespace amrex
     }
     else
     {
-      ivs = graph.getIrregCells(box);
+      Box restbox = box;
+      restbox &= graph.getDomain();
+      ivs = graph.getIrregCells(restbox);
     }
 
     return new  IrregFAB(ivs, graph, ncomps);

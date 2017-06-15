@@ -20,6 +20,6 @@ mpirun -np 2 ./fabio2d.gnu.DEBUG.MPI.ex ebio.inputs | grep test;
 echo       'regression/levelRedist 1 proc'
 mpirun -np 1 ./levelRedistTest2d.gnu.DEBUG.MPI.ex levelredist.inputs | grep test;
 echo       'regression/levelRedist 2 proc'
-regression/;mpirun -np 2 ./levelRedistTest2d.gnu.DEBUG.MPI.ex levelredist.inputs | grep test;
+mpirun -np 2 ./levelRedistTest2d.gnu.DEBUG.MPI.ex levelredist.inputs | grep test;
 
 exit
