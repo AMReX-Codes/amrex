@@ -420,10 +420,10 @@ public:
     Box& setType (const IndexType& t) { btype = t; return *this; }
 
     //! Shift this Box nzones indexing positions in coordinate direction dir.
-    Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); copy_device_memory(); return *this; }
+    Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); initialize_device_memory(); return *this; }
 
     //! Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
-    Box& shift (const IntVect& iv) { smallend.shift(iv); bigend.shift(iv); copy_device_memory(); return *this; }
+    Box& shift (const IntVect& iv) { smallend.shift(iv); bigend.shift(iv); initialize_device_memory(); return *this; }
 
     /**
     * \brief This member shifts the Box by "half" indicies, thereby
@@ -528,13 +528,13 @@ public:
     Box& minBox (const Box&);
 
     //! Shift Box (relative) by given IntVect.
-    Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; copy_device_memory(); return *this; }
+    Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; initialize_device_memory(); return *this; }
 
     //! Shift Box (relative) by given IntVect.
     Box operator+ (const IntVect& v) const { Box r(*this); r.initialize_device_memory(); r += v; return r; }
 
     //! Shift Box (relative) by given IntVect.
-    Box& operator-= (const IntVect& v) { smallend -= v; bigend -= v; copy_device_memory(); return *this; }
+    Box& operator-= (const IntVect& v) { smallend -= v; bigend -= v; initialize_device_memory(); return *this; }
 
     //! Shift Box (relative) by given IntVect.
     Box operator- (const IntVect& v) const { Box r(*this); r.initialize_device_memory(); r -= v; return r; }
@@ -557,29 +557,29 @@ public:
     * \brief Grow Box in all directions by given amount.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    Box& grow (int i) { smallend.diagShift(-i); bigend.diagShift(i); copy_device_memory(); return *this; }
+    Box& grow (int i) { smallend.diagShift(-i); bigend.diagShift(i); initialize_device_memory(); return *this; }
 
     //! Grow Box in each direction by specified amount.
-    Box& grow (const IntVect& v) { smallend -= v; bigend += v; copy_device_memory(); return *this;}
+    Box& grow (const IntVect& v) { smallend -= v; bigend += v; initialize_device_memory(); return *this;}
 
     /**
     * \brief Grow the Box on the low and high end by n_cell cells
     * in direction idir.
     */
-    Box& grow (int idir, int n_cell) { smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); copy_device_memory(); return *this; }
+    Box& grow (int idir, int n_cell) { smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); initialize_device_memory(); return *this; }
 
     /**
     * \brief Grow the Box on the low end by n_cell cells in direction idir.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    Box& growLo (int idir, int n_cell = 1) { smallend.shift(idir, -n_cell); copy_device_memory(); return *this; }
+    Box& growLo (int idir, int n_cell = 1) { smallend.shift(idir, -n_cell); initialize_device_memory(); return *this; }
 
     /**
     * \brief Grow the Box on the high end by n_cell cells in
     * direction idir.  NOTE: n_cell negative shrinks the Box by that
     * number of cells.
     */
-    Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); copy_device_memory(); return *this; }
+    Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); initialize_device_memory(); return *this; }
 
     //! Grow in the direction of the given face.
     Box& grow (Orientation face, int n_cell = 1);
