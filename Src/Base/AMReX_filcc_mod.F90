@@ -11,7 +11,7 @@ module amrex_filcc_module
   end interface amrex_filcc
 
   private
-  public :: amrex_filcc
+  public :: amrex_filcc, amrex_fab_filcc
 
 contains
 
@@ -77,5 +77,24 @@ contains
   end subroutine amrex_filcc_1
 
 #endif
+
+  subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
+       bind(c, name='amrex_fab_filcc')
+    integer, intent(in) :: qlo(3), qhi(3), nq
+    integer, dimension(amrex_spacedim), intent(in) :: domlo, domhi
+    real(amrex_real), intent(in) :: dx(amrex_spacedim), xlo(amrex_spacedim)
+    integer, intent(in) :: bc(amrex_spacedim,2,nq)
+    real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
+    integer :: n
+    do n = 1, nq
+#if (BL_SPACEDIM == 3)
+       call filcc(q(:,:,:,n),qlo(1),qlo(2),qlo(3),qhi(1),qhi(2),qhi(3),domlo,domhi,dx,xlo,bc(:,:,n))
+#elif (BL_SPACEDIM == 2)
+       call filcc(q(:,:,:,n),qlo(1),qlo(2),       qhi(1),qhi(2),       domlo,domhi,dx,xlo,bc(:,:,n))
+#else
+       call filcc(q(:,:,:,n),qlo(1),              qhi(1),              domlo,domhi,dx,xlo,bc(:,:,n))
+#endif
+    end do
+  end subroutine amrex_fab_filcc
 
 end module amrex_filcc_module
