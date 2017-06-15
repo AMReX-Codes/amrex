@@ -15,9 +15,12 @@
 #include "AMReX_iMultiFab.H"
 #include "AMReX_BLProfiler.H"
 #include <AMReX_BLFort.H>
+#include "AMReX_EBCellFactory.H"
+#include "AMReX_VisMF.H"
+#include "AMReX_PlotFileUtil.H"
 
-#include <AMReX_MeshRefine.H>
-#include <AMReX_EBStruct.H>
+#include "AMReX_MeshRefine.H"
+#include "AMReX_EBStruct.H"
 
 using namespace amrex;
 
@@ -397,6 +400,44 @@ int myTest()
                           fnodes_crse[2][mfi.index()].data()),fnum,
                    BL_TO_FORTRAN_N(mask_fab,0));
     }
+
+    int nComp = 1;
+    EBCellFactory  eb_cell_fact(eblg_crse.getEBISL());
+    FabArray<EBCellFAB> cell1(ba_crse, dm_crse,  nComp, 0, MFInfo(), eb_cell_fact);
+    MultiFab vfrac(ba_crse, dm_crse,  nComp, 0);
+
+    for(MFIter  mfi(cell1); mfi.isValid(); ++mfi)
+    {
+        const EBISBox& ebis_box = cell1[mfi].getEBISBox();
+        const Box& vbox = mfi.validbox();
+        FArrayBox& vfrac_fab = vfrac[mfi];
+        vfrac[mfi].setVal(1);
+        if ( !(ebis_box.isAllRegular()) )
+        {
+            if (ebis_box.isAllCovered()) {
+                vfrac_fab.setVal(0);
+            }
+            else
+            {
+                for (BoxIterator bit(vbox); bit.ok(); ++bit)
+                {
+                    const std::vector<VolIndex>& vofs = ebis_box.getVoFs(bit());
+                    Real vfrac_tot = 0;
+                    for (int ivof=0; ivof<vofs.size(); ++ivof)
+                    {
+                        vfrac_tot += ebis_box.volFrac(vofs[ivof]);
+                    }
+                    vfrac_fab(bit(),0) = vfrac_tot;
+                }
+            }
+        }
+    }
+
+    Array<std::string> name(1,"vfrac");
+    RealBox rb(AMREX_D_DECL(0,0,0),
+               AMREX_D_DECL(1,1,1));
+    Geometry geom_crse(eblg_crse.getDomain(),&rb);
+    WriteSingleLevelPlotfile("pltfile",vfrac,name,geom_crse,0,0,"CartGrid-V2.0");
 
     // Level transfers
     // for (MFIter mfi(eblg_fine.getBoxArray(),eblg_fine.getDM()); mfi.isValid(); ++mfi)
