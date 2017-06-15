@@ -40,6 +40,11 @@ namespace amrex
     dumpIVFAB(NULL);
     
     dumpEBFace(NULL);
+
+
+    dumpVVoFs( NULL);
+
+    dumpVFaces(NULL);
   }
   
 }
