@@ -1,5 +1,5 @@
 max_level = 1
 n_cell = 64
-max_grid_size = 16
+max_grid_size = 128
 max_step = 10000
 dt = 5.0e-12

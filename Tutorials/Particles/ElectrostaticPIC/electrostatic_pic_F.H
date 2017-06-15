@@ -8,6 +8,17 @@ extern "C"
 {
 #endif
 
+    void sum_fine_to_crse_nodal(const int* lo, const int* hi, const int* lrat,
+                                const amrex::Real* crse, const int* clo, const int* chi,
+                                const amrex::Real* fine, const int* flo, const int* fhi);
+
+    void zero_out_bndry(const int* lo, const int* hi,
+                        const amrex::Real* input_data, const amrex::Real* bndry_data, 
+                        const int* mask);
+
+    void build_mask(const int* lo, const int* hi,
+                    const int* tmp_mask, const int* mask, const int* ncells);
+
     void compute_E_nodal (const int* lo, const int* hi,
                           const amrex::Real* phi,
                           amrex::Real* Ex, amrex::Real* Ey, 
@@ -20,6 +31,15 @@ extern "C"
                      const amrex::Real* plo, const amrex::Real* dx,
                      const int* ng);
     
+    void interpolate_cic_two_levels(const amrex::Real* particles, int ns, int np,
+                                    amrex::Real* Ex_p, amrex::Real* Ey_p, amrex::Real* Ez_p,
+                                    const amrex::Real* Ex, const amrex::Real* Ey, const amrex::Real* Ez,
+                                    const int* lo, const int* hi, const amrex::Real* dx,
+                                    const amrex::Real* cEx, const amrex::Real* cEy, const amrex::Real* cEz,
+                                    const int* mask,
+                                    const int* clo, const int* chi, const amrex::Real* cdx,
+                                    const amrex::Real* plo, const int* ng, const int* lev);
+
     void interpolate_cic(const amrex::Real* particles, int ns, int np,
                          amrex::Real* Ex_p, amrex::Real* Ey_p, amrex::Real* Ez_p,
                          const amrex::Real* Ex, const amrex::Real* Ey, const amrex::Real* Ez,

@@ -283,9 +283,13 @@ public:
     * is performed on the region of intersection.  The intersection
     * is restricted to the valid regions.
     */
+    void ParallelCopy (const FabArray<FAB>& fa,
+                       const Periodicity&   period = Periodicity::NonPeriodic(),
+                       CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& fa,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
-               CpOp                 op = FabArrayBase::COPY);
+               CpOp                 op = FabArrayBase::COPY)
+        { ParallelCopy(fa,period,op); }
 
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
@@ -295,14 +299,29 @@ public:
     * in the FabArray src, with the destination components in this
     * FabArray starting at dest_comp.
     */
+    void ParallelCopy (const FabArray<FAB>& src,
+                       int                  src_comp,
+                       int                  dest_comp,
+                       int                  num_comp,
+                       const Periodicity&   period = Periodicity::NonPeriodic(),
+                       CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
                int                  num_comp,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
-               CpOp                 op = FabArrayBase::COPY);
+               CpOp                 op = FabArrayBase::COPY)
+        { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively 
+    void ParallelCopy (const FabArray<FAB>& src,
+                       int                  src_comp,
+                       int                  dest_comp,
+                       int                  num_comp,
+                       int                  src_nghost,
+                       int                  dst_nghost,
+                       const Periodicity&   period = Periodicity::NonPeriodic(),
+                       CpOp                 op = FabArrayBase::COPY);
     void copy (const FabArray<FAB>& src,
                int                  src_comp,
                int                  dest_comp,
@@ -310,7 +329,8 @@ public:
 	       int                  src_nghost,
 	       int                  dst_nghost,
 	       const Periodicity&   period = Periodicity::NonPeriodic(),
-               CpOp                 op = FabArrayBase::COPY);
+               CpOp                 op = FabArrayBase::COPY)
+        { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,op); }
 
     //
     // In the following copyTo functions, the destination FAB is identical on each process!!
@@ -1220,16 +1240,16 @@ FabArray<FAB>::setDomainBndry (value_type val,
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src,
-                     int                  scomp,
-                     int                  dcomp,
-                     int                  ncomp,
-		     int                  snghost,
-		     int                  dnghost,
-		     const Periodicity&   period,
-                     CpOp                 op)
+FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
+                             int                  scomp,
+                             int                  dcomp,
+                             int                  ncomp,
+                             int                  snghost,
+                             int                  dnghost,
+                             const Periodicity&   period,
+                             CpOp                 op)
 {
-    BL_PROFILE("FabArray::copy()");
+    BL_PROFILE("FabArray::ParallelCopy()");
 
     if (size() == 0 || src.size() == 0) return;
 
@@ -1403,7 +1423,6 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                         std::size_t b = src[tag.srcIndex].nBytes(tag.sbox,SC,NC);
                         nbytes += b;
                         iss.push_back(static_cast<int>(b));
-                        pout() << "copy for procid =  "<< procID() <<  ", box =  " << tag.sbox << ", nbytes size = "  << b << std::endl;
                     }
                 }
 		
@@ -1774,19 +1793,19 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src,
-                     int                  scomp,
-                     int                  dcomp,
-                     int                  ncomp,
-		     const Periodicity&   period,
-                     CpOp                 op)
+FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
+                             int                  scomp,
+                             int                  dcomp,
+                             int                  ncomp,
+                             const Periodicity&   period,
+                             CpOp                 op)
 {
-    copy(src,scomp,dcomp,ncomp,0,0,period,op);
+    ParallelCopy(src,scomp,dcomp,ncomp,0,0,period,op);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::copy (const FabArray<FAB>& src, const Periodicity& period, CpOp op)
+FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src, const Periodicity& period, CpOp op)
 {
     copy(src,0,0,nComp(),0,0,period,op);
 }
@@ -2084,7 +2103,6 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                         std::size_t b = (*src)[tag.srcIndex].nBytes(tag.sbox,SC,NC);
                         nbytes += b;
                         iss.push_back(static_cast<int>(b));
-                        pout() << "copyInter for procid =  "<< procID() <<  ", box =  " << tag.sbox << ", nbytes size = "  << b << std::endl;
                     }
                 }
                 
@@ -3127,7 +3145,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                     std::size_t b = (*this)[tag.srcIndex].nBytes(tag.sbox,scomp,ncomp);
                     nbytes += b;
                     iss.push_back(static_cast<int>(b));
-                    pout() << "FBEP_nowait, procid = " << procID() << ", box = " << tag.sbox << ",nbytes size =  " << b << std::endl;
                 }
             }
             
@@ -3410,7 +3427,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFB.m_threadsafe_rcv)
 #endif
-        int procid = procID();
+
 	for (int k = 0; k < N_rcvs; k++) 
 	{
 	    const char* dptr = fb_recv_data[k];
@@ -3422,11 +3439,6 @@ FabArray<FAB>::FillBoundary_finish ()
                     const Box& bx  = tag.dbox;
                     std::size_t n = (*this)[tag.dstIndex].copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
                     dptr += n;
-                    pout() << "filbndryfinish for procid  =  "<< procid <<  ", box =  " << bx << ",copyFromMem size = "  << n << std::endl;
-                }
-                if(dptr != (fb_recv_data[k] + fb_recv_size[k]))
-                {
-                  pout() << "fillbndryfinish: just before error, procid =  "<< procid <<  ", receive size = "  << fb_recv_size[k] << std::endl;
                 }
 
                 BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);

@@ -1,10 +1,10 @@
 There are several visualization tools that can be used for \amrex\
-plotfiles.  The popular \visit\ package supports the \amrex\ file 
-format natively (using the {\sf BoxLib2d} and {\sf BoxLib3d} file types),
-as does the \yt\ python package.  The standard tool used within the
+plotfiles.  The standard tool used within the
 \amrex-community is \amrvis, a package developed and supported 
 by CCSE that is designed specifically for highly efficient visualization
 of block-structured hierarchical AMR data.
+Plotfiles can also be viewed using the \visit, \paraview, and \yt packages.
+Particle data can be viewed using \paraview.
 
 \section{\amrvis}
 
@@ -151,6 +151,59 @@ The next step is to run {\tt VisIt}, select ``File'' $\rightarrow$ ``Open file .
 then select {\tt movie.visit}.  Create an image to your liking and press the ``play'' button
 on the VCR-like control panel to preview all the frames.  To save the movie, choose
 ``File'' $\rightarrow$ ``Save movie ...'', and follow the on-screen instructions.
+
+\section{\paraview}
+The open source visualization package \paraview\ v5.3.0 can be used to view 
+3D plotfiles, and v5.4.0 can be used to view particle data.  Download
+the package at \url{https://www.paraview.org/}.  
+
+To open a single plotfile (for example, you could run the {\tt HeatEquation\_EX1\_C} in 3D:
+\begin{enumerate}
+\item Run \paraview\ v5.3.0, then select ``File'' $\rightarrow$ ``Open''.
+\item Navigate to the plotfile directory, and manually type in ``Header''.
+      \paraview\ will ask you about the file type -- choose ``Boxlib 3D Files''
+\item Under the ``Cell Arrays'' field, select a variable (e.g., ``phi'') 
+      and click ``Apply''.
+\item Under ``Representation'' select ``Surface''.
+\item Under ``Coloring'' select the variable you chose above.
+\item To add planes, near the top left you will see a cube icon with a green plane
+      slicing through it.  If you hover your mouse over it, it will say ``Slice''.
+      Click that button.
+\item You can play with the Plane Parameters to define a plane of data to view, as shown
+      in Figure \ref{fig:ParaView}.
+\end{enumerate}
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=3.1in]{./Visualization/ParaView}
+\caption{Plotfile image generated with \paraview}
+\label{fig:ParaView}
+\end{figure}
+
+To visualize particles (for example, you could run the {\tt ShortRangeParticles} example:
+\begin{enumerate}
+\item First, we have to convert the \amrex\ particle data to a format \paraview\ can read.
+      In the run directory, there will be a sequence of particle files ({\tt particles00000},
+      {\tt particles00001}, $\cdots$, {\tt particles01000}).
+\item Run the script,
+      {\tt amrex/Tools/Py\_util/amrex\_particles\_to\_vtp/amrex\_particles\_to\_vtp.py}
+      as follows, e.g.,
+      {\tt python amrex\_particles\_to\_vtp.py 0 1000 particles}.  You will generate
+      a sequence of {\tt .vtp} files.
+\item Run \paraview v5.4.0, and select ``File'' $\rightarrow$ ``Open''.  You will see
+      a combined ``particles..vtp'' file grouping the files.  Select that and click OK.
+\item Click ``Apply'' and under ``Representation'' select ``Point Gaussian''.
+\item Change the Gaussian Radius if you like.  You can scroll through the frames with the
+      VCR-like controls at the top, as shown in Figure \ref{fig:ParaView_particles}.
+\end{enumerate}
+
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=3.1in]{./Visualization/ParaView_particles}
+\caption{Particle image generated with \paraview}
+\label{fig:ParaView_particles}
+\end{figure}
 
 \section{\yt}
 

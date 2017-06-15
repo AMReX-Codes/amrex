@@ -8,6 +8,11 @@ def read_amrex_ascii_particle_file(fname):
     line=infile.readline()
     nparticles=int(line.split()[0])
 
+    line_ignore1=infile.readline()
+    line_ignore2=infile.readline()
+    line_ignore3=infile.readline()
+    line_ignore4=infile.readline()
+
     particle_pos=np.zeros((nparticles,3))
 
     for i in range(nparticles):
