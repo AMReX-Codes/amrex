@@ -159,7 +159,7 @@ Box::convert (const IntVect& typ)
     BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
     IntVect shft(typ - btype.ixType());
     bigend += shft;
-    copy_device_memory();
+    initialize_device_memory();
     btype = IndexType(typ);
     return *this;
 }
@@ -175,7 +175,7 @@ Box::convert (IndexType t)
       bigend.shift(dir,off);
       btype.setType(dir, (IndexType::CellIndex) typ);
    }
-   copy_device_memory();
+   initialize_device_memory();
    return *this;
 }
 
@@ -218,7 +218,7 @@ Box::surroundingNodes (int dir)
         //
         btype.set(dir);
     }
-    copy_device_memory();
+    initialize_device_memory();
     return *this;
 }
 
@@ -238,7 +238,7 @@ Box::surroundingNodes ()
         if ((btype[i] == 0))
             bigend.shift(i,1);
     btype.setall();
-    copy_device_memory();
+    initialize_device_memory();
     return *this;
 }
 
@@ -263,7 +263,7 @@ Box::enclosedCells (int dir)
         //
         btype.unset(dir);
     }
-    copy_device_memory();
+    initialize_device_memory();
     return *this;
 }
 
@@ -283,7 +283,7 @@ Box::enclosedCells ()
         if (btype[i])
             bigend.shift(i,-1);
     btype.clear();
-    copy_device_memory();
+    initialize_device_memory();
     return *this;
 }
 
@@ -344,7 +344,7 @@ Box::grow (Orientation face,
     } else {
         bigend.shift(idir,n_cell);
     }
-    copy_device_memory();
+    initialize_device_memory();
     return *this;
 }
 
@@ -390,7 +390,7 @@ Box::shiftHalf (int dir,
         nshift += (bit_dir ? 0 : nbit);
     smallend.shift(dir,nshift);
     bigend.shift(dir,nshift);
-    copy_device_memory();
+    initialize_device_memory();
     return *this;
 }
 
@@ -461,7 +461,7 @@ Box::refine (const IntVect& ref_ratio)
         bigend += shft;
         bigend *= ref_ratio;
         bigend -= shft;
-	copy_device_memory();
+	initialize_device_memory();
     }
     return *this;
 }
@@ -564,7 +564,7 @@ Box::chop (int dir,
         //
         bigend.setVal(dir,chop_pnt-1);
     }
-    copy_device_memory();
+    initialize_device_memory();
     return Box(sm,bg,btype);
 }
 
@@ -616,7 +616,7 @@ Box::coarsen (const IntVect& ref_ratio)
         bigend.coarsen(ref_ratio);
     }
 
-    copy_device_memory();
+    initialize_device_memory();
 
     return *this;
 }
@@ -711,7 +711,7 @@ Box::minBox (const Box &b)
     BL_ASSERT(sameType(b));
     smallend.min(b.smallend);
     bigend.max(b.bigend);
-    copy_device_memory();
+    initialize_device_memory();
     return *this;
 }
 
@@ -873,7 +873,7 @@ Box::setRange (int dir,
 {
     smallend.setVal(dir,sm_index);
     bigend.setVal(dir,sm_index+n_cells-1);
-    copy_device_memory();
+    initialize_device_memory();
     return *this;
 }
 
