@@ -4,6 +4,7 @@ which_geom = 1
  n_cell = 32 32 32
 #n_cell = 64 64 64
 # n_cell = 128 128 128
+max_grid_size = 32
 
 domain_length = 1.0 
 plate_normal  = 1

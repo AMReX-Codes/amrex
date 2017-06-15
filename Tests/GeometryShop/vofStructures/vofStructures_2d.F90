@@ -40,9 +40,6 @@ contains
              else                                ! ... and L is irregular
                 nC = 0
                 nL = cnodes(mL)%nCells
-                if (nL .ne. 1) then
-                   stop 'ERROR: Should not be any mv cut cells here'
-                endif
                 iL = cnodes(mL)%cells(0)%ebCellID
                 if (cnodes(mL)%cells(0)%Nnbr(0,1) .ne. 1) then
                    stop 'ERROR: Irreg L does not see reg C neighbor'
@@ -64,9 +61,6 @@ contains
                 stop 'ERROR: cut cell index OOB'
              endif
              nC = cnodes(mC)%nCells
-             if (nC .gt. 1) then
-                stop 'ERROR: Should not be any mv cut cells here'
-             endif
              iC = cnodes(mC)%cells(0)%ebCellID
              if (mask(i-1,j) .eq. REGULAR_CELL) then
                 iL = REGULAR_CELL
@@ -83,9 +77,6 @@ contains
                 else                                    ! ... and L is irregular
                    nL = cnodes(mC)%cells(0)%Nnbr(0,0)
                    iL = cnodes(mL)%cells(0)%ebCellID
-                   if (nL .ne. 1) then
-                      stop 'ERROR: C thinks it has mutliple L neighbors'
-                   endif
                    if (cnodes(mC)%cells(0)%nbr(0,0,0) .ne. 0) then
                       stop 'ERROR: C thinks L has index != 0'
                    endif
