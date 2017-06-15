@@ -108,6 +108,7 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
 
 	if (do_reflux)
 	{
+            // update lev based on coarse-fine flux mismatch
 	    flux_reg[lev+1]->Reflux(*phi_new[lev], 1.0, 0, 0, phi_new[lev]->nComp(), geom[lev]);
 	}
 
@@ -169,12 +170,14 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 		uface[i].resize(amrex::grow(bxtmp,1),1);
 	    }
 
+            // compute velocities on faces (prescribed function of space and time)
 	    get_face_velocity(lev, ctr_time,
 			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
 				     BL_TO_FORTRAN(uface[1]),
 				     BL_TO_FORTRAN(uface[2])),
 			      dx, prob_lo);
 
+            // compute new state (stateout) and fluxes.
             advect(time, bx.loVect(), bx.hiVect(),
 		   BL_TO_FORTRAN_3D(statein), 
 		   BL_TO_FORTRAN_3D(stateout),
@@ -194,18 +197,24 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 	}
     }
 
-    if (do_reflux) { // Note that the fluxes have already been scaled by dt and area.
+    // increment or decrement the flux registers by area and time-weighted fluxes
+    // Note that the fluxes have already been scaled by dt and area
+    // In this example we are solving phi_t = -div(+F)
+    // The fluxes contain, e.g., F_{i+1/2,j} = (phi*u)_{i+1/2,j}
+    // Keep this in mind when considering the different sign convention for updating
+    // the flux registers from the coarse or fine grid perspective
+    // NOTE: the flux register associated with flux_reg[lev] is associated
+    // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
+    if (do_reflux) { 
+	if (flux_reg[lev+1]) {
+	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+		flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
+	    }	    
+	}
 	if (flux_reg[lev]) {
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
 		flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(), 1.0);
 	    }
-	}
-
-	if (flux_reg[lev+1]) {
-	    flux_reg[lev+1]->setVal(0.0);
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
-	    }	    
 	}
     }
 }
