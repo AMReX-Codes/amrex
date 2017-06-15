@@ -1333,6 +1333,18 @@ show examples of {\tt growntilebox}.
   \end{minipage}
 \end{figure}
 
+These functions in {\tt MFIter} return {\tt Box} by value.  There are
+two ways of using these functions.
+\begin{lstlisting}[language=cpp]
+  const Box& bx = mfi.validbox();  // const& to temporary object is legal
+
+  // Make a copy if Box needs to be modified later.
+  // Compilers can optimize away the temporary object.
+  Box bx2 = mfi.validbox();
+  bx2.surroundingNodes();
+\end{lstlisting}
+But {\tt Box\& bx = mfi.validbox()} is not legal and will not compile.  
+
 \section{Calling Fortan or C}
 \label{sec:basics:fortran}
 
