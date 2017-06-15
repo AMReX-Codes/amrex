@@ -210,7 +210,7 @@ BuildFortranGraphNodes(std::map<int,std::vector<CNode> >& graphCNodes,
             const EBGraph& ebgr = ebis_box.getEBGraph();
             for (BoxIterator bit(gbox); bit.ok(); ++bit)
             {
-                const IntVect iv = bit();
+                const IntVect& iv = bit();
                 if (ebis_box.isIrregular(iv))
                 {
 		    // Set up cnode data structure
