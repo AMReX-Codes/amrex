@@ -1694,8 +1694,54 @@ VisMF::Write/Read}.
 
 \section{Memory Allocation}
 
-% resize
+\amrex\ has a Fortran module, {\tt mempool\_module} that can be used to
+allocate memory for Fortran pointers.  The reason that such a module
+exists in \amrex\ is memory allocation is often very slow in
+multi-threaded OpenMP parallel regions.  \amrex\ {\tt mempool\_module}
+provides a much faster alternative approach, in which each thread has
+its own memory pool.  Here are examples of using the module.
+\begin{lstlisting}[language=fortran]
+  use mempool_module, only : bl_allocate, bl_deallocate
+  real(amrex_real), pointer, contiguous :: a(:,:,:), b(:,:,:,:)
+  integer :: lo1, hi1, lo2, hi2, lo3, hi3, lo(4), hi(4)
+  // lo1 = ...
+  // a(lo1:hi1, lo2:hi2, lo3:hi3)
+  call bl_allocate(a, lo1, hi1, lo2, hi2, lo3, hi3)
+  // b(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),lo(4):hi(4))
+  call bl_allocate(b, lo, hi)
+  // ......
+  call bl_deallocate(a)
+  call bl_deallocate(b)
+\end{lstlisting}
+The downside of this is we have to use {\tt pointer} instead of {\tt
+allocatable}.  This means we must explicitly free the memory via {\tt
+bl\_deallocate} and we need to declare the pointers as {\tt
+contiguous} for performance reason.
 
-\section{Abort, Assertion}
+\section{Abort and Assertion}
 
+{\tt amrex::Abort(const char* message)} is used to terminate a run
+usually when something goes wrong.  This function takes a message and
+write it to stderr.  Files named like {\tt Backtrace.rg\_1\_rl\_1}
+(where {\tt rg\_1\_rl\_1} means process \# 1) are produced containing
+backtrace information of the call stack.  In Fortran, we can call {\tt
+amrex\_abort} from the {\tt amrex\_error\_module}, which takes a
+Fortran {\tt character} variable with assumed size (i.e., {\tt len=*})
+as a message.
 
+{\tt AMREX\_ASSERT} is a macro that takes a Boolean expression.  For
+debug build (e.g., {\tt DEBUG=TRUE} using the GNU Make build system),
+if the expression at runtime is evaluated to false, {\tt amrex::Abort}
+will be called and the run is thus terminated.  For optimized build
+(e.g., {\tt DEBUG=TRUE} using the GNU Make build system), the {\tt
+AMREX\_ASSERT} statement is removed at compile time and thus has no
+effect at runtime.  We often use this as a means of putting debug
+statement in the code without adding any extra cost for production
+runs.  For example,
+\begin{lstlisting}[language=cpp]
+  AMREX_ASSERT(mf.nGrow() > 0 && mf.nComp() == mf2.nComp());
+\end{lstlisting}
+Here for debug build we like to assert that {\tt MultiFab} {\tt mf}
+has ghost cells and it also has the same number of components as {\tt
+MultiFab} {\tt mf2}.  If we always want the assertion, we can use {\tt
+AMREX\_ALWAYS\_ASSERT}.
