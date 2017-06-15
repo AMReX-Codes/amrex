@@ -15,6 +15,7 @@
 #include "AMReX_EBISBox.H"
 #include "AMReX_PolyGeom.H"
 #include "AMReX_EBDataVarMacros.H"
+#include "AMReX_parstream.H"
 
 namespace amrex
 {
@@ -497,6 +498,7 @@ namespace amrex
 
     IntVectSet ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
     Box fineRegion = a_fineGraph.getRegion();
+
     if (a_coarGraph.hasIrregular())
     {
       for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
