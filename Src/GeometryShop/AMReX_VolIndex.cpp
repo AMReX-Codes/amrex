@@ -11,6 +11,7 @@
 
 #include "AMReX_VolIndex.H"
 #include <cassert>
+#include <iostream>
 
 
 
@@ -116,5 +117,26 @@ namespace amrex
   {
   }
 
+/*****************************************/
+  ostream&
+  operator<< (ostream&       os,
+              const VolIndex& p)
+  {
+    IntVect iv = p.gridIndex();
+    int vofind = p.cellIndex();
+    os <<  std::string("((");
+    for(int idir = 0; idir < SpaceDim; idir ++)
+    {
+      os << iv[0];
+      if(idir != SpaceDim-1)
+      {
+        os << std::string(",");
+      }
+    }
+    os << std::string(")(") << vofind << std::string("))") ;
+    if (os.fail())
+      amrex::Error("operator<<(ostream&,VolIndex&) failed");
+    return os;
+  }
 }
 

@@ -31,11 +31,9 @@ contains
        hi = ubound(p)
        select case (amrex_spacedim)
        case (2)
-          call init_phi_2d(bx%lo(1:2), bx%hi(1:2), p(:,:,1,1), lo(1:2), hi(1:2), &
-               geom%problo(1:2), geom%dx(1:2))
+          call init_phi_2d(bx%lo, bx%hi, p(:,:,1,1), lo, hi, amrex_problo, geom%dx)
        case (3)
-          call init_phi_3d(bx%lo, bx%hi, p(:,:,:,1), lo(1:3), hi(1:3), &
-               geom%problo, geom%dx)
+          call init_phi_3d(bx%lo, bx%hi, p(:,:,:,1), lo, hi, amrex_problo, geom%dx)
        end select
     end do
     call amrex_mfiter_destroy(mfi)

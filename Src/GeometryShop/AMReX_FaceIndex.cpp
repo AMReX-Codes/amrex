@@ -211,13 +211,6 @@ namespace amrex
   }
 
   /*****************************************/
-  bool 
-  FaceIndex::
-  operator< (const FaceIndex& a_rhs) const
-  {
-    return (m_loiv < a_rhs.m_loiv);
-  }
-  /*****************************************/
   FaceIndex&
   FaceIndex::operator= (const FaceIndex& a_facein)
   {
@@ -294,5 +287,11 @@ namespace amrex
     }
   }
 
+  ostream& operator<<( ostream& out, const FaceIndex& fi )
+  {
+    out << "[(" << fi.m_loiv << "):" << fi.m_loIndex << ";"
+        << " (" << fi.m_hiiv << "):" << fi.m_hiIndex << "]";
+    return out;
+  }
 
 }

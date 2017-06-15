@@ -35,11 +35,13 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
-
+#include <iostream>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_parstream.H>
+#include <AMReX_SPMD.H>
 
 namespace amrex {
 
@@ -3425,6 +3427,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #ifdef _OPENMP
 #pragma omp parallel for if (TheFB.m_threadsafe_rcv)
 #endif
+
 	for (int k = 0; k < N_rcvs; k++) 
 	{
 	    const char* dptr = fb_recv_data[k];
@@ -3437,6 +3440,7 @@ FabArray<FAB>::FillBoundary_finish ()
                     std::size_t n = (*this)[tag.dstIndex].copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
                     dptr += n;
                 }
+
                 BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
             }
 	}
