@@ -158,6 +158,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
 					    BL_ASSERT(nValid<NCELLMAX);
                                         }
                                     }
+                                    cc.Nnbr[idir][iside] = nValid;
                                 }
                             }
                             cmap[mfi].setVal(cc,iv,0,icc);
@@ -165,6 +166,26 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                     }
                 }
             }
+        }
+    }
+
+    // Dump graph
+    for (MFIter mfi(cmap); mfi.isValid(); ++mfi)
+    {
+        const BaseUmap<CutCell>& cmap_fab = cmap[mfi];
+        for (BaseUmap<CutCell>::const_iterator umi = cmap_fab.begin(); umi<cmap_fab.end(); ++umi )
+        {
+            const CutCell& cc = *umi;
+            std::cout << "ebCellID: " << cc.ebCellID;
+            for (int idir = 0; idir < SpaceDim; idir++)
+            {
+                for (SideIterator sit; sit.ok(); ++sit)
+                {
+                    int iside = sit() == Side::Lo ? 0 : 1;
+                    std::cout << " (" << idir << ", " << iside << "): " << cc.Nnbr[idir][iside];
+                }
+            } 
+            std::cout << std::endl;
         }
     }
 }
