@@ -1,6 +1,6 @@
 In addition to the tools for working with mesh data described in previous chapters, $\tt{AMReX}$ also provides data structures and iterators for performing data-parallel particle simulations. Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example applications include Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert drag forces onto a fluid, such as in multi-phase flow calculations. The overall goals of $\tt{AMReX}$'s particle tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data automatically. In the following sections, we give an overview of $\tt{AMReX}$'s particle classes and how to use them.
 
-\section{The Particle}
+\section{The \tt{Particle}}
 \label{sec:Particles:Particle}
 
 The particle classes can be used by including the header $\tt{AMReX\_Particles.H}$. The most basic particle data structure is the particle itself: 
@@ -21,7 +21,7 @@ The particle struct is designed to store these variables in a way that minimizes
 \end{lstlisting}
 
 and the order of the particle components in would be: x y z m vx vy vz id cpu flag1 flag2. \footnote{Note that for the extra particle components, which component refers to which
-variable is an application-specific convention - the particles have 4 extra real comps, but which one is ``mass'' is up to the user. We suggest using an \tt{enum} to keep these indices straight; please see Section~\ref{sec:Particles:Initializing} below for an example of this.} 
+variable is an application-specific convention - the particles have 4 extra real comps, but which one is ``mass'' is up to the user. We suggest using an $\tt{enum}$ to keep these indices straight; please see amrex/Tutorials/Particles/ElectrostaticPIC/ElectrosticParticleContainer.H for an example of this.} 
 
 \subsection{Setting Particle data}
 
@@ -47,7 +47,7 @@ The $\tt{Particle}$ struct provides a number of methods for getting and setting 
   p.idata(1) = -64;  
 \end{lstlisting}
 
-\section{The ParticleContainer}
+\section{The \tt{ParticleContainer}}
 \label{sec:Particles:ParticleContainer}
  
 One particle by itself is not very useful. To do real calculations, a collection of particles needs to be defined, and the location of the particles within the AMR hierarchy
@@ -66,7 +66,7 @@ $\emph{attributes}$. See Figure~\ref{fig:particles:particle_arrays} for an illus
 \begin{figure}
   \centering
   \includegraphics[width=\textwidth]{./Particle/particle_arrays.pdf}
-  \caption{\label{fig:particles:particle_arrays} An illustration of how the particle data for a single tile is arranged in memory. This particle container has been defined with $\tt{NStructReal} = 1$, $\tt{NStructInt} = 2$, $\tt{NArrayReal} = 2$, and $\tt{NArrayInt} = 2$. In this case, each tile in the particle container has five arrays: one with the particle struct data, two additional real arrays, and two additional integer arrays. In the tile shown, there are only 2 particles. We have labelled the extra real data member of the particle struct to be ``mass'', while the extra integer members of the particle struct are labeled $p$, and $s$, for ``phase'' and ``state''. The variables in the real and integer arrays are labelled ``foo'', ``bar'', ``l'', and ``n'', respectively.}
+  \caption{\label{fig:particles:particle_arrays} An illustration of how the particle data for a single tile is arranged in memory. This particle container has been defined with $\tt{NStructReal} = 1$, $\tt{NStructInt} = 2$, $\tt{NArrayReal} = 2$, and $\tt{NArrayInt} = 2$. In this case, each tile in the particle container has five arrays: one with the particle struct data, two additional real arrays, and two additional integer arrays. In the tile shown, there are only 2 particles. We have labelled the extra real data member of the particle struct to be ``mass'', while the extra integer members of the particle struct are labeled $p$, and $s$, for ``phase'' and ``state''. The variables in the real and integer arrays are labelled ``foo'', ``bar'', ``l'', and ``n'', respectively. We have assumed that the particles are double precision.}
 \end{figure}
 
 To see why the distinction between AoS and SoA data is important, consider the following extreme case. Say you have particles that carry 100 different components,
@@ -162,12 +162,12 @@ for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
     particles.push_back_real(real_attribs);
     particles.push_back_int(int_attribs);
 
-    ... add more particles if desired ...
+    // ... add more particles if desired ...
   }
 
 \end{lstlisting}
 
-Often, it makes sense to have each process only generates particles that it owns, so that the particles are already in the right place in the container. 
+Often, it makes sense to have each process only generate particles that it owns, so that the particles are already in the right place in the container. 
 In general, however, users may need to call $\tt{Redistribute()}$ after adding particles, if the processes generate particles they don't own (for example,
 if the particle positions are perturbed from the cell centers and thus end up outside their parent grid).
 
@@ -257,10 +257,11 @@ for (MyParIter pti(MyPC, lev); pti.isValid(); ++pti) {
 
 \end{lstlisting}
 
-Here, $\tt{interpolate_cic}$ is a $\tt{Fortran}$ subroutine that actually performs the interpolation. $\tt{Ex}$, $\tt{Ey}$, and $\tt{Ez}$ are $\tt{MultiFab}$s
+Here, $\tt{interpolate\_cic}$ is a $\tt{Fortran}$ subroutine that actually performs the interpolation on a single box. $\tt{Ex}$, $\tt{Ey}$, and $\tt{Ez}$ are $\tt{MultiFab}$s
 that contain the electric field data. These $\tt{MultiFab}$s must be defined with the correct number of ghost cells to perform the desired type of interpolation,
-and we call $\tt{FillBoundary}$ prior to the Fortran call so that those ghost cells will be up-to-date. Note that we use the $\tt{ParIter}$ to index into the 
-$\tt{MultiFab}$s to get the data associated with current tile.
+and we call $\tt{FillBoundary}$ prior to the Fortran call so that those ghost cells will be up-to-date. 
+
+In this example, we have assumed that the $\tt{ParticleContainer}$ has been defined on the same grids as the electric field $\tt{MultiFabs}$, so that we use the $\tt{ParIter}$ to index into the $\tt{MultiFab}$s to get the data associated with current tile. If this is not the case, then an additional copy will need to be performed. However, if the particles are distributed in an extremely uneven fashion, it is possible that the load balancing improvements associated with the two-grid approach are worth the cost of the extra copy.
 
 The inverse operation, in which the particles communicate data $\emph{to}$ the mesh, is quite similar:
 
@@ -288,7 +289,7 @@ As before, we loop over all our particles, calling a $\tt{Fortran}$ routine that
 cover the support of all the particles associated with them. Note that we call $\tt{SumBoundary}$ instead of $\tt{FillBoundary}$ after performing the deposition, to add up the charge 
 in the ghost cells surrounding each Fab into the corresponding valid cells.
 
-For a complete example of an electrostatic PIC calculation that includes multi-level deposition and interpolation, please see amrex/Tutorials/Particles/ElectrostaticPIC.
+For a complete example of an electrostatic PIC calculation that includes static mesh refinement, please see amrex/Tutorials/Particles/ElectrostaticPIC.
 
 \section{Short Range Forces}
 \label{sec:Particles:ShortRange}
@@ -302,7 +303,7 @@ In a PIC calculation, the particles don't interact with each other directly; the
 }
 \end{figure}
 
-For a complete example of a $\tt{ParticleContainer}$ that does this neighbor finding, please see amrex/Tutorials/Particles/ShortRangeParticles. This $\tt{ParticleContainer}$ has additional methods called $\tt{FillNeighbors}$ and $\tt{clearNeighbors}$ that fill the $\tt{neighbors}$ data structure with copies of the proper particles. These are then passed into the Fortran routine that computes the forces as follows:
+For a complete example of a $\tt{ParticleContainer}$ that does this neighbor finding, please see amrex/Tutorials/Particles/ShortRangeParticles. This $\tt{ParticleContainer}$ has additional methods called $\tt{fillNeighbors()}$ and $\tt{clearNeighbors()}$ that fill the $\tt{neighbors}$ data structure with copies of the proper particles. These are then passed into the Fortran routine that computes the forces as follows:
 
 \begin{lstlisting}[language=cpp]
 
@@ -323,7 +324,7 @@ void ShortRangeParticleContainer::computeForces() {
 \section{Particle IO}
 \label{sec:Particles:IO}
 
-AMReX provides routines for writing particle data to disk for analysis, visualization, and for checkpoint / restart. The most important methods are the $\tt{WritePlotFile}$, $\tt{Checkpoint}$, and $\tt{Restart}$ methods of $\tt{ParticleContainer}$, which all use a parallel-aware binary file format for reading and writing particle data on a grid-by-grid basis. These methods are designed to complement the functions in $\tt{AMReX_PlotFileUtil.H}$ for performing mesh data IO. For example:
+AMReX provides routines for writing particle data to disk for analysis, visualization, and for checkpoint / restart. The most important methods are the $\tt{WritePlotFile}$, $\tt{Checkpoint}$, and $\tt{Restart}$ methods of $\tt{ParticleContainer}$, which all use a parallel-aware binary file format for reading and writing particle data on a grid-by-grid basis. These methods are designed to complement the functions in $\tt{AMReX\_PlotFileUtil.H}$ for performing mesh data IO. For example:
 
 \begin{lstlisting}[language=cpp]
 
@@ -335,4 +336,4 @@ AMReX provides routines for writing particle data to disk for analysis, visualiz
 
 will create a plot file called ``plt00000'' and write the mesh data in $\tt{output}$ to it, and then write the particle data in a subdirectory called ``particle0''. There is also the $\tt{WriteAsciiFile}$ method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
-The binary file format is currently readable by $\tt{yt}$. In additional, there is a Python conversion script in amrex/Tools/Py\_util/amrex\_particles\_to\_vtp that can convert both the ASCII and the binary particle files to a format readable by Paraview. 
+The binary file format is currently readable by $\tt{yt}$. In additional, there is a Python conversion script in amrex/Tools/Py\_util/amrex\_particles\_to\_vtp that can convert both the ASCII and the binary particle files to a format readable by Paraview. See Chapter~\ref{Chap:Visualization} for more information on visualizing $\tt{AMReX}$ datasets, including those with particles. 
