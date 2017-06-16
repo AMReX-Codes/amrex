@@ -5,7 +5,7 @@
 
 #include <WarpXParticleContainer.H>
 
-enum class laser_t { Null, Gaussian };
+enum class laser_t { Null, Gaussian, Harris };
 
 class LaserParticleContainer
     : public WarpXParticleContainer

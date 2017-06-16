@@ -88,6 +88,10 @@ extern "C"
 				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength, amrex::Real* e_max, amrex::Real* waist,
 				amrex::Real* duration, amrex::Real* t_peak, amrex::Real* f, amrex::Real* amplitude );
 
+  void warpx_harris_laser( const long* np,
+				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
+        amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
+
 	// Maxwell solver
 
         void WRPX_PXR_PUSH_EVEC(

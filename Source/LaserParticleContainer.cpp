@@ -35,6 +35,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
 	if (laser_type_s == "gaussian") {
 	    profile = laser_t::Gaussian;
+  } else if(laser_type_s == "harris") {
+      profile = laser_t::Harris;
 	} else {
 	    amrex::Abort("Unknown laser type");
 	}
@@ -53,6 +55,13 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	   pp.get("profile_duration", profile_duration);
 	   pp.get("profile_t_peak", profile_t_peak);
 	   pp.get("profile_focal_distance", profile_focal_distance);
+	}
+
+  if ( profile == laser_t::Harris ) {
+	    // Parse the properties of the Harris profile
+	   pp.get("profile_waist", profile_waist);
+	   pp.get("profile_duration", profile_duration);
+     pp.get("profile_focal_distance", profile_focal_distance);
 	}
 
 	// Plane normal
@@ -297,6 +306,12 @@ LaserParticleContainer::Evolve (int lev,
 		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
 				      &t, &wavelength, &e_max, &profile_waist, &profile_duration,
 				      &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
+	    }
+
+      if (profile == laser_t::Harris) {
+		warpx_harris_laser( &np, plane_Xp.data(), plane_Yp.data(),
+				      &t, &wavelength, &e_max, &profile_waist, &profile_duration,
+				      &profile_focal_distance, amplitude_E.data() );
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
