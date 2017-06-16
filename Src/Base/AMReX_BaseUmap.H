@@ -37,6 +37,40 @@ namespace amrex
 
         typedef T value_type;
         typedef int key_table_type;
+        struct Tuple
+        {
+            Tuple () {}
+            Tuple (const IntVect& a_pos, int a_ncomp, int a_l)
+                : pos(a_pos), ncomp(a_ncomp), l(a_l) {}
+            IntVect pos;
+            int ncomp;
+            int l;
+        };
+
+        struct const_iterator
+        {
+            const_iterator (const BaseUmap& bmap, int idx) : m_bmap(bmap), m_idx(idx) {}
+            void operator ++ () {++m_idx;}
+            bool operator< (const const_iterator& rhs)
+                {
+                    BL_ASSERT(&m_bmap == &(rhs.m_bmap));
+                    return m_idx<rhs.m_idx;
+                }
+            const  T& operator* () {
+                typename std::map<key_table_type,Tuple>::const_iterator it=m_bmap.data_key_tuple_map.find(m_idx);
+                BL_ASSERT(it != m_bmap.data_key_tuple_map.end());
+                const Tuple& tuple = it->second;
+                return m_bmap(tuple.pos, tuple.ncomp, tuple.l);
+            }
+
+        protected:
+            const BaseUmap<T>& m_bmap;
+            int m_idx;
+        };
+
+        const const_iterator begin () const {return const_iterator(*this, data_key_tuple_map.begin()->first);}
+        const const_iterator end () const {return const_iterator(*this, data_key_tuple_map.end()->first);}
+        size_t size() const {return data_key_tuple_map.size();}
 
         // Constructor
         // bx is index space covered by this Umap, which
@@ -58,7 +92,7 @@ namespace amrex
 
         // Build the key from the IntVect, component, and multi-valued index
         // For array based implementation this is offset into array
-        int key (const IntVect& pos, const int n, const int l);
+        int key (const IntVect& pos, const int n, const int l) const;
 
         void set_key (const IntVect& pos, 
                       const int n,
@@ -71,9 +105,9 @@ namespace amrex
                      const int ncomp,
                      const int l);
 
-        T& getVal (const IntVect& pos,
-                   const int ncomp,
-                   const int l);
+        const T& getVal (const IntVect& pos,
+                         const int ncomp,
+                         const int l) const;
 
         T& operator() (const IntVect& pos,
                        int            ncomp,
@@ -82,7 +116,7 @@ namespace amrex
         const T& operator() (const IntVect& pos,
                              int            ncomp,
                              int            l) const;
- 
+        
     protected:
     
         //! Allocates memory for key_table and vector of data
@@ -96,10 +130,9 @@ namespace amrex
         long numpts;
         std::vector<T> data;
         key_table_type* key_table;
+        std::map<key_table_type,Tuple> data_key_tuple_map;
         long kt_size;
         int max_mv;
-
-        // std::unordered_map<long, T> data;
 
     private:
         bool ptr_owner;
@@ -163,6 +196,7 @@ namespace amrex
             if (ptr_owner)
             {
                 amrex::The_Arena()->free(key_table);
+                data_key_tuple_map.clear();
             }
 
             key_table = 0;
@@ -199,7 +233,7 @@ namespace amrex
     int
     BaseUmap<T>::key (const IntVect& pos, 
                       const int n,
-                      const int l )
+                      const int l ) const
     {
         long loc = domain.index(pos);
         long size = domain.numPts();
@@ -219,6 +253,7 @@ namespace amrex
         long size = domain.numPts();
         // entry stored in position l*NumComponents + ncomp
         key_table[loc+(l*nvar + n)*size] = k;
+        data_key_tuple_map[k] = Tuple(pos,n,l);
 
     }
 
@@ -240,25 +275,19 @@ namespace amrex
         {
             data.push_back(val);
             set_key(pos, ncomp, l, data.size()-1);
-            //long k = key(pos, ncomp, l);
-            //T valout = getVal(pos, ncomp, l);
-            //std::cout << "Storing value " << val << " in offset " << k << " got back value " << valout << std::endl;
         }
     }
 
     template <class T>
-    T&
+    const T&
     BaseUmap<T>::getVal (const IntVect& pos,
                          const int ncomp,
-                         const int l)
+                         const int l) const
     {
 
         key_table_type k = key(pos, ncomp, l);
-        if (k >= 0)
-        {
-            return data[k];
-        }
-        amrex::Abort();
+        if (k<0) amrex::Abort();
+        return data[k];
     }
 
 } // namespace amrex
