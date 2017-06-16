@@ -122,6 +122,8 @@ public:
     void MakeNewGrids (Real time = 0.0);
 
     //! This function is called by the second version of MakeNewGrids.
+    //! Make a new level from scratch using provided BoxArray and DistributionMapping.
+    //! Only used during initialization.
     virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) {}
 
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.

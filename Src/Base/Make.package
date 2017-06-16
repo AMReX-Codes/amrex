@@ -101,9 +101,9 @@ endif
 #
 # Boundary-related 
 #
-C$(AMREX_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp
+C$(AMREX_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
-C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H
+C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H AMReX_BCUtil.H
 
 #
 # Plotfile
@@ -118,6 +118,7 @@ ifneq ($(BL_NO_FORT),TRUE)
   F$(AMREX_BASE)_sources += AMReX_COORDSYS_$(DIM)D.F
   F$(AMREX_BASE)_headers += AMReX_COORDSYS_F.H
   F$(AMREX_BASE)_sources += AMReX_FILCC_${DIM}D.F
+  F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
   f$(AMREX_BASE)_sources += AMReX_BLutil_F.f
   f$(AMREX_BASE)_sources += AMReX_BLParmParse_F.f
@@ -134,6 +135,8 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90
+
+  F90$(AMREX_BASE)_sources += AMReX_bc_types_mod.F90
 endif
 
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp

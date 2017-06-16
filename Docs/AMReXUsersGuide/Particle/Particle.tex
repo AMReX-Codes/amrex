@@ -1,28 +1,20 @@
-In addition to the tools for working with mesh data described in previous chapters, $\tt{AMReX}$ provides data structures and iterators for performing data-parallel particle simulations. 
-Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example use cases include Particle-in-Cell
-simulations, Lagrangian tracers, or particles that exert a drag force onto a fluid, such as in multi-phase flow calculations. The overall goals of $\tt{AMReX}$'s particle 
-tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data automatically.
-In the following sections, we give an overview of $\tt{AMReX}$'s particle classes and how to use them.
+In addition to the tools for working with mesh data described in previous chapters, $\tt{AMReX}$ also provides data structures and iterators for performing data-parallel particle simulations. Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) block-structured hierarchy of meshes. Example applications include Particle-in-Cell (PIC) simulations, Lagrangian tracers, or particles that exert drag forces onto a fluid, such as in multi-phase flow calculations. The overall goals of $\tt{AMReX}$'s particle tools are to allow users flexibility in specifying how the particle data is laid out in memory and to handle the parallel communication of particle data automatically. In the following sections, we give an overview of $\tt{AMReX}$'s particle classes and how to use them.
 
 \section{The Particle}
 \label{sec:Particles:Particle}
 
-The particle classes can be used by including the header $\tt{AMReX\_Particles.H}$. The most basic particle data structure is the particle struct itself: 
+The particle classes can be used by including the header $\tt{AMReX\_Particles.H}$. The most basic particle data structure is the particle itself: 
 
 \begin{lstlisting}[language=cpp]
   Particle<3, 2> p;
 \end{lstlisting}
 
-This is a templated data type, designed to allow users flexibility in specifying the number and type of variables that the particles carry. The first template parameter is
-the number of extra $\tt{Real}$ variables this particle will have (either single or double precision), while the second is the number of extra integer variables. It is imporant to note
-that this is the number of $\emph{extra}$ real and integer variables; a particle will always have at least $\tt{BL\_SPACEDIM}$ $\tt{Real}$ components that store the particle's position
-and $\tt{2}$ integer components that store the particle's $\tt{id}$ and $\tt{cpu}$ numbers.
-\footnote{Note that $\tt{cpu}$ stores the number of the process the particle was $\emph{generated}$
-on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle $\tt{id}$. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.}
+This is a templated data type, designed to allow flexibility in the number and type of variables that the particles carry. The first template parameter is
+the number of extra $\tt{Real}$ variables this particle will have (either single or double precision), while the second is the number of extra integer variables. 
+It is imporant to note that this is the number of $\emph{extra}$ real and integer variables; a particle will always have at least $\tt{BL\_SPACEDIM}$ $\tt{Real}$ components that store the particle's position and $\tt{2}$ integer components that store the particle's $\tt{id}$ and $\tt{cpu}$ numbers.
+\footnote{Note that $\tt{cpu}$ stores the number of the process the particle was $\emph{generated}$ on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle $\tt{id}$. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.}
 
-The particle struct is designed to store these variables in a way that minimizes padding, which in practice means that the $\tt{Real}$ components always come first, and the integer
-components second. Additionally, the required particle variables are stored before the optional ones, for both the real and the integer components. For example, say we want to define
-a particle type that stores a mass, three velocity components, and two extra integer flags. Our particle struct would be set up like:
+The particle struct is designed to store these variables in a way that minimizes padding, which in practice means that the $\tt{Real}$ components always come first, and the integer components second. Additionally, the required particle variables are stored before the optional ones, for both the real and the integer components. For example, say we want to define a particle type that stores a mass, three velocity components, and two extra integer flags. Our particle struct would be set up like:
 
 \begin{lstlisting}[language=cpp]
   Particle<4, 2> p;
@@ -69,7 +61,13 @@ One particle by itself is not very useful. To do real calculations, a collection
 
 Like the $\tt{Particle}$ class itself, the $\tt{ParticleContainer}$ class is templated. The first two template parameters have the same meaning as before: they define the number of each type of variables that the particles in this container will store. Particles added to the container are stored in the Array-of-Structs (AoS) style. In addition, there are two more optional template parameters that allow the user to specify additional particle variables that will be stored in Struct-of-Array (SoA) form. The difference between Array-of-Struct and Struct-of-Array data is in how the data is laid out in memory. For the AoS data, all the variables associated with particle 1 are next to each other in memory, followed by all the variables associated with particle 2, and so on. For variables stored in SoA style, all the particle data for a given component is next to each other in memory, and each component is stored in a seperate
 array. For convenience, we (arbitrarily) refer to the components in the particle struct as particle $\emph{data}$, and components stored in the Struct-of-Arrays as particle
-$\emph{attributes}$. See Figure XXX for an illustration.
+$\emph{attributes}$. See Figure~\ref{fig:particles:particle_arrays} for an illustration.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{./Particle/particle_arrays.pdf}
+  \caption{\label{fig:particles:particle_arrays} An illustration of how the particle data for a single tile is arranged in memory. This particle container has been defined with $\tt{NStructReal} = 1$, $\tt{NStructInt} = 2$, $\tt{NArrayReal} = 2$, and $\tt{NArrayInt} = 2$. In this case, each tile in the particle container has five arrays: one with the particle struct data, two additional real arrays, and two additional integer arrays. In the tile shown, there are only 2 particles. We have labelled the extra real data member of the particle struct to be ``mass'', while the extra integer members of the particle struct are labeled $p$, and $s$, for ``phase'' and ``state''. The variables in the real and integer arrays are labelled ``foo'', ``bar'', ``l'', and ``n'', respectively.}
+\end{figure}
 
 To see why the distinction between AoS and SoA data is important, consider the following extreme case. Say you have particles that carry 100 different components,
 but that most of the time, you only need to do calculations involving 3 of them (say, the particle positions) at once. In this case, storing all 100 particle variables in the particle
@@ -112,10 +110,8 @@ your $\tt{AmrCore}$.
 
 The $\tt{ParticleContainer}$ stores the particle data in a manner prescribed by the set of AMR grids used to define it. If tiling is turned off, then every grid has its own 
 Array-of-Structs and Struct-of-Arrays. Which AMR grid a particle is assigned to is determined by examining its position and binning it, using the domain left edge as an offset. 
-By default, a particle is assigned to the finest level that contains its position, although this behavior can be tweaked (see Section~\ref{sec:Particles:Subcycling} below). 
-When tiling is enabled, then each $\emph{tile}$ gets its own Struct-of-Arrays and Array-of-Structs instead. Note that this is different than what happens with mesh data. With mesh
-data, the tiling is strictly logical; the data is laid out in memory the same whether tiling is turned on or off. With particle data, however, the particles are actually stored in 
-different arrays when tiling is enabled. As with mesh data, the particle tile size can be tuned so that an entire tile's worth of particles will fit into a cache line at once.
+By default, a particle is assigned to the finest level that contains its position, although this behavior can be tweaked if desired. 
+When tiling is enabled, then each $\emph{tile}$ gets its own Struct-of-Arrays and Array-of-Structs instead. Note that this is different than what happens with mesh data. With mesh data, the tiling is strictly logical; the data is laid out in memory the same whether tiling is turned on or off. With particle data, however, the particles are actually stored in different arrays when tiling is enabled. As with mesh data, the particle tile size can be tuned so that an entire tile's worth of particles will fit into a cache line at once.
 
 Once the particles move, their data may no longer be in the right place in the container. They can be reassigned by calling the $\tt{Redistribute()}$ method of $\tt{ParticleContainer}$.
 After calling this method, all the particles will be moved to their proper places in the container, and all invalid particles (particles with id set to $-1$) will be removed. All the 
@@ -288,16 +284,41 @@ rho.SumBoundary(gm.periodicity());
 
 \end{lstlisting}
 
-As before, we loop over all our particles, calling a $\tt{Fortran}$ routine that deposits them on to the appropriate $\tt{FArrayBox}$. These Fabs must have enough ghost cells to
-cover the support of all the particles associated with it. Note that, instead of $\tt{FillBoundary}$, we call $\tt{SumBoundary}$ after performing the deposition, to add up the charge 
-in all the ghost cells surrounding each Fab into the corresponding valid cells.
+As before, we loop over all our particles, calling a $\tt{Fortran}$ routine that deposits them on to the appropriate $\tt{FArrayBox}$. The Fabs must have enough ghost cells to
+cover the support of all the particles associated with them. Note that we call $\tt{SumBoundary}$ instead of $\tt{FillBoundary}$ after performing the deposition, to add up the charge 
+in the ghost cells surrounding each Fab into the corresponding valid cells.
 
 For a complete example of an electrostatic PIC calculation that includes multi-level deposition and interpolation, please see amrex/Tutorials/Particles/ElectrostaticPIC.
 
 \section{Short Range Forces}
 \label{sec:Particles:ShortRange}
 
-Neighbor particles. Optional communication. The ShortRangeParticles tutorial.
+In a PIC calculation, the particles don't interact with each other directly; they only see each other through the mesh. An alternative use case is particles that exert short-range forces on each other. In this case, beyond some cut-off distance, the particles don't interact with each other and therefore don't need to be included in the force calculation. Our approach to these kind of particles is to fill ``neighbor buffers'' on each tile that contain copies of the particles on neighboring tiles that are within some number of cells $N_g$ of the tile boundaries. See Figure~\ref{fig:particles:neighbor_particles} for an illustration. By choosing the number of ghost cells to match the interaction radius of the particles, you can capture all of the neighbors that can possibly influence the particles in the valid region of the tile. Computing the forces on the valid particles can then proceed via direct summation.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.75\textwidth]{./Particle/neighbor_particles.pdf}
+  \caption{\label{fig:particles:neighbor_particles} An illustration of filling neighbor particles for short-range force calculations. Here, we have a domain consisting of one 32-by-32 grid, broken up into 8-by-8 tiles. The number of ghost cells is taken to be $1$. For the tile in green, particles on other tiles in the entire shaded region will copied and packed into the green tile's neighbor buffer. These particles can then be included in the force calculation. If the domain is periodic, particles in the grown region for the blue tile that lie on the other side of the domain will also be copied, and their positions will modified so that a naive distance calculation between valid particles and neighbors will be correct.
+}
+\end{figure}
+
+For a complete example of a $\tt{ParticleContainer}$ that does this neighbor finding, please see amrex/Tutorials/Particles/ShortRangeParticles. This $\tt{ParticleContainer}$ has additional methods called $\tt{FillNeighbors}$ and $\tt{clearNeighbors}$ that fill the $\tt{neighbors}$ data structure with copies of the proper particles. These are then passed into the Fortran routine that computes the forces as follows:
+
+\begin{lstlisting}[language=cpp]
+
+void ShortRangeParticleContainer::computeForces() {
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        AoS& particles = pti.GetArrayOfStructs();
+        int Np = particles.size();
+        int nstride = particles.dataShape().first;
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        int Nn = neighbors[index].size() / pdata_size;
+        amrex_compute_forces(particles.data(), &Np,
+                             neighbors[index].dataPtr(), &Nn);
+    }
+}
+
+\end{lstlisting}
 
 \section{Particle IO}
 \label{sec:Particles:IO}
@@ -315,9 +336,3 @@ AMReX provides routines for writing particle data to disk for analysis, visualiz
 will create a plot file called ``plt00000'' and write the mesh data in $\tt{output}$ to it, and then write the particle data in a subdirectory called ``particle0''. There is also the $\tt{WriteAsciiFile}$ method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
 The binary file format is currently readable by $\tt{yt}$. In additional, there is a Python conversion script in amrex/Tools/Py\_util/amrex\_particles\_to\_vtp that can convert both the ASCII and the binary particle files to a format readable by Paraview. 
-
-\section{Load Balancing with Particles}
-\label{sec:Particles:Balancing}
-
-Load Balancing.
-

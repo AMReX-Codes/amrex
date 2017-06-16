@@ -102,7 +102,10 @@ to account for the mismatch stored in the flux register (computed by taking the 
 flux register data).
 \end{enumerate}
 
-\section{{\tt AmrMesh} and {\tt AmrCore}}
+\section{{\tt AmrCore} Source Code}
+Here we provide a high-level overview of the source code in {\tt amrex/Src/AmrCore}.
+
+\subsection{{\tt AmrMesh} and {\tt AmrCore}}
 
 For single-level simulations
 (see e.g., {\tt amrex/Tutorials/Basic/HeatEquation\_EX1\_C/main.cpp})
@@ -142,13 +145,70 @@ protected:
 {\tt AMReX\_AmrCore.cpp/H} contains the class {\tt AmrCore}, which is derived from
 the {\tt AmrMesh} class.
 
-\section{{\tt Cluster}, {\tt ErrorList}, and {\tt TagBox}}
+There are 5 pure virtual functions in the {\tt AmrCore} class:
 
-\section{{\tt Interpolater}}
+\begin{lstlisting}[language=cpp]
+//! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
+virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, 
+                       int ngrow) override = 0;
+
+//! Make a new level from scratch using provided BoxArray and DistributionMapping.
+//! Only used during initialization.
+virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, 
+                                      const DistributionMapping& dm) override = 0;
+
+//! Make a new level using provided BoxArray and DistributionMapping and fill 
+//  with interpolated coarse level data.
+virtual void MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba, 
+                                     const DistributionMapping& dm) = 0;
+
+//! Remake an existing level using provided BoxArray and DistributionMapping 
+//  and fill with existing fine and coarse data.
+virtual void RemakeLevel (int lev, Real time, const BoxArray& ba, 
+                          const DistributionMapping& dm) = 0;
+
+//! Delete level data
+virtual void ClearLevel (int lev) = 0;
+\end{lstlisting}
+Refer to the {\tt AmrAdv} class in the {\tt amrex/Tutorials/Amr/AmrCore\_Advection/Source} code for a sample implementation.
+
+\subsection{{\tt TagBox}, and {\tt Cluster}}
+These classes are used in the grid generation process.  They are largely
+hidden from any application codes.
+
+The {\tt TagBox} class is essentially a data structure that marks which
+cells are ``tagged'' for refinement.
+
+{\tt Cluster} (and {\tt ClusterList} contained within the same file) are classes
+that help sort tagged cells and generate a grid structure that contains all
+the tagged cells.
+
+
+
+\subsection{{\tt FillPatchUtil}}\label{sec:amrcore:fillpatch}
+
+Many codes, including the {\tt Advection\_AmrCore} example, contain an array of {\tt MultifFab}s
+(one for each level of refinement), and then use ``fillpatch'' operations to fill temporary
+multifabs that have ghost cells that have been properly filled.  At the coarsest level,
+the interior and domain boundary (which can be periodic or prescribed based on physical considerations)
+need to be filled.  At the non-coarsest level, the ghost cells can also be interior or domain,
+but can also be at coarse-fine interfaces away from the domain boundary.
+{\tt AMReX\_FillPatchUtil.cpp/H} contains two primary functions of interest.
+\begin{enumerate}
+\item {\tt FillPatchSingleLevel()} fills a {\tt MultiFab} and its ghost region at a single level of 
+refinement.  The routine is flexible enough to interpolate in time between two {\tt MultiFab}s
+associated with different times.
+\item {\tt FillPatchTwoLevels()} fills a {\tt MultiFab} and its ghost region at a single level of 
+refinement, assuming there is an underlying coarse level.  This routine is flexible enough to interpolate
+the coarser level in time first using {\tt FillPatchSingleLevel()}.
+\end{enumerate}
+
+\subsection{{\tt Interpolater}}
 
 {\tt AMReX\_Interpolater.cpp/H} contains the virtual base class {\tt Interpolater}, which provides
-an interface for coarse-to-fine spatial interpolation operators.  Within {\tt AMReX\_Interpolater.cpp/H}
-are the derived classes:
+an interface for coarse-to-fine spatial interpolation operators.  Thefillpatch routines describe
+above require an interpolator for {\tt FillPatchTwoLevels()}
+Within {\tt AMReX\_Interpolater.cpp/H} are the derived classes:
 \begin{itemize}
 \item {\tt NodeBilinear}
 \item {\tt CellBilinear}
@@ -161,13 +221,7 @@ are the derived classes:
 The fortran routines that perform the actual work associated with {\tt Interpolater} are 
 contained in the files {\tt AMReX\_INTERP\_F.H} and {\tt AMReX\_INTERP\_xD.F}.
 
-\section{{\tt FillPatchUtil}}
-\label{sec:amrcore:fillpatch}
-
-{\tt AMReX\_FillPatchUtil.cpp/H} contains as assortment of functions to check for proper nesting
-and to help with interpolation.
-
-\section{{\tt FluxRegister}}
+\subsection{{\tt FluxRegister}}
 
 {\tt AMReX\_FluxRegister.cpp/H} contains the class {\tt FluxRegister}, which is derived from
 the class {\tt BndryRegister} (in {\tt Src/Boundary/AMReX\_BndryRegister}).
@@ -195,7 +249,7 @@ to account for the mismatch stored in the {\tt FluxRegister}.
 The fortran routines that perform the actual work associated with {\tt FluxRegister} are 
 contained in the files {\tt AMReX\_FLUXREG\_F.H} and {\tt AMReX\_FLUXREG\_xD.F}.
 
-\section{{\tt AmrParticles} and {\tt AmrParGDB}}
+\subsection{{\tt AmrParticles} and {\tt AmrParGDB}}
 
 The {\tt AmrCore/} directory contains derived class for dealing with particles 
 in a multi-level framework.  The description of the base classes
@@ -211,10 +265,8 @@ the class {\tt ParGDBBase} (in {\tt Src/Particle/AMReX\_ParGDB}).
 
 \section{{\tt Advection\_AmrCore} Example}
 This example uses the class {\tt AmrAdv}, which is derived from the class {\tt AmrCore} 
-(which is derived from {\tt AmrMesh}).  The function definitions are given in {\tt AmrAdv.H}.
-The function implementations are split among 5 files 
-({\tt AmrAdv.cpp}, {\tt AmrAdvInit.cpp}, {\tt AmrAdvEvolve.cpp}, {\tt AmrAdvIO.cpp}, and {\tt AmrAdvError.cpp}).
-
+(which is derived from {\tt AmrMesh}).  The function definitions/implementations
+are given in {\tt AmrAdv.H/cpp}.  
 Here is a high-level pseudo-code of the flow of the program:
 \begin{lstlisting}[language=cpp]
 /* Advection_AmrCore Pseudocode */
@@ -257,3 +309,47 @@ main()
         }
     }
 \end{lstlisting}
+
+\subsection{{\tt FluxRegister}s}
+The function {\tt AmrAdv::Advance()} calls the fortran
+subroutine, {\tt advect} (in {\tt ./Src\_xd/Adv\_xd.f90}).  {\tt advect} computes
+and returns the time-advanced state as well as the fluxes used to update the state.
+These fluxes are used to set or increment the flux registers.
+\begin{lstlisting}[language=cpp]
+// increment or decrement the flux registers by area and time-weighted fluxes
+// Note that the fluxes have already been scaled by dt and area
+// In this example we are solving phi_t = -div(+F)
+// The fluxes contain, e.g., F_{i+1/2,j} = (phi*u)_{i+1/2,j}
+// Keep this in mind when considering the different sign convention for updating
+// the flux registers from the coarse or fine grid perspective
+// NOTE: the flux register associated with flux_reg[lev] is associated
+// with the lev/lev-1 interface (and has grid spacing associated with lev-1)
+if (do_reflux) { 
+   if (flux_reg[lev+1]) {
+      for (int i = 0; i < BL_SPACEDIM; ++i) {
+          flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
+      }	    
+   }
+   if (flux_reg[lev]) {
+      for (int i = 0; i < BL_SPACEDIM; ++i) {
+          flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(), 1.0);
+      }
+   }
+}
+\end{lstlisting}
+The synchronization is performed at the end of {\tt AmrAdv::timeStep}:
+\begin{lstlisting}[language=cpp]
+if (do_reflux)
+{
+    // update lev based on coarse-fine flux mismatch
+    flux_reg[lev+1]->Reflux(*phi_new[lev], 1.0, 0, 0, phi_new[lev]->nComp(),
+                            geom[lev]);
+}
+
+AverageDownTo(lev); // average lev+1 down to lev
+\end{lstlisting}
+
+In order to define an AMR grid structure, you must define a routine that ``tags'' which
+cells require refinement.  The pure virtual function {\tt ErrorEst} in the {\tt AmrMesh}
+is defined in the {\tt AmrAdv} class.  The {\tt ErrorEst} function must call a subroutine
+that sets elements of a {\tt TagBoxArray} to either 1 or 0.
