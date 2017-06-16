@@ -18,6 +18,7 @@
 #include "AMReX_EBCellFactory.H"
 #include "AMReX_VisMF.H"
 #include "AMReX_PlotFileUtil.H"
+#include "AMReX_BaseUmap.H"
 
 #include "AMReX_MeshRefine.H"
 #include "AMReX_EBStruct.H"
@@ -361,6 +362,22 @@ BuildFortranGraphNodes(std::map<int,std::vector<CNode> >& graphCNodes,
 
 int myTest()
 {
+#if 1
+
+    Box bx(IntVect(AMREX_D_DECL(0,0,0)),
+           IntVect(AMREX_D_DECL(2,3,4)));
+    BaseUmap<Real> umap(bx, 2);
+
+    Real v;
+    v = 2.0;
+    umap.setVal( v, IntVect(AMREX_D_DECL(2,1,0)), 0, 1);
+
+    for (IntVect iv=bx.smallEnd(); iv<=bx.bigEnd(); bx.next(iv)) {
+        v = umap.getVal(iv, 0, 1);
+        std::cout << iv << " has value " << v <<std::endl;
+    }
+
+#else
 
     std::cout << "CNode is POD: " << std::is_pod<CNode>::value << std::endl;
     std::cout << "FNode is POD: " << std::is_pod<FNode>::value << std::endl;
@@ -452,6 +469,7 @@ int myTest()
     //             BL_TO_FORTRAN_N(ebmask_fine[mfi],0));
     // }
 
+#endif
     return 0;
 }
 
