@@ -4060,16 +4060,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 // This is the single-level version for cell-centered density
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDensitySingleLevelFort (int rho_index,
-								 MultiFab& mf_to_be_filled,
-								 int       lev,
-								 int       ncomp,
-								 int       particle_lvl_offset) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+AssignCellDensitySingleLevelFort (int rho_index,
+                                  MultiFab& mf_to_be_filled,
+                                  int       lev,
+                                  int       ncomp,
+                                  int       particle_lvl_offset) const
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDensitySingleLevelFort()");
-
+    
     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");
-
+    
     MultiFab* mf_pointer;
 
     if (OnSameGrids(lev, mf_to_be_filled)) {
@@ -4107,17 +4108,50 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDen
         (*mf_pointer)[mfi].setVal(0);
     }
 
-    for (const auto& kv : pmap) {
-      const int grid = kv.first.first;
-      const auto& pbx = kv.second.GetArrayOfStructs();
-      FArrayBox& fab = (*mf_pointer)[grid];
-      const Box& box = fab.box();
-      auto N = pbx.size();
+    using ParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
-      int nstride = pbx.dataShape().first;
-      amrex_deposit_cic(pbx.data(), nstride, N, fab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
+#ifdef _OPENMP
+#pragma omp parallel
+    {
+        FArrayBox local_rho;
+#endif
+        for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
+            const auto& particles = pti.GetArrayOfStructs();
+            int nstride = particles.dataShape().first;
+            const long np = pti.numParticles();
+            FArrayBox& fab = (*mf_pointer)[pti];
+            const Box& box = fab.box();
+            Real* data_ptr;
+            const int *lo, *hi;
+#ifdef _OPENMP
+            Box tile_box = pti.tilebox();
+            tile_box.grow(1);
+            local_rho.resize(tile_box);
+            local_rho = 0.0;
+            data_ptr = local_rho.dataPtr();
+            lo = tile_box.loVect();
+            hi = tile_box.hiVect();
+#else
+            data_ptr = fab.dataPtr();
+            lo = box.loVect();
+            hi = box.hiVect();
+#endif
+
+            amrex_deposit_cic(particles.data(), nstride, np, data_ptr, lo, hi, plo, dx);
+
+#ifdef _OPENMP
+            amrex_atomic_accumulate_fab(local_rho.dataPtr(), 
+                                        tile_box.loVect(), tile_box.hiVect(),
+                                        fab.dataPtr(),
+                                        box.loVect(), box.hiVect());
+#endif
+
+        }
+
+#ifdef _OPENMP
     }
-    
+#endif
+
     mf_pointer->SumBoundary(gm.periodicity());
     
     // If ncomp > 1, first divide the momenta (component n) 
@@ -4156,7 +4190,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDen
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InterpolateFort (Array<std::unique_ptr<MultiFab> >& mesh_data, 
-                                                int lev_min, int lev_max)
+                                                                                    int lev_min, int lev_max)
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InterpolateFort()");
     for (int lev = lev_min; lev <= lev_max; ++lev) {
@@ -4166,10 +4200,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InterpolateFo
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InterpolateSingleLevelFort()");
-
+    
     if (mesh_data.nGrow() < 1)
         amrex::Error("Must have at least one ghost cell when in InterpolateSingleLevelFort");
     
@@ -4178,27 +4213,32 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InterpolateSi
     const Real*     dx          = gm.CellSize();
     const auto&     pmap        = m_particles[lev];
 
-    for (const auto& kv : pmap) {
-      const int grid = kv.first.first;
-      const auto& pbx = kv.second.GetArrayOfStructs();
-      FArrayBox& fab = mesh_data[grid];
-      const Box& box = fab.box();
-      auto N = pbx.size();
-      int nstride = pbx.dataShape().first;
-      int nComp = fab.nComp();
-      amrex_interpolate_cic(pbx.data(), nstride, N, 
-                            fab.dataPtr(), box.loVect(), box.hiVect(), nComp, plo, dx);
+    using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (ParIter pti(*this, lev); pti.isValid(); ++pti) {
+        auto& particles = pti.GetArrayOfStructs();
+        FArrayBox& fab = mesh_data[pti];
+        const Box& box = fab.box();
+        const long N = particles.size();
+        int nstride = particles.dataShape().first;
+        int nComp = fab.nComp();
+        amrex_interpolate_cic(particles.data(), nstride, N, 
+                              fab.dataPtr(), box.loVect(), box.hiVect(), nComp, plo, dx);
     }
 }
 
 // This is the single-level version for cell-centered density
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDensitySingleLevel (int rho_index,
-							     MultiFab& mf_to_be_filled,
-							     int       lev,
-							     int       ncomp,
-							     int       particle_lvl_offset) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+AssignCellDensitySingleLevel (int rho_index,
+                              MultiFab& mf_to_be_filled,
+                              int       lev,
+                              int       ncomp,
+                              int       particle_lvl_offset) const
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignCellDensitySingleLevel()");
     if (rho_index != 0) amrex::Abort("AssignCellDensitySingleLevel only works if rho_index = 0");

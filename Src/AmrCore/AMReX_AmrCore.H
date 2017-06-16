@@ -55,6 +55,7 @@ public:
 
 protected:
 
+    //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override = 0;
 
     //! Make a new level from scratch using provided BoxArray and DistributionMapping.
