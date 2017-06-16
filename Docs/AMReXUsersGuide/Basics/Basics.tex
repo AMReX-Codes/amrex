@@ -24,10 +24,10 @@ The coordinate directions are zero based.
 
 \section{Array}
 
-{\tt Array} class is derived from {\tt std::vector}.  The only
-difference between {\tt Array} and {\tt std::vector} is that {\tt
-  Array::operator[]} provides bound checking when compiled with {\tt
-  DEBUG=TRUE}.  To use this class, include {\tt AMReX\_Array.H}.
+{\tt Array} class in {\tt AMReX\_Array.H} is derived from {\tt
+  std::vector}.  The only difference between {\tt Array} and {\tt
+  std::vector} is that {\tt Array::operator[]} provides bound checking
+when compiled with {\tt DEBUG=TRUE}.
 
 \section{Real}
 
@@ -45,9 +45,8 @@ type is accessible in Fortran codes via
 \amrex\ users do not need to use MPI directly.  Parallel communication
 is often handled by the data abstraction classes (e.g., {\tt
   MultiFab}; Section~\ref{sec:basics:multifab}).  In addition, \amrex\
-has provided {\tt namespace ParallelDesriptor}.  To use it, include
-{\tt <AMReX\_ParallelDesriptor.H>}.  The frequently used
-functions are 
+has provided {\tt namespace ParallelDesriptor} in {\tt
+  <AMReX\_ParallelDesriptor.H>}.  The frequently used functions are
 \begin{lstlisting}[language=cpp]
  int myproc = ParallelDescriptor::MyProc();  // Return the rank
  
@@ -73,10 +72,11 @@ functions are
 \section{Print}
 \label{sec:basics:print}
 
-\amrex\ provides classes for printing messages to standard output or
-any \cpp\ {\tt ostream}.  The main reason one should use them instead
-of {\tt std::cout} is that messages from multiple processes or
-threads do not get mixed up.  Below are some examples.
+\amrex\ provides classes in {\tt AMReX\_Print.H} for printing messages
+to standard output or any \cpp\ {\tt ostream}.  The main reason one
+should use them instead of {\tt std::cout} is that messages from
+multiple processes or threads do not get mixed up.  Below are some
+examples.
 \begin{lstlisting}[language=cpp]
  Print() <<  "x = " << x << "\n"; // Print on I/O processor
  
@@ -97,16 +97,18 @@ threads do not get mixed up.  Below are some examples.
 
 \section{ParmParse}
 
-{\tt ParmParse} is a class providing a database for the storage and
-retrieval of command-line and input-file arguments.  When {\tt
-  amrex::Initialize()} is called, the first command-line argument
-after the executable name (if there is one and it does not contain
-character {\tt =}) is taken to be the inputs file, and the contents in
-the file are used to initialized the {\tt ParmParse} database.  The
-rest of the command-line arguments are also parsed by {\tt ParmParse}.
-The format of the inputs file is a series of definitions in the form
-of {\tt prefix.name = value value ...}.  For each line, texts after a
-{\tt \#} are comments.  Here is an example inputs file.
+{\tt ParmParse} in {\tt AMReX\_ParmParse.H} is a class providing a
+database for the storage and retrieval of command-line and input-file
+arguments.  When {\tt amrex::Initialize()} is called, the first
+command-line argument after the executable name (if there is one and
+it does not contain character {\tt =}) is taken to be the inputs file,
+and the contents in the file are used to initialize the {\tt
+  ParmParse} database.  The rest of the command-line arguments are
+also parsed by {\tt ParmParse}.  The format of the inputs file is a
+series of definitions in the form of {\tt prefix.name = value value
+  ...}.  For each line, texts after {\tt \#} are comments.  Here is an
+example inputs file.
+\begin{quote}
 \begin{verbatim}
 nsteps    = 100               # integer
 nsteps    = 1000              # nsteps appears a second time
@@ -116,7 +118,8 @@ xrange    = -0.5 0.5          # a list of 2 reals
 title     = "Three Kingdoms"  # a string
 hydro.cfl = 0.8               # with prefix, hydro 
 \end{verbatim}
-The following code shows how to use {\tt ParmParse} to get the values.
+\end{quote}
+The following code shows how to use {\tt ParmParse} to get/query the values.
 \begin{lstlisting}[language=cpp]
  ParmParse pp;
  
@@ -128,7 +131,7 @@ The following code shows how to use {\tt ParmParse} to get the values.
  pp.get("dt", dt);  // runtime error if dt is not in inputs
  
  Array<int> numcells;
- // A different name say 'numcells' can be used
+ // The variable name 'numcells' can be different from parameter name 'ncells'.
  pp.getarr("ncells", numcells);
  amrex::Print() << numcells.size() << "\n";  // 3
  
@@ -139,7 +142,7 @@ The following code shows how to use {\tt ParmParse} to get the values.
  }
  
  std::string title;
- query("title", title);  // query string
+ pp.query("title", title);  // query string
  
  ParmParse pph("hydro");  // with prefix 'hydro'
  Real cfl;
@@ -152,8 +155,9 @@ if {\tt get} fails to get the value, whereas {\tt query} returns an
 error code without generating a runtime error that will abort the run.
 If it is sometimes convenient to override parameters with command-line
 arguments without modifying the inputs file.  The command-line
-arguments after the inputs file are added later to the database and
-are therefore used be default.  For example, one can run with
+arguments after the inputs file are added later than the file to the
+database and are therefore used by default.  For example, one can run
+with
 \begin{verbatim}
     myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
 \end{verbatim}
@@ -169,7 +173,7 @@ shows an example of AMR grids.  There are three total levels in the
 example.  In \amrex\ numbering convention, the coarsest level is level
 0.  The coarsest grid ({\emph{black}) covers the domain with $16^2$
 cells. Bold lines represent grid boundaries.  There are two
-intermediate resolution grids ({\emph{blue}}) are at level 1 and the
+intermediate resolution grids ({\emph{blue}}) at level 1 and the
 cells are a factor of two finer than those at level 0.  The two finest
 grids ({\emph{red}}) are at level 2 and the cells are a factor of two
 finer than the level 1 cells.  Note that there is no direct
@@ -187,12 +191,13 @@ levels.
 \section{Box, IntVect and IndexType}
 \label{sec:basics:box}
 
-{\tt Box} is the data structure for representing a rectangular domain
-in indexing space.  For example, in Figure~\ref{fig:basics:amrgrids},
-there are 1, 2 and 2 {\tt Box}es on levels 0, 1 and 2, respectively.
-{\tt Box} is a dimension dependent class.  It has lower and upper
-corners (represented by {\tt IntVect} and an index type (represented
-by {\tt IndexType}).  There are no floating-point data in the object.
+{\tt Box} in {\tt AMReX\_Box.H} is the data structure for representing
+a rectangular domain in indexing space.  For example, in
+Figure~\ref{fig:basics:amrgrids}, there are 1, 2 and 2 {\tt Box}es on
+levels 0, 1 and 2, respectively.  {\tt Box} is a dimension dependent
+class.  It has lower and upper corners (represented by {\tt IntVect}
+and an index type (represented by {\tt IndexType}).  There are no
+floating-point data in the object.
 
 \subsection{IntVect}
 
@@ -322,11 +327,9 @@ types.
   \centering
   \includegraphics[width=5in]{./Basics/indextypes.pdf}
   \caption{\label{fig:basics:indextypes} Some of the different index
-    types in two dimensions: (a) cell-centered, (b) face-centered,
-    i.e., nodal in one dimensions ($x$) only, and (c) corner/nodal,
-    i.e., nodal in all dimensions.  Note that for data that is nodal
-    in one or more direction, the integer index corresponds to the
-    lower boundary in that direction.}
+    types in two dimensions: (a) cell-centered, (b) $x$-face-centered
+    (i.e., nodal in $x$-direction only), and (c) corner/nodal,
+    i.e., nodal in all dimensions.}
 \end{figure}
 
 There are a number of ways of converting a {\tt Box} from one type to
@@ -338,7 +341,7 @@ another.
   Print() << b1;                  // ((64,64,64) (128,128,128) (1,1,1))
   Print() << b0;                  // Still ((64,64,64) (127,127,127) (0,0,0))
 
-  Box b2 = enclosedCells(b1);     // A new Box with type (node, node, node)
+  Box b2 = enclosedCells(b1);     // A new Box with type (cell, cell, cell)
   if (b2 == b0) {                 // Yes, they are identical.
      Print() << "b0 and b2 are identical!\n";
   }
@@ -433,25 +436,25 @@ like in the following examples.
 A {\tt RealBox} stores the physical location in floating-point numbers
 of the lower and upper corners of a rectangular domain.
 
-{\tt Geometry} class describes problem domain and coordinate system
-for rectangular problem domains.  A {\tt Geometry} object can be
-constructed with
+{\tt Geometry} class in {\tt AMReX\_Geometry.H} describes problem
+domain and coordinate system for rectangular problem domains.  A {\tt
+  Geometry} object can be constructed with
 \begin{lstlisting}[language=cpp]
   explicit Geometry (const Box&     dom,
                      const RealBox* rb     = nullptr,
                      int            coord  = -1,
                      int*           is_per = nullptr);
 \end{lstlisting}
-Here the constructor takes a {\tt Box} specifying the indexing space
-domain, an optional argument of {\tt RealBox} pointer specifying the
-physical domain, an optional {\tt int} specifying coordinate system
-type, and an optional {\tt int *} specifying periodicity.  If a {\tt
-  RealBox} is not given, \amrex\ will construct one based on {\tt
-  ParmParse} parameters, {\tt geometry.prob\_lo} and {\tt
-  geometry.prob\_hi}, where each of the parameter is an array of {\tt
-  AMREX\_SPACEDIM} real numbers.  It's a runtime error if this fails.
-The optional argument for coordinate system is an integer type with
-valid values being 0 (Cartesian), or 1 (cylindrical), or 2
+Here the constructor takes a cell-centered {\tt Box} specifying the
+indexing space domain, an optional argument of {\tt RealBox} pointer
+specifying the physical domain, an optional {\tt int} specifying
+coordinate system type, and an optional {\tt int*} specifying
+periodicity.  If a {\tt RealBox} is not given, \amrex\ will construct
+one based on {\tt ParmParse} parameters, {\tt geometry.prob\_lo} and
+{\tt geometry.prob\_hi}, where each of the parameter is an array of
+{\tt AMREX\_SPACEDIM} real numbers.  It's a runtime error if this
+fails.  The optional argument for coordinate system is an integer type
+with valid values being 0 (Cartesian), or 1 (cylindrical), or 2
 (spherical).  If it is invalid as in the case of the default argument
 value, \amrex\ will query the {\tt ParmParse} database for {\tt
   geometry.coord\_sys} and use it if one is found.  If it cannot find
@@ -489,20 +492,23 @@ in each direction.
 A {\tt Geometry} object can return various information of the physical
 domain and the indexing space domain.  For example,
 \begin{lstlisting}[language=cpp]
-  const Real* problo = geom.ProbLo();  // Lower corner of the physical domain
-  Real yhi = geom.ProbHi(1);           // y-direction upper corner
-  const Real* dx = geom.CellSize();    // Cell size for each direction
-  const Box& domain = geom.Domain();   // Index domain
-  bool is_per = geom.isPeriodic(0);    // Is periodic in x-direction?
+  const Real* problo = geom.ProbLo();    // Lower corner of the physical domain
+  Real yhi = geom.ProbHi(1);             // y-direction upper corner
+  const Real* dx = geom.CellSize();      // Cell size for each direction
+  const Box& domain = geom.Domain();     // Index domain
+  bool is_per = Geometry::isPeriodic(0); // Is periodic in x-direction?
+  if (Geometry::isAllPeriodic()) {}      // Periodic in all direction?
+  if (Geometry::isAnyPeriodic()) {}      // Periodic in any direction?
 \end{lstlisting}
 
 
 \section{BoxArray}
 \label{sec:basics:ba}
 
-{\tt BoxArray} is a class for storing a collection of {\tt Box}es on
-a single AMR level.  One can make a {\tt BoxArray} out of a single {\tt Box}
-and then chop it into multiple {\tt Box}es.
+{\tt BoxArray} is a class in {\tt AMReX\_BoxArray.H} for storing a
+collection of {\tt Box}es on a single AMR level.  One can make a {\tt
+  BoxArray} out of a single {\tt Box} and then chop it into multiple
+{\tt Box}es.
 \begin{lstlisting}[language=cpp]
   Box domain(IntVect{0,0,0}, IntVect{127,127,127});
   BoxArray ba(domain);  // Make a new BoxArray out of a single Box
@@ -520,7 +526,7 @@ The output is like below,
   ((0,64,64) (63,127,127) (0,0,0)) ((64,64,64) (127,127,127) (0,0,0)) )
 \end{verbatim}
 It shows that {\tt ba} now has 8 {\tt Box}es, and it also prints out
-each {\tt Box}es.  
+each {\tt Box}.  
 
 In \amrex, {\tt BoxArray} is a global data structure.  It holds all
 the {\tt Box}es in a collection, even though a single process in a
@@ -538,9 +544,8 @@ itself.  In the following example, we show how one can convert {\tt
 \begin{lstlisting}[language=cpp]
   BoxArray cellba(Box(IntVect{0,0,0}, IntVect{63,127,127}));
   cellba.maxSize(64);
-  BoxArray faceba = cellba;
-  // convert to index type (cell, cell, node)
-  faceba.convert(IntVect{0,0,1});
+  BoxArray faceba = cellba;       // Make a copy
+  faceba.convert(IntVect{0,0,1}); // convert to index type (cell, cell, node)
   // Return an all node BoxArray
   const BoxArray& nodeba = amrex::convert(faceba, IntVect{1,1,1});
   Print() << cellba[0] << "\n";  // ((0,0,0) (63,63,63) (0,0,0))
@@ -569,38 +574,46 @@ value.
 \end{lstlisting}
 
 We have mentioned at the beginning of this section that {\tt BoxArray}
-is a global data structure storing {\tt Box}es owned by all processes.
-The operation of deep copy is thus undesirable because the operation
-itself is expensive and the extra copy wastes memory.  The
+is a global data structure storing {\tt Box}es shared by all processes.
+The operation of a deep copy is thus undesirable because it
+is expensive and the extra copy wastes memory.  The
 implementation of the {\tt BoxArray} class uses {\tt std::shared\_ptr}
 to an internal container holding the actual {\tt Box} data.  Thus
 making a copy of {\tt BoxArray} is a quite cheap operation.  The
 conversion of types and coarsening are also cheap because they can
-share the internal data with the original {\tt BoxArray}.  Function
+share the internal data with the original {\tt BoxArray}.  In our
+implementation, function
 {\tt refine} does create a new deep copy of the original data.  Also
 note that a {\tt BoxArray} and its variant with a different type share
 the same internal data is an implementation detail.  We discuss this
 so that the users are aware of the performance and resource cost.
 Conceptually we can think of them as completely independent of each
 other.
+\begin{lstlisting}[language=cpp]
+  BoxArray ba(...);  // original BoxArray
+  BoxArray ba2 = ba; // a copy that shares the internal data with the original
+  ba2.coarsen(2);    // Modify the copy
+  // The original copy is unmodified even though they share internal data.
+\end{lstlisting}
 
 For advanced users, \amrex\ provides functions performing the
 intersection of a {\tt BoxArray} and a {\tt Box}.  These functions are
 much faster than a naive implementation of performing intersection of
 the {\tt Box} with each {\tt Box} in the {\tt BoxArray}.  If one needs
 to perform those intersections, functions {\tt amrex::intersect}, {\tt
-  BoxArray:: intersects} and {\tt BoxArray::intersections} should be
+  BoxArray::intersects} and {\tt BoxArray::intersections} should be
 used.
 
 \section{DistributionMapping}
 \label{sec:basics:dm}
 
-{\tt DistributionMapping} is a class describes which process owns the
-data living on the domains specified by the {\tt Box}es in a {\tt
-  BoxArray}.  Like {\tt BoxArray}, {\tt DistributionMapping} has an
-element for each {\tt Box}, including the ones owned by other parallel
-processes.  A way to construct a {\tt DistributionMapping} object
-given a {\tt BoxArray} is as follows.
+{\tt DistributionMapping} is a class in {\tt
+  AMReX\_DistributionMapping.H} describes which process owns the data
+living on the domains specified by the {\tt Box}es in a {\tt
+  BoxArray}.  Like {\tt BoxArray}, there is an element for each {\tt
+  Box} in {\tt DistributionMapping}, including the ones owned by other
+parallel processes.  A way to construct a {\tt DistributionMapping}
+object given a {\tt BoxArray} is as follows.
 \begin{lstlisting}[language=cpp]
   DistributionMapping dm {ba};
 \end{lstlisting}
@@ -614,15 +627,15 @@ resources.  This class has a subscript operator that returns the
 process ID at a given index.
 
 By default, {\tt DistributionMapping} uses an algorithm based on space
-filling curve to determine distribution.  One can change the default
+filling curve to determine the distribution.  One can change the default
 via {\tt ParmParse} paramter {\tt DistributionMapping.strategy}.  {\tt
   KNAPSACK} is a common choice that is optimized for load balance.
-One can also explicitly construct a certain type of distribution.
+One can also explicitly construct a distribution.
 {\tt DistributionMapping} class allows the user to have complete control by
 passing an array of integers. 
 \begin{lstlisting}[language=cpp]
   DistributionMapping dm;   // empty object
-  Array<int> pmap;
+  Array<int> pmap {...};
   // The user fills the pmap array with the values specifying owner processes
   dm.define(pmap);  // Build DistributionMapping given an array of process IDs.
 \end{lstlisting}
@@ -633,7 +646,7 @@ passing an array of integers.
 
 \amrex\ is a block-structured AMR framework.  Although AMR introduces
 irregularity to the data and algorithms, there is regularity at the
-block/{\tt Box} level due to rectangular domain and the data structure
+block/{\tt Box} level due to rectangular domain, and the data structure
 at the {\tt Box} level is conceptually simple.  {\tt BaseFab} is a
 class template for multi-dimensional array-like data structure on a
 {\tt Box}.  The template parameter is typically basic types such as
@@ -657,8 +670,9 @@ constructing such an object is as follows,
 
 Most applications do not use {\tt BaseFab} directly, but utilize
 specialized classes derived from {\tt BaseFab}.  The most common types
-are {\tt FArrayBox} derived from {\tt BaseFab<Real>} and {\tt
-  IArrayBox} derived from {\tt BaseFab<int>}.
+are {\tt FArrayBox} in {\tt AMReX\_FArrayBox.H} derived from {\tt
+  BaseFab<Real>} and {\tt IArrayBox} in {\tt AMReX\_IArrayBox.H}
+derived from {\tt BaseFab<int>}.
 
 These derived classes also obtain many {\tt BaseFab} member functions
 via inheritance.  We now show some common usages of these functions.
@@ -696,12 +710,13 @@ One can copy data from one {\tt BaseFab} to another.
 Here the function copies the data from the region specified by {\tt
   srcbox} in the source {\tt BaseFab src} into the region specified by
 {\tt destbox} in the destination {\tt BaseFab} that invokes the
-function.  Note that although {\tt srcbox} and {\tt destbox} may be
-different, they must be the same size and shape, otherwise a runtime
-error occurs.  The user also specifies how many components ({\tt int
-  numcomp}) are copied starting at component {\tt srccomp} in {\tt
-  src} and stored starting at component {\tt destcomp}.  {\tt BaseFab}
-has functions returning the minimum or maximum value.
+function call.  Note that although {\tt srcbox} and {\tt destbox} may
+be different, they must be the same size, shape and index type,
+otherwise a runtime error occurs.  The user also specifies how many
+components ({\tt int numcomp}) are copied starting at component {\tt
+  srccomp} in {\tt src} and stored starting at component {\tt
+  destcomp}.  {\tt BaseFab} has functions returning the minimum or
+maximum value.
 \begin{lstlisting}[language=cpp] 
   T min (int comp=0) const;  // Minimum value of given component.
   T min (const Box& subbox, int comp=0) const; // Minimum value of given 
@@ -742,7 +757,7 @@ be done with
 But this approach is generally not recommended for performance reason.
 However, it can be handy for debugging.
 
-{\tt BaseFab} and its derived classes are containers data on {\tt
+{\tt BaseFab} and its derived classes are containers for data on {\tt
   Box}.  We recall that {\tt Box} has types
 (Section~\ref{sec:basics:box}).  The examples in this section so far
 use the default cell based type.  However, some functions will result
@@ -763,9 +778,9 @@ also provides a constructor for making an alias of an existing
 object.  Here is an example using {\tt FArrayBox}.
 \begin{lstlisting}[language=cpp]
   FArrayBox orig_fab(box, 4);  // 4-component FArrayBox
-  // Make a 2-component FArrayBox that is an alias of rhs
+  // Make a 2-component FArrayBox that is an alias of orig_fab
   // starting from component 1.
-  FArrayBox alias_fab(rhs, amrex::make_alias, 1, 2);
+  FArrayBox alias_fab(orig_fab, amrex::make_alias, 1, 2);
 \end{lstlisting}
 In the example, the alias {\tt FArrayBox} has only two components even
 though the original one has four components.  The alias has a sliced
@@ -780,17 +795,16 @@ alias will contain a dangling pointer after the original {\tt
 \section{FabArray, MultiFab and iMultiFab}
 \label{sec:basics:multifab}
 
-{\tt FabArray<FAB>} is a class template for a collection of {\tt FAB}s
-on the same AMR level associated with a {\tt BoxArray}
-(Section~\ref{sec:basics:ba}).  The template parameter {\tt FAB} is
-usually {\tt BaseFab<T>} or its derived classes (e.g., {\tt
-  FArrayBox}).  However, it can also be used to hold other data
+{\tt FabArray<FAB>} is a class template in {\tt AMReX\_FabArray.H} for
+a collection of {\tt FAB}s on the same AMR level associated with a
+{\tt BoxArray} (Section~\ref{sec:basics:ba}).  The template parameter
+{\tt FAB} is usually {\tt BaseFab<T>} or its derived classes (e.g.,
+{\tt FArrayBox}).  However, it can also be used to hold other data
 structures.  To construct a {\tt FabArray}, a {\tt BoxArray} must be
 provided because it is intended to hold {\emph{grid}} data defined on
 a union of rectangular regions embedded in a uniform index space.  For
 example, an {\tt FabArray} object can be used to hold data for one
-level of the example grids of Figure~\ref{fig:basics:amrgrids}.  The
-{\tt BoxArray} on level 2 ({\emph{red}) has two {\tt Box}es.
+level of the example grids of Figure~\ref{fig:basics:amrgrids}.
 
 {\tt FabArray} is a parallel data structure that the data (i.e.,
 {\tt FAB}) are distributed among parallel processes.  On each process,
@@ -808,13 +822,13 @@ For {\tt FabArray} on each process, it is built on a {\tt BoxArray} with
 2 {\tt Box}es, but contains only one {\tt FAB}.  
 
 In \amrex, there are some specialized classes derived from {\tt
-  FabArray}.  The {\tt iMultiFab} class is derived from {\tt
-  FabArray<IArrayBox>}.  The most commonly used {\tt FabArray} kind
-class is {\tt MultiFab} derived from {\tt FabArray<FArrayBox>}.  In
-the rest of this section, we use {\tt MultiFab} as example.  However,
-these concepts are equally applicable to other types of {\tt
-  FabArray}s.  There are many ways to define a {\tt MultiFab}.  For
-example,
+  FabArray}.  The {\tt iMultiFab} class in {\tt AMReX\_iMultiFab.H} is
+derived from {\tt FabArray<IArrayBox>}.  The most commonly used {\tt
+  FabArray} kind class is {\tt MultiFab} in {\tt AMReX\_MultiFab.H}
+derived from {\tt FabArray<FArrayBox>}.  In the rest of this section,
+we use {\tt MultiFab} as example.  However, these concepts are equally
+applicable to other types of {\tt FabArray}s.  There are many ways to
+define a {\tt MultiFab}.  For example,
 \begin{lstlisting}[language=cpp]
   // ba is BoxArray
   // dm is DistributionMapping
@@ -871,7 +885,7 @@ Below is an example of how to achieve this.
   const BoxArray& ba = mf0.boxArray();
   const DistributionMapping& dm = mf0.DistributionMap();
   int ncomp = mf0.nComp();
-  int ngrow = mf0.ngrow();
+  int ngrow = mf0.nGrow();
   MultiFab mf1(ba,dm,ncomp,ngrow);  // new MF with the same ncomp and ngrow
   MultiFab mf2(ba,dm,ncomp,0);      // new MF with no ghost cells
   // new MF with 1 component and 2 ghost cells
@@ -887,7 +901,7 @@ finite-volume code, in which the state is defined as cell averaged
 variables and the fluxes are defined as face averaged variables.
 \begin{lstlisting}[language=cpp]
   // ba is cell-centered BoxArray
-  // dm is DistributionMap
+  // dm is DistributionMapping
   int ncomp = 3;  // Suppose the system has 3 components
   int ngrow = 0;  // no ghost cells
   MultiFab state(ba, dm, ncomp, ngrow);
@@ -896,16 +910,16 @@ variables and the fluxes are defined as face averaged variables.
   MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 \end{lstlisting}
 Here all {\tt MultiFab} use the same {\tt DistributionMapping}, but
-their {\tt BoxArray}s have different.  The state is cell based,
-whereas the fluxes are on the faces.  Suppose the cell based {\tt
-  BoxArray} contains a {\tt Box\{(8,8,16), (15,15,31)\}}.  The state
-on that {\tt Box} is conceptually a Fortran Array with the dimension
-of {\tt (8:15,8:15,16:31,0:2)}.  The fluxes are arrays with slightly
-different indices.  For example, the $x$-direction flux for that {\tt
-  Box} has the dimension of {\tt (8:16,8:15,16:31,0:2)}.  Note there is
-an extra element in $x$-direction.  
+their {\tt BoxArray}s have different index types.  The state is cell
+based, whereas the fluxes are on the faces.  Suppose the cell based
+{\tt BoxArray} contains a {\tt Box\{(8,8,16), (15,15,31)\}}.  The
+state on that {\tt Box} is conceptually a Fortran Array with the
+dimension of {\tt (8:15,8:15,16:31,0:2)}.  The fluxes are arrays with
+slightly different indices.  For example, the $x$-direction flux for
+that {\tt Box} has the dimension of {\tt (8:16,8:15,16:31,0:2)}.  Note
+there is an extra element in $x$-direction.
 
-The {\tt MultiFab} provides many functions performing common
+The {\tt MultiFab} class provides many functions performing common
 arithmetic operations on a {\tt MultiFab} or between {\tt MultiFab}s
 built with the {\emph{same}} {\tt BoxArray} and {\tt DistributionMap}.
 For example,
@@ -924,12 +938,13 @@ For example,
   // int      dc   : starting component index in mfdst for this operation
   // int      sc   : number of components for this operation
   // int      ng   : number of ghost cells involved in this operation
+  //                 mfdst and mfsrc may have more ghost cells
 \end{lstlisting}
 We refer the reader to {\tt Src/Base/AMReX\_MultiFab.H} and {\tt
   Src/Base/AMReX\_FabArray.H} for more details.  It should be noted
 again it is a runtime error if the two {\tt MultiFab}s passed to functions
 like {\tt MultiFab::Copy} are not built with the {\emph{same}} {\tt
-  BoxArray} (including index type) and {\tt DistributionMap}. 
+  BoxArray} (including index type) and {\tt DistributionMapping}. 
 
 It is usually the case that the {\tt Box}es in the {\tt BoxArray} used
 for building a {\tt MultiFab} are non-intersecting except that they
@@ -952,13 +967,13 @@ communication is {\tt FillBoundary}.
 \end{lstlisting}
 Note that {\tt FillBoundary} does not modify any valid cells.  Also
 note that {\tt MultiFab} itself does not have the concept of
-periodicity boundary, but {\tt Geometry} has, and we can provide that
+periodic boundary, but {\tt Geometry} has, and we can provide that
 information so that periodic boundaries can be filled as well.  You
 might have noticed that a ghost cell could overlap with multiple valid
 cells from different {\tt FArrayBox}es in the case of nodal index
 type.  In that case, it is unspecified that which valid cell's value
 is used to fill the ghost cell.  It ought to be the case the values in
-those overlapping valid cells are the same.
+those overlapping valid cells are the same up to roundoff errors.
 
 Another type of parallel communication is copying data from one {\tt
   MultiFab} to another {\tt MultiFab} with a different {\tt BoxArray}
@@ -966,14 +981,14 @@ or the same {\tt BoxArray} with a different {\tt
   DistributionMapping}.   The data copy is performed on the regions of
 intersection.  The most generic interface for this is
 \begin{lstlisting}[language=cpp]
-  mfdst.ParallelCopy(mfsrc, sc, dc, nc, sng, snd, period, op);
+  mfdst.ParallelCopy(mfsrc, compsrc, compdst, ncomp, ngsrc, ngdst, period, op);
 \end{lstlisting}
 Here {\tt mfdst} and {\tt mfsrc} are destination and source {\tt
-  MultiFab}s, respectively.  Parameters {\tt sc}, {\tt dc}, and {\tt
-  nc} are integers specifying the range of components.  The copy is
-performed on {\tt nc} components starting from component {\tt sc} of
-{\tt mfsrc} and component {\tt dc} of {\tt mfdst}.  Parameters {\tt
-  sng} and {\tt snd} specify the number of ghost cells involved for
+  MultiFab}s, respectively.  Parameters {\tt compsrc}, {\tt compdst}, and {\tt
+  ncomp} are integers specifying the range of components.  The copy is
+performed on {\tt ncomp} components starting from component {\tt compsrc} of
+{\tt mfsrc} and component {\tt compdst} of {\tt mfdst}.  Parameters {\tt
+  ngsrc} and {\tt ngdst} specify the number of ghost cells involved for
 the source and destination, respectively.  Parameter {\tt period} is
 optional, and by default no periodic copy is performed.  Like {\tt
   FillBoundary}, one can use {\tt Geometry::periodicity()} to provide
@@ -988,13 +1003,13 @@ optional.
 \begin{lstlisting}[language=cpp]
   mfdst.ParallelCopy(mfsrc, period, op);  // mfdst and mfsrc must have the same
                                           // number of components
-  mfdst.ParallelCopy(mfsrc, sc, dc, nc, period, op);
+  mfdst.ParallelCopy(mfsrc, compsrc, compdst, ncomp, period, op);
 \end{lstlisting}
-Here the number of ghost cells involved is zero if unspecified, and
-the copy is performed on all components (assuming the two {\tt
+Here the number of ghost cells involved is zero, and the copy is
+performed on all components if unspecified (assuming the two {\tt
   MultiFab}s have the same number of components).  Similar to {\tt
   FillBoundary}, a destination cell may have multiple sources and
-which source is used is unspecified.  
+which source is used is unspecified.
 
 \section{MFIter and Tiling}
 \label{sec:basics:mfiter}
@@ -1012,7 +1027,7 @@ arithmetic functionalities of {\tt MultiFab}, such as adding two {\tt
   MultiFab}s together.  In this section, we will show how you can
 operate on the {\tt MultiFab} data with your own functions.  \amrex\
 provides an iterator, {\tt MFIter} for looping over the {\tt
-  FArrayBox}es in a {\tt MultiFab}.  For example,
+  FArrayBox}es in {\tt MultiFab}s.  For example,
 \begin{lstlisting}[language=cpp]
   for (MFIter mfi(mf); mfi.isValid(); ++mfi) // Loop over grids
   {
@@ -1032,7 +1047,7 @@ provides an iterator, {\tt MFIter} for looping over the {\tt
       const Box& abox = fab.box();
 
       // We can now pass the information to a function that does
-      // work on the region specified by box of the data pointed
+      // work on the region (specified by box) of the data pointed to
       // by Real* a.  The data should be viewed as a multidimensional
       // with bounds specified by abox.
       // Function f1 has the signature of
@@ -1064,9 +1079,9 @@ dimension is 3.  In 2D, the function interface is different.  In
 Section~\ref{sec:basics:fortran}, we will present a dimension agnostic
 approach using macros provided by \amrex.
 
-{\tt MFIter} only loops over grids owned by the processes.  For
+{\tt MFIter} only loops over grids owned by this process.  For
 example, suppose there are 5 {\tt Box}es in total and processes 0 and
-1 owns 2 and 3 {\tt Box}es, respectively.  That is the {\tt MultiFab}
+1 own 2 and 3 {\tt Box}es, respectively.  That is the {\tt MultiFab}
 on process 0 has 2 {\tt FArrayBox}es, whereas there are 3 {\tt
   FArrayBox}es on process 1.  Thus the numbers of iterations of {\tt
   MFIter} are 2 and 3 on processes 0 and 1, respectively.
@@ -1074,15 +1089,17 @@ on process 0 has 2 {\tt FArrayBox}es, whereas there are 3 {\tt
 In the example above, {\tt MultiFab} is assumed to have a single
 component.  If it has multiple component, we can call {\tt int nc =
   mf.nComp()} to get the number of components and pass it to the
-kernel function.  There is only one {\tt MultiFab} in the example
-above.  Below is an example of working with multiple {\tt MultiFab}s.
-Note that these two {\tt MultiFab}s are not necessarily built on the
-same {\tt BoxArray}.  But they must have the same {\tt
-  DistributionMapping}, and their {\tt BoxArray}s are typically
-related (e.g., they are different due to index types).
+kernel function.
+
+There is only one {\tt MultiFab} in the example above.  Below is an
+example of working with multiple {\tt MultiFab}s.  Note that these two
+{\tt MultiFab}s are not necessarily built on the same {\tt BoxArray}.
+But they must have the same {\tt DistributionMapping}, and their {\tt
+  BoxArray}s are typically related (e.g., they are different due to
+index types).
 \begin{lstlisting}[language=cpp]
   // U and F are MultiFabs
-  int ncU = U.nComp();   # number of components
+  int ncU = U.nComp();   // number of components
   int ncF = F.nComp();
   for (MFIter mfi(F); mfi.isValid(); ++mfi) // Loop over grids
   {
@@ -1110,7 +1127,7 @@ related (e.g., they are different due to index types).
 Here again function {\tt f2} is usually a Fortran subroutine with ISO
 C binding interface like below,
 \begin{lstlisting}[language=fortran]
-subroutine f1(lo, hi, u, ulo, uhi, nu, f, flo, fhi, nf) bind(c)
+subroutine f2(lo, hi, u, ulo, uhi, nu, f, flo, fhi, nf) bind(c)
   use amrex_fort_module, only : amrex_real
   integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),nu,flo(3),fhi(3),nf
   real(amrex_real),intent(in   )::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nu)
@@ -1125,7 +1142,7 @@ subroutine f1(lo, hi, u, ulo, uhi, nu, f, flo, fhi, nf) bind(c)
       end do
     end do
   end do
-end subroutine f1
+end subroutine f2
 \end{lstlisting}
 
 \subsection{MFIter with Tiling}
@@ -1172,7 +1189,7 @@ application codes can get the benefit of tiling easily.  An {\tt
   MFIter} loop with tiling is almost the same as the non-tiling
 version.  The first example in
 Section~\ref{sec:basics:mfiter:notiling} requires only two minor
-changes: (1) using {\tt true} when defining {\tt MFIter} to indicate
+changes: (1) passing {\tt true} when defining {\tt MFIter} to indicate
 tiling; (2) calling {\tt tilebox} instead of {\tt validbox} to obtain
 the work region for the loop iteration.
 \begin{lstlisting}[language=cpp]
@@ -1235,7 +1252,7 @@ here usually require very little changes.
 Figures~\ref{fig:basics:cc_validbox} \& \ref{fig:basics:cc_tilebox}
 show an example of the difference between {\tt validbox} and {\tt
   tilebox}.  In this example, there are two grids of cell-centered
-index type.  Function {\tt validbox} always return a {\tt Box} for the
+index type.  Function {\tt validbox} always returns a {\tt Box} for the
 valid region of an {\tt FArrayBox} no matter whether or not tiling is
 enabled, whereas function {\tt tilebox} returns a {\tt Box} for a
 tile.  (Note that when tiling is disabled, {\tt tilebox} returns the
@@ -1245,15 +1262,16 @@ function is called 8 times.
 
 The tile size can be explicitly set when defining {\tt MFIter}.
 \begin{lstlisting}[language=cpp]
-  // No tiling in x-direction.
+  // No tiling in x-direction. Tile size is 16 for y and 32 for z.
   for (MFIter mfi(mf,IntVect(1024000,16,32)); mfi.isValid(); ++mfi) {...}
 \end{lstlisting}
 An {\tt IntVect} is used to specify the tile size for every dimension.
 A tile size larger than the grid size simply means tiling is disable
 in that direction.  \amrex\ has a default tile size {\tt
-  IntVect\{1024000,8,8\}} in 3D and no tiling in 2D.  This is used when
-tile size is not explicitly set.  One can change the default size
-using {\tt ParmParse} parameter {\tt fabarray.mfiter\_tile\_size}.
+  IntVect\{1024000,8,8\}} in 3D and no tiling in 2D.  This is used
+when tile size is not explicitly set but the tiling flag is on.  One
+can change the default size using {\tt ParmParse} parameter {\tt
+  fabarray.mfiter\_tile\_size}.
 
 \begin{figure}
   \centering
@@ -1379,14 +1397,15 @@ Examples of these function declarations are as follows.
 One can write the functions in C and should include the header
 containing the function declarations in the C source code to ensure
 type safety.  However, we typically write these kernel functions in
-Fortran because of the native multi-dimensional array support.   As we
-have seen in Section~\ref{sec:basics:mfiter}, these Fortran functions
-take C pointers and view them as multi-dimensional arrays of the shape
-specified by the additional integer arguments.  Note that Fortran
-takes arguments by reference unless the {\tt value} keyword is used.
-So an integer argument on the Fortran side matches an integer pointer
-on the \cpp\ side.  Thanks to Fortran 2003, function name mangling is
-easily achieved by declaring the Fortran function as {\tt bind(c)}.
+Fortran because of the native multi-dimensional array support by
+Fortran.  As we have seen in Section~\ref{sec:basics:mfiter}, these
+Fortran functions take C pointers and view them as multi-dimensional
+arrays of the shape specified by the additional integer arguments.
+Note that Fortran takes arguments by reference unless the {\tt value}
+keyword is used.  So an integer argument on the Fortran side matches
+an integer pointer on the \cpp\ side.  Thanks to Fortran 2003,
+function name mangling is easily achieved by declaring the Fortran
+function as {\tt bind(c)}.
 
 \amrex\ provides many macros for passing an {\tt FArrayBox}'s data
 into Fortran/C.  For example
@@ -1405,8 +1424,8 @@ Here {\tt BL\_TO\_FORTRAN\_BOX} takes a {\tt Box} and provides two
 where {\tt Real*} is the data pointer that matches real array argument
 in Fortran, the first {\tt int*} (which matches an integer argument in
 Fortran) specifies the lower bounds, and the second {\tt int*} the
-upper bounds of the spatial dimensions of the array.  Similar to we
-have seen in Section~\ref{sec:basics:mfiter}, a matching Fortran
+upper bounds of the spatial dimensions of the array.  Similar to what
+we have seen in Section~\ref{sec:basics:mfiter}, a matching Fortran
 function is shown below,
 \begin{lstlisting}[language=fortran]
 subroutine f(lo, hi, u, ulo, uhi) bind(c)
@@ -1417,10 +1436,10 @@ end subroutine f
 \end{lstlisting}
 Here, the size of the integer arrays is 3, the maximal number of
 spatial dimensions.  If the actual spatial dimension is less than 3,
-the degenerate dimensions are set to zero.  So the Fortran function
-interface does not have to change according to the spatial
-dimensionality, and the bound of the third dimension of the data array
-simply becomes {\tt 0:0}.  With the data passed by {\tt
+the values in the degenerate dimensions are set to zero.  So the
+Fortran function interface does not have to change according to the
+spatial dimensionality, and the bound of the third dimension of the
+data array simply becomes {\tt 0:0}.  With the data passed by {\tt
   BL\_TO\_FORTRAN\_BOX} and {\tt BL\_FORTRAN\_ANYD}, this version of
 Fortran function interface works for any spatial dimensions.  If one
 wants to write a special version just for 2D and would like to use 2D
@@ -1438,7 +1457,7 @@ integers Fortran can treat it as a 2-element integer array.
 
 Another commonly used macro is {\tt BL\_TO\_FORTRAN}.  This macro
 takes an {\tt FArrayBox} and provides a real pointer for the floating
-point data array and a number of integer pointers for the bounds.
+point data array and a number of integer scalars for the bounds.
 However, the number of the integers depends on the dimensionality.
 More specifically, there are 6 and 4 integers for 2D and 3D,
 respectively.  The first half of the integers are the lower bounds for
@@ -1479,7 +1498,7 @@ end subroutine f
 
 \amrex\ uses {\tt MultiFab} as the data container for floating point
 data on multiple {\tt Box}es on a single AMR level.  Each rectangular
-Box has its own boundaries.  A {\tt MultiFab} can have ghost cells for
+{\tt Box} has its own boundaries.  A {\tt MultiFab} can have ghost cells for
 storing data outside its grid {\tt Box} boundaries.  This allows us to
 perform stencil type of operations on regular arrays.  There are three
 basic types of boundaries: (1) interior boundary; (2) coarse/fine
@@ -1585,11 +1604,11 @@ source codes and {\tt ParmParse} runtime parameters.
 \end{lstlisting}
 {\tt WriteSingleLevelPlotfile} is for single level runs and {\tt
 WriteMultiLevelPlotfile} is for multiple levels.  The name of the
-plotfile is specified by the `plotfilename` argument.  This is the
-directory name and for the plotfile.  In \amrex\ convention, the
+plotfile is specified by the {\tt plotfilename} argument.  This is the
+top level directory name for the plotfile.  In \amrex\ convention, the
 plotfile name consist of letters followed by numbers (e.g., {\tt
 plt00258}).  {\tt amrex::Concatenate} is a useful helper function for
-making such strings,
+making such strings.
 \begin{lstlisting}[language=cpp]
   int istep = 258;
   const std::string& pfname = amrex::Concatenate("plt",istep); // plt00258
@@ -1601,18 +1620,18 @@ making such strings,
   const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
 \end{lstlisting}
 Argument {\tt mf} ({\tt MultiFab} for single level and {\tt
-Array<const Multifab*} for multi-level) is the data to be written to
-the disk.  Note that many visualization tools expect this to be
-cell-centered data.  So for nodal data, we need to convert them
+  Array<const Multifab*>} for multi-level) is the data to be written
+to the disk.  Note that many visualization tools expect this to be
+cell-centered data.  So for nodal data, we need to convert them to
 cell-centered data through some kind of averaging.  Also note that if
 you have data at each AMR level in several {\tt MulitiFab}s, you need
-to build a new {\tt MultiFab} at each level to hold all the data.
-This involves local data copy in memory and is not expected to
-increase the total wall time for writing data to the disk.  For the
-multi-level version, the function expects {\tt Array<const
-MultiFab*>}, whereas the multi-level data are often stored as {\tt
-Array<std::unique\_ptr<MultiFab>>}.  \amrex\ has a helper function for
-this and one can use it as follows,
+to build a new {\tt MultiFab} at each level to hold all the data on
+that level.  This involves local data copy in memory and is not
+expected to significantly increase the total wall time for writing
+plotfiles.  For the multi-level version, the function expects {\tt
+  Array<const MultiFab*>}, whereas the multi-level data are often
+stored as {\tt Array<std::unique\_ptr<MultiFab>>}.  \amrex\ has a
+helper function for this and one can use it as follows,
 \begin{lstlisting}[language=cpp]
    WriteMultiLevelPlotfile(......, amrex::GetArrOfConstPtrs(mf), ......);
 \end{lstlisting}
@@ -1641,9 +1660,11 @@ checkpoint files.  Since each application code has its own
 requirement, there is no standard \amrex\ checkpoint format.
 
 Typically a checkpoint file is a directory containing some text files
-and sub-directories (e.g., {\tt Level\_0} and {\tt Level\_1}).  For
-example, to build directories {\tt chk00016}, {\tt chk00016/Level\_0},
-and {\tt chk00016/Level\_1}, we do
+and sub-directories (e.g., {\tt Level\_0} and {\tt Level\_1})
+containing various data.  It is a good idea that we fist make these
+directories ready for subsequently writing to the disk.  For example,
+to build directories {\tt chk00016}, {\tt chk00016/Level\_0}, and {\tt
+  chk00016/Level\_1}, we do
 \begin{lstlisting}[language=cpp]
   const std::string& chkname {"chk00016"};
   const std::string& subDirPrefix {"Level_"};
@@ -1694,9 +1715,9 @@ std::istringstream}.  For example,
   // is >> ....;
 \end{lstlisting}
 
-{\tt amrex::VisMF} is a class that can be used to perform parallel
-read and write {\tt MultiFab}s on the disk.  How many processes are
-allowed to perform I/O simultaneously can be set via
+{\tt amrex::VisMF} is a class that can be used to perform {\tt
+  MultiFab} I/O in parallel.  How many processes are allowed to
+perform I/O simultaneously can be set via
 \begin{lstlisting}[language=cpp]
   VisMF::SetNOutFiles(64);  // up to 64 processes, which is also the default.
 \end{lstlisting}
@@ -1712,7 +1733,7 @@ shows how to write and read a {\tt MultiFab}.
   MultiFab mf2;
   VisMF::Read(mf2, name);
 
-  // Read the data to a new MultiFab with identical
+  // Read the data to a MultiFab with identical
   // BoxArray, DistributionMapping, and number of components and ghost cells.
   MultiFab mf3(mf.boxArray(), mf.DistributionMap(), mf.nComp(), mf.nGrow());
   VisMF::Read(mf3, name);
@@ -1737,12 +1758,12 @@ its own memory pool.  Here are examples of using the module.
   use mempool_module, only : bl_allocate, bl_deallocate
   real(amrex_real), pointer, contiguous :: a(:,:,:), b(:,:,:,:)
   integer :: lo1, hi1, lo2, hi2, lo3, hi3, lo(4), hi(4)
-  // lo1 = ...
-  // a(lo1:hi1, lo2:hi2, lo3:hi3)
+  ! lo1 = ...
+  ! a(lo1:hi1, lo2:hi2, lo3:hi3)
   call bl_allocate(a, lo1, hi1, lo2, hi2, lo3, hi3)
-  // b(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),lo(4):hi(4))
+  ! b(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),lo(4):hi(4))
   call bl_allocate(b, lo, hi)
-  // ......
+  ! ......
   call bl_deallocate(a)
   call bl_deallocate(b)
 \end{lstlisting}
@@ -1756,7 +1777,7 @@ contiguous} for performance reason.
 {\tt amrex::Abort(const char* message)} is used to terminate a run
 usually when something goes wrong.  This function takes a message and
 write it to stderr.  Files named like {\tt Backtrace.rg\_1\_rl\_1}
-(where {\tt rg\_1\_rl\_1} means process \# 1) are produced containing
+(where {\tt rg\_1\_rl\_1} means process 1) are produced containing
 backtrace information of the call stack.  In Fortran, we can call {\tt
 amrex\_abort} from the {\tt amrex\_error\_module}, which takes a
 Fortran {\tt character} variable with assumed size (i.e., {\tt len=*})
