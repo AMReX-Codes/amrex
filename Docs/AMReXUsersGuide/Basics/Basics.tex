@@ -20,21 +20,22 @@ do
 \begin{verbatim}
     use amrex_fort_module, only : amrex_spacedim
 \end{verbatim}
-The coordinate directions are zero based. \MarginPar{Not in Fortran}
+The coordinate directions are zero based.
 
 \section{Array}
 
 {\tt Array} class is derived from {\tt std::vector}.  The only
 difference between {\tt Array} and {\tt std::vector} is that {\tt
   Array::operator[]} provides bound checking when compiled with {\tt
-  DEBUG=TRUE}. 
+  DEBUG=TRUE}.  To use this class, include {\tt AMReX\_Array.H}.
 
 \section{Real}
 
 \amrex\ can be compiled to use either double precision (which is the
 default) or single precision.  {\tt amrex::Real} is {\tt typedef}'d to
 either {\tt double} or {\tt float}.  C codes can use {\tt
-  amrex\_real}.  The data type is accessible in Fortran codes via
+  amrex\_real}.  They are defined in {\tt AMReX\_REAL.H}.  The data
+type is accessible in Fortran codes via
 \begin{verbatim}
     use amrex_fort_module, only : amrex_real
 \end{verbatim}
@@ -44,7 +45,8 @@ either {\tt double} or {\tt float}.  C codes can use {\tt
 \amrex\ users do not need to use MPI directly.  Parallel communication
 is often handled by the data abstraction classes (e.g., {\tt
   MultiFab}; Section~\ref{sec:basics:multifab}).  In addition, \amrex\
-has provided {\tt namespace ParallelDesriptor}.  The frequently used
+has provided {\tt namespace ParallelDesriptor}.  To use it, include
+{\tt <AMReX\_ParallelDesriptor.H>}.  The frequently used
 functions are 
 \begin{lstlisting}[language=cpp]
  int myproc = ParallelDescriptor::MyProc();  // Return the rank
