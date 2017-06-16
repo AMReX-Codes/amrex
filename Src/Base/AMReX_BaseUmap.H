@@ -56,11 +56,17 @@ namespace amrex
                     BL_ASSERT(&m_bmap == &(rhs.m_bmap));
                     return m_idx<rhs.m_idx;
                 }
-            const  T& operator* () {
+            const T& operator* () {
+                const Tuple& t = tuple();
+                return m_bmap(t.pos, t.ncomp, t.l);
+            }
+
+            const key_table_type& index () const {return m_idx;}
+
+            const Tuple& tuple () const {
                 typename std::map<key_table_type,Tuple>::const_iterator it=m_bmap.data_key_tuple_map.find(m_idx);
                 BL_ASSERT(it != m_bmap.data_key_tuple_map.end());
-                const Tuple& tuple = it->second;
-                return m_bmap(tuple.pos, tuple.ncomp, tuple.l);
+                return it->second;
             }
 
         protected:

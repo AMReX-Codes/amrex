@@ -177,6 +177,8 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
         {
             const CutCell& cc = *umi;
             std::cout << "ebCellID: " << cc.ebCellID;
+            const BaseUmap<CutCell>::Tuple& tuple = umi.tuple();
+            std::cout << " " << tuple.pos << " L = " << tuple.l << " ncomp= " << tuple.ncomp;
             for (int idir = 0; idir < SpaceDim; idir++)
             {
                 for (SideIterator sit; sit.ok(); ++sit)
