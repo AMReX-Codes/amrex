@@ -48,6 +48,7 @@ public:
     static std::size_t align (std::size_t sz);
 
 #ifdef CUDA
+    void SetDeviceMemory() { device_use_managed_memory = false; }
     void SetReadOnly() { device_set_readonly = true; }
     void SetPreferred() { device_set_preferred = true; }
 #endif
@@ -68,6 +69,7 @@ protected:
     static const unsigned int align_size = 16;
 
 #ifdef CUDA
+    bool device_use_managed_memory = true;
     bool device_set_readonly = false;
     bool device_set_preferred = false;
 #endif

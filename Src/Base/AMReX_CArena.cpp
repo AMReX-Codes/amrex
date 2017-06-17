@@ -50,12 +50,20 @@ CArena::alloc (size_t nbytes)
         const size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
 #if (defined(CUDA) && defined(CUDA_UM))
-	gpu_malloc_managed(&vp, &N);
-	if (device_set_readonly)
-	    mem_advise_set_readonly(&vp, &N);
-	if (device_set_preferred) {
-	    const int device = Device::cudaDeviceId();
-	    mem_advise_set_preferred(&vp, &N, &device);
+	if (device_use_managed_memory) {
+
+	    gpu_malloc_managed(&vp, &N);
+	    if (device_set_readonly)
+		mem_advise_set_readonly(&vp, &N);
+	    if (device_set_preferred) {
+		const int device = Device::cudaDeviceId();
+		mem_advise_set_preferred(&vp, &N, &device);
+	    }
+
+	} else {
+
+	    gpu_malloc(&vp, &N);
+
 	}
 #else
         vp = ::operator new(N);
