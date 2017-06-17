@@ -26,7 +26,7 @@ namespace amrex
     pout() << "vector<volindex> contains:" << endl;
     for(int ivof = 0; ivof < vofs.size(); ivof++)
     {
-      amrex::Print() << vofs[ivof] << std::endl;
+      pout() << vofs[ivof] << std::endl;
     }
   }
   void dumpVFaces(const vector<FaceIndex>* a_faces)
@@ -35,17 +35,17 @@ namespace amrex
     pout() << "vector<FaceIndex> contains:" << endl;
     for(int iface = 0; iface < faces.size(); iface++)
     {
-      amrex::Print() << iface << ":" << faces[iface] << endl;
+      pout() << iface << ":" << faces[iface] << endl;
     }
   }
   void dumpDBL(const BoxArray* a_fabPtr)
   {
-    amrex::Print() << "BoxArray contains:"  << *a_fabPtr << endl;
+    pout() << "BoxArray contains:"  << *a_fabPtr << endl;
     
   }
   void dumpBA(const BoxArray* a_fabPtr)
   {
-    amrex::Print() << "BoxArray contains:"  << *a_fabPtr << endl;
+    pout() << "BoxArray contains:"  << *a_fabPtr << endl;
     
   }
   void dumpFAB(const FArrayBox* a_fabPtr)
@@ -54,12 +54,12 @@ namespace amrex
     BoxIterator bit(fab.box());
     for (bit.reset(); bit.ok(); ++bit)
     {
-      amrex::Print() << "\t" << bit() ;
+      pout() << "\t" << bit() ;
       for (int ivar = 0; ivar < fab.nComp(); ivar++)
       {
-        amrex::Print() << "\t" << fab(bit(),ivar);
+        pout() << "\t" << fab(bit(),ivar);
       }
-      amrex::Print() << "\n";
+      pout() << "\n";
     }
   }
 
@@ -69,12 +69,12 @@ namespace amrex
     BoxIterator bit(fab.box());
     for (bit.reset(); bit.ok(); ++bit)
     {
-      amrex::Print() << "\t" << bit() ;
+      pout() << "\t" << bit() ;
       for (int ivar = 0; ivar < fab.nComp(); ivar++)
       {
-        amrex::Print() << "\t" << fab(bit(),ivar);
+        pout() << "\t" << fab(bit(),ivar);
       }
-      amrex::Print() << "\n";
+      pout() << "\n";
     }
   }
   void dumpBFI(const BaseFab<int>* a_fabPtr)
@@ -83,23 +83,23 @@ namespace amrex
     BoxIterator bit(fab.box());
     for (bit.reset(); bit.ok(); ++bit)
     {
-      amrex::Print() << "\t" << bit() ;
+      pout() << "\t" << bit() ;
       for (int ivar = 0; ivar < fab.nComp(); ivar++)
       {
-        amrex::Print() << "\t" << fab(bit(),ivar);
+        pout() << "\t" << fab(bit(),ivar);
       }
-      amrex::Print() << "\n";
+      pout() << "\n";
     }
   }
 
   void dumpBL(const BoxArray* a_dblInPtr)
   {
-    amrex::Print() << "BoxArray: ";
+    pout() << "BoxArray: ";
     for(int ibox = 0; ibox < a_dblInPtr->size(); ibox++)
     {
-      amrex::Print() << (*a_dblInPtr)[ibox] << "   ";
+      pout() << (*a_dblInPtr)[ibox] << "   ";
     }
-    amrex::Print() << "\n";
+    pout() << "\n";
   }
 
   void dumpIVS(const IntVectSet* a_ivsPtr)
@@ -107,19 +107,19 @@ namespace amrex
     const IntVectSet& ivs = *a_ivsPtr;
     IVSIterator it(ivs);
 
-    amrex::Print() << ": IntVects in the IVS are:" << "\n";
+    pout() << ": IntVects in the IVS are:" << "\n";
 
     for (it.begin(); it.ok(); ++it)
     {
-      amrex::Print() << it() << "  ";
+      pout() << it() << "  ";
     }
 
-    amrex::Print() << "\n";
+    pout() << "\n";
   }
 
   void dumpBox(const Box* a_boxPtr)
   {
-    amrex::Print() << "Box:" << *a_boxPtr << "\n";
+    pout() << "Box:" << *a_boxPtr << "\n";
   }
 
 
@@ -128,25 +128,25 @@ namespace amrex
     const EBCellFAB& fab = *a_fab;
     Box box = fab.getRegion();
     IntVectSet ivs(box);
-    amrex::Print() << "valid and ghost data in ebcellfab" << "\n";
+    pout() << "valid and ghost data in ebcellfab" << "\n";
 
     const EBGraph& ebgraph = a_fab->getEBISBox().getEBGraph();
     const int ncomp = a_fab->nComp();
     for (VoFIterator vofit(ivs, ebgraph); vofit.ok(); ++vofit)
     {
       const VolIndex& vof = vofit();
-      amrex::Print() << "vof= " << vof.gridIndex() << ", " << vof.cellIndex();
+      pout() << "vof= " << vof.gridIndex() << ", " << vof.cellIndex();
 
-      amrex::Print() << ";      data=";
+      pout() << ";      data=";
       for (int ivar = 0; ivar < ncomp; ivar++)
       {
-        amrex::Print() << " "
-                       << setprecision(8)
-                       << setiosflags(ios::showpoint)
-                       << setiosflags(ios::scientific)
-                       << (*a_fab)(vof, ivar);
+        pout() << " "
+               << setprecision(8)
+               << setiosflags(ios::showpoint)
+               << setiosflags(ios::scientific)
+               << (*a_fab)(vof, ivar);
       }
-      amrex::Print() << "\n";
+      pout() << "\n";
     }
   }
 
@@ -156,25 +156,25 @@ namespace amrex
  
     if(a_vectPtr->numVoFs()==0) 
     {
-      amrex::Print()<<"empty ";
+      pout()<<"empty ";
       return;
     }
     const std::vector<VolIndex>& vofs = a_vectPtr->getVoFs();
     for(int i=0; i<vofs.size(); i++)
     {
       const VolIndex& vof=vofs[i];
-      amrex::Print() << "vof= " << vof.gridIndex() << ", " << vof.cellIndex();
-      amrex::Print() << ";      data=";
+      pout() << "vof= " << vof.gridIndex() << ", " << vof.cellIndex();
+      pout() << ";      data=";
       for (int ivar = 0; ivar < a_vectPtr->nComp(); ivar++)
       {
-        amrex::Print() << " "
-                       << setprecision(8)
-                       << setiosflags(ios::showpoint)
-                       << setiosflags(ios::scientific)
-                       << a_vectPtr->operator()(vof, ivar);
+        pout() << " "
+               << setprecision(8)
+               << setiosflags(ios::showpoint)
+               << setiosflags(ios::scientific)
+               << a_vectPtr->operator()(vof, ivar);
       }
     }
-    amrex::Print() << "\n";
+    pout() << "\n";
   }
   void dumpEBFace(const EBFaceFAB* a_fab)
   {
@@ -192,20 +192,20 @@ namespace amrex
 
       const VolIndex& voflo = face.getVoF(Side::Lo);
       const VolIndex& vofhi = face.getVoF(Side::Hi);
-      amrex::Print() << "face= (("
-                     << voflo.gridIndex() << ", " << voflo.cellIndex() << "), ("
-                     << vofhi.gridIndex() << ", " << vofhi.cellIndex() << "))" ;
+      pout() << "face= (("
+             << voflo.gridIndex() << ", " << voflo.cellIndex() << "), ("
+             << vofhi.gridIndex() << ", " << vofhi.cellIndex() << "))" ;
 
-      amrex::Print() << ";      data=";
+      pout() << ";      data=";
       for (int ivar = 0; ivar < ncomp; ivar++)
       {
-        amrex::Print() << " "
-                       << setprecision(8)
-                       << setiosflags(ios::showpoint)
-                       << setiosflags(ios::scientific)
-                       << (*a_fab)(face, ivar);
+        pout() << " "
+               << setprecision(8)
+               << setiosflags(ios::showpoint)
+               << setiosflags(ios::scientific)
+               << (*a_fab)(face, ivar);
       }
-      amrex::Print() << "\n";
+      pout() << "\n";
     }
   }
 
