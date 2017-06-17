@@ -12,25 +12,25 @@ namespace amrex {
 * DEBUG=TRUE.
 */
 
-template <class T>
+template <class T, class Allocator=std::allocator<T> >
 class Array
     :
-    public std::vector<T>
+        public std::vector<T, Allocator>
 {
 public:
 
-    using std::vector<T>::vector;
+    using std::vector<T, Allocator>::vector;
 
     T& operator[] (std::size_t i)
     {
 	BL_ASSERT(i < this->size());
-	return this->std::vector<T>::operator[](i);
+	return this->std::vector<T, Allocator>::operator[](i);
     }
 
     const T& operator[] (std::size_t i) const
     {
 	BL_ASSERT(i < this->size());
-	return this->std::vector<T>::operator[](i);
+	return this->std::vector<T, Allocator>::operator[](i);
     }
 
     //! get access to the underlying array 
