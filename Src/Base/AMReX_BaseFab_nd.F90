@@ -15,9 +15,10 @@ contains
   attributes(global) &
 #endif
   subroutine fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    integer, intent(in), value :: ncomp
 
     integer :: i,j,k,n,off(3)
     integer :: blo(3), bhi(3)
@@ -101,8 +102,9 @@ contains
   attributes(global) &
 #endif
   subroutine fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
-    real(amrex_real), intent(in) :: val
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
+    integer, intent(in), value :: ncomp
+    real(amrex_real), intent(in), value :: val
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
     integer :: i, j, k, n
@@ -190,7 +192,8 @@ contains
   attributes(global) &
 #endif
   subroutine fort_fab_plus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+    integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
@@ -347,8 +350,9 @@ contains
   attributes(global) &
 #endif
   subroutine fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
-    real(amrex_real), intent(in   ) :: a
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
+    integer, intent(in), value :: ncomp
+    real(amrex_real), intent(in   ), value :: a
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
@@ -478,69 +482,33 @@ end module basefab_nd_module
     use basefab_nd_module, only: fort_fab_copy_doit
 #ifdef CUDA
   use cuda_module, only: stream_from_index, cuda_streams, threads_and_blocks
-  use cudafor, only: cuda_stream_kind, cudaMemcpyAsync, cudaMemcpyHostToDevice, dim3, cudaStreamSynchronize
-  use mempool_module, only: bl_allocate, bl_deallocate
+  use cudafor, only: cuda_stream_kind, dim3
 #endif
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), index
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    integer, intent(in), value :: ncomp
 
 #ifdef CUDA
-    attributes(device) :: src, dst
+    attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
 
     integer :: cuda_result
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    integer, managed, pointer :: lo_d(:), hi_d(:)
-    integer, managed, pointer :: dlo_d(:), dhi_d(:)
-    integer, managed, pointer :: slo_d(:), shi_d(:)
-    integer, managed, pointer :: sblo_d(:), ncomp_d(:)
-
     stream = cuda_streams(stream_from_index(index))
 
-    call bl_allocate(lo_d, 1, 3)
-    call bl_allocate(hi_d, 1, 3)
-    call bl_allocate(dlo_d, 1, 3)
-    call bl_allocate(dhi_d, 1, 3)
-    call bl_allocate(slo_d, 1, 3)
-    call bl_allocate(shi_d, 1, 3)
-    call bl_allocate(sblo_d, 1, 3)
-    call bl_allocate(ncomp_d, 1, 1)
-
-    cuda_result = cudaMemcpyAsync(lo_d, lo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(hi_d, hi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(dlo_d, dlo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(dhi_d, dhi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(slo_d, slo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(shi_d, shi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(sblo_d, sblo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(ncomp_d, ncomp, 1, cudaMemcpyHostToDevice, stream)
-
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
-
-    call fort_fab_copy_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, &
-                                                                  src, slo_d, shi_d, sblo_d, ncomp_d(1))
-
-    cuda_result = cudaStreamSynchronize(stream)
-
-    call bl_deallocate(lo_d)
-    call bl_deallocate(hi_d)
-    call bl_deallocate(dlo_d)
-    call bl_deallocate(dhi_d)
-    call bl_deallocate(slo_d)
-    call bl_deallocate(shi_d)
-    call bl_deallocate(sblo_d)
-    call bl_deallocate(ncomp_d)
-
-#else
-
-    call fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-
 #endif
+
+    call fort_fab_copy_doit &
+#ifdef CUDA
+    <<<numBlocks, numThreads, 0, stream>>> &
+#endif
+    (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
   end subroutine fort_fab_copy
 
@@ -553,62 +521,33 @@ end module basefab_nd_module
     use basefab_nd_module, only: fort_fab_setval_doit
 #ifdef CUDA
   use cuda_module, only: stream_from_index, cuda_streams, threads_and_blocks
-  use cudafor, only: cuda_stream_kind, cudaMemcpyAsync, cudaMemcpyHostToDevice, dim3, cudaStreamSynchronize
-  use mempool_module, only: bl_allocate, bl_deallocate
+  use cudafor, only: cuda_stream_kind, dim3
 #endif
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp, index
-    real(amrex_real), intent(in) :: val
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), index
+    real(amrex_real), intent(in), value :: val
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    integer, intent(in), value :: ncomp
 
 #ifdef CUDA
-    attributes(device) :: dst
+    attributes(managed) :: dst, lo, hi, dlo, dhi
 
     integer :: cuda_result
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    integer, managed, pointer :: lo_d(:), hi_d(:)
-    integer, managed, pointer :: dlo_d(:), dhi_d(:)
-    integer, managed, pointer :: ncomp_d(:)
-    real(amrex_real), managed, pointer :: val_d(:)
-
     stream = cuda_streams(stream_from_index(index))
 
-    call bl_allocate(lo_d, 1, 3)
-    call bl_allocate(hi_d, 1, 3)
-    call bl_allocate(dlo_d, 1, 3)
-    call bl_allocate(dhi_d, 1, 3)
-    call bl_allocate(ncomp_d, 1, 1)
-    call bl_allocate(val_d, 1, 1)
-
-    cuda_result = cudaMemcpyAsync(lo_d, lo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(hi_d, hi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(dlo_d, dlo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(dhi_d, dhi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(ncomp_d, ncomp, 1, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(val_d, val, 1, cudaMemcpyHostToDevice, stream)
-
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
-
-    call fort_fab_setval_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, ncomp_d(1), val_d(1))
-
-    cuda_result = cudaStreamSynchronize(stream)
-
-    call bl_deallocate(lo_d)
-    call bl_deallocate(hi_d)
-    call bl_deallocate(dlo_d)
-    call bl_deallocate(dhi_d)
-    call bl_deallocate(val_d)
-    call bl_deallocate(ncomp_d)
-
-#else
-
-    call fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
-
 #endif
+
+    call fort_fab_setval_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, stream>>> &
+#endif
+         (lo, hi, dst, dlo, dhi, ncomp, val)
 
   end subroutine fort_fab_setval
 
@@ -643,73 +582,33 @@ end module basefab_nd_module
     use basefab_nd_module, only: fort_fab_saxpy_doit
 #ifdef CUDA
   use cuda_module, only: stream_from_index, cuda_streams, threads_and_blocks
-  use cudafor, only: cuda_stream_kind, cudaMemcpyAsync, cudaMemcpyHostToDevice, dim3, cudaStreamSynchronize
-  use mempool_module, only: bl_allocate, bl_deallocate
+  use cudafor, only: cuda_stream_kind, dim3
 #endif
 
     implicit none
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
-    real(amrex_real), intent(in   ) :: a
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), index
+    integer, intent(in), value :: ncomp
+    real(amrex_real), intent(in   ), value :: a
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
 #ifdef CUDA
-    attributes(device) :: src, dst
+    attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
 
     integer :: cuda_result
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    integer, managed, pointer :: lo_d(:), hi_d(:)
-    integer, managed, pointer :: dlo_d(:), dhi_d(:)
-    integer, managed, pointer :: slo_d(:), shi_d(:)
-    integer, managed, pointer :: sblo_d(:), ncomp_d(:)
-    real(amrex_real), managed, pointer :: a_d(:)
-
     stream = cuda_streams(stream_from_index(index))
 
-    call bl_allocate(lo_d, 1, 3)
-    call bl_allocate(hi_d, 1, 3)
-    call bl_allocate(dlo_d, 1, 3)
-    call bl_allocate(dhi_d, 1, 3)
-    call bl_allocate(slo_d, 1, 3)
-    call bl_allocate(shi_d, 1, 3)
-    call bl_allocate(sblo_d, 1, 3)
-    call bl_allocate(ncomp_d, 1, 1)
-    call bl_allocate(a_d, 1, 1)
-
-    cuda_result = cudaMemcpyAsync(lo_d, lo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(hi_d, hi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(dlo_d, dlo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(dhi_d, dhi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(slo_d, slo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(shi_d, shi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(sblo_d, sblo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(ncomp_d, ncomp, 1, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(a_d, a, 1, cudaMemcpyHostToDevice, stream)
-
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
-
-    call fort_fab_saxpy_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, a_d(1), &
-                                                                   src, slo_d, shi_d, sblo_d, ncomp_d(1))
-
-    cuda_result = cudaStreamSynchronize(stream)
-
-    call bl_deallocate(lo_d)
-    call bl_deallocate(hi_d)
-    call bl_deallocate(dlo_d)
-    call bl_deallocate(dhi_d)
-    call bl_deallocate(slo_d)
-    call bl_deallocate(shi_d)
-    call bl_deallocate(sblo_d)
-    call bl_deallocate(ncomp_d)
-    call bl_deallocate(a_d)
-
-#else
-
-    call fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
-
 #endif
+
+    call fort_fab_saxpy_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, stream>>> &
+#endif
+         (lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
 
   end subroutine fort_fab_saxpy
 
@@ -722,69 +621,33 @@ end module basefab_nd_module
     use basefab_nd_module, only: fort_fab_plus_doit
 #ifdef CUDA
     use cuda_module, only: stream_from_index, cuda_streams, threads_and_blocks
-    use cudafor, only: cuda_stream_kind, cudaMemcpyAsync, cudaMemcpyHostToDevice, dim3, cudaStreamSynchronize
-    use mempool_module, only: bl_allocate, bl_deallocate
+    use cudafor, only: cuda_stream_kind, dim3
 #endif
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), index
+    integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
 #ifdef CUDA
-    attributes(device) :: src, dst
+    attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
 
     integer :: cuda_result
     integer(kind=cuda_stream_kind) :: stream
     type(dim3) :: numThreads, numBlocks
 
-    integer, managed, pointer :: lo_d(:), hi_d(:)
-    integer, managed, pointer :: dlo_d(:), dhi_d(:)
-    integer, managed, pointer :: slo_d(:), shi_d(:)
-    integer, managed, pointer :: sblo_d(:), ncomp_d(:)
-
     stream = cuda_streams(stream_from_index(index))
 
-    call bl_allocate(lo_d, 1, 3)
-    call bl_allocate(hi_d, 1, 3)
-    call bl_allocate(dlo_d, 1, 3)
-    call bl_allocate(dhi_d, 1, 3)
-    call bl_allocate(slo_d, 1, 3)
-    call bl_allocate(shi_d, 1, 3)
-    call bl_allocate(sblo_d, 1, 3)
-    call bl_allocate(ncomp_d, 1, 1)
-
-    cuda_result = cudaMemcpyAsync(lo_d, lo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(hi_d, hi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(dlo_d, dlo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(dhi_d, dhi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(slo_d, slo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(shi_d, shi, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(sblo_d, sblo, 3, cudaMemcpyHostToDevice, stream)
-    cuda_result = cudaMemcpyAsync(ncomp_d, ncomp, 1, cudaMemcpyHostToDevice, stream)
-
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
-
-    call fort_fab_plus_doit<<<numBlocks, numThreads, 0, stream>>>(lo_d, hi_d, dst, dlo_d, dhi_d, &
-                                                                  src, slo_d, shi_d, sblo_d, ncomp_d(1))
-
-    cuda_result = cudaStreamSynchronize(stream)
-
-    call bl_deallocate(lo_d)
-    call bl_deallocate(hi_d)
-    call bl_deallocate(dlo_d)
-    call bl_deallocate(dhi_d)
-    call bl_deallocate(slo_d)
-    call bl_deallocate(shi_d)
-    call bl_deallocate(sblo_d)
-    call bl_deallocate(ncomp_d)
-
-#else
-
-    call fort_fab_plus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
-
 #endif
+
+    call fort_fab_plus_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, stream>>> &
+#endif
+         (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
   end subroutine fort_fab_plus
 

@@ -11,7 +11,7 @@ extern "C"
     void fort_fab_copy (const int* lo, const int* hi,
 			amrex_real* dst, const int* dlo, const int* dhi,
 			const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			const int* ncomp, const int* index);
+			const int ncomp, const int* index);
 
     long fort_fab_copytomem (const int* lo, const int* hi,
                              amrex_real* dst,
@@ -23,8 +23,8 @@ extern "C"
                                const amrex_real* src);
 
     void fort_fab_setval (const int* lo, const int* hi, 
-			  const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
-			  const amrex_real* val, const int* index);
+			  const amrex_real* dst, const int* dlo, const int* dhi, const int ncomp,
+			  const amrex_real val, const int* index);
 
     amrex_real fort_fab_norm (const int* lo, const int* hi,
 			const amrex_real* src, const int* slo, const int* shi, const int* ncomp,
@@ -64,9 +64,9 @@ extern "C"
 
     void fort_fab_saxpy (const int* lo, const int* hi,
 			 amrex_real* dst, const int* dlo, const int* dhi,
-			 const amrex_real* a,
+			 const amrex_real a,
 			 const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			 const int* ncomp, const int* index);
+			 const int ncomp, const int* index);
 
     void fort_fab_xpay (const int* lo, const int* hi,
 			amrex_real* dst, const int* dlo, const int* dhi,
