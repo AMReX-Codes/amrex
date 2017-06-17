@@ -1299,11 +1299,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
         for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
               aos().erase(aos().begin() + first, aos().begin() + npart);
               for (int comp = 0; comp < NArrayReal; comp++) {
-                  Array<Real>& rdata = soa.GetRealData(comp);
+                  RealArray& rdata = soa.GetRealData(comp);
                   rdata.erase(rdata.begin() + first, rdata.begin() + npart);
               }
               for (int comp = 0; comp < NArrayInt; comp++) {
-                  Array<int>& idata = soa.GetIntData(comp);
+                  IntArray& idata = soa.GetIntData(comp);
                   idata.erase(idata.begin() + first, idata.begin() + npart);
               }
           }
