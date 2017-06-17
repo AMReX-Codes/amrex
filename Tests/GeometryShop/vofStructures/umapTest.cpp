@@ -14,8 +14,7 @@
 #include "AMReX_MultiFab.H"
 #include "AMReX_iMultiFab.H"
 #include "AMReX_BLProfiler.H"
-#include <AMReX_BLFort.H>
-#include "AMReX_EBCellFactory.H"
+#include "AMReX_BLFort.H"
 #include "AMReX_VisMF.H"
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_BaseUmap.H"
@@ -24,8 +23,6 @@
 #include "AMReX_EBStruct.H"
 
 using namespace amrex;
-
-typedef CNode::CutCell CutCell;
 
 static void
 get_EBLGs(EBLevelGrid& eblg_fine,
@@ -105,8 +102,32 @@ get_EBLGs(EBLevelGrid& eblg_fine,
     eblg_crse = eblg_tmp[0];
 }
 
+struct tface
+{
+    /*
+      A simple class to simplify uniquifying faces
+     */
+    tface() : mL(-1), mR(-1) {}
+    tface(int L, int R, const SideIterator& s) : mL(L), mR(R) {if (s()==Side::Lo) flip();}
+    bool operator< (const tface& rhs) const {
+	if (mL == rhs.mL)
+	{
+	    return mR < rhs.mR;
+	}
+	return mL < rhs.mL;
+    }
+    void flip ()
+	{
+	    int t=mL;
+	    mL = mR;
+	    mR = t;
+	}
+    int mL, mR;
+};
+
 static void
 BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
+                  std::array<FabArray<BaseUmap<CutFace> >, BL_SPACEDIM>& fmap,
                   const EBLevelGrid& eblg)
 {
     for (MFIter mfi(cmap); mfi.isValid(); ++mfi)
@@ -117,7 +138,10 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
 	int ebCellID = 0; // Reset to zero for each box
         if (!ebis_box.isAllRegular())
         {
+            BaseUmap<CutCell>& cmap_fab = cmap[mfi];
             const EBGraph& ebgr = ebis_box.getEBGraph();
+	    std::array<std::map<IntVect, std::set<tface> >, BL_SPACEDIM> tf;
+
             for (BoxIterator bit(gbox); bit.ok(); ++bit)
             {
                 const IntVect& iv = bit();
@@ -132,6 +156,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                         {
                             CutCell cc;
                             cc.ebCellID = ebCellID++;
+
                             const VolIndex& vof = gbox_vofs[icc];
                             for (int idir = 0; idir < SpaceDim; idir++)
                             {
@@ -141,6 +166,8 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                                     std::vector<FaceIndex> faces = ebgr.getFaces(vof,idir,sit());
 
 				    IntVect iv_nbr = iv + sign(sit())*BASISV(idir);
+				    IntVect iv_face = iv + iside*BASISV(idir);
+
                                     int nValid = 0;
                                     for (int iface=0; iface<faces.size(); ++iface)
                                     {
@@ -153,6 +180,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                                             else 
                                             {
                                                 cc.nbr[idir][iside][nValid] = faces[iface].cellIndex(sit());
+                                                tf[idir][iv_face].insert(tface(icc,cc.nbr[idir][iside][nValid],sit));
                                             }
                                             nValid++;
 					    BL_ASSERT(nValid<NCELLMAX);
@@ -161,15 +189,80 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                                     cc.Nnbr[idir][iside] = nValid;
                                 }
                             }
-                            cmap[mfi].setVal(cc,iv,0,icc);
+                            cmap_fab.setVal(cc,iv,0,icc);
                         }
                     }
                 }
             }
+
+            const Box& vbox = mfi.validbox();
+            for (int idir = 0; idir < SpaceDim; idir++)
+            {
+                int ebFaceID = 0;
+                const Box fbox = amrex::surroundingNodes(vbox,idir);
+                for (BoxIterator bit(fbox); bit.ok(); ++bit)
+                {
+                    const IntVect& iv_face = bit();
+                    std::map<IntVect, std::set<tface> >::const_iterator it=tf[idir].find(iv_face);
+                    if (it!=tf[idir].end()) {
+                        CutFace cf;
+                        const std::set<tface>& tfiv=it->second;
+                        int cnt = 0;
+
+                        for (std::set<tface>::iterator fit=tfiv.begin(); fit!=tfiv.end(); ++fit)
+                        {
+                            cf.cellLo = fit->mL;
+                            cf.cellHi = fit->mR;
+                            bool is_face_between_reg_and_cut_cells
+                                = cf.cellLo==REGULAR_CELL
+                                || cf.cellHi==REGULAR_CELL;
+                                
+                            if ( !is_face_between_reg_and_cut_cells )
+                            {
+                                /*
+                                  Number this face, add it to the umap of faces, and set cmap face ids consistently
+                                 */
+                                cf.ebFaceID = ebFaceID++;
+                                fmap[idir][mfi].setVal(cf,iv_face,0,cnt);
+
+                                bool found_lo=false;
+                                IntVect iv_lo = iv_face - BASISV(idir);
+                                CutCell& cc_lo = cmap_fab.getVal(iv_lo,0,cf.cellLo);
+                                for(int inbr=0; inbr<cc_lo.Nnbr[idir][1]; ++inbr) {
+                                    if (cc_lo.nbr[idir][1][inbr] == cf.cellHi) {
+                                        cc_lo.faceID[idir][1][inbr] = cnt;
+                                        found_lo = true;
+                                    }
+                                }
+                                if (!found_lo) amrex::Abort();
+
+                                bool found_hi = false;
+                                IntVect iv_hi = iv_face;
+                                CutCell& cc_hi = cmap_fab.getVal(iv_hi,0,cf.cellHi);
+                                for(int inbr=0; inbr<cc_hi.Nnbr[idir][0]; ++inbr) {
+                                    if (cc_hi.nbr[idir][0][inbr] == cf.cellLo) {
+                                        cc_hi.faceID[idir][0][inbr] = cnt;
+                                        found_hi = true;
+                                    }
+                                }
+                                if (!found_hi) amrex::Abort();
+                                        
+                                cnt++;
+                            }
+                            else
+                            {
+                                cf.ebFaceID = REGULAR_FACE;
+                            }
+                        }
+                    }
+                }
+            }
+
         }
     }
 
-    // Dump graph
+    // Dump graphs
+    std::cout << "cmap: " << std::endl;
     for (MFIter mfi(cmap); mfi.isValid(); ++mfi)
     {
         const BaseUmap<CutCell>& cmap_fab = cmap[mfi];
@@ -188,6 +281,23 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                 }
             } 
             std::cout << std::endl;
+        }
+    }
+
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+        std::cout << "fmap[" << idir << "]: " << std::endl;
+        for (MFIter mfi(cmap); mfi.isValid(); ++mfi)
+        {
+            const BaseUmap<CutFace>& fmap_fab = fmap[idir][mfi];
+            for (BaseUmap<CutFace>::const_iterator umi = fmap_fab.begin(); umi<fmap_fab.end(); ++umi )
+            {
+                const CutFace& cf = *umi;
+                std::cout << "ebFaceID: " << cf.ebFaceID;
+                const BaseUmap<CutFace>::Tuple& tuple = umi.tuple();
+                std::cout << " " << tuple.pos << " L = " << tuple.l << " ncomp= " << tuple.ncomp;
+                std::cout << " (" << idir << "): " << cf.cellLo << ", " << cf.cellHi << std::endl;
+            }
         }
     }
 }
@@ -210,9 +320,13 @@ protected:
 
 int myTest()
 {
+    std::cout << "CutCell is POD: " << std::is_pod<CutCell>::value << std::endl;
     std::cout << "CNode is POD: " << std::is_pod<CNode>::value << std::endl;
+    std::cout << "CutFace is POD: " << std::is_pod<CutFace>::value << std::endl;
     std::cout << "FNode is POD: " << std::is_pod<FNode>::value << std::endl;
+    std::cout << "Size of CutCell: " << sizeof(CutCell)/sizeof(int) << " ints" << std::endl;
     std::cout << "Size of CNode: " << sizeof(CNode)/sizeof(int) << " ints" << std::endl;
+    std::cout << "Size of CutFace: " << sizeof(CutFace)/sizeof(int) << " ints" << std::endl;
     std::cout << "Size of FNode: " << sizeof(FNode)/sizeof(int) << " ints" << std::endl;
 
     EBLevelGrid eblg_fine, eblg_crse;
@@ -223,12 +337,22 @@ int myTest()
 
     int nComp =1;
     int nGrow =1;
-    BaseUmapFactory<CutCell> umap_factory(5);
-    FabArray<BaseUmap<CutCell> > cmap_crse(ba_crse,dm_crse,nComp, nGrow,MFInfo(), umap_factory);
+    BaseUmapFactory<CutCell> cmap_factory(NCELLMAX);
+    FabArray<BaseUmap<CutCell> > cmap_crse(ba_crse, dm_crse, nComp, nGrow, MFInfo(), cmap_factory);
 
-    BuildFortranGraph(cmap_crse,eblg_crse);
+    BaseUmapFactory<CutFace> fmap_factory(NFACEMAX);
+    std::array<BoxArray,BL_SPACEDIM> fba_crse;
+    std::array<FabArray<BaseUmap<CutFace> >, BL_SPACEDIM> fmap_crse;
+    for (int idir=0; idir<BL_SPACEDIM; ++idir)
+    {
+        fba_crse[idir] = ba_crse;
+        fba_crse[idir].surroundingNodes(idir);
+        fmap_crse[idir].define(fba_crse[idir], dm_crse, nComp, nGrow, MFInfo(), fmap_factory);
+    }
 
+    BuildFortranGraph(cmap_crse,fmap_crse,eblg_crse);
 
+#if 1
     MultiFab vfrac(ba_crse, dm_crse,  nComp, 0);
 
     for(MFIter  mfi(vfrac); mfi.isValid(); ++mfi)
@@ -263,6 +387,7 @@ int myTest()
                AMREX_D_DECL(1,1,1));
     Geometry geom_crse(eblg_crse.getDomain(),&rb);
     WriteSingleLevelPlotfile("pltfile",vfrac,name,geom_crse,0,0,"CartGrid-V2.0");
+#endif
 
     // Level transfers
     // for (MFIter mfi(eblg_fine.getBoxArray(),eblg_fine.getDM()); mfi.isValid(); ++mfi)
@@ -296,7 +421,7 @@ main(int argc,char **argv)
         }
         else
         {
-            amrex::Print() << "sphere test passed" << '\n';
+            amrex::Print() << "test passed" << '\n';
         }
 
         BL_PROFILE_VAR_STOP(pmain);

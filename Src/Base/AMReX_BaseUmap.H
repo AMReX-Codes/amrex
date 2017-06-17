@@ -111,6 +111,10 @@ namespace amrex
                      const int ncomp,
                      const int l);
 
+        T& getVal (const IntVect& pos,
+                   const int ncomp,
+                   const int l);
+
         const T& getVal (const IntVect& pos,
                          const int ncomp,
                          const int l) const;
@@ -152,12 +156,6 @@ namespace amrex
                              int            ncomp,
                              int            l)
     {
-        BL_ASSERT(ncomp >= 0);
-        BL_ASSERT(ncomp < nvar);
-        BL_ASSERT(l >= 0);
-        BL_ASSERT(l < max_mv);
-        BL_ASSERT(domain.contains(pos));
-        
         return getVal(pos,ncomp,l);
     }
     
@@ -168,12 +166,6 @@ namespace amrex
                              int            ncomp,
                              int            l) const
     {
-        BL_ASSERT(ncomp >= 0);
-        BL_ASSERT(ncomp < nvar);
-        BL_ASSERT(l >= 0);
-        BL_ASSERT(l < max_mv);
-        BL_ASSERT(domain.contains(pos));
-        
         return getVal(pos,ncomp,l);
     }
     
@@ -255,6 +247,9 @@ namespace amrex
                           const int l,
                           const int k )
     {
+        BL_ASSERT(l>=0 && l < max_mv);
+        BL_ASSERT(domain.contains(pos));
+        BL_ASSERT(n>=0 && n<nvar);
         long loc = domain.index(pos);
         long size = domain.numPts();
         // entry stored in position l*NumComponents + ncomp
@@ -270,7 +265,9 @@ namespace amrex
                          const int ncomp,
                          const int l)
     {
-
+        BL_ASSERT(l>=0 && l < max_mv);
+        BL_ASSERT(domain.contains(pos));
+        BL_ASSERT(ncomp>=0 && ncomp<nvar);
         long k = key(pos, ncomp, l);
 
         if ( k >= 0)
@@ -290,6 +287,24 @@ namespace amrex
                          const int ncomp,
                          const int l) const
     {
+        BL_ASSERT(ncomp >= 0 && ncomp < nvar);
+        BL_ASSERT(l >= 0 && l < max_mv);
+        BL_ASSERT(domain.contains(pos));
+
+        key_table_type k = key(pos, ncomp, l);
+        if (k<0) amrex::Abort();
+        return data[k];
+    }
+
+    template <class T>
+    T&
+    BaseUmap<T>::getVal (const IntVect& pos,
+                         const int ncomp,
+                         const int l)
+    {
+        BL_ASSERT(ncomp >= 0 && ncomp < nvar);
+        BL_ASSERT(l >= 0 && l < max_mv);
+        BL_ASSERT(domain.contains(pos));
 
         key_table_type k = key(pos, ncomp, l);
         if (k<0) amrex::Abort();
