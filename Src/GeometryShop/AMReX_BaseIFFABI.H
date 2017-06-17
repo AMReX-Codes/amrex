@@ -13,6 +13,8 @@
 #define _BASEIFFABI_H_
 #include "AMReX_FaceIterator.H"
 #include "AMReX_SPMD.H"
+#include "AMReX_parstream.H"
+//#include "AMReX_EBDebugOut.H"
 namespace amrex
 {
   template <class T>
@@ -197,6 +199,13 @@ namespace amrex
     }
     if (!found)
     {
+      pout() << "index  = " << a_face << endl;
+      pout() << "my faces  = " << endl;
+      for (int iface = 0; iface < m_faces.size(); ++iface)
+      {
+        pout() << m_faces[iface] << endl;
+      }
+      
       amrex::Error("BaseIFFAB:index not found");
     }
     retval += a_comp*this->m_nFaces;

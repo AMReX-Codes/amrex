@@ -41,20 +41,18 @@ namespace amrex
       
       
     m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, a_dm, 1, m_nghost));
-    // pout() << "doing ebgraph copy" << endl;
+    //pout() << "doing ebgraph copy" << endl;
     m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhost);
-    m_ebGraph->FillBoundary();
 
     EBDataFactory ebdatafact(m_ebGraph);
     m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, a_dm, 1, m_nghost, MFInfo(), ebdatafact));
       
       
-    // pout() << "doing data copy" << endl;
+    //pout() << "doing data copy" << endl;
     m_ebData ->copy(a_data , 0, 0, 1, srcGhost, dstGhost);
-    m_ebData ->FillBoundary();
       
     m_defined = true;
-    // pout() << "leaving ebislayoutimplem::define" << endl;
+    //pout() << "leaving ebislayoutimplem::define" << endl;
   }
       
   /****************/
