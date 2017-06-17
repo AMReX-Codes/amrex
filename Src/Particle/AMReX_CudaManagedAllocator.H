@@ -1,7 +1,11 @@
 #ifndef CUDAMANAGEDALLOCATOR_H_
 #define CUDAMANAGEDALLOCATOR_H_
 
-#ifdef CUDA
+#if CUDA
+
+#include <cuda.h>
+#include <driver_types.h>
+#include <cuda_runtime.h>
 
 template<typename T>
 class CudaManagedAllocator {

@@ -41,6 +41,10 @@
 #include <omp.h>
 #endif
 
+#if CUDA
+#include "AMReX_CudaManagedAllocator.H"
+#endif
+
 namespace amrex {
   
 namespace
@@ -210,10 +214,16 @@ public:
     using ParticleType = Particle<NReal, NInt>;
     using RealType     = typename ParticleType::RealType;
 
+#if CUDA
+    using ParticleArray = Array<ParticleType, CudaManagedAllocator<ParticleType> >;
+#else
+    using ParticleArray = Array<ParticleType>;
+#endif
+
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
 
-    const Array<ParticleType>& operator()() const { return m_data; }
-    Array      <ParticleType>& operator()()       { return m_data; }
+    const ParticleArray& operator()() const { return m_data; }
+          ParticleArray& operator()()       { return m_data; }
 
     std::size_t size () const { return m_data.size(); }
     int numParticles () const { return m_data.size(); }
@@ -237,16 +247,16 @@ public:
     const ParticleType& operator[] (int i) const { return m_data[i]; }
     ParticleType      & operator[] (int i)       { return m_data[i]; }
     
-    typename Array<ParticleType>::iterator begin () { return m_data.begin(); }
-    typename Array<ParticleType>::const_iterator begin () const { return m_data.begin(); }
-    typename Array<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }
+    typename ParticleArray::iterator begin () { return m_data.begin(); }
+    typename ParticleArray::const_iterator begin () const { return m_data.begin(); }
+    typename ParticleArray::const_iterator cbegin () const { return m_data.cbegin(); }
         
-    typename Array<ParticleType>::iterator end () { return m_data.end(); }
-    typename Array<ParticleType>::const_iterator end () const { return m_data.end(); }
-    typename Array<ParticleType>::const_iterator cend () const { return m_data.cend(); }
+    typename ParticleArray::iterator end () { return m_data.end(); }
+    typename ParticleArray::const_iterator end () const { return m_data.end(); }
+    typename ParticleArray::const_iterator cend () const { return m_data.cend(); }
 
 private:
-    Array<ParticleType> m_data;
+    ParticleArray m_data;
 };
 template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeInReal;
 
@@ -254,28 +264,36 @@ template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeIn
 template <int NReal, int NInt>
 struct StructOfArrays {
   
-    std::array<Array<Real>, NReal>& GetRealData () { return m_rdata; }
-    std::array<Array<int>,   NInt>& GetIntData  () { return m_idata; }
+#if CUDA
+    using RealArray = Array<Real, CudaManagedAllocator<Real>>;
+    using  IntArray = Array<int , CudaManagedAllocator<int >>;
+#else
+    using RealArray = Array<Real>;
+    using  IntArray = Array<int >;
+#endif
 
-    const std::array<Array<Real>, NReal>& GetRealData () const { return m_rdata; }
-    const std::array<Array<int>,   NInt>& GetIntData  () const { return m_idata; }
+    std::array<RealArray, NReal>& GetRealData () { return m_rdata; }
+    std::array< IntArray,   NInt>& GetIntData  () { return m_idata; }
 
-    Array<Real>& GetRealData (const int index) {
+    const std::array<RealArray, NReal>& GetRealData () const { return m_rdata; }
+    const std::array< IntArray,  NInt>& GetIntData  () const { return m_idata; }
+
+    RealArray& GetRealData (const int index) {
         BL_ASSERT(index < NReal);
         return m_rdata[index];
     }
     
-    const Array<Real>& GetRealData (const int index) const {
+    const RealArray& GetRealData (const int index) const {
         BL_ASSERT(index < NReal);
         return m_rdata[index];
     }
 
-    Array<int>& GetIntData (const int index) {
+    IntArray& GetIntData (const int index) {
         BL_ASSERT(index < NInt);
         return m_idata[index];
     }
     
-    const Array<int>& GetIntData (const int index) const {
+    const IntArray& GetIntData (const int index) const {
         BL_ASSERT(index < NInt);
         return m_idata[index];
     }
@@ -290,9 +308,8 @@ struct StructOfArrays {
     }
 
 private:
-
-    std::array<Array<Real>, NReal> m_rdata;
-    std::array<Array<int>,  NInt>  m_idata;
+    std::array<RealArray, NReal> m_rdata;
+    std::array< IntArray,  NInt> m_idata;    
 };
 
 
@@ -442,6 +459,11 @@ public:
     using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     using AoS = typename ParticleTileType::AoS;
     using SoA = typename ParticleTileType::SoA;
+
+    using RealArray     = typename SoA::RealArray;
+    using  IntArray     = typename SoA::IntArray;
+    using ParticleArray = typename AoS::ParticleArray;
+
 
     ParticleContainer ()
       : 
