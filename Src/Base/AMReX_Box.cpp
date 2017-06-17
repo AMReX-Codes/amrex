@@ -24,11 +24,7 @@ Box_init::Box_init ()
     {
         BL_ASSERT(the_box_arena == 0);
 
-#if defined(BL_COALESCE_FABS)
         the_box_arena = new CArena;
-#else
-        the_box_arena = new BArena;
-#endif
 
 	the_box_arena->SetReadOnly();
     }
