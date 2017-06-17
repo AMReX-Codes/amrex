@@ -175,9 +175,17 @@ contains
     integer :: s
     integer :: cudaResult
 
-    s = stream_from_index(idx)
+    if (idx < 0) then
 
-    cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_streams(s))
+       cudaResult = cudaMemcpyAsync(p_d, p_h, sz)
+
+    else
+
+       s = stream_from_index(idx)
+
+       cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_streams(s))
+
+    endif
 
   end subroutine gpu_htod_memcpy_async
 
@@ -198,9 +206,17 @@ contains
     integer :: s
     integer :: cudaResult
 
-    s = stream_from_index(idx)
+    if (idx < 0) then
 
-    cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_streams(s))
+       cudaResult = cudaMemcpyAsync(p_h, p_d, sz)
+
+    else
+
+       s = stream_from_index(idx)
+
+       cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_streams(s))
+
+    endif
 
   end subroutine gpu_dtoh_memcpy_async
 
@@ -220,9 +236,17 @@ contains
     integer :: s
     integer :: cudaResult
 
-    s = stream_from_index(idx)
+    if (idx < 0) then
 
-    cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(s))
+       cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, 0)
+
+    else
+
+       s = stream_from_index(idx)
+
+       cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(s))
+
+    endif
 
   end subroutine gpu_htod_memprefetch_async
 
@@ -242,9 +266,17 @@ contains
     integer :: s
     integer :: cudaResult
 
-    s = stream_from_index(idx)
+    if (idx < 0) then
 
-    cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(s))
+       cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, 0)
+
+    else
+
+       s = stream_from_index(idx)
+
+       cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(s))
+
+    endif
 
   end subroutine gpu_dtoh_memprefetch_async
 
