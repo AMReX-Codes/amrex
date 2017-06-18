@@ -1371,10 +1371,18 @@ AmrLevel::derive (const std::string& name,
         mf = new MultiFab(dstBA, dmap, rec->numDerive(), ngrow);
 
 #ifdef CRSEGRNDOMP
+	MFIter mfi(*mf, true);
+#else
+	MFIter mfi(srcMF, true);
+#endif
+
+        RealBox rbx[mfi.length()];
+
+#ifdef CRSEGRNDOMP
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(*mf,true); mfi.isValid(); ++mfi)
+        for (; mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
             Real*       ddat    = (*mf)[mfi].dataPtr();
@@ -1392,8 +1400,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const RealBox temp    (gtbx,geom.CellSize(),geom.ProbLo());
-            const Real* xlo     = temp.lo();
+	    rbx[mfi.tileIndex()] = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
@@ -1406,19 +1414,22 @@ AmrLevel::derive (const std::string& name,
 				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
 				 ARLIM_3D(lo),ARLIM_3D(hi),
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
+#ifdef CUDA
+				 dx, xlo,
+#else
 				 ZFILL(dx),ZFILL(xlo),
+#endif
 				 &time,&dt,
 				 BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
-		amrex::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmrLevel::derive: no function available");
 	    }
         }
 #else
-        for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
+        for (; mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
-            const RealBox gridloc(grids[grid_no],geom.CellSize(),geom.ProbLo());
             Real*       ddat    = (*mf)[mfi].dataPtr();
             const int*  dlo     = (*mf)[mfi].loVect();
             const int*  dhi     = (*mf)[mfi].hiVect();
@@ -1431,7 +1442,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const Real* xlo     = gridloc.lo();
+	    rbx[mfi.tileIndex()] = RealBox((*mf)[mfi].box(),geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
@@ -1444,12 +1456,16 @@ AmrLevel::derive (const std::string& name,
 				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
 				 ARLIM_3D(dlo),ARLIM_3D(dhi),
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
+#ifdef CUDA
+				 dx, xlo,
+#else
 				 ZFILL(dx),ZFILL(xlo),
+#endif
 				 &time,&dt,
 				 BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
-		amrex::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmrLevel::derive: no function available");
 	    }
         }
 #endif
@@ -1463,6 +1479,10 @@ AmrLevel::derive (const std::string& name,
         msg += name;
         amrex::Error(msg.c_str());
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
 
     return std::unique_ptr<MultiFab>(mf);
 }
@@ -1507,10 +1527,18 @@ AmrLevel::derive (const std::string& name,
         }
 
 #ifdef CRSEGRNDOMP
+	MFIter mfi(mf, true);
+#else
+	MFIter mfi(srcMF);
+#endif
+
+	RealBox rbx[mfi.length()];
+
+#ifdef CRSEGRNDOMP
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+        for (; mfi.isValid(); ++mfi)
         {
             int         idx     = mfi.index();
             Real*       ddat    = mf[mfi].dataPtr(dcomp);
@@ -1528,8 +1556,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const RealBox& temp = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
-            const Real* xlo     = temp.lo();
+            rbx[mfi.tileIndex()] = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
@@ -1542,16 +1570,20 @@ AmrLevel::derive (const std::string& name,
 				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
 				 ARLIM_3D(lo),ARLIM_3D(hi),
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
+#ifdef CUDA
+				 dx, xlo,
+#else
 				 ZFILL(dx),ZFILL(xlo),
+#endif
 				 &time,&dt,
 				 BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
-		amrex::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmrLevel::derive: no function available");
 	    }
         }
 #else
-        for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
+        for (; mfi.isValid(); ++mfi)
         {
             int         idx     = mfi.index();
             Real*       ddat    = mf[mfi].dataPtr(dcomp);
@@ -1566,8 +1598,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
-            const RealBox& temp = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
-            const Real* xlo     = temp.lo();
+            rbx[mfi.tileIndex()] = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
+            const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
@@ -1580,12 +1612,16 @@ AmrLevel::derive (const std::string& name,
 				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
 				 ARLIM_3D(dlo),ARLIM_3D(dhi),
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
+#ifdef CUDA
+				 dx, xlo,
+#else
 				 ZFILL(dx),ZFILL(xlo),
+#endif
 				 &time,&dt,
 				 BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
-		amrex::Error("AmeLevel::derive: no function available");
+		amrex::Error("AmrLevel::derive: no function available");
 	    }
         }
 #endif
@@ -1599,6 +1635,11 @@ AmrLevel::derive (const std::string& name,
         msg += name;
         amrex::Error(msg.c_str());
     }
+
+#ifdef CUDA
+    gpu_synchronize();
+#endif
+
 }
 
 Array<int>
