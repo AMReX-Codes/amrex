@@ -2,6 +2,7 @@
 #ifndef BL_ARENA_H
 #define BL_ARENA_H
 
+#include <AMReX_BLassert.H>
 #include <cstddef>
 
 namespace amrex {
@@ -48,9 +49,10 @@ public:
     static std::size_t align (std::size_t sz);
 
 #ifdef CUDA
-    void SetDeviceMemory() { device_use_managed_memory = false; }
-    void SetReadOnly() { device_set_readonly = true; }
-    void SetPreferred() { device_set_preferred = true; }
+    void SetDeviceMemory() { device_use_managed_memory = false; device_use_hostalloc = false; return; }
+    void SetReadOnly() { BL_ASSERT(device_use_managed_memory); device_set_readonly = true; return; }
+    void SetPreferred() { BL_ASSERT(device_use_managed_memory); device_set_preferred = true; return; }
+    void SetHostAlloc() { device_use_hostalloc = true; device_use_managed_memory = false; return; }
 #endif
 
 protected:
@@ -72,6 +74,7 @@ protected:
     bool device_use_managed_memory = true;
     bool device_set_readonly = false;
     bool device_set_preferred = false;
+    bool device_use_hostalloc = false;
 #endif
 
 };
