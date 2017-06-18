@@ -459,7 +459,7 @@ contains
     use iso_c_binding, only: c_size_t, c_int
 
     type(c_devptr), value :: p
-    integer(c_size_t) :: sz
+    integer(c_size_t), value :: sz
     integer(c_int) :: device
 
     integer :: cudaResult
@@ -479,7 +479,7 @@ contains
     use iso_c_binding, only: c_size_t
 
     type(c_devptr), value :: p
-    integer(c_size_t) :: sz
+    integer(c_size_t), value :: sz
 
     integer :: cudaResult
 
