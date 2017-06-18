@@ -290,6 +290,24 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
     BL_MPI_REQUIRE( MPI_Win_create_dynamic(MPI_INFO_NULL, MPI_COMM_WORLD, &ParallelDescriptor::fb_win) );
 #endif
 
+#ifdef BL_USE_MPI
+    amrex::Print() << "MPI initialized with "
+		   << ParallelDescriptor::NProcs()
+		   << " MPI processes\n";
+#endif
+
+#ifdef _OPENMP
+//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
+    amrex::Print() << "OMP initialized with "
+		   << omp_get_max_threads()
+		   << " OMP threads\n";
+#endif
+
+#ifdef CUDA
+    // Initialize CUDA streams.
+    initialize_cuda();
+#endif
+
     while ( ! The_Initialize_Function_Stack.empty())
     {
         //
@@ -308,24 +326,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
     // Initialize random seed after we're running in parallel.
     //
     amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
-
-#ifdef BL_USE_MPI
-    amrex::Print() << "MPI initialized with "
-		   << ParallelDescriptor::NProcs()
-		   << " MPI processes\n";
-#endif
-
-#ifdef _OPENMP
-//    static_assert(_OPENMP >= 201107, "OpenMP >= 3.1 is required.");
-    amrex::Print() << "OMP initialized with "
-		   << omp_get_max_threads()
-		   << " OMP threads\n";
-#endif
-
-#ifdef CUDA
-    // Initialize CUDA streams.
-    initialize_cuda();
-#endif
 
     signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
     signal(SIGINT,  BLBackTrace::handler);
