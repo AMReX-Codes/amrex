@@ -7,6 +7,7 @@
 #ifdef CUDA
 extern "C" {
     void initialize_cuda();
+    void finalize_cuda();
     void gpu_malloc(void** p, const std::size_t* sz);
     void gpu_hostalloc(void** p, const std::size_t* sz);
     void gpu_malloc_managed(void** p, const std::size_t* sz);
