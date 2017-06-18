@@ -89,6 +89,9 @@ public:
     //! The index into the underlying BoxArray of the current FAB.
     int index () const { return (*index_map)[currentIndex]; }
 
+    //! The number of indices.
+    int length () const { return (endIndex - beginIndex + 1); }
+
     //! The current local tile index in the current grid;
     int LocalTileIndex () const {return local_tile_index_map ? (*local_tile_index_map)[currentIndex] : 0;}
   
