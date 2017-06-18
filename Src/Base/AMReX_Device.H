@@ -8,8 +8,11 @@
 extern "C" {
     void initialize_cuda();
     void gpu_malloc(void** p, const std::size_t* sz);
+    void gpu_hostalloc(void** p, const std::size_t* sz);
     void gpu_malloc_managed(void** p, const std::size_t* sz);
     void gpu_free(void* p);
+    void gpu_freehost(void* p);
+    void gpu_host_device_ptr(void** x, void* y);
     void gpu_synchronize();
     void gpu_htod_memcpy_async(void* p_d, void* p_h, const std::size_t* sz, const int* idx);
     void gpu_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t* sz, const int* idx);

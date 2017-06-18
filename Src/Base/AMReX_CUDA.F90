@@ -1,6 +1,6 @@
 module cuda_module
 
-  use cudafor, only: cuda_stream_kind
+  use cudafor, only: cuda_stream_kind, cudaSuccess, cudaGetErrorString
 
   implicit none
 
@@ -18,9 +18,15 @@ contains
     implicit none
 
     integer :: i, cudaResult
+    character(len=32) :: cudaResultStr
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamCreate(cuda_streams(i))
+
+       if (cudaResult /= cudaSuccess) then
+          write(cudaResultStr, "(I32)") cudaResult
+          call bl_abort("CUDA failure in initialize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+       endif
     enddo
 
     cuda_device_id = 0
@@ -119,10 +125,40 @@ contains
     integer(c_size_t) :: sz
 
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     cudaResult = cudaMalloc(x, sz)
 
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_malloc(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
+
   end subroutine gpu_malloc
+
+
+
+  subroutine gpu_hostalloc(x, sz) bind(c, name='gpu_hostalloc')
+
+    use cudafor, only: cudaHostAlloc, cudaHostAllocMapped, cudaHostAllocWriteCombined
+    use iso_c_binding, only: c_size_t, c_ptr
+
+    implicit none
+
+    type(c_ptr) :: x
+    integer :: sz
+
+    integer :: cudaResult
+    character(len=32) :: cudaResultStr
+
+    cudaResult = cudaHostAlloc(x, sz, ior(cudaHostAllocMapped, cudaHostAllocWriteCombined))
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_hostalloc(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
+
+  end subroutine gpu_hostalloc
 
 
 
@@ -137,8 +173,14 @@ contains
     integer(c_size_t) :: sz
 
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     cudaResult = cudaMallocManaged(x, sz, cudaMemAttachGlobal)
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_malloc_managed(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
 
   end subroutine gpu_malloc_managed
 
@@ -153,10 +195,64 @@ contains
     type(c_devptr), value :: x
 
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     cudaResult = cudaFree(x)
 
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_free(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
+
   end subroutine gpu_free
+
+
+
+  subroutine gpu_freehost(x) bind(c, name='gpu_freehost')
+
+    use cudafor, only: cudaFreeHost
+    use iso_c_binding, only: c_ptr
+
+    implicit none
+
+    type(c_ptr), value :: x
+
+    integer :: cudaResult
+    character(len=32) :: cudaResultStr
+
+    cudaResult = cudaFreeHost(x)
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_freehost(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
+
+  end subroutine gpu_freehost
+
+
+
+  subroutine gpu_host_device_ptr(x, y) bind(c, name='gpu_host_device_ptr')
+
+    use cudafor, only: cudaHostGetDevicePointer, c_devptr
+    use iso_c_binding, only: c_ptr
+
+    type(c_devptr) :: x
+    type(c_ptr), value :: y
+    integer :: flags
+
+    integer :: cudaResult
+    character(len=32) :: cudaResultStr
+
+    flags = 0 ! This argument does nothing at present, but is part of the API.
+
+    cudaResult = cudaHostGetDevicePointer(x, y, flags)
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_host_device_ptr(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
+
+  end subroutine gpu_host_device_ptr
 
 
 
@@ -174,6 +270,7 @@ contains
 
     integer :: s
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     if (idx < 0) then
 
@@ -185,6 +282,11 @@ contains
 
        cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_streams(s))
 
+    endif
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_htod_memcpy_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
     endif
 
   end subroutine gpu_htod_memcpy_async
@@ -205,6 +307,7 @@ contains
 
     integer :: s
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     if (idx < 0) then
 
@@ -216,6 +319,11 @@ contains
 
        cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_streams(s))
 
+    endif
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_dtoh_memcpy_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
     endif
 
   end subroutine gpu_dtoh_memcpy_async
@@ -235,6 +343,7 @@ contains
 
     integer :: s
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     if (idx < 0) then
 
@@ -246,6 +355,11 @@ contains
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(s))
 
+    endif
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_htod_memprefetch_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
     endif
 
   end subroutine gpu_htod_memprefetch_async
@@ -265,6 +379,7 @@ contains
 
     integer :: s
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     if (idx < 0) then
 
@@ -278,6 +393,11 @@ contains
 
     endif
 
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_dtoh_memprefetch_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
+
   end subroutine gpu_dtoh_memprefetch_async
 
 
@@ -289,8 +409,14 @@ contains
     implicit none
 
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     cudaResult = cudaDeviceSynchronize();
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_synchronize(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
 
   end subroutine gpu_synchronize
 
@@ -301,13 +427,19 @@ contains
     use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetPreferredLocation
     use iso_c_binding, only: c_size_t, c_int
 
-    type(c_devptr) :: p
+    type(c_devptr), value :: p
     integer(c_size_t) :: sz
     integer(c_int) :: device
 
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in mem_advise_set_preferred(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
 
   end subroutine mem_advise_set_preferred
 
@@ -318,13 +450,19 @@ contains
     use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetReadMostly, cudaCpuDeviceId
     use iso_c_binding, only: c_size_t
 
-    type(c_devptr) :: p
+    type(c_devptr), value :: p
     integer(c_size_t) :: sz
 
     integer :: cudaResult
+    character(len=32) :: cudaResultStr
 
     ! Note: the device argument in this call is ignored, so we arbitrarily pick the CPU.
     cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in mem_advise_set_readonly(): Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    endif
 
   end subroutine mem_advise_set_readonly
 
