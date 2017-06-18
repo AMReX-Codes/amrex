@@ -36,15 +36,33 @@ public:
     //! Explicit dimension specific constructors.
     RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
              AMREX_D_DECL(Real x1, Real y1, Real z1));
+
+    void initialize_device_memory();
+    void copy_device_memory();
+    void copy_xlo();
+    void copy_xhi();
+
     //! Set epsilon used by contains() function when comparing floating point numbers.
     static void setEpsilon (Real epsilon) { eps = epsilon; }
     //! Returns epsilon.
     static Real epsilon () { return eps; }
     //! Returns lo side.
-    const Real* lo () const& { return xlo; }
+    const Real* lo () const& {
+#ifdef CUDA
+	return xlo_d.get();
+#else
+	return xlo;
+#endif
+    }
     const Real* lo () && = delete;
     //! Returns hide side.
-    const Real* hi () const& { return xhi; }
+    const Real* hi () const& {
+#ifdef CUDA
+	return xhi_d.get();
+#else
+	return xhi;
+#endif
+    }
     const Real* hi () && = delete;
     //! Returns length in specified direction.
     Real lo (int dir) const { return xlo[dir]; }
@@ -81,6 +99,12 @@ private:
     //
     Real xlo[BL_SPACEDIM];
     Real xhi[BL_SPACEDIM];
+
+#ifdef CUDA
+    std::shared_ptr<Real> xlo_d;
+    std::shared_ptr<Real> xhi_d;
+#endif
+
 };
 
 //
@@ -92,6 +116,23 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 //
 std::istream& operator>> (std::istream&, RealBox&);
 
+#ifdef CUDA
+    // \cond CODEGEN
+    class RealBox_init
+    {
+    public:
+        RealBox_init ();
+        ~RealBox_init ();
+    private:
+        static int m_cnt;
+    };
+    // \endcond
+#endif
+
 }
+
+#ifdef CUDA
+static amrex::RealBox_init file_scope_RealBox_init_object;
+#endif
 
 #endif /*_RealBox_H_*/
