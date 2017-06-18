@@ -1,23 +1,34 @@
 module cuda_module
 
-  use cudafor, only: cuda_stream_kind, cudaSuccess, cudaGetErrorString
+  use cudafor, only: cuda_stream_kind, cudaSuccess, cudaGetErrorString, cudaDeviceProp
 
   implicit none
+
+  public
 
   integer, parameter :: max_cuda_streams = 100
   integer(kind=cuda_stream_kind) :: cuda_streams(max_cuda_streams)
 
-  integer, save :: cuda_device_id
+  integer, private :: cuda_device_id
+
+  type(cudaDeviceProp), private :: prop
+
+  ! Some C++ static class members will initialize at program load,
+  ! before we have the ability to initialize this module. Guard against
+  ! this by only testing on the device properties if we have actually
+  ! loaded them.
+
+  logical, private :: have_prop = .false.
 
 contains
 
   subroutine initialize_cuda() bind(c, name='initialize_cuda')
 
-    use cudafor, only: cudaStreamCreate
+    use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties
 
     implicit none
 
-    integer :: i, cudaResult
+    integer :: i, cudaResult, ilen
     character(len=32) :: cudaResultStr
 
     do i = 1, max_cuda_streams
@@ -30,6 +41,25 @@ contains
     enddo
 
     cuda_device_id = 0
+
+    cudaResult = cudaGetDeviceProperties(prop, cuda_device_id)
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in initialize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    end if
+
+    have_prop = .true.
+
+    if (prop%major < 3) then
+       call bl_abort("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
+    end if
+
+    ilen = verify(prop%name, ' ', .true.)
+
+    print *, ""
+    print *, "Using GPU: ", prop%name(1:ilen)
+    print *, ""
 
   end subroutine initialize_cuda
 
@@ -206,12 +236,20 @@ contains
     integer :: cudaResult
     character(len=32) :: cudaResultStr
 
-    cudaResult = cudaMallocManaged(x, sz, cudaMemAttachGlobal)
+    if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_malloc_managed(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+       cudaResult = cudaMallocManaged(x, sz, cudaMemAttachGlobal)
+
+       if (cudaResult /= cudaSuccess) then
+          write(cudaResultStr, "(I32)") cudaResult
+          call bl_abort("CUDA failure in gpu_malloc_managed(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+       end if
+
+    else
+
+       call bl_abort("The GPU does not support managed memory allocations")
+
+    end if
 
   end subroutine gpu_malloc_managed
 
@@ -376,22 +414,26 @@ contains
     integer :: cudaResult
     character(len=32) :: cudaResultStr
 
-    if (idx < 0) then
+    if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1 .and. prop%concurrentManagedAccess == 1)) then
 
-       cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, 0)
+       if (idx < 0) then
 
-    else
+          cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, 0)
 
-       s = stream_from_index(idx)
+       else
 
-       cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(s))
+          s = stream_from_index(idx)
 
-    endif
+          cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(s))
 
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_htod_memprefetch_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+       endif
+
+       if (cudaResult /= cudaSuccess) then
+          write(cudaResultStr, "(I32)") cudaResult
+          call bl_abort("CUDA failure in gpu_htod_memprefetch_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+       endif
+
+    end if
 
   end subroutine gpu_htod_memprefetch_async
 
@@ -412,22 +454,26 @@ contains
     integer :: cudaResult
     character(len=32) :: cudaResultStr
 
-    if (idx < 0) then
+    if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
-       cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, 0)
+       if (idx < 0) then
 
-    else
+          cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, 0)
 
-       s = stream_from_index(idx)
+       else
 
-       cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(s))
+          s = stream_from_index(idx)
 
-    endif
+          cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(s))
 
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_dtoh_memprefetch_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+       end if
+
+       if (cudaResult /= cudaSuccess) then
+          write(cudaResultStr, "(I32)") cudaResult
+          call bl_abort("CUDA failure in gpu_dtoh_memprefetch_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+       end if
+
+    end if
 
   end subroutine gpu_dtoh_memprefetch_async
 
@@ -467,7 +513,9 @@ contains
     ! Note: we do not error check in this subroutine because the error
     ! code seems to be broken in PGI.
 
-    cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)
+    if ((.not. have_prop) .or. (have_prop .and. prop%concurrentManagedAccess == 1)) then
+       cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)
+    end if
 
   end subroutine mem_advise_set_preferred
 
@@ -487,7 +535,9 @@ contains
     ! code seems to be broken in PGI.
 
     ! Note: the device argument in this call is ignored, so we arbitrarily pick the CPU.
-    cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)
+    if ((.not. have_prop) .or. (have_prop .and. prop%concurrentManagedAccess == 1)) then
+       cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)
+    end if
 
   end subroutine mem_advise_set_readonly
 
