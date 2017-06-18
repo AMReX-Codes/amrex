@@ -440,6 +440,10 @@ amrex::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
+#ifdef CUDA
+    finalize_cuda();
+#endif
+
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
 #ifndef BL_AMRPROF
