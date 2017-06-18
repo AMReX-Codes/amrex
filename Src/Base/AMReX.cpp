@@ -304,8 +304,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 #endif
 
 #ifdef CUDA
-    // Initialize CUDA streams.
-    initialize_cuda();
+    Device::initialize_cuda();
 #endif
 
     while ( ! The_Initialize_Function_Stack.empty())

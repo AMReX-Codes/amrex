@@ -6,7 +6,7 @@
 
 #ifdef CUDA
 extern "C" {
-    void initialize_cuda();
+    void initialize_cuda_f();
     void finalize_cuda();
     void gpu_malloc(void** p, const std::size_t* sz);
     void gpu_hostalloc(void** p, const std::size_t* sz);
@@ -30,6 +30,8 @@ class Device
 {
 
 public:
+
+    static void initialize_cuda();
 
     static void beginDeviceLaunchRegion() { in_device_launch_region = true; }
 
