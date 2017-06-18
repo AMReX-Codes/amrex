@@ -2,7 +2,7 @@ c-----------------------------------------------------------------------
       subroutine bl_error(str)
       character*(*) str
       integer NSTR
-      parameter (NSTR = 128)
+      parameter (NSTR = 256)
       integer istr(NSTR)
       flush(6)
       call blstr2int(istr, NSTR, str)
@@ -12,7 +12,7 @@ c-----------------------------------------------------------------------
       subroutine bl_warning(str)
       character*(*) str
       integer NSTR
-      parameter (NSTR = 128)
+      parameter (NSTR = 256)
       integer istr(NSTR)
       flush(6)
       call blstr2int(istr, NSTR, str)
@@ -22,7 +22,7 @@ c-----------------------------------------------------------------------
       subroutine bl_abort(str)
       character*(*) str
       integer NSTR
-      parameter (NSTR = 128)
+      parameter (NSTR = 256)
       integer istr(NSTR)
       flush(6)
       call blstr2int(istr, NSTR, str)
