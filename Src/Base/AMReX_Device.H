@@ -8,6 +8,7 @@
 extern "C" {
     void initialize_cuda_f();
     void finalize_cuda();
+    void get_cuda_device_id(int* device);
     void gpu_malloc(void** p, const std::size_t* sz);
     void gpu_hostalloc(void** p, const std::size_t* sz);
     void gpu_malloc_managed(void** p, const std::size_t* sz);

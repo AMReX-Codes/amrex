@@ -12,4 +12,6 @@ amrex::Device::initialize_cuda() {
 
     initialize_cuda_f();
 
+    get_cuda_device_id(&cuda_device_id);
+
 }
