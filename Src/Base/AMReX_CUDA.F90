@@ -14,7 +14,7 @@ contains
   subroutine initialize_cuda() bind(c, name='initialize_cuda')
 
     use cudafor, only: cudaStreamCreate
-    
+
     implicit none
 
     integer :: i, cudaResult
@@ -432,14 +432,11 @@ contains
     integer(c_int) :: device
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
+
+    ! Note: we do not error check in this subroutine because the error
+    ! code seems to be broken in PGI.
 
     cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device)
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in mem_advise_set_preferred(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
 
   end subroutine mem_advise_set_preferred
 
@@ -454,15 +451,12 @@ contains
     integer(c_size_t) :: sz
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
+
+    ! Note: we do not error check in this subroutine because the error
+    ! code seems to be broken in PGI.
 
     ! Note: the device argument in this call is ignored, so we arbitrarily pick the CPU.
     cudaResult = cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in mem_advise_set_readonly(): Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
 
   end subroutine mem_advise_set_readonly
 
