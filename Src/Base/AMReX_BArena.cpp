@@ -8,13 +8,27 @@ amrex::BArena::alloc (std::size_t _sz)
     void* pt;
 
 #if (defined(CUDA) && defined(CUDA_UM))
-    gpu_malloc_managed(&pt, &_sz);
-    const int device = Device::cudaDeviceId();
-    if (device_set_readonly)
-	mem_advise_set_readonly(&pt, &_sz);
-    if (device_set_preferred) {
+    if (device_use_managed_memory) {
+
+	gpu_malloc_managed(&pt, &_sz);
 	const int device = Device::cudaDeviceId();
-	mem_advise_set_preferred(&pt, &_sz, &device);
+	if (device_set_readonly)
+	    mem_advise_set_readonly(&pt, &_sz);
+	if (device_set_preferred) {
+	    const int device = Device::cudaDeviceId();
+	    mem_advise_set_preferred(&pt, &_sz, &device);
+	}
+
+    }
+    else if (device_use_hostalloc) {
+
+	gpu_hostalloc(&pt, &_sz);
+
+    }
+    else {
+
+	gpu_malloc(&pt, &_sz);
+
     }
 #else
     pt = operator new(_sz);
@@ -27,7 +41,10 @@ void
 amrex::BArena::free (void* pt)
 {
 #if (defined(CUDA) && defined(CUDA_UM))
-    gpu_free(pt);
+    if (!device_use_hostalloc)
+	gpu_free(pt);
+    else
+	gpu_freehost(pt);
 #else
     operator delete(pt);
 #endif

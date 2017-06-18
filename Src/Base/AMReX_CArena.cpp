@@ -24,7 +24,10 @@ CArena::~CArena ()
 {
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
 #ifdef CUDA
-	gpu_free(m_alloc[i]);
+	if (device_use_hostalloc)
+	    gpu_freehost(m_alloc[i]);
+	else
+	    gpu_free(m_alloc[i]);
 #else
         ::operator delete(m_alloc[i]);
 #endif
@@ -50,17 +53,23 @@ CArena::alloc (size_t nbytes)
         const size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
 #if (defined(CUDA) && defined(CUDA_UM))
-	if (device_use_managed_memory) {
+        if (device_use_hostalloc) {
+
+	    gpu_hostalloc(&vp, &N);
+
+	}
+	else if (device_use_managed_memory) {
 
 	    gpu_malloc_managed(&vp, &N);
 	    if (device_set_readonly)
-		mem_advise_set_readonly(&vp, &N);
+		mem_advise_set_readonly(vp, &N);
 	    if (device_set_preferred) {
 		const int device = Device::cudaDeviceId();
-		mem_advise_set_preferred(&vp, &N, &device);
+		mem_advise_set_preferred(vp, &N, &device);
 	    }
 
-	} else {
+	}
+	else {
 
 	    gpu_malloc(&vp, &N);
 
