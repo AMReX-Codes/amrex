@@ -95,7 +95,6 @@ contains
   end subroutine finalize_cuda
 
 
-
   subroutine get_cuda_device_id(id) bind(c, name='get_cuda_device_id')
 
     implicit none
