@@ -13,10 +13,10 @@ amrex::BArena::alloc (std::size_t _sz)
 	gpu_malloc_managed(&pt, &_sz);
 	const int device = Device::cudaDeviceId();
 	if (device_set_readonly)
-	    mem_advise_set_readonly(pt, &_sz);
+	    mem_advise_set_readonly(pt, _sz);
 	if (device_set_preferred) {
 	    const int device = Device::cudaDeviceId();
-	    mem_advise_set_preferred(pt, &_sz, &device);
+	    mem_advise_set_preferred(pt, _sz, &device);
 	}
 
     }

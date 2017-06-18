@@ -62,10 +62,10 @@ CArena::alloc (size_t nbytes)
 
 	    gpu_malloc_managed(&vp, &N);
 	    if (device_set_readonly)
-		mem_advise_set_readonly(vp, &N);
+		mem_advise_set_readonly(vp, N);
 	    if (device_set_preferred) {
 		const int device = Device::cudaDeviceId();
-		mem_advise_set_preferred(vp, &N, &device);
+		mem_advise_set_preferred(vp, N, &device);
 	    }
 
 	}

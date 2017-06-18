@@ -81,7 +81,7 @@ CoordSys::init_device() {
 	std::size_t sz = 3 * sizeof(Real);
 	Real* dx_temp;
 	gpu_malloc_managed((void**) &dx_temp, &sz);
-        mem_advise_set_readonly(&dx_temp, &sz);
+        mem_advise_set_readonly(dx_temp, sz);
 	dx_d.reset(dx_temp, [](Real* ptr) { gpu_free(ptr); });
     }
 #endif
