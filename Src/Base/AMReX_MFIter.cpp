@@ -212,6 +212,7 @@ MFIter::tilebox () const
 	    }
 	}
     }
+    registerBox(bx);
     return bx;
 }
 
@@ -234,6 +235,7 @@ MFIter::tilebox (const IntVect& nodal) const
 	    }
 	}
     }
+    registerBox(bx);
     return bx;
 }
 
@@ -261,6 +263,7 @@ MFIter::nodaltilebox (int dir) const
 	    }
 	}
     }
+    registerBox(bx);
     return bx;
 }
 
@@ -279,6 +282,7 @@ MFIter::growntilebox (int ng) const
 	    bx.growHi(d, ng);
 	}
     }
+    registerBox(bx);
     return bx;
 }
 
@@ -297,6 +301,7 @@ MFIter::grownnodaltilebox (int dir, int ng) const
 	    bx.growHi(d, ng);
 	}
     }
+    registerBox(bx);
     return bx;
 }
 
