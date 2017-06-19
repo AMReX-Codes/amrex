@@ -10,8 +10,10 @@ int amrex::Device::cuda_device_id = 0;
 void
 amrex::Device::initialize_cuda() {
 
+#ifdef CUDA
     initialize_cuda_f();
 
     get_cuda_device_id(&cuda_device_id);
+#endif
 
 }
