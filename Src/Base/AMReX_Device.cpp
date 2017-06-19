@@ -17,3 +17,12 @@ amrex::Device::initialize_cuda() {
 #endif
 
 }
+
+void
+amrex::Device::set_stream_index(const int idx) {
+
+#ifdef CUDA
+    set_stream_idx(idx);
+#endif
+
+}
