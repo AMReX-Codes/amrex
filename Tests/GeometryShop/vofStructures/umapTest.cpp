@@ -90,16 +90,14 @@ get_EBLGs(EBLevelGrid& eblg_fine,
         amrex::Abort("Unknown geom_type");
     }
 
-    BoxArray ba(paramsCrse.coarsestDomain);
-    int max_grid_size = 16;
-    pp.query("max_grid_size",max_grid_size);
-    ba.maxSize(max_grid_size);
-    DistributionMapping dm(ba);
-    std::vector<EBLevelGrid> eblg_tmp;
-    getAllIrregEBLG(eblg_tmp, paramsFine);
-    eblg_fine = eblg_tmp[0];
-    getAllIrregEBLG(eblg_tmp, paramsCrse);
-    eblg_crse = eblg_tmp[0];
+    std::vector<EBLevelGrid> eblg_tmpf;
+    getAllIrregEBLG(eblg_tmpf, paramsFine);
+    eblg_fine = eblg_tmpf[0];
+
+    std::vector<EBLevelGrid> eblg_tmpc;
+    getAllIrregEBLG(eblg_tmpc, paramsCrse);
+    eblg_crse = eblg_tmpc[0];
+
 }
 
 struct tface
@@ -328,32 +326,32 @@ int myTest()
     EBLevelGrid eblg_fine, eblg_crse;
     int ratio;
     get_EBLGs(eblg_fine,eblg_crse,ratio);
-    const BoxArray& ba_crse = eblg_crse.getBoxArray();
-    const DistributionMapping& dm_crse = eblg_crse.getDM();
+    const BoxArray& ba_fine = eblg_fine.getBoxArray();
+    const DistributionMapping& dm_fine = eblg_fine.getDM();
 
     int nComp =1;
     int nGrow =1;
     BaseUmapFactory<CutCell> cmap_factory(NCELLMAX);
-    FabArray<BaseUmap<CutCell> > cmap_crse(ba_crse, dm_crse, nComp, nGrow, MFInfo(), cmap_factory);
+    FabArray<BaseUmap<CutCell> > cmap_fine(ba_fine, dm_fine, nComp, nGrow, MFInfo(), cmap_factory);
 
     BaseUmapFactory<CutFace> fmap_factory(NFACEMAX);
-    std::array<BoxArray,BL_SPACEDIM> fba_crse;
-    std::array<FabArray<BaseUmap<CutFace> >, BL_SPACEDIM> fmap_crse;
+    std::array<BoxArray,BL_SPACEDIM> fba_fine;
+    std::array<FabArray<BaseUmap<CutFace> >, BL_SPACEDIM> fmap_fine;
     for (int idir=0; idir<BL_SPACEDIM; ++idir)
     {
-        fba_crse[idir] = ba_crse;
-        fba_crse[idir].surroundingNodes(idir);
-        fmap_crse[idir].define(fba_crse[idir], dm_crse, nComp, nGrow, MFInfo(), fmap_factory);
+        fba_fine[idir] = ba_fine;
+        fba_fine[idir].surroundingNodes(idir);
+        fmap_fine[idir].define(fba_fine[idir], dm_fine, nComp, nGrow, MFInfo(), fmap_factory);
     }
 
-    BuildFortranGraph(cmap_crse,fmap_crse,eblg_crse);
+    BuildFortranGraph(cmap_fine,fmap_fine,eblg_fine);
 
 #if 1
-    MultiFab vfrac(ba_crse, dm_crse,  nComp, 0);
+    MultiFab vfrac(ba_fine, dm_fine,  nComp, 0);
 
     for(MFIter  mfi(vfrac); mfi.isValid(); ++mfi)
     {
-        const EBISBox& ebis_box = eblg_crse.getEBISL()[mfi];
+        const EBISBox& ebis_box = eblg_fine.getEBISL()[mfi];
         const Box& vbox = mfi.validbox();
         FArrayBox& vfrac_fab = vfrac[mfi];
         vfrac[mfi].setVal(1);
@@ -381,8 +379,8 @@ int myTest()
     Array<std::string> name(1,"vfrac");
     RealBox rb(AMREX_D_DECL(0,0,0),
                AMREX_D_DECL(1,1,1));
-    Geometry geom_crse(eblg_crse.getDomain(),&rb);
-    WriteSingleLevelPlotfile("pltfile",vfrac,name,geom_crse,0,0,"CartGrid-V2.0");
+    Geometry geom_fine(eblg_fine.getDomain(),&rb);
+    WriteSingleLevelPlotfile("pltfile",vfrac,name,geom_fine,0,0,"CartGrid-V2.0");
 #endif
 
     // Level transfers
@@ -390,11 +388,11 @@ int myTest()
     // {
     //     const Box& fbox = mfi.validbox();
     //     const Box cbox = amrex::coarsen(fbox,ratio);
-    //     int cnum_crse = cnodes_crse[mfi.index()].size();
+    //     int cnum_fine = cnodes_fine[mfi.index()].size();
     //     average(fbox.loVect(), fbox.hiVect(),
-    //             cnodes_crse[mfi.index()].data(), &cnum_crse,
     //             cnodes_fine[mfi.index()].data(), &cnum_fine,
-    //             BL_TO_FORTRAN_N(ebmask_crse[mfi],0),
+    //             cnodes_fine[mfi.index()].data(), &cnum_fine,
+    //             BL_TO_FORTRAN_N(ebmask_fine[mfi],0),
     //             BL_TO_FORTRAN_N(ebmask_fine[mfi],0));
     // }
 
