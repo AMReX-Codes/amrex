@@ -135,7 +135,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
         EBISBox ebis_box = eblg.getEBISL()[mfi];
         const Box gbox = cmap[mfi].box() & ebis_box.getDomain();
 
-	int ebCellID = 0; // Reset to zero for each box
+	//int ebCellID = 0; // Reset to zero for each box
         if (!ebis_box.isAllRegular())
         {
             BaseUmap<CutCell>& cmap_fab = cmap[mfi];
@@ -155,7 +155,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                         for (int icc=0; icc<nCells; ++icc)
                         {
                             CutCell cc;
-                            cc.ebCellID = ebCellID++;
+                            //cc.ebCellID = ebCellID++;
 
                             const VolIndex& vof = gbox_vofs[icc];
                             for (int idir = 0; idir < SpaceDim; idir++)
@@ -198,7 +198,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
             const Box& vbox = mfi.validbox();
             for (int idir = 0; idir < SpaceDim; idir++)
             {
-                int ebFaceID = 0;
+                //int ebFaceID = 0;
                 const Box fbox = amrex::surroundingNodes(vbox,idir);
                 for (BoxIterator bit(fbox); bit.ok(); ++bit)
                 {
@@ -222,7 +222,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                                 /*
                                   Number this face, add it to the umap of faces, and set cmap face ids consistently
                                  */
-                                cf.ebFaceID = ebFaceID++;
+                                //cf.ebFaceID = ebFaceID++;
                                 fmap[idir][mfi].setVal(cf,iv_face,0,cnt);
 
                                 bool found_lo=false;
@@ -251,7 +251,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                             }
                             else
                             {
-                                cf.ebFaceID = REGULAR_FACE;
+                                //cf.ebFaceID = REGULAR_FACE;
                             }
                         }
                     }
@@ -269,7 +269,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
         for (BaseUmap<CutCell>::const_iterator umi = cmap_fab.begin(); umi<cmap_fab.end(); ++umi )
         {
             const CutCell& cc = *umi;
-            std::cout << "ebCellID: " << cc.ebCellID;
+            //std::cout << "ebCellID: " << cc.ebCellID;
             const BaseUmap<CutCell>::Tuple& tuple = umi.tuple();
             std::cout << " " << tuple.pos << " L = " << tuple.l << " ncomp= " << tuple.ncomp;
             for (int idir = 0; idir < SpaceDim; idir++)
@@ -293,7 +293,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
             for (BaseUmap<CutFace>::const_iterator umi = fmap_fab.begin(); umi<fmap_fab.end(); ++umi )
             {
                 const CutFace& cf = *umi;
-                std::cout << "ebFaceID: " << cf.ebFaceID;
+                //std::cout << "ebFaceID: " << cf.ebFaceID;
                 const BaseUmap<CutFace>::Tuple& tuple = umi.tuple();
                 std::cout << " " << tuple.pos << " L = " << tuple.l << " ncomp= " << tuple.ncomp;
                 std::cout << " (" << idir << "): " << cf.cellLo << ", " << cf.cellHi << std::endl;
@@ -321,13 +321,9 @@ protected:
 int myTest()
 {
     std::cout << "CutCell is POD: " << std::is_pod<CutCell>::value << std::endl;
-    std::cout << "CNode is POD: " << std::is_pod<CNode>::value << std::endl;
     std::cout << "CutFace is POD: " << std::is_pod<CutFace>::value << std::endl;
-    std::cout << "FNode is POD: " << std::is_pod<FNode>::value << std::endl;
     std::cout << "Size of CutCell: " << sizeof(CutCell)/sizeof(int) << " ints" << std::endl;
-    std::cout << "Size of CNode: " << sizeof(CNode)/sizeof(int) << " ints" << std::endl;
     std::cout << "Size of CutFace: " << sizeof(CutFace)/sizeof(int) << " ints" << std::endl;
-    std::cout << "Size of FNode: " << sizeof(FNode)/sizeof(int) << " ints" << std::endl;
 
     EBLevelGrid eblg_fine, eblg_crse;
     int ratio;
