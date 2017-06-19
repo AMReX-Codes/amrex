@@ -20,6 +20,8 @@ module cuda_module
 
   logical, private :: have_prop = .false.
 
+  integer :: stream_index
+
 contains
 
   subroutine initialize_cuda_f() bind(c, name='initialize_cuda_f')
@@ -95,6 +97,7 @@ contains
   end subroutine finalize_cuda
 
 
+
   subroutine get_cuda_device_id(id) bind(c, name='get_cuda_device_id')
 
     implicit none
@@ -104,6 +107,18 @@ contains
     id = cuda_device_id
 
   end subroutine get_cuda_device_id
+
+
+
+  subroutine set_stream_index(index_in) bind(c, name='set_stream_index')
+
+    implicit none
+
+    integer, intent(in), value :: index_in
+
+    stream_index = index_in
+
+  end subroutine set_stream_index
 
 
 
