@@ -75,10 +75,10 @@ public:
     Box grownnodaltilebox (int dir=-1, int ng=-1000000) const;
 
     //! Return the valid Box in which the current tile resides.
-    Box validbox () const { return fabArray.box((*index_map)[currentIndex]); }
+    Box validbox () const { const Box& r = fabArray.box((*index_map)[currentIndex]); registerBox(r); return r; }
 
     //! Return the Box of the FAB at which we currently point.
-    Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
+    Box fabbox () const { const Box& r = fabArray.fabbox((*index_map)[currentIndex]); registerBox(r); return r; }
 
     //! Increment iterator to the next tile we own.
     void operator++ ();
@@ -100,6 +100,9 @@ public:
 
     //! Return a unique index associated with the current box and/or tile.
     int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
+
+    //! Maintain a record of all boxes we have created.
+    void registerBox (const Box& box) const;
 
     //! Maintain a record of all FABs that have been sent to the device.
     template<class FAB>
@@ -143,9 +146,18 @@ protected:
 
     mutable Array<FArrayBox*> registered_fabs;
     mutable Array<int> registered_fabs_indices;
+    mutable Array<Box> registered_boxes;
   
     void Initialize ();
 };
+
+// Store a Box in our list.
+inline
+void
+MFIter::registerBox(const Box& box) const
+{
+    registered_boxes.push_back(box);
+}
 
 // Store a FAB in our list. Return true if we registered it;
 // return false if we had already registered it.
