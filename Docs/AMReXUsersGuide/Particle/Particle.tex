@@ -10,9 +10,8 @@ The particle classes can be used by including the header $\tt{AMReX\_Particles.H
 \end{lstlisting}
 
 This is a templated data type, designed to allow flexibility in the number and type of variables that the particles carry. The first template parameter is
-the number of extra $\tt{Real}$ variables this particle will have (either single or double precision), while the second is the number of extra integer variables. 
-It is imporant to note that this is the number of $\emph{extra}$ real and integer variables; a particle will always have at least $\tt{BL\_SPACEDIM}$ $\tt{Real}$ components that store the particle's position and $\tt{2}$ integer components that store the particle's $\tt{id}$ and $\tt{cpu}$ numbers.
-\footnote{Note that $\tt{cpu}$ stores the number of the process the particle was $\emph{generated}$ on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle $\tt{id}$. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.}
+the number of extra $\tt{Real}$ variables this particle will have (either single or double precision\footnote{Particles default to double-precision for their real data. To use single precision, compile your code with $\tt{USE\_SINGLE\_PRECISION\_PARTICLES=TRUE}$.}), while the second is the number of extra integer variables. 
+It is imporant to note that this is the number of $\emph{extra}$ real and integer variables; a particle will always have at least $\tt{BL\_SPACEDIM}$ real components that store the particle's position and $\tt{2}$ integer components that store the particle's $\tt{id}$ and $\tt{cpu}$ numbers.\footnote{Note that $\tt{cpu}$ stores the number of the process the particle was $\emph{generated}$ on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle $\tt{id}$. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.}
 
 The particle struct is designed to store these variables in a way that minimizes padding, which in practice means that the $\tt{Real}$ components always come first, and the integer components second. Additionally, the required particle variables are stored before the optional ones, for both the real and the integer components. For example, say we want to define a particle type that stores a mass, three velocity components, and two extra integer flags. Our particle struct would be set up like:
 
@@ -214,20 +213,22 @@ particles. For example:
 
 \begin{lstlisting}[language=fortran]
 
-    use amrex_fort_module, only: amrex_real
+    use amrex_fort_module, only: amrex_particle_real
     use iso_c_binding ,    only: c_int
 
     type, bind(C)  :: particle_t
-       real(amrex_real) :: pos(3)
-       real(amrex_real) :: vel(3)
-       real(amrex_real) :: acc(3)
+       real(amrex_particle_real) :: pos(3)
+       real(amrex_particle_real) :: vel(3)
+       real(amrex_particle_real) :: acc(3)
        integer(c_int)   :: id
        integer(c_int)   :: cpu
     end type particle_t
 
 \end{lstlisting}
 
-is equivalent to particle struct you get with $\tt{Particle<6, 0>}$.
+is equivalent to particle struct you get with $\tt{Particle<6, 0>}$. Here, $\tt{amrex_particle_real}$ is either single or doubled precision, depending 
+on whether $\tt{USE\_SINGLE\_PRECISION\_PARTICLES}$ is $\tt{TRUE}$ or not. We recommend always using this type in Fortran routines that work on particle
+data to avoid hard-to-debug incompatibilites between floating point types.
 
 \section{Interacting with Mesh Data}
 \label{sec:Particles:Interacting}
