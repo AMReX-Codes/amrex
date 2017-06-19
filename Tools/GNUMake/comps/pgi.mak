@@ -17,6 +17,9 @@ pgi_version := $(shell $(CXX) -V 2>&1 | grep 'target')
 
 COMP_VERSION := $(pgi_version)
 
+COMP_MAJOR_VERSION := $(shell echo "$(COMP_VERSION)" | awk '{print $$2}' | awk '{print substr ($$0, 0, 2)}')
+COMP_MINOR_VERSION := $(shell echo "$(COMP_VERSION)" | awk '{print $$2}' | awk '{print substr ($$0, 4, 10)}')
+
 ########################################################################
 
 ifeq ($(DEBUG),TRUE)
