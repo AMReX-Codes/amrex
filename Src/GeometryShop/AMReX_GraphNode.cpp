@@ -372,17 +372,9 @@ namespace amrex
       retval = 2*sizeof(int);
       // node data
       const std::vector<GraphNodeImplem>& nodes = *m_cellList;
-      if(m_verbose)
-      {
-        pout() << "graphnode inside irregular bit, number of vofs = "<< nodes.size() << std::endl;
-      }
       for (int inode = 0; inode < nodes.size(); inode++)
       {
         retval +=  nodes[inode].linearSize();
-        if(m_verbose)
-        {
-          pout() << "graphnode retval after inode "<< inode << " = " << retval << std::endl;
-        }
       }
     }
 
@@ -469,23 +461,12 @@ namespace amrex
     {
       //secret code for irregular or regular with multi-valued parent.
       //assert(secretCode == 2);
-//      bool printStuff = false;
-//      if(secretCode != 2)
-//      {
-//        pout() << "procID =" << procID() << std::endl;
-//        pout() << "secret code wrong = " << secretCode << std::endl;
-//        printStuff = true;
-//      }
 
       //regular/irregular covered
       //number of vofs
       int nvofs = *intbuf;
       intbuf++;
 
-      if(m_verbose)
-      {
-        pout() << "graphnode linearIn inside irregular bit number of vofs = " << nvofs << std::endl;
-      }
 
       //using intbuf for the two ints we just extracted
       unsigned char* buffer = (unsigned char*) intbuf;

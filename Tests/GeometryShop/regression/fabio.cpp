@@ -334,19 +334,22 @@ namespace amrex
     DistributionMapping dm(ba);
     pout() << "defining the eblevelgrid" << endl;
     EBLevelGrid eblg(ba, dm, domain, 2);
+    barrier();
     int retval = 0;
     //ebgraph
     pout() << "defining the fabarray<EBGraph>" << endl;
     shared_ptr<FabArray<EBGraph> > allgraphsptr = eblg.getEBISL().getAllGraphs();
-    pout() << "writing fabarray<ebgraph>" <<endl;
+
     FabArray<EBGraph>& graphsout = *allgraphsptr;
     pout() << "writing fabarray<ebgraph>" <<endl;
     FabArrayIO<EBGraph>::write(graphsout, string("ebgraph.plt"));
+    barrier();
 
     FabArray<EBGraph> graphsin;
     pout() << "reading fabarray<ebgraph>" <<endl;
     FabArrayIO<EBGraph>::read(graphsin, string("ebgraph.plt"));
 
+    barrier();
     pout() << "checking fabarray<ebgraph>" <<endl;
     retval = checkGraphs(graphsin, graphsout, eblg);
     if(retval != 0) 
@@ -356,9 +359,9 @@ namespace amrex
     }
 
     ///ebdata
-    pout() << "writing fabarray<ebdata>" <<endl;
     shared_ptr<FabArray<EBData> > alldataptr = eblg.getEBISL().getAllData();
     FabArray<EBData>&  dataout = *alldataptr;
+    pout() << "writing fabarray<ebdata>" <<endl;
     FabArrayIO<EBData>::write(dataout, string("ebdata.plt"));
 
     FabArray<EBData> datain;
