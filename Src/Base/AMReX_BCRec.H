@@ -11,6 +11,8 @@ namespace amrex {
 * Necessary information and functions for computing boundary conditions.
 */
 
+// This class has standard layout.  And we should keep it so!
+
 class BCRec
 {
 public:
@@ -48,6 +50,9 @@ public:
     */
     const int* vect () const& { return bc; }
     const int* vect () && = delete;
+
+    const int* data () const& { return bc; }
+    const int* data () && = delete;
 
     int vectSize () const { return (2 * BL_SPACEDIM); }
     void setVect (const int *bcvect) { for(int i(0); i < vectSize(); ++i) { bc[i] = bcvect[i]; } }
