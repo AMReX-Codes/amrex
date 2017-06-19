@@ -1,7 +1,6 @@
   module short_range_particle_module
-    use amrex_fort_module, only: amrex_real
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
     use iso_c_binding ,    only: c_int, c_float, c_double
-    use amrex_particle_module, only: amrex_particle_real
     
     implicit none
     private
