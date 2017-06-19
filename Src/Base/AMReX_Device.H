@@ -41,12 +41,7 @@ public:
 
     static void setDeviceLaunchRegion(bool r) { in_device_launch_region = r; }
 
-    static bool inDeviceLaunchRegion() {
-#ifdef CUDA
-      gpu_synchronize();
-#endif
-      return in_device_launch_region; 
-    }
+    static bool inDeviceLaunchRegion() { return in_device_launch_region; }
 
 #ifdef CUDA
     static int cudaDeviceId() { return cuda_device_id; }
