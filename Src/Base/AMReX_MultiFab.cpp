@@ -69,20 +69,16 @@ MultiFab::Add (MultiFab&       dst,
 
     BL_PROFILE("MultiFab::Add()");
 
-    MFIter mfi(dst, true);
-
-    Box bx[mfi.length()];
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (; mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
+        const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
-        bx[idx] = mfi.growntilebox(nghost);
 
-        if (bx[idx].ok())
-            dst[mfi].plus(src[mfi], bx[idx], bx[idx], srccomp, dstcomp, numcomp, idx);
+        if (bx.ok())
+            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
     }
 
 #ifdef CUDA
@@ -104,20 +100,16 @@ MultiFab::Copy (MultiFab&       dst,
 
     BL_PROFILE("MultiFab::Copy()");
 
-    MFIter mfi(dst, true);
-
-    Box bx[mfi.length()];
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (; mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
+        const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
-        bx[idx] = mfi.growntilebox(nghost);
 
-        if (bx[idx].ok())
-            dst[mfi].copy(src[mfi], bx[idx], srccomp, bx[idx], dstcomp, numcomp, idx);
+        if (bx.ok())
+            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp, idx);
     }
 
 #ifdef CUDA
@@ -229,20 +221,16 @@ MultiFab::Saxpy (MultiFab&       dst,
 
     BL_PROFILE("MultiFab::Saxpy()");
 
-    MFIter mfi(dst, true);
-
-    Box bx[mfi.length()];
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (; mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
+        const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
-        bx[idx] = mfi.growntilebox(nghost);
 
-        if (bx[idx].ok())
-            dst[mfi].saxpy(a, src[mfi], bx[idx], bx[idx], srccomp, dstcomp, numcomp);
+        if (bx.ok())
+            dst[mfi].saxpy(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 
 #ifdef CUDA
