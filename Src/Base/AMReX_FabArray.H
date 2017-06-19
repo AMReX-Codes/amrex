@@ -2349,19 +2349,15 @@ FabArray<FAB>::setVal (value_type val)
 {
     BL_PROFILE("FabArray::setVal(val)");
 
-    MFIter fai(*this, true);
-
-    Box bx[fai.length()];
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (; fai.isValid(); ++fai)
+    for (MFIter fai(*this,true); fai.isValid(); ++fai)
     {
+	const Box& bx = fai.growntilebox();
 	const int idx = fai.tileIndex();
-	bx[idx] = fai.growntilebox();
 
-        get(fai).setVal(val, bx[idx], 0, n_comp, idx);
+        get(fai).setVal(val, bx, 0, n_comp, idx);
     }
 
 #ifdef CUDA
