@@ -2,7 +2,7 @@
 # For titan at OLCF
 #
 
-OLCF_MACHINES := titan summit
+OLCF_MACHINES := titan summitdev
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(OLCF_MACHINES)))
   $(error Unknown OLCF computer, $(which_computer))
@@ -25,9 +25,13 @@ ifeq ($(USE_MPI),TRUE)
   LIBRARIES += -lmpichf90
 endif
 
+# If the cudatoolkit module is loaded, CUDATOOLKIT_HOME is set as the toolkit location.
+
+SYSTEM_CUDA_PATH=$(CUDATOOLKIT_HOME)
+
 endif
 
-ifeq ($(which_computer),$(filter $(which_computer),summit))
+ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 
 ifeq ($(USE_MPI),TRUE)
   CC  = mpicc
@@ -41,5 +45,12 @@ ifeq ($(lowercase_comp),gnu)
   override XTRALIBS := -lgfortran
 endif
 
+# If the cuda module is loaded, CUDAPATH is set as the toolkit location.
+
+SYSTEM_CUDA_PATH=$(CUDAPATH)
+
 endif
 
+ifneq ($(SYSTEM_CUDA_PATH),)
+    MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
+endif

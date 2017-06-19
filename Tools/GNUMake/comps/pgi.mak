@@ -77,7 +77,7 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 
 # Because we do not have a Fortran main
 
-ifeq ($(which_computer),$(filter $(which_computer),summit))
+ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 override XTRALIBS += -pgf90libs -L /sw/summitdev/gcc/5.4.0new/lib64/ -latomic
 else
 override XTRALIBS += -pgf90libs -latomic
