@@ -17,14 +17,14 @@ struct CutCell
     int Nnbr[BL_SPACEDIM][2];
     int nbr[BL_SPACEDIM][2][NCELLMAX];
     int faceID[BL_SPACEDIM][2][NCELLMAX];
-    int ebCellID;
+    int parent;
 };
 
 struct CutFace
 {
     int cellHi;
     int cellLo;
-    int ebFaceID;
+    int parent;
 };
 
 #endif
