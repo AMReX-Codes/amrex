@@ -2357,7 +2357,9 @@ FabArray<FAB>::setVal (value_type val)
 	const Box& bx = fai.growntilebox();
 	const int idx = fai.tileIndex();
 
-        get(fai).setVal(val, bx, 0, n_comp, idx);
+	Device::set_stream_index(idx);
+
+        get(fai).setVal(val, bx, 0, n_comp);
     }
 
 #ifdef CUDA
