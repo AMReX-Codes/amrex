@@ -2,7 +2,7 @@ module basefab_nd_module
 
   use amrex_fort_module, only: amrex_real, get_loop_bounds
 #ifdef CUDA
-  use cuda_module, only: stream_from_index, cuda_streams
+  use cuda_module, only: stream_from_index, stream_index, cuda_streams
   use cudafor, only: cuda_stream_kind
 #endif
 
@@ -216,8 +216,8 @@ contains
   end subroutine fort_fab_plus_doit
 
 
-  subroutine fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index)
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
+  subroutine fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
@@ -225,13 +225,11 @@ contains
 
 #ifdef CUDA
     attributes(device) :: src, dst, off
-    integer(cuda_stream_kind) :: stream
-    stream = cuda_streams(stream_from_index(index))
 #endif
 
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, stream>>>
+    !$cuf kernel do(4) <<<*, 256, 0, cuda_streams(stream_from_index(stream_index))>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -244,8 +242,8 @@ contains
   end subroutine fort_fab_minus_doit
 
 
-  subroutine fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index)
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
+  subroutine fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
@@ -253,13 +251,11 @@ contains
 
 #ifdef CUDA
     attributes(device) :: src, dst, off
-    integer(cuda_stream_kind) :: stream
-    stream = cuda_streams(stream_from_index(index))
 #endif
 
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, stream>>>
+    !$cuf kernel do(4) <<<*, 256, 0, cuda_streams(stream_from_index(stream_index))>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -272,8 +268,8 @@ contains
   end subroutine fort_fab_mult_doit
 
 
-  subroutine fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index)
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
+  subroutine fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
@@ -281,13 +277,11 @@ contains
 
 #ifdef CUDA
     attributes(device) :: src, dst, off
-    integer(cuda_stream_kind) :: stream
-    stream = cuda_streams(stream_from_index(index))
 #endif
 
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, stream>>>
+    !$cuf kernel do(4) <<<*, 256, 0, cuda_streams(stream_from_index(stream_index))>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -659,7 +653,7 @@ end module basefab_nd_module
 
 
 
-  subroutine fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index) &
+  subroutine fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
                             bind(c,name='fort_fab_minus')
 
     use amrex_fort_module, only: amrex_real
@@ -667,7 +661,7 @@ end module basefab_nd_module
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
@@ -675,13 +669,13 @@ end module basefab_nd_module
     attributes(device) :: src, dst
 #endif
 
-    call fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index)
+    call fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
   end subroutine fort_fab_minus
 
 
 
-  subroutine fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index) &
+  subroutine fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
                            bind(c,name='fort_fab_mult')
 
     use amrex_fort_module, only: amrex_real
@@ -689,7 +683,7 @@ end module basefab_nd_module
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
@@ -697,12 +691,12 @@ end module basefab_nd_module
     attributes(device) :: src, dst
 #endif
 
-    call fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index)
+    call fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
   end subroutine fort_fab_mult
 
 
-  subroutine fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index) &
+  subroutine fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
                              bind(c,name='fort_fab_divide')
 
     use amrex_fort_module, only: amrex_real
@@ -710,7 +704,7 @@ end module basefab_nd_module
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp, index
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
@@ -718,6 +712,6 @@ end module basefab_nd_module
     attributes(device) :: src, dst
 #endif
 
-    call fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp, index)
+    call fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
   end subroutine fort_fab_divide

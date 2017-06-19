@@ -77,8 +77,10 @@ MultiFab::Add (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
 
+	Device::set_stream_index(idx);
+
         if (bx.ok())
-            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
+            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 
 #ifdef CUDA
@@ -108,8 +110,10 @@ MultiFab::Copy (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
 
+	Device::set_stream_index(idx);
+
         if (bx.ok())
-            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp, idx);
+            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
     }
 
 #ifdef CUDA
@@ -139,8 +143,10 @@ MultiFab::Subtract (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
 
+	Device::set_stream_index(idx);
+
         if (bx.ok())
-            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
+            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 }
 
@@ -166,8 +172,10 @@ MultiFab::Multiply (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
 
+	Device::set_stream_index(idx);
+
         if (bx.ok())
-            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
+            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 
 #ifdef CUDA
@@ -197,8 +205,10 @@ MultiFab::Divide (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
 
+	Device::set_stream_index(idx);
+
         if (bx.ok())
-            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp, idx);
+            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 
 #ifdef CUDA
@@ -228,6 +238,8 @@ MultiFab::Saxpy (MultiFab&       dst,
     {
         const Box& bx = mfi.growntilebox(nghost);
 	const int idx = mfi.tileIndex();
+
+	Device::set_stream_index(idx);
 
         if (bx.ok())
             dst[mfi].saxpy(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);

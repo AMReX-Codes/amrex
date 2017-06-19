@@ -175,8 +175,7 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             int                  srccomp,
                             const Box&           destbox,
                             int                  destcomp,
-                            int                  numcomp,
-                            int                  index)
+                            int                  numcomp)
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -184,8 +183,6 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     BL_ASSERT(destbox.sameSize(srcbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-    Device::set_stream_index(index);
 
     fort_fab_copy(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
@@ -245,13 +242,10 @@ void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
                               int        comp,
-                              int        ncomp,
-                              int        index)
+                              int        ncomp)
 {
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
-
-    Device::set_stream_index(index);
 
     fort_fab_setval(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 		    BL_TO_FORTRAN_N_3D(*this,comp), ncomp,
@@ -320,8 +314,7 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
                      const Box&           destbox,
                      int                  srccomp,
                      int                  destcomp,
-                     int                  numcomp,
-                     int                  index)
+                     int                  numcomp)
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -329,8 +322,6 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     BL_ASSERT(destbox.sameSize(srcbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-    Device::set_stream_index(index);
 
     fort_fab_plus(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
@@ -347,8 +338,7 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
                      const Box&           destbox,
                      int                  srccomp,
                      int                  destcomp,
-                     int                  numcomp,
-                     int                  index)
+                     int                  numcomp)
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -360,7 +350,7 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     fort_fab_mult(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
 		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
-		  &numcomp, &index);
+		  &numcomp);
     return *this;
 }
 
@@ -371,8 +361,7 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
                       const Box&        destbox,
                       int               srccomp,
                       int               destcomp,
-                      int               numcomp,
-                      int               index)
+                      int               numcomp)
 {
     BL_ASSERT(srcbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -381,8 +370,6 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
     BL_ASSERT(destbox.sameSize(srcbox));
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
-
-    Device::set_stream_index(index);
 
     fort_fab_saxpy(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
 		   BL_TO_FORTRAN_N_3D(*this,destcomp),
@@ -448,8 +435,7 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
                       const Box&           destbox,
                       int                  srccomp,
                       int                  destcomp,
-                      int                  numcomp,
-                      int                  index)
+                      int                  numcomp)
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -461,7 +447,7 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     fort_fab_minus(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
 		   BL_TO_FORTRAN_N_3D(*this,destcomp),
 		   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
-		   &numcomp, &index);
+		   &numcomp);
     return *this;
 }
 
@@ -472,8 +458,7 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
                        const Box&           destbox,
                        int                  srccomp,
                        int                  destcomp,
-                       int                  numcomp,
-                       int                  index)
+                       int                  numcomp)
 {
     BL_ASSERT(destbox.ok());
     BL_ASSERT(src.box().contains(srcbox));
@@ -485,7 +470,7 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     fort_fab_divide(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
 		    BL_TO_FORTRAN_N_3D(*this,destcomp),
 		    BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
-		    &numcomp, &index);
+		    &numcomp);
     return *this;
 }
 

@@ -22,7 +22,7 @@ extern "C"
                                const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
                                const amrex_real* src);
 
-    void fort_fab_setval (const int* lo, const int* hi, 
+    void fort_fab_setval (const int* lo, const int* hi,
 			  const amrex_real* dst, const int* dlo, const int* dhi, const int ncomp,
 			  const amrex_real val);
 
@@ -41,22 +41,22 @@ extern "C"
     void fort_fab_minus (const int* lo, const int* hi,
 			 amrex_real* dst, const int* dlo, const int* dhi,
 			 const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			 const int* ncomp, const int* index);    
+			 const int* ncomp);
 
     void fort_fab_mult (const int* lo, const int* hi,
 			amrex_real* dst, const int* dlo, const int* dhi,
 			const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			const int* ncomp, const int* index);    
+			const int* ncomp);
 
     void fort_fab_divide (const int* lo, const int* hi,
 			  amrex_real* dst, const int* dlo, const int* dhi,
 			  const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			  const int* ncomp, const int* index);    
+			  const int* ncomp);
 
     void fort_fab_protdivide (const int* lo, const int* hi,
 			      amrex_real* dst, const int* dlo, const int* dhi,
 			      const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			      const int* ncomp);        
+			      const int* ncomp);
 
     void fort_fab_invert (const int* lo, const int* hi,
 			  amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
