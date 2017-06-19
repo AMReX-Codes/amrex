@@ -14,9 +14,18 @@
 #include "AMReX_FaceIterator.H"
 #include "AMReX_SPMD.H"
 #include "AMReX_parstream.H"
-//#include "AMReX_EBDebugOut.H"
+
 namespace amrex
 {
+  static const IntVect deb_ivlo(D_DECL(33,13, 0));
+  static const IntVect deb_ivhi(D_DECL(33,14, 0));
+  static const VolIndex deb_vlo(deb_ivlo, 0);
+  static const VolIndex deb_vhi(deb_ivhi, 0);
+  static const FaceIndex deb_face(deb_vlo,deb_vhi, 1);
+  static const IntVect deb_ivlobox(D_DECL(30,8, 0));
+  static const IntVect deb_ivhibox(D_DECL(49,15,0));
+  static const Box deb_box(deb_ivlobox, deb_ivhibox);
+
   template <class T>
   bool BaseIFFAB<T>::s_verbose  = false;
 
@@ -146,33 +155,7 @@ namespace amrex
                      int                 a_destcomp,
                      int                 a_numcomp)
   {
-    assert(isDefined());
-    assert(a_src.isDefined());
-    assert(a_srccomp >= 0);
-    assert(a_destcomp >= 0);
-    assert(a_numcomp   <= m_nComp);
-
-    assert(a_fromBox == a_toBox);
-    Box intBox = a_toBox;
-    IntVectSet ivsintersect = m_ivs;
-    ivsintersect &=  a_src.m_ivs;
-    ivsintersect &=  intBox;
-
-    for (int iface = 0; iface < m_faces.size(); iface++)
-    {
-      const FaceIndex& face = m_faces[iface];
-      const IntVect& ivHi = face.gridIndex(Side::Hi);
-      const IntVect& ivLo = face.gridIndex(Side::Lo);
-      if (ivsintersect.contains(ivHi) || ivsintersect.contains(ivLo))
-      {
-        for (int icomp = 0; icomp < a_numcomp; icomp++)
-        {
-          int isrccomp = a_srccomp  + icomp;
-          int idstcomp = a_destcomp + icomp;
-          (*this)(face, idstcomp) += a_src(face, isrccomp);
-        }
-      }
-    }
+    amrex::Error("not implemented");
     return *this;
   }
 /*********/
@@ -201,10 +184,7 @@ namespace amrex
     {
       pout() << "index  = " << a_face << endl;
       pout() << "my faces  = " << endl;
-      for (int iface = 0; iface < m_faces.size(); ++iface)
-      {
-        pout() << m_faces[iface] << endl;
-      }
+      dumpFaces(m_faces);
       
       amrex::Error("BaseIFFAB:index not found");
     }
@@ -213,6 +193,17 @@ namespace amrex
 
   }
 /*********/
+  template <class T> inline
+  void
+  BaseIFFAB<T>::
+  dumpFaces(const vector<FaceIndex>& a_faces) const
+  {
+    for (int iface = 0; iface < a_faces.size(); ++iface)
+    {
+      pout() << a_faces[iface] << endl;
+    }
+  }
+/*********/      
   template <class T> inline
   void
   BaseIFFAB<T>::
