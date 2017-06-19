@@ -48,6 +48,6 @@
 
 #endif
 
-#define AMREX_ALWAYS_ASSERT(EX) amrex::Assert( # EX , __FILE__, __LINE__)
+#define AMREX_ALWAYS_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 
 #endif /*BL_BL_ASSERT_H*/
