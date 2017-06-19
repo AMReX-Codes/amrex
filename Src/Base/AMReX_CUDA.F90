@@ -22,6 +22,8 @@ module cuda_module
 
   integer :: stream_index
 
+  !$omp threadprivate(stream_index)
+
 contains
 
   subroutine initialize_cuda_f() bind(c, name='initialize_cuda_f')
@@ -110,7 +112,7 @@ contains
 
 
 
-  subroutine set_stream_index(index_in) bind(c, name='set_stream_index')
+  subroutine set_stream_idx(index_in) bind(c, name='set_stream_idx')
 
     implicit none
 
@@ -118,7 +120,7 @@ contains
 
     stream_index = index_in
 
-  end subroutine set_stream_index
+  end subroutine set_stream_idx
 
 
 
