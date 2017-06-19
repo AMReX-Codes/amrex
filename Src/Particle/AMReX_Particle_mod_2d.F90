@@ -1,20 +1,13 @@
 module amrex_particle_module
 
   use iso_c_binding
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only : amrex_real, amrex_particle_real
 
   implicit none
 
   private
 
-  public :: amrex_particle_set_position, amrex_particle_get_position, &
-       amrex_particle_real
-
-#ifdef BL_SINGLE_PRECISION_PARTICLES
-  integer, parameter :: amrex_particle_real = c_float
-#else
-  integer, parameter :: amrex_particle_real = c_double
-#endif
+  public :: amrex_particle_set_position, amrex_particle_get_position
 
 contains
 
