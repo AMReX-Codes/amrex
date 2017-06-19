@@ -20,25 +20,11 @@ struct CutCell
     int ebCellID;
 };
 
-struct CNode
-{
-    int nCells;
-    intDIM iv;
-    CutCell cells[NCELLMAX];
-};
-
 struct CutFace
 {
     int cellHi;
     int cellLo;
     int ebFaceID;
-};
-
-struct FNode
-{
-    int nFaces;
-    intDIM iv;
-    CutFace faces[NFACEMAX];
 };
 
 #endif
