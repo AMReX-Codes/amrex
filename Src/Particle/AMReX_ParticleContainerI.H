@@ -3973,9 +3973,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensityFort (int rho_index,
-                                                  Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
-                                                  int lev_min, int ncomp, int finest_level) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+AssignDensityFort (int rho_index,
+                   Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                   int lev_min, int ncomp, int finest_level) const
 {
 
   BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensityFort()");
@@ -3984,7 +3985,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
   int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
   int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
   Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-  CellConservativeLinear mapper;
+  PCInterp mapper;
     
   Array<std::unique_ptr<MultiFab> > tmp(finest_level+1);
   for (int lev = lev_min; lev <= finest_level; ++lev) {
