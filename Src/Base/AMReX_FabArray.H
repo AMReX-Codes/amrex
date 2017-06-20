@@ -782,6 +782,9 @@ const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+#ifdef CUDA
+    gpu_synchronize();
+#endif
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
     if (Device::inDeviceLaunchRegion()) {
 	int idx = mfi.tileIndex();
@@ -796,6 +799,9 @@ FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+#ifdef CUDA
+    gpu_synchronize();
+#endif
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
     if (Device::inDeviceLaunchRegion()) {
 	int idx = mfi.tileIndex();
