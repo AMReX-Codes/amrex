@@ -782,9 +782,6 @@ const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
-#ifdef CUDA
-    gpu_synchronize();
-#endif
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
     if (Device::inDeviceLaunchRegion()) {
 	int idx = mfi.tileIndex();
@@ -799,9 +796,6 @@ FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
-#ifdef CUDA
-    gpu_synchronize();
-#endif
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
     if (Device::inDeviceLaunchRegion()) {
 	int idx = mfi.tileIndex();
@@ -1307,8 +1301,14 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    if (this != &src) {
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
+#ifdef CUDA
+		    gpu_synchronize();
+#endif
 		    get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
 		} else {
+#ifdef CUDA
+		    gpu_synchronize();
+#endif
 		    get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
 		}
 	    }
