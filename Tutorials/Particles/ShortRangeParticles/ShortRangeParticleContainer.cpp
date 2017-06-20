@@ -10,7 +10,8 @@ ShortRangeParticleContainer::ShortRangeParticleContainer(const Geometry         
                                                          int                         ncells)
     : ParticleContainer<2*BL_SPACEDIM> (geom, dmap, ba),
       num_neighbor_cells(ncells)
-{                
+{
+    BL_PROFILE("ShortRangeParticleContainer::ShortRangeParticleContainer");
     mask.define(ba, dmap, 2, num_neighbor_cells);
     mask.setVal(-1, num_neighbor_cells);
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
@@ -24,14 +25,16 @@ ShortRangeParticleContainer::ShortRangeParticleContainer(const Geometry         
 }
 
 void ShortRangeParticleContainer::InitParticles() {
+
+    BL_PROFILE("ShortRangeParticleContainer::InitParticles");
+
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
     
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_real_distribution<double> dist(-1.0, 1.0);
-        
-    ParticleType p;
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const Box& tile_box = mfi.tilebox();
         const RealBox tile_real_box { tile_box, dx, geom.ProbLo() };
@@ -41,6 +44,7 @@ void ShortRangeParticleContainer::InitParticles() {
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id, tile_id)];
         
         const auto& boxlo = tile_box.smallEnd();
+        ParticleType p;
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             
             p.id() = ParticleType::NextID();
@@ -69,6 +73,9 @@ void ShortRangeParticleContainer::InitParticles() {
 }
 
 void ShortRangeParticleContainer::fillNeighbors() {
+
+    BL_PROFILE("ShortRangeParticleContainer::fillNeighbors");
+
     NeighborCommMap neighbors_to_comm;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         const Box& tile_box = pti.tilebox();
@@ -139,10 +146,19 @@ void ShortRangeParticleContainer::fillNeighbors() {
 
 void ShortRangeParticleContainer::clearNeighbors() 
 {
+
+    BL_PROFILE("ShortRangeParticleContainer::clearNeighbors");
+
     neighbors.clear();
 }
 
 void ShortRangeParticleContainer::computeForces() {
+
+    BL_PROFILE("ShortRangeParticleContainer::computeForces");
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
@@ -155,7 +171,14 @@ void ShortRangeParticleContainer::computeForces() {
 }
 
 void ShortRangeParticleContainer::moveParticles(const Real dt) {
+
+    BL_PROFILE("ShortRangeParticleContainer::moveParticles");
+
     const RealBox& prob_domain = Geom(lev).ProbDomain();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
@@ -166,12 +189,17 @@ void ShortRangeParticleContainer::moveParticles(const Real dt) {
 }
 
 void ShortRangeParticleContainer::writeParticles(int n) {
+
+    BL_PROFILE("ShortRangeParticleContainer::writeParticles");
+
     const std::string& pltfile = amrex::Concatenate("particles", n, 5);
     WriteAsciiFile(pltfile);
 }
 
 void ShortRangeParticleContainer::applyPeriodicShift(ParticleType& p,
                                                      const IntVect& neighbor_cell) {
+
+    BL_PROFILE("ShortRangeParticleContainer::applyPeriodicShift");
 
     const Periodicity& periodicity = Geom(lev).periodicity();
     if (not periodicity.isAnyPeriodic()) return;
@@ -196,6 +224,9 @@ void ShortRangeParticleContainer::packNeighborParticle(const IntVect& neighbor_c
                                                        const BaseFab<int>& mask,
                                                        const ParticleType& p,
                                                        NeighborCommMap& neighbors_to_comm) {
+
+    BL_PROFILE("ShortRangeParticleContainer::packNeighborParticle");
+
     const int neighbor_grid = mask(neighbor_cell, 0);
     if (neighbor_grid >= 0) {
         const int who = ParticleDistributionMap(lev)[neighbor_grid];
@@ -221,6 +252,8 @@ void ShortRangeParticleContainer::packNeighborParticle(const IntVect& neighbor_c
 }
 
 void ShortRangeParticleContainer::fillNeighborsMPI(NeighborCommMap& neighbors_to_comm) {
+
+    BL_PROFILE("ShortRangeParticleContainer::fillNeighborsMPI");
 
 #ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
