@@ -190,6 +190,8 @@ MFIter::Initialize ()
 
 	currentIndex = beginIndex;
 
+	Device::set_stream_index(currentIndex);
+
 	typ = fabArray.boxArray().ixType();
     }
 }
@@ -309,6 +311,8 @@ void
 MFIter::operator++ () {
 
     ++currentIndex;
+
+    Device::set_stream_index(currentIndex);
 
     releaseDeviceData();
 
