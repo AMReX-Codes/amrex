@@ -113,42 +113,55 @@ WarpX::WriteCheckPointFile() const
 
     for (int lev = 0; lev < nlevels; ++lev)
     {
-	VisMF::Write(*Efield[lev][0],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex"));
-	VisMF::Write(*Efield[lev][1],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey"));
-	VisMF::Write(*Efield[lev][2],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez"));
-	VisMF::Write(*Bfield[lev][0],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx"));
-	VisMF::Write(*Bfield[lev][1],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By"));
-	VisMF::Write(*Bfield[lev][2],
-		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz"));
+	VisMF::Write(*Efield_fp[lev][0],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex_fp"));
+	VisMF::Write(*Efield_fp[lev][1],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey_fp"));
+	VisMF::Write(*Efield_fp[lev][2],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez_fp"));
+	VisMF::Write(*Bfield_fp[lev][0],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx_fp"));
+	VisMF::Write(*Bfield_fp[lev][1],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By_fp"));
+	VisMF::Write(*Bfield_fp[lev][2],
+		     amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz_fp"));
         if (is_synchronized) {
             // Need to save j if synchronized because after restart we need j to evolve E by dt/2.
-            VisMF::Write(*current[lev][0],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jx"));
-            VisMF::Write(*current[lev][1],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jy"));
-            VisMF::Write(*current[lev][2],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz"));
+            VisMF::Write(*current_fp[lev][0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jx_fp"));
+            VisMF::Write(*current_fp[lev][1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jy_fp"));
+            VisMF::Write(*current_fp[lev][2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz_fp"));
         }
 
-        if (do_pml) {
-            const int lev = 0;
-            VisMF::Write(*pml_E[0],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ex"));
-            VisMF::Write(*pml_E[1],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ey"));
-            VisMF::Write(*pml_E[2],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Ez"));
-            VisMF::Write(*pml_B[0],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Bx"));
-            VisMF::Write(*pml_B[1],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_By"));
-            VisMF::Write(*pml_B[2],
-                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml_Bz"));
+        if (lev > 0)
+        {
+            VisMF::Write(*Efield_cp[lev][0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ex_cp"));
+            VisMF::Write(*Efield_cp[lev][1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ey_cp"));
+            VisMF::Write(*Efield_cp[lev][2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Ez_cp"));
+            VisMF::Write(*Bfield_cp[lev][0],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bx_cp"));
+            VisMF::Write(*Bfield_cp[lev][1],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "By_cp"));
+            VisMF::Write(*Bfield_cp[lev][2],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "Bz_cp"));
+            if (is_synchronized) {
+                // Need to save j if synchronized because after restart we need j to evolve E by dt/2.
+                VisMF::Write(*current_cp[lev][0],
+                             amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jx_cp"));
+                VisMF::Write(*current_cp[lev][1],
+                             amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jy_cp"));
+                VisMF::Write(*current_cp[lev][2],
+                             amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "jz_cp"));
+            }
+        }
+
+        if (do_pml && pml[lev]) {
+            pml[lev]->CheckPoint(amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml"));
         }
     }
 
@@ -272,57 +285,84 @@ WarpX::InitFromCheckpoint ()
 	mypc->ReadHeader(is);
     }
 
+    const int nlevs = finestLevel()+1;
+
     // Initialize the field data
-    for (int lev = 0, nlevs=finestLevel()+1; lev < nlevs; ++lev)
+    for (int lev = 0; lev < nlevs; ++lev)
     {
-	for (int i = 0; i < 3; ++i) {
-	    Efield[lev][i]->setVal(0.0);
-	    Bfield[lev][i]->setVal(0.0);
-	    current[lev][i]->setVal(0.0);
-	}
+        for (int i = 0; i < 3; ++i) {
+            current_fp[lev][i]->setVal(0.0);
+            Efield_fp[lev][i]->setVal(0.0);
+            Bfield_fp[lev][i]->setVal(0.0);
+        }
+        
+        if (lev > 0) {
+            for (int i = 0; i < 3; ++i) {
+                Efield_aux[lev][i]->setVal(0.0);
+                Bfield_aux[lev][i]->setVal(0.0);
+                
+                current_cp[lev][i]->setVal(0.0);
+                Efield_cp[lev][i]->setVal(0.0);
+                Bfield_cp[lev][i]->setVal(0.0);
+            }
+        }
 
-        VisMF::Read(*Efield[lev][0],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex"));
-        VisMF::Read(*Efield[lev][1],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey"));
-        VisMF::Read(*Efield[lev][2],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez"));
+        VisMF::Read(*Efield_fp[lev][0],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex_fp"));
+        VisMF::Read(*Efield_fp[lev][1],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey_fp"));
+        VisMF::Read(*Efield_fp[lev][2],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez_fp"));
 
-        VisMF::Read(*Bfield[lev][0],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx"));
-        VisMF::Read(*Bfield[lev][1],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By"));
-        VisMF::Read(*Bfield[lev][2],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz"));
+        VisMF::Read(*Bfield_fp[lev][0],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx_fp"));
+        VisMF::Read(*Bfield_fp[lev][1],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By_fp"));
+        VisMF::Read(*Bfield_fp[lev][2],
+                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz_fp"));
 
         if (is_synchronized) {
-            VisMF::Read(*current[lev][0],
-                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jx"));
-            VisMF::Read(*current[lev][1],
-                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy"));
-            VisMF::Read(*current[lev][2],
-                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz"));    
+            VisMF::Read(*current_fp[lev][0],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jx_fp"));
+            VisMF::Read(*current_fp[lev][1],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy_fp"));
+            VisMF::Read(*current_fp[lev][2],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz_fp"));    
+        }
+
+        if (lev > 0)
+        {
+            VisMF::Read(*Efield_cp[lev][0],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ex_cp"));
+            VisMF::Read(*Efield_cp[lev][1],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ey_cp"));
+            VisMF::Read(*Efield_cp[lev][2],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Ez_cp"));
+            
+            VisMF::Read(*Bfield_cp[lev][0],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bx_cp"));
+            VisMF::Read(*Bfield_cp[lev][1],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "By_cp"));
+            VisMF::Read(*Bfield_cp[lev][2],
+                        amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "Bz_cp"));
+            
+            if (is_synchronized) {
+                VisMF::Read(*current_cp[lev][0],
+                            amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jx_cp"));
+                VisMF::Read(*current_cp[lev][1],
+                            amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jy_cp"));
+                VisMF::Read(*current_cp[lev][2],
+                            amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz_cp"));
+            }
         }
     }
 
     if (do_pml)
     {
         InitPML();
-
-        const int lev = 0;
-        VisMF::Read(*pml_E[0],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ex"));
-        VisMF::Read(*pml_E[1],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ey"));
-        VisMF::Read(*pml_E[2],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Ez"));
-
-        VisMF::Read(*pml_B[0],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Bx"));
-        VisMF::Read(*pml_B[1],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_By"));
-        VisMF::Read(*pml_B[2],
-                    amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml_Bz"));
+        for (int lev = 0; lev < nlevs; ++lev) {
+            pml[lev]->Restart(amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "pml"));
+        }
     }
 
     // Initilize particles
@@ -343,26 +383,27 @@ WarpX::WritePlotFile () const
     {
 	Array<std::string> varnames;
 	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
-    
+
+        const int ncomp = 3*3 
+            + static_cast<int>(plot_part_per_cell)
+            + static_cast<int>(plot_part_per_grid)
+            + static_cast<int>(plot_part_per_proc)
+            + static_cast<int>(plot_proc_number)
+            + static_cast<int>(plot_divb)
+            + static_cast<int>(plot_finepatch)*6;
+
 	for (int lev = 0; lev <= finest_level; ++lev)
 	{
-            int ncomp;
-            if (ParallelDescriptor::NProcs() > 1) {
-	       ncomp = 3*3 + 4; // The +4 is for the number of particles per cell/grid/process + Processor ID
-            } else {
-	       ncomp = 3*3 + 3; // The +3 is for the number of particles per cell/grid/process
-            }
-
 	    const int ngrow = 0;
 	    mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
 	    Array<const MultiFab*> srcmf(BL_SPACEDIM);
-	    PackPlotDataPtrs(srcmf, current[lev]);
+	    PackPlotDataPtrs(srcmf, current_fp[lev]);
 	    int dcomp = 0;
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current[lev][1], 0, 1);
+            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
 #endif
             if (lev == 0)
             {
@@ -372,11 +413,11 @@ WarpX::WritePlotFile () const
             }
 	    dcomp += 3;
 
-	    PackPlotDataPtrs(srcmf, Efield[lev]);
+	    PackPlotDataPtrs(srcmf, Efield_aux[lev]);
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield[lev][1], 0, 1);
+            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
 #endif
             if (lev == 0)
             {
@@ -386,11 +427,11 @@ WarpX::WritePlotFile () const
             }
 	    dcomp += 3;
 
-	    PackPlotDataPtrs(srcmf, Bfield[lev]);
+	    PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
 	    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (BL_SPACEDIM == 2)
 	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            MultiFab::Copy(*mf[lev], *Bfield[lev][1], 0, dcomp+1, 1, ngrow);
+            MultiFab::Copy(*mf[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
             if (lev == 0)
             {
@@ -400,44 +441,58 @@ WarpX::WritePlotFile () const
             }
 	    dcomp += 3;
 
-            MultiFab temp_dat(grids[lev],mf[lev]->DistributionMap(),1,0);
-            temp_dat.setVal(0);
-
-            // MultiFab containing number of particles in each cell
-            mypc->Increment(temp_dat, lev);
-            MultiFab::Copy(*mf[lev], temp_dat, 0, dcomp, 1, 0);
-            if (lev == 0)
+            if (plot_part_per_cell)
             {
-                varnames.push_back("part_per_cell");
+                MultiFab temp_dat(grids[lev],mf[lev]->DistributionMap(),1,0);
+                temp_dat.setVal(0);
+                
+                // MultiFab containing number of particles in each cell
+                mypc->Increment(temp_dat, lev);
+                MultiFab::Copy(*mf[lev], temp_dat, 0, dcomp, 1, 0);
+                if (lev == 0)
+                {
+                    varnames.push_back("part_per_cell");
+                }
+                dcomp += 1;
             }
-	    dcomp += 1;
 
-            // MultiFab containing number of particles per grid (stored as constant for all cells in each grid)
-            const Array<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
-            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
-		(*mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
-            }
-            if (lev == 0)
+            if (plot_part_per_grid || plot_part_per_proc)
             {
-                varnames.push_back("part_per_grid");
-            }
-	    dcomp += 1;
+                const Array<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
 
-            // MultiFab containing number of particles per process (stored as constant for all cells in each grid)
-            long n_per_proc = 0;
-            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
-                n_per_proc += npart_in_grid[mfi.index()];
+                if (plot_part_per_grid)
+                {
+                    // MultiFab containing number of particles per grid (stored as constant for all cells in each grid)
+                    for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+                        (*mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
+                    }
+                    if (lev == 0)
+                    {
+                        varnames.push_back("part_per_grid");
+                    }
+                    dcomp += 1;
+                }
+
+                if (plot_part_per_proc)
+                {
+                    // MultiFab containing number of particles per process (stored as constant for all cells in each grid)
+                    long n_per_proc = 0;
+                    for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+                        n_per_proc += npart_in_grid[mfi.index()];
+                    }
+                    for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
+                        (*mf[lev])[mfi].setVal(static_cast<Real>(n_per_proc), dcomp);
+                    }
+                    if (lev == 0)
+                    {
+                        varnames.push_back("part_per_proc");
+                    }
+                    dcomp += 1;
+                }
             }
-            for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
-		(*mf[lev])[mfi].setVal(static_cast<Real>(n_per_proc), dcomp);
-            }
-            if (lev == 0)
+
+            if (plot_proc_number)
             {
-                varnames.push_back("part_per_proc");
-            }
-            dcomp += 1;
-
-            if (ParallelDescriptor::NProcs() > 1) {
                 // MultiFab containing the Processor ID 
                 for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
                     (*mf[lev])[mfi].setVal(static_cast<Real>(ParallelDescriptor::MyProc()), dcomp);
@@ -449,15 +504,64 @@ WarpX::WritePlotFile () const
                 dcomp += 1;
             }
 
+            if (plot_divb)
+            {
+                PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
+                ComputeDivB(*mf[lev], dcomp, srcmf, Geom(lev).CellSize());
+                if (lev == 0)
+                {
+                    varnames.push_back("divB");
+                }                
+                dcomp += 1;
+            }
+
+            if (plot_finepatch)
+            {
+                PackPlotDataPtrs(srcmf, Efield_fp[lev]);
+                amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
+#endif
+                if (lev == 0)
+                {
+                    varnames.push_back("Ex_fp");
+                    varnames.push_back("Ey_fp");
+                    varnames.push_back("Ez_fp");
+                }
+                dcomp += 3;
+                
+                PackPlotDataPtrs(srcmf, Bfield_fp[lev]);
+                amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                MultiFab::Copy(*mf[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
+#endif
+                if (lev == 0)
+                {
+                    varnames.push_back("Bx_fp");
+                    varnames.push_back("By_fp");
+                    varnames.push_back("Bz_fp");
+                }
+                dcomp += 3;
+            }
+
             BL_ASSERT(dcomp == ncomp);
 	}
+
+#if 0
+        for (int lev = finest_level; lev > 0; --lev)
+        {
+            amrex::average_down(*mf[lev], *mf[lev-1], 0, ncomp, refRatio(lev-1));
+        }
+#endif
     
 	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, 
                                        amrex::GetArrOfConstPtrs(mf),
                                        varnames, Geom(), t_new[0], istep, refRatio());
     }
 
-    if (plot_raw_fields)
+    if (plot_raw_fields || plot_crsepatch)
     {
         const int raw_plot_nfiles = 64;  // could make this parameter
         VisMF::SetNOutFiles(raw_plot_nfiles);
@@ -468,37 +572,50 @@ WarpX::WritePlotFile () const
 
         for (int lev = 0; lev < nlevels; ++lev)
         {
-            const DistributionMapping& dm = DistributionMap(lev);
-
-            MultiFab Ex( Efield[lev][0]->boxArray(), dm, 1, 0);
-            MultiFab Ey( Efield[lev][1]->boxArray(), dm, 1, 0);
-            MultiFab Ez( Efield[lev][2]->boxArray(), dm, 1, 0);
-            MultiFab Bx( Bfield[lev][0]->boxArray(), dm, 1, 0);
-            MultiFab By( Bfield[lev][1]->boxArray(), dm, 1, 0);
-            MultiFab Bz( Bfield[lev][2]->boxArray(), dm, 1, 0);
-            MultiFab jx(current[lev][0]->boxArray(), dm, 1, 0);
-            MultiFab jy(current[lev][1]->boxArray(), dm, 1, 0);
-            MultiFab jz(current[lev][2]->boxArray(), dm, 1, 0);
-
-            MultiFab::Copy(Ex, *Efield[lev][0], 0, 0, 1, 0);
-            MultiFab::Copy(Ey, *Efield[lev][1], 0, 0, 1, 0);
-            MultiFab::Copy(Ez, *Efield[lev][2], 0, 0, 1, 0);
-            MultiFab::Copy(Bx, *Bfield[lev][0], 0, 0, 1, 0);
-            MultiFab::Copy(By, *Bfield[lev][1], 0, 0, 1, 0);
-            MultiFab::Copy(Bz, *Bfield[lev][2], 0, 0, 1, 0);
-            MultiFab::Copy(jx,*current[lev][0], 0, 0, 1, 0);
-            MultiFab::Copy(jy,*current[lev][1], 0, 0, 1, 0);
-            MultiFab::Copy(jz,*current[lev][2], 0, 0, 1, 0);
-
-            VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex"));
-            VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey"));
-            VisMF::Write(Ez, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez"));
-            VisMF::Write(Bx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx"));
-            VisMF::Write(By, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By"));
-            VisMF::Write(Bz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz"));
-            VisMF::Write(jx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx"));
-            VisMF::Write(jy, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy"));
-            VisMF::Write(jz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz"));
+            if (plot_raw_fields)
+            {
+                const DistributionMapping& dm = DistributionMap(lev);
+                
+                MultiFab Ex(Efield_aux[lev][0]->boxArray(), dm, 1, 0);
+                MultiFab Ey(Efield_aux[lev][1]->boxArray(), dm, 1, 0);
+                MultiFab Ez(Efield_aux[lev][2]->boxArray(), dm, 1, 0);
+                MultiFab Bx(Bfield_aux[lev][0]->boxArray(), dm, 1, 0);
+                MultiFab By(Bfield_aux[lev][1]->boxArray(), dm, 1, 0);
+                MultiFab Bz(Bfield_aux[lev][2]->boxArray(), dm, 1, 0);
+                MultiFab jx(current_fp[lev][0]->boxArray(), dm, 1, 0);
+                MultiFab jy(current_fp[lev][1]->boxArray(), dm, 1, 0);
+                MultiFab jz(current_fp[lev][2]->boxArray(), dm, 1, 0);
+                
+                MultiFab::Copy(Ex, *Efield_fp[lev][0], 0, 0, 1, 0);
+                MultiFab::Copy(Ey, *Efield_fp[lev][1], 0, 0, 1, 0);
+                MultiFab::Copy(Ez, *Efield_fp[lev][2], 0, 0, 1, 0);
+                MultiFab::Copy(Bx, *Bfield_fp[lev][0], 0, 0, 1, 0);
+                MultiFab::Copy(By, *Bfield_fp[lev][1], 0, 0, 1, 0);
+                MultiFab::Copy(Bz, *Bfield_fp[lev][2], 0, 0, 1, 0);
+                MultiFab::Copy(jx, *current_fp[lev][0], 0, 0, 1, 0);
+                MultiFab::Copy(jy, *current_fp[lev][1], 0, 0, 1, 0);
+                MultiFab::Copy(jz, *current_fp[lev][2], 0, 0, 1, 0);
+                
+                VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex"));
+                VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey"));
+                VisMF::Write(Ez, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez"));
+                VisMF::Write(Bx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx"));
+                VisMF::Write(By, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By"));
+                VisMF::Write(Bz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz"));
+                VisMF::Write(jx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx"));
+                VisMF::Write(jy, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy"));
+                VisMF::Write(jz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz"));
+            }
+                
+            if (plot_crsepatch && Bfield_cp[lev][0])
+            {
+                VisMF::Write(*Efield_cp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_cp"));
+                VisMF::Write(*Efield_cp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_cp"));
+                VisMF::Write(*Efield_cp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_cp"));
+                VisMF::Write(*Bfield_cp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_cp"));
+                VisMF::Write(*Bfield_cp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
+                VisMF::Write(*Bfield_cp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
+            }
         }
     }
 

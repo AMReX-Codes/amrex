@@ -3,12 +3,18 @@
 
 #if (BL_SPACEDIM == 3)
 
+#define WARPX_COMPUTE_DIVB               warpx_compute_divb_3d
+#define WARPX_SYNC_CURRENT               warpx_sync_current_3d
+
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_3d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_3d
 
 #elif (BL_SPACEDIM == 2)
+
+#define WARPX_COMPUTE_DIVB               warpx_compute_divb_2d
+#define WARPX_SYNC_CURRENT               warpx_sync_current_2d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
@@ -131,6 +137,13 @@ extern "C"
 			  BL_FORT_FAB_ARG_3D(Ez),
 			  const amrex::Real* dx);
 
+    void WARPX_COMPUTE_DIVB (const int* lo, const int* hi,
+                             BL_FORT_FAB_ARG_ANYD(divb),
+                             D_DECL(const BL_FORT_FAB_ARG_ANYD(Bx),
+                                    const BL_FORT_FAB_ARG_ANYD(By),
+                                    const BL_FORT_FAB_ARG_ANYD(Bz)),
+                             const amrex::Real* dx);
+
     void WRPX_PUSH_PML_BVEC(const int* xlo, const int* xhi,
                             const int* ylo, const int* yhi,
                             const int* zlo, const int* zhi,
@@ -166,6 +179,12 @@ extern "C"
 #endif
                             const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
                             const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
+
+    void WARPX_SYNC_CURRENT (const int* lo, const int* hi,
+                             BL_FORT_FAB_ARG_ANYD(crse),
+                             const BL_FORT_FAB_ARG_ANYD(fine),
+                             const int* dir);
+    
 #ifdef __cplusplus
 }
 #endif

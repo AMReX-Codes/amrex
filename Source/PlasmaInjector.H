@@ -206,6 +206,11 @@ public:
 
     bool doInjection() { return part_pos != NULL;}
 
+    bool add_single_particle = false;
+    amrex::Array<amrex::Real> single_particle_pos;
+    amrex::Array<amrex::Real> single_particle_vel;
+    amrex::Real single_particle_weight;
+
 protected:
 
     amrex::Real mass, charge;

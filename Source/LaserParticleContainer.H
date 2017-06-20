@@ -14,14 +14,15 @@ public:
     LaserParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~LaserParticleContainer () {}
 
-    virtual void InitData () override;
+    virtual void InitData () final;
 
     virtual void Evolve (int lev,
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) override;
+			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
+                         amrex::Real t, amrex::Real dt) final;
 
-    virtual void PostRestart () override;
+    virtual void PostRestart () final;
 
 private:
 
@@ -47,8 +48,12 @@ private:
     amrex::Real profile_t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
 
-    void ComputeSpacing (amrex::Real& Sx, amrex::Real& Sy) const;
+    // laser particle domain
+    amrex::RealBox prob_domain;
+
+    void ComputeSpacing (int lev, amrex::Real& Sx, amrex::Real& Sy) const;
     void ComputeWeightMobility (amrex::Real Sx, amrex::Real Sy);
+    void InitData (int lev);
 };
 
 #endif

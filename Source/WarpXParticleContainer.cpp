@@ -45,6 +45,9 @@ WarpXParticleContainer::ReadParameters ()
         do_tiling = true;  // because the default in amrex is false
 	pp.query("do_tiling",  do_tiling);
 
+//        tile_size = IntVect(D_DECL(8,8,8));
+        tile_size = IntVect(D_DECL(102400,8,8));
+        
 	initialized = true;
     }
 }
@@ -89,16 +92,13 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
 }
 
 void
-WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, const Real* z,
+WarpXParticleContainer::AddNParticles (int lev,
+                                       int n, const Real* x, const Real* y, const Real* z,
 				       const Real* vx, const Real* vy, const Real* vz,
 				       int nattr, const Real* attr, int uniqueparticles)
 {
-    const int lev = 0;
-
     BL_ASSERT(nattr == 1);
     const Real* weight = attr;
-
-    auto npart_before = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
 
     int ibegin, iend;
     if (uniqueparticles) {
@@ -139,21 +139,22 @@ WarpXParticleContainer::AddNParticles (int n, const Real* x, const Real* y, cons
         particle_tile.push_back(p);
     }
 
-    particle_tile.push_back_real(PIdx::w , weight + ibegin, weight + iend);
-    particle_tile.push_back_real(PIdx::ux,     vx + ibegin,     vx + iend);
-    particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
-    particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
-
     std::size_t np = iend-ibegin;
-    for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
+
+    if (np > 0)
     {
-        particle_tile.push_back_real(comp, np, 0.0);
-    }
+        particle_tile.push_back_real(PIdx::w , weight + ibegin, weight + iend);
+        particle_tile.push_back_real(PIdx::ux,     vx + ibegin,     vx + iend);
+        particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
+        particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
+        
+        for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
+        {
+            particle_tile.push_back_real(comp, np, 0.0);
+        }
+    }        
 
     Redistribute();
-
-    auto npart_after = TotalNumberOfParticles();  // xxxxx move this into if (verbose > xxx)
-    amrex::Print() << "Total number of particles added: " << npart_after - npart_before << "\n";
 }
 
 std::unique_ptr<MultiFab>
@@ -219,8 +220,15 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 }
 
 void
-WarpXParticleContainer::PushX (int lev,
-                                  Real dt)
+WarpXParticleContainer::PushX (Real dt)
+{
+    for (int lev = 0; lev <= finestLevel(); ++lev) {
+        PushX(lev, dt);
+    }
+}
+
+void
+WarpXParticleContainer::PushX (int lev, Real dt)
 {
     BL_PROFILE("WPC::PushX()");
     BL_PROFILE_VAR_NS("WPC::PushX::Copy", blp_copy);
@@ -264,3 +272,4 @@ WarpXParticleContainer::PushX (int lev,
         BL_PROFILE_VAR_STOP(blp_copy);
     }
 }
+

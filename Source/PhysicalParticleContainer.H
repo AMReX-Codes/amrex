@@ -15,7 +15,7 @@ public:
                                const std::string& name);
     virtual ~PhysicalParticleContainer () {}
 
-    virtual void InitData () override;
+    virtual void InitData () final;
 
     virtual void FieldGather(int lev,
                              const amrex::MultiFab& Ex,
@@ -23,7 +23,7 @@ public:
                              const amrex::MultiFab& Ez,
                              const amrex::MultiFab& Bx,
                              const amrex::MultiFab& By,
-                             const amrex::MultiFab& Bz) override;
+                             const amrex::MultiFab& Bz) final;
 
     virtual void Evolve (int lev,
 			 const amrex::MultiFab& Ex,
@@ -36,9 +36,9 @@ public:
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
                          amrex::Real t,
-                         amrex::Real dt) override;
+                         amrex::Real dt) final;
 
-    virtual void PostRestart () override {}
+    virtual void PostRestart () final {}
 
     // Inject particles in Box 'part_box'
     void AddParticles (int lev, amrex::Box part_box = amrex::Box());

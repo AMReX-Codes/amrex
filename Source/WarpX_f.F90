@@ -51,6 +51,57 @@ contains
 
   end subroutine warpx_compute_E
 
+
+  subroutine warpx_compute_divb_3d (lo, hi, divB, dlo, dhi, &
+       Bx, xlo, xhi, By, ylo, yhi, Bz, zlo, zhi, dx) &
+       bind(c, name='warpx_compute_divb_3d')
+    integer, intent(in) :: lo(3),hi(3),dlo(3),dhi(3),xlo(3),xhi(3),ylo(3),yhi(3),zlo(3),zhi(3)
+    real(amrex_real), intent(in) :: dx(3)
+    real(amrex_real), intent(in   ) :: Bx  (xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
+    real(amrex_real), intent(in   ) :: By  (ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3))
+    real(amrex_real), intent(in   ) :: Bz  (zlo(1):zhi(1),zlo(2):zhi(2),zlo(3):zhi(3))
+    real(amrex_real), intent(inout) :: divB(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+
+    integer :: i,j,k
+    real(amrex_real) :: dxinv(3)
+
+    dxinv = 1.d0/dx
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             divB(i,j,k) = dxinv(1) * (Bx(i+1,j  ,k  ) - Bx(i,j,k)) &
+                  +        dxinv(2) * (By(i  ,j+1,k  ) - By(i,j,k)) &
+                  +        dxinv(3) * (Bz(i  ,j  ,k+1) - Bz(i,j,k))
+          end do
+       end do
+    end do
+  end subroutine warpx_compute_divb_3d
+
+
+  subroutine warpx_compute_divb_2d (lo, hi, divB, dlo, dhi, &
+       Bx, xlo, xhi, Bz, zlo, zhi, dx) &
+       bind(c, name='warpx_compute_divb_2d')
+    integer, intent(in) :: lo(2),hi(2),dlo(2),dhi(2),xlo(2),xhi(2),zlo(2),zhi(2)
+    real(amrex_real), intent(in) :: dx(2)
+    real(amrex_real), intent(in   ) :: Bx  (xlo(1):xhi(1),xlo(2):xhi(2))
+    real(amrex_real), intent(in   ) :: Bz  (zlo(1):zhi(1),zlo(2):zhi(2))
+    real(amrex_real), intent(inout) :: divB(dlo(1):dhi(1),dlo(2):dhi(2))
+
+    integer :: i,k
+    real(amrex_real) :: dxinv(2)
+
+    dxinv = 1.d0/dx
+
+    do    k = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          divB(i,k) = dxinv(1) * (Bx(i+1,k  ) - Bx(i,k)) &
+               +      dxinv(2) * (Bz(i  ,k+1) - Bz(i,k))
+       end do
+    end do
+  end subroutine warpx_compute_divb_2d
+
+
   subroutine warpx_push_pml_bvec_3d (xlo, xhi, ylo, yhi, zlo, zhi, &
        &                             Ex, Exlo, Exhi, &
        &                             Ey, Eylo, Eyhi, &
@@ -300,5 +351,115 @@ contains
     end do
 
   end subroutine warpx_push_pml_evec_2d
-  
+
+
+  subroutine warpx_sync_current_2d (lo, hi, crse, clo, chi, fine, flo, fhi, dir) &
+       bind(c, name='warpx_sync_current_2d')
+    integer, intent(in) :: lo(2), hi(2), flo(2), fhi(2), clo(2), chi(2), dir
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
+
+    integer :: i,j,ii,jj
+
+    if (dir == 0) then
+       do j = lo(2), hi(2)
+          jj = j*2
+          do i = lo(1), hi(1)
+             ii = i*2
+             crse(i,j) = 0.25d0 * (fine(ii,jj) + fine(ii+1,jj) &
+                  + 0.5d0*(fine(ii,jj-1) + fine(ii+1,jj-1) + fine(ii,jj+1) + fine(ii+1,jj+1)) )
+          end do
+       end do
+    else if (dir == 2) then
+       do j = lo(2), hi(2)
+          jj = j*2
+          do i = lo(1), hi(1)
+             ii = i*2
+             crse(i,j) = 0.25d0 * (fine(ii,jj) + fine(ii,jj+1) &
+                  + 0.5d0*(fine(ii-1,jj) + fine(ii-1,jj+1) + fine(ii+1,jj) + fine(ii+1,jj+1)) )
+          end do
+       end do
+    else
+       do j = lo(2), hi(2)
+          jj = j*2
+          do i = lo(1), hi(1)
+             ii = i*2
+             crse(i,j) = 0.25d0 * &
+                     ( fine(ii,jj) + 0.5d0 *(fine(ii-1,jj  )+fine(ii+1,jj  ) &
+                     &                     + fine(ii  ,jj-1)+fine(ii  ,jj+1)) &
+                     &             + 0.25d0*(fine(ii-1,jj-1)+fine(ii+1,jj-1) &
+                     &                     + fine(ii-1,jj+1)+fine(ii+1,jj+1)) ) 
+          end do
+       end do
+    end if
+  end subroutine warpx_sync_current_2d
+
+  subroutine warpx_sync_current_3d (lo, hi, crse, clo, chi, fine, flo, fhi, dir) &
+       bind(c, name='warpx_sync_current_3d')
+    integer, intent(in) :: lo(3), hi(3), flo(3), fhi(3), clo(3), chi(3), dir
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+
+    integer :: i,j,k, ii,jj,kk
+
+    if (dir == 0) then
+       do k = lo(3), hi(3)
+          kk = k*2
+          do j = lo(2), hi(2)
+             jj = j*2
+             do i = lo(1), hi(1)
+                ii = i*2
+                crse(i,j,k) = 0.125d0* &
+                     ( fine(ii  ,jj,kk) + 0.5d0 *(fine(ii  ,jj-1,kk  )+fine(ii  ,jj+1,kk  ) &
+                     &                          + fine(ii  ,jj  ,kk-1)+fine(ii  ,jj  ,kk+1)) &
+                     &                  + 0.25d0*(fine(ii  ,jj-1,kk-1)+fine(ii  ,jj+1,kk-1) &
+                     &                          + fine(ii  ,jj-1,kk+1)+fine(ii  ,jj+1,kk+1)) &
+                     + fine(ii+1,jj,kk) + 0.5d0 *(fine(ii+1,jj-1,kk  )+fine(ii+1,jj+1,kk  ) &
+                     &                          + fine(ii+1,jj  ,kk-1)+fine(ii+1,jj  ,kk+1)) &
+                     &                  + 0.25d0*(fine(ii+1,jj-1,kk-1)+fine(ii+1,jj+1,kk-1) &
+                     &                          + fine(ii+1,jj-1,kk+1)+fine(ii+1,jj+1,kk+1)) )
+             end do
+          end do
+       end do
+    else if (dir == 1) then
+       do k = lo(3), hi(3)
+          kk = k*2
+          do j = lo(2), hi(2)
+             jj = j*2
+             do i = lo(1), hi(1)
+                ii = i*2
+                crse(i,j,k) = 0.125d0* &
+                     ( fine(ii,jj  ,kk) + 0.5d0 *(fine(ii-1,jj  ,kk  )+fine(ii+1,jj  ,kk  ) &
+                     &                          + fine(ii  ,jj  ,kk-1)+fine(ii  ,jj  ,kk+1)) &
+                     &                  + 0.25d0*(fine(ii-1,jj  ,kk-1)+fine(ii+1,jj  ,kk-1) &
+                     &                          + fine(ii-1,jj  ,kk+1)+fine(ii+1,jj  ,kk+1)) &
+                     + fine(ii,jj+1,kk) + 0.5d0 *(fine(ii-1,jj+1,kk  )+fine(ii+1,jj+1,kk  ) &
+                     &                          + fine(ii  ,jj+1,kk-1)+fine(ii  ,jj+1,kk+1)) &
+                     &                  + 0.25d0*(fine(ii-1,jj+1,kk-1)+fine(ii+1,jj+1,kk-1) &
+                     &                          + fine(ii-1,jj+1,kk+1)+fine(ii+1,jj+1,kk+1)) )
+             end do
+          end do
+       end do
+    else
+       do k = lo(3), hi(3)
+          kk = k*2
+          do j = lo(2), hi(2)
+             jj = j*2
+             do i = lo(1), hi(1)
+                ii = i*2
+                crse(i,j,k) = 0.125d0* &
+                     ( fine(ii,jj,kk  ) + 0.5d0 *(fine(ii-1,jj  ,kk  )+fine(ii+1,jj  ,kk  ) &
+                     &                          + fine(ii  ,jj-1,kk  )+fine(ii  ,jj+1,kk  )) &
+                     &                  + 0.25d0*(fine(ii-1,jj-1,kk  )+fine(ii+1,jj-1,kk  ) &
+                     &                          + fine(ii-1,jj+1,kk  )+fine(ii+1,jj+1,kk  )) &
+                     + fine(ii,jj,kk+1) + 0.5d0 *(fine(ii-1,jj  ,kk+1)+fine(ii+1,jj  ,kk+1) &
+                     &                          + fine(ii  ,jj-1,kk+1)+fine(ii  ,jj+1,kk+1)) &
+                     &                  + 0.25d0*(fine(ii-1,jj-1,kk+1)+fine(ii+1,jj-1,kk+1) &
+                     &                          + fine(ii-1,jj+1,kk+1)+fine(ii+1,jj+1,kk+1)) )
+             end do
+          end do
+       end do
+    end if
+  end subroutine warpx_sync_current_3d
+
 end module warpx_module

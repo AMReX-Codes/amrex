@@ -5,6 +5,7 @@ endif
 CEXE_sources += WarpXWrappers.cpp WarpX_py.cpp
 
 CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp WarpXIO.cpp WarpXProb.cpp WarpXRegrid.cpp
+CEXE_sources += WarpXTagging.cpp WarpXComm.cpp WarpXMove.cpp
 
 CEXE_sources += ParticleIO.cpp
 CEXE_sources += ParticleContainer.cpp WarpXParticleContainer.cpp PhysicalParticleContainer.cpp LaserParticleContainer.cpp
@@ -19,6 +20,7 @@ CEXE_headers += PlasmaInjector.H
 CEXE_sources += PlasmaInjector.cpp CustomDensityProb.cpp
 
 CEXE_sources += WarpXPML.cpp
+CEXE_headers += WarpXPML.H
 
 F90EXE_sources += WarpX_f.F90 WarpX_picsar.F90 WarpX_laser.F90
 

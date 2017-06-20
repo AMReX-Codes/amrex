@@ -61,11 +61,13 @@ extern "C" {
   void warpx_ComputeDt ();
   void warpx_MoveWindow ();
 
-  void warpx_EvolveE (int lev, double dt);
-  void warpx_EvolveB (int lev, double dt);
-  void warpx_FillBoundaryE (int lev, bool force);
-  void warpx_FillBoundaryB (int lev, bool force);
-  void warpx_PushParticlesandDepose (int lev, double cur_time);
+  void warpx_EvolveE (double dt);
+  void warpx_EvolveB (double dt);
+  void warpx_FillBoundaryE ();
+  void warpx_FillBoundaryB ();
+  void warpx_SyncCurrent ();
+  void warpx_UpdateAuxilaryData ();
+  void warpx_PushParticlesandDepose (double cur_time);
 
   int warpx_getistep (int lev);
   void warpx_setistep (int lev, int ii);

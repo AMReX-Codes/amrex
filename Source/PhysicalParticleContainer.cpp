@@ -17,13 +17,30 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     mass = plasma_injector->getMass();
 }
 
-void PhysicalParticleContainer::InitData() {
+void PhysicalParticleContainer::InitData()
+{
     AddParticles(0); // Note - only one level right now
+    if (maxLevel() > 0) {
+        Redistribute();  // We then redistribute
+    }
 }
 
 void
-PhysicalParticleContainer::AddParticles (int lev, Box part_box) {
+PhysicalParticleContainer::AddParticles (int lev, Box part_box)
+{
     BL_PROFILE("PhysicalParticleContainer::AddParticles()");
+
+    if (plasma_injector->add_single_particle) {
+        AddNParticles(lev, 1, 
+                      &(plasma_injector->single_particle_pos[0]),
+                      &(plasma_injector->single_particle_pos[1]),
+                      &(plasma_injector->single_particle_pos[2]),
+                      &(plasma_injector->single_particle_vel[0]),
+                      &(plasma_injector->single_particle_vel[1]),
+                      &(plasma_injector->single_particle_vel[2]),
+                      1, &(plasma_injector->single_particle_weight), 0);
+        return;
+    }
 
     if ( not plasma_injector->doInjection() ) return;
 
@@ -167,7 +184,8 @@ void
 PhysicalParticleContainer::Evolve (int lev,
 				   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 				   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-				   MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
+				   MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                   Real t, Real dt)
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
@@ -220,9 +238,9 @@ PhysicalParticleContainer::Evolve (int lev,
 	    Exp.assign(np,0.0);
 	    Eyp.assign(np,0.0);
 	    Ezp.assign(np,0.0);
-	    Bxp.assign(np,0.0);
-	    Byp.assign(np,0.0);
-	    Bzp.assign(np,0.0);
+	    Bxp.assign(np,WarpX::B_external[0]);
+	    Byp.assign(np,WarpX::B_external[1]);
+	    Bzp.assign(np,WarpX::B_external[2]);
 
 	    giv.resize(np);
 
@@ -236,7 +254,7 @@ PhysicalParticleContainer::Evolve (int lev,
             const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
 
 	    //
-	    // Field Gather
+	    // Field Gather of Aux Data (i.e., the full solution)
 	    //
 	    const int ll4symtry          = false;
 	    const int l_lower_order_in_v = true;
@@ -272,7 +290,7 @@ PhysicalParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
-	    // Current Deposition
+	    // Current Deposition onto fine patch
 	    // xxxxx this part needs to be thread safe if we have OpenMP over tiles
 	    //
 	    long lvect = 8;
@@ -290,7 +308,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
-	    //
+            //
 	    // copy particle data back
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
