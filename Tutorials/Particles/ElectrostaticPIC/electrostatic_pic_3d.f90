@@ -10,12 +10,12 @@ contains
   subroutine sum_fine_to_crse_nodal (lo, hi, lrat, crse, clo, chi, fine, flo, fhi) &
        bind(c, name="sum_fine_to_crse_nodal")
 
-    integer  lo(3),  hi(3)
-    integer clo(3), chi(3)
-    integer flo(3), fhi(3)
-    integer lrat(3)
-    real(amrex_real) crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
-    real(amrex_real) fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    integer, intent(in)             ::   lo(3),  hi(3)
+    integer, intent(in)             ::  clo(3), chi(3)
+    integer, intent(in)             ::  flo(3), fhi(3)
+    integer, intent(in)             ::  lrat(3)
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(amrex_real), intent(in)    :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
     
     integer :: i, j, k, ii, jj, kk
     
@@ -165,16 +165,16 @@ contains
                          weights, charge, rho, lo, hi, plo, dx, &
                          ng)                                    &
        bind(c,name='deposit_cic')
-    integer, value       :: ns, np
-    real(amrex_real)     :: particles(ns,np)
-    real(amrex_real)     :: weights(np)
-    real(amrex_real)     :: charge
-    integer              :: lo(3)
-    integer              :: hi(3)
-    integer              :: ng
-    real(amrex_real)     :: rho(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
-    real(amrex_real)     :: plo(3)
-    real(amrex_real)     :: dx(3)
+    integer, value,   intent(in)     :: ns, np
+    real(amrex_real), intent(in)     :: particles(ns,np)
+    real(amrex_real), intent(in)     :: weights(np)
+    real(amrex_real), intent(in)     :: charge
+    integer,          intent(in)     :: lo(3)
+    integer,          intent(in)     :: hi(3)
+    integer,          intent(in)     :: ng
+    real(amrex_real), intent(inout)  :: rho(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real), intent(in)     :: plo(3)
+    real(amrex_real), intent(in)     :: dx(3)
 
     integer i, j, k, n
     real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
@@ -242,17 +242,17 @@ contains
                              Ex,   Ey,   Ez,         &
                              lo, hi, plo, dx, ng)    &
        bind(c,name='interpolate_cic')
-    integer, value       :: ns, np
-    real(amrex_real)     :: particles(ns,np)
-    real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
-    integer              :: ng
-    integer              :: lo(3)
-    integer              :: hi(3)
-    real(amrex_real)     :: Ex(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
-    real(amrex_real)     :: Ey(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
-    real(amrex_real)     :: Ez(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
-    real(amrex_real)     :: plo(3)
-    real(amrex_real)     :: dx(3)
+    integer, value,   intent(in)     :: ns, np
+    real(amrex_real), intent(in)     :: particles(ns,np)
+    real(amrex_real), intent(inout)  :: Ex_p(np), Ey_p(np), Ez_p(np)
+    integer,          intent(in)     :: ng
+    integer,          intent(in)     :: lo(3)
+    integer,          intent(in)     :: hi(3)
+    real(amrex_real), intent(in)     :: Ex(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real), intent(in)     :: Ey(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real), intent(in)     :: Ez(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real), intent(in)     :: plo(3)
+    real(amrex_real), intent(in)     :: dx(3)
 
     integer i, j, k, n
     real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
@@ -317,21 +317,21 @@ contains
                                         clo,  chi,  cdx,        &
                                         plo,  ng,   lev)        &
        bind(c,name='interpolate_cic_two_levels')
-    integer, value       :: ns, np
-    real(amrex_real)     :: particles(ns,np)
-    real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
-    integer              :: ng, lev
-    integer              :: lo(3), hi(3)
-    integer              :: clo(3), chi(3)
-    real(amrex_real)     :: Ex(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
-    real(amrex_real)     :: Ey(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
-    real(amrex_real)     :: Ez(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
-    real(amrex_real)     :: cEx(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
-    real(amrex_real)     :: cEy(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
-    real(amrex_real)     :: cEz(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
-    integer(c_int)       :: mask (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
-    real(amrex_real)     :: plo(3)
-    real(amrex_real)     :: dx(3), cdx(3)
+    integer, value,   intent(in)     :: ns, np
+    real(amrex_real), intent(in)     :: particles(ns,np)
+    real(amrex_real), intent(inout)  :: Ex_p(np), Ey_p(np), Ez_p(np)
+    integer,          intent(in)     :: ng, lev
+    integer,          intent(in)     :: lo(3), hi(3)
+    integer,          intent(in)     :: clo(3), chi(3)
+    real(amrex_real), intent(in)     :: Ex(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real), intent(in)     :: Ey(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real), intent(in)     :: Ez(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3)-ng:hi(3)+ng)
+    real(amrex_real), intent(in)     :: cEx(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
+    real(amrex_real), intent(in)     :: cEy(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
+    real(amrex_real), intent(in)     :: cEz(clo(1)-ng:chi(1)+ng, clo(2)-ng:chi(2)+ng, clo(3)-ng:chi(3)+ng)
+    integer(c_int),   intent(in)     :: mask (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
+    real(amrex_real), intent(in)     :: plo(3)
+    real(amrex_real), intent(in)     :: dx(3), cdx(3)
 
     integer i, j, k, n
     integer ifine, jfine, kfine
@@ -351,7 +351,6 @@ contains
        j = floor(ly)
        k = floor(lz)
 
-!       if (lev .eq. 1 .and. (particles(1, n) .lt. -1.0d-5 + 4.d0*dx(1) .or. particles(1, n) .gt. 1.0d-5 - 4.d0*dx(1))) then
        if (lev .eq. 1 .and. mask(i,j,k) .eq. 1) then
 
           lx = (particles(1, n) - plo(1))*inv_cdx(1)
@@ -476,14 +475,14 @@ contains
                            charge, mass, dt,       &
                            prob_lo, prob_hi)       &
        bind(c,name='push_leapfrog')
-    integer, value       :: ns, np
-    real(amrex_real)     :: particles(ns,np)
-    real(amrex_real)     :: vx_p(np), vy_p(np), vz_p(np)
-    real(amrex_real)     :: Ex_p(np), Ey_p(np), Ez_p(np)
-    real(amrex_real)     :: charge
-    real(amrex_real)     :: mass
-    real(amrex_real)     :: dt
-    real(amrex_real)     :: prob_lo(3), prob_hi(3)
+    integer, value,   intent(in)     :: ns, np
+    real(amrex_real), intent(inout)  :: particles(ns,np)
+    real(amrex_real), intent(inout)  :: vx_p(np), vy_p(np), vz_p(np)
+    real(amrex_real), intent(in)     :: Ex_p(np), Ey_p(np), Ez_p(np)
+    real(amrex_real), intent(in)     :: charge
+    real(amrex_real), intent(in)     :: mass
+    real(amrex_real), intent(in)     :: dt
+    real(amrex_real), intent(in)     :: prob_lo(3), prob_hi(3)
    
     integer n
     real(amrex_real) fac
@@ -554,11 +553,11 @@ contains
                                      vx_p, vy_p, vz_p, dt,   &
                                      prob_lo, prob_hi)       &
        bind(c,name='push_leapfrog_positions')
-    integer, value       :: ns, np
-    real(amrex_real)     :: particles(ns,np)
-    real(amrex_real)     :: vx_p(np), vy_p(np), vz_p(np)
-    real(amrex_real)     :: dt
-    real(amrex_real)     :: prob_lo(3), prob_hi(3)
+    integer, value,   intent(in)    :: ns, np
+    real(amrex_real), intent(inout) :: particles(ns,np)
+    real(amrex_real), intent(inout) :: vx_p(np), vy_p(np), vz_p(np)
+    real(amrex_real), intent(in)    :: dt
+    real(amrex_real), intent(in)    :: prob_lo(3), prob_hi(3)
 
     integer n
 

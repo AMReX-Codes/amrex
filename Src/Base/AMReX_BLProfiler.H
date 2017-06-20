@@ -355,67 +355,67 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 }
 
-#define BL_PROFILE_INITIALIZE()  BLProfiler::Initialize();
-#define BL_PROFILE_FINALIZE()    BLProfiler::Finalize();
+#define BL_PROFILE_INITIALIZE()  amrex::BLProfiler::Initialize();
+#define BL_PROFILE_FINALIZE()    amrex::BLProfiler::Finalize();
 
-#define BL_PROFILE(fname) BLProfiler bl_profiler__((fname));
-#define BL_PROFILE_T(fname, T) BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
+#define BL_PROFILE(fname) amrex::BLProfiler bl_profiler__((fname));
+#define BL_PROFILE_T(fname, T) amrex::BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
 #ifdef BL_PROFILING_SPECIAL
-#define BL_PROFILE_S(fname) BLProfiler bl_profiler__((fname));
-#define BL_PROFILE_T_S(fname, T) BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
+#define BL_PROFILE_S(fname) amrex::BLProfiler bl_profiler__((fname));
+#define BL_PROFILE_T_S(fname, T) amrex::BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
 #else
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)
 #endif
  
-#define BL_PROFILE_VAR(fname, vname) BLProfiler bl_profiler__##vname((fname));
-#define BL_PROFILE_VAR_NS(fname, vname) BLProfiler bl_profiler__##vname(fname, false);
+#define BL_PROFILE_VAR(fname, vname) amrex::BLProfiler bl_profiler__##vname((fname));
+#define BL_PROFILE_VAR_NS(fname, vname) amrex::BLProfiler bl_profiler__##vname(fname, false);
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
 #define BL_PROFILE_VAR_STOP(vname) bl_profiler__##vname.stop();
 
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)  \
-                                  BLProfiler::InitParams(ptl,wall, wfabs);
-#define BL_PROFILE_ADD_STEP(snum)  BLProfiler::AddStep(snum);
-#define BL_PROFILE_SET_RUN_TIME(rtime)  BLProfiler::SetRunTime(rtime);
+    amrex::BLProfiler::InitParams(ptl,wall, wfabs);
+#define BL_PROFILE_ADD_STEP(snum)  amrex::BLProfiler::AddStep(snum);
+#define BL_PROFILE_SET_RUN_TIME(rtime)  amrex::BLProfiler::SetRunTime(rtime);
 
-#define BL_PROFILE_REGION_START(rname) BLProfiler::RegionStart(rname);
-#define BL_PROFILE_REGION_STOP(rname)  BLProfiler::RegionStop(rname);
+#define BL_PROFILE_REGION_START(rname) amrex::BLProfiler::RegionStart(rname);
+#define BL_PROFILE_REGION_STOP(rname)  amrex::BLProfiler::RegionStop(rname);
 
 // these combine regions with profile variables
-#define BL_PROFILE_REGION_VAR(fname, rvname) BLProfiler::RegionStart(fname);  \
-                                             BLProfiler bl_profiler__##rvname((fname));
-#define BL_PROFILE_REGION_VAR_START(fname, rvname) BLProfiler::RegionStart(fname);  \
+#define BL_PROFILE_REGION_VAR(fname, rvname) amrex::BLProfiler::RegionStart(fname); \
+    amrex::BLProfiler bl_profiler__##rvname((fname));
+#define BL_PROFILE_REGION_VAR_START(fname, rvname) amrex::BLProfiler::RegionStart(fname); \
                                             bl_profiler__##rvname.start();
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)  bl_profiler__##rvname.stop();   \
-                                                   BLProfiler::RegionStop(fname);
+    amrex::BLProfiler::RegionStop(fname);
 
-#define BL_TRACE_PROFILE_FLUSH() { BLProfiler::WriteCallTrace(true); }
-#define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize) { BLProfiler::SetTraceFlushSize(fsize); }
+#define BL_TRACE_PROFILE_FLUSH() { amrex::BLProfiler::WriteCallTrace(true); }
+#define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize) { amrex::BLProfiler::SetTraceFlushSize(fsize); }
 
-#define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname) { BLProfiler::ChangeFortIntName(fname, intname); }
+#define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname) { amrex::BLProfiler::ChangeFortIntName(fname, intname); }
 
 #ifdef BL_COMM_PROFILING
 
 #define BL_COMM_PROFILE(cft, size, pid, tag) {                       \
-                        BLProfiler::AddCommStat(cft, size, pid, tag);  \
+        amrex::BLProfiler::AddCommStat(cft, size, pid, tag);         \
 }
-#define BL_COMM_PROFILE_BARRIER(message, bc) { BLProfiler::AddBarrier(message, bc); }
-#define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { BLProfiler::AddAllReduce(cft, size, bc); }
+#define BL_COMM_PROFILE_BARRIER(message, bc) { amrex::BLProfiler::AddBarrier(message, bc); }
+#define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { amrex::BLProfiler::AddAllReduce(cft, size, bc); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
-                          BLProfiler::AddCommStat(cft, size, pid, BLProfiler::NoTag()); }
+        amrex::BLProfiler::AddCommStat(cft, size, pid, BLProfiler::NoTag()); }
 #define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc) {                \
-                          BLProfiler::AddWaitsome(cft, reqs, completed, indx, status, bc);  \
+        amrex::BLProfiler::AddWaitsome(cft, reqs, completed, indx, status, bc); \
 }
-#define BL_COMM_PROFILE_NAMETAG(message) { BLProfiler::AddNameTag(message); }
-#define BL_COMM_PROFILE_FILTER(cft) { BLProfiler::CommStats::Filter(cft); }
-#define BL_COMM_PROFILE_UNFILTER(cft) { BLProfiler::CommStats::UnFilter(cft); }
-#define BL_COMM_PROFILE_FLUSH() { BLProfiler::WriteCommStats(true); }
-#define BL_COMM_PROFILE_SETFLUSHSIZE(fsize) { BLProfiler::SetCSFlushSize(fsize); }
+#define BL_COMM_PROFILE_NAMETAG(message) { amrex::BLProfiler::AddNameTag(message); }
+#define BL_COMM_PROFILE_FILTER(cft) { amrex::BLProfiler::CommStats::Filter(cft); }
+#define BL_COMM_PROFILE_UNFILTER(cft) { amrex::BLProfiler::CommStats::UnFilter(cft); }
+#define BL_COMM_PROFILE_FLUSH() { amrex::BLProfiler::WriteCommStats(true); }
+#define BL_COMM_PROFILE_SETFLUSHSIZE(fsize) { amrex::BLProfiler::SetCSFlushSize(fsize); }
 #define BL_COMM_PROFILE_TAGRANGE(tagmin, tagmax) {  \
-                             BLProfiler::TagRange(tagmin, tagmax); }
-#define BL_COMM_PROFILE_TAGWRAP() { BLProfiler::AddTagWrap(); }
+        amrex::BLProfiler::TagRange(tagmin, tagmax); }
+#define BL_COMM_PROFILE_TAGWRAP() { amrex::BLProfiler::AddTagWrap(); }
 #define BL_COMM_PROFILE_INITAMR(flev, mlev, rr, pd) {                \
-                             BLProfiler::InitAMR(flev, mlev, rr, pd);  \
+        amrex::BLProfiler::InitAMR(flev, mlev, rr, pd);              \
 }
 
 #endif
@@ -426,15 +426,15 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 #include <AMReX_TinyProfiler.H>
 
-#define BL_PROFILE_INITIALIZE()   TinyProfiler::Initialize();
-#define BL_PROFILE_FINALIZE()     TinyProfiler::Finalize();
-#define BL_PROFILE(fname)         TinyProfiler tiny_profiler__((fname));
+#define BL_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
+#define BL_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
+#define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler__((fname));
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)
 
-#define BL_PROFILE_VAR(fname, vname)      TinyProfiler tiny_profiler__##vname((fname));
-#define BL_PROFILE_VAR_NS(fname, vname)   TinyProfiler tiny_profiler__##vname(fname, false);
+#define BL_PROFILE_VAR(fname, vname)      amrex::TinyProfiler tiny_profiler__##vname((fname));
+#define BL_PROFILE_VAR_NS(fname, vname)   amrex::TinyProfiler tiny_profiler__##vname(fname, false);
 #define BL_PROFILE_VAR_START(vname)       tiny_profiler__##vname.start();
 #define BL_PROFILE_VAR_STOP(vname)        tiny_profiler__##vname.stop();
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)

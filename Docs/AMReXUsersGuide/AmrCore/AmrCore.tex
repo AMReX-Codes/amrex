@@ -25,6 +25,7 @@ Gaussian profile is displaced but returns to its original configuration at the f
 The boundary conditions are periodic and we use a refinement ratio of $r=2$ between each 
 AMR level.  The results of the simulation in two-dimensions are depicted in 
 Figure \ref{fig:Adv}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{figure}
   \centering
   \includegraphics[width=1in]{./AmrCore/figs/Adv1.pdf}
@@ -35,6 +36,7 @@ Figure \ref{fig:Adv}.
   \caption{\label{fig:Adv} Time sequence ($t=0,0.5,1,1.5,2$~s) of advection of a Gaussian profile using the 
 {\tt SingleVortex} tutorial.  The red, green, and blue boxes indicate grids at AMR levels $\ell=0,1$, and $2$.}
 \end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{The Advection Equation}
 We seek to solve the advection equation on a multi-level, adaptive grid structure:
@@ -183,9 +185,7 @@ cells are ``tagged'' for refinement.
 that help sort tagged cells and generate a grid structure that contains all
 the tagged cells.
 
-
-
-\subsection{{\tt FillPatchUtil}}\label{sec:amrcore:fillpatch}
+\subsection{{\tt FillPatchUtil} and {\tt Interpolater}}\label{sec:amrcore:fillpatch}
 
 Many codes, including the {\tt Advection\_AmrCore} example, contain an array of {\tt MultifFab}s
 (one for each level of refinement), and then use ``fillpatch'' operations to fill temporary
@@ -203,10 +203,9 @@ refinement, assuming there is an underlying coarse level.  This routine is flexi
 the coarser level in time first using {\tt FillPatchSingleLevel()}.
 \end{enumerate}
 
-\subsection{{\tt Interpolater}}
-
+A {\tt FillPatchUtil} uses an {\tt Interpolator}.
 {\tt AMReX\_Interpolater.cpp/H} contains the virtual base class {\tt Interpolater}, which provides
-an interface for coarse-to-fine spatial interpolation operators.  Thefillpatch routines describe
+an interface for coarse-to-fine spatial interpolation operators.  The fillpatch routines describe
 above require an interpolator for {\tt FillPatchTwoLevels()}
 Within {\tt AMReX\_Interpolater.cpp/H} are the derived classes:
 \begin{itemize}
@@ -221,7 +220,7 @@ Within {\tt AMReX\_Interpolater.cpp/H} are the derived classes:
 The fortran routines that perform the actual work associated with {\tt Interpolater} are 
 contained in the files {\tt AMReX\_INTERP\_F.H} and {\tt AMReX\_INTERP\_xD.F}.
 
-\subsection{{\tt FluxRegister}}
+\subsection{Using {\tt FluxRegister}s}
 
 {\tt AMReX\_FluxRegister.cpp/H} contains the class {\tt FluxRegister}, which is derived from
 the class {\tt BndryRegister} (in {\tt Src/Boundary/AMReX\_BndryRegister}).
@@ -264,9 +263,35 @@ and {\tt TracerParticleContainer} (in {\tt Src/Particle/AMReX\_TracerParticles})
 the class {\tt ParGDBBase} (in {\tt Src/Particle/AMReX\_ParGDB}).
 
 \section{{\tt Advection\_AmrCore} Example}
-This example uses the class {\tt AmrAdv}, which is derived from the class {\tt AmrCore} 
-(which is derived from {\tt AmrMesh}).  The function definitions/implementations
-are given in {\tt AmrAdv.H/cpp}.  
+
+\subsection{Code Structure}
+
+Figure \ref{fig:AmrAdvection_AmrCore_flowchart} shows a flowchart
+of source code for the {\tt AmrAdvection\_AmrCore} example.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=4in]{./AmrCore/figs/flowchart.pdf}
+\caption{\label{fig:AmrAdvection_AmrCore_flowchart} Flowchart of source code for the 
+         {\tt AmrAdvection\_AmrCore} example.}
+\end{center}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+\item {\tt amrex/Src/}
+\begin{itemize}
+\item {\tt Base/} Base {\tt amrex} library.
+\item {\tt Boundary/} An assortment of classes for handling boundary data.
+\item {\tt AmrCore/} AMR data management classes, described in more detail above.
+\end{itemize}
+\item {\tt Advection\_AmrCore/Src} Source code specific to this example.  The subdirectories {\tt Src\_2d}
+and {\tt Src\_3d} contain dimension specific routines.  {\tt Src\_nd} contains dimension-independent routines.
+\item {\tt Exec} Contains a makefile so a user can write other examples besides {\tt SingleVortex}.
+\item {\tt SingleVortex} Build the code here by editing the {\tt GNUmakefile} and running {\tt make}.  There
+is also problem-specific source code here used for initialization or specifying the velocity field used in this
+simulation.
+\end{itemize}
+
 Here is a high-level pseudo-code of the flow of the program:
 \begin{lstlisting}[language=cpp]
 /* Advection_AmrCore Pseudocode */
@@ -310,6 +335,11 @@ main()
     }
 \end{lstlisting}
 
+\subsection{The {\tt AmrAdv} Class}
+This example uses the class {\tt AmrAdv}, which is derived from the class {\tt AmrCore} 
+(which is derived from {\tt AmrMesh}).  The function definitions/implementations
+are given in {\tt AmrAdv.H/cpp}.
+
 \subsection{{\tt FluxRegister}s}
 The function {\tt AmrAdv::Advance()} calls the fortran
 subroutine, {\tt advect} (in {\tt ./Src\_xd/Adv\_xd.f90}).  {\tt advect} computes
@@ -349,7 +379,12 @@ if (do_reflux)
 AverageDownTo(lev); // average lev+1 down to lev
 \end{lstlisting}
 
-In order to define an AMR grid structure, you must define a routine that ``tags'' which
-cells require refinement.  The pure virtual function {\tt ErrorEst} in the {\tt AmrMesh}
-is defined in the {\tt AmrAdv} class.  The {\tt ErrorEst} function must call a subroutine
-that sets elements of a {\tt TagBoxArray} to either 1 or 0.
+\subsection{Regridding}
+The {\tt regrid} function belongs to the {\tt AmrCore} class (it is virtual, but in this
+tutorial we use the instance in {\tt AmrCore}).
+
+Central to the regridding process is the concept of ``tagging'' which cells need refinement.
+{\tt ErrorEst} is a pure virtual function of {\tt AmrCore}, so each application code must
+contain an implementation.  In {\tt AmrAdv.cpp} the {\tt ErrorEst} function is essentially an
+interface to a fortran routine that tags cells (in this case, {\tt state\_error} in 
+{\tt Src\_nd/Tagging\_nd.f90})
