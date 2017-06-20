@@ -1,6 +1,6 @@
 ###
-#n_cell = 32 32 32
-n_cell = 128 128 128
+n_cell = 32 32 32
+#n_cell = 128 128 128
 #n_cell = 8 8 8
 
 #if true, outputs the stencil
