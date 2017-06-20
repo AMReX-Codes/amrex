@@ -175,6 +175,8 @@ namespace amrex
     {
       EBGraph ebg1 = a_ebg1[mfi];
       EBGraph ebg2 = a_ebg2[mfi];
+      pout() << "region 1 = " << ebg1.getRegion() << endl;
+      pout() << "region 2 = " << ebg2.getRegion() << endl << endl;;
       if(ebg1.getDomain() != ebg2.getDomain())
       {
         pout() << "checkgraph: domain mismatch" << endl;
@@ -347,7 +349,7 @@ namespace amrex
 
     FabArray<EBGraph> graphsin;
     pout() << "reading fabarray<ebgraph>" <<endl;
-    FabArrayIO<EBGraph>::read(graphsin, string("ebgraph.plt"));
+    FabArrayIO<EBGraph>::read(graphsin, string("ebgraph.plt"), &dm);
 
     barrier();
     pout() << "checking fabarray<ebgraph>" <<endl;
@@ -366,7 +368,7 @@ namespace amrex
 
     FabArray<EBData> datain;
     pout() << "reading fabarray<ebdata>" <<endl;
-    FabArrayIO<EBData>::read(datain, string("ebdata.plt"));
+    FabArrayIO<EBData>::read(datain, string("ebdata.plt"), &dm);
 
     pout() << "checking fabarray<ebdata>" <<endl;
     retval = checkData(datain, dataout, eblg);
@@ -385,7 +387,7 @@ namespace amrex
 
     FabArray<BaseEBCellFAB<int> > cellin;
     pout() << "reading fabarray<baseebcellfab<<int>>>" <<endl;
-    FabArrayIO<BaseEBCellFAB<int> >::read(cellin, string("baseebcfint_data.plt"));
+    FabArrayIO<BaseEBCellFAB<int> >::read(cellin, string("baseebcfint_data.plt"), &dm);
     pout() << "checking fabarray<baseebcellfab<<int>>>" <<endl;
     retval = checkEquality(cellin, cellout, eblg);
     if(retval != 0) 
