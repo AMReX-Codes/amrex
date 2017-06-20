@@ -8,10 +8,10 @@ extern "C"
 {
 #endif
 
-    void amrex_compute_forces(const void* particles, int* np,
-                              const void* ghosts, int* nn);
+    void amrex_compute_forces(      void* particles, const int* np,
+                              const void* ghosts, const int* nn);
 
-    void amrex_move_particles(const void*, int* np,
+    void amrex_move_particles(void* particles, const int* np,
                               const amrex::Real* dt,
                               const amrex::Real* problo,
                               const amrex::Real* problhi);

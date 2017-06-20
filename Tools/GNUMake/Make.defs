@@ -272,6 +272,13 @@ else
     OMPSuffix	:=
 endif
 
+ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
+  DEFINES += -DBL_SINGLE_PRECISION_PARTICLES
+  amrex_particle_real = float
+else
+  amrex_particle_real = double
+endif
+
 ifeq ($(PRECISION),FLOAT)
     DEFINES += -DBL_USE_FLOAT
     PrecisionSuffix := .$(PRECISION)

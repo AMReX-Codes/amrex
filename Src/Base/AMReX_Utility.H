@@ -165,7 +165,7 @@ namespace amrex
     *  uniformly distributed on [0,1)-interval for each call.
     *
     */
-    double Random (); // [0,1]
+    double Random (); // [0,1)
 
     /**
     * \brief Generate a psuedo-random int using C++11's mt19937.
@@ -174,7 +174,7 @@ namespace amrex
     *  uniformly distributed on [0,n-1]-interval for each call.
     *
     */
-    unsigned long Random_int(unsigned long n); // [0,n-1], where n<=2^32-1
+    unsigned long Random_int(unsigned long n); // [0,n-1]
 
     /** \brief Set the seed of the random number generator.
     *

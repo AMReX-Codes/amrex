@@ -15,7 +15,7 @@ include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files AMReX_Arena.cpp AMReX_BArena.cpp AMReX_BaseFab.cpp AMReX_BCRec.cpp AMReX_BLBackTrace.cpp AMReX_BoxArray.cpp AMReX_Box.cpp AMReX_BoxIterator.cpp AMReX_BoxDomain.cpp AMReX.cpp AMReX_BoxList.cpp AMReX_CArena.cpp AMReX_CoordSys.cpp AMReX_DistributionMapping.cpp AMReX_FabArrayBase.cpp AMReX_FabConv.cpp AMReX_FArrayBox.cpp AMReX_FPC.cpp AMReX_Geometry.cpp AMReX_MultiFabUtil.cpp AMReX_IArrayBox.cpp AMReX_IndexType.cpp AMReX_IntVect.cpp AMReX_iMultiFab.cpp AMReX_MemPool.cpp AMReX_MultiFab.cpp AMReX_MFCopyDescriptor.cpp AMReX_MFIter.cpp AMReX_NFiles.cpp AMReX_Orientation.cpp AMReX_ParallelDescriptor.cpp AMReX_ParmParse.cpp AMReX_Periodicity.cpp AMReX_PhysBCFunct.cpp AMReX_PlotFileUtil.cpp AMReX_RealBox.cpp AMReX_RealVect.cpp AMReX_Utility.cpp AMReX_VisMF.cpp AMReX_parmparse_fi.cpp AMReX_error_fi.cpp AMReX_BLProfiler.cpp AMReX_parstream.cpp AMReX_SPMD.cpp AMReX_TinyProfiler.cpp AMReX_BCUtil.cpp)
 
-set(F77_source_files AMReX_BLBoxLib_F.f AMReX_bl_flush.f AMReX_BLParmParse_F.f AMReX_BLutil_F.f)
+set(F77_source_files AMReX_BLProfiler_F.f AMReX_BLBoxLib_F.f AMReX_bl_flush.f AMReX_BLParmParse_F.f AMReX_BLutil_F.f)
 set(FPP_source_files AMReX_COORDSYS_${BL_SPACEDIM}D.F AMReX_FILCC_${BL_SPACEDIM}D.F)
 set(F90PP_source_files AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90 AMReX_parmparse_mod.F90 AMReX_string_mod.F90 AMReX_error_mod.F90 AMReX_bc_types_mod.F90)
 set(F90_source_files AMReX_mempool_f.f90 AMReX_MultiFabUtil_${BL_SPACEDIM}d.f90 AMReX_BaseFab_nd.f90)
