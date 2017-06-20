@@ -43,24 +43,14 @@ namespace amrex
       {
         m_graphs = a_ebisl.getAllGraphs();
         m_sets   = a_sets;
+        m_useSets = true;
       }
     
     ///
     IrregFABFactory(const EBISLayout& a_ebisl)
       {
         m_graphs = a_ebisl.getAllGraphs();
-        m_sets = shared_ptr<LayoutData<IntVectSet> >
-          (new LayoutData<IntVectSet>(a_ebisl.getDBL(), a_ebisl.getDM()));
-        for(MFIter mfi(*m_graphs); mfi.isValid(); ++mfi)
-        {
-          Box grid = a_ebisl.getDBL()[mfi];
-          (*m_sets)[mfi] = (*m_graphs)[mfi].getIrregCells(grid); 
-        }
-      }
-
-    ///
-    IrregFABFactory()
-      {
+        m_useSets = false;
       }
 
     ///
@@ -68,9 +58,13 @@ namespace amrex
       { }
 
   protected:
+    bool m_useSets;
     shared_ptr<FabArray<EBGraph> > m_graphs;
     shared_ptr<LayoutData<IntVectSet> > m_sets;
 
+  private:
+    //weak construction should be avoided.
+    IrregFABFactory();
   };
 
 }

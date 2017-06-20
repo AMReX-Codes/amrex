@@ -427,6 +427,9 @@ AmrAdv::GetData (int lev, Real time, Array<MultiFab*>& data, Array<Real>& datati
     }
 }
 
+
+// advance a level by dt
+// includes a recursive call for finer levels
 void
 AmrAdv::timeStep (int lev, Real time, int iteration)
 {
@@ -455,6 +458,7 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
 	amrex::Print() << "ADVANCE with dt = " << dt[lev] << std::endl;
     }
 
+    // advance a single level for a single time step, updates flux registers
     Advance(lev, time, dt[lev], iteration, nsubsteps[lev]);
 
     ++istep[lev];
@@ -467,6 +471,7 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
 
     if (lev < finest_level)
     {
+        // recursive call for next-finer level
 	for (int i = 1; i <= nsubsteps[lev+1]; ++i)
 	{
 	    timeStep(lev+1, time+(i-1)*dt[lev+1], i);

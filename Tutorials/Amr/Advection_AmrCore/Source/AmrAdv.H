@@ -87,7 +87,8 @@ private:
     void GetData (int lev, amrex::Real time, amrex::Array<amrex::MultiFab*>& data,
                   amrex::Array<amrex::Real>& datatime);
 
-    // in AmrAdvEvolve.cpp
+    // advance a level by dt
+    // includes a recursive call for finer levels
     void timeStep (int lev, amrex::Real time, int iteration);
 
     // advance a single level for a single time step, updates flux registers
