@@ -106,6 +106,8 @@ public:
 
     int tileIndex () const {return currentIndex;}
 
+    const DistributionMapping& DistributionMap () const { return fabArray.DistributionMap(); }
+
 protected:
 
     std::unique_ptr<FabArray<FArrayBox> > m_fa;  // This must be the first memeber!
