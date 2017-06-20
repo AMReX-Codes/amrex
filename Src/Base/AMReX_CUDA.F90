@@ -273,7 +273,7 @@ contains
 
   subroutine gpu_free(x) bind(c, name='gpu_free')
 
-    use cudafor, only: cudaFree, c_devptr
+    use cudafor, only: cudaFree, c_devptr, cudaErrorCudartUnloading
 
     implicit none
 
@@ -284,7 +284,7 @@ contains
 
     cudaResult = cudaFree(x)
 
-    if (cudaResult /= cudaSuccess) then
+    if (cudaResult /= cudaSuccess .and. cudaResult /= cudaErrorCudartUnloading) then
        write(cudaResultStr, "(I32)") cudaResult
        call bl_warning("CUDA failure in gpu_free(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
     endif
@@ -295,7 +295,7 @@ contains
 
   subroutine gpu_freehost(x) bind(c, name='gpu_freehost')
 
-    use cudafor, only: cudaFreeHost
+    use cudafor, only: cudaFreeHost, cudaErrorCudartUnloading
     use iso_c_binding, only: c_ptr
 
     implicit none
@@ -307,7 +307,7 @@ contains
 
     cudaResult = cudaFreeHost(x)
 
-    if (cudaResult /= cudaSuccess) then
+    if (cudaResult /= cudaSuccess .and. cudaResult /= cudaErrorCudartUnloading) then
        write(cudaResultStr, "(I32)") cudaResult
        call bl_warning("CUDA failure in gpu_freehost(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
     endif
