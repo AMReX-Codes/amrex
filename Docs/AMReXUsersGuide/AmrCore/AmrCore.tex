@@ -189,7 +189,11 @@ the tagged cells.
 
 Many codes, including the {\tt Advection\_AmrCore} example, contain an array of {\tt MultifFab}s
 (one for each level of refinement), and then use ``fillpatch'' operations to fill temporary
-multifabs that have ghost cells that have been properly filled.  At the coarsest level,
+multifabs that may include a different number of ghost cells.  The fillpatch operation fills all cells,
+valid and ghost, from actual valid data at that level, neighboring grids at the same level, domain
+boundary conditions (for examples that have non-periodic
+boundary conditions), or space-time interpolated data from the next-coarser level.
+At the coarsest level,
 the interior and domain boundary (which can be periodic or prescribed based on physical considerations)
 need to be filled.  At the non-coarsest level, the ghost cells can also be interior or domain,
 but can also be at coarse-fine interfaces away from the domain boundary.
@@ -529,4 +533,18 @@ subroutine state_error(tag,tag_lo,tag_hi, &
   enddo
 
 end subroutine state_error
+\end{lstlisting}
+
+\subsection{FillPatch}
+This example has to functions, {\tt AmrAdv::FillPatch} and {\tt AmrAdv::CoarseFillPatch},
+that make use of functions in {\tt AmrCore/AMReX\_FillPatchUtil}.
+
+In {\tt AmrAdv::Advance}, we create a temporary {\tt MultiFab} called {\tt Sborder}, which
+is essentially $\phi$ but with ghost cells filled in.  The valid and ghost cells are filled in from
+actual valid data at that level, neighboring grids at the same level, domain boundary conditions 
+(for examples that have non-periodic
+boundary conditions), or space-time interpolated data from the next-coarser level.
+\begin{lstlisting}[language=cpp]
+MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
+FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 \end{lstlisting}
