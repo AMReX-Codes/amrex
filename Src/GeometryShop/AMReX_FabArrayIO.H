@@ -21,6 +21,7 @@
 #include "AMReX_SPMD.H"
 #include "AMReX_Print.H"
 #include "AMReX_Utility.H"
+#include "AMReX_parstream.H"
 #include "AMReX_BoxArray.H"
 
 
@@ -268,6 +269,7 @@ namespace amrex
         {
           size_t boxlen = a_data[mfi].nBytesFull();
           a_data[mfi].copyToMemFull(movingBuf);
+          //pout() << "write: filename = " << datafilename << ", box = " << mfi.validbox() << endl;
           movingBuf += boxlen;
         }
         fileStream.write(outbuf, totallength);
@@ -278,10 +280,11 @@ namespace amrex
       }
 
 
-    ///read from disk
+    ///read from disk --null dm means make my own
     static void
     read(FabArray<T>      &    a_data,
-         const std::string&    a_directory_name)
+         const std::string&    a_directory_name,
+         const DistributionMapping * dmPtr = NULL)
       {
         BL_PROFILE("FabArrayIO::read");
         //first make and write the header.  This is the only blocking bit of this
@@ -293,7 +296,16 @@ namespace amrex
         headerfile.close();
 
         //define with default factory and have the I/O fill in the holders
-        DistributionMapping dm(header.m_ba);
+        DistributionMapping dm;
+        if(dmPtr == NULL)
+        {
+          dm = DistributionMapping(header.m_ba);
+        }
+        else
+        {
+          dm = *dmPtr;
+        }
+
         a_data.define(header.m_ba, dm,  header.m_nComp, 0);
 
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
@@ -305,6 +317,9 @@ namespace amrex
           std::fstream fileStream;
           fileStream.open(datafile.c_str(),          
                           std::ios::in  | std::ios::binary);
+
+          //pout() << "read: filename = " << datafile << ", box = " << mfi.validbox() << endl;
+
           fileStream.seekg(elem.m_head, std::ios::beg);
           size_t boxsize = elem.m_boxlen;
           char*  inbuf = new char[boxsize];

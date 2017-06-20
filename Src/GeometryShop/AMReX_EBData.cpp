@@ -214,6 +214,9 @@ namespace amrex
     m_volData.define(ivsIrreg, a_graph, V_VOLNUMBER);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
+      //this directional grow is to accomodate the fact that there 
+      //might be an irregular cell lurking on the other side of region
+      //and it will have faces that EBData will have to own.
       Box regionG1D = a_region;
       regionG1D.grow(idir, 1);
       regionG1D &= a_graph.getDomain();
