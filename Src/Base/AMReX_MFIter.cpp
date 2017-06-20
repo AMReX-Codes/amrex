@@ -107,6 +107,9 @@ MFIter::~MFIter ()
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
     releaseDeviceData();
+#ifdef CUDA
+    gpu_synchronize();
+#endif
 }
 
 void 
