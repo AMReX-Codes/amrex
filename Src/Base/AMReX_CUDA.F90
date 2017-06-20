@@ -515,6 +515,28 @@ contains
 
 
 
+  subroutine gpu_stream_synchronize(index) bind(c, name='gpu_stream_synchronize')
+
+    use cudafor, only: cudaStreamSynchronize
+
+    implicit none
+
+    integer, intent(in), value :: index
+
+    integer :: cudaResult
+    character(len=32) :: cudaResultStr
+
+    cudaResult = cudaStreamSynchronize(cuda_streams(stream_from_index(index)))
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in gpu_stream_synchronize(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    end if
+
+  end subroutine gpu_stream_synchronize
+
+
+
   subroutine mem_advise_set_preferred(p, sz, device) bind(c, name='mem_advise_set_preferred')
 
     use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetPreferredLocation
