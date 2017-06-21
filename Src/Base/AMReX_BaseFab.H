@@ -214,6 +214,7 @@ public:
     * Fortran subroutines.
     */
     const int* loVect () const { return domain.loVect(); }
+    const int* loVectF () const { return domain.loVectF(); }
 
     /**
     * \brief Returns the upper corner of the domain.  
@@ -224,6 +225,7 @@ public:
     * Fortran subroutines.
     */
     const int* hiVect () const { return domain.hiVect(); }
+    const int* hiVectF () const { return domain.hiVectF(); }
 
     /**
     * \brief Returns true if the domain of fab is totally contained within
