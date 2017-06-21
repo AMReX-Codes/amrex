@@ -323,8 +323,9 @@ AmrLevelAdv::initData ()
     MultiFab& S_new = get_new_data(Phi_Type);
     Real cur_time   = state[Phi_Type].curTime();
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-	std::cout << "Initializing the data at level " << level << std::endl;
+    if (verbose) {
+        amrex::Print() << "Initializing the data at level " << level << std::endl;
+    }
 
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
@@ -341,8 +342,10 @@ AmrLevelAdv::initData ()
     init_particles();
 #endif
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-	std::cout << "Done initializing the level " << level << " data " << std::endl;
+    if (verbose) {
+	amrex::Print() << "Done initializing the level " << level 
+                       << " data " << std::endl;
+    }
 }
 
 //
@@ -560,8 +563,10 @@ AmrLevelAdv::estTimeStep (Real)
     ParallelDescriptor::ReduceRealMin(dt_est);
     dt_est *= cfl;
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-	std::cout << "AmrLevelAdv::estTimeStep at level " << level << ":  dt_est = " << dt_est << std::endl;
+    if (verbose) {
+	amrex::Print() << "AmrLevelAdv::estTimeStep at level " << level 
+                       << ":  dt_est = " << dt_est << std::endl;
+    }
     
     return dt_est;
 }
@@ -869,8 +874,8 @@ AmrLevelAdv::reflux ()
 	
         ParallelDescriptor::ReduceRealMax(end,IOProc);
 	
-        if (ParallelDescriptor::IOProcessor())
-            std::cout << "AmrLevelAdv::reflux() at level " << level << " : time = " << end << std::endl;
+        amrex::Print() << "AmrLevelAdv::reflux() at level " << level 
+                       << " : time = " << end << std::endl;
     }
 }
 

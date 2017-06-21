@@ -17,8 +17,6 @@ main (int   argc,
     amrex::Initialize(argc,argv);
     Real dRunTime1 = ParallelDescriptor::second();
 
-    std::cout << std::setprecision(10);
-
     int  max_step;
     Real strt_time;
     Real stop_time;
@@ -82,10 +80,7 @@ main (int   argc,
 
     ParallelDescriptor::ReduceRealMax(dRunTime2, ParallelDescriptor::IOProcessorNumber());
 
-    if (ParallelDescriptor::IOProcessor())
-    {
-        std::cout << "Run time = " << dRunTime2 << std::endl;
-    }
+    amrex::Print() << "Run time = " << dRunTime2 << std::endl;
 
     amrex::Finalize();
 
