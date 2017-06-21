@@ -33,41 +33,24 @@ contains
     implicit none
 
     integer :: i, cudaResult, ilen
-    character(len=32) :: cudaResultStr
 
     cudaResult = cudaStreamCreate(cuda_streams(0))
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in initialize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    end if
+    call gpu_error_check(cudaResult)
 
     cudaResult = cudaforSetDefaultStream(cuda_streams(0))
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in initialize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    end if
+    call gpu_error_check(cudaResult)
 
     stream_index = -1
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamCreate(cuda_streams(i))
-
-       if (cudaResult /= cudaSuccess) then
-          write(cudaResultStr, "(I32)") cudaResult
-          call bl_abort("CUDA failure in initialize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-       endif
+       call gpu_error_check(cudaResult)
     enddo
 
     cuda_device_id = 0
 
     cudaResult = cudaGetDeviceProperties(prop, cuda_device_id)
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in initialize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    end if
+    call gpu_error_check(cudaResult)
 
     have_prop = .true.
 
@@ -92,25 +75,16 @@ contains
     implicit none
 
     integer :: i, cudaResult
-    character(len=32) :: cudaResultStr
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamDestroy(cuda_streams(i))
-
-       if (cudaResult /= cudaSuccess) then
-          write(cudaResultStr, "(I32)") cudaResult
-          call bl_warning("CUDA failure in finalize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-       endif
+       call gpu_error_check(cudaResult, abort=.false.)
     end do
 
     call cudaProfilerStop()
 
     cudaResult = cudaDeviceReset()
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_warning("CUDA failure in finalize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    end if
+    call gpu_error_check(cudaResult, abort=.false.)
 
   end subroutine finalize_cuda
 
@@ -125,16 +99,11 @@ contains
     integer(cuda_count_kind), intent(in) :: size
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     ! Set the GPU stack size, in bytes.
 
     cudaResult = cudaDeviceSetLimit(cudaLimitStackSize, size)
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_warning("CUDA failure in finalize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    end if
+    call gpu_error_check(cudaResult)
 
   end subroutine set_gpu_stack_limit
 
@@ -254,14 +223,9 @@ contains
     integer(c_size_t) :: sz
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     cudaResult = cudaMalloc(x, sz)
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_malloc(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+    call gpu_error_check(cudaResult)
 
   end subroutine gpu_malloc
 
@@ -278,14 +242,9 @@ contains
     integer :: sz
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     cudaResult = cudaHostAlloc(x, sz, ior(cudaHostAllocMapped, cudaHostAllocWriteCombined))
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_hostalloc(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+    call gpu_error_check(cudaResult)
 
   end subroutine gpu_hostalloc
 
@@ -302,16 +261,11 @@ contains
     integer(c_size_t) :: sz
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
        cudaResult = cudaMallocManaged(x, sz, cudaMemAttachGlobal)
-
-       if (cudaResult /= cudaSuccess) then
-          write(cudaResultStr, "(I32)") cudaResult
-          call bl_abort("CUDA failure in gpu_malloc_managed(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-       end if
+       call gpu_error_check(cudaResult)
 
     else
 
@@ -332,14 +286,9 @@ contains
     type(c_devptr), value :: x
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     cudaResult = cudaFree(x)
-
-    if (cudaResult /= cudaSuccess .and. cudaResult /= cudaErrorCudartUnloading) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_warning("CUDA failure in gpu_free(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+    call gpu_error_check(cudaResult, abort=.false.)
 
   end subroutine gpu_free
 
@@ -355,14 +304,9 @@ contains
     type(c_ptr), value :: x
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     cudaResult = cudaFreeHost(x)
-
-    if (cudaResult /= cudaSuccess .and. cudaResult /= cudaErrorCudartUnloading) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_warning("CUDA failure in gpu_freehost(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+    call gpu_error_check(cudaResult, abort=.false.)
 
   end subroutine gpu_freehost
 
@@ -378,16 +322,11 @@ contains
     integer :: flags
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     flags = 0 ! This argument does nothing at present, but is part of the API.
 
     cudaResult = cudaHostGetDevicePointer(x, y, flags)
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_host_device_ptr(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+    call gpu_error_check(cudaResult)
 
   end subroutine gpu_host_device_ptr
 
@@ -407,7 +346,6 @@ contains
 
     integer :: s
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     if (idx < 0) then
 
@@ -421,10 +359,7 @@ contains
 
     endif
 
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_htod_memcpy_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+    call gpu_error_check(cudaResult)
 
   end subroutine gpu_htod_memcpy_async
 
@@ -444,7 +379,6 @@ contains
 
     integer :: s
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     if (idx < 0) then
 
@@ -458,10 +392,7 @@ contains
 
     endif
 
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_dtoh_memcpy_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+    call gpu_error_check(cudaResult)
 
   end subroutine gpu_dtoh_memcpy_async
 
@@ -480,7 +411,6 @@ contains
 
     integer :: s
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1 .and. prop%concurrentManagedAccess == 1)) then
 
@@ -496,10 +426,7 @@ contains
 
        endif
 
-       if (cudaResult /= cudaSuccess) then
-          write(cudaResultStr, "(I32)") cudaResult
-          call bl_abort("CUDA failure in gpu_htod_memprefetch_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-       endif
+       call gpu_error_check(cudaResult)
 
     end if
 
@@ -520,7 +447,6 @@ contains
 
     integer :: s
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
@@ -536,10 +462,7 @@ contains
 
        end if
 
-       if (cudaResult /= cudaSuccess) then
-          write(cudaResultStr, "(I32)") cudaResult
-          call bl_abort("CUDA failure in gpu_dtoh_memprefetch_async(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-       end if
+       call gpu_error_check(cudaResult)
 
     end if
 
@@ -554,14 +477,9 @@ contains
     implicit none
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
-    cudaResult = cudaDeviceSynchronize();
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_synchronize(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    endif
+    cudaResult = cudaDeviceSynchronize()
+    call gpu_error_check(cudaResult)
 
   end subroutine gpu_synchronize
 
@@ -576,14 +494,9 @@ contains
     integer, intent(in), value :: index
 
     integer :: cudaResult
-    character(len=32) :: cudaResultStr
 
     cudaResult = cudaStreamSynchronize(cuda_streams(stream_from_index(index)))
-
-    if (cudaResult /= cudaSuccess) then
-       write(cudaResultStr, "(I32)") cudaResult
-       call bl_abort("CUDA failure in gpu_stream_synchronize(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
-    end if
+    call gpu_error_check(cudaResult)
 
   end subroutine gpu_stream_synchronize
 
@@ -630,5 +543,57 @@ contains
     end if
 
   end subroutine mem_advise_set_readonly
+
+
+
+  subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
+
+    integer, intent(in) :: cudaResult
+    logical, intent(in), optional :: abort
+
+    character(len=32) :: cudaResultStr
+    character(len=128) :: error_string
+    logical :: do_abort
+
+    do_abort = .true.
+
+    if (present(abort)) then
+       do_abort = abort
+    end if
+
+    write(cudaResultStr, "(I32)") cudaResult
+
+    error_string = "CUDA Error " // trim(adjustl(cudaResultStr)) // ": " // cudaGetErrorString(cudaResult)
+
+    if (abort) then
+       call bl_abort(error_string)
+    else
+       call bl_warning(error_string)
+    end if
+
+  end subroutine gpu_error
+
+
+
+  subroutine gpu_error_check(cudaResult, abort) bind(c, name='gpu_error_check')
+
+    implicit none
+
+    integer, intent(in) :: cudaResult
+    logical, intent(in), optional :: abort
+
+    logical :: do_abort
+
+    do_abort = .true.
+
+    if (present(abort)) then
+       do_abort = abort
+    end if
+
+    if (cudaResult /= cudaSuccess) then
+       call gpu_error(cudaResult, do_abort)
+    end if
+
+  end subroutine gpu_error_check
 
 end module cuda_module
