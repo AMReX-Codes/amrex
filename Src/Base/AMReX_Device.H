@@ -16,7 +16,7 @@ extern "C" {
     void gpu_malloc_managed(void** p, const std::size_t* sz);
     void gpu_free(void* p);
     void gpu_freehost(void* p);
-    void gpu_host_device_ptr(void** x, void* y);
+    void gpu_host_device_ptr(void** x, const void* y);
     void gpu_stream_synchronize(const int idx);
     void gpu_synchronize();
     void gpu_htod_memcpy_async(void* p_d, void* p_h, const std::size_t* sz, const int* idx);
@@ -48,6 +48,8 @@ public:
     static void setDeviceLaunchRegion(bool r) { in_device_launch_region = r; }
 
     static bool inDeviceLaunchRegion() { return in_device_launch_region; }
+
+    static void* get_host_pointer(const void* ptr);
 
 #ifdef CUDA
     static int cudaDeviceId() { return cuda_device_id; }
