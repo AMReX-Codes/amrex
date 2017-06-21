@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-# Set the search path for cmake module
+# Set the search path for cmake modules
 set ( AMREX_TOOLS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Tools )
 set ( CMAKE_MODULE_PATH ${AMREX_TOOLS_DIR}/CMake )
 
@@ -8,7 +8,7 @@ set ( CMAKE_MODULE_PATH ${AMREX_TOOLS_DIR}/CMake )
 include ( AMReX_Utils )
 
 #  Set default options
-set_default_options ()
+# set_default_options ()
 
 
 project (CCSE)
@@ -20,6 +20,12 @@ set ( CMAKE_VERBOSE_MAKEFILE on )
 enable_language (C)
 enable_language (CXX)
 enable_language (Fortran)
+
+#
+# Require C++11 standard
+#
+set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD_REQUIRED ON) 
 
 
 ########## Load CMake tools directory ##########
@@ -34,9 +40,10 @@ set(CCSE_MODULE_PATH "${CCSE_TOOLS_DIR}/CMake")
 
 
 # Addtional build options
-include(AMReX_Version)
-include(CCSEOptions)
-
+include ( AMReX_Version )
+#include(CCSEOptions)
+include ( AMReX_Options )
+include ( AMReX_Defines )
 #
 # Usage:
 #
