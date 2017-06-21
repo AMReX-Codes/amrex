@@ -359,8 +359,19 @@ namespace amrex
         std::vector<VolIndex> vofs = getVoFs(a_iv);
         return vofs.size();
       }
+    const IntVectSet& getAllIrregCells() const
+      {
+        return m_irregIVS;
+      }
+    const IntVectSet& getAllMultiCells() const
+      {
+        return m_multiIVS;
+      }
   private:
-        
+
+    ///for serialization
+    GraphNode getGraphNode(const IntVect& a_iv) const;
+
     ///box over which this graph is defined
     Box m_region;
         
@@ -390,10 +401,10 @@ namespace amrex
     bool m_isDomainSet;
         
     ///
-    IntVectSet* m_irregIVS;
+    IntVectSet m_irregIVS;
         
     ///
-    IntVectSet* m_multiIVS;
+    IntVectSet m_multiIVS;
         
         
     //mutable because it gets built when needed
@@ -696,6 +707,14 @@ namespace amrex
       }
         
 
+    const IntVectSet& getAllIrregCells() const
+      {
+        return m_implem->getAllIrregCells();
+      }
+    const IntVectSet& getAllMultiCells() const
+      {
+        return m_implem->getAllMultiCells();
+      }
 
     ///this includes all meta data
     std::size_t nBytesFull() const

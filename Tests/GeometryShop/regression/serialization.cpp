@@ -36,7 +36,7 @@
 #include "AMReX_FabArrayIO.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_SphereIF.H"
-
+#include "AMReX_parstream.H"
 namespace amrex
 {
 /***************/
@@ -58,7 +58,7 @@ namespace amrex
     {
       if (n_cell[ivec] <= 0)
       {
-        amrex::Print() << " bogus number of cells input = " << n_cell[ivec];
+        pout() << " bogus number of cells input = " << n_cell[ivec];
         return(-1);
       }
       hi[ivec] = n_cell[ivec] - 1;
@@ -76,14 +76,14 @@ namespace amrex
     if (whichgeom == 0)
     {
       //allregular
-      amrex::Print() << "all regular geometry" << "\n";
+      pout() << "all regular geometry" << "\n";
       AllRegularService regserv;
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
       ebisPtr->define(a_domain, origin, a_dx, regserv, maxboxsize);
     }
     else if (whichgeom == 1)
     {
-      amrex::Print() << "ramp geometry" << "\n";
+      pout() << "ramp geometry" << "\n";
       int upDir;
       int indepVar;
       Real startPt;
@@ -124,7 +124,7 @@ namespace amrex
         sphereCenter[idir] = sphereCenterVect[idir];
       }
 
-      amrex::Print() << "using a sphere implicit function" << "\n";
+      pout() << "using a sphere implicit function" << "\n";
 
       bool negativeInside = false;
       SphereIF lalaBall(sphereRadius, sphereCenter, negativeInside);
@@ -134,7 +134,7 @@ namespace amrex
     else
     {
       //bogus which_geom
-      amrex::Print() << " bogus which_geom input = "
+      pout() << " bogus which_geom input = "
                      << whichgeom << "\n";
       eekflag = 33;
     }
@@ -185,12 +185,12 @@ namespace amrex
   {
     if(a_fab1.box() != a_fab2.box())
     {
-      amrex::Print() << "bebcf box mismatch" << endl;
+      pout() << "bebcf box mismatch" << endl;
       return -1;
     }
     if(a_fab1.nComp() != a_fab2.nComp())
     {
-      amrex::Print() << "bebcf box mismatch" << endl;
+      pout() << "bebcf box mismatch" << endl;
       return -3;
     }
     Box region = a_fab1.box();
@@ -208,7 +208,7 @@ namespace amrex
         int val2 = a_fab1(vof, icomp);
         if(val1 != val2)
         {
-          amrex::Print() << "bebcf data mismatch" << endl;
+          pout() << "bebcf data mismatch" << endl;
           return -2;
         }
       }
@@ -263,12 +263,12 @@ namespace amrex
     const vector<VolIndex>& vvofs2 = a_fab1.getVoFs();
     if(vvofs1.size() != vvofs2.size())
     {
-      amrex::Print() << "bivfcheckequality: vector vof size mismatch" << endl;
+      pout() << "bivfcheckequality: vector vof size mismatch" << endl;
       return -1;
     }
     if(a_fab1.nComp() != a_fab2.nComp())
     {
-      amrex::Print() << "bivfcheckequality: component mismatch" << endl;
+      pout() << "bivfcheckequality: component mismatch" << endl;
       return -2;
     }
     for(int ivof = 0 ; ivof < vvofs1.size(); ivof++)
@@ -277,7 +277,7 @@ namespace amrex
       const VolIndex& vof2 = vvofs2[ivof];
       if(vof1 != vof2)
       {
-        amrex::Print() << "bivfcheckequality: vof mismatch" << endl;
+        pout() << "bivfcheckequality: vof mismatch" << endl;
         return -3;
       }
       if(a_checkRegion.contains(vof1.gridIndex()))
@@ -291,7 +291,7 @@ namespace amrex
           getTolerance<T>(tol);
           if(diff > tol)
           {
-            amrex::Print() <<  "bivfcheckequality: values do not  not match at " << vof1.gridIndex();
+            pout() <<  "bivfcheckequality: values do not  not match at " << vof1.gridIndex();
             return -4;
           }
         }
@@ -311,12 +311,12 @@ namespace amrex
     const vector<FaceIndex>& vfaces2 = a_fab1.getFaces();
     if(vfaces1.size() != vfaces2.size())
     {
-      amrex::Print() << "biff_checkequality: vector vof size mismatch" << endl;
+      pout() << "biff_checkequality: vector vof size mismatch" << endl;
       return -1;
     }
     if(a_fab1.nComp() != a_fab2.nComp())
     {
-      amrex::Print() << "biff_checkequality: component mismatch" << endl;
+      pout() << "biff_checkequality: component mismatch" << endl;
       return -2;
     }
     for(int iface = 0 ; iface < vfaces1.size(); iface++)
@@ -325,7 +325,7 @@ namespace amrex
       const FaceIndex& face2 = vfaces2[iface];
       if(face1 != face2)
       {
-        amrex::Print() << "biff_checkequality: vof mismatch" << endl;
+        pout() << "biff_checkequality: vof mismatch" << endl;
         return -3;
       }
       if(a_checkRegion.contains(face1.gridIndex(Side::Lo)))
@@ -339,7 +339,7 @@ namespace amrex
           getTolerance<T>(tol);
           if(diff > tol)
           {
-            amrex::Print() <<  "biff_checkequality: values do not  not match at " << face1.gridIndex(Side::Lo);
+            pout() <<  "biff_checkequality: values do not  not match at " << face1.gridIndex(Side::Lo);
             return -4;
           }
         }
@@ -355,12 +355,12 @@ namespace amrex
   {
     if(a_ebg1.getDomain() != a_ebg2.getDomain())
     {
-      amrex::Print() << "ebg_checkequality: domain mismatch" << endl;
+      pout() << "ebg_checkequality: domain mismatch" << endl;
       return -1;
     }
     if(a_ebg1.getRegion() != a_ebg2.getRegion())
     {
-      amrex::Print() << "ebg_checkequality: region mismatch" << endl;
+      pout() << "ebg_checkequality: region mismatch" << endl;
       return -2;
     }
     for(BoxIterator bit(a_ebg1.getRegion()); bit.ok(); ++bit)
@@ -371,7 +371,7 @@ namespace amrex
           vector<VolIndex> vvofs2 = a_ebg1.getVoFs(bit());
           if(vvofs1.size() != vvofs2.size())
           {
-            amrex::Print() << "ebg_checkequality: vector vof size mismatch" << endl;
+            pout() << "ebg_checkequality: vector vof size mismatch" << endl;
             return -3;
           }
           for(int ivof = 0; ivof < vvofs1.size(); ivof++)
@@ -380,7 +380,7 @@ namespace amrex
             const VolIndex& vof2 = vvofs2[ivof];
             if(vof1 != vof2)
             {
-              amrex::Print() << "ebg_checkequality: vof mismatch" << endl;
+              pout() << "ebg_checkequality: vof mismatch" << endl;
               return -4;
             }
             for(int idir = 0; idir < SpaceDim; idir++)
@@ -391,7 +391,7 @@ namespace amrex
                 vector<FaceIndex> vfaces2 = a_ebg2.getFaces(vof2, idir, sit());
                 if(vfaces1.size() != vfaces2.size())
                 {
-                  amrex::Print() << "ebg_checkequality: vector vof size mismatch 2" << endl;
+                  pout() << "ebg_checkequality: vector vof size mismatch 2" << endl;
                   return -5;
                 }
                 for(int iface = 0; iface < vfaces1.size(); iface++)
@@ -400,7 +400,7 @@ namespace amrex
                   const FaceIndex& face2 = vfaces2[iface];
                   if(face1 != face2)
                   {
-                    amrex::Print() << "ebg_checkequality: face mismatch" << endl;
+                    pout() << "ebg_checkequality: face mismatch" << endl;
                     return -6;
                   }
                 }
@@ -421,7 +421,7 @@ namespace amrex
 
     if(a_ebd1.getRegion() != a_ebd2.getRegion())
     {
-      amrex::Print() << "ebd_checkequality: region mismatch" << endl;
+      pout() << "ebd_checkequality: region mismatch" << endl;
       return -6;
     }
 
@@ -430,7 +430,7 @@ namespace amrex
     int retval = BIVF_checkEquality<Real>(voldata1, voldata2, a_checkRegion);
     if(retval != 0)
     {
-      amrex::Print() << "ebd_checkequality: vol data mismatch" << endl;
+      pout() << "ebd_checkequality: vol data mismatch" << endl;
       return -7;
     }
     
@@ -441,7 +441,7 @@ namespace amrex
       int retval = BIFF_checkEquality<Real>(facedata1, facedata2, a_checkRegion);
       if(retval != 0)
       {
-        amrex::Print() << "ebd_checkequality: face data mismatch" << endl;
+        pout() << "ebd_checkequality: face data mismatch" << endl;
         return -7;
       }
     }
@@ -452,6 +452,7 @@ namespace amrex
   {
     Box domain;
     Real dx;
+    pout() << "making the geometry" << endl;
     makeGeometry(domain, dx);
     int maxboxsize;
     ParmParse pp;
@@ -459,9 +460,11 @@ namespace amrex
     BoxArray ba(domain);
     ba.maxSize(maxboxsize);
     DistributionMapping dm(ba);
+    pout() << "making the eblevelgrid" << endl;
     EBLevelGrid eblg(ba, dm, domain, 2);
     int retval = 0;
     int nvar = SpaceDim;//just to check to see if i am assuming scalars anywhere
+    pout() << "about to loop over stuff" << endl;
     for(MFIter mfi(ba, dm); mfi.isValid(); ++mfi)
     {
       const EBISBox& ebis = eblg.getEBISL()[mfi];
@@ -483,21 +486,21 @@ namespace amrex
           size_t nbytesbiv2 = srcBIV.copyToMemFull(charbiv);
           if(nbytesbiv1 != nbytesbiv2)
           {
-            amrex::Print() << "byte size mismatch" << endl;
+            pout() << "byte size mismatch" << endl;
             return -10;
           }
           BaseIVFAB<int> dstBIV;
           size_t nbytesbiv3 = dstBIV.copyFromMemFull(charbiv);
           if(nbytesbiv1 != nbytesbiv3)
           {
-            amrex::Print() << "byte size mismatch" << endl;
+            pout() << "byte size mismatch" << endl;
             return -11;
           }
 
           retval = BIVF_checkEquality<int>(srcBIV, dstBIV, grownBox);
           if(retval != 0)
           {
-            amrex::Print() << "biv equality test (full) returned error" << endl;
+            pout() << "biv equality test (full) returned error" << endl;
             return retval;
           }
           delete[] charbiv;
@@ -511,21 +514,21 @@ namespace amrex
           size_t nbytesbiv2 = srcBIV.copyToMem(valid, startcomp, nvar, charbiv);
           if(nbytesbiv1 != nbytesbiv2)
           {
-            amrex::Print() << "byte size mismatch" << endl;
+            pout() << "byte size mismatch" << endl;
             return -12;
           }
 
           size_t nbytesbiv3 = dstBIV.copyFromMem(valid, startcomp, nvar, charbiv);
           if(nbytesbiv3 != nbytesbiv2)
           {
-            amrex::Print() << "byte size mismatch" << endl;
+            pout() << "byte size mismatch" << endl;
             return -112;
           }
 
           retval = BIVF_checkEquality<int>(srcBIV, dstBIV, valid);
           if(retval != 0)
           {
-            amrex::Print() << "biv equality test (part) returned error" << endl;
+            pout() << "biv equality test (part) returned error" << endl;
             return retval;
           }
           delete[] charbiv;
@@ -546,21 +549,21 @@ namespace amrex
           size_t nbytes2 = src.copyToMemFull(charbuf);
           if(nbytes1 != nbytes2)
           {
-            amrex::Print() << "byte size mismatch" << endl;
+            pout() << "byte size mismatch" << endl;
             return -210;
           }
           BaseEBCellFAB<int> dst;
           size_t nbytes3 = dst.copyFromMemFull(charbuf);
           if(nbytes1 != nbytes3)
           {
-            amrex::Print() << "byte size mismatch" << endl;
+            pout() << "byte size mismatch" << endl;
             return -211;
           }
 
           retval = BEBCF_checkEquality(src, dst, grownBox);
           if(retval != 0)
           {
-            amrex::Print() << "ebcf equality test (full) returned error" << endl;
+            pout() << "ebcf equality test (full) returned error" << endl;
             return retval;
           }
           delete[] charbuf;
@@ -574,21 +577,21 @@ namespace amrex
           size_t nbytes2 = src.copyToMem(valid, startcomp, nvar, charbuf);
           if(nbytes1 != nbytes2)
           {
-            amrex::Print() << "byte size mismatch" << endl;
+            pout() << "byte size mismatch" << endl;
             return -212;
           }
 
           size_t nbytes3 = dst.copyFromMem(valid, startcomp, nvar, charbuf);
           if(nbytes3 != nbytes2)
           {
-            amrex::Print() << "byte size mismatch" << endl;
+            pout() << "byte size mismatch" << endl;
             return -213;
           }
 
           retval = BEBCF_checkEquality(src, dst, valid);
           if(retval != 0)
           {
-            amrex::Print() << "ebcf equality test (part) returned error" << endl;
+            pout() << "ebcf equality test (part) returned error" << endl;
             return retval;
           }
           delete[] charbuf;
@@ -611,21 +614,21 @@ namespace amrex
             size_t nbytes2 = src.copyToMemFull(charbuf);
             if(nbytes1 != nbytes2)
             {
-              amrex::Print() << "byte size mismatch" << endl;
+              pout() << "byte size mismatch" << endl;
               return -110;
             }
             BaseIFFAB<int> dst;
             size_t nbytes3 = dst.copyFromMemFull(charbuf);
             if(nbytes1 != nbytes3)
             {
-              amrex::Print() << "byte size mismatch" << endl;
+              pout() << "byte size mismatch" << endl;
               return -111;
             }
 
             retval = BIFF_checkEquality<int>(src, dst, grownBox);
             if(retval != 0)
             {
-              amrex::Print() << " equality test (full) returned error" << endl;
+              pout() << " equality test (full) returned error" << endl;
               return retval;
             }
             delete[] charbuf;
@@ -639,21 +642,21 @@ namespace amrex
             size_t nbytes2 = src.copyToMem(valid, startcomp, nvar, charbuf);
             if(nbytes1 != nbytes2)
             {
-              amrex::Print() << "byte size mismatch" << endl;
+              pout() << "byte size mismatch" << endl;
               return -112;
             }
 
             size_t nbytes3 = dst.copyFromMem(valid, startcomp, nvar, charbuf);
             if(nbytes3 != nbytes2)
             {
-              amrex::Print() << "byte size mismatch" << endl;
+              pout() << "byte size mismatch" << endl;
               return -113;
             }
 
             retval = BIFF_checkEquality<int>(src, dst, valid);
             if(retval != 0)
             {
-              amrex::Print() << " equality test (part) returned error" << endl;
+              pout() << " equality test (part) returned error" << endl;
               return retval;
             }
             delete[] charbuf;
@@ -674,21 +677,21 @@ namespace amrex
           size_t nbytes2 = src.copyToMemFull(buff);
           if(nbytes1 != nbytes2)
           {
-            amrex::Print() << "ebg byte size mismatch" << endl;
+            pout() << "ebg byte size mismatch" << endl;
             return -13;
           }
           EBGraph dst;
           size_t nbytes3 = dst.copyFromMemFull(buff);
           if(nbytes1 != nbytes3)
           {
-            amrex::Print() << "ebg byte size mismatch 2" << endl;
+            pout() << "ebg byte size mismatch 2" << endl;
             return -14;
           }
 
           retval = EBG_checkEquality(src, dst, grownBox);
           if(retval != 0)
           {
-            amrex::Print() << " ebg equality test (full) returned error" << endl;
+            pout() << " ebg equality test (full) returned error" << endl;
             return retval;
           }
           delete[] buff;
@@ -703,21 +706,21 @@ namespace amrex
           size_t nbytes2 = src.copyToMem(valid, startcomp, nvar, buff);
           if(nbytes1 != nbytes2)
           {
-            amrex::Print() << "ebg byte size mismatch 3" << endl;
+            pout() << "ebg byte size mismatch 3" << endl;
             return -15;
           }
 
           size_t nbytes3 = dst.copyFromMem(valid, startcomp, nvar, buff);
           if(nbytes1 != nbytes3)
           {
-            amrex::Print() << "ebg byte size mismatch 4" << endl;
+            pout() << "ebg byte size mismatch 4" << endl;
             return -16;
           }
 
           retval = EBG_checkEquality(src, dst, valid);
           if(retval != 0)
           {
-            amrex::Print() << "equality test (part) returned error" << endl;
+            pout() << "equality test (part) returned error" << endl;
             return retval;
           }
           delete[] buff;
@@ -736,21 +739,21 @@ namespace amrex
           size_t nbytes2 = src.copyToMemFull(buff);
           if(nbytes1 != nbytes2)
           {
-            amrex::Print() << "ebg byte size mismatch" << endl;
+            pout() << "ebg byte size mismatch" << endl;
             return -13;
           }
           EBData dst;
           size_t nbytes3 = dst.copyFromMemFull(buff);
           if(nbytes1 != nbytes3)
           {
-            amrex::Print() << "ebg byte size mismatch 2" << endl;
+            pout() << "ebg byte size mismatch 2" << endl;
             return -14;
           }
 
           retval = EBD_checkEquality(src, dst, grownBox);
           if(retval != 0)
           {
-            amrex::Print() << " ebg equality test (full) returned error" << endl;
+            pout() << " ebg equality test (full) returned error" << endl;
             return retval;
           }
           delete[] buff;
@@ -766,21 +769,21 @@ namespace amrex
           size_t nbytes2 = src.copyToMem(valid, startcomp, nvar, buff);
           if(nbytes1 != nbytes2)
           {
-            amrex::Print() << "ebg byte size mismatch 3" << endl;
+            pout() << "ebg byte size mismatch 3" << endl;
             return -15;
           }
 
           size_t nbytes3 = dst.copyFromMem(valid, startcomp, nvar, buff);
           if(nbytes1 != nbytes3)
           {
-            amrex::Print() << "ebg byte size mismatch 4" << endl;
+            pout() << "ebg byte size mismatch 4" << endl;
             return -16;
           }
 
           retval = EBD_checkEquality(src, dst, valid);
           if(retval != 0)
           {
-            amrex::Print() << "equality test (part) returned error" << endl;
+            pout() << "equality test (part) returned error" << endl;
             return retval;
           }
           delete[] buff;

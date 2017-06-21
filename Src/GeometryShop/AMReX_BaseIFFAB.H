@@ -42,6 +42,7 @@ namespace amrex
 */
     BaseIFFAB();
 
+    
 ///
 /**
    Defining constructor.  Specifies the irregular domain
@@ -218,6 +219,8 @@ namespace amrex
     void   getFaceSubset(std::vector<FaceIndex>& a_subFaces, const Box& a_subBox) const;
   protected:
 
+    //because my debugging functions get confounded  by templates
+    void dumpFaces(const vector<FaceIndex>& a_faces) const;
     int m_nFaces;
     int m_nComp;
     int m_direction;

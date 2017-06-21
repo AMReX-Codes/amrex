@@ -21,6 +21,7 @@
 #include "AMReX_SPMD.H"
 #include "AMReX_Print.H"
 #include "AMReX_Utility.H"
+#include "AMReX_parstream.H"
 #include "AMReX_BoxArray.H"
 
 
@@ -174,7 +175,14 @@ namespace amrex
     {
       a_os << a_hd.m_vecElem[ivec] << endl;
     }
-    a_hd.m_ba.writeOn(a_os);
+    long bxsize = a_hd.m_ba.size();
+
+    //box array does not have proper ostream, istream functions.
+    a_os << bxsize << endl;
+    for(int ibox = 0; ibox < bxsize; ibox++)
+    {
+      a_os << a_hd.m_ba[ibox] << endl;
+    }
     return a_os;
   }
 
@@ -191,10 +199,18 @@ namespace amrex
     {
       a_is >> a_hd.m_vecElem[ivec];
     }
-    //why box array has to be weird, who knows?
-    //putting this last because it probably leaves the is in the wrong
-    //place
-    readBoxArray(a_hd.m_ba, a_is, false);
+
+    long bxsize;
+
+    //box array does not have proper ostream, istream functions.
+    a_is >> bxsize;
+    vector<Box> boxes(bxsize);
+    for(int ibox = 0; ibox < bxsize; ibox++)
+    {
+      a_is >> boxes[ibox];
+    }
+    
+    a_hd.m_ba = BoxArray(&boxes[0], bxsize);
     return a_is;
   }
 
@@ -253,6 +269,7 @@ namespace amrex
         {
           size_t boxlen = a_data[mfi].nBytesFull();
           a_data[mfi].copyToMemFull(movingBuf);
+          //pout() << "write: filename = " << datafilename << ", box = " << mfi.validbox() << endl;
           movingBuf += boxlen;
         }
         fileStream.write(outbuf, totallength);
@@ -263,10 +280,11 @@ namespace amrex
       }
 
 
-    ///read from disk
+    ///read from disk --null dm means make my own
     static void
     read(FabArray<T>      &    a_data,
-         const std::string&    a_directory_name)
+         const std::string&    a_directory_name,
+         const DistributionMapping * dmPtr = NULL)
       {
         BL_PROFILE("FabArrayIO::read");
         //first make and write the header.  This is the only blocking bit of this
@@ -278,7 +296,16 @@ namespace amrex
         headerfile.close();
 
         //define with default factory and have the I/O fill in the holders
-        DistributionMapping dm(header.m_ba);
+        DistributionMapping dm;
+        if(dmPtr == NULL)
+        {
+          dm = DistributionMapping(header.m_ba);
+        }
+        else
+        {
+          dm = *dmPtr;
+        }
+
         a_data.define(header.m_ba, dm,  header.m_nComp, 0);
 
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
@@ -290,6 +317,9 @@ namespace amrex
           std::fstream fileStream;
           fileStream.open(datafile.c_str(),          
                           std::ios::in  | std::ios::binary);
+
+          //pout() << "read: filename = " << datafile << ", box = " << mfi.validbox() << endl;
+
           fileStream.seekg(elem.m_head, std::ios::beg);
           size_t boxsize = elem.m_boxlen;
           char*  inbuf = new char[boxsize];
