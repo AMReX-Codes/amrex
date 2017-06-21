@@ -99,8 +99,7 @@ int main(int argc, char* argv[])
 
     int ncell = 64;
     int nlevs = 2;
-    int coord = 0;
-    
+
     RealBox real_box, fine_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
         real_box.setLo(n,0.0);
@@ -122,9 +121,9 @@ int main(int argc, char* argv[])
     for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1;
 
     Array<Geometry> geom(nlevs);
-    geom[0].define(domain, &real_box, coord, is_per);
+    geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     geom[1].define(amrex::refine(geom[0].Domain(), rr[0]),
-                   &real_box, coord, is_per);
+                   &real_box, CoordSys::cartesian, is_per);
 
     Array<BoxArray> ba(nlevs);
     ba[0].define(domain);  

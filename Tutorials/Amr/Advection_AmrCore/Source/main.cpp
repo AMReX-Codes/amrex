@@ -34,8 +34,8 @@ int main(int argc, char* argv[])
 	
         // print wallclock time
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
-	if (amradv.Verbose() && ParallelDescriptor::IOProcessor()) {
-	    std::cout << "\nTotal Time                     : " << end_total << '\n';
+	if (amradv.Verbose()) {
+            amrex::Print() << "\nTotal Time: " << end_total << '\n';
 	}
     }
 
