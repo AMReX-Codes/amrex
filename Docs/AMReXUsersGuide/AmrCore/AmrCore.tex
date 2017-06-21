@@ -147,7 +147,10 @@ protected:
 {\tt AMReX\_AmrCore.cpp/H} contains the class {\tt AmrCore}, which is derived from
 the {\tt AmrMesh} class.
 
-There are 5 pure virtual functions in the {\tt AmrCore} class:
+There are 5 pure virtual functions in the {\tt AmrCore} class.  Any applications
+you create must implement these functions.  The tutorial code 
+{\tt Amr/Advection\_AmrCore} provides sample implementation in the derived
+class {\tt AmrAdv}.
 
 \begin{lstlisting}[language=cpp]
 //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
