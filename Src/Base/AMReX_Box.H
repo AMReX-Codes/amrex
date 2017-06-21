@@ -9,6 +9,7 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
+#include <AMReX_Device.H>
 #include <AMReX_Array.H>
 
 namespace amrex
@@ -266,6 +267,16 @@ public:
     }
 
     const int* loVect () && = delete;
+
+    //! Similar to loVect(). This one returns a pointer for the device to operate on.
+    const int* loVectF () const& {
+#ifdef CUDA
+        return (int*) Device::get_host_pointer(lo_d_h.get());
+#else
+        return smallend.getVect();
+#endif
+    }
+	
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
     const int* hiVect () const& {
 #ifdef CUDA
@@ -276,6 +287,15 @@ public:
     }
 
     const int* hiVect () && = delete;
+
+    //! Similar to hiVect(). This one returns a pointer for the device to operate on.
+    const int* hiVectF () const& {
+#ifdef CUDA
+        return (int*) Device::get_host_pointer(hi_d_h.get());
+#else
+        return bigend.getVect();
+#endif
+    }
 
     //! Returns the coordinate normal to given face.
     int operator[] (Orientation face) const;
@@ -659,6 +679,9 @@ private:
 #ifdef CUDA
     std::shared_ptr<int> lo_d;
     std::shared_ptr<int> hi_d;
+
+    std::shared_ptr<int> lo_d_h;
+    std::shared_ptr<int> hi_d_h;
 #endif
 };
 
