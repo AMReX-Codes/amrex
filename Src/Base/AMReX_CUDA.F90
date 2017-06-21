@@ -124,6 +124,18 @@ contains
 
 
 
+  subroutine get_stream_idx(index) bind(c, name='get_stream_idx')
+
+    implicit none
+
+    integer, intent(out) :: index
+
+    index = stream_index
+
+  end subroutine get_stream_idx
+
+
+
   integer function stream_from_index(idx)
 
     implicit none
