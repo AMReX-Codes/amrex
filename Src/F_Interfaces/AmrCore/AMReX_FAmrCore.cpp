@@ -8,16 +8,19 @@ amrex::FAmrCore::FAmrCore ()
 {
     for (int lev = 0; lev <= maxLevel(); ++lev)
     {
-        if (maxGridSize(lev) % blockingFactor(lev) != 0 &&
-            blockingFactor(lev) % maxGridSize(lev) != 0)
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim)
         {
-            amrex::Abort("On level " + std::to_string(lev) 
-                         + " amr.max_grid_size = " + std::to_string(maxGridSize(lev)) 
-                         + " is not a multiple of amr.blocking_factor = "
-                         + std::to_string(blockingFactor(lev)));
+            if (maxGridSize(lev)[idim] % blockingFactor(lev)[idim] != 0 &&
+                blockingFactor(lev)[idim] % maxGridSize(lev)[idim] != 0)
+            {
+                amrex::Abort("On level " + std::to_string(lev) 
+                             + " amr.max_grid_size = " + std::to_string(maxGridSize(lev)[idim])
+                             + " is not a multiple of amr.blocking_factor = "
+                             + std::to_string(blockingFactor(lev)[idim]));
+            }
         }
-
-        if (blockingFactor(lev) < 8)
+            
+        if (blockingFactor(lev) < IntVect{D_DECL(8,8,8)})
         {
             amrex::Print() << "amr.blocking_factor < 8 not recommended\n";
         }
@@ -35,19 +38,22 @@ amrex::FAmrCore::FAmrCore ()
 
     for (int lev = 0; lev < maxLevel(); ++lev)
     {
-        const int rr = refRatio(lev)[0];
-        const int bf = blockingFactor(lev+1);
-
-        if (bf % rr != 0)
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim)
         {
-            amrex::Abort(" blocking_fact = " + std::to_string(bf)
-                         + " is not a multiple of ref_ratio = " + std::to_string(rr));
-        }
-
-        if (bf / rr < 2)
-        {
-            amrex::Abort(" blocking_fact = " + std::to_string(bf)
-                         + " is too small relative to ref_ratio = " + std::to_string(rr));
+            const int rr = refRatio(lev)[idim];
+            const int bf = blockingFactor(lev+1)[idim];
+            
+            if (bf % rr != 0)
+            {
+                amrex::Abort(" blocking_fact = " + std::to_string(bf)
+                             + " is not a multiple of ref_ratio = " + std::to_string(rr));
+            }
+            
+            if (bf / rr < 2)
+            {
+                amrex::Abort(" blocking_fact = " + std::to_string(bf)
+                             + " is too small relative to ref_ratio = " + std::to_string(rr));
+            }
         }
     }
 }

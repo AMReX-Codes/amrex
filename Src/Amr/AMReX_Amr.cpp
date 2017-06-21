@@ -437,10 +437,13 @@ Amr::InitAmr ()
                 is >> bx;
                 STRIP;
                  bx.refine(ref_ratio[lev-1]);
-                 if (bx.longside() > max_grid_size[lev])
+                 for (int idim = 0 ; idim < BL_SPACEDIM; ++idim)
                  {
-		     amrex::Print() << "Grid " << bx << " too large" << '\n';
-                     amrex::Error();
+                     if (bx.length(idim) > max_grid_size[lev][idim])
+                     {
+                         amrex::Print() << "Grid " << bx << " too large" << '\n';
+                         amrex::Error();
+                     }
                  }
                  bl.push_back(bx);
             }
@@ -941,11 +944,14 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        int k = blocking_factor[i];
-        while ( k > 0 && (k%2 == 0) )
-            k /= 2;
-        if (k != 1)
-            amrex::Error("Amr::checkInputs: blocking_factor not power of 2");
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+        {
+            int k = blocking_factor[i][idim];
+            while ( k > 0 && (k%2 == 0) )
+                k /= 2;
+            if (k != 1)
+                amrex::Error("Amr::checkInputs: blocking_factor not power of 2");
+        }
     }
     //
     // Check level dependent values.
@@ -964,7 +970,7 @@ Amr::checkInput ()
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
         int len = domain.length(i);
-        if (len%blocking_factor[0] != 0)
+        if (len%blocking_factor[0][i] != 0)
             amrex::Error("domain size not divisible by blocking_factor");
     }
     //
@@ -972,8 +978,11 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        if (max_grid_size[i]%2 != 0)
-            amrex::Error("max_grid_size is not even");
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            if (max_grid_size[i][idim]%2 != 0) {
+                amrex::Error("max_grid_size is not even");
+            }
+        }
     }
 
     //
@@ -981,8 +990,11 @@ Amr::checkInput ()
     //
     for (int i = 0; i < max_level; i++)
     {
-        if (max_grid_size[i]%blocking_factor[i] != 0)
-            amrex::Error("max_grid_size not divisible by blocking_factor");
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+                amrex::Error("max_grid_size not divisible by blocking_factor");
+            }
+        }
     }
 
     if( ! Geometry::ProbDomain().ok()) {
@@ -2377,13 +2389,13 @@ Amr::regrid (int  lbase,
 	}
         Array<Array<int> > mLDM;
 	if(rebalance_grids == 1) {
-          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0));
+          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0)[0]);
 	} else if(rebalance_grids == 2) {
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0));
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0]);
 	} else if(rebalance_grids == 3) {
-          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
+          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0)[0]);
 	} else if(rebalance_grids == 4) {  // ---- move all grids to proc zero
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), 0);
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0], 0);
 	} else {
 	}
 
@@ -2999,7 +3011,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
     int maxRank(ParallelDescriptor::NProcsAll() - nSidecarProcs - 1);
     amrex::Print() << "_______ maxRank = " << maxRank << "\n";
 
-    mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0), maxRank);
+    mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0], maxRank);
 
     for(int iMap(0); iMap < mLDM.size(); ++iMap) {
 	amrex::Print() << "_in Amr::AddProcsToSidecar:  calling MoveAllFabs:\n";
@@ -3064,6 +3076,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       Array<int> allInts;
       int allIntsSize(0);
       int dt_level_Size(dt_level.size()), dt_min_Size(dt_min.size());
+      int max_grid_size_Size(max_grid_size.size()), blocking_factor_Size(blocking_factor.size());
       int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(Geom().size());
       int state_plot_vars_Size(state_plot_vars.size()), derive_plot_vars_Size(derive_plot_vars.size());
       int state_small_plot_vars_Size(state_small_plot_vars.size());
@@ -3111,14 +3124,12 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         for(int i(0); i < regrid_int.size(); ++i)      { allInts.push_back(regrid_int[i]); }
         allInts.push_back(n_error_buf.size());
         for(int i(0); i < n_error_buf.size(); ++i)    { allInts.push_back(n_error_buf[i]); }
-        allInts.push_back(blocking_factor.size());
-        for(int i(0); i < blocking_factor.size(); ++i) { allInts.push_back(blocking_factor[i]); }
-        allInts.push_back(max_grid_size.size());
-        for(int i(0); i < max_grid_size.size(); ++i)   { allInts.push_back(max_grid_size[i]); }
 
 	// ---- for non-int arrays
         allInts.push_back(dt_level.size());
         allInts.push_back(dt_min.size());
+        allInts.push_back(max_grid_size.size());
+        allInts.push_back(blocking_factor.size());
         allInts.push_back(ref_ratio.size());
         allInts.push_back(amr_level.size());
         allInts.push_back(Geom().size());
@@ -3190,14 +3201,11 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         n_error_buf.resize(aSize);
         for(int i(0); i < n_error_buf.size(); ++i)     { n_error_buf[i] = allInts[count++]; }
         aSize                      = allInts[count++];
-        blocking_factor.resize(aSize);
-        for(int i(0); i < blocking_factor.size(); ++i) { blocking_factor[i] = allInts[count++]; }
-        aSize                      = allInts[count++];
-        max_grid_size.resize(aSize);
-        for(int i(0); i < max_grid_size.size(); ++i)   { max_grid_size[i] = allInts[count++]; }
 
         dt_level_Size              = allInts[count++];
         dt_min_Size                = allInts[count++];
+        max_grid_size_Size         = allInts[count++];
+        blocking_factor_Size       = allInts[count++];
         ref_ratio_Size             = allInts[count++];
         amr_level_Size             = allInts[count++];
         geom_Size                  = allInts[count++];
@@ -3393,12 +3401,21 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       Array<int> allIntVects;
       int allIntVectsSize(0);
       if(scsMyId == ioProcNumSCS) {
+
+        for(int lev(0); lev < max_grid_size.size(); ++lev) {
+          for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(max_grid_size[lev][i]); }
+        }
+
+        for(int lev(0); lev < blocking_factor.size(); ++lev) {
+          for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(blocking_factor[lev][i]); }
+        }
+
         for(int lev(0); lev < ref_ratio.size(); ++lev) {
           for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(ref_ratio[lev][i]); }
 	}
 
 	allIntVectsSize = allIntVects.size();
-	BL_ASSERT(allIntVectsSize == ref_ratio_Size * BL_SPACEDIM);
+	BL_ASSERT(allIntVectsSize == (max_grid_size_Size+blocking_factor_Size+ref_ratio_Size)* BL_SPACEDIM);
       }
 
       ParallelDescriptor::Bcast(&allIntVectsSize, 1, ioProcNumAll, scsComm);
@@ -3411,9 +3428,17 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         // ---- unpack the IntVects
         if(scsMyId != ioProcNumSCS) {
 	  int count(0);
-	  BL_ASSERT(allIntVectsSize == ref_ratio_Size * BL_SPACEDIM);
+          BL_ASSERT(allIntVectsSize == (max_grid_size_Size+blocking_factor_Size+ref_ratio_Size)* BL_SPACEDIM);
 
+          max_grid_size.resize(max_grid_size_Size);
+          blocking_factor.resize(blocking_factor_Size);
 	  ref_ratio.resize(ref_ratio_Size);
+          for(int lev(0); lev < max_grid_size.size(); ++lev) {
+            for(int i(0); i < BL_SPACEDIM; ++i)    { max_grid_size[lev][i] = allIntVects[count++]; }
+          }
+          for(int lev(0); lev < blocking_factor.size(); ++lev) {
+            for(int i(0); i < BL_SPACEDIM; ++i)    { blocking_factor[lev][i] = allIntVects[count++]; }
+          }
           for(int lev(0); lev < ref_ratio.size(); ++lev) {
             for(int i(0); i < BL_SPACEDIM; ++i)    { ref_ratio[lev][i] = allIntVects[count++]; }
 	  }
@@ -3538,14 +3563,14 @@ Amr::RedistributeGrids(int how) {
         }
         Array<Array<int> > mLDM;
         if(how == 1) {
-          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0));
+          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0)[0]);
         } else if(how == 2) {
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0));
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0]);
         } else if(how == 3) {
-          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0));
+          mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0)[0]);
         } else if(how == 0) {   // ---- move all grids to proc zero
 	  int minRank(0), maxRank(0);
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0),
+          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0],
 	                                                  maxRank, minRank);
         } else {
 	  return;
