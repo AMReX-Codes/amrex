@@ -7,7 +7,7 @@ module cuda_module
   public
 
   integer, parameter :: max_cuda_streams = 100
-  integer(kind=cuda_stream_kind) :: cuda_streams(max_cuda_streams)
+  integer(kind=cuda_stream_kind) :: cuda_streams(0:max_cuda_streams) ! Note: zero will be the default stream.
 
   integer, private :: cuda_device_id
 
@@ -28,12 +28,28 @@ contains
 
   subroutine initialize_cuda_f() bind(c, name='initialize_cuda_f')
 
-    use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties
+    use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaforSetDefaultStream
 
     implicit none
 
     integer :: i, cudaResult, ilen
     character(len=32) :: cudaResultStr
+
+    cudaResult = cudaStreamCreate(cuda_streams(0))
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in initialize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    end if
+
+    cudaResult = cudaforSetDefaultStream(cuda_streams(0))
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_abort("CUDA failure in initialize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    end if
+
+    stream_index = -1
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamCreate(cuda_streams(i))
