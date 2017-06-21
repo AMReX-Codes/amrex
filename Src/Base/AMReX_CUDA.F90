@@ -116,6 +116,30 @@ contains
 
 
 
+  subroutine set_gpu_stack_limit(size) bind(c, name='set_gpu_stack_limit')
+
+    use cudafor, only: cudaDeviceSetLimit, cudaLimitStackSize, cuda_count_kind
+
+    implicit none
+
+    integer(cuda_count_kind), intent(in) :: size
+
+    integer :: cudaResult
+    character(len=32) :: cudaResultStr
+
+    ! Set the GPU stack size, in bytes.
+
+    cudaResult = cudaDeviceSetLimit(cudaLimitStackSize, size)
+
+    if (cudaResult /= cudaSuccess) then
+       write(cudaResultStr, "(I32)") cudaResult
+       call bl_warning("CUDA failure in finalize_cuda(), Error " // trim(adjustl(cudaResultStr)) // ", " // cudaGetErrorString(cudaResult))
+    end if
+
+  end subroutine set_gpu_stack_limit
+
+
+
   subroutine get_cuda_device_id(id) bind(c, name='get_cuda_device_id')
 
     implicit none
