@@ -1,1 +1,45 @@
-AmrLevel class
+The source code in {\tt amrex\_Src/Amr} contains a number of classes, most notably
+the {\tt Amr} class and the {\tt AmrLevel} class.
+The {\tt Amr} class is derived from {\tt AmrCore}, and manages data across the 
+entire AMR hierarchy of grids.
+The {\tt AmrLevel} class is a pure virtual class for managing data at a
+single level of refinement.
+
+Many of our mature application codes contain derived classes that inherit directly
+from {\tt AmrLevel}.  These include our compressible astrophysics code,
+{\tt CASTRO}, and our computational cosmology code, {\tt NYX}.  We also have
+NYX for computational cosmology)   We also have 
+a pure virtual class called {\tt NavierStokesBase} that inherits from {\tt AmrLevel}
+(available in the {\tt AMReX-codes/IAMR} github repository).  Our incompressible
+Navier-Stokes code, {\tt IAMR}, as well as our low Mach number combustion code,
+{\tt PeleLM}, inherit from {\tt NavierStokesBase}.
+
+The tutorial code in {\tt amrex/Tutorials/Amr/Advection\_AmrLevel} gives a simple
+example of a class derived from {\tt AmrLevel} that can be used to solve
+the advection equation on a subcycling-in-time AMR hierarchy.  Note that example
+is essentially the same as the {\tt amrex/Tutorials/Amr/Advection\_AmrCore} tutorial
+and documentation in Chatper \ref{Chap:AmrCore}, except now we use the provided
+libraries in {\tt Src/Amr}.
+
+The most important data managed by the {\tt AmrLevel} is an array of {\tt StateData},
+which holds the scalar fields, etc., in the boxes that together make up the level.
+
+\section{{\tt StateData}}
+{\tt StateData} is a class that essentially holds a pair of {\tt MultiFab}s: one at the old time and one
+at the new time. {\tt AMReX} knows how to interpolate in time between these states to get data at
+any intermediate point in time. The main data that we care about in our applications codes 
+(such as the fluid state) will be stored as {\tt StateData}. Essentially, data is made {\tt StateData}
+if we need it to be stored in checkpoints / plotfiles, and/or we want it to be automatically
+interpolated when we refine.
+An {\tt AmrLevel} stores an array of {\tt StateData} (in a C ++ array called state). We index this array
+using integer keys (defined via an enum in, e.g., {\tt AmrLevelAdv.H}):
+\begin{lstlisting}[language=cpp]
+enum StateType { Phi_Type = 0,
+                 NUM_STATE_TYPE };
+\end{lstlisting}
+In our tutorial code, we use the function {\tt AmrLevelAdv::variableSetup} to tell our simulation about
+the {\tt StateData} (e.g., how many variables, ghost cells, nodality, etc.)
+Note that if you have more than one {\tt StateType}, each of the different {\tt StateData} 
+carried in the state array can have different numbers
+of components, ghost cells, boundary conditions, etc. This is the main reason we separate all this
+data into separate {\tt StateData} objects collected together in an indexable array.

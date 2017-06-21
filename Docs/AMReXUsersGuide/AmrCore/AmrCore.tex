@@ -150,9 +150,10 @@ protected:
     Array<BoxArray>            grids;    
 \end{lstlisting}
 
-{\tt AMReX\_AmrCore.cpp/H} contains the class {\tt AmrCore}, which is derived from
-the {\tt AmrMesh} class.  {\tt AmrCore} does not actually have any data members,
-just additional member functions, some of which override the base class {\tt AmrMesh}.
+{\tt AMReX\_AmrCore.cpp/H} contains the pure virtual class {\tt AmrCore}, 
+which is derived from the {\tt AmrMesh} class.  {\tt AmrCore} does not actually 
+have any data members, just additional member functions, some of which override 
+the base class {\tt AmrMesh}.
 
 There are no pure virutal functions in {\tt AmrMesh}, but 
 there are 5 pure virtual functions in the {\tt AmrCore} class.  Any applications
