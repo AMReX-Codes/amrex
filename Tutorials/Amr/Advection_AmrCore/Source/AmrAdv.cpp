@@ -37,6 +37,12 @@ AmrAdv::AmrAdv ()
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
 
+    // stores fluxes at coarse-fine interface for synchronization
+    // this will be sized "nlevs_max+1"
+    // NOTE: the flux register associated with flux_reg[lev] is associated
+    // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
+    // therefore flux_reg[0] and flux_reg[nlevs_max] are never actually 
+    // used in the reflux operation
     flux_reg.resize(nlevs_max+1);
 }
 
@@ -580,18 +586,20 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
     if (do_reflux) { 
 	if (flux_reg[lev+1]) {
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
+	        // update the lev+1/lev flux register (index lev+1)   
+	        flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
 	    }	    
 	}
 	if (flux_reg[lev]) {
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	        // update the lev/lev-1 flux register (index lev) 
 		flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(), 1.0);
 	    }
 	}
     }
 }
 
-// a wrapper for EstTimeStep(0
+// a wrapper for EstTimeStep
 void
 AmrAdv::ComputeDt ()
 {
