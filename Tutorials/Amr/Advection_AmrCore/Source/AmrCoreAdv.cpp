@@ -5,15 +5,15 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_PlotFileUtil.H>
 
-#include <AmrAdv.H>
-#include <AmrAdvBC.H>
-#include <AmrAdv_F.H>
+#include <AmrCoreAdv.H>
+#include <AmrCoreAdvPhysBC.H>
+#include <AmrCoreAdv_F.H>
 
 using namespace amrex;
 
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
-AmrAdv::AmrAdv ()
+AmrCoreAdv::AmrCoreAdv ()
 {
     ReadParameters();
 
@@ -46,14 +46,14 @@ AmrAdv::AmrAdv ()
     flux_reg.resize(nlevs_max+1);
 }
 
-AmrAdv::~AmrAdv ()
+AmrCoreAdv::~AmrCoreAdv ()
 {
 
 }
 
 // advance solution to final time
 void
-AmrAdv::Evolve ()
+AmrCoreAdv::Evolve ()
 {
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
@@ -93,7 +93,7 @@ AmrAdv::Evolve ()
 
 // initializes multilevel data
 void
-AmrAdv::InitData ()
+AmrCoreAdv::InitData ()
 {
     const Real time = 0.0;
     InitFromScratch(time);
@@ -108,7 +108,7 @@ AmrAdv::InitData ()
 // Only used during initialization.
 // overrides the pure virtual function in AmrCore
 void
-AmrAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
+AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 				const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev-1]->nComp();
@@ -131,7 +131,7 @@ AmrAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 // fill with existing fine and coarse data.
 // overrides the pure virtual function in AmrCore
 void
-AmrAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
+AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 		     const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev]->nComp();
@@ -161,7 +161,7 @@ AmrAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 // Delete level data
 // overrides the pure virtual function in AmrCore
 void
-AmrAdv::ClearLevel (int lev)
+AmrCoreAdv::ClearLevel (int lev)
 {
     phi_new[lev].reset(nullptr);
     phi_old[lev].reset(nullptr);
@@ -170,7 +170,7 @@ AmrAdv::ClearLevel (int lev)
 
 // initialize data using a fortran routine to compute initial state
 // overrides the pure virtual function in AmrCore
-void AmrAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
+void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 				      const DistributionMapping& dm)
 {
     const int ncomp = 1;
@@ -207,7 +207,7 @@ void AmrAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void
-AmrAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
+AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
     static bool first = true;
     static Array<Real> phierr;
@@ -278,7 +278,7 @@ AmrAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 
 // read in some parameters from inputs file
 void
-AmrAdv::ReadParameters ()
+AmrCoreAdv::ReadParameters ()
 {
     {
 	ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
@@ -304,7 +304,7 @@ AmrAdv::ReadParameters ()
 
 // set covered coarse cells to be the average of overlying fine cells
 void
-AmrAdv::AverageDown ()
+AmrCoreAdv::AverageDown ()
 {
     for (int lev = finest_level-1; lev >= 0; --lev)
     {
@@ -316,7 +316,7 @@ AmrAdv::AverageDown ()
 
 // more flexible version of AverageDown() that lets you average down across multiple levels
 void
-AmrAdv::AverageDownTo (int crse_lev)
+AmrCoreAdv::AverageDownTo (int crse_lev)
 {
     amrex::average_down(*phi_new[crse_lev+1], *phi_new[crse_lev],
 			 geom[crse_lev+1], geom[crse_lev],
@@ -325,7 +325,7 @@ AmrAdv::AverageDownTo (int crse_lev)
 
 // compute the number of cells at a level
 long
-AmrAdv::CountCells (int lev)
+AmrCoreAdv::CountCells (int lev)
 {
     const int N = grids[lev].size();
 
@@ -345,7 +345,7 @@ AmrAdv::CountCells (int lev)
 // compute a new multifab by coping in phi from valid region and filling ghost cells
 // works for single level and 2-level cases (fill fine grid ghost by interpolating from coarse)
 void
-AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
+AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
     if (lev == 0)
     {
@@ -353,7 +353,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	Array<Real> stime;
 	GetData(0, time, smf, stime);
 
-	AmrAdvPhysBC physbc;
+	AmrCoreAdvPhysBC physbc;
 	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
 				     geom[lev], physbc);
     }
@@ -364,7 +364,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-	AmrAdvPhysBC cphysbc, fphysbc;
+	AmrCoreAdvPhysBC cphysbc, fphysbc;
 	Interpolater* mapper = &cell_cons_interp;
 
 	int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaryies
@@ -381,7 +381,7 @@ AmrAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 // fill an entire multifab by interpolating from the coarser level
 // this comes into play when a new level of refinement appears
 void
-AmrAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
+AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
     BL_ASSERT(lev > 0);
 
@@ -393,7 +393,7 @@ AmrAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
 
-    AmrAdvPhysBC cphysbc, fphysbc;
+    AmrCoreAdvPhysBC cphysbc, fphysbc;
     Interpolater* mapper = &cell_cons_interp;
     
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaryies
@@ -407,7 +407,7 @@ AmrAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
 void
-AmrAdv::GetData (int lev, Real time, Array<MultiFab*>& data, Array<Real>& datatime)
+AmrCoreAdv::GetData (int lev, Real time, Array<MultiFab*>& data, Array<Real>& datatime)
 {
     data.clear();
     datatime.clear();
@@ -437,12 +437,19 @@ AmrAdv::GetData (int lev, Real time, Array<MultiFab*>& data, Array<Real>& datati
 // advance a level by dt
 // includes a recursive call for finer levels
 void
-AmrAdv::timeStep (int lev, Real time, int iteration)
+AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 {
     if (regrid_int > 0)  // We may need to regrid
     {
+
+        // help keep track of whether a level was already regridded
+        // from a coarser level call to regrid
+        static Array<int> last_regrid_step(max_level+1, 0);
+
         // regrid changes level "lev+1" so we don't regrid on max_level
-        if (lev < max_level && istep[lev])
+        // also make sure we don't regrid fine levels again if 
+        // it was taken care of during a coarser regrid
+        if (lev < max_level && istep[lev] > last_regrid_step[lev]) 
         {
             if (istep[lev] % regrid_int == 0)
             {
@@ -450,6 +457,11 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
                 // so we save the previous finest level index
 		int old_finest = finest_level; 
 		regrid(lev, time);
+
+                // mark that we have regridded this level already
+		for (int k = lev; k <= finest_level; ++k) {
+		    last_regrid_step[k] = istep[k];
+		}
 
                 // if there are newly created levels, set the time step
 		for (int k = old_finest+1; k <= finest_level; ++k) {
@@ -496,7 +508,7 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
 
 // advance a single level for a single time step, updates flux registers
 void
-AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
+AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 {
     constexpr int num_grow = 3;
 
@@ -601,7 +613,7 @@ AmrAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 
 // a wrapper for EstTimeStep
 void
-AmrAdv::ComputeDt ()
+AmrCoreAdv::ComputeDt ()
 {
     Array<Real> dt_tmp(finest_level+1);
 
@@ -634,9 +646,9 @@ AmrAdv::ComputeDt ()
 
 // compute dt from CFL considerations
 Real
-AmrAdv::EstTimeStep (int lev, bool local) const
+AmrCoreAdv::EstTimeStep (int lev, bool local) const
 {
-    BL_PROFILE("AmrAdv::EstTimeStep()");
+    BL_PROFILE("AmrCoreAdv::EstTimeStep()");
 
     Real dt_est = std::numeric_limits<Real>::max();
 
@@ -684,14 +696,14 @@ AmrAdv::EstTimeStep (int lev, bool local) const
 
 // get plotfile name
 std::string
-AmrAdv::PlotFileName (int lev) const
+AmrCoreAdv::PlotFileName (int lev) const
 {
     return amrex::Concatenate(plot_file, lev, 5);
 }
 
 // put together an array of multifabs for writing
 Array<const MultiFab*>
-AmrAdv::PlotFileMF () const
+AmrCoreAdv::PlotFileMF () const
 {
     Array<const MultiFab*> r;
     for (int i = 0; i <= finest_level; ++i) {
@@ -702,14 +714,14 @@ AmrAdv::PlotFileMF () const
 
 // set plotfile variable names
 Array<std::string>
-AmrAdv::PlotFileVarNames () const
+AmrCoreAdv::PlotFileVarNames () const
 {
     return {"phi"};
 }
 
 // write plotfile to disk
 void
-AmrAdv::WritePlotFile () const
+AmrCoreAdv::WritePlotFile () const
 {
     const std::string& plotfilename = PlotFileName(istep[0]);
     const auto& mf = PlotFileMF();

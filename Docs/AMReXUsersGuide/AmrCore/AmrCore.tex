@@ -150,15 +150,16 @@ protected:
     Array<BoxArray>            grids;    
 \end{lstlisting}
 
-{\tt AMReX\_AmrCore.cpp/H} contains the class {\tt AmrCore}, which is derived from
-the {\tt AmrMesh} class.  {\tt AmrCore} does not actually have any data members,
-just additional member functions, some of which override the base class {\tt AmrMesh}.
+{\tt AMReX\_AmrCore.cpp/H} contains the pure virtual class {\tt AmrCore}, 
+which is derived from the {\tt AmrMesh} class.  {\tt AmrCore} does not actually 
+have any data members, just additional member functions, some of which override 
+the base class {\tt AmrMesh}.
 
 There are no pure virutal functions in {\tt AmrMesh}, but 
 there are 5 pure virtual functions in the {\tt AmrCore} class.  Any applications
 you create must implement these functions.  The tutorial code 
 {\tt Amr/Advection\_AmrCore} provides sample implementation in the derived
-class {\tt AmrAdv}.
+class {\tt AmrCoreAdv}.
 
 \begin{lstlisting}[language=cpp]
 //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
@@ -183,7 +184,8 @@ virtual void RemakeLevel (int lev, Real time, const BoxArray& ba,
 //! Delete level data
 virtual void ClearLevel (int lev) = 0;
 \end{lstlisting}
-Refer to the {\tt AmrAdv} class in the {\tt amrex/Tutorials/Amr/AmrCore\_Advection/Source} 
+Refer to the {\tt AmrCoreAdv} class in the 
+{\tt amrex/Tutorials/Amr/AmrCore\_Advection/Source} 
 code for a sample implementation.
 
 \subsection{{\tt TagBox}, and {\tt Cluster}}
@@ -301,7 +303,7 @@ of source code for the {\tt AmrAdvection\_AmrCore} example.
 \item {\tt AmrCore/} AMR data management classes, described in more detail above.
 \end{itemize}
 \item {\tt Advection\_AmrCore/Src} Source code specific to this example.  Most notably
-is the {\tt AmrAdv} class, which is derived from {\tt AmrCore}.  The subdirectories {\tt Src\_2d}
+is the {\tt AmrCoreAdv} class, which is derived from {\tt AmrCore}.  The subdirectories {\tt Src\_2d}
 and {\tt Src\_3d} contain dimension specific routines.  {\tt Src\_nd} contains dimension-independent routines.
 \item {\tt Exec} Contains a makefile so a user can write other examples besides {\tt SingleVortex}.
 \item {\tt SingleVortex} Build the code here by editing the {\tt GNUmakefile} and running {\tt make}.  There
@@ -313,24 +315,24 @@ Here is a high-level pseudo-code of the flow of the program:
 \begin{lstlisting}[language=cpp]
 /* Advection_AmrCore Pseudocode */
 main()
-  AmrAdv amradv; // build an AmrAdv object
-  amradv.InitData()  // initialize data all all levels
+  AmrCoreAdv amr_core_adv; // build an AmrCoreAdv object
+  amr_core_adv.InitData()  // initialize data all all levels
     AmrCore::InitFromScratch()
       AmrMesh::MakeNewGrids()
 	AmrMesh::MakeBaseGrids() // define level 0 grids
-	AmrAdv::MakeNewLevelFromScratch()
+	AmrCoreAdv::MakeNewLevelFromScratch()
           /* allocate phi_old, phi_new, t_new, and flux registers */
           initdata()  // fill phi
 	if (max_level > 0) {
           do {
   	    AmrMesh::MakeNewGrids()
 	      /* construct next finer grid based on tagging criteria */
- 	    AmrAdv::MakeNewLevelFromScratch()
+ 	    AmrCoreAdv::MakeNewLevelFromScratch()
               /* allocate phi_old, phi_new, t_new, and flux registers */
               initdata()  // fill phi
 	  } (while (finest_level < max_level);
         }
-  amradv.Evolve()
+  amr_core_adv.Evolve()
     loop over time steps {
       ComputeDt()
       timeStep() // advance a level
@@ -352,13 +354,13 @@ main()
     }
 \end{lstlisting}
 
-\subsection{The {\tt AmrAdv} Class}
-This example uses the class {\tt AmrAdv}, which is derived from the class {\tt AmrCore} 
+\subsection{The {\tt AmrCoreAdv} Class}
+This example uses the class {\tt AmrCoreAdv}, which is derived from the class {\tt AmrCore} 
 (which is derived from {\tt AmrMesh}).  The function definitions/implementations
-are given in {\tt AmrAdv.H/cpp}.
+are given in {\tt AmrCoreAdv.H/cpp}.
 
 \subsection{{\tt FluxRegister}s}
-The function {\tt AmrAdv::Advance()} calls the fortran
+The function {\tt AmrCoreAdv::Advance()} calls the fortran
 subroutine, {\tt advect} (in {\tt ./Src\_xd/Adv\_xd.f90}).  {\tt advect} computes
 and returns the time-advanced state as well as the fluxes used to update the state.
 These fluxes are used to set or increment the flux registers.
@@ -384,7 +386,7 @@ if (do_reflux) {
    }
 }
 \end{lstlisting}
-The synchronization is performed at the end of {\tt AmrAdv::timeStep}:
+The synchronization is performed at the end of {\tt AmrCoreAdv::timeStep}:
 \begin{lstlisting}[language=cpp]
 if (do_reflux)
 {
@@ -406,7 +408,7 @@ has been advanced.  When any given particular level $\ell<\ell_{\rm max}$ has be
 advanced a multiple of {\tt regrid\_int}, we call the {\tt regrid} function.
 \begin{lstlisting}[language=cpp]
 void
-AmrAdv::timeStep (int lev, Real time, int iteration)
+AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 {
     if (regrid_int > 0)  // We may need to regrid
     {
@@ -432,14 +434,14 @@ AmrAdv::timeStep (int lev, Real time, int iteration)
 
 Central to the regridding process is the concept of ``tagging'' which cells need refinement.
 {\tt ErrorEst} is a pure virtual function of {\tt AmrCore}, so each application code must
-contain an implementation.  In {\tt AmrAdv.cpp} the {\tt ErrorEst} function is essentially an
+contain an implementation.  In {\tt AmrCoreAdv.cpp} the {\tt ErrorEst} function is essentially an
 interface to a fortran routine that tags cells (in this case, {\tt state\_error} in 
 {\tt Src\_nd/Tagging\_nd.f90}).  Note that this code uses tiling.
 \begin{lstlisting}[language=cpp]
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void
-AmrAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
+AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
     static bool first = true;
     static Array<Real> phierr;
@@ -549,10 +551,10 @@ end subroutine state_error
 \end{lstlisting}
 
 \subsection{FillPatch}
-This example has two functions, {\tt AmrAdv::FillPatch} and {\tt AmrAdv::CoarseFillPatch},
+This example has two functions, {\tt AmrCoreAdv::FillPatch} and {\tt AmrCoreAdv::CoarseFillPatch},
 that make use of functions in {\tt AmrCore/AMReX\_FillPatchUtil}.
 
-In {\tt AmrAdv::Advance}, we create a temporary {\tt MultiFab} called {\tt Sborder}, which
+In {\tt AmrCoreAdv::Advance}, we create a temporary {\tt MultiFab} called {\tt Sborder}, which
 is essentially $\phi$ but with ghost cells filled in.  The valid and ghost cells are filled in from
 actual valid data at that level, space-time interpolated data from the next-coarser level, 
 neighboring grids at the same level, or domain boundary conditions 

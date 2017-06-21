@@ -1,5 +1,5 @@
-#ifndef AMR_Adv_C_V2_Adv_H_
-#define AMR_Adv_C_V2_Adv_H_
+#ifndef AmrCoreAdv_H_
+#define AmrCoreAdv_H_
 
 #include <string>
 #include <limits>
@@ -14,7 +14,7 @@
 
 using namespace amrex;
 
-class AmrAdv
+class AmrCoreAdv
     : public amrex::AmrCore
 {
 public:
@@ -24,8 +24,8 @@ public:
 
     // constructor - reads in parameters from inputs file
     //             - sizes multilevel arrays and data structures
-    AmrAdv ();
-    virtual ~AmrAdv();
+    AmrCoreAdv ();
+    virtual ~AmrCoreAdv();
 
     // advance solution to final time
     void Evolve ();
