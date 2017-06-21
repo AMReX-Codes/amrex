@@ -16,9 +16,9 @@ void main_main ();
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-    
+
     main_main();
-    
+
     amrex::Finalize();
     return 0;
 }
@@ -43,8 +43,6 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     // and we do not have to use flux MultiFab.
     // 
 
-    Box sbx[BL_SPACEDIM];
-
     // Compute fluxes one grid at a time
     for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
     {
@@ -53,9 +51,10 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 
 	for (int idir = 1; idir <= BL_SPACEDIM; ++idir) {
 
-	    sbx[idir-1] = surroundingNodes(bx, idir-1);
+	    const Box& sbx = surroundingNodes(bx, idir-1);
+	    mfi.registerBox(sbx);
 
-	    compute_flux(sbx[idir-1].loVect(), sbx[idir-1].hiVect(),
+	    compute_flux(sbx.loVect(), sbx.hiVect(),
                          old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
 			 flux[idir-1][mfi].dataPtr(), flux[idir-1][mfi].loVect(), flux[idir-1][mfi].hiVect(),
 			 dx, idir, idx);
@@ -140,10 +139,10 @@ void main_main ()
 
         // This says we are using Cartesian coordinates
         int coord = 0;
-	
+
         // This sets the boundary conditions to be doubly or triply periodic
         std::array<int,BL_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
-        
+
         // This defines a Geometry object
         geom.define(domain,&real_box,coord,is_periodic.data());
     }
@@ -207,7 +206,7 @@ void main_main ()
         // new_phi = old_phi + dt * (something)
         advance(phi_old, phi_new, flux, dt, geom); 
         time = time + dt;
-        
+
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << n << "\n";
 
