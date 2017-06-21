@@ -55,8 +55,8 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 	    mfi.registerBox(sbx);
 
 	    compute_flux(sbx.loVect(), sbx.hiVect(),
-                         old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
-			 flux[idir-1][mfi].dataPtr(), flux[idir-1][mfi].loVect(), flux[idir-1][mfi].hiVect(),
+                         BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+			 BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
 			 dx, idir, idx);
 
 	}
@@ -74,12 +74,12 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 	const int idx = mfi.tileIndex();
 
         update_phi(bx.loVect(), bx.hiVect(),
-                   old_phi[mfi].dataPtr(), old_phi[mfi].loVect(), old_phi[mfi].hiVect(),
-                   new_phi[mfi].dataPtr(), new_phi[mfi].loVect(), new_phi[mfi].hiVect(),
-                   flux[0][mfi].dataPtr(), flux[0][mfi].loVect(), flux[0][mfi].hiVect(),
-                   flux[1][mfi].dataPtr(), flux[1][mfi].loVect(), flux[1][mfi].hiVect(),
+                   BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+                   BL_TO_FORTRAN_ANYD(new_phi[mfi]),
+                   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+                   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
 #if (BL_SPACEDIM == 3)   
-                   flux[2][mfi].dataPtr(), flux[2][mfi].loVect(), flux[2][mfi].hiVect(),
+                   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
                    dx, dt, idx);
     }
