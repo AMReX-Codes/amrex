@@ -1175,7 +1175,7 @@ And the manually tiled loops might look like
         do j = jb*jblocksize, min((jb+1)*jblocksize-1,jmax)
           do i = imin, imax
             A(i,j,k) = B(i+1,j,k)+B(i-1,j,k)+B(i,j+1,k)+B(i,j-1,k) &
-                      +B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)          
+                      +B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)
           end do
         end do
       end do
