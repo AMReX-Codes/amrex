@@ -46,8 +46,6 @@ amrex::Device::get_host_pointer(const void* ptr) {
     void* r;
 #ifdef CUDA
     gpu_host_device_ptr(&r, ptr);
-#else
-    r = ptr;
 #endif
     return r;
 
