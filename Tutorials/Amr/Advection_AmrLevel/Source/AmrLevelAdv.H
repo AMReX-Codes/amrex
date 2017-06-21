@@ -15,7 +15,7 @@
 #include <omp.h>
 #endif
 
-enum StateType { State_Type = 0,
+enum StateType { Phi_Type = 0,
                  NUM_STATE_TYPE };
 
 //

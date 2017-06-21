@@ -118,7 +118,7 @@ AmrLevelAdv::writePlotFile (const std::string& dir,
 
     int n_data_items = plot_var_map.size();
 
-    Real cur_time = state[State_Type].curTime();
+    Real cur_time = state[Phi_Type].curTime();
 
 #ifdef PARTICLES
     if (do_tracers and level == 0) {
@@ -264,7 +264,7 @@ AmrLevelAdv::variableSetUp ()
     // Get options, set phys_bc
     read_params();
 
-    desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
+    desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
                            StateDescriptor::Point,0,NUM_STATE,
 			   &cell_cons_interp);
 
@@ -276,7 +276,7 @@ AmrLevelAdv::variableSetUp ()
     
     BCRec bc(lo_bc, hi_bc);
 
-    desc_lst.setComponent(State_Type, 0, "phi", bc, 
+    desc_lst.setComponent(Phi_Type, 0, "phi", bc, 
 			  StateDescriptor::BndryFunc(nullfill));
 
     //
@@ -320,8 +320,8 @@ AmrLevelAdv::initData ()
     //
     const Real* dx  = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
-    MultiFab& S_new = get_new_data(State_Type);
-    Real cur_time   = state[State_Type].curTime();
+    MultiFab& S_new = get_new_data(Phi_Type);
+    Real cur_time   = state[Phi_Type].curTime();
 
     if (verbose && ParallelDescriptor::IOProcessor())
 	std::cout << "Initializing the data at level " << level << std::endl;
@@ -356,14 +356,14 @@ AmrLevelAdv::init (AmrLevel &old)
     // Create new grid data by fillpatching from old.
     //
     Real dt_new    = parent->dtLevel(level);
-    Real cur_time  = oldlev->state[State_Type].curTime();
-    Real prev_time = oldlev->state[State_Type].prevTime();
+    Real cur_time  = oldlev->state[Phi_Type].curTime();
+    Real prev_time = oldlev->state[Phi_Type].prevTime();
     Real dt_old    = cur_time - prev_time;
     setTimeLevel(cur_time,dt_old,dt_new);
 
-    MultiFab& S_new = get_new_data(State_Type);
+    MultiFab& S_new = get_new_data(Phi_Type);
 
-    FillPatch(old, S_new, 0, cur_time, State_Type, 0, NUM_STATE);
+    FillPatch(old, S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
 }
 
 //
@@ -373,14 +373,14 @@ void
 AmrLevelAdv::init ()
 {
     Real dt        = parent->dtLevel(level);
-    Real cur_time  = getLevel(level-1).state[State_Type].curTime();
-    Real prev_time = getLevel(level-1).state[State_Type].prevTime();
+    Real cur_time  = getLevel(level-1).state[Phi_Type].curTime();
+    Real prev_time = getLevel(level-1).state[Phi_Type].prevTime();
 
     Real dt_old = (cur_time - prev_time)/(Real)parent->MaxRefRatio(level-1);
 
     setTimeLevel(cur_time,dt_old,dt);
-    MultiFab& S_new = get_new_data(State_Type);
-    FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, NUM_STATE);
+    MultiFab& S_new = get_new_data(Phi_Type);
+    FillCoarsePatch(S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
 }
 
 //
@@ -397,10 +397,10 @@ AmrLevelAdv::advance (Real time,
         state[k].swapTimeLevels(dt);
     }
 
-    MultiFab& S_new = get_new_data(State_Type);
+    MultiFab& S_new = get_new_data(Phi_Type);
 
-    const Real prev_time = state[State_Type].prevTime();
-    const Real cur_time = state[State_Type].curTime();
+    const Real prev_time = state[Phi_Type].prevTime();
+    const Real cur_time = state[Phi_Type].curTime();
     const Real ctr_time = 0.5*(prev_time + cur_time);
 
     const Real* dx = geom.CellSize();
@@ -437,7 +437,7 @@ AmrLevelAdv::advance (Real time,
 
     // State with ghost cells
     MultiFab Sborder(grids, dmap, NUM_STATE, NUM_GROW);
-    FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
+    FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
 
     // MF to hold the mac velocity
     MultiFab Umac[BL_SPACEDIM];
@@ -526,8 +526,8 @@ AmrLevelAdv::estTimeStep (Real)
 
     const Real* dx = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
-    const Real cur_time = state[State_Type].curTime();
-    const MultiFab& S_new = get_new_data(State_Type);
+    const Real cur_time = state[Phi_Type].curTime();
+    const MultiFab& S_new = get_new_data(Phi_Type);
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(min:dt_est)
@@ -605,7 +605,7 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
     // Limit dt's by the value of stop_time.
     //
     const Real eps = 0.001*dt_0;
-    Real cur_time  = state[State_Type].curTime();
+    Real cur_time  = state[Phi_Type].curTime();
     if (stop_time >= 0.0) {
         if ((cur_time + dt_0) > (stop_time - eps))
             dt_0 = stop_time - cur_time;
@@ -682,7 +682,7 @@ AmrLevelAdv::computeNewDt (int                   finest_level,
     // Limit dt's by the value of stop_time.
     //
     const Real eps = 0.001*dt_0;
-    Real cur_time  = state[State_Type].curTime();
+    Real cur_time  = state[Phi_Type].curTime();
     if (stop_time >= 0.0) {
         if ((cur_time + dt_0) > (stop_time - eps))
             dt_0 = stop_time - cur_time;
@@ -787,7 +787,7 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
     const Real* dx        = geom.CellSize();
     const Real* prob_lo   = geom.ProbLo();
 
-    MultiFab& S_new = get_new_data(State_Type);
+    MultiFab& S_new = get_new_data(Phi_Type);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -860,7 +860,7 @@ AmrLevelAdv::reflux ()
 
     const Real strt = ParallelDescriptor::second();
 
-    getFluxReg(level+1).Reflux(get_new_data(State_Type),1.0,0,0,NUM_STATE,geom);
+    getFluxReg(level+1).Reflux(get_new_data(Phi_Type),1.0,0,0,NUM_STATE,geom);
     
     if (verbose)
     {
@@ -878,7 +878,7 @@ void
 AmrLevelAdv::avgDown ()
 {
     if (level == parent->finestLevel()) return;
-    avgDown(State_Type);
+    avgDown(Phi_Type);
 }
 
 void
