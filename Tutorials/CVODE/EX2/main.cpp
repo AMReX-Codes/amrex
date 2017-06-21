@@ -107,9 +107,6 @@ int main (int argc, char* argv[])
         real_box.setHi(n, 1.0);
       }
 
-      // This says we are using Cartesian coordinates
-      int coord = 0;
-
       // This sets the boundary conditions to be doubly or triply periodic
       int is_periodic[BL_SPACEDIM];
       for (int i = 0; i < BL_SPACEDIM; i++) {
@@ -117,7 +114,7 @@ int main (int argc, char* argv[])
       }
 
       // This defines a Geometry object
-      geom.define(domain,&real_box,coord,is_periodic);
+      geom.define(domain,&real_box,CoordSys::cartesian,is_periodic);
     }
 
     // Ncomp = number of components for each array

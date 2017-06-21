@@ -305,9 +305,6 @@ int main(int argc, char* argv[])
         real_box.setHi(n, 20.0e-6);
     }
     
-    // This says we are using Cartesian coordinates
-    int coord = 0;
-    
     // This sets the boundary conditions to be doubly or triply periodic
     for (int i = 0; i < BL_SPACEDIM; i++) {
         is_periodic[i] = 0;
@@ -319,10 +316,10 @@ int main(int argc, char* argv[])
    
     // make Geometry for each level
     Array<Geometry> geom(num_levels);
-    geom[0].define(domain,&real_box,coord,is_periodic);
+    geom[0].define(domain,&real_box,CoordSys::cartesian,is_periodic);
     for (int lev = 1; lev < num_levels; ++lev) {
 	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, coord, is_periodic);
+			 &real_box, CoordSys::cartesian, is_periodic);
     }
     
     // make grids for each level
