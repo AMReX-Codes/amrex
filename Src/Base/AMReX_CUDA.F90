@@ -151,11 +151,7 @@ contains
 
     integer :: idx
 
-    if (idx < 0) then
-       stream_from_index = 0
-    else
-       stream_from_index = MOD(idx, max_cuda_streams) + 1
-    endif
+    stream_from_index = MOD(idx, max_cuda_streams) + 1
 
   end function stream_from_index
 
@@ -344,21 +340,9 @@ contains
     integer(c_size_t) :: sz
     integer :: idx
 
-    integer :: s
     integer :: cudaResult
 
-    if (idx < 0) then
-
-       cudaResult = cudaMemcpyAsync(p_d, p_h, sz)
-
-    else
-
-       s = stream_from_index(idx)
-
-       cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_streams(s))
-
-    endif
-
+    cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_streams(stream_from_index(idx)))
     call gpu_error_check(cudaResult)
 
   end subroutine gpu_htod_memcpy_async
@@ -377,21 +361,9 @@ contains
     integer(c_size_t) :: sz
     integer :: idx
 
-    integer :: s
     integer :: cudaResult
 
-    if (idx < 0) then
-
-       cudaResult = cudaMemcpyAsync(p_h, p_d, sz)
-
-    else
-
-       s = stream_from_index(idx)
-
-       cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_streams(s))
-
-    endif
-
+    cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_streams(stream_from_index(idx)))
     call gpu_error_check(cudaResult)
 
   end subroutine gpu_dtoh_memcpy_async
@@ -409,23 +381,11 @@ contains
     integer(c_size_t) :: sz
     integer :: idx
 
-    integer :: s
     integer :: cudaResult
 
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1 .and. prop%concurrentManagedAccess == 1)) then
 
-       if (idx < 0) then
-
-          cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, 0)
-
-       else
-
-          s = stream_from_index(idx)
-
-          cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(s))
-
-       endif
-
+       cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(stream_from_index(idx)))
        call gpu_error_check(cudaResult)
 
     end if
@@ -445,23 +405,11 @@ contains
     integer(c_size_t) :: sz
     integer :: idx
 
-    integer :: s
     integer :: cudaResult
 
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
-       if (idx < 0) then
-
-          cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, 0)
-
-       else
-
-          s = stream_from_index(idx)
-
-          cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(s))
-
-       end if
-
+       cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(stream_from_index(idx)))
        call gpu_error_check(cudaResult)
 
     end if
