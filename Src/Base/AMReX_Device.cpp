@@ -26,3 +26,17 @@ amrex::Device::set_stream_index(const int idx) {
 #endif
 
 }
+
+int
+amrex::Device::get_stream_index() {
+
+    int index = -1;
+
+#ifdef CUDA
+    get_stream_idx(&index);
+#endif
+
+    return index;
+
+}
+
