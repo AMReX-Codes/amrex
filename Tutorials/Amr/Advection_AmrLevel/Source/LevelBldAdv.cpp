@@ -1,10 +1,10 @@
 
 #include <AMReX_LevelBld.H>
-#include <Adv.H>
+#include <AmrLevelAdv.H>
 
 using namespace amrex;
 
-class AdvBld
+class LevelBldAdv
     :
     public LevelBld
 {
@@ -19,7 +19,7 @@ class AdvBld
                                   Real            time) override;
 };
 
-AdvBld Adv_bld;
+LevelBldAdv Adv_bld;
 
 LevelBld*
 getLevelBld ()
@@ -28,30 +28,30 @@ getLevelBld ()
 }
 
 void
-AdvBld::variableSetUp ()
+LevelBldAdv::variableSetUp ()
 {
-    Adv::variableSetUp();
+    AmrLevelAdv::variableSetUp();
 }
 
 void
-AdvBld::variableCleanUp ()
+LevelBldAdv::variableCleanUp ()
 {
-    Adv::variableCleanUp();
+    AmrLevelAdv::variableCleanUp();
 }
 
 AmrLevel*
-AdvBld::operator() ()
+LevelBldAdv::operator() ()
 {
-    return new Adv;
+    return new AmrLevelAdv;
 }
 
 AmrLevel*
-AdvBld::operator() (Amr&            papa,
-		    int             lev,
-		    const Geometry& level_geom,
-		    const BoxArray& ba,
-		    const DistributionMapping& dm,
-		    Real            time)
+LevelBldAdv::operator() (Amr&            papa,
+	   	         int             lev,
+                         const Geometry& level_geom,
+                         const BoxArray& ba,
+                         const DistributionMapping& dm,
+                         Real            time)
 {
-    return new Adv(papa, lev, level_geom, ba, dm, time);
+    return new AmrLevelAdv(papa, lev, level_geom, ba, dm, time);
 }

@@ -6,12 +6,10 @@ PROFILE    = FALSE
 DEBUG      = TRUE
 DEBUG      = FALSE
 
-USE_PARTICLES = TRUE
-
 DIM        = 2
 #DIM       = 3
 
-COMP	   = g++
+COMP	   = gnu
 
 USE_MPI    = TRUE
 USE_OMP    = FALSE
