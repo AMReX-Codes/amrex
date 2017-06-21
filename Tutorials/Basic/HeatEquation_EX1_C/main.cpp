@@ -68,10 +68,8 @@ void main_main ()
         RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
                          {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
-        // This says we are using Cartesian coordinates
-        int coord = 0;
         // This defines a Geometry object
-        geom.define(domain,&real_box,coord,is_periodic.data());
+        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
 
     // Nghost = number of ghost cells for each array 

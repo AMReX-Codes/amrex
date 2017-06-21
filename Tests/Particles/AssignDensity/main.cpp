@@ -140,7 +140,7 @@ void test_assign_density(TestParams& parms)
   int is_per[BL_SPACEDIM];
   for (int i = 0; i < BL_SPACEDIM; i++) 
     is_per[i] = 1; 
-  Geometry geom(domain, &real_box, coord, is_per);
+  Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
 
   BoxArray ba(domain);
   ba.maxSize(parms.max_grid_size);
