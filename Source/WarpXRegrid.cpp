@@ -106,7 +106,7 @@ WarpX::LoadBalanceBaseLevel()
     {
 	    Real oldeff;
 	    Array<long> old_particle_cost;
-	    int heavy_grid_size = this->maxGridSize(0);
+	    int heavy_grid_size = this->maxGridSize(0)[0];
 
 	    do {
 		oldeff = neweff;
