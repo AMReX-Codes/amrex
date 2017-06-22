@@ -324,9 +324,9 @@ int main(int argc, char* argv[])
         grids[1].define(refined_patch);
     }
     
-    //    for (int lev = 0; lev < num_levels; lev++) {
-    //        grids[lev].maxSize(max_grid_size);
-    //    }
+    for (int lev = 0; lev < num_levels; lev++) {
+        grids[lev].maxSize(max_grid_size);
+    }
     
     int Nghost = 1;
     int Ncomp  = 1;
