@@ -1,20 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-# Set the search path for cmake modules
-set ( AMREX_TOOLS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Tools )
-set ( CMAKE_MODULE_PATH ${AMREX_TOOLS_DIR}/CMake )
-
-# Include modules with custom macros and functions
-include ( AMReX_Utils )
-
-#  Set default options
-# set_default_options ()
-
-
 project (CCSE)
-
-# Make verbose output the default ( this is useful for debugging )
-set ( CMAKE_VERBOSE_MAKEFILE on ) 
 
 # Define the languages used by the project
 enable_language (C)
@@ -28,6 +14,28 @@ set (CMAKE_CXX_STANDARD 11)
 set (CMAKE_CXX_STANDARD_REQUIRED ON) 
 
 
+#
+# Always verbose output during make
+# 
+set ( CMAKE_VERBOSE_MAKEFILE on )
+
+
+#
+# Set the search path for cmake modules
+#
+set ( AMREX_TOOLS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Tools )
+set ( CMAKE_MODULE_PATH ${AMREX_TOOLS_DIR}/CMake )
+
+#
+# Initialize all the global variables
+#
+include ( AMReX_CMakeVariables )
+
+#
+# Include modules with custom macros and functions
+#
+include ( AMReX_Utils )
+
 ########## Load CMake tools directory ##########
 # Useful variables pointing to directories in the source tree
 set(CCSE_TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Tools")
@@ -38,12 +46,11 @@ set(CCSE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}")
 # can locate files in <root source tree>/tools/cmake
 set(CCSE_MODULE_PATH "${CCSE_TOOLS_DIR}/CMake")
 
-
-# Addtional build options
+# Additional build options
 include ( AMReX_Version )
-#include(CCSEOptions)
 include ( AMReX_Options )
-include ( AMReX_Defines )
+include ( AMReX_Config )
+
 #
 # Usage:
 #
