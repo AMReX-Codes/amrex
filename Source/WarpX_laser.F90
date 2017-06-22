@@ -68,14 +68,19 @@ contains
 
        integer(c_long)  :: i
        real(amrex_real) :: space_envelope, time_envelope, arg_osc, arg_env
-       real(amrex_real) :: omega0, zR, wz, Rz, oscillations, inv_wz_2
+       real(amrex_real) :: omega0, zR, wz, inv_Rz, oscillations, inv_wz_2
 
     ! This function uses the Harris function as the temporal profile of the pulse
     omega0 = 2*pi*clight/wavelength
     zR = pi * waist**2 / wavelength
     wz = waist * sqrt(1. + f**2/zR**2)
     inv_wz_2 = 1./wz**2
-    Rz = -(f + zR**2/f)
+    if (f == 0.) then
+      inv_Rz = 0.
+    else
+      inv_Rz = -f / ( f**2 + zR**2 )
+    end if
+
     arg_env = 2.*pi*t/duration
 
     ! time envelope is given by the Harris function
@@ -89,7 +94,7 @@ contains
     ! Loop through the macroparticle to calculate the proper amplitude
     do i = 1, np
       space_envelope = exp(- ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_wz_2)
-      arg_osc = omega0*t - omega0/clight*(Xp(i)*Xp(i) + Yp(i)*Yp(i))/(2*Rz)
+      arg_osc = omega0*t - omega0/clight*(Xp(i)*Xp(i) + Yp(i)*Yp(i)) * inv_Rz / 2
       oscillations = cos(arg_osc)
       amplitude(i) = e_max * time_envelope * space_envelope * oscillations
     enddo
