@@ -220,14 +220,6 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
             Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
             NodeBilinear mapper;
 
-            MultiFab tmp(phi[lev+1]->boxArray(), phi[lev+1]->DistributionMap(), 1, 2);
-            Array<MultiFab*> crse(1);
-            crse[0] = phi[lev].get();
-            Array<Real> ctime(1, 0.0);
-            Array<Real> ftime(1, 0.0);
-            Array<MultiFab*> fine(1);
-            fine[0] = phi[lev+1].get();
-
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
                                          0, 0, 1, geom[lev], geom[lev+1],
                                          cphysbc, fphysbc,
