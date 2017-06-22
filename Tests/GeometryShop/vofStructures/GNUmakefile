@@ -27,9 +27,9 @@ EBASE  := umapTest
 
 DEFINES+=-DNCELLMAX=4
 DEFINES+=-DNFACEMAX=5
-ifeq ($(EBASE), vofStructures)
+ifeq ($(EBASE), umapTest)
   CEXE_headers += AMReX_EBStruct.H
-  F90EXE_headers += AMReX_ebstruct_mod.F90
+  f90EXE_sources += umapTest_nd.f90
 endif
 CEXE_sources += $(addsuffix .cpp, $(EBASE))
 
