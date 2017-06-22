@@ -137,10 +137,10 @@ namespace amrex
                              int            l) const;
 
 
-        T* dataPtr () { BL_ASSERT(!(dptr == 0)); return &data[0]; }
+        T* dataPtr () { return &data[0]; }
 
         //! Same as above except works on const UMaps.
-        const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &data[0]; }
+        const T* dataPtr (int n = 0) const {return &data[0]; }
 
 
         key_table_type* keyTablePtr () { BL_ASSERT(!(key_table == 0)); return key_table; }
