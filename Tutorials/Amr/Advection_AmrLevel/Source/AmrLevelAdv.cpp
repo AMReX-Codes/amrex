@@ -81,17 +81,6 @@ AmrLevelAdv::checkPoint (const std::string& dir,
 #endif
 }
 
-/*A string written as the first item in writePlotFile() at
-  level zero. It is so we can distinguish between different
-  types of plot files.
-*/
-std::string
-AmrLevelAdv::thePlotFileType () const
-{
-    static const std::string the_plot_file_type("HyperCLaw-V1.1");
-    return the_plot_file_type;
-}
-
 //
 //Write a plotfile to specified directory.
 //
