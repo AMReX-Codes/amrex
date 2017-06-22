@@ -330,8 +330,8 @@ int main(int argc, char* argv[])
     grids[0].define(domain);
     if (num_levels > 1) {
         int n_fine = n_cell*rr[0];
-        IntVect refined_lo(n_fine/4,n_fine/4,n_fine/4); 
-        IntVect refined_hi(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1);
+        IntVect refined_lo(3*n_fine/8,3*n_fine/8,3*n_fine/8); 
+        IntVect refined_hi(5*n_fine/8-1,5*n_fine/8-1,5*n_fine/8-1);
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
@@ -374,7 +374,7 @@ int main(int argc, char* argv[])
     getLevelMasks(masks, grids, dm, geom);
 
     Array<std::unique_ptr<FabArray<BaseFab<int> > > > gather_masks(num_levels);
-    getLevelMasks(gather_masks, grids, dm, geom, 8);
+    getLevelMasks(gather_masks, grids, dm, geom, 4);
     
     ElectrostaticParticleContainer myPC(geom, dm, grids, rr);
 
