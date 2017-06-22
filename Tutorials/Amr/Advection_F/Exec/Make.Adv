@@ -1,5 +1,5 @@
 AMREX_HOME ?= ../../../..
-TOP := $(AMREX_HOME)/OldTutorials/AMR_Adv_CF
+TOP := $(AMREX_HOME)/Tutorials/Amr/Advection_F
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
