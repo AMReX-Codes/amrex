@@ -381,6 +381,15 @@ struct EBBndryData
     Real m_value;
 };
 
+extern "C"
+{
+    amrex_real fort_umap_norm (const int* lo, const int* hi,
+                               const amrex_real* src, const int* src_sz,
+                               const amrex::key_table_type* kt, const int* ktlo, const int* kthi, 
+                               const int* max_mv, const int* ncomp,
+                               const int* p);
+}
+
 int myTest()
 {
     std::cout << "CutCell is POD: " << std::is_pod<CutCell>::value << std::endl;
@@ -427,12 +436,13 @@ int myTest()
 
     BuildFortranGraph(cmap_fine,fmap_fine,cidx_fine,fidx_fine,eblg_fine,eblg_crsn,ratio);
 
+    Real boundary_value = 10;
+    Real internal_value = 5;
 
     // Build structure of EBBndryData to hold value, centroid and normal of cut cells
     BaseUmapFactory<EBBndryData> EBBD_factory(NCELLMAX);
     FabArray<BaseUmap<EBBndryData> > ebbd_fine(ba_fine, dm_fine, nComp, nGrow, MFInfo(), EBBD_factory);
 
-    Real boundary_value = 10;
     for (MFIter mfi(cidx_fine); mfi.isValid(); ++mfi)
     {
         const BaseUmap<VolIndex>& cidx_fab = cidx_fine[mfi];
@@ -454,6 +464,7 @@ int myTest()
     // Build structure of FaceData to hold aperature and centroid of faces
     BaseUmapFactory<FaceData> fd_factory(NFACEMAX);
     std::array<FabArray<BaseUmap<FaceData> >, BL_SPACEDIM> fd_fine;
+
     for (int idir=0; idir<BL_SPACEDIM; ++idir)
     {
         fd_fine[idir].define(fba_fine[idir], dm_fine, nComp, nGrow, MFInfo(), fd_factory);
@@ -478,6 +489,38 @@ int myTest()
             }
         }
     }
+
+    // Build a structure to hold a Real value at each cell.  Set value to a constant.
+    BaseUmapFactory<Real> CellData_factory(NCELLMAX);
+    FabArray<BaseUmap<Real> > cd_fine(ba_fine, dm_fine, nComp, nGrow, MFInfo(), CellData_factory);
+
+    for (MFIter mfi(cidx_fine); mfi.isValid(); ++mfi)
+    {
+        const BaseUmap<CutCell>& cmap_fab = cmap_fine[mfi];
+        BaseUmap<Real>& c = cd_fine[mfi];
+        for (BaseUmap<CutCell>::const_iterator cc = cmap_fab.begin(); cc<cmap_fab.end(); ++cc )
+        {
+            const BaseUmap<CutCell>::Tuple& tuple = cc.tuple();
+            c.setVal(internal_value,tuple.pos,0,tuple.l);
+        }
+    }
+
+    // Call a fortran routine to compute max norm of cell data over a BoxArray
+    Real norm = 0;
+    for (MFIter mfi(cd_fine); mfi.isValid(); ++mfi)
+    {
+        const BaseUmap<Real>& cd_fab = cd_fine[mfi];
+        int npts = cd_fab.nPts();
+        int max_mv = cd_fab.MaxMV();
+        int ncomp = cd_fab.nComp();
+        Real this_norm =  fort_umap_norm(ARLIM_3D(cd_fab.box().loVect()), ARLIM_3D(cd_fab.box().hiVect()),
+                                         cd_fab.dataPtr(),&npts, 
+                                         cd_fab.keyTablePtr(), ARLIM_3D(cd_fab.box().loVect()), ARLIM_3D(cd_fab.box().hiVect()),
+                                         &max_mv, &ncomp, 0);
+        norm = std::max(norm, this_norm);
+    }
+    ParallelDescriptor::ReduceRealMax(norm);
+    std::cout << "Norm is " << norm << std::endl;
 
 #if 0
     MultiFab vfrac(ba_fine, dm_fine,  nComp, 0);
