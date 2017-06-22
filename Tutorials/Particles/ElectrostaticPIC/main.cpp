@@ -86,7 +86,7 @@ void WritePlotFile(const ScalarMeshData& rhs,
 
 void computeE(      VectorMeshData& E,
               const ScalarMeshData& phi, 
-                    const Array<Geometry>& geom) {
+              const Array<Geometry>& geom) {
 
     const int num_levels = E.size();
     const int finest_level = num_levels - 1;

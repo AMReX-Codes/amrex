@@ -334,9 +334,8 @@ contains
     real(amrex_real), intent(in)     :: dx(3), cdx(3)
 
     integer i, j, k, n
-    integer ifine, jfine, kfine
     real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
-    real(amrex_real) lx, ly, lz, lxfine, lyfine, lzfine
+    real(amrex_real) lx, ly, lz
     real(amrex_real) inv_dx(3), inv_cdx(3)
     inv_dx  = 1.0d0/dx
     inv_cdx = 1.0d0/cdx
@@ -351,24 +350,17 @@ contains
        j = floor(ly)
        k = floor(lz)
 
+! use the coarse E if near the level boundary
        if (lev .eq. 1 .and. mask(i,j,k) .eq. 1) then
 
           lx = (particles(1, n) - plo(1))*inv_cdx(1)
           ly = (particles(2, n) - plo(2))*inv_cdx(2)
           lz = (particles(3, n) - plo(3))*inv_cdx(3)
 
-          lxfine = (particles(1, n) - plo(1))*inv_dx(1)
-          lyfine = (particles(2, n) - plo(2))*inv_dx(2)
-          lzfine = (particles(3, n) - plo(3))*inv_dx(3)
-
           i = floor(lx)
           j = floor(ly)
           k = floor(lz)
 
-          ifine = floor(lxfine)
-          jfine = floor(lyfine)
-          kfine = floor(lzfine)
-          
           wx_hi = lx - i
           wy_hi = ly - j
           wz_hi = lz - k
@@ -404,6 +396,7 @@ contains
                     wx_hi*wy_hi*wz_lo*cEz(i+1, j+1, k  ) + &
                     wx_hi*wy_hi*wz_hi*cEz(i+1, j+1, k+1)
           
+! otherwise use the fine
        else
 
           wx_hi = lx - i
@@ -424,22 +417,22 @@ contains
                wx_hi*wy_hi*wz_hi*Ex(i+1, j+1, k+1)
           
           Ey_p(n) = wx_lo*wy_lo*wz_lo*Ey(i,   j,   k  ) + &
-               wx_lo*wy_lo*wz_hi*Ey(i,   j,   k+1) + &
-               wx_lo*wy_hi*wz_lo*Ey(i,   j+1, k  ) + &
-               wx_lo*wy_hi*wz_hi*Ey(i,   j+1, k+1) + &
-               wx_hi*wy_lo*wz_lo*Ey(i+1, j,   k  ) + &
-               wx_hi*wy_lo*wz_hi*Ey(i+1, j,   k+1) + &
-               wx_hi*wy_hi*wz_lo*Ey(i+1, j+1, k  ) + &
-               wx_hi*wy_hi*wz_hi*Ey(i+1, j+1, k+1)
+                    wx_lo*wy_lo*wz_hi*Ey(i,   j,   k+1) + &
+                    wx_lo*wy_hi*wz_lo*Ey(i,   j+1, k  ) + &
+                    wx_lo*wy_hi*wz_hi*Ey(i,   j+1, k+1) + &
+                    wx_hi*wy_lo*wz_lo*Ey(i+1, j,   k  ) + &
+                    wx_hi*wy_lo*wz_hi*Ey(i+1, j,   k+1) + &
+                    wx_hi*wy_hi*wz_lo*Ey(i+1, j+1, k  ) + &
+                    wx_hi*wy_hi*wz_hi*Ey(i+1, j+1, k+1)
           
           Ez_p(n) = wx_lo*wy_lo*wz_lo*Ez(i,   j,   k  ) + &
-               wx_lo*wy_lo*wz_hi*Ez(i,   j,   k+1) + &
-               wx_lo*wy_hi*wz_lo*Ez(i,   j+1, k  ) + &
-               wx_lo*wy_hi*wz_hi*Ez(i,   j+1, k+1) + &
-               wx_hi*wy_lo*wz_lo*Ez(i+1, j,   k  ) + &
-               wx_hi*wy_lo*wz_hi*Ez(i+1, j,   k+1) + &
-               wx_hi*wy_hi*wz_lo*Ez(i+1, j+1, k  ) + &
-               wx_hi*wy_hi*wz_hi*Ez(i+1, j+1, k+1)
+                    wx_lo*wy_lo*wz_hi*Ez(i,   j,   k+1) + &
+                    wx_lo*wy_hi*wz_lo*Ez(i,   j+1, k  ) + &
+                    wx_lo*wy_hi*wz_hi*Ez(i,   j+1, k+1) + &
+                    wx_hi*wy_lo*wz_lo*Ez(i+1, j,   k  ) + &
+                    wx_hi*wy_lo*wz_hi*Ez(i+1, j,   k+1) + &
+                    wx_hi*wy_hi*wz_lo*Ez(i+1, j+1, k  ) + &
+                    wx_hi*wy_hi*wz_hi*Ez(i+1, j+1, k+1)
        
        end if
 
