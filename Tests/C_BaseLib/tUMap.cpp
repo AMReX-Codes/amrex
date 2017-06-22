@@ -5,7 +5,7 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_BaseUMAP.H>
+#include <AMReX_BaseUmap.H>
 #include <AMReX_BaseUmap_f.H>
 #include <AMReX_ArrayLim.H>
 
