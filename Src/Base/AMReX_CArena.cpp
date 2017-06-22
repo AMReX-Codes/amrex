@@ -64,7 +64,7 @@ CArena::alloc (size_t nbytes)
 	    if (device_set_readonly)
 		mem_advise_set_readonly(vp, N);
 	    if (device_set_preferred) {
-		const int device = Device::cudaDeviceId();
+		const int device = Device::deviceId();
 		mem_advise_set_preferred(vp, N, &device);
 	    }
 

@@ -303,9 +303,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 		   << " OMP threads\n";
 #endif
 
-#ifdef CUDA
-    Device::initialize_cuda();
-#endif
+    Device::initialize_device();
 
     while ( ! The_Initialize_Function_Stack.empty())
     {
@@ -439,9 +437,7 @@ amrex::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
-#ifdef CUDA
-    finalize_cuda();
-#endif
+    Device::finalize_device();
 
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.

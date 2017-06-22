@@ -173,9 +173,7 @@ Geometry::GetVolume (MultiFab&       vol) const
 #endif
     for (MFIter mfi(vol,true); mfi.isValid(); ++mfi)
     {
-#ifdef CUDA
-	gpu_synchronize();
-#endif
+        Device::synchronize();
 	CoordSys::SetVolume(vol[mfi], mfi.growntilebox());
     }
 }
