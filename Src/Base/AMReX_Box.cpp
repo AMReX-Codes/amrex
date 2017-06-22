@@ -181,9 +181,10 @@ Box&
 Box::convert (const IntVect& typ)
 {
     BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
+    initialize_device_memory();
     IntVect shft(typ - btype.ixType());
     bigend += shft;
-    initialize_device_memory();
+    copy_device_memory();
     btype = IndexType(typ);
     return *this;
 }
@@ -191,6 +192,7 @@ Box::convert (const IntVect& typ)
 Box&
 Box::convert (IndexType t)
 {
+   initialize_device_memory();
    for (int dir = 0; dir < BL_SPACEDIM; dir++)
    {
       const unsigned int typ = t[dir];
@@ -199,7 +201,7 @@ Box::convert (IndexType t)
       bigend.shift(dir,off);
       btype.setType(dir, (IndexType::CellIndex) typ);
    }
-   initialize_device_memory();
+   copy_device_memory();
    return *this;
 }
 
@@ -234,6 +236,7 @@ surroundingNodes (const Box& b,
 Box&
 Box::surroundingNodes (int dir)
 {
+    initialize_device_memory();
     if (!(btype[dir]))
     {
         bigend.shift(dir,1);
@@ -242,7 +245,7 @@ Box::surroundingNodes (int dir)
         //
         btype.set(dir);
     }
-    initialize_device_memory();
+    copy_device_memory();
     return *this;
 }
 
@@ -258,11 +261,12 @@ surroundingNodes (const Box& b)
 Box&
 Box::surroundingNodes ()
 {
+    initialize_device_memory();
     for (int i = 0; i < BL_SPACEDIM; ++i)
         if ((btype[i] == 0))
             bigend.shift(i,1);
     btype.setall();
-    initialize_device_memory();
+    copy_device_memory();
     return *this;
 }
 
@@ -279,6 +283,7 @@ enclosedCells (const Box& b,
 Box&
 Box::enclosedCells (int dir)
 {
+    initialize_device_memory();
     if (btype[dir])
     {
         bigend.shift(dir,-1);
@@ -287,7 +292,7 @@ Box::enclosedCells (int dir)
         //
         btype.unset(dir);
     }
-    initialize_device_memory();
+    copy_device_memory();
     return *this;
 }
 
@@ -303,11 +308,12 @@ enclosedCells (const Box& b)
 Box&
 Box::enclosedCells ()
 {
+    initialize_device_memory();
     for (int i = 0 ; i < BL_SPACEDIM; ++i)
         if (btype[i])
             bigend.shift(i,-1);
     btype.clear();
-    initialize_device_memory();
+    copy_device_memory();
     return *this;
 }
 
@@ -362,13 +368,14 @@ Box&
 Box::grow (Orientation face,
            int         n_cell)
 {
+    initialize_device_memory();
     int idir = face.coordDir();
     if (face.isLow()) {
         smallend.shift(idir, -n_cell);
     } else {
         bigend.shift(idir,n_cell);
     }
-    initialize_device_memory();
+    copy_device_memory();
     return *this;
 }
 
@@ -400,6 +407,7 @@ Box&
 Box::shiftHalf (int dir,
                 int nzones)
 {
+    initialize_device_memory();
     const int nbit = (nzones<0 ? -nzones : nzones)%2;
     int nshift = nzones/2;
     //
@@ -414,7 +422,7 @@ Box::shiftHalf (int dir,
         nshift += (bit_dir ? 0 : nbit);
     smallend.shift(dir,nshift);
     bigend.shift(dir,nshift);
-    initialize_device_memory();
+    copy_device_memory();
     return *this;
 }
 
@@ -479,13 +487,14 @@ Box&
 Box::refine (const IntVect& ref_ratio)
 {
     if (ref_ratio != 1) {
+	initialize_device_memory();
         IntVect shft(IntVect::TheUnitVector());
         shft -= btype.ixType();
         smallend *= ref_ratio;
         bigend += shft;
         bigend *= ref_ratio;
         bigend -= shft;
-	initialize_device_memory();
+        copy_device_memory();
     }
     return *this;
 }
@@ -560,6 +569,7 @@ Box
 Box::chop (int dir,
            int chop_pnt)
 {
+    initialize_device_memory();
     //
     // Define new high end Box including chop_pnt.
     //
@@ -588,7 +598,7 @@ Box::chop (int dir,
         //
         bigend.setVal(dir,chop_pnt-1);
     }
-    initialize_device_memory();
+    copy_device_memory();
     return Box(sm,bg,btype);
 }
 
@@ -621,6 +631,8 @@ coarsen (const Box&     b,
 Box&
 Box::coarsen (const IntVect& ref_ratio)
 {
+    initialize_device_memory();
+
     smallend.coarsen(ref_ratio);
 
     if (btype.any())
@@ -640,7 +652,7 @@ Box::coarsen (const IntVect& ref_ratio)
         bigend.coarsen(ref_ratio);
     }
 
-    initialize_device_memory();
+    copy_device_memory();
 
     return *this;
 }
@@ -733,9 +745,10 @@ Box::minBox (const Box &b)
 {
 // BoxArray may call this with not ok boxes.  BL_ASSERT(b.ok() && ok());
     BL_ASSERT(sameType(b));
+    initialize_device_memory();
     smallend.min(b.smallend);
     bigend.max(b.bigend);
-    initialize_device_memory();
+    copy_device_memory();
     return *this;
 }
 
@@ -895,9 +908,10 @@ Box::setRange (int dir,
                int sm_index,
                int n_cells)
 {
+    initialize_device_memory();
     smallend.setVal(dir,sm_index);
     bigend.setVal(dir,sm_index+n_cells-1);
-    initialize_device_memory();
+    copy_device_memory();
     return *this;
 }
 
