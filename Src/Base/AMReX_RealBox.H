@@ -71,17 +71,17 @@ public:
     //! Returns length in specified direction.
     Real length (int dir) const { return xhi[dir]-xlo[dir]; }
     //! Sets lo side.
-    void setLo (const Real* lo) { initialize_device_memory(); AMREX_D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); }
+    void setLo (const Real* lo) { initialize_device_memory(); AMREX_D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); copy_device_memory(); }
     //! Sets lo side.
-    void setLo (const Array<Real>& lo) { initialize_device_memory(); AMREX_D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); }
+    void setLo (const Array<Real>& lo) { initialize_device_memory(); AMREX_D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); copy_device_memory(); }
     //! Sets lo side in specified direction.
-    void setLo (int dir, Real lo) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); initialize_device_memory(); xlo[dir] = lo; }
+    void setLo (int dir, Real lo) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); initialize_device_memory(); xlo[dir] = lo; copy_device_memory(); }
     //! Sets hi side.
-    void setHi (const Real* hi) { initialize_device_memory(); AMREX_D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); }
+    void setHi (const Real* hi) { initialize_device_memory(); AMREX_D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); copy_device_memory(); }
     //! Sets hi side.
-    void setHi (const Array<Real>& hi) { initialize_device_memory(); AMREX_D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); }
+    void setHi (const Array<Real>& hi) { initialize_device_memory(); AMREX_D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); copy_device_memory(); }
     //! Sets hi side in specified direction.
-    void setHi (int dir, Real hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); initialize_device_memory(); xhi[dir] = hi; }
+    void setHi (int dir, Real hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); initialize_device_memory(); xhi[dir] = hi; copy_device_memory(); }
     //! Is the RealBox OK; i.e. does it have positive volume?
     bool ok () const;
     //! Is the specified point contained in the RealBox?
