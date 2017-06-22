@@ -88,7 +88,6 @@ set (AMREX_Cray_CXXFLAGS_DEBUG "-O0")
 set (AMREX_Cray_CXXFLAGS_RELEASE "-02")
 set (AMREX_Cray_CXXFLAGS_REQUIRED "")#-ftemplate-depth-64 -Wno-deprecated")
 
-
 #
 # Compile- and link-time variables 
 #
@@ -104,6 +103,9 @@ set (AMREX_EXTRA_Fortran_LIBRARIES)
 set (AMREX_EXTRA_C_LINK_FLAGS)
 set (AMREX_EXTRA_CXX_LINK_FLAGS)
 set (AMREX_EXTRA_Fortran_LINK_FLAGS)
+set (AMREX_EXTRA_C_LINK_LINE)
+set (AMREX_EXTRA_CXX_LINK_LINE)
+set (AMREX_EXTRA_Fortran_LINK_LINE)
 
 # Variable to show this file was loaded
 set ( AMREX_VARIABLES_LOADED "TRUE" )
