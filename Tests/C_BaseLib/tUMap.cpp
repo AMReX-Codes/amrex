@@ -5,7 +5,9 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_BaseUMAP.H>
+#include <AMReX_BaseUmap.H>
+#include <AMReX_BaseUmap_f.H>
+#include <AMReX_ArrayLim.H>
 
 //BL_FORT_PROC_DECL(FILLFAB,fillfab)(Real* d, const int* nx, const int* ny);
 
@@ -40,7 +42,20 @@ main (int argc, char** argv)
 //
     }
 
-    std::cout << "hi";
+// Convert to references.
+// umap.nPts() returns a long, fort_umap_norm expects an int
+// Keytable location may not be quite right
+    int npts = umap.nPts();
+    int max_mv = umap.MaxMV();
+    int ncomp = umap.nComp();
+    Real norm =  fort_umap_norm(ARLIM_3D(umap.box().loVect()), ARLIM_3D(umap.box().hiVect()),
+                                umap.dataPtr(),&npts, 
+                                umap.keyTablePtr(), ARLIM_3D(umap.box().loVect()), ARLIM_3D(umap.box().hiVect()),
+                                &max_mv, &ncomp, 0);
+    
+
+    std::cout << "Norm (from fotran): " << norm << std::endl;
+
 
     amrex::Finalize();
 

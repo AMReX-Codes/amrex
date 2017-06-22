@@ -20,9 +20,16 @@
 #include <AMReX_MakeType.H>
 #include <unordered_map>
 
+
+// iv - IntVect in absolute coordiantes
+// m - variable / component
+// l - multivalued index
+#define KIDX(iv,m,l) (l*domain.numPts()*nvar + m*domain.numPts() + domain.index(iv)) 
+
 namespace amrex
 {
 
+    typedef int key_table_type;
 /**
  *
  * A sparse storage container for data in an i,j,k,n,m index
@@ -36,7 +43,7 @@ namespace amrex
     public:
 
         typedef T value_type;
-        typedef int key_table_type;
+
         struct Tuple
         {
             Tuple () {}
@@ -93,7 +100,9 @@ namespace amrex
         //! Returns max_mv
         int MaxMV () const { return max_mv; }
  
-        long nPts () const { return data.size();}
+        int nPts () const { return data.size();}
+
+        int nComp () const {return nvar;}
 
 
         // Build the key from the IntVect, component, and multi-valued index
@@ -126,6 +135,19 @@ namespace amrex
         const T& operator() (const IntVect& pos,
                              int            ncomp,
                              int            l) const;
+
+
+        T* dataPtr () { BL_ASSERT(!(dptr == 0)); return &data[0]; }
+
+        //! Same as above except works on const UMaps.
+        const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &data[0]; }
+
+
+        key_table_type* keyTablePtr () { BL_ASSERT(!(key_table == 0)); return key_table; }
+
+        //! Same as above except works on const UMaps.
+        const key_table_type* keyTablePtr (int n = 0) const { BL_ASSERT(!(key_table == 0)); return key_table; }
+
         
     protected:
     
@@ -137,11 +159,11 @@ namespace amrex
 
         Box domain;
         int nvar;
-        long numpts;
+        int numpts;
         std::vector<T> data;
         key_table_type* key_table;
         std::map<key_table_type,Tuple> data_key_tuple_map;
-        long kt_size;
+        int kt_size;
         int max_mv;
 
     private:
@@ -233,10 +255,12 @@ namespace amrex
                       const int n,
                       const int l ) const
     {
-        long loc = domain.index(pos);
-        long size = domain.numPts();
+//        int loc = domain.index(pos);
+  //      int size = domain.numPts();
         // entry stored in position l*NumComponents + ncomp
-        return key_table[loc+(l*nvar + n)*size];
+//        std::cout << "Looking up key for pos:" << pos << " variable: " << n << " multi-value: " << l << std::endl;
+//      int idx = l*
+        return key_table[KIDX(pos,n,l)];
 
     }
 
@@ -250,10 +274,11 @@ namespace amrex
         BL_ASSERT(l>=0 && l < max_mv);
         BL_ASSERT(domain.contains(pos));
         BL_ASSERT(n>=0 && n<nvar);
-        long loc = domain.index(pos);
-        long size = domain.numPts();
+        int loc = domain.index(pos);
+        int size = domain.numPts();
         // entry stored in position l*NumComponents + ncomp
-        key_table[loc+(l*nvar + n)*size] = k;
+//        key_table[loc+(l*nvar + n)*size] = k;
+        key_table[KIDX(pos,n,l)] = k;
         data_key_tuple_map[k] = Tuple(pos,n,l);
 
     }
@@ -268,7 +293,7 @@ namespace amrex
         BL_ASSERT(l>=0 && l < max_mv);
         BL_ASSERT(domain.contains(pos));
         BL_ASSERT(ncomp>=0 && ncomp<nvar);
-        long k = key(pos, ncomp, l);
+        key_table_type k = key(pos, ncomp, l);
 
         if ( k >= 0)
         {
@@ -279,6 +304,8 @@ namespace amrex
             data.push_back(val);
             set_key(pos, ncomp, l, data.size()-1);
         }
+        k = key(pos, ncomp, l);
+
     }
 
     template <class T>
@@ -287,12 +314,13 @@ namespace amrex
                          const int ncomp,
                          const int l) const
     {
-        BL_ASSERT(ncomp >= 0 && ncomp < nvar);
+
+
         BL_ASSERT(l >= 0 && l < max_mv);
         BL_ASSERT(domain.contains(pos));
 
         key_table_type k = key(pos, ncomp, l);
-        if (k<0) amrex::Abort();
+//        if (k<0) amrex::Abort();
         return data[k];
     }
 
@@ -302,12 +330,16 @@ namespace amrex
                          const int ncomp,
                          const int l)
     {
+
         BL_ASSERT(ncomp >= 0 && ncomp < nvar);
         BL_ASSERT(l >= 0 && l < max_mv);
         BL_ASSERT(domain.contains(pos));
 
         key_table_type k = key(pos, ncomp, l);
-        if (k<0) amrex::Abort();
+        if (k<0 || k>data.size()){
+            //        if (k<0) amrex::Abort();
+        }
+
         return data[k];
     }
 
