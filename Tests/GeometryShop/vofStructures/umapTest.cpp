@@ -90,15 +90,6 @@ get_EBLGs(EBLevelGrid& eblg_fine,
         amrex::Abort("Unknown geom_type");
     }
 
-    std::cout << "num levels " << ebisPtr->getNumLevels() << std::endl;
-    std::cout << "  get level: " << ebisPtr->getLevel(paramsFine.coarsestDomain) << " " << paramsFine.coarsestDomain << std::endl;
-    Box tbox=paramsFine.coarsestDomain;
-    for (int ilev=1; ilev<ebisPtr->getNumLevels(); ++ilev)
-    {
-        tbox.coarsen(ratio);
-        std::cout << "  get level: " << ebisPtr->getLevel(tbox) << " " << tbox << std::endl;
-    }
-
     std::vector<EBLevelGrid> eblg_tmpf;
     getAllIrregEBLG(eblg_tmpf, paramsFine);
     eblg_fine = eblg_tmpf[0];
