@@ -51,3 +51,11 @@ amrex::Device::get_host_pointer(const void* ptr) {
 
 }
 
+void
+amrex::Device::check_for_errors() {
+
+#ifdef CUDA
+    check_for_gpu_errors();
+#endif
+
+}

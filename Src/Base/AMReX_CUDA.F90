@@ -35,22 +35,22 @@ contains
     integer :: i, cudaResult, ilen
 
     cudaResult = cudaStreamCreate(cuda_streams(0))
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
     cudaResult = cudaforSetDefaultStream(cuda_streams(0))
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
     stream_index = -1
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamCreate(cuda_streams(i))
-       call gpu_error_check(cudaResult)
+       call gpu_error_test(cudaResult)
     enddo
 
     cuda_device_id = 0
 
     cudaResult = cudaGetDeviceProperties(prop, cuda_device_id)
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
     have_prop = .true.
 
@@ -78,13 +78,13 @@ contains
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamDestroy(cuda_streams(i))
-       call gpu_error_check(cudaResult, abort=.false.)
+       call gpu_error_test(cudaResult, abort=.false.)
     end do
 
     call cudaProfilerStop()
 
     cudaResult = cudaDeviceReset()
-    call gpu_error_check(cudaResult, abort=.false.)
+    call gpu_error_test(cudaResult, abort=.false.)
 
   end subroutine finalize_cuda
 
@@ -103,7 +103,7 @@ contains
     ! Set the GPU stack size, in bytes.
 
     cudaResult = cudaDeviceSetLimit(cudaLimitStackSize, size)
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
   end subroutine set_gpu_stack_limit
 
@@ -221,7 +221,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaMalloc(x, sz)
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_malloc
 
@@ -240,7 +240,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaHostAlloc(x, sz, ior(cudaHostAllocMapped, cudaHostAllocWriteCombined))
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_hostalloc
 
@@ -261,7 +261,7 @@ contains
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
        cudaResult = cudaMallocManaged(x, sz, cudaMemAttachGlobal)
-       call gpu_error_check(cudaResult)
+       call gpu_error_test(cudaResult)
 
     else
 
@@ -284,7 +284,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaFree(x)
-    call gpu_error_check(cudaResult, abort=.false.)
+    call gpu_error_test(cudaResult, abort=.false.)
 
   end subroutine gpu_free
 
@@ -302,7 +302,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaFreeHost(x)
-    call gpu_error_check(cudaResult, abort=.false.)
+    call gpu_error_test(cudaResult, abort=.false.)
 
   end subroutine gpu_freehost
 
@@ -322,7 +322,7 @@ contains
     flags = 0 ! This argument does nothing at present, but is part of the API.
 
     cudaResult = cudaHostGetDevicePointer(x, y, flags)
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_host_device_ptr
 
@@ -343,7 +343,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_streams(stream_from_index(idx)))
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_htod_memcpy_async
 
@@ -364,7 +364,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_streams(stream_from_index(idx)))
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_dtoh_memcpy_async
 
@@ -386,7 +386,7 @@ contains
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1 .and. prop%concurrentManagedAccess == 1)) then
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(stream_from_index(idx)))
-       call gpu_error_check(cudaResult)
+       call gpu_error_test(cudaResult)
 
     end if
 
@@ -410,7 +410,7 @@ contains
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(stream_from_index(idx)))
-       call gpu_error_check(cudaResult)
+       call gpu_error_test(cudaResult)
 
     end if
 
@@ -427,7 +427,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaDeviceSynchronize()
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_synchronize
 
@@ -444,7 +444,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaStreamSynchronize(cuda_streams(stream_from_index(index)))
-    call gpu_error_check(cudaResult)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_stream_synchronize
 
@@ -461,7 +461,7 @@ contains
 
     integer :: cudaResult
 
-    ! Note: we do not error check in this subroutine because the error
+    ! Note: we do not error test in this subroutine because the error
     ! code seems to be broken in PGI.
 
     if ((.not. have_prop) .or. (have_prop .and. prop%concurrentManagedAccess == 1)) then
@@ -482,7 +482,7 @@ contains
 
     integer :: cudaResult
 
-    ! Note: we do not error check in this subroutine because the error
+    ! Note: we do not error test in this subroutine because the error
     ! code seems to be broken in PGI.
 
     ! Note: the device argument in this call is ignored, so we arbitrarily pick the CPU.
@@ -523,7 +523,7 @@ contains
 
 
 
-  subroutine gpu_error_check(cudaResult, abort) bind(c, name='gpu_error_check')
+  subroutine gpu_error_test(cudaResult, abort) bind(c, name='gpu_error_test')
 
     implicit none
 
@@ -542,6 +542,25 @@ contains
        call gpu_error(cudaResult, do_abort)
     end if
 
-  end subroutine gpu_error_check
+  end subroutine gpu_error_test
+
+
+
+  ! Check if any kernels or previous API calls have returned an error code.
+  ! Abort if so.
+
+  subroutine check_for_gpu_errors() bind(c, name='check_for_gpu_errors')
+
+    use cudafor, only: cudaGetLastError
+
+    implicit none
+
+    integer :: cudaResult
+
+    cudaResult = cudaGetLastError()
+
+    call gpu_error_test(cudaResult)
+
+  end subroutine check_for_gpu_errors
 
 end module cuda_module
