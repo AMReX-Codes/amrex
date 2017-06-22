@@ -91,7 +91,7 @@ AmrLevelAdv::checkPoint (const std::string& dir,
 std::string
 AmrLevelAdv::thePlotFileType () const
 {
-    static const std::string the_plot_file_type("AMReX");
+    static const std::string the_plot_file_type("HyperCLaw-V1.1");
     return the_plot_file_type;
 }
 
