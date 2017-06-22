@@ -126,6 +126,8 @@ struct tface
 static void
 BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                   std::array<FabArray<BaseUmap<CutFace> >, BL_SPACEDIM>& fmap,
+                  FabArray<BaseUmap<VolIndex> >& cidx,
+                  std::array<FabArray<BaseUmap<FaceIndex> >, BL_SPACEDIM>& fidx,
                   const EBLevelGrid& eblg_fine, EBLevelGrid& eblg_crsn, int ratio)
 {
     coarsen(eblg_crsn, eblg_fine, ratio);
@@ -168,6 +170,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                             const VolIndex& vof_fine = vofs_fine[icc_fine];
                             const IntVect& iv_fine = vof_fine.gridIndex();
                             int idx_fine = vof_fine.cellIndex();
+                            cidx[mfi].setVal(vof_fine,iv_fine,0,idx_fine);
                             for (int idir = 0; idir < SpaceDim; idir++)
                             {
                                 for (SideIterator sit; sit.ok(); ++sit)
@@ -208,6 +211,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                                             {
                                                 cc.nbr[idir][iside][nValid] = face_fine.cellIndex(sit());
                                                 tf[idir][iv_face_fine].insert(tface(idx_fine,cc.nbr[idir][iside][nValid],sit,crsn_parent));
+                                                fidx[idir][mfi].setVal(face_fine,iv_face_fine,0,nValid);
                                             }
                                             nValid++;
 					    BL_ASSERT(nValid<NCELLMAX);
@@ -286,7 +290,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
         }
     }
 
-#if 1
+#if 0
     // Dump graphs
     std::cout << "cmap: " << std::endl;
     for (MFIter mfi(cmap); mfi.isValid(); ++mfi)
@@ -345,24 +349,48 @@ protected:
     int m_lmax;
 };
 
+typedef std::array<Real,BL_SPACEDIM>  RealDIM;
+static void
+Copy(RealDIM& out, const RealVect& in)
+{
+    for (int d=0; d<BL_SPACEDIM; ++d) {
+        out[d] = in[d];
+    }    
+}
+
+#if 0
+static void
+Copy(RealVect& out, const RealDIM& in)
+{
+    for (int d=0; d<BL_SPACEDIM; ++d) {
+        out[d] = in[d];
+    }    
+}
+#endif
+
 struct FaceData
 {
-  FaceData(const RealVect& a_centroid,
-           Real            a_aperature) : m_centroid(a_centroid), m_aperature(a_aperature) {}
-  FaceData() {}
-  RealVect m_centroid;
   Real m_aperature;
+  RealDIM m_centroid;
 };
 
+struct EBBndryData
+{
+    RealDIM m_normal;
+    RealDIM m_bndry_centroid;
+    Real m_value;
+};
 
 int myTest()
 {
     std::cout << "CutCell is POD: " << std::is_pod<CutCell>::value << std::endl;
     std::cout << "CutFace is POD: " << std::is_pod<CutFace>::value << std::endl;
     std::cout << "FaceData is POD: " << std::is_pod<FaceData>::value << std::endl;
+    std::cout << "EBBndryData is POD: " << std::is_pod<EBBndryData>::value << std::endl;
     std::cout << "Size of CutCell: " << sizeof(CutCell)/sizeof(int) << " ints" << std::endl;
     std::cout << "Size of CutFace: " << sizeof(CutFace)/sizeof(int) << " ints" << std::endl;
     std::cout << "Size of FaceData: " << sizeof(FaceData)/sizeof(Real) << " reals" << std::endl;
+    std::cout << "Size of EBBndryData: " << sizeof(EBBndryData)/sizeof(Real) << " reals" << std::endl;
 
     EBLevelGrid eblg_fine, eblg_crse, eblg_crsn;
     int ratio;
@@ -385,9 +413,73 @@ int myTest()
         fmap_fine[idir].define(fba_fine[idir], dm_fine, nComp, nGrow, MFInfo(), fmap_factory);
     }
 
-    BuildFortranGraph(cmap_fine,fmap_fine,eblg_fine,eblg_crsn,ratio);
+    BaseUmapFactory<VolIndex> cidx_factory(NCELLMAX);
+    FabArray<BaseUmap<VolIndex> > cidx_fine(ba_fine, dm_fine, nComp, nGrow, MFInfo(), cidx_factory);
 
-#if 1
+    BaseUmapFactory<FaceIndex> fidx_factory(NFACEMAX);
+    std::array<FabArray<BaseUmap<FaceIndex> >, BL_SPACEDIM> fidx_fine;
+    for (int idir=0; idir<BL_SPACEDIM; ++idir)
+    {
+        fidx_fine[idir].define(fba_fine[idir], dm_fine, nComp, nGrow, MFInfo(), fidx_factory);
+    }
+
+
+
+    BuildFortranGraph(cmap_fine,fmap_fine,cidx_fine,fidx_fine,eblg_fine,eblg_crsn,ratio);
+
+
+    // Build structure of EBBndryData to hold value, centroid and normal of cut cells
+    BaseUmapFactory<EBBndryData> EBBD_factory(NCELLMAX);
+    FabArray<BaseUmap<EBBndryData> > ebbd_fine(ba_fine, dm_fine, nComp, nGrow, MFInfo(), EBBD_factory);
+
+    Real boundary_value = 10;
+    for (MFIter mfi(cidx_fine); mfi.isValid(); ++mfi)
+    {
+        const BaseUmap<VolIndex>& cidx_fab = cidx_fine[mfi];
+        const EBISBox& ebis_box = eblg_fine.getEBISL()[mfi];
+        BaseUmap<EBBndryData>& ebbd = ebbd_fine[mfi];
+        for (BaseUmap<VolIndex>::const_iterator cit = cidx_fab.begin(); cit<cidx_fab.end(); ++cit )
+        {
+            const VolIndex& vof = *cit;
+            const BaseUmap<VolIndex>::Tuple& tuple = cit.tuple();
+
+            EBBndryData bd;
+            Copy(bd.m_bndry_centroid,ebis_box.bndryCentroid(vof));
+            Copy(bd.m_normal,ebis_box.normal(vof));
+            bd.m_value = boundary_value;
+            ebbd.setVal(bd,tuple.pos,0,tuple.l);
+        }
+    }
+
+    // Build structure of FaceData to hold aperature and centroid of faces
+    BaseUmapFactory<FaceData> fd_factory(NFACEMAX);
+    std::array<FabArray<BaseUmap<FaceData> >, BL_SPACEDIM> fd_fine;
+    for (int idir=0; idir<BL_SPACEDIM; ++idir)
+    {
+        fd_fine[idir].define(fba_fine[idir], dm_fine, nComp, nGrow, MFInfo(), fd_factory);
+    }
+
+    for (int idir = 0; idir < SpaceDim; idir++)
+    {
+        for (MFIter mfi(fidx_fine[idir]); mfi.isValid(); ++mfi)
+        {
+            const BaseUmap<FaceIndex>& fidx_fab = fidx_fine[idir][mfi];
+            const EBISBox& ebis_box = eblg_fine.getEBISL()[mfi];
+            BaseUmap<FaceData>& fd = fd_fine[idir][mfi];
+            for (BaseUmap<FaceIndex>::const_iterator fdi = fidx_fab.begin(); fdi<fidx_fab.end(); ++fdi )
+            {
+                const FaceIndex& fi = *fdi;
+                const BaseUmap<FaceIndex>::Tuple& tuple = fdi.tuple();
+
+                FaceData f;
+                f.m_aperature = ebis_box.areaFrac(fi);
+                Copy(f.m_centroid,ebis_box.centroid(fi));
+                fd.setVal(f,tuple.pos,0,tuple.l);
+            }
+        }
+    }
+
+#if 0
     MultiFab vfrac(ba_fine, dm_fine,  nComp, 0);
 
     for(MFIter  mfi(vfrac); mfi.isValid(); ++mfi)
