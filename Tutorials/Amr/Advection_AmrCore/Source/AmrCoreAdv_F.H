@@ -1,11 +1,13 @@
-#ifndef _Adv_F_H_
-#define _Adv_F_H_
+#ifndef _AmrCoreAdv_F_H_
+#define _AmrCoreAdv_F_H_
 #include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C" 
 {
 #endif
+
+    // these are interfaces to fortran subroutines
 
     void initdata(const int& level, const amrex_real& time, 
 		  const int* lo, const int* hi,

@@ -1,5 +1,5 @@
-#ifndef _Adv_H_
-#define _Adv_H_
+#ifndef _AmrLevelAdv_H_
+#define _AmrLevelAdv_H_
 
 #ifdef PARTICLES
 #include <AMReX_AmrParticles.H>
@@ -15,14 +15,14 @@
 #include <omp.h>
 #endif
 
-enum StateType { State_Type = 0,
+enum StateType { Phi_Type = 0,
                  NUM_STATE_TYPE };
 
 //
 // AmrLevel-derived class for hyperbolic conservation equations
 //
 
-class Adv
+class AmrLevelAdv
     :
     public amrex::AmrLevel
 {
@@ -30,20 +30,20 @@ public:
     //
     //Default constructor.  Builds invalid object.
     //
-    Adv ();
+    AmrLevelAdv ();
     //
     //The basic constructor.
     //
-    Adv (amrex::Amr&     papa,
-	 int             lev,
-	 const amrex::Geometry& level_geom,
-	 const amrex::BoxArray& bl,
-	 const amrex::DistributionMapping& dm,
-	 amrex::Real            time);
+    AmrLevelAdv (amrex::Amr&     papa,
+	         int             lev,
+                 const amrex::Geometry& level_geom,
+                 const amrex::BoxArray& bl,
+                 const amrex::DistributionMapping& dm,
+                 amrex::Real            time);
     //
     //The destructor.
     //
-    virtual ~Adv () override;
+    virtual ~AmrLevelAdv () override;
     //
     //Restart from a checkpoint file.
     //
@@ -58,7 +58,7 @@ public:
 
     /*A string written as the first item in writePlotFile() at
                level zero. It is so we can distinguish between different
-               types of plot files. For Adv it has the form: Adv-Vnnn
+               types of plot files.
     */
     virtual std::string thePlotFileType () const override;
 
@@ -81,7 +81,7 @@ public:
     //
     virtual void initData () override;
     //
-    //Initialize data on this level from another Adv (during regrid).
+    //Initialize data on this level from another AmrLevelAdv (during regrid).
     //
     virtual void init (amrex::AmrLevel& old) override;
     //
@@ -96,9 +96,9 @@ public:
     //Advance grids at this level in time.
     //
     virtual amrex::Real advance (amrex::Real time,
-                          amrex::Real dt,
-                          int  iteration,
-                          int  ncycle) override;
+                                 amrex::Real dt,
+                                 int  iteration,
+                                 int  ncycle) override;
     //
     //Estimate time step.
     //
@@ -164,8 +164,8 @@ protected:
 
     static void read_params ();
 
-    Adv& getLevel (int lev);
-
+    // inline functioned implemented below
+    AmrLevelAdv& getLevel (int lev);
     amrex::FluxRegister& getFluxReg ();
     amrex::FluxRegister& getFluxReg (int lev);
 
@@ -198,15 +198,15 @@ protected:
 //
 
 inline
-Adv&
-Adv::getLevel (int lev)
+AmrLevelAdv&
+AmrLevelAdv::getLevel (int lev)
 {
-    return *(Adv *) &parent->getLevel(lev);
+    return *(AmrLevelAdv *) &parent->getLevel(lev);
 }
 
 inline
 amrex::FluxRegister&
-Adv::getFluxReg ()
+AmrLevelAdv::getFluxReg ()
 {
     BL_ASSERT(flux_reg);
     return *flux_reg;
@@ -214,8 +214,8 @@ Adv::getFluxReg ()
 
 inline
 amrex::FluxRegister&
-Adv::getFluxReg (int lev)
+AmrLevelAdv::getFluxReg (int lev)
 {
     return getLevel(lev).getFluxReg();
 }
-#endif /*_Adv_H_*/
+#endif /*_AmrLevelAdv_H_*/

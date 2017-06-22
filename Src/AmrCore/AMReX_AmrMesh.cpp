@@ -83,8 +83,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Array<int>& n_cell_in, std::vector
 
     for (int i = 0; i < nlev; ++i) {
 	n_error_buf[i] = 1;
-        blocking_factor[i] = 8;
-        max_grid_size[i] = (BL_SPACEDIM == 2) ? 128 : 32;
+        blocking_factor[i] = IntVect{D_DECL(8,8,8)};
+        max_grid_size[i] = (BL_SPACEDIM == 2) ? IntVect{D_DECL(128,128,128)} 
+                                              : IntVect{D_DECL(32,32,32)};
     }
 
 
@@ -167,20 +168,114 @@ AmrMesh::InitAmrMesh (int max_level_in, const Array<int>& n_cell_in, std::vector
     // Read in max_grid_size.  Use defaults if not explicitly defined.
     cnt = pp.countval("max_grid_size");
     if (cnt > 0) {
-        pp.getarr("max_grid_size",max_grid_size);
-        for (int i = cnt; i < nlev; ++i) {
-            max_grid_size[i] = max_grid_size[cnt-1];
+        Array<int> mgs;
+        pp.getarr("max_grid_size",mgs);
+        int last_mgs = mgs.back();
+        mgs.resize(max_level+1,last_mgs);
+        SetMaxGridSize(mgs);
+    }
+
+    cnt = pp.countval("max_grid_size_x");
+    if (cnt > 0) {
+        int idim = 0;
+        Array<int> mgs;
+        pp.getarr("max_grid_size_x",mgs);
+        int n = std::min(cnt, max_level+1);
+        for (int i = 0; i < n; ++i) {
+            max_grid_size[i][idim] = mgs[i];
+        }
+        for (int i = n; i <= max_level; ++i) {
+            max_grid_size[i][idim] = mgs[n-1];
         }
     }
+
+#if (BL_SPACEDIM > 1)
+    cnt = pp.countval("max_grid_size_y");
+    if (cnt > 0) {
+        int idim = 1;
+        Array<int> mgs;
+        pp.getarr("max_grid_size_y",mgs);
+        int n = std::min(cnt, max_level+1);
+        for (int i = 0; i < n; ++i) {
+            max_grid_size[i][idim] = mgs[i];
+        }
+        for (int i = n; i <= max_level; ++i) {
+            max_grid_size[i][idim] = mgs[n-1];
+        }
+    }
+#endif
+
+#if (BL_SPACEDIM == 3)
+    cnt = pp.countval("max_grid_size_z");
+    if (cnt > 0) {
+        int idim = 2;
+        Array<int> mgs;
+        pp.getarr("max_grid_size_z",mgs);
+        int n = std::min(cnt, max_level+1);
+        for (int i = 0; i < n; ++i) {
+            max_grid_size[i][idim] = mgs[i];
+        }
+        for (int i = n; i <= max_level; ++i) {
+            max_grid_size[i][idim] = mgs[n-1];
+        }
+    }
+#endif
 
     // Read in the blocking_factors.  Use defaults if not explicitly defined.
     cnt = pp.countval("blocking_factor");
     if (cnt > 0) {
-        pp.getarr("blocking_factor",blocking_factor);
-        for (int i = cnt; i < nlev; ++i) {
-            blocking_factor[i] = blocking_factor[cnt-1];
+        Array<int> bf;
+        pp.getarr("blocking_factor",bf);
+        int last_bf = bf.back();
+        bf.resize(max_level+1,last_bf);
+        SetBlockingFactor(bf);
+    }
+
+    cnt = pp.countval("blocking_factor_x");
+    if (cnt > 0) {
+        int idim = 0;
+        Array<int> bf;
+        pp.getarr("blocking_factor_x",bf);
+        int n = std::min(cnt, max_level+1);
+        for (int i = 0; i < n; ++i) {
+            blocking_factor[i][idim] = bf[i];
+        }
+        for (int i = n; i <= max_level; ++i) {
+            blocking_factor[i][idim] = bf[n-1];
         }
     }
+
+#if (BL_SPACEDIM > 1)
+    cnt = pp.countval("blocking_factor_y");
+    if (cnt > 0) {
+        int idim = 1;
+        Array<int> bf;
+        pp.getarr("blocking_factor_y",bf);
+        int n = std::min(cnt, max_level+1);
+        for (int i = 0; i < n; ++i) {
+            blocking_factor[i][idim] = bf[i];
+        }
+        for (int i = n; i <= max_level; ++i) {
+            blocking_factor[i][idim] = bf[n-1];
+        }
+    }
+#endif
+
+#if (BL_SPACEDIM == 3)
+    cnt = pp.countval("blocking_factor_z");
+    if (cnt > 0) {
+        int idim = 2;
+        Array<int> bf;
+        pp.getarr("blocking_factor_z",bf);
+        int n = std::min(cnt, max_level+1);
+        for (int i = 0; i < n; ++i) {
+            blocking_factor[i][idim] = bf[i];
+        }
+        for (int i = n; i <= max_level; ++i) {
+            blocking_factor[i][idim] = bf[n-1];
+        }
+    }
+#endif
 
     // Read computational domain and set geometry.
     {
@@ -265,14 +360,13 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
 {
     for (int cnt = 1; cnt <= 4; cnt *= 2)
     {
-	const int ChunkSize = max_grid_size[lev]/cnt;
-	IntVect chunk(AMREX_D_DECL(ChunkSize,ChunkSize,ChunkSize));
+        IntVect chunk = max_grid_size[lev] / cnt;
 
 	for (int j = BL_SPACEDIM-1; j >= 0 ; j--)
 	{
 	    chunk[j] /= 2;
 	    
-	    if ( (ba.size() < target_size) && (chunk[j]%blocking_factor[lev] == 0) )
+	    if ( (ba.size() < target_size) && (chunk[j]%blocking_factor[lev][j] == 0) )
 	    {
 		ba.maxSize(chunk);
 	    }
@@ -315,8 +409,9 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 
     for (int i = 0; i <= max_crse; i++)
     {
-        for (int n=0; n<BL_SPACEDIM; n++)
-            bf_lev[i][n] = std::max(1,blocking_factor[i+1]/ref_ratio[i][n]);
+        for (int n=0; n<BL_SPACEDIM; n++) {
+            bf_lev[i][n] = std::max(1,blocking_factor[i+1][n]/ref_ratio[i][n]);
+        }
     }
     for (int i = lbase; i < max_crse; i++)
     {
@@ -556,10 +651,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 		}
 	    }
 
-            IntVect largest_grid_size;
-            for (int n = 0; n < BL_SPACEDIM; n++) {
-                largest_grid_size[n] = max_grid_size[levf] / ref_ratio[levc][n];
-            }
+            const IntVect& largest_grid_size = max_grid_size[levf] / ref_ratio[levc];
             //
             // Ensure new grid boxes are at most max_grid_size in index dirs.
             //
@@ -592,22 +684,6 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& n
 		if ( !(Geom(levf).Domain().contains(BoxArray(new_bx).minimalBox())) ) {
 		    new_bx = amrex::intersect(new_bx,Geom(levf).Domain());
 		}
-#if 0
-// Let's not check this, because of the hack that uses blocking factor larger than max grid size.
-		if (ParallelDescriptor::IOProcessor()) {
-		    for (int d=0; d<BL_SPACEDIM; ++d) {
-			bool ok = true;
-			for (BoxList::const_iterator bli = new_bx.begin(); bli != new_bx.end(); ++bli) {
-			    int len = bli->length(d);
-			    int bf = blocking_factor[levf];
-			    ok &= (len/bf) * bf == len;
-			}
-			if (!ok) {
-			    amrex::Warning("WARNING: New grids violate blocking factor near upper boundary");
-			}
-		    }
-		}
-#endif
 	    }
 
             if(levf > useFixedUpToLevel()) {

@@ -1,0 +1,38 @@
+The core of \amrex\ is written in \cpp.  For Fortran users who want to
+write all of their programs in Fortran, \amrex\ provides Fortran
+interfaces around most of functionalities except for particles
+(Chapter~\ref{Chap:Particles}) and the {\tt AmrLevel} class
+(Chapter~\ref{Chap:AmrLevel}).  We should not confuse the Fortran
+interface in this chapter with the Fortran kernel functions called
+inside {\tt MFIter} loops in \cpp codes
+(Section~\ref{sec:basics:fortran}).  For the latter, Fortran is used
+in some sense as a domain-specific language with native
+multi-dimensional arrays, whereas here Fortran is used to drive the
+whole application code.  In order to better understand \amrex, Fortran
+interface users should read the rest of the User's Guide except for
+Chapters~\ref{Chap:Particles} \& \ref{Chap:AmrLevel}. 
+
+\section{Getting Started}
+
+We have discussed \amrex's build systems in
+Chapter~\ref{Chap:BuildingAMReX}.  To build with GNU Make, we need to
+include the Fortran interface source tree into the make system.  The
+source codes for the Fortran interface are in {\tt
+amrex/Src/F\_Interfaces} and there are several sub-directories.  The
+{\tt Base} directory includes sources for the basic functionality, the
+{\tt AmrCore} directory wraps around {\tt AmrCore} class
+(Chapter~\ref{Chap:AmrCore}), and the {\tt Octree} adds support for
+octree type of AMR grids.  Each directory has a {\tt Make.package}
+file that can be included in make files (see {\tt
+Tutorials/Basic/HelloWorld\_F} and {\tt Tutorials/Amr/Advection\_F}
+for examples).  The {\tt libamrex} approach includes the Fortran
+interface by default.  The CMake approach does not support the Fortran
+interface yet.
+
+
+
+\section{The Basics}
+
+\section{Amr Core Infrastructure}
+
+\section{Octree}

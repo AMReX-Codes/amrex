@@ -160,12 +160,12 @@ namespace amrex
     FabArray<EBCellFAB>        cell1(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);
     FabArray<EBCellFAB>        cell2(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);
     FabArray<EBCellFAB>        cell3(ba, dm,  ncomp, 0, MFInfo(), ebcellfact);
-//    FabArray<EBFluxFAB>        flux1(ba, dm,  ncomp, 0, MFInfo(), ebfluxfact);
-//    FabArray<EBFluxFAB>        flux2(ba, dm,  ncomp, 0, MFInfo(), ebfluxfact);
-//    FabArray<EBFluxFAB>        flux3(ba, dm,  ncomp, 0, MFInfo(), ebfluxfact);
-//    FabArray<IrregFAB>        irreg1(ba, dm,  ncomp, 0, MFInfo(), irregfact);
-//    FabArray<IrregFAB>        irreg2(ba, dm,  ncomp, 0, MFInfo(), irregfact);
-//    FabArray<IrregFAB>        irreg3(ba, dm,  ncomp, 0, MFInfo(), irregfact);
+    FabArray<EBFluxFAB>        flux1(ba, dm,  ncomp, 0, MFInfo(), ebfluxfact);
+    FabArray<EBFluxFAB>        flux2(ba, dm,  ncomp, 0, MFInfo(), ebfluxfact);
+    FabArray<EBFluxFAB>        flux3(ba, dm,  ncomp, 0, MFInfo(), ebfluxfact);
+    FabArray<IrregFAB>        irreg1(ba, dm,  ncomp, 0, MFInfo(), irregfact);
+    FabArray<IrregFAB>        irreg2(ba, dm,  ncomp, 0, MFInfo(), irregfact);
+    FabArray<IrregFAB>        irreg3(ba, dm,  ncomp, 0, MFInfo(), irregfact);
 
     Real tol = 1.0e-10;
     //let us just try addition for now
@@ -177,11 +177,17 @@ namespace amrex
       cell3[mfi] += cell1[mfi];
       cell3[mfi] += cell2[mfi];
 
-//      flux1[mfi].setVal(1.);
-//      flux2[mfi].setVal(2.);
-//      flux3[mfi].setVal(0.);
-//      flux3[mfi] += flux1[mfi];
-//      flux3[mfi] += flux2[mfi];
+      flux1[mfi].setVal(1.);
+      flux2[mfi].setVal(2.);
+      flux3[mfi].setVal(0.);
+      flux3[mfi] += flux1[mfi];
+      flux3[mfi] += flux2[mfi];
+
+      irreg1[mfi].setVal(1.);
+      irreg2[mfi].setVal(2.);
+      irreg3[mfi].setVal(0.);
+      irreg3[mfi] += irreg1[mfi];
+      irreg3[mfi] += irreg2[mfi];
 
       Box grid = ba[mfi];
       EBISBox ebisBox = eblg.getEBISL()[mfi];
@@ -199,33 +205,44 @@ namespace amrex
         if(std::abs(val3-3.0) > tol) return -3;
       }
 
-//      for (VoFIterator vofit(ivsIrreg, ebisBox.getEBGraph());
-//           vofit.ok(); ++vofit)
-//      {
-//        const VolIndex& vof = vofit();
-//        Real val1 = flux1[mfi].getEBFlux()(vof, 0);
-//        Real val2 = flux2[mfi].getEBFlux()(vof, 0);
-//        Real val3 = flux3[mfi].getEBFlux()(vof, 0);
-//        if(std::abs(val1-1.0) > tol) return -11;
-//        if(std::abs(val2-2.0) > tol) return -22;
-//        if(std::abs(val3-3.0) > tol)
-//        {
-//          return -33;
-//        }
-//      }
-//      for(int idir = 0; idir < SpaceDim; idir++)
-//      {
-//        for(FaceIterator faceit(ivsBox, ebisBox.getEBGraph(), idir, 
-//                                FaceStop::SurroundingWithBoundary); faceit.ok(); ++faceit)
-//        {
-//          Real val1 = flux1[mfi][idir](faceit(), 0);
-//          Real val2 = flux2[mfi][idir](faceit(), 0);
-//          Real val3 = flux3[mfi][idir](faceit(), 0);
-//          if(std::abs(val1-1.0) > tol) return -111;
-//          if(std::abs(val2-2.0) > tol) return -222;
-//          if(std::abs(val3-3.0) > tol) return -333;
-//        }
-//      }
+      for (VoFIterator vofit(ivsIrreg, ebisBox.getEBGraph());
+           vofit.ok(); ++vofit)
+      {
+        const VolIndex& vof = vofit();
+        Real val1 = flux1[mfi].getEBFlux()(vof, 0);
+        Real val2 = flux2[mfi].getEBFlux()(vof, 0);
+        Real val3 = flux3[mfi].getEBFlux()(vof, 0);
+        if(std::abs(val1-1.0) > tol) return -11;
+        if(std::abs(val2-2.0) > tol) return -22;
+        if(std::abs(val3-3.0) > tol)
+        {
+          return -33;
+        }
+
+
+        val1 = irreg1[mfi](vof, 0);
+        val2 = irreg2[mfi](vof, 0);
+        val3 = irreg3[mfi](vof, 0);
+        if(std::abs(val1-1.0) > tol) return -1111;
+        if(std::abs(val2-2.0) > tol) return -2222;
+        if(std::abs(val3-3.0) > tol)
+        {
+          return -3333;
+        }
+      }
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        for(FaceIterator faceit(ivsBox, ebisBox.getEBGraph(), idir, 
+                                FaceStop::SurroundingWithBoundary); faceit.ok(); ++faceit)
+        {
+          Real val1 = flux1[mfi][idir](faceit(), 0);
+          Real val2 = flux2[mfi][idir](faceit(), 0);
+          Real val3 = flux3[mfi][idir](faceit(), 0);
+          if(std::abs(val1-1.0) > tol) return -111;
+          if(std::abs(val2-2.0) > tol) return -222;
+          if(std::abs(val3-3.0) > tol) return -333;
+        }
+      }
     }
 
     return 0;
