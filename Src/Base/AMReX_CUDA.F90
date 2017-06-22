@@ -26,7 +26,7 @@ module cuda_module
 
 contains
 
-  subroutine initialize_cuda_f() bind(c, name='initialize_cuda_f')
+  subroutine initialize_cuda() bind(c, name='initialize_cuda')
 
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaforSetDefaultStream
 
@@ -64,7 +64,7 @@ contains
     print *, "Using GPU: ", prop%name(1:ilen)
     print *, ""
 
-  end subroutine initialize_cuda_f
+  end subroutine initialize_cuda
 
 
 

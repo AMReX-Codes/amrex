@@ -2,18 +2,33 @@
 #include <AMReX_Device.H>
 
 bool amrex::Device::in_device_launch_region = false;
-
-#ifdef CUDA
-int amrex::Device::cuda_device_id = 0;
-#endif
+int amrex::Device::device_id = 0;
 
 void
-amrex::Device::initialize_cuda() {
+amrex::Device::initialize_device() {
 
 #ifdef CUDA
-    initialize_cuda_f();
+    initialize_cuda();
 
-    get_cuda_device_id(&cuda_device_id);
+    get_cuda_device_id(&device_id);
+#endif
+
+}
+
+void
+amrex::Device::finalize_device() {
+
+#ifdef CUDA
+    finalize_cuda();
+#endif
+
+}
+
+int
+amrex::Device::deviceId() {
+
+#ifdef CUDA
+     return device_id;
 #endif
 
 }
@@ -56,6 +71,15 @@ amrex::Device::check_for_errors() {
 
 #ifdef CUDA
     check_for_gpu_errors();
+#endif
+
+}
+
+void
+amrex::Device::synchronize() {
+
+#ifdef CUDA
+    gpu_synchronize();
 #endif
 
 }

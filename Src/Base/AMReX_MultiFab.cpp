@@ -81,9 +81,6 @@ MultiFab::Add (MultiFab&       dst,
             dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 
-#ifdef CUDA
-    gpu_synchronize();
-#endif
 }
 
 void
@@ -112,9 +109,6 @@ MultiFab::Copy (MultiFab&       dst,
             dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
     }
 
-#ifdef CUDA
-    gpu_synchronize();
-#endif
 }
 
 void
@@ -170,9 +164,6 @@ MultiFab::Multiply (MultiFab&       dst,
             dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 
-#ifdef CUDA
-    gpu_synchronize();
-#endif
 }
 
 void
@@ -201,9 +192,6 @@ MultiFab::Divide (MultiFab&       dst,
             dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 
-#ifdef CUDA
-    gpu_synchronize();
-#endif
 }
 
 void
@@ -233,9 +221,6 @@ MultiFab::Saxpy (MultiFab&       dst,
             dst[mfi].saxpy(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 
-#ifdef CUDA
-    gpu_synchronize();
-#endif
 }
 
 void

@@ -1301,14 +1301,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    if (this != &src) {
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
-#ifdef CUDA
-		    gpu_synchronize();
-#endif
+                    Device::synchronize();
 		    get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
 		} else {
-#ifdef CUDA
-		    gpu_synchronize();
-#endif
+                    Device::synchronize();
 		    get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
 		}
 	    }
@@ -2366,9 +2362,6 @@ FabArray<FAB>::setVal (value_type val)
         get(fai).setVal(val, bx, 0, n_comp);
     }
 
-#ifdef CUDA
-    gpu_synchronize();
-#endif
 }
 
 template <class FAB>

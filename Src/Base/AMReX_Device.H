@@ -4,9 +4,9 @@
 
 #include <cstdlib>
 
-#ifdef CUDA
 extern "C" {
-    void initialize_cuda_f();
+#ifdef CUDA
+    void initialize_cuda();
     void finalize_cuda();
     void set_stream_idx(const int idx);
     void get_stream_idx(int* idx);
@@ -26,8 +26,8 @@ extern "C" {
     void mem_advise_set_preferred(void* p, const std::size_t sz, const int* device);
     void mem_advise_set_readonly(void* p, const std::size_t sz);
     void check_for_gpu_errors();
-}
 #endif
+}
 
 namespace amrex {
 
@@ -36,7 +36,9 @@ class Device
 
 public:
 
-    static void initialize_cuda();
+    static void initialize_device();
+
+    static void finalize_device();
 
     static void set_stream_index(const int idx);
 
@@ -52,16 +54,16 @@ public:
 
     static void* get_host_pointer(const void* ptr);
 
-#ifdef CUDA
-    static int cudaDeviceId() { return cuda_device_id; }
-#endif
+    static int deviceId();
 
     static void check_for_errors();
+
+    static void synchronize();
 
 private:
 
     static bool in_device_launch_region;
-    static int cuda_device_id;
+    static int device_id;
 
 };
 
