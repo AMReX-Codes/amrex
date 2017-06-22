@@ -126,9 +126,8 @@ struct tface
 static void
 BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                   std::array<FabArray<BaseUmap<CutFace> >, BL_SPACEDIM>& fmap,
-                  const EBLevelGrid& eblg_fine, int ratio)
+                  const EBLevelGrid& eblg_fine, EBLevelGrid& eblg_crsn, int ratio)
 {
-    EBLevelGrid eblg_crsn;
     coarsen(eblg_crsn, eblg_fine, ratio);
     eblg_crsn.setMaxRefinementRatio(ratio);
     int ng_crsn = 1;
@@ -321,8 +320,9 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
             {
                 const CutFace& cf = *umi;
                 const BaseUmap<CutFace>::Tuple& tuple = umi.tuple();
-                std::cout << " " << tuple.pos << " L = " << tuple.l << " ncomp= " << tuple.ncomp;
-                std::cout << " (" << idir << "): " << cf.cellLo << ", " << cf.cellHi << std::endl;
+                std::cout << " " << tuple.pos << " parent = " << cf.parent
+                          << " L = " << tuple.l << " ncomp= " << tuple.ncomp
+                          << " (" << idir << "): " << cf.cellLo << ", " << cf.cellHi << std::endl;
             }
         }
     }
@@ -345,14 +345,26 @@ protected:
     int m_lmax;
 };
 
+struct FaceData
+{
+  FaceData(const RealVect& a_centroid,
+           Real            a_aperature) : m_centroid(a_centroid), m_aperature(a_aperature) {}
+  FaceData() {}
+  RealVect m_centroid;
+  Real m_aperature;
+};
+
+
 int myTest()
 {
     std::cout << "CutCell is POD: " << std::is_pod<CutCell>::value << std::endl;
     std::cout << "CutFace is POD: " << std::is_pod<CutFace>::value << std::endl;
+    std::cout << "FaceData is POD: " << std::is_pod<FaceData>::value << std::endl;
     std::cout << "Size of CutCell: " << sizeof(CutCell)/sizeof(int) << " ints" << std::endl;
     std::cout << "Size of CutFace: " << sizeof(CutFace)/sizeof(int) << " ints" << std::endl;
+    std::cout << "Size of FaceData: " << sizeof(FaceData)/sizeof(Real) << " reals" << std::endl;
 
-    EBLevelGrid eblg_fine, eblg_crse;
+    EBLevelGrid eblg_fine, eblg_crse, eblg_crsn;
     int ratio;
     get_EBLGs(eblg_fine,eblg_crse,ratio);
     const BoxArray& ba_fine = eblg_fine.getBoxArray();
@@ -373,7 +385,7 @@ int myTest()
         fmap_fine[idir].define(fba_fine[idir], dm_fine, nComp, nGrow, MFInfo(), fmap_factory);
     }
 
-    BuildFortranGraph(cmap_fine,fmap_fine,eblg_fine,ratio);
+    BuildFortranGraph(cmap_fine,fmap_fine,eblg_fine,eblg_crsn,ratio);
 
 #if 1
     MultiFab vfrac(ba_fine, dm_fine,  nComp, 0);
