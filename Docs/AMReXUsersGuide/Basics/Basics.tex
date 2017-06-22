@@ -335,7 +335,7 @@ types.
 There are a number of ways of converting a {\tt Box} from one type to
 another.
 \begin{lstlisting}[language=cpp]
-  Box b0 ({64,64,64}, {127,127}); // Index type: (cell, cell, cell)
+  Box b0 ({64,64,64}, {127,127,127}); // Index type: (cell, cell, cell)
 
   Box b1 = surroundingNodes(b0);  // A new Box with type (node, node, node)
   Print() << b1;                  // ((64,64,64) (128,128,128) (1,1,1))
@@ -1158,7 +1158,7 @@ tile.  For example, the original loops might look like
     do j = jmin, jmax
       do i = imin, imax
         A(i,j,k) = B(i+1,j,k)+B(i-1,j,k)+B(i,j+1,k)+B(i,j-1,k) &
-                   B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)
+                  +B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)
       end do
     end do
   end do
@@ -1175,7 +1175,7 @@ And the manually tiled loops might look like
         do j = jb*jblocksize, min((jb+1)*jblocksize-1,jmax)
           do i = imin, imax
             A(i,j,k) = B(i+1,j,k)+B(i-1,j,k)+B(i,j+1,k)+B(i,j-1,k) &
-                       B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)          
+                      +B(i,j,k+1)+B(i,j,k-1)-6.0d0*B(i,j,k)
           end do
         end do
       end do
@@ -1365,7 +1365,7 @@ two ways of using these functions.
 \end{lstlisting}
 But {\tt Box\& bx = mfi.validbox()} is not legal and will not compile.  
 
-\section{Calling Fortan or C}
+\section{Calling Fortran or C}
 \label{sec:basics:fortran}
 
 In Section~\ref{sec:basics:mfiter}, we have shown that a typical

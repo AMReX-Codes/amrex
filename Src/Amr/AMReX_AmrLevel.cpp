@@ -747,7 +747,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 		if (first) {
 		    first = false;
 		    if (ParallelDescriptor::IOProcessor()) {
-			int new_blocking_factor = 2*m_amrlevel.parent->blockingFactor(m_amrlevel.level);
+			IntVect new_blocking_factor = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
+                        new_blocking_factor *= 2;
 			for (int i = 0; i < 10; ++i) {
 			    if (amrex::ProperlyNested(m_amrlevel.crse_ratio,
 						       new_blocking_factor,
@@ -759,7 +760,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 			}
 			std::cout << "WARNING: Grids are not properly nested.  We might have to use\n"
 				  << "         two coarse levels to do fillpatch.  Consider using\n";
-			if (new_blocking_factor < 128) {
+			if (new_blocking_factor < IntVect{D_DECL(128,128,128)}) {
 			    std::cout << "         amr.blocking_factor=" << new_blocking_factor;
 			} else {
 			    std::cout << "         larger amr.blocking_factor. ";

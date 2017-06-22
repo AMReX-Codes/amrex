@@ -288,12 +288,17 @@ contains
   function bl_rng_init_seed(s) result(r)
     integer(c_int), intent(in) :: s
     integer :: r
+    integer, save :: rstatic
     if (s .eq. 0) then
-       r = bl_rng_random_uint_c()
-       call parallel_bcast(r)
+       !$omp master
+       rstatic = bl_rng_random_uint_c()
+       call parallel_bcast(rstatic)
        if (parallel_IOProcessor()) then
-          print*,'seed = 0 --> picking a random root seed',r
+          print*,'seed = 0 --> picking a random root seed',rstatic
        end if
+       !$omp end master
+       !$omp barrier
+       r = rstatic
     else if (s .gt. 0) then
        r = s
     else

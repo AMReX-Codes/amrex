@@ -127,7 +127,7 @@ namespace amrex
     os <<  std::string("((");
     for(int idir = 0; idir < SpaceDim; idir ++)
     {
-      os << iv[0];
+      os << iv[idir];
       if(idir != SpaceDim-1)
       {
         os << std::string(",");

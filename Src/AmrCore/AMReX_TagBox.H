@@ -85,6 +85,12 @@ public:
     //
     Array<int> tags () const;
     //
+    // Since a TagBox is a BaseFab<char>, we can use this utility
+    // function to allocate an integer array to have the same number 
+    // of elements as cells in tilebx
+    //
+    void get_itags(Array<int>& ar, const Box& tilebx) const;
+    //
     // Set values as specified by the array -- this only tags.
     // It's an error if ar.length() != domain.numPts().
     //
@@ -94,10 +100,16 @@ public:
     // It's an error if ar.length() != domain.numPts().
     //
     void tags_and_untags (const Array<int>& ar);
-
-    void get_itags(Array<int>& ar, const Box& tilebx) const;
+    //
+    // Set values as specified by the array -- this only tags.
+    // only changes values in the tilebx region
+    // 
     void tags (const Array<int>& ar, const Box& tilebx);
-    void tags_and_untags (const Array<int>& ar, const Box&tilebx);
+    //
+    // Set values as specified by the array -- this tags and untags.
+    // only changes values in the tilebx region
+    //
+    void tags_and_untags (const Array<int>& ar, const Box& tilebx);
 };
 
 //
