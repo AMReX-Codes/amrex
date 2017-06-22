@@ -317,6 +317,9 @@ MFIter::operator++ () {
 
     Device::set_stream_index(currentIndex);
     Device::check_for_errors();
+#ifdef DEBUG
+    Device::synchronize();
+#endif
 
     releaseDeviceData();
 
