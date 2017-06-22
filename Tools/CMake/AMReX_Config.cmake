@@ -136,15 +136,15 @@ endif()
 # ------------------------------------------------------------- #
 #    Setup compiler flags 
 # ------------------------------------------------------------- #
-if ( AMREX_FFLAGS_OVERRIDE )
-   set ( AMREX_Fortran_FLAGS ${AMREX_FFLAGS_OVERRIDE} )
+if ( AMREX_FFLAGS_OVERRIDES )
+   set ( AMREX_Fortran_FLAGS ${AMREX_FFLAGS_OVERRIDES} )
 else ()
    append ( AMREX_${FC_ID}_FFLAGS_${AMREX_BUILD_TYPE}
       AMREX_Fortran_FLAGS )
 endif ()
 
-if ( AMREX_CXXLAGS_OVERRIDE )
-   set ( AMREX_CXX_FLAGS ${AMREX_CXXFLAGS_OVERRIDE} )
+if ( AMREX_CXXLAGS_OVERRIDES )
+   set ( AMREX_CXX_FLAGS ${AMREX_CXXFLAGS_OVERRIDES} )
 else ()
    append ( AMREX_${CXX_ID}_CXXFLAGS_${AMREX_BUILD_TYPE}
       AMREX_CXX_FLAGS )
