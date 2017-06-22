@@ -6,7 +6,17 @@
 ###############################################
 
 #
-# Define a macro to check the value of the inputs options 
+# Check weather the AMReX_CMakeVariables.cmake
+# has been loaded; abort if not
+#
+if ( NOT AMREX_VARIABLES_LOADED )
+   message ( FATAL_ERROR "AMReX_Options.cmake must be included\
+after including AMReX_CMakeVariables.cmake" )
+endif ()
+
+
+#
+# Define a macro to check the value of the inputs integer options 
 # 
 macro (check_option_value NAME VALUE RANGE_STARTS RANGE_ENDS )
    
@@ -22,7 +32,6 @@ endmacro ()
 #
 # Populate the cache and check the value of the user-definable options 
 #
-
 message (STATUS "Configuring AMReX with the following options: ")
 
 if ( NOT CMAKE_BUILD_TYPE )
@@ -31,6 +40,12 @@ if ( NOT CMAKE_BUILD_TYPE )
       "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
       FORCE )
 endif ()
+
+set ( AMREX_BUILD_TYPE ${CMAKE_BUILD_TYPE} )
+
+# Need to be uppercase so it can be used to refer to CMAKE variable names
+string ( TOUPPER ${AMREX_BUILD_TYPE} AMREX_BUILD_TYPE) 
+
 
 message ( STATUS "   CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE} (STRING:\
  Debug|Release|RelWithDebInfo|MinSizeRel)" )
@@ -54,8 +69,8 @@ check_option_value ( "BL_SPACEDIM" ${BL_SPACEDIM} 2 3 )
 set (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
 check_option_value ( "ENABLE_MPI" ${ENABLE_MPI} 0 1 )
 
-set (ENABLE_OpenMP 0 CACHE INT "Enable build with OpenMP")
-check_option_value ( "ENABLE_OpenMP" ${ENABLE_OpenMP} 0 1 )
+set (ENABLE_OMP 0 CACHE INT "Enable build with OpenMP")
+check_option_value ( "ENABLE_OMP" ${ENABLE_OMP} 0 1 )
 
 set (ENABLE_DP 1 CACHE INT "Enable double precision build")
 check_option_value ( "ENABLE_DP" ${ENABLE_DP} 0 1 )
@@ -75,6 +90,20 @@ check_option_value ( "ENABLE_TINY_PROFILING" ${ENABLE_TINY_PROFILING} 0 1 )
 set (ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in AMReX build")
 check_option_value ( "ENABLE_BACKTRACE" ${ENABLE_BACKTRACE} 0 1 )
 
+set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
+
+set (AMREX_CXXLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
+
+
+#
+# The following are a set of options from previous
+# version of AMReX/CMake. Their use is unclear
+#
+set ( ENABLE_MG_BOXLIB 0 CACHE INT "Enable Fortran for MultiGrid Solver" )
+check_option_value ( "ENABLE_FMG" ${ENABLE_MG_BOXLIB} 0 1 )
+
+set ( ENABLE_FBASELIB 0 CACHE INT  "Enable Fortran BaseLib" )
+check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
 
 
 # After the options are set, define the following variable
