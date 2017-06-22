@@ -25,6 +25,7 @@ extern "C" {
     void gpu_dtoh_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
     void mem_advise_set_preferred(void* p, const std::size_t sz, const int* device);
     void mem_advise_set_readonly(void* p, const std::size_t sz);
+    void check_for_gpu_errors();
 }
 #endif
 
@@ -54,6 +55,8 @@ public:
 #ifdef CUDA
     static int cudaDeviceId() { return cuda_device_id; }
 #endif
+
+    static void check_for_errors();
 
 private:
 
