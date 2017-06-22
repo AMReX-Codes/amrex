@@ -71,7 +71,7 @@ public:
     */
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                VisMF::How         how = VisMF::NFiles) = 0;
+                                VisMF::How         how = VisMF::NFiles);
     /**
     * \brief Write small plot file stuff to specified directory.  
     * Unlike writePlotFile, this is NOT a pure virtual function 
