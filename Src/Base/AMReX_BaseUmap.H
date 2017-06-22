@@ -274,8 +274,8 @@ namespace amrex
         BL_ASSERT(l>=0 && l < max_mv);
         BL_ASSERT(domain.contains(pos));
         BL_ASSERT(n>=0 && n<nvar);
-        int loc = domain.index(pos);
-        int size = domain.numPts();
+        //int loc = domain.index(pos);
+        //int size = domain.numPts();
         // entry stored in position l*NumComponents + ncomp
 //        key_table[loc+(l*nvar + n)*size] = k;
         key_table[KIDX(pos,n,l)] = k;
