@@ -172,13 +172,10 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     int num_levels = rhs.size();
     int finest_level = num_levels - 1;
 
-    Array<std::unique_ptr<MultiFab> > tmp_phi(num_levels);
     Array<std::unique_ptr<MultiFab> > tmp_rhs(num_levels);    
     for (int lev = 0; lev < num_levels; ++lev) {
         tmp_rhs[lev].reset(new MultiFab(rhs[lev]->boxArray(), dm[lev], 1, 0));
         MultiFab::Copy(*tmp_rhs[lev], *rhs[lev], 0, 0, 1, 0);
-        tmp_phi[lev].reset(new MultiFab(phi[lev]->boxArray(), dm[lev], 1, 2));
-        tmp_phi[lev]->setVal(0.0, 2);
     }
     
     IntVect ratio(2, 2, 2);
