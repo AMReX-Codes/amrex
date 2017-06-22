@@ -109,6 +109,7 @@ MFIter::~MFIter ()
     releaseDeviceData();
 #ifdef CUDA
     gpu_synchronize();
+    Device::check_for_errors();
     Device::set_stream_index(-1);
 #endif
 }
@@ -317,6 +318,7 @@ MFIter::operator++ () {
     ++currentIndex;
 
     Device::set_stream_index(currentIndex);
+    Device::check_for_errors();
 
     releaseDeviceData();
 
