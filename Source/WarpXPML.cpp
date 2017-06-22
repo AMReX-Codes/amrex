@@ -215,18 +215,22 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 amrex::Abort("SigmaBox::SigmaBox(): direct_side_edges, how did this happen?\n");
             }
         }
+#endif
 
         for (auto gid : side_faces)
         {
             const Box& grid_box = grids[gid];
+#if (BL_SPACEDIM == 2)
+            const Box& overlap = amrex::grow(grid_box,jdim,ncell) & box;
+#else
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
+#endif
             if (overlap.ok()) {
                 FillZero(idim, sigma[idim], sigma_star[idim], overlap);
             } else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
             }    
         }
-#endif
 
         for (auto gid : direct_faces)
         {
