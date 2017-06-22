@@ -137,7 +137,18 @@ WarpX::Evolve (int numsteps)
 	// End loop on time steps
     }
 
-    if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
+    if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step))
+    {
+        FillBoundaryE();
+        FillBoundaryB();
+        UpdateAuxilaryData();
+        
+        for (int lev = 0; lev <= finest_level; ++lev) {
+            mypc->FieldGather(lev,
+                              *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                              *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+        }
+        
 	WritePlotFile();
     }
 
