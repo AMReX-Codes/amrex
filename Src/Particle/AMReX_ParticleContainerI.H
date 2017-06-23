@@ -4113,9 +4113,9 @@ AssignCellDensitySingleLevelFort (int rho_index,
 
 #ifdef _OPENMP
 #pragma omp parallel
+#endif
     {
         FArrayBox local_rho;
-#endif
         for (ParConstIter pti(*this, lev); pti.isValid(); ++pti) {
             const auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;
@@ -4148,10 +4148,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
 #endif
 
         }
-
-#ifdef _OPENMP
     }
-#endif
 
     mf_pointer->SumBoundary(gm.periodicity());
     
