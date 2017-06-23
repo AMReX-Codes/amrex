@@ -233,12 +233,12 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
 
 
 # 
-ndif(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)    
+endif(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)    
 
 # Send useful message if everything is found
 find_package_handle_standard_args(CCSE DEFAULT_MSG
                                   CCSE_LIBRARIES
-                                  CCSE_LIBRARY_DIRS )
+                                  CCSE_LIBRARY_DIRS 
                                   CCSE_INCLUDE_DIRS )
                                   
 mark_as_advanced(

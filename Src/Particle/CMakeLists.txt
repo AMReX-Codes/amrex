@@ -24,7 +24,7 @@ set(FPP_header_files)
 set(F77_header_files)
 set(F90_header_files)
 
-if(BL_USE_PARTICLES EQUAL 1)
+if(ENABLE_PARTICLES EQUAL 1)
   list(APPEND CXX_source_files AMReX_TracerParticles.cpp)
   list(APPEND CXX_header_files AMReX_Particles.H AMReX_TracerParticles.H AMReX_ParGDB.H)
   list(APPEND CXX_header_files AMReX_ParticleI.H AMReX_ParticleInit.H AMReX_ParticleContainerI.H)
@@ -34,7 +34,7 @@ if(BL_USE_PARTICLES EQUAL 1)
   list(APPEND F90_source_files AMReX_Particle_mod_${BL_SPACEDIM}d.F90)
 endif()
 
-if(BL_USE_OMP EQUAL 1)
+if(ENABLE_OMP EQUAL 1)
   list(APPEND F90_source_files AMReX_OMPDepositionHelper_${BL_SPACEDIM}d.F90)
 endif()
 
