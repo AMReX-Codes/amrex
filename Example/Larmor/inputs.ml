@@ -20,6 +20,7 @@ warpx.fine_tag_hi =  0.8   0.8
 amr.plot_int = 2   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 warpx.plot_raw_fields = 1
+warpx.plot_dive = 1
 warpx.plot_divb = 1
 warpx.plot_finepatch = 1
 warpx.plot_crsepatch = 1
@@ -40,9 +41,9 @@ warpx.B_external = 0.0  0.00078110417851950768  0.0
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 1
-algo.charge_deposition = 1
-algo.field_gathering = 1
+algo.current_deposition = 0
+algo.charge_deposition = 0
+algo.field_gathering = 0
 algo.particle_pusher = 0
 
 # CFL
@@ -51,6 +52,9 @@ warpx.cfl = 1.0
 # particles
 particles.nspecies = 2
 particles.species_names = electron positron
+
+particles.nspecies = 1
+particles.species_names = electron
 
 electron.charge = -q_e
 electron.mass = m_e
@@ -64,8 +68,8 @@ positron.injection_style = "SingleParticle"
 positron.single_particle_pos = 0.0  0.0  -1.25
 positron.single_particle_vel = 0.45825756949558416  0.0  0.0   # gamma*beta
 
-electron.single_particle_weight = 8.0e12
-positron.single_particle_weight = 8.0e12
+electron.single_particle_weight = 1.0e12
+positron.single_particle_weight = 1.0e12
 
 # interpolation
 interpolation.nox = 3
@@ -80,3 +84,5 @@ warpx.do_plasma_injection = 0
 
 # Laser
 warpx.use_laser    = 0
+
+warpx.do_dive_cleaning = 1
