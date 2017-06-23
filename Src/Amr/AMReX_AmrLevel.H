@@ -151,7 +151,7 @@ public:
     */
     virtual void post_restart () {};
     /**
-    * \brief Operations to be done after regridding (like avgDown).
+    * \brief Operations to be done after regridding
     * This is a pure virtual function and hence MUST be
     * implemented by derived classes.
     */
