@@ -220,9 +220,13 @@ namespace amrex
 
     int nComp() const {return m_nComp;}
 
+    mutable bool m_verbose;
     template<typename F>
     void forall(const BaseIVFAB<T>& a_src, const Box& a_box, int a_srccomp, int a_dstcomp, 
                 int a_numcomp, bool sameRegBox, const F& func);
+
+    void getVoFSubset(vector<VolIndex>& a_vofs,
+                      const Box& a_region) const;
   private:
 
   protected:

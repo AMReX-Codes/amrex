@@ -15,7 +15,7 @@
 #include "AMReX_IntVectSet.H"
 #include "AMReX_VoFIterator.H"
 #include "AMReX_SPMD.H"
-    
+#include "AMReX_parstream.H"    
 namespace amrex
 {
     
@@ -23,7 +23,7 @@ namespace amrex
   template <class T> inline
   BaseIVFAB<T>::BaseIVFAB():m_nComp(0),m_data(0)
   {
-     
+    m_verbose = false;
   }
   /******************/
   template <class T> inline
@@ -50,6 +50,7 @@ namespace amrex
      
     assert(a_nvarin > 0);
     
+    m_verbose = false;
     m_nComp=a_nvarin;
     
     //figure out how long vector has to be
@@ -221,6 +222,22 @@ namespace amrex
   /// Management is not responsible for any gibbering madness resulting 
   /// from ignoring this warning.
   /******************/
+  template<class T> inline
+  void
+  BaseIVFAB<T>::
+  getVoFSubset(vector<VolIndex>& a_vofsubset, const Box& a_region) const
+  {
+    a_vofsubset.resize(0);
+    for(unsigned int ivof=0; ivof<m_vofs.size(); ivof++)
+    {
+      const VolIndex& vof = m_vofs[ivof];
+      if(a_region.contains(vof.gridIndex()))
+      {
+        a_vofsubset.push_back(vof);
+      }
+    }
+  }
+  /******************/
   template <class T> inline
   std::size_t 
   BaseIVFAB<T>::
@@ -228,17 +245,19 @@ namespace amrex
   {
     
     size_t retval = 0;
-    
-    for(unsigned int ivof=0; ivof<m_vofs.size(); ivof++)
+
+    vector<VolIndex> vofsubset;
+    getVoFSubset(vofsubset, a_region);
+
+    retval += linearListSize(vofsubset);
+    for(unsigned int ivof=0; ivof< vofsubset.size(); ivof++)
     {
-      const VolIndex& vof = m_vofs[ivof];
-      if(a_region.contains(vof.gridIndex()))
+      const VolIndex& vof = vofsubset[ivof];
+
+      for(int icomp = start_comp; icomp < start_comp+ncomps; icomp++)
       {
-        for(int icomp = start_comp; icomp < start_comp+ncomps; icomp++)
-        {
-          const T& value = (*this)(vof, icomp);
-          retval += linearSize(value);
-        }
+        const T& value = (*this)(vof, icomp);
+        retval += linearSize(value);
       }
     }
     return retval;
@@ -256,23 +275,31 @@ namespace amrex
     unsigned char* buf = (unsigned char*)a_buf;
     size_t retval = 0;
     size_t incval = 0;
+
+    vector<VolIndex> vofsubset;
+    getVoFSubset(vofsubset, a_region);
+
+    linearListOut(buf, vofsubset);
+    incval = linearListSize(vofsubset);
     
-    for(unsigned int ivof=0; ivof<m_vofs.size(); ivof++)
+    buf    += incval;
+    retval += incval;
+
+    for(unsigned int ivof=0; ivof< vofsubset.size(); ivof++)
     {
-      const VolIndex& vof = m_vofs[ivof];
-      if(a_region.contains(vof.gridIndex()))
+      const VolIndex& vof = vofsubset[ivof];
+      int endcomp = srccomp + numcomp;
+      for(int icomp = srccomp; icomp < endcomp; icomp++)
       {
-        int endcomp = srccomp + numcomp;
-        for(int icomp = srccomp; icomp < endcomp; icomp++)
-        {
-          const T& value = (*this)(vof, icomp);
-          linearOut(buf, value);
-          incval  = linearSize(value);
-          buf    += incval;
-          retval += incval;
-        }
+        const T& value = (*this)(vof, icomp);
+        linearOut(buf, value);
+        incval  = linearSize(value);
+        buf    += incval;
+        retval += incval;
       }
     }
+
+
     return retval;
   }
     
@@ -289,22 +316,29 @@ namespace amrex
     size_t retval = 0;
     size_t incval = 0;
     
-    for(unsigned int ivof=0; ivof<m_vofs.size(); ivof++)
+    vector<VolIndex> vofsubset;
+
+    linearListIn(vofsubset, buf);
+
+    incval = linearListSize(vofsubset);
+    buf    += incval;
+    retval += incval;
+
+    for(unsigned int ivof=0; ivof< vofsubset.size(); ivof++)
     {
-      const VolIndex& vof = m_vofs[ivof];
-      if(a_region.contains(vof.gridIndex()))
+      const VolIndex& vof = vofsubset[ivof];
+      int endcomp = dstcomp + numcomp;
+      for(int icomp = dstcomp; icomp < endcomp; icomp++)
       {
-        int endcomp = dstcomp + numcomp;
-        for(int icomp = dstcomp; icomp < endcomp; icomp++)
-        {
-          T& value = (*this)(vof, icomp);
-          linearIn(value, buf);
-          incval  = linearSize(value);
-          buf    += incval;
-          retval += incval;
-        }
+        T& value = (*this)(vof, icomp);
+        linearIn(value, buf);
+        incval  = linearSize(value);
+        buf    += incval;
+        retval += incval;
       }
     }
+
+
     return retval;
   }
     
