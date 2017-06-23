@@ -232,41 +232,45 @@ namespace amrex
     BoxArray gridsReCo = m_grids;
     gridsReCo.refine(2);
 
+    int nghostGraph = 1;
+    int nghostData  = 0;
+    int srcGhost = 0;
+  
     DistributionMapping dmco(m_grids);
-    DistributionMapping dmfc(gridsReCo);
+    DistributionMapping dmfc = dmco;
     //need two because of coarsen faces
-    m_graph.define(m_grids, dmco, 1, 2);
-    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, 3);
+    m_graph.define(m_grids, dmco, 1, nghostGraph);
+    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, nghostGraph+1);
+    //pout() << "ebislevel::coarsenvofsandfaces: doing ebgraph copy" << endl;
 
-    int srcGhost =0; int dstGhost = 3;
-    ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, dstGhost);
+    ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, nghostGraph+1);
     ///first deal with the graph
+    //pout() << "ebislevel::coarsenvofsandfaces: doing coarsenvofs " << endl;
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       EBGraph      & fineEBGraph = ebgraphReCo[mfi];
       EBGraph      & coarEBGraph = m_graph[mfi];
       const Box    & coarRegion  = mfi.validbox();
       //Box coarRegion2 = m_grids[mfi];
-
-
-      
       coarEBGraph.coarsenVoFs(fineEBGraph, coarRegion);
     }
-    m_graph.FillBoundary();
+
+    //pout() << "ebislevel::coarsenvofsandfaces: doing finetocoarse " << endl;
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       EBGraph      & fineEBGraph = ebgraphReCo[mfi];
       EBGraph      & coarEBGraph = m_graph[mfi];
       const Box    & coarRegion  = mfi.validbox();
-
+      //pout() << "coarsen faces for box" << coarRegion << endl;
       coarEBGraph.coarsenFaces(fineEBGraph, coarRegion);
+      //pout() << "fixFineToCoarse for box" << coarRegion << endl;
       coarEBGraph.fixFineToCoarse(fineEBGraph, coarRegion);
     }
     //after fixing up fine to coarse, copy info back
-    int numGhost = a_fineEBIS.m_graph.nGrow();
+    //pout() << "ebislevel::doing copy back " << endl;
+    a_fineEBIS.m_graph.copy(ebgraphReCo, 0, 0, 1, srcGhost, nghostGraph);
 
-    a_fineEBIS.m_graph.copy(ebgraphReCo, 0, 0, 1, 0, numGhost);
-
+    //pout() << "out of copyback and making new holders" << endl;
 
     //now deal with the data
     std::shared_ptr<FabArray<EBGraph> > graphptrCoar(&    m_graph, &null_deleter_fab_ebg);
@@ -274,12 +278,17 @@ namespace amrex
     EBDataFactory ebdfCoar(graphptrCoar);
     EBDataFactory ebdfReCo(graphptrReCo);
     FabArray<EBData> ebdataReCo;
-    int nghostData = 1;
 
-    m_data    .define(m_grids  , dmco, 1, 0         , MFInfo(), ebdfCoar);
+    //pout() << "making m_data" << endl;
+    m_data    .define(m_grids  , dmco, 1, nghostData, MFInfo(), ebdfCoar);
+
+    //pout() << "making ebdataReCo" << endl;
     ebdataReCo.define(gridsReCo, dmfc, 1, nghostData, MFInfo(), ebdfReCo);
-    dstGhost = 1;
-    ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, srcGhost, dstGhost);    
+
+    //pout() << "doing ebdatareco copy" << endl;
+    ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, srcGhost, nghostData);    
+
+    //pout() << "coarsening data" << endl;
     for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
     {
       const EBGraph& fineEBGraph = ebgraphReCo[mfi];

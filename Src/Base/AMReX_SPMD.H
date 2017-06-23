@@ -40,7 +40,7 @@ namespace amrex
 {
 //  static MPI_Comm comm;
 
-
+  //static bool s_spmd_verbose = false;
   extern unsigned long long CH_MAX_MPI_MESSAGE_SIZE;
 
   extern unsigned long long CH_MaxMPISendSize;

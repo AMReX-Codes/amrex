@@ -124,23 +124,6 @@ AmrLevelAdv::variableSetUp ()
 
     desc_lst.setComponent(Phi_Type, 0, "phi", bc, 
 			  StateDescriptor::BndryFunc(nullfill));
-
-    //
-    // read taggin parameters from probin file
-    //
-
-    std::string probin_file("probin");
-
-    ParmParse ppa("amr");
-    ppa.query("probin_file",probin_file);
-
-    int probin_file_length = probin_file.length();
-    Array<int> probin_file_name(probin_file_length);
-
-    for (int i = 0; i < probin_file_length; i++)
-	probin_file_name[i] = probin_file[i];
-
-     get_tagging_params(probin_file_name.dataPtr(), &probin_file_length);
 }
 
 //
@@ -702,6 +685,28 @@ AmrLevelAdv::read_params ()
 #ifdef PARTICLES
     pp.query("do_tracers", do_tracers);
 #endif 
+
+
+
+    //
+    // read tagging parameters from probin file
+    //
+
+    std::string probin_file("probin");
+
+    ParmParse ppa("amr");
+    ppa.query("probin_file",probin_file);
+
+    int probin_file_length = probin_file.length();
+    Array<int> probin_file_name(probin_file_length);
+
+    for (int i = 0; i < probin_file_length; i++)
+	probin_file_name[i] = probin_file[i];
+
+    // use a fortran routine to
+    // read in tagging parameters from probin file
+    get_tagging_params(probin_file_name.dataPtr(), &probin_file_length);
+
 }
 
 void
