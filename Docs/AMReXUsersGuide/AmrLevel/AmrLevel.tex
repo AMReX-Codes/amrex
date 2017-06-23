@@ -35,10 +35,26 @@ The tutorial code also contains a {\tt LevelBldAdv} class (derived from {\tt Lev
 {\tt Source/Amr} directory).  This class is used to define variable types (how many, nodality,
 interlevel intepolation stencils, etc.).
 
+
+\section{{\tt AmrLevel} Class}
+Pure virtual functions include:
+\begin{itemize}
+\item {\tt computeInitialDt}
+\item {\tt computeNewDt}
+\item {\tt advance}
+\item {\tt post\_timestep}
+\item {\tt post\_regrid}
+\item {\tt post\_init}
+\item {\tt initData}
+\item {\tt init}
+\item {\tt errorEst}
+\end{itemize}
+
+\section{{\tt StateData}}
+
 The most important data managed by the {\tt AmrLevel} is an array of {\tt StateData},
 which holds the scalar fields, etc., in the boxes that together make up the level.
 
-\section{{\tt StateData}}
 {\tt StateData} is a class that essentially holds a pair of {\tt MultiFab}s: one at the old time and one
 at the new time. {\tt AMReX} knows how to interpolate in time between these states to get data at
 any intermediate point in time. The main data that we care about in our applications codes 
@@ -78,7 +94,6 @@ code tree for the {\tt AmrAdvection\_AmrLevel} example.
 \item {\tt Boundary/} An assortment of classes for handling boundary data.
 \item {\tt AmrCore/} AMR data management classes, described in more detail above.
 \item {\tt Amr/}
-\item {\tt Particle/}
 \end{itemize}
 \item {\tt Advection\_AmrLevel/Src} Source code specific to this example.  Most notably
 is the {\tt AmrLevelAdv} class, which is derived from {\tt AmrLevel}.  The subdirectories {\tt Src\_2d}
@@ -107,3 +122,19 @@ main()
   }
   /* write final plotfile and checkpoint */
 \end{lstlisting}
+
+
+\section{Particles}
+There is an option to turn on passively advected particles.  In the {\tt GNUmakefile},
+add the line ``{\tt USE\_PARTICLES = TRUE}'' and build the code 
+(do a {\tt make realclean} first).
+In the inputs file, add the line ``{\tt adv.do\_tracers = 1}''.
+When you run the code, within each plotfile directory there will be a subdirectory
+called ``Tracer''.
+
+Copy the files from {\tt amrex/Tools/Py\_util/amrex\_particles\_to\_vtp} into
+the run directory and type, e.g.,\\ \\
+{\tt python amrex\_binary\_particles\_to\_vtp.py plt00000 Tracer}\\ \\
+To generate a vtp file you can open with \paraview\
+(Refer to Chapter \ref{Chap:Visualization}).
+
