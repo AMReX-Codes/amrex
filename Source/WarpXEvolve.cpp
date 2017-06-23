@@ -41,6 +41,7 @@ WarpX::Evolve (int numsteps)
 
         // Beyond one step, we have B^{n-1/2} and E^{n}.
         // Particles have p^{n-1/2} and x^{n}.
+        // F for div E cleaning is at n-1/2.
 
         if (is_synchronized) {
             // on first step, push E and X by 0.5*dt
@@ -59,11 +60,18 @@ WarpX::Evolve (int numsteps)
 
         UpdateAuxilaryData();
 
+        // Push particle from x^{n} to x{n+1}
+        // Deposit current j^{n+1/2}
+        // Deposit charge density rho^{n}
         PushParticlesandDepose(cur_time);
 
         EvolveB(0.5*dt[0]); // We now B^{n+1/2}
 
         SyncCurrent();
+
+        SyncRho();
+
+        EvolveF(dt[0]);
 
         // Fill B's ghost cells because of the next step of evolving E.
         FillBoundaryB();
@@ -129,7 +137,18 @@ WarpX::Evolve (int numsteps)
 	// End loop on time steps
     }
 
-    if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step)) {
+    if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step))
+    {
+        FillBoundaryE();
+        FillBoundaryB();
+        UpdateAuxilaryData();
+        
+        for (int lev = 0; lev <= finest_level; ++lev) {
+            mypc->FieldGather(lev,
+                              *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
+                              *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
+        }
+        
 	WritePlotFile();
     }
 
@@ -259,6 +278,7 @@ WarpX::EvolveE (int lev, Real dt)
 
     // Parameters of the solver: order and mesh spacing
     const int norder = 2;
+    static constexpr Real c2 = PhysConst::c*PhysConst::c;
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
     const Real foo = (PhysConst::c*PhysConst::c) * dt;
 
@@ -270,7 +290,7 @@ WarpX::EvolveE (int lev, Real dt)
         const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
         const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
 
-        MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz;
+        MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz, *jx, *jy, *jz, *F;
         if (ipatch == 0)
         {
             Ex = Efield_fp[lev][0].get();
@@ -282,6 +302,7 @@ WarpX::EvolveE (int lev, Real dt)
             jx = current_fp[lev][0].get();
             jy = current_fp[lev][1].get();
             jz = current_fp[lev][2].get();
+            F  = F_fp[lev].get();
         }
         else
         {
@@ -294,6 +315,7 @@ WarpX::EvolveE (int lev, Real dt)
             jx = current_cp[lev][0].get();
             jy = current_cp[lev][1].get();
             jz = current_cp[lev][2].get();
+            F  = F_cp[lev].get();
         }
         
         // Loop through the grids, and over the tiles within each grid
@@ -323,12 +345,24 @@ WarpX::EvolveE (int lev, Real dt)
                 &mu_c2_dt,
                 &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
                 &norder);
+
+            if (F) {
+                WRPX_CLEAN_EVEC(tex.loVect(), tex.hiVect(),
+                                tey.loVect(), tey.hiVect(),
+                                tez.loVect(), tez.hiVect(),
+                                BL_TO_FORTRAN_3D((*Ex)[mfi]),
+                                BL_TO_FORTRAN_3D((*Ey)[mfi]),
+                                BL_TO_FORTRAN_3D((*Ez)[mfi]),
+                                BL_TO_FORTRAN_3D((*F)[mfi]),
+                                &dtsdx_c2[0]);
+            }
         }
     }
 
     if (do_pml && pml[lev]->ok())
     {
         pml[lev]->ComputePMLFactorsE(dt);
+        pml[lev]->ExchangeF(F_fp[lev].get(), F_cp[lev].get());
 
         for (int ipatch = 0; ipatch < npatches; ++ipatch)
         {
@@ -336,6 +370,7 @@ WarpX::EvolveE (int lev, Real dt)
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
             const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
                                             : pml[lev]->GetMultiSigmaBox_cp();
+            const MultiFab* pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -357,6 +392,101 @@ WarpX::EvolveE (int lev, Real dt)
                     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
                     WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]));
+
+                if (pml_F)
+                {
+                    WRPX_PUSH_PML_EVEC_F(
+                        tex.loVect(), tex.hiVect(),
+                        tey.loVect(), tey.hiVect(),
+                        tez.loVect(), tez.hiVect(),
+                        BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                        BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                        BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                        BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
+                        WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi]),
+                        &c2);
+                }
+            }
+        }
+    }
+}
+
+void
+WarpX::EvolveF (Real dt)
+{
+    if (!do_dive_cleaning) return;
+
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        EvolveF(lev, dt);
+    }
+}
+
+void
+WarpX::EvolveF (int lev, Real dt)
+{
+    if (!do_dive_cleaning) return;
+
+    BL_PROFILE("WarpX::EvolveF()");
+
+    if (do_pml && pml[lev]->ok())
+    {
+        pml[lev]->ComputePMLFactorsE(dt);
+    }
+
+    static constexpr Real c2inv = 1.0/(PhysConst::c*PhysConst::c);
+    static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
+
+    int npatches = (lev == 0) ? 1 : 2;
+
+    for (int ipatch = 0; ipatch < npatches; ++ipatch)
+    {
+        int patch_level = (ipatch == 0) ? lev : lev-1;
+        const auto& dx = WarpX::CellSize(patch_level);
+
+        MultiFab *Ex, *Ey, *Ez, *rho, *F;
+        if (ipatch == 0)
+        {
+            Ex = Efield_fp[lev][0].get();
+            Ey = Efield_fp[lev][1].get();
+            Ez = Efield_fp[lev][2].get();
+            rho = rho_fp[lev].get();
+            F = F_fp[lev].get();
+        }
+        else
+        {
+            Ex = Efield_cp[lev][0].get();
+            Ey = Efield_cp[lev][1].get();
+            Ez = Efield_cp[lev][2].get();
+            rho = rho_cp[lev].get();
+            F = F_cp[lev].get();
+        }
+
+        MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
+        ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
+        MultiFab::Saxpy(src, -mu_c2, *rho, 0, 0, 1, 0);
+        MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
+
+        if (do_pml && pml[lev]->ok())
+        {
+            const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+            const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
+                                            : pml[lev]->GetMultiSigmaBox_cp();
+
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for ( MFIter mfi(*pml_F,true); mfi.isValid(); ++mfi )
+            {
+                const Box& bx = mfi.tilebox();
+                WRPX_PUSH_PML_F(bx.loVect(), bx.hiVect(),
+                                BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
+                                BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
+                                BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
+                                BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
+                                WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]),
+                                &c2inv);
             }
         }
     }
@@ -379,7 +509,7 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
                  *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
-                 cur_time, dt[lev]);
+                 rho_fp[lev].get(), cur_time, dt[lev]);
 }
 
 void

@@ -9,6 +9,8 @@
 
 using namespace amrex;
 
+int WarpXParticleContainer::do_not_push = 0;
+
 #if (BL_SPACEDIM == 2)
 void
 WarpXParIter::GetPosition (Array<Real>& x, Array<Real>& y, Array<Real>& z) const
@@ -47,6 +49,8 @@ WarpXParticleContainer::ReadParameters ()
 
 //        tile_size = IntVect(D_DECL(8,8,8));
         tile_size = IntVect(D_DECL(102400,8,8));
+
+        pp.query("do_not_push", do_not_push);
         
 	initialized = true;
     }
@@ -233,6 +237,8 @@ WarpXParticleContainer::PushX (int lev, Real dt)
     BL_PROFILE("WPC::PushX()");
     BL_PROFILE_VAR_NS("WPC::PushX::Copy", blp_copy);
     BL_PROFILE_VAR_NS("WPC:PushX::Push", blp_pxr_pp);
+
+    if (do_not_push) return;
 
     Array<Real> xp, yp, zp, giv;
 

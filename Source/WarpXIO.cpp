@@ -390,6 +390,7 @@ WarpX::WritePlotFile () const
             + static_cast<int>(plot_part_per_proc)
             + static_cast<int>(plot_proc_number)
             + static_cast<int>(plot_divb)
+            + static_cast<int>(plot_dive)
             + static_cast<int>(plot_finepatch)*6;
 
 	for (int lev = 0; lev <= finest_level; ++lev)
@@ -506,11 +507,27 @@ WarpX::WritePlotFile () const
 
             if (plot_divb)
             {
-                PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
-                ComputeDivB(*mf[lev], dcomp, srcmf, Geom(lev).CellSize());
+                ComputeDivB(*mf[lev], dcomp,
+                            {Bfield_aux[lev][0].get(),Bfield_aux[lev][1].get(),Bfield_aux[lev][2].get()},
+                            WarpX::CellSize(lev));
                 if (lev == 0)
                 {
                     varnames.push_back("divB");
+                }                
+                dcomp += 1;
+            }
+
+            if (plot_dive)
+            {
+                const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
+                MultiFab dive(ba,DistributionMap(lev),1,0);
+                ComputeDivE(dive, 0,
+                            {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(), Efield_aux[lev][2].get()},
+                            WarpX::CellSize(lev));
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp, dive, 0, 1);
+                if (lev == 0)
+                {
+                    varnames.push_back("divE");
                 }                
                 dcomp += 1;
             }
@@ -616,6 +633,11 @@ WarpX::WritePlotFile () const
                 VisMF::Write(*Bfield_cp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
                 VisMF::Write(*Bfield_cp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
             }
+
+            if (plot_raw_fields && F_fp[lev]) {
+                VisMF::Write(*F_fp[lev], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "F_fp"));
+            }
+
         }
     }
 

@@ -70,6 +70,8 @@ public:
     void EvolveE (int lev, amrex::Real dt);
     void EvolveB (         amrex::Real dt);
     void EvolveB (int lev, amrex::Real dt);
+    void EvolveF (         amrex::Real dt);
+    void EvolveF (int lev, amrex::Real dt);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
@@ -85,6 +87,7 @@ public:
     void FillBoundaryB (int lev);
 
     void SyncCurrent ();
+    void SyncRho ();
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -182,16 +185,18 @@ private:
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
-                             const amrex::Array<const amrex::MultiFab*>& B,
-                             const amrex::Real* dx);
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx);
 
-    void SyncCurrent3D (const std::array<const amrex::MultiFab*,3>& fine,
-                        const std::array<      amrex::MultiFab*,3>& crse,
-                        int ref_ratio);
+    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx);
 
-    void SyncCurrent2D (const std::array<const amrex::MultiFab*,3>& fine,
-                        const std::array<      amrex::MultiFab*,3>& crse,
-                        int ref_ratio);
+    void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
+                      const std::array<      amrex::MultiFab*,3>& crse,
+                      int ref_ratio);
+
+    void SyncRho (const amrex::MultiFab& fine, amrex::MultiFab& crse, int ref_ratio);
 
     void ExchangeWithPmlB (int lev);
     void ExchangeWithPmlE (int lev);
@@ -215,14 +220,21 @@ private:
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_aux;
 
     // Fine patch
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > F_fp;
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > rho_fp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp;
 
     // Coarse patch
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > F_cp;
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > rho_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
     amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
+
+    // div E cleaning
+    int do_dive_cleaning = 0;
 
     // PML
     int do_pml = 1;
@@ -261,6 +273,7 @@ private:
     bool plot_part_per_grid = true;
     bool plot_part_per_proc = true;
     bool plot_proc_number   = true;
+    bool plot_dive          = false;
     bool plot_divb          = false;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;

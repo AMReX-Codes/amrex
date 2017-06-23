@@ -215,18 +215,22 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 amrex::Abort("SigmaBox::SigmaBox(): direct_side_edges, how did this happen?\n");
             }
         }
+#endif
 
         for (auto gid : side_faces)
         {
             const Box& grid_box = grids[gid];
+#if (BL_SPACEDIM == 2)
+            const Box& overlap = amrex::grow(grid_box,jdim,ncell) & box;
+#else
             const Box& overlap = amrex::grow(amrex::grow(grid_box,jdim,ncell),kdim,ncell) & box;
+#endif
             if (overlap.ok()) {
                 FillZero(idim, sigma[idim], sigma_star[idim], overlap);
             } else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
             }    
         }
-#endif
 
         for (auto gid : direct_faces)
         {
@@ -346,7 +350,7 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm, 
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int ref_ratio)
+          int ncell, int ref_ratio, int do_dive_cleaning)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
@@ -360,9 +364,12 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     DistributionMapping dm{ba};
 
-    pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 2, 0));
-    pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 2, 0));
-    pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, 2, 0));
+    int nce = (do_dive_cleaning) ? 3 : 2;
+    int nge = (do_dive_cleaning) ? 1 : 0;
+
+    pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, nce, nge));
+    pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, nce, nge));
+    pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, nce, nge));
     pml_B_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Bx_nodal_flag), dm, 2, 1));
     pml_B_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::By_nodal_flag), dm, 2, 1));
     pml_B_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Bz_nodal_flag), dm, 2, 1));
@@ -374,6 +381,12 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     pml_B_fp[1]->setVal(0.0);
     pml_B_fp[2]->setVal(0.0);
 
+    if (do_dive_cleaning)
+    {
+        pml_F_fp.reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()), dm, 3, 0));
+        pml_F_fp->setVal(0.0);
+    }
+
     sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell));
 
     if (cgeom)
@@ -384,9 +397,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         DistributionMapping cdm{cba};
 
-        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), cdm, 2, 0));
-        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), cdm, 2, 0));
-        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), cdm, 2, 0));
+        pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), cdm, nce, nge));
+        pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), cdm, nce, nge));
+        pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), cdm, nce, nge));
         pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), cdm, 2, 1));
         pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), cdm, 2, 1));
         pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), cdm, 2, 1));
@@ -397,6 +410,12 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_B_cp[0]->setVal(0.0);
         pml_B_cp[1]->setVal(0.0);
         pml_B_cp[2]->setVal(0.0);
+
+        if (do_dive_cleaning)
+        {
+            pml_F_cp.reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()), dm, 3, 0));
+            pml_F_cp->setVal(0.0);
+        }
 
         sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell));
     }
@@ -474,6 +493,7 @@ PML::ComputePMLFactorsE (amrex::Real dt)
 {
     if (sigba_fp) sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt);
     if (sigba_cp) sigba_cp->ComputePMLFactorsE(m_cgeom->CellSize(), dt);
+    if (pml_F_fp) ComputePMLFactorsB(dt);
 }
 
 std::array<MultiFab*,3>
@@ -498,6 +518,18 @@ std::array<MultiFab*,3>
 PML::GetB_cp ()
 {
     return {pml_B_cp[0].get(), pml_B_cp[1].get(), pml_B_cp[2].get()};
+}
+
+MultiFab*
+PML::GetF_fp ()
+{
+    return pml_F_fp.get();
+}
+
+MultiFab*
+PML::GetF_cp ()
+{
+    return pml_F_cp.get();
 }
 
 void
@@ -537,38 +569,53 @@ PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
 }
 
 void
+PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp)
+{
+    if (pml_F_fp) Exchange(*pml_F_fp, *F_fp, *m_geom);
+    if (pml_F_cp) Exchange(*pml_F_cp, *F_cp, *m_cgeom);
+}
+
+void
 PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
 {
     const int ngr = reg.nGrow();
     const int ngp = pml.nGrow();
+    const int ncp = pml.nComp();
     const auto& period = geom.periodicity();
 
-    MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
-    MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
+    MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), ncp, ngr);
 
-    MultiFab tmpregmf(reg.boxArray(), reg.DistributionMap(), 2, ngr);
-    MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
-    tmpregmf.copy(totpmlmf, 0, 0, 1, 0, ngr, period);
-
+    if (ngp > 0)  // Copy from pml to the ghost cells of regular data
+    {
+        MultiFab totpmlmf(pml.boxArray(), pml.DistributionMap(), 1, 0);
+        MultiFab::LinComb(totpmlmf, 1.0, pml, 0, 1.0, pml, 1, 0, 1, 0);
+        if (ncp == 3) {
+            MultiFab::Add(totpmlmf,pml,2,0,1,0);
+        }
+        
+        MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
+        tmpregmf.copy(totpmlmf, 0, 0, 1, 0, ngr, period);
+        
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(reg); mfi.isValid(); ++mfi)
-    {
-        const FArrayBox& src = tmpregmf[mfi];
-        FArrayBox& dst = reg[mfi];
-        const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
-        for (const Box& bx : bl)
+        for (MFIter mfi(reg); mfi.isValid(); ++mfi)
         {
-            dst.copy(src, bx, 0, bx, 0, 1);
+            const FArrayBox& src = tmpregmf[mfi];
+            FArrayBox& dst = reg[mfi];
+            const BoxList& bl = amrex::boxDiff(dst.box(), mfi.validbox());
+            for (const Box& bx : bl)
+            {
+                dst.copy(src, bx, 0, bx, 0, 1);
+            }
         }
     }
 
     // Copy from regular data to PML's first component
-    // Zero out the second component
+    // Zero out the second (and third) component
     MultiFab::Copy(tmpregmf,reg,0,0,1,0);
-    tmpregmf.setVal(0.0, 1, 1, 0);
-    pml.copy (tmpregmf, 0, 0, 2, 0, ngp, period);
+    tmpregmf.setVal(0.0, 1, ncp-1, 0);
+    pml.copy (tmpregmf, 0, 0, ncp, 0, ngp, period);
 }
 
 void
@@ -581,7 +628,21 @@ PML::FillBoundary ()
 void
 PML::FillBoundaryE ()
 {
-    // no ghost cells
+    if (pml_E_fp[0] && pml_E_fp[0]->nGrow() > 0)
+    {
+        const auto& period = m_geom->periodicity();
+        pml_E_fp[0]->FillBoundary(period);
+        pml_E_fp[1]->FillBoundary(period);
+        pml_E_fp[2]->FillBoundary(period);
+    }    
+
+    if (pml_E_cp[0] && pml_E_cp[0]->nGrow() > 0)
+    {
+        const auto& period = m_cgeom->periodicity();
+        pml_E_cp[0]->FillBoundary(period);
+        pml_E_cp[1]->FillBoundary(period);
+        pml_E_cp[2]->FillBoundary(period);
+    }
 }
 
 void

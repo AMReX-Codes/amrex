@@ -112,10 +112,14 @@ WarpX::WarpX ()
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
 
+    F_fp.resize(nlevs_max);
+    rho_fp.resize(nlevs_max);
     current_fp.resize(nlevs_max);
     Efield_fp.resize(nlevs_max);
     Bfield_fp.resize(nlevs_max);
 
+    F_cp.resize(nlevs_max);
+    rho_cp.resize(nlevs_max);
     current_cp.resize(nlevs_max);
     Efield_cp.resize(nlevs_max);
     Bfield_cp.resize(nlevs_max);
@@ -194,6 +198,8 @@ WarpX::ReadParameters ()
 
 	pp.query("use_laser", use_laser);
 
+        pp.query("do_dive_cleaning", do_dive_cleaning);
+
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
 
@@ -205,6 +211,7 @@ WarpX::ReadParameters ()
         pp.query("plot_part_per_grid", plot_part_per_grid);
         pp.query("plot_part_per_proc", plot_part_per_proc);
         pp.query("plot_proc_number"  , plot_proc_number);
+        pp.query("plot_dive"         , plot_dive);
         pp.query("plot_divb"         , plot_divb);
 
         if (maxLevel() > 0) {
@@ -267,6 +274,11 @@ WarpX::ClearLevel (int lev)
 	Efield_cp [lev][i].reset();
 	Bfield_cp [lev][i].reset();
     }
+
+    F_fp  [lev].reset();
+    rho_fp[lev].reset();
+    F_cp  [lev].reset();
+    rho_cp[lev].reset();
 }
 
 void
@@ -288,6 +300,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ng));
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ng));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ng));
+
+    if (do_dive_cleaning)
+    {
+        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, 0));
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ng));
+    }
 
     //
     // The Aux patch (i.e., the full solution)
@@ -335,6 +353,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         current_cp[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ng));
         current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ng));
         current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ng));
+
+        if (do_dive_cleaning)
+        {
+            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, 0));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ng));
+        }
     }
 }
 
@@ -379,7 +403,9 @@ WarpX::UpperCorner(const Box& bx, int lev)
 }
 
 void
-WarpX::ComputeDivB (MultiFab& divB, int dcomp, const Array<const MultiFab*>& B, const Real* dx)
+WarpX::ComputeDivB (MultiFab& divB, int dcomp,
+                    const std::array<const MultiFab*, 3>& B,
+                    const std::array<Real,3>& dx)
 {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -387,11 +413,31 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp, const Array<const MultiFab*>& B, 
     for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        WARPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
+        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
-                           D_DECL(BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*B[2])[mfi])),
-                           dx);
+                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
+                           dx.data());
+    }
+}
+
+void
+WarpX::ComputeDivE (MultiFab& divE, int dcomp,
+                    const std::array<const MultiFab*, 3>& E,
+                    const std::array<Real,3>& dx)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
+                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
+                           dx.data());
     }
 }

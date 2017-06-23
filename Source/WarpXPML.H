@@ -96,7 +96,7 @@ class PML
 public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm, 
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
-         int ncell, int ref_ratio);
+         int ncell, int ref_ratio, int do_dive_cleaning);
 
     void ComputePMLFactorsB (amrex::Real dt);
     void ComputePMLFactorsE (amrex::Real dt);
@@ -105,6 +105,9 @@ public:
     std::array<amrex::MultiFab*,3> GetB_fp ();
     std::array<amrex::MultiFab*,3> GetE_cp ();
     std::array<amrex::MultiFab*,3> GetB_cp ();
+
+    amrex::MultiFab* GetF_fp ();
+    amrex::MultiFab* GetF_cp ();
 
     const MultiSigmaBox& GetMultiSigmaBox_fp () const 
         { return *sigba_fp; }
@@ -116,6 +119,8 @@ public:
                     const std::array<amrex::MultiFab*,3>& B_cp);
     void ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
                     const std::array<amrex::MultiFab*,3>& E_cp);
+
+    void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp);
 
     void FillBoundary ();
     void FillBoundaryE ();
@@ -137,6 +142,9 @@ private:
 
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E_cp;
     std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B_cp;
+
+    std::unique_ptr<amrex::MultiFab> pml_F_fp;
+    std::unique_ptr<amrex::MultiFab> pml_F_cp;
 
     std::unique_ptr<MultiSigmaBox> sigba_fp;
     std::unique_ptr<MultiSigmaBox> sigba_cp;
