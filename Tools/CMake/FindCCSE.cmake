@@ -189,63 +189,62 @@ else(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)
     #  (2) CCSE_DIR/perl
     #  (3) Default CMake paths See cmake --html-help=out.html file for more information.
     #
-    set(ccse_perl_name strip72)
+ #    set(ccse_perl_name strip72)
 
-    if (CCSE_PERL_DIR)
+#     if (CCSE_PERL_DIR)
 
-        if (EXISTS "${CCSE_PERL_DIR}")
+#         if (EXISTS "${CCSE_PERL_DIR}")
 
-            find_path(CCSE_PERL
-                      NAMES ${ccse_perl_name}
-                      HINTS ${CCSE_PERL_DIR}
-                      NO_DEFAULT_PATH)
-        else()
-            message(SEND_ERROR "CCSE_PERL_DIR=${CCSE_PERL_DIR} does not exist")
-            set(CCSE_PERL "CCSE_PERL-NOTFOUND")
-        endif()
+#             find_path(CCSE_PERL
+#                       NAMES ${ccse_perl_name}
+#                       HINTS ${CCSE_PERL_DIR}
+#                       NO_DEFAULT_PATH)
+#         else()
+#             message(SEND_ERROR "CCSE_PERL_DIR=${CCSE_PERL_DIR} does not exist")
+#             set(CCSE_PERL "CCSE_PERL-NOTFOUND")
+#         endif()
 
-    else() 
+#     else() 
 
-        if(CCSE_DIR)
+#         if(CCSE_DIR)
 
-            if (EXISTS "${CCSE_DIR}" )
+#             if (EXISTS "${CCSE_DIR}" )
 
-                find_path(CCSE_PERL
-                          NAMES ${ccse_perl_name}
-                          HINTS "${CCSE_DIR}/perl"
-                          NO_DEFAULT_PATH)
+#                 find_path(CCSE_PERL
+#                           NAMES ${ccse_perl_name}
+#                           HINTS "${CCSE_DIR}/perl"
+#                           NO_DEFAULT_PATH)
 
-                if ( NOT CCSE_PERL )
-                    message(SEND_ERROR "CCSE Perl scripts not in CCSE_DIR/perl=${CCSE_DIR}/perl")
-                else()
-                    set(CCSE_PERL_DIR ${CCSE_PERL})
-                endif()    
+#                 if ( NOT CCSE_PERL )
+# #                    message(SEND_ERROR "CCSE Perl scripts not in CCSE_DIR/perl=${CCSE_DIR}/perl")
+#                 else()
+#                     set(CCSE_PERL_DIR ${CCSE_PERL})
+#                 endif()    
 
-            else()
+#             else()
 
-                message(SEND_ERROR "CCSE_DIR/perl=${CCSE_DIR}/perl does not exist")
+#                 message(SEND_ERROR "CCSE_DIR/perl=${CCSE_DIR}/perl does not exist")
 
-            endif()
+#             endif()
 
-        endif()
+#         endif()
 
-    endif()
+#     endif()
 
 
-endif(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)    
+# 
+ndif(CCSE_LIBRARIES AND CCSE_INCLUDE_DIRS AND CCSE_PERL_DIR)    
 
 # Send useful message if everything is found
 find_package_handle_standard_args(CCSE DEFAULT_MSG
                                   CCSE_LIBRARIES
-                                  CCSE_LIBRARY_DIRS
-                                  CCSE_INCLUDE_DIRS
-                                  CCSE_PERL_DIR)
-
+                                  CCSE_LIBRARY_DIRS )
+                                  CCSE_INCLUDE_DIRS )
+                                  
 mark_as_advanced(
   CCSE_INCLUDE_DIR
   CCSE_INCLUDE_DIRS
   CCSE_LIBRARIES
   CCSE_LIBRARY_DIR
   CCSE_LIBRARY_DIRS
-  CCSE_PERL_DIR
 )
