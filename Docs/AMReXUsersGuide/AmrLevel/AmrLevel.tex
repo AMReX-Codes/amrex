@@ -1,9 +1,11 @@
 The source code in {\tt amrex\_Src/Amr} contains a number of classes, most notably
-the {\tt Amr} class and the {\tt AmrLevel} class.
+the {\tt Amr}, {\tt AmrLevel}, and {\tt LevelBld}.
 The {\tt Amr} class is derived from {\tt AmrCore}, and manages data across the 
 entire AMR hierarchy of grids.
 The {\tt AmrLevel} class is a pure virtual class for managing data at a
 single level of refinement.
+The {\tt LevelBld} class is a pure virtual class for defining variable types
+and attributes.
 
 Many of our mature application codes contain derived classes that inherit directly
 from {\tt AmrLevel}.  These include our compressible astrophysics code,
@@ -43,3 +45,53 @@ Note that if you have more than one {\tt StateType}, each of the different {\tt 
 carried in the state array can have different numbers
 of components, ghost cells, boundary conditions, etc. This is the main reason we separate all this
 data into separate {\tt StateData} objects collected together in an indexable array.
+
+\section{{\tt Advection\_AmrLevel} Example}
+
+Figure \ref{fig:AmrAdvection_AmrLevel_flowchart} shows a source
+code tree for the {\tt AmrAdvection\_AmrLevel} example.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=4in]{./AmrLevel/figs/flowchart.pdf}
+\caption{\label{fig:AmrAdvection_AmrLevel_flowchart} Source code tree for the 
+         {\tt AmrAdvection\_AmrLevel} example.}
+\end{center}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+\item {\tt amrex/Src/}
+\begin{itemize}
+\item {\tt Base/} Base {\tt amrex} library.
+\item {\tt Boundary/} An assortment of classes for handling boundary data.
+\item {\tt AmrCore/} AMR data management classes, described in more detail above.
+\item {\tt Amr/}
+\item {\tt Particle/}
+\end{itemize}
+\item {\tt Advection\_AmrLevel/Src} Source code specific to this example.  Most notably
+is the {\tt AmrLevelAdv} class, which is derived from {\tt AmrLevel}.  The subdirectories {\tt Src\_2d}
+and {\tt Src\_3d} contain dimension specific routines.  {\tt Src\_nd} contains dimension-independent routines.
+\item {\tt Exec} Contains a makefile so a user can write other examples besides {\tt SingleVortex} and {\tt UniformVelocity}.
+\item {\tt SingleVortex} and {\tt UniformVelocity}
+Build the code here by editing the {\tt GNUmakefile} and running {\tt make}.  There
+is also problem-specific source code here used for initialization or specifying the velocity field used in this
+simulation.
+\end{itemize}
+
+\begin{lstlisting}[language=cpp]
+/* Advection_AmrLevel Pseudocode */
+main()
+  Amr amr;
+  amr.init()
+  loop { 
+    amr.coarseTimeStep()
+      /* compute dt */
+      timeStep()
+        amr_level[level]->advance()
+        call timeStep r times for next-finer level
+        amr_level[level]->post_timestep() // AMR synchronization
+      postCoarseTimeStep()
+      /* write plotfile and checkpoint */
+  }
+  /* write final plotfile and checkpoint */
+\end{lstlisting}

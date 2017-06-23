@@ -56,12 +56,6 @@ public:
 			     amrex::VisMF::How  how = amrex::VisMF::NFiles,
 			     bool               dump_old = true) override;
 
-    /*A string written as the first item in writePlotFile() at
-               level zero. It is so we can distinguish between different
-               types of plot files.
-    */
-    virtual std::string thePlotFileType () const override;
-
     //
     //Write a plotfile to specified directory.
     //
@@ -88,10 +82,6 @@ public:
     //Initialize data on this level after regridding if old level did not previously exist
     //
     virtual void init () override;
-    //
-    //Proceed with next timestep?
-    //
-    virtual int okToContinue () override { return 1; }
     //
     //Advance grids at this level in time.
     //

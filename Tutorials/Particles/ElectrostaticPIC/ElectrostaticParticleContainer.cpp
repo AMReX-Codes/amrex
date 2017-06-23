@@ -16,7 +16,7 @@ void ElectrostaticParticleContainer::InitParticles() {
         p.id()   = ParticleType::NextID();
         p.cpu()  = ParallelDescriptor::MyProc(); 
         
-        p.pos(0) = -5.0e-6; 
+        p.pos(0) = -3.75e-6; 
         p.pos(1) =  0.0;
         p.pos(2) =  0.0;
         
