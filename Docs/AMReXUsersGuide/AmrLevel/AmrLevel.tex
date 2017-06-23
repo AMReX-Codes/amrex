@@ -1,9 +1,11 @@
 The source code in {\tt amrex\_Src/Amr} contains a number of classes, most notably
-the {\tt Amr} class and the {\tt AmrLevel} class.
+the {\tt Amr}, {\tt AmrLevel}, and {\tt LevelBld}.
 The {\tt Amr} class is derived from {\tt AmrCore}, and manages data across the 
 entire AMR hierarchy of grids.
 The {\tt AmrLevel} class is a pure virtual class for managing data at a
 single level of refinement.
+The {\tt LevelBld} class is a pure virtual class for defining variable types
+and attributes.
 
 Many of our mature application codes contain derived classes that inherit directly
 from {\tt AmrLevel}.  These include our compressible astrophysics code,
