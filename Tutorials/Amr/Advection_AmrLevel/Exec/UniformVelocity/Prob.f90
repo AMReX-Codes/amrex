@@ -29,7 +29,8 @@ subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
      probin(i:i) = char(name(i))
   end do
   
-  adv_vel = 1.d0
+  ! set the namelist default
+  adv_vel(:) = 1.d0
 
   ! Read namelists
   untin = 9
