@@ -86,7 +86,7 @@ void WritePlotFile(const ScalarMeshData& rhs,
 
 void computeE(      VectorMeshData& E,
               const ScalarMeshData& phi, 
-                    const Array<Geometry>& geom) {
+              const Array<Geometry>& geom) {
 
     const int num_levels = E.size();
     const int finest_level = num_levels - 1;
@@ -172,13 +172,10 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     int num_levels = rhs.size();
     int finest_level = num_levels - 1;
 
-    Array<std::unique_ptr<MultiFab> > tmp_phi(num_levels);
     Array<std::unique_ptr<MultiFab> > tmp_rhs(num_levels);    
     for (int lev = 0; lev < num_levels; ++lev) {
         tmp_rhs[lev].reset(new MultiFab(rhs[lev]->boxArray(), dm[lev], 1, 0));
         MultiFab::Copy(*tmp_rhs[lev], *rhs[lev], 0, 0, 1, 0);
-        tmp_phi[lev].reset(new MultiFab(phi[lev]->boxArray(), dm[lev], 1, 2));
-        tmp_phi[lev]->setVal(0.0, 2);
     }
     
     IntVect ratio(2, 2, 2);
@@ -222,14 +219,6 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
             int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
             Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
             NodeBilinear mapper;
-
-            MultiFab tmp(phi[lev+1]->boxArray(), phi[lev+1]->DistributionMap(), 1, 2);
-            Array<MultiFab*> crse(1);
-            crse[0] = phi[lev].get();
-            Array<Real> ctime(1, 0.0);
-            Array<Real> ftime(1, 0.0);
-            Array<MultiFab*> fine(1);
-            fine[0] = phi[lev+1].get();
 
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
                                          0, 0, 1, geom[lev], geom[lev+1],
@@ -327,8 +316,8 @@ int main(int argc, char* argv[])
     grids[0].define(domain);
     if (num_levels > 1) {
         int n_fine = n_cell*rr[0];
-        IntVect refined_lo(n_fine/4,n_fine/4,n_fine/4); 
-        IntVect refined_hi(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1);
+        IntVect refined_lo(3*n_fine/8,3*n_fine/8,3*n_fine/8); 
+        IntVect refined_hi(5*n_fine/8-1,5*n_fine/8-1,5*n_fine/8-1);
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
@@ -371,7 +360,7 @@ int main(int argc, char* argv[])
     getLevelMasks(masks, grids, dm, geom);
 
     Array<std::unique_ptr<FabArray<BaseFab<int> > > > gather_masks(num_levels);
-    getLevelMasks(gather_masks, grids, dm, geom, 8);
+    getLevelMasks(gather_masks, grids, dm, geom, 4);
     
     ElectrostaticParticleContainer myPC(geom, dm, grids, rr);
 
