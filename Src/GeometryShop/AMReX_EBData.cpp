@@ -20,18 +20,21 @@
 namespace amrex
 {
 
-  static const IntVect ebd_ivlo(D_DECL(33,13, 0));
-  static const IntVect ebd_ivhi(D_DECL(33,14, 0));
-  static const VolIndex ebd_vlo(ebd_ivlo, 0);
-  static const VolIndex ebd_vhi(ebd_ivhi, 0);
-  static const FaceIndex ebd_face(ebd_vlo,ebd_vhi, 1);
-  static const IntVect ebd_ivlobox(D_DECL(30,8, 0));
-  static const IntVect ebd_ivhibox(D_DECL(49,15,0));
-  static const Box ebd_box(ebd_ivlobox, ebd_ivhibox)
-;
-  void null_deleter(EBDataImplem *)
+  bool EBDataImplem::s_verbose = false;
+
+
+//  static const IntVect ebd_ivlo(D_DECL(33,13, 0));
+//  static const IntVect ebd_ivhi(D_DECL(33,14, 0));
+//  static const VolIndex ebd_vlo(ebd_ivlo, 0);
+//  static const VolIndex ebd_vhi(ebd_ivhi, 0);
+//  static const FaceIndex ebd_face(ebd_vlo,ebd_vhi, 1);
+  static const IntVect ebd_ivlobox(D_DECL(32, 16, 0));
+  static const IntVect ebd_ivhibox(D_DECL(47, 23, 0));
+  static const Box ebd_box(ebd_ivlobox, ebd_ivhibox);
+
+  void null_deleter_ebdi(EBDataImplem *)
  {}
-/************************/
+ /************************/
   void 
   EBDataImplem::
   addFullIrregularVoFs(const IntVectSet     &    a_vofsToChange,
@@ -746,14 +749,13 @@ namespace amrex
   EBDataImplem::
   nBytes (const Box& bx, int a_srccomp, int a_ncomps) const
   {
-//    pout() << "going into nbytes for box " << bx;
-//    pout() << ", m_region = " << m_region << endl;
+
     size_t retval = m_volData.nBytes(bx, 0, V_VOLNUMBER);
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       retval += m_faceData[idir].nBytes(bx, 0, F_FACENUMBER);
     }
-//    pout() << "nbytes retval for box " << bx << " = " << retval << endl;
+
     return retval;
   }
 /*******************************/
@@ -765,20 +767,24 @@ namespace amrex
              int        ncomps,
              void*      dst) const
   {
-//    pout() << "going into copytomem for box " << bx << endl;
+
     size_t retval = 0;
     unsigned char* buf = (unsigned char*) dst;
+
     size_t incrval = m_volData.copyToMem(bx, 0, V_VOLNUMBER, buf);
     retval += incrval;
     buf    += incrval;
 
     for(int idir = 0; idir < SpaceDim; idir++)
     {
+
       incrval = m_faceData[idir].copyToMem(bx, 0, F_FACENUMBER, buf);
+
       retval += incrval;
       buf    += incrval;
+
     }
-//    pout() << "copytomem retval for box " << bx << " = " << retval << endl;
+
     return retval;
   }
 
@@ -791,21 +797,24 @@ namespace amrex
                int         numcomp,
                const void* src)
   {
-//    pout() << "going into copyfrommem for box " << bx;
-//    pout() << ", m_region = " << m_region << endl;
+
     size_t retval = 0;
     unsigned char* buf = (unsigned char*) src;
+
+
     size_t incrval = m_volData.copyFromMem(bx, 0, V_VOLNUMBER, buf);
     retval += incrval;
     buf    += incrval;
 
     for(int idir = 0; idir < SpaceDim; idir++)
     {
+
       incrval = m_faceData[idir].copyFromMem(bx, 0, F_FACENUMBER, buf);
       retval += incrval;
       buf    += incrval;
+
     }
-//    pout() << "copyfrommem retval for box " << bx << " = " << retval << endl;
+
     return retval;
   }
 /*******************************/
