@@ -13,8 +13,10 @@
 #define _SPMDI_H_
 #include <cassert>
 #include "AMReX.H"
+#include "AMReX_parstream.H"
 namespace amrex
 {
+  using std::endl;
 // default implementations for linearization routines.
 
   template <class T>
@@ -232,6 +234,12 @@ namespace amrex
     //first entry is the size of the vector
     const int* const intBuf = (int*)a_inBuf;
     int vecsize = intBuf[0];
+
+    //if(s_spmd_verbose)
+    //{
+    //  pout() << "linearlistin: vec size = " << vecsize << endl;
+    //}
+
     std::vector<int> vecOffset(vecsize);
     //next vecsize entries are offsets of data into buffer
     for (int ivec = 0; ivec < vecsize; ivec++)
@@ -262,6 +270,12 @@ namespace amrex
     int* const intBuf = (int*)a_outBuf;
     intBuf[0] = a_input.size();
     int vecsize = intBuf[0];
+
+    //if(s_spmd_verbose)
+    //{
+    //  pout() << "linearlistOut: vec size = " << vecsize << endl;
+    //}
+
     std::vector<int> vecOffset(vecsize);
     //next vecsize entries are offsets of data into buffer
     //next vecsize entries are the actual data

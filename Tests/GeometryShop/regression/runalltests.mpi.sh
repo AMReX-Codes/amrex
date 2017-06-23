@@ -9,6 +9,8 @@ echo       'regression/ebio 1 proc'
 mpirun -np 1 ./ebio2d.gnu.DEBUG.MPI.ex ebio.inputs | grep test;
 echo       'regression/ebio 2 proc'
 mpirun -np 2 ./ebio2d.gnu.DEBUG.MPI.ex ebio.inputs | grep test;
+echo       'regression/ebio 2 proc (bigger prob)'
+mpirun -np 2 ./ebio2d.gnu.DEBUG.MPI.ex ebio.2.inputs | grep test;
 echo       'regression/ebnormalizeTest 1 proc'
 mpirun -np 1 ./ebnormalizeTest2d.gnu.DEBUG.MPI.ex ebnormtest.inputs | grep test;
 echo       'regression/ebnormalizeTest 2 proc'
