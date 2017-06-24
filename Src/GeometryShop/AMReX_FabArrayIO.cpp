@@ -48,7 +48,15 @@ namespace amrex
   FAIOElement::
   linearSize() const
   {
-    int retval = 2*sizeof(long) + 2*sizeof(int);
+    int retval = 0;
+    //procid
+    retval += sizeof(int);
+    //boxid
+    retval += sizeof(int);
+    //head
+    retval += sizeof(long);
+    //boxlen
+    retval += sizeof(long);
     return retval;
   }
 
@@ -66,6 +74,7 @@ namespace amrex
     *longbuf = m_head;
     longbuf++;
     *longbuf = m_boxlen;
+    longbuf++;
   }
 
   ///
@@ -82,6 +91,8 @@ namespace amrex
     m_head = *longbuf;
     longbuf++;
     m_boxlen = *longbuf;
+    longbuf++;
+    m_filename = getFilename(m_procid);
   }
 
   ///write a header to   disk in ascii

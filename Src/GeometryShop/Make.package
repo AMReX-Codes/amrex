@@ -14,8 +14,8 @@ C$(GEOMETRYSHOP_BASE)_sources +=  AMReX_LSquares.cpp AMReX_SphereIF.cpp  AMReX_P
 C$(GEOMETRYSHOP_BASE)_headers += AMReX_IntVectSet.H     AMReX_FlatPlateGeom.H    AMReX_EBCellFAB.H    AMReX_FaceIndex.H     AMReX_VolIndex.H 
 C$(GEOMETRYSHOP_BASE)_sources +=  AMReX_IntVectSet.cpp  AMReX_FlatPlateGeom.cpp  AMReX_EBCellFAB.cpp  AMReX_FaceIndex.cpp   AMReX_VolIndex.cpp
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_Stencils.H   AMReX_GraphNode.H   AMReX_SPMD.H AMReX_SPMDI.H  AMReX_EBGraph.H
-C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_Stencils.cpp AMReX_GraphNode.cpp AMReX_SPMD.cpp              AMReX_EBGraph.cpp
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_Stencils.H   AMReX_GraphNode.H     AMReX_EBGraph.H
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_Stencils.cpp AMReX_GraphNode.cpp   AMReX_EBGraph.cpp
 
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_VoFIterator.H   AMReX_FaceIterator.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_VoFIterator.cpp AMReX_FaceIterator.cpp

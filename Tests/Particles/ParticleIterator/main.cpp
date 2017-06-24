@@ -52,14 +52,10 @@ int main(int argc, char* argv[])
 
   typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
   MyParticleContainer MyPC(geom, dmap, ba, rr);
-  MyPC.SetVerbose(0);
-  MFInfo Fab_noallocate;
-  Fab_noallocate.SetAlloc(false);
-  MultiFab dummy_mf(ba[0], dmap[0], 1, 0, Fab_noallocate);
 
-  MyPC.InitOnePerCell(0.5, 0.5, 0.5, 1.0, dummy_mf);
+  MyPC.InitOnePerCell(0.5, 0.5, 0.5, 1.0);
   MyPC.do_tiling = true;
-  for (PIter mfi(MyPC, 0); mfi.isValid(); ++mfi) {
+  for (ParIter<1+BL_SPACEDIM> mfi(MyPC, 0); mfi.isValid(); ++mfi) {
     std::cout << mfi.index() << " " << mfi.tileIndex() << " " << mfi.numTiles() << std::endl;
   }
       

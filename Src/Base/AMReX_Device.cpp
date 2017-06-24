@@ -27,9 +27,7 @@ amrex::Device::finalize_device() {
 int
 amrex::Device::deviceId() {
 
-#ifdef CUDA
-     return device_id;
-#endif
+    return device_id;
 
 }
 
@@ -58,7 +56,7 @@ amrex::Device::get_stream_index() {
 void*
 amrex::Device::get_host_pointer(const void* ptr) {
 
-    void* r;
+    void* r = NULL;
 #ifdef CUDA
     gpu_host_device_ptr(&r, ptr);
 #endif

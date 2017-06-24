@@ -9,15 +9,15 @@ extern "C"
 #endif
 
     void sum_fine_to_crse_nodal(const int* lo, const int* hi, const int* lrat,
-                                const amrex::Real* crse, const int* clo, const int* chi,
+                                      amrex::Real* crse, const int* clo, const int* chi,
                                 const amrex::Real* fine, const int* flo, const int* fhi);
 
     void zero_out_bndry(const int* lo, const int* hi,
-                        const amrex::Real* input_data, const amrex::Real* bndry_data, 
+                        amrex::Real* input_data, amrex::Real* bndry_data, 
                         const int* mask);
 
     void build_mask(const int* lo, const int* hi,
-                    const int* tmp_mask, const int* mask, const int* ncells);
+                    const int* tmp_mask, int* mask, const int* ncells);
 
     void compute_E_nodal (const int* lo, const int* hi,
                           const amrex::Real* phi,
@@ -53,10 +53,10 @@ extern "C"
                        const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
                        const amrex::Real* prob_lo, const amrex::Real* prob_hi);
 
-    void push_leapfrog_positions(amrex::Real* particles, int ns, int np, 
-                                 const amrex::Real* vx_p, const amrex::Real* vy_p, 
-                                 const amrex::Real* vz_p, const amrex::Real* dt,
-                                 const amrex::Real* prob_lo, const amrex::Real* prob_hi);
+    void push_leapfrog_positions(amrex::Real* particles, int ns, int np,
+                                 amrex::Real* vx_p, amrex::Real* vy_p, amrex::Real* vz_p,
+                                 const amrex::Real* dt, const amrex::Real* prob_lo,
+                                 const amrex::Real* prob_hi);
 
 #ifdef __cplusplus
 }
