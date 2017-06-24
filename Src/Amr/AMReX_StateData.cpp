@@ -448,6 +448,8 @@ StateData::FillBoundary (FArrayBox&     dest,
     BCRec bcr;
     const Real* problo = prob_domain.lo();
 
+    Device::prepare_for_launch(dlo, dhi);
+
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
         xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);

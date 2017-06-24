@@ -1558,6 +1558,8 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
+            Device::prepare_for_launch(lo, hi);
+
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
 			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
@@ -1599,6 +1601,8 @@ AmrLevel::derive (const std::string& name,
 	    rbx[mfi.tileIndex()] = RealBox((*mf)[mfi].box(),geom.CellSize(),geom.ProbLo());
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
+
+            Device::prepare_for_launch(dlo, dhi);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
@@ -1714,6 +1718,8 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
+            Device::prepare_for_launch(lo, hi);
+
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
 			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
@@ -1755,6 +1761,8 @@ AmrLevel::derive (const std::string& name,
             rbx[mfi.tileIndex()] = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
+
+            Device::prepare_for_launch(dlo, dhi);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
