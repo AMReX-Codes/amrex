@@ -1,17 +1,12 @@
 
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_MultiFab.H>
 #include <AMReX_Print.H>
 
-#include <array>
-
+#include "myfunc.H"
 #include "myfunc_F.H"
 
 using namespace amrex;
-
-void main_main ();
 
 int main (int argc, char* argv[])
 {
@@ -23,80 +18,14 @@ int main (int argc, char* argv[])
     return 0;
 }
 
-void advance (MultiFab& old_phi, MultiFab& new_phi,
-	      std::array<MultiFab, BL_SPACEDIM>& flux,
-	      Real dt, const Geometry& geom)
-{
-    // Fill the ghost cells of each grid from the other grids
-    // includes periodic domain boundaries
-    old_phi.FillBoundary(geom.periodicity());
-
-    int Ncomp = old_phi.nComp();
-    int ng_p = old_phi.nGrow();
-    int ng_f = flux[0].nGrow();
-
-    const Real* dx = geom.CellSize();
-
-    //
-    // Note that this simple example is not optimized.
-    // The following two MFIter loops could be merged
-    // and we do not have to use flux MultiFab.
-    // 
-
-    // Compute fluxes one grid at a time
-    for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
-    {
-        const Box& bx = mfi.validbox();
-	const int idx = mfi.tileIndex();
-
-	for (int idir = 1; idir <= BL_SPACEDIM; ++idir) {
-
-	    const Box& sbx = surroundingNodes(bx, idir-1);
-	    mfi.registerBox(sbx);
-
-	    compute_flux(sbx.loVect(), sbx.hiVect(),
-                         BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-			 BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
-			 dx, idir, idx);
-
-	}
-
-    }
-
-#ifdef CUDA
-    gpu_synchronize();
-#endif
-
-    // Advance the solution one grid at a time
-    for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
-    {
-        const Box& bx = mfi.validbox();
-	const int idx = mfi.tileIndex();
-
-        update_phi(bx.loVect(), bx.hiVect(),
-                   BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(new_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
-#if (BL_SPACEDIM == 3)   
-                   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
-#endif
-                   dx, dt, idx);
-    }
-
-#ifdef CUDA
-    gpu_synchronize();
-#endif
-
-}
-
 void main_main ()
 {
     // What time is it now?  We'll use this to compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
-    // BL_SPACEDIM: number of dimensions
-    int n_cell, max_grid_size, nsteps, plot_int, is_periodic[BL_SPACEDIM];
+    // AMREX_SPACEDIM: number of dimensions
+    int n_cell, max_grid_size, nsteps, plot_int;
+    Array<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
 
     // inputs parameters
     {
@@ -118,14 +47,16 @@ void main_main ()
         // Default nsteps to 0, allow us to set it to something else in the inputs file
         nsteps = 10;
         pp.query("nsteps",nsteps);
+
+        pp.queryarr("is_periodic", is_periodic);
     }
 
     // make BoxArray and Geometry
     BoxArray ba;
     Geometry geom;
     {
-        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+        IntVect dom_lo(IntVect(AMREX_D_DECL(0,0,0)));
+        IntVect dom_hi(IntVect(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1)));
         Box domain(dom_lo, dom_hi);
 
         // Initialize the boxarray "ba" from the single box "bx"
@@ -133,18 +64,15 @@ void main_main ()
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         ba.maxSize(max_grid_size);
 
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
-                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-
-        // This says we are using Cartesian coordinates
-        int coord = 0;
-
-        // This sets the boundary conditions to be doubly or triply periodic
-        std::array<int,BL_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
+        // This defines the physical size of the box.  Right now the box is [-1,1] in each direction.
+        RealBox real_box;
+        for (int n = 0; n < BL_SPACEDIM; n++) {
+            real_box.setLo(n,-1.0);
+            real_box.setHi(n, 1.0);
+        }
 
         // This defines a Geometry object
-        geom.define(domain,&real_box,coord,is_periodic.data());
+        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
 
     // Nghost = number of ghost cells for each array 
@@ -163,23 +91,20 @@ void main_main ()
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
-    phi_old.setVal(0.0);
-    phi_new.setVal(0.0);
-
     // Initialize phi_new by calling a Fortran routine.
     // MFIter = MultiFab Iterator
     for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
 
-        init_phi(bx.loVect(), bx.hiVect(),
+        init_phi(BL_TO_FORTRAN_BOX(bx),
                  BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
     }
 
     // compute the time step
     const Real* dx = geom.CellSize();
-    Real dt = 0.9*dx[0]*dx[0] / (2.0*BL_SPACEDIM);
+    Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
@@ -190,8 +115,8 @@ void main_main ()
     }
 
     // build the flux multifabs
-    std::array<MultiFab, BL_SPACEDIM> flux;
-    for (int dir = 0; dir < BL_SPACEDIM; dir++)
+    std::array<MultiFab, AMREX_SPACEDIM> flux;
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
         BoxArray edge_ba = ba;

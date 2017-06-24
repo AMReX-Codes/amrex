@@ -15,7 +15,7 @@ extern "C"
     void compute_flux(const int* lo, const int* hi,
                       amrex_real* phi, const int* philo, const int* phihi,
                       amrex_real* flux, const int* flo, const int* fhi,
-                      const amrex_real* dx, const int idir, const int idx);
+                      const amrex_real* dx, const int idir);
 
     void update_phi(const int* lo, const int* hi,
                     amrex_real* pold, const int* polo, const int* pohi,
@@ -25,7 +25,7 @@ extern "C"
 #if (BL_SPACEDIM == 3)   
                     amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
-                    const amrex_real* dx, const amrex_real dt, const int idx);
+                    const amrex_real* dx, const amrex_real dt);
 
 #ifdef __cplusplus
 }

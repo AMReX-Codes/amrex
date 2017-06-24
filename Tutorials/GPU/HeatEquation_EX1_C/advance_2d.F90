@@ -5,12 +5,11 @@ module advance_module
 contains
 
   subroutine compute_flux (lo, hi, phi, philo, phihi, &
-                           flux, flo, fhi, dx, idir, idx) bind(C, name="compute_flux")
+                           flux, flo, fhi, dx, idir) bind(C, name="compute_flux")
 
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
-    use cuda_module, only: cuda_streams, stream_from_index, threads_and_blocks
-    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, cuda_stream_kind, dim3
+    use cuda_module, only: cuda_stream, numBlocks, numThreads
 #endif
 
     implicit none
@@ -19,24 +18,16 @@ contains
     real(rt), intent(in   ) :: phi (philo(1):phihi(1),philo(2):phihi(2))
     real(rt), intent(inout) :: flux(  flo(1):  fhi(1),  flo(2):  fhi(2))
     real(rt), intent(in   ) :: dx(2)
-    integer,  intent(in   ), value :: idx, idir
+    integer,  intent(in   ), value :: idir
 
 #ifdef CUDA
     attributes(device) :: phi, flux, dx, philo, phihi, flo, fhi
     attributes(managed) :: lo, hi
-
-    integer :: cuda_result
-    integer(kind=cuda_stream_kind) :: stream
-    type(dim3) :: numThreads, numBlocks
-
-    stream = cuda_streams(stream_from_index(idx)+1)
-
-    call threads_and_blocks(lo, hi, numBlocks, numThreads)
 #endif
 
     call compute_flux_doit &
 #ifdef CUDA
-         <<<numBlocks, numThreads, 0, stream>>> &
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, phi, philo, phihi, flux, flo, fhi, dx, idir)
 
@@ -45,12 +36,11 @@ contains
 
 
   subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-                         fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt, idx) bind(C, name="update_phi")
+                         fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt) bind(C, name="update_phi")
 
     use amrex_fort_module, only: rt => amrex_real
 #ifdef CUDA
-    use cuda_module, only: cuda_streams, stream_from_index, threads_and_blocks
-    use cudafor, only: cuda_stream_kind, dim3
+    use cuda_module, only: cuda_stream, numBlocks, numThreads
 #endif
 
     implicit none
@@ -61,25 +51,16 @@ contains
     real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
     real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
     real(rt), intent(in   ) :: dx(2)
-    integer,  intent(in   ), value :: idx
     real(rt), intent(in   ), value :: dt
 
 #ifdef CUDA
     attributes(device) :: phiold, phinew, fluxx, fluxy, dx, polo, pohi, pnlo, pnhi, fxlo, fxhi, fylo, fyhi
     attributes(managed) :: lo, hi
-
-    integer :: cuda_result
-    integer(kind=cuda_stream_kind) :: stream
-    type(dim3) :: numThreads, numBlocks
-
-    stream = cuda_streams(stream_from_index(idx)+1)
-
-    call threads_and_blocks(lo, hi, numBlocks, numThreads)
 #endif
 
     call update_phi_doit &
 #ifdef CUDA
-         <<<numBlocks, numThreads, 0, stream>>> &
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, phiold, polo, pohi, &
           phinew, pnlo, pnhi, fluxx, fxlo, fxhi, &
