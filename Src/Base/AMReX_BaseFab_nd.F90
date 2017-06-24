@@ -2,8 +2,7 @@ module basefab_nd_module
 
   use amrex_fort_module, only: amrex_real, get_loop_bounds
 #ifdef CUDA
-  use cuda_module, only: stream_from_index, stream_index, cuda_streams
-  use cudafor, only: cuda_stream_kind
+  use cuda_module, only: cuda_stream
 #endif
 
   implicit none
@@ -229,7 +228,7 @@ contains
 
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, cuda_streams(stream_from_index(stream_index))>>>
+    !$cuf kernel do(4) <<<*, 256, 0, cuda_stream>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -255,7 +254,7 @@ contains
 
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, cuda_streams(stream_from_index(stream_index))>>>
+    !$cuf kernel do(4) <<<*, 256, 0, cuda_stream>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -281,7 +280,7 @@ contains
 
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, cuda_streams(stream_from_index(stream_index))>>>
+    !$cuf kernel do(4) <<<*, 256, 0, cuda_stream>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -475,7 +474,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_copy_doit
 #ifdef CUDA
-  use cuda_module, only: stream_from_index, stream_index, cuda_streams, threads_and_blocks
+  use cuda_module, only: cuda_stream, threads_and_blocks
   use cudafor, only: dim3
 #endif
 
@@ -496,7 +495,7 @@ end module basefab_nd_module
 
     call fort_fab_copy_doit &
 #ifdef CUDA
-    <<<numBlocks, numThreads, 0, cuda_streams(stream_from_index(stream_index))>>> &
+    <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
     (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
@@ -510,7 +509,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_setval_doit
 #ifdef CUDA
-  use cuda_module, only: stream_from_index, stream_index, cuda_streams, threads_and_blocks
+  use cuda_module, only: cuda_stream, threads_and_blocks
   use cudafor, only: dim3
 #endif
 
@@ -531,7 +530,7 @@ end module basefab_nd_module
 
     call fort_fab_setval_doit &
 #ifdef CUDA
-         <<<numBlocks, numThreads, 0, cuda_streams(stream_from_index(stream_index))>>> &
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, ncomp, val)
 
@@ -567,7 +566,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_saxpy_doit
 #ifdef CUDA
-  use cuda_module, only: stream_from_index, stream_index, cuda_streams, threads_and_blocks
+  use cuda_module, only: cuda_stream, threads_and_blocks
   use cudafor, only: dim3
 #endif
 
@@ -588,7 +587,7 @@ end module basefab_nd_module
 
     call fort_fab_saxpy_doit &
 #ifdef CUDA
-         <<<numBlocks, numThreads, 0, cuda_streams(stream_from_index(stream_index))>>> &
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
 
@@ -602,8 +601,8 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_plus_doit
 #ifdef CUDA
-    use cuda_module, only: stream_from_index, stream_index, cuda_streams, threads_and_blocks
-    use cudafor, only: cuda_stream_kind, dim3
+    use cuda_module, only: cuda_stream, threads_and_blocks
+    use cudafor, only: dim3
 #endif
 
     implicit none
@@ -623,7 +622,7 @@ end module basefab_nd_module
 
     call fort_fab_plus_doit &
 #ifdef CUDA
-         <<<numBlocks, numThreads, 0, cuda_streams(stream_from_index(stream_index))>>> &
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
