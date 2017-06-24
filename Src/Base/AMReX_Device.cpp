@@ -27,9 +27,7 @@ amrex::Device::finalize_device() {
 int
 amrex::Device::deviceId() {
 
-#ifdef CUDA
-     return device_id;
-#endif
+    return device_id;
 
 }
 
