@@ -45,9 +45,6 @@ void test_assign_density(TestParams& parms)
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
-    // This says we are using Cartesian coordinates
-    int coord = 0;
-
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -55,10 +52,10 @@ void test_assign_density(TestParams& parms)
 
     // This defines a Geometry object which is useful for writing the plotfiles  
     Array<Geometry> geom(nlevs);
-    geom[0].define(domain, &real_box, coord, is_per);
+    geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
 	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, coord, is_per);
+			 &real_box, CoordSys::cartesian, is_per);
     }
 
     Array<BoxArray> ba(nlevs);

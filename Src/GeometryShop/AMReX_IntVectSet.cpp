@@ -162,15 +162,18 @@ namespace amrex
   IntVectSet::
   operator&=(const Box& a_box)
   {
+    IntVectSet removeivs;
     std::set<IntVect, lex_compare_iv>::iterator it;
-    for(it = m_stdSet.begin(); it!=  m_stdSet.end(); ++it)
+    for(it = m_stdSet.begin(); it!=  m_stdSet.end();  ++it)
       {
+        //leaving out the ++it because  erase 
         const IntVect& iv = *it;
         if(!a_box.contains(iv))
-          {
-            m_stdSet.erase(it);
-          }
+        {
+          removeivs |= iv;
+        }
       }
+    *this -= removeivs;
     return *this;
   }
   ///not

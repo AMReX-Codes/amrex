@@ -275,6 +275,9 @@ TagBox::tags () const
     return ar;
 }
 
+
+// Set values as specified by the array -- this only tags.
+// It's an error if ar.length() != domain.numPts().
 void
 TagBox::tags (const Array<int>& ar)
 {
@@ -290,6 +293,8 @@ TagBox::tags (const Array<int>& ar)
     }
 }
 
+// Set values as specified by the array -- this tags and untags.
+// It's an error if ar.length() != domain.numPts().
 void
 TagBox::tags_and_untags (const Array<int>& ar)
 {
@@ -305,6 +310,9 @@ TagBox::tags_and_untags (const Array<int>& ar)
     }
 }
 
+// Since a TagBox is a BaseFab<char>, we can use this utility
+// function to allocate an integer array to have the same number 
+// of elements as cells in tilebx
 void 
 TagBox::get_itags(Array<int>& ar, const Box& tilebx) const
 {
@@ -343,6 +351,8 @@ TagBox::get_itags(Array<int>& ar, const Box& tilebx) const
     }
 }
 
+// Set values as specified by the array -- this only tags.
+// only changes values in the tilebx region
 void 
 TagBox::tags (const Array<int>& ar, const Box& tilebx)
 {
@@ -374,8 +384,10 @@ TagBox::tags (const Array<int>& ar, const Box& tilebx)
     }
 }
 
+// Set values as specified by the array -- this tags and untags.
+// only changes values in the tilebx region
 void 
-TagBox::tags_and_untags (const Array<int>& ar, const Box&tilebx)
+TagBox::tags_and_untags (const Array<int>& ar, const Box& tilebx)
 {
     int Lbx[] = {1,1,1};
     for (int idim=0; idim<BL_SPACEDIM; idim++) {

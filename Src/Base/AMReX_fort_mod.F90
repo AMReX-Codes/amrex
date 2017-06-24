@@ -13,6 +13,12 @@ module amrex_fort_module
   integer, parameter :: amrex_real = c_double
 #endif
 
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+  integer, parameter :: amrex_particle_real = c_float
+#else
+  integer, parameter :: amrex_particle_real = c_double
+#endif
+
 contains
 
   function amrex_coarsen_intvect (n, iv, rr) result(civ)

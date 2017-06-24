@@ -4,6 +4,10 @@
 #include <limits>
 #include <cstdint>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace 
 {
     std::uint_fast32_t bl_rng_parallel_seed (int s, int rank, int nprocs)
@@ -23,7 +27,13 @@ namespace
 	std::uint_fast32_t r;
 	std::set<std::uint_fast32_t> seeds;
 
-	while (seeds.size() != rank+1) {
+#ifdef _OPENMP
+        int tid = omp_get_thread_num();
+#else
+        int tid = 0;
+#endif
+
+	while (static_cast<int>(seeds.size()) != tid*nprocs + rank+1) {
 	    r = dist(eng);
 	    seeds.insert(r);
 	};
