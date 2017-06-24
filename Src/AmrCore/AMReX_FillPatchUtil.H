@@ -9,7 +9,7 @@
 
 namespace amrex
 {
-    bool ProperlyNested (const IntVect& ratio, int blockint_factor, int ngrow, 
+    bool ProperlyNested (const IntVect& ratio, const IntVect& blockint_factor, int ngrow, 
 			 const IndexType& boxType, Interpolater* mapper);
 
     void FillPatchSingleLevel (MultiFab& mf, Real time, 

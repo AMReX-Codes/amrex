@@ -9,13 +9,15 @@ namespace amrex
   {
     EBGraph& graph       = (*m_graphs)[box_index];
     IntVectSet ivs;
-    if(m_sets)
+    if(m_useSets)
     {
       ivs   = (*m_sets)[box_index];
     }
     else
     {
-      ivs = graph.getIrregCells(graph.getRegion());
+      Box restbox = box;
+      restbox &= graph.getDomain();
+      ivs = graph.getIrregCells(restbox);
     }
 
     return new  IrregFAB(ivs, graph, ncomps);

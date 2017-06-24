@@ -15,8 +15,8 @@ class AmrMesh
 {
 public:
     AmrMesh ();
-  AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1,
-           std::vector<int> refrat = std::vector<int>());
+    AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1,
+             std::vector<int> refrat = std::vector<int>());
 
     AmrMesh (const AmrMesh& rhs) = delete;
     AmrMesh& operator= (const AmrMesh& rhs) = delete;
@@ -51,16 +51,38 @@ public:
     Array<Geometry>& Geom () { return geom; }
     Geometry& Geom (int lev) { return geom[lev]; }
 
-    void SetMaxGridSize (int new_mgs) { max_grid_size.assign(max_level+1, new_mgs); }
+    void SetMaxGridSize (int new_mgs) {
+        max_grid_size.assign(max_level+1, IntVect{D_DECL(new_mgs,new_mgs,new_mgs)});
+    }
+    void SetMaxGridSize (const IntVect& new_mgs) {
+        max_grid_size.assign(max_level+1, new_mgs);
+    }
     void SetMaxGridSize (const Array<int>& new_mgs) { 
-        BL_ASSERT(new_mgs.size() >= max_level+1);
-        max_grid_size = new_mgs; 
+        max_grid_size.resize(max_level+1);
+        for (int i = 0; i <= max_level; ++i) {
+            max_grid_size[i] = IntVect{D_DECL(new_mgs[i],new_mgs[i],new_mgs[i])};
+        }
     }
-    void SetBlockingFactor (int new_bf) { blocking_factor.assign(max_level+1, new_bf); }
+    void SetMaxGridSize (const Array<IntVect>& new_mgs) { 
+        max_grid_size.assign(new_mgs.cbegin(), new_mgs.cbegin()+max_level+1);
+    }
+
+    void SetBlockingFactor (int new_bf) {
+        blocking_factor.assign(max_level+1, IntVect{D_DECL(new_bf,new_bf,new_bf)});
+    }
+    void SetBlockingFactor (const IntVect& new_bf) {
+        blocking_factor.assign(max_level+1, new_bf);
+    }
     void SetBlockingFactor (const Array<int>& new_bf) {
-        BL_ASSERT(new_bf.size() >= max_level+1);
-        blocking_factor = new_bf;
+        blocking_factor.resize(max_level+1);
+        for (int i = 0; i <= max_level; ++i) {
+            blocking_factor[i] = IntVect{D_DECL(new_bf[i],new_bf[i],new_bf[i])};
+        }
     }
+    void SetBlockingFactor (const Array<IntVect>& new_bf) {
+        blocking_factor.assign(new_bf.cbegin(), new_bf.cend()+max_level+1);
+    }
+
     void SetGridEff (Real eff) { grid_eff = eff; }
     void SetNProper (int n) { n_proper = n; }
 
@@ -83,10 +105,10 @@ public:
     int nProper () const { return n_proper; }
 
     //! Return the blocking factor at level lev
-    int blockingFactor (int lev) const { return blocking_factor[lev]; }
+    const IntVect& blockingFactor (int lev) const { return blocking_factor[lev]; }
 
     //! Return the largest allowable grid.
-    int maxGridSize (int lev) const { return max_grid_size[lev]; }
+    const IntVect& maxGridSize (int lev) const { return max_grid_size[lev]; }
 
     bool LevelDefined (int lev);
 
@@ -122,6 +144,8 @@ public:
     void MakeNewGrids (Real time = 0.0);
 
     //! This function is called by the second version of MakeNewGrids.
+    //! Make a new level from scratch using provided BoxArray and DistributionMapping.
+    //! Only used during initialization.
     virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba, const DistributionMapping& dm) {}
 
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.
@@ -144,8 +168,8 @@ protected:
     int              finest_level; // Current finest level.
 
     Array<int>       n_error_buf;     // Buffer cells around each tagged cell.
-    Array<int>       blocking_factor; // Blocking factor in grid generation (by level).
-    Array<int>       max_grid_size;   // Maximum allowable grid size (by level).
+    Array<IntVect>   blocking_factor; // Blocking factor in grid generation (by level).
+    Array<IntVect>   max_grid_size;   // Maximum allowable grid size (by level).
     Real             grid_eff;        // Grid efficiency.
     int              n_proper;        // # cells required for proper nesting.
 

@@ -9,7 +9,7 @@
 
 namespace amrex
 {
-    bool ProperlyNested (const IntVect& ratio, int blocking_factor, int ngrow,
+    bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
 			 const IndexType& boxType, Interpolater* mapper)
     {
 	int ratio_max = ratio[0];
@@ -21,12 +21,13 @@ namespace amrex
 #endif
 	// There are at least this many coarse cells outside fine grids 
 	// (except at physical boundaries).
-	int nbuf = blocking_factor / ratio_max;
+	const IntVect& nbuf = blocking_factor / ratio_max;
 	
-	Box crse_box(IntVect(AMREX_D_DECL(0 ,0 ,0 )), IntVect(AMREX_D_DECL(4*nbuf-1,4*nbuf-1,4*nbuf-1)));
+	Box crse_box(IntVect(AMREX_D_DECL(0 ,0 ,0 )), IntVect(AMREX_D_DECL(4*nbuf[0]-1,
+                                                                           4*nbuf[1]-1,
+                                                                           4*nbuf[2]-1)));
 	crse_box.convert(boxType);
-	Box fine_box(IntVect(AMREX_D_DECL(  nbuf  ,  nbuf  ,  nbuf)),
-		     IntVect(AMREX_D_DECL(3*nbuf-1,3*nbuf-1,3*nbuf-1)));
+	Box fine_box(nbuf, IntVect(AMREX_D_DECL(3*nbuf[0]-1,3*nbuf[1]-1,3*nbuf[2]-1)));
 	fine_box.convert(boxType);
 	fine_box.refine(ratio_max);
 	fine_box.grow(ngrow);
@@ -314,7 +315,7 @@ namespace amrex
                     // interpolate from cmf to fmf
                     if (interp_type == InterpB)
                     {
-                        amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                        amrex_interp_div_free_bfield(BL_TO_FORTRAN_BOX(ccbx),
                                                      D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
                                                             BL_TO_FORTRAN_ANYD(bfab[1]),
                                                             BL_TO_FORTRAN_ANYD(bfab[2])),
@@ -325,7 +326,7 @@ namespace amrex
                     }
                     else if (interp_type == InterpE)
                     {
-                        amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                        amrex_interp_efield(BL_TO_FORTRAN_BOX(ccbx),
                                             D_DECL(BL_TO_FORTRAN_ANYD(bfab[0]),
                                                    BL_TO_FORTRAN_ANYD(bfab[1]),
                                                    BL_TO_FORTRAN_ANYD(bfab[2])),
