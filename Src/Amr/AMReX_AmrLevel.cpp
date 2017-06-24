@@ -19,10 +19,6 @@ namespace amrex {
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
 
-#ifdef USE_SLABSTAT
-SlabStatList   AmrLevel::slabstat_lst;
-#endif
-
 void
 AmrLevel::postCoarseTimeStep (Real time)
 {
@@ -35,14 +31,6 @@ AmrLevel::postCoarseTimeStep (Real time)
 	}
     }
 }
-
-#ifdef USE_SLABSTAT
-SlabStatList&
-AmrLevel::get_slabstat_lst ()
-{
-    return slabstat_lst;
-}
-#endif
 
 void
 AmrLevel::set_preferred_boundary_values (MultiFab& S,
@@ -2029,11 +2017,6 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
       // ---- BoxArrays
       amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
       amrex::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
-
-
-#ifdef USE_SLABSTAT
-      amrex::Abort("**** Error in AmrLevel::MSS:  USE_SLABSTAT not implemented");
-#endif
 
       // ---- state
       int stateSize(state.size());
