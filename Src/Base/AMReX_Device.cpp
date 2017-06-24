@@ -56,7 +56,7 @@ amrex::Device::get_stream_index() {
 void*
 amrex::Device::get_host_pointer(const void* ptr) {
 
-    void* r;
+    void* r = NULL;
 #ifdef CUDA
     gpu_host_device_ptr(&r, ptr);
 #endif
