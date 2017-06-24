@@ -58,7 +58,7 @@ subroutine state_error(tag,tag_lo,tag_hi, &
      enddo
   endif
 
-  ! Tag on regions of high phisity gradient
+  ! Tag on regions of high phi gradient
   if (level .lt. max_phigrad_lev) then
      do       k = lo(3), hi(3)
         do    j = lo(2), hi(2)
