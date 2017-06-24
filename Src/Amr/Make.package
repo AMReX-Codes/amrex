@@ -11,24 +11,6 @@ f90$(AMRLIB_BASE)_sources += AMReX_extrapolater_$(DIM)d.f90
 
 F$(AMRLIB_BASE)_sources += AMReX_ARRAYLIM_$(DIM)D.F
 
-ifeq ($(DIM),3)
-  F$(AMRLIB_BASE)_sources += AMReX_MAKESLICE_$(DIM)D.F
-endif
-
-ifeq ($(USE_SLABSTAT), TRUE)
-  DEFINES += -DUSE_SLABSTAT
-  C$(AMRLIB_BASE)_sources += AMReX_SlabStat.cpp 
-  C$(AMRLIB_BASE)_headers += AMReX_SlabState.H
-  F$(AMRLIB_BASE)_sources += AMReX_SLABSTAT_$(DIM)D.F 
-  F$(AMRLIB_BASE)_headers += AMReX_SLABSTAT_F.H AMReX_MAKESLICE_F.H
-endif
-
-ifeq ($(USE_STATIONDATA), TRUE)
-  DEFINES += -DUSE_STATIONDATA
-  C$(AMRLIB_BASE)_sources += AMReX_StationData.cpp 
-  C$(AMRLIB_BASE)_headers += AMReX_StationData.H
-endif
-
 ifeq ($(USE_ARRAYVIEW),TRUE)
   C$(AMRLIB_BASE)_headers += AMReX_DatasetClient.H
   C$(AMRLIB_BASE)_sources += AMReX_DatasetClient.cpp
