@@ -16,18 +16,24 @@ void ElectrostaticParticleContainer::InitParticles() {
         p.id()   = ParticleType::NextID();
         p.cpu()  = ParallelDescriptor::MyProc(); 
         
-        p.pos(0) = -3.75e-6; 
+        p.pos(0) = -2.5e-6; 
         p.pos(1) =  0.0;
+#if BL_SPACEDIM == 3
         p.pos(2) =  0.0;
+#endif
         
         std::array<Real,PIdx::nattribs> attribs;
         attribs[PIdx::w]  = 1.0;
         attribs[PIdx::vx] = 0.0;
         attribs[PIdx::vy] = 0.0;
+#if BL_SPACEDIM == 3
         attribs[PIdx::vz] = 0.0;
+#endif
         attribs[PIdx::Ex] = 0.0;
         attribs[PIdx::Ey] = 0.0;
+#if BL_SPACEDIM == 3
         attribs[PIdx::Ez] = 0.0;
+#endif
         
         // Add to level 0, grid 0, and tile 0
         // Redistribute() will move it to the proper place.
@@ -93,7 +99,7 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
         MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
         coarsened_fine_data.setVal(0.0);
         
-        IntVect ratio(2, 2, 2);  // FIXME
+        IntVect ratio(D_DECL(2, 2, 2));  // FIXME
         
         for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
@@ -104,7 +110,7 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
                                    (*rho[lev+1])[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
         }
         
-        rho[lev]->copy(coarsened_fine_data, m_gdb->Geom(lev).periodicity(), FabArrayBase::ADD);        
+        rho[lev]->copy(coarsened_fine_data, m_gdb->Geom(lev).periodicity(), FabArrayBase::ADD);
     }
     
     for (int lev = 0; lev < num_levels; ++lev) {
@@ -143,19 +149,30 @@ FieldGather(const VectorMeshData& E,
             auto& attribs = pti.GetAttribs();
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
+#if BL_SPACEDIM == 3
             auto& Ezp = attribs[PIdx::Ez];
-
+#endif
             Exp.assign(np,0.0);
             Eyp.assign(np,0.0);
+#if BL_SPACEDIM == 3
             Ezp.assign(np,0.0);
+#endif
 
             const FArrayBox& exfab = (*E[lev][0])[pti];
             const FArrayBox& eyfab = (*E[lev][1])[pti];
+#if BL_SPACEDIM == 3
             const FArrayBox& ezfab = (*E[lev][2])[pti];
+#endif
 
             interpolate_cic(particles.data(), nstride, np,
-                            Exp.data(), Eyp.data(), Ezp.data(),
-                            exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+                            Exp.data(), Eyp.data(), 
+#if BL_SPACEDIM == 3                
+                            Ezp.data(),
+#endif
+                            exfab.dataPtr(), eyfab.dataPtr(), 
+#if BL_SPACEDIM == 3
+                            ezfab.dataPtr(),
+#endif
                             box.loVect(), box.hiVect(), plo, dx, &ng);
         }
 
@@ -165,15 +182,19 @@ FieldGather(const VectorMeshData& E,
     const BoxArray& fine_BA = E[1][0]->boxArray();
     const DistributionMapping& fine_dm = E[1][0]->DistributionMap();
     BoxArray coarsened_fine_BA = fine_BA;
-    coarsened_fine_BA.coarsen(IntVect(2,2,2));
+    coarsened_fine_BA.coarsen(IntVect(D_DECL(2,2,2)));
 
     MultiFab coarse_Ex(coarsened_fine_BA, fine_dm, 1, 1);
     MultiFab coarse_Ey(coarsened_fine_BA, fine_dm, 1, 1);
+#if BL_SPACEDIM == 3
     MultiFab coarse_Ez(coarsened_fine_BA, fine_dm, 1, 1);
+#endif
     
     coarse_Ex.copy(*E[0][0], 0, 0, 1, 1, 1);
     coarse_Ey.copy(*E[0][1], 0, 0, 1, 1, 1);
+#if BL_SPACEDIM == 3
     coarse_Ez.copy(*E[0][2], 0, 0, 1, 1, 1);
+#endif
 
     for (int lev = 0; lev < num_levels; ++lev) {
         const auto& gm = m_gdb->Geom(lev);
@@ -197,36 +218,56 @@ FieldGather(const VectorMeshData& E,
             auto& attribs = pti.GetAttribs();
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
+#if BL_SPACEDIM == 3
             auto& Ezp = attribs[PIdx::Ez];
-
+#endif
             Exp.assign(np,0.0);
             Eyp.assign(np,0.0);
+#if BL_SPACEDIM == 3
             Ezp.assign(np,0.0);
+#endif
 
             const FArrayBox& exfab = (*E[lev][0])[pti];
             const FArrayBox& eyfab = (*E[lev][1])[pti];
+#if BL_SPACEDIM == 3
             const FArrayBox& ezfab = (*E[lev][2])[pti];
+#endif
 
             if (lev == 0) {
                 interpolate_cic(particles.data(), nstride, np,
-                                Exp.data(), Eyp.data(), Ezp.data(),
-                                exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+                                Exp.data(), Eyp.data(), 
+#if BL_SPACEDIM == 3                
+                Ezp.data(),
+#endif
+                                exfab.dataPtr(), eyfab.dataPtr(), 
+#if BL_SPACEDIM == 3
+                                ezfab.dataPtr(),
+#endif
                                 box.loVect(), box.hiVect(), plo, dx, &ng);                
             } else {
                 
                 const FArrayBox& exfab_coarse = coarse_Ex[pti];
                 const FArrayBox& eyfab_coarse = coarse_Ey[pti];
+#if BL_SPACEDIM == 3
                 const FArrayBox& ezfab_coarse = coarse_Ez[pti];
-                
+#endif                
                 const Box& coarse_box = coarsened_fine_BA[pti];
                 const Real* coarse_dx = Geom(0).CellSize();
                 
                 interpolate_cic_two_levels(particles.data(), nstride, np,
-                                           Exp.data(), Eyp.data(), Ezp.data(),
-                                           exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
+                                           Exp.data(), Eyp.data(), 
+#if BL_SPACEDIM == 3                    
+                                           Ezp.data(),
+#endif
+                                           exfab.dataPtr(), eyfab.dataPtr(), 
+#if BL_SPACEDIM == 3
+                                           ezfab.dataPtr(),
+#endif
                                            box.loVect(), box.hiVect(), dx, 
                                            exfab_coarse.dataPtr(), eyfab_coarse.dataPtr(),
+#if BL_SPACEDIM == 3
                                            ezfab_coarse.dataPtr(),
+#endif
                                            (*masks[1])[pti].dataPtr(),
                                            coarse_box.loVect(), coarse_box.hiVect(), coarse_dx,
                                            plo, &ng, &lev);
@@ -268,22 +309,37 @@ Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt) {
             auto&  wp = attribs[PIdx::w];
             auto& vxp = attribs[PIdx::vx];
             auto& vyp = attribs[PIdx::vy];
+
+#if BL_SPACEDIM == 3
             auto& vzp = attribs[PIdx::vz];
+#endif
+
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
+
+#if BL_SPACEDIM == 3
             auto& Ezp = attribs[PIdx::Ez];
+#endif
             
             // Data on the grid
             const FArrayBox& exfab  = (*E[lev][0])[pti];
             const FArrayBox& eyfab  = (*E[lev][1])[pti];
+#if BL_SPACEDIM == 3
             const FArrayBox& ezfab  = (*E[lev][2])[pti];
-            
+#endif            
+
             //
             // Particle Push
             //
             push_leapfrog(particles.data(), nstride, np,
-                          vxp.data(), vyp.data(), vzp.data(),
-                          Exp.data(), Eyp.data(), Ezp.data(),
+                          vxp.data(), vyp.data(), 
+#if BL_SPACEDIM == 3
+                vzp.data(),
+#endif
+                          Exp.data(), Eyp.data(), 
+#if BL_SPACEDIM == 3
+                          Ezp.data(),
+#endif
                           &this->charge, &this->mass, &dt,
                           prob_domain.lo(), prob_domain.hi());
         }
@@ -304,10 +360,14 @@ void ElectrostaticParticleContainer::pushX(const Real& dt) {
             auto& attribs = pti.GetAttribs();
             auto& vxp = attribs[PIdx::vx];
             auto& vyp = attribs[PIdx::vy];
+#if BL_SPACEDIM == 3
             auto& vzp = attribs[PIdx::vz];
-            
+#endif            
             push_leapfrog_positions(particles.data(), nstride, np,
-                                    vxp.data(), vyp.data(), vzp.data(), 
+                                    vxp.data(), vyp.data(), 
+#if BL_SPACEDIM == 3
+                                    vzp.data(), 
+#endif
                                     &dt, prob_domain.lo(), prob_domain.hi());
 
         }
