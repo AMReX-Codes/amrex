@@ -53,6 +53,17 @@ amrex::Device::get_stream_index() {
 
 }
 
+void
+amrex::Device::prepare_for_launch(const int* lo, const int* hi) {
+
+    // Sets the number of threads and blocks in Fortran.
+
+#ifdef CUDA
+    set_threads_and_blocks(lo, hi);
+#endif
+
+}
+
 void*
 amrex::Device::get_host_pointer(const void* ptr) {
 

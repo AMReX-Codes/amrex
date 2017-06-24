@@ -474,8 +474,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_copy_doit
 #ifdef CUDA
-  use cuda_module, only: cuda_stream, threads_and_blocks
-  use cudafor, only: dim3
+  use cuda_module, only: cuda_stream, numBlocks, numThreads
 #endif
 
     implicit none
@@ -487,10 +486,6 @@ end module basefab_nd_module
 
 #ifdef CUDA
     attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
-
-    type(dim3) :: numThreads, numBlocks
-
-    call threads_and_blocks(lo, hi, numBlocks, numThreads)
 #endif
 
     call fort_fab_copy_doit &
@@ -509,8 +504,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_setval_doit
 #ifdef CUDA
-  use cuda_module, only: cuda_stream, threads_and_blocks
-  use cudafor, only: dim3
+  use cuda_module, only: cuda_stream, numBlocks, numThreads
 #endif
 
     implicit none
@@ -522,10 +516,6 @@ end module basefab_nd_module
 
 #ifdef CUDA
     attributes(managed) :: dst, lo, hi, dlo, dhi
-
-    type(dim3) :: numThreads, numBlocks
-
-    call threads_and_blocks(lo, hi, numBlocks, numThreads)
 #endif
 
     call fort_fab_setval_doit &
@@ -566,8 +556,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_saxpy_doit
 #ifdef CUDA
-  use cuda_module, only: cuda_stream, threads_and_blocks
-  use cudafor, only: dim3
+  use cuda_module, only: cuda_stream, numBlocks, numThreads
 #endif
 
     implicit none
@@ -579,10 +568,6 @@ end module basefab_nd_module
 
 #ifdef CUDA
     attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
-
-    type(dim3) :: numThreads, numBlocks
-
-    call threads_and_blocks(lo, hi, numBlocks, numThreads)
 #endif
 
     call fort_fab_saxpy_doit &
@@ -601,8 +586,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_plus_doit
 #ifdef CUDA
-    use cuda_module, only: cuda_stream, threads_and_blocks
-    use cudafor, only: dim3
+    use cuda_module, only: cuda_stream, numBlocks, numThreads
 #endif
 
     implicit none
@@ -614,10 +598,6 @@ end module basefab_nd_module
 
 #ifdef CUDA
     attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
-
-    type(dim3) :: numThreads, numBlocks
-
-    call threads_and_blocks(lo, hi, numBlocks, numThreads)
 #endif
 
     call fort_fab_plus_doit &

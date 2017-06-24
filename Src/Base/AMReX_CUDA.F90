@@ -1,6 +1,6 @@
 module cuda_module
 
-  use cudafor, only: cuda_stream_kind, cudaSuccess, cudaGetErrorString, cudaDeviceProp
+  use cudafor, only: cuda_stream_kind, cudaSuccess, cudaGetErrorString, cudaDeviceProp, dim3
 
   implicit none
 
@@ -28,6 +28,10 @@ module cuda_module
   ! The current CUDA stream
   integer(kind=cuda_stream_kind) :: cuda_stream
   !$omp threadprivate(cuda_stream)
+
+  ! The current number of blocks and threads
+  type(dim3) :: numBlocks, numThreads
+  !$omp threadprivate(numBlocks, numThreads)
 
 contains
 
@@ -213,6 +217,19 @@ contains
     endif
 
   end subroutine threads_and_blocks
+
+
+  subroutine set_threads_and_blocks(lo, hi) bind(c, name='set_threads_and_blocks')
+
+    use cudafor, only: dim3
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3)
+
+    call threads_and_blocks(lo, hi, numBlocks, numThreads)
+
+  end subroutine set_threads_and_blocks
 #endif
 
 
