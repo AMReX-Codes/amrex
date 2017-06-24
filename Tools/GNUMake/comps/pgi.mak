@@ -33,10 +33,18 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -gopt -fast
-  CFLAGS   += -gopt -fast
-  FFLAGS   += -gopt -fast
-  F90FLAGS += -gopt -fast
+  # 2017-06-23: PGI 17.4 causes the CUDA code to break when using -O2/-fast
+
+  ifeq ($(USE_CUDA),TRUE)
+    PGI_OPT := -O
+  else
+    PGI_OPT := -fast
+  endif
+
+  CXXFLAGS += -gopt $(PGI_OPT)
+  CFLAGS   += -gopt $(PGI_OPT)
+  FFLAGS   += -gopt $(PGI_OPT)
+  F90FLAGS += -gopt $(PGI_OPT)
 
 endif
 
