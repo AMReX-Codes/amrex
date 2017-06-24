@@ -152,7 +152,10 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
                          const Array<const MultiFab*>& mf,
                          const Array<std::string>& varnames,
                          const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
-                         const Array<IntVect>& ref_ratio)
+                         const Array<IntVect>& ref_ratio,
+                         const std::string &versionName,
+                         const std::string &levelPrefix,
+                         const std::string &mfPrefix)
 {
     BL_PROFILE("WriteMultiLevelPlotfile()");
 
@@ -169,10 +172,6 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
     //
     int saveNFiles(VisMF::GetNOutFiles());
     VisMF::SetNOutFiles(64);
-
-    const std::string versionName("HyperCLaw-V1.1");
-    const std::string levelPrefix("Level_");
-    const std::string mfPrefix("Cell");
 
     bool callBarrier(true);
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
@@ -192,7 +191,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
       }
 
       WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, varnames,
-                                         geom, time, level_steps, ref_ratio);
+                                 geom, time, level_steps, ref_ratio, versionName, levelPrefix, mfPrefix);
     }
 
 
@@ -218,7 +217,10 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 void
 WriteSingleLevelPlotfile (const std::string& plotfilename,
                           const MultiFab& mf, const Array<std::string>& varnames,
-                          const Geometry& geom, Real time, int level_step)
+                          const Geometry& geom, Real time, int level_step,
+                          const std::string &versionName,
+                          const std::string &levelPrefix,
+                          const std::string &mfPrefix)
 {
     Array<const MultiFab*> mfarr(1,&mf);
     Array<Geometry> geomarr(1,geom);
@@ -226,7 +228,7 @@ WriteSingleLevelPlotfile (const std::string& plotfilename,
     Array<IntVect> ref_ratio;
 
     WriteMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
-                            level_steps, ref_ratio);
+                            level_steps, ref_ratio, versionName, levelPrefix, mfPrefix);
 }
 
 }

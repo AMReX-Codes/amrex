@@ -386,7 +386,7 @@ amrex::Random_int(unsigned long n)
 #else
     int tid = 0;
 #endif
-    std::uniform_int_distribution<unsigned long> distribution(0, n);
+    std::uniform_int_distribution<unsigned long> distribution(0, n-1);
     return distribution(generators[tid]);
 }
 

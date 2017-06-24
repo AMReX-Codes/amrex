@@ -91,8 +91,6 @@ namespace amrex
      */
     bool operator== (const FaceIndex& a_facein) const;
 
-    bool operator< (const FaceIndex& a_rhs) const;
-
     ///
     /**
      */
@@ -152,6 +150,10 @@ namespace amrex
     }
 
     ///
+    /** Lexicographic */
+    friend bool operator<( const FaceIndex& f1, const FaceIndex& f2 );
+
+    friend ostream& operator<<( ostream& out, const FaceIndex& fi );
 
   private:
 
@@ -209,5 +211,74 @@ namespace amrex
 //FaceIndex specialization of linearOut
   template < >
   void linearOut(void* const a_outBuf, const FaceIndex& a_inputT);
+
+
+
+/** Friend of class FaceIndex */
+inline
+bool operator<( const FaceIndex& f1, const FaceIndex& f2 )
+{
+  if ( f1.m_loiv<( f2.m_loiv ) )
+    {
+      return true;
+    }
+  else
+  if ( f2.m_loiv<( f1.m_loiv ) )
+    {
+      return false;
+    }
+  else
+  if ( f1.m_loIndex < f2.m_loIndex )
+    {
+      return true;
+    }
+  else
+  if ( f2.m_loIndex < f1.m_loIndex )
+    {
+      return false;
+    }
+  else
+  if ( f1.m_hiiv<( f2.m_hiiv ) )
+    {
+      return true;
+    }
+  else
+  if ( f2.m_hiiv<( f1.m_hiiv ) )
+    {
+      return false;
+    }
+  else
+  if ( f1.m_hiIndex < f2.m_hiIndex )
+    {
+      return true;
+    }
+  else
+  if ( f2.m_hiIndex < f1.m_hiIndex )
+    {
+      return false;
+    }
+  else
+  if ( f1.m_direction < f2.m_direction )
+    {
+      return true;
+    }
+  else
+  if ( f2.m_direction < f1.m_direction )
+    {
+      return false;
+    }
+  else
+  if ( f1.m_isBoundary && (!f2.m_isBoundary) )
+    {
+      return true;
+    }
+  else
+  if ( (!f1.m_isBoundary) && f2.m_isBoundary )
+    {
+      return false;
+    }
+
+  return false;
+}
 }
 #endif

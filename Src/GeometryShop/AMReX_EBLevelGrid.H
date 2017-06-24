@@ -184,8 +184,8 @@ namespace amrex
                         const int&         a_ref);
 
 
-    friend void refine(EBLevelGrid&       a_eblgCoar,
-                       const EBLevelGrid& a_eblgFine,
+    friend void refine(EBLevelGrid&       a_eblgFine,
+                       const EBLevelGrid& a_eblgCoar,
                        const int&         a_ref);
 
     DistributionMapping getDM() const

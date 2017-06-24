@@ -1,0 +1,28 @@
+AMREX_HOME ?= ../../../..
+ADR_DIR  ?= $(AMREX_HOME)/Tutorials/Amr/Advection_AmrLevel
+
+TOP := $(ADR_DIR)
+
+EBASE := main
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+
+Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
+Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs   += $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+include $(Bpack)
+
+INCLUDE_LOCATIONS += $(Blocs)
+VPATH_LOCATIONS   += $(Blocs)
+
+Pdirs 	:= Base Boundary AmrCore Amr Particle
+Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
+
+include $(Ppack)
+
+all: $(executable) 
+	@echo SUCCESS
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+

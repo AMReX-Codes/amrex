@@ -10,7 +10,7 @@
  */
 
 #include "AMReX_EBLevelGrid.H"
- 
+#include "AMReX_parstream.H" 
 namespace amrex
 {
   /****/
@@ -100,15 +100,23 @@ namespace amrex
          const Box                 & a_domain,
          const int                 & a_numGhostEBISL)
   {
+    //pout() << "in eblevelgrid::define with nghost = " << a_numGhostEBISL << endl;
     m_isDefined = true;
     m_grids  = a_dbl;
     m_dm     = a_dm;
     m_domain = a_domain;
     m_nghost = a_numGhostEBISL;
     const EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+
+    //pout() << "about to fillebislayout" << endl;
+
     ebisPtr->fillEBISLayout(m_ebisl, a_dbl, m_dm, m_domain, m_nghost);
     m_cfivs = std::shared_ptr<LayoutData<IntVectSet> >(new LayoutData<IntVectSet>());
+
+    //pout() << "about to define cfivs" << endl;
+
     defineCFIVS(*m_cfivs, m_grids, m_dm, m_domain);
+    //pout() << "leaving eblevelgrid::define  " << endl;
   }
           
   EBLevelGrid::

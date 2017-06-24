@@ -12,6 +12,8 @@
 #include "AMReX_GraphNode.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_SPMD.H"
+#include "AMReX_parstream.H"
+#include <iostream>
 
 namespace amrex
 {
@@ -23,7 +25,7 @@ namespace amrex
     {
       m_arc[iarc] = a_impin.m_arc[iarc];
     }
-
+    m_verbose = false;
     m_isRegular   = a_impin.m_isRegular;
     m_isValid     = a_impin.m_isValid;
     m_coarserNode = a_impin.m_coarserNode;
@@ -122,9 +124,9 @@ namespace amrex
   }
 
   std::vector<FaceIndex> GraphNode::getFaces(const IntVect&        a_this,
-                                        const int&            a_idir,
-                                        const Side::LoHiSide& a_sd,
-                                        const Box&  a_domain) const
+                                             const int&            a_idir,
+                                             const Side::LoHiSide& a_sd,
+                                             const Box&  a_domain) const
   {
     static std::vector<FaceIndex> emptyVec;
     static std::vector<FaceIndex> regularVec(1);
@@ -316,6 +318,7 @@ namespace amrex
   {
     //if node is regular or covered, just copy the pointer
     //otherwise, append the list of nodes
+    m_verbose = false;
     if ((a_nodein.isRegularWithSingleValuedParent()) || (a_nodein.isCovered()))
     {
       m_cellList = a_nodein.m_cellList;
@@ -405,7 +408,7 @@ namespace amrex
     }
 
     int* intbuf = (int *) a_buf;
-
+    
     //regular/irregular covered
     *intbuf = secretCode;
     intbuf++;
@@ -435,6 +438,7 @@ namespace amrex
 /*******************************/
   void GraphNode::linearIn(void* a_buf)
   {
+    this->clear();
     int* intbuf = (int *) a_buf;
 
     int secretCode = *intbuf;
@@ -456,12 +460,13 @@ namespace amrex
     else
     {
       //secret code for irregular or regular with multi-valued parent.
-      assert(secretCode == 2);
+      //assert(secretCode == 2);
 
       //regular/irregular covered
       //number of vofs
       int nvofs = *intbuf;
       intbuf++;
+
 
       //using intbuf for the two ints we just extracted
       unsigned char* buffer = (unsigned char*) intbuf;
@@ -570,6 +575,7 @@ namespace amrex
 /*******************************/
   void GraphNodeImplem::linearIn(void* a_buf)
   {
+
     int* intbuf = (int*) a_buf;
     int linSize = 0;
 

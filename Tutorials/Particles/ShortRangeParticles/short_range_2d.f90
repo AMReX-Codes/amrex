@@ -1,6 +1,6 @@
   module short_range_particle_module
-    use amrex_fort_module, only: amrex_real
-    use iso_c_binding ,    only: c_int
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use iso_c_binding ,    only: c_int, c_float, c_double
     
     implicit none
     private
@@ -8,17 +8,17 @@
     public  particle_t, neighbor_t
     
     type, bind(C)  :: particle_t
-       real(amrex_real) :: pos(2)     !< Position
-       real(amrex_real) :: vel(2)     !< Particle velocity
-       real(amrex_real) :: acc(2)     !< Particle acceleration
-       integer(c_int)   :: id         !< Particle id
-       integer(c_int)   :: cpu        !< Particle cpu
+       real(amrex_particle_real) :: pos(2)     !< Position
+       real(amrex_particle_real) :: vel(2)     !< Particle velocity
+       real(amrex_particle_real) :: acc(2)     !< Particle acceleration
+       integer(c_int)            :: id         !< Particle id
+       integer(c_int)            :: cpu        !< Particle cpu
     end type particle_t
     
     type, bind(C)  :: neighbor_t
-       real(amrex_real) :: pos(2)     !< Position
-       real(amrex_real) :: vel(2)     !< Particle velocity
-       real(amrex_real) :: acc(2)     !< Particle acceleration
+       real(amrex_particle_real) :: pos(2)     !< Position
+       real(amrex_particle_real) :: vel(2)     !< Particle velocity
+       real(amrex_particle_real) :: acc(2)     !< Particle acceleration
     end type neighbor_t
     
   end module short_range_particle_module
@@ -42,7 +42,7 @@
        
        p => particles(i)
 
-!      update the particle positions / velocites
+!      update the particle positions / velocities
        p%vel(1) = p%vel(1) + p%acc(1) * dt 
        p%vel(2) = p%vel(2) + p%acc(2) * dt 
 
