@@ -27,6 +27,9 @@ int BF_init::m_cnt = 0;
 namespace
 {
     Arena* the_arena = 0;
+#ifdef CUDA
+    Arena* the_nvar_arena = 0;
+#endif
 }
 
 BF_init::BF_init ()
@@ -43,6 +46,11 @@ BF_init::BF_init ()
 
 #ifdef CUDA
         the_arena->SetPreferred();
+#endif
+
+#ifdef CUDA
+        the_nvar_arena = new CArena;
+        the_arena->SetHostAlloc();
 #endif
 
 #ifdef _OPENMP
@@ -67,8 +75,12 @@ BF_init::BF_init ()
 
 BF_init::~BF_init ()
 {
-    if (--m_cnt == 0)
+    if (--m_cnt == 0) {
         delete the_arena;
+#ifdef CUDA
+        delete the_nvar_arena;
+#endif
+    }
 }
 
 long 
@@ -166,6 +178,16 @@ The_Arena ()
 
     return the_arena;
 }
+
+#ifdef CUDA
+Arena*
+The_Nvar_Arena ()
+{
+    BL_ASSERT(the_nvar_arena != 0);
+
+    return the_nvar_arena;
+}
+#endif
 
 #if !defined(BL_NO_FORT)
 template<>
