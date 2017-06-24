@@ -37,8 +37,10 @@ contains
     cudaResult = cudaStreamCreate(cuda_streams(0))
     call gpu_error_test(cudaResult)
 
-    cudaResult = cudaforSetDefaultStream(cuda_streams(0))
-    call gpu_error_test(cudaResult)
+    ! Setting stream 0 as the default stream is currently causing
+    ! bugs in the PGI compiler. Disable it for now.
+!    cudaResult = cudaforSetDefaultStream(cuda_streams(0))
+!    call gpu_error_test(cudaResult)
 
     stream_index = -1
 
