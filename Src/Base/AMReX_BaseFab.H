@@ -180,6 +180,13 @@ public:
 
     //! for calls to fortran.  
     const int* nCompPtr() const {return &nvar;}
+    const int* nCompPtrF() const {
+#ifdef CUDA
+        return (int*) Device::get_host_pointer(nvar_d);
+#else
+        return &nvar;
+#endif
+    }
 
     //! Returns the number of points 
     long nPts () const { return numpts; }
@@ -940,6 +947,10 @@ protected:
     bool    ptr_owner;// Owner of T*?
     bool    device_copy;    // Should we have a device copy of the data?
     bool    shared_memory;  // Is the memory allocated in shared memory?
+
+#ifdef CUDA
+    int* nvar_d;
+#endif
 };
 
 template <class T>
@@ -1199,6 +1210,11 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
+#ifdef CUDA
+    nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
+    *nvar_d = nvar;
+#endif
+
     amrex::update_fab_stats(numpts, truesize, sizeof(T));
 }
 
@@ -1372,6 +1388,10 @@ BaseFab<T>::clear ()
 		ptr->~T();
 	    }
 	    amrex::The_Arena()->free(dptr);
+
+#ifdef CUDA
+            amrex::The_Nvar_Arena()->free(nvar_d);
+#endif
 
 	    if (dptr_d)
 		amrex::The_Arena()->free_device(dptr_d);

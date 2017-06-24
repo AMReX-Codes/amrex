@@ -11,6 +11,10 @@ class Arena;
 
 Arena* The_Arena ();
 
+#ifdef CUDA
+Arena* The_Nvar_Arena ();
+#endif
+
 /**
 * \brief 
 * A virtual base class for objects that manage their own dynamic
