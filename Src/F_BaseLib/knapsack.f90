@@ -542,9 +542,9 @@ contains
     end subroutine close_sfc_module
 
     function make_box_key(dm, i) result(r)
-      integer :: dm
-      integer :: r(dm)
+      integer, intent(in) :: dm
       integer, intent(in) :: i
+      integer :: r(dm)
       r = lwb(bxs(i))
 !      r = (lwb(bxs(i)) + upb(bxs(i))) / 2
     end function make_box_key
