@@ -15,7 +15,7 @@ Many of our mature, publicly application codes contain derived classes that inhe
 from {\tt AmrLevel}.  These include our compressible astrophysics code,
 {\tt CASTRO},
 (available in the {\tt AMReX-Astro/Castro} github repository) 
- and our computational cosmology code, {\tt NYX}
+ and our computational cosmology code, {\tt Nyx}
 (available in the {\tt AMReX-Astro/Nyx} github repository)   .
 Our incompressible Navier-Stokes code, {\tt IAMR}
 (available in the {\tt AMReX-codes/IAMR} github repository)
@@ -28,12 +28,12 @@ The tutorial code in {\tt amrex/Tutorials/Amr/Advection\_AmrLevel} gives a simpl
 example of a class derived from {\tt AmrLevel} that can be used to solve
 the advection equation on a subcycling-in-time AMR hierarchy.  Note that example
 is essentially the same as the {\tt amrex/Tutorials/Amr/Advection\_AmrCore} tutorial
-and documentation in Chatper \ref{Chap:AmrCore}, except now we use the provided
+and documentation in Chapter \ref{Chap:AmrCore}, except now we use the provided
 libraries in {\tt Src/Amr}.
 
 The tutorial code also contains a {\tt LevelBldAdv} class (derived from {\tt LevelBld} in the
 {\tt Source/Amr} directory).  This class is used to define variable types (how many, nodality,
-interlevel intepolation stencils, etc.).
+interlevel interpolation stencils, etc.).
 
 \section{{\tt Amr} Class}
 The {\tt Amr} class is designed to manage parts of the computation  which do
@@ -119,7 +119,7 @@ AmrLevelAdv::variableSetUp ()
 			  StateDescriptor::BndryFunc(nullfill));
 }
 \end{lstlisting}
-We see how to define the {\tt StateType}, including nodailty, whether or not we want
+We see how to define the {\tt StateType}, including nodality, whether or not we want
 the variable to represent a point in time or an interval over time (useful for returning
 the time associated with data), the number of ghost cells, number of components,
 and the interlevel interpolation (See {\tt AMReX\_Interpolator} for various interpolation
