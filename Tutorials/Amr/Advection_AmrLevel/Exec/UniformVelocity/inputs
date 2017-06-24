@@ -38,4 +38,4 @@ amr.plot_int          = 10     # number of timesteps between plot files
 amr.probin_file = probin
 
 # TRACER PARTICLES
-adv.do_tracers = 1
+adv.do_tracers = 0

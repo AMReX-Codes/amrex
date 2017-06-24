@@ -35,10 +35,41 @@ The tutorial code also contains a {\tt LevelBldAdv} class (derived from {\tt Lev
 {\tt Source/Amr} directory).  This class is used to define variable types (how many, nodality,
 interlevel intepolation stencils, etc.).
 
+\section{{\tt Amr} Class}
+The {\tt Amr} class is designed to manage parts of the computation  which do
+not belong on a single level, like establishing and updating the hierarchy
+of levels, global timestepping, and managing the different {\tt AmrLevel}s.
+Most likely you will not need to derive any classes from {\tt Amr}.  Our mature
+application codes use this base class without any derived classes.
+
+One of the most important data members is an array of {\tt AmrLevel}s -
+the {\tt Amr} class calls many functions from the {\tt AmrLevel} class to do
+things like advance the solution on a level, compute a time step to be used 
+for a level, etc.
+
+\section{{\tt AmrLevel} Class}
+Pure virtual functions include:
+\begin{itemize}
+\item {\tt computeInitialDt} Compute an array of time steps for each level of refinement.
+Called at the beginning of the simulation.
+\item {\tt computeNewDt} Compute an array of time steps for each level of refinement.
+Called at the end of a coarse level advance.
+\item {\tt advance} Advance the grids at a level.
+\item {\tt post\_timestep} Work after at time step at a given level.  In this tutorial we do the 
+AMR synchronization here.
+\item {\tt post\_regrid} Work after regridding.  In this tutorial we redistribute particles.
+\item {\tt post\_init} Work after initialization.  In this tutorial we perform AMR synchronization.
+\item {\tt initData} Initialize the data on a given level at the beginning of the simulation.
+\item {\tt init} There are two versions of this function used to initialize data on a level during regridding.  
+One version is specifically for the case where the level did not previously exist (a newly created refined level)
+\item {\tt errorEst} Perform the tagging at a level for refinement.
+\end{itemize}
+
+\subsection{{\tt StateData}}
+
 The most important data managed by the {\tt AmrLevel} is an array of {\tt StateData},
 which holds the scalar fields, etc., in the boxes that together make up the level.
 
-\section{{\tt StateData}}
 {\tt StateData} is a class that essentially holds a pair of {\tt MultiFab}s: one at the old time and one
 at the new time. {\tt AMReX} knows how to interpolate in time between these states to get data at
 any intermediate point in time. The main data that we care about in our applications codes 
@@ -57,6 +88,44 @@ Note that if you have more than one {\tt StateType}, each of the different {\tt 
 carried in the state array can have different numbers
 of components, ghost cells, boundary conditions, etc. This is the main reason we separate all this
 data into separate {\tt StateData} objects collected together in an indexable array.
+
+\section{{\tt LevelBld} Class}
+The {\tt LevelBld} class is a pure virtual class for defining variable types
+and attributes.  To more easily understand its usage, refer to the derived class,
+{\tt LevelBldAdv} in the tutorial.  The {\tt variableSetUp} and {\tt variableCleanUp} are implemented,
+and in this tutorial call routines in the {\tt AmrLevelAdv} class, e.g.,
+\begin{lstlisting}[language=cpp]
+void
+AmrLevelAdv::variableSetUp ()
+{
+    BL_ASSERT(desc_lst.size() == 0);
+
+    // Get options, set phys_bc
+    read_params();
+
+    desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
+                           StateDescriptor::Point,0,NUM_STATE,
+			   &cell_cons_interp);
+
+    int lo_bc[BL_SPACEDIM];
+    int hi_bc[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; ++i) {
+	lo_bc[i] = hi_bc[i] = INT_DIR;   // periodic boundaries
+    }
+    
+    BCRec bc(lo_bc, hi_bc);
+
+    desc_lst.setComponent(Phi_Type, 0, "phi", bc, 
+			  StateDescriptor::BndryFunc(nullfill));
+}
+\end{lstlisting}
+We see how to define the {\tt StateType}, including nodailty, whether or not we want
+the variable to represent a point in time or an interval over time (useful for returning
+the time associated with data), the number of ghost cells, number of components,
+and the interlevel interpolation (See {\tt AMReX\_Interpolator} for various interpolation
+types.  We also see how to specify physical boundary functions by providing a function (in this case,
+{\tt nullfill} since we are not using physical boundary conditions), where {\tt nullfill} is
+defined in a fortran routine in the tutorial source code.
 
 \section{{\tt Advection\_AmrLevel} Example}
 
@@ -78,7 +147,6 @@ code tree for the {\tt AmrAdvection\_AmrLevel} example.
 \item {\tt Boundary/} An assortment of classes for handling boundary data.
 \item {\tt AmrCore/} AMR data management classes, described in more detail above.
 \item {\tt Amr/}
-\item {\tt Particle/}
 \end{itemize}
 \item {\tt Advection\_AmrLevel/Src} Source code specific to this example.  Most notably
 is the {\tt AmrLevelAdv} class, which is derived from {\tt AmrLevel}.  The subdirectories {\tt Src\_2d}
@@ -107,3 +175,19 @@ main()
   }
   /* write final plotfile and checkpoint */
 \end{lstlisting}
+
+
+\section{Particles}
+There is an option to turn on passively advected particles.  In the {\tt GNUmakefile},
+add the line ``{\tt USE\_PARTICLES = TRUE}'' and build the code 
+(do a {\tt make realclean} first).
+In the inputs file, add the line ``{\tt adv.do\_tracers = 1}''.
+When you run the code, within each plotfile directory there will be a subdirectory
+called ``Tracer''.
+
+Copy the files from {\tt amrex/Tools/Py\_util/amrex\_particles\_to\_vtp} into
+the run directory and type, e.g.,\\ \\
+{\tt python amrex\_binary\_particles\_to\_vtp.py plt00000 Tracer}\\ \\
+To generate a vtp file you can open with \paraview\
+(Refer to Chapter \ref{Chap:Visualization}).
+
