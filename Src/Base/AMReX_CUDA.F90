@@ -20,9 +20,14 @@ module cuda_module
 
   logical, private :: have_prop = .false.
 
-  integer :: stream_index
+  ! The current stream index
 
+  integer :: stream_index
   !$omp threadprivate(stream_index)
+
+  ! The current CUDA stream
+  integer(kind=cuda_stream_kind) :: cuda_stream
+  !$omp threadprivate(cuda_stream)
 
 contains
 
@@ -43,6 +48,7 @@ contains
 !    call gpu_error_test(cudaResult)
 
     stream_index = -1
+    cuda_stream = cuda_streams(stream_from_index(stream_index))
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamCreate(cuda_streams(i))
@@ -130,6 +136,7 @@ contains
     integer, intent(in), value :: index_in
 
     stream_index = index_in
+    cuda_stream = cuda_streams(stream_from_index(stream_index))
 
   end subroutine set_stream_idx
 
