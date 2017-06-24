@@ -31,8 +31,8 @@ namespace amrex
             
             if (! grown_domain_box.contains(fab_box))
             {
-                amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                                BL_TO_FORTRAN_BOX(domain_box),
+                amrex_fab_filcc(fab.dataPtr(), fab.loVect(), fab.hiVect(), fab.nCompPtr(),
+                                domain_box.loVect(), domain_box.hiVect(),
                                 dx, prob_lo,
                                 bc[0].data());
             }
