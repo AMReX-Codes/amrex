@@ -203,6 +203,7 @@ namespace amrex
         return m_nFaces;
       }
 
+    mutable bool    m_verbose;
 ///
     const std::vector<FaceIndex>& getFaces() const
       {
