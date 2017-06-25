@@ -102,7 +102,7 @@ public:
     int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
 
     //! Maintain a record of all boxes we have created.
-    void registerBox (const Box& box) const;
+    const Box& registerBox (const Box& box) const;
 
     //! Maintain a record of all FABs that have been sent to the device.
     template<class FAB>
@@ -155,10 +155,11 @@ protected:
 
 // Store a Box in our list.
 inline
-void
+const Box&
 MFIter::registerBox(const Box& box) const
 {
     registered_boxes.push_back(box);
+    return box;
 }
 
 // Store a FAB in our list. Return true if we registered it;
