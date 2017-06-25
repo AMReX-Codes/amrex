@@ -186,7 +186,7 @@ contains
 
     if (BL_SPACEDIM .eq. 1) then
 
-       numThreads % x = 256
+       numThreads % x = min(tile_size(1), 256)
        numThreads % y = 1
        numThreads % z = 1
 
@@ -196,8 +196,8 @@ contains
 
     else if (BL_SPACEDIM .eq. 2) then
 
-       numThreads % x = 16
-       numThreads % y = 16
+       numThreads % x = min(tile_size(1), 256)
+       numThreads % y = 1
        numThreads % z = 1
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
@@ -206,9 +206,9 @@ contains
 
     else
 
-       numThreads % x = 8
-       numThreads % y = 8
-       numThreads % z = 8
+       numThreads % x = min(tile_size(1), 256)
+       numThreads % y = 1
+       numThreads % z = 1
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
        numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
