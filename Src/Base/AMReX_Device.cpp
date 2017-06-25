@@ -92,3 +92,43 @@ amrex::Device::synchronize() {
 #endif
 
 }
+
+void*
+amrex::Device::device_malloc(const std::size_t sz) {
+
+    void* ptr = NULL;
+
+#ifdef CUDA
+    gpu_malloc(&ptr, &sz);
+#endif
+
+    return ptr;
+
+}
+
+void
+amrex::Device::device_free(void* ptr) {
+
+#ifdef CUDA
+    gpu_free(ptr);
+#endif
+
+}
+
+void
+amrex::Device::device_htod_memcpy_async(void* p_d, void* p_h, const std::size_t sz, const int idx) {
+
+#ifdef CUDA
+    gpu_htod_memcpy_async(p_d, p_h, &sz, &idx);
+#endif
+
+}
+
+void
+amrex::Device::device_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t sz, const int idx) {
+
+#ifdef CUDA
+    gpu_dtoh_memcpy_async(p_h, p_d, &sz, &idx);
+#endif
+
+}

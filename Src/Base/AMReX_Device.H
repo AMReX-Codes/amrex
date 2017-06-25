@@ -63,6 +63,13 @@ public:
 
     static void synchronize();
 
+    static void* device_malloc(const std::size_t sz);
+
+    static void device_free(void* ptr);
+
+    static void device_htod_memcpy_async(void* p_d, void* p_h, const std::size_t sz, const int idx);
+    static void device_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t sz, const int idx);
+
 private:
 
     static bool in_device_launch_region;
