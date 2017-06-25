@@ -93,6 +93,15 @@ amrex::Device::synchronize() {
 
 }
 
+void
+amrex::Device::stream_synchronize(const int idx) {
+
+#ifdef CUDA
+    gpu_stream_synchronize(idx);
+#endif
+
+}
+
 void*
 amrex::Device::device_malloc(const std::size_t sz) {
 
