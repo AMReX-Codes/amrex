@@ -63,6 +63,8 @@ public:
 
     static void synchronize();
 
+    static void stream_synchronize(const int idx = -1);
+
     static void* device_malloc(const std::size_t sz);
 
     static void device_free(void* ptr);
