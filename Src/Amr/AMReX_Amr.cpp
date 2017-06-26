@@ -1248,11 +1248,6 @@ Amr::FinalizeInit (Real              strt_time,
         gridlog << "INITIAL GRIDS \n";
         printGridInfo(gridlog,0,finest_level);
     }
-
-#ifdef USE_STATIONDATA 
-    station.init(amr_level, finestLevel());
-    station.findGrid(amr_level,Geom());
-#endif
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
 
@@ -1546,11 +1541,6 @@ Amr::restart (const std::string& filename)
        }
     }
 
-#ifdef USE_STATIONDATA
-    station.init(amr_level, finestLevel());
-    station.findGrid(amr_level,Geom());
-#endif
-
     if (verbose > 0)
     {
         Real dRestartTime = ParallelDescriptor::second() - dRestartTime0;
@@ -1704,13 +1694,6 @@ Amr::checkPoint ()
 
     last_checkpoint = level_steps[0];
 
-#ifdef USE_SLABSTAT
-    //
-    // Dump out any SlabStats MultiFabs.
-    //
-    AmrLevel::get_slabstat_lst().checkPoint(getAmrLevels(), level_steps[0]);
-#endif
-
     if (verbose > 0)
     {
         Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
@@ -1862,17 +1845,8 @@ Amr::timeStep (int  level,
 		       << "Advanced " << amr_level[level]->countCells() << " cells\n";
     }
 
-#ifdef USE_STATIONDATA
-    station.report(time+dt_level[level],level,*amr_level[level]);
-#endif
-
-#ifdef USE_SLABSTAT
-    AmrLevel::get_slabstat_lst().update(*amr_level[level],time,dt_level[level]);
-#endif
-
     // If the level signified that it wants a regrid after the advance has
     // occurred, do that now.
-
     if (amr_level[level]->postStepRegrid()) {
 
 	int old_finest = finest_level;
@@ -2404,9 +2378,6 @@ Amr::regrid (int  lbase,
         }
     }
 
-#ifdef USE_STATIONDATA
-    station.findGrid(amr_level,Geom());
-#endif
     //
     // Report creation of new grids.
     //
@@ -3496,13 +3467,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       BroadcastBoundaryPointList(intersect_hix, scsMyId, ioProcNumSCS, scsComm);
       BroadcastBoundaryPointList(intersect_hiy, scsMyId, ioProcNumSCS, scsComm);
       BroadcastBoundaryPointList(intersect_hiz, scsMyId, ioProcNumSCS, scsComm);
-
-#ifdef USE_STATIONDATA
-      amrex::Abort("**** Error:  USE_STATIONDATA not yet supported in sidecar resize.");
-      // ---- handle station
-      if(scsMyId != ioProcNumSCS) {
-      }
-#endif
 
       // ---- initialize fortran data
       if(scsMyId != ioProcNumSCS) {

@@ -10,7 +10,6 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_Amr.H>
-#include <AMReX_SlabStat.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_StateDescriptor.H>
 #include <AMReX_StateData.H>
@@ -151,7 +150,7 @@ public:
     */
     virtual void post_restart () {};
     /**
-    * \brief Operations to be done after regridding (like avgDown).
+    * \brief Operations to be done after regridding
     * This is a pure virtual function and hence MUST be
     * implemented by derived classes.
     */
@@ -291,10 +290,6 @@ public:
     //! Sets a new value for the post-timestep regrid trigger.
     void setPostStepRegrid (int new_val) { post_step_regrid = new_val; }
 
-#ifdef USE_SLABSTAT
-    //! Returns list of slab stats.
-    static SlabStatList& get_slabstat_lst ();
-#endif
     //! Boundary condition access function.
     Array<int> getBCArray (int State_Type,
 			   int gridno,
@@ -383,9 +378,6 @@ protected:
     IntVect               fine_ratio;   // Refinement ratio to finer level.
     static DeriveList     derive_lst;   // List of derived quantities.
     static DescriptorList desc_lst;     // List of state variables.
-#ifdef USE_SLABSTAT
-    static SlabStatList   slabstat_lst; // List of SlabStats.
-#endif
     Array<StateData>      state;        // Array of state data.
 
     BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
