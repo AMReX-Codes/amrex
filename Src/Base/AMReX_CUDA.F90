@@ -100,13 +100,13 @@ contains
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamDestroy(cuda_streams(i))
-       call gpu_error_test(cudaResult, abort=.false.)
+       call gpu_error_test(cudaResult, abort=0)
     end do
 
     call cudaProfilerStop()
 
     cudaResult = cudaDeviceReset()
-    call gpu_error_test(cudaResult, abort=.false.)
+    call gpu_error_test(cudaResult, abort=0)
 
   end subroutine finalize_cuda
 
@@ -320,7 +320,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaFree(x)
-    call gpu_error_test(cudaResult, abort=.false.)
+    call gpu_error_test(cudaResult, abort=0)
 
   end subroutine gpu_free
 
@@ -338,7 +338,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaFreeHost(x)
-    call gpu_error_test(cudaResult, abort=.false.)
+    call gpu_error_test(cudaResult, abort=0)
 
   end subroutine gpu_freehost
 
@@ -533,13 +533,13 @@ contains
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
 
     integer, intent(in) :: cudaResult
-    logical, intent(in), optional :: abort
+    integer, intent(in), optional :: abort
 
     character(len=32) :: cudaResultStr
     character(len=128) :: error_string
-    logical :: do_abort
+    integer :: do_abort
 
-    do_abort = .true.
+    do_abort = 1
 
     if (present(abort)) then
        do_abort = abort
@@ -549,7 +549,7 @@ contains
 
     error_string = "CUDA Error " // trim(adjustl(cudaResultStr)) // ": " // cudaGetErrorString(cudaResult)
 
-    if (abort) then
+    if (abort == 1) then
        call bl_abort(error_string)
     else
        call bl_warning(error_string)
@@ -564,11 +564,11 @@ contains
     implicit none
 
     integer, intent(in) :: cudaResult
-    logical, intent(in), optional :: abort
+    integer, intent(in), optional :: abort
 
-    logical :: do_abort
+    integer :: do_abort
 
-    do_abort = .true.
+    do_abort = 0
 
     if (present(abort)) then
        do_abort = abort
