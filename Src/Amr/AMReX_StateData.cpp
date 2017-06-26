@@ -486,10 +486,29 @@ StateData::FillBoundary (FArrayBox&     dest,
 
                     bci += 2*BL_SPACEDIM;
                 }
+#ifdef CUDA
+                Real* time_d = (Real*) Device::device_malloc(sizeof(Real));
+                Device::device_htod_memcpy_async(time_d, &time, sizeof(Real), -1);
+                int* bcrs_d = (int*) Device::device_malloc(bcrs.size() * sizeof(int));
+                Device::device_htod_memcpy_async(bcrs_d, bcrs.dataPtr(), bcrs.size() * sizeof(int), -1);
+                Real* xlo_d = (Real*) Device::device_malloc(BL_SPACEDIM*sizeof(Real));
+                Device::device_htod_memcpy_async(xlo_d, &xlo, BL_SPACEDIM * sizeof(Real), -1);
+                Device::synchronize();
+#else
+                Real* time_d = &time;
+                int* bcrs_d = bcrs.dataPtr();
+                Real* xlo_d = xlo;
+#endif
                 //
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs.dataPtr(),groupsize);
+		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo_d,time_d,bcrs_d,groupsize);
+#ifdef CUDA
+                Device::synchronize();
+                Device::device_free(time_d);
+                Device::device_free(bcrs_d);
+                Device::device_free(xlo_d);
+#endif
                 i += groupsize;
             }
             else
