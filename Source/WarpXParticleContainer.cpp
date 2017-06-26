@@ -346,7 +346,11 @@ WarpXParticleContainer::PushXES (Real dt)
             auto& uzp = attribs[PIdx::uz];
             
             WRPX_PUSH_LEAPFROG_POSITIONS(particles.data(), nstride, np,
-                                         uxp.data(), uyp.data(), uzp.data(), &dt,
+                                         uxp.data(), uyp.data(),
+#if BL_SPACEDIM == 3
+                                         uzp.data(),
+#endif
+                                         &dt,
                                          prob_domain.lo(), prob_domain.hi());
         }
     }
