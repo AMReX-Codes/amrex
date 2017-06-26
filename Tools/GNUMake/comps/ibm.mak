@@ -6,6 +6,11 @@ ifeq ($(USE_OMP),TRUE)
   CC  = xlc_r
   FC  = xlf_r
   F90 = xlf_r
+else ifeq ($(USE_CUDA),TRUE)
+  CXX = xlC_r
+  CC  = xlc_r
+  FC  = xlf_r
+  F90 = xlf_r
 else
   CXX = xlC
   CC  = xlc
