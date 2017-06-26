@@ -1558,16 +1558,41 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
+#ifdef CUDA
+            int* n_der_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(n_der_d, &n_der, sizeof(int), mfi.tileIndex());
+            int* n_state_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(n_state_d, &n_state, sizeof(int), mfi.tileIndex());
+            Real* time_d = (Real*) Device::device_malloc(sizeof(Real));
+            Device::device_htod_memcpy_async(time_d, &time, sizeof(Real), mfi.tileIndex());
+            Real* dt_d = (Real*) Device::device_malloc(sizeof(Real));
+            Device::device_htod_memcpy_async(dt_d, &dt, sizeof(Real), mfi.tileIndex());
+            int* level_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(level_d, &level, sizeof(int), mfi.tileIndex());
+            int* grid_no_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(grid_no_d, &grid_no, sizeof(int), mfi.tileIndex());
+            int* bcr_d = (int*) Device::device_malloc(2 * AMREX_SPACEDIM * sizeof(int));
+            Device::device_htod_memcpy_async(bcr_d, (void*) bcr, 2 * AMREX_SPACEDIM * sizeof(int), mfi.tileIndex());
+#else
+            int* n_der_d = &n_der;
+            int* n_state_d = &n_state;
+            Real* time_d = &time;
+            Real* dt_d = &dt;
+            int* level_d = &level;
+            int* grid_no_d = &grid_no;
+            const int* bcr_d = bcr;
+#endif
+
             Device::prepare_for_launch(lo, hi);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
-			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-			       &level,&grid_no);
+		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_d,
+			       cdat,ARLIM(clo),ARLIM(chi),n_state_d,
+			       lo,hi,dom_lo,dom_hi,dx,xlo,time_d,dt_d,bcr_d,
+			       level_d,grid_no_d);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
+		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),n_der_d,
+				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),n_state_d,
 				 ARLIM_3D(lo),ARLIM_3D(hi),
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 #ifdef CUDA
@@ -1575,12 +1600,23 @@ AmrLevel::derive (const std::string& name,
 #else
 				 ZFILL(dx),ZFILL(xlo),
 #endif
-				 &time,&dt,
-				 BCREC_3D(bcr),
-				 &level,&grid_no);
+				 time_d,dt_d,
+				 BCREC_3D(bcr_d),
+				 level_d,grid_no_d);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
+
+#ifdef CUDA
+            Device::stream_synchronize(mfi.tileIndex());
+            Device::device_free(n_der_d);
+            Device::device_free(n_state_d);
+            Device::device_free(time_d);
+            Device::device_free(dt_d);
+            Device::device_free(level_d);
+            Device::device_free(grid_no_d);
+            Device::device_free(bcr_d);
+#endif
         }
 #else
         for (; mfi.isValid(); ++mfi)
@@ -1602,16 +1638,41 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
+#ifdef CUDA
+            int* n_der_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(n_der_d, &n_der, sizeof(int), mfi.tileIndex());
+            int* n_state_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(n_state_d, &n_state, sizeof(int), mfi.tileIndex());
+            Real* time_d = (Real*) Device::device_malloc(sizeof(Real));
+            Device::device_htod_memcpy_async(time_d, &time, sizeof(Real), mfi.tileIndex());
+            Real* dt_d = (Real*) Device::device_malloc(sizeof(Real));
+            Device::device_htod_memcpy_async(dt_d, &dt, sizeof(Real), mfi.tileIndex());
+            int* level_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(level_d, &level, sizeof(int), mfi.tileIndex());
+            int* grid_no_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(grid_no_d, &grid_no, sizeof(int), mfi.tileIndex());
+            int* bcr_d = (int*) Device::device_malloc(2 * AMREX_SPACEDIM * sizeof(int));
+            Device::device_htod_memcpy_async(bcr_d, (void*) bcr, 2 * AMREX_SPACEDIM * sizeof(int), mfi.tileIndex());
+#else
+            int* n_der_d = &n_der;
+            int* n_state_d = &n_state;
+            Real* time_d = &time;
+            Real* dt_d = &dt;
+            int* level_d = &level;
+            int* grid_no_d = &grid_no;
+            const int* bcr_d = bcr;
+#endif
+
             Device::prepare_for_launch(dlo, dhi);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
-			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-			       &level,&grid_no);
+		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_d,
+			       cdat,ARLIM(clo),ARLIM(chi),n_state_d,
+			       dlo,dhi,dom_lo,dom_hi,dx,xlo,time_d,dt_d,bcr_d,
+			       level_d,grid_no_d);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
+		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),n_der_d,
+				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),n_state_d,
 				 ARLIM_3D(dlo),ARLIM_3D(dhi),
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 #ifdef CUDA
@@ -1619,12 +1680,24 @@ AmrLevel::derive (const std::string& name,
 #else
 				 ZFILL(dx),ZFILL(xlo),
 #endif
-				 &time,&dt,
-				 BCREC_3D(bcr),
-				 &level,&grid_no);
+				 time_d,dt_d,
+				 BCREC_3D(bcr_d),
+				 level_d,grid_no_d);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
+
+#ifdef CUDA
+            Device::stream_synchronize(mfi.tileIndex());
+            Device::device_free(n_der_d);
+            Device::device_free(n_state_d);
+            Device::device_free(time_d);
+            Device::device_free(dt_d);
+            Device::device_free(level_d);
+            Device::device_free(grid_no_d);
+            Device::device_free(bcr_d);
+#endif
+
         }
 #endif
     }
@@ -1637,10 +1710,6 @@ AmrLevel::derive (const std::string& name,
         msg += name;
         amrex::Error(msg.c_str());
     }
-
-#ifdef CUDA
-    gpu_synchronize();
-#endif
 
     return std::unique_ptr<MultiFab>(mf);
 }
@@ -1718,16 +1787,41 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
+#ifdef CUDA
+            int* n_der_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(n_der_d, &n_der, sizeof(int), mfi.tileIndex());
+            int* n_state_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(n_state_d, &n_state, sizeof(int), mfi.tileIndex());
+            Real* time_d = (Real*) Device::device_malloc(sizeof(Real));
+            Device::device_htod_memcpy_async(time_d, &time, sizeof(Real), mfi.tileIndex());
+            Real* dt_d = (Real*) Device::device_malloc(sizeof(Real));
+            Device::device_htod_memcpy_async(dt_d, &dt, sizeof(Real), mfi.tileIndex());
+            int* level_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(level_d, &level, sizeof(int), mfi.tileIndex());
+            int* idx_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(idx_d, &idx, sizeof(int), mfi.tileIndex());
+            int* bcr_d = (int*) Device::device_malloc(2 * AMREX_SPACEDIM * sizeof(int));
+            Device::device_htod_memcpy_async(bcr_d, (void*) bcr, 2 * AMREX_SPACEDIM * sizeof(int), mfi.tileIndex());
+#else
+            int* n_der_d = &n_der;
+            int* n_state_d = &n_state;
+            Real* time_d = &time;
+            Real* dt_d = &dt;
+            int* level_d = &level;
+            int* idx_d = &idx;
+            const int* bcr_d = bcr;
+#endif
+
             Device::prepare_for_launch(lo, hi);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
-			       lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-			       &level,&idx);
+		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_d,
+			       cdat,ARLIM(clo),ARLIM(chi),n_state_d,
+			       lo,hi,dom_lo,dom_hi,dx,xlo,time_d,dt_d,bcr_d,
+			       level_d,idx_d);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
+		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),n_der_d,
+				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),n_state_d,
 				 ARLIM_3D(lo),ARLIM_3D(hi),
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 #ifdef CUDA
@@ -1735,12 +1829,24 @@ AmrLevel::derive (const std::string& name,
 #else
 				 ZFILL(dx),ZFILL(xlo),
 #endif
-				 &time,&dt,
-				 BCREC_3D(bcr),
-				 &level,&idx);
+				 time_d,dt_d,
+				 BCREC_3D(bcr_d),
+				 level_d,idx_d);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
+
+#ifdef CUDA
+            Device::stream_synchronize(mfi.tileIndex());
+            Device::device_free(n_der_d);
+            Device::device_free(n_state_d);
+            Device::device_free(time_d);
+            Device::device_free(dt_d);
+            Device::device_free(level_d);
+            Device::device_free(idx_d);
+            Device::device_free(bcr_d);
+#endif
+
         }
 #else
         for (; mfi.isValid(); ++mfi)
@@ -1762,16 +1868,41 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
+#ifdef CUDA
+            int* n_der_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(n_der_d, &n_der, sizeof(int), mfi.tileIndex());
+            int* n_state_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(n_state_d, &n_state, sizeof(int), mfi.tileIndex());
+            Real* time_d = (Real*) Device::device_malloc(sizeof(Real));
+            Device::device_htod_memcpy_async(time_d, &time, sizeof(Real), mfi.tileIndex());
+            Real* dt_d = (Real*) Device::device_malloc(sizeof(Real));
+            Device::device_htod_memcpy_async(dt_d, &dt, sizeof(Real), mfi.tileIndex());
+            int* level_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(level_d, &level, sizeof(int), mfi.tileIndex());
+            int* idx_d = (int*) Device::device_malloc(sizeof(int));
+            Device::device_htod_memcpy_async(idx, &idx, sizeof(int), mfi.tileIndex());
+            int* bcr_d = (int*) Device::device_malloc(2 * AMREX_SPACEDIM * sizeof(int));
+            Device::device_htod_memcpy_async(bcr_d, (void*) bcr, 2 * AMREX_SPACEDIM * sizeof(int), mfi.tileIndex());
+#else
+            int* n_der_d = &n_der;
+            int* n_state_d = &n_state;
+            Real* time_d = &time;
+            Real* dt_d = &dt;
+            int* level_d = &level;
+            int* idx_d = &idx;
+            const int* bcr_d = bcr;
+#endif
+
             Device::prepare_for_launch(dlo, dhi);
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
-		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-			       cdat,ARLIM(clo),ARLIM(chi),&n_state,
-			       dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-			       &level,&idx);
+		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_d,
+			       cdat,ARLIM(clo),ARLIM(chi),n_state_d,
+			       dlo,dhi,dom_lo,dom_hi,dx,xlo,time_d,dt_d,bcr_d,
+			       level_d,idx_d);
 	    } else if (rec->derFunc3D() != static_cast<DeriveFunc3D>(0)){
-		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),&n_der,
-				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),&n_state,
+		rec->derFunc3D()(ddat,ARLIM_3D(dlo),ARLIM_3D(dhi),n_der_d,
+				 cdat,ARLIM_3D(clo),ARLIM_3D(chi),n_state_d,
 				 ARLIM_3D(dlo),ARLIM_3D(dhi),
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 #ifdef CUDA
@@ -1779,12 +1910,24 @@ AmrLevel::derive (const std::string& name,
 #else
 				 ZFILL(dx),ZFILL(xlo),
 #endif
-				 &time,&dt,
-				 BCREC_3D(bcr),
-				 &level,&idx);
+				 time_d,dt_d,
+				 BCREC_3D(bcr_d),
+				 level,idx_d);
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
+
+#ifdef CUDA
+            Device::stream_synchronize(mfi.tileIndex());
+            Device::device_free(n_der_d);
+            Device::device_free(n_state_d);
+            Device::device_free(time_d);
+            Device::device_free(dt_d);
+            Device::device_free(level_d);
+            Device::device_free(idx_d);
+            Device::device_free(bcr_d);
+#endif
+
         }
 #endif
     }
@@ -1797,10 +1940,6 @@ AmrLevel::derive (const std::string& name,
         msg += name;
         amrex::Error(msg.c_str());
     }
-
-#ifdef CUDA
-    gpu_synchronize();
-#endif
 
 }
 
