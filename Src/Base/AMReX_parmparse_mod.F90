@@ -35,8 +35,8 @@ module amrex_parmparse_module
      procedure, private :: query_intarr
      procedure, private :: query_realarr
      procedure, private :: query_stringarr
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
-     final :: amrex_parmparse_destroy
+#if (!defined(__GFORTRAN__) || (__GNUC__ > 4)) && (!defined(__ibmxl__))
+      final :: amrex_parmparse_destroy
 #endif
   end type amrex_parmparse
 
