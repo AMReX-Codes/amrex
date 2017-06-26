@@ -36,7 +36,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 ifeq ($(USE_MPI),TRUE)
   CC  = mpicc
   CXX = mpicxx
-  FC  = mpif77
+  FC  = mpif90
   F90 = mpif90
   LIBRARIES += -lmpi_mpifh
 endif

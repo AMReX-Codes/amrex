@@ -76,11 +76,12 @@ F90FLAGS += $(GENERIC_COMP_FLAGS)
 CPP_PREFIX = -WF,
 
 #override XTRALIBS += 
-override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath
+override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath -L $(OLCF_XLC_ROOT)/lib -libmc++ -lstdc++
 
 FORTLINK := LOWERCASE
 
 
 ifeq ($(USE_CUDA),TRUE)
   F90FLAGS += -qcuda
+  FFLAGS += -qcuda
 endif
