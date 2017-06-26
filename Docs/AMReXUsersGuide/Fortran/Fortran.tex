@@ -148,22 +148,26 @@ building a {\tt BoxArray} and a {\tt DistributionMapping}.
 \end{lstlisting}
 
 Given {\tt amrex\_boxarray} and {\tt amrex\_distromap}, we can build
-{\tt amrex\_multifab}, a wrapper for the {\tt MultiFab} class,
+{\tt amrex\_multifab}, a wrapper for the {\tt MultiFab} class, as
+follows. 
 \begin{lstlisting}[language=fortran]
   integer :: ncomp, nghost
   type(amrex_boxarray) : ba
   type(amrex_distromap) :: dm
-  type(amrex_multifab) :: mf
+  type(amrex_multifab) :: mf, ndmf
   ! Build amrex_boxarray and amrex_distromap
   ! ncomp = ...
   ! nghost = ...
   ! ...
   ! Build amrex_multifab with ncomp component and nghost ghost cells
   call amrex_multifab_build(mf, ba, dm, ncomp, nghost)
+  ! Build a nodal multifab
+  call amrex_multifab_build(ndmf,ba,dm,ncomp,nghost,(/.true.,.true.,.true./))
   !
   ! ...
   !
   call amrex_multifab_destroy(mf)
+  call amrex_multifab_destroy(ndmf)
 \end{lstlisting}
 There are many type-bound procedures for {\tt amrex\_multifab}.  For
 example
@@ -227,10 +231,10 @@ Here procedure {\tt update\_phi} is
    ! ...
  end subroutine update_phi
 \end{lstlisting}
-Note that \amrex\ Fortran interface does not have the concept of {\tt
-  FArrayBox}.  Instead, {\tt amrex\multifab}'s procedure {\tt dataptr}
-takes {\tt amrex\_mfiter} and returns a 4-dimensional Fortran pointer.
-For performance, we should declare the pointer as {\tt contiguous}.
+Note that {\tt amrex\multifab}'s procedure {\tt dataptr} takes {\tt
+  amrex\_mfiter} and returns a 4-dimensional Fortran pointer.  For
+performance, we should declare the pointer as {\tt contiguous}.  In
+\cpp, the similar operation returns a reference to {\tt FArrayBox}.
 However, {\tt FArrayBox} and Fortran pointer have a similar capability
 of containing array bound information.  We can call {\tt lbound} and
 {\tt ubound} on the pointer to return its lower and upper bounds.  The
@@ -280,5 +284,20 @@ plotfiles.  The interface is similar to the \cpp versions.
 \section{Amr Core Infrastructure}
 \label{sec:fi:amrcore}
 
+Module {\tt amrex\_amr\_module} provides interfaces to AMR core
+infrastructure.  With AMR, subroutine {\tt amrex\_fmain} should look
+like below,
+\begin{lstlisting}[language=fortran]
+  subroutine amrex_fmain () bind(c)
+    use amrex_amr_module
+    implicit none  
+    call amrex_amrcore_init()
+    call my_amr_init()       ! user's own code
+    ! ...
+    call my_amr_finalize()   ! user's own code
+    call amrex_amrcore_finalize()
+  end subroutine amrex_fmain
+\end{lstlisting}
+Here we need to call {\tt amrex\_amrcore\_init} and {\tt amrex\_amrcore\_finalize}.
 \section{Octree}
 \label{sec:fi:octree}
