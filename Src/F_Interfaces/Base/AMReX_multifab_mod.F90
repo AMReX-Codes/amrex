@@ -485,7 +485,7 @@ contains
     real(amrex_real), intent(in) :: val
     integer, intent(in), optional :: icomp, ncomp, nghost
     integer :: ic, nc, ng
-    ic = 0;         if (present(icomp))  ic = icomp
+    ic = 0;         if (present(icomp))  ic = icomp-1
     nc = this%nc;   if (present(ncomp))  nc = ncomp
     ng = this%ng;   if (present(nghost)) ng = nghost
     call amrex_fi_multifab_setval(this%p, val, ic, nc, ng)
@@ -502,7 +502,7 @@ contains
     class(amrex_multifab) :: this
     type(amrex_multifab), intent(in) :: srcmf
     type(amrex_geometry), intent(in) :: geom
-    call amrex_fi_multifab_parallelcopy(this%p, srcmf%p, 0, 0, this%nc, 0, 0, geom%p)
+    call amrex_fi_multifab_parallelcopy(this%p, srcmf%p, 1, 1, this%nc, 0, 0, geom%p)
   end subroutine amrex_multifab_parallel_copy
 
   subroutine amrex_multifab_parallel_copy_c (this, srcmf, srccomp, dstcomp, nc, geom)
