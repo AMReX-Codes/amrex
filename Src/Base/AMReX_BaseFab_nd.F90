@@ -131,13 +131,8 @@ contains
 
     integer :: i,j,k,n
 
-#ifdef CUDA
-    attributes(device) :: src
-#endif
-
     nrm = 0.0_amrex_real
     if (p .eq. 0) then ! max norm
-       !$cuf kernel do(4) <<<*, 256>>>
        do n = 1, ncomp
           do       k = lo(3), hi(3)
              do    j = lo(2), hi(2)
@@ -148,7 +143,6 @@ contains
           end do
        end do
     else if (p .eq. 1) then
-       !$cuf kernel do(4) <<<*, 256>>>
        do n = 1, ncomp
           do       k = lo(3), hi(3)
              do    j = lo(2), hi(2)
@@ -169,12 +163,7 @@ contains
 
     integer :: i,j,k,n
 
-#ifdef CUDA
-    attributes(device) :: src
-#endif
-
     sm = 0.0_amrex_real
-    !$cuf kernel do(4) <<<*, 256>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -222,13 +211,8 @@ contains
 
     integer :: i,j,k,n,off(3)
 
-#ifdef CUDA
-    attributes(device) :: src, dst, off
-#endif
-
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, cuda_stream>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -248,13 +232,8 @@ contains
 
     integer :: i,j,k,n,off(3)
 
-#ifdef CUDA
-    attributes(device) :: src, dst, off
-#endif
-
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, cuda_stream>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -274,13 +253,8 @@ contains
 
     integer :: i,j,k,n,off(3)
 
-#ifdef CUDA
-    attributes(device) :: src, dst, off
-#endif
-
     off = sblo - lo
 
-    !$cuf kernel do(4) <<<*, 256, 0, cuda_stream>>>
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
@@ -541,10 +515,6 @@ end module basefab_nd_module
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real) :: nrm
 
-#ifdef CUDA
-    attributes(device) :: src
-#endif
-
     nrm = fort_fab_norm_doit(lo, hi, src, slo, shi, ncomp, p)
 
   end function fort_fab_norm
@@ -622,10 +592,6 @@ end module basefab_nd_module
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real) :: sm
 
-#ifdef CUDA
-    attributes(device) :: src
-#endif
-
     sm = fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp)
 
   end function fort_fab_sum
@@ -643,10 +609,6 @@ end module basefab_nd_module
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-
-#ifdef CUDA
-    attributes(device) :: src, dst
-#endif
 
     call fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
@@ -666,10 +628,6 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
-    attributes(device) :: src, dst
-#endif
-
     call fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
   end subroutine fort_fab_mult
@@ -686,10 +644,6 @@ end module basefab_nd_module
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-
-#ifdef CUDA
-    attributes(device) :: src, dst
-#endif
 
     call fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
