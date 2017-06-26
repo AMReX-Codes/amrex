@@ -300,39 +300,6 @@ contains
 
   end subroutine warpx_push_leapfrog_positions
 
-  subroutine warpx_push_pml_bvec_3d (xlo, xhi, ylo, yhi, zlo, zhi, &
-       &                             Ex, Exlo, Exhi, &
-       &                             Ey, Eylo, Eyhi, &
-       &                             Ez, Ezlo, Ezhi, &
-       &                             Bx, Bxlo, Bxhi, &
-       &                             By, Bylo, Byhi, &
-       &                             Bz, Bzlo, Bzhi, &
-       &                             sigx1, sigx1_lo, sigx1_hi, &
-       &                             sigx2, sigx2_lo, sigx2_hi, &
-       &                             sigy1, sigy1_lo, sigy1_hi, &
-       &                             sigy2, sigy2_lo, sigy2_hi, &
-       &                             sigz1, sigz1_lo, sigz1_hi, &
-       &                             sigz2, sigz2_lo, sigz2_hi) &
-       bind(c,name='warpx_push_pml_bvec_3d')
-    integer, intent(in) :: xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3), &
-         Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), &
-         Bxlo(3), Bxhi(3), Bylo(3), Byhi(3), Bzlo(3), Bzhi(3)
-    integer, intent(in), value :: sigx1_lo, sigx1_hi, sigx2_lo, sigx2_hi
-    integer, intent(in), value :: sigy1_lo, sigy1_hi, sigy2_lo, sigy2_hi
-    integer, intent(in), value :: sigz1_lo, sigz1_hi, sigz2_lo, sigz2_hi
-    real(amrex_real), intent(in   ) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3),2)
-    real(amrex_real), intent(in   ) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3),2)
-    real(amrex_real), intent(in   ) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),Ezlo(3):Ezhi(3),2)
-    real(amrex_real), intent(inout) :: Bx (Bxlo(1):Bxhi(1),Bxlo(2):Bxhi(2),Bxlo(3):Bxhi(3),2)
-    real(amrex_real), intent(inout) :: By (Bylo(1):Byhi(1),Bylo(2):Byhi(2),Bylo(3):Byhi(3),2)
-    real(amrex_real), intent(inout) :: Bz (Bzlo(1):Bzhi(1),Bzlo(2):Bzhi(2),Bzlo(3):Bzhi(3),2)
-    real(amrex_real), intent(in) :: sigx1(sigx1_lo:sigx1_hi)
-    real(amrex_real), intent(in) :: sigx2(sigx2_lo:sigx2_hi)
-    real(amrex_real), intent(in) :: sigy1(sigy1_lo:sigy1_hi)
-    real(amrex_real), intent(in) :: sigy2(sigy2_lo:sigy2_hi)
-    real(amrex_real), intent(in) :: sigz1(sigz1_lo:sigz1_hi)
-    real(amrex_real), intent(in) :: sigz2(sigz2_lo:sigz2_hi)
-
   subroutine warpx_compute_divb_3d (lo, hi, divB, dlo, dhi, &
        Bx, xlo, xhi, By, ylo, yhi, Bz, zlo, zhi, dx) &
        bind(c, name='warpx_compute_divb_3d')
