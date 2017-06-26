@@ -17,26 +17,32 @@ namespace {
         amrex::Abort(string.c_str());
     }
 
-    Real parseChargeName(const std::string& name) {
+    Real parseChargeName(const ParmParse pp, const std::string& name) {
+        Real result;
         if (name == "q_e") {
             return PhysConst::q_e;
+        } else if (pp.query("charge", result)) {
+            return result;
         } else {
             StringParseAbortMessage("Charge", name);
             return 0.0;
         }
     }
 
-    Real parseChargeString(const std::string& name) {
+    Real parseChargeString(const ParmParse pp, const std::string& name) {
         if(name.substr(0, 1) == "-")
-            return -1.0 * parseChargeName(name.substr(1, name.size() - 1));
-        return parseChargeName(name);
+            return -1.0 * parseChargeName(pp, name.substr(1, name.size() - 1));
+        return parseChargeName(pp, name);
     }
 
-    Real parseMassString(const std::string& name) {
+    Real parseMassString(const ParmParse pp, const std::string& name) {
+        Real result;
         if (name == "m_e") {
             return PhysConst::m_e;
         } else if (name == "m_p"){
             return PhysConst::m_p;
+        } else if (pp.query("mass", result)) {
+            return result;
         } else {
             StringParseAbortMessage("Mass", name);
             return 0.0;
@@ -142,7 +148,7 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
                    charge_s.end(),
                    charge_s.begin(),
                    ::tolower);
-    charge = parseChargeString(charge_s);
+    charge = parseChargeString(pp, charge_s);
 
     std::string mass_s;
     pp.get("mass", mass_s);
@@ -150,7 +156,7 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
                    mass_s.end(),
                    mass_s.begin(),
                    ::tolower);
-    mass = parseMassString(mass_s);
+    mass = parseMassString(pp, mass_s);
 
     // parse injection style
     std::string part_pos_s;
