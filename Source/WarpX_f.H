@@ -67,7 +67,7 @@ extern "C"
 	void warpx_geteb_energy_conserving(const long* np,
 			const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,
 			amrex::Real* exp, amrex::Real* eyp, amrex::Real* ezp,
-		    amrex::Real* bxp, amrex::Real* byp, amrex::Real* bzp,
+                        amrex::Real* bxp, amrex::Real* byp, amrex::Real* bzp,
 			const amrex::Real* xmin, const amrex::Real* ymin, const amrex::Real* zmin,
 			const amrex::Real* dx, const amrex::Real* dy, const amrex::Real* dz,
 			const long* nox, const long* noy, const long* noz,
