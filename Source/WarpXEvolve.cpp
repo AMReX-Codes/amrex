@@ -67,13 +67,8 @@ WarpX::EvolveES(int numsteps) {
             if (okToRegrid(step)) RegridBaseLevel();
         }
 
-        const std::string& ppltfile = amrex::Concatenate("particles", istep[0], 5);
-        auto& pc = mypc->GetParticleContainer(0);
-        pc.WriteAsciiFile(ppltfile);
-
         // At initialization, particles have p^{n-1/2} and x^{n-1/2}.           
-        // Beyond one step, particles have p^{n-1/2} and x^{n}.
-        
+        // Beyond one step, particles have p^{n-1/2} and x^{n}.        
         if (is_synchronized) {
             // on first step, push X by 0.5*dt
             mypc->PushXES(0.5*dt[lev]);
@@ -86,6 +81,10 @@ WarpX::EvolveES(int numsteps) {
         }
 
         mypc->FieldGatherES(eFieldNodal, gather_masks);
+
+        const std::string& ppltfile = amrex::Concatenate("particles", istep[0], 5);
+        auto& pc = mypc->GetParticleContainer(0);
+        pc.WriteAsciiFile(ppltfile);
 
         // Evolve particles to p^{n+1/2} and x^{n+1}
         mypc->EvolveES(eFieldNodal, rhoNodal, cur_time, dt[lev]);

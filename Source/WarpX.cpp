@@ -203,7 +203,9 @@ WarpX::ReadParameters ()
 	}
 
         pp.query("do_electrostatic", do_electrostatic);
-
+        pp.query("n_buffer", n_buffer);
+        pp.query("const_dt", const_dt);
+        
 	pp.query("use_laser", use_laser);
 
         pp.query("do_dive_cleaning", do_dive_cleaning);

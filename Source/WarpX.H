@@ -316,6 +316,8 @@ private:
     amrex::Array<int> injected_plasma_species;
 
     int do_electrostatic = 0;
+    int n_buffer = 4;
+    Real const_dt = 0.5e-11;
 
     // Other runtime parameters
     int verbose = 1;
