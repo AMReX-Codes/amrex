@@ -300,11 +300,11 @@ ifeq ($(USE_CUDA),TRUE)
 	DEFINES += -DBL_COALESCE_FABS
     endif
     CUDASuffix := .CUDA
-    DEFINES += -DDEVICE_LAUNCH_PROCEDURE='attributes(global) &'
-    DEFINES += -DDEVICE_PROCEDURE='attributes(device) &'
+    DEFINES += -Damrex_launch_subroutine='attributes(global)'
+    DEFINES += -Damrex_subroutine='attributes(device)'
 else
-    DEFINES += -DDEVICE_LAUNCH_PROCEDURE=""
-    DEFINES += -DDEVICE_PROCEDURE=""
+    DEFINES += -Damrex_launch_subroutine=""
+    DEFINES += -Damrex_subroutine=""
     CUDASuffix :=
 endif
 
