@@ -33,6 +33,16 @@ module cuda_module
   type(dim3) :: numBlocks, numThreads
   !$omp threadprivate(numBlocks, numThreads)
 
+  ! Implement our own interface to cudaProfilerStart/cudaProfilerStop
+  ! since XL does not provide this.
+
+  interface
+     subroutine cudaProfilerStart() bind(c, name='cudaProfilerStart')
+     end subroutine cudaProfilerStart
+     subroutine cudaProfilerStop() bind(c, name='cudaProfilerStop')
+     end subroutine cudaProfilerStop
+  end interface
+
 contains
 
   subroutine initialize_cuda() bind(c, name='initialize_cuda')
@@ -82,7 +92,7 @@ contains
 
   subroutine finalize_cuda() bind(c, name='finalize_cuda')
 
-    use cudafor, only: cudaStreamDestroy, cudaProfilerStop, cudaDeviceReset
+    use cudafor, only: cudaStreamDestroy, cudaDeviceReset
 
     implicit none
 
