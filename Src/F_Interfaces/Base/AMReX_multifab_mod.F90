@@ -495,14 +495,14 @@ contains
     class(amrex_multifab) :: this
     type(amrex_multifab), intent(in) :: srcmf
     integer, intent(in) :: srccomp, dstcomp, nc, ng
-    call amrex_fi_multifab_copy(this%p, srcmf%p, srccomp, dstcomp, nc, ng)
+    call amrex_fi_multifab_copy(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, ng)
   end subroutine amrex_multifab_copy
 
   subroutine amrex_multifab_parallel_copy (this, srcmf, geom)
     class(amrex_multifab) :: this
     type(amrex_multifab), intent(in) :: srcmf
     type(amrex_geometry), intent(in) :: geom
-    call amrex_fi_multifab_parallelcopy(this%p, srcmf%p, 1, 1, this%nc, 0, 0, geom%p)
+    call amrex_fi_multifab_parallelcopy(this%p, srcmf%p, 0, 0, this%nc, 0, 0, geom%p)
   end subroutine amrex_multifab_parallel_copy
 
   subroutine amrex_multifab_parallel_copy_c (this, srcmf, srccomp, dstcomp, nc, geom)
@@ -510,7 +510,7 @@ contains
     type(amrex_multifab), intent(in) :: srcmf
     type(amrex_geometry), intent(in) :: geom
     integer, intent(in) :: srccomp, dstcomp, nc
-    call amrex_fi_multifab_parallelcopy(this%p, srcmf%p, srccomp, dstcomp, nc, 0, 0, geom%p)
+    call amrex_fi_multifab_parallelcopy(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, 0, 0, geom%p)
   end subroutine amrex_multifab_parallel_copy_c
 
   subroutine amrex_multifab_parallel_copy_cg (this, srcmf, srccomp, dstcomp, nc, srcng, dstng, geom)
@@ -518,7 +518,7 @@ contains
     type(amrex_multifab), intent(in) :: srcmf
     type(amrex_geometry), intent(in) :: geom
     integer, intent(in) :: srccomp, dstcomp, nc, srcng, dstng
-    call amrex_fi_multifab_parallelcopy(this%p, srcmf%p, srccomp, dstcomp, nc, srcng, dstng, geom%p)
+    call amrex_fi_multifab_parallelcopy(this%p, srcmf%p, srccomp-1, dstcomp-1, nc, srcng, dstng, geom%p)
   end subroutine amrex_multifab_parallel_copy_cg
 
   subroutine amrex_multifab_fill_boundary (this, geom, cross)
