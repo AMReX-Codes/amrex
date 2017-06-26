@@ -141,19 +141,19 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
    nxguard,nyguard,nzguard,nox,noy,noz,lvect,charge_depo_algo) &
   bind(C, name="warpx_charge_deposition")
 
-  integer(c_long), intent(IN)                                  :: np
-  integer(c_long), intent(IN)                                  :: nx,ny,nz
-  integer(c_long), intent(IN)                                  :: nxguard,nyguard,nzguard
-  integer(c_long), intent(IN)                                  :: nox,noy,noz
-  real(amrex_real), intent(IN OUT), dimension(-nxguard:nx+nxguard,&
-       &                                  -nyguard:ny+nyguard,&
-       &                                  -nzguard:nz+nzguard) :: rho
-  real(amrex_real), intent(IN)                                     :: q
-  real(amrex_real), intent(IN)                                     :: dx,dy,dz
-  real(amrex_real), intent(IN)                                     :: xmin,ymin,zmin
-  real(amrex_real), intent(IN),  dimension(np)                     :: xp,yp,zp,w
-  integer(c_long), intent(IN)                                  :: lvect
-  integer(c_long), intent(IN)                                  :: charge_depo_algo
+  use amrex_error_module
+  
+  integer(c_long), intent(IN)                   :: np
+  integer(c_long), intent(IN)                   :: nx,ny,nz
+  integer(c_long), intent(IN)                   :: nxguard,nyguard,nzguard
+  integer(c_long), intent(IN)                   :: nox,noy,noz
+  real(amrex_real), intent(IN OUT)              :: rho(*)
+  real(amrex_real), intent(IN)                  :: q
+  real(amrex_real), intent(IN)                  :: dx,dy,dz
+  real(amrex_real), intent(IN)                  :: xmin,ymin,zmin
+  real(amrex_real), intent(IN),  dimension(np)  :: xp,yp,zp,w
+  integer(c_long), intent(IN)                   :: lvect
+  integer(c_long), intent(IN)                   :: charge_depo_algo
 
 
   ! Dimension 3
@@ -200,6 +200,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   ! Dimension 2
 #elif (BL_SPACEDIM==2)
 
+  CALL pxr_depose_rho_n_2dxz(rho,np,xp,yp,zp,w,q,xmin,zmin,dx,dz,nx,nz,&
+       nxguard,nzguard,nox,noz, &
+       .TRUE._c_long, .FALSE._c_long, .FALSE._c_long, 0_c_long)
 
 #endif
 

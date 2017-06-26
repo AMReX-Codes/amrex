@@ -92,7 +92,8 @@ extern "C"
     {
 	auto & mypc = WarpX::GetInstance().GetPartContainer();
 	auto & myspc = mypc.GetParticleContainer(speciesnumber);
-	myspc.AddNParticles(lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
+        const int lev = 0;
+	myspc.AddNParticles(lev, lenx, x, y, z, vx, vy, vz, nattr, attr, uniqueparticles);
     }
 
     double warpx_getProbLo(int dir)
@@ -173,22 +174,6 @@ extern "C"
         return data;
     }
 
-    double* warpx_getPMLSigma(int dir, int* size) {
-        auto & sig = WarpX::GetInstance().getPMLSigma(dir);
-        *size = sig.size();
-        return (double*) sig.dataPtr();
-    }
-
-    double* warpx_getPMLSigmaStar(int dir, int* size) {
-        auto & sig = WarpX::GetInstance().getPMLSigmaStar(dir);
-        *size = sig.size();
-        return (double*) sig.dataPtr();
-    }
-
-    void warpx_ComputePMLFactors(int lev, double dt) {
-        WarpX::GetInstance().ComputePMLFactors(lev, dt);
-    }
-
     void warpx_ComputeDt () {
         WarpX& warpx = WarpX::GetInstance();
         warpx.ComputeDt ();
@@ -198,25 +183,33 @@ extern "C"
         warpx.MoveWindow (true);
     }
 
-    void warpx_EvolveE (int lev, double dt) {
+    void warpx_EvolveE (double dt) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveE (lev, dt);
+        warpx.EvolveE (dt);
     }
-    void warpx_EvolveB (int lev, double dt) {
+    void warpx_EvolveB (double dt) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveB (lev, dt);
+        warpx.EvolveB (dt);
     }
-    void warpx_FillBoundaryE (int lev, bool force) {
+    void warpx_FillBoundaryE () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.FillBoundaryE (lev, force);
+        warpx.FillBoundaryE ();
     }
-    void warpx_FillBoundaryB (int lev, bool force) {
+    void warpx_FillBoundaryB () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.FillBoundaryB (lev, force);
+        warpx.FillBoundaryB ();
     }
-    void warpx_PushParticlesandDepose (int lev, double cur_time) {
+    void warpx_SyncCurrent () {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.PushParticlesandDepose (lev, cur_time);
+        warpx.SyncCurrent ();
+    }
+    void warpx_UpdateAuxilaryData () {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.UpdateAuxilaryData ();
+    }
+    void warpx_PushParticlesandDepose (double cur_time) {
+        WarpX& warpx = WarpX::GetInstance();
+        warpx.PushParticlesandDepose (cur_time);
     }
 
     int warpx_getistep (int lev) {

@@ -55,6 +55,9 @@ class PGroup(object):
     def addspecies(self):
         pass
 
+    def getnpid(self):
+        return _libwarpx.get_nattr()
+    npid = property(getnpid)
 
     def getnps(self):
         return np.array([len(self.xp)], dtype='l')
@@ -97,14 +100,16 @@ class PGroup(object):
     uzp = property(getuzp)
 
     def getpid(self, js=0):
-        return _libwarpx.get_particle_id(js)[self.igroup]
+        id = _libwarpx.get_particle_id(js)[self.igroup]
+        pid = np.array([id]).T
+        return pid
     pid = property(getpid)
 
     def getgaminv(self, js=0):
         uxp = self.getuxp(js)
         uyp = self.getuyp(js)
         uzp = self.getuzp(js)
-        return sqrt(1. - (uxp**2 + uyp**2 + uzp**2)/warpxC.c**2)
+        return np.sqrt(1. - (uxp**2 + uyp**2 + uzp**2)/_libwarpx.clight**2)
     gaminv = property(getgaminv)
 
     def getex(self, js=0):

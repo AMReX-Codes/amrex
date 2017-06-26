@@ -101,20 +101,16 @@ void
 MultiParticleContainer::Evolve (int lev,
                                 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-                                MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
+                                MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                MultiFab* rho, Real t, Real dt)
 {
     jx.setVal(0.0);
     jy.setVal(0.0);
     jz.setVal(0.0);
-    
+    if (rho) rho->setVal(0.0);
     for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, t, dt);
-    }
-    
-    const Geometry& gm = allcontainers[0]->Geom(lev);
-    jx.SumBoundary(gm.periodicity());
-    jy.SumBoundary(gm.periodicity());
-    jz.SumBoundary(gm.periodicity());
+	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, rho, t, dt);
+    }    
 }
 
 void
@@ -126,10 +122,10 @@ MultiParticleContainer::PushXES (Real dt)
 }
 
 void
-MultiParticleContainer::PushX (int lev, Real dt)
+MultiParticleContainer::PushX (Real dt)
 {
     for (auto& pc : allcontainers) {
-	pc->PushX(lev, dt);
+	pc->PushX(dt);
     }
 }
 

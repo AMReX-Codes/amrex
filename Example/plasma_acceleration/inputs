@@ -82,6 +82,8 @@ plasma.ux = 0.0
 plasma.uy = 0.0
 plasma.uz = 0.0
 
+warpx.do_pml = 0
+
 # Moving window
 warpx.do_moving_window = 1
 warpx.moving_window_dir = z

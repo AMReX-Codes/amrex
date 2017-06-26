@@ -67,8 +67,8 @@ public:
     void Evolve (int lev,
 		 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-		 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, 
-                 amrex::Real t, amrex::Real dt);
+		 amrex::MultiFab& jx,  amrex::MultiFab& jy, amrex::MultiFab& jz, 
+                 amrex::MultiFab* rho, amrex::Real t, amrex::Real dt);
 
     ///
     /// This pushes the particle positions by one half time step for all the species in the 
@@ -82,7 +82,7 @@ public:
     /// MultiParticleContainer. It is used to desynchronize the particles after initializaton
     /// or when restarting from a checkpoint. This is the electromagnetic version.
     /// 
-    void PushX (int lev, amrex::Real dt);
+    void PushX (amrex::Real dt);
 
     ///
     /// This deposits the particle charge onto rho, accumulating the value for all the species

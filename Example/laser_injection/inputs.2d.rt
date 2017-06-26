@@ -46,6 +46,8 @@ laser.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in me
 # I/O
 amr.plot_int = 20
 
+warpx.do_pml = 0
+
 # Moving window
 warpx.do_moving_window = 1
 warpx.moving_window_dir = x

@@ -35,6 +35,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
 	if (laser_type_s == "gaussian") {
 	    profile = laser_t::Gaussian;
+  } else if(laser_type_s == "harris") {
+      profile = laser_t::Harris;
 	} else {
 	    amrex::Abort("Unknown laser type");
 	}
@@ -53,6 +55,13 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	   pp.get("profile_duration", profile_duration);
 	   pp.get("profile_t_peak", profile_t_peak);
 	   pp.get("profile_focal_distance", profile_focal_distance);
+	}
+
+  if ( profile == laser_t::Harris ) {
+	    // Parse the properties of the Harris profile
+	   pp.get("profile_waist", profile_waist);
+	   pp.get("profile_duration", profile_duration);
+     pp.get("profile_focal_distance", profile_focal_distance);
 	}
 
 	// Plane normal
@@ -77,20 +86,33 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	u_X = CrossProduct({0., 1., 0.}, nvec);
 	u_Y = {0., 1., 0.};
 #endif
+
+        prob_domain = Geometry::ProbDomain();
+        {
+            Array<Real> lo, hi;
+            if (pp.queryarr("prob_lo", lo)) {
+                prob_domain.setLo(lo);
+            }
+            if (pp.queryarr("prob_hi", hi)) {
+                prob_domain.setHi(hi);
+            }
+        }
     }
 }
 
 void
 LaserParticleContainer::InitData ()
 {
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    const RealBox& prob_domain = geom.ProbDomain();
+    InitData(maxLevel());
+}
 
+void
+LaserParticleContainer::InitData (int lev)
+{
     // spacing of laser particles in the laser plane.
     // has to be done after geometry is set up.
     Real S_X, S_Y;
-    ComputeSpacing(S_X, S_Y);
+    ComputeSpacing(lev, S_X, S_Y);
     ComputeWeightMobility(S_X, S_Y);
 
     auto Transform = [&](int i, int j) -> Array<Real>
@@ -212,7 +234,8 @@ LaserParticleContainer::InitData ()
     Array<Real> particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
-    AddNParticles(np, particle_x.data(), particle_y.data(), particle_z.data(),
+    AddNParticles(lev,
+                  np, particle_x.data(), particle_y.data(), particle_z.data(),
 		  particle_ux.data(), particle_uy.data(), particle_uz.data(),
 		  1, particle_w.data(), 1);
 }
@@ -221,7 +244,8 @@ void
 LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
-				MultiFab& jx, MultiFab& jy, MultiFab& jz, Real t, Real dt)
+				MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                MultiFab* rho, Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
@@ -232,6 +256,8 @@ LaserParticleContainer::Evolve (int lev,
 
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ  = jx.nGrow();
+
+    long ngRho = (rho) ? rho->nGrow() : 0;
 
     BL_ASSERT(OnSameGrids(lev,jx));
 
@@ -287,6 +313,29 @@ LaserParticleContainer::Evolve (int lev,
 
             const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
 
+	    const long lvect = 8;
+
+            if (rho)
+            {
+                FArrayBox& rhofab = (*rho)[pti];
+                const int* rholen = rhofab.length();
+#if (BL_SPACEDIM == 3)
+                const long nx = rholen[0]-1-2*ngRho;
+                const long ny = rholen[1]-1-2*ngRho;
+                const long nz = rholen[2]-1-2*ngRho;
+#else
+                const long nx = rholen[0]-1-2*ngRho;
+                const long ny = 0;
+                const long nz = rholen[1]-1-2*ngRho;
+#endif
+            	warpx_charge_deposition(rhofab.dataPtr(),
+                                        &np, xp.data(), yp.data(), zp.data(), wp.data(),
+                                        &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
+                                        &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                                        &ngRho, &ngRho, &ngRho, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                        &lvect, &WarpX::charge_deposition_algo);
+            }
+
 	    //
 	    // Particle Push
 	    //
@@ -297,6 +346,12 @@ LaserParticleContainer::Evolve (int lev,
 		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
 				      &t, &wavelength, &e_max, &profile_waist, &profile_duration,
 				      &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
+	    }
+
+      if (profile == laser_t::Harris) {
+		warpx_harris_laser( &np, plane_Xp.data(), plane_Yp.data(),
+				      &t, &wavelength, &e_max, &profile_waist, &profile_duration,
+				      &profile_focal_distance, amplitude_E.data() );
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
@@ -330,19 +385,18 @@ LaserParticleContainer::Evolve (int lev,
 	    // Current Deposition
 	    // xxxxx this part needs to be thread safe if we have OpenMP over tiles
 	    //
-	    long lvect = 8;
 	    BL_PROFILE_VAR_START(blp_pxr_cd);
 	    warpx_current_deposition(
-        jxfab.dataPtr(), &ngJ, jxfab.length(),
-        jyfab.dataPtr(), &ngJ, jyfab.length(),
-        jzfab.dataPtr(), &ngJ, jzfab.length(),
-	    &np, xp.data(), yp.data(), zp.data(),
-	    uxp.data(), uyp.data(), uzp.data(),
-	    giv.data(), wp.data(), &this->charge,
-	    &xyzmin[0], &xyzmin[1], &xyzmin[2],
-	    &dt, &dx[0], &dx[1], &dx[2],
-	    &WarpX::nox,&WarpX::noy,&WarpX::noz,
-	    &lvect,&WarpX::current_deposition_algo);
+                jxfab.dataPtr(), &ngJ, jxfab.length(),
+                jyfab.dataPtr(), &ngJ, jyfab.length(),
+                jzfab.dataPtr(), &ngJ, jzfab.length(),
+                &np, xp.data(), yp.data(), zp.data(),
+                uxp.data(), uyp.data(), uzp.data(),
+                giv.data(), wp.data(), &this->charge,
+                &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                &dt, &dx[0], &dx[1], &dx[2],
+                &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                &lvect,&WarpX::current_deposition_algo);
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
 	    //
@@ -353,22 +407,20 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 	}
     }
-
 }
 
 void
 LaserParticleContainer::PostRestart ()
 {
     Real Sx, Sy;
-    ComputeSpacing(Sx, Sy);
+    const int lev = finestLevel();
+    ComputeSpacing(lev, Sx, Sy);
     ComputeWeightMobility(Sx, Sy);
 }
 
 void
-LaserParticleContainer::ComputeSpacing (Real& Sx, Real& Sy) const
+LaserParticleContainer::ComputeSpacing (int lev, Real& Sx, Real& Sy) const
 {
-    const int lev = 0;
-
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
     const Real eps = dx[0]*1.e-50;

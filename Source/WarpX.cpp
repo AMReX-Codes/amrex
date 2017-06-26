@@ -5,16 +5,26 @@
 #include <cmath>
 #include <numeric>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include <AMReX_ParmParse.H>
+
 #include <AMReX_MGT_Solver.H>
 #include <AMReX_stencil_types.H>
+
 #include <AMReX_MultiFabUtil.H>
 
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXConst.H>
 
+#include <WarpX_f.H>
+
 using namespace amrex;
+
+Array<Real> WarpX::B_external(3, 0.0);
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -81,10 +91,6 @@ WarpX::WarpX ()
 
     ReadParameters();
 
-    if (max_level != 0) {
-	amrex::Abort("WarpX: max_level must be zero");
-    }
-
     // Geometry on all levels has been defined already.
 
     // No valid BoxArray and DistributionMapping have been defined.
@@ -94,9 +100,12 @@ WarpX::WarpX ()
 
     istep.resize(nlevs_max, 0);
     nsubsteps.resize(nlevs_max, 1);
+#if 0
+    // no subcycling yet
     for (int lev = 1; lev <= maxLevel(); ++lev) {
 	nsubsteps[lev] = MaxRefRatio(lev-1);
     }
+#endif
 
     t_new.resize(nlevs_max, 0.0);
     t_old.resize(nlevs_max, -1.e100);
@@ -105,9 +114,22 @@ WarpX::WarpX ()
     // Particle Container
     mypc = std::unique_ptr<MultiParticleContainer> (new MultiParticleContainer(this));
 
-    current.resize(nlevs_max);
-    Efield.resize(nlevs_max);
-    Bfield.resize(nlevs_max);
+    Efield_aux.resize(nlevs_max);
+    Bfield_aux.resize(nlevs_max);
+
+    F_fp.resize(nlevs_max);
+    rho_fp.resize(nlevs_max);
+    current_fp.resize(nlevs_max);
+    Efield_fp.resize(nlevs_max);
+    Bfield_fp.resize(nlevs_max);
+
+    F_cp.resize(nlevs_max);
+    rho_cp.resize(nlevs_max);
+    current_cp.resize(nlevs_max);
+    Efield_cp.resize(nlevs_max);
+    Bfield_cp.resize(nlevs_max);
+
+    pml.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -142,13 +164,7 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
 
-        // PML
-        if (Geometry::isAllPeriodic()) {
-            do_pml = 0;  // no PML for all periodic boundaries
-        } else {
-            pp.query("do_pml", do_pml);
-            pp.query("pml_ncell", pml_ncell);
-        }
+        pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
@@ -189,7 +205,34 @@ WarpX::ReadParameters ()
 
 	pp.query("use_laser", use_laser);
 
+        pp.query("do_dive_cleaning", do_dive_cleaning);
+
+        pp.query("do_pml", do_pml);
+        pp.query("pml_ncell", pml_ncell);
+
         pp.query("plot_raw_fields", plot_raw_fields);
+        if (ParallelDescriptor::NProcs() == 1) {
+            plot_proc_number = false;
+        }
+        pp.query("plot_part_per_cell", plot_part_per_cell);
+        pp.query("plot_part_per_grid", plot_part_per_grid);
+        pp.query("plot_part_per_proc", plot_part_per_proc);
+        pp.query("plot_proc_number"  , plot_proc_number);
+        pp.query("plot_dive"         , plot_dive);
+        pp.query("plot_divb"         , plot_divb);
+
+        if (maxLevel() > 0) {
+            pp.query("plot_finepatch", plot_finepatch);
+            pp.query("plot_crsepatch", plot_crsepatch);
+        }
+
+        if (maxLevel() > 0) {
+            Array<Real> lo, hi;
+            pp.getarr("fine_tag_lo", lo);
+            pp.getarr("fine_tag_hi", hi);
+            fine_tag_lo = RealVect{lo};
+            fine_tag_hi = RealVect{hi};
+        }
     }
 
     {
@@ -220,103 +263,111 @@ WarpX::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& new_grids,
                                 const DistributionMapping& new_dmap)
 {
     AllocLevelData(lev, new_grids, new_dmap);
-    InitLevelData(time);
+    InitLevelData(lev, time);
 }
 
 void
 WarpX::ClearLevel (int lev)
 {
     for (int i = 0; i < 3; ++i) {
-	current[lev][i].reset();
-	Efield [lev][i].reset();
-	Bfield [lev][i].reset();
+	Efield_aux[lev][i].reset();
+	Bfield_aux[lev][i].reset();
+
+	current_fp[lev][i].reset();
+	Efield_fp [lev][i].reset();
+	Bfield_fp [lev][i].reset();
+
+	current_cp[lev][i].reset();
+	Efield_cp [lev][i].reset();
+	Bfield_cp [lev][i].reset();
     }
+
+    F_fp  [lev].reset();
+    rho_fp[lev].reset();
+    F_cp  [lev].reset();
+    rho_cp[lev].reset();
 }
 
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
-    const int ng = WarpX::nox;  // need to update this
+    int ng = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
 
-    // Create the MultiFabs for B
-    Bfield[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ng));
-    Bfield[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ng));
-    Bfield[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ng));
+    //
+    // The fine patch
+    //
+    Bfield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ng));
+    Bfield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ng));
+    Bfield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ng));
 
-    // Create the MultiFabs for E
-    Efield[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ng));
-    Efield[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ng));
-    Efield[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ng));
+    Efield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ng));
+    Efield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ng));
+    Efield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ng));
 
-    // Create the MultiFabs for the current
-    current[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ng));
-    current[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ng));
-    current[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ng));
-}
+    current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ng));
+    current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ng));
+    current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ng));
 
-void
-WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
-{
-    const BoxArray& ba = mf.boxArray();
-    const DistributionMapping& dm = mf.DistributionMap();
-    const int nc = mf.nComp();
-    const int ng = std::max(mf.nGrow(), std::abs(num_shift));
-    MultiFab tmpmf(ba, dm, nc, ng);
-    MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
-    tmpmf.FillBoundary(geom.periodicity());
-
-    // Zero out the region that the window moved into
-    const IndexType& typ = ba.ixType();
-    const Box& domainBox = geom.Domain();
-    Box adjBox;
-    if (num_shift > 0) {
-        adjBox = adjCellHi(domainBox, dir, ng);
-    } else {
-        adjBox = adjCellLo(domainBox, dir, ng);
-    }
-    adjBox = amrex::convert(adjBox, typ);
-
-    for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-        if (idim == dir and typ.nodeCentered(dir)) {
-            if (num_shift > 0) {
-                adjBox.growLo(idim, -1);
-            } else {
-                adjBox.growHi(idim, -1);
-            }
-        } else if (idim != dir) {
-            adjBox.growLo(idim, ng);
-            adjBox.growHi(idim, ng);
-        }
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi )
+    if (do_dive_cleaning)
     {
-        FArrayBox& srcfab = tmpmf[mfi];
+        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, 0));
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ng));
+    }
 
-        Box outbox = mfi.fabbox();
-        outbox &= adjBox;
-        if (outbox.ok()) {  // outbox is the region that the window moved into
-            srcfab.setVal(0.0, outbox, 0, nc);
+    //
+    // The Aux patch (i.e., the full solution)
+    //
+    if (lev == 0)
+    {
+        Bfield_aux[lev][0].reset(new MultiFab(*Bfield_fp[lev][0], amrex::make_alias, 0, 1));
+        Bfield_aux[lev][1].reset(new MultiFab(*Bfield_fp[lev][1], amrex::make_alias, 0, 1));
+        Bfield_aux[lev][2].reset(new MultiFab(*Bfield_fp[lev][2], amrex::make_alias, 0, 1));
+
+        Efield_aux[lev][0].reset(new MultiFab(*Efield_fp[lev][0], amrex::make_alias, 0, 1));
+        Efield_aux[lev][1].reset(new MultiFab(*Efield_fp[lev][1], amrex::make_alias, 0, 1));
+        Efield_aux[lev][2].reset(new MultiFab(*Efield_fp[lev][2], amrex::make_alias, 0, 1));
+    }
+    else
+    {
+        Bfield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ng));
+        Bfield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ng));
+        Bfield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ng));
+
+        Efield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ng));
+        Efield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ng));
+        Efield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ng));
+    }
+
+    //
+    // The coasrse patch
+    //
+    if (lev > 0)
+    {
+        BoxArray cba = ba;
+        cba.coarsen(refRatio(lev-1));
+        
+        // Create the MultiFabs for B
+        Bfield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ng));
+        Bfield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ng));
+        Bfield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ng));
+        
+        // Create the MultiFabs for E
+        Efield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ng));
+        Efield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ng));
+        Efield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ng));
+        
+        // Create the MultiFabs for the current
+        current_cp[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ng));
+        current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ng));
+        current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ng));
+
+        if (do_dive_cleaning)
+        {
+            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, 0));
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ng));
         }
-
-        FArrayBox& dstfab = mf[mfi];
-        dstfab.setVal(0.0);
-
-        Box dstBox = dstfab.box();
-
-        if (num_shift > 0) {
-            dstBox.growHi(dir, -num_shift);
-        } else {
-            dstBox.growLo(dir,  num_shift);
-        }
-
-        dstfab.copy(srcfab, amrex::shift(dstBox,dir,num_shift), 0, dstBox, 0, nc);
     }
 }
-
 
 std::array<Real,3>
 WarpX::CellSize (int lev)
@@ -342,6 +393,19 @@ WarpX::LowerCorner(const Box& bx, int lev)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
 #elif (BL_SPACEDIM == 2)
     return { xyzmin[0], -1.e100, xyzmin[1] };
+#endif
+}
+
+std::array<Real,3>
+WarpX::UpperCorner(const Box& bx, int lev)
+{
+    const auto& gm = GetInstance().Geom(lev);
+    const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    const Real* xyzmax = grid_box.hi();
+#if (BL_SPACEDIM == 3)
+    return { xyzmax[0], xyzmax[1], xyzmax[2] };
+#elif (BL_SPACEDIM == 2)
+    return { xyzmax[0], 1.e100, xyzmax[1] };
 #endif
 }
 
@@ -423,159 +487,42 @@ void WarpX::computeE(Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
     }
 }
 
-#if (BL_SPACEDIM == 3)
-
-Box
-WarpX::getIndexBox(const RealBox& real_box) const
+void
+WarpX::ComputeDivB (MultiFab& divB, int dcomp,
+                    const std::array<const MultiFab*, 3>& B,
+                    const std::array<Real,3>& dx)
 {
-  BL_ASSERT(max_level == 0);
-
-  IntVect slice_lo, slice_hi;
-
-  D_TERM(slice_lo[0]=std::floor((real_box.lo(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
-	 slice_lo[1]=std::floor((real_box.lo(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
-	 slice_lo[2]=std::floor((real_box.lo(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
-
-  D_TERM(slice_hi[0]=std::floor((real_box.hi(0) - geom[0].ProbLo(0))/geom[0].CellSize(0));,
-	 slice_hi[1]=std::floor((real_box.hi(1) - geom[0].ProbLo(1))/geom[0].CellSize(1));,
-	 slice_hi[2]=std::floor((real_box.hi(2) - geom[0].ProbLo(2))/geom[0].CellSize(2)););
-
-  return Box(slice_lo, slice_hi) & geom[0].Domain();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
+                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
+                           dx.data());
+    }
 }
 
 void
-WarpX::fillSlice(Real z_coord) const
+WarpX::ComputeDivE (MultiFab& divE, int dcomp,
+                    const std::array<const MultiFab*, 3>& E,
+                    const std::array<Real,3>& dx)
 {
-  BL_ASSERT(max_level == 0);
-
-  // Get our slice and convert to index space
-  RealBox real_slice = geom[0].ProbDomain();
-  real_slice.setLo(2, z_coord);
-  real_slice.setHi(2, z_coord);
-  Box slice_box = getIndexBox(real_slice);
-
-  // define the multifab that stores slice
-  BoxArray ba = Efield[0][0]->boxArray();
-  const IndexType correct_typ(IntVect::TheZeroVector());
-  ba.convert(correct_typ);
-  const DistributionMapping& dm = dmap[0];
-  std::vector< std::pair<int, Box> > isects;
-  ba.intersections(slice_box, isects, false, 0);
-  Array<Box> boxes;
-  Array<int> procs;
-  for (int i = 0; i < isects.size(); ++i) {
-    procs.push_back(dm[isects[i].first]);
-    boxes.push_back(isects[i].second);
-  }
-  procs.push_back(ParallelDescriptor::MyProc());
-  BoxArray slice_ba(&boxes[0], boxes.size());
-  DistributionMapping slice_dmap(procs);
-  MultiFab slice(slice_ba, slice_dmap, 6, 0);
-
-  const MultiFab* mfs[6];
-  mfs[0] = Efield[0][0].get();
-  mfs[1] = Efield[0][1].get();
-  mfs[2] = Efield[0][2].get();
-  mfs[3] = Bfield[0][0].get();
-  mfs[4] = Bfield[0][1].get();
-  mfs[5] = Bfield[0][2].get();
-
-  IntVect flags[6];
-  flags[0] = WarpX::Ex_nodal_flag;
-  flags[1] = WarpX::Ey_nodal_flag;
-  flags[2] = WarpX::Ez_nodal_flag;
-  flags[3] = WarpX::Bx_nodal_flag;
-  flags[4] = WarpX::By_nodal_flag;
-  flags[5] = WarpX::Bz_nodal_flag;
-
-  // Fill the slice with sampled data
-  const Real* dx      = geom[0].CellSize();
-  const Geometry& g   = geom[0];
-  for (MFIter mfi(slice); mfi.isValid(); ++mfi) {
-    int slice_gid = mfi.index();
-    Box grid = slice_ba[slice_gid];
-    int xlo = grid.smallEnd(0), ylo = grid.smallEnd(1), zlo = grid.smallEnd(2);
-    int xhi = grid.bigEnd(0), yhi = grid.bigEnd(1), zhi = grid.bigEnd(2);
-
-    IntVect iv = grid.smallEnd();
-    ba.intersections(Box(iv, iv), isects, true, 0);
-    BL_ASSERT(!isects.empty());
-    int full_gid = isects[0].first;
-
-    for (int k = zlo; k <= zhi; k++) {
-      for (int j = ylo; j <= yhi; j++) {
-	for (int i = xlo; i <= xhi; i++) {
-	  for (int comp = 0; comp < 6; comp++) {
-	    Real x = g.ProbLo(0) + i*dx[0];
-	    Real y = g.ProbLo(1) + j*dx[1];
-	    Real z = z_coord;
-
-	    D_TERM(iv[0]=std::floor((x - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
-		   iv[1]=std::floor((y - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
-		   iv[2]=std::floor((z - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
-
-	    slice[slice_gid](IntVect(i, j, k), comp) = (*mfs[comp])[full_gid](iv);
-	  }
-	}
-      }
-    }
-  }
-}
-
-void WarpX::sampleAtPoints(const Array<Real>& x,
-			   const Array<Real>& y,
-			   const Array<Real>& z,
-			   Array<Array<Real> >& result) const {
-  BL_ASSERT((x.size() == y.size()) and (y.size() == z.size()));
-  BL_ASSERT(max_level == 0);
-
-  const MultiFab* mfs[6];
-  mfs[0] = Efield[0][0].get();
-  mfs[1] = Efield[0][1].get();
-  mfs[2] = Efield[0][2].get();
-  mfs[3] = Bfield[0][0].get();
-  mfs[4] = Bfield[0][1].get();
-  mfs[5] = Bfield[0][2].get();
-
-  IntVect flags[6];
-  flags[0] = WarpX::Ex_nodal_flag;
-  flags[1] = WarpX::Ey_nodal_flag;
-  flags[2] = WarpX::Ez_nodal_flag;
-  flags[3] = WarpX::Bx_nodal_flag;
-  flags[4] = WarpX::By_nodal_flag;
-  flags[5] = WarpX::Bz_nodal_flag;
-
-  const unsigned npoints = x.size();
-  const int ncomps = 6;
-  result.resize(ncomps);
-  for (int i = 0; i < ncomps; i++) {
-    result[i].resize(npoints, 0);
-  }
-
-  BoxArray ba = Efield[0][0]->boxArray();
-  const IndexType correct_typ(IntVect::TheZeroVector());
-  ba.convert(correct_typ);
-  std::vector< std::pair<int, Box> > isects;
-
-  IntVect iv;
-  const Geometry& g   = geom[0];
-  for (int i = 0; i < npoints; ++i) {
-    for (int comp = 0; comp < ncomps; comp++) {
-      D_TERM(iv[0]=std::floor((x[i] - g.ProbLo(0) + 0.5*g.CellSize(0)*flags[comp][0])/g.CellSize(0));,
-	     iv[1]=std::floor((y[i] - g.ProbLo(1) + 0.5*g.CellSize(1)*flags[comp][1])/g.CellSize(1));,
-	     iv[2]=std::floor((z[i] - g.ProbLo(2) + 0.5*g.CellSize(2)*flags[comp][2])/g.CellSize(2)););
-
-      ba.intersections(Box(iv, iv), isects, true, 0);
-      const int grid = isects[0].first;
-      const int who = dmap[0][grid];
-      if (who == ParallelDescriptor::MyProc()) {
-	result[comp][i] = (*mfs[comp])[grid](iv);
-      }
-    }
-  }
-
-  for (int i = 0; i < ncomps; i++) {
-    ParallelDescriptor::ReduceRealSum(result[i].dataPtr(), result[i].size());
-  }
-}
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
+    for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
+                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
+                           dx.data());
+    }
+}

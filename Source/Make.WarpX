@@ -73,6 +73,7 @@ clean::
 	$(SILENT) $(RM) -rf build
 	$(SILENT) $(RM) -f libwarpx.a
 	$(SILENT) $(RM) -f libwarpx.so
+	$(SILENT) $(RM) -f pywarpx/libwarpx.so
 
 else
 

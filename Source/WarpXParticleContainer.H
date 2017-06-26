@@ -73,7 +73,8 @@ public:
     virtual void Evolve (int lev,
 			 const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
 			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
-			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz, amrex::Real t, amrex::Real dt) = 0;
+			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
+                         amrex::MultiFab* rho, amrex::Real t, amrex::Real dt) = 0;
 
     virtual void PostRestart () = 0;
 
@@ -93,6 +94,7 @@ public:
     /// or when restarting from a checkpoint.
     /// This is the electromagnetic version of the particle push.
     /// 
+    void PushX (         amrex::Real dt);
     void PushX (int lev, amrex::Real dt);
 
     void DepositCharge(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
@@ -107,7 +109,8 @@ public:
 
     amrex::Real maxParticleVelocity(bool local = false);
 
-    void AddNParticles (int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
+    void AddNParticles (int lev,
+                        int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
 			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
 			int nattr, const amrex::Real* attr, int uniqueparticles);
 
@@ -133,6 +136,8 @@ protected:
 
     amrex::Real charge;
     amrex::Real mass;
+
+    static int do_not_push;
 };
 
 #endif

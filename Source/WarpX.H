@@ -12,15 +12,17 @@
 #include <AMReX_AmrCore.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
+#include <AMReX_RealVect.H>
 
 #include <ParticleContainer.H>
-
-/*! A test class */
+#include <WarpXPML.H>
 
 class WarpX
     : public amrex::AmrCore
 {
 public:
+
+    friend class PML;
 
     static WarpX& GetInstance ();
     static void ResetInstance ();
@@ -37,18 +39,12 @@ public:
 
     MultiParticleContainer& GetPartContainer () { return *mypc; }
 
-#if (BL_SPACEDIM == 3)
-    amrex::Box getIndexBox(const amrex::RealBox& real_box) const;
-    void fillSlice(amrex::Real z_coord) const;
-    void sampleAtPoints(const amrex::Array<amrex::Real>& x,
-			const amrex::Array<amrex::Real>& y,
-			const amrex::Array<amrex::Real>& z,
-			amrex::Array<amrex::Array<amrex::Real> >& result) const;
-#endif
-
     static void shiftMF(amrex::MultiFab& mf, const amrex::Geometry& geom, int num_shift, int dir);
 
     static void GotoNextLine (std::istream& is);
+
+    // External fields
+    static amrex::Array<amrex::Real> B_external;
 
     // Algorithms
     static long current_deposition_algo;
@@ -63,26 +59,35 @@ public:
 
     static bool use_laser;
 
-    const amrex::MultiFab& getcurrent (int lev, int direction) {return *current[lev][direction];}
-    const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield[lev][direction];}
-    const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield[lev][direction];}
+    const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
+    const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}
+    const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield_fp[lev][direction];}
 
     void ComputeDt ();
     void MoveWindow (bool move_j);
 
-    const amrex::Array<amrex::Real>& getPMLSigma(int dir) {return pml_sigma[dir];};
-    const amrex::Array<amrex::Real>& getPMLSigmaStar(int dir) {return pml_sigma_star[dir];};
-    void ComputePMLFactors (int lev, amrex::Real dt);
-    void ComputePMLFactorsE (int lev, amrex::Real dt);
-    void ComputePMLFactorsB (int lev, amrex::Real dt);
-    void ExchangeWithPML (amrex::MultiFab& regmf, amrex::MultiFab& pmlmf,
-                          const amrex::Geometry& gm);
-
+    void EvolveE (         amrex::Real dt);
     void EvolveE (int lev, amrex::Real dt);
+    void EvolveB (         amrex::Real dt);
     void EvolveB (int lev, amrex::Real dt);
-    void FillBoundaryE (int lev, bool force);
-    void FillBoundaryB (int lev, bool force);
+    void EvolveF (         amrex::Real dt);
+    void EvolveF (int lev, amrex::Real dt);
+
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
+    void PushParticlesandDepose (         amrex::Real cur_time);
+
+    // This function does aux(lev) = fp(lev) + I(aux(lev-1)-cp(lev)).
+    // Caller must make sure fp and cp have ghost cells filled.
+    void UpdateAuxilaryData ();
+
+    // Fill boundary cells including coarse/fine boundaries
+    void FillBoundaryB ();
+    void FillBoundaryE ();
+    void FillBoundaryE (int lev);
+    void FillBoundaryB (int lev);
+
+    void SyncCurrent ();
+    void SyncRho ();
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -105,35 +110,47 @@ public:
 
     static std::array<amrex::Real,3> CellSize (int lev);
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
+    static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
+
+    static amrex::IntVect Bx_nodal_flag;
+    static amrex::IntVect By_nodal_flag;
+    static amrex::IntVect Bz_nodal_flag;
+
+    static amrex::IntVect Ex_nodal_flag;
+    static amrex::IntVect Ey_nodal_flag;
+    static amrex::IntVect Ez_nodal_flag;
+
+    static amrex::IntVect jx_nodal_flag;
+    static amrex::IntVect jy_nodal_flag;
+    static amrex::IntVect jz_nodal_flag;
 
 protected:
 
     //! Tagging cells for refinement
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) override
-        { amrex::Abort("ErrorEst: To be implemented"); }
+    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int /*ngrow*/) final;
 
     //! Make a new level from scratch using provided BoxArray and
     //! DistributionMapping.  Only used during initialization.  Called
     //! by AmrCoreInitFromScratch.
     virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					  const amrex::DistributionMapping& dm) override;
+					  const amrex::DistributionMapping& dm) final;
 
     //! Make a new level using provided BoxArray and
     //! DistributionMapping and fill with interpolated coarse level
     //! data.  Called by AmrCore::regrid.
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
-					 const amrex::DistributionMapping& dm) override
+					 const amrex::DistributionMapping& dm) final
         { amrex::Abort("MakeNewLevelFromCoarse: To be implemented"); }
 
     //! Remake an existing level using provided BoxArray and
     //! DistributionMapping and fill with existing fine and coarse
     //! data.  Called by AmrCore::regrid.
     virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
-			      const amrex::DistributionMapping& dm) override
+			      const amrex::DistributionMapping& dm) final
         { amrex::Abort("RemakeLevel: To be implemented"); }
 
     //! Delete level data.  Called by AmrCore::regrid.
-    virtual void ClearLevel (int lev) override;
+    virtual void ClearLevel (int lev) final;
 
 private:
 
@@ -168,23 +185,27 @@ private:
 
     void ReadParameters ();
 
+    // *************************************************************************
     void RegridBaseLevel ();
     bool LoadBalanceBaseLevel ();
     void splitBoxes (amrex::BoxArray& ba, amrex::Array<long>& newcost, const amrex::Array<long>& cost_in, int heavy_grid_size);
     amrex::Real getEfficiency(const amrex::DistributionMapping& dm, const amrex::Array<long>& cost);
     amrex::DistributionMapping getCostCountDM (const amrex::Array<long>& cost, const amrex::BoxArray& ba);
     bool okToRegrid(int step);
+    // *************************************************************************
 
     void InitFromScratch ();
 
     void AllocLevelData (int lev, const amrex::BoxArray& new_grids,
                          const amrex::DistributionMapping& new_dmap);
-    void InitLevelData (int lev);
+    void InitLevelData (int lev, amrex::Real time);
 
     void InitFromCheckpoint ();
     void PostRestart ();
 
     void InitOpenbc ();
+
+    void InitPML ();
 
     void InjectPlasma(int num_shift, int dir);
 
@@ -193,7 +214,22 @@ private:
     static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
-    void InitPML ();
+    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx);
+
+    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx);
+
+    void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
+                      const std::array<      amrex::MultiFab*,3>& crse,
+                      int ref_ratio);
+
+    void SyncRho (const amrex::MultiFab& fine, amrex::MultiFab& crse, int ref_ratio);
+
+    void ExchangeWithPmlB (int lev);
+    void ExchangeWithPmlE (int lev);
 
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
@@ -205,28 +241,35 @@ private:
     // Particle container
     std::unique_ptr<MultiParticleContainer> mypc;
 
-    // Fields: First array for level, second for direction
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield;
-
-    // PML  xxxxx for now let's only consider single level
-    int do_pml = 0;
-    int pml_ncell = 10;
-    amrex::BoxArray pml_ba;
-    amrex::DistributionMapping pml_dm;
-    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_E;
-    std::array<std::unique_ptr<amrex::MultiFab>,3> pml_B;
     //
-    struct PMLSigma : amrex::Array<amrex::Real>
-    {
-        int lo() const { return m_lo; }
-        int hi() const { return m_hi; }
-        int m_lo, m_hi;
-    };
-    std::array<PMLSigma,BL_SPACEDIM> pml_sigma, pml_sigma_star; // sigma/epsilon, sigma_star/mu
-    std::array<PMLSigma,BL_SPACEDIM> pml_sigma_fac1, pml_sigma_fac2, 
-                                     pml_sigma_star_fac1, pml_sigma_star_fac2;
+    // Fields: First array for level, second for direction
+    //
+
+    // Full solution
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_aux;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_aux;
+
+    // Fine patch
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > F_fp;
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > rho_fp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp;
+
+    // Coarse patch
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > F_cp;
+    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > rho_cp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
+    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
+
+    // div E cleaning
+    int do_dive_cleaning = 0;
+
+    // PML
+    int do_pml = 1;
+    int pml_ncell = 10;
+    amrex::Array<std::unique_ptr<PML> > pml;
 
     // Moving window parameters
     int do_moving_window  = 0;
@@ -258,21 +301,20 @@ private:
     int check_int = -1;
     int plot_int = -1;
 
-    bool plot_raw_fields = false;
+    bool plot_part_per_cell = true;
+    bool plot_part_per_grid = true;
+    bool plot_part_per_proc = true;
+    bool plot_proc_number   = true;
+    bool plot_dive          = false;
+    bool plot_divb          = false;
+    bool plot_finepatch     = false;
+    bool plot_crsepatch     = false;
+    bool plot_raw_fields    = false;
+
+    amrex::RealVect fine_tag_lo;
+    amrex::RealVect fine_tag_hi;
 
     bool is_synchronized = true;
-
-    static amrex::IntVect Bx_nodal_flag;
-    static amrex::IntVect By_nodal_flag;
-    static amrex::IntVect Bz_nodal_flag;
-
-    static amrex::IntVect Ex_nodal_flag;
-    static amrex::IntVect Ey_nodal_flag;
-    static amrex::IntVect Ez_nodal_flag;
-
-    static amrex::IntVect jx_nodal_flag;
-    static amrex::IntVect jy_nodal_flag;
-    static amrex::IntVect jz_nodal_flag;
 };
 
 #endif

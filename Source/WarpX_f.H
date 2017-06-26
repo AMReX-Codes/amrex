@@ -3,22 +3,40 @@
 
 #if (BL_SPACEDIM == 3)
 
+#define WRPX_COMPUTE_DIVB               warpx_compute_divb_3d
+#define WRPX_COMPUTE_DIVE               warpx_compute_dive_3d
+#define WRPX_SYNC_CURRENT               warpx_sync_current_3d
+#define WRPX_SYNC_RHO                   warpx_sync_rho_3d
+#define WRPX_CLEAN_EVEC                 warpx_clean_evec_3d
+
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_3d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_3d
+#define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_3d
+#define WRPX_PUSH_PML_F                  warpx_push_pml_f_3d
 
 #elif (BL_SPACEDIM == 2)
+
+#define WRPX_COMPUTE_DIVB               warpx_compute_divb_2d
+#define WRPX_COMPUTE_DIVE               warpx_compute_dive_2d
+#define WRPX_SYNC_CURRENT               warpx_sync_current_2d
+#define WRPX_SYNC_RHO                   warpx_sync_rho_2d
+#define WRPX_CLEAN_EVEC                 warpx_clean_evec_2d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_2d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_2d
+#define WRPX_PUSH_PML_EVEC_F             warpx_push_pml_evec_f_2d
+#define WRPX_PUSH_PML_F                  warpx_push_pml_f_2d
 
 #endif
 
+#ifdef __cplusplus
 extern "C"
 {
+#endif
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -85,6 +103,10 @@ extern "C"
 	void warpx_gaussian_laser( const long* np,
 				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength, amrex::Real* e_max, amrex::Real* waist,
 				amrex::Real* duration, amrex::Real* t_peak, amrex::Real* f, amrex::Real* amplitude );
+
+  void warpx_harris_laser( const long* np,
+				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
+        amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
 
 	// Maxwell solver
 
@@ -161,6 +183,20 @@ extern "C"
 
 //  These functions are used to evolve E and B in the PML
 
+    void WRPX_COMPUTE_DIVB (const int* lo, const int* hi,
+                             BL_FORT_FAB_ARG_ANYD(divb),
+                             const BL_FORT_FAB_ARG_ANYD(Bx),
+                             const BL_FORT_FAB_ARG_ANYD(By),
+                             const BL_FORT_FAB_ARG_ANYD(Bz),
+                             const amrex::Real* dx);
+
+    void WRPX_COMPUTE_DIVE (const int* lo, const int* hi,
+                             BL_FORT_FAB_ARG_ANYD(dive),
+                             const BL_FORT_FAB_ARG_ANYD(ex),
+                             const BL_FORT_FAB_ARG_ANYD(ey),
+                             const BL_FORT_FAB_ARG_ANYD(ez),
+                             const amrex::Real* dx);
+
     void WRPX_PUSH_PML_BVEC(const int* xlo, const int* xhi,
                             const int* ylo, const int* yhi,
                             const int* zlo, const int* zhi,
@@ -196,4 +232,58 @@ extern "C"
 #endif
                             const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
                             const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi);
+
+    void WRPX_PUSH_PML_EVEC_F(const int* xlo, const int* xhi,
+                              const int* ylo, const int* yhi,
+                              const int* zlo, const int* zhi,
+                              BL_FORT_FAB_ARG_3D(ex),
+                              BL_FORT_FAB_ARG_3D(ey),
+                              BL_FORT_FAB_ARG_3D(ez),
+                              const BL_FORT_FAB_ARG_3D(f),
+                              const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi, 
+                              const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi, 
+#if (BL_SPACEDIM == 3)
+                              const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi, 
+                              const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi, 
+#endif
+                              const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
+                              const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi,
+                              const amrex::Real* c2);
+
+    void WRPX_PUSH_PML_F(const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_3D(f),
+                         const BL_FORT_FAB_ARG_3D(ex),
+                         const BL_FORT_FAB_ARG_3D(ey),
+                         const BL_FORT_FAB_ARG_3D(ez),
+                         const amrex::Real* sigx1, int sigx1_lo, int sigx1_hi, 
+                         const amrex::Real* sigx2, int sigx2_lo, int sigx2_hi, 
+#if (BL_SPACEDIM == 3)
+                         const amrex::Real* sigy1, int sigy1_lo, int sigy1_hi, 
+                         const amrex::Real* sigy2, int sigy2_lo, int sigy2_hi, 
+#endif
+                         const amrex::Real* sigz1, int sigz1_lo, int sigz1_hi, 
+                         const amrex::Real* sigz2, int sigz2_lo, int sigz2_hi,
+                         const amrex::Real* c2inv);
+
+    void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
+                             BL_FORT_FAB_ARG_ANYD(crse),
+                             const BL_FORT_FAB_ARG_ANYD(fine),
+                             const int* dir);
+
+    void WRPX_SYNC_RHO (const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_ANYD(crse),
+                         const BL_FORT_FAB_ARG_ANYD(fine));
+
+    void WRPX_CLEAN_EVEC (const int* xlo, const int* xhi,
+                           const int* ylo, const int* yhi,
+                           const int* zlo, const int* zhi,
+                           BL_FORT_FAB_ARG_3D(ex),
+                           BL_FORT_FAB_ARG_3D(ey),
+                           BL_FORT_FAB_ARG_3D(ez),
+                           const BL_FORT_FAB_ARG_3D(F),
+                           const amrex::Real* dtdx);
+
+#ifdef __cplusplus
 }
+#endif
+

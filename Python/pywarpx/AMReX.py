@@ -15,7 +15,7 @@ from ._libwarpx import amrex_init
 class AMReX(object):
 
     def init(self):
-        argv = []
+        argv = ['warpx']
         argv += warpx.attrlist()
         argv += amr.attrlist()
         argv += geometry.attrlist()
