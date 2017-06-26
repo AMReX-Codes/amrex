@@ -40,7 +40,8 @@ public:
     /// Performs the field gather operation using the input field E, for all the species
     /// in the MultiParticleContainer. This is the electrostatic version of the field gather.
     ///
-    void FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E);
+    void FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                        const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks);
 
     ///
     /// Performs the field gather operation using the input fields E and B, for all the species

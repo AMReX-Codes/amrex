@@ -60,7 +60,8 @@ public:
 
     virtual void InitData () = 0;
 
-    virtual void FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E) {}
+    virtual void FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                                const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) {}
 
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,

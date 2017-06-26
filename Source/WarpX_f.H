@@ -183,8 +183,8 @@ extern "C"
                              amrex::Real* input_data, amrex::Real* bndry_data, 
                              const int* mask);
 
-    void WARPX_BUILD_MASK(const int* lo, const int* hi,
-                          const int* tmp_mask, int* mask, const int* ncells);
+    void WRPX_BUILD_MASK(const int* lo, const int* hi,
+                         const int* tmp_mask, int* mask, const int* ncells);
 
     void WRPX_COMPUTE_E_NODAL(const int* lo, const int* hi,
                               const amrex::Real* phi,

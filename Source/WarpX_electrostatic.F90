@@ -987,4 +987,4 @@ contains
 
   end subroutine warpx_push_leapfrog_positions_2d
 
-end module electrostatic_pic_module
+end module warpx_electrostatic_module

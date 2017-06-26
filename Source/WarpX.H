@@ -17,6 +17,16 @@
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
 
+class NoOpPhysBC
+    : public amrex::PhysBCFunctBase
+{
+public:
+    NoOpPhysBC () {}
+    virtual ~NoOpPhysBC () {}
+    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time) override { }
+    using amrex::PhysBCFunctBase::FillBoundary;
+};
+
 class WarpX
     : public amrex::AmrCore
 {
@@ -231,6 +241,29 @@ private:
     void ExchangeWithPmlB (int lev);
     void ExchangeWithPmlE (int lev);
 
+    //
+    // This stuff is needed by the nodal multigrid solver when running in 
+    // electrostatic mode.
+    //
+    void zeroOutBoundary(amrex::MultiFab& input_data, amrex::MultiFab& bndry_data,
+                         const amrex::FabArray<amrex::BaseFab<int> >& mask) const;
+    
+    void sumFineToCrseNodal(const amrex::MultiFab& fine, amrex::MultiFab& crse, 
+                            const amrex::Geometry& cgeom, const amrex::IntVect& ratio);
+
+    void fixRHSForSolve(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rhs,
+                        const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) const ;
+
+    void getLevelMasks(amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks,
+                       const int nnodes = 1);
+
+    // used to zero out fine level data on points shared with the coarse grid
+    // in electrostatic mode
+    amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > masks;
+
+    // used to gather the field from the coarse level in electrostatic mode.
+    amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
+                        
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
 

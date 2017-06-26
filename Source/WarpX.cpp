@@ -20,8 +20,6 @@
 #include <WarpX_f.H>
 #include <WarpXConst.H>
 
-#include <WarpX_f.H>
-
 using namespace amrex;
 
 Array<Real> WarpX::B_external(3, 0.0);
@@ -130,6 +128,9 @@ WarpX::WarpX ()
     Bfield_cp.resize(nlevs_max);
 
     pml.resize(nlevs_max);
+
+    masks.resize(nlevs_max);
+    gather_masks.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -339,7 +340,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     }
 
     //
-    // The coasrse patch
+    // The coarse patch
     //
     if (lev > 0)
     {
@@ -409,81 +410,184 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #endif
 }
 
+void WarpX::zeroOutBoundary(amrex::MultiFab& input_data,
+                            amrex::MultiFab& bndry_data,
+                            const FabArray<BaseFab<int> >& mask) const {
+    bndry_data.setVal(0.0, 1);
+    for (MFIter mfi(input_data); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        WRPX_ZERO_OUT_BNDRY(bx.loVect(), bx.hiVect(),
+                            input_data[mfi].dataPtr(),
+                            bndry_data[mfi].dataPtr(),
+                            mask[mfi].dataPtr());
+    }
+    bndry_data.FillBoundary();
+}
+
+void WarpX::sumFineToCrseNodal(const amrex::MultiFab& fine,
+                               amrex::MultiFab& crse,
+                               const amrex::Geometry& cgeom,
+                               const amrex::IntVect& ratio) {
+    const BoxArray& fine_BA = fine.boxArray();
+    const DistributionMapping& fine_dm = fine.DistributionMap();
+    BoxArray coarsened_fine_BA = fine_BA;
+    coarsened_fine_BA.coarsen(ratio);
+    
+    MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
+    coarsened_fine_data.setVal(0.0);
+    
+    for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        const Box& crse_box = coarsened_fine_data[mfi].box();
+        const Box& fine_box = fine[mfi].box();
+        WRPX_SUM_FINE_TO_CRSE_NODAL(bx.loVect(), bx.hiVect(), ratio.getVect(),
+                                    coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
+                                    fine[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
+    }
+    
+    crse.copy(coarsened_fine_data, cgeom.periodicity(), FabArrayBase::ADD);
+}
+
+void 
+WarpX::fixRHSForSolve(Array<std::unique_ptr<MultiFab> >& rhs,
+                      const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) const {
+    int num_levels = rhs.size();
+    for (int lev = 0; lev < num_levels; ++lev) {
+        MultiFab& fine_rhs = *rhs[lev];
+        const FabArray<BaseFab<int> >& mask = *masks[lev];        
+        const BoxArray& fine_ba = fine_rhs.boxArray();
+        const DistributionMapping& fine_dm = fine_rhs.DistributionMap();
+        MultiFab fine_bndry_data(fine_ba, fine_dm, 1, 1);
+        zeroOutBoundary(fine_rhs, fine_bndry_data, mask);
+    }
+}
+
+void WarpX::getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
+                          const int nnodes) {
+    int num_levels = grids.size();
+    BL_ASSERT(num_levels == dmap.size());
+
+    int covered = 0;
+    int notcovered = 1;
+    int physbnd = 1;
+    int interior = 0;
+    
+    for (int lev = 0; lev < num_levels; ++lev) {
+        BoxArray nba = grids[lev];
+        nba.surroundingNodes();
+        
+        FabArray<BaseFab<int> > tmp_mask(nba, dmap[lev], 1, nnodes);
+        tmp_mask.BuildMask(geom[lev].Domain(), geom[lev].periodicity(),
+                           covered, notcovered, physbnd, interior);
+        masks[lev].reset(new FabArray<BaseFab<int> >(nba, dmap[lev], 1, 0));
+        for (MFIter mfi(tmp_mask); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            WRPX_BUILD_MASK(bx.loVect(), bx.hiVect(),
+                            tmp_mask[mfi].dataPtr(), (*masks[lev])[mfi].dataPtr(), &nnodes);
+        }
+    }
+}
+
+
 void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho, 
                              Array<std::unique_ptr<MultiFab> >& phi) const {    
 
 
-    int nlevs = rho.size();
-    BL_ASSERT(nlevs == 1);
-    const int lev = 0;
+    int num_levels = rho.size();
+    int finest_level = num_levels - 1;
 
-    phi[lev]->setVal(0.0);
-
-    // temporary rhs for passing into solver
-    Array<std::unique_ptr<MultiFab> > rhs(nlevs);
-    rhs[lev].reset( new MultiFab(rho[lev]->boxArray(), dmap[lev], 1, 1) );
-    MultiFab::Copy(*rhs[lev], *rho[lev], 0, 0, 1, 1); 
-
-    // multiply by -1.0/ep_0
-    rhs[lev]->mult(-1.0/PhysConst::ep0, 1);        
-
-    // Note - right now this does either Dirichlet 0 on all sides,
-    // or periodic on all sides.
-    Array<int> mg_bc(2*BL_SPACEDIM);
-    if (Geometry::isAllPeriodic()) {
-        // subtract off mean RHS for solvability
-        Real offset = mypc->sumParticleCharge();
-        offset *= (-1.0/PhysConst::ep0) / Geom(lev).ProbSize();
-        rhs[lev]->plus(-offset, 0, 1, 1);
-        for (int i = 0; i < 2*BL_SPACEDIM; i++) {
-            mg_bc[i] = 0.0;
-        }
-        MultiFab::Copy(*rhs[lev], *rho[lev], 0, 0, 1, 1); 
-    } else {
-        // do Dirichlet zero on all sides.
-        for (int i = 0; i < 2*BL_SPACEDIM; i++) {
-            mg_bc[i] = 1.0;
-        }
-        
-        // set rho to zero on boundary
-        Box domain_box = amrex::convert(Geom(lev).Domain(),
-                                        rhs[lev]->boxArray().ixType());
-        domain_box.grow(-1);
-        for (MFIter mfi(*rhs[lev]); mfi.isValid(); ++mfi){
-            (*rhs[lev])[mfi].setComplement(0.0, domain_box, 0, 1);
-        }
+    Array<std::unique_ptr<MultiFab> > rhs(num_levels);    
+    for (int lev = 0; lev < num_levels; ++lev) {
+        phi[lev]->setVal(0.0, 2);
+        rhs[lev].reset(new MultiFab(rho[lev]->boxArray(), dmap[lev], 1, 0));
+        MultiFab::Copy(*rhs[lev], *rho[lev], 0, 0, 1, 0);
+        rhs[lev]->mult(-1.0/PhysConst::ep0, 0);
     }
+
+    fixRHSForSolve(rhs, masks);
 
     bool nodal = true;
     bool have_rhcc = false;
     int  nc = 0;
+    int Ncomp = 1;
     int stencil = ND_CROSS_STENCIL;
     int verbose = 0;
-    int Ncomp = 1;
+    Array<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
+    Real rel_tol = 1.0e-14;
+    Real abs_tol = 1.0e-14;
 
-    MGT_Solver solver(geom, mg_bc.dataPtr(), grids, dmap, nodal,
-                      stencil, have_rhcc, nc, Ncomp, verbose);
+    Array<Geometry>            level_geom(1);
+    Array<BoxArray>            level_grids(1);
+    Array<DistributionMapping> level_dm(1);
+    Array<MultiFab*>           level_phi(1);
+    Array<MultiFab*>           level_rhs(1);
+    
+    for (int lev = 0; lev < num_levels; ++lev) {
+        level_phi[0]   = phi[lev].get();
+        level_rhs[0]   = rhs[lev].get();
+        level_geom[0]  = geom[lev];
+        level_grids[0] = grids[lev];
+        level_dm[0]    = dmap[lev];
+        
+        MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids, 
+                          level_dm, nodal,
+                          stencil, have_rhcc, nc, Ncomp, verbose);
+        
+        solver.set_nodal_const_coefficients(1.0);
+        
+        solver.solve_nodal(level_phi, level_rhs, rel_tol, abs_tol);
 
-    solver.set_nodal_const_coefficients(1.0);
+        if (lev < num_levels-1) {
 
-    Real rel_tol = 1.0e-9;
-    Real abs_tol = 1.0e-9;
+            NoOpPhysBC cphysbc, fphysbc;
+#if BL_SPACEDIM == 3
+            int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+            int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+#else
+            int lo_bc[] = {INT_DIR, INT_DIR};
+            int hi_bc[] = {INT_DIR, INT_DIR};
+#endif
+            Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+            NodeBilinear mapper;
 
-    solver.solve_nodal(GetArrOfPtrs(phi), GetArrOfPtrs(rhs), rel_tol, abs_tol);
+            amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
+                                         0, 0, 1, geom[lev], geom[lev+1],
+                                         cphysbc, fphysbc,
+                                         IntVect(D_DECL(2, 2, 2)), &mapper, bcs);            
+        }
+    }
+    
+    for (int lev = 0; lev < num_levels; ++lev) {
+        const Geometry& gm = geom[lev];
+        phi[lev]->FillBoundary(gm.periodicity());
+    }
 }
 
 void WarpX::computeE(Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
                      const Array<std::unique_ptr<MultiFab> >& phi) const {
-    const int lev = 0;
-    const auto& gm = GetInstance().Geom(0);
-    const Real* dx = gm.CellSize();
-    for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
-	const Box& bx = mfi.validbox();
-	warpx_compute_E_nodal(bx.loVect(), bx.hiVect(),
-                              (*phi[lev])[mfi].dataPtr(), 
-                              (*E[lev][0])[mfi].dataPtr(),
-                              (*E[lev][1])[mfi].dataPtr(), 
-                              (*E[lev][2])[mfi].dataPtr(), dx);
+
+    const int num_levels = E.size();
+    for (int lev = 0; lev < num_levels; ++lev) {
+        const auto& gm = GetInstance().Geom(0);
+        const Real* dx = gm.CellSize();
+        for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+
+            WRPX_COMPUTE_E_NODAL(bx.loVect(), bx.hiVect(),
+                                 (*phi[lev] )[mfi].dataPtr(),
+                                 (*E[lev][0])[mfi].dataPtr(),
+                                 (*E[lev][1])[mfi].dataPtr(),
+#if BL_SPACEDIM == 3
+                                 (*E[lev][2])[mfi].dataPtr(),
+#endif
+                                 dx);
+        }
+
+        E[lev][0]->FillBoundary(gm.periodicity());
+        E[lev][1]->FillBoundary(gm.periodicity());
+#if BL_SPACEDIM == 3
+        E[lev][2]->FillBoundary(gm.periodicity());                 
+#endif
     }
 }
 

@@ -165,36 +165,67 @@ void
 WarpXParticleContainer::DepositCharge (Array<std::unique_ptr<MultiFab> >& rho, bool local)
 {
 
-    const int lev = 0;
+    int num_levels = rho.size();
+    int finest_level = num_levels - 1;
 
-    const auto& gm = m_gdb->Geom(lev);
-    const auto& ba = m_gdb->ParticleBoxArray(lev);
-    const auto& dm = m_gdb->DistributionMap(lev);
-    BoxArray nba = ba;
-    nba.surroundingNodes();
+    // each level deposits it's own particles
+    const int ng = rho[0]->nGrow();
+    for (int lev = 0; lev < num_levels; ++lev) {       
 
-    const Real* dx  = gm.CellSize();
-    const Real* plo = gm.ProbLo();
-    const int ng = 1;
+        rho[lev]->setVal(0.0, ng);
 
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const Box& box = nba[pti];
+        const auto& gm = m_gdb->Geom(lev);
+        const auto& ba = m_gdb->ParticleBoxArray(lev);
+        const auto& dm = m_gdb->DistributionMap(lev);
+    
+        const Real* dx  = gm.CellSize();
+        const Real* plo = gm.ProbLo();
+        BoxArray nba = ba;
+        nba.surroundingNodes();
+    
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
+            const Box& box = nba[pti];
+            
+            auto& wp = pti.GetAttribs(PIdx::w);
+            const auto& particles = pti.GetArrayOfStructs();
+            int nstride = particles.dataShape().first;
+            const long np  = pti.numParticles();
+            
+            FArrayBox& rhofab = (*rho[lev])[pti];
+            
+            WRPX_DEPOSIT_CIC(particles.data(), nstride, np,
+                             wp.data(), &this->charge,
+                             rhofab.dataPtr(), box.loVect(), box.hiVect(), 
+                             plo, dx, &ng);
+        }
 
-        auto& wp = pti.GetAttribs(PIdx::w);
-        const auto& particles = pti.GetArrayOfStructs();
-        int nstride = particles.dataShape().first;           
-        const long np  = pti.numParticles();
-
-	// Data on the grid
-	FArrayBox& rhofab = (*rho[0])[pti];
-
-        warpx_deposit_cic(particles.data(), nstride, np,
-                          wp.data(), &this->charge, 
-                          rhofab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);
+        if (!local) rho[lev]->SumBoundary(gm.periodicity());
     }
 
-    if (!local) rho[0]->SumBoundary(gm.periodicity());
+    // now we average down fine to crse
+    std::unique_ptr<MultiFab> crse;
+    for (int lev = finest_level - 1; lev >= 0; --lev) {
+        const BoxArray& fine_BA = rho[lev+1]->boxArray();
+        const DistributionMapping& fine_dm = rho[lev+1]->DistributionMap();
+        BoxArray coarsened_fine_BA = fine_BA;
+        coarsened_fine_BA.coarsen(m_gdb->refRatio(lev));
+        
+        MultiFab coarsened_fine_data(coarsened_fine_BA, fine_dm, 1, 0);
+        coarsened_fine_data.setVal(0.0);
+        
+        IntVect ratio(D_DECL(2, 2, 2));  // FIXME
+        
+        for (MFIter mfi(coarsened_fine_data); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            const Box& crse_box = coarsened_fine_data[mfi].box();
+            const Box& fine_box = (*rho[lev+1])[mfi].box();
+            WRPX_SUM_FINE_TO_CRSE_NODAL(bx.loVect(), bx.hiVect(), ratio.getVect(),
+                                        coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
+                                        (*rho[lev+1])[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
+        }
+        
+        rho[lev]->copy(coarsened_fine_data, m_gdb->Geom(lev).periodicity(), FabArrayBase::ADD);
+    }
 }
 
 std::unique_ptr<MultiFab>
@@ -297,22 +328,27 @@ Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 void
 WarpXParticleContainer::PushXES (Real dt)
 {
-    const int lev = 0;
     BL_PROFILE("WPC::PushXES()");
 
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        auto& particles = pti.GetArrayOfStructs();
-        int nstride = particles.dataShape().first;           
-        const long np  = pti.numParticles();
-        
-        auto& attribs = pti.GetAttribs();        
-        auto& uxp = attribs[PIdx::ux];
-        auto& uyp = attribs[PIdx::uy];
-        auto& uzp = attribs[PIdx::uz];
-        
-        warpx_push_leapfrog_positions(particles.data(), nstride, np,
-                                      uxp.data(), uyp.data(), uzp.data(), &dt);
+    int num_levels = finestLevel() + 1;
+
+    for (int lev = 0; lev < num_levels; ++lev) {       
+        const auto& gm = m_gdb->Geom(lev);
+        const RealBox& prob_domain = gm.ProbDomain();
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
+            auto& particles = pti.GetArrayOfStructs();
+            int nstride = particles.dataShape().first;           
+            const long np  = pti.numParticles();
+            
+            auto& attribs = pti.GetAttribs();        
+            auto& uxp = attribs[PIdx::ux];
+            auto& uyp = attribs[PIdx::uy];
+            auto& uzp = attribs[PIdx::uz];
+            
+            WRPX_PUSH_LEAPFROG_POSITIONS(particles.data(), nstride, np,
+                                         uxp.data(), uyp.data(), uzp.data(), &dt,
+                                         prob_domain.lo(), prob_domain.hi());
+        }
     }
 }
 

@@ -49,7 +49,7 @@ WarpX::EvolveES(int numsteps) {
         BoxArray nba = boxArray(lev);
         nba.surroundingNodes(); 
         rhoNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, ng));
-        phiNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, ng));
+        phiNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, 2));
 
         eFieldNodal[lev][0].reset(new MultiFab(nba, dmap[lev], 1, ng));
         eFieldNodal[lev][1].reset(new MultiFab(nba, dmap[lev], 1, ng));
@@ -85,8 +85,12 @@ WarpX::EvolveES(int numsteps) {
             is_synchronized = false;
         }
 
+        mypc->FieldGatherES(eFieldNodal, gather_masks);
+
         // Evolve particles to p^{n+1/2} and x^{n+1}
         mypc->EvolveES(eFieldNodal, rhoNodal, cur_time, dt[lev]);
+
+        mypc->DepositCharge(rhoNodal);
 
         computePhi(rhoNodal, phiNodal);
         phiNodal[0]->FillBoundary(Geom(0).periodicity());
@@ -120,7 +124,7 @@ WarpX::EvolveES(int numsteps) {
             computePhi(rhoNodal, phiNodal);
             phiNodal[0]->FillBoundary(Geom(0).periodicity());
             computeE(eFieldNodal, phiNodal);
-            mypc->FieldGatherES(eFieldNodal);
+            mypc->FieldGatherES(eFieldNodal, gather_masks);
 	    last_plot_file_step = step+1;
 	    WritePlotFileES(rhoNodal, phiNodal, eFieldNodal);
 	}

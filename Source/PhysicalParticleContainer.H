@@ -17,7 +17,8 @@ public:
 
     virtual void InitData () final;
 
-    virtual void FieldGatherES(const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E) override;
+    virtual void FieldGatherES(const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                               const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
 
     virtual void FieldGather(int lev,
                              const amrex::MultiFab& Ex,

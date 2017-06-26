@@ -57,10 +57,11 @@ MultiParticleContainer::InitData ()
 }
 
 void
-MultiParticleContainer::FieldGatherES (const Array<std::array<std::unique_ptr<MultiFab>, 3> >& E)
+MultiParticleContainer::FieldGatherES (const Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                                       const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
 {
     for (auto& pc : allcontainers) {
-	pc->FieldGatherES(E);
+	pc->FieldGatherES(E, masks);
     }
 }
 

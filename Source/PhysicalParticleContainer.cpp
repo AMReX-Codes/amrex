@@ -105,52 +105,160 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
 
 void
 PhysicalParticleContainer::
-FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E)
+FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+               const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
 {
 
-    const int lev = 0;
-    const auto& gm = m_gdb->Geom(lev);
-    const auto& ba = m_gdb->ParticleBoxArray(lev);
+    const int num_levels = E.size();
+    const int ng = E[0][0]->nGrow();
 
-    BoxArray nba = ba;
-    nba.surroundingNodes();
+    if (num_levels == 1) {
+        const int lev = 0;
+        const auto& gm = m_gdb->Geom(lev);
+        const auto& ba = m_gdb->ParticleBoxArray(lev);
 
-    const Real* dx  = gm.CellSize();
-    const Real* plo = gm.ProbLo();
-    const int ng = 1;
+        BoxArray nba = ba;
+        nba.surroundingNodes();
 
-    BL_ASSERT(OnSameGrids(lev, *E[lev][0]));
+        const Real* dx  = gm.CellSize();
+        const Real* plo = gm.ProbLo();
 
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const Box& box = nba[pti];
+        BL_ASSERT(OnSameGrids(lev, *E[lev][0]));
 
-        // Particle structs
-        const auto& particles = pti.GetArrayOfStructs();
-        int nstride = particles.dataShape().first;           
-        const long np  = pti.numParticles();
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
+            const Box& box = nba[pti];
 
-        // Particle attributes
-        auto& attribs = pti.GetAttribs();
-        auto& Exp = attribs[PIdx::Ex];
-        auto& Eyp = attribs[PIdx::Ey];
-        auto& Ezp = attribs[PIdx::Ez];
-        
-        // Data on the grid
-        const FArrayBox& exfab = (*E[lev][0])[pti];
-        const FArrayBox& eyfab = (*E[lev][1])[pti];
-        const FArrayBox& ezfab = (*E[lev][2])[pti];
-        
-        Exp.assign(np,0.0);
-        Eyp.assign(np,0.0);
-        Ezp.assign(np,0.0);
-        
-        //
-        // Field Gather
-        //
-        warpx_interpolate_cic(particles.data(), nstride, np, 
-                              Exp.data(), Eyp.data(), Ezp.data(),
-                              exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                              box.loVect(), box.hiVect(), plo, dx);
+            const auto& particles = pti.GetArrayOfStructs();
+            int nstride = particles.dataShape().first;
+            const long np  = pti.numParticles();
+
+            auto& attribs = pti.GetAttribs();
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+#if BL_SPACEDIM == 3
+            auto& Ezp = attribs[PIdx::Ez];
+#endif
+            Exp.assign(np,0.0);
+            Eyp.assign(np,0.0);
+#if BL_SPACEDIM == 3
+            Ezp.assign(np,0.0);
+#endif
+
+            const FArrayBox& exfab = (*E[lev][0])[pti];
+            const FArrayBox& eyfab = (*E[lev][1])[pti];
+#if BL_SPACEDIM == 3
+            const FArrayBox& ezfab = (*E[lev][2])[pti];
+#endif
+
+            WRPX_INTERPOLATE_CIC(particles.data(), nstride, np,
+                                 Exp.data(), Eyp.data(), 
+#if BL_SPACEDIM == 3                
+                                 Ezp.data(),
+#endif
+                                 exfab.dataPtr(), eyfab.dataPtr(), 
+#if BL_SPACEDIM == 3
+                                 ezfab.dataPtr(),
+#endif
+                                 box.loVect(), box.hiVect(), plo, dx, &ng);
+        }
+
+        return;
+    }
+
+    const BoxArray& fine_BA = E[1][0]->boxArray();
+    const DistributionMapping& fine_dm = E[1][0]->DistributionMap();
+    BoxArray coarsened_fine_BA = fine_BA;
+    coarsened_fine_BA.coarsen(IntVect(D_DECL(2,2,2)));
+
+    MultiFab coarse_Ex(coarsened_fine_BA, fine_dm, 1, 1);
+    MultiFab coarse_Ey(coarsened_fine_BA, fine_dm, 1, 1);
+#if BL_SPACEDIM == 3
+    MultiFab coarse_Ez(coarsened_fine_BA, fine_dm, 1, 1);
+#endif
+    
+    coarse_Ex.copy(*E[0][0], 0, 0, 1, 1, 1);
+    coarse_Ey.copy(*E[0][1], 0, 0, 1, 1, 1);
+#if BL_SPACEDIM == 3
+    coarse_Ez.copy(*E[0][2], 0, 0, 1, 1, 1);
+#endif
+
+    for (int lev = 0; lev < num_levels; ++lev) {
+        const auto& gm = m_gdb->Geom(lev);
+        const auto& ba = m_gdb->ParticleBoxArray(lev);
+
+        BoxArray nba = ba;
+        nba.surroundingNodes();
+
+        const Real* dx  = gm.CellSize();
+        const Real* plo = gm.ProbLo();
+
+        BL_ASSERT(OnSameGrids(lev, *E[lev][0]));
+
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
+            const Box& box = nba[pti];
+
+            const auto& particles = pti.GetArrayOfStructs();
+            int nstride = particles.dataShape().first;
+            const long np  = pti.numParticles();
+
+            auto& attribs = pti.GetAttribs();
+            auto& Exp = attribs[PIdx::Ex];
+            auto& Eyp = attribs[PIdx::Ey];
+#if BL_SPACEDIM == 3
+            auto& Ezp = attribs[PIdx::Ez];
+#endif
+            Exp.assign(np,0.0);
+            Eyp.assign(np,0.0);
+#if BL_SPACEDIM == 3
+            Ezp.assign(np,0.0);
+#endif
+
+            const FArrayBox& exfab = (*E[lev][0])[pti];
+            const FArrayBox& eyfab = (*E[lev][1])[pti];
+#if BL_SPACEDIM == 3
+            const FArrayBox& ezfab = (*E[lev][2])[pti];
+#endif
+
+            if (lev == 0) {
+                WRPX_INTERPOLATE_CIC(particles.data(), nstride, np,
+                                     Exp.data(), Eyp.data(), 
+#if BL_SPACEDIM == 3                
+                Ezp.data(),
+#endif
+                                exfab.dataPtr(), eyfab.dataPtr(), 
+#if BL_SPACEDIM == 3
+                                ezfab.dataPtr(),
+#endif
+                                box.loVect(), box.hiVect(), plo, dx, &ng);                
+            } else {
+                
+                const FArrayBox& exfab_coarse = coarse_Ex[pti];
+                const FArrayBox& eyfab_coarse = coarse_Ey[pti];
+#if BL_SPACEDIM == 3
+                const FArrayBox& ezfab_coarse = coarse_Ez[pti];
+#endif                
+                const Box& coarse_box = coarsened_fine_BA[pti];
+                const Real* coarse_dx = Geom(0).CellSize();
+                
+                WRPX_INTERPOLATE_CIC_TWO_LEVELS(particles.data(), nstride, np,
+                                                Exp.data(), Eyp.data(), 
+#if BL_SPACEDIM == 3                    
+                                                Ezp.data(),
+#endif
+                                                exfab.dataPtr(), eyfab.dataPtr(), 
+#if BL_SPACEDIM == 3
+                                                ezfab.dataPtr(),
+#endif
+                                                box.loVect(), box.hiVect(), dx, 
+                                                exfab_coarse.dataPtr(), eyfab_coarse.dataPtr(),
+#if BL_SPACEDIM == 3
+                                                ezfab_coarse.dataPtr(),
+#endif
+                                                (*masks[1])[pti].dataPtr(),
+                                                coarse_box.loVect(), coarse_box.hiVect(), coarse_dx,
+                                                plo, &ng, &lev);
+            }
+        }
     }
 }
 
@@ -238,75 +346,48 @@ PhysicalParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<Mult
 {
     BL_PROFILE("PPC::EvolveES()");
 
-    const int lev = 0;
-
-    const auto& gm = m_gdb->Geom(lev);
-    const RealBox& prob_domain = gm.ProbDomain();
-    const auto& ba = m_gdb->ParticleBoxArray(lev);
-    const Real* dx  = gm.CellSize();
-    const Real* plo = gm.ProbLo();
-    const int ng = 1;
-
-    BoxArray nba = ba;
-    nba.surroundingNodes();
-
-    BL_ASSERT(OnSameGrids(lev, *rho[lev]));
-
-    {
-	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-	{
-	    const Box& box = nba[pti];
-
+    int num_levels = rho.size();
+    for (int lev = 0; lev < num_levels; ++lev) {
+        BL_ASSERT(OnSameGrids(lev, *rho[lev]));
+        const auto& gm = m_gdb->Geom(lev);
+        const RealBox& prob_domain = gm.ProbDomain();
+	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti) {
             // Particle structs
             auto& particles = pti.GetArrayOfStructs();
             int nstride = particles.dataShape().first;           
             const long np  = pti.numParticles();
-
-            // Particle attribues
+            
+            // Particle attributes
             auto& attribs = pti.GetAttribs();
             auto&  wp = attribs[PIdx::w];
             auto& uxp = attribs[PIdx::ux];
             auto& uyp = attribs[PIdx::uy];
+
+#if BL_SPACEDIM == 3
             auto& uzp = attribs[PIdx::uz];
+#endif
+
             auto& Exp = attribs[PIdx::Ex];
             auto& Eyp = attribs[PIdx::Ey];
+
+#if BL_SPACEDIM == 3
             auto& Ezp = attribs[PIdx::Ez];
-
-	    // Data on the grid
-	    const FArrayBox& exfab  = (*E[lev][0])[pti];
-	    const FArrayBox& eyfab  = (*E[lev][1])[pti];
-	    const FArrayBox& ezfab  = (*E[lev][2])[pti];
-	    FArrayBox&       rhofab = (*rho[lev])[pti];
-
-	    Exp.assign(np,0.0);
-	    Eyp.assign(np,0.0);
-	    Ezp.assign(np,0.0);
-
-	    //
-	    // Field Gather
-	    //
-            warpx_interpolate_cic(particles.data(), nstride, np, 
-                                  Exp.data(), Eyp.data(), Ezp.data(),
-                                  exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                                  box.loVect(), box.hiVect(), plo, dx);
-
-	    //
-	    // Particle Push
-	    //
-            warpx_push_leapfrog(particles.data(), nstride, np,
-                                uxp.data(), uyp.data(), uzp.data(),
-                                Exp.data(), Eyp.data(), Ezp.data(),
-                                &this->charge, &this->mass, &dt,
-                                prob_domain.lo(), prob_domain.hi());
-
-	    //
-	    // Charge Deposition
-	    // xxxxx this part needs to be thread safe if we have OpenMP over tiles
-	    //
-            warpx_deposit_cic(particles.data(), nstride, np,
-                              wp.data(), &this->charge,
-                              rhofab.dataPtr(), box.loVect(), box.hiVect(), plo, dx);           
-	}
+#endif
+            //
+            // Particle Push
+            //
+            WRPX_PUSH_LEAPFROG(particles.data(), nstride, np,
+                               uxp.data(), uyp.data(), 
+#if BL_SPACEDIM == 3
+                               uzp.data(),
+#endif
+                               Exp.data(), Eyp.data(), 
+#if BL_SPACEDIM == 3
+                               Ezp.data(),
+#endif
+                               &this->charge, &this->mass, &dt,
+                               prob_domain.lo(), prob_domain.hi());            
+        }
     }
 }
 
