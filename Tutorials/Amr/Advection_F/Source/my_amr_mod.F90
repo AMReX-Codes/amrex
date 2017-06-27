@@ -194,7 +194,7 @@ contains
        call amrex_fluxregister_build(flux_reg(lev), ba, dm, amrex_ref_ratio(lev-1), lev, ncomp)
     end if
 
-    call phi_new(lev)%copy(new_phi_new, 0, 0, ncomp, 0)
+    call phi_new(lev)%copy(new_phi_new, 1, 1, ncomp, 0)
 
     call amrex_multifab_destroy(new_phi_new)
   end subroutine my_remake_level
