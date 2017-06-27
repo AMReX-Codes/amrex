@@ -141,3 +141,21 @@ amrex::Device::device_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t 
 #endif
 
 }
+
+void
+amrex::Device::start_profiler() {
+
+#ifdef CUDA
+    gpu_start_profiler();
+#endif
+
+}
+
+void
+amrex::Device::stop_profiler() {
+
+#ifdef CUDA
+    gpu_stop_profiler();
+#endif
+
+}
