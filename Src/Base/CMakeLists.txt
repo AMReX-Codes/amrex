@@ -24,7 +24,8 @@ set ( CXX_source_files
    AMReX_Orientation.cpp AMReX_ParallelDescriptor.cpp AMReX_ParmParse.cpp
    AMReX_Periodicity.cpp AMReX_PhysBCFunct.cpp AMReX_PlotFileUtil.cpp
    AMReX_RealBox.cpp AMReX_RealVect.cpp AMReX_Utility.cpp AMReX_VisMF.cpp
-   AMReX_parmparse_fi.cpp AMReX_error_fi.cpp AMReX_BLProfiler.cpp)
+   AMReX_parmparse_fi.cpp AMReX_error_fi.cpp AMReX_BLProfiler.cpp
+   AMReX_TinyProfiler.cpp )
 
 set ( F77_source_files
    AMReX_BLProfiler_F.f AMReX_BLBoxLib_F.f AMReX_bl_flush.f
