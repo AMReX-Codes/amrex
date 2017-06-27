@@ -292,12 +292,87 @@ like below,
     use amrex_amr_module
     implicit none  
     call amrex_amrcore_init()
-    call my_amr_init()       ! user's own code
+    call my_amr_init()       ! user's own code, not part of AMReX
     ! ...
-    call my_amr_finalize()   ! user's own code
+    call my_amr_finalize()   ! user's own code, not part of AMReX
     call amrex_amrcore_finalize()
   end subroutine amrex_fmain
 \end{lstlisting}
-Here we need to call {\tt amrex\_amrcore\_init} and {\tt amrex\_amrcore\_finalize}.
+Here we need to call {\tt amrex\_amrcore\_init} and {\tt
+  amrex\_amrcore\_finalize}.  And usually we need to call application
+code specific procedures to provide some ``hooks'' needed by \amrex.
+In \cpp, this is achieved by using virtual functions.  In Fortran, we
+need to call
+\begin{lstlisting}[language=fortran]
+  subroutine amrex_init_virtual_functions (mk_lev_scrtch, mk_lev_crse, &
+                                           mk_lev_re, clr_lev, err_est)
+
+    ! Make a new level from scratch using provided boxarray and distromap
+    ! Only used during initialization.
+    procedure(amrex_make_level_proc)  :: mk_lev_scrtch
+    ! Make a new level using provided boxarray and distromap, and fill
+    ! with interpolated coarse level data.
+    procedure(amrex_make_level_proc)  :: mk_lev_crse
+    ! Remake an existing level using provided boxarray and distromap,
+    ! and fill with existing fine and coarse data.
+    procedure(amrex_make_level_proc)  :: mk_lev_re
+    ! Delete level data
+    procedure(amrex_clear_level_proc) :: clr_lev
+    ! Tag cells for refinement
+    procedure(amrex_error_est_proc)   :: err_est
+  end subroutine amrex_init_virtual_functions
+\end{lstlisting}
+We need to provide five functions and these functions have three types
+of interfaces:
+\begin{lstlisting}[language=fortran]
+  subroutine amrex_make_level_proc (lev, time, ba, dm) bind(c)
+    import
+    implicit none
+    integer, intent(in), value :: lev
+    real(amrex_real), intent(in), value :: time
+    type(c_ptr), intent(in), value :: ba, dm
+  end subroutine amrex_make_level_proc
+  
+  subroutine amrex_clear_level_proc (lev) bind(c)
+    import
+    implicit none
+    integer, intent(in) , value :: lev
+  end subroutine amrex_clear_level_proc
+  
+  subroutine amrex_error_est_proc (lev, tags, time, tagval, clearval) bind(c)
+    import
+    implicit none
+    integer, intent(in), value :: lev
+    type(c_ptr), intent(in), value :: tags
+    real(amrex_real), intent(in), value :: time
+    character(c_char), intent(in), value :: tagval, clearval
+  end subroutine amrex_error_est_proc
+\end{lstlisting}
+{\tt Tutorials/Amr/Advection\_F/Source/my\_amr\_mod.F90} shows an
+example of the setup process.  The user provided {\tt
+  procedure(amrex\_error\_est\_proc)} has a {\tt tags} argument that
+is of type {\tt c\_ptr} and its value is a pointer to a \cpp\ {\tt
+  TagBoxArray} object.  We need to convert this into a Fortran {\tt
+  amrex\_tagboxarray} object.
+\begin{lstlisting}[language=fortran]
+  type(amrex_tagboxarray) :: tag
+  tag = tags
+\end{lstlisting}
+
+Module {\tt amrex\_fillpatch\_module} provides interface to
+\cpp\ functions {\tt FillPatchSinglelevel} and {\tt
+  FillPatchTwoLevels}.   To use it, the application code needs to
+provide procedures for interpolation and filling physical boundaries.
+See {\tt Tutorials/Amr/Advection\_F/Source/fillpatch\_mod.F90} for an
+example. 
+
+Module {\tt amrex\_fluxregister\_module} provides interface to {\tt
+  FluxRegister} (Section~\ref{sec:amrcore:fluxreg}).  Its usage is
+demonstrated in the tutorial at {\tt
+  Tutorials/Amr/Advection\_F/}. 
+
 \section{Octree}
 \label{sec:fi:octree}
+
+%Some AMR codes are based on octree, whereas grids in \amrex\ are more
+%general than octree.  Nevertheless, \amrex\ can mimic the
