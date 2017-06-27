@@ -374,5 +374,48 @@ demonstrated in the tutorial at {\tt
 \section{Octree}
 \label{sec:fi:octree}
 
-%Some AMR codes are based on octree, whereas grids in \amrex\ are more
-%general than octree.  Nevertheless, \amrex\ can mimic the
+In \amrex, the union of fine level grids is properly contained within
+the union of coarse level grids.  There are no required direct
+parent-child connections between levels.  Therefore, grids in \amrex\
+in general cannot be represented by trees.  Nevertheless, octree type
+grids are supported via Fortran interface, because \amrex\ grids are
+more general than octree grids.  A tutorial example using {\tt
+  amrex\_octree\_module} ({\tt
+  Src/F\_Interfaces/Octree/AMReX\_octree\_mod.f90}) is available at
+{\tt Tutorials/Amr/Advection\_octree\_F/}.  Procedures {\tt
+  amrex\_octree\_init} and {\tt amrex\_octree\_finalize} must be
+called as follows,
+\begin{lstlisting}[language=fortran]
+  subroutine amrex_fmain () bind(c)
+    use amrex_amrcore_module
+    use amrex_octree_module
+    implicit none
+    call amrex_octree_int()  ! This should be called first.
+    call amrex_amrcore_init()
+    call my_amr_init()       ! user's own code, not part of AMReX
+    ! ...
+    call my_amr_finalize()   ! user's own code, not part of AMReX
+    call amrex_amrcore_finalize()
+    call amrex_octree_finalize()
+  end subroutine amrex_fmain
+\end{lstlisting}
+By default, the grid size is $8^3$, and this can be changed via {\tt
+  ParmParse} parameter {\tt amr.max\_grid\_size}.  Module {\tt
+  amrex\_octree\_module} provides {\tt amrex\_octree\_iter} that can
+be used to iterate over leaves of octree.  For example,
+\begin{lstlisting}[language=fortran]
+  type(amrex_octree_iter) :: oti
+  type(multifab) :: phi_new(*)   ! one multifab for each level
+  integer :: ilev, igrd
+  type(amrex_box) :: bx
+  real(amrex_real), contiguous, pointer, dimension(:,:,:,:) :: pout
+  call amrex_octree_iter_build(oti)
+  do while(oti%next())
+     ilev = oti%level()
+     igrd = oti%grid_index()
+     bx   = oti%box()
+     pout => phi_new(ilev)%dataptr(igrd)
+     ! ...
+  end do
+  call amrex_octree_iter_destroy(oti)
+\end{lstlisting}
