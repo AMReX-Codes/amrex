@@ -189,7 +189,7 @@ extern "C"
     void WRPX_COMPUTE_E_NODAL(const int* lo, const int* hi,
                               const amrex::Real* phi,
                               amrex::Real* Ex, amrex::Real* Ey, 
-#if BL_SPACEDIM == 3                          
+#if (BL_SPACEDIM == 3)
                           amrex::Real* Ez, 
 #endif
                           const amrex::Real* dx);
@@ -203,16 +203,16 @@ extern "C"
     
     void WRPX_INTERPOLATE_CIC_TWO_LEVELS(const amrex::Real* particles, int ns, int np,
                                          amrex::Real* Ex_p, amrex::Real* Ey_p, 
-#if BL_SPACEDIM == 3                                                              
+#if (BL_SPACEDIM == 3)
                                          amrex::Real* Ez_p,
 #endif
                                          const amrex::Real* Ex, const amrex::Real* Ey, 
-#if BL_SPACEDIM == 3                          
+#if (BL_SPACEDIM == 3)
                                          const amrex::Real* Ez,
 #endif
                                          const int* lo, const int* hi, const amrex::Real* dx,
                                          const amrex::Real* cEx, const amrex::Real* cEy, 
-#if BL_SPACEDIM == 3                          
+#if (BL_SPACEDIM == 3)                        
                                          const amrex::Real* cEz,
 #endif
                                          const int* mask,
@@ -221,11 +221,11 @@ extern "C"
 
     void WRPX_INTERPOLATE_CIC(const amrex::Real* particles, int ns, int np,
                               amrex::Real* Ex_p, amrex::Real* Ey_p, 
-#if BL_SPACEDIM == 3                          
+#if (BL_SPACEDIM == 3)                          
                               amrex::Real* Ez_p,
 #endif
                               const amrex::Real* Ex, const amrex::Real* Ey, 
-#if BL_SPACEDIM == 3                          
+#if (BL_SPACEDIM == 3)                          
                               const amrex::Real* Ez,
 #endif
                               const int* lo, const int* hi,
@@ -234,11 +234,11 @@ extern "C"
 
     void WRPX_PUSH_LEAPFROG(amrex::Real* particles, int ns, int np, 
                             amrex::Real* vx_p, amrex::Real* vy_p, 
-#if BL_SPACEDIM == 3                          
+#if (BL_SPACEDIM == 3)                          
                             amrex::Real* vz_p,
 #endif
                             const amrex::Real* Ex_p, const amrex::Real* Ey_p, 
-#if BL_SPACEDIM == 3                          
+#if (BL_SPACEDIM == 3)                          
                             const amrex::Real* Ez_p,
 #endif
                             const amrex::Real* charge, const amrex::Real* mass, const amrex::Real* dt,
@@ -246,7 +246,7 @@ extern "C"
 
     void WRPX_PUSH_LEAPFROG_POSITIONS(amrex::Real* particles, int ns, int np,
                                       amrex::Real* vx_p, amrex::Real* vy_p, 
-#if BL_SPACEDIM == 3                          
+#if (BL_SPACEDIM == 3)
                                       amrex::Real* vz_p,
 #endif
                                       const amrex::Real* dt, const amrex::Real* prob_lo,
