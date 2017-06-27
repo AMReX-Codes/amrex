@@ -718,14 +718,11 @@ WritePlotFileES (const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
                 varnames.push_back("phi");
             }
             dcomp += 1;
-            
-            MultiFab temp_dat(grids[lev],mf[lev]->DistributionMap(),1,0);
-            temp_dat.setVal(0);
-            
-            amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, 
-                                           amrex::GetArrOfConstPtrs(mf),
-                                           varnames, Geom(), t_new[0], istep, refRatio());
-        }
+        }   
+
+        amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, 
+                                       amrex::GetArrOfConstPtrs(mf),
+                                       varnames, Geom(), t_new[0], istep, refRatio());
     }
 
     {
