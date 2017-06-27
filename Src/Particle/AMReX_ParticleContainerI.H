@@ -4107,10 +4107,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensitySingleLevel (int rho_index,
-							 MultiFab& mf_to_be_filled,
-							 int       lev,
-							 int       ncomp,
-							 int       particle_lvl_offset) const
+                                                                                             MultiFab& mf_to_be_filled,
+                                                                                             int       lev,
+                                                                                             int       ncomp,
+                                                                                             int       particle_lvl_offset) const
 {
   BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensitySingleLevel()");
   BL_ASSERT(NStructReal >= 1);
@@ -4214,13 +4214,13 @@ AssignCellDensitySingleLevelFort (int rho_index,
             hi = box.hiVect();
 #endif
 
-            amrex_deposit_cic(particles.data(), nstride, np, data_ptr, lo, hi, plo, dx);
+            amrex_deposit_cic(particles.data(), nstride, np, ncomp, data_ptr, lo, hi, plo, dx);
 
 #ifdef _OPENMP
             amrex_atomic_accumulate_fab(local_rho.dataPtr(), 
                                         tile_box.loVect(), tile_box.hiVect(),
                                         fab.dataPtr(),
-                                        box.loVect(), box.hiVect());
+                                        box.loVect(), box.hiVect(), ncomp);
 #endif
 
         }
