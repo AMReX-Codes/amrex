@@ -731,7 +731,7 @@ contains
                     wx_lo*wy_hi*Ey(i,   j+1) + &
                     wx_hi*wy_lo*Ey(i+1, j  ) + &
                     wx_hi*wy_hi*Ey(i+1, j+1)
-          
+
        end if
 
     end do

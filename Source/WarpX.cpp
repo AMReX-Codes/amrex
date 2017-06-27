@@ -496,8 +496,6 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
 
 
     int num_levels = rho.size();
-    int finest_level = num_levels - 1;
-
     Array<std::unique_ptr<MultiFab> > rhs(num_levels);    
     for (int lev = 0; lev < num_levels; ++lev) {
         phi[lev]->setVal(0.0, 2);
