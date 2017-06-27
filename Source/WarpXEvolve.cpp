@@ -75,7 +75,6 @@ WarpX::EvolveES(int numsteps) {
             mypc->Redistribute();
             mypc->DepositCharge(rhoNodal);
             computePhi(rhoNodal, phiNodal);
-            phiNodal[0]->FillBoundary(Geom(0).periodicity());
             computeE(eFieldNodal, phiNodal);
             is_synchronized = false;
         }
@@ -92,7 +91,6 @@ WarpX::EvolveES(int numsteps) {
         mypc->DepositCharge(rhoNodal);
 
         computePhi(rhoNodal, phiNodal);
-        phiNodal[0]->FillBoundary(Geom(0).periodicity());
         computeE(eFieldNodal, phiNodal);
         
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
@@ -663,7 +661,9 @@ WarpX::ComputeDt ()
     dt.resize(0);
     dt.resize(max_level+1,deltat);
 
-    dt[0] = 0.5e-11; // FIX ME
+    if (do_electrostatic) {
+        dt[0] = const_dt;
+    }
 }
 
 void
