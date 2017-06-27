@@ -103,7 +103,7 @@ contains
        call gpu_error_test(cudaResult, abort=0)
     end do
 
-    call cudaProfilerStop()
+    call gpu_stop_profiler()
 
     cudaResult = cudaDeviceReset()
     call gpu_error_test(cudaResult, abort=0)
@@ -483,6 +483,26 @@ contains
     call gpu_error_test(cudaResult)
 
   end subroutine gpu_stream_synchronize
+
+
+
+  subroutine gpu_start_profiler() bind(c, name='gpu_start_profiler')
+
+    implicit none
+
+    call cudaProfilerStart()
+
+  end subroutine gpu_start_profiler
+
+
+
+  subroutine gpu_stop_profiler() bind(c, name='gpu_stop_profiler')
+
+    implicit none
+
+    call cudaProfilerStop()
+
+  end subroutine gpu_stop_profiler
 
 
 

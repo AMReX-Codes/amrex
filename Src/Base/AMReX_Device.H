@@ -19,6 +19,8 @@ extern "C" {
     void gpu_host_device_ptr(void** x, const void* y);
     void gpu_stream_synchronize(const int idx);
     void gpu_synchronize();
+    void gpu_start_profiler();
+    void gpu_stop_profiler();
     void set_threads_and_blocks(const int* lo, const int* hi);
     void gpu_htod_memcpy_async(void* p_d, void* p_h, const std::size_t* sz, const int* idx);
     void gpu_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t* sz, const int* idx);
@@ -71,6 +73,9 @@ public:
 
     static void device_htod_memcpy_async(void* p_d, void* p_h, const std::size_t sz, const int idx);
     static void device_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t sz, const int idx);
+
+    static void start_profiler();
+    static void stop_profiler();
 
 private:
 
