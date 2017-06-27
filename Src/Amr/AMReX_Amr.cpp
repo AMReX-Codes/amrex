@@ -1253,6 +1253,9 @@ Amr::FinalizeInit (Real              strt_time,
     station.init(amr_level, finestLevel());
     station.findGrid(amr_level,Geom());
 #endif
+
+    Device::start_profiler();
+
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
 
