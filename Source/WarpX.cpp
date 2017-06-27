@@ -570,7 +570,7 @@ void WarpX::computeE(Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
 
     const int num_levels = E.size();
     for (int lev = 0; lev < num_levels; ++lev) {
-        const auto& gm = GetInstance().Geom(0);
+        const auto& gm = GetInstance().Geom(lev);
         const Real* dx = gm.CellSize();
         for (MFIter mfi(*phi[lev]); mfi.isValid(); ++mfi) {
             const Box& bx = mfi.validbox();
