@@ -6,8 +6,9 @@ class PGroup(object):
     """Implements a class that has the same API as a warp ParticleGroup instance.
     """
 
-    def __init__(self, igroup):
+    def __init__(self, igroup, ispecie):
         self.igroup = igroup
+        self.ispecie = ispecie
         self.ns = 1 # Number of species
 
         self.gallot()
@@ -75,81 +76,85 @@ class PGroup(object):
         return self.nps.sum()
     npmax = property(getnpmax)
 
-    def getxp(self, js=0):
-        return _libwarpx.get_particle_x(js)[self.igroup]
+    def getxp(self):
+        return _libwarpx.get_particle_x(self.ispecie)[self.igroup]
     xp = property(getxp)
 
-    def getyp(self, js=0):
-        return _libwarpx.get_particle_y(js)[self.igroup]
+    def getyp(self):
+        return _libwarpx.get_particle_y(self.ispecie)[self.igroup]
     yp = property(getyp)
 
-    def getzp(self, js=0):
-        return _libwarpx.get_particle_z(js)[self.igroup]
+    def getzp(self):
+        return _libwarpx.get_particle_z(self.ispecie)[self.igroup]
     zp = property(getzp)
 
-    def getuxp(self, js=0):
-        return _libwarpx.get_particle_ux(js)[self.igroup]
+    def getuxp(self):
+        return _libwarpx.get_particle_ux(self.ispecie)[self.igroup]
     uxp = property(getuxp)
 
-    def getuyp(self, js=0):
-        return _libwarpx.get_particle_uy(js)[self.igroup]
+    def getuyp(self):
+        return _libwarpx.get_particle_uy(self.ispecie)[self.igroup]
     uyp = property(getuyp)
 
-    def getuzp(self, js=0):
-        return _libwarpx.get_particle_uz(js)[self.igroup]
+    def getuzp(self):
+        return _libwarpx.get_particle_uz(self.ispecie)[self.igroup]
     uzp = property(getuzp)
 
-    def getpid(self, js=0):
-        id = _libwarpx.get_particle_id(js)[self.igroup]
+    def getpid(self):
+        id = _libwarpx.get_particle_id(self.ispecie)[self.igroup]
         pid = np.array([id]).T
         return pid
     pid = property(getpid)
 
-    def getgaminv(self, js=0):
-        uxp = self.getuxp(js)
-        uyp = self.getuyp(js)
-        uzp = self.getuzp(js)
+    def getgaminv(self):
+        uxp = self.getuxp()
+        uyp = self.getuyp()
+        uzp = self.getuzp()
         return np.sqrt(1. - (uxp**2 + uyp**2 + uzp**2)/_libwarpx.clight**2)
     gaminv = property(getgaminv)
 
-    def getex(self, js=0):
-        return _libwarpx.get_particle_Ex(js)[self.igroup]
+    def getex(self):
+        return _libwarpx.get_particle_Ex(self.ispecie)[self.igroup]
     ex = property(getex)
 
-    def getey(self, js=0):
-        return _libwarpx.get_particle_Ey(js)[self.igroup]
+    def getey(self):
+        return _libwarpx.get_particle_Ey(self.ispecie)[self.igroup]
     ey = property(getey)
 
-    def getez(self, js=0):
-        return _libwarpx.get_particle_Ez(js)[self.igroup]
+    def getez(self):
+        return _libwarpx.get_particle_Ez(self.ispecie)[self.igroup]
     ez = property(getez)
 
-    def getbx(self, js=0):
-        return _libwarpx.get_particle_Bx(js)[self.igroup]
+    def getbx(self):
+        return _libwarpx.get_particle_Bx(self.ispecie)[self.igroup]
     bx = property(getbx)
 
-    def getby(self, js=0):
-        return _libwarpx.get_particle_By(js)[self.igroup]
+    def getby(self):
+        return _libwarpx.get_particle_By(self.ispecie)[self.igroup]
     by = property(getby)
 
-    def getbz(self, js=0):
-        return _libwarpx.get_particle_Bz(js)[self.igroup]
+    def getbz(self):
+        return _libwarpx.get_particle_Bz(self.ispecie)[self.igroup]
     bz = property(getbz)
 
 class PGroups(object):
     def __init__(self, ispecie=0):
         self.ispecie = ispecie
-        xall = _libwarpx.get_particle_x(ispecie)
+
+    def setuppgroups(self):
+        xall = _libwarpx.get_particle_x(self.ispecie)
         self.ngroups = len(xall)
 
         self._pgroups = []
         for igroup in range(self.ngroups):
-            self._pgroups.append(PGroup(igroup))
+            self._pgroups.append(PGroup(igroup, self.ispecie))
         
     def __iter__(self):
+        self.setuppgroups()
         for igroup in range(self.ngroups):
             yield self._pgroups[igroup]
 
     def __getitem__(self, key):
+        self.setuppgroups()
         return self._pgroups[key]
 

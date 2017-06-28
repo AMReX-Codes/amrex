@@ -25,7 +25,9 @@ class Bucket(object):
         "Concatenate the attributes into a string"
         result = []
         for attr, value in self.argvattrs.iteritems():
-            attrstring = '{0}.{1}={2} '.format(self.instancename, attr, value)
+            # --- repr is applied to value so that for floats, all of the digits are included.
+            # --- The strip is then needed when value is a string.
+            attrstring = '{0}.{1}={2} '.format(self.instancename, attr, repr(value).strip("'\""))
             result += [attrstring]
         return result
 

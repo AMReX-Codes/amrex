@@ -4,6 +4,8 @@ from PICMI_Base import *
 import numpy as np
 from pywarpx import *
 
+codename = 'WarpX'
+
 
 class Grid(PICMI_Grid):
     def init(self, **kw):
@@ -20,8 +22,26 @@ class Grid(PICMI_Grid):
         # Geometry
         geometry.coord_sys = kw.get('coord_sys', 0)  # 0: Cartesian
         geometry.is_periodic = '%d %d %d'%(self.bcxmin=='periodic', self.bcymin=='periodic', self.bczmin=='periodic')  # Is periodic?  
-        geometry.prob_lo = '%7.0e %7.0e %7.0e'%(self.xmin, self.ymin, self.zmin)  # physical domain
-        geometry.prob_hi = '%7.0e %7.0e %7.0e'%(self.xmax, self.ymax, self.zmax)
+        geometry.prob_lo = '%s %s %s'%(repr(self.xmin), repr(self.ymin), repr(self.zmin))  # physical domain
+        geometry.prob_hi = '%s %s %s'%(repr(self.xmax), repr(self.ymax), repr(self.zmax))
+
+        if self.moving_window_velocity is not None and np.any(self.moving_window_velocity != 0):
+            warpx.do_moving_window = 1
+            if self.moving_window_velocity[0] != 0.:
+                warpx.moving_window_dir = 'x'
+                warpx.moving_window_v = self.moving_window_velocity[0]/clight  # in units of the speed of light
+            if self.moving_window_velocity[1] != 0.:
+                warpx.moving_window_dir = 'y'
+                warpx.moving_window_v = self.moving_window_velocity[1]/clight  # in units of the speed of light
+            if self.moving_window_velocity[2] != 0.:
+                warpx.moving_window_dir = 'z'
+                warpx.moving_window_v = self.moving_window_velocity[2]/clight  # in units of the speed of light
+
+    def getmins(self, **kw):
+        return np.array([warpx.getProbLo(0), warpx.getProbLo(1), warpx.getProbLo(2)])
+
+    def getmaxs(self, **kw):
+        return np.array([warpx.getProbHi(0), warpx.getProbHi(1), warpx.getProbHi(2)])
 
     def getxmin(self):
         return warpx.getProbLo(0)
