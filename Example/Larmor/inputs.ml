@@ -53,8 +53,8 @@ warpx.cfl = 1.0
 particles.nspecies = 2
 particles.species_names = electron positron
 
-#particles.nspecies = 1
-#particles.species_names = electron
+particles.nspecies = 1
+particles.species_names = electron
 
 electron.charge = -q_e
 electron.mass = m_e
