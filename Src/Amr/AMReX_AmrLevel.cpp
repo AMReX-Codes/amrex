@@ -12,15 +12,12 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
+#include <AMReX_VisMF.H>
 
 namespace amrex {
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
-
-#ifdef USE_SLABSTAT
-SlabStatList   AmrLevel::slabstat_lst;
-#endif
 
 void
 AmrLevel::postCoarseTimeStep (Real time)
@@ -34,14 +31,6 @@ AmrLevel::postCoarseTimeStep (Real time)
 	}
     }
 }
-
-#ifdef USE_SLABSTAT
-SlabStatList&
-AmrLevel::get_slabstat_lst ()
-{
-    return slabstat_lst;
-}
-#endif
 
 void
 AmrLevel::set_preferred_boundary_values (MultiFab& S,
@@ -115,6 +104,158 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     finishConstructor();
 }
+
+void
+AmrLevel::writePlotFile (const std::string& dir,
+                         std::ostream&      os,
+                         VisMF::How         how)
+{
+    int i, n;
+    //
+    // The list of indices of State to write to plotfile.
+    // first component of pair is state_type,
+    // second component of pair is component # within the state_type
+    //
+    std::vector<std::pair<int,int> > plot_var_map;
+    for (int typ = 0; typ < desc_lst.size(); typ++)
+        for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
+            if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
+                desc_lst[typ].getType() == IndexType::TheCellType())
+                plot_var_map.push_back(std::pair<int,int>(typ,comp));
+
+    int n_data_items = plot_var_map.size();
+
+    // get the time from the first State_Type
+    // if the State_Type is ::Interval, this will get t^{n+1/2} instead of t^n
+    Real cur_time = state[0].curTime();
+
+    if (level == 0 && ParallelDescriptor::IOProcessor())
+    {
+        //
+        // The first thing we write out is the plotfile type.
+        //
+        os << thePlotFileType() << '\n';
+
+        if (n_data_items == 0)
+            amrex::Error("Must specify at least one valid data item to plot");
+
+        os << n_data_items << '\n';
+
+	//
+	// Names of variables
+	//
+	for (i =0; i < plot_var_map.size(); i++)
+        {
+	    int typ = plot_var_map[i].first;
+	    int comp = plot_var_map[i].second;
+	    os << desc_lst[typ].name(comp) << '\n';
+        }
+
+        os << BL_SPACEDIM << '\n';
+        os << parent->cumTime() << '\n';
+        int f_lev = parent->finestLevel();
+        os << f_lev << '\n';
+        for (i = 0; i < BL_SPACEDIM; i++)
+            os << Geometry::ProbLo(i) << ' ';
+        os << '\n';
+        for (i = 0; i < BL_SPACEDIM; i++)
+            os << Geometry::ProbHi(i) << ' ';
+        os << '\n';
+        for (i = 0; i < f_lev; i++)
+            os << parent->refRatio(i)[0] << ' ';
+        os << '\n';
+        for (i = 0; i <= f_lev; i++)
+            os << parent->Geom(i).Domain() << ' ';
+        os << '\n';
+        for (i = 0; i <= f_lev; i++)
+            os << parent->levelSteps(i) << ' ';
+        os << '\n';
+        for (i = 0; i <= f_lev; i++)
+        {
+            for (int k = 0; k < BL_SPACEDIM; k++)
+                os << parent->Geom(i).CellSize()[k] << ' ';
+            os << '\n';
+        }
+        os << (int) Geometry::Coord() << '\n';
+        os << "0\n"; // Write bndry data.
+
+    }
+    // Build the directory to hold the MultiFab at this level.
+    // The name is relative to the directory containing the Header file.
+    //
+    static const std::string BaseName = "/Cell";
+    char buf[64];
+    sprintf(buf, "Level_%d", level);
+    std::string Level = buf;
+    //
+    // Now for the full pathname of that directory.
+    //
+    std::string FullPath = dir;
+    if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
+        FullPath += '/';
+    FullPath += Level;
+    //
+    // Only the I/O processor makes the directory if it doesn't already exist.
+    //
+    if (ParallelDescriptor::IOProcessor())
+        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+            amrex::CreateDirectoryFailed(FullPath);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Barrier();
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        os << level << ' ' << grids.size() << ' ' << cur_time << '\n';
+        os << parent->levelSteps(level) << '\n';
+
+        for (i = 0; i < grids.size(); ++i)
+        {
+            RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
+            for (n = 0; n < BL_SPACEDIM; n++)
+                os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
+        }
+        //
+        // The full relative pathname of the MultiFabs at this level.
+        // The name is relative to the Header file containing this name.
+        // It's the name that gets written into the Header.
+        //
+        if (n_data_items > 0)
+        {
+            std::string PathNameInHeader = Level;
+            PathNameInHeader += BaseName;
+            os << PathNameInHeader << '\n';
+        }
+    }
+    //
+    // We combine all of the multifabs -- state, derived, etc -- into one
+    // multifab -- plotMF.
+    // NOTE: In this tutorial code, there is no derived data
+    int       cnt   = 0;
+    const int nGrow = 0;
+    MultiFab  plotMF(grids,dmap,n_data_items,nGrow);
+    MultiFab* this_dat = 0;
+    //
+    // Cull data from state variables -- use no ghost cells.
+    //
+    for (i = 0; i < plot_var_map.size(); i++)
+    {
+	int typ  = plot_var_map[i].first;
+	int comp = plot_var_map[i].second;
+	this_dat = &state[typ].newData();
+	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
+	cnt++;
+    }
+
+    //
+    // Use the Full pathname when naming the MultiFab.
+    //
+    std::string TheFullPath = FullPath;
+    TheFullPath += BaseName;
+    VisMF::Write(plotMF,TheFullPath,how,true);
+}
+
 
 void
 AmrLevel::restart (Amr&          papa,
@@ -747,7 +888,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 		if (first) {
 		    first = false;
 		    if (ParallelDescriptor::IOProcessor()) {
-			int new_blocking_factor = 2*m_amrlevel.parent->blockingFactor(m_amrlevel.level);
+			IntVect new_blocking_factor = m_amrlevel.parent->blockingFactor(m_amrlevel.level);
+                        new_blocking_factor *= 2;
 			for (int i = 0; i < 10; ++i) {
 			    if (amrex::ProperlyNested(m_amrlevel.crse_ratio,
 						       new_blocking_factor,
@@ -759,7 +901,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 			}
 			std::cout << "WARNING: Grids are not properly nested.  We might have to use\n"
 				  << "         two coarse levels to do fillpatch.  Consider using\n";
-			if (new_blocking_factor < 128) {
+			if (new_blocking_factor < IntVect{D_DECL(128,128,128)}) {
 			    std::cout << "         amr.blocking_factor=" << new_blocking_factor;
 			} else {
 			    std::cout << "         larger amr.blocking_factor. ";
@@ -1875,11 +2017,6 @@ AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
       // ---- BoxArrays
       amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
       amrex::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
-
-
-#ifdef USE_SLABSTAT
-      amrex::Abort("**** Error in AmrLevel::MSS:  USE_SLABSTAT not implemented");
-#endif
 
       // ---- state
       int stateSize(state.size());

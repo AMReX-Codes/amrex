@@ -103,6 +103,13 @@ extern "C" {
         MultiFab::Copy(*dstmf, *srcmf, srccomp, dstcomp, nc, ng);
     }
 
+    void amrex_fi_multifab_parallelcopy (MultiFab* dstmf, const MultiFab* srcmf,
+                                         int srccomp, int dstcomp, int nc,
+                                         int srcng, int dstng, const Geometry* geom)
+    {
+        dstmf->ParallelCopy(*srcmf,srccomp,dstcomp,nc,srcng,dstng,geom->periodicity());
+    }
+
     void amrex_fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
 					  int c, int nc, int cross)
     {
