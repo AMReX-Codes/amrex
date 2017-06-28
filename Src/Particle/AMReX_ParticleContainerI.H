@@ -3984,7 +3984,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     
     BL_ASSERT(NStructReal >= 1);
     BL_ASSERT(NStructReal >= ncomp);
-    BL_ASSERT(ncomp == 1);
+    BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
     if (finest_level == -1) {
         finest_level = finestLevel();
