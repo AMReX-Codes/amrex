@@ -412,7 +412,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         if (do_dive_cleaning)
         {
-            pml_F_cp.reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()), dm, 3, 0));
+            pml_F_cp.reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()), cdm, 3, 0));
             pml_F_cp->setVal(0.0);
         }
 
