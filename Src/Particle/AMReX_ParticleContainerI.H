@@ -4203,7 +4203,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
             tile_box.grow(1);
-            local_rho.resize(tile_box);
+            local_rho.resize(tile_box,ncomp);
             local_rho = 0.0;
             data_ptr = local_rho.dataPtr();
             lo = tile_box.loVect();
