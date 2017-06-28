@@ -20,12 +20,19 @@ endif ()
 # Set paths for build system
 set ( CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/Src/mod_files )
 
+
+# Set directory paths
+set (AMREX_SOURCE_DIR       ${CMAKE_SOURCE_DIR}/Src )
+set (AMREX_LIBRARY_DIR      ${CMAKE_INSTALL_PREFIX}/lib )
+set (AMREX_INCLUDE_DIR      ${CMAKE_INSTALL_PREFIX}/include )
+set (AMREX_BINARY_DIR       ${CMAKE_INSTALL_PREFIX}/bin )
+set (AMREX_LIBRARIES        fboxlib;cboxlib;fboxlib;cfboxlib;box_camrdata)
+
+
 # The following is the old way: why cache?
 # set ( CMAKE_Fortran_MODULE_DIRECTORY
 #    ${CMAKE_CURRENT_BINARY_DIR}/mod_files
 #    CACHE PATH "Folder for fortran module files")
-
-
 
 # The type of build ( will need to be uppercase )
 set ( AMREX_BUILD_TYPE )

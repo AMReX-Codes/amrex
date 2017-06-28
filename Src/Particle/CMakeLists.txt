@@ -46,7 +46,7 @@ add_library(box_cpart OBJECT ${local_source_files})
 add_dependencies(box_cpart box_c)
 
 
-add_install_include_file(${local_header_files})
+install_include_files(${local_header_files})
 
 if (BUILD_TESTS)
 

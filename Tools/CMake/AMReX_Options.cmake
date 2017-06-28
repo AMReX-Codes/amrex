@@ -105,7 +105,6 @@ check_option_value ( "ENABLE_FMG" ${ENABLE_MG_BOXLIB} 0 1 )
 set ( ENABLE_FBASELIB 0 CACHE INT  "Enable Fortran BaseLib" )
 check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
 
-
 # After the options are set, define the following variable
 # so that other included file can check if this file has been
 # run already
