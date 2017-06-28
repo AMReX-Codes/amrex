@@ -142,8 +142,6 @@ endfunction( ADD_INSTALL_BINARY )
 function(makefile_include_dirs)
 
     cmake_parse_arguments(PARSE_ARGS "" "MAKE_INCLUDE_LIST" "CMAKE_INCLUDE_LIST" ${ARGN})
-    #print_variable(PARSE_ARGS_CMAKE_INCLUDE_LIST)
-    #print_variable(PARSE_ARGS_MAKE_INCLUDE_LIST)
 
     set(tmp_inc_list)
     set(loop_list ${PARSE_ARGS_CMAKE_INCLUDE_LIST})
@@ -156,8 +154,6 @@ function(makefile_include_dirs)
     set(tmp_make_list)
     string(REGEX REPLACE ";" "" tmp_make_list ${tmp_inc_list})
     set(${PARSE_ARGS_MAKE_INCLUDE_LIST} "${tmp_make_list}" PARENT_SCOPE)
-
-    print ( tmp_make_list )
     
 endfunction(makefile_include_dirs)
 
@@ -220,8 +216,6 @@ install (FILES "${out_makefile}" DESTINATION lib)
 
 set (in_config   "${CCSE_MODULE_PATH}/CCSEConfig-install.cmake.in")
 set (out_config   "${CMAKE_INSTALL_PREFIX}/bin/CCSEConfig.cmake")
-print (in_config)
-print (out_config)
 
 configure_file (${in_config} ${out_config})
 install (FILES ${out_config} DESTINATION lib)
