@@ -17,8 +17,8 @@ subroutine amrex_atomic_accumulate_fab(local_fab, tile_lo, tile_hi, &
 
   integer          :: i, comp
 
-  do i = tile_lo(1), tile_hi(1)
-     do comp = 1, nc
+  do comp = 1, nc
+     do i = tile_lo(1), tile_hi(1)
         !$omp atomic
         global_fab(i, comp) = global_fab(i, comp) + local_fab(i, comp)
         !$omp end atomic
