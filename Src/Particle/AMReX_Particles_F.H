@@ -4,8 +4,6 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_SPACE.H>
 
-#ifdef USE_PARTICLES
-
 #ifdef BL_SINGLE_PRECISION_PARTICLES
 typedef float amrex_particle_real;
 #else
@@ -27,7 +25,7 @@ extern "C"
                                              amrex_real* y,
                                              amrex_real* z));
 
-    void amrex_deposit_cic(const amrex_particle_real*, int ns, int np,
+    void amrex_deposit_cic(const amrex_particle_real*, int ns, int np, int nc,
                            amrex_real* rho, const int* lo, const int* hi,
                            const amrex_real* plo, const amrex_real* dx);
 
@@ -36,7 +34,7 @@ extern "C"
                                const amrex_real* plo, const amrex_real* dx);
 
     void amrex_atomic_accumulate_fab(const amrex_real*, const int*, const int*,
-                                     amrex_real*, const int*, const int*);
+                                     amrex_real*, const int*, const int*, int);
 
 BL_FORT_PROC_DECL(PART_SUMMASSDOWN,part_summassdown)
     (BL_FORT_FAB_ARG(crse_fab),
@@ -62,8 +60,6 @@ BL_FORT_PROC_DECL(PART_SUMDENSUP,part_sumdensup)
 
 #ifdef __cplusplus
 };
-#endif
-
 #endif
 
 #endif /*_Particles_F_H_*/

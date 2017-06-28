@@ -11,7 +11,7 @@ The particle classes can be used by including the header $\tt{AMReX\_Particles.H
 
 This is a templated data type, designed to allow flexibility in the number and type of variables that the particles carry. The first template parameter is
 the number of extra $\tt{Real}$ variables this particle will have (either single or double precision\footnote{Particles default to double-precision for their real data. To use single precision, compile your code with $\tt{USE\_SINGLE\_PRECISION\_PARTICLES=TRUE}$.}), while the second is the number of extra integer variables. 
-It is imporant to note that this is the number of $\emph{extra}$ real and integer variables; a particle will always have at least $\tt{BL\_SPACEDIM}$ real components that store the particle's position and $\tt{2}$ integer components that store the particle's $\tt{id}$ and $\tt{cpu}$ numbers.\footnote{Note that $\tt{cpu}$ stores the number of the process the particle was $\emph{generated}$ on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle $\tt{id}$. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.}
+It is important to note that this is the number of $\emph{extra}$ real and integer variables; a particle will always have at least $\tt{BL\_SPACEDIM}$ real components that store the particle's position and $\tt{2}$ integer components that store the particle's $\tt{id}$ and $\tt{cpu}$ numbers.\footnote{Note that $\tt{cpu}$ stores the number of the process the particle was $\emph{generated}$ on, not the one its currently assigned to. This number is set on initialization and never changes, just like the particle $\tt{id}$. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.}
 
 The particle struct is designed to store these variables in a way that minimizes padding, which in practice means that the $\tt{Real}$ components always come first, and the integer components second. Additionally, the required particle variables are stored before the optional ones, for both the real and the integer components. For example, say we want to define a particle type that stores a mass, three velocity components, and two extra integer flags. Our particle struct would be set up like:
 
@@ -58,7 +58,7 @@ One particle by itself is not very useful. To do real calculations, a collection
    
 \subsection{Arrays-of-Structs and Structs-of-Arrays}
 
-Like the $\tt{Particle}$ class itself, the $\tt{ParticleContainer}$ class is templated. The first two template parameters have the same meaning as before: they define the number of each type of variables that the particles in this container will store. Particles added to the container are stored in the Array-of-Structs (AoS) style. In addition, there are two more optional template parameters that allow the user to specify additional particle variables that will be stored in Struct-of-Array (SoA) form. The difference between Array-of-Struct and Struct-of-Array data is in how the data is laid out in memory. For the AoS data, all the variables associated with particle 1 are next to each other in memory, followed by all the variables associated with particle 2, and so on. For variables stored in SoA style, all the particle data for a given component is next to each other in memory, and each component is stored in a seperate
+Like the $\tt{Particle}$ class itself, the $\tt{ParticleContainer}$ class is templated. The first two template parameters have the same meaning as before: they define the number of each type of variables that the particles in this container will store. Particles added to the container are stored in the Array-of-Structs (AoS) style. In addition, there are two more optional template parameters that allow the user to specify additional particle variables that will be stored in Struct-of-Array (SoA) form. The difference between Array-of-Struct and Struct-of-Array data is in how the data is laid out in memory. For the AoS data, all the variables associated with particle 1 are next to each other in memory, followed by all the variables associated with particle 2, and so on. For variables stored in SoA style, all the particle data for a given component is next to each other in memory, and each component is stored in a separate
 array. For convenience, we (arbitrarily) refer to the components in the particle struct as particle $\emph{data}$, and components stored in the Struct-of-Arrays as particle
 $\emph{attributes}$. See Figure~\ref{fig:particles:particle_arrays} for an illustration.
 
@@ -71,7 +71,7 @@ $\emph{attributes}$. See Figure~\ref{fig:particles:particle_arrays} for an illus
 To see why the distinction between AoS and SoA data is important, consider the following extreme case. Say you have particles that carry 100 different components,
 but that most of the time, you only need to do calculations involving 3 of them (say, the particle positions) at once. In this case, storing all 100 particle variables in the particle
 struct is clearly inefficient, since most of the time you are reading 97 extra variables into cache that you will never use. By splitting up the particle variables into stuff that gets 
-used all the time (stored in the AoS) and stuff that only gets used infrequently (stored in the SoA), you can in principle acheive much better cache reuse. Of course, the usage pattern of your application likely won't be so clear-cut. Flexibility in how the particle data is stored also makes it easier to interface between $\tt{AMReX}$ and already-existing Fortran subroutines.
+used all the time (stored in the AoS) and stuff that only gets used infrequently (stored in the SoA), you can in principle achieve much better cache reuse. Of course, the usage pattern of your application likely won't be so clear-cut. Flexibility in how the particle data is stored also makes it easier to interface between $\tt{AMReX}$ and already-existing Fortran subroutines.
 
 Note that while ``extra'' particle data can be stored in either the SoA or AoS style, the particle positions and id numbers are $\emph{always}$ stored in the particle
 structs. This is because these particle variables are special and used internally by $\tt{AMReX}$ to assign the particles to grids and to mark particles as valid or invalid, respectively.
@@ -228,7 +228,7 @@ particles. For example:
 
 is equivalent to particle struct you get with $\tt{Particle<6, 0>}$. Here, $\tt{amrex_particle_real}$ is either single or doubled precision, depending 
 on whether $\tt{USE\_SINGLE\_PRECISION\_PARTICLES}$ is $\tt{TRUE}$ or not. We recommend always using this type in Fortran routines that work on particle
-data to avoid hard-to-debug incompatibilites between floating point types.
+data to avoid hard-to-debug incompatibilities between floating point types.
 
 \section{Interacting with Mesh Data}
 \label{sec:Particles:Interacting}
@@ -286,7 +286,7 @@ rho.SumBoundary(gm.periodicity());
 
 \end{lstlisting}
 
-As before, we loop over all our particles, calling a $\tt{Fortran}$ routine that deposits them on to the appropriate $\tt{FArrayBox}$. The Fabs must have enough ghost cells to
+As before, we loop over all our particles, calling a $\tt{Fortran}$ routine that deposits them on to the appropriate $\tt{FArrayBox}$. The FArrayBox's must have enough ghost cells to
 cover the support of all the particles associated with them. Note that we call $\tt{SumBoundary}$ instead of $\tt{FillBoundary}$ after performing the deposition, to add up the charge 
 in the ghost cells surrounding each Fab into the corresponding valid cells.
 

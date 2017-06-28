@@ -45,9 +45,6 @@ void test_assign_density(TestParams& parms)
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
-    // This says we are using Cartesian coordinates
-    int coord = 0;
-
     // This sets the boundary conditions to be doubly or triply periodic
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -55,10 +52,10 @@ void test_assign_density(TestParams& parms)
 
     // This defines a Geometry object which is useful for writing the plotfiles  
     Array<Geometry> geom(nlevs);
-    geom[0].define(domain, &real_box, coord, is_per);
+    geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
 	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
-			 &real_box, coord, is_per);
+			 &real_box, CoordSys::cartesian, is_per);
     }
 
     Array<BoxArray> ba(nlevs);
@@ -87,8 +84,6 @@ void test_assign_density(TestParams& parms)
     Array<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
-        partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
-        partMF[lev]->setVal(0.0, 2);
         density[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 0));
         density[lev]->setVal(0.0);
         acceleration[lev].reset(new MultiFab(ba[lev], dmap[lev], 3, 1));
@@ -108,8 +103,8 @@ void test_assign_density(TestParams& parms)
     //    myPC.InitRandom(num_particles, iseed, pdata, serialize, fine_box);
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-    myPC.AssignDensity(0, true, partMF, 0, 1, 1);
-    //myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
+    //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
+    myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
 
     myPC.InterpolateFort(acceleration, 0, nlevs-1);
 

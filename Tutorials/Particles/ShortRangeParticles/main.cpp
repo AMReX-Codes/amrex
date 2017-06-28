@@ -32,11 +32,10 @@ int main(int argc, char* argv[])
     IntVect domain_hi(AMREX_D_DECL(size - 1, size - 1, size - 1));
     const Box domain(domain_lo, domain_hi);
     
-    int coord = 0;
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) 
         is_per[i] = 0; 
-    Geometry geom(domain, &real_box, coord, is_per);
+    Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
     
     BoxArray ba(domain);
     ba.maxSize(max_grid_size);

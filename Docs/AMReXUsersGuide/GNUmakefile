@@ -14,9 +14,11 @@ section_sources = Preface/Preface.tex \
                   AmrCore/AmrCore.tex \
                   Particle/Particle.tex \
                   AmrLevel/AmrLevel.tex \
+                  Fortran/Fortran.tex \
                   Visualization/Visualization.tex \
                   Profiling/Profiling.tex \
-                  Debugging/Debugging.tex
+                  Debugging/Debugging.tex \
+                  CVODE/CVODE.tex
 
 AMReXUsersGuide.pdf: AMReXUsersGuide.tex $(pdf_source) $(section_sources) $(pdf_source)
 	pdflatex AMReXUsersGuide.tex < /dev/null

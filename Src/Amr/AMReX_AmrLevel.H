@@ -10,7 +10,6 @@
 #include <AMReX_BCRec.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_Amr.H>
-#include <AMReX_SlabStat.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_StateDescriptor.H>
 #include <AMReX_StateData.H>
@@ -58,12 +57,17 @@ public:
     void SetLevelDirectoryCreated(bool ldc) { levelDirectoryCreated = ldc; }
     /**
     * \brief A string written as the first item in writePlotFile() at
-    * level zero. This MUST be defined by each derived class.
+    * level zero. 
     * It is so we can distinguish between different types of
-    * plot files.  This is a pure virtual function and hence MUST
-    * be implemented by derived classes.
+    * plot files.
+    * This default "HyperCLaw-V1.1" is for VisIt software and some of our
+    * internal postprocessing routines
     */
-    virtual std::string thePlotFileType () const = 0;
+    virtual std::string thePlotFileType () const
+    {
+        static const std::string the_plot_file_type("HyperCLaw-V1.1");
+        return the_plot_file_type;
+    }
     /**
     * \brief Write plot file stuff to specified directory.  This is a
     * pure virtual function and hence MUST be implemented by
@@ -71,7 +75,7 @@ public:
     */
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                VisMF::How         how = VisMF::NFiles) = 0;
+                                VisMF::How         how = VisMF::NFiles);
     /**
     * \brief Write small plot file stuff to specified directory.  
     * Unlike writePlotFile, this is NOT a pure virtual function 
@@ -146,7 +150,7 @@ public:
     */
     virtual void post_restart () {};
     /**
-    * \brief Operations to be done after regridding (like avgDown).
+    * \brief Operations to be done after regridding
     * This is a pure virtual function and hence MUST be
     * implemented by derived classes.
     */
@@ -160,10 +164,8 @@ public:
     virtual  void post_init (Real stop_time) = 0;
     /**
     * \brief Is it ok to continue the calculation?
-    * This is a pure virtual function and hence MUST be
-    * implemented by derived classes.
     */
-    virtual  int okToContinue () = 0;
+    virtual  int okToContinue () { return 1; }
     /**
     * \brief Should I regrid with this level as base level?
     * This test is only evaluated if regrid_int > 0 and 
@@ -288,10 +290,6 @@ public:
     //! Sets a new value for the post-timestep regrid trigger.
     void setPostStepRegrid (int new_val) { post_step_regrid = new_val; }
 
-#ifdef USE_SLABSTAT
-    //! Returns list of slab stats.
-    static SlabStatList& get_slabstat_lst ();
-#endif
     //! Boundary condition access function.
     Array<int> getBCArray (int State_Type,
 			   int gridno,
@@ -380,9 +378,6 @@ protected:
     IntVect               fine_ratio;   // Refinement ratio to finer level.
     static DeriveList     derive_lst;   // List of derived quantities.
     static DescriptorList desc_lst;     // List of state variables.
-#ifdef USE_SLABSTAT
-    static SlabStatList   slabstat_lst; // List of SlabStats.
-#endif
     Array<StateData>      state;        // Array of state data.
 
     BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
