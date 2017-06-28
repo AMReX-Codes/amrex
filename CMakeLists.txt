@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.3)
 
-project (CCSE)
+project (AMReX)
 
 # Define the languages used by the project
 enable_language (C)
@@ -113,17 +113,19 @@ add_subdirectory(Tools/Postprocessing/F_Src)
 # Make the exports only _after_ doing the build
 create_exports()
 
-ADD_INSTALL_INCLUDE_FILE(${CCSE_PERL_DIR}/AMReX_buildInfo.H)
+install_include_files (${CCSE_PERL_DIR}/AMReX_buildInfo.H)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEOptions.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindCCSE.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in)
+ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindAMReX.cmake)
+
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
 set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/ccse-config.log"
     CACHE string "CCSE configuration log file")
-include(CCSEConfigReport)
-if (ENABLE_Config_Report)
-    execute_process(COMMAND "${cat_exec}" "${CCSE_CONFIG_LOG}" OUTPUT_VARIABLE config_output)
-    message(STATUS "contents of: ${CCSE_CONFIG_LOG}")
-    message(STATUS "${config_output}")
-endif()    
+# include(CCSEConfigReport)
+# if (ENABLE_Config_Report)
+#     execute_process(COMMAND "${cat_exec}" "${CCSE_CONFIG_LOG}" OUTPUT_VARIABLE config_output)
+#     message(STATUS "contents of: ${CCSE_CONFIG_LOG}")
+#     message(STATUS "${config_output}")
+# endif()    

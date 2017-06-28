@@ -67,5 +67,5 @@ set ( local_header_files ${CXX_header_files} ${F77_header_files}
 
 add_library(box_c OBJECT ${local_source_files})
 
-add_install_include_file(${local_header_files})
+install_include_files(${local_header_files})
    
