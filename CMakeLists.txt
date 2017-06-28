@@ -117,7 +117,6 @@ install_include_files (${CCSE_PERL_DIR}/AMReX_buildInfo.H)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEOptions.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindCCSE.cmake)
 ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in)
-ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindAMReX.cmake)
 
 
 option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
