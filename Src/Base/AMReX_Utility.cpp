@@ -329,13 +329,9 @@ amrex::OutOfMemory ()
 
 namespace
 {
-#ifdef _OPENMP
-    const int nthreads = omp_get_max_threads();
-#else
-    const int nthreads = 1;
-#endif
+    int nthreads;
 
-    amrex::Array<std::mt19937> generators(nthreads);
+    amrex::Array<std::mt19937> generators;
 }
 
 void
@@ -349,6 +345,13 @@ amrex::InitRandom (unsigned long seed)
 void
 amrex::InitRandom (unsigned long seed, int nprocs)
 {
+#ifdef _OPENMP
+    nthreads = omp_get_max_threads();
+#else
+    nthreads = 1;
+#endif
+    generators.resize(nthreads);
+
 #ifdef _OPENMP
 #pragma omp parallel
     {
