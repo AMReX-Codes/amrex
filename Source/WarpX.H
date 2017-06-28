@@ -337,11 +337,11 @@ private:
     int plot_int = -1;
 
     bool plot_part_per_cell = true;
-    bool plot_part_per_grid = true;
-    bool plot_part_per_proc = true;
-    bool plot_proc_number   = true;
+    bool plot_part_per_grid = false;
+    bool plot_part_per_proc = false;
+    bool plot_proc_number   = false;
     bool plot_dive          = false;
-    bool plot_divb          = false;
+    bool plot_divb          = true;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
