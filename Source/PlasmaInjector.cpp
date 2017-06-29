@@ -131,9 +131,9 @@ void RegularPosition::getPositionUnitBox(vec3& r, int i_part)
   int iy_part = (i_part % (ny * nz)) % ny;
   int iz_part = (i_part % (ny * nz)) / ny;
 
-  r[0] = (1.0+ix_part)/nx;
-  r[1] = (1.0+iy_part)/ny;
-  r[2] = (1.0+iz_part)/nz;
+  r[0] = (0.5+ix_part)/nx;
+  r[1] = (0.5+iy_part)/ny;
+  r[2] = (0.5+iz_part)/nz;
 }
 
 PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
