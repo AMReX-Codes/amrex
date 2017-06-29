@@ -254,6 +254,7 @@ $(tmpEXETempDir)/%-cppd.h: %.H
 	$(SILENT) $(CC) $(FINAL_CPPFLAGS) $(includes) -E -P -x c -std=c99 $< -o $@
 	@$(SHELL) -ec 'sed -i -e '\''s/amrex::Real/$(amrex_real)/g'\'' $@ ; \
 	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
+	               sed -i -e '\''s/amrex_particle_real/$(amrex_particle_real)/g'\''  $@ ; \
 	               sed -i -e '\''/typedef\s*$(amrex_real)/d'\''    $@ ; \
 	               sed -i -e '\''s/\&/*/g'\'' $@'
 

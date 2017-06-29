@@ -151,7 +151,7 @@ protected:
 \end{lstlisting}
 
 The following parameters are frequently set via the inputs file or the command line.  
-Their usage is described in Section~\ref{ss:regridding}
+Their usage is described in Section~\ref{ss:grid_creation}
 
 \begin{table}[h]
   \centering
@@ -573,35 +573,35 @@ subroutine state_error(tag,tag_lo,tag_hi, &
 end subroutine state_error
 \end{lstlisting}
 
-\subsection{Grid Creation}
+\subsection{Grid Creation \label{ss:grid_creation}}
 
 \noindent The gridding algorithm proceeds in this order, using the parameters described 
 in Section\ref{ss:amrcore}.
 
 \begin{enumerate}
-\item Grids are created using the Berger-Rigoutsis clustering algorithm
-modified to ensure that all new fine grids are divisible by {\tt blocking\_factor}.
+\item If at level 0, the domain is initially defined by {\tt n\_cell} 
+as specified in the inputs file.  If at level greater than 0, 
+grids are created using the Berger-Rigoutsis clustering algorithm applied to the
+taggd cells from Section~\ref{ss:regridding}, modified to ensure that 
+all new fine grids are divisible by {\tt blocking\_factor}.
 
 \item Next, the grid list is chopped up if any grids are larger than {\tt max\_grid\_size}.
 Note that because {\tt max\_grid\_size} is a multiple of {\tt blocking\_factor}
 the {\tt blocking\_factor} criterion is still satisfied.
 
-\item Next, if {\tt refine\_grid\_layout} = 1 and there are more processors than grids, and
-\begin{itemize}
-\item if {\tt max\_grid\_size} / 2 is a multiple of {\tt blocking\_factor}
-\end{itemize}
-then the grids will be redefined, at each level independently, so that the
-maximum length of a grid at level $\ell$, in any dimension,
-is {\tt max\_grid\_size}[$\ell$] / 2.
+\item Next, if {\tt refine\_grid\_layout} = 1 and there are more processors than grids,
+then grids are further divided in order to ensure that no processors has less than one grid.  
+In {\tt AmrMesh::ChopGrids}, 
 
-\item Finally, if {\tt refine\_grid\_layout} = 1,  and there are still more processors
-than grids, and
 \begin{itemize}
-\item if {\tt max\_grid\_size} / 4 is a multiple of {\tt blocking\_factor}
+\item if {\tt max\_grid\_size} / 2 in the {\tt BL\_SPACEDIM} direction is a multiple of 
+{\tt blocking\_factor}, then chop the grids in the {\tt BL\_SPACEDIM} direction
+so that none of the grids are longer in that direction than {\tt max\_grid\_size / 2} 
+\item If there are still fewer grids than processes, repeat the procedure in the 
+{\tt BL\_SPACEDIM-1} direction, and again in the {\tt BL\_SPACEDIM-2} direction if necessary
+\item If after completing a sweep in all coordinate directions with  {\tt max\_grid\_size / 2},
+there are still fewer grids than processes, repeat the steps above with  {\tt max\_grid\_size / 4}.
 \end{itemize}
-then the grids will be redefined, at each level independently, so that the
-maximum length of a grid at level $\ell$, in any dimension,
-is {\tt max\_grid\_size}[$\ell$] / 4.
 
 \end{enumerate}
 

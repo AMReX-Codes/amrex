@@ -9,7 +9,8 @@ Particle data can be viewed using \paraview.
 \section{\amrvis}
 
 Our favorite visualization tool is \amrvis. We heartily encourage you
-to build the {\tt amrvis2d} and {\tt amrvis3d} executables, and to try using them
+to build the {\tt amrvis1d}, {\tt amrvis2d}, and {\tt amrvis3d} executables,
+and to try using them
 to visualize your data. A very useful feature is View/Dataset, which
 allows you to actually view the numbers in a spreadsheet that is nested
 to reflect the AMR hierarchy -- this can be handy for
@@ -27,7 +28,7 @@ git clone https://ccse.lbl.gov/pub/Downloads/Amrvis.git
 Then {\tt cd} into {\tt Amrvis/}, edit the {\tt GNUmakefile} by
 setting {\tt COMP} to the compiler suite you have.
 
-Type {\tt make DIM=2} or {\tt make DIM=3} to build, 
+Type {\tt make DIM=1}, {\tt make DIM=2}, or {\tt make DIM=3} to build, 
 resulting in an executable that looks like {\tt amrvis2d...ex}.
 
 If you want to build amrvis with {\tt DIM=3}, you must first
@@ -65,7 +66,9 @@ If there are multiple instances of the same option, the last option takes preced
   was output.  {\tt amrvis2d <filename>} or {\tt amrvis3d <filename>}
   to see a single plotfile, 
   or for 2D data sets, {\tt amrvis2d -a plt*}, which will animate the 
-  sequence of plotfiles.
+  sequence of plotfiles.  FArrayBoxes and MultiFabs can also be viewed with
+  the {\tt -fab} and {\tt -mf} options.  When opening MultiFabs, use the
+  name of the MultiFab's header file {\tt amrvis2d -mf MyMultiFab\_H}.
 
   You can use the ``Variable'' menu to change the variable.
   You can left-click drag a box around a region
