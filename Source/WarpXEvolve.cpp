@@ -396,7 +396,7 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
                     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                    WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi]));
+                    WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi],dttype));
             }
         }
     }
@@ -531,7 +531,7 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
                     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                    WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]));
+                    WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi],dttype));
 
                 if (pml_F)
                 {
@@ -543,7 +543,7 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
                         BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
                         BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
                         BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                        WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi]),
+                        WRPX_PML_SIGMA_STAR_TO_FORTRAN(sigba[mfi],dttype),
                         &c2);
                 }
             }
@@ -622,7 +622,7 @@ WarpX::EvolveF (int lev, Real dt, DtType typ)
                                 BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
                                 BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
                                 BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
-                                WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi]),
+                                WRPX_PML_SIGMA_TO_FORTRAN(sigba[mfi],dttype),
                                 &c2inv);
             }
         }

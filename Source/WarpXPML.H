@@ -8,35 +8,35 @@
 
 #if (BL_SPACEDIM == 3)
 
-#define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x)  \
-    (x).sigma_star_fac1[0].data(), (x).sigma_star_fac1[0].m_lo, (x).sigma_star_fac1[0].m_hi, \
-    (x).sigma_star_fac2[0].data(), (x).sigma_star_fac2[0].m_lo, (x).sigma_star_fac2[0].m_hi, \
-    (x).sigma_star_fac1[1].data(), (x).sigma_star_fac1[1].m_lo, (x).sigma_star_fac1[1].m_hi, \
-    (x).sigma_star_fac2[1].data(), (x).sigma_star_fac2[1].m_lo, (x).sigma_star_fac2[1].m_hi, \
-    (x).sigma_star_fac1[2].data(), (x).sigma_star_fac1[2].m_lo, (x).sigma_star_fac1[2].m_hi, \
-    (x).sigma_star_fac2[2].data(), (x).sigma_star_fac2[2].m_lo, (x).sigma_star_fac2[2].m_hi
+#define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x,y)                              \
+    (x).sigma_star_fac1[y][0].data(), (x).sigma_star_fac1[y][0].m_lo, (x).sigma_star_fac1[y][0].m_hi, \
+    (x).sigma_star_fac2[y][0].data(), (x).sigma_star_fac2[y][0].m_lo, (x).sigma_star_fac2[y][0].m_hi, \
+    (x).sigma_star_fac1[y][1].data(), (x).sigma_star_fac1[y][1].m_lo, (x).sigma_star_fac1[y][1].m_hi, \
+    (x).sigma_star_fac2[y][1].data(), (x).sigma_star_fac2[y][1].m_lo, (x).sigma_star_fac2[y][1].m_hi, \
+    (x).sigma_star_fac1[y][2].data(), (x).sigma_star_fac1[y][2].m_lo, (x).sigma_star_fac1[y][2].m_hi, \
+    (x).sigma_star_fac2[y][2].data(), (x).sigma_star_fac2[y][2].m_lo, (x).sigma_star_fac2[y][2].m_hi
 
-#define WRPX_PML_SIGMA_TO_FORTRAN(x)  \
-    (x).sigma_fac1[0].data(), (x).sigma_fac1[0].m_lo, (x).sigma_fac1[0].m_hi, \
-    (x).sigma_fac2[0].data(), (x).sigma_fac2[0].m_lo, (x).sigma_fac2[0].m_hi, \
-    (x).sigma_fac1[1].data(), (x).sigma_fac1[1].m_lo, (x).sigma_fac1[1].m_hi, \
-    (x).sigma_fac2[1].data(), (x).sigma_fac2[1].m_lo, (x).sigma_fac2[1].m_hi, \
-    (x).sigma_fac1[2].data(), (x).sigma_fac1[2].m_lo, (x).sigma_fac1[2].m_hi, \
-    (x).sigma_fac2[2].data(), (x).sigma_fac2[2].m_lo, (x).sigma_fac2[2].m_hi
+#define WRPX_PML_SIGMA_TO_FORTRAN(x,y)                                   \
+    (x).sigma_fac1[y][0].data(), (x).sigma_fac1[y][0].m_lo, (x).sigma_fac1[y][0].m_hi, \
+    (x).sigma_fac2[y][0].data(), (x).sigma_fac2[y][0].m_lo, (x).sigma_fac2[y][0].m_hi, \
+    (x).sigma_fac1[y][1].data(), (x).sigma_fac1[y][1].m_lo, (x).sigma_fac1[y][1].m_hi, \
+    (x).sigma_fac2[y][1].data(), (x).sigma_fac2[y][1].m_lo, (x).sigma_fac2[y][1].m_hi, \
+    (x).sigma_fac1[y][2].data(), (x).sigma_fac1[y][2].m_lo, (x).sigma_fac1[y][2].m_hi, \
+    (x).sigma_fac2[y][2].data(), (x).sigma_fac2[y][2].m_lo, (x).sigma_fac2[y][2].m_hi
 
 #else
 
-#define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x)  \
-    (x).sigma_star_fac1[0].data(), (x).sigma_star_fac1[0].m_lo, (x).sigma_star_fac1[0].m_hi, \
-    (x).sigma_star_fac2[0].data(), (x).sigma_star_fac2[0].m_lo, (x).sigma_star_fac2[0].m_hi, \
-    (x).sigma_star_fac1[1].data(), (x).sigma_star_fac1[1].m_lo, (x).sigma_star_fac1[1].m_hi, \
-    (x).sigma_star_fac2[1].data(), (x).sigma_star_fac2[1].m_lo, (x).sigma_star_fac2[1].m_hi
+#define WRPX_PML_SIGMA_STAR_TO_FORTRAN(x,y)                              \
+    (x).sigma_star_fac1[y][0].data(), (x).sigma_star_fac1[y][0].m_lo, (x).sigma_star_fac1[y][0].m_hi, \
+    (x).sigma_star_fac2[y][0].data(), (x).sigma_star_fac2[y][0].m_lo, (x).sigma_star_fac2[y][0].m_hi, \
+    (x).sigma_star_fac1[y][1].data(), (x).sigma_star_fac1[y][1].m_lo, (x).sigma_star_fac1[y][1].m_hi, \
+    (x).sigma_star_fac2[y][1].data(), (x).sigma_star_fac2[y][1].m_lo, (x).sigma_star_fac2[y][1].m_hi
 
-#define WRPX_PML_SIGMA_TO_FORTRAN(x)  \
-    (x).sigma_fac1[0].data(), (x).sigma_fac1[0].m_lo, (x).sigma_fac1[0].m_hi, \
-    (x).sigma_fac2[0].data(), (x).sigma_fac2[0].m_lo, (x).sigma_fac2[0].m_hi, \
-    (x).sigma_fac1[1].data(), (x).sigma_fac1[1].m_lo, (x).sigma_fac1[1].m_hi, \
-    (x).sigma_fac2[1].data(), (x).sigma_fac2[1].m_lo, (x).sigma_fac2[1].m_hi
+#define WRPX_PML_SIGMA_TO_FORTRAN(x,y)                                   \
+    (x).sigma_fac1[y][0].data(), (x).sigma_fac1[y][0].m_lo, (x).sigma_fac1[y][0].m_hi, \
+    (x).sigma_fac2[y][0].data(), (x).sigma_fac2[y][0].m_lo, (x).sigma_fac2[y][0].m_hi, \
+    (x).sigma_fac1[y][1].data(), (x).sigma_fac1[y][1].m_lo, (x).sigma_fac1[y][1].m_hi, \
+    (x).sigma_fac2[y][1].data(), (x).sigma_fac2[y][1].m_lo, (x).sigma_fac2[y][1].m_hi
 
 #endif
 
@@ -57,8 +57,11 @@ struct SigmaBox
 
     std::array<Sigma,BL_SPACEDIM> sigma;      // sigma/epsilon
     std::array<Sigma,BL_SPACEDIM> sigma_star; // sigma_star/mu
-    std::array<Sigma,BL_SPACEDIM> sigma_fac1, sigma_fac2;
-    std::array<Sigma,BL_SPACEDIM> sigma_star_fac1, sigma_star_fac2;
+    // 3: there are types: full dt, first half and second half dt
+    std::array<std::array<Sigma,BL_SPACEDIM>,3> sigma_fac1;
+    std::array<std::array<Sigma,BL_SPACEDIM>,3> sigma_fac2;
+    std::array<std::array<Sigma,BL_SPACEDIM>,3> sigma_star_fac1;
+    std::array<std::array<Sigma,BL_SPACEDIM>,3> sigma_star_fac2;
 };
 
 namespace amrex {

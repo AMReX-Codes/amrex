@@ -80,24 +80,30 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         sigma     [idim].resize(sz[idim]+1);
         sigma_star[idim].resize(sz[idim]  );
 
-        sigma_fac1     [idim].resize(sz[idim]+1);
-        sigma_fac2     [idim].resize(sz[idim]+1);
-        sigma_star_fac1[idim].resize(sz[idim]  );
-        sigma_star_fac2[idim].resize(sz[idim]  );
+        for (int typ = 0; typ < 3; ++typ)
+        {
+            sigma_fac1     [typ][idim].resize(sz[idim]+1);
+            sigma_fac2     [typ][idim].resize(sz[idim]+1);
+            sigma_star_fac1[typ][idim].resize(sz[idim]  );
+            sigma_star_fac2[typ][idim].resize(sz[idim]  );
+        }
 
         sigma     [idim].m_lo = lo[idim];
         sigma     [idim].m_hi = hi[idim]+1;
         sigma_star[idim].m_lo = lo[idim];
         sigma_star[idim].m_hi = hi[idim];
 
-        sigma_fac1     [idim].m_lo = lo[idim];
-        sigma_fac1     [idim].m_hi = hi[idim]+1;
-        sigma_fac2     [idim].m_lo = lo[idim];
-        sigma_fac2     [idim].m_hi = hi[idim]+1;
-        sigma_star_fac1[idim].m_lo = lo[idim];
-        sigma_star_fac1[idim].m_hi = hi[idim];
-        sigma_star_fac2[idim].m_lo = lo[idim];
-        sigma_star_fac2[idim].m_hi = hi[idim];
+        for (int typ = 0; typ < 3; ++typ)
+        {
+            sigma_fac1     [typ][idim].m_lo = lo[idim];
+            sigma_fac1     [typ][idim].m_hi = hi[idim]+1;
+            sigma_fac2     [typ][idim].m_lo = lo[idim];
+            sigma_fac2     [typ][idim].m_hi = hi[idim]+1;
+            sigma_star_fac1[typ][idim].m_lo = lo[idim];
+            sigma_star_fac1[typ][idim].m_hi = hi[idim];
+            sigma_star_fac2[typ][idim].m_lo = lo[idim];
+            sigma_star_fac2[typ][idim].m_hi = hi[idim];
+        }
     }
 
     Array<Real> fac(BL_SPACEDIM);
@@ -270,13 +276,13 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
         {
             if (sigma_star[idim][i] == 0.0)
             {
-                sigma_star_fac1[idim][i] = 1.0;
-                sigma_star_fac2[idim][i] = dtsdx[idim];
+                sigma_star_fac1[0][idim][i] = 1.0;
+                sigma_star_fac2[0][idim][i] = dtsdx[idim];
             }
             else
             {
-                sigma_star_fac1[idim][i] = std::exp(-sigma_star[idim][i]*dt);
-                sigma_star_fac2[idim][i] = (1.0-sigma_star_fac1[idim][i])
+                sigma_star_fac1[0][idim][i] = std::exp(-sigma_star[idim][i]*dt);
+                sigma_star_fac2[0][idim][i] = (1.0-sigma_star_fac1[0][idim][i])
                     / (sigma_star[idim][i]*dt) * dtsdx[idim];
             }
         }
@@ -297,13 +303,13 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
         {
             if (sigma[idim][i] == 0.0)
             {
-                sigma_fac1[idim][i] = 1.0;
-                sigma_fac2[idim][i] = dtsdx_c2[idim];
+                sigma_fac1[0][idim][i] = 1.0;
+                sigma_fac2[0][idim][i] = dtsdx_c2[idim];
             }
             else
             {
-                sigma_fac1[idim][i] = std::exp(-sigma[idim][i]*dt);
-                sigma_fac2[idim][i] = (1.0-sigma_fac1[idim][i])
+                sigma_fac1[0][idim][i] = std::exp(-sigma[idim][i]*dt);
+                sigma_fac2[0][idim][i] = (1.0-sigma_fac1[0][idim][i])
                     / (sigma[idim][i]*dt) * dtsdx_c2[idim];
             }
         }
