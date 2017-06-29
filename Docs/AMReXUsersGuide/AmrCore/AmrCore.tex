@@ -110,7 +110,7 @@ to account for the mismatch stored in the flux register (computed by taking the 
 flux register data).
 \end{enumerate}
 
-\section{{\tt AmrCore} Source Code}
+\section{{\tt AmrCore} Source Code \label{ss:amrcore}}
 Here we provide a high-level overview of the source code in {\tt amrex/Src/AmrCore}.
 
 \subsection{{\tt AmrMesh} and {\tt AmrCore}}
@@ -149,6 +149,28 @@ protected:
     Array<DistributionMapping> dmap;
     Array<BoxArray>            grids;    
 \end{lstlisting}
+
+The following parameters are frequently set via the inputs file or the command line.  
+Their usage is described in Section~\ref{ss:grid_creation}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lcc}
+    Variable & Value & Default \\
+    \hline
+    {\tt amr.verbose}              & int  & 0    \\
+    {\tt amr.max\_level}           & int  & none \\
+    {\tt amr.max\_grid\_size}      & ints & 32 in 3D, 128 in 2D \\
+    {\tt amr.n\_proper}            & int  & 1    \\
+    {\tt amr.grid\_eff}            & Real & 0.7  \\
+    {\tt amr.n\_error\_buf}        & int  & 1    \\
+    {\tt amr.blocking\_factor}     &int   & 8    \\
+    {\tt amr.refine\_grid\_layout} &int   & true \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:makevarimp} {\tt AmrCore} parameters}
+\end{table}
+
 
 {\tt AMReX\_AmrCore.cpp/H} contains the pure virtual class {\tt AmrCore}, 
 which is derived from the {\tt AmrMesh} class.  {\tt AmrCore} does not actually 
@@ -399,7 +421,7 @@ if (do_reflux)
 AverageDownTo(lev); // average lev+1 down to lev
 \end{lstlisting}
 
-\subsection{Regridding}
+\subsection{Regridding \label{ss:regridding}}
 The {\tt regrid} function belongs to the {\tt AmrCore} class (it is virtual -- in this
 tutorial we use the instance in {\tt AmrCore}).
 
@@ -550,6 +572,38 @@ subroutine state_error(tag,tag_lo,tag_hi, &
 
 end subroutine state_error
 \end{lstlisting}
+
+\subsection{Grid Creation \label{ss:grid_creation}}
+
+\noindent The gridding algorithm proceeds in this order, using the parameters described 
+in Section\ref{ss:amrcore}.
+
+\begin{enumerate}
+\item If at level 0, the domain is initially defined by {\tt n\_cell} 
+as specified in the inputs file.  If at level greater than 0, 
+grids are created using the Berger-Rigoutsis clustering algorithm applied to the
+taggd cells from Section~\ref{ss:regridding}, modified to ensure that 
+all new fine grids are divisible by {\tt blocking\_factor}.
+
+\item Next, the grid list is chopped up if any grids are larger than {\tt max\_grid\_size}.
+Note that because {\tt max\_grid\_size} is a multiple of {\tt blocking\_factor}
+the {\tt blocking\_factor} criterion is still satisfied.
+
+\item Next, if {\tt refine\_grid\_layout} = 1 and there are more processors than grids,
+then grids are further divided in order to ensure that no processors has less than one grid.  
+In {\tt AmrMesh::ChopGrids}, 
+
+\begin{itemize}
+\item if {\tt max\_grid\_size} / 2 in the {\tt BL\_SPACEDIM} direction is a multiple of 
+{\tt blocking\_factor}, then chop the grids in the {\tt BL\_SPACEDIM} direction
+so that none of the grids are longer in that direction than {\tt max\_grid\_size / 2} 
+\item If there are still fewer grids than processes, repeat the procedure in the 
+{\tt BL\_SPACEDIM-1} direction, and again in the {\tt BL\_SPACEDIM-2} direction if necessary
+\item If after completing a sweep in all coordinate directions with  {\tt max\_grid\_size / 2},
+there are still fewer grids than processes, repeat the steps above with  {\tt max\_grid\_size / 4}.
+\end{itemize}
+
+\end{enumerate}
 
 \subsection{FillPatch}
 This example has two functions, {\tt AmrCoreAdv::FillPatch} and {\tt AmrCoreAdv::CoarseFillPatch},
