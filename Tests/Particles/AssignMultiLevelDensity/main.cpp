@@ -84,8 +84,6 @@ void test_assign_density(TestParams& parms)
     Array<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
-        partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
-        partMF[lev]->setVal(0.0, 2);
         density[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 0));
         density[lev]->setVal(0.0);
         acceleration[lev].reset(new MultiFab(ba[lev], dmap[lev], 3, 1));
@@ -105,8 +103,8 @@ void test_assign_density(TestParams& parms)
     //    myPC.InitRandom(num_particles, iseed, pdata, serialize, fine_box);
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-    myPC.AssignDensity(0, true, partMF, 0, 1, 1);
-    //myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
+    //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
+    myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
 
     myPC.InterpolateFort(acceleration, 0, nlevs-1);
 

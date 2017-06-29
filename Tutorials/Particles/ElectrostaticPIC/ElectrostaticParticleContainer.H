@@ -12,9 +12,15 @@ namespace amrex {
 struct PIdx
 {
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct-of-arrays
-        w = 0,      // Weight
-        vx, vy, vz, // Velocities
-        Ex, Ey, Ez, // Electric fields, interpolated to the particle positions
+        w = 0,
+        vx, vy,
+#if BL_SPACEDIM == 3
+        vz,
+#endif
+        Ex, Ey, 
+#if BL_SPACEDIM == 3
+        Ez,
+#endif
         nattribs
     };
 };
@@ -43,7 +49,7 @@ public:
 
 };
 
-using VectorMeshData = Array<std::array<std::unique_ptr<MultiFab>, 3> >;
+using VectorMeshData = Array<std::array<std::unique_ptr<MultiFab>, BL_SPACEDIM> >;
 using ScalarMeshData = Array<std::unique_ptr<MultiFab> >;
 
 class ElectrostaticParticleContainer

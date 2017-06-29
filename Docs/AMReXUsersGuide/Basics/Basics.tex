@@ -3,7 +3,7 @@ source codes are in {\tt amrex/Src/Base/}.  Note that \amrex\ classes
 and functions are in namespace {\tt amrex}.  For clarity, we usually
 drop {\tt amrex::} in the example codes here.  It is also assumed that
 headers have been properly {\tt include}d.  We recommend you study
-tutorials at {\tt amrex/Tutorials/Basic/} while reading this chapter.
+the tutorials in {\tt amrex/Tutorials/Basic/} while reading this chapter.
 After reading this chapter, one should be able to develop single-level
 parallel codes using \amrex.  It should also be noted that this is not
 a comprehensive reference manual.
@@ -41,12 +41,13 @@ type is accessible in Fortran codes via
 \end{verbatim}
 
 \section{ParallelDescriptor}
+\label{sec:basics:paralleldescriptor}
 
 \amrex\ users do not need to use MPI directly.  Parallel communication
 is often handled by the data abstraction classes (e.g., {\tt
   MultiFab}; Section~\ref{sec:basics:multifab}).  In addition, \amrex\
-has provided {\tt namespace ParallelDesriptor} in {\tt
-  <AMReX\_ParallelDesriptor.H>}.  The frequently used functions are
+has provided {\tt namespace ParallelDescriptor} in {\tt
+  <AMReX\_ParallelDescriptor.H>}.  The frequently used functions are
 \begin{lstlisting}[language=cpp]
  int myproc = ParallelDescriptor::MyProc();  // Return the rank
  
@@ -96,6 +97,7 @@ examples.
 \end{lstlisting}
 
 \section{ParmParse}
+\label{sec:basics:parmparse}
 
 {\tt ParmParse} in {\tt AMReX\_ParmParse.H} is a class providing a
 database for the storage and retrieval of command-line and input-file
@@ -149,7 +151,7 @@ The following code shows how to use {\tt ParmParse} to get/query the values.
  pph.get("cfl", cfl);    // get parameter with prefix
 \end{lstlisting}
 Note that when there are multiple definitions for a parameter {\tt
-  ParamParse} by default returns the last one.  The difference between
+  ParmParse} by default returns the last one.  The difference between
 {\tt query} and {\tt get} should also be noted.  It is a runtime error
 if {\tt get} fails to get the value, whereas {\tt query} returns an
 error code without generating a runtime error that will abort the run.
@@ -628,7 +630,7 @@ process ID at a given index.
 
 By default, {\tt DistributionMapping} uses an algorithm based on space
 filling curve to determine the distribution.  One can change the default
-via {\tt ParmParse} paramter {\tt DistributionMapping.strategy}.  {\tt
+via {\tt ParmParse} parameter {\tt DistributionMapping.strategy}.  {\tt
   KNAPSACK} is a common choice that is optimized for load balance.
 One can also explicitly construct a distribution.
 {\tt DistributionMapping} class allows the user to have complete control by
@@ -864,7 +866,7 @@ follows.
 Given an existing {\tt MultiFab}, one can also make an alias {\tt
   MultiFab} as follows.
 \begin{lstlisting}[language=cpp]
-  // orig_mf is an existing Multifab
+  // orig_mf is an existing MultiFab
   int start_comp = 3;
   int num_comps = 1;
   MultiFab alias_mf(orig_mf, amrex::make_alias, start_comp, num_comps);
@@ -1579,10 +1581,10 @@ particle data.
 \subsection{Plotfile}
 
 \amrex\ has its native plotfile format.  Many visualization tools are
-available for \amrex\ plotifles
+available for \amrex\ plotfiles
 (Chapter~\ref{Chap:Visualization}).  \amrex\ provides the following
 two functions for writing a generic \amrex\ plotfile.  Many \amrex\
-application codes may have their own plotifile routines that store
+application codes may have their own plotfile routines that store
 additional information such as compiler options, git hashes of the
 source codes and {\tt ParmParse} runtime parameters.
 \begin{lstlisting}[language=cpp]
@@ -1620,11 +1622,11 @@ making such strings.
   const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
 \end{lstlisting}
 Argument {\tt mf} ({\tt MultiFab} for single level and {\tt
-  Array<const Multifab*>} for multi-level) is the data to be written
+  Array<const MultiFab*>} for multi-level) is the data to be written
 to the disk.  Note that many visualization tools expect this to be
 cell-centered data.  So for nodal data, we need to convert them to
 cell-centered data through some kind of averaging.  Also note that if
-you have data at each AMR level in several {\tt MulitiFab}s, you need
+you have data at each AMR level in several {\tt MultiFab}s, you need
 to build a new {\tt MultiFab} at each level to hold all the data on
 that level.  This involves local data copy in memory and is not
 expected to significantly increase the total wall time for writing
@@ -1740,7 +1742,7 @@ shows how to write and read a {\tt MultiFab}.
 \end{lstlisting}
 It should be emphasized that calling {\tt VisMF::Read} with an empty
 {\tt MultiFab} (i.e., no memory allocated for floating point data)
-will result in a {\tt MuitiFab} with a new {\tt DistributionMapping}
+will result in a {\tt MultiFab} with a new {\tt DistributionMapping}
 that could be different from any other existing {\tt
 DistributionMapping} objects.  It should also be noted that all the
 data including those in ghost cells are written/read by {\tt

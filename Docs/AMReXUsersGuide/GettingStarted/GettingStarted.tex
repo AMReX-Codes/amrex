@@ -54,7 +54,7 @@ shows that the GNU compiler with debug options set by \amrex\ is used.
 It also shows that the executable is built for 3D.  Although this
 simple example code is dimension independent, the dimension matters
 for all non-trivial examples.  The build process can be adjusted by
-modifying the {\tt amrex/Tutorials/Basic/HellWorld\_C/GNUmakefile} file.
+modifying the {\tt amrex/Tutorials/Basic/HelloWorld\_C/GNUmakefile} file.
 More details on how to build \amrex\ can be found in
 Chapter~\ref{Chap:BuildingAMReX}.
 
@@ -73,9 +73,16 @@ that the first letter {\tt g} in {\tt g577..} is not part of the hash)
 is based on {\tt 17.05} with 30 additional commits and the \amrex\
 work tree is dirty (i.e. there are uncommitted changes).
 
+In the {\tt GNUmakefile} there are compilation options for {\tt DEBUG}
+mode (less optimized code with more error checking), dimensionality,
+compiler type, and flags to enable MPI and/or OpenMP parallelism.
+If there are multiple instances of a parameter, the last instance
+takes precedence.
+
 \subsection{Parallelization}
 
-Now let's build with MPI by typing {\tt make USE\_MPI=TRUE}.  This
+Now let's build with MPI by typing {\tt make USE\_MPI=TRUE} (alternatively
+you can set {\tt USE\_MPI=TRUE} in the {\tt GNUmakefile}).  This
 should make an executable named {\tt main3d.gnu.DEBUG.MPI.ex}.  Note
 {\tt MPI} in the file name.  You can then run,
 \begin{verbatim}
@@ -90,6 +97,30 @@ The result may look like,
 If the compilation fails, you are referred to
 Chapter~\ref{Chap:BuildingAMReX} on how to configure the build
 system.
+
+If you want to build with OpenMP, type {\tt make USE\_OMP=TRUE}.
+This should make an executable named {\tt main3d.gnu.DEBUG.OMP.ex}.  Note
+{\tt OMP} in the file name.  Make sure the {\tt OMP\_NUM\_THREADS}
+environment variable is set on your system.  You can then run,
+\begin{verbatim}
+  ./main3d.gnu.DEBUG.OMP.ex
+\end{verbatim}
+The result may look like,
+\begin{verbatim}
+  OMP initialized with 4 OMP threads
+  Hello world from AMReX version 17.06-287-g51875485fe51-dirty
+\end{verbatim}
+Note that you can build with both {\tt USE\_MPI=TRUE} and {\tt USE\_OMP=TRUE}.
+You can then run,
+\begin{verbatim}
+  mpiexec -n 2 ./main3d.gnu.DEBUG.MPI.OMP.ex
+\end{verbatim}
+The result may look like,
+\begin{verbatim}
+  MPI initialized with 2 MPI processes
+  OMP initialized with 4 OMP threads
+  Hello world from AMReX version 17.06-287-g51875485fe51-dirty
+\end{verbatim}
 
 \section{Example: Heat Equation Solver}\label{sec:heat equation}
 

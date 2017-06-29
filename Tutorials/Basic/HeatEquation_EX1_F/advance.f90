@@ -39,7 +39,7 @@ contains
        pn => new_phi%dataptr(mfi)
 
        plo = lbound(po)
-       phi = ubound(pn)
+       phi = ubound(po)
        
        select case (amrex_spacedim)
        case (2)
