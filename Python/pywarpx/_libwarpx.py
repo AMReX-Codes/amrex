@@ -107,6 +107,8 @@ f.argtypes = (ctypes.c_int, ctypes.c_int,
               ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
               ctypes.c_int)
 
+libwarpx.warpx_getProbLo.restype = ctypes.c_double
+libwarpx.warpx_getProbHi.restype = ctypes.c_double
 libwarpx.warpx_getistep.restype = ctypes.c_int
 libwarpx.warpx_gett_new.restype = ctypes.c_double
 libwarpx.warpx_getdt.restype = ctypes.c_double

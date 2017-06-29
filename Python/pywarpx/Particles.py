@@ -1,6 +1,7 @@
 from .Bucket import Bucket
 
 particles = Bucket('particles', nspecies=0, species_names='')
+particles_list = []
 
 electrons = Bucket('electrons')
 electrons.charge = "-q_e"
@@ -16,3 +17,8 @@ protons = Bucket('protons')
 protons.charge = "q_e"
 protons.mass = "m_p"
 protons.injection_style = "python"
+
+particle_dict = {'electrons':electrons,
+                 'positrons':positrons,
+                 'protons':protons
+                 }

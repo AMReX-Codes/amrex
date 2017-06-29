@@ -1,5 +1,8 @@
 import numpy as np
-from pywarpx import *
+from pywarpx import PICMI
+#from warp import PICMI
+if PICMI.codename == 'WarpX':
+    from pywarpx import PGroups
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -41,7 +44,7 @@ def set_initial_conditions(ncells, domain_min, domain_max):
     beam_max = np.array([  20e-6,   20e-6, -100e-6])
     beam_density = 1.e23
     beam_gamma = 1.e9
-    beam_uz = np.sqrt(beam_gamma**2 -1)*c
+    beam_uz = np.sqrt(beam_gamma**2 - 1)*c
     beam_weight = beam_density * dx[0] * dx[1] * dx[2] / num_ppc
 
     #  Species 1 - the plasma
@@ -81,13 +84,13 @@ def set_initial_conditions(ncells, domain_min, domain_max):
 
     # --- and weights
     Np = beam_xp.shape[0]
-    beam_wp = np.full((Np, 1), beam_weight)
+    beam_wp = np.full(Np, beam_weight)
 
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
-    add_particles(0, beam_xp[lo:hi], beam_yp[lo:hi], beam_zp[lo:hi],
-                  beam_uxp[lo:hi], beam_uyp[lo:hi], beam_uzp[lo:hi], 
-                  beam_wp[lo:hi], 1)
+    beam.add_particles(x=beam_xp[lo:hi], y=beam_yp[lo:hi], z=beam_zp[lo:hi],
+                       ux=beam_uxp[lo:hi], uy=beam_uyp[lo:hi], uz=beam_uzp[lo:hi], 
+                       w=beam_wp[lo:hi], unique_particles=1)
 
     # now do the plasma species
     plasma_locs = np.logical_and(xp >= plasma_min[0], xp < plasma_max[0])
@@ -106,13 +109,13 @@ def set_initial_conditions(ncells, domain_min, domain_max):
 
     # --- and weights
     Np = plasma_xp.shape[0]
-    plasma_wp = np.full((Np, 1), plasma_weight)
+    plasma_wp = np.full(Np, plasma_weight)
 
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
-    add_particles(1, plasma_xp[lo:hi], plasma_yp[lo:hi], plasma_zp[lo:hi],
-                  plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi], 
-                  plasma_wp[lo:hi], 1)
+    plasma.add_particles(x=plasma_xp[lo:hi], y=plasma_yp[lo:hi], z=plasma_zp[lo:hi],
+                         ux=plasma_uxp[lo:hi], uy=plasma_uyp[lo:hi], uz=plasma_uzp[lo:hi], 
+                         w=plasma_wp[lo:hi], unique_particles=1)
 
     comm.Barrier()
 
@@ -164,74 +167,50 @@ def inject_plasma(num_shift, direction):
     uzp = np.zeros_like(xp)
 
     Np = xp.shape[0]
-    wp = np.full((Np, 1), weight)
+    wp = np.full(Np, weight)
 
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
-    add_particles(1, xp[lo:hi], yp[lo:hi], zp[lo:hi],
-                  uxp[lo:hi], uyp[lo:hi], uzp[lo:hi], 
-                  wp[lo:hi], 1)
+    plasma.add_particles(x=xp[lo:hi], y=yp[lo:hi], z=zp[lo:hi],
+                         ux=uxp[lo:hi], uy=uyp[lo:hi], uz=uzp[lo:hi], 
+                         w=wp[lo:hi], unique_particles=1)
 
     comm.Barrier()
-
 
 ncells = np.array([64, 64, 64])
 domain_min = np.array([-200e-6, -200e-6, -200e-6])
 domain_max = np.array([ 200e-6,  200e-6,  200e-6])
 dx = (domain_max - domain_min) / ncells
 
+moving_window_velocity = np.array([0., 0., PICMI.clight])
+
+grid = PICMI.Grid(nx=ncells[0], ny=ncells[1], nz=ncells[2],
+                  xmin=domain_min[0], xmax=domain_max[0], ymin=domain_min[1], ymax=domain_max[1], zmin=domain_min[2], zmax=domain_max[2],
+                  bcxmin='periodic', bcxmax='periodic', bcymin='periodic', bcymax='periodic', bczmin='open', bczmax='open',
+                  moving_window_velocity = moving_window_velocity,
+                  max_grid_size=32, max_level=0, coord_sys=0)
+
+
+solver = PICMI.EM_solver(current_deposition = 3,
+                         charge_deposition = 0,
+                         field_gathering = 0,
+                         particle_pusher = 0)
+
+beam = PICMI.Species(type=PICMI.Electron, name='beam')
+plasma = PICMI.Species(type=PICMI.Electron, name='plasma')
+
+
 # Maximum number of time steps
-max_step = 60
+max_step = 160
 
-# number of grid points
-amr.n_cell =   "%d  %d  %d" % tuple(ncells)
-
-# Maximum allowable size of each subdomain in the problem domain; 
-#    this is used to decompose the domain for parallel calculations.
-amr.max_grid_size = 32
-
-# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
-amr.max_level = 0
-
-amr.plot_int = 2   # How often to write plotfiles.  "<= 0" means no plotfiles.
-
-# Geometry
-geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = "1     1     0"      # Is periodic?  
-geometry.prob_lo     = "%7.0e   %7.0e   %7.0e" % tuple(domain_min)    # physical domain
-geometry.prob_hi     = "%7.0e   %7.0e   %7.0e" % tuple(domain_max)
-
-# Algorithms
-algo.current_deposition = 3
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
-
-# Particles
-particles.nspecies = 2
-particles.species_names = "electrons protons"
-
-warpx.verbose = 1
-warpx.cfl = 1.0
-warpx.do_moving_window = 1
-warpx.moving_window_dir = 'z'
-warpx.moving_window_v = 1.0  # in units of the speed of light
-
-warpx.do_plasma_injection = 0
-#warpx.num_injected_species = 1
-#warpx.injected_plasma_species = 1
-#warpx.injected_plasma_density = 1e22
-#warpx.injected_plasma_ppc = 4
-
-# --- Initialize the simulation
-amrex = AMReX()
-amrex.init()
-warpx.init()
+sim = PICMI.Simulation(plot_int = 2,
+                       verbose = 1,
+                       cfl = 1.0)
 
 set_initial_conditions(ncells, domain_min, domain_max)
 
-direction = ['x', 'y', 'z'].index(warpx.moving_window_dir)
-old_x = warpx.getProbLo(direction)
+direction = np.argmax(abs(moving_window_velocity))
+old_x = grid.getmins()[direction]
 new_x = old_x
 for i in range(1, max_step + 1):
 
@@ -242,11 +221,9 @@ for i in range(1, max_step + 1):
         domain_min[direction] += num_shift*dx[direction]
         domain_max[direction] += num_shift*dx[direction]
 
-    warpx.evolve(1)
+    sim.step(1)
 
     old_x = new_x
-    new_x = warpx.getProbLo(direction)
+    new_x = grid.getmins()[direction]
 
-warpx.finalize()
-
-amrex.finalize()
+sim.finalize()
