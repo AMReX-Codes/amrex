@@ -4,6 +4,7 @@
 #include <ParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
+#include <WarpXConst.H>
 
 using namespace amrex;
 
@@ -19,10 +20,54 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
 void PhysicalParticleContainer::InitData()
 {
-    AddParticles(0); // Note - only one level right now
+    AddParticles(0); // Note - add on level 0
     if (maxLevel() > 0) {
         Redistribute();  // We then redistribute
     }
+}
+
+void 
+PhysicalParticleContainer::AddGaussianBeam(Real mean, Real sigma, Real vel) {
+
+    const int       MyProc   = ParallelDescriptor::MyProc();
+    const int       NProcs   = ParallelDescriptor::NProcs();
+    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Geometry& geom     = m_gdb->Geom(0);
+
+    RealBox containing_bx = geom.ProbDomain();
+    const Real* xlo = containing_bx.lo();
+    const Real* xhi = containing_bx.hi();
+
+    std::mt19937_64 mt(0451);
+    std::normal_distribution<double> dist(0.0, sigma);
+
+    std::array<Real,PIdx::nattribs> attribs;
+    attribs.fill(0.0);
+   
+    long np = 32768;
+    if (ParallelDescriptor::IOProcessor()) {
+        for (long i = 0; i < np; ++i) {
+#if ( BL_SPACEDIM == 3 )
+            Real x = dist(mt) + mean;
+            Real y = dist(mt) + mean;
+            Real z = dist(mt) + mean;
+#elif ( BL_SPACEDIM == 2 )
+            Real x = dist(mt) + mean;
+            Real y = 0.;
+            Real z = dist(mt) + mean;
+#endif
+            if (plasma_injector->insideBounds(x, y, z)) {
+                Real weight = 152587890.5;
+                attribs[PIdx::w ] = weight;
+                attribs[PIdx::ux] = PhysConst::c*vel*x;
+                attribs[PIdx::uy] = PhysConst::c*vel*y;
+                attribs[PIdx::uz] = PhysConst::c*vel*z;
+                AddOneParticle(0, 0, 0, x, y, z, attribs);
+            }
+        }
+    }
+
+    Redistribute();
 }
 
 void
@@ -39,6 +84,13 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
                       &(plasma_injector->single_particle_vel[1]),
                       &(plasma_injector->single_particle_vel[2]),
                       1, &(plasma_injector->single_particle_weight), 0);
+        return;
+    }
+
+    if (plasma_injector->gaussian_beam) {
+        AddGaussianBeam(plasma_injector->gaussian_beam_mean,
+                        plasma_injector->gaussian_beam_sigma,
+                        plasma_injector->gaussian_beam_vel);
         return;
     }
 
