@@ -287,6 +287,8 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
             }
         }
     }
+
+    ComputePMLFactorsHalfDt(sigma_star_fac1, sigma_star_fac2);
 }
 
 void
@@ -314,7 +316,33 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
             }
         }
     }
+
+    ComputePMLFactorsHalfDt(sigma_fac1, sigma_fac2);
 }
+
+void
+SigmaBox::ComputePMLFactorsHalfDt (MTSigmaVect& fac1, MTSigmaVect& fac2)
+{
+    for (int idim = 0; idim < BL_SPACEDIM; ++idim)
+    {
+        const auto& alpha = fac1[0][idim];
+        const auto& beta  = fac2[0][idim];
+
+        auto& alpha_1 = fac1[1][idim];
+        auto& alpha_2 = fac1[2][idim];
+
+        auto& beta_1 = fac2[1][idim];
+        auto& beta_2 = fac2[2][idim];        
+
+        int n = alpha.size();
+        for (int i = 0; i < n; ++i) {
+            alpha_1[i] = 0.5*(alpha[i]+1.);
+            alpha_2[i] = 0.5*alpha[i]/(alpha[i]+1.);
+            beta_1[i] = 0.5*beta[i];
+            beta_2[i] = beta[i]/(alpha[i]+1.);
+        }
+    }
+}                             
 
 MultiSigmaBox::MultiSigmaBox (const BoxArray& ba, const DistributionMapping& dm,
                               const BoxArray& grid_ba, const Real* dx, int ncell, int delta)

@@ -55,13 +55,19 @@ struct SigmaBox
     void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
     void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
 
-    std::array<Sigma,BL_SPACEDIM> sigma;      // sigma/epsilon
-    std::array<Sigma,BL_SPACEDIM> sigma_star; // sigma_star/mu
-    // 3: there are types: full dt, first half and second half dt
-    std::array<std::array<Sigma,BL_SPACEDIM>,3> sigma_fac1;
-    std::array<std::array<Sigma,BL_SPACEDIM>,3> sigma_fac2;
-    std::array<std::array<Sigma,BL_SPACEDIM>,3> sigma_star_fac1;
-    std::array<std::array<Sigma,BL_SPACEDIM>,3> sigma_star_fac2;
+    using SigmaVect = std::array<Sigma,BL_SPACEDIM>;
+    // 3: there are 3 types: full dt, first half and second half dt
+    using MTSigmaVect = std::array<SigmaVect,3>;
+
+    SigmaVect sigma;      // sigma/epsilon
+    SigmaVect sigma_star; // sigma_star/mu
+    MTSigmaVect sigma_fac1;
+    MTSigmaVect sigma_fac2;
+    MTSigmaVect sigma_star_fac1;
+    MTSigmaVect sigma_star_fac2;
+
+private:
+    static void ComputePMLFactorsHalfDt (MTSigmaVect& fac1, MTSigmaVect& fac2);
 };
 
 namespace amrex {
