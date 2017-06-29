@@ -67,7 +67,7 @@ namespace
     }
 }
 
-SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell)
+SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int ncell, int delta)
 {
     BL_ASSERT(box.cellCentered());
 
@@ -102,7 +102,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 
     Array<Real> fac(BL_SPACEDIM);
     for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-        fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(ncell*ncell));
+        fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(delta*delta));
     }
 
     const std::vector<std::pair<int,Box> >& isects = grids.intersections(box, false, ncell);
@@ -311,9 +311,9 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 }
 
 MultiSigmaBox::MultiSigmaBox (const BoxArray& ba, const DistributionMapping& dm,
-                              const BoxArray& grid_ba, const Real* dx, int ncell)
+                              const BoxArray& grid_ba, const Real* dx, int ncell, int delta)
     : FabArray<SigmaBox>(ba,dm,1,0,MFInfo(),
-                         FabFactory<SigmaBox>(grid_ba,dx,ncell))
+                         FabFactory<SigmaBox>(grid_ba,dx,ncell,delta))
 {}
 
 void
@@ -350,7 +350,7 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm, 
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int ref_ratio, int do_dive_cleaning)
+          int ncell, int delta, int ref_ratio, int do_dive_cleaning)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
@@ -386,7 +386,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_F_fp->setVal(0.0);
     }
 
-    sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell));
+    sigba_fp.reset(new MultiSigmaBox(ba, dm, grid_ba, geom->CellSize(), ncell, delta));
 
     if (cgeom)
     {
@@ -416,7 +416,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
             pml_F_cp->setVal(0.0);
         }
 
-        sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell));
+        sigba_cp.reset(new MultiSigmaBox(cba, cdm, grid_cba, cgeom->CellSize(), ncell, delta));
     }
 
 }
@@ -481,18 +481,16 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
 }
 
 void
-PML::ComputePMLFactorsB (amrex::Real dt)
+PML::ComputePMLFactors (amrex::Real dt)
 {
-    if (sigba_fp) sigba_fp->ComputePMLFactorsB(m_geom->CellSize(), dt);
-    if (sigba_cp) sigba_cp->ComputePMLFactorsB(m_cgeom->CellSize(), dt);
-}
-
-void
-PML::ComputePMLFactorsE (amrex::Real dt)
-{
-    if (sigba_fp) sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt);
-    if (sigba_cp) sigba_cp->ComputePMLFactorsE(m_cgeom->CellSize(), dt);
-    if (pml_F_fp) ComputePMLFactorsB(dt);
+    if (sigba_fp) {
+        sigba_fp->ComputePMLFactorsB(m_geom->CellSize(), dt);
+        sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt);
+    }
+    if (sigba_cp) {
+        sigba_cp->ComputePMLFactorsB(m_geom->CellSize(), dt);
+        sigba_cp->ComputePMLFactorsE(m_geom->CellSize(), dt);
+    }
 }
 
 std::array<MultiFab*,3>

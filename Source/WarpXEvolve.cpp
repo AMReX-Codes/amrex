@@ -185,7 +185,7 @@ WarpX::EvolveEM (int numsteps)
         if (is_synchronized) {
             // on first step, push E and X by 0.5*dt
             FillBoundaryB();
-            EvolveE(0.5*dt[0]);
+            EvolveE(0.5*dt[0], DtType::SecondHalf);
             mypc->PushX(0.5*dt[0]);
             mypc->Redistribute();  // Redistribute particles
             is_synchronized = false;
@@ -193,7 +193,7 @@ WarpX::EvolveEM (int numsteps)
 
         FillBoundaryE();
 
-        EvolveB(0.5*dt[0]); // We now B^{n}
+        EvolveB(0.5*dt[0], DtType::FirstHalf); // We now B^{n}
 
         FillBoundaryB();
 
@@ -204,24 +204,24 @@ WarpX::EvolveEM (int numsteps)
         // Deposit charge density rho^{n}
         PushParticlesandDepose(cur_time);
 
-        EvolveB(0.5*dt[0]); // We now B^{n+1/2}
+        EvolveB(0.5*dt[0], DtType::SecondHalf); // We now B^{n+1/2}
 
         SyncCurrent();
 
         SyncRho();
 
-        EvolveF(dt[0]);
+        EvolveF(dt[0], DtType::Full);
 
         // Fill B's ghost cells because of the next step of evolving E.
         FillBoundaryB();
 
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
-            EvolveE(0.5*dt[0]); // We now have E^{n+1/2}
+            EvolveE(0.5*dt[0], DtType::FirstHalf); // We now have E^{n+1/2}
             mypc->PushX(-0.5*dt[0]);
             is_synchronized = true;
         } else {
-            EvolveE(dt[0]); // We now have E^{n+1}
+            EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
         }
         
         mypc->Redistribute();  // Redistribute particles
@@ -297,15 +297,15 @@ WarpX::EvolveEM (int numsteps)
 }
 
 void
-WarpX::EvolveB (Real dt)
+WarpX::EvolveB (Real dt, DtType typ)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
-        EvolveB(lev, dt);
+        EvolveB(lev, dt, typ);
     }
 }
 
 void
-WarpX::EvolveB (int lev, Real dt)
+WarpX::EvolveB (int lev, Real dt, DtType typ)
 {
     BL_PROFILE("WarpX::EvolveB()");
 
@@ -368,7 +368,7 @@ WarpX::EvolveB (int lev, Real dt)
 
     if (do_pml && pml[lev]->ok())
     {
-        pml[lev]->ComputePMLFactorsB(dt);
+        const int dttype = static_cast<int>(typ);
 
         for (int ipatch = 0; ipatch < npatches; ++ipatch)
         {
@@ -376,7 +376,7 @@ WarpX::EvolveB (int lev, Real dt)
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
             const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
                                             : pml[lev]->GetMultiSigmaBox_cp();
-            
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -403,15 +403,15 @@ WarpX::EvolveB (int lev, Real dt)
 }
 
 void
-WarpX::EvolveE (Real dt)
+WarpX::EvolveE (Real dt, DtType typ)
 {
     for (int lev = 0; lev <= finest_level; ++lev) {
-        EvolveE(lev, dt);
+        EvolveE(lev, dt, typ);
     }
 }
 
 void
-WarpX::EvolveE (int lev, Real dt)
+WarpX::EvolveE (int lev, Real dt, DtType typ)
 {
     BL_PROFILE("WarpX::EvolveE()");
 
@@ -500,8 +500,9 @@ WarpX::EvolveE (int lev, Real dt)
 
     if (do_pml && pml[lev]->ok())
     {
-        pml[lev]->ComputePMLFactorsE(dt);
         pml[lev]->ExchangeF(F_fp[lev].get(), F_cp[lev].get());
+
+        const int dttype = static_cast<int>(typ);
 
         for (int ipatch = 0; ipatch < npatches; ++ipatch)
         {
@@ -551,26 +552,21 @@ WarpX::EvolveE (int lev, Real dt)
 }
 
 void
-WarpX::EvolveF (Real dt)
+WarpX::EvolveF (Real dt, DtType typ)
 {
     if (!do_dive_cleaning) return;
 
     for (int lev = 0; lev <= finest_level; ++lev) {
-        EvolveF(lev, dt);
+        EvolveF(lev, dt, typ);
     }
 }
 
 void
-WarpX::EvolveF (int lev, Real dt)
+WarpX::EvolveF (int lev, Real dt, DtType typ)
 {
     if (!do_dive_cleaning) return;
 
     BL_PROFILE("WarpX::EvolveF()");
-
-    if (do_pml && pml[lev]->ok())
-    {
-        pml[lev]->ComputePMLFactorsE(dt);
-    }
 
     static constexpr Real c2inv = 1.0/(PhysConst::c*PhysConst::c);
     static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
@@ -607,6 +603,8 @@ WarpX::EvolveF (int lev, Real dt)
 
         if (do_pml && pml[lev]->ok())
         {
+            const int dttype = static_cast<int>(typ);
+
             const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
             const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()

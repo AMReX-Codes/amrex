@@ -27,6 +27,13 @@ public:
     using amrex::PhysBCFunctBase::FillBoundary;
 };
 
+enum struct DtType : int
+{
+    Full = 0,
+    FirstHalf,
+    SecondHalf
+};
+
 class WarpX
     : public amrex::AmrCore
 {
@@ -76,12 +83,12 @@ public:
     void ComputeDt ();
     void MoveWindow (bool move_j);
 
-    void EvolveE (         amrex::Real dt);
-    void EvolveE (int lev, amrex::Real dt);
-    void EvolveB (         amrex::Real dt);
-    void EvolveB (int lev, amrex::Real dt);
-    void EvolveF (         amrex::Real dt);
-    void EvolveF (int lev, amrex::Real dt);
+    void EvolveE (         amrex::Real dt, DtType typ);
+    void EvolveE (int lev, amrex::Real dt, DtType typ);
+    void EvolveB (         amrex::Real dt, DtType typ);
+    void EvolveB (int lev, amrex::Real dt, DtType typ);
+    void EvolveF (         amrex::Real dt, DtType typ);
+    void EvolveF (int lev, amrex::Real dt, DtType typ);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
@@ -216,6 +223,7 @@ private:
     void InitOpenbc ();
 
     void InitPML ();
+    void ComputePMLFactors ();
 
     void InjectPlasma(int num_shift, int dir);
 
@@ -302,6 +310,7 @@ private:
     // PML
     int do_pml = 1;
     int pml_ncell = 10;
+    int pml_delta = 10;
     amrex::Array<std::unique_ptr<PML> > pml;
 
     // Moving window parameters

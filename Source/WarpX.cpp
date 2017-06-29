@@ -212,6 +212,7 @@ WarpX::ReadParameters ()
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
+        pp.query("pml_delta", pml_delta);
 
         pp.query("plot_raw_fields", plot_raw_fields);
         if (ParallelDescriptor::NProcs() == 1) {

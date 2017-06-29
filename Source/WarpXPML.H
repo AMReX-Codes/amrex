@@ -50,7 +50,7 @@ struct Sigma : amrex::Array<amrex::Real>
 struct SigmaBox
 {
     SigmaBox (const amrex::Box& box, const amrex::BoxArray& grids,
-              const amrex::Real* dx, int ncell);
+              const amrex::Real* dx, int ncell, int delta);
 
     void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
     void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
@@ -66,15 +66,16 @@ namespace amrex {
     class FabFactory<SigmaBox>
     {
     public:
-        FabFactory<SigmaBox> (const BoxArray& grid_ba, const Real* dx, int ncell) 
-            : m_grids(grid_ba), m_dx(dx), m_ncell(ncell) {}
+        FabFactory<SigmaBox> (const BoxArray& grid_ba, const Real* dx, int ncell, int delta) 
+            : m_grids(grid_ba), m_dx(dx), m_ncell(ncell), m_delta(delta) {}
         virtual SigmaBox* create (const Box& box, int ncomps,
                                   const FabInfo& info, int box_index) const final
-            { return new SigmaBox(box, m_grids, m_dx, m_ncell); }
+            { return new SigmaBox(box, m_grids, m_dx, m_ncell, m_delta); }
     private:
         const BoxArray& m_grids;
         const Real* m_dx;
         int m_ncell;
+        int m_delta;
     };
 }
 
@@ -83,7 +84,7 @@ class MultiSigmaBox
 {
 public:
     MultiSigmaBox(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
-                  const amrex::BoxArray& grid_ba, const amrex::Real* dx, int ncell);
+                  const amrex::BoxArray& grid_ba, const amrex::Real* dx, int ncell, int delta);
     void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
     void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
 private:
@@ -96,10 +97,9 @@ class PML
 public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm, 
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
-         int ncell, int ref_ratio, int do_dive_cleaning);
+         int ncell, int delta, int ref_ratio, int do_dive_cleaning);
 
-    void ComputePMLFactorsB (amrex::Real dt);
-    void ComputePMLFactorsE (amrex::Real dt);
+    void ComputePMLFactors (amrex::Real dt);
 
     std::array<amrex::MultiFab*,3> GetE_fp ();
     std::array<amrex::MultiFab*,3> GetB_fp ();

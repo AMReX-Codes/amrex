@@ -183,13 +183,13 @@ extern "C"
         warpx.MoveWindow (true);
     }
 
-    void warpx_EvolveE (double dt) {
+    void warpx_EvolveE (double dt, int dttype) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveE (dt);
+        warpx.EvolveE (dt, static_cast<DtType>(dttype));
     }
-    void warpx_EvolveB (double dt) {
+    void warpx_EvolveB (double dt, int dttype) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveB (dt);
+        warpx.EvolveB (dt, static_cast<DtType>(dttype));
     }
     void warpx_FillBoundaryE () {
         WarpX& warpx = WarpX::GetInstance();
