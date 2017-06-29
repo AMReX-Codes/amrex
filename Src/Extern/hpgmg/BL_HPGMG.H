@@ -206,7 +206,7 @@ extern "C" {
 // MultiFabs to its own level data structures. This function essentially
 // replaces the create_level() function in HPGMG.
 void CreateHPGMGLevel(level_type* level,
-                      const MultiFab& mf,
+                      const amrex::MultiFab& mf,
                       const int n_cell,
                       const int max_grid_size,
                       const int my_rank,
@@ -217,17 +217,17 @@ void CreateHPGMGLevel(level_type* level,
 
 void SetupHPGMGCoefficients(const double a,
                             const double b,
-                            const MultiFab& alpha,
-                            const MultiFab& beta_cc,
+                            const amrex::MultiFab& alpha,
+                            const amrex::MultiFab& beta_cc,
                             level_type* level);
 
-void ConvertToHPGMGLevel(const MultiFab& mf,
+void ConvertToHPGMGLevel(const amrex::MultiFab& mf,
                          const int n_cell,
                          const int max_grid_size,
                          level_type* level,
                          const int component_id);
 
-void ConvertFromHPGMGLevel(MultiFab& mf,
+void ConvertFromHPGMGLevel(amrex::MultiFab& mf,
                            const level_type* level,
                            const int component_id);
 
