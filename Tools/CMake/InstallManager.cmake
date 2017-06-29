@@ -8,7 +8,7 @@
 include(CMakeParseArguments)
 include(CCSELinkLine)
 
-export(PACKAGE CCSE)
+export(PACKAGE AMReX)
 
 #
 # Usage: ADD_INSTALL_INCLUDE_FILE( file1 file2 file3 ... )
@@ -142,8 +142,6 @@ endfunction( ADD_INSTALL_BINARY )
 function(makefile_include_dirs)
 
     cmake_parse_arguments(PARSE_ARGS "" "MAKE_INCLUDE_LIST" "CMAKE_INCLUDE_LIST" ${ARGN})
-    #print_variable(PARSE_ARGS_CMAKE_INCLUDE_LIST)
-    #print_variable(PARSE_ARGS_MAKE_INCLUDE_LIST)
 
     set(tmp_inc_list)
     set(loop_list ${PARSE_ARGS_CMAKE_INCLUDE_LIST})
@@ -156,7 +154,7 @@ function(makefile_include_dirs)
     set(tmp_make_list)
     string(REGEX REPLACE ";" "" tmp_make_list ${tmp_inc_list})
     set(${PARSE_ARGS_MAKE_INCLUDE_LIST} "${tmp_make_list}" PARENT_SCOPE)
-
+    
 endfunction(makefile_include_dirs)
 
 #
@@ -197,35 +195,42 @@ function (CREATE_EXPORTS)
 # Template file located in the CMake module directory
 
 # Find the packages found for CCSE
-get_property(LINK_LINE GLOBAL PROPERTY CCSE_LINK_LINE)
+get_property (LINK_LINE GLOBAL PROPERTY CCSE_LINK_LINE)
 
 # Define CCSE_INCLUDE_DIRS and CCSE_LIBRARY_DIRS
-set(CCSE_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include")
-set(CCSE_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib")
+set (CCSE_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include")
+set (CCSE_LIBRARY_DIRS "${CMAKE_INSTALL_PREFIX}/lib")
 
-list(REMOVE_DUPLICATES CCSE_INCLUDE_DIRS)
-list(REMOVE_DUPLICATES CCSE_LIBRARY_DIRS)
+list (REMOVE_DUPLICATES CCSE_INCLUDE_DIRS)
+list (REMOVE_DUPLICATES CCSE_LIBRARY_DIRS)
 
 # Write the export Makefile and add to the include install list
 makefile_include_dirs(CMAKE_INCLUDE_LIST ${CCSE_INCLUDE_DIRS}
                       MAKE_INCLUDE_LIST CCSE_MAKE_INCLUDE_DIRS)
 makefile_library_dirs(CMAKE_LIB_LIST ${CCSE_LIBRARY_DIRS}
                       MAKE_LIB_LIST CCSE_MAKE_LIBRARY_DIRS)
-set(in_makefile  "${CCSE_MODULE_PATH}/MakefileConfig.export.in")
-set(out_makefile "${CCSE_BINARY_DIR}/Makefile.export")
+set (in_makefile  "${CCSE_MODULE_PATH}/MakefileConfig.export.in")
+set (out_makefile "${CMAKE_INSTALL_PREFIX}/bin/Makefile.export")
 configure_file("${in_makefile}" "${out_makefile}")
-install(FILES "${out_makefile}" DESTINATION lib)
+install (FILES "${out_makefile}" DESTINATION lib)
 
-set(in_config   "${CCSE_MODULE_PATH}/CCSEConfig-install.cmake.in")
-set(out_config   "${CCSE_BINARY_DIR}/CCSEConfig.cmake")
-configure_file(${in_config} ${out_config})
-install(FILES ${out_config} DESTINATION lib)
+set (in_config   "${CCSE_MODULE_PATH}/CCSEConfig-install.cmake.in")
+set (out_config   "${CMAKE_INSTALL_PREFIX}/bin/CCSEConfig.cmake")
+
+configure_file (${in_config} ${out_config})
+install (FILES ${out_config} DESTINATION lib)
 
 # Write the CCSEConfigVersion.cmake file
-set(in_config   "${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in")
-set(out_config   "${CCSE_BINARY_DIR}/CCSEConfigVersion.cmake")
-configure_file(${in_config} ${out_config} @ONLY)
-install(FILES ${out_config} DESTINATION lib)
+set (in_config   "${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in")
+set (out_config   "${CMAKE_INSTALL_PREFIX}/bin/CCSEConfigVersion.cmake")
+configure_file (${in_config} ${out_config} @ONLY)
+install (FILES ${out_config} DESTINATION lib)
+
+set (in_config   "${CCSE_MODULE_PATH}/AMReXConfig.cmake.in")
+set (out_config   "${CMAKE_INSTALL_PREFIX}/cmake/AMReXConfig.cmake")
+configure_file (${in_config} ${out_config} @ONLY)
+install (FILES ${out_config} DESTINATION lib)
+
 
 # Write the CMake configuration target file
 message(STATUS "Writing target file")

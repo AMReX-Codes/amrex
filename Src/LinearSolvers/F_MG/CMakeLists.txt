@@ -33,7 +33,7 @@ add_library(box_fmg OBJECT ${local_source_files})
 #  and tell CMake that anything that links to fmg must link to fboxlib.
 add_dependencies(box_fmg box_f)
 
-add_install_include_file(${local_header_files})
+install_include_files(${local_header_files})
 
 if (BUILD_TESTS AND BL_SPACEDIM EQUAL 3)
 endif()

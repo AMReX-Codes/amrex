@@ -37,17 +37,17 @@ contains
     end do
   end subroutine amrex_particle_get_position
 
-  subroutine amrex_deposit_cic(particles, ns, np, rho, lo, hi, plo, dx) &
+  subroutine amrex_deposit_cic(particles, ns, np, nc, rho, lo, hi, plo, dx) &
        bind(c,name='amrex_deposit_cic')
-    integer, value                :: ns, np
+    integer, value                :: ns, np, nc
     real(amrex_particle_real)     :: particles(ns,np)
     integer                       :: lo(1)
     integer                       :: hi(1)
-    real(amrex_real)              :: rho(lo(1):hi(1))
+    real(amrex_real)              :: rho(lo(1):hi(1), nc)
     real(amrex_real)              :: plo(1)
     real(amrex_real)              :: dx(1)
 
-    integer i, n
+    integer i, n, comp
     real(amrex_real) wx_lo, wx_hi
     real(amrex_real) lx
     real(amrex_real) inv_dx(1)
@@ -59,9 +59,10 @@ contains
        wx_hi = lx - i
        wx_lo = 1.0d0 - wx_hi
 
-       rho(i-1)   = rho(i-1)   + wx_lo*particles(2, n)
-       rho(i  )   = rho(i  )   + wx_hi*particles(2, n)
-
+       do comp = 1, nc
+          rho(i-1, comp) = rho(i-1, comp) + wx_lo*particles(1 + comp, n)
+          rho(i  , comp) = rho(i  , comp) + wx_hi*particles(1 + comp, n)
+       end do
     end do
 
   end subroutine amrex_deposit_cic

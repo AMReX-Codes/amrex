@@ -1025,7 +1025,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             // locate the particle
             if (!Where(p, pld)) {
-                amrex::Abort("ParticleContainer::InitNRandomPerCell(): invalid particle");
+                amrex::Abort("ParticleContainer::InitRandomPerBox(): invalid particle");
             }
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());
             std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
