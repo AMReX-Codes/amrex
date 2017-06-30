@@ -282,10 +282,10 @@ WarpX::SyncCurrent ()
     // Sum up coarse patch
     for (int lev = 1; lev <= finest_level; ++lev)
     {
-        const auto& period = Geom(lev).periodicity();
-        current_cp[lev][0]->SumBoundary(period);
-        current_cp[lev][1]->SumBoundary(period);
-        current_cp[lev][2]->SumBoundary(period);
+        const auto& cperiod = Geom(lev-1).periodicity();
+        current_cp[lev][0]->SumBoundary(cperiod);
+        current_cp[lev][1]->SumBoundary(cperiod);
+        current_cp[lev][2]->SumBoundary(cperiod);
     }
 }
 
@@ -353,8 +353,8 @@ WarpX::SyncRho ()
     // Sum up coarse patch
     for (int lev = 1; lev <= finest_level; ++lev)
     {
-        const auto& period = Geom(lev).periodicity();
-        rho_cp[lev]->SumBoundary(period);
+        const auto& cperiod = Geom(lev-1).periodicity();
+        rho_cp[lev]->SumBoundary(cperiod);
     }
 }
 
