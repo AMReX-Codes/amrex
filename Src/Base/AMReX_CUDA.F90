@@ -53,16 +53,14 @@ contains
 
     integer :: i, cudaResult, ilen
 
-    cudaResult = cudaStreamCreate(cuda_streams(0))
-    call gpu_error_test(cudaResult)
+    ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
+    ! This stream is synchronous and blocking. It is our default choice, and we
+    ! only use the other, asynchronous streams when we know it is safe.
 
-    ! Setting stream 0 as the default stream is currently causing
-    ! bugs in the PGI compiler. Disable it for now.
-!    cudaResult = cudaforSetDefaultStream(cuda_streams(0))
-!    call gpu_error_test(cudaResult)
+    cuda_streams(0) = 0
 
     stream_index = -1
-    cuda_stream = cuda_streams(stream_from_index(stream_index))
+    cuda_stream = cuda_streams(0)
 
     do i = 1, max_cuda_streams
        cudaResult = cudaStreamCreate(cuda_streams(i))
