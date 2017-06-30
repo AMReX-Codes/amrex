@@ -51,7 +51,7 @@ def load_params(args):
 
     # "main" is a special section containing the global suite parameters.
     mysuite = suite.Suite(args)
-
+    log.suite = mysuite
     mysuite.log = log
 
     valid_options = list(mysuite.__dict__.keys())
@@ -149,7 +149,10 @@ def load_params(args):
                 mysuite.extra_src_comp_string += "{} ".format(mysuite.repos[r].comp_string)
 
     # checks
-    if mysuite.sendEmailWhenFail and not args.send_no_email:
+    if args.send_no_email:
+        mysuite.sendEmailWhenFail = 0
+
+    if mysuite.sendEmailWhenFail:
         if mysuite.emailTo == [] or mysuite.emailBody == "":
             mysuite.log.fail("ERROR: when sendEmailWhenFail = 1, you must specify emailTo and emailBody\n")
 
