@@ -26,7 +26,7 @@ class TimeStepper(object):
         # --- At the beginning, we have B^{n-1/2} and E^{n}.
         # --- Particles have p^{n-1/2} and x^{n}.
         libwarpx.warpx_FillBoundaryE()
-        libwarpx.warpx_EvolveB(0.5*dt) # We now B^{n}
+        libwarpx.warpx_EvolveB(0.5*dt,1) # We now B^{n}
 
         libwarpx.warpx_FillBoundaryB()
         libwarpx.warpx_UpdateAuxilaryData()
@@ -38,12 +38,12 @@ class TimeStepper(object):
         libwarpx.mypc_Redistribute() # Redistribute particles
 
         libwarpx.warpx_FillBoundaryE()
-        libwarpx.warpx_EvolveB(0.5*dt) # We now B^{n+1/2}
+        libwarpx.warpx_EvolveB(0.5*dt,2) # We now B^{n+1/2}
 
         libwarpx.warpx_SyncCurrent()
 
         libwarpx.warpx_FillBoundaryB()
-        libwarpx.warpx_EvolveE(dt) # We now have E^{n+1}
+        libwarpx.warpx_EvolveE(dt,0) # We now have E^{n+1}
 
         self.istep += 1
 
