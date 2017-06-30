@@ -329,15 +329,15 @@ SigmaBox::ComputePMLFactorsHalfDt (MTSigmaVect& fac1, MTSigmaVect& fac2)
         const auto& beta  = fac2[0][idim];
 
         auto& alpha_1 = fac1[1][idim];
-        auto& alpha_2 = fac1[2][idim];
+        auto& beta_1  = fac2[1][idim];
 
-        auto& beta_1 = fac2[1][idim];
-        auto& beta_2 = fac2[2][idim];        
+        auto& alpha_2 = fac1[2][idim];
+        auto& beta_2  = fac2[2][idim];        
 
         int n = alpha.size();
         for (int i = 0; i < n; ++i) {
             alpha_1[i] = 0.5*(alpha[i]+1.);
-            alpha_2[i] = 0.5*alpha[i]/(alpha[i]+1.);
+            alpha_2[i] = 2.0*alpha[i]/(alpha[i]+1.);
             beta_1[i] = 0.5*beta[i];
             beta_2[i] = beta[i]/(alpha[i]+1.);
         }
