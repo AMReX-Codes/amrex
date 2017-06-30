@@ -211,6 +211,11 @@ public:
     amrex::Array<amrex::Real> single_particle_vel;
     amrex::Real single_particle_weight;
 
+    bool gaussian_beam = false;
+    amrex::Real gaussian_beam_mean;
+    amrex::Real gaussian_beam_sigma;
+    amrex::Real gaussian_beam_vel;
+
 protected:
 
     amrex::Real mass, charge;

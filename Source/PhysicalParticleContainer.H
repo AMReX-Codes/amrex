@@ -51,6 +51,10 @@ public:
     // Inject particles in Box 'part_box'
     void AddParticles (int lev, amrex::Box part_box = amrex::Box());
 
+    void AddGaussianBeam(amrex::Real mean,
+                         amrex::Real sigma, 
+                         amrex::Real vel);
+
 protected:
 
     std::string species_name;
