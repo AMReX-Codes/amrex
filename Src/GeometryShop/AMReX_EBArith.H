@@ -180,6 +180,13 @@ namespace amrex
                          IntVectSet*    a_cfivsPtr,
                          int ivar);
 
+    static Real  getDiagWeight(  VoFStencil&     a_vofStencil,
+                                 const VolIndex& a_vof,
+                                 int             a_ivar=0);
+
+    ///for relaxation schemes.  good to have it in one place
+    static void getMultiColors(vector<IntVect>& a_colors);
+
     static bool
     isVoFHere(VolIndex& a_vof2,
               const std::vector<VolIndex>& a_vofsStencil,

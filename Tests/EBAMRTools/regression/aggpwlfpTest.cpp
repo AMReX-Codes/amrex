@@ -273,11 +273,11 @@ main(int argc, char* argv[])
   int eek = amrex::ebpwlfpTest();
   if(eek == 0)
   {
-    amrex::Print() << "aggpwlfpTest passed\n";
+    amrex::Print() << "aggpwlfp test passed\n";
   }
   else
   {
-    amrex::Print() << "aggpwlfpTest failed with code " << eek << "\n";
+    amrex::Print() << "aggpwlfp test failed with code " << eek << "\n";
   }
 
   amrex::Finalize();
