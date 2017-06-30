@@ -62,8 +62,8 @@ call bl_proffortfuncstop("my_function")
 Note that the start and stop calls must be matched and the profiling output will warn of any 
 {\tt bl\_proffortfuncstart} calls that were not stopped with {\tt bl\_proffortfuncstop} calls
 (in debug mode only).  You will need to add {\tt bl\_proffortfuncstop}
-before any returns and at the end of the function 
-(or at the point in the function you want to stop profiling). 
+before any returns and at the end of the function or at the point in the
+function you want to stop profiling. 
 
 \section{Types of Profiling} 
 
@@ -80,39 +80,48 @@ This is especially useful when core functions, such as {\tt FillBoundary} can be
 Part of the trace profiling is the ability to set regions in the code which can be analyzed for profiling information independently from other regions. 
 
 If, in addition to  {\tt PROFILE = TRUE}, you set {\tt COMM\_PROFILE = TRUE}, then the {\tt bl\_prof} directory 
-will contain additional info about MPI communication (point-to-point timings, data volume, barrier/reduction times, etc.).
+will contain additional information about MPI communication (point-to-point timings, data volume, barrier/reduction times, etc.).  {\tt TRACE\_PROFILE = TRUE} and {\tt COMM\_PROFILE = TRUE} can be set together.
 
-The AMReX-specific profiling tools are current under development and this documentation will reflect the latest 
+The AMReX-specific profiling tools are currently under development and this documentation will reflect the latest 
 status in the development branch.
 
 \section{Sample Output}
 
 Sample output from {\tt TINY\_PROFILE = TRUE} can look like the following:
 
-\begin{lstlisting}[language=cpp]
-TinyProfiler total time across processes [min...avg...max]: 1.765 ... 1.765 ... 1.765
-------------------------------------------------------------------------------------------------------------------------------------
-Name                                                                                 NCalls              Excl. Min       Excl. Avg      Excl. Max   Max %
-------------------------------------------------------------------------------------------------------------------------------------
-mfix_level::EvolveFluid                                                                   1          1.602             1.668           1.691  95.83%
-FabArray::FillBoundary()                                                              11081    0.02195         0.03336     0.06617   3.75%
-FabArrayBase::getFB()                                                                 22162      0.02031         0.02147    0.02275   1.29%
-ParticleContainer<...>::WriteAsciiFile()                                         1         0.00292          0.004072   0.004551   0.26%
+
+\begin{lstlisting}[basicstyle=\tiny,tabsize=1]
+
+TinyProfiler total time across processes [min...avg...max]: 1.765...1.765...1.765
+---------------------------------------------------------------------------------
+Name                          NCalls   Excl. Min   Excl. Avg   Excl. Max   Max  %
+---------------------------------------------------------------------------------
+mfix_level::EvolveFluid       1        1.602       1.668       1.691       95.83%
+FabArray::FillBoundary()      11081    0.02195     0.03336     0.06617      3.75%
+FabArrayBase::getFB()         22162    0.02031     0.02147     0.02275      1.29%
+PC<...>::WriteAsciiFile()     1        0.00292     0.004072    0.004551     0.26%
 
 
-------------------------------------------------------------------------------------------------------------------------------------
-Name                                                                                           NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %
-------------------------------------------------------------------------------------------------------------------------------------
-mfix_level::Evolve()                                                                       1             1.69          1.723      1.734  98.23%
-mfix_level::EvolveFluid                                                                 1            1.69           1.723      1.734  98.23%
-FabArray::FillBoundary()                                                             11081    0.04236    0.05485    0.08826   5.00%
-FabArrayBase::getFB()                                                                 22162    0.02031    0.02149    0.02275   1.29%
+---------------------------------------------------------------------------------
+Name                          NCalls   Incl. Min   Incl. Avg  Incl. Max    Max  %
+---------------------------------------------------------------------------------
+mfix_level::Evolve()          1        1.69        1.723      1.734        98.23%
+mfix_level::EvolveFluid       1        1.69        1.723      1.734        98.23%
+FabArray::FillBoundary()      11081    0.04236     0.05485    0.08826       5.00%
+FabArrayBase::getFB()         22162    0.02031     0.02149    0.02275       1.29%
 
 \end{lstlisting}
 
 \section{\tt AMRProfParser} 
 
-AMRProfParser is a tool that can be called by a command line application, 
-run as an interactive analysis tool, or run in a sidecar. 
-It has been integrated into AmrVis for visual interpretation of the data. 
-AMRProfParser opens the bl\_prof database like a plotfile but with interfaces appropriate to profiling data.
+{\tt AMRProfParser} is a tool for processing and analyzing the {\tt bl\_prof} database.  It is a
+command line application that can create performance summaries, plotfiles showing
+point to point communication and timelines, HTML call trees, communication call
+statistics, function timing graphs, and other data products.  The parser's data
+services functionality can be called from an interactive environment such as {\tt Amrvis},
+from a sidecar for dynamic performance optimization, and from other utilities such as
+the command line version of the parser itself.  It has been integrated into {\tt Amrvis}
+for visual interpretation of the data allowing {\tt Amrvis} to open the {\tt bl\_prof} database
+like a plotfile but with interfaces appropriate to profiling data. AMRProfParser
+and {\tt Amrvis} can be run in parallel both interactively and in batch mode.
+

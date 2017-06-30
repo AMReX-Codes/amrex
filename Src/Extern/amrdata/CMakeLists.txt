@@ -32,7 +32,7 @@ add_library(box_camrdata ${local_source_files})
 add_dependencies(box_camrdata box_c)
 
 
-add_install_include_file(${local_header_files})
+install_include_files(${local_header_files})
 add_install_library(box_camrdata)
 
 
