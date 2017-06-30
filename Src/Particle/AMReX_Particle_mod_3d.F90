@@ -75,15 +75,24 @@ contains
        wy_lo = 1.0d0 - wy_hi
        wz_lo = 1.0d0 - wz_hi
 
-       do comp = 1, nc
-          rho(i-1, j-1, k-1, comp) = rho(i-1, j-1, k-1, comp) + wx_lo*wy_lo*wz_lo*particles(3+comp, n)
-          rho(i-1, j-1, k  , comp) = rho(i-1, j-1, k  , comp) + wx_lo*wy_lo*wz_hi*particles(3+comp, n)
-          rho(i-1, j,   k-1, comp) = rho(i-1, j,   k-1, comp) + wx_lo*wy_hi*wz_lo*particles(3+comp, n)
-          rho(i-1, j,   k  , comp) = rho(i-1, j,   k,   comp) + wx_lo*wy_hi*wz_hi*particles(3+comp, n)
-          rho(i,   j-1, k-1, comp) = rho(i,   j-1, k-1, comp) + wx_hi*wy_lo*wz_lo*particles(3+comp, n)
-          rho(i,   j-1, k  , comp) = rho(i,   j-1, k  , comp) + wx_hi*wy_lo*wz_hi*particles(3+comp, n)
-          rho(i,   j,   k-1, comp) = rho(i,   j,   k-1, comp) + wx_hi*wy_hi*wz_lo*particles(3+comp, n)
-          rho(i,   j,   k  , comp) = rho(i,   j,   k  , comp) + wx_hi*wy_hi*wz_hi*particles(3+comp, n)
+       rho(i-1, j-1, k-1, 1) = rho(i-1, j-1, k-1, 1) + wx_lo*wy_lo*wz_lo*particles(4, n)
+       rho(i-1, j-1, k  , 1) = rho(i-1, j-1, k  , 1) + wx_lo*wy_lo*wz_hi*particles(4, n)
+       rho(i-1, j,   k-1, 1) = rho(i-1, j,   k-1, 1) + wx_lo*wy_hi*wz_lo*particles(4, n)
+       rho(i-1, j,   k  , 1) = rho(i-1, j,   k,   1) + wx_lo*wy_hi*wz_hi*particles(4, n)
+       rho(i,   j-1, k-1, 1) = rho(i,   j-1, k-1, 1) + wx_hi*wy_lo*wz_lo*particles(4, n)
+       rho(i,   j-1, k  , 1) = rho(i,   j-1, k  , 1) + wx_hi*wy_lo*wz_hi*particles(4, n)
+       rho(i,   j,   k-1, 1) = rho(i,   j,   k-1, 1) + wx_hi*wy_hi*wz_lo*particles(4, n)
+       rho(i,   j,   k  , 1) = rho(i,   j,   k  , 1) + wx_hi*wy_hi*wz_hi*particles(4, n)
+
+       do comp = 2, nc
+          rho(i-1, j-1, k-1, comp) = rho(i-1, j-1, k-1, comp) + wx_lo*wy_lo*wz_lo*particles(4, n)*particles(3+comp, n)
+          rho(i-1, j-1, k  , comp) = rho(i-1, j-1, k  , comp) + wx_lo*wy_lo*wz_hi*particles(4, n)*particles(3+comp, n)
+          rho(i-1, j,   k-1, comp) = rho(i-1, j,   k-1, comp) + wx_lo*wy_hi*wz_lo*particles(4, n)*particles(3+comp, n)
+          rho(i-1, j,   k  , comp) = rho(i-1, j,   k,   comp) + wx_lo*wy_hi*wz_hi*particles(4, n)*particles(3+comp, n)
+          rho(i,   j-1, k-1, comp) = rho(i,   j-1, k-1, comp) + wx_hi*wy_lo*wz_lo*particles(4, n)*particles(3+comp, n)
+          rho(i,   j-1, k  , comp) = rho(i,   j-1, k  , comp) + wx_hi*wy_lo*wz_hi*particles(4, n)*particles(3+comp, n)
+          rho(i,   j,   k-1, comp) = rho(i,   j,   k-1, comp) + wx_hi*wy_hi*wz_lo*particles(4, n)*particles(3+comp, n)
+          rho(i,   j,   k  , comp) = rho(i,   j,   k  , comp) + wx_hi*wy_hi*wz_hi*particles(4, n)*particles(3+comp, n)
        end do
 
     end do
