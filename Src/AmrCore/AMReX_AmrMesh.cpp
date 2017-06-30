@@ -314,6 +314,8 @@ AmrMesh::InitAmrMesh (int max_level_in, const Array<int>& n_cell_in, std::vector
     }
 
     finest_level = -1;
+
+    checkInput();
 }
 
 int
@@ -384,7 +386,7 @@ AmrMesh::MakeBaseGrids () const
 	ChopGrids(0, ba, ParallelDescriptor::NProcs());
     }
     if (ba == grids[0]) {
-	ba = grids[0];  // to avoid dupliates
+	ba = grids[0];  // to avoid duplicates
     }
     return ba;
 }
@@ -830,4 +832,60 @@ AmrMesh::ProjPeriodic (BoxList& blout, const Geometry& geom)
     }
 }
 
+void
+AmrMesh::checkInput ()
+{
+    if (max_level < 0)
+        amrex::Error("checkInput: max_level not set");
+
+    //
+    // Check level dependent values. 
+    //
+    for (int i = 0; i < max_level; i++)
+    {
+        if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
+            amrex::Error("Amr::checkInput: bad ref_ratios");
+    }
+
+    const Box& domain = Geom(0).Domain();
+    if (!domain.ok())
+        amrex::Error("level 0 domain bad or not set");
+
+    //
+    // Check that domain size is a multiple of blocking_factor[0].
+    //   (only check if blocking_factor <= max_grid_size)
+    //
+    for (int idim = 0; idim < BL_SPACEDIM; idim++)
+    {
+        int len = domain.length(idim);
+        if (blocking_factor[0][idim] <= max_grid_size[0][idim])
+           if (len%blocking_factor[0][idim] != 0)
+              amrex::Error("domain size not divisible by blocking_factor");
+    }
+
+    //
+    // Check that max_grid_size is a multiple of blocking_factor at every level.
+    //   (only check if blocking_factor <= max_grid_size)
+    //
+    for (int i = 0; i < max_level; i++)
+    {
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+           if (blocking_factor[i][idim] <= max_grid_size[i][idim])
+              if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) { 
+                 amrex::Error("max_grid_size not divisible by blocking_factor");
+            }
+        }
+    }
+
+    if( ! Geometry::ProbDomain().ok()) {
+        amrex::Error("Amr::checkInput: bad physical problem size"); 
+    }
+
+    if(verbose > 0) {
+        amrex::Print() << "Successfully read inputs file ... " << '\n';
+    }
 }
+
+
+}
+

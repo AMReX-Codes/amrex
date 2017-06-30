@@ -181,6 +181,8 @@ protected:
     Array<DistributionMapping> dmap;
     Array<BoxArray>            grids;    
 
+    void checkInput();
+
 private:
   void InitAmrMesh (int max_level_in, const Array<int>& n_cell_in,
                     std::vector<int> refrat = std::vector<int>());

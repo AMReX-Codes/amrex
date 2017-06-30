@@ -1,0 +1,63 @@
+# ############################################################################ #
+#
+#  AMReX Configuration File 
+#  To import into other CMake projects
+#
+# ############################################################################ #
+
+#
+# Build type
+#
+set (AMREX_BUILD_TYPE  @AMREX_BUILD_TYPE@)
+
+#
+# Directories and libraries
+#
+set (AMREX_TOOLS_DIR     @AMREX_TOOLS_DIR@)
+set (AMREX_SOURCE_DIR    @AMREX_SOURCE_DIR@)
+set (AMREX_INCLUDE_DIR   @AMREX_INCLUDE_DIR@)
+set (AMREX_LIBRARY_DIR   @AMREX_LIBRARY_DIR@)
+set (AMREX_BINARY_DIR    @AMREX_BINARY_DIR@)
+set (AMREX_INSTALL_DIR   @CMAKE_INSTALL_PREFIX@)
+set (AMREX_LIBRARIES     @AMREX_LIBRARIES@)
+
+#
+# Compilation 
+#
+set (AMREX_DEFINES             "@AMREX_DEFINES@" )
+set (AMREX_Fortran_FLAGS       "@AMREX_Fortran_FLAGS@")
+set (AMREX_CXX_FLAGS           "@AMREX_CXX_FLAGS@")
+set (AMREX_C_FLAGS             "@AMREX_C_FLAGS@")
+set (AMREX_EXTRA_Fortran_FLAGS "@AMREX_EXTRA_Fortran_FLAGS@")
+set (AMREX_EXTRA_CXX_FLAGS     "@AMREX_EXTRA_CXX_FLAGS@")
+set (AMREX_EXTRA_C_FLAGS       "@AMREX_EXTRA_C_FLAGS@")
+set (AMREX_EXTRA_Fortran_INCLUDE_PATH "@AMREX_EXTRA_Fortran_INCLUDE_PATH@")
+set (AMREX_EXTRA_C_INCLUDE_PATH       "@AMREX_EXTRA_C_INCLUDE_PATH@")
+set (AMREX_EXTRA_CXX_INCLUDE_PATH     "@AMREX_EXTRA_CXX_INCLUDE_PATH@")
+set (AMREX_EXTRA_Fortran_LINK_LINE "@AMREX_EXTRA_Fortran_LINK_LINE@")
+set (AMREX_EXTRA_C_LINK_LINE       "@AMREX_EXTRA_C_LINK_LINE@")
+set (AMREX_EXTRA_CXX_LINK_LINE     "@AMREX_EXTRA_CXX_LINK_LINE@")
+
+
+# 
+# Code configuration options
+#
+set (FORTRAN_ENABLE_MPI        @ENABLE_FORTRAN_MPI@)
+set (ENABLE_FBASELIB           @ENABLE_FBASELIB@)
+set (ENABLE_PIC                @ENABLE_PIC@)
+set (BL_SPACEDIM               @BL_SPACEDIM@)
+set (ENABLE_MPI                @ENABLE_MPI@)
+set (ENABLE_OMP                @ENABLE_OMP@)
+set (ENABLE_DP                 @ENABLE_DP@)
+set (ENABLE_PARTICLES          @ENABLE_PARTICLES@)
+set (ENABLE_DP_PARTICLES       @ENABLE_DP_PARTICLES@)
+set (ENABLE_PROFILING          @ENABLE_PROFILING@)
+set (ENABLE_TINY_PROFILING     @ENABLE_TINY_PROFILING@)
+set (ENABLE_BACKTRACE          @ENABLE_BACKTRACE@)
+set (ENABLE_MG_BOXLIB          @ENABLE_MG_BOXLIB@)
+
+
+# 
+# Exported Targets
+# File that defines the CCSE exported targets
+include("@CMAKE_INSTALL_PREFIX@/lib/CCSETargets.cmake")
