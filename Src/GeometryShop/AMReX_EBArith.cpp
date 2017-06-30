@@ -14,6 +14,55 @@
 
 namespace amrex
 {
+  Real
+  EBArith::
+  getDiagWeight(  VoFStencil&     a_vofStencil,
+                  const VolIndex& a_vof,
+                  int             a_ivar)
+  {
+    //has to be zero because adding to this later
+    Real retval = 0;
+    bool found = false;
+    for (int ivof = 0; ivof  < a_vofStencil.size(); ivof++)
+    {
+      if ((a_vofStencil.vof(ivof) == a_vof) && (a_vofStencil.variable(ivof) == a_ivar))
+      {
+        found = true;
+        //additive in case there are more than one entry with vof == a_vof
+        retval += a_vofStencil.weight(ivof);
+      }
+    }
+    if (!found)
+    {
+      //      MayDay::Warning("no diagonal weight, probably an empty cell");
+      retval = 1;
+    }
+    return retval;
+  }
+
+  void
+  EBArith::
+  getMultiColors(vector<IntVect>& a_colors)
+  {
+
+#if BL_SPACEDIM==2
+    a_colors.resize(4);
+    a_colors[0] = IntVect::Zero;//(0,0)
+    a_colors[1] = IntVect::Unit;//(1,1)
+    a_colors[2] = IntVect::Zero + BASISV(1);//(0,1)
+    a_colors[3] = IntVect::Zero + BASISV(0);//(1,0)
+#elif BL_SPACEDIM==3
+    a_colors.resize(8);
+    a_colors[0] = IntVect::Zero;//(0,0,0)
+    a_colors[1] = IntVect::Zero + BASISV(0) + BASISV(1);//(1,1,0)
+    a_colors[2] = IntVect::Zero + BASISV(1) + BASISV(2);//(0,1,1)
+    a_colors[3] = IntVect::Zero + BASISV(0) + BASISV(2);//(1,0,1)
+    a_colors[4] = IntVect::Zero + BASISV(1);//(0,1,0)
+    a_colors[5] = IntVect::Zero + BASISV(0);//(1,0,0)
+    a_colors[6] = IntVect::Zero + BASISV(2);//(0,0,1)
+    a_colors[7] = IntVect::Unit;//(1,1,1)
+#endif
+  }
   void
   EBArith::
   computeCoveredFaces(vector<VolIndex>&     a_coveredFace,
