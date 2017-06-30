@@ -3993,28 +3993,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         finest_level--;
     }
 
-    //
-    // The size of the returned multifab is limited by lev_min and 
-    // finest_level. In the following code, lev is the real level, 
-    // lev_index is the corresponding index for mf. 
-    //
-
     // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
-    mf_to_be_filled.resize(finest_level+1-lev_min);
+    mf_to_be_filled.resize(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; lev++)
     { 
-        const int lev_index = lev - lev_min;
-        mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
-						      m_gdb->DistributionMap(lev),
-						      ncomp, 2));
-	mf_to_be_filled[lev_index]->setVal(0.0);
+        mf_to_be_filled[lev].reset(new MultiFab(m_gdb->boxArray(lev),
+				                m_gdb->DistributionMap(lev),
+					        ncomp, 2));
+	mf_to_be_filled[lev]->setVal(0.0);
     }
 
     // Test whether the grid structure of the boxArray is the same
     //       as the ParticleBoxArray at all levels 
     bool all_grids_the_same = true; 
     for (int lev = lev_min; lev <= finest_level; lev++) {
-        if (!OnSameGrids(lev, *mf_to_be_filled[lev-lev_min])) {
+        if (!OnSameGrids(lev, *mf_to_be_filled[lev])) {
 	    all_grids_the_same = false;
 	    break;
 	}
@@ -4024,14 +4017,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     if (!all_grids_the_same)
     { 
         // Create the space for the temporary, mf_part
-        mf_part.resize(finest_level+1-lev_min);
+        mf_part.resize(finest_level+1);
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
-            const int lev_index = lev - lev_min;
-            mf_part[lev_index].reset(new MultiFab(ParticleBoxArray(lev), 
-						  ParticleDistributionMap(lev),
-						  ncomp, 2));
-	    mf_part[lev_index]->setVal(0.0);
+            mf_part[lev].reset(new MultiFab(ParticleBoxArray(lev), 
+					    ParticleDistributionMap(lev),
+					    ncomp, 2));
+	    mf_part[lev]->setVal(0.0);
         }
     }
 
@@ -4067,6 +4059,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     }
 
     for (int lev = lev_min; lev <= finest_level; ++lev) {
+
         AssignCellDensitySingleLevelFort(rho_index, *mf[lev], lev, 1, 0);
 
         if (lev < finest_level) {
@@ -4093,12 +4086,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         amrex::average_down(*mf[lev+1], *mf[lev], rho_index, ncomp, m_gdb->refRatio(lev));
     }
     
-    if ( ! all_grids_the_same) {
+    if (!all_grids_the_same) {
         for (int lev = lev_min; lev <= finest_level; lev++) {
-            const int lev_index = lev - lev_min;
-            mf_to_be_filled[lev_index]->copy(*mf_part[lev_index],0,0,1);
+            mf_to_be_filled[lev]->copy(*mf_part[lev],0,0,1);
         }
     }
+    int nlevels = finest_level - lev_min + 1;
+    for (int i = 0; i < nlevels; i++)
+    {
+        mf_to_be_filled[i] = std::move(mf_to_be_filled[i+lev_min]);
+    }
+    mf_to_be_filled.resize(nlevels);
 }
 
 //
