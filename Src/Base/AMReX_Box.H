@@ -258,40 +258,28 @@ public:
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
-    const int* loVect () const& {
-#ifdef CUDA
-	return lo_d.get();
-#else
-	return smallend.getVect();
-#endif
-    }
+    const int* loVect () const& { return smallend.getVect(); }
 
     const int* loVect () && = delete;
 
     //! Similar to loVect(). This one returns a pointer for the device to operate on.
     const int* loVectF () const& {
 #ifdef CUDA
-        return (int*) Device::get_host_pointer(lo_d_h.get());
+        return (int*) Device::get_host_pointer(lo_d.get());
 #else
         return smallend.getVect();
 #endif
     }
 	
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
-    const int* hiVect () const& {
-#ifdef CUDA
-	return hi_d.get();
-#else
-	return bigend.getVect();
-#endif
-    }
+    const int* hiVect () const& { return bigend.getVect(); }
 
     const int* hiVect () && = delete;
 
     //! Similar to hiVect(). This one returns a pointer for the device to operate on.
     const int* hiVectF () const& {
 #ifdef CUDA
-        return (int*) Device::get_host_pointer(hi_d_h.get());
+        return (int*) Device::get_host_pointer(hi_d.get());
 #else
         return bigend.getVect();
 #endif
@@ -679,9 +667,6 @@ private:
 #ifdef CUDA
     std::shared_ptr<int> lo_d;
     std::shared_ptr<int> hi_d;
-
-    std::shared_ptr<int> lo_d_h;
-    std::shared_ptr<int> hi_d_h;
 #endif
 };
 

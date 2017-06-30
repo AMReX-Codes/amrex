@@ -437,10 +437,10 @@ StateData::FillBoundary (FArrayBox&     dest,
     if (domain.contains(dest.box())) return;
 
     const Box& bx  = dest.box();
-    const int* dlo = dest.loVect();
-    const int* dhi = dest.hiVect();
-    const int* plo = domain.loVect();
-    const int* phi = domain.hiVect();
+    const int* dlo = dest.loVectF();
+    const int* dhi = dest.hiVectF();
+    const int* plo = domain.loVectF();
+    const int* phi = domain.hiVectF();
 
     Array<int> bcrs;
 

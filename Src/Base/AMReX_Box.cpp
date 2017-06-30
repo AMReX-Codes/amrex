@@ -16,7 +16,6 @@ int Box_init::m_cnt = 0;
 namespace
 {
     Arena* the_box_arena = 0;
-    Arena* the_box_arena_h = 0;
 }
 
 Box_init::Box_init ()
@@ -24,23 +23,17 @@ Box_init::Box_init ()
     if (m_cnt++ == 0)
     {
         BL_ASSERT(the_box_arena == 0);
-	BL_ASSERT(the_box_arena_h == 0);
 
-        the_box_arena = new CArena;
+	the_box_arena = new CArena;
 
-	the_box_arena->SetReadOnly();
-
-	the_box_arena_h = new CArena;
-
-	the_box_arena_h->SetHostAlloc();
+	the_box_arena->SetHostAlloc();
     }
 }
 
 Box_init::~Box_init ()
 {
     if (--m_cnt == 0) {
-        delete the_box_arena;
-	delete the_box_arena_h;
+	delete the_box_arena;
     }
 }
 
@@ -50,14 +43,6 @@ The_Box_Arena ()
     BL_ASSERT(the_box_arena != 0);
 
     return the_box_arena;
-}
-
-Arena*
-The_Box_Arena_h ()
-{
-    BL_ASSERT(the_box_arena_h != 0);
-
-    return the_box_arena_h;
 }
 #endif
 
@@ -127,15 +112,11 @@ Box::initialize_device_memory()
     const size_t sz = 3 * sizeof(int);
 
     int* lo_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
-    int* lo_temp_h = static_cast<int*>(amrex::The_Box_Arena_h()->alloc(sz));
     lo_d.reset(lo_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
-    lo_d_h.reset(lo_temp_h, [](int* ptr) { amrex::The_Box_Arena_h()->free(ptr); });
     copy_lo();
 
     int* hi_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
-    int* hi_temp_h = static_cast<int*>(amrex::The_Box_Arena_h()->alloc(sz));
     hi_d.reset(hi_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
-    hi_d_h.reset(hi_temp_h, [](int* ptr) { amrex::The_Box_Arena_h()->free(ptr); });
     copy_hi();
 #endif
 }
@@ -153,11 +134,9 @@ Box::copy_lo()
 #ifdef CUDA
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	lo_d.get()[i] = smallend[i];
-	lo_d_h.get()[i] = smallend[i];
     }
     for (int i = BL_SPACEDIM; i < 3; ++i) {
 	lo_d.get()[i] = 0;
-	lo_d_h.get()[i] = 0;
     }
 #endif
 }
@@ -168,11 +147,9 @@ Box::copy_hi()
 #ifdef CUDA
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	hi_d.get()[i] = bigend[i];
-	hi_d_h.get()[i] = bigend[i];
     }
     for (int i = BL_SPACEDIM; i < 3; ++i) {
 	hi_d.get()[i] = 0;
-	hi_d_h.get()[i] = 0;
     }
 #endif
 }
