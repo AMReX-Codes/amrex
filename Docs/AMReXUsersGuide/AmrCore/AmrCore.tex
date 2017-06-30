@@ -4,7 +4,7 @@ This directory contains source code for the following:
 \item Storing information about the grid layout and processor distribution mapping
 at each level of refinement.
 \item Functions to create grids at different levels of refinement, including tagging
-operationrs.
+operations.
 \item Operations on data at different levels of refinement, such as interpolation and
 restriction operators.
 \item Flux registers used to store and manipulate fluxes at coarse-fine interfaces.
@@ -110,7 +110,7 @@ to account for the mismatch stored in the flux register (computed by taking the 
 flux register data).
 \end{enumerate}
 
-\section{{\tt AmrCore} Source Code}
+\section{{\tt AmrCore} Source Code \label{ss:amrcore}}
 Here we provide a high-level overview of the source code in {\tt amrex/Src/AmrCore}.
 
 \subsection{{\tt AmrMesh} and {\tt AmrCore}}
@@ -133,10 +133,10 @@ protected:
 
     int            finest_level;    // Current finest level.
 
-    Array<int>     n_error_buf;     // Buffer cells around each tagged cell.
-    Array<int>     blocking_factor; // Blocking factor in grid generation 
+    Array<IntVect> n_error_buf;     // Buffer cells around each tagged cell.
+    Array<IntVect> blocking_factor; // Blocking factor in grid generation 
                                     // (by level).
-    Array<int>     max_grid_size;   // Maximum allowable grid size (by level).
+    Array<IntVect> max_grid_size;   // Maximum allowable grid size (by level).
     Real           grid_eff;        // Grid efficiency.
     int            n_proper;        // # cells required for proper nesting.
 
@@ -150,12 +150,34 @@ protected:
     Array<BoxArray>            grids;    
 \end{lstlisting}
 
+The following parameters are frequently set via the inputs file or the command line.  
+Their usage is described in Section~\ref{ss:grid_creation}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lcc}
+    Variable & Value & Default \\
+    \hline
+    {\tt amr.verbose}              & int  & 0    \\
+    {\tt amr.max\_level}           & int  & none \\
+    {\tt amr.max\_grid\_size}      & ints & 32 in 3D, 128 in 2D \\
+    {\tt amr.n\_proper}            & int  & 1    \\
+    {\tt amr.grid\_eff}            & Real & 0.7  \\
+    {\tt amr.n\_error\_buf}        & int  & 1    \\
+    {\tt amr.blocking\_factor}     &int   & 8    \\
+    {\tt amr.refine\_grid\_layout} &int   & true \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:makevarimp} {\tt AmrCore} parameters}
+\end{table}
+
+
 {\tt AMReX\_AmrCore.cpp/H} contains the pure virtual class {\tt AmrCore}, 
 which is derived from the {\tt AmrMesh} class.  {\tt AmrCore} does not actually 
 have any data members, just additional member functions, some of which override 
 the base class {\tt AmrMesh}.
 
-There are no pure virutal functions in {\tt AmrMesh}, but 
+There are no pure virtual functions in {\tt AmrMesh}, but 
 there are 5 pure virtual functions in the {\tt AmrCore} class.  Any applications
 you create must implement these functions.  The tutorial code 
 {\tt Amr/Advection\_AmrCore} provides sample implementation in the derived
@@ -200,9 +222,9 @@ such as {\tt regrid} and {\tt ErrorEst} (a routine for tagging cells for refinem
 
 \subsection{{\tt FillPatchUtil} and {\tt Interpolater}}\label{sec:amrcore:fillpatch}
 
-Many codes, including the {\tt Advection\_AmrCore} example, contain an array of {\tt MultifFab}s
+Many codes, including the {\tt Advection\_AmrCore} example, contain an array of {\tt MultiFab}s
 (one for each level of refinement), and then use ``fillpatch'' operations to fill temporary
-multifabs that may include a different number of ghost cells.  Fillpatch operations fill
+MultiFabs that may include a different number of ghost cells.  Fillpatch operations fill
 all cells, valid and ghost, from actual valid data at that level, space-time interpolated data 
 from the next-coarser level, neighboring grids at the same level, and domain
 boundary conditions (for examples that have non-periodic boundary conditions)
@@ -223,7 +245,7 @@ the coarser level in time first using {\tt FillPatchSingleLevel()}.
 A {\tt FillPatchUtil} uses an {\tt Interpolator}.  This is largely hidden from application codes.
 {\tt AMReX\_Interpolater.cpp/H} contains the virtual base class {\tt Interpolater}, which provides
 an interface for coarse-to-fine spatial interpolation operators.  The fillpatch routines describe
-above require an interpolator for {\tt FillPatchTwoLevels()}
+above require an Interpolater for {\tt FillPatchTwoLevels()}
 Within {\tt AMReX\_Interpolater.cpp/H} are the derived classes:
 \begin{itemize}
 \item {\tt NodeBilinear}
@@ -234,10 +256,11 @@ Within {\tt AMReX\_Interpolater.cpp/H} are the derived classes:
 \item {\tt PCInterp}
 \item {\tt CellConservativeQuartic}
 \end{itemize}
-The fortran routines that perform the actual work associated with {\tt Interpolater} are 
+The Fortran routines that perform the actual work associated with {\tt Interpolater} are 
 contained in the files {\tt AMReX\_INTERP\_F.H} and {\tt AMReX\_INTERP\_xD.F}.
 
 \subsection{Using {\tt FluxRegister}s}
+\label{sec:amrcore:fluxreg}
 {\tt AMReX\_FluxRegister.cpp/H} contains the class {\tt FluxRegister}, which is derived from
 the class {\tt BndryRegister} (in {\tt Src/Boundary/AMReX\_BndryRegister}).
 In the most general terms, a {\tt FluxRegister} is a special type of {\tt BndryRegister} that
@@ -248,7 +271,7 @@ A simple usage scenario comes from a conservative discretization of a hyperbolic
 \rightarrow
 \frac{\phi_{i,j}^{n+1}-\phi_{i,j}^n}{\Delta t} = \frac{F_{i+\myhalf,j}-F_{i-\myhalf,j}}{\Delta x} + \frac{F_{i,j+\myhalf} - F_{i,j-\myhalf}}{\Delta y}.
 \end{equation}
-Consider a two-level, two-dimensional simulation.  A standard methdology for advancing the solution in 
+Consider a two-level, two-dimensional simulation.  A standard methodology for advancing the solution in 
 time is to first advance the coarse grid solution ignoring the fine level, and then advance the fine 
 grid solution using the coarse level only to supply boundary conditions.  At the coarse-fine interface, 
 the area-weighted fluxes from the fine grid advance do not in general match the underlying flux from 
@@ -262,7 +285,7 @@ the coarse grid solution in coarse cells immediately adjacent to the coarse-fine
 to account for the mismatch stored in the {\tt FluxRegister}.  This can be done ``simply'' by taking
 the coarse-level divergence of the data in the {\tt FluxRegister} using the {\tt reflux} function.
 
-The fortran routines that perform the actual floating point work associated with 
+The Fortran routines that perform the actual floating point work associated with 
 incrementing data in a {\tt FluxRegister} are
 contained in the files {\tt AMReX\_FLUXREG\_F.H} and {\tt AMReX\_FLUXREG\_xD.F}.
 
@@ -338,17 +361,17 @@ main()
       timeStep() // advance a level
         /* check regrid conditions and regrid if necessary */
         Advance()
-          /* copy phi into a multifab and fill ghost cells */
+          /* copy phi into a MultiFab and fill ghost cells */
           /* advance phi */
           /* update flux registers */
         if (lev < finest_level) {
           timeStep() // recursive call to advance the next-finer level "r" times
             /* check regrid conditions and regrid if necessary */
             Advance()
-              /* copy phi into a multifab and fill ghost cells */
+              /* copy phi into a MultiFab and fill ghost cells */
               /* advance phi */
               /* update flux registers */
-          reflux() // synchronize lev and lev+1 using fluxregister divergence
+          reflux() // synchronize lev and lev+1 using FluxRegister divergence
           AverageDown() // set covered coarse cells to be the average of fine
         }
     }
@@ -360,7 +383,7 @@ This example uses the class {\tt AmrCoreAdv}, which is derived from the class {\
 are given in {\tt AmrCoreAdv.H/cpp}.
 
 \subsection{{\tt FluxRegister}s}
-The function {\tt AmrCoreAdv::Advance()} calls the fortran
+The function {\tt AmrCoreAdv::Advance()} calls the Fortran
 subroutine, {\tt advect} (in {\tt ./Src\_xd/Adv\_xd.f90}).  {\tt advect} computes
 and returns the time-advanced state as well as the fluxes used to update the state.
 These fluxes are used to set or increment the flux registers.
@@ -398,7 +421,7 @@ if (do_reflux)
 AverageDownTo(lev); // average lev+1 down to lev
 \end{lstlisting}
 
-\subsection{Regridding}
+\subsection{Regridding \label{ss:regridding}}
 The {\tt regrid} function belongs to the {\tt AmrCore} class (it is virtual -- in this
 tutorial we use the instance in {\tt AmrCore}).
 
@@ -435,7 +458,7 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 Central to the regridding process is the concept of ``tagging'' which cells need refinement.
 {\tt ErrorEst} is a pure virtual function of {\tt AmrCore}, so each application code must
 contain an implementation.  In {\tt AmrCoreAdv.cpp} the {\tt ErrorEst} function is essentially an
-interface to a fortran routine that tags cells (in this case, {\tt state\_error} in 
+interface to a Fortran routine that tags cells (in this case, {\tt state\_error} in 
 {\tt Src\_nd/Tagging\_nd.f90}).  Note that this code uses tiling.
 \begin{lstlisting}[language=cpp]
 // tag all cells for refinement
@@ -484,7 +507,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 
             TagBox&     tagfab  = tags[mfi];
 	    
-	    // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
+	    // We cannot pass tagfab to Fortran because it is BaseFab<char>.
 	    // So we are going to get a temporary integer array.
             // set itags initially to 'untagged' everywhere
             // we define itags over the tilebox region
@@ -549,6 +572,38 @@ subroutine state_error(tag,tag_lo,tag_hi, &
 
 end subroutine state_error
 \end{lstlisting}
+
+\subsection{Grid Creation \label{ss:grid_creation}}
+
+\noindent The gridding algorithm proceeds in this order, using the parameters described 
+in Section\ref{ss:amrcore}.
+
+\begin{enumerate}
+\item If at level 0, the domain is initially defined by {\tt n\_cell} 
+as specified in the inputs file.  If at level greater than 0, 
+grids are created using the Berger-Rigoutsis clustering algorithm applied to the
+taggd cells from Section~\ref{ss:regridding}, modified to ensure that 
+all new fine grids are divisible by {\tt blocking\_factor}.
+
+\item Next, the grid list is chopped up if any grids are larger than {\tt max\_grid\_size}.
+Note that because {\tt max\_grid\_size} is a multiple of {\tt blocking\_factor}
+the {\tt blocking\_factor} criterion is still satisfied.
+
+\item Next, if {\tt refine\_grid\_layout} = 1 and there are more processors than grids,
+then grids are further divided in order to ensure that no processors has less than one grid.  
+In {\tt AmrMesh::ChopGrids}, 
+
+\begin{itemize}
+\item if {\tt max\_grid\_size} / 2 in the {\tt BL\_SPACEDIM} direction is a multiple of 
+{\tt blocking\_factor}, then chop the grids in the {\tt BL\_SPACEDIM} direction
+so that none of the grids are longer in that direction than {\tt max\_grid\_size / 2} 
+\item If there are still fewer grids than processes, repeat the procedure in the 
+{\tt BL\_SPACEDIM-1} direction, and again in the {\tt BL\_SPACEDIM-2} direction if necessary
+\item If after completing a sweep in all coordinate directions with  {\tt max\_grid\_size / 2},
+there are still fewer grids than processes, repeat the steps above with  {\tt max\_grid\_size / 4}.
+\end{itemize}
+
+\end{enumerate}
 
 \subsection{FillPatch}
 This example has two functions, {\tt AmrCoreAdv::FillPatch} and {\tt AmrCoreAdv::CoarseFillPatch},
