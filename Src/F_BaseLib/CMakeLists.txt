@@ -49,7 +49,7 @@ set(local_header_files ${CXX_header_files} ${F77_header_files} ${FPP_header_file
 add_library(box_f OBJECT ${local_source_files})
 add_dependencies(box_f box_c)
 
-add_install_include_file(${local_header_files})
+install_include_files(${local_header_files})
 
 if (BUILD_TESTS AND BL_SPACEDIM EQUAL 3)
 endif()

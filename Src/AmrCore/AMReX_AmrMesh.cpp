@@ -384,7 +384,7 @@ AmrMesh::MakeBaseGrids () const
 	ChopGrids(0, ba, ParallelDescriptor::NProcs());
     }
     if (ba == grids[0]) {
-	ba = grids[0];  // to avoid dupliates
+	ba = grids[0];  // to avoid duplicates
     }
     return ba;
 }

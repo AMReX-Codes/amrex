@@ -34,7 +34,7 @@ void WritePlotFile(const ScalarMeshData& rhs,
                    const Array<Geometry>& geom,
                    int nstep)
 {
-    int num_output_comp = 5;
+    int num_output_comp = 2 + BL_SPACEDIM;
     int num_levels = rhs.size();
     IntVect cc_flag = IntVect::TheZeroVector();
     Array<std::unique_ptr<MultiFab> > output_cc(num_levels);
@@ -44,9 +44,9 @@ void WritePlotFile(const ScalarMeshData& rhs,
                                           rhs[lev]->DistributionMap(), num_output_comp, 0));
         amrex::average_node_to_cellcenter(*output_cc[lev], 0, *rhs[lev],  0, 1);
         amrex::average_node_to_cellcenter(*output_cc[lev], 1, *phi[lev],  0, 1);
-        amrex::average_node_to_cellcenter(*output_cc[lev], 2, *E[lev][0], 0, 1);
-        amrex::average_node_to_cellcenter(*output_cc[lev], 3, *E[lev][1], 0, 1);
-        amrex::average_node_to_cellcenter(*output_cc[lev], 4, *E[lev][2], 0, 1);
+        for (int i = 0; i < BL_SPACEDIM; ++i) {
+            amrex::average_node_to_cellcenter(*output_cc[lev], 2+i, *E[lev][i], 0, 1);
+        }
     }
     
     Array<std::string> varnames;
@@ -54,16 +54,22 @@ void WritePlotFile(const ScalarMeshData& rhs,
     varnames.push_back("phi");
     varnames.push_back("Ex");
     varnames.push_back("Ey");
+#if BL_SPACEDIM == 3
     varnames.push_back("Ez");
+#endif
 
     Array<std::string> particle_varnames;
     particle_varnames.push_back("weight");
     particle_varnames.push_back("vx");
     particle_varnames.push_back("vy");
+#if BL_SPACEDIM == 3
     particle_varnames.push_back("vz");
+#endif
     particle_varnames.push_back("Ex");
     particle_varnames.push_back("Ey");
+#if BL_SPACEDIM == 3
     particle_varnames.push_back("Ez");
+#endif
     
     Array<int> level_steps;
     level_steps.push_back(0);
@@ -73,7 +79,7 @@ void WritePlotFile(const ScalarMeshData& rhs,
     
     Array<IntVect> outputRR(output_levs);
     for (int lev = 0; lev < output_levs; ++lev) {
-        outputRR[lev] = IntVect(2, 2, 2);
+        outputRR[lev] = IntVect(D_DECL(2, 2, 2));
     }
 
     const std::string& pltfile = amrex::Concatenate("plt", nstep, 5);    
@@ -103,15 +109,21 @@ void computeE(      VectorMeshData& E,
                             (*phi[lev] )[mfi].dataPtr(),
                             (*E[lev][0])[mfi].dataPtr(),
                             (*E[lev][1])[mfi].dataPtr(),
-                            (*E[lev][2])[mfi].dataPtr(), dx);
+#if BL_SPACEDIM == 3
+                            (*E[lev][2])[mfi].dataPtr(),
+#endif
+                            dx);
         }
 
         E[lev][0]->FillBoundary(gm.periodicity());
         E[lev][1]->FillBoundary(gm.periodicity());
+#if BL_SPACEDIM == 3
         E[lev][2]->FillBoundary(gm.periodicity());                 
+#endif
+        //        VisMF::Write(*E[lev][0], amrex::MultiFabFileFullPrefix(lev, "tmp", "Level_", "Ex"));
     }
 }
-
+        
 void zeroOutBoundary(MultiFab& input_data,
                      MultiFab& bndry_data,
                      const FabArray<BaseFab<int> >& mask) {
@@ -145,7 +157,7 @@ void sumFineToCrseNodal(const MultiFab& fine, MultiFab& crse,
                                coarsened_fine_data[mfi].dataPtr(), crse_box.loVect(), crse_box.hiVect(),
                                fine[mfi].dataPtr(), fine_box.loVect(), fine_box.hiVect());
     }
-
+    
     crse.copy(coarsened_fine_data, cgeom.periodicity(), FabArrayBase::ADD);    
 }
 
@@ -178,7 +190,7 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
         MultiFab::Copy(*tmp_rhs[lev], *rhs[lev], 0, 0, 1, 0);
     }
     
-    IntVect ratio(2, 2, 2);
+    IntVect ratio(D_DECL(2, 2, 2));
     fixRHSForSolve(tmp_rhs, masks, geom, ratio);
 
     bool nodal = true;
@@ -188,8 +200,8 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     int stencil = ND_CROSS_STENCIL;
     int verbose = 0;
     Array<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
-    Real rel_tol = 1.0e-12;
-    Real abs_tol = 1.0e-12;
+    Real rel_tol = 1.0e-14;
+    Real abs_tol = 1.0e-14;
 
     Array<Geometry>            level_geom(1);
     Array<BoxArray>            level_grids(1);
@@ -215,16 +227,24 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
         if (lev < num_levels-1) {
 
             NoOpPhysBC cphysbc, fphysbc;
+#if BL_SPACEDIM == 3
             int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR};
             int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+#else
+            int lo_bc[] = {INT_DIR, INT_DIR};
+            int hi_bc[] = {INT_DIR, INT_DIR};
+#endif
             Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
             NodeBilinear mapper;
 
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
                                          0, 0, 1, geom[lev], geom[lev+1],
                                          cphysbc, fphysbc,
-                                         IntVect(2, 2, 2), &mapper, bcs);            
+                                         IntVect(D_DECL(2, 2, 2)), &mapper, bcs);            
         }
+
+        //        VisMF::Write(*phi[lev], amrex::MultiFabFileFullPrefix(lev, "tmp", "Level_", "phi"));
+        //        VisMF::Write(*rhs[lev], amrex::MultiFabFileFullPrefix(lev, "tmp", "Level_", "rhs"));
     }
     
     for (int lev = 0; lev < num_levels; ++lev) {
@@ -267,7 +287,7 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
 
-    int max_level, n_cell, max_grid_size, max_step, is_periodic[BL_SPACEDIM];
+    int max_level, n_cell, max_grid_size, n_buffer, max_step, is_periodic[BL_SPACEDIM];
     Real dt;
 
     // inputs parameters
@@ -275,6 +295,7 @@ int main(int argc, char* argv[])
         ParmParse pp;
         pp.get("max_level", max_level);
         pp.get("n_cell", n_cell);
+        pp.get("n_buffer", n_buffer);
         pp.get("max_grid_size", max_grid_size);       
         pp.get("max_step", max_step);
         pp.get("dt", dt);
@@ -316,17 +337,17 @@ int main(int argc, char* argv[])
     grids[0].define(domain);
     if (num_levels > 1) {
         int n_fine = n_cell*rr[0];
-        IntVect refined_lo(3*n_fine/8,3*n_fine/8,3*n_fine/8); 
-        IntVect refined_hi(5*n_fine/8-1,5*n_fine/8-1,5*n_fine/8-1);
+        IntVect refined_lo(D_DECL(3*n_fine/8,3*n_fine/8,3*n_fine/8)); 
+        IntVect refined_hi(D_DECL(5*n_fine/8-1,5*n_fine/8-1,5*n_fine/8-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
         grids[1].define(refined_patch);
     }
     
-    //    for (int lev = 0; lev < num_levels; lev++) {
-    //        grids[lev].maxSize(max_grid_size);
-    //    }
+    for (int lev = 0; lev < num_levels; lev++) {
+        grids[lev].maxSize(max_grid_size);
+    }
     
     int Nghost = 1;
     int Ncomp  = 1;
@@ -334,7 +355,7 @@ int main(int argc, char* argv[])
     Array<DistributionMapping> dm(num_levels);
     Array<std::unique_ptr<MultiFab> > phi(num_levels);
     Array<std::unique_ptr<MultiFab> > rhs(num_levels);
-    Array<std::array<std::unique_ptr<MultiFab>, 3> > eField(num_levels);
+    Array<std::array<std::unique_ptr<MultiFab>, BL_SPACEDIM> > eField(num_levels);
 
     for (int lev = 0; lev < num_levels; ++lev) {
         BoxArray nba = grids[lev];
@@ -344,23 +365,20 @@ int main(int argc, char* argv[])
         rhs[lev].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
         phi[lev].reset(new MultiFab(nba, dm[lev], Ncomp, 2));
         
-        eField[lev][0].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
-        eField[lev][1].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
-        eField[lev][2].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
+        for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+            eField[lev][idim].reset(new MultiFab(nba, dm[lev], Ncomp, 1));
+            eField[lev][idim]->setVal(0.0);
+        }
 
         rhs[lev]->setVal(0.0);
-        phi[lev]->setVal(0.0);
-        
-        eField[lev][0]->setVal(0.0);
-        eField[lev][1]->setVal(0.0);
-        eField[lev][2]->setVal(0.0);
+        phi[lev]->setVal(0.0);        
     }
 
     Array<std::unique_ptr<FabArray<BaseFab<int> > > > masks(num_levels); 
     getLevelMasks(masks, grids, dm, geom);
 
     Array<std::unique_ptr<FabArray<BaseFab<int> > > > gather_masks(num_levels);
-    getLevelMasks(gather_masks, grids, dm, geom, 4);
+    getLevelMasks(gather_masks, grids, dm, geom, n_buffer + 1); // convert from num nodes to num cells
     
     ElectrostaticParticleContainer myPC(geom, dm, grids, rr);
 
@@ -377,6 +395,8 @@ int main(int argc, char* argv[])
         myPC.FieldGather(eField, gather_masks);
 
         myPC.writeParticles(step);
+
+        //        WritePlotFile(rhs, phi, eField, myPC, geom, step);
         
         myPC.Evolve(eField, rhs, dt);
 
