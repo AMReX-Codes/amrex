@@ -345,11 +345,14 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_ty
             else
             {
                 sigma_fac1[0][idim][i] = std::exp(-sigma[idim][i]*dt);
-                if (pml_type == PML_t) {
+                if (pml_type == PML_t)
+                {
                     sigma_fac2[0][idim][i] = (1.0-sigma_fac1[0][idim][i])
                         / (sigma[idim][i]*dt) * dtsdx_c2[idim];
-                } else if (pml_type == APML_t) {
-                    sigma_star_fac2[0][idim][i] = sigma_star_fac1[0][idim][i] * dtsdx_c2[idim];
+                }
+                else if (pml_type == APML_t)
+                {
+                    sigma_fac2[0][idim][i] = sigma_fac1[0][idim][i] * dtsdx_c2[idim];
                 }
             }
         }
