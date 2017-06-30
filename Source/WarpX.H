@@ -311,6 +311,7 @@ private:
     int do_pml = 1;
     int pml_ncell = 10;
     int pml_delta = 10;
+    std::string pml_type = "pml";   // or apml
     amrex::Array<std::unique_ptr<PML> > pml;
 
     // Moving window parameters

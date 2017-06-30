@@ -266,8 +266,23 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
 }
 
 void
-SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
+SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt, const std::string& pml_type_s)
 {
+    static constexpr int PML_t = 0;
+    static constexpr int APML_t = 1;
+
+    std::string pml_type_lo = pml_type_s;
+    std::transform(pml_type_s.begin(), pml_type_s.end(), pml_type_lo.begin(), ::tolower);
+
+    int pml_type;
+    if (pml_type_lo == "pml") {
+        pml_type = PML_t;
+    } else if (pml_type_lo == "apml") {
+        pml_type = APML_t;
+    } else {
+        amrex::Abort("Unknown PML type " + pml_type_s);
+    }
+
     const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
 
     for (int idim = 0; idim < BL_SPACEDIM; ++idim)
@@ -282,8 +297,12 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
             else
             {
                 sigma_star_fac1[0][idim][i] = std::exp(-sigma_star[idim][i]*dt);
-                sigma_star_fac2[0][idim][i] = (1.0-sigma_star_fac1[0][idim][i])
-                    / (sigma_star[idim][i]*dt) * dtsdx[idim];
+                if (pml_type == PML_t) {
+                    sigma_star_fac2[0][idim][i] = (1.0-sigma_star_fac1[0][idim][i])
+                        / (sigma_star[idim][i]*dt) * dtsdx[idim];
+                } else if (pml_type == APML_t) {
+                    sigma_star_fac2[0][idim][i] = sigma_star_fac1[0][idim][i] * dtsdx[idim];
+                }
             }
         }
     }
@@ -292,8 +311,23 @@ SigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 }
 
 void
-SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
+SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_type_s)
 {
+    static constexpr int PML_t = 0;
+    static constexpr int APML_t = 1;
+
+    std::string pml_type_lo = pml_type_s;
+    std::transform(pml_type_s.begin(), pml_type_s.end(), pml_type_lo.begin(), ::tolower);
+
+    int pml_type;
+    if (pml_type_lo == "pml") {
+        pml_type = PML_t;
+    } else if (pml_type_lo == "apml") {
+        pml_type = APML_t;
+    } else {
+        amrex::Abort("Unknown PML type " + pml_type_s);
+    }
+
     const std::array<Real,BL_SPACEDIM> dtsdx {D_DECL(dt/dx[0], dt/dx[1], dt/dx[2])};
     
     const Real c2 = PhysConst::c*PhysConst::c;
@@ -311,8 +345,12 @@ SigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
             else
             {
                 sigma_fac1[0][idim][i] = std::exp(-sigma[idim][i]*dt);
-                sigma_fac2[0][idim][i] = (1.0-sigma_fac1[0][idim][i])
-                    / (sigma[idim][i]*dt) * dtsdx_c2[idim];
+                if (pml_type == PML_t) {
+                    sigma_fac2[0][idim][i] = (1.0-sigma_fac1[0][idim][i])
+                        / (sigma[idim][i]*dt) * dtsdx_c2[idim];
+                } else if (pml_type == APML_t) {
+                    sigma_star_fac2[0][idim][i] = sigma_star_fac1[0][idim][i] * dtsdx_c2[idim];
+                }
             }
         }
     }
@@ -351,7 +389,7 @@ MultiSigmaBox::MultiSigmaBox (const BoxArray& ba, const DistributionMapping& dm,
 {}
 
 void
-MultiSigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
+MultiSigmaBox::ComputePMLFactorsB (const Real* dx, Real dt, const std::string& pml_type)
 {
     if (dt == dt_B) return;
 
@@ -362,12 +400,12 @@ MultiSigmaBox::ComputePMLFactorsB (const Real* dx, Real dt)
 #endif
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        (*this)[mfi].ComputePMLFactorsB(dx, dt);
+        (*this)[mfi].ComputePMLFactorsB(dx, dt, pml_type);
     }
 }
 
 void
-MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
+MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& pml_type)
 {
     if (dt == dt_E) return;
 
@@ -378,7 +416,7 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
 #endif
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        (*this)[mfi].ComputePMLFactorsE(dx, dt);
+        (*this)[mfi].ComputePMLFactorsE(dx, dt, pml_type);
     }
 }
 
@@ -515,15 +553,15 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
 }
 
 void
-PML::ComputePMLFactors (amrex::Real dt)
+PML::ComputePMLFactors (amrex::Real dt, const std::string& pml_type)
 {
     if (sigba_fp) {
-        sigba_fp->ComputePMLFactorsB(m_geom->CellSize(), dt);
-        sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt);
+        sigba_fp->ComputePMLFactorsB(m_geom->CellSize(), dt, pml_type);
+        sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt, pml_type);
     }
     if (sigba_cp) {
-        sigba_cp->ComputePMLFactorsB(m_geom->CellSize(), dt);
-        sigba_cp->ComputePMLFactorsE(m_geom->CellSize(), dt);
+        sigba_cp->ComputePMLFactorsB(m_geom->CellSize(), dt, pml_type);
+        sigba_cp->ComputePMLFactorsE(m_geom->CellSize(), dt, pml_type);
     }
 }
 

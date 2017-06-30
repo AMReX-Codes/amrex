@@ -52,8 +52,8 @@ struct SigmaBox
     SigmaBox (const amrex::Box& box, const amrex::BoxArray& grids,
               const amrex::Real* dx, int ncell, int delta);
 
-    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
-    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
+    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
+    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
 
     using SigmaVect = std::array<Sigma,BL_SPACEDIM>;
     // 3: there are 3 types: full dt, first half and second half dt
@@ -94,8 +94,8 @@ class MultiSigmaBox
 public:
     MultiSigmaBox(const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
                   const amrex::BoxArray& grid_ba, const amrex::Real* dx, int ncell, int delta);
-    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt);
-    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt);
+    void ComputePMLFactorsB (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
+    void ComputePMLFactorsE (const amrex::Real* dx, amrex::Real dt, const std::string& pml_type);
 private:
     amrex::Real dt_B = -1.e10;
     amrex::Real dt_E = -1.e10;
@@ -108,7 +108,7 @@ public:
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
          int ncell, int delta, int ref_ratio, int do_dive_cleaning);
 
-    void ComputePMLFactors (amrex::Real dt);
+    void ComputePMLFactors (amrex::Real dt, const std::string& pml_type);
 
     std::array<amrex::MultiFab*,3> GetE_fp ();
     std::array<amrex::MultiFab*,3> GetB_fp ();
