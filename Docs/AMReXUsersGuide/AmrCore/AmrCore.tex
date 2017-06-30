@@ -587,10 +587,12 @@ all new fine grids are divisible by {\tt blocking\_factor}.
 
 \item Next, the grid list is chopped up if any grids are larger than {\tt max\_grid\_size}.
 Note that because {\tt max\_grid\_size} is a multiple of {\tt blocking\_factor}
+(as long as {\tt max\_grid\_size} is greater than {\tt blocking\_factor}),
 the {\tt blocking\_factor} criterion is still satisfied.
 
-\item Next, if {\tt refine\_grid\_layout} = 1 and there are more processors than grids,
-then grids are further divided in order to ensure that no processors has less than one grid.  
+\item Next, if {\tt refine\_grid\_layout} = 1 and there are more processors than grids
+at this level, then the grids at this level are further divided in order to ensure that 
+no processors has less than one grid (at each level).  
 In {\tt AmrMesh::ChopGrids}, 
 
 \begin{itemize}

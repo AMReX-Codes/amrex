@@ -950,7 +950,7 @@ Amr::checkInput ()
             while ( k > 0 && (k%2 == 0) )
                 k /= 2;
             if (k != 1)
-                amrex::Error("Amr::checkInputs: blocking_factor not power of 2");
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2");
         }
     }
     //
@@ -959,7 +959,7 @@ Amr::checkInput ()
     for (int i = 0; i < max_level; i++)
     {
         if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
-            amrex::Error("checkInput bad ref_ratios");
+            amrex::Error("Amr::checkInput: bad ref_ratios");
     }
     const Box& domain = Geom(0).Domain();
     if (!domain.ok())
@@ -998,7 +998,7 @@ Amr::checkInput ()
     }
 
     if( ! Geometry::ProbDomain().ok()) {
-        amrex::Error("checkInput: bad physical problem size");
+        amrex::Error("Amr::checkInput: bad physical problem size");
     }
 
     if(verbose > 0) {
