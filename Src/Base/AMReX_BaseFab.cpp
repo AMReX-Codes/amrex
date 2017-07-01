@@ -50,7 +50,7 @@ BF_init::BF_init ()
 
 #ifdef CUDA
         the_nvar_arena = new CArena;
-        the_arena->SetHostAlloc();
+        the_nvar_arena->SetHostAlloc();
 #endif
 
 #ifdef _OPENMP
