@@ -22,8 +22,8 @@ extern "C" {
     void gpu_start_profiler();
     void gpu_stop_profiler();
     void set_threads_and_blocks(const int* lo, const int* hi);
-    void gpu_htod_memcpy_async(void* p_d, void* p_h, const std::size_t* sz, const int* idx);
-    void gpu_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t* sz, const int* idx);
+    void gpu_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t* sz, const int* idx);
+    void gpu_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t* sz, const int* idx);
     void gpu_htod_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
     void gpu_dtoh_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
     void mem_advise_set_preferred(void* p, const std::size_t sz, const int* device);
@@ -71,8 +71,8 @@ public:
 
     static void device_free(void* ptr);
 
-    static void device_htod_memcpy_async(void* p_d, void* p_h, const std::size_t sz, const int idx);
-    static void device_dtoh_memcpy_async(void* p_h, void* p_d, const std::size_t sz, const int idx);
+    static void device_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t sz, const int idx);
+    static void device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t sz, const int idx);
 
     static void start_profiler();
     static void stop_profiler();
