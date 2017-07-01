@@ -1549,7 +1549,8 @@ contains
     real(rt), intent(in   ) :: xlo(3), dx(3)
     real(rt), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
     integer,  intent(in   ) :: bc(3,2,ncomp)
-    integer,  intent(in   ) :: ncomp, n
+    integer,  intent(in   ) :: ncomp
+    integer,  intent(in   ), value :: n
 
     integer :: ilo, ihi, jlo, jhi, klo, khi
     integer :: is, ie, js, je, ks, ke

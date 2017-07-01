@@ -521,13 +521,14 @@ contains
 
     implicit none
 
-    integer,  intent(in   ) :: blo(2), bhi(2)
-    integer,  intent(in   ) :: q_lo(2), q_hi(2)
+    integer,  intent(in   ) :: blo(3), bhi(3)
+    integer,  intent(in   ) :: q_lo(3), q_hi(3)
     integer,  intent(in   ) :: domlo(2), domhi(2)
     integer,  intent(in   ) :: bc(2,2,ncomp)
     real(rt), intent(in   ) :: xlo(2), dx(2)
     real(rt), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),ncomp)
-    integer,  intent(in   ) :: ncomp, n
+    integer,  intent(in   ) :: ncomp
+    integer,  intent(in   ), value :: n
 
     integer :: ilo, ihi, jlo, jhi
     integer :: is, ie, js, je
