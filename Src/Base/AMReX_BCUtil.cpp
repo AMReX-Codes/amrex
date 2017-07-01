@@ -24,17 +24,28 @@ namespace amrex
         const Real* dx = geom.CellSize();
         const Real* prob_lo = Geometry::ProbLo();
 
+#ifdef CUDA
+        int n_bc = AMREX_SPACEDIM * 2 * phi.nComp();
+        int* bcrs_d = (int*) Device::device_malloc(n_bc * sizeof(int));
+        const int* bcrs = bc[0].data();
+        Device::device_htod_memcpy_async(bcrs_d, bcrs, n_bc * sizeof(int), -1);
+#else
+        const int* bcrs_d = bc[0].data();
+#endif
+
         for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
             FArrayBox& fab = phi[mfi];
             const Box& fab_box = fab.box(); // including ghost cells
+
+            Device::prepare_for_launch(fab_box.loVect(), fab_box.hiVect());
             
             if (! grown_domain_box.contains(fab_box))
             {
-                amrex_fab_filcc(fab.dataPtr(), fab.loVect(), fab.hiVect(), fab.nCompPtr(),
-                                domain_box.loVect(), domain_box.hiVect(),
+                amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                                BL_TO_FORTRAN_BOX(domain_box),
                                 dx, prob_lo,
-                                bc[0].data());
+                                bcrs_d);
             }
         }
     }

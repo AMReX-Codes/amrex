@@ -1,7 +1,11 @@
 
 module amrex_filcc_module
 
-  use amrex_fort_module, only : amrex_real, amrex_spacedim
+  use amrex_fort_module, only : amrex_real, amrex_spacedim, get_loop_bounds
+  use filcc_module, only: filccn
+#ifdef CUDA
+  use cuda_module, only: numBlocks, numThreads, cuda_stream
+#endif
 
   implicit none
 
@@ -78,6 +82,26 @@ contains
 
 #endif
 
+#ifdef CUDA
+  attributes(global) &
+#endif
+  subroutine amrex_fab_filcc_doit (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
+    integer, intent(in) :: qlo(3), qhi(3), nq
+    integer, dimension(amrex_spacedim), intent(in) :: domlo, domhi
+    real(amrex_real), intent(in) :: dx(amrex_spacedim), xlo(amrex_spacedim)
+    integer, intent(in) :: bc(amrex_spacedim,2,nq)
+    real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
+    integer :: n, ql(amrex_spacedim), qh(amrex_spacedim)
+
+    integer :: blo(3), bhi(3)
+
+    call get_loop_bounds(blo, bhi, qlo, qhi)
+
+    do n = 1, nq
+       call filccn(blo, bhi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc, n)
+    end do
+  end subroutine amrex_fab_filcc_doit
+
   subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
        bind(c, name='amrex_fab_filcc')
     integer, intent(in) :: qlo(3), qhi(3), nq
@@ -85,16 +109,16 @@ contains
     real(amrex_real), intent(in) :: dx(amrex_spacedim), xlo(amrex_spacedim)
     integer, intent(in) :: bc(amrex_spacedim,2,nq)
     real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
-    integer :: n
-    do n = 1, nq
-#if (BL_SPACEDIM == 3)
-       call filcc(q(:,:,:,n),qlo(1),qlo(2),qlo(3),qhi(1),qhi(2),qhi(3),domlo,domhi,dx,xlo,bc(:,:,n))
-#elif (BL_SPACEDIM == 2)
-       call filcc(q(:,:,:,n),qlo(1),qlo(2),       qhi(1),qhi(2),       domlo,domhi,dx,xlo,bc(:,:,n))
-#else
-       call filcc(q(:,:,:,n),qlo(1),              qhi(1),              domlo,domhi,dx,xlo,bc(:,:,n))
+
+#ifdef CUDA
+    attributes(device) :: q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc
 #endif
-    end do
+
+    call amrex_fab_filcc_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
+#endif
+         (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
   end subroutine amrex_fab_filcc
 
 end module amrex_filcc_module

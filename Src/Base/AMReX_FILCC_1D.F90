@@ -138,13 +138,14 @@ contains
 
     implicit none
 
-    integer,  intent(in   ) :: blo(1), bhi(1)
-    integer,  intent(in   ) :: q_lo(1), q_hi(1)
+    integer,  intent(in   ) :: blo(3), bhi(3)
+    integer,  intent(in   ) :: q_lo(3), q_hi(3)
     integer,  intent(in   ) :: domlo(1), domhi(1)
     integer,  intent(in   ) :: bc(1,2,ncomp)
     real(rt), intent(in   ) :: xlo(1), dx(1)
     real(rt), intent(inout) :: q(q_lo(1):q_hi(1),ncomp)
-    integer,  intent(in   ) :: ncomp, n
+    integer,  intent(in   ) :: ncomp
+    integer,  intent(in   ), value :: n
 
     integer :: ilo, ihi
     integer :: i
