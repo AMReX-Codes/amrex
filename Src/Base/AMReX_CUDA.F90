@@ -188,13 +188,27 @@ contains
     integer, intent(in)       :: lo(BL_SPACEDIM), hi(BL_SPACEDIM)
     type(dim3), intent(inout) :: numBlocks, numThreads
 
-    integer :: tile_size(BL_SPACEDIM)
+    integer :: tile_size(BL_SPACEDIM), i
+    integer, parameter :: max_threads = 256, tile_chunk_size = 32
+
+    ! Our threading strategy will be to allocate thread blocks
+    ! in multiples of 32 in each dimension, preferring the x
+    ! direction first to guarantee coalesced accesses.
 
     tile_size = hi - lo + 1
 
+    ! Round the tiles up to the nearest multiple of the chunk size.
+    ! Only do this for dimensions in which the tile size > 1.
+
+    do i = 1, BL_SPACEDIM
+       if (tile_size(i) > 1) then
+          tile_size(i) = ((tile_size(i) + tile_chunk_size - 1) / tile_chunk_size) * tile_chunk_size;
+       end if
+    end do
+
     if (BL_SPACEDIM .eq. 1) then
 
-       numThreads % x = min(tile_size(1), 256)
+       numThreads % x = min(tile_size(1), max_threads)
        numThreads % y = 1
        numThreads % z = 1
 
@@ -204,8 +218,8 @@ contains
 
     else if (BL_SPACEDIM .eq. 2) then
 
-       numThreads % x = min(tile_size(1), 256)
-       numThreads % y = 1
+       numThreads % x = min(tile_size(1), max_threads)
+       numThreads % y = min(tile_size(2), max_threads / numThreads % x)
        numThreads % z = 1
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
@@ -214,9 +228,9 @@ contains
 
     else
 
-       numThreads % x = min(tile_size(1), 256)
-       numThreads % y = 1
-       numThreads % z = 1
+       numThreads % x = min(tile_size(1), max_threads)
+       numThreads % y = min(tile_size(2), max_threads / numThreads % x)
+       numThreads % z = min(tile_size(3), max_threads / (numThreads % x * numThreads % y))
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
        numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
