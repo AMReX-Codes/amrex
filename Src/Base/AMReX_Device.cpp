@@ -67,7 +67,7 @@ amrex::Device::prepare_for_launch(const int* lo, const int* hi) {
 void*
 amrex::Device::get_host_pointer(const void* ptr) {
 
-    void* r = NULL;
+    void* r = const_cast<void*>(ptr);
 #ifdef CUDA
     gpu_host_device_ptr(&r, ptr);
 #endif
