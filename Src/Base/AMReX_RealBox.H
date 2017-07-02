@@ -47,16 +47,20 @@ public:
     //! Returns epsilon.
     static Real epsilon () { return eps; }
     //! Returns lo side.
-    const Real* lo () const& {
+    const Real* lo () const& { return xlo; }
+
+    const Real* loF () const& {
 #ifdef CUDA
-	return xlo_d.get();
+	return (Real*) Device::get_host_pointer(xlo_d.get());
 #else
 	return xlo;
 #endif
     }
     const Real* lo () && = delete;
     //! Returns hide side.
-    const Real* hi () const& {
+    const Real* hi () const& { return xhi; }
+
+    const Real* hiF () const& {
 #ifdef CUDA
 	return xhi_d.get();
 #else

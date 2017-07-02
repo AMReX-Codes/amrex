@@ -436,7 +436,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 		      int             ncomp,
 		      const Geometry& geom)
 {
-    const Real* dx = geom.CellSize();
+    const Real* dx = geom.CellSizeF();
     
     MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, mf.nGrow());
     
