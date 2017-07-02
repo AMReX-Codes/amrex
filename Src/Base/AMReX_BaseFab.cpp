@@ -208,7 +208,7 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
 
     Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
 
-    fort_fab_copy(ARLIM_3D(destbox.loVectF()), ARLIM_3D(destbox.hiVectF()),
+    fort_fab_copy(BL_TO_FORTRAN_BOX(destbox),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
 		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVectF()),
 		  numcomp);
@@ -273,7 +273,7 @@ BaseFab<Real>::performSetVal (Real       val,
 
     Device::prepare_for_launch(bx.loVect(), bx.hiVect());
 
-    fort_fab_setval(ARLIM_3D(bx.loVectF()), ARLIM_3D(bx.hiVectF()),
+    fort_fab_setval(BL_TO_FORTRAN_BOX(bx),
 		    BL_TO_FORTRAN_N_3D(*this,comp), ncomp,
 		    val);
 }
@@ -288,9 +288,11 @@ BaseFab<Real>::invert (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    fort_fab_invert(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+    Device::prepare_for_launch(bx.loVect(), bx.hiVect());
+
+    fort_fab_invert(BL_TO_FORTRAN_BOX(bx),
 		    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
-		    &val);
+		    val);
     return *this;
 }
 
@@ -351,10 +353,10 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
 
     Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
 
-    fort_fab_plus(ARLIM_3D(destbox.loVectF()), ARLIM_3D(destbox.hiVectF()),
+    fort_fab_plus(BL_TO_FORTRAN_BOX(destbox),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
 		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVectF()),
-		  &numcomp);
+		  numcomp);
 
     return *this;
 }
@@ -375,10 +377,12 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    fort_fab_mult(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+    Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
+
+    fort_fab_mult(BL_TO_FORTRAN_BOX(destbox),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
-		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
-		  &numcomp);
+		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+		  numcomp);
     return *this;
 }
 
@@ -401,7 +405,7 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
 
     Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
 
-    fort_fab_saxpy(ARLIM_3D(destbox.loVectF()), ARLIM_3D(destbox.hiVectF()),
+    fort_fab_saxpy(BL_TO_FORTRAN_BOX(destbox),
 		   BL_TO_FORTRAN_N_3D(*this,destcomp),
 		   a,
 		   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVectF()),
@@ -426,11 +430,13 @@ BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
 
-    fort_fab_xpay(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+    Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
+
+    fort_fab_xpay(BL_TO_FORTRAN_BOX(destbox),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
-		  &a,
-		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
-		  &numcomp);
+		  a,
+		  BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+		  numcomp);
     return *this;
 }
 
@@ -450,11 +456,13 @@ BaseFab<Real>::addproduct (const Box&           destbox,
     BL_ASSERT(   comp2 >= 0 &&    comp2+numcomp <= src2.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=      nComp());
 
-    fort_fab_addproduct(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+    Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
+
+    fort_fab_addproduct(BL_TO_FORTRAN_BOX(destbox),
 			BL_TO_FORTRAN_N_3D(*this,destcomp),
 			BL_TO_FORTRAN_N_3D(src1,comp1),
 			BL_TO_FORTRAN_N_3D(src2,comp2),
-			&numcomp);
+			numcomp);
     return *this;
 }
 
@@ -474,10 +482,12 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    fort_fab_minus(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+    Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
+
+    fort_fab_minus(BL_TO_FORTRAN_BOX(destbox),
 		   BL_TO_FORTRAN_N_3D(*this,destcomp),
-		   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
-		   &numcomp);
+		   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+		   numcomp);
     return *this;
 }
 
@@ -497,10 +507,12 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    fort_fab_divide(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+    Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
+
+    fort_fab_divide(BL_TO_FORTRAN_BOX(destbox),
 		    BL_TO_FORTRAN_N_3D(*this,destcomp),
-		    BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
-		    &numcomp);
+		    BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+		    numcomp);
     return *this;
 }
 
@@ -520,10 +532,12 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    fort_fab_protdivide(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+    Device::prepare_for_launch(destbox.loVect(), destbox.hiVect());
+
+    fort_fab_protdivide(BL_TO_FORTRAN_BOX(destbox),
 			BL_TO_FORTRAN_N_3D(*this,destcomp),
-			BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
-			&numcomp);
+			BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+			numcomp);
     return *this;
 }
 
@@ -553,11 +567,13 @@ BaseFab<Real>::linComb (const BaseFab<Real>& f1,
     BL_ASSERT(comp2 >= 0 && comp2+numcomp <= f2.nComp());
     BL_ASSERT(comp  >= 0 && comp +numcomp <=    nComp());
 
-    fort_fab_lincomb(ARLIM_3D(b.loVect()), ARLIM_3D(b.hiVect()),
+    Device::prepare_for_launch(b.loVect(), b.hiVect());
+
+    fort_fab_lincomb(BL_TO_FORTRAN_BOX(b),
 		     BL_TO_FORTRAN_N_3D(*this,comp),
-		     &alpha, BL_TO_FORTRAN_N_3D(f1,comp1), ARLIM_3D(b1.loVect()),
-		     &beta,  BL_TO_FORTRAN_N_3D(f2,comp2), ARLIM_3D(b2.loVect()),
-		     &numcomp);
+		     alpha, BL_TO_FORTRAN_N_3D(f1,comp1), ARLIM_3D(b1.loVectF()),
+		     beta,  BL_TO_FORTRAN_N_3D(f2,comp2), ARLIM_3D(b2.loVectF()),
+		     numcomp);
     return *this;
 }
 
