@@ -4091,12 +4091,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
             mf_to_be_filled[lev]->copy(*mf_part[lev],0,0,1);
         }
     }
-    int nlevels = finest_level - lev_min + 1;
-    for (int i = 0; i < nlevels; i++)
-    {
-        mf_to_be_filled[i] = std::move(mf_to_be_filled[i+lev_min]);
+    if (lev_min > 0) {
+        int nlevels = finest_level - lev_min + 1;
+        for (int i = 0; i < nlevels; i++)
+            {
+                mf_to_be_filled[i] = std::move(mf_to_be_filled[i+lev_min]);
+            }
+        mf_to_be_filled.resize(nlevels);
     }
-    mf_to_be_filled.resize(nlevels);
 }
 
 //
