@@ -22,6 +22,7 @@ extern "C" {
     void gpu_start_profiler();
     void gpu_stop_profiler();
     void set_threads_and_blocks(const int* lo, const int* hi);
+    void get_threads_and_blocks(const int* lo, const int* hi, int* bx, int* by, int* bz, int* tx, int* ty, int* tz);
     void gpu_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t* sz, const int* idx);
     void gpu_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t* sz, const int* idx);
     void gpu_htod_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
@@ -76,6 +77,10 @@ public:
 
     static void start_profiler();
     static void stop_profiler();
+
+#ifdef CUDA
+    static void c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
+#endif
 
 private:
 

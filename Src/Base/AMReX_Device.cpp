@@ -159,3 +159,22 @@ amrex::Device::stop_profiler() {
 #endif
 
 }
+
+#ifdef CUDA
+void
+amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) {
+
+    int bx, by, bz, tx, ty, tz;
+
+    get_threads_and_blocks(lo, hi, &bx, &by, &bz, &tx, &ty, &tz);
+
+    numBlocks.x = bx;
+    numBlocks.y = by;
+    numBlocks.z = bz;
+
+    numThreads.x = tx;
+    numThreads.y = ty;
+    numThreads.z = tz;
+
+}
+#endif
