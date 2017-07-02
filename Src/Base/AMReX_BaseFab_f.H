@@ -36,31 +36,31 @@ extern "C"
     void fort_fab_plus (const int* lo, const int* hi,
 			amrex_real* dst, const int* dlo, const int* dhi,
 			const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			const int* ncomp);
+			const int ncomp);
 
     void fort_fab_minus (const int* lo, const int* hi,
 			 amrex_real* dst, const int* dlo, const int* dhi,
 			 const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			 const int* ncomp);
+			 const int ncomp);
 
     void fort_fab_mult (const int* lo, const int* hi,
 			amrex_real* dst, const int* dlo, const int* dhi,
 			const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			const int* ncomp);
+			const int ncomp);
 
     void fort_fab_divide (const int* lo, const int* hi,
 			  amrex_real* dst, const int* dlo, const int* dhi,
 			  const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			  const int* ncomp);
+			  const int ncomp);
 
     void fort_fab_protdivide (const int* lo, const int* hi,
 			      amrex_real* dst, const int* dlo, const int* dhi,
 			      const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			      const int* ncomp);
+			      const int ncomp);
 
     void fort_fab_invert (const int* lo, const int* hi,
 			  amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
-			  const amrex_real* a);
+			  const amrex_real a);
 
     void fort_fab_saxpy (const int* lo, const int* hi,
 			 amrex_real* dst, const int* dlo, const int* dhi,
@@ -70,21 +70,21 @@ extern "C"
 
     void fort_fab_xpay (const int* lo, const int* hi,
 			amrex_real* dst, const int* dlo, const int* dhi,
-			const amrex_real* a,
+			const amrex_real a,
 			const amrex_real* src, const int* slo, const int* shi, const int* sblo,
-			const int* ncomp);
+			const int ncomp);
 
     void fort_fab_lincomb (const int* lo, const int* hi,
 			   amrex_real* dst, const int* dlo, const int* dhi,
-			   const amrex_real* a, const amrex_real* x, const int* xlo, const int* xhi, const int* xblo,
-			   const amrex_real* b, const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
-			   const int* ncomp);
+			   const amrex_real a, const amrex_real* x, const int* xlo, const int* xhi, const int* xblo,
+			   const amrex_real b, const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
+			   const int ncomp);
 
     void fort_fab_addproduct (const int* lo, const int* hi,
 			      amrex_real* dst, const int* dlo, const int* dhi,
 			      const amrex_real* src1, const int* s1lo, const int* s1hi,
 			      const amrex_real* src2, const int* s2lo, const int* s2hi,
-			      const int* ncomp);
+			      const int ncomp);
 
     amrex_real fort_fab_dot (const int* lo, const int* hi,
 		       const amrex_real* x, const int* xlo, const int* xhi,
