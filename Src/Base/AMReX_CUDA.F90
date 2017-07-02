@@ -241,6 +241,7 @@ contains
   end subroutine threads_and_blocks
 
 
+
   subroutine set_threads_and_blocks(lo, hi) bind(c, name='set_threads_and_blocks')
 
     use cudafor, only: dim3
@@ -252,6 +253,31 @@ contains
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
   end subroutine set_threads_and_blocks
+
+
+
+  subroutine get_threads_and_blocks(lo, hi, bx, by, bz, tx, ty, tz) bind(c, name='get_threads_and_blocks')
+
+    use cudafor, only: dim3
+
+    implicit none
+
+    integer, intent(in ) :: lo(3), hi(3)
+    integer, intent(out) :: bx, by, bz, tx, ty, tz
+
+    type(dim3) :: numBlocks, numThreads
+
+    call threads_and_blocks(lo, hi, numBlocks, numThreads)
+
+    bx = numBlocks%x
+    by = numBlocks%y
+    bz = numBlocks%z
+
+    tx = numThreads%x
+    ty = numThreads%y
+    tz = numThreads%z
+
+  end subroutine get_threads_and_blocks
 #endif
 
 
