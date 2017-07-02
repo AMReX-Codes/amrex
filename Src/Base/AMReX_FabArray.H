@@ -1018,6 +1018,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     if(info.alloc) {
         AllocFabs(factory, info);
+	Device::synchronize();
     }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
