@@ -23,7 +23,7 @@ RealBox_init::RealBox_init ()
 
         the_realbox_arena = new CArena;
 
-	the_realbox_arena->SetReadOnly();
+	the_realbox_arena->SetHostAlloc();
     }
 }
 

@@ -426,6 +426,7 @@ void
 StateData::FillBoundary (FArrayBox&     dest,
                          Real           time,
                          const Real*    dx,
+			 const Real*    dx_f,
                          const RealBox& prob_domain,
                          int            dest_comp,
                          int            src_comp,
@@ -437,10 +438,10 @@ StateData::FillBoundary (FArrayBox&     dest,
     if (domain.contains(dest.box())) return;
 
     const Box& bx  = dest.box();
-    const int* dlo = dest.loVectF();
-    const int* dhi = dest.hiVectF();
-    const int* plo = domain.loVectF();
-    const int* phi = domain.hiVectF();
+    const int* dlo = dest.loVect();
+    const int* dhi = dest.hiVect();
+    const int* plo = domain.loVect();
+    const int* phi = domain.hiVect();
 
     Array<int> bcrs;
 
@@ -459,6 +460,21 @@ StateData::FillBoundary (FArrayBox&     dest,
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
+
+#ifdef CUDA
+	Real* time_d = (Real*) Device::device_malloc(sizeof(Real));
+	Device::device_htod_memcpy_async(time_d, &time, sizeof(Real), -1);
+	Real* xlo_d = (Real*) Device::device_malloc(BL_SPACEDIM*sizeof(Real));
+	Device::device_htod_memcpy_async(xlo_d, &xlo, BL_SPACEDIM * sizeof(Real), -1);
+#else
+	Real* time_d = &time;
+	Real* xlo_d = xlo;
+#endif
+
+	const int* dlo_f = dest.loVectF();
+	const int* dhi_f = dest.hiVectF();
+	const int* plo_f = domain.loVectF();
+	const int* phi_f = domain.hiVectF();
 
         if (desc->master(sc))
         {
@@ -487,43 +503,67 @@ StateData::FillBoundary (FArrayBox&     dest,
                     bci += 2*BL_SPACEDIM;
                 }
 #ifdef CUDA
-                Real* time_d = (Real*) Device::device_malloc(sizeof(Real));
-                Device::device_htod_memcpy_async(time_d, &time, sizeof(Real), -1);
                 int* bcrs_d = (int*) Device::device_malloc(bcrs.size() * sizeof(int));
                 Device::device_htod_memcpy_async(bcrs_d, bcrs.dataPtr(), bcrs.size() * sizeof(int), -1);
-                Real* xlo_d = (Real*) Device::device_malloc(BL_SPACEDIM*sizeof(Real));
-                Device::device_htod_memcpy_async(xlo_d, &xlo, BL_SPACEDIM * sizeof(Real), -1);
                 Device::synchronize();
 #else
-                Real* time_d = &time;
                 int* bcrs_d = bcrs.dataPtr();
-                Real* xlo_d = xlo;
 #endif
                 //
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo_d,time_d,bcrs_d,groupsize);
-#ifdef CUDA
+		desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_d,time_d,bcrs_d,groupsize);
                 Device::synchronize();
-                Device::device_free(time_d);
+#ifdef CUDA
                 Device::device_free(bcrs_d);
-                Device::device_free(xlo_d);
 #endif
                 i += groupsize;
             }
             else
             {
                 amrex::setBC(bx,domain,desc->getBC(sc),bcr);
-                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
+#ifdef CUDA
+		const int* bcr_d = bcr.vect();
+		const int sz = AMREX_SPACEDIM * 2 * sizeof(int);
+		int* bcrs_d = (int*) Device::device_malloc(sz);
+		Device::device_htod_memcpy_async(bcrs_d, bcr_d, sz, -1);
+		Device::synchronize();
+#else
+		const int* bcrs_d = bcr.vect();
+#endif
+                desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_d,time_d,bcrs_d);
+		Device::synchronize();
+#ifdef CUDA
+		Device::device_free(bcrs_d);
+#endif
                 i++;
             }
         }
         else
         {
             amrex::setBC(bx,domain,desc->getBC(sc),bcr);
-            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
+#ifdef CUDA
+	    const int* bcr_d = bcr.vect();
+	    const int sz = AMREX_SPACEDIM * 2 * sizeof(int);
+	    int* bcrs_d = (int*) Device::device_malloc(sz);
+	    Device::device_htod_memcpy_async(bcrs_d, bcr_d, sz, -1);
+	    Device::synchronize();
+#else
+	    const int* bcr_d = bcr.vect();
+#endif
+            desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_d,time_d,bcr_d);
+	    Device::synchronize();
+#ifdef CUDA
+	    Device::device_free(bcrs_d);
+#endif
             i++;
         }
+
+#ifdef CUDA
+	Device::device_free(time_d);
+	Device::device_free(xlo_d);
+#endif
+
     }
 }
 
@@ -819,6 +859,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
     const int*     domainlo    = domain.loVect();
     const int*     domainhi    = domain.hiVect();
     const Real*    dx          = geom.CellSize();
+    const Real*    dx_f        = geom.CellSizeF();
     const RealBox& prob_domain = geom.ProbDomain();
 
 #ifdef CRSEGRNDOMP
@@ -847,7 +888,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 	    
 	    if (has_phys_bc)
 	    {
-		statedata->FillBoundary(dest, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+		statedata->FillBoundary(dest, time, dx, dx_f, prob_domain, dest_comp, src_comp, num_comp);
 		
 		if (is_periodic) // fix up corner
 		{
@@ -883,7 +924,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			    tmp.copy(dest,dest_comp,0,num_comp);
 			    tmp.shift(dir,domain.length(dir));
 			    
-			    statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+			    statedata->FillBoundary(tmp, time, dx, dx_f, prob_domain, dest_comp, src_comp, num_comp);
 			    
 			    tmp.shift(dir,-domain.length(dir));
 			    dest.copy(tmp,0,dest_comp,num_comp);
@@ -897,7 +938,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			    tmp.copy(dest,dest_comp,0,num_comp);
 			    tmp.shift(dir,-domain.length(dir));
 			    
-			    statedata->FillBoundary(tmp, time, dx, prob_domain, dest_comp, src_comp, num_comp);
+			    statedata->FillBoundary(tmp, time, dx, dx_f, prob_domain, dest_comp, src_comp, num_comp);
 			    
 			    tmp.shift(dir,domain.length(dir));
 			    dest.copy(tmp,0,dest_comp,num_comp);
