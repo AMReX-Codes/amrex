@@ -355,7 +355,7 @@ contains
 
   subroutine gpu_free(x) bind(c, name='gpu_free')
 
-    use cudafor, only: cudaFree, c_devptr, cudaErrorCudartUnloading
+    use cudafor, only: cudaFree, c_devptr
 
     implicit none
 
@@ -364,7 +364,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaFree(x)
-    call gpu_error_test(cudaResult, abort=0)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_free
 
@@ -372,7 +372,7 @@ contains
 
   subroutine gpu_freehost(x) bind(c, name='gpu_freehost')
 
-    use cudafor, only: cudaFreeHost, cudaErrorCudartUnloading
+    use cudafor, only: cudaFreeHost
     use iso_c_binding, only: c_ptr
 
     implicit none
@@ -382,7 +382,7 @@ contains
     integer :: cudaResult
 
     cudaResult = cudaFreeHost(x)
-    call gpu_error_test(cudaResult, abort=0)
+    call gpu_error_test(cudaResult)
 
   end subroutine gpu_freehost
 
@@ -577,6 +577,8 @@ contains
     use cudafor, only: c_devptr, cudaMemAdvise, cudaMemAdviseSetReadMostly, cudaCpuDeviceId
     use iso_c_binding, only: c_size_t
 
+    implicit none
+
     type(c_devptr), value :: p
     integer(c_size_t), value :: sz
 
@@ -595,6 +597,8 @@ contains
 
 
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
+
+    implicit none
 
     integer, intent(in) :: cudaResult
     integer, intent(in), optional :: abort
@@ -625,6 +629,8 @@ contains
 
   subroutine gpu_error_test(cudaResult, abort) bind(c, name='gpu_error_test')
 
+    use cudafor, only: cudaErrorCudaRtUnloading
+
     implicit none
 
     integer, intent(in) :: cudaResult
@@ -638,7 +644,12 @@ contains
        do_abort = abort
     end if
 
-    if (cudaResult /= cudaSuccess) then
+    ! Don't throw a warning for errors that result from the CUDA runtime
+    ! having already been unloaded. These usually occur from CUDA API calls
+    ! that occur in, e.g., static object destructors. They don't matter to
+    ! the success of the application, so we can silently ignore them.
+
+    if (cudaResult /= cudaSuccess .and. cudaResult /= cudaErrorCudaRtUnloading) then
        call gpu_error(cudaResult, do_abort)
     end if
 
