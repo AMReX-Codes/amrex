@@ -82,6 +82,9 @@ ifeq ($(USE_CUDA),TRUE)
   CXXFLAGS := -Wno-deprecated-gpu-targets -x cu --std=c++11 -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
   CFLAGS := -Wno-deprecated-gpu-targets -x c -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 
+  HOST_CXX := $(CXX)
+  HOST_CC := $(CC)
+
   CXX := nvcc
   CC := nvcc
 
