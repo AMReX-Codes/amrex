@@ -2567,7 +2567,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight)
 	Real scale = 1.e9/wmax;
 	
 	for (int i = 0; i < rcost.size(); ++i) {
-	    cost[i] = long(cost[i]*scale) + 1L;
+	    cost[i] = long(rcost[i]*scale) + 1L;
 	}
     }
 #endif
