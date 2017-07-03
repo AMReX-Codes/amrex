@@ -110,6 +110,16 @@ public:
 
     bool registerFab(const FArrayBox& fab, int idx = -1) const;
 
+    template<typename T>
+    void register_ptr(std::shared_ptr<T> ptr) {}
+
+    void register_ptr(std::shared_ptr<int> ptr) { saved_ints.push_back(ptr); }
+
+    void register_ptr(std::shared_ptr<Real> ptr) { saved_reals.push_back(ptr); }
+
+    template<typename T>
+    T* get_fortran_pointer(const T* ptr, const int n = 1, const int m = -1);
+
     //! Return all data from the device to the host.
     void releaseDeviceData();
 
@@ -149,6 +159,9 @@ protected:
     mutable Array<FArrayBox*> registered_fabs;
     mutable Array<int> registered_fabs_indices;
     mutable Array<Box> registered_boxes;
+
+    mutable Array<std::shared_ptr<int>> saved_ints;
+    mutable Array<std::shared_ptr<Real>> saved_reals;
   
     void Initialize ();
 };
@@ -175,6 +188,17 @@ MFIter::registerFab(const FArrayBox& fab, int idx) const
 	return true;
     }
     return false;
+}
+
+// Store an arbitrary pointer in our list. Create a shared pointer so that
+// the lifetime of the data is the lifetime of the MFIter. This allows asynchronous
+//  MFIter iterations to occur without freeing device data until all FABs are done.
+template<typename T>
+T*
+MFIter::get_fortran_pointer(const T* ptr, const int n, const int m) {
+    std::shared_ptr<T> s_ptr = Device::create_host_pointer(ptr, n, m);
+    register_ptr(s_ptr);
+    return (T*) Device::get_host_pointer(s_ptr.get());
 }
 
 //! Iterate over ghost cells.  Lots of MFIter functions do not work.
