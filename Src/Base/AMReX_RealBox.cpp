@@ -59,14 +59,14 @@ RealBox::RealBox (const Box&  bx,
         int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
         xhi[i] = base[i] + dx[i]*(hi[i]+ shft);
     }
-    initialize_device_memory();
+    nullify_device_memory();
 }
 
 RealBox::RealBox ()
 {
     AMREX_D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
     AMREX_D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
-    initialize_device_memory();
+    nullify_device_memory();
 }
 
 RealBox::RealBox (const Real* lo,
@@ -74,7 +74,7 @@ RealBox::RealBox (const Real* lo,
 {
     AMREX_D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
     AMREX_D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
-    initialize_device_memory();
+    nullify_device_memory();
 }
 
 RealBox::RealBox (const std::array<Real,BL_SPACEDIM>& lo,
@@ -82,7 +82,7 @@ RealBox::RealBox (const std::array<Real,BL_SPACEDIM>& lo,
 {
     AMREX_D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
     AMREX_D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
-    initialize_device_memory();
+    nullify_device_memory();
 }
 
 RealBox::RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
@@ -90,11 +90,30 @@ RealBox::RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
 {
     AMREX_D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
     AMREX_D_EXPR(xhi[0] = x1 , xhi[1] = y1 , xhi[2] = z1);
-    initialize_device_memory();
+    nullify_device_memory();
+}
+
+void
+RealBox::nullify_device_memory()
+{
+#ifdef CUDA
+    Real* ptr = NULL;
+    xlo_d.reset(ptr);
+    xhi_d.reset(ptr);
+#endif
 }
 
 void
 RealBox::initialize_device_memory()
+{
+#ifdef CUDA
+    initialize_lo();
+    initialize_hi();
+#endif
+}
+
+void
+RealBox::initialize_lo()
 {
 #ifdef CUDA
     const size_t sz = 3 * sizeof(Real);
@@ -102,6 +121,14 @@ RealBox::initialize_device_memory()
     Real* xlo_temp = static_cast<Real*>(amrex::The_RealBox_Arena()->alloc(sz));
     xlo_d.reset(xlo_temp, [](Real* ptr) { amrex::The_RealBox_Arena()->free(ptr); });
     copy_xlo();
+#endif
+}
+
+void
+RealBox::initialize_hi()
+{
+#ifdef CUDA
+    const size_t sz = 3 * sizeof(Real);
 
     Real* xhi_temp = static_cast<Real*>(amrex::The_RealBox_Arena()->alloc(sz));
     xhi_d.reset(xhi_temp, [](Real* ptr) { amrex::The_RealBox_Arena()->free(ptr); });
@@ -135,6 +162,30 @@ RealBox::copy_xhi()
 	xhi_d.get()[i] = xhi[i];
     for (int i = BL_SPACEDIM; i < 3; ++i)
 	xhi_d.get()[i] = 0;
+#endif
+}
+
+const Real*
+RealBox::loF() {
+#ifdef CUDA
+    if (xlo_d.get() == NULL)
+        initialize_lo();
+
+    return (Real*) Device::get_host_pointer(xlo_d.get());
+#else
+    return xlo;
+#endif
+}
+
+const Real*
+RealBox::hiF() {
+#ifdef CUDA
+    if (xhi_d.get() == NULL)
+        initialize_hi();
+
+    return (Real*) Device::get_host_pointer(xhi_d.get());
+#else
+    return xhi;
 #endif
 }
 

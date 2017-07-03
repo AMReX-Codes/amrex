@@ -37,7 +37,10 @@ public:
     RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
              AMREX_D_DECL(Real x1, Real y1, Real z1));
 
+    void nullify_device_memory();
     void initialize_device_memory();
+    void initialize_lo();
+    void initialize_hi();
     void copy_device_memory();
     void copy_xlo();
     void copy_xhi();
@@ -49,24 +52,14 @@ public:
     //! Returns lo side.
     const Real* lo () const& { return xlo; }
 
-    const Real* loF () const& {
-#ifdef CUDA
-	return (Real*) Device::get_host_pointer(xlo_d.get());
-#else
-	return xlo;
-#endif
-    }
+    const Real* loF ();
+
     const Real* lo () && = delete;
     //! Returns hide side.
     const Real* hi () const& { return xhi; }
 
-    const Real* hiF () const& {
-#ifdef CUDA
-	return xhi_d.get();
-#else
-	return xhi;
-#endif
-    }
+    const Real* hiF ();
+
     const Real* hi () && = delete;
     //! Returns length in specified direction.
     Real lo (int dir) const { return xlo[dir]; }
@@ -105,8 +98,8 @@ private:
     Real xhi[BL_SPACEDIM];
 
 #ifdef CUDA
-    std::shared_ptr<Real> xlo_d;
-    std::shared_ptr<Real> xhi_d;
+    mutable std::shared_ptr<Real> xlo_d;
+    mutable std::shared_ptr<Real> xhi_d;
 #endif
 
 };
