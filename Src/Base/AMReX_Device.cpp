@@ -11,11 +11,13 @@ bool amrex::Device::in_device_launch_region = false;
 int amrex::Device::device_id = 0;
 int amrex::Device::is_device_program_running = 1;
 
+#ifdef CUDA
 void
 is_program_running(int* r)
 {
     *r = amrex::Device::isProgramRunning();
 }
+#endif
 
 int
 amrex::Device::isProgramRunning() {
@@ -26,6 +28,9 @@ void
 amrex::Device::initialize_device() {
 
 #ifdef CUDA
+
+    int n_procs = ParallelDescriptor::NProcs();
+    int my_rank = ParallelDescriptor::MyProc();
 
 #if (defined(NVML) && defined(BL_USE_MPI))
 
@@ -73,7 +78,7 @@ amrex::Device::initialize_device() {
     int len = device_count * strlen;
 
     char sendbuf[len];
-    char recvbuf[ParallelDescriptor::NProcs()][len];
+    char recvbuf[n_procs][len];
 
     int i = 0;
     for (auto it = device_uuid.begin(); it != device_uuid.end(); ++it) {
@@ -91,7 +96,7 @@ amrex::Device::initialize_device() {
 
     for (auto it = device_uuid.begin(); it != device_uuid.end(); ++it) {
         it->second = 0;
-        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+        for (int i = 0; i < n_procs; ++i) {
             for (int j = 0; j < device_count; ++j) {
                 std::string temp_s(&recvbuf[i][j * strlen], strlen);
                 if (it->first == temp_s) {
@@ -109,7 +114,7 @@ amrex::Device::initialize_device() {
     device_id = -1;
     for (auto it = uuid_to_rank.begin(); it != uuid_to_rank.end(); ++it) {
         for (int i = 0; i < it->second.size(); ++i) {
-            if (it->second[i] == ParallelDescriptor::MyProc() % device_count) {
+            if (it->second[i] == my_rank % device_count) {
                 device_id = i;
             }
         }
@@ -119,7 +124,7 @@ amrex::Device::initialize_device() {
 
 #endif
 
-    initialize_cuda(&device_id);
+    initialize_cuda(&device_id, &my_rank);
 
 #endif
 

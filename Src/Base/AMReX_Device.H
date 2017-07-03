@@ -10,7 +10,7 @@
 
 extern "C" {
 #ifdef CUDA
-    void initialize_cuda(const int* id);
+    void initialize_cuda(const int* id, const int* rank);
     void finalize_cuda();
     void set_stream_idx(const int idx);
     void get_stream_idx(int* idx);
