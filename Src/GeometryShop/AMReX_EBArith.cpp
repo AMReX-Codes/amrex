@@ -14,6 +14,58 @@
 
 namespace amrex
 {
+  //-----
+  Box EBArith::
+  adjCellBox(const Box            & a_valid, 
+             const int            & a_idir, 
+             const Side::LoHiSide & a_side, 
+             const int            & a_len)
+  {
+    Box retval;
+    if(a_side == Side::Lo)
+    {
+      retval = adjCellLo(a_valid, a_idir, a_len);
+    }
+    else
+    {
+      retval = adjCellHi(a_valid, a_idir, a_len);
+    }
+    return retval;
+  }
+  //-----
+  void EBArith::
+  ExtrapolateBC(BaseFab<Real>&    a_state,
+                const Box&      a_valid,
+                Real            a_dx,
+                int             a_dir,
+                Side::LoHiSide  a_side)
+  {
+    BL_PROFILE("EBArith::ExtrapolateBC");
+
+    int isign = sign(a_side);
+
+    Box toRegion = adjCellBox(a_valid, a_dir, a_side, 1);
+    toRegion &= a_state.box();
+
+    for (BoxIterator bit(toRegion); bit.ok(); ++bit)
+    {
+      const IntVect& ivTo = bit();
+
+      IntVect ivClose = ivTo -   isign*BASISV(a_dir);
+      IntVect ivFar   = ivTo - 2*isign*BASISV(a_dir);
+
+      for (int icomp = 0; icomp < a_state.nComp(); icomp++)
+      {
+        Real nearVal = a_state(ivClose, icomp);
+        Real farVal  = a_state(ivFar,   icomp);
+
+        Real ghostVal = 2.*nearVal - farVal;
+        a_state(ivTo, icomp) = ghostVal;
+      }
+    }
+  }
+
+  //---------
   Real
   EBArith::
   getDiagWeight(  VoFStencil&     a_vofStencil,
@@ -39,7 +91,7 @@ namespace amrex
     }
     return retval;
   }
-
+  //---------
   void
   EBArith::
   getMultiColors(vector<IntVect>& a_colors)

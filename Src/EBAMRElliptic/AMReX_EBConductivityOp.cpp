@@ -14,7 +14,7 @@
 namespace amrex
 {
 
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   NWOEBConductivityOp::
   NWOEBConductivityOp(const EBLevelGrid &                          a_eblgFine,
                       const EBLevelGrid &                          a_eblg,
@@ -90,8 +90,10 @@ namespace amrex
     if (m_hasCoar)
     {
       m_eblgCoar       = a_eblgCoar;
-      m_ebInterp.define(  m_eblg, m_eblgCoar,  mgRef, m_ghostPhi);
-      m_ebAverage.define( m_eblg, m_eblgCoar,  mgRef, m_ghostPhi);
+      m_ebInterp.define(  m_eblg, m_eblgCoar,  m_refToCoar, m_ghostPhi);
+      m_ebAverage.define( m_eblg, m_eblgCoar,  m_refToCoar, m_ghostPhi);
+      int numGhostToFill= 1; //no EB/CF crossing so only need one cell
+      m_cfInterp.define(  m_eblg, m_eblgCoar,  m_refToCoar, m_ghostPhi, numGhostToFill);
     }
 
     if (m_hasCoarMG)
@@ -107,7 +109,7 @@ namespace amrex
     defineStencils();
 
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   Real
   NWOEBConductivityOp::
   getSafety()
@@ -115,12 +117,11 @@ namespace amrex
     Real safety = 1.0;
     return safety;
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   calculateAlphaWeight()
   {
-    DataIterator dit = m_eblg.getDBL().dataIterator(); 
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       VoFIterator& vofit = m_vofIterIrreg[dit[mybox]];
@@ -135,26 +136,26 @@ namespace amrex
       }
     }
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   getDivFStencil(VoFStencil&      a_vofStencil,
                  const VolIndex&  a_vof,
-                 const DataIndex& a_dit)
+                 const MFIter  &  a_mfi)
   {
     BL_PROFILE("NWOEBConductivityOp::getDivFStencil");
-    const EBISBox& ebisBox = m_eblg.getEBISL()[a_dit];
+    const EBISBox& ebisBox = m_eblg.getEBISL()[a_mfi];
     a_vofStencil.clear();
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       for (SideIterator sit; sit.ok(); ++sit)
       {
         int isign = sign(sit());
-        Vector<FaceIndex> faces = ebisBox.getFaces(a_vof, idir, sit());
+        vector<FaceIndex> faces = ebisBox.getFaces(a_vof, idir, sit());
         for (int iface = 0; iface < faces.size(); iface++)
         {
           VoFStencil fluxStencil;
-          getFluxStencil(fluxStencil, faces[iface], a_dit);
+          getFluxStencil(fluxStencil, faces[iface], a_mfi);
           Real areaFrac = ebisBox.areaFrac(faces[iface]);
           fluxStencil *= Real(isign)*areaFrac/m_dx;
           a_vofStencil += fluxStencil;
@@ -162,7 +163,7 @@ namespace amrex
       }
     }
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   getFluxStencil(VoFStencil&      a_fluxStencil,
@@ -177,8 +178,8 @@ namespace amrex
     //so get the stencil at each face center and add with
     //interpolation weights
     FaceStencil interpSten = EBArith::getInterpStencil(a_face,
-                                                       (*m_eblg.getCFIVS())[a_dit],
-                                                       m_eblg.getEBISL()[a_dit],
+                                                       (*m_eblg.getCFIVS())[a_mfi],
+                                                       m_eblg.getEBISL()[a_mfi],
                                                        m_eblg.getDomain());
 
     a_fluxStencil.clear();
@@ -187,17 +188,17 @@ namespace amrex
       const FaceIndex& face = interpSten.face(isten);
       const Real&    weight = interpSten.weight(isten);
       VoFStencil faceCentSten;
-      getFaceCenteredFluxStencil(faceCentSten, face, a_dit);
+      getFaceCenteredFluxStencil(faceCentSten, face, a_mfi);
       faceCentSten *= weight;
       a_fluxStencil += faceCentSten;
     }
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   getFaceCenteredFluxStencil(VoFStencil&      a_fluxStencil,
                              const FaceIndex& a_face,
-                             const DataIndex& a_dit)
+                             const MFIter   & a_mfi)
   {
     BL_PROFILE("NWOEBConductivityOp::getFaceCenteredFluxStencil");
     //face centered gradient is just a centered diff
@@ -208,14 +209,14 @@ namespace amrex
     {
       a_fluxStencil.add(a_face.getVoF(Side::Hi),  1.0/m_dx, 0);
       a_fluxStencil.add(a_face.getVoF(Side::Lo), -1.0/m_dx, 0);
-      a_fluxStencil *= (*m_bcoef)[a_dit][faceDir](a_face,0);
+      a_fluxStencil *= (*m_bcoef)[a_mfi][faceDir](a_face,0);
     }
     else
     {
       //the boundary condition handles this one.
     }
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   setAlphaAndBeta(const Real& a_alpha,
@@ -227,7 +228,7 @@ namespace amrex
     calculateAlphaWeight(); //need to do this because the a coef has probably been changed under us
     calculateRelaxationCoefficient();
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   kappaScale(FabArray<EBCellFAB> & a_rhs)
@@ -235,7 +236,7 @@ namespace amrex
     BL_PROFILE("NWOEBConductivityOp::kappaScale");
     EBLevelDataOps::kappaWeight(a_rhs);
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   diagonalScale(FabArray<EBCellFAB> & a_rhs,
@@ -244,7 +245,7 @@ namespace amrex
 
     BL_PROFILE("NWOEBConductivityOp::diagonalScale");
     if (a_kappaWeighted)
-      EBFabArrayOps::kappaWeight(a_rhs);
+      EBLevelDataOps::kappaWeight(a_rhs);
 
     //also have to weight by the identity coefficient
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mf)
@@ -252,7 +253,7 @@ namespace amrex
       a_rhs[mfi] *= (*m_acoef)[mfi];
     }
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   divideByIdentityCoef(FabArray<EBCellFAB> & a_rhs)
@@ -262,10 +263,10 @@ namespace amrex
 
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mf)
     {
-      a_rhs[mfi] /= (*m_acoef)[dit[mfi]];
+      a_rhs[mfi] /= (*m_acoef)[mfi];
     }
   }
-  //-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   calculateRelaxationCoefficient()
@@ -275,63 +276,64 @@ namespace amrex
     Real safety = getSafety();
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mf)
     {
-        const Box& grid = m_eblg.getDBL().get(dit[mybox]);
+      const Box& grid = m_eblg.getDBL()[mfi];
       
-        // For time-independent acoef, initialize lambda = alpha * acoef.
-        const EBCellFAB& acofab = (*m_acoef)[dit[mybox]];
-        m_relCoef[dit[mybox]].setVal(0.);
-        m_relCoef[dit[mybox]].plus(acofab, 0, 0, 1);
-        m_relCoef[dit[mybox]]*= m_alpha;
+      // For time-independent acoef, initialize lambda = alpha * acoef.
+      const EBCellFAB& acofab = (*m_acoef)[mfi];
+      m_relCoef[mfi].setVal(0.);
+      m_relCoef[mfi].plus(acofab, 0, 0, 1);
+      m_relCoef[mfi]*= m_alpha;
       
-        // Compute the relaxation coefficient in regular cells.
-        BaseFab<Real>& regRel = m_relCoef[dit[mybox]].getSingleValuedFAB();
-        for (int idir = 0; idir < SpaceDim; idir++)
-        {
-          BaseFab<Real>& regBCo = (*m_bcoef)[dit[mybox]][idir].getSingleValuedFAB();
-          ebefnd_decrinvrelcoefebco(BL_TO_FORTRAN_FAB(regRel),
-                                    BL_TO_FORTRAN_FAB(regBCo,0),
-                                    BL_TO_FORTRAN_BOX(grid),
-                                    &m_beta, &m_dx, &idir);
-        }
+      // Compute the relaxation coefficient in regular cells.
+      BaseFab<Real>& regRel = m_relCoef[mfi].getSingleValuedFAB();
+      for (int idir = 0; idir < SpaceDim; idir++)
+      {
+        BaseFab<Real>& regBCo = (*m_bcoef)[mfi][idir].getSingleValuedFAB();
+        ebefnd_decrinvrelcoefebco(BL_TO_FORTRAN_FAB(regRel),
+                                  BL_TO_FORTRAN_FAB(regBCo,0),
+                                  BL_TO_FORTRAN_BOX(grid),
+                                  &m_beta, &m_dx, &idir);
+      }
       
-        //now invert so lambda = stable lambda for variable coef lapl
-        //(according to phil, this is the correct lambda)
-        FORT_INVERTLAMBDAEBCO(BL_TO_FORTRAN_FAB(regRel),
+      //now invert so lambda = stable lambda for variable coef lapl
+      //(according to phil, this is the correct lambda)
+      ebefnd_invertlambdaebco(BL_TO_FORTRAN_FAB(regRel),
                               BL_TO_FORTRAN_BOX(grid), &safety);
       
-        // Now go over the irregular cells.
-        VoFIterator& vofit = m_vofIterIrreg[dit[mybox]];
-        for (vofit.reset(); vofit.ok(); ++vofit)
+      // Now go over the irregular cells.
+      VoFIterator& vofit = m_vofIterIrreg[mfi];
+      for (vofit.reset(); vofit.ok(); ++vofit)
+      {
+        const VolIndex& VoF = vofit();
+          
+        Real alphaWeight = m_alphaDiagWeight[mfi](VoF, 0);
+        Real  betaWeight =  m_betaDiagWeight[mfi](VoF, 0);
+        alphaWeight *= m_alpha;
+        betaWeight  *= m_beta;
+          
+        Real diagWeight  = alphaWeight + betaWeight;
+          
+        // Set the irregular relaxation coefficients.
+        if (Abs(diagWeight) > 1.0e-9)
         {
-          const VolIndex& VoF = vofit();
-          
-          Real alphaWeight = m_alphaDiagWeight[dit[mybox]](VoF, 0);
-          Real  betaWeight =  m_betaDiagWeight[dit[mybox]](VoF, 0);
-          alphaWeight *= m_alpha;
-          betaWeight  *= m_beta;
-          
-          Real diagWeight  = alphaWeight + betaWeight;
-          
-          // Set the irregular relaxation coefficients.
-          if (Abs(diagWeight) > 1.0e-9)
-          {
-            m_relCoef[dit[mybox]](VoF, 0) = safety/diagWeight;
-          }
-          else
-          {
-            m_relCoef[dit[mybox]](VoF, 0) = 0.;
-          }
+          m_relCoef[mfi](VoF, 0) = safety/diagWeight;
         }
-    }
+        else
+        {
+          m_relCoef[mfi](VoF, 0) = 0.;
+        }
+      }
     }
   }
+
+  //-------------------------------------------------------------------------------
  
   void null_deleter_ebco_vof(VolIndex *)
- {}
-  void null_deleter_ebco_sten(VolIndex *)
- {}
+  {}
+  void null_deleter_ebco_sten(VoFStencil *)
+  {}
 
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   defineStencils()
@@ -397,7 +399,7 @@ namespace amrex
       }
 
       VoFIterator &  vofit = m_vofIterIrreg[mfi];
-      const vector<VolIndex>& vofvec = vofit.getVector();
+      const vector<VolIndex>& vofvec = vofit.getvector();
       vector<VoFStencil> stenvec(vofvec.size());
 
       // cast from VolIndex to BaseIndex
@@ -433,7 +435,7 @@ namespace amrex
           {
             Real faceAreaFrac = 0.0;
             Real weightedAreaFrac = 0;
-            Vector<FaceIndex> faces = ebisBox.getFaces(vof,idir,Side::Lo);
+            vector<FaceIndex> faces = ebisBox.getFaces(vof,idir,Side::Lo);
             for (int i = 0; i < faces.size(); i++)
             {
               weightedAreaFrac = ebisBox.areaFrac(faces[i]);
@@ -448,7 +450,7 @@ namespace amrex
           {
             Real faceAreaFrac = 0.0;
             Real weightedAreaFrac = 0;
-            Vector<FaceIndex> faces = ebisBox.getFaces(vof,idir,Side::Hi);
+            vector<FaceIndex> faces = ebisBox.getFaces(vof,idir,Side::Hi);
             for (int i = 0; i < faces.size(); i++)
             {
               weightedAreaFrac = ebisBox.areaFrac(faces[i]);
@@ -488,7 +490,7 @@ namespace amrex
 
   }
 
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   residual(FabArray<EBCellFAB>&       a_residual,
@@ -504,20 +506,19 @@ namespace amrex
     applyOp(a_residual,a_phi,NULL, a_homogeneousPhysBC, true);
     axby(a_residual,a_residual,a_rhs,-1.0, 1.0);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   preCond(FabArray<EBCellFAB>&       a_lhs,
           const FabArray<EBCellFAB>& a_rhs)
   {
     BL_PROFILE("NWOEBConductivityOp::preCond");
-    EBFabArrayOps::assign(a_lhs, a_rhs);
-    EBFabArrayOps::scale(a_lhs, m_relCoef);
+    EBLevelDataOps::assign(a_lhs, a_rhs);
+    EBLevelDataOps::scale(a_lhs, m_relCoef);
 
     relax(a_lhs, a_rhs, 40);
   }
-
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   applyOp(FabArray<EBCellFAB>&                    a_lhs,
@@ -531,69 +532,57 @@ namespace amrex
     {
       if(a_homogeneousCFBC)
       {
-        m_interpWithCoarser->coarseFineInterpH(phi,  0, 0, 1);
+        m_cfInterp->coarseFineInterpH(phi,  0, 0, 1);
       }
       else
       {
-        m_interpWithCoarser->coarseFineInterp(phi, *a_phiCoar,  0, 0, 1);
+        m_cfInterp->coarseFineInterp(phi, *a_phiCoar,  0, 0, 1);
         //          dumpEBLevelGhost(&phi);
       }
     }
     applyOp(a_lhs, a_phi, a_homogeneousPhysBC);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   applyOp(FabArray<EBCellFAB>&                    a_lhs,
           const FabArray<EBCellFAB>&              a_phi,
-          bool                                     a_homogeneous)
+          bool                                    a_homogeneous)
   {
     BL_PROFILE("ebco::applyOp");
     FabArray<EBCellFAB>&  phi = (FabArray<EBCellFAB>&) a_phi;
     {
       BL_PROFILE("ghostcell fills");
       fillPhiGhost(a_phi, a_homogeneous);
-      phi.exchange(m_exchangeCopier);
     }
 
-    /**
-       This is not done anymore because alpha and a are now part of the stencil
-       and part of regular apply
-       EBFabArrayOps::setToZero(a_lhs);
-       incr( a_lhs, a_phi, m_alpha);
-    **/
     {
       BL_PROFILE("applying op without bcs");
-      DataIterator dit = m_eblg.getDBL().dataIterator();
-      int nbox=dit.size();
-#pragma omp parallel for
-      for (int mybox=0;mybox<nbox; mybox++)
+      for(MFIter mfi(m_eblg.getDBL(); mfi.getDM()); mfi.isValid(); ++mfi)
       {
 
-        applyOpRegular(  a_lhs[dit[mybox]], a_phi[dit[mybox]], a_homogeneous, dit[mybox]);
-        applyOpIrregular(a_lhs[dit[mybox]], a_phi[dit[mybox]], a_homogeneous, dit[mybox]);
+        applyOpRegular(  a_lhs[mfi], a_phi[mfi], a_homogeneous, mfi);
+        applyOpIrregular(a_lhs[mfi], a_phi[mfi], a_homogeneous, mfi);
       }
     }
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   fillPhiGhost(const FabArray<EBCellFAB>& a_phi, bool a_homog) const
   {
     BL_PROFILE("nwoebco::fillghostLD");
-    DataIterator dit = m_eblg.getDBL().dataIterator();
-    int nbox=dit.size();
-#pragma omp parallel for
-    for (int mybox=0;mybox<nbox; mybox++)
+    for(MFIter mfi(m_eblg.getDBL(); mfi.getDM()); mfi.isValid(); ++mfi)
     {
-      fillPhiGhost(a_phi[dit[mybox]], dit[mybox], a_homog);
+      fillPhiGhost(a_phi[mfi], mfi, a_homog);
     }
     FabArray<EBCellFAB>& phi = (FabArray<EBCellFAB>&)(a_phi);
-    phi.exchange(m_exchangeCopier);
+    phi.FillBoundary();
   }
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
-  fillPhiGhost(const EBCellFAB& a_phi, const DataIndex& a_datInd, bool a_homog) const
+  fillPhiGhost(const EBCellFAB& a_phi, const MFIter   & a_datInd, bool a_homog) const
   {
     BL_PROFILE("nwoebco::fillghostfab");
 
@@ -605,7 +594,7 @@ namespace amrex
     {
       MayDay::Error("dynamic cast failed");
     }
-    if (!s_turnOffBCs)
+    if (!m_turnOffBCs)
     {
       FArrayBox& fab = phi.getFArrayBox();
       condbc->fillPhiGhost(fab, grid, domBox, m_dx, a_homog);
@@ -617,8 +606,8 @@ namespace amrex
       {
         for(SideIterator sit; sit.ok(); ++sit)
         {
-          FArrayBox& fab = phi.getFArrayBox();
-          ExtrapolateBC(fab, valid,  m_dx, idir, sit());
+          BaseFab<Real>& fab = phi.getSingleValuedFAB();
+          EBArith::ExtrapolateBC(fab, valid,  m_dx, idir, sit());
         }
         //grow so that we hit corners
         valid.grow(idir, 1);
@@ -632,7 +621,7 @@ namespace amrex
   applyOpRegular(EBCellFAB&             a_lhs,
                  const EBCellFAB&       a_phi,
                  const bool&            a_homogeneous,
-                 const DataIndex&       a_datInd)
+                 const MFIter   &       a_datInd)
   {
     BL_PROFILE("nwoebco::applyopRegular");
     //assumes ghost cells already filled
@@ -643,32 +632,30 @@ namespace amrex
     const BaseFab<Real>& acofab  =(*m_acoef)[a_datInd].getSingleValuedFAB();
     const EBFluxFAB& bco  =   (*m_bcoef)[a_datInd];
 
-    Vector<const BaseFab<Real>* > bcoside(3, &(bco[0].getSingleValuedFAB()));
+    vector<const BaseFab<Real>* > bcoside(3, &(bco[0].getSingleValuedFAB()));
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       bcoside[idir] = &(bco[idir].getSingleValuedFAB());
     }
 
-    FORT_APPLYOPEBCONDNOBCS(CHF_FRA1(lphfab,0),
-                            CHF_CONST_FRA1(phifab,0),
-                            CHF_CONST_FRA1(acofab,0),
-                            CHF_CONST_FRA1((*bcoside[0]), 0),
-                            CHF_CONST_FRA1((*bcoside[1]), 0),
-                            CHF_CONST_FRA1((*bcoside[2]), 0),
-                            CHF_CONST_REAL(m_dx),
-                            CHF_CONST_REAL(m_alpha),
-                            CHF_CONST_REAL(m_beta),
-                            CHF_BOX(grid));
-
+    
+    ebefnd_applyop_ebcond_nobcs(BL_TO_FORTRAN_FAB(lphfab),
+                                BL_TO_FORTRAN_FAB(phifab),
+                                BL_TO_FORTRAN_FAB(acofab,0),
+                                BL_TO_FORTRAN_FAB((*bcoside[0])),
+                                BL_TO_FORTRAN_FAB((*bcoside[1])),
+                                BL_TO_FORTRAN_FAB((*bcoside[2])),
+                                BL_TO_FORTRAN_BOX(grid),
+                                &m_dx, &m_alpha, &m_beta);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
 
   void
   NWOEBConductivityOp::
   applyOpIrregular(EBCellFAB&             a_lhs,
                    const EBCellFAB&       a_phi,
                    const bool&            a_homogeneous,
-                   const DataIndex&       a_datInd)
+                   const MFIter   &       a_datInd)
   {
     BL_PROFILE("nwoebco::applyOpIrregular");
     RealVect vectDx = m_dx*RealVect::Unit;
@@ -712,7 +699,7 @@ namespace amrex
 
   }
 
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   create(FabArray<EBCellFAB>&       a_lhs,
@@ -721,49 +708,37 @@ namespace amrex
     BL_PROFILE("ebco::create");
     int ncomp = a_rhs.nComp();
     EBCellFactory ebcellfact(m_eblg.getEBISL());
-    a_lhs.define(m_eblg.getDBL(), ncomp, a_rhs.nGrow(), ebcellfact);
+    a_lhs.define(m_eblg.getDBL(), m_eblg.getDM(), ncomp, a_rhs.nGrow(), MFInfo(), ebcellfact);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   createCoarsened(FabArray<EBCellFAB>&       a_lhs,
                   const FabArray<EBCellFAB>& a_rhs,
-                  const int &                 a_refRat)
+                  const int &                a_refRat)
   {
     BL_PROFILE("ebco::createCoar");
     int ncomp = a_rhs.nComp();
-    IntVect ghostVect = a_rhs.nGrow();
+    int ghost = a_rhs.nGrow();
 
     BL_ASSERT(m_eblg.getDBL().coarsenable(a_refRat));
 
-    //fill ebislayout
-    DisjointBoxLayout dblCoarsenedFine;
-    coarsen(dblCoarsenedFine, m_eblg.getDBL(), a_refRat);
+    EBLevelGrid eblgCoFi;
+    coarsen(eblgCoFi, m_eblg, a_refRat);
 
-    EBISLayout ebislCoarsenedFine;
-    IntVect ghostVec = a_rhs.nGrow();
-
-    Box coarDom = coarsen(m_eblg.getDomain(), a_refRat);
-    m_eblg.getEBIS()->fillEBISLayout(ebislCoarsenedFine, dblCoarsenedFine, coarDom , ghostVec[0]);
-    if (m_refToCoar > 1)
-    {
-      ebislCoarsenedFine.setMaxRefinementRatio(m_refToCoar, m_eblg.getEBIS());
-    }
-
-    //create coarsened data
-    EBCellFactory ebcellfactCoarsenedFine(ebislCoarsenedFine);
-    a_lhs.define(dblCoarsenedFine, ncomp,ghostVec, ebcellfactCoarsenedFine);
+    EBCellFactory ebcellfactCoFi(elgCoFi.getEBISL());
+    a_lhs.define(eblgCoFi.getDBL(), eblgCoFi.getDM(), ncomp, ghost, MFInfo(), ebcellfactCoFi);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   assign(FabArray<EBCellFAB>&       a_lhs,
          const FabArray<EBCellFAB>& a_rhs)
   {
     BL_PROFILE("ebco::assign");
-    EBFabArrayOps::assign(a_lhs,a_rhs);
+    EBLevelDataOps::assign(a_lhs,a_rhs);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   Real
   NWOEBConductivityOp::
   dotProduct(const FabArray<EBCellFAB>& a_1,
@@ -773,9 +748,9 @@ namespace amrex
     Box domain;
     Real volume;
 
-    return EBFabArrayOps::kappaDotProduct(volume,a_1,a_2,EBLEVELDATAOPS_ALLVOFS,domain);
+    return EBLevelDataOps::kappaDotProduct(volume,a_1,a_2,m_eblg);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   incr(FabArray<EBCellFAB>&       a_lhs,
@@ -783,9 +758,9 @@ namespace amrex
        Real                        a_scale)
   {
     BL_PROFILE("ebco::incr");
-    EBFabArrayOps::incr(a_lhs,a_x,a_scale);
+    EBLevelDataOps::incr(a_lhs,a_x,a_scale);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   axby(FabArray<EBCellFAB>&       a_lhs,
@@ -795,32 +770,31 @@ namespace amrex
        Real                        a_b)
   {
     BL_PROFILE("ebco::axby");
-    EBFabArrayOps::axby(a_lhs,a_x,a_y,a_a,a_b);
+    EBLevelDataOps::axby(a_lhs,a_x,a_y,a_a,a_b);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   scale(FabArray<EBCellFAB>& a_lhs,
         const Real&           a_scale)
   {
     BL_PROFILE("ebco::scale");
-    EBFabArrayOps::scale(a_lhs,a_scale);
+    EBLevelDataOps::scale(a_lhs,a_scale);
   }
-//-------------------------------
+  //---------------------------------------
   Real 
   NWOEBConductivityOp::
   norm(const FabArray<EBCellFAB>& a_rhs,
        int                         a_ord)
   {
-    BL_PROFILERS("NWOEBConductivityOp::norm");
-    BL_PROFILER("mpi_allreduce",t1);
+    BL_PROFILE("NWOEBConductivityOp::norm");
 
     Real maxNorm = 0.0;
 
     maxNorm = localMaxNorm(a_rhs);
 
     CH_START(t1);
-#ifdef CH_MPI
+#ifdef BL_USE_MPI
     Real tmp = 1.;
     int result = MPI_Allreduce(&maxNorm, &tmp, 1, MPI_CH_REAL,
                                MPI_MAX, Chombo_MPI::comm);
@@ -831,7 +805,7 @@ namespace amrex
     maxNorm = tmp;
 #endif
     //  Real volume=1.;
-    //  EBFabArrayOps::gatherBroadCast(maxNorm, volume, 0);
+    //  EBLevelDataOps::gatherBroadCast(maxNorm, volume, 0);
     CH_STOP(t1);
 
     return maxNorm;
@@ -842,28 +816,27 @@ namespace amrex
   localMaxNorm(const FabArray<EBCellFAB>& a_rhs)
   {
     BL_PROFILE("EBAMRPoissonOp::localMaxNorm");
-    return  EBAMRPoissonOp::staticMaxNorm(a_rhs, m_eblg);
-    //  Box domain;
-    //  Real volume;
-    //  return EBFabArrayOps::kappaNorm(volume,a_rhs,EBLEVELDATAOPS_ALLVOFS,domain,0);
+    Real maxval, minval;
+    EBLevelDataOps::getMaxMin(maxval, minval, a_rhs, 0, true);
+    return maxval;
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   setToZero(FabArray<EBCellFAB>& a_lhs)
   {
     BL_PROFILE("ebco::setToZero");
-    EBFabArrayOps::setToZero(a_lhs);
+    EBLevelDataOps::setToZero(a_lhs);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   setVal(FabArray<EBCellFAB>& a_lhs, const Real& a_value)
   {
     BL_PROFILE("ebco::setVal");
-    EBFabArrayOps::setVal(a_lhs, a_value);
+    EBLevelDataOps::setVal(a_lhs, a_value);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   createCoarser(FabArray<EBCellFAB>&       a_coar,
@@ -871,21 +844,11 @@ namespace amrex
                 bool                        a_ghosted)
   {
     BL_PROFILE("ebco::createCoarser");
-    BL_ASSERT(a_fine.nComp() == 1);
-    const DisjointBoxLayout& dbl = m_eblgCoarMG.getDBL();
-    Box coarDom = coarsen(m_eblg.getDomain(), 2);
 
-    int nghost = a_fine.nGrow()[0];
-    EBISLayout coarEBISL;
-
-    const EBIndexSpace* const ebisPtr = m_eblg.getEBIS();
-    ebisPtr->fillEBISLayout(coarEBISL,
-                            dbl, coarDom, nghost);
-
-    EBCellFactory ebcellfact(coarEBISL);
-    a_coar.define(dbl, 1,a_fine.nGrow(),ebcellfact);
+    EBCellFactory ebcellfact(m_eblgCoarMG.getEBISL());
+    a_coar.define(m_eblgCoarMG.getDBL(), m_eblgCoarMG.getDM(), a_fine.nComp(), a_fine.nGrow(), MFInfo(), ebcellfact);
   }
-//------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------
 /*****/
   void
   NWOEBConductivityOp::
@@ -899,15 +862,6 @@ namespace amrex
     BL_ASSERT(a_phi.nGrow() >= IntVect::Unit);
     BL_ASSERT(a_phi.nComp() == a_rhs.nComp());
 
-    //change to false to get a lot of printouts
-    static bool printedStuff = true;
-
-    if(!printedStuff)
-    {
-      pout() << "rhs: " << endl;;
-      FabArray<EBCellFAB>* rhs = (FabArray<EBCellFAB>*)(&a_rhs);
-      printMaxMinLDCell(rhs);
-    }
     // do first red, then black passes
     for (int whichIter =0; whichIter < a_iterations; whichIter++)
     {
@@ -921,28 +875,12 @@ namespace amrex
           fillPhiGhost(a_phi, true);
           homogeneousCFInterp(a_phi);
         }
-        if(!printedStuff)
-        {
-          pout() << "iter = "<< whichIter << ", icolor = " << icolor << endl;
-          pout() << "phi: " ;
-          printMaxMinLDCell(&a_phi);
-        }
         gsrbColor(a_phi, a_rhs, m_colors[icolor]);
       }
     }
-
-    //MayDay::Abort("leaving after first relax");
-    if(!printedStuff)
-    {
-      pout() << "rhs: " << endl;;
-      FabArray<EBCellFAB>* rhs = (FabArray<EBCellFAB>*)(&a_rhs);
-      printMaxMinLDCell(rhs);
-      pout() << "phi coming out of relax: "  << endl;
-      printMaxMinLDCell(&a_phi);
-    }
-    printedStuff = true;
   }
 
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   homogeneousCFInterp(FabArray<EBCellFAB>&   a_phif)
@@ -950,11 +888,11 @@ namespace amrex
     BL_PROFILE("nwoebco::homog_cfinterp");
     if (m_hasCoar)
     {
-      m_interpWithCoarser->coarseFineInterpH(a_phif,  0, 0, 1);
+      m_cfInterp->coarseFineInterpH(a_phif,  0, 0, 1);
     }
   }
 
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   gsrbColor(FabArray<EBCellFAB>&       a_phi,
@@ -971,7 +909,7 @@ namespace amrex
     {
       //first do the the regular stuff
       Box dblBox  = dbl.get(dit[mybox]);
-      const DataIndex datInd = dit[mybox];
+      const MFIter    datInd = dit[mybox];
       BaseFab<Real>&       regPhi =     a_phi[datInd].getSingleValuedFAB();
       const BaseFab<Real>& regRhs =     a_rhs[datInd].getSingleValuedFAB();
       const BaseFab<Real>& regRel = m_relCoef[datInd].getSingleValuedFAB();
@@ -982,7 +920,7 @@ namespace amrex
       const BaseFab<Real>& acofab  =(*m_acoef)[datInd].getSingleValuedFAB();
       const EBFluxFAB& bco  =       (*m_bcoef)[datInd];
 
-      Vector<const BaseFab<Real>* > bcoside(3, &(bco[0].getSingleValuedFAB()));
+      vector<const BaseFab<Real>* > bcoside(3, &(bco[0].getSingleValuedFAB()));
       for(int idir = 0; idir < SpaceDim; idir++)
       {
         bcoside[idir] = &(bco[idir].getSingleValuedFAB());
@@ -1026,7 +964,7 @@ namespace amrex
     }
   }
 
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void NWOEBConductivityOp::
   restrictResidual(FabArray<EBCellFAB>&       a_resCoar,
                    FabArray<EBCellFAB>&       a_phiThisLevel,
@@ -1060,7 +998,7 @@ namespace amrex
       m_ebAverageMG.averageMG(a_resCoar, resThisLevel, variables);
     }
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void NWOEBConductivityOp::
   prolongIncrement(FabArray<EBCellFAB>&       a_phiThisLevel,
                    const FabArray<EBCellFAB>& a_correctCoar)
@@ -1076,19 +1014,19 @@ namespace amrex
       m_ebInterpMG.pwcInterpMG(a_phiThisLevel, a_correctCoar, vars);
     }
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   int NWOEBConductivityOp::
   refToCoarser()
   {
     return m_refToCoar;
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   int NWOEBConductivityOp::
   refToFiner()
   {
     return m_refToFine;
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void NWOEBConductivityOp::
   AMRResidual(FabArray<EBCellFAB>&       a_residual,
               const FabArray<EBCellFAB>& a_phiFine,
@@ -1118,7 +1056,7 @@ namespace amrex
     axby(a_residual,a_residual,a_rhs,-1.0, 1.0);
     CH_STOP(t2);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void NWOEBConductivityOp::
   AMROperator(FabArray<EBCellFAB>&       a_LofPhi,
               const FabArray<EBCellFAB>& a_phiFine,
@@ -1150,7 +1088,7 @@ namespace amrex
       CH_STOP(t2);
     }
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   reflux(FabArray<EBCellFAB>& a_residual,
@@ -1182,7 +1120,7 @@ namespace amrex
 
     CH_STOP(t5);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   incrementFRCoar(EBFastFR&             a_fluxReg,
@@ -1232,13 +1170,13 @@ namespace amrex
     }
   }
 
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   getFlux(EBFluxFAB&                    a_flux,
           const FabArray<EBCellFAB>&   a_data,
           const Box&                    a_grid,
-          const DataIndex&              a_dit,
+          const MFIter   &              a_dit,
           Real                          a_scale)
   {
     BL_PROFILE("ebco::getflux1");
@@ -1257,7 +1195,7 @@ namespace amrex
 
     }
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   getFlux(EBFaceFAB&                    a_fluxCentroid,
@@ -1267,7 +1205,7 @@ namespace amrex
           const Box&          a_domain,
           const EBISBox&                a_ebisBox,
           const Real&                   a_dx,
-          const DataIndex&              a_datInd,
+          const MFIter   &              a_datInd,
           const int&                    a_idir)
   {
     BL_PROFILE("ebco::getFlux2");
@@ -1338,14 +1276,14 @@ namespace amrex
 
     a_fluxCentroid *= m_beta;
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   getFluxRegOnly(EBFaceFAB&                    a_fluxCentroid,
                  const EBCellFAB&              a_phi,
                  const Box&                    a_ghostedBox,
                  const Real&                   a_dx,
-                 const DataIndex&              a_datInd,
+                 const MFIter   &              a_datInd,
                  const int&                    a_idir)
   {
     BL_PROFILE("ebco::getFluxRegOnly");
@@ -1378,7 +1316,7 @@ namespace amrex
 
     a_fluxCentroid *= m_beta;
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   incrementFRFine(EBFastFR&             a_fluxReg,
@@ -1396,7 +1334,7 @@ namespace amrex
 
     //ghost cells of phiFine need to be filled
     FabArray<EBCellFAB>& phiFine = (FabArray<EBCellFAB>&) a_phiFine;
-    finerEBAMROp.m_interpWithCoarser->coarseFineInterp(phiFine, a_phi, 0, 0, 1);
+    finerEBAMROp.m_cfInterp->coarseFineInterp(phiFine, a_phi, 0, 0, 1);
     phiFine.exchange(finerEBAMROp.m_exchangeCopier);
 
     DataIterator ditf = a_phiFine.dataIterator();
@@ -1431,7 +1369,7 @@ namespace amrex
       }
     }
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   getFlux(FArrayBox&                    a_flux,
@@ -1439,7 +1377,7 @@ namespace amrex
           const Box&                    a_faceBox,
           const int&                    a_idir,
           const Real&                   a_dx,
-          const DataIndex&              a_datInd)
+          const MFIter   &              a_datInd)
   {
     BL_PROFILE("ebco::getflux3");
     const EBFaceFAB& bcoebff = (*m_bcoef)[a_datInd][a_idir];
@@ -1453,7 +1391,7 @@ namespace amrex
 
     a_flux *= m_beta;
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
 
   void
   NWOEBConductivityOp::
@@ -1470,7 +1408,7 @@ namespace amrex
     FabArray<EBCellFAB> phiC;
     AMRResidual(a_residual, a_phiFine, a_phi, phiC, a_rhs, a_homogeneousPhysBC, a_finerOp);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
 
   void
   NWOEBConductivityOp::
@@ -1488,7 +1426,7 @@ namespace amrex
                   a_homogeneousPhysBC);
     axby(a_residual,a_residual,a_rhs,-1.0, 1.0);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
 
   void
   NWOEBConductivityOp::
@@ -1505,7 +1443,7 @@ namespace amrex
     AMROperator(a_LofPhi, a_phiFine, a_phi, phiC,
                 a_homogeneousPhysBC, a_finerOp);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
 
   void
   NWOEBConductivityOp::
@@ -1519,7 +1457,7 @@ namespace amrex
     applyOp(a_LofPhi,a_phi, &a_phiCoar,  a_homogeneousPhysBC, false);
 
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   AMRRestrict(FabArray<EBCellFAB>&       a_resCoar,
@@ -1546,7 +1484,7 @@ namespace amrex
     IntVect ghostVec = a_residual.nGrow();
 
     resThisLevel.define(m_eblg.getDBL(), 1, ghostVec, ebcellfactTL);
-    EBFabArrayOps::setVal(resThisLevel, 0.0);
+    EBLevelDataOps::setVal(resThisLevel, 0.0);
 
     //API says that we must average(a_residual - L(correction, coarCorrection))
     applyOp(resThisLevel, a_correction, &a_coarCorrection, homogeneousPhys, homogeneousCF);
@@ -1558,7 +1496,7 @@ namespace amrex
     m_ebAverage.average(a_resCoar, resThisLevel, variables);
 
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   Real
   NWOEBConductivityOp::
   AMRNorm(const FabArray<EBCellFAB>& a_coarResid,
@@ -1573,7 +1511,7 @@ namespace amrex
     //return norm of temp
     return norm(a_coarResid, a_ord);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   AMRProlong(FabArray<EBCellFAB>&       a_correction,
@@ -1584,7 +1522,7 @@ namespace amrex
     Interval variables(0, 0);
     m_ebInterp.pwcInterp(a_correction, a_coarCorrection, variables);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
   void
   NWOEBConductivityOp::
   AMRUpdateResidual(FabArray<EBCellFAB>&       a_residual,
@@ -1609,6 +1547,6 @@ namespace amrex
 
     incr(a_residual, lcorr, -1);
   }
-//-----------------------------------------------------------------------
+  //-------------------------------------------------------------------------------
 
 }

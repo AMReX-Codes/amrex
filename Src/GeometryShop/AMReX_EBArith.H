@@ -169,6 +169,20 @@ namespace amrex
                           IntVectSet*    a_cfivsPtr,
                           int ivar);
 
+    static Box 
+    adjCellBox(const Box            & a_valid, 
+               const int            & a_dir, 
+               const Side::LoHiSide & a_side, 
+               const int            & a_len);
+
+    ///first order extrap to ghost cells
+    static void 
+    ExtrapolateBC(BaseFab<Real>&  a_state,
+                  const Box&      a_valid,
+                  Real            a_dx,
+                  int             a_dir,
+                  Side::LoHiSide  a_side);
+
     static int
     getMixedDerivStencil(VoFStencil&      a_sten,
                          const VolIndex&  a_vof,
