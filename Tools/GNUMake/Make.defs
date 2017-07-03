@@ -295,9 +295,11 @@ ifeq ($(USE_CUDA),TRUE)
         DEFINES += -DCUDA_UM
 	DEFINES += -DBL_COALESCE_FABS
     endif
+
     CUDASuffix := .CUDA
     DEFINES += -Damrex_launch_subroutine='attributes(global)'
     DEFINES += -Damrex_subroutine='attributes(device)'
+
 else
     DEFINES += -Damrex_launch_subroutine=""
     DEFINES += -Damrex_subroutine=""
@@ -478,4 +480,21 @@ ifeq ($(USE_CUDA),TRUE)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
         INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
     endif
+
+    # Optionally add in NVML support.
+
+    MAKE_NVML_PATH :=
+
+    ifneq ($(NVML_PATH),)
+        MAKE_NVML_PATH := $(NVML_PATH)
+    else ifneq ($(SYSTEM_NVML_PATH),)
+        MAKE_NVML_PATH := $(SYSTEM_NVML_PATH)
+    endif
+
+    ifneq ($(MAKE_NVML_PATH),)
+        DEFINES += -DNVML
+        LIBRARIES += -lnvidia-ml
+        LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
+    endif
+
 endif

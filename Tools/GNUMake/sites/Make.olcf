@@ -49,8 +49,6 @@ endif
 
 SYSTEM_CUDA_PATH=$(CUDAPATH)
 
-endif
+SYSTEM_NVML_PATH=/usr/lib64/nvidia
 
-ifneq ($(SYSTEM_CUDA_PATH),)
-    MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
 endif
