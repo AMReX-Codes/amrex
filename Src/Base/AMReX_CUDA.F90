@@ -41,6 +41,10 @@ module cuda_module
      end subroutine cudaProfilerStart
      subroutine cudaProfilerStop() bind(c, name='cudaProfilerStop')
      end subroutine cudaProfilerStop
+
+     subroutine is_program_running(r) bind(c, name='is_program_running')
+       integer, intent(inout) :: r
+     end subroutine is_program_running
   end interface
 
 contains
@@ -361,10 +365,14 @@ contains
 
     type(c_devptr), value :: x
 
-    integer :: cudaResult
+    integer :: cudaResult, r
 
-    cudaResult = cudaFree(x)
-    call gpu_error_test(cudaResult)
+    call is_program_running(r)
+
+    if (r == 1) then
+       cudaResult = cudaFree(x)
+       call gpu_error_test(cudaResult)
+    end if
 
   end subroutine gpu_free
 
@@ -379,10 +387,14 @@ contains
 
     type(c_ptr), value :: x
 
-    integer :: cudaResult
+    integer :: cudaResult, r
 
-    cudaResult = cudaFreeHost(x)
-    call gpu_error_test(cudaResult)
+    call is_program_running(r)
+
+    if (r == 1) then
+       cudaResult = cudaFreeHost(x)
+       call gpu_error_test(cudaResult)
+    end if
 
   end subroutine gpu_freehost
 

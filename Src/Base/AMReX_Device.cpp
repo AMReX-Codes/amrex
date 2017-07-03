@@ -9,6 +9,18 @@
 
 bool amrex::Device::in_device_launch_region = false;
 int amrex::Device::device_id = 0;
+int amrex::Device::is_device_program_running = 1;
+
+void
+is_program_running(int* r)
+{
+    *r = amrex::Device::isProgramRunning();
+}
+
+int
+amrex::Device::isProgramRunning() {
+    return is_device_program_running;
+}
 
 void
 amrex::Device::initialize_device() {
@@ -119,6 +131,8 @@ amrex::Device::finalize_device() {
 #ifdef CUDA
     finalize_cuda();
 #endif
+
+    is_device_program_running = 0;
 
 }
 

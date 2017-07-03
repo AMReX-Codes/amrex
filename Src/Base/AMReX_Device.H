@@ -4,6 +4,10 @@
 
 #include <cstdlib>
 
+#ifdef NVML
+#include <nvml.h>
+#endif
+
 extern "C" {
 #ifdef CUDA
     void initialize_cuda(const int* id);
@@ -30,6 +34,7 @@ extern "C" {
     void mem_advise_set_preferred(void* p, const std::size_t sz, const int* device);
     void mem_advise_set_readonly(void* p, const std::size_t sz);
     void check_for_gpu_errors();
+    void is_program_running(int* r);
 #endif
 }
 
@@ -68,9 +73,13 @@ public:
 
     static void stream_synchronize(const int idx = -1);
 
+    static int program_running();
+
     static void* device_malloc(const std::size_t sz);
 
     static void device_free(void* ptr);
+
+    static int isProgramRunning();
 
     static void device_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t sz, const int idx);
     static void device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t sz, const int idx);
@@ -86,6 +95,7 @@ private:
 
     static bool in_device_launch_region;
     static int device_id;
+    static int is_device_program_running;
 
 };
 
