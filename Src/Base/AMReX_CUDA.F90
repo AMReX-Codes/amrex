@@ -49,16 +49,15 @@ module cuda_module
 
 contains
 
-  subroutine initialize_cuda(id) bind(c, name='initialize_cuda')
+  subroutine initialize_cuda(id, rank) bind(c, name='initialize_cuda')
 
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice
-    use parallel, only: parallel_myproc
 
     implicit none
 
-    integer, intent(in) :: id
+    integer, intent(in) :: id, rank
 
-    integer :: i, cudaResult, ilen, myrank
+    integer :: i, cudaResult, ilen
 
     ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
     ! This stream is synchronous and blocking. It is our default choice, and we
@@ -90,9 +89,7 @@ contains
 
     ilen = verify(prop%name, ' ', .true.)
 
-    myrank = parallel_myproc()
-
-    print *, "Using GPU: ", prop%name(1:ilen), " on rank ", myrank
+    print *, "Using GPU: ", prop%name(1:ilen), " on rank ", rank
 
   end subroutine initialize_cuda
 
