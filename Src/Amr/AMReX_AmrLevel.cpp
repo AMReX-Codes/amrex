@@ -1546,26 +1546,13 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
-            std::shared_ptr<int> n_der_d = Device::create_host_pointer(&n_der);
-            int* n_der_f = (int*) Device::get_host_pointer(n_der_d.get());
-
-            std::shared_ptr<int> n_state_d = Device::create_host_pointer(&n_state);
-            int* n_state_f = (int*) Device::get_host_pointer(n_state_d.get());
-
-            std::shared_ptr<Real> time_d = Device::create_host_pointer(&time);
-            Real* time_f = (Real*) Device::get_host_pointer(time_d.get());
-
-            std::shared_ptr<Real> dt_d = Device::create_host_pointer(&dt);
-            Real* dt_f = (Real*) Device::get_host_pointer(dt_d.get());
-
-            std::shared_ptr<int> level_d = Device::create_host_pointer(&level);
-            int* level_f = (int*) Device::get_host_pointer(level_d.get());
-
-            std::shared_ptr<int> grid_no_d = Device::create_host_pointer(&grid_no);
-            int* grid_no_f = (int*) Device::get_host_pointer(grid_no_d.get());
-
-            std::shared_ptr<int> bcr_d = Device::create_host_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
-            int* bcr_f = (int*) Device::get_host_pointer(bcr_d.get());
+            int* n_der_f   = mfi.get_fortran_pointer(&n_der);
+            int* n_state_f = mfi.get_fortran_pointer(&n_state);
+            Real* time_f   = mfi.get_fortran_pointer(&time);
+            Real* dt_f     = mfi.get_fortran_pointer(&dt);
+            int* level_f   = mfi.get_fortran_pointer(&level);
+            int* grid_no_f = mfi.get_fortran_pointer(&grid_no);
+            int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
 
             Device::prepare_for_launch(lo, hi);
 
@@ -1586,8 +1573,6 @@ AmrLevel::derive (const std::string& name,
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
-
-            Device::stream_synchronize(mfi.tileIndex());
 
         }
 #else
@@ -1610,26 +1595,13 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
-            std::shared_ptr<int> n_der_d = Device::create_host_pointer(&n_der);
-            int* n_der_f = (int*) Device::get_host_pointer(n_der_d.get());
-
-            std::shared_ptr<int> n_state_d = Device::create_host_pointer(&n_state);
-            int* n_state_f = (int*) Device::get_host_pointer(n_state_d.get());
-
-            std::shared_ptr<Real> time_d = Device::create_host_pointer(&time);
-            Real* time_f = (Real*) Device::get_host_pointer(time_d.get());
-
-            std::shared_ptr<Real> dt_d = Device::create_host_pointer(&dt);
-            Real* dt_f = (Real*) Device::get_host_pointer(dt_d.get());
-
-            std::shared_ptr<int> level_d = Device::create_host_pointer(&level);
-            int* level_f = (int*) Device::get_host_pointer(level_d.get());
-
-            std::shared_ptr<int> grid_no_d = Device::create_host_pointer(&grid_no);
-            int* grid_no_f = (int*) Device::get_host_pointer(grid_no_d.get());
-
-            std::shared_ptr<int> bcr_d = Device::create_host_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
-            int* bcr_f = (int*) Device::get_host_pointer(bcr_d.get());
+            int* n_der_f   = mfi.get_fortran_pointer(&n_der);
+            int* n_state_f = mfi.get_fortran_pointer(&n_state);
+            Real* time_f   = mfi.get_fortran_pointer(&time);
+            Real* dt_f     = mfi.get_fortran_pointer(&dt);
+            int* level_f   = mfi.get_fortran_pointer(&level);
+            int* grid_no_f = mfi.get_fortran_pointer(&grid_no);
+            int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
 
             Device::prepare_for_launch(dlo, dhi);
 
@@ -1650,8 +1622,6 @@ AmrLevel::derive (const std::string& name,
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
-
-            Device::stream_synchronize(mfi.tileIndex());
 
         }
 #endif
@@ -1742,26 +1712,13 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
-            std::shared_ptr<int> n_der_d = Device::create_host_pointer(&n_der);
-            int* n_der_f = (int*) Device::get_host_pointer(n_der_d.get());
-
-            std::shared_ptr<int> n_state_d = Device::create_host_pointer(&n_state);
-            int* n_state_f = (int*) Device::get_host_pointer(n_state_d.get());
-
-            std::shared_ptr<Real> time_d = Device::create_host_pointer(&time);
-            Real* time_f = (Real*) Device::get_host_pointer(time_d.get());
-
-            std::shared_ptr<Real> dt_d = Device::create_host_pointer(&dt);
-            Real* dt_f = (Real*) Device::get_host_pointer(dt_d.get());
-
-            std::shared_ptr<int> level_d = Device::create_host_pointer(&level);
-            int* level_f = (int*) Device::get_host_pointer(level_d.get());
-
-            std::shared_ptr<int> idx_d = Device::create_host_pointer(&idx);
-            int* idx_f = (int*) Device::get_host_pointer(idx_d.get());
-
-            std::shared_ptr<int> bcr_d = Device::create_host_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
-            int* bcr_f = (int*) Device::get_host_pointer(bcr_d.get());
+            int* n_der_f   = mfi.get_fortran_pointer(&n_der);
+            int* n_state_f = mfi.get_fortran_pointer(&n_state);
+            Real* time_f   = mfi.get_fortran_pointer(&time);
+            Real* dt_f     = mfi.get_fortran_pointer(&dt);
+            int* level_f   = mfi.get_fortran_pointer(&level);
+            int* idx_f     = mfi.get_fortran_pointer(&idx);
+            int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
 
             Device::prepare_for_launch(lo, hi);
 
@@ -1782,8 +1739,6 @@ AmrLevel::derive (const std::string& name,
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
-
-            Device::stream_synchronize(mfi.tileIndex());
 
         }
 #else
@@ -1806,26 +1761,13 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx[mfi.tileIndex()].lo();
             Real        dt      = parent->dtLevel(level);
 
-            std::shared_ptr<int> n_der_d = Device::create_host_pointer(&n_der);
-            int* n_der_f = (int*) Device::get_host_pointer(n_der_d.get());
-
-            std::shared_ptr<int> n_state_d = Device::create_host_pointer(&n_state);
-            int* n_state_f = (int*) Device::get_host_pointer(n_state_d.get());
-
-            std::shared_ptr<Real> time_d = Device::create_host_pointer(&time);
-            Real* time_f = (Real*) Device::get_host_pointer(time_d.get());
-
-            std::shared_ptr<Real> dt_d = Device::create_host_pointer(&dt);
-            Real* dt_f = (Real*) Device::get_host_pointer(dt_d.get());
-
-            std::shared_ptr<int> level_d = Device::create_host_pointer(&level);
-            int* level_f = (int*) Device::get_host_pointer(level_d.get());
-
-            std::shared_ptr<int> idx_d = Device::create_host_pointer(&idx);
-            int* idx_f = (int*) Device::get_host_pointer(idx_d.get());
-
-            std::shared_ptr<int> bcr_d = Device::create_host_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
-            int* bcr_f = (int*) Device::get_host_pointer(bcr_d.get());
+            int* n_der_f   = mfi.get_fortran_pointer(&n_der);
+            int* n_state_f = mfi.get_fortran_pointer(&n_state);
+            Real* time_f   = mfi.get_fortran_pointer(&time);
+            Real* dt_f     = mfi.get_fortran_pointer(&dt);
+            int* level_f   = mfi.get_fortran_pointer(&level);
+            int* idx_f     = mfi.get_fortran_pointer(&idx);
+            int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
 
             Device::prepare_for_launch(dlo, dhi);
 
@@ -1846,8 +1788,6 @@ AmrLevel::derive (const std::string& name,
 	    } else {
 		amrex::Error("AmrLevel::derive: no function available");
 	    }
-
-            Device::stream_synchronize(mfi.tileIndex());
 
         }
 #endif
