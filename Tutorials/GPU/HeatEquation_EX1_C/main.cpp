@@ -124,6 +124,11 @@ void main_main ()
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
+    // Start profiling now. This is useful for when you have opted to disable
+    // profiling from the beginning of the application, and only want to start
+    // it once the advances start.
+    Device::start_profiler();
+
     for (int n = 1; n <= nsteps; ++n)
     {
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
