@@ -461,15 +461,11 @@ StateData::FillBoundary (FArrayBox&     dest,
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
 
-#ifdef CUDA
-	Real* time_d = (Real*) Device::device_malloc(sizeof(Real));
-	Device::device_htod_memcpy_async(time_d, &time, sizeof(Real), -1);
-	Real* xlo_d = (Real*) Device::device_malloc(BL_SPACEDIM*sizeof(Real));
-	Device::device_htod_memcpy_async(xlo_d, &xlo, BL_SPACEDIM * sizeof(Real), -1);
-#else
-	Real* time_d = &time;
-	Real* xlo_d = xlo;
-#endif
+        std::shared_ptr<Real> t_ptr = Device::create_host_pointer<Real>(&time);
+        Real* time_f = (Real*) Device::get_host_pointer(t_ptr.get());
+
+        std::shared_ptr<Real> dx_ptr = Device::create_host_pointer<Real>(xlo, 3);
+        Real* xlo_f = (Real*) Device::get_host_pointer(dx_ptr.get());
 
 	const int* dlo_f = dest.loVectF();
 	const int* dhi_f = dest.hiVectF();
@@ -502,67 +498,42 @@ StateData::FillBoundary (FArrayBox&     dest,
 
                     bci += 2*BL_SPACEDIM;
                 }
-#ifdef CUDA
-                int* bcrs_d = (int*) Device::device_malloc(bcrs.size() * sizeof(int));
-                Device::device_htod_memcpy_async(bcrs_d, bcrs.dataPtr(), bcrs.size() * sizeof(int), -1);
-                Device::synchronize();
-#else
-                int* bcrs_d = bcrs.dataPtr();
-#endif
+
+                std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs.dataPtr(), bcrs.size());
+                int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
                 //
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_d,time_d,bcrs_d,groupsize);
+		desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,bcrs_f,groupsize);
                 Device::synchronize();
-#ifdef CUDA
-                Device::device_free(bcrs_d);
-#endif
+
                 i += groupsize;
             }
             else
             {
                 amrex::setBC(bx,domain,desc->getBC(sc),bcr);
-#ifdef CUDA
-		const int* bcr_d = bcr.vect();
-		const int sz = AMREX_SPACEDIM * 2 * sizeof(int);
-		int* bcrs_d = (int*) Device::device_malloc(sz);
-		Device::device_htod_memcpy_async(bcrs_d, bcr_d, sz, -1);
+
+                std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs.dataPtr(), bcrs.size());
+                int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
+
+                desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,bcrs_f);
 		Device::synchronize();
-#else
-		const int* bcrs_d = bcr.vect();
-#endif
-                desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_d,time_d,bcrs_d);
-		Device::synchronize();
-#ifdef CUDA
-		Device::device_free(bcrs_d);
-#endif
+
                 i++;
             }
         }
         else
         {
             amrex::setBC(bx,domain,desc->getBC(sc),bcr);
-#ifdef CUDA
-	    const int* bcr_d = bcr.vect();
-	    const int sz = AMREX_SPACEDIM * 2 * sizeof(int);
-	    int* bcrs_d = (int*) Device::device_malloc(sz);
-	    Device::device_htod_memcpy_async(bcrs_d, bcr_d, sz, -1);
+
+            std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs.dataPtr(), bcrs.size());
+            int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
+
+            desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,bcrs_f);
 	    Device::synchronize();
-#else
-	    const int* bcr_d = bcr.vect();
-#endif
-            desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_d,time_d,bcr_d);
-	    Device::synchronize();
-#ifdef CUDA
-	    Device::device_free(bcrs_d);
-#endif
+
             i++;
         }
-
-#ifdef CUDA
-	Device::device_free(time_d);
-	Device::device_free(xlo_d);
-#endif
 
     }
 }
