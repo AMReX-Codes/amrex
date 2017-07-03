@@ -205,6 +205,13 @@ namespace amrex
                              const EBLevelGrid               &   a_eblgCoar,
                              std::vector<string> a_names = std::vector<string>(),
                              bool a_useGhost = false);
+    ///
+    /**
+     */
+    static  Real kappaDotProduct(Real&                       a_volume,
+                                 const FabArray<EBCellFAB> & a_data1,
+                                 const FabArray<EBCellFAB> & a_data2, 
+                                 const EBLevelGrid         & a_eblg);
 
   private:
 

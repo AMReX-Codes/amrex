@@ -464,7 +464,6 @@ namespace amrex
     const int                   m_ghostPhi;
     const int                   m_ghostRHS;
     
-    EBCFInterp                      m_interpWithCoarser;
     
     EBLevelGrid                     m_eblg;
     EBLevelGrid                     m_eblgFine;
@@ -498,7 +497,8 @@ namespace amrex
     EBCoarseAverage                    m_ebAverage;
     //prolongation object
     EBFineInterp                       m_ebInterp;
-    
+    //coarse-fine interpolation (with COARSER level)
+    EBCFInterp                         m_cfInterp;
     //stencils for operator evaluation
     LayoutData<shared_ptr<VCAggStencil> >  m_opEBStencil;
     //stencils for operator evaluation on gauss-seidel colors
