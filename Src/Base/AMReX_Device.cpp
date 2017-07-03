@@ -1,5 +1,11 @@
 
+#include <iostream>
+#ifdef NVML
+#include <nvml.h>
+#include <map>
+#endif
 #include <AMReX_Device.H>
+#include <AMReX_ParallelDescriptor.H>
 
 bool amrex::Device::in_device_launch_region = false;
 int amrex::Device::device_id = 0;
@@ -8,9 +14,101 @@ void
 amrex::Device::initialize_device() {
 
 #ifdef CUDA
-    initialize_cuda();
 
-    get_cuda_device_id(&device_id);
+#if (defined(NVML) && defined(BL_USE_MPI))
+
+    nvmlReturn_t nvml_err;
+
+    nvml_err = nvmlInit();
+
+    unsigned int device_count;
+    nvml_err = nvmlDeviceGetCount(&device_count);
+
+    // Get total number of GPUs seen by all ranks.
+
+    int total_count = (int) device_count;
+
+    amrex::ParallelDescriptor::ReduceIntSum(total_count);
+
+    std::map<std::string, int> device_uuid;
+
+    unsigned int char_length = 256;
+    char uuid[char_length];
+
+    std::string s;
+
+    for (unsigned int i = 0; i < device_count; ++i) {
+
+	nvmlDevice_t handle;
+	nvml_err = nvmlDeviceGetHandleByIndex(i, &handle);
+
+	nvml_err = nvmlDeviceGetUUID(handle, uuid, char_length);
+	s = uuid;
+
+	if (device_uuid.find(s) == device_uuid.end())
+	    device_uuid[s] = 1;
+	else
+	    device_uuid[s] += 1;
+
+    }
+
+    // Gather the list of device UUID's from all ranks. For simplicitly we'll
+    // assume that every rank sees the same number of devices and every device
+    // UUID has the same number of characters; this assumption could be lifted
+    // later in situations with unequal distributions of devices per node.
+
+    int strlen = s.size();
+    int len = device_count * strlen;
+
+    char sendbuf[len];
+    char recvbuf[ParallelDescriptor::NProcs()][len];
+
+    int i = 0;
+    for (auto it = device_uuid.begin(); it != device_uuid.end(); ++it) {
+        for (int j = 0; j < strlen; ++j) {
+            sendbuf[i * strlen + j] = it->first[j];
+        }
+        ++i;
+    }
+
+    MPI_Allgather(sendbuf, len, MPI_CHAR, recvbuf, len, MPI_CHAR, MPI_COMM_WORLD);
+
+    // Count up the number of ranks that share each GPU, and record their rank number.
+
+    std::map<std::string, std::vector<int>> uuid_to_rank;
+
+    for (auto it = device_uuid.begin(); it != device_uuid.end(); ++it) {
+        it->second = 0;
+        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+            for (int j = 0; j < device_count; ++j) {
+                std::string temp_s(&recvbuf[i][j * strlen], strlen);
+                if (it->first == temp_s) {
+                    it->second += 1;
+                    uuid_to_rank[it->first].push_back(i);
+                }
+            }
+        }
+    }
+
+    // For each rank that shares a GPU, use round-robin assignment
+    // to assign MPI ranks to GPUs. Arbitrarily, we will say that
+    // ranks are assigned to GPUs in numerical MPI rank order.
+
+    device_id = -1;
+    for (auto it = uuid_to_rank.begin(); it != uuid_to_rank.end(); ++it) {
+        for (int i = 0; i < it->second.size(); ++i) {
+            if (it->second[i] == ParallelDescriptor::MyProc() % device_count) {
+                device_id = i;
+            }
+        }
+    }
+    if (device_id == -1 || device_id >= device_count)
+        amrex::Abort("Could not associated MPI rank with GPU");
+
+#endif
+
+    initialize_cuda(&device_id);
+
 #endif
 
 }
