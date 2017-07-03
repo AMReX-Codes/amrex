@@ -38,8 +38,13 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #endif
 
+#ifdef CUDA
+IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
+IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
+#else
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
+#endif
 
 int FabArrayBase::nFabArrays(0);
 
