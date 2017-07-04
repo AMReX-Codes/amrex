@@ -20,6 +20,8 @@ module cuda_module
 
   logical, private :: have_prop = .false.
 
+  integer :: is_program_running = 1
+
   ! The current stream index
 
   integer :: stream_index
@@ -41,10 +43,6 @@ module cuda_module
      end subroutine cudaProfilerStart
      subroutine cudaProfilerStop() bind(c, name='cudaProfilerStop')
      end subroutine cudaProfilerStop
-
-     subroutine is_program_running(r) bind(c, name='is_program_running')
-       integer, intent(inout) :: r
-     end subroutine is_program_running
   end interface
 
 contains
@@ -52,6 +50,7 @@ contains
   subroutine initialize_cuda(id, rank) bind(c, name='initialize_cuda')
 
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice
+    use bl_error_module, only: bl_error
 
     implicit none
 
@@ -84,7 +83,7 @@ contains
     have_prop = .true.
 
     if (prop%major < 3) then
-       call bl_abort("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
+       call bl_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
     end if
 
     ilen = verify(prop%name, ' ', .true.)
@@ -114,6 +113,18 @@ contains
     call gpu_error_test(cudaResult, abort=0)
 
   end subroutine finalize_cuda
+
+
+
+  subroutine set_is_program_running(r) bind(c, name='set_is_program_running')
+
+    implicit none
+
+    integer, intent(in), value :: r
+
+    is_program_running = r
+
+  end subroutine set_is_program_running
 
 
 
@@ -185,17 +196,17 @@ contains
 
 
 
-#ifdef BL_SPACEDIM
+#ifdef AMREX_SPACEDIM
   subroutine threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     use cudafor, only: dim3
 
     implicit none
 
-    integer, intent(in)       :: lo(BL_SPACEDIM), hi(BL_SPACEDIM)
+    integer, intent(in)       :: lo(AMREX_SPACEDIM), hi(AMREX_SPACEDIM)
     type(dim3), intent(inout) :: numBlocks, numThreads
 
-    integer :: tile_size(BL_SPACEDIM), i
+    integer :: tile_size(AMREX_SPACEDIM), i
     integer, parameter :: max_threads = 256, tile_chunk_size = 32
 
     ! Our threading strategy will be to allocate thread blocks
@@ -207,13 +218,13 @@ contains
     ! Round the tiles up to the nearest multiple of the chunk size.
     ! Only do this for dimensions in which the tile size > 1.
 
-    do i = 1, BL_SPACEDIM
+    do i = 1, AMREX_SPACEDIM
        if (tile_size(i) > 1) then
           tile_size(i) = ((tile_size(i) + tile_chunk_size - 1) / tile_chunk_size) * tile_chunk_size;
        end if
     end do
 
-    if (BL_SPACEDIM .eq. 1) then
+    if (AMREX_SPACEDIM .eq. 1) then
 
        numThreads % x = min(tile_size(1), max_threads)
        numThreads % y = 1
@@ -223,7 +234,7 @@ contains
        numBlocks % y = 1
        numBlocks % z = 1
 
-    else if (BL_SPACEDIM .eq. 2) then
+    else if (AMREX_SPACEDIM .eq. 2) then
 
        numThreads % x = min(tile_size(1), max_threads)
        numThreads % y = min(tile_size(2), max_threads / numThreads % x)
@@ -331,6 +342,7 @@ contains
 
     use cudafor, only: cudaMallocManaged, cudaMemAttachGlobal, c_devptr
     use iso_c_binding, only: c_size_t
+    use bl_error_module, only: bl_error
 
     implicit none
 
@@ -346,7 +358,7 @@ contains
 
     else
 
-       call bl_abort("The GPU does not support managed memory allocations")
+       call bl_error("The GPU does not support managed memory allocations")
 
     end if
 
@@ -362,11 +374,9 @@ contains
 
     type(c_devptr), value :: x
 
-    integer :: cudaResult, r
+    integer :: cudaResult
 
-    call is_program_running(r)
-
-    if (r == 1) then
+    if (is_program_running == 1) then
        cudaResult = cudaFree(x)
        call gpu_error_test(cudaResult)
     end if
@@ -384,11 +394,9 @@ contains
 
     type(c_ptr), value :: x
 
-    integer :: cudaResult, r
+    integer :: cudaResult
 
-    call is_program_running(r)
-
-    if (r == 1) then
+    if (is_program_running == 1) then
        cudaResult = cudaFreeHost(x)
        call gpu_error_test(cudaResult)
     end if
@@ -607,6 +615,8 @@ contains
 
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
 
+    use bl_error_module, only: bl_error, bl_warn
+
     implicit none
 
     integer, intent(in) :: cudaResult
@@ -627,9 +637,9 @@ contains
     error_string = "CUDA Error " // trim(adjustl(cudaResultStr)) // ": " // cudaGetErrorString(cudaResult)
 
     if (abort == 1) then
-       call bl_abort(error_string)
+       call bl_error(error_string)
     else
-       call bl_warning(error_string)
+       call bl_warn(error_string)
     end if
 
   end subroutine gpu_error
