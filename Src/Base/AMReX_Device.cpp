@@ -277,7 +277,7 @@ amrex::Device::stop_profiler() {
 
 }
 
-#ifdef CUDA
+#if (defined(CUDA) && defined(__CUDACC__))
 void
 amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) {
 
