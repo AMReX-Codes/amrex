@@ -423,10 +423,47 @@ StateData::replaceNewData (MultiFab* mf)
 }
 
 void
+StateData::PrepareForFillBoundary(FArrayBox& dest,
+                                  const Real* dx,
+                                  const RealBox& prob_domain,
+                                  Real* xlo,
+                                  int* bc,
+                                  int dest_comp,
+                                  int src_comp,
+                                  int num_comp)
+{
+    const int* dlo = dest.loVect();
+    const int* dhi = dest.hiVect();
+    const int* plo = domain.loVect();
+
+    const Real* problo = prob_domain.lo();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
+    }
+
+    const Box& bx = dest.box();
+    BCRec bcr;
+
+    for (int i = 0; i < num_comp; ++i) {
+        const int sc = src_comp+i;
+        amrex::setBC(bx,domain,desc->getBC(sc),bcr);
+        int bcidx = 2 * AMREX_SPACEDIM * i;
+        for (int j = 0; j < 2 * AMREX_SPACEDIM; ++j) {
+            bc[bcidx + j] = bcr.vect()[j];
+        }
+    }
+
+}
+
+void
 StateData::FillBoundary (FArrayBox&     dest,
-                         Real           time,
+                         const Real*    time_f,
                          const Real*    dx,
 			 const Real*    dx_f,
+                         const Real*    xlo_f,
+                         const int*     bcrs_f,
                          const RealBox& prob_domain,
                          int            dest_comp,
                          int            src_comp,
@@ -437,40 +474,18 @@ StateData::FillBoundary (FArrayBox&     dest,
    
     if (domain.contains(dest.box())) return;
 
-    const Box& bx  = dest.box();
-    const int* dlo = dest.loVect();
-    const int* dhi = dest.hiVect();
-    const int* plo = domain.loVect();
-    const int* phi = domain.hiVect();
-
-    Array<int> bcrs;
-
-    Real xlo[BL_SPACEDIM];
-    BCRec bcr;
-    const Real* problo = prob_domain.lo();
-
-    Device::prepare_for_launch(dlo, dhi);
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
-        xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
-    }
     for (int i = 0; i < num_comp; )
     {
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
 
-        std::shared_ptr<Real> t_ptr = Device::create_host_pointer<Real>(&time);
-        Real* time_f = (Real*) Device::get_host_pointer(t_ptr.get());
-
-        std::shared_ptr<Real> dx_ptr = Device::create_host_pointer<Real>(xlo, 3);
-        Real* xlo_f = (Real*) Device::get_host_pointer(dx_ptr.get());
-
 	const int* dlo_f = dest.loVectF();
 	const int* dhi_f = dest.hiVectF();
 	const int* plo_f = domain.loVectF();
 	const int* phi_f = domain.hiVectF();
+
+        int bcidx = 2 * AMREX_SPACEDIM * i;
 
         if (desc->master(sc))
         {
@@ -478,59 +493,28 @@ StateData::FillBoundary (FArrayBox&     dest,
 
             BL_ASSERT(groupsize != 0);
 
+            Device::prepare_for_launch(dest.loVect(), dest.hiVect());
+
             if (groupsize+i <= num_comp)
             {
                 //
                 // Can do the whole group at once.
-                //
-                bcrs.resize(2*BL_SPACEDIM*groupsize);
-
-                int* bci  = bcrs.dataPtr();
-
-                for (int j = 0; j < groupsize; j++)
-                {
-                    amrex::setBC(bx,domain,desc->getBC(sc+j),bcr);
-
-                    const int* bc = bcr.vect();
-
-                    for (int k = 0; k < 2*BL_SPACEDIM; k++)
-                        bci[k] = bc[k];
-
-                    bci += 2*BL_SPACEDIM;
-                }
-
-                std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs.dataPtr(), bcrs.size());
-                int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
-                //
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,bcrs_f,groupsize);
-                Device::synchronize();
+		desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,&bcrs_f[bcidx],groupsize);
 
                 i += groupsize;
             }
             else
             {
-                amrex::setBC(bx,domain,desc->getBC(sc),bcr);
-
-                std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs.dataPtr(), bcrs.size());
-                int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
-
-                desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,bcrs_f);
-		Device::synchronize();
+                desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,&bcrs_f[bcidx]);
 
                 i++;
             }
         }
         else
         {
-            amrex::setBC(bx,domain,desc->getBC(sc),bcr);
-
-            std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs.dataPtr(), bcrs.size());
-            int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
-
-            desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,bcrs_f);
-	    Device::synchronize();
+            desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx_f,xlo_f,time_f,&bcrs_f[bcidx]);
 
             i++;
         }
@@ -841,8 +825,8 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
     {
 	FArrayBox tmp;
 
-	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
+ 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+ 	{
 	    FArrayBox& dest = mf[mfi];
 	    const Box& bx = dest.box();
 	    
@@ -859,8 +843,21 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 	    
 	    if (has_phys_bc)
 	    {
-		statedata->FillBoundary(dest, time, dx, dx_f, prob_domain, dest_comp, src_comp, num_comp);
-		
+
+                Real xlo[BL_SPACEDIM];
+                int bcrs[2 * AMREX_SPACEDIM * num_comp];
+
+                statedata->PrepareForFillBoundary(dest, dx, prob_domain, xlo,
+                                                  bcrs, dest_comp, src_comp, num_comp);
+
+                Real* time_f = mfi.get_fortran_pointer(&time);
+                Real* xlo_f  = mfi.get_fortran_pointer(xlo, 3, AMREX_SPACEDIM);
+                int* bcrs_f  = mfi.get_fortran_pointer(bcrs, 2 * AMREX_SPACEDIM * num_comp);
+
+		statedata->FillBoundary(dest, time_f, dx, dx_f, xlo_f, bcrs_f, prob_domain, dest_comp, src_comp, num_comp);
+
+//                Device::synchronize();
+
 		if (is_periodic) // fix up corner
 		{
 		    Box GrownDomain = domain;
@@ -895,7 +892,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			    tmp.copy(dest,dest_comp,0,num_comp);
 			    tmp.shift(dir,domain.length(dir));
 			    
-			    statedata->FillBoundary(tmp, time, dx, dx_f, prob_domain, dest_comp, src_comp, num_comp);
+			    statedata->FillBoundary(tmp, time_f, dx, dx_f, xlo_f, bcrs_f, prob_domain, dest_comp, src_comp, num_comp);
 			    
 			    tmp.shift(dir,-domain.length(dir));
 			    dest.copy(tmp,0,dest_comp,num_comp);
@@ -909,15 +906,15 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			    tmp.copy(dest,dest_comp,0,num_comp);
 			    tmp.shift(dir,-domain.length(dir));
 			    
-			    statedata->FillBoundary(tmp, time, dx, dx_f, prob_domain, dest_comp, src_comp, num_comp);
+			    statedata->FillBoundary(tmp, time_f, dx, dx_f, xlo_f, bcrs_f, prob_domain, dest_comp, src_comp, num_comp);
 			    
 			    tmp.shift(dir,domain.length(dir));
 			    dest.copy(tmp,0,dest_comp,num_comp);
 			}
 		    }
 		}
-	    }
-	}
+ 	    }
+ 	}
     }
 }
 

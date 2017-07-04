@@ -506,8 +506,26 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
                                  int        src_comp,
                                  int        num_comp)
 {
-    state[state_indx].FillBoundary(dest,time,geom.CellSize(),geom.CellSizeF(),
+    Real xlo[AMREX_SPACEDIM];
+
+    int bcrs[2 * AMREX_SPACEDIM * num_comp];
+
+    state[state_indx].PrepareForFillBoundary(dest,geom.CellSize(),geom.ProbDomain(),xlo,
+                                             bcrs,dest_comp,src_comp,num_comp);
+
+    std::shared_ptr<Real> t_ptr = Device::create_host_pointer<Real>(&time);
+    Real* time_f = (Real*) Device::get_host_pointer(t_ptr.get());
+
+    std::shared_ptr<Real> xlo_ptr = Device::create_host_pointer<Real>(xlo, 3, AMREX_SPACEDIM);
+    Real* xlo_f = (Real*) Device::get_host_pointer(xlo_ptr.get());
+
+    std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs, 2 * AMREX_SPACEDIM * num_comp);
+    int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
+
+    state[state_indx].FillBoundary(dest,time_f,geom.CellSize(),geom.CellSizeF(),xlo_f,bcrs_f,
                                    geom.ProbDomain(),dest_comp,src_comp,num_comp);
+
+    Device::synchronize();
 }
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
