@@ -1306,10 +1306,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    if (this != &src) {
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
-                    Device::synchronize();
 		    get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
 		} else {
-                    Device::synchronize();
 		    get(fai).plus(src[fai],bx,bx,scomp,dcomp,ncomp);
 		}
 	    }
@@ -1342,6 +1340,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
         }
+
+        Device::synchronize();
 
         return;
     }
@@ -1688,6 +1688,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 	}
+
+        Device::synchronize();
 
 	//
 	//  wait and unpack

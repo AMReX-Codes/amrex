@@ -856,8 +856,6 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 
 		statedata->FillBoundary(dest, time_f, dx, dx_f, xlo_f, bcrs_f, prob_domain, dest_comp, src_comp, num_comp);
 
-//                Device::synchronize();
-
 		if (is_periodic) // fix up corner
 		{
 		    Box GrownDomain = domain;
