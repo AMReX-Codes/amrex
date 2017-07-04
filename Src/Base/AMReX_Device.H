@@ -35,7 +35,7 @@ extern "C" {
     void mem_advise_set_preferred(void* p, const std::size_t sz, const int* device);
     void mem_advise_set_readonly(void* p, const std::size_t sz);
     void check_for_gpu_errors();
-    void is_program_running(int* r);
+    void set_is_program_running(int r);
 #endif
 }
 
