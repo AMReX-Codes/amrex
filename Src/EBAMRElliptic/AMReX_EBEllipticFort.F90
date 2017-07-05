@@ -116,7 +116,8 @@ contains
     integer      :: bco2_lo(0:2),bco2_hi(0:2)
 
     integer      :: gridlo(0:2), gridhi(0:2)
-    real(c_real) :: alpha, beta, dx
+    real(c_real) :: xterm, yterm, zterm
+    real(c_real) :: alpha, beta, dx, laplphi
     real(c_real) :: phi(phi_lo(0):phi_hi(0),phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2), 0:phi_nco-1)
     real(c_real) :: lph(lph_lo(0):lph_hi(0),lph_lo(1):lph_hi(1),lph_lo(2):lph_hi(2), 0:lph_nco-1)
 
@@ -149,6 +150,111 @@ contains
 
     return 
   end subroutine ebefnd_applyop_ebcond_nobcs
+
+
+  subroutine ebefnd_gscolor_ebcond( &
+       phi,   phi_lo,  phi_hi,   phi_nco, &
+       rhs,   rhs_lo,  rhs_hi,   rhs_nco, &
+       lam,   lam_lo,  lam_hi,   lam_nco, &
+       acoe, acoe_lo, acoe_hi,  acoe_nco, &
+       bco0, bco0_lo, bco0_hi,  bco0_nco, &
+       bco1, bco1_lo, bco1_hi,  bco1_nco, &
+       bco2, bco2_lo, bco2_hi,  bco2_nco, &
+       gridlo, gridhi, &
+       dx, alpha, beta)
+       bind(C, name="ebefnd_gscolor_ebcond")
+
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
+
+    implicit none
+
+    integer      :: i, j, k, rhs_nco, phi_nco, lam_nco, oper
+    integer      :: phi_lo(0:2),phi_hi(0:2)
+    integer      :: rhs_lo(0:2),rhs_hi(0:2)
+    integer      :: lam_lo(0:2),lam_hi(0:2)
+
+    integer      :: acoe_lo(0:2),acoe_hi(0:2)
+    integer      :: bco0_lo(0:2),bco0_hi(0:2)
+    integer      :: bco1_lo(0:2),bco1_hi(0:2)
+    integer      :: bco2_lo(0:2),bco2_hi(0:2)
+
+    integer      :: gridlo(0:2), gridhi(0:2)
+    real(c_real) :: alpha, beta, dx, laplphi
+    real(c_real) :: xterm, yterm, zterm
+    real(c_real) :: phi(phi_lo(0):phi_hi(0),phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2), 0:phi_nco-1)
+    real(c_real) :: rhs(rhs_lo(0):rhs_hi(0),rhs_lo(1):rhs_hi(1),rhs_lo(2):rhs_hi(2), 0:rhs_nco-1)
+    real(c_real) :: lam(lam_lo(0):lam_hi(0),lam_lo(1):lam_hi(1),lam_lo(2):lam_hi(2), 0:lam_nco-1)
+
+    real(c_real) :: (acoe_lo(0):acoe_hi(0),acoe_lo(1):acoe_hi(1),acoe_lo(2):acoe_hi(2), 0:acoe_nco-1)
+    real(c_real) :: (bco0_lo(0):bco0_hi(0),bco0_lo(1):bco0_hi(1),bco0_lo(2):bco0_hi(2), 0:bco0_nco-1)
+    real(c_real) :: (bco1_lo(0):bco1_hi(0),bco1_lo(1):bco1_hi(1),bco1_lo(2):bco1_hi(2), 0:bco1_nco-1)
+    real(c_real) :: (bco2_lo(0):bco2_hi(0),bco2_lo(1):bco2_hi(1),bco2_lo(2):bco2_hi(2), 0:bco2_nco-1)
+
+
+    do k = gridlo(2), gridhi(2), 2
+       do j = gridlo(1), gridhi(1), 2
+          do i = gridlo(0), gridhi(0), 2
+
+             zterm = zero
+             xterm = (b0(i+1,j  ,k  ,0)*(phi(i+1,j  ,k  ,0) - phi(i  ,j  ,k  ,0))  &
+                     -b0(i  ,j  ,k  ,0)*(phi(i  ,j  ,k  ,0) - phi(i-1,j  ,k  ,0)))/dx/dx
+             yterm = (b1(i  ,j+1,k  ,0)*(phi(i  ,j+1,k  ,0) - phi(i  ,j  ,k  ,0)) &
+                     -b1(i  ,j  ,k  ,0)*(phi(i  ,j  ,k  ,0) - phi(i  ,j-1,k  ,0)))/dx/dx
+#if BL_SPACEDIM==3
+             zterm = (b2(i  ,j  ,k+1,0)*(phi(i  ,j  ,k+1,0) - phi(i  ,j  ,k  ,0)) &
+                     -b2(i  ,j  ,k  ,0)*(phi(i  ,j  ,k  ,0) - phi(i  ,j  ,k-1,0)))/dx/dx
+#endif
+             laplphi = xterm + yterm + zterm
+
+             oper  = alpha*aco(i,j,k,0)*phi(i,j,k,0) + beta*laplphi
+
+             phi(i,j,k,0) = phi(i,j,k,0) + lam(i,j,k,0)*(rhs(i,j,k,0) - oper)
+
+          enddo
+       enddo
+    enddo
+
+    return 
+  end subroutine ebefnd_gscolor_ebcond
+
+
+  subroutine ebefnd_getflux_ebco( &
+       flux, flux_lo, flux_hi,  flux_nco, &
+       bcoef, bcoef_lo, bcoef_hi,  bcoef_nco, &
+       gridlo, gridhi, &
+       dx, idir)
+       bind(C, name="ebefnd_getflux_ebco")
+
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
+
+    implicit none
+
+    integer      :: i, j, k, flux_nco, bcoef_nco, idir
+    integer      :: flux_lo(0:2),flux_hi(0:2)
+    integer      :: bcoef_lo(0:2),bcoef_hi(0:2)
+    integer      :: gridlo(0:2), gridhi(0:2), ii, jj, kk
+    real(c_real) :: beta, dx
+    real(c_real) :: bcoef(bcoef_lo(0):bcoef_hi(0),bcoef_lo(1):bcoef_hi(1),bcoef_lo(2):bcoef_hi(2), 0:bcoef_nco-1)
+    real(c_real) :: flux(flux_lo(0):flux_hi(0),flux_lo(1):flux_hi(1),flux_lo(2):flux_hi(2), 0:flux_nco-1)
+
+    ii = identitymat(idir, 0)
+    jj = identitymat(idir, 1)
+    kk = identitymat(idir, 2)
+
+    do k = gridlo(2), gridhi(2)
+       do j = gridlo(1), gridhi(1)
+          do i = gridlo(0), gridhi(0)
+
+             flux(i,j,k,0) = (bcoef(i,j,k,/dx)*( &
+                  phi(i   ,j   ,k   ,0) + &
+                  phi(i-ii,j-jj,k-kk,0))
+
+          enddo
+       enddo
+    enddo
+
+    return 
+  end subroutine ebefnd_getflux_ebco
 
 end module ebefnd_module
 

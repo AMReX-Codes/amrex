@@ -143,22 +143,6 @@ namespace amrex
     void fillPhiGhost(const EBCellFAB& a_phi, const DataIndex& a_datInd, bool a_homog) const;
     void fillPhiGhost(const FabArray<EBCellFAB>& a_phi, bool a_homog) const;
     
-    void getFlux(EBFluxFAB&                    a_flux,
-                 const FabArray<EBCellFAB>&   a_data,
-                 const Box&                    a_grid,
-                 const DataIndex&              a_dit,
-                 Real                          a_scale);
-    
-    void getFlux(EBFaceFAB&                    a_fluxCentroid,
-                 const EBCellFAB&              a_phi,
-                 const Box&                    a_ghostedBox,
-                 const Box&                    a_fabBox,
-                 const Box&          a_domain,
-                 const EBISBox&                a_ebisBox,
-                 const Real&                   a_dx,
-                 const DataIndex&              a_datInd,
-                 const int&                    a_idir);
-    
     
     ///
     /**
@@ -457,7 +441,6 @@ namespace amrex
     void getFluxRegOnly(EBFaceFAB&                    a_fluxCentroid,
                         const EBCellFAB&              a_phi,
                         const Box&                    a_ghostedBox,
-                        const Real&                   a_dx,
                         const DataIndex&              a_datInd,
                         const int&                    a_idir);
     
@@ -534,15 +517,6 @@ namespace amrex
                          const FabArray<EBCellFAB>& a_phiFine,
                          const FabArray<EBCellFAB>& a_phi,
                          AMRLevelOp<FabArray<EBCellFAB> >* a_finerOp);
-    
-    void getFlux(FArrayBox&                    a_flux,
-                 const FArrayBox&              a_phi,
-                 const Box&                    a_faceBox,
-                 const int&                    a_idir,
-                 const Real&                   a_dx,
-                 const DataIndex&              a_datInd);
-    
-    
     
     void getOpVoFStencil(VoFStencil&     a_stencil,
                          const EBISBox&  a_ebisbox,
