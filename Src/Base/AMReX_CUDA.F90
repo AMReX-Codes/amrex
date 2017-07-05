@@ -9,7 +9,7 @@ module cuda_module
   integer, parameter :: max_cuda_streams = 100
   integer(kind=cuda_stream_kind) :: cuda_streams(0:max_cuda_streams) ! Note: zero will be the default stream.
 
-  integer, private :: cuda_device_id
+  integer :: cuda_device_id
 
   type(cudaDeviceProp), private :: prop
 
