@@ -6,6 +6,7 @@ from .Geometry import geometry
 from .Algo import algo
 from .Langmuirwave import langmuirwave
 from .Interpolation import interpolation
+from .Laser import laser
 from . import Particles
 from .Particles import particles, particles_list
 
@@ -24,6 +25,7 @@ class AMReX(object):
         argv += langmuirwave.attrlist()
         argv += interpolation.attrlist()
         argv += particles.attrlist()
+        argv += laser.attrlist()
 
         if not particles_list:
             # --- This is needed in case only species_names has been set,
