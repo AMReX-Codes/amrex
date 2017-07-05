@@ -163,7 +163,7 @@ namespace amrex
     virtual void define(const Box                    & a_coarseDomain,
                         AMRLevelOpFactory<T>         & a_factory,
                         shared_ptr<LinearSolver<T> > & a_bottomSolver,
-                        std::vector<int<             & a_refRat,
+                        std::vector<int>             & a_refRat,
                         int a_numLevels);
 
 
