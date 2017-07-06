@@ -1,6 +1,6 @@
 #include "AMReX_CONSTANTS.H"
 
-module ebfnd_average_module
+module ebfnd_ebamrtools_module
 
   !     since this is a .F90 file (instead of .f90) we run this through a C++ preprocessor
   !     for e.g., #if (BL_SPACEDIM == 1) statements.
@@ -10,6 +10,16 @@ module ebfnd_average_module
   public
 
 contains
+  integer function imatebamrt(i, j)
+    implicit none
+    integer i, j, retval
+    retval = 0
+    if (i.eq.j) then
+       retval = 1
+    endif
+
+    imatebamrt = retval
+  end function imatebamrt
 
   subroutine ebfnd_average( &
        coar, coar_lo, coar_hi,  coar_nco, &
@@ -73,20 +83,85 @@ contains
 
   end subroutine ebfnd_average
 
-end module ebfnd_average_module
+
+  subroutine ebfnd_average_face( &
+       coar, coar_lo, coar_hi,  coar_nco, &
+       fine, fine_lo, fine_hi,  fine_nco, &
+       coarboxlo,coarboxhi, &
+       facedir, refrat, isrc, idst, ncomp) &
+       bind(C, name="ebfnd_average_face")
+
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
+
+    implicit none
+
+    integer      :: iif,jjf,kkf, coar_nco, fine_nco, idoloop, jdoloop, kdoloop
+    integer      :: iic,jjc,kkc, refrat, ncomp, isrc, idst
+    integer      :: ib, jb, kb, ivar, ivarc, ivarf, facedir
+    integer      :: coar_lo(0:2),coar_hi(0:2)
+    integer      :: fine_lo(0:2),fine_hi(0:2), ii, jj, kk
+    integer      :: coarboxlo(0:2), coarboxhi(0:2)
+    real(c_real) :: fineval, coarval, numfinepercoar
+    real(c_real) :: fine(fine_lo(0):fine_hi(0),fine_lo(1):fine_hi(1),fine_lo(2):fine_hi(2), 0:fine_nco-1)
+    real(c_real) :: coar(coar_lo(0):coar_hi(0),coar_lo(1):coar_hi(1),coar_lo(2):coar_hi(2), 0:coar_nco-1)
+
+    idoloop = imatebamrt(facedir, 0)
+    jdoloop = imatebamrt(facedir, 1)
+    kdoloop = imatebamrt(facedir, 2)
+    kk = 0
+    !number of fine faces per coarse face
+    numfinepercoar = refrat
+#if BL_SPACEDIM==3
+    numfinepercoar == refrat*refrat
+#endif
+
+    do ivar = 0, ncomp-1
+       ivarf = isrc + ivar
+       ivarc = idst + ivar
+       do kkc = coarboxlo(2), coarboxhi(2)
+          do jjc = coarboxlo(1), coarboxhi(1)
+             do iic = coarboxlo(0), coarboxhi(0)
+
+                coar(iic,jjc,kkc, ivarc) = zero
+                kkf = 0
+#if BL_SPACEDIM==3
+                do kk = 0, (refrat-1)*kdoloop
+
+                   kkf = kkc*refrat + kk
+#endif
+                   do jj = 0, (refrat-1)*jdoloop
+
+                      jjf = jjc*refrat + jj
+
+                      do ii = 0, (refrat-1)*idoloop
+
+                         iif = iic*refrat + ii
 
 
+                         iif = refrat*iic + ib
+                         jjf = refrat*jjc + jb
+                         kkf = refrat*kkc + kb
+                         fineval = fine(iif, jjf, kkf, ivarf)
+                         coarval = coar(iic, jjc, kkc, ivarc)
+                         coar(iic,jjc,kkc, ivarc) = coarval + fineval
 
-module ebfnd_pwcinterp_module
 
-  !     since this is a .F90 file (instead of .f90) we run this through a C++ preprocessor
-  !     for e.g., #if (BL_SPACEDIM == 1) statements.
+                      enddo
+                   enddo
+#if BL_SPACEDIM==3
+                enddo
+#endif
 
-  implicit none
+                coar(iic,jjc,kkc, ivarc) = coar(iic, jjc, kkc,ivarc)/numfinepercoar
 
-  public
+             enddo
+          enddo
+       enddo
+    enddo
 
-contains
+
+  end subroutine ebfnd_average_face
+
 
   subroutine ebfnd_pwcinterp( &
        fine, fine_lo, fine_hi, fine_nco,  &
@@ -130,20 +205,6 @@ contains
 
   end subroutine ebfnd_pwcinterp
 
-end module ebfnd_pwcinterp_module
-
-
-
-module ebfnd_pwlinterp_nobound_module
-
-  !     since this is a .F90 file (instead of .f90) we run this through a C++ preprocessor
-  !     for e.g., #if (BL_SPACEDIM == 1) statements.
-
-  implicit none
-
-  public
-
-contains
 
   ! this is piecewise linear interp all in one pass - away from boundaries
   subroutine ebfnd_pwlinterp_nobound( &
@@ -221,20 +282,6 @@ contains
 
   end subroutine ebfnd_pwlinterp_nobound
 
-end module ebfnd_pwlinterp_nobound_module
-
-
-
-module ebfnd_pwlincr_at_bound_module
-
-  !     since this is a .F90 file (instead of .f90) we run this through a C++ preprocessor
-  !     for e.g., #if (BL_SPACEDIM == 1) statements.
-
-  implicit none
-
-  public
-
-contains
 
   ! this is piecewise linear incrementing by the slope*dist in one direction
   subroutine ebfnd_pwl_incr_at_bound( &
@@ -423,19 +470,6 @@ contains
 
   end subroutine ebfnd_pwl_incr_at_bound
 
-end module ebfnd_pwlincr_at_bound_module
-
-
-module ebfnd_pwqinterp_nobound_module
-
-  !     since this is a .F90 file (instead of .f90) we run this through a C++ preprocessor
-  !     for e.g., #if (BL_SPACEDIM == 1) statements.
-
-  implicit none
-
-  public
-
-contains
 
   ! this is piecewise linear interp all in one pass - away from boundaries
   subroutine ebfnd_pwqinterp_nobound( &
@@ -531,11 +565,7 @@ contains
                 zdist = zfine - zcoar
                 dzz = (coar(iic  ,jjc  ,kkc+1, ivarc) + coar(iic  ,jjc  ,kkc-1, ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
 #endif
-!               begin debug
-                dxx = zero
-                dyy = zero
-                dxy = zero
-!               end debug                
+
                 coarval = coar(iic,jjc,kkc, ivarc) 
                 finevalnew = coarval &
                      + xdist * xslope  &
@@ -559,4 +589,4 @@ contains
 
   end subroutine ebfnd_pwqinterp_nobound
 
-end module ebfnd_pwqinterp_nobound_module
+end module ebfnd_ebamrtools_module

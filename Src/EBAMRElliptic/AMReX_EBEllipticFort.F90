@@ -19,7 +19,7 @@ contains
        retval = 1
     endif
 
-    return retval
+    identitymat = retval
   end function identitymat
 
     
