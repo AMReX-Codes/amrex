@@ -1531,18 +1531,10 @@ AmrLevel::derive (const std::string& name,
         mf = new MultiFab(dstBA, dmap, rec->numDerive(), ngrow);
 
 #ifdef CRSEGRNDOMP
-	MFIter mfi(*mf, true);
-#else
-	MFIter mfi(srcMF, true);
-#endif
-
-        RealBox rbx[mfi.length()];
-
-#ifdef CRSEGRNDOMP
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (; mfi.isValid(); ++mfi)
+        for (MFIter mfi(*mf, true); mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
             Real*       ddat    = (*mf)[mfi].dataPtr();
@@ -1560,8 +1552,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVectF();
             const Real* dx      = geom.CellSizeF();
             const int*  bcr     = rec->getBC();
-	    rbx[mfi.tileIndex()] = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
-            const Real* xlo     = rbx[mfi.tileIndex()].lo();
+	    const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
+            const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
@@ -1594,7 +1586,7 @@ AmrLevel::derive (const std::string& name,
 
         }
 #else
-        for (; mfi.isValid(); ++mfi)
+        for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         grid_no = mfi.index();
             Real*       ddat    = (*mf)[mfi].dataPtr();
@@ -1609,8 +1601,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVectF();
             const Real* dx      = geom.CellSizeF();
             const int*  bcr     = rec->getBC();
-	    rbx[mfi.tileIndex()] = RealBox((*mf)[mfi].box(),geom.CellSize(),geom.ProbLo());
-            const Real* xlo     = rbx[mfi.tileIndex()].lo();
+	    const RealBox& rbx  = mfi.registerRealBox(RealBox((*mf)[mfi].box(),geom.CellSize(),geom.ProbLo()));
+            const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
@@ -1697,18 +1689,10 @@ AmrLevel::derive (const std::string& name,
         }
 
 #ifdef CRSEGRNDOMP
-	MFIter mfi(mf, true);
-#else
-	MFIter mfi(srcMF);
-#endif
-
-	RealBox rbx[mfi.length()];
-
-#ifdef CRSEGRNDOMP
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (; mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
         {
             int         idx     = mfi.index();
             Real*       ddat    = mf[mfi].dataPtr(dcomp);
@@ -1726,8 +1710,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVectF();
             const Real* dx      = geom.CellSizeF();
             const int*  bcr     = rec->getBC();
-            rbx[mfi.tileIndex()] = RealBox(gtbx,geom.CellSize(),geom.ProbLo());
-            const Real* xlo     = rbx[mfi.tileIndex()].lo();
+            const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
+            const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
@@ -1760,7 +1744,7 @@ AmrLevel::derive (const std::string& name,
 
         }
 #else
-        for (; mfi.isValid(); ++mfi)
+        for (MFIter mfi(srcMF); mfi.isValid(); ++mfi)
         {
             int         idx     = mfi.index();
             Real*       ddat    = mf[mfi].dataPtr(dcomp);
@@ -1775,8 +1759,8 @@ AmrLevel::derive (const std::string& name,
             const int*  dom_hi  = state[index].getDomain().hiVectF();
             const Real* dx      = geom.CellSizeF();
             const int*  bcr     = rec->getBC();
-            rbx[mfi.tileIndex()] = RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo());
-            const Real* xlo     = rbx[mfi.tileIndex()].lo();
+            const RealBox& rbx  = mfi.registerRealBox(RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo()));
+            const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
