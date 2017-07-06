@@ -6,6 +6,7 @@
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_FArrayBox.H>
+#include <AMReX_RealBox.H>
 
 namespace amrex {
 
@@ -104,6 +105,8 @@ public:
     //! Maintain a record of all boxes we have created.
     const Box& registerBox (const Box& box) const;
 
+    const RealBox& registerRealBox (const RealBox& rbox) const;
+
     //! Maintain a record of all FABs that have been sent to the device.
     template<class FAB>
     bool registerFab(const FAB& fab, int idx = -1) const { return false; }
@@ -159,6 +162,7 @@ protected:
     mutable Array<FArrayBox*> registered_fabs;
     mutable Array<int> registered_fabs_indices;
     mutable Array<Box> registered_boxes;
+    mutable Array<RealBox> registered_realboxes;
 
     mutable Array<std::shared_ptr<int>> saved_ints;
     mutable Array<std::shared_ptr<Real>> saved_reals;
@@ -173,6 +177,14 @@ MFIter::registerBox(const Box& box) const
 {
     registered_boxes.push_back(box);
     return box;
+}
+
+inline
+const RealBox&
+MFIter::registerRealBox(const RealBox& rbox) const
+{
+    registered_realboxes.push_back(rbox);
+    return rbox;
 }
 
 // Store a FAB in our list. Return true if we registered it;
