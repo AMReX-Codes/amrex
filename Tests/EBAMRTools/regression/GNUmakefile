@@ -31,6 +31,7 @@ _progs  += simpleMeshRefine
 _progs  += fluxRegTest
 _progs  += regFluxRegTest
 _progs  += ebCoarseAveTest
+_progs  += ebCoarseAveTestFace
 _progs  += nwoEBQuadCFITest
 _progs  += ebFineInterpTest
 
