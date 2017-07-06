@@ -6,6 +6,42 @@
 
 namespace amrex {
 
+#ifdef CUDA
+int MFIter_init::m_cnt = 0;
+
+namespace
+{
+    Arena* the_mfiter_arena = 0;
+}
+
+MFIter_init::MFIter_init ()
+{
+    if (m_cnt++ == 0)
+    {
+        BL_ASSERT(the_mfiter_arena == 0);
+
+        the_mfiter_arena = new CArena;
+
+	the_mfiter_arena->SetDeviceMemory();
+    }
+}
+
+MFIter_init::~MFIter_init ()
+{
+    if (--m_cnt == 0)
+        delete the_mfiter_arena;
+}
+
+Arena*
+The_MFIter_Arena ()
+{
+    BL_ASSERT(the_mfiter_arena != 0);
+
+    return the_mfiter_arena;
+}
+#endif
+
+
 MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
     :
@@ -107,14 +143,6 @@ MFIter::~MFIter ()
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 
-#ifdef CUDA
-    if (real_reduce_list.size() > 0 && real_reduce_list.size() == currentIndex) {
-        Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex - 1],
-                                         real_device_reduce_list[currentIndex - 1],
-                                         sizeof(Real), currentIndex);
-    }
-#endif
-
     releaseDeviceData();
 
     Device::synchronize();
@@ -123,7 +151,7 @@ MFIter::~MFIter ()
 
 #ifdef CUDA
     for (int i = 0; i < real_reduce_list.size(); ++i)
-        Device::device_free(real_device_reduce_list[i]);
+        amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
 #endif
 
     Device::check_for_errors();
@@ -363,7 +391,7 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
     real_reduce_list.push_back(reduce_val);
 
 #ifdef CUDA
-    Real* dval = (Real*) Device::device_malloc(sizeof(Real));
+    Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
     real_device_reduce_list.push_back(dval);
 
     Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],

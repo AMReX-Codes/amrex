@@ -248,6 +248,23 @@ private:
     FabArrayBase::TileArray lta;
 };
 
+#ifdef CUDA
+    // \cond CODEGEN
+    class MFIter_init
+    {
+    public:
+        MFIter_init ();
+        ~MFIter_init ();
+    private:
+        static int m_cnt;
+    };
+    // \endcond
+#endif
+
 }
+
+#ifdef CUDA
+static amrex::MFIter_init file_scope_MFIter_init_object;
+#endif
 
 #endif
