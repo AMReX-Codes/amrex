@@ -29,7 +29,9 @@ public:
         NoTeamBarrier = 0x04, 
         //! SkipInit: Used by MFGhostIter
 	SkipInit      = 0x08  
-    };  
+    };
+
+    enum MFReducer { SUM = 0, MAX, MIN };
 
     /** 
     * \brief The default constructor does not enable tiling (flags_ is set to 0 by default). 
@@ -91,7 +93,7 @@ public:
     int index () const { return (*index_map)[currentIndex]; }
 
     //! The number of indices.
-    int length () const { return (endIndex - beginIndex + 1); }
+    int length () const { return (endIndex - beginIndex); }
 
     //! The current local tile index in the current grid;
     int LocalTileIndex () const {return local_tile_index_map ? (*local_tile_index_map)[currentIndex] : 0;}
@@ -113,6 +115,7 @@ public:
 
     bool registerFab(const FArrayBox& fab, int idx = -1) const;
 
+    //! Maintain a record of scalar values that are used on the device.
     template<typename T>
     void register_ptr(std::shared_ptr<T> ptr) {}
 
@@ -120,11 +123,21 @@ public:
 
     void register_ptr(std::shared_ptr<Real> ptr) { saved_reals.push_back(ptr); }
 
+    //! If we're on the device, store a copy of the data in the MFIter.
     template<typename T>
     T* get_fortran_pointer(const T* ptr, const int n = 1, const int m = -1);
 
     //! Return all data from the device to the host.
     void releaseDeviceData();
+
+    //! Maintain a list of values to reduce.
+    template<typename T>
+    T* add_reduce_value(T* val, MFReducer r) {}
+
+    Real* add_reduce_value(Real* val, MFReducer r);
+
+    //! Reduce over the values in the list.
+    void reduce();
 
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
@@ -166,7 +179,17 @@ protected:
 
     mutable Array<std::shared_ptr<int>> saved_ints;
     mutable Array<std::shared_ptr<Real>> saved_reals;
-  
+
+    mutable Real* real_reduce_val;
+
+    mutable MFReducer reducer;
+
+    mutable Array<Real> real_reduce_list;
+
+#ifdef CUDA
+    mutable Array<Real*> real_device_reduce_list;
+#endif
+
     void Initialize ();
 };
 

@@ -106,8 +106,26 @@ MFIter::~MFIter ()
     if ( ! (flags & NoTeamBarrier) )
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
+
+#ifdef CUDA
+    if (real_reduce_list.size() > 0 && real_reduce_list.size() == currentIndex) {
+        Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex - 1],
+                                         real_device_reduce_list[currentIndex - 1],
+                                         sizeof(Real), currentIndex);
+    }
+#endif
+
     releaseDeviceData();
+
     Device::synchronize();
+
+    reduce();
+
+#ifdef CUDA
+    for (int i = 0; i < real_reduce_list.size(); ++i)
+        Device::device_free(real_device_reduce_list[i]);
+#endif
+
     Device::check_for_errors();
     Device::set_stream_index(-1);
 }
@@ -313,6 +331,14 @@ MFIter::grownnodaltilebox (int dir, int ng) const
 void
 MFIter::operator++ () {
 
+#ifdef CUDA
+    if (real_reduce_list.size() == currentIndex + 1) {
+        Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
+                                         real_device_reduce_list[currentIndex],
+                                         sizeof(Real), currentIndex);
+    }
+#endif
+
     ++currentIndex;
 
     Device::set_stream_index(currentIndex);
@@ -322,6 +348,66 @@ MFIter::operator++ () {
 #endif
 
     releaseDeviceData();
+
+}
+
+Real*
+MFIter::add_reduce_value(Real* val, MFReducer r)
+{
+
+    real_reduce_val = val;
+
+    reducer = r;
+
+    Real reduce_val = *val;
+    real_reduce_list.push_back(reduce_val);
+
+#ifdef CUDA
+    Real* dval = (Real*) Device::device_malloc(sizeof(Real));
+    real_device_reduce_list.push_back(dval);
+
+    Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
+                                     &real_reduce_list[currentIndex],
+                                     sizeof(Real), currentIndex);
+#else
+    Real* dval = &real_reduce_list[currentIndex];
+#endif
+
+    return dval;
+
+}
+
+// Reduce over the values in the list.
+void
+MFIter::reduce()
+{
+
+    // Do nothing if we don't have enough values to reduce on.
+
+    if (real_reduce_list.size() < length()) return;
+
+    Real result;
+
+    if (reducer == MFReducer::SUM) {
+        result = 0.0;
+        for (int i = 0; i < real_reduce_list.size(); ++i) {
+            result += real_reduce_list[i];
+        }
+    }
+    else if (reducer == MFReducer::MIN) {
+        result = 1.e200;
+        for (int i = 0; i < real_reduce_list.size(); ++i) {
+            result = std::min(result, real_reduce_list[i]);
+        }
+    }
+    else if (reducer == MFReducer::MAX) {
+        result = -1.e200;
+        for (int i = 0; i < real_reduce_list.size(); ++i) {
+            result = std::max(result, real_reduce_list[i]);
+        }
+    }
+
+    *real_reduce_val = result;
 
 }
 
