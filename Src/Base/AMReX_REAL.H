@@ -76,7 +76,7 @@ namespace amrex {
 #else
 #    define REAL_T REAL
 #endif
-#if __STDC__==1
+#if __STDC__==1 || defined(__INTEL_COMPILER)
 #        define BL_REAL(a) a##E0
 #        define BL_REAL_E(a,b) a##E##b
 #else
@@ -89,7 +89,7 @@ namespace amrex {
 #else
 #    define REAL_T DOUBLE PRECISION
 #endif
-#if __STDC__==1
+#if __STDC__==1 || defined(__INTEL_COMPILER)
 #        define BL_REAL(a) a##D0
 #        define BL_REAL_E(a,b) a##D##b
 #else
