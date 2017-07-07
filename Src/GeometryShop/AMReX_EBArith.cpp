@@ -14,6 +14,107 @@
 
 namespace amrex
 {
+  //-----
+  Box EBArith::
+  adjCellBox(const Box            & a_valid, 
+             const int            & a_idir, 
+             const Side::LoHiSide & a_side, 
+             const int            & a_len)
+  {
+    Box retval;
+    if(a_side == Side::Lo)
+    {
+      retval = adjCellLo(a_valid, a_idir, a_len);
+    }
+    else
+    {
+      retval = adjCellHi(a_valid, a_idir, a_len);
+    }
+    return retval;
+  }
+  //-----
+  void EBArith::
+  ExtrapolateBC(BaseFab<Real>&    a_state,
+                const Box&      a_valid,
+                Real            a_dx,
+                int             a_dir,
+                Side::LoHiSide  a_side)
+  {
+    BL_PROFILE("EBArith::ExtrapolateBC");
+
+    int isign = sign(a_side);
+
+    Box toRegion = adjCellBox(a_valid, a_dir, a_side, 1);
+    toRegion &= a_state.box();
+
+    for (BoxIterator bit(toRegion); bit.ok(); ++bit)
+    {
+      const IntVect& ivTo = bit();
+
+      IntVect ivClose = ivTo -   isign*BASISV(a_dir);
+      IntVect ivFar   = ivTo - 2*isign*BASISV(a_dir);
+
+      for (int icomp = 0; icomp < a_state.nComp(); icomp++)
+      {
+        Real nearVal = a_state(ivClose, icomp);
+        Real farVal  = a_state(ivFar,   icomp);
+
+        Real ghostVal = 2.*nearVal - farVal;
+        a_state(ivTo, icomp) = ghostVal;
+      }
+    }
+  }
+
+  //---------
+  Real
+  EBArith::
+  getDiagWeight(  VoFStencil&     a_vofStencil,
+                  const VolIndex& a_vof,
+                  int             a_ivar)
+  {
+    //has to be zero because adding to this later
+    Real retval = 0;
+    bool found = false;
+    for (int ivof = 0; ivof  < a_vofStencil.size(); ivof++)
+    {
+      if ((a_vofStencil.vof(ivof) == a_vof) && (a_vofStencil.variable(ivof) == a_ivar))
+      {
+        found = true;
+        //additive in case there are more than one entry with vof == a_vof
+        retval += a_vofStencil.weight(ivof);
+      }
+    }
+    if (!found)
+    {
+      //      MayDay::Warning("no diagonal weight, probably an empty cell");
+      retval = 1;
+    }
+    return retval;
+  }
+  //---------
+  void
+  EBArith::
+  getMultiColors(vector<IntVect>& a_colors)
+  {
+
+#if BL_SPACEDIM==2
+    a_colors.resize(4);
+    a_colors[0] = IntVect::Zero;//(0,0)
+    a_colors[1] = IntVect::Unit;//(1,1)
+    a_colors[2] = IntVect::Zero + BASISV(1);//(0,1)
+    a_colors[3] = IntVect::Zero + BASISV(0);//(1,0)
+#elif BL_SPACEDIM==3
+    a_colors.resize(8);
+    a_colors[0] = IntVect::Zero;//(0,0,0)
+    a_colors[1] = IntVect::Zero + BASISV(0) + BASISV(1);//(1,1,0)
+    a_colors[2] = IntVect::Zero + BASISV(1) + BASISV(2);//(0,1,1)
+    a_colors[3] = IntVect::Zero + BASISV(0) + BASISV(2);//(1,0,1)
+    a_colors[4] = IntVect::Zero + BASISV(1);//(0,1,0)
+    a_colors[5] = IntVect::Zero + BASISV(0);//(1,0,0)
+    a_colors[6] = IntVect::Zero + BASISV(2);//(0,0,1)
+    a_colors[7] = IntVect::Unit;//(1,1,1)
+#endif
+  }
   void
   EBArith::
   computeCoveredFaces(vector<VolIndex>&     a_coveredFace,

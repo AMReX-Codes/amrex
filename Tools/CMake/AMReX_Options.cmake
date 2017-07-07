@@ -92,7 +92,7 @@ check_option_value ( "ENABLE_BACKTRACE" ${ENABLE_BACKTRACE} 0 1 )
 
 set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
-set (AMREX_CXXLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
+set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
 
 
 #
