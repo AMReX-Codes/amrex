@@ -67,4 +67,100 @@ contains
 
   end subroutine get_loop_bounds
 
+
+
+#ifdef CUDA
+  attributes(device) &
+#endif
+  subroutine amrex_add(x, y)
+
+    implicit none
+
+    ! Add y to x. Do it safely if we're on the GPU.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+#ifdef CUDA
+    t = atomicAdd(x, y)
+#else
+    x = x + y
+#endif
+
+  end subroutine amrex_add
+
+
+
+#ifdef CUDA
+  attributes(device) &
+#endif
+  subroutine amrex_subtract(x, y)
+
+    implicit none
+
+    ! Subtract y from x. Do it safely if we're on the GPU.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+#ifdef CUDA
+    t = atomicSub(x, y)
+#else
+    x = x - y
+#endif
+
+  end subroutine amrex_subtract
+
+
+
+#ifdef CUDA
+  attributes(device) &
+#endif
+  subroutine amrex_max(x, y)
+
+    implicit none
+
+    ! Set in x the maximum of x and y. Do it safely if we're on the GPU.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+#ifdef CUDA
+    t = atomicMax(x, y)
+#else
+    x = max(x, y)
+#endif
+
+  end subroutine amrex_max
+
+
+
+#ifdef CUDA
+  attributes(device) &
+#endif
+  subroutine amrex_min(x, y)
+
+    implicit none
+
+    ! Set in x the minimum of x and y. Do it safely if we're on the GPU.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+#ifdef CUDA
+    t = atomicMin(x, y)
+#else
+    x = min(x, y)
+#endif
+
+  end subroutine amrex_min
+
 end module amrex_fort_module
