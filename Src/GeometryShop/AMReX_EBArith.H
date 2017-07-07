@@ -169,6 +169,20 @@ namespace amrex
                           IntVectSet*    a_cfivsPtr,
                           int ivar);
 
+    static Box 
+    adjCellBox(const Box            & a_valid, 
+               const int            & a_dir, 
+               const Side::LoHiSide & a_side, 
+               const int            & a_len);
+
+    ///first order extrap to ghost cells
+    static void 
+    ExtrapolateBC(BaseFab<Real>&  a_state,
+                  const Box&      a_valid,
+                  Real            a_dx,
+                  int             a_dir,
+                  Side::LoHiSide  a_side);
+
     static int
     getMixedDerivStencil(VoFStencil&      a_sten,
                          const VolIndex&  a_vof,
@@ -179,6 +193,13 @@ namespace amrex
                          const Real&      a_dx2,
                          IntVectSet*    a_cfivsPtr,
                          int ivar);
+
+    static Real  getDiagWeight(  VoFStencil&     a_vofStencil,
+                                 const VolIndex& a_vof,
+                                 int             a_ivar=0);
+
+    ///for relaxation schemes.  good to have it in one place
+    static void getMultiColors(vector<IntVect>& a_colors);
 
     static bool
     isVoFHere(VolIndex& a_vof2,
