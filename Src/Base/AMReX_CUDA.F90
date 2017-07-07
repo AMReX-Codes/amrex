@@ -58,6 +58,8 @@ contains
 
     integer :: i, cudaResult, ilen
 
+    character(32) :: char_id, char_rank
+
     ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
     ! This stream is synchronous and blocking. It is our default choice, and we
     ! only use the other, asynchronous streams when we know it is safe.
@@ -88,7 +90,10 @@ contains
 
     ilen = verify(prop%name, ' ', .true.)
 
-    print *, "Using GPU: ", prop%name(1:ilen), " on rank ", rank
+    write(char_id, '(i32)') id
+    write(char_rank, '(i32)') rank
+
+    print *, "Using GPU " // trim(adjustl(char_id)) // ": " // prop%name(1:ilen) // " on rank " // trim(adjustl(char_rank))
 
   end subroutine initialize_cuda
 
