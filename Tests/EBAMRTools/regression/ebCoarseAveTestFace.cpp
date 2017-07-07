@@ -81,7 +81,8 @@ namespace amrex
             vector<FaceIndex> faces = a_eblgCoar.getEBISL()[mfi].getFaces(vof, idir, sit());
             for(int iface = 0; iface < faces.size(); iface++)
             {
-              Real faceVal = phiCoar[mfi][idir](faces[iface], 0);
+              const EBFaceFAB& facefab = phiCoar[mfi][idir];
+              Real faceVal = facefab(faces[iface], 0);
               if(std::abs(faceVal - exactVal) > 1.0e-6)
               {
                 amrex::Print() << "coordinate face  value off = " << faceVal<< endl;
