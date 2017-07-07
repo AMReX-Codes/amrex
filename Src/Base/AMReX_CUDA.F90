@@ -60,6 +60,13 @@ contains
 
     character(32) :: char_id, char_rank
 
+    cuda_device_id = id
+
+    cudaResult = cudaSetDevice(cuda_device_id)
+    call gpu_error_test(cudaResult)
+
+    call gpu_synchronize()
+
     ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
     ! This stream is synchronous and blocking. It is our default choice, and we
     ! only use the other, asynchronous streams when we know it is safe.
@@ -73,11 +80,6 @@ contains
        cudaResult = cudaStreamCreate(cuda_streams(i))
        call gpu_error_test(cudaResult)
     enddo
-
-    cuda_device_id = id
-
-    cudaResult = cudaSetDevice(cuda_device_id)
-    call gpu_error_test(cudaResult)
 
     cudaResult = cudaGetDeviceProperties(prop, cuda_device_id)
     call gpu_error_test(cudaResult)
@@ -662,7 +664,7 @@ contains
 
     integer :: do_abort
 
-    do_abort = 0
+    do_abort = 1
 
     if (present(abort)) then
        do_abort = abort
