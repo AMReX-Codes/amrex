@@ -11,8 +11,16 @@
     void ebfnd_average(amrex::Real*       coar, const int* coarlo, const int* coarhi, const int* incocoar,
                        const amrex::Real* fine, const int* finelo, const int* finehi, const int* incofine,
                        const int*  coarboxlo, const int* coarboxhi, 
-                       const int*   refboxlo, const int* refboxhi, 
+                       const int*   refboxlo, const int* refboxhi,
                        const int* refrat, const int* isrc, const int* idst, const int* ncomp);
+
+
+    void ebfnd_average_face(amrex::Real*       coar, const int* coarlo, const int* coarhi, const int* incocoar,
+                            const amrex::Real* fine, const int* finelo, const int* finehi, const int* incofine,
+                            const int*  coarboxlo, const int* coarboxhi,
+                            const int*  refboxlo, const int* refboxhi,
+                            const int* facedir   , const int* refrat   , 
+                            const int* isrc, const int* idst, const int* ncomp);
 
 
     void ebfnd_pwcinterp(amrex::Real*       fine, const int* finelo, const int* finehi, const int* incofine,
