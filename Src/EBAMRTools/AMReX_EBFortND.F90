@@ -88,6 +88,7 @@ contains
        coar, coar_lo, coar_hi,  coar_nco, &
        fine, fine_lo, fine_hi,  fine_nco, &
        coarboxlo,coarboxhi, &
+       refboxlo,refboxhi, &
        facedir, refrat, isrc, idst, ncomp) &
        bind(C, name="ebfnd_average_face")
 
@@ -95,20 +96,18 @@ contains
 
     implicit none
 
-    integer      :: iif,jjf,kkf, coar_nco, fine_nco, idoloop, jdoloop, kdoloop
+    integer      :: iif,jjf,kkf, coar_nco, fine_nco
     integer      :: iic,jjc,kkc, refrat, ncomp, isrc, idst
-    integer      :: ib, jb, kb, ivar, ivarc, ivarf, facedir
+    integer      :: ivar, ivarc, ivarf, facedir
     integer      :: coar_lo(0:2),coar_hi(0:2)
     integer      :: fine_lo(0:2),fine_hi(0:2), ii, jj, kk
     integer      :: coarboxlo(0:2), coarboxhi(0:2)
+    integer      :: refboxlo(0:2), refboxhi(0:2)
     real(c_real) :: fineval, coarval, numfinepercoar
     real(c_real) :: fine(fine_lo(0):fine_hi(0),fine_lo(1):fine_hi(1),fine_lo(2):fine_hi(2), 0:fine_nco-1)
     real(c_real) :: coar(coar_lo(0):coar_hi(0),coar_lo(1):coar_hi(1),coar_lo(2):coar_hi(2), 0:coar_nco-1)
 
-    idoloop = imatebamrt(facedir, 0)
-    jdoloop = imatebamrt(facedir, 1)
-    kdoloop = imatebamrt(facedir, 2)
-    kk = 0
+
     !number of fine faces per coarse face
     numfinepercoar = refrat
 #if BL_SPACEDIM==3
@@ -123,34 +122,22 @@ contains
              do iic = coarboxlo(0), coarboxhi(0)
 
                 coar(iic,jjc,kkc, ivarc) = zero
-                kkf = 0
-#if BL_SPACEDIM==3
-                do kk = 0, (refrat-1)*kdoloop
-
-                   kkf = kkc*refrat + kk
-#endif
-                   do jj = 0, (refrat-1)*jdoloop
-
-                      jjf = jjc*refrat + jj
-
-                      do ii = 0, (refrat-1)*idoloop
+                do kk = refboxlo(2), refboxhi(2)
+                   do jj = refboxlo(1), refboxhi(1)
+                      do ii = refboxlo(0), refboxhi(0)
 
                          iif = iic*refrat + ii
+                         jjf = jjc*refrat + jj
+                         kkf = kkc*refrat + kk
 
 
-                         iif = refrat*iic + ib
-                         jjf = refrat*jjc + jb
-                         kkf = refrat*kkc + kb
                          fineval = fine(iif, jjf, kkf, ivarf)
                          coarval = coar(iic, jjc, kkc, ivarc)
                          coar(iic,jjc,kkc, ivarc) = coarval + fineval
 
-
                       enddo
                    enddo
-#if BL_SPACEDIM==3
                 enddo
-#endif
 
                 coar(iic,jjc,kkc, ivarc) = coar(iic, jjc, kkc,ivarc)/numfinepercoar
 

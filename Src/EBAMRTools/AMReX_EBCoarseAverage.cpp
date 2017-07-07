@@ -121,7 +121,7 @@ namespace amrex
     EBFluxFactory factFine(m_eblgFine.getEBISL());
     EBFluxFactory factCoFi(m_eblgCoFi.getEBISL());
     int nvar = 1; //not important
-    FabArray<EBFluxFAB> dummyFine(m_eblgFine.getDBL(),m_eblgFine.getDM(), nvar, m_ghost, MFInfo(), factCoFi);
+    FabArray<EBFluxFAB> dummyFine(m_eblgFine.getDBL(),m_eblgFine.getDM(), nvar, m_ghost, MFInfo(), factFine);
     FabArray<EBFluxFAB> dummyCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_ghost, MFInfo(), factCoFi);
 
     //first the stencils for the coordinate faces
@@ -341,25 +341,33 @@ namespace amrex
     FabArray<EBFluxFAB> dataCoFi(m_eblgCoFi.getDBL(),m_eblgCoFi.getDM(), nvar, m_ghost, MFInfo(), fact);
     Box refbox(IntVect::Zero, IntVect::Zero);
     refbox.refine(m_refRat);
-
+    int ibox = 0;
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
       //first the coordinate faces
       for(int faceDir = 0; faceDir < SpaceDim; faceDir++)
       {
-        BaseFab<Real>&       regCoar =   dataCoFi[mfi][faceDir].getSingleValuedFAB();
-        const BaseFab<Real>& regFine = a_dataFine[mfi][faceDir].getSingleValuedFAB();
-        Box coarbx = m_eblgCoFi.getDBL()[mfi];
-
+        EBFaceFAB&       coarface =   dataCoFi[mfi][faceDir];
+        const EBFaceFAB& fineface = a_dataFine[mfi][faceDir];
+        BaseFab<Real>&       regCoar =   coarface.getSingleValuedFAB();
+        const BaseFab<Real>& regFine =   fineface.getSingleValuedFAB();
+        Box gridbx = m_eblgCoFi.getDBL()[mfi];
+        
+        Box coarbx =  surroundingNodes(gridbx, faceDir);
+        Box refFace = refbox;
+        refFace.growHi(faceDir, -(m_refRat-1));
+        
         ebfnd_average_face(BL_TO_FORTRAN_FAB(regCoar),
                            BL_TO_FORTRAN_FAB(regFine),
                            BL_TO_FORTRAN_BOX(coarbx),
+                           BL_TO_FORTRAN_BOX(refFace),
                            &faceDir, &m_refRat, &isrc, &idst, &inco);
 
         //now do the irregular bit
         //(replace that answer at the irregular cells)
         //the false is to turn off incrementOnly
         m_faceStencil[faceDir][mfi]->apply(dataCoFi[mfi][faceDir], a_dataFine[mfi][faceDir], isrc, idst, inco, false);
+        ibox++;
       }
 
       //now do cut face data
