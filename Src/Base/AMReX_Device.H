@@ -176,6 +176,8 @@ amrex::Device::create_device_pointer(int n)
 
 #endif
 
+    return d_ptr;
+
 }
 
 #endif
