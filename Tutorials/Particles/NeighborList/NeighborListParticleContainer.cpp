@@ -143,9 +143,6 @@ void NeighborListParticleContainer::fillNeighbors() {
     }
     
     fillNeighborsMPI(neighbors_to_comm);
-
-    buildNeighborList();
-
 }
 
 void NeighborListParticleContainer::clearNeighbors() 
@@ -177,6 +174,8 @@ void NeighborListParticleContainer::computeForces() {
 void NeighborListParticleContainer::computeForcesNL() {
 
     BL_PROFILE("NeighborListParticleContainer::computeForces");
+
+    buildNeighborList();
 
 #ifdef _OPENMP
 #pragma omp parallel
