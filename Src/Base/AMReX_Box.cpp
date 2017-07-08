@@ -24,7 +24,9 @@ Box_init::Box_init ()
     {
         BL_ASSERT(the_box_arena == 0);
 
-	the_box_arena = new CArena;
+        const std::size_t hunk_size = 64 * 1024;
+
+	the_box_arena = new CArena(hunk_size);
 
 	the_box_arena->SetHostAlloc();
     }
