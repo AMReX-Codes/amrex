@@ -1553,7 +1553,7 @@ AmrLevel::derive (const std::string& name,
             const Real* dx      = geom.CellSizeF();
             const int*  bcr     = rec->getBC();
 	    const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
-            const Real* xlo     = rbx.lo();
+            const Real* xlo     = rbx.loF();
             Real        dt      = parent->dtLevel(level);
 
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
@@ -1602,7 +1602,7 @@ AmrLevel::derive (const std::string& name,
             const Real* dx      = geom.CellSizeF();
             const int*  bcr     = rec->getBC();
 	    const RealBox& rbx  = mfi.registerRealBox(RealBox((*mf)[mfi].box(),geom.CellSize(),geom.ProbLo()));
-            const Real* xlo     = rbx.lo();
+            const Real* xlo     = rbx.loF();
             Real        dt      = parent->dtLevel(level);
 
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
@@ -1711,7 +1711,7 @@ AmrLevel::derive (const std::string& name,
             const Real* dx      = geom.CellSizeF();
             const int*  bcr     = rec->getBC();
             const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
-            const Real* xlo     = rbx.lo();
+            const Real* xlo     = rbx.loF();
             Real        dt      = parent->dtLevel(level);
 
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
@@ -1760,7 +1760,7 @@ AmrLevel::derive (const std::string& name,
             const Real* dx      = geom.CellSizeF();
             const int*  bcr     = rec->getBC();
             const RealBox& rbx  = mfi.registerRealBox(RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo()));
-            const Real* xlo     = rbx.lo();
+            const Real* xlo     = rbx.loF();
             Real        dt      = parent->dtLevel(level);
 
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
