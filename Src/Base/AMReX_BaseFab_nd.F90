@@ -136,7 +136,8 @@ contains
   attributes(global) &
 #endif
   subroutine fort_fab_norm_doit (lo, hi, src, slo, shi, ncomp, p, nrm)
-    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp, p
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
+    integer, intent(in), value :: ncomp, p
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: nrm
 
@@ -175,7 +176,8 @@ contains
   attributes(global) &
 #endif
   subroutine fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp, sm)
-    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
+    integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: sm
 
@@ -493,7 +495,8 @@ contains
   attributes(global) &
 #endif
   subroutine fort_fab_dot_doit(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp)
-    integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3)
+    integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
     real(amrex_real), intent(in) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
     real(amrex_real) :: dp
@@ -648,12 +651,13 @@ end module basefab_nd_module
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp, p
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
+    integer, intent(in), value :: ncomp, p
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: nrm
 
 #ifdef CUDA
-    attributes(device) :: lo, hi, src, slo, shi, ncomp, p, nrm
+    attributes(device) :: lo, hi, src, slo, shi, nrm
 #endif
 
     call fort_fab_norm_doit &
@@ -736,12 +740,13 @@ end module basefab_nd_module
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
+    integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: sm
 
 #ifdef CUDA
-    attributes(device) :: lo, hi, src, slo, shi, ncomp, sm
+    attributes(device) :: lo, hi, src, slo, shi, sm
 #endif
 
     call fort_fab_sum_doit &
@@ -1006,13 +1011,14 @@ end module basefab_nd_module
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3)
+    integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
     real(amrex_real), intent(in) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
     real(amrex_real), intent(inout) :: dp
 
 #ifdef CUDA
-    attributes(device) :: lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp
+    attributes(device) :: lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, dp
 #endif
 
     call fort_fab_dot_doit &
