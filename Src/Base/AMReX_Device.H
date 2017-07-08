@@ -146,7 +146,7 @@ amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
 
     for (int i = 0; i < num; ++i)
         *(temp_ptr + i) = *(ptr + i);
-    h_ptr.reset(temp_ptr);
+    h_ptr.reset(temp_ptr, [](T* ptr) { delete[] ptr; });
 
 #endif
 
@@ -172,7 +172,7 @@ amrex::Device::create_device_pointer(int n)
 
     T* temp_ptr = new T[n];
 
-    d_ptr.reset(temp_ptr);
+    d_ptr.reset(temp_ptr, [](T* ptr) { delete[] ptr; });
 
 #endif
 
