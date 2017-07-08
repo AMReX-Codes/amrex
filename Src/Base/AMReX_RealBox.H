@@ -37,13 +37,13 @@ public:
     RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
              AMREX_D_DECL(Real x1, Real y1, Real z1));
 
-    void nullify_device_memory();
-    void initialize_device_memory();
-    void initialize_lo();
-    void initialize_hi();
-    void copy_device_memory();
-    void copy_xlo();
-    void copy_xhi();
+    void nullify_device_memory() const;
+    void initialize_device_memory() const;
+    void initialize_lo() const;
+    void initialize_hi() const;
+    void copy_device_memory() const;
+    void copy_xlo() const;
+    void copy_xhi() const;
 
     //! Set epsilon used by contains() function when comparing floating point numbers.
     static void setEpsilon (Real epsilon) { eps = epsilon; }
@@ -52,13 +52,13 @@ public:
     //! Returns lo side.
     const Real* lo () const& { return xlo; }
 
-    const Real* loF ();
+    const Real* loF () const&;
 
     const Real* lo () && = delete;
     //! Returns hide side.
     const Real* hi () const& { return xhi; }
 
-    const Real* hiF ();
+    const Real* hiF () const&;
 
     const Real* hi () && = delete;
     //! Returns length in specified direction.
