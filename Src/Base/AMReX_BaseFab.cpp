@@ -229,7 +229,7 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
 	fort_fab_copytomem(BL_TO_FORTRAN_BOX(srcbox),
                            static_cast<Real*>(dst),
                            BL_TO_FORTRAN_N_ANYD(*this,srccomp),
-                           &numcomp);
+                           numcomp);
         return sizeof(Real) * srcbox.numPts() * numcomp;
     }
     else
@@ -251,7 +251,7 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
     if (dstbox.ok()) 
     {
 	fort_fab_copyfrommem(BL_TO_FORTRAN_BOX(dstbox),
-                             BL_TO_FORTRAN_N_ANYD(*this,dstcomp), &numcomp,
+                             BL_TO_FORTRAN_N_ANYD(*this,dstcomp), numcomp,
                              static_cast<const Real*>(src));
         return sizeof(Real) * dstbox.numPts() * numcomp;
     }

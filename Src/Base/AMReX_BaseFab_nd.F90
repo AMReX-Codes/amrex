@@ -36,61 +36,71 @@ contains
 
 
   ! copy from multi-d array to 1d array
-  subroutine fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) &
-       bind(c,name='fort_fab_copytomem')
+#ifdef CUDA
+  attributes(global) &
+#endif
+  subroutine fort_fab_copytomem_doit (lo, hi, dst, src, slo, shi, ncomp)
     use iso_c_binding, only : c_long
-    integer(c_long) :: nelems
-    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
+    integer, intent(in), value :: ncomp
     real(amrex_real)             :: dst(*)
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
 
     integer :: i, j, k, n
     integer(c_long) :: offset, tile_size(3)
+    integer :: blo(3), bhi(3)
 
-    tile_size(1:3) = hi - lo + 1
+    call get_loop_bounds(blo, bhi, lo, hi)
+
+    tile_size = hi - lo + 1
 
     do n = 1, ncomp
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
+       do       k = blo(3), bhi(3)
+          do    j = blo(2), bhi(2)
              offset = tile_size(1) * (j - lo(2)) + tile_size(1) * tile_size(2) * (k - lo(3)) + &
                       tile_size(1) * tile_size(2) * tile_size(3) * (n - 1)
-             do i = lo(1), hi(1)
+             do i = blo(1), bhi(1)
                 dst(offset+i) = src(i,j,k,n)
              end do
           end do
        end do
     end do
 
-  end subroutine fort_fab_copytomem
+  end subroutine fort_fab_copytomem_doit
 
 
   ! copy from 1d array to multi-d array
-  subroutine fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) &
-       bind(c,name='fort_fab_copyfrommem')
+#ifdef CUDA
+  attributes(global) &
+#endif
+  subroutine fort_fab_copyfrommem_doit (lo, hi, dst, dlo, dhi, ncomp, src)
     use iso_c_binding, only : c_long
-    integer(c_long) :: nelems
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
+    integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(*)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-    integer :: i, j, k, n, nx
+    integer :: i, j, k, n
     integer(c_long) :: offset, tile_size(3)
+    integer :: blo(3), bhi(3)
+
+    call get_loop_bounds(blo, bhi, lo, hi)
 
     tile_size = hi - lo + 1
 
     do n = 1, ncomp
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
+       do       k = blo(3), bhi(3)
+          do    j = blo(2), bhi(2)
              offset = tile_size(1) * (j - lo(2)) + tile_size(1) * tile_size(2) * (k - lo(3)) + &
                       tile_size(1) * tile_size(2) * tile_size(3) * (n - 1)
-             do i = lo(1), hi(1)
+             do i = blo(1), bhi(1)
                 dst(i,j,k,n)  = src(offset+i)
              end do
           end do
        end do
     end do
 
-  end subroutine fort_fab_copyfrommem
+  end subroutine fort_fab_copyfrommem_doit
 
 
 
@@ -538,6 +548,61 @@ end module basefab_nd_module
     (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
 
   end subroutine fort_fab_copy
+
+
+
+  subroutine fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) &
+       bind(c,name='fort_fab_copytomem')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_copytomem_doit
+#ifdef CUDA
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
+#endif
+
+    integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
+    integer, intent(in), value :: ncomp
+    real(amrex_real)             :: dst(*)
+    real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
+
+#ifdef CUDA
+    attributes(device) :: lo, hi, dst, src, slo, shi
+#endif
+
+    call fort_fab_copytomem_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
+#endif
+         (lo, hi, dst, src, slo, shi, ncomp)
+
+  end subroutine fort_fab_copytomem
+
+
+  subroutine fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) &
+       bind(c,name='fort_fab_copyfrommem')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_copyfrommem_doit
+#ifdef CUDA
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
+#endif
+
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
+    integer, intent(in), value :: ncomp
+    real(amrex_real), intent(in   ) :: src(*)
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+
+#ifdef CUDA
+    attributes(device) :: lo, hi, dst, dlo, dhi, src
+#endif
+
+    call fort_fab_copyfrommem_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
+#endif
+         (lo, hi, dst, dlo, dhi, ncomp, src)
+
+  end subroutine fort_fab_copyfrommem
 
 
 
