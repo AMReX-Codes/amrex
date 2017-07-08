@@ -49,7 +49,8 @@ BF_init::BF_init ()
 #endif
 
 #ifdef CUDA
-        the_nvar_arena = new CArena;
+        const std::size_t hunk_size = 64 * 1024;
+        the_nvar_arena = new CArena(hunk_size);
         the_nvar_arena->SetHostAlloc();
 #endif
 

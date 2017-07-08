@@ -21,7 +21,9 @@ RealBox_init::RealBox_init ()
     {
         BL_ASSERT(the_realbox_arena == 0);
 
-        the_realbox_arena = new CArena;
+        const std::size_t hunk_size = 64 * 1024;
+
+        the_realbox_arena = new CArena(hunk_size);
 
 	the_realbox_arena->SetHostAlloc();
     }
