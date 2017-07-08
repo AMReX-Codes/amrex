@@ -36,7 +36,7 @@ contains
 
 
   ! copy from multi-d array to 1d array
-  function fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) result(nelems) &
+  subroutine fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) &
        bind(c,name='fort_fab_copytomem')
     use iso_c_binding, only : c_long
     integer(c_long) :: nelems
@@ -44,28 +44,28 @@ contains
     real(amrex_real)             :: dst(*)
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
 
-    integer :: i, j, k, n, nx
-    integer(c_long) :: offset
+    integer :: i, j, k, n
+    integer(c_long) :: offset, tile_size(3)
 
-    nx = hi(1)-lo(1)+1
-    offset = 1-lo(1)
+    tile_size(1:3) = hi - lo + 1
+
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
+             offset = tile_size(1) * (j - lo(2)) + tile_size(1) * tile_size(2) * (k - lo(3)) + &
+                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1)
              do i = lo(1), hi(1)
                 dst(offset+i) = src(i,j,k,n)
              end do
-             offset = offset + nx
           end do
        end do
     end do
 
-    nelems = offset - (1-lo(1))
-  end function fort_fab_copytomem
+  end subroutine fort_fab_copytomem
 
 
   ! copy from 1d array to multi-d array
-  function fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) result(nelems) &
+  subroutine fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) &
        bind(c,name='fort_fab_copyfrommem')
     use iso_c_binding, only : c_long
     integer(c_long) :: nelems
@@ -74,23 +74,23 @@ contains
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
     integer :: i, j, k, n, nx
-    integer(c_long) :: offset
+    integer(c_long) :: offset, tile_size(3)
 
-    nx = hi(1)-lo(1)+1
-    offset = 1-lo(1)
+    tile_size = hi - lo + 1
+
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
+             offset = tile_size(1) * (j - lo(2)) + tile_size(1) * tile_size(2) * (k - lo(3)) + &
+                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1)
              do i = lo(1), hi(1)
                 dst(i,j,k,n)  = src(offset+i)
              end do
-             offset = offset + nx
           end do
        end do
     end do
 
-    nelems = offset - (1-lo(1))
-  end function fort_fab_copyfrommem
+  end subroutine fort_fab_copyfrommem
 
 
 

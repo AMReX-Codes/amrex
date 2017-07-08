@@ -226,11 +226,11 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
-	long nreal =  fort_fab_copytomem(ARLIM_3D(srcbox.loVect()), ARLIM_3D(srcbox.hiVect()),
-                                         static_cast<Real*>(dst),
-                                         BL_TO_FORTRAN_N_3D(*this,srccomp),
-                                         &numcomp);
-        return sizeof(Real) * nreal;
+	fort_fab_copytomem(BL_TO_FORTRAN_BOX(srcbox),
+                           static_cast<Real*>(dst),
+                           BL_TO_FORTRAN_N_ANYD(*this,srccomp),
+                           &numcomp);
+        return sizeof(Real) * srcbox.numPts() * numcomp;
     }
     else
     {
@@ -250,10 +250,10 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok()) 
     {
-	long nreal = fort_fab_copyfrommem(ARLIM_3D(dstbox.loVect()), ARLIM_3D(dstbox.hiVect()),
-                                          BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
-                                          static_cast<const Real*>(src));
-        return sizeof(Real) * nreal;
+	fort_fab_copyfrommem(BL_TO_FORTRAN_BOX(dstbox),
+                             BL_TO_FORTRAN_N_ANYD(*this,dstcomp), &numcomp,
+                             static_cast<const Real*>(src));
+        return sizeof(Real) * dstbox.numPts() * numcomp;
     }
     else
     {
