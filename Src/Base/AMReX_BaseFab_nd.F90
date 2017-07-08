@@ -1,6 +1,6 @@
 module basefab_nd_module
 
-  use amrex_fort_module, only: amrex_real, get_loop_bounds
+  use amrex_fort_module, only: amrex_real, get_loop_bounds, amrex_add, amrex_max
 
   implicit none
 
@@ -121,56 +121,71 @@ contains
   end subroutine fort_fab_setval_doit
 
 
-  function fort_fab_norm_doit (lo, hi, src, slo, shi, ncomp, p) result(nrm)
+
+#ifdef CUDA
+  attributes(global) &
+#endif
+  subroutine fort_fab_norm_doit (lo, hi, src, slo, shi, ncomp, p, nrm)
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp, p
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
-    real(amrex_real) :: nrm
+    real(amrex_real), intent(inout) :: nrm
 
     integer :: i,j,k,n
+    integer :: blo(3), bhi(3)
+
+    call get_loop_bounds(blo, bhi, lo, hi)
 
     nrm = 0.0_amrex_real
     if (p .eq. 0) then ! max norm
        do n = 1, ncomp
-          do       k = lo(3), hi(3)
-             do    j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   nrm = max(nrm, abs(src(i,j,k,n)))
+          do       k = blo(3), bhi(3)
+             do    j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+                   call amrex_max(nrm, abs(src(i,j,k,n)))
                 end do
              end do
           end do
        end do
     else if (p .eq. 1) then
        do n = 1, ncomp
-          do       k = lo(3), hi(3)
-             do    j = lo(2), hi(2)
-                do i = lo(1), hi(1)
-                   nrm = nrm + abs(src(i,j,k,n))
+          do       k = blo(3), bhi(3)
+             do    j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+                   call amrex_add(nrm, abs(src(i,j,k,n)))
                 end do
              end do
           end do
        end do
     end if
-  end function fort_fab_norm_doit
+  end subroutine fort_fab_norm_doit
 
 
-  function fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp) result(sm)
+
+#ifdef CUDA
+  attributes(global) &
+#endif
+  subroutine fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp, sm)
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
-    real(amrex_real) :: sm
+    real(amrex_real), intent(inout) :: sm
 
     integer :: i,j,k,n
+    integer :: blo(3), bhi(3)
+
+    call get_loop_bounds(blo, bhi, lo, hi)
 
     sm = 0.0_amrex_real
     do n = 1, ncomp
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                sm = sm + src(i,j,k,n)
+       do       k = blo(3), bhi(3)
+          do    j = blo(2), bhi(2)
+             do i = blo(1), bhi(1)
+                call amrex_add(sm, src(i,j,k,n))
              end do
           end do
        end do
     end do
-  end function fort_fab_sum_doit
+  end subroutine fort_fab_sum_doit
+
 
 
 #ifdef CUDA
@@ -464,29 +479,34 @@ contains
   end subroutine fort_fab_addproduct_doit
 
   ! dot_product
-  function fort_fab_dot(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp) result(dp) &
-       bind(c,name='fort_fab_dot')
+#ifdef CUDA
+  attributes(global) &
+#endif
+  subroutine fort_fab_dot_doit(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp)
     integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3), ncomp
     real(amrex_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
     real(amrex_real), intent(in) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
     real(amrex_real) :: dp
 
     integer :: i,j,k,n, off(3)
+    integer :: blo(3), bhi(3)
+
+    call get_loop_bounds(blo, bhi, lo, hi)
 
     dp = 0.0_amrex_real
 
     off = yblo - lo
 
     do n = 1, ncomp
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                dp = dp + x(i,j,k,n)*y(i+off(1),j+off(2),k+off(3),n)
+       do       k = blo(3), bhi(3)
+          do    j = blo(2), bhi(2)
+             do i = blo(1), bhi(1)
+                call amrex_add(dp, x(i,j,k,n)*y(i+off(1),j+off(2),k+off(3),n))
              end do
           end do
        end do
     end do
-  end function fort_fab_dot
+  end subroutine fort_fab_dot_doit
 
 end module basefab_nd_module
 
@@ -497,7 +517,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_copy_doit
 #ifdef CUDA
-  use cuda_module, only: cuda_stream, numBlocks, numThreads
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
     implicit none
@@ -527,7 +547,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_setval_doit
 #ifdef CUDA
-  use cuda_module, only: cuda_stream, numBlocks, numThreads
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
     implicit none
@@ -552,21 +572,32 @@ end module basefab_nd_module
 
 
 
-  function fort_fab_norm (lo, hi, src, slo, shi, ncomp, p) result(nrm) &
+  subroutine fab_fort_norm (lo, hi, src, slo, shi, ncomp, p, nrm) &
        bind(c,name='fort_fab_norm')
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_norm_doit
+#ifdef CUDA
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
+#endif
 
     implicit none
 
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp, p
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
-    real(amrex_real) :: nrm
+    real(amrex_real), intent(inout) :: nrm
 
-    nrm = fort_fab_norm_doit(lo, hi, src, slo, shi, ncomp, p)
+#ifdef CUDA
+    attributes(device) :: lo, hi, src, slo, shi, ncomp, p, nrm
+#endif
 
-  end function fort_fab_norm
+    call fort_fab_norm_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
+#endif
+         (lo, hi, src, slo, shi, ncomp, p, nrm)
+
+  end subroutine fab_fort_norm
 
 
 
@@ -575,7 +606,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_saxpy_doit
 #ifdef CUDA
-  use cuda_module, only: cuda_stream, numBlocks, numThreads
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
     implicit none
@@ -605,7 +636,7 @@ end module basefab_nd_module
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_plus_doit
 #ifdef CUDA
-    use cuda_module, only: cuda_stream, numBlocks, numThreads
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
     implicit none
@@ -629,21 +660,32 @@ end module basefab_nd_module
 
 
 
-  function fort_fab_sum(lo, hi, src, slo, shi, ncomp) result(sm) &
+  subroutine fort_fab_sum(lo, hi, src, slo, shi, ncomp, sm) &
                         bind(c,name='fort_fab_sum')
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_sum_doit
+#ifdef CUDA
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
+#endif
 
     implicit none
 
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3), ncomp
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
-    real(amrex_real) :: sm
+    real(amrex_real), intent(inout) :: sm
 
-    sm = fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp)
+#ifdef CUDA
+    attributes(device) :: lo, hi, src, slo, shi, ncomp, sm
+#endif
 
-  end function fort_fab_sum
+    call fort_fab_sum_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
+#endif
+         (lo, hi, src, slo, shi, ncomp, sm)
+
+  end subroutine fort_fab_sum
 
 
 
@@ -886,3 +928,32 @@ end module basefab_nd_module
          (lo, hi, dst, dlo, dhi, src1, s1lo, s1hi, src2, s2lo, s2hi, ncomp)
 
   end subroutine fort_fab_addproduct
+
+
+
+  subroutine fort_fab_dot(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp) bind(c, name='fort_fab_dot')
+
+    use amrex_fort_module, only: amrex_real
+    use basefab_nd_module, only: fort_fab_dot_doit
+#ifdef CUDA
+    use cuda_module, only: numBlocks, numThreads, cuda_stream
+#endif
+
+    implicit none
+
+    integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3), ncomp
+    real(amrex_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
+    real(amrex_real), intent(in) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
+    real(amrex_real), intent(inout) :: dp
+
+#ifdef CUDA
+    attributes(device) :: lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp
+#endif
+
+    call fort_fab_dot_doit &
+#ifdef CUDA
+         <<<numBlocks, numThreads, 0, cuda_stream>>> &
+#endif
+         (lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp)
+
+  end subroutine fort_fab_dot

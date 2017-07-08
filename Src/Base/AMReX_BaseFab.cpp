@@ -306,20 +306,20 @@ BaseFab<Real>::norm (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    Real nrm;
+    Real* nrm = Device::create_device_pointer<Real>().get();
 
     if (p == 0 || p == 1)
     {
-	nrm = fort_fab_norm(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-			    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
-			    &p);
+	fort_fab_norm(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+	              BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+		      &p, nrm);
     }
     else
     {
         amrex::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
     }
 
-    return nrm;
+    return *nrm;
 }
 
 template<>
@@ -331,8 +331,12 @@ BaseFab<Real>::sum (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    return fort_fab_sum(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-			BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
+    Real* sm = Device::create_device_pointer<Real>().get();
+
+    fort_fab_sum(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                 BL_TO_FORTRAN_N_3D(*this,comp), &ncomp, sm);
+
+    return *sm;
 }
 
 template<>
@@ -590,10 +594,14 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
-    return fort_fab_dot(ARLIM_3D(xbx.loVect()), ARLIM_3D(xbx.hiVect()),
-			BL_TO_FORTRAN_N_3D(*this,xcomp),
-			BL_TO_FORTRAN_N_3D(y,ycomp), ARLIM_3D(ybx.loVect()),
-			&numcomp);
+    Real* dp = Device::create_device_pointer<Real>().get();
+
+    fort_fab_dot(ARLIM_3D(xbx.loVect()), ARLIM_3D(xbx.hiVect()),
+                 BL_TO_FORTRAN_N_3D(*this,xcomp),
+                 BL_TO_FORTRAN_N_3D(y,ycomp), ARLIM_3D(ybx.loVect()),
+                 &numcomp, dp);
+
+    return *dp;
 }
 
 #endif
