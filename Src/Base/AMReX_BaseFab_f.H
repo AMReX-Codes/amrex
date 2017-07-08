@@ -27,12 +27,12 @@ extern "C"
 			  const amrex_real val);
 
     void fort_fab_norm (const int* lo, const int* hi,
-                        const amrex_real* src, const int* slo, const int* shi, const int* ncomp,
-                        const int* p, amrex_real* nrm);
+                        const amrex_real* src, const int* slo, const int* shi, const int ncomp,
+                        const int p, amrex_real* nrm);
 
     void fort_fab_sum (const int* lo, const int* hi,
                        const amrex_real* src, const int* slo, const int* shi,
-                       const int* ncomp, amrex_real* sm);
+                       const int ncomp, amrex_real* sm);
 
     void fort_fab_plus (const int* lo, const int* hi,
 			amrex_real* dst, const int* dlo, const int* dhi,
@@ -90,7 +90,7 @@ extern "C"
     void fort_fab_dot (const int* lo, const int* hi,
 		       const amrex_real* x, const int* xlo, const int* xhi,
 		       const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
-		       const int* ncomp, amrex_real* dp);
+		       const int ncomp, amrex_real* dp);
 #ifdef __cplusplus
 }
 #endif
