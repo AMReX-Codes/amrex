@@ -1564,7 +1564,7 @@ AmrLevel::derive (const std::string& name,
             int* grid_no_f = mfi.get_fortran_pointer(&grid_no);
             int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
 
-            Device::prepare_for_launch(lo, hi);
+            Device::prepare_for_launch(gtbx.loVect(), gtbx.hiVect());
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
@@ -1613,7 +1613,7 @@ AmrLevel::derive (const std::string& name,
             int* grid_no_f = mfi.get_fortran_pointer(&grid_no);
             int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
 
-            Device::prepare_for_launch(dlo, dhi);
+            Device::prepare_for_launch((*mf)[mfi].loVect(), (*mf)[mfi].hiVect());
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
@@ -1722,7 +1722,7 @@ AmrLevel::derive (const std::string& name,
             int* idx_f     = mfi.get_fortran_pointer(&idx);
             int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
 
-            Device::prepare_for_launch(lo, hi);
+            Device::prepare_for_launch(gtbx.loVect(), gtbx.hiVect());
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
@@ -1771,7 +1771,7 @@ AmrLevel::derive (const std::string& name,
             int* idx_f     = mfi.get_fortran_pointer(&idx);
             int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
 
-            Device::prepare_for_launch(dlo, dhi);
+            Device::prepare_for_launch(mf[mfi].loVect(), mf[mfi].hiVect());
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
