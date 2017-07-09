@@ -49,7 +49,8 @@ contains
 
   subroutine initialize_cuda(id, rank) bind(c, name='initialize_cuda')
 
-    use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice
+    use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
+                       cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
     use bl_error_module, only: bl_error
 
     implicit none
@@ -89,6 +90,11 @@ contains
     if (prop%major < 3) then
        call bl_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
     end if
+
+    ! Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
+
+    cudaResult = cudaDeviceSetCacheConfig(cudaFuncCachePreferL1)
+    call gpu_error_test(cudaResult)
 
     ilen = verify(prop%name, ' ', .true.)
 
