@@ -29,6 +29,10 @@ endif
 
 SYSTEM_CUDA_PATH=$(CUDATOOLKIT_HOME)
 
+# Signal no support for CUDA 8.
+
+NO_CUDA_8_SUPPORT = TRUE
+
 endif
 
 ifeq ($(which_computer),$(filter $(which_computer),summitdev))

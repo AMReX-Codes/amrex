@@ -497,4 +497,12 @@ ifeq ($(USE_CUDA),TRUE)
         LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
     endif
 
+    ifeq ($(NO_CUDA_8_SUPPORT),TRUE)
+      DEFINES += -DNO_CUDA_8
+      ifeq ($(lowercase_comp),pgi)
+        F90FLAGS := $(subst cuda8.0,cuda7.5,$(F90FLAGS))
+        FFLAGS := $(subst cuda8.0,cuda7.5,$(FFLAGS))
+      endif
+    endif
+
 endif
