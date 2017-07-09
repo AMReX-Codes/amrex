@@ -132,7 +132,7 @@ public:
 
     //! Maintain a list of values to reduce.
     template<typename T>
-    T* add_reduce_value(T* val, MFReducer r) {}
+    T* add_reduce_value(T* val, MFReducer r) { return val; }
 
     Real* add_reduce_value(Real* val, MFReducer r);
 
