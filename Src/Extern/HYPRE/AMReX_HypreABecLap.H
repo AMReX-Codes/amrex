@@ -9,6 +9,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MacBndry.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_LO_BCTYPES.H>
 
 #include <HYPRE_struct_ls.h>
 
@@ -30,6 +31,8 @@ public:
   void setVerbose(int _verbose);
   void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
 	     int max_iter, const BndryData& bndry);
+  void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+	     int max_iter, LinOpBCType bc_type, Real bc_value, const Geometry& geom);
 
 protected:
 
