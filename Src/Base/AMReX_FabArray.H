@@ -764,7 +764,7 @@ template <class FAB>
 bool
 FabArray<FAB>::defined (const MFIter& mfi) const
 {
-    int li = mfi.LocalIndex();
+    unsigned li = mfi.LocalIndex();
     if (li < m_fabs_v.size() && m_fabs_v[li] != 0) {
 	return true;
     }
