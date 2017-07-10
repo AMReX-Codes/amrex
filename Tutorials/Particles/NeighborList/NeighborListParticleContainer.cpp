@@ -484,7 +484,7 @@ void NeighborListParticleContainer::buildNeighborList() {
                         j = list[j];
                         continue;
                     }
-                    if ( distance2(p, particles[j]) <= cutoff*cutoff) {
+                    if ( check_pair(p, particles[j]) ) {
                         neighbor_list[index].push_back(j+1);
                         num_neighbors += 1;
                     }
@@ -503,7 +503,7 @@ void NeighborListParticleContainer::buildNeighborList() {
                     ParticleType n;
                     char* nbuf = neighbors[index].dataPtr() + j*pdata_size;
                     std::memcpy(&n, nbuf, pdata_size);
-                    if ( distance2(p, n) <= cutoff*cutoff) {
+                    if ( check_pair(p, n) ) {
                         neighbor_list[index].push_back(j+1);
                         num_ghost_neighbors += 1;
                     }
