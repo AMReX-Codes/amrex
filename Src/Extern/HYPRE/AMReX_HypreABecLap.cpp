@@ -1,6 +1,8 @@
 
 #include <AMReX_HypreABecLap.H>
 #include <AMReX_HypreABec_F.H>
+#include <string>
+#include <algorithm>
 
 #include <_hypre_struct_mv.h>
 
@@ -9,7 +11,7 @@ namespace amrex {
 HypreABecLap::HypreABecLap(const BoxArray& grids,
                            const DistributionMapping& dmap,
                            const Geometry& geom,
-                           const MPI_Comm& comm_)
+                           MPI_Comm comm_)
     : comm(comm_)
 {
   ParmParse pp("hypre");
@@ -17,7 +19,20 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
   // solver_flag = 0 for SMG
   // solver_flag = 1 for PFMG
   solver_flag = 1;
-  pp.query("solver_flag", solver_flag);
+  {
+      std::string solver_flag_s {"null"};
+      pp.query("solver_flag", solver_flag_s);
+      std::transform(solver_flag_s.begin(), solver_flag_s.end(), solver_flag_s.begin(), ::tolower);
+      if (solver_flag_s == "smg") {
+          solver_flag = 0;
+      } else if (solver_flag_s == "pfmg") {
+          solver_flag = 1;
+      } else if (solver_flag_s == "none") {
+          pp.query("solver_flag", solver_flag);
+      } else {
+          amrex::Abort("HypreABecLap: unknown solver flag");
+      }
+  }
 
   int num_procs, myid;
   MPI_Comm_size(comm, &num_procs );
@@ -446,7 +461,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     }
 
     int oldprec = std::cout.precision(20);
-    std::cout << num_iterations
+    std::cout << "\n" << num_iterations
 	      << " Hypre Multigrid Iterations, Relative Residual "
 	      << res << std::endl;
     std::cout.precision(oldprec);
