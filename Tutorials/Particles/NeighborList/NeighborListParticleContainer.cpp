@@ -4,6 +4,9 @@
 
 using namespace amrex;
 
+const Real NeighborListParticleContainer::min_r;
+const Real NeighborListParticleContainer::cutoff;
+
 NeighborListParticleContainer::NeighborListParticleContainer(const Geometry            & geom,
                                                              const DistributionMapping & dmap,
                                                              const BoxArray            & ba,

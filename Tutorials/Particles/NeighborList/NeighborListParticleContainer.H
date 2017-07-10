@@ -144,8 +144,9 @@ private:
     }
     
     const int lev     = 0;
-    const Real cutoff = 1.e-2;
-    const Real min_r  = 1.e-4;
+
+    static constexpr Real cutoff = 1.e-2;
+    static constexpr Real min_r  = 1.e-4;
     
     int num_neighbor_cells;
     const size_t pdata_size = 3*BL_SPACEDIM*sizeof(ParticleType::RealType);
