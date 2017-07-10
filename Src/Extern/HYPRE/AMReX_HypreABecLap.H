@@ -21,7 +21,8 @@ public:
 
   HypreABecLap(const BoxArray& grids,
                const DistributionMapping& dmap,
-               const Geometry& geom);
+               const Geometry& geom,
+               const MPI_Comm& comm_);
   ~HypreABecLap();
 
   void setScalars(Real sa, Real sb);
@@ -35,6 +36,8 @@ public:
 	     int max_iter, LinOpBCType bc_type, Real bc_value, const Geometry& geom);
 
 protected:
+
+  const MPI_Comm& comm;
 
   int solver_flag, verbose;
 
