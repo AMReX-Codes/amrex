@@ -8,7 +8,9 @@ namespace amrex {
 
 HypreABecLap::HypreABecLap(const BoxArray& grids,
                            const DistributionMapping& dmap,
-                           const Geometry& geom)
+                           const Geometry& geom,
+                           const MPI_Comm& comm_)
+    : comm(comm_)
 {
   ParmParse pp("hypre");
 
@@ -18,14 +20,14 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
   pp.query("solver_flag", solver_flag);
 
   int num_procs, myid;
-  MPI_Comm_size(MPI_COMM_WORLD, &num_procs );
-  MPI_Comm_rank(MPI_COMM_WORLD, &myid );
+  MPI_Comm_size(comm, &num_procs );
+  MPI_Comm_rank(comm, &myid );
 
   for (int i = 0; i < BL_SPACEDIM; i++) {
     dx[i] = geom.CellSize(i);
   }
 
-  HYPRE_StructGridCreate(MPI_COMM_WORLD, BL_SPACEDIM, &grid);
+  HYPRE_StructGridCreate(comm, BL_SPACEDIM, &grid);
 
   for (int i = 0; i < BL_SPACEDIM; i++) {
     is_periodic[i] = 0;
@@ -83,13 +85,13 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
     HYPRE_StructStencilSetElement(stencil, i, offsets[i]);
   }
 
-  HYPRE_StructMatrixCreate(MPI_COMM_WORLD, grid, stencil, &A);
+  HYPRE_StructMatrixCreate(comm, grid, stencil, &A);
   HYPRE_StructMatrixInitialize(A);
 
   HYPRE_StructStencilDestroy(stencil); 
 
-  HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &b);
-  HYPRE_StructVectorCreate(MPI_COMM_WORLD, grid, &x);
+  HYPRE_StructVectorCreate(comm, grid, &b);
+  HYPRE_StructVectorCreate(comm, grid, &x);
 
   HYPRE_StructVectorInitialize(b);
   HYPRE_StructVectorInitialize(x);
@@ -340,7 +342,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
   HYPRE_StructVectorAssemble(b); 
 
   if (solver_flag == 0) {
-    HYPRE_StructSMGCreate(MPI_COMM_WORLD, &solver);
+    HYPRE_StructSMGCreate(comm, &solver);
     HYPRE_StructSMGSetMemoryUse(solver, 0);
     HYPRE_StructSMGSetMaxIter(solver, maxiter);
     HYPRE_StructSMGSetRelChange(solver, 0);
@@ -351,7 +353,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
     HYPRE_StructSMGSetup(solver, A, b, x);
   }
   else if (solver_flag == 1) {
-    HYPRE_StructPFMGCreate(MPI_COMM_WORLD, &solver);
+    HYPRE_StructPFMGCreate(comm, &solver);
     if (skip_relax >= 0) {
       HYPRE_StructPFMGSetSkipRelax(solver, skip_relax); // default: 1
     }
