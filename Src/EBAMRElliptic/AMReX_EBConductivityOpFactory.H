@@ -40,21 +40,19 @@ public:
 
   //! Constructs a factory that builds EBConductivityOps with time-independent
   //! A and B coefficients.
-  EBConductivityOpFactory(const vector<EBLevelGrid>&                                  a_eblgs,
-                             const vector<shared_ptr<EBQuadCFInterp> >&             a_quadCFI,
-                             const Real&                                                 a_alpha,
-                             const Real                                         &        a_beta,
-                             const vector<shared_ptr<FabArray<EBCellFAB> > >&        a_acoef,
-                             const vector<shared_ptr<FabArray<EBFluxFAB> > >&        a_bcoef,
-                             const vector<shared_ptr<FabArray<BaseIVFAB<Real> > > >& a_bcoefIrreg,
-                             const Real&                                                 a_dxCoarse,
-                             const vector<int>&                                          a_refRatio,
-                             const shared_ptr<BaseDomainBCFactory>&                   a_domainBCFactory,
-                             const shared_ptr<BaseEBBCFactory>    &                   a_ebBcFactory,
-                             const IntVect&                                              a_ghostCellsPhi,
-                             const IntVect&                                              a_ghostCellsRhs,
-                             const int&                                                  a_relaxType,
-                             int a_numLevels = -1);
+  EBConductivityOpFactory(const vector<EBLevelGrid>                           &  a_eblgs,
+                          const vector<shared_ptr<EBQuadCFInterp> >           &  a_quadCFI,
+                          const Real                                          &  a_alpha,
+                          const Real                                          &  a_beta,
+                          const vector<shared_ptr<FabArray<EBCellFAB> > >     &  a_acoef,
+                          const vector<shared_ptr<FabArray<EBFluxFAB> > >     &  a_bcoef,
+                          const Real                                          &  a_dxCoarse,
+                          const vector<int>                                   &  a_refRatio,
+                          const shared_ptr<BaseDomainBCFactory>               &  a_domainBCFactory,
+                          const shared_ptr<BaseEBBCFactory>                   &  a_ebBcFactory,
+                          const IntVect                                       &  a_ghostCellsPhi,
+                          const IntVect                                       &  a_ghostCellsRhs,
+                          int a_numLevels = -1);
 
 
   //! Destructor.
@@ -67,56 +65,26 @@ public:
     m_dataBased = true;
   }
 
-  ///
+  ///called by MultiGrid.H
   virtual EBConductivityOp*
-  MGnewOp(const ProblemDomain& a_FineindexSpace,
-          int                  a_depth,
-          bool                 a_homoOnly = true);
+  MGnewOp(const Box & a_FineindexSpace,
+          int         a_depth,
+          bool        a_homoOnly = true);
 
-  EBConductivityOp* createOperator(const EBLevelGrid&             a_eblgMGLevel,
-                                   const EBLevelGrid&             a_eblgCoarMG,
-                                   const bool&                    a_hasMGObjects,
-                                   const RealVect&                a_dxMGLevel,
-                                   const RealVect&                a_dxCoar,
-                                   const int&                     a_whichLevel);
-  ///
-  virtual void reclaim(MGLevelOp<FabArray<EBCellFAB> >* a_reclaim);
-
-  ///
+  ///called by AMRMultiGrid.H
   virtual EBConductivityOp*
-  AMRnewOp(const ProblemDomain& a_FineindexSpace);
-
-  ///
-  virtual void AMRreclaim(EBConductivityOp* a_reclaim);
-
-  ///
-  /** Refinement ratio between this level and coarser level.
-      Returns 1 when there are no coarser AMRLevelOp objects */
-  virtual int refToFiner(const ProblemDomain& a_domain) const;
+  AMRnewOp(const Box& a_FineindexSpace);
 
 
+  ///does the real work
+  EBConductivityOp*
+  createOperator(const int&  a_amrlevel,
+                 const int&  a_depth,
+                 const bool  a_amrLevelOp);
 
 protected:
 
-  vector<shared_ptr<FabArray<BaseIVFAB<Real> > > > m_data;
-  bool m_dataBased;
-  vector< vector<EBLevelGrid> >                                   m_eblgsMG;
-
-  //! Time-independent A multigrid coefficients
-  vector< vector< shared_ptr<FabArray<EBCellFAB> > > >        m_acoefMG;
-
-  //! Beginning-of-step (time-dependent) A multigrid coefficients
-  vector< vector< shared_ptr<FabArray<EBCellFAB> > > >        m_acoefMG0;
-
-  //! End-of-step (time-dependent) A multigrid coefficients
-  vector< vector< shared_ptr<FabArray<EBCellFAB> > > >        m_acoefMG1;
-
-  vector< vector< shared_ptr<FabArray<EBFluxFAB> > > >        m_bcoefMG;
-  vector< vector< shared_ptr<FabArray<BaseIVFAB<Real> > > > > m_bcoefIrregMG;
-
-  int                                                  m_relaxType;
   vector<EBLevelGrid>                                  m_eblgs;
-  vector<shared_ptr<EBQuadCFInterp> >                  m_quadCFI;
   Real                                                 m_alpha;
   Real                                                 m_beta;
 
@@ -125,15 +93,14 @@ protected:
 
 
   vector<shared_ptr<FabArray<EBFluxFAB> > >        m_bcoef;
-  vector<shared_ptr<FabArray<BaseIVFAB<Real> > > > m_bcoefIrreg;
+
   Real                                                 m_dxCoarse;
   vector<int>                                          m_refRatio;
-  shared_ptr<BaseDomainBCFactory>                   m_domainBCFactory;
-  shared_ptr<BaseEBBCFactory>                       m_ebBCFactory;
-  IntVect                                              m_ghostCellsPhi;
-  IntVect                                              m_ghostCellsRhs;
+  shared_ptr<BaseDomainBCFactory>                      m_domainBCFactory;
+  shared_ptr<BaseEBBCFactory>                          m_ebBCFactory;
+  int                                             m_ghostCellsPhi;
+  int                                              m_ghostCellsRhs;
   int                                                  m_numLevels;
-  std::vector< bool  >                                 m_hasMGObjects;
   vector<Real>                                         m_dx;
 private:
   ///weak construction bad

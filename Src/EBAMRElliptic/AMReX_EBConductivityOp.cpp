@@ -9,33 +9,33 @@
  *
  */
 
-#include "NWOEBConductivityOp.H"
+#include "EBConductivityOp.H"
 #include "AMReX_EBEllipticFort_F.H"
 namespace amrex
 {
 
   //-------------------------------------------------------------------------------
-  NWOEBConductivityOp::
-  NWOEBConductivityOp(const EBLevelGrid &                          a_eblgFine,
-                      const EBLevelGrid &                          a_eblg,
-                      const EBLevelGrid &                          a_eblgCoar,
-                      const EBLevelGrid &                          a_eblgCoarMG,
-                      const shared_ptr<ConductivityBaseDomainBC>&  a_domainBC,
-                      const shared_ptr<ConductivityBaseEBBC>&      a_ebBC,
-                      const Real    &                              a_dx,
-                      const Real    &                              a_dxCoar,
-                      const int&                                   a_refToFine,
-                      const int&                                   a_refToCoar,
-                      const bool&                                  a_hasFine,
-                      const bool&                                  a_hasCoar,
-                      const bool&                                  a_hasCoarMG,
-                      const Real&                                  a_alpha,
-                      const Real&                                  a_beta,
-                      const shared_ptr<FabArray<EBCellFAB> >&      a_acoef,
-                      const shared_ptr<FabArray<EBFluxFAB> >&      a_bcoef,
-                      const int    &                               a_ghostPhi,
-                      const int    &                               a_ghostRHS)
-  : LevelTGAHelmOp<FabArray<EBCellFAB>, EBFluxFAB>(false), // is time-independent
+  EBConductivityOp::
+  EBConductivityOp(const EBLevelGrid &                          a_eblgFine,
+                   const EBLevelGrid &                          a_eblg,
+                   const EBLevelGrid &                          a_eblgCoar,
+                   const EBLevelGrid &                          a_eblgCoarMG,
+                   const shared_ptr<ConductivityBaseDomainBC>&  a_domainBC,
+                   const shared_ptr<ConductivityBaseEBBC>&      a_ebBC,
+                   const Real    &                              a_dx,
+                   const Real    &                              a_dxCoar,
+                   const int&                                   a_refToFine,
+                   const int&                                   a_refToCoar,
+                   const bool&                                  a_hasFine,
+                   const bool&                                  a_hasCoar,
+                   const bool&                                  a_hasCoarMG,
+                   const Real&                                  a_alpha,
+                   const Real&                                  a_beta,
+                   const shared_ptr<FabArray<EBCellFAB> >&      a_acoef,
+                   const shared_ptr<FabArray<EBFluxFAB> >&      a_bcoef,
+                   const int    &                               a_ghostPhi,
+                   const int    &                               a_ghostRHS)
+  : AMRLevelOp<FabArray<EBCellFAB> >,
     m_ghostPhi(a_ghostPhi),
     m_ghostRHS(a_ghostRHS),
     m_eblg(a_eblg),
@@ -74,7 +74,7 @@ namespace amrex
     m_domainCoarMG(),
     m_colors()
   {
-    BL_PROFILE("NWOEBConductivityOp::ConductivityOp");
+    BL_PROFILE("EBConductivityOp::ConductivityOp");
     int ncomp = 1;
 
     m_turnOffBCs = false; //REALLY needs to default to false
@@ -111,7 +111,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   Real
-  NWOEBConductivityOp::
+  EBConductivityOp::
   getSafety()
   {
     Real safety = 1.0;
@@ -119,7 +119,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   calculateAlphaWeight()
   {
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
@@ -138,12 +138,12 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   getDivFStencil(VoFStencil&      a_vofStencil,
                  const VolIndex&  a_vof,
                  const MFIter  &  a_mfi)
   {
-    BL_PROFILE("NWOEBConductivityOp::getDivFStencil");
+    BL_PROFILE("EBConductivityOp::getDivFStencil");
     const EBISBox& ebisBox = m_eblg.getEBISL()[a_mfi];
     a_vofStencil.clear();
     for (int idir = 0; idir < SpaceDim; idir++)
@@ -165,7 +165,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   getFluxStencil(VoFStencil&      a_fluxStencil,
                  const FaceIndex& a_face,
                  const MFIter   & a_mfi)
@@ -173,7 +173,7 @@ namespace amrex
     /// stencil for flux computation.   the truly ugly part of this computation
     /// beta and eta are multiplied in here
 
-    BL_PROFILE("NWOEBConductivityOp::getFluxStencil");
+    BL_PROFILE("EBConductivityOp::getFluxStencil");
     //need to do this by interpolating to centroids
     //so get the stencil at each face center and add with
     //interpolation weights
@@ -195,12 +195,12 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   getFaceCenteredFluxStencil(VoFStencil&      a_fluxStencil,
                              const FaceIndex& a_face,
                              const MFIter   & a_mfi)
   {
-    BL_PROFILE("NWOEBConductivityOp::getFaceCenteredFluxStencil");
+    BL_PROFILE("EBConductivityOp::getFaceCenteredFluxStencil");
     //face centered gradient is just a centered diff
     int faceDir= a_face.direction();
     a_fluxStencil.clear();
@@ -218,11 +218,11 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   setAlphaAndBeta(const Real& a_alpha,
                   const Real& a_beta)
   {
-    BL_PROFILE("NWOEBConductivityOp::setAlphaAndBeta");
+    BL_PROFILE("EBConductivityOp::setAlphaAndBeta");
     m_alpha = a_alpha;
     m_beta  = a_beta;
     calculateAlphaWeight(); //need to do this because the a coef has probably been changed under us
@@ -230,20 +230,20 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   kappaScale(FabArray<EBCellFAB> & a_rhs)
   {
-    BL_PROFILE("NWOEBConductivityOp::kappaScale");
+    BL_PROFILE("EBConductivityOp::kappaScale");
     EBLevelDataOps::kappaWeight(a_rhs);
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   diagonalScale(FabArray<EBCellFAB> & a_rhs,
                 bool a_kappaWeighted)
   {
 
-    BL_PROFILE("NWOEBConductivityOp::diagonalScale");
+    BL_PROFILE("EBConductivityOp::diagonalScale");
     if (a_kappaWeighted)
       EBLevelDataOps::kappaWeight(a_rhs);
 
@@ -255,11 +255,11 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   divideByIdentityCoef(FabArray<EBCellFAB> & a_rhs)
   {
 
-    BL_PROFILE("NWOEBConductivityOp::divideByIdentityCoef");
+    BL_PROFILE("EBConductivityOp::divideByIdentityCoef");
 
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mf)
     {
@@ -268,7 +268,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   calculateRelaxationCoefficient()
   {
     BL_PROFILE("ebco::calculateRelCoef");
@@ -335,10 +335,10 @@ namespace amrex
 
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   defineStencils()
   {
-    BL_PROFILE("NWOEBConductivityOp::defineStencils");
+    BL_PROFILE("EBConductivityOp::defineStencils");
     // create ebstencil for irregular applyOp
     m_opEBStencil.define(m_eblg.getDBL(), m_eblg.getDM());
     // create vofstencils for applyOp and
@@ -492,13 +492,13 @@ namespace amrex
 
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   residual(FabArray<EBCellFAB>&       a_residual,
            const FabArray<EBCellFAB>& a_phi,
            const FabArray<EBCellFAB>& a_rhs,
            bool                        a_homogeneousPhysBC)
   {
-    BL_PROFILE("NWOEBConductivityOp::residual");
+    BL_PROFILE("EBConductivityOp::residual");
     //this is a multigrid operator so only homogeneous CF BC
     //and null coar level
     BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
@@ -508,11 +508,11 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   preCond(FabArray<EBCellFAB>&       a_lhs,
           const FabArray<EBCellFAB>& a_rhs)
   {
-    BL_PROFILE("NWOEBConductivityOp::preCond");
+    BL_PROFILE("EBConductivityOp::preCond");
     EBLevelDataOps::assign(a_lhs, a_rhs);
     EBLevelDataOps::scale(a_lhs, m_relCoef);
 
@@ -520,7 +520,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   applyOp(FabArray<EBCellFAB>&                    a_lhs,
           const FabArray<EBCellFAB>&              a_phi,
           const FabArray<EBCellFAB>* const        a_phiCoar,
@@ -544,7 +544,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   applyOp(FabArray<EBCellFAB>&                    a_lhs,
           const FabArray<EBCellFAB>&              a_phi,
           bool                                    a_homogeneous)
@@ -568,7 +568,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   fillPhiGhost(const FabArray<EBCellFAB>& a_phi, bool a_homog) const
   {
     BL_PROFILE("nwoebco::fillghostLD");
@@ -581,7 +581,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   fillPhiGhost(const EBCellFAB& a_phi, const MFIter   & a_datInd, bool a_homog) const
   {
     BL_PROFILE("nwoebco::fillghostfab");
@@ -617,7 +617,7 @@ namespace amrex
   }
 /*****/
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   applyOpRegular(EBCellFAB&             a_lhs,
                  const EBCellFAB&       a_phi,
                  const bool&            a_homogeneous,
@@ -651,7 +651,7 @@ namespace amrex
   //-------------------------------------------------------------------------------
 
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   applyOpIrregular(EBCellFAB&             a_lhs,
                    const EBCellFAB&       a_phi,
                    const bool&            a_homogeneous,
@@ -701,7 +701,7 @@ namespace amrex
 
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   create(FabArray<EBCellFAB>&       a_lhs,
          const FabArray<EBCellFAB>& a_rhs)
   {
@@ -712,7 +712,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   createCoarsened(FabArray<EBCellFAB>&       a_lhs,
                   const FabArray<EBCellFAB>& a_rhs,
                   const int &                a_refRat)
@@ -731,7 +731,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   assign(FabArray<EBCellFAB>&       a_lhs,
          const FabArray<EBCellFAB>& a_rhs)
   {
@@ -740,7 +740,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   Real
-  NWOEBConductivityOp::
+  EBConductivityOp::
   dotProduct(const FabArray<EBCellFAB>& a_1,
              const FabArray<EBCellFAB>& a_2)
   {
@@ -752,7 +752,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   incr(FabArray<EBCellFAB>&       a_lhs,
        const FabArray<EBCellFAB>& a_x,
        Real                        a_scale)
@@ -762,7 +762,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   axby(FabArray<EBCellFAB>&       a_lhs,
        const FabArray<EBCellFAB>& a_x,
        const FabArray<EBCellFAB>& a_y,
@@ -774,7 +774,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   scale(FabArray<EBCellFAB>& a_lhs,
         const Real&           a_scale)
   {
@@ -783,11 +783,11 @@ namespace amrex
   }
   //---------------------------------------
   Real 
-  NWOEBConductivityOp::
+  EBConductivityOp::
   norm(const FabArray<EBCellFAB>& a_rhs,
        int                         a_ord)
   {
-    BL_PROFILE("NWOEBConductivityOp::norm");
+    BL_PROFILE("EBConductivityOp::norm");
 
     Real maxNorm = 0.0;
 
@@ -812,7 +812,7 @@ namespace amrex
   }
 
   Real 
-  NWOEBConductivityOp::
+  EBConductivityOp::
   localMaxNorm(const FabArray<EBCellFAB>& a_rhs)
   {
     BL_PROFILE("EBAMRPoissonOp::localMaxNorm");
@@ -822,7 +822,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   setToZero(FabArray<EBCellFAB>& a_lhs)
   {
     BL_PROFILE("ebco::setToZero");
@@ -830,7 +830,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   setVal(FabArray<EBCellFAB>& a_lhs, const Real& a_value)
   {
     BL_PROFILE("ebco::setVal");
@@ -838,7 +838,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   createCoarser(FabArray<EBCellFAB>&       a_coar,
                 const FabArray<EBCellFAB>& a_fine,
                 bool                        a_ghosted)
@@ -851,7 +851,7 @@ namespace amrex
   //--------------------------------------------------------------------------------
 /*****/
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   relax(FabArray<EBCellFAB>&       a_phi,
         const FabArray<EBCellFAB>& a_rhs,
         int                         a_iterations)
@@ -882,7 +882,7 @@ namespace amrex
 
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   homogeneousCFInterp(FabArray<EBCellFAB>&   a_phif)
   {
     BL_PROFILE("nwoebco::homog_cfinterp");
@@ -894,7 +894,7 @@ namespace amrex
 
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   gsrbColor(FabArray<EBCellFAB>&       a_phi,
             const FabArray<EBCellFAB>& a_rhs,
             const IntVect&             a_color)
@@ -959,12 +959,12 @@ namespace amrex
   }
 
   //-------------------------------------------------------------------------------
-  void NWOEBConductivityOp::
+  void EBConductivityOp::
   restrictResidual(FabArray<EBCellFAB>&       a_resCoar,
                    FabArray<EBCellFAB>&       a_phiThisLevel,
                    const FabArray<EBCellFAB>& a_rhsThisLevel)
   {
-    BL_PROFILE("NWOEBConductivityOp::restrictResidual");
+    BL_PROFILE("EBConductivityOp::restrictResidual");
 
     BL_ASSERT(a_resCoar.nComp() == 1);
     BL_ASSERT(a_phiThisLevel.nComp() == 1);
@@ -993,11 +993,11 @@ namespace amrex
     }
   }
   //-------------------------------------------------------------------------------
-  void NWOEBConductivityOp::
+  void EBConductivityOp::
   prolongIncrement(FabArray<EBCellFAB>&       a_phiThisLevel,
                    const FabArray<EBCellFAB>& a_correctCoar)
   {
-    BL_PROFILE("NWOEBConductivityOp::prolongIncrement");
+    BL_PROFILE("EBConductivityOp::prolongIncrement");
     Interval vars(0, 0);
     if (m_layoutChanged)
     {
@@ -1009,19 +1009,19 @@ namespace amrex
     }
   }
   //-------------------------------------------------------------------------------
-  int NWOEBConductivityOp::
+  int EBConductivityOp::
   refToCoarser()
   {
     return m_refToCoar;
   }
   //-------------------------------------------------------------------------------
-  int NWOEBConductivityOp::
+  int EBConductivityOp::
   refToFiner()
   {
     return m_refToFine;
   }
   //-------------------------------------------------------------------------------
-  void NWOEBConductivityOp::
+  void EBConductivityOp::
   AMRResidual(FabArray<EBCellFAB>&       a_residual,
               const FabArray<EBCellFAB>& a_phiFine,
               const FabArray<EBCellFAB>& a_phi,
@@ -1030,7 +1030,7 @@ namespace amrex
               bool a_homogeneousPhysBC,
               AMRLevelOp<FabArray<EBCellFAB> >* a_finerOp)
   {
-    BL_PROFILERS("NWOEBConductivityOp::AMRResidual");
+    BL_PROFILERS("EBConductivityOp::AMRResidual");
     BL_PROFILER("AMROperator", t1);
     BL_PROFILER("axby", t2);
     BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
@@ -1051,7 +1051,7 @@ namespace amrex
     CH_STOP(t2);
   }
   //-------------------------------------------------------------------------------
-  void NWOEBConductivityOp::
+  void EBConductivityOp::
   AMROperator(FabArray<EBCellFAB>&       a_LofPhi,
               const FabArray<EBCellFAB>& a_phiFine,
               const FabArray<EBCellFAB>& a_phi,
@@ -1059,7 +1059,7 @@ namespace amrex
               bool a_homogeneousPhysBC,
               AMRLevelOp<FabArray<EBCellFAB> >* a_finerOp)
   {
-    BL_PROFILERS("NWOEBConductivityOp::AMROperator");
+    BL_PROFILERS("EBConductivityOp::AMROperator");
     BL_PROFILER("applyOp", t1);
     BL_PROFILER("reflux", t2);
     BL_ASSERT(a_LofPhi.nGrow() == m_ghostRHS);
@@ -1084,13 +1084,13 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   reflux(FabArray<EBCellFAB>& a_residual,
          const FabArray<EBCellFAB>& a_phiFine,
          const FabArray<EBCellFAB>& a_phi,
          AMRLevelOp<FabArray<EBCellFAB> >* a_finerOp)
   {
-    BL_PROFILERS("NWOEBConductivityOp::fastReflux");
+    BL_PROFILERS("EBConductivityOp::fastReflux");
     BL_PROFILER("setToZero",t2);
     BL_PROFILER("incrementCoar",t3);
     BL_PROFILER("incrementFine",t4);
@@ -1116,12 +1116,12 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   incrementFRCoar(EBFastFR&             a_fluxReg,
                   const FabArray<EBCellFAB>& a_phiFine,
                   const FabArray<EBCellFAB>& a_phi)
   {
-    BL_PROFILE("NWOEBConductivityOp::incrementFRCoar");
+    BL_PROFILE("EBConductivityOp::incrementFRCoar");
     BL_ASSERT(a_phiFine.nComp() == 1);
     BL_ASSERT(a_phi.nComp() == 1);
 
@@ -1157,7 +1157,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   getFluxRegOnly(EBFaceFAB&                    a_fluxCentroid,
                  const EBCellFAB&              a_phi,
                  const Box&                    a_ghostedBox,
@@ -1194,19 +1194,19 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   incrementFRFine(EBFastFR&             a_fluxReg,
                   const FabArray<EBCellFAB>& a_phiFine,
                   const FabArray<EBCellFAB>& a_phi,
                   AMRLevelOp<FabArray<EBCellFAB> >* a_finerOp)
   {
-    BL_PROFILE("NWOEBConductivityOp::incrementFRFine");
+    BL_PROFILE("EBConductivityOp::incrementFRFine");
     BL_ASSERT(a_phiFine.nComp() == 1);
     BL_ASSERT(a_phi.nComp() == 1);
     BL_ASSERT(m_hasFine);
     int ncomp = 1;
     Interval interv(0,0);
-    NWOEBConductivityOp& finerEBAMROp = (NWOEBConductivityOp& )(*a_finerOp);
+    EBConductivityOp& finerEBAMROp = (EBConductivityOp& )(*a_finerOp);
 
     //ghost cells of phiFine need to be filled
     FabArray<EBCellFAB>& phiFine = (FabArray<EBCellFAB>&) a_phiFine;
@@ -1246,7 +1246,7 @@ namespace amrex
   //-------------------------------------------------------------------------------
 
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   AMRResidualNC(FabArray<EBCellFAB>&       a_residual,
                 const FabArray<EBCellFAB>& a_phiFine,
                 const FabArray<EBCellFAB>& a_phi,
@@ -1263,7 +1263,7 @@ namespace amrex
   //-------------------------------------------------------------------------------
 
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   AMRResidualNF(FabArray<EBCellFAB>&       a_residual,
                 const FabArray<EBCellFAB>& a_phi,
                 const FabArray<EBCellFAB>& a_phiCoar,
@@ -1281,7 +1281,7 @@ namespace amrex
   //-------------------------------------------------------------------------------
 
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   AMROperatorNC(FabArray<EBCellFAB>&       a_LofPhi,
                 const FabArray<EBCellFAB>& a_phiFine,
                 const FabArray<EBCellFAB>& a_phi,
@@ -1298,7 +1298,7 @@ namespace amrex
   //-------------------------------------------------------------------------------
 
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   AMROperatorNF(FabArray<EBCellFAB>&       a_LofPhi,
                 const FabArray<EBCellFAB>& a_phi,
                 const FabArray<EBCellFAB>& a_phiCoar,
@@ -1311,14 +1311,14 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   AMRRestrict(FabArray<EBCellFAB>&       a_resCoar,
               const FabArray<EBCellFAB>& a_residual,
               const FabArray<EBCellFAB>& a_correction,
               const FabArray<EBCellFAB>& a_coarCorrection, 
               bool a_skip_res )
   {
-    BL_PROFILE("NWOEBConductivityOp::AMRRestrict");
+    BL_PROFILE("EBConductivityOp::AMRRestrict");
     BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
     BL_ASSERT(a_correction.nGrow() == m_ghostPhi);
     BL_ASSERT(a_coarCorrection.nGrow() == m_ghostPhi);
@@ -1350,7 +1350,7 @@ namespace amrex
   }
   //-------------------------------------------------------------------------------
   Real
-  NWOEBConductivityOp::
+  EBConductivityOp::
   AMRNorm(const FabArray<EBCellFAB>& a_coarResid,
           const FabArray<EBCellFAB>& a_fineResid,
           const int& a_refRat,
@@ -1358,30 +1358,30 @@ namespace amrex
 
   {
     // compute norm over all cells on coarse not covered by finer
-    BL_PROFILE("NWOEBConductivityOp::AMRNorm");
+    BL_PROFILE("EBConductivityOp::AMRNorm");
     amrex::Error("never called");
     //return norm of temp
     return norm(a_coarResid, a_ord);
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   AMRProlong(FabArray<EBCellFAB>&       a_correction,
              const FabArray<EBCellFAB>& a_coarCorrection)
   {
-    BL_PROFILE("NWOEBConductivityOp::AMRProlong");
+    BL_PROFILE("EBConductivityOp::AMRProlong");
     //use cached interpolation object
     Interval variables(0, 0);
     m_ebInterp.pwcInterp(a_correction, a_coarCorrection, variables);
   }
   //-------------------------------------------------------------------------------
   void
-  NWOEBConductivityOp::
+  EBConductivityOp::
   AMRUpdateResidual(FabArray<EBCellFAB>&       a_residual,
                     const FabArray<EBCellFAB>& a_correction,
                     const FabArray<EBCellFAB>& a_coarCorrection)
   {
-    BL_PROFILE("NWOEBConductivityOp::AMRUpdateResidual");
+    BL_PROFILE("EBConductivityOp::AMRUpdateResidual");
     BL_ASSERT(a_residual.nGrow()   == m_ghostRHS);
     BL_ASSERT(a_correction.nGrow() == m_ghostPhi);
     BL_ASSERT(a_coarCorrection.nGrow() == m_ghostPhi);
