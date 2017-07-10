@@ -134,17 +134,16 @@ private:
     ///
     /// Compute the distance between particles 1 and 2.
     ///
-    inline Real distance2(const ParticleType& p1, const ParticleType& p2) {
+    inline bool check_pair(const ParticleType& p1, const ParticleType& p2) {
         Real r2 = 0.0;
         for (int i = 0; i < BL_SPACEDIM; ++i) {
             Real dd = p1.pos(i) - p2.pos(i);
             r2 += dd*dd;
         }
-        return r2;
+        return r2 <= cutoff*cutoff;
     }
     
     const int lev     = 0;
-
     static constexpr Real cutoff = 1.e-2;
     static constexpr Real min_r  = 1.e-4;
     
