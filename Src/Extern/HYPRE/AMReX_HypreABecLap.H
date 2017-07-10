@@ -22,7 +22,7 @@ public:
   HypreABecLap(const BoxArray& grids,
                const DistributionMapping& dmap,
                const Geometry& geom,
-               const MPI_Comm& comm_);
+               MPI_Comm comm_);
   ~HypreABecLap();
 
   void setScalars(Real sa, Real sb);
@@ -37,7 +37,7 @@ public:
 
 protected:
 
-  const MPI_Comm& comm;
+  MPI_Comm comm;
 
   int solver_flag, verbose;
 
