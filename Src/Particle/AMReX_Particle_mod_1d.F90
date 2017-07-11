@@ -59,13 +59,66 @@ contains
        wx_hi = lx - i
        wx_lo = 1.0d0 - wx_hi
 
-       do comp = 1, nc
-          rho(i-1, comp) = rho(i-1, comp) + wx_lo*particles(1 + comp, n)
-          rho(i  , comp) = rho(i  , comp) + wx_hi*particles(1 + comp, n)
+       rho(i-1, 1) = rho(i-1, 1) + wx_lo*particles(2, n)
+       rho(i  , 1) = rho(i  , 1) + wx_hi*particles(2, n)
+
+       do comp = 2, nc
+          rho(i-1, comp) = rho(i-1, comp) + wx_lo*particles(2,n)*particles(1 + comp, n)
+          rho(i  , comp) = rho(i  , comp) + wx_hi*particles(2,n)*particles(1 + comp, n)
        end do
     end do
 
   end subroutine amrex_deposit_cic
+
+  subroutine amrex_deposit_particle_dx_cic(particles, ns, np, nc, & 
+                                           rho, lo, hi, plo, dx,  &
+                                           dx_particle) &
+       bind(c,name='amrex_deposit_particle_dx_cic')
+    integer, value                :: ns, np, nc
+    real(amrex_particle_real)     :: particles(ns,np)
+    integer                       :: lo(1)
+    integer                       :: hi(1)
+    real(amrex_real)              :: rho(lo(1):hi(1), nc)
+    real(amrex_real)              :: plo(1)
+    real(amrex_real)              :: dx(1)
+    real(amrex_real)              :: dx_particle(1)
+
+    integer i, n, comp
+    real(amrex_real) lx, hx
+    integer lo_x, hi_x
+    real(amrex_real) wx
+    real(amrex_real) inv_dx(1)
+    real (amrex_real) factor, weight
+
+    factor = dx(1)/dx_particle(1)
+    inv_dx = 1.0d0/dx
+
+    do n = 1, np
+
+       lx = (particles(1, n) - plo(1) - 0.5d0*dx_particle(1))*inv_dx(1)
+       hx = (particles(1, n) - plo(1) + 0.5d0*dx_particle(1))*inv_dx(1)
+
+       lo_x = floor(lx)
+       hi_x = floor(hx)
+
+       do i = lo_x, hi_x
+          if (i < lo(1) .or. i > hi(1)) then
+             cycle
+          end if
+          wx = min(hx - i, 1.d0) - max(lx - i, 0.d0)
+
+          weight = wx*factor
+
+          rho(i, j, 1) = rho(i, j, 1) + weight*particles(2, n)
+
+          do comp = 2, nc
+             rho(i, j, comp) = rho(i, j, comp) + weight*particles(2, n)*particles(1+comp, n) 
+          end do
+
+       end do
+    end do
+
+  end subroutine amrex_deposit_particle_dx_cic
 
   subroutine amrex_interpolate_cic(particles, ns, np, acc, lo, hi, ncomp, plo, dx) &
        bind(c,name='amrex_interpolate_cic')
