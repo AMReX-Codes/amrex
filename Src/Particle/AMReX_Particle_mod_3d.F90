@@ -99,7 +99,9 @@ contains
 
   end subroutine amrex_deposit_cic
 
-  subroutine amrex_deposit_particle_dx_cic(particles, ns, np, nc, rho, lo, hi, plo, dx, dx_particle) &
+  subroutine amrex_deposit_particle_dx_cic(particles, ns, np, nc, & 
+                                           rho, lo, hi, plo, dx,  &
+                                           dx_particle) &
        bind(c,name='amrex_deposit_particle_dx_cic')
     integer, value                :: ns, np, nc
     real(amrex_particle_real)     :: particles(ns,np)
@@ -143,8 +145,8 @@ contains
                 lz = k*dx(3) + 0.5d0*dx(3) - particles(3, n) + plo(3)
 
                 wx = 1.d0 - abs(lx * inv_dx(1))
-                wy = 1.d0 - abs(lx * inv_dx(2))
-                wz = 1.d0 - abs(lx * inv_dx(3))
+                wy = 1.d0 - abs(ly * inv_dx(2))
+                wz = 1.d0 - abs(lz * inv_dx(3))
           
                 rho(i, j, k, 1) = rho(i, j, k, 1) + wx*wy*wz*particles(4, n) 
 
