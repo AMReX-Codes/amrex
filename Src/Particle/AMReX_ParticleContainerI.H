@@ -4170,6 +4170,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
+    const int       ng          = mf_pointer->nGrow();
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
@@ -4201,7 +4202,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
             const int *lo, *hi;
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
-            tile_box.grow(1);
+            tile_box.grow(ng);
             local_rho.resize(tile_box,ncomp);
             local_rho = 0.0;
             data_ptr = local_rho.dataPtr();
