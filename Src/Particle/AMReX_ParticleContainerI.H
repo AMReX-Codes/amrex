@@ -4175,7 +4175,6 @@ AssignCellDensitySingleLevelFort (int rho_index,
     const Real*     plo         = gm.ProbLo();
     const Real*     dx_particle = Geom(lev + particle_lvl_offset).CellSize();
     const Real*     dx          = gm.CellSize();
-    const auto&     pmap        = m_particles[lev];
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
       amrex::Error("AssignDensity: problem must be periodic in no or all directions");
@@ -4285,7 +4284,6 @@ InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx          = gm.CellSize();
-    const auto&     pmap        = m_particles[lev];
 
     using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     
