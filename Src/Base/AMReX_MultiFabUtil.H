@@ -48,6 +48,12 @@ namespace amrex
     //! Fill MultiFab boundaries except for physical boundaries.
     void fill_boundary(MultiFab& mf, const Geometry& geom, bool cross = false);
     void fill_boundary(MultiFab& mf, int scomp, int ncomp, const Geometry& geom, bool cross = false);
+
+    //! Output state data for a single zone
+    void print_state(MultiFab& mf, int i, int j, int k);
+    void print_state_n(MultiFab& mf, int i, int j, int k, int n);
 }
+
+
 
 #endif
