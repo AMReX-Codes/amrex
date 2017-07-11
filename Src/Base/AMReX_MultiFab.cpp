@@ -893,7 +893,7 @@ MultiFab::norm2 (int comp) const
     BL_ASSERT(ixType().cellCentered());
 
     // Dot expects two MultiDabs. Make a copy to avoid aliasing.
-    MultiFab tmpmf(boxArray(), DistributionMapping(), 1, 0);
+    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0);
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
     Real nm2 = MultiFab::Dot(*this, comp, tmpmf, 0, 1, 0);
@@ -904,7 +904,7 @@ MultiFab::norm2 (int comp) const
 Real
 MultiFab::norm2 (int comp, const Periodicity& period) const
 {
-    MultiFab tmpmf(boxArray(), DistributionMapping(), 1, 0);
+    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0);
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
     auto mask = OverlapMask(period);
@@ -971,7 +971,7 @@ MultiFab::norm2 (const Array<int>& comps) const
 Real
 MultiFab::norm1 (int comp, const Periodicity& period) const
 {
-    MultiFab tmpmf(boxArray(), DistributionMapping(), 1, 0);
+    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0);
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
     auto mask = OverlapMask(period);

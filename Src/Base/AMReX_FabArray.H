@@ -765,7 +765,7 @@ bool
 FabArray<FAB>::defined (const MFIter& mfi) const
 {
     int li = mfi.LocalIndex();
-    if (li < m_fabs_v.size() && m_fabs_v[li] != 0) {
+    if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
 	return true;
     }
     else {
