@@ -125,3 +125,93 @@ for visual interpretation of the data allowing {\tt Amrvis} to open the {\tt bl\
 like a plotfile but with interfaces appropriate to profiling data. AMRProfParser
 and {\tt Amrvis} can be run in parallel both interactively and in batch mode.
 
+\section{CrayPat}
+
+The profiling suite available on Cray XC systems is Cray Performance
+Measurement and Analysis Tools
+(``CrayPat'')\footnote{\url{https://pubs.cray.com/content/S-2376/6.4.6/cray-performance-measurement-and-analysis-tools-user-guide-646-s-2376}}.
+Most CrayPat functionality is supported for all compilers available in the Cray
+``programming environments`` (modules which begin ``\texttt{PrgEnv-}'');
+however, a few features, chiefly the ``Reveal'' tool, are supported only on
+applications compiled with Cray's compiler
+CCE\footnote{\url{https://pubs.cray.com/content/S-2179/8.5/cray-c-and-c++-reference-manual-85}}\footnote{\url{https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85}}.
+
+CrayPat supports both high-level profiling tools, as well as fine-grained
+performance analysis, such as reading hardware counters. The default behavior
+uses sampling to identify the most time-consuming functions in an application.
+
+\subsection{High-level application profiling}
+
+The simplest way to obtain a high-level overview of an application's performance consists of the following steps:
+
+\begin{enumerate}
+    \item Load the \texttt{perftools-base} module, then the
+        \texttt{perftools-lite} module. (The modules will not work if loaded in
+        the opposite order.)
+    \item Compile the application with the Cray compiler wrappers \texttt{cc},
+        \texttt{CC}, and/or \texttt{ftn}. This works with any of the compilers
+        available in the \texttt{PrgEnv-} modules. E.g., on the Cori system at
+        NERSC, one can use the Intel, GCC, or CCE compilers. No extra compiler
+        flags are necessary in order for CrayPat to work. CrayPat instruments
+        the application, so the \texttt{perftools-} modules must be loaded
+        before one compiles the application.
+    \item Run the application as normal. No special flags are required. Upon
+        application completion, CrayPat will write a few files to the directory
+        from which the application was launched. The profiling database is a
+        single file with the \texttt{.ap2} suffix.
+    \item One can query the database in many different ways using the
+        \texttt{pat\_report} command on the \texttt{.ap2} file. \texttt{pat\_report} is
+        available on login nodes, so the analysis need not be done on a compute node.
+        Querying the database with no arguments to \texttt{pat\_report} prints several
+        different profiling reports to STDOUT, including a list of the most
+        time-consuming regions in the application. The output of this command can be
+        long, so it can be convenient to pipe the output to a pager or a file. A
+        portion of the output from \texttt{pat\_report <file>.ap2} is shown below:
+
+\begin{verbatim}
+Table 1:  Profile by Function
+
+  Samp% |    Samp |  Imb. |  Imb. | Group
+        |         |  Samp | Samp% |  Function
+        |         |       |       |   PE=HIDE
+
+ 100.0% | 5,235.5 |    -- |    -- | Total
+|-----------------------------------------------------------------------------
+|  50.2% | 2,628.5 |    -- |    -- | USER
+||----------------------------------------------------------------------------
+||   7.3% |   383.0 |  15.0 |  5.0% | eos_module_mp_iterate_ne_
+||   5.7% |   300.8 | 138.2 | 42.0% | amrex_deposit_cic
+||   5.1% |   265.2 |  79.8 | 30.8% | update_dm_particles
+||   2.8% |   147.2 |   5.8 |  5.0% | fort_fab_setval
+||   2.6% |   137.2 |  48.8 | 34.9% | amrex::ParticleContainer<>::Where
+||   2.6% |   137.0 |  11.0 |  9.9% | ppm_module_mp_ppm_type1_
+||   2.5% |   133.0 |  24.0 | 20.4% | eos_module_mp_nyx_eos_t_given_re_
+||   2.1% |   107.8 |  33.2 | 31.4% | amrex::ParticleContainer<>::IncrementWithTotal
+||   1.7% |    89.2 |  19.8 | 24.2% | f_rhs_
+||   1.4% |    74.0 |   7.0 | 11.5% | riemannus_
+||   1.1% |    56.0 |   2.0 |  4.6% | amrex::VisMF::Write
+||   1.0% |    50.5 |   1.5 |  3.8% | amrex::VisMF::Header::CalculateMinMax
+||============================================================================
+|  28.1% | 1,471.0 |    -- |    -- | ETC
+||----------------------------------------------------------------------------
+||   7.4% |   388.8 |  10.2 |  3.4% | __intel_mic_avx512f_memcpy
+||   6.9% |   362.5 |  45.5 | 14.9% | CVode
+||   3.1% |   164.5 |   8.5 |  6.6% | __libm_log10_l9
+||   2.9% |   149.8 |  29.2 | 21.8% | _INTERNAL_25_______src_kmp_barrier_cpp_5de9139b::__kmp_hyper_barrier_gather
+||============================================================================
+|  16.8% |   879.8 |    -- |    -- | MPI
+||----------------------------------------------------------------------------
+||   5.1% |   266.0 | 123.0 | 42.2% | MPI_Allreduce
+||   4.2% |   218.2 | 104.8 | 43.2% | MPI_Waitall
+||   2.9% |   151.8 |  78.2 | 45.4% | MPI_Bcast
+||   2.6% |   135.0 |  98.0 | 56.1% | MPI_Barrier
+||   2.0% |   105.8 |   5.2 |  6.3% | MPI_Recv
+||============================================================================
+|   1.9% |    98.2 |    -- |    -- | IO
+||----------------------------------------------------------------------------
+||   1.8% |    93.8 |   6.2 |  8.3% | read
+||============================================================================
+\end{verbatim}
+
+
+\end{enumerate}

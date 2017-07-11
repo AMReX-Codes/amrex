@@ -2,7 +2,7 @@
 AMREX_PARTICLE=EXE
 
 C$(AMREX_PARTICLE)_sources += AMReX_TracerParticles.cpp
-C$(AMREX_PARTICLE)_headers += AMReX_Particles.H AMReX_ParGDB.H AMReX_TracerParticles.H
+C$(AMREX_PARTICLE)_headers += AMReX_Particles.H AMReX_ParGDB.H AMReX_TracerParticles.H AMReX_NeighborParticles.H AMReX_NeighborParticlesI.H
 C$(AMREX_PARTICLE)_headers += AMReX_ParticleI.H AMReX_ParticleInit.H AMReX_ParticleContainerI.H
 C$(AMREX_PARTICLE)_headers += AMReX_ParIterI.H
 F$(AMREX_PARTICLE)_headers += AMReX_Particles_F.H
