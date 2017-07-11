@@ -4170,12 +4170,12 @@ AssignCellDensitySingleLevelFort (int rho_index,
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
+    const int       ng          = mf_pointer->nGrow();
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx_particle = Geom(lev + particle_lvl_offset).CellSize();
     const Real*     dx          = gm.CellSize();
-    const auto&     pmap        = m_particles[lev];
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
       amrex::Error("AssignDensity: problem must be periodic in no or all directions");
@@ -4202,7 +4202,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
             const int *lo, *hi;
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
-            tile_box.grow(1);
+            tile_box.grow(ng);
             local_rho.resize(tile_box,ncomp);
             local_rho = 0.0;
             data_ptr = local_rho.dataPtr();
@@ -4285,7 +4285,6 @@ InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx          = gm.CellSize();
-    const auto&     pmap        = m_particles[lev];
 
     using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     
