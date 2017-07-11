@@ -57,13 +57,8 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
   }
 
   if (num_procs != 1) {
-    // parallel section:
-    BL_ASSERT(ParallelDescriptor::NProcs() == num_procs);
-    BL_ASSERT(ParallelDescriptor::MyProc() == myid);
-    DistributionMapping distributionMap(grids, num_procs);
-
     for (int i = 0; i < grids.size(); i++) {
-      if (distributionMap[i] == myid) {
+      if (dmap[i] == myid) {
 	HYPRE_StructGridSetExtents(grid, loV(grids[i]), hiV(grids[i]));
       }
     }
@@ -460,7 +455,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
       HYPRE_StructPFMGGetFinalRelativeResidualNorm(solver, &res);
     }
 
-    int oldprec = std::cout.precision(20);
+    int oldprec = std::cout.precision(17);
     std::cout << "\n" << num_iterations
 	      << " Hypre Multigrid Iterations, Relative Residual "
 	      << res << std::endl;
