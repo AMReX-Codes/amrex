@@ -99,6 +99,65 @@ contains
 
   end subroutine amrex_deposit_cic
 
+  subroutine amrex_deposit_particle_dx_cic(particles, ns, np, nc, rho, lo, hi, plo, dx, dx_particle) &
+       bind(c,name='amrex_deposit_particle_dx_cic')
+    integer, value                :: ns, np, nc
+    real(amrex_particle_real)     :: particles(ns,np)
+    integer                       :: lo(3)
+    integer                       :: hi(3)
+    real(amrex_real)              :: rho(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3),nc)
+    real(amrex_real)              :: plo(3)
+    real(amrex_real)              :: dx(3)
+    real(amrex_real)              :: dx_particle(3)
+
+    integer i, j, k, n, comp
+    integer lo_x, lo_y, lo_z, hi_x, hi_y, hi_z
+    real(amrex_real) wx, wy, wz
+    real(amrex_real) lx, ly, lz
+    real(amrex_real) inv_dx(3)
+    inv_dx = 1.0d0/dx
+
+    do n = 1, np
+       lo_x = floor(particles(1, n) - plo(1) - 0.5d0*dx_particle(1))*inv_dx(1)
+       lo_y = floor(particles(2, n) - plo(2) - 0.5d0*dx_particle(2))*inv_dx(2)
+       lo_z = floor(particles(3, n) - plo(3) - 0.5d0*dx_particle(3))*inv_dx(3)
+
+       hi_x = floor(particles(1, n) - plo(1) + 0.5d0*dx_particle(1))*inv_dx(1)
+       hi_y = floor(particles(2, n) - plo(2) + 0.5d0*dx_particle(2))*inv_dx(2)
+       hi_z = floor(particles(3, n) - plo(3) + 0.5d0*dx_particle(3))*inv_dx(3)
+
+       do i = lo_x, hi_x
+          if (i < lo(1) .or. i > hi(1)) then
+             cycle
+          end if
+          lx = i*dx(1) + 0.5d0*dx(1) - particles(1, n) + plo(1)
+          do j = lo_y, hi_y
+             if (j < lo(2) .or. j > hi(2)) then
+                cycle
+             end if
+             ly = j*dx(2) + 0.5d0*dx(2) - particles(2, n) + plo(2)
+             do k = lo_z, hi_z
+                if (k < lo(3) .or. k > hi(3)) then
+                   cycle
+                end if
+                lz = k*dx(3) + 0.5d0*dx(3) - particles(3, n) + plo(3)
+
+                wx = 1.d0 - abs(lx * inv_dx(1))
+                wy = 1.d0 - abs(lx * inv_dx(2))
+                wz = 1.d0 - abs(lx * inv_dx(3))
+          
+                rho(i, j, k, 1) = rho(i, j, k, 1) + wx*wy*wz*particles(4, n) 
+
+                do comp = 2, nc
+                   rho(i, j, k, comp) = rho(i, j, k, comp) + wx*wy*wz*particles(4, n)*particles(3+comp, n) 
+                end do
+             end do
+          end do
+       end do
+    end do
+
+  end subroutine amrex_deposit_particle_dx_cic
+
   subroutine amrex_interpolate_cic(particles, ns, np, acc, lo, hi, ncomp, plo, dx) &
        bind(c,name='amrex_interpolate_cic')
     integer, value                :: ns, np, ncomp

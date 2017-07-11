@@ -4214,7 +4214,14 @@ AssignCellDensitySingleLevelFort (int rho_index,
             hi = box.hiVect();
 #endif
 
-            amrex_deposit_cic(particles.data(), nstride, np, ncomp, data_ptr, lo, hi, plo, dx);
+            if (dx == dx_particle) {
+                amrex_deposit_cic(particles.data(), nstride, np, ncomp, 
+                                  data_ptr, lo, hi, plo, dx);
+            } else {
+                amrex_deposit_particle_dx_cic(particles.data(), nstride, np, ncomp,
+                                              data_ptr, lo, hi, plo, dx, dx_particle);
+            }
+                
 
 #ifdef _OPENMP
             amrex_atomic_accumulate_fab(local_rho.dataPtr(), 
