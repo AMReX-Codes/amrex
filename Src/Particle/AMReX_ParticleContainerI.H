@@ -53,8 +53,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const 
     const Geometry& geom = Geom(lev);
 
     AMREX_D_TERM(iv[0]=floor((p.m_rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
-           iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
-           iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
+                 iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
+                 iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
 
     iv += geom.Domain().smallEnd();
 
@@ -4091,12 +4091,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
             mf_to_be_filled[lev]->copy(*mf_part[lev],0,0,1);
         }
     }
-    int nlevels = finest_level - lev_min + 1;
-    for (int i = 0; i < nlevels; i++)
-    {
-        mf_to_be_filled[i] = std::move(mf_to_be_filled[i+lev_min]);
+    if (lev_min > 0) {
+        int nlevels = finest_level - lev_min + 1;
+        for (int i = 0; i < nlevels; i++)
+            {
+                mf_to_be_filled[i] = std::move(mf_to_be_filled[i+lev_min]);
+            }
+        mf_to_be_filled.resize(nlevels);
     }
-    mf_to_be_filled.resize(nlevels);
 }
 
 //

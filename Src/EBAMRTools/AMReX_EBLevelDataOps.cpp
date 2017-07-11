@@ -23,6 +23,53 @@
 namespace amrex
 {
   //-----------------------------------------------------------------------
+  Real 
+  EBLevelDataOps::
+  kappaDotProduct(Real&                       a_volume,
+                  const FabArray<EBCellFAB> & a_data1,
+                  const FabArray<EBCellFAB> & a_data2,
+                  const EBLevelGrid         & a_eblg)
+  {
+    BL_PROFILE("EBLevelDataOps::kappaDotProduct");
+    Real accum = 0.0;
+
+    a_volume = 0.0;
+
+    for (MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
+    {
+      const Box   & box = a_eblg.getDBL()[mfi];
+      EBISBox ebisbox = a_eblg.getEBISL()[mfi];
+      IntVectSet ivs(box);
+
+      Real cur      = 0;
+      Real curVolume= 0;
+      
+      for(VoFIterator vofit(ivs, ebisbox.getEBGraph()); vofit.ok(); ++vofit)
+      {
+        Real kappa = ebisbox.volFrac(vofit());
+        curVolume += kappa;
+        for(int icomp = 0; icomp < a_data1.nComp(); icomp++)
+        {
+          Real value1 = a_data1[mfi](vofit(), icomp);
+          Real value2 = a_data2[mfi](vofit(), icomp);
+          cur += value1*value2*kappa*kappa; //makes no sense to me either but that is how it is coded.
+        }
+
+        a_volume += curVolume;
+        accum += cur;
+      }
+
+    }
+    gatherBroadCast(accum, a_volume, 1);
+
+    if (a_volume > 0.0)
+    {
+      accum = accum / a_volume;
+    }
+
+    return accum;
+  }
+  //-----------------------------------------------------------------------
 
   void 
   EBLevelDataOps::

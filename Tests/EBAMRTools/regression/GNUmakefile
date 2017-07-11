@@ -13,8 +13,8 @@ DEBUG        = TRUE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
 
-PROFILE       = TRUE
-COMM_PROFILE  = TRUE
+PROFILE       = FALSE
+COMM_PROFILE  = FALSE
 TRACE_PROFILE = FALSE
 #DEFINES += -DBL_PROFILING_SPECIAL
 
@@ -31,6 +31,7 @@ _progs  += simpleMeshRefine
 _progs  += fluxRegTest
 _progs  += regFluxRegTest
 _progs  += ebCoarseAveTest
+_progs  += ebCoarseAveTestFace
 _progs  += nwoEBQuadCFITest
 _progs  += ebFineInterpTest
 

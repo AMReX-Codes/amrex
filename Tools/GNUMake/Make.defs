@@ -398,6 +398,11 @@ ifeq ($(USE_VTUNE),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
 endif
 
+ifeq ($(USE_CRAYPAT),TRUE)
+  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+endif
+
 # Use Sam Williams's HPGMG
 ifeq ($(USE_HPGMG), TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hpgmg...)
@@ -417,12 +422,18 @@ ifeq ($(USE_UPCXX),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.upcxx
 endif
 
+ifeq ($(USE_CVODE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
+endif
+
+ifeq ($(USE_HYPRE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre
+endif
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
-ifeq ($(USE_CVODE),TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
-endif
