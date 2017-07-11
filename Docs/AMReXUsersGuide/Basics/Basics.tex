@@ -3,10 +3,31 @@ source codes are in {\tt amrex/Src/Base/}.  Note that \amrex\ classes
 and functions are in namespace {\tt amrex}.  For clarity, we usually
 drop {\tt amrex::} in the example codes here.  It is also assumed that
 headers have been properly {\tt include}d.  We recommend you study
-the tutorials in {\tt amrex/Tutorials/Basic/} while reading this chapter.
+the tutorial in {\tt amrex/Tutorials/Basic/HeatEquation\_EX1\_C} while reading this chapter.
 After reading this chapter, one should be able to develop single-level
 parallel codes using \amrex.  It should also be noted that this is not
 a comprehensive reference manual.
+
+\section{{\tt HeatEquation\_EX1\_C} Example}
+The source code tree for the heat equation example is simple, as shown
+in Figure \ref{fig:Basics_Heat_flowchart}.  We recommend you study
+{\tt main.cpp} and {\tt advance.cpp} to see some of the classes described
+below in action.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[htb]
+\begin{center}
+\includegraphics[width=4in]{./Basics/figs/flowchart.pdf}
+\caption{\label{fig:Basics_Heat_flowchart} Source code tree for the 
+         {\tt HeatEquation\_EX1\_C} example.}
+\end{center}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+\item {\tt Base/}\\
+Contains source code for single-level \amrex simulations.
+\item {\tt HeatEquation\_EX1\_C} \\
+Build the code here by editing the {\tt GNUmakefile} and running {\tt make}.
+\end{itemize}
 
 \section{Dimensionality}
 \label{sec:basics:dim}

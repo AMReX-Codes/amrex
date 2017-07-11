@@ -124,9 +124,25 @@ The result may look like,
 
 \section{Example: Heat Equation Solver}\label{sec:heat equation}
 
-We now look at a more complicated example at {\tt
-  amrex/Tutorials/Basic/HeatEquation\_EX1\_C} and show how simulation
-results can be visualized.  Don't worry about the details of the code.
+We now look at a more complicated example at
+{\tt amrex/Tutorials/Basic/HeatEquation\_EX1\_C} and show how simulation
+results can be visualized.  This example solves the heat equation,
+\begin{equation}
+\frac{\partial\phi}{\partial t} = \nabla^2\phi
+\end{equation}
+using forward Euler temporal integration on a periodic domain.  
+We could use a 5-point (in 2D) or 7-point (in 3D) stencil, but for demonstration
+purposes we spatially discretize the PDE by first constructing fluxes on cell faces, e.g.,
+\begin{equation}
+F_{i+\myhalf,j} = \frac{\phi_{i+1,j}-\phi_{i,j}}{\Delta x},
+\end{equation}
+and then taking the divergence to update the cells,
+\begin{equation}
+\phi_{i,j}^{n+1} = \phi_{i,j}^n 
++ \frac{\Delta t}{\Delta x}\left(F_{i+\myhalf,j}-F_{i-\myhalf,j}\right)
++ \frac{\Delta t}{\Delta y}\left(F_{i,j+\myhalf}-F_{i,j-\myhalf}\right)
+\end{equation}
+Don't worry about the implementation details of the code.
 You will be able to understand the code in this example after
 Chapter~\ref{Chap:Basics}. 
 
