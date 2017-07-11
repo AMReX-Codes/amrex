@@ -377,4 +377,43 @@ namespace amrex
     {
 	mf.FillBoundary(scomp,ncomp,geom.periodicity(),cross);
     }
+
+
+    void print_state(MultiFab& mf, int i, int j, int k)
+    {
+
+      int ncomp = mf.nComp();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+	{
+	  const Box& tbx = mfi.tilebox();
+
+	  amrex_print_state(BL_TO_FORTRAN(mf[mfi]), ncomp, 
+			    i, j, k, -1,
+			    tbx.loVect(), tbx.hiVect());
+	}
+    }
+
+
+    void print_state_n(MultiFab& mf, int i, int j, int k, int n)
+    {
+
+      int ncomp = mf.nComp();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+	{
+	  const Box& tbx = mfi.tilebox();
+
+	  amrex_print_state(BL_TO_FORTRAN(mf[mfi]), ncomp, 
+			    i, j, k, n,
+			    tbx.loVect(), tbx.hiVect());
+	}
+    }
+
 }

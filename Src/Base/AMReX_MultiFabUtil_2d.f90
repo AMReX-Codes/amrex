@@ -23,6 +23,29 @@ subroutine amrex_fort_avg_nd_to_cc (lo, hi, ncomp, &
 
 end subroutine amrex_fort_avg_nd_to_cc
 
+subroutine amrex_print_state(cc, ccl1, ccl2, cch1, cch2, ncomp, &
+                             ii, jj, kk, n, lo, hi) bind(C, name="amrex_print_state")
+
+  use amrex_fort_module, only : amrex_real
+  implicit none
+  integer, intent(in) :: lo(2), hi(2), ncomp
+  integer, intent(in) :: ccl1, ccl2, cch1, cch2
+  integer, intent(in) :: ii, jj, kk, n
+  real(amrex_real), intent(in) :: cc(ccl1:cch1, ccl2:cch2, ncomp)
+
+  if ((ii >= lo(1) .and. ii <= hi(1)) .and. &
+      (jj >= lo(2) .and. jj <= hi(2))) then
+     if (n > 0) then
+        print *, ii, jj, cc(ii, jj, n)
+     else
+        print *, ii, jj, cc(ii, jj, :)
+     endif
+
+  endif
+
+end subroutine amrex_print_state
+
+
 ! ***************************************************************************************
 ! subroutine bl_avg_eg_to_cc 
 ! ***************************************************************************************
