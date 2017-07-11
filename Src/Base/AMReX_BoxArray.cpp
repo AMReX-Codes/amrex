@@ -51,11 +51,17 @@ BARef::BARef (const Box& b)
 BARef::BARef (const BoxList& bl)
     : m_abox(bl.data())
 { 
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif	    
 }
 
 BARef::BARef (BoxList&& bl) noexcept
     : m_abox(std::move(bl.data()))
 { 
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif	    
 }
 
 BARef::BARef (std::istream& is)
@@ -113,13 +119,25 @@ BARef::define (const Box& bx)
 void
 BARef::define (const BoxList& bl)
 {
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(-1);
+#endif
     m_abox = bl.data();
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif
 }
 
 void
 BARef::define (BoxList&& bl) noexcept
 {
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(-1);
+#endif
     m_abox = std::move(bl.data());
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif
 }
 
 void 
