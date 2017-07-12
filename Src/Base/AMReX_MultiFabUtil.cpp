@@ -392,7 +392,7 @@ namespace amrex
 	{
 	  if (mfi.validbox().contains(cell)) {
 	    if (n >= 0) {
-	      amrex::AllPrint() << mf[mfi](cell, n) << std::endl;
+	      amrex::AllPrint().SetPrecision(17) << mf[mfi](cell, n) << std::endl;
 	    } else {
 	      std::ostringstream ss;
 	      ss.precision(17);
@@ -402,7 +402,7 @@ namespace amrex
 		  ss << mf[mfi](cell,i) << ", ";
 		}
 	      ss << mf[mfi](cell,ncomp-1);
-	      amrex::AllPrint().SetPrecision(17) << ss.str() << std::endl;	    
+	      amrex::AllPrint() << ss.str() << std::endl;	    
 	    }
 	  }
 	}
