@@ -9,12 +9,6 @@ extern "C"
 #endif
     void amrex_fort_avg_nd_to_cc(const int* lo, const int* hi, const int* ncomp,
                                  BL_FORT_FAB_ARG(cc), const BL_FORT_FAB_ARG(nd));
-
-    void amrex_print_state(const BL_FORT_FAB_ARG(mf), 
-			   const int &ncomp,
-			   const int &i, const int &j, const int &k, const int &n,
-			   const int* lo, const int* hi);
-
 #ifdef __cplusplus
 }
 #endif

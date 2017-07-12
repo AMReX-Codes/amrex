@@ -50,8 +50,7 @@ namespace amrex
     void fill_boundary(MultiFab& mf, int scomp, int ncomp, const Geometry& geom, bool cross = false);
 
     //! Output state data for a single zone
-    void print_state(MultiFab& mf, int i, int j, int k);
-    void print_state_n(MultiFab& mf, int i, int j, int k, int n);
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
 }
 
 
