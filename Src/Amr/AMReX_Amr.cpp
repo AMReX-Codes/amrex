@@ -3171,7 +3171,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         aSize                      = allInts[count++];
         n_error_buf.resize(aSize);
         for(int i(0); i < n_error_buf.size(); ++i)     { n_error_buf[i] = allInts[count++]; }
-        aSize                      = allInts[count++];
 
         dt_level_Size              = allInts[count++];
         dt_min_Size                = allInts[count++];
