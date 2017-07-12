@@ -408,7 +408,10 @@ if __name__ == "__main__":
         sys.exit("write_probin.py: ERROR: invalid calling sequence")
 
     param_A_files = param_A_files_str.split()
-    param_B_files = param_B_files_str.split()
+    if param_B_files_str is not None:
+        param_B_files = param_B_files_str.split()
+    else:
+        param_B_files = []
 
     write_probin(probin_template, param_A_files, param_B_files,
                  namelist_name, out_file, args.managed)
