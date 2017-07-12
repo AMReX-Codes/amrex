@@ -1,6 +1,8 @@
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_F.H>
+#include <sstream>
+#include <iostream>
 
 namespace amrex
 {
@@ -379,41 +381,32 @@ namespace amrex
     }
 
 
-    void print_state(MultiFab& mf, int i, int j, int k)
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n)
     {
 
-      int ncomp = mf.nComp();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-      for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+      for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	  const Box& tbx = mfi.tilebox();
-
-	  amrex_print_state(BL_TO_FORTRAN(mf[mfi]), ncomp, 
-			    i, j, k, -1,
-			    tbx.loVect(), tbx.hiVect());
+	  if (mfi.validbox().contains(cell)) {
+	    if (n >= 0) {
+	      amrex::AllPrint() << mf[mfi](cell, n) << std::endl;
+	    } else {
+	      std::ostringstream ss;
+	      ss.precision(17);
+	      const int ncomp = mf.nComp();
+	      for (int i = 0; i < ncomp-1; ++i)
+		{
+		  ss << mf[mfi](cell,i) << ", ";
+		}
+	      ss << mf[mfi](cell,ncomp-1);
+	      amrex::AllPrint() << ss.str() << std::endl;	    
+	    }
+	  }
 	}
-    }
-
-
-    void print_state_n(MultiFab& mf, int i, int j, int k, int n)
-    {
-
-      int ncomp = mf.nComp();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
-	{
-	  const Box& tbx = mfi.tilebox();
-
-	  amrex_print_state(BL_TO_FORTRAN(mf[mfi]), ncomp, 
-			    i, j, k, n,
-			    tbx.loVect(), tbx.hiVect());
-	}
+      
     }
 
 }
