@@ -148,7 +148,7 @@ def abort(outfile):
 
 
 def write_probin(probin_template, param_A_files, param_B_files,
-                 namelist_name, out_file):
+                 namelist_name, out_file, managed=False):
 
     """ write_probin will read through the list of parameter files and
     output the new out_file """
@@ -214,28 +214,53 @@ def write_probin(probin_template, param_A_files, param_B_files,
 
                     type = pm[n].type
 
-                    if type == "real":
-                        fout.write("{}real (kind=dp_t), allocatable, public :: {}\n".format(
-                            indent, pm[n].var, pm[n].value))
-                        fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
+                    if managed:
+                        if type == "real":
+                            fout.write("{}real (kind=dp_t), allocatable, public :: {}\n".format(
+                                indent, pm[n].var, pm[n].value))
+                            fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
-                    elif type == "character":
-                        fout.write("{}character (len=256), allocatable, public :: {}\n".format(
-                            indent, pm[n].var, pm[n].value))
-                        fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
+                        elif type == "character":
+                            fout.write("{}character (len=256), allocatable, public :: {}\n".format(
+                                indent, pm[n].var, pm[n].value))
+                            fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
-                    elif type == "integer":
-                        fout.write("{}integer, allocatable, public :: {}\n".format(
-                            indent, pm[n].var, pm[n].value))
-                        fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
+                        elif type == "integer":
+                            fout.write("{}integer, allocatable, public :: {}\n".format(
+                                indent, pm[n].var, pm[n].value))
+                            fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
-                    elif type == "logical":
-                        fout.write("{}logical, allocatable, public :: {}\n".format(
-                            indent, pm[n].var, pm[n].value))
-                        fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
+                        elif type == "logical":
+                            fout.write("{}logical, allocatable, public :: {}\n".format(
+                                indent, pm[n].var, pm[n].value))
+                            fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
+                        else:
+                            print("write_probin.py: invalid datatype for variable {}".format(pm[n].var))
+                            
                     else:
-                        print("write_probin.py: invalid datatype for variable {}".format(pm[n].var))
+                        if type == "real":
+                            fout.write("{}real (kind=dp_t), save, public :: {} = {}\n".format(
+                                indent, pm[n].var, pm[n].value))
+                            fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
+
+                        elif type == "character":
+                            fout.write("{}character (len=256), save, public :: {} = {}\n".format(
+                                indent, pm[n].var, pm[n].value))
+                            fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
+
+                        elif type == "integer":
+                            fout.write("{}integer, save, public :: {} = {}\n".format(
+                                indent, pm[n].var, pm[n].value))
+                            fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
+
+                        elif type == "logical":
+                            fout.write("{}logical, save, public :: {} = {}\n".format(
+                                indent, pm[n].var, pm[n].value))
+                            fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
+
+                        else:
+                            print("write_probin.py: invalid datatype for variable {}".format(pm[n].var))
 
                 if len(pm) == 0:
                     if keyword == "declarationsA":
@@ -244,27 +269,31 @@ def write_probin(probin_template, param_A_files, param_B_files,
                         fout.write("\n")
 
             elif keyword in ["cudaattributesA", "cudaattributesB"]:
-                if keyword == "cudaattributesA":
-                    pm = paramsA
-                elif keyword == "cudaattributesB":
-                    pm = paramsB
-                for pmi in pm:
-                    fout.write("{}attributes(managed) :: {}\n".format(indent, pmi.var))
+                if managed:
+                    if keyword == "cudaattributesA":
+                        pm = paramsA
+                    elif keyword == "cudaattributesB":
+                        pm = paramsB
+                    for pmi in pm:
+                        fout.write("{}attributes(managed) :: {}\n".format(indent, pmi.var))
                         
             elif keyword == "allocations":
-                pm = paramsA + paramsB
-                for pmi in pm:
-                    fout.write("{}allocate({})\n".format(indent, pmi.var))
+                if managed:
+                    pm = paramsA + paramsB
+                    for pmi in pm:
+                        fout.write("{}allocate({})\n".format(indent, pmi.var))
 
             elif keyword == "initialize":
-                pm = paramsA + paramsB
-                for pmi in pm:
-                    fout.write("{}{} = {}\n".format(indent, pmi.var, pmi.value))
+                if managed:
+                    pm = paramsA + paramsB
+                    for pmi in pm:
+                        fout.write("{}{} = {}\n".format(indent, pmi.var, pmi.value))
                     
             elif keyword == "deallocations":
-                pm = paramsA + paramsB
-                for pmi in pm:
-                    fout.write("{}deallocate({})\n".format(indent, pmi.var))
+                if managed:
+                    pm = paramsA + paramsB
+                    for pmi in pm:
+                        fout.write("{}deallocate({})\n".format(indent, pmi.var))
                     
             elif keyword == "namelist":
 
@@ -364,6 +393,8 @@ if __name__ == "__main__":
     parser.add_argument('-n', type=str, help='namelist_name')
     parser.add_argument('--pa', type=str, help='param_A_files_str')
     parser.add_argument('--pb', type=str, help='param_B_files_str')
+    parser.add_argument('--managed', action='store_true',
+                        help='If supplied, use CUDA managed memory for probin variables.')
     
     args = parser.parse_args()
     
@@ -380,4 +411,4 @@ if __name__ == "__main__":
     param_B_files = param_B_files_str.split()
 
     write_probin(probin_template, param_A_files, param_B_files,
-                 namelist_name, out_file)
+                 namelist_name, out_file, args.managed)
