@@ -402,7 +402,7 @@ namespace amrex
 		  ss << mf[mfi](cell,i) << ", ";
 		}
 	      ss << mf[mfi](cell,ncomp-1);
-	      amrex::AllPrint() << ss.str() << std::endl;	    
+	      amrex::AllPrint().SetPrecision(17) << ss.str() << std::endl;	    
 	    }
 	  }
 	}
