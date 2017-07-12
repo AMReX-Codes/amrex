@@ -2,7 +2,7 @@
 #define MY_ABL_H_
 
 #include <AMReX_MultiFab.H>
-#include <AMReX_HypreABecLap.H>
+#include <AMReX_Hypre.H>
 #include <AMReX_LO_BCTYPES.H>
 
 // We solve (a alpha - b del dot beta grad) soln = rhs
