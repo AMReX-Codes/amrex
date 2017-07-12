@@ -215,22 +215,22 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     type = pm[n].type
 
                     if type == "real":
-                        fout.write("{}real (kind=dp_t), save, public :: {} = {}\n".format(
+                        fout.write("{}real (kind=dp_t), allocatable, public :: {}\n".format(
                             indent, pm[n].var, pm[n].value))
                         fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
                     elif type == "character":
-                        fout.write("{}character (len=256), save, public :: {} = {}\n".format(
+                        fout.write("{}character (len=256), allocatable, public :: {}\n".format(
                             indent, pm[n].var, pm[n].value))
                         fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
                     elif type == "integer":
-                        fout.write("{}integer, save, public :: {} = {}\n".format(
+                        fout.write("{}integer, allocatable, public :: {}\n".format(
                             indent, pm[n].var, pm[n].value))
                         fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
                     elif type == "logical":
-                        fout.write("{}logical, save, public :: {} = {}\n".format(
+                        fout.write("{}logical, allocatable, public :: {}\n".format(
                             indent, pm[n].var, pm[n].value))
                         fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
@@ -243,7 +243,29 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     else:
                         fout.write("\n")
 
+            elif keyword in ["cudaattributesA", "cudaattributesB"]:
+                if keyword == "cudaattributesA":
+                    pm = paramsA
+                elif keyword == "cudaattributesB":
+                    pm = paramsB
+                for pmi in pm:
+                    fout.write("{}attributes(managed) :: {}\n".format(indent, pmi.var))
+                        
+            elif keyword == "allocations":
+                pm = paramsA + paramsB
+                for pmi in pm:
+                    fout.write("{}allocate({})\n".format(indent, pmi.var))
 
+            elif keyword == "initialize":
+                pm = paramsA + paramsB
+                for pmi in pm:
+                    fout.write("{}{} = {}\n".format(indent, pmi.var, pmi.value))
+                    
+            elif keyword == "deallocations":
+                pm = paramsA + paramsB
+                for pmi in pm:
+                    fout.write("{}deallocate({})\n".format(indent, pmi.var))
+                    
             elif keyword == "namelist":
 
                 for n in range(len(params)):
