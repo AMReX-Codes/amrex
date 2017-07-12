@@ -117,10 +117,10 @@ ABL::solve ()
     const BoxArray& ba = soln.boxArray();
     const DistributionMapping& dm = soln.DistributionMap();
 
-    HypreABecLap hypre_solver(ba, dm, geom, ParallelDescriptor::Communicator());
+    Hypre hypre_solver(ba, dm, geom, ParallelDescriptor::Communicator());
     hypre_solver.setScalars(a, b);
     hypre_solver.setACoeffs(alpha);
     hypre_solver.setBCoeffs({&beta[0],&beta[1],&beta[2]});
     hypre_solver.setVerbose(verbose);
-    hypre_solver.solve(soln, rhs, tol_rel, tol_abs, maxiter, bc_type, bc_value, geom);
+    hypre_solver.solve(soln, rhs, tol_rel, tol_abs, maxiter, bc_type, bc_value);
 }
