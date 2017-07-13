@@ -38,10 +38,11 @@ class EBConductivityOpFactory: public AMRLevelOpFactory<FabArray<EBCellFAB> >
 {
 public:
 
-  //! Constructs a factory that builds EBConductivityOps with time-independent
-  //! A and B coefficients.
+  ///
+  /**
+     Constructs a factory that builds EBConductivityOps 
+  */
   EBConductivityOpFactory(const vector<EBLevelGrid>                           &  a_eblgs,
-                          const vector<shared_ptr<EBQuadCFInterp> >           &  a_quadCFI,
                           const Real                                          &  a_alpha,
                           const Real                                          &  a_beta,
                           const vector<shared_ptr<FabArray<EBCellFAB> > >     &  a_acoef,

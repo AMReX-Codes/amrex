@@ -48,11 +48,11 @@ namespace amrex
     /// the operator calls this
     /**
      */
-    void setCoef(EBLevelGrid                                &  a_eblg,
-                 Real                                       &  a_beta,
-                 Real                                       &  a_dx,
-                 const RealVect                             &  a_probLo,
-                 shared_ptr<FabArray<BaseIVFAB<Real> > >    &  a_bcoe)
+    virtual void setCoef(EBLevelGrid                                &  a_eblg,
+                         Real                                       &  a_beta,
+                         Real                                       &  a_dx,
+                         const RealVect                             &  a_probLo,
+                         shared_ptr<FabArray<EBFluxFAB> >           &  a_bcoe)
       {
         m_coefSet = true;
         m_beta    = a_beta;
@@ -61,7 +61,6 @@ namespace amrex
         m_dx      = a_dx;
         m_probLo  = a_probLo;
       }
-
 
 
     ///
@@ -103,9 +102,7 @@ namespace amrex
         m_isFunction = true;
       }
 
-    Real bcvaluefunc(const RealVect      & a_point,
-                     const int           & a_dir,
-                     const Side::LoHiSide& a_side)
+    Real bcvaluefunc(const RealVect      & a_point)
       {
         Real retval;
         if(m_onlyHomogeneous)
@@ -129,7 +126,7 @@ namespace amrex
     Real                                     m_beta;
     Real                                     m_dx;
     RealVect                                 m_probLo;
-    shared_ptr<FabArray<BaseIVFAB<Real> > >  m_bcoe;
+    shared_ptr<FabArray<EBFluxFAB> >         m_bcoe;
     Real m_value;
     bool m_onlyHomogeneous;
     bool m_isFunction;
