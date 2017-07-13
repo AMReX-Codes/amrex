@@ -96,13 +96,10 @@ namespace amrex
                           const RefCountedPtr<BaseEBBCFactory>    &                   a_ebBCFactory,
                           const int     &                                             a_ghostCellsPhi,
                           const int     &                                             a_ghostCellsRhs,
-                          const int &                                                 a_relaxType,
                           int a_numLevels)
   {
     BL_ASSERT(a_eblgs.size() <= a_refRatio.size());
     m_dataBased = false;
-    m_relaxType = a_relaxType;
-    m_quadCFI = a_quadCFI;
     m_ghostCellsRhs = a_ghostCellsRhs;
     m_ghostCellsPhi = a_ghostCellsPhi;
     m_acoef         = a_acoef;

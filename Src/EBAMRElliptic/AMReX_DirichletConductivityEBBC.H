@@ -24,81 +24,60 @@ class DirichletConductivityEBBC: public ConductivityBaseEBBC
 {
 public:
   ///
-  virtual void define(const LayoutData<IntVectSet>& a_cfivs,
-                      const Real&                   a_factor);
+  virtual void setCoef(EBLevelGrid                                &  a_eblg,
+                       Real                                       &  a_beta,
+                       Real                                       &  a_dx,
+                       const RealVect                             &  a_probLo,
+                       shared_ptr<FabArray<EBFluxFAB> >           &  a_bcoe)
+    {
+      ConductivityBaseEBBC::setCoef(a_eblg, a_beta, a_dx, a_probLo, a_bcoe);
+      defineStencils();
+    }
 
   ///
   virtual void applyEBFlux(EBCellFAB&                    a_lphi,
                            const EBCellFAB&              a_phi,
-                           VoFIterator&                  a_vofit,
-                           const LayoutData<IntVectSet>& a_cfivs,
-                           const DataIndex&              a_dit,
-                           const RealVect&               a_probLo,
-                           const RealVect&               a_dx,
+                           const vector<VolIndex>&       a_vofsToChange,
+                           const MFIter  &               a_mfi,
                            const Real&                   a_factor,
-                           const bool&                   a_useHomogeneous,
-                           const Real&                   a_time);
+                           const bool&                   a_useHomogeneous);
 
   ///
-  DirichletConductivityEBBC(const ProblemDomain& a_domain,
-                            const EBISLayout&    a_layout,
-                            const RealVect&      a_dx,
-                            const IntVect*       a_ghostCellsPhi,
-                            const IntVect*       a_ghostCellsRhs):ConductivityBaseEBBC()
+  DirichletConductivityEBBC():ConductivityBaseEBBC()
 
   {
-    m_bc.construct(a_domain, a_layout, a_dx, a_ghostCellsPhi, a_ghostCellsRhs);
   }
 
   virtual LayoutData<BaseIVFAB<VoFStencil> >* getFluxStencil(int ivar)
   {
+    BL_ASSERT(m_coefSet);
     return &m_fluxStencil;
   }
 
   ///
-  virtual ~DirichletConductivityEBBC();
-
-  ///
-  virtual void setValue(Real a_value);
-
-  ///
-  virtual int whichBC()
-  {
-    return 0;
-  };
+  virtual ~DirichletConductivityEBBC()
+    {
+    }
 
   virtual void setOrder(int a_order)
   {
-    m_bc.setOrder(a_order);
+    m_order = a_order;
   }
 
-  ///
-  virtual void setFunction(RefCountedPtr<BaseBCValue> a_flux);
-
-  ///
-  virtual void getEBFlux(Real&                         a_flux,
-                         const VolIndex&               a_vof,
-                         const LevelData<EBCellFAB>&   a_phi,
-                         const LayoutData<IntVectSet>& a_cfivs,
-                         const DataIndex&              a_dit,
-                         const RealVect&               a_probLo,
-                         const RealVect&               a_dx,
-                         const bool&                   a_useHomogeneous,
-                         const Real&                   a_time,
-                         const pair<int,Real>*         a_cacheHint=0 );
-
-
 private:
-  DirichletPoissonEBBC m_bc;
+  void defineStencils();
   LayoutData<BaseIVFAB<VoFStencil> > m_fluxStencil;
 };
 
 ///
-class DirichletConductivityEBBCFactory: public BaseEBBCFactory
+class DirichletConductivityEBBCFactory: public ConductivityBaseEBBCFactory
 {
 public:
   ///
-  DirichletConductivityEBBCFactory();
+  DirichletConductivityEBBCFactory()
+    {
+      m_order = 2;
+    }
 
   ///
   virtual ~DirichletConductivityEBBCFactory();
@@ -108,27 +87,21 @@ public:
     m_order = a_order;
   }
 
-  ///
   virtual void setValue(Real a_value);
 
   ///
   virtual void setFunction(RefCountedPtr<BaseBCValue> a_flux);
 
   ///
-  virtual DirichletConductivityEBBC* create(const ProblemDomain& a_domain,
-                                            const EBISLayout&    a_layout,
-                                            const RealVect&      a_dx,
-                                            const IntVect*       a_ghostCellsPhi=0,
-                                            const IntVect*       a_ghostCellsRhs=0);
+  virtual ConductivityBaseEBBC* new_object_ptr()
+    {
+     DirichletConductivityEBBC* fresh = new NeumannConductivityEBBC(a_domain,a_layout,a_dx);
+     fresh->setOrder(m_order);
+     return static_cast<ConductivityBaseEBBC*>(fresh);
+    }
 
 private:
-  bool m_onlyHomogeneous;
-  bool m_isFunction;
   int m_order;
-  Real m_value;
-  RefCountedPtr<BaseBCValue> m_flux;
-  RefCountedPtr<LevelData<BaseIVFAB<Real> > >m_data;
-  bool m_dataBased;
 };
 
 #include "NamespaceFooter.H"

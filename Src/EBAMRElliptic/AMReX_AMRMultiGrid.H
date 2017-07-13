@@ -159,11 +159,14 @@ namespace amrex
        a_bottomSolver is the solver to be used at the termination of multigrid coarsening.
        It is the client's responsibility to free up the dynamically-allocated memory.
        a_numLevels is the number of AMR levels.
+       If enableLevelSolves= false, only works for lbase==0 (saves a bunch of definition
+       time if you are only ever solving over the whole hierarchy).
     */
     virtual void define(const Box                    & a_coarseDomain,
                         AMRLevelOpFactory<T>         & a_factory,
                         shared_ptr<LinearSolver<T> > & a_bottomSolver,
                         std::vector<int>             & a_refRat,
+                        bool a_enableLevelSolves,
                         int a_numLevels);
 
 
@@ -1024,11 +1027,13 @@ namespace amrex
                                AMRLevelOpFactory<T>& a_factory,
                                shared_ptr<LinearSolver<T> > & a_bottomSolver,
                                vector<int>      & a_refRat,
+                               bool a_enableLevelSolves,
                                int a_maxAMRLevels)
   {
     BL_PROFILE("AMRMultiGrid::define");
     this->clear();
     m_refRat = a_refRat;
+    m_enableLevelSolves = a_enableLevelSolves;
     m_op.resize( a_maxAMRLevels, NULL);
     m_mg.resize( a_maxAMRLevels, NULL);
     m_hasInitBeenCalled.resize(a_maxAMRLevels, 'f');
@@ -1048,7 +1053,15 @@ namespace amrex
       m_resC[i]       = new T();
       m_mg[i]= new MultiGrid<T>();
       m_op[i] = a_factory.AMRnewOp(current);
-      m_mg[i]->define(a_factory, &m_nosolve, current, m_maxDepth, m_op[i]);
+      int refToCoarser = 2;
+      if(i > 0)
+      {
+        refToCoarser = a_refRat[i-1];
+      }
+      if((i==0) || (refToCoarser > 2) || a_enableLevelSolves)
+      {
+        m_mg[i]->define(a_factory, &m_nosolve, current, m_maxDepth, m_op[i]);
+      }
 
       // Only do this if it will be used (avoiding a reference to invalid
       // and/or unavailable refinement ratios)
