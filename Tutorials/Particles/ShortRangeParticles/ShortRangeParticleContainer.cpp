@@ -17,6 +17,7 @@ void ShortRangeParticleContainer::InitParticles() {
     
     BL_PROFILE("ShortRangeParticleContainer::InitParticles");
     
+    const int lev = 0;
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
     
@@ -60,6 +61,7 @@ void ShortRangeParticleContainer::InitParticles() {
 void ShortRangeParticleContainer::computeForces() {
 
     BL_PROFILE("ShortRangeParticleContainer::computeForces");
+    const int lev = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -78,6 +80,7 @@ void ShortRangeParticleContainer::moveParticles(const Real dt) {
 
     BL_PROFILE("ShortRangeParticleContainer::moveParticles");
 
+    const int lev = 0;
     const RealBox& prob_domain = Geom(lev).ProbDomain();
 
 #ifdef _OPENMP

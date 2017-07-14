@@ -20,6 +20,7 @@ void NeighborListParticleContainer::InitParticles() {
 
     BL_PROFILE("NeighborListParticleContainer::InitParticles");
 
+    const int lev = 0;
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
     
@@ -67,6 +68,8 @@ void NeighborListParticleContainer::computeForces() {
 
     BL_PROFILE("NeighborListParticleContainer::computeForces");
 
+    const int lev = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -83,9 +86,11 @@ void NeighborListParticleContainer::computeForces() {
 
 void NeighborListParticleContainer::computeForcesNL() {
 
-    BL_PROFILE("NeighborListParticleContainer::computeForces");
+    BL_PROFILE("NeighborListParticleContainer::computeForcesNL");
 
-    buildNeighborList();
+    const int lev = 0;
+
+    buildNeighborList(lev);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -107,6 +112,7 @@ void NeighborListParticleContainer::moveParticles(const Real dt) {
 
     BL_PROFILE("NeighborListParticleContainer::moveParticles");
 
+    const int lev = 0;
     const RealBox& prob_domain = Geom(lev).ProbDomain();
 
 #ifdef _OPENMP
