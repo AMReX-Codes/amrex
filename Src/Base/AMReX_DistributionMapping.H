@@ -127,6 +127,7 @@ class DistributionMapping
 			      bool do_full_knapsack = true,
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
+    void RoundRobinProcessorMap(const std::vector<long>& wgts, int nprocs);
     /**
     * \brief Initializes distribution strategy from ParmParse.
     *
@@ -192,7 +193,8 @@ class DistributionMapping
     static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif
 
-    static DistributionMapping makeKnapSack (const MultiFab& weight);
+    static DistributionMapping makeKnapSack   (const MultiFab& weight);
+    static DistributionMapping makeRoundRobin (const MultiFab& weight);
 
 private:
 
