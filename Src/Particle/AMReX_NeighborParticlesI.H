@@ -8,7 +8,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (gdb),
       num_neighbor_cells(ncells)
 {
-    buildMask();
 }
 
 
@@ -21,14 +20,19 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
       num_neighbor_cells(ncells)
 {
-    buildMask();
+    InitLevelMask(0, geom, dmap, da);
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-::buildMask() {
-    BL_PROFILE("NeighborParticleContainer::buildMask");
+::InitLevelMask(int lev,
+                const Geometry &geom, 
+                const DistributionMapping &dmap, 
+                const BoxArray &ba ) {
+
+    BL_PROFILE("NeighborParticleContainer::InitLevelMask");
+    BL_ASSERT(lev == 0);
     mask.define(this->ParticleBoxArray(lev), 
                 this->ParticleDistributionMap(lev), 
                 2, num_neighbor_cells);
@@ -47,10 +51,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void 
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-::fillNeighbors() {
+::fillNeighbors(int lev) {
 
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
-
+    BL_ASSERT(lev == 0);
     NeighborCommMap neighbors_to_comm;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         const Box& tile_box = pti.tilebox();
@@ -122,10 +126,11 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-::clearNeighbors() 
+::clearNeighbors(int lev) 
 {
 
     BL_PROFILE("NeighborParticleContainer::clearNeighbors");
+    BL_ASSERT(lev == 0);
 
     neighbors.clear();
 }
@@ -133,9 +138,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-applyPeriodicShift(ParticleType& p, const IntVect& neighbor_cell) {
+applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell) {
     
     BL_PROFILE("NeighborParticleContainer::applyPeriodicShift");
+    BL_ASSERT(lev == 0);
     
     const Periodicity& periodicity = this->Geom(lev).periodicity();
     if (not periodicity.isAnyPeriodic()) return;
@@ -159,12 +165,14 @@ applyPeriodicShift(ParticleType& p, const IntVect& neighbor_cell) {
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void 
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-packNeighborParticle(const IntVect& neighbor_cell,
+packNeighborParticle(int lev,
+                     const IntVect& neighbor_cell,
                      const BaseFab<int>& mask,
                      const ParticleType& p,
                      NeighborCommMap& neighbors_to_comm) {
     
     BL_PROFILE("NeighborParticleContainer::packNeighborParticle");
+    BL_ASSERT(lev == 0);
     
     const int neighbor_grid = mask(neighbor_cell, 0);
     if (neighbor_grid >= 0) {
@@ -335,9 +343,10 @@ fillNeighborsMPI(NeighborCommMap& neighbors_to_comm) {
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-buildNeighborList() {
+buildNeighborList(int lev) {
     
     BL_PROFILE("NeighborListParticleContainer::buildNeighborList");
+    BL_ASSERT(lev == 0);
 
     // This needs to be done outside of the threaded region.
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {        
