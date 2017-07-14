@@ -48,7 +48,6 @@ class NeighborParticleContainer
 {
 public:
 
-    const int lev = 0;
     using ParticleType = typename ParticleContainer<NStructReal,
                                                     NStructInt, 0, 0>::ParticleType;
     using MyParIter = ParIter<NStructReal, NStructInt, 0, 0>;
@@ -63,20 +62,25 @@ public:
                               const BoxArray            & ba,
                               int                         nneighbor);
 
+    void InitLevelMask(int lev, 
+                       const Geometry &geom, 
+                       const DistributionMapping &dmap, 
+                       const BoxArray &ba );
+
     ///
     /// This fills the neighbor buffers for each tile with the proper data
     ///
-    void fillNeighbors();
+    void fillNeighbors(int lev);
 
     ///
     /// Each tile clears its neighbors, freeing the memory
     ///
-    void clearNeighbors();
+    void clearNeighbors(int lev);
 
     ///
     /// Build a Neighbor List for each tile
     ///
-    void buildNeighborList();
+    void buildNeighborList(int lev);
 
     std::map<PairIndex, Array<char> > neighbors;
     std::map<PairIndex, Array<int> > neighbor_list;
@@ -89,13 +93,14 @@ private:
     /// Apply periodic shift to particle position, so naive distance calculation
     /// between neighbors and regular particles will be correct.
     ///
-    void applyPeriodicShift(ParticleType& p, const IntVect& neighbor_cell);
+    void applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell);
 
     ///
     /// Pack a particle's data into the proper neighbor buffer, or put it into
     /// the structure to be sent to the other processes
     ///
-    void packNeighborParticle(const IntVect& neighbor_cell,
+    void packNeighborParticle(int lev
+                              const IntVect& neighbor_cell,
                               const BaseFab<int>& mask,
                               const ParticleType& p,
                               NeighborCommMap& neighbors_to_comm);
@@ -104,8 +109,6 @@ private:
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
     void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm);
-
-    void buildMask();
 
     virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
         return false;
