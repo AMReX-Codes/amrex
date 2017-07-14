@@ -100,4 +100,40 @@ contains
     end do
   end subroutine fort_init_cc_coef
 
+
+  subroutine fort_comp_asol (soln, slo, shi, dx, ibnd) bind(c,name='fort_comp_asol')
+    integer, intent(in) :: slo(3), shi(3), ibnd
+    real(amrex_real), intent(inout) :: soln(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
+    real(amrex_real), intent(in) :: dx(3)
+
+    integer :: i,j,k
+    real(amrex_real) :: x,y,z
+    real(amrex_real) :: pi, fpi, tpi
+
+    pi = 4.d0 * atan(1.d0)
+    tpi = 2.0d0 * pi
+    fpi = 4.0d0 * pi
+
+    do k = slo(3), shi(3)
+       z = (dble(k)+0.5d0)*dx(3)
+       do j = slo(2), shi(2)
+          y = (dble(j)+0.5d0)*dx(2)
+          do i = slo(1), shi(1)
+             x = (dble(i)+0.5d0)*dx(1)
+             
+             if (ibnd .eq. 0 .or. ibnd.eq. LO_NEUMANN) then
+                soln(i,j,k) = 1.d0 * cos(tpi*x) * cos(tpi*y) * cos(tpi*z) & 
+                           + .25d0 * cos(fpi*x) * cos(fpi*y) * cos(fpi*z)
+             else if (ibnd .eq. LO_DIRICHLET) then
+                soln(i,j,k) = 1.d0 * sin(tpi*x) * sin(tpi*y) * sin(tpi*z) & 
+                           + .25d0 * sin(fpi*x) * sin(fpi*y) * sin(fpi*z)
+             else
+                call amrex_error('fort_comp_asol: unknown boundary type')
+             endif
+          end do
+       end do
+    end do
+    
+  end subroutine fort_comp_asol
+
 end module abl_module
