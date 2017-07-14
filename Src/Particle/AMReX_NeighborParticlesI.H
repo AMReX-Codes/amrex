@@ -33,9 +33,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 
     BL_PROFILE("NeighborParticleContainer::InitLevelMask");
     BL_ASSERT(lev == 0);
-    mask.define(this->ParticleBoxArray(lev), 
-                this->ParticleDistributionMap(lev), 
-                2, num_neighbor_cells);
+    mask.define(ba, dmap, 2, num_neighbor_cells);
     mask.setVal(-1, num_neighbor_cells);
     for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const Box& box = mfi.tilebox();
