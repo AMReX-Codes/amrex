@@ -92,7 +92,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 IntVect neighbor_cell = iv;
                 neighbor_cell.shift(idim, shift[idim]);
                 BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                packNeighborParticle(neighbor_cell, mask[pti], p, neighbors_to_comm);
+                packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
             }
             
             // Now add the particle to the "edge" neighbors
@@ -103,7 +103,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                         neighbor_cell.shift(idim, shift[idim]);
                         neighbor_cell.shift(jdim, shift[jdim]);
                         BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                        packNeighborParticle(neighbor_cell, mask[pti], p, neighbors_to_comm);
+                        packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
                     }
                 }
             }
@@ -114,7 +114,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 IntVect neighbor_cell = iv;
                 neighbor_cell.shift(shift);
                 BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                packNeighborParticle(neighbor_cell, mask[pti], p, neighbors_to_comm);
+                packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
             }
 #endif
         }
@@ -181,7 +181,7 @@ packNeighborParticle(int lev,
         const int neighbor_tile = mask(neighbor_cell, 1);
         PairIndex dst_index(neighbor_grid, neighbor_tile);
         ParticleType particle = p;
-        applyPeriodicShift(particle, neighbor_cell);
+        applyPeriodicShift(lev, particle, neighbor_cell);
         if (who == MyProc) {
             size_t old_size = neighbors[dst_index].size();
             size_t new_size = neighbors[dst_index].size() + pdata_size;
