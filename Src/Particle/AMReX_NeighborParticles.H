@@ -99,7 +99,7 @@ private:
     /// Pack a particle's data into the proper neighbor buffer, or put it into
     /// the structure to be sent to the other processes
     ///
-    void packNeighborParticle(int lev
+    void packNeighborParticle(int lev,
                               const IntVect& neighbor_cell,
                               const BaseFab<int>& mask,
                               const ParticleType& p,
