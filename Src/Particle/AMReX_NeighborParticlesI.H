@@ -436,7 +436,7 @@ buildNeighborList(int lev) {
                     char* nbuf = neighbors[index].dataPtr() + j*pdata_size;
                     std::memcpy(&n, nbuf, pdata_size);
                     if ( check_pair(p, n) ) {
-                        neighbor_list[index].push_back(j+1);
+                        neighbor_list[index].push_back(j+1+Np);
                         num_ghost_neighbors += 1;
                     }
                     j = nlist[j];
