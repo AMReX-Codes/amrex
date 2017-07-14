@@ -515,19 +515,54 @@ DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
     // the CPUs.
     //
     std::vector<LIpair> LIpairV;
-
+ 
     const int N = boxes.size();
+ 
+    LIpairV.reserve(N);
+ 
+    for (int i = 0; i < N; ++i)
+    {
+        LIpairV.push_back(LIpair(boxes[i].numPts(),i));
+    }
+ 
+    Sort(LIpairV, true);
+ 
+    RoundRobinDoIt(boxes.size(), nprocs, &LIpairV);
+}
+
+
+void
+DistributionMapping::RoundRobinProcessorMap (const std::vector<long>& wgts,
+                                             int nprocs)
+{
+    BL_ASSERT(wgts.size() > 0);
+
+    m_ref->m_pmap.resize(wgts.size());
+
+    //
+    // Create ordering of boxes from "heaviest" to "lightest".
+    // When we round-robin the boxes we want to go from heaviest
+    // to lightest box, starting from the CPU having the least
+    // amount of FAB data to the one having the most.  This "should"
+    // help even out the FAB data distribution when running on large
+    // numbers of CPUs, where the lower levels of the calculation are
+    // using RoundRobin to lay out fewer than NProc boxes across
+    // the CPUs.
+    //
+    std::vector<LIpair> LIpairV;
+
+    const int N = wgts.size();
 
     LIpairV.reserve(N);
 
     for (int i = 0; i < N; ++i)
     {
-        LIpairV.push_back(LIpair(boxes[i].numPts(),i));
+        LIpairV.push_back(LIpair(wgts[i],i));
     }
 
     Sort(LIpairV, true);
 
-    RoundRobinDoIt(boxes.size(), nprocs, &LIpairV);
+    RoundRobinDoIt(wgts.size(), nprocs, &LIpairV);
 }
 
 class WeightedBox
@@ -2543,7 +2578,6 @@ DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group 
 }
 #endif
 
-
 DistributionMapping
 DistributionMapping::makeKnapSack (const MultiFab& weight)
 {
@@ -2576,6 +2610,41 @@ DistributionMapping::makeKnapSack (const MultiFab& weight)
     Real eff;
 
     r.KnapSackProcessorMap(cost, nprocs, &eff, true);
+
+    return r;
+}
+
+DistributionMapping
+DistributionMapping::makeRoundRobin (const MultiFab& weight)
+{
+    DistributionMapping r;
+
+    Array<long> cost(weight.size());
+#if BL_USE_MPI
+    {
+	Array<Real> rcost(cost.size(), 0.0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
+	    int i = mfi.index();
+	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+	}
+
+	ParallelDescriptor::ReduceRealSum(&rcost[0], rcost.size());
+
+	Real wmax = *std::max_element(rcost.begin(), rcost.end());
+	Real scale = 1.e9/wmax;
+	
+	for (int i = 0; i < rcost.size(); ++i) {
+	    cost[i] = long(rcost[i]*scale) + 1L;
+	}
+    }
+#endif
+
+    int nprocs = ParallelDescriptor::NProcs();
+
+    r.RoundRobinProcessorMap(cost, nprocs);
 
     return r;
 }
