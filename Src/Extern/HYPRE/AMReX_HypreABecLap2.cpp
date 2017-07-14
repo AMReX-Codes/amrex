@@ -334,6 +334,8 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
     FArrayBox fnew;
 
+    soln.setVal(0.0);
+
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         int i = mfi.index();
