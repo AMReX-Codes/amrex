@@ -9,7 +9,7 @@
  *
  */
 
-#include "EBConductivityOp.H"
+#include "AMReX_EBConductivityOp.H"
 #include "AMReX_EBEllipticFort_F.H"
 namespace amrex
 {
@@ -35,7 +35,7 @@ namespace amrex
                    const shared_ptr<FabArray<EBFluxFAB> >&      a_bcoef,
                    const int    &                               a_ghostPhi,
                    const int    &                               a_ghostRHS)
-  : AMRLevelOp<FabArray<EBCellFAB> >,
+  : AMRLevelOp<FabArray<EBCellFAB> >(),
     m_ghostPhi(a_ghostPhi),
     m_ghostRHS(a_ghostRHS),
     m_eblg(a_eblg),
@@ -69,13 +69,9 @@ namespace amrex
     m_fastFR(),
     m_ebAverageMG(),
     m_ebInterpMG(),
-    m_dblCoarMG(),
-    m_ebislCoarMG(),
-    m_domainCoarMG(),
     m_colors()
   {
     BL_PROFILE("EBConductivityOp::ConductivityOp");
-    int ncomp = 1;
 
     m_turnOffBCs = false; //REALLY needs to default to false
 
@@ -86,12 +82,13 @@ namespace amrex
     }
 
     EBCellFactory fact(m_eblg.getEBISL());
-    m_relCoef.define(m_eblg.getDBL(), 1, IntVect::Zero, fact);
+    m_relCoef.define(m_eblg.getDBL(), m_eblg.getDM(), 1, 0, MFInfo(), fact);
     if (m_hasCoar)
     {
       m_eblgCoar       = a_eblgCoar;
+      bool useKappaWeighting = false; //we are averaging stuff that is already kappa weighted
       m_ebInterp.define(  m_eblg, m_eblgCoar,  m_refToCoar, m_ghostPhi);
-      m_ebAverage.define( m_eblg, m_eblgCoar,  m_refToCoar, m_ghostPhi);
+      m_ebAverage.define( m_eblg, m_eblgCoar,  m_refToCoar, useKappaWeighting, m_ghostPhi);
       int numGhostToFill= 1; //no EB/CF crossing so only need one cell
       m_cfInterp.define(  m_eblg, m_eblgCoar,  m_refToCoar, m_ghostPhi, numGhostToFill);
     }
@@ -102,7 +99,8 @@ namespace amrex
       m_eblgCoarMG = a_eblgCoarMG;
 
       m_ebInterpMG.define( m_eblg, m_eblgCoarMG,  mgRef, m_ghostPhi);
-      m_ebAverageMG.define(m_eblg, m_eblgCoarMG,  mgRef, m_ghostRHS);
+      bool useKappaWeighting = false; //we are averaging stuff that is already kappa weighted
+      m_ebAverageMG.define(m_eblg, m_eblgCoarMG,  mgRef, useKappaWeighting, m_ghostRHS);
     }
 
     //define stencils for the operator
@@ -124,7 +122,7 @@ namespace amrex
   {
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
-      VoFIterator& vofit = m_vofIterIrreg[dit[mybox]];
+      VoFIterator& vofit = m_vofIterIrreg[mfi];
       for (vofit.reset(); vofit.ok(); ++vofit)
       {
         const VolIndex& VoF = vofit();
@@ -248,7 +246,7 @@ namespace amrex
       EBLevelDataOps::kappaWeight(a_rhs);
 
     //also have to weight by the identity coefficient
-    for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mf)
+    for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       a_rhs[mfi] *= (*m_acoef)[mfi];
     }
@@ -261,7 +259,7 @@ namespace amrex
 
     BL_PROFILE("EBConductivityOp::divideByIdentityCoef");
 
-    for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mf)
+    for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       a_rhs[mfi] /= (*m_acoef)[mfi];
     }
@@ -274,7 +272,7 @@ namespace amrex
     BL_PROFILE("ebco::calculateRelCoef");
     // define regular relaxation coefficent
     Real safety = getSafety();
-    for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mf)
+    for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       const Box& grid = m_eblg.getDBL()[mfi];
       
@@ -290,7 +288,7 @@ namespace amrex
       {
         BaseFab<Real>& regBCo = (*m_bcoef)[mfi][idir].getSingleValuedFAB();
         ebefnd_decrinvrelcoefebco(BL_TO_FORTRAN_FAB(regRel),
-                                  BL_TO_FORTRAN_FAB(regBCo,0),
+                                  BL_TO_FORTRAN_FAB(regBCo),
                                   BL_TO_FORTRAN_BOX(grid),
                                   &m_beta, &m_dx, &idir);
       }
@@ -314,7 +312,7 @@ namespace amrex
         Real diagWeight  = alphaWeight + betaWeight;
           
         // Set the irregular relaxation coefficients.
-        if (Abs(diagWeight) > 1.0e-9)
+        if (std::abs(diagWeight) > 1.0e-9)
         {
           m_relCoef[mfi](VoF, 0) = safety/diagWeight;
         }
@@ -344,11 +342,11 @@ namespace amrex
     // create vofstencils for applyOp and
 
     Real fakeBeta = 1;
-    m_domainBC->setCoef(m_eblg,   fakeBeta ,      m_bcoef   );
-    m_ebBC->setCoef(    m_eblg,   fakeBeta ,      m_bcoIrreg);
+    m_domainBC->setCoef(m_eblg,   fakeBeta ,  m_dx, RealVect::Zero,    m_bcoef);
+    m_ebBC->setCoef(    m_eblg,   fakeBeta ,  m_dx, RealVect::Zero,    m_bcoef);
 
     Real dxScale = 1.0/m_dx;
-    m_ebBC->define((*m_eblg.getCFIVS()), dxScale); //has to happen AFTER coefs are set
+
     LayoutData<BaseIVFAB<VoFStencil> >* fluxStencil = m_ebBC->getFluxStencil(0);
 
     m_vofIterIrreg.define(     m_eblg.getDBL(), m_eblg.getDM()); // vofiterator cache
@@ -641,7 +639,7 @@ namespace amrex
     
     ebefnd_applyop_ebcond_nobcs(BL_TO_FORTRAN_FAB(lphfab),
                                 BL_TO_FORTRAN_FAB(phifab),
-                                BL_TO_FORTRAN_FAB(acofab,0),
+                                BL_TO_FORTRAN_FAB(acofab),
                                 BL_TO_FORTRAN_FAB((*bcoside[0])),
                                 BL_TO_FORTRAN_FAB((*bcoside[1])),
                                 BL_TO_FORTRAN_FAB((*bcoside[2])),
@@ -941,7 +939,7 @@ namespace amrex
         ebefnd_gscolor_ebcond(BL_TO_FORTRAN_FAB(regPhi),
                               BL_TO_FORTRAN_FAB(regRhs),
                               BL_TO_FORTRAN_FAB(regRel),
-                              BL_TO_FORTRAN_FAB(acofab,0),
+                              BL_TO_FORTRAN_FAB(acofab),
                               BL_TO_FORTRAN_FAB((*bcoside[0])),
                               BL_TO_FORTRAN_FAB((*bcoside[1])),
                               BL_TO_FORTRAN_FAB((*bcoside[2])),
@@ -1185,9 +1183,9 @@ namespace amrex
     const EBFaceFAB& bcoebff    = (*m_bcoef)[a_mfi][a_idir];
     const BaseFab<Real>& regBCo = bcoebff.getSingleValuedFAB();
 
-    ebefnd_getflux_ebco(BL_TO_FORTRAN_FAB(regFlux,0),
-                        BL_TO_FORTRAN_FAB(regBCo,0),
-                        BL_TO_FORTRAN_FAB(regPhi, 0),
+    ebefnd_getflux_ebco(BL_TO_FORTRAN_FAB(regFlux),
+                        BL_TO_FORTRAN_FAB(regPhi),
+                        BL_TO_FORTRAN_FAB(regBCo),
                         BL_TO_FORTRAN_BOX(faceBox),
                         &m_beta, &m_dx, &a_idir);
 

@@ -51,7 +51,19 @@ namespace amrex
      }
      return coarsenable;
    }
+  //-----
   
+  RealVect
+  EBArith::
+  getDomainNormal(int a_idir, Side::LoHiSide a_side)
+  {
+    RealVect normal = BASISREALV(a_idir);
+    if (a_side == Side::Hi)
+    {
+      normal *= -1.0;
+    }
+    return normal;
+  }
   //-----
   Box EBArith::
   adjCellBox(const Box            & a_valid, 

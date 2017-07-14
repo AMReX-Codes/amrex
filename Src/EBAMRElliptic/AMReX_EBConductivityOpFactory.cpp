@@ -9,9 +9,6 @@
  *
  */
 
-#include "LoadBalance.H"
-#include "EBArith.H"
-
 #include "AMReX_EBConductivityOp.H"
 #include "AMReX_EBArith.H"
 #include "AMReX_EBConductivityOpFactory.H"

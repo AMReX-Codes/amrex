@@ -15,7 +15,8 @@
 #define _NEUMANNCONDUCTIVITYEBBC_H_
 
 
-#include "AMReX_ConductivityEBBC.H"
+#include "AMReX_ConductivityBaseEBBC.H"
+#include "AMReX_EBCellFAB.H"
 
 namespace amrex
 {
@@ -54,7 +55,7 @@ namespace amrex
   };
     
   ///
-  class NeumannConductivityEBBCFactory: public BaseEBBCFactory
+  class NeumannConductivityEBBCFactory: public ConductivityBaseEBBCFactory
   {
   public:
     ///
@@ -71,7 +72,7 @@ namespace amrex
     ///
     virtual ConductivityBaseEBBC* new_object_ptr()
       {
-        NeumannConductivityEBBC* fresh = new NeumannConductivityEBBC(a_domain,a_layout,a_dx);
+        NeumannConductivityEBBC* fresh = new NeumannConductivityEBBC();
 
         return static_cast<ConductivityBaseEBBC*>(fresh);
       }

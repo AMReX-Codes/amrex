@@ -185,7 +185,7 @@ namespace amrex
         {
           if (m_isFunction)
           {
-            newBC->setFunction(m_flux);
+            newBC->setFunction(m_func);
           }
           else
           {
@@ -196,7 +196,7 @@ namespace amrex
         {
           newBC->setValue(0.0);
         }
-        return static_cast newBC;
+        return static_cast<ConductivityBaseDomainBC*>(newBC);
       }
 
   protected:

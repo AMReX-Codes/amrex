@@ -19,8 +19,11 @@
 #include "AMReX_LinearSolver.H"
 #include "AMReX_REAL.H"
 #include "AMReX_Box.H"
+#include "AMReX_BLProfiler.H"
+#include "AMReX_parstream.H"
 #include <vector>
 
+using std::shared_ptr;
 
 namespace amrex
 {
@@ -214,12 +217,12 @@ namespace amrex
   private:
     MultiGrid(const MultiGrid<T>& a_opin)
       {
-        MayDay::Error("invalid operator");
+        amrex::Error("invalid operator");
       }
 
     void operator=(const MultiGrid<T>& a_opin)
       {
-        MayDay::Error("invalid operator");
+        amrex::Error("invalid operator");
       }
   };
 
@@ -266,8 +269,8 @@ namespace amrex
                             const Box                    & a_domain,
                             int                            a_maxDepth)
   {
+    BL_PROFILE("multigrid::define");
 
-    BL_PROFILE("MultiGrid::define");
     clear();
     m_depth = 0;
     m_bottomSolver = a_bottomSolver;
@@ -276,7 +279,7 @@ namespace amrex
     m_op.resize(m_depth);
     m_topLevelDomain = a_domain;
 
-    m_bottomCells = a_domain.domainBox().numPts();
+    m_bottomCells = a_domain.numPts();
 
     MGLevelOp<T>* nextOp =  a_factory.MGnewOp(a_domain, 0, true);
 
@@ -292,7 +295,7 @@ namespace amrex
         nextOp = a_factory.MGnewOp(a_domain , m_depth, true);
         if (nextOp != NULL)
         {
-          for (int i=0; i<CH_SPACEDIM; ++i) m_bottomCells /= 2;
+          for (int i=0; i<BL_SPACEDIM; ++i) m_bottomCells /= 2;
         }
       }
       else
@@ -319,7 +322,7 @@ namespace amrex
   template <class T>
   void MultiGrid<T>::init(const T& a_e, const T& a_residual)
   {
-    BL_PROFILE("MutliGrid::init");
+    BL_PROFILE("multigrid::init");
     if (m_depth > 1)
     {
       m_op[0]->createCoarser(*(m_residual[1]), a_residual, false);
@@ -338,7 +341,7 @@ namespace amrex
   template <class T>
   void MultiGrid<T>::solve(T& a_phi, const T& a_rhs, Real a_tolerance, int a_maxIterations, int verbosity)
   {
-    BL_PROFILE("MultiGrid::solve");
+    BL_PROFILE("multigrid::solve");
     this->init(a_phi, a_rhs);
 
     T correction, residual;
@@ -354,7 +357,7 @@ namespace amrex
     }
     Real compval = a_tolerance*errorno;
     Real epsilon = 1.0e-16;
-    compval = Max(compval, epsilon);
+    compval = std::max(compval, epsilon);
     Real error = errorno;
     int iter = 0;
     while ((error > compval) && (error > a_tolerance*errorno) && (iter < a_maxIterations))
@@ -386,8 +389,8 @@ namespace amrex
   template <class T>
   void MultiGrid<T>::oneCycle(T& a_e, const T& a_residual)
   {
-    BL_PROFILE("Multigrid::oneCycle");
 
+    BL_PROFILE("multigrid::oneCycle");
     //this->init(a_e, a_residual); oneCycle is only used by AMRMultigrid
     if (m_homogeneous)
     {
@@ -415,12 +418,11 @@ namespace amrex
   template <class T>
   void MultiGrid<T>::cycle(int depth, T& correction, const T& residual)
   {
-    BL_PROFILE("Multigrid::cycle");
 
+    BL_PROFILE("multigrid::cycle");
     // currently I can't drop a timer in this function because it is recursive.  doh
     if (depth == m_depth-1)
     {
-      BL_PROFILE("Multigrid::cycle:bottom-solve");
       if (m_bottomCells == 1)
       {
         m_op[depth  ]->relax(correction, residual, 1);
@@ -484,7 +486,8 @@ namespace amrex
   template <class T>
   void MultiGrid<T>::clear()
   {
-    for (int i= 0; i < m_op.size(); i++);
+    BL_PROFILE("multigrid::clear");
+    for (int i= 0; i < m_op.size(); i++)
     {
       delete m_op[i];
       delete m_correction[i];
