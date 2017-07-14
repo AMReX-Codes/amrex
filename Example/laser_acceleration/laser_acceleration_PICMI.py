@@ -1,5 +1,6 @@
 import numpy as np
-from pywarpx import *
+from pywarpx import PICMI
+#from warp import PICMI
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -70,16 +71,15 @@ def load_plasma(ncells, domain_min, domain_max, injected_plasma_density, injecte
 
     # --- and weights
     Np = plasma_xp.shape[0]
-    plasma_wp = np.full((Np, 1), plasma_weight)
+    plasma_wp = np.full(Np, plasma_weight)
 
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
-    add_particles(0, plasma_xp[lo:hi], plasma_yp[lo:hi], plasma_zp[lo:hi],
-                  plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi], 
-                  plasma_wp[lo:hi], unique_particles=True)
+    electrons.add_particles(x=plasma_xp[lo:hi], y=plasma_yp[lo:hi], z=plasma_zp[lo:hi],
+                            ux=plasma_uxp[lo:hi], uy=plasma_uyp[lo:hi], uz=plasma_uzp[lo:hi], 
+                            w=plasma_wp[lo:hi], unique_particles=True)
 
     comm.Barrier()
-
 
 def inject_new_plasma(ncells, domain_min, domain_max, num_shift, direction, injected_plasma_density, injected_plasma_ppc, plasma_min, plasma_max):
     '''
@@ -108,75 +108,48 @@ domain_min = np.array([-30.e-6, -30.e-6, -56.e-6])
 domain_max = np.array([ 30.e-6,  30.e-6,  12.e-6])
 dx = (domain_max - domain_min) / ncells
 
-# Maximum number of time steps
-max_step = 1000
+moving_window_velocity = np.array([0., 0., PICMI.clight])
 
-# number of grid points
-amr.n_cell =   "%d  %d  %d" % tuple(ncells)
-
-# Maximum allowable size of each subdomain in the problem domain; 
-#    this is used to decompose the domain for parallel calculations.
-amr.max_grid_size = 32
-
-# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
-amr.max_level = 0
-
-amr.plot_int = 2 # 100  # How often to write plotfiles.  "<= 0" means no plotfiles.
-
-# Geometry
-geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = "1     1     0"      # Is periodic?  
-geometry.prob_lo     = "%e   %e   %e" % tuple(domain_min)    # physical domain
-geometry.prob_hi     = "%e   %e   %e" % tuple(domain_max)
-
-# Algorithms
-algo.current_deposition = 3
-algo.charge_deposition = 0
-algo.field_gathering = 0
-algo.particle_pusher = 0
-
-# Particles
-particles.nspecies = 1
-particles.species_names = "electrons"
-
-warpx.verbose = 1
-warpx.cfl = 1.0
-warpx.do_moving_window = 1
-warpx.moving_window_dir = 'z'
-warpx.moving_window_v = 1.0  # in units of the speed of light
-
-warpx.do_plasma_injection = 0
-#warpx.num_injected_species = 1
-#warpx.injected_plasma_species = 0
-#warpx.injected_plasma_density = 1.e23
-#warpx.injected_plasma_ppc = 4
 injected_plasma_density = 1.e23
 injected_plasma_ppc = 4
 plasma_min = np.array([-20.e-6, -20.e-6,  0.0e-6])
 plasma_max = np.array([ 20.e-6,  20.e-6,  domain_max[2]])
 
-# --- Setup the laser
-warpx.use_laser    = 1
-laser.profile      = "Gaussian"
-laser.position     = "0. 0. 9.e-6" # This point is on the laser plane
-laser.direction    = "0. 0. 1."     # The plane normal direction
-laser.polarization = "0. 1. 0."     # The main polarization vector
-laser.e_max        = 16.e12        # Maximum amplitude of the laser field (in V/m)
-laser.profile_waist = 5.e-6      # The waist of the laser (in meters)
-laser.profile_duration = 15.e-15  # The duration of the laser (in seconds)
-laser.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
-laser.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
-laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
+grid = PICMI.Grid(nx=ncells[0], ny=ncells[1], nz=ncells[2],
+                  xmin=domain_min[0], xmax=domain_max[0], ymin=domain_min[1], ymax=domain_max[1], zmin=domain_min[2], zmax=domain_max[2],
+                  bcxmin='periodic', bcxmax='periodic', bcymin='periodic', bcymax='periodic', bczmin='open', bczmax='open',
+                  moving_window_velocity = moving_window_velocity,
+                  max_grid_size=32, max_level=0, coord_sys=0)
 
-# --- Initialize the simulation
-amrex = AMReX()
-amrex.init()
-warpx.init()
+solver = PICMI.EM_solver(current_deposition = 3,
+                         charge_deposition = 0,
+                         field_gathering = 0,
+                         particle_pusher = 0)
+
+laser = PICMI.Gaussian_laser(antenna_z0 = 9.e-6,  # This point is on the laser plane
+                             antenna_zvec = 1.,  # The plane normal direction
+                             pol_angle = PICMI.pi/2.,  # The main polarization vector
+                             E0 = 16.e12,  # Maximum amplitude of the laser field (in V/m)
+                             waist = 5.e-6,  # The waist of the laser (in meters)
+                             duration = 15.e-15,  # The duration of the laser (in seconds)
+                             t_peak = 30.e-15,  # The time at which the laser reaches its peak (in seconds)
+                             focal_position = 109.e-6,  # Focal position (m)
+                             wavelength = 0.8e-6,  # The wavelength of the laser (in meters)
+                             em_solver = solver)
+
+electrons = PICMI.Species(type=PICMI.Electron, name='electrons')
+
+# Maximum number of time steps
+max_step = 1000
+
+sim = PICMI.Simulation(plot_int = 200,
+                       verbose = 1,
+                       cfl = 1.0)
 
 load_plasma(ncells, domain_min, domain_max, injected_plasma_density, injected_plasma_ppc, plasma_min, plasma_max)
 
-direction = ['x', 'y', 'z'].index(warpx.moving_window_dir)
-old_x = warpx.getProbLo(direction)
+direction = np.argmax(abs(moving_window_velocity))
+old_x = grid.getmins()[direction]
 new_x = old_x
 for i in range(1, max_step + 1):
 
@@ -187,11 +160,9 @@ for i in range(1, max_step + 1):
         domain_min[direction] += num_shift*dx[direction]
         domain_max[direction] += num_shift*dx[direction]
 
-    warpx.evolve(1)
+    sim.step(1)
 
     old_x = new_x
-    new_x = warpx.getProbLo(direction)
+    new_x = grid.getmins()[direction]
 
-warpx.finalize()
-
-amrex.finalize()
+sim.finalize()

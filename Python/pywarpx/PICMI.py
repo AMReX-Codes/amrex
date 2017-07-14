@@ -6,13 +6,16 @@ from pywarpx import *
 
 codename = 'WarpX'
 
+def _args_to_string(*args):
+    # --- Converts of sequence of number to a string that is appropriate for input.
+    return ' '.join(map(repr, args))
 
 class Grid(PICMI_Grid):
     def init(self, **kw):
 
-        amr.n_cell = '%d  %d  %d'%(self.nx, self.ny, self.nz)
+        amr.n_cell = _args_to_string(self.nx, self.ny, self.nz)
 
-        # Maximum allowable size of each subdomain in the problem domain; 
+        # Maximum allowable size of each subdomain in the problem domain;
         #    this is used to decompose the domain for parallel calculations.
         amr.max_grid_size = kw.get('max_grid_size', 32)
 
@@ -21,9 +24,9 @@ class Grid(PICMI_Grid):
 
         # Geometry
         geometry.coord_sys = kw.get('coord_sys', 0)  # 0: Cartesian
-        geometry.is_periodic = '%d %d %d'%(self.bcxmin=='periodic', self.bcymin=='periodic', self.bczmin=='periodic')  # Is periodic?  
-        geometry.prob_lo = '%s %s %s'%(repr(self.xmin), repr(self.ymin), repr(self.zmin))  # physical domain
-        geometry.prob_hi = '%s %s %s'%(repr(self.xmax), repr(self.ymax), repr(self.zmax))
+        geometry.is_periodic = '%d %d %d'%(self.bcxmin=='periodic', self.bcymin=='periodic', self.bczmin=='periodic')  # Is periodic?
+        geometry.prob_lo = _args_to_string(self.xmin, self.ymin, self.zmin)  # physical domain
+        geometry.prob_hi = _args_to_string(self.xmax, self.ymax, self.zmax)
 
         if self.moving_window_velocity is not None and np.any(self.moving_window_velocity != 0):
             warpx.do_moving_window = 1
@@ -56,6 +59,7 @@ class Grid(PICMI_Grid):
     def getzmax(self):
         return warpx.getProbHi(2)
 
+
 class EM_solver(PICMI_EM_solver):
     def init(self, **kw):
 
@@ -67,6 +71,22 @@ class EM_solver(PICMI_EM_solver):
             algo.field_gathering = self.field_gathering_algo
         if self.particle_pusher_algo is not None:
             algo.particle_pusher = self.particle_pusher_algo
+
+
+class Gaussian_laser(PICMI_Gaussian_laser):
+    def init(self, **kw):
+
+        warpx.use_laser = 1
+        laser.profile = "Gaussian"
+        laser.position = _args_to_string(self.antenna_x0, self.antenna_y0, self.antenna_z0)  # This point is on the laser plane
+        laser.direction = _args_to_string(self.antenna_xvec, self.antenna_yvec, self.antenna_zvec)  # The plane normal direction
+        laser.polarization = _args_to_string(np.cos(self.pol_angle), np.sin(self.pol_angle), 0.)  # The main polarization vector
+        laser.e_max = self.E0  # Maximum amplitude of the laser field (in V/m)
+        laser.profile_waist = self.waist  # The waist of the laser (in meters)
+        laser.profile_duration = self.duration  # The duration of the laser (in seconds)
+        laser.profile_t_peak = self.t_peak  # The time at which the laser reaches its peak (in seconds)
+        laser.profile_focal_distance = self.focal_position - self.antenna_z0  # Focal distance from the antenna (in meters)
+        laser.wavelength = self.wavelength  # The wavelength of the laser (in meters)
 
 
 class Species(PICMI_Species):
@@ -106,9 +126,8 @@ class Simulation(PICMI_Simulation):
 
     def step(self, nsteps=-1):
         warpx.evolve(nsteps)
-        
+
     def finalize(self):
         warpx.finalize()
         self.amrex.finalize()
 
-        
