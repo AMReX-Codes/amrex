@@ -923,6 +923,7 @@ BoxArray::intersections (const Box&                         bx,
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         Box cbx(sm,bg);
+        cbx.normalize();
 
 	if (!cbx.intersects(m_ref->bbox)) return;
 
@@ -974,6 +975,7 @@ BoxArray::complementIn (const Box& bx) const
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         Box cbx(sm,bg);
+        cbx.normalize();
 
 	if (!cbx.intersects(m_ref->bbox)) return bl;
 
@@ -1191,7 +1193,8 @@ BoxArray::getHashMap () const
 
             m_ref->crsn = maxext;
             m_ref->bbox =boundingbox.coarsen(maxext);
-	    
+            m_ref->bbox.normalize();
+
 #ifdef BL_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);
 #endif
