@@ -77,7 +77,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
             for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
                 if (iv[idim] <= lo[idim]+num_neighbor_cells-1)
                     shift[idim] = -num_neighbor_cells;
-                else if (iv[idim] >= hi[idim]-num_neighbor_cells-1)
+                else if (iv[idim] >= hi[idim]-num_neighbor_cells+1)
                     shift[idim] = num_neighbor_cells;
             }
             
