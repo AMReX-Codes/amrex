@@ -97,10 +97,26 @@ extern "C" {
 
   void hmmat3(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
 	      const int& cdir, const int& bctype,
-	      const int& bho, const amrex::Real& bcl, ARLIM_P(fslo), ARLIM_P(fshi),
+	      const int& bho, const amrex::Real& bcl,
 	      const BL_FORT_IFAB_ARG(mask),
 	      BL_FORT_FAB_ARG(bcoefs),
 	      const amrex::Real& beta, const amrex::Real* dx);
+
+    void hbvec (amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
+                const int& cdir, const int& bctype,
+                const int& bho, const amrex::Real& bcl,
+                const amrex::Real* fs, ARLIM_P(fslo), ARLIM_P(fshi),
+                const BL_FORT_IFAB_ARG(mask),
+                const BL_FORT_FAB_ARG(bcoefs),
+                const amrex::Real& beta, const amrex::Real* dx);
+
+    void hbvec3(amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
+                const int& cdir, const int& bctype,
+                const int& bho, const amrex::Real& bcl,
+                const amrex::Real* fs, ARLIM_P(fslo), ARLIM_P(fshi),
+                const BL_FORT_IFAB_ARG(mask),
+                const BL_FORT_FAB_ARG(bcoefs),
+                const amrex::Real& beta, const amrex::Real* dx);
 
 #ifdef __cplusplus
 };

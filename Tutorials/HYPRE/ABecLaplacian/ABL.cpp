@@ -70,7 +70,7 @@ ABL::ABL ()
     }
     init_coeffs();
 
-    soln.define(ba, dmap, 1, 1);
+    soln.define(ba, dmap, 1, 0);
 }
 
 void
