@@ -587,6 +587,7 @@ public:
     //
     Array<char*>       fb_send_data;
     Array<MPI_Request> fb_send_reqs;
+    int                fb_tag;
 };
 
 #ifdef BL_USE_MPI
@@ -1679,6 +1680,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    if (actual_n_rcvs > 0) {
 		Array<MPI_Status> stats(N_rcvs);
 		BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
+		if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
+                {
+                    amrex::Abort("ParallelCopy failed with wrong message size");
+                }
 	    }
 	}
 #endif	
@@ -3119,6 +3124,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     Array<Array<int> >                 indv_send_size;
     Array<MPI_Request>                 pre_reqs;
 
+    fb_tag = SeqNum;
+
     int actual_n_snds = 0;
     if (N_snds > 0)
     {
@@ -3415,6 +3422,10 @@ FabArray<FAB>::FillBoundary_finish ()
 	if (actual_n_rcvs > 0) {
 	    Array<MPI_Status> stats(N_rcvs);
 	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
+	    if (!CheckRcvStats(stats, fb_recv_size, MPI_CHAR, fb_tag))
+            {
+                amrex::Abort("FillBoundary_finish failed with wrong message size");
+            }
 	}
     }
 #endif
