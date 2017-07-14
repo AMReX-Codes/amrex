@@ -28,7 +28,7 @@ namespace amrex
 ///
 /**
  */
-  class ConductivityBaseEBBC: public BaseEBBC
+  class ConductivityBaseEBBC
   {
   public:
     ///

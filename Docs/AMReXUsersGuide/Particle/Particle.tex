@@ -295,7 +295,7 @@ For a complete example of an electrostatic PIC calculation that includes static 
 \section{Short Range Forces}
 \label{sec:Particles:ShortRange}
 
-In a PIC calculation, the particles don't interact with each other directly; they only see each other through the mesh. An alternative use case is particles that exert short-range forces on each other. In this case, beyond some cut-off distance, the particles don't interact with each other and therefore don't need to be included in the force calculation. Our approach to these kind of particles is to fill ``neighbor buffers'' on each tile that contain copies of the particles on neighboring tiles that are within some number of cells $N_g$ of the tile boundaries. See Figure~\ref{fig:particles:neighbor_particles} for an illustration. By choosing the number of ghost cells to match the interaction radius of the particles, you can capture all of the neighbors that can possibly influence the particles in the valid region of the tile. Computing the forces on the valid particles can then proceed via direct summation.
+In a PIC calculation, the particles don't interact with each other directly; they only see each other through the mesh. An alternative use case is particles that exert short-range forces on each other. In this case, beyond some cut-off distance, the particles don't interact with each other and therefore don't need to be included in the force calculation. Our approach to these kind of particles is to fill ``neighbor buffers'' on each tile that contain copies of the particles on neighboring tiles that are within some number of cells $N_g$ of the tile boundaries. See Figure~\ref{fig:particles:neighbor_particles} for an illustration. By choosing the number of ghost cells to match the interaction radius of the particles, you can capture all of the neighbors that can possibly influence the particles in the valid region of the tile. The forces on the particles on different tiles can then be computed independently of each other using a variety of methods.
 
 \begin{figure}
   \centering
@@ -304,7 +304,7 @@ In a PIC calculation, the particles don't interact with each other directly; the
 }
 \end{figure}
 
-For a complete example of a $\tt{ParticleContainer}$ that does this neighbor finding, please see amrex/Tutorials/Particles/ShortRangeParticles. This $\tt{ParticleContainer}$ has additional methods called $\tt{fillNeighbors()}$ and $\tt{clearNeighbors()}$ that fill the $\tt{neighbors}$ data structure with copies of the proper particles. These are then passed into the Fortran routine that computes the forces as follows:
+For a $\tt{ParticleContainer}$ that does this neighbor finding, please see $\tt{NeighborParticleContainer}$ in amrex/Src/Particles/AMReX\_NeighborParticleContainer.H. This $\tt{ParticleContainer}$ has additional methods called $\tt{fillNeighbors()}$ and $\tt{clearNeighbors()}$ that fill the $\tt{neighbors}$ data structure with copies of the proper particles. A tutorial that uses these features is available at amrex/Tutorials/Particles/ShortRangeParticles. This tutorial computes the forces on a given tile via direct summation by passing the real and neighbor particles into a Fortran subroutine, as follows:
 
 \begin{lstlisting}[language=cpp]
 
@@ -312,7 +312,6 @@ void ShortRangeParticleContainer::computeForces() {
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
-        int nstride = particles.dataShape().first;
         PairIndex index(pti.index(), pti.LocalTileIndex());
         int Nn = neighbors[index].size() / pdata_size;
         amrex_compute_forces(particles.data(), &Np,
@@ -321,6 +320,16 @@ void ShortRangeParticleContainer::computeForces() {
 }
 
 \end{lstlisting}
+
+Alternatively, one can avoid doing a direct $N^2$ summation over the particles on a tile by binning the particles by cell and building a neighbor list. A tutorial that demonstrates this process is available at amrex/Tutorials/Particles/NeighborList. The data structure used to represent the neighbor lists is illustrated in Figure~\ref{fig:particles:neighbor_list}.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{./Particle/neighbor_list.pdf}
+  \caption{\label{fig:particles:neighbor_list} An illustration of the neighbor list data structure used by AMReX. The list for each tile is represented by an array of integers. The first number in the array is the number of real (i.e., not in the neighbor buffers) collision partners for the first particle on this tile, while the second is the number of collision partners from nearby tiles in the neighbor buffer. Based on the number of collision partners, the next several entries are the indices of the collision partners in the real and neighbor particle arrays, respectively. This pattern continues for all the particles on this tile.}
+\end{figure}
+
+This array can then be used to compute the forces on all the particles in one scan. Users can define their own $\tt{NeighborParticleContainer}$ subclasses that have their own collision criteria by overloading the virtual $\tt{check\_pair}$ function. For an example of this in action, please see the $\tt{NeighborList}$ Tutorial.
 
 \section{Particle IO}
 \label{sec:Particles:IO}

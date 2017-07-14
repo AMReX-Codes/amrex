@@ -17,6 +17,7 @@
 #include "AMReX_FabArray.H"
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_EBCellFAB.H"
+#include "AMReX_EBFluxFAB.H"
 #include "AMReX_LayoutData.H"
 #include "AMReX_AggStencil.H"
 
@@ -73,7 +74,8 @@ namespace amrex
                     const EBLevelGrid & a_eblgCoar,
                     const int         & a_refinementRatio,
                     const int         & a_ghostCellsInData,
-                    const bool        & a_useKappaWeightingInStencil);
+                    const bool        & a_useKappaWeightingInStencil,
+                    bool enableFaceAveraging = false);
 
 
     ///
@@ -95,7 +97,8 @@ namespace amrex
                 const EBLevelGrid & a_eblgCoar,
                 const int         & a_refinementRatio,
                 const int         & a_ghost,
-                const bool        & a_useKappaWeightingInStencil);
+                const bool        & a_useKappaWeightingInStencil,
+                bool enableFaceAveraging = false);
 
 
     ///
@@ -134,10 +137,23 @@ namespace amrex
             const FabArray<EBCellFAB>& a_fineData,
             int isrc, int idst , int inco);
 
+
+    ///same deal but for faces
+    void
+    average(FabArray<EBFluxFAB>&       a_coarData,
+            const FabArray<EBFluxFAB>& a_fineData,
+            int isrc, int idst , int inco);
+
   protected:
     void defineStencils();
     void definePointStencil(VoFStencil& a_sten, const VolIndex& vofCoFi, const MFIter& a_mfi);
+    
+    //only called if face averaging enabled
+    void defineFaceStencils();
+    void definePointStencilFace(FaceStencil& a_sten, const FaceIndex& facCoFi, const MFIter& a_mfi);
+    void definePointStencilIrreg(VoFStencil& a_sten, const VolIndex&  vofCoFi, const MFIter& a_mfi, const IntVectSet& a_ivsIrreg);
 
+    bool m_enableFaceAveraging;
     EBLevelGrid  m_eblgFine;
     EBLevelGrid  m_eblgCoar;
     EBLevelGrid  m_eblgCoFi;
@@ -146,6 +162,12 @@ namespace amrex
     bool m_isDefined;
 
     LayoutData<std::shared_ptr<AggStencil<EBCellFAB, EBCellFAB> > > m_stencil;
+
+    //only defined if face averaging enabled
+    LayoutData<std::shared_ptr<AggStencil<EBFaceFAB, EBFaceFAB> > > m_faceStencil[BL_SPACEDIM];
+
+    //only defined if face averaging enabled
+    LayoutData<std::shared_ptr<AggStencil<IrregFAB,  IrregFAB > > > m_irregStencil;
 
     int m_refRat;
     int m_ghost;
