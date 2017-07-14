@@ -20,7 +20,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
       num_neighbor_cells(ncells)
 {
-    InitLevelMask(0, geom, dmap, da);
+    InitLevelMask(0, geom, dmap, ba);
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
