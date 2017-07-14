@@ -13,8 +13,8 @@ HypreABecLap::HypreABecLap(const BoxArray& grids,
                            const Geometry& geom_,
                            MPI_Comm comm_)
     : comm(comm_),
-      geom(geom_),
-      verbose(1)
+      verbose(1),
+      geom(geom_)
 {
   ParmParse pp("hypre");
 
