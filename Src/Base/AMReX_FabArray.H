@@ -765,7 +765,7 @@ bool
 FabArray<FAB>::defined (const MFIter& mfi) const
 {
     int li = mfi.LocalIndex();
-    if (li < m_fabs_v.size() && m_fabs_v[li] != 0) {
+    if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
 	return true;
     }
     else {
@@ -1324,7 +1324,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     ParallelDescriptor::Mode.set_upcxx_mode();
 #endif
 
-#if !defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
+    BL_ASSERT(FAB::preAllocatable());
+#else
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 
@@ -1545,6 +1547,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    {
 #if defined(BL_USE_MPI3)
 		Array<MPI_Aint> send_disp(N_snds,0);
+                send_reqs.clear();
 
 		for (int i=0; i<N_snds; ++i) {
                     if (send_size[i] > 0) {
@@ -3070,7 +3073,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     ParallelDescriptor::Mode.incr_upcxx();
 #endif
 
-#if !defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
+    BL_ASSERT(FAB::preAllocatable());
+#else
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
 
@@ -3267,6 +3272,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 	{
 #if defined(BL_USE_MPI3)
 	    Array<MPI_Aint> send_disp(N_snds,0);
+            send_reqs.clear();
 	    
 	    for (int i=0; i<N_snds; ++i) {
                 if (send_size[i] > 0) {

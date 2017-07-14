@@ -30,7 +30,7 @@
 /**
    if neither function or value is set, homogeneousOnly is true
  */
-class ConductivityBaseDomainBC: public BaseDomainBC
+class ConductivityBaseDomainBC
 {
 public:
   ///

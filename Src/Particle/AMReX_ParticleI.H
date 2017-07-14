@@ -132,10 +132,10 @@ template<int NReal, int NInt>
 inline
 int
 Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
-				   const Real*         plo,
-				   const Real*         dx,
-				   Array<Real>&        fracs,
-				   Array<IntVect>&     cells)
+                                        const Real*         plo,
+                                        const Real*         dx,
+                                        Array<Real>&        fracs,
+                                        Array<IntVect>&     cells)
 {
     return Particle<NReal, NInt>::CIC_Cells_Fracs(p,plo,dx,dx,fracs,cells);
 }
@@ -143,10 +143,10 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
 template <int NReal, int NInt>
 void
 Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
-					 const Real*         plo,
-					 const Real*         dx,
-					 Real*               fracs,
-					 IntVect*            cells)
+                                              const Real*         plo,
+                                              const Real*         dx,
+                                              Real*               fracs,
+                                              IntVect*            cells)
 {
     BL_PROFILE("Particle<NReal, NInt>::CIC_Cells_Fracs_B()");
     //
@@ -169,11 +169,11 @@ Particle<NReal, NInt>::CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
 template <int NReal, int NInt>
 int
 Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
-				   const Real*         plo,
-				   const Real*         dx_geom,
-				   const Real*         dx_part,
-				   Array<Real>&        fracs,
-				   Array<IntVect>&     cells)
+                                        const Real*         plo,
+                                        const Real*         dx_geom,
+                                        const Real*         dx_part,
+                                        Array<Real>&        fracs,
+                                        Array<IntVect>&     cells)
 {
     BL_PROFILE("Particle<NReal, NInt>::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)
