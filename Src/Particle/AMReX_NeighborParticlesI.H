@@ -4,6 +4,16 @@ using namespace amrex;
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::NeighborParticleContainer(ParGDBBase* gdb, int ncells)
+    : ParticleContainer<NStructReal, NStructInt, 0, 0> (gdb),
+      num_neighbor_cells(ncells)
+{
+    buildMask();
+}
+
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 ::NeighborParticleContainer(const Geometry            & geom,
                             const DistributionMapping & dmap,
                             const BoxArray            & ba,
@@ -11,8 +21,17 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
       num_neighbor_cells(ncells)
 {
-    BL_PROFILE("NeighborParticleContainer::NeighborParticleContainer");
-    mask.define(ba, dmap, 2, num_neighbor_cells);
+    buildMask();
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::buildMask() {
+    BL_PROFILE("NeighborParticleContainer::buildMask");
+    mask.define(this->ParticleBoxArray(lev), 
+                this->ParticleDistributionMap(lev), 
+                2, num_neighbor_cells);
     mask.setVal(-1, num_neighbor_cells);
     for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const Box& box = mfi.tilebox();
@@ -22,7 +41,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         mask.setVal(tile_id, box, 1, 1);
     }
 
-    mask.FillBoundary(geom.periodicity());
+    mask.FillBoundary(this->Geom(lev).periodicity());
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -54,9 +73,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
             // -1 means lo, 1 means hi, 0 means not near the boundary
             IntVect shift = IntVect::TheZeroVector();
             for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-                if (iv[idim] == lo[idim])
+                if (iv[idim] >= lo[idim]+num_neighbor_cells-1)
                     shift[idim] = -num_neighbor_cells;
-                else if (iv[idim] == hi[idim])
+                else if (iv[idim] <= hi[idim]+num_neighbor_cells-1)
                     shift[idim] = num_neighbor_cells;
             }
             
