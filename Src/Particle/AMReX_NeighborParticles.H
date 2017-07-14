@@ -87,7 +87,7 @@ public:
     const size_t pdata_size = (NNeighborReal+BL_SPACEDIM)*
         sizeof(typename ParticleType::RealType);
 
-private:
+protected:
     
     ///
     /// Apply periodic shift to particle position, so naive distance calculation

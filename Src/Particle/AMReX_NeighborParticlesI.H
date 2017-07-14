@@ -43,7 +43,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         mask.setVal(tile_id, box, 1, 1);
     }
 
-    mask.FillBoundary(this->Geom(lev).periodicity());
+    mask.FillBoundary(geom.periodicity());
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
