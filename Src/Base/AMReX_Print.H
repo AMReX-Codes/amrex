@@ -46,7 +46,9 @@ namespace amrex
 
 	~Print () {
 	    if (rank == AllProcs || rank == ParallelDescriptor::MyProc(comm)) {
+		os.flush();
 		os << ss.str();
+		os.flush();
 	    }
 	}
 
