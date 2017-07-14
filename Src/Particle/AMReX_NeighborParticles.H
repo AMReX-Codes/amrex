@@ -56,10 +56,8 @@ public:
     using NeighborCommMap = std::map<NeighborCommTag, Array<char> >;
     using AoS = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::AoS;
 
-    ///
-    /// This particle container fills a mask for quickly computing
-    /// neighbor grids / tiles for a given particle
-    ///
+    NeighborParticleContainer(ParGDBBase* gdb, int ncells);
+
     NeighborParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
@@ -106,6 +104,8 @@ private:
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
     void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm);
+
+    void buildMask();
 
     virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
         return false;

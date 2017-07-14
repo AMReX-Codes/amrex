@@ -4,8 +4,8 @@
 
 using namespace amrex;
 
-const Real NeighborListParticleContainer::min_r;
-const Real NeighborListParticleContainer::cutoff;
+constexpr Real NeighborListParticleContainer::min_r;
+constexpr Real NeighborListParticleContainer::cutoff;
 
 NeighborListParticleContainer::
 NeighborListParticleContainer(const Geometry            & geom,
