@@ -10,6 +10,7 @@
  *
  */
 #include "AMReX_NeumannConductivityEBBC.H"
+#include "AMReX_EBArith.H"
 
 namespace amrex
 {
@@ -20,20 +21,17 @@ namespace amrex
                                             const Real             &       a_factor,
                                             const bool             &       a_useHomogeneous)
   {
-    CH_TIME("NeumannConductivityEBBC::applyEBFlux");
-    CH_assert(a_lphi.nComp() == 1 );
-    CH_assert(a_phi.nComp()  == 1);
-
+    BL_PROFILE("NeumannConductivityEBBC::applyEBFlux");
     Real flux = 0.0;
 
     const EBISBox&   ebisBox = a_phi.getEBISBox();
     for(int ivof = 0; ivof < a_vofsToChange.size(); ivof++)
     {
       const VolIndex& vof = a_vofsToChange[ivof];
-      const RealVect& centroid = ebisBox.bndryCentroid(vof);
+      RealVect centroid = ebisBox.bndryCentroid(vof);
       centroid *= m_dx;
       centroid += m_probLo;
-      Real point = EBArith::getVoFLocation(vof, m_dx, centroid);
+      RealVect point = EBArith::getVoFLocation(vof, m_dx, centroid);
       Real value = bcvaluefunc(point);
       flux = value;
 

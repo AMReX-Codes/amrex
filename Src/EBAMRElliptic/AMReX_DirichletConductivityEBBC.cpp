@@ -10,14 +10,15 @@
  */
 
 #include "AMReX_DirichletConductivityEBBC.H"
+#include "AMReX_EBArith.H"
 namespace amrex
 {
   void
   DirichletConductivityEBBC::
   defineStencils()
   {
-    m_fluxStencil.define(m_eblg.getDBL());
-    m_fluxWeight .define(m_eblg.getDBL());
+    m_fluxStencil.define(m_eblg.getDBL(), m_eblg.getDM());
+    m_fluxWeight .define(m_eblg.getDBL(), m_eblg.getDM());
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
 
@@ -29,27 +30,27 @@ namespace amrex
       m_fluxWeight [mfi].define(ivsIrreg, ebis.getEBGraph(), 1);
 
       const IntVectSet& cfivs = (*m_eblg.getCFIVS())[mfi];
-      for (VoFIterator vofit(ivs, ebis.getEBGraph()); vofit.ok(); ++vofit)
+      for (VoFIterator vofit(ivsIrreg, ebis.getEBGraph()); vofit.ok(); ++vofit)
       {
+        const VolIndex& vof = vofit();
         VoFStencil gradStencil;
         Real curWeight;
         if (m_order == 1)
         {
-          getFirstOrderStencil( gradStencil,curWeight,vof,ebis,m_dx);
+          getFirstOrderStencil( gradStencil,curWeight,vof,ebis);
         }
         else 
         {
-          getSecondOrderStencil(gradStencil,curWeight,vof,ebis,m_dx,cfivs);
+          getSecondOrderStencil(gradStencil,curWeight,vof,ebis,cfivs);
         }
         
         VoFStencil fluxStencilPt = gradStencil;
-        m_fluxStencil[dit()](vofit(), 0) = poissSten[dit()](vofit(), 0);
-        Real factor = (*m_bcoe)[dit()](vofit(), 0);
+        Real factor = (*m_bcoe)[mfi].getEBFlux()(vofit(), 0);
         factor *= m_beta;
         fluxStencilPt *= factor;
 
-        m_fluxStencil[dit()](vofit(), 0) = fluxStencilPt;
-        m_fluxWeight[mfi](vofit(), 0)    = curWeight;
+        m_fluxStencil[mfi](vofit(), 0) = fluxStencilPt;
+        m_fluxWeight [mfi](vofit(), 0)    = curWeight;
       }
     }
   }
@@ -69,7 +70,6 @@ namespace amrex
     BL_ASSERT( a_phi.nComp() == 1);
 
     const BaseIVFAB<Real>& poissWeight = m_fluxWeight[a_mfi];
-    Real value = 0.0;
 
     const EBISBox&   ebisBox = a_phi.getEBISBox();
     for(int ivof = 0; ivof < a_vofsToChange.size(); ivof++)
@@ -77,15 +77,15 @@ namespace amrex
       const VolIndex& vof = a_vofsToChange[ivof];
 
 
-      const RealVect& centroid = ebisBox.bndryCentroid(vof);
+      RealVect centroid = ebisBox.bndryCentroid(vof);
       centroid *= m_dx;
       centroid += m_probLo;
-      Real point = EBArith::getVoFLocation(vof, m_dx, centroid);
+      RealVect point = EBArith::getVoFLocation(vof, m_dx, centroid);
       Real value = bcvaluefunc(point);
 
       Real poissWeightPt = poissWeight(vof, 0);
       const Real& areaFrac = ebisBox.bndryArea(vof);
-      const Real& bcoef    = (*m_bcoe)[a_dit](vof,0);
+      const Real& bcoef    = (*m_bcoe)[a_mfi].getEBFlux()(vof,0);
       Real flux = poissWeightPt*value*areaFrac;
       Real compFactor = a_factor*bcoef*m_beta;
       a_lphi(vof,0) += flux * compFactor;
@@ -101,7 +101,6 @@ namespace amrex
                         vector<Real>&        a_distanceAlongLine,
                         const VolIndex&      a_vof,
                         const EBISBox&       a_ebisBox,
-                        const RealVect&      a_dx,
                         const IntVectSet&    a_cfivs)
   {
     BL_PROFILE("DirichletPoissonEBBC::getSecondOrderStencil1");
@@ -109,15 +108,15 @@ namespace amrex
     a_stencil.clear();
     bool dropOrder = false;
     EBArith::johanStencil(dropOrder, a_pointStencils, a_distanceAlongLine,
-                          a_vof, a_ebisBox, a_dx, a_cfivs);
+                          a_vof, a_ebisBox, m_dx*RealVect::Unit, a_cfivs);
     if (dropOrder)
     {
       return true;
     }
 
     //if we got this far, sizes should be at least 2
-    CH_assert(a_distanceAlongLine.size() >= 2);
-    CH_assert(a_pointStencils.size() >= 2);
+    BL_ASSERT(a_distanceAlongLine.size() >= 2);
+    BL_ASSERT(a_pointStencils.size() >= 2);
     Real x1 = a_distanceAlongLine[0];
     Real x2 = a_distanceAlongLine[1];
     //fit quadratic function to line and find the gradient at the origin
@@ -141,12 +140,13 @@ namespace amrex
   getFirstOrderStencil(VoFStencil&     a_stencil,
                        Real&           a_weight,
                        const VolIndex& a_vof,
-                       const EBISBox&  a_ebisBox,
-                       const RealVect& a_dx)
+                       const EBISBox&  a_ebisBox)
   {
     BL_PROFILE("DirichletPoissonEBBC::getFirstOrderStencil1");
     RealVect centroid = a_ebisBox.centroid(a_vof);
-    EBArith::getLeastSquaresGradSten(a_stencil, a_weight, a_vof, a_ebisBox, a_dx, m_domain, 0);
+    RealVect normal = a_ebisBox.normal(a_vof);
+    
+    EBArith::getLeastSquaresGradSten(a_stencil, a_weight, normal, centroid, a_vof, a_ebisBox, m_dx*RealVect::Unit, m_eblg.getDomain(), 0);
   }
 
   void 
@@ -155,7 +155,6 @@ namespace amrex
                         Real&             a_weight,
                         const VolIndex&   a_vof,
                         const EBISBox&    a_ebisBox,
-                        const RealVect&   a_dx,
                         const IntVectSet& a_cfivs)
   {
     BL_PROFILE("DirichletPoissonEBBC::getSecondOrderStencil2");
@@ -163,10 +162,10 @@ namespace amrex
     vector<Real>        distanceAlongLine;
     bool needToDropOrder = getSecondOrderStencil(a_stencil, a_weight,
                                                  pointStencils, distanceAlongLine,
-                                                 a_vof, a_ebisBox, a_dx, a_cfivs);
+                                                 a_vof, a_ebisBox,  a_cfivs);
     if (needToDropOrder)
     {
-      getFirstOrderStencil(a_stencil,a_weight,a_vof,a_ebisBox,a_dx);
+      getFirstOrderStencil(a_stencil,a_weight,a_vof,a_ebisBox);
     }
   }
 }

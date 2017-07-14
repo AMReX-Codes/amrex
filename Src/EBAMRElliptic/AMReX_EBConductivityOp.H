@@ -16,18 +16,16 @@
 
 #include "AMReX_Box.H"
 #include "AMReX_AMRMultiGrid.H"
-#include "AMReX_EBAMRPoissonOp.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
 #include "AMReX_VCAggStencil.H"
-#include "AMReX_EBFabArrayOps.H"
+#include "AMReX_EBLevelDataOps.H"
 #include "AMReX_EBFastFR.H"
 #include "AMReX_EBCoarseAverage.H"
 #include "AMReX_EBFineInterp.H"
 #include "AMReX_EBCFInterp.H"
 #include "AMReX_EBLevelGrid.H"
-#include "AMReX_AMRTGA.H"
 #include "AMReX_FabArray.H"
 #include "AMReX_ConductivityBaseDomainBC.H"
 #include "AMReX_ConductivityBaseEBBC.H"
@@ -140,7 +138,7 @@ namespace amrex
     
     void divideByIdentityCoef(FabArray<EBCellFAB> & a_rhs);
     
-    void fillPhiGhost(const EBCellFAB& a_phi, const DataIndex& a_datInd, bool a_homog) const;
+    void fillPhiGhost(const EBCellFAB& a_phi, const MFIter& a_datInd, bool a_homog) const;
     void fillPhiGhost(const FabArray<EBCellFAB>& a_phi, bool a_homog) const;
     
     
@@ -182,13 +180,13 @@ namespace amrex
     applyOpIrregular(EBCellFAB&             a_lhs,
                      const EBCellFAB&       a_phi,
                      const bool&            a_homogeneous,
-                     const DataIndex&       a_datInd);
+                     const MFIter&       a_datInd);
     
     void
     applyOpRegular(EBCellFAB&             a_lhs,
                    const EBCellFAB&       a_phi,
                    const bool&            a_homogeneous,
-                   const DataIndex&       a_datInd);
+                   const MFIter&       a_datInd);
     
     
     ///
@@ -415,7 +413,7 @@ namespace amrex
                               BaseFab<Real> & a_curOpPhiFAB,
                               const BaseFab<Real> & a_curPhiFAB,
                               bool a_homogeneousPhysBC,
-                              const DataIndex& a_dit);
+                              const MFIter& a_dit);
     
     void applyDomainFlux(Box * a_loBox,
                          Box * a_hiBox,
@@ -425,12 +423,12 @@ namespace amrex
                          int a_nComps,
                          BaseFab<Real> & a_phiFAB,
                          bool a_homogeneousPhysBC,
-                         const DataIndex& a_dit);
+                         const MFIter& a_dit);
     
     void GSColorAllIrregular(EBCellFAB&                        a_phi,
                              const EBCellFAB&                  a_rhs,
                              const int&                        a_icolor,
-                             const DataIndex&                  a_dit);
+                             const MFIter&                  a_dit);
     
     bool   m_turnOffBCs;
     
@@ -441,7 +439,7 @@ namespace amrex
     void getFluxRegOnly(EBFaceFAB&                    a_fluxCentroid,
                         const EBCellFAB&              a_phi,
                         const Box&                    a_ghostedBox,
-                        const DataIndex&              a_datInd,
+                        const MFIter&              a_datInd,
                         const int&                    a_idir);
     
     const int                   m_ghostPhi;
@@ -503,7 +501,7 @@ namespace amrex
     
     EBCoarseAverage             m_ebAverageMG;
     EBFineInterp                m_ebInterpMG;
-    EBLevelGrid                 m_eblgCoarMG;
+
     
     vector<IntVect> m_colors;
     
@@ -524,14 +522,14 @@ namespace amrex
     
     void getOpVoFStencil(VoFStencil&             a_stencil,
                          const int&              a_dir,
-                         const Vector<VolIndex>& a_allMonotoneVoFs,
+                         const vector<VolIndex>& a_allMonotoneVoFs,
                          const EBISBox&          a_ebisbox,
                          const VolIndex&         a_vof,
                          const bool&             a_lowOrder);
     
     
     void getOpFaceStencil(VoFStencil&             a_stencil,
-                          const Vector<VolIndex>& a_allMonotoneVofs,
+                          const vector<VolIndex>& a_allMonotoneVofs,
                           const EBISBox&          a_ebisbox,
                           const VolIndex&         a_vof,
                           int                     a_dir,
@@ -545,15 +543,11 @@ namespace amrex
     EBConductivityOp();
     
     //copy constructor and operator= disallowed for all the usual reasons
-    EBConductivityOp(const EBConductivityOp& a_opin)
-      {
-        MayDay::Error("invalid operator");
-      }
+    EBConductivityOp(const EBConductivityOp& a_opin);
+
     
-    void operator=(const EBConductivityOp& a_opin)
-      {
-        MayDay::Error("invalid operator");
-      }
+    void operator=(const EBConductivityOp& a_opin);
+
   };
     
 }

@@ -1,12 +1,13 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
 
 #ifndef _BASEEBBC_H_
 #define _BASEEBBC_H_
@@ -128,6 +129,7 @@ namespace amrex
     RealVect                                 m_probLo;
     shared_ptr<FabArray<EBFluxFAB> >         m_bcoe;
     Real m_value;
+    shared_ptr<BaseBCFuncEval>        m_func;
     bool m_onlyHomogeneous;
     bool m_isFunction;
 
@@ -135,7 +137,7 @@ namespace amrex
 ///
 /**
  */
-  class ConducitivtyBaseEBBCFactory
+  class ConductivityBaseEBBCFactory
   {
   public:
     ConductivityBaseEBBCFactory()
@@ -179,7 +181,7 @@ namespace amrex
         {
           if (m_isFunction)
           {
-            newBC->setFunction(m_flux);
+            newBC->setFunction(m_func);
           }
           else
           {
@@ -190,7 +192,7 @@ namespace amrex
         {
           newBC->setValue(0.0);
         }
-        return static_cast newBC;
+        return static_cast<ConductivityBaseEBBC*>(newBC);
       }
   protected:
 

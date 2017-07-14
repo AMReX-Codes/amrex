@@ -12,115 +12,109 @@
 #ifndef _EBCONDUCTIVITYOPFACTORY_H___
 #define _EBCONDUCTIVITYOPFACTORY_H___
 
-#include "REAL.H"
-#include "Box.H"
-#include "FArrayBox.H"
 #include <vector>
 #include "AMReX_AMRMultiGrid.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
 #include "AMReX_EBConductivityOp.H"
-#include "AMReX_EBFabArrayOps.H"
-#include "AMReX_BaseEBBC.H"
-#include "AMReX_BaseDomainBC.H"
-#include "AMReX_EBFluxRegister.H"
-#include "AMReX_EBMGAverage.H"
-#include "AMReX_EBMGInterp.H"
+#include "AMReX_EBLevelDataOps.H"
+#include "AMReX_ConductivityBaseEBBC.H"
+#include "AMReX_ConductivityBaseDomainBC.H"
 
 namespace amrex
 {
 
-//! \class EBConductivityOpFactory
-//! Factory class to generate EBConductivityOps.  This follows the
-//! AMRLevelOpFactory interface.
-class EBConductivityOpFactory: public AMRLevelOpFactory<FabArray<EBCellFAB> >
-{
-public:
-
-  ///
-  /**
-     Constructs a factory that builds EBConductivityOps 
-  */
-  EBConductivityOpFactory(const vector<EBLevelGrid>                           &  a_eblgs,
-                          const Real                                          &  a_alpha,
-                          const Real                                          &  a_beta,
-                          const vector<shared_ptr<FabArray<EBCellFAB> > >     &  a_acoef,
-                          const vector<shared_ptr<FabArray<EBFluxFAB> > >     &  a_bcoef,
-                          const Real                                          &  a_dxCoarse,
-                          const vector<int>                                   &  a_refRatio,
-                          const shared_ptr<ConductivityBaseDomainBCFactory>   &  a_domainBCFactory,
-                          const shared_ptr<ConductivityBaseEBBCFactory>       &  a_ebBcFactory,
-                          const IntVect                                       &  a_ghostCellsPhi,
-                          const IntVect                                       &  a_ghostCellsRhs,
-                          int a_numLevels = -1);
-
-
-  //! Destructor.
-  virtual ~EBConductivityOpFactory();
-
-  ///
-  virtual void setData( vector< shared_ptr<FabArray<BaseIVFAB<Real> > > >& a_data)
+  //! \class EBConductivityOpFactory
+  //! Factory class to generate EBConductivityOps.  This follows the
+  //! AMRLevelOpFactory interface.
+  class EBConductivityOpFactory: public AMRLevelOpFactory<FabArray<EBCellFAB> >
   {
-    m_data = a_data;
-    m_dataBased = true;
-  }
+  public:
 
-  ///called by MultiGrid.H
-  virtual EBConductivityOp*
-  MGnewOp(const Box & a_FineindexSpace,
-          int         a_depth,
-          bool        a_homoOnly = true);
+    ///
+    /**
+       Constructs a factory that builds EBConductivityOps 
+    */
+    EBConductivityOpFactory(const vector<EBLevelGrid>                           &  a_eblgs,
+                            const Real                                          &  a_alpha,
+                            const Real                                          &  a_beta,
+                            const vector<shared_ptr<FabArray<EBCellFAB> > >     &  a_acoef,
+                            const vector<shared_ptr<FabArray<EBFluxFAB> > >     &  a_bcoef,
+                            const Real                                          &  a_dxCoarse,
+                            const vector<int>                                   &  a_refRatio,
+                            const shared_ptr<ConductivityBaseDomainBCFactory>   &  a_domainBCFactory,
+                            const shared_ptr<ConductivityBaseEBBCFactory>       &  a_ebBcFactory,
+                            const IntVect                                       &  a_ghostCellsPhi,
+                            const IntVect                                       &  a_ghostCellsRhs,
+                            int a_numLevels = -1);
 
-  ///called by AMRMultiGrid.H
-  virtual EBConductivityOp*
-  AMRnewOp(const Box& a_FineindexSpace);
+
+    //! Destructor.
+    virtual ~EBConductivityOpFactory();
+
+    ///
+    virtual void setData( vector< shared_ptr<FabArray<BaseIVFAB<Real> > > >& a_data)
+      {
+        m_data = a_data;
+        m_dataBased = true;
+      }
+
+    ///called by MultiGrid.H
+    virtual EBConductivityOp*
+    MGnewOp(const Box & a_FineindexSpace,
+            int         a_depth,
+            bool        a_homoOnly = true);
+
+    ///called by AMRMultiGrid.H
+    virtual EBConductivityOp*
+    AMRnewOp(const Box& a_FineindexSpace);
 
 
-  ///does the real work
-  EBConductivityOp*
-  createOperator(const int&  a_amrlevel,
-                 const int&  a_depth,
-                 const bool  a_amrLevelOp);
+    ///does the real work
+    EBConductivityOp*
+    createOperator(const int&  a_amrlevel,
+                   const int&  a_depth,
+                   const bool  a_amrLevelOp);
 
-protected:
+  protected:
 
-  vector<EBLevelGrid>                                  m_eblgs;
-  Real                                                 m_alpha;
-  Real                                                 m_beta;
+    vector<EBLevelGrid>                                  m_eblgs;
+    Real                                                 m_alpha;
+    Real                                                 m_beta;
 
-  //! coefficients
-  vector<shared_ptr<FabArray<EBCellFAB> > >        m_acoef;
-  vector<shared_ptr<FabArray<EBFluxFAB> > >        m_bcoef;
+    //! coefficients
+    vector<shared_ptr<FabArray<EBCellFAB> > >        m_acoef;
+    vector<shared_ptr<FabArray<EBFluxFAB> > >        m_bcoef;
 
-  //inputs
-  Real                                                 m_dxCoarse;
-  vector<int>                                          m_refRatio;
-  shared_ptr<ConductivityBaseDomainBCFactory>          m_domainBCFactory;
-  shared_ptr<ConductivityBaseEBBCFactory>              m_ebBCFactory;
-  int                                                  m_ghostCellsPhi;
-  int                                                  m_ghostCellsRhs;
-  int                                                  m_numLevels;
-  vector<Real>                                         m_dx;
-private:
-  ///weak construction bad
-  EBConductivityOpFactory()
-  {
-    MayDay::Error("invalid operator");
-  }
+    //inputs
+    Real                                                 m_dxCoarse;
+    vector<int>                                          m_refRatio;
+    shared_ptr<ConductivityBaseDomainBCFactory>          m_domainBCFactory;
+    shared_ptr<ConductivityBaseEBBCFactory>              m_ebBCFactory;
+    int                                                  m_ghostCellsPhi;
+    int                                                  m_ghostCellsRhs;
+    int                                                  m_numLevels;
+    vector<Real>                                         m_dx;
+  private:
+    ///weak construction bad
+    EBConductivityOpFactory()
+      {
+        MayDay::Error("invalid operator");
+      }
 
-  //copy constructor and operator= disallowed for all the usual reasons
-  EBConductivityOpFactory(const EBConductivityOpFactory& a_opin)
-  {
-    MayDay::Error("invalid operator");
-  }
+    //copy constructor and operator= disallowed for all the usual reasons
+    EBConductivityOpFactory(const EBConductivityOpFactory& a_opin)
+      {
+        MayDay::Error("invalid operator");
+      }
 
-  //copy constructor and operator= disallowed for all the usual reasons
-  void operator=(const EBConductivityOpFactory& a_opin)
-  {
-    MayDay::Error("invalid operator");
-  }
-};
+    //copy constructor and operator= disallowed for all the usual reasons
+    void operator=(const EBConductivityOpFactory& a_opin)
+      {
+        MayDay::Error("invalid operator");
+      }
+  };
 
 }
 #endif

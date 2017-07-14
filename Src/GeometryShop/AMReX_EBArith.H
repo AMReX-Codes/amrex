@@ -318,6 +318,9 @@ namespace amrex
                int a_idir, Side::LoHiSide a_sd,
                IntVectSet*    a_cfivsPtr);
 
+    static RealVect
+    getDomainNormal(int a_idir, Side::LoHiSide a_side);
+
     ///gets the location in real space of a cell center
     static RealVect  getVofLocation(const VolIndex&  a_vof,
                                     const RealVect&  a_dx,
