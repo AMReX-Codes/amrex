@@ -66,7 +66,39 @@ public:
 
 private:
   void defineStencils();
+
+  //second order normal gradient stencil (unless it drops order)
+  void 
+  getSecondOrderStencil(VoFStencil&       a_stencil,
+                        Real&             a_weight,
+                        const VolIndex&   a_vof,
+                        const EBISBox&    a_ebisBox,
+                        const RealVect&   a_dx,
+                        const IntVectSet& a_cfivs);
+
+  //first order normal gradient stencil
+  void
+  getFirstOrderStencil(VoFStencil&     a_stencil,
+                       Real&           a_weight,
+                       const VolIndex& a_vof,
+                       const EBISBox&  a_ebisBox,
+                       const RealVect& a_dx);
+
+  //second order normal gradient stencil
+  bool
+  getSecondOrderStencil(VoFStencil&          a_stencil,
+                        Real&                a_weight,
+                        vector<VoFStencil>&  a_pointStencils,
+                        vector<Real>&        a_distanceAlongLine,
+                        const VolIndex&      a_vof,
+                        const EBISBox&       a_ebisBox,
+                        const RealVect&      a_dx,
+                        const IntVectSet&    a_cfivs);
+
+
+
   LayoutData<BaseIVFAB<VoFStencil> > m_fluxStencil;
+  LayoutData<BaseIVFAB<Real> > m_fluxWeight;
 };
 
 ///
@@ -82,14 +114,7 @@ public:
   ///
   virtual ~DirichletConductivityEBBCFactory();
 
-  virtual void setOrder(int a_order)
-  {
-    m_order = a_order;
-  }
 
-  virtual void setValue(Real a_value);
-
-  ///
   virtual void setFunction(RefCountedPtr<BaseBCValue> a_flux);
 
   ///

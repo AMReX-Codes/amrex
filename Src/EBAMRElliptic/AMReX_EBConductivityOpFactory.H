@@ -49,8 +49,8 @@ public:
                           const vector<shared_ptr<FabArray<EBFluxFAB> > >     &  a_bcoef,
                           const Real                                          &  a_dxCoarse,
                           const vector<int>                                   &  a_refRatio,
-                          const shared_ptr<BaseDomainBCFactory>               &  a_domainBCFactory,
-                          const shared_ptr<BaseEBBCFactory>                   &  a_ebBcFactory,
+                          const shared_ptr<ConductivityBaseDomainBCFactory>   &  a_domainBCFactory,
+                          const shared_ptr<ConductivityBaseEBBCFactory>       &  a_ebBcFactory,
                           const IntVect                                       &  a_ghostCellsPhi,
                           const IntVect                                       &  a_ghostCellsRhs,
                           int a_numLevels = -1);
@@ -89,18 +89,17 @@ protected:
   Real                                                 m_alpha;
   Real                                                 m_beta;
 
-  //! Time-independent A coefficients.
+  //! coefficients
   vector<shared_ptr<FabArray<EBCellFAB> > >        m_acoef;
-
-
   vector<shared_ptr<FabArray<EBFluxFAB> > >        m_bcoef;
 
+  //inputs
   Real                                                 m_dxCoarse;
   vector<int>                                          m_refRatio;
-  shared_ptr<BaseDomainBCFactory>                      m_domainBCFactory;
-  shared_ptr<BaseEBBCFactory>                          m_ebBCFactory;
-  int                                             m_ghostCellsPhi;
-  int                                              m_ghostCellsRhs;
+  shared_ptr<ConductivityBaseDomainBCFactory>          m_domainBCFactory;
+  shared_ptr<ConductivityBaseEBBCFactory>              m_ebBCFactory;
+  int                                                  m_ghostCellsPhi;
+  int                                                  m_ghostCellsRhs;
   int                                                  m_numLevels;
   vector<Real>                                         m_dx;
 private:
