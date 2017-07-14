@@ -23,6 +23,10 @@
 #include "AMReX_MeshRefine.H"
 #include "AMReX_EBConducivityOp.H"
 #include "AMReX_EBConducivityOpFactory.H"
+#include "AMReX_DirichletConductivityEBBCFactory.H"
+#include "AMReX_DirichletConductivityDomainBCFactory.H"
+#include "AMReX_NeumannConductivityEBBCFactory.H"
+#include "AMReX_NeumannConductivityDomainBCFactory.H"
 
 namespace amrex
 {
@@ -123,6 +127,54 @@ namespace amrex
     pp.get("beta" , beta );
     pp.get("acoefval", acoefval);
     pp.get("bcoefval" ,bcoefval);
+    int domain_bc_type, eb_bc_type;
+    pp.get("domain_bc_type" ,domain_bc_type);
+    pp.get(    "eb_bc_type" ,    eb_bc_type);
+    shared_ptr<ConductivityBaseDomainBCFactory> domainBCFact;
+    shared_ptr<ConductivityBaseEBBCFactory>     ebBCFact;
+    if(domain_bc_type == 0)
+    {
+      pout() << "neumann domain bcs" << endl;
+      NeumannConductivityDomainBCFactory* neumptr = (new NeumannConductivityDomainBCFactory());
+      neumptr->setValue(0.);
+      domainBCFact = shared_ptr<ConductivityBaseDomainBCFactory>(static_cast<ConductivityBaseDomainBCFactory*>(neumptr));
+    }
+    else if(domain_bc_type == 1)
+    {
+      pout() << "dirichelet domain bcs" << endl;
+      DirichletConductivityDomainBCFactory* diriptr = (new DirichletConductivityDomainBCFactory());
+      diriptr->setValue(0.);
+      domainBCFact = shared_ptr<ConductivityBaseDomainBCFactory>(static_cast<ConductivityBaseDomainBCFactory*>(diriptr));
+    }
+    else
+    {
+      amrex::Error("unknown domain_bc_type");
+    }
+
+    if(ebbc_bc_type == 0)
+    {
+      pout() << "neumann eb bcs" << endl;
+      NeumannConductivityEBBCFactory* neumptr = (new NeumannConductivityEBBCFactory());
+      neumptr->setValue(0.);
+      ebBCFact = shared_ptr<ConductivityBaseEBBCFactory>(static_cast<ConductivityBaseEBBCFactory*>(neumptr));
+    }
+    else if(domain_bc_type == 1)
+    {
+      int order_ebbc;
+      pp.get("order_ebbc", order_ebbc);
+      
+      pout() << "dirichelet eb bcs with order " << order_ebbc << endl;
+      DirichletConductivityEBBCFactory* diriptr = (new DirichletConductivityEBBCFactory());
+      diriptr->setValue(0.);
+      diriptr->setOrder(order_ebbc);
+      ebBCFact = shared_ptr<ConductivityBaseEBBCFactory>(static_cast<ConductivityBaseEBBCFactory*>(diriptr));
+    }
+    else
+    {
+      amrex::Error("unknown eb_bc_type");
+    }
+
+
     int numLevels = a_veblg.size();
     vector<shared_ptr<FabArray<EBCellFAB> > > acoef(numLevels);
     vector<shared_ptr<FabArray<EBFluxFAB> > > bcoef(numLevels);

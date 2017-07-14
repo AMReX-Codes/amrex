@@ -92,8 +92,8 @@ namespace amrex
                           const vector<RefCountedPtr<LevelData<EBFluxFAB> > >&        a_bcoef,
                           const Real&                                                 a_dxCoarse,
                           const vector<int>&                                          a_refRatio,
-                          const RefCountedPtr<BaseDomainBCFactory>&                   a_domainBCFactory,
-                          const RefCountedPtr<BaseEBBCFactory>    &                   a_ebBCFactory,
+                          const RefCountedPtr<ConductivityBaseDomainBCFactory>&       a_domainBCFactory,
+                          const RefCountedPtr<ConductivityBaseEBBCFactory>    &       a_ebBCFactory,
                           const int     &                                             a_ghostCellsPhi,
                           const int     &                                             a_ghostCellsRhs,
                           int a_numLevels)
