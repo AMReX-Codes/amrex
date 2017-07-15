@@ -1550,6 +1550,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 
+            Device::synchronize();
+
 #ifdef BL_USE_UPCXX
 	    
 	    BLPgas::cp_send_counter = 0;
@@ -1759,6 +1761,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		    }
 		}
 	    }
+
+            Device::synchronize();
 
             if (the_recv_data)
             {
@@ -2209,6 +2213,8 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 }
             }
 
+            Device::synchronize();
+
             int send_counter = 0;
             while (send_counter < N_snds)
             {
@@ -2321,6 +2327,8 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                     }
                 }
 	    }
+
+            Device::synchronize();
 	
             if (the_recv_data) {
                 amrex::The_Arena()->free(the_recv_data);
@@ -3283,6 +3291,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
             }
 	}
 
+        Device::synchronize();
+
 #ifdef BL_USE_UPCXX
 
 	BLPgas::fb_send_counter = 0;
@@ -3485,6 +3495,8 @@ FabArray<FAB>::FillBoundary_finish ()
                 BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
             }
 	}
+
+        Device::synchronize();
 
         if (fb_the_recv_data)
         {
