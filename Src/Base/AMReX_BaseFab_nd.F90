@@ -58,7 +58,7 @@ contains
        do       k = blo(3), bhi(3)
           do    j = blo(2), bhi(2)
              offset = tile_size(1) * (j - lo(2)) + tile_size(1) * tile_size(2) * (k - lo(3)) + &
-                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1)
+                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1) + 1
              do i = blo(1), bhi(1)
                 dst(offset+i) = src(i,j,k,n)
              end do
@@ -92,7 +92,7 @@ contains
        do       k = blo(3), bhi(3)
           do    j = blo(2), bhi(2)
              offset = tile_size(1) * (j - lo(2)) + tile_size(1) * tile_size(2) * (k - lo(3)) + &
-                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1)
+                      tile_size(1) * tile_size(2) * tile_size(3) * (n - 1) + 1
              do i = blo(1), bhi(1)
                 dst(i,j,k,n)  = src(offset+i)
              end do
