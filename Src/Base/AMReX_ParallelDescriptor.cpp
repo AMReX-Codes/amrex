@@ -982,6 +982,17 @@ ParallelDescriptor::ReduceRealSum (Real* r, int cnt, int cpu)
 }
 
 void
+ParallelDescriptor::ReduceRealSum (Array<std::reference_wrapper<Real> >&& rvar, int cpu)
+{
+    int cnt = rvar.size();
+    Array<Real> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceReal(tmp.data(),MPI_SUM,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
+}
+
+void
 ParallelDescriptor::ReduceRealMax (Real& r, Color color)
 {
     BL_PROFILE("ReduceRealMax");
@@ -1022,6 +1033,18 @@ ParallelDescriptor::ReduceRealMax (Real* r, int cnt, int cpu)
 }
 
 void
+ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, int cpu)
+{
+    BL_PROFILE("ReduceRealMax");
+    int cnt = rvar.size();
+    Array<Real> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceReal(tmp.data(),MPI_MAX,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
+}
+
+void
 ParallelDescriptor::ReduceRealMin (Real& r, Color color)
 {
     util::DoAllReduceReal(r,MPI_MIN,color);
@@ -1054,6 +1077,17 @@ void
 ParallelDescriptor::ReduceRealMin (Real* r, int cnt, int cpu)
 {
     util::DoReduceReal(r,MPI_MIN,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceRealMin (Array<std::reference_wrapper<Real> >&& rvar, int cpu)
+{
+    int cnt = rvar.size();
+    Array<Real> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceReal(tmp.data(),MPI_MIN,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
 }
 
 void
@@ -1092,6 +1126,17 @@ ParallelDescriptor::ReduceIntSum (int* r, int cnt, int cpu)
 }
 
 void
+ParallelDescriptor::ReduceIntSum (Array<std::reference_wrapper<int> >&& rvar, int cpu)
+{
+    int cnt = rvar.size();
+    Array<int> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceInt(tmp.data(),MPI_SUM,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
+}
+
+void
 ParallelDescriptor::ReduceIntMax (int& r, Color color)
 {
     util::DoAllReduceInt(r,MPI_MAX,color);
@@ -1124,6 +1169,17 @@ void
 ParallelDescriptor::ReduceIntMax (int* r, int cnt, int cpu)
 {
     util::DoReduceInt(r,MPI_MAX,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntMax (Array<std::reference_wrapper<int> >&& rvar, int cpu)
+{
+    int cnt = rvar.size();
+    Array<int> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceInt(tmp.data(),MPI_MAX,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
 }
 
 void
@@ -1162,6 +1218,17 @@ ParallelDescriptor::ReduceIntMin (int* r, int cnt, int cpu)
 }
 
 void
+ParallelDescriptor::ReduceIntMin (Array<std::reference_wrapper<int> >&& rvar, int cpu)
+{
+    int cnt = rvar.size();
+    Array<int> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceInt(tmp.data(),MPI_MIN,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
+}
+
+void
 ParallelDescriptor::ReduceLongSum (long& r, Color color)
 {
     util::DoAllReduceLong(r,MPI_SUM,color);
@@ -1194,6 +1261,17 @@ void
 ParallelDescriptor::ReduceLongSum (long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_SUM,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongSum (Array<std::reference_wrapper<long> >&& rvar, int cpu)
+{
+    int cnt = rvar.size();
+    Array<long> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceLong(tmp.data(),MPI_SUM,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
 }
 
 void
@@ -1232,6 +1310,17 @@ ParallelDescriptor::ReduceLongMax (long* r, int cnt, int cpu)
 }
 
 void
+ParallelDescriptor::ReduceLongMax (Array<std::reference_wrapper<long> >&& rvar, int cpu)
+{
+    int cnt = rvar.size();
+    Array<long> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceLong(tmp.data(),MPI_MAX,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
+}
+
+void
 ParallelDescriptor::ReduceLongMin (long& r, Color color)
 {
     util::DoAllReduceLong(r,MPI_MIN,color);
@@ -1267,6 +1356,17 @@ ParallelDescriptor::ReduceLongMin (long* r, int cnt, int cpu)
 }
 
 void
+ParallelDescriptor::ReduceLongMin (Array<std::reference_wrapper<long> >&& rvar, int cpu)
+{
+    int cnt = rvar.size();
+    Array<long> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceLong(tmp.data(),MPI_MIN,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
+}
+
+void
 ParallelDescriptor::ReduceLongAnd (long& r, Color color)
 {
     util::DoAllReduceLong(r,MPI_LAND,color);
@@ -1299,6 +1399,17 @@ void
 ParallelDescriptor::ReduceLongAnd (long* r, int cnt, int cpu)
 {
     util::DoReduceLong(r,MPI_LAND,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongAnd (Array<std::reference_wrapper<long> >&& rvar,int cpu)
+{
+    int cnt = rvar.size();
+    Array<long> tmp{std::begin(rvar), std::end(rvar)};
+    util::DoReduceLong(tmp.data(),MPI_LAND,cnt,cpu);
+    for (int i = 0; i < cnt; ++i) {
+        rvar[i].get() = tmp[i];
+    }
 }
 
 void
@@ -2159,6 +2270,10 @@ void ParallelDescriptor::ReduceRealSum (Array<std::reference_wrapper<Real> >&& r
 void ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, Color color) {}
 void ParallelDescriptor::ReduceRealMin (Array<std::reference_wrapper<Real> >&& rvar, Color color) {}
 
+void ParallelDescriptor::ReduceRealSum (Array<std::reference_wrapper<Real> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceRealMin (Array<std::reference_wrapper<Real> >&& rvar, int cpu) {}
+
 void ParallelDescriptor::ReduceLongAnd (long&,Color) {}
 void ParallelDescriptor::ReduceLongSum (long&,Color) {}
 void ParallelDescriptor::ReduceLongMax (long&,Color) {}
@@ -2184,6 +2299,11 @@ void ParallelDescriptor::ReduceLongSum (Array<std::reference_wrapper<long> >&& r
 void ParallelDescriptor::ReduceLongMax (Array<std::reference_wrapper<long> >&& rvar, Color color) {}
 void ParallelDescriptor::ReduceLongMin (Array<std::reference_wrapper<long> >&& rvar, Color color) {}
 
+void ParallelDescriptor::ReduceLongAnd (Array<std::reference_wrapper<long> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceLongSum (Array<std::reference_wrapper<long> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceLongMax (Array<std::reference_wrapper<long> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceLongMin (Array<std::reference_wrapper<long> >&& rvar, int cpu) {}
+
 void ParallelDescriptor::ReduceIntSum (int&,Color) {}
 void ParallelDescriptor::ReduceIntMax (int&,Color) {}
 void ParallelDescriptor::ReduceIntMin (int&,Color) {}
@@ -2203,6 +2323,10 @@ void ParallelDescriptor::ReduceIntMin (int*,int,int) {}
 void ParallelDescriptor::ReduceIntSum (Array<std::reference_wrapper<int> >&& rvar, Color color) {}
 void ParallelDescriptor::ReduceIntMax (Array<std::reference_wrapper<int> >&& rvar, Color color) {}
 void ParallelDescriptor::ReduceIntMin (Array<std::reference_wrapper<int> >&& rvar, Color color) {}
+
+void ParallelDescriptor::ReduceIntSum (Array<std::reference_wrapper<int> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceIntMax (Array<std::reference_wrapper<int> >&& rvar, int cpu) {}
+void ParallelDescriptor::ReduceIntMin (Array<std::reference_wrapper<int> >&& rvar, int cpu) {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool&,Color) {}
 void ParallelDescriptor::ReduceBoolOr  (bool&,Color) {}
