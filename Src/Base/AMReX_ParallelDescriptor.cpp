@@ -901,6 +901,296 @@ ParallelDescriptor::Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
 }
 
 void
+ParallelDescriptor::ReduceBoolAnd (bool& r, Color color)
+{
+    if (!isActive(color)) return;
+
+    int src = r; // src is either 0 or 1.
+
+    util::DoAllReduceInt(src,MPI_SUM,color);
+
+    r = (src == ParallelDescriptor::NProcs(color)) ? true : false;
+}
+
+void
+ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
+{
+    int src = r; // src is either 0 or 1.
+
+    util::DoReduceInt(src,MPI_SUM,cpu);
+
+    if (ParallelDescriptor::MyProc() == cpu)
+        r = (src == ParallelDescriptor::NProcs()) ? true : false;
+}
+
+void
+ParallelDescriptor::ReduceBoolOr (bool& r, Color color)
+{
+    if (!isActive(color)) return;
+
+    int src = r; // src is either 0 or 1.
+
+    util::DoAllReduceInt(src,MPI_SUM,color);
+
+    r = (src == 0) ? false : true;
+}
+
+void
+ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
+{
+    int src = r; // src is either 0 or 1.
+
+    util::DoReduceInt(src,MPI_SUM,cpu);
+
+    if (ParallelDescriptor::MyProc() == cpu)
+        r = (src == 0) ? false : true;
+}
+
+void
+ParallelDescriptor::ReduceRealSum (Real& r, Color color)
+{
+    util::DoAllReduceReal(r,MPI_SUM,color);
+}
+
+void
+ParallelDescriptor::ReduceRealSum (Real* r, int cnt, Color color)
+{
+    util::DoAllReduceReal(r,MPI_SUM,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
+{
+    util::DoReduceReal(r,MPI_SUM,cpu);
+}
+
+void
+ParallelDescriptor::ReduceRealSum (Real* r, int cnt, int cpu)
+{
+    util::DoReduceReal(r,MPI_SUM,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceRealMax (Real& r, Color color)
+{
+    BL_PROFILE("ReduceRealMax");
+    util::DoAllReduceReal(r,MPI_MAX,color);
+}
+
+void
+ParallelDescriptor::ReduceRealMax (Real* r, int cnt, Color color)
+{
+    BL_PROFILE("ReduceRealMax");
+    util::DoAllReduceReal(r,MPI_MAX,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
+{
+    BL_PROFILE("ReduceRealMax");
+    util::DoReduceReal(r,MPI_MAX,cpu);
+}
+
+void
+ParallelDescriptor::ReduceRealMax (Real* r, int cnt, int cpu)
+{
+    BL_PROFILE("ReduceRealMax");
+    util::DoReduceReal(r,MPI_MAX,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceRealMin (Real& r, Color color)
+{
+    util::DoAllReduceReal(r,MPI_MIN,color);
+}
+
+void
+ParallelDescriptor::ReduceRealMin (Real* r, int cnt, Color color)
+{
+    util::DoAllReduceReal(r,MPI_MIN,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceRealMin (Real& r, int cpu)
+{
+    util::DoReduceReal(r,MPI_MIN,cpu);
+}
+
+void
+ParallelDescriptor::ReduceRealMin (Real* r, int cnt, int cpu)
+{
+    util::DoReduceReal(r,MPI_MIN,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntSum (int& r, Color color)
+{
+    util::DoAllReduceInt(r,MPI_SUM,color);
+}
+
+void
+ParallelDescriptor::ReduceIntSum (int* r, int cnt, Color color)
+{
+    util::DoAllReduceInt(r,MPI_SUM,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceIntSum (int& r, int cpu)
+{
+    util::DoReduceInt(r,MPI_SUM,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntSum (int* r, int cnt, int cpu)
+{
+    util::DoReduceInt(r,MPI_SUM,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntMax (int& r, Color color)
+{
+    util::DoAllReduceInt(r,MPI_MAX,color);
+}
+
+void
+ParallelDescriptor::ReduceIntMax (int* r, int cnt, Color color)
+{
+    util::DoAllReduceInt(r,MPI_MAX,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceIntMax (int& r, int cpu)
+{
+    util::DoReduceInt(r,MPI_MAX,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntMax (int* r, int cnt, int cpu)
+{
+    util::DoReduceInt(r,MPI_MAX,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntMin (int& r, Color color)
+{
+    util::DoAllReduceInt(r,MPI_MIN,color);
+}
+
+void
+ParallelDescriptor::ReduceIntMin (int* r, int cnt, Color color)
+{
+    util::DoAllReduceInt(r,MPI_MIN,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceIntMin (int& r, int cpu)
+{
+    util::DoReduceInt(r,MPI_MIN,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntMin (int* r, int cnt, int cpu)
+{
+    util::DoReduceInt(r,MPI_MIN,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongSum (long& r, Color color)
+{
+    util::DoAllReduceLong(r,MPI_SUM,color);
+}
+
+void
+ParallelDescriptor::ReduceLongSum (long* r, int cnt, Color color)
+{
+    util::DoAllReduceLong(r,MPI_SUM,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceLongSum (long& r, int cpu)
+{
+    util::DoReduceLong(r,MPI_SUM,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongSum (long* r, int cnt, int cpu)
+{
+    util::DoReduceLong(r,MPI_SUM,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongMax (long& r, Color color)
+{
+    util::DoAllReduceLong(r,MPI_MAX,color);
+}
+
+void
+ParallelDescriptor::ReduceLongMax (long* r, int cnt, Color color)
+{
+    util::DoAllReduceLong(r,MPI_MAX,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceLongMax (long& r, int cpu)
+{
+    util::DoReduceLong(r,MPI_MAX,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongMax (long* r, int cnt, int cpu)
+{
+    util::DoReduceLong(r,MPI_MAX,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongMin (long& r, Color color)
+{
+    util::DoAllReduceLong(r,MPI_MIN,color);
+}
+
+void
+ParallelDescriptor::ReduceLongMin (long* r, int cnt, Color color)
+{
+    util::DoAllReduceLong(r,MPI_MIN,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceLongMin (long& r, int cpu)
+{
+    util::DoReduceLong(r,MPI_MIN,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongMin (long* r, int cnt, int cpu)
+{
+    util::DoReduceLong(r,MPI_MIN,cnt,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongAnd (long& r, Color color)
+{
+    util::DoAllReduceLong(r,MPI_LAND,color);
+}
+
+void
+ParallelDescriptor::ReduceLongAnd (long* r, int cnt, Color color)
+{
+    util::DoAllReduceLong(r,MPI_LAND,cnt,color);
+}
+
+void
+ParallelDescriptor::ReduceLongAnd (long& r, int cpu)
+{
+    util::DoReduceLong(r,MPI_LAND,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongAnd (long* r, int cnt, int cpu)
+{
+    util::DoReduceLong(r,MPI_LAND,cnt,cpu);
+}
+
+void
 ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op,
 					   Color  color)
@@ -1101,83 +1391,6 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
         for (int i = 0; i < cnt; i++)
             r[i] = recv[i];
     }
-}
-
-void
-ParallelDescriptor::ReduceRealMax (Real& r, Color color)
-{
-    BL_PROFILE("ReduceRealMax");
-    util::DoAllReduceReal(r,MPI_MAX,color);
-}
-
-void
-ParallelDescriptor::ReduceRealMin (Real& r, Color color)
-{
-    util::DoAllReduceReal(r,MPI_MIN,color);
-}
-
-void
-ParallelDescriptor::ReduceRealSum (Real& r, Color color)
-{
-    util::DoAllReduceReal(r,MPI_SUM,color);
-}
-
-void
-ParallelDescriptor::ReduceRealMax (Real* r, int cnt, Color color)
-{
-    BL_PROFILE("ReduceRealMax");
-    util::DoAllReduceReal(r,MPI_MAX,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceRealMin (Real* r, int cnt, Color color)
-{
-    util::DoAllReduceReal(r,MPI_MIN,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceRealSum (Real* r, int cnt, Color color)
-{
-    util::DoAllReduceReal(r,MPI_SUM,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
-{
-    BL_PROFILE("ReduceRealMax");
-    util::DoReduceReal(r,MPI_MAX,cpu);
-}
-
-void
-ParallelDescriptor::ReduceRealMin (Real& r, int cpu)
-{
-    util::DoReduceReal(r,MPI_MIN,cpu);
-}
-
-void
-ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
-{
-    util::DoReduceReal(r,MPI_SUM,cpu);
-}
-
-void
-ParallelDescriptor::ReduceRealMax (Real* r, int cnt, int cpu)
-{
-    BL_PROFILE("ReduceRealMax");
-    util::DoReduceReal(r,MPI_MAX,cnt,cpu);
-}
-
-
-void
-ParallelDescriptor::ReduceRealMin (Real* r, int cnt, int cpu)
-{
-    util::DoReduceReal(r,MPI_MIN,cnt,cpu);
-}
-
-void
-ParallelDescriptor::ReduceRealSum (Real* r, int cnt, int cpu)
-{
-    util::DoReduceReal(r,MPI_SUM,cnt,cpu);
 }
 
 void
@@ -1384,102 +1597,6 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 }
 
 void
-ParallelDescriptor::ReduceLongAnd (long& r, Color color)
-{
-    util::DoAllReduceLong(r,MPI_LAND,color);
-}
-
-void
-ParallelDescriptor::ReduceLongSum (long& r, Color color)
-{
-    util::DoAllReduceLong(r,MPI_SUM,color);
-}
-
-void
-ParallelDescriptor::ReduceLongMax (long& r, Color color)
-{
-    util::DoAllReduceLong(r,MPI_MAX,color);
-}
-
-void
-ParallelDescriptor::ReduceLongMin (long& r, Color color)
-{
-    util::DoAllReduceLong(r,MPI_MIN,color);
-}
-
-void
-ParallelDescriptor::ReduceLongAnd (long* r, int cnt, Color color)
-{
-    util::DoAllReduceLong(r,MPI_LAND,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceLongSum (long* r, int cnt, Color color)
-{
-    util::DoAllReduceLong(r,MPI_SUM,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceLongMax (long* r, int cnt, Color color)
-{
-    util::DoAllReduceLong(r,MPI_MAX,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceLongMin (long* r, int cnt, Color color)
-{
-    util::DoAllReduceLong(r,MPI_MIN,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceLongAnd (long& r, int cpu)
-{
-    util::DoReduceLong(r,MPI_LAND,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongSum (long& r, int cpu)
-{
-    util::DoReduceLong(r,MPI_SUM,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongMax (long& r, int cpu)
-{
-    util::DoReduceLong(r,MPI_MAX,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongMin (long& r, int cpu)
-{
-    util::DoReduceLong(r,MPI_MIN,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongAnd (long* r, int cnt, int cpu)
-{
-    util::DoReduceLong(r,MPI_LAND,cnt,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongSum (long* r, int cnt, int cpu)
-{
-    util::DoReduceLong(r,MPI_SUM,cnt,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongMax (long* r, int cnt, int cpu)
-{
-    util::DoReduceLong(r,MPI_MAX,cnt,cpu);
-}
-
-void
-ParallelDescriptor::ReduceLongMin (long* r, int cnt, int cpu)
-{
-    util::DoReduceLong(r,MPI_MIN,cnt,cpu);
-}
-
-void
 ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op,
 					  Color  color)
@@ -1680,124 +1797,6 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
         for (int i = 0; i < cnt; i++)
             r[i] = recv[i];
     }
-}
-
-void
-ParallelDescriptor::ReduceIntSum (int& r, Color color)
-{
-    util::DoAllReduceInt(r,MPI_SUM,color);
-}
-
-void
-ParallelDescriptor::ReduceIntMax (int& r, Color color)
-{
-    util::DoAllReduceInt(r,MPI_MAX,color);
-}
-
-void
-ParallelDescriptor::ReduceIntMin (int& r, Color color)
-{
-    util::DoAllReduceInt(r,MPI_MIN,color);
-}
-
-void
-ParallelDescriptor::ReduceIntSum (int* r, int cnt, Color color)
-{
-    util::DoAllReduceInt(r,MPI_SUM,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceIntMax (int* r, int cnt, Color color)
-{
-    util::DoAllReduceInt(r,MPI_MAX,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceIntMin (int* r, int cnt, Color color)
-{
-    util::DoAllReduceInt(r,MPI_MIN,cnt,color);
-}
-
-void
-ParallelDescriptor::ReduceIntSum (int& r, int cpu)
-{
-    util::DoReduceInt(r,MPI_SUM,cpu);
-}
-
-void
-ParallelDescriptor::ReduceIntMax (int& r, int cpu)
-{
-    util::DoReduceInt(r,MPI_MAX,cpu);
-}
-
-void
-ParallelDescriptor::ReduceIntMin (int& r, int cpu)
-{
-    util::DoReduceInt(r,MPI_MIN,cpu);
-}
-
-void
-ParallelDescriptor::ReduceIntSum (int* r, int cnt, int cpu)
-{
-    util::DoReduceInt(r,MPI_SUM,cnt,cpu);
-}
-
-void
-ParallelDescriptor::ReduceIntMax (int* r, int cnt, int cpu)
-{
-    util::DoReduceInt(r,MPI_MAX,cnt,cpu);
-}
-
-void
-ParallelDescriptor::ReduceIntMin (int* r, int cnt, int cpu)
-{
-    util::DoReduceInt(r,MPI_MIN,cnt,cpu);
-}
-
-void
-ParallelDescriptor::ReduceBoolAnd (bool& r, Color color)
-{
-    if (!isActive(color)) return;
-
-    int src = r; // src is either 0 or 1.
-
-    util::DoAllReduceInt(src,MPI_SUM,color);
-
-    r = (src == ParallelDescriptor::NProcs(color)) ? true : false;
-}
-
-void
-ParallelDescriptor::ReduceBoolOr (bool& r, Color color)
-{
-    if (!isActive(color)) return;
-
-    int src = r; // src is either 0 or 1.
-
-    util::DoAllReduceInt(src,MPI_SUM,color);
-
-    r = (src == 0) ? false : true;
-}
-
-void
-ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
-{
-    int src = r; // src is either 0 or 1.
-
-    util::DoReduceInt(src,MPI_SUM,cpu);
-
-    if (ParallelDescriptor::MyProc() == cpu)
-        r = (src == ParallelDescriptor::NProcs()) ? true : false;
-}
-
-void
-ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
-{
-    int src = r; // src is either 0 or 1.
-
-    util::DoReduceInt(src,MPI_SUM,cpu);
-
-    if (ParallelDescriptor::MyProc() == cpu)
-        r = (src == 0) ? false : true;
 }
 
 void
