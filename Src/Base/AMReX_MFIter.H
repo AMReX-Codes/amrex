@@ -31,7 +31,9 @@ public:
 	SkipInit      = 0x08  
     };
 
+#ifdef CUDA
     enum MFReducer { SUM = 0, MAX, MIN };
+#endif
 
     /** 
     * \brief The default constructor does not enable tiling (flags_ is set to 0 by default). 
@@ -132,6 +134,7 @@ public:
     //! Return all data from the device to the host.
     void releaseDeviceData();
 
+#ifdef CUDA
     //! Maintain a list of values to reduce.
     template<typename T>
     T* add_reduce_value(T* val, MFReducer r) { return val; }
@@ -140,6 +143,7 @@ public:
 
     //! Reduce over the values in the list.
     void reduce();
+#endif
 
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
@@ -182,13 +186,13 @@ protected:
     mutable Array<std::shared_ptr<int>> saved_ints;
     mutable Array<std::shared_ptr<Real>> saved_reals;
 
+#ifdef CUDA
     mutable Real* real_reduce_val;
 
     mutable MFReducer reducer;
 
     mutable Array<Real> real_reduce_list;
 
-#ifdef CUDA
     mutable Array<Real*> real_device_reduce_list;
 #endif
 
