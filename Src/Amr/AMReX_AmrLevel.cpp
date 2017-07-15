@@ -513,6 +513,7 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
     state[state_indx].PrepareForFillBoundary(dest,geom.CellSize(),geom.ProbDomain(),xlo,
                                              bcrs,dest_comp,src_comp,num_comp);
 
+#ifdef CUDA
     std::shared_ptr<Real> t_ptr = Device::create_host_pointer<Real>(&time);
     Real* time_f = (Real*) Device::get_host_pointer(t_ptr.get());
 
@@ -521,6 +522,11 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
 
     std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs, 2 * AMREX_SPACEDIM * num_comp);
     int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
+#else
+    const Real* time_f = &time;
+    const Real* xlo_f  = xlo;
+    const int* bcrs_f  = bcrs;
+#endif
 
     state[state_indx].FillBoundary(dest,time_f,geom.CellSize(),geom.CellSizeF(),xlo_f,bcrs_f,
                                    geom.ProbDomain(),dest_comp,src_comp,num_comp);
@@ -1556,6 +1562,7 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx.loF();
             Real        dt      = parent->dtLevel(level);
 
+#ifdef CUDA
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
             int* n_state_f = mfi.get_fortran_pointer(&n_state);
             Real* time_f   = mfi.get_fortran_pointer(&time);
@@ -1563,6 +1570,15 @@ AmrLevel::derive (const std::string& name,
             int* level_f   = mfi.get_fortran_pointer(&level);
             int* grid_no_f = mfi.get_fortran_pointer(&grid_no);
             int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
+#else
+            const int* n_der_f   = &n_der;
+            const int* n_state_f = &n_state;
+            const Real* time_f   = &time;
+            const Real* dt_f     = &dt;
+            const int* level_f   = &level;
+            const int* grid_no_f = &grid_no;
+            const int* bcr_f     = bcr;
+#endif
 
             Device::prepare_for_launch(gtbx.loVect(), gtbx.hiVect());
 
@@ -1605,6 +1621,7 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx.loF();
             Real        dt      = parent->dtLevel(level);
 
+#ifdef CUDA
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
             int* n_state_f = mfi.get_fortran_pointer(&n_state);
             Real* time_f   = mfi.get_fortran_pointer(&time);
@@ -1612,6 +1629,15 @@ AmrLevel::derive (const std::string& name,
             int* level_f   = mfi.get_fortran_pointer(&level);
             int* grid_no_f = mfi.get_fortran_pointer(&grid_no);
             int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
+#else
+            const int* n_der_f   = &n_der;
+            const int* n_state_f = &n_state;
+            const Real* time_f   = &time;
+            const Real* dt_f     = &dt;
+            const int* level_f   = &level;
+            const int* grid_no_f = &grid_no;
+            const int* bcr_f     = bcr;
+#endif
 
             Device::prepare_for_launch((*mf)[mfi].loVect(), (*mf)[mfi].hiVect());
 
@@ -1714,6 +1740,7 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx.loF();
             Real        dt      = parent->dtLevel(level);
 
+#ifdef CUDA
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
             int* n_state_f = mfi.get_fortran_pointer(&n_state);
             Real* time_f   = mfi.get_fortran_pointer(&time);
@@ -1721,6 +1748,15 @@ AmrLevel::derive (const std::string& name,
             int* level_f   = mfi.get_fortran_pointer(&level);
             int* idx_f     = mfi.get_fortran_pointer(&idx);
             int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
+#else
+            const int* n_der_f   = &n_der;
+            const int* n_state_f = &n_state;
+            const Real* time_f   = &time;
+            const Real* dt_f     = &dt;
+            const int* level_f   = &level;
+            const int* idx_f     = &idx;
+            const int* bcr_f     = bcr;
+#endif
 
             Device::prepare_for_launch(gtbx.loVect(), gtbx.hiVect());
 
@@ -1763,6 +1799,7 @@ AmrLevel::derive (const std::string& name,
             const Real* xlo     = rbx.loF();
             Real        dt      = parent->dtLevel(level);
 
+#ifdef CUDA
             int* n_der_f   = mfi.get_fortran_pointer(&n_der);
             int* n_state_f = mfi.get_fortran_pointer(&n_state);
             Real* time_f   = mfi.get_fortran_pointer(&time);
@@ -1770,6 +1807,15 @@ AmrLevel::derive (const std::string& name,
             int* level_f   = mfi.get_fortran_pointer(&level);
             int* idx_f     = mfi.get_fortran_pointer(&idx);
             int* bcr_f     = mfi.get_fortran_pointer(bcr, 2 * 3, 2 * AMREX_SPACEDIM);
+#else
+            const int* n_der_f   = &n_der;
+            const int* n_state_f = &n_state;
+            const Real* time_f   = &time;
+            const Real* dt_f     = &dt;
+            const int* level_f   = &level;
+            const int* idx_f     = &idx;
+            const int* bcr_f     = bcr;
+#endif
 
             Device::prepare_for_launch(mf[mfi].loVect(), mf[mfi].hiVect());
 

@@ -850,9 +850,15 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
                 statedata->PrepareForFillBoundary(dest, dx, prob_domain, xlo,
                                                   bcrs, dest_comp, src_comp, num_comp);
 
+#ifdef CUDA
                 Real* time_f = mfi.get_fortran_pointer(&time);
                 Real* xlo_f  = mfi.get_fortran_pointer(xlo, 3, AMREX_SPACEDIM);
                 int* bcrs_f  = mfi.get_fortran_pointer(bcrs, 2 * AMREX_SPACEDIM * num_comp);
+#else
+                Real* time_f = &time;
+                Real* xlo_f  = xlo;
+                int* bcrs_f  = bcrs;
+#endif
 
 		statedata->FillBoundary(dest, time_f, dx, dx_f, xlo_f, bcrs_f, prob_domain, dest_comp, src_comp, num_comp);
 

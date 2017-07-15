@@ -82,11 +82,13 @@ public:
 
     static int isProgramRunning();
 
+#ifdef CUDA
     template<typename T>
     static std::shared_ptr<T> create_host_pointer(const T* ptr, const int n = 1, const int m = -1);
 
     template<typename T>
     static std::shared_ptr<T> create_device_pointer(const int n = 1);
+#endif
 
     static void device_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t sz, const int idx);
     static void device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t sz, const int idx);
@@ -108,13 +110,12 @@ private:
 
 }
 
+#ifdef CUDA
 template<typename T>
 std::shared_ptr<T>
 amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
 {
     std::shared_ptr<T> h_ptr;
-
-#ifdef CUDA
 
     T* temp_ptr;
     const std::size_t sz = n * sizeof(T);
@@ -133,28 +134,13 @@ amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
         *(temp_ptr + i) = *(ptr + i);
     h_ptr.reset(temp_ptr, [](T* ptr) { gpu_freehost(ptr); });
 
-#else
-
-    T* temp_ptr = new T[n];
-
-    int num;
-
-    if (m < 0)
-        num = n;
-    else
-        num = m;
-
-    for (int i = 0; i < num; ++i)
-        *(temp_ptr + i) = *(ptr + i);
-    h_ptr.reset(temp_ptr, [](T* ptr) { delete[] ptr; });
-
-#endif
-
     return h_ptr;
 }
+#endif
 
 
 
+#ifdef CUDA
 template<typename T>
 std::shared_ptr<T>
 amrex::Device::create_device_pointer(int n)
@@ -162,22 +148,13 @@ amrex::Device::create_device_pointer(int n)
 
     std::shared_ptr<T> d_ptr;
 
-#ifdef CUDA
-
     T* temp_ptr = (T*) device_malloc(n * sizeof(T));
 
     d_ptr.reset(temp_ptr, [](T* ptr) { gpu_free(ptr); });
 
-#else
-
-    T* temp_ptr = new T[n];
-
-    d_ptr.reset(temp_ptr, [](T* ptr) { delete[] ptr; });
-
-#endif
-
     return d_ptr;
 
 }
+#endif
 
 #endif

@@ -123,9 +123,11 @@ public:
 
     void register_ptr(std::shared_ptr<Real> ptr) { saved_reals.push_back(ptr); }
 
+#ifdef CUDA
     //! If we're on the device, store a copy of the data in the MFIter.
     template<typename T>
     T* get_fortran_pointer(const T* ptr, const int n = 1, const int m = -1);
+#endif
 
     //! Return all data from the device to the host.
     void releaseDeviceData();
@@ -225,6 +227,7 @@ MFIter::registerFab(const FArrayBox& fab, int idx) const
     return false;
 }
 
+#ifdef CUDA
 // Store an arbitrary pointer in our list. Create a shared pointer so that
 // the lifetime of the data is the lifetime of the MFIter. This allows asynchronous
 //  MFIter iterations to occur without freeing device data until all FABs are done.
@@ -235,6 +238,7 @@ MFIter::get_fortran_pointer(const T* ptr, const int n, const int m) {
     register_ptr(s_ptr);
     return (T*) Device::get_host_pointer(s_ptr.get());
 }
+#endif
 
 //! Iterate over ghost cells.  Lots of MFIter functions do not work.
 class MFGhostIter
