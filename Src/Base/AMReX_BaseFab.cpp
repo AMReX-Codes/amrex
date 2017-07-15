@@ -307,20 +307,25 @@ BaseFab<Real>::norm (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    Real* nrm = Device::create_device_pointer<Real>().get();
+#ifdef CUDA
+    Real* nrm_f = Device::create_device_pointer<Real>().get();
+#else
+    Real nrm;
+    Real* nrm_f = &nrm;
+#endif
 
     if (p == 0 || p == 1)
     {
 	fort_fab_norm(BL_TO_FORTRAN_BOX(bx),
 	              BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
-		      p, nrm);
+		      p, nrm_f);
     }
     else
     {
         amrex::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
     }
 
-    return *nrm;
+    return *nrm_f;
 }
 
 template<>
@@ -332,11 +337,16 @@ BaseFab<Real>::sum (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    Real* sm = Device::create_device_pointer<Real>().get();
+#ifdef CUDA
+    Real* sm_f = Device::create_device_pointer<Real>().get();
+#else
+    Real sm;
+    Real* sm_f = &sm;
+#endif
 
-    fort_fab_sum(BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm);
+    fort_fab_sum(BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
 
-    return *sm;
+    return *sm_f;
 }
 
 template<>
@@ -594,14 +604,19 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
-    Real* dp = Device::create_device_pointer<Real>().get();
+#ifdef CUDA
+    Real* dp_f = Device::create_device_pointer<Real>().get();
+#else
+    Real dp;
+    Real* dp_f = &dp;
+#endif
 
     fort_fab_dot(BL_TO_FORTRAN_BOX(xbx),
                  BL_TO_FORTRAN_N_ANYD(*this,xcomp),
                  BL_TO_FORTRAN_N_ANYD(y,ycomp), ARLIM_3D(ybx.loVectF()),
-                 numcomp, dp);
+                 numcomp, dp_f);
 
-    return *dp;
+    return *dp_f;
 }
 
 #endif
