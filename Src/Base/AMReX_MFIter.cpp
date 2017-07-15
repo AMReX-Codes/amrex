@@ -147,7 +147,9 @@ MFIter::~MFIter ()
 
     Device::synchronize();
 
+#ifdef CUDA
     reduce();
+#endif
 
 #ifdef CUDA
     for (int i = 0; i < real_reduce_list.size(); ++i)
@@ -379,6 +381,7 @@ MFIter::operator++ () {
 
 }
 
+#ifdef CUDA
 Real*
 MFIter::add_reduce_value(Real* val, MFReducer r)
 {
@@ -390,21 +393,19 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
     Real reduce_val = *val;
     real_reduce_list.push_back(reduce_val);
 
-#ifdef CUDA
     Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
     real_device_reduce_list.push_back(dval);
 
     Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
                                      &real_reduce_list[currentIndex],
                                      sizeof(Real), currentIndex);
-#else
-    Real* dval = &real_reduce_list[currentIndex];
-#endif
 
     return dval;
 
 }
+#endif
 
+#ifdef CUDA
 // Reduce over the values in the list.
 void
 MFIter::reduce()
@@ -438,6 +439,7 @@ MFIter::reduce()
     *real_reduce_val = result;
 
 }
+#endif
 
 void
 MFIter::releaseDeviceData() {
