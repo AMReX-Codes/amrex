@@ -48,10 +48,22 @@ private :
     HYPRE_SStructMatrix   A, A0;
     HYPRE_SStructVector   b;
     HYPRE_SStructVector   x;
+    HYPRE_Solver          solver;
+
+    Real rel_tol, abs_tol;
+    int max_iter;
 
     void loadBndryData (LinOpBCType bc_type, Real bc_value);
     void loadMatrix ();
+    void finalizeMatrix ();
+    void loadVectors (MultiFab& soln, const MultiFab& rhs);
+    void finalizeVectors ();
 
+    void setupSolver (Real rel_tol_, Real abs_tol_, int max_iter_);
+    void solveDoIt ();
+    void clearSolver ();
+
+    void getSolution (MultiFab& soln);
 };
 
 }

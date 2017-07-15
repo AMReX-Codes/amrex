@@ -149,6 +149,9 @@ NFilesIter::NFilesIter(const std::string &filename,
 
 
 NFilesIter::~NFilesIter() {
+  if( ! useStaticSetSelection) {
+    CleanUpMessages();
+  }
 }
 
 
