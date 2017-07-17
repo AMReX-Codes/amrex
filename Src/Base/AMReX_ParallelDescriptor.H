@@ -321,6 +321,9 @@ namespace ParallelDescriptor
 
     extern ProcessTeam m_Team;
 
+    extern int m_MaxTag;
+    inline int MaxTag () { return m_MaxTag; }
+
     //! return the number of MPI ranks local to the comp or sidecar groups
     inline int
     NProcs ()

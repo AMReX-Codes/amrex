@@ -294,14 +294,12 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     // ---- find the maximum value for a tag
     int flag(0), *attrVal;
-    BL_MPI_REQUIRE( MPI_Attr_get(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
+    BL_MPI_REQUIRE( MPI_Comm_get_attr(m_comm_all, MPI_TAG_UB, &attrVal, &flag) );
     if(flag) {
-      m_MaxTag_MPI = *attrVal;
-      m_MaxTag = m_MaxTag_MPI - tagBuffer;  // ---- buffer for sidecar tags
-      m_MaxTag = std::max(m_MaxTag, 9000);
+        m_MaxTag_MPI = *attrVal;
+        m_MaxTag = m_MaxTag_MPI - tagBuffer;  // ---- buffer for sidecar tags
     } else {
-      m_MaxTag = 9000;
-      m_MaxTag_MPI = m_MaxTag;
+        amrex::Abort("MPI_Comm_get_attr() failed to get MPI_TAG_UB");
     }
     BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
 
@@ -603,7 +601,6 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
     if(nSidecars > tagBuffer) {
       tagBuffer = nSidecars;
       m_MaxTag = m_MaxTag_MPI - tagBuffer;
-      m_MaxTag = std::max(m_MaxTag, 9000);
       BL_COMM_PROFILE_TAGRANGE(m_MinTag, m_MaxTag);
     }
 
