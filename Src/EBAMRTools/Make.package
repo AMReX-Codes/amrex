@@ -11,8 +11,8 @@ C$(EBAMRTOOLS_BASE)_sources += AMReX_AggEBPWLFillPatch.cpp AMReX_MeshRefine.cpp 
 C$(EBAMRTOOLS_BASE)_headers += AMReX_EBFastFR.H   AMReX_EBCoarseAverage.H   AMReX_EBCFInterp.H 
 C$(EBAMRTOOLS_BASE)_sources += AMReX_EBFastFR.cpp AMReX_EBCoarseAverage.cpp AMReX_EBCFInterp.cpp 
 
-C$(EBAMRTOOLS_BASE)_headers += AMReX_EBFineInterp.H 
-C$(EBAMRTOOLS_BASE)_sources += AMReX_EBFineInterp.cpp 
+C$(EBAMRTOOLS_BASE)_headers += AMReX_EBFineInterp.H   AMReX_DivergenceOp.H
+C$(EBAMRTOOLS_BASE)_sources += AMReX_EBFineInterp.cpp AMReX_DivergenceOp.cpp
 
 F90$(EBAMRTOOLS_BASE)_sources += AMReX_EBFortND.F90
 F90$(EBAMRTOOLS_BASE)_headers += AMReX_EBFortND_F.H

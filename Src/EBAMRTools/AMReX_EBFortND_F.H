@@ -46,8 +46,15 @@
                                  const int*  coar_lo_box_lo, const int* coar_lo_box_hi,
                                  const int*  coar_hi_box_lo, const int* coar_hi_box_hi,
                                  const int*  coar_cen_box_lo, const int* coar_cen_box_hi,
-                                 const int*   refboxlo, const int* refboxhi, 
+                                 const int*  refboxlo, const int* refboxhi, 
                                  const int* refrat, const int* isrc, const int* idst, const int* ncomp);
+
+    void ebfnd_divflux(amrex::Real*       divf, const int* divflo, const int* divfhi, const int* incodivf,
+                       const amrex::Real* flx0, const int* flx0lo, const int* flx0hi, const int* incoflx0,
+                       const amrex::Real* flx1, const int* flx1lo, const int* flx1hi, const int* incoflx1,
+                       const amrex::Real* flx2, const int* flx2lo, const int* flx2hi, const int* incoflx2,
+                       const int*  gridlo, const int* gridhi, 
+                       const amrex::Real* dx, const int* isrc, const int* idst, const int* ncomp);
 
 #ifdef __cplusplus
   }
