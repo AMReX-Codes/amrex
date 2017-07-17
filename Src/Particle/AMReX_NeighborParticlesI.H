@@ -138,7 +138,6 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
 applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell) {
     
-    BL_PROFILE("NeighborParticleContainer::applyPeriodicShift");
     BL_ASSERT(lev == 0);
     
     const Periodicity& periodicity = this->Geom(lev).periodicity();
@@ -169,7 +168,6 @@ packNeighborParticle(int lev,
                      const ParticleType& p,
                      NeighborCommMap& neighbors_to_comm) {
     
-    BL_PROFILE("NeighborParticleContainer::packNeighborParticle");
     BL_ASSERT(lev == 0);
     
     const int neighbor_grid = mask(neighbor_cell, 0);
@@ -355,56 +353,53 @@ buildNeighborList(int lev, bool sort) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
         Array<int>& nl = neighbor_list[index];
+        AoS& particles = pti.GetArrayOfStructs();
+
+        int Np = particles.size();
+        int Nn = neighbors[index].size() / pdata_size;
+        int Ns = particles.dataShape().first;
+        int N = Np + Nn;
+
+        Array<IntVect> cells(N);
+        Array<ParticleType> tmp_particles(N);
+        std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
+
+        for (int i = 0; i < Nn; ++i) {
+            std::memcpy(&tmp_particles[i + Np],
+                        neighbors[index].dataPtr() + i*pdata_size,
+                        pdata_size);
+        }
 
         // For each cell on this tile, we build linked lists storing the
-        // indices of the particles belonging to it. We have one list for
-        // real particles, another for those from neighboring tiles.
+        // indices of the particles belonging to it.
         Box box = pti.tilebox();
         box.grow(num_neighbor_cells);
         BaseFab<int> head(box);
         head.setVal(-1);
-        BaseFab<int> nhead(box);
-        nhead.setVal(-1);
+        Array<int> list(N, -1);
 
-        // first the real particles
-        AoS& particles = pti.GetArrayOfStructs();
-        int Np = particles.size();
-        Array<int> list(Np, -1);
-        for (int i = 0; i < Np; ++i) {
-            const ParticleType& p = particles[i];
+        for (int i = 0; i < N; ++i) {
+            const ParticleType& p = tmp_particles[i];
             const IntVect& cell = this->Index(p, lev);
+            cells[i] = cell;
             list[i] = head(cell);
             head(cell) = i;
         }
-
-        // then the neighbors
-        int Nn = neighbors[index].size() / pdata_size;
-        Array<int> nlist(Nn, -1);
-        char* nbuf = neighbors[index].dataPtr();
-        for (int i = 0; i < Nn; ++i) {
-            ParticleType n;
-            std::memcpy(&n, nbuf + i*pdata_size, pdata_size);
-            const IntVect& cell = this->Index(n, lev);
-            nlist[i] = nhead(cell);
-            nhead(cell) = i;
-        }
-
+        
         // using these lists, we build a neighbor list containing both
-        // kinds of particles. First we create the neighbor list for the 
-        // real particles, containing both reals and neighbors
+        // kinds of particles.
         int p_start_index = 0;
-        for (unsigned i = 0; i < Np; ++i) {
-            const ParticleType& p = particles[i];
-
+        for (unsigned i = 0; i < N; ++i) {
+            const ParticleType& p = tmp_particles[i];
+            
             int num_neighbors = 0;
-            int num_ghost_neighbors = 0;
             nl.push_back(0);
-
-            const IntVect& cell = this->Index(p, lev);
+            
+            const IntVect& cell = cells[i];
             Box bx(cell, cell);
             bx.grow(num_neighbor_cells);
-
-            // first the real particles...
+            bx &= head.box();
+            
             for (IntVect iv = bx.smallEnd(); iv <= bx.bigEnd(); bx.next(iv)) {
                 int j = head(iv);
                 while (j >= 0) {
@@ -412,7 +407,7 @@ buildNeighborList(int lev, bool sort) {
                         j = list[j];
                         continue;
                     }
-                    if ( check_pair(p, particles[j]) ) {
+                    if ( check_pair(p, tmp_particles[j]) ) {
                         nl.push_back(j+1);
                         num_neighbors += 1;
                     }
@@ -420,72 +415,8 @@ buildNeighborList(int lev, bool sort) {
                 }
             }
 
-            // then the neighbors.
-            for (IntVect iv = bx.smallEnd(); iv <= bx.bigEnd(); bx.next(iv)) {
-                int j = nhead(iv);
-                while (j >= 0) {
-                    ParticleType n;
-                    char* nbuf = neighbors[index].dataPtr() + j*pdata_size;
-                    std::memcpy(&n, nbuf, pdata_size);
-                    if ( check_pair(p, n) ) {
-                        nl.push_back(j+1+Np);
-                        num_ghost_neighbors += 1;
-                    }
-                    j = nlist[j];
-                }
-            }
-
-            nl[p_start_index] = num_neighbors + num_ghost_neighbors;
-            p_start_index += num_neighbors + num_ghost_neighbors + 1;
-        }
-
-        // then we add the neighbors to the list.
-        for (unsigned i = 0; i < Nn; ++i) {
-            ParticleType n;
-            std::memcpy(&n, neighbors[index].dataPtr() + i*pdata_size, pdata_size);
-
-            int num_neighbors = 0;
-            int num_ghost_neighbors = 0;
-            nl.push_back(0);
-            
-            const IntVect& cell = this->Index(n, lev);
-            Box bx(cell, cell);
-            bx.grow(num_neighbor_cells);
-            bx &= head.box();
-
-            // first the real particles...
-            for (IntVect iv = bx.smallEnd(); iv <= bx.bigEnd(); bx.next(iv)) {
-                int j = head(iv);                
-                while (j >= 0) {
-                    if ( check_pair(n, particles[j]) ) {
-                        nl.push_back(j+1);
-                        num_neighbors += 1;
-                    }
-                    j = list[j];
-                }
-            }
-
-            // then the neighbors.
-            for (IntVect iv = bx.smallEnd(); iv <= bx.bigEnd(); bx.next(iv)) {
-                int j = nhead(iv);
-                while (j >= 0) {
-                    if (i == j) {
-                        j = nlist[j];
-                        continue;
-                    }
-                    ParticleType n2;
-                    char* nbuf = neighbors[index].dataPtr() + j*pdata_size;
-                    std::memcpy(&n2, nbuf, pdata_size);
-                    if ( check_pair(n, n2) ) {
-                        nl.push_back(j+1+Np);
-                        num_ghost_neighbors += 1;
-                    }
-                    j = nlist[j];
-                }
-            }
-
-            nl[p_start_index] = num_neighbors + num_ghost_neighbors;
-            p_start_index += num_neighbors + num_ghost_neighbors + 1;
+            nl[p_start_index] = num_neighbors;
+            p_start_index += num_neighbors + 1;
         }
 
         if (sort) {
