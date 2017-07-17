@@ -80,7 +80,7 @@ public:
     ///
     /// Build a Neighbor List for each tile
     ///
-    void buildNeighborList(int lev);
+    void buildNeighborList(int lev, bool sort=false);
 
     std::map<PairIndex, Array<char> > neighbors;
     std::map<PairIndex, Array<int> > neighbor_list;

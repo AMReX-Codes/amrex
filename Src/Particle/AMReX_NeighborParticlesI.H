@@ -341,16 +341,12 @@ fillNeighborsMPI(NeighborCommMap& neighbors_to_comm) {
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-buildNeighborList(int lev) {
+buildNeighborList(int lev, bool sort) {
     
     BL_PROFILE("NeighborListParticleContainer::buildNeighborList");
     BL_ASSERT(lev == 0);
 
-    // This needs to be done outside of the threaded region.
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {        
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        neighbor_list[index].clear();
-    }
+    neighbor_list.clear();
     
 #ifdef _OPENMP
 #pragma omp parallel
@@ -358,7 +354,8 @@ buildNeighborList(int lev) {
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        
+        Array<int>& nl = neighbor_list[index];
+
         // For each cell on this tile, we build linked lists storing the
         // indices of the particles belonging to it. We have one list for
         // real particles, another for those from neighboring tiles.
@@ -373,7 +370,7 @@ buildNeighborList(int lev) {
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
         Array<int> list(Np, -1);
-        for (unsigned i = 0; i < pti.numParticles(); ++i) {
+        for (int i = 0; i < Np; ++i) {
             const ParticleType& p = particles[i];
             const IntVect& cell = this->Index(p, lev);
             list[i] = head(cell);
@@ -386,8 +383,7 @@ buildNeighborList(int lev) {
         char* nbuf = neighbors[index].dataPtr();
         for (int i = 0; i < Nn; ++i) {
             ParticleType n;
-            std::memcpy(&n, nbuf, pdata_size);
-            nbuf += pdata_size;
+            std::memcpy(&n, nbuf + i*pdata_size, pdata_size);
             const IntVect& cell = this->Index(n, lev);
             nlist[i] = nhead(cell);
             nhead(cell) = i;
@@ -402,7 +398,7 @@ buildNeighborList(int lev) {
 
             int num_neighbors = 0;
             int num_ghost_neighbors = 0;
-            neighbor_list[index].push_back(0);
+            nl.push_back(0);
 
             const IntVect& cell = this->Index(p, lev);
             Box bx(cell, cell);
@@ -417,7 +413,7 @@ buildNeighborList(int lev) {
                         continue;
                     }
                     if ( check_pair(p, particles[j]) ) {
-                        neighbor_list[index].push_back(j+1);
+                        nl.push_back(j+1);
                         num_neighbors += 1;
                     }
                     j = list[j];
@@ -432,14 +428,14 @@ buildNeighborList(int lev) {
                     char* nbuf = neighbors[index].dataPtr() + j*pdata_size;
                     std::memcpy(&n, nbuf, pdata_size);
                     if ( check_pair(p, n) ) {
-                        neighbor_list[index].push_back(j+1+Np);
+                        nl.push_back(j+1+Np);
                         num_ghost_neighbors += 1;
                     }
                     j = nlist[j];
                 }
             }
 
-            neighbor_list[index][p_start_index]   = num_neighbors + num_ghost_neighbors;
+            nl[p_start_index] = num_neighbors + num_ghost_neighbors;
             p_start_index += num_neighbors + num_ghost_neighbors + 1;
         }
 
@@ -450,7 +446,7 @@ buildNeighborList(int lev) {
 
             int num_neighbors = 0;
             int num_ghost_neighbors = 0;
-            neighbor_list[index].push_back(0);
+            nl.push_back(0);
             
             const IntVect& cell = this->Index(n, lev);
             Box bx(cell, cell);
@@ -462,7 +458,7 @@ buildNeighborList(int lev) {
                 int j = head(iv);                
                 while (j >= 0) {
                     if ( check_pair(n, particles[j]) ) {
-                        neighbor_list[index].push_back(j+1);
+                        nl.push_back(j+1);
                         num_neighbors += 1;
                     }
                     j = list[j];
@@ -481,15 +477,22 @@ buildNeighborList(int lev) {
                     char* nbuf = neighbors[index].dataPtr() + j*pdata_size;
                     std::memcpy(&n2, nbuf, pdata_size);
                     if ( check_pair(n, n2) ) {
-                        neighbor_list[index].push_back(j+1+Np);
+                        nl.push_back(j+1+Np);
                         num_ghost_neighbors += 1;
                     }
                     j = nlist[j];
                 }
             }
 
-            neighbor_list[index][p_start_index] = num_neighbors + num_ghost_neighbors;
+            nl[p_start_index] = num_neighbors + num_ghost_neighbors;
             p_start_index += num_neighbors + num_ghost_neighbors + 1;
+        }
+
+        if (sort) {
+            for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
+                std::sort(nl.begin() + i + 1,
+                          nl.begin() + nl[i] + i + 1);
+            }
         }
     }
 }
