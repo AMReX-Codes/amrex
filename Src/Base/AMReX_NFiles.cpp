@@ -267,6 +267,9 @@ bool NFilesIter::ReadyToRead() {
   if(myReadIndex != 0) {    // ---- wait for rank myReadIndex - 1
     int iBuff(-1), waitForPID(readRanks[myReadIndex - 1]);
     int tag(readRanks[0]);
+    if (tag > ParallelDescriptor::MaxTag()) {
+        amrex::Abort("NFilesIter::ReadyToRead(): tag is too large.");
+    }
     ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
   }
 
@@ -291,6 +294,9 @@ NFilesIter &NFilesIter::operator++() {
     if(myReadIndex < readRanks.size() - 1) {
       int iBuff(0), wakeUpPID(readRanks[myReadIndex + 1]);
       int tag(readRanks[0]);
+      if (tag > ParallelDescriptor::MaxTag()) {
+          amrex::Abort("NFilesIter::ReadyToRead(): tag is too large.");
+      }
       ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
     }
     finishedReading = true;
