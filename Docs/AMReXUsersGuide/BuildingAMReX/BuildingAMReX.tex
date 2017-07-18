@@ -155,7 +155,9 @@ configuration files and makefiles in a chosen directory ({\tt builddir}).
 This is roughly equivalent to running  {\tt ./configure} (see Section
 ~\ref{sec:build:lib}). Next, the actual build and installation are performed
 by issuing {\tt make install} from within {\tt builddir}. This will install
-the library files in a chosen installation directory ({\tt installdir}).
+the library files in a chosen installation directory ({\tt
+  installdir}). If no installation path is provided by the user,
+\amrex\ will be installed in {\tt /path/to/amrex/installdir}.
 The CMake build process is summarized as follow:
 \begin{verbatim}
 mkdir /path/to/builddir
@@ -166,7 +168,7 @@ make install
 In the above snippet, {\tt [options]} indicates one or more options for the customization
 of the build, as described in Subsection~\ref{sec:build:cmake:options}. 
 Although the \amrex\ source could be used as build directory, we advise against doing so.
-After the installation is complete, {\tt builddir} can be removed.
+After the installation is complete, {\tt builddir} can be removed. 
 \subsection{Customization options}
 \label{sec:build:cmake:options}
 \amrex\ configuration settings may be specified on the command line with the {\tt -D} option.
@@ -190,6 +192,8 @@ The list of available option is reported in Table~\ref{tab:cmakevar}.
     {\tt ENABLE\_PROFILING} &  Include profiling info in build & 0  & 0,1 \\
     {\tt ENABLE\_TINY\_PROFILING} &  Include tiny-profiling info in build & 0  & 0,1 \\
     {\tt ENABLE\_BACKTRACE} & Include backtrace info in  build & 1  & 0,1 \\
+    {\tt ENABLE\_FPE} & Build with Floating Point Exceptions checks & 0  & 0,1 \\
+
     {\tt AMREX\_FFLAGS\_OVERRIDES} &  User-defined Fortran flags & empty  & user-defined \\
     {\tt AMREX\_CXXFLAGS\_OVERRIDES} &  User-defined C++ flags & empty  & user-defined \\
     \hline
