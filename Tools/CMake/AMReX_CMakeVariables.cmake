@@ -16,6 +16,12 @@ endif ()
 # Add variables for AMReX versioning 
 
 
+# Provide a default install directory
+set (AMREX_DEFAULT_INSTALL_DIR "${PROJECT_SOURCE_DIR}/installdir")
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+   set (CMAKE_INSTALL_PREFIX "${AMREX_DEFAULT_INSTALL_DIR}"
+      CACHE PATH "AMReX installation directory" FORCE)
+endif ()
 
 # Set paths for build system
 set ( CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/Src/mod_files )

@@ -195,6 +195,7 @@ set ( CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE} "${AMREX_CXX_FLAGS}" )
 #
 message( STATUS "AMReX configuration summary: ")
 message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
+message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
 message( STATUS "   Preprocessor flags       = ${AMREX_DEFINES}")
 message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
 message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")
