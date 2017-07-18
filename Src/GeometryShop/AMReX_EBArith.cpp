@@ -15,6 +15,56 @@
 namespace amrex
 {
   //-----
+  ///returns true if coarsenable (either by agglomeration or otherwise)
+   bool
+   EBArith::
+   createCoarserEBLG(EBLevelGrid       &  a_eblgCoar,
+                     const EBLevelGrid &  a_eblgFine,
+                     const int         &  a_refRat,
+                     const int         &  a_minBoxSize,
+                     const int         &  a_maxBoxSize)
+   {
+     bool coarsenable;
+     int testRef = a_minBoxSize*a_refRat;
+     if(a_eblgFine.coarsenable(testRef))
+     {
+       coarsen(a_eblgCoar, a_eblgFine, a_refRat);
+       coarsenable = true;
+     }
+     else
+     {
+       //see if we can agglomerate.
+       long numPtsRemaining = a_eblgFine.getDomain().numPts();
+       for(int ibox = 0; ibox < a_eblgFine.getDBL().size(); ibox++)
+       {
+         numPtsRemaining -= a_eblgFine.getDBL()[ibox].numPts();
+       }
+       coarsenable = (numPtsRemaining == 0);
+       if(coarsenable)
+       {
+         Box coarDom = coarsen(a_eblgFine.getDomain(), a_refRat);
+         BoxArray ba(coarDom);
+         ba.maxSize(a_maxBoxSize);
+         DistributionMapping dm(ba);
+         a_eblgCoar = EBLevelGrid(ba, dm, coarDom, a_eblgFine.getGhost());
+       }
+     }
+     return coarsenable;
+   }
+  //-----
+  
+  RealVect
+  EBArith::
+  getDomainNormal(int a_idir, Side::LoHiSide a_side)
+  {
+    RealVect normal = BASISREALV(a_idir);
+    if (a_side == Side::Hi)
+    {
+      normal *= -1.0;
+    }
+    return normal;
+  }
+  //-----
   Box EBArith::
   adjCellBox(const Box            & a_valid, 
              const int            & a_idir, 
