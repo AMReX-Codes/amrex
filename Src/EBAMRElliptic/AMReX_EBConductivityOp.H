@@ -9,25 +9,23 @@
  *
  */
 
-#ifndef _NWOEBCONDUCTIVITYOP_H___
-#define _NWOEBCONDUCTIVITYOP_H___
+#ifndef _EBCONDUCTIVITYOP_H___
+#define _EBCONDUCTIVITYOP_H___
 
 #include <vector>
 
 #include "AMReX_Box.H"
 #include "AMReX_AMRMultiGrid.H"
-#include "AMReX_EBAMRPoissonOp.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
 #include "AMReX_VCAggStencil.H"
-#include "AMReX_EBFabArrayOps.H"
+#include "AMReX_EBLevelDataOps.H"
 #include "AMReX_EBFastFR.H"
 #include "AMReX_EBCoarseAverage.H"
 #include "AMReX_EBFineInterp.H"
 #include "AMReX_EBCFInterp.H"
 #include "AMReX_EBLevelGrid.H"
-#include "AMReX_AMRTGA.H"
 #include "AMReX_FabArray.H"
 #include "AMReX_ConductivityBaseDomainBC.H"
 #include "AMReX_ConductivityBaseEBBC.H"
@@ -36,18 +34,18 @@
 namespace amrex
 {
   using std::shared_ptr;
-  //! \class NWOEBConductivityOp
+  //! \class EBConductivityOp
   //! This class implements an operator that solves the equation
   //! (alpha a + beta div (b grad) )phi = rhs
   //! using the AMRLevelOp interface.
-  class NWOEBConductivityOp: public LevelTGAHelmOp<FabArray<EBCellFAB>, EBFluxFAB >
+  class EBConductivityOp: public AMRLevelOp< FabArray<EBCellFAB> >
   {
   public:
     
     //! Constructs a conductivity operator using the given data. This
     //! constructor is for time-independent a and b coefficients.
     //! If you are approaching this operator from this interface, consider backing away and using
-    //! NWOEBConductivityOpFactory to generate these objects. Really.
+    //! EBConductivityOpFactory to generate these objects. Really.
     //! Ghost cell arguments are there for caching reasons. Once you set them,
     //! an error is thrown if you send in data that does not match.
     //! \param a_eblgFine grid at finer  level
@@ -68,28 +66,28 @@ namespace amrex
     //! \param a_bcoef coefficient of gradient.
     //! \param a_ghostCellsPhi Number of ghost cells in phi, correction
     //! \param a_ghostCellsRhs Number of ghost cells in RHS, residual, lphi
-    NWOEBConductivityOp(const EBLevelGrid &                               a_eblgFine,
-                        const EBLevelGrid &                               a_eblg,
-                        const EBLevelGrid &                               a_eblgCoar,
-                        const EBLevelGrid &                               a_eblgCoarMG,
-                        const shared_ptr<ConductivityBaseDomainBC>&       a_domainBC,
-                        const shared_ptr<ConductivityBaseEBBC>&           a_ebBC,
-                        const Real    &                                   a_dx,
-                        const Real    &                                   a_dxCoar,
-                        const int&                                        a_refToFine,
-                        const int&                                        a_refToCoar,
-                        const bool&                                       a_hasFine,
-                        const bool&                                       a_hasCoar,
-                        const bool&                                       a_hasCoarMG,                  
-                        const Real&                                       a_alpha,
-                        const Real&                                       a_beta,
-                        const shared_ptr<FabArray<EBCellFAB> >&           a_acoef,
-                        const shared_ptr<FabArray<EBFluxFAB> >&           a_bcoef,
-                        const int&                                        a_ghostCellsPhi,
-                        const int&                                        a_ghostCellsRHS);
+    EBConductivityOp(const EBLevelGrid &                               a_eblgFine,
+                     const EBLevelGrid &                               a_eblg,
+                     const EBLevelGrid &                               a_eblgCoar,
+                     const EBLevelGrid &                               a_eblgCoarMG,
+                     const shared_ptr<ConductivityBaseDomainBC>&       a_domainBC,
+                     const shared_ptr<ConductivityBaseEBBC>&           a_ebBC,
+                     const Real    &                                   a_dx,
+                     const Real    &                                   a_dxCoar,
+                     const int&                                        a_refToFine,
+                     const int&                                        a_refToCoar,
+                     const bool&                                       a_hasFine,
+                     const bool&                                       a_hasCoar,
+                     const bool&                                       a_hasCoarMG,                  
+                     const Real&                                       a_alpha,
+                     const Real&                                       a_beta,
+                     const shared_ptr<FabArray<EBCellFAB> >&           a_acoef,
+                     const shared_ptr<FabArray<EBFluxFAB> >&           a_bcoef,
+                     const int&                                        a_ghostCellsPhi,
+                     const int&                                        a_ghostCellsRHS);
     
     
-    ~NWOEBConductivityOp()
+    ~EBConductivityOp()
       {
       }
     
@@ -140,7 +138,7 @@ namespace amrex
     
     void divideByIdentityCoef(FabArray<EBCellFAB> & a_rhs);
     
-    void fillPhiGhost(const EBCellFAB& a_phi, const DataIndex& a_datInd, bool a_homog) const;
+    void fillPhiGhost(const EBCellFAB& a_phi, const MFIter& a_datInd, bool a_homog) const;
     void fillPhiGhost(const FabArray<EBCellFAB>& a_phi, bool a_homog) const;
     
     
@@ -182,13 +180,13 @@ namespace amrex
     applyOpIrregular(EBCellFAB&             a_lhs,
                      const EBCellFAB&       a_phi,
                      const bool&            a_homogeneous,
-                     const DataIndex&       a_datInd);
+                     const MFIter&       a_datInd);
     
     void
     applyOpRegular(EBCellFAB&             a_lhs,
                    const EBCellFAB&       a_phi,
                    const bool&            a_homogeneous,
-                   const DataIndex&       a_datInd);
+                   const MFIter&       a_datInd);
     
     
     ///
@@ -415,7 +413,7 @@ namespace amrex
                               BaseFab<Real> & a_curOpPhiFAB,
                               const BaseFab<Real> & a_curPhiFAB,
                               bool a_homogeneousPhysBC,
-                              const DataIndex& a_dit);
+                              const MFIter& a_dit);
     
     void applyDomainFlux(Box * a_loBox,
                          Box * a_hiBox,
@@ -425,12 +423,12 @@ namespace amrex
                          int a_nComps,
                          BaseFab<Real> & a_phiFAB,
                          bool a_homogeneousPhysBC,
-                         const DataIndex& a_dit);
+                         const MFIter& a_dit);
     
     void GSColorAllIrregular(EBCellFAB&                        a_phi,
                              const EBCellFAB&                  a_rhs,
                              const int&                        a_icolor,
-                             const DataIndex&                  a_dit);
+                             const MFIter&                  a_dit);
     
     bool   m_turnOffBCs;
     
@@ -441,7 +439,7 @@ namespace amrex
     void getFluxRegOnly(EBFaceFAB&                    a_fluxCentroid,
                         const EBCellFAB&              a_phi,
                         const Box&                    a_ghostedBox,
-                        const DataIndex&              a_datInd,
+                        const MFIter&              a_datInd,
                         const int&                    a_idir);
     
     const int                   m_ghostPhi;
@@ -503,7 +501,7 @@ namespace amrex
     
     EBCoarseAverage             m_ebAverageMG;
     EBFineInterp                m_ebInterpMG;
-    EBLevelGrid                 m_eblgCoarMG;
+
     
     vector<IntVect> m_colors;
     
@@ -524,14 +522,14 @@ namespace amrex
     
     void getOpVoFStencil(VoFStencil&             a_stencil,
                          const int&              a_dir,
-                         const Vector<VolIndex>& a_allMonotoneVoFs,
+                         const vector<VolIndex>& a_allMonotoneVoFs,
                          const EBISBox&          a_ebisbox,
                          const VolIndex&         a_vof,
                          const bool&             a_lowOrder);
     
     
     void getOpFaceStencil(VoFStencil&             a_stencil,
-                          const Vector<VolIndex>& a_allMonotoneVofs,
+                          const vector<VolIndex>& a_allMonotoneVofs,
                           const EBISBox&          a_ebisbox,
                           const VolIndex&         a_vof,
                           int                     a_dir,
@@ -542,18 +540,14 @@ namespace amrex
   private:
     
     //! Default constructor. Creates an undefined conductivity operator.
-    NWOEBConductivityOp();
+    EBConductivityOp();
     
     //copy constructor and operator= disallowed for all the usual reasons
-    NWOEBConductivityOp(const NWOEBConductivityOp& a_opin)
-      {
-        MayDay::Error("invalid operator");
-      }
+    EBConductivityOp(const EBConductivityOp& a_opin);
+
     
-    void operator=(const NWOEBConductivityOp& a_opin)
-      {
-        MayDay::Error("invalid operator");
-      }
+    void operator=(const EBConductivityOp& a_opin);
+
   };
     
 }

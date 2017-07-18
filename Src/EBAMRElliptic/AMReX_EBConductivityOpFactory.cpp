@@ -9,9 +9,6 @@
  *
  */
 
-#include "LoadBalance.H"
-#include "EBArith.H"
-
 #include "AMReX_EBConductivityOp.H"
 #include "AMReX_EBArith.H"
 #include "AMReX_EBConductivityOpFactory.H"
@@ -27,48 +24,42 @@ namespace amrex
   void
   nwoebcoCoarsenStuff(LevelData<EBCellFAB>               & a_acoefCoar,
                       LevelData<EBFluxFAB>               & a_bcoefCoar,
-                      LevelData<BaseIVFAB<Real> >        & a_bcoefCoarIrreg,
                       const EBLevelGrid                  & a_eblgFine,
                       const EBLevelGrid                  & a_eblgCoar,
                       const LevelData<EBCellFAB>         & a_acoefFine,
                       const LevelData<EBFluxFAB>         & a_bcoefFine,
-                      const LevelData<BaseIVFAB<Real> >  & a_bcoefFineIrreg,
                       const int                          & a_refToDepth)
   {
-    CH_assert(a_refToDepth > 0);
+    BL_ASSERT(a_refToDepth > 0);
+    BL_ASSERT(a_acoefFine.nGrow() == a_acoefCoar.nGrow());
+    BL_ASSERT(a_acoefFine.nGrow() == a_bcoefCoar.nGrow());
+    BL_ASSERT(a_acoefFine.nGrow() == a_bcoefFine.nGrow());
 
-    Interval interv(0, 0);
     if (a_refToDepth == 1)
     {
-      a_acoefFine.     copyTo(interv,  a_acoefCoar,     interv);
-      a_bcoefFine.     copyTo(interv,  a_bcoefCoar,     interv);
-      a_bcoefFineIrreg.copyTo(interv,  a_bcoefCoarIrreg,interv);
+      a_acoefCoar.copy(a_acoefFine 0, 0, 1, 0, 0);
+      a_bcoefCoar.copy(a_bcoefCoar 0, 0, 1, 0, 0);
     }
     else
     {
-      EBCoarseAverage averageOp(a_eblgFine.getDBL(),    a_eblgCoar.getDBL(),
-                                a_eblgFine.getEBISL(),  a_eblgCoar.getEBISL(),
-                                a_eblgCoar.getDomain(), a_refToDepth, 1,
-                                a_eblgCoar.getEBIS());
+      bool useKappaWeightingInStencil = true;
+      bool enableFaceAveraging = true;
+      EBCoarseAverage averageOp(a_eblgFine, a_eblgCoar, a_refToDepth, 
+                                a_acoefFine.nGrow(),
+                                useKappaWeightingInStencil, enableFaceAveraging);
 
-      //MayDay::Warning("might want to figure out what harmonic averaging is in this context");
-      averageOp.average( a_acoefCoar     ,  a_acoefFine     , interv);
-      averageOp.average( a_bcoefCoar     ,  a_bcoefFine     , interv);
-      averageOp.average( a_bcoefCoarIrreg,  a_bcoefFineIrreg, interv);
+
+      //amrex::Warning("might want to figure out what harmonic averaging is in this context");
+      averageOp.average( a_acoefCoar     ,  a_acoefFine     , 0, 0, 1);
+      averageOp.average( a_bcoefCoar     ,  a_bcoefFine     , 0, 0, 1);
+      averageOp.average( a_bcoefCoarIrreg,  a_bcoefFineIrreg, 0, 0, 1);
     }
-    a_acoefCoar.exchange(Interval(0,0));
-    a_bcoefCoar.exchange(Interval(0,0));
-    a_bcoefCoarIrreg.exchange(Interval(0,0));
   }
-//-----------------------------------------------------------------------
-
-//-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
   EBConductivityOpFactory::~EBConductivityOpFactory()
   {
   }
-//-----------------------------------------------------------------------
-
-//-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
   int
   EBConductivityOpFactory::
   refToFiner(const ProblemDomain& a_domain) const
@@ -85,39 +76,31 @@ namespace amrex
     }
     if (!found)
     {
-      MayDay::Error("Domain not found in AMR hierarchy");
+      amrex::Error("Domain not found in AMR hierarchy");
     }
     return retval;
   }
-//-----------------------------------------------------------------------
-
-//-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
   EBConductivityOpFactory::
-  EBConductivityOpFactory(const Vector<EBLevelGrid>&                               a_eblgs,
-                          const Vector<RefCountedPtr<EBQuadCFInterp> >&            a_quadCFI,
+  EBConductivityOpFactory(onst vector<EBLevelGrid>&                                   a_eblgs,
                           const Real&                                                 a_alpha,
                           const Real&                                                 a_beta,
-                          const Vector<RefCountedPtr<LevelData<EBCellFAB> > >&        a_acoef,
-                          const Vector<RefCountedPtr<LevelData<EBFluxFAB> > >&        a_bcoef,
-                          const Vector<RefCountedPtr<LevelData<BaseIVFAB<Real> > > >& a_bcoefIrreg,
+                          const vector<RefCountedPtr<LevelData<EBCellFAB> > >&        a_acoef,
+                          const vector<RefCountedPtr<LevelData<EBFluxFAB> > >&        a_bcoef,
                           const Real&                                                 a_dxCoarse,
-                          const Vector<int>&                                          a_refRatio,
-                          const RefCountedPtr<BaseDomainBCFactory>&                   a_domainBCFactory,
-                          const RefCountedPtr<BaseEBBCFactory>    &                   a_ebBCFactory,
-                          const IntVect&                                              a_ghostCellsPhi,
-                          const IntVect&                                              a_ghostCellsRhs,
-                          const int &                                                 a_relaxType,
+                          const vector<int>&                                          a_refRatio,
+                          const RefCountedPtr<ConductivityBaseDomainBCFactory>&       a_domainBCFactory,
+                          const RefCountedPtr<ConductivityBaseEBBCFactory>    &       a_ebBCFactory,
+                          const int     &                                             a_ghostCellsPhi,
+                          const int     &                                             a_ghostCellsRhs,
                           int a_numLevels)
   {
-    CH_assert(a_eblgs.size() <= a_refRatio.size());
+    BL_ASSERT(a_eblgs.size() <= a_refRatio.size());
     m_dataBased = false;
-    m_relaxType = a_relaxType;
-    m_quadCFI = a_quadCFI;
     m_ghostCellsRhs = a_ghostCellsRhs;
     m_ghostCellsPhi = a_ghostCellsPhi;
     m_acoef         = a_acoef;
     m_bcoef         = a_bcoef;
-    m_bcoefIrreg    = a_bcoefIrreg;
     m_alpha         = a_alpha;
     m_beta          = a_beta;
     if (a_numLevels > 0)
@@ -144,91 +127,11 @@ namespace amrex
     }
     m_alpha = a_alpha;
     m_beta = a_beta;
-
-    m_eblgsMG.resize(m_numLevels);
-    m_acoefMG.resize(m_numLevels);
-    m_bcoefMG.resize(m_numLevels);
-    m_bcoefIrregMG.resize(m_numLevels);
-    m_hasMGObjects.resize(m_numLevels);
-    for (int ilev = 0; ilev < m_numLevels; ilev++)
-    {
-      if ((ilev==0) || (m_refRatio[ilev] > 2))
-      {
-        m_hasMGObjects[ilev] = (s_testRef<s_maxBoxSize);
-
-        int mgRef = 2;
-        m_eblgsMG[ilev]     .resize(0);
-        m_acoefMG[ilev]     .resize(0);
-        m_bcoefMG[ilev]     .resize(0);
-        m_bcoefIrregMG[ilev].resize(0);
-        m_eblgsMG[ilev]     .push_back(m_eblgs[ilev]);
-        m_acoefMG[ilev]     .push_back(m_acoef[ilev]);
-        m_bcoefMG[ilev]     .push_back(m_bcoef[ilev]);
-        m_bcoefIrregMG[ilev].push_back(m_bcoefIrreg[ilev]);
-
-        bool hasCoarser = true;
-        hasCoarser = (s_testRef<s_maxBoxSize);
-        while (hasCoarser)
-        {
-          int imgsize = m_eblgsMG[ilev].size();
-          const EBLevelGrid& eblgFine=  m_eblgsMG[ilev][imgsize-1];
-          DisjointBoxLayout dblCoarMG;
-          ProblemDomain  domainCoarMG;
-          bool dumbool;
-          hasCoarser = EBAMRPoissonOp::getCoarserLayouts(dblCoarMG,
-                                                         domainCoarMG,
-                                                         eblgFine.getDBL(),
-                                                         eblgFine.getEBISL(),
-                                                         eblgFine.getDomain(),
-                                                         mgRef,
-                                                         eblgFine.getEBIS(),
-                                                         s_maxBoxSize,
-                                                         dumbool,
-                                                         s_testRef);
-
-          if (hasCoarser)
-          {
-            m_eblgsMG[ilev].push_back(EBLevelGrid(dblCoarMG, domainCoarMG, 4, eblgFine.getEBIS()));
-            int img = m_eblgsMG[ilev].size() - 1;
-            const EBLevelGrid& eblgCoar = m_eblgsMG[ilev][img  ];
-            const EBLevelGrid& eblgFine = m_eblgsMG[ilev][img-1];
-
-            int nghost = 1;
-            LayoutData<IntVectSet> irregSets(eblgCoar.getDBL());
-            for (DataIterator dit = eblgCoar.getDBL().dataIterator(); dit.ok(); ++dit)
-            {
-              Box grownBox = grow(eblgCoar.getDBL().get(dit()), nghost);
-              grownBox &= domainCoarMG;
-              irregSets[dit()] = eblgCoar.getEBISL()[dit()].getIrregIVS(grownBox);
-            }
-            EBFluxFactory       ebfluxfact(eblgCoar.getEBISL());
-            EBCellFactory       ebcellfact(eblgCoar.getEBISL());
-            BaseIVFactory<Real> baseivfact(eblgCoar.getEBISL(), irregSets);
-
-            RefCountedPtr<LevelData<BaseIVFAB<Real> > > bcoefIrregCoar( new LevelData<BaseIVFAB<Real> >(eblgCoar.getDBL(), 1, nghost*IntVect::Unit, baseivfact) );
-            RefCountedPtr<LevelData<EBCellFAB> >             acoefCoar( new LevelData<EBCellFAB>       (eblgCoar.getDBL(), 1, nghost*IntVect::Unit, ebcellfact) );
-            RefCountedPtr<LevelData<EBFluxFAB> >             bcoefCoar( new LevelData<EBFluxFAB>       (eblgCoar.getDBL(), 1, nghost*IntVect::Unit, ebfluxfact) );
-
-            nwoebcoCoarsenStuff(*acoefCoar, *bcoefCoar, *bcoefIrregCoar, eblgFine, eblgCoar,
-                                *m_acoefMG[ilev][img-1], *m_bcoefMG[ilev][img-1], *m_bcoefIrregMG[ilev][img-1], mgRef);
-
-            m_acoefMG[ilev].push_back(acoefCoar);
-            m_bcoefMG[ilev].push_back(bcoefCoar);
-            m_bcoefIrregMG[ilev].push_back(bcoefIrregCoar);
-          }
-        }
-
-      }
-      else
-      {
-        m_hasMGObjects[ilev] = false;
-      }
-    }
   }
-//-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
 
 
-//-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
   EBConductivityOp*
   EBConductivityOpFactory::
   MGnewOp(const ProblemDomain& a_domainFine,
@@ -262,111 +165,115 @@ namespace amrex
     }
     if (!found)
     {
-      MayDay::Error("No corresponding AMRLevel to starting point of MGnewOp");
+      amrex::Error("No corresponding AMRLevel to starting point of MGnewOp");
+    }
+    
+
+    EBConductivityOp* newOp = createOperator(ref, a_depth, false);
+    
+    return newOp;
+
+  }
+  //-----------------------------------------------------------------------
+  EBConductivityOp*
+  EBConductivityOpFactory::
+  createOperator(const int&  a_amrlevel,
+                 const int&  a_depth,
+                 const bool  a_amrLevelOp)
+  {
+    EBLevelGrid                           eblg;
+    EBLevelGrid                           eblgFine;
+    EBLevelGrid                           eblgCoar;
+    int                                   refToFine=-1;
+    int                                   refToCoar=-1;
+    bool hasFiner   = false;
+    bool hasCoarser = false;
+    int refRatMG = 1;
+    for(int ipow = 0; ipow < a_depth; ipow++)
+    {
+      refRatMG *= 2;
     }
 
-    //multigrid operator.  coarn by two from depth  no
-    //coarse or finer to worry about.
-    Real          dxMGLevel;
-    EBLevelGrid eblgMGLevel;
-    EBLevelGrid eblgCoarMG;
-    RefCountedPtr<EBQuadCFInterp> quadCFI; //only defined if on an amr level
-    Real dxCoar = 1.0;
-    dxCoar *= -1.0;
-    //  int refToDepth = 1;
-    if (ref > 0)
+    if(a_amrLevelOp)
     {
-      dxCoar = m_dx[ref-1];
-    }
-    bool hasCoarMGObjects = false;
-    if (a_depth == 0)
-    {
-      eblgMGLevel    = m_eblgs[ref];
-
-      acoef = m_acoef[ref];
-
-      bcoef          = m_bcoef[ref];
-      bcoefIrreg     = m_bcoefIrreg[ref];
-      dxMGLevel      = m_dx[ref];
-      quadCFI        = m_quadCFI[ref];
-
-      hasCoarMGObjects = m_hasMGObjects[ref];
-      if (hasCoarMGObjects)
+      eblg = m_eblgs[a_amrlevel];
+      if(a_amrLevel > 0)
       {
-        eblgCoarMG = m_eblgsMG[ref][1];
+        eblgCoar = m_eblgs[a_amrlevel-1];
+        refToCoar = m_refRatio[a_amrlevel-1]
+        hasCoarser = true;
+      }
+      if(a_amrLevel < (m_numLevels - 1))
+      {
+        eblgFine = m_eblgs[a_amrlevel+1];
+        refToFine = m_refRatio[a_amrlevel]
+        hasFiner = true;
       }
     }
     else
     {
-      int icoar = 1;
-      for (int idep = 0; idep < a_depth; idep++)
+      //check to see if we are able to create an EBLG at this depth.   If not, return NULL
+      if(a_depth == 0)
       {
-        icoar *= 2;
+        eblg = m_eblgs[a_amrlevel];
       }
-      //    refToDepth = icoar;
-      const ProblemDomain domainFine = m_eblgs[ref].getDomain();
-      ProblemDomain domainBoxMGLevel = coarsen(domainFine, icoar);
-      bool foundMGLevel = false;
-      int numMGLevels = m_eblgsMG[ref].size();
-      for (int img = 0; img < numMGLevels; img++)
+      else
       {
-        if (m_eblgsMG[ref][img].getDomain() == domainBoxMGLevel)
+        bool coarsenable = EBArith::createCoarserEBLG(eblg,  m_eblgs[a_amrlevel], refRatMG,  s_testRef, s_maxBoxSize);
+        if(!coarsenable)
         {
-          eblgMGLevel = m_eblgsMG[ref][img];
-          acoef = m_acoefMG[ref][img];
-          bcoef = m_bcoefMG[ref][img];
-          bcoefIrreg  = m_bcoefIrregMG[ref][img];
-          foundMGLevel = true;
-
-          hasCoarMGObjects = ((img+1) < (numMGLevels));
-          if (hasCoarMGObjects)
-          {
-            eblgCoarMG = m_eblgsMG[ref][img+1];
-          }
-          break;
+          return NULL;
         }
-      }
-      bool coarsenable = foundMGLevel;
-
-      dxMGLevel = m_dx[ref];
-      dxMGLevel *= Real(icoar);
-
-      if (!coarsenable)
-      {
-        //not coarsenable.
-        //return null
-        return NULL;
       }
     }
 
-    ConductivityBaseEBBC*     viscEBBC  = (ConductivityBaseEBBC*)         m_ebBCFactory->create(eblgMGLevel.getDomain(), eblgMGLevel.getEBISL(),
-                                                                                                dxMGLevel*RealVect::Unit,
-                                                                                                &m_ghostCellsPhi, &m_ghostCellsRhs);
-    ConductivityBaseDomainBC* viscDomBC = (ConductivityBaseDomainBC*) m_domainBCFactory->create(eblgMGLevel.getDomain(), eblgMGLevel.getEBISL(),
-                                                                                                dxMGLevel*RealVect::Unit);
-    RefCountedPtr<ConductivityBaseEBBC>      ebbc(viscEBBC);
-    RefCountedPtr<ConductivityBaseDomainBC> dombc(viscDomBC);
-    //no need for finer or coarser amr levels here
-    bool hasFine   = false;
-    bool hasCoar   = false;
-    int bogRef = 2;
-    //hook for optimization.
-    //need to put this in  ala EBAMRPoissonOp to get it.
-    bool layoutChanged = true;
-    //
-    EBConductivityOp* newOp = NULL;
-    // Time-independent A coefficient.
-    newOp = new EBConductivityOp(EBLevelGrid(), eblgMGLevel, EBLevelGrid(), eblgCoarMG, quadCFI,
-                                 dombc, ebbc, dxMGLevel, dxCoar, bogRef, bogRef, hasFine, hasCoar,
-                                 hasCoarMGObjects, layoutChanged, m_alpha, m_beta,
-                                 acoef, bcoef, bcoefIrreg, m_ghostCellsPhi, m_ghostCellsRhs, m_relaxType);
+    //now see if there is a coarser MG level
+    bool hasCoarMG = EBArith::createCoarserEBLG(eblgCoarMG , eblg, 2, s_testRef, s_maxBoxSize);
+    Real          dxMGLevel = m_dx[a_amrlevel]*refRatMG;
+    Real dxCoar = -1.0;
+    if (a_amrlevel > 0)
+    {
+      dxCoar = m_dx[a_amrlevel-1];
+    }
 
-    return newOp;
+    shared_ptr<ConductivityBaseDomainBC>  domainBC(m_domainBCFactory->create());
+    shared_ptr<ConductivityBaseEBBC>      ebBC(m_ebbcFactory->create());
+    shared_ptr<FabArray<EBCellFAB> >      acoef;
+    shared_ptr<FabArray<EBFluxFAB> >      bcoef;
 
-  }
-//-----------------------------------------------------------------------
+    //get coefficients
+    nwoebcoCoarsenStuff(acoef,
+                        bcoef,
+                        m_eblgs[a_amrlevel],
+                        eblg,
+                        m_acoef[a_amrlevel],
+                        m_bcoef[a_amrlevel],
+                        refRatMG);
 
-//-----------------------------------------------------------------------
+
+    EBConductivityOp* newOp = 
+      new EBConductivityOp(eblgFine,
+                           eblg,
+                           eblgCoar,
+                           eblgCoarMG,
+                           domainBC,
+                           ebBC,
+                           dxMGLevel,
+                           dxCoar,
+                           refToFine,
+                           refToCoar,
+                           hasFiner,
+                           hasCoarser,
+                           hasCoarMG,
+                           m_alpha,
+                           m_beta,
+                           acoef,
+                           bcoef,
+                           m_ghostCellsPhi,
+                           m_ghostCellsRHS);
+      }    
+
+  //-----------------------------------------------------------------------
   EBConductivityOp*
   EBConductivityOpFactory::
   AMRnewOp(const ProblemDomain& a_domainFine)
@@ -385,79 +292,11 @@ namespace amrex
     }
     if (!found)
     {
-      MayDay::Error("No corresponding AMRLevel to starting point of AMRnewOp");
+      amrex::Error("No corresponding AMRLevel to starting point of AMRnewOp");
     }
 
-    int refToFiner   = 2;
-    int refToCoarser = 2;
-    Real dxCoar = -1.0;
-    if (ref > 0)
-    {
-      eblgCoar = m_eblgs[ref-1];
-      dxCoar = m_dx[ref-1];
-      refToCoarser= m_refRatio[ref-1];
-    }
-    if (ref < m_numLevels-1)
-    {
-      eblgFine = m_eblgs[ref+1];
-      refToFiner = m_refRatio[ref];
-    }
-    //creates coarse and finer info and bcs and all that
-    EBLevelGrid      eblgMGLevel = m_eblgs[ref];
-    Real               dxMGLevel =    m_dx[ref];
-
-    bool hasCoarMGObjects = m_hasMGObjects[ref];
-    EBLevelGrid eblgCoarMG;
-    if (hasCoarMGObjects)
-    {
-      eblgCoarMG = m_eblgsMG[ref][1];
-    }
-    ConductivityBaseEBBC*     viscEBBC  = (ConductivityBaseEBBC*)     m_ebBCFactory->create(    m_eblgs[ref].getDomain(),
-                                                                                                m_eblgs[ref].getEBISL(), dxMGLevel*RealVect::Unit,
-                                                                                                &m_ghostCellsPhi, &m_ghostCellsRhs);
-    if (m_dataBased)
-    {
-      viscEBBC->setData(m_data[ref]);
-    }
-
-    ConductivityBaseDomainBC* viscDomBC = (ConductivityBaseDomainBC*) m_domainBCFactory->create(m_eblgs[ref].getDomain(),
-                                                                                                m_eblgs[ref].getEBISL(), dxMGLevel*RealVect::Unit);
-    RefCountedPtr<ConductivityBaseEBBC>      ebbc(viscEBBC);
-    RefCountedPtr<ConductivityBaseDomainBC> dombc(viscDomBC);
-
-    bool hasFine = (ref < (m_eblgs.size()-1));
-    bool hasCoar = (ref > 0);
-    //optimization hook.  need to store the result out of EBArith::getCoarserLayoutss
-    bool layoutChanged = true;
-
-    EBConductivityOp* newOp = NULL;
-
-    newOp = new EBConductivityOp(eblgFine, eblgMGLevel, eblgCoar, eblgCoarMG, m_quadCFI[ref],
-                                 dombc, ebbc,  dxMGLevel,dxCoar, refToFiner, refToCoarser,
-                                 hasFine, hasCoar, hasCoarMGObjects,  layoutChanged,
-                                 m_alpha, m_beta, m_acoef[ref], m_bcoef[ref], m_bcoefIrreg[ref],
-                                 m_ghostCellsPhi, m_ghostCellsRhs, m_relaxType);
+    EBConductivityOp* newOp = createOperator(ref, 0, true);
 
     return newOp;
   }
-//-----------------------------------------------------------------------
-
-//-----------------------------------------------------------------------
-  void
-  EBConductivityOpFactory::
-  reclaim(MGLevelOp<LevelData<EBCellFAB> >* a_reclaim)
-  {
-    delete a_reclaim;
-  }
-//-----------------------------------------------------------------------
-
-//-----------------------------------------------------------------------
-  void
-  EBConductivityOpFactory::
-  AMRreclaim(EBConductivityOp* a_reclaim)
-  {
-    delete a_reclaim;
-  }
-//-----------------------------------------------------------------------
-
 }
