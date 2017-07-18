@@ -77,7 +77,8 @@ namespace amrex
       const EBISBox  & ebis =    m_eblg.getEBISL()[mfi];
       Box              grid =    m_eblg.getDBL()  [mfi];
       IntVectSet ivsIrreg = ebis.getIrregIVS(grid);
-      VoFIterator vofit(ivsIrreg, ebis.getEBGraph());
+      VoFIterator & vofit = m_vofit[mfi];
+      vofit.define(ivsIrreg, ebis.getEBGraph());
       const std::vector<VolIndex>& volvec = vofit.getVector();
 
       //destination vofs are the same for both open and boundary faces
