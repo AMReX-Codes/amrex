@@ -120,7 +120,9 @@ namespace amrex
       for (VoFIterator vofit(ivsBox, a_eblg.getEBISL()[mfi].getEBGraph()); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
-        Real diff = std::abs(divFCalc[mfi](vof,0)-divFExac[mfi](vof,0));
+        Real calc = divFCalc[mfi](vof,0);
+        Real exac = divFExac[mfi](vof,0);
+        Real diff = std::abs(calc-exac);
         a_error[mfi](vof, 0) = diff;
       }
     }
