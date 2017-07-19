@@ -1,5 +1,7 @@
 #include "AMReX_NeighborParticles.H"
 
+#include "AMReX_Particles_F.H"
+
 using namespace amrex;
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -138,7 +140,6 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
 applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell) {
     
-    BL_PROFILE("NeighborParticleContainer::applyPeriodicShift");
     BL_ASSERT(lev == 0);
     
     const Periodicity& periodicity = this->Geom(lev).periodicity();
@@ -169,7 +170,6 @@ packNeighborParticle(int lev,
                      const ParticleType& p,
                      NeighborCommMap& neighbors_to_comm) {
     
-    BL_PROFILE("NeighborParticleContainer::packNeighborParticle");
     BL_ASSERT(lev == 0);
     
     const int neighbor_grid = mask(neighbor_cell, 0);
@@ -341,16 +341,12 @@ fillNeighborsMPI(NeighborCommMap& neighbors_to_comm) {
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-buildNeighborList(int lev) {
+buildNeighborList(int lev, bool sort) {
     
     BL_PROFILE("NeighborListParticleContainer::buildNeighborList");
     BL_ASSERT(lev == 0);
 
-    // This needs to be done outside of the threaded region.
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {        
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        neighbor_list[index].clear();
-    }
+    neighbor_list.clear();
     
 #ifdef _OPENMP
 #pragma omp parallel
@@ -358,57 +354,54 @@ buildNeighborList(int lev) {
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        
+        Array<int>& nl = neighbor_list[index];
+        AoS& particles = pti.GetArrayOfStructs();
+
+        int Np = particles.size();
+        int Nn = neighbors[index].size() / pdata_size;
+        int Ns = particles.dataShape().first;
+        int N = Np + Nn;
+
+        Array<IntVect> cells(N);
+        Array<ParticleType> tmp_particles(N);
+        std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
+
+        for (int i = 0; i < Nn; ++i) {
+            std::memcpy(&tmp_particles[i + Np],
+                        neighbors[index].dataPtr() + i*pdata_size,
+                        pdata_size);
+        }
+
         // For each cell on this tile, we build linked lists storing the
-        // indices of the particles belonging to it. We have one list for
-        // real particles, another for those from neighboring tiles.
+        // indices of the particles belonging to it.
         Box box = pti.tilebox();
         box.grow(num_neighbor_cells);
         BaseFab<int> head(box);
         head.setVal(-1);
-        BaseFab<int> nhead(box);
-        nhead.setVal(-1);
+        Array<int> list(N, -1);
 
-        // first the real particles
-        AoS& particles = pti.GetArrayOfStructs();
-        int Np = particles.size();
-        Array<int> list(Np, -1);
-        for (unsigned i = 0; i < pti.numParticles(); ++i) {
-            const ParticleType& p = particles[i];
+        for (int i = 0; i < N; ++i) {
+            const ParticleType& p = tmp_particles[i];
             const IntVect& cell = this->Index(p, lev);
+            cells[i] = cell;
             list[i] = head(cell);
             head(cell) = i;
         }
-
-        // then the neighbors
-        int Nn = neighbors[index].size() / pdata_size;
-        Array<int> nlist(Nn, -1);
-        char* nbuf = neighbors[index].dataPtr();
-        for (int i = 0; i < Nn; ++i) {
-            ParticleType n;
-            std::memcpy(&n, nbuf, pdata_size);
-            nbuf += pdata_size;
-            const IntVect& cell = this->Index(n, lev);
-            nlist[i] = nhead(cell);
-            nhead(cell) = i;
-        }
-
+        
         // using these lists, we build a neighbor list containing both
         // kinds of particles.
         int p_start_index = 0;
-        for (unsigned i = 0; i < pti.numParticles(); ++i) {
-            const ParticleType& p = particles[i];
-
+        for (unsigned i = 0; i < N; ++i) {
+            const ParticleType& p = tmp_particles[i];
+            
             int num_neighbors = 0;
-            int num_ghost_neighbors = 0;
-            neighbor_list[index].push_back(0);
-            neighbor_list[index].push_back(0);
-
-            const IntVect& cell = this->Index(p, lev);
+            nl.push_back(0);
+            
+            const IntVect& cell = cells[i];
             Box bx(cell, cell);
             bx.grow(num_neighbor_cells);
-
-            // first the real particles...
+            bx &= head.box();
+            
             for (IntVect iv = bx.smallEnd(); iv <= bx.bigEnd(); bx.next(iv)) {
                 int j = head(iv);
                 while (j >= 0) {
@@ -416,36 +409,92 @@ buildNeighborList(int lev) {
                         j = list[j];
                         continue;
                     }
-                    if ( check_pair(p, particles[j]) ) {
-                        neighbor_list[index].push_back(j+1);
+                    if ( check_pair(p, tmp_particles[j]) ) {
+                        nl.push_back(j+1);
                         num_neighbors += 1;
                     }
                     j = list[j];
                 }
             }
 
-            // then the neighbors.
-            for (IntVect iv = bx.smallEnd(); iv <= bx.bigEnd(); bx.next(iv)) {
-                int j = nhead(iv);
-                while (j >= 0) {
-                    if (i == j) {
-                        j = nlist[j];
-                        continue;
-                    }
-                    ParticleType n;
-                    char* nbuf = neighbors[index].dataPtr() + j*pdata_size;
-                    std::memcpy(&n, nbuf, pdata_size);
-                    if ( check_pair(p, n) ) {
-                        neighbor_list[index].push_back(j+1);
-                        num_ghost_neighbors += 1;
-                    }
-                    j = nlist[j];
-                }
-            }
+            nl[p_start_index] = num_neighbors;
+            p_start_index += num_neighbors + 1;
+        }
 
-            neighbor_list[index][p_start_index]   = num_neighbors;
-            neighbor_list[index][p_start_index+1] = num_ghost_neighbors;
-            p_start_index += num_neighbors + num_ghost_neighbors + 2;
+        // for (unsigned i = 0; i < nl.size(); ++i) {
+        //     std::cout << nl[i] << " ";
+        // }
+        // std::cout << std::endl;
+
+        if (sort) {
+            for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
+                std::sort(nl.begin() + i + 1,
+                          nl.begin() + nl[i] + i + 1);
+            }
+        }
+    }
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+buildNeighborListFort(int lev, bool sort) {
+    
+    BL_PROFILE("NeighborListParticleContainer::buildNeighborListFort");
+    BL_ASSERT(lev == 0);
+
+    neighbor_list.clear();
+
+    const Geometry& gm  = this->Geom(lev);
+    const Real*     plo = gm.ProbLo();
+    const Real*     dx  = gm.CellSize();
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        Array<int>& nl = neighbor_list[index];
+        AoS& particles = pti.GetArrayOfStructs();
+
+        int Np = particles.size();
+        int Nn = neighbors[index].size() / pdata_size;
+        int Ns = particles.dataShape().first;
+        int N = Np + Nn;
+
+        Array<ParticleType> tmp_particles(N);
+        std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
+
+        for (int i = 0; i < Nn; ++i) {
+            std::memcpy(&tmp_particles[i + Np],
+                        neighbors[index].dataPtr() + i*pdata_size,
+                        pdata_size);
+        }
+
+        int size_nl = 0;
+        nl.resize(100000);
+
+        Box box = pti.tilebox();
+        box.grow(num_neighbor_cells);        
+        const int* lo = box.loVect();
+        const int* hi = box.hiVect();
+
+        amrex_build_nl(tmp_particles.data(), Ns, N, nl.data(), &size_nl, 
+                       lo, hi, plo, dx);
+
+        nl.resize(size_nl);
+
+        // for (unsigned i = 0; i < nl.size(); ++i) {
+        //     std::cout << nl[i] << " ";
+        // }
+        // std::cout << std::endl;
+
+        if (sort) {
+            for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
+                std::sort(nl.begin() + i + 1,
+                          nl.begin() + nl[i] + i + 1);
+            }
         }
     }
 }

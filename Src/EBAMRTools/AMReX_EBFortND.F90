@@ -576,4 +576,63 @@ contains
 
   end subroutine ebfnd_pwqinterp_nobound
 
+
+  subroutine ebfnd_divflux( &
+       divflux, divflux_lo, divflux_hi, divflux_nco,  &
+       fluxfa0, fluxfa0_lo, fluxfa0_hi, fluxfa0_nco,  &
+       fluxfa1, fluxfa1_lo, fluxfa1_hi, fluxfa1_nco,  &
+       fluxfa2, fluxfa2_lo, fluxfa2_hi, fluxfa2_nco,  &
+       gridlo,gridhi, &
+       dx, isrc, idst, ncomp) &
+       bind(C, name="ebfnd_divflux")
+
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
+
+    implicit none
+
+    integer      :: iif,jjf,kkf,  ncomp, ivar, ivardivf, ivarflux
+    integer      :: fluxfa0_nco
+    integer      :: fluxfa1_nco
+    integer      :: fluxfa2_nco
+    integer      :: divflux_nco, isrc, idst
+    integer      :: fluxfa0_lo(0:2),fluxfa0_hi(0:2)
+    integer      :: fluxfa1_lo(0:2),fluxfa1_hi(0:2)
+    integer      :: fluxfa2_lo(0:2),fluxfa2_hi(0:2)
+    integer      :: divflux_lo(0:2),divflux_hi(0:2)
+    integer      :: gridlo(0:2), gridhi(0:2)
+
+    real(c_real) :: dx, xterm, yterm, zterm
+    real(c_real) :: fhix, flox
+    real(c_real) :: divflux(divflux_lo(0):divflux_hi(0),divflux_lo(1):divflux_hi(1),divflux_lo(2):divflux_hi(2), 0:divflux_nco-1)
+    real(c_real) :: fluxfa0(fluxfa0_lo(0):fluxfa0_hi(0),fluxfa0_lo(1):fluxfa0_hi(1),fluxfa0_lo(2):fluxfa0_hi(2), 0:fluxfa0_nco-1)
+    real(c_real) :: fluxfa1(fluxfa1_lo(0):fluxfa1_hi(0),fluxfa1_lo(1):fluxfa1_hi(1),fluxfa1_lo(2):fluxfa1_hi(2), 0:fluxfa1_nco-1)
+    real(c_real) :: fluxfa2(fluxfa2_lo(0):fluxfa2_hi(0),fluxfa2_lo(1):fluxfa2_hi(1),fluxfa2_lo(2):fluxfa2_hi(2), 0:fluxfa2_nco-1)
+
+    do ivar = 0, ncomp-1
+       ivarflux = isrc + ivar
+       ivardivf = idst + ivar
+
+       do kkf = gridlo(2), gridhi(2)
+          do jjf = gridlo(1), gridhi(1)
+             do iif = gridlo(0), gridhi(0)
+
+                fhix = fluxfa0(iif+1, jjf  , kkf  , ivarflux)
+                flox = fluxfa0(iif  , jjf  , kkf  , ivarflux)
+                xterm = fhix - flox
+                yterm = fluxfa1(iif  , jjf+1, kkf  , ivarflux) - fluxfa1(iif, jjf, kkf, ivarflux)
+                zterm = zero
+#if BL_SPACEDIM==3
+                zterm = fluxfa2(iif  , jjf  , kkf+1, ivarflux) - fluxfa2(iif, jjf, kkf, ivarflux) 
+#endif
+                divflux(iif, jjf, kkf, ivardivf) = (xterm + yterm + zterm)/dx
+
+
+             enddo
+          enddo
+       enddo
+    enddo
+
+
+  end subroutine ebfnd_divflux
+
 end module ebfnd_ebamrtools_module

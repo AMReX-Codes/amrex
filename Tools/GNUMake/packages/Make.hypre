@@ -1,6 +1,4 @@
 
-include $(AMREX_HOME)/Src/Extern/HYPRE/Make.package
-
 CPPFLAGS += -DAMREX_USE_HYPRE
 
 ifdef HYPRE_DIR
