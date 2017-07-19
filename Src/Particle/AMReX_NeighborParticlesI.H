@@ -1,5 +1,7 @@
 #include "AMReX_NeighborParticles.H"
 
+#include "AMReX_Particles_F.H"
+
 using namespace amrex;
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -418,6 +420,75 @@ buildNeighborList(int lev, bool sort) {
             nl[p_start_index] = num_neighbors;
             p_start_index += num_neighbors + 1;
         }
+
+        // for (unsigned i = 0; i < nl.size(); ++i) {
+        //     std::cout << nl[i] << " ";
+        // }
+        // std::cout << std::endl;
+
+        if (sort) {
+            for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
+                std::sort(nl.begin() + i + 1,
+                          nl.begin() + nl[i] + i + 1);
+            }
+        }
+    }
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+buildNeighborListFort(int lev, bool sort) {
+    
+    BL_PROFILE("NeighborListParticleContainer::buildNeighborListFort");
+    BL_ASSERT(lev == 0);
+
+    neighbor_list.clear();
+
+    const Geometry& gm  = this->Geom(lev);
+    const Real*     plo = gm.ProbLo();
+    const Real*     dx  = gm.CellSize();
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        Array<int>& nl = neighbor_list[index];
+        AoS& particles = pti.GetArrayOfStructs();
+
+        int Np = particles.size();
+        int Nn = neighbors[index].size() / pdata_size;
+        int Ns = particles.dataShape().first;
+        int N = Np + Nn;
+
+        Array<ParticleType> tmp_particles(N);
+        std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
+
+        for (int i = 0; i < Nn; ++i) {
+            std::memcpy(&tmp_particles[i + Np],
+                        neighbors[index].dataPtr() + i*pdata_size,
+                        pdata_size);
+        }
+
+        int size_nl = 0;
+        nl.resize(100000);
+
+        Box box = pti.tilebox();
+        box.grow(num_neighbor_cells);        
+        const int* lo = box.loVect();
+        const int* hi = box.hiVect();
+
+        amrex_build_nl(tmp_particles.data(), Ns, N, nl.data(), &size_nl, 
+                       lo, hi, plo, dx);
+
+        nl.resize(size_nl);
+
+        // for (unsigned i = 0; i < nl.size(); ++i) {
+        //     std::cout << nl[i] << " ";
+        // }
+        // std::cout << std::endl;
 
         if (sort) {
             for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
