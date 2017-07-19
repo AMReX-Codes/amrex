@@ -34,7 +34,7 @@ c ::
        integer    i, j
        REAL_T     ri, ro, pi, po, v
        REAL_T     RZFACTOR
-       parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
+       parameter (RZFACTOR = two*Pi)
        
        if (coord .eq. 0) then
 c
@@ -68,7 +68,7 @@ c
              do j = ARG_L2(reg), ARG_H2(reg)
                 pi = offset(2) + dx(2)*j
                 po = pi + dx(2)
-                v = RZFACTOR*(ro**3 - ri**3)*(cos(pi)-cos(po))/three
+                v = RZFACTOR*(ro - ri)*(ro**2 + ro*ri + ri**2)*(cos(pi)-cos(po))/three
                 vol(i,j) = abs(v)
              enddo
           enddo
@@ -114,7 +114,7 @@ c ::
 
           if (dir .eq. 0) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
-                rc = offset(1) + dx(1)*(dble(i)+0.5d0)
+                rc = offset(1) + dx(1)*(dble(i)+half)
                 dlga = 1.d0/rc
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    dloga(i,j) = dlga
@@ -133,7 +133,7 @@ c ::
        else if( coord .eq. 2) then
           if (dir .eq. 0) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
-                rc = offset(1) + dx(1)*(dble(i)+0.5d0)
+                rc = offset(1) + dx(1)*(dble(i)+half)
                 dlga = 2.d0/rc
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    dloga(i,j) = dlga
@@ -141,7 +141,7 @@ c ::
              enddo
           else if (dir .eq. 1) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
-                rc = offset(1) + dx(1)*(dble(i)+0.5d0)
+                rc = offset(1) + dx(1)*(dble(i)+half)
                 dlga = 1.d0/rc
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    pi = offset(2) + dx(2)*j
@@ -179,7 +179,7 @@ c ::
        integer    i, j
        REAL_T     rc, ri, ro, a, pi, po
        REAL_T     RZFACTOR
-       parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
+       parameter (RZFACTOR = two*Pi)
        
        if (coord .eq. 0) then
 c
@@ -213,7 +213,7 @@ c
              end do
           else
              do i = ARG_L1(reg), ARG_H1(reg)
-                rc = offset(1) + dx(1)*(dble(i)+0.5d0)
+                rc = offset(1) + dx(1)*(dble(i)+half)
                 a = abs(dx(1)*RZFACTOR*rc)
                 do j = ARG_L2(reg), ARG_H2(reg)
                    area(i,j) = a
@@ -238,7 +238,7 @@ c
                     ro = ri + dx(1)
                     do j = ARG_L2(reg), ARG_H2(reg)
                        pi = offset(2) + dx(2)*j
-                       a = RZFACTOR*sin(pi)*(ro**2 - ri**2)/two
+                       a = RZFACTOR*sin(pi)*(ro - ri)*(ro + ri)/two
                        area(i,j) = abs(a)
                     enddo
                  enddo
