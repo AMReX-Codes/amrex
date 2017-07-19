@@ -17,11 +17,14 @@
 #define _AMRMULTIGRID_H_
 
 #include "AMReX_MultiGrid.H"
+#include "AMReX_NoOpSolver.H"
 #include "AMReX_REAL.H"
 #include "AMReX_Box.H"
+#include "AMReX_SPMD.H"
+#include "AMReX_BLProfiler.H"
 
 #include <iomanip>
-
+using std::vector;
 namespace amrex
 {
 ///
@@ -40,9 +43,6 @@ namespace amrex
       {
       }
 
-    virtual void dumpStuff(std::vector<T*> data, string filename)
-      {
-      }
 
     //! Destructor.
     virtual ~AMRLevelOp()
@@ -159,11 +159,14 @@ namespace amrex
        a_bottomSolver is the solver to be used at the termination of multigrid coarsening.
        It is the client's responsibility to free up the dynamically-allocated memory.
        a_numLevels is the number of AMR levels.
+       If enableLevelSolves= false, only works for lbase==0 (saves a bunch of definition
+       time if you are only ever solving over the whole hierarchy).
     */
     virtual void define(const Box                    & a_coarseDomain,
                         AMRLevelOpFactory<T>         & a_factory,
                         shared_ptr<LinearSolver<T> > & a_bottomSolver,
                         std::vector<int>             & a_refRat,
+                        bool a_enableLevelSolves,
                         int a_numLevels);
 
 
@@ -214,7 +217,7 @@ namespace amrex
 
     std::vector<int> m_refRat;
     Real m_eps, m_hang, m_normThresh;
-    bool   m_solverParamsSet;
+    bool   m_solverParamsSet, m_enableLevelSolves;
     int m_imin, m_iterMax, m_iterMin, m_verbosity, m_exitStatus;
     int m_pre, m_post, m_bottom, m_numMG;
     /// max no. of coarsenings -- -1 (default) means coarsen as far as possible
@@ -318,8 +321,6 @@ namespace amrex
     std::vector<T*>  m_correction;
     std::vector<T*>  m_residual;
     std::vector<T*>  m_resC;
-    std::vector<Copier> m_resCopier;
-    std::vector<Copier> m_reverseCopier;
 
     NoOpSolver<T>    m_nosolve;
 
@@ -454,7 +455,7 @@ namespace amrex
   {
     BL_PROFILE("AMRMultiGrid::relax");
 
-    int refRat getRefToCoarser(depth);
+    int refRat = getRefToCoarser(depth);
     if (refRat > 2)
     {
       // intermediate multigrid levels exist between this level and the
@@ -527,16 +528,16 @@ namespace amrex
         }
         else
         {
-          m_op[ilev]->zeroCovered(*a_resid[ilev], *m_resC[ilev+1], m_resCopier[ilev+1]);
+          m_op[ilev]->zeroCovered(*a_resid[ilev], *m_resC[ilev+1]);
           localNorm = m_op[ilev]->localMaxNorm(*a_resid[ilev]);
         }
         const int normType = 0;
         if (normType==2)
           localNorm = m_op[ilev]->norm(*a_resid[ilev],normType);
-        rnorm = Max(localNorm, rnorm);
+        rnorm = std::max(localNorm, rnorm);
       }
     }
-#ifdef CH_MPI
+#ifdef BL_USE_MPI
     if (a_computeNorm)
     {
       BL_PROFILE("MPI_Allreduce");
@@ -729,7 +730,7 @@ namespace amrex
                                     int l_max, int l_base, bool a_zeroPhi,
                                     bool a_forceHomogeneous)
   {
-    BL_PROFILERS("AMRMultiGrid::solveNoInit");
+    BL_PROFILE("AMRMultiGrid::solveNoInit");
     std::vector<T*> uberResidual(a_rhs.size());
     int lowlim = l_base;
     if (l_base > 0)  // we need an ubercorrection one level lower than l_base
@@ -757,8 +758,7 @@ namespace amrex
                                          int l_max, int l_base, bool a_zeroPhi,
                                          bool a_forceHomogeneous)
   {
-    BL_PROFILERS("AMRMultiGrid::solveNo-InitResid");
-    BL_PROFILER("AMRMultiGrid::AMRVcycle", vtimer);
+    BL_PROFILE("AMRMultiGrid::solveNo-InitResid");
     setBottomSolver(l_max, l_base);
 
     BL_ASSERT(l_base <= l_max);
@@ -784,7 +784,7 @@ namespace amrex
       }
       m_op[ilev]->setToZero(*(uberCorrection[ilev]));
     }
-    //  m_op[0]->dumpStuff(uberResidual, string("initialRes.hdf5"));
+
     if (a_zeroPhi)
       for (int ilev = l_base; ilev <=l_max; ++ilev)
       {
@@ -812,10 +812,6 @@ namespace amrex
     int iter=0;
     if (m_verbosity >= 2) ////
     {
-      pout()    << setw(12)
-                << setprecision(6)
-                << setiosflags(ios::showpoint)
-                << setiosflags(ios::scientific);
       pout() << "    AMRMultiGrid:: iteration = " << iter << ", residual norm = " << rnorm << std::endl;
     }
 
@@ -830,14 +826,9 @@ namespace amrex
       norm_last = rnorm;
 
       //this generates a correction from the current residual
-      CH_START(vtimer);
-      AMRVCycle(uberCorrection, uberResidual, l_max, l_max, l_base);
-      CH_STOP(vtimer);
 
-      char charname[100];
-      sprintf(charname, "resid_iter%03d.%dd.hdf5", iter, SpaceDim);
-      string sname(charname);
-      //      m_op[0]->dumpAMR(uberResidual, sname);
+      AMRVCycle(uberCorrection, uberResidual, l_max, l_max, l_base);
+
 
       //increment phi by correction and reset correction to zero
       for (int ilev = l_base; ilev <= l_max; ilev++)
@@ -971,9 +962,6 @@ namespace amrex
       {
         r = getRefToCoarser(i);
         op.createCoarsened(*m_resC[i], *a_rhs[i], r);
-        op.buildCopier(m_resCopier[i],  *a_rhs[i-1], *m_resC[i]);
-        m_reverseCopier[i] = m_resCopier[i];
-        m_reverseCopier[i].reverse();
       }
     }
   }
@@ -1024,11 +1012,13 @@ namespace amrex
                                AMRLevelOpFactory<T>& a_factory,
                                shared_ptr<LinearSolver<T> > & a_bottomSolver,
                                vector<int>      & a_refRat,
+                               bool a_enableLevelSolves,
                                int a_maxAMRLevels)
   {
     BL_PROFILE("AMRMultiGrid::define");
     this->clear();
     m_refRat = a_refRat;
+    m_enableLevelSolves = a_enableLevelSolves;
     m_op.resize( a_maxAMRLevels, NULL);
     m_mg.resize( a_maxAMRLevels, NULL);
     m_hasInitBeenCalled.resize(a_maxAMRLevels, 'f');
@@ -1036,8 +1026,6 @@ namespace amrex
     m_correction.resize( a_maxAMRLevels, NULL);
     m_residual.  resize( a_maxAMRLevels, NULL);
     m_resC.      resize( a_maxAMRLevels, NULL);
-    m_resCopier. resize( a_maxAMRLevels);
-    m_reverseCopier.resize(  a_maxAMRLevels);
     m_bottomSolver = a_bottomSolver;
 
     Box current = a_coarseDomain;
@@ -1048,7 +1036,15 @@ namespace amrex
       m_resC[i]       = new T();
       m_mg[i]= new MultiGrid<T>();
       m_op[i] = a_factory.AMRnewOp(current);
-      m_mg[i]->define(a_factory, &m_nosolve, current, m_maxDepth, m_op[i]);
+      int refToCoarser = 2;
+      if(i > 0)
+      {
+        refToCoarser = a_refRat[i-1];
+      }
+      if((i==0) || (refToCoarser > 2) || a_enableLevelSolves)
+      {
+        m_mg[i]->define(a_factory, &m_nosolve, current, m_maxDepth, m_op[i]);
+      }
 
       // Only do this if it will be used (avoiding a reference to invalid
       // and/or unavailable refinement ratios)
@@ -1111,7 +1107,7 @@ namespace amrex
 
       // Overwrite residual on the valid region of the next coarser level
       //  with coarsened residual from this level
-      m_op[ilev-1]->assignCopier(*m_residual[ilev-1], *(m_resC[ilev]), m_resCopier[ilev]);
+      m_op[ilev-1]->assign(*m_residual[ilev-1], *(m_resC[ilev]));
 
       //============finish Compute residual for the next coarser level======
 
@@ -1124,7 +1120,7 @@ namespace amrex
       //increment the correction with coarser version
       //m_op[ilev]->AMRProlong(*(m_correction[ilev]), *(m_correction[ilev-1]));
       m_op[ilev]->AMRProlongS(*(m_correction[ilev]), *(m_correction[ilev-1]),
-                              *m_resC[ilev], m_reverseCopier[ilev]);
+                              *m_resC[ilev]);
       //recompute residual
       m_op[ilev]->AMRUpdateResidual(*(m_residual[ilev]), *(m_correction[ilev]), *(m_correction[ilev-1]));
 

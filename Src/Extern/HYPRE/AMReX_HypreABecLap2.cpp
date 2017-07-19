@@ -1,6 +1,8 @@
 #include <AMReX_HypreABecLap2.H>
 #include <AMReX_HypreABec_F.H>
 
+#include <cmath>
+
 namespace {
     static int ispow2(int i)
     {
@@ -162,16 +164,21 @@ HypreABecLap2::setVerbose (int _verbose)
 }
 
 void
-HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-                      int max_iter, LinOpBCType bc_type, Real bc_value)
+HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real abs_tol_, 
+                      int max_iter_, LinOpBCType bc_type, Real bc_value)
 {
     loadBndryData(bc_type, bc_value);
 
     loadMatrix();
+    finalizeMatrix();
 
-    // finalize maxtrix
+    loadVectors(soln, rhs);
+    finalizeVectors();
 
-    amrex::Abort("solver to do");
+    setupSolver(rel_tol_, abs_tol_, max_iter_);
+    solveDoIt();
+    getSolution(soln);
+    clearSolver();
 }
 
 void
@@ -235,21 +242,6 @@ void
 HypreABecLap2::loadMatrix ()
 {
     static_assert(BL_SPACEDIM > 1, "HypreABecLap2: 1D not supported");
-#if (BL_SPACEDIM == 2)
-    int offsets[5][2] = {{ 0,  0},
-                         {-1,  0},
-                         { 1,  0},
-                         { 0, -1},
-                         { 0,  1}};
-#elif (BL_SPACEDIM == 3)
-    int offsets[7][3] = {{ 0,  0,  0},
-                         {-1,  0,  0},
-                         { 1,  0,  0},
-                         { 0, -1,  0},
-                         { 0,  1,  0},
-                         { 0,  0, -1},
-                         { 0,  0,  1}};
-#endif
 
     const int size = 2 * BL_SPACEDIM + 1;
 
@@ -301,10 +293,8 @@ HypreABecLap2::loadMatrix ()
             // for the linear solver:
             
             if (reg[oitr()] == domain[oitr()]) {
-                const FArrayBox &fs = bd.bndryValues(oitr())[mfi];
                 hmmat3(mat, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
                        cdir, bctype, bho, bcl,
-                       ARLIM(fs.loVect()), ARLIM(fs.hiVect()),
                        BL_TO_FORTRAN(msk),
                        BL_TO_FORTRAN(bcoefs[idim][mfi]),
                        scalar_b, dx);
@@ -326,6 +316,204 @@ HypreABecLap2::loadMatrix ()
                                         0, size, stencil_indices, mat);
 
         hypre_TFree(mat);
+    }
+}
+
+void
+HypreABecLap2::finalizeMatrix ()
+{
+    HYPRE_SStructMatrixAssemble(A);   
+}
+
+void
+HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
+{
+    const int part = 0;
+    const int bho = 0;
+    const Real* dx = geom.CellSize();
+
+    FArrayBox fnew;
+
+    soln.setVal(0.0);
+
+    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    {
+        int i = mfi.index();
+        const Box &reg = mfi.validbox();
+
+        // initialize soln, since we will reuse the space to set up rhs below:
+
+        FArrayBox *f;
+        if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
+            f = &soln[mfi];
+        }
+        else {
+            f = &fnew;
+            f->resize(reg);
+            f->copy(soln[mfi], 0, 0, 1);
+        }
+        Real* vec = f->dataPtr(); // sharing space, soln will be overwritten below
+
+        HYPRE_SStructVectorSetBoxValues(x, part,
+                                        const_cast<int*>(reg.loVect()),
+                                        const_cast<int*>(reg.hiVect()),
+                                        0, vec);
+
+        f->copy(rhs[mfi], 0, 0, 1);
+
+        // add b.c.'s to rhs
+
+        const Array< Array<BoundCond> > & bcs_i = bd.bndryConds(i);
+        const BndryData::RealTuple      & bcl_i = bd.bndryLocs(i);
+
+        const Box& domain = geom.Domain();
+        for (OrientationIter oitr; oitr; oitr++) {
+            int cdir(oitr());
+            int idim = oitr().coordDir();
+            const int bctype = bcs_i[cdir][0];
+            const Real &bcl  = bcl_i[cdir];
+            const Mask &msk  = bd.bndryMasks(oitr())[mfi];
+            const FArrayBox &fs = bd.bndryValues(oitr())[mfi];
+
+            // Treat an exposed grid edge here as a boundary condition
+            // for the linear solver:
+            
+            if (reg[oitr()] == domain[oitr()]) {
+                hbvec3(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
+                       cdir, bctype, bho, bcl,
+                       BL_TO_FORTRAN(fs),
+                       BL_TO_FORTRAN(msk),
+                       BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                       scalar_b, dx);
+            }
+            else {
+                hbvec(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
+                      cdir, bctype, bho, bcl,
+                      BL_TO_FORTRAN(fs),
+                      BL_TO_FORTRAN(msk),
+                      BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                      scalar_b, dx);
+            }
+        }
+
+        // initialize rhs
+        HYPRE_SStructVectorSetBoxValues(b, part,
+                                        const_cast<int*>(reg.loVect()),
+                                        const_cast<int*>(reg.hiVect()),
+                                        0, vec);
+    }
+}
+
+void
+HypreABecLap2::finalizeVectors ()
+{
+    HYPRE_SStructVectorAssemble(b);
+    HYPRE_SStructVectorAssemble(x);
+}
+
+void
+HypreABecLap2::setupSolver (Real rel_tol_, Real abs_tol_, int max_iter_)
+{
+    rel_tol = rel_tol_;
+    abs_tol = abs_tol_;
+    max_iter = max_iter_;
+
+    HYPRE_ParCSRMatrix par_A;
+    HYPRE_ParVector par_b;
+    HYPRE_ParVector par_x;
+
+    HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
+    HYPRE_SStructVectorGetObject(b, (void**) &par_b);
+    HYPRE_SStructVectorGetObject(x, (void**) &par_x);
+
+    HYPRE_BoomerAMGCreate(&solver);
+
+    HYPRE_BoomerAMGSetMinIter(solver, 1);
+    HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
+    HYPRE_BoomerAMGSetTol(solver, rel_tol);
+
+    HYPRE_BoomerAMGSetup(solver, par_A, par_b, par_x);
+}
+
+void
+HypreABecLap2::clearSolver ()
+{
+    HYPRE_BoomerAMGDestroy(solver);
+}
+
+void
+HypreABecLap2::solveDoIt ()
+{
+    if (abs_tol > 0.0)
+    {
+        Real bnorm;
+        hypre_SStructInnerProd((hypre_SStructVector *) b,
+                               (hypre_SStructVector *) b,
+                               &bnorm);
+        bnorm = std::sqrt(bnorm);
+
+        const BoxArray& grids = acoefs.boxArray();
+        Real volume = grids.numPts();
+        Real rel_tol_new = bnorm > 0.0 ? abs_tol / bnorm * std::sqrt(volume) : rel_tol;
+
+        if (rel_tol_new > rel_tol) {
+            HYPRE_BoomerAMGSetTol(solver, rel_tol_new);
+        }
+    }
+
+    HYPRE_ParCSRMatrix par_A;
+    HYPRE_ParVector par_b;
+    HYPRE_ParVector par_x;
+
+    HYPRE_SStructMatrixGetObject(A, (void**) &par_A);
+    HYPRE_SStructVectorGetObject(b, (void**) &par_b);
+    HYPRE_SStructVectorGetObject(x, (void**) &par_x);
+
+    HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
+
+    HYPRE_SStructVectorGather(x);
+
+    if (verbose >= 2 && ParallelDescriptor::IOProcessor()) {
+        int num_iterations;
+        Real res;
+        HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
+        HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
+        
+        int oldprec = std::cout.precision(17);
+        std::cout <<"\n" <<  num_iterations
+                  << " Hypre Multigrid Iterations, Relative Residual "
+                  << res << std::endl;
+        std::cout.precision(oldprec);
+    }
+}
+
+void
+HypreABecLap2::getSolution (MultiFab& soln)
+{
+    const int part = 0;
+
+    FArrayBox fnew;
+    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    {
+        const Box &reg = mfi.validbox();
+
+        FArrayBox *f;
+        if (soln.nGrow() == 0) { // need a temporary if soln is the wrong size
+            f = &soln[mfi];
+        }
+        else {
+            f = &fnew;
+            f->resize(reg);
+        }
+
+        HYPRE_SStructVectorGetBoxValues(x, part,
+                                        const_cast<int*>(reg.loVect()),
+                                        const_cast<int*>(reg.hiVect()),
+                                        0, f->dataPtr());
+
+        if (soln.nGrow() != 0) {
+            soln[mfi].copy(*f, 0, 0, 1);
+        }
     }
 }
 
