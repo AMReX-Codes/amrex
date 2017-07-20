@@ -93,20 +93,9 @@ namespace amrex
 
     ///
     /**
-       Interpolate the fine data from the coarse data
-       over the intersection to the order of accuracy requested.
-       NOTE: This function sends these arrays
-       to Fortran so you must set the covered
-       cell values to something.  Unitialized memory
-       might cause IEEE problems with some compilers.
-       {\bf Arguments:}\\
-       coarData: The data over the coarse layout.\\
-       fineData: The data over the fine layout.  \\
-       The variables to interpolate.  Those not
-       in this range will be left alone.   This range of variables
-       must be in both the coarse and fine data.
        Input flux at embedded boundary is assumed to be dotted 
-       with OUTWARD FACING normal.
+       with OUTWARD FACING normal.  (please remember that ebisbox.normal
+       returns an INWARD-facing normal for some reason).
     */
     void
     hybridDivergence(FabArray<EBCellFAB>      & a_divF,
@@ -130,12 +119,6 @@ namespace amrex
 
     void defineInternals();
 
-    void
-    getStencil(VoFStencil           & a_stencil,
-               const VolIndex       & a_vofFine,
-               const EBISBox        & a_ebisFine,
-               const EBISBox        & a_ebisCoFi,
-               const MFIter         & a_mfi);
     bool m_isDefined;
     //since this stuff involves walking the graph, put it into a  stencil
     LayoutData< shared_ptr< AggStencil<EBFaceFAB, EBCellFAB> > > m_openStencil[BL_SPACEDIM];
