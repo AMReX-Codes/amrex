@@ -1,12 +1,12 @@
 # Maximum number of time steps
-max_step = 4000
+max_step = 6000
 
 # number of grid points
 amr.n_cell = 128 640
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
-amr.max_grid_size = 1024
+amr.max_grid_size = 64
 
 # The lo and hi ends of grids are multipliers of blocking factor
 amr.blocking_factor = 32
@@ -21,6 +21,7 @@ warpx.do_dive_cleaning = 1
 
 amr.plot_int = 100   # How often to write plotfiles.  "<= 0" means no plotfiles.
 warpx.plot_dive = 1
+warpx.plot_raw_fields = 1
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
