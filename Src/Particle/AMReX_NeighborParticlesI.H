@@ -255,6 +255,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
 getRcvCountsMPI(const std::map<int, Array<char> >& send_data) {
 
+#ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
@@ -285,7 +286,9 @@ getRcvCountsMPI(const std::map<int, Array<char> >& send_data) {
     BL_ASSERT(rcvs[MyProc] == 0);
     
     BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());    
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+#endif // BL_USE_MPI
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
