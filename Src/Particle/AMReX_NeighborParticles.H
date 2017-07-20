@@ -73,6 +73,11 @@ public:
     void fillNeighbors(int lev);
 
     ///
+    /// This updates the neighbors with their current particle data.
+    ///
+    void updateNeighbors(int lev);
+
+    ///
     /// Each tile clears its neighbors, freeing the memory
     ///
     void clearNeighbors(int lev);
@@ -118,6 +123,12 @@ protected:
 
     int num_neighbor_cells;
     FabArray<BaseFab<int> > mask;
+
+    void cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
+                               const IntVect& neighbor_cell, const BaseFab<int>& mask);
+
+    std::map<PairIndex, Array<int> > buffer_id_cache;
+    std::map<PairIndex, Array<IntVect> > buffer_cell_cache;
 };
 
 #include "AMReX_NeighborParticlesI.H"
