@@ -8,7 +8,7 @@
 namespace amrex {
 
 class NeighborListParticleContainer
-    : public NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM>
+    : public NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM+1>
 {
 public:
 

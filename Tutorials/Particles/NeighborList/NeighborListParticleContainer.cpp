@@ -12,7 +12,7 @@ NeighborListParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
                               int                         ncells)
-    : NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM> 
+    : NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM+1> 
       (geom, dmap, ba, ncells)
 {}
 
@@ -96,9 +96,9 @@ void NeighborListParticleContainer::computeForcesNL() {
 #pragma omp parallel
 #endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
-        PairIndex index(pti.index(), pti.LocalTileIndex());
         int Nn = neighbors[index].size() / pdata_size;
         int size = neighbor_list[index].size();
         amrex_compute_forces_nl(particles.data(), &Np, 
