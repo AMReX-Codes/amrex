@@ -635,4 +635,87 @@ contains
 
   end subroutine ebfnd_divflux
 
+
+  subroutine ebfnd_gradlim( &
+       gph, gph_lo, gph_hi, gph_nco,  &
+       phi, phi_lo, phi_hi, phi_nco,  &
+       gridlo,gridhi, &
+       ncomp, dx, dolimiting) &
+       bind(C, name="ebfnd_gradlim")
+
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
+
+    implicit none
+
+    integer      :: i,j,k,  ncomp, ivar
+    integer      :: phi_nco, gradcomp, vecdir,ii,jj,kk
+    integer      :: gph_nco,  dolimiting
+    integer      :: phi_lo(0:2), phi_hi(0:2)
+    integer      :: gph_lo(0:2), gph_hi(0:2)
+    integer      :: gridlo(0:2), gridhi(0:2)
+
+    real(c_real) :: dx, dplo, dphi, dpce, dplim
+    real(c_real) :: gph(gph_lo(0):gph_hi(0),gph_lo(1):gph_hi(1),gph_lo(2):gph_hi(2), 0:gph_nco-1)
+    real(c_real) :: phi(phi_lo(0):phi_hi(0),phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2), 0:phi_nco-1)
+
+    if(dolimiting .eq. 1) then
+       do ivar = 0, ncomp-1
+          do vecdir = 0, BL_SPACEDIM-1
+
+             gradcomp = BL_SPACEDIM*ivar + vecdir
+             ii = imatebamrt(0, vecdir)
+             jj = imatebamrt(1, vecdir)
+             kk = imatebamrt(2, vecdir)
+
+             do k = gridlo(2), gridhi(2)
+                do j = gridlo(1), gridhi(1)
+                   do i = gridlo(0), gridhi(0)
+
+                      dphi = phi(i+ii, j+jj, k+kk, ivar) - phi(i   ,j   ,k   , ivar) 
+                      dplo = phi(i   , j   , k   , ivar) - phi(i-ii,j-jj,k-kk, ivar) 
+                      dpce = half*(dplo + dphi)
+                      !van Leer limiting
+                      if(dplo*dphi .lt. zero) then
+                         dplim = zero
+                      else
+                         dplim = min(two*abs(dplo), two*abs(dphi))
+                         dplim = min(dplim, abs(dpce))
+                         dplim = dplim*sign(one, dplo)
+                      endif
+
+                      gph(i, j, k, gradcomp) = dplim/dx
+
+                   enddo
+                enddo
+             enddo
+          enddo
+       enddo
+    else
+       do ivar = 0, ncomp-1
+          do vecdir = 0, BL_SPACEDIM-1
+
+             gradcomp = BL_SPACEDIM*ivar + vecdir
+             ii = imatebamrt(0, vecdir)
+             jj = imatebamrt(1, vecdir)
+             kk = imatebamrt(2, vecdir)
+
+             do k = gridlo(2), gridhi(2)
+                do j = gridlo(1), gridhi(1)
+                   do i = gridlo(0), gridhi(0)
+                      dphi = phi(i+ii, j+jj, k+kk, ivar) - phi(i   ,j   ,k   , ivar) 
+                      dplo = phi(i   , j   , k   , ivar) - phi(i-ii,j-jj,k-kk, ivar) 
+                      dpce = half*(dplo + dphi)
+                      ! no limiting here
+                      gph(i, j , k , gradcomp) = dpce/dx
+
+                   enddo
+                enddo
+             enddo
+          enddo
+       enddo
+    endif
+
+
+  end subroutine ebfnd_gradlim
+
 end module ebfnd_ebamrtools_module
