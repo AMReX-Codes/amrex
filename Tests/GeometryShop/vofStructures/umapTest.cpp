@@ -21,6 +21,7 @@
 
 #include "AMReX_MeshRefine.H"
 #include "AMReX_EBStruct.H"
+#include "umapTest.H"
 
 using namespace amrex;
 
@@ -307,7 +308,17 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                 for (SideIterator sit; sit.ok(); ++sit)
                 {
                     int iside = sit() == Side::Lo ? 0 : 1;
-                    std::cout << " (" << idir << ", " << iside << "): " << cc.Nnbr[idir][iside];
+                    int num = cc.Nnbr[idir][iside];
+                    std::cout << " (" << idir << ", " << iside << "): " << num;
+                    if (num > 0)
+                    {
+                        std::cout << " [ ";
+                        for (int L=0; L<num; ++L)
+                        {
+                            std::cout << cc.nbr[idir][iside][L] << " ";
+                        }
+                        std::cout << "]";
+                    }
                 }
             } 
             std::cout << std::endl;
@@ -368,19 +379,6 @@ Copy(RealVect& out, const RealDIM& in)
 }
 #endif
 
-struct FaceData
-{
-  Real m_aperature;
-  RealDIM m_centroid;
-};
-
-struct EBBndryData
-{
-    RealDIM m_normal;
-    RealDIM m_bndry_centroid;
-    Real m_value;
-};
-
 extern "C"
 {
     amrex_real fort_umap_norm (const int* lo, const int* hi,
@@ -388,6 +386,14 @@ extern "C"
                                const amrex::key_table_type* kt, const int* ktlo, const int* kthi, 
                                const int* max_mv, const int* ncomp,
                                const int* p);
+
+    void do_eb_work(const int* lo, const int* hi,
+                    const EBBndryData* ccells, const int* nccells,
+                    D_DECL(const FaceData* cfaces0,
+                           const FaceData* cfaces1,
+                           const FaceData* cfaces2), const int* ncfaces,
+                    const amrex::key_table_type* ktc, const int* ktclo, const int* ktchi, 
+                    const int* cmax_mv, const int* cncomp);
 }
 
 int myTest()
@@ -521,6 +527,32 @@ int myTest()
     }
     ParallelDescriptor::ReduceRealMax(norm);
     std::cout << "Norm is " << norm << std::endl;
+
+
+    for (MFIter mfi(ebbd_fine); mfi.isValid(); ++mfi)
+    {
+        const BaseUmap<EBBndryData>& ebbd_fab = ebbd_fine[mfi];
+        const Box& box = mfi.validbox();
+        int ncells = ebbd_fab.nPts();
+        int nfaces[3] = {0, 0, 0};
+        for (int idir=0; idir<BL_SPACEDIM; ++idir)
+        {
+            nfaces[idir] = fd_fine[idir][mfi].nPts();
+        }
+
+        int max_mv = ebbd_fab.MaxMV();
+        int ncomp = ebbd_fab.nComp();
+
+        do_eb_work(ARLIM_3D(box.loVect()), ARLIM_3D(box.hiVect()),
+                   ebbd_fab.dataPtr(), &ncells,
+                   D_DECL(fd_fine[0][mfi].dataPtr(),
+                          fd_fine[1][mfi].dataPtr(),
+                          fd_fine[2][mfi].dataPtr()), nfaces,
+                   ebbd_fab.keyTablePtr(), ARLIM_3D(ebbd_fab.box().loVect()), ARLIM_3D(ebbd_fab.box().hiVect()), &max_mv, &ncomp);
+    }
+
+
+
 
 #if 0
     MultiFab vfrac(ba_fine, dm_fine,  nComp, 0);
