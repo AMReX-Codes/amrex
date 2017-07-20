@@ -518,6 +518,9 @@ public:
      */
     std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
     
+    // Sync up nodal data via averaging
+    void AverageSync (const Periodicity& period = Periodicity::NonPeriodic());
+
     static void Initialize ();
     static void Finalize ();
 
