@@ -82,7 +82,7 @@ namespace amrex
       const std::vector<VolIndex>& volvec = vofit.getVector();
 
       //destination vofs are the same for both open and boundary faces
-      std::vector< std::shared_ptr<BaseIndex  > > baseDstVoFs;
+      std::vector< std::shared_ptr<BaseIndex  > > baseDstVoFs(volvec.size());
       for(int ivec = 0; ivec < volvec.size(); ivec++)
       {
         baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&volvec[ivec]), &null_deleter_divs_ind);
@@ -145,6 +145,9 @@ namespace amrex
                    int isrc, int idst, int inco)
   {
     BL_ASSERT(isDefined());
+    BL_ASSERT(a_flux.nGrow() == m_dataGhost);
+    BL_ASSERT(a_divF.nGrow() == m_dataGhost);
+
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       EBCellFAB       & divF = m_kappaDivergence[mfi];
