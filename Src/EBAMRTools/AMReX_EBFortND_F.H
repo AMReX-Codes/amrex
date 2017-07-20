@@ -56,6 +56,12 @@
                        const int*  gridlo, const int* gridhi, 
                        const amrex::Real* dx, const int* isrc, const int* idst, const int* ncomp);
 
+
+    void ebfnd_gradlim(amrex::Real*       gph, const int* gphlo, const int* gphhi, const int* incogph,
+                       const amrex::Real* phi, const int* philo, const int* phihi, const int* incophi,
+                       const int*  gridlo, const int* gridhi, 
+                       const int*  ncomp , const amrex::Real* dx, const int* dolimiting);
+
 #ifdef __cplusplus
   }
 #endif

@@ -145,6 +145,9 @@ namespace amrex
                    int isrc, int idst, int inco)
   {
     BL_ASSERT(isDefined());
+    BL_ASSERT(a_flux.nGrow() == m_dataGhost);
+    BL_ASSERT(a_divF.nGrow() == m_dataGhost);
+
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       EBCellFAB       & divF = m_kappaDivergence[mfi];
