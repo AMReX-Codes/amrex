@@ -154,7 +154,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         }
     }
     
-    fillNeighborsMPI(neighbors_to_comm);
+    bool reuse_rcv_counts = true;
+    fillNeighborsMPI(neighbors_to_comm, reuse_rcv_counts);
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -252,7 +253,45 @@ cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-fillNeighborsMPI(NeighborCommMap& neighbors_to_comm) {
+getRcvCountsMPI(const std::map<int, Array<char> >& send_data) {
+
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
+
+    // each proc figures out how many bytes it will send, and how
+    // many it will receive
+    Array<long> snds(NProcs, 0);
+    rcvs.resize(NProcs, 0);
+
+    num_snds = 0;
+    for (const auto& kv : send_data) {
+        num_snds      += kv.second.size();
+        snds[kv.first] = kv.second.size();
+    }
+    ParallelDescriptor::ReduceLongMax(num_snds);
+    if (num_snds == 0) return;
+    
+    // communicate that information
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    
+    BL_MPI_REQUIRE( MPI_Alltoall(snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    BL_ASSERT(rcvs[MyProc] == 0);
+    
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());    
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+fillNeighborsMPI(NeighborCommMap& neighbors_to_comm, bool reuse_rcv_counts) {
     
     BL_PROFILE("NeighborParticleContainer::fillNeighborsMPI");
     
@@ -294,30 +333,8 @@ fillNeighborsMPI(NeighborCommMap& neighbors_to_comm) {
     
     // each proc figures out how many bytes it will send, and how
     // many it will receive
-    Array<long> snds(NProcs, 0), rcvs(NProcs, 0);
-    long num_snds = 0;
-    for (const auto& kv : send_data) {
-        num_snds      += kv.second.size();
-        snds[kv.first] = kv.second.size();
-    }
-    ParallelDescriptor::ReduceLongMax(num_snds);
+    if (!reuse_rcv_counts) getRcvCountsMPI(send_data);
     if (num_snds == 0) return;
-    
-    // communicate that information
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
-    
-    BL_MPI_REQUIRE( MPI_Alltoall(snds.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    BL_ASSERT(rcvs[MyProc] == 0);
-    
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
     
     Array<int> RcvProc;
     Array<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
