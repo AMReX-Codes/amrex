@@ -517,9 +517,14 @@ public:
      * \brief Return a mask indicating how many duplicates are in each point.
      */
     std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
-    
+    // Owner is the Lowest rank containing the data.
+    std::unique_ptr<MultiFab> OwnerMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
+
     // Sync up nodal data via averaging
     void AverageSync (const Periodicity& period = Periodicity::NonPeriodic());
+    // Sync up nodal data with owners overriding non-owners
+    void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
+    void OverrideSync (const MultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
 
     static void Initialize ();
     static void Finalize ();

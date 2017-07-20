@@ -1359,6 +1359,48 @@ MultiFab::OverlapMask (const Periodicity& period) const
     return p;
 }
 
+std::unique_ptr<MultiFab>
+MultiFab::OwnerMask (const Periodicity& period) const
+{
+    const BoxArray& ba = boxArray();
+    const DistributionMapping& dm = DistributionMap();
+
+    const Real owner = 1.;
+    const Real nonowner = 0.;
+
+    std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0)};
+    p->setVal(owner);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        const std::vector<IntVect>& pshifts = period.shiftIntVect();
+        
+        for (MFIter mfi(*p); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& fab = (*p)[mfi];
+            const Box& bx = fab.box();
+            const int i = mfi.index();
+            for (const auto& iv : pshifts)
+            {
+                ba.intersections(bx+iv, isects);                    
+                for (const auto& is : isects)
+                {
+                    const int oi = is.first;
+                    const Box& obx = is.second;
+                    if ((oi < i) || (oi == i && iv < IntVect::TheZeroVector())) {
+                        fab.setVal(nonowner, obx-iv, 0, 1);
+                    }
+                }
+            }
+        }
+    }
+
+    return p;
+}
+
 void
 MultiFab::AverageSync (const Periodicity& period)
 {
@@ -1373,6 +1415,32 @@ MultiFab::AverageSync (const Periodicity& period)
     for (int comp = 0; comp < ncomp; ++comp) {
         MultiFab::Divide(tmpmf, *mask, 0, comp, 1, 0);
     }
+
+    MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
+}
+
+void
+MultiFab::OverrideSync (const Periodicity& period)
+{
+    if (ixType().cellCentered()) return;
+    auto msk = this->OwnerMask(period);
+    this->OverrideSync(*msk, period);
+}
+
+void
+MultiFab::OverrideSync (const MultiFab& msk, const Periodicity& period)
+{
+    if (ixType().cellCentered()) return;
+    
+    const int ncomp = nComp();
+    for (int comp = 0; comp < ncomp; ++comp)
+    {
+        MultiFab::Multiply(*this, msk, 0, comp, 1, 0);
+    }
+    
+    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0);
+    tmpmf.setVal(0.0);
+    tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
 
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
