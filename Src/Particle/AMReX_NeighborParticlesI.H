@@ -421,9 +421,6 @@ buildNeighborList(int lev, bool sort) {
 
     neighbor_list.clear();
     
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -517,9 +514,6 @@ buildNeighborListFort(int lev, bool sort) {
     const Real*     plo = gm.ProbLo();
     const Real*     dx  = gm.CellSize();
     
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -552,11 +546,6 @@ buildNeighborListFort(int lev, bool sort) {
                        lo, hi, plo, dx);
 
         nl.resize(size_nl);
-
-        // for (unsigned i = 0; i < nl.size(); ++i) {
-        //     std::cout << nl[i] << " ";
-        // }
-        // std::cout << std::endl;
 
         if (sort) {
             for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
