@@ -115,7 +115,13 @@ protected:
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
-    void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm);
+    void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm, bool reuse_rcv_counts=false);
+
+
+    ///
+    /// Perform handshake to figure out how many bytes each proc should receive
+    ///
+    void getRcvCountsMPI(const std::map<int, Array<char> >& send_data);
 
     virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
         return false;
@@ -129,6 +135,11 @@ protected:
 
     std::map<PairIndex, Array<int> > buffer_id_cache;
     std::map<PairIndex, Array<IntVect> > buffer_cell_cache;
+
+    // each proc knows how many sends it will do, and how many bytes it will rcv 
+    // from each other proc.
+    Array<long> rcvs;
+    long num_snds;
 };
 
 #include "AMReX_NeighborParticlesI.H"
