@@ -57,6 +57,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     BL_ASSERT(lev == 0);
     NeighborCommMap neighbors_to_comm;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        PairIndex src_index(pti.index(), pti.LocalTileIndex());
         const Box& tile_box = pti.tilebox();
         const IntVect& lo = tile_box.smallEnd();
         const IntVect& hi = tile_box.bigEnd();
@@ -92,6 +93,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 IntVect neighbor_cell = iv;
                 neighbor_cell.shift(idim, shift[idim]);
                 BL_ASSERT(mask[pti].box().contains(neighbor_cell));
+                cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
                 packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
             }
             
@@ -103,6 +105,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                         neighbor_cell.shift(idim, shift[idim]);
                         neighbor_cell.shift(jdim, shift[jdim]);
                         BL_ASSERT(mask[pti].box().contains(neighbor_cell));
+                        cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
                         packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
                     }
                 }
@@ -114,9 +117,40 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 IntVect neighbor_cell = iv;
                 neighbor_cell.shift(shift);
                 BL_ASSERT(mask[pti].box().contains(neighbor_cell));
+                cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
                 packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
             }
 #endif
+        }
+    }
+    
+    fillNeighborsMPI(neighbors_to_comm);
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void 
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::updateNeighbors(int lev) {
+
+    BL_PROFILE("NeighborParticleContainer::updateNeighbors");
+    BL_ASSERT(lev == 0);
+
+    neighbors.clear();
+    
+    NeighborCommMap neighbors_to_comm;
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        PairIndex src_index(pti.index(), pti.LocalTileIndex());
+        const Box& tile_box = pti.tilebox();
+        const IntVect& lo = tile_box.smallEnd();
+        const IntVect& hi = tile_box.bigEnd();
+                
+        auto& particles = pti.GetArrayOfStructs();
+        const auto& ids = buffer_id_cache[src_index];
+        for (unsigned i = 0; i < buffer_id_cache[src_index].size(); ++i) {
+            int particle_index = buffer_id_cache[src_index][i];
+            const IntVect& neighbor_cell = buffer_cell_cache[src_index][i];
+            const ParticleType& p = particles[particle_index];
+            packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
         }
     }
     
@@ -133,6 +167,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     BL_ASSERT(lev == 0);
 
     neighbors.clear();
+    buffer_id_cache.clear();
+    buffer_cell_cache.clear();
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -193,6 +229,23 @@ packNeighborParticle(int lev,
             buffer.resize(new_size);
             std::memcpy(&buffer[old_size], &particle, pdata_size);
         }
+    }
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void 
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
+                      const IntVect& neighbor_cell, const BaseFab<int>& mask) {
+    
+    BL_ASSERT(lev == 0);
+    
+    const int neighbor_grid = mask(neighbor_cell, 0);
+    if (neighbor_grid >= 0) {
+        const int neighbor_tile = mask(neighbor_cell, 1);
+        PairIndex dst_index(neighbor_grid, neighbor_tile);
+        buffer_id_cache[index].push_back(particle_index);
+        buffer_cell_cache[index].push_back(neighbor_cell);
     }
 }
 
@@ -420,11 +473,6 @@ buildNeighborList(int lev, bool sort) {
             nl[p_start_index] = num_neighbors;
             p_start_index += num_neighbors + 1;
         }
-
-        // for (unsigned i = 0; i < nl.size(); ++i) {
-        //     std::cout << nl[i] << " ";
-        // }
-        // std::cout << std::endl;
 
         if (sort) {
             for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {

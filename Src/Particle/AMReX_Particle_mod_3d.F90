@@ -96,7 +96,7 @@ contains
                    if ( (particles(1, n) - particles(1, nn)) * (particles(1, n) - particles(1, nn)) +    &
                         (particles(2, n) - particles(2, nn)) * (particles(2, n) - particles(2, nn)) +    &
                         (particles(3, n) - particles(3, nn)) * (particles(3, n) - particles(3, nn)) .le. &
-                        2.25d-8) then
+                        9.d0*particles(4,n)*particles(4,nn)) then
                       nbor_list(index + num_nbors + 1) = nn
                       num_nbors = num_nbors + 1
                    end if
