@@ -1810,7 +1810,7 @@ as a message.
 debug build (e.g., {\tt DEBUG=TRUE} using the GNU Make build system),
 if the expression at runtime is evaluated to false, {\tt amrex::Abort}
 will be called and the run is thus terminated.  For optimized build
-(e.g., {\tt DEBUG=TRUE} using the GNU Make build system), the {\tt
+(e.g., {\tt DEBUG=FALSE} using the GNU Make build system), the {\tt
 AMREX\_ASSERT} statement is removed at compile time and thus has no
 effect at runtime.  We often use this as a means of putting debug
 statement in the code without adding any extra cost for production
