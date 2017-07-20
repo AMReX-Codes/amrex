@@ -287,6 +287,22 @@ WarpX::SyncCurrent ()
         current_cp[lev][1]->SumBoundary(cperiod);
         current_cp[lev][2]->SumBoundary(cperiod);
     }
+
+    // sync shared nodal edges
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        const auto& period = Geom(lev).periodicity();
+        current_fp[lev][0]->OverrideSync(period);
+        current_fp[lev][1]->OverrideSync(period);
+        current_fp[lev][2]->OverrideSync(period);
+    }
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        current_cp[lev][0]->OverrideSync(cperiod);
+        current_cp[lev][1]->OverrideSync(cperiod);
+        current_cp[lev][2]->OverrideSync(cperiod);
+    }
 }
 
 void
@@ -355,6 +371,18 @@ WarpX::SyncRho ()
     {
         const auto& cperiod = Geom(lev-1).periodicity();
         rho_cp[lev]->SumBoundary(cperiod);
+    }
+
+    // sync shared nodal points
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        const auto& period = Geom(lev).periodicity();
+        rho_fp[lev]->OverrideSync(period);
+    }
+    for (int lev = 1; lev <= finest_level; ++lev)
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        rho_cp[lev]->OverrideSync(cperiod);
     }
 }
 
