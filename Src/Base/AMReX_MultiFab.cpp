@@ -1360,6 +1360,24 @@ MultiFab::OverlapMask (const Periodicity& period) const
 }
 
 void
+MultiFab::AverageSync (const Periodicity& period)
+{
+    if (ixType().cellCentered()) return;
+
+    const int ncomp = nComp();
+    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0);
+    tmpmf.setVal(0.0);
+    tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
+
+    auto mask = OverlapMask(period);
+    for (int comp = 0; comp < ncomp; ++comp) {
+        MultiFab::Divide(tmpmf, *mask, 0, comp, 1, 0);
+    }
+
+    MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
+}
+
+void
 MultiFab::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                           int scsMyId, MPI_Comm scsComm)
 {
