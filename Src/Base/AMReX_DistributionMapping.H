@@ -195,6 +195,7 @@ class DistributionMapping
 
     static DistributionMapping makeKnapSack   (const MultiFab& weight);
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
+    static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
 
 private:
 
