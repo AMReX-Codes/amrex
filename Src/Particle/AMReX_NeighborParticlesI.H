@@ -35,16 +35,19 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     // note - use level 0 here is periodicity should be the same on all levels
     const Periodicity& periodicity = this->Geom(0).periodicity();
 
-    if (periodicity.isAllPeriodic()) {
-        applyPeriodicShift = &NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-            ::applyPeriodicShiftAllDirections;
-    } else if (periodicity.isAnyPeriodic()){
-        applyPeriodicShift = &NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-            ::applyPeriodicShiftGeneral;
-    } else {
-        applyPeriodicShift = &NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-            ::applyPeriodicShiftNull;
-    }
+    applyPeriodicShift = &NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+        ::applyPeriodicShiftGeneral;
+
+    // if (periodicity.isAllPeriodic()) {
+    //     applyPeriodicShift = &NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+    //         ::applyPeriodicShiftAllDirections;
+    // } else if (periodicity.isAnyPeriodic()){
+    //     applyPeriodicShift = &NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+    //         ::applyPeriodicShiftGeneral;
+    // } else {
+    //     applyPeriodicShift = &NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+    //         ::applyPeriodicShiftNull;
+    // }
 }
 
 
