@@ -100,7 +100,14 @@ protected:
     /// Apply periodic shift to particle position, so naive distance calculation
     /// between neighbors and regular particles will be correct.
     ///
-    void applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell);
+    typedef void (NeighborParticleContainer::
+                  *applyPeriodicShiftFuncType) (int lev, 
+                                                void* p_in, const IntVect& neighbor_cell);
+    void applyPeriodicShiftGeneral(int lev, void* p_in, const IntVect& neighbor_cell);
+    void applyPeriodicShiftAllDirections(int lev, void* p_in, const IntVect& neighbor_cell);
+    void applyPeriodicShiftNull(int lev, void* p_in, const IntVect& neighbor_cell);
+    applyPeriodicShiftFuncType applyPeriodicShift;
+    void setPeriodicShiftFunc();
 
     ///
     /// Pack a particle's data into the proper neighbor buffer, or put it into
@@ -115,31 +122,34 @@ protected:
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
-    void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm, bool reuse_rcv_counts=false);
+    void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm, bool realloc_rcv_buffers=false);
 
+    void allocateRcvBuffers(const std::map<int, Array<char> >& send_data);
 
-    ///
-    /// Perform handshake to figure out how many bytes each proc should receive
-    ///
-    void getRcvCountsMPI(const std::map<int, Array<char> >& send_data);
+    void cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
+                               const IntVect& neighbor_cell, const BaseFab<int>& mask);
 
     virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
         return false;
     };
 
-    int num_neighbor_cells;
-    FabArray<BaseFab<int> > mask;
+    int num_neighbor_cells_;
+    FabArray<BaseFab<int> > mask_;
 
-    void cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
-                               const IntVect& neighbor_cell, const BaseFab<int>& mask);
+    // These cache the particle ids and buffer cells so they can be re-used
+    std::map<PairIndex, Array<int> >     buffer_id_cache_;
+    std::map<PairIndex, Array<IntVect> > buffer_cell_cache_;
 
-    std::map<PairIndex, Array<int> > buffer_id_cache;
-    std::map<PairIndex, Array<IntVect> > buffer_cell_cache;
+    // These are used for MPI communication
+    Array<long> snds_;
+    Array<long> rcvs_;
+    long num_snds_;
+    long num_rcvs_;
+    Array<int> rcv_procs_;
+    Array<std::size_t> rcv_offsets_;
+    std::size_t tot_rcv_bytes_;
+    Array<char> recv_data_;
 
-    // each proc knows how many sends it will do, and how many bytes it will rcv 
-    // from each other proc.
-    Array<long> rcvs;
-    long num_snds;
 };
 
 #include "AMReX_NeighborParticlesI.H"
