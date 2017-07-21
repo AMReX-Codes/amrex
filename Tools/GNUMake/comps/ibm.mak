@@ -102,7 +102,7 @@ F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
-override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath -L $(OLCF_XLC_ROOT)/lib -libmc++ -lstdc++
+override XTRALIBS = $(shell mpifort -showme:link) -L $(OLCF_XLF_ROOT)/lib -lxlf90_r -lm  -lxlfmath -L $(OLCF_XLC_ROOT)/lib -libmc++ -lstdc++ -lxlsmp
 
 FORTLINK := LOWERCASE
 
