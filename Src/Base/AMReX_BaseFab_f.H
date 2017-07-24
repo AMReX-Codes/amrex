@@ -90,6 +90,36 @@ extern "C"
 		       const amrex_real* x, const int* xlo, const int* xhi,
 		       const amrex_real* y, const int* ylo, const int* yhi, const int* yblo,
 		       const int* ncomp);
+
+
+    void fort_ifab_copy (const int* lo, const int* hi,
+                         int* dst, const int* dlo, const int* dhi,
+                         const int* src, const int* slo, const int* shi, const int* sblo,
+                         const int* ncomp);
+
+    long fort_ifab_copytomem (const int* lo, const int* hi,
+                              int* dst,
+                              const int* src, const int* slo, const int* shi,
+                              const int* ncomp);
+
+    long fort_ifab_copyfrommem (const int* lo, const int* hi,
+                                const int* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                const int* src);
+    
+    void fort_ifab_setval (const int* lo, const int* hi, 
+                           const int* dst, const int* dlo, const int* dhi, const int* ncomp,
+                           const int* val);
+
+    void fort_ifab_plus (const int* lo, const int* hi,
+                         int* dst, const int* dlo, const int* dhi,
+                         const int* src, const int* slo, const int* shi, const int* sblo,
+                         const int* ncomp);    
+
+    void fort_ifab_minus (const int* lo, const int* hi,
+                          int* dst, const int* dlo, const int* dhi,
+                          const int* src, const int* slo, const int* shi, const int* sblo,
+                          const int* ncomp);    
+
 #ifdef __cplusplus
 }
 #endif
