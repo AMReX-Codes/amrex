@@ -35,27 +35,79 @@ contains
     enddo
   end function fort_umap_norm
 
-  subroutine do_eb_work(lo, hi, cmap, ncmap, fmapI, fmapJ, nfmap, &
+  subroutine do_eb_work(lo, hi, bdmap, Nbd, ccmap, Ncc,&
     ktc, ktclo, ktchi, max_mv, ncomp) bind(C,name="do_eb_work")
 
     integer,     intent(in) :: lo(0:2), hi(0:2)
-    integer,     intent(in) :: ncmap, nfmap(0:2)
-    type(ebbndrydata), intent(in) :: cmap(0:ncmap-1)
-    type(facedata), intent(in) :: fmapI(0:nfmap(0)-1)
-    type(facedata), intent(in) :: fmapJ(0:nfmap(1)-1)
+    integer,     intent(in) :: Nbd, Ncc
+    type(ebbndrydata), intent(in) :: bdmap(0:Nbd-1)
+    type(cutcell), intent(in) :: ccmap(0:Nbd-1)
     integer, intent(in) :: ktclo(0:2), ktchi(0:2), max_mv, ncomp
-    integer, intent(in) :: ktc(ktclo(0):ktchi(0),ktclo(1):ktchi(1),ktclo(2):ktchi(2),max_mv,ncomp)
+    integer, intent(in) :: ktc(ktclo(0):ktchi(0),ktclo(1):ktchi(1),ktclo(2):ktchi(2),0:max_mv-1,ncomp)
 
-    integer :: i,j,k,n, m, key
+    integer :: i,j,k,n,L,key,d,tot,LL,RR,BB,TT
+    real(amrex_real) :: vL, vR, vB, vT, vTOT
 
     do n = 1, ncomp
-       do m = 1, max_mv
+       do L = 0, max_mv-1
           do k = lo(2), hi(2)
              do j = lo(1), hi(1)
                 do i = lo(0), hi(0)
-                   key = ktc(i,j,k,m,n)
+                   key = ktc(i,j,k,L,n)
                    if (key .ge. 0) then
-                      print *,'found ',cmap(key)
+
+                      if (ccmap(key)%Nnbr(0,0).gt.0) then
+                         LL = ccmap(key)%nbr(0,0,0)
+                         if (LL .ge. 0) then
+                            vL = bdmap(ktc(i-1,j,k,LL,n))%vol_frac
+                         else
+                            vL = 1.d0
+                         endif
+                      else
+                         LL = -1
+                         vL = 0.d0
+                      endif
+
+                      if (ccmap(key)%Nnbr(1,0).gt.0) then
+                         RR = ccmap(key)%nbr(0,1,0)
+                         if (RR .ge. 0) then
+                            vR = bdmap(ktc(i+1,j,k,RR,n))%vol_frac
+                         else
+                            vR = 1.d0
+                         endif
+                      else
+                         RR = -1
+                         vR = 0.d0
+                      endif
+
+                      if (ccmap(key)%Nnbr(0,1).gt.0) then
+                         BB = ccmap(key)%nbr(0,0,1)
+                         if (BB .ge. 0) then
+                            vB = bdmap(ktc(i,j-1,k,BB,n))%vol_frac
+                         else
+                            vB = 1.d0
+                         endif
+                      else
+                         BB = -1
+                         vB = 0.d0
+                      endif
+
+                      if (ccmap(key)%Nnbr(1,1).gt.0) then
+                         TT = ccmap(key)%nbr(0,1,1)
+                         if (TT .ge. 0) then
+                            vT = bdmap(ktc(i,j+1,k,TT,n))%vol_frac
+                         else
+                            vT = 1.d0
+                         endif
+                      else
+                         TT = -1
+                         vT = 0.d0
+                      endif
+
+                      if (i.eq.37 .and. j.eq.57) then
+                         print *,'VOL',vL,vR,vB,vT
+                      endif
+
                    endif
                 end do
              end do

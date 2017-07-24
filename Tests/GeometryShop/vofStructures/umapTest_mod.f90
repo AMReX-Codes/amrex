@@ -14,6 +14,8 @@ module umap_test_module
      real(amrex_real) :: normal(0:dim-1)
      real(amrex_real) :: bndry_centroid(0:dim-1)
      real(amrex_real) :: value
+     real(amrex_real) :: bndry_area
+     real(amrex_real) :: vol_frac
   end type ebbndrydata
 
 end module umap_test_module

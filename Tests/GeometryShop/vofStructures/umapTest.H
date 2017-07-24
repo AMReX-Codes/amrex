@@ -15,6 +15,8 @@ struct EBBndryData
     RealDIM m_normal;
     RealDIM m_bndry_centroid;
     amrex::Real m_value;
+    amrex::Real m_bndry_area;
+    amrex::Real m_vol_frac;
 };
 
 #endif

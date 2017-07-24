@@ -171,6 +171,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
                             const VolIndex& vof_fine = vofs_fine[icc_fine];
                             const IntVect& iv_fine = vof_fine.gridIndex();
                             int idx_fine = vof_fine.cellIndex();
+
                             cidx[mfi].setVal(vof_fine,iv_fine,0,idx_fine);
                             for (int idir = 0; idir < SpaceDim; idir++)
                             {
@@ -183,6 +184,7 @@ BuildFortranGraph(FabArray<BaseUmap<CutCell> >& cmap,
 
 				    IntVect iv_nbr_fine = iv_fine + sign(sit())*BASISV(idir);
 				    IntVect iv_face_fine = iv_fine + iside*BASISV(idir);
+
                                     int nValid = 0;
                                     for (int iface_fine=0; iface_fine<faces_fine.size(); ++iface_fine)
                                     {
@@ -388,10 +390,8 @@ extern "C"
                                const int* p);
 
     void do_eb_work(const int* lo, const int* hi,
-                    const EBBndryData* ccells, const int* nccells,
-                    D_DECL(const FaceData* cfaces0,
-                           const FaceData* cfaces1,
-                           const FaceData* cfaces2), const int* ncfaces,
+                    const EBBndryData* bd, const int* Nbd,
+                    const CutCell* cc, const int* Ncc,
                     const amrex::key_table_type* ktc, const int* ktclo, const int* ktchi, 
                     const int* cmax_mv, const int* cncomp);
 }
@@ -445,7 +445,7 @@ int myTest()
     Real boundary_value = 10;
     Real internal_value = 5;
 
-    // Build structure of EBBndryData to hold value, centroid and normal of cut cells
+    // Build structure of EBBndryData to hold value, volume, and area, centroid and normal of boundary of cut cells
     BaseUmapFactory<EBBndryData> EBBD_factory(NCELLMAX);
     FabArray<BaseUmap<EBBndryData> > ebbd_fine(ba_fine, dm_fine, nComp, nGrow, MFInfo(), EBBD_factory);
 
@@ -463,6 +463,8 @@ int myTest()
             Copy(bd.m_bndry_centroid,ebis_box.bndryCentroid(vof));
             Copy(bd.m_normal,ebis_box.normal(vof));
             bd.m_value = boundary_value;
+            bd.m_bndry_area = ebis_box.bndryArea(vof);
+            bd.m_vol_frac = ebis_box.volFrac(vof);
             ebbd.setVal(bd,tuple.pos,0,tuple.l);
         }
     }
@@ -532,29 +534,23 @@ int myTest()
     for (MFIter mfi(ebbd_fine); mfi.isValid(); ++mfi)
     {
         const BaseUmap<EBBndryData>& ebbd_fab = ebbd_fine[mfi];
+        const BaseUmap<CutCell>& cc_fab = cmap_fine[mfi];
         const Box& box = mfi.validbox();
-        int ncells = ebbd_fab.nPts();
-        int nfaces[3] = {0, 0, 0};
-        for (int idir=0; idir<BL_SPACEDIM; ++idir)
-        {
-            nfaces[idir] = fd_fine[idir][mfi].nPts();
-        }
-
+        int Nbd = ebbd_fab.nPts();
+        int Ncc = cc_fab.nPts();
         int max_mv = ebbd_fab.MaxMV();
         int ncomp = ebbd_fab.nComp();
 
         do_eb_work(ARLIM_3D(box.loVect()), ARLIM_3D(box.hiVect()),
-                   ebbd_fab.dataPtr(), &ncells,
-                   D_DECL(fd_fine[0][mfi].dataPtr(),
-                          fd_fine[1][mfi].dataPtr(),
-                          fd_fine[2][mfi].dataPtr()), nfaces,
+                   ebbd_fab.dataPtr(), &Nbd,
+                   cc_fab.dataPtr(),   &Ncc,
                    ebbd_fab.keyTablePtr(), ARLIM_3D(ebbd_fab.box().loVect()), ARLIM_3D(ebbd_fab.box().hiVect()), &max_mv, &ncomp);
     }
 
 
 
 
-#if 0
+#if 1
     MultiFab vfrac(ba_fine, dm_fine,  nComp, 0);
 
     for(MFIter  mfi(vfrac); mfi.isValid(); ++mfi)
@@ -562,7 +558,7 @@ int myTest()
         const EBISBox& ebis_box = eblg_fine.getEBISL()[mfi];
         const Box& vbox = mfi.validbox();
         FArrayBox& vfrac_fab = vfrac[mfi];
-        vfrac[mfi].setVal(1);
+        vfrac[mfi].setVal(-1);
         if ( !(ebis_box.isAllRegular()) )
         {
             if (ebis_box.isAllCovered()) {
@@ -570,15 +566,17 @@ int myTest()
             }
             else
             {
-                for (BoxIterator bit(vbox); bit.ok(); ++bit)
+                IntVectSet isIrreg = ebis_box.getIrregIVS(vbox);
+                for (IVSIterator it(isIrreg); it.ok(); ++it)
                 {
-                    const std::vector<VolIndex>& vofs = ebis_box.getVoFs(bit());
-                    Real vfrac_tot = 0;
+                    const IntVect& iv=it();
+                    std::vector<VolIndex> vofs = ebis_box.getVoFs(iv);
+                    Rea; vfrac_tot = 0;
                     for (int ivof=0; ivof<vofs.size(); ++ivof)
                     {
                         vfrac_tot += ebis_box.volFrac(vofs[ivof]);
                     }
-                    vfrac_fab(bit(),0) = vfrac_tot;
+                    vfrac_fab(iv,0) = vfrac_tot;
                 }
             }
         }
