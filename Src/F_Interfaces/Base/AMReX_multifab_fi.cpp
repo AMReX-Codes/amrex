@@ -136,6 +136,16 @@ extern "C" {
         mf->OverrideSync(*msk, geom->periodicity());
     }
 
+    void amrex_fi_multifab_sum_boundary (MultiFab* mf, const Geometry* geom, int icomp, int ncomp)
+    {
+        mf->SumBoundary(icomp, ncomp, geom->periodicity());
+    }
+
+    void amrex_fi_multifab_average_sync (MultiFab* mf, const Geometry* geom)
+    {
+        mf->AverageSync(geom->periodicity());
+    }
+
     // iMultiFab
 
     void amrex_fi_new_imultifab (iMultiFab*& imf, const BoxArray*& ba, 

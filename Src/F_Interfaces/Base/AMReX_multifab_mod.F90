@@ -44,10 +44,13 @@ module amrex_multifab_module
           amrex_multifab_parallel_copy_cg
      generic   :: fill_boundary => amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c
      generic   :: override_sync => amrex_multifab_override_sync, amrex_multifab_override_sync_mask
+     generic   :: sum_boundary  => amrex_multifab_sum_boundary, amrex_multifab_sum_boundary_c
+     procedure :: average_sync  => amrex_multifab_average_sync
      procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c, &
           amrex_multifab_parallel_copy, amrex_multifab_parallel_copy_c, amrex_multifab_parallel_copy_cg, &
           amrex_multifab_assign, amrex_multifab_install, amrex_multifab_dataptr_iter, &
-          amrex_multifab_dataptr_int, amrex_multifab_override_sync, amrex_multifab_override_sync_mask
+          amrex_multifab_dataptr_int, amrex_multifab_override_sync, amrex_multifab_override_sync_mask, &
+          amrex_multifab_sum_boundary, amrex_multifab_sum_boundary_c, amrex_multifab_average_sync
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_multifab_destroy
 #endif
@@ -244,6 +247,19 @@ module amrex_multifab_module
        implicit none
        type(c_ptr), value :: mf, geom, msk
      end subroutine amrex_fi_multifab_override_sync_mask
+
+     subroutine amrex_fi_multifab_sum_boundary (mf, geom, icomp, ncomp) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf, geom
+       integer, value :: icomp, ncomp
+     end subroutine amrex_fi_multifab_sum_boundary
+
+     subroutine amrex_fi_multifab_average_sync (mf, geom) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf, geom
+     end subroutine amrex_fi_multifab_average_sync
   end interface
 
   interface
@@ -563,7 +579,7 @@ contains
           lcross = 0
        end if
     end if
-    call amrex_fi_multifab_fill_boundary (this%p, geom%p, c-1, nc, lcross)
+    call amrex_fi_multifab_fill_boundary(this%p, geom%p, c-1, nc, lcross)
   end subroutine amrex_multifab_fill_boundary_c
 
   subroutine amrex_multifab_write (mf, name)
@@ -595,6 +611,25 @@ contains
     type(amrex_imultifab), intent(in) :: msk
     call amrex_fi_multifab_override_sync_mask(this%p, geom%p, msk%p)
   end subroutine amrex_multifab_override_sync_mask
+
+  subroutine amrex_multifab_sum_boundary (this, geom)
+    class(amrex_multifab) :: this
+    type(amrex_geometry), intent(in) :: geom
+    call this%amrex_multifab_sum_boundary_c(geom, 1, this%nc)
+  end subroutine amrex_multifab_sum_boundary
+
+  subroutine amrex_multifab_sum_boundary_c (this, geom, c, nc)
+    class(amrex_multifab) :: this
+    type(amrex_geometry), intent(in) :: geom
+    integer, intent(in) :: c, nc
+    call amrex_fi_multifab_sum_boundary(this%p, geom%p, c-1, nc)
+  end subroutine amrex_multifab_sum_boundary_c
+
+  subroutine amrex_multifab_average_sync (this, geom)
+    class(amrex_multifab) :: this
+    type(amrex_geometry), intent(in) :: geom
+    call amrex_fi_multifab_average_sync(this%p, geom%p)
+  end subroutine amrex_multifab_average_sync
 
 !------ imultifab routines ------!
 
