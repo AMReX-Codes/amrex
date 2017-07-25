@@ -1,3 +1,6 @@
+#
+# Set subdirectories path
+# 
 set (CBOXDIR Base)
 set (FBOXDIR F_BaseLib)
 set (CBNDRYDIR Boundary)
@@ -9,15 +12,48 @@ set (CTMGDIR LinearSolvers/C_TensorMG)
 set (CFMGDIR LinearSolvers/C_to_F_MG)
 set (FMGDIR LinearSolvers/F_MG)
 set (CAMRDATADIR Extern/amrdata)
+set (FINTDIR F_Interfaces)
 
-# Pick one place to put modules so everyone can see them
-# set ( CMAKE_Fortran_MODULE_DIRECTORY
-#    ${CMAKE_CURRENT_BINARY_DIR}/mod_files
-#    CACHE PATH "Folder for fortran module files")
+#
+# Add all the subdir to the include path
+#  
+include_directories ( ${AMREX_EXTRA_Fortran_INCLUDE_PATH} ${AMREX_EXTRA_CXX_INCLUDE_PATH} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CBOXDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CBNDRYDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CPARTDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CAMRDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CAMRCOREDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CMGDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CTMGDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CFMGDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CAMRDATADIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${FBOXDIR} )
+include_directories ( ${INCLUDE_PATHS} )
+
+list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${FMGDIR} )
+include_directories ( ${INCLUDE_PATHS} )
 
 install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION include)
 
-set(CBOXLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${CBOXDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CBNDRYDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CPARTDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRCOREDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CTMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CFMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDATADIR} ${AMREX_EXTRA_CXX_INCLUDE_PATH})
 
 add_subdirectory(${CBOXDIR})
 add_subdirectory(${CBNDRYDIR})
@@ -26,13 +62,10 @@ add_subdirectory(${CAMRDIR})
 add_subdirectory(${CAMRCOREDIR})
 add_subdirectory(${CMGDIR})
 add_subdirectory(${CTMGDIR})
-
-set(FBOXLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${FBOXDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${FMGDIR} ${AMREX_EXTRA_Fortran_INCLUDE_PATH})
-
 add_subdirectory(${FBOXDIR})
 add_subdirectory(${FMGDIR})
-
 add_subdirectory(${CFMGDIR})
+
 
 add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_cpart> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_camrcore> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>)
 add_library(cfboxlib $<TARGET_OBJECTS:box_cfmg>)

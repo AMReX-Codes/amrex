@@ -12,7 +12,6 @@ include(TestManager)
 project(CAMRLIB)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files AMReX_Amr.cpp AMReX_AmrLevel.cpp AMReX_AuxBoundaryData.cpp AMReX_Derive.cpp AMReX_Extrapolater.cpp AMReX_StateData.cpp AMReX_StateDescriptor.cpp)
 set(FPP_source_files AMReX_ARRAYLIM_${BL_SPACEDIM}D.F)

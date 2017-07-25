@@ -12,7 +12,6 @@ include(TestManager)
 project(CBNDRYLIB)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files AMReX_BndryData.cpp AMReX_BndryRegister.cpp AMReX_FabSet.cpp AMReX_InterpBndryData.cpp AMReX_MacBndry.cpp AMReX_Mask.cpp AMReX_MultiMask.cpp)
 set(FPP_source_files AMReX_INTERPBNDRYDATA_${BL_SPACEDIM}D.F AMReX_LO_UTIL.F )

@@ -12,7 +12,6 @@ include(TestManager)
 project(AMRDATALIB)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files AMReX_AmrData.cpp AMReX_DataServices.cpp)
 set(FPP_source_files AMReX_FABUTIL_${BL_SPACEDIM}D.F)
