@@ -43,6 +43,11 @@ extern "C" {
 #include <omp.h>
 #endif
 
+namespace
+{
+    static int call_mpi_finalize = 0;
+}
+
 namespace amrex {
 
 namespace ParallelDescriptor
@@ -288,6 +293,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     if ( ! sflag) {
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
+        call_mpi_finalize = 1;
     }
     
     BL_MPI_REQUIRE( MPI_Comm_dup(mpi_comm, &m_comm_all) );
@@ -343,7 +349,9 @@ ParallelDescriptor::EndParallel ()
     }
 #endif
 
-    BL_MPI_REQUIRE( MPI_Finalize() );
+    if (call_mpi_finalize) {
+        BL_MPI_REQUIRE( MPI_Finalize() );
+    }
 }
 
 /* Given `rk_clrd', i.e. the rank in the colored `comm', return the
