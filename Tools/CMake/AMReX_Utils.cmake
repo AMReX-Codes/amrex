@@ -18,6 +18,26 @@ function ( list_to_string list )
    set ( ${list} "${tmp}" PARENT_SCOPE)
 endfunction ()
 
+#
+# Create list of all include directories
+# cmake must be re-run if new dirs with Headers are introduced
+#
+function ( list_include_dirs dirlist root_dir)
+   
+   file ( GLOB_RECURSE includes
+      LIST_DIRECTORIES false 
+      ${root_dir}/*.h ${root_dir}/*.H
+      )
+
+   foreach (file ${includes})
+      get_filename_component ( path ${file} PATH)
+      list ( APPEND tmp ${path} )
+   endforeach ()
+
+   list ( REMOVE_DUPLICATES tmp )
+   set ( ${dirlist} ${tmp} PARENT_SCOPE )
+  
+endfunction ()
 
 #
 # Append new_var to all_var
@@ -56,8 +76,6 @@ function (set_F77_properties OUTVAR)
    set_source_files_properties(${ARGN} PROPERTIES COMPILE_DEFINITIONS "BL_LANG_FORT")
    set(${OUTVAR} ${ARGN} PARENT_SCOPE)
 endfunction (set_F77_properties)
-
-
 
 
 function(preprocess_boxlib_fortran OUTVAR)
