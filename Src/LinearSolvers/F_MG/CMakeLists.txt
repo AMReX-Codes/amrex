@@ -11,7 +11,6 @@ include(TestManager)
 # through these variables.
 project(FMG)
 
-include_directories(${FBOXLIB_INCLUDE_DIRS})
 
 include_directories(${CMAKE_FORTRAN_MODULE_DIRECTORY})
 

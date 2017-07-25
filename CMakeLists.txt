@@ -51,45 +51,6 @@ include ( AMReX_Version )
 include ( AMReX_Options )
 include ( AMReX_Config )
 
-#
-# Usage:
-#
-# Typically cmake is used to support an "out-of-source-tree" build.  To this with default
-# settings (see below):
-#
-#     #> export bdir=`pwd`
-#     #> mkdir <new_build_dir>
-#     #> cd <new_build_dir>
-#     #> cmake -DCMAKE_INSTALL_PREFIX:PATH=<some_install_prefix_for_amrex> $bdir
-#     #> make
-#     #> make install
-#
-# The install target will place all C++/Fortran header and mod files in an include folder,
-# the CCSE libraries in a lib folder, plus some stuff in perl and cmake folders.
-#
-# An example cmake input file to build an app that links to the libs built as above:
-#
-#              ./Tutorials/MultiGrid_C/CMakeLists.txt
-#
-# To build this tutorial with cmake, follow instructions similar to the above for building
-# AMReX:
-#
-#     #> mkdir <new_build_dir>
-#     #> cd <new_build_dir>
-#     #> cmake -DAMREX_INSTALL_PREFIX:PATH=<some_install_prefix_for_amrex> $bdir/Tutorials/MultiGrid_C
-#     #> make
-#     #> mpiexec -np 4 ./mgc_tutorial inputs.3d
-#
-
-# Define the project name
-# This command will define
-#     CCSE_SOURCE_DIR
-#     CCSE_BINARY_DIR
-
-
-# None, Debug, Release, RelWithDebInfo, MinSizeRel
-#set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Type of CMake build")
-
 set(CMAKE_INSTALL_PREFIX "${CURRENT_CMAKE_BINDARY_DIR}" CACHE STRING "Root dir where AMReX files installed")
 
 # Enable testing, ctest needs this

@@ -10,7 +10,6 @@
 # through these variables.
 project ( CBOXLIB )
 
-include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set ( CXX_source_files
    AMReX_Arena.cpp AMReX_BArena.cpp AMReX_BaseFab.cpp AMReX_BCRec.cpp

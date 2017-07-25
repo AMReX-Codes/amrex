@@ -12,7 +12,6 @@ include(TestManager)
 project(CTMGLIB)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files AMReX_DivVis.cpp AMReX_MCCGSolver.cpp AMReX_MCInterpBndryData.cpp AMReX_MCLinOp.cpp AMReX_MCMultiGrid.cpp)
 set(FPP_source_files AMReX_MCINTERPBNDRYDATA_${BL_SPACEDIM}D.F AMReX_MCLO_${BL_SPACEDIM}D.F)

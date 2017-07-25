@@ -12,7 +12,6 @@ include(TestManager)
 project(CMGLIB)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files AMReX_ABecLaplacian.cpp AMReX_CGSolver.cpp AMReX_Laplacian.cpp AMReX_LinOp.cpp AMReX_MultiGrid.cpp)
 set(FPP_source_files AMReX_ABec_${BL_SPACEDIM}D.F AMReX_ABec_UTIL.F AMReX_LO_${BL_SPACEDIM}D.F AMReX_LP_${BL_SPACEDIM}D.F AMReX_MG_${BL_SPACEDIM}D.F)

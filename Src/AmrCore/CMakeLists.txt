@@ -3,7 +3,6 @@ include (TestManager)
 project (CAMRCORELIB)
 
 include_directories (${CMAKE_CURRENT_SOURCE_DIR})
-include_directories (${CBOXLIB_INCLUDE_DIRS})
 
 set ( CXX_source_files
    AMReX_AmrCore.cpp AMReX_Cluster.cpp AMReX_ErrorList.cpp

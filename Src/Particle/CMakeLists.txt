@@ -12,7 +12,6 @@ include(TestManager)
 project(CPARTLIB)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CBOXLIB_INCLUDE_DIRS})
 
 set(CXX_source_files)
 set(FPP_source_files)
