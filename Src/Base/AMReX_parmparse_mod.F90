@@ -20,6 +20,8 @@ module amrex_parmparse_module
      generic :: query         => query_int, query_real, query_logical, query_string
      generic :: getarr        => get_intarr, get_realarr, get_stringarr
      generic :: queryarr      => query_intarr, query_realarr, query_stringarr
+     generic :: add           => add_int, add_real, add_logical, add_string
+     generic :: addarr        => add_intarr, add_realarr, add_stringarr
      procedure, private :: amrex_parmparse_assign
      procedure, private :: get_int
      procedure, private :: get_real
@@ -35,6 +37,8 @@ module amrex_parmparse_module
      procedure, private :: query_intarr
      procedure, private :: query_realarr
      procedure, private :: query_stringarr
+     procedure, private :: add_int, add_real, add_logical, add_string
+     procedure, private :: add_intarr, add_realarr, add_stringarr
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_parmparse_destroy
 #endif
@@ -47,7 +51,7 @@ module amrex_parmparse_module
        import
        implicit none
        type(c_ptr) :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
      end subroutine amrex_new_parmparse
 
      subroutine amrex_delete_parmparse (pp) bind(c)
@@ -60,14 +64,14 @@ module amrex_parmparse_module
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)       
+       character(kind=c_char), intent(in) :: name(*)       
      end function amrex_parmparse_get_counts
 
      subroutine amrex_parmparse_get_int (pp, name, v) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        integer(c_int) :: v
      end subroutine amrex_parmparse_get_int
 
@@ -75,7 +79,7 @@ module amrex_parmparse_module
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        real(amrex_real) :: v
      end subroutine amrex_parmparse_get_real
 
@@ -83,24 +87,31 @@ module amrex_parmparse_module
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        integer(c_int) :: v
      end subroutine amrex_parmparse_get_bool
 
-     subroutine amrex_parmparse_get_string (pp, name, v, len) bind(c)
+     subroutine amrex_parmparse_get_string (pp, name, v,  len) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
-       character(c_char), intent(inout) :: v(*)
-       integer, value :: len
+       character(kind=c_char), intent(in) :: name(*)
+       type(c_ptr), intent(inout) :: v
+       integer, intent(out) :: len
      end subroutine amrex_parmparse_get_string
+
+     subroutine amrex_parmparse_delete_cp_char (v, len) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: v(*)
+       integer(c_int), value :: len
+     end subroutine amrex_parmparse_delete_cp_char
 
      subroutine amrex_parmparse_get_intarr (pp, name, v, n) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        integer(c_int) :: v(*)
        integer(c_int), value :: n
      end subroutine amrex_parmparse_get_intarr
@@ -109,25 +120,26 @@ module amrex_parmparse_module
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        real(amrex_real) :: v(*)
        integer(c_int), value :: n
      end subroutine amrex_parmparse_get_realarr
 
-     subroutine amrex_parmparse_get_stringarr (pp, name, v, m, n) bind(c)
+     subroutine amrex_parmparse_get_stringarr (pp, name, v, sv, n) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
-       integer(c_int), value :: m, n
-       character(c_char), intent(inout) :: v(m,n)
+       character(kind=c_char), intent(in) :: name(*)
+       integer(c_int), value :: n
+       type(c_ptr), intent(inout) :: v(n)
+       integer(c_int), intent(inout) :: sv(n)
      end subroutine amrex_parmparse_get_stringarr
 
      subroutine amrex_parmparse_query_int (pp, name, v) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        integer(c_int) :: v
      end subroutine amrex_parmparse_query_int
 
@@ -135,7 +147,7 @@ module amrex_parmparse_module
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        real(amrex_real) :: v
      end subroutine amrex_parmparse_query_real
 
@@ -143,7 +155,7 @@ module amrex_parmparse_module
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        integer(c_int) :: v
      end subroutine amrex_parmparse_query_bool
 
@@ -151,10 +163,69 @@ module amrex_parmparse_module
        import
        implicit none
        type(c_ptr), value :: pp
-       character(c_char), intent(in) :: name(*)
-       character(c_char), intent(inout) :: v(*)
-       integer(c_int), value :: len
+       character(kind=c_char), intent(in) :: name(*)
+       type(c_ptr), intent(inout) :: v
+       integer(c_int), intent(out) :: len
      end subroutine amrex_parmparse_query_string
+
+     subroutine amrex_parmparse_add_int (pp, name, v) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: pp
+       character(kind=c_char), intent(in) :: name(*)
+       integer(c_int), value :: v
+     end subroutine amrex_parmparse_add_int
+
+     subroutine amrex_parmparse_add_real (pp, name, v) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: pp
+       character(kind=c_char), intent(in) :: name(*)
+       real(amrex_real), value :: v
+     end subroutine amrex_parmparse_add_real
+
+     subroutine amrex_parmparse_add_bool (pp, name, v) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: pp
+       character(kind=c_char), intent(in) :: name(*)
+       integer(c_int), value :: v
+     end subroutine amrex_parmparse_add_bool
+
+     subroutine amrex_parmparse_add_string (pp, name, v) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: pp
+       character(kind=c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: v(*)
+     end subroutine amrex_parmparse_add_string
+
+     subroutine amrex_parmparse_add_intarr (pp, name, v, n) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: pp
+       character(kind=c_char), intent(in) :: name(*)
+       integer(c_int), intent(in) :: v(*)
+       integer(c_int), value :: n
+     end subroutine amrex_parmparse_add_intarr
+
+     subroutine amrex_parmparse_add_realarr (pp, name, v, n) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: pp
+       character(kind=c_char), intent(in) :: name(*)
+       real(amrex_real), intent(in) :: v(*)
+       integer(c_int), value :: n
+     end subroutine amrex_parmparse_add_realarr
+
+     subroutine amrex_parmparse_add_stringarr (pp, name, v, n) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: pp
+       character(kind=c_char), intent(in) :: name(*)
+       integer(c_int), value :: n
+       character(kind=c_char), intent(in) :: v(*)
+     end subroutine amrex_parmparse_add_stringarr
   end interface
 
 contains
@@ -215,15 +286,18 @@ contains
   subroutine get_string (this, name, v)
     class(amrex_parmparse), intent(in) :: this
     character(*), intent(in) :: name
-    character(*), intent(inout) :: v
-
+    character(len=:), allocatable, intent(inout) :: v
     ! temporary string for passing back and forth to C -- include NULL
-    character(c_char), dimension(len(v)+1) :: v_pass
-
-    call amrex_parmparse_get_string (this%p, amrex_string_f_to_c(name), v_pass, len(v)+1)
-
-    ! convert to Fortran string
-    v = amrex_string_c_to_f(v_pass)
+    type(c_ptr) :: cp_pass
+    integer :: n_pass
+    character(kind=c_char), pointer :: cc(:)
+    call amrex_parmparse_get_string (this%p, amrex_string_f_to_c(name), cp_pass, n_pass)
+    if (allocated(v)) deallocate(v)
+    allocate(character(len=n_pass-1)::v)
+    call c_f_pointer(cp_pass, cc, [n_pass])
+    v = amrex_string_c_to_f(cc)
+    cc => null()
+    call amrex_parmparse_delete_cp_char([cp_pass],1)
   end subroutine get_string
 
   subroutine get_intarr (this, name, v)
@@ -259,18 +333,25 @@ contains
   subroutine get_stringarr (this, name, v)
     class(amrex_parmparse), intent(in) :: this
     character(len=*), intent(in) :: name
-    character(len=127), allocatable, intent(inout) :: v(:)
-    integer :: n, i
-    character(c_char), allocatable :: v_pass(:,:)
+    character(len=:), allocatable, intent(inout) :: v(:)
+    integer :: n, i, lenmax
+    type(c_ptr), allocatable :: cp_pass(:)
+    integer, allocatable :: n_pass(:)
+    character(kind=c_char), pointer :: cc(:)
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
+       allocate(cp_pass(n))
+       allocate(n_pass(n))
+       call amrex_parmparse_get_stringarr(this%p, amrex_string_f_to_c(name), cp_pass, n_pass, n)
+       lenmax = maxval(n_pass)-1
        if (allocated(v)) deallocate(v)
-       allocate(v(n))
-       allocate(v_pass(128,n))
-       call amrex_parmparse_get_stringarr(this%p, amrex_string_f_to_c(name), v_pass, 128, n)
+       allocate(character(len=lenmax)::v(n))
        do i = 1, n
-          v(i) = amrex_string_c_to_f(v_pass(:,i))
+          call c_f_pointer(cp_pass(i), cc, [n_pass(i)])
+          v(i) = amrex_string_c_to_f(cc)
+          cc => null()
        end do
+       call amrex_parmparse_delete_cp_char(cp_pass, n)
     else
        call amrex_abort("amrex_parmparse: get_stringarr failed to get "//name)
     end if
@@ -295,22 +376,32 @@ contains
     character(*), intent(in) :: name
     logical :: v
     integer(c_int) :: i
+    i = -1
     call amrex_parmparse_query_bool (this%p, amrex_string_f_to_c(name), i)
-    v = i.eq.1
+    if (i.eq. 0) then
+       v = .false.
+    else if (i.eq.1) then
+       v = .true.
+    end if
   end subroutine query_logical
 
   subroutine query_string (this, name, v)
     class(amrex_parmparse), intent(in) :: this
     character(*), intent(in) :: name
-    character(*), intent(inout) :: v
-
+    character(len=:), allocatable, intent(inout) :: v
     ! temporary string for passing back and forth to C -- include NULL
-    character(c_char), dimension(len(v)+1) :: v_pass
-
-    call amrex_parmparse_query_string (this%p, amrex_string_f_to_c(name), v_pass, len(v)+1)
-
-    ! convert to Fortran string
-    v = amrex_string_c_to_f(v_pass)
+    type(c_ptr) :: cp_pass
+    integer :: n_pass
+    character(kind=c_char), pointer :: cc(:)
+    call amrex_parmparse_query_string (this%p, amrex_string_f_to_c(name), cp_pass, n_pass)
+    if (n_pass > 1) then
+       if (allocated(v)) deallocate(v)
+       allocate(character(len=n_pass-1)::v)
+       call c_f_pointer(cp_pass, cc, [n_pass])
+       v = amrex_string_c_to_f(cc)
+       cc => null()
+    end if
+    call amrex_parmparse_delete_cp_char([cp_pass],1)
   end subroutine query_string
 
   subroutine query_intarr (this, name, v)
@@ -320,8 +411,6 @@ contains
     integer :: n
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
-       if (allocated(v)) deallocate(v)
-       allocate(v(n))
        call amrex_parmparse_get_intarr (this%p, amrex_string_f_to_c(name), v, n)
     end if
   end subroutine query_intarr
@@ -333,8 +422,6 @@ contains
     integer :: n
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
-       if (allocated(v)) deallocate(v)
-       allocate(v(n))
        call amrex_parmparse_get_realarr (this%p, amrex_string_f_to_c(name), v, n)
     end if
   end subroutine query_realarr
@@ -342,19 +429,82 @@ contains
   subroutine query_stringarr (this, name, v)
     class(amrex_parmparse), intent(in) :: this
     character(len=*), intent(in) :: name
-    character(len=127), allocatable, intent(inout) :: v(:)
-    integer :: n, i
-    character(c_char), allocatable :: v_pass(:,:)
+    character(len=:), allocatable, intent(inout) :: v(:)
+    integer :: n
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
-       if (allocated(v)) deallocate(v)
-       allocate(v(n))
-       allocate(v_pass(128,n))
-       call amrex_parmparse_get_stringarr(this%p, amrex_string_f_to_c(name), v_pass, 128, n)
-       do i = 1, n
-          v(i) = amrex_string_c_to_f(v_pass(:,i))
-       end do
+       call this%get_stringarr(name, v)
     end if
   end subroutine query_stringarr
+
+  subroutine add_int (this, name, v)
+    class(amrex_parmparse), intent(inout) :: this
+    character(*), intent(in) :: name
+    integer, intent(in) :: v
+    call amrex_parmparse_add_int(this%p, amrex_string_f_to_c(name), v)
+  end subroutine add_int
+
+  subroutine add_real (this, name, v)
+    class(amrex_parmparse), intent(inout) :: this
+    character(*), intent(in) :: name
+    real(amrex_real), intent(in) :: v
+    call amrex_parmparse_add_real(this%p, amrex_string_f_to_c(name), v)
+  end subroutine add_real
+
+  subroutine add_logical (this, name, v)
+    class(amrex_parmparse), intent(inout) :: this
+    character(*), intent(in) :: name
+    logical, intent(in) :: v
+    integer(c_int) :: i
+    if (v) then
+       i = 1
+    else
+       i = 0
+    end if
+    call amrex_parmparse_add_bool(this%p, amrex_string_f_to_c(name), i)
+  end subroutine add_logical
+
+  subroutine add_string (this, name, v)
+    class(amrex_parmparse), intent(inout) :: this
+    character(*), intent(in) :: name
+    character(*), intent(in) :: v
+    call amrex_parmparse_add_string(this%p, amrex_string_f_to_c(name), amrex_string_f_to_c(v))
+  end subroutine add_string
+  
+  subroutine add_intarr (this, name, v)
+    class(amrex_parmparse), intent(inout) :: this
+    character(*), intent(in) :: name
+    integer, intent(in) :: v(:)
+    call amrex_parmparse_add_intarr(this%p, amrex_string_f_to_c(name), v, size(v))
+  end subroutine add_intarr
+
+  subroutine add_realarr (this, name, v)
+    class(amrex_parmparse), intent(inout) :: this
+    character(*), intent(in) :: name
+    real(amrex_real), intent(in) :: v(:)
+    call amrex_parmparse_add_realarr(this%p, amrex_string_f_to_c(name), v, size(v))
+  end subroutine add_realarr
+
+  subroutine add_stringarr (this, name, v)
+    class(amrex_parmparse), intent(inout) :: this
+    character(*), intent(in) :: name
+    character(len=*), intent(in) :: v(:)
+    integer :: n, m, mi, ni, ntot, i
+    character(kind=c_char), allocatable :: cs(:)
+    n = size(v)
+    m = len(v(1))
+    ntot = (m+1)*n
+    allocate(cs(ntot))
+    i = 1
+    do ni = 1, n
+       do mi = 1, m
+         cs(i) = v(ni)(mi:mi)
+         i = i+1
+       end do
+       cs(i) = c_null_char
+       i = i+1
+    end do
+    call amrex_parmparse_add_stringarr(this%p, amrex_string_f_to_c(name), cs, n)
+  end subroutine add_stringarr
 
 end module amrex_parmparse_module

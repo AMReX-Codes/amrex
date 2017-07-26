@@ -1,22 +1,90 @@
 
 program main
 
-  use mpi
   use amrex_base_module
 
   implicit none
 
   integer :: ierr
 
-  call mpi_init(ierr)
+!  call mpi_init(ierr)
 
   call amrex_init()
 
-  
-  
+  ! Add runtime parameters to amrex ParmParse database, if needed.
+  call add_parameters()
+  ! Testing
+  call test_parameters()
 
+  ! ...
+  
   call amrex_finalize()
 
-  call mpi_finalize()
+!  call mpi_finalize()
 
 end program main
+
+
+subroutine add_parameters ()
+  use amrex_base_module
+  implicit none
+
+  type(amrex_parmparse) :: pp
+  character(len=12) :: a(4)
+
+  ! anonymous prefix
+  call amrex_parmparse_build(pp)
+  call pp%add("an_int_scalar", 2)      ! integer scalar: an_int_scalar
+  call pp%add("a_bool_scalar", .true.) ! logical scalar: a_bool_scalar
+  call pp%addarr("a_real_array", [1._amrex_real, 2._amrex_real, 3._amrex_real]) ! real array: a_real_array
+  a(1) = "All"; a(2) = "you"; a(3) = "gotta"; a(4) = "do"
+  call pp%addarr("a_string_array", a)  ! character array: a_string_array
+  call amrex_parmparse_destroy(pp)
+
+  ! prefix "a_prefix"
+  call amrex_parmparse_build(pp, "a_prefix")
+  call pp%addarr("an_int_array", [2, 3, 4])      ! integer array: a_prefix.an_int_array
+  call pp%add("a_real_scalar", 3.14_amrex_real)  ! real scalar  : a_prefix.a_real_scalar
+  call pp%add("a_string", "vonNeumann")          ! character    : a_prefix.a_string
+  call amrex_parmparse_destroy(pp)
+end subroutine add_parameters
+
+
+subroutine test_parameters ()
+  use amrex_base_module
+  implicit none
+  
+  type(amrex_parmparse) :: pp
+  integer :: i
+  integer, allocatable :: ia(:)
+  logical :: b
+  real(amrex_real) :: r
+  real(amrex_real), allocatable :: ra(:)
+  character(len=:), allocatable :: s
+  character(len=:), allocatable :: sa(:)
+
+  ! anonymous prefix
+  call amrex_parmparse_build(pp)
+  call pp%get("an_int_scalar", i)
+  call pp%get("a_bool_scalar",b)
+  call pp%getarr("a_real_array", ra)
+  call pp%getarr("a_string_array", sa)
+  call amrex_parmparse_destroy(pp)
+
+  ! prefix "a_prefix"
+  call amrex_parmparse_build(pp, "a_prefix")
+  call pp%getarr("an_int_array", ia)
+  call pp%get("a_real_scalar", r)
+  call pp%get("a_string", s)
+  call amrex_parmparse_destroy(pp)
+
+  if (amrex_parallel_ioprocessor()) then
+     print *, "an_int_scalar = ", i
+     print *, "a_bool_scalar = ", b
+     print *, "a_real_array = ", ra
+     print *, "a_string_array = ", sa(1), sa(2), sa(3), sa(4)
+     print *, "a_prefix.an_int_array = ", ia
+     print *, "a_prefix.a_real_scalar = ", r
+     print *, "a_prefix.a_string = ", s
+  end if
+end subroutine test_parameters
