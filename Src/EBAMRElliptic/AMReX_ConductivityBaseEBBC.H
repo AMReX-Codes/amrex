@@ -1,12 +1,13 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
 
 #ifndef _BASEEBBC_H_
 #define _BASEEBBC_H_
@@ -48,11 +49,11 @@ namespace amrex
     /// the operator calls this
     /**
      */
-    void setCoef(EBLevelGrid                                &  a_eblg,
-                 Real                                       &  a_beta,
-                 Real                                       &  a_dx,
-                 const RealVect                             &  a_probLo,
-                 shared_ptr<FabArray<BaseIVFAB<Real> > >    &  a_bcoe)
+    virtual void setCoef(EBLevelGrid                                &  a_eblg,
+                         Real                                       &  a_beta,
+                         Real                                       &  a_dx,
+                         const RealVect                             &  a_probLo,
+                         shared_ptr<FabArray<EBFluxFAB> >           &  a_bcoe)
       {
         m_coefSet = true;
         m_beta    = a_beta;
@@ -61,7 +62,6 @@ namespace amrex
         m_dx      = a_dx;
         m_probLo  = a_probLo;
       }
-
 
 
     ///
@@ -103,9 +103,7 @@ namespace amrex
         m_isFunction = true;
       }
 
-    Real bcvaluefunc(const RealVect      & a_point,
-                     const int           & a_dir,
-                     const Side::LoHiSide& a_side)
+    Real bcvaluefunc(const RealVect      & a_point)
       {
         Real retval;
         if(m_onlyHomogeneous)
@@ -129,8 +127,9 @@ namespace amrex
     Real                                     m_beta;
     Real                                     m_dx;
     RealVect                                 m_probLo;
-    shared_ptr<FabArray<BaseIVFAB<Real> > >  m_bcoe;
+    shared_ptr<FabArray<EBFluxFAB> >         m_bcoe;
     Real m_value;
+    shared_ptr<BaseBCFuncEval>        m_func;
     bool m_onlyHomogeneous;
     bool m_isFunction;
 
@@ -138,7 +137,7 @@ namespace amrex
 ///
 /**
  */
-  class ConducitivtyBaseEBBCFactory
+  class ConductivityBaseEBBCFactory
   {
   public:
     ConductivityBaseEBBCFactory()
@@ -182,7 +181,7 @@ namespace amrex
         {
           if (m_isFunction)
           {
-            newBC->setFunction(m_flux);
+            newBC->setFunction(m_func);
           }
           else
           {
@@ -193,7 +192,7 @@ namespace amrex
         {
           newBC->setValue(0.0);
         }
-        return static_cast newBC;
+        return static_cast<ConductivityBaseEBBC*>(newBC);
       }
   protected:
 

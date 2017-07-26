@@ -2649,6 +2649,42 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
     return r;
 }
 
+DistributionMapping
+DistributionMapping::makeSFC (const MultiFab& weight, 
+                              const BoxArray& boxes)
+{
+    DistributionMapping r;
+
+    Array<long> cost(weight.size());
+#if BL_USE_MPI
+    {
+	Array<Real> rcost(cost.size(), 0.0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	for (MFIter mfi(weight); mfi.isValid(); ++mfi) {
+	    int i = mfi.index();
+	    rcost[i] = weight[mfi].sum(mfi.validbox(),0);
+	}
+
+	ParallelDescriptor::ReduceRealSum(&rcost[0], rcost.size());
+
+	Real wmax = *std::max_element(rcost.begin(), rcost.end());
+	Real scale = 1.e9/wmax;
+	
+	for (int i = 0; i < rcost.size(); ++i) {
+	    cost[i] = long(rcost[i]*scale) + 1L;
+	}
+    }
+#endif
+
+    int nprocs = ParallelDescriptor::NProcs();
+
+    r.SFCProcessorMap(boxes, cost, nprocs);
+
+    return r;
+}
+
 std::ostream&
 operator<< (std::ostream&              os,
             const DistributionMapping& pmap)

@@ -73,6 +73,11 @@ public:
     void fillNeighbors(int lev);
 
     ///
+    /// This updates the neighbors with their current particle data.
+    ///
+    void updateNeighbors(int lev);
+
+    ///
     /// Each tile clears its neighbors, freeing the memory
     ///
     void clearNeighbors(int lev);
@@ -80,7 +85,9 @@ public:
     ///
     /// Build a Neighbor List for each tile
     ///
-    void buildNeighborList(int lev);
+    void buildNeighborList(int lev, bool sort=false);
+
+    void buildNeighborListFort(int lev, bool sort=false);
 
     std::map<PairIndex, Array<char> > neighbors;
     std::map<PairIndex, Array<int> > neighbor_list;
@@ -108,7 +115,13 @@ protected:
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
-    void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm);
+    void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm, bool reuse_rcv_counts=false);
+
+
+    ///
+    /// Perform handshake to figure out how many bytes each proc should receive
+    ///
+    void getRcvCountsMPI(const std::map<int, Array<char> >& send_data);
 
     virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
         return false;
@@ -116,6 +129,17 @@ protected:
 
     int num_neighbor_cells;
     FabArray<BaseFab<int> > mask;
+
+    void cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
+                               const IntVect& neighbor_cell, const BaseFab<int>& mask);
+
+    std::map<PairIndex, Array<int> > buffer_id_cache;
+    std::map<PairIndex, Array<IntVect> > buffer_cell_cache;
+
+    // each proc knows how many sends it will do, and how many bytes it will rcv 
+    // from each other proc.
+    Array<long> rcvs;
+    long num_snds;
 };
 
 #include "AMReX_NeighborParticlesI.H"

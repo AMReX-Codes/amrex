@@ -290,7 +290,10 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
                 << " exists.  I am destroying it.  " << std::endl;
       char command[2000];
       sprintf(command, "\\rm -rf %s", path.c_str());;
-      std::system(command);
+      int retVal = std::system(command);
+      if (retVal == -1 || WEXITSTATUS(retVal) != 0) {
+          amrex::Error("Removing old directory failed.");
+      }
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) 
     {
