@@ -1,19 +1,19 @@
 AMREX_HOME = ../../../amrex
 
 PRECISION = DOUBLE
-DEBUG     = FALSE
 DEBUG     = TRUE
+DEBUG     = FALSE
 DIM       = 3
-COMP      = g++
+COMP      = intel
 
 USE_MPI=FALSE
 USE_MPI=TRUE
 
 USE_CXX11 = TRUE
 
-#PROFILE       = TRUE
-#TRACE_PROFILE = TRUE
-#COMM_PROFILE  = FALSE
+PROFILE       = TRUE
+TRACE_PROFILE = TRUE
+COMM_PROFILE  = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
