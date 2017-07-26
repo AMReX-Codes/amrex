@@ -30,15 +30,12 @@ subroutine add_parameters ()
   implicit none
 
   type(amrex_parmparse) :: pp
-  character(len=12) :: a(4)
 
   ! anonymous prefix
   call amrex_parmparse_build(pp)
   call pp%add("an_int_scalar", 2)      ! integer scalar: an_int_scalar
   call pp%add("a_bool_scalar", .true.) ! logical scalar: a_bool_scalar
   call pp%addarr("a_real_array", [1._amrex_real, 2._amrex_real, 3._amrex_real]) ! real array: a_real_array
-  a(1) = "All"; a(2) = "you"; a(3) = "gotta"; a(4) = "do"
-  call pp%addarr("a_string_array", a)  ! character array: a_string_array
   call amrex_parmparse_destroy(pp)
 
   ! prefix "a_prefix"
@@ -61,14 +58,12 @@ subroutine test_parameters ()
   real(amrex_real) :: r
   real(amrex_real), allocatable :: ra(:)
   character(len=:), allocatable :: s
-  character(len=:), allocatable :: sa(:)
 
   ! anonymous prefix
   call amrex_parmparse_build(pp)
   call pp%get("an_int_scalar", i)
   call pp%get("a_bool_scalar",b)
   call pp%getarr("a_real_array", ra)
-  call pp%getarr("a_string_array", sa)
   call amrex_parmparse_destroy(pp)
 
   ! prefix "a_prefix"
@@ -82,7 +77,6 @@ subroutine test_parameters ()
      print *, "an_int_scalar = ", i
      print *, "a_bool_scalar = ", b
      print *, "a_real_array = ", ra
-     print *, "a_string_array = ", sa(1), sa(2), sa(3), sa(4)
      print *, "a_prefix.an_int_array = ", ia
      print *, "a_prefix.a_real_scalar = ", r
      print *, "a_prefix.a_string = ", s
