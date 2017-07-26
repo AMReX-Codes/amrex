@@ -244,20 +244,43 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
     rho->setVal(0.0);
 
-    Array<Real> xp, yp, zp;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        Array<Real> xp, yp, zp;
+        FArrayBox local_rho;
 
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             const Box& box = pti.validbox();
             
             auto& wp = pti.GetAttribs(PIdx::w);
             
             const long np  = pti.numParticles();
-            
-            // Data on the grid
-            FArrayBox& rhofab = (*rho)[pti];
-            
+
             pti.GetPosition(xp, yp, zp);
+            
+            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
+            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+
+            // Data on the grid
+            Real* data_ptr;
+            const int *rholen;
+            FArrayBox& rhofab = (*rho)[pti];
+#ifdef _OPENMP
+            Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
+            const std::array<Real, 3>& xyzmin = xyzmin_tile;
+            tile_box.grow(ng);
+            local_rho.resize(tile_box);
+            local_rho = 0.0;
+            data_ptr = local_rho.dataPtr();
+            rholen = local_rho.length();
+#else
+            const std::array<Real, 3>& xyzmin = xyzmin_grid;
+            data_ptr = rhofab.dataPtr();
+            rholen = rhofab.length();
+#endif
             
 #if (BL_SPACEDIM == 3)
             long nx = box.length(0);
@@ -269,22 +292,30 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
             long nz = box.length(1); 
 #endif
 
-            const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
-
             long nxg = ng;
             long nyg = ng;
             long nzg = ng;
             long lvect = 8;
             
-            warpx_charge_deposition(rhofab.dataPtr(), 
+            warpx_charge_deposition(data_ptr,
                                     &np, xp.data(), yp.data(), zp.data(), wp.data(),
                                     &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
                                     &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
                                     &nxg, &nyg, &nzg, &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                     &lvect, &WarpX::charge_deposition_algo);
             
+#ifdef _OPENMP
+            const Box& fabbox = rhofab.box();
+            const int ncomp = 1;
+            amrex_atomic_accumulate_fab(local_rho.dataPtr(),
+                                        tile_box.loVect(), tile_box.hiVect(),
+                                        rhofab.dataPtr(),
+                                        fabbox.loVect(), fabbox.hiVect(), ncomp);
+#endif
         }
-    
+        
+    }
+
     if (!local) rho->SumBoundary(gm.periodicity());
     
     return rho;
