@@ -140,38 +140,38 @@ module amrex_parmparse_module
        integer(c_int), intent(inout) :: sv(n)
      end subroutine amrex_parmparse_get_stringarr
 
-     subroutine amrex_parmparse_query_int (pp, name, v) bind(c)
+     integer function amrex_parmparse_query_int (pp, name, v) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
        character(kind=c_char), intent(in) :: name(*)
        integer(c_int) :: v
-     end subroutine amrex_parmparse_query_int
+     end function amrex_parmparse_query_int
 
-     subroutine amrex_parmparse_query_real (pp, name, v) bind(c)
+     integer function amrex_parmparse_query_real (pp, name, v) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
        character(kind=c_char), intent(in) :: name(*)
        real(amrex_real) :: v
-     end subroutine amrex_parmparse_query_real
+     end function amrex_parmparse_query_real
 
-     subroutine amrex_parmparse_query_bool (pp, name, v) bind(c)
+     integer function amrex_parmparse_query_bool (pp, name, v) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
        character(kind=c_char), intent(in) :: name(*)
        integer(c_int) :: v
-     end subroutine amrex_parmparse_query_bool
+     end function amrex_parmparse_query_bool
 
-     subroutine amrex_parmparse_query_string (pp, name, v, len) bind(c)
+     integer function amrex_parmparse_query_string (pp, name, v, len) bind(c)
        import
        implicit none
        type(c_ptr), value :: pp
        character(kind=c_char), intent(in) :: name(*)
        type(c_ptr), intent(inout) :: v
        integer(c_int), intent(out) :: len
-     end subroutine amrex_parmparse_query_string
+     end function amrex_parmparse_query_string
 
      subroutine amrex_parmparse_add_int (pp, name, v) bind(c)
        import
@@ -362,43 +362,48 @@ contains
     end if
   end subroutine get_stringarr
 
-  subroutine query_int (this, name, v)
+  subroutine query_int (this, name, v, flag)
     class(amrex_parmparse), intent(in) :: this
     character(len=*), intent(in) :: name
-    integer :: v
-    call amrex_parmparse_query_int (this%p, amrex_string_f_to_c(name), v)
+    logical, optional, intent(out) :: flag
+    integer :: v, iflag
+    iflag = amrex_parmparse_query_int (this%p, amrex_string_f_to_c(name), v)
+    if (present(flag)) flag = iflag.ne.0
   end subroutine query_int
 
-  subroutine query_real (this, name, v)
+  subroutine query_real (this, name, v, flag)
     class(amrex_parmparse), intent(in) :: this
     character(*), intent(in) :: name
+    logical, optional, intent(out) :: flag
     real(amrex_real) :: v
-    call amrex_parmparse_query_real (this%p, amrex_string_f_to_c(name), v)
+    integer :: iflag
+    iflag = amrex_parmparse_query_real (this%p, amrex_string_f_to_c(name), v)
+    if (present(flag)) flag = iflag.ne.0    
   end subroutine query_real
 
-  subroutine query_logical (this, name, v)
+  subroutine query_logical (this, name, v, flag)
     class(amrex_parmparse), intent(in) :: this
     character(*), intent(in) :: name
+    logical, optional, intent(out) :: flag
     logical :: v
-    integer(c_int) :: i
-    i = -1
-    call amrex_parmparse_query_bool (this%p, amrex_string_f_to_c(name), i)
-    if (i.eq. 0) then
-       v = .false.
-    else if (i.eq.1) then
-       v = .true.
+    integer(c_int) :: i, iflag
+    iflag = amrex_parmparse_query_bool (this%p, amrex_string_f_to_c(name), i)
+    if (iflag.eq.1) then
+       v = i.eq.1
     end if
+    if (present(flag)) flag = iflag.ne.0    
   end subroutine query_logical
 
-  subroutine query_string (this, name, v)
+  subroutine query_string (this, name, v, flag)
     class(amrex_parmparse), intent(in) :: this
     character(*), intent(in) :: name
     character(len=:), allocatable, intent(inout) :: v
+    logical, optional, intent(out) :: flag
     ! temporary string for passing back and forth to C -- include NULL
     type(c_ptr) :: cp_pass
-    integer :: n_pass
+    integer :: n_pass, iflag
     character(kind=c_char), pointer :: cc(:)
-    call amrex_parmparse_query_string (this%p, amrex_string_f_to_c(name), cp_pass, n_pass)
+    iflag = amrex_parmparse_query_string (this%p, amrex_string_f_to_c(name), cp_pass, n_pass)
     if (n_pass > 1) then
        if (allocated(v)) deallocate(v)
        allocate(character(len=n_pass-1)::v)
@@ -407,39 +412,46 @@ contains
        cc => null()
     end if
     call amrex_parmparse_delete_cp_char([cp_pass],1)
+    if (present(flag)) flag = iflag.ne.0
   end subroutine query_string
 
-  subroutine query_intarr (this, name, v)
+  subroutine query_intarr (this, name, v, flag)
     class(amrex_parmparse), intent(in) :: this
     character(len=*), intent(in) :: name
     integer, allocatable, intent(inout) :: v(:)
+    logical, optional, intent(out) :: flag
     integer :: n
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
        call amrex_parmparse_get_intarr (this%p, amrex_string_f_to_c(name), v, n)
     end if
+    if (present(flag)) flag = n.gt.0
   end subroutine query_intarr
 
-  subroutine query_realarr (this, name, v)
+  subroutine query_realarr (this, name, v, flag)
     class(amrex_parmparse), intent(in) :: this
     character(len=*), intent(in) :: name
     real(amrex_real), allocatable, intent(inout) :: v(:)
+    logical, optional, intent(out) :: flag
     integer :: n
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
        call amrex_parmparse_get_realarr (this%p, amrex_string_f_to_c(name), v, n)
     end if
+    if (present(flag)) flag = n.gt.0
   end subroutine query_realarr
 
-  subroutine query_stringarr (this, name, v)
+  subroutine query_stringarr (this, name, v, flag)
     class(amrex_parmparse), intent(in) :: this
     character(len=*), intent(in) :: name
     character(len=:), allocatable, intent(inout) :: v(:)
+    logical, optional, intent(out) :: flag
     integer :: n
     n = amrex_parmparse_get_counts(this%p, amrex_string_f_to_c(name))
     if (n .gt. 0) then
        call this%get_stringarr(name, v)
     end if
+    if (present(flag)) flag = n.gt.0
   end subroutine query_stringarr
 
   subroutine add_int (this, name, v)

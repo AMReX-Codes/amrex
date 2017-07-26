@@ -86,31 +86,35 @@ extern "C"
         }
     }
 
-    void amrex_parmparse_query_int (ParmParse* pp, const char* name, int* v)
+    int amrex_parmparse_query_int (ParmParse* pp, const char* name, int* v)
     {
-	pp->query(name, *v);
+	return pp->query(name, *v);
     }
 
-    void amrex_parmparse_query_real (ParmParse* pp, const char* name, Real* v)
+    int amrex_parmparse_query_real (ParmParse* pp, const char* name, Real* v)
     {
-	pp->query(name, *v);
+	return pp->query(name, *v);
     }
 
-    void amrex_parmparse_query_bool (ParmParse* pp, const char* name, int* v)
+    int amrex_parmparse_query_bool (ParmParse* pp, const char* name, int* v)
     {
-	bool b = *v;
+	bool b;
 	if (pp->query(name, b)) {
             *v = b;
+            return 1;
+        } else {
+            return 0;
         }
     }
 
-    void amrex_parmparse_query_string (ParmParse* pp, const char* name, char*& v, int* len)
+    int amrex_parmparse_query_string (ParmParse* pp, const char* name, char*& v, int* len)
     {
       std::string b;
-      pp->query(name, b);
+      int r = pp->query(name, b);
       *len = b.size() + 1;
       v = new char[*len];
       std::strncpy(v, b.c_str(), *len);
+      return r;
     }
 
     void amrex_parmparse_add_int (ParmParse* pp, const char* name, int v)
