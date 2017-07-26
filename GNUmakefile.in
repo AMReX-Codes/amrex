@@ -1,6 +1,4 @@
 
-USE_AMREX_FI_MAIN = FALSE
-
 AMREX_HOME := $(shell pwd)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
