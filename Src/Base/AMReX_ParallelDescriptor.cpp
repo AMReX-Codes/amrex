@@ -365,7 +365,17 @@ ParallelDescriptor::Translate(int rk_clrd,Color clr)
   }
   else if (clr.valid())
   {
-    return m_first_procs_clr[clr.to_int()]+rk_clrd;
+    int use_new_clr_map = 0;
+    amrex::ParmParse pp("amrex");
+    pp.query("use_new_clr_map",use_new_clr_map);
+    if (!use_new_clr_map)
+    {
+      return m_first_procs_clr[clr.to_int()]+rk_clrd;
+    }
+    else
+    {
+      return rk_clrd*m_nCommColors+clr.to_int();
+    }
   }
   else
   {
@@ -395,26 +405,41 @@ ParallelDescriptor::init_clr_vars()
   {
     ++(m_num_procs_clr[clr]);
   }
-  /* All first proc.'s (clear) */
-  m_first_procs_clr.clear();
-  /* All first proc.'s (init.) */
-  m_first_procs_clr.resize(m_nCommColors,0);
-  /* Add the previous `clr's `nProc's */
-  for (int clr = 1; clr < m_nCommColors; ++clr)
+  /* My color */
+  int my_clr;
+  /* Definition of `my_clr` */
+  int use_new_clr_map = 0;
+  amrex::ParmParse pp("amrex");
+  pp.query("use_new_clr_map",use_new_clr_map);
+  if (!use_new_clr_map)
   {
+    /* All first proc.'s (clear) */
+    m_first_procs_clr.clear();
+    /* All first proc.'s (init.) */
+    m_first_procs_clr.resize(m_nCommColors,0);
+    /* Add the previous `clr's `nProc's */
+    for (int clr = 1; clr < m_nCommColors; ++clr)
+    {
       m_first_procs_clr[clr] =
         m_first_procs_clr[clr-1]+m_num_procs_clr[clr-1];
+    }
+    /* My proc. must be larger than my first proc. */
+    int clr = 0; my_clr = -1;
+    while (clr < m_nCommColors && MyProc() > m_first_procs_clr[clr]-1)
+    {
+      /* My color */
+      ++clr; ++my_clr;
+    }
   }
-  /* My proc. must be larger than my first proc. */
-  int clr = 0; int myClr = -1;
-  while (clr < m_nCommColors && MyProc() > m_first_procs_clr[clr]-1)
+  else
   {
-    ++clr; ++myClr;
+    /* My color */
+    my_clr = MyProc()%m_nCommColors;
   }
   /* Possibly adjust number of proc.'s per color */
-  m_nProcs_sub = m_num_procs_clr[myClr];
+  m_nProcs_sub = m_num_procs_clr[my_clr];
   /* Define `Color' */
-  m_MyCommSubColor = Color(myClr);
+  m_MyCommSubColor = Color(my_clr);
 
   return;
 } /* `init_clr_vars( ...' */
