@@ -9,7 +9,7 @@
 
 extern "C"
 {
-    void amrex_fi_init (char* cmd)
+    void amrex_fi_init (char* cmd, int fcomm, int arg_parmparse)
     {
         std::istringstream is(cmd);
         amrex::Array<std::string> argv_string(std::istream_iterator<std::string>{is},
@@ -23,7 +23,12 @@ extern "C"
             strcpy(argv[i], argv_string[i].c_str());
         }
 
-        amrex::Initialize(argc, argv);
+#ifdef BL_USE_MPI
+        MPI_Comm ccomm = MPI_Comm_f2c(fcomm);
+#else
+        int ccomm = 0;
+#endif
+        amrex::Initialize(argc, argv, arg_parmparse, ccomm);
 
         for (int i = 0; i < argc; ++i)
         {
