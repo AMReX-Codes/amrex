@@ -92,13 +92,15 @@ contains
 #endif    
   end subroutine amrex_parallel_init
 
-  subroutine amrex_parallel_finalize
+  subroutine amrex_parallel_finalize ()
+#ifdef BL_USE_MPI
     integer :: ierr
     call MPI_Comm_Free(m_comm, ierr)
     if (call_mpi_finalize) then
        call MPI_Finalize(ierr)
        call_mpi_finalize = .false.
     end if
+#endif
   end subroutine amrex_parallel_finalize
 
   pure integer function amrex_parallel_communicator ()
