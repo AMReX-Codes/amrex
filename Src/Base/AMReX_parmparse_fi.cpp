@@ -40,11 +40,20 @@ extern "C"
 	*v = b;
     }
 
-    void amrex_parmparse_get_string (ParmParse* pp, const char* name, char* v, int len)
+    void amrex_parmparse_get_string (ParmParse* pp, const char* name, char*& v, int* len)
     {
         std::string b;
         pp->get(name, b);
-        std::strncpy(v, b.c_str(), len);
+        *len = b.size() + 1;
+        v = new char[*len];
+        std::strncpy(v, b.c_str(), *len);
+    }
+
+    void amrex_parmparse_delete_cp_char (char**v, int len)
+    {
+        for (int i = 0; i < len; ++i) {
+            delete[] v[i];
+        }
     }
 
     void amrex_parmparse_get_intarr (ParmParse* pp, const char* name, int v[], int len)
@@ -65,38 +74,88 @@ extern "C"
 	}
     }
 
-    void amrex_parmparse_get_stringarr (ParmParse* pp, const char* name, char* v, int len, int n)
+    void amrex_parmparse_get_stringarr (ParmParse* pp, const char* name, char** v, int* sv, int n)
     {
         std::vector<std::string> b;
         pp->getarr(name, b);
         BL_ASSERT(n == b.size());
         for (int i = 0; i < n; ++i) {
-            std::strncpy(v, b[i].c_str(), len);
-            v += len;
+            sv[i] = b[i].size() + 1;
+            v[i] = new char[sv[i]];
+            std::strncpy(v[i], b[i].c_str(), sv[i]);
         }
     }
 
-    void amrex_parmparse_query_int (ParmParse* pp, const char* name, int* v)
+    int amrex_parmparse_query_int (ParmParse* pp, const char* name, int* v)
     {
-	pp->query(name, *v);
+	return pp->query(name, *v);
     }
 
-    void amrex_parmparse_query_real (ParmParse* pp, const char* name, Real* v)
+    int amrex_parmparse_query_real (ParmParse* pp, const char* name, Real* v)
     {
-	pp->query(name, *v);
+	return pp->query(name, *v);
     }
 
-    void amrex_parmparse_query_bool (ParmParse* pp, const char* name, int* v)
+    int amrex_parmparse_query_bool (ParmParse* pp, const char* name, int* v)
     {
-	bool b = *v;
-	pp->query(name, b);
-	*v = b;
+	bool b;
+	if (pp->query(name, b)) {
+            *v = b;
+            return 1;
+        } else {
+            return 0;
+        }
     }
 
-    void amrex_parmparse_query_string (ParmParse* pp, const char* name, char* v, int len)
+    int amrex_parmparse_query_string (ParmParse* pp, const char* name, char*& v, int* len)
     {
       std::string b;
-      pp->query(name, b);
-      std::strncpy(v, b.c_str(), len);
+      int r = pp->query(name, b);
+      *len = b.size() + 1;
+      v = new char[*len];
+      std::strncpy(v, b.c_str(), *len);
+      return r;
+    }
+
+    void amrex_parmparse_add_int (ParmParse* pp, const char* name, int v)
+    {
+        pp->add(name,v);
+    }
+
+    void amrex_parmparse_add_real (ParmParse* pp, const char* name, Real v)
+    {
+        pp->add(name,v);
+    }
+    
+    void amrex_parmparse_add_bool (ParmParse* pp, const char* name, int v)
+    {
+        pp->add(name,static_cast<bool>(v));
+    }
+
+    void amrex_parmparse_add_string (ParmParse* pp, const char* name, const char* v)
+    {
+        pp->add(name, std::string{v});
+    }
+
+    void amrex_parmparse_add_intarr (ParmParse* pp, const char* name, const int v[], int len)
+    {
+        pp->addarr(name, std::vector<int>(v, v+len));
+    }
+
+    void amrex_parmparse_add_realarr (ParmParse* pp, const char* name, const Real v[], int len)
+    {
+        pp->addarr(name, std::vector<Real>(v, v+len));
+    }
+
+    void amrex_parmparse_add_stringarr (ParmParse* pp, const char* name, const char* v, int len)
+    {
+        std::vector<std::string> vs;
+        vs.reserve(len);
+        const char* p = v;
+        for (int i = 0; i < len; ++i) {
+            vs.push_back(p);
+            p += vs[i].size()+1;
+        }
+        pp->addarr(name, vs);
     }
 }

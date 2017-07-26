@@ -21,14 +21,14 @@ module my_amr_module
   real(rt) :: stop_time  = huge(1._rt)
   real(rt) :: cfl        = 0.7_rt
   !
-  character(len=127) :: check_file = "chk"
-  character(len=127) :: plot_file  = "plt"
-  character(len=127) :: restart    = ""  
+  character(len=:), allocatable, save :: check_file
+  character(len=:), allocatable, save :: plot_file
+  character(len=:), allocatable, save :: restart
 
-  integer, allocatable :: stepno(:)
-  integer, allocatable :: nsubsteps(:)
+  integer, allocatable, save :: stepno(:)
+  integer, allocatable, save :: nsubsteps(:)
 
-  real(rt), allocatable :: dt(:)
+  real(rt), allocatable, save :: dt(:)
 
   integer, private, parameter :: ncomp = 1, nghost = 0
   
@@ -46,6 +46,13 @@ contains
          &                             my_remake_level,                &
          &                             my_clear_level,                 &
          &                             my_error_estimate)
+
+    ! some default parameters
+    allocate(character(len=3)::check_file)
+    check_file = "chk"
+    allocate(character(len=3)::plot_file)
+    plot_file = "plt"
+    allocate(character(len=0)::restart)
 
     ! Read parameters
     call amrex_parmparse_build(pp)
