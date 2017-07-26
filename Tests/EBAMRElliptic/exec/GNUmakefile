@@ -26,19 +26,14 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-_progs  := aggpwlfpTest
-_progs  += simpleMeshRefine
-_progs  += fluxRegTest
-_progs  += regFluxRegTest
-_progs  += ebCoarseAveTest
-_progs  += nwoEBQuadCFITest
-_progs  += ebFineInterpTest
+_progs  := conductivitySolve
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
 include $(AMREX_HOME)/Src/EBAMRTools/Make.package
+include $(AMREX_HOME)/Src/EBAMRElliptic/Make.package
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 

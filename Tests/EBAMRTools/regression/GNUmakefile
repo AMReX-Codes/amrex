@@ -34,6 +34,8 @@ _progs  += ebCoarseAveTest
 _progs  += ebCoarseAveTestFace
 _progs  += nwoEBQuadCFITest
 _progs  += ebFineInterpTest
+_progs  += divergenceOpTest
+_progs  += gradientOpTest
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

@@ -546,6 +546,137 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
 			&numcomp);
 }
 
+template<>
+void
+BaseFab<int>::performCopy (const BaseFab<int>& src,
+                           const Box&          srcbox,
+                           int                 srccomp,
+                           const Box&          destbox,
+                           int                 destcomp,
+                           int                 numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+    fort_ifab_copy(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+                   BL_TO_FORTRAN_N_3D(*this,destcomp),
+                   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
+                   &numcomp);
+}
+
+template <>
+std::size_t
+BaseFab<int>::copyToMem (const Box& srcbox,
+                         int        srccomp,
+                         int        numcomp,
+                         void*      dst) const
+{
+    BL_ASSERT(box().contains(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
+
+    if (srcbox.ok())
+    {
+	long nints =  fort_ifab_copytomem(ARLIM_3D(srcbox.loVect()), ARLIM_3D(srcbox.hiVect()),
+                                          static_cast<int*>(dst),
+                                          BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                          &numcomp);
+        return sizeof(int) * nints;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+template <>
+std::size_t
+BaseFab<int>::copyFromMem (const Box&  dstbox,
+                           int         dstcomp,
+                           int         numcomp,
+                           const void* src)
+{
+    BL_ASSERT(box().contains(dstbox));
+    BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
+
+    if (dstbox.ok()) 
+    {
+	long nints = fort_ifab_copyfrommem(ARLIM_3D(dstbox.loVect()), ARLIM_3D(dstbox.hiVect()),
+                                           BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                           static_cast<const int*>(src));
+        return sizeof(int) * nints;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+template<>
+void
+BaseFab<int>::performSetVal (int        val,
+                             const Box& bx,
+                             int        comp,
+                             int        ncomp)
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    fort_ifab_setval(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                     BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                     &val);
+}
+
+template<>
+BaseFab<int>&
+BaseFab<int>::plus (const BaseFab<int>& src,
+                    const Box&           srcbox,
+                    const Box&           destbox,
+                    int                  srccomp,
+                    int                  destcomp,
+                    int                  numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+    fort_ifab_plus(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+                   BL_TO_FORTRAN_N_3D(*this,destcomp),
+                   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
+                   &numcomp);
+    
+    return *this;
+}
+
+template<>
+BaseFab<int>&
+BaseFab<int>::minus (const BaseFab<int>& src,
+                     const Box&           srcbox,
+                     const Box&           destbox,
+                     int                  srccomp,
+                     int                  destcomp,
+                     int                  numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+    fort_ifab_minus(ARLIM_3D(destbox.loVect()), ARLIM_3D(destbox.hiVect()),
+		   BL_TO_FORTRAN_N_3D(*this,destcomp),
+		   BL_TO_FORTRAN_N_3D(src,srccomp), ARLIM_3D(srcbox.loVect()),
+		   &numcomp);
+    return *this;
+}
+
 #endif
 
 }

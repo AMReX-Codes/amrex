@@ -29,8 +29,8 @@
 
 namespace amrex
 {
-  Real g_coarTimeOld = 0.0;
-  Real g_coarTimeNew = 1.0;
+  Real g_coarTimeOld = 0.25;
+  Real g_coarTimeNew = 0.25;
   Real g_fineTime = 0.25;
 /***************/
   Real exactFunc(const IntVect& a_iv,

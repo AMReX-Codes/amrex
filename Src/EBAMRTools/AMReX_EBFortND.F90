@@ -576,4 +576,146 @@ contains
 
   end subroutine ebfnd_pwqinterp_nobound
 
+
+  subroutine ebfnd_divflux( &
+       divflux, divflux_lo, divflux_hi, divflux_nco,  &
+       fluxfa0, fluxfa0_lo, fluxfa0_hi, fluxfa0_nco,  &
+       fluxfa1, fluxfa1_lo, fluxfa1_hi, fluxfa1_nco,  &
+       fluxfa2, fluxfa2_lo, fluxfa2_hi, fluxfa2_nco,  &
+       gridlo,gridhi, &
+       dx, isrc, idst, ncomp) &
+       bind(C, name="ebfnd_divflux")
+
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
+
+    implicit none
+
+    integer      :: iif,jjf,kkf,  ncomp, ivar, ivardivf, ivarflux
+    integer      :: fluxfa0_nco
+    integer      :: fluxfa1_nco
+    integer      :: fluxfa2_nco
+    integer      :: divflux_nco, isrc, idst
+    integer      :: fluxfa0_lo(0:2),fluxfa0_hi(0:2)
+    integer      :: fluxfa1_lo(0:2),fluxfa1_hi(0:2)
+    integer      :: fluxfa2_lo(0:2),fluxfa2_hi(0:2)
+    integer      :: divflux_lo(0:2),divflux_hi(0:2)
+    integer      :: gridlo(0:2), gridhi(0:2)
+
+    real(c_real) :: dx, xterm, yterm, zterm
+    real(c_real) :: fhix, flox
+    real(c_real) :: divflux(divflux_lo(0):divflux_hi(0),divflux_lo(1):divflux_hi(1),divflux_lo(2):divflux_hi(2), 0:divflux_nco-1)
+    real(c_real) :: fluxfa0(fluxfa0_lo(0):fluxfa0_hi(0),fluxfa0_lo(1):fluxfa0_hi(1),fluxfa0_lo(2):fluxfa0_hi(2), 0:fluxfa0_nco-1)
+    real(c_real) :: fluxfa1(fluxfa1_lo(0):fluxfa1_hi(0),fluxfa1_lo(1):fluxfa1_hi(1),fluxfa1_lo(2):fluxfa1_hi(2), 0:fluxfa1_nco-1)
+    real(c_real) :: fluxfa2(fluxfa2_lo(0):fluxfa2_hi(0),fluxfa2_lo(1):fluxfa2_hi(1),fluxfa2_lo(2):fluxfa2_hi(2), 0:fluxfa2_nco-1)
+
+    do ivar = 0, ncomp-1
+       ivarflux = isrc + ivar
+       ivardivf = idst + ivar
+
+       do kkf = gridlo(2), gridhi(2)
+          do jjf = gridlo(1), gridhi(1)
+             do iif = gridlo(0), gridhi(0)
+
+                fhix = fluxfa0(iif+1, jjf  , kkf  , ivarflux)
+                flox = fluxfa0(iif  , jjf  , kkf  , ivarflux)
+                xterm = fhix - flox
+                yterm = fluxfa1(iif  , jjf+1, kkf  , ivarflux) - fluxfa1(iif, jjf, kkf, ivarflux)
+                zterm = zero
+#if BL_SPACEDIM==3
+                zterm = fluxfa2(iif  , jjf  , kkf+1, ivarflux) - fluxfa2(iif, jjf, kkf, ivarflux) 
+#endif
+                divflux(iif, jjf, kkf, ivardivf) = (xterm + yterm + zterm)/dx
+
+
+             enddo
+          enddo
+       enddo
+    enddo
+
+
+  end subroutine ebfnd_divflux
+
+
+  subroutine ebfnd_gradlim( &
+       gph, gph_lo, gph_hi, gph_nco,  &
+       phi, phi_lo, phi_hi, phi_nco,  &
+       gridlo,gridhi, &
+       ncomp, dx, dolimiting) &
+       bind(C, name="ebfnd_gradlim")
+
+    use amrex_fort_module, only : amrex_spacedim, c_real=>amrex_real
+
+    implicit none
+
+    integer      :: i,j,k,  ncomp, ivar
+    integer      :: phi_nco, gradcomp, vecdir,ii,jj,kk
+    integer      :: gph_nco,  dolimiting
+    integer      :: phi_lo(0:2), phi_hi(0:2)
+    integer      :: gph_lo(0:2), gph_hi(0:2)
+    integer      :: gridlo(0:2), gridhi(0:2)
+
+    real(c_real) :: dx, dplo, dphi, dpce, dplim
+    real(c_real) :: gph(gph_lo(0):gph_hi(0),gph_lo(1):gph_hi(1),gph_lo(2):gph_hi(2), 0:gph_nco-1)
+    real(c_real) :: phi(phi_lo(0):phi_hi(0),phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2), 0:phi_nco-1)
+
+    if(dolimiting .eq. 1) then
+       do ivar = 0, ncomp-1
+          do vecdir = 0, BL_SPACEDIM-1
+
+             gradcomp = BL_SPACEDIM*ivar + vecdir
+             ii = imatebamrt(0, vecdir)
+             jj = imatebamrt(1, vecdir)
+             kk = imatebamrt(2, vecdir)
+
+             do k = gridlo(2), gridhi(2)
+                do j = gridlo(1), gridhi(1)
+                   do i = gridlo(0), gridhi(0)
+
+                      dphi = phi(i+ii, j+jj, k+kk, ivar) - phi(i   ,j   ,k   , ivar) 
+                      dplo = phi(i   , j   , k   , ivar) - phi(i-ii,j-jj,k-kk, ivar) 
+                      dpce = half*(dplo + dphi)
+                      !van Leer limiting
+                      if(dplo*dphi .lt. zero) then
+                         dplim = zero
+                      else
+                         dplim = min(two*abs(dplo), two*abs(dphi))
+                         dplim = min(dplim, abs(dpce))
+                         dplim = dplim*sign(one, dplo)
+                      endif
+
+                      gph(i, j, k, gradcomp) = dplim/dx
+
+                   enddo
+                enddo
+             enddo
+          enddo
+       enddo
+    else
+       do ivar = 0, ncomp-1
+          do vecdir = 0, BL_SPACEDIM-1
+
+             gradcomp = BL_SPACEDIM*ivar + vecdir
+             ii = imatebamrt(0, vecdir)
+             jj = imatebamrt(1, vecdir)
+             kk = imatebamrt(2, vecdir)
+
+             do k = gridlo(2), gridhi(2)
+                do j = gridlo(1), gridhi(1)
+                   do i = gridlo(0), gridhi(0)
+                      dphi = phi(i+ii, j+jj, k+kk, ivar) - phi(i   ,j   ,k   , ivar) 
+                      dplo = phi(i   , j   , k   , ivar) - phi(i-ii,j-jj,k-kk, ivar) 
+                      dpce = half*(dplo + dphi)
+                      ! no limiting here
+                      gph(i, j , k , gradcomp) = dpce/dx
+
+                   enddo
+                enddo
+             enddo
+          enddo
+       enddo
+    endif
+
+
+  end subroutine ebfnd_gradlim
+
 end module ebfnd_ebamrtools_module

@@ -128,7 +128,7 @@ class NFilesIter
     // ---- [filenumber][ranks in order they wrote to filenumber]
     const Array< Array<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
 
-    static void CleanUpMessages();
+    void CleanUpMessages();
 
     static int  GetMinDigits()       { return minDigits; } 
     static void SetMinDigits(int md) { minDigits = md;   }
@@ -153,14 +153,14 @@ class NFilesIter
     int myReadIndex;
     bool useStaticSetSelection;
     int fileNumber, remainingWriters, deciderProc, coordinatorProc;
-    int deciderTag, coordinatorTag, doneTag, writeTag;
+    int deciderTag, coordinatorTag, doneTag, writeTag, stReadTag, stWriteTag;
     Array<int> availableDeciders;
     Array<int> setZeroProcs;
 
     static int currentDeciderIndex;
 
     // ---- these were ignored by the decider procs and need to be cleaned up
-    static Array<std::pair<int, int> > unreadMessages;    // ---- [](tag, nmessages)
+    Array<std::pair<int, int> > unreadMessages;    // ---- [](tag, nmessages)
 
     static const int indexUndefined = -1;
 

@@ -15,7 +15,7 @@ extern "C"
                                  const amrex::Real*  beta, const amrex::Real* dx, const int* idir);
 
   void ebefnd_invertlambdaebco(amrex::Real*       relco, const int* relcolo, const int* relcohi, const int* incorelco,
-                               const int*  gridlo, const int* gridhi, const amrex::Real& safety);
+                               const int*  gridlo, const int* gridhi, const amrex::Real* safety);
 
   void ebefnd_applyop_ebcond_nobcs(amrex::Real*       lph , const int* lphlo , const int* lphhi , const int* incolph,
                                    const amrex::Real* phi , const int* philo , const int* phihi , const int* incophi,
@@ -39,6 +39,7 @@ extern "C"
     
 
   void ebefnd_getflux_ebco(amrex::Real*       flux, const int* fluxlo, const int* fluxhi, const int* incoflux,
+                           const amrex::Real* phi  , const int* philo, const int* phihi, const int* incophi  ,
                            const amrex::Real* bcoef, const int* bcoeflo, const int* bcoefhi, const int* incobcoef,
                            const int*  gridlo, const int* gridhi, 
                            const amrex::Real*  beta, const amrex::Real* dx, const int* idir);

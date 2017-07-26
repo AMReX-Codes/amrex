@@ -69,6 +69,12 @@ namespace amrex
   {
 
     BL_PROFILE("AggSten::apply");
+    BL_ASSERT(a_src >= 0);
+    BL_ASSERT(a_dst >= 0);
+    BL_ASSERT(a_nco >= 0);
+    BL_ASSERT((a_dst+a_nco) <= a_lph.nComp());
+    BL_ASSERT((a_src+a_nco) <= a_phi.nComp());
+
     const int numtypelph = a_lph.numDataTypes();
     const int numtypephi = a_phi.numDataTypes();
     std::vector<Real*>       dataPtrsLph(numtypelph);
