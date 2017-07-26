@@ -373,6 +373,18 @@ void amrex::ResetRandomSeed(unsigned long seed)
 }
 
 double
+amrex::RandomNormal (double mean, double stddev)
+{
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+    std::normal_distribution<double> distribution(mean, stddev);
+    return distribution(generators[tid]);
+}
+
+double
 amrex::Random ()
 {
 #ifdef _OPENMP
