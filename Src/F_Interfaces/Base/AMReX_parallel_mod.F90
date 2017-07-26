@@ -20,8 +20,9 @@ module amrex_parallel_module
 
   private
 
-  public :: amrex_parallel_comm_init_from_c
-  public :: amrex_parallel_comm_free_from_c
+  public :: amrex_parallel_init
+  public :: amrex_parallel_finalize
+  public :: amrex_parallel_communicator
   public :: amrex_parallel_myproc 
   public :: amrex_parallel_ioprocessor
   public :: amrex_parallel_nprocs
@@ -61,46 +62,60 @@ module amrex_parallel_module
      module procedure amrex_parallel_reduce_min_rv
   end interface amrex_parallel_reduce_min
 
+  logical, save :: call_mpi_finalize = .false.
+
 contains
 
-  subroutine amrex_parallel_comm_init_from_c (comm) bind(c, name='amrex_parallel_comm_init_from_c')
-    use iso_c_binding
-    integer(c_int), value :: comm
+  subroutine amrex_parallel_init (comm)
+    integer, intent(in), optional :: comm
 #ifdef BL_USE_MPI
     integer :: ierr
-    call MPI_Comm_Dup(comm, m_comm, ierr)
+    logical :: flag
+    call MPI_Initialized(flag, ierr)
+
+    if (present(comm) .and. .not.flag) then
+       stop "MPI has not been initialized.  How come we are given a communciator?"
+    end if
+
+    if (.not.flag) then
+       call MPI_Init(ierr)
+       call_mpi_finalize = .true.
+    end if
+
+    if (present(comm)) then
+       call MPI_Comm_Dup(comm, m_comm, ierr)
+    else
+       call MPI_Comm_Dup(MPI_COMM_WORLD, m_comm, ierr)
+    end if
     call MPI_Comm_Size(m_comm, m_nprocs, ierr)
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
-    call MPI_barrier(m_comm, ierr)
-    if (c_sizeof(amrex_real) .eq. c_sizeof(c_double)) then
-       amrex_mpi_real = MPI_DOUBLE_PRECISION
-    else if (c_sizeof(amrex_real) .eq. c_sizeof(c_float)) then
-       amrex_mpi_real = MPI_REAL
-    else
-       call amrex_abort("amrex_parallel_comm_init_from_c: size of amrex_real is unknown")
-    end if
-#else
-    m_nprocs = 1
-    m_myproc = 0
-#endif
-  end subroutine amrex_parallel_comm_init_from_c
+#endif    
+  end subroutine amrex_parallel_init
 
-  subroutine amrex_parallel_comm_free_from_c () bind(c, name='amrex_parallel_comm_free_from_c')
+  subroutine amrex_parallel_finalize ()
 #ifdef BL_USE_MPI
     integer :: ierr
     call MPI_Comm_Free(m_comm, ierr)
+    if (call_mpi_finalize) then
+       call MPI_Finalize(ierr)
+       call_mpi_finalize = .false.
+    end if
 #endif
-  end subroutine amrex_parallel_comm_free_from_c
+  end subroutine amrex_parallel_finalize
 
-  integer function amrex_parallel_myproc ()
+  pure integer function amrex_parallel_communicator ()
+    amrex_parallel_communicator = m_comm
+  end function amrex_parallel_communicator
+
+  pure integer function amrex_parallel_myproc ()
     amrex_parallel_myproc = m_myproc
   end function amrex_parallel_myproc
 
-  logical function amrex_parallel_ioprocessor ()
+  pure logical function amrex_parallel_ioprocessor ()
     amrex_parallel_ioprocessor = m_myproc .eq. 0
   end function amrex_parallel_ioprocessor
 
-  integer function amrex_parallel_nprocs ()
+  pure integer function amrex_parallel_nprocs ()
     amrex_parallel_nprocs = m_nprocs
   end function amrex_parallel_nprocs
 
