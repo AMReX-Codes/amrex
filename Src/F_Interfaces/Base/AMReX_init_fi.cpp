@@ -12,9 +12,8 @@ extern "C"
     void amrex_fi_init (char* cmd)
     {
         std::istringstream is(cmd);
-        amrex::Array<std::string> argv_string
-            {std::istream_iterator<std::string>{is},
-             std::istream_iterator<std::string>{}};
+        amrex::Array<std::string> argv_string(std::istream_iterator<std::string>{is},
+                                              std::istream_iterator<std::string>{  });
 
         int argc = argv_string.size();
         char** argv = (char**)malloc(argc*sizeof(char*));
