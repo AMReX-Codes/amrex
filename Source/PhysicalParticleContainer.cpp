@@ -326,6 +326,9 @@ PhysicalParticleContainer::FieldGather (int lev,
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
 	Array<Real> xp, yp, zp;
 
