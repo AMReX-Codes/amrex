@@ -246,6 +246,7 @@ bool
 ParallelDescriptor::Message::test ()
 {
     int flag;
+    BL_PROFILE_S("ParallelDescriptor::Message::test()");
     BL_COMM_PROFILE(BLProfiler::Test, sizeof(m_type), pid(), tag());
     BL_MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
     BL_COMM_PROFILE(BLProfiler::Test, flag, BLProfiler::AfterCall(), tag());
@@ -1106,7 +1107,6 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 void
 ParallelDescriptor::ReduceRealMax (Real& r, Color color)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoAllReduceReal(r,MPI_MAX,color);
 }
 
@@ -1125,7 +1125,6 @@ ParallelDescriptor::ReduceRealSum (Real& r, Color color)
 void
 ParallelDescriptor::ReduceRealMax (Real* r, int cnt, Color color)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoAllReduceReal(r,MPI_MAX,cnt,color);
 }
 
@@ -1144,7 +1143,6 @@ ParallelDescriptor::ReduceRealSum (Real* r, int cnt, Color color)
 void
 ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoReduceReal(r,MPI_MAX,cpu);
 }
 
@@ -1163,7 +1161,6 @@ ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
 void
 ParallelDescriptor::ReduceRealMax (Real* r, int cnt, int cpu)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoReduceReal(r,MPI_MAX,cnt,cpu);
 }
 
