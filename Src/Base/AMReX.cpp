@@ -48,13 +48,6 @@ extern "C" {
 }
 #endif
 
-#if defined(BL_USE_F_INTERFACES)
-extern "C" {
-    void amrex_parallel_comm_init_from_c (int fcomm);
-    void amrex_parallel_comm_free_from_c ();
-}
-#endif
-
 namespace amrex {
 namespace system
 {
@@ -399,15 +392,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
     bl_fortran_mpi_comm_init (fcomm);
 #endif
 
-#if defined(BL_USE_F_INTERFACES)
-#if BL_USE_MPI
-    int fcomm2 = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-#else
-    int fcomm2 = 0;
-#endif
-    amrex_parallel_comm_init_from_c(fcomm2);
-#endif
-
 #if defined(BL_MEM_PROFILING) && defined(BL_USE_F_BASELIB)
     MemProfiler_f::initialize();
 #endif
@@ -477,9 +461,6 @@ amrex::Finalize (bool finalize_parallel)
 #endif
 
     if (finalize_parallel) {
-#if defined(BL_USE_F_INTERFACES)
-	amrex_parallel_comm_free_from_c();
-#endif
 #if defined(BL_USE_FORTRAN_MPI)
 	bl_fortran_mpi_comm_free();
 #endif

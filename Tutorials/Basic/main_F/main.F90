@@ -1,15 +1,35 @@
+!
+! This example demonstrates:
+!
+! (1) By default, AMReX initializes MPI and uses MPI_COMM_WORLD as its communicator.
+!     However, applications could choose to initialize MPI themselves and pass in an
+!     existing communicator.
+!
+! (2) By default, AMReX treats command line arguments as inputs parameters.  The expected
+!     format of argv is
+!         executable inputs_file parm=value
+!     Here, `excutable` is the filename of the executable, `inputs_file` is the file containing
+!     runtime parameters used to build AMReX ParmParse database, and `parm=value` is an input
+!     parameter that will override its value in `inputs_file`.  Both `inputs_file` and
+!     `parm=value` are optional.  At most one `inputs_file` is allowed. Howeer, there can be
+!     multiple `parm=value`s.
+!
+!     The parsing of the command line arguments is performed in amrex_init.  Applications can
+!     choose to skip the the parsing, and add runtime parameters to ParmParse database later.
+!
 
 program main
 
+  use mpi
   use amrex_base_module
 
   implicit none
 
   integer :: ierr
 
-!  call mpi_init(ierr)
+  call mpi_init(ierr)
 
-  call amrex_init()
+  call amrex_init(comm=MPI_COMM_WORLD, arg_parmparse=.false.)
 
   ! Add runtime parameters to amrex ParmParse database, if needed.
   call add_parameters()
@@ -20,7 +40,7 @@ program main
   
   call amrex_finalize()
 
-!  call mpi_finalize()
+  call mpi_finalize()
 
 end program main
 
