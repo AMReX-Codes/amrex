@@ -4,4 +4,7 @@ endif
 ifeq ($(EBASE), gridmovetest)
   CEXE_sources += GridMoveTest.cpp
 endif
+ifeq ($(EBASE), moveallfabstest)
+  CEXE_sources += MoveAllFabsTest.cpp
+endif
 

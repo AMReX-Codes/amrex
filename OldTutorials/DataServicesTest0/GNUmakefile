@@ -8,7 +8,7 @@ PROFILE   = FALSE
 DIM       = 3
 USE_MPI     =FALSE
 USE_MPI     =TRUE
-COMP      = g++
+COMP      = gnu
 
 HERE = .
 
