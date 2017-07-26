@@ -830,7 +830,9 @@ saddarr (const std::string&      name,
 // Initialize ParmParse.
 //
 
-bool initialized = false;
+namespace {
+    bool initialized = false;
+}
 
 void
 ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)

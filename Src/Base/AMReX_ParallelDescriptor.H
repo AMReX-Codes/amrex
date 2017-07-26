@@ -525,7 +525,7 @@ namespace ParallelDescriptor
     }
     //
     // AMReX's Parallel Communicators
-    //    m_comm_all       is for all ranks, probably MPI_COMM_WORLD
+    //    m_comm_all       is for all ranks, probably duped from MPI_COMM_WORLD
     //    m_comm_comp      is for the ranks doing computations
     //    m_comm_sub       m_comm_comp is split into sub communicators
     //    m_comm_sidecar[] is for the ranks in the sidecar
@@ -1242,6 +1242,7 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
 			     T* recv, const std::vector<int>& rc, const std::vector<int>& disp,
 			     int root)
 {
+    BL_PROFILE_T_S("ParallelDescriptor::Gatherv(Ti)", T);
     BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     MPI_Gatherv(send, sc, ParallelDescriptor::Mpi_typemap<T>::type(),
@@ -1257,6 +1258,7 @@ ParallelDescriptor::Gatherv (const T* send, long sc,
 			     T* recv, const std::vector<long>& rc, const std::vector<long>& disp,
 			     int root)
 {
+    BL_PROFILE_T_S("ParallelDescriptor::Gatherv(Tlong)", T);
     BL_COMM_PROFILE(BLProfiler::Gatherv,  BLProfiler::BeforeCall(), root, BLProfiler::NoTag());
 
     int tag = ParallelDescriptor::SeqNum();

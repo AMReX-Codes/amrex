@@ -120,6 +120,11 @@ extern "C"
                           const int* src, const int* slo, const int* shi, const int* sblo,
                           const int* ncomp);    
 
+    void amrex_fab_setval_ifnot (const int* lo, const int* hi,
+                                 amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                 const int* msk, const int* mlo, const int* mhi,
+                                 const int val);
+
 #ifdef __cplusplus
 }
 #endif

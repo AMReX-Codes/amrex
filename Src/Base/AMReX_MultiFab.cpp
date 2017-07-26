@@ -11,6 +11,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_iMultiFab.H>
+#include <AMReX_BaseFab_f.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -1359,16 +1361,16 @@ MultiFab::OverlapMask (const Periodicity& period) const
     return p;
 }
 
-std::unique_ptr<MultiFab>
+std::unique_ptr<iMultiFab>
 MultiFab::OwnerMask (const Periodicity& period) const
 {
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
-    const Real owner = 1.;
-    const Real nonowner = 0.;
+    const int owner = 1;
+    const int nonowner = 0;
 
-    std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0)};
+    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,0)};
     p->setVal(owner);
 
 #ifdef _OPENMP
@@ -1380,7 +1382,7 @@ MultiFab::OwnerMask (const Periodicity& period) const
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
-            FArrayBox& fab = (*p)[mfi];
+            IArrayBox& fab = (*p)[mfi];
             const Box& bx = fab.box();
             const int i = mfi.index();
             for (const auto& iv : pshifts)
@@ -1405,16 +1407,25 @@ void
 MultiFab::AverageSync (const Periodicity& period)
 {
     if (ixType().cellCentered()) return;
+    auto wgt = this->OverlapMask(period);
+    wgt->invert(1.0, 0, 1);
+    this->WeightedSync(*wgt, period);
+}
 
+void
+MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
+{
+    if (ixType().cellCentered()) return;
+    
     const int ncomp = nComp();
+    for (int comp = 0; comp < ncomp; ++comp)
+    {
+        MultiFab::Multiply(*this, wgt, 0, comp, 1, 0);
+    }
+    
     MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0);
     tmpmf.setVal(0.0);
     tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
-
-    auto mask = OverlapMask(period);
-    for (int comp = 0; comp < ncomp; ++comp) {
-        MultiFab::Divide(tmpmf, *mask, 0, comp, 1, 0);
-    }
 
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
@@ -1428,14 +1439,24 @@ MultiFab::OverrideSync (const Periodicity& period)
 }
 
 void
-MultiFab::OverrideSync (const MultiFab& msk, const Periodicity& period)
+MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 {
     if (ixType().cellCentered()) return;
     
     const int ncomp = nComp();
-    for (int comp = 0; comp < ncomp; ++comp)
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        MultiFab::Multiply(*this, msk, 0, comp, 1, 0);
+        FArrayBox& fab = (*this)[mfi];
+        const IArrayBox& ifab = msk[mfi];
+        const Box& bx = mfi.tilebox();
+        amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
+                                BL_TO_FORTRAN_FAB(fab),
+                                BL_TO_FORTRAN_ANYD(ifab),
+                                0.0);
     }
     
     MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0);

@@ -116,9 +116,9 @@ extern "C" {
 	mf->FillBoundary(c, nc, geom->periodicity(), cross);
     }
 
-    void amrex_fi_build_owner_multifab (MultiFab*& msk, const BoxArray*& ba,
-                                        const DistributionMapping*& dm,
-                                        const MultiFab* data, const Geometry* geom)
+    void amrex_fi_build_owner_imultifab (iMultiFab*& msk, const BoxArray*& ba,
+                                         const DistributionMapping*& dm,
+                                         const MultiFab* data, const Geometry* geom)
     {
         auto owner_mask = data->OwnerMask(geom->periodicity());
         msk = owner_mask.release();
@@ -131,9 +131,19 @@ extern "C" {
         mf->OverrideSync(geom->periodicity());
     }
 
-    void amrex_fi_multifab_override_sync_mask (MultiFab* mf, const Geometry* geom, const MultiFab* msk)
+    void amrex_fi_multifab_override_sync_mask (MultiFab* mf, const Geometry* geom, const iMultiFab* msk)
     {
         mf->OverrideSync(*msk, geom->periodicity());
+    }
+
+    void amrex_fi_multifab_sum_boundary (MultiFab* mf, const Geometry* geom, int icomp, int ncomp)
+    {
+        mf->SumBoundary(icomp, ncomp, geom->periodicity());
+    }
+
+    void amrex_fi_multifab_average_sync (MultiFab* mf, const Geometry* geom)
+    {
+        mf->AverageSync(geom->periodicity());
     }
 
     // iMultiFab

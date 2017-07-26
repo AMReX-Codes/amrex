@@ -43,6 +43,11 @@ extern "C" {
 #include <omp.h>
 #endif
 
+namespace
+{
+    static int call_mpi_finalize = 0;
+}
+
 namespace amrex {
 
 namespace ParallelDescriptor
@@ -246,6 +251,7 @@ bool
 ParallelDescriptor::Message::test ()
 {
     int flag;
+    BL_PROFILE_S("ParallelDescriptor::Message::test()");
     BL_COMM_PROFILE(BLProfiler::Test, sizeof(m_type), pid(), tag());
     BL_MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
     BL_COMM_PROFILE(BLProfiler::Test, flag, BLProfiler::AfterCall(), tag());
@@ -288,6 +294,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     if ( ! sflag) {
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
+        call_mpi_finalize = 1;
     }
     
     BL_MPI_REQUIRE( MPI_Comm_dup(mpi_comm, &m_comm_all) );
@@ -343,7 +350,9 @@ ParallelDescriptor::EndParallel ()
     }
 #endif
 
-    BL_MPI_REQUIRE( MPI_Finalize() );
+    if (call_mpi_finalize) {
+        BL_MPI_REQUIRE( MPI_Finalize() );
+    }
 }
 
 /* Given `rk_clrd', i.e. the rank in the colored `comm', return the
@@ -992,21 +1001,18 @@ ParallelDescriptor::ReduceRealSum (Array<std::reference_wrapper<Real> >&& rvar, 
 void
 ParallelDescriptor::ReduceRealMax (Real& r, Color color)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoAllReduceReal(r,MPI_MAX,color);
 }
 
 void
 ParallelDescriptor::ReduceRealMax (Real* r, int cnt, Color color)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoAllReduceReal(r,MPI_MAX,cnt,color);
 }
 
 void
 ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, Color color)
 {
-    BL_PROFILE("ReduceRealMax");
     int cnt = rvar.size();
     Array<Real> tmp{std::begin(rvar), std::end(rvar)};
     util::DoAllReduceReal(tmp.data(),MPI_MAX,cnt,color);
@@ -1018,7 +1024,6 @@ ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, 
 void
 ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoReduceReal(r,MPI_MAX,cpu);
 }
 

@@ -1,5 +1,5 @@
 
-subroutine amrex_fmain () bind(c)
+program main
 
   use amrex_base_module
 
@@ -18,6 +18,8 @@ subroutine amrex_fmain () bind(c)
   type(amrex_distromap) :: dm
   type(amrex_geometry)  :: geom
   type(amrex_multifab)  :: new_phi, old_phi
+
+  call amrex_init()
 
   ! amrex_parmparse is way of reading inputs from the inputs file
   ! "get" means it must be set in the inputs file, whereas
@@ -87,4 +89,7 @@ subroutine amrex_fmain () bind(c)
 
   call amrex_geometry_destroy(geom)
 
-end subroutine amrex_fmain
+  call amrex_finalize()
+
+end program main
+
