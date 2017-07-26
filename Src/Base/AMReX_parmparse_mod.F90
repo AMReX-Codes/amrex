@@ -497,7 +497,7 @@ contains
     allocate(cs(ntot))
     i = 1
     do ni = 1, n
-       do mi = 1, m
+       do mi = 1, len_trim(v(ni))
          cs(i) = v(ni)(mi:mi)
          i = i+1
        end do
