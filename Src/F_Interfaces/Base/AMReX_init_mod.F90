@@ -5,7 +5,9 @@ module amrex_init_module
   implicit none
 
   private
-  public :: amrex_init, amrex_finalize
+  public :: amrex_init, amrex_finalize, amrex_initialized
+
+  logical, save, private :: initialized = .false.
 
 contains
 
@@ -27,6 +29,7 @@ contains
     else
        call amrex_string_build(cmd_string, cmd)
        call amrex_fi_init(cmd_string%data)
+       initialized = .true.
     end if
   end subroutine amrex_init
   
@@ -38,6 +41,11 @@ contains
        end subroutine amrex_fi_finalize
     end interface
     call amrex_fi_finalize()
+    initialized = .false.
   end subroutine amrex_finalize
+
+  pure logical function amrex_initialized ()
+    amrex_initialized = initialized
+  end function amrex_initialized
 
 end module amrex_init_module

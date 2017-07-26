@@ -15,8 +15,6 @@ COMP      = g++
 
 DIM       = 3
 
-USE_AMREX_FI_MAIN = TRUE
-
 EBASE     = main
 
 include ./Make.package
