@@ -20,7 +20,6 @@ set ( ALLHEADERS
    AMReX_ParIterI.H  AMReX_ParticleI.H    AMReX_Particles_F.H
    AMReX_TracerParticles.H )
 
-
 # Accumulate sources
 set ( ALLSRC ${CXXSRC} ${F90SRC} ${F77SRC} )
 
