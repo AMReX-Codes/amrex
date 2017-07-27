@@ -142,7 +142,8 @@ namespace amrex
   DivergenceOp::
   hybridDivergence(FabArray<EBCellFAB>      & a_divF,
                    const FabArray<EBFluxFAB>& a_flux,
-                   int isrc, int idst, int inco)
+                   int isrc, int idst, int inco,
+                   bool a_trustRegDivF)
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(a_flux.nGrow() == m_dataGhost);
@@ -153,21 +154,24 @@ namespace amrex
       EBCellFAB       & divF = m_kappaDivergence[mfi];
       const EBFluxFAB & flux = a_flux[mfi];
 
-      BaseFab<Real>       &  regDivF = divF.getSingleValuedFAB();
-      vector<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
-      for(int idir = 0; idir < SpaceDim; idir++)
+      if(!a_trustRegDivF)
       {
-        regFlux[idir] = &(flux[idir].getSingleValuedFAB());
-      }
-      const Box& grid = m_eblg.getDBL()[mfi];
+        BaseFab<Real>       &  regDivF = divF.getSingleValuedFAB();
+        vector<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
+        for(int idir = 0; idir < SpaceDim; idir++)
+        {
+          regFlux[idir] = &(flux[idir].getSingleValuedFAB());
+        }
+        const Box& grid = m_eblg.getDBL()[mfi];
       
-      //first do everything as if it has no eb.
-      ebfnd_divflux(BL_TO_FORTRAN_FAB(regDivF),
-                    BL_TO_FORTRAN_FAB((*regFlux[0])),
-                    BL_TO_FORTRAN_FAB((*regFlux[1])),
-                    BL_TO_FORTRAN_FAB((*regFlux[2])),
-                    BL_TO_FORTRAN_BOX(grid),
-                    &m_dx, &isrc, &idst, &inco);
+        //first do everything as if it has no eb.
+        ebfnd_divflux(BL_TO_FORTRAN_FAB(regDivF),
+                      BL_TO_FORTRAN_FAB((*regFlux[0])),
+                      BL_TO_FORTRAN_FAB((*regFlux[1])),
+                      BL_TO_FORTRAN_FAB((*regFlux[2])),
+                      BL_TO_FORTRAN_BOX(grid),
+                      &m_dx, &isrc, &idst, &inco);
+      }
       //turn off increment only for bndry flux.  This sets the initial divergence at 
       //cut cells to zero
       bool incrementOnly = false;
