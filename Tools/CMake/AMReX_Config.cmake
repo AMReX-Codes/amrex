@@ -186,7 +186,8 @@ if (ENABLE_FPE)
 endif ()
 
 # Set CMake compiler flags
-set ( CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} "${AMREX_Fortran_FLAGS}" ) 
+set ( CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}
+   "${AMREX_Fortran_FLAGS}  ${AMREX_Fortran_DEFINITIONS}" ) 
 set ( CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE} "${AMREX_CXX_FLAGS}" )
 
 

@@ -107,6 +107,10 @@ set (AMREX_Cray_CXXFLAGS_RELEASE "-02")
 set (AMREX_Cray_CXXFLAGS_REQUIRED "")#-ftemplate-depth-64 -Wno-deprecated")
 set (AMREX_Cray_CXXFLAGS_FPE "")
 
+
+# For Fortran, always use the following preprocessor definitions
+set (AMREX_Fortran_DEFINITIONS -DBL_LANG_FORT)
+
 #
 # Compile- and link-time variables 
 #

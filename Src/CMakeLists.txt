@@ -1,86 +1,61 @@
 #
-# Set subdirectories path
-# 
-set (CBOXDIR Base)
-set (FBOXDIR F_BaseLib)
-set (CBNDRYDIR Boundary)
-set (CPARTDIR Particle)
-set (CAMRCOREDIR AmrCore)
-set (CAMRDIR Amr)
-set (CMGDIR LinearSolvers/C_CellMG)
-set (CTMGDIR LinearSolvers/C_TensorMG)
-set (CFMGDIR LinearSolvers/C_to_F_MG)
-set (FMGDIR LinearSolvers/F_MG)
-set (CAMRDATADIR Extern/amrdata)
-set (FINTDIR F_Interfaces)
+# Add all the subdir to the include path
+# For now exclude the following directory because of the conflicting name between
+# header files
+#
+find_include_paths (INCLUDE_PATHS EXCLUDE ${CMAKE_CURRENT_LIST_DIR}/EBAMRElliptic)
+
+include_directories ( ${CMAKE_Fortran_MODULE_DIRECTORY} ${INCLUDE_PATHS}
+   ${AMREX_EXTRA_Fortran_INCLUDE_PATH} ${AMREX_EXTRA_CXX_INCLUDE_PATH} )
+
+install (DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION include)
 
 #
-# Add all the subdir to the include path
-#  
-include_directories ( ${AMREX_EXTRA_Fortran_INCLUDE_PATH} ${AMREX_EXTRA_CXX_INCLUDE_PATH} )
+# Define a macro to accumulate all headers
+#
+set (AMREX_ALLHEADERS "" )
+macro (accumulate_headers headers)
+   list (APPEND AMREX_ALLHEADERS ${${headers}} )
+endmacro ()
 
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CBOXDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CBNDRYDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CPARTDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CAMRDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CAMRCOREDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CMGDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CTMGDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CFMGDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${CAMRDATADIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${FBOXDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-list_include_dirs ( INCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/${FMGDIR} )
-include_directories ( ${INCLUDE_PATHS} )
-
-install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION include)
+#
+# Fist, define the library we want to add
+#
+add_library ( amrex "")
 
 
-add_subdirectory(${CBOXDIR})
-add_subdirectory(${CBNDRYDIR})
-add_subdirectory(${CPARTDIR})
-add_subdirectory(${CAMRDIR})
-add_subdirectory(${CAMRCOREDIR})
-add_subdirectory(${CMGDIR})
-add_subdirectory(${CTMGDIR})
-add_subdirectory(${FBOXDIR})
-add_subdirectory(${FMGDIR})
-add_subdirectory(${CFMGDIR})
+#
+# Now, one by one, let's add all the source files in the subdirectories
+#
+include (Base/CMakeLists.txt)
+include (F_BaseLib/CMakeLists.txt)
+include (AmrCore/CMakeLists.txt)
+include (Amr/CMakeLists.txt)
+include (LinearSolvers/CMakeLists.txt)
+include (Boundary/CMakeLists.txt)
+include (F_Interfaces/CMakeLists.txt) 
+include (Extern/CMakeLists.txt)
 
+if ( ENABLE_PARTICLES )
+   include (Particle/CMakeLists.txt)
+endif ()
 
-add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_cpart> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_camrcore> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>)
-add_library(cfboxlib $<TARGET_OBJECTS:box_cfmg>)
-add_library(fboxlib $<TARGET_OBJECTS:box_f> $<TARGET_OBJECTS:box_fmg>)
-add_install_library(cboxlib)
-add_install_library(cfboxlib)
-add_install_library(fboxlib)
+#
+# Define the install dir
+#
+set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${AMREX_ALLHEADERS}" )
+install ( TARGETS amrex
+   ARCHIVE DESTINATION ${AMREX_LIBRARY_DIR}
+   PUBLIC_HEADER DESTINATION ${AMREX_INCLUDE_DIR}
+   )
 
 # Move Tools dir to install location
 install(CODE "MESSAGE(\"-- Copying   : ${AMREX_TOOLS_DIR} --> ${CCSE_INSTALL_DIR}\")" )
 install(CODE "FILE( COPY ${AMREX_TOOLS_DIR} DESTINATION ${CCSE_INSTALL_DIR} )")
-SET_TARGET_PROPERTIES(cboxlib PROPERTIES LINKER_LANGUAGE C)
-SET_TARGET_PROPERTIES(cfboxlib PROPERTIES LINKER_LANGUAGE C)
-SET_TARGET_PROPERTIES(fboxlib PROPERTIES LINKER_LANGUAGE C)
+# SET_TARGET_PROPERTIES(cboxlib PROPERTIES LINKER_LANGUAGE C)
+# SET_TARGET_PROPERTIES(cfboxlib PROPERTIES LINKER_LANGUAGE C)
+# SET_TARGET_PROPERTIES(fboxlib PROPERTIES LINKER_LANGUAGE C)
 
-add_subdirectory(${CAMRDATADIR})
+# add_subdirectory(${CAMRDATADIR})
 
 

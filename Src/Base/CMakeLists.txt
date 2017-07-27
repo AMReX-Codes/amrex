@@ -1,17 +1,10 @@
+set (CXXSRC "")
+set (F90SRC "")
+set (F77SRC "")
+set (ALLHEADERS "")
+set (ALLSRC "")
 
-#include(TestManager)
-
-#
-# Define a project name
-# After this command the following variables are defined
-#   CBOXLIB_SOURCE_DIR
-#   CBOXLIB_BINARY_DIR
-# Other projects (subdirectories) can reference this directory
-# through these variables.
-project ( CBOXLIB )
-
-
-set ( CXX_source_files
+set ( CXXSRC
    AMReX_Arena.cpp AMReX_BArena.cpp AMReX_BaseFab.cpp AMReX_BCRec.cpp
    AMReX_BLBackTrace.cpp AMReX_BoxArray.cpp AMReX_Box.cpp AMReX_BoxIterator.cpp
    AMReX_BoxDomain.cpp AMReX.cpp AMReX_BoxList.cpp AMReX_CArena.cpp
@@ -26,18 +19,18 @@ set ( CXX_source_files
    AMReX_parmparse_fi.cpp AMReX_error_fi.cpp AMReX_BLProfiler.cpp
    AMReX_TinyProfiler.cpp )
 
-set ( F77_source_files
+set ( F77SRC
    AMReX_BLProfiler_F.f AMReX_BLBoxLib_F.f AMReX_bl_flush.f
-   AMReX_BLParmParse_F.f AMReX_BLutil_F.f)
+   AMReX_BLParmParse_F.f AMReX_BLutil_F.f 
+   AMReX_COORDSYS_${BL_SPACEDIM}D.F AMReX_FILCC_${BL_SPACEDIM}D.F )
 
-set ( FPP_source_files AMReX_COORDSYS_${BL_SPACEDIM}D.F
-   AMReX_FILCC_${BL_SPACEDIM}D.F )
 
-set ( F90_source_files AMReX_mempool_f.f90 AMReX_MultiFabUtil_${BL_SPACEDIM}d.f90
+set ( F90SRC
+   AMReX_mempool_f.f90 AMReX_MultiFabUtil_${BL_SPACEDIM}d.f90
    AMReX_BaseFab_nd.f90 AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90
-   AMReX_parmparse_mod.F90 AMReX_string_mod.F90 AMReX_error_mod.F90 )
+   AMReX_parmparse_mod.F90 AMReX_string_mod.F90 AMReX_error_mod.F90 AMReX_bc_types_mod.F90 )
 
-set ( CXX_header_files
+set ( ALLHEADERS
    AMReX_Arena.H AMReX_Array.H AMReX_ArrayLim.H AMReX_BArena.H AMReX_BaseFab.H
    AMReX_BCRec.H AMReX_BC_TYPES.H AMReX_BLassert.H AMReX_BLBackTrace.H AMReX_BLFort.H
    AMReX_BLProfiler.H AMReX_BoxArray.H AMReX_BoxDomain.H AMReX_Box.H AMReX_BoxIterator.H
@@ -51,20 +44,24 @@ set ( CXX_header_files
    AMReX_Periodicity.H AMReX_PlotFileUtil.H AMReX_Print.H AMReX_RealBox.H AMReX_RealVect.H
    AMReX_REAL.H AMReX_SPACE.H AMReX_Tuple.H AMReX_TypeTraits.H AMReX_Utility.H
    AMReX_parstream.H AMReX_VisMF.H AMReX_PhysBCFunct.H AMReX_SPMD.H AMReX_SPMDI.H
-   AMReX_TinyProfiler.H AMReX_BCUtil.H )
+   AMReX_TinyProfiler.H AMReX_BCUtil.H
+   # Fortran Headers
+   AMReX_bc_types.fi AMReX_COORDSYS_F.H AMReX_SPACE_F.H AMReX_BaseFab_f.H AMReX_filcc_f.H )
 
-set ( F77_header_files AMReX_bc_types.fi)
-set ( FPP_header_files AMReX_COORDSYS_F.H AMReX_SPACE_F.H AMReX_BaseFab_f.H AMReX_filcc_f.H)
-set ( F90_header_files )
 
-set_F77_properties ( FPP_out_files ${FPP_source_files} )
 
-set ( local_source_files ${CXX_source_files} ${F77_source_files}
-   ${FPP_out_files}    ${F90_source_files} )
-set ( local_header_files ${CXX_header_files} ${F77_header_files}
-   ${FPP_header_files} ${F90_header_files} )
+# Accumulate sources
+set ( ALLSRC ${CXXSRC} ${F90SRC} ${F77SRC} )
 
-add_library(box_c OBJECT ${local_source_files})
+#
+# Add absolute path (needed by target_sources)
+# 
+prepend ( ALLSRC     ${CMAKE_CURRENT_LIST_DIR} )
+prepend ( ALLHEADERS ${CMAKE_CURRENT_LIST_DIR} )
 
-install_include_files(${local_header_files})
-   
+target_sources ( amrex PRIVATE ${ALLSRC} ${ALLHEADERS} )
+
+# 
+# Accumulate headers 
+#
+accumulate_headers (ALLHEADERS)   
