@@ -13,8 +13,8 @@
 
 // We can assume that template class T has null construction.
 
-#ifndef _MULTIGRID_H___
-#define _MULTIGRID_H___
+#ifndef _EBMULTIGRID_H___
+#define _EBMULTIGRID_H___
 
 #include "AMReX_LinearSolver.H"
 #include "AMReX_REAL.H"
@@ -86,7 +86,7 @@ namespace amrex
 
   private:
 
-    //! Multigrid coarsening factors.
+    //! EBMultiGrid coarsening factors.
     std::vector<int> m_coarseningFactors;
 
     // Forbidden operations.
@@ -115,7 +115,7 @@ namespace amrex
 
     /**
        Create an operator at an  index space = coarsen(a_fineIndexSpace, 2^a_depth)
-       Return NULL if no such Multigrid level can be created at this a_depth.
+       Return NULL if no such EBMultiGrid level can be created at this a_depth.
        If a_homoOnly = true, then only homogeneous boundary conditions will be needed.
     */
     virtual MGLevelOp<T>* MGnewOp(const Box & a_FineindexSpace,
@@ -131,18 +131,18 @@ namespace amrex
 
 ///
 /**
-   Class to execute geometric multigrid.   This class is not meant to be particularly
+   Class to execute geometric EBMultiGrid.   This class is not meant to be particularly
    user-friendly and a good option for people who want something a tad less raw is to
-   use AMRMultiGrid instead.
+   use AMREBMultiGrid instead.
 */
   template <class T>
-  class MultiGrid
+  class EBMultiGrid
   {
   public:
-    MultiGrid();
-    virtual ~MultiGrid();
+    EBMultiGrid();
+    virtual ~EBMultiGrid();
 
-    /// Function to define a MultiGrid object.
+    /// Function to define a EBMultiGrid object.
     /**
        a_factory is the factory for generating operators.
        a_bottomSolver is called at the bottom of v-cycle.
@@ -165,17 +165,17 @@ namespace amrex
     */
     virtual void solve(T& a_phi, const T& a_rhs, Real a_tolerance, int a_maxIterations, int verbosity= 0);
 
-    /// Execute ONE v-cycle of multigrid.
+    /// Execute ONE v-cycle of EBMultiGrid.
     /**
        If you want the solution to converge, you need to iterate this.
-       See solve() or AMRMultiGrid::solve for a more automatic solve() function.
+       See solve() or AMREBMultiGrid::solve for a more automatic solve() function.
        This operates residual-correction form of solution
        so all boundary conditions are assumed to be homogeneous.
        L(a_e) = a_res
     */
     virtual void oneCycle(T& a_e, const T& a_res);
 
-    // used by AMRMultiGrid--not a part of the public API
+    // used by AMREBMultiGrid--not a part of the public API
     void init(const T& a_correction, const T& a_residual);
 
     //internal function
@@ -184,14 +184,14 @@ namespace amrex
     //internal function
     void clear();
 
-    // used by AMRMultiGrid--not a part of the public API
+    // used by AMREBMultiGrid--not a part of the public API
     void setBottomSolver(shared_ptr<LinearSolver<T> > & a_bottomSolver);
 
     ///
     /**
        Public solver parameters.   m_pre and m_post are the ones
        that usually get set and are the number of relaxations performed
-       before and after multigrid recursion.    See AMRMultiGrid for a
+       before and after EBMultiGrid recursion.    See AMREBMultiGrid for a
        more user-friendly interface.
     */
     int  m_depth, m_defaultDepth, m_pre, m_post, m_bottom, m_cycle, m_numMG;
@@ -215,25 +215,25 @@ namespace amrex
     std::vector< T* >   m_correction;
 
   private:
-    MultiGrid(const MultiGrid<T>& a_opin)
+    EBMultiGrid(const EBMultiGrid<T>& a_opin)
       {
         amrex::Error("invalid operator");
       }
 
-    void operator=(const MultiGrid<T>& a_opin)
+    void operator=(const EBMultiGrid<T>& a_opin)
       {
         amrex::Error("invalid operator");
       }
   };
 
 // *******************************************************
-// MultiGrid Implementation
+// EBMultiGrid Implementation
 // *******************************************************
 
 //-----------------------------------------------------------------------
   template <class T>
   std::vector< MGLevelOp<T>* >
-  MultiGrid<T>::getAllOperators()
+  EBMultiGrid<T>::getAllOperators()
   {
     std::vector<MGLevelOp<T>*> retval = m_op;
     return retval;
@@ -242,7 +242,7 @@ namespace amrex
 
 //-----------------------------------------------------------------------
   template <class T>
-  MultiGrid<T>::MultiGrid()
+  EBMultiGrid<T>::EBMultiGrid()
     :m_pre(3),
      m_post(3),
      m_bottom(0),
@@ -256,7 +256,7 @@ namespace amrex
 
 //-----------------------------------------------------------------------
   template <class T>
-  MultiGrid<T>::~MultiGrid()
+  EBMultiGrid<T>::~EBMultiGrid()
   {
     clear();
   }
@@ -264,12 +264,12 @@ namespace amrex
 
 //-----------------------------------------------------------------------
   template <class T>
-  void MultiGrid<T>::define(MGLevelOpFactory<T>          & a_factory,
+  void EBMultiGrid<T>::define(MGLevelOpFactory<T>          & a_factory,
                             shared_ptr<LinearSolver<T> > & a_bottomSolver,
                             const Box                    & a_domain,
                             int                            a_maxDepth)
   {
-    BL_PROFILE("multigrid::define");
+    BL_PROFILE("EBMultiGrid::define");
 
     clear();
     m_depth = 0;
@@ -291,7 +291,7 @@ namespace amrex
       m_depth++;
       if ((m_depth < a_maxDepth) || (a_maxDepth < 0))
       {
-        // Create a coarser multigrid operator.
+        // Create a coarser EBMultiGrid operator.
         nextOp = a_factory.MGnewOp(a_domain , m_depth, true);
         if (nextOp != NULL)
         {
@@ -311,7 +311,7 @@ namespace amrex
 
 //-----------------------------------------------------------------------
   template <class T>
-  void MultiGrid<T>::setBottomSolver(shared_ptr<LinearSolver<T> > & a_bottomSolver)
+  void EBMultiGrid<T>::setBottomSolver(shared_ptr<LinearSolver<T> > & a_bottomSolver)
   {
     m_bottomSolver = a_bottomSolver;
     m_bottomSolver->define(m_op[m_depth-1], true);
@@ -320,9 +320,9 @@ namespace amrex
 
 //-----------------------------------------------------------------------
   template <class T>
-  void MultiGrid<T>::init(const T& a_e, const T& a_residual)
+  void EBMultiGrid<T>::init(const T& a_e, const T& a_residual)
   {
-    BL_PROFILE("multigrid::init");
+    BL_PROFILE("EBMultiGrid::init");
     if (m_depth > 1)
     {
       m_op[0]->createCoarser(*(m_residual[1]), a_residual, false);
@@ -339,9 +339,9 @@ namespace amrex
 
 //-----------------------------------------------------------------------
   template <class T>
-  void MultiGrid<T>::solve(T& a_phi, const T& a_rhs, Real a_tolerance, int a_maxIterations, int verbosity)
+  void EBMultiGrid<T>::solve(T& a_phi, const T& a_rhs, Real a_tolerance, int a_maxIterations, int verbosity)
   {
-    BL_PROFILE("multigrid::solve");
+    BL_PROFILE("EBMultiGrid::solve");
     this->init(a_phi, a_rhs);
 
     T correction, residual;
@@ -353,7 +353,7 @@ namespace amrex
     Real errorno = m_op[0]->norm(residual, 0);
     if (verbosity > 2)
     {
-      pout() << "multigrid::solve initial residual = " << errorno << std::endl;
+      pout() << "EBMultiGrid::solve initial residual = " << errorno << std::endl;
     }
     Real compval = a_tolerance*errorno;
     Real epsilon = 1.0e-16;
@@ -367,7 +367,7 @@ namespace amrex
       error = m_op[0]->norm(residual, 0);
       if (verbosity > 3)
       {
-        pout() << "multigrid::solve iter = " << iter <<  ",  residual = " << error << std::endl;
+        pout() << "EBMultiGrid::solve iter = " << iter <<  ",  residual = " << error << std::endl;
       }
 
       this->cycle(0, correction, residual);
@@ -377,7 +377,7 @@ namespace amrex
     }
     if (verbosity > 2)
     {
-      pout() << "multigrid::solve final residual = " << error << std::endl;
+      pout() << "EBMultiGrid::solve final residual = " << error << std::endl;
     }
 
     m_op[0]->clear(correction);
@@ -387,11 +387,11 @@ namespace amrex
 
 //-----------------------------------------------------------------------
   template <class T>
-  void MultiGrid<T>::oneCycle(T& a_e, const T& a_residual)
+  void EBMultiGrid<T>::oneCycle(T& a_e, const T& a_residual)
   {
 
-    BL_PROFILE("multigrid::oneCycle");
-    //this->init(a_e, a_residual); oneCycle is only used by AMRMultigrid
+    BL_PROFILE("EBMultiGrid::oneCycle");
+    //this->init(a_e, a_residual); oneCycle is only used by AMREBMultiGrid
     if (m_homogeneous)
     {
       cycle(0, a_e, a_residual);
@@ -416,10 +416,10 @@ namespace amrex
 
 //-----------------------------------------------------------------------
   template <class T>
-  void MultiGrid<T>::cycle(int depth, T& correction, const T& residual)
+  void EBMultiGrid<T>::cycle(int depth, T& correction, const T& residual)
   {
 
-    BL_PROFILE("multigrid::cycle");
+    BL_PROFILE("EBMultiGrid::cycle");
     // currently I can't drop a timer in this function because it is recursive.  doh
     if (depth == m_depth-1)
     {
@@ -440,7 +440,7 @@ namespace amrex
       if ( cycles < 0 )
       {
         cycles = -cycles;
-        // F cycle multigrid
+        // F cycle EBMultiGrid
         m_op[depth  ]->restrictResidual(*(m_residual[depth+1]), correction, residual);
         m_op[depth  ]->setToZero(*(m_correction[depth+1]));
 
@@ -484,9 +484,9 @@ namespace amrex
   }
 //-----------------------------------------------------------------------
   template <class T>
-  void MultiGrid<T>::clear()
+  void EBMultiGrid<T>::clear()
   {
-    BL_PROFILE("multigrid::clear");
+    BL_PROFILE("EBMultiGrid::clear");
     for (int i= 0; i < m_op.size(); i++)
     {
       delete m_op[i];
@@ -504,4 +504,4 @@ namespace amrex
 //-----------------------------------------------------------------------
 
 }
-#endif /*_MULTIGRID_H_*/
+#endif /*_EBMULTIGRID_H_*/
