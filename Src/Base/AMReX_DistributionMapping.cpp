@@ -344,6 +344,19 @@ DistributionMapping::LeastUsedTeams (Array<int>        & rteam,
 #endif
 }
 
+void
+DistributionMapping::ReplaceCachedProcessorMap (const Array<int>& newProcmapArray)
+{
+    const int N(newProcmapArray.size());
+    BL_ASSERT(m_ref->m_pmap.size() == N);
+    BL_ASSERT(newProcmapArray.size() == N);
+
+    for(int iA(0); iA < N; ++iA) {
+      m_ref->m_pmap[iA] = newProcmapArray[iA];
+    }
+
+}
+
 DistributionMapping::DistributionMapping ()
     :
     m_ref(std::make_shared<Ref>()),
@@ -2696,7 +2709,8 @@ operator<< (std::ostream&              os,
         os << "m_pmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
 
-    os << ')' << '\n';
+    os << ')';
+    os << "  refidptr = " << pmap.getRefID().dataPtr() << '\n';
 
     if (os.fail())
         amrex::Error("operator<<(ostream &, DistributionMapping &) failed");
