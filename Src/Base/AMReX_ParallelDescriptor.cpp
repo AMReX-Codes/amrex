@@ -365,10 +365,10 @@ ParallelDescriptor::Translate(int rk_clrd,Color clr)
   }
   else if (clr.valid())
   {
-    int use_new_clr_map = 0;
+    int clr_map = 0;
     amrex::ParmParse pp("amrex");
-    pp.query("use_new_clr_map",use_new_clr_map);
-    if (!use_new_clr_map)
+    pp.query("clr_map",clr_map);
+    if (!clr_map)
     {
       return m_first_procs_clr[clr.to_int()]+rk_clrd;
     }
@@ -408,10 +408,10 @@ ParallelDescriptor::init_clr_vars()
   /* My color */
   int my_clr;
   /* Definition of `my_clr` */
-  int use_new_clr_map = 0;
+  int clr_map = 0;
   amrex::ParmParse pp("amrex");
-  pp.query("use_new_clr_map",use_new_clr_map);
-  if (!use_new_clr_map)
+  pp.query("clr_map",clr_map);
+  if (!clr_map)
   {
     /* All first proc.'s (clear) */
     m_first_procs_clr.clear();
