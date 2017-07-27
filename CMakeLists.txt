@@ -69,20 +69,20 @@ include(InstallManager)
 add_subdirectory(Src)
 
 # Source file for postprocess exes
-add_subdirectory(Tools/Postprocessing/F_Src) 
+#add_subdirectory(Tools/Postprocessing/F_Src) 
 
-# Make the exports only _after_ doing the build
-create_exports()
+# # Make the exports only _after_ doing the build
+# create_exports()
 
-install_include_files (${CCSE_PERL_DIR}/AMReX_buildInfo.H)
-ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEOptions.cmake)
-ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindCCSE.cmake)
-ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in)
+# install_include_files (${CCSE_PERL_DIR}/AMReX_buildInfo.H)
+# ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEOptions.cmake)
+# ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/FindCCSE.cmake)
+# ADD_INSTALL_CMAKE_FILES(${CCSE_MODULE_PATH}/CCSEConfigVersion-install.cmake.in)
 
 
-option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
-set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/ccse-config.log"
-    CACHE string "CCSE configuration log file")
+# option(ENABLE_Config_Report "Print out detailed information at the end of a configuration")
+# set(CCSE_CONFIG_LOG "${CCSE_BINARY_DIR}/ccse-config.log"
+#     CACHE string "CCSE configuration log file")
 # include(CCSEConfigReport)
 # if (ENABLE_Config_Report)
 #     execute_process(COMMAND "${cat_exec}" "${CCSE_CONFIG_LOG}" OUTPUT_VARIABLE config_output)

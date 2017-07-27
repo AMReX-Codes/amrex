@@ -22,22 +22,66 @@ endfunction ()
 # Create list of all include directories
 # cmake must be re-run if new dirs with Headers are introduced
 #
-function ( list_include_dirs dirlist root_dir)
-   
-   file ( GLOB_RECURSE includes
-      LIST_DIRECTORIES false 
-      ${root_dir}/*.h ${root_dir}/*.H
-      )
+# Arguments:
+#
+#  dirlist  = the list of subdir
+#  ROOT     = top level directory from where to start search
+#             If not given, default is CMAKE_CURRENT_LIST_DIR
+#  EXCLUDE  = list of path to exclude from search
+#
+function ( find_include_paths mic_test dirlist )
 
-   foreach (file ${includes})
-      get_filename_component ( path ${file} PATH)
-      list ( APPEND tmp ${path} )
+   cmake_parse_arguments ( ARG "" "ROOT" "EXCLUDE"  ${ARGN} )
+
+   if (NOT ARG_ROOT)
+      set ( ARG_ROOT ${CMAKE_CURRENT_LIST_DIR} )
+   endif ()
+
+   # Check that root and exclude dir exist
+   set ( alldirs ${ARG_ROOT} )
+   if ( ARG_EXCLUDE )
+      list (APPEND alldirs ${ARG_EXCLUDE} )
+   endif ()
+
+   foreach ( dir ${alldirs} )
+      if ( NOT EXISTS ${dir} )
+	 message (WARNING "${dir} is not a valid path")
+      endif ()
    endforeach ()
 
-   list ( REMOVE_DUPLICATES tmp )
+   # This list all the directories containing headers 
+   file ( GLOB_RECURSE includes LIST_DIRECTORIES true 
+      ${ARG_ROOT}/*.h ${ARG_ROOT}/*.H )
+   
+  
+   foreach (item ${includes})
+
+      get_filename_component ( path ${item} PATH )
+
+      if (IS_DIRECTORY ${path})
+
+	 # Check first if it is a valid path
+	 set (path_is_valid "YES")
+	 
+	 foreach ( exclude ${ARG_EXCLUDE})
+	    string (FIND ${path} ${exclude} out )
+	    if ( NOT (${out} EQUAL -1) AND (${path} STREQUAL ${exclude}))
+	       set (path_is_valid "NO")
+	    endif ()
+	 endforeach ()
+	 	 
+	 if ( NOT (${path} IN_LIST tmp ) AND path_is_valid )	   	    
+	    list ( APPEND tmp ${path} )
+	 endif ()
+	 
+      endif ()
+      
+   endforeach ()
+
    set ( ${dirlist} ${tmp} PARENT_SCOPE )
   
 endfunction ()
+
 
 #
 # Append new_var to all_var
@@ -118,3 +162,18 @@ function ( install_include_files )
    endforeach()
 endfunction ()
 
+#
+# Function to prepend path to list items
+#
+function (prepend list prefix)
+
+   set ( tmp "" )
+   foreach (item ${${list}})
+      set ( name   ${prefix}/${item} )
+      string ( REPLACE "//" "/" name ${name})
+      list ( APPEND tmp ${name} )
+   endforeach ()
+
+   set ( ${list} ${tmp}  PARENT_SCOPE )
+
+endfunction ()
