@@ -29,7 +29,7 @@ endfunction ()
 #             If not given, default is CMAKE_CURRENT_LIST_DIR
 #  EXCLUDE  = list of path to exclude from search
 #
-function ( find_include_paths mic_test dirlist )
+function ( find_include_paths dirlist )
 
    cmake_parse_arguments ( ARG "" "ROOT" "EXCLUDE"  ${ARGN} )
 
