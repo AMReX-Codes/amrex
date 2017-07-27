@@ -326,7 +326,7 @@ LaserParticleContainer::Evolve (int lev,
                 const int *rholen;
                 FArrayBox& rhofab = (*rho)[pti];
 #ifdef _OPENMP
-                Box tile_box = pti.tilebox();
+                Box tile_box = pti.tilebox(IntVect::TheUnitVector());
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 tile_box.grow(ngRho);
                 local_rho.resize(tile_box);
