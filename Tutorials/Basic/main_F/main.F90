@@ -53,7 +53,7 @@ program main
   
   call amrex_finalize()
 
-  call mpi_finalize()  ! We have to call this because we called MPI_Init.
+  call mpi_finalize(ierr)  ! We have to call this because we called MPI_Init.
 
 end program main
 
