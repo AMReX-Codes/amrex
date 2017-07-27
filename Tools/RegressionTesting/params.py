@@ -226,6 +226,9 @@ def load_params(args):
                 elif opt in ["link1File", "link2File", "link3File"]:
                     mytest.linkFiles.append(value)
 
+                elif opt == "keyword":
+                    mytest.keywords = [k.strip() for k in value.split(",")]
+                    
                 else:
                     # generic setting of the object attribute
                     setattr(mytest, opt, value)
