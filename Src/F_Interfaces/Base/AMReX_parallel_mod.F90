@@ -89,6 +89,13 @@ contains
     end if
     call MPI_Comm_Size(m_comm, m_nprocs, ierr)
     call MPI_Comm_Rank(m_comm, m_myproc, ierr)
+    if (c_sizeof(amrex_real) .eq. c_sizeof(c_double)) then
+       amrex_mpi_real = MPI_DOUBLE_PRECISION
+    else if (c_sizeof(amrex_real) .eq. c_sizeof(c_float)) then
+       amrex_mpi_real = MPI_REAL
+    else
+       call amrex_abort("amrex_parallel_init: size of amrex_real is unknown")
+    end if
 #endif    
   end subroutine amrex_parallel_init
 

@@ -6,27 +6,35 @@ module amrex_init_module
   implicit none
 
   private
-  public :: amrex_init, amrex_finalize, amrex_initialized
+  public :: amrex_init, amrex_finalize, amrex_initialized, amrex_null_proc
+
+  interface
+     subroutine amrex_null_proc () bind(c)
+     end subroutine amrex_null_proc
+  end interface
 
   logical, save, private :: initialized = .false.
 
 contains
 
-  subroutine amrex_init (comm, arg_parmparse)
+  subroutine amrex_init (comm, arg_parmparse, proc_parmparse)
     use amrex_string_module
     interface
-       subroutine amrex_fi_init(cmd, fcomm, argpp) bind(c)
+       subroutine amrex_fi_init(cmd, fcomm, argpp, procpp) bind(c)
          import
          implicit none
          character(c_char), intent(in) :: cmd(*)
          integer, intent(in), value :: fcomm, argpp
+         type(c_funptr), value, intent(in) :: procpp
        end subroutine amrex_fi_init
     end interface
     integer, optional, intent(in) :: comm
     logical, optional, intent(in) :: arg_parmparse
+    procedure(amrex_null_proc), optional :: proc_parmparse
     integer :: len_cmd, status_cmd, l_arg_parmparse
     character(len=1024) :: cmd
     type(amrex_string) :: cmd_string
+    type(c_funptr) :: cfp
     call amrex_parallel_init(comm)
     call get_command(cmd, len_cmd, status_cmd)
     if (status_cmd .ne. 0) then
@@ -41,7 +49,12 @@ contains
              l_arg_parmparse = 0
           end if
        end if
-       call amrex_fi_init(cmd_string%data, amrex_parallel_communicator(), l_arg_parmparse)
+       if (present(proc_parmparse)) then
+          cfp = c_funloc(proc_parmparse)
+       else
+          cfp = c_null_funptr
+       end if
+       call amrex_fi_init(cmd_string%data, amrex_parallel_communicator(), l_arg_parmparse, cfp)
        initialized = .true.
     end if
   end subroutine amrex_init
