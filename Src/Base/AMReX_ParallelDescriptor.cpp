@@ -1030,14 +1030,12 @@ ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
 void
 ParallelDescriptor::ReduceRealMax (Real* r, int cnt, int cpu)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoReduceReal(r,MPI_MAX,cnt,cpu);
 }
 
 void
 ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, int cpu)
 {
-    BL_PROFILE("ReduceRealMax");
     int cnt = rvar.size();
     Array<Real> tmp{std::begin(rvar), std::end(rvar)};
     util::DoReduceReal(tmp.data(),MPI_MAX,cnt,cpu);

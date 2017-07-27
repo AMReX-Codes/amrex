@@ -114,7 +114,7 @@ namespace amrex
     return eekflag;
   }
   //----------------
-  void defineConductivitySolver(AMRMultiGrid<FabArray<EBCellFAB> >& a_solver,
+  void defineConductivitySolver(AMREBMultiGrid<FabArray<EBCellFAB> >& a_solver,
                                 const vector<EBLevelGrid>         & a_veblg,
                                 const GridParameters              & a_params,
                                 int a_nghost)
@@ -222,7 +222,7 @@ namespace amrex
       EBLevelDataOps::setVal(*rhs[ilev], 1.0);
     }
 
-    AMRMultiGrid<FabArray<EBCellFAB> > solver;
+    AMREBMultiGrid<FabArray<EBCellFAB> > solver;
     defineConductivitySolver(solver, veblg, params, nghost);
     int lbase = 0; int lmax = params.maxLevel;
 

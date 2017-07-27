@@ -111,7 +111,7 @@ contains
     !number of fine faces per coarse face
     numfinepercoar = refrat
 #if BL_SPACEDIM==3
-    numfinepercoar == refrat*refrat
+    numfinepercoar = refrat*refrat
 #endif
 
     do ivar = 0, ncomp-1

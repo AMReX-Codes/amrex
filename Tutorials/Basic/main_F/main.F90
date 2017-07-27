@@ -53,7 +53,7 @@ program main
   
   call amrex_finalize()
 
-  call mpi_finalize()
+  call mpi_finalize(ierr)  ! We have to call this because we called MPI_Init.
 
 end program main
 
@@ -64,6 +64,7 @@ subroutine add_parameters () bind(c)
 
   type(amrex_parmparse) :: pp
 
+  ! prefix "amrex"
   call amrex_parmparse_build(pp,"amrex")
   call pp%add("fpe_trap_invalid", 1)   ! turn on NaN trapping, which is off by default.
   call amrex_parmparse_destroy(pp)
