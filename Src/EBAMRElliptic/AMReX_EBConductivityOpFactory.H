@@ -13,7 +13,7 @@
 #define _EBCONDUCTIVITYOPFACTORY_H___
 
 #include <vector>
-#include "AMReX_AMRMultiGrid.H"
+#include "AMReX_AMREBMultiGrid.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
@@ -53,20 +53,13 @@ namespace amrex
     //! Destructor.
     virtual ~EBConductivityOpFactory();
 
-    ///
-    virtual void setData( vector< shared_ptr<FabArray<BaseIVFAB<Real> > > >& a_data)
-      {
-        m_data = a_data;
-        m_dataBased = true;
-      }
-
-    ///called by MultiGrid.H
+    ///called by EBMultiGrid.H
     virtual EBConductivityOp*
     MGnewOp(const Box & a_FineindexSpace,
             int         a_depth,
             bool        a_homoOnly = true);
 
-    ///called by AMRMultiGrid.H
+    ///called by AMREBMultiGrid.H
     virtual EBConductivityOp*
     AMRnewOp(const Box& a_FineindexSpace);
 
@@ -98,23 +91,14 @@ namespace amrex
     vector<Real>                                         m_dx;
   private:
     ///weak construction bad
-    EBConductivityOpFactory()
-      {
-        MayDay::Error("invalid operator");
-      }
+    EBConductivityOpFactory();
 
     //copy constructor and operator= disallowed for all the usual reasons
-    EBConductivityOpFactory(const EBConductivityOpFactory& a_opin)
-      {
-        MayDay::Error("invalid operator");
-      }
+    EBConductivityOpFactory(const EBConductivityOpFactory& a_opin);
 
     //copy constructor and operator= disallowed for all the usual reasons
-    void operator=(const EBConductivityOpFactory& a_opin)
-      {
-        MayDay::Error("invalid operator");
-      }
-  };
+    void operator=(const EBConductivityOpFactory& a_opin);
+
 
 }
 #endif
