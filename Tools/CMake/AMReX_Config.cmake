@@ -21,16 +21,6 @@ if (ENABLE_PIC)
 endif ()
 
 
-# No idea why we need this.
-# I think it was required for Franklin build. -- lpritch
-# if(PREFER_STATIC_LIBRARIES)
-#   # Prefer static libraries, but don't require that everything must be static. 
-#   # This appears to be necessary on Franklin at NERSC right now.  --RTM
-#   set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
-# endif(PREFER_STATIC_LIBRARIES)
-
-
-
 #
 # Detect Fortran name mangling scheme for C/Fortran interface 
 #
