@@ -250,7 +250,8 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 }
 
 void
-amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_comm)
+amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
+                   MPI_Comm mpi_comm, PTR_TO_VOID_FUNC func_parm_parse)
 {
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
@@ -296,11 +297,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 
     BL_PROFILE_INITIALIZE();
 
-    //
-    // Initialize random seed after we're running in parallel.
-    //
-    amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
-
 #ifdef BL_USE_MPI
     amrex::Print() << "MPI initialized with "
 		   << ParallelDescriptor::NProcs()
@@ -338,6 +334,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
         }
     }
 
+    if (func_parm_parse) {
+        func_parm_parse();
+    }
+
     {
 	ParmParse pp("amrex");
 	pp.query("v", system::verbose);
@@ -360,6 +360,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse, MPI_Comm mpi_
 #endif
 #endif
     }
+
+    //
+    // Initialize random seed after we're running in parallel.
+    //
+    amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
 
     ParallelDescriptor::StartTeams();
 

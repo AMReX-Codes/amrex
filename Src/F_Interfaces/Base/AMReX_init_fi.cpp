@@ -9,7 +9,8 @@
 
 extern "C"
 {
-    void amrex_fi_init (char* cmd, int fcomm, int arg_parmparse)
+    void amrex_fi_init (char* cmd, int fcomm, int arg_parmparse,
+                        amrex::PTR_TO_VOID_FUNC proc_parmparse)
     {
         std::istringstream is(cmd);
         amrex::Array<std::string> argv_string(std::istream_iterator<std::string>{is},
@@ -28,7 +29,7 @@ extern "C"
 #else
         int ccomm = 0;
 #endif
-        amrex::Initialize(argc, argv, arg_parmparse, ccomm);
+        amrex::Initialize(argc, argv, arg_parmparse, ccomm, proc_parmparse);
 
         for (int i = 0; i < argc; ++i)
         {
