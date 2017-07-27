@@ -218,6 +218,12 @@ namespace amrex
     */
     void NItemsPerBin (int totalItems, Array<int> &binCounts);
 
+    /* \brief Unspecified profiler function */
+    int CRRBetweenLevels(int fromlevel, int tolevel,
+                         const Array<int> &refratios);
+
+
+
     class expect;
     std::istream& operator>>(std::istream&, const expect& exp);
     
