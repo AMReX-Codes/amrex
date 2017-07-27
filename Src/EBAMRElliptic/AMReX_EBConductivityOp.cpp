@@ -497,7 +497,7 @@ namespace amrex
            bool                        a_homogeneousPhysBC)
   {
     BL_PROFILE("EBConductivityOp::residual");
-    //this is a multigrid operator so only homogeneous CF BC
+    //this is a EBMultiGrid operator so only homogeneous CF BC
     //and null coar level
     BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
     BL_ASSERT(a_phi.nGrow() == m_ghostPhi);
