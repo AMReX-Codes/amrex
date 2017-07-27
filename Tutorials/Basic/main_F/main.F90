@@ -15,7 +15,9 @@
 !     multiple `parm=value`s.
 !
 !     The parsing of the command line arguments is performed in amrex_init.  Applications can
-!     choose to skip the the parsing, and add runtime parameters to ParmParse database later.
+!     choose to skip command line parsing.  Applications can also provide a procedure that
+!     adds parameters to AMReX ParmParse database.  The procedure must have the signature of
+!     subroutine () bind(c) (i.e., void arguments and c binding).
 !
 
 program main
@@ -25,14 +27,25 @@ program main
 
   implicit none
 
+  interface
+     subroutine add_parameters () bind(c)
+     end subroutine add_parameters
+  end interface
+
   integer :: ierr
 
   call mpi_init(ierr)
 
-  call amrex_init(comm=MPI_COMM_WORLD, arg_parmparse=.false.)
+  ! We pass MPI_COMM_WORLD.  Its duplicate will be used by AMReX.
+  !
+  ! arg_parmparse=.false. : No command line arguments are used to build ParmParse database.
+  !
+  ! proc_parmparse : We pass a procedure that adds parameters to ParmParse database..
+  !
+  ! All three are optional arguments.
 
-  ! Add runtime parameters to amrex ParmParse database, if needed.
-  call add_parameters()
+  call amrex_init(comm=MPI_COMM_WORLD, arg_parmparse=.false., proc_parmparse=add_parameters)
+
   ! Testing
   call test_parameters()
 
@@ -40,16 +53,21 @@ program main
   
   call amrex_finalize()
 
-  call mpi_finalize()
+  call mpi_finalize(ierr)  ! We have to call this because we called MPI_Init.
 
 end program main
 
 
-subroutine add_parameters ()
+subroutine add_parameters () bind(c)
   use amrex_base_module
   implicit none
 
   type(amrex_parmparse) :: pp
+
+  ! prefix "amrex"
+  call amrex_parmparse_build(pp,"amrex")
+  call pp%add("fpe_trap_invalid", 1)   ! turn on NaN trapping, which is off by default.
+  call amrex_parmparse_destroy(pp)
 
   ! anonymous prefix
   call amrex_parmparse_build(pp)

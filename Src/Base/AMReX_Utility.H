@@ -158,6 +158,16 @@ namespace amrex
     *  amrex::InvNormDist() with that random number.
     */
     double InvNormDistBest (double p);
+
+    /**
+    * \brief Generate a psuedo-random double using C++11's mt19937.
+    *
+    *  Generates one pseudorandom real number (double) from a normal
+    *  distribution with mean 'mean' and standard deviation 'stddev'.
+    *
+    */
+    double RandomNormal (double mean, double stddev);
+
     /**
     * \brief Generate a psuedo-random double using C++11's mt19937.
     *
