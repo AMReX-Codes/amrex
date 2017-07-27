@@ -1,0 +1,9 @@
+CEXE_sources += BLProfParser.tab.cpp BLProfParser.lex.yy.cpp
+CEXE_sources += AMReX_BLProfStats.cpp AMReX_CommProfStats.cpp AMReX_RegionsProfStats.cpp
+CEXE_sources += AMReX_BLWritePlotFile.cpp AMReX_BLProfUtilities.cpp
+
+CEXE_headers += AMReX_BLProfStats.H
+FEXE_sources += AMReX_AVGDOWN_${DIM}D.F
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/ProfParser
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/ProfParser
