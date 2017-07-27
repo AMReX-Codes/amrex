@@ -12,6 +12,9 @@ WarpX::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
     const Real* problo = Geometry::ProbLo();
     const Real* dx = Geom(lev).CellSize();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(tags); mfi.isValid(); ++mfi)
     {
         auto& fab = tags[mfi];

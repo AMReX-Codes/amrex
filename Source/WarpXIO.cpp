@@ -471,6 +471,9 @@ WarpX::WritePlotFile () const
                 if (plot_part_per_grid)
                 {
                     // MultiFab containing number of particles per grid (stored as constant for all cells in each grid)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
                     for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
                         (*mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
                     }
@@ -485,12 +488,13 @@ WarpX::WritePlotFile () const
                 {
                     // MultiFab containing number of particles per process (stored as constant for all cells in each grid)
                     long n_per_proc = 0;
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:n_per_proc)
+#endif
                     for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
                         n_per_proc += npart_in_grid[mfi.index()];
                     }
-                    for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
-                        (*mf[lev])[mfi].setVal(static_cast<Real>(n_per_proc), dcomp);
-                    }
+                    mf[lev]->setVal(static_cast<Real>(n_per_proc), dcomp,1);
                     if (lev == 0)
                     {
                         varnames.push_back("part_per_proc");
@@ -502,6 +506,9 @@ WarpX::WritePlotFile () const
             if (plot_proc_number)
             {
                 // MultiFab containing the Processor ID 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
                 for (MFIter mfi(*mf[lev]); mfi.isValid(); ++mfi) {
                     (*mf[lev])[mfi].setVal(static_cast<Real>(ParallelDescriptor::MyProc()), dcomp);
                 }

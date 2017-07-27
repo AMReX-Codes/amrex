@@ -60,6 +60,9 @@ WarpX::UpdateAuxilaryData ()
             
             const Real* dx = Geom(lev-1).CellSize();
             const int ref_ratio = refRatio(lev-1)[0];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             {
                 std::array<FArrayBox,3> bfab;
                 for (MFIter mfi(*Bfield_aux[lev][0]); mfi.isValid(); ++mfi)
@@ -122,6 +125,9 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, 1, ng);
             
             const int ref_ratio = refRatio(lev-1)[0];
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
             {
                 std::array<FArrayBox,3> efab;
                 for (MFIter mfi(*Efield_aux[lev][0]); mfi.isValid(); ++mfi)
