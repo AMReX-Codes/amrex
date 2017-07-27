@@ -13,10 +13,10 @@
 
 // We can assume that template class T has null construction.
 
-#ifndef _AMRMULTIGRID_H_
-#define _AMRMULTIGRID_H_
+#ifndef _AMREBMULTIGRID_H_
+#define _AMREBMULTIGRID_H_
 
-#include "AMReX_MultiGrid.H"
+#include "AMReX_EBMultiGrid.H"
 #include "AMReX_NoOpSolver.H"
 #include "AMReX_REAL.H"
 #include "AMReX_Box.H"
@@ -29,7 +29,7 @@ namespace amrex
 {
 ///
 /**
-   Operator class for AMR Multigrid
+   Operator class for AMR EBMultiGrid
 */
   template <typename T>
   class AMRLevelOp : public MGLevelOp<T>
@@ -143,20 +143,20 @@ namespace amrex
    Class to solve elliptic equations using the Martin and Cartwright algorithm.
 */
   template <class T>
-  class AMRMultiGrid
+  class AMREBMultiGrid
   {
   public:
 
-    AMRMultiGrid();
+    AMREBMultiGrid();
 
-    virtual ~AMRMultiGrid();
+    virtual ~AMREBMultiGrid();
 
     ///
     /**
        Define the solver.
        a_coarseDomain is the index space on the coarsest AMR level.
        a_factory is the operator factory through which all special information is conveyed.
-       a_bottomSolver is the solver to be used at the termination of multigrid coarsening.
+       a_bottomSolver is the solver to be used at the termination of EBMultiGrid coarsening.
        It is the client's responsibility to free up the dynamically-allocated memory.
        a_numLevels is the number of AMR levels.
        If enableLevelSolves= false, only works for lbase==0 (saves a bunch of definition
@@ -201,7 +201,7 @@ namespace amrex
 
     virtual void init(const std::vector<T*>& a_phi, const std::vector<T*>& a_rhs,
                       int l_max, int l_base);
-    //init messes with multigrid depth.  this puts it back
+    //init messes with EBMultiGrid depth.  this puts it back
     void revert(const std::vector<T*>& a_phi, const std::vector<T*>& a_rhs,
                 int l_max, int l_base);
 
@@ -317,7 +317,7 @@ namespace amrex
                                  bool a_homogeneousBC);
 
     std::vector<AMRLevelOp<T>*>          m_op;
-    std::vector<MultiGrid<T> *>          m_mg;
+    std::vector<EBMultiGrid<T> *>          m_mg;
     std::vector<T*>  m_correction;
     std::vector<T*>  m_residual;
     std::vector<T*>  m_resC;
@@ -333,12 +333,12 @@ namespace amrex
   private:
 
     // Forbidden copiers.
-    AMRMultiGrid(const AMRMultiGrid<T>&);
-    AMRMultiGrid& operator=(const AMRMultiGrid<T>&);
+    AMREBMultiGrid(const AMREBMultiGrid<T>&);
+    AMREBMultiGrid& operator=(const AMREBMultiGrid<T>&);
   };
 
 //*******************************************************
-// AMRMultigrid Implementation
+// AMREBMultiGrid Implementation
 //*******************************************************
 
 //===================================================================
@@ -346,7 +346,7 @@ namespace amrex
 
   template <class T>
   void
-  AMRMultiGrid<T>::setSolverParameters(const int&   a_pre,
+  AMREBMultiGrid<T>::setSolverParameters(const int&   a_pre,
                                        const int&   a_post,
                                        const int&   a_bottom,
                                        const int&   a_numMG,
@@ -374,7 +374,7 @@ namespace amrex
   }
   template <class T>
   std::vector< MGLevelOp<T> * >
-  AMRMultiGrid<T>::getAllOperators()
+  AMREBMultiGrid<T>::getAllOperators()
   {
     std::vector< MGLevelOp<T>* > retval;
     for (int iop = 0;  iop < m_op.size(); iop++)
@@ -393,7 +393,7 @@ namespace amrex
 
   template <class T>
   std::vector< MGLevelOp<T> * >
-  AMRMultiGrid<T>::getOperatorsOp()
+  AMREBMultiGrid<T>::getOperatorsOp()
   {
     std::vector< MGLevelOp<T>* > retval;
     for (int iop = 0;  iop < m_op.size(); iop++)
@@ -406,7 +406,7 @@ namespace amrex
 
   template <class T>
   std::vector<std::vector< MGLevelOp<T> * > >
-  AMRMultiGrid<T>::getOperatorsMG()
+  AMREBMultiGrid<T>::getOperatorsMG()
   {
     std::vector< std::vector< MGLevelOp<T>* > > retval(m_mg.size());
 
@@ -418,7 +418,7 @@ namespace amrex
   }
 
   template <class T>
-  AMRMultiGrid<T>::AMRMultiGrid()
+  AMREBMultiGrid<T>::AMREBMultiGrid()
     :m_eps(1E-6),
      m_hang(1E-15),
      m_normThresh(1E-30),
@@ -438,10 +438,10 @@ namespace amrex
     m_solverParamsSet = false;
 
     //m_maxDepth = 4;
-    //pout() << "       AMRMultiGrid<T>::AMRMultiGrid() = " << m_maxDepth << endl;
+    //pout() << "       AMREBMultiGrid<T>::AMREBMultiGrid() = " << m_maxDepth << endl;
   }
   template <class T>
-  void AMRMultiGrid<T>::setMGCycle(int a_numMG)
+  void AMREBMultiGrid<T>::setMGCycle(int a_numMG)
   {
     for (int ilev = 0; ilev < m_op.size(); ilev++)
     {
@@ -451,14 +451,14 @@ namespace amrex
     m_numMG = a_numMG;
   }
   template <class T>
-  void AMRMultiGrid<T>::relax(T& a_correction, T& a_residual, int depth, int a_numSmooth)
+  void AMREBMultiGrid<T>::relax(T& a_correction, T& a_residual, int depth, int a_numSmooth)
   {
-    BL_PROFILE("AMRMultiGrid::relax");
+    BL_PROFILE("AMREBMultiGrid::relax");
 
     int refRat = getRefToCoarser(depth);
     if (refRat > 2)
     {
-      // intermediate multigrid levels exist between this level and the
+      // intermediate EBMultiGrid levels exist between this level and the
       // next coarser AMR level, so do a mini v-cyle to smooth on those
 
       int intermediateDepth = 0;
@@ -470,16 +470,16 @@ namespace amrex
       }
       int tmp = m_mg[depth]->m_depth;
       m_mg[depth]->m_depth = intermediateDepth;
-      //ok, there is an intermediate multigrid level that is
-      // not an AMR level.  We use regular MultiGrid smoothing algorithm for this.
-      // note that MultiGrid::cycle handles relaxation on this level
+      //ok, there is an intermediate EBMultiGrid level that is
+      // not an AMR level.  We use regular EBMultiGrid smoothing algorithm for this.
+      // note that EBMultiGrid::cycle handles relaxation on this level
       // as well, so there's no need to call the LinearOp's relax function.
       m_mg[depth]->cycle(0, a_correction, a_residual);
       m_mg[depth]->m_depth = tmp;
     }
     else
     {
-      // no intermediate multigrid levels between AMR levels, so
+      // no intermediate EBMultiGrid levels between AMR levels, so
       // just call relax on this level and be done with it.
       m_op[depth]->relax(a_correction, a_residual, a_numSmooth);  //numSmoothDown
     }
@@ -487,21 +487,21 @@ namespace amrex
   }
 /************/
   template <class T>
-  AMRMultiGrid<T>::~AMRMultiGrid()
+  AMREBMultiGrid<T>::~AMREBMultiGrid()
   {
-    BL_PROFILE("~AMRMultiGrid");
+    BL_PROFILE("~AMREBMultiGrid");
     clear();
   }
 
   template <class T>
-  AMRLevelOp<T>&  AMRMultiGrid<T>::levelOp(int level)
+  AMRLevelOp<T>&  AMREBMultiGrid<T>::levelOp(int level)
   {
     return *(m_op[level]);
   }
 
 /************/
   template <class T>
-  Real AMRMultiGrid<T>::computeAMRResidual(std::vector<T*>&       a_resid,
+  Real AMREBMultiGrid<T>::computeAMRResidual(std::vector<T*>&       a_resid,
                                            std::vector<T*>&       a_phi,
                                            const std::vector<T*>& a_rhs,
                                            int               l_max,
@@ -509,7 +509,7 @@ namespace amrex
                                            bool              a_homogeneousBC,
                                            bool              a_computeNorm)
   {
-    BL_PROFILE("AMRMultiGrid::computeAMRResidual");
+    BL_PROFILE("AMREBMultiGrid::computeAMRResidual");
 
     Real rnorm = 0;
     Real localNorm = 0;
@@ -557,7 +557,7 @@ namespace amrex
   }
 
   template <class T>
-  Real AMRMultiGrid<T>::computeAMRResidual(std::vector<T*>&       a_phi,
+  Real AMREBMultiGrid<T>::computeAMRResidual(std::vector<T*>&       a_phi,
                                            const std::vector<T*>&       a_rhs,
                                            int l_max,
                                            int l_min)
@@ -575,7 +575,7 @@ namespace amrex
 // old inneficient way of doing this
 /*
   template <class T>
-  void AMRMultiGrid<T>::computeAMROperator(std::vector<T*>&       a_lph,
+  void AMREBMultiGrid<T>::computeAMROperator(std::vector<T*>&       a_lph,
   std::vector<T*>&       a_phi,
   int               l_max,
   int               l_base,
@@ -597,13 +597,13 @@ namespace amrex
   }
 */
   template <class T>
-  void AMRMultiGrid<T>::computeAMROperator(std::vector<T*>&       a_lphi,
+  void AMREBMultiGrid<T>::computeAMROperator(std::vector<T*>&       a_lphi,
                                            std::vector<T*>&       a_phi,
                                            int               l_max,
                                            int               l_base,
                                            bool              a_homogeneousBC)
   {
-    BL_PROFILE("AMRMultiGrid<T>::computeAMROperator");
+    BL_PROFILE("AMREBMultiGrid<T>::computeAMROperator");
  
     for(int ilev=l_base; ilev<=l_max; ilev++)
     { 
@@ -655,13 +655,13 @@ namespace amrex
 
 /************/
   template <class T>
-  void AMRMultiGrid<T>::computeAMRResidualLevel(std::vector<T*>&       a_resid,
+  void AMREBMultiGrid<T>::computeAMRResidualLevel(std::vector<T*>&       a_resid,
                                                 std::vector<T*>&       a_phi,
                                                 const std::vector<T*>& a_rhs,
                                                 int l_max, int l_base, int ilev,
                                                 bool a_homogeneousBC)
   {
-    BL_PROFILE("AMRMultiGrid<T>::computeAMRResidualLevel");
+    BL_PROFILE("AMREBMultiGrid<T>::computeAMRResidualLevel");
     BL_ASSERT(m_hasInitBeenCalled[ilev]=='t');
 
     //m_op[ilev]->setToZero(*(a_resid[l_max]));
@@ -713,24 +713,24 @@ namespace amrex
   }
 
   template<class T>
-  void AMRMultiGrid<T>::solve(std::vector<T*>& a_phi, const std::vector<T*>& a_rhs,
+  void AMREBMultiGrid<T>::solve(std::vector<T*>& a_phi, const std::vector<T*>& a_rhs,
                               int l_max, int l_base, bool a_zeroPhi,
                               bool a_forceHomogeneous)
   {
-    BL_PROFILE("AMRMultiGrid::solve");
+    BL_PROFILE("AMREBMultiGrid::solve");
     init(a_phi, a_rhs, l_max, l_base);
     solveNoInit(a_phi, a_rhs, l_max, l_base, a_zeroPhi, a_forceHomogeneous);
-    //puts multigrid depth back where it started so the solver can be reused
+    //puts EBMultiGrid depth back where it started so the solver can be reused
     revert(a_phi, a_rhs, l_max, l_base);
   }
 
   template<class T>
-  void AMRMultiGrid<T>::solveNoInit(std::vector<T*>& a_phi,
+  void AMREBMultiGrid<T>::solveNoInit(std::vector<T*>& a_phi,
                                     const std::vector<T*>& a_rhs,
                                     int l_max, int l_base, bool a_zeroPhi,
                                     bool a_forceHomogeneous)
   {
-    BL_PROFILE("AMRMultiGrid::solveNoInit");
+    BL_PROFILE("AMREBMultiGrid::solveNoInit");
     std::vector<T*> uberResidual(a_rhs.size());
     int lowlim = l_base;
     if (l_base > 0)  // we need an ubercorrection one level lower than l_base
@@ -753,12 +753,12 @@ namespace amrex
   }
 
   template<class T>
-  void AMRMultiGrid<T>::solveNoInitResid(std::vector<T*>& a_phi,  std::vector<T*>& uberResidual,
+  void AMREBMultiGrid<T>::solveNoInitResid(std::vector<T*>& a_phi,  std::vector<T*>& uberResidual,
                                          const std::vector<T*>& a_rhs,
                                          int l_max, int l_base, bool a_zeroPhi,
                                          bool a_forceHomogeneous)
   {
-    BL_PROFILE("AMRMultiGrid::solveNo-InitResid");
+    BL_PROFILE("AMREBMultiGrid::solveNo-InitResid");
     setBottomSolver(l_max, l_base);
 
     BL_ASSERT(l_base <= l_max);
@@ -812,7 +812,7 @@ namespace amrex
     int iter=0;
     if (m_verbosity >= 2) ////
     {
-      pout() << "    AMRMultiGrid:: iteration = " << iter << ", residual norm = " << rnorm << std::endl;
+      pout() << "    AMREBMultiGrid:: iteration = " << iter << ", residual norm = " << rnorm << std::endl;
     }
 
     bool goNorm = rnorm > m_normThresh;                        //iterate if norm is not small enough
@@ -858,7 +858,7 @@ namespace amrex
       iter++;
       if (m_verbosity >= 3) ////
       {
-        pout() << "    AMRMultiGrid:: iteration = " << iter << ", residual norm = " << rnorm;
+        pout() << "    AMREBMultiGrid:: iteration = " << iter << ", residual norm = " << rnorm;
         if (rnorm > 0.0)
         {
           pout() << ", rate = " << norm_last/rnorm;
@@ -880,21 +880,21 @@ namespace amrex
     m_exitStatus = int(!goRedu) + int(!goIter)*2 + int(!goHang)*4 + int(!goNorm)*8;
     if (m_verbosity >= 2)
     {
-      pout() << "    AMRMultiGrid:: iteration = " << iter << ", residual norm = " << rnorm << std::endl;
+      pout() << "    AMREBMultiGrid:: iteration = " << iter << ", residual norm = " << rnorm << std::endl;
     }
     if (m_verbosity > 1)
     {
       if (!goIter && goRedu && goNorm) // goRedu=T, goIter=F, goHang=?, goNorm=T
       { // m_exitStatus == 0 + 2 + 0|4 + 0 = 2|6
-        pout() << "    AMRMultiGrid:: WARNING: Exit because max iteration count exceeded" << std::endl;
+        pout() << "    AMREBMultiGrid:: WARNING: Exit because max iteration count exceeded" << std::endl;
       }
       if (!goHang && goRedu && goNorm) // goRedu=T, goIter=?, goHang=F, goNorm=T
       { // m_exitStatus == 0 + 0|2 + 4 + 0 = 4|6
-        pout() << "    AMRMultiGrid:: WARNING: Exit because of solver hang" << std::endl;
+        pout() << "    AMREBMultiGrid:: WARNING: Exit because of solver hang" << std::endl;
       }
       if (m_verbosity > 4)
       {
-        pout() << "    AMRMultiGrid:: exitStatus = " << m_exitStatus << std::endl;
+        pout() << "    AMREBMultiGrid:: exitStatus = " << m_exitStatus << std::endl;
       }
     }
     for (int i = lowlim; i <= l_max; i++)
@@ -906,7 +906,7 @@ namespace amrex
 
 
   template <class T>
-  void AMRMultiGrid<T>::clear()
+  void AMREBMultiGrid<T>::clear()
   {
     for (int i = 0; i < m_op.size(); i++)
     {
@@ -930,11 +930,11 @@ namespace amrex
   }
 
   template <class T>
-  void AMRMultiGrid<T>::init(const std::vector<T*>& a_phi, const std::vector<T*>& a_rhs,
+  void AMREBMultiGrid<T>::init(const std::vector<T*>& a_phi, const std::vector<T*>& a_rhs,
                              int l_max, int l_base)
   {
     //if (m_hasInitBeenCalled[l_max]=='t' && m_hasInitBeenCalled[l_base]=='t') return;
-    BL_PROFILE("AMRMultiGrid::init");
+    BL_PROFILE("AMREBMultiGrid::init");
 //   BL_ASSERT(a_phi.size()>=m_op.size());
 //   BL_ASSERT(a_rhs.size()>=m_op.size());
     for (int i = l_base; i <= l_max; i++)
@@ -967,10 +967,10 @@ namespace amrex
   }
 
   template <class T>
-  void AMRMultiGrid<T>::revert(const std::vector<T*>& a_phi, const std::vector<T*>& a_rhs,
+  void AMREBMultiGrid<T>::revert(const std::vector<T*>& a_phi, const std::vector<T*>& a_rhs,
                                int l_max, int l_base)
   {
-    BL_PROFILE("AMRMultiGrid::revert");
+    BL_PROFILE("AMREBMultiGrid::revert");
     for (int i = l_base; i <= l_max; i++)
     {
       if (i!= l_base)
@@ -981,7 +981,7 @@ namespace amrex
   }
 
   template <class T>
-  void AMRMultiGrid<T>::setBottomSolver(int l_max, int l_base)
+  void AMREBMultiGrid<T>::setBottomSolver(int l_max, int l_base)
   {
     //  for (int ilev = 0; ilev <= m_mg.size(); ilev++)
     for (int ilev = l_base; ilev <= l_max; ilev++)
@@ -1000,7 +1000,7 @@ namespace amrex
   }
 
   template <class T>
-  void AMRMultiGrid<T>::setBottomSolverEpsCushion(Real a_bottomSolverEpsCushion)
+  void AMREBMultiGrid<T>::setBottomSolverEpsCushion(Real a_bottomSolverEpsCushion)
   {
     BL_ASSERT((a_bottomSolverEpsCushion >  0.) &&
               (a_bottomSolverEpsCushion <= 1.));
@@ -1008,14 +1008,14 @@ namespace amrex
   }
 
   template <class T>
-  void AMRMultiGrid<T>::define(const Box& a_coarseDomain,
+  void AMREBMultiGrid<T>::define(const Box& a_coarseDomain,
                                AMRLevelOpFactory<T>& a_factory,
                                shared_ptr<LinearSolver<T> > & a_bottomSolver,
                                vector<int>      & a_refRat,
                                bool a_enableLevelSolves,
                                int a_maxAMRLevels)
   {
-    BL_PROFILE("AMRMultiGrid::define");
+    BL_PROFILE("AMREBMultiGrid::define");
     this->clear();
     m_refRat = a_refRat;
     m_enableLevelSolves = a_enableLevelSolves;
@@ -1034,7 +1034,7 @@ namespace amrex
       m_correction[i] = new T();
       m_residual[i]   = new T();
       m_resC[i]       = new T();
-      m_mg[i]= new MultiGrid<T>();
+      m_mg[i]= new EBMultiGrid<T>();
       m_op[i] = a_factory.AMRnewOp(current);
       int refToCoarser = 2;
       if(i > 0)
@@ -1057,7 +1057,7 @@ namespace amrex
 
   	 
   template<class T>
-  void AMRMultiGrid<T>::AMRVCycle(std::vector<T*>& a_uberCorrection,
+  void AMREBMultiGrid<T>::AMRVCycle(std::vector<T*>& a_uberCorrection,
                                   std::vector<T*>& a_uberResidual,
                                   int ilev, int l_max, int l_base)
   {
