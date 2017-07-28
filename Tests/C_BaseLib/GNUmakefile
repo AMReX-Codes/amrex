@@ -7,13 +7,14 @@ DIM          = 3
 COMP         = g++
 
 DEBUG        = TRUE
-DEBUG        = FALSE
+#DEBUG        = FALSE
 
 USE_MPI      = FALSE
-USE_MPI      = TRUE
+USE_OMP      = TRUE
+#USE_MPI      = TRUE
 
-PROFILE       = TRUE
-COMM_PROFILE  = TRUE
+#PROFILE       = TRUE
+#COMM_PROFILE  = TRUE
 TRACE_PROFILE = FALSE
 #DEFINES += -DBL_PROFILING_SPECIAL
 

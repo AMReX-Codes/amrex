@@ -119,6 +119,17 @@ namespace amrex
                      const IntVect& pos,
                      const int ncomp,
                      const int l);
+    
+        void setVal_Threadsafe (T val,
+                         const IntVect& pos,
+                         const int ncomp,
+                         const int l,std::vector<double>& localdata,
+                         std::vector<int>& localkeys);
+    
+        void stitch_data_critical(std::vector<double> localdata,
+                std::vector<int> localkeys);
+
+        void set_key_indices();
 
         T& getVal (const IntVect& pos,
                    const int ncomp,
@@ -161,6 +172,7 @@ namespace amrex
         int nvar;
         int numpts;
         std::vector<T> data;
+        std::vector<int> globalkeys;
         key_table_type* key_table;
         std::map<key_table_type,Tuple> data_key_tuple_map;
         int kt_size;
@@ -306,6 +318,48 @@ namespace amrex
         }
         k = key(pos, ncomp, l);
 
+    }
+    template <class T>
+    void
+    BaseUmap<T>::setVal_Threadsafe (T val,
+                         const IntVect& pos,
+                         const int ncomp,
+                         const int l,std::vector<double>& localdata,
+                         std::vector<int>& localkeys)
+    {
+        BL_ASSERT(l>=0 && l < max_mv);
+        BL_ASSERT(domain.contains(pos));
+        BL_ASSERT(ncomp>=0 && ncomp<nvar);
+
+        localdata.push_back(val);
+        localkeys.push_back(KIDX(pos,ncomp,l));
+    }
+    template <class T>
+    void
+    BaseUmap<T>::stitch_data_critical (std::vector<double> localdata,
+                         std::vector<int> localkeys)
+    {
+        data.insert(data.end(),localdata.begin(),localdata.end());
+        globalkeys.insert(globalkeys.end(),localkeys.begin(),localkeys.end());
+
+    }
+    template <class T>
+    void
+    BaseUmap<T>::set_key_indices ()
+    {
+        IntVect pos;
+        int domindex,ncomp,l;
+
+        for(unsigned int i=0;i<globalkeys.size();i++)
+        {
+
+           l=globalkeys[i]/(domain.numPts()*nvar);
+           ncomp=(globalkeys[i]/domain.numPts())%nvar;
+           domindex=globalkeys[i]%domain.numPts();
+           domain.index_to_iv(domindex,pos);
+
+           set_key(pos, ncomp, l, i);
+        }
     }
 
     template <class T>
