@@ -147,7 +147,6 @@ class BLProfiler
       static Array<std::pair<std::string,int> > barrierNames;  // [name, seek]
       static Array<std::pair<int,int> > nameTags;              // [nameindex, seek]
       static Array<std::string> nameTagNames;                  // [name]
-      static Array<int> reductions;                            // [index]
       static Array<int> tagWraps;                              // [index]
       static int csVersion;
 
@@ -402,7 +401,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_COMM_PROFILE_BARRIER(message, bc) { amrex::BLProfiler::AddBarrier(message, bc); }
 #define BL_COMM_PROFILE_ALLREDUCE(cft, size, bc) { amrex::BLProfiler::AddAllReduce(cft, size, bc); }
 #define BL_COMM_PROFILE_REDUCE(cft, size, pid) {   \
-        amrex::BLProfiler::AddCommStat(cft, size, pid, BLProfiler::NoTag()); }
+        amrex::BLProfiler::AddCommStat(cft, size, pid, amrex::BLProfiler::NoTag()); }
 #define BL_COMM_PROFILE_WAITSOME(cft, reqs, completed, indx, status, bc) {                \
         amrex::BLProfiler::AddWaitsome(cft, reqs, completed, indx, status, bc); \
 }

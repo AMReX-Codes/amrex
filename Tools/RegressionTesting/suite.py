@@ -111,6 +111,8 @@ class Test(object):
         self.compareParticles = False
         self.particleTypes = ""
 
+        self.keywords = []
+        
     def __lt__(self, other):
         return self.value() < other.value()
 
@@ -260,6 +262,10 @@ class Suite(object):
         if self.args.d in [1, 2, 3]:
             test_list = [t for t in test_list_old if t.dim == self.args.d]
 
+        # if we specified any keywords, only run those
+        if self.args.keyword is not None:
+            test_list = [t for t in test_list_old if self.args.keyword in t.keywords]
+            
         # if we are doing a single test, remove all other tests; if we
         # specified a list of tests, check each one; if we did both
         # --single_test and --tests, complain

@@ -102,6 +102,11 @@ class DistributionMapping
     //! Equivalent to ProcessorMap()[index].
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
 
+    // Replace the cached processor map.  This is to support FabArray::MoveAllFabs
+    //   All FabArrays using the cached map must move their fabs before
+    //   calling this function.
+    void ReplaceCachedProcessorMap(const Array<int> &newProcMap);
+
     //! Set/get the distribution strategy.
     static void strategy (Strategy how);
 
@@ -311,6 +316,8 @@ public:
         bool operator<  (const RefID& rhs) const { return std::less<Ref*>()(data,rhs.data); }
         bool operator== (const RefID& rhs) const { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const { return data != rhs.data; }
+	const Ref *dataPtr() const { return data; }
+	void PrintPtr(std::ostream &os) const { os << data << '\n'; }
    private:
         Ref* data;
     };

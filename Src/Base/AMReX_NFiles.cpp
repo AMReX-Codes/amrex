@@ -6,13 +6,14 @@
 namespace amrex {
 
 int NFilesIter::currentDeciderIndex(-1);
-Array<std::pair<int, int> > NFilesIter::unreadMessages;
 int NFilesIter::minDigits(5);
 
 
 NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
                        bool groupsets, bool setBuf)
 {
+  stWriteTag    = ParallelDescriptor::SeqNum();
+  stReadTag     = ParallelDescriptor::SeqNum();
   isReading     = false;
   nOutFiles     = ActualNFiles(noutfiles);
   groupSets     = groupsets;
@@ -181,15 +182,13 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
       }
 
       if(mySetPosition == (iSet + 1)) {   // ---- next set waits
-        int iBuff, waitForPID(-1), tag(-2);
+        int iBuff, waitForPID(-1);
         if(groupSets) {
           waitForPID = (myProc - nOutFiles);
-          tag = (myProc % nOutFiles);
         } else {
           waitForPID = (myProc - 1);
-          tag = (myProc / nSets);
         }
-        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+        ParallelDescriptor::Recv(&iBuff, 1, waitForPID, stWriteTag);
       }
     }
 
@@ -266,11 +265,7 @@ bool NFilesIter::ReadyToRead() {
 
   if(myReadIndex != 0) {    // ---- wait for rank myReadIndex - 1
     int iBuff(-1), waitForPID(readRanks[myReadIndex - 1]);
-    int tag(readRanks[0]);
-    if (tag > ParallelDescriptor::MaxTag()) {
-        amrex::Abort("NFilesIter::ReadyToRead(): tag is too large.");
-    }
-    ParallelDescriptor::Recv(&iBuff, 1, waitForPID, tag);
+    ParallelDescriptor::Recv(&iBuff, 1, waitForPID, stReadTag);
   }
 
   fileStream.open(fullFileName.c_str(),
@@ -293,11 +288,7 @@ NFilesIter &NFilesIter::operator++() {
 
     if(myReadIndex < readRanks.size() - 1) {
       int iBuff(0), wakeUpPID(readRanks[myReadIndex + 1]);
-      int tag(readRanks[0]);
-      if (tag > ParallelDescriptor::MaxTag()) {
-          amrex::Abort("NFilesIter::ReadyToRead(): tag is too large.");
-      }
-      ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+      ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, stReadTag);
     }
     finishedReading = true;
 
@@ -307,16 +298,17 @@ NFilesIter &NFilesIter::operator++() {
       fileStream.flush();
       fileStream.close();
 
-      int iBuff(0), wakeUpPID(-1), tag(-2);
+      int iBuff(0), wakeUpPID(-1);
       if(groupSets) {
         wakeUpPID = (myProc + nOutFiles);
-        tag = (myProc % nOutFiles);
       } else {
         wakeUpPID = (myProc + 1);
-        tag = (myProc / nSets);
       }
       if(wakeUpPID < nProcs) {
-        ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, tag);
+        int nextSP = WhichSetPosition(wakeUpPID, nProcs, nOutFiles, groupSets);
+        if(nextSP > mySetPosition) {
+          ParallelDescriptor::Send(&iBuff, 1, wakeUpPID, stWriteTag);
+        }
       }
       finishedWriting = true;
 
@@ -357,7 +349,7 @@ NFilesIter &NFilesIter::operator++() {
           // ---- recv incoming available files
           while(remainingWriters > 0) {
 
-            int nextProcToWrite, nextFileNumberToWrite, nextFileNumberAvailable;
+            int nextProcToWrite(-1), nextFileNumberToWrite, nextFileNumberAvailable;
             std::set<int>::iterator ait = availableFileNumbers.begin();
             nextFileNumberToWrite = *ait;
             availableFileNumbers.erase(nextFileNumberToWrite);
@@ -372,6 +364,10 @@ NFilesIter &NFilesIter::operator++() {
                 break;  // ---- found one
               }
             }
+	    if(nextProcToWrite == -1) {
+              --remainingWriters;
+	      amrex::Print() << myProc << "::IOIOIOIO:  nptw == -1  rW = " << remainingWriters << std::endl;
+	    } else {
 
 	    fileNumbersWriteOrder[nextFileNumberToWrite].push_back(nextProcToWrite);
 
@@ -380,7 +376,9 @@ NFilesIter &NFilesIter::operator++() {
             rmess = ParallelDescriptor::Recv(&nextFileNumberAvailable, 1, MPI_ANY_SOURCE, doneTag);
             availableFileNumbers.insert(nextFileNumberAvailable);
             --remainingWriters;
+	    }
           }
+	  unreadMessages.push_back(std::make_pair(doneTag, setZeroProcs.size() - 1));
 
         } else {    // ---- tell the coordinatorProc we are done writing
           ParallelDescriptor::Send(&fileNumber, 1, coordinatorProc, doneTag);

@@ -1,11 +1,5 @@
 DEFINES += -DBL_USE_F_INTERFACES
 
-USE_AMREX_FI_MAIN ?= TRUE
-
-ifeq ($(USE_AMREX_FI_MAIN),TRUE)
-  CEXE_sources += AMReX_fi_main.cpp
-endif
-
 F90EXE_sources += AMReX_init_mod.F90
 
 F90EXE_sources += AMReX_parallel_mod.F90

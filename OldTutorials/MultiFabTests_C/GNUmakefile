@@ -6,15 +6,16 @@ DEBUG     = FALSE
 DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
-PROFILE   = TRUE
-COMM_PROFILE  = TRUE
-TRACE_PROFILE = TRUE
-COMP      = g++
+PROFILE   = FALSE
+COMM_PROFILE  = FALSE
+TRACE_PROFILE = FALSE
+COMP      = gnu
 #COMP      = Intel
 DIM       = 3
 PRECISION = DOUBLE
 EBASE     = mfreadwrite
 EBASE     = gridmovetest
+EBASE     = moveallfabstest
 
 include ./Make.package
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

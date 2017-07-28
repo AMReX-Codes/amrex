@@ -319,6 +319,8 @@ def get_args(arg_string=None):
                         help="only run the tests that failed last time")
     parser.add_argument("--log_file", type=str, default=None, metavar="logfile",
                         help="log file to write output to (in addition to stdout")
+    parser.add_argument("--keyword", type=str, default=None,
+                        help="run tests only with this keyword specified in their definitions")
     parser.add_argument("input_file", metavar="input-file", type=str, nargs=1,
                         help="the input file (INI format) containing the suite and test parameters")
 
