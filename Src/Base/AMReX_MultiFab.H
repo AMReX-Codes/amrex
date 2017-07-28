@@ -84,7 +84,7 @@ public:
 			 int                        nvar,
 			 int                        ngrow,
 			 const MFInfo&              info = MFInfo(),
-                         const FabFactory<FArrayBox>& factory = DefaultFabFactory<FArrayBox>()) override;
+                         const FabFactory<FArrayBox>& factory = FArrayBoxFactory()) override;
 
     void operator= (const Real& r);
     //
