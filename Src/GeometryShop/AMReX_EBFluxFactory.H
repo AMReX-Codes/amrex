@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include "AMReX_EBISLayout.H"
 #include "AMReX_EBFluxFAB.H"
+#include <AMReX_FabFactory.H>
 
 namespace amrex
 {

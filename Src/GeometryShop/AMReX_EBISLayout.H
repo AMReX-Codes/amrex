@@ -18,16 +18,18 @@
 #include "AMReX_VolIndex.H"
 #include "AMReX_FaceIndex.H"
 #include "AMReX_IntVectSet.H"
-#include "AMReX_FabArray.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_EBGraph.H"
 #include "AMReX_EBData.H"
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_MFIter.H>
 
 namespace amrex
 {
 
   class EBIndexSpace;
   class EBISLayout;
+  template <class FAB> class FabArray;  // avoid circular depencies
 ///
 /**
    EBISLayoutImplem represents the geometric information

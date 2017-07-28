@@ -4,6 +4,9 @@
 
 #include <AMReX_Box.H>
 #include <AMReX_Print.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBISLayout.H>
+#endif
 
 namespace amrex
 {
@@ -46,9 +49,32 @@ public:
 };
 
 #ifdef AMREX_USE_EB
-template <>
-FArrayBox*
-DefaultFabFactory<FArrayBox>::create (const Box& box, int ncomps, const FabInfo& info, int box_index) const;
+
+class FArrayBoxFactory
+    : public FabFactory<FArrayBox>
+{
+public:
+
+    FArrayBoxFactory () = default;
+    FArrayBoxFactory (const EBISLayout& a_ebisl);
+    virtual ~FArrayBoxFactory () = default;
+
+    FArrayBoxFactory (const FArrayBoxFactory&) = delete;
+    FArrayBoxFactory (FArrayBoxFactory&&) = delete;
+    FArrayBoxFactory& operator= (const FArrayBoxFactory&) = delete;
+    FArrayBoxFactory& operator= (FArrayBoxFactory&&) = delete;
+
+
+    virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override;
+
+private:
+    EBISLayout m_ebisl;
+};
+
+#else
+
+using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
+
 #endif
 
 }
