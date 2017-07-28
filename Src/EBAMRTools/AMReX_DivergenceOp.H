@@ -96,11 +96,13 @@ namespace amrex
        Input flux at embedded boundary is assumed to be dotted 
        with OUTWARD FACING normal.  (please remember that ebisbox.normal
        returns an INWARD-facing normal for some reason).
+       trustRegDivF=true  means you do not want the fortran called
     */
     void
     hybridDivergence(FabArray<EBCellFAB>      & a_divF,
                      const FabArray<EBFluxFAB>& a_Flux,
-                     int isrc, int idst, int inco);
+                     int isrc, int idst, int inco,
+                     bool a_trustRegDivF = false);
 
     ///
     /**

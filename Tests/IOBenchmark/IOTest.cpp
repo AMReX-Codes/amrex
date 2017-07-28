@@ -277,8 +277,6 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
   ParallelDescriptor::Barrier("TestWriteNFiles:AfterWrite");
 
-  NFilesIter::CleanUpMessages();
-
   double wallTimeMax(wallTime);
   double wallTimeMin(wallTime);
 

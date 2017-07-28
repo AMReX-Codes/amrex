@@ -124,7 +124,9 @@ public:
 
     void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
 			 int scsMyId, MPI_Comm scsComm)
-	{ amrex::Abort("FabSet::AddProcsToComp not implemented"); }
+	{ 
+	  // ---- MoveAllFabs should handle this
+	}
 
 private:
     MultiFab m_mf;

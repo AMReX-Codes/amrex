@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "AMReX_Box.H"
-#include "AMReX_AMRMultiGrid.H"
+#include "AMReX_AMREBMultiGrid.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
@@ -51,7 +51,7 @@ namespace amrex
     //! \param a_eblgFine grid at finer  level
     //! \param a_eblg grid at this  level
     //! \param a_eblgCoar grid at coarser level
-    //! \param a_eblgCoarMG grid at intermediate multigrid level
+    //! \param a_eblgCoarMG grid at intermediate EBMultiGrid level
     //! \param a_domainBC domain boundary conditions at this level
     //! \param a_ebBC eb boundary conditions at this level
     //! \param a_dx grid spacing at this level
@@ -60,7 +60,7 @@ namespace amrex
     //! \param a_refToCoar refinement ratio to coarser level
     //! \param a_hasFiner true if there is a finer AMR level, false otherwise.
     //! \param a_hasCoarser true if there is a coarser AMR level.
-    //! \param a_hasCoarserMG true if there is a coarser MultiGrid level.
+    //! \param a_hasCoarserMG true if there is a coarser EBMultiGrid level.
     //! \param a_preCondIters number of iterations to do for pre-conditioning
     //! \param a_acoef coefficent of identity
     //! \param a_bcoef coefficient of gradient.
@@ -484,7 +484,7 @@ namespace amrex
     LayoutData<shared_ptr<VCAggStencil> >  m_opEBStencil;
     //stencils for operator evaluation on gauss-seidel colors
     
-    //! Multigrid relaxation coefficient
+    //! EBMultiGrid relaxation coefficient
     FabArray<EBCellFAB>       m_relCoef;
     
     //cache the vofiterators

@@ -193,7 +193,7 @@ def test_suite(argv):
     for obj in test_list:
         suite.log.log(obj.name)
     suite.log.outdent()
-
+    
     if not args.complete_report_from_crash == "":
 
         # make sure the web directory from the crash run exists
