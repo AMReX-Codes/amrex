@@ -9,8 +9,9 @@
 
 extern "C"
 {
-    void amrex_fi_init (char* cmd, int fcomm, int arg_parmparse,
-                        amrex::PTR_TO_VOID_FUNC proc_parmparse)
+    typedef void (*amrex_void_cfun)(void);
+
+    void amrex_fi_init (char* cmd, int fcomm, int arg_parmparse, amrex_void_cfun proc_parmparse)
     {
         std::istringstream is(cmd);
         amrex::Array<std::string> argv_string(std::istream_iterator<std::string>{is},

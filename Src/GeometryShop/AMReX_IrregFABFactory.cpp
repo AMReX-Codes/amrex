@@ -1,3 +1,14 @@
+
+/*
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
+ */
 #include "AMReX_IrregFABFactory.H"
 
 namespace amrex
@@ -11,7 +22,8 @@ namespace amrex
     IntVectSet ivs;
     if(m_useSets)
     {
-      ivs   = (*m_sets)[box_index];
+      int localIndex = m_sets->localindex(box_index);
+      ivs   = (*m_sets)[localIndex];
     }
     else
     {

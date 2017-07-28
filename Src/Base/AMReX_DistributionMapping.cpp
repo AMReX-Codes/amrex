@@ -2709,8 +2709,7 @@ operator<< (std::ostream&              os,
         os << "m_pmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
 
-    os << ')';
-    os << "  refidptr = " << pmap.getRefID().dataPtr() << '\n';
+    os << ')' << '\n';
 
     if (os.fail())
         amrex::Error("operator<<(ostream &, DistributionMapping &) failed");

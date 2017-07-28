@@ -42,8 +42,13 @@ module amrex_parmparse_module
      procedure, private :: query_intarr
      procedure, private :: query_realarr
      procedure, private :: query_stringarr
-     procedure, private :: add_int, add_real, add_logical, add_string
-     procedure, private :: add_intarr, add_realarr, add_stringarr
+     procedure, private :: add_int
+     procedure, private :: add_real
+     procedure, private :: add_logical
+     procedure, private :: add_string
+     procedure, private :: add_intarr
+     procedure, private :: add_realarr
+     procedure, private :: add_stringarr
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_parmparse_destroy
 #endif

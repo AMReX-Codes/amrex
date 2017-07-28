@@ -4,6 +4,7 @@
 
 #include <AMReX_ccse-mpi.H>
 
+#include <functional>
 #include <string>
 #include <cstdio>
 
@@ -27,7 +28,7 @@ namespace amrex
 
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
-                     PTR_TO_VOID_FUNC func_parm_parse = nullptr);
+                     const std::function<void()>& func_parm_parse = {});
 
     void Finalize(bool finalize_parallel = true);
     /**
