@@ -42,8 +42,13 @@ include ( AMReX_Options )
 include ( AMReX_Config )
 
 # Source files for all binaries and libraries found under src
-add_subdirectory(Src)
+add_subdirectory (Src)
 
+#
+# Tutorials
+#
+add_subdirectory (Tutorials)
+#include (AMReX_BuildTutorials)
 
 # Source file for postprocess exes
 #add_subdirectory(Tools/Postprocessing/F_Src) 
