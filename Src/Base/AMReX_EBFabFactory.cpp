@@ -14,7 +14,14 @@ FArrayBox*
 FArrayBoxFactory::create (const Box& box, int ncomps,
                           const FabInfo& info, int box_index) const
 {
-    return new FArrayBox(box, ncomps, info.alloc, info.shared);
+    if (m_ebisl.isDefined())
+    {
+        return new FArrayBox(box, ncomps, info.alloc, info.shared);
+    }
+    else
+    {
+        return new FArrayBox(box, ncomps, info.alloc, info.shared);        
+    }
 }
 
 }

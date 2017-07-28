@@ -375,9 +375,10 @@ MultiFab::MultiFab (const BoxArray&            bxs,
                     const DistributionMapping& dm,
                     int                        ncomp,
                     int                        ngrow,
-		    const MFInfo&              info)
+		    const MFInfo&              info,
+                    const FabFactory<FArrayBox>& factory)
     :
-    FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info)
+    FabArray<FArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
 {
     if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
 #ifdef BL_MEM_PROFILING
