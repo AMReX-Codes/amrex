@@ -177,3 +177,31 @@ function (prepend list prefix)
    set ( ${list} ${tmp}  PARENT_SCOPE )
 
 endfunction ()
+
+#
+#  USE AT YOUR OWN RISK
+#
+function (scan_for_sources f90src f77src cxxsrc allheaders)
+
+   cmake_parse_arguments ( ARG "" "ROOT" ""  ${ARGN} )
+
+   if (NOT (ARG_ROOT))
+      set (ARG_ROOT ${CMAKE_CURRENT_LIST_DIR})
+   endif ()
+   
+   file (GLOB_RECURSE tmp  "${ARG_ROOT}/*.f90"
+      "${ARG_ROOT}/*.F90")
+   set (${f90src} ${tmp} PARENT_SCOPE)
+
+   
+   file (GLOB_RECURSE f77src  "${ARG_ROOT}/*.f"
+      "${ARG_ROOT}/*.F")
+
+   file (GLOB_RECURSE cxxsrc  "${ARG_ROOT}/*.cpp" )
+
+   file (GLOB_RECURSE allheaders  "${ARG_ROOT}/*.H"
+      "${ARG_ROOT}/*.H")
+
+   set (f90src)
+
+endfunction ()
