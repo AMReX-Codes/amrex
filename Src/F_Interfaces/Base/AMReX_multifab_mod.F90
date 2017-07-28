@@ -46,11 +46,20 @@ module amrex_multifab_module
      generic   :: override_sync => amrex_multifab_override_sync, amrex_multifab_override_sync_mask
      generic   :: sum_boundary  => amrex_multifab_sum_boundary, amrex_multifab_sum_boundary_c
      procedure :: average_sync  => amrex_multifab_average_sync
-     procedure, private :: amrex_multifab_fill_boundary, amrex_multifab_fill_boundary_c, &
-          amrex_multifab_parallel_copy, amrex_multifab_parallel_copy_c, amrex_multifab_parallel_copy_cg, &
-          amrex_multifab_assign, amrex_multifab_install, amrex_multifab_dataptr_iter, &
-          amrex_multifab_dataptr_int, amrex_multifab_override_sync, amrex_multifab_override_sync_mask, &
-          amrex_multifab_sum_boundary, amrex_multifab_sum_boundary_c, amrex_multifab_average_sync
+     procedure, private :: amrex_multifab_fill_boundary
+     procedure, private :: amrex_multifab_fill_boundary_c
+     procedure, private :: amrex_multifab_parallel_copy
+     procedure, private :: amrex_multifab_parallel_copy_c
+     procedure, private :: amrex_multifab_parallel_copy_cg
+     procedure, private :: amrex_multifab_assign
+     procedure, private :: amrex_multifab_install
+     procedure, private :: amrex_multifab_dataptr_iter
+     procedure, private :: amrex_multifab_dataptr_int
+     procedure, private :: amrex_multifab_override_sync
+     procedure, private :: amrex_multifab_override_sync_mask
+     procedure, private :: amrex_multifab_sum_boundary
+     procedure, private :: amrex_multifab_sum_boundary_c
+     procedure, private :: amrex_multifab_average_sync
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_multifab_destroy
 #endif
