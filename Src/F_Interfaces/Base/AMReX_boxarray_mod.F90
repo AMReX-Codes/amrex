@@ -20,7 +20,8 @@ module amrex_boxarray_module
      procedure :: move          => amrex_boxarray_move     ! transfer ownership
      procedure :: maxSize       => amrex_boxarray_maxSize  ! make the boxes smaller
      procedure :: get_box       => amrex_boxarray_get_box
-     procedure, private :: amrex_boxarray_assign, amrex_boxarray_install
+     procedure, private :: amrex_boxarray_assign
+     procedure, private :: amrex_boxarray_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_boxarray_destroy
 #endif
