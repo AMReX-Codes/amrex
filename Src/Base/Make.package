@@ -172,6 +172,12 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
 endif
 
+ifeq ($(USE_EB),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_EBFArrayBox.H
+  C$(AMREX_BASE)_sources += AMReX_EBFArrayBox.cpp
+  C$(AMREX_BASE)_sources += AMReX_EBFabFactory.cpp
+endif
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 

@@ -3,9 +3,12 @@
 #define BL_FABFACTORY_H_
 
 #include <AMReX_Box.H>
+#include <AMReX_Print.H>
 
 namespace amrex
 {
+
+class FArrayBox;
 
 struct FabInfo
 {
@@ -41,6 +44,12 @@ public:
         return new FAB(box, ncomps, info.alloc, info.shared);
     }
 };
+
+#ifdef AMREX_USE_EB
+template <>
+FArrayBox*
+DefaultFabFactory<FArrayBox>::create (const Box& box, int ncomps, const FabInfo& info, int box_index) const;
+#endif
 
 }
 
