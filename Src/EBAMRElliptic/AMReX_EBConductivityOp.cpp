@@ -11,6 +11,7 @@
 
 #include "AMReX_EBConductivityOp.H"
 #include "AMReX_EBEllipticFort_F.H"
+#include "AMReX_IrregFABFactory.H"
 namespace amrex
 {
 
@@ -345,31 +346,29 @@ namespace amrex
     m_domainBC->setCoef(m_eblg,   fakeBeta ,  m_dx, RealVect::Zero,    m_bcoef);
     m_ebBC->setCoef(    m_eblg,   fakeBeta ,  m_dx, RealVect::Zero,    m_bcoef);
 
-    Real dxScale = 1.0/m_dx;
-
     LayoutData<BaseIVFAB<VoFStencil> >* fluxStencil = m_ebBC->getFluxStencil(0);
-
-    m_vofIterIrreg.define(     m_eblg.getDBL(), m_eblg.getDM()); // vofiterator cache
-    m_vofIterMulti.define(     m_eblg.getDBL(), m_eblg.getDM()); // vofiterator cache
-    m_alphaDiagWeight.define(  m_eblg.getDBL(), m_eblg.getDM());
-    m_betaDiagWeight.define(   m_eblg.getDBL(), m_eblg.getDM());
+    IrregFABFactory irregFact(m_eblg.getEBISL());
+    m_vofIterIrreg.define(    m_eblg.getDBL(), m_eblg.getDM()); // vofiterator cache
+    m_vofIterMulti.define(    m_eblg.getDBL(), m_eblg.getDM()); // vofiterator cache
+    m_alphaDiagWeight.define( m_eblg.getDBL(), m_eblg.getDM(), 1, 0, MFInfo(), irregFact);
+    m_betaDiagWeight.define(  m_eblg.getDBL(), m_eblg.getDM(), 1, 0, MFInfo(), irregFact);
     Box sideBoxLo[SpaceDim];
     Box sideBoxHi[SpaceDim];
     for (int idir = 0; idir < SpaceDim; idir++)
     {
-      Box domainBox = m_eblg.getDomain().domainBox();
+      Box domainBox = m_eblg.getDomain();
       sideBoxLo[idir] = adjCellLo(domainBox, idir, 1);
       sideBoxLo[idir].shift(idir,  1);
       sideBoxHi[idir] = adjCellHi(domainBox, idir, 1);
       sideBoxHi[idir].shift(idir, -1);
-      m_vofIterDomLo[idir].define( m_eblg.getDBL()); // vofiterator cache for domain lo
-      m_vofIterDomHi[idir].define( m_eblg.getDBL()); // vofiterator cache for domain hi
+      m_vofIterDomLo[idir].define( m_eblg.getDBL(), m_eblg.getDM()); // vofiterator cache for domain lo
+      m_vofIterDomHi[idir].define( m_eblg.getDBL(), m_eblg.getDM()); // vofiterator cache for domain hi
     }
     EBArith::getMultiColors(m_colors);
 
     EBCellFactory fact(m_eblg.getEBISL());              
-    FabArray<EBCellFAB> phiProxy(m_eblg.getDBL(), , m_eblg.getDM(), SpaceDim, m_ghostPhi, MFInfo(), fact);
-    FabArray<EBCellFAB> rhsProxy(m_eblg.getDBL(), , m_eblg.getDM(), SpaceDim, m_ghostRHS, MFInfo(), fact);
+    FabArray<EBCellFAB> phiProxy(m_eblg.getDBL(), m_eblg.getDM(), SpaceDim, m_ghostPhi, MFInfo(), fact);
+    FabArray<EBCellFAB> rhsProxy(m_eblg.getDBL(), m_eblg.getDM(), SpaceDim, m_ghostRHS, MFInfo(), fact);
 
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
@@ -381,8 +380,6 @@ namespace amrex
       IntVectSet multiIVS = ebisBox.getMultiCells(curBox);
 
       //cache the vofIterators
-      m_alphaDiagWeight[mfi].define(irregIVS,ebgraph, 1);
-      m_betaDiagWeight [mfi].define(irregIVS,ebgraph, 1);
       m_vofIterIrreg   [mfi].define(irregIVS,ebgraph);
       m_vofIterMulti   [mfi].define(multiIVS,ebgraph);
 
@@ -397,7 +394,7 @@ namespace amrex
       }
 
       VoFIterator &  vofit = m_vofIterIrreg[mfi];
-      const vector<VolIndex>& vofvec = vofit.getvector();
+      const vector<VolIndex>& vofvec = vofit.getVector();
       vector<VoFStencil> stenvec(vofvec.size());
 
       // cast from VolIndex to BaseIndex
@@ -483,7 +480,7 @@ namespace amrex
     if (m_hasFine)
     {
       int ncomp = 1;
-      m_fastFR.define(m_eblgFine, m_eblg, m_refToFine, ncomp, s_forceNoEBCF);
+      m_fastFR.define(m_eblgFine, m_eblg, m_refToFine, ncomp);
     }
 
   }
@@ -511,7 +508,7 @@ namespace amrex
           const FabArray<EBCellFAB>& a_rhs)
   {
     BL_PROFILE("EBConductivityOp::preCond");
-    EBLevelDataOps::assign(a_lhs, a_rhs);
+    EBLevelDataOps::assign(a_lhs, a_rhs, 1.0);
     EBLevelDataOps::scale(a_lhs, m_relCoef);
 
     relax(a_lhs, a_rhs, 40);
@@ -530,12 +527,11 @@ namespace amrex
     {
       if(a_homogeneousCFBC)
       {
-        m_cfInterp->coarseFineInterpH(phi,  0, 0, 1);
+        m_cfInterp.coarseFineInterpH(phi,  0, 0, 1);
       }
       else
       {
-        m_cfInterp->coarseFineInterp(phi, *a_phiCoar,  0, 0, 1);
-        //          dumpEBLevelGhost(&phi);
+        m_cfInterp.coarseFineInterp(phi, *a_phiCoar,  0, 0, 1);
       }
     }
     applyOp(a_lhs, a_phi, a_homogeneousPhysBC);
@@ -551,14 +547,13 @@ namespace amrex
     FabArray<EBCellFAB>&  phi = (FabArray<EBCellFAB>&) a_phi;
     {
       BL_PROFILE("ghostcell fills");
-      fillPhiGhost(a_phi, a_homogeneous);
+      fillPhiGhost(phi, a_homogeneous);
     }
 
     {
       BL_PROFILE("applying op without bcs");
-      for(MFIter mfi(m_eblg.getDBL(); mfi.getDM()); mfi.isValid(); ++mfi)
+      for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
       {
-
         applyOpRegular(  a_lhs[mfi], a_phi[mfi], a_homogeneous, mfi);
         applyOpIrregular(a_lhs[mfi], a_phi[mfi], a_homogeneous, mfi);
       }
@@ -570,7 +565,7 @@ namespace amrex
   fillPhiGhost(const FabArray<EBCellFAB>& a_phi, bool a_homog) const
   {
     BL_PROFILE("nwoebco::fillghostLD");
-    for(MFIter mfi(m_eblg.getDBL(); mfi.getDM()); mfi.isValid(); ++mfi)
+    for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       fillPhiGhost(a_phi[mfi], mfi, a_homog);
     }
@@ -587,7 +582,7 @@ namespace amrex
     EBCellFAB& phi = (EBCellFAB&) a_phi;
     ConductivityBaseDomainBC* condbc = dynamic_cast<ConductivityBaseDomainBC*>(&(*m_domainBC));
     Box grid = m_eblg.getDBL()[a_datInd];
-    Box domBox = m_eblg.getDomain().domainBox();
+    Box domBox = m_eblg.getDomain();
     if(condbc == NULL)
     {
       amrex::Error("dynamic cast failed");
@@ -595,7 +590,7 @@ namespace amrex
     if (!m_turnOffBCs)
     {
       FArrayBox& fab = phi.getFArrayBox();
-      condbc->fillPhiGhost(fab, grid, domBox, m_dx, a_homog);
+      condbc->fillPhiGhost(fab, grid, a_homog);
     }
     else
     {
