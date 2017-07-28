@@ -55,7 +55,8 @@ public:
               const DistributionMapping& dm,
               int                        ncomp,
               int                        ngrow,
-	      const MFInfo&              info = MFInfo());
+	      const MFInfo&              info = MFInfo(),
+              const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
 
     /**
      * \brief Make an alias MultiFab. maketype must be
