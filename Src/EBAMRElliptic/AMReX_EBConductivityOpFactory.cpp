@@ -143,7 +143,7 @@ namespace amrex
     pp.query("turn_off_multigrid_for_nwoc", turn_off_mg);
     if(turn_off_mg)
     {
-      pout() << "turn off multigrid for EBConductivityOp because turn_off_multigrid_for_nwoc = true " << endl;
+      pout() << "turn off EBMultiGrid for EBConductivityOp because turn_off_multigrid_for_nwoc = true " << endl;
       return NULL;
     }
 

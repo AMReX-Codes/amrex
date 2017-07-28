@@ -30,6 +30,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
+#include <AMReX_NFiles.H>
 
 #include <AMReX_Particles_F.H>
 

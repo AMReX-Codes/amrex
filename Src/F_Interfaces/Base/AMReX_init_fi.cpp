@@ -9,12 +9,12 @@
 
 extern "C"
 {
-    void amrex_fi_init (char* cmd)
+    void amrex_fi_init (char* cmd, int fcomm, int arg_parmparse,
+                        amrex::PTR_TO_VOID_FUNC proc_parmparse)
     {
         std::istringstream is(cmd);
-        amrex::Array<std::string> argv_string
-            {std::istream_iterator<std::string>{is},
-             std::istream_iterator<std::string>{}};
+        amrex::Array<std::string> argv_string(std::istream_iterator<std::string>{is},
+                                              std::istream_iterator<std::string>{  });
 
         int argc = argv_string.size();
         char** argv = (char**)malloc(argc*sizeof(char*));
@@ -24,7 +24,12 @@ extern "C"
             strcpy(argv[i], argv_string[i].c_str());
         }
 
-        amrex::Initialize(argc, argv);
+#ifdef BL_USE_MPI
+        MPI_Comm ccomm = MPI_Comm_f2c(fcomm);
+#else
+        int ccomm = 0;
+#endif
+        amrex::Initialize(argc, argv, arg_parmparse, ccomm, proc_parmparse);
 
         for (int i = 0; i < argc; ++i)
         {
