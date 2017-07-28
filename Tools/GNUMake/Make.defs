@@ -108,6 +108,12 @@ else
   DIMENSION_AGNOSTIC := FALSE
 endif
 
+ifdef USE_EB
+  USE_EB := $(strip $(USE_EB))
+else
+  USE_EB := FALSE
+endif
+
 ifdef EBASE
   EBASE := $(strip $(EBASE))
 else
@@ -341,6 +347,10 @@ endif
 
 ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DUSE_PARTICLES -DPARTICLES
+endif
+
+ifeq ($(USE_EB),TRUE)
+    CPPFLAGS += -DAMREX_USE_EB
 endif
 
 includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
