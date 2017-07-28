@@ -50,6 +50,7 @@ namespace amrex
   {
     BL_PROFILE("NWOEBCFI::defineInternals");
 
+
     m_eblevelRedist.define(m_eblg, m_nComp, m_redistRad);
     m_normalizor.define(m_eblg, m_dataGhost);
 
@@ -136,6 +137,7 @@ namespace amrex
           (new AggStencil<EBFaceFAB, EBCellFAB >(baseDstVoFs, baseSten, fluxProxy[mfi][idir], cellProxy[mfi]));
       }
     }
+
   }
   /************************************/
   void
