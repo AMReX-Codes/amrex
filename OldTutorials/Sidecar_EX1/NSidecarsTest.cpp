@@ -507,7 +507,7 @@ int main(int argc, char *argv[]) {
     }
     
     ParallelDescriptor::Barrier();
-    amrex::USleep(myProcAll);
+    amrex::USleep(myProcAll/10.0);
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << myProcAll << ":: Finished timesteps" << std::endl;
     }
@@ -515,6 +515,7 @@ int main(int argc, char *argv[]) {
     ParallelDescriptor::Barrier();
     nSidecars = 0;
     ParallelDescriptor::SetNProcsSidecars(nSidecars);
+    ParallelDescriptor::Barrier();
 
 
     amrex::Finalize();
