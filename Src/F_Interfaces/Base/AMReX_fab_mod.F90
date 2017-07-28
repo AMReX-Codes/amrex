@@ -22,8 +22,9 @@ module amrex_fab_module
      procedure :: dataptr       => amrex_fab_dataptr
      procedure :: resize        => amrex_fab_resize
      procedure :: norminf       => amrex_fab_norminf
-     procedure, private :: amrex_fab_assign, amrex_fab_resize, &
-          amrex_fab_norminf
+     procedure, private :: amrex_fab_assign
+     procedure, private :: amrex_fab_resize
+     procedure, private :: amrex_fab_norminf
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_fab_destroy
 #endif
