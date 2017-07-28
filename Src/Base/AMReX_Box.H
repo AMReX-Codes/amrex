@@ -355,6 +355,9 @@ public:
     */
     long index (const IntVect& v) const;
 
+    //Hari Sitaraman
+    void index_to_iv (int ind, IntVect& v);
+
     //! Redefine the small end of the Box.
     Box& setSmall (const IntVect& sm) { smallend = sm; return *this; }
 

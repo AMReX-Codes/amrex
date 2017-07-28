@@ -243,6 +243,20 @@ Box::numPts () const
                   *static_cast<long>(length(2)));
 }
 
+void Box::index_to_iv(int ind,IntVect& v)
+{
+#if BL_SPACEDIM==1
+    v[0]=ind+smallend[0];
+#elif BL_SPACEDIM==2
+    v[0]=ind%length(0)+smallend[0];
+    v[1]=ind/length(0)+smallend[1];
+#elif BL_SPACEDIM==3
+    v[0]=ind%length(0)+smallend[0];
+    v[1]=(ind/length(0))%length(1)+smallend[1];
+    v[2]=ind/(length(0)*length(1))+smallend[2];
+#endif
+}
+
 double
 Box::d_numPts () const
 {

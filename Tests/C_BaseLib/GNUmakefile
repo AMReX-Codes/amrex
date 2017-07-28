@@ -7,13 +7,14 @@ DIM          = 3
 COMP         = g++
 
 DEBUG        = TRUE
-DEBUG        = FALSE
+#DEBUG        = FALSE
 
 USE_MPI      = FALSE
-USE_MPI      = TRUE
+USE_OMP      = TRUE
+#USE_MPI      = TRUE
 
-PROFILE       = TRUE
-COMM_PROFILE  = TRUE
+#PROFILE       = TRUE
+#COMM_PROFILE  = TRUE
 TRACE_PROFILE = FALSE
 #DEFINES += -DBL_PROFILING_SPECIAL
 
@@ -39,7 +40,8 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 #_progs  := AMRProfTestBL
 #_progs  := tFB
 #_progs  := tRABcast.cpp
-_progs  := tProfiler
+#_progs  := tProfiler
+_progs  := tUMap
 
 ifeq ($(_progs),tProfiler)
   FEXE_sources += TPROFILER.F
@@ -47,6 +49,10 @@ endif
 
 ifeq ($(_progs),tFillFab)
   fEXE_sources += fillfab.f
+endif
+
+ifeq ($(_progs),tUMap)
+  f90EXE_sources += AMReX_BaseUmap_nd.f90
 endif
 
 include $(AMREX_HOME)/Src/Base/Make.package
