@@ -218,7 +218,7 @@ public:
     FArrayBox (const Box& b, int ncomp, Real* p);
 
     //!  The destructor.
-    ~FArrayBox () = default;
+    virtual ~FArrayBox () = default;
     
     FArrayBox (FArrayBox&& rhs) noexcept = default;
 
