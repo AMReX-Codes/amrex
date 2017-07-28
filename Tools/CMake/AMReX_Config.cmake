@@ -100,6 +100,9 @@ add_define (AMREX_USE_F_BASELIB=1  AMREX_DEFINES ENABLE_FBASELIB)
 add_define (AMREX_USE_MPI AMREX_DEFINES ENABLE_MPI)
 add_define (AMREX_USE_OMP AMREX_DEFINES ENABLE_OMP)
 
+add_define (BL_USE_F_INTERFACES AMREX_DEFINES) # Always build F interfaces
+add_define (BL_USE_ASSERTION AMREX_DEFINES) # No idea :-P
+
 #
 # Add all preprocessor definitions to compile string
 # 
