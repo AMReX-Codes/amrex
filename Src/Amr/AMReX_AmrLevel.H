@@ -14,6 +14,9 @@
 #include <AMReX_StateDescriptor.H>
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBLevelGrid.H>
+#endif
 
 #include <memory>
 #include <map>
@@ -363,6 +366,10 @@ protected:
               const BoxArray& bl,
 	      const DistributionMapping& dm,
               Real            time);
+
+    AmrLevel (const AmrLevel&) = delete;
+    AmrLevel& operator = (const AmrLevel&) = delete;
+
     //! Common code used by all constructors.
     void finishConstructor (); 
 
@@ -387,16 +394,16 @@ protected:
 
     bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 
+#ifdef AMREX_USE_EB
+    static void SetEBMaxGrowCells (int n) { m_eb_max_grow_cells = n; }
+    static int            m_eb_max_grow_cells;
+    EBLevelGrid           m_eblg;
+#endif
+
 private:
 
     mutable BoxArray      edge_grids[BL_SPACEDIM];  // face-centered grids
     mutable BoxArray      nodal_grids;              // all nodal grids
-
-    //
-    // Disallowed.
-    //
-    AmrLevel (const AmrLevel&);
-    AmrLevel& operator = (const AmrLevel&);
 };
 
 //
