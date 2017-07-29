@@ -16,6 +16,10 @@
 
 namespace amrex {
 
+#ifdef AMREX_USE_EB
+static int AmrLevel::m_eb_max_grow_cells = 6;
+#endif
+
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
 
@@ -68,6 +72,9 @@ AmrLevel::AmrLevel (Amr&            papa,
     geom(level_geom),
     grids(ba),
     dmap(dm)
+#ifdef AMREX_USE_EB
+    , m_eblg(ba, dm, level_geom.Domain(), m_eb_max_grow_cells)
+#endif
 {
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
     level  = lev;
@@ -95,7 +102,13 @@ AmrLevel::AmrLevel (Amr&            papa,
 			dm,
                         desc_lst[i],
                         time,
-                        parent->dtLevel(lev));
+                        parent->dtLevel(lev)
+#ifdef AMREX_USE_EB
+                        , EBFArrayBoxFactory(m_eblg.getEBISL())
+#else
+                        , FArrayBoxFactory()
+#endif
+            );
     }
 
     if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
