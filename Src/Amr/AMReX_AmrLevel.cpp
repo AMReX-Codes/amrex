@@ -17,7 +17,7 @@
 namespace amrex {
 
 #ifdef AMREX_USE_EB
-static int AmrLevel::m_eb_max_grow_cells = 6;
+int AmrLevel::m_eb_max_grow_cells = 6;
 #endif
 
 DescriptorList AmrLevel::desc_lst;
