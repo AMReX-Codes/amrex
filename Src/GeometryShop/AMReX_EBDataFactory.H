@@ -42,6 +42,10 @@ namespace amrex
         return retval;
       }
 
+    virtual EBDataFactory* clone () const override {
+        return new EBDataFactory(*this);
+    }
+
     ///
     EBDataFactory(shared_ptr<FabArray<EBGraph> > a_graphs)
       {

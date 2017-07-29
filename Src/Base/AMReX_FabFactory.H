@@ -35,6 +35,7 @@ class FabFactory
 public:
     virtual ~FabFactory () {}
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
+    virtual FabFactory<FAB>* clone () const = 0;
 };
 
 template <class FAB>
@@ -46,6 +47,10 @@ public:
     {
         return new FAB(box, ncomps, info.alloc, info.shared);
     }
+
+    virtual DefaultFabFactory<FAB>* clone () const override {
+        return new DefaultFabFactory<FAB>();
+    }
 };
 
 #ifdef AMREX_USE_EB
@@ -55,17 +60,20 @@ class FArrayBoxFactory
 {
 public:
 
-    FArrayBoxFactory () = default;
     FArrayBoxFactory (const EBISLayout& a_ebisl);
     virtual ~FArrayBoxFactory () = default;
 
-    FArrayBoxFactory (const FArrayBoxFactory&) = delete;
-    FArrayBoxFactory (FArrayBoxFactory&&) = delete;
+    FArrayBoxFactory () = default;
+    FArrayBoxFactory (const FArrayBoxFactory&) = default;
+    FArrayBoxFactory (FArrayBoxFactory&&) noexcept = default;
+
     FArrayBoxFactory& operator= (const FArrayBoxFactory&) = delete;
     FArrayBoxFactory& operator= (FArrayBoxFactory&&) = delete;
 
 
     virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override;
+
+    virtual FArrayBoxFactory* clone () const override;
 
 private:
     EBISLayout m_ebisl;

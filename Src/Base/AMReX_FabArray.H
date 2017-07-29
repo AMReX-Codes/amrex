@@ -170,6 +170,8 @@ public:
 			 const MFInfo&              info = MFInfo(),
                          const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 
+    const FabFactory<FAB>& Factory () const { return *m_factory; }
+
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
     * if FABs are allocated for each Box in the BoxArray and the
@@ -455,6 +457,8 @@ public:
 
 
 protected:
+
+    std::unique_ptr<FabFactory<FAB> > m_factory;
 
     bool define_function_called = false;
     
@@ -826,6 +830,7 @@ FabArray<FAB>::clear ()
 
     m_fabs_v.clear();
     boxarray.clear();
+    m_factory.reset();
 }
 
 template <class FAB>
@@ -861,7 +866,8 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        ngrow,
 			 const MFInfo&              info,
                          const FabFactory<FAB>&     factory)
-    : shmem()
+    : m_factory(factory.clone()),
+      shmem()
 {
     m_FA_stats.recordBuild();
     define(bxs,dm,nvar,ngrow,info,factory);
@@ -869,7 +875,8 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 
 template <class FAB>
 FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp)
-    : shmem()
+    : m_factory(rhs.Factory().clone()), 
+      shmem()
 {
     m_FA_stats.recordBuild();
     define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(), MFInfo().SetAlloc(false));
@@ -907,6 +914,7 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (std::move(rhs))
+    , m_factory    (std::move(rhs.m_factory))
     , m_fabs_v     (std::move(rhs.m_fabs_v))
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
@@ -1035,7 +1043,8 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 
     FabInfo fab_info;
     fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
-    
+
+    m_factory.reset(factory.clone());    
 
     m_fabs_v.reserve(n);
 

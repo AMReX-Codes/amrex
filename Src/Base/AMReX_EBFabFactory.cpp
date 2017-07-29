@@ -26,4 +26,10 @@ FArrayBoxFactory::create (const Box& box, int ncomps,
     }
 }
 
+FArrayBoxFactory*
+FArrayBoxFactory::clone () const
+{
+    return new FArrayBoxFactory(*this);
+}
+
 }
