@@ -195,9 +195,8 @@ public:
 *  this class.  The internal precision of FARRAYBOX objects is
 *  set by defining either BL_USE_FLOAT or BL_USE_DOUBLE
 *
-*  This is NOT a polymorphic class.
-*
-*  This class does NOT provide a copy constructor or assignment operator.
+*  This class does NOT provide a copy constructor or assignment operator,
+*  but it has a move constructor.
 */
 
 class FArrayBox
