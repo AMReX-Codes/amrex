@@ -7,7 +7,7 @@ set (ALLSRC "")
 set ( CXXSRC
    AmrCore/AMReX_amrcore_fi.cpp AmrCore/AMReX_tagbox_fi.cpp AmrCore/AMReX_FAmrCore.cpp
    AmrCore/AMReX_fillpatch_fi.cpp AmrCore/AMReX_fluxregister_fi.cpp
-   Base/AMReX_boxarray_fi.cpp   Base/AMReX_fi_main.cpp      Base/AMReX_multifab_fi.cpp
+   Base/AMReX_boxarray_fi.cpp   Base/AMReX_multifab_fi.cpp
    Base/AMReX_plotfile_fi.cpp   Base/AMReX_box_fi.cpp       Base/AMReX_FPhysBC.cpp
    Base/AMReX_multifabutil_fi.cpp  Base/AMReX_vismf_fi.cpp  Base/AMReX_distromap_fi.cpp
    Base/AMReX_geometry_fi.cpp   Base/AMReX_physbc_fi.cpp
