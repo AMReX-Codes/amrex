@@ -16,6 +16,7 @@ namespace amrex {
 
 class BoxArray;
 class MultiFab;
+template <typename T> class FabArray;
 
 /**
 * \brief Calculates the distribution of FABs to MPI processes.
@@ -35,6 +36,9 @@ class MultiFab;
 class DistributionMapping
 {
   public:
+
+    template <typename T> friend class FabArray;
+
     //! The distribution strategies
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
 
