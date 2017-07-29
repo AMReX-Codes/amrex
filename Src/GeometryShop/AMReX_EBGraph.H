@@ -460,6 +460,8 @@ namespace amrex
         
     ///
     ~EBGraph();
+
+    EBGraph (EBGraph&& rhs) noexcept = default;
         
     ///
     /**
