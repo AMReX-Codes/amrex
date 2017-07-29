@@ -53,35 +53,33 @@ public:
     }
 };
 
+using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
+
 #ifdef AMREX_USE_EB
 
-class FArrayBoxFactory
+class EBFArrayBoxFactory
     : public FabFactory<FArrayBox>
 {
 public:
 
-    FArrayBoxFactory (const EBISLayout& a_ebisl);
-    virtual ~FArrayBoxFactory () = default;
+    EBFArrayBoxFactory (const EBISLayout& a_ebisl);
+    virtual ~EBFArrayBoxFactory () = default;
 
-    FArrayBoxFactory () = default;
-    FArrayBoxFactory (const FArrayBoxFactory&) = default;
-    FArrayBoxFactory (FArrayBoxFactory&&) noexcept = default;
+    EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;
+    EBFArrayBoxFactory (EBFArrayBoxFactory&&) noexcept = default;
 
-    FArrayBoxFactory& operator= (const FArrayBoxFactory&) = delete;
-    FArrayBoxFactory& operator= (FArrayBoxFactory&&) = delete;
+    EBFArrayBoxFactory () = delete;
+    EBFArrayBoxFactory& operator= (const EBFArrayBoxFactory&) = delete;
+    EBFArrayBoxFactory& operator= (EBFArrayBoxFactory&&) = delete;
 
 
     virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override;
 
-    virtual FArrayBoxFactory* clone () const override;
+    virtual EBFArrayBoxFactory* clone () const override;
 
 private:
     EBISLayout m_ebisl;
 };
-
-#else
-
-using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
 
 #endif
 
