@@ -11,6 +11,12 @@
 set (AMREX_BUILD_TYPE  @AMREX_BUILD_TYPE@)
 
 #
+# Versioning
+# 
+set (AMREX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
+
+
+#
 # Directories and libraries
 #
 set (AMREX_TOOLS_DIR     @AMREX_TOOLS_DIR@)
