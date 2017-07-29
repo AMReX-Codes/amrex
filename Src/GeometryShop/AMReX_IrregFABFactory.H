@@ -37,6 +37,10 @@ namespace amrex
     */
     virtual IrregFAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const;
 
+    virtual IrregFABFactory* clone () const override {
+        return new IrregFABFactory(*this);
+    }
+
     ///
     IrregFABFactory(const EBISLayout                          & a_ebisl, 
                     const shared_ptr<LayoutData<IntVectSet> > & a_sets)

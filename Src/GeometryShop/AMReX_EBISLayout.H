@@ -280,6 +280,12 @@ namespace amrex
         m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem());
       }
 
+      EBISLayout (const EBISLayout& rhs) = default;
+      EBISLayout (EBISLayout&& rhs) noexcept = default;
+      EBISLayout& operator= (const EBISLayout& rhs) = default;
+
+      EBISLayout& operator= (EBISLayout&& rhs) = delete;
+
     ///
     ~EBISLayout()
       {

@@ -38,6 +38,10 @@ namespace amrex
     */
     virtual EBFluxFAB* create(const Box& box, int ncomps, const FabInfo& info, int box_index) const;
 
+    virtual EBFluxFactory* clone () const override {
+        return new EBFluxFactory(*this);
+    }
+
     ///
     /**
        create the factory with an ispace.  calls full define function

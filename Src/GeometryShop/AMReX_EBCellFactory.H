@@ -42,6 +42,13 @@ namespace amrex
         EBISBox ebisBox = m_ebisl[box_index];
         return new EBCellFAB(ebisBox, box, ncomps);
       }
+
+    virtual EBCellFactory* clone () const override {
+        return new EBCellFactory(*this);
+    }
+
+    EBCellFactory(const EBCellFactory& a_inputs) = default;
+
     ///
     /**
        create the factory with an ispace.  calls full define function
@@ -60,7 +67,6 @@ namespace amrex
     EBISLayout m_ebisl;
 
     //disallowed constructors and all that
-    EBCellFactory(const EBCellFactory& a_inputs);
 
     EBCellFactory();
 
