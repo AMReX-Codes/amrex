@@ -178,6 +178,26 @@ function (prepend list prefix)
 
 endfunction ()
 
+
+#
+# Find Git Version
+#
+function (find_git_version version )
+
+   execute_process ( COMMAND git describe --abbrev=12 --dirty --always --tags
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+      OUTPUT_VARIABLE output )
+
+   string (STRIP ${output} output)
+
+   set ( ${version} ${output} PARENT_SCOPE )
+
+
+endfunction ()
+
+
+
+
 #
 #  USE AT YOUR OWN RISK
 #

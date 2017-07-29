@@ -12,6 +12,11 @@ if ( NOT AMREX_OPTIONS_SET )
 included before AMReX_Configure.cmake" )
 endif ()
 
+#
+# Find AMReX Git version
+#
+find_git_version ( AMREX_GIT_VERSION )
+print (AMREX_GIT_VERSION)
 
 #
 # Decide whether or not to use PIC 
@@ -102,6 +107,9 @@ add_define (AMREX_USE_OMP AMREX_DEFINES ENABLE_OMP)
 
 add_define (BL_USE_F_INTERFACES AMREX_DEFINES) # Always build F interfaces
 add_define (BL_USE_ASSERTION AMREX_DEFINES) # No idea :-P
+
+add_define (AMREX_GIT_VERSION=\\"${AMREX_GIT_VERSION}\\" AMREX_DEFINES)
+
 
 #
 # Add all preprocessor definitions to compile string

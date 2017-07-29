@@ -14,7 +14,7 @@ before calling project()" )
 endif ()
 
 # Add variables for AMReX versioning 
-
+set (AMREX_GIT_VERSION)
 
 # Provide a default install directory
 set (AMREX_DEFAULT_INSTALL_DIR "${PROJECT_SOURCE_DIR}/installdir")
