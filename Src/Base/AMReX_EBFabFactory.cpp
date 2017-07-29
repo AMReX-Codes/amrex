@@ -7,12 +7,12 @@
 namespace amrex
 {
 
-FArrayBoxFactory::FArrayBoxFactory (const EBISLayout& a_ebisl)
+EBFArrayBoxFactory::EBFArrayBoxFactory (const EBISLayout& a_ebisl)
     : m_ebisl(a_ebisl)
 {}
 
 FArrayBox*
-FArrayBoxFactory::create (const Box& box, int ncomps,
+EBFArrayBoxFactory::create (const Box& box, int ncomps,
                           const FabInfo& info, int box_index) const
 {
     if (m_ebisl.isDefined())
@@ -26,10 +26,10 @@ FArrayBoxFactory::create (const Box& box, int ncomps,
     }
 }
 
-FArrayBoxFactory*
-FArrayBoxFactory::clone () const
+EBFArrayBoxFactory*
+EBFArrayBoxFactory::clone () const
 {
-    return new FArrayBoxFactory(*this);
+    return new EBFArrayBoxFactory(*this);
 }
 
 }
