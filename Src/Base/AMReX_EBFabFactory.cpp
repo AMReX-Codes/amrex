@@ -1,6 +1,7 @@
 
 #include <AMReX_FabFactory.H>
 #include <AMReX_FArrayBox.H>
+#include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBISLayout.H>
 
 namespace amrex
@@ -16,7 +17,8 @@ FArrayBoxFactory::create (const Box& box, int ncomps,
 {
     if (m_ebisl.isDefined())
     {
-        return new FArrayBox(box, ncomps, info.alloc, info.shared);
+        const EBISBox& ebisBox = m_ebisl[box_index];
+        return new EBFArrayBox(ebisBox, box, ncomps);
     }
     else
     {
