@@ -201,5 +201,18 @@ The list of available option is reported in Table~\ref{tab:cmakevar}.
   \caption{\label{tab:cmakevar} Variables for the customization of \amrex\ build with CMake}
 \end{table}
 
+\subsection{Importing AMReX configuration into a CMake project}
+\label{sec:build:cmake:config}
+In order to import the \amrex\ configuration options into your CMake
+build system, include the following line in the appropriate
+CMakeLists.txt file:
+\begin{verbatim}
+find_package (AMReX CONFIG REQUIRED HINTS /path/to/installdir/cmake )
+\end{verbatim}
+This will load \amrex-specific CMake variables containing the necessary
+info to compile and link your code to \amrex. For a list of all the available
+configuration variables, refer to the file {\tt AMReXConfig.cmake} in
+{\tt /path/to/installdir/cmake/}.
+
 
 
