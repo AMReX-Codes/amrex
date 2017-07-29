@@ -12,6 +12,11 @@ if ( NOT AMREX_OPTIONS_SET )
 included before AMReX_Configure.cmake" )
 endif ()
 
+#
+# Find AMReX Git version
+#
+find_git_version ( AMREX_GIT_VERSION )
+print (AMREX_GIT_VERSION)
 
 #
 # Decide whether or not to use PIC 
@@ -19,16 +24,6 @@ endif ()
 if (ENABLE_PIC)
    set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 endif ()
-
-
-# No idea why we need this.
-# I think it was required for Franklin build. -- lpritch
-# if(PREFER_STATIC_LIBRARIES)
-#   # Prefer static libraries, but don't require that everything must be static. 
-#   # This appears to be necessary on Franklin at NERSC right now.  --RTM
-#   set(CMAKE_FIND_LIBRARY_SUFFIXES .a .lib)
-# endif(PREFER_STATIC_LIBRARIES)
-
 
 
 #
@@ -110,6 +105,12 @@ add_define (AMREX_USE_F_BASELIB=1  AMREX_DEFINES ENABLE_FBASELIB)
 add_define (AMREX_USE_MPI AMREX_DEFINES ENABLE_MPI)
 add_define (AMREX_USE_OMP AMREX_DEFINES ENABLE_OMP)
 
+add_define (BL_USE_F_INTERFACES AMREX_DEFINES) # Always build F interfaces
+add_define (BL_USE_ASSERTION AMREX_DEFINES) # No idea :-P
+
+add_define (AMREX_GIT_VERSION=\\"${AMREX_GIT_VERSION}\\" AMREX_DEFINES)
+
+
 #
 # Add all preprocessor definitions to compile string
 # 
@@ -186,7 +187,8 @@ if (ENABLE_FPE)
 endif ()
 
 # Set CMake compiler flags
-set ( CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} "${AMREX_Fortran_FLAGS}" ) 
+set ( CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE}
+   "${AMREX_Fortran_FLAGS}  ${AMREX_Fortran_DEFINITIONS}" ) 
 set ( CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE} "${AMREX_CXX_FLAGS}" )
 
 
