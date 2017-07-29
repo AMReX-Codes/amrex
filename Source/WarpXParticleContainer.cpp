@@ -244,45 +244,76 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
     auto rho = std::unique_ptr<MultiFab>(new MultiFab(nba,dm,1,ng));
     rho->setVal(0.0);
 
-    Array<Real> xp, yp, zp;
-
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
-        const Box& box = pti.validbox();
+        Array<Real> xp, yp, zp;
+        FArrayBox local_rho;
 
-        auto& wp = pti.GetAttribs(PIdx::w);
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            const Box& box = pti.validbox();
             
-        const long np  = pti.numParticles();
+            auto& wp = pti.GetAttribs(PIdx::w);
+            
+            const long np  = pti.numParticles();
 
-	// Data on the grid
-	FArrayBox& rhofab = (*rho)[pti];
+            pti.GetPosition(xp, yp, zp);
+            
+            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
+            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
 
-        pti.GetPosition(xp, yp, zp);
-
+            // Data on the grid
+            Real* data_ptr;
+            const int *rholen;
+            FArrayBox& rhofab = (*rho)[pti];
+#ifdef _OPENMP
+            Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
+            const std::array<Real, 3>& xyzmin = xyzmin_tile;
+            tile_box.grow(ng);
+            local_rho.resize(tile_box);
+            local_rho = 0.0;
+            data_ptr = local_rho.dataPtr();
+            rholen = local_rho.length();
+#else
+            const std::array<Real, 3>& xyzmin = xyzmin_grid;
+            data_ptr = rhofab.dataPtr();
+            rholen = rhofab.length();
+#endif
+            
 #if (BL_SPACEDIM == 3)
-	long nx = box.length(0);
-	long ny = box.length(1);
-	long nz = box.length(2); 
+            long nx = box.length(0);
+            long ny = box.length(1);
+            long nz = box.length(2); 
 #elif (BL_SPACEDIM == 2)
-	long nx = box.length(0);
-	long ny = 0;
-	long nz = box.length(1); 
+            long nx = box.length(0);
+            long ny = 0;
+            long nz = box.length(1); 
 #endif
 
-        const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
-
-	long nxg = ng;
-	long nyg = ng;
-	long nzg = ng;
-	long lvect = 8;
-
-	warpx_charge_deposition(rhofab.dataPtr(), 
-				&np, xp.data(), yp.data(), zp.data(), wp.data(),
-				&this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
-				&dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-				&nxg, &nyg, &nzg, &WarpX::nox,&WarpX::noy,&WarpX::noz,
-				&lvect, &WarpX::charge_deposition_algo);
-				
+            long nxg = ng;
+            long nyg = ng;
+            long nzg = ng;
+            long lvect = 8;
+            
+            warpx_charge_deposition(data_ptr,
+                                    &np, xp.data(), yp.data(), zp.data(), wp.data(),
+                                    &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
+                                    &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                                    &nxg, &nyg, &nzg, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                    &lvect, &WarpX::charge_deposition_algo);
+            
+#ifdef _OPENMP
+            const Box& fabbox = rhofab.box();
+            const int ncomp = 1;
+            amrex_atomic_accumulate_fab(local_rho.dataPtr(),
+                                        tile_box.loVect(), tile_box.hiVect(),
+                                        rhofab.dataPtr(),
+                                        fabbox.loVect(), fabbox.hiVect(), ncomp);
+#endif
+        }
+        
     }
 
     if (!local) rho->SumBoundary(gm.periodicity());
@@ -294,6 +325,10 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
 
     const int lev = 0;
     amrex::Real total_charge = 0.0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:total_charge)
+#endif
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         auto& wp = pti.GetAttribs(PIdx::w);
@@ -311,6 +346,10 @@ Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 
     const int lev = 0;
     amrex::Real max_v = 0.0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:max_v)
+#endif
     for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         auto& ux = pti.GetAttribs(PIdx::ux);
@@ -373,42 +412,46 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 
     if (do_not_push) return;
 
-    Array<Real> xp, yp, zp, giv;
-
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
+        Array<Real> xp, yp, zp, giv;
 
-        auto& attribs = pti.GetAttribs();
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
 
-        auto& uxp = attribs[PIdx::ux];
-        auto& uyp = attribs[PIdx::uy];
-        auto& uzp = attribs[PIdx::uz];
-        
-        const long np = pti.numParticles();
+            auto& attribs = pti.GetAttribs();
 
-        giv.resize(np);
-
-        //
-        // copy data from particle container to temp arrays
-        //
-        BL_PROFILE_VAR_START(blp_copy);
-        pti.GetPosition(xp, yp, zp);
-        BL_PROFILE_VAR_STOP(blp_copy);
-
-        //
-        // Particle Push
-        //
-        BL_PROFILE_VAR_START(blp_pxr_pp);
-        warpx_particle_pusher_positions(&np, xp.data(), yp.data(), zp.data(),
-                                        uxp.data(), uyp.data(), uzp.data(), giv.data(), &dt);
-        BL_PROFILE_VAR_STOP(blp_pxr_pp);
-
-        //
-        // copy particle data back
-        //
-        BL_PROFILE_VAR_START(blp_copy);
-        pti.SetPosition(xp, yp, zp);
-        BL_PROFILE_VAR_STOP(blp_copy);
+            auto& uxp = attribs[PIdx::ux];
+            auto& uyp = attribs[PIdx::uy];
+            auto& uzp = attribs[PIdx::uz];
+            
+            const long np = pti.numParticles();
+            
+            giv.resize(np);
+            
+            //
+            // copy data from particle container to temp arrays
+            //
+            BL_PROFILE_VAR_START(blp_copy);
+            pti.GetPosition(xp, yp, zp);
+            BL_PROFILE_VAR_STOP(blp_copy);
+            
+            //
+            // Particle Push
+            //
+            BL_PROFILE_VAR_START(blp_pxr_pp);
+            warpx_particle_pusher_positions(&np, xp.data(), yp.data(), zp.data(),
+                                            uxp.data(), uyp.data(), uzp.data(), giv.data(), &dt);
+            BL_PROFILE_VAR_STOP(blp_pxr_pp);
+            
+            //
+            // copy particle data back
+            //
+            BL_PROFILE_VAR_START(blp_copy);
+            pti.SetPosition(xp, yp, zp);
+            BL_PROFILE_VAR_STOP(blp_copy);
+        }
     }
 }
-

@@ -160,6 +160,9 @@ WarpX::InitOpenbc ()
     MultiFab phi(nba, DistributionMap(lev), 1, 0);
     phi.copy(phi_openbc, gm.periodicity());
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
 	const Box& bx = mfi.validbox();

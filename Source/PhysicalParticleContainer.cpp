@@ -326,6 +326,9 @@ PhysicalParticleContainer::FieldGather (int lev,
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
 	Array<Real> xp, yp, zp;
 
@@ -455,21 +458,25 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
-
+    
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
-
+    
     // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
     long ngE = Ex.nGrow();
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ = jx.nGrow();
-
+    
     long ngRho = (rho) ? rho->nGrow() : 0;
-
+    
     BL_ASSERT(OnSameGrids(lev,Ex));
-
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
 	Array<Real> xp, yp, zp, giv;
-
+        FArrayBox local_rho, local_jx, local_jy, local_jz;
+        
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
 	    const Box& box = pti.validbox();
@@ -516,14 +523,30 @@ PhysicalParticleContainer::Evolve (int lev,
             pti.GetPosition(xp, yp, zp);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-            const std::array<Real,3>& xyzmin = WarpX::LowerCorner(box, lev);
+            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
+            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
 
 	    long lvect = 8;
 
             if (rho)
             {
+                Real* data_ptr;
+                const int *rholen;
                 FArrayBox& rhofab = (*rho)[pti];
-                const int* rholen = rhofab.length();
+#ifdef _OPENMP
+                Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
+                const std::array<Real, 3>& xyzmin = xyzmin_tile;
+                tile_box.grow(ngRho);
+                local_rho.resize(tile_box);
+                local_rho = 0.0;
+                data_ptr = local_rho.dataPtr();
+                rholen = local_rho.length();
+#else
+                const std::array<Real, 3>& xyzmin = xyzmin_grid;
+                data_ptr = rhofab.dataPtr();
+                rholen = rhofab.length();
+#endif
+
 #if (BL_SPACEDIM == 3)
                 const long nx = rholen[0]-1-2*ngRho;
                 const long ny = rholen[1]-1-2*ngRho;
@@ -533,14 +556,22 @@ PhysicalParticleContainer::Evolve (int lev,
                 const long ny = 0;
                 const long nz = rholen[1]-1-2*ngRho;
 #endif
-            	warpx_charge_deposition(rhofab.dataPtr(),
-                                        &np, xp.data(), yp.data(), zp.data(), wp.data(),
-                                        &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
+            	warpx_charge_deposition(data_ptr, &np, xp.data(), yp.data(), zp.data(), wp.data(),
+                                        &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2],
                                         &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
                                         &ngRho, &ngRho, &ngRho, &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                         &lvect, &WarpX::charge_deposition_algo);
-            }
 
+#ifdef _OPENMP
+                const Box& fabbox = rhofab.box();
+                const int ncomp = 1;
+                amrex_atomic_accumulate_fab(local_rho.dataPtr(),
+                                            tile_box.loVect(), tile_box.hiVect(),
+                                            rhofab.dataPtr(),
+                                            fabbox.loVect(), fabbox.hiVect(), ncomp);
+#endif
+            }
+            
             if (! do_not_push)
             {
                 //
@@ -554,7 +585,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     &np, xp.data(), yp.data(), zp.data(),
                     Exp.data(),Eyp.data(),Ezp.data(),
                     Bxp.data(),Byp.data(),Bzp.data(),
-                    &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                    &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                     &dx[0], &dx[1], &dx[2],
                     &WarpX::nox, &WarpX::noy, &WarpX::noz,
                     exfab.dataPtr(), &ngE, exfab.length(),
@@ -581,13 +612,53 @@ PhysicalParticleContainer::Evolve (int lev,
                 
                 //
                 // Current Deposition onto fine patch
-                // xxxxx this part needs to be thread safe if we have OpenMP over tiles
                 //
+
                 BL_PROFILE_VAR_START(blp_pxr_cd);
+                Real *jx_ptr, *jy_ptr, *jz_ptr;
+                const int  *jxntot, *jyntot, *jzntot;
+#ifdef _OPENMP
+                Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
+                Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
+                Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
+                
+                const std::array<Real, 3>& xyzmin = xyzmin_tile;
+                
+                tbx.grow(ngJ);
+                tby.grow(ngJ);
+                tbz.grow(ngJ);
+                
+                local_jx.resize(tbx);
+                local_jy.resize(tby);
+                local_jz.resize(tbz);
+                
+                local_jx = 0.0;
+                local_jy = 0.0;
+                local_jz = 0.0;
+                
+                jx_ptr = local_jx.dataPtr();
+                jy_ptr = local_jy.dataPtr();
+                jz_ptr = local_jz.dataPtr();
+                
+                jxntot = local_jx.length();
+                jyntot = local_jy.length();
+                jzntot = local_jz.length();
+#else                
+                const std::array<Real, 3>& xyzmin = xyzmin_grid;
+
+                jx_ptr = jxfab.dataPtr();
+                jy_ptr = jyfab.dataPtr();
+                jz_ptr = jzfab.dataPtr();
+
+                jxntot = jxfab.length();
+                jyntot = jyfab.length();
+                jzntot = jzfab.length();
+#endif
+
                 warpx_current_deposition(
-                    jxfab.dataPtr(), &ngJ, jxfab.length(),
-                    jyfab.dataPtr(), &ngJ, jyfab.length(),
-                    jzfab.dataPtr(), &ngJ, jzfab.length(),
+                    jx_ptr, &ngJ, jxntot,
+                    jy_ptr, &ngJ, jyntot,
+                    jz_ptr, &ngJ, jzntot,
                     &np, xp.data(), yp.data(), zp.data(),
                     uxp.data(), uyp.data(), uzp.data(),
                     giv.data(), wp.data(), &this->charge,
@@ -595,6 +666,29 @@ PhysicalParticleContainer::Evolve (int lev,
                     &dt, &dx[0], &dx[1], &dx[2],
                     &WarpX::nox,&WarpX::noy,&WarpX::noz,
                     &lvect,&WarpX::current_deposition_algo);
+                
+#ifdef _OPENMP
+                const int ncomp = 1;
+
+                const Box& jxbox = jxfab.box();
+                amrex_atomic_accumulate_fab(local_jx.dataPtr(), 
+                                            tbx.loVect(), tbx.hiVect(),
+                                            jxfab.dataPtr(),
+                                            jxbox.loVect(), jxbox.hiVect(), ncomp);
+                
+                const Box& jybox = jyfab.box();
+                amrex_atomic_accumulate_fab(local_jy.dataPtr(), 
+                                            tby.loVect(), tby.hiVect(),
+                                            jyfab.dataPtr(),
+                                            jybox.loVect(), jybox.hiVect(), ncomp);
+                
+                const Box& jzbox = jzfab.box();
+                amrex_atomic_accumulate_fab(local_jz.dataPtr(), 
+                                            tbz.loVect(), tbz.hiVect(),
+                                            jzfab.dataPtr(),
+                                            jzbox.loVect(), jzbox.hiVect(), ncomp);
+#endif
+
                 BL_PROFILE_VAR_STOP(blp_pxr_cd);
                 
                 //

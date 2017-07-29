@@ -1,12 +1,12 @@
 #ifndef PLASMA_INJECTOR_H_
 #define PLASMA_INJECTOR_H_
 
-#include <random>
 #include <array>
 
 #include "AMReX_REAL.H"
 #include "AMReX_Array.H"
 #include "AMReX_ParmParse.H"
+#include "AMReX_Utility.H"
 
 ///
 /// PlasmaDensityProfile describes how the charge density
@@ -107,10 +107,6 @@ private:
     amrex::Real _uy_m;
     amrex::Real _uz_m;
     amrex::Real _u_th;
-
-    // xxxxx These random number generators are not thread safe.
-    std::normal_distribution<amrex::Real> momentum_distribution;
-    std::default_random_engine generator;
 };
 
 ///
@@ -154,9 +150,6 @@ private:
     amrex::Real _y;
     amrex::Real _z;
     int _num_particles_per_cell;
-    // xxxxx These random number generators are not thread safe.
-    std::uniform_real_distribution<amrex::Real> position_distribution;
-    std::default_random_engine generator;
 };
 
 ///

@@ -17,6 +17,9 @@ namespace
         double** data = (double**) malloc((*num_boxes) * sizeof(double*));
         
         int i = 0;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for ( amrex::MFIter mfi(mf, false); mfi.isValid(); ++mfi, ++i ) {
             data[i] = (double*) mf[mfi].dataPtr();
             for (int j = 0; j < BL_SPACEDIM; ++j) {
