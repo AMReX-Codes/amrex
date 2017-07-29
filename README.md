@@ -35,8 +35,11 @@ cd ..
 ```
 make -j 4
 ```
-(in order to  compile the code in parallel on 4 cores).  This will
-generate an executable file in the `Bin` directory.
+or, in order to enable openMP,
+```
+make -j 4 USE_OMP=TRUE
+```
+This will compile the code (using 4 procs for the compilation) and generate an executable file in the `Bin` directory.
 
 In order to clean a previously compiled version:
 ```
