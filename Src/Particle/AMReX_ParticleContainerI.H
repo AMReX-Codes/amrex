@@ -4224,10 +4224,8 @@ AssignCellDensitySingleLevelFort (int rho_index,
                 
 
 #ifdef _OPENMP
-            amrex_atomic_accumulate_fab(local_rho.dataPtr(), 
-                                        tile_box.loVect(), tile_box.hiVect(),
-                                        fab.dataPtr(),
-                                        box.loVect(), box.hiVect(), ncomp);
+            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho), 
+                                        BL_TO_FORTRAN_3D(fab), ncomp);
 #endif
 
         }
