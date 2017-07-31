@@ -358,12 +358,10 @@ LaserParticleContainer::Evolve (int lev,
 #ifdef _OPENMP
                 const Box& fabbox = rhofab.box();
                 const int ncomp = 1;
-                amrex_atomic_accumulate_fab(local_rho.dataPtr(),
-                                            tile_box.loVect(), tile_box.hiVect(),
-                                            rhofab.dataPtr(),
-                                            fabbox.loVect(), fabbox.hiVect(), ncomp);
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                            BL_TO_FORTRAN_3D(rhofab), ncomp);
 #endif
-            } 
+            }
 
 	    //
 	    // Particle Push
@@ -470,22 +468,17 @@ LaserParticleContainer::Evolve (int lev,
                 const int ncomp = 1;
 
                 const Box& jxbox = jxfab.box();
-                amrex_atomic_accumulate_fab(local_jx.dataPtr(), 
-                                            tbx.loVect(), tbx.hiVect(),
-                                            jxfab.dataPtr(),
-                                            jxbox.loVect(), jxbox.hiVect(), ncomp);
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
                 
                 const Box& jybox = jyfab.box();
-                amrex_atomic_accumulate_fab(local_jy.dataPtr(), 
-                                            tby.loVect(), tby.hiVect(),
-                                            jyfab.dataPtr(),
-                                            jybox.loVect(), jybox.hiVect(), ncomp);
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
                 
                 const Box& jzbox = jzfab.box();
-                amrex_atomic_accumulate_fab(local_jz.dataPtr(), 
-                                            tbz.loVect(), tbz.hiVect(),
-                                            jzfab.dataPtr(),
-                                            jzbox.loVect(), jzbox.hiVect(), ncomp);
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
+
 #endif
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
