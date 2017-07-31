@@ -17,14 +17,14 @@
 
 namespace amrex
 {
-  static const IntVect deb_ivlo(D_DECL(33,13, 0));
-  static const IntVect deb_ivhi(D_DECL(33,14, 0));
-  static const VolIndex deb_vlo(deb_ivlo, 0);
-  static const VolIndex deb_vhi(deb_ivhi, 0);
-  static const FaceIndex deb_face(deb_vlo,deb_vhi, 1);
-  static const IntVect deb_ivlobox(D_DECL(30,8, 0));
-  static const IntVect deb_ivhibox(D_DECL(49,15,0));
-  static const Box deb_box(deb_ivlobox, deb_ivhibox);
+  //static const IntVect deb_ivlo(D_DECL(33,13, 0));
+  //static const IntVect deb_ivhi(D_DECL(33,14, 0));
+  //static const VolIndex deb_vlo(deb_ivlo, 0);
+  //static const VolIndex deb_vhi(deb_ivhi, 0);
+  //static const FaceIndex deb_face(deb_vlo,deb_vhi, 1);
+  //static const IntVect deb_ivlobox(D_DECL(30,8, 0));
+  //static const IntVect deb_ivhibox(D_DECL(49,15,0));
+  //static const Box deb_box(deb_ivlobox, deb_ivhibox);
 
   template <class T>
   bool BaseIFFAB<T>::s_verbose  = false;
@@ -63,6 +63,7 @@ namespace amrex
   {
     clear();
     m_isDefined = true;
+    m_verbose = false;
     assert(a_nvarin > 0);
     assert((a_direction >= 0) && (a_direction < SpaceDim));
 
@@ -182,7 +183,7 @@ namespace amrex
     }
     if (!found)
     {
-      pout() << "index  = " << a_face << endl;
+      pout() << "BaseIFFAB::getIndex, index  = " << a_face << endl;
       pout() << "my faces  = " << endl;
       dumpFaces(m_faces);
       
@@ -264,6 +265,7 @@ namespace amrex
   void
   BaseIFFAB<T>::setDefaultValues()
   {
+    m_verbose = false;
     m_isDefined = false;
     m_data = NULL;
     m_nFaces = 0;
@@ -300,7 +302,7 @@ namespace amrex
     //create set of cells in fab that are also in the input region
     std::vector<FaceIndex> faces;
     getFaceSubset(faces, a_region);
-
+    
     //account for list of faces
     std::size_t facesize = linearListSize(faces);
 
@@ -367,11 +369,16 @@ namespace amrex
                const void* a_buf)
   {
     assert(isDefined());
-
-    unsigned char* charbuffer = (unsigned char *) a_buf;
+    
+    size_t retval  = 0;
+    size_t incrval = 0; 
+    unsigned char* buffer = (unsigned char *) a_buf;
     std::vector<FaceIndex> faces;
-    linearListIn(faces, charbuffer);
-    charbuffer += linearListSize(faces);
+    linearListIn(faces, buffer);
+    incrval =  linearListSize(faces);
+    buffer += incrval;
+    retval += incrval;
+
 
     for (int iface = 0; iface < faces.size(); iface++)
     {
@@ -381,12 +388,14 @@ namespace amrex
       {
         //input the data
         T& dataPt = (*this)(face, icomp);
-        linearIn(dataPt, charbuffer) ;
+        linearIn(dataPt, buffer) ;
         //increment the buffer offset
-        charbuffer += linearSize(dataPt);
+        incrval = linearSize(dataPt);
+        buffer += incrval;
+        retval += incrval;
       }
     }
-    size_t retval = nBytes(dstbox, dstcomp, numcomp);
+
     return retval;
   }
   /********************/

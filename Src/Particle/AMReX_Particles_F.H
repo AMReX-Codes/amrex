@@ -4,8 +4,6 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_SPACE.H>
 
-#ifdef USE_PARTICLES
-
 #ifdef BL_SINGLE_PRECISION_PARTICLES
 typedef float amrex_particle_real;
 #else
@@ -62,8 +60,6 @@ BL_FORT_PROC_DECL(PART_SUMDENSUP,part_sumdensup)
 
 #ifdef __cplusplus
 };
-#endif
-
 #endif
 
 #endif /*_Particles_F_H_*/

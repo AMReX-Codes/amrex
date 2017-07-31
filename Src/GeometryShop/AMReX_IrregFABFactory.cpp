@@ -11,7 +11,8 @@ namespace amrex
     IntVectSet ivs;
     if(m_useSets)
     {
-      ivs   = (*m_sets)[box_index];
+      int localIndex = m_sets->localindex(box_index);
+      ivs   = (*m_sets)[localIndex];
     }
     else
     {
