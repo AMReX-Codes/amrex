@@ -561,22 +561,37 @@ int myTest()
         vfrac[mfi].setVal(-1);
         if ( !(ebis_box.isAllRegular()) )
         {
-            if (ebis_box.isAllCovered()) {
+            if (ebis_box.isCovered(vbox))
+            {
                 vfrac_fab.setVal(0);
+            }
+            else if (ebis_box.isRegular(vbox))
+            {
+                vfrac_fab.setVal(1);
             }
             else
             {
+                // Only cut cells
                 IntVectSet isIrreg = ebis_box.getIrregIVS(vbox);
                 for (IVSIterator it(isIrreg); it.ok(); ++it)
                 {
                     const IntVect& iv=it();
                     std::vector<VolIndex> vofs = ebis_box.getVoFs(iv);
-                    Rea; vfrac_tot = 0;
+                    Real vfrac_tot = 0;
                     for (int ivof=0; ivof<vofs.size(); ++ivof)
                     {
                         vfrac_tot += ebis_box.volFrac(vofs[ivof]);
                     }
                     vfrac_fab(iv,0) = vfrac_tot;
+                }
+
+                // Only regular cells
+                for (IntVect iv(vbox.smallEnd()); iv<=vbox.bigEnd(); vbox.next(iv))
+                {
+                    if (ebis_box.isRegular(iv))
+                    {
+                        vfrac_fab(iv,0) = 1;                        
+                    }
                 }
             }
         }
