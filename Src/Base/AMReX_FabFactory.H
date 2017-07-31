@@ -72,6 +72,7 @@ public:
     EBFArrayBoxFactory& operator= (const EBFArrayBoxFactory&) = delete;
     EBFArrayBoxFactory& operator= (EBFArrayBoxFactory&&) = delete;
 
+    const EBISLayout& Layout () const { return m_ebisl; }
 
     virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override;
 
