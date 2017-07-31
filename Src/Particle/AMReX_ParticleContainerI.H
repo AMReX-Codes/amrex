@@ -4048,7 +4048,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
     int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
     Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-    CellConservativeLinear mapper;
+    PCInterp mapper;
     
     Array<std::unique_ptr<MultiFab> > tmp(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; ++lev) {
