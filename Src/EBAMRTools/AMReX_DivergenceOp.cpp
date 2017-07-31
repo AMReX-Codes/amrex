@@ -147,6 +147,7 @@ namespace amrex
                    int isrc, int idst, int inco,
                    bool a_trustRegDivF)
   {
+/**/
     BL_ASSERT(isDefined());
     BL_ASSERT(a_flux.nGrow() == m_dataGhost);
     BL_ASSERT(a_divF.nGrow() == m_dataGhost);
@@ -156,7 +157,11 @@ namespace amrex
       EBCellFAB       & divF = m_kappaDivergence[mfi];
       const EBFluxFAB & flux = a_flux[mfi];
 
-      if(!a_trustRegDivF)
+      if(a_trustRegDivF)
+      {
+        divF.copy(a_divF[mfi]);
+      }
+      else
       {
         BaseFab<Real>       &  regDivF = divF.getSingleValuedFAB();
         vector<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
@@ -211,6 +216,7 @@ namespace amrex
       m_eblevelRedist.increment(m_massDiff[mfi], mfi, idst, inco);
     }
     m_eblevelRedist.redistribute(a_divF, idst, inco);
+/**/
   }
   /************************************/
 }
