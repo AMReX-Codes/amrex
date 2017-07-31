@@ -33,10 +33,12 @@ namespace amrex
          const Real          & a_dx,
          const int           & a_nComp,
          const int           & a_ghostCellsInData,
+         bool a_multiplyFluxByArea,
          int a_redistRad)
   {
     m_isDefined = true;
     m_eblg          = a_eblg;
+    m_multiplyFluxByArea = a_multiplyFluxByArea;
     m_dx            = a_dx;
     m_nComp         = a_nComp;
     m_dataGhost     = a_ghostCellsInData;
@@ -127,7 +129,14 @@ namespace amrex
               IntVectSet cfivs;//empty--see comment above
               FaceStencil interpSten = EBArith::getInterpStencil(faces[iface], cfivs, ebis, domain);
               Real areaFrac = ebis.areaFrac(faces[iface]);
-              interpSten *= (isign*areaFrac/m_dx);
+              if(m_multiplyFluxByArea)
+              {
+                interpSten *= (isign*areaFrac/m_dx);
+              }
+              else
+              {
+                interpSten *= 1.0/(m_dx*m_dx);
+              }
               dirStencil += interpSten;
             }
           }
@@ -171,12 +180,16 @@ namespace amrex
         }
         const Box& grid = m_eblg.getDBL()[mfi];
       
+        int multiplyByArea = 0;
+        if(m_multiplyFluxByArea) multiplyByArea = 1;
+
         //first do everything as if it has no eb.
         ebfnd_divflux(BL_TO_FORTRAN_FAB(regDivF),
                       BL_TO_FORTRAN_FAB((*regFlux[0])),
                       BL_TO_FORTRAN_FAB((*regFlux[1])),
                       BL_TO_FORTRAN_FAB((*regFlux[2])),
                       BL_TO_FORTRAN_BOX(grid),
+                      &multiplyByArea,
                       &m_dx, &isrc, &idst, &inco);
       }
       //turn off increment only for bndry flux.  This sets the initial divergence at 
