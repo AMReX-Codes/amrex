@@ -14,6 +14,7 @@ section_sources = Preface/Preface.tex \
                   AmrCore/AmrCore.tex \
                   Particle/Particle.tex \
                   AmrLevel/AmrLevel.tex \
+                  Fortran/Fortran.tex \
                   Visualization/Visualization.tex \
                   Profiling/Profiling.tex \
                   Debugging/Debugging.tex

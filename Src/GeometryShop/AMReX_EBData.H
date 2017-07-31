@@ -33,7 +33,7 @@ namespace amrex
   {
 
   public:
-
+    static bool s_verbose;
     ///sure hope this does not matter
     typedef int value_type;
 
@@ -259,7 +259,7 @@ private:
     friend class EBISLevel;
   };
 
-  extern void null_deleter(EBDataImplem *);
+  extern void null_deleter_ebdi(EBDataImplem *);
 
 ///
 /**
@@ -301,7 +301,7 @@ private:
     ///this keeps the input pointer from being deleted.  Not for the faint of heart.
     EBData(EBDataImplem* a_implemPtr)
       {
-        m_implem = std::shared_ptr<EBDataImplem>(a_implemPtr, &null_deleter);
+        m_implem = std::shared_ptr<EBDataImplem>(a_implemPtr, &null_deleter_ebdi);
       }
     ///
     void define(const Box& a_box, int a_comps)

@@ -5,7 +5,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 
-#include <AmrAdv.H>
+#include <AmrCoreAdv.H>
 
 using namespace amrex;
 
@@ -20,21 +20,21 @@ int main(int argc, char* argv[])
     const Real strt_total = ParallelDescriptor::second();
 
     {
-	// declare an AmrAdv object to manage multilevel data
-        AmrAdv amradv;
+	// declare an AmrCoreAdv object to manage multilevel data
+        AmrCoreAdv amr_core_adv;
 	
         // initialize AMR data
-	amradv.InitData();
+	amr_core_adv.InitData();
 
         // advance solution to final time
-	amradv.Evolve();
+	amr_core_adv.Evolve();
 	
         // wallclock time
 	Real end_total = ParallelDescriptor::second() - strt_total;
 	
         // print wallclock time
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
-	if (amradv.Verbose()) {
+	if (amr_core_adv.Verbose()) {
             amrex::Print() << "\nTotal Time: " << end_total << '\n';
 	}
     }
