@@ -113,12 +113,14 @@ Copy(IntVect& out, const intDIM& in)
 */
 extern "C"
 {
-    void fill_redist_stencil(const int* lo, const int* hi,
+    void fill_redist_stencil(const int*  lo, const int*  hi,
+                             const int* slo, const int* shi,
 			     NbrSten* redistSten, const int* Nsten,
 			     const BL_FORT_IFAB_ARG_3D(imask),
 			     BL_FORT_FAB_ARG_3D(vfrac));
     
-    void apply_redist_stencil(const int* lo, const int* hi,
+    void apply_redist_stencil(const int* lo,  const int*  hi,
+                              const int* slo, const int* shi,
                               NbrSten* redistSten, const int* Nsten,
 			      const BL_FORT_FAB_ARG_3D(vin),
 			      BL_FORT_FAB_ARG_3D(vout));
@@ -185,6 +187,9 @@ int myTest()
     }
     vfrac.FillBoundary();
 
+    const Box stenBox(IntVect(D_DECL(-1,-1,-1)),
+                      IntVect(D_DECL(+1,+1,+1)));
+
     std::map<int,std::vector<NbrSten>> redistSten;
     for(MFIter  mfi(vfrac); mfi.isValid(); ++mfi)
     {
@@ -211,6 +216,7 @@ int myTest()
 
 	    int Nsten = redistSten[i].size();
 	    fill_redist_stencil(BL_TO_FORTRAN_BOX(vbox),
+                                BL_TO_FORTRAN_BOX(stenBox),
                                 redistSten[i].data(), &Nsten,
 	        		BL_TO_FORTRAN_3D(m),
 	        		BL_TO_FORTRAN_3D(vfab));
@@ -232,6 +238,7 @@ int myTest()
         if (Nsten > 0)
         {
 	    apply_redist_stencil(BL_TO_FORTRAN_BOX(vbox),
+                                 BL_TO_FORTRAN_BOX(stenBox),
                                  redistSten[i].data(), &Nsten,
                                  BL_TO_FORTRAN_3D(infab),
                                  BL_TO_FORTRAN_3D(outfab));
