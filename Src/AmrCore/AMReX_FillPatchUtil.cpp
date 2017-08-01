@@ -63,7 +63,8 @@ namespace amrex
 		destcomp = dcomp;
 		sameba = true;
 	    } else {
-		raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, 0);
+		raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, 0,
+                            MFInfo(), smf[0]->Factory());
 			    
 		dmf = &raii;
 		destcomp = 0;
@@ -140,7 +141,8 @@ namespace amrex
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
-		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
+		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
+                                       cmf[0]->Factory());
 		
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
 		
@@ -212,7 +214,8 @@ namespace amrex
 	    }
 	}
 
-	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
+	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(),
+                               cmf.Factory());
 
 	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
@@ -280,7 +283,7 @@ namespace amrex
                 cba.coarsen(ref_ratio);
                 const DistributionMapping& dm = cfinfo.dm_cfb;
 
-                cmf[idim].define(cba, dm, 1, 1);
+                cmf[idim].define(cba, dm, 1, 1, MFInfo(), crse[0].Factory());
 
                 cmf[idim].copy(crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
             }
