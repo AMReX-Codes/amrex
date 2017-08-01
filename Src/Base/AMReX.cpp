@@ -251,7 +251,7 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 
 void
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
-                   MPI_Comm mpi_comm, PTR_TO_VOID_FUNC func_parm_parse)
+                   MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse)
 {
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 

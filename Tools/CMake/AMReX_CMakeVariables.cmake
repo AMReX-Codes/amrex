@@ -14,7 +14,7 @@ before calling project()" )
 endif ()
 
 # Add variables for AMReX versioning 
-
+set (AMREX_GIT_VERSION)
 
 # Provide a default install directory
 set (AMREX_DEFAULT_INSTALL_DIR "${PROJECT_SOURCE_DIR}/installdir")
@@ -24,21 +24,22 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif ()
 
 # Set paths for build system
-set ( CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/Src/mod_files )
+set ( CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/mod_files )
 
 
 # Set directory paths
-set (AMREX_SOURCE_DIR       ${CMAKE_SOURCE_DIR}/Src )
-set (AMREX_LIBRARY_DIR      ${CMAKE_INSTALL_PREFIX}/lib )
-set (AMREX_INCLUDE_DIR      ${CMAKE_INSTALL_PREFIX}/include )
-set (AMREX_BINARY_DIR       ${CMAKE_INSTALL_PREFIX}/bin )
-set (AMREX_LIBRARIES        fboxlib;cboxlib;fboxlib;cfboxlib;box_camrdata)
+set (AMREX_SOURCE_DIR         ${CMAKE_SOURCE_DIR}/Src )
+set (AMREX_CMAKE_MODULES_DIR  ${CMAKE_CURRENT_LIST_DIR})
+set (AMREX_LIBRARY_DIR        ${CMAKE_INSTALL_PREFIX}/lib )
+set (AMREX_INCLUDE_DIR        ${CMAKE_INSTALL_PREFIX}/include )
+set (AMREX_BINARY_DIR         ${CMAKE_INSTALL_PREFIX}/bin )
+set (AMREX_TOOLS_DIR          ${CMAKE_INSTALL_PREFIX}/Tools )
+set (AMREX_CMAKE_DIR          ${CMAKE_INSTALL_PREFIX}/cmake )
+set (AMREX_LIBRARIES          amrex )
 
-
-# The following is the old way: why cache?
-# set ( CMAKE_Fortran_MODULE_DIRECTORY
-#    ${CMAKE_CURRENT_BINARY_DIR}/mod_files
-#    CACHE PATH "Folder for fortran module files")
+# Config files for export
+set ( AMREX_CONFIG_INSTALL_INFILE  ${AMREX_CMAKE_MODULES_DIR}/AMReXConfig.cmake.in)
+set ( AMREX_CONFIG_INSTALL_OUTFILE ${PROJECT_BINARY_DIR}/AMReXConfig.cmake)
 
 # The type of build ( will need to be uppercase )
 set ( AMREX_BUILD_TYPE )
@@ -52,8 +53,8 @@ endif ()
 set ( AMREX_DEFINES ) 
 
 # Shorter-name variables for the compilers id
-set ( FC_ID ${CMAKE_Fortran_COMPILER_ID} )
-set ( CC_ID ${CMAKE_C_COMPILER_ID} )
+set ( FC_ID  ${CMAKE_Fortran_COMPILER_ID} )
+set ( CC_ID  ${CMAKE_C_COMPILER_ID} )
 set ( CXX_ID ${CMAKE_CXX_COMPILER_ID} )
 
 # Compiler flags
@@ -82,7 +83,7 @@ set (AMREX_Intel_FFLAGS_FPE "")
 
 set (AMREX_Intel_CXXFLAGS_DEBUG "-g -O0 -traceback -Wcheck")
 set (AMREX_Intel_CXXFLAGS_RELEASE "-O2 -ip -qopt-report=5 -qopt-report-phase=vec")
-set (AMREX_Intel_CXXFLAGS_REQUIRED "")#-ftemplate-depth-64 -Wno-deprecated")
+set (AMREX_Intel_CXXFLAGS_REQUIRED "-std=c++11" )#-ftemplate-depth-64 -Wno-deprecated")
 set (AMREX_Intel_CXXFLAGS_FPE "")
 
 # PGI compiler specific flags
@@ -106,6 +107,10 @@ set (AMREX_Cray_CXXFLAGS_DEBUG "-O0")
 set (AMREX_Cray_CXXFLAGS_RELEASE "-02")
 set (AMREX_Cray_CXXFLAGS_REQUIRED "")#-ftemplate-depth-64 -Wno-deprecated")
 set (AMREX_Cray_CXXFLAGS_FPE "")
+
+
+# For Fortran, always use the following preprocessor definitions
+set (AMREX_Fortran_DEFINITIONS -DBL_LANG_FORT)
 
 #
 # Compile- and link-time variables 
