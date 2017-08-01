@@ -875,7 +875,7 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_range = desc.sameInterps(scomp,ncomp);
 
     m_fabs.define(m_leveldata.boxArray(),m_leveldata.DistributionMap(),
-		  m_ncomp,boxGrow);
+		  m_ncomp,boxGrow,MFInfo(),m_leveldata.Factory());
 
     const IndexType& boxType = m_leveldata.boxArray().ixType();
     const int level = m_amrlevel.level;
@@ -1433,7 +1433,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             crseBA.set(j,mapper->CoarseBox(bx, crse_ratio));
         }
 
-	MultiFab crseMF(crseBA,mf_DM,NComp,0);
+	MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),*clev.m_factory);
 
 	if ( level == 1 
 	     || amrex::ProperlyNested(crse_ratio, parent->blockingFactor(level),
@@ -1495,13 +1495,13 @@ AmrLevel::derive (const std::string& name,
 {
     BL_ASSERT(ngrow >= 0);
 
-    MultiFab* mf = nullptr;
+    std::unique_ptr<MultiFab> mf;
 
     int index, scomp, ncomp;
 
     if (isStateVariable(name, index, scomp))
     {
-        mf = new MultiFab(state[index].boxArray(), dmap, 1, ngrow);
+        mf.reset(new MultiFab(state[index].boxArray(), dmap, 1, ngrow, MFInfo(), *m_factory));
         FillPatch(*this,*mf,ngrow,time,index,scomp,1);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
@@ -1521,7 +1521,7 @@ AmrLevel::derive (const std::string& name,
 	    ngrow_src += g;
 	}
 
-        MultiFab srcMF(srcBA, dmap, rec->numState(), ngrow_src);
+        MultiFab srcMF(srcBA, dmap, rec->numState(), ngrow_src, MFInfo(), *m_factory);
 
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
@@ -1529,7 +1529,7 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-        mf = new MultiFab(dstBA, dmap, rec->numDerive(), ngrow);
+        mf.reset(new MultiFab(dstBA, dmap, rec->numDerive(), ngrow, MFInfo(), *m_factory));
 
 #ifdef CRSEGRNDOMP
 #ifdef _OPENMP
@@ -1625,7 +1625,7 @@ AmrLevel::derive (const std::string& name,
         amrex::Error(msg.c_str());
     }
 
-    return std::unique_ptr<MultiFab>(mf);
+    return mf;
 }
 
 void
@@ -1658,7 +1658,7 @@ AmrLevel::derive (const std::string& name,
 	    ngrow_src += g;
 	}
 
-        MultiFab srcMF(srcBA,dmap,rec->numState(),ngrow_src);
+        MultiFab srcMF(srcBA,dmap,rec->numState(),ngrow_src, MFInfo(), *m_factory);
 
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
