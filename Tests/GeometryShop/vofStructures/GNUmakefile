@@ -23,7 +23,8 @@ TRACE_PROFILE = FALSE
 AMREX_HOME = ../../..
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-EBASE  := umapTest
+#EBASE  := umapTest
+EBASE  := nbrsTest
 
 DEFINES+=-DNCELLMAX=4
 DEFINES+=-DNFACEMAX=5
@@ -31,6 +32,11 @@ ifeq ($(EBASE), umapTest)
   CEXE_headers += AMReX_EBStruct.H umapTest.H
   f90EXE_sources += umapTest_nd.f90 umapTest_mod.f90
   F90EXE_sources += AMReX_ebstruct_mod.F90
+endif
+
+ifeq ($(EBASE), nbrsTest)
+  f90EXE_sources += nbrsTest_nd.f90
+  F90EXE_sources += nbrsTest_mod.F90
 endif
 CEXE_sources += $(addsuffix .cpp, $(EBASE))
 
