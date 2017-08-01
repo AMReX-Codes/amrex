@@ -19,6 +19,7 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_MeshRefine.H"
 
+#include "AMReX_ArrayLim.H"
 #include "AMReX_EBRedist.H"
 
 using namespace amrex;
@@ -118,7 +119,7 @@ extern "C"
 			     BL_FORT_FAB_ARG_3D(vfrac));
     
     void apply_redist_stencil(const int* lo, const int* hi,
-			      NbrSten* redistSten, const int* Nsten,
+                              NbrSten* redistSten, const int* Nsten,
 			      const BL_FORT_FAB_ARG_3D(vin),
 			      BL_FORT_FAB_ARG_3D(vout));
 }
@@ -133,7 +134,7 @@ int myTest()
     Geometry geom(domain); 
 
     // Create a mask with the following values 
-    // 1: reg, 0:sv, -1: covered, 2: mv, -2: outside domain, -3: crse
+    // 1=reg, 0=sv, -1=covered, 2=mv, -2=outside domain, -3=crse
     int covered_val = 10; // Will be overwritten with FillBoundary
     int notcovered_val = -3;
     int physbnd_val = -2;
@@ -209,9 +210,10 @@ int myTest()
             }
 
 	    int Nsten = redistSten[i].size();
-	    fill_redist_stencil(vbox.loVect(), vbox.hiVect(), redistSten[i].data(), &Nsten,
-				m.dataPtr(), ARLIM_3D(m.loVect()), ARLIM_3D(m.hiVect()),
-				vfab.dataPtr(), ARLIM_3D(vfab.loVect()), ARLIM_3D(vfab.hiVect()));
+	    fill_redist_stencil(BL_TO_FORTRAN_BOX(vbox),
+                                redistSten[i].data(), &Nsten,
+	        		BL_TO_FORTRAN_3D(m),
+	        		BL_TO_FORTRAN_3D(vfab));
         }
     }
 
@@ -229,9 +231,10 @@ int myTest()
 	
         if (Nsten > 0)
         {
-	    apply_redist_stencil(vbox.loVect(), vbox.hiVect(), redistSten[i].data(), &Nsten,
-				 infab.dataPtr(), ARLIM_3D(infab.loVect()), ARLIM_3D(infab.hiVect()),
-				 outfab.dataPtr(), ARLIM_3D(outfab.loVect()), ARLIM_3D(outfab.hiVect()));
+	    apply_redist_stencil(BL_TO_FORTRAN_BOX(vbox),
+                                 redistSten[i].data(), &Nsten,
+                                 BL_TO_FORTRAN_3D(infab),
+                                 BL_TO_FORTRAN_3D(outfab));
         }
     }
 
