@@ -9,7 +9,7 @@ set ( CXXSRC AMReX_TracerParticles.cpp )
 set ( F90SRC AMReX_Particle_mod_${BL_SPACEDIM}d.F90 )
 
 if ( ENABLE_OMP )
-   list ( APPEND F90SRC AMReX_OMPDepositionHelper_${BL_SPACEDIM}d.F90 )
+   list ( APPEND F90SRC AMReX_OMPDepositionHelper_nd.F90 )
 endif ()
 
 set ( F77SRC AMReX_Particles_${BL_SPACEDIM}D.F )
