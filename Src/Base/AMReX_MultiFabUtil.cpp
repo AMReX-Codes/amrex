@@ -1,6 +1,8 @@
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_F.H>
+#include <sstream>
+#include <iostream>
 
 namespace amrex
 {
@@ -377,4 +379,34 @@ namespace amrex
     {
 	mf.FillBoundary(scomp,ncomp,geom.periodicity(),cross);
     }
+
+
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n)
+    {
+
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+      for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+	{
+	  if (mfi.validbox().contains(cell)) {
+	    if (n >= 0) {
+	      amrex::AllPrint().SetPrecision(17) << mf[mfi](cell, n) << std::endl;
+	    } else {
+	      std::ostringstream ss;
+	      ss.precision(17);
+	      const int ncomp = mf.nComp();
+	      for (int i = 0; i < ncomp-1; ++i)
+		{
+		  ss << mf[mfi](cell,i) << ", ";
+		}
+	      ss << mf[mfi](cell,ncomp-1);
+	      amrex::AllPrint() << ss.str() << std::endl;	    
+	    }
+	  }
+	}
+      
+    }
+
 }

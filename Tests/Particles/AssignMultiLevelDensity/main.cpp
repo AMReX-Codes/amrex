@@ -36,8 +36,8 @@ void test_assign_density(TestParams& parms)
        fine_box.setHi(n,0.75);
     }
     
-    IntVect domain_lo(0 , 0, 0); 
-    IntVect domain_hi(parms.nx - 1, parms.ny - 1, parms.nz-1); 
+    IntVect domain_lo(D_DECL(0 , 0, 0)); 
+    IntVect domain_hi(D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1)); 
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
@@ -64,8 +64,8 @@ void test_assign_density(TestParams& parms)
     // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
         int n_fine = parms.nx*rr[0];
-        IntVect refined_lo(n_fine/4,n_fine/4,n_fine/4); 
-        IntVect refined_hi(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1);
+        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4)); 
+        IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
@@ -94,7 +94,7 @@ void test_assign_density(TestParams& parms)
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
-    int num_particles = parms.nppc * parms.nx * parms.ny * parms.nz;
+    int num_particles = parms.nppc * AMREX_D_TERM(parms.nx, * parms.ny, * parms.nz);
     bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
@@ -128,7 +128,7 @@ void test_assign_density(TestParams& parms)
     Array<IntVect> outputRR(output_levs);
     for (int lev = 0; lev < output_levs; ++lev) {
         outputMF[lev] = density[lev].get();
-        outputRR[lev] = IntVect(2, 2, 2);
+        outputRR[lev] = IntVect(D_DECL(2, 2, 2));
     }
     
     WriteMultiLevelPlotfile("plt00000", output_levs, outputMF, 

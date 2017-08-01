@@ -3,6 +3,8 @@ module amrex_base_module
 
   use iso_c_binding
 
+  use amrex_init_module
+
   use amrex_error_module
   use amrex_fort_module
   use amrex_box_module
@@ -24,14 +26,5 @@ module amrex_base_module
   use amrex_fab_module
 
   use mempool_module
-
-contains
-
-  subroutine amrex_fi_init () bind(c)
-  end subroutine amrex_fi_init
-
-
-  subroutine amrex_fi_finalize () bind(c)
-  end subroutine amrex_fi_finalize
 
 end module amrex_base_module

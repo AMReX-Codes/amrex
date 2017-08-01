@@ -1,221 +1,171 @@
-#ifdef CH_LANG_CC
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
 
-#include "BoxIterator.H"
-
-#include "DirichletConductivityEBBC.H"
-#include "EBStencil.H"
-#include "NamespaceHeader.H"
-void
-DirichletConductivityEBBC::
-define(const LayoutData<IntVectSet>& a_cfivs,
-       const Real&                   a_factor)
+#include "AMReX_DirichletConductivityEBBC.H"
+#include "AMReX_EBArith.H"
+namespace amrex
 {
-  if (!m_coefSet)
+  void
+  DirichletConductivityEBBC::
+  defineStencils()
+  {
+    m_fluxStencil.define(m_eblg.getDBL(), m_eblg.getDM());
+    m_fluxWeight .define(m_eblg.getDBL(), m_eblg.getDM());
+    for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
-      MayDay::Error("DirCondEBBC: need to call setCoef BEFORE calling define.");
+
+      const Box     & grid = m_eblg.getDBL()  [mfi];
+      const EBISBox & ebis = m_eblg.getEBISL()[mfi];
+      IntVectSet ivsIrreg  = ebis.getIrregIVS(grid);
+
+      m_fluxStencil[mfi].define(ivsIrreg, ebis.getEBGraph(), 1);
+      m_fluxWeight [mfi].define(ivsIrreg, ebis.getEBGraph(), 1);
+
+      const IntVectSet& cfivs = (*m_eblg.getCFIVS())[mfi];
+      for (VoFIterator vofit(ivsIrreg, ebis.getEBGraph()); vofit.ok(); ++vofit)
+      {
+        const VolIndex& vof = vofit();
+        VoFStencil gradStencil;
+        Real curWeight;
+        if (m_order == 1)
+        {
+          getFirstOrderStencil( gradStencil,curWeight,vof,ebis);
+        }
+        else 
+        {
+          getSecondOrderStencil(gradStencil,curWeight,vof,ebis,cfivs);
+        }
+        
+        VoFStencil fluxStencilPt = gradStencil;
+        Real factor = (*m_bcoe)[mfi].getEBFlux()(vofit(), 0);
+        factor *= m_beta;
+        fluxStencilPt *= factor;
+
+        m_fluxStencil[mfi](vofit(), 0) = fluxStencilPt;
+        m_fluxWeight [mfi](vofit(), 0)    = curWeight;
+      }
     }
-  m_bc.define(a_cfivs, a_factor);
-  LayoutData<BaseIVFAB<VoFStencil> >& poissSten = *(m_bc.getFluxStencil(0));
-  BoxLayout dbl = poissSten.boxLayout();
-  m_fluxStencil.define(dbl);
-  for (DataIterator dit = dbl.dataIterator(); dit.ok(); ++dit)
+  }
+
+  /*****************/
+  void
+  DirichletConductivityEBBC::
+  applyEBFlux(EBCellFAB              &       a_lphi,
+              const EBCellFAB        &       a_phi,
+              const vector<VolIndex> &       a_vofsToChange,
+              const MFIter           &       a_mfi,
+              const Real             &       a_factor,
+              const bool             &       a_useHomogeneous)
+  {
+    BL_PROFILE("DirichletConductivityEBBC::applyEBFlux");
+    BL_ASSERT(a_lphi.nComp() == 1 );
+    BL_ASSERT( a_phi.nComp() == 1);
+
+    const BaseIVFAB<Real>& poissWeight = m_fluxWeight[a_mfi];
+
+    const EBISBox&   ebisBox = a_phi.getEBISBox();
+    for(int ivof = 0; ivof < a_vofsToChange.size(); ivof++)
     {
-      const IntVectSet& ivs = poissSten[dit()].getIVS();
-      const EBGraph&    ebg = poissSten[dit()].getEBGraph();
-      m_fluxStencil[dit()].define(ivs, ebg, 1);
-      for (VoFIterator vofit(ivs, ebg); vofit.ok(); ++vofit)
-        {
-          m_fluxStencil[dit()](vofit(), 0) = poissSten[dit()](vofit(), 0);
-          Real factor = (*m_bcoe)[dit()](vofit(), 0);
-          factor *= m_beta;
-          m_fluxStencil[dit()](vofit(), 0) *= factor;
-        }
-    }
-}
-/*****************/
-void
-DirichletConductivityEBBC::
-getEBFlux(Real&                         a_flux,
-          const VolIndex&               a_vof,
-          const LevelData<EBCellFAB>&   a_phi,
-          const LayoutData<IntVectSet>& a_cfivs,
-          const DataIndex&              a_dit,
-          const RealVect&               a_probLo,
-          const RealVect&               a_dx,
-          const bool&                   a_useHomogeneous,
-          const Real&                   a_time,
-          const pair<int,Real>*         a_cacheHint )
-{
-  m_bc.getEBFlux(a_flux,
-                 a_vof,
-                 a_phi,
-                 a_cfivs,
-                 a_dit,
-                 a_probLo,
-                 a_dx,
-                 a_useHomogeneous,
-                 a_time,
-                 a_cacheHint );
+      const VolIndex& vof = a_vofsToChange[ivof];
 
-  Real bcoef = (*m_bcoe)[a_dit](a_vof,0);
-  a_flux *= bcoef;
-}
-/*****************/
-DirichletConductivityEBBC::
-~DirichletConductivityEBBC()
-{
-}
-/*****************/
-void
-DirichletConductivityEBBC::
-setValue(Real a_value)
-{
-  m_dataBased = false;
-  m_bc.setValue(a_value);
-}
-/*****************/
-void
-DirichletConductivityEBBC::
-setFunction(RefCountedPtr<BaseBCValue> a_flux)
-{
-  m_dataBased = false;
-  m_bc.setFunction(a_flux);
-}
-/*****************/
-void
-DirichletConductivityEBBC::
-applyEBFlux(EBCellFAB&                    a_lphi,
-            const EBCellFAB&              a_phi,
-            VoFIterator&                  a_vofit,
-            const LayoutData<IntVectSet>& a_cfivs,
-            const DataIndex&              a_dit,
-            const RealVect&               a_probLo,
-            const RealVect&               a_dx,
-            const Real&                   a_factor,
-            const bool&                   a_useHomogeneous,
-            const Real&                   a_time)
-{
-  CH_TIME("DirichletConductivityEBBC::applyEBFlux");
-  CH_assert(a_lphi.nComp() == 1 );
-  CH_assert(a_phi.nComp()  == 1);
 
-  const BaseIVFAB<Real>& poissWeight = (m_bc.getFluxWeight())[a_dit];
-  Real value = 0.0;
+      RealVect centroid = ebisBox.bndryCentroid(vof);
+      centroid *= m_dx;
+      centroid += m_probLo;
+      RealVect point = EBArith::getVoFLocation(vof, m_dx, centroid);
+      Real value = bcvaluefunc(point);
 
-  const EBISBox&   ebisBox = a_phi.getEBISBox();
-  for (a_vofit.reset(); a_vofit.ok(); ++a_vofit)
-    {
-      const VolIndex& vof = a_vofit();
-      if (m_dataBased)
-        {
-//          if ((*m_data)[a_dit].getIVS().contains(vof.gridIndex()))
-//             {
-//               value = (*m_data)[a_dit](vof, 0);
-//             }
-//          else
-//            {
-//              value = 0.;
-//            }
-          value = (*m_data)[a_dit](vof, 0);
-
-        }
-      else if (m_bc.m_isFunction)
-        {
-          const RealVect& centroid = ebisBox.bndryCentroid(vof);
-          const RealVect&   normal = ebisBox.normal(vof);
-
-          value = m_bc.m_func->value(vof,centroid,normal,a_dx,a_probLo,a_dit,a_time,0);
-        }
-      else
-        {
-          if (m_bc.m_onlyHomogeneous)
-            {
-              MayDay::Error("DirichletConductivityEBBC::getFaceFlux called with undefined inhomogeneous BC");
-            }
-
-          value = m_bc.m_value;
-        }
       Real poissWeightPt = poissWeight(vof, 0);
       const Real& areaFrac = ebisBox.bndryArea(vof);
-      const Real& bcoef    = (*m_bcoe)[a_dit](vof,0);
+      const Real& bcoef    = (*m_bcoe)[a_mfi].getEBFlux()(vof,0);
       Real flux = poissWeightPt*value*areaFrac;
       Real compFactor = a_factor*bcoef*m_beta;
       a_lphi(vof,0) += flux * compFactor;
     }
-}
-/*****************/
-DirichletConductivityEBBCFactory::
-DirichletConductivityEBBCFactory()
-{
-  m_value = 12345.6789;
-  m_flux = RefCountedPtr<BaseBCValue>();
-  m_onlyHomogeneous = true;
-  m_isFunction = false;
-  m_dataBased = false;
-}
-/*****************/
-DirichletConductivityEBBCFactory::
-~DirichletConductivityEBBCFactory()
-{
-}
-/*****************/
-void
-DirichletConductivityEBBCFactory::
-setValue(Real a_value)
-{
-  m_value = a_value;
-  m_flux = RefCountedPtr<BaseBCValue>();
+  }
 
-  m_onlyHomogeneous = false;
-  m_isFunction = false;
-}
-/*****************/
-void
-DirichletConductivityEBBCFactory::
-setFunction(RefCountedPtr<BaseBCValue> a_flux)
-{
-  m_value = 12345.6789;
-  m_flux = a_flux;
 
-  m_onlyHomogeneous = false;
-  m_isFunction = true;
-}
-/*****************/
-DirichletConductivityEBBC*
-DirichletConductivityEBBCFactory::
-create(const ProblemDomain& a_domain,
-       const EBISLayout&    a_layout,
-       const RealVect&      a_dx,
-       const IntVect*       a_ghostCellsPhi /*=0*/,
-       const IntVect*       a_ghostCellsRhs /*=0*/)
-{
-  DirichletConductivityEBBC* fresh = new DirichletConductivityEBBC(a_domain,a_layout,a_dx, a_ghostCellsPhi, a_ghostCellsRhs);
-  fresh->setOrder(m_order);
+  bool
+  DirichletConductivityEBBC::
+  getSecondOrderStencil(VoFStencil&          a_stencil,
+                        Real&                a_weight,
+                        vector<VoFStencil>&  a_pointStencils,
+                        vector<Real>&        a_distanceAlongLine,
+                        const VolIndex&      a_vof,
+                        const EBISBox&       a_ebisBox,
+                        const IntVectSet&    a_cfivs)
+  {
+    BL_PROFILE("DirichletPoissonEBBC::getSecondOrderStencil1");
 
-  if (!m_onlyHomogeneous)
+    a_stencil.clear();
+    bool dropOrder = false;
+    EBArith::johanStencil(dropOrder, a_pointStencils, a_distanceAlongLine,
+                          a_vof, a_ebisBox, m_dx*RealVect::Unit, a_cfivs);
+    if (dropOrder)
     {
-      if (m_dataBased)
-        {
-          fresh->setData(m_data);
-        }
-      else if (!m_isFunction)
-        {
-          fresh->setValue(m_value);
-        }
-      else
-        {
-          fresh->setFunction(m_flux);
-        }
+      return true;
     }
 
-  return fresh;
+    //if we got this far, sizes should be at least 2
+    BL_ASSERT(a_distanceAlongLine.size() >= 2);
+    BL_ASSERT(a_pointStencils.size() >= 2);
+    Real x1 = a_distanceAlongLine[0];
+    Real x2 = a_distanceAlongLine[1];
+    //fit quadratic function to line and find the gradient at the origin
+    //grad = (x2*x2*(phi1-phi0)-x1*x1(phi2-phi0))/(x2*x2*x1 - x1*x1*x2);
+    Real denom = x2*x2*x1 - x1*x1*x2;
+    //not done by reference because i want point stencils checkable externally.
+    VoFStencil phi1Sten = a_pointStencils[0];
+    VoFStencil phi2Sten = a_pointStencils[1];
+    phi1Sten *=-x2*x2/denom;
+    phi2Sten *= x1*x1/denom;
+    //weight is the multiplier of the inhomogeneous value (phi0)
+    a_weight =-x1*x1/denom + x2*x2/denom;
+    a_stencil += phi1Sten;
+    a_stencil += phi2Sten;
+    //if we got this far, we have a second order stencil;
+    return false;
+  }
+
+  void 
+  DirichletConductivityEBBC::
+  getFirstOrderStencil(VoFStencil&     a_stencil,
+                       Real&           a_weight,
+                       const VolIndex& a_vof,
+                       const EBISBox&  a_ebisBox)
+  {
+    BL_PROFILE("DirichletPoissonEBBC::getFirstOrderStencil1");
+    RealVect centroid = a_ebisBox.centroid(a_vof);
+    RealVect normal = a_ebisBox.normal(a_vof);
+    
+    EBArith::getLeastSquaresGradSten(a_stencil, a_weight, normal, centroid, a_vof, a_ebisBox, m_dx*RealVect::Unit, m_eblg.getDomain(), 0);
+  }
+
+  void 
+  DirichletConductivityEBBC::
+  getSecondOrderStencil(VoFStencil&       a_stencil,
+                        Real&             a_weight,
+                        const VolIndex&   a_vof,
+                        const EBISBox&    a_ebisBox,
+                        const IntVectSet& a_cfivs)
+  {
+    BL_PROFILE("DirichletPoissonEBBC::getSecondOrderStencil2");
+    vector<VoFStencil>  pointStencils;
+    vector<Real>        distanceAlongLine;
+    bool needToDropOrder = getSecondOrderStencil(a_stencil, a_weight,
+                                                 pointStencils, distanceAlongLine,
+                                                 a_vof, a_ebisBox,  a_cfivs);
+    if (needToDropOrder)
+    {
+      getFirstOrderStencil(a_stencil,a_weight,a_vof,a_ebisBox);
+    }
+  }
 }
-#include "NamespaceFooter.H"

@@ -290,7 +290,10 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
                 << " exists.  I am destroying it.  " << std::endl;
       char command[2000];
       sprintf(command, "\\rm -rf %s", path.c_str());;
-      std::system(command);
+      int retVal = std::system(command);
+      if (retVal == -1 || WEXITSTATUS(retVal) != 0) {
+          amrex::Error("Removing old directory failed.");
+      }
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) 
     {
@@ -367,6 +370,18 @@ amrex::InitRandom (unsigned long seed, int nprocs)
 void amrex::ResetRandomSeed(unsigned long seed)
 {
     InitRandom(seed);
+}
+
+double
+amrex::RandomNormal (double mean, double stddev)
+{
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+    std::normal_distribution<double> distribution(mean, stddev);
+    return distribution(generators[tid]);
 }
 
 double
