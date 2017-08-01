@@ -179,14 +179,14 @@ namespace amrex
       if(a_amrLevel > 0)
       {
         eblgCoar = m_eblgs[a_amrLevel-1];
-        refToCoar = m_refRatio[a_amrLevel-1]
-          hasCoarser = true;
+        refToCoar = m_refRatio[a_amrLevel-1];
+        hasCoarser = true;
       }
       if(a_amrLevel < (m_numLevels - 1))
       {
         eblgFine = m_eblgs[a_amrLevel+1];
-        refToFine = m_refRatio[a_amrLevel]
-          hasFiner = true;
+        refToFine = m_refRatio[a_amrLevel];
+        hasFiner = true;
       }
     }
     else
@@ -207,6 +207,7 @@ namespace amrex
     }
 
     //now see if there is a coarser MG level
+    EBLevelGrid eblgCoarMG;
     bool hasCoarMG = EBArith::createCoarserEBLG(eblgCoarMG , eblg, 2, s_testRef, s_maxBoxSize);
     Real          dxMGLevel = m_dx[a_amrLevel]*refRatMG;
     Real dxCoar = -1.0;
@@ -216,17 +217,17 @@ namespace amrex
     }
 
     shared_ptr<ConductivityBaseDomainBC>  domainBC(m_domainBCFactory->create());
-    shared_ptr<ConductivityBaseEBBC>      ebBC(m_ebbcFactory->create());
+    shared_ptr<ConductivityBaseEBBC>      ebBC(        m_ebBCFactory->create());
     shared_ptr<FabArray<EBCellFAB> >      acoef;
     shared_ptr<FabArray<EBFluxFAB> >      bcoef;
 
     //get coefficients
-    nwoebcoCoarsenStuff(acoef,
-                        bcoef,
+    nwoebcoCoarsenStuff(*acoef,
+                        *bcoef,
                         m_eblgs[a_amrLevel],
                         eblg,
-                        m_acoef[a_amrLevel],
-                        m_bcoef[a_amrLevel],
+                        *m_acoef[a_amrLevel],
+                        *m_bcoef[a_amrLevel],
                         refRatMG);
 
 
@@ -249,7 +250,8 @@ namespace amrex
                            acoef,
                            bcoef,
                            m_ghostCellsPhi,
-                           m_ghostCellsRHS);
+                           m_ghostCellsRhs);
+    return newOp;
   }    
   
   //-----------------------------------------------------------------------
