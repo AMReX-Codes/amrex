@@ -21,12 +21,14 @@
 #include "AMReX_SphereIF.H"
 #include "AMReX_EBDebugDump.H"
 #include "AMReX_MeshRefine.H"
-#include "AMReX_EBConducivityOp.H"
-#include "AMReX_EBConducivityOpFactory.H"
-#include "AMReX_DirichletConductivityEBBCFactory.H"
-#include "AMReX_DirichletConductivityDomainBCFactory.H"
-#include "AMReX_NeumannConductivityEBBCFactory.H"
-#include "AMReX_NeumannConductivityDomainBCFactory.H"
+#include "AMReX_EBConductivityOp.H"
+#include "AMReX_EBConductivityOpFactory.H"
+#include "AMReX_DirichletConductivityEBBC.H"
+#include "AMReX_DirichletConductivityDomainBC.H"
+#include "AMReX_NeumannConductivityEBBC.H"
+#include "AMReX_NeumannConductivityDomainBC.H"
+#include "AMReX_EBSimpleSolver.H"
+#include "AMReX_LinearSolver.H"
 
 namespace amrex
 {
@@ -151,14 +153,14 @@ namespace amrex
       amrex::Error("unknown domain_bc_type");
     }
 
-    if(ebbc_bc_type == 0)
+    if(eb_bc_type == 0)
     {
       pout() << "neumann eb bcs" << endl;
       NeumannConductivityEBBCFactory* neumptr = (new NeumannConductivityEBBCFactory());
       neumptr->setValue(0.);
       ebBCFact = shared_ptr<ConductivityBaseEBBCFactory>(static_cast<ConductivityBaseEBBCFactory*>(neumptr));
     }
-    else if(domain_bc_type == 1)
+    else if(eb_bc_type == 1)
     {
       int order_ebbc;
       pp.get("order_ebbc", order_ebbc);
@@ -180,6 +182,11 @@ namespace amrex
     vector<shared_ptr<FabArray<EBFluxFAB> > > bcoef(numLevels);
     for(int ilev = 0; ilev < numLevels; ilev++)
     {
+      const BoxArray           & ba = a_veblg[ilev].getDBL();
+      const DistributionMapping& dm = a_veblg[ilev].getDM();
+      EBCellFactory cellfact(a_veblg[ilev].getEBISL());
+      EBFluxFactory fluxfact(a_veblg[ilev].getEBISL());
+
       acoef[ilev] = shared_ptr<FabArray<EBCellFAB> >(new FabArray<EBCellFAB>(ba, dm, 1, 0, MFInfo(), cellfact));
       bcoef[ilev] = shared_ptr<FabArray<EBFluxFAB> >(new FabArray<EBFluxFAB>(ba, dm, 1, 0, MFInfo(), fluxfact));
       
@@ -189,7 +196,15 @@ namespace amrex
     
     EBConductivityOpFactory factory(a_veblg, alpha, beta, acoef, bcoef, a_params.coarsestDx, a_params.refRatio,
                                     domainBCFact, ebBCFact, a_nghost, a_nghost);
-    a_solver.define(a_params.coarsestDomain, factory, bottomSolverPtr, a_params.refRatio, enableLevelSolves, numLevels);
+
+    EBSimpleSolver* simple = new EBSimpleSolver();
+    int num_smooth_bottom = 10;
+    pp.query("num_smooth_bottom", num_smooth_bottom);
+    simple->setNumSmooths(num_smooth_bottom);
+    shared_ptr<LinearSolver<FabArray<EBCellFAB> > > bottomSolverPtr(static_cast<LinearSolver<FabArray<EBCellFAB> > *>(simple));
+
+    AMRLevelOpFactory<FabArray<EBCellFAB> >* factptr = static_cast<AMRLevelOpFactory<FabArray<EBCellFAB> >* >(&factory);
+    a_solver.define(a_params.coarsestDomain,*factptr, bottomSolverPtr, a_params.refRatio, enableLevelSolves, numLevels);
   }
   //----------------
   int conjuctionJunction()
@@ -228,7 +243,7 @@ namespace amrex
 
     solver.solve(phi, rhs, lbase, lmax);
       
-    writeEBPlotFile(string("phi.ebplt"), phi);
+//    writeEBPlotFile(string("phi.ebplt"), phi);
 
     return 0;
   }

@@ -55,7 +55,7 @@ namespace amrex
   void EBSimpleSolver::solve(FabArray<EBCellFAB>&       a_phi,
                              const FabArray<EBCellFAB>& a_rhs)
   {
-    CH_assert(m_isDefined);
+    BL_ASSERT(m_isDefined);
 
     m_operator->relax(a_phi,a_rhs,m_numSmooths);
   }
