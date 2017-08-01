@@ -1065,7 +1065,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
     {
 	int K = indexArray[i];
         const Box& tmpbox = fabbox(K);
-        m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
+        m_fabs_v.push_back(m_factory->create(tmpbox, n_comp, fab_info, K));
     }
     
 #ifdef BL_USE_TEAM
