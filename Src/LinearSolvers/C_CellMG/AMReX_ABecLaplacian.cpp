@@ -200,7 +200,7 @@ ABecLaplacian::initCoefficients (const BoxArray& _ba, const DistributionMapping&
     const int nGrow=0;
     acoefs.resize(1);
     bcoefs.resize(1);
-    acoefs[0] = new MultiFab(_ba, _dm, nComp, nGrow);
+    acoefs[0] = new MultiFab(_ba, _dm, nComp, nGrow, MFInfo(), FArrayBoxFactory());
     acoefs[0]->setVal(a_def);
     a_valid.resize(1);
     a_valid[0] = true;
@@ -209,7 +209,7 @@ ABecLaplacian::initCoefficients (const BoxArray& _ba, const DistributionMapping&
     {
         BoxArray edge_boxes(_ba);
         edge_boxes.surroundingNodes(i);
-        bcoefs[0][i] = new MultiFab(edge_boxes, _dm, nComp, nGrow);
+        bcoefs[0][i] = new MultiFab(edge_boxes, _dm, nComp, nGrow, MFInfo(), FArrayBoxFactory());
         bcoefs[0][i]->setVal(b_def);
     }
     b_valid.resize(1);

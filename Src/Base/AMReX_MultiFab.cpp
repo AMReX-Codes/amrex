@@ -896,7 +896,7 @@ MultiFab::norm2 (int comp) const
     BL_ASSERT(ixType().cellCentered());
 
     // Dot expects two MultiDabs. Make a copy to avoid aliasing.
-    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0);
+    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0, MFInfo(), Factory());
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
     Real nm2 = MultiFab::Dot(*this, comp, tmpmf, 0, 1, 0);
@@ -907,7 +907,7 @@ MultiFab::norm2 (int comp) const
 Real
 MultiFab::norm2 (int comp, const Periodicity& period) const
 {
-    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0);
+    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0, MFInfo(), Factory());
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
     auto mask = OverlapMask(period);
@@ -974,7 +974,7 @@ MultiFab::norm2 (const Array<int>& comps) const
 Real
 MultiFab::norm1 (int comp, const Periodicity& period) const
 {
-    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0);
+    MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0, MFInfo(), Factory());
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
     auto mask = OverlapMask(period);
@@ -1315,7 +1315,7 @@ MultiFab::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 	// Self copy is safe only for cell-centered MultiFab
 	this->copy(*this,scomp,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
     } else {
-	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow);
+	MultiFab tmp(boxArray(), DistributionMap(), ncomp, n_grow, MFInfo(), Factory());
 	MultiFab::Copy(tmp, *this, scomp, 0, ncomp, n_grow);
 	this->setVal(0.0, scomp, ncomp, 0);
 	this->copy(tmp,0,scomp,ncomp,n_grow,0,period,FabArrayBase::ADD);
@@ -1334,7 +1334,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
-    std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0)};
+    std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
     p->setVal(0.0);
 
 #ifdef _OPENMP
@@ -1371,7 +1371,8 @@ MultiFab::OwnerMask (const Periodicity& period) const
     const int owner = 1;
     const int nonowner = 0;
 
-    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,0)};
+    std::unique_ptr<iMultiFab> p{new iMultiFab(ba,dm,1,0, MFInfo(),
+                                               DefaultFabFactory<IArrayBox>())};
     p->setVal(owner);
 
 #ifdef _OPENMP
@@ -1424,7 +1425,7 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
         MultiFab::Multiply(*this, wgt, 0, comp, 1, 0);
     }
     
-    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0);
+    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
     tmpmf.setVal(0.0);
     tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
 
@@ -1460,7 +1461,7 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
                                 0.0);
     }
     
-    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0);
+    MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
     tmpmf.setVal(0.0);
     tmpmf.ParallelCopy(*this, period, FabArrayBase::ADD);
 
