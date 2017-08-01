@@ -210,7 +210,9 @@ public:
     const BoxArray& getEdgeBoxArray (int dir) const;
     const BoxArray& getNodalBoxArray () const;
     //
-    const DistributionMapping& DistributionMap() const { return dmap; }
+    const DistributionMapping& DistributionMap () const { return dmap; }
+    //
+    const FabFactory<FArrayBox>& Factory () const { return *m_factory; }
     //! Number of grids at this level.
     int numGrids () const { return grids.size(); }
     //! Returns the indices defining physical domain.
@@ -399,6 +401,7 @@ protected:
     static int            m_eb_max_grow_cells;
     EBLevelGrid           m_eblg;
 #endif
+    std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 
 private:
 

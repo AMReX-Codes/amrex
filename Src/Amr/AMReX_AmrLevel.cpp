@@ -94,6 +94,12 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     state.resize(desc_lst.size());
 
+#ifdef AMREX_USE_EB
+    m_factory.reset(new EBFArrayBoxFactory(m_eblg.getEBISL()));
+#else
+    m_factory.reset(new FArrayBoxFactory());
+#endif
+
     // Note that this creates a distribution map associated with grids.
     for (int i = 0; i < state.size(); i++)
     {
@@ -102,13 +108,8 @@ AmrLevel::AmrLevel (Amr&            papa,
 			dm,
                         desc_lst[i],
                         time,
-                        parent->dtLevel(lev)
-#ifdef AMREX_USE_EB
-                        , EBFArrayBoxFactory(m_eblg.getEBISL())
-#else
-                        , FArrayBoxFactory()
-#endif
-            );
+                        parent->dtLevel(lev),
+                        *m_factory);
     }
 
     if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
@@ -897,6 +898,11 @@ FillPatchIterator::Initialize (int  boxGrow,
 	    {
 		FillFromTwoLevels(time, index, SComp, DComp, NComp);
 	    } else {
+
+#ifdef AMREX_USE_EB
+                amrex::Abort("Grids must be properly nested for EB");
+#endif
+
 		static bool first = true;
 		if (first) {
 		    first = false;
