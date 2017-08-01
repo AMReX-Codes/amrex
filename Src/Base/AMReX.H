@@ -4,6 +4,7 @@
 
 #include <AMReX_ccse-mpi.H>
 
+#include <functional>
 #include <string>
 #include <cstdio>
 
@@ -21,17 +22,15 @@
 
 namespace amrex
 {
+    typedef void (*PTR_TO_VOID_FUNC)(void);
+
     std::string Version ();
 
-    void Initialize (int& argc, char**& argv, bool build_parm_parse=true, MPI_Comm mpi_comm = MPI_COMM_WORLD);
+    void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
+                     MPI_Comm mpi_comm = MPI_COMM_WORLD,
+                     const std::function<void()>& func_parm_parse = {});
 
     void Finalize(bool finalize_parallel = true);
-    /**
-    * \brief A pointer to a function taking and returning void.
-    * Functions of this type, which include static class functions of
-    * this type, are what we pass to ExecOnFinalize().
-    */
-    typedef void (*PTR_TO_VOID_FUNC)(void);
     /**
     * \brief We maintain a stack of functions that need to be called in Finalize().
     * The functions are called in LIFO order.  The idea here is to allow

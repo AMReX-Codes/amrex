@@ -17,6 +17,7 @@ using std::ios;
 #include <AMReX_VisMF.H>
 #include <AMReX_FabConv.H>
 
+
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -214,6 +215,104 @@ int main(int argc, char *argv[]) {
     cout << "***************************************************" << '\n';
     cout << endl;
   }
+
+#ifdef _OPENMP
+  std::ofstream sharedThreadFile;
+#pragma omp parallel private(sharedThreadFile)
+{
+  int nThreads(omp_get_max_threads());
+  int myThread(omp_get_thread_num());
+  long baseDataItems(8);
+  long dataItems(baseDataItems * (myThread + 1));
+  amrex::USleep(myproc+1/10.0);
+  amrex::USleep(myThread/10.0);
+  if(myproc == 0 && myThread == 0) {
+    cout << "nThreads = " << nThreads << endl;
+  }
+  cout << "myproc = " << myproc << " :: tnum = " << myThread << endl;
+
+  Array<unsigned long> fileOffset(nThreads, 0L);  // ---- [tnum]
+  for(long i(0); i < fileOffset.size(); ++i) {
+    for(long j(i); j > 0; --j) {
+      fileOffset[i] += baseDataItems * j * sizeof(unsigned long);
+    }
+    if(myThread == 0) {
+      cout << "fileOffset[" << i << "] = " << fileOffset[i] << endl;
+    }
+  }
+
+  Array<Array<long>> data(nThreads);  // ---- [tnum][data]
+  data[myThread].resize(dataItems);
+  long startValue(fileOffset[myThread] / sizeof(unsigned long));
+  for(long i(0); i < dataItems; ++i) {
+    data[myThread][i] = i + startValue;
+  }
+
+  std::stringstream fileName;
+  fileName << "ompfile_mpirank_" << myproc << "_tn_" << myThread;
+  cout << "fileName = " << fileName.str() << endl;
+
+  std::ofstream threadFile;
+  threadFile.open(fileName.str(), std::ios::out | std::ios::trunc | std::ios::binary);
+  threadFile.write((const char *) data[myThread].dataPtr(), dataItems * sizeof(unsigned long));
+  threadFile.flush();
+  threadFile.close();
+
+/*
+{
+  std::stringstream sharedFileName;
+  sharedFileName << "sompfile_mpirank_" << myproc;
+
+  if(myThread == 0) {
+    sharedThreadFile.open(sharedFileName.str(), std::ios::out | std::ios::trunc | std::ios::binary);
+  }
+  #pragma omp barrier
+  if(myThread != 0) {
+    sharedThreadFile.open(sharedFileName.str(), std::ios::out | std::ios::binary);
+    sharedThreadFile.seekp(fileOffset[myThread]);
+  }
+  sharedThreadFile.write((const char *) data[myThread].dataPtr(), dataItems * sizeof(unsigned long));
+  sharedThreadFile.flush();
+  sharedThreadFile.close();
+}
+*/
+  std::stringstream sharedFileName;
+  sharedFileName << "sompfile_mpirank_" << myproc;
+
+  #pragma omp barrier
+  if(myThread == 0) {
+    sharedThreadFile.open(sharedFileName.str(), std::ios::out | std::ios::trunc | std::ios::binary);
+    sharedThreadFile.write((const char *) data[myThread].dataPtr(), dataItems * sizeof(unsigned long));
+    sharedThreadFile.flush();
+    sharedThreadFile.close();
+  }
+  #pragma omp barrier
+  if(myThread == 1) {
+    sharedThreadFile.open(sharedFileName.str(), std::ios::out | std::ios::app | std::ios::binary);
+    sharedThreadFile.seekp(fileOffset[myThread]);
+    cout << "1: seeking to " << fileOffset[myThread] << endl;
+    sharedThreadFile.flush();
+    sharedThreadFile.close();
+  }
+  /*
+  #pragma omp barrier
+  if(myThread == 2) {
+    sharedThreadFile.open(sharedFileName.str(), std::ios::out | std::ios::binary);
+    sharedThreadFile.seekp(fileOffset[myThread]);
+    sharedThreadFile.flush();
+    sharedThreadFile.close();
+  }
+  #pragma omp barrier
+  if(myThread == 3) {
+    sharedThreadFile.open(sharedFileName.str(), std::ios::out | std::ios::binary);
+    sharedThreadFile.seekp(fileOffset[myThread]);
+    sharedThreadFile.flush();
+    sharedThreadFile.close();
+  }
+  #pragma omp barrier
+  */
+}
+#endif
 
   pp.query("nsleep", nsleep);
   if(nsleep > 0) {  // test the timer

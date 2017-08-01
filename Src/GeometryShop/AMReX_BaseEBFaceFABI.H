@@ -125,7 +125,9 @@ namespace amrex
        int                     a_dstcomp,
        int                     a_numcomp)
   {
-    m_regFAB.copy(a_src.m_regFAB, a_srcbox, a_srccomp, a_dstbox, a_dstcomp, a_numcomp);
+    Box faceBox = surroundingNodes(a_dstbox, m_iDir);
+    
+    m_regFAB.copy(a_src.m_regFAB, faceBox , a_srccomp, faceBox , a_dstcomp, a_numcomp);
     m_irrFAB.copy(a_src.m_irrFAB, a_srcbox, a_srccomp, a_dstbox, a_dstcomp, a_numcomp);
 
     return *this;
@@ -183,7 +185,8 @@ namespace amrex
 
     m_regFAB.resize(m_regionFace, m_nComp);
 
-    m_irrFAB.define(a_region, m_ebisBox.getEBGraph(), m_iDir, m_nComp);
+    IntVectSet ivsmulti = m_ebisBox.getMultiCells(a_region);
+    m_irrFAB.define(ivsmulti, m_ebisBox.getEBGraph(), m_iDir, m_nComp);
   }
 
   /**********************/

@@ -16,6 +16,7 @@ namespace amrex {
 
 class BoxArray;
 class MultiFab;
+template <typename T> class FabArray;
 
 /**
 * \brief Calculates the distribution of FABs to MPI processes.
@@ -35,6 +36,9 @@ class MultiFab;
 class DistributionMapping
 {
   public:
+
+    template <typename T> friend class FabArray;
+
     //! The distribution strategies
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, PFC, RRSFC };
 
@@ -102,6 +106,11 @@ class DistributionMapping
     //! Equivalent to ProcessorMap()[index].
     int operator[] (int index) const { return m_ref->m_pmap[index]; }
 
+    // Replace the cached processor map.  This is to support FabArray::MoveAllFabs
+    //   All FabArrays using the cached map must move their fabs before
+    //   calling this function.
+    void ReplaceCachedProcessorMap(const Array<int> &newProcMap);
+
     //! Set/get the distribution strategy.
     static void strategy (Strategy how);
 
@@ -127,6 +136,7 @@ class DistributionMapping
 			      bool do_full_knapsack = true,
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
+    void RoundRobinProcessorMap(const std::vector<long>& wgts, int nprocs);
     /**
     * \brief Initializes distribution strategy from ParmParse.
     *
@@ -192,7 +202,9 @@ class DistributionMapping
     static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif
 
-    static DistributionMapping makeKnapSack (const MultiFab& weight);
+    static DistributionMapping makeKnapSack   (const MultiFab& weight);
+    static DistributionMapping makeRoundRobin (const MultiFab& weight);
+    static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
 
 private:
 
@@ -308,6 +320,8 @@ public:
         bool operator<  (const RefID& rhs) const { return std::less<Ref*>()(data,rhs.data); }
         bool operator== (const RefID& rhs) const { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const { return data != rhs.data; }
+	const Ref *dataPtr() const { return data; }
+	void PrintPtr(std::ostream &os) const { os << data << '\n'; }
    private:
         Ref* data;
     };

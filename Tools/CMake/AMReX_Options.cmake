@@ -35,9 +35,9 @@ endmacro ()
 message (STATUS "Configuring AMReX with the following options: ")
 
 if ( NOT CMAKE_BUILD_TYPE )
-   # Default to debug if no other build type specified
-   set ( CMAKE_BUILD_TYPE "Debug" CACHE STRING
-      "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+   # Default to Release if no other build type specified
+   set ( CMAKE_BUILD_TYPE "Release" CACHE STRING
+      "Choose the type of build, options are: Debug Release."
       FORCE )
 endif ()
 
@@ -90,6 +90,9 @@ check_option_value ( "ENABLE_TINY_PROFILING" ${ENABLE_TINY_PROFILING} 0 1 )
 set (ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in AMReX build")
 check_option_value ( "ENABLE_BACKTRACE" ${ENABLE_BACKTRACE} 0 1 )
 
+set (ENABLE_FPE 0 CACHE INT "Enable Floating Point Exceptions checks")
+check_option_value ( "ENABLE_FPE" ${ENABLE_FPE} 0 1 )
+   
 set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
 set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )

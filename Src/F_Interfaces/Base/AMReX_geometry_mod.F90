@@ -30,7 +30,8 @@ module amrex_geometry_module
    contains
      generic :: assignment(=)           => amrex_geometry_assign, amrex_geometry_install  ! shallow copy
      procedure :: get_physical_location => amrex_geometry_get_ploc
-     procedure, private :: amrex_geometry_assign, amrex_geometry_install
+     procedure, private :: amrex_geometry_assign
+     procedure, private :: amrex_geometry_install
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_geometry_destroy
 #endif

@@ -90,6 +90,7 @@ namespace amrex
           
     ///
     /**
+
        version where solution is not necessarily ncomp long.
        intervals have to be the same length.
        srcVar can be up to m_ncomp long.
@@ -120,7 +121,8 @@ namespace amrex
 
     bool m_isDefined;
     FabArray<BaseIVFAB<Real> > m_buffer;
-    shared_ptr<LayoutData<IntVectSet> > m_sets;
+    shared_ptr<LayoutData<IntVectSet > > m_sets;
+    shared_ptr<LayoutData<VoFIterator> > m_vofit;
   private:
           
     //forbidden for all the usual reasons
