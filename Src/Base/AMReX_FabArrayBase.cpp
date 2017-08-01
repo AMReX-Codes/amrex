@@ -8,6 +8,10 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBLevelGrid.H>
+#endif
+
 namespace amrex {
 
 //
@@ -1053,9 +1057,10 @@ FabArrayBase::getFB (const Periodicity& period, bool cross, bool enforce_periodi
 
 FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 			      const FabArrayBase& dstfa,
-			      Box                 dstdomain,
+			      const Box&          dstdomain,
 			      int                 dstng,
-			      const BoxConverter& coarsener)
+			      const BoxConverter& coarsener,
+                              const Box&          cdomain)
     : m_srcbdk   (srcfa.getBDKey()),
       m_dstbdk   (dstfa.getBDKey()),
       m_dstdomain(dstdomain),
@@ -1104,6 +1109,12 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
     if (!iprocs.empty()) {
 	ba_crse_patch.define(bl);
 	dm_crse_patch.define(iprocs);
+#ifdef AMREX_USE_EB
+        EBLevelGrid eblg(ba_crse_patch, dm_crse_patch, cdomain, 0);
+        fact_crse_patch.reset(new EBFArrayBoxFactory(eblg.getEBISL()));
+#else
+        fact_crse_patch.reset(new FArrayBoxFactory());
+#endif
     }
 }
 
@@ -1124,9 +1135,10 @@ FabArrayBase::FPinfo::bytes () const
 const FabArrayBase::FPinfo&
 FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
 			 const FabArrayBase& dstfa,
-			 Box                 dstdomain,
+			 const Box&          dstdomain,
 			 int                 dstng,
-			 const BoxConverter& coarsener)
+			 const BoxConverter& coarsener,
+                         const Box&          cdomain)
 {
     BL_PROFILE("FabArrayBase::TheFPinfo()");
 
@@ -1151,7 +1163,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
     }
 
     // Have to build a new one
-    FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener);
+    FPinfo* new_fpc = new FPinfo(srcfa, dstfa, dstdomain, dstng, coarsener, cdomain);
 
 #ifdef BL_MEM_PROFILING
     m_FPinfo_stats.bytes += new_fpc->bytes();

@@ -20,6 +20,8 @@ namespace amrex {
 class MFIter;
 class MFGhostIter;
 class Geometry;
+class FArrayBox;
+template <typename FAB> class FabFactory;
 
 class FabArrayBase
 {
@@ -291,15 +293,17 @@ public:
     {
 	FPinfo (const FabArrayBase& srcfa,
 		const FabArrayBase& dstfa,
-		Box                 dstdomain,
+		const Box&          dstdomain,
 		int                 dstng,
-		const BoxConverter& coarsener);
+		const BoxConverter& coarsener,
+                const Box&          cdomain);
 	~FPinfo ();
 
 	long bytes () const;
 
 	BoxArray            ba_crse_patch;
 	DistributionMapping dm_crse_patch;
+        std::unique_ptr<FabFactory<FArrayBox> > fact_crse_patch;
 	Array<int>          dst_idxs;
 	Array<Box>          dst_boxes;
 	//
@@ -321,9 +325,10 @@ public:
 
     static const FPinfo& TheFPinfo (const FabArrayBase& srcfa,
 				    const FabArrayBase& dstfa,
-				    Box                 dstdomain,
+				    const Box&          dstdomain,
 				    int                 dstng,
-				    const BoxConverter& coarsener);
+				    const BoxConverter& coarsener,
+                                    const Box&          cdomain);
 
     void flushFPinfo (bool no_assertion=false);
 
