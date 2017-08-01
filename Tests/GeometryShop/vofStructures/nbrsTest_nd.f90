@@ -20,7 +20,7 @@ contains
     integer :: i,j,k,n,ii,jj,kk,jjlo,jjhi,kklo,kkhi,iii,jjj,kkk
     real(amrex_real) :: kappa_tot
 
-    ! Note: mask is such that 1: reg, 0:sv, -1: covered, 2: mv, -2: outside domain, -3: crse
+    ! Note: mask is such that 1=reg, 0=sv, -1=covered, 2=mv, -2=outside domain, -3=crse
 
     if (dim .ge. 2) then
        jjlo = -1
@@ -42,9 +42,11 @@ contains
        i = sten(n) % iv(0)
        j = sten(n) % iv(1)
        k = sten(n) % iv(2)
+
        if (i.ge.lo(0) .and. i.le.hi(0) &
-            .and. (dim.lt.2 .or. (j.ge.lo(1) .and. j.le.hi(1)))&
-            .and. (dim.lt.3 .or. (k.ge.lo(2) .and. k.le.hi(2))) ) then
+            .and. j.ge.lo(1) .and. j.le.hi(1) &
+            .and. k.ge.lo(2) .and. k.le.hi(2) ) then
+
           kappa_tot = 0.d0
           do kk=kklo,kkhi
              kkk = k+kk
@@ -59,7 +61,9 @@ contains
                 enddo
              enddo
           enddo
+
           kappa_tot = 1.d0 / kappa_tot
+
           do kk=kklo,kkhi
              kkk = k+kk
              do jj=jjlo,jjhi
@@ -75,7 +79,9 @@ contains
                 enddo
              enddo
           enddo
+
        endif
+
     enddo
 
   end subroutine fill_redist_stencil
@@ -113,9 +119,11 @@ contains
        i = sten(n) % iv(0)
        j = sten(n) % iv(1)
        k = sten(n) % iv(2)
+
        if (i.ge.lo(0) .and. i.le.hi(0) &
-            .and. (dim.lt.2 .or. (j.ge.lo(1) .and. j.le.hi(1)))&
-            .and. (dim.lt.3 .or. (k.ge.lo(2) .and. k.le.hi(2))) ) then
+            .and. j.ge.lo(1) .and. j.le.hi(1)&
+            .and. k.ge.lo(2) .and. k.le.hi(2) ) then
+
           vtot = 0.d0
           do kk=kklo,kkhi
              kkk = k+kk
@@ -128,7 +136,9 @@ contains
              enddo
           enddo
           vout(i,j,k) = vtot
+
        endif
+
     enddo
     
   end subroutine apply_redist_stencil
