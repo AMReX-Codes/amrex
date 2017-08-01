@@ -11,7 +11,7 @@ EBFArrayBox::EBFArrayBox (const EBISBox& ebisBox, const Box& box, int ncomps)
     : FArrayBox(box, ncomps),
       m_ebisbox(ebisBox)
 {
-    const Box& sect = box & ebisBox.getRegion();
+    const Box& sect = amrex::enclosedCells(box) & ebisBox.getRegion();
 
     if (ebisBox.isRegular(sect))
     {
