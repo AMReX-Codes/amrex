@@ -95,14 +95,14 @@ contains
     call destroy(spo%index_into_aa)
   end subroutine sparse_destroy
 
-  subroutine sparse_build_st(spo, st, order, verbose)
-    type(sparse), intent(out) :: spo
-    type(stencil), intent(in) :: st
-    integer, intent(in) :: order, verbose
-    type(layout) :: la
-    la = get_layout(st%ss)
-    call sparse_build(spo, st%ss, st%mm, la, order, verbose)
-  end subroutine sparse_build_st
+  ! subroutine sparse_build_st(spo, st, order, verbose)
+  !   type(sparse), intent(out) :: spo
+  !   type(stencil), intent(in) :: st
+  !   integer, intent(in) :: order, verbose
+  !   type(layout) :: la
+  !   la = get_layout(st%ss)
+  !   call sparse_build(spo, st%ss, st%mm, la, order, verbose)
+  ! end subroutine sparse_build_st
 
   subroutine sparse_build(spo, ss, mm, la, order, verbose)
     use sort_box_module
