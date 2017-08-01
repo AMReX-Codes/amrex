@@ -144,7 +144,7 @@ namespace amrex
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     DistributionMapping dm(m_grids);
-    m_graph.define(m_grids, dm, 1, 1);
+    m_graph.define(m_grids, dm, 1, 1, MFInfo(), DefaultFabFactory<EBGraph>());
 
     std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
     EBDataFactory ebdf(graphptr);
@@ -239,8 +239,9 @@ namespace amrex
     DistributionMapping dmco(m_grids);
     DistributionMapping dmfc = dmco;
     //need two because of coarsen faces
-    m_graph.define(m_grids, dmco, 1, nghostGraph);
-    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, nghostGraph+1);
+    m_graph.define(m_grids, dmco, 1, nghostGraph, MFInfo(), DefaultFabFactory<EBGraph>());
+    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, nghostGraph+1,
+                                  MFInfo(), DefaultFabFactory<EBGraph>());
     //pout() << "ebislevel::coarsenvofsandfaces: doing ebgraph copy" << endl;
 
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, nghostGraph+1);
