@@ -41,7 +41,8 @@ namespace amrex
     int srcGhost = 0;
       
       
-    m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, a_dm, 1, dstGhostGraph));
+    m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, a_dm, 1, dstGhostGraph,
+                                                                     MFInfo(),DefaultFabFactory<EBGraph>()));
     //pout() << "doing ebgraph copy" << endl;
     m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhostGraph);
 

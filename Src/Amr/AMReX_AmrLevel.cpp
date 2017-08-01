@@ -248,7 +248,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     // NOTE: In this tutorial code, there is no derived data
     int       cnt   = 0;
     const int nGrow = 0;
-    MultiFab  plotMF(grids,dmap,n_data_items,nGrow);
+    MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
     MultiFab* this_dat = 0;
     //
     // Cull data from state variables -- use no ghost cells.

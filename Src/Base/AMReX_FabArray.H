@@ -136,8 +136,13 @@ public:
               const DistributionMapping& dm,
               int                        nvar,
               int                        ngrow,
+#ifdef AMREX_STRICT_MODE
+	      const MFInfo&              info,
+              const FabFactory<FAB>&     factory);
+#else
 	      const MFInfo&              info = MFInfo(),
               const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
+#endif
 
     FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp);
 
@@ -167,8 +172,13 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
+#ifdef AMREX_STRICT_MODE
+			 const MFInfo&              info,
+                         const FabFactory<FAB>&     factory);
+#else
 			 const MFInfo&              info = MFInfo(),
                          const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
+#endif
 
     const FabFactory<FAB>& Factory () const { return *m_factory; }
 
@@ -870,7 +880,7 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
       shmem()
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,info,factory);
+    define(bxs,dm,nvar,ngrow,info,*m_factory);
 }
 
 template <class FAB>
@@ -879,7 +889,8 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
       shmem()
 {
     m_FA_stats.recordBuild();
-    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(), MFInfo().SetAlloc(false));
+    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(),
+           MFInfo().SetAlloc(false), *m_factory);
 
     if (maketype == amrex::make_alias)
     {
@@ -903,7 +914,8 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
     : shmem()
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false));
+    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false),
+           DefaultFabFactory<FAB>());
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         setFab(mfi, new FAB(mfi.fabbox(),nvar,pval[mfi.LocalIndex()]));
@@ -922,6 +934,7 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     m_FA_stats.recordBuild();
     rhs.m_fabs_v.clear();
     rhs.boxarray.clear();
+    rhs.m_factory.reset();
 }
 
 template <class FAB>
@@ -1052,7 +1065,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
     {
 	int K = indexArray[i];
         const Box& tmpbox = fabbox(K);
-        m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
+        m_fabs_v.push_back(m_factory->create(tmpbox, n_comp, fab_info, K));
     }
     
 #ifdef BL_USE_TEAM
