@@ -73,7 +73,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     grids(ba),
     dmap(dm)
 #ifdef AMREX_USE_EB
-    , m_eblg(ba, dm, level_geom.Domain(), m_eb_max_grow_cells)
+    , m_eblevel(ba, dm, level_geom.Domain(), m_eb_max_grow_cells)
 #endif
 {
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
@@ -95,7 +95,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(m_eblg.getEBISL()));
+    m_factory.reset(new EBFArrayBoxFactory(m_eblevel.getEBISL()));
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
