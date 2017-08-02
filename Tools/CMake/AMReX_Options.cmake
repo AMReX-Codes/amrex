@@ -92,7 +92,10 @@ check_option_value ( "ENABLE_BACKTRACE" ${ENABLE_BACKTRACE} 0 1 )
 
 set (ENABLE_FPE 0 CACHE INT "Enable Floating Point Exceptions checks")
 check_option_value ( "ENABLE_FPE" ${ENABLE_FPE} 0 1 )
-   
+
+set (ENABLE_ASSERTIONS 0 CACHE INT "Enable assertions")
+check_option_value ( "ENABLE_ASSERTIONS" ${ENABLE_ASSERTIONS} 0 1 )
+
 set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
 set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
