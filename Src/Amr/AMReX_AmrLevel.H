@@ -15,7 +15,7 @@
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
 #ifdef AMREX_USE_EB
-#include <AMReX_EBLevelGrid.H>
+#include <AMReX_EBLevel.H>
 #endif
 
 #include <memory>
@@ -399,7 +399,7 @@ protected:
 #ifdef AMREX_USE_EB
     static void SetEBMaxGrowCells (int n) { m_eb_max_grow_cells = n; }
     static int            m_eb_max_grow_cells;
-    EBLevelGrid           m_eblg;
+    EBLevel               m_eblevel;
 #endif
     std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 
