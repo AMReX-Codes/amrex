@@ -39,7 +39,7 @@ WarpX::MoveWindow (bool move_j)
             num_shift *= refRatio(lev-1)[dir];
         }
         // shift the mesh fields
-        for (int dim = 0; dim < BL_SPACEDIM; ++dim) {
+        for (int dim = 0; dim < 3; ++dim) {
             shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir);
             shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir);
             if (lev > 0) {                
