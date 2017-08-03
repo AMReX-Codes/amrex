@@ -17,85 +17,105 @@ public:
     EBCellFlag& operator= (uint32_t i) { flag = i; return *this; }
 
     void setRegular () {
-        flag &= zero_lower_bits; // clean lower bits
+        flag &= zero_lower_mask; // clean lower bits
         flag |= regular_bits;
     }
 
     void setCovered () {
-        flag &= zero_lower_bits;
+        flag &= zero_lower_mask;
         flag |= covered_bits;
     }
 
     void setSingleValued () {
-        flag &= zero_lower_bits;
+        flag &= zero_lower_mask;
         flag |= single_vauled_bits;
     }
 
     void setMultiValued () {
-        flag &= zero_lower_bits;
+        flag &= zero_lower_mask;
         flag |= multi_valued_bits;
     }
 
     bool isRegular () const {
-        return (flag & one_lower_bits) == regular_bits;
+        return (flag & one_lower_mask) == regular_bits;
     }
 
     bool isSingleValued () const {
-        return (flag & one_lower_bits) == single_vauled_bits;
+        return (flag & one_lower_mask) == single_vauled_bits;
     }
 
     bool isMultiValued () const {
-        return (flag & one_lower_bits) == multi_valued_bits;
+        return (flag & one_lower_mask) == multi_valued_bits;
     }
 
     bool isCovered () const {
-        return (flag & one_lower_bits) == covered_bits;
+        return (flag & one_lower_mask) == covered_bits;
     }
 
     void setDisconnected () {
-        flag &= one_lower_bits;
+        flag &= one_lower_mask;
     }
 
     void setDisconnected (const IntVect& iv) {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
-        const int n = pos[k][j][i];
+        const int n = pos_ngbr[k][j][i];
         flag &= ~(1 << n);
     }
 
     void setConnected () {
-        flag |= zero_lower_bits;
+        flag |= zero_lower_mask;
     }
 
     void setConnected (const IntVect& iv) {
         int i=0, j=0, k=0;
         AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
-        const int n = pos[k+1][j+1][i+1];
+        const int n = pos_ngbr[k+1][j+1][i+1];
         flag |= 1 << n;
     }
 
 private:
 
-    static constexpr int width = 4;
-    static constexpr std::array<std::array<std::array<int,3>,3>,3> pos
-        {{ std::array<std::array<int,3>,3>{{{ width   , width+ 1, width+ 2 },
-                                            { width+ 3, width+ 4, width+ 5 },
-                                            { width+ 6, width+ 7, width+ 8 }}},
-           std::array<std::array<int,3>,3>{{{ width+ 9, width+10, width+11 },
-                                            { width+12, width+13, width+14 },
-                                            { width+15, width+16, width+17 }}},
-           std::array<std::array<int,3>,3>{{{ width+18, width+19, width+20 },
-                                            { width+21, width+22, width+23 },
-                                            { width+24, width+25, width+26 }}} }};
+    // masks for lowest 5 bits (i.e., bit number 0-4)
+    static constexpr uint32_t one_lower_mask      =  0x1f;
+    static constexpr uint32_t zero_lower_mask     = ~0x1f;
 
-    static constexpr uint32_t one_lower_bits      =  0xf;
-    static constexpr uint32_t zero_lower_bits     = ~0xf;
+    // masks lowest 2 bits (i.e., bit number 0-1)
+    static constexpr uint32_t one_type_mask       =  0x3;
+    static constexpr uint32_t zero_type_mask      = ~0x3;
+
+    // masks for bit number 2-4
+    static constexpr uint32_t one_numcells_mask   =  0x1c;
+    static constexpr uint32_t zero_numcells_mask  = ~0x1c;
+
+    // these represent cell types
     static constexpr uint32_t regular_bits        =  0x0;
     static constexpr uint32_t single_vauled_bits  =  0x1;
     static constexpr uint32_t multi_valued_bits   =  0x2;
     static constexpr uint32_t covered_bits        =  0x3;
 
-    static constexpr uint32_t default_value = zero_lower_bits; // regular connected with all neighbors    
+    // There are 32 bits.  The lowest 2 bits are used for cell type:
+    // regular, single-valued, multi-valued, and covered.  The next 3
+    // bits are for the number of multi-values cells. They are
+    // undefined for single-valued cells.  The rest 27 bits are used
+    // for connectivity with neighbors.
+
+    static constexpr int w_lower_mask = 5;
+    static constexpr int w_type       = 2;
+    static constexpr int w_numcells   = 3;
+    static constexpr int pos_numcells = 2;
+    static constexpr std::array<std::array<std::array<int,3>,3>,3> pos_ngbr
+        {{ std::array<std::array<int,3>,3>{{{ w_lower_mask   , w_lower_mask+ 1, w_lower_mask+ 2 },
+                                            { w_lower_mask+ 3, w_lower_mask+ 4, w_lower_mask+ 5 },
+                                            { w_lower_mask+ 6, w_lower_mask+ 7, w_lower_mask+ 8 }}},
+           std::array<std::array<int,3>,3>{{{ w_lower_mask+ 9, w_lower_mask+10, w_lower_mask+11 },
+                                            { w_lower_mask+12, w_lower_mask+13, w_lower_mask+14 },
+                                            { w_lower_mask+15, w_lower_mask+16, w_lower_mask+17 }}},
+           std::array<std::array<int,3>,3>{{{ w_lower_mask+18, w_lower_mask+19, w_lower_mask+20 },
+                                            { w_lower_mask+21, w_lower_mask+22, w_lower_mask+23 },
+                                            { w_lower_mask+24, w_lower_mask+25, w_lower_mask+26 }}} }};
+
+    static constexpr uint32_t default_value = zero_lower_mask; // regular connected with all neighbors    
     
     uint32_t flag = default_value;
 };
