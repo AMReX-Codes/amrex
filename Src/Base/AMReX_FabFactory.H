@@ -4,9 +4,6 @@
 
 #include <AMReX_Box.H>
 #include <AMReX_Print.H>
-#ifdef AMREX_USE_EB
-#include <AMReX_EBISLayout.H>
-#endif
 
 namespace amrex
 {
@@ -54,35 +51,6 @@ public:
 };
 
 using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
-
-#ifdef AMREX_USE_EB
-
-class EBFArrayBoxFactory
-    : public FabFactory<FArrayBox>
-{
-public:
-
-    EBFArrayBoxFactory (const EBISLayout& a_ebisl);
-    virtual ~EBFArrayBoxFactory () = default;
-
-    EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;
-    EBFArrayBoxFactory (EBFArrayBoxFactory&&) noexcept = default;
-
-    EBFArrayBoxFactory () = delete;
-    EBFArrayBoxFactory& operator= (const EBFArrayBoxFactory&) = delete;
-    EBFArrayBoxFactory& operator= (EBFArrayBoxFactory&&) = delete;
-
-    const EBISLayout& Layout () const { return m_ebisl; }
-
-    virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override;
-
-    virtual EBFArrayBoxFactory* clone () const override;
-
-private:
-    EBISLayout m_ebisl;
-};
-
-#endif
 
 }
 

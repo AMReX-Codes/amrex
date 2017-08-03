@@ -9,7 +9,8 @@
 #endif
 
 #ifdef AMREX_USE_EB
-#include <AMReX_EBLevelGrid.H>
+#include <AMReX_EBFabFactory.H>
+#include <AMReX_EBLevel.H>
 #endif
 
 namespace amrex {
@@ -1110,8 +1111,8 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 	ba_crse_patch.define(bl);
 	dm_crse_patch.define(iprocs);
 #ifdef AMREX_USE_EB
-        EBLevelGrid eblg(ba_crse_patch, dm_crse_patch, cdomain, 0);
-        fact_crse_patch.reset(new EBFArrayBoxFactory(eblg.getEBISL()));
+        EBLevel eblg(ba_crse_patch, dm_crse_patch, cdomain, 0);
+        fact_crse_patch.reset(new EBFArrayBoxFactory(eblg));
 #else
         fact_crse_patch.reset(new FArrayBoxFactory());
 #endif

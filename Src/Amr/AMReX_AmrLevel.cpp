@@ -14,6 +14,10 @@
 #include <AMReX_Print.H>
 #include <AMReX_VisMF.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#endif
+
 namespace amrex {
 
 #ifdef AMREX_USE_EB
@@ -95,7 +99,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(m_eblevel.getEBISL()));
+    m_factory.reset(new EBFArrayBoxFactory(m_eblevel));
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif

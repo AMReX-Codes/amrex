@@ -14,14 +14,14 @@ EBLevel::~EBLevel ()
 
 EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng)
     : EBLevelGrid(ba,dm,domain,ng),
-      m_flags(ba, dm, 1, ng)
+      m_flags(std::make_shared<FabArray<BaseFab<EBCellFlag> > >(ba, dm, 1, ng))
 {
     static_assert(sizeof(EBCellFlag) == 4, "sizeof EBCellFlag != 4");
     static_assert(std::is_standard_layout<EBCellFlag>::value == true, "EBCellFlag is not pod");
 
-    for (MFIter mfi(m_flags); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*m_flags); mfi.isValid(); ++mfi)
     {
-        auto& fab = m_flags[mfi];
+        auto& fab = (*m_flags)[mfi];
         const Box& bx = fab.box() & domain;
         const EBISBox& ebis = m_ebisl[mfi];
         for (BoxIterator bi(bx); bi.ok(); ++bi)

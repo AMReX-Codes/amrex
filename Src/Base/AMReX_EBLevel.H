@@ -13,7 +13,8 @@ public:
     EBLevel ();
     ~EBLevel ();
 
-    EBLevel (const EBLevel& rhs) = delete;
+    EBLevel (const EBLevel& rhs) = default;
+
     EBLevel (EBLevel&& rhs) = delete;
     EBLevel& operator= (const EBLevel& rhs) = delete;
     EBLevel& operator= (EBLevel&& rhs) = delete;
@@ -21,7 +22,7 @@ public:
     EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng);
 
 private:
-    FabArray<BaseFab<EBCellFlag> > m_flags;
+    std::shared_ptr<FabArray<BaseFab<EBCellFlag> > > m_flags;
 };
 
 }
