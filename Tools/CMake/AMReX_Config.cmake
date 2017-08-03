@@ -16,7 +16,6 @@ endif ()
 # Find AMReX Git version
 #
 find_git_version ( AMREX_GIT_VERSION )
-print (AMREX_GIT_VERSION)
 
 #
 # Decide whether or not to use PIC 

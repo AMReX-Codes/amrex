@@ -57,7 +57,7 @@ function ( find_include_paths dirlist )
    foreach (item ${includes})
 
       get_filename_component ( path ${item} PATH )
-
+      
       if (IS_DIRECTORY ${path})
 
 	 # Check first if it is a valid path
@@ -65,11 +65,12 @@ function ( find_include_paths dirlist )
 	 
 	 foreach ( exclude ${ARG_EXCLUDE})
 	    string (FIND ${path} ${exclude} out )
-	    if ( NOT (${out} EQUAL -1) AND (${path} STREQUAL ${exclude}))
+	    if ( NOT (${out} EQUAL -1) ) 
 	       set (path_is_valid "NO")
 	    endif ()
 	 endforeach ()
-	 	 
+
+	 
 	 if ( NOT (${path} IN_LIST tmp ) AND path_is_valid )	   	    
 	    list ( APPEND tmp ${path} )
 	 endif ()
@@ -78,6 +79,8 @@ function ( find_include_paths dirlist )
       
    endforeach ()
 
+   
+   
    set ( ${dirlist} ${tmp} PARENT_SCOPE )
   
 endfunction ()
