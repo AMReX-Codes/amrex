@@ -33,14 +33,14 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
             } else if (ebis.isCovered(iv)) {
                 cellflag.setCovered();
             } else if (ebis.isMultiValued(iv)) {
-                cellflag.setMultiValued();
+                cellflag.setMultiValued(ebis.numVoFs(iv));
                 amrex::Abort("EBLevel: multi-value not supported yet");
             } else {
                 cellflag.setSingleValued();
             }
         }
         const Box& ibx = amrex::grow(bx,-1);
-        for (BoxIterator bi(bx); bi.ok(); ++bi)
+        for (BoxIterator bi(ibx); bi.ok(); ++bi)
         {
             const IntVect& iv = bi();
             auto& cellflag = fab(iv);
