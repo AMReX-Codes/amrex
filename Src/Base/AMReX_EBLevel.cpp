@@ -49,11 +49,42 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
             const auto& vofs = ebis.getVoFs(iv);
             for (const auto& vi : vofs)
             {
-                for (int idir = 0; idir < AMREX_SPACEDIM; ++idir)
+                for (int dir_0 = 0; dir_0 < AMREX_SPACEDIM; ++dir_0)
                 {
-                    for (SideIterator sit; sit.ok(); ++sit)
+                    int dir_1 = (dir_0+1) % AMREX_SPACEDIM;
+                    int dir_2 = (dir_0+2) % AMREX_SPACEDIM;
+                    for (SideIterator sit_0; sit_0.ok(); ++sit_0)
                     {
-//                        const auto& 
+                        const auto& vofs_0 = ebis.getVoFs(vi, dir_0, sit_0(), 1);
+                        for (const auto& vi_0 : vofs_0)
+                        {
+                            for (SideIterator sit_1; sit_1.ok(); ++sit_1)
+                            {
+                                const auto& vofs_1 = ebis.getVoFs(vi_0, dir_1, sit_1(), 1);
+                                for (const auto& vi_1 : vofs_1)
+                                {
+#if (AMREX_SPACEDIM == 2)
+                                    IntVect iv;
+                                    iv[dir_0] = amrex::sign(sit_0());
+                                    iv[dir_1] = amrex::sign(sit_1());
+                                    cellflag.setConnected(iv);
+#else
+                                    for (SideIterator sit_2; sit_2.ok(); ++sit_2)
+                                    {
+                                        const auto& vofs_2 = ebis.getVoFs(vi_1, dir_2, sit_2(), 1);
+                                        for (const auto& vi_2 : vofs_2)
+                                        {
+                                            IntVect iv;
+                                            iv[dir_0] = amrex::sign(sit_0());
+                                            iv[dir_1] = amrex::sign(sit_1());
+                                            iv[dir_2] = amrex::sign(sit_2());
+                                            cellflag.setConnected(iv);
+                                        }
+                                    }
+#endif
+                                }
+                            }
+                        }
                     }
                 }
             }
