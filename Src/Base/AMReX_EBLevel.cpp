@@ -22,7 +22,7 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
     for (MFIter mfi(m_flags); mfi.isValid(); ++mfi)
     {
         auto& fab = m_flags[mfi];
-        const Box& bx = fab.box();
+        const Box& bx = fab.box() & domain;
         const EBISBox& ebis = m_ebisl[mfi];
         for (BoxIterator bi(bx); bi.ok(); ++bi)
         {
@@ -39,7 +39,7 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
                 cellflag.setSingleValued();
             }
         }
-        const Box& ibx = amrex::grow(bx,-1);
+        const Box& ibx = amrex::grow(fab.box(),-1) & domain;
         for (BoxIterator bi(ibx); bi.ok(); ++bi)
         {
             const IntVect& iv = bi();
