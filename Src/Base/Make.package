@@ -184,6 +184,7 @@ ifeq ($(USE_EB),TRUE)
   C$(AMREX_BASE)_headers += AMReX_EBMultiFabUtil.H
   C$(AMREX_BASE)_sources += AMReX_EBMultiFabUtil.cpp
   C$(AMREX_BASE)_headers += AMReX_EBCellFlag.H
+  C$(AMREX_BASE)_sources += AMReX_EBCellFlag.cpp
   C$(AMREX_BASE)_headers += AMReX_EBLevel.H
   C$(AMREX_BASE)_sources += AMReX_EBLevel.cpp
 endif
