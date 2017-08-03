@@ -7,7 +7,7 @@ module mempool_module
 
   implicit none
 
-  integer, parameter, private :: c_real = 8
+  integer, parameter, private :: c_real = kind(0d0)
 
   ! We could/should use Fortran 2008 c_sizeof here.
   integer (kind=c_size_t), parameter, private :: szr = c_real
