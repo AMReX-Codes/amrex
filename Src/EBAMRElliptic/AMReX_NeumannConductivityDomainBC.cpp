@@ -13,12 +13,20 @@
 #include "AMReX_EBArith.H"
 namespace amrex
 {
+  NeumannConductivityDomainBC::
+  NeumannConductivityDomainBC()
+  {
+  }
+
+  NeumannConductivityDomainBC::
+  ~NeumannConductivityDomainBC()
+  {
+  }
+
   void 
   NeumannConductivityDomainBC::
   fillPhiGhost(FArrayBox&     a_phi,
                const Box&     a_valid,
-               const Box&     a_domain,
-               Real           a_dx,
                bool           a_homogeneous)
   {
     Box grownBox = a_valid;
@@ -32,19 +40,19 @@ namespace amrex
         choppedBox.grow(idir,-1);
         Box toRegion = EBArith::adjCellBox(choppedBox, idir, sit(), 1);
 
-        if(!a_domain.contains(toRegion))
+        if(!m_eblg.getDomain().contains(toRegion))
         {
           for (BoxIterator bit(toRegion); bit.ok(); ++bit)
           {
             const IntVect& iv = bit();
             //fake vof just to get the location
             VolIndex vof(iv, 0);
-            RealVect loc = EBArith::getVoFLocation(vof, a_dx, RealVect::Zero);
+            RealVect loc = EBArith::getVoFLocation(vof, m_dx, RealVect::Zero);
             int isign = sign(sit());
             IntVect ivneigh = iv - isign*BASISV(idir);
             Real value = bcvaluefunc(loc, idir, sit());
             if(a_homogeneous) value = 0;
-            a_phi(iv, 0) = a_phi(ivneigh, 0)  + a_dx*value;
+            a_phi(iv, 0) = a_phi(ivneigh, 0)  + m_dx*value;
           }
         }
       } 
