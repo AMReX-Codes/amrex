@@ -25,6 +25,10 @@ geometry.is_periodic = 1     1     0      # Is periodic?
 geometry.prob_lo     = -200.e-6   -200.e-6   -200.e-6    # physical domain
 geometry.prob_hi     =  200.e-6    200.e-6    200.e-6
 
+# PML
+warpx.do_pml = 1
+warpx.pml_ncell = 10
+
 # Verbosity
 warpx.verbose = 1
 
