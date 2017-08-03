@@ -14,7 +14,7 @@
 
 #include "AMReX_FabArray.H"
 #include "AMReX_LinearSolver.H"
-#include "AMReX_MultiGrid.H"
+#include "AMReX_EBMultiGrid.H"
 #include "AMReX_EBCellFAB.H"
 
 namespace amrex

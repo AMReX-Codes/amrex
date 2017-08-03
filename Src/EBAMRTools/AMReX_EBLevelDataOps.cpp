@@ -451,6 +451,19 @@ namespace amrex
       a_result[mfi] *= a_value;
     }
   }
+
+  //-----------------------------------------------------------------------
+  void 
+  EBLevelDataOps::
+  scale(FabArray<EBCellFAB>       & a_result,
+        const FabArray<EBCellFAB> & a_value)
+  {
+    BL_PROFILE("EBLevelDataOps::scale_2");
+    for(MFIter mfi(a_result); mfi.isValid(); ++mfi)
+    {
+      a_result[mfi] *= a_value[mfi];
+    }
+  }
   //-----------------------------------------------------------------------
   void 
   EBLevelDataOps::

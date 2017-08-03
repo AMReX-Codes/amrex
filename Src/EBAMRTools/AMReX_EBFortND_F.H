@@ -53,7 +53,7 @@
                        const amrex::Real* flx0, const int* flx0lo, const int* flx0hi, const int* incoflx0,
                        const amrex::Real* flx1, const int* flx1lo, const int* flx1hi, const int* incoflx1,
                        const amrex::Real* flx2, const int* flx2lo, const int* flx2hi, const int* incoflx2,
-                       const int*  gridlo, const int* gridhi, 
+                       const int*  gridlo, const int* gridhi, const int* multibyarea,
                        const amrex::Real* dx, const int* isrc, const int* idst, const int* ncomp);
 
 

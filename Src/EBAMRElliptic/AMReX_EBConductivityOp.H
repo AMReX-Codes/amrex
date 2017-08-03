@@ -346,8 +346,7 @@ namespace amrex
     virtual void AMRRestrict(FabArray<EBCellFAB>& a_resCoarse,
                              const FabArray<EBCellFAB>& a_residual,
                              const FabArray<EBCellFAB>& a_correction,
-                             const FabArray<EBCellFAB>& a_coarseCorrection, 
-                             bool a_skip_res = false );
+                             const FabArray<EBCellFAB>& a_coarseCorrection);
     
     ///
     /** a_correction += I[2h->h](a_coarseCorrection) */
