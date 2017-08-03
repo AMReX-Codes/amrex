@@ -72,6 +72,22 @@ namespace amrex
 
     ///
     /**
+       a_residual = a_rhs - L^nf(a_phi, a_phiCoarse)
+       assume no finer AMR level
+    */
+    virtual void AMRResidualNF(T& a_residual, const T& a_phi, const T& a_phiCoarse,
+                               const T& a_rhs, bool a_homogeneousBC) = 0;
+
+    ///
+    /**
+       a_residual = a_rhs - L(a_phiFine, a_phi)
+       assume no coarser AMR level
+    */
+    virtual void AMRResidualNC(T& a_residual, const T& a_phiFine, const T& a_phi,
+                               const T& a_rhs, bool a_homogeneousBC,
+                               AMRLevelOp<T>* a_finerOp) = 0;
+    ///
+    /**
        Apply the AMR operator, including coarse-fine matching
     */
     virtual void AMROperator(T& a_LofPhi,
@@ -165,7 +181,7 @@ namespace amrex
     virtual void define(const Box                    & a_coarseDomain,
                         AMRLevelOpFactory<T>         & a_factory,
                         shared_ptr<LinearSolver<T> > & a_bottomSolver,
-                        std::vector<int>             & a_refRat,
+                        const std::vector<int>       & a_refRat,
                         bool a_enableLevelSolves,
                         int a_numLevels);
 
@@ -322,9 +338,9 @@ namespace amrex
     std::vector<T*>  m_residual;
     std::vector<T*>  m_resC;
 
-    NoOpSolver<T>    m_nosolve;
+    shared_ptr<LinearSolver<T> >   m_nosolve;
 
-    LinearSolver<T>* m_bottomSolver;
+    shared_ptr<LinearSolver<T> > m_bottomSolver;
 
     std::vector<char> m_hasInitBeenCalled;
 
@@ -841,18 +857,6 @@ namespace amrex
         // clean const out
       }
 
-      // For solvers with accuracy higher than 2nd order
-      //  consistency between levels has to be explicitly enforced.
-      // Qinghai Zhang
-      if (m_op[0]->orderOfAccuracy()>2)
-      {
-        for (int ilev=l_max; ilev>l_base; ilev--)
-        {
-          m_op[ilev]->enforceCFConsistency(*a_phi[ilev-1], *a_phi[ilev]);
-        }
-      }
-      //------end enforcing consistency.
-
       //recompute residual
       rnorm = computeAMRResidual(uberResidual, a_phi, a_rhs, l_max, l_base, a_forceHomogeneous, true);
       iter++;
@@ -993,7 +997,7 @@ namespace amrex
         m_mg[ilev]->m_post = m_post;
         m_mg[ilev]->m_bottom = m_bottom;
       }
-      m_mg[ilev]->m_bottomSolver = &m_nosolve;
+      m_mg[ilev]->m_bottomSolver = m_nosolve;
     }
 
     m_mg[l_base]->setBottomSolver(m_bottomSolver);
@@ -1011,7 +1015,7 @@ namespace amrex
   void AMREBMultiGrid<T>::define(const Box& a_coarseDomain,
                                AMRLevelOpFactory<T>& a_factory,
                                shared_ptr<LinearSolver<T> > & a_bottomSolver,
-                               vector<int>      & a_refRat,
+                               const vector<int>      & a_refRat,
                                bool a_enableLevelSolves,
                                int a_maxAMRLevels)
   {
@@ -1022,7 +1026,7 @@ namespace amrex
     m_op.resize( a_maxAMRLevels, NULL);
     m_mg.resize( a_maxAMRLevels, NULL);
     m_hasInitBeenCalled.resize(a_maxAMRLevels, 'f');
-
+    m_nosolve  = shared_ptr<LinearSolver<T> >(static_cast<LinearSolver<T>*>(new NoOpSolver<T>));
     m_correction.resize( a_maxAMRLevels, NULL);
     m_residual.  resize( a_maxAMRLevels, NULL);
     m_resC.      resize( a_maxAMRLevels, NULL);
@@ -1043,7 +1047,7 @@ namespace amrex
       }
       if((i==0) || (refToCoarser > 2) || a_enableLevelSolves)
       {
-        m_mg[i]->define(a_factory, &m_nosolve, current, m_maxDepth, m_op[i]);
+        m_mg[i]->define(a_factory, m_nosolve, current, m_maxDepth);
       }
 
       // Only do this if it will be used (avoiding a reference to invalid
@@ -1065,7 +1069,7 @@ namespace amrex
     {
       for (int level = l_base; level <= l_max; level++)
       {
-        m_op[level]->assignLocal(*m_residual[level], *a_uberResidual[level]);
+        m_op[level]->assign(*m_residual[level], *a_uberResidual[level]);
         m_op[level]->setToZero(*m_correction[level]);
       }
     }
@@ -1099,11 +1103,10 @@ namespace amrex
                               true);
 
       // Compute the restriction of the residual to the coarser level resC.
-      m_op[ilev]->AMRRestrictS(*(m_resC[ilev]),
-                               *(m_residual[ilev]),
-                               *(m_correction[ilev]),
-                               *(m_correction[ilev-1]),
-                               *(a_uberCorrection[ilev]));
+      m_op[ilev]->AMRRestrict(*(m_resC[ilev]),
+                              *(m_residual[ilev]),
+                              *(m_correction[ilev]),
+                              *(m_correction[ilev-1]));
 
       // Overwrite residual on the valid region of the next coarser level
       //  with coarsened residual from this level
@@ -1119,8 +1122,7 @@ namespace amrex
       //================= Upsweep ======================
       //increment the correction with coarser version
       //m_op[ilev]->AMRProlong(*(m_correction[ilev]), *(m_correction[ilev-1]));
-      m_op[ilev]->AMRProlongS(*(m_correction[ilev]), *(m_correction[ilev-1]),
-                              *m_resC[ilev]);
+      m_op[ilev]->AMRProlong(*(m_correction[ilev]), *(m_correction[ilev-1]));
       //recompute residual
       m_op[ilev]->AMRUpdateResidual(*(m_residual[ilev]), *(m_correction[ilev]), *(m_correction[ilev-1]));
 
@@ -1132,7 +1134,7 @@ namespace amrex
       //correct the correction with the correction to the correction
       m_op[ilev]->incr(*(m_correction[ilev]), dCorr, 1.0);
 
-      m_op[ilev]->assignLocal(*(a_uberCorrection[ilev]), *(m_correction[ilev]));
+      m_op[ilev]->assign(*(a_uberCorrection[ilev]), *(m_correction[ilev]));
     }
   }
 
