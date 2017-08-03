@@ -96,20 +96,19 @@ check_option_value ( "ENABLE_FPE" ${ENABLE_FPE} 0 1 )
 set (ENABLE_ASSERTIONS 0 CACHE INT "Enable assertions")
 check_option_value ( "ENABLE_ASSERTIONS" ${ENABLE_ASSERTIONS} 0 1 )
 
+set (ENABLE_FORTRAN_INTERFACES 1 CACHE INT "Include Fortran interfaces in AMReX build")
+check_option_value ( "ENABLE_FORTRAN_INTERFACES" ${ENABLE_FORTRAN_INTERFACES} 0 1 )
+
+set (ENABLE_LINEAR_SOLVERS 1 CACHE INT "Include Linear solvers in AMReX build")
+check_option_value ( "ENABLE_LINEAR_SOLVERS" ${ENABLE_LINEAR_SOLVERS} 0 1 )
+
+set ( ENABLE_FBASELIB 1 CACHE INT  "Enable Fortran BaseLib and Fortran MG" )
+check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
+
+
 set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
 set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
-
-
-#
-# The following are a set of options from previous
-# version of AMReX/CMake. Their use is unclear
-#
-set ( ENABLE_MG_BOXLIB 0 CACHE INT "Enable Fortran for MultiGrid Solver" )
-check_option_value ( "ENABLE_FMG" ${ENABLE_MG_BOXLIB} 0 1 )
-
-set ( ENABLE_FBASELIB 0 CACHE INT  "Enable Fortran BaseLib" )
-check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
 
 # After the options are set, define the following variable
 # so that other included file can check if this file has been
