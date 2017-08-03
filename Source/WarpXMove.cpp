@@ -8,49 +8,58 @@ WarpX::MoveWindow (bool move_j)
 {
     if (do_moving_window == 0) return;
 
-    if (max_level > 0) {
-        amrex::Abort("MoveWindow with mesh refinement has not been implemented");
-    }
-
-    const int lev = 0;
-
-    // compute the number of cells to shift
+    // compute the number of cells to shift on the base level
     int dir = moving_window_dir;
     Real new_lo[BL_SPACEDIM];
     Real new_hi[BL_SPACEDIM];
-    const Real* current_lo = geom[lev].ProbLo();
-    const Real* current_hi = geom[lev].ProbHi();
-    const Real* dx = geom[lev].CellSize();
-    moving_window_x += moving_window_v * dt[lev];
-    int num_shift = static_cast<int>((moving_window_x - current_lo[dir]) / dx[dir]);
+    const Real* current_lo = geom[0].ProbLo();
+    const Real* current_hi = geom[0].ProbHi();
+    const Real* dx = geom[0].CellSize();
+    moving_window_x += moving_window_v * dt[0];
+    int num_shift_base = static_cast<int>((moving_window_x - current_lo[dir]) / dx[dir]);
 
-    if (num_shift == 0) return;
+    if (num_shift_base == 0) return;
 
-    // update the problem domain
+    // update the problem domain. Note the we only do this on the base level because
+    // amrex::Geometry objects share the same, static RealBox.
     for (int i=0; i<BL_SPACEDIM; i++) {
         new_lo[i] = current_lo[i];
         new_hi[i] = current_hi[i];
     }
-    new_lo[dir] = current_lo[dir] + num_shift * dx[dir];
-    new_hi[dir] = current_hi[dir] + num_shift * dx[dir];
+    new_lo[dir] = current_lo[dir] + num_shift_base * dx[dir];
+    new_hi[dir] = current_hi[dir] + num_shift_base * dx[dir];
     RealBox new_box(new_lo, new_hi);
-    geom[lev].ProbDomain(new_box);
+    geom[0].ProbDomain(new_box);
 
-    // shift the mesh fields (Note - only on level 0 for now)
-    shiftMF(*Bfield_fp[lev][0], geom[lev], num_shift, dir);
-    shiftMF(*Bfield_fp[lev][1], geom[lev], num_shift, dir);
-    shiftMF(*Bfield_fp[lev][2], geom[lev], num_shift, dir);
-    shiftMF(*Efield_fp[lev][0], geom[lev], num_shift, dir);
-    shiftMF(*Efield_fp[lev][1], geom[lev], num_shift, dir);
-    shiftMF(*Efield_fp[lev][2], geom[lev], num_shift, dir);
-    if (move_j) {
-        shiftMF(*current_fp[lev][0], geom[lev], num_shift, dir);
-        shiftMF(*current_fp[lev][1], geom[lev], num_shift, dir);
-        shiftMF(*current_fp[lev][2], geom[lev], num_shift, dir);
+    int num_shift      = num_shift_base;
+    int num_shift_crse = num_shift;
+    for (int lev = 0; lev <= max_level; ++lev) {
+        if (lev > 0) {
+            num_shift_crse = num_shift;
+            num_shift *= refRatio(lev-1)[dir];
+        }
+        // shift the mesh fields
+        for (int dim = 0; dim < BL_SPACEDIM; ++dim) {
+            shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir);
+            shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir);
+            if (lev > 0) {                
+                shiftMF(*Bfield_cp[lev][dim], geom[lev], num_shift_crse, dir);
+                shiftMF(*Efield_cp[lev][dim], geom[lev], num_shift_crse, dir);
+
+                shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir);
+                shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir);
+            }
+            if (move_j) {
+                shiftMF(*current_fp[lev][dim], geom[lev], num_shift, dir);
+                if (lev > 0) {
+                    shiftMF(*current_cp[lev][dim], geom[lev], num_shift_crse, dir);
+                }
+            }
+        }
     }
-
-    InjectPlasma(num_shift, dir);
-
+    
+    InjectPlasma(num_shift_base, dir);
+    
     // Redistribute (note - this removes particles that are outside of the box)
     mypc->Redistribute();
 }
