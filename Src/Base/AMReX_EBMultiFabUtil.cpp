@@ -1,5 +1,6 @@
 
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_EBFabFactory.H>
 
 namespace amrex
 {
@@ -20,7 +21,7 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp)
     ParallelDescriptor::ReduceRealMin(minvals.data(), ncomp);
 
     const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf.Factory());
-    const auto& layout = factory.Layout();
+    const auto& layout = factory.getEBISLayout();
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
