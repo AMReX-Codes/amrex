@@ -174,8 +174,7 @@ namespace amrex
         BoxArray crse_S_fine_BA = fine_BA; 
 	crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),
-                             S_crse.Factory());
+        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0);
 
 	MultiFab fvolume;
 	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
@@ -229,8 +228,7 @@ namespace amrex
         //
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow,
-                             MFInfo(), S_crse.Factory());
+        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -261,8 +259,7 @@ namespace amrex
         //
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp,0,
-                             MFInfo(), S_crse.Factory());
+        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp,0);
 
 #ifdef _OPENMP
 #pragma omp parallel
