@@ -2,6 +2,7 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil_F.H>
+#include <AMReX_MultiFabUtil_F.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -86,6 +87,87 @@ EB_set_volume_fraction (MultiFab& mf)
                 }
             }
         }
+    }
+}
+
+void
+EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
+                 const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio)
+{
+    BL_ASSERT(S_fine.ixType().cellCentered());
+    BL_ASSERT(S_crse.ixType().cellCentered());
+
+    const DistributionMapping& fine_dm = S_fine.DistributionMap();
+    BoxArray crse_S_fine_BA = S_fine.boxArray();
+    crse_S_fine_BA.coarsen(ratio);
+
+    MultiFab crse_S_fine = amrex::makeMultiEBFab(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),S_crse);
+
+    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_S_fine.Factory());
+    const auto& flags = factory.getEBLevel().Flags();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.tilebox();
+        const Box& fbx = amrex::refine(tbx,ratio);
+        auto& crse_fab = crse_S_fine[mfi];
+        const auto& fine_fab = S_fine[mfi];
+        const auto& flag_fab = flags[mfi];
+
+        FabType typ = flag_fab.getType(tbx);
+        
+        if (typ == FabType::regular || typ == FabType::covered)
+        {
+            BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
+                (tbx.loVect(), tbx.hiVect(),
+                 BL_TO_FORTRAN_N(fine_fab,scomp),
+                 BL_TO_FORTRAN_N(crse_fab,0),
+                 BL_TO_FORTRAN(vol_fine[mfi]),
+                 ratio.getVect(),&ncomp);
+        }
+        else if (typ == FabType::singlevalued)
+        {
+#if (AMREX_SPACEDIM == 1)
+            amrex::Abort("1D EB not supported");
+#else
+            amrex_eb_avgdown_sv(BL_TO_FORTRAN_BOX(tbx),
+                                BL_TO_FORTRAN_N_ANYD(fine_fab,scomp),
+                                BL_TO_FORTRAN_N_ANYD(crse_fab,0),
+                                BL_TO_FORTRAN_ANYD(flag_fab),
+                                BL_TO_FORTRAN_ANYD(vol_fine[mfi]),
+                                BL_TO_FORTRAN_ANYD(vfrac_fine[mfi]),
+                                ratio.getVect(),&ncomp);
+#endif
+        }
+        else
+        {
+            amrex::Abort("multi-valued avgdown to be implemented");
+        }
+    }
+
+    S_crse.copy(crse_S_fine,0,scomp,ncomp);
+}
+
+MultiFab 
+makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
+                int ncomp, int ngrow, const MFInfo& info,
+                const MultiFab& mold)
+{
+    const auto& fact_mold = dynamic_cast<EBFArrayBoxFactory const&>(mold.Factory());
+    const auto& eblevel_mold = fact_mold.getEBLevel();
+
+    if (ba == mold.boxArray() && dm == mold.DistributionMap() && ngrow <= eblevel_mold.getGhost()) 
+    {
+        return MultiFab(ba, dm, ncomp, ngrow, info, fact_mold);
+    }
+    else
+    {
+        EBLevel eblevel(ba, dm, eblevel_mold.getDomain(), ngrow);
+        EBFArrayBoxFactory fact(eblevel);
+        return MultiFab(ba, dm, ncomp, ngrow, info, fact);
     }
 }
 
