@@ -111,8 +111,10 @@ function ( add_define new_define all_defines )
    elseif ( ${ARGC} GREATER 3 )
       message ( AUTHOR_WARNING "Function add_define accept AT MOST 3 args" )
    endif ()
+     
+   string ( FIND "${${all_defines}}" "${new_define}" out )
    
-   if ( ${condition} )
+   if (condition AND (${out} EQUAL -1))
       set ( ${all_defines} "${${all_defines}} -D${new_define}" PARENT_SCOPE )
    endif ()
    
