@@ -6,12 +6,14 @@
 
 namespace amrex {
 
+class EBFlagFab;
+
 class EBFArrayBox
     : public FArrayBox
 {
 public:
     EBFArrayBox ();
-    EBFArrayBox (const EBISBox& ebisBox, const Box& box, int ncomps);
+    EBFArrayBox (const EBISBox& ebisBox, const EBFlagFab& ebflag, const Box& box, int ncomps);
 
     EBFArrayBox (EBFArrayBox&& rhs) noexcept = default;
     EBFArrayBox (const EBFArrayBox&) = delete;
