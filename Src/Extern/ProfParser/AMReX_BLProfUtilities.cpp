@@ -55,6 +55,7 @@ std::string amrex::SanitizeName(const std::string &sname) {
   replaceChars.push_back('{');
   replaceChars.push_back('<');
   replaceChars.push_back('>');
+  replaceChars.push_back(',');
   for(int c(0); c < replaceChars.size(); ++c) {
     while((found = s.find(replaceChars[c])) != std::string::npos) {
       s.replace(found, 1, "_");
@@ -359,7 +360,8 @@ void amrex::MakeFuncPctTimesMF(const Array<Array<BLProfStats::FuncStat> > &funcS
         funcPctTimes[fnum].first  = percent;
         funcPctTimes[fnum].second = fnum;
       } else {
-        cout << "**** Error:  fNamePS != fname:  " << fNamePS << "  " << fName << endl;
+        cout << "**** Error:  runTime <= 0.0 || fNamePS != fname:  " << runTime << "  "
+             << fNamePS << "  " << fName << endl;
       }
     }
   }
@@ -456,14 +458,12 @@ void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats> &mPro
           xgout.close();
         }
       } else {
-        cout << "**** Error:  fNamePS != fname:  " << fNamePS << "  " << fName << endl;
+        cout << "**** Error:  runTime <= 0.0 || fNamePS != fname:  " << runTime << "  "
+             << fNamePS << "  " << fName << endl;
       }
     }
   }
 }
-
-//}  //namespace amrex
 // ----------------------------------------------------------------------
 // ----------------------------------------------------------------------
-
 #endif

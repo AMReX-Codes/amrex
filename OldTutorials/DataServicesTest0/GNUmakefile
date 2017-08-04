@@ -1,22 +1,20 @@
-AMREX_HOME ?= ../../../amrex
+AMREX_HOME = ../../../amrex
 
 EBASE = DataServicesTest0
 
 DEBUG	  = FALSE
 DEBUG	  = TRUE
-PROFILE   = TRUE
-DIM       = 2 
-USE_MPI   = FALSE
-USE_MPI   = TRUE
-COMP      = GNU
-COMP      = INTEL
 
-# Profiling flags
 PROFILE = FALSE
 #PROFILE = TRUE
 #TRACE_PROFILE = TRUE
 #COMM_PROFILE = TRUE 
 #MEM_PROFILE = TRUE 
+
+DIM       = 3
+USE_MPI   = FALSE
+USE_MPI   = TRUE
+COMP      = gnu
 
 HERE = .
 

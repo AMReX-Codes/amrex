@@ -3,6 +3,7 @@
 #include <ABL_F.H>
 
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_VisMF.H>
 
 #include <string>
 
@@ -70,7 +71,10 @@ ABL::ABL ()
     }
     init_coeffs();
 
-    soln.define(ba, dmap, 1, 1);
+    soln.define(ba, dmap, 1, 0);
+    the_soln.define(ba, dmap, 1, 0);
+
+    comp_the_solution();
 }
 
 void
@@ -110,17 +114,41 @@ ABL::init_coeffs ()
 }
 
 void
+ABL::comp_the_solution ()
+{
+    const int ibnd = static_cast<int>(bc_type);
+    const Real* dx = geom.CellSize();
+
+    for (MFIter mfi(the_soln); mfi.isValid(); ++mfi)
+    {
+        fort_comp_asol(BL_TO_FORTRAN_ANYD(the_soln[mfi]),
+                       dx, &ibnd);
+    }
+}
+
+void
 ABL::solve ()
 {
-    BL_PROFILE("__solve__");
-
     const BoxArray& ba = soln.boxArray();
     const DistributionMapping& dm = soln.DistributionMap();
+        
+    {
+        BL_PROFILE("__solve__");    
+        Hypre hypre_solver(ba, dm, geom, ParallelDescriptor::Communicator());
+        hypre_solver.setScalars(a, b);
+        hypre_solver.setACoeffs(alpha);
+        hypre_solver.setBCoeffs({&beta[0],&beta[1],&beta[2]});
+        hypre_solver.setVerbose(verbose);
+        hypre_solver.solve(soln, rhs, tol_rel, tol_abs, maxiter, bc_type, bc_value);
+    }        
 
-    HypreABecLap hypre_solver(ba, dm, geom, ParallelDescriptor::Communicator());
-    hypre_solver.setScalars(a, b);
-    hypre_solver.setACoeffs(alpha);
-    hypre_solver.setBCoeffs({&beta[0],&beta[1],&beta[2]});
-    hypre_solver.setVerbose(verbose);
-    hypre_solver.solve(soln, rhs, tol_rel, tol_abs, maxiter, bc_type, bc_value, geom);
+    {
+        MultiFab diff(ba, dm, 1, 0);
+        MultiFab::Copy(diff, soln, 0, 0, 1, 0);
+        MultiFab::Subtract(diff, the_soln, 0, 0, 1, 0);
+        amrex::Print() << "\nMax-norm of the error is " << diff.norm0()
+                       << "\nMaximum absolute value of the solution is " << the_soln.norm0()
+                       << "\nMaximum absolute value of the rhs is " << rhs.norm0()
+                       << "\n";
+    }
 }

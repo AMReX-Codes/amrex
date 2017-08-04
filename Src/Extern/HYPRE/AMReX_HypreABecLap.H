@@ -21,7 +21,7 @@ public:
 
   HypreABecLap(const BoxArray& grids,
                const DistributionMapping& dmap,
-               const Geometry& geom,
+               const Geometry& geom_,
                MPI_Comm comm_);
   ~HypreABecLap();
 
@@ -33,7 +33,7 @@ public:
   void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
 	     int max_iter, const BndryData& bndry);
   void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
-	     int max_iter, LinOpBCType bc_type, Real bc_value, const Geometry& geom);
+	     int max_iter, LinOpBCType bc_type, Real bc_value);
 
 protected:
 
@@ -43,6 +43,8 @@ protected:
 
   int is_periodic[BL_SPACEDIM];
   Real dx[BL_SPACEDIM];
+
+  amrex::Geometry geom;
 
   MultiFab* acoefs;
   Tuple<MultiFab*, BL_SPACEDIM> bcoefs;

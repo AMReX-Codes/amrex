@@ -17,6 +17,7 @@
 #include "AMReX_EBISBox.H"
 #include "AMReX_Stencils.H"
 #include "AMReX_IntVectSet.H"
+#include "AMReX_EBLevelGrid.H"
 #include <sstream>
 
 
@@ -43,6 +44,13 @@ namespace amrex
         return ivar*SpaceDim + gradDir;
       }
 
+    ///returns true if coarsenable (either by agglomeration or otherwise)
+    static bool
+    createCoarserEBLG(EBLevelGrid       &  a_eblgCoar,
+                      const EBLevelGrid &  a_eblgFine,
+                      const int         &  a_refRat,
+                      const int         &  a_minBoxSize,
+                      const int         &  a_maxBoxSize);
     ///
     /**
        Return true if there is a unique adjacent face in the
@@ -309,6 +317,9 @@ namespace amrex
                const VolIndex& a_vof,
                int a_idir, Side::LoHiSide a_sd,
                IntVectSet*    a_cfivsPtr);
+
+    static RealVect
+    getDomainNormal(int a_idir, Side::LoHiSide a_side);
 
     ///gets the location in real space of a cell center
     static RealVect  getVofLocation(const VolIndex&  a_vof,

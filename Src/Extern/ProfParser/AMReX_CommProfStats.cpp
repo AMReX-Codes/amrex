@@ -546,6 +546,7 @@ void CommProfStats::CheckCommData(Array<long> &nBMin, Array<long> &nBMax,
                << (cs.commpid) << "   " << (csNext.commpid) << "   "
                << (cs.tag) << "   " << (csNext.tag) << "   "
                << (cs.timeStamp) << "   " << (csNext.timeStamp) << "   "
+	       << bName << "  " << bNumber
 	       << endl;
       }
     }
@@ -653,7 +654,6 @@ void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
 
       for(int i(0); i < dBlock.vCommStats.size(); ++i) {    // ---- find sends and sum
         BLProfiler::CommStats &cs = dBlock.vCommStats[i];
-        //if(cs.cfType == BLProfiler::SendTsii || cs.cfType == BLProfiler::SendvTii) {
         if(IsSend(cs.cfType)) {
 	  if(cs.size != BLProfiler::AfterCall()) {
 	    rankTo = cs.commpid;
@@ -704,7 +704,6 @@ void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
 
       for(int i(0); i < dBlock.vCommStats.size(); ++i) {    // ---- find sends and sum
         BLProfiler::CommStats &cs = dBlock.vCommStats[i];
-        //if(cs.cfType == BLProfiler::SendTsii || cs.cfType == BLProfiler::SendvTii) {
         if(IsSend(cs.cfType)) {
 	  if(cs.size != BLProfiler::AfterCall()) {
 	    if(cs.commpid >= smallY && cs.commpid <= bigY) {    // ---- within to proc range
@@ -834,15 +833,18 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
                                 Real &timeMin, Real &timeMax, Real &timerTime,
 				Array<int> &rankNodeNumbers)
 {
-  cout << "Processing " << dataBlocks.size() << " data blocks:" << endl;
+  amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << "::Processing "
+                                << dataBlocks.size() << " data blocks:" << endl;
 
   int nMsgSizes(msgSizes.size());
   int slot(0), highSlot(nMsgSizes - 1);
 
   for(int idb(0); idb < dataBlocks.size(); ++idb) {  // ---- go through dataBlocks
-    cout << idb + 1 << "  " << flush;
-    if((idb + 1) % 20 == 0) {
-      cout << endl;
+    if(verbose) {
+      //cout << idb + 1 << "  " << flush;
+      //if((idb + 1) % 20 == 0) {
+        //cout << endl;
+      //}
     }
     DataBlock &dBlock = dataBlocks[idb];
     ReadCommStatsNoOpen(dBlock);
@@ -852,7 +854,6 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
     totalNCommStats += dBlock.size;
     for(int i(0); i < dBlock.vCommStats.size(); ++i) {  // ------- sum sent data
       BLProfiler::CommStats &cs = dBlock.vCommStats[i];
-      //if(cs.cfType == BLProfiler::SendTsii || cs.cfType == BLProfiler::SendvTii) {
       if(IsSend(cs.cfType)) {
 	if(cs.size != BLProfiler::AfterCall()) {
 	  if(InTimeRange(dBlock.proc, cs.timeStamp)) {
@@ -875,7 +876,8 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
 	  if(cs.cfType >= 0 && cs.cfType < totalFuncCalls.size()) {
             ++totalFuncCalls[cs.cfType];
 	  } else {
-	    std::cout << "--------:: totalFuncCalls.size() cs.cfType = " << totalFuncCalls.size() << "  " << cs.cfType << std::endl;
+	    std::cout << "--------:: totalFuncCalls.size() cs.cfType = " << totalFuncCalls.size()
+                      << "  " << cs.cfType << std::endl;
 	  }
 	}
       }
@@ -893,6 +895,7 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
   //if(nTimerTimes > 0) {
     //timerTime /= nTimerTimes;
   //}
+  amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << "::done." << endl;
 }
 
 

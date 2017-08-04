@@ -4,15 +4,15 @@
 
 using namespace amrex;
 
-const Real NeighborListParticleContainer::min_r;
-const Real NeighborListParticleContainer::cutoff;
+constexpr Real NeighborListParticleContainer::min_r;
+constexpr Real NeighborListParticleContainer::cutoff;
 
 NeighborListParticleContainer::
 NeighborListParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
                               int                         ncells)
-    : NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM> 
+    : NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM+1> 
       (geom, dmap, ba, ncells)
 {}
 
@@ -20,6 +20,7 @@ void NeighborListParticleContainer::InitParticles() {
 
     BL_PROFILE("NeighborListParticleContainer::InitParticles");
 
+    const int lev = 0;
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
     
@@ -67,6 +68,8 @@ void NeighborListParticleContainer::computeForces() {
 
     BL_PROFILE("NeighborListParticleContainer::computeForces");
 
+    const int lev = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -83,17 +86,19 @@ void NeighborListParticleContainer::computeForces() {
 
 void NeighborListParticleContainer::computeForcesNL() {
 
-    BL_PROFILE("NeighborListParticleContainer::computeForces");
+    BL_PROFILE("NeighborListParticleContainer::computeForcesNL");
 
-    buildNeighborList();
+    const int lev = 0;
+
+    buildNeighborList(lev);
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
-        PairIndex index(pti.index(), pti.LocalTileIndex());
         int Nn = neighbors[index].size() / pdata_size;
         int size = neighbor_list[index].size();
         amrex_compute_forces_nl(particles.data(), &Np, 
@@ -107,6 +112,7 @@ void NeighborListParticleContainer::moveParticles(const Real dt) {
 
     BL_PROFILE("NeighborListParticleContainer::moveParticles");
 
+    const int lev = 0;
     const RealBox& prob_domain = Geom(lev).ProbDomain();
 
 #ifdef _OPENMP

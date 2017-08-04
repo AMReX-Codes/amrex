@@ -161,10 +161,16 @@ module amrex_amrcore_module
      end subroutine amrex_fi_regrid
   end interface
 
+  logical, save, private :: call_amrex_finalize = .false.
+
 contains
 
   subroutine amrex_amrcore_init ()
     integer :: ilev
+    if (.not.amrex_initialized()) then
+       call amrex_init()
+       call_amrex_finalize = .true.
+    end if
     call amrex_fi_new_amrcore(amrcore)
     amrex_max_level = amrex_fi_get_max_level(amrcore)
     allocate(amrex_ref_ratio(0:amrex_max_level-1))
@@ -178,6 +184,10 @@ contains
   subroutine amrex_amrcore_finalize ()
     call amrex_fi_delete_amrcore(amrcore)
     amrcore = c_null_ptr
+    if (call_amrex_finalize) then
+       call amrex_finalize()
+       call_amrex_finalize = .false.
+    end if
   end subroutine amrex_amrcore_finalize
 
   logical function amrex_amrcore_initialized ()

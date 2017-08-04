@@ -19,6 +19,8 @@
        real(amrex_particle_real) :: pos(2)     !< Position
        real(amrex_particle_real) :: vel(2)     !< Particle velocity
        real(amrex_particle_real) :: acc(2)     !< Particle acceleration
+       integer(c_int)            :: id         !< Particle id
+       integer(c_int)            :: cpu        !< Particle cpu
     end type neighbor_t
     
   end module short_range_particle_module
@@ -84,7 +86,7 @@
     integer,          intent(in   ) :: np, nn
     real(amrex_real), intent(in   ) :: cutoff, min_r
     type(particle_t), intent(inout) :: particles(np)
-    type(neighbor_t), intent(in   ) :: neighbors(nn)
+    type(neighbor_t), intent(inout) :: neighbors(nn)
 
     real(amrex_real) dx, dy, r2, r, coef, mass
     integer i, j
@@ -144,22 +146,27 @@
 
   end subroutine amrex_compute_forces
 
-  subroutine amrex_compute_forces_nl(particles, np, neighbors, & 
+  subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
                                      nn, nl, size, cutoff, min_r) &
        bind(c,name='amrex_compute_forces_nl')
 
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
-    use short_range_particle_module, only : particle_t, neighbor_t
+    use short_range_particle_module, only : particle_t
         
     integer,          intent(in   ) :: np, nn, size
     real(amrex_real), intent(in   ) :: cutoff, min_r
-    type(particle_t), intent(inout) :: particles(np)
-    type(neighbor_t), intent(in   ) :: neighbors(nn)
+    type(particle_t), intent(inout) :: rparticles(np)
+    type(particle_t), intent(inout) :: neighbors(nn)
     integer,          intent(in   ) :: nl(size)
 
     real(amrex_real) dx, dy, r2, r, coef, mass
-    integer i, j, index, nneighbors, nghostneighbors
+    integer i, j, index, nneighbors
+
+    type(particle_t)                    :: particles(np+nn)
+        
+    particles(    1:np) = rparticles
+    particles(np+1:   ) = neighbors
 
     mass   = 1.d-2
     
@@ -171,8 +178,7 @@
        particles(i)%acc(2) = 0.d0
 
        nneighbors = nl(index)
-       nghostneighbors = nl(index+1)
-       index = index + 2
+       index = index + 1
 
        do j = index, index + nneighbors - 1
 
@@ -191,23 +197,9 @@
 
        index = index + nneighbors
 
-       do j = index, index + nghostneighbors - 1
-
-          dx = particles(i)%pos(1) - neighbors(nl(j))%pos(1)
-          dy = particles(i)%pos(2) - neighbors(nl(j))%pos(2)
-
-          r2 = dx * dx + dy * dy
-          r2 = max(r2, min_r*min_r) 
-          r = sqrt(r2)
-
-          coef = (1.d0 - cutoff / r) / r2 / mass
-          particles(i)%acc(1) = particles(i)%acc(1) + coef * dx
-          particles(i)%acc(2) = particles(i)%acc(2) + coef * dy
-          
-       end do
-
-       index = index + nghostneighbors
-
     end do
+
+    rparticles(:) = particles(1:np)
+    neighbors(:)  = particles(np+1:)
 
   end subroutine amrex_compute_forces_nl
