@@ -53,12 +53,6 @@ message ( STATUS "   CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE} (STRING:\
 message ( STATUS "   CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX} (STRING: <path to install dir>)" )
 
 
-set (ENABLE_FORTRAN_MPI 1 CACHE INT "Enable Fortran MPI Communicator" )
-check_option_value ( "ENABLE_FORTRAN_MPI" ${ENABLE_FORTRAN_MPI} 0 1 )
-
-set (ENABLE_FBASELIB 0 CACHE INT "Enable Fortran BaseLib" )
-check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
-
 set (ENABLE_PIC 0 CACHE INT
    "Compile with position-independent code enabled")
 check_option_value ( "ENABLE_PIC" ${ENABLE_PIC} 0 1 )
@@ -87,7 +81,13 @@ check_option_value ( "ENABLE_PROFILING" ${ENABLE_PROFILING} 0 1 )
 set (ENABLE_TINY_PROFILING 0 CACHE INT "Include 'tiny'-profiling information in AMReX build")
 check_option_value ( "ENABLE_TINY_PROFILING" ${ENABLE_TINY_PROFILING} 0 1 )
 
-set (ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in AMReX build")
+set (ENABLE_TRACE_PROFILING 0 CACHE INT  "Include trace-profiling information in AMReX build" )
+check_option_value ( "ENABLE_TRACE_PROFILING" ${ENABLE_TRACE_PROFILING} 0 1 )
+
+set (ENABLE_COMM_PROFILING 0 CACHE INT  "Include comm-profiling information in AMReX build" )
+check_option_value ( "ENABLE_COMM_PROFILING" ${ENABLE_COMM_PROFILING} 0 1 )
+
+set (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in AMReX build")
 check_option_value ( "ENABLE_BACKTRACE" ${ENABLE_BACKTRACE} 0 1 )
 
 set (ENABLE_FPE 0 CACHE INT "Enable Floating Point Exceptions checks")
@@ -102,7 +102,7 @@ check_option_value ( "ENABLE_FORTRAN_INTERFACES" ${ENABLE_FORTRAN_INTERFACES} 0 
 set (ENABLE_LINEAR_SOLVERS 1 CACHE INT "Include Linear solvers in AMReX build")
 check_option_value ( "ENABLE_LINEAR_SOLVERS" ${ENABLE_LINEAR_SOLVERS} 0 1 )
 
-set ( ENABLE_FBASELIB 1 CACHE INT  "Enable Fortran BaseLib and Fortran MG" )
+set ( ENABLE_FBASELIB 1 CACHE INT  "Enable Fortran BaseLib" )
 check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
 
 

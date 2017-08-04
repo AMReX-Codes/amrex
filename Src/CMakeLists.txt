@@ -3,7 +3,7 @@
 #
 set ( EXCLUDE_PATHS )  # Path to exclude from include dirs
 
-if (NOT ENABLE_BASELIB)
+if (NOT ENABLE_FBASELIB)
    list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/F_BaseLib)
    # The includes belove are for Fortran-based MG
    list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/LinearSolvers/C_to_F_MG)
