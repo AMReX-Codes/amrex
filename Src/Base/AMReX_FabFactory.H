@@ -11,10 +11,10 @@ namespace amrex
 class FArrayBox;
 
 enum class FabType : int {
-    allcovered = -1,
+    covered = -1,
     regular = 0,
-    singlevalue = 1,
-    multivalue = 2,
+    singlevalued = 1,
+    multivalued = 2,
     undefined = 100
 };
 
