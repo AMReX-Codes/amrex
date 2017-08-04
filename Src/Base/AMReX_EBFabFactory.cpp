@@ -14,7 +14,7 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EBLevel& a_eblevel)
 
 FArrayBox*
 EBFArrayBoxFactory::create (const Box& box, int ncomps,
-                          const FabInfo& info, int box_index) const
+                            const FabInfo& info, int box_index) const
 {
     const auto& ebisl = this->getEBISLayout();
     const auto& eblevel = this->getEBLevel();
