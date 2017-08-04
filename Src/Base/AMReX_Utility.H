@@ -228,7 +228,7 @@ namespace amrex
     */
     void NItemsPerBin (int totalItems, Array<int> &binCounts);
 
-    /* \brief Unspecified profiler function */
+    /* \brief cumulative refinement ratio between levels */
     int CRRBetweenLevels(int fromlevel, int tolevel,
                          const Array<int> &refratios);
 
