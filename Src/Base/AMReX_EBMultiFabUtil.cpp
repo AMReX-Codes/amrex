@@ -1,6 +1,11 @@
 
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil_F.H>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace amrex
 {
@@ -21,22 +26,21 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp)
     ParallelDescriptor::ReduceRealMin(minvals.data(), ncomp);
 
     const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf.Factory());
-    const auto& layout = factory.getEBISLayout();
+    const auto& eblevel = factory.getEBLevel();
+    const auto& flags = eblevel.Flags();
 
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
+        const Box& bx = mfi.tilebox();
         FArrayBox& fab = mf[mfi];
-        const EBISBox& ebis = layout[mfi];
-        for (BoxIterator bi(mfi.validbox()); bi.ok(); ++bi)
-        {
-            const IntVect& iv = bi();
-            if (ebis.isCovered(iv))
-            {
-                for (int i = icomp; i < icomp+ncomp; ++i) {
-                    fab(iv, i) = minvals[i-icomp];
-                }
-            }
-        }
+        const auto& flagfab = flags[mfi];
+        amrex_eb_set_covered(BL_TO_FORTRAN_BOX(bx),
+                             BL_TO_FORTRAN_N_ANYD(fab,icomp),
+                             BL_TO_FORTRAN_ANYD(flagfab),
+                             minvals.data(),&ncomp);
     }
 }
 

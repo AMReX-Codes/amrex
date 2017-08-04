@@ -21,6 +21,8 @@ public:
 
     EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng);
 
+    const FabArray<BaseFab<EBCellFlag> >& Flags () const { return *m_flags; }
+
 private:
     std::shared_ptr<FabArray<BaseFab<EBCellFlag> > > m_flags;
 };
