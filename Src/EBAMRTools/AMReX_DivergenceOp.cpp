@@ -107,6 +107,13 @@ namespace amrex
         m_bdryStencil[mfi] = std::shared_ptr<AggStencil <IrregFAB, EBCellFAB>  >
           (new AggStencil<IrregFAB, EBCellFAB >(baseDstVoFs, baseSten, fluxProxy[mfi].getEBFlux(), cellProxy[mfi]));
       }
+
+      Real full_vol = 1;
+      for (int idir = 0; idir < SpaceDim; ++idir)
+      {
+        full_vol *= m_dx;
+      }
+      Real inv_vol = 1/full_vol;
       // now do open flux stencils for each face direction
       for(int idir = 0; idir < SpaceDim; idir++)
       {
@@ -127,7 +134,14 @@ namespace amrex
               IntVectSet cfivs;//empty--see comment above
               FaceStencil interpSten = EBArith::getInterpStencil(faces[iface], cfivs, ebis, domain);
               Real areaFrac = ebis.areaFrac(faces[iface]);
-              interpSten *= (isign*areaFrac/m_dx);
+              if(m_multiplyFluxByArea)
+              {
+                interpSten *= (isign*areaFrac/m_dx);
+              }
+              else
+              {
+                interpSten *= isign * areaFrac * inv_vol;
+              }
               dirStencil += interpSten;
             }
           }
