@@ -117,6 +117,8 @@ ifdef CXX11
   INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
 endif
 
+f90sources += amrex_fort_mod.f90
+
 include $(AMREX_HOME)/Src/Base/GPackage.mak
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

@@ -133,6 +133,13 @@ namespace amrex
 
     ///
     /**
+    */
+    static void scale(FabArray<EBCellFAB>       & a_lhs,
+                      const FabArray<EBCellFAB> & a_scale);
+
+
+    ///
+    /**
        If comp < 0, set all components
      */
     static void setVal(FabArray<EBCellFAB> & a_result,
