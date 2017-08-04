@@ -17,7 +17,8 @@ module amrex_distromap_module
      generic   :: assignment(=) => amrex_distromap_assign, amrex_distromap_install   ! shallow copy
      procedure :: clone         => amrex_distromap_clone    ! deep copy
      procedure :: move          => amrex_distromap_move     ! transfer ownership
-     procedure, private :: amrex_distromap_assign, amrex_distromap_install
+     procedure, private :: amrex_distromap_assign
+     procedure, private :: amrex_distromap_install 
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_distromap_destroy
 #endif

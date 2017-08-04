@@ -10,9 +10,11 @@ namespace amrex {
 
 HypreABecLap::HypreABecLap(const BoxArray& grids,
                            const DistributionMapping& dmap,
-                           const Geometry& geom,
+                           const Geometry& geom_,
                            MPI_Comm comm_)
-    : comm(comm_)
+    : comm(comm_),
+      verbose(1),
+      geom(geom_)
 {
   ParmParse pp("hypre");
 
@@ -156,30 +158,21 @@ void HypreABecLap::setScalars(Real sa, Real sb)
 
 void HypreABecLap::setACoeffs(const MultiFab& alpha)
 {
-  BL_ASSERT( alpha.ok() );
-  BL_ASSERT( alpha.boxArray() == acoefs->boxArray() );
-
-  acoefs->copy(alpha);
+    MultiFab::Copy(*acoefs, alpha, 0, 0, 1, 0);
 }
 
 void HypreABecLap::setBCoeffs(const MultiFab beta[])
 {
-  for (int idim=0; idim<BL_SPACEDIM; idim++) {
-    BL_ASSERT( beta[idim].ok() );
-    BL_ASSERT( beta[idim].boxArray() == bcoefs[idim]->boxArray() );
-
-    bcoefs[idim]->copy(beta[idim]);
-  }
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+        MultiFab::Copy(*bcoefs[idim], beta[idim], 0, 0, 1, 0);
+    }
 }
 
 void HypreABecLap::setBCoeffs(const std::array<const MultiFab*,BL_SPACEDIM>& beta)
 {
-  for (int idim=0; idim<BL_SPACEDIM; idim++) {
-    BL_ASSERT( beta[idim]->ok() );
-    BL_ASSERT( beta[idim]->boxArray() == bcoefs[idim]->boxArray() );
-
-    bcoefs[idim]->copy(*beta[idim]);
-  }
+    for (int idim=0; idim<BL_SPACEDIM; idim++) {
+        MultiFab::Copy(*bcoefs[idim], *beta[idim], 0, 0, 1, 0);
+    }
 }
 
 void HypreABecLap::setVerbose(int _verbose)
@@ -188,7 +181,7 @@ void HypreABecLap::setVerbose(int _verbose)
 }
 
 void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
-			 int max_iter, LinOpBCType bc_type, Real bc_value, const Geometry& geom)
+			 int max_iter, LinOpBCType bc_type, Real bc_value)
 {
     BndryData bd(soln.boxArray(), soln.DistributionMap(), 1, geom);
     {
@@ -216,7 +209,6 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
                 if (bc_type != LinOpBCType::interior)
                 { 
                     int ibnd = static_cast<int>(bc_type); // either LO_DIRICHLET or LO_NEUMANN
-                    const Geometry& geom = bd.getGeom();
 
                     // We are on the low side of the domain in coordinate direction n
                     if (bx.smallEnd(n) == geom.Domain().smallEnd(n)) {

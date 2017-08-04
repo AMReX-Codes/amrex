@@ -9,7 +9,7 @@
 
 sphere_center = 0.5 0.5 0.5
 sphere_radius = 0.4
-domain_length = 64.
+domain_length = 1.
 
 
 ref_ratio = 2 2 2 2 2

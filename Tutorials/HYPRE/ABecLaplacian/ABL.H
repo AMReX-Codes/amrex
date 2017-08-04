@@ -2,7 +2,7 @@
 #define MY_ABL_H_
 
 #include <AMReX_MultiFab.H>
-#include <AMReX_HypreABecLap.H>
+#include <AMReX_Hypre.H>
 #include <AMReX_LO_BCTYPES.H>
 
 // We solve (a alpha - b del dot beta grad) soln = rhs
@@ -24,7 +24,7 @@ private:
     amrex::Real bc_value = 0.0;
     amrex::Real tol_rel = 1.e-8;
     amrex::Real tol_abs = 0.0;
-    int maxiter = 100;
+    int maxiter = 200;
     int verbose = 2;
 
     // parameters in setting up the problem
@@ -38,10 +38,12 @@ private:
     amrex::MultiFab alpha;
     std::array<amrex::MultiFab,3> beta;
     amrex::MultiFab soln;
+    amrex::MultiFab the_soln;
     amrex::Geometry geom;
     
     void init_rhs ();
     void init_coeffs ();
+    void comp_the_solution ();
 };
 
 #endif

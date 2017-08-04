@@ -581,6 +581,12 @@ protected:
 	}
     };
     static FabArrayStats m_FA_stats;
+
+#ifdef BL_USE_MPI
+    static bool CheckRcvStats(const Array<MPI_Status>& recv_stats,
+			      const Array<int>& recv_size,
+			      MPI_Datatype datatype, int tag);
+#endif
 };
 
 }
