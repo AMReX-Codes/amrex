@@ -4,6 +4,8 @@
 #include <array>
 #include <cstdint>
 #include <AMReX_IntVect.H>
+#include <AMReX_BaseFab.H>
+#include <AMReX_FabFactory.H>
 
 namespace amrex {
 
@@ -126,9 +128,24 @@ private:
                                             { w_lower_mask+21, w_lower_mask+22, w_lower_mask+23 },
                                             { w_lower_mask+24, w_lower_mask+25, w_lower_mask+26 }}} }};
 
-    static constexpr uint32_t default_value = zero_lower_mask; // regular connected with all neighbors    
+    static constexpr uint32_t default_value = zero_lower_mask; // regular connected with all neighbors 
     
     uint32_t flag = default_value;
+};
+
+
+class EBFlagFab
+    : public BaseFab<EBCellFlag>
+{
+public:
+    using BaseFab<EBCellFlag>::BaseFab;
+    
+    FabType getType () const { return m_type; }
+    FabType getType (const Box& bx) const;
+
+    void setType (FabType t) { m_type = t; }
+private:
+    FabType m_type = FabType::undefined;
 };
 
 }
