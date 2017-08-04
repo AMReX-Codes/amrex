@@ -44,4 +44,22 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp)
     }
 }
 
+void
+EB_set_volume_fraction (MultiFab& mf)
+{
+    BL_ASSERT(mf.nComp() == 1);
+
+    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf.Factory());
+    const auto& eblevel = factory.getEBLevel();
+    const auto& flags = eblevel.Flags();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        
+    }
+}
+
 }
