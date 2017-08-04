@@ -99,8 +99,12 @@ programs += plt_compare_diff_grids.f90
 #programs += fcoarsen
 #programs += fwritecontents2d
 
-all: $(pnames)
+ifeq ($(DO_ALL), TRUE)
+  ptmp := $(wildcard f*.f90)
+  programs := $(basename $(ptmp))
+endif
 
+all: $(pnames)
 
 # probin stuff
 ifdef NEED_EOS_NETWORK
