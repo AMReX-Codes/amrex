@@ -2,6 +2,10 @@
 #include <AMReX_EBLevel.H>
 #include <type_traits>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace amrex {
 
 EBLevel::EBLevel ()
@@ -19,6 +23,9 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
     static_assert(sizeof(EBCellFlag) == 4, "sizeof EBCellFlag != 4");
     static_assert(std::is_standard_layout<EBCellFlag>::value == true, "EBCellFlag is not pod");
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(*m_flags); mfi.isValid(); ++mfi)
     {
         auto& fab = (*m_flags)[mfi];
