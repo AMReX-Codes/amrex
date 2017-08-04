@@ -50,8 +50,6 @@ public:
     }
 };
 
-using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
-
 }
 
 #endif

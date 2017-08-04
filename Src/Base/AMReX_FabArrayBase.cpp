@@ -3,6 +3,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_FArrayBox.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
