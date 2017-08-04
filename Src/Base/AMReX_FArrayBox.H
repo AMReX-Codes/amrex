@@ -6,6 +6,7 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
+#include <AMReX_FabFactory.H>
 
 namespace amrex {
 
@@ -400,6 +401,9 @@ protected:
     static Real initval;
     static bool init_snan;
 };
+
+using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
+
 
 }
 
