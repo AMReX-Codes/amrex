@@ -10,6 +10,14 @@ namespace amrex
 
 class FArrayBox;
 
+enum class FabType : int {
+    allcovered = -1,
+    regular = 0,
+    singlevalue = 1,
+    multivalue = 2,
+    undefined = 100
+};
+
 struct FabInfo
 {
     bool alloc = true;
