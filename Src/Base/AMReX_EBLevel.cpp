@@ -56,11 +56,11 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
         if (nregular == ncells) {
             fab.setType(FabType::regular);
         } else if (ncovered == ncells) {
-            fab.setType(FabType::allcovered);
+            fab.setType(FabType::covered);
         } else if (nmulti > 0) {
-            fab.setType(FabType::multivalue);
+            fab.setType(FabType::multivalued);
         } else {
-            fab.setType(FabType::singlevalue);
+            fab.setType(FabType::singlevalued);
         }
 
         const Box& ibx = amrex::grow(fab.box(),-1) & domain;

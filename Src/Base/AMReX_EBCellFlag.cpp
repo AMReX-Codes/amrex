@@ -13,9 +13,9 @@ EBFlagFab::getType (const Box& bx_in) const
     {
         return FabType::regular;
     }
-    else if (thistype == FabType::allcovered)
+    else if (thistype == FabType::covered)
     {
-        return FabType::allcovered;
+        return FabType::covered;
     }
     else
     {
@@ -42,11 +42,11 @@ EBFlagFab::getType (const Box& bx_in) const
         if (nregular == ncells) {
             t = FabType::regular;
         } else if (ncovered == ncells) {
-            t = FabType::allcovered;
+            t = FabType::covered;
         } else if (nmulti > 0) {
-            t = FabType::multivalue;
+            t = FabType::multivalued;
         } else {
-            t = FabType::singlevalue;
+            t = FabType::singlevalued;
         }
 
         return t;

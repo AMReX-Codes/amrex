@@ -50,15 +50,42 @@ EB_set_volume_fraction (MultiFab& mf)
     BL_ASSERT(mf.nComp() == 1);
 
     const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf.Factory());
+    const auto& ebisl   = factory.getEBISLayout();
     const auto& eblevel = factory.getEBLevel();
     const auto& flags = eblevel.Flags();
+    const Box& domain = eblevel.getDomain();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
-        
+        const Box& bx = mfi.growntilebox();
+        FArrayBox& fab = mf[mfi];
+        fab.setVal(1.0, bx);
+        FabType typ = flags[mfi].getType();
+        if (typ != FabType::regular)
+        {
+            if (typ == FabType::covered) {
+                fab.setVal(0.0, bx);
+            }
+            else
+            {
+                const auto& ebisbox = ebisl[mfi];
+                const Box& bx_sect = bx & domain;
+                for (BoxIterator bi(bx_sect); bi.ok(); ++bi)
+                {
+                    const IntVect& iv = bi();
+                    const auto& vofs = ebisbox.getVoFs(iv);
+                    Real vtot = 0.0;
+                    for (const auto& vi : vofs)
+                    {
+                        vtot += ebisbox.volFrac(vi);
+                    }
+                    fab(iv) = vtot;
+                }
+            }
+        }
     }
 }
 

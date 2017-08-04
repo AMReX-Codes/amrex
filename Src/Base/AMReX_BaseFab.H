@@ -301,7 +301,7 @@ public:
     //! Same as above, except the number of modified components is one. N is the component to be modified.
     void setVal (T          x,
                  const Box& bx,
-                 int        N);
+                 int        N = 0);
     //! Same as above, except the sub-box defaults to the entire domain.
     void setVal (T   x,
                  int N);
