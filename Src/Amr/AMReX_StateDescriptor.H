@@ -180,6 +180,7 @@ public:
     // Returns the grow factor.
     //
     int nExtra () const;
+#ifdef AMREX_USE_DEVICE
     //
     // Returns whether we have a device copy of the data.
     //
@@ -188,6 +189,7 @@ public:
     // Sets whether we should have a device copy of the data.
     //
     void setDeviceCopy (bool c) { device_copy = c; }
+#endif
     //
     // Returns the interpolater.
     //
@@ -251,7 +253,9 @@ private:
     Interpolater*      mapper;   // Default interpolator
     bool               m_extrap; // Can extrapolate in time?
     bool               m_store_in_checkpoint; // Should store this in the checkpoint file?
+#ifdef AMREX_USE_DEVICE
     bool               device_copy; // Should we have a device copy of the state data?
+#endif
     Array<std::string> names;    // Printable names of components
     Array<BCRec>       bc;       // Array of bndry types for entire level
     Array<std::unique_ptr<BndryFunc> >  bc_func;  // Array of pointers to bndry fill functions
@@ -342,10 +346,12 @@ public:
                        const Array<BCRec>&               bc,
                        const StateDescriptor::BndryFunc& func,
                        Interpolater*                     interp = 0);
+#ifdef AMREX_USE_DEVICE
     //
     // Sets device info for indx k.
     //
     void setDeviceCopy(int idx, bool c) { desc[idx]->setDeviceCopy(c); }
+#endif
     //
     // Returns StateDescriptor at index k.
     //

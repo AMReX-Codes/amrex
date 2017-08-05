@@ -38,7 +38,9 @@ namespace amrex
             FArrayBox& fab = phi[mfi];
             const Box& fab_box = fab.box(); // including ghost cells
 
+#ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch(fab_box.loVect(), fab_box.hiVect());
+#endif
             
             if (! grown_domain_box.contains(fab_box))
             {

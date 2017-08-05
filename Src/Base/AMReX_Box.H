@@ -211,6 +211,7 @@ public:
          const IntVect& big,
          IndexType      t);
 
+#ifdef AMREX_USE_DEVICE
     //
     // Operations for keeping a CUDA managed memory copy
     // of the dimensions up to date. These have no effect
@@ -220,6 +221,7 @@ public:
     void copy_device_memory();
     void copy_lo();
     void copy_hi();
+#endif
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
@@ -390,28 +392,36 @@ public:
     //! Redefine the small end of the Box.
     Box& setSmall (const IntVect& sm) {
 	smallend = sm;
+#ifdef AMREX_USE_DEVICE
 	copy_lo();
+#endif
 	return *this;
     }
 
     //! Redefine the small end of the Box.
     Box& setSmall (int dir, int sm_index)  {
 	smallend.setVal(dir,sm_index);
+#ifdef AMREX_USE_DEVICE
 	copy_lo();
+#endif
 	return *this;
     }
 
     //! Redefine the big end of the Box.
     Box& setBig (const IntVect& bg) {
 	bigend = bg;
+#ifdef AMREX_USE_DEVICE
 	copy_hi();
+#endif
 	return *this;
     }
 
     //! Redefine the big end of the Box.
     Box& setBig (int dir, int bg_index) {
 	bigend.setVal(dir,bg_index);
+#ifdef AMREX_USE_DEVICE
 	copy_hi();
+#endif
 	return *this;
     }
 
@@ -428,10 +438,28 @@ public:
     Box& setType (const IndexType& t) { btype = t; return *this; }
 
     //! Shift this Box nzones indexing positions in coordinate direction dir.
-    Box& shift (int dir, int nzones) { initialize_device_memory(); smallend.shift(dir,nzones); bigend.shift(dir,nzones); copy_device_memory(); return *this; }
+    Box& shift (int dir, int nzones) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.shift(dir,nzones); bigend.shift(dir,nzones);
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     //! Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
-    Box& shift (const IntVect& iv) { initialize_device_memory(); smallend.shift(iv); bigend.shift(iv); copy_device_memory(); return *this; }
+    Box& shift (const IntVect& iv) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.shift(iv); bigend.shift(iv);
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     /**
     * \brief This member shifts the Box by "half" indicies, thereby
@@ -536,16 +564,48 @@ public:
     Box& minBox (const Box&);
 
     //! Shift Box (relative) by given IntVect.
-    Box& operator+= (const IntVect& v) { initialize_device_memory(); smallend += v; bigend   += v; copy_device_memory(); return *this; }
+    Box& operator+= (const IntVect& v) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend += v; bigend += v;
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     //! Shift Box (relative) by given IntVect.
-    Box operator+ (const IntVect& v) const { Box r(*this); r.initialize_device_memory(); r += v; return r; }
+    Box operator+ (const IntVect& v) const {
+        Box r(*this);
+#ifdef AMREX_USE_DEVICE
+        r.initialize_device_memory();
+#endif
+        r += v; return r;
+    }
 
     //! Shift Box (relative) by given IntVect.
-    Box& operator-= (const IntVect& v) { initialize_device_memory(); smallend -= v; bigend -= v; copy_device_memory(); return *this; }
+    Box& operator-= (const IntVect& v) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend -= v; bigend -= v;
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     //! Shift Box (relative) by given IntVect.
-    Box operator- (const IntVect& v) const { Box r(*this); r.initialize_device_memory(); r -= v; return r; }
+    Box operator- (const IntVect& v) const {
+        Box r(*this);
+#ifdef AMREX_USE_DEVICE
+        r.initialize_device_memory();
+#endif
+        r -= v;
+        return r;
+    }
+    
 
     /**
     * \brief Chop the Box at the chop_pnt in the dir direction
@@ -565,29 +625,74 @@ public:
     * \brief Grow Box in all directions by given amount.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    Box& grow (int i) { initialize_device_memory(); smallend.diagShift(-i); bigend.diagShift(i); copy_device_memory(); return *this; }
+    Box& grow (int i) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.diagShift(-i); bigend.diagShift(i);
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     //! Grow Box in each direction by specified amount.
-    Box& grow (const IntVect& v) { initialize_device_memory(); smallend -= v; bigend += v; copy_device_memory(); return *this;}
+    Box& grow (const IntVect& v) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend -= v; bigend += v;
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     /**
     * \brief Grow the Box on the low and high end by n_cell cells
     * in direction idir.
     */
-    Box& grow (int idir, int n_cell) { initialize_device_memory(); smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); copy_device_memory(); return *this; }
+    Box& grow (int idir, int n_cell) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell);
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     /**
     * \brief Grow the Box on the low end by n_cell cells in direction idir.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    Box& growLo (int idir, int n_cell = 1) { initialize_device_memory(); smallend.shift(idir, -n_cell); copy_device_memory(); return *this; }
+    Box& growLo (int idir, int n_cell = 1) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        smallend.shift(idir, -n_cell);
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     /**
     * \brief Grow the Box on the high end by n_cell cells in
     * direction idir.  NOTE: n_cell negative shrinks the Box by that
     * number of cells.
     */
-    Box& growHi (int idir, int n_cell = 1) { initialize_device_memory(); bigend.shift(idir,n_cell); copy_device_memory(); return *this; }
+    Box& growHi (int idir, int n_cell = 1) {
+#ifdef AMREX_USE_DEVICE
+        initialize_device_memory();
+#endif
+        bigend.shift(idir,n_cell);
+#ifdef AMREX_USE_DEVICE
+        copy_device_memory();
+#endif
+        return *this;
+    }
 
     //! Grow in the direction of the given face.
     Box& grow (Orientation face, int n_cell = 1);

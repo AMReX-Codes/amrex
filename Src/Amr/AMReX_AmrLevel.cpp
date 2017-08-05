@@ -531,7 +531,9 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
     state[state_indx].FillBoundary(dest,time_f,geom.CellSize(),geom.CellSizeF(),xlo_f,bcrs_f,
                                    geom.ProbDomain(),dest_comp,src_comp,num_comp);
 
+#ifdef AMREX_USE_DEVICE
     Device::synchronize();
+#endif
 }
 
 FillPatchIteratorHelper::FillPatchIteratorHelper (AmrLevel& amrlevel,
@@ -1580,7 +1582,9 @@ AmrLevel::derive (const std::string& name,
             const int* bcr_f     = bcr;
 #endif
 
+#ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch(gtbx.loVect(), gtbx.hiVect());
+#endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
@@ -1639,7 +1643,9 @@ AmrLevel::derive (const std::string& name,
             const int* bcr_f     = bcr;
 #endif
 
+#ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch((*mf)[mfi].loVect(), (*mf)[mfi].hiVect());
+#endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
@@ -1758,7 +1764,9 @@ AmrLevel::derive (const std::string& name,
             const int* bcr_f     = bcr;
 #endif
 
+#ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch(gtbx.loVect(), gtbx.hiVect());
+#endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,
@@ -1817,7 +1825,9 @@ AmrLevel::derive (const std::string& name,
             const int* bcr_f     = bcr;
 #endif
 
+#ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch(mf[mfi].loVect(), mf[mfi].hiVect());
+#endif
 
 	    if (rec->derFunc() != static_cast<DeriveFunc>(0)){
 		rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),n_der_f,

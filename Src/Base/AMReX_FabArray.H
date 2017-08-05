@@ -26,7 +26,9 @@
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H>
+#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
+#endif
 #include <AMReX_FabFactory.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>
@@ -105,9 +107,12 @@ namespace amrex {
 //
 struct MFInfo {
     bool    alloc = true;
-    bool    device = false;
     MFInfo& SetAlloc(bool a) { alloc = a; return *this; }
+
+#ifdef AMREX_USE_DEVICE
+    bool    device = false;
     MFInfo& SetDevice(bool d) { device = d; return *this; }
+#endif
 };
 
 template <class FAB>
@@ -471,8 +476,10 @@ protected:
     // ---- set of ids of fabarrays created without allocating memory
     static std::set<int> noallocFAPIds;
 
+#ifdef AMREX_USE_DEVICE
     // for device memory
     bool device;
+#endif
 
     // for shared memory
     struct ShMem {
@@ -787,11 +794,13 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
+#ifdef AMREX_USE_DEVICE
     if (Device::inDeviceLaunchRegion()) {
 	int idx = mfi.tileIndex();
 	if (mfi.registerFab(fab, idx))
 	    fab.toDevice(idx);
     }
+#endif
     return fab;
 }
 
@@ -802,11 +811,13 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
+#ifdef AMREX_USE_DEVICE
     if (Device::inDeviceLaunchRegion()) {
 	int idx = mfi.tileIndex();
 	if (mfi.registerFab(fab, idx))
 	    fab.toDevice(idx);
     }
+#endif
     return fab;
 }
 
@@ -866,8 +877,10 @@ FabArray<FAB>::setVal (value_type   val,
 
 template <class FAB>
 FabArray<FAB>::FabArray ()
-    : shmem(),
-      device(false)
+    : shmem()
+#ifdef AMREX_USE_DEVICE
+      , device(false)
+#endif
 {
     m_FA_stats.recordBuild();
 }
@@ -879,8 +892,10 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        ngrow,
 			 const MFInfo&              info,
                          const FabFactory<FAB>&     factory)
-    : shmem(),
-      device(false)
+    : shmem()
+#ifdef AMREX_USE_DEVICE
+      , device(false)
+#endif
 {
     m_FA_stats.recordBuild();
     define(bxs,dm,nvar,ngrow,info,factory);
@@ -888,11 +903,18 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 
 template <class FAB>
 FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp)
-    : shmem(),
-      device(false)
+    : shmem()
+#ifdef AMREX_USE_DEVICE
+      , device(false)
+#endif
 {
     m_FA_stats.recordBuild();
-    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(), MFInfo().SetAlloc(false).SetDevice(false));
+    MFInfo info;
+    info.SetAlloc(false);
+#ifdef AMREX_USE_DEVICE
+    info.SetDevice(false);
+#endif
+    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(), info);
 
     if (maketype == amrex::make_alias)
     {
@@ -913,11 +935,18 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        nvar,
                          int                        ngrow,
                          const Array<value_type*>&  pval)
-    : shmem(),
-      device(false)
+    : shmem()
+#ifdef AMREX_USE_DEVICE
+      , device(false)
+#endif
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false).SetDevice(false));
+    MFInfo info;
+    info.SetAlloc(false);
+#ifdef AMREX_USE_DEVICE
+    info.SetDevice(false);
+#endif
+    define(bxs,dm,nvar,ngrow,info);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         setFab(mfi, new FAB(mfi.fabbox(),nvar,pval[mfi.LocalIndex()]));
@@ -930,7 +959,9 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (std::move(rhs))
     , m_fabs_v     (std::move(rhs.m_fabs_v))
     , shmem        (std::move(rhs.shmem))
+#ifdef AMREX_USE_DEVICE
     , device       (false)
+#endif
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     m_FA_stats.recordBuild();
@@ -1019,7 +1050,9 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     if(info.alloc) {
         AllocFabs(factory, info);
+#ifdef AMREX_USE_DEVICE
 	Device::synchronize();
+#endif
     }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
@@ -1059,8 +1092,9 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, const MFInfo& info)
     FabInfo fab_info;
     fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
 
+#ifdef AMREX_USE_DEVICE
     fab_info.SetDevice(info.device);
-    
+#endif
 
     m_fabs_v.reserve(n);
 
@@ -1342,7 +1376,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    }
         }
 
+#ifdef AMREX_USE_DEVICE
         Device::synchronize();
+#endif
 
         return;
     }
@@ -1553,7 +1589,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 
+#ifdef AMREX_USE_DEVICE
             Device::synchronize();
+#endif
 
 #ifdef BL_USE_UPCXX
 	    
@@ -1695,7 +1733,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    }
 	}
 
+#ifdef AMREX_USE_DEVICE
         Device::synchronize();
+#endif
 
 	//
 	//  wait and unpack
@@ -1770,7 +1810,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 
+#ifdef AMREX_USE_DEVICE
             Device::synchronize();
+#endif
 
             if (the_recv_data)
             {
@@ -2221,7 +2263,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 }
             }
 
+#ifdef AMREX_USE_DEVICE
             Device::synchronize();
+#endif
 
             int send_counter = 0;
             while (send_counter < N_snds)
@@ -2336,7 +2380,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 }
 	    }
 
+#ifdef AMREX_USE_DEVICE
             Device::synchronize();
+#endif
 	
             if (the_recv_data) {
                 amrex::The_Arena()->free(the_recv_data);
@@ -3303,7 +3349,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
             }
 	}
 
+#ifdef AMREX_USE_DEVICE
         Device::synchronize();
+#endif
 
 #ifdef BL_USE_UPCXX
 
@@ -3513,7 +3561,9 @@ FabArray<FAB>::FillBoundary_finish ()
             }
 	}
 
+#ifdef AMREX_USE_DEVICE
         Device::synchronize();
+#endif
 
         if (fb_the_recv_data)
         {

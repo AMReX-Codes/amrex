@@ -1,6 +1,8 @@
 
 #include <AMReX_BArena.H>
+#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
+#endif
 
 void*
 amrex::BArena::alloc (std::size_t _sz)
@@ -50,6 +52,7 @@ amrex::BArena::free (void* pt)
 #endif
 }
 
+#ifdef AMREX_USE_DEVICE
 void*
 amrex::BArena::alloc_device (std::size_t _sz)
 {
@@ -69,3 +72,4 @@ amrex::BArena::free_device (void* pt)
     gpu_free(pt);
 #endif
 }
+#endif

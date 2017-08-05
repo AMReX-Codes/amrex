@@ -2,7 +2,9 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
+#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
+#endif
 
 namespace amrex {
 
@@ -143,9 +145,11 @@ MFIter::~MFIter ()
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 
+#ifdef AMREX_USE_DEVICE
     releaseDeviceData();
 
     Device::synchronize();
+#endif
 
 #ifdef AMREX_USE_CUDA
     reduce();
@@ -156,8 +160,10 @@ MFIter::~MFIter ()
         amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
 #endif
 
+#ifdef AMREX_USE_DEVICE
     Device::check_for_errors();
     Device::set_stream_index(-1);
+#endif
 }
 
 void 
@@ -241,7 +247,9 @@ MFIter::Initialize ()
 
 	currentIndex = beginIndex;
 
+#ifdef AMREX_USE_DEVICE
 	Device::set_stream_index(currentIndex);
+#endif
 
 	typ = fabArray.boxArray().ixType();
     }
@@ -371,6 +379,7 @@ MFIter::operator++ () {
 
     ++currentIndex;
 
+#ifdef AMREX_USE_DEVICE
     Device::set_stream_index(currentIndex);
     Device::check_for_errors();
 #ifdef DEBUG
@@ -378,6 +387,7 @@ MFIter::operator++ () {
 #endif
 
     releaseDeviceData();
+#endif
 
 }
 
@@ -441,6 +451,7 @@ MFIter::reduce()
 }
 #endif
 
+#ifdef AMREX_USE_DEVICE
 void
 MFIter::releaseDeviceData() {
     if (Device::inDeviceLaunchRegion()) {
@@ -450,6 +461,7 @@ MFIter::releaseDeviceData() {
 	registered_fabs_indices.clear();
     }
 }
+#endif
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
     :
