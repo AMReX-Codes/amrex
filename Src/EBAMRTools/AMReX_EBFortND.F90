@@ -600,7 +600,6 @@ contains
     integer      :: fluxfa2_lo(0:2),fluxfa2_hi(0:2)
     integer      :: divflux_lo(0:2),divflux_hi(0:2)
     integer      :: gridlo(0:2), gridhi(0:2)
-    integer      :: multbyarea
 
     real(c_real) :: dx, xterm, yterm, zterm
     real(c_real) :: denom, inv_denom
