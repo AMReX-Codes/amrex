@@ -583,14 +583,14 @@ contains
        fluxfa1, fluxfa1_lo, fluxfa1_hi, fluxfa1_nco,  &
        fluxfa2, fluxfa2_lo, fluxfa2_hi, fluxfa2_nco,  &
        gridlo,gridhi, &
-       dx, isrc, idst, ncomp) &
+       multbyarea, dx, isrc, idst, ncomp) &
        bind(C, name="ebfnd_divflux")
 
     use amrex_fort_module, only : dim=>amrex_spacedim, c_real=>amrex_real
 
     implicit none
 
-    integer      :: iif,jjf,kkf,  ncomp, ivar, ivardivf, ivarflux
+    integer      :: iif,jjf,kkf,  ncomp, ivar, ivardivf, ivarflux, multbyarea
     integer      :: fluxfa0_nco
     integer      :: fluxfa1_nco
     integer      :: fluxfa2_nco
