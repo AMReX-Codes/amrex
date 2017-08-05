@@ -65,14 +65,9 @@ namespace amrex
       }
 
 
-    /** Compute the normalized quantity corresponding to the given
-     *  volume-fraction-weighted quantity by volume-averaging that quantity
-     *  over every monotone path radius for each cell in the level. This
-     *  version of the correction normalizes all components of \a a_Q.
-     *  \param a_Q A volume-fraction-weighted quantity to be normalized.
-     */
-    void normalize(FabArray<EBCellFAB>&       a_kappaQ,
-                   const FabArray<EBCellFAB>& a_Q,
+    ///set Q = sum(kappa Q)/sum(kappa)
+    void normalize(FabArray<EBCellFAB>&       a_Q,
+                   const FabArray<EBCellFAB>& a_kappaQ,
                    int idst, int inco);
 
   protected:

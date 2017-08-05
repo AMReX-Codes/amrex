@@ -643,7 +643,7 @@ class Suite(object):
 
         self.make_realclean(repo="AMReX")
 
-        ftools = ["fcompare", "fboxinfo", "plt_compare_diff_grids"]
+        ftools = ["fcompare", "fboxinfo"]
         if any([t for t in test_list if t.dim == 2]): ftools.append("fsnapshot2d")
         if any([t for t in test_list if t.dim == 3]): ftools.append("fsnapshot3d")
 

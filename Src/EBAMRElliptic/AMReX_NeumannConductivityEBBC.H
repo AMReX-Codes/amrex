@@ -1,126 +1,86 @@
-#ifdef CH_LANG_CC
+
 /*
- *      _______              __
- *     / ___/ /  ___  __ _  / /  ___
- *    / /__/ _ \/ _ \/  V \/ _ \/ _ \
- *    \___/_//_/\___/_/_/_/_.__/\___/
- *    Please refer to Copyright.txt, in Chombo's root directory.
+ *       {_       {__       {__{_______              {__      {__
+ *      {_ __     {_ {__   {___{__    {__             {__   {__  
+ *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
+ *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
+ *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
+ *  {__       {__ {__       {__{__    {__  {_         {__   {__  
+ * {__         {__{__       {__{__      {__  {____   {__      {__
+ *
  */
-#endif
+
 
 #ifndef _NEUMANNCONDUCTIVITYEBBC_H_
 #define _NEUMANNCONDUCTIVITYEBBC_H_
 
-#include "RefCountedPtr.H"
 
-#include "NeumannPoissonEBBC.H"
-#include "BaseBCValue.H"
-#include "NamespaceHeader.H"
+#include "AMReX_ConductivityBaseEBBC.H"
+#include "AMReX_EBCellFAB.H"
 
-///
-/**
- */
-class NeumannConductivityEBBC: public ConductivityBaseEBBC
+namespace amrex
 {
-public:
   ///
-  virtual void define(const LayoutData<IntVectSet>& a_cfivs,
-                      const Real&                   a_factor)
+  /**
+   */
+  class NeumannConductivityEBBC: public ConductivityBaseEBBC
   {
-    ;
-    //no flux stencil for Neumann
-  }
+  public:
+    ///
+    virtual void applyEBFlux(EBCellFAB&                    a_lphi,
+                             const EBCellFAB&              a_phi,
+                             const vector<VolIndex>&       a_vofsToChange,
+                             const MFIter  &               a_mfi,
+                             const Real&                   a_factor,
+                             const bool&                   a_useHomogeneous);
 
-  virtual void applyEBFlux(EBCellFAB&                    a_lphi,
-                           const EBCellFAB&              a_phi,
-                           VoFIterator&                  a_vofit,
-                           const LayoutData<IntVectSet>& a_cfivs,
-                           const DataIndex&              a_dit,
-                           const RealVect&               a_probLo,
-                           const RealVect&               a_dx,
-                           const Real&                   a_factor,
-                           const bool&                   a_useHomogeneous,
-                           const Real&                   a_time);
-  ///
-  NeumannConductivityEBBC(const ProblemDomain& a_domain,
-                     const EBISLayout&    a_layout,
-                     const RealVect&      a_dx);
+    ///
+    NeumannConductivityEBBC():ConductivityBaseEBBC()
+      {
+      }
+    
+    virtual LayoutData<BaseIVFAB<VoFStencil> >* getFluxStencil(int ivar)
+      {
+        return NULL;
+      }
+    
+    ///
+    virtual ~NeumannConductivityEBBC()
+      {
+      }
+    
+    
+  private:
 
-  virtual LayoutData<BaseIVFAB<VoFStencil> >* getFluxStencil(int ivar)
-  {
-    return NULL;
-  }
-
-  ///
-  virtual ~NeumannConductivityEBBC();
-
-  ///
-  virtual void setValue(Real a_value);
-
-  ///
-  virtual int whichBC()
-  {
-    return 0;
   };
-
+    
   ///
-  virtual void setFunction(RefCountedPtr<BaseBCValue> a_flux);
-
-  ///
-  virtual void getEBFlux(Real&                         a_flux,
-                         const VolIndex&               a_vof,
-                         const LevelData<EBCellFAB>&   a_phi,
-                         const LayoutData<IntVectSet>& a_cfivs,
-                         const DataIndex&              a_dit,
-                         const RealVect&               a_probLo,
-                         const RealVect&               a_dx,
-                         const bool&                   a_useHomogeneous,
-                         const Real&                   a_time,
-                         const pair<int,Real>*         a_cacheHint=0 );
-
-private:
-  NeumannPoissonEBBC m_bc;
-};
-
-///
-class NeumannConductivityEBBCFactory: public BaseEBBCFactory
-{
-public:
-  ///
-  NeumannConductivityEBBCFactory();
-
-  ///
-  virtual ~NeumannConductivityEBBCFactory();
-
-  ///
-  virtual void setValue(Real a_value);
-
-  ///
-  virtual void setFunction(RefCountedPtr<BaseBCValue> a_flux);
-
-  ///
-  virtual void setData( RefCountedPtr<LevelData<BaseIVFAB<Real> > >& a_data)
+  class NeumannConductivityEBBCFactory: public ConductivityBaseEBBCFactory
   {
-    m_data = a_data;
-    m_dataBased = true;
-  }
+  public:
+    ///
+    NeumannConductivityEBBCFactory()
+      {
+      }
+    
+    ///
+    virtual ~NeumannConductivityEBBCFactory()
+      {
+      }
+    
+    
+    ///
+    virtual ConductivityBaseEBBC* new_object_ptr()
+      {
+        NeumannConductivityEBBC* fresh = new NeumannConductivityEBBC();
 
-  ///
-  virtual NeumannConductivityEBBC* create(const ProblemDomain& a_domain,
-                                     const EBISLayout&    a_layout,
-                                     const RealVect&      a_dx,
-                                     const IntVect*       a_ghostCellsPhi=0,
-                                     const IntVect*       a_ghostCellsRhs=0);
+        return static_cast<ConductivityBaseEBBC*>(fresh);
+      }
 
-private:
-  bool m_onlyHomogeneous;
-  bool m_isFunction;
-  RefCountedPtr<LevelData<BaseIVFAB<Real> > >m_data;
-  bool m_dataBased;
+    
+  private:
 
-  Real m_value;
-  RefCountedPtr<BaseBCValue> m_flux;
-};
-
-#include "NamespaceFooter.H"
+    
+  };
+}    
 #endif

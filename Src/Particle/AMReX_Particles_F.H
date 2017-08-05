@@ -25,9 +25,18 @@ extern "C"
                                              amrex_real* y,
                                              amrex_real* z));
 
+    void amrex_build_nl(void*, int ns, int np,
+                        int* nbor_list, int* size_nl, const int* lo, const int* hi,
+                        const amrex_real* plo, const amrex_real* dx);
+
     void amrex_deposit_cic(const amrex_particle_real*, int ns, int np, int nc,
                            amrex_real* rho, const int* lo, const int* hi,
                            const amrex_real* plo, const amrex_real* dx);
+
+    void amrex_deposit_particle_dx_cic(const amrex_particle_real*, int ns, int np, int nc,
+                                       amrex_real* rho, const int* lo, const int* hi,
+                                       const amrex_real* plo, const amrex_real* dx,
+                                       const amrex_real* particle_dx);
 
     void amrex_interpolate_cic(const amrex_particle_real*, int ns, int np,
                                const amrex_real* acc, const int* lo, const int* hi, int ncomp,

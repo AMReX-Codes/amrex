@@ -53,8 +53,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const 
     const Geometry& geom = Geom(lev);
 
     AMREX_D_TERM(iv[0]=floor((p.m_rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
-           iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
-           iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
+                 iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
+                 iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
 
     iv += geom.Domain().smallEnd();
 
@@ -3993,28 +3993,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         finest_level--;
     }
 
-    //
-    // The size of the returned multifab is limited by lev_min and 
-    // finest_level. In the following code, lev is the real level, 
-    // lev_index is the corresponding index for mf. 
-    //
-
     // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
-    mf_to_be_filled.resize(finest_level+1-lev_min);
+    mf_to_be_filled.resize(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; lev++)
     { 
-        const int lev_index = lev - lev_min;
-        mf_to_be_filled[lev_index].reset(new MultiFab(m_gdb->boxArray(lev),
-						      m_gdb->DistributionMap(lev),
-						      ncomp, 2));
-	mf_to_be_filled[lev_index]->setVal(0.0);
+        mf_to_be_filled[lev].reset(new MultiFab(m_gdb->boxArray(lev),
+				                m_gdb->DistributionMap(lev),
+					        ncomp, 2));
+	mf_to_be_filled[lev]->setVal(0.0);
     }
 
     // Test whether the grid structure of the boxArray is the same
     //       as the ParticleBoxArray at all levels 
     bool all_grids_the_same = true; 
     for (int lev = lev_min; lev <= finest_level; lev++) {
-        if (!OnSameGrids(lev, *mf_to_be_filled[lev-lev_min])) {
+        if (!OnSameGrids(lev, *mf_to_be_filled[lev])) {
 	    all_grids_the_same = false;
 	    break;
 	}
@@ -4024,14 +4017,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     if (!all_grids_the_same)
     { 
         // Create the space for the temporary, mf_part
-        mf_part.resize(finest_level+1-lev_min);
+        mf_part.resize(finest_level+1);
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
-            const int lev_index = lev - lev_min;
-            mf_part[lev_index].reset(new MultiFab(ParticleBoxArray(lev), 
-						  ParticleDistributionMap(lev),
-						  ncomp, 2));
-	    mf_part[lev_index]->setVal(0.0);
+            mf_part[lev].reset(new MultiFab(ParticleBoxArray(lev), 
+					    ParticleDistributionMap(lev),
+					    ncomp, 2));
+	    mf_part[lev]->setVal(0.0);
         }
     }
 
@@ -4067,6 +4059,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     }
 
     for (int lev = lev_min; lev <= finest_level; ++lev) {
+
         AssignCellDensitySingleLevelFort(rho_index, *mf[lev], lev, 1, 0);
 
         if (lev < finest_level) {
@@ -4093,11 +4086,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         amrex::average_down(*mf[lev+1], *mf[lev], rho_index, ncomp, m_gdb->refRatio(lev));
     }
     
-    if ( ! all_grids_the_same) {
+    if (!all_grids_the_same) {
         for (int lev = lev_min; lev <= finest_level; lev++) {
-            const int lev_index = lev - lev_min;
-            mf_to_be_filled[lev_index]->copy(*mf_part[lev_index],0,0,1);
+            mf_to_be_filled[lev]->copy(*mf_part[lev],0,0,1);
         }
+    }
+    if (lev_min > 0) {
+        int nlevels = finest_level - lev_min + 1;
+        for (int i = 0; i < nlevels; i++)
+            {
+                mf_to_be_filled[i] = std::move(mf_to_be_filled[i+lev_min]);
+            }
+        mf_to_be_filled.resize(nlevels);
     }
 }
 
@@ -4170,12 +4170,12 @@ AssignCellDensitySingleLevelFort (int rho_index,
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
+    const int       ng          = mf_pointer->nGrow();
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx_particle = Geom(lev + particle_lvl_offset).CellSize();
     const Real*     dx          = gm.CellSize();
-    const auto&     pmap        = m_particles[lev];
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
       amrex::Error("AssignDensity: problem must be periodic in no or all directions");
@@ -4202,7 +4202,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
             const int *lo, *hi;
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
-            tile_box.grow(1);
+            tile_box.grow(ng);
             local_rho.resize(tile_box,ncomp);
             local_rho = 0.0;
             data_ptr = local_rho.dataPtr();
@@ -4214,7 +4214,14 @@ AssignCellDensitySingleLevelFort (int rho_index,
             hi = box.hiVect();
 #endif
 
-            amrex_deposit_cic(particles.data(), nstride, np, ncomp, data_ptr, lo, hi, plo, dx);
+            if (dx == dx_particle) {
+                amrex_deposit_cic(particles.data(), nstride, np, ncomp, 
+                                  data_ptr, lo, hi, plo, dx);
+            } else {
+                amrex_deposit_particle_dx_cic(particles.data(), nstride, np, ncomp,
+                                              data_ptr, lo, hi, plo, dx, dx_particle);
+            }
+                
 
 #ifdef _OPENMP
             amrex_atomic_accumulate_fab(local_rho.dataPtr(), 
@@ -4285,7 +4292,6 @@ InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx          = gm.CellSize();
-    const auto&     pmap        = m_particles[lev];
 
     using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     

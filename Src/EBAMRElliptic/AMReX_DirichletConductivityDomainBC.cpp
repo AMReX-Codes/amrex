@@ -10,6 +10,7 @@
  */
 
 #include "AMReX_DirichletConductivityDomainBC.H"
+#include "AMReX_EBArith.H"
 
 namespace amrex
 {
@@ -25,13 +26,13 @@ namespace amrex
     Box grownBox = a_valid;
     grownBox.grow(1);
 
-    for (int idir=0; idir<CH_SPACEDIM; ++idir)
+    for (int idir=0; idir<BL_SPACEDIM; ++idir)
     {
       for(SideIterator sit; sit.ok(); ++sit)
       {
         Box choppedBox = grownBox;
         choppedBox.grow(idir,-1);
-        Box toRegion = adjCellBox(choppedBox, idir, sit(), 1);
+        Box toRegion = EBArith::adjCellBox(choppedBox, idir, sit(), 1);
 
         if(!a_domain.contains(toRegion))
         {
@@ -67,9 +68,9 @@ namespace amrex
               const bool&           a_useHomogeneous)
   {
     const EBISBox& ebisBox = a_phi.getEBISBox();
-    const ProblemDomain& domainBox = ebisBox.getDomain();
+    const Box& domainBox = ebisBox.getDomain();
     a_faceFlux = 0.0;
-    Vector<FaceIndex> faces = ebisBox.getFaces(a_vof,a_idir,a_side);
+    vector<FaceIndex> faces = ebisBox.getFaces(a_vof,a_idir,a_side);
     if (faces.size() > 0)
     {
       if (faces.size()==1)
@@ -93,7 +94,7 @@ namespace amrex
       }
       else
       {
-        MayDay::Error("DirichletPoissonDomainBC::getHigherOrderFaceFlux has multi-valued faces (or could be 0 faces)");
+        amrex::Error("DirichletPoissonDomainBC::getHigherOrderFaceFlux has multi-valued faces (or could be 0 faces)");
       }
     }
 
@@ -125,8 +126,7 @@ namespace amrex
                  const bool&           a_useHomogeneous)
   {
     int iside = -sign(a_side);
-    const Real ihdx = 2.0 / a_dx[a_idir];
-    const EBISBox& ebisBox = a_phi.getEBISBox();
+    const Real ihdx = 2.0 / m_dx;
 
     Real value = -1.e99;
     if (a_useHomogeneous)
@@ -152,6 +152,6 @@ namespace amrex
 
     const VolIndex& vof = a_face.getVoF(flip(a_side));
 
-    a_faceFlux = iside * ihdx * (a_phi(vof,a_comp) - value);
+    a_faceFlux = iside * ihdx * (a_phi(vof,0) - value);
   }
 }

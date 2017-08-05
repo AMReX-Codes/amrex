@@ -45,10 +45,6 @@ public:
     void copy_xlo() const;
     void copy_xhi() const;
 
-    //! Set epsilon used by contains() function when comparing floating point numbers.
-    static void setEpsilon (Real epsilon) { eps = epsilon; }
-    //! Returns epsilon.
-    static Real epsilon () { return eps; }
     //! Returns lo side.
     const Real* lo () const& { return xlo; }
 
@@ -82,15 +78,11 @@ public:
     //! Is the RealBox OK; i.e. does it have positive volume?
     bool ok () const;
     //! Is the specified point contained in the RealBox?
-    bool contains (const Real* point) const;
+    bool contains (const Real* point, Real eps=0.0) const;
     //! Is the specified RealBox contained in this RealBox?
-    bool contains (const RealBox& bx) const;
+    bool contains (const RealBox& bx, Real eps=0.0) const;
 
 private:
-    //
-    // Static data.
-    //
-    static Real eps;
     //
     // The data.
     //

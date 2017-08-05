@@ -751,7 +751,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum,
 
   Box sliceBox(amrData.ProbDomain()[iWTL]);
 
-  if(BL_SPACEDIM == 2 && slicedir == Amrvis::ZDIR) {
+  if((BL_SPACEDIM == 2 && slicedir == Amrvis::ZDIR) || (BL_SPACEDIM == 1)) {
     // use probDomain for the sliceBox
   } else {
     // make the box one cell thick in the slice direction
@@ -809,7 +809,7 @@ bool DataServices::DumpSlice(int slicedir, int slicenum) {  // dump all vars
 
   Box sliceBox(amrData.ProbDomain()[iWTL]);
 
-  if(BL_SPACEDIM == 2 && slicedir == Amrvis::ZDIR) {
+  if((BL_SPACEDIM == 2 && slicedir == Amrvis::ZDIR) || (BL_SPACEDIM == 1)) {
     // use probDomain for the sliceBox
   } else {
     // make the box one cell thick in the slice direction
@@ -850,7 +850,11 @@ bool DataServices::DumpSlice(const Box &b, const string &varname) {
   sliceFile += ".";
   const int N = 256;
   char slicechar[N];
-# if (BL_SPACEDIM == 2)
+# if (BL_SPACEDIM == 1)
+  int count = snprintf(slicechar, N, "%d__%d.Level_%d",
+                       b.smallEnd(Amrvis::XDIR),
+                       b.bigEnd(Amrvis::XDIR), iWTL);
+# elif (BL_SPACEDIM == 2)
   int count = snprintf(slicechar, N, "%d_%d__%d_%d.Level_%d",
                        b.smallEnd(Amrvis::XDIR), b.smallEnd(Amrvis::YDIR),
                        b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR), iWTL);
@@ -859,8 +863,9 @@ bool DataServices::DumpSlice(const Box &b, const string &varname) {
                        b.smallEnd(Amrvis::XDIR), b.smallEnd(Amrvis::YDIR), b.smallEnd(Amrvis::ZDIR),
                        b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR),   b.bigEnd(Amrvis::ZDIR), iWTL);
 #endif
-  if (count >= N)
+  if (count >= N) {
     amrex::Abort("DataServices::DumpSlice(3): slicechar buffer too small");      
+  }
   sliceFile += slicechar;
   sliceFile += ".fab";
   cout << "sliceFile = " << sliceFile << endl;
@@ -896,7 +901,11 @@ bool DataServices::DumpSlice(const Box &b) {  // dump all vars
   sliceFile += ".";
   const int N = 256;
   char slicechar[N];
-# if (BL_SPACEDIM == 2)
+# if (BL_SPACEDIM == 1)
+  int count = snprintf(slicechar, N, "%d__%d.Level_%d",
+                       b.smallEnd(Amrvis::XDIR),
+                       b.bigEnd(Amrvis::XDIR), iWTL);
+# elif (BL_SPACEDIM == 2)
   int count = snprintf(slicechar, N, "%d_%d__%d_%d.Level_%d",
                        b.smallEnd(Amrvis::XDIR), b.smallEnd(Amrvis::YDIR),
                        b.bigEnd(Amrvis::XDIR),   b.bigEnd(Amrvis::YDIR), iWTL);
