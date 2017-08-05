@@ -281,6 +281,8 @@ else
     OMPSuffix	:=
 endif
 
+USE_DEVICE := FALSE
+
 ifeq ($(USE_CUDA),TRUE)
 
     # The CUDA implementation is not currently threadsafe.
@@ -292,6 +294,10 @@ ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DCUDA
     DEFINES += -DAMREX_USE_CUDA
+
+    USE_DEVICE := TRUE
+    DEFINES += -DAMREX_USE_DEVICE
+    
     ifeq ($(USE_CUDA_UM),TRUE)
         DEFINES += -DCUDA_UM
         DEFINES += -DAMREX_USE_CUDA_UM

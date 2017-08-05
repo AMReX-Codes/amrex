@@ -104,9 +104,12 @@ StateData::define (const Box&             p_domain,
     }
     int ncomp = desc->nComp();
 
+
     MFInfo info;
 
+#ifdef AMREX_USE_DEVICE
     info.SetDevice(d.deviceCopy());
+#endif
 
     new_data = new MultiFab(grids,dmap,ncomp,desc->nExtra(),info);
 
@@ -233,7 +236,9 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     is >> nsets;
 
     MFInfo info;
+#ifdef AMREX_USE_DEVICE
     info.SetDevice(desc->deviceCopy());
+#endif
 
     old_data = (nsets == 2) ? new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),info) : 0;
     new_data =                new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),info);
@@ -298,7 +303,9 @@ StateData::restart (const StateDescriptor& d,
     new_time.stop  = rhs.new_time.stop;
     old_data = 0;
     MFInfo info;
+#ifdef AMREX_USE_DEVICE
     info.SetDevice(d.deviceCopy());
+#endif
     new_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),info);
     new_data->setVal(0.);
 }
@@ -316,7 +323,9 @@ StateData::allocOldData ()
     if (old_data == 0)
     {
 	MFInfo info;
+#ifdef AMREX_USE_DEVICE
 	info.SetDevice(desc->deviceCopy());
+#endif
         old_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),info);
     }
 }
@@ -493,7 +502,9 @@ StateData::FillBoundary (FArrayBox&     dest,
 
             BL_ASSERT(groupsize != 0);
 
+#ifdef AMREX_USE_DEVICE
             Device::prepare_for_launch(dest.loVect(), dest.hiVect());
+#endif
 
             if (groupsize+i <= num_comp)
             {

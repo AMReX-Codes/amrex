@@ -15,7 +15,9 @@
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_CArena.H>
+#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
+#endif
 #include <AMReX_Looping.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
@@ -259,35 +261,47 @@ public:
     * dataPtr returns a pointer to all the Nth components.
     */
     T* dataPtr (int n = 0) {
+#ifdef AMREX_USE_DEVICE
 	if (Device::inDeviceLaunchRegion() && device_copy) {
 	    BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts];
 	} else {
 	    BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts];
 	}
+#else
+        BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts];
+#endif
     }
 
     //! Same as above except works on const FABs.
     const T* dataPtr (int n = 0) const {
+#ifdef AMREX_USE_DEVICE
 	if (Device::inDeviceLaunchRegion() && device_copy) {
 	    BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts];
 	} else {
 	    BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts];
 	}
+#else
+        BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts];
+#endif
     }
 
+#ifdef AMREX_USE_DEVICE
     //! Returns the pointer to the device copy.
     T* devicePtr (int n = 0) { BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts]; }
 
     //! Same as above exept works on const FABs.
     const T* devicePtr (int n = 0) const { BL_ASSERT(!(dptr_d == 0)); return &dptr_d[n*numpts]; }
+#endif
     
     void setPtr (T* p, long sz) { BL_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
     //! Returns true if the data for the FAB has been allocated.
     bool isAllocated () const { return dptr != 0; }
 
+#ifdef AMREX_USE_DEVICE
     //! Returns true if the device copy of the data has been allocated.
     bool isDeviceAllocated () const { return dptr_d != 0; }
+#endif
 
     /**
     * \brief Returns a reference to the Nth component value
@@ -420,6 +434,7 @@ public:
                              int         numcomp,
                              const void* src);
 
+#ifdef AMREX_USE_DEVICE
     //! Allocates memory for the device copy.
     void allocate_device ();
 
@@ -428,6 +443,7 @@ public:
 
     //! Transfer data from the device to the host on the stream corresponding to MFIter index idx.
     void toHost(int idx = -1);
+#endif
 
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
@@ -943,9 +959,11 @@ protected:
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
     T*      dptr;     // The data pointer.
-    T*      dptr_d;   // The device copy of the data pointer.
     bool    ptr_owner;// Owner of T*?
+#ifdef AMREX_USE_DEVICE
+    T*      dptr_d;   // The device copy of the data pointer.
     bool    device_copy;    // Should we have a device copy of the data?
+#endif
     bool    shared_memory;  // Is the memory allocated in shared memory?
 
 #ifdef AMREX_USE_CUDA
@@ -1226,9 +1244,11 @@ BaseFab<T>::BaseFab ()
     numpts(0),
     truesize(0),
     dptr(0),
-    dptr_d(0),
     ptr_owner(false),
+#ifdef AMREX_USE_DEVICE
+    dptr_d(0),
     device_copy(false),
+#endif
     shared_memory(false)
 {}
 
@@ -1244,9 +1264,11 @@ BaseFab<T>::BaseFab (const Box& bx,
     numpts(bx.numPts()),
     truesize(0),
     dptr(0),
-    dptr_d(0),
     ptr_owner(false),
+#ifdef AMREX_USE_DEVICE
+    dptr_d(0),
     device_copy(false),
+#endif
     shared_memory(shared)
 {
     if (!shared_memory && alloc) define();
@@ -1261,8 +1283,10 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     numpts(rhs.numpts),
     truesize(ncomp*rhs.numpts),
     dptr(const_cast<T*>(rhs.dataPtr(scomp))),
+#ifdef AMREX_USE_DEVICE
     dptr_d(0),
     device_copy(false),
+#endif
     ptr_owner(false),
     shared_memory(false)
 {
@@ -1288,8 +1312,10 @@ BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
     numpts(bx.numPts()),
     truesize(bx.numPts()*ncomp),
     dptr(p),
+#ifdef AMREX_USE_DEVICE
     dptr_d(0),
     device_copy(false),
+#endif
     ptr_owner(false),
     shared_memory(false)
 {
@@ -1310,7 +1336,9 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
     numpts(rhs.numpts),
     truesize(rhs.truesize),
     dptr(rhs.dptr),
+#ifdef AMREX_USE_DEVICE
     dptr_d(0),
+#endif
     ptr_owner(rhs.ptr_owner),
     shared_memory(rhs.shared_memory)
 {
@@ -1354,6 +1382,7 @@ BaseFab<T>::resize (const Box& b,
     }
 }
 
+#ifdef AMREX_USE_DEVICE
 // Allocates a device copy of the data.
 
 template <class T>
@@ -1364,6 +1393,7 @@ BaseFab<T>::allocate_device() {
     dptr_d = static_cast<T*>(amrex::The_Arena()->alloc_device(truesize*sizeof(T)));
 
 }
+#endif
 
 template <class T>
 void
@@ -1393,8 +1423,10 @@ BaseFab<T>::clear ()
             amrex::The_Nvar_Arena()->free(nvar_d);
 #endif
 
+#ifdef AMREX_USE_DEVICE
 	    if (dptr_d)
 		amrex::The_Arena()->free_device(dptr_d);
+#endif
 	    
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
@@ -1404,7 +1436,9 @@ BaseFab<T>::clear ()
 	}
 
 	dptr = 0;
+#ifdef AMREX_USE_DEVICE
 	dptr_d = 0;
+#endif
 	truesize = 0;
     }
 }
@@ -2845,6 +2879,7 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
     return *this;
 }
 
+#ifdef AMREX_USE_DEVICE
 template<class T>
 void
 BaseFab<T>::toDevice(int idx)
@@ -2877,6 +2912,7 @@ BaseFab<T>::toHost(int idx)
     }
 #endif
 }
+#endif
 
     // \cond CODEGEN
     class BF_init

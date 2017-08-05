@@ -142,8 +142,10 @@ endif
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Device.H
-C$(AMREX_BASE)_sources += AMReX_Device.cpp
+ifeq ($(USE_DEVICE),TRUE)
+  C$(AMREX_BASE)_headers += AMReX_Device.H
+  C$(AMREX_BASE)_sources += AMReX_Device.cpp
+endif
 
 ifeq ($(USE_CUDA),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_CUDA.F90

@@ -4,7 +4,9 @@
 
 #include <AMReX_CArena.H>
 
+#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
+#endif
 
 namespace amrex {
 
@@ -52,7 +54,7 @@ CArena::alloc (size_t nbytes)
     {
         const size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
-#if (defined(AMREX_USE_CUDA) && defined(CUDA_UM))
+#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_CUDA_UM))
         if (device_use_hostalloc) {
 
 	    gpu_hostalloc(&vp, &N);
@@ -204,6 +206,7 @@ CArena::free (void* vp)
     }
 }
 
+#ifdef AMREX_USE_DEVICE
 // Device allocators are not currently implemented in CArena.
 
 void*
@@ -217,6 +220,7 @@ void
 CArena::free_device (void* pt)
 {
 }
+#endif
 
 size_t
 CArena::heap_space_used () const
