@@ -21,16 +21,12 @@ namespace amrex
 /**
    Class to do Dirichlet boundary conditions on the domain for the conductivity operator.
 */
-class NeumannConductivityDomainBC: public ConductivityBaseDomainBC
-{
-public:
-  NeumannConductivityDomainBC()
-    {
-    }
+  class NeumannConductivityDomainBC: public ConductivityBaseDomainBC
+  {
+  public:
+    NeumannConductivityDomainBC();
 
-  virtual ~NeumannConductivityDomainBC()
-    {
-    }
+    virtual ~NeumannConductivityDomainBC();
 
     ///
     virtual void 
@@ -58,36 +54,28 @@ public:
                    const Side::LoHiSide& a_side,
                    const bool&           a_useHomogeneous);
 
-    ///
-    virtual void 
-    fillPhiGhost(FArrayBox&     a_phi,
-                 const Box&     a_valid,
-                 const Box&     a_domain,
-                 Real           a_dx,
-                 bool           a_homogeneous);
-
-private:
+  private:
 
 
-};
+  };
 
-class NeumannConductivityDomainBCFactory: public ConductivityBaseDomainBCFactory
-{
-public:
-  NeumannConductivityDomainBCFactory()
-    {
-    }
+  class NeumannConductivityDomainBCFactory: public ConductivityBaseDomainBCFactory
+  {
+  public:
+    NeumannConductivityDomainBCFactory()
+      {
+      }
 
-  virtual ~NeumannConductivityDomainBCFactory()
-    {
-    }
+    virtual ~NeumannConductivityDomainBCFactory()
+      {
+      }
 
-  ConductivityBaseDomainBC* new_object_ptr()
-    {
+    ConductivityBaseDomainBC* new_object_ptr()
+      {
         NeumannConductivityDomainBC* newBC = new NeumannConductivityDomainBC();
         return static_cast<ConductivityBaseDomainBC*>(newBC);
-    }
+      }
 
-};
+  };
 }
 #endif

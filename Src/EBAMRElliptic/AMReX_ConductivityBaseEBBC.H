@@ -152,7 +152,7 @@ namespace amrex
     ///
     /**
      */
-    virtual ConductivityBaseEBBC* new_object_ptr();
+    virtual ConductivityBaseEBBC* new_object_ptr() = 0;
 
     ///
     void

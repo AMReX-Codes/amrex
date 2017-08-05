@@ -33,10 +33,12 @@ namespace amrex
          const Real          & a_dx,
          const int           & a_nComp,
          const int           & a_ghostCellsInData,
+         bool a_multiplyFluxByArea,
          int a_redistRad)
   {
     m_isDefined = true;
     m_eblg          = a_eblg;
+    m_multiplyFluxByArea = a_multiplyFluxByArea;
     m_dx            = a_dx;
     m_nComp         = a_nComp;
     m_dataGhost     = a_ghostCellsInData;
@@ -161,6 +163,7 @@ namespace amrex
                    int isrc, int idst, int inco,
                    bool a_trustRegDivF)
   {
+/**/
     BL_ASSERT(isDefined());
     BL_ASSERT(a_flux.nGrow() == m_dataGhost);
     BL_ASSERT(a_divF.nGrow() == m_dataGhost);
@@ -170,7 +173,11 @@ namespace amrex
       EBCellFAB       & divF = m_kappaDivergence[mfi];
       const EBFluxFAB & flux = a_flux[mfi];
 
-      if(!a_trustRegDivF)
+      if(a_trustRegDivF)
+      {
+        divF.copy(a_divF[mfi]);
+      }
+      else
       {
         BaseFab<Real>       &  regDivF = divF.getSingleValuedFAB();
         vector<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
@@ -180,12 +187,16 @@ namespace amrex
         }
         const Box& grid = m_eblg.getDBL()[mfi];
       
+        int multiplyByArea = 0;
+        if(m_multiplyFluxByArea) multiplyByArea = 1;
+
         //first do everything as if it has no eb.
         ebfnd_divflux(BL_TO_FORTRAN_FAB(regDivF),
                       BL_TO_FORTRAN_FAB((*regFlux[0])),
                       BL_TO_FORTRAN_FAB((*regFlux[1])),
                       BL_TO_FORTRAN_FAB((*regFlux[2])),
                       BL_TO_FORTRAN_BOX(grid),
+                      &multiplyByArea,
                       &m_dx, &isrc, &idst, &inco);
       }
       //turn off increment only for bndry flux.  This sets the initial divergence at 
@@ -225,6 +236,7 @@ namespace amrex
       m_eblevelRedist.increment(m_massDiff[mfi], mfi, idst, inco);
     }
     m_eblevelRedist.redistribute(a_divF, idst, inco);
+/**/
   }
   /************************************/
 }
