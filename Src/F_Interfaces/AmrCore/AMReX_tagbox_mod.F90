@@ -41,10 +41,10 @@ contains
     this%p = p
   end subroutine amrex_tagboxarray_install
 
-  function amrex_tagboxarray_dataPtr (this, mfi) result(dp)
+  subroutine amrex_tagboxarray_dataPtr (this, mfi, dp)
     class(amrex_tagboxarray) :: this
     type(amrex_mfiter), intent(in) :: mfi
-    character(c_char), contiguous, pointer, dimension(:,:,:,:) :: dp
+    character(c_char), contiguous, pointer, dimension(:,:,:,:), intent(out) :: dp
     type(c_ptr) :: cp
     character(c_char), contiguous, pointer :: fp(:,:,:,:)
     integer(c_int) :: n(4)
@@ -54,6 +54,6 @@ contains
     n(4)   = 1
     call c_f_pointer(cp, fp, shape=n)
     dp(bx%lo(1):,bx%lo(2):,bx%lo(3):,1:) => fp
-  end function amrex_tagboxarray_dataPtr
+  end subroutine amrex_tagboxarray_dataPtr
   
 end module amrex_tagbox_module
