@@ -113,7 +113,14 @@ namespace amrex
       }
 
     ///
-    virtual ~DirichletConductivityEBBCFactory();
+    virtual ~DirichletConductivityEBBCFactory()
+      {
+      }
+
+    void setOrder(int a_order)
+      {
+        m_order = a_order;
+      }
 
     ///
     virtual ConductivityBaseEBBC* new_object_ptr()
