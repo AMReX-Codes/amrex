@@ -181,7 +181,7 @@ public:
     //! for calls to fortran.  
     const int* nCompPtr() const {return &nvar;}
     const int* nCompPtrF() const {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
         return (int*) Device::get_host_pointer(nvar_d);
 #else
         return &nvar;
@@ -948,7 +948,7 @@ protected:
     bool    device_copy;    // Should we have a device copy of the data?
     bool    shared_memory;  // Is the memory allocated in shared memory?
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     int* nvar_d;
 #endif
 };
@@ -1210,7 +1210,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
     *nvar_d = nvar;
 #endif
@@ -1389,7 +1389,7 @@ BaseFab<T>::clear ()
 	    }
 	    amrex::The_Arena()->free(dptr);
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
             amrex::The_Nvar_Arena()->free(nvar_d);
 #endif
 
@@ -2850,11 +2850,11 @@ void
 BaseFab<T>::toDevice(int idx)
 {
     size_t sz = nBytes();
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     if (device_copy && dptr_d && dptr) {
 	gpu_htod_memcpy_async(dptr_d, dptr, &sz, &idx);
     } else {
-#ifdef CUDA_UM
+#ifdef AMREX_USE_CUDA_UM
 	gpu_htod_memprefetch_async(dptr, &sz, &idx);
 #endif
     }
@@ -2867,11 +2867,11 @@ void
 BaseFab<T>::toHost(int idx)
 {
     size_t sz = nBytes();
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     if (device_copy && dptr_d && dptr) {
 	gpu_dtoh_memcpy_async(dptr, dptr_d, &sz, &idx);
     } else {
-#ifdef CUDA_UM
+#ifdef AMREX_USE_CUDA_UM
 	gpu_dtoh_memprefetch_async(dptr, &sz, &idx);
 #endif
     }

@@ -10,7 +10,7 @@
 #endif
 
 extern "C" {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     void initialize_cuda(const int* id, const int* rank);
     void finalize_cuda();
     void set_stream_idx(const int idx);
@@ -82,7 +82,7 @@ public:
 
     static int isProgramRunning();
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     template<typename T>
     static std::shared_ptr<T> create_host_pointer(const T* ptr, const int n = 1, const int m = -1);
 
@@ -96,7 +96,7 @@ public:
     static void start_profiler();
     static void stop_profiler();
 
-#if (defined(CUDA) && defined(__CUDACC__))
+#if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
     static void c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
 #endif
 
@@ -110,7 +110,7 @@ private:
 
 }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 template<typename T>
 std::shared_ptr<T>
 amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
@@ -140,7 +140,7 @@ amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 template<typename T>
 std::shared_ptr<T>
 amrex::Device::create_device_pointer(int n)

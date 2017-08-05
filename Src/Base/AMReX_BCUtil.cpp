@@ -24,7 +24,7 @@ namespace amrex
         const Real* dx = geom.CellSizeF();
         const Real* prob_lo = Geometry::ProbLo();
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
         int n_bc = AMREX_SPACEDIM * 2 * phi.nComp();
         int* bcrs_d = (int*) Device::device_malloc(n_bc * sizeof(int));
         const int* bcrs = bc[0].data();

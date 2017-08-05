@@ -3,7 +3,7 @@ module amrex_filcc_module
 
   use amrex_fort_module, only : amrex_real, amrex_spacedim, get_loop_bounds
   use filcc_module, only: filccn
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -82,7 +82,7 @@ contains
 
 #endif
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine amrex_fab_filcc_doit (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
@@ -110,12 +110,12 @@ contains
     integer, intent(in) :: bc(amrex_spacedim,2,nq)
     real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc
 #endif
 
     call amrex_fab_filcc_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)

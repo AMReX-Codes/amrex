@@ -131,7 +131,7 @@ module filcc_module
 
 contains
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(device) &
 #endif
   subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc, n)

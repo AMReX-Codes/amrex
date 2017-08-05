@@ -7,7 +7,7 @@ module basefab_nd_module
 contains
 
   ! dst = src
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_copy_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -36,7 +36,7 @@ contains
 
 
   ! copy from multi-d array to 1d array
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_copytomem_doit (lo, hi, dst, src, slo, shi, ncomp)
@@ -70,7 +70,7 @@ contains
 
 
   ! copy from 1d array to multi-d array
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_copyfrommem_doit (lo, hi, dst, dlo, dhi, ncomp, src)
@@ -104,7 +104,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_setval_doit(lo, hi, dst, dlo, dhi, ncomp, val)
@@ -132,7 +132,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_norm_doit (lo, hi, src, slo, shi, ncomp, p, nrm)
@@ -172,7 +172,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_sum_doit(lo, hi, src, slo, shi, ncomp, sm)
@@ -200,7 +200,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_plus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -228,7 +228,7 @@ contains
   end subroutine fort_fab_plus_doit
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_minus_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -256,7 +256,7 @@ contains
   end subroutine fort_fab_minus_doit
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_mult_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -284,7 +284,7 @@ contains
   end subroutine fort_fab_mult_doit
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_divide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -312,7 +312,7 @@ contains
   end subroutine fort_fab_divide_doit
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_protdivide_doit(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -343,7 +343,7 @@ contains
 
 
   ! dst = a/src
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_invert_doit(lo, hi, dst, dlo, dhi, ncomp, a)
@@ -370,7 +370,7 @@ contains
 
 
   ! dst += a*src
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_saxpy_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
@@ -400,7 +400,7 @@ contains
 
 
   ! dst = src + a*dst
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_xpay_doit(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
@@ -430,7 +430,7 @@ contains
 
 
   ! dst = a*x + b*y
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_lincomb_doit(lo, hi, dst, dlo, dhi, a, x, xlo, xhi, xblo, &
@@ -464,7 +464,7 @@ contains
   end subroutine fort_fab_lincomb_doit
 
   ! dst = dst + src1*src2
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_addproduct_doit(lo, hi, dst, dlo, dhi, src1, s1lo, s1hi, src2, s2lo, s2hi, ncomp)
@@ -491,7 +491,7 @@ contains
   end subroutine fort_fab_addproduct_doit
 
   ! dot_product
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine fort_fab_dot_doit(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp)
@@ -529,7 +529,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_copy_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -540,12 +540,12 @@ end module basefab_nd_module
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
     integer, intent(in), value :: ncomp
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
 #endif
 
     call fort_fab_copy_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
     (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -559,7 +559,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_copytomem_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -568,12 +568,12 @@ end module basefab_nd_module
     real(amrex_real)             :: dst(*)
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, src, slo, shi
 #endif
 
     call fort_fab_copytomem_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, src, slo, shi, ncomp)
@@ -586,7 +586,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_copyfrommem_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -595,12 +595,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(*)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi, src
 #endif
 
     call fort_fab_copyfrommem_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, ncomp, src)
@@ -614,7 +614,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_setval_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -625,12 +625,12 @@ end module basefab_nd_module
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
     integer, intent(in), value :: ncomp
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(managed) :: dst, lo, hi, dlo, dhi
 #endif
 
     call fort_fab_setval_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, ncomp, val)
@@ -645,7 +645,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_norm_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -656,12 +656,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: nrm
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, src, slo, shi, nrm
 #endif
 
     call fort_fab_norm_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, src, slo, shi, ncomp, p, nrm)
@@ -674,7 +674,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_saxpy_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -685,12 +685,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
 #endif
 
     call fort_fab_saxpy_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
@@ -704,7 +704,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_plus_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -715,12 +715,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(managed) :: src, dst, lo, hi, dlo, dhi, slo, shi, sblo
 #endif
 
     call fort_fab_plus_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -734,7 +734,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_sum_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -745,12 +745,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: sm
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, src, slo, shi, sm
 #endif
 
     call fort_fab_sum_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, src, slo, shi, ncomp, sm)
@@ -764,7 +764,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_minus_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -775,12 +775,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi, src, slo, shi, sblo
 #endif
 
     call fort_fab_minus_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -794,7 +794,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_mult_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -805,12 +805,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi, src, slo, shi, sblo
 #endif
 
     call fort_fab_mult_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -823,7 +823,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_divide_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -834,12 +834,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi, src, slo, shi, sblo
 #endif
 
     call fort_fab_divide_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -853,7 +853,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_protdivide_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -864,12 +864,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi, src, slo, shi, sblo
 #endif
 
     call fort_fab_protdivide_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp)
@@ -882,7 +882,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_invert_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -893,12 +893,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ), value :: a
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi
 #endif
 
     call fort_fab_invert_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, ncomp, a)
@@ -911,7 +911,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_xpay_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -923,12 +923,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi, src, slo, shi, sblo
 #endif
 
     call fort_fab_xpay_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp)
@@ -942,7 +942,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_lincomb_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -956,12 +956,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
     real(amrex_real), intent(in   ) ::   y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi, x, xlo, xhi, xblo, y, ylo, yhi, yblo
 #endif
 
     call fort_fab_lincomb_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, a, x, xlo, xhi, xblo, b, y, ylo, yhi, yblo, ncomp)
@@ -975,7 +975,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_addproduct_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -987,12 +987,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in   ) :: src2(s2lo(1):s2hi(1),s2lo(2):s2hi(2),s2lo(3):s2hi(3),ncomp)
     real(amrex_real), intent(inout) ::  dst( dlo(1): dhi(1), dlo(2): dhi(2), dlo(3): dhi(3),ncomp)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, dst, dlo, dhi, src1, s1lo, s1hi, src2, s2lo, s2hi
 #endif
 
     call fort_fab_addproduct_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, dst, dlo, dhi, src1, s1lo, s1hi, src2, s2lo, s2hi, ncomp)
@@ -1005,7 +1005,7 @@ end module basefab_nd_module
 
     use amrex_fort_module, only: amrex_real
     use basefab_nd_module, only: fort_fab_dot_doit
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
@@ -1017,12 +1017,12 @@ end module basefab_nd_module
     real(amrex_real), intent(in) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
     real(amrex_real), intent(inout) :: dp
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, dp
 #endif
 
     call fort_fab_dot_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp)

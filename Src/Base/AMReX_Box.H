@@ -264,7 +264,7 @@ public:
 
     //! Similar to loVect(). This one returns a pointer for the device to operate on.
     const int* loVectF () const& {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
         return (int*) Device::get_host_pointer(lo_d.get());
 #else
         return smallend.getVect();
@@ -278,7 +278,7 @@ public:
 
     //! Similar to hiVect(). This one returns a pointer for the device to operate on.
     const int* hiVectF () const& {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
         return (int*) Device::get_host_pointer(hi_d.get());
 #else
         return bigend.getVect();
@@ -664,7 +664,7 @@ private:
     IntVect         bigend;
     IndexType       btype;
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     std::shared_ptr<int> lo_d;
     std::shared_ptr<int> hi_d;
 #endif
@@ -713,7 +713,7 @@ public:
 
 inline BoxConverter::~BoxConverter () { }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     // \cond CODEGEN
     class Box_init
     {
@@ -728,7 +728,7 @@ inline BoxConverter::~BoxConverter () { }
 
 }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 static amrex::Box_init file_scope_Box_init_object;
 #endif
 

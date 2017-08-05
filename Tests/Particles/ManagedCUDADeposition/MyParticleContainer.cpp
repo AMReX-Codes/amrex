@@ -2,7 +2,7 @@
 
 #include "deposit_F.H"
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 #include <cuda_runtime_api.h>
 #include <cuda.h>
 #endif // CUDA

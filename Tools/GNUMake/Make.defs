@@ -291,8 +291,10 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     DEFINES += -DCUDA
+    DEFINES += -DAMREX_USE_CUDA
     ifeq ($(USE_CUDA_UM),TRUE)
         DEFINES += -DCUDA_UM
+        DEFINES += -DAMREX_USE_CUDA_UM
 	DEFINES += -DBL_COALESCE_FABS
     endif
 

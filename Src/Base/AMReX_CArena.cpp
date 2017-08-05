@@ -23,7 +23,7 @@ CArena::CArena (size_t hunk_size)
 CArena::~CArena ()
 {
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 	if (device_use_hostalloc)
 	    gpu_freehost(m_alloc[i]);
 	else
@@ -52,7 +52,7 @@ CArena::alloc (size_t nbytes)
     {
         const size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
-#if (defined(CUDA) && defined(CUDA_UM))
+#if (defined(AMREX_USE_CUDA) && defined(CUDA_UM))
         if (device_use_hostalloc) {
 
 	    gpu_hostalloc(&vp, &N);

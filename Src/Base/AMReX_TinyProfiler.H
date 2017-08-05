@@ -9,7 +9,7 @@
 
 #include <AMReX_REAL.H>
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 #include "nvToolsExt.h"
 #endif
 
@@ -69,7 +69,7 @@ private:
     static std::map<std::string, Stats> statsmap;
     static Real t_init;
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     nvtxRangeId_t nvtx_id;
 #endif
 };

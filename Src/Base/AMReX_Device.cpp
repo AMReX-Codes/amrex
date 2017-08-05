@@ -13,7 +13,7 @@ int amrex::Device::device_id = 0;
 void
 amrex::Device::initialize_device() {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 
     int n_procs = ParallelDescriptor::NProcs();
     int my_rank = ParallelDescriptor::MyProc();
@@ -119,7 +119,7 @@ amrex::Device::initialize_device() {
 void
 amrex::Device::finalize_device() {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     finalize_cuda();
 
     set_is_program_running(0);
@@ -137,7 +137,7 @@ amrex::Device::deviceId() {
 void
 amrex::Device::set_stream_index(const int idx) {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     set_stream_idx(idx);
 #endif
 
@@ -148,7 +148,7 @@ amrex::Device::get_stream_index() {
 
     int index = -1;
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     get_stream_idx(&index);
 #endif
 
@@ -161,7 +161,7 @@ amrex::Device::prepare_for_launch(const int* lo, const int* hi) {
 
     // Sets the number of threads and blocks in Fortran.
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     set_threads_and_blocks(lo, hi);
 #endif
 
@@ -171,7 +171,7 @@ void*
 amrex::Device::get_host_pointer(const void* ptr) {
 
     void* r = const_cast<void*>(ptr);
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_host_device_ptr(&r, ptr);
 #endif
     return r;
@@ -181,7 +181,7 @@ amrex::Device::get_host_pointer(const void* ptr) {
 void
 amrex::Device::check_for_errors() {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     check_for_gpu_errors();
 #endif
 
@@ -190,7 +190,7 @@ amrex::Device::check_for_errors() {
 void
 amrex::Device::synchronize() {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_synchronize();
 #endif
 
@@ -199,7 +199,7 @@ amrex::Device::synchronize() {
 void
 amrex::Device::stream_synchronize(const int idx) {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_stream_synchronize(idx);
 #endif
 
@@ -210,7 +210,7 @@ amrex::Device::device_malloc(const std::size_t sz) {
 
     void* ptr = NULL;
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_malloc(&ptr, &sz);
 #endif
 
@@ -221,7 +221,7 @@ amrex::Device::device_malloc(const std::size_t sz) {
 void
 amrex::Device::device_free(void* ptr) {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_free(ptr);
 #endif
 
@@ -230,7 +230,7 @@ amrex::Device::device_free(void* ptr) {
 void
 amrex::Device::device_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t sz, const int idx) {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_htod_memcpy_async(p_d, p_h, &sz, &idx);
 #endif
 
@@ -239,7 +239,7 @@ amrex::Device::device_htod_memcpy_async(void* p_d, const void* p_h, const std::s
 void
 amrex::Device::device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t sz, const int idx) {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_dtoh_memcpy_async(p_h, p_d, &sz, &idx);
 #endif
 
@@ -248,7 +248,7 @@ amrex::Device::device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::s
 void
 amrex::Device::start_profiler() {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_start_profiler();
 #endif
 
@@ -257,13 +257,13 @@ amrex::Device::start_profiler() {
 void
 amrex::Device::stop_profiler() {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_stop_profiler();
 #endif
 
 }
 
-#if (defined(CUDA) && defined(__CUDACC__))
+#if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
 void
 amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) {
 
