@@ -6,7 +6,7 @@
 
 namespace amrex {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 int MFIter_init::m_cnt = 0;
 
 namespace
@@ -147,11 +147,11 @@ MFIter::~MFIter ()
 
     Device::synchronize();
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     reduce();
 #endif
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     for (int i = 0; i < real_reduce_list.size(); ++i)
         amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
 #endif
@@ -361,7 +361,7 @@ MFIter::grownnodaltilebox (int dir, int ng) const
 void
 MFIter::operator++ () {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     if (real_reduce_list.size() == currentIndex + 1) {
         Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
                                          real_device_reduce_list[currentIndex],
@@ -381,7 +381,7 @@ MFIter::operator++ () {
 
 }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 Real*
 MFIter::add_reduce_value(Real* val, MFReducer r)
 {
@@ -405,7 +405,7 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 }
 #endif
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 // Reduce over the values in the list.
 void
 MFIter::reduce()

@@ -7,7 +7,7 @@
 
 namespace amrex {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 int RealBox_init::m_cnt = 0;
 
 namespace
@@ -98,7 +98,7 @@ RealBox::RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
 void
 RealBox::nullify_device_memory() const
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     xlo_d = nullptr;
     xhi_d = nullptr;
 #endif
@@ -107,7 +107,7 @@ RealBox::nullify_device_memory() const
 void
 RealBox::initialize_device_memory() const
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     initialize_lo();
     initialize_hi();
 #endif
@@ -116,7 +116,7 @@ RealBox::initialize_device_memory() const
 void
 RealBox::initialize_lo() const
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     const size_t sz = 3 * sizeof(Real);
 
     Real* xlo_temp = static_cast<Real*>(amrex::The_RealBox_Arena()->alloc(sz));
@@ -128,7 +128,7 @@ RealBox::initialize_lo() const
 void
 RealBox::initialize_hi() const
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     const size_t sz = 3 * sizeof(Real);
 
     Real* xhi_temp = static_cast<Real*>(amrex::The_RealBox_Arena()->alloc(sz));
@@ -147,7 +147,7 @@ RealBox::copy_device_memory() const
 void
 RealBox::copy_xlo() const
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     for (int i = 0; i < BL_SPACEDIM; ++i)
 	xlo_d.get()[i] = xlo[i];
     for (int i = BL_SPACEDIM; i < 3; ++i)
@@ -158,7 +158,7 @@ RealBox::copy_xlo() const
 void
 RealBox::copy_xhi() const
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     for (int i = 0; i < BL_SPACEDIM; ++i)
 	xhi_d.get()[i] = xhi[i];
     for (int i = BL_SPACEDIM; i < 3; ++i)
@@ -168,7 +168,7 @@ RealBox::copy_xhi() const
 
 const Real*
 RealBox::loF() const& {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     if (xlo_d.get() == nullptr)
         initialize_lo();
 
@@ -180,7 +180,7 @@ RealBox::loF() const& {
 
 const Real*
 RealBox::hiF() const& {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     if (xhi_d.get() == nullptr)
         initialize_hi();
 

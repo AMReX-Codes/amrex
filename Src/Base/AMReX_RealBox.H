@@ -97,7 +97,7 @@ private:
     Real xlo[BL_SPACEDIM];
     Real xhi[BL_SPACEDIM];
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     mutable std::shared_ptr<Real> xlo_d;
     mutable std::shared_ptr<Real> xhi_d;
 #endif
@@ -113,7 +113,7 @@ std::ostream& operator<< (std::ostream&, const RealBox&);
 //
 std::istream& operator>> (std::istream&, RealBox&);
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     // \cond CODEGEN
     class RealBox_init
     {
@@ -128,7 +128,7 @@ std::istream& operator>> (std::istream&, RealBox&);
 
 }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 static amrex::RealBox_init file_scope_RealBox_init_object;
 #endif
 

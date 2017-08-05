@@ -76,7 +76,7 @@ CoordSys::CoordSys ()
 
 void
 CoordSys::init_device() {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     if (dx_d.use_count() == 0) {
 	std::size_t sz = 3 * sizeof(Real);
 	Real* dx_temp;
@@ -88,7 +88,7 @@ CoordSys::init_device() {
 
 void
 CoordSys::set_device() {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     if (dx_d.use_count() == 1) {
 	for (int k = 0; k < BL_SPACEDIM; ++k)
 	    dx_d.get()[k] = dx[k];

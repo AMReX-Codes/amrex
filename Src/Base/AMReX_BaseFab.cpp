@@ -27,7 +27,7 @@ int BF_init::m_cnt = 0;
 namespace
 {
     Arena* the_arena = 0;
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     Arena* the_nvar_arena = 0;
 #endif
 }
@@ -44,11 +44,11 @@ BF_init::BF_init ()
         the_arena = new BArena;
 #endif
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
         the_arena->SetPreferred();
 #endif
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
         const std::size_t hunk_size = 64 * 1024;
         the_nvar_arena = new CArena(hunk_size);
         the_nvar_arena->SetHostAlloc();
@@ -78,7 +78,7 @@ BF_init::~BF_init ()
 {
     if (--m_cnt == 0) {
         delete the_arena;
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
         delete the_nvar_arena;
 #endif
     }
@@ -180,7 +180,7 @@ The_Arena ()
     return the_arena;
 }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 Arena*
 The_Nvar_Arena ()
 {
@@ -307,7 +307,7 @@ BaseFab<Real>::norm (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     Real* nrm_f = Device::create_device_pointer<Real>().get();
 #else
     Real nrm;
@@ -337,7 +337,7 @@ BaseFab<Real>::sum (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     Real* sm_f = Device::create_device_pointer<Real>().get();
 #else
     Real sm;
@@ -604,7 +604,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     Real* dp_f = Device::create_device_pointer<Real>().get();
 #else
     Real dp;

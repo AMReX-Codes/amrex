@@ -31,7 +31,7 @@ public:
 	SkipInit      = 0x08  
     };
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     enum MFReducer { SUM = 0, MAX, MIN };
 #endif
 
@@ -125,7 +125,7 @@ public:
 
     void register_ptr(std::shared_ptr<Real> ptr) { saved_reals.push_back(ptr); }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     //! If we're on the device, store a copy of the data in the MFIter.
     template<typename T>
     T* get_fortran_pointer(const T* ptr, const int n = 1, const int m = -1);
@@ -134,7 +134,7 @@ public:
     //! Return all data from the device to the host.
     void releaseDeviceData();
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     //! Maintain a list of values to reduce.
     template<typename T>
     T* add_reduce_value(T* val, MFReducer r) { return val; }
@@ -186,7 +186,7 @@ protected:
     mutable Array<std::shared_ptr<int>> saved_ints;
     mutable Array<std::shared_ptr<Real>> saved_reals;
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     mutable Real* real_reduce_val;
 
     mutable MFReducer reducer;
@@ -231,7 +231,7 @@ MFIter::registerFab(const FArrayBox& fab, int idx) const
     return false;
 }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 // Store an arbitrary pointer in our list. Create a shared pointer so that
 // the lifetime of the data is the lifetime of the MFIter. This allows asynchronous
 //  MFIter iterations to occur without freeing device data until all FABs are done.
@@ -256,7 +256,7 @@ private:
     FabArrayBase::TileArray lta;
 };
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     // \cond CODEGEN
     class MFIter_init
     {
@@ -271,7 +271,7 @@ private:
 
 }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 static amrex::MFIter_init file_scope_MFIter_init_object;
 #endif
 

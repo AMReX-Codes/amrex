@@ -60,7 +60,7 @@ TinyProfiler::start ()
 	Stats& st = statsmap[fname];
 	++st.depth;
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 	nvtx_id = nvtxRangeStartA(fname.c_str());
 #endif
     }
@@ -104,7 +104,7 @@ TinyProfiler::stop ()
 		parent.second += dtin;
 	    }
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 	    nvtxRangeEnd(nvtx_id);
 #endif
 	} else {

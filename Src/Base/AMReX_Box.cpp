@@ -10,7 +10,7 @@
 
 namespace amrex {
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 int Box_init::m_cnt = 0;
 
 namespace
@@ -110,7 +110,7 @@ Box::Box (const IntVect& small,
 void
 Box::initialize_device_memory()
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     const size_t sz = 3 * sizeof(int);
 
     int* lo_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
@@ -133,7 +133,7 @@ Box::copy_device_memory()
 void
 Box::copy_lo()
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	lo_d.get()[i] = smallend[i];
     }
@@ -146,7 +146,7 @@ Box::copy_lo()
 void
 Box::copy_hi()
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     for (int i = 0; i < BL_SPACEDIM; ++i) {
 	hi_d.get()[i] = bigend[i];
     }

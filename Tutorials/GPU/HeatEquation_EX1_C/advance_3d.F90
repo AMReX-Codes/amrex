@@ -8,7 +8,7 @@ contains
                            flux, flo, fhi, dx, idir) bind(C, name="compute_flux")
 
     use amrex_fort_module, only: rt => amrex_real
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: cuda_stream, numBlocks, numThreads
 #endif
 
@@ -20,13 +20,13 @@ contains
     real(rt), intent(in   ) :: dx(3)
     integer,  intent(in   ), value :: idir
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: phi, flux, philo, phihi, flo, fhi, dx
     attributes(managed) :: lo, hi
 #endif
 
     call compute_flux_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, phi, philo, phihi, flux, flo, fhi, dx, idir)
@@ -42,7 +42,7 @@ contains
                          dx, dt) bind(C, name="update_phi")
 
     use amrex_fort_module, only: rt => amrex_real
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     use cuda_module, only: cuda_stream, numBlocks, numThreads
 #endif
 
@@ -58,14 +58,14 @@ contains
     real(rt), intent(in   ) :: dx(3)
     real(rt), intent(in   ), value :: dt
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     attributes(device) :: phiold, phinew, fluxx, fluxy, fluxz, polo, pohi, pnlo, pnhi, &
                           fxlo, fxhi, fylo, fyhi, fzlo, fzhi, dx
     attributes(managed) :: lo, hi
 #endif
 
     call update_phi_doit &
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
          <<<numBlocks, numThreads, 0, cuda_stream>>> &
 #endif
          (lo, hi, phiold, polo, pohi, &
@@ -79,7 +79,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine compute_flux_doit (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir)
@@ -121,7 +121,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
   subroutine update_phi_doit (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &

@@ -15,7 +15,7 @@
 #if     BL_SPACEDIM==1
 #define ARLIM_P(x)  const int&
 #define ARLIM(x)  (x)[0]
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 #define ARLIM_3D(x) x
 #define ARLIM_ANYD(x) x
 #define ZFILL(x) x
@@ -31,7 +31,7 @@
 #elif   BL_SPACEDIM==2
 #define ARLIM_P(x)  const int&,const int&
 #define ARLIM(x)  (x)[0],(x)[1]
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 #define ARLIM_3D(x) x
 #define ARLIM_ANYD(x) x
 #define ZFILL(x) x

@@ -77,7 +77,7 @@ public:
 
     const Real* CellSizeF () const {
 	BL_ASSERT(ok);
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 	return (Real*) Device::get_host_pointer(dx_d.get());
 #else
 	return dx;
@@ -273,7 +273,7 @@ protected:
     Real inv_dx[BL_SPACEDIM];
     bool ok;
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     std::shared_ptr<Real> dx_d;
 #endif
 

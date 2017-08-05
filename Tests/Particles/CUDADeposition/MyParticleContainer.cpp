@@ -2,7 +2,7 @@
 
 #include "deposit_F.H"
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
 #include <cuda_runtime_api.h>
 #include <cuda.h>
 #endif // CUDA
@@ -26,7 +26,7 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   InitRandom(num_particles, iseed, pdata, serialize);
   m_np = num_particles;
 
-#ifdef CUDA  
+#ifdef AMREX_USE_CUDA  
 
   cudaError_t err_code;
   err_code = cudaMalloc((void**) &device_particles, m_np*psize); 
@@ -64,7 +64,7 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
 }
 
 void MyParticleContainer::CopyParticlesToDevice() {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   const int lev = 0;
   int offset = 0;
   particle_counts.clear();
@@ -89,7 +89,7 @@ void MyParticleContainer::CopyParticlesToDevice() {
 }
 
 void MyParticleContainer::CopyParticlesFromDevice() {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   const int lev = 0;
   int offset = 0;
   for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {

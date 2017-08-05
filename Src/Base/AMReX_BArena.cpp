@@ -7,7 +7,7 @@ amrex::BArena::alloc (std::size_t _sz)
 {
     void* pt;
 
-#if (defined(CUDA) && defined(CUDA_UM))
+#if (defined(AMREX_USE_CUDA) && defined(CUDA_UM))
     if (device_use_managed_memory) {
 
 	gpu_malloc_managed(&pt, &_sz);
@@ -40,7 +40,7 @@ amrex::BArena::alloc (std::size_t _sz)
 void
 amrex::BArena::free (void* pt)
 {
-#if (defined(CUDA) && defined(CUDA_UM))
+#if (defined(AMREX_USE_CUDA) && defined(CUDA_UM))
     if (!device_use_hostalloc)
 	gpu_free(pt);
     else
@@ -55,7 +55,7 @@ amrex::BArena::alloc_device (std::size_t _sz)
 {
     void* pt = 0;
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_malloc(&pt, &_sz);
 #endif
 
@@ -65,7 +65,7 @@ amrex::BArena::alloc_device (std::size_t _sz)
 void
 amrex::BArena::free_device (void* pt)
 {
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     gpu_free(pt);
 #endif
 }

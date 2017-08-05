@@ -35,7 +35,7 @@ contains
     end do
   end function amrex_coarsen_intvect
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(device) &
 #endif
   subroutine get_loop_bounds(blo, bhi, lo, hi)
@@ -45,7 +45,7 @@ contains
     integer, intent(in   ) :: lo(3), hi(3)
     integer, intent(inout) :: blo(3), bhi(3)
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     ! Get our spatial index based on the CUDA thread index
 
     blo(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
@@ -69,7 +69,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(device) &
 #endif
   subroutine amrex_add(x, y)
@@ -83,7 +83,7 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     t = atomicAdd(x, y)
 #else
     x = x + y
@@ -93,7 +93,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(device) &
 #endif
   subroutine amrex_subtract(x, y)
@@ -107,7 +107,7 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     t = atomicSub(x, y)
 #else
     x = x - y
@@ -117,7 +117,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(device) &
 #endif
   subroutine amrex_max(x, y)
@@ -131,7 +131,7 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     t = atomicMax(x, y)
 #else
     x = max(x, y)
@@ -141,7 +141,7 @@ contains
 
 
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
   attributes(device) &
 #endif
   subroutine amrex_min(x, y)
@@ -155,7 +155,7 @@ contains
 
     real(amrex_real) :: t
 
-#ifdef CUDA
+#ifdef AMREX_USE_CUDA
     t = atomicMin(x, y)
 #else
     x = min(x, y)
