@@ -165,7 +165,7 @@ else ()
       AMREX_Fortran_FLAGS )
 endif ()
 
-if ( AMREX_CXXLAGS_OVERRIDES )
+if ( AMREX_CXXFLAGS_OVERRIDES )
    set ( AMREX_CXX_FLAGS ${AMREX_CXXFLAGS_OVERRIDES} )
 else ()
    append ( AMREX_${CXX_ID}_CXXFLAGS_${AMREX_BUILD_TYPE}
@@ -177,7 +177,13 @@ append ( AMREX_EXTRA_CXX_FLAGS AMREX_CXX_FLAGS )
 
 # Add required flags
 append ( AMREX_${FC_ID}_FFLAGS_REQUIRED AMREX_Fortran_FLAGS )
-append ( AMREX_${CXX_ID}_CXXLAGS_REQUIRED AMREX_CXX_FLAGS )
+append ( AMREX_${CXX_ID}_CXXFLAGS_REQUIRED AMREX_CXX_FLAGS )
+
+# Add FPE flags if required 
+if (ENABLE_FPE)
+   append ( AMREX_${FC_ID}_FFLAGS_FPE AMREX_Fortran_FLAGS )
+   append ( AMREX_${CXX_ID}_CXXFLAGS_FPE AMREX_CXX_FLAGS )
+endif ()
 
 # Set CMake compiler flags
 set ( CMAKE_Fortran_FLAGS_${AMREX_BUILD_TYPE} "${AMREX_Fortran_FLAGS}" ) 
@@ -189,6 +195,7 @@ set ( CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE} "${AMREX_CXX_FLAGS}" )
 #
 message( STATUS "AMReX configuration summary: ")
 message( STATUS "   Build type               = ${CMAKE_BUILD_TYPE}")
+message( STATUS "   Install directory        = ${CMAKE_INSTALL_PREFIX}")
 message( STATUS "   Preprocessor flags       = ${AMREX_DEFINES}")
 message( STATUS "   C++ compiler             = ${CMAKE_CXX_COMPILER}")
 message( STATUS "   Fortran compiler         = ${CMAKE_Fortran_COMPILER}")

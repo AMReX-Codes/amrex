@@ -176,10 +176,13 @@ protected:
     bool use_fixed_coarse_grids;
     int  use_fixed_upto_level;
     bool refine_grid_layout; // chop up grids to have the number of grids no less the number of procs
+    bool check_input;
 
     Array<Geometry>            geom;
     Array<DistributionMapping> dmap;
     Array<BoxArray>            grids;    
+
+    void checkInput();
 
 private:
   void InitAmrMesh (int max_level_in, const Array<int>& n_cell_in,

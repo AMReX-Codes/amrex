@@ -5,6 +5,8 @@ import os
 import shlex
 import subprocess
 import sys
+import email
+import smtplib
 
 usage = """
 The test suite and its tests are defined through an input file in an INI
@@ -184,6 +186,8 @@ class Log(object):
             self.of = None
             self.have_log = False
 
+        self.suite = None
+
     def indent(self):
         self.current_indent += 1
         self.indent_str = self.current_indent*"   "
@@ -203,6 +207,24 @@ class Log(object):
         print("{}{}".format(self.indent_str, nstr))
         if self.have_log:
             self.of.write("{}{}\n".format(self.indent_str, string))
+
+        def email_developers():
+            emailto   = ",".join(self.suite.emailTo)
+            emailfrom = self.suite.emailFrom
+            subject = "Regression testing suite failed to run for {}".format(
+                self.suite.suiteName)
+            msg = "To: {} \nFrom: {} \nSubject: {}\n\n Reason: {}".format(
+                emailto, emailfrom, subject, string)
+
+            server = smtplib.SMTP('localhost')
+            server.sendmail(self.suite.emailFrom, self.suite.emailTo, msg)
+            server.quit()
+
+        if self.suite.sendEmailWhenFail:
+            self.suite.log.skip()
+            self.suite.log.bold("sending email...")
+            email_developers()
+
         self.close_log()
         sys.exit()
 

@@ -17,6 +17,7 @@
 #include "AMReX_EBISBox.H"
 #include "AMReX_Stencils.H"
 #include "AMReX_IntVectSet.H"
+#include "AMReX_EBLevelGrid.H"
 #include <sstream>
 
 
@@ -43,6 +44,13 @@ namespace amrex
         return ivar*SpaceDim + gradDir;
       }
 
+    ///returns true if coarsenable (either by agglomeration or otherwise)
+    static bool
+    createCoarserEBLG(EBLevelGrid       &  a_eblgCoar,
+                      const EBLevelGrid &  a_eblgFine,
+                      const int         &  a_refRat,
+                      const int         &  a_minBoxSize,
+                      const int         &  a_maxBoxSize);
     ///
     /**
        Return true if there is a unique adjacent face in the
@@ -169,6 +177,20 @@ namespace amrex
                           IntVectSet*    a_cfivsPtr,
                           int ivar);
 
+    static Box 
+    adjCellBox(const Box            & a_valid, 
+               const int            & a_dir, 
+               const Side::LoHiSide & a_side, 
+               const int            & a_len);
+
+    ///first order extrap to ghost cells
+    static void 
+    ExtrapolateBC(BaseFab<Real>&  a_state,
+                  const Box&      a_valid,
+                  Real            a_dx,
+                  int             a_dir,
+                  Side::LoHiSide  a_side);
+
     static int
     getMixedDerivStencil(VoFStencil&      a_sten,
                          const VolIndex&  a_vof,
@@ -179,6 +201,13 @@ namespace amrex
                          const Real&      a_dx2,
                          IntVectSet*    a_cfivsPtr,
                          int ivar);
+
+    static Real  getDiagWeight(  VoFStencil&     a_vofStencil,
+                                 const VolIndex& a_vof,
+                                 int             a_ivar=0);
+
+    ///for relaxation schemes.  good to have it in one place
+    static void getMultiColors(vector<IntVect>& a_colors);
 
     static bool
     isVoFHere(VolIndex& a_vof2,
@@ -288,6 +317,9 @@ namespace amrex
                const VolIndex& a_vof,
                int a_idir, Side::LoHiSide a_sd,
                IntVectSet*    a_cfivsPtr);
+
+    static RealVect
+    getDomainNormal(int a_idir, Side::LoHiSide a_side);
 
     ///gets the location in real space of a cell center
     static RealVect  getVofLocation(const VolIndex&  a_vof,
