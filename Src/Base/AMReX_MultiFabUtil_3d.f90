@@ -476,6 +476,7 @@ subroutine amrex_eb_avgdown_sv (lo, hi, fine, flo, fhi, crse, clo, chi, flag, fg
                  end do
               endif
               crse(i,j,k,n) = crse(i,j,k,n) / cv
+           end do
         end do
      end do
   end do
