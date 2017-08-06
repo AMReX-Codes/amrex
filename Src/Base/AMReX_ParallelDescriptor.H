@@ -547,6 +547,7 @@ namespace ParallelDescriptor
 
 
     extern int m_nCommColors;
+    extern int m_clr_map;
 
     //! A communicator can be split into multiple sub-communicators associated with different colors
     class Color
