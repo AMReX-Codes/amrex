@@ -127,6 +127,7 @@ namespace ParallelDescriptor
 #endif
 
     int m_nCommColors = 1;
+    int m_clr_map = 0;
     Color m_MyCommSubColor;
     Color m_MyCommCompColor;
 
@@ -366,10 +367,7 @@ ParallelDescriptor::Translate(int rk_clrd,Color clr)
   }
   else if (clr.valid())
   {
-    int clr_map = 0;
-    amrex::ParmParse pp("amrex");
-    pp.query("clr_map",clr_map);
-    if (!clr_map)
+    if (!m_clr_map)
     {
       return m_first_procs_clr[clr.to_int()]+rk_clrd;
     }
@@ -409,10 +407,7 @@ ParallelDescriptor::init_clr_vars()
   /* My color */
   int my_clr;
   /* Definition of `my_clr` */
-  int clr_map = 0;
-  amrex::ParmParse pp("amrex");
-  pp.query("clr_map",clr_map);
-  if (!clr_map)
+  if (!m_clr_map)
   {
     /* All first proc.'s (clear) */
     m_first_procs_clr.clear();
@@ -803,7 +798,8 @@ void
 ParallelDescriptor::StartSubCommunicator ()
 {
     ParmParse pp("amrex");
-    pp.query("ncolors", m_nCommColors);
+    pp.query("ncolors",m_nCommColors);
+    pp.query("clr_map",m_clr_map);
 
     if (m_nCommColors > 1)
     {
@@ -2211,6 +2207,7 @@ void
 ParallelDescriptor::StartSubCommunicator ()
 {
     m_nCommColors = 1;
+    m_clr_map = 0;
     m_nProcs_sub  = 1;
     m_num_procs_clr.resize(1,0);
     m_first_procs_clr.resize(1,0);
