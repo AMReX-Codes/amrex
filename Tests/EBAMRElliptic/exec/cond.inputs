@@ -18,3 +18,6 @@ fill_ratio = 0.7
 buffer_size = 2
 
 which_geom = 5
+
+num_smooth = 4
+num_smooth_bottom = 27

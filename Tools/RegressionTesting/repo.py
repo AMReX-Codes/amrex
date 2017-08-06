@@ -39,6 +39,10 @@ class Repo(object):
             self.suite.log.log("git checkout {} in {}".format(self.branch_wanted, self.dir))
             stdout, stderr, rc = test_util.run("git checkout {}".format(self.branch_wanted),
                                                stdin=True)
+
+            if not rc == 0:
+                self.suite.log.fail("ERROR: git checkout was unsuccessful")
+
         else:
             self.branch_wanted = self.branch_orig
 
