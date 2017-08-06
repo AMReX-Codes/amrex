@@ -402,6 +402,7 @@ namespace amrex
         
     m_tag = AllRegular;
     m_region = a_region;
+    m_fullRegion = a_region;
     m_irregIVS = IntVectSet();
     m_multiIVS = IntVectSet();
     m_mask.clear();
@@ -753,11 +754,16 @@ namespace amrex
     m_implem->fillMask(a_mask);
   }
   /*******************************/
-  void EBGraph::fillIntMask(BaseFab<int>& a_mask) const
+  void EBGraph::fillIntMask(BaseFab<int>& a_mask,
+                            const Box   & a_subbox) const
   {
-    Box interiorRegion = getRegion();
+    Box fullRegion = getFullRegion();
+    fullRegion &= a_subbox;
+    Box interiorRegion = fullRegion;
     interiorRegion &= getDomain();
-    a_mask.resize(interiorRegion, 1);
+
+    a_mask.resize(fullRegion, 1);
+    a_mask.setVal(2);
     for(BoxIterator boxit(interiorRegion); boxit.ok(); ++boxit)
     {
       const IntVect& iv = boxit();
@@ -1649,7 +1655,7 @@ namespace amrex
     retval += incrval;
 
     m_domain.linearOut(buf);
-    incrval = m_region.linearSize();
+    incrval = m_domain.linearSize();
     buf    += incrval;
     retval += incrval;
 
@@ -1712,7 +1718,7 @@ namespace amrex
     retval += incrval;
 
     m_domain.linearIn(buf);
-    incrval = m_region.linearSize();
+    incrval = m_domain.linearSize();
     buf    += incrval;
     retval += incrval;
 

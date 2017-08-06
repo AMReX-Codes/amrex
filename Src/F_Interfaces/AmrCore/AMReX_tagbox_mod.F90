@@ -13,7 +13,8 @@ module amrex_tagbox_module
    contains
      generic   :: assignment(=) => amrex_tagboxarray_assign, amrex_tagboxarray_install
      procedure :: dataPtr       => amrex_tagboxarray_dataptr
-     procedure, private :: amrex_tagboxarray_assign, amrex_tagboxarray_install
+     procedure, private :: amrex_tagboxarray_assign
+     procedure, private :: amrex_tagboxarray_install
   end type amrex_tagboxarray
 
   interface
