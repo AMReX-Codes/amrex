@@ -4,6 +4,6 @@ SRC_FILES = theory.tex \
 
 all: $(SRC_FILES)
 	rm -f allbibs.bib;cat *.bib > allbibs.bib
-	rm -f theory.rst
 	pandoc theory.tex --mathjax -S --wrap=preserve --bibliography allbibs.bib -o warpx_theory.rst
-	cp warpx_theory.rst ../source/theory/
+	pandoc ../../../picsar/Doxygen/latex_theory/theory.tex --mathjax -S --wrap=preserve --bibliography allbibs.bib -o picsar_theory.rst
+	cp *.rst ../source/theory/
