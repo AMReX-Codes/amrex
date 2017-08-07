@@ -23,9 +23,10 @@ extern "C" {
 	bao = new BoxArray(*bai);
     }
 
-    void amrex_fi_boxarray_maxsize (BoxArray* ba, int sz)
+    void amrex_fi_boxarray_maxsize (BoxArray* ba, int sz[])
     {
-	ba->maxSize(sz);
+        IntVect iv(D_DECL(sz[0],sz[1],sz[2]));
+        ba->maxSize(iv);
     }
 
     void amrex_fi_boxarray_get_box (const BoxArray* ba, int i, int lo[3], int hi[3])

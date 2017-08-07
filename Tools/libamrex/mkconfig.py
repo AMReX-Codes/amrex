@@ -25,7 +25,7 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
 
     print("#undef",undefines)
 
-    if comp == "gnu":
+    if comp == "gnu" or comp == "nag":
         print("#ifndef __GNUC__")
         print('static_assert(false,"libamrex was built with GNU");')
         print("#endif")
@@ -72,7 +72,7 @@ if __name__ == "__main__":
                         default="")
     parser.add_argument("--comp",
                         help="compiler",
-                        choices=["gnu","intel","cray","pgi","llvm"])
+                        choices=["gnu","intel","cray","pgi","llvm","nag"])
     parser.add_argument("--allow-different-compiler",
                         help="allow an application to use a different compiler than the one used to build libamrex",
                         choices=["TRUE","FALSE"])
