@@ -1,8 +1,10 @@
 
 #include <AMReX_EBLevel.H>
-#include <type_traits>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_MultiFab.H>
+
+#include <type_traits>
+#include <algorithm>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -95,47 +97,53 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
             auto& cellflag = fab(iv);
             cellflag.setDisconnected();
             cellflag.setConnected(IntVect::TheZeroVector());
+
             const auto& vofs = ebis.getVoFs(iv);
             for (const auto& vi : vofs)
             {
-                for (int dir_0 = 0; dir_0 < AMREX_SPACEDIM; ++dir_0)
+                std::array<int,AMREX_SPACEDIM> dirs = {AMREX_D_DECL(0,1,2)};
+                do
                 {
-                    int dir_1 = (dir_0+1) % AMREX_SPACEDIM;
-                    int dir_2 = (dir_0+2) % AMREX_SPACEDIM;
+                    IntVect offset_0 = IntVect::TheZeroVector();
                     for (SideIterator sit_0; sit_0.ok(); ++sit_0)
                     {
-                        const auto& vofs_0 = ebis.getVoFs(vi, dir_0, sit_0(), 1);
+                        offset_0[dirs[0]] = amrex::sign(sit_0());
+
+                        const auto& vofs_0 = ebis.getVoFs(vi, dirs[0], sit_0(), 1);
                         for (const auto& vi_0 : vofs_0)
                         {
+                            cellflag.setConnected(offset_0);
+
+#if (AMREX_SPACEDIM >= 2)
+                            IntVect offset_1 = offset_0;
                             for (SideIterator sit_1; sit_1.ok(); ++sit_1)
                             {
-                                const auto& vofs_1 = ebis.getVoFs(vi_0, dir_1, sit_1(), 1);
+                                offset_1[dirs[1]] = amrex::sign(sit_1());
+
+                                const auto& vofs_1 = ebis.getVoFs(vi_0, dirs[1], sit_1(), 1);
                                 for (const auto& vi_1 : vofs_1)
                                 {
-#if (AMREX_SPACEDIM == 2)
-                                    IntVect iv;
-                                    iv[dir_0] = amrex::sign(sit_0());
-                                    iv[dir_1] = amrex::sign(sit_1());
-                                    cellflag.setConnected(iv);
-#else
+                                    cellflag.setConnected(offset_1);
+
+#if (AMREX_SPACEDIM == 3)
+                                    IntVect offset_2 = offset_1;
                                     for (SideIterator sit_2; sit_2.ok(); ++sit_2)
                                     {
-                                        const auto& vofs_2 = ebis.getVoFs(vi_1, dir_2, sit_2(), 1);
+                                        offset_2[dirs[2]] = amrex::sign(sit_2());
+
+                                        const auto& vofs_2 = ebis.getVoFs(vi_1, dirs[2], sit_2(), 1);
                                         for (const auto& vi_2 : vofs_2)
                                         {
-                                            IntVect iv;
-                                            iv[dir_0] = amrex::sign(sit_0());
-                                            iv[dir_1] = amrex::sign(sit_1());
-                                            iv[dir_2] = amrex::sign(sit_2());
-                                            cellflag.setConnected(iv);
+                                            cellflag.setConnected(offset_2);
                                         }
                                     }
 #endif
                                 }
                             }
+#endif
                         }
                     }
-                }
+                } while (std::next_permutation(dirs.begin(), dirs.end()));
             }
         }        
     }
