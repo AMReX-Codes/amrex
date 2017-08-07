@@ -26,10 +26,6 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp)
     }
     ParallelDescriptor::ReduceRealMin(minvals.data(), ncomp);
 
-    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf.Factory());
-    const auto& eblevel = factory.getEBLevel();
-    const auto& flags = eblevel.Flags();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -37,7 +33,7 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp)
     {
         const Box& bx = mfi.tilebox();
         FArrayBox& fab = mf[mfi];
-        const auto& flagfab = flags[mfi];
+        const auto& flagfab = amrex::getEBFlagFab(fab);
         amrex_eb_set_covered(BL_TO_FORTRAN_BOX(bx),
                              BL_TO_FORTRAN_N_ANYD(fab,icomp),
                              BL_TO_FORTRAN_ANYD(flagfab),
@@ -50,11 +46,7 @@ EB_set_volume_fraction (MultiFab& mf)
 {
     BL_ASSERT(mf.nComp() == 1);
 
-    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf.Factory());
-    const auto& ebisl   = factory.getEBISLayout();
-    const auto& eblevel = factory.getEBLevel();
-    const auto& flags = eblevel.Flags();
-    const Box& domain = eblevel.getDomain();
+    const Box& domain = amrex::getLevelDomain(mf);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -62,9 +54,9 @@ EB_set_volume_fraction (MultiFab& mf)
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox();
-        FArrayBox& fab = mf[mfi];
+        EBFArrayBox& fab = static_cast<EBFArrayBox&>(mf[mfi]);
         fab.setVal(1.0, bx);
-        FabType typ = flags[mfi].getType();
+        FabType typ = fab.getType();
         if (typ != FabType::regular)
         {
             if (typ == FabType::covered) {
@@ -72,7 +64,7 @@ EB_set_volume_fraction (MultiFab& mf)
             }
             else
             {
-                const auto& ebisbox = ebisl[mfi];
+                const auto& ebisbox = fab.getEBISBox();
                 const Box& bx_sect = bx & domain;
                 for (BoxIterator bi(bx_sect); bi.ok(); ++bi)
                 {
@@ -103,9 +95,6 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 
     MultiFab crse_S_fine = amrex::makeMultiEBFab(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),S_crse);
 
-    const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_S_fine.Factory());
-    const auto& flags = factory.getEBLevel().Flags();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -115,7 +104,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
         const Box& fbx = amrex::refine(tbx,ratio);
         auto& crse_fab = crse_S_fine[mfi];
         const auto& fine_fab = S_fine[mfi];
-        const auto& flag_fab = flags[mfi];
+        const auto& flag_fab = amrex::getEBFlagFab(crse_fab);
 
         FabType typ = flag_fab.getType(tbx);
         

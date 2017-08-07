@@ -12,6 +12,7 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EBFArrayBox.H>
 #endif
 
 namespace amrex

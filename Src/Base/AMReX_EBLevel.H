@@ -27,6 +27,13 @@ private:
     std::shared_ptr<FabArray<EBFlagFab> > m_flags;
 };
 
+class MultiFab;
+Box getLevelDomain (const MultiFab& mf);
+
+const EBLevel& getEBLevel (const MultiFab& mf);
+
+const FabArray<EBFlagFab>& getMultiEBFlagFab (const MultiFab& mf);
+
 }
 
 #endif

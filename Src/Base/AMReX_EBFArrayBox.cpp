@@ -26,4 +26,20 @@ EBFArrayBox::~EBFArrayBox ()
 
 }
 
+const EBFlagFab&
+getEBFlagFab (const FArrayBox& fab)
+{
+    const EBFArrayBox* ebfab = static_cast<EBFArrayBox const*>(&fab);
+    BL_ASSERT(ebfab);
+    return ebfab->getEBFlagFab();
+}
+
+const EBISBox&
+getEBISBox (const FArrayBox& fab)
+{
+    const EBFArrayBox* ebfab = static_cast<EBFArrayBox const*>(&fab);
+    BL_ASSERT(ebfab);
+    return ebfab->getEBISBox();
+}
+
 }

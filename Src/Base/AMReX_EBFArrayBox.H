@@ -22,10 +22,17 @@ public:
 
     virtual ~EBFArrayBox ();
 
+    const EBISBox& getEBISBox () const { return *m_ebisbox; }
+    const EBFlagFab& getEBFlagFab () const { return *m_ebflag; }
+
 private:
     const EBISBox* m_ebisbox;
     const EBFlagFab* m_ebflag;
 };
+
+const EBFlagFab& getEBFlagFab (const FArrayBox& fab);
+
+const EBISBox& getEBISBox (const FArrayBox& fab);
 
 }
 
