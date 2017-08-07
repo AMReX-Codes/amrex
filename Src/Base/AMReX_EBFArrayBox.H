@@ -23,7 +23,8 @@ public:
     virtual ~EBFArrayBox ();
 
 private:
-    EBISBox m_ebisbox;
+    const EBISBox* m_ebisbox;
+    const EBFlagFab* m_ebflag;
 };
 
 }
