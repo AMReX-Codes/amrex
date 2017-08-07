@@ -263,6 +263,9 @@ public:
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b,
                  int        N = 1);
+
+    FabType getType () const { return m_type; }
+
     //! Write FABs in ASCII form.
     friend std::ostream& operator<< (std::ostream&    os,
                                      const FArrayBox& fb);

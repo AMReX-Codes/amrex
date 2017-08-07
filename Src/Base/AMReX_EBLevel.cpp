@@ -1,12 +1,36 @@
 
 #include <AMReX_EBLevel.H>
 #include <type_traits>
+#include <AMReX_EBFabFactory.H>
+#include <AMReX_MultiFab.H>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 namespace amrex {
+
+Box
+getLevelDomain (const MultiFab& mf)
+{
+    const auto& eblevel = amrex::getEBLevel(mf);
+    return eblevel.getDomain();
+}
+
+const EBLevel&
+getEBLevel (const MultiFab& mf)
+{
+    const EBFArrayBoxFactory* factory = dynamic_cast<EBFArrayBoxFactory const*>(&(mf.Factory()));
+    BL_ASSERT(factory);
+    return factory->getEBLevel();
+}
+
+const FabArray<EBFlagFab>&
+getMultiEBFlagFab (const MultiFab& mf)
+{
+    const auto& eblevel = amrex::getEBLevel(mf);
+    return eblevel.Flags();    
+}
 
 EBLevel::EBLevel ()
 {
