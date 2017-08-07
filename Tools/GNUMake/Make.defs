@@ -168,8 +168,11 @@ else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
+else ifeq ($(lowercase_comp),nag)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, and llvm)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, and nag)
 endif
 
 ifeq ($(MAKECMDGOALS),check_fortran)
