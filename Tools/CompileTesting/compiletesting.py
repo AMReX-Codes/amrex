@@ -55,7 +55,6 @@ def compiletesting(arg_string):
                      'Tests/LinearSolvers/C_CellMG',
                      'Tests/LinearSolvers/ComparisonTest',
                      'Tests/LinearSolvers/C_TensorMG',
-                     'Tests/LinearSolvers/F_MG',
                      'Tests/MKDir',
                      'MiniApps/FillBoundary',
                      'MiniApps/MultiGrid_C']
@@ -77,6 +76,7 @@ def compiletesting(arg_string):
                           'OldTutorials/Random_F',
                           'OldTutorials/Tiling_Heat_F',
                           'OldTutorials/WaveEquation_F',
+                          'Tests/LinearSolvers/F_MG',
                           'MiniApps/SMC']
 
     else:
