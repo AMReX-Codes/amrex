@@ -8,17 +8,16 @@ namespace amrex
 {
 
 EBFArrayBoxFactory::EBFArrayBoxFactory (const EBLevel& a_eblevel)
-    : m_eblevel(a_eblevel),
-      m_ebisl(m_eblevel.getEBISL())
+    : m_eblevel(a_eblevel)
 {}
 
 FArrayBox*
 EBFArrayBoxFactory::create (const Box& box, int ncomps,
                             const FabInfo& info, int box_index) const
 {
-    const auto& ebisl = this->getEBISLayout();
+    const auto& ebisl = this->getEBISL();
     const auto& eblevel = this->getEBLevel();
-    if (m_ebisl.isDefined())
+    if (ebisl.isDefined())
     {
         const EBISBox& ebisBox = ebisl[box_index];
         const EBFlagFab& ebflag = eblevel.Flags()[box_index];

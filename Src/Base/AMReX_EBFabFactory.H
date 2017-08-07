@@ -23,7 +23,7 @@ public:
     EBFArrayBoxFactory& operator= (EBFArrayBoxFactory&&) = delete;
 
     const EBLevel& getEBLevel () const { return m_eblevel; }
-    const EBISLayout& getEBISLayout () const { return m_ebisl; }
+    const EBISLayout& getEBISL () const { return m_eblevel.getEBISL(); }
 
     virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override;
 
@@ -31,7 +31,6 @@ public:
 
 private:
     EBLevel m_eblevel;
-    EBISLayout m_ebisl;
 };
 
 }

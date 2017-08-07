@@ -42,7 +42,8 @@ EBLevel::~EBLevel ()
 
 EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng)
     : EBLevelGrid(ba,dm,domain,ng),
-      m_flags(std::make_shared<FabArray<EBFlagFab> >(ba, dm, 1, ng))
+      m_flags(std::make_shared<FabArray<EBFlagFab> >(ba, dm, 1, ng)),
+      m_ebisl(std::make_shared<EBISLayout>(EBLevelGrid::getEBISL()))
 {
     static_assert(sizeof(EBCellFlag) == 4, "sizeof EBCellFlag != 4");
     static_assert(std::is_standard_layout<EBCellFlag>::value == true, "EBCellFlag is not pod");
@@ -54,7 +55,7 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
     {
         auto& fab = (*m_flags)[mfi];
         const Box& bx = fab.box() & domain;
-        const EBISBox& ebis = m_ebisl[mfi];
+        const EBISBox& ebis = (*m_ebisl)[mfi];
         int nregular=0, nsingle=0, nmulti=0, ncovered=0;
         int ncells = bx.numPts();
         for (BoxIterator bi(bx); bi.ok(); ++bi)
