@@ -54,7 +54,7 @@ EB_set_volume_fraction (MultiFab& mf)
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox();
-        EBFArrayBox& fab = static_cast<EBFArrayBox&>(mf[mfi]);
+        EBFArrayBox& fab = dynamic_cast<EBFArrayBox&>(mf[mfi]);
         fab.setVal(1.0, bx);
         FabType typ = fab.getType();
         if (typ != FabType::regular)
@@ -65,6 +65,7 @@ EB_set_volume_fraction (MultiFab& mf)
             else
             {
                 const auto& ebisbox = fab.getEBISBox();
+
                 const Box& bx_sect = bx & domain;
                 for (BoxIterator bi(bx_sect); bi.ok(); ++bi)
                 {
