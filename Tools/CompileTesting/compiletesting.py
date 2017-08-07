@@ -14,6 +14,7 @@ def compiletesting(arg_string):
     parser.add_argument("--redo_failed", action="store_true")
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--test_pgas", action="store_true",default=False)
+    parser.add_argument("--test_boxlib", action="store_true",default=False)
     parser.add_argument("--make_flags", type=str, default="")
     if not arg_string is None:
         args = parser.parse_args(arg_string)
@@ -36,31 +37,18 @@ def compiletesting(arg_string):
                      'Tutorials/Amr/Advection_octree_F/Exec/SingleVortex',
                      'Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex',
                      'Tutorials/Amr/Advection_AmrLevel/Exec/UniformVelocity',
-                     'OldTutorials/AMR_Adv_F/Exec/SingleVortex',
-                     'OldTutorials/AMR_Adv_F/Exec/UniformVelocity',
                      'OldTutorials/DataServicesTest0',
-                     'OldTutorials/Exp_CNS_NoSpec_F',
                      'OldTutorials/GettingStarted_C',
-                     'OldTutorials/GettingStarted_F',
-                     'OldTutorials/HeatEquation_EX1_F',
                      'OldTutorials/HeatEquation_EX2_C',
-                     'OldTutorials/HeatEquation_EX2_F',
-                     'OldTutorials/HeatEquation_EX3_F',
-                     'OldTutorials/HeatEquation_EX4_F',
-                     'OldTutorials/HeatEquation_EX5_F',
                      'OldTutorials/MultiColor_C',
                      'OldTutorials/MultiFabTests_C',
                      'OldTutorials/MultiGrid_C',
-                     'OldTutorials/MultiGrid_F',
-                     'OldTutorials/PIC_C',
-                     'OldTutorials/Random_F',
+#                     'OldTutorials/PIC_C',
                      'OldTutorials/Sidecar_EX1',
                      'OldTutorials/Tiling_C',
                      'OldTutorials/Tiling_Heat_C',
-                     'OldTutorials/Tiling_Heat_F',
 #                     'OldTutorials/TwoGrid_PIC_C',
                      'OldTutorials/WaveEquation_C',
-                     'OldTutorials/WaveEquation_F',
                      'Tests/BBIOBenchmark',
                      'Tests/C_BaseLib',
                      'Tests/IOBenchmark',
@@ -70,17 +58,35 @@ def compiletesting(arg_string):
                      'Tests/LinearSolvers/F_MG',
                      'Tests/MKDir',
                      'MiniApps/FillBoundary',
-                     'MiniApps/MultiGrid_C',
-                     'MiniApps/SMC']
+                     'MiniApps/MultiGrid_C']
         if (args.test_pgas):
-            test_list += ['Tests/FillBoundaryComparison','OldTutorials/PGAS_HEAT', 'MiniApps/PGAS_SMC']
+            test_list += ['Tests/FillBoundaryComparison',
+                          'OldTutorials/PGAS_HEAT',
+                          'MiniApps/PGAS_SMC']
+        if (args.test_boxlib):
+            test_list += ['OldTutorials/AMR_Adv_F/Exec/SingleVortex',
+                          'OldTutorials/AMR_Adv_F/Exec/UniformVelocity',
+                          'OldTutorials/Exp_CNS_NoSpec_F',
+                          'OldTutorials/GettingStarted_F',
+                          'OldTutorials/HeatEquation_EX1_F',
+                          'OldTutorials/HeatEquation_EX2_F',
+                          'OldTutorials/HeatEquation_EX3_F',
+                          'OldTutorials/HeatEquation_EX4_F',
+                          'OldTutorials/HeatEquation_EX5_F',
+                          'OldTutorials/MultiGrid_F',
+                          'OldTutorials/Random_F',
+                          'OldTutorials/Tiling_Heat_F',
+                          'OldTutorials/WaveEquation_F',
+                          'MiniApps/SMC']
+
     else:
-        test_list = ['Tutorials/Basic/HeatEquation_EX1_F',
-                     'Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex',
-                     'OldTutorials/AMR_Adv_F/Exec/SingleVortex',
+        test_list = ['Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex',
                      'OldTutorials/AMR_Adv_CF/Exec/SingleVortex',
-                     'OldTutorials/PIC_C',
+#                     'OldTutorials/PIC_C',
                      'Tests/LinearSolvers/ComparisonTest']
+        if (args.test_boxlib):
+            test_list += ['Tutorials/Basic/HeatEquation_EX1_F',
+                          'OldTutorials/AMR_Adv_F/Exec/SingleVortex']
 
     print "Test List: ", test_list
 
