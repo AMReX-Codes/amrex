@@ -1,9 +1,6 @@
 SRC_FILES = theory.tex \
-            Deposition/Current_deposition.tex \
-            Gather/Field_gather.tex \
-            Maxwell_solvers/Maxwell_FDTD_solver.tex \
-            Maxwell_solvers/Maxwell_NSFDTD_solver.tex \
-            Maxwell_solvers/Maxwell_PSATD_solver.tex
+            AMR/AMR.tex \
+			PML/PML.tex
 
 all: $(SRC_FILES)
 	rm -f allbibs.bib;cat *.bib > allbibs.bib
