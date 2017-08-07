@@ -14,5 +14,10 @@ ifeq ($(USE_PARTICLES), TRUE)
   CEXE_headers += AMReX_AmrParGDB.H AMReX_AmrParticles.H
 endif
 
+ifeq ($(USE_EB),TRUE)
+  CEXE_headers += AMReX_EBInterpolater.H
+  CEXE_sources += AMReX_EBInterpolater.cpp
+endif
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/AmrCore
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrCore

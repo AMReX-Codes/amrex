@@ -16,6 +16,7 @@
 #include <AMReX_VisMF.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_EBLevel.H>
+#include <AMReX_EBInterpolater.H>
 #endif
 
 #include <memory>

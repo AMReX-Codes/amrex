@@ -214,7 +214,7 @@ public:
                          int              actual_comp,
                          int              actual_state) override;
 
-private:
+protected:
 
     bool do_linear_limiting;
 };
