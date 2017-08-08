@@ -40,15 +40,15 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
 
     if (crse.getType() == FabType::regular)
     {
-        BL_ASSERT(amrex::getEBFlagFab(fine).getType(target_fine_region) == FabType::regular);
+        BL_ASSERT(amrex::getEBCellFlagFab(fine).getType(target_fine_region) == FabType::regular);
     }
     else
     {
         const EBFArrayBox& crse_eb = dynamic_cast<EBFArrayBox const&>(crse);
         EBFArrayBox&       fine_eb = dynamic_cast<EBFArrayBox      &>(fine);
         
-        const EBFlagFab& crse_flag = crse_eb.getEBFlagFab();
-        const EBFlagFab& fine_flag = fine_eb.getEBFlagFab();
+        const EBCellFlagFab& crse_flag = crse_eb.getEBCellFlagFab();
+        const EBCellFlagFab& fine_flag = fine_eb.getEBCellFlagFab();
         
         const Box& crse_bx = CoarseBox(target_fine_region,ratio);
     

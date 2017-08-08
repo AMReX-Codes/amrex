@@ -27,11 +27,11 @@ getEBLevel (const MultiFab& mf)
     return factory->getEBLevel();
 }
 
-const FabArray<EBFlagFab>&
-getMultiEBFlagFab (const MultiFab& mf)
+const FabArray<EBCellFlagFab>&
+getMultiEBCellFlagFab (const MultiFab& mf)
 {
     const auto& eblevel = amrex::getEBLevel(mf);
-    return eblevel.Flags();    
+    return eblevel.CellFlags();    
 }
 
 EBLevel::EBLevel ()
@@ -44,7 +44,7 @@ EBLevel::~EBLevel ()
 
 EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng)
     : EBLevelGrid(ba,dm,domain,ng),
-      m_flags(std::make_shared<FabArray<EBFlagFab> >(ba, dm, 1, ng)),
+      m_cellflags(std::make_shared<FabArray<EBCellFlagFab> >(ba, dm, 1, ng)),
       m_ebisl(std::make_shared<EBISLayout>(EBLevelGrid::getEBISL()))
 {
     static_assert(sizeof(EBCellFlag) == 4, "sizeof EBCellFlag != 4");
@@ -53,9 +53,9 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(*m_flags); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*m_cellflags); mfi.isValid(); ++mfi)
     {
-        auto& fab = (*m_flags)[mfi];
+        auto& fab = (*m_cellflags)[mfi];
         const Box& bx = fab.box() & domain;
         const EBISBox& ebis = (*m_ebisl)[mfi];
         int nregular=0, nsingle=0, nmulti=0, ncovered=0;

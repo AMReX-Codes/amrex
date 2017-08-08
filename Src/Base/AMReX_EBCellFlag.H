@@ -134,7 +134,7 @@ private:
 };
 
 
-class EBFlagFab
+class EBCellFlagFab
     : public BaseFab<EBCellFlag>
 {
 public:
