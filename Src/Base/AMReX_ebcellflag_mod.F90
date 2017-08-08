@@ -2,7 +2,7 @@
 module amrex_ebcellflag_module
   implicit none
   private
-  public :: is_regular, is_single_valued, is_multi_valued, is_covered, get_neighbors
+  public :: is_regular, is_single_valued, is_multi_valued, is_covered, get_neighbors, num_neighbors
   
   integer, parameter :: w_type      = 2
   integer, parameter :: w_numvofs   = 3
@@ -38,6 +38,32 @@ contains
     is_covered = ibits(flag,0,w_type) .eq. covered
   end function is_covered
 
+#if (AMREX_SPACEDIM == 2)
+
+  pure subroutine get_neighbors (flag, ngbr)
+    integer, intent(in) :: flag
+    integer, intent(inout) :: ngbr(-1:1,-1:1)
+    integer :: i, j
+    do j = -1,1
+       do i = -1,1
+          if (btest(flag,pos_ngbr(i,j,0))) then
+             ngbr(i,j) = 1
+          else
+             ngbr(i,j) = 0
+          end if
+       end do
+    end do
+  end subroutine get_neighbors
+
+  pure integer function num_neighbors (flag)
+    integer, intent(in) :: flag
+    integer ngbr(-1:1,-1:1)
+    call get_neighbors(flag, ngbr)
+    num_neighbors = count(ngbr.eq.1)
+  end function num_neighbors
+
+#else
+
   pure subroutine get_neighbors (flag, ngbr)
     integer, intent(in) :: flag
     integer, intent(inout) :: ngbr(-1:1,-1:1,-1:1)
@@ -54,5 +80,14 @@ contains
        end do
     end do
   end subroutine get_neighbors
+
+  pure integer function num_neighbors (flag)
+    integer, intent(in) :: flag
+    integer ngbr(-1:1,-1:1,-1:1)
+    call get_neighbors(flag, ngbr)
+    num_neighbors = count(ngbr.eq.1)
+  end function num_neighbors
+
+#endif
 
 end module amrex_ebcellflag_module

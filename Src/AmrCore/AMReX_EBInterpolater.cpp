@@ -1,5 +1,9 @@
 
 #include <AMReX_EBInterpolater.H>
+#include <AMReX_EBFArrayBox.H>
+#include <AMReX_EBCellFlag.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_EBInterp_f.H>
 
 namespace amrex {
 
@@ -13,7 +17,6 @@ EBCellConservativeLinear::EBCellConservativeLinear (bool do_linear_limiting_)
 
 EBCellConservativeLinear::~EBCellConservativeLinear ()
 {
-
 }
 
 void
@@ -30,7 +33,51 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
                                   int              actual_comp,
                                   int              actual_state)
 {
+    CellConservativeLinear::interp(crse, crse_comp, fine, fine_comp, ncomp, fine_region, ratio,
+                                   crse_geom, fine_geom, bcr, actual_comp, actual_state);
 
+    const Box& target_fine_region = fine_region & fine.box();
+
+    if (crse.getType() == FabType::regular)
+    {
+        BL_ASSERT(amrex::getEBFlagFab(fine).getType(target_fine_region) == FabType::regular);
+    }
+    else
+    {
+        const EBFArrayBox& crse_eb = dynamic_cast<EBFArrayBox const&>(crse);
+        EBFArrayBox&       fine_eb = dynamic_cast<EBFArrayBox      &>(fine);
+        
+        const EBFlagFab& crse_flag = crse_eb.getEBFlagFab();
+        const EBFlagFab& fine_flag = fine_eb.getEBFlagFab();
+        
+        const Box& crse_bx = CoarseBox(target_fine_region,ratio);
+    
+        const FabType ftype = fine_flag.getType(target_fine_region);
+        const FabType ctype = crse_flag.getType(crse_bx);
+
+        if (ftype == FabType::multivalued || ctype == FabType::multivalued)
+        {
+            amrex::Abort("EBCellConservativeLinear::interp: multivalued not implemented");
+        }
+        else if (ftype == FabType::covered)
+        {
+            ; // don't need to do anything special
+        }
+        else
+        {
+
+            const int* ratioV = ratio.getVect();
+            const Box& cdomain = crse_geom.Domain();
+
+            amrex_ebinterp_pc_sv(BL_TO_FORTRAN_BOX(target_fine_region),
+                                 BL_TO_FORTRAN_BOX(crse_bx),
+                                 BL_TO_FORTRAN_N_ANYD(crse,crse_comp),
+                                 BL_TO_FORTRAN_N_ANYD(fine,fine_comp),
+                                 &ncomp, ratioV,
+                                 BL_TO_FORTRAN_BOX(cdomain),
+                                 BL_TO_FORTRAN_ANYD(crse_flag));
+        }
+    }        
 }
 
 }

@@ -169,4 +169,14 @@ makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
     }
 }
 
+MultiFab
+makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
+                int ncomp, int ngrow, const MFInfo& info,
+                const Box& level_domain)
+{
+    EBLevel eblevel(ba, dm, level_domain, ngrow);
+    EBFArrayBoxFactory fact(eblevel);
+    return MultiFab(ba, dm, ncomp, ngrow, info, fact);
+}
+
 }

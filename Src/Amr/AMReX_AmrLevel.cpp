@@ -16,6 +16,7 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil.H>
 #endif
 
 namespace amrex {
@@ -1437,7 +1438,12 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             crseBA.set(j,mapper->CoarseBox(bx, crse_ratio));
         }
 
-	MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),*clev.m_factory);
+#ifdef AMREX_USE_EB
+        MultiFab crseMF = amrex::makeMultiEBFab(crseBA,mf_DM,NComp,0,
+                                                MFInfo(),clev.m_eblevel.getDomain());
+#else
+	MultiFab crseMF(crseBA,mf_DM,NComp,0);
+#endif
 
 	if ( level == 1 
 	     || amrex::ProperlyNested(crse_ratio, parent->blockingFactor(level),
