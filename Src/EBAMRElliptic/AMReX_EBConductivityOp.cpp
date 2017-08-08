@@ -698,6 +698,7 @@ namespace amrex
     BL_PROFILE("ebco::create");
     int ncomp = a_rhs.nComp();
     EBCellFactory ebcellfact(m_eblg.getEBISL());
+    a_lhs.clear();
     a_lhs.define(m_eblg.getDBL(), m_eblg.getDM(), ncomp, a_rhs.nGrow(), MFInfo(), ebcellfact);
   }
   //-------------------------------------------------------------------------------
