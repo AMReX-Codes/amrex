@@ -231,6 +231,7 @@ namespace amrex
           const  Real& kappaDivC = m_kappaDivergence[mfi](vof, ivar);
           const  Real& divFNC    =            a_divF[mfi](vof, ivar);
           m_massDiff[mfi](vof, ivar) = (1. - kappa)*(kappaDivC-kappa*divFNC);
+          a_divF[mfi](vof, ivar) = kappaDivC + (1.-kappa)*divFNC;
         }
       }
       m_eblevelRedist.increment(m_massDiff[mfi], mfi, idst, inco);
