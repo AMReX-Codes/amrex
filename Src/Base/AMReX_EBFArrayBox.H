@@ -6,14 +6,14 @@
 
 namespace amrex {
 
-class EBFlagFab;
+class EBCellFlagFab;
 
 class EBFArrayBox
     : public FArrayBox
 {
 public:
     EBFArrayBox ();
-    EBFArrayBox (const EBISBox& ebisBox, const EBFlagFab& ebflag, const Box& box, int ncomps);
+    EBFArrayBox (const EBISBox& ebisBox, const EBCellFlagFab& ebcellflag, const Box& box, int ncomps);
 
     EBFArrayBox (EBFArrayBox&& rhs) noexcept = default;
     EBFArrayBox (const EBFArrayBox&) = delete;
@@ -23,14 +23,14 @@ public:
     virtual ~EBFArrayBox ();
 
     const EBISBox& getEBISBox () const { return m_ebisbox; }
-    const EBFlagFab& getEBFlagFab () const { return *m_ebflag; }
+    const EBCellFlagFab& getEBCellFlagFab () const { return *m_ebcellflag; }
 
 private:
     EBISBox m_ebisbox;             // We have to make a copy because EBISL returns a copy
-    const EBFlagFab* m_ebflag;
+    const EBCellFlagFab* m_ebcellflag;
 };
 
-const EBFlagFab& getEBFlagFab (const FArrayBox& fab);
+const EBCellFlagFab& getEBCellFlagFab (const FArrayBox& fab);
 
 const EBISBox& getEBISBox (const FArrayBox& fab);
 

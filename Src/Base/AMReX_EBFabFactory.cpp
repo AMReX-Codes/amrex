@@ -20,8 +20,8 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
     if (ebisl.isDefined())
     {
         const EBISBox& ebisBox = ebisl[box_index];
-        const EBFlagFab& ebflag = eblevel.Flags()[box_index];
-        return new EBFArrayBox(ebisBox, ebflag, box, ncomps);
+        const EBCellFlagFab& ebcellflag = eblevel.CellFlags()[box_index];
+        return new EBFArrayBox(ebisBox, ebcellflag, box, ncomps);
     }
     else
     {
