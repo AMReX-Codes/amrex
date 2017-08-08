@@ -379,7 +379,7 @@ end subroutine bl_avgdown_with_vol
 subroutine amrex_eb_avgdown_sv (lo, hi, fine, flo, fhi, crse, clo, chi, flag, fglo, fghi, &
      fv, fvlo, fvhi, vfrc, vflo, vfhi, lrat, ncomp) bind(c,name='amrex_eb_avgdown_sv')
   use amrex_fort_module, only : amrex_real
-  use amrex_ebcellflag_module, only : is_covered
+  use amrex_ebcellflag_module, only : is_covered_cell
   implicit none
   integer, intent(in) :: lo(2), hi(2), flo(2), fhi(2), clo(2), chi(2), fglo(2), fghi(2), &
        fvlo(2), fvhi(2), vflo(2), vfhi(2), lrat(2), ncomp
@@ -399,7 +399,7 @@ subroutine amrex_eb_avgdown_sv (lo, hi, fine, flo, fhi, crse, clo, chi, flag, fg
            ii = i * lrat(1)
            crse(i,j,n) = 0.d0
            cv          = 0.d0
-           if (is_covered(flag(i,j))) then
+           if (is_covered_cell(flag(i,j))) then
               do    jref = 0, lrat(2)-1
                  do iref = 0, lrat(1)-1
                     cv          = cv          +                         fv(ii+iref,jj+jref)
