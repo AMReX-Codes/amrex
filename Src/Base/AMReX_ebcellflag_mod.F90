@@ -2,7 +2,8 @@
 module amrex_ebcellflag_module
   implicit none
   private
-  public :: is_regular, is_single_valued, is_multi_valued, is_covered, get_neighbors, num_neighbors
+  public :: is_regular_cell, is_single_valued_cell, is_multi_valued_cell, &
+       is_covered_cell, get_neighbor_cells, num_neighbor_cells
   
   integer, parameter :: w_type      = 2
   integer, parameter :: w_numvofs   = 3
@@ -18,29 +19,29 @@ module amrex_ebcellflag_module
 
 contains
   
-  elemental logical function is_regular (flag)
+  elemental logical function is_regular_cell (flag)
     integer, intent(in) :: flag
-    is_regular = ibits(flag,0,w_type) .eq. regular
-  end function is_regular
+    is_regular_cell = ibits(flag,0,w_type) .eq. regular
+  end function is_regular_cell
 
-  elemental logical function is_single_valued (flag)
+  elemental logical function is_single_valued_cell (flag)
     integer, intent(in) :: flag
-    is_single_valued = ibits(flag,0,w_type) .eq. single_valued
-  end function is_single_valued
+    is_single_valued_cell = ibits(flag,0,w_type) .eq. single_valued
+  end function is_single_valued_cell
 
-  elemental logical function is_multi_valued (flag)
+  elemental logical function is_multi_valued_cell (flag)
     integer, intent(in) :: flag
-    is_multi_valued = ibits(flag,0,w_type) .eq. multi_valued
-  end function is_multi_valued
+    is_multi_valued_cell = ibits(flag,0,w_type) .eq. multi_valued
+  end function is_multi_valued_cell
 
-  elemental logical function is_covered (flag)
+  elemental logical function is_covered_cell (flag)
     integer, intent(in) :: flag
-    is_covered = ibits(flag,0,w_type) .eq. covered
-  end function is_covered
+    is_covered_cell = ibits(flag,0,w_type) .eq. covered
+  end function is_covered_cell
 
 #if (AMREX_SPACEDIM == 2)
 
-  pure subroutine get_neighbors (flag, ngbr)
+  pure subroutine get_neighbor_cells (flag, ngbr)
     integer, intent(in) :: flag
     integer, intent(inout) :: ngbr(-1:1,-1:1)
     integer :: i, j
@@ -53,18 +54,18 @@ contains
           end if
        end do
     end do
-  end subroutine get_neighbors
+  end subroutine get_neighbor_cells
 
-  elemental integer function num_neighbors (flag)
+  elemental integer function num_neighbor_cells (flag)
     integer, intent(in) :: flag
     integer ngbr(-1:1,-1:1)
-    call get_neighbors(flag, ngbr)
-    num_neighbors = count(ngbr.eq.1)
-  end function num_neighbors
+    call get_neighbor_cells(flag, ngbr)
+    num_neighbor_cells = count(ngbr.eq.1)
+  end function num_neighbor_cells
 
 #else
 
-  pure subroutine get_neighbors (flag, ngbr)
+  pure subroutine get_neighbor_cells (flag, ngbr)
     integer, intent(in) :: flag
     integer, intent(inout) :: ngbr(-1:1,-1:1,-1:1)
     integer :: i, j, k
@@ -79,14 +80,14 @@ contains
           end do
        end do
     end do
-  end subroutine get_neighbors
+  end subroutine get_neighbor_cells
 
-  elemental integer function num_neighbors (flag)
+  elemental integer function num_neighbor_cells (flag)
     integer, intent(in) :: flag
     integer ngbr(-1:1,-1:1,-1:1)
-    call get_neighbors(flag, ngbr)
-    num_neighbors = count(ngbr.eq.1)
-  end function num_neighbors
+    call get_neighbor_cells(flag, ngbr)
+    num_neighbor_cells = count(ngbr.eq.1)
+  end function num_neighbor_cells
 
 #endif
 

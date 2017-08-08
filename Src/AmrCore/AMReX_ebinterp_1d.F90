@@ -1,7 +1,6 @@
 module amrex_ebinterp_module
 
   use amrex_fort_module, only : amrex_real
-  use amrex_ebcellflag_module, only : num_neighbors, get_neighbors
   implicit none
   private
   public :: amrex_ebinterp_pc_sv
