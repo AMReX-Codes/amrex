@@ -18,22 +18,22 @@ module amrex_ebcellflag_module
 
 contains
   
-  pure logical function is_regular (flag)
+  elemental logical function is_regular (flag)
     integer, intent(in) :: flag
     is_regular = ibits(flag,0,w_type) .eq. regular
   end function is_regular
 
-  pure logical function is_single_valued (flag)
+  elemental logical function is_single_valued (flag)
     integer, intent(in) :: flag
     is_single_valued = ibits(flag,0,w_type) .eq. single_valued
   end function is_single_valued
 
-  pure logical function is_multi_valued (flag)
+  elemental logical function is_multi_valued (flag)
     integer, intent(in) :: flag
     is_multi_valued = ibits(flag,0,w_type) .eq. multi_valued
   end function is_multi_valued
 
-  pure logical function is_covered (flag)
+  elemental logical function is_covered (flag)
     integer, intent(in) :: flag
     is_covered = ibits(flag,0,w_type) .eq. covered
   end function is_covered
@@ -55,7 +55,7 @@ contains
     end do
   end subroutine get_neighbors
 
-  pure integer function num_neighbors (flag)
+  elemental integer function num_neighbors (flag)
     integer, intent(in) :: flag
     integer ngbr(-1:1,-1:1)
     call get_neighbors(flag, ngbr)
@@ -81,7 +81,7 @@ contains
     end do
   end subroutine get_neighbors
 
-  pure integer function num_neighbors (flag)
+  elemental integer function num_neighbors (flag)
     integer, intent(in) :: flag
     integer ngbr(-1:1,-1:1,-1:1)
     call get_neighbors(flag, ngbr)
