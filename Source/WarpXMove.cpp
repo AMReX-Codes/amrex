@@ -34,25 +34,41 @@ WarpX::MoveWindow (bool move_j)
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
     for (int lev = 0; lev <= max_level; ++lev) {
+        
         if (lev > 0) {
             num_shift_crse = num_shift;
             num_shift *= refRatio(lev-1)[dir];
         }
+
         // shift the mesh fields
         for (int dim = 0; dim < 3; ++dim) {
+
             shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir);
             shiftMF(*Efield_fp[lev][dim], geom[lev], num_shift, dir);
-            if (lev > 0) {                
-                shiftMF(*Bfield_cp[lev][dim], geom[lev], num_shift_crse, dir);
-                shiftMF(*Efield_cp[lev][dim], geom[lev], num_shift_crse, dir);
 
-                shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir);
-                shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir);
-            }
             if (move_j) {
                 shiftMF(*current_fp[lev][dim], geom[lev], num_shift, dir);
-                if (lev > 0) {
-                    shiftMF(*current_cp[lev][dim], geom[lev], num_shift_crse, dir);
+            }
+
+            if (do_dive_cleaning) {
+                shiftMF(*F_fp[lev], geom[lev], num_shift, dir);
+                shiftMF(*rho_fp[lev], geom[lev], num_shift, dir);
+            }
+
+            if (lev > 0) {
+
+                shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir);
+                shiftMF(*Efield_cp[lev][dim], geom[lev-1], num_shift_crse, dir);
+                shiftMF(*Bfield_aux[lev][dim], geom[lev], num_shift, dir);
+                shiftMF(*Efield_aux[lev][dim], geom[lev], num_shift, dir);
+
+                if (move_j) {
+                    shiftMF(*current_cp[lev][dim], geom[lev-1], num_shift_crse, dir);
+                }
+
+                if (do_dive_cleaning) {
+                    shiftMF(*F_cp[lev], geom[lev-1], num_shift_crse, dir);
+                    shiftMF(*rho_cp[lev], geom[lev-1], num_shift_crse, dir);
                 }
             }
         }
@@ -75,7 +91,7 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
 
-    // Zero out the region that the window moved into
+    // Make a box that covers the region that the window moved into
     const IndexType& typ = ba.ixType();
     const Box& domainBox = geom.Domain();
     Box adjBox;
