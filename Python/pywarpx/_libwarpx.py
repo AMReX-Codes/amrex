@@ -280,11 +280,11 @@ def add_particles(species_number=0,
     if lenz == 1:
         z = np.array(z)*np.ones(maxlen)
     if lenux == 1:
-        vx = np.array(vx)*np.ones(maxlen)
+        ux = np.array(ux)*np.ones(maxlen)
     if lenuy == 1:
-        vy = np.array(vy)*np.ones(maxlen)
+        uy = np.array(uy)*np.ones(maxlen)
     if lenuz == 1:
-        vz = np.array(vz)*np.ones(maxlen,'d')
+        uz = np.array(uz)*np.ones(maxlen,'d')
     if lenattr == 1:
         nattr = get_nattr()
         attr = np.array(attr)*np.ones([maxlen,nattr])
