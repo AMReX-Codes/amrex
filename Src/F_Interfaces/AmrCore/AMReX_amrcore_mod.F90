@@ -41,7 +41,7 @@ module amrex_amrcore_module
        integer, intent(in), value :: lev
        type(c_ptr), intent(in), value :: tags
        real(amrex_real), intent(in), value :: time
-       character(c_char), intent(in), value :: tagval, clearval
+       character(kind=c_char), intent(in), value :: tagval, clearval
      end subroutine amrex_error_est_proc
   end interface
 

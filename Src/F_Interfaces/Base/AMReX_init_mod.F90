@@ -23,7 +23,7 @@ contains
        subroutine amrex_fi_init(cmd, fcomm, argpp, procpp) bind(c)
          import
          implicit none
-         character(c_char), intent(in) :: cmd(*)
+         character(kind=c_char), intent(in) :: cmd(*)
          integer, intent(in), value :: fcomm, argpp
          type(c_funptr), value, intent(in) :: procpp
        end subroutine amrex_fi_init
