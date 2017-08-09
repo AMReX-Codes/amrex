@@ -1,0 +1,222 @@
+#ifndef AMREX_ABSTRACT_TASKGRAPH
+#define AMREX_ABSTRACT_TASKGRAPH
+//Question? email tannguyen@lbl.gov
+//Created 07-19-2017
+//Last modification 07-24-2017
+
+#include <iostream>
+#include <vector>
+#include <map>
+#include <list>
+#include <string>
+#include <sstream>
+#include <cassert>
+#include "AMReX_AbstractTask.H"
+using namespace std;
+
+namespace amrex{
+
+    template <class T, int D=1>
+	class BlockMapping{
+	    private:
+		PointVect<D> _first, _last, _range, _size;
+
+	    public:
+		BlockMapping(PointVect<D> gSize, PointVect<D> myProc, PointVect<D> nProcs){
+		    for(int i=0; i<D; i++){
+			size_t block;
+			size_t remainder;
+			block= gSize[i]/nProcs[i]; 
+			remainder= gSize[i]%nProcs[i];
+			_first[i]= myProc[i]*block + (myProc[i]<remainder?myProc[i]:remainder);  
+			_last[i]= _first[i]+block -1 + (myProc[i]<remainder?1:0);  
+			_range[i]= _last[i]-_first[i] +1;
+			_size[i]= _first[i]<gSize[i]?_range[i]+1:0;
+		    }
+		}
+		PointVect<D> first(){return _first;}
+		PointVect<D> last(){return _last;}
+		PointVect<D> range(){return _range;}
+		PointVect<D> size(){return _size;}
+	};
+
+    enum RunningMode{
+	_Push=0,//The task will not be scheduled until all data dependencies are satified. Data are pushed by other tasks without its consent.
+	_Pull//The task will be fetched and it will pull dependencies from other tasks 
+    };
+
+    //!This class defines data and task spaces, as well as options to decompose these spaces
+    template <class T>
+	class AbstractTaskGraph{
+	    struct TaskComp {
+		bool operator() (const TaskName& lhs, const TaskName& rhs) const
+		{
+		    return lhs<rhs;
+		}
+	    };
+	    protected:
+	    int _procid;
+	    int _procnum;
+	    //! Graph name, e.g. "3DStencil", "SparseLU", etc. The default value is empty string
+	    string _graphName; 
+	    std::vector<T*> _initialTasks; 
+	    std::map<TaskName, T*, TaskComp> _taskPool;
+	    //! A process can iterate over tasks that it owns. However, how application tasks are mapped to processes will be defined at higher level classes.
+	    T *_begin, *_end, *_current;
+	    typename std::vector<T*>::iterator _currIt;
+	    size_t _nLocalTasks;
+	    RunningMode _mode;
+
+	    public:
+	    AbstractTaskGraph(string graphName=""): _graphName(graphName), _procid(0), _procnum(1){
+		_begin=NULL;
+		_end=NULL;
+		_current=NULL;
+		_nLocalTasks=0;
+		_mode= _Push;
+	    }
+	    int MyProc();  
+	    int ProcCount();  
+	    RunningMode GetRunningMode(){return _mode;}
+	    string GetTaskName(){return _graphName;}
+	    void GraphSynchronize();
+	    T* LocateTask(TaskName name){
+		return _taskPool[name];
+	    }
+	    //!First element stored in the process
+	    T* Begin(){
+		return _begin;
+	    }
+	    //!Last element stored in the process
+	    T* End(){
+		return _end;
+	    }
+	    //! The next element
+	    T* Next(){
+		_currIt++;
+		_current= *_currIt;
+		return _current;
+	    }
+	    //! The current element
+	    T* Current(){
+		return _current;
+	    }
+	};
+
+    /**
+     * \brief This class is useful when we need a task graph to partition an irregular geometry. 
+     * Tasks are created from a list of names (for example, box/data tile names), which can have multiple dimensions.
+     * These tasks are stored in a distributed hash map and can be accessed in constant time.
+     * A task can create another task dynamically and set it location (i.e., which process owns the newly created task). 
+     * The default location is that of the the parent task.
+     */
+    template <class T>
+	class ArrayGraph: public AbstractTaskGraph<T>{
+	    protected:
+		string _graphName;
+		BlockMapping<T, 1> *_taskMap;
+
+	    public:
+		ArrayGraph(string graphName, int graphSize, int rank, int nProcs): _graphName(graphName){
+		    _taskMap= new BlockMapping<T, 1>(graphSize, rank, nProcs);
+		    for(int i=_taskMap->first()[0], idx=0; i<=_taskMap->last()[0]; i++, idx++){
+			TaskName name(i);
+			T *t= new T();
+			t->SetName(name);
+			AbstractTaskGraph<T>::_initialTasks.push_back(t);
+			AbstractTaskGraph<T>::_taskPool[name]= t;
+		    }
+		    AbstractTaskGraph<T>::_begin= *(AbstractTaskGraph<T>::_initialTasks.begin());
+		    AbstractTaskGraph<T>::_end= *(AbstractTaskGraph<T>::_initialTasks.end());
+		    AbstractTaskGraph<T>::_currIt= AbstractTaskGraph<T>::_initialTasks.begin();
+		    AbstractTaskGraph<T>::_current= *(AbstractTaskGraph<T>::_currIt);
+		    AbstractTaskGraph<T>::_mode= _Push;
+		}
+		BlockMapping<T, 1>* GetTaskMap(){return &_taskMap;}
+		void Destroy(){
+		    for(typename std::vector<T*>::iterator it= AbstractTaskGraph<T>::_initialTasks.begin(); it!= AbstractTaskGraph<T>::_initialTasks.end(); it++){
+			delete (*it);
+		    }
+		    AbstractTaskGraph<T>::_initialTasks.clear();
+		    AbstractTaskGraph<T>::_taskPool.clear();
+		    delete _taskMap;
+		}
+	};
+
+#if 0
+    //! This class should be used when we want to create a rectangular task space (data and/or time).
+    template <class T, int D=1>
+	class CartesianGraph: public AbstractTaskGraph<T>{
+	    private:
+		PointVect<D> dim; //store dimensions of processes that operate this graph
+		BlockMapping<T, D>* _dataMap;
+		std::unorderedMap<int, std::list<T*>, PointVect::shift_hasher> _data; 
+
+	    public:
+		//!create a 1D taskGraph using all available processes
+		CartesianGraph(string graphName="", size_t nTasks); 
+		//create a 1D taskGraph using P processes
+		CartesianGraph(string graphName="", size_t nTasks, size_t P); 
+		//create a multi-dimensional taskGraph using P processes
+		CartesianGraph(string graphName="", PointVect<D> nTasks, PointVect<D> P);
+	};
+
+
+
+
+    //Data are distributed linearly, though a multi-dimensional key (e.g. task name) is required to locate them
+    template <class T, int D=1>
+	class LinearMapping::public AbstractMapping{
+	    private:
+		std::unorderedMap<PointVect<D>, std::list<T*>, PointVect::shift_hasher> _data; 
+	    public:
+		LinearMapping(std::vector< PointVect<D> > nameVect){
+		    _begin[0]= nameVect[0];
+		    _end[0]= nameVect[nameVect.size()-1];
+		    _size[0]= nameVect.size();
+		}
+	};
+
+    //
+
+    template <class T, int D=1>
+	class CyclicMapping: public AbstractMapping{
+	    private:
+
+	    public: 
+		CyclicMapping(PointVect<D> gSize, PointVect<D> myProc, PointVect<D> nProcs){
+		    for(int i=0; i<D; i++){
+			size_t block;
+			size_t remainder;
+			block= gSize[i]/nProcs[i]; 
+			remainder= gSize[i]%nProcs[i];
+			_begin[i]= myProc[i]<gSize[i]?myProc[i]:gSize[i];
+			_size[i]= _begin[i]<gSize[i]?block+myProc[i]<remainder?1:0; 
+			_end[i]= _begin[i]+ (size[i]-1)*nProcs[i]; 
+		    }
+		}
+	};
+
+    template <class T, int D=1>
+	class BlockyCylicMapping{
+	    private:
+		CyclicMapping(PointVect<D> gSize, PointVect<D> blockSize, PointVect<D> myProc, PointVect<D> nProcs){
+		    for(int i=0; i<D; i++){
+			size_t block;
+			size_t block_block;
+			size_t remainder;
+			block= gSize[i]/blockSize[i]+gSize[i]%blockSize[i]==0?0:1;
+			block_block= block/nProcs[i];
+			remainder= block%nProcs[i];
+
+			_begin[i]= myProc[i]<block?myProc[i]:gSize[i];
+			_size[i]= _begin[i]<gSize[i]?block_block+myProc[i]<remainder?1:0; //number of blocks
+			_end[i]= _begin[i]+ (size[i]-1)*nProcs[i];
+		    }
+		}
+	};
+#endif
+
+}
+
+#endif
