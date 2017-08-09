@@ -221,8 +221,6 @@ class DataServices {
     bool bTraceDataAvailable;
     bool bCommDataAvailable;
 
-    bool bProfDataOk;            // NEED BOTH OF THESE??
-
     BLProfStats blProfStats_H;
     RegionsProfStats regOutputStats_H;
     CommProfStats commOutputStats_H;

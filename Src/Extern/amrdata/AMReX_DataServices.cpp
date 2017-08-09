@@ -129,14 +129,15 @@ DataServices::DataServices(const string &filename, const Amrvis::FileType &filet
 {
   numberOfUsers = 0;  // the user must do all incrementing and decrementing
   bAmrDataOk = amrData.ReadData(fileName, fileType);
-
   profiler = (fileType == Amrvis::PROFDATA);
 
-  if(bAmrDataOk) {
-    dsArrayIndex = DataServices::dsArrayIndexCounter;
-    ++DataServices::dsArrayIndexCounter;
-    DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
-    DataServices::dsArray[dsArrayIndex] = this;
+  if( ! profiler) {
+    if(bAmrDataOk) {
+      dsArrayIndex = DataServices::dsArrayIndexCounter;
+      ++DataServices::dsArrayIndexCounter;
+      DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
+      DataServices::dsArray[dsArrayIndex] = this;
+    }
   }
 
 #ifdef BL_PROFILING 
@@ -144,9 +145,10 @@ DataServices::DataServices(const string &filename, const Amrvis::FileType &filet
   bRegionDataAvailable = false;
   bTraceDataAvailable = false;
   bCommDataAvailable = false;
-  bProfDataOk = false;
 
-  Init(filename, filetype);
+  if(profiler) {
+    Init(filename, filetype);
+  }
 #endif
 }
 
@@ -156,9 +158,6 @@ DataServices::DataServices() {
   // must call init
   bAmrDataOk = false;
   iWriteToLevel = -1;
-#ifdef BL_PROFILING 
-  bProfDataOk = false;
-#endif
 }
 
 
@@ -288,6 +287,34 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
       }
 
     }
+
+    // ----------------------------------------------- comm headers
+
+    // -------- parse the main header file.  everyone does this for now
+    if(bIOP) { cout << "Parsing main comm header file." << endl; }
+    std::string commPrefix_H("bl_comm_prof_H");
+    std::string commFileName_H(fileName + '/' + commPrefix_H);
+    if( ! (yyin = fopen(commFileName_H.c_str(), "r"))) {
+      if(bIOP) {
+        cerr << "Cannot open file:  " << commFileName_H << endl;
+      }
+      bCommDataAvailable = false;
+    } else {
+      bCommDataAvailable = true;
+    }
+
+    if(bCommDataAvailable) {
+      yyparse(&commOutputStats_H);
+      fclose(yyin);
+    } else {
+    }
+
+    if(bRegionDataAvailable) {
+      commOutputStats_H.SetRegionTimeRanges(regOutputStats_H.GetRegionTimeRanges());
+      commOutputStats_H.SetFilterTimeRanges(regOutputStats_H.GetFilterTimeRanges());
+    }
+
+    bAmrDataOk = true;
   } // if (profiler)
 #endif
 }
@@ -295,7 +322,9 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
 // ---------------------------------------------------------------
 DataServices::~DataServices() {
   BL_ASSERT(numberOfUsers == 0);
-  DataServices::dsArray[dsArrayIndex] = NULL;
+  if( ! profiler) {
+    DataServices::dsArray[dsArrayIndex] = NULL;
+  }
 }
 
 
@@ -1731,8 +1760,11 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
           std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
 
           if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
-            if(bIOP) cerr << "Cannot open file:  " << commDataHeaderFileName << endl;
-            amrex::Abort();
+            if(bIOP) {
+              cerr << "A:  Cannot open file:  " << commDataHeaderFileName
+                   << "  continuing ...." << endl;
+            }
+            continue;
           }
 
           yyparse(&commOutputStats);
