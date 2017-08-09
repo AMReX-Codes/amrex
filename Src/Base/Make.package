@@ -186,6 +186,8 @@ ifeq ($(USE_EB),TRUE)
   C$(AMREX_BASE)_sources += AMReX_EBMultiFabUtil.cpp
   C$(AMREX_BASE)_headers += AMReX_EBCellFlag.H
   C$(AMREX_BASE)_sources += AMReX_EBCellFlag.cpp
+  C$(AMREX_BASE)_headers += AMReX_EBFaceFlag.H
+  C$(AMREX_BASE)_sources += AMReX_EBFaceFlag.cpp
   C$(AMREX_BASE)_headers += AMReX_EBLevel.H
   C$(AMREX_BASE)_sources += AMReX_EBLevel.cpp
   F90$(AMREX_BASE)_sources += AMReX_ebcellflag_mod.F90

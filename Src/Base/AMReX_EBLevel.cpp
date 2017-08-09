@@ -31,7 +31,14 @@ const FabArray<EBCellFlagFab>&
 getMultiEBCellFlagFab (const MultiFab& mf)
 {
     const auto& eblevel = amrex::getEBLevel(mf);
-    return eblevel.CellFlags();    
+    return eblevel.getMultiEBCellFlagFab();    
+}
+
+const FabArray<EBFaceFlagFab>&
+getMultiEBFaceFlagFab (const MultiFab& mf)
+{
+    const auto& eblevel = amrex::getEBLevel(mf);
+    return eblevel.getMultiEBFaceFlagFab();    
 }
 
 EBLevel::EBLevel ()
@@ -45,14 +52,20 @@ EBLevel::~EBLevel ()
 EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng)
     : EBLevelGrid(ba,dm,domain,ng),
       m_cellflags(std::make_shared<FabArray<EBCellFlagFab> >(ba, dm, 1, ng)),
+      m_faceflags(std::make_shared<FabArray<EBFaceFlagFab> >(ba, dm, AMREX_SPACEDIM, ng)),
       m_ebisl(std::make_shared<EBISLayout>(EBLevelGrid::getEBISL()))
 {
     static_assert(sizeof(EBCellFlag) == 4, "sizeof EBCellFlag != 4");
     static_assert(std::is_standard_layout<EBCellFlag>::value == true, "EBCellFlag is not pod");
 
+    static_assert(sizeof(EBFaceFlag) == 4, "sizeof EBFaceFlag != 4");
+    static_assert(std::is_standard_layout<EBFaceFlag>::value == true, "EBFaceFlag is not pod");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    {
+
     for (MFIter mfi(*m_cellflags); mfi.isValid(); ++mfi)
     {
         auto& fab = (*m_cellflags)[mfi];
@@ -73,7 +86,7 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
             } else if (ebis.isMultiValued(iv)) {
                 cellflag.setMultiValued(ebis.numVoFs(iv));
                 ++nmulti;
-                amrex::Abort("EBLevel: multi-value not supported yet");
+                amrex::Abort("EBLevel: multi-value cell not supported yet");
             } else {
                 cellflag.setSingleValued();
                 ++nsingle;
@@ -146,6 +159,60 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
                 } while (std::next_permutation(dirs.begin(), dirs.end()));
             }
         }        
+    }
+
+    for (MFIter mfi(*m_faceflags); mfi.isValid(); ++mfi)
+    {
+        const EBISBox& ebis = (*m_ebisl)[mfi];
+
+        auto& fabs = (*m_faceflags)[mfi];
+
+        const Box& ccbx = amrex::grow(fabs.box(),-1) & domain;
+        for (BoxIterator bi(ccbx); bi.ok(); ++bi)
+        {
+            const IntVect& iv = bi();
+            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
+            {
+                const auto& lo_faces = ebis.getAllFaces(iv, dir, Side::Lo);
+                auto& flag = fabs(dir,iv);
+                flag.setDisconnected();
+                flag.setConnected(dir, IntVect::TheZeroVector());
+                if (lo_faces.size() == 0) {
+                    flag.setCovered();
+                } else if (lo_faces.size() == 1) {
+                    if (ebis.areaFrac(lo_faces[0]) == 1.0) {
+                        flag.setRegular();
+                    } else {
+                        flag.setSingleValued();
+                    }
+                } else {
+                    flag.setMultiValued(lo_faces.size());
+                    amrex::Abort("EBLevel: multi-value face not supported yet");
+                }
+                if (iv[dir] == ccbx.bigEnd(dir))
+                {
+                    const IntVect& ivhi = iv + IntVect::TheDimensionVector(dir);
+                    const auto& hi_faces = ebis.getAllFaces(iv, dir, Side::Hi);
+                    auto& flag = fabs(dir,ivhi);
+                    flag.setDisconnected();
+                    flag.setConnected(dir, IntVect::TheZeroVector());
+                    if (hi_faces.size() == 0) {
+                        flag.setCovered();
+                    } else if (hi_faces.size() == 1) {
+                        if (ebis.areaFrac(hi_faces[0]) == 1.0) {
+                            flag.setRegular();
+                        } else {           
+                            flag.setSingleValued();
+                        }
+                    } else {
+                        flag.setMultiValued(hi_faces.size());
+                        amrex::Abort("EBLevel: multi-value face not supported yet");
+                    }
+                }
+            }
+        }
+    }
+
     }
 }
 

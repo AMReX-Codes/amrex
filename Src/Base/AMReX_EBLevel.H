@@ -3,6 +3,7 @@
 
 #include <AMReX_EBLevelGrid.H>
 #include <AMReX_EBCellFlag.H>
+#include <AMReX_EBFaceFlag.H>
 
 namespace amrex {
 
@@ -21,11 +22,13 @@ public:
 
     EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng);
 
-    const FabArray<EBCellFlagFab>& CellFlags () const { return *m_cellflags; }
-    const EBISLayout& getEBISL               () const { return *m_ebisl; }
+    const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const { return *m_cellflags; }
+    const FabArray<EBFaceFlagFab>& getMultiEBFaceFlagFab () const { return *m_faceflags; }
+    const EBISLayout&              getEBISL     () const { return *m_ebisl; }
 
 private:
     std::shared_ptr<FabArray<EBCellFlagFab> > m_cellflags;
+    std::shared_ptr<FabArray<EBFaceFlagFab> > m_faceflags;
     std::shared_ptr<EBISLayout>               m_ebisl;
 };
 
@@ -35,6 +38,7 @@ Box getLevelDomain (const MultiFab& mf);
 const EBLevel& getEBLevel (const MultiFab& mf);
 
 const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab (const MultiFab& mf);
+const FabArray<EBFaceFlagFab>& getMultiEBFaceFlagFab (const MultiFab& mf);
 
 }
 
