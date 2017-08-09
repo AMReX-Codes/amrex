@@ -235,7 +235,7 @@ module amrex_multifab_module
        import
        implicit none
        type(c_ptr), value :: mf
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
      end subroutine amrex_fi_write_multifab
 
      subroutine amrex_fi_build_owner_imultifab (msk, ba, dm, data, geom) bind(c)
