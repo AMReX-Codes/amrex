@@ -218,9 +218,14 @@ namespace amrex
 
     shared_ptr<ConductivityBaseDomainBC>  domainBC(m_domainBCFactory->create());
     shared_ptr<ConductivityBaseEBBC>      ebBC(        m_ebBCFactory->create());
-    shared_ptr<FabArray<EBCellFAB> >      acoef;
-    shared_ptr<FabArray<EBFluxFAB> >      bcoef;
 
+    int ngrowA = m_acoef[a_amrLevel]->nGrow();
+    int ngrowB = m_bcoef[a_amrLevel]->nGrow();
+    EBCellFactory cellfact(eblg.getEBISL());
+    EBFluxFactory fluxfact(eblg.getEBISL());
+    shared_ptr<FabArray<EBCellFAB> > acoef(new FabArray<EBCellFAB>(eblg.getDBL(), eblg.getDM(), 1, ngrowA, MFInfo(), cellfact));
+    shared_ptr<FabArray<EBFluxFAB> > bcoef(new FabArray<EBFluxFAB>(eblg.getDBL(), eblg.getDM(), 1, ngrowB, MFInfo(), fluxfact));
+    
     //get coefficients
     nwoebcoCoarsenStuff(*acoef,
                         *bcoef,

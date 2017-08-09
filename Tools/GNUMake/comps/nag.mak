@@ -1,10 +1,10 @@
 #
-# Generic setup for using gcc
+# Generic setup for using NAG
 #
 CXX = g++
 CC  = gcc
-FC  = gfortran
-F90 = gfortran
+FC  = nagfor
+F90 = nagfor
 
 CXXFLAGS =
 CFLAGS   =
@@ -27,11 +27,11 @@ DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+  CXXFLAGS += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv
   CFLAGS   += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv
 
-  FFLAGS   += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
-  F90FLAGS += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+  FFLAGS   += -g -O0 -nan -C
+  F90FLAGS += -g -O0 -nan -C
 
 else
 
@@ -61,12 +61,13 @@ else ifeq ($(gcc_major_version),5)
 endif
 CFLAGS     += -std=gnu99
 
-FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
-F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir) -fimplicit-none
+FFLAGS   += -mismatch -mdir $(fmoddir) -I $(fmoddir)
+F90FLAGS += -mismatch -mdir $(fmoddir) -I $(fmoddir) -u
 
 ########################################################################
 
 GENERIC_COMP_FLAGS =
+GENERIC_FORT_FLAGS =
 
 ifeq ($(THREAD_SANITIZER),TRUE)
   GENERIC_COMP_FLAGS += -fsanitize=thread
@@ -77,25 +78,13 @@ endif
 
 ifeq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -fopenmp
+  GENERIC_FORT_FLAGS += -openmp
 endif
 
 CXXFLAGS += $(GENERIC_COMP_FLAGS)
 CFLAGS   += $(GENERIC_COMP_FLAGS)
-FFLAGS   += $(GENERIC_COMP_FLAGS)
-F90FLAGS += $(GENERIC_COMP_FLAGS)
+FFLAGS   += $(GENERIC_FORT_FLAGS)
+F90FLAGS += $(GENERIC_FORT_FLAGS)
 
 ########################################################################
 
-# ask gfortran the name of the library to link in.  First check for the
-# static version.  If it returns only the name w/o a path, then it
-# was not found.  In that case, ask for the shared-object version.
-gfortran_liba  := $(shell $(F90) -print-file-name=libgfortran.a)
-gfortran_libso := $(shell $(F90) -print-file-name=libgfortran.so)
-
-ifneq ($(gfortran_liba),libgfortran.a)  # if found the full path is printed, thus `neq`.
-  LIBRARY_LOCATIONS += $(dir $(gfortran_liba))
-else
-  LIBRARY_LOCATIONS += $(dir $(gfortran_libso))
-endif
-
-override XTRALIBS += -lgfortran -lquadmath
