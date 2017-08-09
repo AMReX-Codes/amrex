@@ -1,5 +1,5 @@
-#ifndef AMREX_EBCELLFLAG_H_
-#define AMREX_EBCELLFLAG_H_
+#ifndef AMREX_EBFACEFLAG_H_
+#define AMREX_EBFACEFLAG_H_
 
 #include <array>
 #include <cstdint>
@@ -9,14 +9,14 @@
 
 namespace amrex {
 
-class EBCellFlag
+class EBFaceFlag
 {
 public:
 
-    EBCellFlag () = default;
-    EBCellFlag (const EBCellFlag& rhs) noexcept = default;
-    EBCellFlag& operator= (const EBCellFlag& rhs) noexcept = default;
-    EBCellFlag& operator= (uint32_t i) { flag = i; return *this; }
+    EBFaceFlag () = default;
+    EBFaceFlag (const EBFaceFlag& rhs) noexcept = default;
+    EBFaceFlag& operator= (const EBFaceFlag& rhs) noexcept = default;
+    EBFaceFlag& operator= (uint32_t i) { flag = i; return *this; }
 
     void setRegular () {
         flag &= zero_lower_mask; // clean lower bits
@@ -66,10 +66,29 @@ public:
         flag &= one_lower_mask;
     }
 
-    void setDisconnected (const IntVect& iv) {
-        int i=0, j=0, k=0;
-        AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
-        const int n = pos_ngbr[k+1][j+1][i+1];
+    void setDisconnected (int dir, const IntVect& iv) {
+        int i, j;
+#if (AMREX_SPACEDIM == 2)
+        if (dir == 0) {
+            i = iv[1];
+            j = 0;
+        } else {
+            i = iv[0];
+            j = 0;
+        }
+#else
+        if (dir == 0) {
+            i = iv[1];
+            j = iv[2];
+        } else if (dir == 1) {
+            i = iv[0];
+            j = iv[2];                
+        } else {
+            i = iv[0];
+            j = iv[1];
+        }
+#endif
+        const int n = pos_ngbr[j+1][i+1];
         flag &= ~(1 << n);
     }
 
@@ -77,10 +96,29 @@ public:
         flag |= zero_lower_mask;
     }
 
-    void setConnected (const IntVect& iv) {
-        int i=0, j=0, k=0;
-        AMREX_D_TERM(i=iv[0];, j=iv[1];, k=iv[2]);
-        const int n = pos_ngbr[k+1][j+1][i+1];
+    void setConnected (int dir, const IntVect& iv) {
+        int i, j;
+#if (AMREX_SPACEDIM == 2)
+        if (dir == 0) {
+            i = iv[1];
+            j = 0;
+        } else {
+            i = iv[0];
+            j = 0;
+        }
+#else
+        if (dir == 0) {
+            i = iv[1];
+            j = iv[2];
+        } else if (dir == 1) {
+            i = iv[0];
+            j = iv[2];                
+        } else {
+            i = iv[0];
+            j = iv[1];
+        }
+#endif
+        const int n = pos_ngbr[j+1][i+1];
         flag |= 1 << n;
     }
 
@@ -98,8 +136,7 @@ private:
     static constexpr uint32_t one_numvofs_mask    =  0x1c;
     static constexpr uint32_t zero_numvofs_mask   = ~0x1c;
 
-    // these represent cell types
-    // note that single-valued means single-value cut cell
+    // these represent face types
     static constexpr uint32_t regular_bits        =  0x0;
     static constexpr uint32_t single_vauled_bits  =  0x1;
     static constexpr uint32_t multi_valued_bits   =  0x2;
@@ -108,44 +145,50 @@ private:
     // this represent single vof (regular is considered as single vof too)
     static constexpr uint32_t single_vof_bits     =  0x4;
 
-    // There are 32 bits.  The lowest 2 bits are used for cell type:
+    // There are 32 bits.  The lowest 2 bits are used for face type:
     // regular, single-valued, multi-valued, and covered.  The next 3
-    // bits are for the number of vofs.  The rest 27 bits are used for
-    // connectivity with neighbors.
+    // bits are for the number of vofs.  Nine of the rest 27 bits are
+    // used for connectivity with neighbors.
 
     static constexpr int w_lower_mask = 5;
     static constexpr int w_type       = 2;
     static constexpr int w_numvofs    = 3;
     static constexpr int pos_numvofs  = 2;
-    static constexpr std::array<std::array<std::array<int,3>,3>,3> pos_ngbr
-        {{ std::array<std::array<int,3>,3>{{{ w_lower_mask   , w_lower_mask+ 1, w_lower_mask+ 2 },
-                                            { w_lower_mask+ 3, w_lower_mask+ 4, w_lower_mask+ 5 },
-                                            { w_lower_mask+ 6, w_lower_mask+ 7, w_lower_mask+ 8 }}},
-           std::array<std::array<int,3>,3>{{{ w_lower_mask+ 9, w_lower_mask+10, w_lower_mask+11 },
-                                            { w_lower_mask+12, w_lower_mask+13, w_lower_mask+14 },
-                                            { w_lower_mask+15, w_lower_mask+16, w_lower_mask+17 }}},
-           std::array<std::array<int,3>,3>{{{ w_lower_mask+18, w_lower_mask+19, w_lower_mask+20 },
-                                            { w_lower_mask+21, w_lower_mask+22, w_lower_mask+23 },
-                                            { w_lower_mask+24, w_lower_mask+25, w_lower_mask+26 }}} }};
+    static constexpr std::array<std::array<int,3>,3> pos_ngbr
+        {{ std::array<int,3>{{ w_lower_mask  , w_lower_mask+1, w_lower_mask+2 }},
+           std::array<int,3>{{ w_lower_mask+3, w_lower_mask+4, w_lower_mask+5 }},
+           std::array<int,3>{{ w_lower_mask+6, w_lower_mask+7, w_lower_mask+8 }} }};
 
     static constexpr uint32_t default_value = zero_lower_mask; // regular connected with all neighbors 
-    
+
     uint32_t flag = default_value;
 };
 
 
-class EBCellFlagFab
-    : public BaseFab<EBCellFlag>
+class EBFaceFlagFab
 {
 public:
-    using BaseFab<EBCellFlag>::BaseFab;
     
-    FabType getType () const { return m_type; }
-    FabType getType (const Box& bx) const;
+    EBFaceFlagFab (const Box& bx, int, bool, bool);
+    ~EBFaceFlagFab ();
 
-    void setType (FabType t) { m_type = t; }
+    EBFaceFlagFab (const EBFaceFlagFab& rhs) = delete;
+    EBFaceFlagFab& operator= (const EBFaceFlagFab& rhs) = delete;
+    EBFaceFlagFab& operator= (EBFaceFlagFab&& rhs) = delete;
+    
+    EBFaceFlagFab (EBFaceFlagFab&& rhs) noexcept = default;
+
+    Box box () const { return m_box; }
+
+    BaseFab      <EBFaceFlag>& getFaceFlagFab (int dir)       { return m_fabs[dir]; }
+    const BaseFab<EBFaceFlag>& getFaceFlagFab (int dir) const { return m_fabs[dir]; }
+
+    const EBFaceFlag& operator() (int dir, const IntVect& iv) const { return m_fabs[dir](iv); }
+    EBFaceFlag&       operator() (int dir, const IntVect& iv)       { return m_fabs[dir](iv); }
+
 private:
-    FabType m_type = FabType::undefined;
+    Box m_box;
+    std::array<BaseFab<EBFaceFlag>,AMREX_SPACEDIM> m_fabs;
 };
 
 }
