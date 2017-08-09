@@ -4,10 +4,16 @@ SRC_FILES = theory.tex \
 
 all: $(SRC_FILES) clean
 	pandoc theory.tex --mathjax -S --wrap=preserve --bibliography allbibs.bib -o warpx_theory.rst
-	cp warpx_theory.rst ../theory
+	mv warpx_theory.rst ../theory
 	cd ../../../../picsar/Doxygen/pages/latex_theory/; pandoc theory.tex --mathjax -S --wrap=preserve --bibliography allbibs.bib -o picsar_theory.rst
-	cp ../../../../picsar/Doxygen/pages/latex_theory/picsar_theory.rst ../theory
+	mv ../../../../picsar/Doxygen/pages/latex_theory/picsar_theory.rst ../theory
+	cp ../../../../picsar/Doxygen/images/PIC.png ../theory
+	cp ../../../../picsar/Doxygen/images/Plasma_acceleration_sim.png ../theory
+	cp ../../../../picsar/Doxygen/images/Yee_grid.png ../theory
 
-clean: 
-	rm -f warpx_theory.rst
-	rm -f ../../../../picsar/Doxygen/pages/latex_theory/picsar_theory.rst
+clean:
+	rm -f ../theory/warpx_theory.rst
+	rm -f ../theory/picsar_theory.rst
+	rm -f ../theory/PIC.png
+	rm -f ../theory/Plasma_acceleration_sim.png
+	rm -f ../theory/Yee_grid.png
