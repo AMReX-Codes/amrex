@@ -944,7 +944,8 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
     }
 
     ReadCommStatsNoOpen(dBlock);
-    Real *timeline(timelineFAB.dataPtr());
+    Real *timeline(timelineFAB.dataPtr(0));
+    Real *mpiCount(timelineFAB.dataPtr(1));
 
     int prevIndex(0);
     for(int i(0); i < dBlock.vCommStats.size(); ++i) {
@@ -970,6 +971,7 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
 	}
 
         timeline[index] = cs.cfType;
+        mpiCount[index] += 1.0;
 
 	Real ntnMult(0.0), bnMult(0.0);
 	if(cs.cfType == BLProfiler::NameTag) {  // ---- add encoded value for the name tag name
@@ -1033,6 +1035,7 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
 	        amrex::Abort("idx out of range.");
 	      }
               timeline[idx] = cs.cfType;
+              mpiCount[idx] += 1.0;
 	      if(cs.cfType == BLProfiler::NameTag) {
                 timeline[idx] += ntnMult;
 	      }

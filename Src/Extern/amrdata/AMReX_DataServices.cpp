@@ -2222,7 +2222,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     int rankMin(0), rankMax(dataNProcs - 1), rankStride(1);
 
     IntVect maxGrid(nTimeSlots, (dataNProcs / nProcs) + 1);
-    int nLevels(1), finestLevel(0), numState(1), nGrow(0);
+    int nLevels(1), finestLevel(0), numState(2), nGrow(0);
     Box dnpBox(IntVect(0, 0), IntVect(nTimeSlots - 1, dataNProcs - 1));
     Box dnpBoxBlocked(dnpBox);
     if(bIOP) cout << ")))) dnpBoxBlocked = " << dnpBoxBlocked << endl;
@@ -2270,7 +2270,8 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       const DistributionMapping dnpDM(dnpBoxArray);
       state[iLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
       MultiFab &timelineMF = state[iLevel];
-      timelineMF.setVal(-1.0);
+      timelineMF.setVal(-1.0, 0, 1);       // Timeline initialization
+      timelineMF.setVal(0.0, 1, 1);        // MPI count initialization
 
       for(int hfnI_I(0); hfnI_I < commHeaderFileNames.size(); ++hfnI_I) {
         // everyone reads all headers
@@ -2373,6 +2374,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     int coordSys(0);
     Array<std::string> inVarNames(numState);
     inVarNames[0] = "timeline";
+    inVarNames[1] = "mpiCount";
     bool verb(false);
     FABio::Format oldFabFormat(FArrayBox::getFormat());
     FArrayBox::setFormat(FABio::FAB_NATIVE_32);
