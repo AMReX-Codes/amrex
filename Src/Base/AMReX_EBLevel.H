@@ -30,6 +30,8 @@ private:
     std::shared_ptr<FabArray<EBCellFlagFab> > m_cellflags;
     std::shared_ptr<FabArray<EBFaceFlagFab> > m_faceflags;
     std::shared_ptr<EBISLayout>               m_ebisl;
+
+    static void setFaceConnection (EBFaceFlag& flag, const FaceIndex& face, const EBISBox& ebis);
 };
 
 class MultiFab;
