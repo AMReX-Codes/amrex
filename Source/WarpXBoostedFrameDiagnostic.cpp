@@ -1,5 +1,7 @@
 #include "WarpXBoostedFrameDiagnostic.H"
 
+using namespace amrex;
+
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots, 
@@ -29,24 +31,41 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
 void
 BoostedFrameDiagnostic::
+writeLabFrameData(Real t_boost) 
+{
+
+    // average everything to cell centers here
+
+    for (int i = 0; i < N_snapshots_; ++i) {
+        snapshots_[i].updateCurrentZPositions(t_boost, 
+                                              inv_gamma_boost_,
+                                              inv_beta_boost_);
+
+        // for each z position, fill a slice with the data.
+
+    }
+}
+
+void
+BoostedFrameDiagnostic::
 writeMetaData() 
 {
-    if (amrex::ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor()) {
         std::string DiagnosticDirectory = "lab_frame_data";
         
-        if (!amrex::UtilCreateDirectory(DiagnosticDirectory, 0755))
-            amrex::CreateDirectoryFailed(DiagnosticDirectory);
+        if (!UtilCreateDirectory(DiagnosticDirectory, 0755))
+            CreateDirectoryFailed(DiagnosticDirectory);
         
         std::string HeaderFileName(DiagnosticDirectory + "/Header");
         std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
                                  std::ofstream::trunc |
                                  std::ofstream::binary);
         if(!HeaderFile.good())
-            amrex::FileOpenFailed(HeaderFileName);
+            FileOpenFailed(HeaderFileName);
         
         HeaderFile.precision(17);
         
-        amrex::VisMF::IO_Buffer io_buffer(amrex::VisMF::IO_Buffer_Size);
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         
         HeaderFile << N_snapshots_ << "\n";
@@ -59,8 +78,8 @@ writeMetaData()
 }
 
 BoostedFrameDiagnostic::LabSnapShot::
-LabSnapShot(amrex::Real t_lab_in, amrex::Real zmin_lab_in, 
-            amrex::Real zmax_lab_in, int file_num_in) 
+LabSnapShot(Real t_lab_in, Real zmin_lab_in, 
+            Real zmax_lab_in, int file_num_in) 
     : t_lab(t_lab_in),
       zmin_lab(zmin_lab_in),
       zmax_lab(zmax_lab_in),
@@ -68,19 +87,18 @@ LabSnapShot(amrex::Real t_lab_in, amrex::Real zmin_lab_in,
 {
     current_z_lab = 0.0;
     current_z_boost = 0.0;
-    file_name = amrex::Concatenate("lab_frame_data/snapshot", file_num, 5);
+    file_name = Concatenate("lab_frame_data/snapshot", file_num, 5);
     
     const int nlevels = 1;
     const std::string level_prefix = "Level_";
-    amrex::PreBuildDirectorHierarchy(file_name,
-                                     level_prefix, nlevels, true);
+    PreBuildDirectorHierarchy(file_name,
+                              level_prefix, nlevels, true);
     writeSnapShotHeader();
 }
 
 void
 BoostedFrameDiagnostic::LabSnapShot::
-updateCurrentZPositions(amrex::Real t_boost, amrex::Real inv_gamma,
-                        amrex::Real inv_beta) {
+updateCurrentZPositions(Real t_boost, Real inv_gamma, Real inv_beta) {
     current_z_boost = (t_lab*inv_gamma - t_boost)*PhysConst::c*inv_beta;
     current_z_lab =   (t_lab - t_boost*inv_gamma)*PhysConst::c*inv_beta;
 }
@@ -88,17 +106,17 @@ updateCurrentZPositions(amrex::Real t_boost, amrex::Real inv_gamma,
 void
 BoostedFrameDiagnostic::LabSnapShot::
 writeSnapShotHeader() {
-    if (amrex::ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor()) {
         std::string HeaderFileName(file_name + "/Header");
         std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
                                  std::ofstream::trunc |
                                  std::ofstream::binary);
         if(!HeaderFile.good())
-            amrex::FileOpenFailed(HeaderFileName);
+            FileOpenFailed(HeaderFileName);
         
         HeaderFile.precision(17);
         
-        amrex::VisMF::IO_Buffer io_buffer(amrex::VisMF::IO_Buffer_Size);
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         
         HeaderFile << t_lab << "\n";

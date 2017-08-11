@@ -73,6 +73,8 @@ public:
                            amrex::Real v_window_lab, amrex::Real dt_snapshots_lab,
                            int N_snapshots, amrex::Real gamma_boost,
                            amrex::Real dt_boost);
+
+    void writeLabFrameData(amrex::Real t_boost);
     
     void writeMetaData();
 };
