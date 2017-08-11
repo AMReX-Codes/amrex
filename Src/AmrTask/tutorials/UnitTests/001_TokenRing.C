@@ -17,13 +17,13 @@ class TokenRingTask :public Task{
 	    int taskID= MyName()[0];
 	    int leftNeighbor= taskID>0?taskID-1:-1; 
 	    int rightNeighbor= taskID< _nTasks-1?taskID+1:-1; 
-            TaskName left(leftNeighbor), right(rightNeighbor);
+	    TaskName left(leftNeighbor), right(rightNeighbor);
 	    if(taskID==0){
 		_token=1;
 	    }else{
 		if(leftNeighbor!=-1){
 		    Pull(left, (char*)&_token, sizeof(int));
-	            cout<< endl << "Task " << taskID << " has received token " << _token <<" from Task "<<leftNeighbor <<endl;
+		    cout<< endl << "Task " << taskID << " has received token " << _token <<" from Task "<<leftNeighbor <<endl;
 		}
 	    }
 	    if(rightNeighbor!=-1){
@@ -33,26 +33,33 @@ class TokenRingTask :public Task{
 	bool Dependency(){
 	    int taskID= MyName()[0];
 	    int leftNeighbor= taskID>0?taskID-1:-1; 
-            TaskName left(leftNeighbor);
+	    TaskName left(leftNeighbor);
 	    if(leftNeighbor!=-1) return Depend_on(left);
-            else return true;
+	    else return true;
 	}
 	void PostCompletion(){
 	    //Do nothing. This task will be destroyed and no further action will be made.
+	    DestroyTask();
 	}
 };
 
 int TokenRingTask::_nTasks;
 
+
+/* Example commands
+   -Serial run:
+   ./001_TokenRing -t 8 -v
+ */
+
 int main(int argc,char *argv[])
 {
     int argCount = 0;
-    int t, verbose=0;
+    int t=1, verbose=0;
     int rank, nProcs;
     /* Argument list
        -t: number of tasks
        -v: print out task graph information
-    */ 
+     */ 
     while(++argCount <argc) {
 	if(!(strcmp(argv[argCount], "-t"))) t = atoi(argv[++argCount]);
 	if(!(strcmp(argv[argCount], "-v"))) verbose = true;
@@ -62,12 +69,16 @@ int main(int argc,char *argv[])
     TokenRingTask::_nTasks= t;
     string graphName= "TokenRing";
     if(verbose && rank==0){
-	printf("Creating a 1D Token Ring Graph with %d tasks\n", t);
-	printf("Running the graph with %d processes\n", rts.RTS_ProcCount());
+	cout<<"Creating a 1D Token Ring Graph with "<<t <<" tasks";
+	cout<<"Running the graph with "<< rts.RTS_ProcCount()<<" processes";
     }
+    double time = -rts.Time();
+    rts.Barrier();
     ArrayGraph<TokenRingTask> *TokenRingGraph= new ArrayGraph<TokenRingTask>(graphName, t, rank, nProcs);
     rts.RTS_Run(TokenRingGraph, false);
-    if(verbose && rank==0) printf("Graph execution completed\n");
+    rts.Barrier();
+    time += rts.Time();
+    if(verbose && rank==0) cout<<"Graph execution takes "<< time <<" seconds"<<endl;
     delete TokenRingGraph;
     rts.RTS_Finalize();
 };

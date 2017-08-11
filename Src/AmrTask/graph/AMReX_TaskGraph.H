@@ -20,9 +20,11 @@ namespace amrex{
 	class BlockMapping{
 	    private:
 		PointVect<D> _first, _last, _range, _size;
+                size_t _linearSize;
 
 	    public:
 		BlockMapping(PointVect<D> gSize, PointVect<D> myProc, PointVect<D> nProcs){
+                    _linearSize=1;
 		    for(int i=0; i<D; i++){
 			size_t block;
 			size_t remainder;
@@ -31,13 +33,39 @@ namespace amrex{
 			_first[i]= myProc[i]*block + (myProc[i]<remainder?myProc[i]:remainder);  
 			_last[i]= _first[i]+block -1 + (myProc[i]<remainder?1:0);  
 			_range[i]= _last[i]-_first[i] +1;
-			_size[i]= _first[i]<gSize[i]?_range[i]+1:0;
+			_size[i]= _range[i];
+                        _linearSize*= _size[i];
 		    }
 		}
+
+                BlockMapping(PointVect<D> gSize, int myProc, int nProcs){
+                    size_t block;
+                    size_t remainder;
+                    size_t totalSize=gSize[0];
+                    for(int i=1; i<D; i++) totalSize=totalSize*gSize[i];
+                    block= totalSize/nProcs;
+                    remainder= totalSize%nProcs;
+                    int first_linear, last_linear;
+                    first_linear= myProc*block + (myProc<remainder?myProc:remainder);
+                    last_linear= first_linear+block -1 + (myProc<remainder?1:0);
+                    _linearSize= last_linear-first_linear+1;
+                    size_t subSize=totalSize;
+                    for(int i=D-1; i>=0; i--){
+			subSize= subSize/gSize[i];
+                        _last[i]=last_linear/subSize;
+                        _first[i]=first_linear/subSize;
+                        _range[i]= _last[i]-_first[i] +1;
+			_size[i]= _range[i];
+                        last_linear= last_linear%subSize;
+                        first_linear= first_linear%subSize;
+                    }
+                }
+
 		PointVect<D> first(){return _first;}
 		PointVect<D> last(){return _last;}
 		PointVect<D> range(){return _range;}
 		PointVect<D> size(){return _size;}
+		size_t linearSize(){return _linearSize;}
 	};
 
     enum RunningMode{
@@ -110,15 +138,17 @@ namespace amrex{
      * A task can create another task dynamically and set it location (i.e., which process owns the newly created task). 
      * The default location is that of the the parent task.
      */
-    template <class T>
+    template <class T, int D=1>
 	class ArrayGraph: public AbstractTaskGraph<T>{
 	    protected:
 		string _graphName;
-		BlockMapping<T, 1> *_taskMap;
+		BlockMapping<T, D> *_taskMap;
 
 	    public:
+                //! Create a 1D Task Graph
 		ArrayGraph(string graphName, int graphSize, int rank, int nProcs): _graphName(graphName){
-		    _taskMap= new BlockMapping<T, 1>(graphSize, rank, nProcs);
+                    assert(D==1);
+		    _taskMap= new BlockMapping<T, 1>(PointVect<1>(graphSize), PointVect<1>(rank), PointVect<1>(nProcs));
 		    for(int i=_taskMap->first()[0], idx=0; i<=_taskMap->last()[0]; i++, idx++){
 			TaskName name(i);
 			T *t= new T();
@@ -132,7 +162,36 @@ namespace amrex{
 		    AbstractTaskGraph<T>::_current= *(AbstractTaskGraph<T>::_currIt);
 		    AbstractTaskGraph<T>::_mode= _Push;
 		}
-		BlockMapping<T, 1>* GetTaskMap(){return &_taskMap;}
+                //! Create a multidimensional graph and LINEARLY map it to processors
+                ArrayGraph(string graphName, PointVect<D> graphSize, int rank, int nProcs): _graphName(graphName){
+                    _taskMap= new BlockMapping<T, D>(graphSize, rank, nProcs);
+                    PointVect<D> p=_taskMap->first();
+                    for(int i=0; i<_taskMap->linearSize(); i++){
+                        TaskName name;
+		        name.SetSize(D);
+                        for(int j=0; j<D; j++){
+			 name[j]= p[j];
+                        }
+                        T *t= new T();
+                        t->SetName(name);
+                        AbstractTaskGraph<T>::_initialTasks.push_back(t);
+                        AbstractTaskGraph<T>::_taskPool[name]= t;
+                        for(int d=0; d<D; d++)
+			  if(p[d]+1 < graphSize[d]){
+			     p[d]++; 
+ 			     //reset lower dimensions
+                             for(int dd=0; dd<d; dd++) p[dd]=0;
+			     break;
+			  }
+                    }
+                    AbstractTaskGraph<T>::_begin= *(AbstractTaskGraph<T>::_initialTasks.begin());
+                    AbstractTaskGraph<T>::_end= *(AbstractTaskGraph<T>::_initialTasks.end());
+                    AbstractTaskGraph<T>::_currIt= AbstractTaskGraph<T>::_initialTasks.begin();
+                    AbstractTaskGraph<T>::_current= *(AbstractTaskGraph<T>::_currIt);
+                    AbstractTaskGraph<T>::_mode= _Push;
+                }
+ 
+		BlockMapping<T, D>* GetTaskMap(){return &_taskMap;}
 		void Destroy(){
 		    for(typename std::vector<T*>::iterator it= AbstractTaskGraph<T>::_initialTasks.begin(); it!= AbstractTaskGraph<T>::_initialTasks.end(); it++){
 			delete (*it);
@@ -147,22 +206,39 @@ namespace amrex{
     //! This class should be used when we want to create a rectangular task space (data and/or time).
     template <class T, int D=1>
 	class CartesianGraph: public AbstractTaskGraph<T>{
-	    private:
-		PointVect<D> dim; //store dimensions of processes that operate this graph
-		BlockMapping<T, D>* _dataMap;
-		std::unorderedMap<int, std::list<T*>, PointVect::shift_hasher> _data; 
+	    protected:
+		string _graphName;
+		BlockMapping<T, D>* _taskMap;
 
 	    public:
-		//!create a 1D taskGraph using all available processes
-		CartesianGraph(string graphName="", size_t nTasks); 
-		//create a 1D taskGraph using P processes
-		CartesianGraph(string graphName="", size_t nTasks, size_t P); 
 		//create a multi-dimensional taskGraph using P processes
-		CartesianGraph(string graphName="", PointVect<D> nTasks, PointVect<D> P);
+		CartesianGraph(string graphName="", PointVect<D> graphSize, PointVect<D> Prank, PointVect<D> Psize){
+                _taskMap= new BlockMapping<T, D>(graphSize, Prank, Psize);
+                if(_taskMap.size() !=0){ 
+                  TaskName name(_taskMap.first()[0]);
+                  size_t nTasks= _taskMap.size()[0];
+                  for (int d=1; d<D; d++){
+                     name[d]=_taskMap.first()[d];
+		     nTasks= nTasks*_taskMap.size()[d];
+                  }
+                  for (int d=0; d<D; d++){
+                      for(int i=_taskMap->first()[d], idx=0; i<=_taskMap->last()[d]; i++, idx++){
+                          T *t= new T();
+                          t->SetName(name);
+                          AbstractTaskGraph<T>::_initialTasks.push_back(t);
+                          AbstractTaskGraph<T>::_taskPool[name]= t;
+                      }
+                  }
+                }
+
+
+                }
+		BlockMapping<T, D>* GetTaskMap(){return &_taskMap;}
 	};
+#endif
 
 
-
+#if 0
 
     //Data are distributed linearly, though a multi-dimensional key (e.g. task name) is required to locate them
     template <class T, int D=1>

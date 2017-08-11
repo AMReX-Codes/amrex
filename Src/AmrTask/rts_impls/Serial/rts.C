@@ -63,7 +63,6 @@ namespace amrex{
 		t = graph->Next();
 	    }
 	}
-#if 1
 	bool keepRunning=true;
 	while (keepRunning){
 	    //Handle communication
@@ -110,13 +109,23 @@ namespace amrex{
 		    t->RunJob(); 
 		    t->RunPostCompletion(); 
 		    //Flush all outputs
-		    std::queue<Data*> taskOutputs= t->GetOutputs();
-		    while(taskOutputs.size()>0){
-			Data* outdata= taskOutputs.front();
-			taskOutputs.pop();
+		    while(t->GetOutputs().size()>0){
+			Data* outdata= t->GetOutputs().front();
+			t->GetOutputs().pop();
 			TaskName dst= outdata->GetRecipient();
 			int tag= outdata->GetTag();
 			graph->LocateTask(dst)->GetInputs().push_back(t->MyName(), outdata, tag);
+		    }
+		    //keep or destroy task
+		    if(t->isPersistent()){
+			if(t->Dependency()){
+			    ReadyQueue.push(t);
+			}else{
+			    WaitingQueue.push(t);
+			}
+		    }else{
+			//later
+
 		    }
 		}
 	    }
@@ -125,11 +134,24 @@ namespace amrex{
 	if(!keepInitialGraph){
 	    //graph->clear();
 	}
-#endif
     }
 
-    void Barrier(){
-	//Since we run the graph in sequential mode, this routine can be just a noop
+    const double kMicro = 1.0e-6;
+    double RTS::Time()
+    {
+	struct timeval TV;
+
+	const int RC = gettimeofday(&TV, NULL);
+	if(RC == -1)
+	{
+	    printf("ERROR: Bad call to gettimeofday\n");
+	    return(-1);
+	}
+	return( ((double)TV.tv_sec) + kMicro * ((double)TV.tv_usec) );
+    } 
+
+    void RTS::Barrier(){
+	//nothing
     }
 
 }//end namespace
