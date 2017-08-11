@@ -5,14 +5,14 @@ endif
 CEXE_sources += WarpXWrappers.cpp WarpX_py.cpp
 
 CEXE_sources += WarpX.cpp WarpXInitData.cpp WarpXEvolve.cpp WarpXIO.cpp WarpXProb.cpp WarpXRegrid.cpp
-CEXE_sources += WarpXTagging.cpp WarpXComm.cpp WarpXMove.cpp
+CEXE_sources += WarpXTagging.cpp WarpXComm.cpp WarpXMove.cpp WarpXBoostedFrameDiagnostic.cpp
 
 CEXE_sources += ParticleIO.cpp
 CEXE_sources += ParticleContainer.cpp WarpXParticleContainer.cpp PhysicalParticleContainer.cpp LaserParticleContainer.cpp
 
 CEXE_headers += WarpXWrappers.h WarpX_py.H
 
-CEXE_headers += WarpX.H WarpX_f.H WarpXConst.H
+CEXE_headers += WarpX.H WarpX_f.H WarpXConst.H WarpXBoostedFrameDiagnostic.H
 
 CEXE_headers += ParticleContainer.H WarpXParticleContainer.H PhysicalParticleContainer.H LaserParticleContainer.H
 
