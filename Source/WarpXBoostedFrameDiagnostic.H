@@ -8,6 +8,13 @@
 
 #include "WarpXConst.H"
 
+///
+/// BoostedFrameDiagnostic is for handling IO when running in a boosted 
+/// frame of reference. Because of the relativity of simultaneity, events that
+/// are synchronized in the simulation frame are not synchronized in the 
+/// lab frame. Thus, at a given t_boost, we must write slices of data to 
+/// multiple output files, each one corresponding to a given time in the lab frame.
+///
 class BoostedFrameDiagnostic {
 
     amrex::Real gamma_boost_;
