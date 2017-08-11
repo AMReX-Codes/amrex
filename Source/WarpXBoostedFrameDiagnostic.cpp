@@ -31,18 +31,19 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
 void
 BoostedFrameDiagnostic::
-writeLabFrameData(Real t_boost) 
+writeLabFrameData(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                  const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+                  const MultiFab& jx, const MultiFab& jy, const MultiFab& jz,
+                  const MultiFab& rho, Real t_boost)
 {
-
-    // average everything to cell centers here
-
+    
     for (int i = 0; i < N_snapshots_; ++i) {
         snapshots_[i].updateCurrentZPositions(t_boost, 
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
-
+        
         // for each z position, fill a slice with the data.
-
+        
     }
 }
 

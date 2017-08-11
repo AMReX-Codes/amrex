@@ -74,8 +74,18 @@ public:
                            int N_snapshots, amrex::Real gamma_boost,
                            amrex::Real dt_boost);
 
-    void writeLabFrameData(amrex::Real t_boost);
-    
+    void writeLabFrameData(const amrex::MultiFab& Ex,
+                           const amrex::MultiFab& Ey,
+                           const amrex::MultiFab& Ez,
+                           const amrex::MultiFab& Bx,
+                           const amrex::MultiFab& By,
+                           const amrex::MultiFab& Bz,
+                           const amrex::MultiFab& jx,
+                           const amrex::MultiFab& jy,
+                           const amrex::MultiFab& jz,
+                           const amrex::MultiFab& rho, 
+                           amrex::Real t_boost);
+
     void writeMetaData();
 };
 

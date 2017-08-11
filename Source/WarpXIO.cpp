@@ -378,6 +378,40 @@ WarpX::InitFromCheckpoint ()
 }
 
 
+std::unique_ptr<MultiFab>
+WarpX::GetCellCenteredData() {
+
+    const int ng = 1;
+    const int nc = 6;
+    const int lev = 0;
+    auto cc = std::unique_ptr<MultiFab>( new MultiFab(boxArray(lev),
+                                                      DistributionMap(lev),
+                                                      nc, ng) );
+
+    Array<const MultiFab*> srcmf(BL_SPACEDIM);
+    int dcomp = 0;
+
+    // first the electric field
+    PackPlotDataPtrs(srcmf, Efield_aux[lev]);
+    amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ngrow);
+    amrex::average_node_to_cellcenter(*cc, dcomp+1, *Efield_aux[lev][1], 0, 1);
+#endif
+    dcomp += 3;
+    
+    // then the magnetic field
+    PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
+    amrex::average_face_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ngrow);
+    MultiFab::Copy(*cc, *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
+#endif
+    dcomp += 3;
+
+    return cc;
+}
+
 void
 WarpX::WritePlotFile () const
 {
