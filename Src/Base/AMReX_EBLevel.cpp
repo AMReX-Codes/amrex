@@ -231,7 +231,7 @@ EBLevel::setFaceConnection (EBFaceFlag& flag, const FaceIndex& face, const EBISB
     if (vof_lo.cellIndex() < 0 || vof_hi.cellIndex() < 0) return;
 
     const int dir = face.direction();
-    Array<int> tdirs;
+    Array<int> tdirs;  // transverse directions
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (idim != dir) {
             tdirs.push_back(idim);
@@ -246,9 +246,28 @@ EBLevel::setFaceConnection (EBFaceFlag& flag, const FaceIndex& face, const EBISB
             offset_0[tdirs[0]] = amrex::sign(sit_0());
             const auto& vofs_0_lo = ebis.getVoFs(vof_lo, tdirs[0], sit_0(), 1);
             const auto& vofs_0_hi = ebis.getVoFs(vof_hi, tdirs[0], sit_0(), 1);
-            if (vofs_0_lo.size() == vofs_0_hi.size() && vofs_0_lo.size())
+            if (vofs_0_lo.size() == vofs_0_hi.size() && vofs_0_lo.size() == 1)
             {
-
+                if (ebis.isConnected(vofs_0_lo[0], vofs_0_hi[0])) {
+                    // wz. This is known to break in some cases.
+                    flag.setConnected(dir, offset_0);
+#if (AMREX_SPACEDIM == 3)
+                    IntVect offset_1 = offset_0;
+                    for (SideIterator sit_1; sit_1.ok(); ++sit_1)
+                    {
+                        offset_1[tdirs[1]] = amrex::sign(sit_1());
+                        const auto& vofs_1_lo = ebis.getVoFs(vofs_0_lo[0], tdirs[1], sit_1(), 1);
+                        const auto& vofs_1_hi = ebis.getVoFs(vofs_0_hi[0], tdirs[1], sit_1(), 1);
+                        if (vofs_1_lo.size() == vofs_1_hi.size() && vofs_1_lo.size() == 1)
+                        {
+                            if (ebis.isConnected(vofs_1_lo[0], vofs_1_hi[0])) {
+                                // wz. This is known to break in some cases.
+                                flag.setConnected(dir, offset_1);
+                            }
+                        }
+                    }
+#endif
+                }
             }
         }
 
