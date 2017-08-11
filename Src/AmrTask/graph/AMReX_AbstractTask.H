@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sstream>
 #include <cassert>
+#include "rts_taskimpl.H"
 using namespace std;
 
 namespace amrex{
@@ -25,8 +26,8 @@ namespace amrex{
 	    TaskName(int id){_ids.push_back(id);}
 	    TaskName(int id0, int id1){_ids.push_back(id0); _ids.push_back(id1);}
 	    TaskName(int id0, int id1, int id2){_ids.push_back(id0); _ids.push_back(id1); _ids.push_back(id2);}
-	    int &operator[](int i){return _ids[i];}
-	    const int &operator[](int i) const{return _ids[i];}
+	    int& operator[](int i){return _ids[i];}
+	    const int& operator[](int i) const{return _ids[i];}
 	    TaskName& operator=(const TaskName &rhs){
 		assert(_ids.size()==0 || _ids.size()== rhs.Dim());
 		if(_ids.size()==0)
@@ -52,10 +53,15 @@ namespace amrex{
 	    bool operator< (const TaskName &rhs) const{
 		if(_ids.size() < rhs.Dim()) return true;
 		if(_ids.size() > rhs.Dim()) return false;
-		for(int i=0; i< _ids.size(); i++)
-		    if(_ids[i] > rhs[i] || _ids[i] == rhs[i]) return false;
-		return true;
+		for(int i= _ids.size()-1; i>=0; i--){
+		    if(_ids[i] > rhs[i]) return false;
+		    if(_ids[i] < rhs[i]) return true;
+                }
+		return false;
 	    }
+            void SetSize(int dim){
+		for(int i=0; i<dim; i++) _ids.push_back(0);
+            }
 	    int Dim() const{return _ids.size();}
     };
 
@@ -113,8 +119,9 @@ namespace amrex{
 	}
 	bool isSatisfied(TaskName name, int tag=0){
 	    if(dataMap.find(name) != dataMap.end()){
-		if(dataMap[name].find(tag) != dataMap[name].end())
+		if(dataMap[name].find(tag) != dataMap[name].end()){
 		    return dataMap[name][tag].size() >0;
+                }
 	    }
 	    return false;
 	}
@@ -139,7 +146,9 @@ namespace amrex{
 	    TaskName _id;
 	    DependencyMap neighbors_in; 
 	    std::queue<Data*> outputs;
+            bool _isPersistent;
 	public:
+            Task():_isPersistent(false){}
 	    //Describe Data Dependency
 	    virtual bool Dependency()=0;
 	    //! What the task is supposed to do
@@ -159,6 +168,16 @@ namespace amrex{
 	    }
 	    std::queue<Data*>& GetOutputs(){return outputs;}
 	    DependencyMap& GetInputs(){return neighbors_in;}
+            void KeepTaskAlive(){_isPersistent=true;}
+            void DestroyTask(){_isPersistent=false;}
+            bool isPersistent(){return _isPersistent;}
+
+            template<typename T> void LocalAtomicAdd(T *addr, int val){
+		LocalAtomicAdd_impl(addr, val);
+            }
+            template<typename T> void GlobalAtomicAdd(T *addr, int val){
+		GlobalAtomicAdd_impl(addr, val);
+	    }
     };
 
 #if 0

@@ -39,8 +39,25 @@ namespace amrex{
 			}
 		};
 		PointVect(){bzero(_vect, D*sizeof(int));}
-		PointVect(int initVal){for(int i=0; i<D; i++) _vect[i]=initVal;};
+                PointVect(int x){
+                        assert(D==1);
+                        _vect[0] =x;
+                }
+                PointVect(int x, int y){
+                        assert(D==1);
+                        _vect[0] =x;
+                        _vect[1] =y;
+                }
+		PointVect(int x, int y, int z){
+ 		        assert(D==3);
+			_vect[0] =x;
+			_vect[1] =y;
+			_vect[2] =z;
+                }
 		int& operator[] (int i) {
+		    return _vect[i];
+		}
+		const int& operator[] (int i) const{
 		    return _vect[i];
 		}
 		PointVect<D>& set(int i, int val){
@@ -49,6 +66,10 @@ namespace amrex{
 		}
 		PointVect<D>& operator= (const PointVect<D>& rhs) const{
 		    for(int i=0; i<D; i++) _vect[i]=rhs[i];
+		    return *this;
+		}
+		PointVect<D>& operator= (const int val) const{
+		    for(int i=0; i<D; i++) _vect[i]=val;
 		    return *this;
 		}
 		bool operator== (int val) const{
@@ -65,6 +86,34 @@ namespace amrex{
 		}
 		bool operator!= (const PointVect& rhs) const{
 		    for(int i=0; i<D; i++) if(_vect[i]==rhs[i]) return false;
+		    return true;
+		}
+		bool operator< (const PointVect& rhs) const{
+		    for(int i=D-1; i>=0; i++){
+			if(_vect[i]>rhs[i]) return false;
+			if(_vect[i]<rhs[i]) return true;
+                    }
+		    return false;
+		}
+		bool operator<= (const PointVect& rhs) const{
+		    for(int i=D-1; i>=0; i++){
+			if(_vect[i]>rhs[i]) return false;
+			if(_vect[i]<rhs[i]) return true;
+                    }
+		    return true;
+		}
+		bool operator> (const PointVect& rhs) const{
+		    for(int i=D-1; i>=0; i++){
+			if(_vect[i]<rhs[i]) return false;
+			if(_vect[i]>rhs[i]) return true;
+                    }
+		    return false;
+		}
+		bool operator>= (const PointVect& rhs) const{
+		    for(int i=D-1; i>=0; i++){
+			if(_vect[i]<rhs[i]) return false;
+			if(_vect[i]>rhs[i]) return true;
+                    }
 		    return true;
 		}
 	};

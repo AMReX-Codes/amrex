@@ -7,7 +7,7 @@ namespace amrex{
     void Task::Pull(TaskName src, char* d, size_t size, int tag){
 	Data* data= neighbors_in.pop_front(src, tag);
 	memcpy(d, data->GetBuffer(), size);
-        data->Free();
+	data->Free();
 	delete data;
     }
     void Task::Push(TaskName dest, char* d, size_t size, int tag){
@@ -18,7 +18,4 @@ namespace amrex{
 	memcpy(data->GetBuffer(), d, size);
 	outputs.push(data);
     }
-
-
-
 }

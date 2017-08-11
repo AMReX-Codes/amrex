@@ -2,6 +2,9 @@
 #include "AMReX_TaskGraph.H"
 #include <iostream>
 #include <queue>
+#include "rts_graphimpl.H"
+#include <sys/time.h>
+
 using namespace std;
 
 namespace amrex{
@@ -26,5 +29,10 @@ namespace amrex{
 	    void RTS_Init(int *rank, int *nProcs);
 	    void RTS_Run(void *graph, bool keepInitialGraph);
 	    void RTS_Finalize();
+            double Time();
+            void Barrier();
+            template<typename T> void ReductionSum(T *local, T *global, int length, int root){
+                ReductionSum_impl(local, global, length, root);
+            }
     };
 }

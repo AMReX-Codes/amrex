@@ -12,10 +12,10 @@ $(GRAPH_LIB): $(OBJECTS)
 $(OBJECTS): AMReX_AbstractTask.H AMReX_AbstractTask.cpp AMReX_TaskGraph.H AMReX_TaskGraph.cpp
 
 AMReX_AbstractTask.o: AMReX_AbstractTask.cpp AMReX_AbstractTask.H
-	$(C++) $(C++FLAGS) -I. -c AMReX_AbstractTask.cpp -o AMReX_AbstractTask.o
+	$(C++) $(C++FLAGS) -I. -I$(INCLUDE) -c AMReX_AbstractTask.cpp -o AMReX_AbstractTask.o
 
 AMReX_TaskGraph.o: AMReX_TaskGraph.cpp AMReX_TaskGraph.H
-	$(C++) $(C++FLAGS) -I./ -c AMReX_TaskGraph.cpp -o AMReX_TaskGraph.o
+	$(C++) $(C++FLAGS) -I./ -I$(INCLUDE) -c AMReX_TaskGraph.cpp -o AMReX_TaskGraph.o
 
 .PHONY: clean
 
