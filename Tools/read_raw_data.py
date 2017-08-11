@@ -19,9 +19,8 @@ def read_data(plt_file):
     
     Returns:
 
-        A data dictionary where the keys are field name strings and the values 
-        are numpy arrays. The shape of the numpy arrays will cover the entire 
-        simulation domain.
+        A list of dictionaries where the keys are field name strings and the values 
+        are numpy arrays. Each entry in the list corresponds to a different level.
 
     Example:
 
@@ -30,14 +29,18 @@ def read_data(plt_file):
         >>> print(data['Ex'].shape)
 
     '''
-    raw_file = plt_file + "/raw_fields/Level_0/"
-    field_names = _get_field_names(raw_file)
+    all_data = []
+    raw_files = glob(plt_file + "/raw_fields/Level_*/")
+    for raw_file in raw_files:
+        field_names = _get_field_names(raw_file)
     
-    data = {}
-    for field in field_names:
-        data[field] = _read_field(raw_file, field)
+        data = {}
+        for field in field_names:
+            data[field] = _read_field(raw_file, field)
 
-    return data
+        all_data.append(data)
+
+    return all_data
 
 
 def _get_field_names(raw_file):
@@ -117,7 +120,7 @@ def _read_field(raw_file, field_name):
             f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
             arr = arr.reshape(shape, order='F')
-            data[[slice(l,h+1) for l, h in zip(lo+ng, hi+ng)]] = arr
+            data[[slice(l,h+1) for l, h in zip(0*lo, hi-lo)]] = arr
 
     return data
 
@@ -127,12 +130,20 @@ if __name__ == "__main__":
     matplotlib.use('Agg')
     from matplotlib import pyplot as plt
 
-    data = read_data("plt00016")
+    data = read_data("plt00040")
 
     # print the shapes of all the fields
-    for name, vals in data.items():
-        print(name, vals.shape)
+    for level in range(2):
+        for name, vals in data[level].items():
+            print(level, name, vals.shape, vals.min(), vals.max())
     
-    # make a projection along the z-axis of the 'By' field
-    plt.pcolormesh(data['By'].sum(axis=2))
-    plt.savefig('By')
+    # make a projection along the z-axis of the 'jx' field for level 0
+    level = 0
+    plt.pcolormesh(data[level]['jx'].sum(axis=2))
+    plt.savefig('jx')
+
+    # make a projection along the x-axis of the 'Bx_cp' field for level 1
+    level = 1
+    plt.pcolormesh(data[level]['Bx_cp'].sum(axis=0))
+    plt.savefig('Bx_cp')
+
