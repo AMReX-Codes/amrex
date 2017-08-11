@@ -173,22 +173,26 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
             const IntVect& iv = bi();
             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
             {
-                const auto& lo_faces = ebis.getAllFaces(iv, dir, Side::Lo);
-                auto& flag = fabs(dir,iv);
-                flag.setDisconnected();
-                flag.setConnected(dir, IntVect::TheZeroVector());
-                if (lo_faces.size() == 0) {
-                    flag.setCovered();
-                } else if (lo_faces.size() == 1) {
-                    if (ebis.areaFrac(lo_faces[0]) == 1.0) {
-                        flag.setRegular();
+                {
+                    const auto& lo_faces = ebis.getAllFaces(iv, dir, Side::Lo);
+                    auto& flag = fabs(dir,iv);
+                    flag.setDisconnected();
+                    flag.setConnected(dir, IntVect::TheZeroVector());
+                    if (lo_faces.size() == 0) {
+                        flag.setCovered();
+                    } else if (lo_faces.size() == 1) {
+                        if (ebis.areaFrac(lo_faces[0]) == 1.0) {
+                            flag.setRegular();
+                        } else {
+                            flag.setSingleValued();
+                        }
+                        setFaceConnection(flag, lo_faces[0], ebis);
                     } else {
-                        flag.setSingleValued();
+                        flag.setMultiValued(lo_faces.size());
+                        amrex::Abort("EBLevel: multi-value face not supported yet");
                     }
-                } else {
-                    flag.setMultiValued(lo_faces.size());
-                    amrex::Abort("EBLevel: multi-value face not supported yet");
                 }
+                
                 if (iv[dir] == ccbx.bigEnd(dir))
                 {
                     const IntVect& ivhi = iv + IntVect::TheDimensionVector(dir);
@@ -204,6 +208,7 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
                         } else {           
                             flag.setSingleValued();
                         }
+                        setFaceConnection(flag, hi_faces[0], ebis);
                     } else {
                         flag.setMultiValued(hi_faces.size());
                         amrex::Abort("EBLevel: multi-value face not supported yet");
@@ -214,6 +219,40 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
     }
 
     }
+}
+
+void
+EBLevel::setFaceConnection (EBFaceFlag& flag, const FaceIndex& face, const EBISBox& ebis)
+{
+    const auto& vof_lo = face.getVoF(Side::Lo);
+    const auto& vof_hi = face.getVoF(Side::Hi);
+
+    // at domain boundary
+    if (vof_lo.cellIndex() < 0 || vof_hi.cellIndex() < 0) return;
+
+    const int dir = face.direction();
+    Array<int> tdirs;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (idim != dir) {
+            tdirs.push_back(idim);
+        }
+    }
+
+    do
+    {
+        IntVect offset_0 = IntVect::TheZeroVector();
+        for (SideIterator sit_0; sit_0.ok(); ++sit_0)
+        {
+            offset_0[tdirs[0]] = amrex::sign(sit_0());
+            const auto& vofs_0_lo = ebis.getVoFs(vof_lo, tdirs[0], sit_0(), 1);
+            const auto& vofs_0_hi = ebis.getVoFs(vof_hi, tdirs[0], sit_0(), 1);
+            if (vofs_0_lo.size() == vofs_0_hi.size() && vofs_0_lo.size())
+            {
+
+            }
+        }
+
+    } while (std::next_permutation(tdirs.begin(), tdirs.end()));
 }
 
 }
