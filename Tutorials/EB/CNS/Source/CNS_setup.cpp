@@ -97,8 +97,7 @@ CNS::variableSetUp ()
 {
     read_params();
 
-    cns_init_fort(gamma,mu,Pr,Sc,C_S,T_S, 
-                  phys_bc.lo(), phys_bc.hi(),
+    cns_init_fort(phys_bc.lo(), phys_bc.hi(),
                   Interior,Inflow,Outflow,Symmetry,SlipWall,NoSlipWall,
                   Geometry::ProbLo(), Geometry::ProbHi());
 

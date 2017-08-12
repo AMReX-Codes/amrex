@@ -140,14 +140,6 @@ protected:
     // Parameters
     static int verbose;
     static amrex::IntVect hydro_tile_size;
-    //
-    static amrex::Real gamma;  // gamma-law EOS
-    static amrex::Real mu;     // mean molecular weight
-    //
-    static amrex::Real Pr;     // Prandtl number
-    static amrex::Real Sc;     // Schmidt number
-    static amrex::Real C_S;    // constant in Sutherland's law
-    static amrex::Real T_S;    // Sutherland temperature
 };
 
 #endif
