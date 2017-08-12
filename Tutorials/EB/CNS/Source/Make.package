@@ -13,4 +13,5 @@ CEXE_sources += CNS_setup.cpp
 
 F90EXE_sources += CNS_f.F90
 F90EXE_sources += CNS_physics.F90
+F90EXE_sources += CNS_derive.F90
 F90EXE_sources += bc_fill_nd.F90
