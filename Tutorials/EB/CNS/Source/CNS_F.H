@@ -45,6 +45,11 @@ extern "C" {
     void cns_compute_temperature (const int* lo, const int* hi,
                                   amrex_real* u, const int* ulo, const int* uhi);
 
+    void cns_estdt (const int* lo, const int* hi,
+                    const amrex_real* u, const int* ulo, const int* uhi,
+                    const amrex_real* dx, amrex_real* dt);
+                    
+
 #ifdef __cplusplus
 }
 #endif
