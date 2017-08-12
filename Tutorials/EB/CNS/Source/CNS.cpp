@@ -1,5 +1,7 @@
 
 #include <CNS.H>
+#include <CNS_F.H>
+
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_ParmParse.H>
 
@@ -14,6 +16,7 @@ BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {1024,16,16};
+Real      CNS::cfl = 0.3;
 
 CNS::CNS ()
 {}
@@ -75,23 +78,20 @@ CNS::initData ()
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
         const Box& box = mfi.validbox();
-        // xxxxx
-#if 0
-        cns_initdata(level, cur_time,
+        cns_initdata(&level, &cur_time,
                      BL_TO_FORTRAN_BOX(box),
                      BL_TO_FORTRAN_ANYD(S_new[mfi]),
-                     ZFILL(prob_lo));
-#endif
+                     dx, prob_lo);
     }
 }
 
 void
 CNS::computeInitialDt (int                   finest_level,
-	  	               int                   sub_cycle,
-                               Array<int>&           n_cycle,
-                               const Array<IntVect>& ref_ratio,
-                               Array<Real>&          dt_level,
-                               Real                  stop_time)
+                       int                   sub_cycle,
+                       Array<int>&           n_cycle,
+                       const Array<IntVect>& ref_ratio,
+                       Array<Real>&          dt_level,
+                       Real                  stop_time)
 {
     //
     // Grids have been constructed, compute dt for all levels.
@@ -228,45 +228,6 @@ CNS::post_init (Real)
 void
 CNS::errorEst (TagBoxArray& tags, int clearval, int tagval, Real time, int n_error_buf, int ngrow)
 {
-#if 0
-    const Real* dx        = geom.CellSize();
-    const Real* prob_lo   = geom.ProbLo();
-
-    MultiFab& S_new = get_new_data(State_Type);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        Array<int>  itags;
-	
-	for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi)
-	{
-	    const Box&  tilebx  = mfi.tilebox();
-
-            TagBox&     tagfab  = tags[mfi];
-	    
-	    // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
-	    // So we are going to get a temporary integer array.
-	    tagfab.get_itags(itags, tilebx);
-	    
-            // data pointer and index space
-	    int*        tptr    = itags.dataPtr();
-	    const int*  tlo     = tilebx.loVect();
-	    const int*  thi     = tilebx.hiVect();
-
-	    state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
-			BL_TO_FORTRAN_3D(S_new[mfi]),
-			&tagval, &clearval, 
-			ARLIM_3D(tilebx.loVect()), ARLIM_3D(tilebx.hiVect()), 
-			ZFILL(dx), ZFILL(prob_lo), &time, &level);
-	    //
-	    // Now update the tags in the TagBox.
-	    //
-	    tagfab.tags_and_untags(itags, tilebx);
-	}
-    }
-#endif
 }
 
 void
@@ -282,6 +243,8 @@ CNS::read_params ()
 	for (int i=0; i<AMREX_SPACEDIM; i++) hydro_tile_size[i] = tilesize[i];
     }
    
+    pp.query("cfl", cfl);
+
     Array<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
     pp.getarr("lo_bc",lo_bc,AMREX_SPACEDIM);
     pp.getarr("hi_bc",hi_bc,AMREX_SPACEDIM);
