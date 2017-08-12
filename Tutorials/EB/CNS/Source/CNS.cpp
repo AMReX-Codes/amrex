@@ -1,6 +1,7 @@
 
 #include <CNS.H>
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_ParmParse.H>
 
 #include <climits>
 
@@ -8,10 +9,17 @@ using namespace amrex;
 
 constexpr int CNS::NUM_GROW;
 
-int       CNS::verbose = 0;
 ErrorList CNS::err_list;
 BCRec     CNS::phys_bc;
+
+int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {1024,16,16};
+Real      CNS::gamma = 1.4;          // gamma-law EOS
+Real      CNS::mu    = 28.97;        // mean molecular weight
+Real      CNS::Pr    = 0.72;         // Prandtl number
+Real      CNS::Sc    = 0.72;         // Schmidt number
+Real      CNS::C_S   = 1.458e-5;     // constant in Sutherland's law
+Real      CNS::T_S   = 110.4;        // Sutherland temperature
 
 CNS::CNS ()
 {}
@@ -270,7 +278,23 @@ CNS::errorEst (TagBoxArray& tags, int clearval, int tagval, Real time, int n_err
 void
 CNS::read_params ()
 {
-    // xxxxx
+    ParmParse pp("cns");
+
+    pp.query("v", verbose);
+ 
+    Array<int> tilesize(AMREX_SPACEDIM);
+    if (pp.queryarr("hydro_tile_size", tilesize, 0, AMREX_SPACEDIM))
+    {
+	for (int i=0; i<AMREX_SPACEDIM; i++) hydro_tile_size[i] = tilesize[i];
+    }
+   
+    Array<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
+    pp.getarr("lo_bc",lo_bc,AMREX_SPACEDIM);
+    pp.getarr("hi_bc",hi_bc,AMREX_SPACEDIM);
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        phys_bc.setLo(i,lo_bc[i]);
+        phys_bc.setHi(i,hi_bc[i]);
+    }
 }
 
 void
