@@ -13,6 +13,16 @@ extern "C" {
                         int, int, int, int, int, int,
                         const amrex_real* problo, const amrex_real* probhi);
 
+    void cns_hypfill (BL_FORT_FAB_ARG_3D(state),
+                      const int* dlo, const int* dhi,
+                      const amrex::Real* dx, const amrex::Real* glo, 
+                      const amrex::Real* time, const int* bc);
+    
+    void cns_denfill (BL_FORT_FAB_ARG_3D(state),
+                      const int* dlo, const int* dhi,
+                      const amrex::Real* dx, const amrex::Real* glo, 
+                      const amrex::Real* time, const int* bc);
+    
 #ifdef __cplusplus
 }
 #endif
