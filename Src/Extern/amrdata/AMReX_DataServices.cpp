@@ -171,7 +171,8 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
   numberOfUsers = 0;  // the user must do all incrementing and decrementing
   profiler = (fileType == Amrvis::PROFDATA);
 
-#ifdef BL_PROFILING 
+#ifdef BL_PROFILING
+  #if (BL_SPACEDIM == 2)
   if (profiler)
   {
     bool bIOP(ParallelDescriptor::IOProcessor());
@@ -316,6 +317,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
 
     bAmrDataOk = true;
   } // if (profiler)
+  #endif
 #endif
 }
 
@@ -1855,6 +1857,9 @@ void DataServices::RunSendsPF(std::string &plotfileName,
                                   int maxSmallImageLength,
                                   bool proxMap, int refRatioAll)
 {
+#if (BL_SPACEDIM != 2)
+  cout << "**** Error:  DataServices::RunSendsPF is only supported for 2D" << endl;
+#else
     bool bIOP(ParallelDescriptor::IOProcessor());
     //int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
@@ -2151,6 +2156,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
       cout << "---------------- End Process Sends MF." << endl << endl;
     }
     BL_PROFILE_VAR_STOP(runsendspfall)
+#endif
 }
 
 
@@ -2161,6 +2167,9 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
                                      int refRatioAll, int nTimeSlots,
 	                             bool &statsCollected)
 {
+#if (BL_SPACEDIM != 2)
+  cout << "**** Error:  DataServices::RunTimelinePF is only supported for 2D" << endl;
+#else
     bool bIOP(ParallelDescriptor::IOProcessor());
     int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
@@ -2427,6 +2436,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       cout << endl;
     }
     BL_PROFILE_VAR_STOP(runtimelinepfall)
+#endif
 }
 
 
@@ -2529,6 +2539,9 @@ void DataServices::RunACTPF(std::string &plotfileName,
                                 int maxSmallImageLength, int refRatioAll,
 	                        const Array<string> &actFNames)
 {
+#if (BL_SPACEDIM != 2)
+  cout << "**** Error:  DataServices::RunACTPF is only supported for 2D" << endl;
+#else
     bool bIOP(ParallelDescriptor::IOProcessor());
     int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
@@ -2821,6 +2834,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     }
 
     BL_PROFILE_VAR_STOP(RunACTPF)
+#endif
 }
 
 
