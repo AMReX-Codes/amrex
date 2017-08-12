@@ -94,9 +94,9 @@ class Jacobi :public Task{
 	void Job(){
 	    if(iteration==-1){
 		initializeData();
-	    }else if(iteration<nIters){
+	    }else if(iteration<=nIters){ //compute stencil from iter 0 to nIters-1, when iteration=nIters we just update ghost cell the from the previous iteration
 
-		if(iteration>0){//first iteration doesn't need communication
+		if(iteration>0){// iterations 1 to nIters
 		    if(rankz >0) {
 			Pull(TaskName(rankx, ranky, rankz-1), (char*)&U[0][0][0], nx*ny*sizeof(double));
 		    }
@@ -150,33 +150,35 @@ class Jacobi :public Task{
 		}
 
 
-		for (int k0 = 1; k0 < nz - 1; k0+=BLOCKZ) {
-		    int k1= k0+BLOCKZ<nz-1?k0+BLOCKZ:nz-1;
-		    for (int j0 = 1; j0 < ny - 1; j0+=BLOCKY) {
-			int j1= j0+BLOCKY<ny-1?j0+BLOCKY:ny-1;
-			for (int k = k0; k < k1; k++) {
-			    for (int j = j0; j < j1; j++){
-				double *Un0 = &Un[k][j][0];
-				double *up = &U[k-1][j][0];
-				double *down = &U[k+1][j][0];
-				double *east = &U[k][j][0]-1;
-				double *west = &U[k][j][1];
-				double *north = &U[k][j+1][0];
-				double *south = &U[k][j-1][0];
-				double *bcentral = &b[k][j][0];
-				for (int i = 1; i < nx-1; i++){
-				    Un0[i]= c1 * (up[i] + down[i] + east[i] + west[i] + north[i] + south[i] - c2*bcentral[i]);
-				} 
+		if(iteration<nIters){ //iterations 0 to nIters-1
+		    for (int k0 = 1; k0 < nz - 1; k0+=BLOCKZ) {
+			int k1= k0+BLOCKZ<nz-1?k0+BLOCKZ:nz-1;
+			for (int j0 = 1; j0 < ny - 1; j0+=BLOCKY) {
+			    int j1= j0+BLOCKY<ny-1?j0+BLOCKY:ny-1;
+			    for (int k = k0; k < k1; k++) {
+				for (int j = j0; j < j1; j++){
+				    double *Un0 = &Un[k][j][0];
+				    double *up = &U[k-1][j][0];
+				    double *down = &U[k+1][j][0];
+				    double *east = &U[k][j][0]-1;
+				    double *west = &U[k][j][1];
+				    double *north = &U[k][j+1][0];
+				    double *south = &U[k][j-1][0];
+				    double *bcentral = &b[k][j][0];
+				    for (int i = 1; i < nx-1; i++){
+					Un0[i]= c1 * (up[i] + down[i] + east[i] + west[i] + north[i] + south[i] - c2*bcentral[i]);
+				    } 
+				}
 			    }
 			}
 		    }
+		    double ***temp = NULL;
+		    temp = U;
+		    U = Un;
+		    Un = temp;
 		}
-		double ***temp = NULL;
-		temp = U;
-		U = Un;
-		Un = temp;
 
-		if(iteration<nIters-1){//last iteration doesn't need communication
+		if(iteration<nIters){ //iterations 0 to nIters-1
 		    if(rankz >0) {
 			Push(TaskName(rankx, ranky, rankz-1), (char*)&U[1][0][0], nx*ny*sizeof(double));
 		    }
@@ -264,7 +266,7 @@ class Jacobi :public Task{
 	    }
 	}
 	void PostCompletion(){
-	    if(iteration<nIters){
+	    if(iteration<=nIters){
 		KeepTaskAlive();
 	    }else{
 		double res= residual(Un, nx, ny, nz);
@@ -276,7 +278,7 @@ class Jacobi :public Task{
 		free(bufWest);
 		free(bufNorth);
 		free(bufSouth);
-		DestroyTask();
+		SelfDestroy();
 	    }
 	}
 };
@@ -320,7 +322,7 @@ int main(int argc,char *argv[])
     double time= -rts.Time();
     rts.Barrier();
     ArrayGraph<Jacobi, 3> *JacobiGraph= new ArrayGraph<Jacobi, 3>(graphName, PointVect<3>(Jacobi::tx, Jacobi::ty, Jacobi::tz), rank, nProcs);
-    rts.RTS_Run(JacobiGraph, false);
+    rts.RTS_Run(JacobiGraph);
     double res= global_err;
     double finalErr;
     rts.ReductionSum(&res, &finalErr, 1, 0); //reduce to process 0
@@ -332,5 +334,6 @@ int main(int argc,char *argv[])
 	double gflops = Jacobi::nIters*(double)Jacobi::Nx*(double)Jacobi::Ny*(double)Jacobi::Nz*8/(1.0e9);
 	cout<<"GFLOP/S " << gflops/time <<endl;
     }
+    delete JacobiGraph;
     rts.RTS_Finalize();
 };

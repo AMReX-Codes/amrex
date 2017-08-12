@@ -44,7 +44,7 @@ namespace amrex{
 	assert(RunningQueue.size()==0);
     }
 
-    void RTS::RTS_Run(void* taskgraph, bool keepInitialGraph=false){
+    void RTS::RTS_Run(void* taskgraph){
 	AbstractTaskGraph<Task>* graph= (AbstractTaskGraph<Task>*)taskgraph;
 	//visit all initial tasks 
 	{
@@ -69,16 +69,18 @@ namespace amrex{
 	    {
 		if(graph->GetRunningMode()== _Push)
 		{
-#if 0
-		    //Process all messages
-		    while(MsgQueue.size()){
+		    //Process messages
+		    int nMsgs= MsgQueue.size();
+		    for(int i=0; i<nMsgs; i++){
 			Data* msg= MsgQueue.front();
 			MsgQueue.pop();
 			TaskName name= msg->GetRecipient();
-			Task* t= graph->LocateTask(name);
-			t->Pull(msg);
+			if(graph->LocateTask(name)){
+			    Task* t= graph->LocateTask(name);
+			    t->GetInputs().push_back(msg->GetSource(), msg, msg->GetTag());
+			}
+			else MsgQueue.push(msg); //Recipient has not been created
 		    }
-#endif
 		}else{
 		    while(DataFetchingQueue.size()){
 			Task* t= DataFetchingQueue.front();
@@ -114,7 +116,20 @@ namespace amrex{
 			t->GetOutputs().pop();
 			TaskName dst= outdata->GetRecipient();
 			int tag= outdata->GetTag();
-			graph->LocateTask(dst)->GetInputs().push_back(t->MyName(), outdata, tag);
+			if(graph->LocateTask(dst)){
+			    graph->LocateTask(dst)->GetInputs().push_back(outdata->GetSource(), outdata, tag);
+			}else MsgQueue.push(outdata); 
+		    }
+		    //process newly created tasks
+		    while(t->GetNewTasks().size()>0){
+			Task* nt= t->GetNewTasks().front();
+			t->GetNewTasks().pop();
+			graph->GetTaskPool()[nt->MyName()]=nt;
+			if(nt->Dependency()){//all data have arrived
+			    ReadyQueue.push(nt);
+			}else{
+			    WaitingQueue.push(nt);
+			}
 		    }
 		    //keep or destroy task
 		    if(t->isPersistent()){
@@ -124,15 +139,12 @@ namespace amrex{
 			    WaitingQueue.push(t);
 			}
 		    }else{
-			//later
-
+			//remove task from the task pool and delete it
+			graph->DestroyTask(t);
 		    }
 		}
 	    }
-	    keepRunning= WaitingQueue.size()>0 || DataFetchingQueue.size()>0|| ReadyQueue.size()>0|| RunningQueue.size()>0|| MsgQueue.size()>0;
-	}
-	if(!keepInitialGraph){
-	    //graph->clear();
+	    keepRunning= WaitingQueue.size()>0 || DataFetchingQueue.size()>0|| ReadyQueue.size()>0|| RunningQueue.size()>0|| MsgQueue.size()>0 || graph->GetTaskPool().size()>0;
 	}
     }
 

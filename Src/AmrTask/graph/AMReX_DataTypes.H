@@ -54,6 +54,13 @@ namespace amrex{
 			_vect[1] =y;
 			_vect[2] =z;
                 }
+                PointVect(int x, int y, int z, int t){
+                        assert(D==4);
+                        _vect[0] =x;
+                        _vect[1] =y;
+                        _vect[2] =z;
+                        _vect[3] =t;
+                }
 		int& operator[] (int i) {
 		    return _vect[i];
 		}
