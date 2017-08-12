@@ -50,7 +50,6 @@ subroutine bl_avg_eg_to_cc (lo, hi, &
   real(amrex_real) :: Ex(Exl1:Exh1, Exl2:Exh2, Exl3:Exh3)
   real(amrex_real) :: Ey(Eyl1:Eyh1, Eyl2:Eyh2, Eyl3:Eyh3)
   real(amrex_real) :: Ez(Ezl1:Ezh1, Ezl2:Ezh2, Ezl3:Ezh3)
-  real(amrex_real) :: dx(3), problo(3)
 
   ! Local variables
   integer          :: i,j,k
