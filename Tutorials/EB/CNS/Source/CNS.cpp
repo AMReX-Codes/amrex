@@ -14,12 +14,6 @@ BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {1024,16,16};
-Real      CNS::gamma = 1.4;          // gamma-law EOS
-Real      CNS::mu    = 28.97;        // mean molecular weight
-Real      CNS::Pr    = 0.72;         // Prandtl number
-Real      CNS::Sc    = 0.72;         // Schmidt number
-Real      CNS::C_S   = 1.458e-5;     // constant in Sutherland's law
-Real      CNS::T_S   = 110.4;        // Sutherland temperature
 
 CNS::CNS ()
 {}
