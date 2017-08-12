@@ -19,7 +19,7 @@ module cns_module
   integer, save, public :: Interior, Inflow, Outflow, Symmetry, SlipWall, NoSlipWall
 
   ! problem domain
-  real(rt), save, public :: problo(3), probhi(3)
+  real(rt), save, public :: problo(3), probhi(3), center(3)
 
   public :: cns_init_fort
 
@@ -45,6 +45,7 @@ contains
 
     problo = problo_in
     probhi = probhi_in
+    center = 0.5_rt*(problo+probhi)
 
   end subroutine cns_init_fort
 

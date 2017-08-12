@@ -140,6 +140,7 @@ protected:
     // Parameters
     static int verbose;
     static amrex::IntVect hydro_tile_size;
+    static amrex_real cfl;
 };
 
 #endif
