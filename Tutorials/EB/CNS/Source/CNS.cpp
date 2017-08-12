@@ -228,6 +228,7 @@ CNS::post_init (Real)
 void
 CNS::errorEst (TagBoxArray& tags, int clearval, int tagval, Real time, int n_error_buf, int ngrow)
 {
+    // xxxxx tagging
 }
 
 void
@@ -297,6 +298,11 @@ CNS::initialTimeStep ()
 void
 CNS::computeTemp (MultiFab& State, int ng)
 {
-    // xxxxx
-    return;
+    // This will reset Eint and compute Temperature
+    for (MFIter mfi(State,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(ng);
+        cns_compute_temperature(BL_TO_FORTRAN_BOX(bx),
+                                BL_TO_FORTRAN_ANYD(State[mfi]));
+    }
 }
