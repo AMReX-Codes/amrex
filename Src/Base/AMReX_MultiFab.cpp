@@ -10,7 +10,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_ParmParse.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_BaseFab_f.H>
 
