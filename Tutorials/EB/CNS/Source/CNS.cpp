@@ -285,8 +285,20 @@ CNS::buildMetrics ()
 Real
 CNS::estTimeStep ()
 {
-    // xxxxx
-    return 0.0;
+    Real estdt = std::numeric_limits<Real>::max();
+
+    const Real* dx = geom.CellSize();
+    const MultiFab& stateMF = get_new_data(State_Type);
+
+    for (MFIter mfi(stateMF,true); mfi.isValid(); ++mfi)
+    {
+	const Box& box = mfi.tilebox();
+        cns_estdt(BL_TO_FORTRAN_BOX(box),
+                  BL_TO_FORTRAN_ANYD(stateMF[mfi]),
+                  dx, &estdt);
+    }
+    estdt *= cfl;
+    return estdt;
 }
 
 Real
