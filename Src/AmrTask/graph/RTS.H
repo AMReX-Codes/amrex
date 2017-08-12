@@ -27,7 +27,7 @@ namespace amrex{
 	    int RTS_MyWorkerThread();
 	    void RTS_Init();
 	    void RTS_Init(int *rank, int *nProcs);
-	    void RTS_Run(void *graph, bool keepInitialGraph);
+	    void RTS_Run(void *graph);
 	    void RTS_Finalize();
             double Time();
             void Barrier();

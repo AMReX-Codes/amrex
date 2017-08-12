@@ -26,6 +26,7 @@ namespace amrex{
 	    TaskName(int id){_ids.push_back(id);}
 	    TaskName(int id0, int id1){_ids.push_back(id0); _ids.push_back(id1);}
 	    TaskName(int id0, int id1, int id2){_ids.push_back(id0); _ids.push_back(id1); _ids.push_back(id2);}
+	    TaskName(int id0, int id1, int id2, int id3){_ids.push_back(id0); _ids.push_back(id1); _ids.push_back(id2);_ids.push_back(id3);}
 	    int& operator[](int i){return _ids[i];}
 	    const int& operator[](int i) const{return _ids[i];}
 	    TaskName& operator=(const TaskName &rhs){
@@ -56,12 +57,12 @@ namespace amrex{
 		for(int i= _ids.size()-1; i>=0; i--){
 		    if(_ids[i] > rhs[i]) return false;
 		    if(_ids[i] < rhs[i]) return true;
-                }
+		}
 		return false;
 	    }
-            void SetSize(int dim){
+	    void SetSize(int dim){
 		for(int i=0; i<dim; i++) _ids.push_back(0);
-            }
+	    }
 	    int Dim() const{return _ids.size();}
     };
 
@@ -121,7 +122,7 @@ namespace amrex{
 	    if(dataMap.find(name) != dataMap.end()){
 		if(dataMap[name].find(tag) != dataMap[name].end()){
 		    return dataMap[name][tag].size() >0;
-                }
+		}
 	    }
 	    return false;
 	}
@@ -137,7 +138,7 @@ namespace amrex{
 	    _size--;
 	    return d;
 	}
-	std::queue< Data* >& GetDependencies(TaskName name, int tag){return dataMap[name][tag];}
+	std::queue< Data* >& GetDependencies(TaskName name, int tag=0){return dataMap[name][tag];}
     };
 
     //! The most abstract task
@@ -146,9 +147,10 @@ namespace amrex{
 	    TaskName _id;
 	    DependencyMap neighbors_in; 
 	    std::queue<Data*> outputs;
-            bool _isPersistent;
+	    std::queue<Task*> _newTasks;
+	    bool _isPersistent;
 	public:
-            Task():_isPersistent(false){}
+	    Task():_isPersistent(false){}
 	    //Describe Data Dependency
 	    virtual bool Dependency()=0;
 	    //! What the task is supposed to do
@@ -167,16 +169,20 @@ namespace amrex{
 		return neighbors_in.isSatisfied(src, tag);
 	    }
 	    std::queue<Data*>& GetOutputs(){return outputs;}
+	    std::queue<Task*>& GetNewTasks(){return _newTasks;}
 	    DependencyMap& GetInputs(){return neighbors_in;}
-            void KeepTaskAlive(){_isPersistent=true;}
-            void DestroyTask(){_isPersistent=false;}
-            bool isPersistent(){return _isPersistent;}
+	    void KeepTaskAlive(){_isPersistent=true;}
+	    void SelfDestroy(){_isPersistent=false;}
+	    bool isPersistent(){return _isPersistent;}
 
-            template<typename T> void LocalAtomicAdd(T *addr, int val){
+	    template<typename T> void LocalAtomicAdd(T *addr, T val){
 		LocalAtomicAdd_impl(addr, val);
-            }
-            template<typename T> void GlobalAtomicAdd(T *addr, int val){
+	    }
+	    template<typename T> void GlobalAtomicAdd(T *addr, T val){
 		GlobalAtomicAdd_impl(addr, val);
+	    }
+	    void RegisterTask(Task* t){
+		_newTasks.push(t);
 	    }
     };
 

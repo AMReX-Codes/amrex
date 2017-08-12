@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string.h>
+#include <math.h>
 
 #include "AMReX_AbstractTask.H"
 #include "AMReX_TaskGraph.H"
@@ -11,66 +12,125 @@ typedef double *** Array3D;
 
 Array3D Array3DMalloc(int nx, int ny, int nz)
 {
-   Array3D U = (Array3D)malloc(sizeof(double**)*nz + sizeof(double *)*ny*nz +sizeof(double)*nx*ny*nz);
-
-   for(int k=0;k<nz;k++){
-       U[k] = ((double**) U) + nz + k*ny;
+    Array3D U = (Array3D)malloc(sizeof(double**)*nz + sizeof(double *)*ny*nz +sizeof(double)*nx*ny*nz);
+    for(int k=0;k<nz;k++){
+	U[k] = ((double**) U) + nz + k*ny;
     }
-   double *Ustart = (double *) (U[nz-1] + ny);
-   for(int k=0;k<nz;k++)
-       for(int j=0;j<ny;j++)
-           U[k][j] = Ustart + k*nx*ny + j*nx;
-  return U;
+    double *Ustart = (double *) (U[nz-1] + ny);
+    for(int k=0;k<nz;k++)
+	for(int j=0;j<ny;j++)
+	    U[k][j] = Ustart + k*nx*ny + j*nx;
+    return U;
 }
 
+double  residual(double*** U, const int nx, const int ny, const int nz){
+    double c = (1.0/6.0);
+    double err = 0;
+    for (int k=1; k<nz-1; k++)
+	for (int j=1; j<ny-1; j++)
+	    for (int i=1; i<nx-1; i++){
+		double du =  (U[k-1][j][i] + U[k+1][j][i] + U[k][j-1][i] + U[k][j+1][i] + U[k][j][i-1] + U[k][j][i+1] - 6 * U[k][j][i]);
+		err = err +  du * du;
+	    }
+    return err;
+}
 
 using namespace amrex;
 
+double  global_err;
+int tx=1, ty=1, tz=1;
+int Nx=256, Ny=256, Nz=256;
+int nIters=10;
+
+struct domain{
+    Array3D U, Un, b;
+    double *bufEast=NULL, *bufWest=NULL, *bufNorth=NULL, *bufSouth=NULL;
+    double c1;
+    double c2;
+    int nx, ny, nz;
+};
+
 class Jacobi :public Task{
     private:
-	int rankx, ranky, rankz;
+	domain *dom;
 	Array3D U, Un, b;
-	int iteration;
+	double *bufEast, *bufWest, *bufNorth, *bufSouth;
 	double c1;
 	double c2;
+	int nx, ny, nz;
+
     public:
-	static int nIters;
-	static int tx, ty, tz;
-	static int nx, ny, nz;
-	Jacobi(){
-	    iteration=-1;
-	    double c1=1.0/6.0;
-	    double c2=1.0;
+	Jacobi(domain *domIn){
+	    dom = domIn;
 	}
-
-	void initializeData(){
-            U = Array3DMalloc(nx, ny, nz);
-            Un = Array3DMalloc(nx, ny, nz);
-            b = Array3DMalloc(nx, ny, nz);
-	    for (int k=0; k<nz; k++)
-		for (int j=0; j<ny; j++)
-		    for(int i=0; i<nx; i++){
-			if(((rankz==0)&&(k==0)) ||((rankz==tz-1)&&(k==nz-1)) ||((ranky==0)&&(j==0)) ||\
-				((ranky==ty-1)&&(j==ny-1))||((rankx==0)&&(i==0)) ||((rankx==tx-1)&&(i==nx-1))){
-			    U[k][j][i] = 0;
-			    Un[k][j][i] = 0;
-			}else{
-			    U[k][j][i] = 1;
-			    Un[k][j][i] = 1;
-			}
-			b[k][j][i] = 0;
-		    }
-	}
-
-
 	void Job(){
 	    TaskName taskID= MyName();
-	    rankx= taskID[0];
-	    ranky= taskID[1];
-	    rankz= taskID[2];
-	    if(iteration==-1){
-		initializeData();
-	    }else if(iteration<nIters){
+	    int rankx= taskID[0];
+	    int ranky= taskID[1];
+	    int rankz= taskID[2];
+	    int iteration= taskID[3];
+	    bufEast=dom->bufEast; bufWest=dom->bufWest; bufNorth=dom->bufNorth; bufSouth=dom->bufSouth;
+	    c1=dom->c1;
+	    c2=dom->c2;
+	    nx=dom->nx; ny=dom->ny; nz=dom->nz;
+	    if(iteration%2==1){ U=dom->U; Un=dom->Un;}
+	    else {U=dom->Un; Un=dom->U;}
+	    b= dom->b;
+	    if(iteration>1){ //iterations 2 to nIters+1
+		if(rankz >0) {
+		    Pull(TaskName(rankx, ranky, rankz-1, iteration-1), (char*)&U[0][0][0], nx*ny*sizeof(double));
+		}
+		if(rankz<tz-1) {
+		    Pull(TaskName(rankx, ranky, rankz+1, iteration-1), (char*)&U[nz-1][0][0], nx*ny*sizeof(double));
+		}
+		if(ranky >0) {
+		    Pull(TaskName(rankx, ranky-1, rankz, iteration-1), (char*)bufNorth, nx*nz*sizeof(double));
+		    double* idx;
+		    double* ptr= (double*)bufNorth;
+		    for(int z=0; z < nz; z++) {
+			idx = &U[z][0][0];
+			memcpy(idx, ptr, sizeof(double)*nx);
+			ptr += nx;
+		    }
+		}
+		if(ranky<ty-1) {
+		    Pull(TaskName(rankx, ranky+1, rankz, iteration-1), (char*)bufSouth, nx*nz*sizeof(double));
+		    double* idx;
+		    double* ptr= (double*)bufSouth;
+		    for(int z=0; z < nz; z++) {
+			idx = &U[z][ny-1][0];
+			memcpy(idx, ptr, sizeof(double)*nx);
+			ptr += nx;
+		    }
+		}
+		if(rankx >0) {
+		    Pull(TaskName(rankx-1, ranky, rankz, iteration-1), (char*)bufWest, ny*nz*sizeof(double));
+		    double* idx;
+		    double* ptr= (double*)bufWest;
+		    for(int z=0; z < nz; z++) {
+			for(int y=0; y < ny; y++) {
+			    idx = &U[z][y][0];
+			    *idx= *ptr;
+			    ptr++;
+			}
+		    }
+		}
+		if(rankx<tx-1) {
+		    Pull(TaskName(rankx+1, ranky, rankz, iteration-1), (char*)bufEast, ny*nz*sizeof(double));
+		    double* idx;
+		    double* ptr= (double*)bufEast;
+		    for(int z=0; z < nz; z++) {
+			for(int y=0; y < ny; y++) {
+			    idx = &U[z][y][nx-1];
+			    *idx= *ptr;
+			    ptr++;
+			}
+		    }
+		}
+	    }
+
+
+	    if(iteration<= nIters) //iterations 1 to nIters
 		for (int k0 = 1; k0 < nz - 1; k0+=BLOCKZ) {
 		    int k1= k0+BLOCKZ<nz-1?k0+BLOCKZ:nz-1;
 		    for (int j0 = 1; j0 < ny - 1; j0+=BLOCKY) {
@@ -85,33 +145,172 @@ class Jacobi :public Task{
 				double *north = &U[k][j+1][0];
 				double *south = &U[k][j-1][0];
 				double *bcentral = &b[k][j][0];
-				for (int i = 1; i < nx-1; i++) Un0[i]= c1 * (up[i] + down[i] + east[i] + west[i] + north[i] + south[i] - c2*bcentral[i]);
+				for (int i = 1; i < nx-1; i++){
+				    Un0[i]= c1 * (up[i] + down[i] + east[i] + west[i] + north[i] + south[i] - c2*bcentral[i]);
+				} 
 			    }
 			}
 		    }
 		}
-		double ***temp = NULL;
-		temp = U;
-		U = Un;
-		Un = temp;
+
+	    if(iteration<=nIters){ //iterations 1 to nIters
+		if(rankz >0) {
+		    Push(TaskName(rankx, ranky, rankz-1, iteration+1), (char*)&Un[1][0][0], nx*ny*sizeof(double));
+		}
+		if(rankz<tz-1) {
+		    Push(TaskName(rankx, ranky, rankz+1, iteration+1), (char*)&Un[nz-2][0][0], nx*ny*sizeof(double));
+		}
+		if(ranky >0) {
+		    double* idx;
+		    double* ptr= (double*)bufNorth;
+		    for(int z=0; z < nz; z++) {
+			idx = &Un[z][1][0];
+			memcpy(ptr, idx, sizeof(double)*nx);
+			ptr += nx;
+		    }
+		    Push(TaskName(rankx, ranky-1, rankz, iteration+1), (char*)bufNorth, nx*nz*sizeof(double));
+		}
+		if(ranky<ty-1) {
+		    double* idx;
+		    double* ptr= (double*)bufSouth;
+		    for(int z=0; z < nz; z++) {
+			idx = &Un[z][ny-2][0];
+			memcpy(ptr, idx, sizeof(double)*nx);
+			ptr += nx;
+		    }
+		    Push(TaskName(rankx, ranky+1, rankz, iteration+1), (char*)bufSouth, nx*nz*sizeof(double));
+		}
+		if(rankx >0) {
+		    double* idx;
+		    double* ptr= (double*)bufWest;
+		    for(int z=0; z < nz; z++) {
+			for(int y=0; y < ny; y++) {
+			    idx = &Un[z][y][1];
+			    *ptr= *idx;
+			    ptr ++;
+			}
+		    }
+		    Push(TaskName(rankx-1, ranky, rankz, iteration+1), (char*)bufWest, ny*nz*sizeof(double));
+		}
+		if(rankx<tx-1) {
+		    double* idx;
+		    double* ptr= (double*)bufEast;
+		    for(int z=0; z < nz; z++) {
+			for(int y=0; y < ny; y++) {
+			    idx = &Un[z][y][nx-2];
+			    *ptr= *idx;
+			    ptr ++;
+			}
+		    }
+		    Push(TaskName(rankx+1, ranky, rankz, iteration+1), (char*)bufEast, ny*nz*sizeof(double));
+		}
 	    }
-            iteration++;
 	}
 	bool Dependency(){
-	    return true; //just for now, I'll update this function later
+	    TaskName name= MyName();
+	    int iteration= name[3];
+	    if(iteration==1) return true;
+	    else{
+		bool satisfied=true;
+		if(name[0]>0){ 
+		    satisfied= Depend_on(TaskName(name[0]-1, name[1], name[2], iteration-1)); 
+		    if(!satisfied) return false; //early cascade
+		}
+		if(name[0]<tx-1){
+		    satisfied= Depend_on(TaskName(name[0]+1, name[1], name[2], iteration-1)); 
+		    if(!satisfied) return false; //early cascade
+		}
+		if(name[1]>0){
+		    satisfied= Depend_on(TaskName(name[0], name[1]-1, name[2], iteration-1)); 
+		    if(!satisfied) return false; //early cascade
+		}
+		if(name[1]<ty-1){
+		    satisfied= Depend_on(TaskName(name[0], name[1]+1, name[2], iteration-1)); 
+		    if(!satisfied) return false; //early cascade
+		}
+		if(name[2]>0){
+		    satisfied= Depend_on(TaskName(name[0], name[1], name[2]-1, iteration-1)); 
+		    if(!satisfied) return false; //early cascade
+		}
+		if(name[2]<tz-1){
+		    satisfied= Depend_on(TaskName(name[0], name[1], name[2]+1, iteration-1)); 
+		    if(!satisfied) return false; //early cascade
+		}
+		return true;
+	    }
 	}
 	void PostCompletion(){
-            if(iteration==nIters){
-               free(U);
-               free(Un);
-               free(b);
-            }
+	    if(MyName()[3]<=nIters){
+		Jacobi *jac= new Jacobi(dom);
+		TaskName newName= MyName();
+		newName[3]++;
+		jac->SetName(newName);
+		RegisterTask(jac);
+	    }else{
+		double res= residual(Un, nx, ny, nz);
+		LocalAtomicAdd(&global_err, res);
+		free(dom->U);
+		free(dom->Un);
+		free(dom->b);
+		free(dom->bufEast);
+		free(dom->bufWest);
+		free(dom->bufNorth);
+		free(dom->bufSouth);
+		free(dom);
+	    }
+	    SelfDestroy();
+	}
+};
+class JacobiInit :public Task{
+    private:
+	domain *dom;
+	int rankx, ranky, rankz;
+    public:
+	JacobiInit(){
+	}
+	void Job(){
+	    dom= new domain();
+	    TaskName taskID= MyName();
+	    rankx= taskID[0];
+	    ranky= taskID[1];
+	    rankz= taskID[2];
+	    dom->c1=1.0/6.0;
+	    dom->c2=1.0;
+	    dom->nx= Nx/tx+2;
+	    dom->ny= Ny/ty+2;
+	    dom->nz= Nz/tz+2;
+	    dom->U = Array3DMalloc(dom->nx, dom->ny, dom->nz);
+	    dom->Un = Array3DMalloc(dom->nx, dom->ny, dom->nz);
+	    dom->b = Array3DMalloc(dom->nx, dom->ny, dom->nz);
+	    for (int k=0; k<dom->nz; k++)
+		for (int j=0; j<dom->ny; j++)
+		    for(int i=0; i<dom->nx; i++){
+			if(((rankz==0)&&(k==0)) ||((rankz==tz-1)&&(k==dom->nz-1)) ||((ranky==0)&&(j==0)) ||\
+				((ranky==ty-1)&&(j==dom->ny-1))||((rankx==0)&&(i==0)) ||((rankx==tx-1)&&(i==dom->nx-1))){
+			    dom->U[k][j][i] = 0;
+			    dom->Un[k][j][i] = 0;
+			}else{
+			    dom->U[k][j][i] = 1;
+			    dom->Un[k][j][i] = 1;
+			}
+			dom->b[k][j][i] = 0;
+		    }
+	    dom->bufEast= (double*)malloc(dom->ny*dom->nz*sizeof(double));
+	    dom->bufWest= (double*)malloc(dom->ny*dom->nz*sizeof(double));
+	    dom->bufNorth= (double*)malloc(dom->nx*dom->nz*sizeof(double));
+	    dom->bufSouth= (double*)malloc(dom->nx*dom->nz*sizeof(double));
+	}
+	bool Dependency(){return true;}
+	void PostCompletion(){
+	    Jacobi *jac= new Jacobi(dom);
+	    TaskName newName= MyName();
+	    newName[3]++;
+	    jac->SetName(newName);
+	    RegisterTask(jac);
+	    SelfDestroy();
 	}
 };
 
-int Jacobi::tx, Jacobi::ty, Jacobi::tz;
-int Jacobi::nx, Jacobi::ny, Jacobi::nz;
-int Jacobi::nIters;
 int main(int argc,char *argv[])
 {
     int argCount = 0;
@@ -121,31 +320,46 @@ int main(int argc,char *argv[])
        -tx: number of tasks in X dimension
        -ty: number of tasks in Y dimension
        -tz: number of tasks in Z dimension
-       -nx: number of cells in X dimension
-       -ny: number of cells in Y dimension
-       -nz: number of cells in Z dimension
+       -Nx: number of cells in X dimension
+       -Ny: number of cells in Y dimension
+       -Nz: number of cells in Z dimension
        -i : number of iterations
        -v: print out task graph information
      */ 
     while(++argCount <argc) {
-	if(!strcmp(argv[argCount], "-tx")) Jacobi::tx= atoi(argv[++argCount]);
-	if(!strcmp(argv[argCount], "-ty")) Jacobi::ty= atoi(argv[++argCount]);
-	if(!strcmp(argv[argCount], "-tz")) Jacobi::tz= atoi(argv[++argCount]);
-	if(!strcmp(argv[argCount], "-nx")) Jacobi::nx = atoi(argv[++argCount]);
-	if(!strcmp(argv[argCount], "-ny")) Jacobi::ny = atoi(argv[++argCount]);
-	if(!strcmp(argv[argCount], "-nz")) Jacobi::nz = atoi(argv[++argCount]);
-	if(!strcmp(argv[argCount], "-i"))  Jacobi::nIters = atoi(argv[++argCount]);
+	if(!strcmp(argv[argCount], "-tx")) tx= atoi(argv[++argCount]);
+	if(!strcmp(argv[argCount], "-ty")) ty= atoi(argv[++argCount]);
+	if(!strcmp(argv[argCount], "-tz")) tz= atoi(argv[++argCount]);
+	if(!strcmp(argv[argCount], "-Nx")) Nx = atoi(argv[++argCount]);
+	if(!strcmp(argv[argCount], "-Ny")) Ny = atoi(argv[++argCount]);
+	if(!strcmp(argv[argCount], "-Nz")) Nz = atoi(argv[++argCount]);
+	if(!strcmp(argv[argCount], "-i"))  nIters = atoi(argv[++argCount]);
 	if(!strcmp(argv[argCount], "-v"))  verbose = true;
     }
+    global_err=0.;
     RTS rts;
     rts.RTS_Init(&rank, &nProcs);
     string graphName= "3DJacobi";
     if(verbose && rank==0){
-	cout<< "Creating a 3DJacobi Graph with ( "<< Jacobi::tx << ", " << Jacobi::ty <<", " << Jacobi::tz << ") tasks" << endl;
+	cout<< "Creating a 3DJacobi Graph containing ( "<< tx << ", " << ty <<", " << tz << ") tasks" << "for iteration 0"<< endl;
 	cout<< "Running the graph with "<< rts.RTS_ProcCount() << " processes" <<endl;
+	cout<< "The graph evolves over time"<<endl; 
     }
-    ArrayGraph<Jacobi, 3> *JacobiGraph= new ArrayGraph<Jacobi, 3>(graphName, PointVect<3>(Jacobi::tx, Jacobi::ty, Jacobi::tz), rank, nProcs);
-    rts.RTS_Run(JacobiGraph, false);
-    if(verbose && rank==0) printf("Graph execution completed\n");
+    double time= -rts.Time();
+    rts.Barrier();
+    ArrayGraph<JacobiInit, 4> *JacobiGraph= new ArrayGraph<JacobiInit, 4>(graphName, PointVect<4>(tx, ty, tz, 1), rank, nProcs);
+    rts.RTS_Run(JacobiGraph);
+    double res= global_err;
+    double finalErr;
+    rts.ReductionSum(&res, &finalErr, 1, 0); //reduce to process 0
+    rts.Barrier();
+    time +=rts.Time();
+    if(rank==0) {
+	cout<<"Residual: " << sqrt(finalErr/((double)(Nx+1)*(double)(Ny+1)*(double)(Nz+1))) <<endl;
+	cout<<"Graph execution takes "<< time << " seconds"<<endl;
+	double gflops = nIters*(double)Nx*(double)Ny*(double)Nz*8/(1.0e9);
+	cout<<"GFLOP/S " << gflops/time <<endl;
+    }
+    delete JacobiGraph;
     rts.RTS_Finalize();
 };

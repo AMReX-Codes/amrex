@@ -9,10 +9,10 @@ using namespace std;
 
 namespace amrex{
 
-    template<typename T> void LocalAtomicAdd_impl(T *addr, int val){
+    template<typename T> void LocalAtomicAdd_impl(T *addr, T val){
         *addr+= val;
     }
-    template<typename T> void GlobalAtomicAdd_impl(T *addr, int val){
+    template<typename T> void GlobalAtomicAdd_impl(T *addr, T val){
         *addr+= val;
     }
 

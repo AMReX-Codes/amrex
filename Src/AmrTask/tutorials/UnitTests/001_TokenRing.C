@@ -39,7 +39,7 @@ class TokenRingTask :public Task{
 	}
 	void PostCompletion(){
 	    //Do nothing. This task will be destroyed and no further action will be made.
-	    DestroyTask();
+	    SelfDestroy();
 	}
 };
 
@@ -75,7 +75,7 @@ int main(int argc,char *argv[])
     double time = -rts.Time();
     rts.Barrier();
     ArrayGraph<TokenRingTask> *TokenRingGraph= new ArrayGraph<TokenRingTask>(graphName, t, rank, nProcs);
-    rts.RTS_Run(TokenRingGraph, false);
+    rts.RTS_Run(TokenRingGraph);
     rts.Barrier();
     time += rts.Time();
     if(verbose && rank==0) cout<<"Graph execution takes "<< time <<" seconds"<<endl;
