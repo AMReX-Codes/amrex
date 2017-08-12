@@ -102,10 +102,34 @@ CNS::variableSetUp ()
                   Interior,Inflow,Outflow,Symmetry,SlipWall,NoSlipWall,
                   Geometry::ProbLo(), Geometry::ProbHi());
 
-    // xxxxx set up StateData
-    
+    bool state_data_extrap = false;
+    bool store_in_checkpoint = true;
+    desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
+			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
+			   &eb_cell_cons_interp,state_data_extrap,store_in_checkpoint);
+
+    Array<BCRec>       bcs(NUM_STATE);
+    Array<std::string> name(NUM_STATE);
+    BCRec bc;
+    int cnt = 0;
+    set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "density";
+    cnt++; set_x_vel_bc(bc,phys_bc);  bcs[cnt] = bc; name[cnt] = "xmom";
+    cnt++; set_y_vel_bc(bc,phys_bc);  bcs[cnt] = bc; name[cnt] = "ymom";
+    cnt++; set_z_vel_bc(bc,phys_bc);  bcs[cnt] = bc; name[cnt] = "zmom";
+    cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_E";
+    cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_e";
+    cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "Temp";
+
+    desc_lst.setComponent(State_Type,
+			  Density,
+			  name,
+			  bcs,
+			  BndryFunc(cns_denfill,cns_hypfill));
 
     StateDescriptor::setBndryFuncThreadSafety(true);
+
+
+    // xxxxx set up derived type
 
     ErrorSetUp();
 }
