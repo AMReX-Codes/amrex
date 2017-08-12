@@ -355,6 +355,7 @@ private:
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
+    bool plot_raw_fields_guards = false;
 
     amrex::RealVect fine_tag_lo;
     amrex::RealVect fine_tag_hi;

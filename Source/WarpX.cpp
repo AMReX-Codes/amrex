@@ -216,6 +216,7 @@ WarpX::ReadParameters ()
         pp.query("pml_type", pml_type);
 
         pp.query("plot_raw_fields", plot_raw_fields);
+        pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
         if (ParallelDescriptor::NProcs() == 1) {
             plot_proc_number = false;
         }
