@@ -187,6 +187,9 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
                                      int width, int height,
 				     Array<Array<Box>> &regionBoxes)
 {
+#if (BL_SPACEDIM != 2)
+  cout << "**** Error:  RegionsProfStats::MakeRegionPlt only supported for 2D" << endl;
+#else
   BL_PROFILE("RegionsProfStats::MakeRegionPlt()");
   int xLength(width), yHeight(height);
   int nRegions(maxRNumber + 1);
@@ -249,6 +252,7 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
 
   Real timeMin(0.0);
   return TimeRange(timeMin, timeMax);
+#endif
 }
 
 
@@ -474,6 +478,10 @@ bool RegionsProfStats::Include(const FuncStat &fs) {
 bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
                                        const std::string &whichFuncName)
 {
+#if (BL_SPACEDIM != 2)
+  cout << "**** Error:  RegionsProfStats::AllCallTimesFAB only supported in 2D." << endl;
+#else
+
   int whichFuncNameInt(-1);
   for(int i(0); i < numbersToFName.size(); ++i) {
     if(numbersToFName[i] == whichFuncName) {
@@ -532,6 +540,7 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
   }
 
   return bSameNCalls;
+#endif
 }
 
 
