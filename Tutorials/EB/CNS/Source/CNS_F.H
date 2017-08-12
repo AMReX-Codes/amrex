@@ -41,7 +41,10 @@ extern "C" {
                      const amrex_real* delta, const amrex_real* xlo,
                      const amrex_real* time, const amrex_real* dt, const int* bcrec, 
                      const int* level, const int* grid_no);
-    
+
+    void cns_compute_temperature (const int* lo, const int* hi,
+                                  amrex_real* u, const int* ulo, const int* uhi);
+
 #ifdef __cplusplus
 }
 #endif
