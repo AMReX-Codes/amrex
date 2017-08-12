@@ -4,6 +4,9 @@
 
 using namespace amrex;
 
+static Box the_same_box (const Box& b) { return b; }
+//static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
+
 using BndryFunc = StateDescriptor::BndryFunc;
 
 //
@@ -127,9 +130,30 @@ CNS::variableSetUp ()
 
     StateDescriptor::setBndryFuncThreadSafety(true);
 
+    // DEFINE DERIVED QUANTITIES
 
-    // xxxxx set up derived type
+    // Pressure
+    derive_lst.add("pressure",IndexType::TheCellType(),1,
+                   cns_derpres,the_same_box);
+    derive_lst.addComponent("pressure",desc_lst,State_Type,Eint,1);
 
+    // Velocities
+    derive_lst.add("x_velocity",IndexType::TheCellType(),1,
+                   cns_dervel,the_same_box);
+    derive_lst.addComponent("x_velocity",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("x_velocity",desc_lst,State_Type,Xmom,1);
+
+    derive_lst.add("y_velocity",IndexType::TheCellType(),1,
+                   cns_dervel,the_same_box);
+    derive_lst.addComponent("y_velocity",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("y_velocity",desc_lst,State_Type,Ymom,1);
+
+    derive_lst.add("z_velocity",IndexType::TheCellType(),1,
+                   cns_dervel,the_same_box);
+    derive_lst.addComponent("z_velocity",desc_lst,State_Type,Density,1);
+    derive_lst.addComponent("z_velocity",desc_lst,State_Type,Zmom,1);
+
+    // Tagging 
     ErrorSetUp();
 }
 
