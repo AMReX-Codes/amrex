@@ -247,8 +247,8 @@ CNS::read_params ()
     pp.query("cfl", cfl);
 
     Array<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
-    pp.getarr("lo_bc",lo_bc,AMREX_SPACEDIM);
-    pp.getarr("hi_bc",hi_bc,AMREX_SPACEDIM);
+    pp.getarr("lo_bc", lo_bc, 0, AMREX_SPACEDIM);
+    pp.getarr("hi_bc", hi_bc, 0, AMREX_SPACEDIM);
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         phys_bc.setLo(i,lo_bc[i]);
         phys_bc.setHi(i,hi_bc[i]);

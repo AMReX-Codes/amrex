@@ -120,7 +120,6 @@ protected:
 
     void computeTemp (amrex::MultiFab& State, int ng);
 
-    amrex::MultiFab Sborder;
     amrex::MultiFab volfrac;
 
     static constexpr int NUM_GROW = 4;
