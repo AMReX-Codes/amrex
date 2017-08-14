@@ -348,6 +348,7 @@ void amrex::MakeFuncPctTimesMF(const Array<Array<BLProfStats::FuncStat> > &funcS
 			       Real runTime, int dataNProcs)
 {
 #ifdef BL_TRACE_PROFILING
+#if (BL_SPACEDIM == 2)
   Array<std::pair<Real, int> > funcPctTimes(funcStats.size());
   for(int fnum(0); fnum < funcStats.size(); ++fnum) {
     const std::string &fName(blpFNames[fnum]);
@@ -387,6 +388,7 @@ void amrex::MakeFuncPctTimesMF(const Array<Array<BLProfStats::FuncStat> > &funcS
     fptFab.writeOn(tfout);
     tfout.close();
   }
+#endif
 #endif
 }
 
