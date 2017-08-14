@@ -51,35 +51,45 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
         for (MFIter mfi(S,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            for (int idim = 0; idim < 3; ++idim) {
-                const Box& bxtmp = amrex::surroundingNodes(bx,idim);
-                flux[idim].resize(bxtmp,NUM_STATE);
-                flux[idim].setVal(0.0);
-            }
 
             const auto& sfab = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             const auto& flag = sfab.getEBCellFlagFab();
 
-            if (flag.getType(bx) == FabType::covered)
+            if (flag.getType(bx) != FabType::covered)
             {
-                ; // nothing to do
-            }
-            else if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
-            {
-                cns_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(S[mfi]),
-                                       BL_TO_FORTRAN_ANYD(flux[0]),
-                                       BL_TO_FORTRAN_ANYD(flux[1]),
-                                       BL_TO_FORTRAN_ANYD(flux[2]),
-                                       dx);
-            }
-            else
-            {
-                amrex::Print() << "xxxxx eb tile " << bx << ", " << mfi.validbox() << "\n";
-            }
-
-            for (int idim = 0; idim < 3; ++idim) {
-                fluxes[idim][mfi].plus(flux[idim],mfi.nodaltilebox(idim),0,0,NUM_STATE);
+                if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
+                {
+                    for (int idim = 0; idim < 3; ++idim) {
+                        const Box& bxtmp = amrex::surroundingNodes(bx,idim);
+                        flux[idim].resize(bxtmp,NUM_STATE);
+                        flux[idim].setVal(0.0);
+                    }
+                    cns_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
+                                           BL_TO_FORTRAN_ANYD(S[mfi]),
+                                           BL_TO_FORTRAN_ANYD(flux[0]),
+                                           BL_TO_FORTRAN_ANYD(flux[1]),
+                                           BL_TO_FORTRAN_ANYD(flux[2]),
+                                           dx);
+                }
+                else
+                {
+                    for (int idim = 0; idim < 3; ++idim) {
+                        const Box& bxtmp = amrex::grow(amrex::surroundingNodes(bx,idim),2);
+                        flux[idim].resize(bxtmp,NUM_STATE);
+                        flux[idim].setVal(0.0);
+                    }
+                    cns_eb_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD(S[mfi]),
+                                              BL_TO_FORTRAN_ANYD(flux[0]),
+                                              BL_TO_FORTRAN_ANYD(flux[1]),
+                                              BL_TO_FORTRAN_ANYD(flux[2]),
+                                              BL_TO_FORTRAN_ANYD(flag),
+                                              dx);
+                }
+                
+                for (int idim = 0; idim < 3; ++idim) {
+                    fluxes[idim][mfi].plus(flux[idim],mfi.nodaltilebox(idim),0,0,NUM_STATE);
+                }
             }
         }
     }
