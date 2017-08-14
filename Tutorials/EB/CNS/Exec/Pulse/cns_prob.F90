@@ -33,11 +33,11 @@ subroutine cns_initdata(level, time, lo, hi, u, ulo, uhi, dx, prob_lo) bind(C, n
   real(rt), parameter :: Pi = 4.d0*atan(1.d0)
 
   do k = lo(3), hi(3)
-     z = prob_lo(3) + k*dx(3)
+     z = prob_lo(3) + k*dx(3) - center(3)
      do j = lo(2), hi(2)
-        y = prob_lo(2) + j*dx(2)
+        y = prob_lo(2) + j*dx(2) - center(2)
         do i = lo(1), hi(1)
-           x = prob_lo(1) + i*dx(1)
+           x = prob_lo(1) + i*dx(1) - center(1)
            r = sqrt(x*x + y*y + z*z)
 
            if (r .gt. rpulse) then
