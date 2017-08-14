@@ -43,6 +43,11 @@ extern "C" {
 #include <omp.h>
 #endif
 
+namespace
+{
+    static int call_mpi_finalize = 0;
+}
+
 namespace amrex {
 
 namespace ParallelDescriptor
@@ -122,6 +127,7 @@ namespace ParallelDescriptor
 #endif
 
     int m_nCommColors = 1;
+    int m_clr_map = 0;
     Color m_MyCommSubColor;
     Color m_MyCommCompColor;
 
@@ -246,6 +252,7 @@ bool
 ParallelDescriptor::Message::test ()
 {
     int flag;
+    BL_PROFILE_S("ParallelDescriptor::Message::test()");
     BL_COMM_PROFILE(BLProfiler::Test, sizeof(m_type), pid(), tag());
     BL_MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
     BL_COMM_PROFILE(BLProfiler::Test, flag, BLProfiler::AfterCall(), tag());
@@ -288,6 +295,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     if ( ! sflag) {
 	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
+        call_mpi_finalize = 1;
     }
     
     BL_MPI_REQUIRE( MPI_Comm_dup(mpi_comm, &m_comm_all) );
@@ -343,7 +351,9 @@ ParallelDescriptor::EndParallel ()
     }
 #endif
 
-    BL_MPI_REQUIRE( MPI_Finalize() );
+    if (call_mpi_finalize) {
+        BL_MPI_REQUIRE( MPI_Finalize() );
+    }
 }
 
 /* Given `rk_clrd', i.e. the rank in the colored `comm', return the
@@ -357,7 +367,14 @@ ParallelDescriptor::Translate(int rk_clrd,Color clr)
   }
   else if (clr.valid())
   {
-    return m_first_procs_clr[clr.to_int()]+rk_clrd;
+    if (!m_clr_map)
+    {
+      return m_first_procs_clr[clr.to_int()]+rk_clrd;
+    }
+    else
+    {
+      return rk_clrd*m_nCommColors+clr.to_int();
+    }
   }
   else
   {
@@ -387,26 +404,38 @@ ParallelDescriptor::init_clr_vars()
   {
     ++(m_num_procs_clr[clr]);
   }
-  /* All first proc.'s (clear) */
-  m_first_procs_clr.clear();
-  /* All first proc.'s (init.) */
-  m_first_procs_clr.resize(m_nCommColors,0);
-  /* Add the previous `clr's `nProc's */
-  for (int clr = 1; clr < m_nCommColors; ++clr)
+  /* My color */
+  int my_clr;
+  /* Definition of `my_clr` */
+  if (!m_clr_map)
   {
+    /* All first proc.'s (clear) */
+    m_first_procs_clr.clear();
+    /* All first proc.'s (init.) */
+    m_first_procs_clr.resize(m_nCommColors,0);
+    /* Add the previous `clr's `nProc's */
+    for (int clr = 1; clr < m_nCommColors; ++clr)
+    {
       m_first_procs_clr[clr] =
         m_first_procs_clr[clr-1]+m_num_procs_clr[clr-1];
+    }
+    /* My proc. must be larger than my first proc. */
+    int clr = 0; my_clr = -1;
+    while (clr < m_nCommColors && MyProc() > m_first_procs_clr[clr]-1)
+    {
+      /* My color */
+      ++clr; ++my_clr;
+    }
   }
-  /* My proc. must be larger than my first proc. */
-  int clr = 0; int myClr = -1;
-  while (clr < m_nCommColors && MyProc() > m_first_procs_clr[clr]-1)
+  else
   {
-    ++clr; ++myClr;
+    /* My color */
+    my_clr = MyProc()%m_nCommColors;
   }
   /* Possibly adjust number of proc.'s per color */
-  m_nProcs_sub = m_num_procs_clr[myClr];
+  m_nProcs_sub = m_num_procs_clr[my_clr];
   /* Define `Color' */
-  m_MyCommSubColor = Color(myClr);
+  m_MyCommSubColor = Color(my_clr);
 
   return;
 } /* `init_clr_vars( ...' */
@@ -769,7 +798,8 @@ void
 ParallelDescriptor::StartSubCommunicator ()
 {
     ParmParse pp("amrex");
-    pp.query("ncolors", m_nCommColors);
+    pp.query("ncolors",m_nCommColors);
+    pp.query("clr_map",m_clr_map);
 
     if (m_nCommColors > 1)
     {
@@ -992,21 +1022,18 @@ ParallelDescriptor::ReduceRealSum (Array<std::reference_wrapper<Real> >&& rvar, 
 void
 ParallelDescriptor::ReduceRealMax (Real& r, Color color)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoAllReduceReal(r,MPI_MAX,color);
 }
 
 void
 ParallelDescriptor::ReduceRealMax (Real* r, int cnt, Color color)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoAllReduceReal(r,MPI_MAX,cnt,color);
 }
 
 void
 ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, Color color)
 {
-    BL_PROFILE("ReduceRealMax");
     int cnt = rvar.size();
     Array<Real> tmp{std::begin(rvar), std::end(rvar)};
     util::DoAllReduceReal(tmp.data(),MPI_MAX,cnt,color);
@@ -1018,21 +1045,18 @@ ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, 
 void
 ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoReduceReal(r,MPI_MAX,cpu);
 }
 
 void
 ParallelDescriptor::ReduceRealMax (Real* r, int cnt, int cpu)
 {
-    BL_PROFILE("ReduceRealMax");
     util::DoReduceReal(r,MPI_MAX,cnt,cpu);
 }
 
 void
 ParallelDescriptor::ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, int cpu)
 {
-    BL_PROFILE("ReduceRealMax");
     int cnt = rvar.size();
     Array<Real> tmp{std::begin(rvar), std::end(rvar)};
     util::DoReduceReal(tmp.data(),MPI_MAX,cnt,cpu);
@@ -2183,6 +2207,7 @@ void
 ParallelDescriptor::StartSubCommunicator ()
 {
     m_nCommColors = 1;
+    m_clr_map = 0;
     m_nProcs_sub  = 1;
     m_num_procs_clr.resize(1,0);
     m_first_procs_clr.resize(1,0);

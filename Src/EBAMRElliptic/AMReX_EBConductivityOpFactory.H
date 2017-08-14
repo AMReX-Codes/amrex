@@ -13,7 +13,7 @@
 #define _EBCONDUCTIVITYOPFACTORY_H___
 
 #include <vector>
-#include "AMReX_AMRMultiGrid.H"
+#include "AMReX_AMREBMultiGrid.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBCellFactory.H"
@@ -45,28 +45,21 @@ namespace amrex
                             const vector<int>                                   &  a_refRatio,
                             const shared_ptr<ConductivityBaseDomainBCFactory>   &  a_domainBCFactory,
                             const shared_ptr<ConductivityBaseEBBCFactory>       &  a_ebBcFactory,
-                            const IntVect                                       &  a_ghostCellsPhi,
-                            const IntVect                                       &  a_ghostCellsRhs,
+                            const int                                           &  a_ghostCellsPhi,
+                            const int                                           &  a_ghostCellsRhs,
                             int a_numLevels = -1);
 
 
     //! Destructor.
     virtual ~EBConductivityOpFactory();
 
-    ///
-    virtual void setData( vector< shared_ptr<FabArray<BaseIVFAB<Real> > > >& a_data)
-      {
-        m_data = a_data;
-        m_dataBased = true;
-      }
-
-    ///called by MultiGrid.H
+    ///called by EBMultiGrid.H
     virtual EBConductivityOp*
     MGnewOp(const Box & a_FineindexSpace,
             int         a_depth,
             bool        a_homoOnly = true);
 
-    ///called by AMRMultiGrid.H
+    ///called by AMREBMultiGrid.H
     virtual EBConductivityOp*
     AMRnewOp(const Box& a_FineindexSpace);
 
@@ -77,6 +70,8 @@ namespace amrex
                    const int&  a_depth,
                    const bool  a_amrLevelOp);
 
+    static int s_testRef;
+    static int s_maxBoxSize;
   protected:
 
     vector<EBLevelGrid>                                  m_eblgs;
@@ -96,25 +91,16 @@ namespace amrex
     int                                                  m_ghostCellsRhs;
     int                                                  m_numLevels;
     vector<Real>                                         m_dx;
+
   private:
     ///weak construction bad
-    EBConductivityOpFactory()
-      {
-        MayDay::Error("invalid operator");
-      }
+    EBConductivityOpFactory();
 
     //copy constructor and operator= disallowed for all the usual reasons
-    EBConductivityOpFactory(const EBConductivityOpFactory& a_opin)
-      {
-        MayDay::Error("invalid operator");
-      }
+    EBConductivityOpFactory(const EBConductivityOpFactory& a_opin);
 
     //copy constructor and operator= disallowed for all the usual reasons
-    void operator=(const EBConductivityOpFactory& a_opin)
-      {
-        MayDay::Error("invalid operator");
-      }
+    void operator=(const EBConductivityOpFactory& a_opin);
   };
-
 }
 #endif

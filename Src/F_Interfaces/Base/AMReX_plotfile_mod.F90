@@ -17,7 +17,7 @@ module amrex_plotfile_module
      subroutine amrex_fi_write_plotfile (name, nlevs, mf, varname, geom, t, steps, rr) bind(c)
        import
        implicit none
-       character(c_char), intent(in) :: name(*)
+       character(kind=c_char), intent(in) :: name(*)
        integer(c_int), value :: nlevs
        type(c_ptr), intent(in) :: mf(*), varname(*), geom(*)
        real(amrex_real), value :: t

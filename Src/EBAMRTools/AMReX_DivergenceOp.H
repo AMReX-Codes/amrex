@@ -64,10 +64,11 @@ namespace amrex
                  const Real          & a_dx,
                  const int           & a_numComp,
                  const int           & a_ghostCellsInData,
+                 bool a_multiplyFluxByArea = true,
                  int a_redistRad = 1)
       {
 
-        define(a_eblg, a_dx, a_numComp, a_ghostCellsInData, a_redistRad);
+        define(a_eblg, a_dx, a_numComp, a_ghostCellsInData, a_multiplyFluxByArea, a_redistRad);
       }
 
     ///
@@ -78,6 +79,7 @@ namespace amrex
                 const Real          & a_dx,
                 const int           & a_numComp,
                 const int           & a_ghostCellsInData,
+                bool a_multiplyFluxByArea = true,
                 int a_redistRad = 1);
 
 
@@ -96,11 +98,13 @@ namespace amrex
        Input flux at embedded boundary is assumed to be dotted 
        with OUTWARD FACING normal.  (please remember that ebisbox.normal
        returns an INWARD-facing normal for some reason).
+       trustRegDivF=true  means you do not want the fortran called
     */
     void
     hybridDivergence(FabArray<EBCellFAB>      & a_divF,
                      const FabArray<EBFluxFAB>& a_Flux,
-                     int isrc, int idst, int inco);
+                     int isrc, int idst, int inco,
+                     bool a_trustRegDivF = false);
 
     ///
     /**
@@ -132,7 +136,7 @@ namespace amrex
     FabArray<IrregFAB>  m_massDiff;
 
     EBLevelRedist  m_eblevelRedist;
-
+    bool m_multiplyFluxByArea;
     EBNormalizeByVolumeFraction  m_normalizor;
     int m_nComp;
     Real m_dx;

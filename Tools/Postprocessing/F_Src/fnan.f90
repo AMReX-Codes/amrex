@@ -8,7 +8,7 @@ program fnan
   use bl_IO_module
   use plotfile_module
   use multifab_module
-  use util_module
+  use box_util_module
 
   implicit none
 

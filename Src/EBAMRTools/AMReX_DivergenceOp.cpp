@@ -33,10 +33,12 @@ namespace amrex
          const Real          & a_dx,
          const int           & a_nComp,
          const int           & a_ghostCellsInData,
+         bool a_multiplyFluxByArea,
          int a_redistRad)
   {
     m_isDefined = true;
     m_eblg          = a_eblg;
+    m_multiplyFluxByArea = a_multiplyFluxByArea;
     m_dx            = a_dx;
     m_nComp         = a_nComp;
     m_dataGhost     = a_ghostCellsInData;
@@ -49,6 +51,7 @@ namespace amrex
   defineInternals()
   {
     BL_PROFILE("NWOEBCFI::defineInternals");
+
 
     m_eblevelRedist.define(m_eblg, m_nComp, m_redistRad);
     m_normalizor.define(m_eblg, m_dataGhost);
@@ -126,7 +129,14 @@ namespace amrex
               IntVectSet cfivs;//empty--see comment above
               FaceStencil interpSten = EBArith::getInterpStencil(faces[iface], cfivs, ebis, domain);
               Real areaFrac = ebis.areaFrac(faces[iface]);
-              interpSten *= (isign*areaFrac/m_dx);
+              if(m_multiplyFluxByArea)
+              {
+                interpSten *= (isign*areaFrac/m_dx);
+              }
+              else
+              {
+                interpSten *= 1.0/(m_dx*m_dx);
+              }
               dirStencil += interpSten;
             }
           }
@@ -136,14 +146,17 @@ namespace amrex
           (new AggStencil<EBFaceFAB, EBCellFAB >(baseDstVoFs, baseSten, fluxProxy[mfi][idir], cellProxy[mfi]));
       }
     }
+
   }
   /************************************/
   void
   DivergenceOp::
   hybridDivergence(FabArray<EBCellFAB>      & a_divF,
                    const FabArray<EBFluxFAB>& a_flux,
-                   int isrc, int idst, int inco)
+                   int isrc, int idst, int inco,
+                   bool a_trustRegDivF)
   {
+/**/
     BL_ASSERT(isDefined());
     BL_ASSERT(a_flux.nGrow() == m_dataGhost);
     BL_ASSERT(a_divF.nGrow() == m_dataGhost);
@@ -153,21 +166,32 @@ namespace amrex
       EBCellFAB       & divF = m_kappaDivergence[mfi];
       const EBFluxFAB & flux = a_flux[mfi];
 
-      BaseFab<Real>       &  regDivF = divF.getSingleValuedFAB();
-      vector<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
-      for(int idir = 0; idir < SpaceDim; idir++)
+      if(a_trustRegDivF)
       {
-        regFlux[idir] = &(flux[idir].getSingleValuedFAB());
+        divF.copy(a_divF[mfi]);
       }
-      const Box& grid = m_eblg.getDBL()[mfi];
+      else
+      {
+        BaseFab<Real>       &  regDivF = divF.getSingleValuedFAB();
+        vector<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
+        for(int idir = 0; idir < SpaceDim; idir++)
+        {
+          regFlux[idir] = &(flux[idir].getSingleValuedFAB());
+        }
+        const Box& grid = m_eblg.getDBL()[mfi];
       
-      //first do everything as if it has no eb.
-      ebfnd_divflux(BL_TO_FORTRAN_FAB(regDivF),
-                    BL_TO_FORTRAN_FAB((*regFlux[0])),
-                    BL_TO_FORTRAN_FAB((*regFlux[1])),
-                    BL_TO_FORTRAN_FAB((*regFlux[2])),
-                    BL_TO_FORTRAN_BOX(grid),
-                    &m_dx, &isrc, &idst, &inco);
+        int multiplyByArea = 0;
+        if(m_multiplyFluxByArea) multiplyByArea = 1;
+
+        //first do everything as if it has no eb.
+        ebfnd_divflux(BL_TO_FORTRAN_FAB(regDivF),
+                      BL_TO_FORTRAN_FAB((*regFlux[0])),
+                      BL_TO_FORTRAN_FAB((*regFlux[1])),
+                      BL_TO_FORTRAN_FAB((*regFlux[2])),
+                      BL_TO_FORTRAN_BOX(grid),
+                      &multiplyByArea,
+                      &m_dx, &isrc, &idst, &inco);
+      }
       //turn off increment only for bndry flux.  This sets the initial divergence at 
       //cut cells to zero
       bool incrementOnly = false;
@@ -200,11 +224,13 @@ namespace amrex
           const  Real& kappaDivC = m_kappaDivergence[mfi](vof, ivar);
           const  Real& divFNC    =            a_divF[mfi](vof, ivar);
           m_massDiff[mfi](vof, ivar) = (1. - kappa)*(kappaDivC-kappa*divFNC);
+          a_divF[mfi](vof, ivar) = kappaDivC + (1.-kappa)*divFNC;
         }
       }
       m_eblevelRedist.increment(m_massDiff[mfi], mfi, idst, inco);
     }
     m_eblevelRedist.redistribute(a_divF, idst, inco);
+/**/
   }
   /************************************/
 }

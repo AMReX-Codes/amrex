@@ -52,7 +52,6 @@ namespace amrex
   {
     BL_PROFILE("EBLevelRedist::define");
     m_isDefined = true;
-               
     m_eblg  = a_eblg;
     m_ncomp     = a_ncomp;
     m_redistRad = a_redistRad;
@@ -64,17 +63,22 @@ namespace amrex
     //define the sets for iterating over
     //to be the irregular cells over the
     //grid grown by the redistribution radius
-    m_sets = shared_ptr<LayoutData<IntVectSet> >
+    m_sets   = shared_ptr<LayoutData<IntVectSet> >
       (new LayoutData<IntVectSet>(m_eblg.getDBL(), m_eblg.getDM()));
+    m_vofit  = shared_ptr<LayoutData<VoFIterator> >
+      (new LayoutData<VoFIterator>(m_eblg.getDBL(), m_eblg.getDM()));
 
     for (MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       Box thisBox = m_eblg.getDBL()[mfi];
       thisBox.grow(m_redistRad);
       thisBox &= m_eblg.getDomain();
-      (*m_sets)[mfi] = m_eblg.getEBISL()[mfi].getIrregIVS(thisBox);
+      (*m_sets) [mfi] = m_eblg.getEBISL()[mfi].getIrregIVS(thisBox);
+      (*m_vofit)[mfi].define((*m_sets)[mfi], m_eblg.getEBISL()[mfi].getEBGraph());
     }
     BaseIVFactory<Real> factory(m_eblg.getEBISL(), m_sets);
+
+
     m_buffer.define(m_eblg.getDBL(), m_eblg.getDM(), m_ncomp, m_redistRad,  MFInfo(), factory);
     setToZero();
   }
@@ -107,8 +111,8 @@ namespace amrex
     IntVectSet ivs = m_eblg.getEBISL()[a_datInd].getIrregIVS(m_eblg.getDBL()[a_datInd]);;
     BL_ASSERT(fabIVS.contains(ivs));
     BL_ASSERT(bufIVS.contains(ivs));
-    for (VoFIterator vofit(ivs, m_eblg.getEBISL()[a_datInd].getEBGraph());
-         vofit.ok(); ++vofit)
+    VoFIterator& vofit = (*m_vofit)[a_datInd];
+    for (vofit.reset(); vofit.ok(); ++vofit)
     {
       for (int ivar = idst; ivar <  (idst + inco); ivar++)
       {
@@ -140,13 +144,11 @@ namespace amrex
                
     BL_ASSERT(isDefined());
                
-    //pout() << "redistribute 0" << endl;
     //exchange ghost cell information of the buffer.
     //this way the redistribution from ghost cells will
     //account for fine-fine interfaces.
     m_buffer.FillBoundary();
 
-    //pout() << "redistribute 1" << endl;
     //loop over grids.
     for(MFIter mfi(m_buffer); mfi.isValid(); ++mfi)
     {
@@ -157,7 +159,8 @@ namespace amrex
                
       //loop over the irregular vofs in the grown box.
       EBGraph graph = m_eblg.getEBISL()[mfi].getEBGraph();
-      for (VoFIterator vofit((*m_sets)[mfi], graph); vofit.ok(); ++vofit)
+      VoFIterator& vofit = (*m_vofit)[mfi];
+      for (vofit.reset(); vofit.ok(); ++vofit)
       {
         const VolIndex& srcVoF = vofit();
         const VoFStencil& vofsten = stenFAB(srcVoF, 0);

@@ -1,6 +1,6 @@
 module amrex_fort_module
 
-  use iso_c_binding, only : c_float, c_double
+  use iso_c_binding, only : c_float, c_double, c_size_t
 
   implicit none
 
@@ -9,8 +9,12 @@ module amrex_fort_module
 
 #ifdef BL_USE_FLOAT
   integer, parameter :: amrex_real = c_float
+  ! We could/should use Fortran 2008 c_sizeof here.
+  integer (kind=c_size_t), parameter :: amrex_real_size = 4_c_size_t
 #else
   integer, parameter :: amrex_real = c_double
+  ! We could/should use Fortran 2008 c_sizeof here.
+  integer (kind=c_size_t), parameter :: amrex_real_size = 8_c_size_t
 #endif
 
 #ifdef BL_SINGLE_PRECISION_PARTICLES
