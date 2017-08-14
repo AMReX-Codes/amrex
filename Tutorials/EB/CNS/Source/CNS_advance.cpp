@@ -1,5 +1,6 @@
 
 #include <CNS.H>
+#include <CNS_F.H>
 
 using namespace amrex;
 
@@ -12,14 +13,15 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     }
 
     MultiFab& S_new = get_new_data(State_Type);
-    MultiFab dSdt(grids,dmap,NUM_STATE,0);
-    MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
+    MultiFab dSdt(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
+    MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW,MFInfo(),Factory());
   
     // RK2 stage 1
     FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
     compute_dSdt(Sborder, dSdt, dt);
     // U^* = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dSdt, 0, 0, NUM_STATE, 0);
+    computeTemp(S_new,0);
     
     // RK2 stage 2
     // After fillpatch Sborder = U^n+0.5*dt*dUdt^n
@@ -27,28 +29,73 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     compute_dSdt(Sborder, dSdt, 0.5*dt);
     // U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, 0.5*dt, dSdt, 0, 0, NUM_STATE, 0);
+    computeTemp(S_new,0);
     
     return dt;
 }
 
 void
-CNS::compute_dSdt (MultiFab& S, MultiFab& dSdt, Real dt)
+CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 {
-    MultiFab xflux(amrex::convert(grids,IntVect(1,0,0)), dmap, NUM_STATE, 0);
-    MultiFab yflux(amrex::convert(grids,IntVect(0,1,0)), dmap, NUM_STATE, 0);
-    MultiFab zflux(amrex::convert(grids,IntVect(0,0,1)), dmap, NUM_STATE, 0);
+    std::array<MultiFab,3> fluxes;
+    for (int idim = 0; idim < 3; ++idim) {
+        fluxes[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)),
+                            dmap, NUM_STATE, 0);
+        fluxes[idim].setVal(0.0);
+    }
+
+    const Real* dx = geom.CellSize();
     
     {
         std::array<FArrayBox,3> flux;
         for (MFIter mfi(S,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            for (int idim = 0; idim < 3; ++dim) {
-                const Box& bxtmp = amrex::surroundingNodes(bx,i);
-                flux[i].resize(bxtmp,NUM_STATE);
+            for (int idim = 0; idim < 3; ++idim) {
+                const Box& bxtmp = amrex::surroundingNodes(bx,idim);
+                flux[idim].resize(bxtmp,NUM_STATE);
+                flux[idim].setVal(0.0);
             }
 
-            
+            const auto& sfab = dynamic_cast<EBFArrayBox const&>(S[mfi]);
+            const auto& flag = sfab.getEBCellFlagFab();
+
+            if (flag.getType(bx) == FabType::covered)
+            {
+                ; // nothing to do
+            }
+            else if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
+            {
+                cns_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(S[mfi]),
+                                       BL_TO_FORTRAN_ANYD(flux[0]),
+                                       BL_TO_FORTRAN_ANYD(flux[1]),
+                                       BL_TO_FORTRAN_ANYD(flux[2]),
+                                       dx);
+            }
+            else
+            {
+                amrex::Print() << "xxxxx eb tile " << bx << ", " << mfi.validbox() << "\n";
+            }
+
+            for (int idim = 0; idim < 3; ++idim) {
+                fluxes[idim][mfi].plus(flux[idim],mfi.nodaltilebox(idim),0,0,NUM_STATE);
+            }
+        }
+    }
+
+    dSdt.setVal(0.0);
+
+    {
+        for (MFIter mfi(dSdt,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            cns_compute_dsdt(BL_TO_FORTRAN_BOX(bx),
+                             BL_TO_FORTRAN_ANYD(dSdt[mfi]),
+                             BL_TO_FORTRAN_ANYD(fluxes[0][mfi]),
+                             BL_TO_FORTRAN_ANYD(fluxes[1][mfi]),
+                             BL_TO_FORTRAN_ANYD(fluxes[2][mfi]),
+                             dx);
         }
     }
 }
