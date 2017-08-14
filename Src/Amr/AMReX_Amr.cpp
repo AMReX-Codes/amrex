@@ -2379,7 +2379,9 @@ Amr::regrid (int  lbase,
 	}
 
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
-          MultiFab::MoveAllFabs(mLDM[iMap]);
+          //MultiFab::MoveAllFabs(mLDM[iMap]);
+	  DistributionMapping newDistMap(mLDM[iMap]);
+          MultiFab::MoveAllFabs(newDistMap);
         }
     }
 
@@ -2990,9 +2992,13 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
     mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0], maxRank);
 
     for(int iMap(0); iMap < mLDM.size(); ++iMap) {
-	amrex::Print() << "_in Amr::AddProcsToSidecar:  calling MoveAllFabs:\n";
-	MultiFab::MoveAllFabs(mLDM[iMap]);
-	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs:\n";
+	amrex::Print() << "_in Amr::AddProcsToSidecar:  calling MoveAllFabs for iMap = "
+	               << iMap << '\n';
+	//MultiFab::MoveAllFabs(mLDM[iMap]);
+        DistributionMapping newDistMap(mLDM[iMap]);
+        MultiFab::MoveAllFabs(newDistMap);
+	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs for iMap = "
+	               << iMap << "\n\n";
     }
     VisMF::SetNOutFiles(checkpoint_nfiles);
 
@@ -3050,7 +3056,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
       // ---- pack up the ints
       Array<int> allInts;
-      int allIntsSize(0);
+      //int allIntsSize(0);
       int dt_level_Size(dt_level.size()), dt_min_Size(dt_min.size());
       int max_grid_size_Size(max_grid_size.size()), blocking_factor_Size(blocking_factor.size());
       int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(Geom().size());
@@ -3121,7 +3127,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(plot_headerversion);
         allInts.push_back(checkpoint_headerversion);
 
-        allIntsSize = allInts.size();
+        //allIntsSize = allInts.size();
       }
 
       amrex::BroadcastArray(allInts, scsMyId, ioProcNumAll, scsComm);
@@ -3217,7 +3223,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
       // ---- pack up the Reals
       Array<Real> allReals;
-      int allRealsSize(0);
+      //int allRealsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allReals.push_back(cumtime);
         allReals.push_back(start_time);
@@ -3229,7 +3235,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         for(int i(0); i < dt_level.size(); ++i)   { allReals.push_back(dt_level[i]); }
         for(int i(0); i < dt_min.size(); ++i)     { allReals.push_back(dt_min[i]); }
 
-	allRealsSize = allReals.size();
+	//allRealsSize = allReals.size();
       }
 
       amrex::BroadcastArray(allReals, scsMyId, ioProcNumAll, scsComm);
@@ -3253,7 +3259,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
       // ---- pack up the bools
       Array<int> allBools;  // ---- just use ints here
-      int allBoolsSize(0);
+      //int allBoolsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allBools.push_back(abort_on_stream_retry_failure);
         allBools.push_back(bUserStopRequest);
@@ -3279,7 +3285,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(VisMF::GetUseSynchronousReads());
         allBools.push_back(VisMF::GetUseDynamicSetSelection());
 
-	allBoolsSize = allBools.size();
+	//allBoolsSize = allBools.size();
       }
 
       amrex::BroadcastArray(allBools, scsMyId, ioProcNumAll, scsComm);
@@ -3316,7 +3322,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       // ---- pack up the strings
       Array<std::string> allStrings;
       Array<char> serialStrings;
-      int serialStringsSize(0);
+      //int serialStringsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allStrings.push_back(regrid_grids_file);
         allStrings.push_back(initial_grids_file);
@@ -3340,7 +3346,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	}
 
 	serialStrings = amrex::SerializeStringArray(allStrings);
-	serialStringsSize = serialStrings.size();
+	//serialStringsSize = serialStrings.size();
       }
 
       amrex::BroadcastArray(serialStrings, scsMyId, ioProcNumAll, scsComm);
@@ -3545,7 +3551,9 @@ Amr::RedistributeGrids(int how) {
         }
 
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
-          MultiFab::MoveAllFabs(mLDM[iMap]);
+          //MultiFab::MoveAllFabs(mLDM[iMap]);
+	  DistributionMapping newDistMap(mLDM[iMap]);
+          MultiFab::MoveAllFabs(newDistMap);
         }
     }
 #ifdef USE_PARTICLES

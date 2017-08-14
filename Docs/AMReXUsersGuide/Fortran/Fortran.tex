@@ -31,21 +31,18 @@ interface by default.  The CMake approach does not support the Fortran
 interface yet.
 
 A simple example can be found at {\tt Tutorials/Basic/HelloWorld\_F/}.
-The source code is shown below in it entirety.  
+The source code is shown below in its entirety.  
 \begin{lstlisting}[language=fortran]
-subroutine amrex_fmain () bind(c)
+program main
   use amrex_base_module
   implicit none
+  call amrex_init()
   if (amrex_parallel_ioprocessor()) then
      print *, "Hello world!"
   end if
-end subroutine amrex_fmain
+  call amrex_finalize()
+end program main
 \end{lstlisting}
-Note that there is no {\tt program main} in the Fortran code.  The
-{\tt main} function is actually in {\tt
-  Src/F\_Interfaces/Base/AMReX\_fi\_main.cpp}.  That {\tt main}
-function initializes and finalizes \amrex, and calls {\tt amrex\_fmain}
-function in between.
 
 To access \amrex\ Fortran interfaces, we can use these three
 modules, {\tt amrex\_base\_module} for the basics functionalities
@@ -285,18 +282,20 @@ plotfiles.  The interface is similar to the \cpp versions.
 \label{sec:fi:amrcore}
 
 Module {\tt amrex\_amr\_module} provides interfaces to AMR core
-infrastructure.  With AMR, subroutine {\tt amrex\_fmain} should look
+infrastructure.  With AMR, the main program might look
 like below,
 \begin{lstlisting}[language=fortran]
-  subroutine amrex_fmain () bind(c)
+  program main
     use amrex_amr_module
     implicit none  
+    call amrex_init()
     call amrex_amrcore_init()
     call my_amr_init()       ! user's own code, not part of AMReX
     ! ...
     call my_amr_finalize()   ! user's own code, not part of AMReX
     call amrex_amrcore_finalize()
-  end subroutine amrex_fmain
+    call amrex_finalize()
+  end program main
 \end{lstlisting}
 Here we need to call {\tt amrex\_amrcore\_init} and {\tt
   amrex\_amrcore\_finalize}.  And usually we need to call application
@@ -386,18 +385,20 @@ more general than octree grids.  A tutorial example using {\tt
   amrex\_octree\_init} and {\tt amrex\_octree\_finalize} must be
 called as follows,
 \begin{lstlisting}[language=fortran]
-  subroutine amrex_fmain () bind(c)
+  program main
     use amrex_amrcore_module
     use amrex_octree_module
     implicit none
-    call amrex_octree_int()  ! This should be called first.
+    call amrex_init()
+    call amrex_octree_int()  ! This should be called before amrex_amrcore_init.
     call amrex_amrcore_init()
     call my_amr_init()       ! user's own code, not part of AMReX
     ! ...
     call my_amr_finalize()   ! user's own code, not part of AMReX
     call amrex_amrcore_finalize()
     call amrex_octree_finalize()
-  end subroutine amrex_fmain
+    call amrex_finalize()
+  end program main
 \end{lstlisting}
 By default, the grid size is $8^3$, and this can be changed via {\tt
   ParmParse} parameter {\tt amr.max\_grid\_size}.  Module {\tt

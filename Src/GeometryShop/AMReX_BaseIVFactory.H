@@ -42,14 +42,16 @@ namespace amrex
         IntVectSet ivs;
         if(m_sets)
         {
-          ivs   = (*m_sets)[box_index];
+          int localIndex  = m_sets->localindex(box_index);
+          ivs   = (*m_sets)[localIndex];
         }
         else
         {
           ivs = graph.getIrregCells(graph.getRegion());
         }
 
-        return new  BaseIVFAB<T>(ivs, graph, ncomps);
+        BaseIVFAB<T>* retval = new  BaseIVFAB<T>(ivs, graph, ncomps);
+        return retval;
       }
 
     ///
@@ -62,13 +64,6 @@ namespace amrex
     BaseIVFactory(const EBISLayout& a_ebisl)
       {
         m_graphs = a_ebisl.getAllGraphs();
-        m_sets = shared_ptr<LayoutData<IntVectSet> >
-          (new LayoutData<IntVectSet>(a_ebisl.getDBL(), a_ebisl.getDM()));
-        for(MFIter mfi(*m_graphs); mfi.isValid(); ++mfi)
-        {
-          Box grid = a_ebisl.getDBL()[mfi];
-          (*m_sets)[mfi] = (*m_graphs)[mfi].getIrregCells(grid); 
-        }
       }
 
     ///

@@ -373,6 +373,18 @@ void amrex::ResetRandomSeed(unsigned long seed)
 }
 
 double
+amrex::RandomNormal (double mean, double stddev)
+{
+#ifdef _OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+    std::normal_distribution<double> distribution(mean, stddev);
+    return distribution(generators[tid]);
+}
+
+double
 amrex::Random ()
 {
 #ifdef _OPENMP
@@ -474,6 +486,19 @@ amrex::NItemsPerBin (int totalItems, Array<int> &binCounts)
   }
 }
 
+// -------------------------------------------------------------------
+int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
+                            const Array<int> &refratios)
+{
+  BL_ASSERT(fromlevel >= 0);
+  BL_ASSERT(tolevel >= fromlevel);
+  BL_ASSERT(tolevel <= refratios.size());
+  int level, rr = 1;
+  for(level = fromlevel; level < tolevel; ++level) {
+    rr *= refratios[level];
+  }
+  return rr;
+}
 
 //
 // Fortran entry points for amrex::Random().

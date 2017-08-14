@@ -193,13 +193,26 @@ The list of available option is reported in Table~\ref{tab:cmakevar}.
     {\tt ENABLE\_TINY\_PROFILING} &  Include tiny-profiling info in build & 0  & 0,1 \\
     {\tt ENABLE\_BACKTRACE} & Include backtrace info in  build & 1  & 0,1 \\
     {\tt ENABLE\_FPE} & Build with Floating Point Exceptions checks & 0  & 0,1 \\
-
+    {\tt ENABLE\_ASSERTIONS} & Build with assertions turned on  & 0  & 0,1 \\
     {\tt AMREX\_FFLAGS\_OVERRIDES} &  User-defined Fortran flags & empty  & user-defined \\
     {\tt AMREX\_CXXFLAGS\_OVERRIDES} &  User-defined C++ flags & empty  & user-defined \\
     \hline
   \end{tabular}
   \caption{\label{tab:cmakevar} Variables for the customization of \amrex\ build with CMake}
 \end{table}
+
+\subsection{Importing AMReX configuration into a CMake project}
+\label{sec:build:cmake:config}
+In order to import the \amrex\ configuration options into your CMake
+build system, include the following line in the appropriate
+CMakeLists.txt file:
+\begin{verbatim}
+find_package (AMReX CONFIG REQUIRED HINTS /path/to/installdir/cmake )
+\end{verbatim}
+This will load \amrex-specific CMake variables containing the necessary
+info to compile and link your code to \amrex. For a list of all the available
+configuration variables, refer to the file {\tt AMReXConfig.cmake} in
+{\tt /path/to/installdir/cmake/}.
 
 
 

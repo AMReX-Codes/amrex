@@ -19,12 +19,12 @@ module my_amr_module
   real(rt) :: stop_time  = huge(1._rt)
   real(rt) :: cfl        = 0.7_rt
   !
-  character(len=127) :: check_file = "chk"
-  character(len=127) :: plot_file  = "plt"
-  character(len=127) :: restart    = ""  
+  character(len=:), allocatable, save :: check_file
+  character(len=:), allocatable, save :: plot_file
+  character(len=:), allocatable, save :: restart
 
-  integer  :: stepno
-  real(rt) :: dtstep
+  integer, save  :: stepno
+  real(rt), save :: dtstep
 
   integer, private, parameter :: ncomp = 1, nghost = 0
   
@@ -41,6 +41,13 @@ contains
          &                             my_remake_level,                &
          &                             my_clear_level,                 &
          &                             my_error_estimate)
+
+    ! some default parameters
+    allocate(character(len=3)::check_file)
+    check_file = "chk"
+    allocate(character(len=3)::plot_file)
+    plot_file = "plt"
+    allocate(character(len=0)::restart)
 
     ! Read parameters
     call amrex_parmparse_build(pp)
@@ -191,7 +198,7 @@ contains
     integer, intent(in), value :: lev
     type(c_ptr), intent(in), value :: cp
     real(amrex_real), intent(in), value :: t
-    character(c_char), intent(in), value :: settag, cleartag
+    character(kind=c_char), intent(in), value :: settag, cleartag
 
     real(amrex_real), allocatable, save :: phierr(:)
     type(amrex_parmparse) :: pp
@@ -199,7 +206,7 @@ contains
     type(amrex_mfiter) :: mfi
     type(amrex_box) :: bx
     real(amrex_real), contiguous, pointer :: phiarr(:,:,:,:)
-    character(c_char), contiguous, pointer :: tagarr(:,:,:,:)
+    character(kind=c_char), contiguous, pointer :: tagarr(:,:,:,:)
 
     if (.not.allocated(phierr)) then
        call amrex_parmparse_build(pp, "myamr")
