@@ -13,6 +13,20 @@ module cns_module
   integer, parameter, public :: UTEMP = 7
   integer, parameter, public :: NVAR  = 7
 
+  integer, parameter, public :: QRHO   = 1
+  integer, parameter, public :: QU     = 2
+  integer, parameter, public :: QV     = 3
+  integer, parameter, public :: QW     = 4
+  integer, parameter, public :: QP     = 5
+  integer, parameter, public :: QC     = 6
+  integer, parameter, public :: QEINT  = 7
+  integer, parameter, public :: QTEMP  = 8
+  integer, parameter, public :: QVAR   = 8
+  
+
+  real(rt), parameter, public :: smallp = 1.d-30
+  real(rt), parameter, public :: smallr = 1.d-30
+
   ! boundary condition information
   integer, save, public :: physbc_lo(3)
   integer, save, public :: physbc_hi(3)
