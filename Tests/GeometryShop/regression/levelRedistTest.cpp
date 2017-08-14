@@ -23,6 +23,7 @@
 #include "AMReX_EBArith.H"
 #include "AMReX_AllRegularService.H"
 #include "AMReX_PlaneIF.H"
+#include "AMReX_SphereIF.H"
 #include "AMReX_SPMD.H"
 #include "AMReX_Print.H"
 #include "AMReX_EBLevelRedist.H"
@@ -128,6 +129,28 @@ int makeGeometry(Box& a_domain,
 
       GeometryShop workshop(ramp,0, a_dx);
       //this generates the new EBIS
+      EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
+      ebisPtr->define(a_domain, origin, a_dx, workshop);
+    }
+    else if (whichgeom == 5)
+    {
+      amrex::Print() << "sphere geometry\n";
+      std::vector<Real> centervec(SpaceDim);
+      std::vector<int>  ncellsvec(SpaceDim);
+      Real radius;
+      pp.getarr(  "n_cell"       , ncellsvec, 0, SpaceDim);
+      pp.get(   "sphere_radius", radius);
+      pp.getarr("sphere_center", centervec, 0, SpaceDim);
+      RealVect center;
+      for(int idir = 0; idir < SpaceDim; idir++)
+      {
+        center[idir] = centervec[idir];
+      }
+      int ireginside = 0;
+      pp.get("inside_regular", ireginside);
+      bool insideRegular = (ireginside == 1);
+      SphereIF sphere(radius, center, insideRegular);
+      GeometryShop workshop(sphere, 0);
       EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
       ebisPtr->define(a_domain, origin, a_dx, workshop);
     }
@@ -253,7 +276,8 @@ int testConservation()
   broadcast(massTotOld, baseproc);
   broadcast(massTotNew, baseproc);
 
-
+  amrex::Print() << "mass tot old = "  << massTotOld << endl;
+  amrex::Print() << "mass tot new = "  << massTotNew << endl;
   int eekflag = 0;
   if (massTotOld > 1.0e-9)
     {

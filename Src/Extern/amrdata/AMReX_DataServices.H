@@ -10,12 +10,23 @@
 
 #include <cstdarg>
 #include <string>
+
+#ifdef BL_PROFILING
+#include <map>
+#include <AMReX_BLProfUtilities.H>
+#include <AMReX_Array.H>
+#include <AMReX_BLProfStats.H>
+#include <BLProfParser.tab.H>
+#include <AMReX_CommProfStats.H>
+#include <AMReX_RegionsProfStats.H>
+#endif
+
+
 using std::string;
 
 namespace amrex {
 
 class XYPlotDataList;
-
 
 class DataServices {
 
@@ -38,14 +49,24 @@ class DataServices {
       MinMaxRequest,
       PointValueRequest,
 #ifndef BL_NOLINEVALUES
-      LineValuesRequest
+      LineValuesRequest,
+#endif
+#ifdef BL_PROFILING 
+      WriteSummaryRequest,
+      CheckProfDataRequest,
+      RunStatsRequest,
+      RunSendsPFRequest,
+      RunTimelinePFRequest,
+      MakeRegionPltRequest,
+      MakeFilterFileRequest,
 #endif
     };
 
     DataServices(const string &filename, const Amrvis::FileType &filetype);
     DataServices();
-    void Init(const string &filename, const Amrvis::FileType &filetype);
     ~DataServices();
+
+    void Init(const string &filename, const Amrvis::FileType &filetype);
 
     static void SetBatchMode();
     static void Dispatch(DSRequestType requestType, DataServices *ds, ...);
@@ -127,6 +148,58 @@ class DataServices {
     void IncrementNumberOfUsers() { ++numberOfUsers; }
     void DecrementNumberOfUsers() { --numberOfUsers; }
 
+    // profiling functions
+#ifdef BL_PROFILING 
+    bool ProfDataAvailable()   const { return bProfDataAvailable;   }
+    bool RegionDataAvailable() const { return bRegionDataAvailable; }
+    bool TraceDataAvailable()  const { return bTraceDataAvailable;  }
+    bool CommDataAvailable()   const { return bCommDataAvailable;   }
+
+    BLProfStats &GetBLProfStats() { return blProfStats_H; }
+    RegionsProfStats &GetRegionsProfStats() { return regOutputStats_H; }
+    CommProfStats &GetCommOutputStats() { return commOutputStats_H; }
+    const amrex::BoxArray &ProcBoxArray() const { return procBoxArray; }
+
+    void CheckProfData();
+
+    void RunStats(std::map<int, string> &mpiFuncNames,
+                  bool &statsCollected);
+
+    void RunSendsPF(std::string &plotfileName,
+                    int  maxSmallImageLength,
+                    bool proxMap,
+                    int refRatioAll);
+
+    void RunTimelinePF(std::map<int, string> &mpiFuncNames,
+                       std::string &plotfileName,
+                       int maxSmallImageLength,
+                       int refRatioAll,
+                       int nTimeSlots,
+                       bool &statsCollected);
+
+    void RunACTPF(std::string &plotfileName,
+                  int maxSmallImageLength,
+                  int refRatioAll,
+                  const amrex::Array<string> &actFNames);
+
+    void RunSyncPointData();
+    void RunSendRecvList();
+    void RunSendRecv();
+
+    void MakeRegionPlt(std::string &plotfileName);
+    void MakeFilterFile(std::string &fFileName);
+
+    void ProcessGridLog(const std::string &gridlogFileName);
+    void ParseFilterFile();
+
+    void PrintCommStats(std::ostream &os, bool printHeaderNames);
+    void WriteSummary(std::ostream &os, bool bWriteAverage, int whichProc, bool bUseTrace);
+    void InitProxMap();
+    void TCEdison();
+    void WriteHTML(const std::string &fFileName, bool simpleCombine, int whichProc);
+    void WriteHTMLNC(const std::string &fFileName, int whichProc);
+    void WriteTextTrace(const std::string &fFileName, bool simpleCombine, int whichProc);
+#endif
 
   private:
     string fileName;
@@ -141,6 +214,19 @@ class DataServices {
     static int dsArrayIndexCounter;
     static int dsFabOutSize;
     static bool dsBatchMode;
+    static bool profiler;
+#ifdef BL_PROFILING 
+    bool bProfDataAvailable;
+    bool bRegionDataAvailable;
+    bool bTraceDataAvailable;
+    bool bCommDataAvailable;
+
+    BLProfStats blProfStats_H;
+    RegionsProfStats regOutputStats_H;
+    CommProfStats commOutputStats_H;
+
+    amrex::BoxArray procBoxArray;
+#endif
 };
 
 }

@@ -13,12 +13,12 @@ module amrex_error_module
   interface
      subroutine amrex_fi_error (message) bind(c)
        import
-       character(c_char), intent(in) :: message(*)
+       character(kind=c_char), intent(in) :: message(*)
      end subroutine amrex_fi_error
 
      subroutine amrex_fi_abort (message) bind(c)
        import
-       character(c_char), intent(in) :: message(*)
+       character(kind=c_char), intent(in) :: message(*)
      end subroutine amrex_fi_abort       
   end interface
 
