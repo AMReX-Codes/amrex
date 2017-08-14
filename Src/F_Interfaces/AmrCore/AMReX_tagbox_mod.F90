@@ -44,9 +44,9 @@ contains
   function amrex_tagboxarray_dataPtr (this, mfi) result(dp)
     class(amrex_tagboxarray) :: this
     type(amrex_mfiter), intent(in) :: mfi
-    character(c_char), contiguous, pointer, dimension(:,:,:,:) :: dp
+    character(kind=c_char), contiguous, pointer, dimension(:,:,:,:) :: dp
     type(c_ptr) :: cp
-    character(c_char), contiguous, pointer :: fp(:,:,:,:)
+    character(kind=c_char), contiguous, pointer :: fp(:,:,:,:)
     integer(c_int) :: n(4)
     type(amrex_box) :: bx
     call amrex_fi_tagboxarray_dataptr(this%p, mfi%p, cp, bx%lo, bx%hi)

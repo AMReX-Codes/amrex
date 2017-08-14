@@ -127,8 +127,8 @@ namespace amrex
     ParmParse pp;
     pp.get("alpha", alpha);
     pp.get("beta" , beta );
-    pp.get("acoefval", acoefval);
-    pp.get("bcoefval" ,bcoefval);
+    pp.get("acoef_val", acoefval);
+    pp.get("bcoef_val" ,bcoefval);
     int domain_bc_type, eb_bc_type;
     pp.get("domain_bc_type" ,domain_bc_type);
     pp.get(    "eb_bc_type" ,    eb_bc_type);
@@ -212,9 +212,10 @@ namespace amrex
     GridParameters params;
 
     getGridParameters(params);
+    makeGeometry(params);
     std::vector<EBLevelGrid> eblg;
     getAllIrregEBLG(eblg, params);
-    for(int ilev = 0; ilev < 2; ilev ++)
+    for(int ilev = 0; ilev < eblg.size(); ilev ++)
     {
       amrex::Print() << "grids[" << ilev << "] = " << eblg[ilev].getDBL() << endl;
     }
