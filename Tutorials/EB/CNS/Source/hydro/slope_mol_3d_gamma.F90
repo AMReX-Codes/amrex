@@ -9,7 +9,7 @@ module slope_module
 
   public slopex, slopey, slopez
 
-  integer, parameter :: plm_iorder = 1
+  integer, parameter :: plm_iorder = 2
 
 contains
 
@@ -135,7 +135,7 @@ contains
 
                do n=1,5
                   ! First compute Fromm slopes
-                  do i = ilo1-1, ihi1+1
+                  do i = ilo1, ihi1
                      dcen = 0.5d0 * (dlft(i,n)+drgt(i,n))
                      dsgn = sign(1.d0, dcen)
                      slop = 2.d0* min( abs(dlft(i,n)), abs(drgt(i,n)) )
@@ -205,7 +205,7 @@ contains
                do n=1,5
 
                ! First compute Fromm slopes
-               do i = ilo1-1, ihi1+1
+               do i = ilo1, ihi1
                   dcen = 0.5d0 * (dlft(i,n)+drgt(i,n))
                   dsgn = sign(1.d0, dcen)
                   slop = 2.d0*min( abs(dlft(i,n)), abs(drgt(i,n)) )
