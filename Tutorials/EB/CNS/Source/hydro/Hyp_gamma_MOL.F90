@@ -14,7 +14,7 @@ contains
                      flux2, fd2_lo, fd2_hi, &
                      flux3, fd3_lo, fd3_hi)
 
-    use mempool_module, only : bl_allocate, bl_deallocate
+    use mempool_module, only : amrex_allocate, amrex_deallocate
     use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar, &
          qrho,qu,qv,qw,qp,qc,qeint,qtemp,qvar, smallp, smallr
     use cns_physics_module, only : gamma
@@ -44,7 +44,7 @@ contains
     qtlo = lo - nextra - 1
     qthi = hi + nextra + 1
 
-    call bl_allocate ( dq, qtlo(1), qthi(1), qtlo(2), qthi(2), qtlo(3), qthi(3), 1, 5)
+    call amrex_allocate ( dq, qtlo(1), qthi(1), qtlo(2), qthi(2), qtlo(3), qthi(3), 1, 5)
 
     ! Local constants
     dxinv = 1.d0/dx(1)
@@ -143,7 +143,6 @@ contains
         enddo
      enddo
      
-     ! Compute all slopes at kc (k3d)
      call slopez(q,qd_lo,qd_hi, &
           dq,qtlo,qthi, &
           lo(1)-nextra,lo(2)-nextra,lo(3)-nextra,   &
@@ -191,7 +190,7 @@ contains
        enddo
     enddo
 
-    call bl_deallocate(dq)
+    call amrex_deallocate(dq)
 
   end subroutine hyp_mol_gam_3d
 

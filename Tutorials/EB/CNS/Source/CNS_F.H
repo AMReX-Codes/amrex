@@ -50,12 +50,20 @@ extern "C" {
                     const amrex_real* dx, amrex_real* dt);
                     
 
-    void cns_compute_hydro_flux(const int* lo, const int* hi,
-                                const amrex_real* u, const int* ulo, const int* uhi,
-                                amrex_real* fx, const int* fxlo, const int* fxhi,
-                                amrex_real* fy, const int* fylo, const int* fyhi,
-                                amrex_real* fz, const int* fzlo, const int* fzhi,
-                                const amrex_real* dx);
+    void cns_compute_hydro_flux (const int* lo, const int* hi,
+                                 const amrex_real* u, const int* ulo, const int* uhi,
+                                 amrex_real* fx, const int* fxlo, const int* fxhi,
+                                 amrex_real* fy, const int* fylo, const int* fyhi,
+                                 amrex_real* fz, const int* fzlo, const int* fzhi,
+                                 const amrex_real* dx);
+
+    void cns_eb_compute_hydro_flux (const int* lo, const int* hi,
+                                    const amrex_real* u, const int* ulo, const int* uhi,
+                                    amrex_real* fx, const int* fxlo, const int* fxhi,
+                                    amrex_real* fy, const int* fylo, const int* fyhi,
+                                    amrex_real* fz, const int* fzlo, const int* fzhi,
+                                    const void* flag, const int* fglo, const int* fghi,
+                                    const amrex_real* dx);
 
     void cns_compute_dsdt (const int* lo, const int* hi,
                            amrex_real* dudt, const int* ulo, const int* uhi,

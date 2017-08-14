@@ -8,7 +8,7 @@ module cns_hydro_module
   implicit none
   private
 
-  public:: cns_compute_hydro_flux
+  public:: cns_compute_hydro_flux, cns_eb_compute_hydro_flux
 
 contains
 
@@ -25,8 +25,8 @@ contains
     integer :: qlo(3), qhi(3)
     real(rt), pointer, contiguous :: q(:,:,:,:)
 
-    qlo = lo - 4
-    qhi = hi + 4
+    qlo = lo - 2
+    qhi = hi + 2
     call amrex_allocate(q, qlo(1),qhi(1), qlo(2),qhi(2), qlo(3),qhi(3), 1,qvar)
     
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
@@ -36,6 +36,32 @@ contains
     call amrex_deallocate(q)
   end subroutine cns_compute_hydro_flux
 
+  subroutine cns_eb_compute_hydro_flux (lo,hi,u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,&
+       flag,fglo,fghi,dx) bind(c,name='cns_eb_compute_hydro_flux')
+    use eb_advection_module, only : hyp_mol_gam_eb_3d
+    integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),fxlo(3),fxhi(3),fylo(3),fyhi(3),fzlo(3),fzhi(3),&
+         fglo(3),fghi(3)
+    real(rt), intent(in   ) :: u ( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
+    real(rt), intent(inout) :: fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),nvar)
+    real(rt), intent(inout) :: fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),nvar)
+    real(rt), intent(inout) :: fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),nvar)
+    integer , intent(in) ::  flag(fglo(1):fghi(1),fglo(2):fghi(2),fglo(3):fghi(3))
+    real(rt), intent(in) :: dx(3)
+
+    integer :: qlo(3), qhi(3)
+    real(rt), pointer, contiguous :: q(:,:,:,:)
+
+    qlo = lo - 4
+    qhi = hi + 4
+    call amrex_allocate(q, qlo(1),qhi(1), qlo(2),qhi(2), qlo(3),qhi(3), 1,qvar)
+    
+    call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
+    
+    call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi,&
+         flag, fglo, fghi)
+
+    call amrex_deallocate(q)
+  end subroutine cns_eb_compute_hydro_flux
 
   subroutine ctoprim (lo,hi,u,ulo,uhi,q,qlo,qhi)
     use cns_physics_module, only : gamma, cv
