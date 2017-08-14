@@ -27,13 +27,28 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     compute_dSdt(Sborder, dSdt, 0.5*dt);
     // U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, 0.5*dt, dSdt, 0, 0, NUM_STATE, 0);
-
+    
     return dt;
 }
 
 void
 CNS::compute_dSdt (MultiFab& S, MultiFab& dSdt, Real dt)
 {
-    // xxxxx todo
-    dSdt.setVal(0.0);
+    MultiFab xflux(amrex::convert(grids,IntVect(1,0,0)), dmap, NUM_STATE, 0);
+    MultiFab yflux(amrex::convert(grids,IntVect(0,1,0)), dmap, NUM_STATE, 0);
+    MultiFab zflux(amrex::convert(grids,IntVect(0,0,1)), dmap, NUM_STATE, 0);
+    
+    {
+        std::array<FArrayBox,3> flux;
+        for (MFIter mfi(S,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            for (int idim = 0; idim < 3; ++dim) {
+                const Box& bxtmp = amrex::surroundingNodes(bx,i);
+                flux[i].resize(bxtmp,NUM_STATE);
+            }
+
+            
+        }
+    }
 }
