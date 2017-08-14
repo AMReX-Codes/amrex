@@ -32,6 +32,17 @@ else
 endif
 #	@echo SUCCESS
 
+ifeq ($(PROFILE),TRUE)
+BLProfParser.tab.H BLProfParser.tab.cpp: $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y
+	cat $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y
+	bison --defines=BLProfParser.tab.H --output=BLProfParser.tab.cpp \
+		BLProfParserNC.y
+	rm BLProfParserNC.y
+
+BLProfParser.lex.yy.cpp: BLProfParser.tab.H $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.l
+	flex --outfile=BLProfParser.lex.yy.cpp $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.l
+endif
+
 $(amrexlib): $(objForExecs)
 	@echo Building libamrex.a
 	$(SILENT) $(AR) $(ARFLAGS) $@ $^
