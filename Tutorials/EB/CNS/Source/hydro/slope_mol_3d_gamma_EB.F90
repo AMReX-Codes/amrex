@@ -110,7 +110,7 @@ contains
     
     integer i, j, k, n
     real(rt) slop, dsgn,dlim,dcen
-    real(rt) :: dlft(ilo1-1:ihi1+1,5), drgt(ilo1-1:ihi1+1,5)
+    real(rt) :: dlft(ilo1:ihi1,5), drgt(ilo1:ihi1,5)
     integer :: nbr(-1:1,-1:1,-1:1)
     
     if(plm_iorder.eq.1) then
@@ -189,7 +189,7 @@ contains
     
     integer i, j, k, n
     real(rt) slop,dsgn,dlim,dcen
-    real(rt) :: dlft(ilo1-1:ihi1+1,nv), drgt(ilo1-1:ihi1+1,nv)
+    real(rt) :: dlft(ilo1:ihi1,nv), drgt(ilo1:ihi1,nv)
     integer :: nbr(-1:1,-1:1,-1:1)
     
     if(plm_iorder.eq.1) then
@@ -225,7 +225,7 @@ contains
                      drgt(i,:) = 0.d0
                   else
                      drgt(i,1) = 0.5d0*(q(i,j,k+1,QP)-q(i,j,k,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW))
-                     drgt(i,2) = (q(i,j,k+1,QRHO)-q(i,j,k,QRHO))- (q(i,j+1,k,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
+                     drgt(i,2) = (q(i,j,k+1,QRHO)-q(i,j,k,QRHO))- (q(i,j,k+1,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
                      drgt(i,3) = 0.5d0*(q(i,j,k+1,QP)-q(i,j,k,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW))
                      drgt(i,4) = q(i,j,k+1,QU) - q(i,j,k,QU) 
                      drgt(i,5) = q(i,j,k+1,QV) - q(i,j,k,QV) 
