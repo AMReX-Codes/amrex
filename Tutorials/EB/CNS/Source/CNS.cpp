@@ -280,6 +280,15 @@ CNS::buildMetrics ()
     volfrac.clear();
     volfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
     amrex::EB_set_volume_fraction(volfrac);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        const BoxArray& ba = amrex::convert(grids,IntVect::TheDimensionVector(idim));
+        areafrac[idim].clear();
+        areafrac[idim].define(ba,dmap,1,NUM_GROW,MFInfo(),Factory());
+        facecent[idim].clear();
+        facecent[idim].define(ba,dmap,AMREX_SPACEDIM-1,NUM_GROW,MFInfo(),Factory());
+    }
+    amrex::EB_set_area_fraction_face_centroid(areafrac, facecent);
 }
 
 Real

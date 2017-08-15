@@ -123,6 +123,8 @@ protected:
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt);
 
     amrex::MultiFab volfrac;
+    std::array<amrex::MultiFab,3> areafrac;
+    std::array<amrex::MultiFab,3> facecent;
 
     static constexpr int NUM_GROW = 4;
     enum StateVariable {
