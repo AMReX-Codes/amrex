@@ -84,6 +84,95 @@ EB_set_volume_fraction (MultiFab& mf)
 }
 
 void
+EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafrac,
+                                    std::array<MultiFab,AMREX_SPACEDIM>& facecent)
+{
+    const Box& domain = amrex::getLevelDomain(areafrac[0]);
+    const auto& cellflagmf = amrex::getMultiEBCellFlagFab(areafrac[0]);
+    const EBLevel& eblevel = amrex::getEBLevel(areafrac[0]);
+    const EBISLayout& ebisl = eblevel.getEBISL();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(areafrac[0]); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = amrex::enclosedCells(mfi.fabbox());
+        const auto& flagfab = cellflagmf[mfi];
+        FabType typ = flagfab.getType(bx);
+
+        if (typ == FabType::covered)
+        {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                areafrac[idim][mfi].setVal(0.0);
+            }
+        }
+        else
+        {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                areafrac[idim][mfi].setVal(1.0);
+            }
+        }
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            facecent[idim][mfi].setVal(0.0);
+        }
+
+        if (typ == FabType::singlevalued)
+        {
+            const auto& ebisbox = ebisl[mfi];
+            const Box& bx_sect = bx & domain;
+            for (BoxIterator bi(bx_sect); bi.ok(); ++bi)
+            {
+                const IntVect& iv = bi();
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                {
+                    {
+                        const auto& lo_faces = ebisbox.getAllFaces(iv, idim, Side::Lo);
+                        if (lo_faces.size() == 0) {
+                            areafrac[idim][mfi](iv) = 0.0;
+                        } else if (lo_faces.size() == 1) {
+                            areafrac[idim][mfi](iv) = ebisbox.areaFrac(lo_faces[0]);
+                            const RealVect& rv = ebisbox.centroid(lo_faces[0]);
+                            int icomp = 0;
+                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                                if (dir != idim) {
+                                    facecent[idim][mfi](iv,icomp) = rv[dir];
+                                    ++icomp;
+                                }
+                            }
+                        } else {
+                            amrex::Abort("EB_set_area_fraction_face_centroid: multi-value not supported");
+                        }
+                    }
+
+                    if (iv[idim] == bx_sect.bigEnd(idim))
+                    {
+                        const IntVect& ivhi = iv + IntVect::TheDimensionVector(idim);
+                        const auto& hi_faces = ebisbox.getAllFaces(iv, idim, Side::Hi);
+                        if (hi_faces.size() == 0) {
+                            areafrac[idim][mfi](ivhi) = 0.0;
+                        } else if (hi_faces.size() == 1) {
+                            areafrac[idim][mfi](ivhi) = ebisbox.areaFrac(hi_faces[0]);
+                            const RealVect& rv = ebisbox.centroid(hi_faces[0]);
+                            int icomp = 0;
+                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                                if (dir != idim) {
+                                    facecent[idim][mfi](ivhi,icomp) = rv[dir];
+                                    ++icomp;
+                                }
+                            }
+                        } else {
+                            amrex::Abort("EB_set_area_fraction_face_centroid: multi-value not supported");
+                        }                        
+                    }
+                }
+            }
+        }
+    }
+}
+
+void
 EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                  const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio)
 {

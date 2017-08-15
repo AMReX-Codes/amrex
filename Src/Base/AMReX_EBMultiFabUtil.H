@@ -2,12 +2,15 @@
 #define AMREX_EBMULTIFABUTIL_H_
 
 #include <AMReX_MultiFab.H>
+#include <array>
 
 namespace amrex
 {
     void EB_set_covered (MultiFab& mf);    
     void EB_set_covered (MultiFab& mf, int icomp, int ncomp);
     void EB_set_volume_fraction (MultiFab& mf);
+    void EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafrac,
+                                             std::array<MultiFab,AMREX_SPACEDIM>& facecent);
 
     void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                           const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio);
