@@ -82,7 +82,7 @@ contains
 
   subroutine share_multifab_with_f (mf_name, nc, ng, nd) &
        bind(c, name='share_multifab_with_f')
-    character(c_char), intent(in) :: mf_name(*)
+    character(kind=c_char), intent(in) :: mf_name(*)
     integer(c_int) , intent(in), value :: nc, ng
     integer(c_int), intent(in) :: nd(ndim)
 

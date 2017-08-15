@@ -801,7 +801,6 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
   const int LevelZero(0), LevelOne(1), BoxZero(0), ComponentZero(0);
   const int NVarZero(0), FabZero(0), IndexZero(0);
   const int iopNum(ParallelDescriptor::IOProcessorNumber());
-  const int myProc(ParallelDescriptor::MyProc());
   int i;
   if(verbose) {
     if(ParallelDescriptor::IOProcessor()) {
