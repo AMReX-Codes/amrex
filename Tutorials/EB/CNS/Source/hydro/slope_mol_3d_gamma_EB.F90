@@ -1,6 +1,6 @@
 module ebslope_module
 
-  use amrex_ebcellflag_module, only : get_neighbors => get_neighbor_cells
+  use amrex_ebcellflag_module, only : get_neighbor_cells, is_regular_cell
   use amrex_fort_module, only : rt=>amrex_real
   use cns_module, only : qrho,qu,qv,qw,qp,qc,qeint,qtemp,qvar
 
@@ -51,26 +51,26 @@ contains
           do j = ilo2, ihi2
              do i = ilo1-1, ihi1+1
 
-                call get_neighbors(flag(i,j,k), nbr)
+                call get_neighbor_cells(flag(i,j,k), nbr)
 
-                if( nbr(0,0,0) .eq. 0 .or. nbr(-1,0,0) .eq. 0) then
-                   dlft(i,:) = 0.d0
-                else
+                if (is_regular_cell(flag(i,j,k)) .or. nbr(-1,0,0).eq.1) then
                    dlft(i,1) = 0.5d0*(q(i,j,k,QP)-q(i-1,j,k,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i,j,k,QU) - q(i-1,j,k,QU))
                    dlft(i,2) = (q(i,j,k,QRHO)-q(i-1,j,k,QRHO))- (q(i,j,k,QP) - q(i-1,j,k,QP))/q(i,j,k,QC)**2
                    dlft(i,3) = 0.5d0*(q(i,j,k,QP)-q(i-1,j,k,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i,j,k,QU) - q(i-1,j,k,QU))
                    dlft(i,4) = q(i,j,k,QV) - q(i-1,j,k,QV) 
                    dlft(i,5) = q(i,j,k,QW) - q(i-1,j,k,QW) 
-                end if
-                   
-                if( nbr(0,0,0) .eq. 0 .or. nbr(1,0,0) .eq. 0) then
-                   drgt(i,:) = 0.d0
                 else
+                   dlft(i,:) = 0.d0
+                end if
+
+                if (is_regular_cell(flag(i,j,k)) .or. nbr(1,0,0).eq.1) then
                    drgt(i,1) = 0.5d0*(q(i+1,j,k,QP)-q(i,j,k,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU))
                    drgt(i,2) = (q(i+1,j,k,QRHO)-q(i,j,k,QRHO))- (q(i,j,k,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
                    drgt(i,3) = 0.5d0*(q(i+1,j,k,QP)-q(i,j,k,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU))
                    drgt(i,4) = q(i+1,j,k,QV) - q(i,j,k,QV) 
                    drgt(i,5) = q(i+1,j,k,QW) - q(i,j,k,QW) 
+                else
+                   drgt(i,:) = 0.d0
                 end if
 
              enddo
@@ -131,26 +131,26 @@ contains
        do k = ilo3, ihi3
           do j = ilo2-1, ihi2+1
              do i = ilo1, ihi1
-                call get_neighbors( flag(i,j,k), nbr )
-                
-                if( nbr(0,0,0) .eq. 0 .or. nbr(0,-1,0) .eq. 0) then
-                   dlft(i,:) = 0.d0
-                else
+                call get_neighbor_cells( flag(i,j,k), nbr )
+
+                if (is_regular_cell(flag(i,j,k)) .or. nbr(0,-1,0).eq.1) then
                    dlft(i,1) = 0.5d0*(q(i,j,k,QP)-q(i,j-1,k,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i,j,k,QV) - q(i,j-1,k,QV))
                    dlft(i,2) = (q(i,j,k,QRHO)-q(i,j-1,k,QRHO))- (q(i,j,k,QP) - q(i,j-1,k,QP))/q(i,j,k,QC)**2
                    dlft(i,3) = 0.5d0*(q(i,j,k,QP)-q(i,j-1,k,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i,j,k,QV) - q(i,j-1,k,QV))
                    dlft(i,4) = q(i,j,k,QU) - q(i,j-1,k,QU) 
                    dlft(i,5) = q(i,j,k,QW) - q(i,j-1,k,QW) 
-                end if
-                
-                if( nbr(0,0,0) .eq. 0 .or. nbr(0,1,0) .eq. 0) then
-                   drgt(i,:) = 0.d0
                 else
+                   dlft(i,:) = 0.d0
+                end if
+
+                if (is_regular_cell(flag(i,j,k)) .or. nbr(0,1,0).eq.1) then
                    drgt(i,1) = 0.5d0*(q(i,j+1,k,QP)-q(i,j,k,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i,j+1,k,QV) - q(i,j,k,QV))
                    drgt(i,2) = (q(i,j+1,k,QRHO)-q(i,j,k,QRHO))- (q(i,j+1,k,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
                    drgt(i,3) = 0.5d0*(q(i,j+1,k,QP)-q(i,j,k,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i,j+1,k,QV) - q(i,j,k,QV))
                    drgt(i,4) = q(i,j+1,k,QU) - q(i,j,k,QU) 
                    drgt(i,5) = q(i,j+1,k,QW) - q(i,j,k,QW)
+                else
+                   drgt(i,:) = 0.d0
                 end if
              enddo
              
@@ -209,26 +209,26 @@ contains
        do k = ilo3-1, ihi3+1
             do j = ilo2, ihi2
                do i = ilo1, ihi1
-                  call get_neighbors( flag(i,j,k), nbr )
+                  call get_neighbor_cells( flag(i,j,k), nbr )
 
-                  if( nbr(0,0,0) .eq. 0 .or. nbr(0,0,-1) .eq. 0) then
-                     dlft(i,:) = 0.d0
-                  else
+                  if (is_regular_cell(flag(i,j,k)) .or. nbr(0,0,-1).eq.1) then
                      dlft(i,1) = 0.5d0*(q(i,j,k,QP)-q(i,j,k-1,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i,j,k,QW) - q(i,j,k-1,QW))
                      dlft(i,2) = (q(i,j,k,QRHO)-q(i,j,k-1,QRHO))- (q(i,j,k,QP) - q(i,j,k-1,QP))/q(i,j,k,QC)**2
                      dlft(i,3) = 0.5d0*(q(i,j,k,QP)-q(i,j,k-1,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i,j,k,QW) - q(i,j,k-1,QW))
                      dlft(i,4) = q(i,j,k,QU) - q(i,j,k-1,QU) 
                      dlft(i,5) = q(i,j,k,QV) - q(i,j,k-1,QV) 
+                  else
+                     dlft(i,:) = 0.d0
                   end if
 
-                  if( nbr(0,0,0) .eq. 0 .or. nbr(0,0,1) .eq. 0) then
-                     drgt(i,:) = 0.d0
-                  else
+                  if (is_regular_cell(flag(i,j,k)) .or. nbr(0,0,1).eq.1) then
                      drgt(i,1) = 0.5d0*(q(i,j,k+1,QP)-q(i,j,k,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW))
                      drgt(i,2) = (q(i,j,k+1,QRHO)-q(i,j,k,QRHO))- (q(i,j,k+1,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
                      drgt(i,3) = 0.5d0*(q(i,j,k+1,QP)-q(i,j,k,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW))
                      drgt(i,4) = q(i,j,k+1,QU) - q(i,j,k,QU) 
                      drgt(i,5) = q(i,j,k+1,QV) - q(i,j,k,QV) 
+                  else
+                     drgt(i,:) = 0.d0
                   end if
                enddo
 
