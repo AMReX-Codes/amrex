@@ -100,17 +100,6 @@ function ( append new_var all_var )
 endfunction ()
 
 
-function (set_F77_properties OUTVAR)
-   set_source_files_properties(${ARGN} PROPERTIES COMPILE_DEFINITIONS "BL_LANG_FORT")
-   set(${OUTVAR} ${ARGN} PARENT_SCOPE)
-endfunction (set_F77_properties)
-
-
-function(preprocess_boxlib_fortran OUTVAR)
-   set_source_files_properties(${ARGN} PROPERTIES COMPILE_DEFINITIONS "BL_LANG_FORT")
-   set(${OUTVAR} ${ARGN} PARENT_SCOPE)
-endfunction(preprocess_boxlib_fortran)
-
 #
 # Print variable (useful for debugging)
 #
