@@ -99,27 +99,6 @@ function ( append new_var all_var )
    endif ()
 endfunction ()
 
-#
-# Function to accumulate preprocessor directives
-#
-function ( add_define new_define all_defines )
-   
-   set ( condition  1 )
-   
-   if ( ${ARGC} EQUAL 3 ) #
-      set ( condition ${${ARGV2}} )
-   elseif ( ${ARGC} GREATER 3 )
-      message ( AUTHOR_WARNING "Function add_define accept AT MOST 3 args" )
-   endif ()
-     
-   string ( FIND "${${all_defines}}" "${new_define}" out )
-   
-   if (condition AND (${out} EQUAL -1))
-      set ( ${all_defines} "${${all_defines}} -D${new_define}" PARENT_SCOPE )
-   endif ()
-   
-endfunction ()
-
 
 function (set_F77_properties OUTVAR)
    set_source_files_properties(${ARGN} PROPERTIES COMPILE_DEFINITIONS "BL_LANG_FORT")

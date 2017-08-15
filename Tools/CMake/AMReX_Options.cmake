@@ -75,7 +75,7 @@ check_option_value ( "ENABLE_PARTICLES" ${ENABLE_PARTICLES} 0 1 )
 set (ENABLE_DP_PARTICLES 1 CACHE INT "Enable double-precision for particles data") 
 check_option_value ( "ENABLE_DP_PARTICLES" ${ENABLE_DP_PARTICLES} 0 1 )
 
-set (ENABLE_PROFILING 0 CACHE INT "Include profiling information in AMReX build")
+set (ENABLE_PROFILING 0 CACHE INT "Include basic profiling information in AMReX build")
 check_option_value ( "ENABLE_PROFILING" ${ENABLE_PROFILING} 0 1 )
 
 set (ENABLE_TINY_PROFILING 0 CACHE INT "Include 'tiny'-profiling information in AMReX build")
@@ -83,6 +83,9 @@ check_option_value ( "ENABLE_TINY_PROFILING" ${ENABLE_TINY_PROFILING} 0 1 )
 
 set (ENABLE_TRACE_PROFILING 0 CACHE INT  "Include trace-profiling information in AMReX build" )
 check_option_value ( "ENABLE_TRACE_PROFILING" ${ENABLE_TRACE_PROFILING} 0 1 )
+
+set (ENABLE_MEM_PROFILING 0 CACHE INT  "Include memory profiling information in AMReX build" )
+check_option_value ( "ENABLE_MEM_PROFILING" ${ENABLE_MEM_PROFILING} 0 1 )
 
 set (ENABLE_COMM_PROFILING 0 CACHE INT  "Include comm-profiling information in AMReX build" )
 check_option_value ( "ENABLE_COMM_PROFILING" ${ENABLE_COMM_PROFILING} 0 1 )
@@ -109,6 +112,18 @@ check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
 set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
 set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
+
+
+#
+# If any profiling options is activated, set AMREX_PROFILING to 1
+# 
+set ( AMREX_ANY_PROFILING 0 )
+if ( ENABLE_PROFILING OR ENABLE_COMM_PROFILING OR ENABLE_TINY_PROFILING OR
+      ENABLE_TRACE_PROFILING OR ENABLE_MEM_PROFILING)
+   set ( AMREX_ANY_PROFILING 1 )
+endif ()
+
+
 
 # After the options are set, define the following variable
 # so that other included file can check if this file has been
