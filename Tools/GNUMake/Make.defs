@@ -195,6 +195,9 @@ ifeq ($(PROFILE),TRUE)
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),FALSEFALSE)
         ProfSuffix	:= .PROF
     endif
+
+    include $(AMREX_HOME)/Src/Extern/ProfParser/Make.package
+    include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
 else
     ifndef TINY_PROFILE
         TINY_PROFILE = FALSE

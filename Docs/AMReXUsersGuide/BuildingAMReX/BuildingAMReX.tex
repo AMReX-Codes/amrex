@@ -162,7 +162,7 @@ The CMake build process is summarized as follow:
 \begin{verbatim}
 mkdir /path/to/builddir
 cd    /path/to/builddir
-cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=<path/to/installdir>  /path/to/amrex 
+cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex 
 make install
 \end{verbatim} 
 In the above snippet, {\tt [options]} indicates one or more options for the customization
@@ -172,34 +172,48 @@ After the installation is complete, {\tt builddir} can be removed.
 \subsection{Customization options}
 \label{sec:build:cmake:options}
 \amrex\ configuration settings may be specified on the command line with the {\tt -D} option.
-For example one can enable OpenMP support as follows:
+For example, one can enable OpenMP support as follows:
 \begin{verbatim}
-cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=<path/to/installdir>  /path/to/amrex 
+cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex 
 \end{verbatim} 
 The list of available option is reported in Table~\ref{tab:cmakevar}.
 \begin{table}[h!]
   \centering
+ { \small
   \begin{tabular}{llcc}
-    Option name & Description & Default Value & Possible values  \\
+    Option name & Description & Defaults & Possible values  \\
     \hline
-    {\tt CMAKE\_BUILD\_TYPE} & Type of \amrex\ build & Debug & Debug,Release \\    
+    {\tt CMAKE\_BUILD\_TYPE} & Type of \amrex\ build & Release & Debug,Release \\    
     {\tt BL\_SPACEDIM} & Dimension of \amrex\ build & 3 & 2,3 \\
-    {\tt ENABLE\_DP} & Enable double precision & 1 & 0,1 \\
-    {\tt ENABLE\_MPI} & Enable build with MPI & 1 & 0,1 \\
-    {\tt ENABLE\_OMP} & Enable build with OpenMP & 0 & 0,1 \\
-    {\tt ENABLE\_PARTICLES} & Include particle classes in build & 0  & 0,1 \\
-    {\tt ENABLE\_DP\_PARTICLES} & Enable double precision for particle classes & 1 & 0,1 \\    
-    {\tt ENABLE\_PROFILING} &  Include profiling info in build & 0  & 0,1 \\
-    {\tt ENABLE\_TINY\_PROFILING} &  Include tiny-profiling info in build & 0  & 0,1 \\
-    {\tt ENABLE\_BACKTRACE} & Include backtrace info in  build & 1  & 0,1 \\
+    {\tt ENABLE\_DP} & Build with double-precision reals & 1 & 0,1 \\
+    {\tt ENABLE\_PIC} & Build Position Independent Code & 0 & 0,1 \\
+    {\tt ENABLE\_MPI} & Build with MPI support & 1 & 0,1 \\
+    {\tt ENABLE\_OMP} & Build with OpenMP support & 0 & 0,1 \\
+    {\tt ENABLE\_FORTRAN\_INTERFACES} & Build Fortran interfaces  & 1  & 0,1 \\
+    {\tt ENABLE\_LINEAR\_SOLVERS} & Build \amrex\ linear solvers & 1  & 0,1 \\
+    {\tt ENABLE\_FBASELIB}  & Build deprecated Fortran kernel & 1  & 0,1 \\
+    {\tt ENABLE\_PARTICLES} & Build particle classes & 0  & 0,1 \\
+    {\tt ENABLE\_DP\_PARTICLES} & Use double-precision reals in  particle classes & 1 & 0,1 \\    
+    {\tt ENABLE\_PROFILING} &  Build with profiling support & 0  & 0,1 \\
+    {\tt ENABLE\_TINY\_PROFILING} &  Build with tiny-profiling support & 0  & 0,1 \\
+    {\tt ENABLE\_TRACE\_PROFILING} &  Build with trace-profiling support & 0  & 0,1 \\
+    {\tt ENABLE\_COMM\_PROFILING} &  Build with comm-profiling support & 0  & 0,1 \\
+    {\tt ENABLE\_BACKTRACE} & Build with backtrace support & 0  & 0,1 \\
     {\tt ENABLE\_FPE} & Build with Floating Point Exceptions checks & 0  & 0,1 \\
     {\tt ENABLE\_ASSERTIONS} & Build with assertions turned on  & 0  & 0,1 \\
-    {\tt AMREX\_FFLAGS\_OVERRIDES} &  User-defined Fortran flags & empty  & user-defined \\
-    {\tt AMREX\_CXXFLAGS\_OVERRIDES} &  User-defined C++ flags & empty  & user-defined \\
+    {\tt AMREX\_FFLAGS\_OVERRIDES} &  User-defined Fortran flags & None  & user-defined \\
+    {\tt AMREX\_CXXFLAGS\_OVERRIDES} &  User-defined C++ flags & None  & user-defined \\
     \hline
   \end{tabular}
+  }
   \caption{\label{tab:cmakevar} Variables for the customization of \amrex\ build with CMake}
 \end{table}
+
+
+The option {\tt ENABLE\_LINEAR\_SOLVERS=1} triggers the inclusion of C++-based linear
+solvers in the build. Fortran-based linear solvers can be included
+as well by providing  the option {\tt ENABLE\_FBASELIB=1} in addition
+to  {\tt ENABLE\_LINEAR\_SOLVERS=1}.
 
 \subsection{Importing AMReX configuration into a CMake project}
 \label{sec:build:cmake:config}
