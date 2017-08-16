@@ -139,10 +139,11 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
 
-    int num_cells, max_grid_size;
+    int num_cells, max_grid_size, num_procs;
    
     ParmParse pp;    
     pp.get("num_cells", num_cells);
+    pp.get("num_procs", num_procs);
     pp.get("max_grid_size", max_grid_size);
 
     RealBox real_box;
@@ -177,7 +178,7 @@ int main(int argc, char* argv[])
         cost = &global_cost[mfi];
     }
 
-    KDNode* root = build_kd_tree(domain, *cost, 8);
+    KDNode* root = build_kd_tree(domain, *cost, num_procs);
 
     BoxList new_bl;
     Array<Real> box_costs;
@@ -185,7 +186,7 @@ int main(int argc, char* argv[])
     BoxArray new_ba(new_bl);
 
     for (int i = 0; i < box_costs.size(); ++i) {
-        std::cout << box_costs[i] << new_ba[i] << std::endl;
+        std::cout << box_costs[i] << " " << new_ba[i] << std::endl;
     }
 
     Array<int> new_pmap;
