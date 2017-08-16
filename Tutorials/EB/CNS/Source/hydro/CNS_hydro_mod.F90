@@ -8,6 +8,8 @@ module cns_hydro_module
   implicit none
   private
 
+  integer, parameter :: nghost_plm = 2  ! number of ghost cells needed for plm
+
   public:: cns_compute_hydro_flux, cns_eb_compute_hydro_flux
 
 contains
@@ -29,8 +31,8 @@ contains
     integer :: qlo(3), qhi(3)
     real(rt), pointer, contiguous :: q(:,:,:,:)
 
-    qlo = lo - 2
-    qhi = hi + 2
+    qlo = lo - nghost_plm
+    qhi = hi + nghost_plm
     call amrex_allocate(q, qlo(1),qhi(1), qlo(2),qhi(2), qlo(3),qhi(3), 1,qvar)
     
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
@@ -47,7 +49,7 @@ contains
        volfrac,vlo,vhi,apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
        centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, &
        dx) bind(c,name='cns_eb_compute_hydro_flux')
-    use eb_advection_module, only : hyp_mol_gam_eb_3d
+    use eb_advection_module, only : hyp_mol_gam_eb_3d, nextra_eb
     use cns_eb_flux_module, only : compute_eb_diffop
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi, &
          fxlo,fxhi,fylo,fyhi,fzlo,fzhi, &
@@ -71,9 +73,10 @@ contains
 
     integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(4), dmhi(4)
     real(rt), pointer, contiguous :: q(:,:,:,:), divc(:,:,:), dm(:,:,:,:)
+    integer, parameter :: nghost = nextra_eb + nghost_plm ! 
 
-    qlo = lo - 4
-    qhi = hi + 4
+    qlo = lo - nghost
+    qhi = hi + nghost
     call amrex_allocate(q, qlo(1),qhi(1), qlo(2),qhi(2), qlo(3),qhi(3), 1,qvar)
     
     dvlo = lo-2

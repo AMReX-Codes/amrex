@@ -79,12 +79,19 @@ contains
 
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc,vtot, fracx,fracy,fracz,dxinv(3)
+    real(rt), pointer, contiguous :: optmp(:,:,:)
 
     !  centroid nondimensional  and zero at face center
 
     dxinv = 1.d0/dx
 
+    call amrex_allocate(optmp, lo-2, hi+2)
+
     do n = 1, ncomp
+
+       !
+       ! First, we compute conservative divergence on (lo-2,hi+2)
+       !
        do       k = lo(3)-2, hi(3)+2
           do    j = lo(2)-2, hi(2)+2
              do i = lo(1)-2, hi(1)+2
@@ -329,13 +336,13 @@ contains
           end do
        end do
 
+       optmp = 0.d0
+
+       !
+       ! Second, we compute delta M on (lo-1,hi+1)
+       !
        do       k = lo(3)-1, hi(3)+1
           do    j = lo(2)-1, hi(2)+1
-             do i = lo(1)-1, hi(1)+1
-                ebdiffop(i,j,k,n) = 0.d0
-                delm(i,j,k,n) = 0.d0
-             end do
-
              do i = lo(1)-1, hi(1)+1
                 if (is_single_valued_cell(cellflag(i,j,k))) then
                    vtot = 0.d0
@@ -350,17 +357,21 @@ contains
                       enddo
                    enddo
                    divnc = divnc / vtot
-                   ebdiffop(i,j,k,n) = vfrac(i,j,k)*divc(i,j,k) + (1.d0-vfrac(i,j,k))*divnc
+                   optmp(i,j,k) = vfrac(i,j,k)*divc(i,j,k) + (1.d0-vfrac(i,j,k))*divnc
                    delm(i,j,k,n) = vfrac(i,j,k)*(1.d0-vfrac(i,j,k))*(divc(i,j,k)-divnc)
+                else
+                   delm(i,j,k,n) = 0.d0
                 end if
              end do
           end do
        end do
 
-       ! redistribution
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
-             do i = lo(1), hi(1)
+       !
+       ! Third, redistribution
+       !
+       do       k = lo(3)-1, hi(3)+1
+          do    j = lo(2)-1, hi(2)+1
+             do i = lo(1)-1, hi(1)+1
                 if (is_single_valued_cell(cellflag(i,j,k))) then                   
                    vtot = 0.d0
                    call get_neighbor_cells(cellflag(i,j,k),nbr)
@@ -379,7 +390,7 @@ contains
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               ebdiffop(i+ii,j+jj,k+kk,n) = ebdiffop(i+ii,j+jj,k+kk,n) + &
+                               optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) + &
                                     delm(i,j,k,n) * vfrac(i+ii,j+jj,k+kk) * vtot
                             endif
                          enddo
@@ -390,7 +401,17 @@ contains
           end do
        end do
 
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                ebdiffop(i,j,k,n) = optmp(i,j,k)
+             end do
+          end do
+       end do
+
     end do
+
+    call amrex_deallocate(optmp)
 
   end subroutine compute_eb_diffop
 

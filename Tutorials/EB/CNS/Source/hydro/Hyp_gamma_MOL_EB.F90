@@ -7,6 +7,8 @@ module eb_advection_module
 
   logical, parameter :: debug = .false.
 
+  integer, parameter, public :: nextra_eb = 2
+
 contains
 
   subroutine hyp_mol_gam_eb_3d(q, qd_lo, qd_hi, &
@@ -42,7 +44,7 @@ contains
     integer :: qtlo(3), qthi(3)
     real(rt), pointer :: dq(:,:,:,:)
 
-    integer, parameter :: nextra = 2
+    integer, parameter :: nextra = nextra_eb
 
     qtlo = lo - nextra - 1
     qthi = hi + nextra + 1
@@ -56,12 +58,12 @@ contains
 
     call ebslopex(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, flag, fg_lo, fg_hi, &
-         lo(1)-nextra,lo(2)-nextra,lo(3)-nextra,  &
-         hi(1)+nextra,hi(2)+nextra,hi(3)+nextra,QVAR)
+         lo(1)-nextra, lo(2)-nextra-1, lo(3)-nextra-1,  &
+         hi(1)+nextra, hi(2)+nextra+1, hi(3)+nextra+1, QVAR)
 
-    do       k = lo(3)-nextra, hi(3)+nextra
-       do    j = lo(2)-nextra, hi(2)+nextra
-          do i = lo(1)-nextra, hi(1)+nextra+1
+    do       k = lo(3)-nextra-1, hi(3)+nextra+1
+       do    j = lo(2)-nextra-1, hi(2)+nextra+1
+          do i = lo(1)-nextra  , hi(1)+nextra+1
 
 !  alphas   1,2,3 correspond to u-c, u, u+c repsectively, 4 and 5 are transverse velocities
 
@@ -97,12 +99,12 @@ contains
 
     call ebslopey(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, flag, fg_lo, fg_hi, &
-         lo(1)-nextra,lo(2)-nextra,lo(3)-nextra,  &
-         hi(1)+nextra,hi(2)+nextra,hi(3)+nextra,QVAR)
+         lo(1)-nextra-1, lo(2)-nextra, lo(3)-nextra-1,  &
+         hi(1)+nextra+1, hi(2)+nextra, hi(3)+nextra+1, QVAR)
 
-    do       k = lo(3)-nextra, hi(3)+nextra
-       do    j = lo(2)-nextra, hi(2)+nextra+1
-          do i = lo(1)-nextra, hi(1)+nextra
+    do       k = lo(3)-nextra-1, hi(3)+nextra+1
+       do    j = lo(2)-nextra  , hi(2)+nextra+1
+          do i = lo(1)-nextra-1, hi(1)+nextra+1
 
 !     1,2,3 correspond to u-c, u, u+c repsectively
 
@@ -137,12 +139,12 @@ contains
     
     call ebslopez(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, flag, fg_lo, fg_hi, &
-         lo(1)-nextra,lo(2)-nextra,lo(3)-nextra,   &
-         hi(1)+nextra,hi(2)+nextra,hi(3)+nextra,QVAR)
+         lo(1)-nextra-1, lo(2)-nextra-1, lo(3)-nextra,   &
+         hi(1)+nextra+1, hi(2)+nextra+1, hi(3)+nextra, QVAR)
     
-    do       k = lo(3)-nextra, hi(3)+nextra+1
-       do    j = lo(2)-nextra, hi(2)+nextra
-          do i = lo(1)-nextra, hi(1)+nextra
+    do       k = lo(3)-nextra  , hi(3)+nextra+1
+       do    j = lo(2)-nextra-1, hi(2)+nextra+1
+          do i = lo(1)-nextra-1, hi(1)+nextra+1
 
 !     1,2,3 correspond to u-c, u, u+c repsectively
 
