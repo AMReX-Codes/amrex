@@ -11,7 +11,7 @@
 #include <cstdarg>
 #include <string>
 
-#ifdef BL_PROFILING
+#ifdef BL_USE_PROFPARSER
 #include <map>
 #include <AMReX_BLProfUtilities.H>
 #include <AMReX_Array.H>
@@ -48,10 +48,8 @@ class DataServices {
       DumpSliceBoxAllVars,
       MinMaxRequest,
       PointValueRequest,
-#ifndef BL_NOLINEVALUES
       LineValuesRequest,
-#endif
-#ifdef BL_PROFILING 
+#ifdef BL_USE_PROFPARSER 
       WriteSummaryRequest,
       CheckProfDataRequest,
       RunStatsRequest,
@@ -121,13 +119,11 @@ class DataServices {
 		      int &intersectedLevel, Box &intersectedGrid,
 		      Real &dataPointValue, bool &bPointIsValid);
 
-#ifndef BL_NOLINEVALUES
       // LineValuesRequest
       void LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,
                       const string &currentDerived,
                       int coarsestLevelToSearch, int finestLevelToSearch,
                       XYPlotDataList *dataList, bool &lineIsValid);
-#endif
 
   public:
 
@@ -149,7 +145,7 @@ class DataServices {
     void DecrementNumberOfUsers() { --numberOfUsers; }
 
     // profiling functions
-#ifdef BL_PROFILING 
+#ifdef BL_USE_PROFPARSER
     bool ProfDataAvailable()   const { return bProfDataAvailable;   }
     bool RegionDataAvailable() const { return bRegionDataAvailable; }
     bool TraceDataAvailable()  const { return bTraceDataAvailable;  }
@@ -215,7 +211,7 @@ class DataServices {
     static int dsFabOutSize;
     static bool dsBatchMode;
     static bool profiler;
-#ifdef BL_PROFILING 
+#ifdef BL_USE_PROFPARSER
     bool bProfDataAvailable;
     bool bRegionDataAvailable;
     bool bTraceDataAvailable;
