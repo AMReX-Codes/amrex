@@ -6,12 +6,9 @@
 #include <AMReX_AmrvisConstants.H>
 #include <AMReX_DataServices.H>
 #include <AMReX_ParallelDescriptor.H>
-
-#ifndef BL_NOLINEVALUES
 #include <AMReX_XYPlotDataList.H>
-#endif
 
-#ifdef BL_PROFILING
+#ifdef BL_USE_PROFPARSER
 #include <AMReX_BLWritePlotFile.H>
 //#include <AMReX_BLProfStats.H>
 //#include <AMReX_CommProfStats.H>
@@ -35,7 +32,7 @@ using std::max;
 
 using namespace amrex;
 
-#ifdef BL_PROFILING
+#ifdef BL_USE_PROFPARSER
 extern int yyparse(void *);
 extern FILE *yyin;
 //extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
@@ -55,7 +52,7 @@ int DataServices::dsFabOutSize = 0;
 bool DataServices::dsBatchMode = false;
 bool DataServices::profiler = false;
 
-#ifdef BL_PROFILING
+#ifdef BL_USE_PROFPARSER
 namespace {
   const int XDIR(0);
   const int YDIR(1);
@@ -140,7 +137,7 @@ DataServices::DataServices(const string &filename, const Amrvis::FileType &filet
     }
   }
 
-#ifdef BL_PROFILING 
+#ifdef BL_USE_PROFPARSER
   bProfDataAvailable = false;
   bRegionDataAvailable = false;
   bTraceDataAvailable = false;
@@ -171,7 +168,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
   numberOfUsers = 0;  // the user must do all incrementing and decrementing
   profiler = (fileType == Amrvis::PROFDATA);
 
-#ifdef BL_PROFILING
+#ifdef BL_USE_PROFPARSER
   #if (BL_SPACEDIM == 2)
   if (profiler)
   {
@@ -831,7 +828,6 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     }
     break;
 
-#ifndef BL_NOLINEVALUES
     case LineValuesRequest:
     {
       // interface: (requestType, dsPtr,
@@ -908,7 +904,6 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
     } 
     break;
-#endif
 
     case InvalidRequestType:
     {
@@ -929,7 +924,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     break;
 
 // Profiler Data Requests
-#ifdef BL_PROFILING
+#ifdef BL_USE_PROFPARSER
     case CheckProfDataRequest:
     {
       std::cout << "Dispatch::---- CheckProfDataRequest" << std::endl;
@@ -1508,7 +1503,6 @@ void DataServices::PointValue(int pointBoxArraySize, Box *pointBoxArray,
 }  // end PointValue
 
 
-#ifndef BL_NOLINEVALUES
 // ---------------------------------------------------------------
 void DataServices::LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,
                               const string &currentDerived,
@@ -1541,7 +1535,6 @@ void DataServices::LineValues(int lineBoxArraySize, Box *lineBoxArray, int which
     }
   }
 }
-#endif
 
 
 // ---------------------------------------------------------------
@@ -1553,7 +1546,7 @@ bool DataServices::MinMax(const Box &onBox, const string &derived, int level,
 }  // end MinMax
 
 // ---------------------------------------------------------------
-#ifdef BL_PROFILING 
+#ifdef BL_USE_PROFPARSER
 // profiler functions
 // ----------------------------------------------------------------------
 void DataServices::ParseFilterFile()
