@@ -103,10 +103,47 @@ extern "C" {
         MultiFab::Copy(*dstmf, *srcmf, srccomp, dstcomp, nc, ng);
     }
 
+    void amrex_fi_multifab_parallelcopy (MultiFab* dstmf, const MultiFab* srcmf,
+                                         int srccomp, int dstcomp, int nc,
+                                         int srcng, int dstng, const Geometry* geom)
+    {
+        dstmf->ParallelCopy(*srcmf,srccomp,dstcomp,nc,srcng,dstng,geom->periodicity());
+    }
+
     void amrex_fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
 					  int c, int nc, int cross)
     {
 	mf->FillBoundary(c, nc, geom->periodicity(), cross);
+    }
+
+    void amrex_fi_build_owner_imultifab (iMultiFab*& msk, const BoxArray*& ba,
+                                         const DistributionMapping*& dm,
+                                         const MultiFab* data, const Geometry* geom)
+    {
+        auto owner_mask = data->OwnerMask(geom->periodicity());
+        msk = owner_mask.release();
+        ba = &(msk->boxArray());
+        dm = &(msk->DistributionMap());
+    }
+
+    void amrex_fi_multifab_override_sync (MultiFab* mf, const Geometry* geom)
+    {
+        mf->OverrideSync(geom->periodicity());
+    }
+
+    void amrex_fi_multifab_override_sync_mask (MultiFab* mf, const Geometry* geom, const iMultiFab* msk)
+    {
+        mf->OverrideSync(*msk, geom->periodicity());
+    }
+
+    void amrex_fi_multifab_sum_boundary (MultiFab* mf, const Geometry* geom, int icomp, int ncomp)
+    {
+        mf->SumBoundary(icomp, ncomp, geom->periodicity());
+    }
+
+    void amrex_fi_multifab_average_sync (MultiFab* mf, const Geometry* geom)
+    {
+        mf->AverageSync(geom->periodicity());
     }
 
     // iMultiFab

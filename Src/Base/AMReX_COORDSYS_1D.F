@@ -1,14 +1,14 @@
- 
+
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
 #endif
- 
+
 #include "AMReX_REAL.H"
 #include "AMReX_CONSTANTS.H"
 #include "AMReX_COORDSYS_F.H"
 #include "AMReX_ArrayLim.H"
- 
+
 #define SDIM 1
 
 c :: ----------------------------------------------------------
@@ -30,12 +30,12 @@ c ::
        integer    coord
        REAL_T     dx(SDIM), offset(SDIM)
        REAL_T     vol(DIMV(vol))
-       
+
        integer    i
        REAL_T     ri, ro, v
        REAL_T     RZFACTOR
-       parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
-       
+       parameter (RZFACTOR = two*Pi)
+
        if (coord .eq. 0) then
           v = dx(1)
              do i = ARG_L1(reg), ARG_H1(reg)
@@ -47,7 +47,7 @@ c ::
           do i = ARG_L1(reg), ARG_H1(reg)
              ri = offset(1) + dx(1)*i
              ro = ri + dx(1)
-             v = half*(RZFACTOR)*(ro**2 - ri**2)
+             v = half*(RZFACTOR)*(ro - ri)*(ro + ri)
              vol(i) = abs(v)
           enddo
 
@@ -56,17 +56,17 @@ c ::
           do i = ARG_L1(reg), ARG_H1(reg)
              ri = offset(1) + dx(1)*i
              ro = ri + dx(1)
-             v = (two3rd*RZFACTOR)*(ro**3 - ri**3)
+             v = (two3rd*RZFACTOR)*(ro - ri)*(ro**2 + ro*ri + ri**2)
              vol(i) = abs(v)
           enddo
-       else 
+       else
           call bl_abort('bogus value of coord... bndrylib::SETVOL')
        endif
-       
+
        return
        end
-	
-	subroutine FORT_SETVOLPT(vol, volloi1, volhii1, 
+
+	subroutine FORT_SETVOLPT(vol, volloi1, volhii1,
      $		ro, roloi1, rohii1, ri, riloi1, rihii1, dx, coord)
 
 	integer volloi1, volhii1
@@ -76,10 +76,10 @@ c ::
 	REAL_T vol(volloi1:volhii1)
 	REAL_T ro(roloi1:rohii1)
 	REAL_T ri(riloi1:rihii1)
-	
+
 	integer i
         REAL_T     RZFACTOR
-        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
+        parameter (RZFACTOR = two*Pi)
 
 c
 c  note that dx is usually unity.  dx not unity is used by the nfluid
@@ -93,13 +93,13 @@ c
 
 	else if (coord .eq. 1) then
            do i = roloi1, rohii1
-              vol(i) = half*RZFACTOR*(ro(i)**2 - ri(i)**2)
+              vol(i) = half*RZFACTOR*(ro(i) - ri(i))*(ro(i) + ri(i))
               vol(i) = abs(vol(i))
            enddo
 
         else if (coord .eq. 2) then
            do i = roloi1, rohii1
-	      vol(i) = two3rd*RZFACTOR*(ro(i)**3-ri(i)**3)
+	      vol(i) = two3rd*RZFACTOR*(ro(i) - ri(i))*(ro(i)**2 + ro(i)*ri(i) + ri(i)**2)
 	      vol(i) = abs(vol(i))
            enddo
 
@@ -129,10 +129,10 @@ c ::
        REAL_T     dx(SDIM), offset(SDIM)
        REAL_T     dloga(DIMV(dloga))
        integer dir
-       
+
        integer    i
        REAL_T     rc
-       
+
        if (coord .eq. 0) then
 
           do i = ARG_L1(dloga), ARG_H1(dloga)
@@ -142,15 +142,15 @@ c ::
        else if (coord .eq. 1) then
 
           do i = ARG_L1(dloga), ARG_H1(dloga)
-             rc = offset(1) + dx(1)*(dble(i) + 0.5d0)
-             dloga(i) = 1.d0 / rc
+             rc = offset(1) + dx(1)*(dble(i) + half)
+             dloga(i) = one / rc
           enddo
 
        else if (coord .eq. 2) then
 
           do i = ARG_L1(dloga), ARG_H1(dloga)
-             rc = offset(1) + dx(1)*(dfloat(i) + 0.5d0)
-             dloga(i) = 2.d0/rc
+             rc = offset(1) + dx(1)*(dfloat(i) + half)
+             dloga(i) = two/rc
           enddo
 
        else
@@ -178,12 +178,12 @@ c ::
        integer    coord, dir
        REAL_T     dx(SDIM), offset(SDIM)
        REAL_T     area(DIMV(area))
-       
+
        integer    i
        REAL_T     ri, a
        REAL_T     RZFACTOR
-       parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
-       
+       parameter (RZFACTOR = two*Pi)
+
        if (coord .eq. 0) then
          do i = ARG_L1(reg), ARG_H1(reg)
             area(i) = one
@@ -206,6 +206,6 @@ c ::
        else
           call bl_abort('bogus value for coord... SETAREA')
        endif
-       
+
        return
        end

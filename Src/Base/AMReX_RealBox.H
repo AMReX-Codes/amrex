@@ -36,10 +36,6 @@ public:
     //! Explicit dimension specific constructors.
     RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
              AMREX_D_DECL(Real x1, Real y1, Real z1));
-    //! Set epsilon used by contains() function when comparing floating point numbers.
-    static void setEpsilon (Real epsilon) { eps = epsilon; }
-    //! Returns epsilon.
-    static Real epsilon () { return eps; }
     //! Returns lo side.
     const Real* lo () const& { return xlo; }
     const Real* lo () && = delete;
@@ -67,15 +63,11 @@ public:
     //! Is the RealBox OK; i.e. does it have positive volume?
     bool ok () const;
     //! Is the specified point contained in the RealBox?
-    bool contains (const Real* point) const;
+    bool contains (const Real* point, Real eps=0.0) const;
     //! Is the specified RealBox contained in this RealBox?
-    bool contains (const RealBox& bx) const;
+    bool contains (const RealBox& bx, Real eps=0.0) const;
 
 private:
-    //
-    // Static data.
-    //
-    static Real eps;
     //
     // The data.
     //

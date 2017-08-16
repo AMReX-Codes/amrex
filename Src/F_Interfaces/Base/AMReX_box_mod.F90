@@ -20,9 +20,13 @@ module amrex_box_module
      generic   :: grow        => amrex_box_grow_s, amrex_box_grow_v
      generic   :: intersects  => amrex_box_intersects_box, amrex_box_intersects_fp
      generic   :: contains    => amrex_box_contains_box, amrex_box_contains_fp, amrex_box_contains_pt
-     procedure, private :: amrex_box_numpts, amrex_box_nodalize, amrex_box_grow_s, &
-          amrex_box_grow_v, amrex_box_intersects_box, amrex_box_intersects_fp, &
-          amrex_box_contains_box, amrex_box_contains_fp, amrex_box_contains_pt
+     procedure, private :: amrex_box_grow_s
+     procedure, private :: amrex_box_grow_v
+     procedure, private :: amrex_box_intersects_box
+     procedure, private :: amrex_box_intersects_fp
+     procedure, private :: amrex_box_contains_box
+     procedure, private :: amrex_box_contains_fp
+     procedure, private :: amrex_box_contains_pt
   end type amrex_box
 
   public :: amrex_print

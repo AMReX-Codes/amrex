@@ -1,54 +1,107 @@
+#
+# Add all the needed subdirs to the include path
+#
+set ( EXCLUDE_PATHS )  # Path to exclude from include dirs
 
-set(CBOXDIR Base)
-set(FBOXDIR F_BaseLib)
-set(CBNDRYDIR Boundary)
-set(CPARTDIR Particle)
-set(CAMRCOREDIR AmrCore)
-set(CAMRDIR Amr)
-set(CMGDIR LinearSolvers/C_CellMG)
-set(CTMGDIR LinearSolvers/C_TensorMG)
-set(CFMGDIR LinearSolvers/C_to_F_MG)
-set(FMGDIR LinearSolvers/F_MG)
-set(CAMRDATADIR Extern/amrdata)
+if (NOT ENABLE_FBASELIB)
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/F_BaseLib)
+   # The includes belove are for Fortran-based MG
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/LinearSolvers/C_to_F_MG)
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/LinearSolvers/F_MG)
+endif ()
 
-# Pick one place to put modules so everyone can see them
-set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod_files CACHE PATH "Folder for fortran module files")
-install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION include)
+if (NOT ENABLE_LINEAR_SOLVERS)
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/LinearSolvers)
+endif ()
 
-set(CBOXLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${CBOXDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CBNDRYDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CPARTDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRCOREDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CTMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CFMGDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${CAMRDATADIR} ${AMREX_EXTRA_CXX_INCLUDE_PATH})
+if (NOT ENABLE_FORTRAN_INTERFACES) 
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/F_Interfaces)
+endif ()
 
-include(PreprocessAMReXFortran)
-include(PreprocessAMReXFortran90)
+if (NOT ENABLE_PARTICLES)
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/Particle)
+endif ()
 
-add_subdirectory(${CBOXDIR})
-add_subdirectory(${CBNDRYDIR})
-add_subdirectory(${CPARTDIR})
-add_subdirectory(${CAMRDIR})
-add_subdirectory(${CAMRCOREDIR})
-add_subdirectory(${CMGDIR})
-add_subdirectory(${CTMGDIR})
+list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/EBAMRElliptic) # not yet included in build 
 
-set(FBOXLIB_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/${FBOXDIR} ${CMAKE_CURRENT_SOURCE_DIR}/${FMGDIR} ${AMREX_EXTRA_Fortran_INCLUDE_PATH})
 
-add_subdirectory(${FBOXDIR})
-add_subdirectory(${FMGDIR})
+find_include_paths (INCLUDE_PATHS EXCLUDE ${EXCLUDE_PATHS} ) 
 
-add_subdirectory(${CFMGDIR})
 
-add_library(cboxlib $<TARGET_OBJECTS:box_c> $<TARGET_OBJECTS:box_cbndry> $<TARGET_OBJECTS:box_cpart> $<TARGET_OBJECTS:box_camr> $<TARGET_OBJECTS:box_camrcore> $<TARGET_OBJECTS:box_cmg> $<TARGET_OBJECTS:box_ctmg> $<TARGET_OBJECTS:box_cfmg>)
-add_library(cfboxlib $<TARGET_OBJECTS:box_cfmg>)
-add_library(fboxlib $<TARGET_OBJECTS:box_f> $<TARGET_OBJECTS:box_fmg>)
-add_install_library(cboxlib)
-add_install_library(cfboxlib)
-add_install_library(fboxlib)
+include_directories ( ${CMAKE_Fortran_MODULE_DIRECTORY} ${INCLUDE_PATHS}
+   ${AMREX_EXTRA_Fortran_INCLUDE_PATH} ${AMREX_EXTRA_CXX_INCLUDE_PATH} )
 
-# Move Tools dir to install location
-install(CODE "MESSAGE(\"-- Copying   : ${CCSE_TOOLS_DIR} --> ${CCSE_INSTALL_DIR}\")" )
-install(CODE "FILE( COPY ${CCSE_TOOLS_DIR} DESTINATION ${CCSE_INSTALL_DIR} )")
-SET_TARGET_PROPERTIES(cboxlib PROPERTIES LINKER_LANGUAGE C)
-SET_TARGET_PROPERTIES(cfboxlib PROPERTIES LINKER_LANGUAGE C)
-SET_TARGET_PROPERTIES(fboxlib PROPERTIES LINKER_LANGUAGE C)
+#
+# Define a macro to accumulate all headers
+#
+set (AMREX_ALLHEADERS "" )
+macro (accumulate_headers headers)
+   list (APPEND AMREX_ALLHEADERS ${${headers}} )
+endmacro ()
 
-add_subdirectory(${CAMRDATADIR})
+#
+# Fist, define the library we want to add
+#
+add_library ( amrex "")
 
+
+#
+# Now, one by one, let's add all the source files in the subdirectories
+#
+include (Base/CMakeLists.txt)
+include (AmrCore/CMakeLists.txt)
+include (Amr/CMakeLists.txt)
+include (Boundary/CMakeLists.txt)
+include (Extern/CMakeLists.txt)
+
+#
+# Optional components
+#
+if (ENABLE_FBASELIB)
+   include (F_BaseLib/CMakeLists.txt)
+endif ()
+
+
+if (ENABLE_LINEAR_SOLVERS)
+   include (LinearSolvers/CMakeLists.txt)
+endif ()
+
+if (ENABLE_FORTRAN_INTERFACES) 
+   include (F_Interfaces/CMakeLists.txt)
+endif ()
+
+if ( ENABLE_PARTICLES )
+   include (Particle/CMakeLists.txt)
+endif ()
+
+
+#
+# Define install  
+#
+set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${AMREX_ALLHEADERS}" )
+
+install ( TARGETS amrex EXPORT amrex ARCHIVE DESTINATION ${AMREX_LIBRARY_DIR}
+   PUBLIC_HEADER DESTINATION ${AMREX_INCLUDE_DIR} )
+
+install ( DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION ${AMREX_INCLUDE_DIR})
+
+
+#
+# This header in a weird path has to be copied to install includes
+# 
+install ( FILES ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
+   DESTINATION ${AMREX_INCLUDE_DIR} )
+
+#
+# Write and install configure file 
+# 
+configure_file ( ${AMREX_CONFIG_INSTALL_INFILE} ${AMREX_CONFIG_INSTALL_OUTFILE} @ONLY)
+install ( FILES ${AMREX_CONFIG_INSTALL_OUTFILE} DESTINATION ${AMREX_CMAKE_DIR})
+
+#
+# Install Tools directory
+#
+install (DIRECTORY ${PROJECT_SOURCE_DIR}/Tools
+   DESTINATION ${CMAKE_INSTALL_PREFIX}
+   USE_SOURCE_PERMISSIONS )
 

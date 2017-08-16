@@ -6,11 +6,6 @@
 
 namespace amrex {
 
-//
-// The definition of lone static data member.
-//
-Real RealBox::eps = 1.0e-8;
-
 RealBox::RealBox (const Box&  bx,
                   const Real* dx,
                   const Real* base)
@@ -53,26 +48,26 @@ RealBox::RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
 }
 
 bool
-RealBox::contains (const RealBox& rb) const
+RealBox::contains (const RealBox& rb, Real eps) const
 {
-    return contains(rb.xlo) && contains(rb.xhi);
+    return contains(rb.xlo, eps) && contains(rb.xhi, eps);
 }
 
 bool
 RealBox::ok () const
 {
-    return (length(0) > eps)
+    return (length(0) >= 0.0)
 #if (BL_SPACEDIM > 1)
-        && (length(1) > eps)
+        && (length(1) >= 0.0)
 #endif   
 #if (BL_SPACEDIM > 2)
-        && (length(2) > eps)
+        && (length(2) >= 0.0)
 #endif
    ;
 }
 
 bool
-RealBox::contains (const Real* point) const
+RealBox::contains (const Real* point, Real eps) const
 {
     return  AMREX_D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
                    && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps),
