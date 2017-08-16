@@ -374,8 +374,8 @@ contains
                       enddo
                    enddo
                    divnc = divnc / vtot
-                   optmp(i,j,k) = vfrac(i,j,k)*divc(i,j,k) + (1.d0-vfrac(i,j,k))*divnc
-                   delm(i,j,k,n) = vfrac(i,j,k)*(1.d0-vfrac(i,j,k))*(divc(i,j,k)-divnc)
+                   optmp(i,j,k) = (1.d0-vfrac(i,j,k))*(divnc-divc(i,j,k))
+                   delm(i,j,k,n) = -vfrac(i,j,k)*optmp(i,j,k)
                 else
                    delm(i,j,k,n) = 0.d0
                 end if
@@ -407,8 +407,7 @@ contains
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) + &
-                                    delm(i,j,k,n) * vfrac(i+ii,j+jj,k+kk) * vtot
+                               optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) + delm(i,j,k,n)*vtot
                             endif
                          enddo
                       enddo
@@ -421,7 +420,7 @@ contains
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                ebdiffop(i,j,k,n) = optmp(i,j,k)
+                ebdiffop(i,j,k,n) = divc(i,j,k) + optmp(i,j,k)
              end do
           end do
        end do
