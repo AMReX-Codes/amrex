@@ -95,7 +95,8 @@ contains
          flag, fglo, fghi)
 
     call compute_eb_diffop(lo,hi,5,dx,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,&
-         dudt,utlo,uthi, divc,dvlo,dvhi, dm,dmlo,dmhi, &
+         dudt,utlo,uthi, q,qlo,qhi, &
+         divc,dvlo,dvhi, dm,dmlo,dmhi, &
          volfrac,vlo,vhi,apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
          centx(:,:,:,1),cxlo,cxhi, centx(:,:,:,2),cxlo,cxhi, &
          centy(:,:,:,1),cylo,cyhi, centy(:,:,:,2),cylo,cyhi, &

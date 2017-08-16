@@ -14,7 +14,7 @@ contains
   end function ff
 
   subroutine analriem(gamma,statel,stater,smallp,smallr,flux,  debug)
-    logical, intent(in) :: debug
+    logical, intent(in), optional :: debug
     real(rt), intent(in) :: statel(5),stater(5), smallp, smallr, gamma
     real(rt), intent(out) :: flux(5)
     
@@ -111,11 +111,13 @@ contains
 
     end do
 
-    if(debug)then
-       write(6,*)"ustart,pstar", ustar,pstar
-       write(6,*)" here"
-       write(6,*)"lef", pl,rl,ul
-       write(6,*)"rig", pr,rr,ur
+    if (present(debug)) then
+       if(debug)then
+          write(6,*)"ustart,pstar", ustar,pstar
+          write(6,*)" here"
+          write(6,*)"lef", pl,rl,ul
+          write(6,*)"rig", pr,rr,ur
+       end if
     endif
 
     if(ustar .gt. 0d0)then
@@ -158,10 +160,12 @@ contains
     endif
     frac = 0.5d0*(1.d0+(spin+spout)/max(spout-spin,spin+spout,small*(cleft+cright)))
 
-    if(debug)then
-       write(6,*)"cstar,sgnm,uo,co",cstar,sgnm,uo,co
-       write(6,*)"dpjmp,spin,spout,frac", dpjmp,spin,spout,frac
-    endif
+    if (present(debug)) then
+       if(debug)then
+          write(6,*)"cstar,sgnm,uo,co",cstar,sgnm,uo,co
+          write(6,*)"dpjmp,spin,spout,frac", dpjmp,spin,spout,frac
+       endif
+    end if
       
     if(spout .lt. 0.d0)then
        rgdnv = ro 
