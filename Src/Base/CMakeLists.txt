@@ -54,6 +54,7 @@ set ( ALLHEADERS
    AMReX_BC_TYPES.H     AMReX_Box.H                 AMReX_FabArrayBase.H  AMReX.H
    AMReX_MemProfiler.H  AMReX_ParmParse.H           AMReX_SPACE_F.H )
 
+
 # Accumulate sources
 set ( ALLSRC ${CXXSRC} ${F90SRC} ${F77SRC} )
 
@@ -69,3 +70,8 @@ target_sources ( amrex PRIVATE ${ALLSRC} ${ALLHEADERS} )
 # Accumulate headers 
 #
 accumulate_headers (ALLHEADERS)   
+
+#
+# Add to include dirs
+#
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR})

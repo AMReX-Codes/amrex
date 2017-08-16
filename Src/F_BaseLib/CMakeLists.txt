@@ -55,3 +55,8 @@ prepend ( ALLSRC ${CMAKE_CURRENT_LIST_DIR} )
 
 target_sources ( amrex PRIVATE ${ALLSRC} )
 
+#
+# Add to include dirs
+#
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR})
+
