@@ -107,6 +107,24 @@ function ( print var )
    message (" ${var} = ${${var}}" )
 endfunction ()
 
+#
+# Print list
+#
+function ( print_list list )
+   
+   list ( LENGTH ${list} len )
+
+   if ( ${len} GREATER 0 )
+      message ("")
+      message ( STATUS " LIST NAME:  ${list}")
+      foreach ( item ${${list}})
+	 message ( STATUS "  ${item}")
+      endforeach ()
+      message ("")
+   endif ()
+   
+endfunction ()
+
 
 #
 # Function to append to link line
@@ -164,7 +182,6 @@ function (find_git_version version )
    string (STRIP ${output} output)
 
    set ( ${version} ${output} PARENT_SCOPE )
-
 
 endfunction ()
 

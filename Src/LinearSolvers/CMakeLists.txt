@@ -39,8 +39,7 @@ set (ALLHEADERS
    C_TensorMG/AMReX_MCInterpBndryData.H  C_TensorMG/AMReX_MCLO_F.H
    C_TensorMG/AMReX_DivVis.H    C_TensorMG/AMReX_MCINTERPBNDRYDATA_F.H
    C_TensorMG/AMReX_MCLinOp.H   C_TensorMG/AMReX_MCMultiGrid.H
-   C_to_F_MG/AMReX_FMultiGrid.H  C_to_F_MG/AMReX_MGT_Solver.H  C_to_F_MG/AMReX_stencil_types.H
-   F_MG/mg_cpp_f.h )
+   )
 
 
 #
@@ -68,6 +67,9 @@ if (ENABLE_FBASELIB)
  
    list ( APPEND ALLHEADERS  C_to_F_MG/AMReX_FMultiGrid.H  C_to_F_MG/AMReX_MGT_Solver.H
       C_to_F_MG/AMReX_stencil_types.H F_MG/mg_cpp_f.h )
+
+   accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/C_to_F_MG)
+   accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/F_MG)
    
 endif ()
 
@@ -88,3 +90,10 @@ target_sources ( amrex PRIVATE ${ALLSRC} ${ALLHEADERS} )
 #
 accumulate_headers (ALLHEADERS)   
 
+
+#
+# Add to include dirs
+#
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/C_CellMG)
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/C_CellMG4)
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/C_TensorMG)

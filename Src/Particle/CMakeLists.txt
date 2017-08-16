@@ -35,3 +35,9 @@ target_sources ( amrex PRIVATE ${ALLSRC} ${ALLHEADERS} )
 # Accumulate headers 
 #
 accumulate_headers (ALLHEADERS)   
+
+
+#
+# Add to include dirs
+# 
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR})

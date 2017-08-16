@@ -23,24 +23,6 @@ if ( AMREX_ANY_PROFILING )
 
    set (PWD ${CMAKE_CURRENT_LIST_DIR}/ProfParser)
    
-   # add_custom_command (
-   #    OUTPUT  BLProfParser.tab.H  BLProfParser.tab.cpp
-   #    COMMAND cat ${PWD}/BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y
-   #    COMMAND bison --defines=BLProfParser.tab.H --output=BLProfParser.tab.cpp BLProfParserNC.y
-   #    COMMAND rm  BLProfParserNC.y
-   #    DEPENDS ${PWD}/BLProfParser.y
-   #    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-   #    COMMENT "Generating BLProfParser.tab.H and BLProfParser.tab.cpp" )
-
-
-   # add_custom_command (
-   #    OUTPUT BLProfParser.lex.yy.cpp
-   #    COMMAND flex --outfile=BLProfParser.lex.yy.cpp ${PWD}/BLProfParser.l
-   #    DEPENDS ${PWD}/BLProfParser.l
-   #    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-   #    COMMENT "Generating BLProfParser.lex.yy.cpp" )
-
-   
    add_custom_command (
       OUTPUT  ${PWD}/BLProfParser.tab.cpp ${PWD}/BLProfParser.tab.H 
       COMMAND cat   BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y
@@ -72,10 +54,6 @@ if ( AMREX_ANY_PROFILING )
    
 endif ()
 
-
-
-
-
 # Accumulate sources
 set ( ALLSRC ${CXXSRC} ${F77SRC} )
 
@@ -92,3 +70,11 @@ target_sources ( amrex PRIVATE ${ALLSRC} ${ALLHEADERS} )
 #
 accumulate_headers (ALLHEADERS)   
 
+
+#
+# Add to include dirs
+#
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/amrdata)
+
+# Include this onve for the moment
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR}/ProfParser)
