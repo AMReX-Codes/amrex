@@ -71,7 +71,7 @@ contains
     real(rt), intent(in) :: centz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
     real(rt), intent(in) :: dx(3)
 
-    integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(4), dmhi(4)
+    integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(3), dmhi(3)
     real(rt), pointer, contiguous :: q(:,:,:,:), divc(:,:,:), dm(:,:,:,:)
     integer, parameter :: nghost = nextra_eb + nghost_plm ! 
 
@@ -85,8 +85,6 @@ contains
 
     dmlo(1:3) = lo - 1
     dmhi(1:3) = hi + 1
-    dmlo(4) = 1
-    dmhi(4) = 5
     call amrex_allocate(dm, dmlo(1),dmhi(1), dmlo(2),dmhi(2), dmlo(3),dmhi(3), 1,5)
 
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
