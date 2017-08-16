@@ -41,6 +41,7 @@ contains
        fluxy,fylo,fyhi, &
        fluxz,fzlo,fzhi, &
        ebdiffop, oplo, ophi, &
+       q, qlo, qhi, &
        divc, dvlo, dvhi, &
        delm, dmlo, dmhi, &
        vfrac, vlo, vhi, &
@@ -54,15 +55,18 @@ contains
        centz_x, czxlo, czxhi, &
        centz_y, czylo, czyhi, &
        cellflag, cflo, cfhi)
+    use cns_module, only : qvar, qrho, qu, qv, qw, qp, umx, umy, umz
+    use cns_eb_hyp_wall_module, only : compute_hyp_wallflux
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
-         cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi
+         cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi
     integer, intent(in) :: ncomp
     real(rt), intent(in) :: dx(3)
     real(rt), intent(in) :: fluxx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),ncomp)
     real(rt), intent(in) :: fluxy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),ncomp)
     real(rt), intent(in) :: fluxz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),ncomp)
-    real(rt), intent(inout) :: ebdiffop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)    
+    real(rt), intent(inout) :: ebdiffop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)
+    real(rt), intent(in) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
     real(rt), intent(inout) :: divc(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
     real(rt), intent(inout) :: delm(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3),ncomp)
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
@@ -79,6 +83,7 @@ contains
 
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc,vtot, fracx,fracy,fracz,dxinv(3)
+    real(rt) :: divw(5), divwn
     real(rt), pointer, contiguous :: optmp(:,:,:)
 
     !  centroid nondimensional  and zero at face center
@@ -194,7 +199,7 @@ contains
                             fym = (1.d0-fracz)*(     fracx *fluxy(i-1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i-1,j,k+1,n)  + &
-                                 &             (1.d0-fracx *fluxy(i  ,j,k+1,n)))
+                                 &             (1.d0-fracx)*fluxy(i  ,j,k+1,n))
                          endif
                       else
                          fracx =  centy_x(i,j,k)
@@ -231,7 +236,7 @@ contains
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i-1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i-1,j+1,k+1,n)  + &
-                                 &             (1.d0-fracx *fluxy(i  ,j+1,k+1,n)))
+                                 &             (1.d0-fracx)*fluxy(i  ,j+1,k+1,n))
                          endif
                       else
                          fracx =  centy_x(i,j+1,k)
@@ -327,10 +332,22 @@ contains
                       fzp = fluxz(i,j,k+1,n)
                    endif
 
+                   if (n .eq. umx .or. n .eq. umy .or. n .eq. umz) then
+                      call compute_hyp_wallflux(divw, q(i,j,k,qrho), q(i,j,k,qu), &
+                           q(i,j,k,qv), q(i,j,k,qw), q(i,j,k,qp), &
+                           apx(i,j,k), apx(i+1,j,k), &
+                           apy(i,j,k), apy(i,j+1,k), &
+                           apz(i,j,k), apz(i,j,k+1))
+                      divwn = divw(n)
+                   else
+                      divwn = 0.d0
+                   end if
+
+                   ! we assume dx == dy == dz
                    divc(i,j,k) = -((apx(i+1,j,k)*fxp - apx(i,j,k)*fxm) * dxinv(1) &
                         +          (apy(i,j+1,k)*fyp - apy(i,j,k)*fym) * dxinv(2) &
-                        +          (apz(i,j,k+1)*fzp - apz(i,j,k)*fzm) * dxinv(3)) &
-                        / vfrac(i,j,k)
+                        +          (apz(i,j,k+1)*fzp - apz(i,j,k)*fzm) * dxinv(3) &
+                        +          divwn * dxinv(1)) / vfrac(i,j,k)
                 end if
              end do
           end do
