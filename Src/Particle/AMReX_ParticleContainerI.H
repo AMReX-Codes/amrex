@@ -53,8 +53,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const 
     const Geometry& geom = Geom(lev);
 
     AMREX_D_TERM(iv[0]=floor((p.m_rdata.pos[0]-geom.ProbLo(0))*geom.InvCellSize(0));,
-           iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
-           iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
+                 iv[1]=floor((p.m_rdata.pos[1]-geom.ProbLo(1))*geom.InvCellSize(1));,
+                 iv[2]=floor((p.m_rdata.pos[2]-geom.ProbLo(2))*geom.InvCellSize(2)););
 
     iv += geom.Domain().smallEnd();
 
@@ -3163,7 +3163,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         // Do the grids at this level cover the full domain? If they do
         // there can be no Fine->Crse interactions at this level.
         //
-        const bool GridsCoverDomain = fvalid.contains(Geom(lev).Domain());
+        const bool GridsCoverDomain = fvalid.numPts() == Geom(lev).Domain().numPts();
 
 	const auto& pmap = m_particles[lev];
 	for (const auto& kv : pmap) {
@@ -3973,56 +3973,132 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-AssignDensityFort (int rho_index,
-                   Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
-                   int lev_min, int ncomp, int finest_level) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensityFort (int rho_index,
+                                                                                      Array<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                                                                                      int lev_min, int ncomp, int finest_level) const
 {
 
-  BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensityFort()");
-
-  PhysBCFunct cphysbc, fphysbc;
-  int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
-  int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
-  Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
-  PCInterp mapper;
+    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensityFort()");
     
-  Array<std::unique_ptr<MultiFab> > tmp(finest_level+1);
-  for (int lev = lev_min; lev <= finest_level; ++lev) {
-      const BoxArray& ba = mf_to_be_filled[lev]->boxArray();
-      const DistributionMapping& dm = mf_to_be_filled[lev]->DistributionMap();
-      tmp[lev].reset(new MultiFab(ba, dm, 1, 0));
-      tmp[lev]->setVal(0.0);
-  }
+    if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
+    
+    BL_ASSERT(NStructReal >= 1);
+    BL_ASSERT(NStructReal >= ncomp);
+    BL_ASSERT(ncomp == 1 || ncomp == BL_SPACEDIM+1);
 
-  for (int lev = lev_min; lev <= finest_level; ++lev) {
-      AssignCellDensitySingleLevelFort(rho_index, *mf_to_be_filled[lev], lev, 1, 0);
+    if (finest_level == -1) {
+        finest_level = finestLevel();
+    }
+    while (!m_gdb->LevelDefined(finest_level)) {
+        finest_level--;
+    }
 
-      if (lev < finest_level) {
-          amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf_to_be_filled[lev],
-                                       rho_index, rho_index, ncomp, 
-                                       m_gdb->Geom(lev), m_gdb->Geom(lev+1),
-                                       cphysbc, fphysbc,
-                                       m_gdb->refRatio(lev), &mapper, bcs);
-      }
+    // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
+    mf_to_be_filled.resize(finest_level+1);
+    for (int lev = lev_min; lev <= finest_level; lev++)
+    { 
+        mf_to_be_filled[lev].reset(new MultiFab(m_gdb->boxArray(lev),
+				                m_gdb->DistributionMap(lev),
+					        ncomp, 2));
+	mf_to_be_filled[lev]->setVal(0.0);
+    }
 
-      if (lev > lev_min) {
-          // Note - this will double count the mass on the coarse level in 
-          // regions covered by the fine level, but this will be corrected
-          // below in the call to average_down.
-          amrex::sum_fine_to_coarse(*mf_to_be_filled[lev],
-                                    *mf_to_be_filled[lev-1],
-                                    rho_index, 1, m_gdb->refRatio(lev-1),
-                                    m_gdb->Geom(lev-1), m_gdb->Geom(lev));
-      }
+    // Test whether the grid structure of the boxArray is the same
+    //       as the ParticleBoxArray at all levels 
+    bool all_grids_the_same = true; 
+    for (int lev = lev_min; lev <= finest_level; lev++) {
+        if (!OnSameGrids(lev, *mf_to_be_filled[lev])) {
+	    all_grids_the_same = false;
+	    break;
+	}
+    }
 
-      mf_to_be_filled[lev]->plus(*tmp[lev], rho_index, ncomp, 0);
-  }
+    Array<std::unique_ptr<MultiFab> > mf_part;
+    if (!all_grids_the_same)
+    { 
+        // Create the space for the temporary, mf_part
+        mf_part.resize(finest_level+1);
+        for (int lev = lev_min; lev <= finest_level; lev++)
+        {
+            mf_part[lev].reset(new MultiFab(ParticleBoxArray(lev), 
+					    ParticleDistributionMap(lev),
+					    ncomp, 2));
+	    mf_part[lev]->setVal(0.0);
+        }
+    }
 
-  for (int lev = finest_level - 1; lev >= lev_min; --lev) {
-      amrex::average_down(*mf_to_be_filled[lev+1], 
-                          *mf_to_be_filled[lev], rho_index, ncomp, m_gdb->refRatio(lev));
-  }
+    auto & mf = (all_grids_the_same) ? mf_to_be_filled : mf_part;
+
+    if (finest_level == 0)
+    {
+        //
+        // Just use the far simpler single-level version.
+        //
+        AssignCellDensitySingleLevelFort(rho_index, *mf[0], 0, ncomp);
+        //
+        // I believe that we don't need any information in ghost cells so we don't copy those.
+        //
+        if ( ! all_grids_the_same) {
+            mf_to_be_filled[0]->copy(*mf[0],0,0,ncomp);
+	}
+        return;
+    }
+
+    PhysBCFunct cphysbc, fphysbc;
+    int lo_bc[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
+    int hi_bc[] = {INT_DIR, INT_DIR, INT_DIR};
+    Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+    PCInterp mapper;
+    
+    Array<std::unique_ptr<MultiFab> > tmp(finest_level+1);
+    for (int lev = lev_min; lev <= finest_level; ++lev) {
+        const BoxArray& ba = mf[lev]->boxArray();
+        const DistributionMapping& dm = mf[lev]->DistributionMap();
+        tmp[lev].reset(new MultiFab(ba, dm, 1, 0));
+        tmp[lev]->setVal(0.0);
+    }
+
+    for (int lev = lev_min; lev <= finest_level; ++lev) {
+
+        AssignCellDensitySingleLevelFort(rho_index, *mf[lev], lev, 1, 0);
+
+        if (lev < finest_level) {
+            amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf[lev],
+                                         rho_index, rho_index, ncomp, 
+                                         m_gdb->Geom(lev), m_gdb->Geom(lev+1),
+                                         cphysbc, fphysbc,
+                                         m_gdb->refRatio(lev), &mapper, bcs);
+        }
+        
+        if (lev > lev_min) {
+            // Note - this will double count the mass on the coarse level in 
+            // regions covered by the fine level, but this will be corrected
+            // below in the call to average_down.
+            amrex::sum_fine_to_coarse(*mf[lev], *mf[lev-1],
+                                      rho_index, 1, m_gdb->refRatio(lev-1),
+                                      m_gdb->Geom(lev-1), m_gdb->Geom(lev));
+        }
+        
+        mf[lev]->plus(*tmp[lev], rho_index, ncomp, 0);
+    }
+    
+    for (int lev = finest_level - 1; lev >= lev_min; --lev) {
+        amrex::average_down(*mf[lev+1], *mf[lev], rho_index, ncomp, m_gdb->refRatio(lev));
+    }
+    
+    if (!all_grids_the_same) {
+        for (int lev = lev_min; lev <= finest_level; lev++) {
+            mf_to_be_filled[lev]->copy(*mf_part[lev],0,0,1);
+        }
+    }
+    if (lev_min > 0) {
+        int nlevels = finest_level - lev_min + 1;
+        for (int i = 0; i < nlevels; i++)
+            {
+                mf_to_be_filled[i] = std::move(mf_to_be_filled[i+lev_min]);
+            }
+        mf_to_be_filled.resize(nlevels);
+    }
 }
 
 //
@@ -4031,10 +4107,10 @@ AssignDensityFort (int rho_index,
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensitySingleLevel (int rho_index,
-							 MultiFab& mf_to_be_filled,
-							 int       lev,
-							 int       ncomp,
-							 int       particle_lvl_offset) const
+                                                                                             MultiFab& mf_to_be_filled,
+                                                                                             int       lev,
+                                                                                             int       ncomp,
+                                                                                             int       particle_lvl_offset) const
 {
   BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensitySingleLevel()");
   BL_ASSERT(NStructReal >= 1);
@@ -4094,12 +4170,12 @@ AssignCellDensitySingleLevelFort (int rho_index,
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
+    const int       ng          = mf_pointer->nGrow();
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx_particle = Geom(lev + particle_lvl_offset).CellSize();
     const Real*     dx          = gm.CellSize();
-    const auto&     pmap        = m_particles[lev];
 
     if (gm.isAnyPeriodic() && ! gm.isAllPeriodic()) {
       amrex::Error("AssignDensity: problem must be periodic in no or all directions");
@@ -4126,8 +4202,8 @@ AssignCellDensitySingleLevelFort (int rho_index,
             const int *lo, *hi;
 #ifdef _OPENMP
             Box tile_box = pti.tilebox();
-            tile_box.grow(1);
-            local_rho.resize(tile_box);
+            tile_box.grow(ng);
+            local_rho.resize(tile_box,ncomp);
             local_rho = 0.0;
             data_ptr = local_rho.dataPtr();
             lo = tile_box.loVect();
@@ -4138,13 +4214,18 @@ AssignCellDensitySingleLevelFort (int rho_index,
             hi = box.hiVect();
 #endif
 
-            amrex_deposit_cic(particles.data(), nstride, np, data_ptr, lo, hi, plo, dx);
+            if (dx == dx_particle) {
+                amrex_deposit_cic(particles.data(), nstride, np, ncomp, 
+                                  data_ptr, lo, hi, plo, dx);
+            } else {
+                amrex_deposit_particle_dx_cic(particles.data(), nstride, np, ncomp,
+                                              data_ptr, lo, hi, plo, dx, dx_particle);
+            }
+                
 
 #ifdef _OPENMP
-            amrex_atomic_accumulate_fab(local_rho.dataPtr(), 
-                                        tile_box.loVect(), tile_box.hiVect(),
-                                        fab.dataPtr(),
-                                        box.loVect(), box.hiVect());
+            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho), 
+                                        BL_TO_FORTRAN_3D(fab), ncomp);
 #endif
 
         }
@@ -4209,7 +4290,6 @@ InterpolateSingleLevelFort (MultiFab& mesh_data, int lev)
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx          = gm.CellSize();
-    const auto&     pmap        = m_particles[lev];
 
     using ParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     

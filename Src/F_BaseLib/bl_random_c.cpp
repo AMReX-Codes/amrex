@@ -217,9 +217,9 @@ extern "C"
 	static_assert(std::mt19937::min() == 0, "hg_genrand: std::mt19937::min() != 0");
 	static_assert((double)std::mt19937::max() * fac < 1.0, "hg_genrand: < 1 failed");
 	// Some codes have the following constant hard wired.
-	static_assert((double)UINT32_MAX * 2.3283064370807969e-10 < 1.0, 
+	static_assert((double)std::mt19937::max() * 2.3283064370807969e-10 < 1.0, 
 		      "hg_genrand: check constant");
-	static_assert((double)UINT32_MAX * 2.3283064370807969e-10 > 1.0 - 2.0*std::numeric_limits<double>::epsilon(),
+	static_assert((double)std::mt19937::max() * 2.3283064370807969e-10 > 1.0 - 2.0*std::numeric_limits<double>::epsilon(),
 		      "hg_genrand: check constant");
 
 	auto y = (*rng)();
@@ -234,9 +234,9 @@ extern "C"
 	static_assert(std::mt19937::min() == 0, "hg_genrand_sp: std::mt19937::min() != 0");
 	static_assert((float)std::mt19937::max() * fac < 1.0f, "hg_genrand_sp: < 1 failed");
 	// Some codes have the following constant hard wired.
-	static_assert((float)UINT32_MAX * 2.32830616e-10f < 1.0f, 
+	static_assert((float)std::mt19937::max() * 2.32830616e-10f < 1.0f, 
 		      "hg_genrand_sp: check constant");	
-	static_assert((float)UINT32_MAX * 2.32830616e-10f > 1.0f - 2.0f*std::numeric_limits<float>::epsilon(), 
+	static_assert((float)std::mt19937::max() * 2.32830616e-10f > 1.0f - 2.0f*std::numeric_limits<float>::epsilon(), 
 		      "hg_genrand_sp: check constant");	
 
 	auto y = (*rng)();

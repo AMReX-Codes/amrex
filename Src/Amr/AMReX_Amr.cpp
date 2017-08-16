@@ -950,7 +950,7 @@ Amr::checkInput ()
             while ( k > 0 && (k%2 == 0) )
                 k /= 2;
             if (k != 1)
-                amrex::Error("Amr::checkInputs: blocking_factor not power of 2");
+                amrex::Error("Amr::checkInput: blocking_factor not power of 2");
         }
     }
     //
@@ -959,7 +959,7 @@ Amr::checkInput ()
     for (int i = 0; i < max_level; i++)
     {
         if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
-            amrex::Error("checkInput bad ref_ratios");
+            amrex::Error("Amr::checkInput: bad ref_ratios");
     }
     const Box& domain = Geom(0).Domain();
     if (!domain.ok())
@@ -998,7 +998,7 @@ Amr::checkInput ()
     }
 
     if( ! Geometry::ProbDomain().ok()) {
-        amrex::Error("checkInput: bad physical problem size");
+        amrex::Error("Amr::checkInput: bad physical problem size");
     }
 
     if(verbose > 0) {
@@ -1248,11 +1248,6 @@ Amr::FinalizeInit (Real              strt_time,
         gridlog << "INITIAL GRIDS \n";
         printGridInfo(gridlog,0,finest_level);
     }
-
-#ifdef USE_STATIONDATA 
-    station.init(amr_level, finestLevel());
-    station.findGrid(amr_level,Geom());
-#endif
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
 
@@ -1546,11 +1541,6 @@ Amr::restart (const std::string& filename)
        }
     }
 
-#ifdef USE_STATIONDATA
-    station.init(amr_level, finestLevel());
-    station.findGrid(amr_level,Geom());
-#endif
-
     if (verbose > 0)
     {
         Real dRestartTime = ParallelDescriptor::second() - dRestartTime0;
@@ -1704,13 +1694,6 @@ Amr::checkPoint ()
 
     last_checkpoint = level_steps[0];
 
-#ifdef USE_SLABSTAT
-    //
-    // Dump out any SlabStats MultiFabs.
-    //
-    AmrLevel::get_slabstat_lst().checkPoint(getAmrLevels(), level_steps[0]);
-#endif
-
     if (verbose > 0)
     {
         Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
@@ -1862,17 +1845,8 @@ Amr::timeStep (int  level,
 		       << "Advanced " << amr_level[level]->countCells() << " cells\n";
     }
 
-#ifdef USE_STATIONDATA
-    station.report(time+dt_level[level],level,*amr_level[level]);
-#endif
-
-#ifdef USE_SLABSTAT
-    AmrLevel::get_slabstat_lst().update(*amr_level[level],time,dt_level[level]);
-#endif
-
     // If the level signified that it wants a regrid after the advance has
     // occurred, do that now.
-
     if (amr_level[level]->postStepRegrid()) {
 
 	int old_finest = finest_level;
@@ -2400,13 +2374,12 @@ Amr::regrid (int  lbase,
 	}
 
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
-          MultiFab::MoveAllFabs(mLDM[iMap]);
+          //MultiFab::MoveAllFabs(mLDM[iMap]);
+	  DistributionMapping newDistMap(mLDM[iMap]);
+          MultiFab::MoveAllFabs(newDistMap);
         }
     }
 
-#ifdef USE_STATIONDATA
-    station.findGrid(amr_level,Geom());
-#endif
     //
     // Report creation of new grids.
     //
@@ -3014,9 +2987,13 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
     mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0], maxRank);
 
     for(int iMap(0); iMap < mLDM.size(); ++iMap) {
-	amrex::Print() << "_in Amr::AddProcsToSidecar:  calling MoveAllFabs:\n";
-	MultiFab::MoveAllFabs(mLDM[iMap]);
-	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs:\n";
+	amrex::Print() << "_in Amr::AddProcsToSidecar:  calling MoveAllFabs for iMap = "
+	               << iMap << '\n';
+	//MultiFab::MoveAllFabs(mLDM[iMap]);
+        DistributionMapping newDistMap(mLDM[iMap]);
+        MultiFab::MoveAllFabs(newDistMap);
+	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs for iMap = "
+	               << iMap << "\n\n";
     }
     VisMF::SetNOutFiles(checkpoint_nfiles);
 
@@ -3074,7 +3051,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
       // ---- pack up the ints
       Array<int> allInts;
-      int allIntsSize(0);
+      //int allIntsSize(0);
       int dt_level_Size(dt_level.size()), dt_min_Size(dt_min.size());
       int max_grid_size_Size(max_grid_size.size()), blocking_factor_Size(blocking_factor.size());
       int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(Geom().size());
@@ -3145,7 +3122,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(plot_headerversion);
         allInts.push_back(checkpoint_headerversion);
 
-        allIntsSize = allInts.size();
+        //allIntsSize = allInts.size();
       }
 
       amrex::BroadcastArray(allInts, scsMyId, ioProcNumAll, scsComm);
@@ -3200,7 +3177,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         aSize                      = allInts[count++];
         n_error_buf.resize(aSize);
         for(int i(0); i < n_error_buf.size(); ++i)     { n_error_buf[i] = allInts[count++]; }
-        aSize                      = allInts[count++];
 
         dt_level_Size              = allInts[count++];
         dt_min_Size                = allInts[count++];
@@ -3242,7 +3218,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
       // ---- pack up the Reals
       Array<Real> allReals;
-      int allRealsSize(0);
+      //int allRealsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allReals.push_back(cumtime);
         allReals.push_back(start_time);
@@ -3254,7 +3230,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         for(int i(0); i < dt_level.size(); ++i)   { allReals.push_back(dt_level[i]); }
         for(int i(0); i < dt_min.size(); ++i)     { allReals.push_back(dt_min[i]); }
 
-	allRealsSize = allReals.size();
+	//allRealsSize = allReals.size();
       }
 
       amrex::BroadcastArray(allReals, scsMyId, ioProcNumAll, scsComm);
@@ -3278,7 +3254,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
       // ---- pack up the bools
       Array<int> allBools;  // ---- just use ints here
-      int allBoolsSize(0);
+      //int allBoolsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allBools.push_back(abort_on_stream_retry_failure);
         allBools.push_back(bUserStopRequest);
@@ -3304,7 +3280,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allBools.push_back(VisMF::GetUseSynchronousReads());
         allBools.push_back(VisMF::GetUseDynamicSetSelection());
 
-	allBoolsSize = allBools.size();
+	//allBoolsSize = allBools.size();
       }
 
       amrex::BroadcastArray(allBools, scsMyId, ioProcNumAll, scsComm);
@@ -3341,7 +3317,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       // ---- pack up the strings
       Array<std::string> allStrings;
       Array<char> serialStrings;
-      int serialStringsSize(0);
+      //int serialStringsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allStrings.push_back(regrid_grids_file);
         allStrings.push_back(initial_grids_file);
@@ -3365,7 +3341,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	}
 
 	serialStrings = amrex::SerializeStringArray(allStrings);
-	serialStringsSize = serialStrings.size();
+	//serialStringsSize = serialStrings.size();
       }
 
       amrex::BroadcastArray(serialStrings, scsMyId, ioProcNumAll, scsComm);
@@ -3497,13 +3473,6 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       BroadcastBoundaryPointList(intersect_hiy, scsMyId, ioProcNumSCS, scsComm);
       BroadcastBoundaryPointList(intersect_hiz, scsMyId, ioProcNumSCS, scsComm);
 
-#ifdef USE_STATIONDATA
-      amrex::Abort("**** Error:  USE_STATIONDATA not yet supported in sidecar resize.");
-      // ---- handle station
-      if(scsMyId != ioProcNumSCS) {
-      }
-#endif
-
       // ---- initialize fortran data
       if(scsMyId != ioProcNumSCS) {
         int probin_file_length(probin_file.length());
@@ -3577,7 +3546,9 @@ Amr::RedistributeGrids(int how) {
         }
 
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
-          MultiFab::MoveAllFabs(mLDM[iMap]);
+          //MultiFab::MoveAllFabs(mLDM[iMap]);
+	  DistributionMapping newDistMap(mLDM[iMap]);
+          MultiFab::MoveAllFabs(newDistMap);
         }
     }
 #ifdef USE_PARTICLES

@@ -29,8 +29,8 @@
 
 namespace amrex
 {
-  Real g_coarTimeOld = 0.0;
-  Real g_coarTimeNew = 1.0;
+  Real g_coarTimeOld = 0.25;
+  Real g_coarTimeNew = 0.25;
   Real g_fineTime = 0.25;
 /***************/
   Real exactFunc(const IntVect& a_iv,
@@ -273,11 +273,11 @@ main(int argc, char* argv[])
   int eek = amrex::ebpwlfpTest();
   if(eek == 0)
   {
-    amrex::Print() << "aggpwlfpTest passed\n";
+    amrex::Print() << "aggpwlfp test passed\n";
   }
   else
   {
-    amrex::Print() << "aggpwlfpTest failed with code " << eek << "\n";
+    amrex::Print() << "aggpwlfp test failed with code " << eek << "\n";
   }
 
   amrex::Finalize();

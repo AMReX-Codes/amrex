@@ -46,6 +46,22 @@ namespace amrex
     ~EBFluxFAB();
 
 
+    ///invalid but necessary for fabarray to compile in certain cases
+    EBFluxFAB(const Box& a_region,
+              int        n = 1,
+              bool       alloc = true,
+              bool       shared = false)
+      {
+        //this strictly for checkpointing 
+        m_region = a_region;
+      }
+
+    //same as above. 
+    void resize (const Box& b,
+                 int        N = 1)
+      {
+        m_region = b;
+      }
     ///
     EBFluxFAB& operator+=(const EBFluxFAB& a_ebfab)
       {

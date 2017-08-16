@@ -48,6 +48,12 @@ else
   MEM_PROFILE := FALSE
 endif
 
+ifdef USE_PROFPARSER
+  USE_PROFPARSER := $(strip $(USE_PROFPARSER))
+else
+  USE_PROFPARSER := FALSE
+endif
+
 ifdef TEST
   TEST := $(strip $(TEST))
 else
@@ -156,8 +162,11 @@ else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
+else ifeq ($(lowercase_comp),nag)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, and llvm)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, and nag)
 endif
 
 ifeq ($(MAKECMDGOALS),check_fortran)
@@ -172,6 +181,15 @@ ifeq ($(DEBUG),TRUE)
 else
     CPPFLAGS	+= -DNDEBUG
     DebugSuffix :=
+endif
+
+ifeq ($(USE_PROFPARSER),TRUE)
+  PROFILE := TRUE
+  TRACE_PROFILE := TRUE
+
+  CPPFLAGS += -DBL_USE_PROFPARSER
+  include $(AMREX_HOME)/Src/Extern/ProfParser/Make.package
+  include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
 endif
 
 ifeq ($(PROFILE),TRUE)
@@ -398,6 +416,11 @@ ifeq ($(USE_VTUNE),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.vtune
 endif
 
+ifeq ($(USE_CRAYPAT),TRUE)
+  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.craypat
+endif
+
 # Use Sam Williams's HPGMG
 ifeq ($(USE_HPGMG), TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hpgmg...)
@@ -417,12 +440,18 @@ ifeq ($(USE_UPCXX),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.upcxx
 endif
 
+ifeq ($(USE_CVODE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
+endif
+
+ifeq ($(USE_HYPRE),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre
+endif
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
-ifeq ($(USE_CVODE),TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
-endif

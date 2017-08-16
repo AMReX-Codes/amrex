@@ -36,8 +36,8 @@ void test_assign_density(TestParams& parms)
        fine_box.setHi(n,0.75);
     }
     
-    IntVect domain_lo(0 , 0, 0); 
-    IntVect domain_hi(parms.nx - 1, parms.ny - 1, parms.nz-1); 
+    IntVect domain_lo(D_DECL(0 , 0, 0)); 
+    IntVect domain_hi(D_DECL(parms.nx - 1, parms.ny - 1, parms.nz-1)); 
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
@@ -64,8 +64,8 @@ void test_assign_density(TestParams& parms)
     // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
         int n_fine = parms.nx*rr[0];
-        IntVect refined_lo(n_fine/4,n_fine/4,n_fine/4); 
-        IntVect refined_hi(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1);
+        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4)); 
+        IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
@@ -84,8 +84,6 @@ void test_assign_density(TestParams& parms)
     Array<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
-        partMF[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 2));
-        partMF[lev]->setVal(0.0, 2);
         density[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 0));
         density[lev]->setVal(0.0);
         acceleration[lev].reset(new MultiFab(ba[lev], dmap[lev], 3, 1));
@@ -96,7 +94,7 @@ void test_assign_density(TestParams& parms)
     MyParticleContainer myPC(geom, dmap, ba, rr);
     myPC.SetVerbose(false);
 
-    int num_particles = parms.nppc * parms.nx * parms.ny * parms.nz;
+    int num_particles = parms.nppc * AMREX_D_TERM(parms.nx, * parms.ny, * parms.nz);
     bool serialize = true;
     int iseed = 451;
     Real mass = 10.0;
@@ -105,8 +103,8 @@ void test_assign_density(TestParams& parms)
     //    myPC.InitRandom(num_particles, iseed, pdata, serialize, fine_box);
     myPC.InitRandom(num_particles, iseed, pdata, serialize);
 
-    myPC.AssignDensity(0, true, partMF, 0, 1, 1);
-    //myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
+    //myPC.AssignDensity(0, true, partMF, 0, 1, 1);
+    myPC.AssignDensityFort(0, partMF, 0, 1, nlevs-1);
 
     myPC.InterpolateFort(acceleration, 0, nlevs-1);
 
@@ -130,7 +128,7 @@ void test_assign_density(TestParams& parms)
     Array<IntVect> outputRR(output_levs);
     for (int lev = 0; lev < output_levs; ++lev) {
         outputMF[lev] = density[lev].get();
-        outputRR[lev] = IntVect(2, 2, 2);
+        outputRR[lev] = IntVect(D_DECL(2, 2, 2));
     }
     
     WriteMultiLevelPlotfile("plt00000", output_levs, outputMF, 

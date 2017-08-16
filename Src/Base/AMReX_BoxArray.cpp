@@ -51,11 +51,17 @@ BARef::BARef (const Box& b)
 BARef::BARef (const BoxList& bl)
     : m_abox(bl.data())
 { 
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif	    
 }
 
 BARef::BARef (BoxList&& bl) noexcept
     : m_abox(std::move(bl.data()))
 { 
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif	    
 }
 
 BARef::BARef (std::istream& is)
@@ -113,13 +119,25 @@ BARef::define (const Box& bx)
 void
 BARef::define (const BoxList& bl)
 {
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(-1);
+#endif
     m_abox = bl.data();
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif
 }
 
 void
 BARef::define (BoxList&& bl) noexcept
 {
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(-1);
+#endif
     m_abox = std::move(bl.data());
+#ifdef BL_MEM_PROFILING
+    updateMemoryUsage_box(1);
+#endif
 }
 
 void 
@@ -905,6 +923,7 @@ BoxArray::intersections (const Box&                         bx,
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         Box cbx(sm,bg);
+        cbx.normalize();
 
 	if (!cbx.intersects(m_ref->bbox)) return;
 
@@ -956,6 +975,7 @@ BoxArray::complementIn (const Box& bx) const
         const IntVect& bg = amrex::min(gbx.bigEnd(),     m_ref->bbox.bigEnd());
 
         Box cbx(sm,bg);
+        cbx.normalize();
 
 	if (!cbx.intersects(m_ref->bbox)) return bl;
 
@@ -1173,7 +1193,8 @@ BoxArray::getHashMap () const
 
             m_ref->crsn = maxext;
             m_ref->bbox =boundingbox.coarsen(maxext);
-	    
+            m_ref->bbox.normalize();
+
 #ifdef BL_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);
 #endif

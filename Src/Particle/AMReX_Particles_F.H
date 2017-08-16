@@ -25,16 +25,25 @@ extern "C"
                                              amrex_real* y,
                                              amrex_real* z));
 
-    void amrex_deposit_cic(const amrex_particle_real*, int ns, int np,
+    void amrex_build_nl(void*, int ns, int np,
+                        int* nbor_list, int* size_nl, const int* lo, const int* hi,
+                        const amrex_real* plo, const amrex_real* dx);
+
+    void amrex_deposit_cic(const amrex_particle_real*, int ns, int np, int nc,
                            amrex_real* rho, const int* lo, const int* hi,
                            const amrex_real* plo, const amrex_real* dx);
+
+    void amrex_deposit_particle_dx_cic(const amrex_particle_real*, int ns, int np, int nc,
+                                       amrex_real* rho, const int* lo, const int* hi,
+                                       const amrex_real* plo, const amrex_real* dx,
+                                       const amrex_real* particle_dx);
 
     void amrex_interpolate_cic(const amrex_particle_real*, int ns, int np,
                                const amrex_real* acc, const int* lo, const int* hi, int ncomp,
                                const amrex_real* plo, const amrex_real* dx);
 
     void amrex_atomic_accumulate_fab(const amrex_real*, const int*, const int*,
-                                     amrex_real*, const int*, const int*);
+                                     amrex_real*, const int*, const int*, int);
 
 BL_FORT_PROC_DECL(PART_SUMMASSDOWN,part_summassdown)
     (BL_FORT_FAB_ARG(crse_fab),
