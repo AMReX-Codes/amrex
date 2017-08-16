@@ -9,11 +9,16 @@ end module probdata_module
 
 subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
   use amrex_fort_module, only : rt => amrex_real
+  use amrex_parmparse_module
+  use probdata_module, only : drho0
   implicit none
   integer, intent(in) :: init, namlen
   integer, intent(in) :: name(namlen)
   real(rt), intent(in) :: problo(*), probhi(*)
-  ! nothing needs to be done here
+  type(amrex_parmparse) :: pp
+  call amrex_parmparse_build(pp,"prob")
+  call pp%query("drho",drho0)
+  call amrex_parmparse_destroy(pp)
 end subroutine amrex_probinit
 
 
