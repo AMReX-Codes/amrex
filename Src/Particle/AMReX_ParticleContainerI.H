@@ -3163,7 +3163,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         // Do the grids at this level cover the full domain? If they do
         // there can be no Fine->Crse interactions at this level.
         //
-        const bool GridsCoverDomain = fvalid.contains(Geom(lev).Domain());
+        const bool GridsCoverDomain = fvalid.numPts() == Geom(lev).Domain().numPts();
 
 	const auto& pmap = m_particles[lev];
 	for (const auto& kv : pmap) {
