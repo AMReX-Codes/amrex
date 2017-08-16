@@ -5,7 +5,7 @@ module cns_nd_module
   implicit none
   private
 
-  public :: cns_compute_temperature, cns_estdt, cns_compute_dsdt
+  public :: cns_compute_temperature, cns_estdt
 
 contains
 

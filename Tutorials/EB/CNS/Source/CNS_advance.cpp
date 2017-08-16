@@ -37,14 +37,9 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
 void
 CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 {
-    std::array<MultiFab,3> fluxes;
-    for (int idim = 0; idim < 3; ++idim) {
-        fluxes[idim].define(amrex::convert(grids,IntVect::TheDimensionVector(idim)),
-                            dmap, NUM_STATE, 0);
-        fluxes[idim].setVal(0.0);
-    }
-
     const Real* dx = geom.CellSize();
+
+    dSdt.setVal(0.0);
     
     {
         std::array<FArrayBox,3> flux;
@@ -65,6 +60,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                         flux[idim].setVal(0.0);
                     }
                     cns_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
+                                           BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                            BL_TO_FORTRAN_ANYD(S[mfi]),
                                            BL_TO_FORTRAN_ANYD(flux[0]),
                                            BL_TO_FORTRAN_ANYD(flux[1]),
@@ -79,33 +75,22 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                         flux[idim].setVal(0.0);
                     }
                     cns_eb_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                               BL_TO_FORTRAN_ANYD(S[mfi]),
                                               BL_TO_FORTRAN_ANYD(flux[0]),
                                               BL_TO_FORTRAN_ANYD(flux[1]),
                                               BL_TO_FORTRAN_ANYD(flux[2]),
                                               BL_TO_FORTRAN_ANYD(flag),
+                                              BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                                              BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
+                                              BL_TO_FORTRAN_ANYD(areafrac[1][mfi]),
+                                              BL_TO_FORTRAN_ANYD(areafrac[2][mfi]),
+                                              BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
+                                              BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
+                                              BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
                                               dx);
                 }
-                
-                for (int idim = 0; idim < 3; ++idim) {
-                    fluxes[idim][mfi].plus(flux[idim],mfi.nodaltilebox(idim),0,0,NUM_STATE);
-                }
             }
-        }
-    }
-
-    dSdt.setVal(0.0);
-
-    {
-        for (MFIter mfi(dSdt,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            cns_compute_dsdt(BL_TO_FORTRAN_BOX(bx),
-                             BL_TO_FORTRAN_ANYD(dSdt[mfi]),
-                             BL_TO_FORTRAN_ANYD(fluxes[0][mfi]),
-                             BL_TO_FORTRAN_ANYD(fluxes[1][mfi]),
-                             BL_TO_FORTRAN_ANYD(fluxes[2][mfi]),
-                             dx);
         }
     }
 }

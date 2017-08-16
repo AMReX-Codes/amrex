@@ -5,8 +5,36 @@ module cns_eb_flux_module
        get_neighbor_cells
   implicit none
   private
-  public :: compute_eb_diffop
+  public :: compute_diffop, compute_eb_diffop
 contains
+
+  ! non-eb version
+  subroutine compute_diffop (lo,hi,ncomp,dx,ut,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi)
+    integer, intent(in) :: lo(3),hi(3),ncomp,ulo(3),uhi(3),fxlo(3),fxhi(3), &
+         fylo(3),fyhi(3),fzlo(3),fzhi(3)
+    real(rt), intent(inout) :: ut( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),ncomp)
+    real(rt), intent(in   ) :: fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),ncomp)
+    real(rt), intent(in   ) :: fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),ncomp)
+    real(rt), intent(in   ) :: fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),ncomp)
+    real(rt), intent(in) :: dx(3)
+    
+    integer :: i,j,k,n
+    real(rt) :: dxinv(3)
+    
+    dxinv = 1.d0/dx
+    
+    do n = 1, ncomp
+       do       k = lo(3),hi(3)
+          do    j = lo(2),hi(2)
+             do i = lo(1),hi(1)
+                ut(i,j,k,n) = (fx(i,j,k,n)-fx(i+1,j,k,n)) * dxinv(1) &
+                     +        (fy(i,j,k,n)-fy(i,j+1,k,n)) * dxinv(2) &
+                     +        (fz(i,j,k,n)-fz(i,j,k+1,n)) * dxinv(3)
+             end do
+          end do
+       end do
+    end do
+  end subroutine compute_diffop
 
   subroutine compute_eb_diffop (lo,hi,ncomp, dx, &
        fluxx,fxlo,fxhi, &
@@ -15,6 +43,7 @@ contains
        ebdiffop, oplo, ophi, &
        divc, dvlo, dvhi, &
        delm, dmlo, dmhi, &
+       vfrac, vlo, vhi, &
        apx, axlo, axhi, &
        apy, aylo, ayhi, &
        apz, azlo, azhi, &
@@ -24,7 +53,6 @@ contains
        centy_z, cyzlo, cyzhi, &
        centz_x, czxlo, czxhi, &
        centz_y, czylo, czyhi, &
-       vfrac, vlo, vhi, &
        cellflag, cflo, cfhi)
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
@@ -37,6 +65,7 @@ contains
     real(rt), intent(inout) :: ebdiffop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)    
     real(rt), intent(inout) :: divc(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
     real(rt), intent(inout) :: delm(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3),ncomp)
+    real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
     real(rt), intent(in) :: apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(rt), intent(in) :: apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
     real(rt), intent(in) :: apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
@@ -46,7 +75,6 @@ contains
     real(rt), intent(in) :: centy_z(cyzlo(1):cyzhi(1),cyzlo(2):cyzhi(2),cyzlo(3):cyzhi(3))
     real(rt), intent(in) :: centz_x(czxlo(1):czxhi(1),czxlo(2):czxhi(2),czxlo(3):czxhi(3))
     real(rt), intent(in) :: centz_y(czylo(1):czyhi(1),czylo(2):czyhi(2),czylo(3):czyhi(3))
-    real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
     integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
 
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
