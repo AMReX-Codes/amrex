@@ -289,13 +289,13 @@ contains
                          fracx = - centz_x(i,j,k+1)
                          if(centz_y(i,j,k+1).le. 0.0d0)then
                             fracy = - centz_y(i,j,k+1)
-                            fzm = (1.d0-fracy)*(     fracx *fluxz(i-1,j  ,k+1,n)  + &
+                            fzp = (1.d0-fracy)*(     fracx *fluxz(i-1,j  ,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k+1,n)) + &
                                  &      fracy* (     fracx *fluxz(i-1,j-1,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j-1,k+1,n))
                          else
                             fracy =  centz_y(i,j,k+1)
-                            fzm = (1.d0-fracy)*(     fracx *fluxz(i-1,j  ,k+1,n)  + &
+                            fzp = (1.d0-fracy)*(     fracx *fluxz(i-1,j  ,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k+1,n)) + &
                                  &      fracy *(     fracx *fluxz(i-1,j+1,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j+1,k+1,n))
@@ -304,20 +304,20 @@ contains
                          fracx =  centz_x(i,j,k+1)
                          if(centz_y(i,j,k+1).le. 0.0d0)then
                             fracy = -centz_y(i,j,k+1) 
-                            fzm = (1.d0-fracy)*(     fracx *fluxz(i+1,j  ,k+1,n)  + &
+                            fzp = (1.d0-fracy)*(     fracx *fluxz(i+1,j  ,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k+1,n)) + &
                                  &      fracy *(     fracx *fluxz(i+1,j-1,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j-1,k+1,n))
                          else
                             fracy = centz_y(i,j,k+1) 
-                            fzm = (1.d0-fracy)*(     fracx *fluxz(i+1,j  ,k+1,n)+ &
+                            fzp = (1.d0-fracy)*(     fracx *fluxz(i+1,j  ,k+1,n)+ &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k+1,n)) + &
                                  &      fracy* (     fracx *fluxz(i+1,j+1,k+1,n)+ &
                                  &             (1.d0-fracx)*fluxz(i  ,j+1,k+1,n))
                          endif
                       endif
                    else
-                      fzm = fluxz(i,j,k+1,n)
+                      fzp = fluxz(i,j,k+1,n)
                    endif
 
                    divc(i,j,k) = -((apx(i+1,j,k)*fxp - apx(i,j,k)*fxm) * dxinv(1) &
