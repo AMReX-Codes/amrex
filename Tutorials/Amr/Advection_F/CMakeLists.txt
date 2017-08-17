@@ -1,7 +1,7 @@
 #
 # This test requires a 2D build
 # 
-if ( NOT (${BL_SPACEDIM} EQUAL 2) )
+if ( NOT (${DIM} EQUAL 2) )
    return ()
 endif ()
 

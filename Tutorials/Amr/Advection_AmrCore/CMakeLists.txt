@@ -6,12 +6,12 @@ set (SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
 set (EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/SingleVortex)
 
 scan_for_sources (F90SRC F77SRC CXXSRC ALLHEADERS
-   ROOT ${SRC_DIR}/Src_${BL_SPACEDIM}d )
+   ROOT ${SRC_DIR}/Src_${DIM}d )
          
 scan_for_sources (TMP1 TMP2 TMP3 TMP4
    ROOT ${SRC_DIR}/Src_nd )
 
-list (APPEND F90SRC     ${TMP1} ${EXE_DIR}/Prob.f90 ${EXE_DIR}/face_velocity_${BL_SPACEDIM}d.f90)
+list (APPEND F90SRC     ${TMP1} ${EXE_DIR}/Prob.f90 ${EXE_DIR}/face_velocity_${DIM}d.f90)
 list (APPEND F77SRC     ${TMP2})
 list (APPEND CXXSRC     ${TMP3} ${SRC_DIR}/AmrCoreAdv.cpp  ${SRC_DIR}/main.cpp)
 list (APPEND ALLHEADERS ${TMP4} ${SRC_DIR}/AmrCoreAdv_F.H ${SRC_DIR}/AmrCoreAdv.H

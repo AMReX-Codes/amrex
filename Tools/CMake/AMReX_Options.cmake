@@ -53,7 +53,6 @@ set (DIM 3 CACHE INT "Dimension of AMReX build")
 if ( (${DIM} GREATER 3) OR (${DIM} LESS 1) )
    message ( FATAL_ERROR "DIM must be either 1, 2 or 3.")
 endif ()
-set (BL_SPACEDIM ${DIM})
 print_option ( DIM )
 
 
@@ -82,17 +81,16 @@ print_option ( ENABLE_LINEAR_SOLVERS )
 option ( ENABLE_FBASELIB "Build Fortran kernel (deprecated)" ON )
 print_option ( ENABLE_FBASELIB )
 
-option ( ENABLE_PARTICLES "Build particle classes" OFF)
-print_option ( ENABLE_PARTICLES )
-
 option ( ENABLE_AMRDATA "Build data services" OFF)
 print_option ( ENABLE_AMRDATA )
 
+option ( ENABLE_PARTICLES "Build particle classes" OFF)
+print_option ( ENABLE_PARTICLES )
 
-# option ( ENABLE_DP_PARTICLES "Enable double-precision for particles data" ON) 
-cmake_dependent_option ( ENABLE_DP_PARTICLES "Enable double-precision particle data" ON
-                          "ENABLE_PARTICLES" OFF)
-print_option ( ENABLE_DP_PARTICLES )
+if ( ENABLE_PARTICLES )
+   option ( ENABLE_DP_PARTICLES "Enable double-precision particle data" ON )
+   print_option ( ENABLE_DP_PARTICLES )
+endif ()
 
 
 #
@@ -101,12 +99,17 @@ print_option ( ENABLE_DP_PARTICLES )
 option (ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option ( ENABLE_FPE )
 
-cmake_dependent_option ( ENABLE_ASSERTION "Enable assertions" ON "DEBUG" OFF)
+if (DEBUG)
+   option ( ENABLE_ASSERTION "Enable assertions" ON)
+else ()
+   option ( ENABLE_ASSERTION "Enable assertions" OFF)
+endif ()
 print_option ( ENABLE_ASSERTION )
 
 set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
 set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
+
 
 #
 # Profiling options
@@ -114,7 +117,7 @@ set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" 
 option ( ENABLE_BASE_PROFILE "Enable basic profiling" OFF )
 print_option ( ENABLE_BASE_PROFILE )
 
-option ( ENABLE_TINY_PROFILE "Enable 'tiny'-profiling" OFF )
+option ( ENABLE_TINY_PROFILE "NOT ENABLE_BASE_DEBUG" OFF)
 print_option ( ENABLE_TINY_PROFILE ) 
 
 option ( ENABLE_TRACE_PROFILE "Enable trace-profiling" OFF )
@@ -124,7 +127,7 @@ option ( ENABLE_MEM_PROFILE   "Enable memory profiling" OFF )
 print_option ( ENABLE_MEM_PROFILE )
 
 option ( ENABLE_COMM_PROFILE  "Enable communicator-profiling" OFF )
-print_option ( ENABLE_COMM_PROFILING )
+print_option ( ENABLE_COMM_PROFILE )
 
 option ( ENABLE_BACKTRACE "Enable backtracing" OFF)
 print_option ( ENABLE_BACKTRACE )
@@ -134,15 +137,21 @@ print_option ( ENABLE_PROFPARSER )
 
 
 
-#
-# If any profiling options is activated, set AMREX_PROFILING to 1
-# 
-set ( AMREX_ANY_PROFILING 0 )
-if ( ENABLE_PROFILING OR ENABLE_COMM_PROFILING OR ENABLE_TINY_PROFILING OR
-      ENABLE_TRACE_PROFILING OR ENABLE_MEM_PROFILING)
-   set ( AMREX_ANY_PROFILING 1 )
+# Modify the profiling options if needed ( because of dependencies between
+# the options )
+if (ENABLE_PROFPARSER)
+   set (ENABLE_BASE_PROFILE ON)
+   set (ENABLE_TRACE_PROFILE ON)
+   set (ENABLE_AMRDATA ON)
 endif ()
 
+if (ENABLE_TRACE_PROFILE OR ENABLE_COMM_PROFILE)
+   set (ENABLE_BASE_PROFILE ON)
+endif ()
+
+if (ENABLE_BASE_PROFILE)
+   set (ENABLE_TINY_PROFILE OFF)
+endif()
 
 
 # After the options are set, define the following variable
