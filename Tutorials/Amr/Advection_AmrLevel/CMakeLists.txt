@@ -12,7 +12,7 @@ set (SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
 # Sources common to both cases
 # 
 scan_for_sources (F90SRC F77SRC CXXSRC ALLHEADERS
-   ROOT ${SRC_DIR}/Src_${BL_SPACEDIM}d )
+   ROOT ${SRC_DIR}/Src_${DIM}d )
          
 scan_for_sources (TMP1 TMP2 TMP3 TMP4
    ROOT ${SRC_DIR}/Src_nd )
@@ -31,7 +31,7 @@ set ( EXENAME  "Advection_AmrLevel_SV.exe")
 
 set (EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/SingleVortex)
 
-list ( APPEND F90SRC_SV ${F90SRC} ${EXE_DIR}/face_velocity_${BL_SPACEDIM}d.f90
+list ( APPEND F90SRC_SV ${F90SRC} ${EXE_DIR}/face_velocity_${DIM}d.f90
    ${EXE_DIR}/Prob.f90 )
 
 find_include_paths (TUTORIAL_INCLUDE_PATHS ROOT ${CMAKE_CURRENT_LIST_DIR})
@@ -68,7 +68,7 @@ set ( EXENAME  "Advection_AmrLevel_UV.exe")
 
 set (EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/UniformVelocity)
 
-list ( APPEND F90SRC_UV ${F90SRC} ${EXE_DIR}/face_velocity_${BL_SPACEDIM}d.f90
+list ( APPEND F90SRC_UV ${F90SRC} ${EXE_DIR}/face_velocity_${DIM}d.f90
    ${EXE_DIR}/Prob.f90 ${EXE_DIR}/probdata.f90)
 
 find_include_paths (TUTORIAL_INCLUDE_PATHS ROOT ${CMAKE_CURRENT_LIST_DIR})

@@ -4,23 +4,24 @@ set (F77SRC "")
 set (ALLHEADERS "")
 set (ALLSRC "")
 
-set ( CXXSRC AMReX_TracerParticles.cpp )
-   
-set ( F90SRC AMReX_Particle_mod_${BL_SPACEDIM}d.F90 )
+
+list ( APPEND CXXSRC      AMReX_TracerParticles.cpp )
+
+list ( APPEND ALLHEADERS  AMReX_Particles.H AMReX_ParGDB.H AMReX_TracerParticles.H )
+list ( APPEND ALLHEADERS  AMReX_NeighborParticles.H AMReX_NeighborParticlesI.H )
+list ( APPEND ALLHEADERS  AMReX_ParticleI.H AMReX_ParticleInit.H AMReX_ParticleContainerI.H )
+list ( APPEND ALLHEADERS  AMReX_ParIterI.H AMReX_Particles_F.H )
+
+list ( APPEND F77SRC      AMReX_Particles_${DIM}D.F )
+list ( APPEND F90SRC      AMReX_Particle_mod_${DIM}d.F90 )
 
 if ( ENABLE_OMP )
    list ( APPEND F90SRC AMReX_OMPDepositionHelper_nd.F90 )
 endif ()
 
-set ( F77SRC AMReX_Particles_${BL_SPACEDIM}D.F )
-
-set ( ALLHEADERS 
-   AMReX_NeighborParticles.H   AMReX_ParGDB.H    AMReX_ParticleContainerI.H
-   AMReX_ParticleInit.H  AMReX_Particles.H   AMReX_NeighborParticlesI.H
-   AMReX_ParIterI.H  AMReX_ParticleI.H    AMReX_Particles_F.H
-   AMReX_TracerParticles.H )
-
+# 
 # Accumulate sources
+# 
 set ( ALLSRC ${CXXSRC} ${F90SRC} ${F77SRC} )
 
 #

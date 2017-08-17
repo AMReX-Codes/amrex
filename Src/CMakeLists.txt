@@ -7,7 +7,7 @@ macro (accumulate_headers headers)
 endmacro ()
 
 #
-# Define macro to accumulate include paths
+# Define a macro to accumulate include paths
 #
 set (INCLUDE_PATHS "")
 macro (accumulate_include_dirs path)
@@ -25,16 +25,19 @@ add_library ( amrex "")
 # Now, one by one, let's add all the source files in the subdirectories
 #
 include (Base/CMakeLists.txt)
+include (Boundary/CMakeLists.txt)
 include (AmrCore/CMakeLists.txt)
 include (Amr/CMakeLists.txt)
-include (Boundary/CMakeLists.txt)
-include (Extern/CMakeLists.txt)
 
 #
 # Optional components
 #
 if (ENABLE_FBASELIB)
    include (F_BaseLib/CMakeLists.txt)
+endif ()
+
+if (ENABLE_PROFPARSER OR ENABLE_AMRDATA)
+   include (Extern/CMakeLists.txt)
 endif ()
 
 if (ENABLE_LINEAR_SOLVERS)
