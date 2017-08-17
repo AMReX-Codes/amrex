@@ -322,6 +322,7 @@ CNS::estTimeStep ()
                   dx, &estdt);
     }
     estdt *= cfl;
+    ParallelDescriptor::ReduceRealMin(estdt);
     return estdt;
 }
 

@@ -41,6 +41,8 @@ contains
 
     call compute_diffop (lo,hi,5,dx,dudt,utlo,uthi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi)
 
+    dudt(:,:,:,6:nvar) = 0.d0
+
     call amrex_deallocate(q)
   end subroutine cns_compute_hydro_flux
 
@@ -100,6 +102,8 @@ contains
          centy(:,:,:,1),cylo,cyhi, centy(:,:,:,2),cylo,cyhi, &
          centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &
          flag,fglo,fghi)
+
+    dudt(:,:,:,6:nvar) = 0.d0
 
     call amrex_deallocate(q)
     call amrex_deallocate(divc)
