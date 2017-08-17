@@ -292,6 +292,12 @@ CNS::avgDown ()
 void
 CNS::buildMetrics ()
 {
+    // make sure dx == dy == dz
+    const Real* dx = geom.CellSize();
+    if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
+        amrex::Abort("CNS: must have dx == dy == dz\n");
+    }
+
     volfrac.clear();
     volfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
     amrex::EB_set_volume_fraction(volfrac);
