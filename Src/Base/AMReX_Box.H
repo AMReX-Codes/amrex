@@ -611,6 +611,15 @@ public:
       return (*this == testBox);
     }
 
+    void normalize ()
+    {
+        for (int idim=0; idim < BL_SPACEDIM; ++idim) {
+            if (this->length(idim) == 0) {
+                this->growHi(idim,1);
+            }
+        }
+    }
+
 private:
     IntVect         smallend;
     IntVect         bigend;

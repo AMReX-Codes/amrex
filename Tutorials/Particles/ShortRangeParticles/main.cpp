@@ -45,23 +45,23 @@ int main(int argc, char* argv[])
     int num_neighbor_cells = 1;
     ShortRangeParticleContainer myPC(geom, dmap, ba, num_neighbor_cells);
 
-    std::cout << sizeof(ShortRangeParticleContainer::ParticleType) << std::endl;
-
     myPC.InitParticles();
+
+    const int lev = 0;
 
     for (int i = 0; i < max_step; i++) {
         if (write_particles) myPC.writeParticles(i);
         
-        myPC.fillNeighbors();
+        myPC.fillNeighbors(lev);
         myPC.computeForces();
-        myPC.clearNeighbors();
+        myPC.clearNeighbors(lev);
 
         myPC.moveParticles(dt);
 
         myPC.Redistribute();
     }
 
-    if (write_particles) myPC.writeParticles(max_step);
+    myPC.writeParticles(max_step);
     
     amrex::Finalize();
 }

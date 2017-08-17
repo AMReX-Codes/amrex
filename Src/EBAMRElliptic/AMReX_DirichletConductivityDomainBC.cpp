@@ -10,37 +10,46 @@
  */
 
 #include "AMReX_DirichletConductivityDomainBC.H"
+#include "AMReX_EBArith.H"
 
 namespace amrex
 {
+/*****/
+  DirichletConductivityDomainBC::
+  DirichletConductivityDomainBC()
+  {
+  }
+/*****/
+  DirichletConductivityDomainBC::
+  ~DirichletConductivityDomainBC()
+  {
+  }
 /*****/
   void 
   DirichletConductivityDomainBC::
   fillPhiGhost(FArrayBox&     a_phi,
                const Box&     a_valid,
-               const Box&     a_domain,
-               Real           a_dx,
                bool           a_homogeneous)
   {
     Box grownBox = a_valid;
     grownBox.grow(1);
 
-    for (int idir=0; idir<CH_SPACEDIM; ++idir)
+    for (int idir=0; idir<BL_SPACEDIM; ++idir)
     {
       for(SideIterator sit; sit.ok(); ++sit)
       {
         Box choppedBox = grownBox;
         choppedBox.grow(idir,-1);
-        Box toRegion = adjCellBox(choppedBox, idir, sit(), 1);
+        Box toRegion = EBArith::adjCellBox(choppedBox, idir, sit(), 1);
 
-        if(!a_domain.contains(toRegion))
+        if(!m_eblg.getDomain().contains(toRegion))
         {
           for (BoxIterator bit(toRegion); bit.ok(); ++bit)
           {
             const IntVect& iv = bit();
             //fake vof just to get the location
             VolIndex vof(iv, 0);
-            RealVect loc = EBArith::getVoFLocation(vof, a_dx, RealVect::Zero);
+            RealVect loc = EBArith::getVoFLocation(vof, m_dx, RealVect::Zero);
             int isign = sign(sit());
             IntVect ivneigh = iv - isign*BASISV(idir);
             Real value = bcvaluefunc(loc, idir, sit());
@@ -67,9 +76,9 @@ namespace amrex
               const bool&           a_useHomogeneous)
   {
     const EBISBox& ebisBox = a_phi.getEBISBox();
-    const ProblemDomain& domainBox = ebisBox.getDomain();
+    const Box& domainBox = ebisBox.getDomain();
     a_faceFlux = 0.0;
-    Vector<FaceIndex> faces = ebisBox.getFaces(a_vof,a_idir,a_side);
+    vector<FaceIndex> faces = ebisBox.getFaces(a_vof,a_idir,a_side);
     if (faces.size() > 0)
     {
       if (faces.size()==1)
@@ -93,7 +102,7 @@ namespace amrex
       }
       else
       {
-        MayDay::Error("DirichletPoissonDomainBC::getHigherOrderFaceFlux has multi-valued faces (or could be 0 faces)");
+        amrex::Error("DirichletPoissonDomainBC::getHigherOrderFaceFlux has multi-valued faces (or could be 0 faces)");
       }
     }
 
@@ -125,8 +134,7 @@ namespace amrex
                  const bool&           a_useHomogeneous)
   {
     int iside = -sign(a_side);
-    const Real ihdx = 2.0 / a_dx[a_idir];
-    const EBISBox& ebisBox = a_phi.getEBISBox();
+    const Real ihdx = 2.0 / m_dx;
 
     Real value = -1.e99;
     if (a_useHomogeneous)
@@ -152,6 +160,6 @@ namespace amrex
 
     const VolIndex& vof = a_face.getVoF(flip(a_side));
 
-    a_faceFlux = iside * ihdx * (a_phi(vof,a_comp) - value);
+    a_faceFlux = iside * ihdx * (a_phi(vof,0) - value);
   }
 }

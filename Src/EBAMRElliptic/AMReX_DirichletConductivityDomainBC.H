@@ -25,13 +25,11 @@ namespace amrex
   {
 
   public:
-    DirichletConductivityDomainBC()
-      {
-      }
+    DirichletConductivityDomainBC();
 
-    virtual ~DirichletConductivityDomainBC()
-      {
-      }
+
+    virtual ~DirichletConductivityDomainBC();
+
 
     ///
     virtual void 
@@ -59,13 +57,6 @@ namespace amrex
                    const Side::LoHiSide& a_side,
                    const bool&           a_useHomogeneous);
 
-    ///
-    virtual void 
-    fillPhiGhost(FArrayBox&     a_phi,
-                 const Box&     a_valid,
-                 const Box&     a_domain,
-                 Real           a_dx,
-                 bool           a_homogeneous);
   private:
   };
 
