@@ -64,6 +64,21 @@ output GB/s.
 hdf5
 genericio
 more documentation
+are we closing HeaderFile in Amr::writePlotFile (and checkpoints)?
+
+
+threaded i/o
+  new mf version
+  tfiles
+  tfiles could be set per mpi process
+  does thread number affect bandwidth (clumping)?
+  how many threads do we use per core?
+  maybe use tile infrastructure?
+
+  benchmarks
+    write speed with changing tfile number
+    clump vs. scattered thread writes.
+
 
 
 

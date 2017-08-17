@@ -31,9 +31,10 @@ bool BLProfiler::bFirstCommWrite = true;  // header
 bool BLProfiler::bInitialized = false;
 
 int BLProfiler::currentStep = 0;
-int BLProfiler::csFlushSize = 2000000;
-int BLProfiler::traceFlushSize = 2000000;
-int BLProfiler::nProfFiles  = 64;
+const int defaultFlushSize = 8192000;
+int BLProfiler::csFlushSize = defaultFlushSize;
+int BLProfiler::traceFlushSize = defaultFlushSize;
+int BLProfiler::nProfFiles  = 96;
 int BLProfiler::finestLevel = -1;
 int BLProfiler::maxLevel    = -1;
 
@@ -68,7 +69,6 @@ int BLProfiler::CommStats::csVersion(1);
 Array<std::pair<std::string,int> > BLProfiler::CommStats::barrierNames;
 Array<std::pair<int,int> > BLProfiler::CommStats::nameTags;
 Array<std::string> BLProfiler::CommStats::nameTagNames;
-Array<int> BLProfiler::CommStats::reductions;
 Array<int> BLProfiler::CommStats::tagWraps;
 
 std::string BLProfiler::procName("NoProcName");
@@ -96,7 +96,7 @@ Array<BLProfiler::CallStatsPatch> BLProfiler::callIndexPatch;
 int BLProfiler::callStackDepth(-1);
 int BLProfiler::prevCallStackDepth(0);
 Real BLProfiler::CallStats::minCallTime(std::numeric_limits<Real>::max());
-Real BLProfiler::CallStats::maxCallTime(std::numeric_limits<Real>::min());
+Real BLProfiler::CallStats::maxCallTime(-1.0);
 #endif
 
 
@@ -158,11 +158,11 @@ void BLProfiler::Initialize() {
   timerTime /= static_cast<Real> (nTimerTimes);
 
 #ifdef BL_COMM_PROFILING
-  vCommStats.reserve(std::max(csFlushSize, 256000));
+  vCommStats.reserve(std::max(csFlushSize, defaultFlushSize));
 #endif
 
 #ifdef BL_TRACE_PROFILING
-  vCallTrace.reserve(std::max(traceFlushSize, 256000));
+  vCallTrace.reserve(std::max(traceFlushSize, defaultFlushSize));
   // ---- make sure there is always at least one so we dont need to check in start()
   CallStats unusedCS(-1, -1, -1, -1.1, -1.2, -1.3);
   vCallTrace.push_back(unusedCS);
@@ -975,10 +975,22 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
         csGlobalHeaderFile << "RegionName " << '"' << it->first << '"'
 	                   << ' ' << it->second << '\n';
       }
-      for(int i(0); i < nOutFiles; ++i) {
-        std::string headerName(cFilePrefix + "_H_");
-        headerName = amrex::Concatenate(headerName, i, NFilesIter::GetMinDigits());
-        csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
+      if(NFilesIter::CheckNFiles(nProcs, nOutFiles, groupSets)) {
+        for(int i(0); i < nOutFiles; ++i) {
+          std::string headerName(cFilePrefix + "_H_");
+          headerName = amrex::Concatenate(headerName, i, NFilesIter::GetMinDigits());
+          csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
+        }
+      } else {
+        std::set<int> fileNumbers;
+        for(int i(0); i < nProcs; ++i) {
+          fileNumbers.insert(NFilesIter::FileNumber(nOutFiles, i, groupSets));
+        }
+        for(std::set<int>::iterator it = fileNumbers.begin(); it != fileNumbers.end(); ++it) {
+          std::string headerName(cFilePrefix + "_H_");
+          headerName = amrex::Concatenate(headerName, *it, NFilesIter::GetMinDigits());
+          csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
+        }
       }
       csGlobalHeaderFile.flush();
       csGlobalHeaderFile.close();
@@ -1087,14 +1099,11 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
 	csDFile.close();
       }
       callIndexPatch.clear();
-      Array<CallStatsPatch>().swap(callIndexPatch);
     }
 
     // --------------------- delete the data
     rStartStop.clear();
-    Array<RStartStop>().swap(rStartStop);
     vCallTrace.clear();
-    Array<CallStats>().swap(vCallTrace);
     CallStats unusedCS(-1, -1, -1, -1.1, -1.2, -1.3);
     vCallTrace.push_back(unusedCS);
 }
@@ -1167,10 +1176,22 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
       csGlobalHeaderFile << "ProbDomain  " << i << "  " << probDomain[i] << '\n';
     }
 #endif
-    for(int i(0); i < nOutFiles; ++i) {
-      std::string headerName(commprofPrefix + "_H_");
-      headerName = amrex::Concatenate(headerName, i, NFilesIter::GetMinDigits());
-      csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
+    if(NFilesIter::CheckNFiles(nProcs, nOutFiles, groupSets)) {
+      for(int i(0); i < nOutFiles; ++i) {
+        std::string headerName(commprofPrefix + "_H_");
+        headerName = amrex::Concatenate(headerName, i, NFilesIter::GetMinDigits());
+        csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
+      }
+    } else {
+        std::set<int> fileNumbers;
+        for(int i(0); i < nProcs; ++i) {
+          fileNumbers.insert(NFilesIter::FileNumber(nOutFiles, i, groupSets));
+        }
+        for(std::set<int>::iterator it = fileNumbers.begin(); it != fileNumbers.end(); ++it) {
+          std::string headerName(commprofPrefix + "_H_");
+          headerName = amrex::Concatenate(headerName, *it, NFilesIter::GetMinDigits());
+          csGlobalHeaderFile << "HeaderFile " << headerName << '\n';
+        }
     }
 
     csGlobalHeaderFile.flush();
@@ -1221,12 +1242,6 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
         nfiHeader.Stream() << "nTag  " << CommStats::nameTags[ib].first << ' '
                            << seekindex << '\n';
       }
-      for(int ib(0); ib < CommStats::reductions.size(); ++ib) {
-        int seekindex(CommStats::reductions[ib]);
-        CommStats &cs = vCommStats[seekindex];
-        nfiHeader.Stream() << "red  " << cs.tag  // tag is used for reduction number
-	                   << ' ' << seekindex << '\n';
-      }
       if(vCommStats.size() > 0) {
         nfiHeader.Stream() << std::setprecision(16) << std::setiosflags(std::ios::showpoint)
                            << "timeMinMax  " << vCommStats[0].timeStamp << ' '
@@ -1256,13 +1271,8 @@ void BLProfiler::WriteCommStats(bool bFlushing) {
 
   // --------------------- delete the data
   vCommStats.clear();
-  Array<CommStats>().swap(vCommStats);
   CommStats::barrierNames.clear();
-  Array<std::pair<std::string,int> >().swap(CommStats::barrierNames);
   CommStats::nameTags.clear();
-  Array<std::pair<int,int> >().swap(CommStats::nameTags);
-  CommStats::reductions.clear();
-  Array<int>().swap(CommStats::reductions);
   if( ! bAllCFTypesExcluded) {
     CommStats::cftExclude.erase(AllCFTypes);
   }
@@ -1388,7 +1398,6 @@ void BLProfiler::AddAllReduce(const CommFuncType cft, const int size,
     int tag(CommStats::reductionNumber);
     vCommStats.push_back(CommStats(cft, size, BeforeCall(), tag,
                                    ParallelDescriptor::second()));
-    CommStats::reductions.push_back(vCommStats.size() - 1);
     ++CommStats::reductionNumber;
   } else {
     int tag(CommStats::reductionNumber - 1);

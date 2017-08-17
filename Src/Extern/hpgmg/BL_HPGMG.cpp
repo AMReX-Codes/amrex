@@ -1,5 +1,7 @@
 #include <BL_HPGMG.H>
 
+using namespace amrex;
+
 // If we want to use the multigrid solver from HPGMG then we must convert our
 // MultiFabs to HPGMG's level data structures. This function essentially
 // replaces the create_level() function in HPGMG.

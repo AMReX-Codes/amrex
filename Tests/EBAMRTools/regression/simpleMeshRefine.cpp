@@ -188,6 +188,7 @@ main(int argc, char* argv[])
 
   amrex::getSomeGrids();
 
+  amrex::Print() << "mesh refine test passed" << endl;
   amrex::Finalize();
   return retval;
 }

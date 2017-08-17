@@ -108,7 +108,7 @@ namespace amrex
     int begin  = a_dst;
     int length = a_nco;
 
-   
+    a_Q.copy(a_kappaQ, a_dst, a_dst, a_nco, 0, 0);
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
       m_stencil[mfi]->apply(a_Q[mfi], a_kappaQ[mfi], begin, begin, length, false);

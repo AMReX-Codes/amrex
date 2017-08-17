@@ -140,9 +140,13 @@ extern "C"
     {
 	if (ename[0] != '/') {
 	    char temp[1024];
-	    getcwd(temp,1024);
-	    fexename = temp;
-	    fexename += "/";
+	    if (getcwd(temp,1024) != NULL) {
+                fexename = temp;
+                fexename += "/";
+            } else {
+                std::cout << "getcwd failed in set_signal_handler" << std::endl;
+                abort_fortranboxlib();
+            }
 	}
 	fexename += ename;
 	

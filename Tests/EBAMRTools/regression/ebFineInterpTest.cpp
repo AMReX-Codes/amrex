@@ -67,6 +67,7 @@ namespace amrex
 
     for(MFIter mfi(a_eblgFine.getDBL(), a_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
+      a_error[mfi].setVal(0.0);
       Box valid = a_eblgFine.getDBL()[mfi];
       IntVectSet ivsBox(valid);
 
@@ -81,7 +82,6 @@ namespace amrex
 
     for(MFIter mfi(a_eblgCoar.getDBL(), a_eblgCoar.getDM()); mfi.isValid(); ++mfi)
     {
-      a_error[mfi].setVal(0.0);
       Box valid = a_eblgCoar.getDBL()[mfi];
       IntVectSet ivsBox(valid);
 

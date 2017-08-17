@@ -10,41 +10,49 @@
  */
 
 #include "AMReX_NeumannConductivityDomainBC.H"
-
+#include "AMReX_EBArith.H"
 namespace amrex
 {
+  NeumannConductivityDomainBC::
+  NeumannConductivityDomainBC()
+  {
+  }
+
+  NeumannConductivityDomainBC::
+  ~NeumannConductivityDomainBC()
+  {
+  }
+
   void 
   NeumannConductivityDomainBC::
   fillPhiGhost(FArrayBox&     a_phi,
                const Box&     a_valid,
-               const Box&     a_domain,
-               Real           a_dx,
                bool           a_homogeneous)
   {
     Box grownBox = a_valid;
     grownBox.grow(1);
 
-    for (int idir=0; idir<CH_SPACEDIM; ++idir)
+    for (int idir=0; idir< BL_SPACEDIM; ++idir)
     {
       for(SideIterator sit; sit.ok(); ++sit)
       {
         Box choppedBox = grownBox;
         choppedBox.grow(idir,-1);
-        Box toRegion = adjCellBox(choppedBox, idir, sit(), 1);
+        Box toRegion = EBArith::adjCellBox(choppedBox, idir, sit(), 1);
 
-        if(!a_domain.contains(toRegion))
+        if(!m_eblg.getDomain().contains(toRegion))
         {
           for (BoxIterator bit(toRegion); bit.ok(); ++bit)
           {
             const IntVect& iv = bit();
             //fake vof just to get the location
             VolIndex vof(iv, 0);
-            RealVect loc = EBArith::getVoFLocation(vof, a_dx, RealVect::Zero);
+            RealVect loc = EBArith::getVoFLocation(vof, m_dx, RealVect::Zero);
             int isign = sign(sit());
             IntVect ivneigh = iv - isign*BASISV(idir);
             Real value = bcvaluefunc(loc, idir, sit());
             if(a_homogeneous) value = 0;
-            a_phi(iv, 0) = a_phi(ivneigh, 0)  + a_dx*value;
+            a_phi(iv, 0) = a_phi(ivneigh, 0)  + m_dx*value;
           }
         }
       } 
@@ -64,12 +72,12 @@ namespace amrex
     const EBISBox& ebisBox = a_phi.getEBISBox();
 
     Real totalMassFlux = 0.0;
-    Vector<FaceIndex> faces = ebisBox.getFaces(a_vof,a_idir,a_side);
+    vector<FaceIndex> faces = ebisBox.getFaces(a_vof,a_idir,a_side);
     for (int i = 0; i < faces.size(); i++)
     {
       const RealVect centroid = ebisBox.centroid(faces[i]);
       Real thisFaceFlux;
-      getFaceGradPhi(thisFaceFlux,faces[i],mfi, a_phi, a_idir, a_side, a_useHomogeneous);
+      getFaceGradPhi(thisFaceFlux,faces[i],a_mfi, a_phi, a_idir, a_side, a_useHomogeneous);
       totalMassFlux += thisFaceFlux;
     }
     if(faces.size() > 1)
@@ -84,7 +92,7 @@ namespace amrex
     {
       Real areaFrac = ebisBox.areaFrac(faces[iface]);
       areaTot += areaFrac;
-      Real bcoFace  = (*m_bcoef)[a_dit][a_idir](faces[iface], 0);
+      Real bcoFace  = (*m_bcoef)[a_mfi][a_idir](faces[iface], 0);
       bcoave += areaFrac*bcoFace;
     }
     if (areaTot > 1.0e-8)
@@ -107,8 +115,6 @@ namespace amrex
   {
     const int iside = -sign(a_side);
 
-    const EBISBox& ebisBox = a_phi.getEBISBox();
-
     Real flux = -1.e99;
     if (a_useHomogeneous)
     {
@@ -117,10 +123,8 @@ namespace amrex
     else if (m_isFunction)
     {
       const RealVect normal = EBArith::getDomainNormal(a_idir,a_side);
-      RealVect point  = a_centroid;
-      point *= a_dx;
+      RealVect point  = EBArith::getFaceLocation(a_face,m_dx,m_probLo);
       point[a_face.direction()] = 0.0;//make this not depend on whatever ebisbox is returning for centroid in the face direction.
-      point += EBArith::getFaceLocation(a_face,a_dx,a_probLo);
       flux = bcvaluefunc(point, a_idir, a_side);
     }
     else
