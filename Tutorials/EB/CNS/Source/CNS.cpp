@@ -217,6 +217,21 @@ CNS::post_timestep (int iteration)
 }
 
 void
+CNS::postCoarseTimeStep (Real time)
+{
+    // This only computes sum on level 0
+    if (verbose >= 2) {
+        const MultiFab& S_new = get_new_data(State_Type);
+        MultiFab mf(grids, dmap, 1, 0);
+        MultiFab::Copy(mf, S_new, Density, 0, 1, 0);
+        MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
+        Real mtot = mf.sum();
+        mtot *= geom.ProbSize();
+        amrex::Print().SetPrecision(17) << "\n[CNS] Total Mass is " << mtot << "\n";
+    }
+}
+
+void
 CNS::post_init (Real)
 {
     if (level > 0) return;

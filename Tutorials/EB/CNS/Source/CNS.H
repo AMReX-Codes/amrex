@@ -74,6 +74,9 @@ public:
     // Do work after timestep().
     virtual void post_timestep (int iteration) override;
 
+    // After a full time step
+    virtual void postCoarseTimeStep (amrex::Real time) override;
+
     // Do work after init().
     virtual void post_init (amrex::Real stop_time) override;
 
