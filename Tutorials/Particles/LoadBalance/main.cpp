@@ -10,24 +10,24 @@
 
 using namespace amrex;
 
-struct KDNode {
-    
-    Box box;
-    KDNode* left;
-    KDNode* right;
-    Real cost;
-    int num_procs_left;    
-
-    KDNode(const Box& box_in, Real cost_in, int num_procs_in)
-        : box(box_in), cost(cost_in), num_procs_left(num_procs_in)
-    {
-        left = NULL;
-        right = NULL;
-    }
-};
-
 class KDTree {
-    
+
+    struct KDNode {
+        
+        Box box;
+        KDNode* left;
+        KDNode* right;
+        Real cost;
+        int num_procs_left;    
+        
+        KDNode(const Box& box_in, Real cost_in, int num_procs_in)
+            : box(box_in), cost(cost_in), num_procs_left(num_procs_in)
+        {
+            left = NULL;
+            right = NULL;
+        }
+    };
+        
 public:
     
     KDTree(const Box& domain, const FArrayBox& cost, int num_procs) {
@@ -126,43 +126,57 @@ private:
     
 };
 
-class MyParticleContainer 
-    : public ParticleContainer<0>
-{
- public:
-    
-    MyParticleContainer (const Geometry& geom, 
-                         const DistributionMapping& dmap,
-                         const BoxArray& ba)
-        : ParticleContainer<0> (geom, dmap, ba) {}
-};
+typedef ParticleContainer<0> MyParticleContainer;
 
-void computeCost(MultiFab& local_cost, 
-                 MultiFab& global_cost,
-                 MyParticleContainer& myPC) {
-    
-    const int lev = 0;
-    const Geometry& geom = myPC.Geom(lev);
-    const Box& domain = geom.Domain();
-    const BoxArray& ba = myPC.ParticleBoxArray(lev);
-    const DistributionMapping& dm = myPC.ParticleDistributionMap(lev);
+namespace loadBalanceKD {
 
-    BoxList global_bl;
-    Array<int> procs_map;
-    for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
-        global_bl.push_back(domain);
-        procs_map.push_back(i);
+    void computeCost(MultiFab& local_cost, MultiFab& global_cost,
+                     const Box& domain, MyParticleContainer& myPC) {
+        
+        const int lev = 0;
+        const BoxArray& ba = myPC.ParticleBoxArray(lev);
+        const DistributionMapping& dm = myPC.ParticleDistributionMap(lev);
+        
+        BoxList global_bl;
+        Array<int> procs_map;
+        for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+            global_bl.push_back(domain);
+            procs_map.push_back(i);
+        }
+        
+        BoxArray global_ba(global_bl);    
+        DistributionMapping global_dm(procs_map);    
+        
+        local_cost.define(ba, dm, 1, 0);
+        local_cost.setVal(0.0);
+        myPC.Increment(local_cost, lev);
+        
+        global_cost.define(global_ba, global_dm, 1, 0);
+        global_cost.copy(local_cost, 0, 0, 1);
     }
 
-    BoxArray global_ba(global_bl);    
-    DistributionMapping global_dm(procs_map);    
-    
-    local_cost.define(ba, dm, 1, 0);
-    local_cost.setVal(0.0);
-    myPC.Increment(local_cost, lev);
-
-    global_cost.define(global_ba, global_dm, 1, 0);
-    global_cost.copy(local_cost, 0, 0, 1);
+    void balance(MyParticleContainer& myPC, BoxArray& new_ba, int num_procs) {
+        
+        const int lev = 0;
+        const Geometry& geom = myPC.Geom(lev);
+        const Box& domain = geom.Domain();
+        
+        MultiFab local_cost;
+        MultiFab global_cost;    
+        computeCost(local_cost, global_cost, domain, myPC);
+        
+        FArrayBox *cost;
+        for ( MFIter mfi(global_cost); mfi.isValid(); ++mfi ) {
+            cost = &global_cost[mfi];
+        }
+        
+        KDTree tree = KDTree(domain, *cost, num_procs);
+        
+        BoxList new_bl;
+        Array<Real> box_costs;
+        tree.GetBoxes(new_bl, box_costs);
+        new_ba.define(new_bl);
+    };
 }
 
 int main(int argc, char* argv[])
@@ -199,26 +213,9 @@ int main(int argc, char* argv[])
     MyParticleContainer::ParticleInitData pdata = {};
     myPC.InitFromBinaryFile("binary_particle_file.dat", 0);
 
-    MultiFab local_cost;
-    MultiFab global_cost;    
-    computeCost(local_cost, global_cost, myPC);
+    BoxArray new_ba;
+    loadBalanceKD::balance(myPC, new_ba, num_procs);
 
-    FArrayBox *cost;
-    for ( MFIter mfi(global_cost); mfi.isValid(); ++mfi ) {
-        cost = &global_cost[mfi];
-    }
-
-    KDTree tree = KDTree(domain, *cost, num_procs);
-
-    BoxList new_bl;
-    Array<Real> box_costs;
-    tree.GetBoxes(new_bl, box_costs);
-    BoxArray new_ba(new_bl);
-    
-    for (int i = 0; i < box_costs.size(); ++i) {
-        std::cout << box_costs[i] << " " << new_ba[i] << std::endl;
-    }
-    
     Array<int> new_pmap;
     for (int i = 0; i < new_ba.size(); ++i) {
         new_pmap.push_back(0);
@@ -232,7 +229,7 @@ int main(int argc, char* argv[])
     myPC.Redistribute();
     MultiFab new_local_cost;
     MultiFab new_global_cost;    
-    computeCost(new_local_cost, new_global_cost, myPC);
+    loadBalanceKD::computeCost(new_local_cost, new_global_cost, domain, myPC);
 
     WriteSingleLevelPlotfile("plt00000", new_local_cost, {"cost"},
                              geom, 0.0, 0);
