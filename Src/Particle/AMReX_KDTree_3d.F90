@@ -1,7 +1,7 @@
-  subroutine compute_best_partition(cost, clo, chi, &
+  subroutine amrex_compute_best_partition(cost, clo, chi, &
                                     lo, hi, total_cost, dir, &
                                     cost_left, cost_right, split) &
-    bind(c,name='compute_best_partition')
+    bind(c,name='amrex_compute_best_partition')
     
     use iso_c_binding
     use amrex_fort_module, only : amrex_real
@@ -75,5 +75,5 @@
 
     end if
 
-  end subroutine compute_best_partition
+  end subroutine amrex_compute_best_partition
 
