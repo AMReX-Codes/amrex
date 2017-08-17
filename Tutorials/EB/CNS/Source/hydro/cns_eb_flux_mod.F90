@@ -368,8 +368,10 @@ contains
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
-                            vtot = vtot + nbr(ii,jj,kk)*vfrac(i+ii,j+jj,k+kk)
-                            divnc = divnc + nbr(ii,jj,kk)*vfrac(i+ii,j+jj,k+kk)*divc(i+ii,j+jj,k+kk)
+                            if ((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
+                               vtot = vtot + vfrac(i+ii,j+jj,k+kk)
+                               divnc = divnc + vfrac(i+ii,j+jj,k+kk)*divc(i+ii,j+jj,k+kk)
+                            end if
                          end do
                       enddo
                    enddo
