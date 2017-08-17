@@ -1157,7 +1157,7 @@ Amr::InitializeInit(Real              strt_time,
 {
     BL_PROFILE("Amr::InitializeInit()");
     BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
-    checkInput();
+    if (check_input) checkInput();
     //
     // Generate internal values from user-supplied values.
     //
