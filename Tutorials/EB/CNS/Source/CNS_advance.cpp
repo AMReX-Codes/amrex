@@ -39,7 +39,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 {
     const Real* dx = geom.CellSize();
 
-    dSdt.setVal(0.0);
+//    dSdt.setVal(0.0);
     
     const IntVect& tilesize{1024000,16,16};
 
@@ -59,7 +59,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                     for (int idim = 0; idim < 3; ++idim) {
                         const Box& bxtmp = amrex::surroundingNodes(bx,idim);
                         flux[idim].resize(bxtmp,NUM_STATE);
-                        flux[idim].setVal(0.0);
+//                        flux[idim].setVal(0.0);
                     }
                     cns_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
                                            BL_TO_FORTRAN_ANYD(dSdt[mfi]),
