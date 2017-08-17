@@ -6,10 +6,10 @@ geometry.is_periodic = 0 0 0
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =   0.0      0.0      0.0
 
-#geometry.prob_hi     =   7.5      3.25     0.1171875
+#geometry.prob_hi     =   7.5      3.75     0.1171875
 #amr.n_cell           =   512      256      8
 
-geometry.prob_hi     =   7.5      3.25     0.2343750
+geometry.prob_hi     =   7.5      3.75     0.2343750
 amr.n_cell           =   256      128      8
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
