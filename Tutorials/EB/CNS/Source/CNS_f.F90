@@ -43,6 +43,7 @@ contains
        Interior_in, Inflow_in, Outflow_in, Symmetry_in, SlipWall_in, NoSlipWall_in, &
        problo_in, probhi_in) &
        bind(c,name='cns_init_fort')
+    use cns_physics_module, only : physics_init
     integer, intent(in) :: physbc_lo_in(3), physbc_hi_in(3)
     integer, value, intent(in) :: Interior_in, Inflow_in, Outflow_in, Symmetry_in, SlipWall_in, NoSlipWall_in
     real(rt), intent(in) :: problo_in(3), probhi_in(3)
@@ -60,6 +61,8 @@ contains
     problo = problo_in
     probhi = probhi_in
     center = 0.5_rt*(problo+probhi)
+
+    call physics_init()
 
   end subroutine cns_init_fort
 

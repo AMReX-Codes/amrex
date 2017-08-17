@@ -1,0 +1,2 @@
+
+F90EXE_sources += cns_prob.F90
