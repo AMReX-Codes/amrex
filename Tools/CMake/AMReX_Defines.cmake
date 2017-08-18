@@ -159,7 +159,6 @@ add_define ( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS )
 #
 # Add all preprocessor definitions to compile string
 # 
-print_list (AMREX_DEFINES)
 add_definitions ( ${AMREX_DEFINES} )
 
 
