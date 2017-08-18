@@ -1,16 +1,15 @@
 
 max_step  = 10000
-stop_time = 9.6e-6
+stop_time = 1.2e-5
 
 geometry.is_periodic = 0 0 0
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =   0.0      0.0      0.0
 
-#geometry.prob_hi     =   7.5      3.75     0.1171875
-#amr.n_cell           =   512      256      8
+geometry.prob_hi     =   7.5      3.75     0.1171875
 
-geometry.prob_hi     =   7.5      3.75     0.2343750
-amr.n_cell           =   256      128      8
+#amr.n_cell           =   512      256      8
+amr.n_cell           =   1024      512      16
 
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
 # 0 = Interior           3 = Symmetry
@@ -43,7 +42,7 @@ amr.check_int               = 100    # number of timesteps between checkpoints
 # PLOTFILES
 amr.plot_files_output = 1
 amr.plot_file         = plt     # root name of plotfile
-amr.plot_int          = 10      # number of timesteps between plotfiles
+amr.plot_int          = 50      # number of timesteps between plotfiles
 amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 # EB
