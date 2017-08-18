@@ -218,7 +218,7 @@ contains
     integer, intent(in), value :: lev
     type(c_ptr), intent(in), value :: cp
     real(amrex_real), intent(in), value :: t
-    character(c_char), intent(in), value :: settag, cleartag
+    character(kind=c_char), intent(in), value :: settag, cleartag
 
     real(amrex_real), allocatable, save :: phierr(:)
     type(amrex_parmparse) :: pp
@@ -226,7 +226,7 @@ contains
     type(amrex_mfiter) :: mfi
     type(amrex_box) :: bx
     real(amrex_real), contiguous, pointer :: phiarr(:,:,:,:)
-    character(c_char), contiguous, pointer :: tagarr(:,:,:,:)
+    character(kind=c_char), contiguous, pointer :: tagarr(:,:,:,:)
 
     if (.not.allocated(phierr)) then
        call amrex_parmparse_build(pp, "myamr")

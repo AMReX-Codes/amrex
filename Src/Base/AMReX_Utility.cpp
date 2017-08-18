@@ -486,6 +486,19 @@ amrex::NItemsPerBin (int totalItems, Array<int> &binCounts)
   }
 }
 
+// -------------------------------------------------------------------
+int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
+                            const Array<int> &refratios)
+{
+  BL_ASSERT(fromlevel >= 0);
+  BL_ASSERT(tolevel >= fromlevel);
+  BL_ASSERT(tolevel <= refratios.size());
+  int level, rr = 1;
+  for(level = fromlevel; level < tolevel; ++level) {
+    rr *= refratios[level];
+  }
+  return rr;
+}
 
 //
 // Fortran entry points for amrex::Random().
