@@ -26,7 +26,7 @@ namespace amrex
 */
 
     //! This shuts up the compiler about unused variables
-    template<class T> void ignore( const T& ) { }
+    template<class T> void ignore_unused( const T& ) { }
 
     //! Return true if argument is a non-zero length string of digits.
     bool is_integer (const char* str);

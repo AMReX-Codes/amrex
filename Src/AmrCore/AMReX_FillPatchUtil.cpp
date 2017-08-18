@@ -146,7 +146,7 @@ namespace amrex
 		
 		int idummy1=0, idummy2=0;
 		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
-                ignore(cc);
+                ignore_unused(cc);
 #ifdef _OPENMP
 #pragma omp parallel if (cc)
 #endif
