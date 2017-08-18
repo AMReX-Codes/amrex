@@ -2004,7 +2004,7 @@ ParallelDescriptor::Barrier();
 
         totalvol += vol;
         if((totalvol / (iProc + 1)) > (newVolPerCPU[iProc]) &&
-	   cnt > 1 && K < tokens.size())
+	   cnt > 1 && K < static_cast<int>(tokens.size()))
 	{
             --K;
             vec[iProc].pop_back();
