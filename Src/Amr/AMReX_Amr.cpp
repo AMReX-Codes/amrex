@@ -2915,7 +2915,7 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     BL_ASSERT(cycle_max[0] == 1);
     // internally these represent the total number of steps at a level, 
     // not the number of cycles
-    int cycles[n];
+    std::vector<int> cycles(n);
     Real best_ratio = 1e200;
     Real best_dt = 0;
     Real ratio;
@@ -3628,17 +3628,17 @@ using std::endl;
 void
 Amr::BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm)
 {
-  int bcvect[bcrec.vectSize()];
-  if(myLocalId == rootId) {
-    for(int i(0); i < bcrec.vectSize(); ++i) {
-      bcvect[i] = bcrec.vect()[i];
+    std::vector<int> bcvect(bcrec.vectSize());
+    if(myLocalId == rootId) {
+        for(int i(0); i < bcrec.vectSize(); ++i) {
+            bcvect[i] = bcrec.vect()[i];
+        }
     }
-  }
-  ParallelDescriptor::Bcast(bcvect, bcrec.vectSize(), rootId, localComm);
-  if(myLocalId != rootId) {
-    bcrec.setVect(bcvect);
-  }
+    ParallelDescriptor::Bcast(bcvect.data(), bcrec.vectSize(), rootId, localComm);
+    if(myLocalId != rootId) {
+        bcrec.setVect(bcvect.data());
+    }
 }
-
+    
 }
 
