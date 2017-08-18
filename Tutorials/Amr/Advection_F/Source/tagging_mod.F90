@@ -16,9 +16,9 @@ contains
        settag, cleartag)
     integer, intent(in) :: level, lo(3), hi(3), philo(4), phihi(4), taglo(4), taghi(4)
     real(amrex_real) , intent(in   ) :: phi(philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
-    character(c_char), intent(inout) :: tag(taglo(1):taghi(1),taglo(2):taghi(2),taglo(3):taghi(3))
+    character(kind=c_char), intent(inout) :: tag(taglo(1):taghi(1),taglo(2):taghi(2),taglo(3):taghi(3))
     real(amrex_real), intent(in) :: time, phierr
-    character(c_char), intent(in) :: settag, cleartag
+    character(kind=c_char), intent(in) :: settag, cleartag
 
     integer :: i,j,k
 
