@@ -1,5 +1,3 @@
 CEXE_sources += main.cpp
 
-FEXE_headers += kdtree_F.H
-f90EXE_sources += kdtree_$(DIM)d.f90
 
