@@ -866,7 +866,7 @@ InitRandom (long                    icount,
                 p.m_idata.cpu = MyProc;
 
                 for (int i = 0; i < NStructInt; i++) {
-                    p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                    p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
                 }
                 
                 // add the struct
@@ -922,7 +922,7 @@ InitRandom (long                    icount,
             p.m_idata.cpu = ParallelDescriptor::MyProc();
             
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
             
             // locate the particle
@@ -1022,7 +1022,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             p.m_idata.cpu = ParallelDescriptor::MyProc();
             
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
 
             // locate the particle
@@ -1108,7 +1108,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
             p.m_idata.cpu = ParallelDescriptor::MyProc();
 
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
 
             // locate the particle
@@ -1195,7 +1195,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                 p.m_idata.cpu = ParallelDescriptor::MyProc();
 
                 for (int i = 0; i < NStructInt; i++) {
-                    p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                    p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
                 }
 
                 // locate the particle
