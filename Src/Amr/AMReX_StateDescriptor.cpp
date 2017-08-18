@@ -612,7 +612,7 @@ StateDescriptor::sameInterps (int scomp,
 
 #ifndef NDEBUG
     int sum = 0;
-    for (int i = 0; i < range.size(); i++)
+    for (int i = 0; i < static_cast<int>(range.size()); i++)
         sum += range[i].second;
     BL_ASSERT(sum == ncomp);
 #endif

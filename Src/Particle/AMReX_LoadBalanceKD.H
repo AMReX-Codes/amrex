@@ -105,7 +105,7 @@ namespace loadBalanceKD {
         amrex::Array<amrex::Real> box_costs;
         tree.GetBoxes(new_bl, box_costs);
         new_ba.define(new_bl);
-    };
+    }
 }
 
 #endif // AMREX_LOADBALANCEKD_H_
