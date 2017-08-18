@@ -82,7 +82,7 @@ contains
     integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
 
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
-    real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc,vtot, fracx,fracy,fracz,dxinv(3)
+    real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,mtot, fracx,fracy,fracz,dxinv(3)
     real(rt) :: divw(5), divwn
     real(rt), pointer, contiguous :: optmp(:,:,:)
 
@@ -392,13 +392,13 @@ contains
           do    j = lo(2)-1, hi(2)+1
              do i = lo(1)-1, hi(1)+1
                 if (is_single_valued_cell(cellflag(i,j,k))) then                   
-                   vtot = 0.d0
+                   mtot = 0.d0
                    call get_neighbor_cells(cellflag(i,j,k),nbr)
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if ((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               vtot = vtot + vfrac(i+ii,j+jj,k+kk)
+                               mtot = mtot + vfrac(i+ii,j+jj,k+kk)*q(i+ii,j+jj,k+kk,qrho)
                             end if
                          end do
                       enddo
@@ -409,7 +409,8 @@ contains
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) + delm(i,j,k,n)*vtot
+                               optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) &
+                                    + delm(i,j,k,n)*vtot*q(i+ii,j+jj,k+kk,qrho)
                             endif
                          enddo
                       enddo
