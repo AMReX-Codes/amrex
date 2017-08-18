@@ -20,8 +20,8 @@ clang_minor_version := $(shell $(CXX) --version | head -1 | sed -e 's/.*version.
 COMP_VERSION := $(clang_version)
 
 DEFINES += -DBL_CLANG_VERSION='$(clang_version)'
-DEFINES += -DBL_CLANG_MAJOR_VERSION=$(clang_major_version)
-DEFINES += -DBL_CLANG_MINOR_VERSION=$(clang_minor_version)
+DEFINES += -DBL_CLANG_MAJOR_VERSION='$(clang_major_version)'
+DEFINES += -DBL_CLANG_MINOR_VERSION='$(clang_minor_version)'
 
 ########################################################################
 
