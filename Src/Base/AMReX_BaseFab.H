@@ -1209,7 +1209,9 @@ BaseFab<T>::define ()
 {
     BL_ASSERT(nvar > 0);
     BL_ASSERT(dptr == 0);
+#ifdef AMREX_USE_DEVICE
     BL_ASSERT(dptr_d == 0);
+#endif
     BL_ASSERT(numpts > 0);
     BL_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
 
