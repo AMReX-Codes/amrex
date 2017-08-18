@@ -4,7 +4,7 @@ module riemann_module
   implicit none
   private
 
-  public :: analriem
+  public :: analriem, hllriem
 
 contains
 
@@ -56,8 +56,8 @@ contains
     clsqr = gamma*pr*rr
     vbarl = 1.d0/rl
     vbarr = 1.d0/rr
-    wl = dsqrt(clsql)
-    wr = dsqrt(clsqr)
+    wl = sqrt(clsql)
+    wr = sqrt(clsqr)
     cleft = wl/rl
     cright = wr/rr
     
@@ -69,8 +69,8 @@ contains
     wlsq = (.5d0*(gamma-1.d0)*(pstar+pl)+pstar)/vbarl
     wrsq = (.5d0*(gamma-1.d0)*(pstar+pr)+pstar)/vbarr
     
-    wl = dsqrt(wlsq)
-    wr = dsqrt(wrsq)
+    wl = sqrt(wlsq)
+    wr = sqrt(wrsq)
     ustarp=ul-(pstar-pl)/wl
     ustarm=ur+(pstar-pr)/wr
     
@@ -186,9 +186,77 @@ contains
     
     flux(1) = rgdnv*ugdnv
     flux(2) = rgdnv*ugdnv*ugdnv+pgdnv
-    flux(3) = ugdnv*(0.5d0*rgdnv*ugdnv*ugdnv + pgdnv/(gamma -1.d0) + pgdnv)
+    flux(3) = ugdnv*(0.5d0*rgdnv*(ugdnv*ugdnv+utrans1*utrans1+utrans2*utrans2) &
+         + pgdnv/(gamma -1.d0) + pgdnv)
     flux(4) = rgdnv*ugdnv*utrans1
     flux(5) = rgdnv*ugdnv*utrans2
   end subroutine analriem
+
+  subroutine hllriem(gamma,statel,stater,smallp,smallr,flux,  debug)
+    logical, intent(in), optional :: debug
+    real(rt), intent(in) :: statel(5),stater(5), smallp, smallr, gamma
+    real(rt), intent(out) :: flux(5)
+    
+    real(rt) :: rl, pl, vnl, vtl, vttl, el, csl
+    real(rt) :: rr, pr, vnr, vtr, vttr, er, csr
+    real(rt) :: fl(5), fr(5), ul(5), ur(5)
+    real(rt) :: alpha_plus, alpha_mins, alpha_pm, aainv
+
+    rl = max(smallr,statel(1))
+    vnl = statel(2)
+    pl = max(smallp,statel(3))
+    vtl = statel(4)
+    vttl = statel(5)
+
+    rr = max(smallr,stater(1))
+    vnr = stater(2)
+    pr = max(smallp,stater(3))
+    vtr = stater(4)
+    vttr = stater(5)
+
+    el = pl/((gamma-1.d0)*rl)
+    er = pr/((gamma-1.d0)*rr)
+    csl = sqrt(gamma*pl/rl)
+    csr = sqrt(gamma*pr/rr)
+
+    ul(1) = rl
+    ul(2) = rl*vnl
+    ul(3) = rl*(el + 0.5d0*(vnl**2+vtl**2+vttl**2))
+    ul(4) = rl*vtl
+    ul(5) = rl*vttl
+
+    ur(1) = rr
+    ur(2) = rr*vnr
+    ur(3) = rr*(er + 0.5d0*(vnr**2+vtr**2+vttr**2))
+    ur(4) = rr*vtr
+    ur(5) = rr*vttr
+
+    alpha_plus = max(0.d0, csl+vnl, csr+vnr)
+    alpha_mins = max(0.d0, csl-vnl, csr-vnr)
+
+    ! LLF
+    ! alpha_plus = max(alpha_plus,alpha_mins)
+    ! alpha_mins = alpha_plus
+    
+    aainv = 1.d0/(alpha_plus+alpha_mins)
+    alpha_pm = alpha_plus * alpha_mins * aainv
+    alpha_plus = alpha_plus * aainv
+    alpha_mins = 1.d0 - alpha_plus
+
+    fl(1) = vnl*ul(1)
+    fl(2) = vnl*ul(2)+pl
+    fl(3) = vnl*(ul(3) + pl)
+    fl(4) = vnl*ul(4)
+    fl(5) = vnl*ul(5)
+
+    fr(1) = vnr*ur(1)
+    fr(2) = vnr*ur(2)+pr
+    fr(3) = vnr*(ur(3) + pr)
+    fr(4) = vnr*ur(4)
+    fr(5) = vnr*ur(5)
+
+    flux = alpha_plus * fl + alpha_mins * fr - alpha_pm*(ur-ul)
+
+  end subroutine hllriem
 
 end module riemann_module

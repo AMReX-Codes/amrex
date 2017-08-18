@@ -39,8 +39,6 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 {
     const Real* dx = geom.CellSize();
 
-//    dSdt.setVal(0.0);
-    
     const IntVect& tilesize{1024000,16,16};
 
     {
@@ -52,8 +50,9 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
             const auto& sfab = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             const auto& flag = sfab.getEBCellFlagFab();
 
-            if (flag.getType(bx) != FabType::covered)
-            {
+            if (flag.getType(bx) == FabType::covered) {
+                dSdt[mfi].setVal(0.0);
+            } else {
                 if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
                 {
                     for (int idim = 0; idim < 3; ++idim) {

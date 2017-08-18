@@ -31,6 +31,7 @@ contains
 
   subroutine cns_estdt (lo,hi,u,ulo,uhi,dx,dt) bind(c,name='cns_estdt')
     use cns_physics_module, only : gamma
+    use cns_module, only : smallp, smallr
     integer, intent(in) :: lo(3), hi(3), ulo(3), uhi(3)
     real(rt), intent(in) :: u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nvar)
     real(rt), intent(in) :: dx(3)
@@ -42,11 +43,11 @@ contains
     do       k = lo(3),hi(3)
        do    j = lo(2),hi(2)
           do i = lo(1),hi(1)
-             rhoinv = 1.d0/u(i,j,k,urho)
+             rhoinv = 1.d0/max(smallr,u(i,j,k,urho))
              vx = u(i,j,k,umx)*rhoinv
              vy = u(i,j,k,umy)*rhoinv
              vz = u(i,j,k,umz)*rhoinv
-             p = (gamma-1.d0)*u(i,j,k,ueint)
+             p = max((gamma-1.d0)*u(i,j,k,ueint),smallp)
              cs = sqrt(gamma*p*rhoinv)
              dt = min(dt,dx(1)/(abs(vx)+cs),dx(2)/(abs(vy)+cs),dx(3)/(abs(vz)+cs))
           end do
