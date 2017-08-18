@@ -928,7 +928,7 @@ InitRandom (long                    icount,
             // locate the particle
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell(): invalid particle");
+                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
             }
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());            
             std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
