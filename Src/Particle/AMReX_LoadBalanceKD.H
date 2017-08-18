@@ -13,7 +13,7 @@ class KDTree {
         amrex::Box box;
         KDNode* left;
         KDNode* right;
-        Real cost;
+        amrex::Real cost;
         int num_procs_left;    
         
         KDNode(const amrex::Box& box_in, 
