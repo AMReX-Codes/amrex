@@ -406,13 +406,13 @@ contains
                       enddo
                    enddo
                    
-                   vtot = 1.d0/vtot
+                   mtot = 1.d0/mtot
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
                                optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) &
-                                    + delm(i,j,k,n)*vtot*q(i+ii,j+jj,k+kk,qrho)
+                                    + delm(i,j,k,n)*mtot*q(i+ii,j+jj,k+kk,qrho)
                             endif
                          enddo
                       enddo
