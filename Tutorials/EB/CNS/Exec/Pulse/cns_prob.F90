@@ -2,22 +2,26 @@ module probdata_module
   use amrex_fort_module, only : rt => amrex_real
   implicit none
   real(rt), save :: rpulse = 0.5d0
-  real(rt), save :: rho0   = 1.4d0
-  real(rt), save :: drho0  = 1.4d-1
+  real(rt), save :: rho0   = 1.2d-3
+  real(rt), save :: drho0  = 1.2d-4
+  real(rt), save :: p0     = 1.01325d6
 end module probdata_module
 
 
 subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
   use amrex_fort_module, only : rt => amrex_real
   use amrex_parmparse_module
-  use probdata_module, only : drho0
+  use probdata_module
   implicit none
   integer, intent(in) :: init, namlen
   integer, intent(in) :: name(namlen)
   real(rt), intent(in) :: problo(*), probhi(*)
   type(amrex_parmparse) :: pp
   call amrex_parmparse_build(pp,"prob")
+  call pp%query("rpulse",rpulse)
+  call pp%query("rho",rho0)
   call pp%query("drho",drho0)
+  call pp%query("p0",p0)
   call amrex_parmparse_destroy(pp)
 end subroutine amrex_probinit
 
@@ -26,7 +30,7 @@ subroutine cns_initdata(level, time, lo, hi, u, ulo, uhi, dx, prob_lo) bind(C, n
   use amrex_fort_module, only : rt => amrex_real
   use cns_physics_module, only : gamma, cv
   use cns_module, only : center, nvar, urho, umx, umy, umz, ueden, ueint, utemp
-  use probdata_module, only : rpulse, rho0, drho0
+  use probdata_module, only : rpulse, rho0, drho0, p0
   implicit none
   integer, intent(in) :: level, lo(3), hi(3), ulo(3), uhi(3)
   real(rt), intent(in) :: time
@@ -51,7 +55,7 @@ subroutine cns_initdata(level, time, lo, hi, u, ulo, uhi, dx, prob_lo) bind(C, n
               u(i,j,k,urho) = rho0 + drho0*exp(-16.d0*r*r)*(cos(Pi*r))**6
            end if
 
-           Pt = (u(i,j,k,urho)/rho0)**gamma
+           Pt = p0*(u(i,j,k,urho)/rho0)**gamma
            u(i,j,k,ueint) = Pt / (gamma-1.d0)
 
            u(i,j,k,umx:umz) = 0.d0
