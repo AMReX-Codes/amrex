@@ -68,7 +68,7 @@ BL_FORT_PROC_DECL(PART_SUMDENSUP,part_sumdensup)
 #endif
 
 #ifdef __cplusplus
-};
+}
 #endif
 
 #endif /*_Particles_F_H_*/
