@@ -1,6 +1,6 @@
 
 max_step  = 10000
-stop_time = 0.24
+stop_time = 7.e-6
 
 geometry.is_periodic = 1 1 1
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
@@ -49,5 +49,4 @@ sphere_center = 0.45  0.65  0.53
 #geom_type = all_regular
 
 # problem specific parameter
-prob.drho = 0.14
-
+prob.drho = 1.2e-4
