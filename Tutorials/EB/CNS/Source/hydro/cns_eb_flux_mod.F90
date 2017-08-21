@@ -110,33 +110,35 @@ contains
                    divc(i,j,k) = 0.d0
                 else if (is_single_valued_cell(cellflag(i,j,k))) then
 
+                   call get_neighbor_cells(cellflag(i,j,k),nbr)
+
                    ! x-direction lo face
                    if (apx(i,j,k).lt.1.d0) then
                       if (centx_y(i,j,k).le.0.d0) then
-                         fracy = -centx_y(i,j,k)
+                         fracy = -centx_y(i,j,k)*nbr(0,-1,0)
                          if(centx_z(i,j,k).le. 0.0d0)then
-                            fracz = - centx_z(i,j,k)
+                            fracz = - centx_z(i,j,k)*nbr(0,0,-1)
                             fxm = (1.d0-fracz)*(     fracy *fluxx(i,j-1,k  ,n)  + &
                                  &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
                                  &      fracz *(     fracy *fluxx(i,j-1,k-1,n)  + &
                                  &             (1.d0-fracy)*fluxx(i,j  ,k-1,n))
                          else
-                            fracz =  centx_z(i,j,k)
+                            fracz =  centx_z(i,j,k)*nbr(0,0,1)
                             fxm = (1.d0-fracz)*(     fracy *fluxx(i,j-1,k  ,n)  + &
                                  &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
                                  &      fracz *(     fracy *fluxx(i,j-1,k+1,n)  + &
                                  &             (1.d0-fracy)*fluxx(i,j  ,k+1,n))
                          endif
                       else
-                         fracy = centx_y(i,j,k)
+                         fracy = centx_y(i,j,k)*nbr(0,1,0)
                          if(centx_z(i,j,k).le. 0.0d0)then
-                            fracz = -centx_z(i,j,k) 
+                            fracz = -centx_z(i,j,k)*nbr(0,0,-1)
                             fxm = (1.d0-fracz)*(     fracy *fluxx(i,j+1,k  ,n)  + &
                                  &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
                                  &      fracz *(     fracy *fluxx(i,j+1,k-1,n)  + &
                                  &             (1.d0-fracy)*fluxx(i,j  ,k-1,n))
                          else
-                            fracz = centx_z(i,j,k) 
+                            fracz = centx_z(i,j,k)*nbr(0,0,1)
                             fxm = (1.d0-fracz)*(     fracy *fluxx(i,j+1,k  ,n)  + &
                                  &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
                                  &      fracz *(     fracy *fluxx(i,j+1,k+1,n)  + &
@@ -150,30 +152,30 @@ contains
                    ! x-direction hi face
                    if (apx(i+1,j,k).lt.1.d0) then
                       if (centx_y(i+1,j,k).le.0.d0) then
-                         fracy = -centx_y(i+1,j,k)
+                         fracy = -centx_y(i+1,j,k)*nbr(0,-1,0)
                          if(centx_z(i+1,j,k).le. 0.0d0)then
-                            fracz = - centx_z(i+1,j,k)
+                            fracz = - centx_z(i+1,j,k)*nbr(0,0,-1)
                             fxp = (1.d0-fracz)*(     fracy *fluxx(i+1,j-1,k  ,n)  + &
                                  &             (1.d0-fracy)*fluxx(i+1,j  ,k  ,n)) + &
                                  &      fracz *(     fracy *fluxx(i+1,j-1,k-1,n)  + &
                                  &             (1.d0-fracy)*fluxx(i+1,j  ,k-1,n))
                          else
-                            fracz =  centx_z(i+1,j,k)
+                            fracz =  centx_z(i+1,j,k)*nbr(0,0,1)
                             fxp = (1.d0-fracz)*(     fracy *fluxx(i+1,j-1,k  ,n)  + &
                                  &             (1.d0-fracy)*fluxx(i+1,j  ,k  ,n)) + &
                                  &      fracz *(     fracy *fluxx(i+1,j-1,k+1,n)  + &
                                  &             (1.d0-fracy)*fluxx(i+1,j  ,k+1,n))
                          endif
                       else
-                         fracy = centx_y(i+1,j,k)
+                         fracy = centx_y(i+1,j,k)*nbr(0,1,0)
                          if(centx_z(i+1,j,k).le. 0.0d0)then
-                            fracz = -centx_z(i+1,j,k) 
+                            fracz = -centx_z(i+1,j,k)*nbr(0,0,-1)
                             fxp = (1.d0-fracz)*(     fracy *fluxx(i+1,j+1,k  ,n)  + &
                                  &             (1.d0-fracy)*fluxx(i+1,j  ,k  ,n)) + &
                                  &      fracz *(     fracy *fluxx(i+1,j+1,k-1,n)  + &
                                  &             (1.d0-fracy)*fluxx(i+1,j  ,k-1,n))
                          else
-                            fracz = centx_z(i+1,j,k) 
+                            fracz = centx_z(i+1,j,k)*nbr(0,0,1)
                             fxp = (1.d0-fracz)*(     fracy *fluxx(i+1,j+1,k  ,n)  + &
                                  &             (1.d0-fracy)*fluxx(i+1,j  ,k  ,n)) + &
                                  &      fracz *(     fracy *fluxx(i+1,j+1,k+1,n)  + &
@@ -187,30 +189,30 @@ contains
                    ! y-direction lo face
                    if (apy(i,j,k).lt.1.d0) then
                       if (centy_x(i,j,k).le.0.d0) then
-                         fracx = - centy_x(i,j,k)
+                         fracx = - centy_x(i,j,k)*nbr(-1,0,0)
                          if(centy_z(i,j,k).le. 0.0d0)then
-                            fracz = - centy_z(i,j,k)
+                            fracz = - centy_z(i,j,k)*nbr(0,0,-1)
                             fym = (1.d0-fracz)*(     fracx *fluxy(i-1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i-1,j,k-1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k-1,n))
                          else
-                            fracz =  centy_z(i,j,k)
+                            fracz =  centy_z(i,j,k)*nbr(0,0,1)
                             fym = (1.d0-fracz)*(     fracx *fluxy(i-1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i-1,j,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k+1,n))
                          endif
                       else
-                         fracx =  centy_x(i,j,k)
+                         fracx =  centy_x(i,j,k)*nbr(1,0,0)
                          if(centy_z(i,j,k).le. 0.0d0)then
-                            fracz = -centx_z(i,j,k) 
+                            fracz = -centx_z(i,j,k)*nbr(0,0,-1)
                             fym = (1.d0-fracz)*(     fracx *fluxy(i+1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j,k-1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k-1,n))
                          else
-                            fracz = centx_z(i,j,k) 
+                            fracz = centx_z(i,j,k)*nbr(0,0,1)
                             fym = (1.d0-fracz)*(     fracx *fluxy(i+1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j,k+1,n)  + &
@@ -224,30 +226,30 @@ contains
                    ! y-direction hi face
                    if (apy(i,j+1,k).lt.1d0) then
                       if (centy_x(i,j+1,k).le.0.d0) then
-                         fracx = - centy_x(i,j+1,k)
+                         fracx = - centy_x(i,j+1,k)*nbr(-1,0,0)
                          if(centy_z(i,j+1,k).le. 0.0d0)then
-                            fracz = - centy_z(i,j+1,k)
+                            fracz = - centy_z(i,j+1,k)*nbr(0,0,-1)
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i-1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i-1,j+1,k-1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k-1,n))
                          else
-                            fracz =  centy_z(i,j+1,k)
+                            fracz =  centy_z(i,j+1,k)*nbr(0,0,1)
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i-1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i-1,j+1,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k+1,n))
                          endif
                       else
-                         fracx =  centy_x(i,j+1,k)
+                         fracx =  centy_x(i,j+1,k)*nbr(1,0,0)
                          if(centy_z(i,j+1,k).le. 0.0d0)then
-                            fracz = -centx_z(i,j+1,k) 
+                            fracz = -centx_z(i,j+1,k)*nbr(0,0,-1)
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i+1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j+1,k-1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k-1,n))
                          else
-                            fracz = centx_z(i,j+1,k) 
+                            fracz = centx_z(i,j+1,k)*nbr(0,0,1)
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i+1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j+1,k+1,n)  + &
@@ -261,30 +263,30 @@ contains
                    ! z-direction lo face
                    if(apz(i,j,k).lt.1.d0)then
                       if(centz_x(i,j,k).le. 0.0d0)then
-                         fracx = - centz_x(i,j,k)
+                         fracx = - centz_x(i,j,k)*nbr(-1,0,0)
                          if(centz_y(i,j,k).le. 0.0d0)then
-                            fracy = - centz_y(i,j,k)
+                            fracy = - centz_y(i,j,k)*nbr(0,-1,0)
                             fzm = (1.d0-fracy)*(     fracx *fluxz(i-1,j  ,k,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k,n)) + &
                                  &      fracy* (     fracx *fluxz(i-1,j-1,k,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j-1,k,n))
                          else
-                            fracy =  centz_y(i,j,k)
+                            fracy =  centz_y(i,j,k)*nbr(0,1,0)
                             fzm = (1.d0-fracy)*(     fracx *fluxz(i-1,j  ,k,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k,n)) + &
                                  &      fracy *(     fracx *fluxz(i-1,j+1,k,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j+1,k,n))
                          endif
                       else
-                         fracx =  centz_x(i,j,k)
+                         fracx =  centz_x(i,j,k)*nbr(1,0,0)
                          if(centz_y(i,j,k).le. 0.0d0)then
-                            fracy = -centz_y(i,j,k) 
+                            fracy = -centz_y(i,j,k)*nbr(0,-1,0)
                             fzm = (1.d0-fracy)*(     fracx *fluxz(i+1,j  ,k,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k,n)) + &
                                  &      fracy *(     fracx *fluxz(i+1,j-1,k,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j-1,k,n))
                          else
-                            fracy = centz_y(i,j,k) 
+                            fracy = centz_y(i,j,k)*nbr(0,1,0)
                             fzm = (1.d0-fracy)*(     fracx *fluxz(i+1,j  ,k,n)+ &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k,n)) + &
                                  &      fracy* (     fracx *fluxz(i+1,j+1,k,n)+ &
@@ -298,30 +300,30 @@ contains
                    ! z-direction hi face
                    if(apz(i,j,k+1).lt.1.d0)then
                       if(centz_x(i,j,k+1).le. 0.0d0)then
-                         fracx = - centz_x(i,j,k+1)
+                         fracx = - centz_x(i,j,k+1)*nbr(-1,0,0)
                          if(centz_y(i,j,k+1).le. 0.0d0)then
-                            fracy = - centz_y(i,j,k+1)
+                            fracy = - centz_y(i,j,k+1)*nbr(0,-1,0)
                             fzp = (1.d0-fracy)*(     fracx *fluxz(i-1,j  ,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k+1,n)) + &
                                  &      fracy* (     fracx *fluxz(i-1,j-1,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j-1,k+1,n))
                          else
-                            fracy =  centz_y(i,j,k+1)
+                            fracy =  centz_y(i,j,k+1)*nbr(0,1,0)
                             fzp = (1.d0-fracy)*(     fracx *fluxz(i-1,j  ,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k+1,n)) + &
                                  &      fracy *(     fracx *fluxz(i-1,j+1,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j+1,k+1,n))
                          endif
                       else
-                         fracx =  centz_x(i,j,k+1)
+                         fracx =  centz_x(i,j,k+1)*nbr(1,0,0)
                          if(centz_y(i,j,k+1).le. 0.0d0)then
-                            fracy = -centz_y(i,j,k+1) 
+                            fracy = -centz_y(i,j,k+1)*nbr(0,-1,0)
                             fzp = (1.d0-fracy)*(     fracx *fluxz(i+1,j  ,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k+1,n)) + &
                                  &      fracy *(     fracx *fluxz(i+1,j-1,k+1,n)  + &
                                  &             (1.d0-fracx)*fluxz(i  ,j-1,k+1,n))
                          else
-                            fracy = centz_y(i,j,k+1) 
+                            fracy = centz_y(i,j,k+1)*nbr(0,1,0)
                             fzp = (1.d0-fracy)*(     fracx *fluxz(i+1,j  ,k+1,n)+ &
                                  &             (1.d0-fracx)*fluxz(i  ,j  ,k+1,n)) + &
                                  &      fracy* (     fracx *fluxz(i+1,j+1,k+1,n)+ &
@@ -404,13 +406,13 @@ contains
                       enddo
                    enddo
                    
-                   vtot = 1.d0/vtot
+                   mtot = 1.d0/mtot
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
                                optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) &
-                                    + delm(i,j,k,n)*vtot*q(i+ii,j+jj,k+kk,qrho)
+                                    + delm(i,j,k,n)*mtot*q(i+ii,j+jj,k+kk,qrho)
                             endif
                          enddo
                       enddo
