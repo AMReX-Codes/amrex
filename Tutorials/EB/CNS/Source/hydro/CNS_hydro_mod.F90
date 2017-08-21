@@ -18,6 +18,7 @@ contains
        u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,dx) &
        bind(c,name='cns_compute_hydro_flux')
     use advection_module, only : hyp_mol_gam_3d
+    use diffusion_module, only : diff_mol_3d
     use cns_eb_flux_module, only : compute_diffop
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi, &
          fxlo,fxhi,fylo,fyhi,fzlo,fzhi
@@ -39,6 +40,8 @@ contains
     
     call hyp_mol_gam_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
 
+    call diff_mol_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
+
     call compute_diffop (lo,hi,5,dx,dudt,utlo,uthi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi)
 
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
@@ -52,6 +55,7 @@ contains
        centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, &
        dx) bind(c,name='cns_eb_compute_hydro_flux')
     use eb_advection_module, only : hyp_mol_gam_eb_3d, nextra_eb
+    use eb_diffusion_module, only : eb_diff_mol_3d
     use cns_eb_flux_module, only : compute_eb_diffop
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi, &
          fxlo,fxhi,fylo,fyhi,fzlo,fzhi, &
@@ -93,6 +97,8 @@ contains
     
     call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi,&
          flag, fglo, fghi)
+
+    call eb_diff_mol_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
 
     call compute_eb_diffop(lo,hi,5,dx,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,&
          dudt,utlo,uthi, q,qlo,qhi, &
