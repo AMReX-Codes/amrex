@@ -40,6 +40,9 @@ public:
     T* dataPtr () { return this->data(); }
     //! get access to the underlying array 
     const T* dataPtr () const { return this->data(); }
+
+    long size() const {return static_cast<long>(std::vector<T>::size());}
+
 };
 
 }
