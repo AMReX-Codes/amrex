@@ -40,7 +40,7 @@ contains
     
     call hyp_mol_gam_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
 
-    call diff_mol_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
+    call diff_mol_3d(q, qlo, qhi, lo, hi, dx, dt, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
 
     call compute_diffop (lo,hi,5,dx,dudt,utlo,uthi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi)
 
@@ -99,7 +99,7 @@ contains
     call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi,&
          flag, fglo, fghi)
 
-    call eb_diff_mol_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
+    call eb_diff_mol_3d(q, qlo, qhi, lo, hi, dx, dt, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
 
     call compute_eb_diffop(lo,hi,5,dx,dt,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,&
          dudt,utlo,uthi, q,qlo,qhi, &
