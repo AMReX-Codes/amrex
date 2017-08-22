@@ -25,6 +25,9 @@ namespace amrex
 * \brief Useful C++ Utility Functions
 */
 
+    //! This shuts up the compiler about unused variables
+    template<class T> void ignore_unused( const T& ) { }
+
     //! Return true if argument is a non-zero length string of digits.
     bool is_integer (const char* str);
     //! Splits "instr" into separate pieces based on "separators".
@@ -227,6 +230,12 @@ namespace amrex
     *   The remainder items are randomly assigned.
     */
     void NItemsPerBin (int totalItems, Array<int> &binCounts);
+
+    /* \brief cumulative refinement ratio between levels */
+    int CRRBetweenLevels(int fromlevel, int tolevel,
+                         const Array<int> &refratios);
+
+
 
     class expect;
     std::istream& operator>>(std::istream&, const expect& exp);

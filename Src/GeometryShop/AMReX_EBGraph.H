@@ -367,6 +367,11 @@ namespace amrex
       {
         return m_multiIVS;
       }
+    
+    Box getFullRegion() const
+      {
+        return m_fullRegion;
+      }
   private:
 
     ///for serialization
@@ -374,7 +379,10 @@ namespace amrex
 
     ///box over which this graph is defined
     Box m_region;
-        
+
+    ///box NOT intersected  with domain
+    Box m_fullRegion;
+
     ///computational domain at this level of refinement
     Box m_domain;
         
@@ -483,6 +491,13 @@ namespace amrex
       {
         return m_implem->numVoFs(a_iv);
       }
+
+    ///
+    Box getFullRegion() const
+      {
+        return m_implem->getFullRegion();
+      }
+
     ///
     /**
        Return true if every cell in the EBGraph is a regular cell.
@@ -794,12 +809,15 @@ namespace amrex
         
     ///
     /**
-       This resizes the BaseFab to cover getRegion
+       This resizes the BaseFab to cover the input region
        1 = regular
        0 = irregular
        -1 = covered
+
+       2 outside the domain
     */
-    void fillIntMask(BaseFab<int>& a_mask) const;
+    void fillIntMask(BaseFab<int>& a_mask,
+                     const Box   & a_subbox) const;
         
         
     ///

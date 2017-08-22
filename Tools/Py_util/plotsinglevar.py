@@ -3,11 +3,14 @@
 # a simple script to plot 2-d or 3-d BoxLib data using the matplotlib
 # library
 #
-# 2011-12-02 M. Zingale
+
+from __future__ import print_function
+
+import matplotlib                                                               
+matplotlib.use('agg')   
 
 import numpy
 import pylab
-import matplotlib
 import os
 import sys
 import getopt
@@ -19,9 +22,9 @@ import mpl_toolkits.axes_grid1
 try:
     import fsnapshot
 except ImportError as e:
-    print "*** ERROR: %s ***" % e
-    print "\nNote: this script requires the fsnapshot.so library, compiled", \
-           "\nwith f2py using the GNUmakefile in BoxLib/Tools/Py_util."
+    print("*** ERROR: {} ***".format(e))
+    print("\nNote: this script requires the fsnapshot.so library, compiled", \
+          "\nwith f2py using the GNUmakefile in AmrPostprocessing/python.")
     sys.exit()
 
 
@@ -392,7 +395,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         #fig.add_axes(pos1)
 
         im=pylab.imshow(data_xy[iy0:iy,ix0:ix],origin='lower', extent=extent, 
-                        vmin=minval, vmax=maxval, axes=pos1)
+                        vmin=minval, vmax=maxval)#, axes=pos1)
 
         pylab.xlabel("x")
         pylab.ylabel("y")
@@ -450,7 +453,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         #fig.add_axes(pos2)
 
         im=pylab.imshow(data_xz[iz0:iz,ix0:ix],origin='lower', extent=extent, 
-                        vmin=minval, vmax=maxval, axes=pos2)
+                        vmin=minval, vmax=maxval) #, axes=pos2)
 
         pylab.xlabel("x")
         pylab.ylabel("z")
@@ -499,7 +502,7 @@ def do_plot(plotfile, component, component2, outFile, log,
         #fig.add_axes(pos3)
 
         im=pylab.imshow(data_yz[iz0:iz,iy0:iy],origin='lower', extent=extent, 
-                        vmin=minval, vmax=maxval, axes=pos3)
+                        vmin=minval, vmax=maxval) #, axes=pos3)
 
         pylab.xlabel("y")
         pylab.ylabel("z")
@@ -569,6 +572,15 @@ def usage():
                     (note: if the data < 0 anywhere, then the abs
                      is taken first)
 
+       -x num       minimum x coordinate
+       -X num       maximum x coordinate
+
+       -y num       minimum y coordinate
+       -Y num       maximum y coordinate
+
+       -z num       minimum z coordinate
+       -Z num       maximum z coordinate
+
        --eps        make an EPS plot instead of a PNG
 
        --dpi value  (PNG only) make the plot with the dpi specified by
@@ -584,7 +596,7 @@ def usage():
     f2py using the GNUmakefile in AmrPostprocessing/python.
 
     """              
-    print usageStr
+    print(usageStr)
 
 
 
@@ -613,7 +625,7 @@ if __name__== "__main__":
     try: opts, next = getopt.getopt(sys.argv[1:], "o:m:M:n:N:x:y:z:X:Y:Z:", 
                                     ["log","eps","dpi=","origin","annotate="])
     except getopt.GetoptError:
-        print "invalid calling sequence"
+        print("invalid calling sequence")
         usage()
         sys.exit(2) 
                
@@ -626,61 +638,61 @@ if __name__== "__main__":
         if o == "-m":
             try: minvar = float(a)
             except ValueError:
-                print "invalid value for -m"
+                print("invalid value for -m")
                 sys.exit(2)
 
         if o == "-M":
             try: maxvar = float(a)
             except ValueError:
-                print "invalid value for -M"
+                print("invalid value for -M")
                 sys.exit(2)
 
         if o == "-n":
             try: minvar2 = float(a)
             except ValueError:
-                print "invalid value for -n"
+                print("invalid value for -n")
                 sys.exit(2)
 
         if o == "-N":
             try: maxvar2 = float(a)
             except ValueError:
-                print "invalid value for -N"
+                print("invalid value for -N")
                 sys.exit(2)
 
         if o == "-x":
             try: xmin = float(a)
             except ValueError:
-                print "invalid value for -x"
+                print("invalid value for -x")
                 sys.exit(2)            
 
         if o == "-y":
             try: ymin = float(a)
             except ValueError:
-                print "invalid value for -y"
+                print("invalid value for -y")
                 sys.exit(2)            
 
         if o == "-z":
             try: zmin = float(a)
             except ValueError:
-                print "invalid value for -z"
+                print("invalid value for -z")
                 sys.exit(2)            
 
         if o == "-X":
             try: xmax = float(a)
             except ValueError:
-                print "invalid value for -X"
+                print("invalid value for -X")
                 sys.exit(2)            
 
         if o == "-Y":
             try: ymax = float(a)
             except ValueError:
-                print "invalid value for -Y"
+                print("invalid value for -Y")
                 sys.exit(2)            
 
         if o == "-Z":
             try: zmax = float(a)
             except ValueError:
-                print "invalid value for -Z"
+                print("invalid value for -Z")
                 sys.exit(2)            
  
         if o == "--log":
@@ -692,7 +704,7 @@ if __name__== "__main__":
         if o == "--dpi":
             try: dpi = int(a)
             except ValueError:
-                print "invalid value for --dpi"
+                print("invalid value for --dpi")
                 sys.exit(2)
 
         if o == "--origin":
@@ -705,13 +717,13 @@ if __name__== "__main__":
 
     try: plotfile = next[0]
     except IndexError:
-        print "ERROR: plotfile not specified"
+        print("ERROR: plotfile not specified")
         usage()
         sys.exit(2)
 
     try: component = next[1]
     except IndexError:
-        print "ERROR: no component specified"
+        print("ERROR: no component specified")
         usage()
         sys.exit(2)    
 
