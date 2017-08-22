@@ -60,13 +60,13 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                         flux[idim].resize(bxtmp,NUM_STATE);
 //                        flux[idim].setVal(0.0);
                     }
-                    cns_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
-                                           BL_TO_FORTRAN_ANYD(dSdt[mfi]),
-                                           BL_TO_FORTRAN_ANYD(S[mfi]),
-                                           BL_TO_FORTRAN_ANYD(flux[0]),
-                                           BL_TO_FORTRAN_ANYD(flux[1]),
-                                           BL_TO_FORTRAN_ANYD(flux[2]),
-                                           dx);
+                    cns_compute_dudt(BL_TO_FORTRAN_BOX(bx),
+                                     BL_TO_FORTRAN_ANYD(dSdt[mfi]),
+                                     BL_TO_FORTRAN_ANYD(S[mfi]),
+                                     BL_TO_FORTRAN_ANYD(flux[0]),
+                                     BL_TO_FORTRAN_ANYD(flux[1]),
+                                     BL_TO_FORTRAN_ANYD(flux[2]),
+                                     dx);
                 }
                 else
                 {
@@ -77,21 +77,21 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                         flux[idim].resize(bxtmp,NUM_STATE);
 //                        flux[idim].setVal(0.0);
                     }
-                    cns_eb_compute_hydro_flux(BL_TO_FORTRAN_BOX(bx),
-                                              BL_TO_FORTRAN_ANYD(dSdt[mfi]),
-                                              BL_TO_FORTRAN_ANYD(S[mfi]),
-                                              BL_TO_FORTRAN_ANYD(flux[0]),
-                                              BL_TO_FORTRAN_ANYD(flux[1]),
-                                              BL_TO_FORTRAN_ANYD(flux[2]),
-                                              BL_TO_FORTRAN_ANYD(flag),
-                                              BL_TO_FORTRAN_ANYD(volfrac[mfi]),
-                                              BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
-                                              BL_TO_FORTRAN_ANYD(areafrac[1][mfi]),
-                                              BL_TO_FORTRAN_ANYD(areafrac[2][mfi]),
-                                              BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
-                                              BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
-                                              BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
-                                              dx);
+                    cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(dSdt[mfi]),
+                                        BL_TO_FORTRAN_ANYD(S[mfi]),
+                                        BL_TO_FORTRAN_ANYD(flux[0]),
+                                        BL_TO_FORTRAN_ANYD(flux[1]),
+                                        BL_TO_FORTRAN_ANYD(flux[2]),
+                                        BL_TO_FORTRAN_ANYD(flag),
+                                        BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                                        BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
+                                        BL_TO_FORTRAN_ANYD(areafrac[1][mfi]),
+                                        BL_TO_FORTRAN_ANYD(areafrac[2][mfi]),
+                                        BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
+                                        BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
+                                        BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
+                                        dx);
                 }
             }
         }

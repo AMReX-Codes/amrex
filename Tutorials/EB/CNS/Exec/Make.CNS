@@ -20,6 +20,10 @@ include $(TOP)/Source/hydro/Make.package
 INCLUDE_LOCATIONS += $(TOP)/Source/hydro
 VPATH_LOCATIONS   += $(TOP)/Source/hydro
 
+include $(TOP)/Source/diffusion/Make.package
+INCLUDE_LOCATIONS += $(TOP)/Source/diffusion
+VPATH_LOCATIONS   += $(TOP)/Source/diffusion
+
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package

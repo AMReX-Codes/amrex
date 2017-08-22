@@ -1,11 +1,12 @@
 module cns_nd_module
 
   use amrex_fort_module, only : rt=>amrex_real
-  use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar
+  use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar, &
+       qrho,qu,qv,qw,qp,qc,qeint,qtemp,qvar
   implicit none
   private
 
-  public :: cns_compute_temperature, cns_estdt
+  public :: cns_compute_temperature, cns_estdt, ctoprim
 
 contains
 
@@ -55,6 +56,7 @@ contains
     end do
   end subroutine cns_estdt
 
+
   subroutine cns_compute_dsdt (lo,hi,ut,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,dx) &
        bind(c,name='cns_compute_dsdt')
     integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),fxlo(3),fxhi(3),fylo(3),fyhi(3),fzlo(3),fzhi(3)
@@ -82,5 +84,37 @@ contains
        end do
     end do
   end subroutine cns_compute_dsdt
+
+
+  subroutine ctoprim (lo,hi,u,ulo,uhi,q,qlo,qhi)
+    use cns_physics_module, only : gamma, cv
+    use cns_module, only : smallp, smallr
+    integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),qlo(3),qhi(3)
+    real(rt), intent(in   ) :: u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nvar)
+    real(rt), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
+    
+    integer :: i,j,k
+    real(rt) :: rhoinv, kineng
+    
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             q(i,j,k,qrho) = max(smallr,u(i,j,k,urho))
+             rhoinv = 1.d0/q(i,j,k,qrho)
+             q(i,j,k,qu) = u(i,j,k,umx)*rhoinv
+             q(i,j,k,qv) = u(i,j,k,umy)*rhoinv
+             q(i,j,k,qw) = u(i,j,k,umz)*rhoinv
+             kineng = 0.5d0*q(i,j,k,qrho)*(q(i,j,k,QU)**2 + q(i,j,k,QV)**2 + q(i,j,k,QW)**2)
+             q(i,j,k,qeint) = (u(i,j,k,ueden)-kineng) * rhoinv
+             if (q(i,j,k,qeint) .le. 0.d0) then
+                q(i,j,k,qeint) = u(i,j,k,ueint) * rhoinv
+             end if
+             q(i,j,k,qp) = max(smallp,(gamma-1.d0)*q(i,j,k,qeint)*q(i,j,k,qrho))
+             q(i,j,k,qc) = sqrt(gamma*q(i,j,k,qp)*rhoinv)
+             q(i,j,k,qtemp) = q(i,j,k,qeint) * (1.d0/cv)
+          end do
+       end do
+    end do
+  end subroutine ctoprim
 
 end module cns_nd_module
