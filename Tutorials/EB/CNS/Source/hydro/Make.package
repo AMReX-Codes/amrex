@@ -1,4 +1,3 @@
-F90EXE_sources += CNS_hydro_mod.F90
 
 F90EXE_sources += Hyp_gamma_MOL.F90
 F90EXE_sources += Hyp_gamma_MOL_EB.F90
@@ -11,9 +10,4 @@ F90EXE_sources += analriem3d.F90
 F90EXE_sources += cns_eb_flux_mod.F90
 
 F90EXE_sources += cns_eb_hyp_wall.F90
-
-F90EXE_sources += cns_diff_mod.F90
-F90EXE_sources += cns_eb_diff_mod.F90
-
-F90EXE_sources += diff_coef_mod.F90
 
