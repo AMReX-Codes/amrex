@@ -36,7 +36,7 @@ contains
     end do
   end subroutine compute_diffop
 
-  subroutine compute_eb_diffop (lo,hi,ncomp, dx, &
+  subroutine compute_eb_diffop (lo,hi,ncomp, dx, dt, &
        fluxx,fxlo,fxhi, &
        fluxy,fylo,fyhi, &
        fluxz,fzlo,fzhi, &
@@ -55,13 +55,13 @@ contains
        centz_x, czxlo, czxhi, &
        centz_y, czylo, czyhi, &
        cellflag, cflo, cfhi)
-    use cns_module, only : qvar, qrho, qu, qv, qw, qp, umx, umy, umz
+    use cns_module, only : qvar, qrho, qu, qv, qw, qp, umx, umy, umz, smallr
     use cns_eb_hyp_wall_module, only : compute_hyp_wallflux
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
          cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi
     integer, intent(in) :: ncomp
-    real(rt), intent(in) :: dx(3)
+    real(rt), intent(in) :: dx(3), dt
     real(rt), intent(in) :: fluxx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),ncomp)
     real(rt), intent(in) :: fluxy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),ncomp)
     real(rt), intent(in) :: fluxz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),ncomp)
@@ -84,13 +84,14 @@ contains
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,mtot, fracx,fracy,fracz,dxinv(3)
     real(rt) :: divw(5), divwn
-    real(rt), pointer, contiguous :: optmp(:,:,:)
+    real(rt), pointer, contiguous :: optmp(:,:,:), rhonew(:,:,:)
 
     !  centroid nondimensional  and zero at face center
 
     dxinv = 1.d0/dx
 
     call amrex_allocate(optmp, lo-2, hi+2)
+    call amrex_allocate(rhonew, lo-2, hi+2)
 
     do n = 1, ncomp
 
@@ -352,6 +353,12 @@ contains
                         +          divwn * dxinv(1)) / vfrac(i,j,k)
                 end if
              end do
+
+             if (n.eq.1) then
+                do i = lo(1)-2, hi(1)+2
+                   rhonew(i,j,k) = max(smallr, q(i,j,k,qrho)+dt*divc(i,j,k))
+                end do
+             end if
           end do
        end do
 
@@ -400,7 +407,7 @@ contains
                       do jj = -1,1
                          do ii = -1,1
                             if ((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               mtot = mtot + vfrac(i+ii,j+jj,k+kk)*q(i+ii,j+jj,k+kk,qrho)
+                               mtot = mtot + vfrac(i+ii,j+jj,k+kk)*rhonew(i+ii,j+jj,k+kk)
                             end if
                          end do
                       enddo
@@ -412,7 +419,7 @@ contains
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
                                optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) &
-                                    + delm(i,j,k,n)*mtot*q(i+ii,j+jj,k+kk,qrho)
+                                    + delm(i,j,k,n)*mtot*rhonew(i+ii,j+jj,k+kk)
                             endif
                          enddo
                       enddo
@@ -432,6 +439,7 @@ contains
 
     end do
 
+    call amrex_deallocate(rhonew)
     call amrex_deallocate(optmp)
 
   end subroutine compute_eb_diffop

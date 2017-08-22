@@ -14,7 +14,7 @@ module cns_dudt_module
 contains
 
   subroutine cns_compute_dudt (lo,hi, dudt, utlo, uthi, &
-       u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,dx) &
+       u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,dx,dt) &
        bind(c,name='cns_compute_dudt')
     use cns_nd_module, only : ctoprim
     use advection_module, only : hyp_mol_gam_3d
@@ -27,7 +27,7 @@ contains
     real(rt), intent(inout) :: fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),nvar)
     real(rt), intent(inout) :: fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),nvar)
     real(rt), intent(inout) :: fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),nvar)
-    real(rt), intent(in) :: dx(3)
+    real(rt), intent(in) :: dx(3), dt
 
     integer :: qlo(3), qhi(3)
     real(rt), pointer, contiguous :: q(:,:,:,:)
@@ -52,8 +52,8 @@ contains
   subroutine cns_eb_compute_dudt (lo,hi, dudt, utlo, uthi, &
        u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,flag,fglo,fghi, &
        volfrac,vlo,vhi,apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
-       centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, &
-       dx) bind(c,name='cns_eb_compute_dudt')
+       centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, dx,dt) &
+       bind(c,name='cns_eb_compute_dudt')
     use cns_nd_module, only : ctoprim
     use eb_advection_module, only : hyp_mol_gam_eb_3d, nextra_eb
     use eb_diffusion_module, only : eb_diff_mol_3d
@@ -76,7 +76,7 @@ contains
     real(rt), intent(in) :: centx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
     real(rt), intent(in) :: centy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
     real(rt), intent(in) :: centz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
-    real(rt), intent(in) :: dx(3)
+    real(rt), intent(in) :: dx(3), dt
 
     integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(3), dmhi(3)
     real(rt), pointer, contiguous :: q(:,:,:,:), divc(:,:,:), dm(:,:,:,:)
@@ -101,7 +101,7 @@ contains
 
     call eb_diff_mol_3d(q, qlo, qhi, lo, hi, dx, fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
 
-    call compute_eb_diffop(lo,hi,5,dx,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,&
+    call compute_eb_diffop(lo,hi,5,dx,dt,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,&
          dudt,utlo,uthi, q,qlo,qhi, &
          divc,dvlo,dvhi, dm,dmlo,dmhi, &
          volfrac,vlo,vhi,apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
