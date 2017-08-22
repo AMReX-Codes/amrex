@@ -56,7 +56,7 @@ extern "C" {
                            amrex_real* fx, const int* fxlo, const int* fxhi,
                            amrex_real* fy, const int* fylo, const int* fyhi,
                            amrex_real* fz, const int* fzlo, const int* fzhi,
-                           const amrex_real* dx);
+                           const amrex_real* dx, const amrex_real* dt);
 
     void cns_eb_compute_dudt (const int* lo, const int* hi,
                               amrex_real* dudt, const int* utlo, const int* uthi,
@@ -72,7 +72,7 @@ extern "C" {
                               const amrex_real* cx, const int* cxlo, const int* cxhi,
                               const amrex_real* cy, const int* cylo, const int* cyhi,
                               const amrex_real* cz, const int* czlo, const int* czhi,
-                              const amrex_real* dx);
+                              const amrex_real* dx, const amrex_real* dt);
 
 #ifdef __cplusplus
 }

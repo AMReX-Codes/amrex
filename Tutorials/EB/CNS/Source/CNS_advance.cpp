@@ -66,7 +66,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                                      BL_TO_FORTRAN_ANYD(flux[0]),
                                      BL_TO_FORTRAN_ANYD(flux[1]),
                                      BL_TO_FORTRAN_ANYD(flux[2]),
-                                     dx);
+                                     dx, &dt);
                 }
                 else
                 {
@@ -91,7 +91,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                                         BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
-                                        dx);
+                                        dx, &dt);
                 }
             }
         }
