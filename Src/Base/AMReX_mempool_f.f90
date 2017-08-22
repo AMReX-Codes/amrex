@@ -2,15 +2,10 @@ module mempool_module
 
   use iso_c_binding
 
-! If used by Fortran BoxLib, don't have amrex_fort_module.
-!  use amrex_fort_module, only : c_real=>amrex_real
+  use amrex_fort_module, only : c_real=>amrex_real, szr=>amrex_real_size
 
   implicit none
 
-  integer, parameter, private :: c_real = 8
-
-  ! We could/should use Fortran 2008 c_sizeof here.
-  integer (kind=c_size_t), parameter, private :: szr = c_real
   integer (kind=c_size_t), parameter, private :: szi = 4_c_size_t
 
   interface amrex_allocate

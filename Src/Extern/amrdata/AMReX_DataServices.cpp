@@ -6,14 +6,22 @@
 #include <AMReX_AmrvisConstants.H>
 #include <AMReX_DataServices.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_XYPlotDataList.H>
 
-#ifndef BL_NOLINEVALUES
-# include <XYPlotDataList.H>
+#ifdef BL_USE_PROFPARSER
+#include <AMReX_BLWritePlotFile.H>
+//#include <AMReX_BLProfStats.H>
+//#include <AMReX_CommProfStats.H>
+//#include <AMReX_RegionsProfStats.H>
+//#include <AMReX_BLProfUtilities.cpp>
+#include <iomanip>
+#include <cstdarg>
 #endif
 
 #include <iostream>
 #include <fstream>
 #include <cstdio>
+
 using std::ios;
 using std::ofstream;
 using std::cout;
@@ -22,13 +30,49 @@ using std::endl;
 using std::min;
 using std::max;
 
+using namespace amrex;
+
+#ifdef BL_USE_PROFPARSER
+extern int yyparse(void *);
+extern FILE *yyin;
+//extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
+//extern void SimpleRemoveOverlap(amrex::BoxArray &ba);
+//extern void avgDown(amrex::MultiFab &S_crse, amrex::MultiFab &S_fine, int scomp, int dcomp,
+//             int ncomp, amrex::Array<int> &ratio);
+//extern std::string SanitizeName(const std::string &s);
+//extern void WriteFab(const string &filenameprefix, const int xdim, const int ydim,
+//                     const double *data);
+#endif
+
 namespace amrex {
 
 Array<DataServices *> DataServices::dsArray;
 int DataServices::dsArrayIndexCounter = 0;
 int DataServices::dsFabOutSize = 0;
 bool DataServices::dsBatchMode = false;
+bool DataServices::profiler = false;
 
+#ifdef BL_USE_PROFPARSER
+namespace {
+  const int XDIR(0);
+  const int YDIR(1);
+  const int ZDIR(2);
+  const int NTIMESLOTS(25600);
+}
+
+//extern FILE *yyin;
+//extern int yyparse(void *);
+
+extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
+extern void SimpleRemoveOverlap(BoxArray &ba);
+extern void avgDown(MultiFab &S_crse, MultiFab &S_fine, int scomp, int dcomp,
+             int ncomp, Array<int> &ratio);
+extern std::string SanitizeName(const std::string &s);
+extern void WriteFab(const string &filenameprefix, const int xdim, const int ydim,
+                     const double *data);
+
+#define SHOWVAL(val) { cout << #val << " = " << val << endl; }
+#endif
 
 // ---------------------------------------------------------------
 namespace ParallelDescriptor {
@@ -78,18 +122,31 @@ namespace ParallelDescriptor {
 // ---------------------------------------------------------------
 DataServices::DataServices(const string &filename, const Amrvis::FileType &filetype)
              : fileName(filename), fileType(filetype), bAmrDataOk(false),
-	       iWriteToLevel(-1)
+               iWriteToLevel(-1)
 {
   numberOfUsers = 0;  // the user must do all incrementing and decrementing
-
   bAmrDataOk = amrData.ReadData(fileName, fileType);
+  profiler = (fileType == Amrvis::PROFDATA);
 
-  if(bAmrDataOk) {
-    dsArrayIndex = DataServices::dsArrayIndexCounter;
-    ++DataServices::dsArrayIndexCounter;
-    DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
-    DataServices::dsArray[dsArrayIndex] = this;
+  if( ! profiler) {
+    if(bAmrDataOk) {
+      dsArrayIndex = DataServices::dsArrayIndexCounter;
+      ++DataServices::dsArrayIndexCounter;
+      DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
+      DataServices::dsArray[dsArrayIndex] = this;
+    }
   }
+
+#ifdef BL_USE_PROFPARSER
+  bProfDataAvailable = false;
+  bRegionDataAvailable = false;
+  bTraceDataAvailable = false;
+  bCommDataAvailable = false;
+
+  if(profiler) {
+    Init(filename, filetype);
+  }
+#endif
 }
 
 
@@ -109,13 +166,164 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
   iWriteToLevel = -1;
 
   numberOfUsers = 0;  // the user must do all incrementing and decrementing
-}
+  profiler = (fileType == Amrvis::PROFDATA);
 
+#ifdef BL_USE_PROFPARSER
+  #if (BL_SPACEDIM == 2)
+  if (profiler)
+  {
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+
+    BLProfStats::SetDirName(fileName);
+
+    // -------- parse the main blprof header file.  everyone does this for now
+    if(bIOP) { cout << "Parsing main blprof header file." << endl; }
+    string blpFileName_H("bl_prof_H");
+    string blpFullFileName_H(fileName + '/' + blpFileName_H);
+    if( ! (yyin = fopen(blpFullFileName_H.c_str(), "r"))) {
+      if(bIOP) { cerr << "Cannot open file:  " << blpFullFileName_H << endl; }
+      bProfDataAvailable = false;
+    } else {
+      yyparse(&blProfStats_H);
+      fclose(yyin);
+      bProfDataAvailable = true;
+    }
+
+    // -------- parse the main call stats header file.  everyone does this for now
+    if(bIOP) { cout << "Parsing main call stats header file." << endl; }
+    string regPrefix_H("bl_call_stats_H");
+    std::string regFileName_H(fileName + '/' + regPrefix_H);
+    if( ! (yyin = fopen(regFileName_H.c_str(), "r"))) {
+      if(bIOP) cerr << "Cannot open file:  " << regFileName_H << endl;
+      bRegionDataAvailable = false;
+      bTraceDataAvailable  = false;
+    } else {
+      bRegionDataAvailable = true;
+      bTraceDataAvailable  = true;
+    }
+    if(bTraceDataAvailable) {
+      yyparse(&regOutputStats_H);
+      fclose(yyin);
+    } else {
+    }
+
+    // ---- make a box for distributing work
+    int dataNProcs(BLProfStats::GetNProcs());
+    Box procBox(IntVect(0, 0), IntVect(0, dataNProcs - 1));
+    IntVect procMaxGrid(1, (dataNProcs / nProcs) + ((dataNProcs % nProcs) > 0 ? 1 : 0));
+    BoxArray procBoxArrayTemp(procBox);
+    procBoxArrayTemp.maxSize(procMaxGrid);
+    // ---- now ensure the boxarray is nprocs long
+    Array<Box> procBoxes;
+    int needMoreBoxes(nProcs - procBoxArrayTemp.size());
+    for(int ipb(0); ipb < procBoxArrayTemp.size(); ++ipb) {
+      Box b(procBoxArrayTemp[ipb]);
+      if(needMoreBoxes) {
+        Box chopBox(b.chop(YDIR, (b.smallEnd(YDIR) + b.bigEnd(YDIR)) / 2));
+        procBoxes.push_back(chopBox);
+        --needMoreBoxes;
+      }
+      procBoxes.push_back(b);
+    }
+    procBoxArray.resize(procBoxes.size());
+    for(int i(0); i < procBoxes.size(); ++i) {
+      procBoxArray.set(i, procBoxes[i]);
+    }
+
+    if(procBoxArray.size() != nProcs) {
+      SHOWVAL(nProcs);
+      SHOWVAL(dataNProcs);
+      SHOWVAL(procBoxArray.size());
+      if(bIOP) cout << "---- procBoxArray = " << procBoxArray << endl;
+      amrex::Abort("procBoxArray::Error 0");
+    }
+
+    if(bTraceDataAvailable) {
+      // -------- parse the data headers.  everyone does this for now
+      if(bIOP) { cout << "Parsing data headers." << endl; }
+      const Array<string> &regHeaderFileNames = regOutputStats_H.GetHeaderFileNames();
+      for(int i(0); i < regHeaderFileNames.size(); ++i) {
+        std::string regFileName_H_nnnn(fileName + '/' + regHeaderFileNames[i]);
+        if( ! (yyin = fopen(regFileName_H_nnnn.c_str(), "r"))) {
+          if(bIOP) {
+            cerr << "Cannot open file:  " << regFileName_H_nnnn
+                 << " ... continuing." << endl;
+          }
+          continue;
+        }
+        yyparse(&regOutputStats_H);
+        fclose(yyin);
+      }
+      if(regOutputStats_H.TraceDataValid()) {
+        if(bIOP) { cout << "Calling InitRegionTimeRanges." << endl; }
+        RegionsProfStats::OpenAllStreams(fileName);
+        Box myBox(procBoxArray[myProc]);
+        bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
+        regOutputStats_H.SyncFNamesAndNumbers();
+        RegionsProfStats::CloseAllStreams();
+        regOutputStats_H.SetFNames(blProfStats_H.BLPFNames());
+        if(bIOP) { cout << "Finished InitRegionTimeRanges." << endl; }
+      } else {
+        bTraceDataAvailable = false;
+      }
+
+    }
+
+    bool bParseFilterFile(true);
+    if(bParseFilterFile) {
+      if(bIOP) cout << "Parsing filter file." << endl;
+      ParseFilterFile();
+    } 
+
+    if( ! regOutputStats_H.TimeRangeInitialized()) {
+      regOutputStats_H.InitFilterTimeRanges();
+      if(bIOP) {
+        cout << ">>>> timerangelist =" ;
+        PrintTimeRangeList(regOutputStats_H.GetFilterTimeRanges()[0]);
+      }
+
+    }
+
+    // ----------------------------------------------- comm headers
+
+    // -------- parse the main header file.  everyone does this for now
+    if(bIOP) { cout << "Parsing main comm header file." << endl; }
+    std::string commPrefix_H("bl_comm_prof_H");
+    std::string commFileName_H(fileName + '/' + commPrefix_H);
+    if( ! (yyin = fopen(commFileName_H.c_str(), "r"))) {
+      if(bIOP) {
+        cerr << "Cannot open file:  " << commFileName_H << endl;
+      }
+      bCommDataAvailable = false;
+    } else {
+      bCommDataAvailable = true;
+    }
+
+    if(bCommDataAvailable) {
+      yyparse(&commOutputStats_H);
+      fclose(yyin);
+    } else {
+    }
+
+    if(bRegionDataAvailable) {
+      commOutputStats_H.SetRegionTimeRanges(regOutputStats_H.GetRegionTimeRanges());
+      commOutputStats_H.SetFilterTimeRanges(regOutputStats_H.GetFilterTimeRanges());
+    }
+
+    bAmrDataOk = true;
+  } // if (profiler)
+  #endif
+#endif
+}
 
 // ---------------------------------------------------------------
 DataServices::~DataServices() {
   BL_ASSERT(numberOfUsers == 0);
-  DataServices::dsArray[dsArrayIndex] = NULL;
+  if( ! profiler) {
+    DataServices::dsArray[dsArrayIndex] = NULL;
+  }
 }
 
 
@@ -124,15 +332,17 @@ void DataServices::SetBatchMode() {
   dsBatchMode = true;
 }
 
-
 // ---------------------------------------------------------------
 void DataServices::SetFabOutSize(int iSize) {
-  if(iSize == 1 || iSize == 8 || iSize == 32) {
-    dsFabOutSize = iSize;
-  } else {
-    cerr << "Warning:  DataServices::SetFabOutSize:  size must be 1, 8 or 32 only."
-	 << "  Defaulting to native." << endl;
-    dsFabOutSize = 0;
+  if (profiler) // Unused with profiling data
+  { 
+    if(iSize == 1 || iSize == 8 || iSize == 32) {
+      dsFabOutSize = iSize;
+    } else {
+      cerr << "Warning:  DataServices::SetFabOutSize:  size must be 1, 8 or 32 only."
+  	   << "  Defaulting to native." << endl;
+      dsFabOutSize = 0;
+    }
   }
 }
 
@@ -145,7 +355,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
   int ioProcNumber(ParallelDescriptor::IOProcessorNumber());
 
  while(bContinueLooping) {
-  if(ParallelDescriptor::IOProcessor() || dsBatchMode) {
+  if(ParallelDescriptor::IOProcessor() || (dsBatchMode && !profiler)) {
     bContinueLooping = false;
   }
 
@@ -159,6 +369,13 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
   // handle new request
   if(requestType == NewRequest) {
+
+    // ProfDataServices currently skips over this request type
+    // Returns to the top of the while loop
+    if (profiler) {
+      continue;
+    }
+
     // broadcast the fileName and fileType to nonioprocessors
     char *fileNameCharPtr;
     int   fileNameLength(-1), fileNameLengthPadded(-1);
@@ -213,43 +430,52 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
   // handle exit request
   if(requestType == ExitRequest) {                // cleanup memory
-    for(int i(0); i < dsArray.size(); ++i) {
-      if(DataServices::dsArray[i] != NULL) {
-	BL_ASSERT(DataServices::dsArray[i]->numberOfUsers == 0);
-	delete DataServices::dsArray[i];
+    if (!profiler) {
+      for(int i(0); i < dsArray.size(); ++i) {
+        if(DataServices::dsArray[i] != NULL) {
+          BL_ASSERT(DataServices::dsArray[i]->numberOfUsers == 0);
+          delete DataServices::dsArray[i];
+        }
       }
     }
     ParallelDescriptor::EndParallel();
     exit(0);
+
   }  // end ExitRequest
 
   if(ParallelDescriptor::IOProcessor()) {
     va_start(ap, ds);
-    whichDSIndex = ds->dsArrayIndex;
+    if (!profiler) {
+      whichDSIndex = ds->dsArrayIndex;
+    }
   }
 
-  ParallelDescriptor::Bcast(&whichDSIndex, 1, 0);
-  if( ! ParallelDescriptor::IOProcessor()) {
-    ds = DataServices::dsArray[whichDSIndex];
+  if (!profiler) {
+    ParallelDescriptor::Bcast(&whichDSIndex, 1, 0);
+    if( ! ParallelDescriptor::IOProcessor()) {
+      ds = DataServices::dsArray[whichDSIndex];
+    }
+    BL_ASSERT(ds != NULL);
   }
-  BL_ASSERT(ds != NULL);
 
   switch(requestType) {
     case DeleteRequest:
     {
-      bool bDeleteDS(false);
-      BL_ASSERT(DataServices::dsArray[whichDSIndex]->numberOfUsers >= 0);
-      if(ParallelDescriptor::IOProcessor()) {
-	bDeleteDS = (DataServices::dsArray[whichDSIndex]->numberOfUsers == 0);
-      }
+      if (!profiler) {
+        bool bDeleteDS(false);
+        BL_ASSERT(DataServices::dsArray[whichDSIndex]->numberOfUsers >= 0);
+        if(ParallelDescriptor::IOProcessor()) {
+	  bDeleteDS = (DataServices::dsArray[whichDSIndex]->numberOfUsers == 0);
+        }
 
-      {
-        int tmp = bDeleteDS;
-        ParallelDescriptor::Bcast(&tmp, 1, 0);
-        bDeleteDS = tmp;
-      }
-      if(bDeleteDS) {
-        delete DataServices::dsArray[whichDSIndex];
+        {
+          int tmp = bDeleteDS;
+          ParallelDescriptor::Bcast(&tmp, 1, 0);
+          bDeleteDS = tmp;
+        }
+        if(bDeleteDS) {
+          delete DataServices::dsArray[whichDSIndex];
+        }
       }
     }
     break;
@@ -602,7 +828,6 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     }
     break;
 
-#ifndef BL_NOLINEVALUES
     case LineValuesRequest:
     {
       // interface: (requestType, dsPtr,
@@ -679,7 +904,6 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
     } 
     break;
-#endif
 
     case InvalidRequestType:
     {
@@ -698,6 +922,113 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       // not used here
     }
     break;
+
+// Profiler Data Requests
+#ifdef BL_USE_PROFPARSER
+    case CheckProfDataRequest:
+    {
+      std::cout << "Dispatch::---- CheckProfDataRequest" << std::endl;
+      ds->CheckProfData();
+    }
+    break;
+
+    case WriteSummaryRequest:
+    {
+      if(ParallelDescriptor::IOProcessor()) { std::cout << "Dispatch::---- WriteSummaryRequest:" << std::endl; }
+
+      std::ofstream *osPtr;
+      bool *writeAveragePtr, *useTracePtr;
+      int whichProc;
+
+      osPtr =  (std::ofstream *) va_arg(ap, void *);
+      writeAveragePtr = (bool *) va_arg(ap, bool *);
+      whichProc =                va_arg(ap, int);
+      useTracePtr =     (bool *) va_arg(ap, bool *);
+
+      ds->WriteSummary(*osPtr, *writeAveragePtr, whichProc, *useTracePtr);
+    }
+    break;
+
+    case RunStatsRequest:
+    {
+      if(ParallelDescriptor::IOProcessor()) { std::cout << "Dispatch::---- RunStatsRequest:" << std::endl; }
+
+      std::map<int, std::string> *mpiFuncNamesPtr;
+      bool *statsCollectedPtr;
+
+      mpiFuncNamesPtr = (std::map<int, std::string> *) va_arg(ap, void *);
+      statsCollectedPtr = (bool *) va_arg(ap, void *);
+
+      ds->RunStats(*mpiFuncNamesPtr, *statsCollectedPtr);
+
+      // ---- set return values
+      if(ParallelDescriptor::IOProcessor()) {
+      }
+    }
+    break;
+
+    case RunSendsPFRequest:
+    {
+      if(ParallelDescriptor::IOProcessor()) { std::cout << "Dispatch::---- RunSendsPFRequest:" << std::endl; }
+
+      std::string *plotfileNamePtr;
+      int maxSmallImageLength, refRatioAll;
+      bool *proxMapPtr;
+
+      plotfileNamePtr =  (std::string *) va_arg(ap, void *);
+      maxSmallImageLength = va_arg(ap, int);
+      proxMapPtr = (bool *) va_arg(ap, bool *);
+      refRatioAll = va_arg(ap, int);
+
+      ds->RunSendsPF(*plotfileNamePtr, maxSmallImageLength, *proxMapPtr, refRatioAll);
+    }
+    break;
+
+    case RunTimelinePFRequest:
+    {
+      if(ParallelDescriptor::IOProcessor()) { std::cout << "Dispatch::---- RunTimelinePFRequest:" << std::endl; }
+
+      std::map<int, std::string> *mpiFuncNamesPtr;
+      std::string *plotfileNamePtr;
+      int maxSmallImageLength, refRatioAll, nTimeSlots;
+      bool *proxMapPtr;
+
+      mpiFuncNamesPtr = (std::map<int, std::string> *) va_arg(ap, void *);
+      plotfileNamePtr =  (std::string *) va_arg(ap, void *);
+      maxSmallImageLength = va_arg(ap, int);
+      refRatioAll = va_arg(ap, int);
+      nTimeSlots = va_arg(ap, int);
+      proxMapPtr = (bool *) va_arg(ap, bool *);
+
+      ds->RunTimelinePF(*mpiFuncNamesPtr, *plotfileNamePtr, maxSmallImageLength,
+                         refRatioAll, nTimeSlots, *proxMapPtr);
+    }
+    break;
+
+    case MakeRegionPltRequest:
+    {
+      if(ParallelDescriptor::IOProcessor()) { std::cout << "Dispatch::---- MakeRegionPltRequest:" << std::endl; }
+
+      std::string *plotfileNamePtr = (std::string *) va_arg(ap, void *);
+      ds->MakeRegionPlt(*plotfileNamePtr);
+    }
+    break;
+
+    case MakeFilterFileRequest:
+    {
+      if(ParallelDescriptor::IOProcessor()) { std::cout << "Dispatch::---- MakeFilterFileRequest:" << std::endl; }
+
+      std::string *filterFileNamePtr = (std::string *) va_arg(ap, void *);
+      ds->MakeFilterFile(*filterFileNamePtr);
+    }
+    break;
+
+// May be unnessecary or unwanted, but profiling data has a default.
+// Placed here for consistency.
+
+    default:
+    break;
+#endif
 
   }  // end switch
 
@@ -1172,7 +1503,6 @@ void DataServices::PointValue(int pointBoxArraySize, Box *pointBoxArray,
 }  // end PointValue
 
 
-#ifndef BL_NOLINEVALUES
 // ---------------------------------------------------------------
 void DataServices::LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,
                               const string &currentDerived,
@@ -1205,7 +1535,6 @@ void DataServices::LineValues(int lineBoxArraySize, Box *lineBoxArray, int which
     }
   }
 }
-#endif
 
 
 // ---------------------------------------------------------------
@@ -1217,6 +1546,1679 @@ bool DataServices::MinMax(const Box &onBox, const string &derived, int level,
 }  // end MinMax
 
 // ---------------------------------------------------------------
-// ---------------------------------------------------------------
+#ifdef BL_USE_PROFPARSER
+// profiler functions
+// ----------------------------------------------------------------------
+void DataServices::ParseFilterFile()
+{
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    std::string filterFileName("RegionFilters.txt");
+
+    if( ! (yyin = fopen(filterFileName.c_str(), "r"))) {
+      if(bIOP) {
+        cerr << "Cannot open file:  " << filterFileName << endl;
+      }
+    } else {
+      yyparse(&regOutputStats_H);
+      fclose(yyin);
+
+      regOutputStats_H.InitFilterTimeRanges();
+      if(ParallelDescriptor::IOProcessor()) {
+        PrintTimeRangeList(regOutputStats_H.GetFilterTimeRanges()[0]);
+      }
+    }
+}
+
+// ----------------------------------------------------------------------
+void DataServices::WriteSummary(std::ostream &os, bool bWriteAverage,
+                                int whichProc, bool bUseTrace)
+{
+  bool bIOP(ParallelDescriptor::IOProcessor());
+  if(bUseTrace) {
+    if( ! bTraceDataAvailable) {
+      if(bIOP) {
+        cout << "ProfDataServices::WriteSummary:  trace data is not available." << std::endl;
+      }
+      return;
+    }
+    regOutputStats_H.WriteSummary(os, bWriteAverage, whichProc);
+  } else {
+    blProfStats_H.WriteSummary(os, bWriteAverage, whichProc);
+  }
+}
+
+// -----------------------------------------------------------------------
+void DataServices::CheckProfData()
+{
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    int myProc(ParallelDescriptor::MyProc());
+    int nProcs(ParallelDescriptor::NProcs());
+
+    if(bIOP) { cout << endl << "---------------- checking profiling data." << endl; }
+
+    double dstart(ParallelDescriptor::second());
+
+    if(bProfDataAvailable) {
+      if(bIOP) { cout << "Checking BLProfStats." << endl; }
+      blProfStats_H.CheckData();
+    }
+
+    if(bCommDataAvailable) {
+      if(bIOP) { cout << "Checking CommProfStats." << endl; }
+      Array<long> nBMin, nBMax, nRMin, nRMax;
+      const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+
+      if(myProc < commHeaderFileNames.size()) {
+        for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+          if(myProc == hfnI % nProcs) {
+            CommProfStats commOutputStats;
+            std::string commFileName_H_nnnn(fileName + '/' + commHeaderFileNames[hfnI]);
+            if( ! ( yyin = fopen(commFileName_H_nnnn.c_str(), "r"))) {
+              if(bIOP) {
+                cerr << "Cannot open file:  " << commFileName_H_nnnn
+                     << "  continuing ...." << endl;
+                continue;
+              }
+            }
+            yyparse(&commOutputStats);
+            fclose(yyin);
+            commOutputStats.CheckCommData(nBMin, nBMax, nRMin, nRMax);
+          }
+        }
+      }
+    }
+                   
+    ParallelDescriptor::Barrier();
+    if(bIOP) { cout << "---------------- finished checking profiling data." << endl << endl; }
+    if(bIOP) { cout << "Check Time = " << ParallelDescriptor::second() - dstart << " s." << endl; }
+}
+
+// ----------------------------------------------------------------------
+
+void DataServices::ProcessGridLog(const std::string &gridlogFileName) {
+    if(ParallelDescriptor::IOProcessor()) {
+      CommProfStats glOutputStats;
+      if( ! ( yyin = fopen(gridlogFileName.c_str(), "r"))) {
+        cout << "Cannot open file:  " << gridlogFileName << endl;
+      } else {
+        cout << "---------------- parsing " << gridlogFileName << endl;
+        yyparse(&glOutputStats);
+        fclose(yyin);
+        cout << endl;
+
+        const std::map<int, long> &glMap = glOutputStats.GLMap();
+        std::map<int, long>::const_iterator it;
+        std::ofstream glout("grdlogRankNPoints.xgr");
+        for(it = glMap.begin(); it != glMap.end(); ++it) {
+          glout << it->first << ' ' << it->second << '\n';
+        }
+        glout.close();
+
+        const std::map<int, int> &glSizeMap = glOutputStats.GLSizeMap();
+        std::map<int, int>::const_iterator its;
+        std::string gridGraphName("grdlogSizeNGrids.xgr");
+        std::ofstream glsizeout(gridGraphName);
+        cout << "---------------- writing " << gridGraphName << endl;
+        for(its = glSizeMap.begin(); its != glSizeMap.end(); ++its) {
+          glsizeout << its->first << ' ' << its->second << '\n';
+        }
+        glsizeout.close();
+      }
+      cout << "---------------- finished processing " << gridlogFileName << endl;
+    }
+}
+
+// ----------------------------------------------------------------------
+void DataServices::PrintCommStats(std::ostream &os,
+                                  bool printHeaderNames)
+{
+  if( ! bCommDataAvailable) {
+    os << "ProfDataServices::PrintCommStats:  comm data is not available." << std::endl;
+    return;
+  }
+
+  os << "CommProfVersion = " << commOutputStats_H.GetCPVersion() << '\n';
+  os << "DataNProcs      = " << commOutputStats_H.GetNProcs() << '\n';
+  os << "CSSize          = " << commOutputStats_H.GetCSSize() << '\n';
+  if(commOutputStats_H.GetFinestLevel() >= 0) {
+    os << "FinestLevel     = " << commOutputStats_H.GetFinestLevel() << '\n';
+  }
+  if(commOutputStats_H.GetMaxLevel() >= 0) {
+    os << "MaxLevel        = " << commOutputStats_H.GetMaxLevel() << '\n';
+  }
+
+  if(commOutputStats_H.GetRefRatio().size() > 0) {
+    os << "RefRatios:" << '\n';
+    for(int i(0); i < commOutputStats_H.GetRefRatio().size(); ++i) {
+      os << "  Level[" << i << "] = " << commOutputStats_H.GetRefRatio()[i] << '\n';
+    }
+  }
+  if(commOutputStats_H.GetProbDomain().size() > 0) {
+    os << "ProbDomain:" << '\n';
+    for(int i(0); i < commOutputStats_H.GetProbDomain().size(); ++i) {
+      os << "  Level[" << i << "] = " << commOutputStats_H.GetProbDomain()[i] << '\n';
+    }
+  }
+  if(printHeaderNames) {
+    const Array<string> &headerFileNames = commOutputStats_H.GetHeaderFileNames();
+    if(headerFileNames.size() > 0) {
+      os << "headerFileNames:" << '\n';
+      for(int i(0); i < headerFileNames.size(); ++i) {
+        os << "  " << headerFileNames[i] << '\n';
+      }
+    }
+  }
+  os << std::flush;
+}
+
+// ----------------------------------------------------------------------
+void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
+                                bool &statsCollected)
+{
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    if( ! bCommDataAvailable) {
+      if(bIOP) { cout << "DataServices::RunStats:  comm data is not available." << std::endl; }
+      return;
+    }
+
+    double dstart(ParallelDescriptor::second());
+    int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+    int nMsgSizes(10000), bytesPerSlot(100);
+    int minMsgSize(std::numeric_limits<int>::max());
+    int maxMsgSize(std::numeric_limits<int>::min());
+    Array<long> msgSizes(nMsgSizes, 0);
+    Array<long> totalFunctionCalls(BLProfiler::NUMBER_OF_CFTS, 0);
+    Real timeMin(std::numeric_limits<Real>::max());
+    Real timeMax(-std::numeric_limits<Real>::max());
+    Real timerTime(0.0);
+    long totalNCommStats(0), totalSentData(0);
+    int dataNProcs(BLProfStats::GetNProcs());
+    Array<int> rankNodeNumbers(dataNProcs, 0);
+    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+
+    CommProfStats::SetInitDataBlocks(true);
+    CommProfStats::InitDataFileNames(commHeaderFileNames);
+    CommProfStats::OpenAllStreams(fileName);
+
+    if(myProc < commHeaderFileNames.size()) {
+      for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+        if(myProc == hfnI % nProcs) {
+          CommProfStats commOutputStats;
+          if(bRegionDataAvailable) {
+            commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
+            commOutputStats.SetFilterTimeRanges(commOutputStats_H.GetFilterTimeRanges());
+          }
+
+          cout << endl << myProc << ":  commHeaderFileNames[" << hfnI << "] = "
+               << commHeaderFileNames[hfnI] << endl;
+          std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
+
+          if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
+            if(bIOP) {
+              cerr << "A:  Cannot open file:  " << commDataHeaderFileName
+                   << "  continuing ...." << endl;
+            }
+            continue;
+          }
+
+          yyparse(&commOutputStats);
+          fclose(yyin);
+          commOutputStats.ReportStats(totalSentData, totalNCommStats,
+                                      totalFunctionCalls, bytesPerSlot,
+                                      msgSizes, minMsgSize, maxMsgSize,
+                                      timeMin, timeMax, timerTime, rankNodeNumbers);
+        }
+      }
+    }
+
+    CommProfStats::CloseAllStreams();
+
+    ParallelDescriptor::ReduceLongSum(totalSentData);
+    ParallelDescriptor::ReduceLongSum(totalNCommStats);
+    ParallelDescriptor::ReduceLongSum(&totalFunctionCalls[0], totalFunctionCalls.size());
+    ParallelDescriptor::ReduceLongSum(&msgSizes[0], msgSizes.size());
+    ParallelDescriptor::ReduceIntMin(minMsgSize);
+    ParallelDescriptor::ReduceIntMax(maxMsgSize);
+    ParallelDescriptor::ReduceRealMin(timeMin);
+    ParallelDescriptor::ReduceRealMax(timeMax);
+    ParallelDescriptor::ReduceRealSum(timerTime);
+    ParallelDescriptor::ReduceIntSum(&rankNodeNumbers[0], rankNodeNumbers.size());
+    timerTime /= nProcs;
+
+    if(bIOP) {
+      const Array<std::list<BLProfStats::TimeRange> > &ftRange =
+                                    commOutputStats_H.GetFilterTimeRanges();
+      if( ! ftRange.empty()) {
+        if( ! ftRange[0].empty()) {
+          timeMin = std::max(timeMin, ftRange[0].front().startTime);
+          timeMax = std::min(timeMax, ftRange[0].back().stopTime);
+        }
+      }
+      cout << endl;
+      cout << "---------------- Communication data." << endl;
+
+      PrintCommStats(cout, false);
+      const std::locale oldLoc(cout.std::ios_base::getloc());
+      cout.imbue(std::locale(""));
+      cout << endl;
+      cout << "Total Sent Data for all procs = "
+           << totalSentData / 1.0e+09 << " GB" << endl;
+      cout << "MsgSizeMin MsgSizeMax   = " << minMsgSize << "  "
+           << maxMsgSize << endl;
+      cout << "Total Comm Stats = " << totalNCommStats << endl;
+      cout << "Total Function Calls = " << endl;
+      for(int i(0); i < totalFunctionCalls.size(); ++i) {
+        if(totalFunctionCalls[i] > 0) {
+          const BLProfiler::CommFuncType cft = static_cast<BLProfiler::CommFuncType> (i);
+          string fName(BLProfiler::CommStats::CFTToString(cft));
+          cout << "  " << fName << "  " << totalFunctionCalls[i] << endl;
+          mpiFuncNames.insert(std::make_pair(i, fName));
+        }
+      }
+      cout << "TimeMin TimeMax   = " << timeMin << "  " << timeMax << endl;
+      cout << "Average TimerTime = " << timerTime << endl;
+
+      cout << "Stats Time = " << ParallelDescriptor::second() - dstart << " s." << endl;
+      cout << "---------------- End Communication data." << endl;
+      cout << endl;
+      cout.imbue(oldLoc);
+
+      std::string msgSFileName("msgSizes.xgr");
+      std::ofstream msgsizesmout(msgSFileName);
+      cout << "---------------- Writing:  " << msgSFileName << endl;
+      for(int i(0); i < msgSizes.size(); ++i) {
+        msgsizesmout << i << " " << msgSizes[i] << endl;
+      }
+      msgsizesmout.close();
+
+      std::string pnnFName("rankNodeNumbers.xgr");
+      std::ofstream pnnout(pnnFName);
+      cout << "---------------- Writing:  " << pnnFName << endl;
+      int dataNProcs(BLProfStats::GetNProcs());
+      for(int ip(0); ip < dataNProcs; ++ip) {
+        pnnout << ip << " " << rankNodeNumbers[ip] << '\n';
+      }
+      pnnout.close();
+
+    }
+    statsCollected = true;
+}
+
+// ----------------------------------------------------------------------
+void DataServices::RunSendsPF(std::string &plotfileName,
+                                  int maxSmallImageLength,
+                                  bool proxMap, int refRatioAll)
+{
+#if (BL_SPACEDIM != 2)
+  cout << "**** Error:  DataServices::RunSendsPF is only supported for 2D" << endl;
+#else
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    //int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+    if(BL_SPACEDIM != 2) {
+      if(bIOP) {
+        cout << "DataServices::RunSendsPF:   only supported for 2D."
+	     << endl;
+      }
+      return;
+    }
+    if( ! bCommDataAvailable) {
+      if(bIOP) {
+        cout << "DataServices::RunSendsPF:  comm data is not available." << endl;
+      }
+      return;
+    }
+
+    BL_PROFILE_VAR("runSendsPF_ALL", runsendspfall)
+    BL_PROFILE_VAR("runSendsPF_TOP", runsendspftop)
+    double dstart(ParallelDescriptor::second());
+    if(bIOP) { cout << endl << "---------------- Process Sends PF." << endl; }
+
+    int dataNProcs(BLProfStats::GetNProcs());
+    long totalSends(0), totalSentData(0);
+    Array<long> totalSendsPerProc(dataNProcs, 0);
+    Array<long> totalSentDataPerProc(dataNProcs, 0);
+
+    IntVect maxGrid((dataNProcs / nProcs) + refRatioAll, dataNProcs);
+    int nLevels(1), finestLevel(0), numState(2), nGrow(0);
+    Box dnpBox(IntVect(0, 0), IntVect(dataNProcs - 1, dataNProcs - 1));
+
+    Box dnpBoxBlocked(dnpBox);
+    if(bIOP) { cout << ")))) dnpBoxBlocked = " << dnpBoxBlocked << endl; }
+    while(dnpBoxBlocked.length(XDIR) > maxSmallImageLength) {
+      dnpBoxBlocked.coarsen(refRatioAll);
+      if(bIOP) { cout << ")))) coarsened dnpBoxBlocked = " << dnpBoxBlocked << endl; }
+      ++nLevels;
+    }
+    finestLevel = nLevels - 1;
+    Array<Box> probDomain(nLevels);
+    for(int i(0); i < nLevels; ++i) {
+      probDomain[i] = dnpBoxBlocked;
+      if(bIOP) { cout << ")))) probDomain[" << i << "] =  " << probDomain[i] << endl; }
+      dnpBoxBlocked.refine(refRatioAll);
+    }
+
+    BoxArray dnpBoxArray(probDomain[finestLevel]);
+    dnpBoxArray.maxSize(maxGrid);
+    if(dnpBoxArray.size() != nProcs) {
+      if(bIOP) {
+        cout << "---->>>> nGrids ! = nProcs:  " << nProcs << "  "
+             << dnpBoxArray.size() << endl;
+      }
+    }
+
+    if(bIOP) {
+      cout << "Filling finest level sendPF:  nGrids = "
+           << dnpBoxArray.size() << endl;
+    }
+
+    Array<MultiFab> state(nLevels);
+    const DistributionMapping stateDM(dnpBoxArray);
+    state[finestLevel].define(dnpBoxArray, stateDM, numState, nGrow);
+    MultiFab &sendMF = state[finestLevel];
+    sendMF.setVal(0.0);
+    if(bIOP) cout << "DistMap:  " << sendMF.DistributionMap() << endl;
+    BL_PROFILE_VAR_STOP(runsendspftop)
+
+    BL_PROFILE_VAR("runSendsPF_PP", runsendspfpp)
+    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    CommProfStats::SetInitDataBlocks(true);
+    CommProfStats::InitDataFileNames(commHeaderFileNames);
+    CommProfStats::OpenAllStreams(fileName);
+    BL_PROFILE_VAR_STOP(runsendspfpp)
+
+    for(int hfnI_I(0); hfnI_I < commHeaderFileNames.size(); ++hfnI_I) {
+          // everyone reads all headers
+          //int hfnI((hfnI_I + myProc) % commHeaderFileNames.size());  // cycle reads
+          int hfnI(hfnI_I);
+          //cout << myProc << ":  parsing file # " << hfnI << endl;
+
+          CommProfStats commOutputStats;
+
+          std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
+
+          if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
+            if(bIOP) {
+              cerr << "Cannot open file:  " << commDataHeaderFileName
+                   << " ... continuing." << endl;
+            }
+            continue;
+          }
+
+          yyparse(&commOutputStats);
+          fclose(yyin);
+
+          if(bRegionDataAvailable) {
+            commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
+            commOutputStats.SetFilterTimeRanges(commOutputStats_H.GetFilterTimeRanges());
+          }
+
+          for(MFIter mfi(sendMF); mfi.isValid(); ++mfi) {
+            FArrayBox &sendFAB  = sendMF[mfi.index()];
+
+            commOutputStats.FillSendFAB(totalSends, totalSentData,
+                                    totalSendsPerProc, totalSentDataPerProc,
+                                    sendFAB, proxMap);
+          }
+    }
+
+    CommProfStats::CloseAllStreams();
+
+    ParallelDescriptor::Barrier();
+    ParallelDescriptor::ReduceLongSum(totalSends);
+    ParallelDescriptor::ReduceLongSum(totalSentData);
+    ParallelDescriptor::ReduceLongSum(&totalSendsPerProc[0], totalSendsPerProc.size());
+    ParallelDescriptor::ReduceLongSum(&totalSentDataPerProc[0], totalSentDataPerProc.size());
+
+    if(bIOP) cout << "Finished filling finest level sendMF." << endl;
+
+    // ---- now the real data is in the multifab, avg down to a reasonable size
+    Array<Array<int> > adRefRatio(state.size() - 1);
+    for(int i(0); i < finestLevel; ++i) {
+      adRefRatio[i].resize(BL_SPACEDIM, refRatioAll);
+    }
+
+    for(int cLev(finestLevel - 1); cLev >= 0; --cLev) {
+      if(bIOP) cout << "Averaging down level " << cLev << endl;
+      BoxArray ba(BoxArray(state[cLev + 1].boxArray()).coarsen(adRefRatio[cLev][0]));
+      // ---- call uniqify, otherwise ba is just a reference to the
+      // ---- original boxarray with a coarsening factor
+      ba.uniqify();
+      if( ! ba.isDisjoint()) {
+        if(bIOP) cout << "BA:  Coarsened BoxArray not disjoint:  " << ba << endl;
+        SimpleRemoveOverlap(ba);
+        if(bIOP) cout << "BA:  Coarsened BoxArray after removeOverlap:  " << ba << endl;
+        if( ! ba.isDisjoint()) {
+          if(bIOP) cout << "BA:  Coarsened BoxArray still not disjoint:  " << ba << endl;
+        }
+      }
+      if(bIOP) cout << "Coarsened BoxArray size = " << ba.size() << endl;
+      state[cLev].define(ba, stateDM, numState, nGrow);
+      state[cLev].setVal(0.0);
+
+      avgDown(state[cLev], state[cLev+1], 0, 0, numState, adRefRatio[cLev]);
+    }
+    ParallelDescriptor::Barrier();
+
+    bool bCreateSwapPairs(false);
+    if(bCreateSwapPairs) {   // ---- create a list of swap pairs
+
+    Real mfMin(sendMF.min(0));
+    Real mfMax(sendMF.max(0));
+    Real pctHighVals(0.10);
+    Real highVal(mfMax - (pctHighVals * (mfMax - mfMin)));
+    if(bIOP) cout << "mfMin mfMax highVal = " << mfMin << "  " << mfMax << "  " << highVal << endl;
+    if(bIOP) cout << "dnpBox = " << dnpBox << endl;
+    Array<int> dmapArray(1);
+    dmapArray[0] = ParallelDescriptor::IOProcessorNumber();
+    DistributionMapping dmapOneProc(dmapArray);
+    Array<int> swapPairs;
+    std::set<int> availableIndicies;
+    for(int iY(0); iY < dnpBox.length(YDIR); ++iY) {
+      availableIndicies.insert(iY);
+    }
+    for(int iX(dnpBox.smallEnd(XDIR)); iX <= dnpBox.bigEnd(XDIR); ++iX) {
+      std::multimap<Real, int> nCallMap;
+      Box b(dnpBox);
+      b.setSmall(XDIR, iX);
+      b.setBig(XDIR, iX);
+      BoxArray bA(b);
+      MultiFab mfLine(bA, dmapOneProc, 1, 0);
+      mfLine.copy(sendMF);
+      Real value(0.0);
+      if(bIOP) {
+        for(int iLine(0); iLine < b.length(YDIR); ++iLine) {
+          value = mfLine[0].dataPtr(0)[iLine];
+          if(iLine != iX) {
+            nCallMap.insert(std::pair<Real, int>(value, iLine));
+          }
+          if(value >= highVal) {
+            if(bIOP) cout << "]]]] mfLine[" << iLine << "] = " << value << endl;
+          }
+        }
+        cout << "----------------" << endl;
+
+        std::multimap<Real,int>::iterator ubMIter, mIter;
+        for(ubMIter = nCallMap.upper_bound(highVal); ubMIter != nCallMap.end(); ++ubMIter) {
+          int highSwap(ubMIter->second);
+          std::set<int>::iterator aIIH = availableIndicies.find(highSwap);
+          if(aIIH != availableIndicies.end()) {  // ---- find a proc to swap with
+            for(mIter = nCallMap.begin(); mIter != nCallMap.end(); ++mIter) {
+              int lowSwap(mIter->second);
+              std::set<int>::iterator aIIL = availableIndicies.find(lowSwap);
+              if(aIIL != availableIndicies.end() && mIter->first < highVal) {
+                swapPairs.push_back(highSwap);
+                cout << "pushing:  " << highSwap << endl;
+                swapPairs.push_back(lowSwap);
+                cout << "pushing:  " << lowSwap << endl;
+                availableIndicies.erase(highSwap);
+                availableIndicies.erase(lowSwap);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    if(bIOP) {
+      cout << "++++ swapPairs.size() = " << swapPairs.size() << endl;
+      for(int isp(0); isp < swapPairs.size(); isp += 2) {
+        cout << "---- " << swapPairs[isp] << " <<-->> " << swapPairs[isp+1] << endl;
+      }
+    }
+    if(bIOP) {
+      std::ofstream spo("SwapPairs.txt");
+      spo << swapPairs.size() << '\n';
+      for(int isp(0); isp < swapPairs.size(); isp += 2) {
+        spo << swapPairs[isp] << ' ' << swapPairs[isp+1] << '\n';
+      }
+      spo.close();
+    }
+
+    }
+
+    // ---- copy data into a more ddio favorable configuration
+    int sqMG(128);
+    Array<MultiFab> sqState(nLevels);
+    for(int i(0); i < state.size(); ++i) {
+      BoxArray sqBA(state[i].boxArray().minimalBox());
+      sqBA.maxSize(sqMG);
+      const DistributionMapping sqDM(sqBA);
+      sqState[i].define(sqBA, sqDM, numState, nGrow);
+      sqState[i].setVal(0.0);
+      sqState[i].copy(state[i]);
+    }
+
+
+    // ---- write the data as a plot file
+    BL_PROFILE_VAR("WritePlotfile", writeplotfile);
+    if(bIOP) { cout << "Writing plotfile:  " << plotfileName << endl; }
+
+    std::string plotFileVersion("NavierStokes-V1.1");
+    Real time(0.0);
+    Array<Real> probLo(BL_SPACEDIM, 0.0);
+    Array<Real> probHi(BL_SPACEDIM, 1.0);
+    Array<int>  refRatioPerLevel(sqState.size() - 1);
+    for(int i(0); i < refRatioPerLevel.size(); ++i) {
+      refRatioPerLevel[i] = refRatioAll;
+    }
+    Array<Array<Real> > dxLevel(sqState.size());
+    for(int i(0); i < sqState.size(); ++i) {
+      dxLevel[i].resize(BL_SPACEDIM);
+      dxLevel[i][0] = 1.0;
+      dxLevel[i][1] = 1.0;
+    }
+    int coordSys(0);
+    Array<std::string> inVarNames(numState);
+    inVarNames[0] = "totalSendsP2P";
+    inVarNames[1] = "totalSentDataP2P";
+    bool verb(false);
+    FABio::Format oldFabFormat(FArrayBox::getFormat());
+    FArrayBox::setFormat(FABio::FAB_NATIVE_32);
+
+    WritePlotfile(plotFileVersion, sqState, time,
+                  probLo, probHi, refRatioPerLevel,
+                  probDomain, dxLevel, coordSys,
+                  plotfileName, inVarNames, verb);
+
+    FArrayBox::setFormat(oldFabFormat);
+    BL_PROFILE_VAR_STOP(writeplotfile);
+
+    if(bIOP) {
+      cout << "*******************************************************" << endl;
+      PrintCommStats(cout, false);
+      const std::locale oldLoc(cout.std::ios_base::getloc());
+      cout.imbue(std::locale(""));
+      cout << endl;
+      cout << "Total Sends for all procs = " << totalSends << endl;
+      cout << "Total Sent Data for all procs = "
+           << totalSentData / 1.0e+09 << " GB" << endl;
+      cout.imbue(oldLoc);
+
+      std::ofstream tsppout("totalSendsPerProc.xgr");
+      for(int i(0); i < totalSendsPerProc.size(); ++i) {
+        tsppout << i << " " << totalSendsPerProc[i] << '\n';
+      }
+      tsppout.close();
+
+      std::ofstream tsdppout("totalSentDataPerProc.xgr");
+      for(int i(0); i < totalSentDataPerProc.size(); ++i) {
+        tsdppout << i << " " << totalSentDataPerProc[i] << '\n';
+      }
+      tsdppout.close();
+
+      cout << "Process Sends Time = " << ParallelDescriptor::second() - dstart << " s." << endl;
+      cout << "---------------- End Process Sends MF." << endl << endl;
+    }
+    BL_PROFILE_VAR_STOP(runsendspfall)
+#endif
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
+                                     std::string &plotfileName,
+                                     int  maxSmallImageLength,
+                                     int refRatioAll, int nTimeSlots,
+	                             bool &statsCollected)
+{
+#if (BL_SPACEDIM != 2)
+  cout << "**** Error:  DataServices::RunTimelinePF is only supported for 2D" << endl;
+#else
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+    int dataNProcs(BLProfStats::GetNProcs());
+
+    if(BL_SPACEDIM != 2) {
+      if(bIOP) { cout << "DataServices::RunTimelinePF only supported for 2D." << endl; }
+      return;
+    }
+
+    if( ! bCommDataAvailable) {
+      if(bIOP) {
+        cout << "DataServices::RunTimelinePF:  comm data is not available." << std::endl;
+      }
+      return;
+    }
+
+    if(bIOP) { cout << endl << "---------------- Timeline." << endl; }
+
+    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    if( ! statsCollected) {
+      RunStats(mpiFuncNames, statsCollected);
+    }
+
+    BL_PROFILE_VAR("runTimelinePF_ALL", runtimelinepfall)
+    double dstart(ParallelDescriptor::second());
+
+    Real calcTimeMin( std::numeric_limits<Real>::max());
+    Real calcTimeMax(-std::numeric_limits<Real>::max());
+
+    // find the calc's min and max times.  the user could set these, too.
+    if(myProc < commHeaderFileNames.size()) {
+      for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+        if(myProc == hfnI % nProcs) {
+          CommProfStats commOutputStats;
+          std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
+
+          if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
+            if(bIOP) {
+              cerr << "Cannot open file:  " << commDataHeaderFileName
+                   << " ... continuing." << endl;
+            }
+            continue;
+          }
+          yyparse(&commOutputStats);
+          fclose(yyin);
+          commOutputStats.FindTimeRange(calcTimeMin, calcTimeMax);
+        }
+      }
+    }
+    ParallelDescriptor::ReduceRealMin(calcTimeMin);
+    ParallelDescriptor::ReduceRealMax(calcTimeMax);
+    if(bIOP) {
+      cout << "++++ calcTimeMin calcTimeMax = " << calcTimeMin
+           << "  " << calcTimeMax << endl;
+    }
+
+
+    int rankMin(0), rankMax(dataNProcs - 1), rankStride(1);
+
+    IntVect maxGrid(nTimeSlots, (dataNProcs / nProcs) + 1);
+    int nLevels(1), finestLevel(0), numState(2), nGrow(0);
+    Box dnpBox(IntVect(0, 0), IntVect(nTimeSlots - 1, dataNProcs - 1));
+    Box dnpBoxBlocked(dnpBox);
+    if(bIOP) cout << ")))) dnpBoxBlocked = " << dnpBoxBlocked << endl;
+
+    while(dnpBoxBlocked.length(XDIR) > maxSmallImageLength) {
+      dnpBoxBlocked.coarsen(refRatioAll);
+      if(bIOP) cout << ")))) coarsened dnpBoxBlocked = " << dnpBoxBlocked << endl;
+      ++nLevels;
+    }
+    finestLevel = nLevels - 1;
+    Array<Box> probDomain(nLevels);
+    for(int i(0); i < nLevels; ++i) {
+      probDomain[i] = dnpBoxBlocked;
+      if(bIOP) cout << ")))) probDomain[" << i << "] =  " << probDomain[i] << endl;
+      dnpBoxBlocked.refine(refRatioAll);
+    }
+
+    BL_PROFILE_VAR_STOP(runtimelinepfall)
+
+    CommProfStats::SetInitDataBlocks(true);
+    CommProfStats::InitDataFileNames(commHeaderFileNames);
+    CommProfStats::OpenAllStreams(fileName);
+
+    Array<MultiFab> state(nLevels);
+    IntVect cRR(1, 1);
+    Array<string> nameTagNames, barrierNames;
+    Real ntnMultiplier(0.0), bnMultiplier(0.0);
+    Array<Real> ntnNumbers, bnNumbers;
+
+    for(int iLevel(finestLevel); iLevel >= 0; --iLevel) {
+      BoxArray dnpBoxArray(probDomain[iLevel]);
+      IntVect levelMaxGrid(maxGrid);
+      levelMaxGrid[YDIR] /= cRR[YDIR];
+      levelMaxGrid[YDIR] += 1;
+      //dnpBoxArray.maxSize(maxGrid / cRR);
+      dnpBoxArray.maxSize(levelMaxGrid);
+      if(bIOP) cout << "---->>>> iLevel nGrids = " << iLevel << "  "
+                    << dnpBoxArray.size() << endl;
+      if(dnpBoxArray.size() != nProcs) {
+        if(bIOP) cout << "---->>>> nGrids ! = nProcs:  " << nProcs << "  "
+                      << dnpBoxArray.size() << endl;
+      }
+
+      if(bIOP) cout << "************ dnpBoxArray = " << dnpBoxArray << endl;
+      const DistributionMapping dnpDM(dnpBoxArray);
+      state[iLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
+      MultiFab &timelineMF = state[iLevel];
+      timelineMF.setVal(-1.0, 0, 1);       // Timeline initialization
+      timelineMF.setVal(0.0, 1, 1);        // MPI count initialization
+
+      for(int hfnI_I(0); hfnI_I < commHeaderFileNames.size(); ++hfnI_I) {
+        // everyone reads all headers
+        //int hfnI((hfnI_I + myProc) % commHeaderFileNames.size());  // cycle reads
+        int hfnI(hfnI_I);
+
+        CommProfStats commOutputStats;
+        if(bRegionDataAvailable) {
+          commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
+          commOutputStats.SetFilterTimeRanges(commOutputStats_H.GetFilterTimeRanges());
+        }
+
+        std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
+
+        if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
+          if(bIOP) {
+            cerr << "Cannot open file:  " << commDataHeaderFileName
+                 << " ... continuing." << endl;
+          }
+          continue;
+        }
+
+        yyparse(&commOutputStats);
+        fclose(yyin);
+
+        if(hfnI_I == 0) {  // this assumes all headers have the same nametag and barrier names
+          // ---- this part encodes the name tag name into the NameTag cfType value
+          nameTagNames = commOutputStats.NameTagNames();
+          int ntnSize(nameTagNames.size());
+          ntnNumbers.resize(ntnSize, 0.0);
+          if(ntnSize > 0) {
+            ntnMultiplier = pow(10, static_cast<int>( 1 + log10(ntnSize)));
+          }
+          for(int i(0); i < ntnSize; ++i) {
+            if(ntnMultiplier > 0.0) {
+              ntnNumbers[i] = i / ntnMultiplier;
+            }
+          }
+
+          // ---- this part encodes the barrier name into the Barrier cfType value
+          barrierNames = commOutputStats.BarrierNames();
+          int bnSize(barrierNames.size());
+          bnNumbers.resize(bnSize, 0.0);
+          if(bnSize > 0) {
+            bnMultiplier = pow(10, static_cast<int>( 1 + log10(bnSize)));
+          }
+          for(int i(0); i < bnSize; ++i) {
+            if(bnMultiplier > 0.0) {
+              bnNumbers[i] = i / bnMultiplier;
+            }
+          }
+        }
+
+        for(MFIter mfi(timelineMF); mfi.isValid(); ++mfi) {
+          FArrayBox &timelineFAB = timelineMF[mfi.index()];
+
+          commOutputStats.TimelineFAB(timelineFAB, probDomain[iLevel],
+                                  calcTimeMin, calcTimeMax,
+                                  rankMin, rankMax, rankStride * cRR[YDIR],
+                                  ntnMultiplier, ntnNumbers, bnMultiplier, bnNumbers);
+        }
+      }
+      cRR *= refRatioAll;
+      if(bIOP) { cout << "Finished filling level " << iLevel << " timelineMF." << endl; }
+    }
+    CommProfStats::CloseAllStreams();
+    ParallelDescriptor::Barrier();
+
+    // ---- copy data into a more ddio favorable configuration
+    int sqMG(128);
+    Array<MultiFab> sqState(nLevels);
+    for(int i(0); i < state.size(); ++i) {
+      BoxArray sqBA(state[i].boxArray().minimalBox());
+      sqBA.maxSize(sqMG);
+      const DistributionMapping sqDM(sqBA);
+      sqState[i].define(sqBA, sqDM, numState, nGrow);
+      sqState[i].setVal(0.0);
+      sqState[i].copy(state[i]);
+    }
+
+
+    // ---- write the data as a plot file
+    BL_PROFILE_VAR("WritePlotfile", writeplotfile);
+    if(bIOP) { cout << "Writing plotfile:  " << plotfileName << endl; }
+
+    std::string plotFileVersion("CommProfTimeline-V1.0");
+    Real time(calcTimeMax);
+    Array<Real> probLo(BL_SPACEDIM, 0.0);
+    Array<Real> probHi(BL_SPACEDIM, 1.0);
+    Array<int>  refRatioPerLevel(sqState.size() - 1);
+    for(int i(0); i < refRatioPerLevel.size(); ++i) {
+      refRatioPerLevel[i] = refRatioAll;
+    }
+    Array<Array<Real> > dxLevel(sqState.size());
+    for(int i(0); i < sqState.size(); ++i) {
+      dxLevel[i].resize(BL_SPACEDIM);
+      dxLevel[i][0] = 1.0;
+      dxLevel[i][1] = 1.0;
+    }
+    int coordSys(0);
+    Array<std::string> inVarNames(numState);
+    inVarNames[0] = "timeline";
+    inVarNames[1] = "mpiCount";
+    bool verb(false);
+    FABio::Format oldFabFormat(FArrayBox::getFormat());
+    FArrayBox::setFormat(FABio::FAB_NATIVE_32);
+
+    WritePlotfile(plotFileVersion, sqState, time,
+                  probLo, probHi, refRatioPerLevel,
+                  probDomain, dxLevel, coordSys,
+                  plotfileName, inVarNames, verb);
+
+    FArrayBox::setFormat(oldFabFormat);
+
+    if(bIOP) {
+      string fnoutFileName(plotfileName + "/MPIFuncNames.txt");
+      std::ofstream fnout(fnoutFileName.c_str());
+      for(std::map<int, std::string>::const_iterator it = mpiFuncNames.begin();
+          it != mpiFuncNames.end(); ++it)
+      {
+        fnout << it->first << ' ' << it->second << '\n';
+      }
+      fnout.close();
+    }
+    if(bIOP) {
+      string fnoutFileName(plotfileName + "/NameTagNames.txt");
+      std::ofstream fnout(fnoutFileName.c_str());
+      int ntnSize(nameTagNames.size());
+      fnout << ntnSize << ' ' << ntnMultiplier << '\n';
+      for(int i(0); i < ntnSize; ++i) {
+        //fnout << ntnNumbers[i] << ' ' << nameTagNames[i] << '\n';
+        fnout << nameTagNames[i] << '\n';
+      }
+      fnout.close();
+    }
+    if(bIOP) {
+      string fnoutFileName(plotfileName + "/BarrierNames.txt");
+      std::ofstream fnout(fnoutFileName.c_str());
+      int bnSize(barrierNames.size());
+      fnout << bnSize << ' ' << bnMultiplier << '\n';
+      for(int i(0); i < bnSize; ++i) {
+        //fnout << bnNumbers[i] << ' ' << barrierNames[i] << '\n';
+        fnout << barrierNames[i] << '\n';
+      }
+      fnout.close();
+    }
+
+    BL_PROFILE_VAR_STOP(writeplotfile);
+
+    if(bIOP) {
+      cout << "Timeline Time = " << ParallelDescriptor::second() - dstart << " s." << endl;
+      cout << "------------------------------------ End timeline." << endl;
+      cout << endl;
+    }
+    BL_PROFILE_VAR_STOP(runtimelinepfall)
+#endif
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::MakeFilterFile(std::string &fFileName)
+{
+  bool bIOP(ParallelDescriptor::IOProcessor());
+  if(bIOP) {
+    blProfStats_H.MakeFilterFile(fFileName);
+  }
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::MakeRegionPlt(std::string &plotfileName)
+{
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    //int  myProc(ParallelDescriptor::MyProc());
+    //int  nProcs(ParallelDescriptor::NProcs());
+    //int dataNProcs(BLProfStats::GetNProcs());
+
+    if( ! bRegionDataAvailable) {
+      if(bIOP) {
+        cout << "DataServices::MakeRegionPlt:  region data is not available." << std::endl;
+      }
+      return;
+    }
+
+    FArrayBox rFab;
+    int noRegionNumber(0);
+    std::string rname("\"__NoRegion__\"");
+    const std::map<std::string, int> &regionNamesH = regOutputStats_H.RegionNames();
+    std::map<std::string, int>::const_iterator itn = regionNamesH.find(rname);
+    if(itn == regionNamesH.end()) {
+      cout << "rname not found:  " << rname << endl;
+    } else {
+      cout << "found rname:  " << rname << "  rnum = " << itn->second << endl;
+      noRegionNumber = itn->second;
+    }
+
+    Array<Array<Box>> regionBoxArray;
+    regOutputStats_H.MakeRegionPlt(rFab, noRegionNumber, 320, 12, regionBoxArray);
+
+    // ---- write the data as a plot file
+    int finestLevel(0), nLevels(1), numState(1), nGrow(0);
+    Array<Box> probDomain(nLevels);
+    BoxArray dnpBoxArray(rFab.box());
+    probDomain[0] = rFab.box();
+    Array<MultiFab> state(nLevels);
+    const DistributionMapping dnpDM(dnpBoxArray);
+    state[finestLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
+    MultiFab &regionsMF = state[finestLevel];
+    if(bIOP) {
+      regionsMF[0].copy(rFab);
+    }
+    if(bIOP) { cout << "Writing plotfile:  " << plotfileName << endl; }
+
+    std::string plotFileVersion("RegionsProf-V1.0");
+    Real time(0.0);
+    Array<Real> probLo(BL_SPACEDIM, 0.0);
+    Array<Real> probHi(BL_SPACEDIM, 1.0);
+    Array<int>  refRatioPerLevel(state.size() - 1);
+    int refRatioAll(2);
+    for(int i(0); i < refRatioPerLevel.size(); ++i) {
+      refRatioPerLevel[i] = refRatioAll;
+    }
+    Array<Array<Real> > dxLevel(state.size());
+    for(int i(0); i < state.size(); ++i) {
+      dxLevel[i].resize(BL_SPACEDIM);
+      dxLevel[i][0] = 1.0;
+      dxLevel[i][1] = 1.0;
+    }
+    int coordSys(0);
+    Array<std::string> inVarNames(numState);
+    inVarNames[0] = "regions";
+    bool verb(false);
+    FABio::Format oldFabFormat(FArrayBox::getFormat());
+    FArrayBox::setFormat(FABio::FAB_NATIVE_32);
+
+    WritePlotfile(plotFileVersion, state, time,
+                  probLo, probHi, refRatioPerLevel,
+                  probDomain, dxLevel, coordSys,
+                  plotfileName, inVarNames, verb);
+
+    FArrayBox::setFormat(oldFabFormat);
+
+    std::string rFileName(plotfileName + "/RegionNames.txt");
+    std::ofstream rnames(rFileName.c_str());
+    std::map<int, std::string>::const_iterator it;
+    const std::map<int, std::string> &regionNumbersH = regOutputStats_H.RegionNumbers();
+    for(it = regionNumbersH.begin(); it != regionNumbersH.end(); ++it) {
+      rnames << it->second << ' ' << it->first << '\n';
+    }
+    rnames.close();
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::RunACTPF(std::string &plotfileName,
+                                int maxSmallImageLength, int refRatioAll,
+	                        const Array<string> &actFNames)
+{
+#if (BL_SPACEDIM != 2)
+  cout << "**** Error:  DataServices::RunACTPF is only supported for 2D" << endl;
+#else
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+    int dataNProcs(BLProfStats::GetNProcs());
+
+    if(BL_SPACEDIM != 2) {
+      if(bIOP) {
+        cout << "DataServices::RunACTPF:  bRunACTPF only supported for 2D."
+	     << endl; 
+      }
+      return;
+    }
+
+    if( ! bTraceDataAvailable) {
+      if(bIOP) {
+        cout  << "DataServices::RunACTPF:  trace data is not available." << endl;
+      }
+      return;
+    }
+
+    RegionsProfStats::OpenAllStreams(fileName);
+    bool bTestFab(false);
+    if(bTestFab) {
+      FArrayBox actFab;
+      regOutputStats_H.AllCallTimesFAB(actFab, actFNames[0]);
+    }
+    BL_PROFILE_VAR("RunACTPF", RunACTPF)
+    if(bIOP) cout << endl << "------------------------------------ Process ACT PF." << endl;
+/*
+    Box procBox(IntVect(0, 0), IntVect(0, dataNProcs - 1));
+    IntVect procMaxGrid(1, (dataNProcs / nProcs) + ((dataNProcs % nProcs) > 0 ? 1 : 0));
+    BoxArray procBoxArrayTemp(procBox);
+    procBoxArrayTemp.maxSize(procMaxGrid);
+    // ---- now ensure the boxarray is nprocs long
+    Array<Box> procBoxes;
+    int needMoreBoxes(nProcs - procBoxArrayTemp.size());
+    for(int ipb(0); ipb < procBoxArrayTemp.size(); ++ipb) {
+      Box b(procBoxArrayTemp[ipb]);
+      if(needMoreBoxes) {
+        Box chopBox(b.chop(YDIR, (b.smallEnd(YDIR) + b.bigEnd(YDIR)) / 2));
+        procBoxes.push_back(chopBox);
+        --needMoreBoxes;
+      }
+      procBoxes.push_back(b);
+    }
+    BoxArray procBoxArray(procBoxes.dataPtr(), procBoxes.size());
+    if(procBoxArray.size() != nProcs) {
+      SHOWVAL(nProcs);
+      SHOWVAL(dataNProcs);
+      SHOWVAL(procBoxArray.size());
+      if(bIOP) cout << "---- procBoxArray = " << procBoxArray << endl;
+      amrex::Abort("bRunACTPF::Error 0");
+    }
+*/
+    //const BoxArray &procBoxArray = pdServices.ProcBoxArray();
+    Box myBox(procBoxArray[myProc]);
+
+    if(bIOP) cout << "---- procBoxArray = " << procBoxArray << endl;
+
+    Array<Array<Real> > whichFuncAllTimes(dataNProcs);  // [proc][functime]
+
+    RegionsProfStats::SetInitDataBlocks(true);
+    std::string whichFuncName(actFNames[0]);
+
+    int whichFuncNameInt(-1);
+    for(int i(0); i < regOutputStats_H.NumbersToFName().size(); ++i) {
+      if(regOutputStats_H.NumbersToFName()[i] == whichFuncName) {
+        whichFuncNameInt = i;
+      }
+    }
+    if(bIOP) {
+      cout << "**** whichFuncName whichFuncNameInt = " << whichFuncName
+           << "  " <<  whichFuncNameInt << endl;
+    }
+
+
+    RegionsProfStats::OpenAllStreams(fileName);
+    regOutputStats_H.FillAllCallTimes(whichFuncAllTimes, whichFuncName,
+                                      whichFuncNameInt, myBox);
+
+    RegionsProfStats::CloseAllStreams();
+
+    int smallY(myBox.smallEnd(YDIR)), bigY(myBox.bigEnd(YDIR));
+    int whichFuncNCalls(whichFuncAllTimes[smallY].size());
+    bool bSameNCalls(true);
+    for(int p(smallY); p <= bigY; ++p) {
+      if(whichFuncAllTimes[p].size() != whichFuncNCalls) {
+        cout << "==== bSameNCalls = false" << endl;
+        bSameNCalls = false;
+      }
+    }
+    int ncMin(whichFuncNCalls), ncMax(whichFuncNCalls);
+    ParallelDescriptor::ReduceIntMin(ncMin);
+    ParallelDescriptor::ReduceIntMax(ncMax);
+    if( ! bSameNCalls || ncMin != ncMax) {
+      if(bIOP) {
+        cout << "**** bSameNCalls == false for:  " << whichFuncName
+	     << " ::: unsupported." << endl;
+        SHOWVAL(ncMin);
+        SHOWVAL(ncMax);
+        SHOWVAL(whichFuncNCalls);
+      }
+    } else {
+
+    // ---- fill the local fab with function call times
+    Box myWFNBox(myBox);
+    myWFNBox.setBig(XDIR, whichFuncNCalls - 1);
+    FArrayBox myFab(myWFNBox, 1);
+    myFab.setVal(0.0);
+    Real *dptr = myFab.dataPtr(0);
+    int nX(myWFNBox.length(XDIR)), nY(myWFNBox.length(YDIR));
+    if(bIOP) { SHOWVAL(nX); }
+    if(bIOP) { SHOWVAL(nY); }
+    for(int p(0); p < nY; ++p) {
+      for(int cnum(0); cnum < nX; ++cnum) {
+        int index((p * nX) + cnum);
+        dptr[index] = whichFuncAllTimes[p + smallY][cnum];
+      }
+    }
+
+    BoxArray wfnBoxArray(procBoxArray);
+    for(int pba(0); pba < wfnBoxArray.size(); ++pba) {
+      Box b(wfnBoxArray[pba]);
+      b.setBig(XDIR, whichFuncNCalls - 1);
+      wfnBoxArray.set(pba, b);
+    }
+    if(bIOP) { SHOWVAL(wfnBoxArray); }
+
+    Array<int> myMap(nProcs);
+    for(int i(0); i < myMap.size() - 1; ++i) {
+      myMap[i] = i;
+    }
+
+    DistributionMapping myDMap(myMap);
+    MultiFab mfWFN(wfnBoxArray, myDMap, 1, 0);
+    for(MFIter mfi(mfWFN); mfi.isValid(); ++mfi) {
+      mfWFN[mfi.index()].copy(myFab);
+    }
+
+
+    int nLevels(1), finestLevel(0), numState(1), nGrow(0);
+
+    Box dnpBox(IntVect(0, 0), IntVect(whichFuncNCalls - 1, dataNProcs - 1));
+    Box dnpBoxBlocked(dnpBox);
+    if(bIOP) cout << ")))) dnpBoxBlocked = " << dnpBoxBlocked << endl;
+    while(dnpBoxBlocked.length(YDIR) > maxSmallImageLength) {
+      dnpBoxBlocked.coarsen(refRatioAll);
+      if(bIOP) cout << ")))) coarsened dnpBoxBlocked = " << dnpBoxBlocked << endl;
+      ++nLevels;
+    }
+    finestLevel = nLevels - 1;
+    Array<Box> probDomain(nLevels);
+    for(int i(0); i < nLevels; ++i) {
+      probDomain[i] = dnpBoxBlocked;
+      if(bIOP) { cout << ")))) probDomain[" << i << "] =  " << probDomain[i] << endl; }
+      dnpBoxBlocked.refine(refRatioAll);
+    }
+
+    BoxArray dnpBoxArray(probDomain[finestLevel]);
+    IntVect maxGrid((dataNProcs / nProcs) + refRatioAll, dataNProcs);
+    dnpBoxArray.maxSize(maxGrid);
+
+    Array<MultiFab> state(nLevels);
+    const DistributionMapping dnpDM(dnpBoxArray);
+    state[finestLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
+    MultiFab &fLMF = state[finestLevel];
+    fLMF.setVal(0.0);
+    fLMF.copy(mfWFN);
+
+    // ---- make an xgraph of coefficient of variation for each call
+    Array<Real> coeffVar(whichFuncNCalls, 0.0);
+    if(bIOP) cout << ")))) fLMF.boxArray = " << fLMF.boxArray() << endl;
+    for(MFIter mfi(fLMF); mfi.isValid(); ++mfi) {
+      const FArrayBox &fab = fLMF[mfi];
+      const Box &b = fab.box();
+      int smallX(b.smallEnd(XDIR)), bigX(b.bigEnd(XDIR));
+      for(int c(smallX); c <= bigX; ++c) {
+        Box cBox(b);
+        cBox.setSmall(XDIR, c);
+        cBox.setBig(XDIR, c);
+        FArrayBox cFab(cBox, 1);
+        int np(cFab.box().numPts());
+        cFab.copy(fab);
+        Real cAvg(cFab.sum(0) / static_cast<Real>(np));
+        Real variance(0.0);
+        Real *ptr = cFab.dataPtr(0);
+        for(int ip(0); ip < np; ++ip) {
+          Real r(ptr[ip]);
+          variance += (r - cAvg) * (r - cAvg);
+        }
+        variance /= static_cast<Real>(np);  // ---- np - 1 for sample
+        if(variance > 0.0 && cAvg > 0.0) {
+          coeffVar[c] = 100.0 * (std::sqrt(variance) / cAvg);  // ---- percent
+        }
+      }
+    }
+    ParallelDescriptor::ReduceRealSum(coeffVar.dataPtr(), coeffVar.size(),
+                                      ParallelDescriptor::IOProcessorNumber());
+    if(bIOP) {
+      std::string cvfileNameUS("CV_");
+      cvfileNameUS += whichFuncName;
+      cvfileNameUS += ".xgr";
+      std::string cvfileName(SanitizeName(cvfileNameUS));
+      std::ofstream cvarout(cvfileName.c_str());
+      for(int i(0); i < coeffVar.size(); ++i) {
+        cvarout << i << " " << coeffVar[i] << endl;
+      }
+      cvarout.close();
+    }
+
+
+    // ---- now the real data is in the multifab, avg down to a reasonable size
+    Array<Array<int> > adRefRatio(state.size() - 1);
+    for(int i(0); i < finestLevel; ++i) {
+      adRefRatio[i].resize(BL_SPACEDIM, refRatioAll);
+    }
+
+    for(int cLev(finestLevel - 1); cLev >= 0; --cLev) {
+      if(bIOP) { cout << "Averaging down level " << cLev << endl; }
+      BoxArray ba(BoxArray(state[cLev + 1].boxArray()).coarsen(adRefRatio[cLev][0]));
+      // ---- call uniqify, otherwise ba is just a reference to the
+      // ---- original boxarray with a coarsening factor
+      ba.uniqify();
+      if( ! ba.isDisjoint()) {
+        if(bIOP) { cout << "BA:  Coarsened BoxArray not disjoint:  " << ba << endl; }
+        SimpleRemoveOverlap(ba);
+        if(bIOP) { cout << "BA:  Coarsened BoxArray after removeOverlap:  " << ba << endl; }
+        if( ! ba.isDisjoint()) {
+          if(bIOP) { cout << "BA:  Coarsened BoxArray still not disjoint:  " << ba << endl; }
+        }
+      }
+      if(bIOP) { cout << "Coarsened BoxArray size = " << ba.size() << endl; }
+      const DistributionMapping baDM(ba);
+      state[cLev].define(ba, baDM, numState, nGrow);
+      state[cLev].setVal(0.0);
+
+      avgDown(state[cLev], state[cLev+1], 0, 0, numState, adRefRatio[cLev]);
+    }
+    ParallelDescriptor::Barrier();
+
+    // ---- copy data into a more ddio favorable configuration
+    int sqMG(128);
+    Array<MultiFab> sqState(nLevels);
+    for(int i(0); i < state.size(); ++i) {
+      BoxArray sqBA(state[i].boxArray().minimalBox());
+      const DistributionMapping sqDM(sqBA);
+      sqBA.maxSize(sqMG);
+      sqState[i].define(sqBA, sqDM, numState, nGrow);
+      sqState[i].setVal(0.0);
+      sqState[i].copy(state[i]);
+    }
+
+
+    // ---- write the data as a plot file
+    std::string plotfileNameOut;
+    if(plotfileName.empty()) {
+      std::string plotfileNameUS("plt");
+      plotfileNameUS += whichFuncName;
+      plotfileNameOut = SanitizeName(plotfileNameUS);
+    } else {
+      plotfileNameOut = plotfileName;
+    }
+    if(bIOP) { cout << "Writing plotfile:  " << plotfileNameOut << endl; }
+
+    std::string plotFileVersion("NavierStokes-V1.1");
+    Real time(0.0);
+    Array<Real> probLo(BL_SPACEDIM, 0.0);
+    Array<Real> probHi(BL_SPACEDIM, 1.0);
+    Array<int>  refRatioPerLevel(sqState.size() - 1);
+    for(int i(0); i < refRatioPerLevel.size(); ++i) {
+      refRatioPerLevel[i] = refRatioAll;
+    }
+    Array<Array<Real> > dxLevel(sqState.size());
+    for(int i(0); i < sqState.size(); ++i) {
+      dxLevel[i].resize(BL_SPACEDIM);
+      dxLevel[i][0] = 1.0;
+      dxLevel[i][1] = 1.0;
+    }
+    int coordSys(0);
+    Array<std::string> inVarNames(numState);
+    inVarNames[0] = whichFuncName;
+    bool verb(false);
+    FABio::Format oldFabFormat(FArrayBox::getFormat());
+    FArrayBox::setFormat(FABio::FAB_NATIVE_32);
+
+    WritePlotfile(plotFileVersion, sqState, time,
+                  probLo, probHi, refRatioPerLevel,
+                  probDomain, dxLevel, coordSys,
+                  plotfileNameOut, inVarNames, verb);
+
+    FArrayBox::setFormat(oldFabFormat);
+
+    }
+
+    BL_PROFILE_VAR_STOP(RunACTPF)
+#endif
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::RunSyncPointData()
+{
+   bool bIOP(ParallelDescriptor::IOProcessor());
+    if( ! bCommDataAvailable) {
+      if(bIOP) {
+        cout << "DataServices::RunSyncPointData:  comm data is not available." << std::endl;
+      }
+      return;
+    }
+
+    int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+    int dataNProcs(BLProfStats::GetNProcs());
+
+    bool bDoReductions(true);
+    Array<Array<Real> > barrierExitTimes(dataNProcs);  // [proc, bnum]
+    Array<Array<Real> > barrierWaitTimes(dataNProcs);
+    Array<Array<Real> > barrierSkewTimes(dataNProcs);
+    Array<Array<Real> > reductionWaitTimes(dataNProcs);
+    long nBMax(0), nRMax(0);
+
+    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    CommProfStats::SetInitDataBlocks(true);
+    CommProfStats::InitDataFileNames(commHeaderFileNames);
+    CommProfStats::OpenAllStreams(fileName);
+
+    Array<CommProfStats> commOutputStats(commHeaderFileNames.size());
+    for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+      if(bRegionDataAvailable) {
+        commOutputStats[hfnI].SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
+        commOutputStats[hfnI].SetFilterTimeRanges(commOutputStats_H.GetFilterTimeRanges());
+      }
+
+      std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
+      if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
+        if(bIOP) {
+          cerr << "Cannot open file:  " << commDataHeaderFileName
+               << " ... continuing." << endl;
+        }
+        continue;
+      }
+
+      yyparse(&commOutputStats[hfnI]);
+      fclose(yyin);
+      commOutputStats[hfnI].ReportSyncPointDataSetup(nBMax, nRMax);
+    }
+
+    ParallelDescriptor::ReduceLongMax(nBMax);
+    ParallelDescriptor::ReduceLongMax(nRMax);
+
+    if(nRMax > 2048) {
+      bDoReductions = false;
+    }
+
+    for(int i(0); i < dataNProcs; ++i) {
+      barrierExitTimes[i].resize(nBMax + 1, 0.0);
+      barrierWaitTimes[i].resize(nBMax + 1, 0.0);
+      //barrierSkewTimes[i].resize(nBMax + 1, 0.0);
+      if(bDoReductions) {
+        reductionWaitTimes[i].resize(nRMax + 1, 0.0);
+      } else {
+        reductionWaitTimes[i].resize(1, 0.0);
+      }
+    }
+
+    for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+      if(myProc == hfnI % nProcs) {
+        commOutputStats[hfnI].ReportSyncPointData(barrierExitTimes,
+                                                  barrierWaitTimes,
+                                                  reductionWaitTimes,
+                                                  bDoReductions);
+      }
+    }
+
+    CommProfStats::CloseAllStreams();
+
+    long nBarriers(nBMax + 1);
+    long nReductions(nRMax + 1);
+    Array<Real> bExitAll(dataNProcs * nBarriers);
+    Array<Real> bWaitAll(dataNProcs * nBarriers);
+    Array<Real> rwAll;
+    if(bDoReductions) {
+      rwAll.resize(dataNProcs * nReductions);
+    }
+
+    // pack
+    int bCount(0), rCount(0);
+    for(int p(0); p < dataNProcs; ++p) {
+      for(int b(0); b < nBarriers; ++b) {
+        bExitAll[bCount] = barrierExitTimes[p][b];
+        bWaitAll[bCount] = barrierWaitTimes[p][b];
+        ++bCount;
+      }
+      if(bDoReductions) {
+        for(int r(0); r < nReductions; ++r) {
+          rwAll[rCount] = reductionWaitTimes[p][r];
+          ++rCount;
+        }
+      }
+    }
+
+    ParallelDescriptor::ReduceRealSum(bExitAll.dataPtr(), bExitAll.size());
+    ParallelDescriptor::ReduceRealSum(bWaitAll.dataPtr(), bWaitAll.size());
+    if(bDoReductions) {
+      ParallelDescriptor::ReduceRealSum(rwAll.dataPtr(), rwAll.size());
+    }
+
+    // unpack
+    bCount = 0;
+    rCount = 0;
+    for(int p(0); p < dataNProcs; ++p) {
+      for(int b(0); b < nBarriers; ++b) {
+        barrierExitTimes[p][b] = bExitAll[bCount];
+        barrierWaitTimes[p][b] = bWaitAll[bCount];
+        ++bCount;
+      }
+      if(bDoReductions) {
+        for(int r(0); r < nReductions; ++r) {
+          reductionWaitTimes[p][r] = rwAll[rCount];
+          ++rCount;
+        }
+      }
+    }
+
+    // ------------------------------------------------ print barrier wait times
+    if(bIOP) {
+      ::WriteFab("bwaits", nBarriers, dataNProcs, &bWaitAll[0]);
+      ::WriteFab("bexits", nBarriers, dataNProcs, &bExitAll[0]);
+      if(bDoReductions) {
+       ::WriteFab("rwaits", nReductions, dataNProcs, &rwAll[0]);
+      }
+    }
 
 }
+
+// ----------------------------------------------------------------------
+void DataServices::RunSendRecv()
+{
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    if( ! bCommDataAvailable) {
+      if(bIOP) {
+        cout << "DataServices::RunSendRecv:  comm data is not available." << std::endl;
+      }
+      return;
+    }
+
+    /*
+    if(myProc < commHeaderFileNames.size()) {
+      for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+        if(myProc == hfnI % nProcs) {
+          CommProfStats commOutputStats;
+          std::string commFileName_H_nnnn(dirName + '/' + commHeaderFileNames[hfnI]);
+          if( ! ( yyin = fopen(commFileName_H_nnnn.c_str(), "r"))) {
+            if(bIOP) {
+              cerr << "Cannot open file:  " << commFileName_H_nnnn
+                   << " ... continuing." << endl;
+            }
+            continue;
+          }
+          if(bRegionDataAvailable) {
+            commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
+            commOutputStats.SetFilterTimeRanges(commOutputStats_H.GetFilterTimeRanges());
+          }
+          yyparse(&commOutputStats);
+          fclose(yyin);
+          commOutputStats.SendRecvData("SendRecvData", 0.0, -1.0);
+        }
+      }
+    }
+    */
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::RunSendRecvList()
+{
+    // ---- this is not parallelized yet
+
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    if( ! bCommDataAvailable) {
+      if(bIOP) {
+        cout << "DataServices::RunSendRecvList:  comm data is not available." << std::endl;
+      }
+      return;
+    }
+
+    int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+
+    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    std::multimap<Real, CommProfStats::SendRecvPairUnpaired> srMMap;  // [call time, sr]
+    if(myProc < commHeaderFileNames.size()) {
+      for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+        if(myProc == hfnI % nProcs) {
+          CommProfStats commOutputStats;
+          std::string commFileName_H_nnnn(fileName + '/' + commHeaderFileNames[hfnI]);
+          if( ! ( yyin = fopen(commFileName_H_nnnn.c_str(), "r"))) {
+            if(bIOP) {
+              cerr << "Cannot open file:  " << commFileName_H_nnnn
+                   << " ... continuing." << endl;
+            }
+            continue;
+          }
+          if(bRegionDataAvailable) {
+            commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
+            commOutputStats.SetFilterTimeRanges(commOutputStats_H.GetFilterTimeRanges());
+          }
+          yyparse(&commOutputStats);
+          fclose(yyin);
+          commOutputStats.SendRecvList(srMMap);
+        }
+      }
+    }
+    if(ParallelDescriptor::IOProcessor()) {
+      std::ofstream srlOut("SendRecvList.txt");
+      srlOut << std::left << std::setw(16) << "#### Time" << '\t' << "Type    " << '\t'
+             << "From" << '\t' << "To" << '\t' << "Size" << '\t'
+             << "Tag" << '\t' << "Regions"
+             << std::endl;
+      srlOut << std::setprecision(16) << std::fixed;
+      const std::map<int, std::string> &regionNumbersH = regOutputStats_H.RegionNumbers();
+      std::map<int, std::string>::const_iterator itn;
+      std::list<CommProfStats::SendRecvPairUnpaired> unpairedSR;
+
+      std::multimap<Real, CommProfStats::SendRecvPairUnpaired>::iterator it;
+      blProfStats_H.SetRegionTimeRanges(regOutputStats_H.GetRegionTimeRanges());
+      blProfStats_H.SetFilterTimeRanges(regOutputStats_H.GetFilterTimeRanges());
+      for(it = srMMap.begin(); it != srMMap.end(); ++it) {
+        CommProfStats::SendRecvPairUnpaired &srp = it->second;
+        if(srp.fromProc < 0) {
+          unpairedSR.push_back(srp);
+        }
+        std::set<int> whichRegions(blProfStats_H.WhichRegions(srp.fromProc, it->first));
+        if(srp.fromProc >= 0) {
+          srlOut << it->first << '\t'
+                 << BLProfiler::CommStats::CFTToString(srp.unmatchedCFType) << '\t'
+                 << srp.fromProc << '\t' << srp.toProc << '\t' << srp.dataSize << '\t'
+                 << srp.tag << '\t';
+                 for(std::set<int>::iterator it = whichRegions.begin();
+                     it != whichRegions.end(); ++it)
+                 {
+                   itn = regionNumbersH.find(*it);
+                   srlOut << itn->second << '\t';
+                 }
+                 srlOut << '\n';
+        }
+      }
+      srlOut.close();
+      if( ! unpairedSR.empty()) {
+        std::ofstream upSROut("UnpairedSendRecv.txt");
+        upSROut << std::setprecision(8) << std::fixed;
+        upSROut << std::left << std::setw(10) << "Type    " << '\t'
+                << "From" << '\t' << "To" << '\t' << "Size" << '\t'
+                << "Tag" << '\t' << "sendTime" << '\t' << "recvTime" << '\t'
+                << "totalTime" << '\n';
+        for(auto it = unpairedSR.begin(); it != unpairedSR.end(); ++it) {
+          CommProfStats::SendRecvPairUnpaired &srp = *it;
+          upSROut << BLProfiler::CommStats::CFTToString(srp.unmatchedCFType) << '\t'
+                  << srp.fromProc << '\t' << srp.toProc << '\t' << srp.dataSize << '\t'
+                  << srp.tag << '\t'
+                  << srp.sendTime << '\t' << srp.recvTime << '\t' << srp.totalTime << '\n';
+        }
+        upSROut.close();
+      }
+    }
+    ParallelDescriptor::Barrier();
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::InitProxMap()
+{
+  CommProfStats::InitProxMap();
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::TCEdison()
+{
+  bool bIOP(ParallelDescriptor::IOProcessor());
+  if(bIOP) {
+    commOutputStats_H.InitEdisonTopoMF();
+    std::string topoFileName("edisontopo.out");
+    if( ! ( yyin = fopen(topoFileName.c_str(), "r"))) {
+      cout << "Cannot open file:  " << topoFileName << endl;
+    } else {
+      yyparse(&commOutputStats_H);
+      fclose(yyin);
+      commOutputStats_H.WriteEdisonTopoMF();
+    }
+  }
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::WriteHTML(const std::string &fileName,
+                                 bool simpleCombine, int whichProc)
+{
+  bool bIOP(ParallelDescriptor::IOProcessor());
+  if( ! bTraceDataAvailable) {
+    if(bIOP) {
+      cout << "DataServices::WriteHTML:  trace data is not available." << std::endl;
+    }
+    return;
+  }
+
+  if(bIOP) {
+    RegionsProfStats::OpenAllStreams(fileName);
+
+    std::ofstream outStream(fileName.c_str(), std::ios::out | std::ios::trunc);
+    if( ! outStream.good()) {
+      cerr << "**** Error in DataServices::WriteHTML:  could not open "
+           << fileName << endl;
+    } else {
+      regOutputStats_H.WriteHTML(outStream, simpleCombine, whichProc);
+      outStream.close();
+    }
+
+    RegionsProfStats::CloseAllStreams();
+  }
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::WriteHTMLNC(const std::string &fileName, int whichProc)
+{
+  bool bIOP(ParallelDescriptor::IOProcessor());
+  if( ! bTraceDataAvailable) {
+    if(bIOP) {
+      cout << "DataServices::WriteHTMLNC:  trace data is not available." << std::endl;
+    }
+    return;
+  }
+
+  if(bIOP) {
+    RegionsProfStats::OpenAllStreams(fileName);
+
+    std::ofstream outStream(fileName.c_str(), std::ios::out | std::ios::trunc);
+    if( ! outStream.good()) {
+      cerr << "**** Error in DataServices::WriteHTML:  could not open "
+           << fileName << endl;
+    } else {
+      regOutputStats_H.WriteHTMLNC(outStream, whichProc);
+      outStream.close();
+    }
+
+    RegionsProfStats::CloseAllStreams();
+  }
+}
+
+
+// ----------------------------------------------------------------------
+void DataServices::WriteTextTrace(const std::string &fileName,
+                                      bool simpleCombine, int whichProc)
+{
+  bool bIOP(ParallelDescriptor::IOProcessor());
+  if( ! bTraceDataAvailable) {
+    if(bIOP) {
+      cout << "DataServices::WriteTextTrace:  trace data is not available."
+           << std::endl;
+    }
+    return;
+  }
+
+  if(bIOP) {
+    RegionsProfStats::OpenAllStreams(fileName);
+
+    std::ofstream outStream(fileName.c_str(), std::ios::out | std::ios::trunc);
+    if( ! outStream.good()) {
+      cerr << "**** Error in DataServices::WriteHTML:  could not open "
+           << fileName << endl;
+    } else {
+      regOutputStats_H.WriteTextTrace(outStream, simpleCombine, whichProc);
+      outStream.close();
+    }
+
+    RegionsProfStats::CloseAllStreams();
+  }
+}
+#endif
+
+// ----------------------------------------------------------------------
+// ----------------------------------------------------------------------
+}  // namespace amrex

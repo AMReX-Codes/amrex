@@ -1,9 +1,31 @@
 #
-# Add all the subdir to the include path
-# For now exclude the following directory because of the conflicting name between
-# header files
+# Add all the needed subdirs to the include path
 #
-find_include_paths (INCLUDE_PATHS EXCLUDE ${CMAKE_CURRENT_LIST_DIR}/EBAMRElliptic)
+set ( EXCLUDE_PATHS )  # Path to exclude from include dirs
+
+if (NOT ENABLE_FBASELIB)
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/F_BaseLib)
+   # The includes belove are for Fortran-based MG
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/LinearSolvers/C_to_F_MG)
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/LinearSolvers/F_MG)
+endif ()
+
+if (NOT ENABLE_LINEAR_SOLVERS)
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/LinearSolvers)
+endif ()
+
+if (NOT ENABLE_FORTRAN_INTERFACES) 
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/F_Interfaces)
+endif ()
+
+if (NOT ENABLE_PARTICLES)
+   list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/Particle)
+endif ()
+
+list (APPEND EXCLUDE_PATHS ${CMAKE_CURRENT_LIST_DIR}/EBAMRElliptic) # not yet included in build 
+
+
+find_include_paths (INCLUDE_PATHS EXCLUDE ${EXCLUDE_PATHS} ) 
 
 
 include_directories ( ${CMAKE_Fortran_MODULE_DIRECTORY} ${INCLUDE_PATHS}
@@ -27,17 +49,31 @@ add_library ( amrex "")
 # Now, one by one, let's add all the source files in the subdirectories
 #
 include (Base/CMakeLists.txt)
-include (F_BaseLib/CMakeLists.txt)
 include (AmrCore/CMakeLists.txt)
 include (Amr/CMakeLists.txt)
-include (LinearSolvers/CMakeLists.txt)
 include (Boundary/CMakeLists.txt)
-include (F_Interfaces/CMakeLists.txt) 
 include (Extern/CMakeLists.txt)
+
+#
+# Optional components
+#
+if (ENABLE_FBASELIB)
+   include (F_BaseLib/CMakeLists.txt)
+endif ()
+
+
+if (ENABLE_LINEAR_SOLVERS)
+   include (LinearSolvers/CMakeLists.txt)
+endif ()
+
+if (ENABLE_FORTRAN_INTERFACES) 
+   include (F_Interfaces/CMakeLists.txt)
+endif ()
 
 if ( ENABLE_PARTICLES )
    include (Particle/CMakeLists.txt)
 endif ()
+
 
 #
 # Define install  

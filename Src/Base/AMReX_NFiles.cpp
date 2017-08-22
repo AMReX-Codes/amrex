@@ -428,7 +428,7 @@ bool NFilesIter::CheckNFiles(int nProcs, int nOutFiles, bool groupSets)
     }
     std::cout << "nOutFiles fileNumbers.size() = " << nOutFiles
               << "  " << fileNumbers.size() << std::endl;
-    if(nOutFiles != fileNumbers.size()) {
+    if(nOutFiles != static_cast<int>(fileNumbers.size())) {
       std::cout << "**** Different number of files." << std::endl;
       return false;
     }
@@ -453,7 +453,7 @@ Array<int> NFilesIter::FileNumbersWritten()
         procSet.insert(fileNumbersWriteOrder[f][r]);
       }
     }
-    if(total != nProcs || procSet.size() != nProcs) {
+    if(total != nProcs || static_cast<int>(procSet.size()) != nProcs) {
       std::cout << "**** Error in NFilesIter::FileNumbersWritten():  "
                 << " coordinatorProc nProcs total procSet.size() = "
                 << coordinatorProc << "  " << nProcs << "  "
