@@ -5,29 +5,23 @@ module diffusion_module
   implicit none
   private
 
-  public :: diff_mol_3d, diff_flux
+  public :: diff_mol_3d
 
 contains
 
   subroutine diff_mol_3d (q, qd_lo, qd_hi, &
-                     lo, hi, dx, dt, &
-                     flux1, fd1_lo, fd1_hi, &
-                     flux2, fd2_lo, fd2_hi, &
-                     flux3, fd3_lo, fd3_hi)
+                     lo, hi, dx, dt, flux1, flux2, flux3)
 
     use mempool_module, only : amrex_allocate, amrex_deallocate
     use diff_coef_module, only : compute_diff_coef
 
     integer, intent(in) :: qd_lo(3), qd_hi(3)
     integer, intent(in) :: lo(3), hi(3)
-    integer, intent(in) :: fd1_lo(3), fd1_hi(3)
-    integer, intent(in) :: fd2_lo(3), fd2_hi(3)
-    integer, intent(in) :: fd3_lo(3), fd3_hi(3)
     real(rt), intent(in) :: dx(3), dt
     real(rt), intent(in   ) ::     q( qd_lo(1): qd_hi(1), qd_lo(2): qd_hi(2), qd_lo(3): qd_hi(3),QVAR)
-    real(rt), intent(inout) :: flux1(fd1_lo(1):fd1_hi(1),fd1_lo(2):fd1_hi(2),fd1_lo(3):fd1_hi(3),NVAR)
-    real(rt), intent(inout) :: flux2(fd2_lo(1):fd2_hi(1),fd2_lo(2):fd2_hi(2),fd2_lo(3):fd2_hi(3),NVAR)
-    real(rt), intent(inout) :: flux3(fd3_lo(1):fd3_hi(1),fd3_lo(2):fd3_hi(2),fd3_lo(3):fd3_hi(3),NVAR)
+    real(rt), intent(  out) :: flux1(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ,5)
+    real(rt), intent(  out) :: flux2(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ,5)
+    real(rt), intent(  out) :: flux3(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1,5)
 
     integer :: clo(3), chi(3)
     integer, parameter :: nextra = 0
@@ -45,13 +39,11 @@ contains
     call diff_flux(lo,hi, dx, dt, &
          q,qd_lo,qd_hi,&
          lambda, mu, xi, clo, chi, &
-         flux1, fd1_lo, fd1_hi, &
-         flux2, fd2_lo, fd2_hi, &
-         flux3, fd3_lo, fd3_hi)
+         flux1, flux2, flux3)
 
-    call amrex_deallocate(lambda)
-    call amrex_deallocate(mu)
     call amrex_deallocate(xi)
+    call amrex_deallocate(mu)
+    call amrex_deallocate(lambda)
 
   end subroutine diff_mol_3d
 
@@ -59,23 +51,18 @@ contains
   subroutine diff_flux (lo,hi, dx, dt, &
        q,qd_lo,qd_hi, &
        lam, mu, xi, clo, chi, &
-       flux1, fd1_lo, fd1_hi, &
-       flux2, fd2_lo, fd2_hi, &
-       flux3, fd3_lo, fd3_hi)
+       flux1, flux2, flux3)
     integer, intent(in) :: qd_lo(3), qd_hi(3)
     integer, intent(in) :: lo(3), hi(3)
-    integer, intent(in) :: fd1_lo(3), fd1_hi(3)
-    integer, intent(in) :: fd2_lo(3), fd2_hi(3)
-    integer, intent(in) :: fd3_lo(3), fd3_hi(3)
     integer, intent(in) :: clo(3), chi(3)
     real(rt), intent(in) :: dx(3), dt
     real(rt), intent(in   ) ::     q( qd_lo(1): qd_hi(1), qd_lo(2): qd_hi(2), qd_lo(3): qd_hi(3),QVAR)
     real(rt), intent(in   ) :: lam  (   clo(1):   chi(1),   clo(2):   chi(2),   clo(3):   chi(3))
     real(rt), intent(in   ) :: mu   (   clo(1):   chi(1),   clo(2):   chi(2),   clo(3):   chi(3))
-    real(rt), intent(inout) :: xi   (   clo(1):   chi(1),   clo(2):   chi(2),   clo(3):   chi(3))
-    real(rt), intent(inout) :: flux1(fd1_lo(1):fd1_hi(1),fd1_lo(2):fd1_hi(2),fd1_lo(3):fd1_hi(3),NVAR)
-    real(rt), intent(inout) :: flux2(fd2_lo(1):fd2_hi(1),fd2_lo(2):fd2_hi(2),fd2_lo(3):fd2_hi(3),NVAR)
-    real(rt), intent(inout) :: flux3(fd3_lo(1):fd3_hi(1),fd3_lo(2):fd3_hi(2),fd3_lo(3):fd3_hi(3),NVAR)
+    real(rt), intent(in   ) :: xi   (   clo(1):   chi(1),   clo(2):   chi(2),   clo(3):   chi(3))
+    real(rt), intent(  out) :: flux1(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ,5)
+    real(rt), intent(  out) :: flux2(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ,5)
+    real(rt), intent(  out) :: flux3(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1,5)
     
     integer :: i,j,k
     real(rt) :: dxinv(3)
@@ -104,14 +91,14 @@ contains
              tauxx = muf*(2.d0*dudx-twoThirds*divu) + xif*divu
              tauxy = muf*(dudy+dvdx)
              tauxz = muf*(dudz+dwdx)
-             flux1(i,j,k,umx)   = flux1(i,j,k,umx)   - tauxx
-             flux1(i,j,k,umy)   = flux1(i,j,k,umy)   - tauxy
-             flux1(i,j,k,umz)   = flux1(i,j,k,umz)   - tauxz
-             flux1(i,j,k,ueden) = flux1(i,j,k,ueden) - &
-                  0.5d0*((q(i,j,k,qu)+q(i-1,j,k,qu))*tauxx &
-                  &     +(q(i,j,k,qv)+q(i-1,j,k,qv))*tauxy &
-                  &     +(q(i,j,k,qw)+q(i-1,j,k,qw))*tauxz &
-                  &   +(lam(i,j,k) +lam(i-1,j,k))*dTdx)
+             flux1(i,j,k,urho)  = 0.d0
+             flux1(i,j,k,umx)   = -tauxx
+             flux1(i,j,k,umy)   = -tauxy
+             flux1(i,j,k,umz)   = -tauxz
+             flux1(i,j,k,ueden) = -0.5d0*((q(i,j,k,qu)+q(i-1,j,k,qu))*tauxx &
+                  &                      +(q(i,j,k,qv)+q(i-1,j,k,qv))*tauxy &
+                  &                      +(q(i,j,k,qw)+q(i-1,j,k,qw))*tauxz &
+                  &                    +(lam(i,j,k) +lam(i-1,j,k))*dTdx)
           end do
        end do
     end do
@@ -134,14 +121,14 @@ contains
              tauyy = muf*(2.d0*dvdy-twoThirds*divu) + xif*divu
              tauxy = muf*(dudy+dvdx)
              tauyz = muf*(dwdy+dvdz)
-             flux2(i,j,k,umx)   = flux2(i,j,k,umx)   - tauxy
-             flux2(i,j,k,umy)   = flux2(i,j,k,umy)   - tauyy
-             flux2(i,j,k,umz)   = flux2(i,j,k,umz)   - tauyz
-             flux2(i,j,k,ueden) = flux2(i,j,k,ueden) - &
-                  0.5d0*((q(i,j,k,qu)+q(i,j-1,k,qu))*tauxy &
-                  &     +(q(i,j,k,qv)+q(i,j-1,k,qv))*tauyy &
-                  &     +(q(i,j,k,qw)+q(i,j-1,k,qw))*tauyz &
-                  &   +(lam(i,j,k) +lam(i,j-1,k))*dTdy)
+             flux2(i,j,k,urho)  = 0.d0
+             flux2(i,j,k,umx)   = -tauxy
+             flux2(i,j,k,umy)   = -tauyy
+             flux2(i,j,k,umz)   = -tauyz
+             flux2(i,j,k,ueden) = -0.5d0*((q(i,j,k,qu)+q(i,j-1,k,qu))*tauxy &
+                  &                      +(q(i,j,k,qv)+q(i,j-1,k,qv))*tauyy &
+                  &                      +(q(i,j,k,qw)+q(i,j-1,k,qw))*tauyz &
+                  &                    +(lam(i,j,k) +lam(i,j-1,k))*dTdy)
           end do
        end do
     end do
@@ -164,14 +151,14 @@ contains
              tauxz = muf*(dudz+dwdx)
              tauyz = muf*(dvdz+dwdy)
              tauzz = muf*(2.d0*dwdz-twoThirds*divu) + xif*divu
-             flux3(i,j,k,umx)   = flux3(i,j,k,umx)   - tauxz
-             flux3(i,j,k,umy)   = flux3(i,j,k,umy)   - tauyz
-             flux3(i,j,k,umz)   = flux3(i,j,k,umz)   - tauzz
-             flux3(i,j,k,ueden) = flux3(i,j,k,ueden) - &
-                  0.5d0*((q(i,j,k,qu)+q(i,j,k-1,qu))*tauxz &
-                  &     +(q(i,j,k,qv)+q(i,j,k-1,qv))*tauyz &
-                  &     +(q(i,j,k,qw)+q(i,j,k-1,qw))*tauzz &
-                  &   +(lam(i,j,k) +lam(i,j,k-1))*dTdz)
+             flux3(i,j,k,urho)  = 0.d0
+             flux3(i,j,k,umx)   = -tauxz
+             flux3(i,j,k,umy)   = -tauyz
+             flux3(i,j,k,umz)   = -tauzz
+             flux3(i,j,k,ueden) = -0.5d0*((q(i,j,k,qu)+q(i,j,k-1,qu))*tauxz &
+                  &                      +(q(i,j,k,qv)+q(i,j,k-1,qv))*tauyz &
+                  &                      +(q(i,j,k,qw)+q(i,j,k-1,qw))*tauzz &
+                  &                      +(lam(i,j,k) +lam(i,j,k-1))*dTdz)
           end do
        end do
     end do

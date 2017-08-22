@@ -42,7 +42,6 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
     const IntVect& tilesize{1024000,16,16};
 
     {
-        std::array<FArrayBox,3> flux;
         for (MFIter mfi(S,tilesize); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
@@ -55,34 +54,16 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
             } else {
                 if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
                 {
-                    for (int idim = 0; idim < 3; ++idim) {
-                        const Box& bxtmp = amrex::surroundingNodes(bx,idim);
-                        flux[idim].resize(bxtmp,NUM_STATE);
-//                        flux[idim].setVal(0.0);
-                    }
                     cns_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                      BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                      BL_TO_FORTRAN_ANYD(S[mfi]),
-                                     BL_TO_FORTRAN_ANYD(flux[0]),
-                                     BL_TO_FORTRAN_ANYD(flux[1]),
-                                     BL_TO_FORTRAN_ANYD(flux[2]),
                                      dx, &dt);
                 }
                 else
                 {
-                    for (int idim = 0; idim < 3; ++idim) {
-                        Box bxtmp = amrex::grow(amrex::surroundingNodes(bx,idim),2);
-                        // grow in transverse directions
-                        bxtmp.grow(IntVect::TheUnitVector()-IntVect::TheDimensionVector(idim));
-                        flux[idim].resize(bxtmp,NUM_STATE);
-//                        flux[idim].setVal(0.0);
-                    }
                     cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                         BL_TO_FORTRAN_ANYD(S[mfi]),
-                                        BL_TO_FORTRAN_ANYD(flux[0]),
-                                        BL_TO_FORTRAN_ANYD(flux[1]),
-                                        BL_TO_FORTRAN_ANYD(flux[2]),
                                         BL_TO_FORTRAN_ANYD(flag),
                                         BL_TO_FORTRAN_ANYD(volfrac[mfi]),
                                         BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
