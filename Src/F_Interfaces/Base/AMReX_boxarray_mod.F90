@@ -50,13 +50,12 @@ module amrex_boxarray_module
        integer(c_int), intent(in) :: lo(3), hi(3)
      end subroutine amrex_fi_new_boxarray
 
-     subroutine amrex_fi_new_boxarray_from_bxfarr (ba,lo,hi,typ,bxslen) bind(c)
+     subroutine amrex_fi_new_boxarray_from_bxfarr (ba,bxs,nsides,ndims,nbxs) bind(c)
        import
        implicit none
        type(c_ptr) :: ba
-       integer(c_int),intent(in) :: hi(*),lo(*)
-       integer(c_int),intent(in) :: typ(*)
-       integer(c_int), value :: bxslen
+       integer(c_int),intent(in) :: bxs(*)
+       integer(c_int), value :: nsides, ndims, nbxs
      end subroutine amrex_fi_new_boxarray_from_bxfarr
 
      subroutine amrex_fi_delete_boxarray (ba) bind(c)
@@ -103,28 +102,11 @@ contains
     call amrex_fi_new_boxarray(ba%p, bx%lo, bx%hi)
   end subroutine amrex_boxarray_build_bx
 
-  subroutine amrex_boxarray_build_bxs (ba, lo, hi, bxslen, typ)
+  subroutine amrex_boxarray_build_bxs (ba, bxs)
     type(amrex_boxarray) :: ba
-    integer,intent(in) :: lo(:,:), hi(:,:)
-    integer, intent(in),OPTIONAL :: bxslen
-    integer,intent(in),optional :: typ(:)
-    integer(c_int),dimension(size(lo,1),size(lo,2)) :: loa
-    integer(c_int),dimension(size(hi,1),size(hi,2)) :: hia
-    integer(c_int) :: bxslena
-    integer(c_int),dimension(size(lo,1)) :: typa
-    loa = lo; hia = hi
-    if (present(typ)) then
-       typa = typ
-    else
-       typa = 0
-    end if
-    if (present(bxslen)) then
-       bxslena = bxslen
-    else
-       bxslena = size(lo,2)
-    end if
+    integer,intent(in) :: bxs(:,:,:) ! (lo:hi,dim,#ofboxs)
     ba%owner = .true.
-    call amrex_fi_new_boxarray_from_bxfarr(ba%p, loa,hia,typa, bxslena)
+    call amrex_fi_new_boxarray_from_bxfarr(ba%p, bxs, size(bxs,1), size(bxs,2), size(bxs,3))
   end subroutine amrex_boxarray_build_bxs
 
   impure elemental subroutine amrex_boxarray_destroy (this)
