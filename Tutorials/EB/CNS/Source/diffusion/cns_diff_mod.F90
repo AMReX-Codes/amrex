@@ -10,14 +10,14 @@ module diffusion_module
 contains
 
   subroutine diff_mol_3d (q, qd_lo, qd_hi, &
-                     lo, hi, dx, dt, flux1, flux2, flux3)
+                     lo, hi, dx, flux1, flux2, flux3)
 
     use mempool_module, only : amrex_allocate, amrex_deallocate
     use diff_coef_module, only : compute_diff_coef
 
     integer, intent(in) :: qd_lo(3), qd_hi(3)
     integer, intent(in) :: lo(3), hi(3)
-    real(rt), intent(in) :: dx(3), dt
+    real(rt), intent(in) :: dx(3)
     real(rt), intent(in   ) ::     q( qd_lo(1): qd_hi(1), qd_lo(2): qd_hi(2), qd_lo(3): qd_hi(3),QVAR)
     real(rt), intent(  out) :: flux1(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ,5)
     real(rt), intent(  out) :: flux2(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ,5)
@@ -36,7 +36,7 @@ contains
 
     call compute_diff_coef(q, qd_lo, qd_hi, lambda, mu, xi, clo, chi)
 
-    call diff_flux(lo,hi, dx, dt, &
+    call diff_flux(lo,hi, dx, &
          q,qd_lo,qd_hi,&
          lambda, mu, xi, clo, chi, &
          flux1, flux2, flux3)
@@ -48,14 +48,14 @@ contains
   end subroutine diff_mol_3d
 
 
-  subroutine diff_flux (lo,hi, dx, dt, &
+  subroutine diff_flux (lo,hi, dx, &
        q,qd_lo,qd_hi, &
        lam, mu, xi, clo, chi, &
        flux1, flux2, flux3)
     integer, intent(in) :: qd_lo(3), qd_hi(3)
     integer, intent(in) :: lo(3), hi(3)
     integer, intent(in) :: clo(3), chi(3)
-    real(rt), intent(in) :: dx(3), dt
+    real(rt), intent(in) :: dx(3)
     real(rt), intent(in   ) ::     q( qd_lo(1): qd_hi(1), qd_lo(2): qd_hi(2), qd_lo(3): qd_hi(3),QVAR)
     real(rt), intent(in   ) :: lam  (   clo(1):   chi(1),   clo(2):   chi(2),   clo(3):   chi(3))
     real(rt), intent(in   ) :: mu   (   clo(1):   chi(1),   clo(2):   chi(2),   clo(3):   chi(3))
