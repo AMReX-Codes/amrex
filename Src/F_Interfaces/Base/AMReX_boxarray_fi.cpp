@@ -12,6 +12,22 @@ extern "C" {
 	ba = new BoxArray(Box(small,big));
     }
 
+  void amrex_fi_new_boxarray_from_bxfarr (BoxArray*& ba, const int* lo, const int* hi, const int* typ,const int bxslen)
+    {
+        Box bxarr[bxslen];
+	for (int b = 0; b < bxslen; ++b) {
+	  IntVect lov;
+	  IntVect hiv;
+	  for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lov[i] = lo[(BL_SPACEDIM)*b+i];
+	    hiv[i] = hi[(BL_SPACEDIM)*b+i];
+	  }
+	  bxarr[b].setSmall(lov);
+	  bxarr[b].setBig(hiv);
+	}
+	ba = new BoxArray(bxarr,bxslen);
+    }
+
     void amrex_fi_delete_boxarray (BoxArray* ba)
     {
 	delete ba;
