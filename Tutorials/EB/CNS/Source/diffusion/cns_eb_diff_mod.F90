@@ -88,7 +88,10 @@ contains
     real(rt) :: tauxx, tauyy, tauzz, tauxy, tauxz, tauyz, muf, xif
     real(rt) :: dudx, dudy, dudz, dvdx, dvdy, dwdx, dwdz, divu, dTdx
     real(rt) :: dvdz, dwdy, dTdy, dTdz
-    real(rt) :: nbrlo(-1:1,-1:1,-1:1), nbrhi(-1:1,-1:1,-1:1)
+    integer  :: nbrlo(-1:1,-1:1,-1:1), nbrhi(-1:1,-1:1,-1:1)
+    integer  :: ihip, ihim, ilop, ilom, jhip, jhim, jlop, jlom, khip, khim, klop, klom
+    real(rt) :: wlo, whi
+    real(rt), parameter :: weights(0:2) = [0.d0, 1.d0, 0.5d0]
     real(rt), parameter :: twoThirds = 2.d0/3.d0
     integer, parameter :: nextra = 2
 
@@ -98,34 +101,40 @@ contains
     do       k = lo(3)-nextra-1, hi(3)+nextra+1
        do    j = lo(2)-nextra-1, hi(2)+nextra+1
           do i = lo(1)-nextra  , hi(1)+nextra+1
-
-             call get_neighbor_cells(flag(i-1,j,k), nbrlo)
-             call get_neighbor_cells(flag(i  ,j,k), nbrhi)
-
              dTdx = (q(i,j,k,qtemp)-q(i-1,j,k,qtemp))*dxinv(1)
              dudx = (q(i,j,k,qu)-q(i-1,j,k,qu))*dxinv(1)
              dvdx = (q(i,j,k,qv)-q(i-1,j,k,qv))*dxinv(1)
              dwdx = (q(i,j,k,qw)-q(i-1,j,k,qw))*dxinv(1)
-             dudy = (0.25d0*dxinv(2)) * &
-                  (( q(i  ,j+1,k,qu)-q(i,j,k,qu))*nbrhi(0, 1,0) &
-                  +( q(i-1,j+1,k,qu)-q(i,j,k,qu))*nbrlo(0, 1,0) &
-                  +(-q(i  ,j-1,k,qu)+q(i,j,k,qu))*nbrhi(0,-1,0) &
-                  +(-q(i-1,j-1,k,qu)+q(i,j,k,qu))*nbrlo(0,-1,0))
-             dvdy = (0.25d0*dxinv(2)) * &
-                  (( q(i  ,j+1,k,qv)-q(i,j,k,qv))*nbrhi(0, 1,0) &
-                  +( q(i-1,j+1,k,qv)-q(i,j,k,qv))*nbrlo(0, 1,0) &
-                  +(-q(i  ,j-1,k,qv)+q(i,j,k,qv))*nbrhi(0,-1,0) &
-                  +(-q(i-1,j-1,k,qv)+q(i,j,k,qv))*nbrlo(0,-1,0))
-             dudz = (0.25d0*dxinv(3)) * &
-                  (( q(i  ,j,k+1,qu)-q(i,j,k,qu))*nbrhi(0,0, 1) &
-                  +( q(i-1,j,k+1,qu)-q(i,j,k,qu))*nbrlo(0,0, 1) &
-                  +(-q(i  ,j,k-1,qu)+q(i,j,k,qu))*nbrhi(0,0,-1) &
-                  +(-q(i-1,j,k-1,qu)+q(i,j,k,qu))*nbrlo(0,0,-1))
-             dwdz = (0.25d0*dxinv(3)) * &
-                  (( q(i  ,j,k+1,qw)-q(i,j,k,qw))*nbrhi(0,0, 1) &
-                  +( q(i-1,j,k+1,qw)-q(i,j,k,qw))*nbrlo(0,0, 1) &
-                  +(-q(i  ,j,k-1,qw)+q(i,j,k,qw))*nbrhi(0,0,-1) &
-                  +(-q(i-1,j,k-1,qw)+q(i,j,k,qw))*nbrlo(0,0,-1))
+
+             call get_neighbor_cells(flag(i-1,j,k), nbrlo)
+             call get_neighbor_cells(flag(i  ,j,k), nbrhi)
+
+             jhip = j + nbrhi(0, 1,0)
+             jhim = j - nbrhi(0,-1,0)
+             jlop = j + nbrlo(0, 1,0)
+             jlom = j - nbrlo(0,-1,0)
+             whi = weights(jhip-jhim)
+             wlo = weights(jlop-jlom)
+             dudy = (0.5d0*dxinv(2)) * &
+                  ((q(i  ,jhip,k,qu)-q(i  ,jhim,k,qu))*whi &
+                  +(q(i-1,jlop,k,qu)-q(i-1,jlom,k,qu))*wlo)
+             dvdy = (0.5d0*dxinv(2)) * &
+                  ((q(i  ,jhip,k,qv)-q(i  ,jhim,k,qv))*whi &
+                  +(q(i-1,jlop,k,qv)-q(i-1,jlom,k,qv))*wlo)
+
+             khip = k + nbrhi(0,0, 1)
+             khim = k - nbrhi(0,0,-1)
+             klop = k + nbrlo(0,0, 1)
+             klom = k - nbrlo(0,0,-1)
+             whi = weights(khip-khim)
+             wlo = weights(klop-klom)
+             dudz = (0.5d0*dxinv(3)) * &
+                  ((q(i  ,j,khip,qu)-q(i  ,j,khim,qu))*whi &
+                  +(q(i-1,j,klop,qu)-q(i-1,j,klom,qu))*wlo)
+             dwdz = (0.5d0*dxinv(3)) * &
+                  ((q(i  ,j,khip,qw)-q(i  ,j,khim,qw))*whi &
+                  +(q(i-1,j,klop,qw)-q(i-1,j,klom,qw))*wlo)
+
              divu = dudx + dvdy + dwdz
              muf = 0.5d0*(mu(i,j,k)+mu(i-1,j,k))
              xif = 0.5d0*(xi(i,j,k)+xi(i-1,j,k))
@@ -148,34 +157,40 @@ contains
     do       k = lo(3)-nextra-1, hi(3)+nextra+1
        do    j = lo(2)-nextra  , hi(2)+nextra+1
           do i = lo(1)-nextra-1, hi(1)+nextra+1
-
-             call get_neighbor_cells(flag(i,j-1,k), nbrlo)
-             call get_neighbor_cells(flag(i,j  ,k), nbrhi)
-
              dTdy = (q(i,j,k,qtemp)-q(i,j-1,k,qtemp))*dxinv(2)
              dudy = (q(i,j,k,qu)-q(i,j-1,k,qu))*dxinv(2)
              dvdy = (q(i,j,k,qv)-q(i,j-1,k,qv))*dxinv(2)
              dwdy = (q(i,j,k,qw)-q(i,j-1,k,qw))*dxinv(2)
-             dudx = (0.25d0*dxinv(1)) * &
-                  (( q(i+1,j  ,k,qu)-q(i,j,k,qu))*nbrhi( 1,0,0) &
-                  +( q(i+1,j-1,k,qu)-q(i,j,k,qu))*nbrlo( 1,0,0) &
-                  +(-q(i-1,j  ,k,qu)+q(i,j,k,qu))*nbrhi(-1,0,0) &
-                  +(-q(i-1,j-1,k,qu)+q(i,j,k,qu))*nbrlo(-1,0,0))
-             dvdx = (0.25d0*dxinv(1)) * &
-                  (( q(i+1,j  ,k,qv)-q(i,j,k,qv))*nbrhi( 1,0,0) &
-                  +( q(i+1,j-1,k,qv)-q(i,j,k,qv))*nbrlo( 1,0,0) &
-                  +(-q(i-1,j  ,k,qv)+q(i,j,k,qv))*nbrhi(-1,0,0) &
-                  +(-q(i-1,j-1,k,qv)+q(i,j,k,qv))*nbrlo(-1,0,0))
-             dvdz = (0.25d0*dxinv(3)) * &
-                  (( q(i,j  ,k+1,qv)-q(i,j,k,qv))*nbrhi(0,0, 1) &
-                  +( q(i,j-1,k+1,qv)-q(i,j,k,qv))*nbrlo(0,0, 1) &
-                  +(-q(i,j  ,k-1,qv)+q(i,j,k,qv))*nbrhi(0,0,-1) &
-                  +(-q(i,j-1,k-1,qv)+q(i,j,k,qv))*nbrlo(0,0,-1))
-             dwdz = (0.25d0*dxinv(3)) * &
-                  (( q(i,j  ,k+1,qw)-q(i,j,k,qw))*nbrhi(0,0, 1) &
-                  +( q(i,j-1,k+1,qw)-q(i,j,k,qw))*nbrlo(0,0, 1) &
-                  +(-q(i,j  ,k-1,qw)+q(i,j,k,qw))*nbrhi(0,0,-1) &
-                  +(-q(i,j-1,k-1,qw)+q(i,j,k,qw))*nbrlo(0,0,-1))
+
+             call get_neighbor_cells(flag(i,j-1,k), nbrlo)
+             call get_neighbor_cells(flag(i,j  ,k), nbrhi)
+
+             ihip = i + nbrhi( 1,0,0)
+             ihim = i - nbrhi(-1,0,0)
+             ilop = i + nbrlo( 1,0,0)
+             ilom = i - nbrlo(-1,0,0)
+             whi = weights(ihip-ihim)
+             wlo = weights(ilop-ilom)
+             dudx = (0.5d0*dxinv(1)) * &
+                  ((q(ihip,j  ,k,qu)-q(ihim,j  ,k,qu))*whi &
+                  +(q(ilop,j-1,k,qu)-q(ilom,j-1,k,qu))*wlo)
+             dvdx = (0.5d0*dxinv(1)) * &
+                  ((q(ihip,j  ,k,qv)-q(ihim,j  ,k,qv))*whi &
+                  +(q(ilop,j-1,k,qv)-q(ilom,j-1,k,qv))*wlo)
+
+             khip = k + nbrhi(0,0, 1)
+             khim = k - nbrhi(0,0,-1)
+             klop = k + nbrlo(0,0, 1)
+             klom = k - nbrlo(0,0,-1)
+             whi = weights(khip-khim)
+             wlo = weights(klop-klom)
+             dvdz = (0.5d0*dxinv(3)) * &
+                  ((q(i,j  ,khip,qv)-q(i,j  ,khim,qv))*whi &
+                  +(q(i,j-1,klop,qv)-q(i,j-1,klom,qv))*wlo)
+             dwdz = (0.5d0*dxinv(3)) * &
+                  ((q(i,j  ,khip,qw)-q(i,j  ,khim,qw))*whi &
+                  +(q(i,j-1,klop,qw)-q(i,j-1,klom,qw))*wlo)
+
              divu = dudx + dvdy + dwdz
              muf = 0.5d0*(mu(i,j,k)+mu(i,j-1,k))
              xif = 0.5d0*(xi(i,j,k)+xi(i,j-1,k))
@@ -198,34 +213,40 @@ contains
     do       k = lo(3)-nextra  , hi(3)+nextra+1
        do    j = lo(2)-nextra-1, hi(2)+nextra+1
           do i = lo(1)-nextra-1, hi(1)+nextra+1
-
-             call get_neighbor_cells(flag(i,j,k-1), nbrlo)
-             call get_neighbor_cells(flag(i,j,k  ), nbrhi)
-
              dTdz = (q(i,j,k,qtemp)-q(i,j,k-1,qtemp))*dxinv(3)
              dudz = (q(i,j,k,qu)-q(i,j,k-1,qu))*dxinv(3)
              dvdz = (q(i,j,k,qv)-q(i,j,k-1,qv))*dxinv(3)
              dwdz = (q(i,j,k,qw)-q(i,j,k-1,qw))*dxinv(3)
-             dudx = (0.25d0*dxinv(1)) * &
-                  (( q(i+1,j,k  ,qu)-q(i,j,k,qu))*nbrhi( 1,0,0) &
-                  +( q(i+1,j,k-1,qu)-q(i,j,k,qu))*nbrlo( 1,0,0) &
-                  +(-q(i-1,j,k  ,qu)+q(i,j,k,qu))*nbrhi(-1,0,0) &
-                  +(-q(i-1,j,k-1,qu)+q(i,j,k,qu))*nbrlo(-1,0,0))
-             dwdx = (0.25d0*dxinv(1)) * &
-                  (( q(i+1,j,k  ,qw)-q(i,j,k,qw))*nbrhi( 1,0,0) &
-                  +( q(i+1,j,k-1,qw)-q(i,j,k,qw))*nbrlo( 1,0,0) &
-                  +(-q(i-1,j,k  ,qw)+q(i,j,k,qw))*nbrhi(-1,0,0) &
-                  +(-q(i-1,j,k-1,qw)+q(i,j,k,qw))*nbrlo(-1,0,0))
-             dvdy = (0.25d0*dxinv(2)) * &
-                  (( q(i,j+1,k  ,qv)-q(i,j,k,qv))*nbrhi(0, 1,0) &
-                  +( q(i,j+1,k-1,qv)-q(i,j,k,qv))*nbrlo(0, 1,0) &
-                  +(-q(i,j-1,k  ,qv)+q(i,j,k,qv))*nbrhi(0,-1,0) &
-                  +(-q(i,j-1,k-1,qv)+q(i,j,k,qv))*nbrlo(0,-1,0))
-             dwdy = (0.25d0*dxinv(2)) * &
-                  (( q(i,j+1,k  ,qw)-q(i,j,k,qw))*nbrhi(0, 1,0) &
-                  +( q(i,j+1,k-1,qw)-q(i,j,k,qw))*nbrlo(0, 1,0) &
-                  +(-q(i,j-1,k  ,qw)+q(i,j,k,qw))*nbrhi(0,-1,0) &
-                  +(-q(i,j-1,k-1,qw)+q(i,j,k,qw))*nbrlo(0,-1,0))
+
+             call get_neighbor_cells(flag(i,j,k-1), nbrlo)
+             call get_neighbor_cells(flag(i,j,k  ), nbrhi)
+
+             ihip = i + nbrhi( 1,0,0)
+             ihim = i - nbrhi(-1,0,0)
+             ilop = i + nbrlo( 1,0,0)
+             ilom = i - nbrlo(-1,0,0)
+             whi = weights(ihip-ihim)
+             wlo = weights(ilop-ilom)
+             dudx = (0.5d0*dxinv(1)) * &
+                  ((q(ihip,j,k  ,qu)-q(ihim,j,k  ,qu))*whi &
+                  +(q(ilop,j,k-1,qu)-q(ilom,j,k-1,qu))*wlo)
+             dwdx = (0.5d0*dxinv(1)) * &
+                  ((q(ihip,j,k  ,qw)-q(ihim,j,k  ,qw))*whi &
+                  +(q(ilop,j,k-1,qw)-q(ilom,j,k-1,qw))*wlo)
+
+             jhip = j + nbrhi(0, 1,0)
+             jhim = j - nbrhi(0,-1,0)
+             jlop = j + nbrlo(0, 1,0)
+             jlom = j - nbrlo(0,-1,0)
+             whi = weights(jhip-jhim)
+             wlo = weights(jlop-jlom)
+             dvdy = (0.5d0*dxinv(2)) * &
+                  ((q(i,jhip,k  ,qv)-q(i,jhim,k  ,qv))*whi &
+                  +(q(i,jlop,k-1,qv)-q(i,jlom,k-1,qv))*wlo)
+             dwdy = (0.5d0*dxinv(2)) * &
+                  ((q(i,jhip,k  ,qw)-q(i,jhim,k  ,qw))*whi &
+                  +(q(i,jlop,k-1,qw)-q(i,jlom,k-1,qw))*wlo)
+
              divu = dudx + dvdy + dwdz
              muf = 0.5d0*(mu(i,j,k)+mu(i,j,k-1))
              xif = 0.5d0*(xi(i,j,k)+xi(i,j,k-1))
