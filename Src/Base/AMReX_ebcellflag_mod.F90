@@ -1,5 +1,6 @@
 
 module amrex_ebcellflag_module
+  use amrex_fort_module, only : amrex_real
   implicit none
   private
   public :: is_regular_cell, is_single_valued_cell, is_multi_valued_cell, &
@@ -16,6 +17,11 @@ module amrex_ebcellflag_module
   integer, parameter :: single_valued = 1
   integer, parameter :: multi_valued  = 2
   integer, parameter :: covered       = 3
+
+  interface get_neighbor_cells
+     module procedure get_neighbor_cells_int
+     module procedure get_neighbor_cells_real
+  end interface get_neighbor_cells
 
 contains
   
@@ -41,7 +47,7 @@ contains
 
 #if (AMREX_SPACEDIM == 2)
 
-  pure subroutine get_neighbor_cells (flag, ngbr)
+  pure subroutine get_neighbor_cells_int (flag, ngbr)
     integer, intent(in) :: flag
     integer, intent(inout) :: ngbr(-1:1,-1:1)
     integer :: i, j
@@ -54,18 +60,33 @@ contains
           end if
        end do
     end do
-  end subroutine get_neighbor_cells
+  end subroutine get_neighbor_cells_int
+
+  pure subroutine get_neighbor_cells_real (flag, ngbr)
+    integer, intent(in) :: flag
+    real(amrex_real), intent(inout) :: ngbr(-1:1,-1:1)
+    integer :: i, j
+    do j = -1,1
+       do i = -1,1
+          if (btest(flag,pos_ngbr(i,j,0))) then
+             ngbr(i,j) = 1._amrex_real
+          else
+             ngbr(i,j) = 0._amrex_real
+          end if
+       end do
+    end do
+  end subroutine get_neighbor_cells_real
 
   elemental integer function num_neighbor_cells (flag)
     integer, intent(in) :: flag
     integer ngbr(-1:1,-1:1)
-    call get_neighbor_cells(flag, ngbr)
+    call get_neighbor_cells_int(flag, ngbr)
     num_neighbor_cells = count(ngbr.eq.1)
   end function num_neighbor_cells
 
 #else
 
-  pure subroutine get_neighbor_cells (flag, ngbr)
+  pure subroutine get_neighbor_cells_int (flag, ngbr)
     integer, intent(in) :: flag
     integer, intent(inout) :: ngbr(-1:1,-1:1,-1:1)
     integer :: i, j, k
@@ -80,12 +101,29 @@ contains
           end do
        end do
     end do
-  end subroutine get_neighbor_cells
+  end subroutine get_neighbor_cells_int
+
+  pure subroutine get_neighbor_cells_real (flag, ngbr)
+    integer, intent(in) :: flag
+    real(amrex_real), intent(inout) :: ngbr(-1:1,-1:1,-1:1)
+    integer :: i, j, k
+    do k = -1,1
+       do j = -1,1
+          do i = -1,1
+             if (btest(flag,pos_ngbr(i,j,k))) then
+                ngbr(i,j,k) = 1._amrex_real
+             else
+                ngbr(i,j,k) = 0._amrex_real
+             end if
+          end do
+       end do
+    end do
+  end subroutine get_neighbor_cells_real
 
   elemental integer function num_neighbor_cells (flag)
     integer, intent(in) :: flag
     integer ngbr(-1:1,-1:1,-1:1)
-    call get_neighbor_cells(flag, ngbr)
+    call get_neighbor_cells_int(flag, ngbr)
     num_neighbor_cells = count(ngbr.eq.1)
   end function num_neighbor_cells
 

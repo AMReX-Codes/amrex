@@ -42,7 +42,7 @@ contains
     
     call hyp_mol_gam_3d(q, qlo, qhi, lo, hi, dx, fhx, fhy, fhz)
 
-    call diff_mol_3d(q, qlo, qhi, lo, hi, dx, dt, fdx, fdy, fdz)
+    call diff_mol_3d(q, qlo, qhi, lo, hi, dx, fdx, fdy, fdz)
 
     fhx = fhx + fdx
     fhy = fhy + fdy
@@ -126,7 +126,8 @@ contains
     call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, fhx, fxlo, fxhi, fhy, fylo, fyhi, fhz, fzlo, fzhi,&
          flag, fglo, fghi)
 
-    call eb_diff_mol_3d(q, qlo, qhi, lo, hi, dx, dt, fdx, fxlo, fxhi, fdy, fylo, fyhi, fdz, fzlo, fzhi)
+    call eb_diff_mol_3d(q, qlo, qhi, lo, hi, dx, fdx, fxlo, fxhi, fdy, fylo, fyhi, fdz, fzlo, fzhi,&
+         flag, fglo, fghi)
 
     fhx = fhx + fdx
     fhy = fhy + fdy
