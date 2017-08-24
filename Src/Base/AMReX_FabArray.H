@@ -1400,7 +1400,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         Array<Array<int> >                 indv_send_size;
         Array<MPI_Request>                 pre_reqs;
 
+#if defined BL_USE_UPCXX || defined BL_USE_MPI3 
         int actual_n_snds = 0;
+#endif
 	if (N_snds > 0)
 	{
 	    send_data.reserve(N_snds);
@@ -1454,7 +1456,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 indv_send_size.push_back(std::move(iss));
 	    }
 
+#if defined BL_USE_UPCXX || defined BL_USE_MPI3
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
+#endif
         }
 
         if (!FAB::preAllocatable())
@@ -2085,7 +2089,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         Array<Array<int> >                 indv_send_size;
         Array<MPI_Request>                 pre_reqs;
 
+#if defined BL_USE_UPCXX || defined BL_USE_MPI3
         int actual_n_snds = 0;
+#endif
         if (N_snds > 0)
         {
             send_data.reserve(N_snds);
@@ -2133,7 +2139,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 indv_send_size.push_back(std::move(iss));
             }
 
+#if defined BL_USE_UPCXX || defined BL_USE_MPI3
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
+#endif
         }
 
         if (!FAB::preAllocatable())
@@ -3343,7 +3351,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 
     fb_tag = SeqNum;
 
+#if defined BL_USE_UPCXX || defined BL_USE_MPI3 
     int actual_n_snds = 0;
+#endif
     if (N_snds > 0)
     {
         fb_send_data.clear();
@@ -3399,8 +3409,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
             send_cctc.push_back(&cctc);
             indv_send_size.push_back(std::move(iss));
         }
-        
+
+#if defined BL_USE_UPCXX || defined BL_USE_MPI3         
         actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
+#endif
     }
 
     if (!FAB::preAllocatable())
