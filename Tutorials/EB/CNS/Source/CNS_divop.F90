@@ -1,15 +1,15 @@
-module cns_eb_flux_module
+module cns_divop_module
   use mempool_module, only : amrex_allocate, amrex_deallocate
   use amrex_fort_module, only : rt=>amrex_real
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell, &
        get_neighbor_cells
   implicit none
   private
-  public :: compute_diffop, compute_eb_diffop
+  public :: compute_divop, compute_eb_divop
 contains
 
   ! non-eb version
-  subroutine compute_diffop (lo,hi,ncomp,dx,ut,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi)
+  subroutine compute_divop (lo,hi,ncomp,dx,ut,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi)
     integer, intent(in) :: lo(3),hi(3),ncomp,ulo(3),uhi(3),fxlo(3),fxhi(3), &
          fylo(3),fyhi(3),fzlo(3),fzhi(3)
     real(rt), intent(inout) :: ut( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),ncomp)
@@ -34,13 +34,13 @@ contains
           end do
        end do
     end do
-  end subroutine compute_diffop
+  end subroutine compute_divop
 
-  subroutine compute_eb_diffop (lo,hi,ncomp, dx, dt, &
+  subroutine compute_eb_divop (lo,hi,ncomp, dx, dt, &
        fluxx,fxlo,fxhi, &
        fluxy,fylo,fyhi, &
        fluxz,fzlo,fzhi, &
-       ebdiffop, oplo, ophi, &
+       ebdivop, oplo, ophi, &
        q, qlo, qhi, &
        divc, dvlo, dvhi, &
        delm, dmlo, dmhi, &
@@ -65,7 +65,7 @@ contains
     real(rt), intent(in) :: fluxx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),ncomp)
     real(rt), intent(in) :: fluxy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),ncomp)
     real(rt), intent(in) :: fluxz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),ncomp)
-    real(rt), intent(inout) :: ebdiffop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)
+    real(rt), intent(inout) :: ebdivop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)
     real(rt), intent(in) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
     real(rt), intent(inout) :: divc(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
     real(rt), intent(inout) :: delm(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3),ncomp)
@@ -432,7 +432,7 @@ contains
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                ebdiffop(i,j,k,n) = divc(i,j,k) + optmp(i,j,k)
+                ebdivop(i,j,k,n) = divc(i,j,k) + optmp(i,j,k)
              end do
           end do
        end do
@@ -442,6 +442,6 @@ contains
     call amrex_deallocate(rhonew)
     call amrex_deallocate(optmp)
 
-  end subroutine compute_eb_diffop
+  end subroutine compute_eb_divop
 
-end module cns_eb_flux_module
+end module cns_divop_module
