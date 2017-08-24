@@ -18,6 +18,7 @@ contains
        bind(c,name='cns_compute_dudt')
     use cns_nd_module, only : ctoprim
     use advection_module, only : hyp_mol_gam_3d
+    use diff_coef_module, only : compute_diff_coef
     use diffusion_module, only : diff_mol_3d
     use cns_divop_module, only : compute_divop
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi
@@ -26,7 +27,9 @@ contains
     real(rt), intent(in) :: dx(3), dt
 
     integer :: qlo(3), qhi(3)
+    integer :: clo(3), chi(3)
     real(rt), dimension(:,:,:,:), pointer, contiguous :: q, fhx,fhy,fhz,fdx,fdy,fdz
+    real(rt), dimension(:,:,:), pointer :: lambda, mu, xi
 
     qlo = lo - nghost_plm
     qhi = hi + nghost_plm
@@ -37,12 +40,20 @@ contains
     call amrex_allocate(fdx,lo(1),hi(1)+1,lo(2),hi(2)  ,lo(3),hi(3)  ,1,5)
     call amrex_allocate(fdy,lo(1),hi(1)  ,lo(2),hi(2)+1,lo(3),hi(3)  ,1,5)
     call amrex_allocate(fdz,lo(1),hi(1)  ,lo(2),hi(2)  ,lo(3),hi(3)+1,1,5)
+
+    clo = lo - 1
+    chi = hi + 1
+    call amrex_allocate(lambda, clo, chi)
+    call amrex_allocate(mu, clo, chi)
+    call amrex_allocate(xi, clo, chi)
     
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
     
     call hyp_mol_gam_3d(q, qlo, qhi, lo, hi, dx, fhx, fhy, fhz)
 
-    call diff_mol_3d(q, qlo, qhi, lo, hi, dx, fdx, fdy, fdz)
+    call compute_diff_coef(q, qlo, qhi, lambda, mu, xi, clo, chi)
+
+    call diff_mol_3d(lo, hi, dx, q, qlo, qhi, lambda, mu, xi, clo, chi, fdx, fdy, fdz)
 
     fhx = fhx + fdx
     fhy = fhy + fdy
@@ -54,6 +65,9 @@ contains
 
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
 
+    call amrex_deallocate(xi)
+    call amrex_deallocate(mu)
+    call amrex_deallocate(lambda)
     call amrex_deallocate(fdz)
     call amrex_deallocate(fdy)
     call amrex_deallocate(fdx)
@@ -70,6 +84,7 @@ contains
        bind(c,name='cns_eb_compute_dudt')
     use cns_nd_module, only : ctoprim
     use eb_advection_module, only : hyp_mol_gam_eb_3d, nextra_eb
+    use diff_coef_module, only : compute_diff_coef
     use eb_diffusion_module, only : eb_diff_mol_3d
     use cns_divop_module, only : compute_eb_divop
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi, &
@@ -90,8 +105,10 @@ contains
 
     integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(3), dmhi(3)
     integer :: fxlo(3), fylo(3), fzlo(3), fxhi(3), fyhi(3), fzhi(3)
+    integer :: clo(3), chi(3)
     real(rt), pointer, contiguous :: q(:,:,:,:), divc(:,:,:), dm(:,:,:,:)
     real(rt), dimension(:,:,:,:), pointer :: fhx,fhy,fhz,fdx,fdy,fdz
+    real(rt), dimension(:,:,:), pointer :: lambda, mu, xi
     integer, parameter :: nghost = nextra_eb + nghost_plm ! 
 
     qlo = lo - nghost
@@ -121,19 +138,28 @@ contains
     call amrex_allocate(fhz, fzlo(1),fzhi(1),fzlo(2),fzhi(2),fzlo(3),fzhi(3),1,5)
     call amrex_allocate(fdz, fzlo(1),fzhi(1),fzlo(2),fzhi(2),fzlo(3),fzhi(3),1,5)
 
+    clo = lo - nextra_eb - 1
+    chi = hi + nextra_eb + 1
+    call amrex_allocate(lambda, clo, chi)
+    call amrex_allocate(mu, clo, chi)
+    call amrex_allocate(xi, clo, chi)
+
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
     
     call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, fhx, fxlo, fxhi, fhy, fylo, fyhi, fhz, fzlo, fzhi,&
          flag, fglo, fghi)
 
-    call eb_diff_mol_3d(q, qlo, qhi, lo, hi, dx, fdx, fxlo, fxhi, fdy, fylo, fyhi, fdz, fzlo, fzhi,&
+    call compute_diff_coef(q, qlo, qhi, lambda, mu, xi, clo, chi)
+
+    call eb_diff_mol_3d(lo, hi, dx, q, qlo, qhi, lambda, mu, xi, clo, chi, &
+         fdx, fxlo, fxhi, fdy, fylo, fyhi, fdz, fzlo, fzhi,&
          flag, fglo, fghi)
 
     fhx = fhx + fdx
     fhy = fhy + fdy
     fhz = fhz + fdz
     call compute_eb_divop(lo,hi,5,dx,dt,fhx,fxlo,fxhi,fhy,fylo,fyhi,fhz,fzlo,fzhi,&
-         dudt,utlo,uthi, q,qlo,qhi, &
+         dudt,utlo,uthi, q,qlo,qhi, lambda, mu, xi, clo, chi, &
          divc,dvlo,dvhi, dm,dmlo,dmhi, &
          volfrac,vlo,vhi,apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
          centx(:,:,:,1),cxlo,cxhi, centx(:,:,:,2),cxlo,cxhi, &
@@ -143,6 +169,9 @@ contains
 
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
 
+    call amrex_deallocate(xi)
+    call amrex_deallocate(mu)
+    call amrex_deallocate(lambda)
     call amrex_deallocate(fdz)
     call amrex_deallocate(fhz)
     call amrex_deallocate(fdy)
