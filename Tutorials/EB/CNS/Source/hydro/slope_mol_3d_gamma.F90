@@ -10,6 +10,7 @@ module slope_module
   public slopex, slopey, slopez
 
   integer, parameter :: plm_iorder = 2
+  real(rt), parameter :: plm_theta = 2.0   ! [1,2]; 1: minmod; 2: van Leer's MC
 
 contains
 
@@ -69,7 +70,7 @@ contains
                 do i = ilo1-1, ihi1+1
                    dcen = 0.5d0 * (dlft(i,n)+drgt(i,n))
                    dsgn = sign(1.d0, dcen)
-                   slop =2.d0* min( abs(dlft(i,n)), abs(drgt(i,n)) )
+                   slop = plm_theta * min( abs(dlft(i,n)), abs(drgt(i,n)) )
                    if (dlft(i,n)*drgt(i,n) .ge. 0.d0) then
                       dlim = slop
                    else
@@ -137,7 +138,7 @@ contains
                 do i = ilo1, ihi1
                    dcen = 0.5d0 * (dlft(i,n)+drgt(i,n))
                    dsgn = sign(1.d0, dcen)
-                   slop = 2.d0* min( abs(dlft(i,n)), abs(drgt(i,n)) )
+                   slop = plm_theta * min( abs(dlft(i,n)), abs(drgt(i,n)) )
                    if (dlft(i,n)*drgt(i,n) .ge. 0.d0) then
                       dlim = slop
                    else
@@ -204,7 +205,7 @@ contains
                 do i = ilo1, ihi1
                    dcen = 0.5d0 * (dlft(i,n)+drgt(i,n))
                    dsgn = sign(1.d0, dcen)
-                   slop = 2.d0*min( abs(dlft(i,n)), abs(drgt(i,n)) )
+                   slop = plm_theta * min( abs(dlft(i,n)), abs(drgt(i,n)) )
                    if (dlft(i,n)*drgt(i,n) .ge. 0.d0) then
                       dlim = slop
                    else
