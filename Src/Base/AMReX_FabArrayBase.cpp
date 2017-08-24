@@ -1672,9 +1672,9 @@ FabArrayBase::CheckRcvStats(Array<MPI_Status>& recv_stats,
     for (int i = 0, n = recv_size.size(); i < n; ++i) {
 	if (recv_size[i] > 0) {
 	    int count;
-            MPI_Status status;
-	    MPI_Get_count(&status, datatype, &count);
-            recv_stats[i] = status;
+
+	    MPI_Get_count(&recv_stats[i], datatype, &count);
+
 	    if (count != recv_size[i]) {
 		r = false;
 		amrex::AllPrint() << "ERROR: Proc. " << ParallelDescriptor::MyProc()
