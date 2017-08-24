@@ -2,7 +2,8 @@
 module cns_dudt_module
 
   use amrex_fort_module, only : rt=>amrex_real
-  use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar, qvar
+  use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar, qvar, &
+       actually_2D
   use mempool_module, only : amrex_allocate, amrex_deallocate
   implicit none
   private
@@ -30,6 +31,8 @@ contains
     integer :: clo(3), chi(3)
     real(rt), dimension(:,:,:,:), pointer, contiguous :: q, fhx,fhy,fhz,fdx,fdy,fdz
     real(rt), dimension(:,:,:), pointer :: lambda, mu, xi
+
+    integer :: k,n
 
     qlo = lo - nghost_plm
     qhi = hi + nghost_plm
@@ -64,6 +67,14 @@ contains
          fhz, lo, [hi(1)  ,hi(2)  ,hi(3)+1])
 
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
+
+    if (actually_2D) then
+       do n = 1, 5
+          do k = lo(3), hi(3)
+             dudt(lo(1):hi(1),lo(2):hi(2),k,n) = dudt(lo(1):hi(1),lo(2):hi(2),(lo(3)+hi(3))/2,n)
+          end do
+       end do
+    end if
 
     call amrex_deallocate(xi)
     call amrex_deallocate(mu)
@@ -112,6 +123,8 @@ contains
     real(rt), dimension(:,:,:,:), pointer :: fhx,fhy,fhz,fdx,fdy,fdz
     real(rt), dimension(:,:,:), pointer :: lambda, mu, xi
     integer, parameter :: nghost = nextra_eb + nghost_plm ! 
+
+    integer :: k,n
 
     qlo = lo - nghost
     qhi = hi + nghost
@@ -171,6 +184,14 @@ contains
          flag,fglo,fghi)
 
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
+
+    if (actually_2D) then
+       do n = 1, 5
+          do k = lo(3), hi(3)
+             dudt(lo(1):hi(1),lo(2):hi(2),k,n) = dudt(lo(1):hi(1),lo(2):hi(2),(lo(3)+hi(3))/2,n)
+          end do
+       end do
+    end if
 
     call amrex_deallocate(xi)
     call amrex_deallocate(mu)

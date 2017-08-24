@@ -54,3 +54,5 @@ start_pt = 5.2
 
 physics.gamma = 1.6666666666666667
 physics.mu    = 41.57255
+
+cns.dim = 2
