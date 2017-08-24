@@ -19,7 +19,7 @@ contains
     use cns_nd_module, only : ctoprim
     use advection_module, only : hyp_mol_gam_3d
     use diffusion_module, only : diff_mol_3d
-    use cns_eb_flux_module, only : compute_diffop
+    use cns_divop_module, only : compute_divop
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi
     real(rt), intent(inout) :: dudt(utlo(1):uthi(1),utlo(2):uthi(2),utlo(3):uthi(3),nvar)
     real(rt), intent(in   ) :: u ( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
@@ -47,7 +47,7 @@ contains
     fhx = fhx + fdx
     fhy = fhy + fdy
     fhz = fhz + fdz
-    call compute_diffop (lo,hi,5,dx,dudt,utlo,uthi, &
+    call compute_divop (lo,hi,5,dx,dudt,utlo,uthi, &
          fhx, lo, [hi(1)+1,hi(2)  ,hi(3)  ], &
          fhy, lo, [hi(1)  ,hi(2)+1,hi(3)  ], &
          fhz, lo, [hi(1)  ,hi(2)  ,hi(3)+1])
@@ -71,7 +71,7 @@ contains
     use cns_nd_module, only : ctoprim
     use eb_advection_module, only : hyp_mol_gam_eb_3d, nextra_eb
     use eb_diffusion_module, only : eb_diff_mol_3d
-    use cns_eb_flux_module, only : compute_eb_diffop
+    use cns_divop_module, only : compute_eb_divop
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi, &
          vlo,vhi,axlo,axhi,aylo,ayhi,azlo,azhi, &
          cxlo,cxhi,cylo,cyhi,czlo,czhi, &
@@ -132,7 +132,7 @@ contains
     fhx = fhx + fdx
     fhy = fhy + fdy
     fhz = fhz + fdz
-    call compute_eb_diffop(lo,hi,5,dx,dt,fhx,fxlo,fxhi,fhy,fylo,fyhi,fhz,fzlo,fzhi,&
+    call compute_eb_divop(lo,hi,5,dx,dt,fhx,fxlo,fxhi,fhy,fylo,fyhi,fhz,fzlo,fzhi,&
          dudt,utlo,uthi, q,qlo,qhi, &
          divc,dvlo,dvhi, dm,dmlo,dmhi, &
          volfrac,vlo,vhi,apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
