@@ -171,7 +171,7 @@ initialize_EBIS(const int max_level)
         }
         else
         {
-          BaseIF* impfunc = NULL;
+          std::unique_ptr<BaseIF> impfunc;
           
           if (geom_type == "ramp")
           {
@@ -194,7 +194,7 @@ initialize_EBIS(const int max_level)
 
             bool normalInside = true;
 
-            impfunc = static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside));
+            impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
           }
           else if (geom_type == "sphere")
           {
@@ -209,7 +209,7 @@ initialize_EBIS(const int max_level)
               center[idir] = centervec[idir];
             }
             bool insideRegular = false;
-            impfunc = static_cast<BaseIF*>(new SphereIF(radius, center, insideRegular));
+            impfunc.reset(static_cast<BaseIF*>(new SphereIF(radius, center, insideRegular)));
 
           }
           else if (geom_type == "polygon_revolution")
@@ -280,11 +280,11 @@ initialize_EBIS(const int max_level)
               if(!insideRegular)
               {
                 ComplementIF insideOut(*crossSection);
-                impfunc = insideOut.newImplicitFunction();
+                impfunc.reset(insideOut.newImplicitFunction());
               }
               else
               {
-                impfunc = crossSection->newImplicitFunction();
+                  impfunc.reset(crossSection->newImplicitFunction());
               }
             }
             else
@@ -297,7 +297,7 @@ initialize_EBIS(const int max_level)
               translation[2] = 0;
               TransformIF implicit(lathe);
               implicit.translate(translation);
-              impfunc = implicit.newImplicitFunction();
+              impfunc.reset(implicit.newImplicitFunction());
             }
       
           }
