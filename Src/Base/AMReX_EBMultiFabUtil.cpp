@@ -84,6 +84,49 @@ EB_set_volume_fraction (MultiFab& mf)
 }
 
 void
+EB_set_bndry_centroid (MultiFab& mf)
+{
+    BL_ASSERT(mf.nComp() == AMREX_SPACEDIM);
+
+    const Box& domain = amrex::getLevelDomain(mf);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox();
+        EBFArrayBox& fab = dynamic_cast<EBFArrayBox&>(mf[mfi]);
+        fab.setVal(-1.0, bx);
+        FabType typ = fab.getType();
+        if (typ != FabType::regular)
+        {
+            if (typ == FabType::covered) {
+                fab.setVal(0.0, bx);
+            }
+            else
+            {
+                const auto& ebisbox = fab.getEBISBox();
+
+                const Box& bx_sect = bx & domain;
+                for (BoxIterator bi(bx_sect); bi.ok(); ++bi)
+                {
+                    const IntVect& iv = bi();
+                    const auto& vofs = ebisbox.getVoFs(iv);
+                    for (const auto& vi : vofs)
+                    {
+                        const auto& bcent = ebisbox.bndryCentroid(vi);
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            fab(iv,idim) = bcent[idim];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void
 EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafrac,
                                     std::array<MultiFab,AMREX_SPACEDIM>& facecent)
 {

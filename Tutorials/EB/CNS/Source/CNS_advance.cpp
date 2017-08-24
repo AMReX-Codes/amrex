@@ -66,6 +66,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                                         BL_TO_FORTRAN_ANYD(S[mfi]),
                                         BL_TO_FORTRAN_ANYD(flag),
                                         BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                                        BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
                                         BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
                                         BL_TO_FORTRAN_ANYD(areafrac[1][mfi]),
                                         BL_TO_FORTRAN_ANYD(areafrac[2][mfi]),

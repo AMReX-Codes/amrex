@@ -60,6 +60,7 @@ extern "C" {
                               const amrex_real* u, const int* ulo, const int* uhi,
                               const void* flag, const int* fglo, const int* fghi,
                               const amrex_real* volfrac, const int* vlo, const int* vhi,
+                              const amrex_real* bcent, const int* blo, const int* bhi,
                               const amrex_real* ax, const int* axlo, const int* axhi,
                               const amrex_real* ay, const int* aylo, const int* ayhi,
                               const amrex_real* az, const int* azlo, const int* azhi,
