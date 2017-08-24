@@ -91,9 +91,9 @@ contains
 
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
     integer :: nwalls, iwall
-    real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,mtot, fracx,fracy,fracz,dxinv(3)
+    real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
     real(rt) :: divwn
-    real(rt), pointer, contiguous :: optmp(:,:,:), rhonew(:,:,:)
+    real(rt), pointer, contiguous :: optmp(:,:,:), rediswgt(:,:,:)
     real(rt), pointer, contiguous :: divhyp(:,:), divdiff(:,:)
 
     !  centroid nondimensional  and zero at face center
@@ -112,7 +112,7 @@ contains
     end do
 
     call amrex_allocate(optmp, lo-2, hi+2)
-    call amrex_allocate(rhonew, lo-2, hi+2)
+    call amrex_allocate(rediswgt, lo-2, hi+2)
 
     call amrex_allocate(divhyp, 1,5, 1,nwalls)
     call amrex_allocate(divdiff, 1,5, 1,nwalls)
@@ -388,7 +388,7 @@ contains
 
              if (n.eq.1) then
                 do i = lo(1)-2, hi(1)+2
-                   rhonew(i,j,k) = max(smallr, q(i,j,k,qrho)+dt*divc(i,j,k))
+                   rediswgt(i,j,k) = q(i,j,k,qrho) ! max(smallr, q(i,j,k,qrho)+dt*divc(i,j,k))
                 end do
              end if
           end do
@@ -433,25 +433,25 @@ contains
           do    j = lo(2)-1, hi(2)+1
              do i = lo(1)-1, hi(1)+1
                 if (is_single_valued_cell(cellflag(i,j,k))) then                   
-                   mtot = 0.d0
+                   wtot = 0.d0
                    call get_neighbor_cells(cellflag(i,j,k),nbr)
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if ((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               mtot = mtot + vfrac(i+ii,j+jj,k+kk)*rhonew(i+ii,j+jj,k+kk)
+                               wtot = wtot + vfrac(i+ii,j+jj,k+kk)*rediswgt(i+ii,j+jj,k+kk)
                             end if
                          end do
                       enddo
                    enddo
                    
-                   mtot = 1.d0/mtot
+                   wtot = 1.d0/wtot
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
                                optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) &
-                                    + delm(i,j,k,n)*mtot*rhonew(i+ii,j+jj,k+kk)
+                                    + delm(i,j,k,n)*wtot*rediswgt(i+ii,j+jj,k+kk)
                             endif
                          enddo
                       enddo
@@ -473,7 +473,7 @@ contains
 
     call amrex_deallocate(divdiff)
     call amrex_deallocate(divhyp)
-    call amrex_deallocate(rhonew)
+    call amrex_deallocate(rediswgt)
     call amrex_deallocate(optmp)
 
   end subroutine compute_eb_divop
