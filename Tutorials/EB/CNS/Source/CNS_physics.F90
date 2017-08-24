@@ -27,6 +27,9 @@ contains
     call amrex_parmparse_build(pp,"physics")
     call pp%query("gamma",gamma)
     call pp%query("mu", mu)
+    call pp%query("Pr", Pr)
+    call pp%query("C_S", C_S)
+    call pp%query("T_S", T_S)
     call amrex_parmparse_destroy(pp)
 
     cv = Ru / (mu * (gamma-1.d0))

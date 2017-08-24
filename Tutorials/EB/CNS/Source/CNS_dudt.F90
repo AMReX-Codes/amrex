@@ -79,7 +79,8 @@ contains
 
   subroutine cns_eb_compute_dudt (lo,hi, dudt, utlo, uthi, &
        u,ulo,uhi,flag,fglo,fghi, &
-       volfrac,vlo,vhi,apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
+       volfrac,vlo,vhi, bcent,blo,bhi, &
+       apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
        centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, dx,dt) &
        bind(c,name='cns_eb_compute_dudt')
     use cns_nd_module, only : ctoprim
@@ -90,11 +91,12 @@ contains
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi, &
          vlo,vhi,axlo,axhi,aylo,ayhi,azlo,azhi, &
          cxlo,cxhi,cylo,cyhi,czlo,czhi, &
-         fglo,fghi
+         fglo,fghi, blo, bhi
     real(rt), intent(inout) :: dudt(utlo(1):uthi(1),utlo(2):uthi(2),utlo(3):uthi(3),nvar)
     real(rt), intent(in   ) :: u ( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
     integer , intent(in) ::  flag(fglo(1):fghi(1),fglo(2):fghi(2),fglo(3):fghi(3))
     real(rt), intent(in) :: volfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
+    real(rt), intent(in) :: bcent  (blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
     real(rt), intent(in) :: apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(rt), intent(in) :: apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
     real(rt), intent(in) :: apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
@@ -161,7 +163,8 @@ contains
     call compute_eb_divop(lo,hi,5,dx,dt,fhx,fxlo,fxhi,fhy,fylo,fyhi,fhz,fzlo,fzhi,&
          dudt,utlo,uthi, q,qlo,qhi, lambda, mu, xi, clo, chi, &
          divc,dvlo,dvhi, dm,dmlo,dmhi, &
-         volfrac,vlo,vhi,apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
+         volfrac,vlo,vhi, bcent,blo,bhi, &
+         apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
          centx(:,:,:,1),cxlo,cxhi, centx(:,:,:,2),cxlo,cxhi, &
          centy(:,:,:,1),cylo,cyhi, centy(:,:,:,2),cylo,cyhi, &
          centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &

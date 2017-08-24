@@ -46,6 +46,7 @@ contains
        divc, dvlo, dvhi, &
        delm, dmlo, dmhi, &
        vfrac, vlo, vhi, &
+       bcent, blo, bhi, &
        apx, axlo, axhi, &
        apy, aylo, ayhi, &
        apz, azlo, azhi, &
@@ -62,7 +63,7 @@ contains
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
          cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi, &
-         clo, chi
+         clo, chi, blo, bhi
     integer, intent(in) :: ncomp
     real(rt), intent(in) :: dx(3), dt
     real(rt), intent(in) :: fluxx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),ncomp)
@@ -76,6 +77,7 @@ contains
     real(rt), intent(inout) :: divc(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
     real(rt), intent(inout) :: delm(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3),ncomp)
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
+    real(rt), intent(in) :: bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
     real(rt), intent(in) :: apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(rt), intent(in) :: apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
     real(rt), intent(in) :: apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
@@ -368,6 +370,7 @@ contains
                       call compute_diff_wallflux(divdiff(:,iwall), dx, i,j,k, &
                            q, qlo, qhi, &
                            lam, mu, xi, clo, chi, &
+                           bcent, blo, bhi, &
                            apx, axlo, axhi, &
                            apy, aylo, ayhi, &
                            apz, azlo, azhi)

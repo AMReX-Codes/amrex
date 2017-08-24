@@ -9,6 +9,7 @@ namespace amrex
     void EB_set_covered (MultiFab& mf);    
     void EB_set_covered (MultiFab& mf, int icomp, int ncomp);
     void EB_set_volume_fraction (MultiFab& mf);
+    void EB_set_bndry_centroid (MultiFab& mf);
     void EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafrac,
                                              std::array<MultiFab,AMREX_SPACEDIM>& facecent);
 

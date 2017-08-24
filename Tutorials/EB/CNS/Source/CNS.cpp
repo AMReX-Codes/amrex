@@ -302,6 +302,10 @@ CNS::buildMetrics ()
     volfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
     amrex::EB_set_volume_fraction(volfrac);
 
+    bndrycent.clear();
+    bndrycent.define(grids,dmap,AMREX_SPACEDIM,NUM_GROW,MFInfo(),Factory());
+    amrex::EB_set_bndry_centroid(bndrycent);
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         const BoxArray& ba = amrex::convert(grids,IntVect::TheDimensionVector(idim));
         areafrac[idim].clear();
