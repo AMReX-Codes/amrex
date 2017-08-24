@@ -3437,7 +3437,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 #endif
 
     fb_the_recv_data = nullptr;
-    int actual_n_rcvs = 0;
+
     if (N_rcvs > 0) {
 #ifdef BL_USE_UPCXX
 	PostRcvs_PGAS(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
@@ -3458,7 +3458,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
                      scomp, ncomp, SeqNum, preSeqNum);
 	}
 #endif
-        actual_n_rcvs = N_rcvs - std::count(fb_recv_size.begin(), fb_recv_size.end(), 0);
     }
 
     //
