@@ -1664,7 +1664,7 @@ FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
 
 #ifdef BL_USE_MPI
 bool
-FabArrayBase::CheckRcvStats(const Array<MPI_Status>& recv_stats,
+FabArrayBase::CheckRcvStats( Array<MPI_Status>& recv_stats,
 			    const Array<int>& recv_size,
 			    MPI_Datatype datatype, int tag)
 {
