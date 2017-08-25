@@ -411,7 +411,7 @@ amrex::Random_int(unsigned long n)
 void
 amrex::SaveRandomState(std::ostream& os)
 {
-    for (unsigned i = 0; i < nthreads; i++) {
+    for (int i = 0; i < nthreads; i++) {
         os << generators[i] << "\n";
     }
 }
@@ -420,14 +420,14 @@ void
 amrex::RestoreRandomState(std::istream& is, int nthreads_old, int nstep_old)
 {
     int N = std::min(nthreads, nthreads_old);
-    for (unsigned i = 0; i < N; i++)
+    for (int i = 0; i < N; i++)
         is >> generators[i];
     if (nthreads > nthreads_old) {
         const int NProcs = ParallelDescriptor::NProcs();
         const int MyProc = ParallelDescriptor::MyProc();
-        for (unsigned i = nthreads_old; i < nthreads; i++) {
+        for (int i = nthreads_old; i < nthreads; i++) {
 	    unsigned long seed = MyProc+1 + i*NProcs;
-	    if (ULONG_MAX/(unsigned long)(nstep_old+1) > nthreads*NProcs) { // avoid overflow
+	    if (ULONG_MAX/(unsigned long)(nstep_old+1) >static_cast<unsigned long>(nthreads*NProcs)) { // avoid overflow
 		seed += nstep_old*nthreads*NProcs;
 	    }
 
@@ -445,7 +445,7 @@ amrex::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
   }
   std::set<int> copySet;
   Array<int> uSetTemp;
-  while(copySet.size() < setSize) {
+  while(static_cast<int>(copySet.size()) < setSize) {
     int r(amrex::Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);

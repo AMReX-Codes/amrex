@@ -473,14 +473,14 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 	    for (FabSetIter fsi(frlo); fsi.isValid(); ++fsi) {
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
-		for (int ii = 0; ii < isects.size(); ++ii) {
+		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
 		    frlo[fsi].setVal(0.0, isects[ii].second, 0, ncomp);
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
 			const Box& sbx = amrex::shift(bx, dir, domain.length(dir));
 			const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
-			for (int ii = 0; ii < isects2.size(); ++ii) {
+			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
 			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
 			    frlo[fsi].setVal(0.0, bx2, 0, ncomp);
 			}		      
@@ -491,14 +491,14 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 	    for (FabSetIter fsi(frhi); fsi.isValid(); ++fsi) {
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = balo.intersections(bx);
-		for (int ii = 0; ii < isects.size(); ++ii) {
+		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
 		    frhi[fsi].setVal(0.0, isects[ii].second, 0, ncomp);
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
 			const Box& sbx = amrex::shift(bx, dir, -domain.length(dir));
 			const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
-			for (int ii = 0; ii < isects2.size(); ++ii) {
+			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
 			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
 			    frhi[fsi].setVal(0.0, bx2, 0, ncomp);
 			}		      

@@ -473,7 +473,7 @@ ParallelDescriptor::SetNProcsSidecars (const Array<int> &compRanksInAll,
       }
     }
 
-    if(rankSet.size() != m_nProcs_all) {
+    if(static_cast<int>(rankSet.size()) != m_nProcs_all) {
       std::cerr << "**** rankSet.size() != m_nProcs_all:  " << rankSet.size()
                 << " != " << m_nProcs_all << std::endl;
       amrex::Abort("**** Error in SetNProcsSidecars:  rankSet.size() != m_nProcs_all.");
