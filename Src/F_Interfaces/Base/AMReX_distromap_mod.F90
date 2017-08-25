@@ -26,6 +26,7 @@ module amrex_distromap_module
 
   interface amrex_distromap_build
      module procedure amrex_distromap_build_ba
+     module procedure amrex_distromap_build_pmap
   end interface amrex_distromap_build
 
   interface amrex_print
@@ -41,6 +42,14 @@ module amrex_distromap_module
        type(c_ptr) :: dm
        type(c_ptr), value :: ba
      end subroutine amrex_fi_new_distromap
+
+     subroutine amrex_fi_new_distromap_from_pmap (dm,pmap,plen) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: dm
+       integer(c_int), intent(in) :: pmap(*)
+       integer(c_int), value :: plen
+     end subroutine amrex_fi_new_distromap_from_pmap
 
      subroutine amrex_fi_delete_distromap (dm) bind(c)
        import
@@ -77,6 +86,13 @@ contains
     dm%owner = .true.
     call amrex_fi_new_distromap(dm%p, ba%p)
   end subroutine amrex_distromap_build_ba
+
+  subroutine amrex_distromap_build_pmap (dm, pmap)
+    type(amrex_distromap) :: dm
+    integer, intent(in) :: pmap(:)
+    dm%owner = .true.
+    call amrex_fi_new_distromap_from_pmap(dm%p,pmap, size(pmap))
+  end subroutine amrex_distromap_build_pmap
 
   impure elemental subroutine amrex_distromap_destroy (this)
     type(amrex_distromap), intent(inout) :: this

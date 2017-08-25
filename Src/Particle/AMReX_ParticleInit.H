@@ -498,8 +498,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
         RealSizeInFile = (ENDPOS - CURPOS) / (NP*(DM+NX));
 
-        std::cout << RealSizeInFile << std::endl;
-
         BL_ASSERT(RealSizeInFile == sizeof(float) || RealSizeInFile == sizeof(double));
         //
         // Now set stream back to earlier position.
