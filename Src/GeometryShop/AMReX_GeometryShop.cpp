@@ -27,35 +27,6 @@
 namespace amrex
 {
 
-  bool GeometryShop::isRegular(const Box&           a_region,
-                               const Box& a_domain,
-                               const RealVect&      a_origin,
-                               const Real&          a_dx) const
-  {
-    BL_PROFILE("GeometryShop::isRegular");
-
-    // first check any of the Box corners is outside, and return false
-    // right away. (bvs)
-    IntVect lo = a_region.smallEnd();
-    IntVect len = a_region.size();
-    Box unitBox(IntVect::TheZeroVector(), IntVect::TheUnitVector());
-    for (BoxIterator bit(unitBox); bit.ok(); ++bit)
-    {
-      IntVect current = lo + len*bit();
-      RealVect physCorner;
-      for (int idir = 0; idir < SpaceDim; ++idir)
-      {
-        physCorner[idir] = a_dx*current[idir] + a_origin[idir];
-      }
-      Real functionValue = m_implicitFunction->value(physCorner);
-      if (functionValue > 0.0 )
-      {
-        return false;
-      }
-    }
-
-    return isRegularEveryPoint(a_region, a_domain, a_origin, a_dx);
-  }
 
   bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
                                          const Box& a_domain,
@@ -71,6 +42,7 @@ namespace amrex
     RealVect physCorner;
     BoxIterator bit(allCorners);
     // If every corner is inside, the box is regular
+
     for (int i=0; i<2; i++)
     {
       for (; bit.ok(); ++bit, ++bit)
@@ -99,124 +71,8 @@ namespace amrex
       ++bit;
     }
 
+
     return true;
-  }
-
-  bool GeometryShop::isIrregular(const Box&           a_region,
-                                 const Box& a_domain,
-                                 const RealVect&      a_origin,
-                                 const Real&          a_dx) const
-  {
-
-    BL_PROFILE("GeometryShop::isIrregular");
-
-    // first check any of the Box corners is outside, and return false
-    // right away. (bvs)
-    RealVect physCorner;
-    IntVect lo = a_region.smallEnd();
-    IntVect len = a_region.size();
-    for (int idir = 0; idir < SpaceDim; ++idir)
-    {
-      physCorner[idir] = a_dx*lo[idir] + a_origin[idir];
-    }
-    Real originVal = m_implicitFunction->value(physCorner);
-
-    Box unitBox(IntVect::TheZeroVector(), IntVect::TheUnitVector());
-    for (BoxIterator bit(unitBox); bit.ok(); ++bit)
-    {
-      IntVect current = lo + len*bit();
-      for (int idir = 0; idir < SpaceDim; ++idir)
-      {
-        physCorner[idir] = a_dx*current[idir] + a_origin[idir];
-      }
-
-      Real functionValue = m_implicitFunction->value(physCorner);
-      if (functionValue * originVal < 0.0 )
-      {
-        return true;
-      }
-    }
-
-    // return isIrregularEveryPoint(a_region, a_domain, a_origin, a_dx, originVal);
-    return !(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx) ||
-             isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx));
-  }
-
-  bool GeometryShop::isIrregularEveryPoint(const Box&           a_region,
-                                           const Box& a_domain,
-                                           const RealVect&      a_origin,
-                                           const Real&          a_dx,
-                                           const Real&          a_originVal) const
-  {
-    BL_PROFILE("GeometryShop::isIrregularEveryPoint");
-
-    // All corner indices for the current box
-    Box allCorners(a_region);
-    allCorners.surroundingNodes();
-
-    RealVect physCorner;
-    BoxIterator bit(allCorners);
-    // If every corner is inside, the box is regular
-    for (int i=0; i<2; i++)
-    {
-      for (; bit.ok(); ++bit, ++bit)
-      {
-        // Current corner
-        IntVect corner = bit();
-
-        // Compute physical coordinate of corner
-
-        for (int idir = 0; idir < SpaceDim; ++idir)
-        {
-          physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
-        }
-
-        // If the implicit function value is positive then the current
-        // corner is outside the domain
-        Real functionValue = m_implicitFunction->value(physCorner);
-
-        if (functionValue * a_originVal < 0.0 )
-        {
-          return true;
-        }
-      }
-      bit.reset();
-      ++bit;
-    }
-
-    return false;
-  }
-
-  bool GeometryShop::isCovered(const Box&           a_region,
-                               const Box& a_domain,
-                               const RealVect&      a_origin,
-                               const Real&          a_dx) const
-  {
-    BL_PROFILE("GeometryShop::isCovered");
-
-
-    // first check any of the Box corners is outside, and return false
-    // right away. (bvs)
-    RealVect physCorner;
-    IntVect lo = a_region.smallEnd();
-    IntVect len = a_region.size();
-    Box unitBox(IntVect::TheZeroVector(), IntVect::TheUnitVector());
-    for (BoxIterator bit(unitBox); bit.ok(); ++bit)
-    {
-      IntVect current = lo + len*bit();
-      for (int idir = 0; idir < SpaceDim; ++idir)
-      {
-        physCorner[idir] = a_dx*current[idir] + a_origin[idir];
-      }
-
-      Real functionValue = m_implicitFunction->value(physCorner);
-      if (functionValue < 0.0 )
-      {
-        return false;
-      }
-    }
-
-    return isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx);
   }
 
   bool GeometryShop::isCoveredEveryPoint(const Box&           a_region,
@@ -232,6 +88,7 @@ namespace amrex
 
     RealVect physCorner;
     BoxIterator bit(allCorners);
+
     // If every corner is inside, the box is regular
     for (int i=0; i<2; i++)
     {
@@ -253,6 +110,8 @@ namespace amrex
 
         if (functionValue < 0.0 )
         {
+
+
           return false;
         }
       }
@@ -301,67 +160,20 @@ namespace amrex
     GeometryShop::InOut rtn;
 
 
-    // All corner indices for the current box
-    Box allCorners(a_region);
-    allCorners.surroundingNodes();
-
-    RealVect physCorner(allCorners.smallEnd());
-
-    physCorner *= a_dx;
-    physCorner += a_origin;
-
-    Real firstValue;
-    Real firstSign;
-
-    firstValue = m_implicitFunction->value(physCorner);
-    firstSign  = copysign(1.0, firstValue);
-
-    if ( firstSign < 0 )
-      {
-        rtn = GeometryShop::Regular;
-      }
+    if(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx))
+    {
+      rtn = GeometryShop::Regular;
+    }
+    else if(isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx))
+    {
+      rtn = GeometryShop::Covered;
+    }
     else
-      {
-        rtn = GeometryShop::Covered;
-      }
-
-    
-
-    for (BoxIterator bit(allCorners); bit.ok(); ++bit)
-      {
-        // Current corner
-        IntVect corner = bit();
-
-        Real functionValue;
-        Real functionSign;
-
-        // Compute physical coordinate of corner
-        for (int idir = 0; idir < SpaceDim; ++idir)
-          {
-            physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
-          }
-
-        // If the implicit function value is positive then the current
-        // corner is outside the domain
-        functionValue = m_implicitFunction->value(physCorner);
-
-        functionSign = copysign(1.0, functionValue);
-
-        if (functionValue == 0 || firstValue == 0)
-          {
-            if (functionSign * firstSign < 0)
-              {
-                rtn = GeometryShop::Irregular;
-                return rtn;
-              }
-          }
-        if (functionValue * firstValue < 0.0 )
-          {
-            rtn = GeometryShop::Irregular;
-            return rtn;
-          }
-      }
+    {
+      rtn = GeometryShop::Irregular;
+    }
     return rtn;
+
   }
 
   /*********************************************/
@@ -385,19 +197,10 @@ namespace amrex
     IntVectSet ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
+
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
-////begin debug
-//        IntVect ivdeb(D_DECL(30,24,0));
-//        Box bdeb(ivdeb, ivdeb);
-//        bdeb.grow(1);
-//        int ideb = 0;
-//        if(bdeb.contains(iv))
-//        {
-//          ideb = 1;
-//        }
-////end debug
 
         Box miniBox(iv, iv);
         GeometryShop::InOut inout = InsideOutside(miniBox, a_domain, a_origin, a_dx);
@@ -442,12 +245,6 @@ namespace amrex
       {
         const IntVect& iv = ivsit();
 
-        //int istop = 0;
-        //if(debbox.contains(iv))
-        //  {
-        //    istop = 1;
-        //  }
-
         Real     volFrac, bndryArea;
         RealVect normal, volCentroid, bndryCentroid;
         std::vector<int> loArc[SpaceDim];
@@ -478,10 +275,6 @@ namespace amrex
           {
             ivsdrop |= iv;
             a_regIrregCovered(iv, 0) = -1;
-            if (m_verbosity > 2)
-              {
-                amrex::Print() << "Removing vof " << iv << " with volFrac " << volFrac << "\n";
-              }
           }//CP record these nodes to be removed
         else
           {
@@ -559,8 +352,8 @@ namespace amrex
       }//ivsdrop
     if(m_verbosity > 2)
     {
-      amrex::Print() << "numIrreg  = " << numIrreg << "\n";
-      amrex::Print() << "number of nodes  = " << a_nodes.size() << "\n";
+      amrex::AllPrint() << "numIrreg  = " << numIrreg << "\n";
+      amrex::AllPrint() << "number of nodes  = " << a_nodes.size() << "\n";
     }
   }
   /*************/
@@ -1477,7 +1270,7 @@ namespace amrex
 
         if (volDiscrepancy > m_threshold)
           {
-            amrex::Print() << std::string(message) << "\n";
+            amrex::AllPrint() << std::string(message) << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1504,7 +1297,7 @@ namespace amrex
           }
         if (volDiscrepancy>m_threshold)
           {
-            amrex::Print() << message << "\n";
+            amrex::AllPrint() << message << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1537,7 +1330,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::Print() << message << "\n";
+                    amrex::AllPrint() << message << "\n";
                   }
 
                 // do the clipping
@@ -1565,7 +1358,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::Print() << message << "\n";
+                    amrex::AllPrint() << message << "\n";
                   }
 
                 // do the clipping
@@ -1601,7 +1394,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::Print() << message << "\n";
+                    amrex::AllPrint() << message << "\n";
                   }
 
                 // do the clipping
@@ -1629,7 +1422,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::Print() << message << "\n";
+                    amrex::AllPrint() << message << "\n";
                   }
 
                 // do the clipping
@@ -1662,7 +1455,7 @@ namespace amrex
           }
         if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
           {
-            amrex::Print() << message << "\n";
+            amrex::AllPrint() << message << "\n";
           }
 
         // do the clipping
@@ -1690,7 +1483,7 @@ namespace amrex
           }
         if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
           {
-            amrex::Print() << message << "\n";
+            amrex::AllPrint() << message << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1720,7 +1513,7 @@ namespace amrex
               }
             if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::Print() << message << "\n";
+                amrex::AllPrint() << message << "\n";
 
               }
             // do the clipping
@@ -1747,7 +1540,7 @@ namespace amrex
               }
             if (discrepancy > m_threshold&& volDiscrepancy>m_threshold)
               {
-                amrex::Print() << message << "\n";
+                amrex::AllPrint() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1775,7 +1568,7 @@ namespace amrex
               }
             if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::Print() << message << "\n";
+                amrex::AllPrint() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1802,7 +1595,7 @@ namespace amrex
               }
             if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::Print() << message << "\n";
+                amrex::AllPrint() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1836,7 +1629,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::Print() << message << "\n";
+                        amrex::AllPrint() << message << "\n";
 
                       }
                     // do the clipping
@@ -1863,7 +1656,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::Print() << message << "\n";
+                        amrex::AllPrint() << message << "\n";
 
                       }
                     // do the clipping
@@ -1900,7 +1693,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::Print() << message << "\n";
+                        amrex::AllPrint() << message << "\n";
                       }
                     // do the clipping
                     //thisVofClipped = true;
@@ -1926,7 +1719,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy > m_threshold)
                       {
-                        amrex::Print() << message << "\n";
+                        amrex::AllPrint() << message << "\n";
                       }
                     // do the clipping
                     //thisVofClipped = true;
@@ -2204,7 +1997,7 @@ namespace amrex
                 // choose the midpoint for an ill-conditioned problem
                 if (intercept<LoPt[range] || intercept>HiPt[range])
                   {
-                    amrex::Print()<<"GeometryShop::edgeData: Ill-conditioned edge data"<<"\n";
+                    amrex::AllPrint()<<"GeometryShop::edgeData: Ill-conditioned edge data"<<"\n";
                     intercept = (LoPt[range]+HiPt[range])/2.0;
                   }
 
@@ -2361,7 +2154,7 @@ namespace amrex
 
     if (fb*fa > 0)
       {
-        amrex::Print() << "fa " << fa << " fb " << fb << "\n";
+        amrex::AllPrint() << "fa " << fa << " fb " << fb << "\n";
         amrex::Error("GeometryShop::BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
       }
 

@@ -261,7 +261,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     std::set_new_handler(amrex::OutOfMemory);
 
     if (argv[0][0] != '/') {
-	int bufSize(1024);
+	constexpr int bufSize = 1024;
 	char temp[bufSize];
 	char *rCheck = getcwd(temp, bufSize);
 	if(rCheck == 0) {

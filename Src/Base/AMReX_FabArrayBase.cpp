@@ -1664,7 +1664,7 @@ FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
 
 #ifdef BL_USE_MPI
 bool
-FabArrayBase::CheckRcvStats(const Array<MPI_Status>& recv_stats,
+FabArrayBase::CheckRcvStats(Array<MPI_Status>& recv_stats,
 			    const Array<int>& recv_size,
 			    MPI_Datatype datatype, int tag)
 {
@@ -1672,7 +1672,9 @@ FabArrayBase::CheckRcvStats(const Array<MPI_Status>& recv_stats,
     for (int i = 0, n = recv_size.size(); i < n; ++i) {
 	if (recv_size[i] > 0) {
 	    int count;
+
 	    MPI_Get_count(&recv_stats[i], datatype, &count);
+
 	    if (count != recv_size[i]) {
 		r = false;
 		amrex::AllPrint() << "ERROR: Proc. " << ParallelDescriptor::MyProc()
