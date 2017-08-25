@@ -44,6 +44,12 @@ namespace amrex
         return new BaseEBCellFAB<T>(ebisBox, box, ncomps);
       }
 
+    virtual BaseEBCellFactory<T>* clone () const override {
+        return new BaseEBCellFactory<T>(*this);
+    }
+
+    BaseEBCellFactory(const BaseEBCellFactory& a_inputs) = default;
+
     ///
     /**
        create the factory with an ispace.  calls full define function
@@ -60,9 +66,6 @@ namespace amrex
 
   private:
     EBISLayout m_ebisl;
-
-    //disallowed constructors and all that
-    BaseEBCellFactory(const BaseEBCellFactory& a_inputs);
 
     BaseEBCellFactory();
 

@@ -26,6 +26,8 @@
 
 namespace amrex
 {
+  static const IntVect ebl_debiv(D_DECL(945,137,7));
+
   void 
   EBISLevel::
   write(const string& a_dirname) const
@@ -144,7 +146,7 @@ namespace amrex
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     DistributionMapping dm(m_grids);
-    m_graph.define(m_grids, dm, 1, 1);
+    m_graph.define(m_grids, dm, 1, 1, MFInfo(), DefaultFabFactory<EBGraph>());
 
     std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
     EBDataFactory ebdf(graphptr);
@@ -164,11 +166,13 @@ namespace amrex
       ebgraph.setDomain(m_domain);
       if (inout == GeometryService::Regular)
       {
+        
         ebgraph.setToAllRegular();
         ebdata.define(ebgraph,  ghostRegion);
       }
       else if (inout == GeometryService::Covered)
       {
+
         ebgraph.setToAllCovered();
         ebdata.define(ebgraph,  ghostRegion);
       }
@@ -185,8 +189,10 @@ namespace amrex
         ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
     }
+
     m_graph.FillBoundary();
     m_data. FillBoundary();
+
   }
   ///
   EBISLevel::
@@ -239,8 +245,9 @@ namespace amrex
     DistributionMapping dmco(m_grids);
     DistributionMapping dmfc = dmco;
     //need two because of coarsen faces
-    m_graph.define(m_grids, dmco, 1, nghostGraph);
-    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, nghostGraph+1);
+    m_graph.define(m_grids, dmco, 1, nghostGraph, MFInfo(), DefaultFabFactory<EBGraph>());
+    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, nghostGraph+1,
+                                  MFInfo(), DefaultFabFactory<EBGraph>());
     //pout() << "ebislevel::coarsenvofsandfaces: doing ebgraph copy" << endl;
 
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, nghostGraph+1);

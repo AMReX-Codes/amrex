@@ -1,4 +1,4 @@
-#include <Node.H>
+#include <AMReX_EBStruct.H>
 
 module amrex_ebstruct_module
 
@@ -7,26 +7,14 @@ module amrex_ebstruct_module
 
   type, bind(c) :: cutface
      integer :: cellHi, cellLo
-     integer :: ebFaceID
+     integer :: parent
   end type cutface
 
   type, bind(c) :: cutcell
      integer :: Nnbr(0:1,0:dim-1)
      integer :: nbr(0:NCELLMAX-1,0:1,0:dim-1)
      integer :: faceID(0:NCELLMAX-1,0:1,0:dim-1)
-     integer :: ebCellID
+     integer :: parent
   end type cutcell
-
-  type, bind(c) :: fnode
-     integer :: nFaces
-     integer :: iv(0:dim-1)
-     type(cutface) :: faces(0:NFACEMAX-1)
-  end type fnode
-
-  type, bind(c) :: cnode
-     integer :: nCells
-     integer :: iv(0:dim-1)
-     type(cutcell) :: cells(0:NCELLMAX-1)
-  end type cnode
 
 end module amrex_ebstruct_module
