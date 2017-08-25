@@ -1,4 +1,3 @@
-!xxxxx questions?  should we exptraploate mu and xi?
 
 module cns_eb_diff_wall_module
   use amrex_fort_module, only : rt=>amrex_real
