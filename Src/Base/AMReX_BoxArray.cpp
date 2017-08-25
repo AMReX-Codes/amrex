@@ -698,6 +698,7 @@ void
 BoxArray::set (int        i,
                const Box& ibox)
 {
+    BL_ASSERT(m_simple && m_crse_ratio == IntVect::TheUnitVector());
     if (i == 0) {
         m_typ = ibox.ixType();
         m_transformer->setIxType(m_typ);

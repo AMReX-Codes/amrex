@@ -1982,6 +1982,9 @@ void DataServices::RunSendsPF(std::string &plotfileName,
     for(int cLev(finestLevel - 1); cLev >= 0; --cLev) {
       if(bIOP) cout << "Averaging down level " << cLev << endl;
       BoxArray ba(BoxArray(state[cLev + 1].boxArray()).coarsen(adRefRatio[cLev][0]));
+      // ---- call uniqify, otherwise ba is just a reference to the
+      // ---- original boxarray with a coarsening factor
+      ba.uniqify();
       if( ! ba.isDisjoint()) {
         if(bIOP) cout << "BA:  Coarsened BoxArray not disjoint:  " << ba << endl;
         SimpleRemoveOverlap(ba);
@@ -2755,6 +2758,9 @@ void DataServices::RunACTPF(std::string &plotfileName,
     for(int cLev(finestLevel - 1); cLev >= 0; --cLev) {
       if(bIOP) { cout << "Averaging down level " << cLev << endl; }
       BoxArray ba(BoxArray(state[cLev + 1].boxArray()).coarsen(adRefRatio[cLev][0]));
+      // ---- call uniqify, otherwise ba is just a reference to the
+      // ---- original boxarray with a coarsening factor
+      ba.uniqify();
       if( ! ba.isDisjoint()) {
         if(bIOP) { cout << "BA:  Coarsened BoxArray not disjoint:  " << ba << endl; }
         SimpleRemoveOverlap(ba);

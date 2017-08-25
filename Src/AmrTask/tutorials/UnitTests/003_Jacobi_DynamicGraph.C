@@ -1,3 +1,6 @@
+//Question? email tannguyen@lbl.gov
+//Created 07-19-2017
+//Last modification 08-14-2017
 #include <iostream>
 #include <string.h>
 #include <math.h>
@@ -315,7 +318,7 @@ int main(int argc,char *argv[])
 {
     int argCount = 0;
     int verbose=0;
-    int rank, nProcs;
+    int rank, nProcs, nWrks=1;
     /* Argument list
        -tx: number of tasks in X dimension
        -ty: number of tasks in Y dimension
@@ -327,6 +330,7 @@ int main(int argc,char *argv[])
        -v: print out task graph information
      */ 
     while(++argCount <argc) {
+	if(!(strcmp(argv[argCount], "-w"))) nWrks = atoi(argv[++argCount]);
 	if(!strcmp(argv[argCount], "-tx")) tx= atoi(argv[++argCount]);
 	if(!strcmp(argv[argCount], "-ty")) ty= atoi(argv[++argCount]);
 	if(!strcmp(argv[argCount], "-tz")) tz= atoi(argv[++argCount]);
@@ -337,7 +341,7 @@ int main(int argc,char *argv[])
 	if(!strcmp(argv[argCount], "-v"))  verbose = true;
     }
     global_err=0.;
-    RTS rts;
+    RTS rts(nWrks);
     rts.RTS_Init(&rank, &nProcs);
     string graphName= "3DJacobi";
     if(verbose && rank==0){
