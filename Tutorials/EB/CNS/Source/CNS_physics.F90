@@ -16,6 +16,11 @@ module cns_physics_module
   real(rt), save, public :: cv                ! Ru/(mu*(gamma-1.d0))
   real(rt), save, public :: cp
 
+  logical, save, public :: use_const_visc = .false.
+  real(rt), save, public :: const_mu     = -1.d0
+  real(rt), save, public :: const_ki     = -1.d0
+  real(rt), save, public :: const_lambda = -1.d0
+
   public :: physics_init
 
 contains
@@ -24,12 +29,22 @@ contains
     use amrex_parmparse_module
     type(amrex_parmparse) :: pp
 
+    integer :: i_use_const_visc
+
     call amrex_parmparse_build(pp,"physics")
     call pp%query("gamma",gamma)
     call pp%query("mu", mu)
     call pp%query("Pr", Pr)
     call pp%query("C_S", C_S)
     call pp%query("T_S", T_S)
+    i_use_const_visc = 0
+    call pp%query("use_const_visc", use_const_visc)
+    use_const_visc = i_use_const_visc .ne. 0
+    if (use_const_visc) then
+       call pp%get("const_mu", const_mu)
+       call pp%get("const_ki", const_ki)
+       call pp%get("const_lambda", const_lambda)
+    end if
     call amrex_parmparse_destroy(pp)
 
     cv = Ru / (mu * (gamma-1.d0))
