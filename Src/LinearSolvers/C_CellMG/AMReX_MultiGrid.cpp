@@ -235,12 +235,12 @@ MultiGrid::prepareForLevel (int level)
     if ( cor[level] == 0 )
     {
 	const DistributionMapping& dm = Lp.DistributionMap();
-	res[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow());
-	rhs[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow());
-	cor[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow());
+	res[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow(), MFInfo(), FArrayBoxFactory());
+	rhs[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow(), MFInfo(), FArrayBoxFactory());
+	cor[level] = new MultiFab(Lp.boxArray(level), dm, 1, Lp.NumGrow(), MFInfo(), FArrayBoxFactory());
 	if ( level == 0 )
 	{
-	    initialsolution = new MultiFab(Lp.boxArray(0), dm, 1, Lp.NumGrow());
+	    initialsolution = new MultiFab(Lp.boxArray(0), dm, 1, Lp.NumGrow(), MFInfo(), FArrayBoxFactory());
 	}
     }
 }

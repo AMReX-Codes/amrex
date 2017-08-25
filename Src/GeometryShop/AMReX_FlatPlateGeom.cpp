@@ -357,12 +357,14 @@ namespace amrex
   {
     assert(a_domain.contains(a_ghostRegion));
     a_nodes.resize(0);
-    a_regIrregCovered.resize(a_ghostRegion, 1);
 
-    BaseFab<int> numVolumes(a_ghostRegion, 1);
+    Box bigGhost = grow(a_ghostRegion, 1);
+    bigGhost &= a_domain;
+    BaseFab<int> numVolumes( bigGhost, 1);
+    a_regIrregCovered.resize(bigGhost, 1);
     long int numReg=0, numIrreg=0;
 
-    for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
+    for (BoxIterator bit(bigGhost); bit.ok(); ++bit)
     {
       const IntVect iv =bit();
       bool isCut = isCellCut(iv, a_domain, a_origin, a_dx);

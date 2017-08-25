@@ -14,7 +14,16 @@
 #include <AMReX_Print.H>
 #include <AMReX_VisMF.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil.H>
+#endif
+
 namespace amrex {
+
+#ifdef AMREX_USE_EB
+int AmrLevel::m_eb_max_grow_cells = 6;
+#endif
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
@@ -68,6 +77,9 @@ AmrLevel::AmrLevel (Amr&            papa,
     geom(level_geom),
     grids(ba),
     dmap(dm)
+#ifdef AMREX_USE_EB
+    , m_eblevel(ba, dm, level_geom.Domain(), m_eb_max_grow_cells)
+#endif
 {
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
     level  = lev;
@@ -87,6 +99,12 @@ AmrLevel::AmrLevel (Amr&            papa,
 
     state.resize(desc_lst.size());
 
+#ifdef AMREX_USE_EB
+    m_factory.reset(new EBFArrayBoxFactory(m_eblevel));
+#else
+    m_factory.reset(new FArrayBoxFactory());
+#endif
+
     // Note that this creates a distribution map associated with grids.
     for (int i = 0; i < state.size(); i++)
     {
@@ -95,7 +113,8 @@ AmrLevel::AmrLevel (Amr&            papa,
 			dm,
                         desc_lst[i],
                         time,
-                        parent->dtLevel(lev));
+                        parent->dtLevel(lev),
+                        *m_factory);
     }
 
     if (parent->useFixedCoarseGrids()) constructAreaNotToTag();
@@ -234,7 +253,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     // NOTE: In this tutorial code, there is no derived data
     int       cnt   = 0;
     const int nGrow = 0;
-    MultiFab  plotMF(grids,dmap,n_data_items,nGrow);
+    MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
     MultiFab* this_dat = 0;
     //
     // Cull data from state variables -- use no ghost cells.
@@ -861,7 +880,7 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_range = desc.sameInterps(scomp,ncomp);
 
     m_fabs.define(m_leveldata.boxArray(),m_leveldata.DistributionMap(),
-		  m_ncomp,boxGrow);
+		  m_ncomp,boxGrow,MFInfo(),m_leveldata.Factory());
 
     const IndexType& boxType = m_leveldata.boxArray().ixType();
     const int level = m_amrlevel.level;
@@ -884,6 +903,11 @@ FillPatchIterator::Initialize (int  boxGrow,
 	    {
 		FillFromTwoLevels(time, index, SComp, DComp, NComp);
 	    } else {
+
+#ifdef AMREX_USE_EB
+                amrex::Abort("Grids must be properly nested for EB");
+#endif
+
 		static bool first = true;
 		if (first) {
 		    first = false;
@@ -1414,7 +1438,12 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             crseBA.set(j,mapper->CoarseBox(bx, crse_ratio));
         }
 
+#ifdef AMREX_USE_EB
+        MultiFab crseMF = amrex::makeMultiEBFab(crseBA,mf_DM,NComp,0,
+                                                MFInfo(),clev.m_eblevel.getDomain());
+#else
 	MultiFab crseMF(crseBA,mf_DM,NComp,0);
+#endif
 
 	if ( level == 1 
 	     || amrex::ProperlyNested(crse_ratio, parent->blockingFactor(level),
@@ -1476,13 +1505,13 @@ AmrLevel::derive (const std::string& name,
 {
     BL_ASSERT(ngrow >= 0);
 
-    MultiFab* mf = nullptr;
+    std::unique_ptr<MultiFab> mf;
 
     int index, scomp, ncomp;
 
     if (isStateVariable(name, index, scomp))
     {
-        mf = new MultiFab(state[index].boxArray(), dmap, 1, ngrow);
+        mf.reset(new MultiFab(state[index].boxArray(), dmap, 1, ngrow, MFInfo(), *m_factory));
         FillPatch(*this,*mf,ngrow,time,index,scomp,1);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
@@ -1502,7 +1531,7 @@ AmrLevel::derive (const std::string& name,
 	    ngrow_src += g;
 	}
 
-        MultiFab srcMF(srcBA, dmap, rec->numState(), ngrow_src);
+        MultiFab srcMF(srcBA, dmap, rec->numState(), ngrow_src, MFInfo(), *m_factory);
 
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {
@@ -1510,7 +1539,7 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-        mf = new MultiFab(dstBA, dmap, rec->numDerive(), ngrow);
+        mf.reset(new MultiFab(dstBA, dmap, rec->numDerive(), ngrow, MFInfo(), *m_factory));
 
 #ifdef CRSEGRNDOMP
 #ifdef _OPENMP
@@ -1606,7 +1635,7 @@ AmrLevel::derive (const std::string& name,
         amrex::Error(msg.c_str());
     }
 
-    return std::unique_ptr<MultiFab>(mf);
+    return mf;
 }
 
 void
@@ -1639,7 +1668,7 @@ AmrLevel::derive (const std::string& name,
 	    ngrow_src += g;
 	}
 
-        MultiFab srcMF(srcBA,dmap,rec->numState(),ngrow_src);
+        MultiFab srcMF(srcBA,dmap,rec->numState(),ngrow_src, MFInfo(), *m_factory);
 
         for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
         {

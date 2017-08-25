@@ -146,14 +146,6 @@ namespace amrex
     VolIndex fineVoF = a_vofFine;
     //the values of these do not matter as this is interpolation
 
-    //begin debug
-    //IntVect iv = a_vofFine.gridIndex();
-    //int ideb = 0;
-    //if((iv[0]==30) && (iv[1]==24))
-    //{
-    //  ideb = 1;
-    //}
-    ////end debug
     Real dxFine = 1.0;  Real dxCoar = m_refRat;
     a_stencil.clear();
     VolIndex coarVoF = m_eblgFine.getEBISL().coarsen(fineVoF, m_refRat, a_mfi);
