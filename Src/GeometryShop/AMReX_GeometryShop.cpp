@@ -42,10 +42,7 @@ namespace amrex
     RealVect physCorner;
     BoxIterator bit(allCorners);
     // If every corner is inside, the box is regular
-////begin debug
-    IntVect ivdeb(D_DECL(945,137,7));
-    bool debugc = (a_region.contains(ivdeb));
-////end debug
+
     for (int i=0; i<2; i++)
     {
       for (; bit.ok(); ++bit, ++bit)
@@ -68,12 +65,6 @@ namespace amrex
         if (functionValue > 0.0 )
         {
           return false;
-////begin debug
-          if(debugc)
-          {
-            amrex::Print() << ivdeb << " is not part of an all regular box" << endl;
-          }
-////end debug
         }
       }
       bit.reset();
@@ -81,12 +72,6 @@ namespace amrex
     }
 
 
-////begin debug
-          if(debugc)
-          {
-            amrex::Print() << ivdeb << " is  part of an all regular box" << endl;
-          }
-////end debug
     return true;
   }
 
@@ -103,10 +88,6 @@ namespace amrex
 
     RealVect physCorner;
     BoxIterator bit(allCorners);
-////begin debug
-    IntVect ivdeb(D_DECL(945,137,7));
-    bool debugc = (a_region.contains(ivdeb));
-////end debug
 
     // If every corner is inside, the box is regular
     for (int i=0; i<2; i++)
@@ -130,12 +111,6 @@ namespace amrex
         if (functionValue < 0.0 )
         {
 
-////begin debug
-          if(debugc)
-          {
-            amrex::Print() << ivdeb << " is not part of an all covered box" << endl;
-          }
-////end debug
 
           return false;
         }
@@ -144,12 +119,6 @@ namespace amrex
       ++bit;
     }
 
-////begin debug
-          if(debugc)
-          {
-            amrex::Print() << ivdeb << " is  part of an all covered box" << endl;
-          }
-////end debug
     return true;
   }
   GeometryShop::GeometryShop(const BaseIF& a_localGeom,
@@ -228,19 +197,10 @@ namespace amrex
     IntVectSet ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
-////begin debug
-        IntVect ivdeb(D_DECL(945,137,7));
-////end debug
 
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
-
-////begin debug
-        bool debugc = (ivdeb == iv);
-
-////end debug
-
 
         Box miniBox(iv, iv);
         GeometryShop::InOut inout = InsideOutside(miniBox, a_domain, a_origin, a_dx);
@@ -250,20 +210,12 @@ namespace amrex
             // set covered cells to -1
             a_regIrregCovered(iv, 0) = -1;
             numCovered++;
-            if(debugc)
-            {
-              amrex::Print() << "geometryshop thinks " << ivdeb << " is covered " << endl;
-            }
           }
         else if (inout == GeometryShop::Regular)
           {
             // set regular cells to 1
             a_regIrregCovered(iv, 0) =  1;
             numReg++;
-            if(debugc)
-            {
-              amrex::Print() << "geometryshop thinks " << ivdeb << " is regular " << endl;
-            }
           }
         else
           {
@@ -274,10 +226,6 @@ namespace amrex
                 ivsirreg |= iv;
                 numIrreg++;
               }
-            if(debugc)
-            {
-              amrex::Print() << "geometryshop thinks " << ivdeb << " is irregular " << endl;
-            }
           }
       }
 
@@ -296,11 +244,6 @@ namespace amrex
     for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
       {
         const IntVect& iv = ivsit();
-
-////begin debug
-        bool debugc = (ivdeb == iv);
-////end debug
-
 
         Real     volFrac, bndryArea;
         RealVect normal, volCentroid, bndryCentroid;
@@ -332,10 +275,6 @@ namespace amrex
           {
             ivsdrop |= iv;
             a_regIrregCovered(iv, 0) = -1;
-            if( (m_verbosity > 2) || debugc)
-              {
-                amrex::Print() << "Removing vof " << iv << " with volFrac " << volFrac << "\n";
-              }
           }//CP record these nodes to be removed
         else
           {
@@ -413,8 +352,8 @@ namespace amrex
       }//ivsdrop
     if(m_verbosity > 2)
     {
-      amrex::Print() << "numIrreg  = " << numIrreg << "\n";
-      amrex::Print() << "number of nodes  = " << a_nodes.size() << "\n";
+      amrex::AllPrint() << "numIrreg  = " << numIrreg << "\n";
+      amrex::AllPrint() << "number of nodes  = " << a_nodes.size() << "\n";
     }
   }
   /*************/
@@ -1331,7 +1270,7 @@ namespace amrex
 
         if (volDiscrepancy > m_threshold)
           {
-            amrex::Print() << std::string(message) << "\n";
+            amrex::AllPrint() << std::string(message) << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1358,7 +1297,7 @@ namespace amrex
           }
         if (volDiscrepancy>m_threshold)
           {
-            amrex::Print() << message << "\n";
+            amrex::AllPrint() << message << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1391,7 +1330,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::Print() << message << "\n";
+                    amrex::AllPrint() << message << "\n";
                   }
 
                 // do the clipping
@@ -1419,7 +1358,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::Print() << message << "\n";
+                    amrex::AllPrint() << message << "\n";
                   }
 
                 // do the clipping
@@ -1455,7 +1394,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::Print() << message << "\n";
+                    amrex::AllPrint() << message << "\n";
                   }
 
                 // do the clipping
@@ -1483,7 +1422,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::Print() << message << "\n";
+                    amrex::AllPrint() << message << "\n";
                   }
 
                 // do the clipping
@@ -1516,7 +1455,7 @@ namespace amrex
           }
         if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
           {
-            amrex::Print() << message << "\n";
+            amrex::AllPrint() << message << "\n";
           }
 
         // do the clipping
@@ -1544,7 +1483,7 @@ namespace amrex
           }
         if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
           {
-            amrex::Print() << message << "\n";
+            amrex::AllPrint() << message << "\n";
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1574,7 +1513,7 @@ namespace amrex
               }
             if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::Print() << message << "\n";
+                amrex::AllPrint() << message << "\n";
 
               }
             // do the clipping
@@ -1601,7 +1540,7 @@ namespace amrex
               }
             if (discrepancy > m_threshold&& volDiscrepancy>m_threshold)
               {
-                amrex::Print() << message << "\n";
+                amrex::AllPrint() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1629,7 +1568,7 @@ namespace amrex
               }
             if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::Print() << message << "\n";
+                amrex::AllPrint() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1656,7 +1595,7 @@ namespace amrex
               }
             if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::Print() << message << "\n";
+                amrex::AllPrint() << message << "\n";
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1690,7 +1629,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::Print() << message << "\n";
+                        amrex::AllPrint() << message << "\n";
 
                       }
                     // do the clipping
@@ -1717,7 +1656,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::Print() << message << "\n";
+                        amrex::AllPrint() << message << "\n";
 
                       }
                     // do the clipping
@@ -1754,7 +1693,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::Print() << message << "\n";
+                        amrex::AllPrint() << message << "\n";
                       }
                     // do the clipping
                     //thisVofClipped = true;
@@ -1780,7 +1719,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy > m_threshold)
                       {
-                        amrex::Print() << message << "\n";
+                        amrex::AllPrint() << message << "\n";
                       }
                     // do the clipping
                     //thisVofClipped = true;
@@ -2058,7 +1997,7 @@ namespace amrex
                 // choose the midpoint for an ill-conditioned problem
                 if (intercept<LoPt[range] || intercept>HiPt[range])
                   {
-                    amrex::Print()<<"GeometryShop::edgeData: Ill-conditioned edge data"<<"\n";
+                    amrex::AllPrint()<<"GeometryShop::edgeData: Ill-conditioned edge data"<<"\n";
                     intercept = (LoPt[range]+HiPt[range])/2.0;
                   }
 
@@ -2215,7 +2154,7 @@ namespace amrex
 
     if (fb*fa > 0)
       {
-        amrex::Print() << "fa " << fa << " fb " << fb << "\n";
+        amrex::AllPrint() << "fa " << fa << " fb " << fb << "\n";
         amrex::Error("GeometryShop::BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
       }
 
