@@ -325,7 +325,6 @@ LaserParticleContainer::Evolve (int lev,
                 Real* data_ptr;
                 const int *rholen;
                 FArrayBox& rhofab = (*rho)[pti];
-#ifdef _OPENMP
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 tile_box.grow(ngRho);
@@ -333,11 +332,6 @@ LaserParticleContainer::Evolve (int lev,
                 local_rho = 0.0;
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
-#else
-                const std::array<Real, 3>& xyzmin = xyzmin_grid;
-                data_ptr = rhofab.dataPtr();
-                rholen = rhofab.length();
-#endif
 
 #if (BL_SPACEDIM == 3)
                 const long nx = rholen[0]-1-2*ngRho;
@@ -355,12 +349,10 @@ LaserParticleContainer::Evolve (int lev,
                                         &ngRho, &ngRho, &ngRho, &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                         &lvect, &WarpX::charge_deposition_algo);
 
-#ifdef _OPENMP
                 const Box& fabbox = rhofab.box();
                 const int ncomp = 1;
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
                                             BL_TO_FORTRAN_3D(rhofab), ncomp);
-#endif
             }
 
 	    //
@@ -414,74 +406,60 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_START(blp_pxr_cd);
             Real *jx_ptr, *jy_ptr, *jz_ptr;
             const int  *jxntot, *jyntot, *jzntot;
-#ifdef _OPENMP
-                Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
-                Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
-                Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
-                
-                const std::array<Real, 3>& xyzmin = xyzmin_tile;
-                
-                tbx.grow(ngJ);
-                tby.grow(ngJ);
-                tbz.grow(ngJ);
-                
-                local_jx.resize(tbx);
-                local_jy.resize(tby);
-                local_jz.resize(tbz);
-                
-                local_jx = 0.0;
-                local_jy = 0.0;
-                local_jz = 0.0;
-                
-                jx_ptr = local_jx.dataPtr();
-                jy_ptr = local_jy.dataPtr();
-                jz_ptr = local_jz.dataPtr();
-                
-                jxntot = local_jx.length();
-                jyntot = local_jy.length();
-                jzntot = local_jz.length();
-#else                
-                const std::array<Real, 3>& xyzmin = xyzmin_grid;
-
-                jx_ptr = jxfab.dataPtr();
-                jy_ptr = jyfab.dataPtr();
-                jz_ptr = jzfab.dataPtr();
-
-                jxntot = jxfab.length();
-                jyntot = jyfab.length();
-                jzntot = jzfab.length();
-#endif
-
-                warpx_current_deposition(
-                    jx_ptr, &ngJ, jxntot,
-                    jy_ptr, &ngJ, jyntot,
-                    jz_ptr, &ngJ, jzntot,
-                    &np, xp.data(), yp.data(), zp.data(),
-                    uxp.data(), uyp.data(), uzp.data(),
-                    giv.data(), wp.data(), &this->charge,
-                    &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                    &dt, &dx[0], &dx[1], &dx[2],
-                    &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                    &lvect,&WarpX::current_deposition_algo);
-                
-#ifdef _OPENMP
-                const int ncomp = 1;
-
-                const Box& jxbox = jxfab.box();
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
-                
-                const Box& jybox = jyfab.box();
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
-                
-                const Box& jzbox = jzfab.box();
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
-
-#endif
+            Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
+            Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
+            Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
+            
+            const std::array<Real, 3>& xyzmin = xyzmin_tile;
+            
+            tbx.grow(ngJ);
+            tby.grow(ngJ);
+            tbz.grow(ngJ);
+            
+            local_jx.resize(tbx);
+            local_jy.resize(tby);
+            local_jz.resize(tbz);
+            
+            local_jx = 0.0;
+            local_jy = 0.0;
+            local_jz = 0.0;
+            
+            jx_ptr = local_jx.dataPtr();
+            jy_ptr = local_jy.dataPtr();
+            jz_ptr = local_jz.dataPtr();
+            
+            jxntot = local_jx.length();
+            jyntot = local_jy.length();
+            jzntot = local_jz.length();
+            
+            warpx_current_deposition(
+                jx_ptr, &ngJ, jxntot,
+                jy_ptr, &ngJ, jyntot,
+                jz_ptr, &ngJ, jzntot,
+                &np, xp.data(), yp.data(), zp.data(),
+                uxp.data(), uyp.data(), uzp.data(),
+                giv.data(), wp.data(), &this->charge,
+                &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                &dt, &dx[0], &dx[1], &dx[2],
+                &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                &lvect,&WarpX::current_deposition_algo);
+            
+            const int ncomp = 1;
+            
+            const Box& jxbox = jxfab.box();
+            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                        BL_TO_FORTRAN_3D(jxfab), ncomp);
+            
+            const Box& jybox = jyfab.box();
+            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                        BL_TO_FORTRAN_3D(jyfab), ncomp);
+            
+            const Box& jzbox = jzfab.box();
+            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                        BL_TO_FORTRAN_3D(jzfab), ncomp);
+            
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
-
+            
 	    //
 	    // copy particle data back
 	    //

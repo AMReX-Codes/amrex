@@ -533,7 +533,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 Real* data_ptr;
                 const int *rholen;
                 FArrayBox& rhofab = (*rho)[pti];
-#ifdef _OPENMP
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 tile_box.grow(ngRho);
@@ -541,11 +540,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 local_rho = 0.0;
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
-#else
-                const std::array<Real, 3>& xyzmin = xyzmin_grid;
-                data_ptr = rhofab.dataPtr();
-                rholen = rhofab.length();
-#endif
 
 #if (BL_SPACEDIM == 3)
                 const long nx = rholen[0]-1-2*ngRho;
@@ -562,12 +556,10 @@ PhysicalParticleContainer::Evolve (int lev,
                                         &ngRho, &ngRho, &ngRho, &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                         &lvect, &WarpX::charge_deposition_algo);
 
-#ifdef _OPENMP
                 const Box& fabbox = rhofab.box();
                 const int ncomp = 1;
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
                                             BL_TO_FORTRAN_3D(rhofab), ncomp);
-#endif
             }
             
             if (! do_not_push)
@@ -615,7 +607,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_START(blp_pxr_cd);
                 Real *jx_ptr, *jy_ptr, *jz_ptr;
                 const int  *jxntot, *jyntot, *jzntot;
-#ifdef _OPENMP
                 Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
                 Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
@@ -641,17 +632,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 jxntot = local_jx.length();
                 jyntot = local_jy.length();
                 jzntot = local_jz.length();
-#else                
-                const std::array<Real, 3>& xyzmin = xyzmin_grid;
-
-                jx_ptr = jxfab.dataPtr();
-                jy_ptr = jyfab.dataPtr();
-                jz_ptr = jzfab.dataPtr();
-
-                jxntot = jxfab.length();
-                jyntot = jyfab.length();
-                jzntot = jzfab.length();
-#endif
 
                 warpx_current_deposition(
                     jx_ptr, &ngJ, jxntot,
@@ -665,7 +645,6 @@ PhysicalParticleContainer::Evolve (int lev,
                     &WarpX::nox,&WarpX::noy,&WarpX::noz,
                     &lvect,&WarpX::current_deposition_algo);
                 
-#ifdef _OPENMP
                 const int ncomp = 1;
 
                 const Box& jxbox = jxfab.box();
@@ -679,7 +658,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 const Box& jzbox = jzfab.box();
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
                                             BL_TO_FORTRAN_3D(jzfab), ncomp);
-#endif
 
                 BL_PROFILE_VAR_STOP(blp_pxr_cd);
                 
