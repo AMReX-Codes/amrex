@@ -228,5 +228,18 @@ extern "C" {
 	    nodal[i] = t[i];
 	}
     }
+
+    void amrex_fi_mfiter_fabbox (MFIter* mfi, int lo[3], int hi[3], int nodal[3])
+    {
+	const Box& bx = mfi->fabbox();
+	const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	const IntVect& t = bx.type();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
+	    nodal[i] = t[i];
+	}
+    }
 }
 
