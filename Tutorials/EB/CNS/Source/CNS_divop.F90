@@ -77,7 +77,7 @@ contains
     real(rt), intent(inout) :: divc(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
     real(rt), intent(inout) :: delm(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3),ncomp)
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
-    real(rt), intent(in) :: bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
+    real(rt), intent(in) :: bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),3)
     real(rt), intent(in) :: apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(rt), intent(in) :: apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
     real(rt), intent(in) :: apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
@@ -367,9 +367,10 @@ contains
                            apx(i,j,k), apx(i+1,j,k), &
                            apy(i,j,k), apy(i,j+1,k), &
                            apz(i,j,k), apz(i,j,k+1))
-                      call compute_diff_wallflux(divdiff(:,iwall), dx, i,j,k, &
+                      call compute_diff_wallflux(divdiff(:,iwall), dxinv, i,j,k, &
                            q, qlo, qhi, &
                            lam, mu, xi, clo, chi, &
+                           cellflag, cflo, cfhi, &
                            bcent, blo, bhi, &
                            apx, axlo, axhi, &
                            apy, aylo, ayhi, &
