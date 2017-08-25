@@ -14,12 +14,13 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
 #include "AMReX_parstream.H"
+#include "AMReX_Print.H"
+
 
 namespace amrex
 {
-  Box ebg_debbox1(IntVect(D_DECL(30,14,0)), IntVect(D_DECL(49, 33,0)));
-  Box ebg_debbox2(IntVect(D_DECL(14,14,0)), IntVect(D_DECL(33, 33,0)));
-  IntVect ebg_debiv(D_DECL(33, 13, 0));
+  static const IntVect ebg_debiv(D_DECL(945,137,7));
+  bool EBGraphImplem::s_verbose = false;
   /*******************************/
   std::vector<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
                                                       const Box&  a_box) const
@@ -501,10 +502,12 @@ namespace amrex
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(isDomainSet());
+
     bool retval;
     if (m_tag == AllRegular)
     {
       retval = true;
+
     }
     else if (m_tag == AllCovered)
     {
@@ -522,6 +525,7 @@ namespace amrex
       retval = false;
       amrex::Error("EBGraphImplem::isRegular:Bogus Tag");
     }
+
     return retval;
   }
         
@@ -1187,6 +1191,7 @@ namespace amrex
         //use basefab copy to transfer the data.
         
         //see if we need to generate a source fab
+
         BaseFab<GraphNode>* srcFabPtr;
         bool needToDelete;
         if (a_source.hasIrregular())
@@ -1218,11 +1223,22 @@ namespace amrex
           m_irregIVS = IntVectSet();
           m_graph.resize(m_region, 1);
         }
-        
-        //copy the data
+        //these conditionals only depend on m_tag
+        if (isAllRegular())
+        {
+          GraphNode regularNode;
+          regularNode.defineAsRegular();
+          m_graph.setVal(regularNode);
+        }
+        else if(isAllCovered())
+        {
+          GraphNode  coveredNode;
+          coveredNode.defineAsCovered();
+          m_graph.setVal(coveredNode);
+        }
+        //copy the data and set the tag properly
         m_tag = HasIrregular;
-///do the slow one for debugging
-///      m_graph.slowCopy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
+
         m_graph.copy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
         
         //if we needed to new the basefab, clean it up

@@ -26,6 +26,8 @@
 
 namespace amrex
 {
+  static const IntVect ebl_debiv(D_DECL(945,137,7));
+
   void 
   EBISLevel::
   write(const string& a_dirname) const
@@ -164,11 +166,13 @@ namespace amrex
       ebgraph.setDomain(m_domain);
       if (inout == GeometryService::Regular)
       {
+        
         ebgraph.setToAllRegular();
         ebdata.define(ebgraph,  ghostRegion);
       }
       else if (inout == GeometryService::Covered)
       {
+
         ebgraph.setToAllCovered();
         ebdata.define(ebgraph,  ghostRegion);
       }
@@ -185,8 +189,10 @@ namespace amrex
         ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
     }
+
     m_graph.FillBoundary();
     m_data. FillBoundary();
+
   }
   ///
   EBISLevel::
