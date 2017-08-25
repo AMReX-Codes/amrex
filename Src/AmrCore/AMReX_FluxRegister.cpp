@@ -129,7 +129,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
  
-    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0);
+    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
+                MFInfo(), mflx.Factory());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -184,7 +185,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow());
+    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow(),
+                  MFInfo(), mflx.Factory());
 
     area.setVal(1, 0, 1, area.nGrow());
 
@@ -207,7 +209,8 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
  
-    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0);
+    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
+                MFInfo(), mflx.Factory());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -243,7 +246,8 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow());
+    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow(),
+                  MFInfo(), mflx.Factory());
 
     area.setVal(1, 0, 1, area.nGrow());
 
@@ -397,7 +401,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 	int islo = face.isLow();
 
         MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
-                      mf.DistributionMap(), ncomp, 0);
+                      mf.DistributionMap(), ncomp, 0, MFInfo(), mf.Factory());
 	flux.setVal(0.0);
 
 	bndry[face].copyTo(flux, 0, scomp, 0, ncomp, geom.periodicity());
@@ -438,7 +442,8 @@ FluxRegister::Reflux (MultiFab&       mf,
 {
     const Real* dx = geom.CellSize();
     
-    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, mf.nGrow());
+    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, mf.nGrow(),
+                    MFInfo(), mf.Factory());
     
     volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, mf.nGrow());
 
