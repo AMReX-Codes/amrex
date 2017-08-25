@@ -30,6 +30,7 @@ contains
     type(amrex_parmparse) :: pp
 
     integer :: i_use_const_visc
+    integer :: do_diffusion
 
     call amrex_parmparse_build(pp,"physics")
     call pp%query("gamma",gamma)
@@ -44,6 +45,14 @@ contains
        call pp%get("const_mu", const_mu)
        call pp%get("const_ki", const_ki)
        call pp%get("const_lambda", const_lambda)
+    end if
+    do_diffusion = 1
+    call pp%query("do_diffusion", do_diffusion)
+    if (do_diffusion .eq. 0) then
+       use_const_visc = .true.
+       const_mu = 0.d0
+       const_ki = 0.d0
+       const_lambda = 0.d0
     end if
     call amrex_parmparse_destroy(pp)
 
