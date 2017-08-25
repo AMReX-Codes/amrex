@@ -122,7 +122,7 @@ contains
     real(rt), pointer, contiguous :: q(:,:,:,:), divc(:,:,:), dm(:,:,:,:)
     real(rt), dimension(:,:,:,:), pointer :: fhx,fhy,fhz,fdx,fdy,fdz
     real(rt), dimension(:,:,:), pointer :: lambda, mu, xi
-    integer, parameter :: nghost = nextra_eb + nghost_plm ! 
+    integer, parameter :: nghost = nextra_eb + max(nghost_plm,3) ! 3 because of wall flux
 
     integer :: k,n
 

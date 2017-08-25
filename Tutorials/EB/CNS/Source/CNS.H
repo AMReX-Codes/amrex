@@ -110,12 +110,6 @@ protected:
 
     void buildMetrics ();
 
-#if 0
-    void init_eb (const amrex::Geometry& level_geom,
-                  const amrex::BoxArray& ba,
-                  const amrex::DistributionMapping& dm);
-#endif
-
     amrex::Real estTimeStep ();
 
     // Compute initial time step.
@@ -130,7 +124,7 @@ protected:
     std::array<amrex::MultiFab,3> areafrac;
     std::array<amrex::MultiFab,3> facecent;
 
-    static constexpr int NUM_GROW = 4;
+    static constexpr int NUM_GROW = 5;
     enum StateVariable {
         Density = 0, Xmom, Ymom, Zmom, Eden, Eint, Temp,
         NUM_STATE
