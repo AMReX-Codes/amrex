@@ -234,7 +234,7 @@ initialize_EBIS(const int max_level)
             pp.get("num_poly", num_poly);
             // Nothing initially
             polygons.resize(num_poly);
-            pout() << "num poly = " << num_poly << endl;
+            amrex::Print() << "num poly = " << num_poly << endl;
             for(int ipoly = 0; ipoly < num_poly; ipoly++)
             {
               string nptsstr = "poly_" + std::to_string(ipoly) + "_num_pts";
@@ -256,12 +256,12 @@ initialize_EBIS(const int max_level)
                 polygon[ipt] = point;
               }
             
-              pout() << "scaled poly" << ipoly << " = " << endl;
+              amrex::Print() << "scaled poly" << ipoly << " = " << endl;
               for(int ipt = 0; ipt < num_pts; ipt++)
               {
-                pout() << polygon[ipt] << " ";
+                amrex::Print() << polygon[ipt] << " ";
               }
-              pout() << endl;
+              amrex::Print() << endl;
               polygons[ipoly] = polygon;
             }
       
