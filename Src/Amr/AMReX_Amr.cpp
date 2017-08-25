@@ -1059,7 +1059,7 @@ Amr::readProbinFile (int& init)
         probin_file_name[i] = probin_file[i];
 
     if (verbose > 0)
-	amrex::Print() << "Starting to read probin ... \n";
+	amrex::Print() << "Starting to call amrex_probinit ... \n";
 
     const int nAtOnce = probinit_natonce;
     const int MyProc  = ParallelDescriptor::MyProc();
@@ -1123,12 +1123,12 @@ Amr::readProbinFile (int& init)
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
 
-	amrex::Print() << "MFRead::: PROBINIT max time   = " << piTotal    << '\n'
-		       << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
+	amrex::Print() << "amrex_probinit max time   = " << piTotal    << '\n'
+		       << "amrex_probinit total time = " << piTotalAll << '\n';
     }
 
     if (verbose > 0)
-	amrex::Print() << "Successfully read probin file: \"" << probin_file << "\"\n";
+	amrex::Print() << "Successfully run amrex_probinit\n";
 }
 
 void
@@ -1157,7 +1157,7 @@ Amr::InitializeInit(Real              strt_time,
 {
     BL_PROFILE("Amr::InitializeInit()");
     BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
-    checkInput();
+    if (check_input) checkInput();
     //
     // Generate internal values from user-supplied values.
     //

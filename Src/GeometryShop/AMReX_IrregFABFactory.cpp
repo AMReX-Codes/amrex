@@ -10,6 +10,7 @@
  *
  */
 #include "AMReX_IrregFABFactory.H"
+#include "AMReX_FabArray.H"
 
 namespace amrex
 {

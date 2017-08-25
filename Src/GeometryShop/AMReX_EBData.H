@@ -292,6 +292,8 @@ private:
       }
 
 
+    EBData (EBData&& rhs) noexcept = default;
+
     const Box& getRegion() const
       {
         return m_implem->getRegion();

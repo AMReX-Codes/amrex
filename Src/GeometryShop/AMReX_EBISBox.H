@@ -346,6 +346,8 @@ namespace amrex
     ///pointer comparison
     bool operator==(const EBISBox& ebiin);
 
+    EBISBox (EBISBox&& rhs) noexcept = default;
+
   private:
 
     ///this is already a ref-counted object
