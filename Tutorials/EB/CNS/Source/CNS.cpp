@@ -223,11 +223,18 @@ CNS::postCoarseTimeStep (Real time)
     if (verbose >= 2) {
         const MultiFab& S_new = get_new_data(State_Type);
         MultiFab mf(grids, dmap, 1, 0);
-        MultiFab::Copy(mf, S_new, Density, 0, 1, 0);
-        MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
-        Real mtot = mf.sum();
-        mtot *= geom.ProbSize();
-        amrex::Print().SetPrecision(17) << "\n[CNS] Total Mass is " << mtot << "\n";
+        std::array<Real,5> tot;
+        for (int comp = 0; comp < 5; ++comp) {
+            MultiFab::Copy(mf, S_new, comp, 0, 1, 0);
+            MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
+            tot[comp] = mf.sum(0,true) * geom.ProbSize();
+        }
+        ParallelDescriptor::ReduceRealSum(tot.data(), 5, ParallelDescriptor::IOProcessorNumber());
+        amrex::Print().SetPrecision(17) << "\n[CNS] Total mass       is " << tot[0] << "\n"
+                                        <<   "      Total x-momentum is " << tot[1] << "\n"
+                                        <<   "      Total y-momentum is " << tot[2] << "\n"
+                                        <<   "      Total z-momentum is " << tot[3] << "\n"
+                                        <<   "      Total energy     is " << tot[4] << "\n";
     }
 }
 
