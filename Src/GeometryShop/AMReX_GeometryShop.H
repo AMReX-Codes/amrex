@@ -47,28 +47,6 @@ namespace amrex
     ///
     ~GeometryShop();
 
-    /**
-       Return true if every cell in region is regular at the
-       refinement described by dx.
-    */
-    virtual bool isRegular(const Box&           a_region,
-                           const Box& a_domain,
-                           const RealVect&      a_origin,
-                           const Real&          a_dx) const;
-    ///
-    /**
-       Return true if every cell in region is covered at the
-       refinement described by dx.
-    */
-    virtual bool isCovered(const Box&           a_region,
-                           const Box& a_domain,
-                           const RealVect&      a_origin,
-                           const Real&          a_dx) const;
-
-    virtual bool isIrregular(const Box&           a_region,
-                             const Box& a_domain,
-                             const RealVect&      a_origin,
-                             const Real&          a_dx) const ;
 
 
     ///
@@ -119,6 +97,32 @@ namespace amrex
                                  const Box                  & a_domain,
                                  const IntVect              & a_iv,
                                  const Real                 & a_dx) const;
+
+    ///
+    /**
+       Return true if every cell in region is regular at the
+       refinement described by dx.
+    */
+    virtual bool isRegular(const Box&           a_region,
+                           const Box& a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const 
+      {
+        return isRegularEveryPoint(a_region, a_domain, a_origin, a_dx);
+      }
+      
+    ///
+    /**
+       Return true if every cell in region is covered at the
+       refinement described by dx.
+    */
+    virtual bool isCovered(const Box&           a_region,
+                           const Box& a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const
+      {
+        return isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx);
+      }
 
   private:
     int  m_verbosity;
@@ -179,11 +183,6 @@ namespace amrex
                            const Real&          a_dx) const;
 
 
-    bool isIrregularEveryPoint(const Box&           a_region,
-                               const Box& a_domain,
-                               const RealVect&      a_origin,
-                               const Real&          a_dx,
-                               const Real&          a_originVal) const ;
 #if 1
     Real PrismoidalAreaCalc(RealVect& a_xVec,
                             RealVect& a_yVec) const;

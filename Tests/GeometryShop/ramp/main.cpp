@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
         BoxArray ba{geom_domain};
         ba.maxSize(max_grid_size);
         DistributionMapping dm{ba};
-        const int ng = 6;
+        const int ng = 0;
 
         const EBLevelGrid levelgrid(ba,dm,geom_domain,ng);
         const EBISLayout& ebisl = levelgrid.getEBISL();
@@ -119,16 +119,26 @@ int main(int argc, char* argv[])
 
         for (MFIter mfi(ba,dm); mfi.isValid(); ++mfi)
         {
-            const EBISBox& ebisbox = ebisl[mfi];
-            const Box& bx = ebisbox.getRegion();
-
-            if (bx.contains(debugcell))
+          const EBISBox& ebisbox = ebisl[mfi];
+          const Box& bx = ba[mfi];
+            
+          if (bx.contains(debugcell))
+          {
+            int ireg = 0;
+            int icov = 0;
+            if(ebisbox.isRegular(debugcell))
             {
-                amrex::AllPrint() << "Box " << bx << " on Proc. " << ParallelDescriptor::MyProc()
-                                  << " contains Cell " << debugcell << "\n"
-                                  << "  Is regular? " << ebisbox.isRegular(debugcell) << "\n"
-                                  << "  Is covered? " << ebisbox.isCovered(debugcell) << "\n";
+              ireg = 1;
             }
+            if(ebisbox.isCovered(debugcell))
+            {
+              icov = 1;
+            }
+            amrex::AllPrint() << "Box " << bx << " on Proc. " << ParallelDescriptor::MyProc()
+                              << " contains Cell " << debugcell << "\n"
+                              << "  Is regular? " <<  ireg << "\n"
+                              << "  Is covered? " <<  icov << "\n";
+          }
         }
     }
 

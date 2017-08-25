@@ -163,7 +163,7 @@ AmrLevel::writePlotFile (const std::string& dir,
 	//
 	// Names of variables
 	//
-	for (i =0; i < plot_var_map.size(); i++)
+	for (i =0; i < static_cast<int>(plot_var_map.size()); i++)
         {
 	    int typ = plot_var_map[i].first;
 	    int comp = plot_var_map[i].second;
@@ -258,7 +258,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     // Cull data from state variables -- use no ghost cells.
     //
-    for (i = 0; i < plot_var_map.size(); i++)
+    for (i = 0; i < static_cast<int>(plot_var_map.size()); i++)
     {
 	int typ  = plot_var_map[i].first;
 	int comp = plot_var_map[i].second;
@@ -885,7 +885,7 @@ FillPatchIterator::Initialize (int  boxGrow,
     const IndexType& boxType = m_leveldata.boxArray().ixType();
     const int level = m_amrlevel.level;
 
-    for (int i = 0, DComp = 0; i < m_range.size(); i++)
+    for (int i = 0, DComp = 0; i < static_cast<int>(m_range.size()); i++)
     {
         const int SComp = m_range[i].first;
         const int NComp = m_range[i].second;
@@ -1423,7 +1423,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
     BL_ASSERT(desc.inRange(scomp, ncomp));
 
-    for (int i = 0; i < ranges.size(); i++)
+    for (int i = 0; i < static_cast<int>(ranges.size()); i++)
     {
         const int     SComp  = ranges[i].first;
         const int     NComp  = ranges[i].second;

@@ -92,6 +92,7 @@ module amrex_multifab_module
      procedure :: next             => amrex_mfiter_next
      procedure :: tilebox          => amrex_mfiter_tilebox
      procedure :: nodaltilebox     => amrex_mfiter_nodaltilebox
+     procedure :: fabbox           => amrex_mfiter_fabbox
      procedure, private :: amrex_mfiter_assign
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_mfiter_destroy
@@ -345,6 +346,13 @@ module amrex_multifab_module
        integer(c_int), value :: dir
        integer(c_int) :: lo(3), hi(3), nodal(3)
      end subroutine amrex_fi_mfiter_nodaltilebox
+
+     subroutine amrex_fi_mfiter_fabbox (p, lo, hi, nodal) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: p
+       integer(c_int) :: lo(3), hi(3), nodal(3)
+     end subroutine amrex_fi_mfiter_fabbox
   end interface
 
 contains
@@ -800,6 +808,15 @@ contains
     call amrex_fi_mfiter_nodaltilebox(this%p, dir-1, bx%lo, bx%hi, inodal)
     where (inodal .ne. 0) bx%nodal = .true.  ! note default is false
   end function amrex_mfiter_nodaltilebox
+
+  function amrex_mfiter_fabbox (this) result (bx)
+    class(amrex_mfiter), intent(in) :: this
+    type(amrex_box) :: bx
+    integer :: dir, inodal(3)
+    inodal = 0
+    call amrex_fi_mfiter_fabbox(this%p, bx%lo, bx%hi, inodal)
+    where (inodal .ne. 0) bx%nodal = .true.  ! note default is false
+  end function amrex_mfiter_fabbox
 
 end module amrex_multifab_module
 

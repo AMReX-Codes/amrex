@@ -8,19 +8,24 @@
 using namespace std;
 
 namespace amrex{
+    struct _workerThreadInfo{
+	int _tid; //thread id in local group
+        int _size; //number of threads in the group
+    };
+
+    struct _threadInfo{
+        bool _isComm; //whether this thread handles communication
+        int _wtid; //worker thread id (-1 if this thread is decicated to communication)
+        int _nWts; //number of thread groups
+    };
 
     class RTS{
 	private:
-	    typedef std::queue<Task*> TaskQueue;
-	    typedef std::queue<Data*> MessageQueue;
-	    //Task Queues
-	    TaskQueue WaitingQueue; 
-	    TaskQueue DataFetchingQueue;  //used in Pull model
-	    TaskQueue ReadyQueue; 
-	    TaskQueue RunningQueue; 
-	    MessageQueue MsgQueue; 
+            int _nWrks;
 
 	public:
+            RTS():_nWrks(1){}
+            RTS(int nWrks):_nWrks(nWrks){}
 	    int RTS_ProcCount();
 	    int RTS_MyProc();
 	    int RTS_WorkerThreadCount();

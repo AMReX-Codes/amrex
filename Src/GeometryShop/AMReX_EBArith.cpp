@@ -2011,14 +2011,7 @@ namespace amrex
   {
     BL_PROFILE("EBArith::getExtrapolationStencil");
     int order = 2;
-////begin debug    
-//    int ideb = 0;
-//    const IntVect& iv = a_startVoF.gridIndex();
-//    if((iv[0] == 30)  && (iv[1] == 24) )
-//    {
-//      ideb = 1;
-//    }
-////end debug
+
     a_stencil.clear();
 
     //zeroth order Taylor series
