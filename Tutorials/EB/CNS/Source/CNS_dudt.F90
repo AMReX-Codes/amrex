@@ -30,7 +30,7 @@ contains
     integer :: qlo(3), qhi(3)
     integer :: clo(3), chi(3)
     real(rt), dimension(:,:,:,:), pointer, contiguous :: q, fhx,fhy,fhz,fdx,fdy,fdz
-    real(rt), dimension(:,:,:), pointer :: lambda, mu, xi
+    real(rt), dimension(:,:,:), pointer, contiguous :: lambda, mu, xi
 
     integer :: k,n
 
@@ -120,8 +120,8 @@ contains
     integer :: fxlo(3), fylo(3), fzlo(3), fxhi(3), fyhi(3), fzhi(3)
     integer :: clo(3), chi(3)
     real(rt), pointer, contiguous :: q(:,:,:,:), divc(:,:,:), dm(:,:,:,:)
-    real(rt), dimension(:,:,:,:), pointer :: fhx,fhy,fhz,fdx,fdy,fdz
-    real(rt), dimension(:,:,:), pointer :: lambda, mu, xi
+    real(rt), dimension(:,:,:,:), pointer, contiguous :: fhx,fhy,fhz,fdx,fdy,fdz
+    real(rt), dimension(:,:,:), pointer, contiguous :: lambda, mu, xi
     integer, parameter :: nghost = nextra_eb + max(nghost_plm,3) ! 3 because of wall flux
 
     integer :: k,n

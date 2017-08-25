@@ -30,7 +30,7 @@ contains
     real(rt) :: dxinv, dyinv, dzinv, cspeed
     integer :: i, j, k
     integer :: qtlo(3), qthi(3)
-    real(rt), pointer :: dq(:,:,:,:)
+    real(rt), pointer, contiguous :: dq(:,:,:,:)
 
     integer, parameter :: nextra = 0
 
