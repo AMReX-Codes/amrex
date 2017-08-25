@@ -1,0 +1,12 @@
+#
+# For Theta at ALCF
+#
+
+ifeq ($(USE_MPI),TRUE)
+  CC  = cc
+  CXX = CC
+  FC  = ftn
+  F90 = ftn
+  LIBRARIES += -lmpichf90
+endif
+
