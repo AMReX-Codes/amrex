@@ -1,3 +1,6 @@
+//Question? email tannguyen@lbl.gov
+//Created 07-19-2017
+//Last modification 08-14-2017
 #include <iostream>
 #include <string.h>
 
@@ -54,7 +57,7 @@ int TokenRingTask::_nTasks;
 int main(int argc,char *argv[])
 {
     int argCount = 0;
-    int t=1, verbose=0;
+    int t=1, verbose=0, nWrks=1;
     int rank, nProcs;
     /* Argument list
        -t: number of tasks
@@ -62,9 +65,10 @@ int main(int argc,char *argv[])
      */ 
     while(++argCount <argc) {
 	if(!(strcmp(argv[argCount], "-t"))) t = atoi(argv[++argCount]);
+	if(!(strcmp(argv[argCount], "-w"))) nWrks = atoi(argv[++argCount]);
 	if(!(strcmp(argv[argCount], "-v"))) verbose = true;
     }
-    RTS rts;
+    RTS rts(nWrks);
     rts.RTS_Init(&rank, &nProcs);
     TokenRingTask::_nTasks= t;
     string graphName= "TokenRing";
@@ -76,9 +80,11 @@ int main(int argc,char *argv[])
     rts.Barrier();
     ArrayGraph<TokenRingTask> *TokenRingGraph= new ArrayGraph<TokenRingTask>(graphName, t, rank, nProcs);
     rts.RTS_Run(TokenRingGraph);
+#if 0
     rts.Barrier();
     time += rts.Time();
     if(verbose && rank==0) cout<<"Graph execution takes "<< time <<" seconds"<<endl;
     delete TokenRingGraph;
     rts.RTS_Finalize();
+#endif
 };
