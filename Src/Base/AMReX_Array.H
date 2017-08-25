@@ -26,13 +26,13 @@ public:
 
     T& operator[] (std::size_t i)
     {
-	BL_ASSERT(i < this->size());
+	BL_ASSERT(static_cast<long>(i) < this->size());
 	return this->std::vector<T>::operator[](i);
     }
 
     const T& operator[] (std::size_t i) const
     {
-	BL_ASSERT(i < this->size());
+	BL_ASSERT(static_cast<long>(i) < this->size());
 	return this->std::vector<T>::operator[](i);
     }
 
@@ -40,6 +40,9 @@ public:
     T* dataPtr () { return this->data(); }
     //! get access to the underlying array 
     const T* dataPtr () const { return this->data(); }
+
+    long size() const {return static_cast<long>(std::vector<T>::size());}
+
 };
 
 }

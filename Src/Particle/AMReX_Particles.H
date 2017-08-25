@@ -403,22 +403,22 @@ private:
 /// This struct is used to pass initial data into the various Init methods
 /// of the particle container. That data should be initialized in the order
 /// real struct data, int struct data, real array data, int array data. 
-/// If fewer components are specified than the sum of the template parameters,
-/// the extra values will be set to zero. If more components are specified, it 
-/// is a compile-time error.
+/// If fewer components are specified than the template parameters specify for,
+/// a given component, then the extra values will be set to zero. If more components 
+/// are specified, it is a compile-time error.
 ///
 /// Example usage:
 ///
-///     ParticleInitType<0, 2, 4, 1> pdata = {7, 9, 1.5, 2.5, 3.5, 4.5, 11}; 
+///     ParticleInitType<0, 2, 4, 1> pdata = {{}, {7, 9}, {1.5, 2.5, 3.5, 4.5}, {11}}; 
 ///
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleInitType
-{
-    double real_struct_data[NStructReal];
-    int    int_struct_data[NStructInt];
-    double real_array_data[NArrayReal];
-    int    int_array_data[NArrayInt];
-};
+    {
+        std::array<double, NStructReal> real_struct_data;
+        std::array<int,    NStructInt > int_struct_data;
+        std::array<double, NArrayReal > real_array_data;
+        std::array<int,    NArrayInt  > int_array_data;
+    };
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> class ParIterBase;
 

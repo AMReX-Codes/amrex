@@ -481,7 +481,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 
     if (LIpairV)
     {
-	BL_ASSERT(LIpairV->size() == nboxes);
+	BL_ASSERT(static_cast<int>(LIpairV->size()) == nboxes);
 	
 	for (int i = 0; i < nboxes; ++i)
 	{
@@ -812,7 +812,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     knapsack(wgts,nteams,vec,efficiency,do_full_knapsack,nmax);
 
-    BL_ASSERT(vec.size() == nteams);
+    BL_ASSERT(static_cast<int>(vec.size()) == nteams);
 
     std::vector<LIpair> LIpairV;
 
@@ -890,7 +890,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
 
     m_ref->m_pmap.resize(wgts.size());
 
-    if (wgts.size() <= nprocs || nprocs < 2)
+    if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
     {
         RoundRobinProcessorMap(wgts.size(),nprocs);
 
@@ -987,7 +987,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
             std::vector< std::vector<int> >& v)
 
 {
-    BL_ASSERT(v.size() == nprocs);
+    BL_ASSERT(static_cast<int>(v.size()) == nprocs);
 
     int  K        = 0;
     Real totalvol = 0;
@@ -997,7 +997,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
         int  cnt = 0;
         Real vol = 0;
 
-        for ( int TSZ = tokens.size();
+        for ( int TSZ = static_cast<int>(tokens.size());
               K < TSZ && (i == (nprocs-1) || vol < volpercpu);
               ++cnt, ++K)
         {
@@ -1022,7 +1022,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
     int cnt = 0;
     for (int i = 0; i < nprocs; ++i)
         cnt += v[i].size();
-    BL_ASSERT(cnt == tokens.size());
+    BL_ASSERT(cnt == static_cast<int>(tokens.size()));
 #endif
 }
 
@@ -1237,7 +1237,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
                                       int                      nprocs)
 {
     BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(boxes.size() == wgts.size());
+    BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
 
     m_ref->m_pmap.resize(wgts.size());
 
@@ -1474,7 +1474,7 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
       Real totalvol(0.0), volpercpu(0.0), ccScale(1.0);
       const int Navg(tokens.size() / nprocs);
       long totalNewCells(0), totalNewCellsB(0);
-      for(int i(0); i < tokens.size(); ++i) {        // new cells to add
+      for(int i(0); i < static_cast<int>(tokens.size()); ++i) { // new cells to add
         totalNewCells  += tokens[i].m_vol;
         totalNewCellsB += boxes[i].numPts();
       }
@@ -1521,7 +1521,7 @@ DistributionMapping::PFCProcessorMapDoIt (const BoxArray&          boxes,
         totalvol += vol;
         //if((totalvol / (i + 1)) > (newVolPerCPU[i] + tokens[K].m_vol / 2) &&
         if((totalvol / (i + 1)) > (newVolPerCPU[i] + 0) &&
-	   cnt > 1 && K < tokens.size())
+	   cnt > 1 && K < static_cast<int>(tokens.size()))
 	{
             --K;
             vec[i].pop_back();
@@ -1612,7 +1612,7 @@ DistributionMapping::PFCProcessorMap (const BoxArray&          boxes,
                                       int                      nprocs)
 {
     BL_ASSERT(boxes.size() > 0);
-    BL_ASSERT(boxes.size() == wgts.size());
+    BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
 
     m_ref->m_pmap.resize(wgts.size());
 
@@ -1721,7 +1721,7 @@ DistributionMapping::MultiLevelMapPFC (const Array<IntVect>  &refRatio,
 
         totalvol += vol;
         if((totalvol / (iProc + 1)) > (newVolPerCPU[iProc]) &&
-	   cnt > 1 && K < tokens.size())
+	   cnt > 1 && K < static_cast<int>(tokens.size()))
 	{
             --K;
             vec[iProc].pop_back();
@@ -1911,11 +1911,11 @@ DistributionMapping::MultiLevelMapKnapSack (const Array<IntVect>  &refRatio,
     knapsack(weights, nProcs, weightsPerCPU, efficiency, doFullKnapSack, nMax);
 
     int count(0);
-    for(int cpu(0); cpu < weightsPerCPU.size(); ++cpu) {
-      for(int b(0); b < weightsPerCPU[cpu].size(); ++b) {
-        //weights[count++] = weightsPerCPU[cpu][b];
-        weights[weightsPerCPU[cpu][b]] = cpu;
-      }
+    for(int cpu(0); cpu < static_cast<int>(weightsPerCPU.size()); ++cpu) {
+        for(int b(0); b < static_cast<int>(weightsPerCPU[cpu].size()); ++b) {
+            //weights[count++] = weightsPerCPU[cpu][b];
+            weights[weightsPerCPU[cpu][b]] = cpu;
+        }
     }
     count = 0;
 
@@ -2004,7 +2004,7 @@ ParallelDescriptor::Barrier();
 
         totalvol += vol;
         if((totalvol / (iProc + 1)) > (newVolPerCPU[iProc]) &&
-	   cnt > 1 && K < tokens.size())
+	   cnt > 1 && K < static_cast<int>(tokens.size()))
 	{
             --K;
             vec[iProc].pop_back();
@@ -2217,7 +2217,7 @@ DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
       std::sort(tFabTokens.begin(), tFabTokens.end(), SFCToken::Compare());  // sfc order
       FArrayBox tFabSFC(tBox, 1);
       tFabSFC.setVal(-1.0);
-      for(int i(0); i < tFabTokens.size(); ++i) {
+      for(int i(0); i < static_cast<int>(tFabTokens.size()); ++i) {
 	IntVect &iv = tFabTokens[i].m_idx;
         tFabSFC(iv) = i;
       }
@@ -2229,20 +2229,20 @@ DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
       // ------------------------------- order ranks by topological sfc
       std::vector<IntVect> nodesSFC;
       std::cout << std::endl << "----------- order ranks by topological sfc" << std::endl;
-      for(int i(0); i < tFabTokens.size(); ++i) {
+      for(int i(0); i < static_cast<int>(tFabTokens.size()); ++i) {
         IntVect &iv = tFabTokens[i].m_idx;
         std::vector<int> ivRanks = RanksFromTopIV(iv);
         if(ivRanks.size() > 0) {
           nodesSFC.push_back(iv);
           std::cout << "---- iv ranks = " << iv << "  ";
-          for(int ivr(0); ivr < ivRanks.size(); ++ivr) {
+          for(int ivr(0); ivr < static_cast<int>(ivRanks.size()); ++ivr) {
             ranksSFC.push_back(ivRanks[ivr]);
             std::cout << ivRanks[ivr] << "  ";
           }
           std::cout << std::endl;
         }
       }
-      if(ranksSFC.size() != nProcs) {
+      if(static_cast<int>(ranksSFC.size()) != nProcs) {
         std::cerr << "**** Error:  ranksSFC.size() != nProcs:  " << ranksSFC.size()
                   << "  " <<  nProcs << std::endl;
       }
@@ -2252,7 +2252,7 @@ DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
         proximityMap.resize(ParallelDescriptor::NProcs(), 0);
         proximityOrder.resize(ParallelDescriptor::NProcs(), 0);
       }
-      for(int i(0); i < ranksSFC.size(); ++i) {
+      for(int i(0); i < static_cast<int>(ranksSFC.size()); ++i) {
         std::cout << "++++ rank ranksSFC = " << i << "  " << ranksSFC[i] << std::endl;
 	proximityMap[i] = ranksSFC[i];
       }
@@ -2400,9 +2400,9 @@ std::vector<int>
 DistributionMapping::RanksFromTopIV(const IntVect &iv) {
   std::vector<int> ranks;
   std::vector<int> pnums = ProcNumbersFromTopIV(iv);
-  for(int i(0); i < pnums.size(); ++i) {
+  for(int i(0); i < static_cast<int>(pnums.size()); ++i) {
     std::vector<int> rfpn = RanksFromProcNumber(pnums[i]);
-    for(int r(0); r < rfpn.size(); ++r) {
+    for(int r(0); r < static_cast<int>(rfpn.size()); ++r) {
       ranks.push_back(rfpn[r]);
     }
   }
