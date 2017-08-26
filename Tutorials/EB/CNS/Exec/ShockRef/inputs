@@ -16,7 +16,7 @@ amr.n_cell           =   1024      512      16
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-cns.lo_bc       =  2   4   2
+cns.lo_bc       =  2   5   2
 cns.hi_bc       =  2   2   2
 
 cns.cfl = 0.3  # cfl number for hyperbolic system
