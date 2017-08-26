@@ -6,7 +6,7 @@ module diff_coef_module
 contains
 
   subroutine compute_diff_coef (q,qlo,qhi,lambda,mu,xi,clo,chi)
-    use cns_physics_module, only : Pr, C_S, T_S, cp, use_const_visc, const_mu, const_ki, const_lambda
+    use cns_physics_module, only : Pr, C_S, T_S, cp, use_const_visc, const_visc_mu, const_visc_ki, const_lambda
     use cns_module, only : qrho,qu,qv,qw,qp,qc,qeint,qtemp,qvar
     integer, intent(in) :: qlo(3), qhi(3), clo(3), chi(3)
     real(rt), intent(in   ) :: q     (qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
@@ -21,8 +21,8 @@ contains
        do       k = clo(3), chi(3)
           do    j = clo(2), chi(2)
              do i = clo(1), chi(1)
-                mu(i,j,k) = const_mu
-                xi(i,j,k) = const_ki
+                mu(i,j,k) = const_visc_mu
+                xi(i,j,k) = const_visc_ki
                 lambda(i,j,k) = const_lambda
              end do
           end do

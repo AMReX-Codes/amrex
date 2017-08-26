@@ -52,12 +52,13 @@ indep_var = 0
 ramp_slope = 1.1503684072210092   # tan(49 degree)
 start_pt = 5.2
 
-physics.gamma = 1.6666666666666667
-physics.mu    = 41.57255
+physics.gamma  = 1.6666666666666667
+physics.eos_mu = 41.57255
+
 physics.use_const_visc = 1
-physics.const_mu = 1.21e-2
-physics.const_ki = 0.0
-physics.const_lambda = 1.7e3 
+physics.const_visc_mu = 1.21e-2
+physics.const_visc_ki = 0.0
+physics.const_lambda  = 1.7e3 
 
 cns.dim = 2
 cns.use_total_energy_as_eb_weights = 1
