@@ -80,6 +80,9 @@ namespace amrex {
         virtual SigmaBox* create (const Box& box, int ncomps,
                                   const FabInfo& info, int box_index) const final
             { return new SigmaBox(box, m_grids, m_dx, m_ncell, m_delta); }
+        virtual FabFactory<SigmaBox>* clone () const { 
+            return new FabFactory<SigmaBox>(*this);
+        }
     private:
         const BoxArray& m_grids;
         const Real* m_dx;
