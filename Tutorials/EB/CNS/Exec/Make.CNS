@@ -16,6 +16,10 @@ include $(TOP)/Source/Make.package
 INCLUDE_LOCATIONS += $(TOP)/Source
 VPATH_LOCATIONS   += $(TOP)/Source
 
+include $(TOP)/Source/fortran/Make.package
+INCLUDE_LOCATIONS += $(TOP)/Source/fortran
+VPATH_LOCATIONS   += $(TOP)/Source/fortran
+
 include $(TOP)/Source/hydro/Make.package
 INCLUDE_LOCATIONS += $(TOP)/Source/hydro
 VPATH_LOCATIONS   += $(TOP)/Source/hydro
