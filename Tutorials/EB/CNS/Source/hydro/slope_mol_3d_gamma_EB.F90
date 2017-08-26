@@ -66,7 +66,7 @@ contains
 
                 if (is_regular_cell(flag(i,j,k)) .or. nbr(1,0,0).eq.1) then
                    drgt(i,1) = 0.5d0*(q(i+1,j,k,QP)-q(i,j,k,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU))
-                   drgt(i,2) = (q(i+1,j,k,QRHO)-q(i,j,k,QRHO))- (q(i,j,k,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
+                   drgt(i,2) = (q(i+1,j,k,QRHO)-q(i,j,k,QRHO))- (q(i+1,j,k,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
                    drgt(i,3) = 0.5d0*(q(i+1,j,k,QP)-q(i,j,k,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU))
                    drgt(i,4) = q(i+1,j,k,QV) - q(i,j,k,QV) 
                    drgt(i,5) = q(i+1,j,k,QW) - q(i,j,k,QW) 
