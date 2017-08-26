@@ -57,7 +57,8 @@ contains
        centz_x, czxlo, czxhi, &
        centz_y, czylo, czyhi, &
        cellflag, cflo, cfhi)
-    use cns_module, only : qvar, qrho, qu, qv, qw, qp, qeint, umx, umy, umz, smallr
+    use cns_module, only : qvar, qrho, qu, qv, qw, qp, qeint, umx, umy, umz, smallr, &
+         use_total_energy_as_eb_weights
     use cns_eb_hyp_wall_module, only : compute_hyp_wallflux
     use cns_eb_diff_wall_module, only : compute_diff_wallflux
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
@@ -388,11 +389,16 @@ contains
              end do
 
              if (n.eq.1) then
-                do i = lo(1)-2, hi(1)+2
-                   rediswgt(i,j,k) = q(i,j,k,qrho) 
-                   ! rediswgt(i,j,k) = max(smallr, q(i,j,k,qrho)+dt*divc(i,j,k))
-                   ! rediswgt(i,j,k) = q(i,j,k,qrho)*(q(i,j,k,qeint)+0.5d0*(q(i,j,k,qu)**2+q(i,j,k,qv)**2+q(i,j,k,qw)**2))
-                end do
+                if (use_total_energy_as_eb_weights) then
+                   do i = lo(1)-2, hi(1)+2
+                      rediswgt(i,j,k) = q(i,j,k,qrho)*(q(i,j,k,qeint)+0.5d0*(q(i,j,k,qu)**2+q(i,j,k,qv)**2+q(i,j,k,qw)**2))
+                   end do
+                else
+                   do i = lo(1)-2, hi(1)+2
+                      rediswgt(i,j,k) = q(i,j,k,qrho) 
+                      ! rediswgt(i,j,k) = max(smallr, q(i,j,k,qrho)+dt*divc(i,j,k))
+                   end do
+                end if
              end if
           end do
        end do
