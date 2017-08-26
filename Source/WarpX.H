@@ -178,7 +178,7 @@ private:
     /// Advance the simulation by numsteps steps, electromagnetic case.
     ///
     void EvolveEM(int numsteps);
-    
+
     ///
     /// Advance the simulation by numsteps steps, electrostatic case.
     ///
@@ -189,12 +189,12 @@ private:
     /// Both rho and phi are assumed to be node-centered. This method is only used
     /// in electrostatic mode.
     ///
-    void computePhi(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+    void computePhi(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
                           amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
     ///
-    /// Compute the electric field in each direction by computing the gradient 
-    /// the potential phi using 2nd order centered differences. Both rho and phi 
+    /// Compute the electric field in each direction by computing the gradient
+    /// the potential phi using 2nd order centered differences. Both rho and phi
     /// are assumed to be node-centered. This method is only used in electrostatic mode.
     ///
     void computeE(amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
@@ -253,13 +253,13 @@ private:
     void ExchangeWithPmlE (int lev);
 
     //
-    // This stuff is needed by the nodal multigrid solver when running in 
+    // This stuff is needed by the nodal multigrid solver when running in
     // electrostatic mode.
     //
     void zeroOutBoundary(amrex::MultiFab& input_data, amrex::MultiFab& bndry_data,
                          const amrex::FabArray<amrex::BaseFab<int> >& mask) const;
-    
-    void sumFineToCrseNodal(const amrex::MultiFab& fine, amrex::MultiFab& crse, 
+
+    void sumFineToCrseNodal(const amrex::MultiFab& fine, amrex::MultiFab& crse,
                             const amrex::Geometry& cgeom, const amrex::IntVect& ratio);
 
     void fixRHSForSolve(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rhs,
@@ -274,7 +274,7 @@ private:
 
     // used to gather the field from the coarse level in electrostatic mode.
     amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
-                        
+
     amrex::Array<int> istep;      // which step?
     amrex::Array<int> nsubsteps;  // how many substeps on each level?
 
@@ -358,6 +358,7 @@ private:
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
+    bool plot_raw_fields_guards = false;
 
     amrex::RealVect fine_tag_lo;
     amrex::RealVect fine_tag_hi;

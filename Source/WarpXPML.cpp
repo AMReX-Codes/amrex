@@ -563,8 +563,8 @@ PML::ComputePMLFactors (amrex::Real dt, const std::string& pml_type)
         sigba_fp->ComputePMLFactorsE(m_geom->CellSize(), dt, pml_type);
     }
     if (sigba_cp) {
-        sigba_cp->ComputePMLFactorsB(m_geom->CellSize(), dt, pml_type);
-        sigba_cp->ComputePMLFactorsE(m_geom->CellSize(), dt, pml_type);
+        sigba_cp->ComputePMLFactorsB(m_cgeom->CellSize(), dt, pml_type);
+        sigba_cp->ComputePMLFactorsE(m_cgeom->CellSize(), dt, pml_type);
     }
 }
 
