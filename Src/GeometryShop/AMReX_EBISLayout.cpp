@@ -17,8 +17,32 @@
 
 namespace amrex
 {
-  static const IntVect ebg_debiv(D_DECL(945,137,7));
-
+  IntVect ebisl_debiv(D_DECL(994,213,7));
+  void EBISL_checkGraph(const BoxArray          & a_grids,
+                        const DistributionMapping & a_dm,
+                        const FabArray<EBGraph> & a_graph,
+                        const string & a_identifier)
+  {
+    for(MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
+    {
+      const Box& region = a_grids[mfi];
+      const EBGraph & graph = a_graph[mfi];
+      if(region.contains(ebisl_debiv))
+      {
+        amrex::AllPrint() << "ebislayout:" << a_identifier;
+        int ireg = 0; int icov = 0;
+        if(graph.isRegular(ebisl_debiv))
+        {
+          ireg = 1;
+        }
+        if(graph.isCovered(ebisl_debiv))
+        {
+          icov = 1;
+        }
+        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+      }
+    }
+  }
   /****************/
   void
   EBISLayoutImplem::define(const Box               & a_domain,
@@ -41,10 +65,18 @@ namespace amrex
     int dstGhostData = a_nghost;
     int dstGhostGraph = a_nghost+1; //because of irregular faces at box boundaries
     int srcGhost = 0;
-      
+//begin debug
+//    BoxArray inpgrids = a_graph.boxArray();
+//    DistributionMapping inpdm = a_graph.DistributionMap();
+//    EBISL_checkGraph(inpgrids, inpdm, a_graph, string(" input graph"));
+// end debug
+
     m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, a_dm, 1, dstGhostGraph,
                                                                      MFInfo(),DefaultFabFactory<EBGraph>()));
     m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhostGraph);
+//begin debug
+//    EBISL_checkGraph(a_grids, a_dm, a_graph, string(" my graph after copy"));
+// end debug
 
     EBDataFactory ebdatafact(m_ebGraph);
     m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, a_dm, 1, m_nghost, MFInfo(), ebdatafact));
