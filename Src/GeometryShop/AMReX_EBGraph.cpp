@@ -19,7 +19,7 @@
 
 namespace amrex
 {
-  static const IntVect ebg_debiv(D_DECL(945,137,7));
+  static const IntVect ebg_debiv(D_DECL(994,213,7));
   bool EBGraphImplem::s_verbose = false;
   /*******************************/
   std::vector<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
@@ -1125,6 +1125,27 @@ namespace amrex
     BL_ASSERT(isDefined());
 
     Box testbox = m_region & a_srcbox;
+
+////begin debug
+//    bool debugc = (m_region.contains(ebg_debiv));
+//    int whichbranch = -1;
+//    int needtodel = -1;
+//    int ireg = 0;
+//    int icov = 0;
+//    if(debugc)
+//    {
+//      if(isRegular(ebg_debiv))
+//      {
+//        ireg = 1;
+//      }
+//      if(isCovered(ebg_debiv))
+//      {
+//        icov = 1;
+//      }
+//      amrex::AllPrint() << "ebgraph copy incoming ireg = " << ireg << ", icov = "<< icov << endl;
+//    }
+////end debug    
+
     if(!testbox.isEmpty())
     {
       setDomain(a_source.m_domain);
@@ -1134,26 +1155,41 @@ namespace amrex
       Box regionFrom= testbox;
       if (isRegular(regionTo) && a_source.isRegular(regionFrom))
       {
-        return *this;
+//begin debug
+//        whichbranch = 0;
+//end debug    
+//        return *this;
       }
       else if (isCovered(regionTo) && a_source.isCovered(regionFrom))
       {
-        return *this;
+//begin debug
+//        whichbranch = 1;
+//end debug    
+//        return *this;
       }
       else if (a_source.isCovered(regionFrom) && regionTo.contains(m_region))
       {
         setToAllCovered();
-        return *this;
+//begin debug
+//        whichbranch = 2;
+//end debug    
+//        return *this;
       }
       else if (a_source.isRegular(regionFrom) && regionTo.contains(m_region))
       {
+//begin debug
+//        whichbranch = 3;
+//end debug    
         setToAllRegular();
-        return *this;
+//        return *this;
       }
       else if (isAllRegular() && a_source.isAllCovered())
       {
         //define the basefab as all regular and set the region to
         //covered in the intersection
+//begin debug
+//        whichbranch = 3;
+//end debug    
         m_tag = HasIrregular;
         m_multiIVS = IntVectSet();
         m_irregIVS = IntVectSet();
@@ -1171,6 +1207,9 @@ namespace amrex
       {
         //define the basefab as all covered and set the region to
         //regular in the intersection
+//begin debug
+//        whichbranch = 4;
+//end debug    
         m_tag = HasIrregular;
         m_multiIVS = IntVectSet();
         m_irregIVS = IntVectSet();
@@ -1186,6 +1225,9 @@ namespace amrex
       }
       else
       {
+//begin debug
+//        whichbranch = 5;
+//end debug    
         //one or both has irregular cells.
         //because i am sick of combinatorics,
         //use basefab copy to transfer the data.
@@ -1198,10 +1240,16 @@ namespace amrex
         {
           srcFabPtr = (BaseFab<GraphNode>*)&a_source.m_graph;
           needToDelete = false;
+//begin debug
+//          needtodel = 0;
+//end debug
         }
         else
         {
           needToDelete = true;
+//begin debug
+//          needtodel = 1;
+//end debug
           srcFabPtr = new BaseFab<GraphNode>(regionFrom, 1);
           GraphNode srcVal;
           if (a_source.isAllRegular())
@@ -1246,29 +1294,47 @@ namespace amrex
         {
           delete srcFabPtr;
         }
-      }
-      //  now fix up the IntVectSets to match the information
-      if (a_source.hasIrregular())
-      {
-        IntVectSet ivsInterIrreg = (a_source.m_irregIVS);
-        ivsInterIrreg &= regionTo;
-        ivsInterIrreg &= m_region;
-        
-        if (!ivsInterIrreg.isEmpty())
+        //  now fix up the IntVectSets to match the information
+        if (a_source.hasIrregular())
         {
-          for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
+          IntVectSet ivsInterIrreg = (a_source.m_irregIVS);
+          ivsInterIrreg &= regionTo;
+          ivsInterIrreg &= m_region;
+        
+          if (!ivsInterIrreg.isEmpty())
           {
-            IntVect iv = it();
-            (m_irregIVS) |= iv;
-            if (numVoFs(iv) > 1) // this will be correct since we already
-              // did a m_graph copy operation
+            for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
             {
-              (m_multiIVS) |= iv;
+              IntVect iv = it();
+              (m_irregIVS) |= iv;
+              if (numVoFs(iv) > 1) // this will be correct since we already
+                // did a m_graph copy operation
+              {
+                (m_multiIVS) |= iv;
+              }
             }
           }
         }
       }
     }
+//begin debug
+//    if(debugc)
+//    {
+//      ireg = 0;
+//      icov = 0;
+//      if(isRegular(ebg_debiv))
+//      {
+//        ireg = 1;
+//      }
+//      if(isCovered(ebg_debiv))
+//      {
+//        icov = 1;
+//      }
+//      amrex::AllPrint() << "ebgraph copy outgoing ireg = " << ireg << ", icov = "<< icov << endl;
+//      amrex::AllPrint() << "ebgraph copy: which branch = " << whichbranch << endl;
+//      amrex::AllPrint() << "ebgraph copy: needtodel = " <<  needtodel << endl;
+//    }
+//end debug
     return *this;
   }
         
@@ -1394,7 +1460,7 @@ namespace amrex
           }
           doneAdding = (thisVoFSet.size() == oldSetSize);
         } //end while !doneadding
-        //add the finished bunch to the list of  vofs.
+          //add the finished bunch to the list of  vofs.
         retval.push_back(thisVoFSet);
       } //end this bunch of connected vofs
     }
@@ -1871,10 +1937,23 @@ namespace amrex
 
     if (isAllRegular() || isAllCovered())
     {
-      m_tag = HasIrregular;
       m_multiIVS = IntVectSet();
       m_irregIVS = IntVectSet();
       m_graph.resize(m_region, 1);
+      if(isAllRegular())
+      {
+        GraphNode regularNode;
+        regularNode.defineAsRegular();
+        m_graph.setVal(regularNode);
+      }
+      if(isAllCovered())
+      {
+        GraphNode coveredNode;
+        coveredNode.defineAsCovered();
+        m_graph.setVal(coveredNode);
+      }
+      m_tag = HasIrregular;
+
     }
     for (BoxIterator bit(a_region); bit.ok(); ++bit)
     {
