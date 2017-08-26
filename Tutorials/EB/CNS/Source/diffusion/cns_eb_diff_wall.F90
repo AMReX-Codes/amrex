@@ -42,7 +42,7 @@ contains
     real(rt) :: bct(3), d1, d2, ddinv, cxm, cx0, cxp, cym, cy0, cyp, czm, cz0, czp
     real(rt) :: u1, v1, w1, u2, v2, w2, dudn, dvdn, dwdn
     real(rt) :: dudx, dudy, dudz, dvdx, dvdy, dvdz, dwdx, dwdy, dwdz, divu
-    real(rt) :: tauxx, tauyy, tauzz, tauxy, tauxz, tauyz
+    real(rt) :: tauxx, tauyy, tauzz, tauxy, tauxz, tauyz, tautmp
     real(rt), parameter :: twoThirds = 2.d0/3.d0
 
     divw = 0.d0
@@ -231,12 +231,13 @@ contains
     dwdz = dwdn * anrmz
 
     divu = dudx+dvdy+dwdz
-    tauxx = mu(i,j,k)*(2.d0*dudx-twoThirds*divu) + xi(i,j,k)*divu
+    tautmp = (xi(i,j,k)-twoThirds*mu(i,j,k))*divu
+    tauxx = mu(i,j,k)*2.d0*dudx + tautmp
+    tauyy = mu(i,j,k)*2.d0*dvdy + tautmp
+    tauzz = mu(i,j,k)*2.d0*dwdz + tautmp
     tauxy = mu(i,j,k)*(dudy+dvdx)
     tauxz = mu(i,j,k)*(dudz+dwdx)
-    tauyy = mu(i,j,k)*(2.d0*dvdy-twoThirds*divu) + xi(i,j,k)*divu
     tauyz = mu(i,j,k)*(dwdy+dvdz)
-    tauzz = mu(i,j,k)*(2.d0*dwdz-twoThirds*divu) + xi(i,j,k)*divu
 
     ! dx == dy == dz
     divw(2) = dxinv(1) * (dapx*tauxx + dapy*tauxy + dapz*tauxz)
