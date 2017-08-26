@@ -216,11 +216,11 @@ namespace amrex
     }
 
 //begin debug
-    EBISLevel_checkGraph(m_grids, dm, m_graph, string(" before fillboundary "));
+//    EBISLevel_checkGraph(m_grids, dm, m_graph, string(" before fillboundary "));
 // end debug
     m_graph.FillBoundary();
 //begin debug
-    EBISLevel_checkGraph(m_grids, dm, m_graph, string(" after fillboundary "));
+//    EBISLevel_checkGraph(m_grids, dm, m_graph, string(" after fillboundary "));
 // end debug
     m_data. FillBoundary();
 
