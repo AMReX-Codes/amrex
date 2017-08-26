@@ -39,7 +39,7 @@ contains
     call pp%query("C_S", C_S)
     call pp%query("T_S", T_S)
     i_use_const_visc = 0
-    call pp%query("use_const_visc", use_const_visc)
+    call pp%query("use_const_visc", i_use_const_visc)
     use_const_visc = i_use_const_visc .ne. 0
     if (use_const_visc) then
        call pp%get("const_mu", const_mu)
