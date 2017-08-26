@@ -27,7 +27,8 @@
 namespace amrex
 {
 
-
+  IntVect gs_debiv(D_DECL(994,213,7));
+  
   bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
                                          const Box& a_domain,
                                          const RealVect&      a_origin,
@@ -158,19 +159,34 @@ namespace amrex
                 const Real&          a_dx) const
   {
     GeometryShop::InOut rtn;
-
-
+    //begin debug
+    //bool debugc = (a_region.contains(gs_debiv));
+    //end debug
     if(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Regular;
+//      if(debugc)
+//      {
+//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all regular box" << endl;
+//      }
     }
     else if(isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Covered;
+//      if(debugc)
+//      {
+//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all covered box" << endl;
+//      }
     }
     else
     {
       rtn = GeometryShop::Irregular;
+//begin debug
+//      if(debugc)
+//      {
+//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in a mixed box " << endl;
+//      }
+//end debug
     }
     return rtn;
 

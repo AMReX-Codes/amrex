@@ -115,7 +115,8 @@ int main(int argc, char* argv[])
         const EBLevelGrid levelgrid(ba,dm,geom_domain,ng);
         const EBISLayout& ebisl = levelgrid.getEBISL();
 
-        IntVect debugcell(945,137,7);
+        //        IntVect debugcell(945,137,7);
+        IntVect debugcell(994,213,7);
 
         for (MFIter mfi(ba,dm); mfi.isValid(); ++mfi)
         {
