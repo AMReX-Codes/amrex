@@ -67,7 +67,7 @@ contains
 
     problo = problo_in
     probhi = probhi_in
-    center = 0.5_rt*(problo+probhi)
+    center = 0.5d0*(problo+probhi)
 
     call physics_init()
 

@@ -39,7 +39,7 @@ contains
     integer,  intent(in   ) ::  flag( fg_lo(1): fg_hi(1), fg_lo(2): fg_hi(2), fg_lo(3): fg_hi(3))
 
     real(rt) :: qtempl(5), qtempr(5), fluxtemp(5)
-    real(rt) :: dxinv, dyinv, dzinv, cspeed
+    real(rt) :: cspeed
     integer :: i, j, k
     integer :: qtlo(3), qthi(3)
     real(rt), pointer, contiguous :: dq(:,:,:,:)
@@ -50,11 +50,6 @@ contains
     qthi = hi + nextra + 1
 
     call amrex_allocate ( dq, qtlo(1), qthi(1), qtlo(2), qthi(2), qtlo(3), qthi(3), 1, 5)
-
-    ! Local constants
-    dxinv = 1.d0/dx(1)
-    dyinv = 1.d0/dx(2)
-    dzinv = 1.d0/dx(3)
 
     call ebslopex(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, flag, fg_lo, fg_hi, &
@@ -75,7 +70,6 @@ contains
              qtempl(1) = q(i-1,j,k,QRHO) + 0.5d0 * ( (dq(i-1,j,k,1)+dq(i-1,j,k,3))/cspeed + dq(i-1,j,k,2))
              qtempl(2) = q(i-1,j,k,QU) + 0.5d0 * ( (dq(i-1,j,k,3)-dq(i-1,j,k,1))/q(i-1,j,k,QRHO))
              qtempl(3)=  q(i-1,j,k,QP) + 0.5d0 *  (dq(i-1,j,k,1)+dq(i-1,j,k,3))*cspeed 
-
              qtempl(4) = q(i-1,j,k,QV) + 0.5d0 * dq(i-1,j,k,4)
              qtempl(5) = q(i-1,j,k,Qw) + 0.5d0 * dq(i-1,j,k,5)
              

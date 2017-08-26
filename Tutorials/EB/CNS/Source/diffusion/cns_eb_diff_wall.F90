@@ -15,18 +15,21 @@ contains
   !
   ! We use no-slip boundary for velocities.
   !
-  subroutine compute_diff_wallflux (divw, dxinv, i,j,k, q, qlo, qhi, &
-       lam, mu, xi, clo, chi, cellflag, cflo, cfhi, &
-       bcent, blo, bhi, apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi)
+  subroutine compute_diff_wallflux (divw, dxinv, i,j,k, &
+       q, qlo, qhi, &
+       lam, mu, xi, clo, chi, &
+       bcent, blo, bhi, &
+       apx, axlo, axhi, &
+       apy, aylo, ayhi, &
+       apz, azlo, azhi)
     integer, intent(in) :: i,j,k,qlo(3),qhi(3),clo(3),chi(3),axlo(3),axhi(3), &
-         aylo(3),ayhi(3),azlo(3),azhi(3),blo(3),bhi(3), cflo(3),cfhi(3)
+         aylo(3),ayhi(3),azlo(3),azhi(3),blo(3),bhi(3)
     real(rt), intent(in) :: dxinv(3)
     real(rt), intent(out) :: divw(5)
     real(rt), intent(in) :: q  (qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
     real(rt), intent(in) :: lam(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(rt), intent(in) :: mu (clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(rt), intent(in) :: xi (clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
-    integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
     real(rt), intent(in) :: bcent( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3), 3)
     real(rt), intent(in) :: apx  (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(rt), intent(in) :: apy  (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
@@ -64,16 +67,16 @@ contains
 
     if (abs(anrmx).ge.abs(anrmy) .and. abs(anrmx).ge.abs(anrmz)) then
        ! y-z plane: x = const
-       ! the equation for the line:  x = bct(1) - t*anrmx
-       !                             y = bct(2) - t*anrmy
-       !                             z = bct(3) - t*anrmz
-       s = sign(1.0_rt,-anrmx)
+       ! the equation for the line:  x = bct(1) - d*anrmx
+       !                             y = bct(2) - d*anrmy
+       !                             z = bct(3) - d*anrmz
+       s = sign(1.0d0,-anrmx)
        is = nint(s)
 
        !
        ! the line intersects the y-z plane (x = s) at ...
        !
-       d1 = (bct(1) - s) * (1.0_rt/anrmx)  ! this is also the distance the wall and the intersection
+       d1 = (bct(1) - s) * (1.0d0/anrmx)  ! this is also the distance from wall to intersection
        yit = bct(2) - d1*anrmy
        zit = bct(3) - d1*anrmz
        iyit = j + nint(yit)
@@ -82,12 +85,12 @@ contains
        zit = zit - nint(zit)
        !
        ! coefficents for quadratic interpolation
-       cym = 0.5_rt*yit*(yit-1._rt)
-       cy0 = 1._rt-yit*yit
-       cyp = 0.5_rt*yit*(yit+1._rt)
-       czm = 0.5_rt*zit*(zit-1._rt)
-       cz0 = 1._rt-zit*zit
-       czp = 0.5_rt*zit*(zit+1._rt)
+       cym = 0.5d0*yit*(yit-1.d0)
+       cy0 = 1.d0-yit*yit
+       cyp = 0.5d0*yit*(yit+1.d0)
+       czm = 0.5d0*zit*(zit-1.d0)
+       cz0 = 1.d0-zit*zit
+       czp = 0.5d0*zit*(zit+1.d0)
        !
        ! interploation
        u1 = interp2d(cym,cy0,cyp,czm,cz0,czp, q(i+is,iyit-1:iyit+1,izit-1:izit+1,qu))
@@ -97,7 +100,7 @@ contains
        !
        ! the line intersects the y-z plane (x = 2*s) at ...
        !
-       d2 = (bct(1) - 2._rt*s) * (1.0_rt/anrmx)
+       d2 = (bct(1) - 2.d0*s) * (1.0d0/anrmx)
        yit = bct(2) - d2*anrmy
        zit = bct(3) - d2*anrmz
        iyit = j + nint(yit)
@@ -106,12 +109,12 @@ contains
        zit = zit - nint(zit)
        !
        ! coefficents for quadratic interpolation
-       cym = 0.5_rt*yit*(yit-1._rt)
-       cy0 = 1._rt-yit*yit
-       cyp = 0.5_rt*yit*(yit+1._rt)
-       czm = 0.5_rt*zit*(zit-1._rt)
-       cz0 = 1._rt-zit*zit
-       czp = 0.5_rt*zit*(zit+1._rt)
+       cym = 0.5d0*yit*(yit-1.d0)
+       cy0 = 1.d0-yit*yit
+       cyp = 0.5d0*yit*(yit+1.d0)
+       czm = 0.5d0*zit*(zit-1.d0)
+       cz0 = 1.d0-zit*zit
+       czp = 0.5d0*zit*(zit+1.d0)
        !
        ! interploation
        u2 = interp2d(cym,cy0,cyp,czm,cz0,czp, q(i+2*is,iyit-1:iyit+1,izit-1:izit+1,qu))
@@ -120,10 +123,10 @@ contains
 
     else if (abs(anrmy).ge.abs(anrmx) .and. abs(anrmy).ge.abs(anrmz)) then
        ! z-x plane
-       s = sign(1.0_rt,-anrmy)
+       s = sign(1.0d0,-anrmy)
        is = nint(s)
 
-       d1 = (bct(2) - s) * (1.0_rt/anrmy)
+       d1 = (bct(2) - s) * (1.0d0/anrmy)
        xit = bct(1) - d1*anrmx
        zit = bct(3) - d1*anrmz
        ixit = i + nint(xit)
@@ -131,18 +134,18 @@ contains
        xit = xit - nint(xit)
        zit = zit - nint(zit)
 
-       cxm = 0.5_rt*xit*(xit-1._rt)
-       cx0 = 1._rt-xit*xit
-       cxp = 0.5_rt*xit*(xit+1._rt)
-       czm = 0.5_rt*zit*(zit-1._rt)
-       cz0 = 1._rt-zit*zit
-       czp = 0.5_rt*zit*(zit+1._rt)
+       cxm = 0.5d0*xit*(xit-1.d0)
+       cx0 = 1.d0-xit*xit
+       cxp = 0.5d0*xit*(xit+1.d0)
+       czm = 0.5d0*zit*(zit-1.d0)
+       cz0 = 1.d0-zit*zit
+       czp = 0.5d0*zit*(zit+1.d0)
 
        u1 = interp2d(cxm,cx0,cxp,czm,cz0,czp, q(ixit-1:ixit+1,j+is,izit-1:izit+1,qu))
        v1 = interp2d(cxm,cx0,cxp,czm,cz0,czp, q(ixit-1:ixit+1,j+is,izit-1:izit+1,qv))
        w1 = interp2d(cxm,cx0,cxp,czm,cz0,czp, q(ixit-1:ixit+1,j+is,izit-1:izit+1,qw))
 
-       d2 = (bct(2) - 2._rt*s) * (1.0_rt/anrmy)
+       d2 = (bct(2) - 2.d0*s) * (1.0d0/anrmy)
        xit = bct(1) - d2*anrmx
        zit = bct(3) - d2*anrmz
        ixit = i + nint(xit)
@@ -150,12 +153,12 @@ contains
        xit = xit - nint(xit)
        zit = zit - nint(zit)
 
-       cxm = 0.5_rt*xit*(xit-1._rt)
-       cx0 = 1._rt-xit*xit
-       cxp = 0.5_rt*xit*(xit+1._rt)
-       czm = 0.5_rt*zit*(zit-1._rt)
-       cz0 = 1._rt-zit*zit
-       czp = 0.5_rt*zit*(zit+1._rt)
+       cxm = 0.5d0*xit*(xit-1.d0)
+       cx0 = 1.d0-xit*xit
+       cxp = 0.5d0*xit*(xit+1.d0)
+       czm = 0.5d0*zit*(zit-1.d0)
+       cz0 = 1.d0-zit*zit
+       czp = 0.5d0*zit*(zit+1.d0)
 
        u2 = interp2d(cxm,cx0,cxp,czm,cz0,czp, q(ixit-1:ixit+1,j+2*is,izit-1:izit+1,qu))
        v2 = interp2d(cxm,cx0,cxp,czm,cz0,czp, q(ixit-1:ixit+1,j+2*is,izit-1:izit+1,qv))
@@ -163,10 +166,10 @@ contains
 
     else
        ! x-y plane
-       s = sign(1._rt,-anrmz)
+       s = sign(1.d0,-anrmz)
        is = nint(s)
 
-       d1 = (bct(3) - s) * (1.0_rt/anrmz)
+       d1 = (bct(3) - s) * (1.0d0/anrmz)
        xit = bct(1) - d1*anrmx
        yit = bct(2) - d1*anrmy
        ixit = i + nint(xit)
@@ -174,18 +177,18 @@ contains
        xit = xit - nint(xit)
        yit = yit - nint(yit)
 
-       cxm = 0.5_rt*xit*(xit-1._rt)
-       cx0 = 1._rt-xit*xit
-       cxp = 0.5_rt*xit*(xit+1._rt)
-       cym = 0.5_rt*yit*(yit-1._rt)
-       cy0 = 1._rt*yit*yit
-       cyp = 0.5_rt*yit*(yit+1._rt)
+       cxm = 0.5d0*xit*(xit-1.d0)
+       cx0 = 1.d0-xit*xit
+       cxp = 0.5d0*xit*(xit+1.d0)
+       cym = 0.5d0*yit*(yit-1.d0)
+       cy0 = 1.d0*yit*yit
+       cyp = 0.5d0*yit*(yit+1.d0)
 
        u1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+is,qu))
        v1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+is,qv))
        w1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+is,qw))
        
-       d2 = (bct(3) - 2._rt*s) * (1.0_rt/anrmz)
+       d2 = (bct(3) - 2.d0*s) * (1.0d0/anrmz)
        xit = bct(1) - d2*anrmx
        yit = bct(2) - d2*anrmy
        ixit = i + nint(xit)
@@ -193,12 +196,12 @@ contains
        xit = xit - nint(xit)
        yit = yit - nint(yit)
 
-       cxm = 0.5_rt*xit*(xit-1._rt)
-       cx0 = 1._rt-xit*xit
-       cxp = 0.5_rt*xit*(xit+1._rt)
-       cym = 0.5_rt*yit*(yit-1._rt)
-       cy0 = 1._rt*yit*yit
-       cyp = 0.5_rt*yit*(yit+1._rt)
+       cxm = 0.5d0*xit*(xit-1.d0)
+       cx0 = 1.d0-xit*xit
+       cxp = 0.5d0*xit*(xit+1.d0)
+       cym = 0.5d0*yit*(yit-1.d0)
+       cy0 = 1.d0*yit*yit
+       cyp = 0.5d0*yit*(yit+1.d0)
 
        u1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qu))
        v1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qv))
@@ -209,7 +212,7 @@ contains
     !
     ! compute derivatives on the wall given that velocity is zero on the wall.
     !
-    ddinv = 1._rt/(d1*d2*(d2-d1))
+    ddinv = 1.d0/(d1*d2*(d2-d1))
     dudn = -ddinv*(d2*d2*u1-d1*d1*u2)  ! note that the normal vector points toward the wall
     dvdn = -ddinv*(d2*d2*v1-d1*d1*v2)
     dwdn = -ddinv*(d2*d2*w1-d1*d1*w2)
