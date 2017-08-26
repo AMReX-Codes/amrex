@@ -181,7 +181,7 @@ contains
        cx0 = 1.d0-xit*xit
        cxp = 0.5d0*xit*(xit+1.d0)
        cym = 0.5d0*yit*(yit-1.d0)
-       cy0 = 1.d0*yit*yit
+       cy0 = 1.d0-yit*yit
        cyp = 0.5d0*yit*(yit+1.d0)
 
        u1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+is,qu))
@@ -200,7 +200,7 @@ contains
        cx0 = 1.d0-xit*xit
        cxp = 0.5d0*xit*(xit+1.d0)
        cym = 0.5d0*yit*(yit-1.d0)
-       cy0 = 1.d0*yit*yit
+       cy0 = 1.d0-yit*yit
        cyp = 0.5d0*yit*(yit+1.d0)
 
        u1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qu))
