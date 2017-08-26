@@ -32,7 +32,7 @@ contains
     integer  :: i, j, k
     real(rt) :: gm1
 
-    gm1 = gamma-1._rt
+    gm1 = gamma-1.d0
 
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)

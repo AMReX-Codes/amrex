@@ -371,7 +371,6 @@ contains
                       call compute_diff_wallflux(divdiff(:,iwall), dxinv, i,j,k, &
                            q, qlo, qhi, &
                            lam, mu, xi, clo, chi, &
-                           cellflag, cflo, cfhi, &
                            bcent, blo, bhi, &
                            apx, axlo, axhi, &
                            apy, aylo, ayhi, &

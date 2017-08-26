@@ -27,31 +27,24 @@ contains
     real(rt), intent(  out) :: flux3(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1,5)
 
     real(rt) :: qtempl(5), qtempr(5), fluxtemp(5)
-    real(rt) :: dxinv, dyinv, dzinv, cspeed
+    real(rt) :: cspeed
     integer :: i, j, k
     integer :: qtlo(3), qthi(3)
     real(rt), pointer, contiguous :: dq(:,:,:,:)
 
-    integer, parameter :: nextra = 0
-
-    qtlo = lo - nextra - 1
-    qthi = hi + nextra + 1
+    qtlo = lo - 1
+    qthi = hi + 1
 
     call amrex_allocate ( dq, qtlo(1), qthi(1), qtlo(2), qthi(2), qtlo(3), qthi(3), 1, 5)
 
-    ! Local constants
-    dxinv = 1.d0/dx(1)
-    dyinv = 1.d0/dx(2)
-    dzinv = 1.d0/dx(3)
-
     call slopex(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, &
-         lo(1)-nextra,lo(2)-nextra,lo(3)-nextra,  &
-         hi(1)+nextra,hi(2)+nextra,hi(3)+nextra,QVAR)
+         lo(1),lo(2),lo(3),  &
+         hi(1),hi(2),hi(3),QVAR)
 
-    do       k = lo(3)-nextra, hi(3)+nextra
-       do    j = lo(2)-nextra, hi(2)+nextra
-          do i = lo(1)-nextra, hi(1)+nextra+1
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)+1
 
 !  alphas   1,2,3 correspond to u-c, u, u+c repsectively, 4 and 5 are transverse velocities
 
@@ -62,8 +55,7 @@ contains
              cspeed = q(i-1,j,k,QC)
              qtempl(1) = q(i-1,j,k,QRHO) + 0.5d0 * ( (dq(i-1,j,k,1)+dq(i-1,j,k,3))/cspeed + dq(i-1,j,k,2))
              qtempl(2) = q(i-1,j,k,QU) + 0.5d0 * ( (dq(i-1,j,k,3)-dq(i-1,j,k,1))/q(i-1,j,k,QRHO))
-             qtempl(3)=  q(i-1,j,k,QP) + 0.5d0 *  (dq(i-1,j,k,1)+dq(i-1,j,k,3))*cspeed 
-
+             qtempl(3)=  q(i-1,j,k,QP) + 0.5d0 *  (dq(i-1,j,k,1)+dq(i-1,j,k,3))*cspeed
              qtempl(4) = q(i-1,j,k,QV) + 0.5d0 * dq(i-1,j,k,4)
              qtempl(5) = q(i-1,j,k,Qw) + 0.5d0 * dq(i-1,j,k,5)
              
@@ -87,12 +79,12 @@ contains
 
     call slopey(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, &
-         lo(1)-nextra,lo(2)-nextra,lo(3)-nextra,  &
-         hi(1)+nextra,hi(2)+nextra,hi(3)+nextra,QVAR)
+         lo(1),lo(2),lo(3),  &
+         hi(1),hi(2),hi(3),QVAR)
 
-    do       k = lo(3)-nextra, hi(3)+nextra
-       do    j = lo(2)-nextra, hi(2)+nextra+1
-          do i = lo(1)-nextra, hi(1)+nextra
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)+1
+          do i = lo(1), hi(1)
 
 !     1,2,3 correspond to u-c, u, u+c repsectively
 
@@ -127,12 +119,12 @@ contains
      
     call slopez(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, &
-         lo(1)-nextra,lo(2)-nextra,lo(3)-nextra,   &
-         hi(1)+nextra,hi(2)+nextra,hi(3)+nextra,QVAR)
+         lo(1),lo(2),lo(3),   &
+         hi(1),hi(2),hi(3),QVAR)
     
-    do       k = lo(3)-nextra, hi(3)+nextra+1
-       do    j = lo(2)-nextra, hi(2)+nextra
-          do i = lo(1)-nextra, hi(1)+nextra
+    do       k = lo(3), hi(3)+1
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
              
 !     1,2,3 correspond to u-c, u, u+c repsectively
 
