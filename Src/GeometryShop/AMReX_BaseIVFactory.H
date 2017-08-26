@@ -54,6 +54,10 @@ namespace amrex
         return retval;
       }
 
+    virtual BaseIVFactory<T>* clone () const override {
+        return new BaseIVFactory<T>(*this);
+    }
+
     ///
     BaseIVFactory(shared_ptr<FabArray<EBGraph> > a_graphs)
       {

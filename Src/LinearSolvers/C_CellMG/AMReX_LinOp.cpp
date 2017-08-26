@@ -412,7 +412,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
     //
     const int nComp=1;
     const int nGrow=0;
-    cs.define(d, fn.DistributionMap(), nComp, nGrow);
+    cs.define(d, fn.DistributionMap(), nComp, nGrow, MFInfo(), FArrayBoxFactory());
 
     const bool tiling = true;
 

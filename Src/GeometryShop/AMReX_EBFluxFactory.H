@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include "AMReX_EBISLayout.H"
 #include "AMReX_EBFluxFAB.H"
+#include <AMReX_FabFactory.H>
 
 namespace amrex
 {
@@ -36,6 +37,10 @@ namespace amrex
        for calling operator 'delete' on this pointer is passed to the user.
     */
     virtual EBFluxFAB* create(const Box& box, int ncomps, const FabInfo& info, int box_index) const;
+
+    virtual EBFluxFactory* clone () const override {
+        return new EBFluxFactory(*this);
+    }
 
     ///
     /**

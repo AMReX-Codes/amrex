@@ -26,6 +26,33 @@
 
 namespace amrex
 {
+  static const IntVect ebl_debiv(D_DECL(994,213,7));
+
+  void EBISLevel_checkGraph(const BoxArray          & a_grids,
+                            const DistributionMapping & a_dm,
+                            const FabArray<EBGraph> & a_graph,
+                            const string & a_identifier)
+  {
+    for(MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
+    {
+      const Box& region = a_grids[mfi];
+      const EBGraph & graph = a_graph[mfi];
+      if(region.contains(ebl_debiv))
+      {
+        amrex::AllPrint() << "ebislevel:" << a_identifier;
+        int ireg = 0; int icov = 0;
+        if(graph.isRegular(ebl_debiv))
+        {
+          ireg = 1;
+        }
+        if(graph.isCovered(ebl_debiv))
+        {
+          icov = 1;
+        }
+        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+      }
+    }
+  }
   void 
   EBISLevel::
   write(const string& a_dirname) const
@@ -144,7 +171,7 @@ namespace amrex
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     DistributionMapping dm(m_grids);
-    m_graph.define(m_grids, dm, 1, 1);
+    m_graph.define(m_grids, dm, 1, 1, MFInfo(), DefaultFabFactory<EBGraph>());
 
     std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
     EBDataFactory ebdf(graphptr);
@@ -164,11 +191,13 @@ namespace amrex
       ebgraph.setDomain(m_domain);
       if (inout == GeometryService::Regular)
       {
+        
         ebgraph.setToAllRegular();
         ebdata.define(ebgraph,  ghostRegion);
       }
       else if (inout == GeometryService::Covered)
       {
+
         ebgraph.setToAllCovered();
         ebdata.define(ebgraph,  ghostRegion);
       }
@@ -185,8 +214,16 @@ namespace amrex
         ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
     }
+
+//begin debug
+    EBISLevel_checkGraph(m_grids, dm, m_graph, string(" before fillboundary "));
+// end debug
     m_graph.FillBoundary();
+//begin debug
+    EBISLevel_checkGraph(m_grids, dm, m_graph, string(" after fillboundary "));
+// end debug
     m_data. FillBoundary();
+
   }
   ///
   EBISLevel::
@@ -239,8 +276,9 @@ namespace amrex
     DistributionMapping dmco(m_grids);
     DistributionMapping dmfc = dmco;
     //need two because of coarsen faces
-    m_graph.define(m_grids, dmco, 1, nghostGraph);
-    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, nghostGraph+1);
+    m_graph.define(m_grids, dmco, 1, nghostGraph, MFInfo(), DefaultFabFactory<EBGraph>());
+    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, nghostGraph+1,
+                                  MFInfo(), DefaultFabFactory<EBGraph>());
     //pout() << "ebislevel::coarsenvofsandfaces: doing ebgraph copy" << endl;
 
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, nghostGraph+1);

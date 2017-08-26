@@ -1,0 +1,6 @@
+Given an AMReX task graph program, a runtime system operates the program execution.
+In particular, the runtime system manages task creation and distribution, schedules tasks, and handles communication among tasks, etc. 
+Since a task graph representation exhibits partial orderings among tasks, the program can be operated in many ways.
+Different runtime systems can employ different scheduling policies.
+In this directory, we include interfaces to existing runtimes system. 
+The user can select one that suits well for a particular application and hardware architecture.

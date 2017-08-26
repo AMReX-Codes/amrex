@@ -1387,7 +1387,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     if (mf.empty()) {
 	DistributionMapping dm(hdr.m_ba);
-	mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow);
+	mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), FArrayBoxFactory());
     } else {
 	BL_ASSERT(amrex::match(hdr.m_ba,mf.boxArray()));
     }
@@ -1471,7 +1471,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         std::cout << "VisMF::Read:  not inFileOrder" << std::endl;
       }
       // ---- make a temporary fabarray in file order
-      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow);
+      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), mf.Factory());
     }
 
     FabArray<FArrayBox> &whichFA = inFileOrder ? mf : fafabFileOrder;
@@ -1751,7 +1751,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       std::vector<int> recReads(nReqs, -1);
       while(nReqs > 0) {
         rmess = ParallelDescriptor::Recv(recReads, ioProcNum, readTag);
-        for(int ir(0); ir < rmess.count(); ++ir) {
+        for(int ir(0); ir < static_cast<int>(rmess.count()); ++ir) {
 	  int mfIndex(recReads[ir]);
 	  VisMF::readFAB(mf,mfIndex, mf_name, hdr);
 	}

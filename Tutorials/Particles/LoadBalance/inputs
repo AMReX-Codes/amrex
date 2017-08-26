@@ -1,0 +1,3 @@
+num_cells = 256
+max_grid_size = 64
+num_procs = 16

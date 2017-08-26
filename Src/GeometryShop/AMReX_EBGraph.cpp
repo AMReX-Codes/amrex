@@ -14,12 +14,13 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
 #include "AMReX_parstream.H"
+#include "AMReX_Print.H"
+
 
 namespace amrex
 {
-  Box ebg_debbox1(IntVect(D_DECL(30,14,0)), IntVect(D_DECL(49, 33,0)));
-  Box ebg_debbox2(IntVect(D_DECL(14,14,0)), IntVect(D_DECL(33, 33,0)));
-  IntVect ebg_debiv(D_DECL(33, 13, 0));
+  static const IntVect ebg_debiv(D_DECL(994,213,7));
+  bool EBGraphImplem::s_verbose = false;
   /*******************************/
   std::vector<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
                                                       const Box&  a_box) const
@@ -402,6 +403,7 @@ namespace amrex
         
     m_tag = AllRegular;
     m_region = a_region;
+    m_fullRegion = a_region;
     m_irregIVS = IntVectSet();
     m_multiIVS = IntVectSet();
     m_mask.clear();
@@ -500,10 +502,12 @@ namespace amrex
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(isDomainSet());
+
     bool retval;
     if (m_tag == AllRegular)
     {
       retval = true;
+
     }
     else if (m_tag == AllCovered)
     {
@@ -521,6 +525,7 @@ namespace amrex
       retval = false;
       amrex::Error("EBGraphImplem::isRegular:Bogus Tag");
     }
+
     return retval;
   }
         
@@ -753,11 +758,16 @@ namespace amrex
     m_implem->fillMask(a_mask);
   }
   /*******************************/
-  void EBGraph::fillIntMask(BaseFab<int>& a_mask) const
+  void EBGraph::fillIntMask(BaseFab<int>& a_mask,
+                            const Box   & a_subbox) const
   {
-    Box interiorRegion = getRegion();
+    Box fullRegion = getFullRegion();
+    fullRegion &= a_subbox;
+    Box interiorRegion = fullRegion;
     interiorRegion &= getDomain();
-    a_mask.resize(interiorRegion, 1);
+
+    a_mask.resize(fullRegion, 1);
+    a_mask.setVal(2);
     for(BoxIterator boxit(interiorRegion); boxit.ok(); ++boxit)
     {
       const IntVect& iv = boxit();
@@ -1115,6 +1125,27 @@ namespace amrex
     BL_ASSERT(isDefined());
 
     Box testbox = m_region & a_srcbox;
+
+////begin debug
+//    bool debugc = (m_region.contains(ebg_debiv));
+//    int whichbranch = -1;
+//    int needtodel = -1;
+//    int ireg = 0;
+//    int icov = 0;
+//    if(debugc)
+//    {
+//      if(isRegular(ebg_debiv))
+//      {
+//        ireg = 1;
+//      }
+//      if(isCovered(ebg_debiv))
+//      {
+//        icov = 1;
+//      }
+//      amrex::AllPrint() << "ebgraph copy incoming ireg = " << ireg << ", icov = "<< icov << endl;
+//    }
+////end debug    
+
     if(!testbox.isEmpty())
     {
       setDomain(a_source.m_domain);
@@ -1124,26 +1155,41 @@ namespace amrex
       Box regionFrom= testbox;
       if (isRegular(regionTo) && a_source.isRegular(regionFrom))
       {
-        return *this;
+//begin debug
+//        whichbranch = 0;
+//end debug    
+//        return *this;
       }
       else if (isCovered(regionTo) && a_source.isCovered(regionFrom))
       {
-        return *this;
+//begin debug
+//        whichbranch = 1;
+//end debug    
+//        return *this;
       }
       else if (a_source.isCovered(regionFrom) && regionTo.contains(m_region))
       {
         setToAllCovered();
-        return *this;
+//begin debug
+//        whichbranch = 2;
+//end debug    
+//        return *this;
       }
       else if (a_source.isRegular(regionFrom) && regionTo.contains(m_region))
       {
+//begin debug
+//        whichbranch = 3;
+//end debug    
         setToAllRegular();
-        return *this;
+//        return *this;
       }
       else if (isAllRegular() && a_source.isAllCovered())
       {
         //define the basefab as all regular and set the region to
         //covered in the intersection
+//begin debug
+//        whichbranch = 3;
+//end debug    
         m_tag = HasIrregular;
         m_multiIVS = IntVectSet();
         m_irregIVS = IntVectSet();
@@ -1161,6 +1207,9 @@ namespace amrex
       {
         //define the basefab as all covered and set the region to
         //regular in the intersection
+//begin debug
+//        whichbranch = 4;
+//end debug    
         m_tag = HasIrregular;
         m_multiIVS = IntVectSet();
         m_irregIVS = IntVectSet();
@@ -1176,21 +1225,31 @@ namespace amrex
       }
       else
       {
+//begin debug
+//        whichbranch = 5;
+//end debug    
         //one or both has irregular cells.
         //because i am sick of combinatorics,
         //use basefab copy to transfer the data.
         
         //see if we need to generate a source fab
+
         BaseFab<GraphNode>* srcFabPtr;
         bool needToDelete;
         if (a_source.hasIrregular())
         {
           srcFabPtr = (BaseFab<GraphNode>*)&a_source.m_graph;
           needToDelete = false;
+//begin debug
+//          needtodel = 0;
+//end debug
         }
         else
         {
           needToDelete = true;
+//begin debug
+//          needtodel = 1;
+//end debug
           srcFabPtr = new BaseFab<GraphNode>(regionFrom, 1);
           GraphNode srcVal;
           if (a_source.isAllRegular())
@@ -1212,11 +1271,22 @@ namespace amrex
           m_irregIVS = IntVectSet();
           m_graph.resize(m_region, 1);
         }
-        
-        //copy the data
+        //these conditionals only depend on m_tag
+        if (isAllRegular())
+        {
+          GraphNode regularNode;
+          regularNode.defineAsRegular();
+          m_graph.setVal(regularNode);
+        }
+        else if(isAllCovered())
+        {
+          GraphNode  coveredNode;
+          coveredNode.defineAsCovered();
+          m_graph.setVal(coveredNode);
+        }
+        //copy the data and set the tag properly
         m_tag = HasIrregular;
-///do the slow one for debugging
-///      m_graph.slowCopy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
+
         m_graph.copy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
         
         //if we needed to new the basefab, clean it up
@@ -1224,29 +1294,47 @@ namespace amrex
         {
           delete srcFabPtr;
         }
-      }
-      //  now fix up the IntVectSets to match the information
-      if (a_source.hasIrregular())
-      {
-        IntVectSet ivsInterIrreg = (a_source.m_irregIVS);
-        ivsInterIrreg &= regionTo;
-        ivsInterIrreg &= m_region;
-        
-        if (!ivsInterIrreg.isEmpty())
+        //  now fix up the IntVectSets to match the information
+        if (a_source.hasIrregular())
         {
-          for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
+          IntVectSet ivsInterIrreg = (a_source.m_irregIVS);
+          ivsInterIrreg &= regionTo;
+          ivsInterIrreg &= m_region;
+        
+          if (!ivsInterIrreg.isEmpty())
           {
-            IntVect iv = it();
-            (m_irregIVS) |= iv;
-            if (numVoFs(iv) > 1) // this will be correct since we already
-              // did a m_graph copy operation
+            for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
             {
-              (m_multiIVS) |= iv;
+              IntVect iv = it();
+              (m_irregIVS) |= iv;
+              if (numVoFs(iv) > 1) // this will be correct since we already
+                // did a m_graph copy operation
+              {
+                (m_multiIVS) |= iv;
+              }
             }
           }
         }
       }
     }
+//begin debug
+//    if(debugc)
+//    {
+//      ireg = 0;
+//      icov = 0;
+//      if(isRegular(ebg_debiv))
+//      {
+//        ireg = 1;
+//      }
+//      if(isCovered(ebg_debiv))
+//      {
+//        icov = 1;
+//      }
+//      amrex::AllPrint() << "ebgraph copy outgoing ireg = " << ireg << ", icov = "<< icov << endl;
+//      amrex::AllPrint() << "ebgraph copy: which branch = " << whichbranch << endl;
+//      amrex::AllPrint() << "ebgraph copy: needtodel = " <<  needtodel << endl;
+//    }
+//end debug
     return *this;
   }
         
@@ -1372,7 +1460,7 @@ namespace amrex
           }
           doneAdding = (thisVoFSet.size() == oldSetSize);
         } //end while !doneadding
-        //add the finished bunch to the list of  vofs.
+          //add the finished bunch to the list of  vofs.
         retval.push_back(thisVoFSet);
       } //end this bunch of connected vofs
     }
@@ -1649,7 +1737,7 @@ namespace amrex
     retval += incrval;
 
     m_domain.linearOut(buf);
-    incrval = m_region.linearSize();
+    incrval = m_domain.linearSize();
     buf    += incrval;
     retval += incrval;
 
@@ -1712,7 +1800,7 @@ namespace amrex
     retval += incrval;
 
     m_domain.linearIn(buf);
-    incrval = m_region.linearSize();
+    incrval = m_domain.linearSize();
     buf    += incrval;
     retval += incrval;
 
@@ -1849,10 +1937,23 @@ namespace amrex
 
     if (isAllRegular() || isAllCovered())
     {
-      m_tag = HasIrregular;
       m_multiIVS = IntVectSet();
       m_irregIVS = IntVectSet();
       m_graph.resize(m_region, 1);
+      if(isAllRegular())
+      {
+        GraphNode regularNode;
+        regularNode.defineAsRegular();
+        m_graph.setVal(regularNode);
+      }
+      if(isAllCovered())
+      {
+        GraphNode coveredNode;
+        coveredNode.defineAsCovered();
+        m_graph.setVal(coveredNode);
+      }
+      m_tag = HasIrregular;
+
     }
     for (BoxIterator bit(a_region); bit.ok(); ++bit)
     {

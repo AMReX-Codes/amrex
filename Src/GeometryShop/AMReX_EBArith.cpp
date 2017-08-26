@@ -33,21 +33,25 @@ namespace amrex
      }
      else
      {
-       //see if we can agglomerate.
-       long numPtsRemaining = a_eblgFine.getDomain().numPts();
-       for(int ibox = 0; ibox < a_eblgFine.getDBL().size(); ibox++)
-       {
-         numPtsRemaining -= a_eblgFine.getDBL()[ibox].numPts();
-       }
-       coarsenable = (numPtsRemaining == 0);
-       if(coarsenable)
-       {
-         Box coarDom = coarsen(a_eblgFine.getDomain(), a_refRat);
-         BoxArray ba(coarDom);
-         ba.maxSize(a_maxBoxSize);
-         DistributionMapping dm(ba);
-         a_eblgCoar = EBLevelGrid(ba, dm, coarDom, a_eblgFine.getGhost());
-       }
+       coarsenable = false;
+
+       //turning this stuff off so I can make some progress
+//       //see if we can agglomerate.
+//       long numPtsRemaining = a_eblgFine.getDomain().numPts();
+//       for(int ibox = 0; ibox < a_eblgFine.getDBL().size(); ibox++)
+//       {
+//         numPtsRemaining -= a_eblgFine.getDBL()[ibox].numPts();
+//       }
+//       coarsenable = (numPtsRemaining == 0);
+//       if(coarsenable)
+//       {
+//         Box coarDom = coarsen(a_eblgFine.getDomain(), a_refRat);
+//         BoxArray ba(coarDom);
+//         ba.maxSize(a_maxBoxSize);
+//         DistributionMapping dm(ba);
+
+//         a_eblgCoar = EBLevelGrid(ba, dm, coarDom, a_eblgFine.getGhost());
+//       }
      }
      return coarsenable;
    }
@@ -2007,14 +2011,7 @@ namespace amrex
   {
     BL_PROFILE("EBArith::getExtrapolationStencil");
     int order = 2;
-////begin debug    
-//    int ideb = 0;
-//    const IntVect& iv = a_startVoF.gridIndex();
-//    if((iv[0] == 30)  && (iv[1] == 24) )
-//    {
-//      ideb = 1;
-//    }
-////end debug
+
     a_stencil.clear();
 
     //zeroth order Taylor series

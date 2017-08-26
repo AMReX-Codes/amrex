@@ -204,9 +204,10 @@ iMultiFab::iMultiFab (const BoxArray&            bxs,
                       const DistributionMapping& dm,
                       int                        ncomp,
                       int                        ngrow,
-		      const MFInfo&              info)
+		      const MFInfo&              info,
+                      const FabFactory<IArrayBox>& factory)
     :
-    FabArray<IArrayBox>(bxs,dm,ncomp,ngrow,info)
+    FabArray<IArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
 {
 }
 

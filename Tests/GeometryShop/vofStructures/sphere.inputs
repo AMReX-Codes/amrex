@@ -1,7 +1,7 @@
-geom_type = sphere
+which_geom = 0
 n_cell = 128 128 128
 n_cell = 32 32 32
-maxboxsize = 32
+max_grid_size = 32
 
 #the test will fail (properly) if the sphere is not contained in the domain
 #the exact values assume the whole sphere is inside the domain
@@ -10,3 +10,8 @@ sphere_center = 0.5 0.5 0.5
 sphere_radius = 0.4
 domain_length = 1.0 
 insideRegular = true 
+
+ref_ratio = 2 2
+block_factor = 16
+fill_ratio = 0.8
+buffer_size = 1

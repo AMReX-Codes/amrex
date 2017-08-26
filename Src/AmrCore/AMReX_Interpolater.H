@@ -72,6 +72,8 @@ public:
                           Array<BCRec>&    bcr) {};
 
     virtual InterpolaterBoxCoarsener BoxCoarsener (const IntVect& ratio);
+
+    static Array<int> GetBCArray (const Array<BCRec>& bcr);
 };
 
 //
@@ -214,7 +216,7 @@ public:
                          int              actual_comp,
                          int              actual_state) override;
 
-private:
+protected:
 
     bool do_linear_limiting;
 };
