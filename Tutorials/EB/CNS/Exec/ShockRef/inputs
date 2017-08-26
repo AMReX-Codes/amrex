@@ -60,3 +60,5 @@ physics.const_ki = 0.0
 physics.const_lambda = 1.7e3 
 
 cns.dim = 2
+cns.use_total_energy_as_eb_weights = 1
+

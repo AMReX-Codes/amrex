@@ -36,6 +36,7 @@ module cns_module
   real(rt), save, public :: problo(3), probhi(3), center(3)
 
   logical, save, public :: actually_2D = .false.
+  logical, save, public :: use_total_energy_as_eb_weights = .false.
 
   public :: cns_init_fort
 
@@ -52,7 +53,7 @@ contains
     real(rt), intent(in) :: problo_in(3), probhi_in(3)
 
     type(amrex_parmparse) :: pp
-    integer :: dim
+    integer :: dim, i_use_total_energy_as_eb_weights
 
     physbc_lo = physbc_lo_in
     physbc_hi = physbc_hi_in
@@ -71,9 +72,15 @@ contains
     call physics_init()
 
     call amrex_parmparse_build(pp,"cns")
+
     dim = 3
     call pp%query("dim", dim)
     actually_2D = dim.eq.2
+
+    i_use_total_energy_as_eb_weights = 0
+    call pp%query("use_total_energy_as_eb_weights", i_use_total_energy_as_eb_weights)
+    use_total_energy_as_eb_weights = i_use_total_energy_as_eb_weights .ne. 0
+
     call amrex_parmparse_destroy(pp)
 
   end subroutine cns_init_fort
