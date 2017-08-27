@@ -250,7 +250,7 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     std::string FullPathName;
 
     for(int ns(1); ns <= nsets; ++ns) {
-      MultiFab *whichMF;
+      MultiFab *whichMF = nullptr;
       if(ns == 1) {
 	whichMF = new_data;
       } else if(ns == 2) {

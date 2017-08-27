@@ -67,6 +67,9 @@ void KDTree::partitionNode(KDNode* node, const FArrayBox& cost) {
     
     Box left, right;
     splitBox(split, dir, box, left, right);
+
+    BL_ASSERT(left.numPts()  > 0);
+    BL_ASSERT(right.numPts() > 0);
     
     node->left  = new KDNode(left,  cost_left,  node->num_procs_left/2);
     node->right = new KDNode(right, cost_right, node->num_procs_left/2);
@@ -91,5 +94,5 @@ void KDTree::splitBox(int split, int dir,
     right = box;
     
     left.setBig(dir, split);
-    right.setSmall(dir, split+1);        
+    right.setSmall(dir, split+1);
 }

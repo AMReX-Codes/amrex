@@ -7,6 +7,8 @@ using namespace amrex;
 Real
 CNS::advance (Real time, Real dt, int iteration, int ncycle)
 {
+    BL_PROFILE("CNS::advance()")
+
     for (int k = 0; k < NUM_STATEDATA_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
@@ -37,12 +39,16 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
 void
 CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 {
+    BL_PROFILE("CNS::compute_dSdt()");
+
     const Real* dx = geom.CellSize();
 
     const IntVect& tilesize{1024000,16,16};
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
-        std::array<FArrayBox,3> flux;
         for (MFIter mfi(S,tilesize); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
@@ -55,43 +61,26 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
             } else {
                 if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
                 {
-                    for (int idim = 0; idim < 3; ++idim) {
-                        const Box& bxtmp = amrex::surroundingNodes(bx,idim);
-                        flux[idim].resize(bxtmp,NUM_STATE);
-//                        flux[idim].setVal(0.0);
-                    }
                     cns_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                      BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                      BL_TO_FORTRAN_ANYD(S[mfi]),
-                                     BL_TO_FORTRAN_ANYD(flux[0]),
-                                     BL_TO_FORTRAN_ANYD(flux[1]),
-                                     BL_TO_FORTRAN_ANYD(flux[2]),
-                                     dx);
+                                     dx, &dt);
                 }
                 else
                 {
-                    for (int idim = 0; idim < 3; ++idim) {
-                        Box bxtmp = amrex::grow(amrex::surroundingNodes(bx,idim),2);
-                        // grow in transverse directions
-                        bxtmp.grow(IntVect::TheUnitVector()-IntVect::TheDimensionVector(idim));
-                        flux[idim].resize(bxtmp,NUM_STATE);
-//                        flux[idim].setVal(0.0);
-                    }
                     cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                         BL_TO_FORTRAN_ANYD(S[mfi]),
-                                        BL_TO_FORTRAN_ANYD(flux[0]),
-                                        BL_TO_FORTRAN_ANYD(flux[1]),
-                                        BL_TO_FORTRAN_ANYD(flux[2]),
                                         BL_TO_FORTRAN_ANYD(flag),
                                         BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                                        BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
                                         BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
                                         BL_TO_FORTRAN_ANYD(areafrac[1][mfi]),
                                         BL_TO_FORTRAN_ANYD(areafrac[2][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
-                                        dx);
+                                        dx, &dt);
                 }
             }
         }
