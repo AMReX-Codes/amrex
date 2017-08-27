@@ -36,7 +36,7 @@ namespace amrex
     virtual ~BaseIVFactory () {}
 
     ///
-    virtual BaseIVFAB<T>* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const
+    virtual BaseIVFAB<T>* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
       {
         EBGraph& graph       = (*m_graphs)[box_index];
         IntVectSet ivs;
