@@ -77,6 +77,9 @@ CNS::initData ()
     MultiFab& S_new = get_new_data(State_Type);
     Real cur_time   = state[State_Type].curTime();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
         const Box& box = mfi.validbox();
@@ -339,13 +342,21 @@ CNS::estTimeStep ()
     const Real* dx = geom.CellSize();
     const MultiFab& stateMF = get_new_data(State_Type);
 
-    for (MFIter mfi(stateMF,true); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel reduction(min:estdt)
+#endif
     {
-	const Box& box = mfi.tilebox();
-        cns_estdt(BL_TO_FORTRAN_BOX(box),
-                  BL_TO_FORTRAN_ANYD(stateMF[mfi]),
-                  dx, &estdt);
+        Real dt = std::numeric_limits<Real>::max();
+        for (MFIter mfi(stateMF,true); mfi.isValid(); ++mfi)
+        {
+            const Box& box = mfi.tilebox();
+            cns_estdt(BL_TO_FORTRAN_BOX(box),
+                      BL_TO_FORTRAN_ANYD(stateMF[mfi]),
+                      dx, &dt);
+        }
+        estdt = std::min(estdt,dt);
     }
+
     estdt *= cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
     return estdt;
@@ -362,7 +373,10 @@ CNS::computeTemp (MultiFab& State, int ng)
 {
     BL_PROFILE("CNS::computeTemp()");
 
-    // This will reset Eint and compute Temperature
+    // This will reset Eint and compute Temperature 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(State,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
