@@ -171,14 +171,15 @@ namespace amrex
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     DistributionMapping dm(m_grids);
-    m_graph.define(m_grids, dm, 1, 1, MFInfo(), DefaultFabFactory<EBGraph>());
+    m_dm = dm;
+    m_graph.define(m_grids, m_dm, 1, 1, MFInfo(), DefaultFabFactory<EBGraph>());
 
     std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
     EBDataFactory ebdf(graphptr);
 
     m_data.define(m_grids  , dm, 1, 0, MFInfo(), ebdf);
 
-    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       Box valid  = mfi.validbox();
       Box ghostRegion = valid;
@@ -274,6 +275,7 @@ namespace amrex
     int srcGhost = 0;
   
     DistributionMapping dmco(m_grids);
+    m_dm = dmco;
     DistributionMapping dmfc = dmco;
     //need two because of coarsen faces
     m_graph.define(m_grids, dmco, 1, nghostGraph, MFInfo(), DefaultFabFactory<EBGraph>());
@@ -284,7 +286,7 @@ namespace amrex
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, nghostGraph+1);
     ///first deal with the graph
     //pout() << "ebislevel::coarsenvofsandfaces: doing coarsenvofs " << endl;
-    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       EBGraph      & fineEBGraph = ebgraphReCo[mfi];
       EBGraph      & coarEBGraph = m_graph[mfi];
@@ -294,7 +296,7 @@ namespace amrex
     }
 
     //pout() << "ebislevel::coarsenvofsandfaces: doing finetocoarse " << endl;
-    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       EBGraph      & fineEBGraph = ebgraphReCo[mfi];
       EBGraph      & coarEBGraph = m_graph[mfi];
@@ -327,7 +329,7 @@ namespace amrex
     ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, srcGhost, nghostData);    
 
     //pout() << "coarsening data" << endl;
-    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       const EBGraph& fineEBGraph = ebgraphReCo[mfi];
       const EBGraph& coarEBGraph =     m_graph[mfi];
@@ -347,7 +349,7 @@ namespace amrex
   {
     BL_PROFILE("EBISLevel::fixRegularNextToMultiValued");
 
-    for (MFIter mfi(m_graph); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       IntVectSet vofsToChange;
       Box valid = mfi.validbox();
