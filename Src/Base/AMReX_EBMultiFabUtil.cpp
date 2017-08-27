@@ -20,6 +20,8 @@ EB_set_covered (MultiFab& mf)
 void
 EB_set_covered (MultiFab& mf, int icomp, int ncomp)
 {
+    BL_PROFILE("EB_set_covered");
+
     Array<Real> minvals(ncomp);
     for (int i = icomp; i < icomp+ncomp; ++i) {
         minvals[i] = mf.min(i,0,true);
@@ -44,6 +46,8 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp)
 void
 EB_set_volume_fraction (MultiFab& mf)
 {
+    BL_PROFILE("EB_set_volume_fraction");
+
     BL_ASSERT(mf.nComp() == 1);
 
     const Box& domain = amrex::getLevelDomain(mf);
@@ -86,6 +90,8 @@ EB_set_volume_fraction (MultiFab& mf)
 void
 EB_set_bndry_centroid (MultiFab& mf)
 {
+    BL_PROFILE("EB_set_bndry_centroid");
+
     BL_ASSERT(mf.nComp() == AMREX_SPACEDIM);
 
     const Box& domain = amrex::getLevelDomain(mf);
@@ -130,6 +136,8 @@ void
 EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafrac,
                                     std::array<MultiFab,AMREX_SPACEDIM>& facecent)
 {
+    BL_PROFILE("EB_set_area_fraction_face_centroid");
+
     const Box& domain = amrex::getLevelDomain(areafrac[0]);
     const auto& cellflagmf = amrex::getMultiEBCellFlagFab(areafrac[0]);
     const EBLevel& eblevel = amrex::getEBLevel(areafrac[0]);
@@ -219,6 +227,8 @@ void
 EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                  const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio)
 {
+    BL_PROFILE("EB_average_down");
+
     BL_ASSERT(S_fine.ixType().cellCentered());
     BL_ASSERT(S_crse.ixType().cellCentered());
 

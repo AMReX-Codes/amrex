@@ -70,6 +70,8 @@ CNS::init ()
 void
 CNS::initData ()
 {
+    BL_PROFILE("CNS::initData()");
+
     const Real* dx  = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
     MultiFab& S_new = get_new_data(State_Type);
@@ -280,6 +282,8 @@ CNS::read_params ()
 void
 CNS::avgDown ()
 {
+    BL_PROFILE("CNS::avgDown()");
+
     if (level == parent->finestLevel()) return;
 
     auto& fine_lev = getLevel(level+1);
@@ -299,6 +303,8 @@ CNS::avgDown ()
 void
 CNS::buildMetrics ()
 {
+    BL_PROFILE("CNS::buildMetrics()");
+
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
     if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
@@ -326,6 +332,8 @@ CNS::buildMetrics ()
 Real
 CNS::estTimeStep ()
 {
+    BL_PROFILE("CNS::estTimeStep()");
+
     Real estdt = std::numeric_limits<Real>::max();
 
     const Real* dx = geom.CellSize();
@@ -352,6 +360,8 @@ CNS::initialTimeStep ()
 void
 CNS::computeTemp (MultiFab& State, int ng)
 {
+    BL_PROFILE("CNS::computeTemp()");
+
     // This will reset Eint and compute Temperature
     for (MFIter mfi(State,true); mfi.isValid(); ++mfi)
     {

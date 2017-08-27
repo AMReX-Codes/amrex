@@ -91,6 +91,7 @@ namespace {
 void
 initialize_EBIS(const int max_level)
 {
+    BL_PROFILE("initialize_EBIS");
 
     if (!eb_initialized)
     {

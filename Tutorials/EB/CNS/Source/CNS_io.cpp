@@ -25,6 +25,8 @@ CNS::checkPoint (const std::string& dir, std::ostream& os, VisMF::How how, bool 
 void
 CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 {
+    BL_PROFILE("CNS::writePlotFile()");
+
 //    AmrLevel::writePlotFile(dir, os, how);
     
     int i, n;

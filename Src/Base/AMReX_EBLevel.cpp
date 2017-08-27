@@ -55,6 +55,8 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
       m_faceflags(std::make_shared<FabArray<EBFaceFlagFab> >(ba, dm, AMREX_SPACEDIM, ng)),
       m_ebisl(std::make_shared<EBISLayout>(EBLevelGrid::getEBISL()))
 {
+    BL_PROFILE("EBLevel::EBLevel");
+
     static_assert(sizeof(EBCellFlag) == 4, "sizeof EBCellFlag != 4");
     static_assert(std::is_standard_layout<EBCellFlag>::value == true, "EBCellFlag is not pod");
 

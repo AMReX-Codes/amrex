@@ -12,7 +12,11 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
-    Real dRunTime1 = ParallelDescriptor::second();
+    BL_PROFILE_VAR("main()", pmain);
+
+    Real timer_tot = ParallelDescriptor::second();
+    Real timer_init;
+    Real timer_advance;
 
     int  max_step;
     Real strt_time;
@@ -39,13 +43,19 @@ int main (int argc, char* argv[])
     }
 
     {
+        timer_init = ParallelDescriptor::second();
+
 	Amr amr;
 
         //xxxxx This can be done in the constructor of Amr
         initialize_EBIS(amr.maxLevel());
 
 	amr.init(strt_time,stop_time);
-	
+
+        timer_init = ParallelDescriptor::second() - timer_init;
+        
+        timer_advance = ParallelDescriptor::second();
+
 	while ( amr.okToContinue() &&
   	       (amr.levelSteps(0) < max_step || max_step < 0) &&
 	       (amr.cumTime() < stop_time || stop_time < 0.0) )
@@ -57,6 +67,8 @@ int main (int argc, char* argv[])
 	    amr.coarseTimeStep(stop_time);
 	}
 	
+        timer_advance = ParallelDescriptor::second() - timer_advance;
+
 	// Write final checkpoint and plotfile
 	if (amr.stepOfLastCheckPoint() < amr.levelSteps(0)) {
 	    amr.checkPoint();
@@ -67,11 +79,16 @@ int main (int argc, char* argv[])
 	}
     }
 
-    Real dRunTime2 = ParallelDescriptor::second() - dRunTime1;
+    timer_tot = ParallelDescriptor::second() - timer_tot;
 
-    ParallelDescriptor::ReduceRealMax(dRunTime2, ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceRealMax({timer_tot, timer_init, timer_advance},
+                                      ParallelDescriptor::IOProcessorNumber());
 
-    amrex::Print() << "Run time = " << dRunTime2 << std::endl;
+    amrex::Print() << "Run Time total   = " << timer_tot     << "\n"
+                   << "Run Time init    = " << timer_init    << "\n"
+                   << "Run Time advance = " << timer_advance << std::endl;
+
+    BL_PROFILE_VAR_STOP(pmain);
 
     amrex::Finalize();
 
