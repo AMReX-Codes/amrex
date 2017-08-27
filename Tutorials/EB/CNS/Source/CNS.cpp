@@ -234,12 +234,18 @@ CNS::postCoarseTimeStep (Real time)
             MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
             tot[comp] = mf.sum(0,true) * geom.ProbSize();
         }
+#ifdef BL_LAZY
+        Lazy::QueueReduction( [=] () mutable {
+#endif
         ParallelDescriptor::ReduceRealSum(tot.data(), 5, ParallelDescriptor::IOProcessorNumber());
         amrex::Print().SetPrecision(17) << "\n[CNS] Total mass       is " << tot[0] << "\n"
                                         <<   "      Total x-momentum is " << tot[1] << "\n"
                                         <<   "      Total y-momentum is " << tot[2] << "\n"
                                         <<   "      Total z-momentum is " << tot[3] << "\n"
                                         <<   "      Total energy     is " << tot[4] << "\n";
+#ifdef BL_LAZY
+        });
+#endif
     }
 }
 
