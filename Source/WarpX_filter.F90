@@ -6,18 +6,18 @@ module warpx_filter_module
   implicit none
 
   ! 1D, 3-point filter:
-  real(rt), dimension(0:2), parameter :: ff1_1D = &
+  real(rt), dimension(-1:1), parameter :: ff1_1D = &
        (/ 0.25e0_rt, 0.5e0_rt, 0.25e0_rt/)
 
   ! 2D, 3-point filter:
-  real(rt), dimension(0:2, 0:2), parameter :: ff1_2D = reshape( &
+  real(rt), dimension(-1:1, -1:1), parameter :: ff1_2D = reshape( &
        [ 0.0625e0_rt, 0.125e0_rt, 0.0625e0_rt, &
          0.125e0_rt,  0.25e0_rt,  0.125e0_rt,  &
          0.0625e0_rt, 0.125e0_rt, 0.0625e0_rt], &
        shape(ff1_2D) )
 
   ! 3D, 3-point filter:
-  real(rt), dimension(0:2, 0:2, 0:2), parameter :: ff1_3D = reshape( &
+  real(rt), dimension(-1:1, -1:1, -1:1), parameter :: ff1_3D = reshape( &
        [ 0.015625e0_rt, 0.03125e0_rt,  0.015625e0_rt,  &
          0.03125e0_rt,  0.0625e0_rt,   0.03125e0_rt,   &
          0.015625e0_rt, 0.03125e0_rt,  0.015625e0_rt,  &
