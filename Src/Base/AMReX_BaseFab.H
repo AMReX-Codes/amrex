@@ -170,6 +170,8 @@ public:
 
     static bool preAllocatable () { return true; }
 
+    static bool isCopyOMPSafe () { return true; }
+
     //! Returns bytes used in the Box for those components
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
         { return bx.numPts() * sizeof(T) * ncomps; }

@@ -55,6 +55,7 @@ namespace amrex
     
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
 
     ///
     /**
@@ -851,6 +852,7 @@ namespace amrex
         
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
         
   private:
         
