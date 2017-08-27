@@ -45,6 +45,9 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 
     const IntVect& tilesize{1024000,16,16};
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
         for (MFIter mfi(S,tilesize); mfi.isValid(); ++mfi)
         {
