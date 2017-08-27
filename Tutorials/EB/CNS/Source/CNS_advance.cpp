@@ -7,6 +7,8 @@ using namespace amrex;
 Real
 CNS::advance (Real time, Real dt, int iteration, int ncycle)
 {
+    BL_PROFILE("CNS::advance()")
+
     for (int k = 0; k < NUM_STATEDATA_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
@@ -37,6 +39,8 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
 void
 CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 {
+    BL_PROFILE("CNS::compute_dSdt()");
+
     const Real* dx = geom.CellSize();
 
     const IntVect& tilesize{1024000,16,16};
