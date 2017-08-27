@@ -376,7 +376,7 @@ Amr::InitAmr ()
 
     if (max_level > 0 && !initial_grids_file.empty())
     {
-#define STRIP while( is.get() != '\n' )
+#define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(initial_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
@@ -415,7 +415,7 @@ Amr::InitAmr ()
 
     if (max_level > 0 && !regrid_grids_file.empty())
     {
-#define STRIP while( is.get() != '\n' )
+#define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
 
         if (!is.good())

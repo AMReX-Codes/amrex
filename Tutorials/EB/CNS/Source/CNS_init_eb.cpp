@@ -91,6 +91,7 @@ namespace {
 void
 initialize_EBIS(const int max_level)
 {
+    BL_PROFILE("initialize_EBIS");
 
     if (!eb_initialized)
     {
@@ -171,7 +172,7 @@ initialize_EBIS(const int max_level)
         }
         else
         {
-          BaseIF* impfunc = NULL;
+          std::unique_ptr<BaseIF> impfunc;
           
           if (geom_type == "ramp")
           {
@@ -194,7 +195,7 @@ initialize_EBIS(const int max_level)
 
             bool normalInside = true;
 
-            impfunc = static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside));
+            impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
           }
           else if (geom_type == "sphere")
           {
@@ -209,7 +210,7 @@ initialize_EBIS(const int max_level)
               center[idir] = centervec[idir];
             }
             bool insideRegular = false;
-            impfunc = static_cast<BaseIF*>(new SphereIF(radius, center, insideRegular));
+            impfunc.reset(static_cast<BaseIF*>(new SphereIF(radius, center, insideRegular)));
 
           }
           else if (geom_type == "polygon_revolution")
@@ -234,7 +235,7 @@ initialize_EBIS(const int max_level)
             pp.get("num_poly", num_poly);
             // Nothing initially
             polygons.resize(num_poly);
-            pout() << "num poly = " << num_poly << endl;
+            amrex::Print() << "num poly = " << num_poly << endl;
             for(int ipoly = 0; ipoly < num_poly; ipoly++)
             {
               string nptsstr = "poly_" + std::to_string(ipoly) + "_num_pts";
@@ -256,12 +257,12 @@ initialize_EBIS(const int max_level)
                 polygon[ipt] = point;
               }
             
-              pout() << "scaled poly" << ipoly << " = " << endl;
+              amrex::Print() << "scaled poly" << ipoly << " = " << endl;
               for(int ipt = 0; ipt < num_pts; ipt++)
               {
-                pout() << polygon[ipt] << " ";
+                amrex::Print() << polygon[ipt] << " ";
               }
-              pout() << endl;
+              amrex::Print() << endl;
               polygons[ipoly] = polygon;
             }
       
@@ -280,11 +281,11 @@ initialize_EBIS(const int max_level)
               if(!insideRegular)
               {
                 ComplementIF insideOut(*crossSection);
-                impfunc = insideOut.newImplicitFunction();
+                impfunc.reset(insideOut.newImplicitFunction());
               }
               else
               {
-                impfunc = crossSection->newImplicitFunction();
+                  impfunc.reset(crossSection->newImplicitFunction());
               }
             }
             else
@@ -297,7 +298,7 @@ initialize_EBIS(const int max_level)
               translation[2] = 0;
               TransformIF implicit(lathe);
               implicit.translate(translation);
-              impfunc = implicit.newImplicitFunction();
+              impfunc.reset(implicit.newImplicitFunction());
             }
       
           }

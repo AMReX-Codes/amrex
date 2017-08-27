@@ -10,6 +10,7 @@ module slope_module
   public slopex, slopey, slopez
 
   integer, parameter :: plm_iorder = 2
+  real(rt), parameter :: plm_theta = 2.0   ! [1,2]; 1: minmod; 2: van Leer's MC
 
 contains
 
@@ -57,7 +58,7 @@ contains
                 dlft(i,5) = q(i,j,k,QW) - q(i-1,j,k,QW) 
 
                 drgt(i,1) = 0.5d0*(q(i+1,j,k,QP)-q(i,j,k,QP))/q(i,j,k,QC) - 0.5d0*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU))
-                drgt(i,2) = (q(i+1,j,k,QRHO)-q(i,j,k,QRHO))- (q(i,j,k,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
+                drgt(i,2) = (q(i+1,j,k,QRHO)-q(i,j,k,QRHO))- (q(i+1,j,k,QP) - q(i,j,k,QP))/q(i,j,k,QC)**2
                 drgt(i,3) = 0.5d0*(q(i+1,j,k,QP)-q(i,j,k,QP))/q(i,j,k,QC) + 0.5d0*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU))
                 drgt(i,4) = q(i+1,j,k,QV) - q(i,j,k,QV) 
                 drgt(i,5) = q(i+1,j,k,QW) - q(i,j,k,QW) 
@@ -69,7 +70,7 @@ contains
                 do i = ilo1-1, ihi1+1
                    dcen = 0.5d0 * (dlft(i,n)+drgt(i,n))
                    dsgn = sign(1.d0, dcen)
-                   slop =2.d0* min( abs(dlft(i,n)), abs(drgt(i,n)) )
+                   slop = plm_theta * min( abs(dlft(i,n)), abs(drgt(i,n)) )
                    if (dlft(i,n)*drgt(i,n) .ge. 0.d0) then
                       dlim = slop
                    else
@@ -137,7 +138,7 @@ contains
                 do i = ilo1, ihi1
                    dcen = 0.5d0 * (dlft(i,n)+drgt(i,n))
                    dsgn = sign(1.d0, dcen)
-                   slop = 2.d0* min( abs(dlft(i,n)), abs(drgt(i,n)) )
+                   slop = plm_theta * min( abs(dlft(i,n)), abs(drgt(i,n)) )
                    if (dlft(i,n)*drgt(i,n) .ge. 0.d0) then
                       dlim = slop
                    else
@@ -204,7 +205,7 @@ contains
                 do i = ilo1, ihi1
                    dcen = 0.5d0 * (dlft(i,n)+drgt(i,n))
                    dsgn = sign(1.d0, dcen)
-                   slop = 2.d0*min( abs(dlft(i,n)), abs(drgt(i,n)) )
+                   slop = plm_theta * min( abs(dlft(i,n)), abs(drgt(i,n)) )
                    if (dlft(i,n)*drgt(i,n) .ge. 0.d0) then
                       dlim = slop
                    else

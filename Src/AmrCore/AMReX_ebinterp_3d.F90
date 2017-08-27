@@ -21,8 +21,6 @@ contains
     integer :: ic, jc, kc, n, i, j, k, imin, imax, jmin, jmax, kmin, kmax, glo(3), ghi(3)
     integer :: num_expected_ngbrs
 
-    integer :: ngbr(-1:1,-1:1,-1:1)
-
     do kc = tclo(3)+1, tchi(3)-1
        kmin = max(kc*ratio(3)           ,tflo(3))
        kmax = min(kc*ratio(3)+ratio(3)-1,tfhi(3))
