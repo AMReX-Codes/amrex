@@ -244,7 +244,6 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
     for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
-        const Box& fbx = amrex::refine(tbx,ratio);
         auto& crse_fab = crse_S_fine[mfi];
         const auto& fine_fab = S_fine[mfi];
         const auto& flag_fab = amrex::getEBCellFlagFab(crse_fab);
