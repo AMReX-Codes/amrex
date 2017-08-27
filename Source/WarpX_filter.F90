@@ -31,9 +31,9 @@ module warpx_filter_module
 
 contains
 
-  subroutine warpx_filter_and_accumulate_3D(local_fab, tile_lo, tile_hi, &
+  subroutine warpx_filter_and_accumulate_3d(local_fab, tile_lo, tile_hi, &
                                             global_fab, lo, hi, nc) &
-     bind(c, name='warpx_filter_and_accumulate_3D')
+     bind(c, name='warpx_filter_and_accumulate_3d')
 
     integer, value       :: nc
     integer              :: lo(3)
@@ -71,11 +71,11 @@ contains
        end do
     end do
     
-  end subroutine warpx_filter_and_accumulate_3D
+  end subroutine warpx_filter_and_accumulate_3d
 
-  subroutine warpx_filter_and_accumulate_2D(local_fab, tile_lo, tile_hi, &
+  subroutine warpx_filter_and_accumulate_2d(local_fab, tile_lo, tile_hi, &
                                             global_fab, lo, hi, nc) &
-       bind(c, name='warpx_filter_and_accumulate_2D')
+       bind(c, name='warpx_filter_and_accumulate_2d')
 
     integer, value       :: nc
     integer              :: lo(2)
@@ -109,6 +109,6 @@ contains
        end do
     end do
 
-  end subroutine warpx_filter_and_accumulate_2D
+  end subroutine warpx_filter_and_accumulate_2d
 
 end module warpx_filter_module
