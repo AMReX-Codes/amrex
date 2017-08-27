@@ -144,6 +144,7 @@ namespace amrex
     ///
     BoxArray m_grids;
      
+    DistributionMapping m_dm;
     ///
     Box m_domain;
      
