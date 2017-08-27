@@ -203,9 +203,9 @@ contains
        cy0 = 1.d0-yit*yit
        cyp = 0.5d0*yit*(yit+1.d0)
 
-       u1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qu))
-       v1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qv))
-       w1 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qw))
+       u2 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qu))
+       v2 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qv))
+       w2 = interp2d(cxm,cx0,cxp,cym,cy0,cyp, q(ixit-1:ixit+1,iyit-1:iyit+1,k+2*is,qw))
        
     end if
 
