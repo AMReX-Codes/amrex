@@ -26,8 +26,33 @@
 
 namespace amrex
 {
-  static const IntVect ebl_debiv(D_DECL(945,137,7));
+  static const IntVect ebl_debiv(D_DECL(994,213,7));
 
+  void EBISLevel_checkGraph(const BoxArray          & a_grids,
+                            const DistributionMapping & a_dm,
+                            const FabArray<EBGraph> & a_graph,
+                            const string & a_identifier)
+  {
+    for(MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
+    {
+      const Box& region = a_grids[mfi];
+      const EBGraph & graph = a_graph[mfi];
+      if(region.contains(ebl_debiv))
+      {
+        amrex::AllPrint() << "ebislevel:" << a_identifier;
+        int ireg = 0; int icov = 0;
+        if(graph.isRegular(ebl_debiv))
+        {
+          ireg = 1;
+        }
+        if(graph.isCovered(ebl_debiv))
+        {
+          icov = 1;
+        }
+        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+      }
+    }
+  }
   void 
   EBISLevel::
   write(const string& a_dirname) const
@@ -190,7 +215,13 @@ namespace amrex
       }
     }
 
+//begin debug
+    EBISLevel_checkGraph(m_grids, dm, m_graph, string(" before fillboundary "));
+// end debug
     m_graph.FillBoundary();
+//begin debug
+    EBISLevel_checkGraph(m_grids, dm, m_graph, string(" after fillboundary "));
+// end debug
     m_data. FillBoundary();
 
   }
