@@ -558,8 +558,14 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 const Box& fabbox = rhofab.box();
                 const int ncomp = 1;
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                            BL_TO_FORTRAN_3D(rhofab), ncomp);
+
+                if (WarpX::use_filter) {
+                    WRPX_FILTER_AND_ACCUMULATE(local_rho.dataPtr(), local_rho.loVect(), local_rho.hiVect(), 
+                                               rhofab.dataPtr(), rhofab.loVect(), rhofab.hiVect(), ncomp);
+                } else {
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
+                }
             }
             
             if (! do_not_push)
@@ -646,19 +652,30 @@ PhysicalParticleContainer::Evolve (int lev,
                     &lvect,&WarpX::current_deposition_algo);
                 
                 const int ncomp = 1;
-
                 const Box& jxbox = jxfab.box();
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
-                
                 const Box& jybox = jyfab.box();
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
-                
                 const Box& jzbox = jzfab.box();
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
 
+                if (WarpX::use_filter) {
+                    WRPX_FILTER_AND_ACCUMULATE(local_jx.dataPtr(), local_jx.loVect(), local_jx.hiVect(), 
+                                               jxfab.dataPtr(), jxfab.loVect(), jxfab.hiVect(), ncomp);
+
+                    WRPX_FILTER_AND_ACCUMULATE(local_jy.dataPtr(), local_jy.loVect(), local_jy.hiVect(), 
+                                               jyfab.dataPtr(), jyfab.loVect(), jyfab.hiVect(), ncomp);
+
+                    WRPX_FILTER_AND_ACCUMULATE(local_jz.dataPtr(), local_jz.loVect(), local_jz.hiVect(), 
+                                               jzfab.dataPtr(), jzfab.loVect(), jzfab.hiVect(), ncomp);
+                } else {
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                                BL_TO_FORTRAN_3D(jxfab), ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                                BL_TO_FORTRAN_3D(jyfab), ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                                BL_TO_FORTRAN_3D(jzfab), ncomp);
+                }
                 BL_PROFILE_VAR_STOP(blp_pxr_cd);
                 
                 //
