@@ -168,6 +168,7 @@ public:
 		  const Box&             p_domain,
 		  const BoxArray&        grds,
 		  const DistributionMapping& dm,
+                  const FabFactory<FArrayBox>& factroy,
                   const StateDescriptor& d,
                   const std::string&     restart_file);
     //

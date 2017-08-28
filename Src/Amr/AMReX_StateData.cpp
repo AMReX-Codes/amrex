@@ -192,6 +192,7 @@ StateData::restart (std::istream&          is,
 		    const Box&             p_domain,
 		    const BoxArray&        grds,
 		    const DistributionMapping& dm,
+                    const FabFactory<FArrayBox>& factory,
                     const StateDescriptor& d,
                     const std::string&     chkfile)
 {
@@ -199,6 +200,7 @@ StateData::restart (std::istream&          is,
     domain = p_domain;
     grids = grds;
     dmap = dm;
+    m_factory.reset(factory.clone());
 
     // Convert to proper type.
     IndexType typ(desc->getType());
