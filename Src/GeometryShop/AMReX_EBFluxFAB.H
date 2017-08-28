@@ -38,7 +38,7 @@ namespace amrex
       {
         return true; // symmetric messaging
       }
-    static bool isCopyOMPSafe () { return false; }
+    static bool isCopyOMPSafe () { return true; }
 
     /// default constructor
     EBFluxFAB();
