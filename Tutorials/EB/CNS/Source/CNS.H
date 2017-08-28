@@ -119,6 +119,8 @@ protected:
 
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt);
 
+    void fixUpGeometry ();
+
     amrex::MultiFab volfrac;
     amrex::MultiFab bndrycent;
     std::array<amrex::MultiFab,3> areafrac;

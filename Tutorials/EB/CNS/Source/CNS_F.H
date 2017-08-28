@@ -69,6 +69,10 @@ extern "C" {
                               const amrex_real* cz, const int* czlo, const int* czhi,
                               const amrex_real* dx, const amrex_real* dt);
 
+    void cns_eb_fixup_geom (const int* lo, const int* hi,
+                            void* flag, const int* fglo, const int* fghi,
+                            const amrex_real* volfrac, const int* vlo, const int* vhi);
+
 #ifdef __cplusplus
 }
 #endif
