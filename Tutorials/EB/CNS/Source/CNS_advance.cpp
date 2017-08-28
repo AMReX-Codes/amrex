@@ -42,6 +42,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
     BL_PROFILE("CNS::compute_dSdt()");
 
     const Real* dx = geom.CellSize();
+    const int ncomp = dSdt.nComp();
 
     const IntVect& tilesize{1024000,16,16};
 
@@ -57,7 +58,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
             const auto& flag = sfab.getEBCellFlagFab();
 
             if (flag.getType(bx) == FabType::covered) {
-                dSdt[mfi].setVal(0.0);
+                dSdt[mfi].setVal(0.0, bx, 0, ncomp);
             } else {
                 if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
                 {
