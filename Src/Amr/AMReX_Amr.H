@@ -294,6 +294,8 @@ public:
     void RedistributeParticles ();
 #endif
 
+    void InstallNewDistributionMap (int lev, const DistributionMapping& newdm);
+
     void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
     void AddProcsToComp(int nSidecarProcs, int prevSidecarProcs);
     void RedistributeGrids(int how);
