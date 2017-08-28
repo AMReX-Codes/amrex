@@ -2427,6 +2427,17 @@ Amr::regrid (int  lbase,
 }
 
 void
+Amr::InstallNewDistributionMap (int lev, const DistributionMapping& newdm)
+{
+    AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),boxArray(lev),newdm,cumtime);
+    a->init(*amr_level[lev]);
+    amr_level[lev].reset(a);
+
+    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
+}
+
+void
 Amr::regrid_level_0_on_restart()
 {
     regrid_on_restart = 0;
