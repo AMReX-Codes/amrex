@@ -32,9 +32,9 @@ contains
        call filcc(adv(:,:,:,n),adv_lo(1),adv_lo(2),adv_lo(3),adv_hi(1),adv_hi(2),adv_hi(3),domlo,domhi,delta,xlo,bc(:,:,n))
     enddo
 
-    if ( bc(2,1,1).eq.EXT_DIR .and. adv_lo(2).lt.domlo(2)) then
-       do       k = adv_lo(3), adv_hi(3)
-          do    j = adv_lo(2),  domlo(2)-1
+    if ( bc(3,1,1).eq.EXT_DIR .and. adv_lo(3).lt.domlo(3)) then
+       do       k = adv_lo(3),  domlo(3)-1
+          do    j = adv_lo(2), adv_hi(2)
              do i = adv_lo(1), adv_hi(1)
                 adv(i,j,k,:) = inflow_state(:)
              end do
@@ -66,9 +66,9 @@ contains
 
     call filcc(adv,adv_lo(1),adv_lo(2),adv_lo(3),adv_hi(1),adv_hi(2),adv_hi(3),domlo,domhi,delta,xlo,bc)
 
-    if ( bc(2,1,1).eq.EXT_DIR .and. adv_lo(2).lt.domlo(2)) then
-       do       k = adv_lo(3), adv_hi(3)
-          do    j = adv_lo(2),  domlo(2)-1
+    if ( bc(3,1,1).eq.EXT_DIR .and. adv_lo(3).lt.domlo(3)) then
+       do       k = adv_lo(3),  domlo(3)-1
+          do    j = adv_lo(2), adv_hi(2)
              do i = adv_lo(1), adv_hi(1)
                 adv(i,j,k) = inflow_state(1)
              end do

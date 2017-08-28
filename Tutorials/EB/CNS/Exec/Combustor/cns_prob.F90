@@ -29,8 +29,8 @@ subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
   v = inflow_mach * cs
   inflow_state(urho) = rho
   inflow_state(umx) = 0.d0
-  inflow_state(umy) = rho*v
-  inflow_state(umz) = 0.d0
+  inflow_state(umy) = 0.d0
+  inflow_state(umz) = rho*v
   inflow_state(ueden) = rhoe + 0.5d0*rho*v*v
   inflow_state(ueint) = rhoe
   inflow_state(utemp) = inflow_T
