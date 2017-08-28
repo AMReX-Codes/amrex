@@ -44,6 +44,28 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp)
 }
 
 void
+EB_set_covered (MultiFab& mf, int icomp, int ncomp, Real val)
+{
+    BL_PROFILE("EB_set_covered_val");
+
+    Array<Real> vals(ncomp, val);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+        const auto& flagfab = amrex::getEBCellFlagFab(fab);
+        amrex_eb_set_covered(BL_TO_FORTRAN_BOX(bx),
+                             BL_TO_FORTRAN_N_ANYD(fab,icomp),
+                             BL_TO_FORTRAN_ANYD(flagfab),
+                             vals.data(),&ncomp);
+    }
+}
+
+void
 EB_set_volume_fraction (MultiFab& mf)
 {
     BL_PROFILE("EB_set_volume_fraction");
