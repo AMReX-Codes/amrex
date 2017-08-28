@@ -363,7 +363,7 @@ contains
 
                    iwall = iwall + 1
                    if (n .eq. 1) then
-                      call compute_hyp_wallflux(divhyp(:,iwall), q(i,j,k,qrho), &
+                      call compute_hyp_wallflux(divhyp(:,iwall), i,j,k, q(i,j,k,qrho), &
                            q(i,j,k,qu), q(i,j,k,qv), q(i,j,k,qw), q(i,j,k,qp), &
                            apx(i,j,k), apx(i+1,j,k), &
                            apy(i,j,k), apy(i,j+1,k), &
