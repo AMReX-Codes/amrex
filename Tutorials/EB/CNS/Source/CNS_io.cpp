@@ -36,11 +36,14 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     // second component of pair is component # within the state_type
     //
     std::vector<std::pair<int,int> > plot_var_map;
-    for (int typ = 0; typ < desc_lst.size(); typ++)
-        for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
+    for (int typ = 0; typ < desc_lst.size(); typ++) {
+        for (int comp = 0; comp < desc_lst[typ].nComp();comp++) {
             if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
-                desc_lst[typ].getType() == IndexType::TheCellType())
+                desc_lst[typ].getType() == IndexType::TheCellType()) {
                 plot_var_map.push_back(std::pair<int,int>(typ,comp));
+            }
+        }
+    }
 
     int num_derive = 0;
     std::list<std::string> derive_names;
@@ -57,7 +60,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 	}
     }
 
-    int n_data_items = plot_var_map.size() + num_derive;
+    int n_data_items = plot_var_map.size() + num_derive + 1;
 
     Real cur_time = state[State_Type].curTime();
 
@@ -89,6 +92,9 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 	    const DeriveRec* rec = derive_lst.get(*it);
             os << rec->variableName(0) << '\n';
         }
+
+        // volfrac
+        os << "volfrac\n";
 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
@@ -195,15 +201,19 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 	for (std::list<std::string>::iterator it = derive_names.begin();
 	     it != derive_names.end(); ++it)
 	{
-	    auto derive_dat = derive(*it,cur_time,nGrow);
-	    MultiFab::Copy(plotMF,*derive_dat,0,cnt,1,nGrow);
+            auto derive_dat = derive(*it,cur_time,nGrow);
+            MultiFab::Copy(plotMF,*derive_dat,0,cnt,1,nGrow);
 	    cnt++;
 	}
     }
 
+    plotMF.setVal(0.0, cnt, 1, nGrow);
+
 #ifdef AMREX_USE_EB
     amrex::EB_set_covered(plotMF);
 #endif
+
+    MultiFab::Copy(plotMF,volFrac(),0,cnt,1,nGrow);
 
     //
     // Use the Full pathname when naming the MultiFab.
