@@ -7,11 +7,12 @@ module cns_eb_hyp_wall_module
 
 contains
 
-  subroutine compute_hyp_wallflux (divw, rho, u, v, w, p, &
+  subroutine compute_hyp_wallflux (divw, i,j,k, rho, u, v, w, p, &
        axm, axp, aym, ayp, azm, azp)
     use cns_physics_module, only : gamma
     use cns_module, only : smallp, smallr, umx, umy, umz
     use riemann_module, only : analriem
+    integer, intent(in) :: i,j,k
     real(rt), intent(in) :: rho, u, v, w, p, axm, axp, aym, ayp, azm, azp
     real(rt), intent(out) :: divw(5)
     
@@ -21,6 +22,8 @@ contains
     apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2 + (azm-azp)**2)
 
     if (apnorm .eq. 0.d0) then
+       print *, "compute_hyp_wallflux: ", i,j,k, axm, axp, aym, ayp, azm, azp
+       flush(6)
        call amrex_abort("compute_hyp_wallflux: we are in trouble.")
     end if
 
