@@ -209,7 +209,9 @@ CNS::computeNewDt (int                   finest_level,
 
 void
 CNS::post_regrid (int lbase, int new_finest)
-{}
+{
+    fixUpGeometry();
+}
 
 void
 CNS::post_timestep (int iteration)
@@ -252,6 +254,8 @@ CNS::postCoarseTimeStep (Real time)
 void
 CNS::post_init (Real)
 {
+    fixUpGeometry();
+
     if (level > 0) return;
     for (int k = parent->finestLevel()-1; k >= 0; --k) {
         getLevel(k).avgDown();
@@ -389,4 +393,29 @@ CNS::computeTemp (MultiFab& State, int ng)
         cns_compute_temperature(BL_TO_FORTRAN_BOX(bx),
                                 BL_TO_FORTRAN_ANYD(State[mfi]));
     }
+}
+
+void
+CNS::fixUpGeometry ()
+{
+    const auto& S = get_new_data(State_Type);
+
+    const int ng = numGrow()-1;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(S, true); mfi.isValid(); ++mfi)
+    {
+        EBCellFlagFab& flag = const_cast<EBCellFlagFab&>(static_cast<EBFArrayBox const&>
+                                                         (S[mfi]).getEBCellFlagFab());
+        const Box& bx = mfi.growntilebox(ng);
+        if (flag.getType() == FabType::singlevalued)
+        {
+            cns_eb_fixup_geom(BL_TO_FORTRAN_BOX(bx),
+                              BL_TO_FORTRAN_ANYD(flag),
+                              BL_TO_FORTRAN_ANYD(volfrac[mfi]));
+        }
+    }
+
 }

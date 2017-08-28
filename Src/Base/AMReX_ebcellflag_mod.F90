@@ -4,7 +4,8 @@ module amrex_ebcellflag_module
   implicit none
   private
   public :: is_regular_cell, is_single_valued_cell, is_multi_valued_cell, &
-       is_covered_cell, get_neighbor_cells, num_neighbor_cells
+       is_covered_cell, get_neighbor_cells, num_neighbor_cells, &
+       set_regular_cell
   
   integer, parameter :: w_type      = 2
   integer, parameter :: w_numvofs   = 3
@@ -128,5 +129,10 @@ contains
   end function num_neighbor_cells
 
 #endif
+
+  elemental subroutine set_regular_cell (flag)
+    integer, intent(inout) :: flag
+    call mvbits(regular, 0, w_type, flag, 0)
+  end subroutine set_regular_cell
 
 end module amrex_ebcellflag_module
