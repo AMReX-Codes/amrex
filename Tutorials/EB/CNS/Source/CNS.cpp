@@ -419,3 +419,23 @@ CNS::fixUpGeometry ()
     }
 
 }
+
+void
+CNS::LoadBalance (Amr& amr)
+{
+    for (int lev = 0; lev <= amr.finestLevel(); ++lev)
+    {
+        auto& amrlevel = amr.getLevel(lev);
+        MultiFab wgt(amrlevel.boxArray(),
+                     amrlevel.DistributionMap(),
+                     1, 0, MFInfo(),
+                     amrlevel.Factory());
+        wgt.setVal(1.0);
+        EB_set_covered(wgt, 0, 1, 0.0);
+
+        const DistributionMapping& newdm = DistributionMapping::makeKnapSack(wgt);
+        amr.InstallNewDistributionMap(lev, newdm);
+
+        amr.getLevel(lev).post_regrid(lev, amr.finestLevel());
+    }
+}

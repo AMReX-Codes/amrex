@@ -97,6 +97,8 @@ public:
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
+    static void LoadBalance (amrex::Amr& amr);
+
 protected:
 
     static void read_params ();
