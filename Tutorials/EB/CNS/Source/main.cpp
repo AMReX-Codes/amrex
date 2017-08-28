@@ -4,6 +4,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Amr.H>
 
+#include <CNS.H>
+
 using namespace amrex;
 
 void initialize_EBIS(const int max_level);
@@ -53,6 +55,8 @@ int main (int argc, char* argv[])
 	amr.init(strt_time,stop_time);
 
         timer_init = ParallelDescriptor::second() - timer_init;
+
+        CNS::LoadBalance(amr);
         
         timer_advance = ParallelDescriptor::second();
 
