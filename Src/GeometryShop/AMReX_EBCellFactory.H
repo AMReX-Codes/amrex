@@ -37,7 +37,7 @@ namespace amrex
        and returns a pointer to it.  Responsiblitly
        for calling operator 'delete' on this pointer is passed to the user.
     */
-    virtual EBCellFAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const
+    virtual EBCellFAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
       {
         EBISBox ebisBox = m_ebisl[box_index];
         return new EBCellFAB(ebisBox, box, ncomps);

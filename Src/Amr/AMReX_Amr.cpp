@@ -376,7 +376,7 @@ Amr::InitAmr ()
 
     if (max_level > 0 && !initial_grids_file.empty())
     {
-#define STRIP while( is.get() != '\n' )
+#define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(initial_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
@@ -415,7 +415,7 @@ Amr::InitAmr ()
 
     if (max_level > 0 && !regrid_grids_file.empty())
     {
-#define STRIP while( is.get() != '\n' )
+#define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
@@ -2424,6 +2424,17 @@ Amr::regrid (int  lbase,
            printGridSummary(std::cout,start,finest_level);
         }
     }
+}
+
+void
+Amr::InstallNewDistributionMap (int lev, const DistributionMapping& newdm)
+{
+    AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),boxArray(lev),newdm,cumtime);
+    a->init(*amr_level[lev]);
+    amr_level[lev].reset(a);
+
+    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
 }
 
 void

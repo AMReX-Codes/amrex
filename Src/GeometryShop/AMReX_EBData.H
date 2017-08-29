@@ -123,6 +123,7 @@ namespace amrex
 
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
 
     ///
     RealVect normal(const VolIndex& a_vof) const;
@@ -318,6 +319,7 @@ private:
 
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
 
     ///
     /**

@@ -324,11 +324,18 @@ AmrLevel::restart (Amr&          papa,
     parent->SetBoxArray(level, grids);
     parent->SetDistributionMap(level, dmap);
 
+#ifdef AMREX_USE_EB
+    m_eblevel.define(grids, dmap, geom.Domain(), m_eb_max_grow_cells);
+    m_factory.reset(new EBFArrayBoxFactory(m_eblevel));
+#else
+    m_factory.reset(new FArrayBoxFactory());
+#endif
+
     state.resize(ndesc);
     for (int i = 0; i < ndesc; ++i)
     {
 	if (state_in_checkpoint[i]) {
-	    state[i].restart(is, geom.Domain(), grids, dmap,
+	    state[i].restart(is, geom.Domain(), grids, dmap, *m_factory,
 			     desc_lst[i], papa.theRestartFile());
 	}
     }

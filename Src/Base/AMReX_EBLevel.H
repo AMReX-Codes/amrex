@@ -15,8 +15,8 @@ public:
     ~EBLevel ();
 
     EBLevel (const EBLevel& rhs) = default;
+    EBLevel (EBLevel&& rhs) noexcept = delete;
 
-    EBLevel (EBLevel&& rhs) = delete;
     EBLevel& operator= (const EBLevel& rhs) = delete;
     EBLevel& operator= (EBLevel&& rhs) = delete;
 

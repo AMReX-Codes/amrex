@@ -33,16 +33,16 @@ contains
     integer, intent(in) :: fg_lo(3), fg_hi(3)
     real(rt), intent(in) :: dx(3)
     real(rt), intent(in   ) ::     q( qd_lo(1): qd_hi(1), qd_lo(2): qd_hi(2), qd_lo(3): qd_hi(3),QVAR)
-    real(rt), intent(inout) :: flux1(fd1_lo(1):fd1_hi(1),fd1_lo(2):fd1_hi(2),fd1_lo(3):fd1_hi(3),NVAR)
-    real(rt), intent(inout) :: flux2(fd2_lo(1):fd2_hi(1),fd2_lo(2):fd2_hi(2),fd2_lo(3):fd2_hi(3),NVAR)
-    real(rt), intent(inout) :: flux3(fd3_lo(1):fd3_hi(1),fd3_lo(2):fd3_hi(2),fd3_lo(3):fd3_hi(3),NVAR)
+    real(rt), intent(inout) :: flux1(fd1_lo(1):fd1_hi(1),fd1_lo(2):fd1_hi(2),fd1_lo(3):fd1_hi(3),5)
+    real(rt), intent(inout) :: flux2(fd2_lo(1):fd2_hi(1),fd2_lo(2):fd2_hi(2),fd2_lo(3):fd2_hi(3),5)
+    real(rt), intent(inout) :: flux3(fd3_lo(1):fd3_hi(1),fd3_lo(2):fd3_hi(2),fd3_lo(3):fd3_hi(3),5)
     integer,  intent(in   ) ::  flag( fg_lo(1): fg_hi(1), fg_lo(2): fg_hi(2), fg_lo(3): fg_hi(3))
 
     real(rt) :: qtempl(5), qtempr(5), fluxtemp(5)
-    real(rt) :: dxinv, dyinv, dzinv, cspeed
+    real(rt) :: cspeed
     integer :: i, j, k
     integer :: qtlo(3), qthi(3)
-    real(rt), pointer :: dq(:,:,:,:)
+    real(rt), pointer, contiguous :: dq(:,:,:,:)
 
     integer, parameter :: nextra = nextra_eb
 
@@ -50,11 +50,6 @@ contains
     qthi = hi + nextra + 1
 
     call amrex_allocate ( dq, qtlo(1), qthi(1), qtlo(2), qthi(2), qtlo(3), qthi(3), 1, 5)
-
-    ! Local constants
-    dxinv = 1.d0/dx(1)
-    dyinv = 1.d0/dx(2)
-    dzinv = 1.d0/dx(3)
 
     call ebslopex(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, flag, fg_lo, fg_hi, &
@@ -75,7 +70,6 @@ contains
              qtempl(1) = q(i-1,j,k,QRHO) + 0.5d0 * ( (dq(i-1,j,k,1)+dq(i-1,j,k,3))/cspeed + dq(i-1,j,k,2))
              qtempl(2) = q(i-1,j,k,QU) + 0.5d0 * ( (dq(i-1,j,k,3)-dq(i-1,j,k,1))/q(i-1,j,k,QRHO))
              qtempl(3)=  q(i-1,j,k,QP) + 0.5d0 *  (dq(i-1,j,k,1)+dq(i-1,j,k,3))*cspeed 
-
              qtempl(4) = q(i-1,j,k,QV) + 0.5d0 * dq(i-1,j,k,4)
              qtempl(5) = q(i-1,j,k,Qw) + 0.5d0 * dq(i-1,j,k,5)
              

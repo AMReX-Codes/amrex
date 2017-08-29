@@ -19,31 +19,31 @@ namespace amrex{
     _TaskQueue _RunningQueue;
     _MessageQueue _MsgQueue;
 
-    int RTS::RTS_ProcCount(){
+    int RTS::ProcCount(){
 	return 1;
     }
 
-    int RTS::RTS_MyProc(){
+    int RTS::MyProc(){
 	return 0;
     }
 
-    int RTS::RTS_WorkerThreadCount(){
+    int RTS::WorkerThreadCount(){
 	return 1;
     }
 
-    int RTS::RTS_MyWorkerThread(){
+    int RTS::MyWorkerThread(){
 	return 0;
     }
 
-    void RTS::RTS_Init(){ 
+    void RTS::Init(){ 
     }
 
-    void RTS::RTS_Init(int *rank, int *nProcs){
+    void RTS::Init(int *rank, int *nProcs){
 	*rank=0;
 	*nProcs=1;
     }
 
-    void RTS::RTS_Finalize(){
+    void RTS::Finalize(){
 	//Now, no task should be alive. Thus, this routine check the content of all task queues.
 	assert(_WaitingQueue.size()==0);
 	assert(_DataFetchingQueue.size()==0);
@@ -51,7 +51,7 @@ namespace amrex{
 	assert(_RunningQueue.size()==0);
     }
 
-    void RTS::RTS_Run(void* taskgraph){
+    void RTS::Run(void* taskgraph){
 	AbstractTaskGraph<Task>* graph= (AbstractTaskGraph<Task>*)taskgraph;
 	//visit all initial tasks 
 	{

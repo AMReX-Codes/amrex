@@ -1296,7 +1296,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         // non-cell-centered data this simplistic way.
         //
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (FAB::isCopyOMPSafe())
 #endif
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
@@ -1324,7 +1324,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (thecpc.m_threadsafe_loc)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc)
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
@@ -1535,7 +1535,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	if (N_snds > 0)
 	{
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if (FAB::isCopyOMPSafe())
 #endif
 	    for (int j=0; j<N_snds; ++j)
 	    {
@@ -1656,7 +1656,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	{
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (FAB::isCopyOMPSafe())
 #endif
 	    ParallelDescriptor::team_for(0, N_locs, [&] (int j) 
             {
@@ -1676,7 +1676,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	else 
 	{
 #ifdef _OPENMP
-#pragma omp parallel for if (thecpc.m_threadsafe_loc)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc)
 #endif
 	    for (int j=0; j<N_locs; ++j)
 	    {
@@ -1728,10 +1728,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     recv_cctc[k] = &cctc;
                 }
 	    }
-
 	    
 #ifdef _OPENMP
-#pragma omp parallel if (thecpc.m_threadsafe_rcv)
+#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv)
 #endif
 	    {
 		FAB fab;
@@ -2201,7 +2200,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         if (N_snds > 0)
         {
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if(FAB::isCopyOMPSafe())
 #endif
             for (int j=0; j<N_snds; ++j)
             {
@@ -2258,7 +2257,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 	int N_loc = (*thecpc.m_LocTags).size();
 
 #ifdef _OPENMP
-#pragma omp parallel for if (thecpc.m_threadsafe_loc)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc)
 #endif
 	for (int j=0; j<N_loc; ++j)
         {
@@ -2297,7 +2296,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
             }
 	    
 #ifdef _OPENMP
-#pragma omp parallel if (thecpc.m_threadsafe_rcv)
+#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv)
 #endif
             {
                 FAB fab;
@@ -3303,7 +3302,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
         //
 	int N_loc = (*TheFB.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (TheFB.m_threadsafe_loc)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc)
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
@@ -3488,7 +3487,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     if (N_snds > 0)
     {
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if (FAB::isCopyOMPSafe())
 #endif
 	for (int j=0; j<N_snds; ++j)
 	{
@@ -3601,7 +3600,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     {
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (FAB::isCopyOMPSafe())
 #endif
 	ParallelDescriptor::team_for(0, N_locs, [&] (int i) 
         {
@@ -3617,7 +3616,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     else
     {
 #ifdef _OPENMP
-#pragma omp parallel for if (TheFB.m_threadsafe_loc)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc)
 #endif
 	for (int i=0; i<N_locs; ++i)
 	{
@@ -3694,7 +3693,7 @@ FabArray<FAB>::FillBoundary_finish ()
 	}	
 
 #ifdef _OPENMP
-#pragma omp parallel for if (TheFB.m_threadsafe_rcv)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv)
 #endif
 
 	for (int k = 0; k < N_rcvs; k++) 
