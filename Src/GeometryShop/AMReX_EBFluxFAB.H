@@ -34,10 +34,11 @@ namespace amrex
     /**
        This stuff required by LevelData in parallel:
     */
-    static int preAllocatable()
+    static bool preAllocatable()
       {
-        return 1; // symmetric messaging
+        return true; // symmetric messaging
       }
+    static bool isCopyOMPSafe () { return true; }
 
     /// default constructor
     EBFluxFAB();

@@ -957,7 +957,7 @@ MGT_Solver::set_cfa_const (Real alpha, int lev)
     } else {
 	MFInfo info;
 	info.SetAlloc(false);
-	MultiFab cc(m_grids[lev], m_dmap[lev], 1, 0, info); // cell-centered MF      
+	MultiFab cc(m_grids[lev], m_dmap[lev], 1, 0, info, FArrayBoxFactory()); // cell-centered MF      
 #ifdef _OPENMP
 #pragma omp parallel
 #endif

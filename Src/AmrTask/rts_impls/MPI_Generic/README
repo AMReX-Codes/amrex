@@ -1,0 +1,17 @@
+This is a runtime version that employs 2-sided MPI (i.e. MPI-1) to implement fundamental routines required to schedule an AMReX task dependency graph.
+The runtime comprises a set of MPI processes, each consisting of multiple WORKER threads. 
+The runtime can be configured to run with 1 process per compute node (i), per NUMA node (ii), or per core (iii). 
+For cases (i) and (ii), there can be multiple WORKER threads per process (one WORKER thread per NUMA node or per core).
+Also, the runtime can dedicate one or a few cores per compute node to handle communication in a responsive fashion.
+For case (ii), WORKER thread and Communication HANDLER thread share the same core. 
+
+Multiple worker threads may share a single task queue (for load balancing purpose).
+Each worker thread also has a private queue serving as a task buffer, allowing scheduling latency and lock/unlock cost to be reduced.
+
+Note: one of the primary goals of this runtime implementation is PORTABILITY.
+
+Thus, there is no special assumption about MPI mode to be made. 
+For example, the runtime should run correctly whether MPI supports MPI_THREAD_FUNNELED (common scenario) or MPI_THREAD_MULTIPLE (not so common) mode.
+
+Also, we use Pthreads to implement WORKER threads.
+At the application level, the programmer can use OpenMP to parallelize each task.

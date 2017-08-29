@@ -15,7 +15,8 @@ C++FLAGS        += -std=c++11 $(COPTIMIZATION) $(DEBUG)
 LDFLAGS	+= $(C++FLAGS)
 LDLIBS          = 
 
-INCLUDE  	= $(ROOT_PATH)/rts_impls/Serial/
+RTS_DIR		= $(ROOT_PATH)/rts_impls/Serial/
+INCLUDE  	= $(RTS_DIR)
 
 
 #########################################################################
@@ -25,7 +26,7 @@ INCLUDE  	= $(ROOT_PATH)/rts_impls/Serial/
 
 #########################################################################
 #									#
-# Suffixes for compiling most normal C++, C, and CUDA files		#
+# Suffixes for compiling most normal C++, C files		#
 #									#
 #########################################################################
 

@@ -1,6 +1,6 @@
 include ./arch.common
 
-SUBDIRS = graph rts_impls/Serial/ tutorials/UnitTests/
+SUBDIRS = graph $(RTS_DIR) tutorials/UnitTests/
 
 .PHONY: build $(SUBDIRS)
 

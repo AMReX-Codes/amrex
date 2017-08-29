@@ -1,0 +1,5 @@
+
+F90EXE_sources += cns_diff_mod.F90
+F90EXE_sources += cns_eb_diff_mod.F90
+F90EXE_sources += cns_eb_diff_wall.F90
+F90EXE_sources += diff_coef_mod.F90
