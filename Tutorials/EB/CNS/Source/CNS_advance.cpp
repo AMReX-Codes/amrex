@@ -49,15 +49,13 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
     const Real* dx = geom.CellSize();
     const int ncomp = dSdt.nComp();
 
-    const IntVect& tilesize{1024000,16,16};
-
     MultiFab* cost = (do_load_balance) ? &(get_new_data(Cost_Type)) : nullptr;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        for (MFIter mfi(S,tilesize); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S,hydro_tile_size); mfi.isValid(); ++mfi)
         {
             Real wt = ParallelDescriptor::second();
 
