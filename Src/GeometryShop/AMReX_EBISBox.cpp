@@ -167,7 +167,7 @@ namespace amrex
                    const int& a_idir,
                    const Side::LoHiSide& a_sd) const
   {
-    Real retval;
+    Real retval=0;
     if (isRegular(a_vof.gridIndex()))
     {
       retval = 1.0;

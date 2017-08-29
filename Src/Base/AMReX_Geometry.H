@@ -57,7 +57,11 @@ public:
     //! Returns the problem domain.
     static const RealBox& ProbDomain () { return prob_domain; }
     //! Sets the problem domain.
-    static void ProbDomain (const RealBox& rb) { prob_domain = rb; }
+    static void ProbDomain (const RealBox& rb) 
+    { 
+        prob_domain = rb; 
+        SetOffset(rb.lo());
+    }
     //! Returns the lo end of the problem domain in each dimension.
     static const Real* ProbLo ()  { return prob_domain.lo(); }
     //! Returns the hi end of the problem domain in each dimension.

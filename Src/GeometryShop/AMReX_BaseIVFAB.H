@@ -78,6 +78,7 @@ namespace amrex
 
     ///default false.   can make it true for T where you  they are fixed size
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return true; }
 
     ///
     BaseIVFAB<T>& copy(const BaseIVFAB<T> & src,
