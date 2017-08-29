@@ -1,4 +1,5 @@
 #include <AMReX_EBCellFlag.H>
+#include <AMReX_EBCellFlag_F.H>
 
 namespace amrex {
 
@@ -22,23 +23,14 @@ EBCellFlagFab::getType (const Box& bx_in) const
         const Box& bx = amrex::enclosedCells(bx_in);
         BL_ASSERT(this->box().contains(bx));
 
-        FabType t = FabType::undefined;
-        int nregular=0, nsingle=0, nmulti=0, ncovered=0;
-        int ncells = bx.numPts();
-        for (BoxIterator bi(bx); bi.ok(); ++bi)
-        {
-            const auto& cellflag = (*this)(bi());
-            if (cellflag.isRegular()) {
-                ++nregular;
-            } else if (cellflag.isSingleValued()) {
-                ++nsingle;
-            } else if (cellflag.isMultiValued()) {
-                ++nmulti;
-            } else {
-                ++ncovered;
-            }
-        }
+        int nregular, nsingle, nmulti, ncovered;
+        amrex_ebcellflag_count(BL_TO_FORTRAN_BOX(bx),
+                               BL_TO_FORTRAN_ANYD(*this),
+                               &nregular, &nsingle, &nmulti, &ncovered);
 
+        int ncells = bx.numPts();
+
+        FabType t = FabType::undefined;
         if (nregular == ncells) {
             t = FabType::regular;
         } else if (ncovered == ncells) {
