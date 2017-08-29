@@ -1,5 +1,7 @@
 #include "WarpXBoostedFrameDiagnostic.H"
 
+#include "WarpX_f.H"
+
 using namespace amrex;
 
 BoostedFrameDiagnostic::
@@ -121,6 +123,15 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
         std::unique_ptr<MultiFab> slice = getSliceData(cell_centered_data, geom,
                                                        snapshots_[i].current_z_boost);
+
+        // transform it to the lab frame
+        for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
+            const Box& box = mfi.validbox();
+            const Box& tile_box = mfi.tilebox();
+            WRPX_LORENTZ_TRANSFORM((*slice)[mfi].dataPtr(), box.loVect(), box.hiVect(),
+                                   tile_box.loVect(), tile_box.hiVect(),
+                                   &gamma_boost_, &beta_boost_);
+        }
         
         // and write it to disk.
         std::stringstream ss;
