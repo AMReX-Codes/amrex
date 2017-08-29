@@ -69,12 +69,14 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
             if (flag.getType(bx) == FabType::covered) {
                 dSdt[mfi].setVal(0.0, bx, 0, ncomp);
             } else {
-                if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
+                if (flag.getType(amrex::grow(bx,1)) == FabType::regular)
                 {
+                    int all_regular = flag.getType(amrex::grow(bx,2)) == FabType::regular;
                     cns_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                      BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                      BL_TO_FORTRAN_ANYD(S[mfi]),
-                                     dx, &dt);
+                                     BL_TO_FORTRAN_ANYD(flag),
+                                     dx, &dt, &all_regular);
                 }
                 else
                 {
