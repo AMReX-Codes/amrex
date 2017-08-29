@@ -65,47 +65,32 @@ getSliceData(const MultiFab& cell_centered_data,
     ba.intersections(slice_box, isects, false, 0);
     Array<Box> boxes;
     Array<int> procs;
+    Array<int> slice_to_full_ba_map;
     for (int i = 0; i < isects.size(); ++i) {
         procs.push_back(dm[isects[i].first]);
         boxes.push_back(isects[i].second);
+        slice_to_full_ba_map.push_back(isects[i].first);
     }  
     procs.push_back(ParallelDescriptor::MyProc());
     BoxArray slice_ba(&boxes[0], boxes.size());
     DistributionMapping slice_dmap(procs);
-    std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, 6, 0));
+    std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, 10, 0));
         
     // Fill the slice with sampled data
-    const Real* dx      = geom.CellSize();
     for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
         int slice_gid = mfi.index();
-        Box grid = slice_ba[slice_gid];
-        int xlo = grid.smallEnd(0), ylo = grid.smallEnd(1), zlo = grid.smallEnd(2);
-        int xhi = grid.bigEnd(0), yhi = grid.bigEnd(1), zhi = grid.bigEnd(2);
-    
-        IntVect iv = grid.smallEnd();
-        ba.intersections(Box(iv, iv), isects, true, 0);
-        BL_ASSERT(!isects.empty());
-        int full_gid = isects[0].first;
-    
-        for (int k = zlo; k <= zhi; k++) {
-            for (int j = ylo; j <= yhi; j++) {
-                for (int i = xlo; i <= xhi; i++) {
-                    for (int comp = 0; comp < 6; comp++) {
-                        Real x = geom.ProbLo(0) + i*dx[0];
-                        Real y = geom.ProbLo(1) + j*dx[1];
-                        Real z = z_coord;
-                            
-                        D_TERM(iv[0]=floor((x - geom.ProbLo(0))/geom.CellSize(0));,
-                               iv[1]=floor((y - geom.ProbLo(1))/geom.CellSize(1));,
-                               iv[2]=floor((z - geom.ProbLo(2))/geom.CellSize(2)););
-                            
-                        (*slice)[slice_gid](IntVect(i, j, k), comp) = cell_centered_data[full_gid](iv, comp);
-                    }
-                }
-            }
-        }
-    }
+        int full_gid = slice_to_full_ba_map[slice_gid];
 
+        const Box& slice_box = slice_ba[slice_gid];    
+        const Box& full_box = ba[full_gid];
+        const Box& tile_box = mfi.tilebox();
+
+        WRPX_FILL_SLICE(cell_centered_data[full_gid].dataPtr(),
+                        full_box.loVect(), full_box.hiVect(),
+                        (*slice)[slice_gid].dataPtr(),
+                        slice_box.loVect(), slice_box.hiVect(),
+                        tile_box.loVect(), tile_box.hiVect());
+    }    
     return slice;
 }
 

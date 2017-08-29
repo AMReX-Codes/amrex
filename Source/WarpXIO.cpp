@@ -381,8 +381,8 @@ WarpX::InitFromCheckpoint ()
 std::unique_ptr<MultiFab>
 WarpX::GetCellCenteredData() {
 
-    const int ng = 1;
-    const int nc = 6;
+    const int ng =  1;
+    const int nc = 10;
     const int lev = 0;
     auto cc = std::unique_ptr<MultiFab>( new MultiFab(boxArray(lev),
                                                       DistributionMap(lev),
@@ -409,6 +409,18 @@ WarpX::GetCellCenteredData() {
 #endif
     dcomp += 3;
 
+    // then the current density
+    PackPlotDataPtrs(srcmf, current_fp[lev]);
+    amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ngrow);
+    amrex::average_node_to_cellcenter(*cc, dcomp+1, *current_fp[lev][1], 0, 1);
+#endif
+    dcomp += 3;
+
+    const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
+    amrex::average_node_to_cellcenter(*cc, dcomp, *charge_density, 0, 1);
+        
     return cc;
 }
 

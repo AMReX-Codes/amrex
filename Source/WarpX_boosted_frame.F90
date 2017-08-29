@@ -20,33 +20,67 @@ contains
 
     integer(c_int),   intent(in)    :: dlo(3), dhi(3)
     integer(c_int),   intent(in)    :: tlo(3), thi(3)
-    real(amrex_real), intent(inout) :: data(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3), 6)
+    real(amrex_real), intent(inout) :: data(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3), 10)
     real(amrex_real), intent(in)    :: gamma_boost, beta_boost
 
     integer i, j, k
-    real(amrex_real) ex_lab, ey_lab, bx_lab, by_lab
+    real(amrex_real) e_lab, b_lab, j_lab, r_lab
     
     do k = tlo(3), thi(3)
        do j = tlo(2), thi(2)
           do i = tlo(1), thi(1)
              
-             ! note that ez and bz are not changed by the tranform
-             ex_lab = gamma_boost * (data(i, j, k, 1) + beta_boost*clight*data(i, j, k, 5))
-             by_lab = gamma_boost * (data(i, j, k, 5) + beta_boost*data(i, j, k, 1)/clight)
+             ! Transform the transverse E and B fields. Note that ez and bz are not 
+             ! changed by the tranform.
+             e_lab = gamma_boost * (data(i, j, k, 1) + beta_boost*clight*data(i, j, k, 5))
+             b_lab = gamma_boost * (data(i, j, k, 5) + beta_boost*data(i, j, k, 1)/clight)
 
-             data(i, j, k, 1) = ex_lab
-             data(i, j, k, 5) = by_lab
+             data(i, j, k, 1) = e_lab
+             data(i, j, k, 5) = b_lab
 
-             ey_lab = gamma_boost * (data(i, j, k, 2) - beta_boost*clight*data(i, j, k, 4))
-             bx_lab = gamma_boost * (data(i, j, k, 4) - beta_boost*data(i, j, k, 2)/clight)
+             e_lab = gamma_boost * (data(i, j, k, 2) - beta_boost*clight*data(i, j, k, 4))
+             b_lab = gamma_boost * (data(i, j, k, 4) - beta_boost*data(i, j, k, 2)/clight)
 
-             data(i, j, k, 2) = ey_lab
-             data(i, j, k, 4) = bx_lab
+             data(i, j, k, 2) = e_lab
+             data(i, j, k, 4) = b_lab
+
+             ! Transform the charge and current density. Only the z component of rho is
+             ! affected.
+             j_lab = gamma_boost*(data(i, j, k, 9) + beta_boost*clight*data(i, j, k, 10))
+             r_lab = gamma_boost*(data(i, j, k, 10) + beta_boost*data(i, j, k, 9)/clight)
+
+             data(i, j, k, 9)  = j_lab
+             data(i, j, k, 10) = r_lab
 
           end do
        end do
     end do
 
   end subroutine warpx_lorentz_transform_3d
+
+  subroutine warpx_fill_slice_3d(full_data, flo, fhi, slice_data, slo, shi, tlo, thi) &
+       bind(C, name="warpx_fill_slice_3d")
+
+    integer(c_int),   intent(in)    :: flo(3), fhi(3)
+    integer(c_int),   intent(in)    :: slo(3), shi(3)
+    integer(c_int),   intent(in)    :: tlo(3), thi(3)
+    real(amrex_real), intent(inout) :: full_data(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3), 10)
+    real(amrex_real), intent(inout) :: slice_data(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3), 10)
+    
+    integer n, i, j, k
+    
+    do n = 1, 10
+       do k = tlo(3), thi(3)
+          do j = tlo(2), thi(2)
+             do i = tlo(1), thi(1)
+                
+                slice_data(i, j, k, n) = full_data(i, j, k, n)
+
+             end do
+          end do
+       end do
+    end do
+
+  end subroutine warpx_fill_slice_3d
 
 end module warpx_boosted_frame_module

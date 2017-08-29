@@ -3,11 +3,11 @@
 
 #if (BL_SPACEDIM == 3)
 
-#define WRPX_COMPUTE_DIVB               warpx_compute_divb_3d
-#define WRPX_COMPUTE_DIVE               warpx_compute_dive_3d
-#define WRPX_SYNC_CURRENT               warpx_sync_current_3d
-#define WRPX_SYNC_RHO                   warpx_sync_rho_3d
-#define WRPX_CLEAN_EVEC                 warpx_clean_evec_3d
+#define WRPX_COMPUTE_DIVB                warpx_compute_divb_3d
+#define WRPX_COMPUTE_DIVE                warpx_compute_dive_3d
+#define WRPX_SYNC_CURRENT                warpx_sync_current_3d
+#define WRPX_SYNC_RHO                    warpx_sync_rho_3d
+#define WRPX_CLEAN_EVEC                  warpx_clean_evec_3d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
@@ -27,14 +27,15 @@
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
 #define WRPX_LORENTZ_TRANSFORM           warpx_lorentz_transform_3d
+#define WRPX_FILL_SLICE                  warpx_fill_slice_3d
 
 #elif (BL_SPACEDIM == 2)
 
-#define WRPX_COMPUTE_DIVB               warpx_compute_divb_2d
-#define WRPX_COMPUTE_DIVE               warpx_compute_dive_2d
-#define WRPX_SYNC_CURRENT               warpx_sync_current_2d
-#define WRPX_SYNC_RHO                   warpx_sync_rho_2d
-#define WRPX_CLEAN_EVEC                 warpx_clean_evec_2d
+#define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
+#define WRPX_COMPUTE_DIVE                warpx_compute_dive_2d
+#define WRPX_SYNC_CURRENT                warpx_sync_current_2d
+#define WRPX_SYNC_RHO                    warpx_sync_rho_2d
+#define WRPX_CLEAN_EVEC                  warpx_clean_evec_2d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
@@ -257,6 +258,10 @@ extern "C"
     void WRPX_LORENTZ_TRANSFORM(amrex::Real* data, const int* dlo, const int* dhi,
                                 const int* tlo, const int* thi,
                                 const amrex::Real* gamma_boost, const amrex::Real* beta_boost);
+
+    void WRPX_FILL_SLICE(const amrex::Real* fdata, const int* flo, const int* fhi,
+                         amrex::Real* sdata, const int* slo, const int* shi,
+                         const int* tlo, const int* thi);
 
 //  These functions are used to evolve E and B in the PML
 
