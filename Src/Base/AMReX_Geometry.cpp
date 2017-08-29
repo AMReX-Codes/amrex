@@ -126,9 +126,11 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
         BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
         prob_domain.setLo(prob_lo);
         prob_domain.setHi(prob_hi);
+        SetOffset(prob_lo.data());
     } else {
         prob_domain.setLo(rb->lo());
         prob_domain.setHi(rb->hi());
+        SetOffset(rb->lo());
     }
 
     pp.query("spherical_origin_fix", Geometry::spherical_origin_fix);
