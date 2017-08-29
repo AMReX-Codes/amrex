@@ -26,14 +26,14 @@ namespace amrex{
 	public:
             RTS():_nWrks(1){}
             RTS(int nWrks):_nWrks(nWrks){}
-	    int RTS_ProcCount();
-	    int RTS_MyProc();
-	    int RTS_WorkerThreadCount();
-	    int RTS_MyWorkerThread();
-	    void RTS_Init();
-	    void RTS_Init(int *rank, int *nProcs);
-	    void RTS_Run(void *graph);
-	    void RTS_Finalize();
+	    int ProcCount();
+	    int MyProc();
+	    int WorkerThreadCount();
+	    int MyWorkerThread();
+	    void Init();
+	    void Init(int *rank, int *nProcs);
+	    void Run(void *graph);
+	    void Finalize();
             double Time();
             void Barrier();
             template<typename T> void ReductionSum(T *local, T *global, int length, int root){
