@@ -347,7 +347,11 @@ std::ostream &operator<< (std::ostream &os, const BLProfStats::TimeRange &tr)
 
 // ----------------------------------------------------------------------
 void BLProfStats::AddFunctionName(const std::string &fname) {
+  std::size_t found;
   std::string fnameNQ(fname.substr(1, fname.length() - 2));  // ---- remove quotes
+  while((found = fnameNQ.find(" ")) != std::string::npos) {  // ---- replace spaces
+    fnameNQ.replace(found, 1, "_");
+  }
   blpFNames.push_back(fnameNQ);
 }
 
@@ -506,7 +510,8 @@ void BLProfStats::CollectFuncStats(Array<Array<FuncStat> > &funcStats)
 
 
 // ----------------------------------------------------------------------
-void BLProfStats::WriteSummary(std::ostream &ios, bool bwriteavg, int whichProc)
+void BLProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
+                               int whichProc, bool graphTopPct)
 {
   if( ! ParallelDescriptor::IOProcessor()) {
     return;
@@ -521,7 +526,9 @@ void BLProfStats::WriteSummary(std::ostream &ios, bool bwriteavg, int whichProc)
   std::map<std::string, BLProfiler::ProfStats> mProfStats;  // [fname, pstats]
   CollectMProfStats(mProfStats, funcStats, blpFNames, calcRunTime, whichProc);
 
-  GraphTopPct(mProfStats, funcStats, blpFNames, calcRunTime, dataNProcs, gPercent);
+  if(graphTopPct) {
+    GraphTopPct(mProfStats, funcStats, blpFNames, calcRunTime, dataNProcs, gPercent);
+  }
 
 #ifdef BL_TRACE_PROFILING
   MakeFuncPctTimesMF(funcStats, blpFNames, mProfStats, calcRunTime, dataNProcs);
