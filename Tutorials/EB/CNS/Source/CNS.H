@@ -31,12 +31,12 @@ public:
     virtual void checkPoint(const std::string& dir,
                             std::ostream&      os,
                             amrex::VisMF::How  how = amrex::VisMF::NFiles,
-                            bool               dump_old = true);
+                            bool               dump_old = true) override;
 
     // Write a plotfile to specified directory.
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
-                                amrex::VisMF::How  how);
+                                amrex::VisMF::How  how) override;
 
     // Initialize data on this level from another CNS (during regrid).
     virtual void init (amrex::AmrLevel& old) override;
@@ -45,7 +45,7 @@ public:
     virtual void init () override;
     
     // Initialize grid data at problem start-up.
-    virtual void initData () ;
+    virtual void initData () override;
 
     // Advance grids at this level in time.
     virtual amrex::Real advance (amrex::Real time,
@@ -64,8 +64,8 @@ public:
                                int                                 sub_cycle,
                                amrex::Array<int>&                  n_cycle,
                                const amrex::Array<amrex::IntVect>& ref_ratio,
-                               amrex::Array<Real>&                 dt_min,
-                               amrex::Array<Real>&                 dt_level,
+                               amrex::Array<amrex::Real>&          dt_min,
+                               amrex::Array<amrex::Real>&          dt_level,
                                amrex::Real                         stop_time,
                                int                                 post_regrid_flag) override;
 
@@ -97,6 +97,8 @@ public:
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
+    static void LoadBalance (amrex::Amr& amr);
+
 protected:
 
     static void read_params ();
@@ -110,12 +112,6 @@ protected:
 
     void buildMetrics ();
 
-#if 0
-    void init_eb (const amrex::Geometry& level_geom,
-                  const amrex::BoxArray& ba,
-                  const amrex::DistributionMapping& dm);
-#endif
-
     amrex::Real estTimeStep ();
 
     // Compute initial time step.
@@ -125,11 +121,14 @@ protected:
 
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt);
 
+    void fixUpGeometry ();
+
     amrex::MultiFab volfrac;
+    amrex::MultiFab bndrycent;
     std::array<amrex::MultiFab,3> areafrac;
     std::array<amrex::MultiFab,3> facecent;
 
-    static constexpr int NUM_GROW = 4;
+    static constexpr int NUM_GROW = 5;
     enum StateVariable {
         Density = 0, Xmom, Ymom, Zmom, Eden, Eint, Temp,
         NUM_STATE

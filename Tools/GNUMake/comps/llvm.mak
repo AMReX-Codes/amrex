@@ -85,3 +85,7 @@ else
 endif
 
 override XTRALIBS += -lgfortran -lquadmath
+
+ifeq ($(FSANITIZER),TRUE)
+  override XTRALIBS += -lubsan
+endif

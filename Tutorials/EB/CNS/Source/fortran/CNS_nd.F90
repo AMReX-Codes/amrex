@@ -6,7 +6,7 @@ module cns_nd_module
   implicit none
   private
 
-  public :: cns_compute_temperature, cns_estdt, ctoprim
+  public :: cns_compute_temperature, cns_estdt, ctoprim, cns_eb_fixup_geom
 
 contains
 
@@ -56,36 +56,6 @@ contains
     end do
   end subroutine cns_estdt
 
-
-  subroutine cns_compute_dsdt (lo,hi,ut,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,dx) &
-       bind(c,name='cns_compute_dsdt')
-    integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),fxlo(3),fxhi(3),fylo(3),fyhi(3),fzlo(3),fzhi(3)
-    real(rt), intent(inout) :: ut( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
-    real(rt), intent(in   ) :: fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),nvar)
-    real(rt), intent(in   ) :: fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),nvar)
-    real(rt), intent(in   ) :: fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),nvar)
-    real(rt), intent(in) :: dx(3)
-
-    integer :: i,j,k,n
-    real(rt) :: dxinv(3)
-
-    dxinv = 1.d0/dx
-
-    do n = 1, nvar
-       do       k = lo(3),hi(3)
-          do    j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-                ut(i,j,k,n) = ut(i,j,k,n) &
-                     + (fx(i,j,k,n)-fx(i+1,j,k,n)) * dxinv(1) &
-                     + (fy(i,j,k,n)-fy(i,j+1,k,n)) * dxinv(2) &
-                     + (fz(i,j,k,n)-fz(i,j,k+1,n)) * dxinv(3)
-             end do
-          end do
-       end do
-    end do
-  end subroutine cns_compute_dsdt
-
-
   subroutine ctoprim (lo,hi,u,ulo,uhi,q,qlo,qhi)
     use cns_physics_module, only : gamma, cv
     use cns_module, only : smallp, smallr
@@ -116,5 +86,31 @@ contains
        end do
     end do
   end subroutine ctoprim
+
+  subroutine cns_eb_fixup_geom(lo, hi, flag, flo, fhi, vfrac, vlo, vhi) bind(c,name='cns_eb_fixup_geom')
+    use amrex_ebcellflag_module, only : is_regular_cell, is_single_valued_cell, get_neighbor_cells, &
+         set_regular_cell
+    integer, dimension(3), intent(in) :: lo, hi, flo, fhi, vlo, vhi
+    integer, intent(inout) :: flag(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    real(rt), intent(in)  :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
+
+    integer :: i,j,k, nbr(-1:1,-1:1,-1:1)
+    real(rt), parameter :: almostone = 1.d0 - 1.d-13
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (is_single_valued_cell(flag(i,j,k)) .and. vfrac(i,j,k) .gt. almostone) then
+                call get_neighbor_cells(flag(i,j,k),nbr)
+                if ( nbr(-1,0,0).eq.1 .and. nbr(1,0,0).eq.1 .and. &
+                     nbr(0,-1,0).eq.1 .and. nbr(0,1,0).eq.1 .and. &
+                     nbr(0,0,-1).eq.1 .and. nbr(0,0,1).eq.1 ) then
+                   call set_regular_cell(flag(i,j,k))
+                end if
+             end if
+          end do
+       end do
+    end do
+  end subroutine cns_eb_fixup_geom
 
 end module cns_nd_module

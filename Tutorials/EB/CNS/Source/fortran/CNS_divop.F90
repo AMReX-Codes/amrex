@@ -1,15 +1,15 @@
-module cns_eb_flux_module
+module cns_divop_module
   use mempool_module, only : amrex_allocate, amrex_deallocate
   use amrex_fort_module, only : rt=>amrex_real
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell, &
        get_neighbor_cells
   implicit none
   private
-  public :: compute_diffop, compute_eb_diffop
+  public :: compute_divop, compute_eb_divop
 contains
 
   ! non-eb version
-  subroutine compute_diffop (lo,hi,ncomp,dx,ut,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi)
+  subroutine compute_divop (lo,hi,ncomp,dx,ut,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi)
     integer, intent(in) :: lo(3),hi(3),ncomp,ulo(3),uhi(3),fxlo(3),fxhi(3), &
          fylo(3),fyhi(3),fzlo(3),fzhi(3)
     real(rt), intent(inout) :: ut( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),ncomp)
@@ -34,17 +34,19 @@ contains
           end do
        end do
     end do
-  end subroutine compute_diffop
+  end subroutine compute_divop
 
-  subroutine compute_eb_diffop (lo,hi,ncomp, dx, &
+  subroutine compute_eb_divop (lo,hi,ncomp, dx, dt, &
        fluxx,fxlo,fxhi, &
        fluxy,fylo,fyhi, &
        fluxz,fzlo,fzhi, &
-       ebdiffop, oplo, ophi, &
+       ebdivop, oplo, ophi, &
        q, qlo, qhi, &
+       lam, mu, xi, clo, chi, &
        divc, dvlo, dvhi, &
        delm, dmlo, dmhi, &
        vfrac, vlo, vhi, &
+       bcent, blo, bhi, &
        apx, axlo, axhi, &
        apy, aylo, ayhi, &
        apz, azlo, azhi, &
@@ -55,21 +57,28 @@ contains
        centz_x, czxlo, czxhi, &
        centz_y, czylo, czyhi, &
        cellflag, cflo, cfhi)
-    use cns_module, only : qvar, qrho, qu, qv, qw, qp, umx, umy, umz
+    use cns_module, only : qvar, qrho, qu, qv, qw, qp, qeint, umx, umy, umz, smallr, &
+         use_total_energy_as_eb_weights
     use cns_eb_hyp_wall_module, only : compute_hyp_wallflux
+    use cns_eb_diff_wall_module, only : compute_diff_wallflux
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
-         cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi
+         cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi, &
+         clo, chi, blo, bhi
     integer, intent(in) :: ncomp
-    real(rt), intent(in) :: dx(3)
+    real(rt), intent(in) :: dx(3), dt
     real(rt), intent(in) :: fluxx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),ncomp)
     real(rt), intent(in) :: fluxy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),ncomp)
     real(rt), intent(in) :: fluxz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),ncomp)
-    real(rt), intent(inout) :: ebdiffop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)
-    real(rt), intent(in) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
+    real(rt), intent(inout) :: ebdivop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)
+    real(rt), intent(in) ::   q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
+    real(rt), intent(in) :: lam(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(rt), intent(in) :: mu (clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(rt), intent(in) :: xi (clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(rt), intent(inout) :: divc(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
     real(rt), intent(inout) :: delm(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3),ncomp)
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
+    real(rt), intent(in) :: bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),3)
     real(rt), intent(in) :: apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
     real(rt), intent(in) :: apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
     real(rt), intent(in) :: apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
@@ -82,21 +91,39 @@ contains
     integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
 
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
-    real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,mtot, fracx,fracy,fracz,dxinv(3)
-    real(rt) :: divw(5), divwn
-    real(rt), pointer, contiguous :: optmp(:,:,:)
+    integer :: nwalls, iwall
+    real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
+    real(rt) :: divwn
+    real(rt), pointer, contiguous :: optmp(:,:,:), rediswgt(:,:,:)
+    real(rt), pointer, contiguous :: divhyp(:,:), divdiff(:,:)
 
     !  centroid nondimensional  and zero at face center
 
     dxinv = 1.d0/dx
 
+    nwalls = 0
+    do       k = lo(3)-2, hi(3)+2
+       do    j = lo(2)-2, hi(2)+2
+          do i = lo(1)-2, hi(1)+2
+             if (is_single_valued_cell(cellflag(i,j,k))) then
+                nwalls = nwalls+1
+             end if
+          end do
+       end do
+    end do
+
     call amrex_allocate(optmp, lo-2, hi+2)
+    call amrex_allocate(rediswgt, lo-2, hi+2)
+
+    call amrex_allocate(divhyp, 1,5, 1,nwalls)
+    call amrex_allocate(divdiff, 1,5, 1,nwalls)
 
     do n = 1, ncomp
 
        !
        ! First, we compute conservative divergence on (lo-2,hi+2)
        !
+       iwall = 0
        do       k = lo(3)-2, hi(3)+2
           do    j = lo(2)-2, hi(2)+2
              do i = lo(1)-2, hi(1)+2
@@ -334,16 +361,23 @@ contains
                       fzp = fluxz(i,j,k+1,n)
                    endif
 
-                   if (n .eq. umx .or. n .eq. umy .or. n .eq. umz) then
-                      call compute_hyp_wallflux(divw, q(i,j,k,qrho), q(i,j,k,qu), &
-                           q(i,j,k,qv), q(i,j,k,qw), q(i,j,k,qp), &
+                   iwall = iwall + 1
+                   if (n .eq. 1) then
+                      call compute_hyp_wallflux(divhyp(:,iwall), i,j,k, q(i,j,k,qrho), &
+                           q(i,j,k,qu), q(i,j,k,qv), q(i,j,k,qw), q(i,j,k,qp), &
                            apx(i,j,k), apx(i+1,j,k), &
                            apy(i,j,k), apy(i,j+1,k), &
                            apz(i,j,k), apz(i,j,k+1))
-                      divwn = divw(n)
-                   else
-                      divwn = 0.d0
+                      call compute_diff_wallflux(divdiff(:,iwall), dxinv, i,j,k, &
+                           q, qlo, qhi, &
+                           lam, mu, xi, clo, chi, &
+                           bcent, blo, bhi, &
+                           apx, axlo, axhi, &
+                           apy, aylo, ayhi, &
+                           apz, azlo, azhi)
                    end if
+
+                   divwn = divhyp(n,iwall) + divdiff(n,iwall)
 
                    ! we assume dx == dy == dz
                    divc(i,j,k) = -((apx(i+1,j,k)*fxp - apx(i,j,k)*fxm) * dxinv(1) &
@@ -352,6 +386,19 @@ contains
                         +          divwn * dxinv(1)) / vfrac(i,j,k)
                 end if
              end do
+
+             if (n.eq.1) then
+                if (use_total_energy_as_eb_weights) then
+                   do i = lo(1)-2, hi(1)+2
+                      rediswgt(i,j,k) = q(i,j,k,qrho)*(q(i,j,k,qeint)+0.5d0*(q(i,j,k,qu)**2+q(i,j,k,qv)**2+q(i,j,k,qw)**2))
+                   end do
+                else
+                   do i = lo(1)-2, hi(1)+2
+                      rediswgt(i,j,k) = q(i,j,k,qrho) 
+                      ! rediswgt(i,j,k) = max(smallr, q(i,j,k,qrho)+dt*divc(i,j,k))
+                   end do
+                end if
+             end if
           end do
        end do
 
@@ -394,25 +441,25 @@ contains
           do    j = lo(2)-1, hi(2)+1
              do i = lo(1)-1, hi(1)+1
                 if (is_single_valued_cell(cellflag(i,j,k))) then                   
-                   mtot = 0.d0
+                   wtot = 0.d0
                    call get_neighbor_cells(cellflag(i,j,k),nbr)
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if ((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               mtot = mtot + vfrac(i+ii,j+jj,k+kk)*q(i+ii,j+jj,k+kk,qrho)
+                               wtot = wtot + vfrac(i+ii,j+jj,k+kk)*rediswgt(i+ii,j+jj,k+kk)
                             end if
                          end do
                       enddo
                    enddo
                    
-                   mtot = 1.d0/mtot
+                   wtot = 1.d0/wtot
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
                                optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) &
-                                    + delm(i,j,k,n)*mtot*q(i+ii,j+jj,k+kk,qrho)
+                                    + delm(i,j,k,n)*wtot*rediswgt(i+ii,j+jj,k+kk)
                             endif
                          enddo
                       enddo
@@ -425,15 +472,18 @@ contains
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                ebdiffop(i,j,k,n) = divc(i,j,k) + optmp(i,j,k)
+                ebdivop(i,j,k,n) = divc(i,j,k) + optmp(i,j,k)
              end do
           end do
        end do
 
     end do
 
+    call amrex_deallocate(divdiff)
+    call amrex_deallocate(divhyp)
+    call amrex_deallocate(rediswgt)
     call amrex_deallocate(optmp)
 
-  end subroutine compute_eb_diffop
+  end subroutine compute_eb_divop
 
-end module cns_eb_flux_module
+end module cns_divop_module

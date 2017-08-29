@@ -24,7 +24,6 @@ contains
     real(rt) :: pstar,pstnm1,ustarp,ustarm,ustar
     real(rt) :: wl,wr,wlsq,wrsq
     real(rt) :: cleft,cright
-    real(rt) :: a1,b1,c1,d1,e1,f1
     real(rt) :: dpditer,zp,zm,denom
     real(rt) :: ustnm1,ustnp1
     real(rt) :: uo,ro,rstar

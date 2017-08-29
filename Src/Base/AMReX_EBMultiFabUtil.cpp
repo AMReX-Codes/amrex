@@ -20,6 +20,8 @@ EB_set_covered (MultiFab& mf)
 void
 EB_set_covered (MultiFab& mf, int icomp, int ncomp)
 {
+    BL_PROFILE("EB_set_covered");
+
     Array<Real> minvals(ncomp);
     for (int i = icomp; i < icomp+ncomp; ++i) {
         minvals[i] = mf.min(i,0,true);
@@ -42,8 +44,32 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp)
 }
 
 void
+EB_set_covered (MultiFab& mf, int icomp, int ncomp, Real val)
+{
+    BL_PROFILE("EB_set_covered_val");
+
+    Array<Real> vals(ncomp, val);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& fab = mf[mfi];
+        const auto& flagfab = amrex::getEBCellFlagFab(fab);
+        amrex_eb_set_covered(BL_TO_FORTRAN_BOX(bx),
+                             BL_TO_FORTRAN_N_ANYD(fab,icomp),
+                             BL_TO_FORTRAN_ANYD(flagfab),
+                             vals.data(),&ncomp);
+    }
+}
+
+void
 EB_set_volume_fraction (MultiFab& mf)
 {
+    BL_PROFILE("EB_set_volume_fraction");
+
     BL_ASSERT(mf.nComp() == 1);
 
     const Box& domain = amrex::getLevelDomain(mf);
@@ -84,9 +110,56 @@ EB_set_volume_fraction (MultiFab& mf)
 }
 
 void
+EB_set_bndry_centroid (MultiFab& mf)
+{
+    BL_PROFILE("EB_set_bndry_centroid");
+
+    BL_ASSERT(mf.nComp() == AMREX_SPACEDIM);
+
+    const Box& domain = amrex::getLevelDomain(mf);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox();
+        EBFArrayBox& fab = dynamic_cast<EBFArrayBox&>(mf[mfi]);
+        fab.setVal(-1.0, bx);
+        FabType typ = fab.getType();
+        if (typ != FabType::regular)
+        {
+            if (typ == FabType::covered) {
+                fab.setVal(0.0, bx);
+            }
+            else
+            {
+                const auto& ebisbox = fab.getEBISBox();
+
+                const Box& bx_sect = bx & domain;
+                for (BoxIterator bi(bx_sect); bi.ok(); ++bi)
+                {
+                    const IntVect& iv = bi();
+                    const auto& vofs = ebisbox.getVoFs(iv);
+                    for (const auto& vi : vofs)
+                    {
+                        const auto& bcent = ebisbox.bndryCentroid(vi);
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            fab(iv,idim) = bcent[idim];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void
 EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafrac,
                                     std::array<MultiFab,AMREX_SPACEDIM>& facecent)
 {
+    BL_PROFILE("EB_set_area_fraction_face_centroid");
+
     const Box& domain = amrex::getLevelDomain(areafrac[0]);
     const auto& cellflagmf = amrex::getMultiEBCellFlagFab(areafrac[0]);
     const EBLevel& eblevel = amrex::getEBLevel(areafrac[0]);
@@ -176,6 +249,8 @@ void
 EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                  const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio)
 {
+    BL_PROFILE("EB_average_down");
+
     BL_ASSERT(S_fine.ixType().cellCentered());
     BL_ASSERT(S_crse.ixType().cellCentered());
 
@@ -191,7 +266,6 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
     for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
-        const Box& fbx = amrex::refine(tbx,ratio);
         auto& crse_fab = crse_S_fine[mfi];
         const auto& fine_fab = S_fine[mfi];
         const auto& flag_fab = amrex::getEBCellFlagFab(crse_fab);

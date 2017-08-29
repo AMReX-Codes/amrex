@@ -70,11 +70,16 @@ CNS::init ()
 void
 CNS::initData ()
 {
+    BL_PROFILE("CNS::initData()");
+
     const Real* dx  = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
     MultiFab& S_new = get_new_data(State_Type);
     Real cur_time   = state[State_Type].curTime();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
         const Box& box = mfi.validbox();
@@ -204,7 +209,9 @@ CNS::computeNewDt (int                   finest_level,
 
 void
 CNS::post_regrid (int lbase, int new_finest)
-{}
+{
+    fixUpGeometry();
+}
 
 void
 CNS::post_timestep (int iteration)
@@ -223,17 +230,32 @@ CNS::postCoarseTimeStep (Real time)
     if (verbose >= 2) {
         const MultiFab& S_new = get_new_data(State_Type);
         MultiFab mf(grids, dmap, 1, 0);
-        MultiFab::Copy(mf, S_new, Density, 0, 1, 0);
-        MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
-        Real mtot = mf.sum();
-        mtot *= geom.ProbSize();
-        amrex::Print().SetPrecision(17) << "\n[CNS] Total Mass is " << mtot << "\n";
+        std::array<Real,5> tot;
+        for (int comp = 0; comp < 5; ++comp) {
+            MultiFab::Copy(mf, S_new, comp, 0, 1, 0);
+            MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
+            tot[comp] = mf.sum(0,true) * geom.ProbSize();
+        }
+#ifdef BL_LAZY
+        Lazy::QueueReduction( [=] () mutable {
+#endif
+        ParallelDescriptor::ReduceRealSum(tot.data(), 5, ParallelDescriptor::IOProcessorNumber());
+        amrex::Print().SetPrecision(17) << "\n[CNS] Total mass       is " << tot[0] << "\n"
+                                        <<   "      Total x-momentum is " << tot[1] << "\n"
+                                        <<   "      Total y-momentum is " << tot[2] << "\n"
+                                        <<   "      Total z-momentum is " << tot[3] << "\n"
+                                        <<   "      Total energy     is " << tot[4] << "\n";
+#ifdef BL_LAZY
+        });
+#endif
     }
 }
 
 void
 CNS::post_init (Real)
 {
+    fixUpGeometry();
+
     if (level > 0) return;
     for (int k = parent->finestLevel()-1; k >= 0; --k) {
         getLevel(k).avgDown();
@@ -273,6 +295,8 @@ CNS::read_params ()
 void
 CNS::avgDown ()
 {
+    BL_PROFILE("CNS::avgDown()");
+
     if (level == parent->finestLevel()) return;
 
     auto& fine_lev = getLevel(level+1);
@@ -292,6 +316,8 @@ CNS::avgDown ()
 void
 CNS::buildMetrics ()
 {
+    BL_PROFILE("CNS::buildMetrics()");
+
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
     if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
@@ -301,6 +327,10 @@ CNS::buildMetrics ()
     volfrac.clear();
     volfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
     amrex::EB_set_volume_fraction(volfrac);
+
+    bndrycent.clear();
+    bndrycent.define(grids,dmap,AMREX_SPACEDIM,NUM_GROW,MFInfo(),Factory());
+    amrex::EB_set_bndry_centroid(bndrycent);
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         const BoxArray& ba = amrex::convert(grids,IntVect::TheDimensionVector(idim));
@@ -315,18 +345,28 @@ CNS::buildMetrics ()
 Real
 CNS::estTimeStep ()
 {
+    BL_PROFILE("CNS::estTimeStep()");
+
     Real estdt = std::numeric_limits<Real>::max();
 
     const Real* dx = geom.CellSize();
     const MultiFab& stateMF = get_new_data(State_Type);
 
-    for (MFIter mfi(stateMF,true); mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp parallel reduction(min:estdt)
+#endif
     {
-	const Box& box = mfi.tilebox();
-        cns_estdt(BL_TO_FORTRAN_BOX(box),
-                  BL_TO_FORTRAN_ANYD(stateMF[mfi]),
-                  dx, &estdt);
+        Real dt = std::numeric_limits<Real>::max();
+        for (MFIter mfi(stateMF,true); mfi.isValid(); ++mfi)
+        {
+            const Box& box = mfi.tilebox();
+            cns_estdt(BL_TO_FORTRAN_BOX(box),
+                      BL_TO_FORTRAN_ANYD(stateMF[mfi]),
+                      dx, &dt);
+        }
+        estdt = std::min(estdt,dt);
     }
+
     estdt *= cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
     return estdt;
@@ -341,11 +381,61 @@ CNS::initialTimeStep ()
 void
 CNS::computeTemp (MultiFab& State, int ng)
 {
-    // This will reset Eint and compute Temperature
+    BL_PROFILE("CNS::computeTemp()");
+
+    // This will reset Eint and compute Temperature 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(State,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
         cns_compute_temperature(BL_TO_FORTRAN_BOX(bx),
                                 BL_TO_FORTRAN_ANYD(State[mfi]));
+    }
+}
+
+void
+CNS::fixUpGeometry ()
+{
+    const auto& S = get_new_data(State_Type);
+
+    const int ng = numGrow()-1;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(S, true); mfi.isValid(); ++mfi)
+    {
+        EBCellFlagFab& flag = const_cast<EBCellFlagFab&>(static_cast<EBFArrayBox const&>
+                                                         (S[mfi]).getEBCellFlagFab());
+        const Box& bx = mfi.growntilebox(ng);
+        if (flag.getType() == FabType::singlevalued)
+        {
+            cns_eb_fixup_geom(BL_TO_FORTRAN_BOX(bx),
+                              BL_TO_FORTRAN_ANYD(flag),
+                              BL_TO_FORTRAN_ANYD(volfrac[mfi]));
+        }
+    }
+
+}
+
+void
+CNS::LoadBalance (Amr& amr)
+{
+    for (int lev = 0; lev <= amr.finestLevel(); ++lev)
+    {
+        auto& amrlevel = amr.getLevel(lev);
+        MultiFab wgt(amrlevel.boxArray(),
+                     amrlevel.DistributionMap(),
+                     1, 0, MFInfo(),
+                     amrlevel.Factory());
+        wgt.setVal(1.0);
+        EB_set_covered(wgt, 0, 1, 0.0);
+
+        const DistributionMapping& newdm = DistributionMapping::makeKnapSack(wgt);
+        amr.InstallNewDistributionMap(lev, newdm);
+
+        amr.getLevel(lev).post_regrid(lev, amr.finestLevel());
     }
 }
