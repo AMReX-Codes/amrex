@@ -6,6 +6,7 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
+#include <AMReX_FabFactory.H>
 
 namespace amrex {
 
@@ -188,9 +189,8 @@ public:
 *  this class.  The internal precision of FARRAYBOX objects is
 *  set by defining either BL_USE_FLOAT or BL_USE_DOUBLE
 *
-*  This is NOT a polymorphic class.
-*
-*  This class does NOT provide a copy constructor or assignment operator.
+*  This class does NOT provide a copy constructor or assignment operator,
+*  but it has a move constructor.
 */
 
 class FArrayBox
@@ -218,7 +218,7 @@ public:
     FArrayBox (const Box& b, int ncomp, Real* p);
 
     //!  The destructor.
-    ~FArrayBox () = default;
+    virtual ~FArrayBox () = default;
     
     FArrayBox (FArrayBox&& rhs) noexcept = default;
 
@@ -263,6 +263,9 @@ public:
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b,
                  int        N = 1);
+
+    FabType getType () const { return m_type; }
+
     //! Write FABs in ASCII form.
     friend std::ostream& operator<< (std::ostream&    os,
                                      const FArrayBox& fb);
@@ -375,7 +378,10 @@ public:
     static void Finalize ();
     static bool initialized;
 
-private:
+protected:
+
+    FabType m_type = FabType::regular;
+
     /**
     * \brief Format and ordering for all FAB output.
     * This stuff exists solely to support reading old FABs.
@@ -390,8 +396,10 @@ private:
     static bool do_initval;
     static Real initval;
     static bool init_snan;
-
 };
+
+using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
+
 
 }
 

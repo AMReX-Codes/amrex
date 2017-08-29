@@ -44,7 +44,8 @@ AuxBoundaryData::copy (const AuxBoundaryData& src,
 
 AuxBoundaryData::AuxBoundaryData (const AuxBoundaryData& rhs)
     :
-    m_fabs(rhs.m_fabs.boxArray(),rhs.m_fabs.DistributionMap(),rhs.m_fabs.nComp(),0),
+    m_fabs(rhs.m_fabs.boxArray(),rhs.m_fabs.DistributionMap(),rhs.m_fabs.nComp(),0,
+           MFInfo(), FArrayBoxFactory()),
     m_ngrow(rhs.m_ngrow)
 {
     m_fabs.copy(rhs.m_fabs,0,0,rhs.m_fabs.nComp());
@@ -97,7 +98,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     if (nba.size() > 0)
     {
-        m_fabs.define(nba, ndm, n_comp, 0);
+        m_fabs.define(nba, ndm, n_comp, 0, MFInfo(), FArrayBoxFactory());
     }
     else
     {

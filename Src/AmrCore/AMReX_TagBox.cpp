@@ -420,7 +420,7 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
 			  const DistributionMapping& dm,
                           int             _ngrow)
     :
-    FabArray<TagBox>(ba,dm,1,_ngrow)
+    FabArray<TagBox>(ba,dm,1,_ngrow,MFInfo(),DefaultFabFactory<TagBox>())
 {
     if (SharedMemory()) setVal(TagBox::CLEAR);
 }

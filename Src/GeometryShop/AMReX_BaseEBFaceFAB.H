@@ -222,6 +222,7 @@ namespace amrex
 
     /// default false but you can make  make this true for your T if you are sure.
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return true; }
 
     ///
     /**

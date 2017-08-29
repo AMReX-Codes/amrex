@@ -187,6 +187,7 @@ namespace amrex
 
     ///default false. can make this true with template specialization if you are sure.
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return true; }
 
     ///includes all meta data
     std::size_t nBytesFull() const;
