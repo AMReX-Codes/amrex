@@ -17,6 +17,7 @@ BCRec     CNS::phys_bc;
 int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {1024,16,16};
 Real      CNS::cfl = 0.3;
+int       CNS::do_load_balance = 1;
 
 CNS::CNS ()
 {}
@@ -52,6 +53,11 @@ CNS::init (AmrLevel& old)
 
     MultiFab& S_new = get_new_data(State_Type);
     FillPatch(old,S_new,0,cur_time,State_Type,0,NUM_STATE);
+
+    if (CNS::do_load_balance) {
+        MultiFab& C_new = get_new_data(Cost_Type);
+        FillPatch(old,C_new,0,cur_time,Cost_Type,0,1);
+    }
 }
 
 void
@@ -65,6 +71,11 @@ CNS::init ()
 
     MultiFab& S_new = get_new_data(State_Type);
     FillCoarsePatch(S_new, 0, cur_time, State_Type, 0, NUM_STATE);
+
+    if (CNS::do_load_balance) {
+        MultiFab& C_new = get_new_data(Cost_Type);
+        FillCoarsePatch(C_new, 0, cur_time, Cost_Type, 0, 1);
+    }
 }
 
 void
@@ -87,6 +98,14 @@ CNS::initData ()
                      BL_TO_FORTRAN_BOX(box),
                      BL_TO_FORTRAN_ANYD(S_new[mfi]),
                      dx, prob_lo);
+    }
+
+    if (CNS::do_load_balance)
+    {
+        MultiFab& C_new = get_new_data(Cost_Type);
+        C_new.setVal(1.0);
+        EB_set_covered(C_new, 0, 1, 0.2);
+        EB_set_single_valued_cells(C_new, 0, 1, 5.0);
     }
 }
 
@@ -290,6 +309,8 @@ CNS::read_params ()
         phys_bc.setLo(i,lo_bc[i]);
         phys_bc.setHi(i,hi_bc[i]);
     }
+
+    pp.query("do_load_balance", do_load_balance);
 }
 
 void
@@ -350,19 +371,25 @@ CNS::estTimeStep ()
     Real estdt = std::numeric_limits<Real>::max();
 
     const Real* dx = geom.CellSize();
-    const MultiFab& stateMF = get_new_data(State_Type);
+    const MultiFab& S = get_new_data(State_Type);
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(min:estdt)
 #endif
     {
         Real dt = std::numeric_limits<Real>::max();
-        for (MFIter mfi(stateMF,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S,true); mfi.isValid(); ++mfi)
         {
             const Box& box = mfi.tilebox();
-            cns_estdt(BL_TO_FORTRAN_BOX(box),
-                      BL_TO_FORTRAN_ANYD(stateMF[mfi]),
-                      dx, &dt);
+
+            const auto& sfab = dynamic_cast<EBFArrayBox const&>(S[mfi]);
+            const auto& flag = sfab.getEBCellFlagFab();
+
+            if (flag.getType(box) != FabType::covered) {
+                cns_estdt(BL_TO_FORTRAN_BOX(box),
+                          BL_TO_FORTRAN_ANYD(S[mfi]),
+                          dx, &dt);
+            }
         }
         estdt = std::min(estdt,dt);
     }
@@ -390,8 +417,14 @@ CNS::computeTemp (MultiFab& State, int ng)
     for (MFIter mfi(State,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-        cns_compute_temperature(BL_TO_FORTRAN_BOX(bx),
-                                BL_TO_FORTRAN_ANYD(State[mfi]));
+
+        const auto& sfab = dynamic_cast<EBFArrayBox const&>(State[mfi]);
+        const auto& flag = sfab.getEBCellFlagFab();
+
+        if (flag.getType(bx) != FabType::covered) {
+            cns_compute_temperature(BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_ANYD(State[mfi]));
+        }
     }
 }
 
@@ -410,7 +443,7 @@ CNS::fixUpGeometry ()
         EBCellFlagFab& flag = const_cast<EBCellFlagFab&>(static_cast<EBFArrayBox const&>
                                                          (S[mfi]).getEBCellFlagFab());
         const Box& bx = mfi.growntilebox(ng);
-        if (flag.getType() == FabType::singlevalued)
+        if (flag.getType(bx) == FabType::singlevalued)
         {
             cns_eb_fixup_geom(BL_TO_FORTRAN_BOX(bx),
                               BL_TO_FORTRAN_ANYD(flag),
@@ -423,19 +456,19 @@ CNS::fixUpGeometry ()
 void
 CNS::LoadBalance (Amr& amr)
 {
-    for (int lev = 0; lev <= amr.finestLevel(); ++lev)
+    if (amr.levelSteps(0) <= 1)
     {
-        auto& amrlevel = amr.getLevel(lev);
-        MultiFab wgt(amrlevel.boxArray(),
-                     amrlevel.DistributionMap(),
-                     1, 0, MFInfo(),
-                     amrlevel.Factory());
-        wgt.setVal(1.0);
-        EB_set_covered(wgt, 0, 1, 0.0);
+        amrex::Print() << "Load balance at Step " << amr.levelSteps(0) << "\n";
 
-        const DistributionMapping& newdm = DistributionMapping::makeKnapSack(wgt);
-        amr.InstallNewDistributionMap(lev, newdm);
+        for (int lev = 0; lev <= amr.finestLevel(); ++lev)
+        {
+            MultiFab& C_new = amr.getLevel(lev).get_new_data(Cost_Type);
 
-        amr.getLevel(lev).post_regrid(lev, amr.finestLevel());
+            const DistributionMapping& newdm = DistributionMapping::makeKnapSack(C_new);
+
+            amr.InstallNewDistributionMap(lev, newdm);
+
+            dynamic_cast<CNS&>(amr.getLevel(lev)).fixUpGeometry();
+        }
     }
 }

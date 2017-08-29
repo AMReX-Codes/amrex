@@ -99,6 +99,8 @@ public:
 
     static void LoadBalance (amrex::Amr& amr);
 
+    static int do_load_balance;
+
 protected:
 
     static void read_params ();
@@ -136,8 +138,9 @@ protected:
 
     enum StateDataType {
         State_Type = 0,
-        NUM_STATEDATA_TYPE
+        Cost_Type
     };
+    static int num_state_data_types;
 
     static amrex::ErrorList err_list;
     static amrex::BCRec     phys_bc;
