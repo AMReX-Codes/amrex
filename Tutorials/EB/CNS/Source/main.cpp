@@ -17,8 +17,9 @@ int main (int argc, char* argv[])
     BL_PROFILE_VAR("main()", pmain);
 
     Real timer_tot = ParallelDescriptor::second();
-    Real timer_init;
-    Real timer_advance;
+    Real timer_init = 0.;
+    Real timer_advance = 0.;
+    Real timer_loadbalance = 0.;
 
     int  max_step;
     Real strt_time;
@@ -56,8 +57,6 @@ int main (int argc, char* argv[])
 
         timer_init = ParallelDescriptor::second() - timer_init;
 
-        CNS::LoadBalance(amr);
-        
         timer_advance = ParallelDescriptor::second();
 
 	while ( amr.okToContinue() &&
@@ -65,6 +64,12 @@ int main (int argc, char* argv[])
 	       (amr.cumTime() < stop_time || stop_time < 0.0) )
 	    
 	{
+            if (CNS::do_load_balance) {
+                Real t0 = ParallelDescriptor::second();
+                CNS::LoadBalance(amr);
+                timer_loadbalance += ParallelDescriptor::second()-t0;
+            }
+
 	    //
 	    // Do a coarse timestep.  Recursively calls timeStep()
 	    //
@@ -85,12 +90,15 @@ int main (int argc, char* argv[])
 
     timer_tot = ParallelDescriptor::second() - timer_tot;
 
-    ParallelDescriptor::ReduceRealMax({timer_tot, timer_init, timer_advance},
+    ParallelDescriptor::ReduceRealMax({timer_tot, timer_init, timer_advance, timer_loadbalance},
                                       ParallelDescriptor::IOProcessorNumber());
 
-    amrex::Print() << "Run Time total   = " << timer_tot     << "\n"
-                   << "Run Time init    = " << timer_init    << "\n"
-                   << "Run Time advance = " << timer_advance << std::endl;
+    amrex::Print() << "Run Time total        = " << timer_tot     << "\n"
+                   << "Run Time init         = " << timer_init    << "\n"
+                   << "Run Time advance      = " << timer_advance << "\n";
+    if (CNS::do_load_balance) {
+        amrex::Print() << "Run time load balance = " << timer_loadbalance << "\n";
+    }
 
     BL_PROFILE_VAR_STOP(pmain);
 
