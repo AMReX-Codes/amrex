@@ -67,13 +67,6 @@ class BoostedFrameDiagnostic {
 
     std::vector<LabSnapShot> snapshots_;
 
-    amrex::Box getIndexBox(const amrex::RealBox& real_box,
-                           const amrex::Geometry& geom);
-    
-    std::unique_ptr<amrex::MultiFab> getSliceData(const amrex::MultiFab& cell_centered_data,
-                                                  const amrex::Geometry& geometry,
-                                                  amrex::Real z_coord);
-    
 public:
 
     BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab, 

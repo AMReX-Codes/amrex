@@ -4,6 +4,80 @@
 
 using namespace amrex;
 
+namespace {
+
+    Box 
+    getIndexBox(const RealBox& real_box, const Geometry& geom) {
+        IntVect slice_lo, slice_hi;
+    
+        D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
+               slice_lo[1]=floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
+               slice_lo[2]=floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
+        
+        D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
+               slice_hi[1]=floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
+               slice_hi[2]=floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
+        
+        return Box(slice_lo, slice_hi) & geom.Domain();
+    }    
+
+    std::unique_ptr<MultiFab> allocateSlice(const MultiFab& cell_centered_data, 
+                                            const Geometry& geom, Real z_coord,
+                                            Array<int>& slice_to_full_ba_map) {
+        
+        // Get our slice and convert to index space
+        RealBox real_slice = geom.ProbDomain();
+        real_slice.setLo(2, z_coord);
+        real_slice.setHi(2, z_coord);
+        Box slice_box = getIndexBox(real_slice, geom);
+        
+        // define the multifab that stores slice
+        BoxArray ba = cell_centered_data.boxArray();
+        const DistributionMapping& dm = cell_centered_data.DistributionMap();
+        std::vector< std::pair<int, Box> > isects;
+        ba.intersections(slice_box, isects, false, 0);
+        Array<Box> boxes;
+        Array<int> procs;
+        for (int i = 0; i < isects.size(); ++i) {
+            procs.push_back(dm[isects[i].first]);
+            boxes.push_back(isects[i].second);
+            slice_to_full_ba_map.push_back(isects[i].first);
+        }
+        procs.push_back(ParallelDescriptor::MyProc());
+        BoxArray slice_ba(&boxes[0], boxes.size());
+        DistributionMapping slice_dmap(procs);
+        std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, 10, 0));
+        return slice;
+    }
+    
+    std::unique_ptr<MultiFab> getSliceData(const MultiFab& cell_centered_data, 
+                                           const Geometry& geom, Real z_coord) {
+        
+        Array<int> slice_to_full_ba_map;
+        std::unique_ptr<MultiFab> slice = allocateSlice(cell_centered_data, geom, z_coord,
+                                                        slice_to_full_ba_map);
+        
+        // Fill the slice with sampled data
+        const BoxArray& ba = cell_centered_data.boxArray();
+        for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
+            int slice_gid = mfi.index();
+            int full_gid = slice_to_full_ba_map[slice_gid];
+            
+            const Box& slice_box = mfi.validbox();
+            const Box& full_box  = ba[full_gid];
+            const Box& tile_box  = mfi.tilebox();
+            
+            WRPX_FILL_SLICE(cell_centered_data[full_gid].dataPtr(),
+                            full_box.loVect(), full_box.hiVect(),
+                            (*slice)[slice_gid].dataPtr(),
+                            slice_box.loVect(), slice_box.hiVect(),
+                            tile_box.loVect(), tile_box.hiVect());
+        }
+        
+        return slice;
+    }    
+}
+
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots, 
@@ -31,73 +105,9 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     }
 }
 
-Box 
-BoostedFrameDiagnostic::
-getIndexBox(const RealBox& real_box, const Geometry& geom) {
-    IntVect slice_lo, slice_hi;
-    
-    D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
-           slice_lo[1]=floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
-           slice_lo[2]=floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
-    
-    D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
-           slice_hi[1]=floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
-           slice_hi[2]=floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
-    
-    return Box(slice_lo, slice_hi) & geom.Domain();
-}
-
-std::unique_ptr<MultiFab> 
-BoostedFrameDiagnostic::
-getSliceData(const MultiFab& cell_centered_data, 
-             const Geometry& geom, Real z_coord) {
-    
-    // Get our slice and convert to index space
-    RealBox real_slice = geom.ProbDomain();
-    real_slice.setLo(2, z_coord);
-    real_slice.setHi(2, z_coord);
-    Box slice_box = getIndexBox(real_slice, geom);
-  
-    // define the multifab that stores slice
-    BoxArray ba = cell_centered_data.boxArray();
-    const DistributionMapping& dm = cell_centered_data.DistributionMap();
-    std::vector< std::pair<int, Box> > isects;
-    ba.intersections(slice_box, isects, false, 0);
-    Array<Box> boxes;
-    Array<int> procs;
-    Array<int> slice_to_full_ba_map;
-    for (int i = 0; i < isects.size(); ++i) {
-        procs.push_back(dm[isects[i].first]);
-        boxes.push_back(isects[i].second);
-        slice_to_full_ba_map.push_back(isects[i].first);
-    }  
-    procs.push_back(ParallelDescriptor::MyProc());
-    BoxArray slice_ba(&boxes[0], boxes.size());
-    DistributionMapping slice_dmap(procs);
-    std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, 10, 0));
-        
-    // Fill the slice with sampled data
-    for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
-        int slice_gid = mfi.index();
-        int full_gid = slice_to_full_ba_map[slice_gid];
-
-        const Box& slice_box = slice_ba[slice_gid];    
-        const Box& full_box = ba[full_gid];
-        const Box& tile_box = mfi.tilebox();
-
-        WRPX_FILL_SLICE(cell_centered_data[full_gid].dataPtr(),
-                        full_box.loVect(), full_box.hiVect(),
-                        (*slice)[slice_gid].dataPtr(),
-                        slice_box.loVect(), slice_box.hiVect(),
-                        tile_box.loVect(), tile_box.hiVect());
-    }    
-    return slice;
-}
-
 void
 BoostedFrameDiagnostic::
-writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost)
-{
+writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {
     
     for (int i = 0; i < N_snapshots_; ++i) {
         snapshots_[i].updateCurrentZPositions(t_boost, 

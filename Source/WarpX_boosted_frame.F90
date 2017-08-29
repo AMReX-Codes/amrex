@@ -10,7 +10,7 @@ module warpx_boosted_frame_module
 contains
 
 !
-! Given cell-centered data in the boosted reference fraem of the simulation, 
+! Given cell-centered data in the boosted reference frame of the simulation, 
 ! this transforms E and B in place so that the multifab now contains values
 ! in the lab frame. This routine assumes that the simulation frame is moving
 ! in the positive z direction with respect to the lab frame.
