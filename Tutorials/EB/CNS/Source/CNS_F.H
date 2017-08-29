@@ -26,6 +26,11 @@ extern "C" {
                       const amrex_real* dx, const amrex_real* glo, 
                       const amrex_real* time, const int* bc);
 
+    void cns_nullfill (BL_FORT_FAB_ARG_3D(state),
+                       const int* dlo, const int* dhi,
+                       const amrex_real* dx, const amrex_real* glo, 
+                       const amrex_real* time, const int* bc);
+
     void cns_derpres (BL_FORT_FAB_ARG_3D(der),const int* nvar,
                       const BL_FORT_FAB_ARG_3D(data),const int* ncomp,
                       const int* lo, const int* hi,

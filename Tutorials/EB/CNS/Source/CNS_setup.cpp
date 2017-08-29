@@ -4,6 +4,8 @@
 
 using namespace amrex;
 
+int CNS::num_state_data_types = 0;
+
 static Box the_same_box (const Box& b) { return b; }
 //static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
 
@@ -127,6 +129,15 @@ CNS::variableSetUp ()
 			  name,
 			  bcs,
 			  BndryFunc(cns_denfill,cns_hypfill));
+
+    if (CNS::do_load_balance)
+    {
+        desc_lst.addDescriptor(Cost_Type, IndexType::TheCellType(), StateDescriptor::Point,
+                               0,1, &pc_interp);
+        desc_lst.setComponent(Cost_Type, 0, "Cost", bc, BndryFunc(cns_nullfill,cns_nullfill));
+    }
+
+    num_state_data_types = desc_lst.size();
 
     StateDescriptor::setBndryFuncThreadSafety(true);
 
