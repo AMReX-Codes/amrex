@@ -259,7 +259,7 @@ WarpX::EvolveEM (int numsteps)
 	}
 
         std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
-        myBoostedFrameDiagnostic.writeLabFrameData(*cell_centered_data, cur_time);
+        myBoostedFrameDiagnostic.writeLabFrameData(*cell_centered_data, geom[0], cur_time);
 
 	if (to_make_plot)
         {

@@ -29,7 +29,9 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     }
 }
 
-Box getIndexBox(const RealBox& real_box, const Geometry& geom) {
+Box 
+BoostedFrameDiagnostic::
+getIndexBox(const RealBox& real_box, const Geometry& geom) {
     IntVect slice_lo, slice_hi;
     
     D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
@@ -43,9 +45,11 @@ Box getIndexBox(const RealBox& real_box, const Geometry& geom) {
     return Box(slice_lo, slice_hi) & geom.Domain();
 }
 
-void getSliceData(const MultiFab& cell_centered_data, 
-                  const Geometry& geom, Real z_coord) {
-
+std::unique_ptr<MultiFab> 
+BoostedFrameDiagnostic::
+getSliceData(const MultiFab& cell_centered_data, 
+             const Geometry& geom, Real z_coord) {
+    
     // Get our slice and convert to index space
     RealBox real_slice = geom.ProbDomain();
     real_slice.setLo(2, z_coord);
@@ -66,11 +70,11 @@ void getSliceData(const MultiFab& cell_centered_data,
     procs.push_back(ParallelDescriptor::MyProc());
     BoxArray slice_ba(&boxes[0], boxes.size());
     DistributionMapping slice_dmap(procs);
-    MultiFab slice(slice_ba, slice_dmap, 6, 0);
-    
+    std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, 6, 0));
+        
     // Fill the slice with sampled data
     const Real* dx      = geom.CellSize();
-    for (MFIter mfi(slice); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
         int slice_gid = mfi.index();
         Box grid = slice_ba[slice_gid];
         int xlo = grid.smallEnd(0), ylo = grid.smallEnd(1), zlo = grid.smallEnd(2);
@@ -93,17 +97,19 @@ void getSliceData(const MultiFab& cell_centered_data,
                                iv[1]=floor((y - geom.ProbLo(1))/geom.CellSize(1));,
                                iv[2]=floor((z - geom.ProbLo(2))/geom.CellSize(2)););
                             
-                        slice[slice_gid](IntVect(i, j, k), comp) = cell_centered_data[full_gid](iv, comp);
+                        (*slice)[slice_gid](IntVect(i, j, k), comp) = cell_centered_data[full_gid](iv, comp);
                     }
                 }
             }
         }
     }
+
+    return slice;
 }
 
 void
 BoostedFrameDiagnostic::
-writeLabFrameData(const MultiFab& cell_centered_data, Real t_boost)
+writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost)
 {
     
     for (int i = 0; i < N_snapshots_; ++i) {
@@ -113,11 +119,13 @@ writeLabFrameData(const MultiFab& cell_centered_data, Real t_boost)
         
         // for each z position, fill a slice with the data.
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
-        std::cout << i_lab << " ";
-        std::cout << snapshots_[i].current_z_lab << " ";
-        std::cout << snapshots_[i].zmin_lab << " ";
-        std::cout << dz_lab_ << " ";
-        std::cout<< snapshots_[i].current_z_boost << std::endl;
+        std::unique_ptr<MultiFab> slice = getSliceData(cell_centered_data, geom,
+                                                       snapshots_[i].current_z_boost);
+        
+        // and write it to disk.
+        std::stringstream ss;
+        ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("slice", i_lab, 5);    
+        VisMF::Write(*slice, ss.str());
     }
 }
 
