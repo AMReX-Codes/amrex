@@ -253,13 +253,13 @@ WarpX::EvolveEM (int numsteps)
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
 
-        auto cc = GetCellCenteredData();
-        myBoostedFrameDiagnostic();
-
 	// sync up time
 	for (int i = 0; i <= max_level; ++i) {
 	    t_new[i] = cur_time;
 	}
+
+        std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
+        myBoostedFrameDiagnostic.writeLabFrameData(*cell_centered_data, cur_time);
 
 	if (to_make_plot)
         {

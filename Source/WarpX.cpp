@@ -166,7 +166,7 @@ WarpX::ReadParameters ()
 	pp.query("regrid_int", regrid_int);
 
         pp.queryarr("B_external", B_external);
-
+        
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
 	{

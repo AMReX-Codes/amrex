@@ -29,12 +29,81 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     }
 }
 
+Box getIndexBox(const RealBox& real_box, const Geometry& geom) {
+    IntVect slice_lo, slice_hi;
+    
+    D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
+           slice_lo[1]=floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
+           slice_lo[2]=floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
+    
+    D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
+           slice_hi[1]=floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
+           slice_hi[2]=floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
+    
+    return Box(slice_lo, slice_hi) & geom.Domain();
+}
+
+void getSliceData(const MultiFab& cell_centered_data, 
+                  const Geometry& geom, Real z_coord) {
+
+    // Get our slice and convert to index space
+    RealBox real_slice = geom.ProbDomain();
+    real_slice.setLo(2, z_coord);
+    real_slice.setHi(2, z_coord);
+    Box slice_box = getIndexBox(real_slice, geom);
+  
+    // define the multifab that stores slice
+    BoxArray ba = cell_centered_data.boxArray();
+    const DistributionMapping& dm = cell_centered_data.DistributionMap();
+    std::vector< std::pair<int, Box> > isects;
+    ba.intersections(slice_box, isects, false, 0);
+    Array<Box> boxes;
+    Array<int> procs;
+    for (int i = 0; i < isects.size(); ++i) {
+        procs.push_back(dm[isects[i].first]);
+        boxes.push_back(isects[i].second);
+    }  
+    procs.push_back(ParallelDescriptor::MyProc());
+    BoxArray slice_ba(&boxes[0], boxes.size());
+    DistributionMapping slice_dmap(procs);
+    MultiFab slice(slice_ba, slice_dmap, 6, 0);
+    
+    // Fill the slice with sampled data
+    const Real* dx      = geom.CellSize();
+    for (MFIter mfi(slice); mfi.isValid(); ++mfi) {
+        int slice_gid = mfi.index();
+        Box grid = slice_ba[slice_gid];
+        int xlo = grid.smallEnd(0), ylo = grid.smallEnd(1), zlo = grid.smallEnd(2);
+        int xhi = grid.bigEnd(0), yhi = grid.bigEnd(1), zhi = grid.bigEnd(2);
+    
+        IntVect iv = grid.smallEnd();
+        ba.intersections(Box(iv, iv), isects, true, 0);
+        BL_ASSERT(!isects.empty());
+        int full_gid = isects[0].first;
+    
+        for (int k = zlo; k <= zhi; k++) {
+            for (int j = ylo; j <= yhi; j++) {
+                for (int i = xlo; i <= xhi; i++) {
+                    for (int comp = 0; comp < 6; comp++) {
+                        Real x = geom.ProbLo(0) + i*dx[0];
+                        Real y = geom.ProbLo(1) + j*dx[1];
+                        Real z = z_coord;
+                            
+                        D_TERM(iv[0]=floor((x - geom.ProbLo(0))/geom.CellSize(0));,
+                               iv[1]=floor((y - geom.ProbLo(1))/geom.CellSize(1));,
+                               iv[2]=floor((z - geom.ProbLo(2))/geom.CellSize(2)););
+                            
+                        slice[slice_gid](IntVect(i, j, k), comp) = cell_centered_data[full_gid](iv, comp);
+                    }
+                }
+            }
+        }
+    }
+}
+
 void
 BoostedFrameDiagnostic::
-writeLabFrameData(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
-                  const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
-                  const MultiFab& jx, const MultiFab& jy, const MultiFab& jz,
-                  const MultiFab& rho, Real t_boost)
+writeLabFrameData(const MultiFab& cell_centered_data, Real t_boost)
 {
     
     for (int i = 0; i < N_snapshots_; ++i) {
@@ -43,7 +112,12 @@ writeLabFrameData(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                               inv_beta_boost_);
         
         // for each z position, fill a slice with the data.
-        
+        int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
+        std::cout << i_lab << " ";
+        std::cout << snapshots_[i].current_z_lab << " ";
+        std::cout << snapshots_[i].zmin_lab << " ";
+        std::cout << dz_lab_ << " ";
+        std::cout<< snapshots_[i].current_z_boost << std::endl;
     }
 }
 
