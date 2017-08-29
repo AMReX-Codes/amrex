@@ -456,7 +456,7 @@ CNS::fixUpGeometry ()
 void
 CNS::LoadBalance (Amr& amr)
 {
-    if (amr.levelSteps(0) <= 1)
+    if (amr.levelSteps(0) == 1)
     {
         amrex::Print() << "Load balance at Step " << amr.levelSteps(0) << "\n";
 
