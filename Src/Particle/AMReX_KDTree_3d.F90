@@ -25,9 +25,9 @@ subroutine amrex_compute_best_partition(cost, clo, chi, &
   if (dir .eq. 0) then
      
      split = lo(1)
-     do i = lo(1), hi(1)
+     do i = lo(1), hi(1)-1
         do j = lo(2), hi(2)
-           do k = lo(3), hi(3) 
+           do k = lo(3), hi(3)
               cost_sum = cost_sum + cost(i, j, k)
            end do
         end do
@@ -42,7 +42,7 @@ subroutine amrex_compute_best_partition(cost, clo, chi, &
   else if (dir .eq. 1) then
      
      split = lo(2)
-     do j = lo(2), hi(2)
+     do j = lo(2), hi(2)-1
         do i = lo(1), hi(1)
            do k = lo(3), hi(3) 
               cost_sum = cost_sum + cost(i, j, k)
@@ -59,7 +59,7 @@ subroutine amrex_compute_best_partition(cost, clo, chi, &
   else if (dir .eq. 2) then
      
      split = lo(3)
-     do k = lo(3), hi(3)
+     do k = lo(3), hi(3)-1
         do j = lo(2), hi(2)
            do i = lo(1), hi(1) 
               cost_sum = cost_sum + cost(i, j, k)

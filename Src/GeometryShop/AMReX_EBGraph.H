@@ -55,6 +55,7 @@ namespace amrex
     
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
 
     ///
     /**
@@ -372,6 +373,9 @@ namespace amrex
       {
         return m_fullRegion;
       }
+
+    //for debugging
+    static bool s_verbose;
   private:
 
     ///for serialization
@@ -392,7 +396,7 @@ namespace amrex
        the BaseFab below is undefined.
     */
     TAG m_tag;
-        
+
     ///
     /**
        the graph description of the box.
@@ -468,6 +472,8 @@ namespace amrex
         
     ///
     ~EBGraph();
+
+    EBGraph (EBGraph&& rhs) noexcept = default;
         
     ///
     /**
@@ -846,6 +852,7 @@ namespace amrex
         
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
         
   private:
         

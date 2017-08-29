@@ -3,6 +3,10 @@
 #include <AMReX_FillPatchUtil_F.H>
 #include <cmath>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBLevel.H>
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -63,7 +67,8 @@ namespace amrex
 		destcomp = dcomp;
 		sameba = true;
 	    } else {
-		raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, 0);
+		raii.define(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, 0,
+                            MFInfo(), smf[0]->Factory());
 			    
 		dmf = &raii;
 		destcomp = 0;
@@ -136,11 +141,14 @@ namespace amrex
 		}
 	    }
 	    
-	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g, ngrow, coarsener);
+	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
+                                                                      ngrow, coarsener, 
+                                                                      amrex::coarsen(fgeom.Domain(),ratio));
 
 	    if ( ! fpc.ba_crse_patch.empty())
 	    {
-		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0);
+		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
+                                       *fpc.fact_crse_patch);
 		
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
 		
@@ -213,7 +221,14 @@ namespace amrex
 	    }
 	}
 
-	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0);
+#ifdef AMREX_USE_EB
+        EBLevel eblg (ba_crse_patch, dm, cgeom.Domain(), 0);
+        const EBFArrayBoxFactory factory{eblg};
+#else
+        const FArrayBoxFactory factory{};
+#endif
+
+	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(), factory);
 
 	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
@@ -281,7 +296,11 @@ namespace amrex
                 cba.coarsen(ref_ratio);
                 const DistributionMapping& dm = cfinfo.dm_cfb;
 
-                cmf[idim].define(cba, dm, 1, 1);
+#ifdef AMREX_USE_EB
+                amrex::Abort("InterpCrseFineBndryEMfield: EB is allowed");
+#endif
+
+                cmf[idim].define(cba, dm, 1, 1, MFInfo(), crse[0].Factory());
 
                 cmf[idim].copy(crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
             }

@@ -8,9 +8,7 @@ set ( CXXSRC AMReX_TracerParticles.cpp    AMReX_LoadBalanceKD.cpp)
    
 set ( F90SRC AMReX_Particle_mod_${BL_SPACEDIM}d.F90    AMReX_KDTree_${BL_SPACEDIM}d.F90)
 
-if ( ENABLE_OMP )
-   list ( APPEND F90SRC AMReX_OMPDepositionHelper_nd.F90 )
-endif ()
+list ( APPEND F90SRC AMReX_OMPDepositionHelper_nd.F90 )
 
 set ( F77SRC AMReX_Particles_${BL_SPACEDIM}D.F )
 

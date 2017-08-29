@@ -2496,7 +2496,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
     level_count.resize(max_level + 1);
     allBoxes.resize(max_level + 1);
 
-    if (max_level >= max_level) {
+    if (max_level >= max_level) {  // We know this.
        for (i = 0; i <= max_level; ++i) { is >> geom[i]; }
        for (i = 0; i <  max_level; ++i) { is >> refRatio[i]; }
        for (i = 0; i <= max_level; ++i) { is >> dt_level[i]; }

@@ -93,22 +93,16 @@ namespace amrex{
     };
 
     class DependencyMap{
-	struct TaskComp {
-	    bool operator() (const TaskName& lhs, const TaskName& rhs) const
-	    {
-		return lhs<rhs;
-	    }
-	};
 	private:
-	std::map<TaskName, map<int, std::queue< Data* > > > dataMap;
+	std::map<TaskName, map<int, std::queue< Data* > > > _dataMap;
 	size_t _size; 
 
 	public:
 	//return the total number of inputs/outputs of a task
 	size_t size(){
 	    size_t s=0;
-	    std::map<TaskName, std::map<int, std::queue< Data* > > >::iterator it= dataMap.begin();
-	    while (it!= dataMap.end()){
+	    std::map<TaskName, std::map<int, std::queue< Data* > > >::iterator it= _dataMap.begin();
+	    while (it!= _dataMap.end()){
 		std::map<int, std::queue< Data* > >::iterator tagIt= ((*it).second).begin(); 
 		while (tagIt!= ((*it).second).end()){
 		    s+= (*tagIt).second.size();
@@ -119,34 +113,34 @@ namespace amrex{
 	    return s;
 	}
 	bool isSatisfied(TaskName name, int tag=0){
-	    if(dataMap.find(name) != dataMap.end()){
-		if(dataMap[name].find(tag) != dataMap[name].end()){
-		    return dataMap[name][tag].size() >0;
+	    if(_dataMap.find(name) != _dataMap.end()){
+		if(_dataMap[name].find(tag) != _dataMap[name].end()){
+		    return _dataMap[name][tag].size() >0;
 		}
 	    }
 	    return false;
 	}
 	bool empty(){return _size==0;}
 	void push_back(TaskName name, Data* d, int tag=0){
-	    dataMap[name][tag].push(d);
+	    _dataMap[name][tag].push(d);
 	    _size++;
 	}
 	Data* pop_front(TaskName name, int tag=0){
-	    if(dataMap[name][tag].size()==0) return NULL;
-	    Data* d= dataMap[name][tag].front();
-	    dataMap[name][tag].pop();
+	    if(_dataMap[name][tag].size()==0) return NULL;
+	    Data* d= _dataMap[name][tag].front();
+	    _dataMap[name][tag].pop();
 	    _size--;
 	    return d;
 	}
-	std::queue< Data* >& GetDependencies(TaskName name, int tag=0){return dataMap[name][tag];}
+	std::queue< Data* >& GetDependencies(TaskName name, int tag=0){return _dataMap[name][tag];}
     };
 
     //! The most abstract task
     class Task{
 	protected:
 	    TaskName _id;
-	    DependencyMap neighbors_in; 
-	    std::queue<Data*> outputs;
+	    DependencyMap _neighbors_in; 
+	    std::queue<Data*> _outputs;
 	    std::queue<Task*> _newTasks;
 	    bool _isPersistent;
 	public:
@@ -166,11 +160,11 @@ namespace amrex{
 	    void Pull(TaskName src, char* d, size_t size, int tag=0);
 	    void Push(TaskName dest, char* d, size_t size, int tag=0);
 	    bool Depend_on(TaskName src, int tag=0){
-		return neighbors_in.isSatisfied(src, tag);
+		return _neighbors_in.isSatisfied(src, tag);
 	    }
-	    std::queue<Data*>& GetOutputs(){return outputs;}
+	    std::queue<Data*>& GetOutputs(){return _outputs;}
 	    std::queue<Task*>& GetNewTasks(){return _newTasks;}
-	    DependencyMap& GetInputs(){return neighbors_in;}
+	    DependencyMap& GetInputs(){return _neighbors_in;}
 	    void KeepTaskAlive(){_isPersistent=true;}
 	    void SelfDestroy(){_isPersistent=false;}
 	    bool isPersistent(){return _isPersistent;}
