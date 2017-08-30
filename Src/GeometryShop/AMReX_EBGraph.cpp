@@ -1873,13 +1873,20 @@ namespace amrex
     std::size_t linearSize = 0;
     //domain
     linearSize +=  Box::linearSize();
-    for (BoxIterator bit(a_region); bit.ok(); ++bit)
+    //flag for reg or covered
+    linearSize += sizeof(int);
+    bool isRegBox = isRegular(a_region);
+    bool isCovBox = isCovered(a_region);
+    if((!isRegBox) && (!isCovBox))
     {
-      GraphNode node = getGraphNode(bit());
-      size_t nodeSize = node.linearSize();
-      linearSize += nodeSize;
+      for (BoxIterator bit(a_region); bit.ok(); ++bit)
+      {
+        GraphNode node = getGraphNode(bit());
+        size_t nodeSize = node.linearSize();
+        linearSize += nodeSize;
+      }
     }
-
+    //amrex::AllPrint() << "linearsize: a_region = " << a_region << ", retval = " << linearSize << endl;;
     return linearSize;
   }
         
@@ -1898,17 +1905,38 @@ namespace amrex
 
     m_domain.linearOut(buffer);
     size_t incrval = Box::linearSize();
-    buffer    += incrval;
+    buffer += incrval;
     retval += incrval;
 
-    for (BoxIterator bit(a_region); bit.ok(); ++bit)
+    int regIrregCovCode = 0;
+    if(isRegular(a_region))
     {
-      GraphNode node = getGraphNode(bit());
-      size_t nodeSize = node.linearSize();
-      node.linearOut(buffer);
-      buffer += nodeSize;
-      retval += nodeSize;
+      regIrregCovCode = -1;
     }
+    if(isCovered(a_region))
+    {
+      regIrregCovCode =  1;
+    }
+    //amrex::AllPrint() << "copytomem   region = " << a_region << ", regirregcov = " << regIrregCovCode << endl;
+
+    int* intbuf = (int*) buffer;
+    *intbuf = regIrregCovCode;
+    incrval = sizeof(int);
+    buffer += incrval;
+    retval += incrval;
+
+    if(regIrregCovCode == 0)
+    {
+      for (BoxIterator bit(a_region); bit.ok(); ++bit)
+      {
+        GraphNode node = getGraphNode(bit());
+        size_t nodeSize = node.linearSize();
+        node.linearOut(buffer);
+        buffer += nodeSize;
+        retval += nodeSize;
+      }
+    }
+    //amrex::AllPrint() << "copytomem:   a_region = " << a_region << ", retval = " << retval << endl;;
     return retval;
   }
         
@@ -1934,7 +1962,31 @@ namespace amrex
 
     m_region &= m_domain;
 
+    int regIrregCovCode = 0;
+    int* intbuf = (int*) buffer;
+    regIrregCovCode = *intbuf;
 
+    //amrex::AllPrint() << "copyfrommem region = " << a_region << ", regirregcov = " << regIrregCovCode << endl;
+
+    incrval = sizeof(int);
+    buffer += incrval;
+    retval += incrval;
+
+    bool allRegInput = (regIrregCovCode == -1);
+    bool allCovInput = (regIrregCovCode ==  1);
+
+    if(allRegInput && isRegular(a_region))
+    {
+      //amrex::AllPrint() << "copyfrommem: a_region = " << a_region << ", retval = " << retval << endl;;
+      return retval;
+    }
+    else if(allCovInput && isCovered(a_region))
+    {
+      //amrex::AllPrint() << "copyfrommem: a_region = " << a_region << ", retval = " << retval << endl;;
+      return retval;
+    }
+
+    //to get to this point, something is going to have to change in this object
     if (isAllRegular() || isAllCovered())
     {
       m_multiIVS = IntVectSet();
@@ -1953,28 +2005,37 @@ namespace amrex
         m_graph.setVal(coveredNode);
       }
       m_tag = HasIrregular;
-
     }
     for (BoxIterator bit(a_region); bit.ok(); ++bit)
     {
 
       GraphNode& node = m_graph(bit(), 0);
-
-      node.linearIn(buffer);
-      if (node.isIrregular())
+      if(allRegInput)
       {
-        (m_irregIVS)|=bit();
+        node.defineAsRegular();
       }
-      if (node.size()>1)
+      else if(allCovInput)
       {
-        (m_multiIVS)|=bit();
+        node.defineAsCovered();
       }
-      size_t nodeSize = node.linearSize();
-      buffer += nodeSize;
-      retval += nodeSize;
-
+      else
+      {
+        node.linearIn(buffer);
+        if (node.isIrregular())
+        {
+          (m_irregIVS)|=bit();
+        }
+        if (node.size()>1)
+        {
+          (m_multiIVS)|=bit();
+        }
+        size_t nodeSize = node.linearSize();
+        buffer += nodeSize;
+        retval += nodeSize;
+      }
     }
 
+    //amrex::AllPrint() << "copyfrommem: a_region = " << a_region << ", retval = " << retval << endl;;
     return retval;
   }
 }
