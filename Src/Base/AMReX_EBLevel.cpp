@@ -63,9 +63,10 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
     static_assert(sizeof(EBFaceFlag) == 4, "sizeof EBFaceFlag != 4");
     static_assert(std::is_standard_layout<EBFaceFlag>::value == true, "EBFaceFlag is not pod");
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+// not thread safe
+//#ifdef _OPENMP
+//#pragma omp parallel
+//#endif
     {
 
     for (MFIter mfi(*m_cellflags); mfi.isValid(); ++mfi)
