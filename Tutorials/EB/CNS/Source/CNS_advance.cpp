@@ -55,7 +55,8 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 #pragma omp parallel
 #endif
     {
-        for (MFIter mfi(S,hydro_tile_size); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
+                        mfi.isValid(); ++mfi)
         {
             Real wt = ParallelDescriptor::second();
 
