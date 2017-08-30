@@ -211,6 +211,18 @@ namespace amrex
         return m_faces;
       }
 
+    //slow! for debugging only
+    bool hasFace(const FaceIndex& a_face) const
+      {
+        for(int iface = 0; iface < m_faces.size(); iface++)
+        {
+          if(m_faces[iface] == a_face)
+          {
+            return true;
+          }
+        }
+        return false;
+      }
     static bool s_verbose;
 
     EBGraph m_ebgraph;
