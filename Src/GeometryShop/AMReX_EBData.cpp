@@ -16,24 +16,24 @@
 #include "AMReX_PolyGeom.H"
 #include "AMReX_EBDataVarMacros.H"
 #include "AMReX_parstream.H"
+#include "AMReX_Print.H"
 
 namespace amrex
 {
 
   bool EBDataImplem::s_verbose = false;
 
+  static const IntVect   ebd_debiv(D_DECL(15, 6, 0));
+  static const VolIndex  ebd_debvof(ebd_debiv, 0);
+  static const IntVect   ebd_debivlo(D_DECL(29,12, 0));
+  static const IntVect   ebd_debivhi(D_DECL(29,13, 0));
+  static const VolIndex  ebd_debvoflo(ebd_debivlo, 0);
+  static const VolIndex  ebd_debvofhi(ebd_debivhi, 0);
+  static const FaceIndex ebd_debface(ebd_debvoflo, ebd_debvofhi);
 
-//  static const IntVect ebd_ivlo(D_DECL(33,13, 0));
-//  static const IntVect ebd_ivhi(D_DECL(33,14, 0));
-//  static const VolIndex ebd_vlo(ebd_ivlo, 0);
-//  static const VolIndex ebd_vhi(ebd_ivhi, 0);
-//  static const FaceIndex ebd_face(ebd_vlo,ebd_vhi, 1);
-  static const IntVect ebd_ivlobox(D_DECL(32, 16, 0));
-  static const IntVect ebd_ivhibox(D_DECL(47, 23, 0));
-  static const Box ebd_box(ebd_ivlobox, ebd_ivhibox);
-
-  void null_deleter_ebdi(EBDataImplem *)
- {}
+  extern void null_deleter_ebdi(EBDataImplem* a_input)
+  {
+  }
  /************************/
   void 
   EBDataImplem::
@@ -195,13 +195,31 @@ namespace amrex
   {
     assert(m_isDefined);
     assert(a_src.m_isDefined);
+    //if(a_src.m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata copy src = " << a_src.m_graph.getDomain() << ",region "  << a_src.m_region << ", a_region = " << a_dstbox <<  ", data(" << ebd_debvof << ",1) = " << a_src.m_volData(ebd_debvof, 1) << endl;
+    //}
+    //if(a_src.m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata copy src = " << a_src.m_graph.getDomain() << ",region "  << a_src.m_region << "\t, srcbox = " << a_srcbox <<  ", data(" << ebd_debface << ",0) = " << a_src.m_faceData[1](ebd_debface, 0) << endl;
+    //}
 
     m_volData.copy(a_src.m_volData, a_srcbox, 0, a_dstbox, 0,  V_VOLNUMBER);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       m_faceData[idir].copy(a_src.m_faceData[idir], a_srcbox, 0, a_dstbox, 0,  F_FACENUMBER);
     }
-    computeNormalsAndBoundaryAreas(m_graph, m_region);
+
+    //if(m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata copy dst = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_dstbox <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
+    //}
+
+    //if(m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata copy dst = " << m_graph.getDomain() << ",region "  << m_region << "\t, dstbox = " << a_dstbox <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
+    //}
+
     return *this;
   }
 /************************/
@@ -238,6 +256,7 @@ namespace amrex
 
   {
     BL_PROFILE("EBDataImpem::define");
+
     m_region = a_region & a_graph.getDomain();
     define( a_graph, a_region);
     if (a_graph.hasIrregular())
@@ -283,6 +302,14 @@ namespace amrex
       }
     }
     computeNormalsAndBoundaryAreas(a_graph, a_validBox);
+    //if(m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata initial define::domain = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_region <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
+    //}
+    //if(m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata initial define domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_region <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
+    //}
   }
 /*******************************/
   const Real& EBDataImplem::volFrac(const VolIndex& a_vof) const
@@ -771,6 +798,15 @@ namespace amrex
     size_t retval = 0;
     unsigned char* buf = (unsigned char*) dst;
 
+    //if(m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata copyto  mem::domain = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
+    //}
+    //if(m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata copyto mem::domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
+    //}
+
     size_t incrval = m_volData.copyToMem(bx, 0, V_VOLNUMBER, buf);
     retval += incrval;
     buf    += incrval;
@@ -785,6 +821,7 @@ namespace amrex
 
     }
 
+    //pout() << "ebdata:: copytomem:   bx = " << bx  << ", retval = " << retval << endl;
     return retval;
   }
 
@@ -815,6 +852,15 @@ namespace amrex
 
     }
 
+    //if(m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata copyfrommem::domain = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
+    //}
+    //pout() << "ebdata:: copyfrommem: bx = " << bx  << ", retval = " << retval << endl;
+    //if(m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata copyfrommem::domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
+    //}
     return retval;
   }
 /*******************************/
