@@ -296,6 +296,9 @@ public:
     //! Sets a new value for the post-timestep regrid trigger.
     void setPostStepRegrid (int new_val) { post_step_regrid = new_val; }
 
+    //! Update the distribution maps in StateData based on the size of the map
+    void UpdateDistributionMaps ( DistributionMapping& dmap );
+
     //! Boundary condition access function.
     Array<int> getBCArray (int State_Type,
 			   int gridno,
