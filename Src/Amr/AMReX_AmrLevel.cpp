@@ -1779,6 +1779,24 @@ AmrLevel::derive (const std::string& name,
     }
 }
 
+//! Update the distribution maps in StateData based on the size of the map
+void
+AmrLevel::UpdateDistributionMaps ( DistributionMapping& update_dmap )
+{
+    long mapsize = update_dmap.size();
+
+    if (dmap.size() == mapsize)
+    { dmap = update_dmap; }
+
+    for (int i = 0; i < state.size(); ++i)
+    {
+       if (state[i].DistributionMap().size() == mapsize)
+          { state[i].setDistributionMap(update_dmap); }
+    }
+}
+
+
+
 Array<int>
 AmrLevel::getBCArray (int State_Type,
                       int gridno,

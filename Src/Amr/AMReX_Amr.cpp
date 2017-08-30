@@ -2377,6 +2377,7 @@ Amr::regrid (int  lbase,
           //MultiFab::MoveAllFabs(mLDM[iMap]);
 	  DistributionMapping newDistMap(mLDM[iMap]);
           MultiFab::MoveAllFabs(newDistMap);
+          UpdateStateDataDistributionMaps(newDistMap);
         }
     }
 
@@ -2980,6 +2981,21 @@ Amr::RedistributeParticles ()
 }
 #endif
 
+void
+Amr::UpdateStateDataDistributionMaps(DistributionMapping& new_dmap)
+{
+   long mapsize = new_dmap.size();
+   for (int i(0); i < DistributionMap().size(); ++i)
+   {
+      if (DistributionMap()[i].size() == mapsize)
+      {  SetDistributionMap(i, new_dmap); }
+   }
+
+   for (int i(0); i < amr_level.size(); ++i)
+   {
+      amr_level[i]->UpdateDistributionMaps(new_dmap); 
+   } 
+}
 
 void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
@@ -3003,6 +3019,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
 	//MultiFab::MoveAllFabs(mLDM[iMap]);
         DistributionMapping newDistMap(mLDM[iMap]);
         MultiFab::MoveAllFabs(newDistMap);
+        UpdateStateDataDistributionMaps(newDistMap);
 	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs for iMap = "
 	               << iMap << "\n\n";
     }
@@ -3560,6 +3577,7 @@ Amr::RedistributeGrids(int how) {
           //MultiFab::MoveAllFabs(mLDM[iMap]);
 	  DistributionMapping newDistMap(mLDM[iMap]);
           MultiFab::MoveAllFabs(newDistMap);
+          UpdateStateDataDistributionMaps(newDistMap);
         }
     }
 #ifdef USE_PARTICLES
