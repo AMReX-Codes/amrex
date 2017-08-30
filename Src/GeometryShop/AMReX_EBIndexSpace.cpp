@@ -178,7 +178,7 @@ namespace amrex
     }
     if (a_maxCoarsenings >= 0)
     {
-      m_nlevels =  std::max(m_nlevels, a_maxCoarsenings+1);
+      m_nlevels =  std::min(m_nlevels, a_maxCoarsenings+1);
     }
       
     m_ebisLevel.resize(m_nlevels, NULL);
