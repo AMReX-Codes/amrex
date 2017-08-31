@@ -9,7 +9,7 @@ DEBUG        = FALSE
 
 USE_MPI      = FALSE
 
-USE_OMP      = TRUE
+USE_OMP      = FALSE
 
 AMREX_HOME = ../../..
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
