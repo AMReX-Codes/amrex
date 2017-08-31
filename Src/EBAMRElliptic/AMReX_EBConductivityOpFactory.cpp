@@ -39,7 +39,7 @@ namespace amrex
     if (a_refToDepth == 1)
     {
       a_acoefCoar.copy(a_acoefFine, 0, 0, 1, 0, 0);
-      a_bcoefCoar.copy(a_bcoefCoar, 0, 0, 1, 0, 0);
+      a_bcoefCoar.copy(a_bcoefFine, 0, 0, 1, 0, 0);
     }
     else
     {
