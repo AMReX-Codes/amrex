@@ -44,6 +44,7 @@ namespace amrex
         return ivar*SpaceDim + gradDir;
       }
 
+                                         
     ///returns true if coarsenable (either by agglomeration or otherwise)
     static bool
     createCoarserEBLG(EBLevelGrid       &  a_eblgCoar,
