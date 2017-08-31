@@ -8,12 +8,9 @@ namespace amrex{
 	Data* data= _neighbors_in.pop_front(src, tag);
 	memcpy(d, data->GetBuffer(), size);
 	data->Free();
-	delete data;
     }
     void Task::Push(TaskName dest, char* d, size_t size, int tag){
-	Data* data= new Data(size);
-	data->SetSource(_id);
-	data->SetRecipient(dest);
+        Data* data= new Data(_id, dest, size);
 	data->SetTag(tag);
 	memcpy(data->GetBuffer(), d, size);
 	_outputs.push(data);

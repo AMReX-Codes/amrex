@@ -53,6 +53,17 @@ struct domain{
     int nx, ny, nz;
 };
 
+    class DynamicTaskAssociate{
+        public:
+        TaskName TaskAssociate(TaskName name){
+	     assert(name.Dim()==4);
+	     TaskName origin=name;
+	     origin[3]=0;
+	     return origin;
+        }
+    };
+
+
 class Jacobi :public Task{
     private:
 	domain *dom;
@@ -351,7 +362,7 @@ int main(int argc,char *argv[])
     }
     double time= -rts.Time();
     rts.Barrier();
-    ArrayGraph<JacobiInit, 4> *JacobiGraph= new ArrayGraph<JacobiInit, 4>(graphName, PointVect<4>(tx, ty, tz, 1), rank, nProcs);
+    ArrayGraph<JacobiInit, 4, DynamicTaskAssociate> *JacobiGraph= new ArrayGraph<JacobiInit, 4, DynamicTaskAssociate>(graphName, PointVect<4>(tx, ty, tz, 1), rank, nProcs);
     rts.Run(JacobiGraph);
     double res= global_err;
     double finalErr;
