@@ -113,7 +113,7 @@ namespace amrex
     ebisPtr->fillEBISLayout(m_ebisl, a_dbl, m_dm, m_domain, m_nghost);
     m_cfivs = std::shared_ptr<LayoutData<IntVectSet> >(new LayoutData<IntVectSet>());
 
-    //pout() << "about to define cfivs" << endl;
+    ////pout() << "about to define cfivs" << endl;
 
     defineCFIVS(*m_cfivs, m_grids, m_dm, m_domain);
     //pout() << "leaving eblevelgrid::define  " << endl;
