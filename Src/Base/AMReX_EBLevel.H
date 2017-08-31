@@ -23,7 +23,7 @@ public:
     EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng);
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const { return *m_cellflags; }
-    const FabArray<EBFaceFlagFab>& getMultiEBFaceFlagFab () const { return *m_faceflags; }
+//    const FabArray<EBFaceFlagFab>& getMultiEBFaceFlagFab () const { return *m_faceflags; }
     const EBISLayout&              getEBISL     () const { return *m_ebisl; }
 
 private:
@@ -40,7 +40,7 @@ Box getLevelDomain (const MultiFab& mf);
 const EBLevel& getEBLevel (const MultiFab& mf);
 
 const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab (const MultiFab& mf);
-const FabArray<EBFaceFlagFab>& getMultiEBFaceFlagFab (const MultiFab& mf);
+//const FabArray<EBFaceFlagFab>& getMultiEBFaceFlagFab (const MultiFab& mf);
 
 }
 
