@@ -1302,7 +1302,7 @@ Amr::restart (const std::string& filename)
             std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
             Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
             ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
-	    if(verbose > 0) {
+	    if(verbose > 2) {
 		amrex::Print() 
 		    << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
 		    << "  " << faHeaderFullName << "  " << tempCharArray.size() << "\n";
