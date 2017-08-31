@@ -123,7 +123,9 @@ namespace amrex
 
 
     assert(a_fromBox == a_toBox);
-    Box intBox = a_toBox;
+    Box toBox = a_toBox;
+    toBox.grow(m_direction, 1);
+    Box intBox = toBox;
     IntVectSet ivsintersect = m_ivs;
     ivsintersect &=  a_src.m_ivs;
     ivsintersect &=  intBox;
