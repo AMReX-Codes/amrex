@@ -300,8 +300,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 {
     // WarpX assumes the same number of guard cells for Ex, Ey, Ez, Bx, By, Bz
     int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-    int ngJ   = (WarpX::use_filter) ? ngE+1 : ngE;
-    int ngRho = (WarpX::use_filter) ? ngE+1 : ngE;
+    int ngJ = ngE;
+    int ngRho = ngE;
+    if (WarpX::use_filter) {
+        ngJ   = ((WarpX::nox+1) % 2) ? WarpX::nox+2 : WarpX::nox+1; // Always even number
+        ngRho = ((WarpX::nox+1) % 2) ? WarpX::nox+2 : WarpX::nox+1; // Always even number
+    }
 
     //
     // The fine patch
