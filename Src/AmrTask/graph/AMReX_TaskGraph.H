@@ -21,10 +21,10 @@ namespace amrex{
 	    private:
 		PointVect<D> _first, _last, _range, _size;
 		size_t _linearSize;
+		size_t _totalSize;
 
 	    public:
 		BlockMapping(PointVect<D> gSize, PointVect<D> myProc, PointVect<D> nProcs){
-		    _linearSize=1;
 		    for(int i=0; i<D; i++){
 			size_t block;
 			size_t remainder;
@@ -34,7 +34,6 @@ namespace amrex{
 			_last[i]= _first[i]+block -1 + (myProc[i]<remainder?1:0);  
 			_range[i]= _last[i]-_first[i] +1;
 			_size[i]= _range[i];
-			_linearSize*= _size[i];
 		    }
 		}
 
@@ -43,6 +42,7 @@ namespace amrex{
 		    size_t remainder;
 		    size_t totalSize=gSize[0];
 		    for(int i=1; i<D; i++) totalSize=totalSize*gSize[i];
+		    _totalSize= totalSize;
 		    block= totalSize/nProcs;
 		    remainder= totalSize%nProcs;
 		    int first_linear, last_linear;
@@ -66,11 +66,19 @@ namespace amrex{
 		PointVect<D> range(){return _range;}
 		PointVect<D> size(){return _size;}
 		size_t linearSize(){return _linearSize;}
+		size_t totalSize(){return _totalSize;}
 	};
 
     enum RunningMode{
 	_Push=0,//The task will not be scheduled until all data dependencies are satified. Data are pushed by other tasks without its consent.
 	_Pull//The task will be fetched and it will pull dependencies from other tasks 
+    };
+
+    class SelfAssociate{
+	public:
+	    TaskName TaskAssociate(TaskName name){
+		return name;
+	    }
     };
 
     //!This class defines data and task spaces, as well as options to decompose these spaces
@@ -83,8 +91,7 @@ namespace amrex{
 		}
 	    };
 	    protected:
-	    int _procid;
-	    int _procnum;
+	    int _nProcs, _rank;
 	    //! Graph name, e.g. "3DStencil", "SparseLU", etc. The default value is empty string
 	    string _graphName; 
 	    std::vector<Task*> _initialTasks; 
@@ -96,7 +103,7 @@ namespace amrex{
 	    RunningMode _mode;
 
 	    public:
-	    AbstractTaskGraph(string graphName=""): _graphName(graphName), _procid(0), _procnum(1){
+	    AbstractTaskGraph(string graphName=""): _graphName(graphName), _rank(0), _nProcs(1){
 		_begin=NULL;
 		_end=NULL;
 		_current=NULL;
@@ -106,8 +113,8 @@ namespace amrex{
 	    void DestroyTask(Task* t){
 		_taskPool.erase(t->MyName());
 	    }
-	    int MyProc();  
-	    int ProcCount();  
+	    int MyProc(){return _rank;}  
+	    int ProcCount(){return _nProcs;}  
 	    RunningMode GetRunningMode(){return _mode;}
 	    string GetTaskName(){return _graphName;}
 	    void GraphSynchronize();
@@ -116,6 +123,8 @@ namespace amrex{
 		if(_taskPool.find(name)!= _taskPool.end())
 		    return _taskPool[name];
 		return NULL;
+	    }
+	    virtual int FindProcessAssociation(TaskName name){ //maps task name to process rank
 	    }
 	    //!First element stored in the process
 	    Task* Begin(){
@@ -145,16 +154,19 @@ namespace amrex{
      * A task can create another task dynamically and set it location (i.e., which process owns the newly created task). 
      * The default location is that of the the parent task.
      */
-    template <class T, int D=1>
+    template <class T, int D=1, class A=SelfAssociate>
 	class ArrayGraph: public AbstractTaskGraph<T>{
 	    protected:
 		string _graphName;
 		BlockMapping<D> *_taskMap;
+		PointVect<D> _graphSize;
 
 	    public:
 		//! Create a 1D Task Graph
-		ArrayGraph(string graphName, int graphSize, int rank, int nProcs): _graphName(graphName){
+		ArrayGraph(string graphName, int graphSize, int rank, int nProcs): _graphName(graphName), _graphSize(graphSize){
 		    assert(D==1);
+		    AbstractTaskGraph<T>::_nProcs= nProcs;
+		    AbstractTaskGraph<T>::_rank= rank;
 		    _taskMap= new BlockMapping<1>(PointVect<1>(graphSize), PointVect<1>(rank), PointVect<1>(nProcs));
 		    for(int i=_taskMap->first()[0], idx=0; i<=_taskMap->last()[0]; i++, idx++){
 			TaskName name(i);
@@ -171,6 +183,9 @@ namespace amrex{
 		}
 		//! Create a multidimensional graph and LINEARLY map it to processors
 		ArrayGraph(string graphName, PointVect<D> graphSize, int rank, int nProcs): _graphName(graphName){
+		    _graphSize= graphSize;
+		    AbstractTaskGraph<T>::_nProcs= nProcs;
+		    AbstractTaskGraph<T>::_rank= rank;
 		    _taskMap= new BlockMapping<D>(graphSize, rank, nProcs);
 		    PointVect<D> p=_taskMap->first();
 		    for(int i=0; i<_taskMap->linearSize(); i++){
@@ -196,6 +211,18 @@ namespace amrex{
 		    AbstractTaskGraph<T>::_currIt= AbstractTaskGraph<T>::_initialTasks.begin();
 		    AbstractTaskGraph<T>::_current= *(AbstractTaskGraph<T>::_currIt);
 		    AbstractTaskGraph<T>::_mode= _Push;
+		}
+		int FindProcessAssociation(TaskName name){
+		    A associate;
+		    TaskName n= associate.TaskAssociate(name);
+		    size_t block_size= _taskMap->totalSize()/AbstractTaskGraph<T>::ProcCount();
+		    size_t val=n[0];
+		    size_t stride=1;
+		    for(int d=1; d<D; d++){
+			stride *= _graphSize[d-1];
+			val+= n[d]*stride;
+		    }
+		    return val/block_size;
 		}
 
 		BlockMapping<D>* GetTaskMap(){return &_taskMap;}
