@@ -22,6 +22,8 @@ public:
 
     EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng);
 
+    void define (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng);
+
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const { return *m_cellflags; }
 //    const FabArray<EBFaceFlagFab>& getMultiEBFaceFlagFab () const { return *m_faceflags; }
     const EBISLayout&              getEBISL     () const { return *m_ebisl; }
@@ -32,6 +34,7 @@ private:
     std::shared_ptr<EBISLayout>               m_ebisl;
 
     static void setFaceConnection (EBFaceFlag& flag, const FaceIndex& face, const EBISBox& ebis);
+    void defineDoit (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng);
 };
 
 class MultiFab;
