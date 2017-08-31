@@ -4,31 +4,25 @@ module advection_module
   private
   public :: hyp_mol_gam_3d
 
-  logical, parameter :: debug = .false.
-
 contains
 
   subroutine hyp_mol_gam_3d(q, qd_lo, qd_hi, &
-                     lo, hi, dx, flux1, flux2, flux3, &
-                     flag, fg_lo, fg_hi, allregular)
+                     lo, hi, dx, flux1, flux2, flux3)
 
     use mempool_module, only : amrex_allocate, amrex_deallocate
     use cns_module, only : urho, umx, umy, umz, ueden, ueint, utemp, nvar, &
          qrho,qu,qv,qw,qp,qc,qeint,qtemp,qvar, smallp, smallr
     use cns_physics_module, only : gamma
     use slope_module, only : slopex , slopey, slopez
-    use ebslope_module, only : ebslopex , ebslopey, ebslopez
     use riemann_module, only : analriem
 
-    integer, intent(in) :: qd_lo(3), qd_hi(3), fg_lo(3), fg_hi(3)
+    integer, intent(in) :: qd_lo(3), qd_hi(3)
     integer, intent(in) :: lo(3), hi(3)
     real(rt), intent(in) :: dx(3)
     real(rt), intent(in   ) ::     q( qd_lo(1): qd_hi(1), qd_lo(2): qd_hi(2), qd_lo(3): qd_hi(3),QVAR)
     real(rt), intent(  out) :: flux1(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ,5)
     real(rt), intent(  out) :: flux2(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ,5)
     real(rt), intent(  out) :: flux3(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1,5)
-    integer,  intent(in   ) ::  flag( fg_lo(1): fg_hi(1), fg_lo(2): fg_hi(2), fg_lo(3): fg_hi(3))
-    logical, intent(in) :: allregular
 
     real(rt) :: cspeed
     integer :: i, j, k
@@ -49,17 +43,10 @@ contains
 
     call amrex_allocate ( dq, qtlo(1), qthi(1), qtlo(2), qthi(2), qtlo(3), qthi(3), 1, 5)
 
-    if (allregular) then
-       call slopex(q,qd_lo,qd_hi, &
-            dq,qtlo,qthi, &
-            lo(1),lo(2),lo(3),  &
-            hi(1),hi(2),hi(3),QVAR)
-    else
-       call ebslopex(q,qd_lo,qd_hi, &
-            dq,qtlo,qthi, flag, fg_lo, fg_hi, &
-            lo(1),lo(2),lo(3),  &
-            hi(1),hi(2),hi(3),QVAR)
-    end if
+    call slopex(q,qd_lo,qd_hi, &
+         dq,qtlo,qthi, &
+         lo(1),lo(2),lo(3),  &
+         hi(1),hi(2),hi(3),QVAR)
 
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
@@ -87,17 +74,10 @@ contains
        enddo
     enddo
 
-    if (allregular) then
-       call slopey(q,qd_lo,qd_hi, &
-            dq,qtlo,qthi, &
-            lo(1),lo(2),lo(3),  &
-            hi(1),hi(2),hi(3),QVAR)
-    else
-       call ebslopey(q,qd_lo,qd_hi, &
-            dq,qtlo,qthi, flag, fg_lo, fg_hi, &
-            lo(1),lo(2),lo(3),  &
-            hi(1),hi(2),hi(3),QVAR)
-    end if
+    call slopey(q,qd_lo,qd_hi, &
+         dq,qtlo,qthi, &
+         lo(1),lo(2),lo(3),  &
+         hi(1),hi(2),hi(3),QVAR)
 
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)+1
@@ -125,17 +105,10 @@ contains
        enddo
     enddo
      
-    if (allregular) then
-       call slopez(q,qd_lo,qd_hi, &
-            dq,qtlo,qthi, &
-            lo(1),lo(2),lo(3),   &
-            hi(1),hi(2),hi(3),QVAR)
-    else
-       call ebslopez(q,qd_lo,qd_hi, &
-            dq,qtlo,qthi, flag, fg_lo, fg_hi, &
-            lo(1),lo(2),lo(3),   &
-            hi(1),hi(2),hi(3),QVAR)
-    end if
+    call slopez(q,qd_lo,qd_hi, &
+         dq,qtlo,qthi, &
+         lo(1),lo(2),lo(3),   &
+         hi(1),hi(2),hi(3),QVAR)
     
     do       k = lo(3), hi(3)+1
        do    j = lo(2), hi(2)
