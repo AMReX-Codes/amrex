@@ -282,6 +282,12 @@ CNS::post_init (Real)
 }
 
 void
+CNS::post_restart ()
+{
+    fixUpGeometry();
+}
+
+void
 CNS::errorEst (TagBoxArray& tags, int clearval, int tagval, Real time, int n_error_buf, int ngrow)
 {
     // xxxxx tagging
