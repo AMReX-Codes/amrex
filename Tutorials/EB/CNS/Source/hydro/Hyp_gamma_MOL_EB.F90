@@ -60,15 +60,19 @@ contains
 
              cspeed = q(i-1,j,k,QC)
              rl(i) = q(i-1,j,k,QRHO) + 0.5d0 * ( (dq(i-1,j,k,1)+dq(i-1,j,k,3))/cspeed + dq(i-1,j,k,2))
+             rl(i) = max(rl(i),smallr)
              ul(i) = q(i-1,j,k,QU) + 0.5d0 * ( (dq(i-1,j,k,3)-dq(i-1,j,k,1))/q(i-1,j,k,QRHO))
              pl(i)=  q(i-1,j,k,QP) + 0.5d0 *  (dq(i-1,j,k,1)+dq(i-1,j,k,3))*cspeed 
+             pl(i) = max(pl(i),smallp)
              ut1l(i) = q(i-1,j,k,QV) + 0.5d0 * dq(i-1,j,k,4)
              ut2l(i) = q(i-1,j,k,Qw) + 0.5d0 * dq(i-1,j,k,5)
              
              cspeed = q(i,j,k,QC)
              rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
+             rr(i) = max(rr(i),smallr)
              ur(i) = q(i,j,k,QU) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
              pr(i)=  q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = max(pr(i),smallp)
              ut1r(i) = q(i,j,k,QV) - 0.5d0 * dq(i,j,k,4)
              ut2r(i) = q(i,j,k,Qw) - 0.5d0 *  dq(i,j,k,5)
           end do
@@ -91,15 +95,19 @@ contains
 
              cspeed = q(i,j-1,k,QC)
              rl(i) = q(i,j-1,k,QRHO) + 0.5d0 * ( (dq(i,j-1,k,1)+dq(i,j-1,k,3))/cspeed + dq(i,j-1,k,2))
+             rl(i) = max(rl(i),smallr)
              ul(i) = q(i,j-1,k,QV) + 0.5d0 * ( (dq(i,j-1,k,3)-dq(i,j-1,k,1))/q(i,j-1,k,QRHO))
              pl(i) = q(i,j-1,k,QP) + 0.5d0 *  (dq(i,j-1,k,1)+dq(i,j-1,k,3))*cspeed 
+             pl(i) = max(pl(i),smallp)
              ut1l(i) = q(i,j-1,k,QU) + 0.5d0 * dq(i,j-1,k,4)
              ut2l(i) = q(i,j-1,k,Qw) + 0.5d0 * dq(i,j-1,k,5)
              
              cspeed = q(i,j,k,QC)
              rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
+             rr(i) = max(rr(i),smallr)
              ur(i) = q(i,j,k,QV) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
              pr(i) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = max(pr(i),smallp)
              ut1r(i) = q(i,j,k,QU) - 0.5d0 * dq(i,j,k,4)
              ut2r(i) = q(i,j,k,Qw) - 0.5d0 *  dq(i,j,k,5)
           end do
@@ -122,15 +130,19 @@ contains
 
              cspeed = q(i,j,k-1,QC)
              rl(i) = q(i,j,k-1,QRHO) + 0.5d0 * ( (dq(i,j,k-1,1)+dq(i,j,k-1,3))/cspeed + dq(i,j,k-1,2))
+             rl(i) = max(rl(i),smallr)
              ul(i) = q(i,j,k-1,QW) + 0.5d0 * ( (dq(i,j,k-1,3)-dq(i,j,k-1,1))/q(i,j,k-1,QRHO))
              pl(i)=  q(i,j,k-1,QP) + 0.5d0 *  (dq(i,j,k-1,1)+dq(i,j,k-1,3))*cspeed 
+             pl(i) = max(pl(i),smallp)
              ut1l(i) = q(i,j,k-1,QU) + 0.5d0 * dq(i,j,k-1,4)
              ut2l(i) = q(i,j,k-1,QV) + 0.5d0 * dq(i,j,k-1,5)
 
              cspeed = q(i,j,k,QC)
              rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
+             rr(i) = max(rr(i),smallr)
              ur(i) = q(i,j,k,QW) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
              pr(i)=  q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = max(pr(i),smallp)
              ut1r(i) = q(i,j,k,QU) - 0.5d0 * dq(i,j,k,4)
              ut2r(i) = q(i,j,k,QV) - 0.5d0 *  dq(i,j,k,5)
           end do
