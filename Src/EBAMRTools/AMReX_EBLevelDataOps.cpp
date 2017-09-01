@@ -35,7 +35,7 @@ namespace amrex
     string filename("debug_file.plt");
     writeSingleLevelEBPlotFile(filename, *a_data, *a_eblg, names);
 
-    string command = "visit -o " + filename;
+    string command = "visit -o " + filename + string("/Header");
     int ret = std::system(command.c_str());
     amrex::Print() << "data output to " << filename << ".  Visit was called and got return value " << ret << endl;
   }
@@ -83,7 +83,7 @@ namespace amrex
     varNameArr.push_back(string("vfrac"));
 
     Array<const MultiFab*> mfdata(nlevels);
-    Array<Geometry> geom;
+    Array<Geometry> geom(nlevels);
     for(int ilev = 0; ilev < nlevels; ilev++)
     {
       geom[ilev].define(a_eblg[ilev].getDomain());
@@ -113,7 +113,7 @@ namespace amrex
     BoxArray            ba = a_ebdata.boxArray();
     int ngrow = 0; //simplifies setting vfrac
     int ncomp = a_ebdata.nComp() + 1 ; // + 1 for vol fraction
-    a_mfdata.define(ba, dm, ngrow, ncomp);
+    a_mfdata.define(ba, dm, ncomp, ngrow);
     
     for(MFIter mfi(ba, dm); mfi.isValid(); ++mfi)
     {

@@ -10,7 +10,7 @@
 domain_bc_type = 1
 eb_bc_type = 1
 order_ebbc = 2
-domain_length = 64.
+domain_length = 1.0
 max_level = 0
 
 ref_ratio = 2 2 2 2 2
