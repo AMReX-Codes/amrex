@@ -51,12 +51,6 @@ namespace amrex
     ~IntVectSet(){;}
 
     ///
-    IntVectSet (IntVectSet&& a_rhs);
-
-    ///
-    IntVectSet& operator= (IntVectSet&& a_rhs);
-
-    ///
     void define(const Box&);
 
     ///
