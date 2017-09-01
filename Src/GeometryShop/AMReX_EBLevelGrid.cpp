@@ -21,6 +21,8 @@ namespace amrex
               const DistributionMapping &  a_dm,
               const Box                 &  a_probDom)
   {
+    BL_PROFILE("EBLevelGrid::defineCFIVS()");
+
     a_cfivs.define(a_grids, a_dm);
     for (MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
     {

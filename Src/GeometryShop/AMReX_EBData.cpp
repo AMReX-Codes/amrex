@@ -204,11 +204,16 @@ namespace amrex
     //  pout() << "ebdata copy src = " << a_src.m_graph.getDomain() << ",region "  << a_src.m_region << "\t, srcbox = " << a_srcbox <<  ", data(" << ebd_debface << ",0) = " << a_src.m_faceData[1](ebd_debface, 0) << endl;
     //}
 
+    BL_PROFILE_VAR("EBData_copy_voldata", copy_voldata);
     m_volData.copy(a_src.m_volData, a_srcbox, 0, a_dstbox, 0,  V_VOLNUMBER);
+    BL_PROFILE_VAR_STOP(copy_voldata);
+
+    BL_PROFILE_VAR("EBData_copy_facedata", copy_facedata);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       m_faceData[idir].copy(a_src.m_faceData[idir], a_srcbox, 0, a_dstbox, 0,  F_FACENUMBER);
     }
+    BL_PROFILE_VAR_STOP(copy_facedata);
 
     //if(m_volData.getIVS().contains(ebd_debiv))
     //{
