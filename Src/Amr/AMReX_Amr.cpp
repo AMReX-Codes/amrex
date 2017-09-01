@@ -1302,7 +1302,7 @@ Amr::restart (const std::string& filename)
             std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
             Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
             ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
-	    if(verbose > 0) {
+	    if(verbose > 2) {
 		amrex::Print() 
 		    << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
 		    << "  " << faHeaderFullName << "  " << tempCharArray.size() << "\n";
@@ -2430,6 +2430,8 @@ Amr::regrid (int  lbase,
 void
 Amr::InstallNewDistributionMap (int lev, const DistributionMapping& newdm)
 {
+    BL_PROFILE("InstallNewDistributionMap()");
+
     AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),boxArray(lev),newdm,cumtime);
     a->init(*amr_level[lev]);
     amr_level[lev].reset(a);
