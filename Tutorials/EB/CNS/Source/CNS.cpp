@@ -282,6 +282,12 @@ CNS::post_init (Real)
 }
 
 void
+CNS::post_restart ()
+{
+    fixUpGeometry();
+}
+
+void
 CNS::errorEst (TagBoxArray& tags, int clearval, int tagval, Real time, int n_error_buf, int ngrow)
 {
     // xxxxx tagging
@@ -431,6 +437,8 @@ CNS::computeTemp (MultiFab& State, int ng)
 void
 CNS::fixUpGeometry ()
 {
+    BL_PROFILE("CNS::fixUpGeometry()");
+
     const auto& S = get_new_data(State_Type);
 
     const int ng = numGrow()-1;
@@ -456,6 +464,8 @@ CNS::fixUpGeometry ()
 void
 CNS::LoadBalance (Amr& amr)
 {
+    BL_PROFILE("CNS::LoadBalance()");
+
     if (amr.levelSteps(0) == 1)
     {
         amrex::Print() << "Load balance at Step " << amr.levelSteps(0) << "\n";

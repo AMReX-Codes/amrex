@@ -80,6 +80,8 @@ public:
     // Do work after init().
     virtual void post_init (amrex::Real stop_time) override;
 
+    virtual void post_restart () override;
+
     // Error estimation for regridding.
     virtual void errorEst (amrex::TagBoxArray& tb,
                            int                 clearval,
