@@ -2594,6 +2594,8 @@ DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group 
 DistributionMapping
 DistributionMapping::makeKnapSack (const MultiFab& weight)
 {
+    BL_PROFILE("makeKnapSack");
+
     DistributionMapping r;
 
     Array<long> cost(weight.size());
