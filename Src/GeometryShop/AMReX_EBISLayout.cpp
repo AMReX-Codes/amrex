@@ -100,12 +100,15 @@ namespace amrex
 
     m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, a_dm, 1, dstGhostGraph,
                                                                      MFInfo(),DefaultFabFactory<EBGraph>()));
+    
     m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhostGraph);
 
     EBDataFactory ebdatafact(m_ebGraph);
     m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, a_dm, 1, m_nghost, MFInfo(), ebdatafact));
       
+    BL_PROFILE_VAR("EBISLayout_copy_ebdata",copy_data);
     m_ebData ->copy(a_data , 0, 0, 1, srcGhost, dstGhostData);
+    BL_PROFILE_VAR_STOP(copy_data);
 
 //begin debug
 //    EBISL_checkGraph(a_grids, a_dm, *m_ebGraph, string(" my graph after copy"));
