@@ -7,9 +7,31 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_FArrayBox.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace amrex {
 
 template<class T> class FabArray;
+
+struct MFItInfo
+{
+    bool do_tiling;
+    bool dynamic;
+    IntVect tilesize;
+    MFItInfo () 
+        : do_tiling(false), dynamic(false), tilesize(IntVect::TheZeroVector()) {}
+    MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) {
+        do_tiling = true;
+        tilesize = ts;
+        return *this;
+    }
+    MFItInfo& SetDynamic (bool f) {
+        dynamic = f;
+        return *this;
+    }
+};
 
 class MFIter
 {
@@ -54,6 +76,8 @@ public:
     MFIter (const BoxArray& ba, const DistributionMapping& dm,
 	    const IntVect& tilesize, unsigned char flags_=0);
 
+    MFIter (const FabArrayBase& fabarray, const MFItInfo& info);
+
     MFIter (MFIter&& rhs) = default;
 
     // dtor
@@ -81,7 +105,18 @@ public:
     Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
+#ifdef _OPENMP
+    void operator++ () {
+        if (dynamic) {
+#pragma omp atomic capture
+            currentIndex = nextDynamicIndex++;
+        } else {
+            ++currentIndex;
+        }
+    }
+#else
     void operator++ () { ++currentIndex; }
+#endif
 
     //! Is the iterator valid i.e. is it associated with a FAB?
     bool isValid () const { return currentIndex < endIndex; }
@@ -122,11 +157,15 @@ protected:
     int           endIndex;
     IndexType     typ;
 
+    bool          dynamic;
+
     const Array<int>* index_map;
     const Array<int>* local_index_map;
     const Array<Box>* tile_array;
     const Array<int>* local_tile_index_map;
     const Array<int>* num_local_tiles;
+
+    static int nextDynamicIndex;
   
     void Initialize ();
 };

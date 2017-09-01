@@ -34,7 +34,7 @@ namespace amrex
                                          const RealVect&      a_origin,
                                          const Real&          a_dx) const
   {
-    BL_PROFILE("GeometryShop::isRegularEveryPoint");
+//    BL_PROFILE("GeometryShop::isRegularEveryPoint");
 
     // All corner indices for the current box
     Box allCorners(a_region);
@@ -81,7 +81,7 @@ namespace amrex
                                          const RealVect&      a_origin,
                                          const Real&          a_dx) const
   {
-    BL_PROFILE("GeometryShop::isCoveredEveryPoint");
+//    BL_PROFILE("GeometryShop::isCoveredEveryPoint");
 
     // All corner indices for the current box
     Box allCorners(a_region);

@@ -81,6 +81,7 @@ namespace amrex
          const EBISLayout          & a_ebisl,
          const Box                 & a_domain)
   {
+    BL_PROFILE("EBLevelGrid::define()");
     m_isDefined = true;
     m_grids = a_dbl;
     m_dm    = a_dm;

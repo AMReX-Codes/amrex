@@ -80,6 +80,8 @@ public:
     // Do work after init().
     virtual void post_init (amrex::Real stop_time) override;
 
+    virtual void post_restart () override;
+
     // Error estimation for regridding.
     virtual void errorEst (amrex::TagBoxArray& tb,
                            int                 clearval,
@@ -96,6 +98,10 @@ public:
 
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
+
+    static void LoadBalance (amrex::Amr& amr);
+
+    static int do_load_balance;
 
 protected:
 
@@ -119,6 +125,8 @@ protected:
 
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt);
 
+    void fixUpGeometry ();
+
     amrex::MultiFab volfrac;
     amrex::MultiFab bndrycent;
     std::array<amrex::MultiFab,3> areafrac;
@@ -132,8 +140,9 @@ protected:
 
     enum StateDataType {
         State_Type = 0,
-        NUM_STATEDATA_TYPE
+        Cost_Type
     };
+    static int num_state_data_types;
 
     static amrex::ErrorList err_list;
     static amrex::BCRec     phys_bc;

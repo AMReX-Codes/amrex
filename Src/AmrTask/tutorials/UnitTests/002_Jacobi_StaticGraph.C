@@ -282,6 +282,8 @@ class Jacobi :public Task{
 		free(bufNorth);
 		free(bufSouth);
 		SelfDestroy();
+                bool satisfied=true;
+                TaskName name= MyName();
 	    }
 	}
 };
@@ -317,16 +319,17 @@ int main(int argc,char *argv[])
     }
     global_err=0.;
     RTS rts(nWrks);
-    rts.RTS_Init(&rank, &nProcs);
+    rts.Init(&rank, &nProcs);
     string graphName= "3DJacobi";
     if(verbose && rank==0){
 	cout<< "Creating a 3DJacobi Graph with ( "<< Jacobi::tx << ", " << Jacobi::ty <<", " << Jacobi::tz << ") tasks" << endl;
-	cout<< "Running the graph with "<< rts.RTS_ProcCount() << " processes" <<endl;
+	cout<< "Running the graph with "<< rts.ProcCount() << " processes" <<endl;
     }
     double time= -rts.Time();
     rts.Barrier();
     ArrayGraph<Jacobi, 3> *JacobiGraph= new ArrayGraph<Jacobi, 3>(graphName, PointVect<3>(Jacobi::tx, Jacobi::ty, Jacobi::tz), rank, nProcs);
-    rts.RTS_Run(JacobiGraph);
+    rts.Barrier();
+    rts.Run(JacobiGraph);
     double res= global_err;
     double finalErr;
     rts.ReductionSum(&res, &finalErr, 1, 0); //reduce to process 0
@@ -339,5 +342,5 @@ int main(int argc,char *argv[])
 	cout<<"GFLOP/S " << gflops/time <<endl;
     }
     delete JacobiGraph;
-    rts.RTS_Finalize();
+    rts.Finalize();
 };

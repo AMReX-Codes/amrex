@@ -5,6 +5,9 @@ For cases (i) and (ii), there can be multiple WORKER threads per process (one WO
 Also, the runtime can dedicate one or a few cores per compute node to handle communication in a responsive fashion.
 For case (ii), WORKER thread and Communication HANDLER thread share the same core. 
 
+Multiple worker threads may share a single task queue (for load balancing purpose).
+Each worker thread also has a private queue serving as a task buffer, allowing scheduling latency and lock/unlock cost to be reduced.
+
 Note: one of the primary goals of this runtime implementation is PORTABILITY.
 
 Thus, there is no special assumption about MPI mode to be made. 

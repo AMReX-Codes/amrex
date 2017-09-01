@@ -1302,7 +1302,7 @@ Amr::restart (const std::string& filename)
             std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
             Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
             ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
-	    if(verbose > 0) {
+	    if(verbose > 2) {
 		amrex::Print() 
 		    << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
 		    << "  " << faHeaderFullName << "  " << tempCharArray.size() << "\n";
@@ -2377,6 +2377,7 @@ Amr::regrid (int  lbase,
           //MultiFab::MoveAllFabs(mLDM[iMap]);
 	  DistributionMapping newDistMap(mLDM[iMap]);
           MultiFab::MoveAllFabs(newDistMap);
+          UpdateStateDataDistributionMaps(newDistMap);
         }
     }
 
@@ -2424,6 +2425,19 @@ Amr::regrid (int  lbase,
            printGridSummary(std::cout,start,finest_level);
         }
     }
+}
+
+void
+Amr::InstallNewDistributionMap (int lev, const DistributionMapping& newdm)
+{
+    BL_PROFILE("InstallNewDistributionMap()");
+
+    AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),boxArray(lev),newdm,cumtime);
+    a->init(*amr_level[lev]);
+    amr_level[lev].reset(a);
+
+    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
 }
 
 void
@@ -2969,6 +2983,21 @@ Amr::RedistributeParticles ()
 }
 #endif
 
+void
+Amr::UpdateStateDataDistributionMaps(DistributionMapping& new_dmap)
+{
+   long mapsize = new_dmap.size();
+   for (int i(0); i < DistributionMap().size(); ++i)
+   {
+      if (DistributionMap()[i].size() == mapsize)
+      {  SetDistributionMap(i, new_dmap); }
+   }
+
+   for (int i(0); i < amr_level.size(); ++i)
+   {
+      amr_level[i]->UpdateDistributionMaps(new_dmap); 
+   } 
+}
 
 void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
@@ -2992,6 +3021,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
 	//MultiFab::MoveAllFabs(mLDM[iMap]);
         DistributionMapping newDistMap(mLDM[iMap]);
         MultiFab::MoveAllFabs(newDistMap);
+        UpdateStateDataDistributionMaps(newDistMap);
 	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs for iMap = "
 	               << iMap << "\n\n";
     }
@@ -3549,6 +3579,7 @@ Amr::RedistributeGrids(int how) {
           //MultiFab::MoveAllFabs(mLDM[iMap]);
 	  DistributionMapping newDistMap(mLDM[iMap]);
           MultiFab::MoveAllFabs(newDistMap);
+          UpdateStateDataDistributionMaps(newDistMap);
         }
     }
 #ifdef USE_PARTICLES
