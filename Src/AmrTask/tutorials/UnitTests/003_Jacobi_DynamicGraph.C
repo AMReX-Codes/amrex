@@ -53,6 +53,17 @@ struct domain{
     int nx, ny, nz;
 };
 
+    class DynamicTaskAssociate{
+        public:
+        TaskName TaskAssociate(TaskName name){
+	     assert(name.Dim()==4);
+	     TaskName origin=name;
+	     origin[3]=0;
+	     return origin;
+        }
+    };
+
+
 class Jacobi :public Task{
     private:
 	domain *dom;
@@ -342,17 +353,17 @@ int main(int argc,char *argv[])
     }
     global_err=0.;
     RTS rts(nWrks);
-    rts.RTS_Init(&rank, &nProcs);
+    rts.Init(&rank, &nProcs);
     string graphName= "3DJacobi";
     if(verbose && rank==0){
 	cout<< "Creating a 3DJacobi Graph containing ( "<< tx << ", " << ty <<", " << tz << ") tasks" << "for iteration 0"<< endl;
-	cout<< "Running the graph with "<< rts.RTS_ProcCount() << " processes" <<endl;
+	cout<< "Running the graph with "<< rts.ProcCount() << " processes" <<endl;
 	cout<< "The graph evolves over time"<<endl; 
     }
     double time= -rts.Time();
     rts.Barrier();
-    ArrayGraph<JacobiInit, 4> *JacobiGraph= new ArrayGraph<JacobiInit, 4>(graphName, PointVect<4>(tx, ty, tz, 1), rank, nProcs);
-    rts.RTS_Run(JacobiGraph);
+    ArrayGraph<JacobiInit, 4, DynamicTaskAssociate> *JacobiGraph= new ArrayGraph<JacobiInit, 4, DynamicTaskAssociate>(graphName, PointVect<4>(tx, ty, tz, 1), rank, nProcs);
+    rts.Run(JacobiGraph);
     double res= global_err;
     double finalErr;
     rts.ReductionSum(&res, &finalErr, 1, 0); //reduce to process 0
@@ -365,5 +376,5 @@ int main(int argc,char *argv[])
 	cout<<"GFLOP/S " << gflops/time <<endl;
     }
     delete JacobiGraph;
-    rts.RTS_Finalize();
+    rts.Finalize();
 };

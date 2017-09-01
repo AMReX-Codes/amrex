@@ -34,12 +34,12 @@ getMultiEBCellFlagFab (const MultiFab& mf)
     return eblevel.getMultiEBCellFlagFab();    
 }
 
-const FabArray<EBFaceFlagFab>&
-getMultiEBFaceFlagFab (const MultiFab& mf)
-{
-    const auto& eblevel = amrex::getEBLevel(mf);
-    return eblevel.getMultiEBFaceFlagFab();    
-}
+// const FabArray<EBFaceFlagFab>&
+// getMultiEBFaceFlagFab (const MultiFab& mf)
+// {
+//     const auto& eblevel = amrex::getEBLevel(mf);
+//     return eblevel.getMultiEBFaceFlagFab();    
+// }
 
 EBLevel::EBLevel ()
 {
@@ -52,20 +52,40 @@ EBLevel::~EBLevel ()
 EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng)
     : EBLevelGrid(ba,dm,domain,ng),
       m_cellflags(std::make_shared<FabArray<EBCellFlagFab> >(ba, dm, 1, ng)),
-      m_faceflags(std::make_shared<FabArray<EBFaceFlagFab> >(ba, dm, AMREX_SPACEDIM, ng)),
+//      m_faceflags(std::make_shared<FabArray<EBFaceFlagFab> >(ba, dm, AMREX_SPACEDIM, ng)),
       m_ebisl(std::make_shared<EBISLayout>(EBLevelGrid::getEBISL()))
 {
-    BL_PROFILE("EBLevel::EBLevel");
+    defineDoit(ba, dm, domain, ng);
+}
 
+
+void
+EBLevel::define (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng)
+{
     static_assert(sizeof(EBCellFlag) == 4, "sizeof EBCellFlag != 4");
     static_assert(std::is_standard_layout<EBCellFlag>::value == true, "EBCellFlag is not pod");
 
     static_assert(sizeof(EBFaceFlag) == 4, "sizeof EBFaceFlag != 4");
     static_assert(std::is_standard_layout<EBFaceFlag>::value == true, "EBFaceFlag is not pod");
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+    EBLevelGrid::define(ba, dm, domain, ng);
+
+    m_cellflags = std::make_shared<FabArray<EBCellFlagFab> >(ba, dm, 1, ng);
+    //      m_faceflags = std::make_shared<FabArray<EBFaceFlagFab> >(ba, dm, AMREX_SPACEDIM, ng);
+    m_ebisl = std::make_shared<EBISLayout>(EBLevelGrid::getEBISL());
+
+    defineDoit(ba, dm, domain, ng);
+}
+
+void
+EBLevel::defineDoit (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng)
+{
+    BL_PROFILE("EBLevel::defineDoit()");
+
+// not thread safe
+//#ifdef _OPENMP
+//#pragma omp parallel
+//#endif
     {
 
     for (MFIter mfi(*m_cellflags); mfi.isValid(); ++mfi)
@@ -163,6 +183,7 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
         }        
     }
 
+    if (m_faceflags) {
     for (MFIter mfi(*m_faceflags); mfi.isValid(); ++mfi)
     {
         const EBISBox& ebis = (*m_ebisl)[mfi];
@@ -218,6 +239,7 @@ EBLevel::EBLevel (const BoxArray& ba, const DistributionMapping& dm, const Box& 
                 }
             }
         }
+    }
     }
 
     }

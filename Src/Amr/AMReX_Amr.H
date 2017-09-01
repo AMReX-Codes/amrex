@@ -294,12 +294,15 @@ public:
     void RedistributeParticles ();
 #endif
 
+    void InstallNewDistributionMap (int lev, const DistributionMapping& newdm);
+
     void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
     void AddProcsToComp(int nSidecarProcs, int prevSidecarProcs);
     void RedistributeGrids(int how);
     void BroadcastBoundaryPointList(BoundaryPointList &bpl, int myLocalId, int rootId, MPI_Comm comm);
     void PrintData(std::ostream& os);
     static void BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm);
+    void UpdateStateDataDistributionMaps(DistributionMapping& new_dmap);
 
 protected:
 

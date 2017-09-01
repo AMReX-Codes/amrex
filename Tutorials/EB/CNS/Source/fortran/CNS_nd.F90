@@ -6,7 +6,7 @@ module cns_nd_module
   implicit none
   private
 
-  public :: cns_compute_temperature, cns_estdt, ctoprim
+  public :: cns_compute_temperature, cns_estdt, ctoprim, cns_eb_fixup_geom, cns_nullfill
 
 contains
 
@@ -86,5 +86,46 @@ contains
        end do
     end do
   end subroutine ctoprim
+
+  subroutine cns_eb_fixup_geom(lo, hi, flag, flo, fhi, vfrac, vlo, vhi) bind(c,name='cns_eb_fixup_geom')
+    use amrex_ebcellflag_module, only : is_regular_cell, is_single_valued_cell, get_neighbor_cells, &
+         set_regular_cell
+    integer, dimension(3), intent(in) :: lo, hi, flo, fhi, vlo, vhi
+    integer, intent(inout) :: flag(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    real(rt), intent(in)  :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
+
+    integer :: i,j,k, nbr(-1:1,-1:1,-1:1)
+    real(rt), parameter :: almostone = 1.d0 - 1.d-13
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (is_single_valued_cell(flag(i,j,k)) .and. vfrac(i,j,k) .gt. almostone) then
+                call get_neighbor_cells(flag(i,j,k),nbr)
+                if ( nbr(-1,0,0).eq.1 .and. nbr(1,0,0).eq.1 .and. &
+                     nbr(0,-1,0).eq.1 .and. nbr(0,1,0).eq.1 .and. &
+                     nbr(0,0,-1).eq.1 .and. nbr(0,0,1).eq.1 ) then
+                   call set_regular_cell(flag(i,j,k))
+                end if
+             end if
+          end do
+       end do
+    end do
+  end subroutine cns_eb_fixup_geom
+
+
+  subroutine cns_nullfill(adv,adv_lo,adv_hi,domlo,domhi,delta,xlo,time,bc) &
+       bind(C, name="cns_nullfill")
+    use amrex_fort_module, only: dim=>amrex_spacedim
+    use amrex_error_module, only : amrex_error
+    implicit none
+    include 'AMReX_bc_types.fi'
+    integer          :: adv_lo(3),adv_hi(3)
+    integer          :: bc(dim,2,*)
+    integer          :: domlo(3), domhi(3)
+    double precision :: delta(3), xlo(3), time
+    double precision :: adv(adv_lo(1):adv_hi(1),adv_lo(2):adv_hi(2),adv_lo(3):adv_hi(3))
+    call amrex_error("How did this happen?")
+  end subroutine cns_nullfill
 
 end module cns_nd_module

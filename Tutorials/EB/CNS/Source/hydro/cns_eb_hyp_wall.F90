@@ -7,20 +7,23 @@ module cns_eb_hyp_wall_module
 
 contains
 
-  subroutine compute_hyp_wallflux (divw, rho, u, v, w, p, &
+  subroutine compute_hyp_wallflux (divw, i,j,k, rho, u, v, w, p, &
        axm, axp, aym, ayp, azm, azp)
     use cns_physics_module, only : gamma
     use cns_module, only : smallp, smallr, umx, umy, umz
     use riemann_module, only : analriem
+    integer, intent(in) :: i,j,k
     real(rt), intent(in) :: rho, u, v, w, p, axm, axp, aym, ayp, azm, azp
     real(rt), intent(out) :: divw(5)
     
-    real(rt) :: apnorm, apnorminv, anrmx, anrmy, anrmz
-    real(rt) :: sfluid(5), sbody(5), flux(5)
+    real(rt) :: apnorm, apnorminv, anrmx, anrmy, anrmz, un
+    real(rt) :: flux(1,1,1,5)
 
     apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2 + (azm-azp)**2)
 
     if (apnorm .eq. 0.d0) then
+       print *, "compute_hyp_wallflux: ", i,j,k, axm, axp, aym, ayp, azm, azp
+       flush(6)
        call amrex_abort("compute_hyp_wallflux: we are in trouble.")
     end if
 
@@ -29,24 +32,17 @@ contains
     anrmy = (aym-ayp) * apnorminv
     anrmz = (azm-azp) * apnorminv
 
-    sfluid(1) = rho
-    sfluid(2) = u*anrmx + v*anrmy + w*anrmz
-    sfluid(3) = p
-    sfluid(4) = 0.d0
-    sfluid(5) = 0.d0
-    
-    sbody(1) =  rho
-    sbody(2) = -sfluid(2)
-    sbody(3) =  p
-    sbody(4) =  0.d0
-    sbody(5) =  0.d0
+    un = u*anrmx + v*anrmy + w*anrmz
 
-    call analriem(gamma, sfluid, sbody, smallp, smallr, flux)
+    call analriem(gamma, smallp, smallr, 1, 1, 1, 1, &
+         [rho], [ un], [p], [0.d0], [0.d0], &  ! fluid
+         [rho], [-un], [p], [0.d0], [0.d0], &  ! body
+         flux, [1,1,1], [1,1,1], 2,3,4)
 
     divw = 0.d0
-    divw(umx) = (axm-axp) * flux(2)
-    divw(umy) = (aym-ayp) * flux(2)
-    divw(umz) = (azm-azp) * flux(2)
+    divw(umx) = (axm-axp) * flux(1,1,1,2)
+    divw(umy) = (aym-ayp) * flux(1,1,1,2)
+    divw(umz) = (azm-azp) * flux(1,1,1,2)
 
   end subroutine compute_hyp_wallflux
 

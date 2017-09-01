@@ -7,17 +7,22 @@ using namespace amrex;
 Real
 CNS::advance (Real time, Real dt, int iteration, int ncycle)
 {
-    BL_PROFILE("CNS::advance()")
-
-    for (int k = 0; k < NUM_STATEDATA_TYPE; k++) {
-        state[k].allocOldData();
-        state[k].swapTimeLevels(dt);
+    BL_PROFILE("CNS::advance()");
+        
+    for (int i = 0; i < num_state_data_types; ++i) {
+        state[i].allocOldData();
+        state[i].swapTimeLevels(dt);
     }
 
     MultiFab& S_new = get_new_data(State_Type);
     MultiFab dSdt(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW,MFInfo(),Factory());
   
+    if (CNS::do_load_balance) {
+        MultiFab& C_new = get_new_data(Cost_Type);
+        C_new.setVal(0.0);
+    }
+
     // RK2 stage 1
     FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
     compute_dSdt(Sborder, dSdt, dt);
@@ -42,24 +47,28 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
     BL_PROFILE("CNS::compute_dSdt()");
 
     const Real* dx = geom.CellSize();
+    const int ncomp = dSdt.nComp();
 
-    const IntVect& tilesize{1024000,16,16};
+    MultiFab* cost = (do_load_balance) ? &(get_new_data(Cost_Type)) : nullptr;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        for (MFIter mfi(S,tilesize); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
+                        mfi.isValid(); ++mfi)
         {
+            Real wt = ParallelDescriptor::second();
+
             const Box& bx = mfi.tilebox();
 
             const auto& sfab = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             const auto& flag = sfab.getEBCellFlagFab();
 
             if (flag.getType(bx) == FabType::covered) {
-                dSdt[mfi].setVal(0.0);
+                dSdt[mfi].setVal(0.0, bx, 0, ncomp);
             } else {
-                if (flag.getType(amrex::grow(bx,2)) == FabType::regular)
+                if (flag.getType(amrex::grow(bx,1)) == FabType::regular)
                 {
                     cns_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                      BL_TO_FORTRAN_ANYD(dSdt[mfi]),
@@ -82,6 +91,11 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                                         BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
                                         dx, &dt);
                 }
+            }
+
+            if (do_load_balance) {
+                wt = (ParallelDescriptor::second() - wt) / bx.d_numPts();
+                (*cost)[mfi].plus(wt, bx);
             }
         }
     }

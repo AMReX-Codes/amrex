@@ -190,6 +190,7 @@ public:
     const BoxArray& boxArray () const { return grids; }
     //
     const DistributionMapping& DistributionMap () const { return dmap; }
+    void setDistributionMap ( DistributionMapping& new_dmap ) { dmap = new_dmap; }
     //
     const FabFactory<FArrayBox>& Factory () const { return *m_factory; }
     //

@@ -31,7 +31,6 @@ contains
     integer :: clo(3), chi(3)
     real(rt), dimension(:,:,:,:), pointer, contiguous :: q, fhx,fhy,fhz,fdx,fdy,fdz
     real(rt), dimension(:,:,:), pointer, contiguous :: lambda, mu, xi
-
     integer :: k,n
 
     qlo = lo - nghost_plm

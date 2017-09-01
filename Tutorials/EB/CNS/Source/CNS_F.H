@@ -26,6 +26,11 @@ extern "C" {
                       const amrex_real* dx, const amrex_real* glo, 
                       const amrex_real* time, const int* bc);
 
+    void cns_nullfill (BL_FORT_FAB_ARG_3D(state),
+                       const int* dlo, const int* dhi,
+                       const amrex_real* dx, const amrex_real* glo, 
+                       const amrex_real* time, const int* bc);
+
     void cns_derpres (BL_FORT_FAB_ARG_3D(der),const int* nvar,
                       const BL_FORT_FAB_ARG_3D(data),const int* ncomp,
                       const int* lo, const int* hi,
@@ -68,6 +73,10 @@ extern "C" {
                               const amrex_real* cy, const int* cylo, const int* cyhi,
                               const amrex_real* cz, const int* czlo, const int* czhi,
                               const amrex_real* dx, const amrex_real* dt);
+
+    void cns_eb_fixup_geom (const int* lo, const int* hi,
+                            void* flag, const int* fglo, const int* fghi,
+                            const amrex_real* volfrac, const int* vlo, const int* vhi);
 
 #ifdef __cplusplus
 }
