@@ -15,7 +15,7 @@
 #define __IntVectSet__H_
 
 #include "AMReX_Box.H"
-#include <set>
+#include <unordered_set>
 
 using namespace std;
 namespace amrex
@@ -49,6 +49,12 @@ namespace amrex
 
     ///
     ~IntVectSet(){;}
+
+    ///
+    IntVectSet (IntVectSet&& a_rhs) noexcept = default;
+
+    ///
+    IntVectSet& operator= (IntVectSet&& a_rhs) noexcept = default;
 
     ///
     void define(const Box&);
@@ -143,11 +149,19 @@ namespace amrex
 
     ///
     void linearIn(const void* const buffer );
-    
+
+    using container_type = std::unordered_set<IntVect, IntVect::shift_hasher>;
+    container_type::iterator begin () { return m_stdSet.begin(); }
+    container_type::const_iterator begin() const { return m_stdSet.begin(); }
+    container_type::const_iterator cbegin() const { return m_stdSet.cbegin(); }
+    container_type::iterator end () { return m_stdSet.end(); }
+    container_type::const_iterator end() const { return m_stdSet.end(); }
+    container_type::const_iterator cend() const { return m_stdSet.cend(); }
+      
   private:
 
     void getVectorIV(std::vector<IntVect>& a_vect) const;
-    std::set<IntVect, lex_compare_iv> m_stdSet;
+    container_type m_stdSet;
   };
 
   ///
@@ -182,7 +196,8 @@ namespace amrex
     void clear();
   private:
     const IntVectSet* m_ivs;
-    std::set<IntVect, lex_compare_iv>::iterator m_iter;
+//    std::set<IntVect, lex_compare_iv>::iterator m_iter;
+    IntVectSet::container_type::const_iterator m_iter;
   };
 }
 #endif //  STDSETIVS_H
