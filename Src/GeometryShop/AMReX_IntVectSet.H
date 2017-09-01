@@ -51,10 +51,10 @@ namespace amrex
     ~IntVectSet(){;}
 
     ///
-    IntVectSet (IntVectSet&& a_rhs) noexcept = default;
+    IntVectSet (IntVectSet&& a_rhs) = default;
 
     ///
-    IntVectSet& operator= (IntVectSet&& a_rhs) noexcept = default;
+    IntVectSet& operator= (IntVectSet&& a_rhs) = default;
 
     ///
     void define(const Box&);
