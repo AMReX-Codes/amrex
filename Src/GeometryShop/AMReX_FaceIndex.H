@@ -89,7 +89,12 @@ namespace amrex
     ///
     /**
      */
-    bool operator== (const FaceIndex& a_facein) const;
+    bool operator== (const FaceIndex& a_facein) const {
+	return ((m_loIndex == a_facein.m_loIndex) &&
+		(m_hiIndex == a_facein.m_hiIndex) &&
+		(m_loiv == a_facein.m_loiv) &&
+		(m_hiiv == a_facein.m_hiiv));
+    }
 
     ///
     /**
