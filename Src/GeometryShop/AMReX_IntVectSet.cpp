@@ -139,7 +139,7 @@ namespace amrex
       {
         std::unordered_set<IntVect, IntVect::shift_hasher> newSet;
 	for (const auto& iv : *this) {
-	    if (contains(iv) && a_sivs.contains(iv)) {
+	    if (a_sivs.contains(iv)) {
 		newSet.insert(iv);
 	    }
 	}
@@ -153,17 +153,10 @@ namespace amrex
   IntVectSet::
   operator&=(const Box& a_box)
   {
-    IntVectSet removeivs;
-    for( const auto& iv : *this)
-      {
-        if(!a_box.contains(iv))
-        {
-          removeivs |= iv;
-        }
-      }
-    *this -= removeivs;
-    return *this;
+      *this = std::move(intersect(*this,a_box));
+      return *this;
   }
+
   ///not
   IntVectSet& 
   IntVectSet::
@@ -189,10 +182,7 @@ namespace amrex
   IntVectSet::
   operator-=(const IntVect& a_iv)
   {
-    if(contains(a_iv))
-      {
-        m_stdSet.erase(m_stdSet.find(a_iv));
-      }
+    m_stdSet.erase(a_iv);
     return *this;
   }
   ///not
@@ -502,4 +492,26 @@ namespace amrex
   {
     m_ivs = NULL;
   }
+
+    IntVectSet intersect (const IntVectSet& a, const IntVectSet& b, const Box& bx)
+    {
+	IntVectSet r;
+	for (const auto& iv : a) {
+	    if (bx.contains(iv) && b.contains(iv)) {
+		r |= iv;
+	    }
+	}
+	return r;
+    }
+
+    IntVectSet intersect (const IntVectSet& ivs, const Box& bx)
+    {
+	IntVectSet r;
+	for (const auto& iv : ivs) {
+	    if (bx.contains(iv)) {
+		r |= iv;
+	    }
+	}
+	return r;
+    }
 }
