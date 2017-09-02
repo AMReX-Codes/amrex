@@ -29,10 +29,9 @@ namespace amrex
       Box grownBox = mfi.validbox();
       grownBox.grow(1);
       grownBox &= a_probDom;
-      a_cfivs[mfi] = IntVectSet(grownBox);
-      for (int ibox = 0; ibox < a_grids.size(); ibox++)
-      {
-        a_cfivs[mfi] -= a_grids[ibox];
+      const BoxList& bl = a_grids.complementIn(grownBox);
+      for (const auto& b : bl) {
+	  a_cfivs[mfi] |= b;
       }
     }
   }
