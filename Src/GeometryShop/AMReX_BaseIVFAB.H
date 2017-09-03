@@ -169,7 +169,7 @@ namespace amrex
     /**
        needs to be public so that bulk stencils can be constructed
     */
-    virtual T* getIndex(const VolIndex& a_vof,const int& a_comp) const;
+    T* getIndex(const VolIndex& a_vof,const int& a_comp) const;
 
     int numDataTypes() const
       {
@@ -217,6 +217,16 @@ namespace amrex
         return *(getIndex(a_vof, a_comp));
       }
 
+    ///
+    T& operator() (int a_ivof, int a_comp)
+      {  return *(getIndex(a_ivof, a_comp));}
+
+    ///
+    const T& operator() (int a_ivof, int a_comp) const
+      {
+        return *(getIndex(a_ivof, a_comp));
+      }
+
     int numVoFs() const;
 
     int nComp() const {return m_nComp;}
@@ -238,6 +248,18 @@ namespace amrex
     std::vector<T>  m_Memory;
     T* m_data   = nullptr;
 
+    // unfortunately, we return T*, not const T*
+    T* getIndex (int ivof, int icomp) const {
+	return m_data + ivof + icomp*m_vofs.size();
+    }
+
+    int getVolIndexIndex (const VolIndex& a_vof) const {
+	auto low = std::lower_bound(m_vofs.begin(), m_vofs.end(), a_vof);
+	if (low == m_vofs.end() || a_vof != *low) {
+	    amrex::Error("attempt to access data from vof that is not in BaseIVFAB");
+	}
+	return low - m_vofs.begin();
+    }
   };
 }
 #include "AMReX_BaseIVFABI.H"
