@@ -160,6 +160,12 @@ namespace amrex
     T& operator() (const FaceIndex& a_face,const int& varlocin);
     const T& operator()(const FaceIndex& a_face,const int& varlocin) const;
 
+    T& operator() (int a_iface, int varlocin) {
+	return *(getIndex(a_iface, varlocin));
+    }
+    const T& operator()(int a_iface, int varlocin) const {
+	return *(getIndex(a_iface, varlocin));
+    }
 
 ///
     T* dataPtr(const int& a_comp);
@@ -243,6 +249,19 @@ namespace amrex
     T* m_data;
 
     bool    m_isDefined;
+
+    int getFaceIndexIndex (const FaceIndex& a_face) const {
+	auto low = std::lower_bound(m_faces.begin(), m_faces.end(), a_face);
+	if (low == m_faces.end() || a_face != *low) {
+	    amrex::Error("BaseIFFAB:index not found");
+	}
+	return low - m_faces.begin();
+    }
+
+    T* getIndex(int ifaceindex, int a_comp) const {
+	return m_data + ifaceindex + a_comp*m_nFaces;
+    }
+
   private:
 //we disallow copy construction and assigment for data holders
     void operator= (const BaseIFFAB<T>&)
