@@ -150,9 +150,9 @@ extern "C" {
 
     void amrex_fi_new_imultifab (iMultiFab*& imf, const BoxArray*& ba, 
 				 const DistributionMapping*& dm,
-				 int nc, int ng)
+				 int nc, int ng, const int* nodal)
     {
-	imf = new iMultiFab(*ba, *dm, nc, ng);
+	imf = new iMultiFab(amrex::convert(*ba, IntVect(nodal)), *dm, nc, ng);
 	ba = &(imf->boxArray());
 	dm = &(imf->DistributionMap());
     }
@@ -173,6 +173,11 @@ extern "C" {
 	    lo[i] = lov[i];
 	    hi[i] = hiv[i];
 	}
+    }
+
+    void amrex_fi_imultifab_setval (iMultiFab* imf, int val, int ic, int nc, int ng)
+    {
+        imf->setVal(val, ic, nc, ng);
     }
 
     // MFIter routines
