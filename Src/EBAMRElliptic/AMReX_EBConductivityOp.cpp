@@ -407,7 +407,14 @@ namespace amrex
 
         //bcoef is included here in the flux consistent
         //with the regular
-
+//begin debug        
+        IntVect ivdebug(D_DECL(15,12,0));
+        int idebug = 0;
+        if(vof.gridIndex() == ivdebug)
+        {
+          idebug = 1;
+        }
+//end debug
         getDivFStencil(vofsten,vof, mfi);
         if (fluxStencil != NULL)
         {

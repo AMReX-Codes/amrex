@@ -363,13 +363,13 @@ namespace amrex
   template <class T>
   void
   AMREBMultiGrid<T>::setSolverParameters(const int&   a_pre,
-                                       const int&   a_post,
-                                       const int&   a_bottom,
-                                       const int&   a_numMG,
-                                       const int&   a_iterMax,
-                                       const Real&  a_eps,
-                                       const Real&  a_hang,
-                                       const Real&  a_normThresh)
+                                         const int&   a_post,
+                                         const int&   a_bottom,
+                                         const int&   a_numMG,
+                                         const int&   a_iterMax,
+                                         const Real&  a_eps,
+                                         const Real&  a_hang,
+                                         const Real&  a_normThresh)
   {
     m_solverParamsSet = true;
     m_pre        =    a_pre;

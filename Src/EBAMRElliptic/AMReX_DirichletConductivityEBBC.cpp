@@ -33,6 +33,14 @@ namespace amrex
       for (VoFIterator vofit(ivsIrreg, ebis.getEBGraph()); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
+//begin debug        
+        IntVect ivdebug(D_DECL(15,12,0));
+        int idebug = 0;
+        if(vof.gridIndex() == ivdebug)
+        {
+          idebug = 1;
+        }
+//end debug
         VoFStencil gradStencil;
         Real curWeight;
         if (m_order == 1)
@@ -45,6 +53,8 @@ namespace amrex
         }
         
         VoFStencil fluxStencilPt = gradStencil;
+        Real areaFrac = ebis.bndryArea(vof);
+        fluxStencilPt *= (areaFrac/m_dx);
         Real factor = (*m_bcoe)[mfi].getEBFlux()(vofit(), 0);
         factor *= m_beta;
         fluxStencilPt *= factor;
