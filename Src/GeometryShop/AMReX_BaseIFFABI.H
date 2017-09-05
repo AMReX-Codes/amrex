@@ -74,6 +74,7 @@ namespace amrex
 
     FaceIterator faceit(m_ivs, a_ebgraph, m_direction, FaceStop::SurroundingWithBoundary);
     m_faces = faceit.getVector();
+    std::sort(m_faces.begin(), m_faces.end());
     m_nFaces = m_faces.size();
 
     m_data = new T[m_nComp*m_nFaces];
@@ -134,11 +135,12 @@ namespace amrex
       if ((intBox.contains(ivHi) || intBox.contains(ivLo)) &&
 	  (ivsintersect.contains(ivHi) || ivsintersect.contains(ivLo)))
       {
+	int src_ifaceindex = a_src.getFaceIndexIndex(face);
         for (int icomp = 0; icomp < a_numcomp; icomp++)
         {
           int isrccomp = a_srccomp  + icomp;
           int idstcomp = a_destcomp + icomp;
-          (*this)(face, idstcomp) = a_src(face, isrccomp);
+          (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
         }
       }
     }
@@ -166,31 +168,8 @@ namespace amrex
   {
     assert(m_isDefined);
     assert((a_comp >= 0) && (a_comp < this->m_nComp));
-
-    T* dataPtr =  this->m_data;
-    bool found = false;
-    T* retval=NULL;
-    for (int iface = 0; iface < m_faces.size(); ++iface)
-    {
-      if (a_face == m_faces[iface])
-      {
-        found = true;
-        retval=dataPtr;
-      }
-      if (found) break;
-      dataPtr++;
-    }
-    if (!found)
-    {
-      pout() << "BaseIFFAB::getIndex, index  = " << a_face << endl;
-      pout() << "my faces  = " << endl;
-      dumpFaces(m_faces);
-      
-      amrex::Error("BaseIFFAB:index not found");
-    }
-    retval += a_comp*this->m_nFaces;
-    return retval;
-
+    int ifaceindex = this->getFaceIndexIndex(a_face);
+    return this->getIndex(ifaceindex, a_comp);
   }
 /*********/
   template <class T> inline
