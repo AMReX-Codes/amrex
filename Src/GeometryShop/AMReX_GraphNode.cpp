@@ -128,8 +128,8 @@ namespace amrex
                                              const Side::LoHiSide& a_sd,
                                              const Box&  a_domain) const
   {
-    static std::vector<FaceIndex> emptyVec;
-    static std::vector<FaceIndex> regularVec(1);
+    std::vector<FaceIndex> emptyVec;
+    std::vector<FaceIndex> regularVec(1);
 
     IntVect otherIV = a_this +sign(a_sd)*BASISV(a_idir);
     if (isRegular())
@@ -201,8 +201,8 @@ namespace amrex
                                         const Side::LoHiSide& a_sd,
                                         const Box&  a_domain) const
   {
-    static std::vector<FaceIndex> emptyVec;
-    static std::vector<FaceIndex> regularVec(1);
+    std::vector<FaceIndex> emptyVec;
+    std::vector<FaceIndex> regularVec(1);
 
     IntVect otherIV = a_vof.gridIndex() +sign(a_sd)*BASISV(a_idir);
 

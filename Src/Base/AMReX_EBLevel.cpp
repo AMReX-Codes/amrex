@@ -82,10 +82,9 @@ EBLevel::defineDoit (const BoxArray& ba, const DistributionMapping& dm, const Bo
 {
     BL_PROFILE("EBLevel::defineDoit()");
 
-// not thread safe
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     {
 
     for (MFIter mfi(*m_cellflags); mfi.isValid(); ++mfi)
