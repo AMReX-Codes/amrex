@@ -1150,9 +1150,31 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
       lev_max = theEffectiveFinestLevel;
   
   BL_ASSERT(lev_max <= finestLevel());
-  
-  // The valid particles that we don't own.
+
+  // This will hold the valid particles that go to another process
   std::map<int, Array<char> > not_ours;
+  
+#ifdef _OPENMP
+  int num_threads = omp_get_num_threads();
+#else
+  int num_threads = 1;
+#endif
+  
+  std::map<int, Array<Array<char> > > tmp_remote;
+  Array<std::map<std::pair<int, int>, Array<Array<char> > > > tmp_local;
+  tmp_local.resize(theEffectiveFinestLevel+1);
+  for (int lev = lev_min; lev <= lev_max; lev++) {
+      auto& pmap = m_particles[lev];
+      for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
+          int grid = pmap_it->first.first;
+          int tile = pmap_it->first.second;
+          tmp_local[lev][std::make_pair(grid, tile)].resize(num_threads);
+          
+          int who = ParticleDistributionMap(lev)[grid];
+          tmp_remote[who].resize(num_threads);
+      }
+  }
+  
   ParticleLocData pld;
   for (int lev = lev_min; lev <= lev_max; lev++) {
       auto& pmap = m_particles[lev];
@@ -1165,6 +1187,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           unsigned npart = aos.numParticles();
           if (npart != 0) {
               for (unsigned pindex = 0; pindex < npart; ++pindex) {
+#ifdef _OPENMP
+                  int thread_num = omp_get_thread_num();
+#else
+                  int thread_num = 1;
+#endif
                   ParticleType& p = aos[pindex];
                   if (p.m_idata.id > 0) {
                       
@@ -1193,7 +1220,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                           }
 
                           else {
-                              auto& particles_to_send = not_ours[who];
+                              auto& particles_to_send = tmp_remote[who][thread_num];
                               auto old_size = particles_to_send.size();
                               auto new_size = old_size + superparticle_size;
                               particles_to_send.resize(new_size);
@@ -1248,6 +1275,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           else {
               ++pmap_it;
           }
+      }
+  }
+
+  for (auto& map_it : tmp_remote) {
+      int who = map_it.first;
+      not_ours[who];
+  }  
+
+  for (auto& map_it : tmp_remote) {
+      int who = map_it.first;
+      Array<Array<char> >& tmp = map_it.second;
+      for (int i = 0; i < num_threads; ++i) {
+          not_ours[who].insert(not_ours[who].begin(), tmp[i].begin(), tmp[i].end());
+          tmp[i].erase(tmp[i].begin(), tmp[i].end());
       }
   }
   
