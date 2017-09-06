@@ -4,6 +4,7 @@
 
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_EBAmrUtil.H>
 
 #include <climits>
 
@@ -11,7 +12,6 @@ using namespace amrex;
 
 constexpr int CNS::NUM_GROW;
 
-ErrorList CNS::err_list;
 BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
@@ -33,8 +33,6 @@ CNS::CNS (Amr&            papa,
     // xxxxx need to build flux register
 
     buildMetrics();
-
-    // xxxxx initialize EB
 }
 
 CNS::~CNS ()
@@ -288,9 +286,16 @@ CNS::post_restart ()
 }
 
 void
-CNS::errorEst (TagBoxArray& tags, int clearval, int tagval, Real time, int n_error_buf, int ngrow)
+CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
 {
-    // xxxxx tagging
+    BL_PROFILE("CNS::errorEst()");
+
+    const bool refine_cutcells = true;
+
+    if (refine_cutcells) {
+        const MultiFab& S_new = get_new_data(State_Type);
+        amrex::TagCutCells(tags, S_new);
+    }
 }
 
 void

@@ -163,9 +163,6 @@ CNS::variableSetUp ()
                    cns_dervel,the_same_box);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Zmom,1);
-
-    // Tagging 
-    ErrorSetUp();
 }
 
 void

@@ -2,7 +2,7 @@
 #define CNS_H_
 
 #include <AMReX_AmrLevel.H>
-#include <AMReX_ErrorList.H>
+#include <AMReX_EBFluxRegister.H>
 
 class CNS
     :
@@ -93,9 +93,6 @@ public:
     // Define data descriptors.
     static void variableSetUp ();
 
-    // Define tagging functions.
-    static void ErrorSetUp ();
-
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
@@ -144,7 +141,6 @@ protected:
     };
     static int num_state_data_types;
 
-    static amrex::ErrorList err_list;
     static amrex::BCRec     phys_bc;
 
     // Parameters

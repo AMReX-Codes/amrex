@@ -12,8 +12,6 @@ CNS::restart (Amr& papa, std::istream& is, bool bReadSpecial)
     // xxxxx need to do flux register stuff
 
     buildMetrics();
-
-    //  xxxxx initialize EB
 }
 
 void 
