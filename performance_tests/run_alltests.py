@@ -19,11 +19,12 @@ args = parser.parse_args()
 compiler_name = {'intel': 'intel', 'gnu': 'gcc'}
 
 # Define environment variables
+cwd = os.getcwd()
 res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
 bin_dir = '../Bin/'
 bin_name = 'main3d.' + args.compiler + '.TPROF.MPI.OMP.ex'
 log_file = 'performance_log.txt'
-log_dir  = os.environ['HOME'] + 'cori/warpx/performance_tests/'
+log_dir  = cwd
 
 # Initialize tests
 # ----------------
@@ -59,7 +60,7 @@ elif args.architecture == 'haswell':
 
 # Recompile if requested
 if args.recompile == True:
-    os.chdir('.')
+    os.chdir('..')
     with open('GNUmakefile') as makefile_handler:
         makefile_text = makefile_handler.read()
     makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
@@ -96,11 +97,17 @@ def runcase(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     os.environ['OMP_NUM_THREADS'] = str(n_omp)
     # number of logical cores per MPI process
     cflag_value = (68/n_mpi) * 4
-    exec_command = 'srun --cpu_bind=cores '     + \
+    if args.architecture == 'cpu':
+        exec_command = 'srun '+ \
                     ' -n ' + str(n_node*n_mpi) + \
-                    ' -c ' + str(cflag_value)   + \
                     ' ./'  + bin_name + ' inputs > my_output.txt'
+    elif args.achitecture == 'knl':
+        exec_command = 'srun --cpu_bind=cores '     + \
+                       ' -n ' + str(n_node*n_mpi) + \
+                       ' -c ' + str(cflag_value)   + \
+                       ' ./'  + bin_name + ' inputs > my_output.txt'
     os.system('chmod 700 ' + bin_name)
+    print(exec_command)
     os.system(exec_command)    
 
 # Loop over the tests and return run time + details
