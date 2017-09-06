@@ -19,6 +19,11 @@ ifeq ($(USE_EB),TRUE)
   CEXE_sources += AMReX_EBInterpolater.cpp
   CEXE_headers += AMReX_EBInterp_f.H
   F90EXE_sources += AMReX_ebinterp_$(DIM)d.F90
+  CEXE_headers += AMReX_EBFluxRegister.H
+  CEXE_sources += AMReX_EBFluxRegister.cpp
+  CEXE_headers += AMReX_EBAmrUtil.H AMReX_EBAmrUtil_F.H
+  CEXE_sources += AMReX_EBAmrUtil.cpp
+  F90EXE_sources += AMReX_EBAmrUtil_nd.F90
 endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/AmrCore
