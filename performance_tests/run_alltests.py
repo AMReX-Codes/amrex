@@ -59,7 +59,7 @@ elif args.architecture == 'haswell':
 
 # Recompile if requested
 if args.recompile == True:
-    os.chdir(build_dir)
+    os.chdir('.')
     with open('GNUmakefile') as makefile_handler:
         makefile_text = makefile_handler.read()
     makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
@@ -95,9 +95,8 @@ def runcase(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     os.chdir(res_dir)
     os.environ['OMP_NUM_THREADS'] = str(n_omp)
     # number of logical cores per MPI process
-    cflag_value = (68/n_mpi) * 4 
-    #[LOCAL]
-    exec_command = 'srun --cpu_bind=cores '     + \ 
+    cflag_value = (68/n_mpi) * 4
+    exec_command = 'srun --cpu_bind=cores '     + \
                     ' -n ' + str(n_node*n_mpi) + \
                     ' -c ' + str(cflag_value)   + \
                     ' ./'  + bin_name + ' inputs > my_output.txt'
@@ -132,4 +131,6 @@ for count, run_name in enumerate(test_list):
     f_log.write(log_line)
     f_log.close()
 
+# Copy performance log file to a safe location WarpX directory
 shutil.copyfile(res_dir_base + log_file, log_dir + year + '_' + month + '_' + day + '_' + log_file)
+
