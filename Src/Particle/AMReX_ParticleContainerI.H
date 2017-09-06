@@ -1163,17 +1163,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
   std::map<int, Array<Array<char> > > tmp_remote;
   Array<std::map<std::pair<int, int>, Array<Array<char> > > > tmp_local;
   tmp_local.resize(theEffectiveFinestLevel+1);
-  for (int lev = lev_min; lev <= lev_max; lev++) {
-      auto& pmap = m_particles[lev];
-      for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
-          int grid = pmap_it->first.first;
-          int tile = pmap_it->first.second;
-          tmp_local[lev][std::make_pair(grid, tile)].resize(num_threads);
-          
-          int who = ParticleDistributionMap(lev)[grid];
-          tmp_remote[who].resize(num_threads);
-      }
-  }
   
   ParticleLocData pld;
   for (int lev = lev_min; lev <= lev_max; lev++) {
@@ -1190,7 +1179,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
 #ifdef _OPENMP
                   int thread_num = omp_get_thread_num();
 #else
-                  int thread_num = 1;
+                  int thread_num = 0;
 #endif
                   ParticleType& p = aos[pindex];
                   if (p.m_idata.id > 0) {
@@ -1220,6 +1209,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                           }
 
                           else {
+                              if (tmp_remote.find(who) == tmp_remote.end())
+                                  tmp_remote[who].resize(num_threads);
                               auto& particles_to_send = tmp_remote[who][thread_num];
                               auto old_size = particles_to_send.size();
                               auto new_size = old_size + superparticle_size;
