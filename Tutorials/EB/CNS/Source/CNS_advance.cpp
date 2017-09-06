@@ -23,9 +23,24 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
         C_new.setVal(0.0);
     }
 
+    EBFluxRegister* fr_as_crse = nullptr;
+    if (level < parent->finestLevel()) {
+        CNS& fine_level = getLevel(level+1);
+        fr_as_crse = &fine_level.flux_reg;
+    }
+
+    EBFluxRegister* fr_as_fine = nullptr;
+    if (level > 0) {
+        fr_as_fine = &flux_reg;
+    }
+
+    if (fr_as_crse) {
+        fr_as_crse->CrseSetVal(0.0);
+    }
+
     // RK2 stage 1
     FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
-    compute_dSdt(Sborder, dSdt, dt);
+    compute_dSdt(Sborder, dSdt, dt, fr_as_crse, fr_as_fine);
     // U^* = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dSdt, 0, 0, NUM_STATE, 0);
     computeTemp(S_new,0);
@@ -33,7 +48,7 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     // RK2 stage 2
     // After fillpatch Sborder = U^n+0.5*dt*dUdt^n
     FillPatch(*this, Sborder, NUM_GROW, time+0.5*dt, State_Type, 0, NUM_STATE);
-    compute_dSdt(Sborder, dSdt, 0.5*dt);
+    compute_dSdt(Sborder, dSdt, 0.5*dt, fr_as_crse, fr_as_fine);
     // U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, 0.5*dt, dSdt, 0, 0, NUM_STATE, 0);
     computeTemp(S_new,0);
@@ -42,7 +57,8 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
 }
 
 void
-CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
+CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
+                   EBFluxRegister* fr_as_crse, EBFluxRegister* fr_as_fine)
 {
     BL_PROFILE("CNS::compute_dSdt()");
 
@@ -55,6 +71,8 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
 #pragma omp parallel
 #endif
     {
+        std::array<FArrayBox,AMREX_SPACEDIM> flux;
+
         for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
                         mfi.isValid(); ++mfi)
         {
@@ -68,18 +86,33 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
             if (flag.getType(bx) == FabType::covered) {
                 dSdt[mfi].setVal(0.0, bx, 0, ncomp);
             } else {
+
+                for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
+                    flux[idim].resize(amrex::surroundingNodes(bx,idim),ncomp);
+                }
+
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular)
                 {
                     cns_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                      BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                      BL_TO_FORTRAN_ANYD(S[mfi]),
+                                     BL_TO_FORTRAN_ANYD(flux[0]),
+                                     BL_TO_FORTRAN_ANYD(flux[1]),
+                                     BL_TO_FORTRAN_ANYD(flux[2]),
                                      dx, &dt);
+
+                    if (fr_as_crse) {
+                        fr_as_crse->CrseAdd(mfi,flux,dx,dt);
+                    }
                 }
                 else
                 {
                     cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                         BL_TO_FORTRAN_ANYD(S[mfi]),
+                                        BL_TO_FORTRAN_ANYD(flux[0]),
+                                        BL_TO_FORTRAN_ANYD(flux[1]),
+                                        BL_TO_FORTRAN_ANYD(flux[2]),
                                         BL_TO_FORTRAN_ANYD(flag),
                                         BL_TO_FORTRAN_ANYD(volfrac[mfi]),
                                         BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
@@ -90,6 +123,10 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt)
                                         BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
                                         dx, &dt);
+
+                    if (fr_as_crse) {
+                        fr_as_crse->CrseAdd(mfi,flux,dx,dt);
+                    }
                 }
             }
 

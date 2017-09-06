@@ -30,7 +30,12 @@ CNS::CNS (Amr&            papa,
           Real            time)
     : AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
-    // xxxxx need to build flux register
+    if (level > 0) {
+        flux_reg.define(bl, papa.boxArray(level-1),
+                        dm, papa.DistributionMap(level-1),
+                        level_geom, papa.Geom(level-1),
+                        papa.refRatio(level-1), level, NUM_STATE);
+    }
 
     buildMetrics();
 }
