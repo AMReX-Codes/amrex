@@ -1154,17 +1154,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
   // This will hold the valid particles that go to another process
   std::map<int, Array<char> > not_ours;
   
-#ifdef _OPENMP
-  int num_threads = omp_get_num_threads();
-#else
   int num_threads = 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single
+  num_threads = omp_get_num_threads();
 #endif
   
   std::map<int, Array<Array<char> > > tmp_remote;
-  Array<std::map<std::pair<int, int>, Array<Array<char> > > > tmp_local;
+  Array<std::map<std::pair<int, int>, Array<Array<ParticleType> > > > tmp_local;
   tmp_local.resize(theEffectiveFinestLevel+1);
+
+  for (int lev = lev_min; lev <= lev_max; lev++) {
+      for (MFIter mfi(*m_dummy_mf[lev]); mfi.isValid(); ++mfi) {
+          auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+          tmp_local[lev][index].resize(num_threads);
+      }
+  }
   
-  ParticleLocData pld;
   for (int lev = lev_min; lev <= lev_max; lev++) {
       auto& pmap = m_particles[lev];
       for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
@@ -1175,6 +1182,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           unsigned first = 0;
           unsigned npart = aos.numParticles();
           if (npart != 0) {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
               for (unsigned pindex = 0; pindex < npart; ++pindex) {
 #ifdef _OPENMP
                   int thread_num = omp_get_thread_num();
@@ -1182,6 +1192,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                   int thread_num = 0;
 #endif
                   ParticleType& p = aos[pindex];
+                  ParticleLocData pld;
                   if (p.m_idata.id > 0) {
                       
                       locateParticle(p, pld, lev_min, lev_max, nGrow);
@@ -1193,14 +1204,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                           if (who == MyProc) {
                               if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
                                   // We own it but must shift it to another place.
-                                  auto& ptile = m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
-                                  ptile.push_back(p);
-                                  for (int comp = 0; comp < NArrayReal; ++comp) {
-                                      ptile.push_back_real(comp, soa.GetRealData(comp)[pindex]);
-                                  }
-                                  for (int comp = 0; comp < NArrayInt; ++comp) {
-                                      ptile.push_back_int(comp, soa.GetIntData(comp)[pindex]);
-                                  }
+                                  auto index = std::make_pair(pld.m_grid, pld.m_tile);                                  
+                                  BL_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
+                                  tmp_local[pld.m_lev][index][thread_num].push_back(p);
+
+                                  // for (int comp = 0; comp < NArrayReal; ++comp) {
+                                  //     ptile.push_back_real(comp, soa.GetRealData(comp)[pindex]);
+                                  // }
+                                  // for (int comp = 0; comp < NArrayInt; ++comp) {
+                                  //     ptile.push_back_int(comp, soa.GetIntData(comp)[pindex]);
+                                  // }
+
                                   //
                                   // Invalidate the particle so we can reclaim its space.
                                   //
@@ -1236,6 +1250,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                   }
 
                   // this is a valid particle
+                  #pragma omp critical
+                  {
                   if (p.m_idata.id > 0) {
                       if (pindex != first) {
                           aos[first] = p;
@@ -1245,6 +1261,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                               soa.GetIntData(comp)[first] = soa.GetIntData(comp)[pindex];
                       }
                       ++first;
+                  }
                   }
               }
               
@@ -1269,6 +1286,29 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
       }
   }
 
+  for (int lev = lev_min; lev <= lev_max; lev++) {
+      typename std::map<std::pair<int, int>, Array<Array<ParticleType> > >::iterator pmap_it;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single nowait
+#endif
+      for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++) {
+#ifdef _OPENMP
+#pragma omp task firstprivate(pmap_it)
+#endif
+          {
+              auto index = pmap_it->first;
+              auto& ptile = m_particles[lev][index];
+              Array<Array<ParticleType> >& tmp = pmap_it->second;   
+              for (int i = 0; i < num_threads; ++i) {
+                  for (int j = 0; j < static_cast<int>(tmp[i].size()); ++j)
+                      ptile.push_back(tmp[i][j]);
+                  tmp[i].erase(tmp[i].begin(), tmp[i].end());
+              }
+          }
+      }
+  }
+  
   for (auto& map_it : tmp_remote) {
       int who = map_it.first;
       not_ours[who];
