@@ -21,8 +21,11 @@ compiler_name = {'intel': 'intel', 'gnu': 'gcc'}
 # Define environment variables
 cwd = os.getcwd()
 res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
-bin_dir = '../Bin/'
-bin_name = 'main3d.' + args.compiler + '.TPROF.MPI.OMP.ex'
+if recompile == True:
+    bin_dir = './Bin/'
+else:
+    bin_dir == '../Bin'
+bin_name = 'perf_tests3d.' + args.compiler + '.TPROF.MPI.OMP.ex'
 log_file = 'performance_log.txt'
 log_dir  = cwd
 
@@ -60,11 +63,13 @@ elif args.architecture == 'haswell':
 
 # Recompile if requested
 if args.recompile == True:
-    os.chdir('..')
-    with open('GNUmakefile') as makefile_handler:
+    with open(cwd + '/GNUmakefile_perftest') as makefile_handler:
         makefile_text = makefile_handler.read()
     makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
-    os.system("make")
+    with open(cwd + '/GNUmakefile_perftest', 'w') as makefile_handler:
+        makefile_handler.write( makefile_text )
+    os.system("make -j -f GNUmakefile_perftest")
+
     
 # Create main result directory if does not exist
 if not os.path.exists(res_dir_base):
@@ -72,7 +77,7 @@ if not os.path.exists(res_dir_base):
     
 # Create log_file for performance tests if does not exist
 if not os.path.isfile(res_dir_base + log_file):
-    log_line = 'run_name year month day time_initialization time_one_iteration\n'
+    log_line = 'run_name year month day time_initialization(s) time_one_iteration(s)\n'
     f_log = open(res_dir_base + log_file, 'a')
     f_log.write(log_line)
     f_log.close()
@@ -91,7 +96,7 @@ def runcase(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
         shutil.rmtree(res_dir)
     os.makedirs(res_dir)
     # Copy files to res_dir
-    shutil.copyfile(bin_dir + '/' + bin_name, res_dir + '/' + bin_name)
+    shutil.copyfile(bin_dir + bin_name, res_dir + bin_name)
     shutil.copyfile(run_name, res_dir + '/inputs')
     os.chdir(res_dir)
     os.environ['OMP_NUM_THREADS'] = str(n_omp)
@@ -107,14 +112,13 @@ def runcase(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
                        ' -c ' + str(cflag_value)   + \
                        ' ./'  + bin_name + ' inputs > my_output.txt'
     os.system('chmod 700 ' + bin_name)
-    print(exec_command)
     os.system(exec_command)    
 
 # Loop over the tests and return run time + details
 # -------------------------------------------------
 
 for count, run_name in enumerate(test_list):
-    res_dir = res_dir_base + run_name
+    res_dir = res_dir_base + run_name + '/'
     runcase(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1)
     partition_limit = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
     with open('my_output.txt') as file_handler:
@@ -140,4 +144,3 @@ for count, run_name in enumerate(test_list):
 
 # Copy performance log file to a safe location WarpX directory
 shutil.copyfile(res_dir_base + log_file, log_dir + year + '_' + month + '_' + day + '_' + log_file)
-
