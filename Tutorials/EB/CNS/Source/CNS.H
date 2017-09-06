@@ -120,7 +120,8 @@ protected:
 
     void computeTemp (amrex::MultiFab& State, int ng);
 
-    void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt);
+    void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt,
+                       amrex::EBFluxRegister* fr_as_crse, amrex::EBFluxRegister* fr_as_fine);
 
     void fixUpGeometry ();
 
@@ -128,6 +129,8 @@ protected:
     amrex::MultiFab bndrycent;
     std::array<amrex::MultiFab,3> areafrac;
     std::array<amrex::MultiFab,3> facecent;
+
+    amrex::EBFluxRegister flux_reg;
 
     static constexpr int NUM_GROW = 5;
     enum StateVariable {

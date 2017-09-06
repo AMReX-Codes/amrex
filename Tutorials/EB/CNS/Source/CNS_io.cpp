@@ -9,7 +9,12 @@ CNS::restart (Amr& papa, std::istream& is, bool bReadSpecial)
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
-    // xxxxx need to do flux register stuff
+    if (level > 0) {
+        flux_reg.define(grids, papa.boxArray(level-1),
+                        dmap, papa.DistributionMap(level-1),
+                        geom, papa.Geom(level-1),
+                        papa.refRatio(level-1), level, NUM_STATE);
+    }
 
     buildMetrics();
 }
