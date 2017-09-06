@@ -1274,12 +1274,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
       not_ours[who];
   }  
 
-  for (auto& map_it : tmp_remote) {
-      int who = map_it.first;
-      Array<Array<char> >& tmp = map_it.second;
-      for (int i = 0; i < num_threads; ++i) {
-          not_ours[who].insert(not_ours[who].begin(), tmp[i].begin(), tmp[i].end());
-          tmp[i].erase(tmp[i].begin(), tmp[i].end());
+  std::map<int, Array<Array<char> > >::iterator it;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single nowait
+#endif
+  for (it=tmp_remote.begin(); it != tmp_remote.end(); it++) {
+#ifdef _OPENMP
+#pragma omp task firstprivate(it)
+#endif
+      {
+          int who = it->first;
+          Array<Array<char> >& tmp = it->second;
+          for (int i = 0; i < num_threads; ++i) {
+              not_ours[who].insert(not_ours[who].begin(), tmp[i].begin(), tmp[i].end());
+              tmp[i].erase(tmp[i].begin(), tmp[i].end());
+          }
       }
   }
   
