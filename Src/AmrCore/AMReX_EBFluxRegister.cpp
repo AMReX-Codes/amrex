@@ -58,7 +58,8 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         for (MFIter mfi(m_crse_flag); mfi.isValid(); ++mfi)
         {
             auto& fab = m_crse_flag[mfi];
-            const Box& bx = fab.box();
+            Box bx = fab.box();
+            bx &= cdomain;
 
             fab.setVal(crse_cell);
             bool has_fine = false;
@@ -68,15 +69,13 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 cfba.intersections(bx+iv, isects, false, 1);
                 for (const auto& is : isects)
                 {
-                    Box ibx = is.second - iv;
-                    ibx &= cdomain;
+                    const Box& ibx = is.second - iv;
                     fab.setVal(crse_fine_boundary_cell, ibx, 0, 1);
                 }
 
                 for (const auto& is : isects)
                 {
                     Box ibx = is.second - iv;
-                    ibx &= cdomain;
                     ibx &= cfba[is.first];
                     fab.setVal(fine_cell, ibx, 0, 1);
                     has_fine = true;
@@ -88,6 +87,47 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             }
         }
     }
+
+    BoxList cfp_bl;
+    Array<int> cfp_procmap;
+    int nlocal = 0;
+    int myproc = ParallelDescriptor::MyProc();
+    
+    Array<int> fine_local_grid_index;
+
+    for (int i = 0; i < cfba.size(); ++i)
+    {
+        Box bx = amrex::grow(cfba[i], 1);
+        bx &= cdomain;
+        // xxxxx periodic boundaries???
+
+        const BoxList& bl = cfba.complementIn(bx);
+        cfp_bl.join(bl);
+
+        int proc = fdm[i];
+        for (int j = 0; j < bl.size(); ++j) {
+            cfp_procmap.push_back(proc);
+            if (proc == myproc) {
+                fine_local_grid_index.push_back(nlocal);
+            }
+        }
+
+        if (proc == myproc) {
+            ++nlocal;
+        }
+    }
+
+    BoxArray cfp_ba(std::move(cfp_bl));
+    DistributionMapping cfp_dm(cfp_procmap);
+    m_cfpatch.define(cfp_ba, cfp_dm, nvar, 0);
+
+    m_cfp_fab.resize(nlocal);
+    for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi) {
+        const int li = mfi.LocalIndex();
+        const int flgi = fine_local_grid_index[li];
+        FArrayBox& fab = m_cfpatch[mfi];
+        m_cfp_fab[flgi].push_back(&fab);
+    }
 }
 
 
@@ -96,6 +136,7 @@ EBFluxRegister::CrseSetVal (Real val)
 {
     m_crse_data.setVal(val);
 }
+
 
 void
 EBFluxRegister::CrseAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
@@ -121,6 +162,21 @@ EBFluxRegister::CrseAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPA
                                            BL_TO_FORTRAN_ANYD(flux[2])),
                               dx, &dt,&nc);
                                            
+}
+
+
+void
+EBFluxRegister::FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+                         const Real* dx, Real dt)
+{
+    
+}
+
+
+void
+EBFluxRegister::Reflux (MultiFab& state) const
+{
+//    amrex::VisMF::Write(m_crse_data, "crse_data");
 }
 
 }

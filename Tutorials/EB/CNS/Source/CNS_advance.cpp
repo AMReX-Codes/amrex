@@ -104,6 +104,10 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                     if (fr_as_crse) {
                         fr_as_crse->CrseAdd(mfi,flux,dx,dt);
                     }
+
+                    if (fr_as_fine) {
+                        fr_as_fine->FineAdd(mfi,flux,dx,dt);
+                    }
                 }
                 else
                 {
@@ -126,6 +130,10 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
                     if (fr_as_crse) {
                         fr_as_crse->CrseAdd(mfi,flux,dx,dt);
+                    }
+
+                    if (fr_as_fine) {
+                        fr_as_fine->FineAdd(mfi,flux,dx,dt);
                     }
                 }
             }
