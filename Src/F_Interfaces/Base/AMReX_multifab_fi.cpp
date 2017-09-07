@@ -208,6 +208,11 @@ extern "C" {
 	*isvalid = mfi->isValid();
     }
 
+    int amrex_fi_mfiter_grid_index (MFIter* mfi)
+    {
+	return mfi->index();
+    }
+
     void amrex_fi_mfiter_tilebox (MFIter* mfi, int lo[3], int hi[3], int nodal[3])
     {
 	const Box& bx = mfi->tilebox();
