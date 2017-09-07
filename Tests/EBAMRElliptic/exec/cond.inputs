@@ -28,9 +28,9 @@ beta  = -0.1
 acoef_val = 0.5
 bcoef_val = 0.5
 
-num_smooth = 4
+num_smooth = 8
 num_mg     = 1
 max_iterations = 27
-tolerance = 1.0e-6
+tolerance = 1.0e-9
 hang = 1.0e-10
 num_smooth_bottom = 27
