@@ -40,7 +40,7 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
 
     // RK2 stage 1
     FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
-    compute_dSdt(Sborder, dSdt, dt, fr_as_crse, fr_as_fine);
+    compute_dSdt(Sborder, dSdt, 0.5*dt, fr_as_crse, fr_as_fine);
     // U^* = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dSdt, 0, 0, NUM_STATE, 0);
     computeTemp(S_new,0);
