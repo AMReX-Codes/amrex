@@ -30,7 +30,8 @@ namespace amrex
       return lhs < rhs;
     }
   };
-  /// IntVectSet implementation based std::set
+
+  /// IntVectSet implementation based std::unordered_set
   /**
    */
   class IntVectSet
@@ -199,5 +200,8 @@ namespace amrex
 //    std::set<IntVect, lex_compare_iv>::iterator m_iter;
     IntVectSet::container_type::const_iterator m_iter;
   };
+
+  IntVectSet intersect (const IntVectSet& a, const IntVectSet& b, const Box& bx);
+  IntVectSet intersect (const IntVectSet& ivs, const Box& bx);
 }
 #endif //  STDSETIVS_H
