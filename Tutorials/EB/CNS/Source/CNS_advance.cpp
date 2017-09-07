@@ -35,7 +35,7 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     }
 
     if (fr_as_crse) {
-        fr_as_crse->CrseSetVal(0.0);
+        fr_as_crse->reset();
     }
 
     // RK2 stage 1

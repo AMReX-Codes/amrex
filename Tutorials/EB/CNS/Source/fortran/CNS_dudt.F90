@@ -194,10 +194,13 @@ contains
          centy(:,:,:,1),cylo,cyhi, centy(:,:,:,2),cylo,cyhi, &
          centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &
          flag,fglo,fghi)
-
-    fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),1:5) = fhx
-    fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),1:5) = fhy
-    fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),1:5) = fhz
+    
+    fx(      fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),1:5) = &
+         fhx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),1:5)
+    fy(      fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),1:5) = &
+         fhy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),1:5)
+    fz(      fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),1:5) = &
+         fhz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),1:5)
 
     fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),6:nvar) = 0.d0
     fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),6:nvar) = 0.d0
