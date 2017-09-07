@@ -108,7 +108,8 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         for (int j = 0; j < bl.size(); ++j) {
             cfp_procmap.push_back(proc);
             if (proc == myproc) {
-                fine_local_grid_index.push_back(nlocal);
+                fine_local_grid_index.push_back(nlocal);  // This Array store local index in fine ba/dm.
+                                                          // Its size is local size of cfp.
             }
         }
 
@@ -117,10 +118,12 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         }
     }
 
+    // xxxxx what if cfp_bl is empty?
+
     BoxArray cfp_ba(std::move(cfp_bl));
     DistributionMapping cfp_dm(cfp_procmap);
     m_cfpatch.define(cfp_ba, cfp_dm, nvar, 0);
-
+    
     m_cfp_fab.resize(nlocal);
     for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi) {
         const int li = mfi.LocalIndex();
@@ -132,9 +135,10 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
 
 void
-EBFluxRegister::CrseSetVal (Real val)
+EBFluxRegister::reset ()
 {
-    m_crse_data.setVal(val);
+    m_crse_data.setVal(0.0);
+    m_cfpatch.setVal(0.0);
 }
 
 
@@ -142,7 +146,7 @@ void
 EBFluxRegister::CrseAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt)
 {
-    BL_ASSERT(mfi.nComp() == flux[0].nComp());
+    BL_ASSERT(m_crse_data.nComp() == flux[0].nComp());
 
     if (m_crse_fab_flag[mfi.LocalIndex()] == crse_cell) {
         return;  // this coarse fab is not close to fine fabs.
@@ -169,14 +173,57 @@ void
 EBFluxRegister::FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt)
 {
-    
+    BL_ASSERT(m_cfpatch.nComp() == flux[0].nComp());
+
+    const int li = mfi.LocalIndex();
+    Array<FArrayBox*>& fabs = m_cfp_fab[li];
+    if (fabs.empty()) return;
+
+    BL_ASSERT(mfi.tilebox().cellCentered());
+    AMREX_ALWAYS_ASSERT(mfi.tilebox().coarsenable(m_ratio));
+    const Box& bx = amrex::coarsen(mfi.tilebox(), m_ratio);
+    const int nc = m_cfpatch.nComp();
+
+    for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        const Box& lobx = amrex::adjCellLo(bx, idim);
+        const Box& hibx = amrex::adjCellHi(bx, idim);
+        for (FArrayBox* cfp : m_cfp_fab[li])
+        {
+            {
+                const Box& lobx_is = lobx & cfp->box();
+                const int side = 0;
+                if (lobx_is.ok())
+                {
+                    amrex_eb_flux_reg_fineadd(BL_TO_FORTRAN_BOX(lobx_is),
+                                              BL_TO_FORTRAN_ANYD(*cfp),
+                                              BL_TO_FORTRAN_ANYD(flux[idim]),
+                                              dx, &dt, &nc, &idim, &side,
+                                              m_ratio.getVect());
+                }
+            }
+            {
+                const Box& hibx_is = hibx & cfp->box();
+                const int side = 1;
+                if (hibx_is.ok())
+                {
+                    amrex_eb_flux_reg_fineadd(BL_TO_FORTRAN_BOX(hibx_is),
+                                              BL_TO_FORTRAN_ANYD(*cfp),
+                                              BL_TO_FORTRAN_ANYD(flux[idim]),
+                                              dx, &dt, &nc, &idim, &side,
+                                              m_ratio.getVect());
+                }
+            }
+        }
+    }
 }
 
 
 void
 EBFluxRegister::Reflux (MultiFab& state) const
 {
-//    amrex::VisMF::Write(m_crse_data, "crse_data");
+    amrex::VisMF::Write(m_crse_data, "crse_data");
+    amrex::VisMF::Write(m_cfpatch, "cfpatch");
 }
 
 }

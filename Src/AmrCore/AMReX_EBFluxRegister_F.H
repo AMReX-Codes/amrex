@@ -19,6 +19,13 @@ extern "C" {
 #endif
                                     const amrex_real* dx, const amrex_real* dt, const int* nc);
 
+
+    void amrex_eb_flux_reg_fineadd (const int* lo, const int* hi,
+                                    amrex_real* d, const int* dlo, const int* dhi,
+                                    const amrex_real* f, const int* flo, const int* fhi,
+                                    const amrex_real* dx, const amrex_real*dt, const int* nc,
+                                    const int* dir, const int* side, const int* ratio);
+
 #ifdef __cplusplus
 }
 #endif

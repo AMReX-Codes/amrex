@@ -1,5 +1,6 @@
 module amrex_eb_flux_reg_3d_module
 
+  use amrex_fort_module, only : rt => amrex_real
   implicit none
   private
 
@@ -7,14 +8,13 @@ module amrex_eb_flux_reg_3d_module
   integer, parameter :: crse_fine_boundary_cell = 1
   integer, parameter :: fine_cell = 2
 
-  public :: amrex_eb_flux_reg_crseadd
+  public :: amrex_eb_flux_reg_crseadd, amrex_eb_flux_reg_fineadd
 
 contains
 
   subroutine amrex_eb_flux_reg_crseadd (lo, hi, d, dlo, dhi, flag, fglo, fghi, &
        fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi, dx, dt, nc) &
        bind(c,name='amrex_eb_flux_reg_crseadd')
-    use amrex_fort_module, only : rt => amrex_real
     integer, dimension(3), intent(in) :: lo, hi, dlo, dhi, fglo, fghi, fxlo, fxhi, fylo, fyhi, fzlo, fzhi
     integer, intent(in) :: nc
     integer, intent(in) :: flag(fglo(1):fghi(1),fglo(2):fghi(2),fglo(3):fghi(3))
@@ -60,5 +60,154 @@ contains
     end do
 
   end subroutine amrex_eb_flux_reg_crseadd
+
+
+  subroutine amrex_eb_flux_reg_fineadd (lo, hi, d, dlo, dhi, f, flo, fhi, dx, dt, nc, dir, side, ratio) &
+       bind(c,name='amrex_eb_flux_reg_fineadd')
+    integer, dimension(3), intent(in) :: lo, hi, dlo, dhi, flo, fhi, ratio
+    integer, intent(in) :: nc, dir, side
+    real(rt), intent(in) :: dx(3), dt
+    real(rt), intent(in   ) :: f(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),nc)
+    real(rt), intent(inout) :: d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nc)
+    
+    integer :: i,j,k,n,ii,jj,kk,ioff,joff,koff
+    real(rt) :: fac
+
+    ! dx is fine.
+    ! lo and hi are also relative to the fine box.
+
+    if (dir .eq. 0) then ! x-direction
+
+       fac = dt / (dx(1)*(ratio(1)*ratio(2)*ratio(3)))
+
+       if (side .eq. 0) then ! lo-side
+          
+          do n = 1, nc
+             do k = lo(3), hi(3)
+                do j = lo(2), hi(2)
+                   do koff = 0, ratio(3)-1
+                      kk =  k*ratio(3)+koff
+                      do joff = 0, ratio(2)-1
+                         jj = j*ratio(2)+joff
+                         do i = lo(1), hi(1)
+                            ii = (i+1)*ratio(1) !!!
+                            d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+          end do
+
+       else ! hi-side
+
+          do n = 1, nc
+             do k = lo(3), hi(3)
+                do j = lo(2), hi(2)
+                   do koff = 0, ratio(3)-1
+                      kk = k*ratio(3)+koff
+                      do joff = 0, ratio(2)-1
+                         jj = j*ratio(2)+joff
+                         do i = lo(1), hi(1)
+                            ii = i*ratio(1) !!!
+                            d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+          end do
+
+       end if
+
+    else if (dir .eq. 1) then ! y-direction
+
+       fac = dt / (dx(2)*(ratio(1)*ratio(2)*ratio(3)))
+
+       if (side .eq. 0) then ! lo-side
+
+          do n = 1, nc
+             do k = lo(3), hi(3)
+                do j = lo(2), hi(2)
+                   jj = (j+1)*ratio(2) !!!
+                   do koff = 0, ratio(3)-1
+                      kk = k*ratio(3)+koff
+                      do ioff = 0, ratio(1)-1
+                         do i = lo(1), hi(1)
+                            ii = i*ratio(1)+ioff
+                            d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+          end do
+             
+       else ! hi-side
+
+          do n = 1, nc
+             do k = lo(3), hi(3)
+                do j = lo(2), hi(2)
+                   jj = j*ratio(2) !!!
+                   do koff = 0, ratio(3)-1
+                      kk = k*ratio(3)+koff
+                      do ioff = 0, ratio(1)-1
+                         do i = lo(1), hi(1)
+                            ii = i*ratio(1)+ioff
+                            d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+          end do
+
+       end if
+
+    else  ! z-direction
+
+       fac = dt / (dx(3)*(ratio(1)*ratio(2)*ratio(3)))
+
+       if (side .eq. 0) then ! lo-side
+
+          do n = 1, nc
+             do k = lo(3), hi(3)
+                kk = (k+1)*ratio(3) !!!
+                do j = lo(2), hi(2)
+                   do joff = 0, ratio(2)-1
+                      jj = j*ratio(2)+joff
+                      do ioff = 0, ratio(1)-1
+                         do i = lo(1), hi(1)
+                            ii = i*ratio(1)+ioff
+                            d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+          end do
+
+       else ! hi-side
+
+          do n = 1, nc
+             do k = lo(3), hi(3)
+                kk = k*ratio(3) !!!
+                do j = lo(2), hi(2)
+                   do joff = 0, ratio(2)-1
+                      jj = j*ratio(2)+joff
+                      do ioff = 0, ratio(1)-1
+                         do i = lo(1), hi(1)
+                            ii = i*ratio(1)+ioff
+                            d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
+                         end do
+                      end do
+                   end do
+                end do
+             end do
+          end do
+
+       end if
+    end if
+  end subroutine amrex_eb_flux_reg_fineadd
 
 end module amrex_eb_flux_reg_3d_module
