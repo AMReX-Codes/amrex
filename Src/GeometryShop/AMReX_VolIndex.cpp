@@ -88,13 +88,6 @@ namespace amrex
   }
 
   bool
-  VolIndex::operator== (const VolIndex& a_vofin) const
-  {
-    return ((m_iv == a_vofin.m_iv)&&
-            (m_cellIndex == a_vofin.m_cellIndex));
-  }
-
-  bool
   VolIndex::operator!=(const VolIndex& rhs) const
   {
     return !(*this == rhs);

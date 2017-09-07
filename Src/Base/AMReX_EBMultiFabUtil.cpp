@@ -96,10 +96,9 @@ EB_set_volume_fraction (MultiFab& mf)
 
     const Box& domain = amrex::getLevelDomain(mf);
 
-// not thread safe
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox();
@@ -141,10 +140,9 @@ EB_set_bndry_centroid (MultiFab& mf)
 
     const Box& domain = amrex::getLevelDomain(mf);
 
-// not thread safe
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox();
@@ -189,10 +187,9 @@ EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafra
     const EBLevel& eblevel = amrex::getEBLevel(areafrac[0]);
     const EBISLayout& ebisl = eblevel.getEBISL();
 
-// not thread safe
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MFIter mfi(areafrac[0]); mfi.isValid(); ++mfi)
     {
         const Box& bx = amrex::enclosedCells(mfi.fabbox());
