@@ -89,6 +89,8 @@ struct BARef
 
     mutable HashType hash;
     
+    mutable bool has_hashmap = false;
+
     static int  numboxarrays;
     static int  numboxarrays_hwm;
     static long total_box_bytes;

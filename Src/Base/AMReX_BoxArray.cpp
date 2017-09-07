@@ -900,7 +900,7 @@ BoxArray::intersections (const Box&                         bx,
 			 bool                               first_only,
 			 int                                ng) const
 {
-    // called too many times  BL_PROFILE("BoxArray::intersections()");
+  // This is called too many times BL_PROFILE("BoxArray::intersections()");
 
     BARef::HashType& BoxHashMap = getHashMap();
 
@@ -1165,6 +1165,14 @@ BoxArray::getHashMap () const
 {
     BARef::HashType& BoxHashMap = m_ref->hash;
 
+    bool local_flag;
+#ifdef _OPENMP
+#pragma omp atomic read
+#endif
+    local_flag = m_ref->has_hashmap;
+
+    if (local_flag) return BoxHashMap;
+
 #ifdef _OPENMP
     #pragma omp critical(intersections_lock)
 #endif
@@ -1195,6 +1203,8 @@ BoxArray::getHashMap () const
             m_ref->crsn = maxext;
             m_ref->bbox =boundingbox.coarsen(maxext);
             m_ref->bbox.normalize();
+
+	    m_ref->has_hashmap = true;
 
 #ifdef BL_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);
