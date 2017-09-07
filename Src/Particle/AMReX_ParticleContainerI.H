@@ -1,7 +1,7 @@
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool 
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = false;
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = true;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 IntVect
@@ -1299,11 +1299,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
 #endif
           {
               auto index = pmap_it->first;
-              auto& ptile = m_particles[lev][index];
+              auto& aos = m_particles[lev][index].GetArrayOfStructs();
               Array<Array<ParticleType> >& tmp = pmap_it->second;   
               for (int i = 0; i < num_threads; ++i) {
-                  for (int j = 0; j < static_cast<int>(tmp[i].size()); ++j)
-                      ptile.push_back(tmp[i][j]);
+                  aos.insert(aos.end(), tmp[i].begin(), tmp[i].end());
                   tmp[i].erase(tmp[i].begin(), tmp[i].end());
               }
           }
