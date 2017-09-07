@@ -33,7 +33,7 @@ public:
     void FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt);
 
-    void Reflux (MultiFab& state) const;
+    void Reflux (MultiFab& state);
 
 private:
 
