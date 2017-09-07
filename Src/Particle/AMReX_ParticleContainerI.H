@@ -1287,8 +1287,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
         }
     }
 
-  for (int lev = lev_min; lev <= lev_max; lev++) {
-      typename std::map<std::pair<int, int>, Array<Array<ParticleType> > >::iterator pmap_it;
+    for (int lev = lev_min; lev <= lev_max; lev++) {
+        typename std::map<std::pair<int, int>, Array<Array<ParticleType> > >::iterator pmap_it;
+
+        // we need to create any missing map entries in serial here
+        for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
+            m_particles[lev][pmap_it->first];
+
 #ifdef _OPENMP
 #pragma omp parallel
 #pragma omp single nowait
