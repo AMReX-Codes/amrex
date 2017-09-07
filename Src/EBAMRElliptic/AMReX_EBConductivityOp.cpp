@@ -792,7 +792,7 @@ namespace amrex
 #ifdef BL_USE_MPI
     Real tmp = 1.;
     int result = MPI_Allreduce(&maxNorm, &tmp, 1, MPI_CH_REAL,
-                               MPI_MAX, Chombo_MPI::comm);
+                               MPI_MAX, MPI_COMM_WORLD);
     if (result != MPI_SUCCESS)
     { //bark!!!
       amrex::Error("sorry, but I had a communcation error on norm");
@@ -1172,15 +1172,11 @@ namespace amrex
       const EBCellFAB& phiFine = a_phiFine[mfi_f];
       for (int idir = 0; idir < SpaceDim; idir++)
       {
-        for (SideIterator sit; sit.ok(); sit.next())
-        {
-          Box fabBox=EBArith::adjCellBox(boxFine, idir, sit(), 1);
-
-          fabBox.shift(idir, -sign(sit()));
-
-          Box ghostedBox = fabBox;
-          ghostedBox.grow(1);
-          ghostedBox.grow(idir,-1);
+//        for (SideIterator sit; sit.ok(); sit.next())
+//        {
+        Box ghostedBox = boxFine;
+        ghostedBox.grow(1);
+//        ghostedBox.grow(idir,-1);
           ghostedBox &= m_eblgFine.getDomain();
 
           EBFaceFAB fluxFine(ebisBoxFine, ghostedBox, idir, ncomp);
@@ -1192,7 +1188,7 @@ namespace amrex
           Real scale = 1.0; //beta and bcoef already in flux
 
           a_fluxReg.incrementFine(fluxFine, scale, mfi_f, 0, 0, 1);
-        }
+//        }
       }
     }
   }

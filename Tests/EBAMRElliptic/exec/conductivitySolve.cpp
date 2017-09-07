@@ -248,19 +248,15 @@ namespace amrex
     GridParameters params;
 
     getGridParameters(params);
-    makeGeometry(params);
-    std::vector<EBLevelGrid> eblg;
-    getAllIrregEBLG(eblg, params);
-    for(int ilev = 0; ilev < eblg.size(); ilev ++)
-    {
-      amrex::Print() << "grids[" << ilev << "] = " << eblg[ilev].getDBL() << endl;
-    }
-
     int eekflag = makeGeometry(params);
     if(eekflag != 0) return eekflag;
 
     std::vector<EBLevelGrid> veblg;
     getAllIrregEBLG(veblg, params);
+    for(int ilev = 0; ilev < veblg.size(); ilev ++)
+    {
+      amrex::Print() << "grids[" << ilev << "] = " << veblg[ilev].getDBL() << endl;
+    }
 
     int nvar = 1; int nghost = 4;
     vector<FabArray<EBCellFAB>* > phi(veblg.size(), NULL);
@@ -281,7 +277,7 @@ namespace amrex
     int lbase = 0; int lmax = params.maxLevel;
 
     bool zeroPhi = false;
-    solver.solve(phi, rhs, lbase, lmax, zeroPhi);
+    solver.solve(phi, rhs, lmax, lbase,  zeroPhi);
       
     EBLevelDataOps::writeEBAMRPlotFile(string("phi.ebplt"), phi, veblg, params.refRatio, vector<string>(1, "phi"));
     EBLevelDataOps::writeEBAMRPlotFile(string("rhs.ebplt"), rhs, veblg, params.refRatio, vector<string>(1, "rhs"));
