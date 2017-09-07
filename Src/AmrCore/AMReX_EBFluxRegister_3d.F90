@@ -51,7 +51,7 @@ contains
                 if (flag(i,j,k-1).eq.fine_cell) then
                    d(i,j,k,:) = d(i,j,k,:) - dtdz*fz(i,j,k,:)
                 else if (flag(i,j,k+1).eq.fine_cell) then
-                   d(i,j,k,:) = d(i,j,k,:) + dtdz*fz(i,j,k,:)
+                   d(i,j,k,:) = d(i,j,k,:) + dtdz*fz(i,j,k+1,:)
                 end if
 
              end if
