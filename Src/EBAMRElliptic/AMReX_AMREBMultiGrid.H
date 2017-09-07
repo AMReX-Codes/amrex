@@ -559,11 +559,11 @@ namespace amrex
       BL_PROFILE("MPI_Allreduce");
       Real recv;
       int result = MPI_Allreduce(&rnorm, &recv, 1, MPI_CH_REAL,
-                                 MPI_MAX, Chombo_MPI::comm);
+                                 MPI_MAX, MPI_COMM_WORLD);
       if (result != MPI_SUCCESS)
       {
         //bark!!!
-        MayDay::Error("sorry, but I had a communcation error on norm");
+        amrex::Error("sorry, but I had a communcation error on norm");
       }
       rnorm = recv;
     }
