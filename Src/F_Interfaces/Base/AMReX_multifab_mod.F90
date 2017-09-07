@@ -91,6 +91,7 @@ module amrex_multifab_module
      generic   :: assignment(=)    => amrex_mfiter_assign  ! will abort if called
      procedure :: clear            => amrex_mfiter_clear
      procedure :: next             => amrex_mfiter_next
+     procedure :: grid_index       => amrex_mfiter_grid_index
      procedure :: tilebox          => amrex_mfiter_tilebox
      procedure :: nodaltilebox     => amrex_mfiter_nodaltilebox
      procedure :: fabbox           => amrex_mfiter_fabbox
@@ -341,6 +342,12 @@ module amrex_multifab_module
        type(c_ptr), value :: p
        integer(c_int) :: iv
      end subroutine amrex_fi_mfiter_is_valid
+
+     integer(c_int) function amrex_fi_mfiter_grid_index(p) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: p
+     end function amrex_fi_mfiter_grid_index
 
      subroutine amrex_fi_mfiter_tilebox (p, lo, hi, nodal) bind(c)
        import
@@ -813,6 +820,11 @@ contains
        amrex_mfiter_next = .false.
     end if
   end function amrex_mfiter_next
+
+  integer function amrex_mfiter_grid_index (this)
+    class(amrex_mfiter) :: this
+    amrex_mfiter_grid_index = amrex_fi_mfiter_grid_index(this%p)
+  end function amrex_mfiter_grid_index
 
   function amrex_mfiter_tilebox (this) result (bx)
     class(amrex_mfiter), intent(in) :: this
