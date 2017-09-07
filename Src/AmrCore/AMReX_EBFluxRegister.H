@@ -30,6 +30,11 @@ public:
     void CrseAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt);
 
+    void FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt);
+
+    void Reflux (MultiFab& state) const;
+
 private:
 
     enum {
@@ -40,7 +45,8 @@ private:
     iMultiFab m_crse_flag;
     Array<int> m_crse_fab_flag;
     
-    MultiFab m_fine_data;
+    MultiFab m_cfpatch;                   // This is built on crse/fine patches
+    Array<Array<FArrayBox*> > m_cfp_fab;  // The size of this is (# of local fine grids (# of crse/fine patches fro that grid))
 
     Geometry m_fine_geom;
     Geometry m_crse_geom;

@@ -238,7 +238,11 @@ CNS::post_regrid (int lbase, int new_finest)
 void
 CNS::post_timestep (int iteration)
 {
-    // xxxxx some reflux stuff
+    if (level < parent->finestLevel()) {
+        CNS& fine_level = getLevel(level+1);
+        MultiFab& S_new = get_new_data(State_Type);
+        fine_level.flux_reg.Reflux(S_new);
+    }
 
     if (level < parent->finestLevel()) {
         avgDown();
