@@ -1195,10 +1195,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
               auto& soa = pmap_it->second.GetStructOfArrays();
               unsigned first = 0;
               unsigned npart = aos.numParticles();
+              ParticleLocData pld;
               if (npart != 0) {
                   for (unsigned pindex = 0; pindex < npart; ++pindex) {
                       ParticleType& p = aos[pindex];
-                      ParticleLocData pld;
                       if (p.m_idata.id > 0) {
                       
                           locateParticle(p, pld, lev_min, lev_max, nGrow);
@@ -1271,7 +1271,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
               }
            }
         }
-     }
+    }
 
     for (int lev = lev_min; lev <= lev_max; lev++) {
         auto& pmap = m_particles[lev];
