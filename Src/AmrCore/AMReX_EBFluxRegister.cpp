@@ -222,11 +222,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPA
 void
 EBFluxRegister::Reflux (MultiFab& state)
 {
-//    amrex::VisMF::Write(m_crse_data, "crse_data");
-//    amrex::VisMF::Write(m_cfpatch, "cfpatch");
-
     m_crse_data.ParallelCopy(m_cfpatch, m_crse_geom.periodicity(), FabArrayBase::ADD);
-
     MultiFab::Add(state, m_crse_data, 0, 0, m_ncomp, 0);
 }
 
