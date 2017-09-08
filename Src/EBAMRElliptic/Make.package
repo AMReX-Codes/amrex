@@ -9,13 +9,14 @@ C$(EBAMRELLIPTIC_BASE)_headers += AMReX_ConductivityBaseDomainBC.H       AMReX_N
 C$(EBAMRELLIPTIC_BASE)_headers += AMReX_DirichletConductivityEBBC.H      AMReX_ConductivityBaseEBBC.H	      
 C$(EBAMRELLIPTIC_BASE)_headers += AMReX_DirichletConductivityDomainBC.H  AMReX_NeumannConductivityDomainBC.H 
 C$(EBAMRELLIPTIC_BASE)_headers += AMReX_EBConductivityOpFactory.H        AMReX_EBConductivityOp.H            
+C$(EBAMRELLIPTIC_BASE)_headers += AMReX_EBSimpleSolver.H AMReX_ConductivityBaseEBBC.H AMReX_VCAggStencil.H
 
 
 
 C$(EBAMRELLIPTIC_BASE)_sources += AMReX_DirichletConductivityDomainBC.cpp  AMReX_NeumannConductivityEBBC.cpp     
 C$(EBAMRELLIPTIC_BASE)_sources += AMReX_DirichletConductivityEBBC.cpp	   AMReX_NeumannConductivityDomainBC.cpp 
 C$(EBAMRELLIPTIC_BASE)_sources += AMReX_EBConductivityOp.cpp		   AMReX_EBConductivityOpFactory.cpp     
-
+C$(EBAMRELLIPTIC_BASE)_sources += AMReX_EBSimpleSolver.cpp  AMReX_VCAggStencil.cpp
 F90$(EBAMRELLIPTIC_BASE)_headers += AMReX_EBEllipticFort_F.H
 F90$(EBAMRELLIPTIC_BASE)_sources += AMReX_EBEllipticFort.F90
 

@@ -1,0 +1,11 @@
+
+F90EXE_sources += Hyp_gamma_MOL.F90
+F90EXE_sources += Hyp_gamma_MOL_EB.F90
+
+F90EXE_sources += slope_mol_3d_gamma.F90
+F90EXE_sources += slope_mol_3d_gamma_EB.F90
+
+F90EXE_sources += analriem3d.F90
+
+F90EXE_sources += cns_eb_hyp_wall.F90
+

@@ -12,9 +12,10 @@
 #ifndef _LayoutData__H_
 #define _LayoutData__H_
 
-#include "AMReX_FabArray.H"
+#include "AMReX_FabArrayBase.H"
 #include "AMReX_BoxArray.H"
 #include "AMReX_IntVect.H"
+#include "AMReX_MFIter.H"
 
 namespace amrex
 {

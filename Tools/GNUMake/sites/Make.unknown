@@ -4,6 +4,7 @@
 
 os_type := $(shell uname)
 
+ifneq ($(NO_MPI_CHECKING),TRUE)
 ifeq ($(USE_MPI),TRUE)
 
   CXX := mpicxx
@@ -24,6 +25,18 @@ ifeq ($(USE_MPI),TRUE)
     #
     LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
 
+  else ifneq ($(findstring mvapich,$(shell $(F90) -show 2>&1 | tr A-Z a-z)),)
+
+    #
+    # mvapich
+    #
+
+    mpif90_link_flags := $(shell $(F90) -link_info)
+    #
+    # The first word is the underlying compiler say gfortran
+    #
+    LIBRARIES += $(wordlist 2,1024,$(mpif90_link_flags))
+
   else ifneq ($(findstring Open MPI, $(shell $(F90) -showme:version 2>&1)),)
 
     #
@@ -34,8 +47,10 @@ ifeq ($(USE_MPI),TRUE)
 
   else
 
-    $(error unknown mpi implementation)
+    $(error Unknown mpi implementation.  You can try setting MPI stuff in amrex/Tools/GNUMake/Make.local and then compile with NO_MPI_CHECKING=TRUE.)
 
   endif
 
 endif
+endif
+

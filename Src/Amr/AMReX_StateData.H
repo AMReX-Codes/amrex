@@ -16,6 +16,9 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_StateDescriptor.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBLevelGrid.H>
+#endif
 
 namespace amrex {
 
@@ -40,11 +43,15 @@ public:
 	       const DistributionMapping& dm,
                const StateDescriptor* d,
                Real                   cur_time,
-               Real                   dt);
+               Real                   dt,
+               const FabFactory<FArrayBox>& factory);
     //
     // The destructor.
     //
     ~StateData ();
+
+    StateData (StateData&& rhs) noexcept = default;
+
     //
     // Takes an empty StateData object dest and defines it with the same properties
     // as the input StateData src. Does a deep copy of the data from src into dest.
@@ -58,7 +65,8 @@ public:
 		 const DistributionMapping& dm,
                  const StateDescriptor& d, 
                  Real                   cur_time,
-                 Real                   dt);
+                 Real                   dt,
+                 const FabFactory<FArrayBox>& factory);
     //
     // Copies old data from another StateData object and sets the same time level.
     // If old data is uninitialized, allocates it with same properties as the input data.
@@ -160,6 +168,7 @@ public:
 		  const Box&             p_domain,
 		  const BoxArray&        grds,
 		  const DistributionMapping& dm,
+                  const FabFactory<FArrayBox>& factroy,
                   const StateDescriptor& d,
                   const std::string&     restart_file);
     //
@@ -181,6 +190,9 @@ public:
     const BoxArray& boxArray () const { return grids; }
     //
     const DistributionMapping& DistributionMap () const { return dmap; }
+    void setDistributionMap ( DistributionMapping& new_dmap ) { dmap = new_dmap; }
+    //
+    const FabFactory<FArrayBox>& Factory () const { return *m_factory; }
     //
     // Returns the current time.
     //
@@ -256,6 +268,8 @@ public:
 
 
 private:
+
+    std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 
     struct TimeInterval
     {

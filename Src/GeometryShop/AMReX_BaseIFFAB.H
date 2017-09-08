@@ -160,6 +160,12 @@ namespace amrex
     T& operator() (const FaceIndex& a_face,const int& varlocin);
     const T& operator()(const FaceIndex& a_face,const int& varlocin) const;
 
+    T& operator() (int a_iface, int varlocin) {
+	return *(getIndex(a_iface, varlocin));
+    }
+    const T& operator()(int a_iface, int varlocin) const {
+	return *(getIndex(a_iface, varlocin));
+    }
 
 ///
     T* dataPtr(const int& a_comp);
@@ -168,7 +174,9 @@ namespace amrex
 ///
     const T* dataPtr(const int& a_comp) const;
 
-
+    T* dataPtr () { return m_data; }
+    
+    std::size_t size () const { return m_nComp*m_nFaces; }
 
     ///for copy and fillboundary where stuff is already defined
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;
@@ -187,6 +195,7 @@ namespace amrex
 
     ///default false. can make this true with template specialization if you are sure.
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return true; }
 
     ///includes all meta data
     std::size_t nBytesFull() const;
@@ -210,6 +219,18 @@ namespace amrex
         return m_faces;
       }
 
+    //slow! for debugging only
+    bool hasFace(const FaceIndex& a_face) const
+      {
+        for(int iface = 0; iface < m_faces.size(); iface++)
+        {
+          if(m_faces[iface] == a_face)
+          {
+            return true;
+          }
+        }
+        return false;
+      }
     static bool s_verbose;
 
     EBGraph m_ebgraph;
@@ -230,6 +251,19 @@ namespace amrex
     T* m_data;
 
     bool    m_isDefined;
+
+    int getFaceIndexIndex (const FaceIndex& a_face) const {
+	auto low = std::lower_bound(m_faces.begin(), m_faces.end(), a_face);
+	if (low == m_faces.end() || a_face != *low) {
+	    amrex::Error("BaseIFFAB:index not found");
+	}
+	return low - m_faces.begin();
+    }
+
+    T* getIndex(int ifaceindex, int a_comp) const {
+	return m_data + ifaceindex + a_comp*m_nFaces;
+    }
+
   private:
 //we disallow copy construction and assigment for data holders
     void operator= (const BaseIFFAB<T>&)

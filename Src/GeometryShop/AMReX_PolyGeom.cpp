@@ -216,7 +216,7 @@ namespace amrex
   PolyGeom::bndryArea(const VolIndex& a_vof,
                       const EBISBox& a_ebisBox)
   {
-    Real retval;
+    Real retval=0.;
 
     Real irregArea=0.0;
     for (int idir=0; idir < SpaceDim; idir++)
