@@ -1303,7 +1303,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
         }
     }
 
-    // Second pass - for each tile in parallel, collect the particles we are owned from all thread's buffers.
+    // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
     for (int lev = lev_min; lev <= lev_max; lev++) {
         typename std::map<std::pair<int, int>, Array<Array<ParticleType> > >::iterator pmap_it;
 
@@ -1331,13 +1331,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                   for (int comp = 0; comp < NArrayReal; ++comp) {
                       Array<Real>& arr = soa.GetRealData(comp);
                       Array<Real>& tmp = soa_tmp[i].GetRealData(comp);
-                      arr.insert(arr.begin(), tmp.begin(), tmp.end());
+                      arr.insert(arr.end(), tmp.begin(), tmp.end());
                       tmp.erase(tmp.begin(), tmp.end());
                   }
                   for (int comp = 0; comp < NArrayInt; ++comp) {
                       Array<int>& arr = soa.GetIntData(comp);
                       Array<int>& tmp = soa_tmp[i].GetIntData(comp);
-                      arr.insert(arr.begin(), tmp.begin(), tmp.end());
+                      arr.insert(arr.end(), tmp.begin(), tmp.end());
                       tmp.erase(tmp.begin(), tmp.end());
                   }
               }
