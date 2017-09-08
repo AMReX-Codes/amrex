@@ -15,7 +15,7 @@ constexpr int CNS::NUM_GROW;
 BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
-IntVect   CNS::hydro_tile_size {1024,16,16};
+IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
 Real      CNS::cfl = 0.3;
 int       CNS::do_load_balance = 1;
 
@@ -305,6 +305,35 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         const MultiFab& S_new = get_new_data(State_Type);
         amrex::TagCutCells(tags, S_new);
     }
+
+#if 0
+    {
+        const Real* problo = Geometry::ProbLo();
+        const Real* dx = geom.CellSize();
+
+        RealVect fine_tag_lo{0.4, 0.4, 0.4};
+        RealVect fine_tag_hi{0.6, 0.6, 0.6};
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(tags); mfi.isValid(); ++mfi)
+        {
+            auto& fab = tags[mfi];
+            const Box& bx = fab.box();
+            for (BoxIterator bi(bx); bi.ok(); ++bi)
+            {
+                const IntVect& cell = bi();
+                RealVect pos {AMREX_D_DECL((cell[0]+0.5)*dx[0]+problo[0],
+                                           (cell[1]+0.5)*dx[1]+problo[1],
+                                           (cell[2]+0.5)*dx[2]+problo[2])};
+                if (pos > fine_tag_lo && pos < fine_tag_hi) {
+                    fab(cell) = TagBox::SET;
+                }
+            }
+        }
+    }
+#endif
 }
 
 void

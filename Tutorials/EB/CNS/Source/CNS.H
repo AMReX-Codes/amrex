@@ -127,8 +127,8 @@ protected:
 
     amrex::MultiFab volfrac;
     amrex::MultiFab bndrycent;
-    std::array<amrex::MultiFab,3> areafrac;
-    std::array<amrex::MultiFab,3> facecent;
+    std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
+    std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;
 
     amrex::EBFluxRegister flux_reg;
 
