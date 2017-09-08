@@ -1161,15 +1161,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
   num_threads = omp_get_num_threads();
 #endif
   
+  // these are temporary buffers for each thread
   std::map<int, Array<Array<char> > > tmp_remote;
   Array<std::map<std::pair<int, int>, Array<Array<ParticleType> > > > tmp_local;
+  Array<std::map<std::pair<int, int>, Array<StructOfArrays<NArrayReal, NArrayInt> > > > soa_local;
   tmp_local.resize(theEffectiveFinestLevel+1);
+  soa_local.resize(theEffectiveFinestLevel+1);
 
   // we resize these buffers outside the parallel region
   for (int lev = lev_min; lev <= lev_max; lev++) {
       for (MFIter mfi(*m_dummy_mf[lev], do_tiling); mfi.isValid(); ++mfi) {
           auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
           tmp_local[lev][index].resize(num_threads);
+          soa_local[lev][index].resize(num_threads);
       }
   }
   for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
@@ -1219,6 +1223,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                                       auto index = std::make_pair(pld.m_grid, pld.m_tile);
                                       BL_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
                                       tmp_local[pld.m_lev][index][thread_num].push_back(p);
+                                      for (int comp = 0; comp < NArrayReal; ++comp) {
+                                          Array<Real>& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
+                                          arr.push_back(soa.GetRealData(comp)[pindex]);
+                                      }
+                                      for (int comp = 0; comp < NArrayInt; ++comp) {
+                                          Array<int>& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
+                                          arr.push_back(soa.GetIntData(comp)[pindex]);
+                                      }
 
                                       // Invalidate the particle so we can reclaim its space.
                                       p.m_idata.id = -p.m_idata.id;
@@ -1310,10 +1322,24 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           {
               auto index = pmap_it->first;
               auto& aos = m_particles[lev][index].GetArrayOfStructs();
-              Array<Array<ParticleType> >& tmp = pmap_it->second;   
+              auto& soa = m_particles[lev][index].GetStructOfArrays();
+              auto& aos_tmp = pmap_it->second;
+              auto& soa_tmp = soa_local[lev][index];
               for (int i = 0; i < num_threads; ++i) {
-                  aos.insert(aos.end(), tmp[i].begin(), tmp[i].end());
-                  tmp[i].erase(tmp[i].begin(), tmp[i].end());
+                  aos.insert(aos.end(), aos_tmp[i].begin(), aos_tmp[i].end());
+                  aos_tmp[i].erase(aos_tmp[i].begin(), aos_tmp[i].end());
+                  for (int comp = 0; comp < NArrayReal; ++comp) {
+                      Array<Real>& arr = soa.GetRealData(comp);
+                      Array<Real>& tmp = soa_tmp[i].GetRealData(comp);
+                      arr.insert(arr.begin(), tmp.begin(), tmp.end());
+                      tmp.erase(tmp.begin(), tmp.end());
+                  }
+                  for (int comp = 0; comp < NArrayInt; ++comp) {
+                      Array<int>& arr = soa.GetIntData(comp);
+                      Array<int>& tmp = soa_tmp[i].GetIntData(comp);
+                      arr.insert(arr.begin(), tmp.begin(), tmp.end());
+                      tmp.erase(tmp.begin(), tmp.end());
+                  }
               }
           }
       }
