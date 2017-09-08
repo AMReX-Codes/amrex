@@ -99,6 +99,7 @@ public:
     static void LoadBalance (amrex::Amr& amr);
 
     static int do_load_balance;
+    static int refine_cutcells;
 
 protected:
 
