@@ -5,8 +5,6 @@ module eb_advection_module
   private
   public :: hyp_mol_gam_eb_3d
 
-  logical, parameter :: debug = .false.
-
   integer, parameter, public :: nextra_eb = 2
 
 contains
@@ -38,12 +36,12 @@ contains
     real(rt), intent(inout) :: flux3(fd3_lo(1):fd3_hi(1),fd3_lo(2):fd3_hi(2),fd3_lo(3):fd3_hi(3),5)
     integer,  intent(in   ) ::  flag( fg_lo(1): fg_hi(1), fg_lo(2): fg_hi(2), fg_lo(3): fg_hi(3))
 
-    real(rt) :: qtempl(5), qtempr(5), fluxtemp(5)
     real(rt) :: cspeed
     integer :: i, j, k
     integer :: qtlo(3), qthi(3)
     real(rt), pointer, contiguous :: dq(:,:,:,:)
-
+    real(rt), dimension(lo(1)-nextra_eb-1:hi(1)+nextra_eb+1) :: rl, ul, pl, ut1l, ut2l
+    real(rt), dimension(lo(1)-nextra_eb-1:hi(1)+nextra_eb+1) :: rr, ur, pr, ut1r, ut2r
     integer, parameter :: nextra = nextra_eb
 
     qtlo = lo - nextra - 1
@@ -60,34 +58,29 @@ contains
        do    j = lo(2)-nextra-1, hi(2)+nextra+1
           do i = lo(1)-nextra  , hi(1)+nextra+1
 
-!  alphas   1,2,3 correspond to u-c, u, u+c repsectively, 4 and 5 are transverse velocities
-
-! right eigenvectors are rho, u, p, v, w
-
-!   in qtemp, 1 is rho, 2 is u, 3 is p , 4 is v and 5 is w
-
              cspeed = q(i-1,j,k,QC)
-             qtempl(1) = q(i-1,j,k,QRHO) + 0.5d0 * ( (dq(i-1,j,k,1)+dq(i-1,j,k,3))/cspeed + dq(i-1,j,k,2))
-             qtempl(2) = q(i-1,j,k,QU) + 0.5d0 * ( (dq(i-1,j,k,3)-dq(i-1,j,k,1))/q(i-1,j,k,QRHO))
-             qtempl(3)=  q(i-1,j,k,QP) + 0.5d0 *  (dq(i-1,j,k,1)+dq(i-1,j,k,3))*cspeed 
-             qtempl(4) = q(i-1,j,k,QV) + 0.5d0 * dq(i-1,j,k,4)
-             qtempl(5) = q(i-1,j,k,Qw) + 0.5d0 * dq(i-1,j,k,5)
+             rl(i) = q(i-1,j,k,QRHO) + 0.5d0 * ( (dq(i-1,j,k,1)+dq(i-1,j,k,3))/cspeed + dq(i-1,j,k,2))
+             rl(i) = max(rl(i),smallr)
+             ul(i) = q(i-1,j,k,QU) + 0.5d0 * ( (dq(i-1,j,k,3)-dq(i-1,j,k,1))/q(i-1,j,k,QRHO))
+             pl(i)=  q(i-1,j,k,QP) + 0.5d0 *  (dq(i-1,j,k,1)+dq(i-1,j,k,3))*cspeed 
+             pl(i) = max(pl(i),smallp)
+             ut1l(i) = q(i-1,j,k,QV) + 0.5d0 * dq(i-1,j,k,4)
+             ut2l(i) = q(i-1,j,k,Qw) + 0.5d0 * dq(i-1,j,k,5)
              
              cspeed = q(i,j,k,QC)
-             qtempr(1) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
-             qtempr(2) = q(i,j,k,QU) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
-             qtempr(3)=  q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
-             qtempr(4) = q(i,j,k,QV) - 0.5d0 * dq(i,j,k,4)
-             qtempr(5) = q(i,j,k,Qw) - 0.5d0 *  dq(i,j,k,5)
-             
-             call analriem(gamma,qtempl, qtempr,  smallp,smallr,fluxtemp,  debug)
+             rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
+             rr(i) = max(rr(i),smallr)
+             ur(i) = q(i,j,k,QU) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
+             pr(i)=  q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = max(pr(i),smallp)
+             ut1r(i) = q(i,j,k,QV) - 0.5d0 * dq(i,j,k,4)
+             ut2r(i) = q(i,j,k,Qw) - 0.5d0 *  dq(i,j,k,5)
+          end do
 
-             flux1(i,j,k,URHO) = fluxtemp(1)
-             flux1(i,j,k,UMX) = fluxtemp(2)
-             flux1(i,j,k,UMY) = fluxtemp(4)
-             flux1(i,j,k,UMZ) = fluxtemp(5)
-             flux1(i,j,k,UEDEN) = fluxtemp(3)
-          enddo
+          call analriem(gamma, smallp, smallr, lo(1)-nextra, hi(1)+nextra+1, j, k, &
+               rl(lo(1)-nextra:), ul(lo(1)-nextra:), pl(lo(1)-nextra:), ut1l(lo(1)-nextra:), ut2l(lo(1)-nextra:), &
+               rr(lo(1)-nextra:), ur(lo(1)-nextra:), pr(lo(1)-nextra:), ut1r(lo(1)-nextra:), ut2r(lo(1)-nextra:), &
+               flux1, fd1_lo, fd1_hi, 2, 3, 4)
        enddo
     enddo
 
@@ -100,34 +93,29 @@ contains
        do    j = lo(2)-nextra  , hi(2)+nextra+1
           do i = lo(1)-nextra-1, hi(1)+nextra+1
 
-!     1,2,3 correspond to u-c, u, u+c repsectively
-
-! right eigenvectors are rho, v, p, u, w
-
-!   in qtemp, 1 is rho, 2 is v, 3 is q , 4 is u and 5 is w
-
              cspeed = q(i,j-1,k,QC)
-             qtempl(1) = q(i,j-1,k,QRHO) + 0.5d0 * ( (dq(i,j-1,k,1)+dq(i,j-1,k,3))/cspeed + dq(i,j-1,k,2))             
-             qtempl(2) = q(i,j-1,k,QV) + 0.5d0 * ( (dq(i,j-1,k,3)-dq(i,j-1,k,1))/q(i,j-1,k,QRHO))
-             qtempl(3) = q(i,j-1,k,QP) + 0.5d0 *  (dq(i,j-1,k,1)+dq(i,j-1,k,3))*cspeed 
-             qtempl(4) = q(i,j-1,k,QU) + 0.5d0 * dq(i,j-1,k,4)
-             qtempl(5) = q(i,j-1,k,Qw) + 0.5d0 * dq(i,j-1,k,5)
+             rl(i) = q(i,j-1,k,QRHO) + 0.5d0 * ( (dq(i,j-1,k,1)+dq(i,j-1,k,3))/cspeed + dq(i,j-1,k,2))
+             rl(i) = max(rl(i),smallr)
+             ul(i) = q(i,j-1,k,QV) + 0.5d0 * ( (dq(i,j-1,k,3)-dq(i,j-1,k,1))/q(i,j-1,k,QRHO))
+             pl(i) = q(i,j-1,k,QP) + 0.5d0 *  (dq(i,j-1,k,1)+dq(i,j-1,k,3))*cspeed 
+             pl(i) = max(pl(i),smallp)
+             ut1l(i) = q(i,j-1,k,QU) + 0.5d0 * dq(i,j-1,k,4)
+             ut2l(i) = q(i,j-1,k,Qw) + 0.5d0 * dq(i,j-1,k,5)
              
              cspeed = q(i,j,k,QC)
-             qtempr(1) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
-             qtempr(2) = q(i,j,k,QV) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
-             qtempr(3) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
-             qtempr(4) = q(i,j,k,QU) - 0.5d0 * dq(i,j,k,4)
-             qtempr(5) = q(i,j,k,Qw) - 0.5d0 *  dq(i,j,k,5)
+             rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
+             rr(i) = max(rr(i),smallr)
+             ur(i) = q(i,j,k,QV) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
+             pr(i) = q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = max(pr(i),smallp)
+             ut1r(i) = q(i,j,k,QU) - 0.5d0 * dq(i,j,k,4)
+             ut2r(i) = q(i,j,k,Qw) - 0.5d0 *  dq(i,j,k,5)
+          end do
 
-             call analriem(gamma,qtempl, qtempr,  smallp,smallr,fluxtemp,  debug)
-
-             flux2(i,j,k,URHO) = fluxtemp(1)
-             flux2(i,j,k,UMX) = fluxtemp(4)
-             flux2(i,j,k,UMY) = fluxtemp(2)
-             flux2(i,j,k,UMZ) = fluxtemp(5)
-             flux2(i,j,k,UEDEN) = fluxtemp(3)
-          enddo
+          call analriem(gamma, smallp, smallr, lo(1)-nextra-1, hi(1)+nextra+1, j, k, &
+               rl, ul, pl, ut1l, ut2l, &
+               rr, ur, pr, ut1r, ut2r, &
+               flux2, fd2_lo, fd2_hi, 3, 2, 4)
        enddo
     enddo
     
@@ -140,34 +128,29 @@ contains
        do    j = lo(2)-nextra-1, hi(2)+nextra+1
           do i = lo(1)-nextra-1, hi(1)+nextra+1
 
-!     1,2,3 correspond to u-c, u, u+c repsectively
-
-! right eigenvectors are rho, v, p, u, w
-
-!   in qtemp, 1 is rho, 2 is v, 3 is q , 4 is u and 5 is w
-
              cspeed = q(i,j,k-1,QC)
-             qtempl(1) = q(i,j,k-1,QRHO) + 0.5d0 * ( (dq(i,j,k-1,1)+dq(i,j,k-1,3))/cspeed + dq(i,j,k-1,2))
-             qtempl(2) = q(i,j,k-1,QW) + 0.5d0 * ( (dq(i,j,k-1,3)-dq(i,j,k-1,1))/q(i,j,k-1,QRHO))
-             qtempl(3)=  q(i,j,k-1,QP) + 0.5d0 *  (dq(i,j,k-1,1)+dq(i,j,k-1,3))*cspeed 
-             qtempl(4) = q(i,j,k-1,QU) + 0.5d0 * dq(i,j,k-1,4)
-             qtempl(5) = q(i,j,k-1,QV) + 0.5d0 * dq(i,j,k-1,5)
+             rl(i) = q(i,j,k-1,QRHO) + 0.5d0 * ( (dq(i,j,k-1,1)+dq(i,j,k-1,3))/cspeed + dq(i,j,k-1,2))
+             rl(i) = max(rl(i),smallr)
+             ul(i) = q(i,j,k-1,QW) + 0.5d0 * ( (dq(i,j,k-1,3)-dq(i,j,k-1,1))/q(i,j,k-1,QRHO))
+             pl(i)=  q(i,j,k-1,QP) + 0.5d0 *  (dq(i,j,k-1,1)+dq(i,j,k-1,3))*cspeed 
+             pl(i) = max(pl(i),smallp)
+             ut1l(i) = q(i,j,k-1,QU) + 0.5d0 * dq(i,j,k-1,4)
+             ut2l(i) = q(i,j,k-1,QV) + 0.5d0 * dq(i,j,k-1,5)
 
              cspeed = q(i,j,k,QC)
-             qtempr(1) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
-             qtempr(2) = q(i,j,k,QW) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
-             qtempr(3)=  q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
-             qtempr(4) = q(i,j,k,QU) - 0.5d0 * dq(i,j,k,4)
-             qtempr(5) = q(i,j,k,QV) - 0.5d0 *  dq(i,j,k,5)
+             rr(i) = q(i,j,k,QRHO) - 0.5d0 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2))
+             rr(i) = max(rr(i),smallr)
+             ur(i) = q(i,j,k,QW) - 0.5d0 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO))
+             pr(i)=  q(i,j,k,QP) - 0.5d0 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed 
+             pr(i) = max(pr(i),smallp)
+             ut1r(i) = q(i,j,k,QU) - 0.5d0 * dq(i,j,k,4)
+             ut2r(i) = q(i,j,k,QV) - 0.5d0 *  dq(i,j,k,5)
+          end do
 
-             call analriem(gamma,qtempl, qtempr,  smallp,smallr,fluxtemp,  debug)
-             
-             flux3(i,j,k,URHO) = fluxtemp(1)
-             flux3(i,j,k,UMX) = fluxtemp(4)
-             flux3(i,j,k,UMY) = fluxtemp(5)
-             flux3(i,j,k,UMZ) = fluxtemp(2)
-             flux3(i,j,k,UEDEN) = fluxtemp(3)
-          enddo
+          call analriem(gamma, smallp, smallr, lo(1)-nextra-1, hi(1)+nextra+1, j, k, &
+               rl, ul, pl, ut1l, ut2l, &
+               rr, ur, pr, ut1r, ut2r, &
+               flux3, fd3_lo, fd3_hi, 4, 2, 3)
        enddo
     enddo
 

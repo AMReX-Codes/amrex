@@ -244,7 +244,8 @@ namespace amrex
 
     solver.solve(phi, rhs, lbase, lmax);
       
-//    writeEBPlotFile(string("phi.ebplt"), phi);
+    EBLevelDataOps::writeEBAMRPlotFile(string("phi.ebplt"), phi, veblg, params.refRatio, vector<string>(1, "phi"));
+    EBLevelDataOps::writeEBAMRPlotFile(string("rhs.ebplt"), rhs, veblg, params.refRatio, vector<string>(1, "rhs"));
 
     return 0;
   }

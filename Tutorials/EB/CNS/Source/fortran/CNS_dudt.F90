@@ -15,28 +15,23 @@ module cns_dudt_module
 contains
 
   subroutine cns_compute_dudt (lo,hi, dudt, utlo, uthi, &
-       u,ulo,uhi,flag,fglo,fghi,dx,dt,iallregular) &
+       u,ulo,uhi,dx,dt) &
        bind(c,name='cns_compute_dudt')
     use cns_nd_module, only : ctoprim
     use advection_module, only : hyp_mol_gam_3d
     use diff_coef_module, only : compute_diff_coef
     use diffusion_module, only : diff_mol_3d
     use cns_divop_module, only : compute_divop
-    integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi,fglo,fghi
+    integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi
     real(rt), intent(inout) :: dudt(utlo(1):uthi(1),utlo(2):uthi(2),utlo(3):uthi(3),nvar)
     real(rt), intent(in   ) :: u ( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
-    integer , intent(in) ::  flag(fglo(1):fghi(1),fglo(2):fghi(2),fglo(3):fghi(3))
     real(rt), intent(in) :: dx(3), dt
-    integer, intent(in) :: iallregular
 
     integer :: qlo(3), qhi(3)
     integer :: clo(3), chi(3)
     real(rt), dimension(:,:,:,:), pointer, contiguous :: q, fhx,fhy,fhz,fdx,fdy,fdz
     real(rt), dimension(:,:,:), pointer, contiguous :: lambda, mu, xi
     integer :: k,n
-    logical :: allregular
-
-    allregular = iallregular.ne.0
 
     qlo = lo - nghost_plm
     qhi = hi + nghost_plm
@@ -56,7 +51,7 @@ contains
     
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
     
-    call hyp_mol_gam_3d(q, qlo, qhi, lo, hi, dx, fhx, fhy, fhz, flag, fglo, fghi, allregular)
+    call hyp_mol_gam_3d(q, qlo, qhi, lo, hi, dx, fhx, fhy, fhz)
 
     call compute_diff_coef(q, qlo, qhi, lambda, mu, xi, clo, chi)
 

@@ -20,6 +20,7 @@
 
 namespace amrex
 {
+
   void dumpVVoFs(const vector<VolIndex>* a_vofs)
   {
     const vector<VolIndex>& vofs = *a_vofs;
