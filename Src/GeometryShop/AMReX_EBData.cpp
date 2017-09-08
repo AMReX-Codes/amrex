@@ -17,6 +17,7 @@
 #include "AMReX_EBDataVarMacros.H"
 #include "AMReX_parstream.H"
 #include "AMReX_Print.H"
+#include "AMReX_MemPool.H"
 
 namespace amrex
 {
@@ -250,6 +251,10 @@ namespace amrex
       m_faceData[idir].define(ivsIrregG1D, a_graph, idir, F_FACENUMBER);
     }
 
+#if !defined(NDEBUG) || defined(BL_TESTING)
+    init_snan();
+#endif
+
   }
 /************************/
   void
@@ -316,6 +321,24 @@ namespace amrex
     //  pout() << "ebdata initial define domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_region <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
     //}
   }
+
+
+  void EBDataImplem::init_snan ()
+  {
+#ifdef BL_USE_DOUBLE
+      std::size_t n = m_volData.size();
+      if (n > 0) {
+          amrex_array_init_snan(m_volData.dataPtr(), n);
+      }
+      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+          n = m_faceData[idim].size();
+          if (n > 0) {
+              amrex_array_init_snan(m_faceData[idim].dataPtr(), n);
+          }
+      }
+#endif
+  }
+
 /*******************************/
   const Real& EBDataImplem::volFrac(const VolIndex& a_vof) const
   {
