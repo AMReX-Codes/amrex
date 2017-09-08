@@ -174,7 +174,9 @@ namespace amrex
 ///
     const T* dataPtr(const int& a_comp) const;
 
-
+    T* dataPtr () { return m_data; }
+    
+    std::size_t size () const { return m_nComp*m_nFaces; }
 
     ///for copy and fillboundary where stuff is already defined
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const;

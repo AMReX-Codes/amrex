@@ -158,6 +158,10 @@ namespace amrex
         return m_data + (a_ivar*m_vofs.size());
       }
   
+    T* dataPtr () { return m_Memory.data(); }
+
+    std::size_t size () const { return m_Memory.size(); }
+
     void setVal(const T& a_val);
 
     void setVal(int a_comp, const T& a_val);

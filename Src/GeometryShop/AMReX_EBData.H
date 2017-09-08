@@ -256,6 +256,9 @@ private:
                          const std::vector<VolIndex>& a_fineVoFs,
                          const VolIndex&         a_coarVoF);
 
+    void
+    init_snan ();
+
     friend class EBIndexSpace;
     friend class EBISLevel;
   };
