@@ -17,6 +17,7 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_PolyGeom.H"
+#include "AMReX_parstream.H"
 #include "AMReX_Utility.H"
 #include <string>
 #include "AMReX_Utility.H"
@@ -49,6 +50,8 @@ namespace amrex
   EBIndexSpace::
   read(const string& a_dirname)
   {
+    amrex::Print() << "EBIndexSpace::define - From file input" << endl;
+
     readHeader(a_dirname);
     m_ebisLevel.resize(m_nlevels);
     for(int ilev = 0; ilev < m_ebisLevel.size(); ilev++)
@@ -60,10 +63,12 @@ namespace amrex
     for(int ilev = 0; ilev < m_nlevels; ilev++)
     {
       m_ebisLevel[ilev] = new EBISLevel();
+      amrex::Print() << "EBIndexSpace::reading level " << ilev << endl;
       string levdirname = a_dirname + "/_lev_" + EBArith::convertInt(ilev);
       m_ebisLevel[ilev]->read(levdirname);
     }
     m_isDefined = true;
+    amrex::Print() << "leaving EBIS::read" << endl;
   }
 
   ///
@@ -115,9 +120,9 @@ namespace amrex
   {
     BL_PROFILE("EBIndexSpace::define_geoserver_domain0");
 
-    amrex::Print() << "EBIndexSpace::define - From domain" << "\n";
+    amrex::Print() << "EBIndexSpace::define - From domain" << a_domain << endl;
 
-    amrex::Print() << "  Building finest level..." << "\n";
+    amrex::Print() << "  Building finest level..." << endl;
 
     //this computes how many levels
     buildFirstLevel(a_domain, a_origin, a_dx, a_geoserver, a_nCellMax, a_maxCoarsenings);
@@ -125,9 +130,10 @@ namespace amrex
     //starting at one because buildFirstLevel built 0
     for(int ilev = 1; ilev < m_nlevels; ilev++)
     {
-      amrex::Print() << "  Building level " << ilev << "..." << "\n";
+      amrex::Print() << "  Building level " << ilev << "..." << endl;
       buildNextLevel(a_geoserver, ilev);
     }
+    amrex::Print() << "leaving EBIS::define" << endl;
   }
   ///
   void 
@@ -178,7 +184,7 @@ namespace amrex
     }
     if (a_maxCoarsenings >= 0)
     {
-      m_nlevels =  std::max(m_nlevels, a_maxCoarsenings+1);
+      m_nlevels =  std::min(m_nlevels, a_maxCoarsenings+1);
     }
       
     m_ebisLevel.resize(m_nlevels, NULL);
@@ -253,7 +259,7 @@ namespace amrex
     if (whichlev < 0)
     {
       amrex::Print() << "a_domain = " << a_domain
-                     << " does not correspond to any refinement of EBIS" << "\n";
+                     << " does not correspond to any refinement of EBIS" << endl;
       amrex::Error("Bad argument to EBIndexSpace::fillEBISLayout");
     }
     m_ebisLevel[whichlev]->fillEBISLayout(a_ebisLayout, a_grids, a_dm, a_nghost);

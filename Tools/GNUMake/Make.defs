@@ -255,6 +255,10 @@ else
     BTSuffix :=
 endif
 
+ifdef CRAY_CPU_TARGET
+    archSuffix += .$(strip $(CRAY_CPU_TARGET))
+endif
+
 ifeq ($(LAZY),TRUE)
     CPPFLAGS += -DBL_LAZY
 endif
@@ -391,7 +395,9 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
+
+
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 

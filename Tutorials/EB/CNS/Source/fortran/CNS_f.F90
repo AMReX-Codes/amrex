@@ -24,8 +24,8 @@ module cns_module
   integer, parameter, public :: QVAR   = 8
   
 
-  real(rt), parameter, public :: smallp = 1.d-30
-  real(rt), parameter, public :: smallr = 1.d-30
+  real(rt), parameter, public :: smallp = 1.d-10
+  real(rt), parameter, public :: smallr = 1.d-19
 
   ! boundary condition information
   integer, save, public :: physbc_lo(3)

@@ -17,7 +17,13 @@
 
 namespace amrex
 {
-  IntVect ebisl_debiv(D_DECL(994,213,7));
+  static const IntVect   ebisl_debiv(D_DECL(994,213,7));
+  static const IntVect   ebisl_debivlo(D_DECL(29,12, 0));
+  static const IntVect   ebisl_debivhi(D_DECL(29,13, 0));
+  static const VolIndex  ebisl_debvoflo(ebisl_debivlo, 0);
+  static const VolIndex  ebisl_debvofhi(ebisl_debivhi, 0);
+  static const FaceIndex ebisl_debface( ebisl_debvoflo, ebisl_debvofhi);
+
   void EBISL_checkGraph(const BoxArray          & a_grids,
                         const DistributionMapping & a_dm,
                         const FabArray<EBGraph> & a_graph,
@@ -40,6 +46,24 @@ namespace amrex
           icov = 1;
         }
         amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+      }
+    }
+  }
+  void EBISL_checkData(const BoxArray          & a_grids,
+                        const DistributionMapping & a_dm,
+                        const FabArray<EBData> & a_data,
+                        const string & a_identifier)
+  {
+    for(MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
+    {
+      const Box& region   = a_grids[mfi];
+      const EBData & data = a_data[mfi];
+      const BaseIFFAB<Real>& fab = data.getFaceData(1);
+      if(fab.hasFace(ebisl_debface))
+      {
+        Real value = fab(ebisl_debface, 0);
+        pout() << "ebislayout:" << a_identifier;
+        pout() << ", region = " << region << ", facedat(" << ebisl_debface << ", 0)=" << value << endl;
       }
     }
   }
@@ -69,19 +93,28 @@ namespace amrex
 //    BoxArray inpgrids = a_graph.boxArray();
 //    DistributionMapping inpdm = a_graph.DistributionMap();
 //    EBISL_checkGraph(inpgrids, inpdm, a_graph, string(" input graph"));
+//    BoxArray inpgrids = a_data.boxArray();
+//    DistributionMapping inpdm = a_data.DistributionMap();
+//    EBISL_checkData(inpgrids, inpdm, a_data, string(" input to ebisl::define"));
 // end debug
 
     m_ebGraph = shared_ptr<FabArray<EBGraph> >(new FabArray<EBGraph>(a_grids, a_dm, 1, dstGhostGraph,
                                                                      MFInfo(),DefaultFabFactory<EBGraph>()));
+    
     m_ebGraph->copy(a_graph, 0, 0, 1, srcGhost, dstGhostGraph);
-//begin debug
-//    EBISL_checkGraph(a_grids, a_dm, a_graph, string(" my graph after copy"));
-// end debug
 
     EBDataFactory ebdatafact(m_ebGraph);
     m_ebData  = shared_ptr<FabArray<EBData > >(new FabArray<EBData>(a_grids, a_dm, 1, m_nghost, MFInfo(), ebdatafact));
       
+    BL_PROFILE_VAR("EBISLayout_copy_ebdata",copy_data);
     m_ebData ->copy(a_data , 0, 0, 1, srcGhost, dstGhostData);
+    BL_PROFILE_VAR_STOP(copy_data);
+
+//begin debug
+//    EBISL_checkGraph(a_grids, a_dm, *m_ebGraph, string(" my graph after copy"));
+//    EBISL_checkData(a_grids, a_dm, *m_ebData, string(" output from ebisl::define"));
+//    amrex::Abort();
+// end debug
       
     m_defined = true;
   }

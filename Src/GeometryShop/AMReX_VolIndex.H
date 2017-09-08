@@ -40,7 +40,10 @@ namespace amrex
 
     ///
     
-    bool operator== (const VolIndex& a_vofin) const;
+    bool operator== (const VolIndex& a_vofin) const {
+	return ((m_cellIndex == a_vofin.m_cellIndex) &&
+		(m_iv == a_vofin.m_iv));
+    }
 
     ///
     

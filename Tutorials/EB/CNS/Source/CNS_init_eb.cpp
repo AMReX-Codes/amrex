@@ -145,7 +145,7 @@ initialize_EBIS(const int max_level)
           //allregular
           amrex::Print() << "all regular geometry\n";
           AllRegularService regserv;
-          AMReX_EBIS::instance()->define(finest_domain, origin, fine_dx, regserv);
+          AMReX_EBIS::instance()->define(finest_domain, origin, fine_dx, regserv, max_grid_size, max_level);
         }
         else if (geom_type == "flat_plate") 
         {
@@ -168,7 +168,7 @@ initialize_EBIS(const int max_level)
             plateHi[idir] = platehivec[idir];
           }
           FlatPlateGeom flat_plate(normalDir, plateLoc, plateLo, plateHi);
-          AMReX_EBIS::instance()->define(finest_domain, origin, fine_dx, flat_plate);
+          AMReX_EBIS::instance()->define(finest_domain, origin, fine_dx, flat_plate, max_grid_size, max_level);
         }
         else
         {

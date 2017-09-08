@@ -32,14 +32,11 @@ namespace amrex
                       const int                          & a_refToDepth)
   {
     BL_ASSERT(a_refToDepth > 0);
-    BL_ASSERT(a_acoefFine.nGrow() == a_acoefCoar.nGrow());
-    BL_ASSERT(a_acoefFine.nGrow() == a_bcoefCoar.nGrow());
-    BL_ASSERT(a_acoefFine.nGrow() == a_bcoefFine.nGrow());
 
     if (a_refToDepth == 1)
     {
       a_acoefCoar.copy(a_acoefFine, 0, 0, 1, 0, 0);
-      a_bcoefCoar.copy(a_bcoefCoar, 0, 0, 1, 0, 0);
+      a_bcoefCoar.copy(a_bcoefFine, 0, 0, 1, 0, 0);
     }
     else
     {
@@ -54,6 +51,8 @@ namespace amrex
       averageOp.average( a_acoefCoar     ,  a_acoefFine     , 0, 0, 1);
       averageOp.average( a_bcoefCoar     ,  a_bcoefFine     , 0, 0, 1);
     }
+    a_acoefCoar.FillBoundary();
+    a_bcoefCoar.FillBoundary();
   }
   //-----------------------------------------------------------------------
   EBConductivityOpFactory::~EBConductivityOpFactory()
@@ -219,8 +218,8 @@ namespace amrex
     shared_ptr<ConductivityBaseDomainBC>  domainBC(m_domainBCFactory->create());
     shared_ptr<ConductivityBaseEBBC>      ebBC(        m_ebBCFactory->create());
 
-    int ngrowA = m_acoef[a_amrLevel]->nGrow();
-    int ngrowB = m_bcoef[a_amrLevel]->nGrow();
+    int ngrowA = 0;
+    int ngrowB = 1;
     EBCellFactory cellfact(eblg.getEBISL());
     EBFluxFactory fluxfact(eblg.getEBISL());
     shared_ptr<FabArray<EBCellFAB> > acoef(new FabArray<EBCellFAB>(eblg.getDBL(), eblg.getDM(), 1, ngrowA, MFInfo(), cellfact));

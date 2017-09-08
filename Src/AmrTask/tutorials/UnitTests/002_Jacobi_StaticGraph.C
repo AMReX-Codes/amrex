@@ -328,6 +328,7 @@ int main(int argc,char *argv[])
     double time= -rts.Time();
     rts.Barrier();
     ArrayGraph<Jacobi, 3> *JacobiGraph= new ArrayGraph<Jacobi, 3>(graphName, PointVect<3>(Jacobi::tx, Jacobi::ty, Jacobi::tz), rank, nProcs);
+    rts.Barrier();
     rts.Run(JacobiGraph);
     double res= global_err;
     double finalErr;

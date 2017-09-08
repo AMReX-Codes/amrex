@@ -58,8 +58,7 @@ extern "C" {
     void cns_compute_dudt (const int* lo, const int* hi,
                            amrex_real* dudt, const int* utlo, const int* uthi,
                            const amrex_real* u, const int* ulo, const int* uhi,
-                           const void* flag, const int* fglo, const int* fghi,
-                           const amrex_real* dx, const amrex_real* dt, const int* all_regular);
+                           const amrex_real* dx, const amrex_real* dt);
 
     void cns_eb_compute_dudt (const int* lo, const int* hi,
                               amrex_real* dudt, const int* utlo, const int* uthi,
