@@ -1165,13 +1165,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
   Array<std::map<std::pair<int, int>, Array<Array<ParticleType> > > > tmp_local;
   tmp_local.resize(theEffectiveFinestLevel+1);
 
+  // we resize these buffers outside the parallel region
   for (int lev = lev_min; lev <= lev_max; lev++) {
       for (MFIter mfi(*m_dummy_mf[lev], do_tiling); mfi.isValid(); ++mfi) {
           auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
           tmp_local[lev][index].resize(num_threads);
       }
   }
-  
+  for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+      tmp_remote[i].resize(num_threads);
+  }
+
+  // first pass: for each tile in parallel, in each thread copies the particles that
+  // need to be moved into it's own, temporary buffer.
   for (int lev = lev_min; lev <= lev_max; lev++) {
       auto& pmap = m_particles[lev];
       typename std::map<std::pair<int, int>, ParticleTileType >::iterator pmap_it;
@@ -1220,8 +1226,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                                }
 
                               else {
-                                  if (tmp_remote.find(who) == tmp_remote.end())
-                                      tmp_remote[who].resize(num_threads);
                                   auto& particles_to_send = tmp_remote[who][thread_num];
                                   auto old_size = particles_to_send.size();
                                   auto new_size = old_size + superparticle_size;
@@ -1287,6 +1291,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
         }
     }
 
+    // Second pass - for each tile in parallel, collect the particles we are owned from all thread's buffers.
     for (int lev = lev_min; lev <= lev_max; lev++) {
         typename std::map<std::pair<int, int>, Array<Array<ParticleType> > >::iterator pmap_it;
 
@@ -1313,7 +1318,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           }
       }
   }
-  
+
   for (auto& map_it : tmp_remote) {
       int who = map_it.first;
       not_ours[who];
@@ -1338,6 +1343,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
       }
   }
   
+  // remove any empty map entries from not_ours
+  for (auto pmap_it = not_ours.begin(); pmap_it != not_ours.end(); /* no ++ */) {        
+      if (pmap_it->second.empty()) {
+          not_ours.erase(pmap_it++);
+      }
+      else {
+          ++pmap_it;
+      }
+  }
+
   if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
       // Looks like we lost an AmrLevel on a regrid.
       amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing m_particles from "
@@ -4266,7 +4281,6 @@ AssignCellDensitySingleLevelFort (int rho_index,
             int nstride = particles.dataShape().first;
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
-            const Box& box = fab.box();
             Real* data_ptr;
             const int *lo, *hi;
 #ifdef _OPENMP
