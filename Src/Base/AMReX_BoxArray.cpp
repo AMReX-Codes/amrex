@@ -148,6 +148,7 @@ BARef::resize (long n) {
 #endif
     m_abox.resize(n);
     hash.clear();
+    has_hashmap = false;
 #ifdef BL_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
