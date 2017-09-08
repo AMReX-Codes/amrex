@@ -76,11 +76,14 @@ contains
     ! dx is fine.
     ! lo and hi are also relative to the fine box.
 
-    if (dir .eq. 0) then ! x-direction
+    if (dir .eq. 0) then ! x-direction, lo(1) == hi(1)
 
        fac = dt / (dx(1)*(ratio(1)*ratio(2)*ratio(3)))
 
        if (side .eq. 0) then ! lo-side
+
+          i = lo(1)
+          ii = (i+1)*ratio(1) !!!
           
           do n = 1, nc
              do k = lo(3), hi(3)
@@ -89,10 +92,7 @@ contains
                       kk =  k*ratio(3)+koff
                       do joff = 0, ratio(2)-1
                          jj = j*ratio(2)+joff
-                         do i = lo(1), hi(1)
-                            ii = (i+1)*ratio(1) !!!
-                            d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
-                         end do
+                         d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
                       end do
                    end do
                 end do
@@ -100,6 +100,9 @@ contains
           end do
 
        else ! hi-side
+
+          i = lo(1)
+          ii = i*ratio(1) !!!
 
           do n = 1, nc
              do k = lo(3), hi(3)
@@ -108,10 +111,7 @@ contains
                       kk = k*ratio(3)+koff
                       do joff = 0, ratio(2)-1
                          jj = j*ratio(2)+joff
-                         do i = lo(1), hi(1)
-                            ii = i*ratio(1) !!!
-                            d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
-                         end do
+                         d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
                       end do
                    end do
                 end do
@@ -120,23 +120,23 @@ contains
 
        end if
 
-    else if (dir .eq. 1) then ! y-direction
+    else if (dir .eq. 1) then ! y-direction, lo(2) == hi(2)
 
        fac = dt / (dx(2)*(ratio(1)*ratio(2)*ratio(3)))
 
        if (side .eq. 0) then ! lo-side
 
+          j = lo(2)
+          jj = (j+1)*ratio(2) !!!
+
           do n = 1, nc
              do k = lo(3), hi(3)
-                do j = lo(2), hi(2)
-                   jj = (j+1)*ratio(2) !!!
-                   do koff = 0, ratio(3)-1
-                      kk = k*ratio(3)+koff
-                      do ioff = 0, ratio(1)-1
-                         do i = lo(1), hi(1)
-                            ii = i*ratio(1)+ioff
-                            d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
-                         end do
+                do koff = 0, ratio(3)-1
+                   kk = k*ratio(3)+koff
+                   do ioff = 0, ratio(1)-1
+                      do i = lo(1), hi(1)
+                         ii = i*ratio(1)+ioff
+                         d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
                       end do
                    end do
                 end do
@@ -145,17 +145,17 @@ contains
              
        else ! hi-side
 
+          j = lo(2)
+          jj = j*ratio(2) !!!
+
           do n = 1, nc
              do k = lo(3), hi(3)
-                do j = lo(2), hi(2)
-                   jj = j*ratio(2) !!!
-                   do koff = 0, ratio(3)-1
-                      kk = k*ratio(3)+koff
-                      do ioff = 0, ratio(1)-1
-                         do i = lo(1), hi(1)
-                            ii = i*ratio(1)+ioff
-                            d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
-                         end do
+                do koff = 0, ratio(3)-1
+                   kk = k*ratio(3)+koff
+                   do ioff = 0, ratio(1)-1
+                      do i = lo(1), hi(1)
+                         ii = i*ratio(1)+ioff
+                         d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
                       end do
                    end do
                 end do
@@ -164,23 +164,23 @@ contains
 
        end if
 
-    else  ! z-direction
+    else  ! z-direction, lo(3) == hi(3)
 
        fac = dt / (dx(3)*(ratio(1)*ratio(2)*ratio(3)))
 
        if (side .eq. 0) then ! lo-side
 
+          k = lo(3)
+          kk = (k+1)*ratio(3) !!!
+
           do n = 1, nc
-             do k = lo(3), hi(3)
-                kk = (k+1)*ratio(3) !!!
-                do j = lo(2), hi(2)
-                   do joff = 0, ratio(2)-1
-                      jj = j*ratio(2)+joff
-                      do ioff = 0, ratio(1)-1
-                         do i = lo(1), hi(1)
-                            ii = i*ratio(1)+ioff
-                            d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
-                         end do
+             do j = lo(2), hi(2)
+                do joff = 0, ratio(2)-1
+                   jj = j*ratio(2)+joff
+                   do ioff = 0, ratio(1)-1
+                      do i = lo(1), hi(1)
+                         ii = i*ratio(1)+ioff
+                         d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
                       end do
                    end do
                 end do
@@ -189,17 +189,17 @@ contains
 
        else ! hi-side
 
+          k = lo(3)
+          kk = k*ratio(3) !!!
+
           do n = 1, nc
-             do k = lo(3), hi(3)
-                kk = k*ratio(3) !!!
-                do j = lo(2), hi(2)
-                   do joff = 0, ratio(2)-1
-                      jj = j*ratio(2)+joff
-                      do ioff = 0, ratio(1)-1
-                         do i = lo(1), hi(1)
-                            ii = i*ratio(1)+ioff
-                            d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
-                         end do
+             do j = lo(2), hi(2)
+                do joff = 0, ratio(2)-1
+                   jj = j*ratio(2)+joff
+                   do ioff = 0, ratio(1)-1
+                      do i = lo(1), hi(1)
+                         ii = i*ratio(1)+ioff
+                         d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
                       end do
                    end do
                 end do
