@@ -320,10 +320,6 @@ namespace amrex
     //{
     //  pout() << "ebdata initial define domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_region <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
     //}
-
-#if !defined(NDEBUG) || defined(BL_TESTING)
-    init_snan();
-#endif
   }
 
 
