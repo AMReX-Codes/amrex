@@ -18,6 +18,7 @@ int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
 Real      CNS::cfl = 0.3;
 int       CNS::do_load_balance = 1;
+int       CNS::refine_cutcells = 1;
 
 CNS::CNS ()
 {}
@@ -299,8 +300,6 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
 {
     BL_PROFILE("CNS::errorEst()");
 
-    const bool refine_cutcells = true;
-
     if (refine_cutcells) {
         const MultiFab& S_new = get_new_data(State_Type);
         amrex::TagCutCells(tags, S_new);
@@ -360,6 +359,7 @@ CNS::read_params ()
     }
 
     pp.query("do_load_balance", do_load_balance);
+    pp.query("refine_cutcells", refine_cutcells);
 }
 
 void

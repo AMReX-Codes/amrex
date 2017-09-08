@@ -742,7 +742,9 @@ Amr::writePlotFile ()
 
     if(precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      amrex::Print() << "IOIOIOIO:  precreating directories for " << pltfileTemp << "\n";
+      if (verbose > 1) {
+          amrex::Print() << "IOIOIOIO:  precreating directories for " << pltfileTemp << "\n";
+      }
       amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
     } else {
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
