@@ -1022,6 +1022,7 @@ BoxArray::clear_hash_bin () const
 	m_ref->updateMemoryUsage_hash(-1);
 #endif
         m_ref->hash.clear();
+        m_ref->has_hashmap = false;
     }
 }
 
