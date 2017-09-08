@@ -4281,6 +4281,7 @@ AssignCellDensitySingleLevelFort (int rho_index,
             int nstride = particles.dataShape().first;
             const long np = pti.numParticles();
             FArrayBox& fab = (*mf_pointer)[pti];
+            const Box& box = fab.box();
             Real* data_ptr;
             const int *lo, *hi;
 #ifdef _OPENMP
