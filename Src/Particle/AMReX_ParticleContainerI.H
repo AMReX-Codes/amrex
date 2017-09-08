@@ -1,7 +1,7 @@
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool 
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = true;
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = false;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 IntVect
