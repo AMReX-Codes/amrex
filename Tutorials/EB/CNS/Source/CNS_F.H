@@ -13,7 +13,7 @@ extern "C" {
                        const amrex_real* dx, const amrex_real* problo);
 
     void cns_init_fort (const int* phys_bc_lo, const int* phys_bc_hi,
-                        int, int, int, int, int, int,
+                        int, int, int, int, int, int, int,
                         const amrex_real* problo, const amrex_real* probhi);
 
     void cns_hypfill (BL_FORT_FAB_ARG_3D(state),
