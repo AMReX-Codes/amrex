@@ -231,15 +231,6 @@ namespace amrex
   }
 
   /******************************/
-  bool FaceIndex::operator==(const FaceIndex& a_facein) const
-  {
-    return((m_loiv == a_facein.m_loiv) &&
-           (m_hiiv == a_facein.m_hiiv) &&
-           (m_loIndex == a_facein.m_loIndex) &&
-           (m_hiIndex == a_facein.m_hiIndex));
-  }
-
-  /******************************/
   bool FaceIndex::operator!=(const FaceIndex& a_facein) const
   {
     return (!(*this == a_facein));

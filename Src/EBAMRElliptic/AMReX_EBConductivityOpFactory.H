@@ -45,8 +45,8 @@ namespace amrex
                             const vector<int>                                   &  a_refRatio,
                             const shared_ptr<ConductivityBaseDomainBCFactory>   &  a_domainBCFactory,
                             const shared_ptr<ConductivityBaseEBBCFactory>       &  a_ebBcFactory,
-                            const IntVect                                       &  a_ghostCellsPhi,
-                            const IntVect                                       &  a_ghostCellsRhs,
+                            const int                                           &  a_ghostCellsPhi,
+                            const int                                           &  a_ghostCellsRhs,
                             int a_numLevels = -1);
 
 
@@ -70,6 +70,8 @@ namespace amrex
                    const int&  a_depth,
                    const bool  a_amrLevelOp);
 
+    static int s_testRef;
+    static int s_maxBoxSize;
   protected:
 
     vector<EBLevelGrid>                                  m_eblgs;
@@ -89,6 +91,7 @@ namespace amrex
     int                                                  m_ghostCellsRhs;
     int                                                  m_numLevels;
     vector<Real>                                         m_dx;
+
   private:
     ///weak construction bad
     EBConductivityOpFactory();
@@ -98,7 +101,6 @@ namespace amrex
 
     //copy constructor and operator= disallowed for all the usual reasons
     void operator=(const EBConductivityOpFactory& a_opin);
-
-
+  };
 }
 #endif

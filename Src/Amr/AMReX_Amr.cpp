@@ -376,7 +376,7 @@ Amr::InitAmr ()
 
     if (max_level > 0 && !initial_grids_file.empty())
     {
-#define STRIP while( is.get() != '\n' )
+#define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(initial_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
@@ -415,7 +415,7 @@ Amr::InitAmr ()
 
     if (max_level > 0 && !regrid_grids_file.empty())
     {
-#define STRIP while( is.get() != '\n' )
+#define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
@@ -1059,7 +1059,7 @@ Amr::readProbinFile (int& init)
         probin_file_name[i] = probin_file[i];
 
     if (verbose > 0)
-	amrex::Print() << "Starting to read probin ... \n";
+	amrex::Print() << "Starting to call amrex_probinit ... \n";
 
     const int nAtOnce = probinit_natonce;
     const int MyProc  = ParallelDescriptor::MyProc();
@@ -1123,12 +1123,12 @@ Amr::readProbinFile (int& init)
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
 
-	amrex::Print() << "MFRead::: PROBINIT max time   = " << piTotal    << '\n'
-		       << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
+	amrex::Print() << "amrex_probinit max time   = " << piTotal    << '\n'
+		       << "amrex_probinit total time = " << piTotalAll << '\n';
     }
 
     if (verbose > 0)
-	amrex::Print() << "Successfully read probin file: \"" << probin_file << "\"\n";
+	amrex::Print() << "Successfully run amrex_probinit\n";
 }
 
 void
@@ -1157,7 +1157,7 @@ Amr::InitializeInit(Real              strt_time,
 {
     BL_PROFILE("Amr::InitializeInit()");
     BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
-    checkInput();
+    if (check_input) checkInput();
     //
     // Generate internal values from user-supplied values.
     //
@@ -1302,7 +1302,7 @@ Amr::restart (const std::string& filename)
             std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
             Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
             ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
-	    if(verbose > 0) {
+	    if(verbose > 2) {
 		amrex::Print() 
 		    << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
 		    << "  " << faHeaderFullName << "  " << tempCharArray.size() << "\n";
@@ -2377,6 +2377,7 @@ Amr::regrid (int  lbase,
           //MultiFab::MoveAllFabs(mLDM[iMap]);
 	  DistributionMapping newDistMap(mLDM[iMap]);
           MultiFab::MoveAllFabs(newDistMap);
+          UpdateStateDataDistributionMaps(newDistMap);
         }
     }
 
@@ -2424,6 +2425,19 @@ Amr::regrid (int  lbase,
            printGridSummary(std::cout,start,finest_level);
         }
     }
+}
+
+void
+Amr::InstallNewDistributionMap (int lev, const DistributionMapping& newdm)
+{
+    BL_PROFILE("InstallNewDistributionMap()");
+
+    AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),boxArray(lev),newdm,cumtime);
+    a->init(*amr_level[lev]);
+    amr_level[lev].reset(a);
+
+    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
 }
 
 void
@@ -2915,7 +2929,7 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     BL_ASSERT(cycle_max[0] == 1);
     // internally these represent the total number of steps at a level, 
     // not the number of cycles
-    int cycles[n];
+    std::vector<int> cycles(n);
     Real best_ratio = 1e200;
     Real best_dt = 0;
     Real ratio;
@@ -2969,6 +2983,21 @@ Amr::RedistributeParticles ()
 }
 #endif
 
+void
+Amr::UpdateStateDataDistributionMaps(DistributionMapping& new_dmap)
+{
+   long mapsize = new_dmap.size();
+   for (int i(0); i < DistributionMap().size(); ++i)
+   {
+      if (DistributionMap()[i].size() == mapsize)
+      {  SetDistributionMap(i, new_dmap); }
+   }
+
+   for (int i(0); i < amr_level.size(); ++i)
+   {
+      amr_level[i]->UpdateDistributionMaps(new_dmap); 
+   } 
+}
 
 void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
@@ -2992,6 +3021,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
 	//MultiFab::MoveAllFabs(mLDM[iMap]);
         DistributionMapping newDistMap(mLDM[iMap]);
         MultiFab::MoveAllFabs(newDistMap);
+        UpdateStateDataDistributionMaps(newDistMap);
 	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs for iMap = "
 	               << iMap << "\n\n";
     }
@@ -3549,6 +3579,7 @@ Amr::RedistributeGrids(int how) {
           //MultiFab::MoveAllFabs(mLDM[iMap]);
 	  DistributionMapping newDistMap(mLDM[iMap]);
           MultiFab::MoveAllFabs(newDistMap);
+          UpdateStateDataDistributionMaps(newDistMap);
         }
     }
 #ifdef USE_PARTICLES
@@ -3628,17 +3659,17 @@ using std::endl;
 void
 Amr::BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm)
 {
-  int bcvect[bcrec.vectSize()];
-  if(myLocalId == rootId) {
-    for(int i(0); i < bcrec.vectSize(); ++i) {
-      bcvect[i] = bcrec.vect()[i];
+    std::vector<int> bcvect(bcrec.vectSize());
+    if(myLocalId == rootId) {
+        for(int i(0); i < bcrec.vectSize(); ++i) {
+            bcvect[i] = bcrec.vect()[i];
+        }
     }
-  }
-  ParallelDescriptor::Bcast(bcvect, bcrec.vectSize(), rootId, localComm);
-  if(myLocalId != rootId) {
-    bcrec.setVect(bcvect);
-  }
+    ParallelDescriptor::Bcast(bcvect.data(), bcrec.vectSize(), rootId, localComm);
+    if(myLocalId != rootId) {
+        bcrec.setVect(bcvect.data());
+    }
 }
-
+    
 }
 

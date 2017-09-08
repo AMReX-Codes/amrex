@@ -463,14 +463,15 @@ public:
     static void Initialize ();
     static bool initialized;
 
+    //! Make ourselves unique.
+    void uniqify ();
+
 private:
     //!  Update BoxArray index type according the box type, and then convert boxes to cell-centered.
     void type_update ();
 
     BARef::HashType& getHashMap () const;
 
-    //! Make ourselves unique.
-    void uniqify ();
 
     IntVect getDoiLo () const;
     IntVect getDoiHi () const;

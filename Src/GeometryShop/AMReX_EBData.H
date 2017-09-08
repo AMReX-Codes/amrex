@@ -123,6 +123,7 @@ namespace amrex
 
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
 
     ///
     RealVect normal(const VolIndex& a_vof) const;
@@ -255,6 +256,9 @@ private:
                          const std::vector<VolIndex>& a_fineVoFs,
                          const VolIndex&         a_coarVoF);
 
+    void
+    init_snan ();
+
     friend class EBIndexSpace;
     friend class EBISLevel;
   };
@@ -292,6 +296,8 @@ private:
       }
 
 
+    EBData (EBData&& rhs) noexcept = default;
+
     const Box& getRegion() const
       {
         return m_implem->getRegion();
@@ -316,6 +322,7 @@ private:
 
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
 
     ///
     /**

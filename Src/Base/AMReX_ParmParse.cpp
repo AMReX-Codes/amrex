@@ -1840,7 +1840,7 @@ void
 Fstring_2_int (int istr[], int nlen, const std::string& str)
 {
     int i;
-    for ( i = 0; i < nlen-1 && i < str.size(); ++i )
+    for ( i = 0; i < nlen-1 && i < static_cast<int>(str.size()); ++i )
     {
 	istr[i] = str[i];
     }

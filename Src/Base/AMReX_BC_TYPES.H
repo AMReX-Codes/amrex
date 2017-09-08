@@ -69,9 +69,9 @@ enum mathematicalBndryTypes {
     ext_dir      =  3,
     hoextrap     =  4
 };
-};
+}
 
-};
+}
 #endif
 
 #define BOGUS_BC -666

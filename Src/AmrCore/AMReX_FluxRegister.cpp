@@ -129,7 +129,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
  
-    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0);
+    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
+                MFInfo(), mflx.Factory());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -184,7 +185,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow());
+    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow(),
+                  MFInfo(), mflx.Factory());
 
     area.setVal(1, 0, 1, area.nGrow());
 
@@ -207,7 +209,8 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
  
-    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0);
+    MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
+                MFInfo(), mflx.Factory());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -243,7 +246,8 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow());
+    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow(),
+                  MFInfo(), mflx.Factory());
 
     area.setVal(1, 0, 1, area.nGrow());
 
@@ -397,7 +401,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 	int islo = face.isLow();
 
         MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
-                      mf.DistributionMap(), ncomp, 0);
+                      mf.DistributionMap(), ncomp, 0, MFInfo(), mf.Factory());
 	flux.setVal(0.0);
 
 	bndry[face].copyTo(flux, 0, scomp, 0, ncomp, geom.periodicity());
@@ -438,7 +442,8 @@ FluxRegister::Reflux (MultiFab&       mf,
 {
     const Real* dx = geom.CellSize();
     
-    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, mf.nGrow());
+    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, mf.nGrow(),
+                    MFInfo(), mf.Factory());
     
     volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, mf.nGrow());
 
@@ -468,14 +473,14 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 	    for (FabSetIter fsi(frlo); fsi.isValid(); ++fsi) {
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
-		for (int ii = 0; ii < isects.size(); ++ii) {
+		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
 		    frlo[fsi].setVal(0.0, isects[ii].second, 0, ncomp);
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
 			const Box& sbx = amrex::shift(bx, dir, domain.length(dir));
 			const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
-			for (int ii = 0; ii < isects2.size(); ++ii) {
+			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
 			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
 			    frlo[fsi].setVal(0.0, bx2, 0, ncomp);
 			}		      
@@ -486,14 +491,14 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 	    for (FabSetIter fsi(frhi); fsi.isValid(); ++fsi) {
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = balo.intersections(bx);
-		for (int ii = 0; ii < isects.size(); ++ii) {
+		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
 		    frhi[fsi].setVal(0.0, isects[ii].second, 0, ncomp);
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
 			const Box& sbx = amrex::shift(bx, dir, -domain.length(dir));
 			const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
-			for (int ii = 0; ii < isects2.size(); ++ii) {
+			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
 			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
 			    frhi[fsi].setVal(0.0, bx2, 0, ncomp);
 			}		      

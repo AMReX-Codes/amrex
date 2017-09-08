@@ -55,6 +55,7 @@ namespace amrex
     
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
 
     ///
     /**
@@ -367,6 +368,14 @@ namespace amrex
       {
         return m_multiIVS;
       }
+    
+    Box getFullRegion() const
+      {
+        return m_fullRegion;
+      }
+
+    //for debugging
+    static bool s_verbose;
   private:
 
     ///for serialization
@@ -374,7 +383,10 @@ namespace amrex
 
     ///box over which this graph is defined
     Box m_region;
-        
+
+    ///box NOT intersected  with domain
+    Box m_fullRegion;
+
     ///computational domain at this level of refinement
     Box m_domain;
         
@@ -384,7 +396,7 @@ namespace amrex
        the BaseFab below is undefined.
     */
     TAG m_tag;
-        
+
     ///
     /**
        the graph description of the box.
@@ -460,6 +472,8 @@ namespace amrex
         
     ///
     ~EBGraph();
+
+    EBGraph (EBGraph&& rhs) noexcept = default;
         
     ///
     /**
@@ -483,6 +497,13 @@ namespace amrex
       {
         return m_implem->numVoFs(a_iv);
       }
+
+    ///
+    Box getFullRegion() const
+      {
+        return m_implem->getFullRegion();
+      }
+
     ///
     /**
        Return true if every cell in the EBGraph is a regular cell.
@@ -794,12 +815,15 @@ namespace amrex
         
     ///
     /**
-       This resizes the BaseFab to cover getRegion
+       This resizes the BaseFab to cover the input region
        1 = regular
        0 = irregular
        -1 = covered
+
+       2 outside the domain
     */
-    void fillIntMask(BaseFab<int>& a_mask) const;
+    void fillIntMask(BaseFab<int>& a_mask,
+                     const Box   & a_subbox) const;
         
         
     ///
@@ -828,6 +852,7 @@ namespace amrex
         
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
         
   private:
         

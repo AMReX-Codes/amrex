@@ -48,6 +48,12 @@ else
   MEM_PROFILE := FALSE
 endif
 
+ifdef USE_PROFPARSER
+  USE_PROFPARSER := $(strip $(USE_PROFPARSER))
+else
+  USE_PROFPARSER := FALSE
+endif
+
 ifdef TEST
   TEST := $(strip $(TEST))
 else
@@ -108,6 +114,18 @@ else
   DIMENSION_AGNOSTIC := FALSE
 endif
 
+ifdef STRICT
+  STRICT := $(strip $(STRICT))
+else
+  STRICT := FALSE
+endif
+
+ifdef USE_EB
+  USE_EB := $(strip $(USE_EB))
+else
+  USE_EB := FALSE
+endif
+
 ifdef EBASE
   EBASE := $(strip $(EBASE))
 else
@@ -156,8 +174,11 @@ else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
+else ifeq ($(lowercase_comp),nag)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, and llvm)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, and nag)
 endif
 
 ifeq ($(MAKECMDGOALS),check_fortran)
@@ -172,6 +193,15 @@ ifeq ($(DEBUG),TRUE)
 else
     CPPFLAGS	+= -DNDEBUG
     DebugSuffix :=
+endif
+
+ifeq ($(USE_PROFPARSER),TRUE)
+  PROFILE := TRUE
+  TRACE_PROFILE := TRUE
+
+  CPPFLAGS += -DBL_USE_PROFPARSER
+  include $(AMREX_HOME)/Src/Extern/ProfParser/Make.package
+  include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
 endif
 
 ifeq ($(PROFILE),TRUE)
@@ -223,6 +253,10 @@ ifeq ($(BACKTRACE),TRUE)
     BTSuffix := .BT
 else
     BTSuffix :=
+endif
+
+ifdef CRAY_CPU_TARGET
+    archSuffix += .$(strip $(CRAY_CPU_TARGET))
 endif
 
 ifeq ($(LAZY),TRUE)
@@ -343,6 +377,14 @@ ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DUSE_PARTICLES -DPARTICLES
 endif
 
+ifeq ($(STRICT),TRUE)
+  DEFINES += -DAMREX_STRICT_MODE
+endif
+
+ifeq ($(USE_EB),TRUE)
+    CPPFLAGS += -DAMREX_USE_EB
+endif
+
 includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
@@ -353,7 +395,9 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
+
+
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
