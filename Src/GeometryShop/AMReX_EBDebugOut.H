@@ -71,10 +71,10 @@ namespace amrex
   void dumpEBFace(const EBFaceFAB* a_fab);
 
   /// 
-  void dumpVVoFs(const vector<VolIndex>* vvofs);
+  void dumpVVoFs(const Array<VolIndex>* vvofs);
 
   /// 
-  void dumpVFaces(const vector<FaceIndex>* vvofs);
+  void dumpVFaces(const Array<FaceIndex>* vvofs);
 
 }
 #endif

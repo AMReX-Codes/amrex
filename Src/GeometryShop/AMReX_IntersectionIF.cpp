@@ -62,7 +62,7 @@ namespace amrex
     return static_cast<BaseIF*>(intersectionPtr);
   }
 
-  IntersectionIF::IntersectionIF(const vector<BaseIF *>& a_impFuncs)
+  IntersectionIF::IntersectionIF(const Array<BaseIF *>& a_impFuncs)
   {
     // Number of implicit function in intersection
     m_numFuncs = a_impFuncs.size();

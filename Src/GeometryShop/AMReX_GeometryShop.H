@@ -54,7 +54,7 @@ namespace amrex
        Define the internals of the input ebisRegion.
     */
     virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                           std::vector<IrregNode>&   a_nodes,
+                           Array<IrregNode>&   a_nodes,
                            const Box&           a_validRegion,
                            const Box&           a_ghostRegion,
                            const Box&           a_domain,
@@ -68,16 +68,16 @@ namespace amrex
     /**
      */
     void computeVoFInternals(Real&                a_volFrac,
-                             std::vector<int>          a_loArc[SpaceDim],
-                             std::vector<int>          a_hiArc[SpaceDim],
-                             std::vector<Real>         a_loAreaFrac[SpaceDim],
-                             std::vector<Real>         a_hiAreaFrac[SpaceDim],
+                             Array<int>          a_loArc[SpaceDim],
+                             Array<int>          a_hiArc[SpaceDim],
+                             Array<Real>         a_loAreaFrac[SpaceDim],
+                             Array<Real>         a_hiAreaFrac[SpaceDim],
                              Real&                a_bndryArea,
                              RealVect&            a_normal,
                              RealVect&            a_volCentroid,
                              RealVect&            a_bndryCentroid,
-                             std::vector<RealVect>     a_loFaceCentroid[SpaceDim],
-                             std::vector<RealVect>     a_hiFaceCentroid[SpaceDim],
+                             Array<RealVect>     a_loFaceCentroid[SpaceDim],
+                             Array<RealVect>     a_hiFaceCentroid[SpaceDim],
                              const BaseFab<int>&  a_regIrregCovered,
                              const Box&           a_domain,
                              const RealVect&      a_origin,
@@ -91,7 +91,7 @@ namespace amrex
                                const Box            & a_domain) const;
 
     void
-    fixRegularCellsNextToCovered(std::vector<IrregNode>     & a_nodes, 
+    fixRegularCellsNextToCovered(Array<IrregNode>     & a_nodes, 
                                  BaseFab<int>               & a_regIrregCovered,
                                  const Box                  & a_validRegion,
                                  const Box                  & a_domain,

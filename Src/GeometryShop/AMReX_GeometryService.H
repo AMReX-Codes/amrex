@@ -79,7 +79,7 @@ namespace amrex
        ghostregion = (grow(validRegion, 1) & domain);
     */
     virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                           std::vector<IrregNode>&   a_nodes,
+                           Array<IrregNode>&   a_nodes,
                            const Box&           a_validRegion,
                            const Box&           a_ghostRegion,
                            const Box& a_domain,

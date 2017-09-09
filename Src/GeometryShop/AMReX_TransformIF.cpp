@@ -12,7 +12,6 @@
 
 #include "AMReX_PolyGeom.H"
 #include "AMReX_TransformIF.H"
-using std::vector;
 
 namespace amrex
 {
