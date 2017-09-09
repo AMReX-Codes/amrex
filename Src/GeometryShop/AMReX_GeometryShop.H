@@ -92,11 +92,11 @@ namespace amrex
 
     void
     fixRegularCellsNextToCovered(Array<IrregNode>     & a_nodes, 
-                                 BaseFab<int>               & a_regIrregCovered,
-                                 const Box                  & a_validRegion,
-                                 const Box                  & a_domain,
-                                 const IntVect              & a_iv,
-                                 const Real                 & a_dx) const;
+                                 BaseFab<int>         & a_regIrregCovered,
+                                 const Box            & a_validRegion,
+                                 const Box            & a_domain,
+                                 const IntVect        & a_iv,
+                                 const Real           & a_dx) const;
 
     ///
     /**
@@ -104,7 +104,7 @@ namespace amrex
        refinement described by dx.
     */
     virtual bool isRegular(const Box&           a_region,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const override
       {
@@ -117,7 +117,7 @@ namespace amrex
        refinement described by dx.
     */
     virtual bool isCovered(const Box&           a_region,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const override
       {
@@ -141,7 +141,7 @@ namespace amrex
                     const int            a_faceNormal,
                     const Real&          a_dx,
                     const IntVect&       a_coord,
-                    const Box& a_domain,
+                    const Box&           a_domain,
                     const RealVect&      a_origin) const;
 
     void edgeData2D(edgeMo               a_edges[4],
@@ -150,7 +150,7 @@ namespace amrex
                     bool&                a_faceDontKnow,
                     const Real&          a_dx,
                     const IntVect&       a_coord,
-                    const Box& a_domain,
+                    const Box&           a_domain,
                     const RealVect&      a_origin) const;
 
     void edgeType(bool& a_regular,
@@ -168,7 +168,7 @@ namespace amrex
       refinement described by dx.
   */
   bool isRegularEveryPoint(const Box&           a_region,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const;
 
@@ -178,7 +178,7 @@ namespace amrex
       refinement described by dx.
   */
   bool isCoveredEveryPoint(const Box&           a_region,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const;
 
@@ -188,21 +188,8 @@ namespace amrex
                             RealVect& a_yVec) const;
 #endif
 
-    Real Min(const Real x, const Real y) const;
-
-    //stuff disallowed for all the usual reasons.
-    GeometryShop()
-    {
-      amrex::Abort("GeometryShop uses strong construction only");
-    }
-    GeometryShop(const GeometryShop& a_workshopin)
-    {
-      amrex::Abort("GeometryShop disallows copy contruction");
-    }
-    void operator=(const GeometryShop& a_workshopin)
-    {
-      amrex::Abort("GeometryShop disallows the assignment operator");
-    }
+    GeometryShop(const GeometryShop& a_workshopin) = delete;
+    void operator=(const GeometryShop& a_workshopin) = delete;
 
   };
 }

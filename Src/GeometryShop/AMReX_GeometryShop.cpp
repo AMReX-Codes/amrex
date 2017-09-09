@@ -30,7 +30,7 @@ namespace amrex
   IntVect gs_debiv(D_DECL(994,213,7));
   
   bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
-                                         const Box& a_domain,
+                                         const Box&           a_domain,
                                          const RealVect&      a_origin,
                                          const Real&          a_dx) const
   {
@@ -77,7 +77,7 @@ namespace amrex
   }
 
   bool GeometryShop::isCoveredEveryPoint(const Box&           a_region,
-                                         const Box& a_domain,
+                                         const Box&           a_domain,
                                          const RealVect&      a_origin,
                                          const Real&          a_dx) const
   {
@@ -195,10 +195,10 @@ namespace amrex
   /*********************************************/
   void
   GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
-                          Array<IrregNode>   & a_nodes,
+                          Array<IrregNode>    & a_nodes,
                           const Box           & a_validRegion,
                           const Box           & a_ghostRegion,
-                          const Box & a_domain,
+                          const Box           & a_domain,
                           const RealVect      & a_origin,
                           const Real          & a_dx) const
   {
@@ -376,11 +376,11 @@ namespace amrex
   void
   GeometryShop::
   fixRegularCellsNextToCovered(Array<IrregNode>    & a_nodes, 
-                               BaseFab<int>              & a_regIrregCovered,
-                               const Box                 & a_validRegion,
-                               const Box                 & a_domain,
-                               const IntVect             & a_iv,
-                               const Real                & a_dx) const
+                               BaseFab<int>        & a_regIrregCovered,
+                               const Box           & a_validRegion,
+                               const Box           & a_domain,
+                               const IntVect       & a_iv,
+                               const Real          & a_dx) const
 
   {
     Box grownBox(a_iv, a_iv);
@@ -444,7 +444,7 @@ namespace amrex
   getFullNodeWithCoveredFace(IrregNode            & a_newNode, 
                              const BaseFab<int>   & a_regIrregCovered,
                              const IntVect        & a_iv,
-                             const Box  & a_domain) const
+                             const Box            & a_domain) const
   {
 
     a_newNode.m_cell          = a_iv;
@@ -2126,20 +2126,6 @@ namespace amrex
     return;
   }
 
-  Real GeometryShop::Min(const Real x, const Real y)const
-  {
-    Real retval;
-    if (x < y)
-      {
-        retval = x;
-      }
-    else
-      {
-        retval = y;
-      }
-    return retval;
-  }
-
   //  The following is an implementation of "Brent's Method"
   //    for one-dimensional root finding. Pseudo-code for this
   //    algorithm can be found on p. 253 of "Numerical Recipes"
@@ -2231,7 +2217,7 @@ namespace amrex
 
             p = std::abs(p);
 
-            if (2.0 * p < Min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
+            if (2.0 * p < std::min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
               {
                 //  Accept interpolation
                 e = d;
