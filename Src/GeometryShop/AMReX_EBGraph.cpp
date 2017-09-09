@@ -1126,25 +1126,6 @@ namespace amrex
 
     Box testbox = m_region & a_srcbox;
 
-////begin debug
-//    bool debugc = (m_region.contains(ebg_debiv));
-//    int whichbranch = -1;
-//    int needtodel = -1;
-//    int ireg = 0;
-//    int icov = 0;
-//    if(debugc)
-//    {
-//      if(isRegular(ebg_debiv))
-//      {
-//        ireg = 1;
-//      }
-//      if(isCovered(ebg_debiv))
-//      {
-//        icov = 1;
-//      }
-//      amrex::AllPrint() << "ebgraph copy incoming ireg = " << ireg << ", icov = "<< icov << endl;
-//    }
-////end debug    
 
     if(!testbox.isEmpty())
     {
@@ -1155,41 +1136,23 @@ namespace amrex
       Box regionFrom= testbox;
       if (isRegular(regionTo) && a_source.isRegular(regionFrom))
       {
-//begin debug
-//        whichbranch = 0;
-//end debug    
-//        return *this;
       }
       else if (isCovered(regionTo) && a_source.isCovered(regionFrom))
       {
-//begin debug
-//        whichbranch = 1;
-//end debug    
-//        return *this;
       }
       else if (a_source.isCovered(regionFrom) && regionTo.contains(m_region))
       {
         setToAllCovered();
-//begin debug
-//        whichbranch = 2;
-//end debug    
-//        return *this;
       }
       else if (a_source.isRegular(regionFrom) && regionTo.contains(m_region))
       {
-//begin debug
-//        whichbranch = 3;
-//end debug    
         setToAllRegular();
-//        return *this;
+
       }
       else if (isAllRegular() && a_source.isAllCovered())
       {
         //define the basefab as all regular and set the region to
         //covered in the intersection
-//begin debug
-//        whichbranch = 3;
-//end debug    
         m_tag = HasIrregular;
         m_multiIVS = IntVectSet();
         m_irregIVS = IntVectSet();
@@ -1207,9 +1170,6 @@ namespace amrex
       {
         //define the basefab as all covered and set the region to
         //regular in the intersection
-//begin debug
-//        whichbranch = 4;
-//end debug    
         m_tag = HasIrregular;
         m_multiIVS = IntVectSet();
         m_irregIVS = IntVectSet();
@@ -1225,9 +1185,6 @@ namespace amrex
       }
       else
       {
-//begin debug
-//        whichbranch = 5;
-//end debug    
         //one or both has irregular cells.
         //because i am sick of combinatorics,
         //use basefab copy to transfer the data.
@@ -1240,16 +1197,10 @@ namespace amrex
         {
           srcFabPtr = (BaseFab<GraphNode>*)&a_source.m_graph;
           needToDelete = false;
-//begin debug
-//          needtodel = 0;
-//end debug
         }
         else
         {
           needToDelete = true;
-//begin debug
-//          needtodel = 1;
-//end debug
           srcFabPtr = new BaseFab<GraphNode>(regionFrom, 1);
           GraphNode srcVal;
           if (a_source.isAllRegular())
@@ -1317,24 +1268,6 @@ namespace amrex
         }
       }
     }
-//begin debug
-//    if(debugc)
-//    {
-//      ireg = 0;
-//      icov = 0;
-//      if(isRegular(ebg_debiv))
-//      {
-//        ireg = 1;
-//      }
-//      if(isCovered(ebg_debiv))
-//      {
-//        icov = 1;
-//      }
-//      amrex::AllPrint() << "ebgraph copy outgoing ireg = " << ireg << ", icov = "<< icov << endl;
-//      amrex::AllPrint() << "ebgraph copy: which branch = " << whichbranch << endl;
-//      amrex::AllPrint() << "ebgraph copy: needtodel = " <<  needtodel << endl;
-//    }
-//end debug
     return *this;
   }
         

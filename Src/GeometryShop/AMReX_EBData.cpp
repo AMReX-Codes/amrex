@@ -299,51 +299,13 @@ namespace amrex
     BL_PROFILE_VAR("EBData_copy_facedata", copy_facedata);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
-////begin debug
-//      if((a_src.m_faceData[idir].hasFace(ebd_debface)) && (m_faceData[idir].hasFace(ebd_debface)))
-//      {
-//        Real areaFracSrc = a_src.m_faceData[idir](ebd_debface, 0);
-//        Real areaFracDst = a_src.m_faceData[idir](ebd_debface, 0);
-//        int idebug = 0;
-//        if(areaFracSrc != areaFracSrc)
-//        {
-//          idebug = 1;
-//        }
-//        if(areaFracDst != areaFracDst)
-//        {
-//          idebug = 1;
-//        }
-//        amrex::Print() << "a_srcbox = "  << a_srcbox << "face = " << ebd_debface << endl;
-//        amrex::Print() << "dst region = "  << m_region << "src region = " << a_src.m_region << endl;
-//        amrex::Print() << "before copy src m_faceData[" << idir << "](face,0)= " << a_src.m_faceData[idir](ebd_debface, 0) << endl;
-//        amrex::Print() << "before copy dst m_faceData[" << idir << "](face,0)= " << m_faceData[idir](ebd_debface, 0) << endl;
-//      }
-////end debug
       Box grownBox = a_srcbox;
       grownBox.grow(1);
       grownBox &= m_graph.getDomain();
       m_faceData[idir].copy(a_src.m_faceData[idir], grownBox, 0, grownBox, 0,  F_FACENUMBER);
 
-////begin debug
-//      if((a_src.m_faceData[idir].hasFace(ebd_debface)) && (m_faceData[idir].hasFace(ebd_debface)))
-//      {
-//        amrex::Print() << "after copy dst m_faceData[" << idir << "](face,0)= " << m_faceData[idir](ebd_debface, 0) << endl;
-//      }
-//end debug
     }
     BL_PROFILE_VAR_STOP(copy_facedata);
-
-////begin debug
-    //if(m_volData.getIVS().contains(ebd_debiv))
-    //{
-    //  pout() << "ebdata copy dst = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_dstbox <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
-    //}
-
-    //if(m_faceData[1].hasFace(ebd_debface))
-    //{
-    //  pout() << "ebdata copy dst = " << m_graph.getDomain() << ",region "  << m_region << "\t, dstbox = " << a_dstbox <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
-    //}
-//end debug
 
     return *this;
   }
@@ -419,17 +381,6 @@ namespace amrex
                 const Real&     areaFracNode     = areaFracs[iface];
                 const RealVect& faceCentroidNode = faceCentroids[iface];
                 const FaceIndex& face = faces[iface];
-//begin debug
-                IntVect loiv(D_DECL(129,129,97));
-                IntVect hiiv(D_DECL(130,129,97));
-                FaceIndex ebd_debface(VolIndex(loiv, 0), VolIndex(hiiv, 0));
-                int idebug = 0;
-                if(face == ebd_debface)
-                {
-                  idebug = 1;
-                }
-
-//end debug
 
                 m_faceData[faceDir](face,F_AREAFRAC)  = areaFracNode;
                 for(int idir = 0; idir < SpaceDim; idir++)

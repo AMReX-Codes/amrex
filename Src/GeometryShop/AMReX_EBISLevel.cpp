@@ -266,7 +266,7 @@ namespace amrex
     }
 
 //begin debug
-    EBISLevel_checkData(m_grids, dm, m_data, string("after initial build"));
+//    EBISLevel_checkData(m_grids, dm, m_data, string("after initial build"));
 // end debug
 
   }
@@ -370,10 +370,12 @@ namespace amrex
     //pout() << "making ebdataReCo" << endl;
     ebdataReCo.define(gridsReCo, dmfc, 1, 0, MFInfo(), ebdfReCo);
 
-    EBISLevel_checkData(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_data, string(" source data for copy"));
+    //EBISLevel_checkData(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_data, string(" source data for copy"));
     //pout() << "doing ebdatareco copy" << endl;
+
     ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, 0, 0);    
-    EBISLevel_checkData(gridsReCo, dmfc, ebdataReCo, string(" ebdataReCo after copy "));
+
+    //EBISLevel_checkData(gridsReCo, dmfc, ebdataReCo, string(" ebdataReCo after copy "));
 
     //pout() << "coarsening data" << endl;
     int ibox = 0;
