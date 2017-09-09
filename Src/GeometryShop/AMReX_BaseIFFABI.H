@@ -124,12 +124,33 @@ namespace amrex
 
 
     assert(a_fromBox == a_toBox);
-    const Box& intBox = amrex::grow(a_toBox, m_direction, 1);
-    const IntVectSet& ivsintersect = amrex::intersect(m_ivs, a_src.m_ivs, intBox);
+    Box intBox = amrex::grow(a_toBox, m_direction, 1);
+    IntVectSet ivsintersect = m_ivs;
+    ivsintersect &= a_src.m_ivs;
+    ivsintersect &= intBox;
 
     for (int iface = 0; iface < m_faces.size(); iface++)
     {
       const FaceIndex& face = m_faces[iface];
+//begin debug
+    IntVect loiv(D_DECL(127, 131, 104));
+    IntVect hiiv(D_DECL(128, 131, 104));
+    FaceIndex debface(VolIndex(loiv, 0), VolIndex(hiiv, 0));
+
+    if(face==debface)
+    {
+      int cond1 = 0;
+      int cond2 = 0;
+      if(intBox.contains(loiv) || intBox.contains(hiiv))
+      {
+        cond1 = 1;
+      }      
+      if(ivsintersect.contains(loiv) || ivsintersect.contains(hiiv))
+      {
+        cond2 = 1;
+      }
+    }
+//end debug
       const IntVect& ivHi = face.gridIndex(Side::Hi);
       const IntVect& ivLo = face.gridIndex(Side::Lo);
       if ((intBox.contains(ivHi) || intBox.contains(ivLo)) &&

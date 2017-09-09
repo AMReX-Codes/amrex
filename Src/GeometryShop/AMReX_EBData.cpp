@@ -26,14 +26,98 @@ namespace amrex
 
   static const IntVect   ebd_debiv(D_DECL(15, 6, 0));
   static const VolIndex  ebd_debvof(ebd_debiv, 0);
-  static const IntVect   ebd_debivlo(D_DECL(29,12, 0));
-  static const IntVect   ebd_debivhi(D_DECL(29,13, 0));
+  static const IntVect   ebd_debivlo(D_DECL(127, 131, 104));
+  static const IntVect   ebd_debivhi(D_DECL(128, 131, 104));
   static const VolIndex  ebd_debvoflo(ebd_debivlo, 0);
   static const VolIndex  ebd_debvofhi(ebd_debivhi, 0);
   static const FaceIndex ebd_debface(ebd_debvoflo, ebd_debvofhi);
 
+  /******/
   extern void null_deleter_ebdi(EBDataImplem* a_input)
   {
+  }
+  /******/
+  void
+  EBDataImplem::
+  setCoveredAndRegular()
+  {
+    //regular cell is always unity
+    const vector<VolIndex>& vofs = m_volData.getVoFs();
+    for(int ivof= 0; ivof < vofs.size(); ivof++)
+    {
+      const IntVect& iv = vofs[ivof].gridIndex();
+      bool regular = m_graph.isRegular(iv);
+      bool covered = m_graph.isCovered(iv);
+      if(regular || covered)
+      {
+        if(regular)
+        {
+          m_volData(vofs[ivof], V_VOLFRAC) = 1;
+        }
+        else if(covered)
+        {
+          m_volData(vofs[ivof], V_VOLFRAC) = 0;
+        }
+        m_volData(vofs[ivof], V_BNDAREA) = 0;
+        for (int idir = 0; idir < SpaceDim; idir++)
+        {
+          m_volData(vofs[ivof], V_VOLCENTROIDX + idir) = 0.;
+          m_volData(vofs[ivof], V_BNDCENTROIDX + idir) = 0.;
+          m_volData(vofs[ivof], V_NORMALX      + idir) = 0.;
+        }
+        //no real boundary here but putting something valid for the normal
+        m_volData(vofs[ivof], V_NORMALX) = 1.;
+      }
+    }
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      BaseIFFAB<Real>& faceData = m_faceData[idir];
+      const vector<FaceIndex>& faces = faceData.getFaces();
+      for(int iface = 0; iface < faces.size(); iface++)
+      {
+        const FaceIndex& face = faces[iface];
+        const IntVect  & ivlo = face.gridIndex(Side::Lo);
+        const IntVect  & ivhi = face.gridIndex(Side::Hi);
+        bool regular, covered;
+        if(!face.isBoundary())
+        {
+          regular = (m_graph.isRegular(ivlo) ||  m_graph.isRegular(ivhi));
+          covered = (m_graph.isCovered(ivlo) ||  m_graph.isCovered(ivhi));
+        }
+        else
+        {
+          int cellLo = face.cellIndex(Side::Lo);
+//          int cellHi = face.cellIndex(Side::Hi);
+          IntVect ivCheck;
+          if(cellLo >=0)
+          {
+            ivCheck = ivlo;
+          }
+          else
+          {
+            
+            ivCheck = ivhi;
+          }
+          regular = m_graph.isRegular(ivCheck);
+          covered = m_graph.isCovered(ivCheck);
+        }
+        if(regular || covered)
+        {
+          if(regular)
+          {
+            faceData(face, F_AREAFRAC) = 1.;
+          }
+          else if(covered)
+          {
+            faceData(face, F_AREAFRAC) = 0.;
+          }
+          for (int idir = 0; idir < SpaceDim; idir++)
+          {
+            faceData(face, F_FACECENTROIDX + idir) = 0.;
+          }
+        }
+      }
+    }
   }
  /************************/
   void 
@@ -209,13 +293,47 @@ namespace amrex
     m_volData.copy(a_src.m_volData, a_srcbox, 0, a_dstbox, 0,  V_VOLNUMBER);
     BL_PROFILE_VAR_STOP(copy_voldata);
 
+
+
+
     BL_PROFILE_VAR("EBData_copy_facedata", copy_facedata);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
-      m_faceData[idir].copy(a_src.m_faceData[idir], a_srcbox, 0, a_dstbox, 0,  F_FACENUMBER);
+////begin debug
+//      if((a_src.m_faceData[idir].hasFace(ebd_debface)) && (m_faceData[idir].hasFace(ebd_debface)))
+//      {
+//        Real areaFracSrc = a_src.m_faceData[idir](ebd_debface, 0);
+//        Real areaFracDst = a_src.m_faceData[idir](ebd_debface, 0);
+//        int idebug = 0;
+//        if(areaFracSrc != areaFracSrc)
+//        {
+//          idebug = 1;
+//        }
+//        if(areaFracDst != areaFracDst)
+//        {
+//          idebug = 1;
+//        }
+//        amrex::Print() << "a_srcbox = "  << a_srcbox << "face = " << ebd_debface << endl;
+//        amrex::Print() << "dst region = "  << m_region << "src region = " << a_src.m_region << endl;
+//        amrex::Print() << "before copy src m_faceData[" << idir << "](face,0)= " << a_src.m_faceData[idir](ebd_debface, 0) << endl;
+//        amrex::Print() << "before copy dst m_faceData[" << idir << "](face,0)= " << m_faceData[idir](ebd_debface, 0) << endl;
+//      }
+////end debug
+      Box grownBox = a_srcbox;
+      grownBox.grow(1);
+      grownBox &= m_graph.getDomain();
+      m_faceData[idir].copy(a_src.m_faceData[idir], grownBox, 0, grownBox, 0,  F_FACENUMBER);
+
+////begin debug
+//      if((a_src.m_faceData[idir].hasFace(ebd_debface)) && (m_faceData[idir].hasFace(ebd_debface)))
+//      {
+//        amrex::Print() << "after copy dst m_faceData[" << idir << "](face,0)= " << m_faceData[idir](ebd_debface, 0) << endl;
+//      }
+//end debug
     }
     BL_PROFILE_VAR_STOP(copy_facedata);
 
+////begin debug
     //if(m_volData.getIVS().contains(ebd_debiv))
     //{
     //  pout() << "ebdata copy dst = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_dstbox <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
@@ -225,6 +343,7 @@ namespace amrex
     //{
     //  pout() << "ebdata copy dst = " << m_graph.getDomain() << ",region "  << m_region << "\t, dstbox = " << a_dstbox <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
     //}
+//end debug
 
     return *this;
   }
@@ -254,6 +373,7 @@ namespace amrex
 #if !defined(NDEBUG) || defined(BL_TESTING)
     init_snan();
 #endif
+    setCoveredAndRegular();
 
   }
 /************************/
@@ -299,6 +419,17 @@ namespace amrex
                 const Real&     areaFracNode     = areaFracs[iface];
                 const RealVect& faceCentroidNode = faceCentroids[iface];
                 const FaceIndex& face = faces[iface];
+//begin debug
+                IntVect loiv(D_DECL(129,129,97));
+                IntVect hiiv(D_DECL(130,129,97));
+                FaceIndex ebd_debface(VolIndex(loiv, 0), VolIndex(hiiv, 0));
+                int idebug = 0;
+                if(face == ebd_debface)
+                {
+                  idebug = 1;
+                }
+
+//end debug
 
                 m_faceData[faceDir](face,F_AREAFRAC)  = areaFracNode;
                 for(int idir = 0; idir < SpaceDim; idir++)
