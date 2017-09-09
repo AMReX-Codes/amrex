@@ -87,7 +87,7 @@ namespace amrex
     m_maxCoarseningRatio = 2;
     m_maxRefinementRatio = 1;//ug--face refinement means you have to have to do this once.
     int dstGhostData = a_nghost;
-    int dstGhostGraph = a_nghost+1; //because of irregular faces at box boundaries
+    int dstGhostGraph = a_nghost+2; //because of irregular faces at box boundaries
     int srcGhost = 0;
 //begin debug
 //    BoxArray inpgrids = a_graph.boxArray();
