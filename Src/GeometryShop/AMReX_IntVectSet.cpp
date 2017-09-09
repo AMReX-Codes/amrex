@@ -384,7 +384,7 @@ namespace amrex
   ///
   void 
   IntVectSet::
-  getVectorIV(std::vector<IntVect>& a_vect) const
+  getVectorIV(Array<IntVect>& a_vect) const
   {
     a_vect.resize(m_stdSet.size());
     std::copy(std::begin(*this), std::end(*this), std::begin(a_vect));
@@ -408,7 +408,7 @@ namespace amrex
   ///
   void 
   IntVectSet::
-  define(const std::vector<IntVect>& a_vect)
+  define(const Array<IntVect>& a_vect)
   {
     makeEmpty();
     for(int ivec = 0; ivec  < a_vect.size(); ivec++)
