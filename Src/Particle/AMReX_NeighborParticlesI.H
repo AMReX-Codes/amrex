@@ -422,6 +422,14 @@ buildNeighborList(int lev, bool sort) {
     neighbor_list.clear();
     
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        neighbor_list[index] = Array<int>();
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
         Array<int>& nl = neighbor_list[index];

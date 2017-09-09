@@ -16,7 +16,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <vector>
 #include "AMReX_EBISBox.H"
 #include "AMReX_BaseIVFAB.H"
 #include "AMReX_IntVectSet.H"
@@ -154,8 +153,8 @@ namespace amrex
     ///
     const Box& box() const ;
 
-    /// has to be by value because sometimes the vector does not exist.
-    std::vector<VolIndex> getMultiCells() const ;
+    /// has to be by value because sometimes the Array does not exist.
+    Array<VolIndex> getMultiCells() const ;
 
     ///
     const BaseIVFAB<T>& getMultiValuedFAB() const;

@@ -28,7 +28,7 @@ namespace amrex
                   const VolIndex  & a_vof, 
                   const MFIter    & a_dit)
   {
-    std::vector<VolIndex> neighbors;
+    Array<VolIndex> neighbors;
     EBArith::getAllVoFsWithinRadius(neighbors, a_vof, m_eblg.getEBISL()[a_dit], m_radius);
     Real sumkap = 0;
     a_stencil.clear();
@@ -70,11 +70,11 @@ namespace amrex
  
       IntVectSet ivs = ebis.getIrregIVS(grid);
       VoFIterator vofit(ivs, ebis.getEBGraph());
-      const std::vector<VolIndex>& vofvec = vofit.getVector();
+      const Array<VolIndex>& vofvec = vofit.getVector();
       // cast from VolIndex to BaseIndex
-      std::vector<std::shared_ptr<BaseIndex> >    dstVoF(vofvec.size());
-      std::vector<std::shared_ptr<BaseStencil> > stencil(vofvec.size());
-      std::vector<VoFStencil> allsten(vofvec.size());
+      Array<std::shared_ptr<BaseIndex> >    dstVoF(vofvec.size());
+      Array<std::shared_ptr<BaseStencil> > stencil(vofvec.size());
+      Array<VoFStencil> allsten(vofvec.size());
       // fill stencils for the vofs
       for(int ivec = 0; ivec < vofvec.size(); ivec++)
       {

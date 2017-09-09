@@ -104,7 +104,7 @@ namespace amrex
         }
       }
                
-      const std::vector<FaceIndex>& faces = m_irrFAB.getFaces();
+      const Array<FaceIndex>& faces = m_irrFAB.getFaces();
       for (int iface = 0; iface < faces.size(); iface++)
       {
         const FaceIndex& face = faces[iface];
@@ -169,7 +169,7 @@ namespace amrex
         }
       }
                
-      const std::vector<FaceIndex>& faces = m_irrFAB.getFaces();
+      const Array<FaceIndex>& faces = m_irrFAB.getFaces();
       for (int iface = 0; iface < faces.size(); iface++)
       {
         const FaceIndex& face = faces[iface];
@@ -231,7 +231,7 @@ namespace amrex
         }
       }
                
-      const std::vector<FaceIndex>& faces = m_irrFAB.getFaces();
+      const Array<FaceIndex>& faces = m_irrFAB.getFaces();
       for (int iface = 0; iface < faces.size(); iface++)
       {
         const FaceIndex& face = faces[iface];
@@ -290,7 +290,7 @@ namespace amrex
         }
       }
 
-      const std::vector<FaceIndex>& faces = m_irrFAB.getFaces();
+      const Array<FaceIndex>& faces = m_irrFAB.getFaces();
       for (int iface = 0; iface < faces.size(); iface++)
       {
         const FaceIndex& face = faces[iface];
@@ -319,7 +319,7 @@ namespace amrex
       }
     }
                
-    const std::vector<FaceIndex>& faces = m_irrFAB.getFaces();
+    const Array<FaceIndex>& faces = m_irrFAB.getFaces();
     for (int iface = 0; iface < faces.size(); iface++)
     {
       const FaceIndex& face = faces[iface];
@@ -345,7 +345,7 @@ namespace amrex
       }
     }
                
-    const std::vector<FaceIndex>& faces = m_irrFAB.getFaces();
+    const Array<FaceIndex>& faces = m_irrFAB.getFaces();
     for (int iface = 0; iface < faces.size(); iface++)
     {
       const FaceIndex& face = faces[iface];
@@ -369,7 +369,7 @@ namespace amrex
     }
                
     // Find the max on irregular faces.
-    const std::vector<FaceIndex>& faces = m_irrFAB.getFaces();
+    const Array<FaceIndex>& faces = m_irrFAB.getFaces();
     for (int iface = 0; iface < faces.size(); iface++)
     {
       const FaceIndex& face = faces[iface];
@@ -393,7 +393,7 @@ namespace amrex
     }
                
     // Find the max on irregular faces.
-    const std::vector<FaceIndex>& faces = m_irrFAB.getFaces();
+    const Array<FaceIndex>& faces = m_irrFAB.getFaces();
     for (int iface = 0; iface < faces.size(); iface++)
     {
       const FaceIndex& face = faces[iface];

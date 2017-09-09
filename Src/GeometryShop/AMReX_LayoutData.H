@@ -79,7 +79,7 @@ namespace amrex
       }
 
   private:
-    std::vector<T> m_data;
+    Array<T> m_data;
         
   };
 }

@@ -15,7 +15,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <vector>
 #include <AMReX_Box.H>
 #include <AMReX_IntVectSet.H>
 #include <AMReX_BoxArray.H>
@@ -41,7 +40,7 @@ namespace amrex
     // number of ghost cells (in each direction) for the EBISBoxes
     int           ghostEBISBox;
 
-    std::vector<int>   refRatio;
+    Array<int>   refRatio;
     Box           coarsestDomain;
     Real          coarsestDx;
     Real          domainLength;
@@ -68,9 +67,9 @@ namespace amrex
      This is useful for  writing tests, however.  
   */
   extern void
-  MeshRefine(std::vector<BoxArray>           &   a_grids,
-             const std::vector<IntVectSet>   &   a_tags,
-             const std::vector<int>          &   a_refRat,
+  MeshRefine(Array<BoxArray>           &   a_grids,
+             const Array<IntVectSet>   &   a_tags,
+             const Array<int>          &   a_refRat,
              const int                       &   a_maxLev,
              const int                       &   a_blockingFactor,
              const int                       &   a_properNestingRadius,
@@ -80,7 +79,7 @@ namespace amrex
 
 
   ///for tests---get grids where the irregular cells are all refined
-  extern void getAllIrregEBLG(std::vector<EBLevelGrid>   & a_eblg,
+  extern void getAllIrregEBLG(Array<EBLevelGrid>   & a_eblg,
                               const GridParameters  & a_params);
 
   extern void

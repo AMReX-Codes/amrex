@@ -15,7 +15,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <vector>
 #include "AMReX_IntVectSet.H"
 #include "AMReX_VolIndex.H"
 #include "AMReX_BaseIndex.H"
