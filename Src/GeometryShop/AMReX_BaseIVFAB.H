@@ -61,7 +61,7 @@ namespace amrex
       }
 
     ///
-    virtual ~BaseIVFAB();
+    ~BaseIVFAB();
 
     ///
     /**
@@ -71,7 +71,7 @@ namespace amrex
        are uninitialized.  If it has previously been defined, the old definition
        data is overwritten and lost.
     */
-    virtual void define(const IntVectSet& a_region,
+    void define(const IntVectSet& a_region,
                         const EBGraph&    a_ebgraph,
                         const int&        a_nvarin);
 
