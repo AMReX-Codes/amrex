@@ -10,6 +10,7 @@
  */
 
 
+#include "AMReX_IntVect.H"
 #include "AMReX_GeometryService.H"
 
 namespace amrex
