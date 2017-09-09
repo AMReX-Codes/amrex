@@ -166,6 +166,7 @@ namespace amrex
       const EBISBox& ebisCoFi = m_eblgCoFi.getEBISL()[mfi];
       const EBISBox& ebisFine = m_eblgFine.getEBISL()[mfi];
 
+      IntVectSet ivsFine = ebisFine.getIrregIVS(gridFine);
       IntVectSet ivs = ebisCoFi.getIrregIVS(gridCoFi);
       VoFIterator vofit(ivs, ebisCoFi.getEBGraph());
       const Array<VolIndex>& vofvec = vofit.getVector();
@@ -177,7 +178,7 @@ namespace amrex
       // fill stencils for the vofs
       for(int ivec = 0; ivec < vofvec.size(); ivec++)
       {
-        definePointStencilIrreg(allsten[ivec], vofvec[ivec], mfi, ivsFine);
+          definePointStencilIrreg(allsten[ivec], vofvec[ivec], mfi, ivsFine);
 
         // another cast from VolIndex to BaseIndex
         dstVoF[ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&vofvec[ivec]), &null_deleter_ebc_ind);
