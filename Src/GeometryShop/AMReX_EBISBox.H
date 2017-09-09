@@ -87,7 +87,7 @@ namespace amrex
     /**
        Return the VoFs in the cell.
     */
-    std::vector<VolIndex> getVoFs(const IntVect& a_iv) const;
+    Array<VolIndex> getVoFs(const IntVect& a_iv) const;
 
     ///
     /**
@@ -101,7 +101,7 @@ namespace amrex
        you probably need to define your EBISLayout with
        more ghost cells.
     */
-    std::vector<VolIndex> getVoFs(const VolIndex& a_vof,
+    Array<VolIndex> getVoFs(const VolIndex& a_vof,
                              const int& a_dir,
                              const Side::LoHiSide& a_sd,
                              const int& a_steps) const;
@@ -161,12 +161,12 @@ namespace amrex
        Return the faces on the side and direction
        of the input VoF.
     */
-    std::vector<FaceIndex> getFaces(const VolIndex& a_vof,
+    Array<FaceIndex> getFaces(const VolIndex& a_vof,
                                const int& a_idir,
                                const Side::LoHiSide& a_sd) const;
 
     ///
-    std::vector<FaceIndex> getAllFaces(const IntVect& a_iv,
+    Array<FaceIndex> getAllFaces(const IntVect& a_iv,
                                   const int& a_idir,
                                   const Side::LoHiSide& a_sd) const;
     ///
@@ -243,7 +243,7 @@ namespace amrex
        EBISBox (factor of two refinement).  The result is only
        defined if this {\tt EBISBox} was defined by coarsening.
     */
-    std::vector<VolIndex> refine(const VolIndex& a_coarVoF) const;
+    Array<VolIndex> refine(const VolIndex& a_coarVoF) const;
 
     ///
     /**
@@ -286,7 +286,7 @@ namespace amrex
        EBISBox (factor of two refinement).  The result is only
        defined if this  EBISBox was defined by coarsening.
     */
-    std::vector<FaceIndex> refine(const FaceIndex& a_coarFace,const EBISBox& a_fineEBISBox) const;
+    Array<FaceIndex> refine(const FaceIndex& a_coarFace,const EBISBox& a_fineEBISBox) const;
 
     ///
     /**
@@ -312,7 +312,7 @@ namespace amrex
     /// define from scratch using irregular graph
     void
     define(const BaseFab<int>&      a_regIrregCovered,
-           const std::vector<IrregNode>& a_irregGraph,
+           const Array<IrregNode>& a_irregGraph,
            const Box&               a_validRegion,
            const Box&               a_domain);
 
@@ -410,14 +410,14 @@ namespace amrex
     return m_graph.isRegular(a_box);
   }
 
-  inline std::vector<VolIndex>
+  inline Array<VolIndex>
   EBISBox::getVoFs(const IntVect& a_iv) const
   {
     return m_graph.getVoFs(a_iv);
   }
 
 /*******************************/
-  inline std::vector<FaceIndex>
+  inline Array<FaceIndex>
   EBISBox::getAllFaces(const IntVect& a_iv,
                        const int& a_idir,
                        const Side::LoHiSide& a_sd) const
@@ -425,7 +425,7 @@ namespace amrex
     return m_graph.getAllFaces(a_iv, a_idir, a_sd);
   }
 /*******************************/
-  inline std::vector<FaceIndex>
+  inline Array<FaceIndex>
   EBISBox::getFaces(const VolIndex& a_vof,
                     const int& a_idir,
                     const Side::LoHiSide& a_sd) const

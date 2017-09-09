@@ -233,6 +233,7 @@ namespace amrex
       else
       {
         BaseFab<int>             regIrregCovered;
+
         std::vector<IrregNode>&   nodes = allNodes[mfi];
 
         a_geoserver.fillGraph(regIrregCovered, nodes, valid,

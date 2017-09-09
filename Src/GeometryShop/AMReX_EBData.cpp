@@ -199,7 +199,7 @@ namespace amrex
           {
             IntVect ivhi = faceit().gridIndex(Side::Hi);
             IntVect ivlo = faceit().gridIndex(Side::Lo);
-            std::vector<FaceIndex> allFaces = m_graph.getAllFaces(ivhi, idir, Side::Lo);
+            Array<FaceIndex> allFaces = m_graph.getAllFaces(ivhi, idir, Side::Lo);
             if (allFaces.size() > 1)
             {
               //now we have the wacky case where two full, single-valued faces were coarsened
@@ -342,7 +342,7 @@ namespace amrex
   void
   EBDataImplem::
   define(const EBGraph&           a_graph,
-         const std::vector<IrregNode>& a_irregGraph,
+         const Array<IrregNode>& a_irregGraph,
          const Box&               a_validBox,
          const Box&               a_region)
 
@@ -372,10 +372,10 @@ namespace amrex
           {
             for (SideIterator sit; sit.ok(); ++sit)
             {
-              std::vector<FaceIndex> faces = a_graph.getFaces(vof, faceDir, sit());
+              Array<FaceIndex> faces = a_graph.getFaces(vof, faceDir, sit());
               int nodeind = node.index(faceDir, sit());
-              std::vector<Real> areaFracs         = node.m_areaFrac[nodeind];
-              std::vector<RealVect> faceCentroids = node.m_faceCentroid[nodeind];
+              Array<Real> areaFracs         = node.m_areaFrac[nodeind];
+              Array<RealVect> faceCentroids = node.m_faceCentroid[nodeind];
               for (int iface = 0; iface < faces.size(); iface++)
               {
                 const Real&     areaFracNode     = areaFracs[iface];
@@ -515,8 +515,8 @@ namespace amrex
   EBDataImplem::
   coarsenBoundaryAreaAndNormal(Real&                    a_bndryAreaCoar,
                                RealVect&                a_normalCoar,
-                               const std::vector<Real>&      a_bndryAreaFine,
-                               const std::vector<RealVect>&  a_normalFine)
+                               const Array<Real>&      a_bndryAreaFine,
+                               const Array<RealVect>&  a_normalFine)
   {
     BL_PROFILE("EBDataImplem::coarsenBoundaryAreaAndNormal");
 
@@ -576,14 +576,14 @@ namespace amrex
       {
         BL_PROFILE("EBDataImplem::coarsenVoFs_VoFIterator");
         const VolIndex& vofCoar = vofit();
-        std::vector<VolIndex> vofsFine = a_coarGraph.refine(vofCoar);
+        Array<VolIndex> vofsFine = a_coarGraph.refine(vofCoar);
         int nFine = vofsFine.size();
-        std::vector<Real> bndryAreaFine(nFine);
-        std::vector<Real> volFracFine(nFine);
-        std::vector<int>  phase(nFine);
-        std::vector<RealVect> bndryCentroidFine(nFine);
-        std::vector<RealVect> volCentroidFine(nFine);
-        std::vector<RealVect> normalFine(nFine);
+        Array<Real> bndryAreaFine(nFine);
+        Array<Real> volFracFine(nFine);
+        Array<int>  phase(nFine);
+        Array<RealVect> bndryCentroidFine(nFine);
+        Array<RealVect> volCentroidFine(nFine);
+        Array<RealVect> normalFine(nFine);
 
         for (int ifine = 0; ifine < nFine; ifine++)
         {
@@ -671,10 +671,10 @@ namespace amrex
           BL_PROFILE("EBDataImplem::coarsenFaces_FaceIterator");
 
           const FaceIndex&  faceCoar  = faceit();
-          std::vector<FaceIndex> facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
+          Array<FaceIndex> facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
 
-          std::vector<Real>     areaFracsFine(facesFine.size());
-          std::vector<RealVect> centroidsFine(facesFine.size());
+          Array<Real>     areaFracsFine(facesFine.size());
+          Array<RealVect> centroidsFine(facesFine.size());
           for (int ifine = 0; ifine < facesFine.size(); ifine++)
           {
             BL_PROFILE("EBDataImplem::coarsenFaces_fine");
@@ -714,9 +714,9 @@ namespace amrex
 /*******************************/
   void EBDataImplem::
   coarsenFaceCentroid(RealVect&                a_centroidCoar,
-                      const std::vector<RealVect>&  a_centroidsFine,
-                      const std::vector<Real>&      a_areaFracFine,
-                      const std::vector<FaceIndex>& a_facesFine,
+                      const Array<RealVect>&  a_centroidsFine,
+                      const Array<Real>&      a_areaFracFine,
+                      const Array<FaceIndex>& a_facesFine,
                       const FaceIndex&         a_faceCoar)
   {
     BL_PROFILE("EBDataImplem::coarsenFaceCentroid");
@@ -752,7 +752,7 @@ namespace amrex
 /*******************************/
   void EBDataImplem::
   coarsenAreaFrac(Real& a_areaFracCoar,
-                  const std::vector<Real>& a_areaFracFine)
+                  const Array<Real>& a_areaFracFine)
   {
     BL_PROFILE("EBDataImplem::coarsenAreaFrac");
     //this is the factor by which the area of a fine
@@ -774,9 +774,9 @@ namespace amrex
   EBDataImplem::
   coarsenVolFracAndCentroid(Real&                   a_volFracCoar,
                             RealVect&               a_volCentroidCoar,
-                            const std::vector<Real>&     a_volFracFine,
-                            const std::vector<RealVect>& a_volCentroidFine,
-                            const std::vector<VolIndex>& a_fineVoFs,
+                            const Array<Real>&     a_volFracFine,
+                            const Array<RealVect>& a_volCentroidFine,
+                            const Array<VolIndex>& a_fineVoFs,
                             const VolIndex&         a_coarVoF)
   {
     BL_PROFILE("EBDataImplem::coarsenVolFracAndCentroid");
@@ -841,9 +841,9 @@ namespace amrex
   void
   EBDataImplem::
   coarsenBndryCentroid(RealVect&               a_bndryCentroidCoar,
-                       const std::vector<RealVect>& a_bndryCentroidFine,
-                       const std::vector<Real>&     a_bndryAreaFine,
-                       const std::vector<VolIndex>& a_fineVoFs,
+                       const Array<RealVect>& a_bndryCentroidFine,
+                       const Array<Real>&     a_bndryAreaFine,
+                       const Array<VolIndex>& a_fineVoFs,
                        const VolIndex&         a_coarVoF)
   {
     BL_PROFILE("EBDataImplem::coarsenBndryCentroid");
