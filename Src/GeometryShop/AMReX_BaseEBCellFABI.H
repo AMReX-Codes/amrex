@@ -43,7 +43,7 @@ namespace amrex
           m_regFAB(iv, a_comp) = a_val;
         }
       }
-      const std::vector<VolIndex>& vofs = m_irrFAB.getVoFs(); 
+      const Array<VolIndex>& vofs = m_irrFAB.getVoFs(); 
       for (int i=0;  i< vofs.size(); i++)
       {
         const IntVect& iv = vofs[i].gridIndex();
@@ -86,10 +86,10 @@ namespace amrex
   /*************/
   /*************/
   template <class T>
-  std::vector<VolIndex>
+  Array<VolIndex>
   BaseEBCellFAB<T>::getMultiCells() const
   {
-    std::vector<VolIndex> retval;
+    Array<VolIndex> retval;
     BL_ASSERT(isDefined());
     if(m_irrFAB.hasVoFs())
     {

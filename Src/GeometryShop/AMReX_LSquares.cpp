@@ -24,8 +24,8 @@
 namespace amrex
 {
   void LSquares::LeastSquares(Real** A,
-                              std::vector<Real>&x,
-                              const std::vector<Real>&rhs)
+                              Array<Real>&x,
+                              const Array<Real>&rhs)
 
   {
     int numColsA = x.size();
@@ -42,7 +42,7 @@ namespace amrex
     matMul(Atrans,A,LS,numColsA,numRowsA,numColsA);
 
     // pattern is (A,B,A*B,numrowsA,numcolsA,numcolsB)
-    std::vector<Real> ATrhs(numColsA);
+    Array<Real> ATrhs(numColsA);
     AtimesX(Atrans,rhs,numColsA,ATrhs); // numCols = number of rows of Atranspose*A
 
     gaussElim(LS,ATrhs);
@@ -56,9 +56,9 @@ namespace amrex
   }
 
   void LSquares::AtimesX(Real** A,
-                         const std::vector<Real>& x,
+                         const Array<Real>& x,
                          const int& numRowsA,
-                         std::vector<Real>& Ax)
+                         Array<Real>& Ax)
   {
     for (int i = 0; i < numRowsA; i++)
       {
@@ -78,7 +78,7 @@ namespace amrex
 
   // this is written for square A
   int  LSquares::gaussElim(Real** A,
-                           std::vector<Real>& rhs)
+                           Array<Real>& rhs)
   {
     //   char* name = "A";
     int currRow = 0;
@@ -123,7 +123,7 @@ namespace amrex
     return 0;
   }
 
-  void LSquares::swapRows(std::vector<Real>& rhs,
+  void LSquares::swapRows(Array<Real>& rhs,
                           const int& currRow,
                           const int& pivot)
   {
@@ -174,7 +174,7 @@ namespace amrex
     return 0;
   }
 
-  void LSquares::addRows(std::vector<Real>& rhs,
+  void LSquares::addRows(Array<Real>& rhs,
                          const int& rowi,
                          const Real& alpha,
                          const int& rowj)
@@ -199,7 +199,7 @@ namespace amrex
       }
   }
 
-  void LSquares::timesBeta(std::vector<Real>&rhs,
+  void LSquares::timesBeta(Array<Real>&rhs,
                            const int& currRow,
                            const Real& Beta)
   {
@@ -266,9 +266,9 @@ namespace amrex
   }
 
   void LSquares::backSolve(Real** a_A,
-                           const std::vector <Real>& a_rhs,
+                           const Array<Real>& a_rhs,
                            const int& a_numArows,
-                           std::vector<Real>& a_x)
+                           Array<Real>& a_x)
   {
     int N = a_numArows;
     for (int n = 0; n < N; ++n)

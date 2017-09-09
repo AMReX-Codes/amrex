@@ -122,9 +122,9 @@ namespace amrex
     LayoutData< shared_ptr< AggStencil<EBCellFAB, IrregFAB> > > m_hiStencil[BL_SPACEDIM];
 
 
-    LayoutData< vector<VoFStencil> > m_loStencilSlow[BL_SPACEDIM];
-    LayoutData< vector<VoFStencil> > m_hiStencilSlow[BL_SPACEDIM];
-    LayoutData< vector<VolIndex  > > m_irregVoFsSlow;
+    LayoutData< Array<VoFStencil> > m_loStencilSlow[BL_SPACEDIM];
+    LayoutData< Array<VoFStencil> > m_hiStencilSlow[BL_SPACEDIM];
+    LayoutData< Array<VolIndex  > > m_irregVoFsSlow;
     //for now I will do the fiddly stuff that is pointwise using vofiterator
     LayoutData<VoFIterator> m_vofit;
     

@@ -14,7 +14,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <vector>
 #include "AMReX_IntVectSet.H"
 #include "AMReX_FaceIndex.H"
 #include "AMReX_BaseFab.H"
@@ -214,7 +213,7 @@ namespace amrex
 
     mutable bool    m_verbose;
 ///
-    const std::vector<FaceIndex>& getFaces() const
+    const Array<FaceIndex>& getFaces() const
       {
         return m_faces;
       }
@@ -238,16 +237,16 @@ namespace amrex
   private:
     void   setDefaultValues();
 
-    void   getFaceSubset(std::vector<FaceIndex>& a_subFaces, const Box& a_subBox) const;
+    void   getFaceSubset(Array<FaceIndex>& a_subFaces, const Box& a_subBox) const;
   protected:
 
     //because my debugging functions get confounded  by templates
-    void dumpFaces(const vector<FaceIndex>& a_faces) const;
+    void dumpFaces(const Array<FaceIndex>& a_faces) const;
     int m_nFaces;
     int m_nComp;
     int m_direction;
     IntVectSet m_ivs;
-    std::vector<FaceIndex> m_faces;
+    Array<FaceIndex> m_faces;
     T* m_data;
 
     bool    m_isDefined;

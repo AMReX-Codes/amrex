@@ -44,15 +44,17 @@ private:
 
     void walkKDTree(KDNode* node, amrex::BoxList& bl, amrex::Array<amrex::Real>& costs);
     
-    void partitionNode(KDNode* node, const amrex::FArrayBox& cost);
+    bool partitionNode(KDNode* node, const amrex::FArrayBox& cost);
 
     int getLongestDir(const amrex::Box& box);
-    
-    void splitBox(int split, int dir,
+
+    // returns whether the split was successful or not based on min_box_size
+    bool splitBox(int split, int dir,
                   const amrex::Box& box, amrex::Box& left, amrex::Box& right);
 
     KDNode* root;
     
+    static int min_box_size;
 };
 
 namespace loadBalanceKD {
