@@ -11,28 +11,28 @@
  *
  */
 
-#include <cassert>
+#include "AMReX_BLassert.H"
 #include "AMReX_LoHiSide.H"
 
 namespace amrex
 {
   Side::LoHiSide flip(const Side::LoHiSide& a_side)
   {
-    assert((a_side == Side::Lo) || (a_side == Side::Hi));
+    AMREX_ASSERT((a_side == Side::Lo) || (a_side == Side::Hi));
 
     return (a_side == Side::Lo) ? Side::Hi : Side::Lo;
   }
 
   Side::LoHiSide Side::flip(const Side::LoHiSide& a_side)
   {
-    assert((a_side == Side::Lo) || (a_side == Side::Hi));
+    AMREX_ASSERT((a_side == Side::Lo) || (a_side == Side::Hi));
 
     return (a_side == Side::Lo) ? Side::Hi : Side::Lo;
   }
 
   int sign(const Side::LoHiSide& a_side)
   {
-    assert((a_side == Side::Lo) || (a_side == Side::Hi));
+    AMREX_ASSERT((a_side == Side::Lo) || (a_side == Side::Hi));
 
     return (a_side == Side::Lo) ? -1 : 1;
   }
