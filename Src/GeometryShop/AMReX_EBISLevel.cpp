@@ -208,7 +208,7 @@ namespace amrex
     EBDataFactory ebdf(graphptr);
 
     m_data.define(m_grids  , dm, 1, ngrowData, MFInfo(), ebdf);
-    LayoutData<vector<IrregNode> > allNodes(m_grids, dm);
+    LayoutData<Array<IrregNode> > allNodes(m_grids, dm);
     
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
@@ -234,7 +234,7 @@ namespace amrex
       {
         BaseFab<int>             regIrregCovered;
 
-        std::vector<IrregNode>&   nodes = allNodes[mfi];
+        Array<IrregNode>&   nodes = allNodes[mfi];
 
         a_geoserver.fillGraph(regIrregCovered, nodes, valid,
                               ghostRegion, m_domain,
@@ -261,7 +261,7 @@ namespace amrex
       }
       else
       {
-        const std::vector<IrregNode>&   nodes = allNodes[mfi];
+        const Array<IrregNode>&   nodes = allNodes[mfi];
         ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
     }
