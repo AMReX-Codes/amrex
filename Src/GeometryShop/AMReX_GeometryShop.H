@@ -61,10 +61,10 @@ namespace amrex
                            const RealVect&      a_origin,
                            const Real&          a_dx) const override;
 
-    GeometryService::InOut InsideOutside(const Box&           a_region,
-                                         const Box&           a_domain,
-                                         const RealVect&      a_origin,
-                                         const Real&          a_dx) const;
+    virtual GeometryService::InOut InsideOutside(const Box&           a_region,
+                                                 const Box&           a_domain,
+                                                 const RealVect&      a_origin,
+                                                 const Real&          a_dx) const override;
     /**
      */
     void computeVoFInternals(Real&                a_volFrac,
