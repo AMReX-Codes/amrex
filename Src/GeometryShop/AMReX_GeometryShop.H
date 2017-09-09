@@ -22,7 +22,7 @@
 #include "AMReX_Moments.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_GeometryService.H"
-
+#include <array>
 
 namespace amrex
 {
@@ -54,7 +54,7 @@ namespace amrex
        Define the internals of the input ebisRegion.
     */
     virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                           Array<IrregNode>&   a_nodes,
+                           Array<IrregNode>&    a_nodes,
                            const Box&           a_validRegion,
                            const Box&           a_ghostRegion,
                            const Box&           a_domain,
@@ -68,16 +68,16 @@ namespace amrex
     /**
      */
     void computeVoFInternals(Real&                a_volFrac,
-                             Array<int>          a_loArc[SpaceDim],
-                             Array<int>          a_hiArc[SpaceDim],
-                             Array<Real>         a_loAreaFrac[SpaceDim],
-                             Array<Real>         a_hiAreaFrac[SpaceDim],
+                             std::array<Array<int>,SpaceDim>& a_loArc,
+                             std::array<Array<int>,SpaceDim>& a_hiArc,
+                             std::array<Array<Real>,SpaceDim>& a_loAreaFrac,
+                             std::array<Array<Real>,SpaceDim>& a_hiAreaFrac,
                              Real&                a_bndryArea,
                              RealVect&            a_normal,
                              RealVect&            a_volCentroid,
                              RealVect&            a_bndryCentroid,
-                             Array<RealVect>     a_loFaceCentroid[SpaceDim],
-                             Array<RealVect>     a_hiFaceCentroid[SpaceDim],
+                             std::array<Array<RealVect>,SpaceDim>& a_loFaceCentroid,
+                             std::array<Array<RealVect>,SpaceDim>& a_hiFaceCentroid,
                              const BaseFab<int>&  a_regIrregCovered,
                              const Box&           a_domain,
                              const RealVect&      a_origin,

@@ -263,12 +263,12 @@ namespace amrex
 
         Real     volFrac, bndryArea;
         RealVect normal, volCentroid, bndryCentroid;
-        Array<int> loArc[SpaceDim];
-        Array<int> hiArc[SpaceDim];
-        Array<Real> loAreaFrac[SpaceDim];
-        Array<Real> hiAreaFrac[SpaceDim];
-        Array<RealVect> loFaceCentroid[SpaceDim];
-        Array<RealVect> hiFaceCentroid[SpaceDim];
+        std::array<Array<int>,SpaceDim> loArc;
+        std::array<Array<int>,SpaceDim> hiArc;
+        std::array<Array<Real>,SpaceDim> loAreaFrac;
+        std::array<Array<Real>,SpaceDim> hiAreaFrac;
+        std::array<Array<RealVect>,SpaceDim> loFaceCentroid;
+        std::array<Array<RealVect>,SpaceDim> hiFaceCentroid;
         computeVoFInternals(volFrac,
                             loArc,
                             hiArc,
@@ -514,21 +514,21 @@ namespace amrex
   /*********************************************/
   void
   GeometryShop::computeVoFInternals(Real&               a_volFrac,
-                                    Array<int>         a_loArc[SpaceDim],
-                                    Array<int>         a_hiArc[SpaceDim],
-                                    Array<Real>        a_loAreaFrac[SpaceDim],
-                                    Array<Real>        a_hiAreaFrac[SpaceDim],
-                                    Real&               a_bndryArea,
-                                    RealVect&           a_normal,
-                                    RealVect&           a_volCentroid,
-                                    RealVect&           a_bndryCentroid,
-                                    Array<RealVect>    a_loFaceCentroid[SpaceDim],
-                                    Array<RealVect>    a_hiFaceCentroid[SpaceDim],
-                                    const BaseFab<int>& a_regIrregCovered,
-                                    const Box&a_domain,
-                                    const RealVect&     a_origin,
-                                    const Real&         a_dx,
-                                    const IntVect&      a_iv)const
+                                    std::array<Array<int>,SpaceDim>& a_loArc,
+                                    std::array<Array<int>,SpaceDim>& a_hiArc,
+                                    std::array<Array<Real>,SpaceDim>& a_loAreaFrac,
+                                    std::array<Array<Real>,SpaceDim>& a_hiAreaFrac,
+                                    Real&                a_bndryArea,
+                                    RealVect&            a_normal,
+                                    RealVect&            a_volCentroid,
+                                    RealVect&            a_bndryCentroid,
+                                    std::array<Array<RealVect>,SpaceDim>& a_loFaceCentroid,
+                                    std::array<Array<RealVect>,SpaceDim>& a_hiFaceCentroid,
+                                    const BaseFab<int>&  a_regIrregCovered,
+                                    const Box&           a_domain,
+                                    const RealVect&      a_origin,
+                                    const Real&          a_dx,
+                                    const IntVect&       a_iv) const
   {
 
     // need maxDx to properly scale a_bndryArea
