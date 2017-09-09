@@ -45,8 +45,7 @@ namespace amrex
                             const vector<int>                                   &  a_refRatio,
                             const shared_ptr<ConductivityBaseDomainBCFactory>   &  a_domainBCFactory,
                             const shared_ptr<ConductivityBaseEBBCFactory>       &  a_ebBcFactory,
-                            const int                                           &  a_ghostCellsPhi,
-                            const int                                           &  a_ghostCellsRhs,
+                            const int                                           &  a_ghost,
                             int a_numLevels = -1);
 
 
@@ -73,6 +72,14 @@ namespace amrex
     static int s_testRef;
     static int s_maxBoxSize;
   protected:
+    void
+    nwoebcoCoarsenStuff(FabArray<EBCellFAB>               & a_acoefCoar,
+                        FabArray<EBFluxFAB>               & a_bcoefCoar,
+                        const EBLevelGrid                  & a_eblgFine,
+                        const EBLevelGrid                  & a_eblgCoar,
+                        const FabArray<EBCellFAB>         & a_acoefFine,
+                        const FabArray<EBFluxFAB>         & a_bcoefFine,
+                        const int                          & a_refToDepth);
 
     vector<EBLevelGrid>                                  m_eblgs;
     Real                                                 m_alpha;
@@ -87,8 +94,7 @@ namespace amrex
     vector<int>                                          m_refRatio;
     shared_ptr<ConductivityBaseDomainBCFactory>          m_domainBCFactory;
     shared_ptr<ConductivityBaseEBBCFactory>              m_ebBCFactory;
-    int                                                  m_ghostCellsPhi;
-    int                                                  m_ghostCellsRhs;
+    int                                                  m_ghost;
     int                                                  m_numLevels;
     vector<Real>                                         m_dx;
 

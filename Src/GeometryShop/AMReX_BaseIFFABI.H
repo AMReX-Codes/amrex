@@ -124,12 +124,33 @@ namespace amrex
 
 
     assert(a_fromBox == a_toBox);
-    const Box& intBox = amrex::grow(a_toBox, m_direction, 1);
-    const IntVectSet& ivsintersect = amrex::intersect(m_ivs, a_src.m_ivs, intBox);
+    Box intBox = amrex::grow(a_toBox, m_direction, 1);
+    IntVectSet ivsintersect = m_ivs;
+    ivsintersect &= a_src.m_ivs;
+    ivsintersect &= intBox;
 
     for (int iface = 0; iface < m_faces.size(); iface++)
     {
       const FaceIndex& face = m_faces[iface];
+//begin debug
+    IntVect loiv(D_DECL(127, 131, 104));
+    IntVect hiiv(D_DECL(128, 131, 104));
+    FaceIndex debface(VolIndex(loiv, 0), VolIndex(hiiv, 0));
+
+    if(face==debface)
+    {
+      int cond1 = 0;
+      int cond2 = 0;
+      if(intBox.contains(loiv) || intBox.contains(hiiv))
+      {
+        cond1 = 1;
+      }      
+      if(ivsintersect.contains(loiv) || ivsintersect.contains(hiiv))
+      {
+        cond2 = 1;
+      }
+    }
+//end debug
       const IntVect& ivHi = face.gridIndex(Side::Hi);
       const IntVect& ivLo = face.gridIndex(Side::Lo);
       if ((intBox.contains(ivHi) || intBox.contains(ivLo)) &&
@@ -175,7 +196,7 @@ namespace amrex
   template <class T> inline
   void
   BaseIFFAB<T>::
-  dumpFaces(const vector<FaceIndex>& a_faces) const
+  dumpFaces(const Array<FaceIndex>& a_faces) const
   {
     for (int iface = 0; iface < a_faces.size(); ++iface)
     {
@@ -254,7 +275,7 @@ namespace amrex
   template <class T> inline
   void
   BaseIFFAB<T>::
-  getFaceSubset(std::vector<FaceIndex>& a_subFaces, const Box& a_subBox) const
+  getFaceSubset(Array<FaceIndex>& a_subFaces, const Box& a_subBox) const
   {
     a_subFaces.resize(0);
     for (int iface = 0; iface < m_faces.size(); iface++)
@@ -278,7 +299,7 @@ namespace amrex
   {
     assert(isDefined());
     //create set of cells in fab that are also in the input region
-    std::vector<FaceIndex> faces;
+    Array<FaceIndex> faces;
     getFaceSubset(faces, a_region);
     
     //account for list of faces
@@ -311,7 +332,7 @@ namespace amrex
              void*      a_buf) const
   {
     assert(isDefined());
-    std::vector<FaceIndex> faces;
+    Array<FaceIndex> faces;
     getFaceSubset(faces, a_region);
 
     //output the faces.
@@ -351,7 +372,7 @@ namespace amrex
     size_t retval  = 0;
     size_t incrval = 0; 
     unsigned char* buffer = (unsigned char *) a_buf;
-    std::vector<FaceIndex> faces;
+    Array<FaceIndex> faces;
     linearListIn(faces, buffer);
     incrval =  linearListSize(faces);
     buffer += incrval;

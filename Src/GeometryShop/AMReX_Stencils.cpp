@@ -11,10 +11,34 @@
 
 #include "AMReX_Stencils.H"
 #include "AMReX_EBCellFAB.H"
+#include "AMReX_parstream.H"
 
 namespace amrex
 {
-  /** s */
+  ///
+  void 
+  VoFStencil::
+  outputToPout() const
+  {
+    pout() << "num vof \t  weight \t variable = " << endl;
+    for(int ivof = 0; ivof < this->size(); ivof++)
+    {
+      pout() << "(" << ivof << "):" << vofs[ivof]  << "\t" << weights[ivof]<< "\t" << variables[ivof] << endl;
+    }
+  }
+
+  ///
+  void 
+  FaceStencil::
+  outputToPout() const
+  {
+    pout() << " face \t  weight = " << endl;
+    for(int ivof = 0; ivof < this->size(); ivof++)
+    {
+      pout() << faces[ivof]  << "\t" << weights[ivof]<< endl;
+    }
+  }
+
 
   /**************/
   int

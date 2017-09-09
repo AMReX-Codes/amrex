@@ -60,20 +60,20 @@ namespace amrex
       }
 
     //not safe but this is a private class hidden away.  shhh.
-    void setTags(const std::vector<IntVectSet>* a_vec_ivs_ptr)
+    void setTags(const Array<IntVectSet>* a_vec_ivs_ptr)
       {
         m_vec_ivs_ptr = a_vec_ivs_ptr; 
       }
       
   private:
     
-    const std::vector<IntVectSet>* m_vec_ivs_ptr;
+    const Array<IntVectSet>* m_vec_ivs_ptr;
 
   };
 
-  void MeshRefine(std::vector<BoxArray>           &   a_grids,
-                  const std::vector<IntVectSet>   &   a_tags,
-                  const std::vector<int>          &   a_refRat,
+  void MeshRefine(Array<BoxArray>           &   a_grids,
+                  const Array<IntVectSet>   &   a_tags,
+                  const Array<int>          &   a_refRat,
                   const int                       &   a_maxLev,
                   const int                       &   a_blockingFactor,
                   const int                       &   a_properNestingRadius,
@@ -108,7 +108,7 @@ namespace amrex
   }
   //-----------------------------------------------------------------------
   void 
-  getAllIrregEBLG(std::vector<EBLevelGrid>   & a_eblg,
+  getAllIrregEBLG(Array<EBLevelGrid>   & a_eblg,
                   const GridParameters       & a_params)
   {
     BL_PROFILE("EBLevelDataOps::getAllIrregRefinedLayouts");
@@ -116,7 +116,7 @@ namespace amrex
 
 
     //make the tags by refining everywhere and getting the irregular cells
-    std::vector<IntVectSet> tags(a_params.numLevels);
+    Array<IntVectSet> tags(a_params.numLevels);
     Box domlev = a_params.coarsestDomain;
     for(int ilev = 0; ilev < a_params.numLevels; ilev++)
     {
@@ -140,7 +140,7 @@ namespace amrex
       }
     }
 
-    std::vector<BoxArray> grids;
+    Array<BoxArray> grids;
 
     MeshRefine(grids, tags, a_params.refRatio, a_params.maxLevel, 
                a_params.blockFactor, a_params.bufferSize, a_params.maxGridSize, 
@@ -232,7 +232,7 @@ namespace amrex
 
     pp.get("which_geom"    , a_params.whichGeom            );
 
-    std::vector<int> nCellsArray(SpaceDim);
+    Array<int> nCellsArray(SpaceDim);
     pp.getarr("n_cell",nCellsArray,0,SpaceDim);
 
     for (int idir = 0; idir < SpaceDim; idir++)

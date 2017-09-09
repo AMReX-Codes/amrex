@@ -158,7 +158,7 @@ namespace amrex
   }
   /********************/
   template <class T> inline
-  const std::vector<VolIndex>&
+  const Array<VolIndex>&
   BaseIVFAB<T>::getVoFs() const
   {
     return m_vofs;
@@ -186,7 +186,7 @@ namespace amrex
     }
     else
     {
-      const vector<VolIndex>& vofs = m_vofs;
+      const Array<VolIndex>& vofs = m_vofs;
       for(int i=0; i<vofs.size(); i++)
       {
         const VolIndex& vof=vofs[i];
@@ -209,7 +209,7 @@ namespace amrex
   template<class T> inline
   void
   BaseIVFAB<T>::
-  getVoFSubset(vector<VolIndex>& a_vofsubset, const Box& a_region) const
+  getVoFSubset(Array<VolIndex>& a_vofsubset, const Box& a_region) const
   {
     a_vofsubset.resize(0);
     for(unsigned int ivof=0; ivof<m_vofs.size(); ivof++)
@@ -230,7 +230,7 @@ namespace amrex
     
     size_t retval = 0;
 
-    vector<VolIndex> vofsubset;
+    Array<VolIndex> vofsubset;
     getVoFSubset(vofsubset, a_region);
 
     retval += linearListSize(vofsubset);
@@ -260,7 +260,7 @@ namespace amrex
     size_t retval = 0;
     size_t incval = 0;
 
-    vector<VolIndex> vofsubset;
+    Array<VolIndex> vofsubset;
     getVoFSubset(vofsubset, a_region);
 
     linearListOut(buf, vofsubset);
@@ -300,7 +300,7 @@ namespace amrex
     size_t retval = 0;
     size_t incval = 0;
     
-    vector<VolIndex> vofsubset;
+    Array<VolIndex> vofsubset;
 
     linearListIn(vofsubset, buf);
 
@@ -434,7 +434,7 @@ namespace amrex
     //data
     //define the memory and data holder
     int nVoFs = m_vofs.size();
-    //now allocate the vector set the fab to go into
+    //now allocate the Array set the fab to go into
     //the pool of data at the first component of the first
     //vof
     m_Memory.resize(nVoFs*m_nComp);

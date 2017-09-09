@@ -12,7 +12,7 @@
 #ifndef _LSQUARES_H_
 #define _LSQUARES_H_
 
-#include <vector>
+#include "AMReX_Array.H"
 #include "AMReX_REAL.H"
 #include "AMReX_RealVect.H"
 
@@ -26,19 +26,19 @@ namespace amrex
   {
   public:
     void LeastSquares(Real** A,
-                      std::vector<Real>&x,
-                      const std::vector<Real>&rhs);
+                      Array<Real>&x,
+                      const Array<Real>&rhs);
 
     /// gaussian elimination with partial pivoting
     int gaussElim(Real**A,
-                  std::vector<Real>& rhs);
+                  Array<Real>& rhs);
 
     void swapRows(Real** A,
                   const int& rowi,
                   const int& rowj,
                   const int&numberOfCols);
 
-    void swapRows(std::vector<Real>& rhs,
+    void swapRows(Array<Real>& rhs,
                   const int& currRow,
                   const int& pivot);
 
@@ -48,7 +48,7 @@ namespace amrex
                   const int& numRows,
                   int& pivot);
 
-    void addRows(std::vector<Real>& rhs,
+    void addRows(Array<Real>& rhs,
                  const int& rowi,
                  const Real& alpha,
                  const int& rowj);
@@ -59,7 +59,7 @@ namespace amrex
                  const int& rowj,
                  const int& numberOfCols);
 
-    void timesBeta(std::vector<Real>&rhs,
+    void timesBeta(Array<Real>&rhs,
                    const int& currRow,
                    const Real& Beta);
 
@@ -81,14 +81,14 @@ namespace amrex
                 const int& a_numColsB);
 
     void backSolve(Real** a_A,
-                   const std::vector<Real>& a_rhs,
+                   const Array<Real>& a_rhs,
                    const int& a_numArows,
-                   std::vector<Real>& a_x);
+                   Array<Real>& a_x);
 
     void AtimesX(Real** A,
-                 const std::vector<Real>&x,
+                 const Array<Real>&x,
                  const int& numRowsA,
-                 std::vector<Real>& Ax);
+                 Array<Real>& Ax);
 
     void allocArray(const int& rows,
                     const int& cols,
