@@ -133,8 +133,8 @@ namespace amrex
 
     //for slow mode, we are just debugging so do stuff pointwise
     bool m_slowMode; //usually false
-    LayoutData<vector<VoFStencil> > m_slowStencils;//usually left undefined
-    LayoutData<vector<VolIndex  > >  m_slowVoFs;   //usually left undefined
+    LayoutData<Array<VoFStencil> > m_slowStencils;//usually left undefined
+    LayoutData<Array<VolIndex  > >  m_slowVoFs;   //usually left undefined
   private:
     //disallowed for all the usual reasons
     EBFineInterp(const EBFineInterp& ebcin);
