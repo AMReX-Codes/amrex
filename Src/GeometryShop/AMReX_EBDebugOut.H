@@ -19,6 +19,8 @@
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_BaseIVFAB.H"
 #include "AMReX_BoxIterator.H"
+#include "AMReX_FabArray.H"
+#include "AMReX_Stencils.H"
 
 
 ///bunch of functions to call from the debugger
@@ -61,6 +63,13 @@ namespace amrex
    */
   void dumpEBFAB(const EBCellFAB* a_fab);
 
+
+  ///
+  /**
+     Dump inputs to standard out.  For use inside debuggers.
+   */
+  void dumpEBLevel(const FabArray<EBCellFAB>* a_fab);
+
   ///
   /**
      Dump inputs to standard out.  For use inside debuggers.
@@ -75,6 +84,12 @@ namespace amrex
 
   /// 
   void dumpVFaces(const Array<FaceIndex>* vvofs);
+
+  ///
+  void dumpFaceSten(const FaceStencil* a_stenPtr);
+
+  ///
+  void dumpVoFSten(const   VoFStencil* a_stenPtr);
 
 }
 #endif

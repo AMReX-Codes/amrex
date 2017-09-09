@@ -162,11 +162,14 @@ namespace amrex
     {
       BL_PROFILE("irreg stencil definition");
       const     Box& gridCoFi = m_eblgCoFi.getDBL()  [mfi];
+      const     Box& gridFine = m_eblgFine.getDBL()  [mfi];
       const EBISBox& ebisCoFi = m_eblgCoFi.getEBISL()[mfi];
- 
+      const EBISBox& ebisFine = m_eblgFine.getEBISL()[mfi];
+
       IntVectSet ivs = ebisCoFi.getIrregIVS(gridCoFi);
       VoFIterator vofit(ivs, ebisCoFi.getEBGraph());
       const Array<VolIndex>& vofvec = vofit.getVector();
+
       // cast from VolIndex to BaseIndex
       Array<std::shared_ptr<BaseIndex> >    dstVoF(vofvec.size());
       Array<std::shared_ptr<BaseStencil> > stencil(vofvec.size());
@@ -174,7 +177,7 @@ namespace amrex
       // fill stencils for the vofs
       for(int ivec = 0; ivec < vofvec.size(); ivec++)
       {
-        definePointStencilIrreg(allsten[ivec], vofvec[ivec], mfi, ivs);
+        definePointStencilIrreg(allsten[ivec], vofvec[ivec], mfi, ivsFine);
 
         // another cast from VolIndex to BaseIndex
         dstVoF[ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&vofvec[ivec]), &null_deleter_ebc_ind);
@@ -230,7 +233,7 @@ namespace amrex
   definePointStencilIrreg(VoFStencil& a_sten, 
                           const VolIndex& a_vofCoFi, 
                           const MFIter& a_mfi,
-                          const IntVectSet& a_ivsIrreg)
+                          const IntVectSet& a_ivsIrregFine)
   {
     BL_ASSERT(m_enableFaceAveraging);
     Array<VolIndex> fineVoFs = m_eblgCoFi.getEBISL().refine(a_vofCoFi, m_refRat, a_mfi);
@@ -239,7 +242,7 @@ namespace amrex
     for(int ivof = 0; ivof < fineVoFs.size(); ivof++)
     {
       const VolIndex & fineVoF = fineVoFs[ivof];
-      if(a_ivsIrreg.contains(fineVoF.gridIndex())) //only want cells that are actually cut
+      if(a_ivsIrregFine.contains(fineVoF.gridIndex())) //only want cells that are actually cut
       {
         Real area = m_eblgFine.getEBISL()[a_mfi].bndryArea(fineVoF);
         Real weight = area;
