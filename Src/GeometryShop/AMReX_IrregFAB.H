@@ -65,7 +65,7 @@ namespace amrex
 
 
     ///
-    virtual ~IrregFAB();
+    ~IrregFAB();
 
     ///
     /**
@@ -76,9 +76,9 @@ namespace amrex
        are uninitialized.  If it has previously been defined, the old definition
        data is overwritten and lost.
     */
-    virtual void define(const Box&        a_region,
-                        const EBGraph&    a_ebgraph,
-                        const int&        a_nvarin);
+      void define(const Box&        a_region,
+                  const EBGraph&    a_ebgraph,
+                  const int&        a_nvarin);
 
 
     ///invalid but necessary for leveldata to compile
