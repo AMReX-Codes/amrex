@@ -200,6 +200,8 @@ namespace amrex
         m_region = a_region;
       }
 private:
+    //internal.  initializes places where we know the answer
+    void setCoveredAndRegular();
 
     Box m_region;
 
