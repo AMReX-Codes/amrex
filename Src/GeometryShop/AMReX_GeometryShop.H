@@ -59,7 +59,7 @@ namespace amrex
                            const Box&           a_ghostRegion,
                            const Box&           a_domain,
                            const RealVect&      a_origin,
-                           const Real&          a_dx) const;
+                           const Real&          a_dx) const override;
 
     GeometryService::InOut InsideOutside(const Box&           a_region,
                                          const Box&           a_domain,
@@ -106,7 +106,7 @@ namespace amrex
     virtual bool isRegular(const Box&           a_region,
                            const Box& a_domain,
                            const RealVect&      a_origin,
-                           const Real&          a_dx) const 
+                           const Real&          a_dx) const override
       {
         return isRegularEveryPoint(a_region, a_domain, a_origin, a_dx);
       }
@@ -119,7 +119,7 @@ namespace amrex
     virtual bool isCovered(const Box&           a_region,
                            const Box& a_domain,
                            const RealVect&      a_origin,
-                           const Real&          a_dx) const
+                           const Real&          a_dx) const override
       {
         return isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx);
       }

@@ -16,14 +16,9 @@
 #include <cmath>
 #include <cstdlib>
 
-#include "AMReX_REAL.H"
 #include "AMReX_LoHiSide.H"
 #include "AMReX_RealVect.H"
 #include "AMReX_Box.H"
-#include "AMReX_IntVect.H"
-#include "AMReX_EBISBox.H"
-#include "AMReX_VolIndex.H"
-#include "AMReX_FaceIndex.H"
 #include "AMReX_IrregNode.H"
 
 

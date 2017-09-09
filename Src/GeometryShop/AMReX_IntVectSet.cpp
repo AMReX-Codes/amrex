@@ -153,7 +153,7 @@ namespace amrex
   IntVectSet::
   operator&=(const Box& a_box)
   {
-      *this = std::move(intersect(*this,a_box));
+      *this = intersect(*this,a_box);
       return *this;
   }
 
