@@ -45,7 +45,7 @@ namespace amrex
                  Real          a_thrshdVoF = 1.0e-16);
 
     ///
-    ~GeometryShop();
+    ~GeometryShop() {}
 
 
 
@@ -130,7 +130,7 @@ namespace amrex
     Real m_thrshdVoF; //CP, threshold to remove very small VoFs.
 
 
-    const BaseIF* m_implicitFunction;
+    std::unique_ptr<const BaseIF> m_implicitFunction;
 
 
     void edgeData3D(edgeMo               a_edges[4],

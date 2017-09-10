@@ -154,13 +154,13 @@ namespace amrex
   {
   }
 
-  EBIndexSpace* AMReX_EBIS::s_instance = NULL;
+  EBIndexSpace* AMReX_EBIS::s_instance = nullptr;
   ///
   EBIndexSpace* 
   AMReX_EBIS::
   instance()
   {
-    if (s_instance == NULL)
+    if (s_instance == nullptr)
     {
       s_instance = new EBIndexSpace();
     }
