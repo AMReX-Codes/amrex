@@ -20,6 +20,7 @@
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseFab.H"
 #include "AMReX_LoHiSide.H"
+#include <array>
 
 namespace amrex
 {
@@ -70,13 +71,13 @@ namespace amrex
        For arcs to regular cells, the arc = 0
        If the arc is to the domain boundary, arc  = -1.
     */
-    Array<int>      m_arc[2*SpaceDim];
+    std::array<Array<int>,2*SpaceDim>      m_arc;
 
     ///
-    Array<Real>     m_areaFrac[2*SpaceDim];
+    std::array<Array<Real>,2*SpaceDim>     m_areaFrac;
 
     ///
-    Array<RealVect> m_faceCentroid[2*SpaceDim];
+    std::array<Array<RealVect>,2*SpaceDim> m_faceCentroid;
 
     Real bndryArea() const
     {
