@@ -7,7 +7,6 @@ CEXE_headers += CNS_F.H
 CEXE_sources += CNS_advance.cpp
 CEXE_sources += CNS.cpp
 CEXE_sources += CNSBld.cpp
-CEXE_sources += CNS_error.cpp
 CEXE_sources += CNS_io.cpp
 CEXE_sources += CNS_setup.cpp
 

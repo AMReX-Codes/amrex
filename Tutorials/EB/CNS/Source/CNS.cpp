@@ -4,6 +4,7 @@
 
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_EBAmrUtil.H>
 
 #include <climits>
 
@@ -11,13 +12,13 @@ using namespace amrex;
 
 constexpr int CNS::NUM_GROW;
 
-ErrorList CNS::err_list;
 BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
-IntVect   CNS::hydro_tile_size {1024,16,16};
+IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
 Real      CNS::cfl = 0.3;
 int       CNS::do_load_balance = 1;
+int       CNS::refine_cutcells = 1;
 
 CNS::CNS ()
 {}
@@ -30,11 +31,14 @@ CNS::CNS (Amr&            papa,
           Real            time)
     : AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
-    // xxxxx need to build flux register
+    if (level > 0) {
+        flux_reg.define(bl, papa.boxArray(level-1),
+                        dm, papa.DistributionMap(level-1),
+                        level_geom, papa.Geom(level-1),
+                        papa.refRatio(level-1), level, NUM_STATE);
+    }
 
     buildMetrics();
-
-    // xxxxx initialize EB
 }
 
 CNS::~CNS ()
@@ -235,7 +239,11 @@ CNS::post_regrid (int lbase, int new_finest)
 void
 CNS::post_timestep (int iteration)
 {
-    // xxxxx some reflux stuff
+    if (level < parent->finestLevel()) {
+        CNS& fine_level = getLevel(level+1);
+        MultiFab& S_new = get_new_data(State_Type);
+        fine_level.flux_reg.Reflux(S_new);
+    }
 
     if (level < parent->finestLevel()) {
         avgDown();
@@ -288,9 +296,43 @@ CNS::post_restart ()
 }
 
 void
-CNS::errorEst (TagBoxArray& tags, int clearval, int tagval, Real time, int n_error_buf, int ngrow)
+CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
 {
-    // xxxxx tagging
+    BL_PROFILE("CNS::errorEst()");
+
+    if (refine_cutcells) {
+        const MultiFab& S_new = get_new_data(State_Type);
+        amrex::TagCutCells(tags, S_new);
+    }
+
+#if 0
+    {
+        const Real* problo = Geometry::ProbLo();
+        const Real* dx = geom.CellSize();
+
+        RealVect fine_tag_lo{0.4, 0.4, 0.4};
+        RealVect fine_tag_hi{0.6, 0.6, 0.6};
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(tags); mfi.isValid(); ++mfi)
+        {
+            auto& fab = tags[mfi];
+            const Box& bx = fab.box();
+            for (BoxIterator bi(bx); bi.ok(); ++bi)
+            {
+                const IntVect& cell = bi();
+                RealVect pos {AMREX_D_DECL((cell[0]+0.5)*dx[0]+problo[0],
+                                           (cell[1]+0.5)*dx[1]+problo[1],
+                                           (cell[2]+0.5)*dx[2]+problo[2])};
+                if (pos > fine_tag_lo && pos < fine_tag_hi) {
+                    fab(cell) = TagBox::SET;
+                }
+            }
+        }
+    }
+#endif
 }
 
 void
@@ -317,6 +359,7 @@ CNS::read_params ()
     }
 
     pp.query("do_load_balance", do_load_balance);
+    pp.query("refine_cutcells", refine_cutcells);
 }
 
 void

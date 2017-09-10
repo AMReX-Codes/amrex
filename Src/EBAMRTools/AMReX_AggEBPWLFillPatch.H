@@ -139,10 +139,10 @@ namespace amrex
     //internal use only functions
 
 
-    void getOffsets(const LayoutData< std::vector<VolIndex> >&  a_srcVoFsCoar,
+    void getOffsets(const LayoutData< Array<VolIndex> >&  a_srcVoFsCoar,
                     const LayoutData<IntVectSet>&          a_irregRegionsFine,
-                    const LayoutData<std::vector<VoFStencil> >  a_loStencils[SpaceDim],
-                    const LayoutData<std::vector<VoFStencil> >  a_hiStencils[SpaceDim],
+                    const LayoutData<Array<VoFStencil> >  a_loStencils[SpaceDim],
+                    const LayoutData<Array<VoFStencil> >  a_hiStencils[SpaceDim],
                     const LayoutData<IntVectSet>           a_coarLoInterp[SpaceDim],
                     const LayoutData<IntVectSet>           a_coarHiInterp[SpaceDim],
                     const LayoutData<IntVectSet>           a_coarCeInterp[SpaceDim]);
@@ -166,24 +166,24 @@ namespace amrex
     void
     getIVS(LayoutData<IntVectSet>& a_irregRegionsFine,
            LayoutData<IntVectSet>& a_irregRegionsCoFi,
-           LayoutData< std::vector<VolIndex> >&   a_srcVoFs);
+           LayoutData< Array<VolIndex> >&   a_srcVoFs);
 
     void
-    defineAggStencils(LayoutData<std::vector<VoFStencil> >  a_loStencils[SpaceDim],
-                      LayoutData<std::vector<VoFStencil> >  a_hiStencils[SpaceDim],
-                      const LayoutData< std::vector<VolIndex> >&   a_srcVoFs);
+    defineAggStencils(LayoutData<Array<VoFStencil> >  a_loStencils[SpaceDim],
+                      LayoutData<Array<VoFStencil> >  a_hiStencils[SpaceDim],
+                      const LayoutData< Array<VolIndex> >&   a_srcVoFs);
     void
     getLoHiCenIVS(LayoutData<IntVectSet>  a_coarLoInterp[SpaceDim],
                   LayoutData<IntVectSet>  a_coarHiInterp[SpaceDim],
                   LayoutData<IntVectSet>  a_coarCeInterp[SpaceDim]);
 
     void
-    getSten(LayoutData<std::vector<VoFStencil> >  a_loStencils[SpaceDim],
-            LayoutData<std::vector<VoFStencil> >  a_hiStencils[SpaceDim],
+    getSten(LayoutData<Array<VoFStencil> >  a_loStencils[SpaceDim],
+            LayoutData<Array<VoFStencil> >  a_hiStencils[SpaceDim],
             LayoutData<IntVectSet>           a_coarLoInterp[SpaceDim],
             LayoutData<IntVectSet>           a_coarHiInterp[SpaceDim],
             LayoutData<IntVectSet>           a_coarCeInterp[SpaceDim],
-            const LayoutData< std::vector<VolIndex> >&   a_srcVoFs);
+            const LayoutData< Array<VolIndex> >&   a_srcVoFs);
 
     void getSlopes(const EBCellFAB& a_coarDataOld,
                    const EBCellFAB& a_coarDataNew,
@@ -221,9 +221,9 @@ namespace amrex
     } typedef coar_logic_t;
 
     //data to provide fast access to fine points and their associated slopes
-    LayoutData< std::vector<fine_logic_t> > m_fineOffsets;
+    LayoutData< Array<fine_logic_t> > m_fineOffsets;
     //data so we can do the wacky delta minmod thing fast.
-    LayoutData< std::vector<coar_logic_t> > m_coarOffsets;
+    LayoutData< Array<coar_logic_t> > m_coarOffsets;
 
     bool m_forceNoEBCF;
     bool m_isDefined;

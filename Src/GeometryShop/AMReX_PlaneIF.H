@@ -45,7 +45,7 @@ namespace amrex
        the level set value=0 represents the boundary and value<0 is inside the
        fluid.
     */
-    virtual Real value(const RealVect& a_point) const;
+    virtual Real value(const RealVect& a_point) const override;
 
 
     ///
@@ -53,16 +53,12 @@ namespace amrex
        Return a newly allocated derived class.  The responsibility
        for deleting the memory is left to the calling function.
     */
-    virtual BaseIF* newImplicitFunction() const;
+    virtual BaseIF* newImplicitFunction() const override;
 
   protected:
     RealVect m_normal;
     RealVect m_point;
     bool     m_inside;
-
-  private:
-    PlaneIF();
-
   };
 }
 

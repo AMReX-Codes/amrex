@@ -38,18 +38,21 @@ module cns_module
   logical, save, public :: actually_2D = .false.
   logical, save, public :: use_total_energy_as_eb_weights = .false.
 
+  integer, save, public :: myproc
+
   public :: cns_init_fort
 
 contains
 
   subroutine cns_init_fort (physbc_lo_in, physbc_hi_in, &
        Interior_in, Inflow_in, Outflow_in, Symmetry_in, SlipWall_in, NoSlipWall_in, &
-       problo_in, probhi_in) &
+       myproc_in, problo_in, probhi_in) &
        bind(c,name='cns_init_fort')
     use cns_physics_module, only : physics_init
     use amrex_parmparse_module
     integer, intent(in) :: physbc_lo_in(3), physbc_hi_in(3)
     integer, value, intent(in) :: Interior_in, Inflow_in, Outflow_in, Symmetry_in, SlipWall_in, NoSlipWall_in
+    integer, value, intent(in) :: myproc_in
     real(rt), intent(in) :: problo_in(3), probhi_in(3)
 
     type(amrex_parmparse) :: pp
@@ -64,6 +67,8 @@ contains
     Symmetry   = Symmetry_in
     SlipWall   = SlipWall_in
     NoSlipWall = NoSlipWall_in
+
+    myproc = myproc_in
 
     problo = problo_in
     probhi = probhi_in

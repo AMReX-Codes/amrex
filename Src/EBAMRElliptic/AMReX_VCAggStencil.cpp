@@ -158,6 +158,14 @@ namespace amrex
       }
       if(doThisVoF)
       {
+//begin debug
+        int idebug = 0;
+        if((iv[0]==14) && (iv[1]==12))
+        {
+          idebug = 1;
+        }
+//end debug
+
         const Real* rhsiPtr =  dataPtrsRhs[m_dstAccess[idst].dataID] + m_dstAccess[idst].offset;
         const Real& rhsi = *rhsiPtr;
         const Real* relcoPtr =  dataPtrsRel[m_relAccess[idst].dataID] + m_relAccess[idst].offset;
@@ -182,6 +190,10 @@ namespace amrex
         lphi = a_beta*lphi + a_alpha*alphaWeight*phii;
 
         phii = phii + relco*(rhsi - lphi);
+
+//begin debug
+        idebug = 0;
+//end debug
       }
     }
   }

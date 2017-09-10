@@ -22,7 +22,7 @@
 namespace amrex
 {
 
-  ///factory to create BaseIVFABs
+  ///factory to create EBDatas
   class EBDataFactory : public FabFactory<EBData>
   {
   public:
