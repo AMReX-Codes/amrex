@@ -38,7 +38,10 @@ namespace amrex
     ~IrregNode(){;}
 
     ///return the index into the arc vectors
-    static int index(int a_idir, Side::LoHiSide a_side) ;
+    static int index(int a_idir, Side::LoHiSide a_side) {
+        AMREX_ASSERT(a_idir >= 0 && a_idir < SpaceDim);
+        return (a_side == Side::Lo) ? a_idir : a_idir+SpaceDim;
+    }
 
     ///
     IntVect     m_cell;
@@ -79,32 +82,8 @@ namespace amrex
     ///
     std::array<Array<RealVect>,2*SpaceDim> m_faceCentroid;
 
-    Real bndryArea() const
-    {
-      Real retval;
+    Real bndryArea() const;
 
-      Real irregArea=0.0;
-      for (int idir=0; idir < SpaceDim; idir++)
-        {
-          int loindex = index(idir, Side::Lo);
-          int hiindex = index(idir, Side::Hi);
-          Real loArea = 0;   
-          Real hiArea = 0;
-          Array<Real> loAreas = m_areaFrac[loindex];
-          Array<Real> hiAreas = m_areaFrac[hiindex];
-          for(int ilo = 0; ilo < loAreas.size(); ilo++)
-            {
-              loArea += loAreas[ilo];
-            }
-          for(int ihi = 0; ihi < hiAreas.size(); ihi++)
-            {
-              hiArea += hiAreas[ihi];
-            }
-          irregArea += (hiArea-loArea)*(hiArea-loArea);
-        }
-      retval = sqrt(irregArea);
-      return retval;;
-    }
     ///
     /**
        helper function for construction.  makes irregular cell
