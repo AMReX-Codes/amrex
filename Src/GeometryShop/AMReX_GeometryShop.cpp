@@ -27,8 +27,6 @@
 namespace amrex
 {
 
-  IntVect gs_debiv(D_DECL(994,213,7));
-  
   bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
                                          const Box&           a_domain,
                                          const RealVect&      a_origin,
@@ -126,11 +124,7 @@ namespace amrex
                              int           a_verbosity,
                              Real          a_thrshdVoF)
   {
-
-
-
-
-    m_implicitFunction = a_localGeom.newImplicitFunction();
+    m_implicitFunction.reset(a_localGeom.newImplicitFunction());
 
     m_verbosity = a_verbosity;
 
@@ -139,16 +133,9 @@ namespace amrex
 
     m_threshold = 1.0e-15*pow(arg1, arg2);
 
-
     m_thrshdVoF = a_thrshdVoF;
 
   }
-
-  GeometryShop::~GeometryShop()
-  {
-    delete(m_implicitFunction);
-  }
-
 
   /**********************************************/
   GeometryService::InOut 
@@ -159,34 +146,18 @@ namespace amrex
                 const Real&          a_dx) const
   {
     GeometryShop::InOut rtn;
-    //begin debug
-    //bool debugc = (a_region.contains(gs_debiv));
-    //end debug
+
     if(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Regular;
-//      if(debugc)
-//      {
-//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all regular box" << endl;
-//      }
     }
     else if(isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Covered;
-//      if(debugc)
-//      {
-//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all covered box" << endl;
-//      }
     }
     else
     {
       rtn = GeometryShop::Irregular;
-//begin debug
-//      if(debugc)
-//      {
-//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in a mixed box " << endl;
-//      }
-//end debug
     }
     return rtn;
 
@@ -202,14 +173,14 @@ namespace amrex
                           const RealVect      & a_origin,
                           const Real          & a_dx) const
   {
-    assert(a_domain.contains(a_ghostRegion));
+    AMREX_ASSERT(a_domain.contains(a_ghostRegion));
     a_nodes.resize(0);
     a_regIrregCovered.resize(a_ghostRegion, 1);
 
 
     Real thrshd = m_thrshdVoF;
 
-    IntVectSet ivsirreg;
+    IntVectSet ivsirreg; // wz. no need to be a set
     IntVectSet ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
@@ -556,8 +527,8 @@ namespace amrex
                    a_domain,
                    a_origin);
 
-        assert(faceRegular || faceCovered || faceDontKnow);
-        assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
+        AMREX_ASSERT(faceRegular || faceCovered || faceDontKnow);
+        AMREX_ASSERT((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
         // define the faceMo
         Face.define(edges,faceNormal,faceCovered,faceRegular,faceDontKnow);
 
@@ -746,8 +717,8 @@ namespace amrex
                            a_domain,
                            a_origin);
 
-                assert(faceRegular || faceCovered || faceDontKnow);
-                assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
+                AMREX_ASSERT(faceRegular || faceCovered || faceDontKnow);
+                AMREX_ASSERT((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
                 Faces[index].define(edges,faceNormal,faceCovered,faceRegular,faceDontKnow);
 
                 // if the face is covered we will deal with it later
@@ -890,13 +861,13 @@ namespace amrex
                 // flip area?
                 bool complementArea;
 
-                assert (cPtHiLo.size() == 2);
+                AMREX_ASSERT (cPtHiLo.size() == 2);
 
                 // loEdge-loEdge
                 if (edgeHiLo[0] == 0 && edgeHiLo[1] == 0)
                   {
                     // both crossingPts must be Hi or both must be Lo
-                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
+                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == -1));
 
                     // prismArea gives triangle
@@ -916,7 +887,7 @@ namespace amrex
                 else if (edgeHiLo[0] == 1 && edgeHiLo[1] == 1)
                   {
                     // both crossingPts must be Hi or both must be Lo
-                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
+                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == -1));
                     // prismArea gives the trapezoid
 
@@ -935,7 +906,7 @@ namespace amrex
                 else if (edgeHiLo[0] == 1 && edgeHiLo[1] == 0)
                   {
                     // cpPtHiLo must be the same or the opposite of edgeHiLo
-                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == -1) ||
+                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == -1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == 1));
                     // maxDir > minDir =>prismArea gives trapezoid
                     // maxDir < minDir =>prismArea gives triangle
@@ -974,19 +945,19 @@ namespace amrex
                     // two trapezoids
                     if (cPtHiLo[1] == 1 && cPtHiLo[0] == 1)
                       {
-                        assert(edgeDir[0] == edgeDir[1]);
+                        AMREX_ASSERT(edgeDir[0] == edgeDir[1]);
                         complementArea = false;
                       }
                     else if (cPtHiLo[1] == -1 && cPtHiLo[0] == -1)
                       {
-                        assert(edgeDir[0] == edgeDir[1]);
+                        AMREX_ASSERT(edgeDir[0] == edgeDir[1]);
                         complementArea = true;
                       }
                     // triangle + triangle complement
                     // if the cPtHiLo[0]= loPt then one wants triangle
                     else if (cPtHiLo[0] == -1 && cPtHiLo[1] == 1 )
                       {
-                        assert(edgeDir[0] != edgeDir[1]);
+                        AMREX_ASSERT(edgeDir[0] != edgeDir[1]);
                         // if maxDir < minDir prismArea gives trapezoid
                         // if maxDir > minDir prismArea gives triangle
                         if (maxDir < minDir)
@@ -1912,10 +1883,10 @@ namespace amrex
                     HiPt[range] =  0.5;
                   }
 
-                assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
-                assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
-                assert(regular || covered || dontKnow);
-                assert(regular || covered || LoPtChanged || HiPtChanged);
+                AMREX_ASSERT((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
+                AMREX_ASSERT(regular || covered || (!(LoPtChanged && HiPtChanged)));
+                AMREX_ASSERT(regular || covered || dontKnow);
+                AMREX_ASSERT(regular || covered || LoPtChanged || HiPtChanged);
                 bool intersectLo = LoPtChanged;
                 edgeMo Edge;
                 // range means the coordinate direction that varies over the length of the edge
@@ -2070,10 +2041,10 @@ namespace amrex
                 HiPt[range] =  0.5;
               }
 
-            assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
-            assert(regular || covered || dontKnow);
-            assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
-            assert(regular || covered || LoPtChanged || HiPtChanged);
+            AMREX_ASSERT(regular || covered || (!(LoPtChanged && HiPtChanged)));
+            AMREX_ASSERT(regular || covered || dontKnow);
+            AMREX_ASSERT((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
+            AMREX_ASSERT(regular || covered || LoPtChanged || HiPtChanged);
             // default is something invalid
             bool intersectLo = LoPtChanged;
 
@@ -2313,7 +2284,7 @@ namespace amrex
 
         // Find h
         Real h = 0.5 * (largeX - smallX);
-        assert (h >= 0.0);
+        AMREX_ASSERT (h >= 0.0);
 
         // Prismoidal rule, which is exact on cubics.
         retval = (h/3.0) * (a_yVec[0] + 4.0 * a_yVec[1] + a_yVec[2]);
