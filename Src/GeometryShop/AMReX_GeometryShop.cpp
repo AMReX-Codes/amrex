@@ -1038,7 +1038,7 @@ namespace amrex
                   }
 
                 // find upDir
-                std::pair<int,Side::LoHiSide> upDir;
+                // std::pair<int,Side::LoHiSide> upDir;
 
                 // physIntercept is along the segment[physSegLo,physSegHi]
                 // this segment passes through midPt with direction minDir

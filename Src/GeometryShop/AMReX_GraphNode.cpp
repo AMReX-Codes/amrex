@@ -192,7 +192,6 @@ namespace amrex
       }
       return faces;
     }
-    return emptyVec;  //make compiler happy
   }
 
 /*******************************/
@@ -254,7 +253,6 @@ namespace amrex
       }
       return retvec;
     }
-    return emptyVec;
   }
 
 /*******************************/
