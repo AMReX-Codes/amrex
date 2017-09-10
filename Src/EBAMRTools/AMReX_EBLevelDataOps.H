@@ -52,15 +52,15 @@ namespace amrex
     static void writeSingleLevelEBPlotFile(const std::string         & a_filename,
                                            const FabArray<EBCellFAB> & a_data,
                                            const EBLevelGrid         & a_eblg,
-                                           const vector<string>      & a_varNames);
+                                           const Array<string>      & a_varNames);
 
 
     ///writes plotfile that visit can eat.   Just single-valued stuff
     static void writeEBAMRPlotFile(const std::string                   & a_filename,
-                                   const vector<FabArray<EBCellFAB>* > & a_data,
-                                   const vector<EBLevelGrid>           & a_eblg,
-                                   const vector<int>                   & a_refRat,
-                                   const vector<string>                & a_varNames);
+                                   const Array<FabArray<EBCellFAB>* > & a_data,
+                                   const Array<EBLevelGrid>           & a_eblg,
+                                   const Array<int>                   & a_refRat,
+                                   const Array<string>                & a_varNames);
 
     /// tacks on volume fraction as the last variable
     static void makePlotMultiFab(MultiFab                              & a_mfSingleValued,
@@ -234,7 +234,7 @@ namespace amrex
                              const FabArray<EBCellFAB>       &   a_errorCoar,
                              const EBLevelGrid               &   a_eblgFine,
                              const EBLevelGrid               &   a_eblgCoar,
-                             std::vector<string> a_names = std::vector<string>(),
+                             Array<string> a_names = Array<string>(),
                              bool a_useGhost = false);
     ///
     /**

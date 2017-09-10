@@ -15,16 +15,19 @@ module cns_dudt_module
 contains
 
   subroutine cns_compute_dudt (lo,hi, dudt, utlo, uthi, &
-       u,ulo,uhi,dx,dt) &
+       u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,dx,dt) &
        bind(c,name='cns_compute_dudt')
     use cns_nd_module, only : ctoprim
     use advection_module, only : hyp_mol_gam_3d
     use diff_coef_module, only : compute_diff_coef
     use diffusion_module, only : diff_mol_3d
     use cns_divop_module, only : compute_divop
-    integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi
+    integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi,fxlo,fxhi,fylo,fyhi,fzlo,fzhi
     real(rt), intent(inout) :: dudt(utlo(1):uthi(1),utlo(2):uthi(2),utlo(3):uthi(3),nvar)
     real(rt), intent(in   ) :: u ( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
+    real(rt), intent(inout) :: fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),nvar)
+    real(rt), intent(inout) :: fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),nvar)
+    real(rt), intent(inout) :: fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),nvar)
     real(rt), intent(in) :: dx(3), dt
 
     integer :: qlo(3), qhi(3)
@@ -57,13 +60,16 @@ contains
 
     call diff_mol_3d(lo, hi, dx, q, qlo, qhi, lambda, mu, xi, clo, chi, fdx, fdy, fdz)
 
-    fhx = fhx + fdx
-    fhy = fhy + fdy
-    fhz = fhz + fdz
+    fx(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ,1:5) = fhx + fdx
+    fy(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ,1:5) = fhy + fdy
+    fz(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1,1:5) = fhz + fdz
+
+    fx(lo(1):hi(1)+1,lo(2):hi(2)  ,lo(3):hi(3)  ,6:) = 0.d0
+    fy(lo(1):hi(1)  ,lo(2):hi(2)+1,lo(3):hi(3)  ,6:) = 0.d0
+    fz(lo(1):hi(1)  ,lo(2):hi(2)  ,lo(3):hi(3)+1,6:) = 0.d0
+
     call compute_divop (lo,hi,5,dx,dudt,utlo,uthi, &
-         fhx, lo, [hi(1)+1,hi(2)  ,hi(3)  ], &
-         fhy, lo, [hi(1)  ,hi(2)+1,hi(3)  ], &
-         fhz, lo, [hi(1)  ,hi(2)  ,hi(3)+1])
+         fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi)
 
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
 
@@ -71,8 +77,11 @@ contains
        do n = 1, 5
           do k = lo(3), hi(3)
              dudt(lo(1):hi(1),lo(2):hi(2),k,n) = dudt(lo(1):hi(1),lo(2):hi(2),(lo(3)+hi(3))/2,n)
+             fx(lo(1):hi(1)+1,lo(2):hi(2)  ,k,n) = fx(lo(1):hi(1)+1,lo(2):hi(2)  ,(lo(3)+hi(3))/2,n)
+             fy(lo(1):hi(1)  ,lo(2):hi(2)+1,k,n) = fy(lo(1):hi(1)  ,lo(2):hi(2)+1,(lo(3)+hi(3))/2,n)
           end do
        end do
+       fz(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1,:) = 0.d0
     end if
 
     call amrex_deallocate(xi)
@@ -88,7 +97,7 @@ contains
   end subroutine cns_compute_dudt
 
   subroutine cns_eb_compute_dudt (lo,hi, dudt, utlo, uthi, &
-       u,ulo,uhi,flag,fglo,fghi, &
+       u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,flag,fglo,fghi, &
        volfrac,vlo,vhi, bcent,blo,bhi, &
        apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
        centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, dx,dt) &
@@ -101,9 +110,12 @@ contains
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi, &
          vlo,vhi,axlo,axhi,aylo,ayhi,azlo,azhi, &
          cxlo,cxhi,cylo,cyhi,czlo,czhi, &
-         fglo,fghi, blo, bhi
+         fglo,fghi, blo, bhi, fxlo,fxhi, fylo,fyhi, fzlo,fzhi
     real(rt), intent(inout) :: dudt(utlo(1):uthi(1),utlo(2):uthi(2),utlo(3):uthi(3),nvar)
     real(rt), intent(in   ) :: u ( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
+    real(rt), intent(inout) :: fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),nvar)
+    real(rt), intent(inout) :: fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),nvar)
+    real(rt), intent(inout) :: fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),nvar)
     integer , intent(in) ::  flag(fglo(1):fghi(1),fglo(2):fghi(2),fglo(3):fghi(3))
     real(rt), intent(in) :: volfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
     real(rt), intent(in) :: bcent  (blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),3)
@@ -116,7 +128,7 @@ contains
     real(rt), intent(in) :: dx(3), dt
 
     integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(3), dmhi(3)
-    integer :: fxlo(3), fylo(3), fzlo(3), fxhi(3), fyhi(3), fzhi(3)
+    integer :: lfxlo(3), lfylo(3), lfzlo(3), lfxhi(3), lfyhi(3), lfzhi(3)
     integer :: clo(3), chi(3)
     real(rt), pointer, contiguous :: q(:,:,:,:), divc(:,:,:), dm(:,:,:,:)
     real(rt), dimension(:,:,:,:), pointer, contiguous :: fhx,fhy,fhz,fdx,fdy,fdz
@@ -137,20 +149,20 @@ contains
     dmhi(1:3) = hi + 1
     call amrex_allocate(dm, dmlo(1),dmhi(1), dmlo(2),dmhi(2), dmlo(3),dmhi(3), 1,5)
 
-    fxlo = lo - nextra_eb - 1;  fxlo(1) = lo(1)-nextra_eb
-    fxhi = hi + nextra_eb + 1
-    call amrex_allocate(fhx, fxlo(1),fxhi(1),fxlo(2),fxhi(2),fxlo(3),fxhi(3),1,5)
-    call amrex_allocate(fdx, fxlo(1),fxhi(1),fxlo(2),fxhi(2),fxlo(3),fxhi(3),1,5)
+    lfxlo = lo - nextra_eb - 1;  lfxlo(1) = lo(1)-nextra_eb
+    lfxhi = hi + nextra_eb + 1
+    call amrex_allocate(fhx, lfxlo(1),lfxhi(1),lfxlo(2),lfxhi(2),lfxlo(3),lfxhi(3),1,5)
+    call amrex_allocate(fdx, lfxlo(1),lfxhi(1),lfxlo(2),lfxhi(2),lfxlo(3),lfxhi(3),1,5)
 
-    fylo = lo - nextra_eb - 1;  fylo(2) = lo(2)-nextra_eb
-    fyhi = hi + nextra_eb + 1
-    call amrex_allocate(fhy, fylo(1),fyhi(1),fylo(2),fyhi(2),fylo(3),fyhi(3),1,5)
-    call amrex_allocate(fdy, fylo(1),fyhi(1),fylo(2),fyhi(2),fylo(3),fyhi(3),1,5)
+    lfylo = lo - nextra_eb - 1;  lfylo(2) = lo(2)-nextra_eb
+    lfyhi = hi + nextra_eb + 1
+    call amrex_allocate(fhy, lfylo(1),lfyhi(1),lfylo(2),lfyhi(2),lfylo(3),lfyhi(3),1,5)
+    call amrex_allocate(fdy, lfylo(1),lfyhi(1),lfylo(2),lfyhi(2),lfylo(3),lfyhi(3),1,5)
 
-    fzlo = lo - nextra_eb - 1;  fzlo(3) = lo(3)-nextra_eb
-    fzhi = hi + nextra_eb + 1
-    call amrex_allocate(fhz, fzlo(1),fzhi(1),fzlo(2),fzhi(2),fzlo(3),fzhi(3),1,5)
-    call amrex_allocate(fdz, fzlo(1),fzhi(1),fzlo(2),fzhi(2),fzlo(3),fzhi(3),1,5)
+    lfzlo = lo - nextra_eb - 1;  lfzlo(3) = lo(3)-nextra_eb
+    lfzhi = hi + nextra_eb + 1
+    call amrex_allocate(fhz, lfzlo(1),lfzhi(1),lfzlo(2),lfzhi(2),lfzlo(3),lfzhi(3),1,5)
+    call amrex_allocate(fdz, lfzlo(1),lfzhi(1),lfzlo(2),lfzhi(2),lfzlo(3),lfzhi(3),1,5)
 
     clo = lo - nextra_eb - 1
     chi = hi + nextra_eb + 1
@@ -160,19 +172,20 @@ contains
 
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
     
-    call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, fhx, fxlo, fxhi, fhy, fylo, fyhi, fhz, fzlo, fzhi,&
+    call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, &
+         fhx, lfxlo, lfxhi, fhy, lfylo, lfyhi, fhz, lfzlo, lfzhi,&
          flag, fglo, fghi)
 
     call compute_diff_coef(q, qlo, qhi, lambda, mu, xi, clo, chi)
 
     call eb_diff_mol_3d(lo, hi, dx, q, qlo, qhi, lambda, mu, xi, clo, chi, &
-         fdx, fxlo, fxhi, fdy, fylo, fyhi, fdz, fzlo, fzhi,&
+         fdx, lfxlo, lfxhi, fdy, lfylo, lfyhi, fdz, lfzlo, lfzhi,&
          flag, fglo, fghi)
 
     fhx = fhx + fdx
     fhy = fhy + fdy
     fhz = fhz + fdz
-    call compute_eb_divop(lo,hi,5,dx,dt,fhx,fxlo,fxhi,fhy,fylo,fyhi,fhz,fzlo,fzhi,&
+    call compute_eb_divop(lo,hi,5,dx,dt,fhx,lfxlo,lfxhi,fhy,lfylo,lfyhi,fhz,lfzlo,lfzhi,&
          dudt,utlo,uthi, q,qlo,qhi, lambda, mu, xi, clo, chi, &
          divc,dvlo,dvhi, dm,dmlo,dmhi, &
          volfrac,vlo,vhi, bcent,blo,bhi, &
@@ -181,6 +194,17 @@ contains
          centy(:,:,:,1),cylo,cyhi, centy(:,:,:,2),cylo,cyhi, &
          centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &
          flag,fglo,fghi)
+    
+    fx(      fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),1:5) = &
+         fhx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),1:5)
+    fy(      fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),1:5) = &
+         fhy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),1:5)
+    fz(      fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),1:5) = &
+         fhz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),1:5)
+
+    fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),6:nvar) = 0.d0
+    fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),6:nvar) = 0.d0
+    fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),6:nvar) = 0.d0
 
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
 
@@ -188,8 +212,11 @@ contains
        do n = 1, 5
           do k = lo(3), hi(3)
              dudt(lo(1):hi(1),lo(2):hi(2),k,n) = dudt(lo(1):hi(1),lo(2):hi(2),(lo(3)+hi(3))/2,n)
+             fx(lo(1):hi(1)+1,lo(2):hi(2)  ,k,n) = fx(lo(1):hi(1)+1,lo(2):hi(2)  ,(lo(3)+hi(3))/2,n)
+             fy(lo(1):hi(1)  ,lo(2):hi(2)+1,k,n) = fy(lo(1):hi(1)  ,lo(2):hi(2)+1,(lo(3)+hi(3))/2,n)
           end do
        end do
+       fz(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1,:) = 0.d0
     end if
 
     call amrex_deallocate(xi)
