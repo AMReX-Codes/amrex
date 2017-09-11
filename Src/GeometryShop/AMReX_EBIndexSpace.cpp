@@ -19,11 +19,12 @@
 #include "AMReX_PolyGeom.H"
 #include "AMReX_parstream.H"
 #include "AMReX_Utility.H"
-#include <string>
 #include "AMReX_Utility.H"
 #include "AMReX_FabArrayIO.H"
+#include <string>
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 
 namespace amrex
@@ -222,17 +223,12 @@ namespace amrex
   ///
   int EBIndexSpace::getLevel(const Box& a_domain) const
   {
-    bool found = false;
-    int whichlev = -1;
-    for (int ilev = 0; ilev < m_domainLevel.size() && !found; ilev++)
-    {
-      if (m_domainLevel[ilev] == a_domain)
-      {
-        found = true;
-        whichlev = ilev;
-      }
-    }
-    return whichlev;
+      int whichlev = std::distance(std::begin(m_domainLevel),
+                                   std::find(std::begin(m_domainLevel),
+                                             std::end(m_domainLevel),
+                                             a_domain));
+      if (whichlev >= m_domainLevel.size()) whichlev = -1;
+      return whichlev;
   }
       
   void EBIndexSpace::fillEBISLayout(EBISLayout     & a_ebisLayout,
@@ -241,8 +237,9 @@ namespace amrex
                                     const Box      & a_domain,
                                     const int      & a_nghost) const
   {
-    AMREX_ASSERT(isDefined());
     BL_PROFILE("EBIndexSpace::fillEBISLayout");
+    AMREX_ASSERT(isDefined());
+    AMREX_ASSERT(m_domainLevel.size() == m_ebisLevel.size());
       
     //figure out which level we are on
     int whichlev = getLevel(a_domain);
