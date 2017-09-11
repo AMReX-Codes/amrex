@@ -20,10 +20,6 @@
 namespace amrex
 {
   /// a one-thingy-per-box distributed object
-  /**
-     This does not do the fancy "is this the box layout I was defined on?" checks that the
-     Chombo version does.  This is very minimal.
-  */
   template <class T>
   class LayoutData: public FabArrayBase
   {
@@ -55,6 +51,7 @@ namespace amrex
     T& operator[](const MFIter& a_mfi)
       {
         BL_ASSERT(a_mfi.LocalIndex() < m_data.size());
+        BL_ASSERT(DistributionMap() == a_mfi.DistributionMap());
         return (m_data[a_mfi.LocalIndex()]);
       }
 
@@ -62,6 +59,7 @@ namespace amrex
     const T& operator[](const MFIter& a_mfi) const
       {
         BL_ASSERT(a_mfi.LocalIndex() < m_data.size());
+        BL_ASSERT(DistributionMap() == a_mfi.DistributionMap());
         return (m_data[a_mfi.LocalIndex()]);
       }
 
