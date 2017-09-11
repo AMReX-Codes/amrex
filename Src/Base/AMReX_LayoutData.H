@@ -1,20 +1,7 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-#ifndef _LayoutData__H_
-#define _LayoutData__H_
+#ifndef AMREX_LayoutData__H_
+#define AMREX_LayoutData__H_
 
 #include "AMReX_FabArrayBase.H"
-#include "AMReX_BoxArray.H"
-#include "AMReX_IntVect.H"
 #include "AMReX_MFIter.H"
 
 namespace amrex
@@ -26,9 +13,7 @@ namespace amrex
   public:
 
     ///
-    LayoutData()
-      {
-      }
+    LayoutData() = default;
 
     LayoutData(const BoxArray            & a_grids, 
                const DistributionMapping & a_dm)
@@ -44,9 +29,11 @@ namespace amrex
         m_data.resize(local_size());
       }
 
-    virtual ~LayoutData()
-      {
-      }
+    LayoutData (const LayoutData& rhs) = delete;
+    LayoutData& operator= (const LayoutData& rhs) = delete;
+    LayoutData& operator= (LayoutData&& rhs) = delete;
+
+    LayoutData (LayoutData&& rhs) = default;
 
     T& operator[](const MFIter& a_mfi)
       {
