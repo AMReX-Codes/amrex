@@ -486,6 +486,8 @@ CNS::fixUpGeometry ()
 
     const int ng = numGrow()-1;
 
+    const auto& domain = geom.Domain();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -498,7 +500,8 @@ CNS::fixUpGeometry ()
         {
             cns_eb_fixup_geom(BL_TO_FORTRAN_BOX(bx),
                               BL_TO_FORTRAN_ANYD(flag),
-                              BL_TO_FORTRAN_ANYD(volfrac[mfi]));
+                              BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                              BL_TO_FORTRAN_BOX(domain));
         }
     }
 
