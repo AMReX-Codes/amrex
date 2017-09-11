@@ -432,7 +432,7 @@ namespace amrex
               {
                 a_regIrregCovered(iv, 0) = 0;
                 IrregNode newNode;
-                newNode.makeRegular(iv, a_dx);
+                newNode.makeRegular(iv, a_dx, a_domain);
                 a_nodes.push_back(newNode);
               }
           }

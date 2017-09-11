@@ -111,7 +111,7 @@ namespace amrex
        a person can modify as the irregular cell requires.  saves
        some coding in some cases
     */
-    void makeRegular(const IntVect& iv, const Real& a_dx);
+    void makeRegular(const IntVect& iv, const Real& a_dx, const Box& a_domain);
 
   };
 }
