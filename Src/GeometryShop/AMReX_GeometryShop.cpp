@@ -471,7 +471,7 @@ namespace amrex
                 // boundary arcs always -1
                 arc.resize(1,-1);
                 areaFrac.resize(1, 1.0);
-                faceCentroid.resize(1, RealVect::Unit);
+                faceCentroid.resize(1, RealVect::Zero);
               }
             else if (a_regIrregCovered(ivshift, 0) >= 0)
               {
@@ -481,7 +481,7 @@ namespace amrex
                 //it just  knows that the cell index of a regular cell is 0
                 arc.resize(1,0);
                 areaFrac.resize(1, 1.0);
-                faceCentroid.resize(1, RealVect::Unit);
+                faceCentroid.resize(1, RealVect::Zero);
               }
             else if (a_regIrregCovered(ivshift, 0) < 0)
               {
