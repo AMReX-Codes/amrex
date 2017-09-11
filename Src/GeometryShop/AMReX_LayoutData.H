@@ -63,17 +63,19 @@ namespace amrex
         return (m_data[a_mfi.LocalIndex()]);
       }
 
-    T& operator[](const int & a_localIndex)
+    T& operator[](const int & a_box_index)
       {
-        BL_ASSERT(a_localIndex < m_data.size());
-        return (m_data[a_localIndex]);
+        int local_index = this->localindex(a_box_index);
+        BL_ASSERT(local_index < m_data.size());
+        return (m_data[local_index]);
       }
 
 
-    const T& operator[](const int & a_localIndex) const
+    const T& operator[](const int & a_box_index) const
       {
-        BL_ASSERT(a_localIndex < m_data.size());
-        return (m_data[a_localIndex]);
+        int local_index = this->localindex(a_box_index);
+        BL_ASSERT(local_index < m_data.size());
+        return (m_data[local_index]);
       }
 
   private:
