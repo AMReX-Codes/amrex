@@ -105,9 +105,12 @@ bool KDTree::splitBox(int split, int dir,
 
     if (length < 2*min_box_size) return false;
 
-    int new_length_left = split - lo + 1;
+    int new_length_left  = split - lo + 1;
+    int new_length_right = hi - split; 
     if (new_length_left < min_box_size) {
         split = min_box_size + lo - 1;
+    } else if (new_length_right < min_box_size) {
+        split = hi - min_box_size;
     }
 
     left = box;

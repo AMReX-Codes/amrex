@@ -42,7 +42,7 @@ namespace amrex
       return std::sqrt(irregArea);
   }
 
-  void IrregNode::makeRegular(const IntVect& iv, const Real& a_dx)
+  void IrregNode::makeRegular(const IntVect& iv, const Real& a_dx, const Box& a_domain)
   {
     m_cell = iv;
     m_volFrac = 1.0;
@@ -52,7 +52,15 @@ namespace amrex
     //low sides
     for (int i=0; i<SpaceDim; i++)
       {
-        m_arc[i].resize(1,0);
+        IntVect otherIV = iv - BASISV(i);
+        if(a_domain.contains(otherIV))
+        {
+          m_arc[i].resize(1,0);
+        }
+        else
+        {
+          m_arc[i].resize(1,-1);
+        }
         m_areaFrac[i].resize(1,1.0);
         RealVect faceCenter = RealVect::Zero;
         faceCenter[i] = -0.5;
@@ -61,7 +69,15 @@ namespace amrex
     //hi sides
     for (int i=0; i<SpaceDim; i++)
       {
-        m_arc[i+SpaceDim].resize(1,0);
+        IntVect otherIV = iv + BASISV(i);
+        if(a_domain.contains(otherIV))
+        {
+          m_arc[i+SpaceDim].resize(1,0);
+        }
+        else
+        {
+          m_arc[i+SpaceDim].resize(1,-1);
+        }
         m_areaFrac[i+SpaceDim].resize(1,1.0);
         RealVect faceCenter = RealVect::Zero;
         faceCenter[i] = 0.5;
