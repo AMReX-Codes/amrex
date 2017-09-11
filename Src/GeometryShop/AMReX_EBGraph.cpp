@@ -19,7 +19,7 @@
 
 namespace amrex
 {
-  static const IntVect ebg_debiv(D_DECL(994,213,7));
+//  static const IntVect ebg_debiv(D_DECL(994,213,7));
   bool EBGraphImplem::s_verbose = false;
   /*******************************/
   Array<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
@@ -40,7 +40,7 @@ namespace amrex
     Array<FaceIndex> multiValuedFaces;
     Box ghostRegion = a_box;
     ghostRegion.grow(a_idir, 1);
-    const IntVectSet ivsMulti = a_ebgraph.getMultiCells(ghostRegion);
+    const IntVectSet& ivsMulti = a_ebgraph.getMultiCells(ghostRegion);
     //Use faceiterator to only stop at faces once
     FaceIterator faceit(ivsMulti, a_ebgraph, a_idir, FaceStop::SurroundingWithBoundary);
     for (faceit.reset(); faceit.ok(); ++faceit)
@@ -218,8 +218,7 @@ namespace amrex
   /*******************************/
   IntVectSet EBGraphImplem::getIrregCells(const Box& a_subbox) const
   {
-    IntVectSet retval;
-    retval = m_irregIVS;
+    IntVectSet retval = m_irregIVS;
     retval &= a_subbox;
     return retval;
   }
@@ -227,9 +226,7 @@ namespace amrex
   /*******************************/
   IntVectSet EBGraphImplem::getMultiCells(const Box& a_subbox) const
   {
-    IntVectSet retval;
-
-    retval = m_multiIVS;
+    IntVectSet retval = m_multiIVS;
     retval &= a_subbox;
     return retval;
   }
@@ -320,8 +317,7 @@ namespace amrex
     {
       const IrregNode& inputNode = a_irregGraph[ivecIrreg];
       const IntVect& iv =inputNode.m_cell;
-      Array<GraphNodeImplem>& vecNodes =
-        *(m_graph(iv, 0).m_cellList);
+      Array<GraphNodeImplem>& vecNodes = *(m_graph(iv, 0).m_cellList);
       //pick out which node we are talking about
       //by maching its nodeInd with ivecIrreg
       bool foundNode = false;
@@ -537,10 +533,10 @@ namespace amrex
               const Side::LoHiSide& a_sd) const
   {
     Array<FaceIndex> retval(0);
-    Array<VolIndex> vofs = getVoFs(a_iv);
+    const Array<VolIndex>& vofs = getVoFs(a_iv);
     for (int ivof= 0; ivof < vofs.size(); ivof++)
     {
-      Array<FaceIndex> faces = getFaces(vofs[ivof], a_idir, a_sd);
+      const Array<FaceIndex>& faces = getFaces(vofs[ivof], a_idir, a_sd);
       for(int iface = 0; iface < faces.size(); iface++)
       {
         retval.push_back(faces[iface]);
@@ -810,7 +806,7 @@ namespace amrex
     }
     else
     {
-      Box b = a_mask.box();
+      const Box& b = a_mask.box();
       for (BoxIterator bit(b); bit.ok(); ++bit)
       {
         if (isCovered(bit())|| isMultiValued(bit()))
@@ -891,7 +887,7 @@ namespace amrex
     else
     {
       Box b = a_box & m_domain;
-      IntVectSet ivs = this->getIrregCells(b);
+      const IntVectSet& ivs = this->getIrregCells(b);
       for (IVSIterator it(ivs); it.ok(); ++it)
       {
         const GraphNode& node = m_graph(it(), 0);
