@@ -53,16 +53,11 @@ namespace amrex
     amrex::Print() << "EBIndexSpace::define - From file input" << endl;
 
     readHeader(a_dirname);
-    m_ebisLevel.resize(m_nlevels);
-    for(int ilev = 0; ilev < m_ebisLevel.size(); ilev++)
-    {
-      delete m_ebisLevel[ilev];
-    }
-    m_ebisLevel.resize(m_nlevels, NULL);
+    m_ebisLevel.clear();
 
     for(int ilev = 0; ilev < m_nlevels; ilev++)
     {
-      m_ebisLevel[ilev] = new EBISLevel();
+      m_ebisLevel[ilev].reset(new EBISLevel());
       amrex::Print() << "EBIndexSpace::reading level " << ilev << endl;
       string levdirname = a_dirname + "/_lev_" + EBArith::convertInt(ilev);
       m_ebisLevel[ilev]->read(levdirname);
@@ -138,12 +133,12 @@ namespace amrex
   ///
   void 
   EBIndexSpace::
-  buildFirstLevel(const Box&   a_domain,
+  buildFirstLevel(const Box&             a_domain,
                   const RealVect&        a_origin,
                   const Real&            a_dx,
                   const GeometryService& a_geoserver,
-                  int a_nCellMax,
-                  int a_maxCoarsenings)
+                  int                    a_nCellMax,
+                  int                    a_maxCoarsenings)
   {
     BL_PROFILE("EBIndexSpace::buildFirstLevel");
     clear();
@@ -167,7 +162,7 @@ namespace amrex
     m_nlevels = 1;
     bool canref = (a_domain.coarsenable(2));
       
-    assert(!a_domain.isEmpty());
+    AMREX_ASSERT(!a_domain.isEmpty());
     Box refbox = a_domain;
       
     while (canref)
@@ -187,15 +182,15 @@ namespace amrex
       m_nlevels =  std::min(m_nlevels, a_maxCoarsenings+1);
     }
       
-    m_ebisLevel.resize(m_nlevels, NULL);
+    m_ebisLevel.resize(m_nlevels);
     m_domainLevel.resize(m_nlevels);
       
     Box  domLevel = a_domain;
-    m_ebisLevel[0] = new EBISLevel(domLevel,
-                                   a_origin,
-                                   a_dx,
-                                   m_nCellMax,
-                                   a_geoserver);
+    m_ebisLevel[0].reset(new EBISLevel(domLevel,
+                                       a_origin,
+                                       a_dx,
+                                       m_nCellMax,
+                                       a_geoserver));
       
     m_domainLevel[0] = domLevel;
   }
@@ -210,8 +205,8 @@ namespace amrex
       
     m_domainLevel[ilev] = m_domainLevel[ilev-1];
     m_domainLevel[ilev].coarsen(2);
-    m_ebisLevel[ilev] = new EBISLevel(*m_ebisLevel[ilev-1],
-                                      a_geoserver);
+    m_ebisLevel[ilev].reset(new EBISLevel(*m_ebisLevel[ilev-1],
+                                          a_geoserver));
       
   }
   ///
@@ -219,11 +214,6 @@ namespace amrex
   EBIndexSpace::
   clear()
   {
-    for (int ilev = 0; ilev < m_ebisLevel.size(); ilev++)
-    {
-      delete m_ebisLevel[ilev];
-      m_ebisLevel[ilev] = NULL;
-    }
     m_ebisLevel.resize(0);
     m_domainLevel.resize(0);
     m_nlevels = 0;
@@ -251,7 +241,7 @@ namespace amrex
                                     const Box      & a_domain,
                                     const int      & a_nghost) const
   {
-    assert(isDefined());
+    AMREX_ASSERT(isDefined());
     BL_PROFILE("EBIndexSpace::fillEBISLayout");
       
     //figure out which level we are on
