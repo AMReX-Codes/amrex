@@ -867,45 +867,7 @@ namespace amrex
         }
       }
   }
-        
-  Array<FaceIndex> EBGraph:: getIrregFaces(const Box& a_box,
-                                                 int        a_dir) const
-  {
-    return m_implem->getIrregFaces(a_box, a_dir);
-  }
-  /***********/      
-  Array<FaceIndex>  
-  EBGraphImplem::
-  getIrregFaces(const Box& a_box,
-                int        a_dir) const
-  {
-    Array<FaceIndex> faces;
-    if (m_tag == AllRegular || m_tag == AllCovered)
-    {
-      // do nothing
-    }
-    else
-    {
-      Box b = a_box & m_domain;
-      const IntVectSet& ivs = this->getIrregCells(b);
-      for (IVSIterator it(ivs); it.ok(); ++it)
-      {
-        const GraphNode& node = m_graph(it(), 0);
-        IntVect hi = it() + BASISV(a_dir);
-        BL_ASSERT(node.isIrregular());
-        if (b.contains(hi) && m_graph(hi, 0).isIrregular())
-        {
-          Array<FaceIndex> faces = node.getFaces(it(), a_dir, Side::Hi, m_domain);
-          for(int iface = 0; iface < faces.size(); iface++)
-          {
-            faces.push_back(faces[iface]);
-          }
-        }
-      }
-    }
-    return faces;
-  }
-        
+
   /*******************************/
   FaceIndex 
   EBGraphImplem::
