@@ -54,10 +54,6 @@ namespace amrex
 
     
     ///
-    static bool preAllocatable () { return false; }
-    static bool isCopyOMPSafe () { return false; }
-
-    ///
     /**
        Makes an EBGraphImplem whose contents are undefined.
     */
@@ -425,14 +421,8 @@ namespace amrex
         
   private:
         
-    void operator=(const EBGraphImplem& ebiin)
-      {
-        
-      }
-    EBGraphImplem(const EBGraphImplem& ebiin)
-      {
-        
-      }
+    void operator=(const EBGraphImplem& ebiin) = delete;
+    EBGraphImplem(const EBGraphImplem& ebiin) = delete;
         
     friend class EBIndexSpace;
     friend class EBISLevel;
