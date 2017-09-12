@@ -13,45 +13,48 @@
 #ifndef _AMReX_EBDataVarMacros_H_
 #define _AMReX_EBDataVarMacros_H_
 
+namespace amrex {
+
 #if (BL_SPACEDIM == 2)
 
-#define V_VOLFRAC       0
-#define V_BNDAREA       1
-#define V_VOLCENTROIDX  2
-#define V_VOLCENTROIDY  3
-#define V_BNDCENTROIDX  4
-#define V_BNDCENTROIDY  5
-#define V_NORMALX       6
-#define V_NORMALY       7
-#define V_VOLNUMBER     8
-                        
-#define F_AREAFRAC      0
-#define F_FACECENTROIDX 1
-#define F_FACECENTROIDY 2
-#define F_FACENUMBER    3
+static constexpr int V_VOLFRAC       = 0;
+static constexpr int V_BNDAREA       = 1;
+static constexpr int V_VOLCENTROIDX  = 2;
+static constexpr int V_VOLCENTROIDY  = 3;
+static constexpr int V_BNDCENTROIDX  = 4;
+static constexpr int V_BNDCENTROIDY  = 5;
+static constexpr int V_NORMALX       = 6;
+static constexpr int V_NORMALY       = 7;
+static constexpr int V_VOLNUMBER     = 8;
+
+static constexpr int F_AREAFRAC      = 0;
+static constexpr int F_FACECENTROIDX = 1;
+static constexpr int F_FACECENTROIDY = 2;
+static constexpr int F_FACENUMBER    = 3;
 
 #elif (BL_SPACEDIM == 3)
 
-#define V_VOLFRAC      0
-#define V_BNDAREA      1
-#define V_VOLCENTROIDX 2
-#define V_VOLCENTROIDY 3
-#define V_VOLCENTROIDZ 4
-#define V_BNDCENTROIDX 5
-#define V_BNDCENTROIDY 6
-#define V_BNDCENTROIDZ 7
-#define V_NORMALX      8
-#define V_NORMALY      9
-#define V_NORMALZ      10
-#define V_VOLNUMBER    11
+static constexpr int V_VOLFRAC      = 0;
+static constexpr int V_BNDAREA      = 1;
+static constexpr int V_VOLCENTROIDX = 2;
+static constexpr int V_VOLCENTROIDY = 3;
+static constexpr int V_VOLCENTROIDZ = 4;
+static constexpr int V_BNDCENTROIDX = 5;
+static constexpr int V_BNDCENTROIDY = 6;
+static constexpr int V_BNDCENTROIDZ = 7;
+static constexpr int V_NORMALX      = 8;
+static constexpr int V_NORMALY      = 9;
+static constexpr int V_NORMALZ      = 10;
+static constexpr int V_VOLNUMBER    = 11;
 
-#define F_AREAFRAC      0
-#define F_FACECENTROIDX 1
-#define F_FACECENTROIDY 2
-#define F_FACECENTROIDZ 3
-#define F_FACENUMBER    4
+static constexpr int F_AREAFRAC      = 0;
+static constexpr int F_FACECENTROIDX = 1;
+static constexpr int F_FACECENTROIDY = 2;
+static constexpr int F_FACECENTROIDZ = 3;
+static constexpr int F_FACENUMBER    = 4;
 
 #endif
 
+}
 
 #endif
