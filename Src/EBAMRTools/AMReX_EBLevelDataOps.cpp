@@ -27,7 +27,7 @@ namespace amrex
   EBLevelDataOps::
   viewEBLevel(const FabArray<EBCellFAB> * a_data, const EBLevelGrid* a_eblg)
   {
-    vector<string> names(a_data->nComp());
+    Array<string> names(a_data->nComp());
     for(int icomp = 0; icomp < a_data->nComp(); icomp++)
     {
       names[icomp] = string("eb_var_") + EBArith::convertInt(icomp);
@@ -45,12 +45,12 @@ namespace amrex
   writeSingleLevelEBPlotFile(const std::string         & a_filename,
                              const FabArray<EBCellFAB> & a_data,
                              const EBLevelGrid         & a_eblg,
-                             const vector<string>      & a_varNames)
+                             const Array<string>      & a_varNames)
   {
     MultiFab mfdata;
     makePlotMultiFab(mfdata, a_data, a_eblg);
     Array<string> varNameArr(a_varNames.size());
-    vector<string>& varNameArrCast = static_cast<vector<string>& >(varNameArr);
+    Array<string>& varNameArrCast = static_cast<Array<string>& >(varNameArr);
     varNameArrCast = a_varNames;
     varNameArr.push_back(string("vfrac"));
 
@@ -64,10 +64,10 @@ namespace amrex
   void 
   EBLevelDataOps::
   writeEBAMRPlotFile(const std::string                   & a_filename,
-                     const vector<FabArray<EBCellFAB>* > & a_data,
-                     const vector<EBLevelGrid>           & a_eblg,
-                     const vector<int>                   & a_refRat,
-                     const vector<string>                & a_varNames)
+                     const Array<FabArray<EBCellFAB>* > & a_data,
+                     const Array<EBLevelGrid>           & a_eblg,
+                     const Array<int>                   & a_refRat,
+                     const Array<string>                & a_varNames)
   {
     int nlevels = a_data.size();
     Array<IntVect>   refRatArr(nlevels, 2*IntVect::Unit);
@@ -78,7 +78,7 @@ namespace amrex
 
 
     Array<string>   varNameArr(a_varNames.size());
-    vector<string>& varNameArrCast = static_cast<vector<string>& >(varNameArr);
+    Array<string>& varNameArrCast = static_cast<Array<string>& >(varNameArr);
     varNameArrCast = a_varNames;
     varNameArr.push_back(string("vfrac"));
 
@@ -604,7 +604,7 @@ namespace amrex
   gatherBroadCast(Real& a_accum, Real& a_volume, const int& a_p)
   {
     BL_PROFILE("EBLevelDataOps::gatherBroadcast1");
-    //   std::vector<Real> accum(1,a_accum);
+    //   Array<Real> accum(1,a_accum);
 //   gatherBroadCast(accum, a_volume, a_p);
 //   a_accum = accum[0];
 #ifdef BL_USE_MPI
@@ -728,7 +728,7 @@ namespace amrex
                const FabArray<EBCellFAB>       &   a_errorCoar,
                const EBLevelGrid               &   a_eblgFine,
                const EBLevelGrid               &   a_eblgCoar,
-               std::vector<string>                 a_names,
+               Array<string>                 a_names,
                bool                                a_useGhost)
   {
     BL_ASSERT(a_errorFine.nComp() == a_errorCoar.nComp());
@@ -745,7 +745,7 @@ namespace amrex
     bool useDefaultNames = (a_names.size() < ncomp);
 
 
-    std::vector<Real> coarNorm[3], fineNorm[3], orders[3];  //one for each type of norm;
+    Array<Real> coarNorm[3], fineNorm[3], orders[3];  //one for each type of norm;
     for (int p = 0; p <=2;  p++)
     {
       coarNorm[p].resize(ncomp, 0.);

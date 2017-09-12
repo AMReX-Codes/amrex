@@ -3,7 +3,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_EBInterp_f.H>
+#include <AMReX_EBInterp_F.H>
 
 namespace amrex {
 

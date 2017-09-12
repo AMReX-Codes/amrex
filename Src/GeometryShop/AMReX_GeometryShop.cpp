@@ -195,7 +195,7 @@ namespace amrex
   /*********************************************/
   void
   GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
-                          std::vector<IrregNode>   & a_nodes,
+                          Array<IrregNode>   & a_nodes,
                           const Box           & a_validRegion,
                           const Box           & a_ghostRegion,
                           const Box & a_domain,
@@ -263,12 +263,12 @@ namespace amrex
 
         Real     volFrac, bndryArea;
         RealVect normal, volCentroid, bndryCentroid;
-        std::vector<int> loArc[SpaceDim];
-        std::vector<int> hiArc[SpaceDim];
-        std::vector<Real> loAreaFrac[SpaceDim];
-        std::vector<Real> hiAreaFrac[SpaceDim];
-        std::vector<RealVect> loFaceCentroid[SpaceDim];
-        std::vector<RealVect> hiFaceCentroid[SpaceDim];
+        Array<int> loArc[SpaceDim];
+        Array<int> hiArc[SpaceDim];
+        Array<Real> loAreaFrac[SpaceDim];
+        Array<Real> hiAreaFrac[SpaceDim];
+        Array<RealVect> loFaceCentroid[SpaceDim];
+        Array<RealVect> hiFaceCentroid[SpaceDim];
         computeVoFInternals(volFrac,
                             loArc,
                             hiArc,
@@ -375,7 +375,7 @@ namespace amrex
   /*************/
   void
   GeometryShop::
-  fixRegularCellsNextToCovered(std::vector<IrregNode>    & a_nodes, 
+  fixRegularCellsNextToCovered(Array<IrregNode>    & a_nodes, 
                                BaseFab<int>              & a_regIrregCovered,
                                const Box                 & a_validRegion,
                                const Box                 & a_domain,
@@ -432,7 +432,7 @@ namespace amrex
               {
                 a_regIrregCovered(iv, 0) = 0;
                 IrregNode newNode;
-                newNode.makeRegular(iv, a_dx);
+                newNode.makeRegular(iv, a_dx, a_domain);
                 a_nodes.push_back(newNode);
               }
           }
@@ -463,15 +463,15 @@ namespace amrex
           {
             int ishift = sign(sit());
             IntVect ivshift = a_iv + ishift*BASISV(faceDir);
-            std::vector<int> arc;
-            std::vector<Real> areaFrac;
-            std::vector<RealVect> faceCentroid;
+            Array<int> arc;
+            Array<Real> areaFrac;
+            Array<RealVect> faceCentroid;
             if(!a_domain.contains(ivshift))
               {
                 // boundary arcs always -1
                 arc.resize(1,-1);
                 areaFrac.resize(1, 1.0);
-                faceCentroid.resize(1, RealVect::Unit);
+                faceCentroid.resize(1, RealVect::Zero);
               }
             else if (a_regIrregCovered(ivshift, 0) >= 0)
               {
@@ -481,7 +481,7 @@ namespace amrex
                 //it just  knows that the cell index of a regular cell is 0
                 arc.resize(1,0);
                 areaFrac.resize(1, 1.0);
-                faceCentroid.resize(1, RealVect::Unit);
+                faceCentroid.resize(1, RealVect::Zero);
               }
             else if (a_regIrregCovered(ivshift, 0) < 0)
               {
@@ -514,16 +514,16 @@ namespace amrex
   /*********************************************/
   void
   GeometryShop::computeVoFInternals(Real&               a_volFrac,
-                                    std::vector<int>         a_loArc[SpaceDim],
-                                    std::vector<int>         a_hiArc[SpaceDim],
-                                    std::vector<Real>        a_loAreaFrac[SpaceDim],
-                                    std::vector<Real>        a_hiAreaFrac[SpaceDim],
+                                    Array<int>         a_loArc[SpaceDim],
+                                    Array<int>         a_hiArc[SpaceDim],
+                                    Array<Real>        a_loAreaFrac[SpaceDim],
+                                    Array<Real>        a_hiAreaFrac[SpaceDim],
                                     Real&               a_bndryArea,
                                     RealVect&           a_normal,
                                     RealVect&           a_volCentroid,
                                     RealVect&           a_bndryCentroid,
-                                    std::vector<RealVect>    a_loFaceCentroid[SpaceDim],
-                                    std::vector<RealVect>    a_hiFaceCentroid[SpaceDim],
+                                    Array<RealVect>    a_loFaceCentroid[SpaceDim],
+                                    Array<RealVect>    a_hiFaceCentroid[SpaceDim],
                                     const BaseFab<int>& a_regIrregCovered,
                                     const Box&a_domain,
                                     const RealVect&     a_origin,
@@ -564,8 +564,8 @@ namespace amrex
         Moments geom;
 
         // answer0,answer1 are vectors whose components contain geometric information
-        std::vector<Real> answer0;
-        std::vector<Real> answer1;
+        Array<Real> answer0;
+        Array<Real> answer1;
 
         int order = 0;
         answer0 = geom.momentCalc2D(order,Face);
@@ -755,8 +755,8 @@ namespace amrex
                   {
                     Moments geom;
                     // answer0 and answer1 have all the geometric facts
-                    std::vector<Real> answer0;
-                    std::vector<Real> answer1;
+                    Array<Real> answer0;
+                    Array<Real> answer1;
 
                     int order = 0;
                     answer0 = geom.momentCalc2D(order,Faces[index]);
@@ -806,11 +806,11 @@ namespace amrex
             faceMo& face = Faces[iFace];
 
             // collect exactly two irregular edges or mayday.
-            std::vector<RealVect> crossingPt;
+            Array<RealVect> crossingPt;
 
-            std::vector<int> cPtHiLo;
-            std::vector<int> edgeHiLo;
-            std::vector<int> edgeDir;
+            Array<int> cPtHiLo;
+            Array<int> edgeHiLo;
+            Array<int> edgeDir;
 
             if (!(face.isCovered()) && !(face.isRegular()))
               {
@@ -1198,12 +1198,12 @@ namespace amrex
 
         Moments geom;
         int order = 0;
-        std::vector<Real> answer0;
+        Array<Real> answer0;
         answer0 = geom.momentCalc3D(order,Vof);
 
         a_volFrac = answer0[0];
 
-        std::vector<Real> answer1;
+        Array<Real> answer1;
         order = 1;
         answer1 = geom.momentCalc3D(order,Vof);
 

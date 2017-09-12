@@ -52,7 +52,7 @@ set ( ALLHEADERS
    AMReX_BCRec.H        AMReX_BoxDomain.H           AMReX_DistributionMapping.H  AMReX_Geometry.H
    AMReX_MemPool.H      AMReX_ParallelDescriptor.H  AMReX_RealVect.H      AMReX_VisMF.H
    AMReX_BC_TYPES.H     AMReX_Box.H                 AMReX_FabArrayBase.H  AMReX.H
-   AMReX_MemProfiler.H  AMReX_ParmParse.H           AMReX_SPACE_F.H )
+   AMReX_MemProfiler.H  AMReX_ParmParse.H           AMReX_SPACE_F.H       AMReX_LayoutData.H)
 
 # Accumulate sources
 set ( ALLSRC ${CXXSRC} ${F90SRC} ${F77SRC} )

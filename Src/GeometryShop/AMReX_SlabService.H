@@ -15,7 +15,7 @@
 
 #include <cmath>
 #include <cstdlib>
-#include "Vector.H"
+#include "AMReX_Array.H"
 #include "Box.H"
 #include "EBISBox.H"
 #include "GeometryService.H"
@@ -64,7 +64,7 @@ public:
      ghostregion = (grow(validRegion, 1) & domain);
    */
   virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                         Vector<IrregNode>&   a_nodes,
+                         Array<<IrregNode>&   a_nodes,
                          const Box&           a_validRegion,
                          const Box&           a_ghostRegion,
                          const ProblemDomain&           a_domain,
