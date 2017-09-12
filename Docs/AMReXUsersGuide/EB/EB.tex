@@ -328,4 +328,76 @@ iterator over points & BoxIterator & VoFIterator, FaceIterator
 \caption{\label{fig::concepts} The concepts represented in $\tt{EBAMReX}$.}
 \end{table}
 
-\section{EB Dataholders}
+\section{Single Level EB}
+\label{sec:EB:EBTools}
+
+\subsection{Available Tools}
+
+Even in the absence of adaptive mesh refinement, writing embedded
+boundary codes can be complex.    $\tt{AMReX}$ provides a number of
+tools to manage this complexity and 
+$\tt{AMReX}$ provides a large set of tools for writing embedded
+boundary simulations.
+\begin{itemize}
+\item  Because the EB graph is not necessarily simply connected, we
+  provide EB specific data holders.
+\begin{itemize}
+  \item $\tt{EBCellFAB}$ and $\tt{EBFaceFAB}$ hold cell and
+    face-centered data over a $\tt{Box}$.
+   \item $\tt{BaseIVFAB}$ and $\tt{BaseIFFAB}$ hold cell and face
+     data over a sparse subset of a box (defined by an
+     $\tt{IntVectSet}$.
+\end{itemize}
+\item We provide iterators to move over the uncovered regions of an $\tt{IntVectSet}$.
+\begin{itemize}
+  \item $\tt{VoFIterator}$ iterates over the uncovered volumes in the set.
+  \item $\tt{FaceIterator}$ iterates over the uncovered faces in the set. 
+\end{itemize}
+\item We provide infrastructure for storing and aggregating stencils.
+\begin{itemize}
+  \item $\tt{VoFStencil}$ holds the volumes and weights for a
+    stencil over cell-centered data.
+  \item $\tt{FaceStencil}$ holds the volumes and weights for a
+    stencil over face-centered data.
+  \item $\tt{AggStenci}$ is a stencil aggregator.   Given a set of
+    stencils, it stores offsets into the data and weights to allow for
+    fast evaluation of groups of stencils.
+\end{itemize}
+\item $\tt{EBArith}$ provides a library of widely-used operations including
+\begin{itemize}
+  \item Stencils needed for common derivative calculations.
+  \item Stencils for various interpolation stencils.
+  \item Monotone path calculations.
+\end{itemize}
+\item $\tt{EBLevelDataOps}$ provides a library of widely-used
+  single-level actions.
+\begin{itemize}
+  \item Writing EB plotfiles for single level data.   Since
+    $\tt{amrvis}$ and $\tt{visit}$ do not allow for multivalued data,
+    only the single-valued data is included in these plots.
+  \item Alias construction for $\tt{MultiFab}$ from
+    $\tt{FabArray<EBCellFAB>}$.  This is useful when one ones to
+    access the non-EB versions of tools.
+  \item Data checking (maxima, minima, norms, checking for invalid
+    data...)
+  \item Many aritimetic functions.
+\end{itemize}
+ \item $\tt{EBLevelRedist}$  is used for mass redistribution, a
+   crucial piece of finite volume EB algorithms.
+ \item $\tt{DivergenceOp}$  evaluates a hybrid divergence over a level
+   given a level's worth of fluxes.  This includes redistribution.
+ \item $\tt{GradientOp}$  evaluates the slopes of data over a level.  
+   This includes limiting.
+ \item $\tt{FabArrayIO}$  provides checkpointing and restart of EB
+   data.  This includes both single and multi-valued data.
+\end{itemize}
+
+\subsection{Examples of How to Use the Tools}
+
+\section{Multi Level EB}
+\label{sec:EB:EBAMRTools}
+
+\subsection{Available Tools}
+
+\subsection{Examples of How to Use the Tools}
+
