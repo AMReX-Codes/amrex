@@ -34,11 +34,9 @@ namespace amrex
                    const Real&                                  a_beta,
                    const shared_ptr<FabArray<EBCellFAB> >&      a_acoef,
                    const shared_ptr<FabArray<EBFluxFAB> >&      a_bcoef,
-                   const int    &                               a_ghostPhi,
-                   const int    &                               a_ghostRHS)
+                   const int    &                               a_ghost)
   : AMRLevelOp<FabArray<EBCellFAB> >(),
-    m_ghostPhi(a_ghostPhi),
-    m_ghostRHS(a_ghostRHS),
+    m_ghost(a_ghost),
     m_eblg(a_eblg),
     m_eblgFine(),
     m_eblgCoar(),
@@ -88,10 +86,10 @@ namespace amrex
     {
       m_eblgCoar       = a_eblgCoar;
       bool useKappaWeighting = false; //we are averaging stuff that is already kappa weighted
-      m_ebInterp.define(  m_eblg, m_eblgCoar,  m_refToCoar, m_ghostPhi);
-      m_ebAverage.define( m_eblg, m_eblgCoar,  m_refToCoar, useKappaWeighting, m_ghostPhi);
+      m_ebInterp.define(  m_eblg, m_eblgCoar,  m_refToCoar, m_ghost);
+      m_ebAverage.define( m_eblg, m_eblgCoar,  m_refToCoar, useKappaWeighting, m_ghost);
       int numGhostToFill= 1; //no EB/CF crossing so only need one cell
-      m_cfInterp.define(  m_eblg, m_eblgCoar,  m_refToCoar, m_ghostPhi, numGhostToFill);
+      m_cfInterp.define(  m_eblg, m_eblgCoar,  m_refToCoar, m_ghost, numGhostToFill);
     }
 
     if (m_hasCoarMG)
@@ -99,9 +97,9 @@ namespace amrex
       int mgRef = 2;
       m_eblgCoarMG = a_eblgCoarMG;
 
-      m_ebInterpMG.define( m_eblg, m_eblgCoarMG,  mgRef, m_ghostPhi);
+      m_ebInterpMG.define( m_eblg, m_eblgCoarMG,  mgRef, m_ghost);
       bool useKappaWeighting = false; //we are averaging stuff that is already kappa weighted
-      m_ebAverageMG.define(m_eblg, m_eblgCoarMG,  mgRef, useKappaWeighting, m_ghostRHS);
+      m_ebAverageMG.define(m_eblg, m_eblgCoarMG,  mgRef, useKappaWeighting, m_ghost);
     }
 
     //define stencils for the operator
@@ -367,8 +365,8 @@ namespace amrex
     EBArith::getMultiColors(m_colors);
 
     EBCellFactory fact(m_eblg.getEBISL());              
-    FabArray<EBCellFAB> phiProxy(m_eblg.getDBL(), m_eblg.getDM(), SpaceDim, m_ghostPhi, MFInfo(), fact);
-    FabArray<EBCellFAB> rhsProxy(m_eblg.getDBL(), m_eblg.getDM(), SpaceDim, m_ghostRHS, MFInfo(), fact);
+    FabArray<EBCellFAB> phiProxy(m_eblg.getDBL(), m_eblg.getDM(), SpaceDim, m_ghost, MFInfo(), fact);
+    FabArray<EBCellFAB> rhsProxy(m_eblg.getDBL(), m_eblg.getDM(), SpaceDim, m_ghost, MFInfo(), fact);
 
     for(MFIter mfi(m_eblg.getDBL(), m_eblg.getDM()); mfi.isValid(); ++mfi)
     {
@@ -409,7 +407,14 @@ namespace amrex
 
         //bcoef is included here in the flux consistent
         //with the regular
-
+//begin debug        
+        IntVect ivdebug(D_DECL(15,12,0));
+        int idebug = 0;
+        if(vof.gridIndex() == ivdebug)
+        {
+          idebug = 1;
+        }
+//end debug
         getDivFStencil(vofsten,vof, mfi);
         if (fluxStencil != NULL)
         {
@@ -496,8 +501,8 @@ namespace amrex
     BL_PROFILE("EBConductivityOp::residual");
     //this is a EBMultiGrid operator so only homogeneous CF BC
     //and null coar level
-    BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
-    BL_ASSERT(a_phi.nGrow() == m_ghostPhi);
+    BL_ASSERT(a_residual.nGrow() == m_ghost);
+    BL_ASSERT(a_phi.nGrow() == m_ghost);
     applyOp(a_residual,a_phi,NULL, a_homogeneousPhysBC, true);
     axby(a_residual,a_residual,a_rhs,-1.0, 1.0);
   }
@@ -787,7 +792,7 @@ namespace amrex
 #ifdef BL_USE_MPI
     Real tmp = 1.;
     int result = MPI_Allreduce(&maxNorm, &tmp, 1, MPI_CH_REAL,
-                               MPI_MAX, Chombo_MPI::comm);
+                               MPI_MAX, MPI_COMM_WORLD);
     if (result != MPI_SUCCESS)
     { //bark!!!
       amrex::Error("sorry, but I had a communcation error on norm");
@@ -846,8 +851,8 @@ namespace amrex
         int                         a_iterations)
   {
     BL_PROFILE("nwoebco::relax");
-    BL_ASSERT(a_phi.nGrow() == m_ghostPhi);
-    BL_ASSERT(a_rhs.nGrow() == m_ghostRHS);
+    BL_ASSERT(a_phi.nGrow() == m_ghost);
+    BL_ASSERT(a_rhs.nGrow() == m_ghost);
     BL_ASSERT(a_phi.nComp() == 1);
     BL_ASSERT(a_phi.nComp() == a_rhs.nComp());
 
@@ -1003,8 +1008,8 @@ namespace amrex
               AMRLevelOp<FabArray<EBCellFAB> >* a_finerOp)
   {
     BL_PROFILE("EBConductivityOp::AMRResidual");
-    BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
-    BL_ASSERT(a_rhs.nGrow() == m_ghostRHS);
+    BL_ASSERT(a_residual.nGrow() == m_ghost);
+    BL_ASSERT(a_rhs.nGrow() == m_ghost);
     BL_ASSERT(a_residual.nComp() == 1);
     BL_ASSERT(a_phi.nComp() == 1);
     BL_ASSERT(a_rhs.nComp() == 1);
@@ -1026,7 +1031,7 @@ namespace amrex
               AMRLevelOp<FabArray<EBCellFAB> >* a_finerOp)
   {
     BL_PROFILE("EBConductivityOp::AMROperator");
-    BL_ASSERT(a_LofPhi.nGrow() == m_ghostRHS);
+    BL_ASSERT(a_LofPhi.nGrow() == m_ghost);
     BL_ASSERT(a_LofPhi.nComp() == 1);
     BL_ASSERT(a_phi.nComp() == 1);
 
@@ -1167,15 +1172,11 @@ namespace amrex
       const EBCellFAB& phiFine = a_phiFine[mfi_f];
       for (int idir = 0; idir < SpaceDim; idir++)
       {
-        for (SideIterator sit; sit.ok(); sit.next())
-        {
-          Box fabBox=EBArith::adjCellBox(boxFine, idir, sit(), 1);
-
-          fabBox.shift(idir, -sign(sit()));
-
-          Box ghostedBox = fabBox;
-          ghostedBox.grow(1);
-          ghostedBox.grow(idir,-1);
+//        for (SideIterator sit; sit.ok(); sit.next())
+//        {
+        Box ghostedBox = boxFine;
+        ghostedBox.grow(1);
+//        ghostedBox.grow(idir,-1);
           ghostedBox &= m_eblgFine.getDomain();
 
           EBFaceFAB fluxFine(ebisBoxFine, ghostedBox, idir, ncomp);
@@ -1187,7 +1188,7 @@ namespace amrex
           Real scale = 1.0; //beta and bcoef already in flux
 
           a_fluxReg.incrementFine(fluxFine, scale, mfi_f, 0, 0, 1);
-        }
+//        }
       }
     }
   }
@@ -1203,8 +1204,8 @@ namespace amrex
                 AMRLevelOp<FabArray<EBCellFAB> >* a_finerOp)
   {
     //dummy. there is no coarse when this is called
-    BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
-    BL_ASSERT(a_rhs.nGrow() == m_ghostRHS);
+    BL_ASSERT(a_residual.nGrow() == m_ghost);
+    BL_ASSERT(a_rhs.nGrow() == m_ghost);
     FabArray<EBCellFAB> phiC;
     AMRResidual(a_residual, a_phiFine, a_phi, phiC, a_rhs, a_homogeneousPhysBC, a_finerOp);
   }
@@ -1219,8 +1220,8 @@ namespace amrex
                 bool a_homogeneousPhysBC)
   {
     BL_PROFILE("ebco::amrresNF");
-    BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
-    BL_ASSERT(a_rhs.nGrow() == m_ghostRHS);
+    BL_ASSERT(a_residual.nGrow() == m_ghost);
+    BL_ASSERT(a_rhs.nGrow() == m_ghost);
 
     AMROperatorNF(a_residual, a_phi, a_phiCoar,
                   a_homogeneousPhysBC);
@@ -1238,7 +1239,7 @@ namespace amrex
   {
     BL_PROFILE("ebco::amrOpNC");
     //dummy. there is no coarse when this is called
-    BL_ASSERT(a_LofPhi.nGrow() == m_ghostRHS);
+    BL_ASSERT(a_LofPhi.nGrow() == m_ghost);
     FabArray<EBCellFAB> phiC;
     AMROperator(a_LofPhi, a_phiFine, a_phi, phiC,
                 a_homogeneousPhysBC, a_finerOp);
@@ -1252,7 +1253,7 @@ namespace amrex
                 const FabArray<EBCellFAB>& a_phiCoar,
                 bool a_homogeneousPhysBC)
   {
-    BL_ASSERT(a_LofPhi.nGrow() == m_ghostRHS);
+    BL_ASSERT(a_LofPhi.nGrow() == m_ghost);
 
     applyOp(a_LofPhi,a_phi, &a_phiCoar,  a_homogeneousPhysBC, false);
 
@@ -1266,9 +1267,9 @@ namespace amrex
               const FabArray<EBCellFAB>& a_coarCorrection)
   {
     BL_PROFILE("EBConductivityOp::AMRRestrict");
-    BL_ASSERT(a_residual.nGrow() == m_ghostRHS);
-    BL_ASSERT(a_correction.nGrow() == m_ghostPhi);
-    BL_ASSERT(a_coarCorrection.nGrow() == m_ghostPhi);
+    BL_ASSERT(a_residual.nGrow() == m_ghost);
+    BL_ASSERT(a_correction.nGrow() == m_ghost);
+    BL_ASSERT(a_coarCorrection.nGrow() == m_ghost);
 
     BL_ASSERT(a_residual.nComp() == 1);
     BL_ASSERT(a_resCoar.nComp() == 1);
@@ -1326,9 +1327,9 @@ namespace amrex
                     const FabArray<EBCellFAB>& a_coarCorrection)
   {
     BL_PROFILE("EBConductivityOp::AMRUpdateResidual");
-    BL_ASSERT(a_residual.nGrow()   == m_ghostRHS);
-    BL_ASSERT(a_correction.nGrow() == m_ghostPhi);
-    BL_ASSERT(a_coarCorrection.nGrow() == m_ghostPhi);
+    BL_ASSERT(a_residual.nGrow()   == m_ghost);
+    BL_ASSERT(a_correction.nGrow() == m_ghost);
+    BL_ASSERT(a_coarCorrection.nGrow() == m_ghost);
 
     FabArray<EBCellFAB> lcorr;
     bool homogeneousPhys = true;

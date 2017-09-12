@@ -22,7 +22,7 @@ namespace amrex
   static const IntVect ebg_debiv(D_DECL(994,213,7));
   bool EBGraphImplem::s_verbose = false;
   /*******************************/
-  std::vector<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
+  Array<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
                                                       const Box&  a_box) const
   {
     return
@@ -31,13 +31,13 @@ namespace amrex
         
         
   /*******************************/
-  std::vector<FaceIndex> 
+  Array<FaceIndex> 
   EBGraphImplem::
   getMultiValuedFaces(const int&     a_idir,
                       const Box&     a_box,
                       const EBGraph& a_ebgraph) const
   {
-    std::vector<FaceIndex> multiValuedFaces;
+    Array<FaceIndex> multiValuedFaces;
     Box ghostRegion = a_box;
     ghostRegion.grow(a_idir, 1);
     const IntVectSet ivsMulti = a_ebgraph.getMultiCells(ghostRegion);
@@ -52,12 +52,12 @@ namespace amrex
         bool isMulti = false;
         if (a_ebgraph.getDomain().contains(ivHi))
         {
-          const std::vector<FaceIndex> faces = getAllFaces(ivHi, a_idir, Side::Lo);
+          const Array<FaceIndex> faces = getAllFaces(ivHi, a_idir, Side::Lo);
           isMulti = (faces.size() > 1);
         }
         else if (a_ebgraph.getDomain().contains(ivLo))
         {
-          const std::vector<FaceIndex> faces = getAllFaces(ivLo, a_idir, Side::Hi);
+          const Array<FaceIndex> faces = getAllFaces(ivLo, a_idir, Side::Hi);
           isMulti = (faces.size() > 1);
         }
         else
@@ -169,7 +169,7 @@ namespace amrex
           {
         
             int gNodeIndex = IrregNode::index(idir, sit());
-            std::vector<int>& nodeArcsDir = node.m_arc[gNodeIndex];
+            Array<int>& nodeArcsDir = node.m_arc[gNodeIndex];
             nodeArcsDir.resize(0);
             //find which vof node is connected to in each direction.
             //cannot use isConnected here because it will always return
@@ -177,12 +177,12 @@ namespace amrex
             IntVect  otherIV = iv + sign(sit())*BASISV(idir);
             if (m_domain.contains(otherIV))
             {
-              std::vector<VolIndex> otherVoFs = getVoFs(otherIV);
+              Array<VolIndex> otherVoFs = getVoFs(otherIV);
               bool found = false;
               for (int iother = 0; iother < otherVoFs.size(); iother++)
               {
                 const VolIndex& otherVoF = otherVoFs[iother];
-                std::vector<FaceIndex> otherFaces = getFaces(otherVoF, idir, flip(sit()));
+                Array<FaceIndex> otherFaces = getFaces(otherVoF, idir, flip(sit()));
                 //there are rare cases where the number of other faces is greater than 1
                 for (int iface = 0; iface < otherFaces.size(); iface++)
                 {
@@ -266,7 +266,7 @@ namespace amrex
   void 
   EBGraphImplem::
   buildGraph(const BaseFab<int>          & a_regIrregCovered,
-             const std::vector<IrregNode>& a_irregGraph,
+             const Array<IrregNode>& a_irregGraph,
              const Box                   & a_validRegion,
              const Box                   & a_domain)
   {
@@ -320,7 +320,7 @@ namespace amrex
     {
       const IrregNode& inputNode = a_irregGraph[ivecIrreg];
       const IntVect& iv =inputNode.m_cell;
-      std::vector<GraphNodeImplem>& vecNodes =
+      Array<GraphNodeImplem>& vecNodes =
         *(m_graph(iv, 0).m_cellList);
       //pick out which node we are talking about
       //by maching its nodeInd with ivecIrreg
@@ -346,8 +346,8 @@ namespace amrex
         {
           int irregIndex = IrregNode::index(idir, sit());
           int gNodeIndex = IrregNode::index(idir, sit());
-          const std::vector<int>& irregArcs = inputNode.m_arc[irregIndex];
-          std::vector<int>& nodeArcs = node.m_arc[gNodeIndex];
+          const Array<int>& irregArcs = inputNode.m_arc[irregIndex];
+          Array<int>& nodeArcs = node.m_arc[gNodeIndex];
           nodeArcs.resize(irregArcs.size());
           for (int iarc = 0; iarc < irregArcs.size(); iarc++)
           {
@@ -470,13 +470,13 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<VolIndex> 
+  Array<VolIndex> 
   EBGraphImplem::
   getVoFs(const IntVect& a_iv) const
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(isDomainSet());
-    std::vector<VolIndex> retvec;
+    Array<VolIndex> retvec;
     if (m_tag == AllRegular)
     {
       retvec.push_back(VolIndex(a_iv, 0));
@@ -530,17 +530,17 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<FaceIndex> 
+  Array<FaceIndex> 
   EBGraphImplem::
   getAllFaces(const IntVect&        a_iv,
               const int&            a_idir,
               const Side::LoHiSide& a_sd) const
   {
-    std::vector<FaceIndex> retval(0);
-    std::vector<VolIndex> vofs = getVoFs(a_iv);
+    Array<FaceIndex> retval(0);
+    Array<VolIndex> vofs = getVoFs(a_iv);
     for (int ivof= 0; ivof < vofs.size(); ivof++)
     {
-      std::vector<FaceIndex> faces = getFaces(vofs[ivof], a_idir, a_sd);
+      Array<FaceIndex> faces = getFaces(vofs[ivof], a_idir, a_sd);
       for(int iface = 0; iface < faces.size(); iface++)
       {
         retval.push_back(faces[iface]);
@@ -713,7 +713,7 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<FaceIndex> 
+  Array<FaceIndex> 
   EBGraphImplem::
   getFaces(const VolIndex&       a_vof,
            const int&            a_idir,
@@ -726,7 +726,7 @@ namespace amrex
     BL_ASSERT((a_idir >= 0) && (a_idir < SpaceDim));
     BL_ASSERT((a_sd == Side::Lo) || (a_sd == Side::Hi));
         
-    std::vector<FaceIndex> retvec;
+    Array<FaceIndex> retvec;
     if (m_tag == AllRegular)
     {
       IntVect otherIV = a_vof.gridIndex()
@@ -871,45 +871,7 @@ namespace amrex
         }
       }
   }
-        
-  std::vector<FaceIndex> EBGraph:: getIrregFaces(const Box& a_box,
-                                                 int        a_dir) const
-  {
-    return m_implem->getIrregFaces(a_box, a_dir);
-  }
-  /***********/      
-  std::vector<FaceIndex>  
-  EBGraphImplem::
-  getIrregFaces(const Box& a_box,
-                int        a_dir) const
-  {
-    std::vector<FaceIndex> faces;
-    if (m_tag == AllRegular || m_tag == AllCovered)
-    {
-      // do nothing
-    }
-    else
-    {
-      Box b = a_box & m_domain;
-      IntVectSet ivs = this->getIrregCells(b);
-      for (IVSIterator it(ivs); it.ok(); ++it)
-      {
-        const GraphNode& node = m_graph(it(), 0);
-        IntVect hi = it() + BASISV(a_dir);
-        BL_ASSERT(node.isIrregular());
-        if (b.contains(hi) && m_graph(hi, 0).isIrregular())
-        {
-          std::vector<FaceIndex> faces = node.getFaces(it(), a_dir, Side::Hi, m_domain);
-          for(int iface = 0; iface < faces.size(); iface++)
-          {
-            faces.push_back(faces[iface]);
-          }
-        }
-      }
-    }
-    return faces;
-  }
-        
+
   /*******************************/
   FaceIndex 
   EBGraphImplem::
@@ -921,20 +883,20 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<FaceIndex> 
+  Array<FaceIndex> 
   EBGraphImplem::
   refine(const FaceIndex&     a_coarFace,
          const EBGraphImplem& a_fineGraph) const
   {
-    std::vector<FaceIndex> retval;
+    Array<FaceIndex> retval;
     IntVect ivLoCoar = a_coarFace.gridIndex(Side::Lo);
     IntVect ivHiCoar = a_coarFace.gridIndex(Side::Hi);
     int direction = a_coarFace.direction();
     if (m_region.contains(ivLoCoar) && m_region.contains(ivHiCoar))
     {
       //interior face
-      std::vector<VolIndex> loVoFFine = refine(a_coarFace.getVoF(Side::Lo));
-      std::vector<VolIndex> hiVoFFine = refine(a_coarFace.getVoF(Side::Hi));
+      Array<VolIndex> loVoFFine = refine(a_coarFace.getVoF(Side::Lo));
+      Array<VolIndex> hiVoFFine = refine(a_coarFace.getVoF(Side::Hi));
       int idir = a_coarFace.direction();
       for (int ilo = 0; ilo < loVoFFine.size(); ilo++)
       {
@@ -951,7 +913,7 @@ namespace amrex
     else if (m_region.contains(ivLoCoar))
     {
       //boundary face on the hi side of the domain
-      std::vector<VolIndex> loVoFsFine = refine(a_coarFace.getVoF(Side::Lo));
+      Array<VolIndex> loVoFsFine = refine(a_coarFace.getVoF(Side::Lo));
       Box fineRegion = m_region;
       fineRegion.refine(2);
       for (int ivof = 0; ivof < loVoFsFine.size(); ivof++)
@@ -960,7 +922,7 @@ namespace amrex
         IntVect ivHiFine = loVoFFine.gridIndex() + BASISV(direction);
         if (!fineRegion.contains(ivHiFine))
         {
-          std::vector<FaceIndex> fineFaces = a_fineGraph.getFaces(loVoFFine, direction, Side::Hi);
+          Array<FaceIndex> fineFaces = a_fineGraph.getFaces(loVoFFine, direction, Side::Hi);
           retval.insert(retval.end(), fineFaces.begin(), fineFaces.end());
         }
       }
@@ -968,7 +930,7 @@ namespace amrex
     else if (m_region.contains(ivHiCoar))
     {
       //boundary face on the low side of the domain
-      std::vector<VolIndex> hiVoFsFine = refine(a_coarFace.getVoF(Side::Hi));
+      Array<VolIndex> hiVoFsFine = refine(a_coarFace.getVoF(Side::Hi));
       Box fineRegion = m_region;
       fineRegion.refine(2);
         
@@ -978,7 +940,7 @@ namespace amrex
         IntVect ivLoFine = hiVoFFine.gridIndex() - BASISV(direction);
         if (!fineRegion.contains(ivLoFine) )
         {
-          std::vector<FaceIndex> fineFaces = a_fineGraph.getFaces(hiVoFFine, direction, Side::Lo);
+          Array<FaceIndex> fineFaces = a_fineGraph.getFaces(hiVoFFine, direction, Side::Lo);
           retval.insert(retval.end(), fineFaces.begin(), fineFaces.end());
         }
       }
@@ -1032,7 +994,7 @@ namespace amrex
     //if not neigboring intvects, no way it can be connected
     if (!dirfound) return false;
         
-    std::vector<FaceIndex> faces = getFaces(vofLo, direction, Side::Hi);
+    Array<FaceIndex> faces = getFaces(vofLo, direction, Side::Hi);
     bool voffound = false;
     for (int iface = 0; iface < faces.size(); iface++)
     {
@@ -1075,14 +1037,14 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<VolIndex> 
+  Array<VolIndex> 
   EBGraphImplem::
   refine(const VolIndex& a_coarVoF) const
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(isDomainSet());
         
-    std::vector<VolIndex> retval(0);
+    Array<VolIndex> retval(0);
     IntVect ivCoar = a_coarVoF.gridIndex();
     BL_ASSERT(m_domain.contains(ivCoar));
         
@@ -1126,25 +1088,6 @@ namespace amrex
 
     Box testbox = m_region & a_srcbox;
 
-////begin debug
-//    bool debugc = (m_region.contains(ebg_debiv));
-//    int whichbranch = -1;
-//    int needtodel = -1;
-//    int ireg = 0;
-//    int icov = 0;
-//    if(debugc)
-//    {
-//      if(isRegular(ebg_debiv))
-//      {
-//        ireg = 1;
-//      }
-//      if(isCovered(ebg_debiv))
-//      {
-//        icov = 1;
-//      }
-//      amrex::AllPrint() << "ebgraph copy incoming ireg = " << ireg << ", icov = "<< icov << endl;
-//    }
-////end debug    
 
     if(!testbox.isEmpty())
     {
@@ -1155,41 +1098,23 @@ namespace amrex
       Box regionFrom= testbox;
       if (isRegular(regionTo) && a_source.isRegular(regionFrom))
       {
-//begin debug
-//        whichbranch = 0;
-//end debug    
-//        return *this;
       }
       else if (isCovered(regionTo) && a_source.isCovered(regionFrom))
       {
-//begin debug
-//        whichbranch = 1;
-//end debug    
-//        return *this;
       }
       else if (a_source.isCovered(regionFrom) && regionTo.contains(m_region))
       {
         setToAllCovered();
-//begin debug
-//        whichbranch = 2;
-//end debug    
-//        return *this;
       }
       else if (a_source.isRegular(regionFrom) && regionTo.contains(m_region))
       {
-//begin debug
-//        whichbranch = 3;
-//end debug    
         setToAllRegular();
-//        return *this;
+
       }
       else if (isAllRegular() && a_source.isAllCovered())
       {
         //define the basefab as all regular and set the region to
         //covered in the intersection
-//begin debug
-//        whichbranch = 3;
-//end debug    
         m_tag = HasIrregular;
         m_multiIVS = IntVectSet();
         m_irregIVS = IntVectSet();
@@ -1207,9 +1132,6 @@ namespace amrex
       {
         //define the basefab as all covered and set the region to
         //regular in the intersection
-//begin debug
-//        whichbranch = 4;
-//end debug    
         m_tag = HasIrregular;
         m_multiIVS = IntVectSet();
         m_irregIVS = IntVectSet();
@@ -1225,9 +1147,6 @@ namespace amrex
       }
       else
       {
-//begin debug
-//        whichbranch = 5;
-//end debug    
         //one or both has irregular cells.
         //because i am sick of combinatorics,
         //use basefab copy to transfer the data.
@@ -1240,16 +1159,10 @@ namespace amrex
         {
           srcFabPtr = (BaseFab<GraphNode>*)&a_source.m_graph;
           needToDelete = false;
-//begin debug
-//          needtodel = 0;
-//end debug
         }
         else
         {
           needToDelete = true;
-//begin debug
-//          needtodel = 1;
-//end debug
           srcFabPtr = new BaseFab<GraphNode>(regionFrom, 1);
           GraphNode srcVal;
           if (a_source.isAllRegular())
@@ -1317,24 +1230,6 @@ namespace amrex
         }
       }
     }
-//begin debug
-//    if(debugc)
-//    {
-//      ireg = 0;
-//      icov = 0;
-//      if(isRegular(ebg_debiv))
-//      {
-//        ireg = 1;
-//      }
-//      if(isCovered(ebg_debiv))
-//      {
-//        icov = 1;
-//      }
-//      amrex::AllPrint() << "ebgraph copy outgoing ireg = " << ireg << ", icov = "<< icov << endl;
-//      amrex::AllPrint() << "ebgraph copy: which branch = " << whichbranch << endl;
-//      amrex::AllPrint() << "ebgraph copy: needtodel = " <<  needtodel << endl;
-//    }
-//end debug
     return *this;
   }
         
@@ -1387,7 +1282,7 @@ namespace amrex
           //the number of sets will be the number of
           //vofs in the coarse cell
         
-          std::vector<std::vector<VolIndex> > fineVoFSets
+          Array<Array<VolIndex> > fineVoFSets
             = a_fineGraph.getVoFSets(fineBox);
         
           for (int iset = 0; iset < fineVoFSets.size(); iset++)
@@ -1408,16 +1303,16 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<std::vector<VolIndex> >  
+  Array<Array<VolIndex> >  
   EBGraphImplem::
   getVoFSets(const Box& a_region) const
   {
-    std::vector<std::vector<VolIndex> > retval;
+    Array<Array<VolIndex> > retval;
     //gather all  vofs
-    std::vector<VolIndex> allVoFs;
+    Array<VolIndex> allVoFs;
     for (BoxIterator bit(a_region); bit.ok(); ++bit)
     {
-      std::vector<VolIndex> newVoFs = getVoFs(bit());
+      Array<VolIndex> newVoFs = getVoFs(bit());
       allVoFs.insert(allVoFs.begin(), newVoFs.begin(), newVoFs.end());
     }
         
@@ -1431,7 +1326,7 @@ namespace amrex
         //now find all vofs connected to this inside
         //this cell----not necessarily directly---
         //hence the inner loop of kvof.
-        std::vector<VolIndex> thisVoFSet(1, thisVoF);
+        Array<VolIndex> thisVoFSet(1, thisVoF);
         beenAdded[ivof] = true;
         bool doneAdding = false;
         while (!doneAdding)
@@ -1478,7 +1373,7 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<int> 
+  Array<int> 
   EBGraphImplem::
   coarsenFaces(const VolIndex&       a_coarVoF,
                const EBGraphImplem&  a_fineGraph,
@@ -1487,11 +1382,11 @@ namespace amrex
   {
     BL_ASSERT(m_isDomainSet);
     BL_ASSERT(a_fineGraph.isDomainSet());
-    std::vector<int> retval;
+    Array<int> retval;
         
     IntVect coarIV = a_coarVoF.gridIndex();
     IntVect otherIV= coarIV + sign(a_sd)*BASISV(a_idir);
-    std::vector<VolIndex> theseFineVoFs = refine(a_coarVoF);
+    Array<VolIndex> theseFineVoFs = refine(a_coarVoF);
     EBGraphImplem&  coarGhostGraph  = *this;  //trying to reduce communcation in this
         
     if (m_domain.contains(otherIV))
@@ -1500,11 +1395,11 @@ namespace amrex
       //interior faces.
       //just get all possible vofs to connect to and
       //check connectivity
-      std::vector<VolIndex> otherCoarVoFs = coarGhostGraph.getVoFs(otherIV);
+      Array<VolIndex> otherCoarVoFs = coarGhostGraph.getVoFs(otherIV);
       for (int iotherCoar = 0; iotherCoar < otherCoarVoFs.size(); iotherCoar++)
       {
         const VolIndex& otherCoarVoF = otherCoarVoFs[iotherCoar];
-        std::vector<VolIndex> otherFineVoFs = coarGhostGraph.refine(otherCoarVoF);
+        Array<VolIndex> otherFineVoFs = coarGhostGraph.refine(otherCoarVoF);
         bool addThisFace = false;
         for (int iotherFine = 0; iotherFine < otherFineVoFs.size(); iotherFine++)
         {
@@ -1536,7 +1431,7 @@ namespace amrex
       for (int ithis = 0; ithis < theseFineVoFs.size() && !hasBoundaryFaceFine ; ithis++)
       {
         const VolIndex& thisVoF = theseFineVoFs[ithis];
-        std::vector<FaceIndex> fineFaces =
+        Array<FaceIndex> fineFaces =
           a_fineGraph.getFaces(thisVoF,a_idir, a_sd);
         for (int iface = 0; iface < fineFaces.size() && !hasBoundaryFaceFine; iface++)
         {
@@ -1572,8 +1467,8 @@ namespace amrex
       {
         if (isIrregular(bit()))
         {
-          std::vector<VolIndex> vofsCoar = getVoFs(bit());
-          std::vector<GraphNodeImplem>& nodes =
+          Array<VolIndex> vofsCoar = getVoFs(bit());
+          Array<GraphNodeImplem>& nodes =
             *(m_graph(bit(), 0).m_cellList);
           for (int ivof = 0; ivof < vofsCoar.size(); ivof++)
           {
@@ -1583,7 +1478,7 @@ namespace amrex
             {
               for (SideIterator sit; sit.ok(); ++sit)
               {
-                std::vector<int> coarArcs =
+                Array<int> coarArcs =
                   coarsenFaces(vofsCoar[ivof],
                                a_fineGraph,
                                idir, sit());
@@ -1609,7 +1504,7 @@ namespace amrex
         {
           const IntVect& ivCoar = bit();
         
-          const std::vector<GraphNodeImplem>&
+          const Array<GraphNodeImplem>&
             vofsCoar = *(m_graph(ivCoar, 0).m_cellList);
         
           int numVofsCoar = vofsCoar.size();
@@ -1617,7 +1512,7 @@ namespace amrex
           for (int icoar = 0; icoar < numVofsCoar; icoar++)
           {
             VolIndex vofCoar(ivCoar, icoar);
-            std::vector<VolIndex> vofsFine = refine(vofCoar);
+            Array<VolIndex> vofsFine = refine(vofCoar);
         
             for (int ifine = 0; ifine < vofsFine.size(); ifine++)
             {
@@ -1627,7 +1522,7 @@ namespace amrex
               {
                 int cellIndexFine = vofsFine[ifine].cellIndex();
         
-                std::vector<GraphNodeImplem>&
+                Array<GraphNodeImplem>&
                   nodesFine = *(a_fineGraph.m_graph(ivFine, 0).m_cellList);
         
                 nodesFine[cellIndexFine].m_coarserNode = icoar;
@@ -1636,7 +1531,7 @@ namespace amrex
               {
                 GraphNode& nodeFine = a_fineGraph.m_graph(ivFine, 0);
         
-                nodeFine.m_cellList = new std::vector<GraphNodeImplem>(1);
+                nodeFine.m_cellList = new Array<GraphNodeImplem>(1);
         
                 (*(nodeFine.m_cellList))[0].m_isRegular   = true;
                 (*(nodeFine.m_cellList))[0].m_coarserNode = icoar;

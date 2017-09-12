@@ -208,8 +208,10 @@ struct Particle
 template <int NReal, int NInt>
 class ArrayOfStructs {
 public:
-    using ParticleType = Particle<NReal, NInt>;
-    using RealType     = typename ParticleType::RealType;
+    using ParticleType  = Particle<NReal, NInt>;
+    using RealType      = typename ParticleType::RealType;
+    using Iterator      = typename Array<ParticleType>::iterator;
+    using ConstIterator = typename Array<ParticleType>::const_iterator;
 
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
 
@@ -238,6 +240,11 @@ public:
     const ParticleType& operator[] (int i) const { return m_data[i]; }
     ParticleType      & operator[] (int i)       { return m_data[i]; }
     
+    Iterator erase( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
+
+    template< class InputIt >
+    void insert( Iterator pos, InputIt first, InputIt last ) { m_data.insert(pos, first, last); }
+
     typename Array<ParticleType>::iterator begin () { return m_data.begin(); }
     typename Array<ParticleType>::const_iterator begin () const { return m_data.begin(); }
     typename Array<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }

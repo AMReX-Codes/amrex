@@ -15,7 +15,7 @@
 #include "AMReX_IntVect.H"
 #include "AMReX_VolIndex.H"
 #include "AMReX_IntVectSet.H"
-#include <vector>
+#include "AMReX_Array.H"
 
 namespace amrex
 {
@@ -61,7 +61,7 @@ namespace amrex
     ///
     bool isDefined() const;
 
-    const std::vector<VolIndex>& getVector() const;
+    const Array<VolIndex>& getVector() const;
 
     int size() const
       {
@@ -69,7 +69,7 @@ namespace amrex
       }
   private:
     bool m_isDefined;
-    std::vector<VolIndex> m_vols;
+    Array<VolIndex> m_vols;
     int m_ivol;
   };
 }

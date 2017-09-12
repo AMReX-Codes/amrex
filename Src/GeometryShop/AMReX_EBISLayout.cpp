@@ -87,7 +87,7 @@ namespace amrex
     m_maxCoarseningRatio = 2;
     m_maxRefinementRatio = 1;//ug--face refinement means you have to have to do this once.
     int dstGhostData = a_nghost;
-    int dstGhostGraph = a_nghost+1; //because of irregular faces at box boundaries
+    int dstGhostGraph = a_nghost+2; //because of irregular faces at box boundaries
     int srcGhost = 0;
 //begin debug
 //    BoxArray inpgrids = a_graph.boxArray();
@@ -196,7 +196,7 @@ namespace amrex
     return coarFace;
   }
   /****************/
-  std::vector<VolIndex>
+  Array<VolIndex>
   EBISLayoutImplem::refine(const VolIndex  & a_vof,
                            const int       & a_ratio,
                            const MFIter    & a_mfi) const
@@ -207,19 +207,19 @@ namespace amrex
       
     //for ratio of 2, just use ebisbox
     EBISBox ebisBoxCoar = (*this)[a_mfi];
-    std::vector<VolIndex> fineVoFs = ebisBoxCoar.refine(a_vof);
+    Array<VolIndex> fineVoFs = ebisBoxCoar.refine(a_vof);
     //for ratio > 2, chase its tail
     int ifinelev = 0;
     for (int irat = 4; irat <= a_ratio; irat *= 2)
     {
-      std::vector<VolIndex> coarVoFs = fineVoFs;
+      Array<VolIndex> coarVoFs = fineVoFs;
       
       const EBISLayout& ebisl = m_fineLevels[ifinelev];
       EBISBox ebisBox = ebisl[a_mfi];
       fineVoFs.resize(0);
       for (int ivof = 0; ivof < coarVoFs.size(); ivof++)
       {
-        std::vector<VolIndex> newvofs = ebisBox.refine(coarVoFs[ivof]);
+        Array<VolIndex> newvofs = ebisBox.refine(coarVoFs[ivof]);
         fineVoFs.insert(fineVoFs.end(), newvofs.begin(), newvofs.end());
       }
       ifinelev++;
@@ -228,7 +228,7 @@ namespace amrex
       
   }
   /****************/
-  std::vector<FaceIndex>
+  Array<FaceIndex>
   EBISLayoutImplem::refine(const FaceIndex & a_face,
                            const int       & a_ratio,
                            const MFIter    & a_mfi) const
@@ -240,19 +240,19 @@ namespace amrex
     //for ratio of 2, just use ebisbox
     EBISBox ebisBoxCoar2 =         (*this)[a_mfi];
     EBISBox ebisBoxFine2 = m_fineLevels[0][a_mfi];
-    std::vector<FaceIndex> fineFaces = ebisBoxCoar2.refine(a_face,ebisBoxFine2);
+    Array<FaceIndex> fineFaces = ebisBoxCoar2.refine(a_face,ebisBoxFine2);
     //for ratio > 2, chase its tail
     int ifinelev = 0;
     for (int irat = 4; irat <= a_ratio; irat *= 2)
     {
-      std::vector<FaceIndex> coarFaces = fineFaces;
+      Array<FaceIndex> coarFaces = fineFaces;
       
       EBISBox ebisBoxCoar = m_fineLevels[ifinelev    ][a_mfi];
       EBISBox ebisBoxFine = m_fineLevels[ifinelev + 1][a_mfi];
       fineFaces.resize(0);
       for (int iface = 0; iface < coarFaces.size(); iface++)
       {
-        std::vector<FaceIndex> newfaces = ebisBoxCoar.refine(coarFaces[iface],ebisBoxFine);
+        Array<FaceIndex> newfaces = ebisBoxCoar.refine(coarFaces[iface],ebisBoxFine);
         fineFaces.insert(fineFaces.end(), newfaces.begin(), newfaces.end());
       }
       ifinelev++;

@@ -2,7 +2,7 @@
 #define CNS_H_
 
 #include <AMReX_AmrLevel.H>
-#include <AMReX_ErrorList.H>
+#include <AMReX_EBFluxRegister.H>
 
 class CNS
     :
@@ -93,15 +93,13 @@ public:
     // Define data descriptors.
     static void variableSetUp ();
 
-    // Define tagging functions.
-    static void ErrorSetUp ();
-
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
     static void LoadBalance (amrex::Amr& amr);
 
     static int do_load_balance;
+    static int refine_cutcells;
 
 protected:
 
@@ -123,14 +121,17 @@ protected:
 
     void computeTemp (amrex::MultiFab& State, int ng);
 
-    void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt);
+    void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt,
+                       amrex::EBFluxRegister* fr_as_crse, amrex::EBFluxRegister* fr_as_fine);
 
     void fixUpGeometry ();
 
     amrex::MultiFab volfrac;
     amrex::MultiFab bndrycent;
-    std::array<amrex::MultiFab,3> areafrac;
-    std::array<amrex::MultiFab,3> facecent;
+    std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
+    std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;
+
+    amrex::EBFluxRegister flux_reg;
 
     static constexpr int NUM_GROW = 5;
     enum StateVariable {
@@ -144,7 +145,6 @@ protected:
     };
     static int num_state_data_types;
 
-    static amrex::ErrorList err_list;
     static amrex::BCRec     phys_bc;
 
     // Parameters

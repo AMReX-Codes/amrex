@@ -73,7 +73,7 @@ namespace amrex
 /*******************************/
 
 /*******************************/
-  std::vector<VolIndex>
+  Array<VolIndex>
   EBISBox::getVoFs(const VolIndex& a_vof,
                    const int& a_dir,
                    const Side::LoHiSide& a_sd,
@@ -82,14 +82,14 @@ namespace amrex
     assert((a_dir >= 0) && (a_dir < SpaceDim));
     assert(a_steps >= 0);
 
-    std::vector<VolIndex> retVoFs(1, a_vof);
+    Array<VolIndex> retVoFs(1, a_vof);
     for (int irad = 1; irad <= a_steps; irad++)
     {
-      std::vector<VolIndex> tempVoFs(0);
+      Array<VolIndex> tempVoFs(0);
       for (int ivof = 0; ivof < retVoFs.size(); ivof++)
       {
         const VolIndex& stepVoF = retVoFs[ivof];
-        std::vector<FaceIndex> faces = getFaces(stepVoF, a_dir, a_sd);
+        Array<FaceIndex> faces = getFaces(stepVoF, a_dir, a_sd);
         for (int iface = 0; iface < faces.size(); iface++)
         {
           const FaceIndex& face = faces[iface];
@@ -112,7 +112,7 @@ namespace amrex
                     const int& a_idir,
                     const Side::LoHiSide& a_sd) const
   {
-    std::vector<FaceIndex> faces = getFaces(a_vof, a_idir, a_sd);
+    Array<FaceIndex> faces = getFaces(a_vof, a_idir, a_sd);
     int retval = faces.size();
     return retval;
   }
@@ -145,7 +145,7 @@ namespace amrex
     {
       for (SideIterator sit; sit.ok(); ++sit)
       {
-        std::vector<FaceIndex> faces = getFaces(a_vof, idir, sit());
+        Array<FaceIndex> faces = getFaces(a_vof, idir, sit());
         for (int iface=0; iface<faces.size(); iface++)
         {
           alphaMax = std::max(areaFrac(faces[iface]), alphaMax);
@@ -179,7 +179,7 @@ namespace amrex
     else
     {
       retval = 0.0;
-      std::vector<FaceIndex> faces = getFaces(a_vof, a_idir, a_sd);
+      Array<FaceIndex> faces = getFaces(a_vof, a_idir, a_sd);
       for (int iface = 0; iface < faces.size(); iface++)
       {
         retval += areaFrac(faces[iface]);
@@ -188,7 +188,7 @@ namespace amrex
     return retval;
   }
 /*******************************/
-  std::vector<VolIndex>
+  Array<VolIndex>
   EBISBox::refine(const VolIndex& a_coarVoF) const
   {
     return(m_graph.refine(a_coarVoF));
@@ -385,7 +385,7 @@ namespace amrex
     m_graph.setToAllCovered();
   }
 /*******************************/
-  std::vector<FaceIndex>
+  Array<FaceIndex>
   EBISBox::refine(const FaceIndex& a_coarFace,const EBISBox& a_fineEBISBox) const
   {
     return m_graph.refine(a_coarFace, a_fineEBISBox.m_graph);

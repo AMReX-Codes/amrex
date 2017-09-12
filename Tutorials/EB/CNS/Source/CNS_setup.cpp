@@ -104,6 +104,7 @@ CNS::variableSetUp ()
 
     cns_init_fort(phys_bc.lo(), phys_bc.hi(),
                   Interior,Inflow,Outflow,Symmetry,SlipWall,NoSlipWall,
+                  ParallelDescriptor::MyProc(),
                   Geometry::ProbLo(), Geometry::ProbHi());
 
     bool state_data_extrap = false;
@@ -163,9 +164,6 @@ CNS::variableSetUp ()
                    cns_dervel,the_same_box);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Zmom,1);
-
-    // Tagging 
-    ErrorSetUp();
 }
 
 void
