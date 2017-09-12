@@ -131,7 +131,7 @@ namespace amrex
     {
       //calculate set by adding in new intvects
       const IntVectSet& ivsOld = m_volData.getIVS();
-      IntVectSet ivsIrreg = m_graph.getIrregCells(m_region);
+      const IntVectSet& ivsIrreg = m_graph.getIrregCells(m_region);
       IntVectSet ivscomp1 = ivsIrreg;
       ivscomp1 -= ivsOld;
       IntVectSet ivscomp2 = ivsOld;
@@ -199,7 +199,7 @@ namespace amrex
           {
             IntVect ivhi = faceit().gridIndex(Side::Hi);
             IntVect ivlo = faceit().gridIndex(Side::Lo);
-            Array<FaceIndex> allFaces = m_graph.getAllFaces(ivhi, idir, Side::Lo);
+            const Array<FaceIndex>& allFaces = m_graph.getAllFaces(ivhi, idir, Side::Lo);
             if (allFaces.size() > 1)
             {
               //now we have the wacky case where two full, single-valued faces were coarsened
@@ -317,7 +317,7 @@ namespace amrex
   {
     m_graph = a_graph;
     m_region = a_region & a_graph.getDomain();
-    IntVectSet ivsIrreg = a_graph.getIrregCells(a_region);
+    const IntVectSet& ivsIrreg = a_graph.getIrregCells(a_region);
     m_isDefined = true;
     m_volData.define(ivsIrreg, a_graph, V_VOLNUMBER);
     for (int idir = 0; idir < SpaceDim; idir++)
@@ -328,7 +328,7 @@ namespace amrex
       Box regionG1D = a_region;
       regionG1D.grow(idir, 1);
       regionG1D &= a_graph.getDomain();
-      IntVectSet ivsIrregG1D = a_graph.getIrregCells(regionG1D);
+      const IntVectSet& ivsIrregG1D = a_graph.getIrregCells(regionG1D);
       m_faceData[idir].define(ivsIrregG1D, a_graph, idir, F_FACENUMBER);
     }
 
@@ -372,10 +372,10 @@ namespace amrex
           {
             for (SideIterator sit; sit.ok(); ++sit)
             {
-              Array<FaceIndex> faces = a_graph.getFaces(vof, faceDir, sit());
+              const Array<FaceIndex>& faces = a_graph.getFaces(vof, faceDir, sit());
               int nodeind = node.index(faceDir, sit());
-              Array<Real> areaFracs         = node.m_areaFrac[nodeind];
-              Array<RealVect> faceCentroids = node.m_faceCentroid[nodeind];
+              const Array<Real>& areaFracs         = node.m_areaFrac[nodeind];
+              const Array<RealVect>& faceCentroids = node.m_faceCentroid[nodeind];
               for (int iface = 0; iface < faces.size(); iface++)
               {
                 const Real&     areaFracNode     = areaFracs[iface];
@@ -494,7 +494,7 @@ namespace amrex
 
     if (a_graph.hasIrregular())
     {
-      IntVectSet ivsIrreg = a_graph.getIrregCells(a_region);
+      const IntVectSet& ivsIrreg = a_graph.getIrregCells(a_region);
       for (VoFIterator vofit(ivsIrreg, a_graph); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
@@ -570,13 +570,13 @@ namespace amrex
 
     if (a_coarGraph.hasIrregular())
     {
-      IntVectSet ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
+      const IntVectSet& ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
 
       for (VoFIterator vofit(ivsIrreg, a_coarGraph); vofit.ok(); ++vofit)
       {
         BL_PROFILE("EBDataImplem::coarsenVoFs_VoFIterator");
         const VolIndex& vofCoar = vofit();
-        Array<VolIndex> vofsFine = a_coarGraph.refine(vofCoar);
+        const Array<VolIndex>& vofsFine = a_coarGraph.refine(vofCoar);
         int nFine = vofsFine.size();
         Array<Real> bndryAreaFine(nFine);
         Array<Real> volFracFine(nFine);
@@ -654,7 +654,7 @@ namespace amrex
     //unlike before, the define function has to be called first.
     assert(m_isDefined);
 
-    IntVectSet ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
+    const IntVectSet& ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
     Box fineRegion = a_fineGraph.getRegion();
 
     if (a_coarGraph.hasIrregular())
@@ -671,7 +671,7 @@ namespace amrex
           BL_PROFILE("EBDataImplem::coarsenFaces_FaceIterator");
 
           const FaceIndex&  faceCoar  = faceit();
-          Array<FaceIndex> facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
+          cosnt Array<FaceIndex>& facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
 
           Array<Real>     areaFracsFine(facesFine.size());
           Array<RealVect> centroidsFine(facesFine.size());
