@@ -27,8 +27,8 @@
 namespace amrex
 {
   static const IntVect   ebl_debiv(D_DECL(994,213,7));
-  static const IntVect   ebl_debivlo(D_DECL(127, 131, 104));
-  static const IntVect   ebl_debivhi(D_DECL(128, 131, 104));
+  static const IntVect   ebl_debivlo(D_DECL(190,15,0));
+  static const IntVect   ebl_debivhi(D_DECL(191,15,0));
   static const VolIndex  ebl_debvoflo(ebl_debivlo, 0);
   static const VolIndex  ebl_debvofhi(ebl_debivhi, 0);
   static const FaceIndex ebl_debface(ebl_debvoflo, ebl_debvofhi);
@@ -75,7 +75,7 @@ namespace amrex
         {
           Real areafrac = facedat(ebl_debface, 0);
           amrex::AllPrint() << "ebislevel:" << a_identifier;
-          amrex::AllPrint() << ", ibox = "<< ibox << ", valid = " << region << ", areaFrac = " << areafrac << endl;
+          amrex::AllPrint() << ", ibox = "<< ibox << ", valid = " << region << ", areaFrac( " << ebl_debface << ") = " << areafrac << endl;
         }
       }
       ibox++;
@@ -371,12 +371,12 @@ namespace amrex
     //pout() << "making ebdataReCo" << endl;
     ebdataReCo.define(gridsReCo, dmfc, 1, 0, MFInfo(), ebdfReCo);
 
-    //EBISLevel_checkData(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_data, string(" source data for copy"));
+    EBISLevel_checkData(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_data, string(" source data for copy"));
     //pout() << "doing ebdatareco copy" << endl;
 
     ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, 0, 0);    
 
-    //EBISLevel_checkData(gridsReCo, dmfc, ebdataReCo, string(" ebdataReCo after copy "));
+    EBISLevel_checkData(gridsReCo, dmfc, ebdataReCo, string(" ebdataReCo after copy "));
 
     //pout() << "coarsening data" << endl;
     int ibox = 0;

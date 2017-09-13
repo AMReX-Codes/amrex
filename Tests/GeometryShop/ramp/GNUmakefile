@@ -5,9 +5,10 @@ DIM          = 3
 
 COMP         = g++
 
-DEBUG        = FALSE
+DEBUG        = TRUE
 
 USE_MPI      = FALSE
+USE_MPI      = TRUE
 
 USE_OMP      = FALSE
 
@@ -18,6 +19,9 @@ include ./Make.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
+include $(AMREX_HOME)/Src/EB/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
