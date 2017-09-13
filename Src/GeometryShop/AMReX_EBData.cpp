@@ -19,6 +19,8 @@
 #include "AMReX_Print.H"
 #include "AMReX_MemPool.H"
 
+#include <limits>
+
 namespace amrex
 {
 
@@ -349,7 +351,9 @@ namespace amrex
     }
 
 //#if !defined(NDEBUG) || defined(BL_TESTING)
-        init_snan();  // Currently we rely on this to indicate bad data.
+    //   init_snan();  // Currently we rely on this to indicate bad data.
+    // wz. How could std::isnan fail on snan?  This is gcc 4.8.4.
+    init_qnan(); // So we have to initialize it to qnan;
 //#endif
     setCoveredAndRegular();
 
@@ -438,7 +442,25 @@ namespace amrex
               amrex_array_init_snan(m_faceData[idim].dataPtr(), n);
           }
       }
+#else
+      init_qnan();
 #endif
+  }
+
+  void EBDataImplem::init_qnan ()
+  {
+      std::size_t n = m_volData.size();
+      if (n > 0) {
+          std::fill(m_volData.dataPtr(), m_volData.dataPtr() + n,
+                    std::numeric_limits<Real>::quiet_NaN());
+      }
+      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+          n = m_faceData[idim].size();
+          if (n > 0) {
+              std::fill(m_faceData[idim].dataPtr(), m_faceData[idim].dataPtr() + n,
+                        std::numeric_limits<Real>::quiet_NaN());
+          }
+      }
   }
 
 /*******************************/

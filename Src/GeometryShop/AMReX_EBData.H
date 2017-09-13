@@ -261,6 +261,9 @@ private:
     void
     init_snan ();
 
+    void
+    init_qnan ();
+
     friend class EBIndexSpace;
     friend class EBISLevel;
   };
