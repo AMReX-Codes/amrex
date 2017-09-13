@@ -1,13 +1,13 @@
 #!/bin/csh
 set thisdir = `pwd`
 echo       'ebgraphDistributed'
-cd $thisdir/ebgraphDistributed; make -j10 all; ./ebgraphDist2d.gnu.DEBUG.ex ./sphere.inputs | grep test;
+cd $thisdir/ebgraphDistributed; make -j10 ; ./ebgraphDist2d.gnu.DEBUG.ex ./sphere.inputs | grep test;
 echo       'ebgraphSingleGrid'
-cd $thisdir/ebgraphSingleGrid; make -j10 all; ./ebgraphSG2d.gnu.DEBUG.ex ./sphere.inputs | grep test;
+cd $thisdir/ebgraphSingleGrid; make -j10 ; ./ebgraphSG2d.gnu.DEBUG.ex ./sphere.inputs | grep test;
 echo       'flatPlate'
-cd $thisdir/flatPlate; make -j10 all; ./flatPlateTest2d.gnu.DEBUG.ex ./flatplate.inputs | grep test;
+cd $thisdir/flatPlate; make -j10 ; ./flatPlateTest2d.gnu.DEBUG.ex ./flatplate.inputs | grep test;
 echo       'regression/compile'
-cd $thisdir/regression/; make -j10 all; 
+cd $thisdir/regression/; make -j10 ; 
 echo       'regression/dataArith'
 cd $thisdir/regression/; ./dataArith2d.gnu.DEBUG.ex dataarith.inputs | grep test;
 echo       'regression/ebio'
@@ -21,7 +21,7 @@ cd $thisdir/regression/; ./levelRedistTest2d.gnu.DEBUG.ex levelredist.inputs | g
 echo       'regression/serialization'
 cd $thisdir/regression/; ./serialization2d.gnu.DEBUG.ex serialization.inputs | grep test;
 echo       'sparseDataDistributed'
-cd $thisdir/sparseDataDistributed; make -j10 all; ./sparseDataDist2d.gnu.DEBUG.ex ./sphere.inputs | grep test;
+cd $thisdir/sparseDataDistributed; make -j10 ; ./sparseDataDist2d.gnu.DEBUG.ex ./sphere.inputs | grep test;
 echo       'sparseDataSingleGrid'
-cd $thisdir/sparseDataSingleGrid; make -j10 all; ./sparseDataSG2d.gnu.DEBUG.ex ./sphere.inputs | grep test;
+cd $thisdir/sparseDataSingleGrid; make -j10 ; ./sparseDataSG2d.gnu.DEBUG.ex ./sphere.inputs | grep test;
 exit
