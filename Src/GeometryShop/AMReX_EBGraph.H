@@ -318,9 +318,6 @@ namespace amrex
                 const int& a_idir,
                 const Side::LoHiSide& a_sd) const;
         
-    Array<FaceIndex>
-    getIrregFaces(const Box& a_box, int a_dir) const;
-        
     ///
     /**
        0       outside problem domain, multi-valued, covered
@@ -797,10 +794,6 @@ namespace amrex
     getAllFaces(const IntVect& a_iv,
                 const int& a_idir,
                 const Side::LoHiSide& a_sd) const;
-        
-    ///
-    Array<FaceIndex>
-    getIrregFaces(const Box& a_box, int a_dir) const;
         
     void fillMask(BaseFab<char>& a_mask) const;
         
