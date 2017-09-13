@@ -162,36 +162,36 @@ namespace amrex
   {
     GeometryShop::InOut rtn;
 //begin debug
-    bool debugc = (a_region.contains(gs_debivlo) || a_region.contains(gs_debivhi));
+//    bool debugc = (a_region.contains(gs_debivlo) || a_region.contains(gs_debivhi));
 //end debug
     if(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Regular;
 //begin debug
-      if(debugc)
-      {
-        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all regular box" << endl;
-      }
+//      if(debugc)
+//      {
+//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all regular box" << endl;
+//      }
 //end debug
     }
     else if(isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Covered;
 //begin debug
-      if(debugc)
-      {
-        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all covered box" << endl;
-      }
+//      if(debugc)
+//      {
+//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all covered box" << endl;
+//      }
 //end debug
     }
     else
     {
       rtn = GeometryShop::Irregular;
 //begin debug
-      if(debugc)
-      {
-        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in a mixed box " << endl;
-      }
+//      if(debugc)
+//      {
+//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in a mixed box " << endl;
+//      }
 //end debug
     }
     return rtn;
@@ -224,12 +224,12 @@ namespace amrex
       {
         const IntVect iv =bit();
 //begin debug
-        int  idebug  = 0;
-        if((iv == gs_debivlo) || (iv == gs_debivhi))
-        {
-          idebug = 1;
-          amrex::Print() << "a_validRegion = " << a_validRegion << endl;
-        }
+        // int  idebug  = 0;
+        // if((iv == gs_debivlo) || (iv == gs_debivhi))
+        // {
+        //   idebug = 1;
+        //   amrex::Print() << "a_validRegion = " << a_validRegion << endl;
+        // }
 //end debug
 
         Box miniBox(iv, iv);
@@ -241,10 +241,10 @@ namespace amrex
             a_regIrregCovered(iv, 0) = -1;
             numCovered++;
 //begin debug
-            if(idebug==1)
-            {
-              amrex::Print() << iv << "seen as covered" << endl;
-            }
+            // if(idebug==1)
+            // {
+            //   amrex::Print() << iv << "seen as covered" << endl;
+            // }
 //end debug            
           }
         else if (inout == GeometryShop::Regular)
@@ -253,19 +253,19 @@ namespace amrex
             a_regIrregCovered(iv, 0) =  1;
             numReg++;
 //begin debug
-            if(idebug==1)
-            {
-              amrex::Print() << iv << "seen as regular" << endl;
-            }
+            // if(idebug==1)
+            // {
+            //   amrex::Print() << iv << "seen as regular" << endl;
+            // }
 //end debug            
           }
         else
           {
 //begin debug
-            if(idebug==1)
-            {
-              amrex::Print() << iv << "seen as irregular" << endl;
-            }
+            // if(idebug==1)
+            // {
+            //   amrex::Print() << iv << "seen as irregular" << endl;
+            // }
 //end debug            
             // set irregular cells to 0
             a_regIrregCovered(iv, 0) =  0;
@@ -294,11 +294,11 @@ namespace amrex
         const IntVect& iv = ivsit();
 
 //begin debug
-        int  idebug  = 0;
-        if((iv == gs_debivlo) || (iv == gs_debivhi))
-        {
-          idebug = 1;
-        }
+        // int  idebug  = 0;
+        // if((iv == gs_debivlo) || (iv == gs_debivhi))
+        // {
+        //   idebug = 1;
+        // }
 //end debug
         Real     volFrac, bndryArea;
         RealVect normal, volCentroid, bndryCentroid;

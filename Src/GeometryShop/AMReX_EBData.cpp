@@ -398,10 +398,10 @@ namespace amrex
                 const RealVect& faceCentroidNode = faceCentroids[iface];
                 const FaceIndex& face = faces[iface];
 //begin debug
-                if(face == ebd_debface)
-                {
-                  amrex::Print() << "ebd:valid = " << a_validBox << ",areaFrac(" << face <<")=" << areaFracNode << endl;
-                }
+//                if(face == ebd_debface)
+//                {
+//                  amrex::Print() << "ebd:valid = " << a_validBox << ",areaFrac(" << face <<")=" << areaFracNode << endl;
+//                }
 //end debug
                 m_faceData[faceDir](face,F_AREAFRAC)  = areaFracNode;
                 for(int idir = 0; idir < SpaceDim; idir++)
@@ -416,7 +416,7 @@ namespace amrex
     }
 
 //begin debug
-    checkFaceData(m_faceData, a_validBox, string("right after irregnode init"));
+//    checkFaceData(m_faceData, a_validBox, string("right after irregnode init"));
 //end debug
     computeNormalsAndBoundaryAreas(a_graph, a_validBox);
     //if(m_volData.getIVS().contains(ebd_debiv))
