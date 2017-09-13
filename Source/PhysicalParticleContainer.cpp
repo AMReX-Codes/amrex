@@ -477,6 +477,7 @@ PhysicalParticleContainer::Evolve (int lev,
     {
 	Array<Real> xp, yp, zp, giv;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
+        FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
         
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -535,9 +536,17 @@ PhysicalParticleContainer::Evolve (int lev,
                 const int *rholen;
                 FArrayBox& rhofab = (*rho)[pti];
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
+                Box grown_box;
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 tile_box.grow(ngRho);
-                local_rho.resize(tile_box);
+                if (WarpX::use_filter) {
+                    grown_box = tile_box;
+                    grown_box.grow(1);
+                    ngRho += 1;
+                    local_rho.resize(grown_box);
+                } else {
+                    local_rho.resize(tile_box);
+                }
                 local_rho = 0.0;
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
@@ -561,8 +570,22 @@ PhysicalParticleContainer::Evolve (int lev,
                 const int ncomp = 1;
 
                 if (WarpX::use_filter) {
-                    WRPX_FILTER_AND_ACCUMULATE(local_rho.dataPtr(), local_rho.loVect(), local_rho.hiVect(), 
-                                               rhofab.dataPtr(), rhofab.loVect(), rhofab.hiVect(), ncomp);
+
+                    filtered_rho.resize(tile_box);
+                    filtered_rho = 0;
+
+                    WRPX_FILTER_AND_ACCUMULATE(local_rho.dataPtr(),
+                                               local_rho.loVect(),
+                                               local_rho.hiVect(),
+                                               filtered_rho.dataPtr(),
+                                               filtered_rho.loVect(),
+                                               filtered_rho.hiVect(),
+                                               ncomp);
+
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_rho),
+                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
+
+
                 } else {
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
                                                 BL_TO_FORTRAN_3D(rhofab), ncomp);
@@ -617,6 +640,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
                 Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
+                Box gtbx, gtby, gtbz;
                 
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 
@@ -624,10 +648,28 @@ PhysicalParticleContainer::Evolve (int lev,
                 tby.grow(ngJ);
                 tbz.grow(ngJ);
                 
-                local_jx.resize(tbx);
-                local_jy.resize(tby);
-                local_jz.resize(tbz);
-                
+                if (WarpX::use_filter) {
+
+                    gtbx = tbx;
+                    gtbx.grow(1);
+
+                    gtby = tby;
+                    gtby.grow(1);
+
+                    gtbz = tbz;
+                    gtbz.grow(1);
+
+                    ngJ += 1;
+
+                    local_jx.resize(gtbx);
+                    local_jy.resize(gtby);
+                    local_jz.resize(gtbz);
+                } else {
+                    local_jx.resize(tbx);
+                    local_jy.resize(tby);
+                    local_jz.resize(tbz);
+                }
+
                 local_jx = 0.0;
                 local_jy = 0.0;
                 local_jz = 0.0;
@@ -661,14 +703,49 @@ PhysicalParticleContainer::Evolve (int lev,
                 const Box& jzbox = jzfab.box();
 
                 if (WarpX::use_filter) {
-                    WRPX_FILTER_AND_ACCUMULATE(local_jx.dataPtr(), local_jx.loVect(), local_jx.hiVect(), 
-                                               jxfab.dataPtr(), jxfab.loVect(), jxfab.hiVect(), ncomp);
 
-                    WRPX_FILTER_AND_ACCUMULATE(local_jy.dataPtr(), local_jy.loVect(), local_jy.hiVect(), 
-                                               jyfab.dataPtr(), jyfab.loVect(), jyfab.hiVect(), ncomp);
+                    filtered_jx.resize(tbx);
+                    filtered_jx = 0.0;
 
-                    WRPX_FILTER_AND_ACCUMULATE(local_jz.dataPtr(), local_jz.loVect(), local_jz.hiVect(), 
-                                               jzfab.dataPtr(), jzfab.loVect(), jzfab.hiVect(), ncomp);
+                    WRPX_FILTER_AND_ACCUMULATE(local_jx.dataPtr(),
+                                               local_jx.loVect(),
+                                               local_jx.hiVect(),
+                                               filtered_jx.dataPtr(),
+                                               filtered_jx.loVect(),
+                                               filtered_jx.hiVect(),
+                                               ncomp);
+
+                    filtered_jy.resize(tby);
+                    filtered_jy = 0.0;
+
+                    WRPX_FILTER_AND_ACCUMULATE(local_jy.dataPtr(),
+                                               local_jy.loVect(),
+                                               local_jy.hiVect(),
+                                               filtered_jy.dataPtr(),
+                                               filtered_jy.loVect(),
+                                               filtered_jy.hiVect(),
+                                               ncomp);
+
+                    filtered_jz.resize(tbz);
+                    filtered_jz = 0.0;
+
+                    WRPX_FILTER_AND_ACCUMULATE(local_jz.dataPtr(),
+                                               local_jz.loVect(),
+                                               local_jz.hiVect(),
+                                               filtered_jz.dataPtr(),
+                                               filtered_jz.loVect(),
+                                               filtered_jz.hiVect(),
+                                               ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jx),
+                                                BL_TO_FORTRAN_3D(jxfab), ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jy),
+                                                BL_TO_FORTRAN_3D(jyfab), ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jz),
+                                                BL_TO_FORTRAN_3D(jzfab), ncomp);
+                    
                 } else {
                     
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),

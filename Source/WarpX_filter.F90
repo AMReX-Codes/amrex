@@ -31,41 +31,89 @@ module warpx_filter_module
 
 contains
 
-  subroutine warpx_filter_and_accumulate_3d(local_fab, tile_lo, tile_hi, &
-                                            global_fab, lo, hi, nc) &
+  subroutine warpx_filter_3d(tlo, thi, fab, lo, hi) &
+       bind(c, name='warpx_filter_3d')
+
+    integer,  intent(in)    :: tlo(3), thi(3), lo(3), hi(3)
+    real(rt), intent(inout) :: fab (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
+    
+    integer :: i, j, k
+    real(rt) tmp(3)
+
+    ! pass in the x-direction
+    do k = tlo(3), thi(3)
+       do j = tlo(2), thi(2)
+          tmp(1) = fab(tlo(1)-1, j, k) 
+          tmp(2) = fab(tlo(1) , j, k) 
+          tmp(3) = fab(tlo(1)+1, j, k) 
+          do i = tlo(1), thi(1)
+             fab(i, j, k) = 0.25d0*tmp(1) + 0.5d0*tmp(2) + 0.25d0*tmp(3)
+             tmp(1) = tmp(2)
+             tmp(2) = tmp(3)
+             tmp(3) = fab(i+1,j,k)             
+          end do
+       end do
+    end do
+
+    ! pass in the y-direction
+    do k = tlo(3), thi(3)
+       do i = tlo(1), thi(1)
+          tmp(1) = fab(i, tlo(2)-1, k) 
+          tmp(2) = fab(i, tlo(2)  , k) 
+          tmp(3) = fab(i, tlo(2)+1, k) 
+          do j = tlo(2), thi(2)
+             fab(i, j, k) = 0.25d0*tmp(1) + 0.5d0*tmp(2) + 0.25d0*tmp(3)
+             tmp(1) = tmp(2)
+             tmp(2) = tmp(3)
+             tmp(3) = fab(i,j+1,k)             
+          end do
+       end do
+    end do
+
+    ! pass in the z-direction
+    do i = tlo(1), thi(1)
+       do j = tlo(2), thi(2)
+          tmp(1) = fab(i, j, tlo(3)-1) 
+          tmp(2) = fab(i, j, tlo(3)  ) 
+          tmp(3) = fab(i, j, tlo(3)+1) 
+          do k = tlo(3), thi(3)
+             fab(i, j, k) = 0.25d0*tmp(1) + 0.5d0*tmp(2) + 0.25d0*tmp(3)
+             tmp(1) = tmp(2)
+             tmp(2) = tmp(3)
+             tmp(3) = fab(i,j,k+1)             
+          end do
+       end do
+    end do
+
+  end subroutine warpx_filter_3d
+
+  subroutine warpx_filter_and_accumulate_3d(src_fab, slo, shi, &
+                                            dst_fab, dlo, dhi, nc) &
      bind(c, name='warpx_filter_and_accumulate_3d')
 
     integer, value       :: nc
-    integer              :: lo(3)
-    integer              :: hi(3)
-    real(rt)             :: global_fab(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3),nc)
-    integer              :: tile_lo(3)
-    integer              :: tile_hi(3)
-    real(rt)             :: local_fab(tile_lo(1):tile_hi(1), tile_lo(2):tile_hi(2), tile_lo(3):tile_hi(3), nc)
+    integer              :: dlo(3), dhi(3), slo(3), shi(3)
+    real(rt)             :: dst_fab(dlo(1):dhi(1), dlo(2):dhi(2), dlo(3):dhi(3),nc)
+    real(rt)             :: src_fab(slo(1):shi(1), slo(2):shi(2), slo(3):shi(3), nc)
     
     integer          :: i,j,k,comp
     integer          :: ii, jj, kk
     
     do comp = 1, nc
-       do k = tile_lo(3), tile_hi(3)
-          do j = tile_lo(2), tile_hi(2)
-             do i = tile_lo(1), tile_hi(1)
+       do k = dlo(3), dhi(3)
+          do j = dlo(2), dhi(2)
+             do i = dlo(1), dhi(1)
 
                 do kk = -1, 1
                    do jj = -1, 1
                       do ii = -1, 1
-#ifdef _OPENMP
-                         !$omp atomic
-#endif
 
-                         global_fab(i+ii,j+jj,k+kk,comp) = global_fab(i+ii,j+jj,k+kk,comp) + ff1_3D(ii, jj, kk) * local_fab(i,j,k,comp)
-#ifdef _OPENMP
-                         !$omp end atomic
-#endif
+                         dst_fab(i,j,k,comp) = dst_fab(i,j,k,comp) + ff1_3D(ii, jj, kk) * src_fab(i+ii,j+jj,k+kk,comp)
+
                       end do
                    end do
                 end do
-
+                
              end do
           end do
        end do
