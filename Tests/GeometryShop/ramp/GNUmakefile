@@ -18,6 +18,7 @@ include ./Make.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
+include $(AMREX_HOME)/Src/EB/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
