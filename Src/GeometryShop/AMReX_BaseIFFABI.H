@@ -15,6 +15,8 @@
 #include "AMReX_SPMD.H"
 #include "AMReX_parstream.H"
 
+#include <cmath>
+
 namespace amrex
 {
   //static const IntVect deb_ivlo(D_DECL(33,13, 0));
@@ -142,7 +144,9 @@ namespace amrex
         {
           int isrccomp = a_srccomp  + icomp;
           int idstcomp = a_destcomp + icomp;
-          (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
+          if (!std::isnan(a_src(src_ifaceindex, isrccomp))) {
+              (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
+          }
         }
       }
     }
