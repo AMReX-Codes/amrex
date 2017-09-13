@@ -397,12 +397,7 @@ namespace amrex
                 const Real&     areaFracNode     = areaFracs[iface];
                 const RealVect& faceCentroidNode = faceCentroids[iface];
                 const FaceIndex& face = faces[iface];
-////begin debug
-//                if(face == ebd_debface)
-//                {
-//                  amrex::Print() << "ebd:valid = " << a_validBox << ",areaFrac(" << face <<")=" << areaFracNode << endl;
-//                }
-////end debug
+
                 m_faceData[faceDir](face,F_AREAFRAC)  = areaFracNode;
                 for(int idir = 0; idir < SpaceDim; idir++)
                 {
