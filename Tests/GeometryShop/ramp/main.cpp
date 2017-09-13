@@ -116,29 +116,21 @@ int main(int argc, char* argv[])
         const EBISLayout& ebisl = levelgrid.getEBISL();
 
         //        IntVect debugcell(945,137,7);
-        IntVect debugcell(994,213,7);
+        //  IntVect debugcell(994,213,7);
+        IntVect debugcell(190,15,0);
 
         for (MFIter mfi(ba,dm); mfi.isValid(); ++mfi)
         {
           const EBISBox& ebisbox = ebisl[mfi];
-          const Box& bx = ba[mfi];
+          const Box& bx = ebisbox.getRegion();
             
           if (bx.contains(debugcell))
           {
-            int ireg = 0;
-            int icov = 0;
-            if(ebisbox.isRegular(debugcell))
-            {
-              ireg = 1;
-            }
-            if(ebisbox.isCovered(debugcell))
-            {
-              icov = 1;
-            }
             amrex::AllPrint() << "Box " << bx << " on Proc. " << ParallelDescriptor::MyProc()
-                              << " contains Cell " << debugcell << "\n"
-                              << "  Is regular? " <<  ireg << "\n"
-                              << "  Is covered? " <<  icov << "\n";
+                              << " contains Cell " << debugcell << "\n";
+
+            const Array<FaceIndex> faces = ebisbox.getAllFaces(debugcell, 0, Side::Hi);
+            amrex::AllPrint() << "face area : " << ebisbox.areaFrac(faces[0]) << "\n";
           }
         }
     }
