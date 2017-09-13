@@ -26,12 +26,28 @@ namespace amrex
 
   static const IntVect   ebd_debiv(D_DECL(15, 6, 0));
   static const VolIndex  ebd_debvof(ebd_debiv, 0);
-  static const IntVect   ebd_debivlo(D_DECL(127, 131, 104));
-  static const IntVect   ebd_debivhi(D_DECL(128, 131, 104));
+  static const IntVect   ebd_debivlo(D_DECL(190,15,0));
+  static const IntVect   ebd_debivhi(D_DECL(191,15,0));
   static const VolIndex  ebd_debvoflo(ebd_debivlo, 0);
   static const VolIndex  ebd_debvofhi(ebd_debivhi, 0);
   static const FaceIndex ebd_debface(ebd_debvoflo, ebd_debvofhi);
 
+  /******/
+  void checkFaceData(const BaseIFFAB<Real> a_faceData[SpaceDim], const Box& a_valid, const string& a_identifier)
+  {
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      const BaseIFFAB<Real> & data  = a_faceData[idir];
+      const Array<FaceIndex>& faces = data.getFaces();
+      for(int iface = 0; iface < faces.size(); iface++)
+      {
+        if(faces[iface] == ebd_debface)
+        {
+          amrex::Print() << a_identifier << ", valid = " << a_valid << ", areaFrac(" << ebd_debface << ")=" << data(ebd_debface,0) << endl;
+        }
+      }
+    }
+  }
   /******/
   extern void null_deleter_ebdi(EBDataImplem* a_input)
   {
@@ -326,8 +342,8 @@ namespace amrex
       //might be an irregular cell lurking on the other side of region
       //and it will have faces that EBData will have to own.
       Box regionG1D = a_region;
-      regionG1D.grow(idir, 1);
-      regionG1D &= a_graph.getDomain();
+//      regionG1D.grow(idir, 1);
+//      regionG1D &= a_graph.getDomain();
       IntVectSet ivsIrregG1D = a_graph.getIrregCells(regionG1D);
       m_faceData[idir].define(ivsIrregG1D, a_graph, idir, F_FACENUMBER);
     }
@@ -381,7 +397,12 @@ namespace amrex
                 const Real&     areaFracNode     = areaFracs[iface];
                 const RealVect& faceCentroidNode = faceCentroids[iface];
                 const FaceIndex& face = faces[iface];
-
+//begin debug
+                if(face == ebd_debface)
+                {
+                  amrex::Print() << "ebd:valid = " << a_validBox << ",areaFrac(" << face <<")=" << areaFracNode << endl;
+                }
+//end debug
                 m_faceData[faceDir](face,F_AREAFRAC)  = areaFracNode;
                 for(int idir = 0; idir < SpaceDim; idir++)
                 {
@@ -393,6 +414,10 @@ namespace amrex
         }
       }
     }
+
+//begin debug
+    checkFaceData(m_faceData, a_validBox, string("right after irregnode init"));
+//end debug
     computeNormalsAndBoundaryAreas(a_graph, a_validBox);
     //if(m_volData.getIVS().contains(ebd_debiv))
     //{

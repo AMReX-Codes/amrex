@@ -117,7 +117,7 @@ namespace amrex
     pp.get("verbosity", verbosity);
     GeometryShop gshop(sphere, verbosity);
     BaseFab<int> regIrregCovered;
-    std::vector<IrregNode> nodes;
+    Array<IrregNode> nodes;
 
     IntVect ivlo = IntVect::TheZeroVector();
     IntVect ivhi;

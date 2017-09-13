@@ -5,7 +5,7 @@ DIM          = 3
 
 COMP         = g++
 
-DEBUG        = FALSE
+DEBUG        = TRUE
 
 USE_MPI      = FALSE
 
