@@ -122,7 +122,9 @@ int main(int argc, char* argv[])
         for (MFIter mfi(ba,dm); mfi.isValid(); ++mfi)
         {
           const EBISBox& ebisbox = ebisl[mfi];
-          const Box& bx = ebisbox.getRegion();
+          Box bx = ba[mfi];
+          bx.grow(ng);
+          bx &= ebisbox.getDomain();
             
           if (bx.contains(debugcell))
           {
