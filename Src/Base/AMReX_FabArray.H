@@ -912,11 +912,11 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        nvar,
                          int                        ngrow,
                          const Array<value_type*>&  pval)
-    : shmem()
+    : m_factory(new DefaultFabFactory<FAB>()),
+      shmem()
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false),
-           DefaultFabFactory<FAB>());
+    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false), *m_factory);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         setFab(mfi, new FAB(mfi.fabbox(),nvar,pval[mfi.LocalIndex()]));
