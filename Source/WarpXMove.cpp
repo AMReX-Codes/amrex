@@ -55,6 +55,17 @@ WarpX::MoveWindow (bool move_j)
                 shiftMF(*rho_fp[lev], geom[lev], num_shift, dir);
             }
 
+            if (do_pml && pml[lev]->ok()) {
+                const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_fp();
+                const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_fp();                
+                shiftMF(*pml_B[dim], geom[lev], num_shift, dir);
+                shiftMF(*pml_E[dim], geom[lev], num_shift, dir);
+                if (do_dive_cleaning) {
+                    MultiFab* pml_F = pml[lev]->GetF_fp();
+                    shiftMF(*pml_F, geom[lev], num_shift, dir);
+                }
+            }
+
             if (lev > 0) {
 
                 shiftMF(*Bfield_cp[lev][dim], geom[lev-1], num_shift_crse, dir);
@@ -69,6 +80,17 @@ WarpX::MoveWindow (bool move_j)
                 if (do_dive_cleaning) {
                     shiftMF(*F_cp[lev], geom[lev-1], num_shift_crse, dir);
                     shiftMF(*rho_cp[lev], geom[lev-1], num_shift_crse, dir);
+                }
+
+                if (do_pml && pml[lev]->ok()) {
+                    const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_cp();
+                    const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_cp();                
+                    shiftMF(*pml_B[dim], geom[lev-1], num_shift_crse, dir);
+                    shiftMF(*pml_E[dim], geom[lev-1], num_shift_crse, dir);
+                    if (do_dive_cleaning) {
+                        MultiFab* pml_F = pml[lev]->GetF_cp();
+                        shiftMF(*pml_F, geom[lev-1], num_shift_crse, dir);
+                    }
                 }
             }
         }
