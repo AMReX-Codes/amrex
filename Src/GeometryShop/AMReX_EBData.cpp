@@ -671,7 +671,7 @@ namespace amrex
           BL_PROFILE("EBDataImplem::coarsenFaces_FaceIterator");
 
           const FaceIndex&  faceCoar  = faceit();
-          cosnt Array<FaceIndex>& facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
+          const Array<FaceIndex>& facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
 
           Array<Real>     areaFracsFine(facesFine.size());
           Array<RealVect> centroidsFine(facesFine.size());
