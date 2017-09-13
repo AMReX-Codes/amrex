@@ -199,7 +199,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 		     VisMF::Header::Version whichVersion,
 		     bool groupSets, bool setBuf,
 		     bool useDSS, int nMultiFabs,
-		     bool checkmf)
+		     bool checkmf, const std::string &dirName)
 {
   VisMF::SetNOutFiles(nfiles);
   VisMF::SetGroupSets(groupSets);
@@ -207,6 +207,29 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   VisMF::SetUseDynamicSetSelection(useDSS);
   if(mb2) {
     bytesPerMB = pow(2.0, 20);
+  }
+
+  bool useDir( ! dirName.empty());
+  Array<std::string> pathNames(nMultiFabs);
+  if(useDir) {
+    // ---- make the directory and nMultiFabs Level_n directories
+    for(int nmf(0); nmf < nMultiFabs; ++nmf) {
+      std::stringstream path;
+      path << dirName << "/Level_" << nmf << "/";
+      pathNames[nmf] = path.str();
+    }
+    if(ParallelDescriptor::IOProcessor()) {
+      const bool verboseDir(false);
+      if( ! amrex::UtilCreateDirectory(dirName, 0755, verboseDir)) {
+        amrex::CreateDirectoryFailed(dirName);
+      }
+      for(int nmf(0); nmf < nMultiFabs; ++nmf) {
+        if( ! amrex::UtilCreateDirectory(pathNames[nmf], 0755, verboseDir)) {
+          amrex::CreateDirectoryFailed(pathNames[nmf]);
+        }
+      }
+    }
+    ParallelDescriptor::Barrier("waitfordirName");
   }
 
   BoxArray bArray(MakeBoxArray(maxgrid, nboxes));
@@ -240,7 +263,11 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::stringstream suffix;
     suffix << "_" << nmf;
-    mfNames[nmf] = mfName + suffix.str();
+    if(useDir) {
+      mfNames[nmf] = pathNames[nmf] + mfName + suffix.str();
+    } else {
+      mfNames[nmf] = mfName + suffix.str();
+    }
     VisMF::RemoveFiles(mfNames[nmf], false);  // ---- not verbose
 
     multifabs[nmf] = new MultiFab(bArray, dmap, ncomps, 0);
@@ -330,14 +357,24 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
 
 // -------------------------------------------------------------
 void TestReadMF(const std::string &mfName, bool useSyncReads,
-                int nMultiFabs)
+                int nMultiFabs, const std::string &dirName)
 {
+  bool useDir( ! dirName.empty());
+  Array<std::string> pathNames(nMultiFabs);
   Array<std::string> mfNames(nMultiFabs);
   Array<MultiFab *> multifabs(nMultiFabs);
+
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::stringstream suffix;
     suffix << "_" << nmf;
-    mfNames[nmf] = mfName + suffix.str();
+    if(useDir) {
+      std::stringstream path;
+      path << dirName << "/Level_" << nmf << "/";
+      pathNames[nmf] = path.str();
+      mfNames[nmf] = pathNames[nmf] + mfName + suffix.str();
+    } else {
+      mfNames[nmf] = mfName + suffix.str();
+    }
     multifabs[nmf] = new MultiFab;
   }
 
