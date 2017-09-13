@@ -348,9 +348,9 @@ namespace amrex
       m_faceData[idir].define(ivsIrregG1D, a_graph, idir, F_FACENUMBER);
     }
 
-#if !defined(NDEBUG) || defined(BL_TESTING)
-    init_snan();
-#endif
+//#if !defined(NDEBUG) || defined(BL_TESTING)
+        init_snan();  // Currently we rely on this to indicate bad data.
+//#endif
     setCoveredAndRegular();
 
   }

@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
         BoxArray ba{geom_domain};
         ba.maxSize(max_grid_size/2);
         DistributionMapping dm{ba};
-        const int ng = 2;
+        const int ng = 4;
 
         const EBLevelGrid levelgrid(ba,dm,geom_domain,ng);
         const EBISLayout& ebisl = levelgrid.getEBISL();
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
         {
           const EBISBox& ebisbox = ebisl[mfi];
           Box bx = ba[mfi];
-          bx.grow(ng);
+          bx.grow(ng-1);
           bx &= ebisbox.getDomain();
             
           if (bx.contains(debugcell))
