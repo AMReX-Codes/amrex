@@ -18,6 +18,7 @@
 #include "AMReX_FaceIndex.H"
 #include "AMReX_BaseFab.H"
 #include "AMReX_EBGraph.H"
+#include "AMReX_Print.H"
 
 
 namespace amrex
@@ -251,16 +252,19 @@ namespace amrex
 
     bool    m_isDefined;
 
-    int getFaceIndexIndex (const FaceIndex& a_face) const {
+    int getFaceIndexIndex (const FaceIndex& a_face) const 
+      {
 	auto low = std::lower_bound(m_faces.begin(), m_faces.end(), a_face);
-	if (low == m_faces.end() || a_face != *low) {
-	    amrex::Error("BaseIFFAB:index not found");
+	if (low == m_faces.end() || a_face != *low) 
+        {
+          amrex::AllPrint() << "face = " << a_face << endl;
+          amrex::Error("BaseIFFAB:index not found");
 	}
 	return low - m_faces.begin();
-    }
+      }
 
     T* getIndex(int ifaceindex, int a_comp) const {
-	return m_data + ifaceindex + a_comp*m_nFaces;
+      return m_data + ifaceindex + a_comp*m_nFaces;
     }
 
   private:

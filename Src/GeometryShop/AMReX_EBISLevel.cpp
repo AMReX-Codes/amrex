@@ -267,7 +267,7 @@ namespace amrex
     }
 
 //begin debug
-    EBISLevel_checkData(m_grids, dm, m_data, string("after initial build"));
+//    EBISLevel_checkData(m_grids, dm, m_data, string("after initial build"));
 // end debug
 
   }
