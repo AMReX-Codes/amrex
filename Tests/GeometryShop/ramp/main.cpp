@@ -108,9 +108,9 @@ int main(int argc, char* argv[])
 
         Box geom_domain{Box{IntVect{0,0,0}, IntVect{n_cell[0]-1,n_cell[1]-1,n_cell[2]-1}}};
         BoxArray ba{geom_domain};
-        ba.maxSize(max_grid_size);
+        ba.maxSize(max_grid_size/2);
         DistributionMapping dm{ba};
-        const int ng = 0;
+        const int ng = 2;
 
         const EBLevelGrid levelgrid(ba,dm,geom_domain,ng);
         const EBISLayout& ebisl = levelgrid.getEBISL();

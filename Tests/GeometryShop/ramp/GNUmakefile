@@ -8,6 +8,7 @@ COMP         = g++
 DEBUG        = TRUE
 
 USE_MPI      = FALSE
+USE_MPI      = TRUE
 
 USE_OMP      = FALSE
 
