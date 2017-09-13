@@ -252,6 +252,7 @@ namespace amrex
     bool    m_isDefined;
 
     int getFaceIndexIndex (const FaceIndex& a_face) const {
+        AMREX_ASSERT(std::is_sorted(m_faces.begin(), m_faces.end()));
 	auto low = std::lower_bound(m_faces.begin(), m_faces.end(), a_face);
 	if (low == m_faces.end() || a_face != *low) {
 	    amrex::Error("BaseIFFAB:index not found");
