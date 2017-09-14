@@ -4,7 +4,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_Geometry.H>
-
 #include <array>
 
 namespace amrex {
@@ -27,11 +26,25 @@ public:
 
     void reset ();
 
-    void CrseAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+    void CrseAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt);
 
-    void FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+    void FineAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt);
+
+    void CrseAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  const FArrayBox& volfrac,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac);
+
+    void FineAdd (const MFIter& mfi,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                  const Real* dx, Real dt,
+                  const FArrayBox& volfrac,
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac);
 
     void Reflux (MultiFab& state);
 

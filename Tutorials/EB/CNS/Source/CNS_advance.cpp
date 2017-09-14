@@ -87,6 +87,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                 dSdt[mfi].setVal(0.0, bx, 0, ncomp);
             } else {
 
+                // flux is used to store centroid flux needed for reflux
                 for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
                     flux[idim].resize(amrex::surroundingNodes(bx,idim),ncomp);
                 }
@@ -102,11 +103,11 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                      dx, &dt);
 
                     if (fr_as_crse) {
-                        fr_as_crse->CrseAdd(mfi,flux,dx,dt);
+                        fr_as_crse->CrseAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt);
                     }
 
                     if (fr_as_fine) {
-                        fr_as_fine->FineAdd(mfi,flux,dx,dt);
+                        fr_as_fine->FineAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt);
                     }
                 }
                 else
@@ -129,11 +130,19 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         dx, &dt);
 
                     if (fr_as_crse) {
-                        fr_as_crse->CrseAdd(mfi,flux,dx,dt);
+                        fr_as_crse->CrseAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt,
+                                            volfrac[mfi],
+                                            {&areafrac[0][mfi],
+                                             &areafrac[1][mfi],
+                                             &areafrac[2][mfi]});
                     }
 
                     if (fr_as_fine) {
-                        fr_as_fine->FineAdd(mfi,flux,dx,dt);
+                        fr_as_fine->FineAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt,
+                                            volfrac[mfi],
+                                            {&areafrac[0][mfi],
+                                             &areafrac[1][mfi],
+                                             &areafrac[2][mfi]});
                     }
                 }
             }
