@@ -75,10 +75,10 @@ contains
     real(rt), intent(in   ) :: fx   (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),nc)
     real(rt), intent(in   ) :: fy   (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),nc)
     real(rt), intent(in   ) :: fz   (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),nc)
-    real(rt), intent(in   ) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))    
-    real(rt), intent(in   ) :: ax   (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))    
-    real(rt), intent(in   ) :: ay   (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))    
-    real(rt), intent(in   ) :: az   (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))    
+    real(rt), intent(in   ) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
+    real(rt), intent(in   ) :: ax   (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
+    real(rt), intent(in   ) :: ay   (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
+    real(rt), intent(in   ) :: az   (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
     real(rt), intent(inout) :: d ( dlo(1): dhi(1), dlo(2): dhi(2), dlo(3): dhi(3),nc)
     real(rt), intent(in) :: dx(3), dt
 
@@ -281,16 +281,16 @@ contains
     real(rt), intent(in) :: dx(3), dt
     real(rt), intent(in   ) :: f(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),nc)
     real(rt), intent(inout) :: d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nc)
-    real(rt)                :: cvol ( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))    
-    real(rt), intent(in   ) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))    
-    real(rt), intent(in   ) :: ax   (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))    
-    real(rt), intent(in   ) :: ay   (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))    
-    real(rt), intent(in   ) :: az   (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))    
+    real(rt)                :: cvol ( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))
+    real(rt), intent(in   ) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
+    real(rt), intent(in   ) :: ax   (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
+    real(rt), intent(in   ) :: ay   (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
+    real(rt), intent(in   ) :: az   (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
 
     integer :: i,j,k,n,ii,jj,kk,ioff,joff,koff
     real(rt) :: fac
 
-    ! dx is fine. vfrac, ax, ay, and az are fine as well.
+    ! dx is fine.  vfrac, ax, ay, and az are fine as well.
     ! lo and hi are also relative to the fine box.
 
     do       k = lo(3), hi(3)
@@ -299,7 +299,7 @@ contains
              cvol(i,j,k) = sum(vfrac(i*ratio(1):i*ratio(1)+ratio(1)-1,  &
                   &                  j*ratio(2):j*ratio(2)+ratio(2)-1, &
                   &                  k*ratio(3):k*ratio(3)+ratio(3)-1))
-             if (cvol(i,j,k).ge.1.d-14) then
+             if (cvol(i,j,k).gt.1.d-14) then
                 cvol(i,j,k) = 1._rt/cvol(i,j,k)
              else
                 cvol(i,j,k) = 0._rt
