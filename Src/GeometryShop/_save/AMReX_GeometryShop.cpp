@@ -19,116 +19,22 @@
 #include "AMReX_GeometryShop.H"
 #include "AMReX_RealVect.H"
 #include "AMReX.H"
-#include "AMReX_Print.H"
-#include "AMReX_IntVectSet.H"
+#include "AMReX_StdSetIVS.H"
 #include "AMReX_BoxIterator.H"
 
 
 namespace amrex
 {
 
-//  static const IntVect   gs_debiv(D_DECL(994,213,7));
-//  static const IntVect   gs_debivlo(D_DECL(190,15,0));
-//  static const IntVect   gs_debivhi(D_DECL(191,15,0));
-  
-  bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
-                                         const Box&           a_domain,
-                                         const RealVect&      a_origin,
-                                         const Real&          a_dx) const
-  {
-//    BL_PROFILE("GeometryShop::isRegularEveryPoint");
-
-    // All corner indices for the current box
-    Box allCorners(a_region);
-    allCorners.surroundingNodes();
-
-    RealVect physCorner;
-    BoxIterator bit(allCorners);
-    // If every corner is inside, the box is regular
-
-    for (int i=0; i<2; i++)
-    {
-      for (; bit.ok(); ++bit, ++bit)
-      {
-        // Current corner
-        const IntVect& corner = bit();
-
-        // Compute physical coordinate of corner
-
-
-        for (int idir = 0; idir < SpaceDim; ++idir)
-        {
-          physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
-        }
-
-        // If the implicit function value is positive then the current
-        // corner is outside the domain
-        Real functionValue = m_implicitFunction->value(physCorner);
-
-        if (functionValue > 0.0 )
-        {
-          return false;
-        }
-      }
-      bit.reset();
-      ++bit;
-    }
-
-
-    return true;
-  }
-
-  bool GeometryShop::isCoveredEveryPoint(const Box&           a_region,
-                                         const Box&           a_domain,
-                                         const RealVect&      a_origin,
-                                         const Real&          a_dx) const
-  {
-//    BL_PROFILE("GeometryShop::isCoveredEveryPoint");
-
-    // All corner indices for the current box
-    Box allCorners(a_region);
-    allCorners.surroundingNodes();
-
-    RealVect physCorner;
-    BoxIterator bit(allCorners);
-
-    // If every corner is inside, the box is regular
-    for (int i=0; i<2; i++)
-    {
-      for (; bit.ok(); ++bit, ++bit)
-      {
-        // Current corner
-        IntVect corner = bit();
-
-        // Compute physical coordinate of corner
-
-        for (int idir = 0; idir < SpaceDim; ++idir)
-        {
-          physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
-        }
-
-        // If the implicit function value is positive then the current
-        // corner is outside the domain
-        Real functionValue = m_implicitFunction->value(physCorner);
-
-        if (functionValue < 0.0 )
-        {
-
-
-          return false;
-        }
-      }
-      bit.reset();
-      ++bit;
-    }
-
-    return true;
-  }
   GeometryShop::GeometryShop(const BaseIF& a_localGeom,
                              int           a_verbosity,
                              Real          a_thrshdVoF)
   {
-    m_implicitFunction.reset(a_localGeom.newImplicitFunction());
+
+
+
+
+    m_implicitFunction = a_localGeom.newImplicitFunction();
 
     m_verbosity = a_verbosity;
 
@@ -137,75 +43,122 @@ namespace amrex
 
     m_threshold = 1.0e-15*pow(arg1, arg2);
 
+
     m_thrshdVoF = a_thrshdVoF;
 
   }
 
+  GeometryShop::~GeometryShop()
+  {
+    delete(m_implicitFunction);
+  }
+
+
   /**********************************************/
-  GeometryService::InOut 
-  GeometryShop::
-  InsideOutside(const Box&           a_region,
-                const Box&           a_domain,
-                const RealVect&      a_origin,
-                const Real&          a_dx) const
+  GeometryShop::InOut GeometryShop::InsideOutside(const Box&           a_region,
+                                                  const Box&           a_domain,
+                                                  const RealVect&      a_origin,
+                                                  const Real&          a_dx) const
   {
     GeometryShop::InOut rtn;
-//begin debug
-//    bool debugc = (a_region.contains(gs_debivlo) || a_region.contains(gs_debivhi));
-//end debug
-    if(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx))
-    {
-      rtn = GeometryShop::Regular;
-//begin debug
-//      if(debugc)
-//      {
-//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all regular box" << endl;
-//      }
-//end debug
-    }
-    else if(isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx))
-    {
-      rtn = GeometryShop::Covered;
-//begin debug
-//      if(debugc)
-//      {
-//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all covered box" << endl;
-//      }
-//end debug
-    }
-    else
-    {
-      rtn = GeometryShop::Irregular;
-    }
-    return rtn;
 
+
+    // All corner indices for the current box
+    Box allCorners(a_region);
+    allCorners.surroundingNodes();
+
+    RealVect physCorner(allCorners.smallEnd());
+
+    physCorner *= a_dx;
+    physCorner += a_origin;
+
+    Real firstValue;
+    Real firstSign;
+
+    firstValue = m_implicitFunction->value(physCorner);
+    firstSign  = copysign(1.0, firstValue);
+
+    if ( firstSign < 0 )
+      {
+        rtn = GeometryShop::Regular;
+      }
+    else
+      {
+        rtn = GeometryShop::Covered;
+      }
+
+    
+
+    for (BoxIterator bit(allCorners); bit.ok(); ++bit)
+      {
+        // Current corner
+        IntVect corner = bit();
+
+        Real functionValue;
+        Real functionSign;
+
+        // Compute physical coordinate of corner
+        for (int idir = 0; idir < SpaceDim; ++idir)
+          {
+            physCorner[idir] = a_dx*corner[idir] + a_origin[idir];
+          }
+
+        // If the implicit function value is positive then the current
+        // corner is outside the domain
+        functionValue = m_implicitFunction->value(physCorner);
+
+        functionSign = copysign(1.0, functionValue);
+
+        if (functionValue == 0 || firstValue == 0)
+          {
+            if (functionSign * firstSign < 0)
+              {
+                rtn = GeometryShop::Irregular;
+                return rtn;
+              }
+          }
+        if (functionValue * firstValue < 0.0 )
+          {
+            rtn = GeometryShop::Irregular;
+            return rtn;
+          }
+      }
+    return rtn;
   }
 
   /*********************************************/
   void
   GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
-                          Array<IrregNode>    & a_nodes,
+                          std::vector<IrregNode>   & a_nodes,
                           const Box           & a_validRegion,
                           const Box           & a_ghostRegion,
-                          const Box           & a_domain,
+                          const Box & a_domain,
                           const RealVect      & a_origin,
                           const Real          & a_dx) const
   {
-    AMREX_ASSERT(a_domain.contains(a_ghostRegion));
+    assert(a_domain.contains(a_ghostRegion));
     a_nodes.resize(0);
     a_regIrregCovered.resize(a_ghostRegion, 1);
 
 
     Real thrshd = m_thrshdVoF;
 
-    IntVectSet ivsirreg; // wz. no need to be a set
-    IntVectSet ivsdrop ;
+    std::vector<IntVect> ivsirreg;
+    std::vector<IntVect> ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
+    //IntVect ivdeblo(D_DECL(62,510,0));
+    //IntVect ivdebhi(D_DECL(63,513,0));
+    //Box debbox(ivdeblo, ivdebhi);
 
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
+        //int istop = 0;
+        //if(debbox.contains(iv))
+        //  {
+        //    istop = 1;
+        //  }
 
         Box miniBox(iv, iv);
         GeometryShop::InOut inout = InsideOutside(miniBox, a_domain, a_origin, a_dx);
@@ -228,7 +181,7 @@ namespace amrex
             a_regIrregCovered(iv, 0) =  0;
             if (a_validRegion.contains(iv))
               {
-                ivsirreg |= iv;
+                ivsirreg.push_back(iv);
                 numIrreg++;
               }
           }
@@ -238,26 +191,64 @@ namespace amrex
     for (BoxIterator bit(a_ghostRegion); bit.ok(); ++bit)
       {
         const IntVect iv =bit();
+        // int istop = 0;
+        // if(debbox.contains(iv))
+        //   {
+        //     istop = 1;
+        //   }
 
-      if(a_regIrregCovered(iv, 0) == -1)
-        {
-          fixRegularCellsNextToCovered(a_nodes, a_regIrregCovered, a_validRegion, a_domain, iv, a_dx);
-        }
+        if(a_regIrregCovered(iv, 0) == -1)
+          {
+            for(int idir = 0; idir < SpaceDim; idir++)
+              {
+                for(SideIterator sit; sit.ok(); ++sit)
+                  {
+                    int ishift = sign(sit());
+                    IntVect ivshift = iv + ishift*BASISV(idir);
+                    int bfvalshift = -1;
+                    if(a_ghostRegion.contains(ivshift))
+                      {
+                        bfvalshift = a_regIrregCovered(ivshift, 0);
+                      }
+                    if(bfvalshift  == 1)
+                      {
+                        a_regIrregCovered(ivshift, 0) =  0;
+
+                        if(a_validRegion.contains(ivshift))
+                          {
+                            IrregNode newNode;
+                            getFullNodeNextToCovered(newNode, 
+                                                     a_regIrregCovered,
+                                                     ivshift, 
+                                                     a_domain);
+                            a_nodes.push_back(newNode);
+                          }
+
+                      }
+                  }
+              }
+          }
       }
 
     // now loop through irregular cells and make nodes for each  one.
-    for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
+    for(int ivec = 0; ivec < ivsirreg.size(); ivec++)
       {
-        const IntVect& iv = ivsit();
+        const IntVect& iv = ivsirreg[ivec];
+
+        //int istop = 0;
+        //if(debbox.contains(iv))
+        //  {
+        //    istop = 1;
+        //  }
 
         Real     volFrac, bndryArea;
         RealVect normal, volCentroid, bndryCentroid;
-        std::array<Array<int>,SpaceDim> loArc;
-        std::array<Array<int>,SpaceDim> hiArc;
-        std::array<Array<Real>,SpaceDim> loAreaFrac;
-        std::array<Array<Real>,SpaceDim> hiAreaFrac;
-        std::array<Array<RealVect>,SpaceDim> loFaceCentroid;
-        std::array<Array<RealVect>,SpaceDim> hiFaceCentroid;
+        std::vector<int> loArc[SpaceDim];
+        std::vector<int> hiArc[SpaceDim];
+        std::vector<Real> loAreaFrac[SpaceDim];
+        std::vector<Real> hiAreaFrac[SpaceDim];
+        std::vector<RealVect> loFaceCentroid[SpaceDim];
+        std::vector<RealVect> hiFaceCentroid[SpaceDim];
         computeVoFInternals(volFrac,
                             loArc,
                             hiArc,
@@ -278,8 +269,12 @@ namespace amrex
 
         if (thrshd > 0. && volFrac < thrshd)
           {
-            ivsdrop |= iv;
+            ivsdrop.push_back(iv);
             a_regIrregCovered(iv, 0) = -1;
+            if (m_verbosity > 2)
+              {
+                std::cout << "Removing vof " << iv << " with volFrac " << volFrac << std::endl;
+              }
           }//CP record these nodes to be removed
         else
           {
@@ -307,9 +302,9 @@ namespace amrex
       } // end loop over cut cells in the box
 
     // CP: fix sweep that removes cells with volFrac less than a certain threshold
-    for(IVSIterator ivsit(ivsdrop); ivsit.ok(); ++ivsit)
+    for(int ivec = 0; ivec < ivsdrop.size(); ivec++)
       {
-        const IntVect& iv = ivsit();
+        const IntVect& iv = ivsdrop[ivec];
   
         for (int faceDir = 0; faceDir < SpaceDim; faceDir++)
           {
@@ -347,93 +342,32 @@ namespace amrex
                             a_nodes[inode].m_faceCentroid[arcindex].resize(0);
                           }
                       }
+                    else if (a_regIrregCovered(otherIV,0) == 1)
+                      {
+                        a_regIrregCovered(otherIV, 0) = 0;
+                        IrregNode newNode;
+                        getFullNodeNextToCovered(newNode, 
+                                                 a_regIrregCovered,
+                                                 otherIV, 
+                                                 a_domain);
+                        a_nodes.push_back(newNode);
+
+                      }//else if
                   }//valid region
               }//sit
           }//facedir
-        
-        //also need to fix regular cells next to new covered cell
-        fixRegularCellsNextToCovered(a_nodes, a_regIrregCovered, a_validRegion, a_domain, iv, a_dx);
-
       }//ivsdrop
-    if(m_verbosity > 2)
-    {
-      amrex::AllPrint() << "numIrreg  = " << numIrreg << "\n";
-      amrex::AllPrint() << "number of nodes  = " << a_nodes.size() << "\n";
-    }
+    std::cout << "numIrreg  = " << numIrreg << std::endl;
+    std::cout << "number of nodes  = " << a_nodes.size() << std::endl;
   }
-  /*************/
-  void
-  GeometryShop::
-  fixRegularCellsNextToCovered(Array<IrregNode>    & a_nodes, 
-                               BaseFab<int>        & a_regIrregCovered,
-                               const Box           & a_validRegion,
-                               const Box           & a_domain,
-                               const IntVect       & a_iv,
-                               const Real          & a_dx) const
 
-  {
-    Box grownBox(a_iv, a_iv);
-    grownBox.grow(1);
-    grownBox  &= a_domain;
-    IntVectSet ivstocheck(grownBox);
-    ivstocheck -= a_iv;
-    Box ghostRegion = a_regIrregCovered.box();
-    //first check neighbors in each direction.  
-    //If any of these are regular, they are replaced 
-    //by irregular cells with a boundary face facing the covered cell.
-    for(int idir = 0; idir < SpaceDim; idir++)
-      {
-        for(SideIterator sit; sit.ok(); ++sit)
-          {
-            int ishift = sign(sit());
-            IntVect ivshift = a_iv + ishift*BASISV(idir);
-            ivstocheck -= ivshift;
-            int bfvalshift = -1;
-            if(ghostRegion.contains(ivshift))
-              {
-                bfvalshift = a_regIrregCovered(ivshift, 0);
-              }
-            if(bfvalshift  == 1)
-              {
-                a_regIrregCovered(ivshift, 0) =  0;
-
-                if(a_validRegion.contains(ivshift))
-                  {
-                    IrregNode newNode;
-                    getFullNodeWithCoveredFace(newNode, 
-                                               a_regIrregCovered,
-                                               ivshift, 
-                                               a_domain);
-                    a_nodes.push_back(newNode);
-                  }
-
-              }
-          }
-      }
-    //next we loop through the remaining cells (corner cells in 2d, corner and edge cells in 3D)
-    //if any of these are regular, we change them to irregular 
-    for(IVSIterator ivsit(ivstocheck); ivsit.ok(); ++ivsit)
-      {
-        const IntVect& iv = ivsit();
-        if(ghostRegion.contains(iv))
-          {
-            if(a_regIrregCovered(iv, 0) == 1)
-              {
-                a_regIrregCovered(iv, 0) = 0;
-                IrregNode newNode;
-                newNode.makeRegular(iv, a_dx, a_domain);
-                a_nodes.push_back(newNode);
-              }
-          }
-      }
-  }
   /**********************************************/
   void
   GeometryShop::
-  getFullNodeWithCoveredFace(IrregNode            & a_newNode, 
-                             const BaseFab<int>   & a_regIrregCovered,
-                             const IntVect        & a_iv,
-                             const Box            & a_domain) const
+  getFullNodeNextToCovered(IrregNode            & a_newNode, 
+                           const BaseFab<int>   & a_regIrregCovered,
+                           const IntVect        & a_iv,
+                           const Box  & a_domain) const
   {
 
     a_newNode.m_cell          = a_iv;
@@ -452,15 +386,15 @@ namespace amrex
           {
             int ishift = sign(sit());
             IntVect ivshift = a_iv + ishift*BASISV(faceDir);
-            Array<int> arc;
-            Array<Real> areaFrac;
-            Array<RealVect> faceCentroid;
+            std::vector<int> arc;
+            std::vector<Real> areaFrac;
+            std::vector<RealVect> faceCentroid;
             if(!a_domain.contains(ivshift))
               {
                 // boundary arcs always -1
                 arc.resize(1,-1);
                 areaFrac.resize(1, 1.0);
-                faceCentroid.resize(1, RealVect::Zero);
+                faceCentroid.resize(1, RealVect::Unit);
               }
             else if (a_regIrregCovered(ivshift, 0) >= 0)
               {
@@ -470,7 +404,7 @@ namespace amrex
                 //it just  knows that the cell index of a regular cell is 0
                 arc.resize(1,0);
                 areaFrac.resize(1, 1.0);
-                faceCentroid.resize(1, RealVect::Zero);
+                faceCentroid.resize(1, RealVect::Unit);
               }
             else if (a_regIrregCovered(ivshift, 0) < 0)
               {
@@ -503,21 +437,21 @@ namespace amrex
   /*********************************************/
   void
   GeometryShop::computeVoFInternals(Real&               a_volFrac,
-                                    std::array<Array<int>,SpaceDim>& a_loArc,
-                                    std::array<Array<int>,SpaceDim>& a_hiArc,
-                                    std::array<Array<Real>,SpaceDim>& a_loAreaFrac,
-                                    std::array<Array<Real>,SpaceDim>& a_hiAreaFrac,
-                                    Real&                a_bndryArea,
-                                    RealVect&            a_normal,
-                                    RealVect&            a_volCentroid,
-                                    RealVect&            a_bndryCentroid,
-                                    std::array<Array<RealVect>,SpaceDim>& a_loFaceCentroid,
-                                    std::array<Array<RealVect>,SpaceDim>& a_hiFaceCentroid,
-                                    const BaseFab<int>&  a_regIrregCovered,
-                                    const Box&           a_domain,
-                                    const RealVect&      a_origin,
-                                    const Real&          a_dx,
-                                    const IntVect&       a_iv) const
+                                    std::vector<int>         a_loArc[SpaceDim],
+                                    std::vector<int>         a_hiArc[SpaceDim],
+                                    std::vector<Real>        a_loAreaFrac[SpaceDim],
+                                    std::vector<Real>        a_hiAreaFrac[SpaceDim],
+                                    Real&               a_bndryArea,
+                                    RealVect&           a_normal,
+                                    RealVect&           a_volCentroid,
+                                    RealVect&           a_bndryCentroid,
+                                    std::vector<RealVect>    a_loFaceCentroid[SpaceDim],
+                                    std::vector<RealVect>    a_hiFaceCentroid[SpaceDim],
+                                    const BaseFab<int>& a_regIrregCovered,
+                                    const Box&a_domain,
+                                    const RealVect&     a_origin,
+                                    const Real&         a_dx,
+                                    const IntVect&      a_iv)const
   {
 
     // need maxDx to properly scale a_bndryArea
@@ -545,16 +479,16 @@ namespace amrex
                    a_domain,
                    a_origin);
 
-        AMREX_ASSERT(faceRegular || faceCovered || faceDontKnow);
-        AMREX_ASSERT((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
+        assert(faceRegular || faceCovered || faceDontKnow);
+        assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
         // define the faceMo
         Face.define(edges,faceNormal,faceCovered,faceRegular,faceDontKnow);
 
         Moments geom;
 
         // answer0,answer1 are vectors whose components contain geometric information
-        Array<Real> answer0;
-        Array<Real> answer1;
+        std::vector<Real> answer0;
+        std::vector<Real> answer1;
 
         int order = 0;
         answer0 = geom.momentCalc2D(order,Face);
@@ -735,8 +669,8 @@ namespace amrex
                            a_domain,
                            a_origin);
 
-                AMREX_ASSERT(faceRegular || faceCovered || faceDontKnow);
-                AMREX_ASSERT((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
+                assert(faceRegular || faceCovered || faceDontKnow);
+                assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
                 Faces[index].define(edges,faceNormal,faceCovered,faceRegular,faceDontKnow);
 
                 // if the face is covered we will deal with it later
@@ -744,8 +678,8 @@ namespace amrex
                   {
                     Moments geom;
                     // answer0 and answer1 have all the geometric facts
-                    Array<Real> answer0;
-                    Array<Real> answer1;
+                    std::vector<Real> answer0;
+                    std::vector<Real> answer1;
 
                     int order = 0;
                     answer0 = geom.momentCalc2D(order,Faces[index]);
@@ -795,11 +729,11 @@ namespace amrex
             faceMo& face = Faces[iFace];
 
             // collect exactly two irregular edges or mayday.
-            Array<RealVect> crossingPt;
+            std::vector<RealVect> crossingPt;
 
-            Array<int> cPtHiLo;
-            Array<int> edgeHiLo;
-            Array<int> edgeDir;
+            std::vector<int> cPtHiLo;
+            std::vector<int> edgeHiLo;
+            std::vector<int> edgeDir;
 
             if (!(face.isCovered()) && !(face.isRegular()))
               {
@@ -879,13 +813,13 @@ namespace amrex
                 // flip area?
                 bool complementArea;
 
-                AMREX_ASSERT (cPtHiLo.size() == 2);
+                assert (cPtHiLo.size() == 2);
 
                 // loEdge-loEdge
                 if (edgeHiLo[0] == 0 && edgeHiLo[1] == 0)
                   {
                     // both crossingPts must be Hi or both must be Lo
-                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
+                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == -1));
 
                     // prismArea gives triangle
@@ -905,7 +839,7 @@ namespace amrex
                 else if (edgeHiLo[0] == 1 && edgeHiLo[1] == 1)
                   {
                     // both crossingPts must be Hi or both must be Lo
-                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
+                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == -1));
                     // prismArea gives the trapezoid
 
@@ -924,7 +858,7 @@ namespace amrex
                 else if (edgeHiLo[0] == 1 && edgeHiLo[1] == 0)
                   {
                     // cpPtHiLo must be the same or the opposite of edgeHiLo
-                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == -1) ||
+                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == -1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == 1));
                     // maxDir > minDir =>prismArea gives trapezoid
                     // maxDir < minDir =>prismArea gives triangle
@@ -963,19 +897,19 @@ namespace amrex
                     // two trapezoids
                     if (cPtHiLo[1] == 1 && cPtHiLo[0] == 1)
                       {
-                        AMREX_ASSERT(edgeDir[0] == edgeDir[1]);
+                        assert(edgeDir[0] == edgeDir[1]);
                         complementArea = false;
                       }
                     else if (cPtHiLo[1] == -1 && cPtHiLo[0] == -1)
                       {
-                        AMREX_ASSERT(edgeDir[0] == edgeDir[1]);
+                        assert(edgeDir[0] == edgeDir[1]);
                         complementArea = true;
                       }
                     // triangle + triangle complement
                     // if the cPtHiLo[0]= loPt then one wants triangle
                     else if (cPtHiLo[0] == -1 && cPtHiLo[1] == 1 )
                       {
-                        AMREX_ASSERT(edgeDir[0] != edgeDir[1]);
+                        assert(edgeDir[0] != edgeDir[1]);
                         // if maxDir < minDir prismArea gives trapezoid
                         // if maxDir > minDir prismArea gives triangle
                         if (maxDir < minDir)
@@ -1027,12 +961,12 @@ namespace amrex
                   }
 
                 // find upDir
-                // std::pair<int,Side::LoHiSide> upDir;
+                std::pair<int,Side::LoHiSide> upDir;
 
                 // physIntercept is along the segment[physSegLo,physSegHi]
                 // this segment passes through midPt with direction minDir
-                Real physIntercept = 0;
-                bool dropOrder = false;
+                Real physIntercept;
+                //                bool dropOrder = false;
 
 
 
@@ -1043,52 +977,49 @@ namespace amrex
                 // by dropping order
                 if (fLo*fHi > 0.0)
                   {
-                    dropOrder = true;
+                    //                    dropOrder = true;
                   }
                 else
                   {
                     physIntercept = BrentRootFinder(physSegLo, physSegHi, minDir);
                   }
 
-                if(!dropOrder)
-                {
-                  // put physIntercept into relative coordinates
-                  Real intercept = physIntercept - a_origin[minDir];
-                  intercept  /= a_dx;
-                  intercept -= (a_iv[minDir]+0.5);
+                // put physIntercept into relative coordinates
+                Real intercept = physIntercept - a_origin[minDir];
+                intercept  /= a_dx;
+                intercept -= (a_iv[minDir]+0.5);
 
-                  // push_back third pt onto crossingPt
-                  crossingPt.push_back(midPt);
-                  crossingPt[2][minDir] = intercept;
+                // push_back third pt onto crossingPt
+                crossingPt.push_back(midPt);
+                crossingPt[2][minDir] = intercept;
 
-                  // integrate w.r.t xVec using Prismoidal Rule
-                  RealVect xVec;
-                  RealVect yVec;
+                // integrate w.r.t xVec using Prismoidal Rule
+                RealVect xVec;
+                RealVect yVec;
 
-                  // the order of (xVec,yVec) will be sorted out in PrismoidalAreaCalc
-                  xVec[0] = crossingPt[0][maxDir];
-                  xVec[1] = crossingPt[2][maxDir];
-                  xVec[2] = crossingPt[1][maxDir];
+                // the order of (xVec,yVec) will be sorted out in PrismoidalAreaCalc
+                xVec[0] = crossingPt[0][maxDir];
+                xVec[1] = crossingPt[2][maxDir];
+                xVec[2] = crossingPt[1][maxDir];
 
-                  yVec[0] = crossingPt[0][minDir];
-                  yVec[1] = crossingPt[2][minDir];
-                  yVec[2] = crossingPt[1][minDir];
+                yVec[0] = crossingPt[0][minDir];
+                yVec[1] = crossingPt[2][minDir];
+                yVec[2] = crossingPt[1][minDir];
 
-                  // Prismoidal's rule
-                  Real area = PrismoidalAreaCalc(xVec,yVec);
+                // Prismoidal's rule
+                Real area = PrismoidalAreaCalc(xVec,yVec);
 
-                  // Only use area if it is valid
-                  if (area >= 0.0 && area <= 1.0)
+                // Only use area if it is valid
+                if (area >= 0.0 && area <= 1.0)
                   {
                     // assign area to this value or (1 - this value)
                     if (complementArea)
-                    {
-                      area = 1.0 - area;
-                    }
+                      {
+                        area = 1.0 - area;
+                      }
 
                     Faces[iFace].setFaceArea(area);
                   }
-                }
               }
           }
 #endif
@@ -1187,12 +1118,12 @@ namespace amrex
 
         Moments geom;
         int order = 0;
-        Array<Real> answer0;
+        std::vector<Real> answer0;
         answer0 = geom.momentCalc3D(order,Vof);
 
         a_volFrac = answer0[0];
 
-        Array<Real> answer1;
+        std::vector<Real> answer1;
         order = 1;
         answer1 = geom.momentCalc3D(order,Vof);
 
@@ -1278,7 +1209,7 @@ namespace amrex
 
         if (volDiscrepancy > m_threshold)
           {
-            amrex::AllPrint() << std::string(message) << "\n";
+            std::cout << std::string(message) << std::endl;
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1305,7 +1236,7 @@ namespace amrex
           }
         if (volDiscrepancy>m_threshold)
           {
-            amrex::AllPrint() << message << "\n";
+            std::cout << message << std::endl;
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1338,7 +1269,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::AllPrint() << message << "\n";
+                    std::cout << message << std::endl;
                   }
 
                 // do the clipping
@@ -1366,7 +1297,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::AllPrint() << message << "\n";
+                    std::cout << message << std::endl;
                   }
 
                 // do the clipping
@@ -1402,7 +1333,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::AllPrint() << message << "\n";
+                    std::cout << message << std::endl;
                   }
 
                 // do the clipping
@@ -1430,7 +1361,7 @@ namespace amrex
                   }
                 if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
                   {
-                    amrex::AllPrint() << message << "\n";
+                    std::cout << message << std::endl;
                   }
 
                 // do the clipping
@@ -1463,7 +1394,7 @@ namespace amrex
           }
         if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
           {
-            amrex::AllPrint() << message << "\n";
+            std::cout << message << std::endl;
           }
 
         // do the clipping
@@ -1491,7 +1422,7 @@ namespace amrex
           }
         if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
           {
-            amrex::AllPrint() << message << "\n";
+            std::cout << message << std::endl;
           }
         // do the clipping
         //thisVofClipped = true;
@@ -1521,7 +1452,7 @@ namespace amrex
               }
             if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::AllPrint() << message << "\n";
+                std::cout << message << std::endl;
 
               }
             // do the clipping
@@ -1548,7 +1479,7 @@ namespace amrex
               }
             if (discrepancy > m_threshold&& volDiscrepancy>m_threshold)
               {
-                amrex::AllPrint() << message << "\n";
+                std::cout << message << std::endl;
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1576,7 +1507,7 @@ namespace amrex
               }
             if (discrepancy>m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::AllPrint() << message << "\n";
+                std::cout << message << std::endl;
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1603,7 +1534,7 @@ namespace amrex
               }
             if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
               {
-                amrex::AllPrint() << message << "\n";
+                std::cout << message << std::endl;
               }
             // do the clipping
             //thisVofClipped = true;
@@ -1637,7 +1568,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::AllPrint() << message << "\n";
+                        std::cout << message << std::endl;
 
                       }
                     // do the clipping
@@ -1664,7 +1595,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::AllPrint() << message << "\n";
+                        std::cout << message << std::endl;
 
                       }
                     // do the clipping
@@ -1701,7 +1632,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy>m_threshold)
                       {
-                        amrex::AllPrint() << message << "\n";
+                        std::cout << message << std::endl;
                       }
                     // do the clipping
                     //thisVofClipped = true;
@@ -1727,7 +1658,7 @@ namespace amrex
                       }
                     if (discrepancy > m_threshold && volDiscrepancy > m_threshold)
                       {
-                        amrex::AllPrint() << message << "\n";
+                        std::cout << message << std::endl;
                       }
                     // do the clipping
                     //thisVofClipped = true;
@@ -1901,10 +1832,10 @@ namespace amrex
                     HiPt[range] =  0.5;
                   }
 
-                AMREX_ASSERT((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
-                AMREX_ASSERT(regular || covered || (!(LoPtChanged && HiPtChanged)));
-                AMREX_ASSERT(regular || covered || dontKnow);
-                AMREX_ASSERT(regular || covered || LoPtChanged || HiPtChanged);
+                assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
+                assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
+                assert(regular || covered || dontKnow);
+                assert(regular || covered || LoPtChanged || HiPtChanged);
                 bool intersectLo = LoPtChanged;
                 edgeMo Edge;
                 // range means the coordinate direction that varies over the length of the edge
@@ -2005,7 +1936,7 @@ namespace amrex
                 // choose the midpoint for an ill-conditioned problem
                 if (intercept<LoPt[range] || intercept>HiPt[range])
                   {
-                    amrex::AllPrint()<<"GeometryShop::edgeData: Ill-conditioned edge data"<<"\n";
+                    std::cout<<"GeometryShop::edgeData: Ill-conditioned edge data"<<std::endl;
                     intercept = (LoPt[range]+HiPt[range])/2.0;
                   }
 
@@ -2059,10 +1990,10 @@ namespace amrex
                 HiPt[range] =  0.5;
               }
 
-            AMREX_ASSERT(regular || covered || (!(LoPtChanged && HiPtChanged)));
-            AMREX_ASSERT(regular || covered || dontKnow);
-            AMREX_ASSERT((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
-            AMREX_ASSERT(regular || covered || LoPtChanged || HiPtChanged);
+            assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
+            assert(regular || covered || dontKnow);
+            assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
+            assert(regular || covered || LoPtChanged || HiPtChanged);
             // default is something invalid
             bool intersectLo = LoPtChanged;
 
@@ -2115,6 +2046,20 @@ namespace amrex
     return;
   }
 
+  Real GeometryShop::Min(const Real x, const Real y)const
+  {
+    Real retval;
+    if (x < y)
+      {
+        retval = x;
+      }
+    else
+      {
+        retval = y;
+      }
+    return retval;
+  }
+
   //  The following is an implementation of "Brent's Method"
   //    for one-dimensional root finding. Pseudo-code for this
   //    algorithm can be found on p. 253 of "Numerical Recipes"
@@ -2148,7 +2093,7 @@ namespace amrex
 
     if (fb*fa > 0)
       {
-        amrex::AllPrint() << "fa " << fa << " fb " << fb << "\n";
+        std::cout << "fa " << fa << " fb " << fb << std::endl;
         amrex::Error("GeometryShop::BrentRootFinder. Root must be bracketed, but instead the supplied end points have the same sign.");
       }
 
@@ -2206,7 +2151,7 @@ namespace amrex
 
             p = std::abs(p);
 
-            if (2.0 * p < std::min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
+            if (2.0 * p < Min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
               {
                 //  Accept interpolation
                 e = d;
@@ -2247,7 +2192,7 @@ namespace amrex
     if (i >= MAXITER)
       {
         std::cerr  << "BrentRootFinder: exceeding maximum iterations: "
-                   << MAXITER << "\n";
+                   << MAXITER << std::endl;
       }
     //  //  Keep statistics
     //     statCount++;
@@ -2302,7 +2247,7 @@ namespace amrex
 
         // Find h
         Real h = 0.5 * (largeX - smallX);
-        AMREX_ASSERT (h >= 0.0);
+        assert (h >= 0.0);
 
         // Prismoidal rule, which is exact on cubics.
         retval = (h/3.0) * (a_yVec[0] + 4.0 * a_yVec[1] + a_yVec[2]);

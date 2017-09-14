@@ -19,6 +19,8 @@
 #include "AMReX_Print.H"
 #include "AMReX_MemPool.H"
 
+#include <limits>
+
 namespace amrex
 {
 
@@ -26,12 +28,28 @@ namespace amrex
 
   static const IntVect   ebd_debiv(D_DECL(15, 6, 0));
   static const VolIndex  ebd_debvof(ebd_debiv, 0);
-  static const IntVect   ebd_debivlo(D_DECL(127, 131, 104));
-  static const IntVect   ebd_debivhi(D_DECL(128, 131, 104));
+  static const IntVect   ebd_debivlo(D_DECL(190,15,0));
+  static const IntVect   ebd_debivhi(D_DECL(191,15,0));
   static const VolIndex  ebd_debvoflo(ebd_debivlo, 0);
   static const VolIndex  ebd_debvofhi(ebd_debivhi, 0);
   static const FaceIndex ebd_debface(ebd_debvoflo, ebd_debvofhi);
 
+  /******/
+  void checkFaceData(const BaseIFFAB<Real> a_faceData[SpaceDim], const Box& a_valid, const string& a_identifier)
+  {
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      const BaseIFFAB<Real> & data  = a_faceData[idir];
+      const Array<FaceIndex>& faces = data.getFaces();
+      for(int iface = 0; iface < faces.size(); iface++)
+      {
+        if(faces[iface] == ebd_debface)
+        {
+          amrex::Print() << a_identifier << ", valid = " << a_valid << ", areaFrac(" << ebd_debface << ")=" << data(ebd_debface,0) << endl;
+        }
+      }
+    }
+  }
   /******/
   extern void null_deleter_ebdi(EBDataImplem* a_input)
   {
@@ -332,9 +350,11 @@ namespace amrex
       m_faceData[idir].define(ivsIrregG1D, a_graph, idir, F_FACENUMBER);
     }
 
-#if !defined(NDEBUG) || defined(BL_TESTING)
-    init_snan();
-#endif
+//#if !defined(NDEBUG) || defined(BL_TESTING)
+    //   init_snan();  // Currently we rely on this to indicate bad data.
+    // wz. How could std::isnan fail on snan?  This is gcc 4.8.4.
+    init_qnan(); // So we have to initialize it to qnan;
+//#endif
     setCoveredAndRegular();
 
   }
@@ -393,6 +413,10 @@ namespace amrex
         }
       }
     }
+
+//begin debug
+//    checkFaceData(m_faceData, a_validBox, string("right after irregnode init"));
+//end debug
     computeNormalsAndBoundaryAreas(a_graph, a_validBox);
     //if(m_volData.getIVS().contains(ebd_debiv))
     //{
@@ -418,7 +442,25 @@ namespace amrex
               amrex_array_init_snan(m_faceData[idim].dataPtr(), n);
           }
       }
+#else
+      init_qnan();
 #endif
+  }
+
+  void EBDataImplem::init_qnan ()
+  {
+      std::size_t n = m_volData.size();
+      if (n > 0) {
+          std::fill(m_volData.dataPtr(), m_volData.dataPtr() + n,
+                    std::numeric_limits<Real>::quiet_NaN());
+      }
+      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+          n = m_faceData[idim].size();
+          if (n > 0) {
+              std::fill(m_faceData[idim].dataPtr(), m_faceData[idim].dataPtr() + n,
+                        std::numeric_limits<Real>::quiet_NaN());
+          }
+      }
   }
 
 /*******************************/
