@@ -307,7 +307,10 @@ ${\tt Amr}$ generates is already of type $\tt{EBFArrayBox}$ under the
 hood and one can access the functions via cast.   The
 $\tt{EBCellFlagFab}$ can be used to choose whether it is necessary to call an
 EB-specfic routine. $\tt{EBCellFlagFab}$  can be sent also be sent to Fortran to 
-enable EB-specific logic.   The example below is a simplified version
+enable EB-specific logic.   
+
+\subsection{Example}
+The example below is a simplified version
 of one of the routines in $\tt{Tutorial/EB/CNS}$.   Note  that  it
 carefully calls the more complicated EB fortran routine if the
 particular tile has cut cells.
@@ -375,7 +378,10 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
               else
               {
                 //this tile has cut cells so we have to send into Fortran
-                //EBCellFlagFAB as well as lots of geometric information
+                //EBCellFlagFAB as well as lots of geometric
+                //information
+                //the areafrac and facecent objects are member data
+                //filled using EBISBox
                 cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                 BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                 BL_TO_FORTRAN_ANYD(S[mfi]),
@@ -398,3 +404,134 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         }
 
 \end{lstlisting}
+
+\subsection{Fortran bits}
+
+Now the Fortran that underlies these two cases is quite different.
+For the non-EB case,    the one loop in the function is given by the
+familiar-looking example below:
+\begin{lstlisting}[language=Fortran]
+    do n = 1, ncomp
+       do       k = lo(3),hi(3)
+          do    j = lo(2),hi(2)
+             do i = lo(1),hi(1)
+                ut(i,j,k,n) = (fx(i,j,k,n)-fx(i+1,j,k,n)) * dxinv(1) &
+                     +        (fy(i,j,k,n)-fy(i,j+1,k,n)) * dxinv(2) &
+                     +        (fz(i,j,k,n)-fz(i,j,k+1,n)) * dxinv(3)
+             end do
+          end do
+       end do
+    end do
+\end{lstlisting}
+
+For the embedded boundary version, the code must is much more
+complicated. To avoid instabilities associated with arbitrarily small
+cells, the divergence is computed in stages.  For this discussion
+$\kappa$ is the volume fraction of a cell.  The stages of the
+divergence are given by
+\begin{itemize}
+\item Compute the $\kappa$-weighted divergence.
+\item Compute a nonconservative approximation to the divergence that
+  is a local average of the previous object.
+\item Update the state with a hybrid divergence.
+\item Redistribute  mass to preserve conservation.
+\end{itemize}
+It is beyond the scope of this document to explain all that.  We
+include it only to provide the context that EB stencils can be much
+more complex that non-EB ones.   Suffice
+it to say that the first step of that process is most closely related
+to the code above.    The loop that computes the $\kappa$-weighted
+divergence is given below.
+
+\begin{lstlisting}[language=Fortran]
+    do n = 1, ncomp
+
+       !
+       ! First, we compute conservative divergence on (lo-2,hi+2)
+       !
+       iwall = 0
+       do       k = lo(3)-2, hi(3)+2
+          do    j = lo(2)-2, hi(2)+2
+             do i = lo(1)-2, hi(1)+2
+                divc(i,j,k) = (fluxx(i,j,k,n)-fluxx(i+1,j,k,n))*dxinv(1) &
+                     +        (fluxy(i,j,k,n)-fluxy(i,j+1,k,n))*dxinv(2) &
+                     +        (fluxz(i,j,k,n)-fluxz(i,j,k+1,n))*dxinv(3)
+             end do
+
+             do i = lo(1)-2, hi(1)+2
+                if (is_covered_cell(cellflag(i,j,k))) then
+                   divc(i,j,k) = 0.d0
+                else if (is_single_valued_cell(cellflag(i,j,k))) then
+
+                   call get_neighbor_cells(cellflag(i,j,k),nbr)
+
+                   ! x-direction lo face
+                   if (apx(i,j,k).lt.1.d0) then
+                      if (centx_y(i,j,k).le.0.d0) then
+                         fracy = -centx_y(i,j,k)*nbr(0,-1,0)
+                         if(centx_z(i,j,k).le. 0.0d0)then
+                            fracz = - centx_z(i,j,k)*nbr(0,0,-1)
+                            fxm = (1.d0-fracz)*(     fracy *fluxx(i,j-1,k  ,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
+                                 &      fracz *(     fracy *fluxx(i,j-1,k-1,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k-1,n))
+                         else
+                            fracz =  centx_z(i,j,k)*nbr(0,0,1)
+                            fxm = (1.d0-fracz)*(     fracy *fluxx(i,j-1,k  ,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
+                                 &      fracz *(     fracy *fluxx(i,j-1,k+1,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k+1,n))
+                         endif
+                      else
+                         fracy = centx_y(i,j,k)*nbr(0,1,0)
+                         if(centx_z(i,j,k).le. 0.0d0)then
+                            fracz = -centx_z(i,j,k)*nbr(0,0,-1)
+                            fxm = (1.d0-fracz)*(     fracy *fluxx(i,j+1,k  ,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
+                                 &      fracz *(     fracy *fluxx(i,j+1,k-1,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k-1,n))
+                         else
+                            fracz = centx_z(i,j,k)*nbr(0,0,1)
+                            fxm = (1.d0-fracz)*(     fracy *fluxx(i,j+1,k  ,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
+                                 &      fracz *(     fracy *fluxx(i,j+1,k+1,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k+1,n))
+                         endif
+                      end if
+                   else
+                      fxm = fluxx(i,j,k,n)
+                   end if
+
+           ![***REDACTED-- THERE ARE SIMILAR TERMS FOR XHI, YLO, YHI, ZLO, ZHI***]
+
+                   iwall = iwall + 1
+                   if (n .eq. 1) then
+                      call compute_hyp_wallflux(divhyp(:,iwall), i,j,k, q(i,j,k,qrho), &
+                           q(i,j,k,qu), q(i,j,k,qv), q(i,j,k,qw), q(i,j,k,qp), &
+                           apx(i,j,k), apx(i+1,j,k), &
+                           apy(i,j,k), apy(i,j+1,k), &
+                           apz(i,j,k), apz(i,j,k+1))
+                      call compute_diff_wallflux(divdiff(:,iwall), dxinv, i,j,k, &
+                           q, qlo, qhi, &
+                           lam, mu, xi, clo, chi, &
+                           bcent, blo, bhi, &
+                           apx, axlo, axhi, &
+                           apy, aylo, ayhi, &
+                           apz, azlo, azhi)
+                   end if
+
+                   divwn = divhyp(n,iwall) + divdiff(n,iwall)
+
+                   ! we assume dx == dy == dz
+                   divc(i,j,k) = -((apx(i+1,j,k)*fxp - apx(i,j,k)*fxm) * dxinv(1) &
+                        +          (apy(i,j+1,k)*fyp - apy(i,j,k)*fym) * dxinv(2) &
+                        +          (apz(i,j,k+1)*fzp - apz(i,j,k)*fzm) * dxinv(3) &
+                        +          divwn * dxinv(1)) / vfrac(i,j,k)
+                end if
+             end do
+          end do
+       end do
+
+\end{lstlisting}
+This should explain why it is desirable to avoid 
+calling the EB-specific routine when possible.
