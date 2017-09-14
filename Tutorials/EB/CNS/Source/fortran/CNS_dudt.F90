@@ -185,16 +185,7 @@ contains
     fhx = fhx + fdx
     fhy = fhy + fdy
     fhz = fhz + fdz
-    call compute_eb_divop(lo,hi,5,dx,dt,fhx,lfxlo,lfxhi,fhy,lfylo,lfyhi,fhz,lfzlo,lfzhi,&
-         dudt,utlo,uthi, q,qlo,qhi, lambda, mu, xi, clo, chi, &
-         divc,dvlo,dvhi, dm,dmlo,dmhi, &
-         volfrac,vlo,vhi, bcent,blo,bhi, &
-         apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
-         centx(:,:,:,1),cxlo,cxhi, centx(:,:,:,2),cxlo,cxhi, &
-         centy(:,:,:,1),cylo,cyhi, centy(:,:,:,2),cylo,cyhi, &
-         centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &
-         flag,fglo,fghi)
-    
+
     fx(      fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),1:5) = &
          fhx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),1:5)
     fy(      fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),1:5) = &
@@ -206,6 +197,17 @@ contains
     fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),6:nvar) = 0.d0
     fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),6:nvar) = 0.d0
 
+    call compute_eb_divop(lo,hi,5,dx,dt,fhx,lfxlo,lfxhi,fhy,lfylo,lfyhi,fhz,lfzlo,lfzhi,&
+         fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi, &
+         dudt,utlo,uthi, q,qlo,qhi, lambda, mu, xi, clo, chi, &
+         divc,dvlo,dvhi, dm,dmlo,dmhi, &
+         volfrac,vlo,vhi, bcent,blo,bhi, &
+         apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
+         centx(:,:,:,1),cxlo,cxhi, centx(:,:,:,2),cxlo,cxhi, &
+         centy(:,:,:,1),cylo,cyhi, centy(:,:,:,2),cylo,cyhi, &
+         centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &
+         flag,fglo,fghi)
+    
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
 
     if (actually_2D) then

@@ -143,10 +143,11 @@ EBFluxRegister::reset ()
 
 
 void
-EBFluxRegister::CrseAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+EBFluxRegister::CrseAdd (const MFIter& mfi,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt)
 {
-    BL_ASSERT(m_crse_data.nComp() == flux[0].nComp());
+    BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
 
     if (m_crse_fab_flag[mfi.LocalIndex()] == crse_cell) {
         return;  // this coarse fab is not close to fine fabs.
@@ -161,19 +162,19 @@ EBFluxRegister::CrseAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPA
     amrex_eb_flux_reg_crseadd(BL_TO_FORTRAN_BOX(bx),
                               BL_TO_FORTRAN_ANYD(fab),
                               BL_TO_FORTRAN_ANYD(flag),
-                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(flux[0]),
-                                           BL_TO_FORTRAN_ANYD(flux[1]),
-                                           BL_TO_FORTRAN_ANYD(flux[2])),
+                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
+                                           BL_TO_FORTRAN_ANYD(*flux[1]),
+                                           BL_TO_FORTRAN_ANYD(*flux[2])),
                               dx, &dt,&nc);
-                                           
 }
 
 
 void
-EBFluxRegister::FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+EBFluxRegister::FineAdd (const MFIter& mfi,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt)
 {
-    BL_ASSERT(m_cfpatch.nComp() == flux[0].nComp());
+    BL_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
 
     const int li = mfi.LocalIndex();
     Array<FArrayBox*>& fabs = m_cfp_fab[li];
@@ -197,7 +198,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPA
                 {
                     amrex_eb_flux_reg_fineadd(BL_TO_FORTRAN_BOX(lobx_is),
                                               BL_TO_FORTRAN_ANYD(*cfp),
-                                              BL_TO_FORTRAN_ANYD(flux[idim]),
+                                              BL_TO_FORTRAN_ANYD(*flux[idim]),
                                               dx, &dt, &nc, &idim, &side,
                                               m_ratio.getVect());
                 }
@@ -209,9 +210,109 @@ EBFluxRegister::FineAdd (const MFIter& mfi, const std::array<FArrayBox,AMREX_SPA
                 {
                     amrex_eb_flux_reg_fineadd(BL_TO_FORTRAN_BOX(hibx_is),
                                               BL_TO_FORTRAN_ANYD(*cfp),
-                                              BL_TO_FORTRAN_ANYD(flux[idim]),
+                                              BL_TO_FORTRAN_ANYD(*flux[idim]),
                                               dx, &dt, &nc, &idim, &side,
                                               m_ratio.getVect());
+                }
+            }
+        }
+    }
+}
+
+
+void
+EBFluxRegister::CrseAdd (const MFIter& mfi,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                         const Real* dx, Real dt,
+                         const FArrayBox& volfrac,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac)
+{
+    BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
+
+    if (m_crse_fab_flag[mfi.LocalIndex()] == crse_cell) {
+        return;  // this coarse fab is not close to fine fabs.
+    }
+
+    FArrayBox& fab = m_crse_data[mfi];
+    const Box& bx = mfi.tilebox();
+    const int nc = fab.nComp();
+
+    const IArrayBox& flag = m_crse_flag[mfi];
+
+    amrex_eb_flux_reg_crseadd_va(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD(fab),
+                                 BL_TO_FORTRAN_ANYD(flag),
+                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
+                                              BL_TO_FORTRAN_ANYD(*flux[1]),
+                                              BL_TO_FORTRAN_ANYD(*flux[2])),
+                                 BL_TO_FORTRAN_ANYD(volfrac),
+                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*areafrac[0]),
+                                              BL_TO_FORTRAN_ANYD(*areafrac[1]),
+                                              BL_TO_FORTRAN_ANYD(*areafrac[2])),
+                                 dx, &dt,&nc);
+}
+
+
+void
+EBFluxRegister::FineAdd (const MFIter& mfi,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                         const Real* dx, Real dt,
+                         const FArrayBox& volfrac,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac)
+{
+    BL_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
+
+    const int li = mfi.LocalIndex();
+    Array<FArrayBox*>& fabs = m_cfp_fab[li];
+    if (fabs.empty()) return;
+
+    BL_ASSERT(mfi.tilebox().cellCentered());
+    AMREX_ALWAYS_ASSERT(mfi.tilebox().coarsenable(m_ratio));
+    const Box& bx = amrex::coarsen(mfi.tilebox(), m_ratio);
+    const int nc = m_cfpatch.nComp();
+
+    FArrayBox cvol;
+
+    for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
+    {
+        const Box& lobx = amrex::adjCellLo(bx, idim);
+        const Box& hibx = amrex::adjCellHi(bx, idim);
+        for (FArrayBox* cfp : m_cfp_fab[li])
+        {
+            {
+                const Box& lobx_is = lobx & cfp->box();
+                const int side = 0;
+                if (lobx_is.ok())
+                {
+                    cvol.resize(lobx_is);
+                    amrex_eb_flux_reg_fineadd_va(BL_TO_FORTRAN_BOX(lobx_is),
+                                                 BL_TO_FORTRAN_ANYD(*cfp),
+                                                 BL_TO_FORTRAN_ANYD(*flux[idim]),
+                                                 BL_TO_FORTRAN_ANYD(cvol),
+                                                 BL_TO_FORTRAN_ANYD(volfrac),
+                                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*areafrac[0]),
+                                                              BL_TO_FORTRAN_ANYD(*areafrac[1]),
+                                                              BL_TO_FORTRAN_ANYD(*areafrac[2])),
+                                                 dx, &dt, &nc, &idim, &side,
+                                                 m_ratio.getVect());
+                }
+            }
+            {
+                const Box& hibx_is = hibx & cfp->box();
+                const int side = 1;
+                if (hibx_is.ok())
+                {
+                    cvol.resize(hibx_is);
+                    amrex_eb_flux_reg_fineadd_va(BL_TO_FORTRAN_BOX(hibx_is),
+                                                 BL_TO_FORTRAN_ANYD(*cfp),
+                                                 BL_TO_FORTRAN_ANYD(*flux[idim]),
+                                                 BL_TO_FORTRAN_ANYD(cvol),
+                                                 BL_TO_FORTRAN_ANYD(volfrac),
+                                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*areafrac[0]),
+                                                              BL_TO_FORTRAN_ANYD(*areafrac[1]),
+                                                              BL_TO_FORTRAN_ANYD(*areafrac[2])),
+                                                 dx, &dt, &nc, &idim, &side,
+                                                 m_ratio.getVect());
                 }
             }
         }

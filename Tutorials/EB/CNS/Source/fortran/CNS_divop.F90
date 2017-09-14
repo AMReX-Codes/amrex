@@ -37,9 +37,12 @@ contains
   end subroutine compute_divop
 
   subroutine compute_eb_divop (lo,hi,ncomp, dx, dt, &
-       fluxx,fxlo,fxhi, &
+       fluxx,fxlo,fxhi, &       ! flux at face center
        fluxy,fylo,fyhi, &
        fluxz,fzlo,fzhi, &
+       fctrdx, fcxlo, fcxhi, &     ! flux at centroid
+       fctrdy, fcylo, fcyhi, &
+       fctrdz, fczlo, fczhi, &
        ebdivop, oplo, ophi, &
        q, qlo, qhi, &
        lam, mu, xi, clo, chi, &
@@ -64,12 +67,15 @@ contains
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
          cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi, &
-         clo, chi, blo, bhi
+         clo, chi, blo, bhi, fcxlo, fcxhi, fcylo, fcyhi, fczlo, fczhi
     integer, intent(in) :: ncomp
     real(rt), intent(in) :: dx(3), dt
-    real(rt), intent(in) :: fluxx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),ncomp)
-    real(rt), intent(in) :: fluxy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),ncomp)
-    real(rt), intent(in) :: fluxz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),ncomp)
+    real(rt), intent(in   ) :: fluxx ( fxlo(1): fxhi(1), fxlo(2): fxhi(2), fxlo(3): fxhi(3),ncomp)
+    real(rt), intent(in   ) :: fluxy ( fylo(1): fyhi(1), fylo(2): fyhi(2), fylo(3): fyhi(3),ncomp)
+    real(rt), intent(in   ) :: fluxz ( fzlo(1): fzhi(1), fzlo(2): fzhi(2), fzlo(3): fzhi(3),ncomp)
+    real(rt), intent(inout) :: fctrdx(fcxlo(1):fcxhi(1),fcxlo(2):fcxhi(2),fcxlo(3):fcxhi(3),ncomp)
+    real(rt), intent(inout) :: fctrdy(fcylo(1):fcyhi(1),fcylo(2):fcyhi(2),fcylo(3):fcyhi(3),ncomp)
+    real(rt), intent(inout) :: fctrdz(fczlo(1):fczhi(1),fczlo(2):fczhi(2),fczlo(3):fczhi(3),ncomp)
     real(rt), intent(inout) :: ebdivop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)
     real(rt), intent(in) ::   q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
     real(rt), intent(in) :: lam(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
@@ -90,6 +96,7 @@ contains
     real(rt), intent(in) :: centz_y(czylo(1):czyhi(1),czylo(2):czyhi(2),czylo(3):czyhi(3))
     integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
 
+    logical :: valid_cell
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
     integer :: nwalls, iwall
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
@@ -137,6 +144,10 @@ contains
                    divc(i,j,k) = 0.d0
                 else if (is_single_valued_cell(cellflag(i,j,k))) then
 
+                   valid_cell = i.ge.lo(1) .and. i.le.hi(1) &
+                        .and.   j.ge.lo(2) .and. j.le.hi(2) &
+                        .and.   k.ge.lo(3) .and. k.le.hi(3)
+
                    call get_neighbor_cells(cellflag(i,j,k),nbr)
 
                    ! x-direction lo face
@@ -176,6 +187,8 @@ contains
                       fxm = fluxx(i,j,k,n)
                    end if
 
+                   if (valid_cell) fctrdx(i,j,k,n) = fxm
+
                    ! x-direction hi face
                    if (apx(i+1,j,k).lt.1.d0) then
                       if (centx_y(i+1,j,k).le.0.d0) then
@@ -212,6 +225,8 @@ contains
                    else
                       fxp = fluxx(i+1,j,k,n)
                    end if
+
+                   if (valid_cell) fctrdx(i+1,j,k,n) = fxp
 
                    ! y-direction lo face
                    if (apy(i,j,k).lt.1.d0) then
@@ -250,6 +265,8 @@ contains
                       fym = fluxy(i,j,k,n)
                    end if
 
+                   if (valid_cell) fctrdy(i,j,k,n) = fym
+
                    ! y-direction hi face
                    if (apy(i,j+1,k).lt.1d0) then
                       if (centy_x(i,j+1,k).le.0.d0) then
@@ -286,6 +303,8 @@ contains
                    else
                       fyp = fluxy(i,j+1,k,n)
                    end if
+
+                   if (valid_cell) fctrdy(i,j+1,k,n) = fyp
 
                    ! z-direction lo face
                    if(apz(i,j,k).lt.1.d0)then
@@ -324,6 +343,8 @@ contains
                       fzm = fluxz(i,j,k,n)
                    endif
 
+                   if (valid_cell) fctrdz(i,j,k,n) = fzm
+
                    ! z-direction hi face
                    if(apz(i,j,k+1).lt.1.d0)then
                       if(centz_x(i,j,k+1).le. 0.0d0)then
@@ -360,6 +381,8 @@ contains
                    else
                       fzp = fluxz(i,j,k+1,n)
                    endif
+
+                   if (valid_cell) fctrdz(i,j,k+1,n) = fzp
 
                    iwall = iwall + 1
                    if (n .eq. 1) then
