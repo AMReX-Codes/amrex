@@ -289,7 +289,7 @@ namespace amrex
     Box domain;
     Real dx;
     //make the initial geometry
-    //amrex::Print() << "making EBIS" << endl;
+    amrex::AllPrint() << "making EBIS" << endl;
     makeGeometry(domain, dx);
     //extract all the info we can from the singleton
     EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
@@ -297,7 +297,7 @@ namespace amrex
     vector<Box> domainsIn = ebisPtr->getDomains();
     int nCellMaxIn = ebisPtr->getNCellMax();
 
-    //amrex::Print() << "making eblgIn EBLevelGrids"  << endl;
+    amrex::AllPrint() << "making eblgIn EBLevelGrids"  << endl;
     vector<EBLevelGrid> eblgIn(numLevelsIn);
     for(int ilev = 0; ilev < numLevelsIn; ilev++)
     {
@@ -307,19 +307,19 @@ namespace amrex
       DistributionMapping dm(ba);
       eblgIn[ilev]= EBLevelGrid(ba, dm, domain, 2);
     }
-    //amrex::Print() << "writing EBIS" << endl;
+    amrex::AllPrint() << "writing EBIS" << endl;
     //write the singleton and erase it.
     ebisPtr->write("ebis.plt");
     ebisPtr->clear();
 
     //now read it back in and get all that info again
-    //amrex::Print() << "reading EBIS" << endl;
+    amrex::AllPrint() << "reading EBIS" << endl;
     ebisPtr->read("ebis.plt");
     int numLevelsOut = ebisPtr->getNumLevels();
     vector<Box> domainsOut = ebisPtr->getDomains();
     int nCellMaxOut = ebisPtr->getNCellMax();
       
-    //amrex::Print() << "making eblgOut EBLevelGrids"  << endl;
+    amrex::AllPrint() << "making eblgOut EBLevelGrids"  << endl;
     vector<EBLevelGrid> eblgOut(numLevelsOut);
     for(int ilev = 0; ilev < numLevelsOut; ilev++)
     {
