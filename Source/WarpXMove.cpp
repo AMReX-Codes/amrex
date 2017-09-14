@@ -51,7 +51,7 @@ WarpX::MoveWindow (bool move_j)
             }
 
             if (do_dive_cleaning) {
-                shiftMF(*F_fp[lev], geom[lev], num_shift, dir);
+                shiftMF(*F_fp[lev],   geom[lev], num_shift, dir);
                 shiftMF(*rho_fp[lev], geom[lev], num_shift, dir);
             }
 
@@ -110,7 +110,7 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     const int nc = mf.nComp();
     const int ng = std::max(mf.nGrow(), std::abs(num_shift));
     MultiFab tmpmf(ba, dm, nc, ng);
-    MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
+    MultiFab::Copy(tmpmf, mf, 0, 0, nc, mf.nGrow());
     tmpmf.FillBoundary(geom.periodicity());
 
     // Make a box that covers the region that the window moved into
