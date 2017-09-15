@@ -106,7 +106,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                      BL_TO_FORTRAN_ANYD(flux[0]),
                                      BL_TO_FORTRAN_ANYD(flux[1]),
                                      BL_TO_FORTRAN_ANYD(flux[2]),
-                                     dx, &dt);
+                                     dx, &dt,&level);
 
                     if (fr_as_crse) {
                         fr_as_crse->CrseAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt);
@@ -148,7 +148,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         &as_fine,
                                         BL_TO_FORTRAN_ANYD(dm_ftoc),
                                         BL_TO_FORTRAN_ANYD(level_mask[mfi]),
-                                        dx, &dt);
+                                        dx, &dt,&level);
 
                     if (fr_as_crse) {
                         fr_as_crse->CrseAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
