@@ -1,4 +1,3 @@
-#include "AMReX_CONSTANTS.H"
 
 module ebfnd_ebamrtools_module
 
@@ -232,16 +231,16 @@ contains
                 jjc = jjf/refrat
                 kkc = kkf/refrat
 
-                xcoar = dxc*(iic + half)
-                ycoar = dxc*(jjc + half)
+                xcoar = dxc*(iic + 0.5d0)
+                ycoar = dxc*(jjc + 0.5d0)
                 zcoar = 0.0d0
 
-                xfine = dxf*(iif + half)
-                yfine = dxf*(jjf + half)
+                xfine = dxf*(iif + 0.5d0)
+                yfine = dxf*(jjf + 0.5d0)
                 zfine = 0.0d0
 
-                xslope = half*(coar(iic+1,jjc  ,kkc  , ivarc)-  coar(iic-1,jjc  ,kkc  , ivarc))/dxc 
-                yslope = half*(coar(iic  ,jjc+1,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc))/dxc
+                xslope = 0.5d0*(coar(iic+1,jjc  ,kkc  , ivarc)-  coar(iic-1,jjc  ,kkc  , ivarc))/dxc 
+                yslope = 0.5d0*(coar(iic  ,jjc+1,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc))/dxc
                 zslope = 0.0d0
 
                 xdist = xfine - xcoar
@@ -249,10 +248,10 @@ contains
                 zdist = 0.0d0
 
 #if BL_SPACEDIM == 3
-                zcoar = dxc*(kkc + half)
-                zfine = dxf*(kkf + half)
+                zcoar = dxc*(kkc + 0.5d0)
+                zfine = dxf*(kkf + 0.5d0)
                 zdist = zfine - zcoar
-                zslope = half*(coar(iic  ,jjc  ,kkc+1, ivarc)-  coar(iic  ,jjc  ,kkc-1, ivarc))/dxc
+                zslope = 0.5d0*(coar(iic  ,jjc  ,kkc+1, ivarc)-  coar(iic  ,jjc  ,kkc-1, ivarc))/dxc
 #endif
                 fine(iif, jjf, kkf, ivarf) = coar(iic,jjc,kkc, ivarc) &
                      + xdist * xslope  &
@@ -345,13 +344,13 @@ contains
                             indc = kkc
                          endif
 
-                         xcoar = dxc*(indc + half)
-                         xfine = dxf*(indf + half)
+                         xcoar = dxc*(indc + 0.5d0)
+                         xfine = dxf*(indf + 0.5d0)
                          xdist = xfine - xcoar
 
                          coarhi = coar(iic+ioff,jjc+joff,kkc+koff, ivarc)
                          coarlo = coar(iic-ioff,jjc-joff,kkc-koff, ivarc)
-                         xslope = (coarhi - coarlo)/(two*dxc)
+                         xslope = (coarhi - coarlo)/(2.0d0*dxc)
                          finevalold = fine(iif, jjf, kkf, ivarf)
 
 
@@ -391,8 +390,8 @@ contains
                                indc = kkc
                             endif
 
-                            xcoar = dxc*(indc + half)
-                            xfine = dxf*(indf + half)
+                            xcoar = dxc*(indc + 0.5d0)
+                            xfine = dxf*(indf + 0.5d0)
                             xdist = xfine - xcoar
 
                             coarhi = coar(iic     ,jjc     ,kkc     , ivarc)
@@ -434,8 +433,8 @@ contains
                                indc = kkc
                             endif
 
-                            xcoar = dxc*(indc + half)
-                            xfine = dxf*(indf + half)
+                            xcoar = dxc*(indc + 0.5d0)
+                            xfine = dxf*(indf + 0.5d0)
                             xdist = xfine - xcoar
                             coarhi = coar(iic+ioff,jjc+joff,kkc+koff, ivarc)
                             coarlo = coar(iic     ,jjc     ,kkc     , ivarc)
@@ -498,12 +497,12 @@ contains
                 jjc = jjf/refrat
                 kkc = kkf/refrat
 
-                xcoar = dxc*(iic + half)
-                ycoar = dxc*(jjc + half)
+                xcoar = dxc*(iic + 0.5d0)
+                ycoar = dxc*(jjc + 0.5d0)
                 zcoar = 0.0d0
 
-                xfine = dxf*(iif + half)
-                yfine = dxf*(jjf + half)
+                xfine = dxf*(iif + 0.5d0)
+                yfine = dxf*(jjf + 0.5d0)
                 zfine = 0.0d0
                 
                 coarhix = coar(iic+1,jjc  ,kkc  , ivarc)
@@ -512,21 +511,21 @@ contains
                 coarloy = coar(iic  ,jjc-1,kkc  , ivarc)
                 coarhiz = 0
                 coarloz = 0
-                xslope = (coarhix - coarlox)/(two*dxc) 
-                yslope = (coarhiy - coarloy)/(two*dxc) 
+                xslope = (coarhix - coarlox)/(2.0d0*dxc) 
+                yslope = (coarhiy - coarloy)/(2.0d0*dxc) 
                 zslope = 0.0d0
 
                 dxx = (  coar(iic+1,jjc  ,kkc  ,ivarc) &
                      +   coar(iic-1,jjc  ,kkc  ,ivarc)-  &
-                     two*coar(iic  ,jjc  ,kkc  ,ivarc))/(dxc*dxc) 
+                     2.0d0*coar(iic  ,jjc  ,kkc  ,ivarc))/(dxc*dxc) 
                 dyy = (  coar(iic  ,jjc+1,kkc  ,ivarc) &
                      +   coar(iic  ,jjc-1,kkc  ,ivarc)-  &
-                     two*coar(iic  ,jjc  ,kkc  ,ivarc))/(dxc*dxc) 
+                     2.0d0*coar(iic  ,jjc  ,kkc  ,ivarc))/(dxc*dxc) 
 
                 dxy = (coar(iic+1,jjc+1,kkc ,ivarc) &
                      + coar(iic-1,jjc-1,kkc, ivarc) &
                      - coar(iic+1,jjc-1,kkc ,ivarc) &
-                     - coar(iic-1,jjc+1,kkc, ivarc))/(four*dxc*dxc) 
+                     - coar(iic-1,jjc+1,kkc, ivarc))/(4.0d0*dxc*dxc) 
                 dxz = 0.0d0
                 dyz = 0.0d0
                 dzz = 0.0d0
@@ -537,20 +536,20 @@ contains
 #if BL_SPACEDIM == 3
                 coarhiz = coar(iic  ,jjc  ,kkc+1, ivarc)
                 coarloz = coar(iic  ,jjc  ,kkc-1, ivarc)
-                zslope = (coarhiz - coarloz)/(two*dxc) 
+                zslope = (coarhiz - coarloz)/(2.0d0*dxc) 
                 dxz = (coar(iic+1,jjc  ,kkc+1,ivarc) &
                      + coar(iic-1,jjc  ,kkc-1,ivarc) &
                      - coar(iic+1,jjc  ,kkc-1,ivarc) &
-                     - coar(iic-1,jjc  ,kkc+1,ivarc))/(four*dxc*dxc) 
+                     - coar(iic-1,jjc  ,kkc+1,ivarc))/(4.0d0*dxc*dxc) 
                 dyz = (coar(iic  ,jjc+1,kkc+1,ivarc)&
                      + coar(iic  ,jjc-1,kkc-1,ivarc)&
                      - coar(iic  ,jjc-1,kkc+1,ivarc) &
-                     - coar(iic  ,jjc+1,kkc-1,ivarc))/(four*dxc*dxc) 
+                     - coar(iic  ,jjc+1,kkc-1,ivarc))/(4.0d0*dxc*dxc) 
 
-                zcoar = dxc*(kkc + half)
-                zfine = dxf*(kkf + half)
+                zcoar = dxc*(kkc + 0.5d0)
+                zfine = dxf*(kkf + 0.5d0)
                 zdist = zfine - zcoar
-                dzz = (coar(iic  ,jjc  ,kkc+1, ivarc) + coar(iic  ,jjc  ,kkc-1, ivarc)-  two*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
+                dzz = (coar(iic  ,jjc  ,kkc+1, ivarc) + coar(iic  ,jjc  ,kkc-1, ivarc)-  2.0d0*coar(iic,jjc,kkc,ivarc))/(dxc*dxc) 
 #endif
 
                 coarval = coar(iic,jjc,kkc, ivarc) 
@@ -558,9 +557,9 @@ contains
                      + xdist * xslope  &
                      + ydist * yslope  &
                      + zdist * zslope  &
-                     + half*xdist*xdist*dxx &
-                     + half*ydist*ydist*dyy &
-                     + half*zdist*zdist*dzz &
+                     + 0.5d0*xdist*xdist*dxx &
+                     + 0.5d0*ydist*ydist*dyy &
+                     + 0.5d0*zdist*zdist*dzz &
                      + xdist*ydist*dxy &
                      + xdist*zdist*dxz &
                      + ydist*zdist*dyz 
@@ -681,12 +680,12 @@ contains
 
                       dphi = phi(i+ii, j+jj, k+kk, ivar) - phi(i   ,j   ,k   , ivar) 
                       dplo = phi(i   , j   , k   , ivar) - phi(i-ii,j-jj,k-kk, ivar) 
-                      dpce = half*(dplo + dphi)
+                      dpce = 0.5d0*(dplo + dphi)
                       !van Leer limiting
                       if(dplo*dphi .lt. 0.0d0) then
                          dplim = 0.0d0
                       else
-                         dplim = min(two*abs(dplo), two*abs(dphi))
+                         dplim = min(2.0d0*abs(dplo), 2.0d0*abs(dphi))
                          dplim = min(dplim, abs(dpce))
                          dplim = dplim*sign(1.0d0, dplo)
                       endif
@@ -712,7 +711,7 @@ contains
                    do i = gridlo(0), gridhi(0)
                       dphi = phi(i+ii, j+jj, k+kk, ivar) - phi(i   ,j   ,k   , ivar) 
                       dplo = phi(i   , j   , k   , ivar) - phi(i-ii,j-jj,k-kk, ivar) 
-                      dpce = half*(dplo + dphi)
+                      dpce = 0.5d0*(dplo + dphi)
                       ! no limiting here
                       gph(i, j , k , gradcomp) = dpce/dx
 
