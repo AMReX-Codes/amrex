@@ -265,13 +265,13 @@ contains
                       else
                          fracx =  centy_x(i,j,k)*nbr(1,0,0)
                          if(centy_z(i,j,k).le. 0.0d0)then
-                            fracz = -centx_z(i,j,k)*nbr(0,0,-1)
+                            fracz = -centy_z(i,j,k)*nbr(0,0,-1)
                             fym = (1.d0-fracz)*(     fracx *fluxy(i+1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j,k-1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k-1,n))
                          else
-                            fracz = centx_z(i,j,k)*nbr(0,0,1)
+                            fracz = centy_z(i,j,k)*nbr(0,0,1)
                             fym = (1.d0-fracz)*(     fracx *fluxy(i+1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j,k+1,n)  + &
@@ -304,13 +304,13 @@ contains
                       else
                          fracx =  centy_x(i,j+1,k)*nbr(1,0,0)
                          if(centy_z(i,j+1,k).le. 0.0d0)then
-                            fracz = -centx_z(i,j+1,k)*nbr(0,0,-1)
+                            fracz = -centy_z(i,j+1,k)*nbr(0,0,-1)
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i+1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j+1,k-1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k-1,n))
                          else
-                            fracz = centx_z(i,j+1,k)*nbr(0,0,1)
+                            fracz = centy_z(i,j+1,k)*nbr(0,0,1)
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i+1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j+1,k+1,n)  + &
