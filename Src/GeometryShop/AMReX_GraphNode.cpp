@@ -21,10 +21,7 @@ namespace amrex
   GraphNodeImplem::GraphNodeImplem(const GraphNodeImplem& a_impin)
   {
 
-    for (int iarc = 0; iarc < 2*SpaceDim; iarc++)
-    {
-      m_arc[iarc] = a_impin.m_arc[iarc];
-    }
+    m_arc = a_impin.m_arc;
     m_verbose = false;
     m_isRegular   = a_impin.m_isRegular;
     m_isValid     = a_impin.m_isValid;
@@ -38,11 +35,7 @@ namespace amrex
   {
     if (&a_impin != this)
     {
-      for (int iarc = 0; iarc < 2*SpaceDim; iarc++)
-      {
-        m_arc[iarc] = a_impin.m_arc[iarc];
-      }
-
+      m_arc = a_impin.m_arc;
       m_isRegular   = a_impin.m_isRegular;
       m_isValid     = a_impin.m_isValid;
       m_coarserNode = a_impin.m_coarserNode;
@@ -192,7 +185,6 @@ namespace amrex
       }
       return faces;
     }
-    return emptyVec;  //make compiler happy
   }
 
 /*******************************/
@@ -254,7 +246,6 @@ namespace amrex
       }
       return retvec;
     }
-    return emptyVec;
   }
 
 /*******************************/

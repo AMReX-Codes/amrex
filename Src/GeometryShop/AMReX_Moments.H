@@ -120,16 +120,8 @@ namespace amrex
     Real     m_bdLength;
 
     // disallowed for all the usual reasons
-    void operator=(const faceMo& a_input)
-    {
-      amrex::Abort("invalid operator");
-    };
-
-    // disallowed for all the usual reasons
-    faceMo(const faceMo& a_input)
-    {
-      amrex::Abort("invalid operator");
-    };
+    void operator=(const faceMo& a_input) = delete;
+    faceMo(const faceMo& a_input) = delete;
   };
 
   /////////////////////////////////class vofMo////////////////////////////////////

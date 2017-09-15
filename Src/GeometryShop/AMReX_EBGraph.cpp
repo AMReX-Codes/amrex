@@ -19,7 +19,7 @@
 
 namespace amrex
 {
-  static const IntVect ebg_debiv(D_DECL(994,213,7));
+//  static const IntVect ebg_debiv(D_DECL(994,213,7));
   bool EBGraphImplem::s_verbose = false;
   /*******************************/
   Array<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
@@ -40,7 +40,7 @@ namespace amrex
     Array<FaceIndex> multiValuedFaces;
     Box ghostRegion = a_box;
     ghostRegion.grow(a_idir, 1);
-    const IntVectSet ivsMulti = a_ebgraph.getMultiCells(ghostRegion);
+    const IntVectSet& ivsMulti = a_ebgraph.getMultiCells(ghostRegion);
     //Use faceiterator to only stop at faces once
     FaceIterator faceit(ivsMulti, a_ebgraph, a_idir, FaceStop::SurroundingWithBoundary);
     for (faceit.reset(); faceit.ok(); ++faceit)
@@ -218,8 +218,7 @@ namespace amrex
   /*******************************/
   IntVectSet EBGraphImplem::getIrregCells(const Box& a_subbox) const
   {
-    IntVectSet retval;
-    retval = m_irregIVS;
+    IntVectSet retval = m_irregIVS;
     retval &= a_subbox;
     return retval;
   }
@@ -227,9 +226,7 @@ namespace amrex
   /*******************************/
   IntVectSet EBGraphImplem::getMultiCells(const Box& a_subbox) const
   {
-    IntVectSet retval;
-
-    retval = m_multiIVS;
+    IntVectSet retval = m_multiIVS;
     retval &= a_subbox;
     return retval;
   }
@@ -320,8 +317,7 @@ namespace amrex
     {
       const IrregNode& inputNode = a_irregGraph[ivecIrreg];
       const IntVect& iv =inputNode.m_cell;
-      Array<GraphNodeImplem>& vecNodes =
-        *(m_graph(iv, 0).m_cellList);
+      Array<GraphNodeImplem>& vecNodes = *(m_graph(iv, 0).m_cellList);
       //pick out which node we are talking about
       //by maching its nodeInd with ivecIrreg
       bool foundNode = false;
@@ -537,10 +533,10 @@ namespace amrex
               const Side::LoHiSide& a_sd) const
   {
     Array<FaceIndex> retval(0);
-    Array<VolIndex> vofs = getVoFs(a_iv);
+    const Array<VolIndex>& vofs = getVoFs(a_iv);
     for (int ivof= 0; ivof < vofs.size(); ivof++)
     {
-      Array<FaceIndex> faces = getFaces(vofs[ivof], a_idir, a_sd);
+      const Array<FaceIndex>& faces = getFaces(vofs[ivof], a_idir, a_sd);
       for(int iface = 0; iface < faces.size(); iface++)
       {
         retval.push_back(faces[iface]);
@@ -810,7 +806,7 @@ namespace amrex
     }
     else
     {
-      Box b = a_mask.box();
+      const Box& b = a_mask.box();
       for (BoxIterator bit(b); bit.ok(); ++bit)
       {
         if (isCovered(bit())|| isMultiValued(bit()))
@@ -877,8 +873,8 @@ namespace amrex
   EBGraphImplem::
   coarsen(const FaceIndex& a_fineFace) const
   {
-    VolIndex loVoFCoar = coarsen(a_fineFace.getVoF(Side::Lo));
-    VolIndex hiVoFCoar = coarsen(a_fineFace.getVoF(Side::Hi));
+    const VolIndex& loVoFCoar = coarsen(a_fineFace.getVoF(Side::Lo));
+    const VolIndex& hiVoFCoar = coarsen(a_fineFace.getVoF(Side::Hi));
     return FaceIndex(loVoFCoar, hiVoFCoar, a_fineFace.direction());
   }
         
@@ -889,14 +885,14 @@ namespace amrex
          const EBGraphImplem& a_fineGraph) const
   {
     Array<FaceIndex> retval;
-    IntVect ivLoCoar = a_coarFace.gridIndex(Side::Lo);
-    IntVect ivHiCoar = a_coarFace.gridIndex(Side::Hi);
+    const IntVect& ivLoCoar = a_coarFace.gridIndex(Side::Lo);
+    const IntVect& ivHiCoar = a_coarFace.gridIndex(Side::Hi);
     int direction = a_coarFace.direction();
     if (m_region.contains(ivLoCoar) && m_region.contains(ivHiCoar))
     {
       //interior face
-      Array<VolIndex> loVoFFine = refine(a_coarFace.getVoF(Side::Lo));
-      Array<VolIndex> hiVoFFine = refine(a_coarFace.getVoF(Side::Hi));
+      const Array<VolIndex>& loVoFFine = refine(a_coarFace.getVoF(Side::Lo));
+      const Array<VolIndex>& hiVoFFine = refine(a_coarFace.getVoF(Side::Hi));
       int idir = a_coarFace.direction();
       for (int ilo = 0; ilo < loVoFFine.size(); ilo++)
       {
@@ -913,16 +909,16 @@ namespace amrex
     else if (m_region.contains(ivLoCoar))
     {
       //boundary face on the hi side of the domain
-      Array<VolIndex> loVoFsFine = refine(a_coarFace.getVoF(Side::Lo));
+      const Array<VolIndex>& loVoFsFine = refine(a_coarFace.getVoF(Side::Lo));
       Box fineRegion = m_region;
       fineRegion.refine(2);
       for (int ivof = 0; ivof < loVoFsFine.size(); ivof++)
       {
-        VolIndex& loVoFFine = loVoFsFine[ivof];
+        const VolIndex& loVoFFine = loVoFsFine[ivof];
         IntVect ivHiFine = loVoFFine.gridIndex() + BASISV(direction);
         if (!fineRegion.contains(ivHiFine))
         {
-          Array<FaceIndex> fineFaces = a_fineGraph.getFaces(loVoFFine, direction, Side::Hi);
+          const Array<FaceIndex>& fineFaces = a_fineGraph.getFaces(loVoFFine, direction, Side::Hi);
           retval.insert(retval.end(), fineFaces.begin(), fineFaces.end());
         }
       }
@@ -930,17 +926,17 @@ namespace amrex
     else if (m_region.contains(ivHiCoar))
     {
       //boundary face on the low side of the domain
-      Array<VolIndex> hiVoFsFine = refine(a_coarFace.getVoF(Side::Hi));
+      const Array<VolIndex> hiVoFsFine = refine(a_coarFace.getVoF(Side::Hi));
       Box fineRegion = m_region;
       fineRegion.refine(2);
         
       for (int ivof = 0; ivof < hiVoFsFine.size(); ivof++)
       {
-        VolIndex& hiVoFFine = hiVoFsFine[ivof];
+        const VolIndex& hiVoFFine = hiVoFsFine[ivof];
         IntVect ivLoFine = hiVoFFine.gridIndex() - BASISV(direction);
         if (!fineRegion.contains(ivLoFine) )
         {
-          Array<FaceIndex> fineFaces = a_fineGraph.getFaces(hiVoFFine, direction, Side::Lo);
+          const Array<FaceIndex>& fineFaces = a_fineGraph.getFaces(hiVoFFine, direction, Side::Lo);
           retval.insert(retval.end(), fineFaces.begin(), fineFaces.end());
         }
       }
@@ -994,7 +990,7 @@ namespace amrex
     //if not neigboring intvects, no way it can be connected
     if (!dirfound) return false;
         
-    Array<FaceIndex> faces = getFaces(vofLo, direction, Side::Hi);
+    const Array<FaceIndex>& faces = getFaces(vofLo, direction, Side::Hi);
     bool voffound = false;
     for (int iface = 0; iface < faces.size(); iface++)
     {
@@ -1051,7 +1047,7 @@ namespace amrex
     if (m_tag == AllRegular)
     {
       const IntVect& iv = a_coarVoF.gridIndex();
-      Box refbox = Box(iv,iv);
+      Box refbox(iv,iv);
       refbox.refine(2);
       BoxIterator bit(refbox);
       for (bit.reset(); bit.ok(); ++bit)
@@ -1086,7 +1082,7 @@ namespace amrex
   {
     BL_ASSERT(isDefined());
 
-    Box testbox = m_region & a_srcbox;
+    const Box& testbox = m_region & a_srcbox;
 
 
     if(!testbox.isEmpty())
@@ -1154,16 +1150,15 @@ namespace amrex
         //see if we need to generate a source fab
 
         BaseFab<GraphNode>* srcFabPtr;
-        bool needToDelete;
+        std::unique_ptr<BaseFab<GraphNode> > raii;
         if (a_source.hasIrregular())
         {
           srcFabPtr = (BaseFab<GraphNode>*)&a_source.m_graph;
-          needToDelete = false;
         }
         else
         {
-          needToDelete = true;
-          srcFabPtr = new BaseFab<GraphNode>(regionFrom, 1);
+          raii.reset(new BaseFab<GraphNode>(regionFrom, 1));
+          srcFabPtr = raii.get();
           GraphNode srcVal;
           if (a_source.isAllRegular())
           {
@@ -1202,11 +1197,6 @@ namespace amrex
 
         m_graph.copy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
         
-        //if we needed to new the basefab, clean it up
-        if (needToDelete)
-        {
-          delete srcFabPtr;
-        }
         //  now fix up the IntVectSets to match the information
         if (a_source.hasIrregular())
         {
@@ -1282,7 +1272,7 @@ namespace amrex
           //the number of sets will be the number of
           //vofs in the coarse cell
         
-          Array<Array<VolIndex> > fineVoFSets
+          const Array<Array<VolIndex> >& fineVoFSets
             = a_fineGraph.getVoFSets(fineBox);
         
           for (int iset = 0; iset < fineVoFSets.size(); iset++)
@@ -1312,8 +1302,8 @@ namespace amrex
     Array<VolIndex> allVoFs;
     for (BoxIterator bit(a_region); bit.ok(); ++bit)
     {
-      Array<VolIndex> newVoFs = getVoFs(bit());
-      allVoFs.insert(allVoFs.begin(), newVoFs.begin(), newVoFs.end());
+      const Array<VolIndex>& newVoFs = getVoFs(bit());
+      allVoFs.insert(allVoFs.end(), newVoFs.begin(), newVoFs.end());
     }
         
     std::vector<bool> beenAdded(allVoFs.size(), false);
@@ -1386,7 +1376,7 @@ namespace amrex
         
     IntVect coarIV = a_coarVoF.gridIndex();
     IntVect otherIV= coarIV + sign(a_sd)*BASISV(a_idir);
-    Array<VolIndex> theseFineVoFs = refine(a_coarVoF);
+    const Array<VolIndex>& theseFineVoFs = refine(a_coarVoF);
     EBGraphImplem&  coarGhostGraph  = *this;  //trying to reduce communcation in this
         
     if (m_domain.contains(otherIV))
@@ -1395,11 +1385,11 @@ namespace amrex
       //interior faces.
       //just get all possible vofs to connect to and
       //check connectivity
-      Array<VolIndex> otherCoarVoFs = coarGhostGraph.getVoFs(otherIV);
+      const Array<VolIndex>& otherCoarVoFs = coarGhostGraph.getVoFs(otherIV);
       for (int iotherCoar = 0; iotherCoar < otherCoarVoFs.size(); iotherCoar++)
       {
         const VolIndex& otherCoarVoF = otherCoarVoFs[iotherCoar];
-        Array<VolIndex> otherFineVoFs = coarGhostGraph.refine(otherCoarVoF);
+        const Array<VolIndex>& otherFineVoFs = coarGhostGraph.refine(otherCoarVoF);
         bool addThisFace = false;
         for (int iotherFine = 0; iotherFine < otherFineVoFs.size(); iotherFine++)
         {
@@ -1431,7 +1421,7 @@ namespace amrex
       for (int ithis = 0; ithis < theseFineVoFs.size() && !hasBoundaryFaceFine ; ithis++)
       {
         const VolIndex& thisVoF = theseFineVoFs[ithis];
-        Array<FaceIndex> fineFaces =
+        const Array<FaceIndex>& fineFaces =
           a_fineGraph.getFaces(thisVoF,a_idir, a_sd);
         for (int iface = 0; iface < fineFaces.size() && !hasBoundaryFaceFine; iface++)
         {
@@ -1467,7 +1457,7 @@ namespace amrex
       {
         if (isIrregular(bit()))
         {
-          Array<VolIndex> vofsCoar = getVoFs(bit());
+          const Array<VolIndex>& vofsCoar = getVoFs(bit());
           Array<GraphNodeImplem>& nodes =
             *(m_graph(bit(), 0).m_cellList);
           for (int ivof = 0; ivof < vofsCoar.size(); ivof++)
@@ -1478,7 +1468,7 @@ namespace amrex
             {
               for (SideIterator sit; sit.ok(); ++sit)
               {
-                Array<int> coarArcs =
+                const Array<int>&& coarArcs =
                   coarsenFaces(vofsCoar[ivof],
                                a_fineGraph,
                                idir, sit());
@@ -1512,7 +1502,7 @@ namespace amrex
           for (int icoar = 0; icoar < numVofsCoar; icoar++)
           {
             VolIndex vofCoar(ivCoar, icoar);
-            Array<VolIndex> vofsFine = refine(vofCoar);
+            const Array<VolIndex>& vofsFine = refine(vofCoar);
         
             for (int ifine = 0; ifine < vofsFine.size(); ifine++)
             {
@@ -1776,7 +1766,7 @@ namespace amrex
     {
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
       {
-        GraphNode node = getGraphNode(bit());
+        const GraphNode& node = getGraphNode(bit());
         size_t nodeSize = node.linearSize();
         linearSize += nodeSize;
       }
@@ -1824,7 +1814,7 @@ namespace amrex
     {
       for (BoxIterator bit(a_region); bit.ok(); ++bit)
       {
-        GraphNode node = getGraphNode(bit());
+        const GraphNode& node = getGraphNode(bit());
         size_t nodeSize = node.linearSize();
         node.linearOut(buffer);
         buffer += nodeSize;

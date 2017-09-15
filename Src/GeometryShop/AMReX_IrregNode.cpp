@@ -12,27 +12,35 @@
  */
 
 #include "AMReX_IrregNode.H"
+#include <cmath>
 
 namespace amrex
 {
 
-  /*******************************/
-  int IrregNode::
-  index(int a_idir, Side::LoHiSide a_sd)
+  Real IrregNode::bndryArea() const
   {
-    assert(a_idir >= 0 && a_idir < SpaceDim);
-    int retval;
-    if (a_sd == Side::Lo)
-      {
-        retval = a_idir;
-      }
-    else
-      {
-        retval = a_idir + SpaceDim;
-      }
-    return retval;
+      Real irregArea=0.0;
+      for (int idir=0; idir < SpaceDim; idir++)
+        {
+          int loindex = index(idir, Side::Lo);
+          int hiindex = index(idir, Side::Hi);
+          Real loArea = 0;   
+          Real hiArea = 0;
+          const Array<Real>& loAreas = m_areaFrac[loindex];
+          const Array<Real>& hiAreas = m_areaFrac[hiindex];
+          for(int ilo = 0; ilo < loAreas.size(); ilo++)
+            {
+              loArea += loAreas[ilo];
+            }
+          for(int ihi = 0; ihi < hiAreas.size(); ihi++)
+            {
+              hiArea += hiAreas[ihi];
+            }
+          irregArea += (hiArea-loArea)*(hiArea-loArea);
+        }
+
+      return std::sqrt(irregArea);
   }
-  /*******************************/
 
   void IrregNode::makeRegular(const IntVect& iv, const Real& a_dx, const Box& a_domain)
   {
