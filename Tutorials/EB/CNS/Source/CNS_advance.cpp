@@ -65,6 +65,9 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     const Real* dx = geom.CellSize();
     const int ncomp = dSdt.nComp();
 
+    int as_crse = (fr_as_crse != nullptr);
+    int as_fine = (fr_as_fine != nullptr);
+
     MultiFab* cost = (do_load_balance) ? &(get_new_data(Cost_Type)) : nullptr;
 
 #ifdef _OPENMP
@@ -72,6 +75,9 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 #endif
     {
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
+        FArrayBox dm_ftoc(Box::TheUnitBox(),ncomp);
+        FArrayBox fab_dm_as_crse(Box::TheUnitBox(),ncomp);
+        IArrayBox fab_rrflag_as_crse(Box::TheUnitBox());
 
         for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
                         mfi.isValid(); ++mfi)
@@ -112,6 +118,15 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                 }
                 else
                 {
+                    FArrayBox* p_dm_as_crse = (fr_as_crse) ?
+                        fr_as_crse->getCrseData(mfi) : &fab_dm_as_crse;
+                    const IArrayBox* p_rrflag_as_crse = (fr_as_crse) ?
+                        fr_as_crse->getCrseFlag(mfi) : &fab_rrflag_as_crse;
+
+                    if (fr_as_fine) {
+                        dm_ftoc.resize(amrex::grow(bx,crse_ratio),ncomp);
+                    }
+
                     cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                         BL_TO_FORTRAN_ANYD(S[mfi]),
@@ -127,10 +142,15 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
+                                        &as_crse,
+                                        BL_TO_FORTRAN_ANYD(*p_dm_as_crse),
+                                        BL_TO_FORTRAN_ANYD(*p_rrflag_as_crse),
+                                        &as_fine,
+                                        BL_TO_FORTRAN_ANYD(dm_ftoc),
                                         dx, &dt);
 
                     if (fr_as_crse) {
-                        fr_as_crse->CrseAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt,
+                        fr_as_crse->CrseAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
                                             volfrac[mfi],
                                             {&areafrac[0][mfi],
                                              &areafrac[1][mfi],
@@ -138,11 +158,12 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                     }
 
                     if (fr_as_fine) {
-                        fr_as_fine->FineAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt,
+                        fr_as_fine->FineAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
                                             volfrac[mfi],
                                             {&areafrac[0][mfi],
                                              &areafrac[1][mfi],
-                                             &areafrac[2][mfi]});
+                                             &areafrac[2][mfi]},
+                                            dm_ftoc);
                     }
                 }
             }

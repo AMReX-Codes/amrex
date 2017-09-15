@@ -4,12 +4,13 @@ module amrex_eb_flux_reg_3d_module
   implicit none
   private
 
-  integer, parameter :: crse_cell = 0
-  integer, parameter :: crse_fine_boundary_cell = 1
-  integer, parameter :: fine_cell = 2
+  integer, parameter, public :: crse_cell = 0
+  integer, parameter, public :: crse_fine_boundary_cell = 1
+  integer, parameter, public :: fine_cell = 2
 
   public :: amrex_eb_flux_reg_crseadd, amrex_eb_flux_reg_fineadd, &
-       amrex_eb_flux_reg_crseadd_va, amrex_eb_flux_reg_fineadd_va
+       amrex_eb_flux_reg_crseadd_va, amrex_eb_flux_reg_fineadd_va, &
+       amrex_eb_flux_reg_fineadd_dm
 
 contains
 
@@ -441,5 +442,42 @@ contains
        end if
     end if
   end subroutine amrex_eb_flux_reg_fineadd_va
+
+
+  subroutine amrex_eb_flux_reg_fineadd_dm (lo, hi, d, dlo, dhi, dm, mlo, mhi, nc, ratio) &
+       bind(c, name='amrex_eb_flux_reg_fineadd_dm')
+    integer, dimension(3), intent(in) :: lo, hi, dlo, dhi, mlo, mhi, ratio
+    integer, intent(in) :: nc
+    real(rt), intent(in   ) :: dm(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),nc)
+    real(rt), intent(inout) :: d (dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nc)
+
+    integer :: i,j,k,n, ii,jj,kk, ioff, joff, koff, iii, jjj, kkk
+
+     do n = 1, nc
+       do k = lo(3), hi(3)
+          kk = k*ratio(3)
+          do j = lo(2), hi(2)
+             jj = j*ratio(2)
+
+             do koff = 0, ratio(3)-1
+                kkk = kk + koff
+                do joff = 0, ratio(2)-1
+                   jjj = jj + joff
+                   do ioff = 0, ratio(1)-1
+
+                      do i = lo(1), hi(1)
+                         ii = i*ratio(1)
+                         iii = ii + ioff
+                         d(i,j,k,n) = d(i,j,k,n) + dm(iii,jjj,kkk,n)
+                      end do
+
+                   end do
+                end do
+             end do
+          end do
+       end do
+    end do
+
+  end subroutine amrex_eb_flux_reg_fineadd_dm
 
 end module amrex_eb_flux_reg_3d_module

@@ -258,7 +258,8 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac)
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                         const FArrayBox& dm)
 {
     BL_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
 
@@ -316,6 +317,18 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                 }
             }
         }
+    }
+
+    const Box& gbx = amrex::grow(bx,1);
+
+    for (FArrayBox* cfp : m_cfp_fab[li])
+    {
+        const Box& wbx = gbx & cfp->box();
+        AMREX_ASSERT(wbx.ok());
+        amrex_eb_flux_reg_fineadd_dm(BL_TO_FORTRAN_BOX(wbx),
+                                     BL_TO_FORTRAN_ANYD(*cfp),
+                                     BL_TO_FORTRAN_ANYD(dm),
+                                     &nc, m_ratio.getVect());
     }
 }
 

@@ -100,7 +100,10 @@ contains
        u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,flag,fglo,fghi, &
        volfrac,vlo,vhi, bcent,blo,bhi, &
        apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
-       centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, dx,dt) &
+       centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, &
+       as_crse_in, rr_dm_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
+       as_fine_in, dm_ftoc, dflo, dfhi, &
+       dx,dt) &
        bind(c,name='cns_eb_compute_dudt')
     use cns_nd_module, only : ctoprim
     use eb_advection_module, only : hyp_mol_gam_eb_3d, nextra_eb
@@ -110,7 +113,9 @@ contains
     integer, dimension(3), intent(in) :: lo,hi,utlo,uthi,ulo,uhi, &
          vlo,vhi,axlo,axhi,aylo,ayhi,azlo,azhi, &
          cxlo,cxhi,cylo,cyhi,czlo,czhi, &
-         fglo,fghi, blo, bhi, fxlo,fxhi, fylo,fyhi, fzlo,fzhi
+         fglo,fghi, blo, bhi, fxlo,fxhi, fylo,fyhi, fzlo,fzhi, &
+         rdclo, rdchi, rfclo, rfchi, dflo, dfhi
+    integer, intent(in) :: as_crse_in, as_fine_in
     real(rt), intent(inout) :: dudt(utlo(1):uthi(1),utlo(2):uthi(2),utlo(3):uthi(3),nvar)
     real(rt), intent(in   ) :: u ( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
     real(rt), intent(inout) :: fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),nvar)
@@ -125,6 +130,9 @@ contains
     real(rt), intent(in) :: centx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
     real(rt), intent(in) :: centy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2)
     real(rt), intent(in) :: centz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
+    real(rt), intent(inout) :: rr_dm_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),nvar)
+    integer,  intent(in) ::  rr_flag_crse(rfclo(1):rfchi(1),rfclo(2):rfchi(2),rfclo(3):rfchi(3))
+    real(rt), intent(out) :: dm_ftoc(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),nvar)
     real(rt), intent(in) :: dx(3), dt
 
     integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(3), dmhi(3)
@@ -136,6 +144,10 @@ contains
     integer, parameter :: nghost = nextra_eb + max(nghost_plm,3) ! 3 because of wall flux
 
     integer :: k,n
+    logical :: as_crse, as_fine
+
+    as_crse = as_crse_in .ne. 0
+    as_fine = as_fine_in .ne. 0
 
     qlo = lo - nghost
     qhi = hi + nghost
@@ -197,6 +209,8 @@ contains
     fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),6:nvar) = 0.d0
     fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),6:nvar) = 0.d0
 
+    dm_ftoc = 0.d0
+
     call compute_eb_divop(lo,hi,5,dx,dt,fhx,lfxlo,lfxhi,fhy,lfylo,lfyhi,fhz,lfzlo,lfzhi,&
          fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi, &
          dudt,utlo,uthi, q,qlo,qhi, lambda, mu, xi, clo, chi, &
@@ -206,7 +220,9 @@ contains
          centx(:,:,:,1),cxlo,cxhi, centx(:,:,:,2),cxlo,cxhi, &
          centy(:,:,:,1),cylo,cyhi, centy(:,:,:,2),cylo,cyhi, &
          centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &
-         flag,fglo,fghi)
+         flag,fglo,fghi, &
+         as_crse, rr_dm_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
+         as_fine, dm_ftoc, dflo, dfhi)
     
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
 

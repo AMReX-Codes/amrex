@@ -44,15 +44,24 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac);
+                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
+                  const FArrayBox& dm);
 
     void Reflux (MultiFab& state);
 
-private:
+    FArrayBox* getCrseData (const MFIter& mfi) {
+        return &(m_crse_data[mfi]);
+    }
+
+    const IArrayBox* getCrseFlag (const MFIter& mfi) const {
+        return &(m_crse_flag[mfi]);
+    }
 
     enum {
         crse_cell = 0, crse_fine_boundary_cell, fine_cell
     };
+
+private:
 
     MultiFab m_crse_data;
     iMultiFab m_crse_flag;
