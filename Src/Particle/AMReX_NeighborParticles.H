@@ -7,23 +7,47 @@
 
 namespace {
 
-struct NeighborCommTag {
+    struct NeighborTag {
+        int grid;
+        int tile;
+        int periodic_shift[3];
+    };
+    
+    bool operator<(const NeighborTag& a, const NeighborTag& b) {
+        if (a.grid != b.grid) return a.grid < b.grid;
+        if (a.tile != b.tile) return a.tile < b.tile;
+        if (a.periodic_shift[0] != b.periodic_shift[0]) 
+            return a.periodic_shift[0] < b.periodic_shift[0];
+        if (a.periodic_shift[1] != b.periodic_shift[1]) 
+            return a.periodic_shift[1] < b.periodic_shift[1];
+        if (a.periodic_shift[2] != b.periodic_shift[2]) 
+            return a.periodic_shift[2] < b.periodic_shift[2];
+        return false;
+    }
+    
+    bool operator==(const NeighborTag& a, const NeighborTag& b) {
+        return (a.grid == b.grid) and (a.tile == b.tile)
+            and (a.periodic_shift[0] == b.periodic_shift[0])
+            and (a.periodic_shift[1] == b.periodic_shift[1])
+            and (a.periodic_shift[2] == b.periodic_shift[2]);
+    }
+    
+    struct NeighborCommTag {
 
-    NeighborCommTag(int pid, int gid, int tid)
-        : proc_id(pid), grid_id(gid), tile_id(tid)
-    {}
+        NeighborCommTag(int pid, int gid, int tid)
+            : proc_id(pid), grid_id(gid), tile_id(tid)
+            {}
+        
+        int proc_id;
+        int grid_id;
+        int tile_id;
+    };
 
-    int proc_id;
-    int grid_id;
-    int tile_id;
-};
-
-bool operator<(const NeighborCommTag& l, const NeighborCommTag& r) {
-    return (l.proc_id < r.proc_id || 
-           (l.proc_id == r.proc_id && l.grid_id < r.grid_id) ||
-           (l.proc_id == r.proc_id && l.grid_id == r.grid_id && l.tile_id < r.tile_id ));
-}
-
+    bool operator<(const NeighborCommTag& l, const NeighborCommTag& r) {
+        return (l.proc_id < r.proc_id || 
+                (l.proc_id == r.proc_id && l.grid_id < r.grid_id) ||
+                (l.proc_id == r.proc_id && l.grid_id == r.grid_id && l.tile_id < r.tile_id ));
+    }    
 }
 
 namespace amrex {
@@ -96,20 +120,23 @@ public:
 
 protected:
     
+    NeighborTag getNeighborTag(int lev,
+                               const IntVect& neighbor_cell,
+                               const BaseFab<int>& mask);
+
     ///
     /// Apply periodic shift to particle position, so naive distance calculation
     /// between neighbors and regular particles will be correct.
     ///
-    void applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell);
+    void applyPeriodicShift(int lev, ParticleType& p, const NeighborTag& tag);
 
     ///
     /// Pack a particle's data into the proper neighbor buffer, or put it into
     /// the structure to be sent to the other processes
     ///
     void packNeighborParticle(int lev,
-                              const IntVect& neighbor_cell,
-                              const BaseFab<int>& mask,
                               const ParticleType& p,
+                              const NeighborTag& tag,
                               NeighborCommMap& neighbors_to_comm);
     
     ///
@@ -130,12 +157,12 @@ protected:
     int num_neighbor_cells;
     FabArray<BaseFab<int> > mask;
 
-    void cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
-                               const IntVect& neighbor_cell, const BaseFab<int>& mask);
+    void cacheNeighborParticle(int lev, const PairIndex& index, 
+                               int particle_index, const NeighborTag& tag);
 
     std::map<PairIndex, Array<int> > buffer_id_cache;
-    std::map<PairIndex, Array<IntVect> > buffer_cell_cache;
-
+    std::map<PairIndex, Array<NeighborTag> > buffer_tag_cache;
+    
     // each proc knows how many sends it will do, and how many bytes it will rcv 
     // from each other proc.
     Array<long> rcvs;

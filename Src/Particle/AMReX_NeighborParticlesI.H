@@ -61,66 +61,49 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         const Box& tile_box = pti.tilebox();
         const IntVect& lo = tile_box.smallEnd();
         const IntVect& hi = tile_box.bigEnd();
-        
+        const int& grid = pti.index();
+        const int& tile = pti.LocalTileIndex(); 
+
         Box shrink_box = pti.tilebox();
         shrink_box.grow(-num_neighbor_cells);
         
-        auto& particles = pti.GetArrayOfStructs();
+        auto& particles = pti.GetArrayOfStructs();        
         for (unsigned i = 0; i < pti.numParticles(); ++i) {
             const ParticleType& p = particles[i];
             const IntVect& iv = this->Index(p, lev);
+            const int nc = num_neighbor_cells;
             
             // if the particle is more than one cell away from 
             // the tile boundary, it's not anybody's neighbor
             if (shrink_box.contains(iv)) continue;
-            
-            // shift stores whether we are near the tile boundary in each direction.
-            // -1 means lo, 1 means hi, 0 means not near the boundary
-            IntVect shift = IntVect::TheZeroVector();
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-                if (iv[idim] <= lo[idim]+num_neighbor_cells-1)
-                    shift[idim] = -num_neighbor_cells;
-                else if (iv[idim] >= hi[idim]-num_neighbor_cells+1)
-                    shift[idim] = num_neighbor_cells;
-            }
-            
-            // Based on the value of shift, we add the particle to a map to be sent
-            // to the neighbors. A particle can be sent to up to 3 neighbors in 2D
-            // and up to 7 in 3D, depending on whether is near the tile box corners,
-            // edges, or just the faces. First, add the particle for the "face" neighbors
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-                if (shift[idim] == 0) continue;
-                IntVect neighbor_cell = iv;
-                neighbor_cell.shift(idim, shift[idim]);
-                BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
-                packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
-            }
-            
-            // Now add the particle to the "edge" neighbors
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-                for (int jdim = 0; jdim < idim; ++jdim) {
-                    if (shift[idim] != 0 and shift[jdim] != 0) {
-                        IntVect neighbor_cell = iv;
-                        neighbor_cell.shift(idim, shift[idim]);
-                        neighbor_cell.shift(jdim, shift[jdim]);
-                        BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                        cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
-                        packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
+
+            // Figure out all our neighbors, removing duplicates
+            std::vector<NeighborTag> tags;
+            for (int ii = -nc; ii < nc + 1; ii += nc) {
+                for (int jj = -nc; jj < nc + 1; jj += nc) {
+                    for (int kk = -nc; kk < nc + 1; kk += nc) {
+                        if ((ii == jj) and (jj == kk)) continue;
+                        IntVect shift(AMREX_D_DECL(ii, jj, kk));
+                        IntVect neighbor_cell = iv + shift;
+                        const NeighborTag& tag = getNeighborTag(lev, neighbor_cell, mask[pti]);
+                        if ((grid == tag.grid)           and 
+                            (tile == tag.tile)           and 
+                            (tag.periodic_shift[0] == 0) and 
+                            (tag.periodic_shift[1] == 0) and
+                            (tag.periodic_shift[2] == 0)) continue;
+                        tags.push_back(tag);
                     }
                 }
+            }        
+            std::sort(tags.begin(), tags.end());
+            auto it = std::unique(tags.begin(), tags.end());
+            tags.erase(it, tags.end());
+
+            // Add neighbors to buffers
+            for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
+                cacheNeighborParticle(lev, src_index, i, tags[j]);
+                packNeighborParticle(lev, p, tags[j], neighbors_to_comm);
             }
-            
-#if (BL_SPACEDIM == 3)
-            // Finally, add the particle for the "vertex" neighbors (only relevant in 3D)
-            if (shift[0] != 0 and shift[1] != 0 and shift[2] != 0) {
-                IntVect neighbor_cell = iv;
-                neighbor_cell.shift(shift);
-                BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
-                packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
-            }
-#endif
         }
     }
     
@@ -148,9 +131,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         const auto& ids = buffer_id_cache[src_index];
         for (unsigned i = 0; i < buffer_id_cache[src_index].size(); ++i) {
             int particle_index = buffer_id_cache[src_index][i];
-            const IntVect& neighbor_cell = buffer_cell_cache[src_index][i];
+            const NeighborTag& tag = buffer_tag_cache[src_index][i];
             const ParticleType& p = particles[particle_index];
-            packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
+            packNeighborParticle(lev, p, tag, neighbors_to_comm);
         }
     }
     
@@ -169,13 +152,13 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 
     neighbors.clear();
     buffer_id_cache.clear();
-    buffer_cell_cache.clear();
+    buffer_tag_cache.clear();
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell) {
+applyPeriodicShift(int lev, ParticleType& p, const NeighborTag& tag) {
     
     BL_ASSERT(lev == 0);
     
@@ -183,40 +166,74 @@ applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell) {
     if (not periodicity.isAnyPeriodic()) return;
     
     const Box& domain = this->Geom(lev).Domain();
-    const IntVect& lo = domain.smallEnd();
-    const IntVect& hi = domain.bigEnd();
     const RealBox& prob_domain = this->Geom(lev).ProbDomain();
 
     for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
         if (not periodicity.isPeriodic(dir)) continue;
-        if (neighbor_cell[dir] < lo[dir]) {
+        if (tag.periodic_shift[dir] == -1) {
             p.pos(dir) += prob_domain.length(dir);
         } 
-        else if (neighbor_cell[dir] > hi[dir]) {
+        else if (tag.periodic_shift[dir] == 1) {
             p.pos(dir) -= prob_domain.length(dir);
         }
     }
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
+NeighborTag 
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+getNeighborTag(int lev,
+               const IntVect& neighbor_cell,
+               const BaseFab<int>& mask) {
+
+    BL_ASSERT(lev == 0);
+    
+    NeighborTag tag;
+
+    tag.grid = mask(neighbor_cell, 0);
+    tag.tile = mask(neighbor_cell, 1);
+    for (int dim = 0; dim < 3; ++dim)
+        tag.periodic_shift[dim] = 0;
+
+    const Periodicity& periodicity = this->Geom(lev).periodicity();
+    if (not periodicity.isAnyPeriodic()) return tag;
+
+    const Box& domain = this->Geom(lev).Domain();
+    const IntVect& lo = domain.smallEnd();
+    const IntVect& hi = domain.bigEnd();
+    const RealBox& prob_domain = this->Geom(lev).ProbDomain();
+    
+    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        if (not periodicity.isPeriodic(dir)) continue;
+        if (neighbor_cell[dir] < lo[dir]) {
+            tag.periodic_shift[dir] = -1;
+        } 
+        else if (neighbor_cell[dir] > hi[dir]) {
+            tag.periodic_shift[dir] = 1;
+        }
+    }
+
+    return tag;
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
 void 
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
 packNeighborParticle(int lev,
-                     const IntVect& neighbor_cell,
-                     const BaseFab<int>& mask,
                      const ParticleType& p,
+                     const NeighborTag& tag,
                      NeighborCommMap& neighbors_to_comm) {
     
     BL_ASSERT(lev == 0);
     
-    const int neighbor_grid = mask(neighbor_cell, 0);
+    const int neighbor_grid = tag.grid;
     if (neighbor_grid >= 0) {
         const int who = this->ParticleDistributionMap(lev)[neighbor_grid];
         const int MyProc = ParallelDescriptor::MyProc();
-        const int neighbor_tile = mask(neighbor_cell, 1);
+        const int neighbor_tile = tag.tile;
         PairIndex dst_index(neighbor_grid, neighbor_tile);
         ParticleType particle = p;
-        applyPeriodicShift(lev, particle, neighbor_cell);
+        applyPeriodicShift(lev, particle, tag);
         if (who == MyProc) {
             size_t old_size = neighbors[dst_index].size();
             size_t new_size = neighbors[dst_index].size() + pdata_size;
@@ -236,17 +253,17 @@ packNeighborParticle(int lev,
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void 
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
-                      const IntVect& neighbor_cell, const BaseFab<int>& mask) {
+cacheNeighborParticle(int lev, const PairIndex& index,
+                      int particle_index, const NeighborTag& tag) {
     
     BL_ASSERT(lev == 0);
     
-    const int neighbor_grid = mask(neighbor_cell, 0);
+    const int neighbor_grid = tag.grid;
     if (neighbor_grid >= 0) {
-        const int neighbor_tile = mask(neighbor_cell, 1);
+        const int neighbor_tile = tag.tile;
         PairIndex dst_index(neighbor_grid, neighbor_tile);
         buffer_id_cache[index].push_back(particle_index);
-        buffer_cell_cache[index].push_back(neighbor_cell);
+        buffer_tag_cache[index].push_back(tag);
     }
 }
 
