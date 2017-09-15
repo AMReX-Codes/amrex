@@ -15,7 +15,7 @@ module cns_dudt_module
 contains
 
   subroutine cns_compute_dudt (lo,hi, dudt, utlo, uthi, &
-       u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,dx,dt) &
+       u,ulo,uhi,fx,fxlo,fxhi,fy,fylo,fyhi,fz,fzlo,fzhi,dx,dt,level) &
        bind(c,name='cns_compute_dudt')
     use cns_nd_module, only : ctoprim
     use advection_module, only : hyp_mol_gam_3d
@@ -29,6 +29,7 @@ contains
     real(rt), intent(inout) :: fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),nvar)
     real(rt), intent(inout) :: fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),nvar)
     real(rt), intent(in) :: dx(3), dt
+    integer, intent(in) :: level
 
     integer :: qlo(3), qhi(3)
     integer :: clo(3), chi(3)
@@ -104,7 +105,7 @@ contains
        as_crse_in, rr_dm_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
        as_fine_in, dm_ftoc, dflo, dfhi, &
        levmsk, lmlo, lmhi, &
-       dx,dt) &
+       dx,dt,level) &
        bind(c,name='cns_eb_compute_dudt')
     use cns_nd_module, only : ctoprim
     use eb_advection_module, only : hyp_mol_gam_eb_3d, nextra_eb
@@ -136,6 +137,7 @@ contains
     real(rt), intent(out) :: dm_ftoc(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),nvar)
     integer,  intent(in) ::  levmsk (lmlo(1):lmhi(1),lmlo(2):lmhi(2),lmlo(3):lmhi(3))
     real(rt), intent(in) :: dx(3), dt
+    integer, intent(in) :: level
 
     integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(3), dmhi(3)
     integer :: lfxlo(3), lfylo(3), lfzlo(3), lfxhi(3), lfyhi(3), lfzhi(3)

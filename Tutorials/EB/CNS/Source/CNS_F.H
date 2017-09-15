@@ -61,7 +61,7 @@ extern "C" {
                            amrex_real* fx, const int* fxlo, const int* fxhi,
                            amrex_real* fy, const int* fylo, const int* fyhi,
                            amrex_real* fz, const int* fzlo, const int* fzhi,
-                           const amrex_real* dx, const amrex_real* dt);
+                           const amrex_real* dx, const amrex_real* dt, const int* level);
 
     void cns_eb_compute_dudt (const int* lo, const int* hi,
                               amrex_real* dudt, const int* utlo, const int* uthi,
@@ -84,7 +84,7 @@ extern "C" {
                               const int* as_fine,
                               amrex_real* dm_ftoc, const int* dflo, const int* dfhi,
                               const int* levmsk, const int* lmlo, const int* lmhi,
-                              const amrex_real* dx, const amrex_real* dt);
+                              const amrex_real* dx, const amrex_real* dt, const int* level);
 
     void cns_eb_fixup_geom (const int* lo, const int* hi,
                             void* flag, const int* fglo, const int* fghi,
