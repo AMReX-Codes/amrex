@@ -78,6 +78,11 @@ extern "C" {
                               const amrex_real* cx, const int* cxlo, const int* cxhi,
                               const amrex_real* cy, const int* cylo, const int* cyhi,
                               const amrex_real* cz, const int* czlo, const int* czhi,
+                              const int* as_crse,
+                              amrex_real* rr_dm_crse, const int* rdclo, const int* rdchi,
+                              const int* rr_flag_crse, const int* rfclo, const int* rfchi,
+                              const int* as_fine,
+                              amrex_real* dm_ftoc, const int* dflo, const int* dfhi,
                               const amrex_real* dx, const amrex_real* dt);
 
     void cns_eb_fixup_geom (const int* lo, const int* hi,

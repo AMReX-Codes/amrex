@@ -36,6 +36,15 @@ contains
     end do
   end subroutine compute_divop
 
+  
+  pure logical function is_inside (i,j,k,lo,hi)
+    integer, intent(in) :: i,j,k,lo(3),hi(3)
+    is_inside = i.ge.lo(1) .and. i.le.hi(1) &
+         .and.  j.ge.lo(2) .and. j.le.hi(2) &
+         .and.  k.ge.lo(3) .and. k.le.hi(3)
+  end function is_inside
+
+
   subroutine compute_eb_divop (lo,hi,ncomp, dx, dt, &
        fluxx,fxlo,fxhi, &       ! flux at face center
        fluxy,fylo,fyhi, &
@@ -59,7 +68,12 @@ contains
        centy_z, cyzlo, cyzhi, &
        centz_x, czxlo, czxhi, &
        centz_y, czylo, czyhi, &
-       cellflag, cflo, cfhi)
+       cellflag, cflo, cfhi,  &
+       as_crse, rr_dm_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
+       as_fine, dm_ftoc, dflo, dfhi)
+
+    use amrex_eb_flux_reg_3d_module, only : crse_cell, crse_fine_boundary_cell, &
+         covered_by_fine=>fine_cell
     use cns_module, only : qvar, qrho, qu, qv, qw, qp, qeint, umx, umy, umz, smallr, &
          use_total_energy_as_eb_weights
     use cns_eb_hyp_wall_module, only : compute_hyp_wallflux
@@ -67,7 +81,9 @@ contains
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
          cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi, &
-         clo, chi, blo, bhi, fcxlo, fcxhi, fcylo, fcyhi, fczlo, fczhi
+         clo, chi, blo, bhi, fcxlo, fcxhi, fcylo, fcyhi, fczlo, fczhi, &
+         rdclo, rdchi, rfclo, rfchi, dflo, dfhi
+    logical, intent(in) :: as_crse, as_fine
     integer, intent(in) :: ncomp
     real(rt), intent(in) :: dx(3), dt
     real(rt), intent(in   ) :: fluxx ( fxlo(1): fxhi(1), fxlo(2): fxhi(2), fxlo(3): fxhi(3),ncomp)
@@ -95,12 +111,15 @@ contains
     real(rt), intent(in) :: centz_x(czxlo(1):czxhi(1),czxlo(2):czxhi(2),czxlo(3):czxhi(3))
     real(rt), intent(in) :: centz_y(czylo(1):czyhi(1),czylo(2):czyhi(2),czylo(3):czyhi(3))
     integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
+    real(rt), intent(inout) :: rr_dm_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),ncomp)
+    integer,  intent(in) ::  rr_flag_crse(rfclo(1):rfchi(1),rfclo(2):rfchi(2),rfclo(3):rfchi(3))
+    real(rt), intent(out) :: dm_ftoc(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),ncomp)
 
-    logical :: valid_cell
-    integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
+    logical :: valid_cell, crse_donor_cell, fine_donor_cell, ftoc_valid_cell, ftoc_ghost_cell
+    integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1), iii,jjj,kkk
     integer :: nwalls, iwall
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
-    real(rt) :: divwn
+    real(rt) :: divwn, dm
     real(rt), pointer, contiguous :: optmp(:,:,:), rediswgt(:,:,:)
     real(rt), pointer, contiguous :: divhyp(:,:), divdiff(:,:)
 
@@ -144,9 +163,7 @@ contains
                    divc(i,j,k) = 0.d0
                 else if (is_single_valued_cell(cellflag(i,j,k))) then
 
-                   valid_cell = i.ge.lo(1) .and. i.le.hi(1) &
-                        .and.   j.ge.lo(2) .and. j.le.hi(2) &
-                        .and.   k.ge.lo(3) .and. k.le.hi(3)
+                   valid_cell = is_inside(i,j,k,lo,hi)
 
                    call get_neighbor_cells(cellflag(i,j,k),nbr)
 
@@ -475,14 +492,60 @@ contains
                          end do
                       enddo
                    enddo
-                   
+
+                   crse_donor_cell = .false.
+                   fine_donor_cell = .false.
+                   if (as_crse) then
+                      crse_donor_cell = is_inside(i,j,k,lo,hi) .and. &
+                           rr_flag_crse(i,j,k) .eq. crse_fine_boundary_cell
+                      fine_donor_cell = rr_flag_crse(i,j,k) .eq. covered_by_fine
+                   end if
+
+                   ftoc_valid_cell = .false.  ! valid cells near box boundary
+                   ftoc_ghost_cell = .false.  ! ghost cells just outside valid region
+                   if (as_fine) then
+                      ftoc_valid_cell = is_inside(i,j,k,lo,hi)
+                      ftoc_ghost_cell = .not.ftoc_ghost_cell
+                   end if
+
                    wtot = 1.d0/wtot
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) &
-                                    + delm(i,j,k,n)*wtot*rediswgt(i+ii,j+jj,k+kk)
+
+                               iii = i + ii
+                               jjj = j + jj
+                               kkk = k + kk
+
+                               dm = delm(i,j,k,n)*wtot*rediswgt(iii,jjj,kkk)
+                               optmp(iii,jjj,kkk) = optmp(iii,jjj,kkk) + dm
+
+                               if (crse_donor_cell) then
+                                  if (rr_flag_crse(iii,jjj,kkk).eq.covered_by_fine) then
+                                     rr_dm_crse(i,j,k,n) = rr_dm_crse(i,j,k,n) + dt*dm
+                                  end if
+                               end if
+
+                               if (fine_donor_cell) then
+                                  if (is_inside(iii,jjj,kkk,lo,hi)) then
+                                     if (rr_flag_crse(iii,jjj,kkk).eq.crse_fine_boundary_cell) then
+                                        ! the recipient is a crse/fine boundary cell
+                                        rr_dm_crse(iii,jjj,kkk,n) = rr_dm_crse(iii,jjj,kkk,n) - dt*dm
+                                     end if
+                                  end if
+                               end if
+
+                               if (ftoc_valid_cell) then
+                                  dm_ftoc(iii,jjj,kkk,n) = dm_ftoc(iii,jjj,kkk,n) + dt*dm
+                               end if
+
+                               if (ftoc_ghost_cell) then
+                                  if (is_inside(iii,jjj,kkk,lo,hi)) then
+                                     dm_ftoc(i,j,k,n) = dm_ftoc(i,j,k,n) - dt*dm
+                                  end if
+                               end if
+
                             endif
                          enddo
                       enddo

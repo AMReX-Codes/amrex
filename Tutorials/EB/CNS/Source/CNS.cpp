@@ -305,13 +305,13 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         amrex::TagCutCells(tags, S_new);
     }
 
-#if 0
+#if 1
     {
         const Real* problo = Geometry::ProbLo();
         const Real* dx = geom.CellSize();
 
-        RealVect fine_tag_lo{0.4, 0.4, 0.4};
-        RealVect fine_tag_hi{0.6, 0.6, 0.6};
+        RealVect fine_tag_lo{0.3,  0.63,  0.36};
+        RealVect fine_tag_hi{0.7,  0.68,  0.39};
 
 #ifdef _OPENMP
 #pragma omp parallel
