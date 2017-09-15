@@ -163,6 +163,9 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
    if(filetype == Amrvis::FAB || filetype == Amrvis::MULTIFAB) {
      return ReadNonPlotfileData(filename, filetype);
    }
+   if(filetype == Amrvis::PROFDATA) {
+      return false;    // ---- profdata will be handled later
+   }
 
    int i, j, k, width;
    fileName = filename;
@@ -187,14 +190,14 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 
    if(verbose) {
      if(ParallelDescriptor::IOProcessor()) {
-       cout << "AmrData::opening file = " << filename << endl;
+       cout << "AmrData::opening file = " << File << endl;
      }
    }
 
    isPltIn.open(File.c_str(), ios::in);
    if(isPltIn.fail()) {
      if(ParallelDescriptor::IOProcessor()) {
-      cerr << "Unable to open file: " << filename << endl;
+      cerr << "AmrData::Unable to open file:  " << File << endl;
      }
       return false;
    }
