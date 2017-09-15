@@ -44,7 +44,7 @@ contains
     real(c_real) :: fine(fine_lo(0):fine_hi(0),fine_lo(1):fine_hi(1),fine_lo(2):fine_hi(2), 0:fine_nco-1)
     real(c_real) :: coar(coar_lo(0):coar_hi(0),coar_lo(1):coar_hi(1),coar_lo(2):coar_hi(2), 0:coar_nco-1)
 
-    numfinepercoar = one
+    numfinepercoar = 1.0d0
     do idir = 1, BL_SPACEDIM
        numfinepercoar = numfinepercoar*refrat
     enddo
@@ -56,7 +56,7 @@ contains
           do jjc = coarboxlo(1), coarboxhi(1)
              do iic = coarboxlo(0), coarboxhi(0)
 
-                coar(iic,jjc,kkc, ivarc) = zero
+                coar(iic,jjc,kkc, ivarc) = 0.0d0
 
                 do kb = refboxlo(2), refboxhi(2)
                    do jb = refboxlo(1), refboxhi(1)
@@ -121,7 +121,7 @@ contains
           do jjc = coarboxlo(1), coarboxhi(1)
              do iic = coarboxlo(0), coarboxhi(0)
 
-                coar(iic,jjc,kkc, ivarc) = zero
+                coar(iic,jjc,kkc, ivarc) = 0.0d0
                 do kk = refboxlo(2), refboxhi(2)
                    do jj = refboxlo(1), refboxhi(1)
                       do ii = refboxlo(0), refboxhi(0)
@@ -216,7 +216,7 @@ contains
     real(c_real) :: xdist, ydist, zdist, xslope, yslope, zslope, dxf, dxc
     real(c_real) :: xcoar, ycoar, zcoar, xfine, yfine, zfine
 
-    dxf = one
+    dxf = 1.0d0
     dxc = refrat
 
     do ivar = 0, ncomp-1
@@ -234,19 +234,19 @@ contains
 
                 xcoar = dxc*(iic + half)
                 ycoar = dxc*(jjc + half)
-                zcoar = zero
+                zcoar = 0.0d0
 
                 xfine = dxf*(iif + half)
                 yfine = dxf*(jjf + half)
-                zfine = zero
+                zfine = 0.0d0
 
                 xslope = half*(coar(iic+1,jjc  ,kkc  , ivarc)-  coar(iic-1,jjc  ,kkc  , ivarc))/dxc 
                 yslope = half*(coar(iic  ,jjc+1,kkc  , ivarc)-  coar(iic  ,jjc-1,kkc  , ivarc))/dxc
-                zslope = zero
+                zslope = 0.0d0
 
                 xdist = xfine - xcoar
                 ydist = yfine - ycoar
-                zdist = zero
+                zdist = 0.0d0
 
 #if BL_SPACEDIM == 3
                 zcoar = dxc*(kkc + half)
@@ -302,7 +302,7 @@ contains
     real(c_real) :: xdist, xslope,  dxf, dxc,  indf, indc
     real(c_real) :: xcoar, xfine, finevalold, finevalnew, coarhi, coarlo
 
-    dxf = one
+    dxf = 1.0d0
     dxc = refrat
     ioff = 0
     joff = 0
@@ -482,7 +482,7 @@ contains
     real(c_real) :: xcoar, ycoar, zcoar, xfine, yfine, zfine, coarval, finevalnew
     real(c_real) :: dxx, dyy, dzz, dxy, dxz, dyz, coarhix, coarhiy, coarhiz,coarlox, coarloy, coarloz
 
-    dxf = one
+    dxf = 1.0d0
     dxc = refrat
 
     do ivar = 0, ncomp-1
@@ -500,11 +500,11 @@ contains
 
                 xcoar = dxc*(iic + half)
                 ycoar = dxc*(jjc + half)
-                zcoar = zero
+                zcoar = 0.0d0
 
                 xfine = dxf*(iif + half)
                 yfine = dxf*(jjf + half)
-                zfine = zero
+                zfine = 0.0d0
                 
                 coarhix = coar(iic+1,jjc  ,kkc  , ivarc)
                 coarlox = coar(iic-1,jjc  ,kkc  , ivarc)
@@ -514,7 +514,7 @@ contains
                 coarloz = 0
                 xslope = (coarhix - coarlox)/(two*dxc) 
                 yslope = (coarhiy - coarloy)/(two*dxc) 
-                zslope = zero
+                zslope = 0.0d0
 
                 dxx = (  coar(iic+1,jjc  ,kkc  ,ivarc) &
                      +   coar(iic-1,jjc  ,kkc  ,ivarc)-  &
@@ -527,12 +527,12 @@ contains
                      + coar(iic-1,jjc-1,kkc, ivarc) &
                      - coar(iic+1,jjc-1,kkc ,ivarc) &
                      - coar(iic-1,jjc+1,kkc, ivarc))/(four*dxc*dxc) 
-                dxz = zero
-                dyz = zero
-                dzz = zero
+                dxz = 0.0d0
+                dyz = 0.0d0
+                dzz = 0.0d0
                 xdist = xfine - xcoar
                 ydist = yfine - ycoar
-                zdist = zero
+                zdist = 0.0d0
 
 #if BL_SPACEDIM == 3
                 coarhiz = coar(iic  ,jjc  ,kkc+1, ivarc)
@@ -612,12 +612,12 @@ contains
     if(multbyarea .eq. 1) then
        denom = dx
     else
-       denom = one
+       denom = 1.0d0
        do d=1,dim
           denom = denom * dx
        enddo
     endif
-    inv_denom = one/denom
+    inv_denom = 1.0d0/denom
 
     do ivar = 0, ncomp-1
        ivarflux = isrc + ivar
@@ -629,7 +629,7 @@ contains
 
                 xterm = fluxfa0(iif+1, jjf  , kkf  , ivarflux) - fluxfa0(iif, jjf, kkf, ivarflux)
                 yterm = fluxfa1(iif  , jjf+1, kkf  , ivarflux) - fluxfa1(iif, jjf, kkf, ivarflux)
-                zterm = zero
+                zterm = 0.0d0
 #if BL_SPACEDIM==3
                 zterm = fluxfa2(iif  , jjf  , kkf+1, ivarflux) - fluxfa2(iif, jjf, kkf, ivarflux) 
 #endif
@@ -683,12 +683,12 @@ contains
                       dplo = phi(i   , j   , k   , ivar) - phi(i-ii,j-jj,k-kk, ivar) 
                       dpce = half*(dplo + dphi)
                       !van Leer limiting
-                      if(dplo*dphi .lt. zero) then
-                         dplim = zero
+                      if(dplo*dphi .lt. 0.0d0) then
+                         dplim = 0.0d0
                       else
                          dplim = min(two*abs(dplo), two*abs(dphi))
                          dplim = min(dplim, abs(dpce))
-                         dplim = dplim*sign(one, dplo)
+                         dplim = dplim*sign(1.0d0, dplo)
                       endif
 
                       gph(i, j, k, gradcomp) = dplim/dx
