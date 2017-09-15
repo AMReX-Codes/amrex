@@ -29,14 +29,8 @@ void PhysicalParticleContainer::InitData()
 void 
 PhysicalParticleContainer::AddGaussianBeam(Real mean, Real sigma, Real vel) {
 
-    const int       MyProc   = ParallelDescriptor::MyProc();
-    const int       NProcs   = ParallelDescriptor::NProcs();
-    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Geometry& geom     = m_gdb->Geom(0);
-
     RealBox containing_bx = geom.ProbDomain();
-    const Real* xlo = containing_bx.lo();
-    const Real* xhi = containing_bx.hi();
 
     std::mt19937_64 mt(0451);
     std::normal_distribution<double> dist(0.0, sigma);
@@ -414,7 +408,6 @@ PhysicalParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<Mult
             
             // Particle attributes
             auto& attribs = pti.GetAttribs();
-            auto&  wp = attribs[PIdx::w];
             auto& uxp = attribs[PIdx::ux];
             auto& uyp = attribs[PIdx::uy];
 
@@ -469,6 +462,9 @@ PhysicalParticleContainer::Evolve (int lev,
     
     long ngRho = (rho) ? rho->nGrow() : 0;
     
+    long ngRhoDeposit = (WarpX::use_filter) ? ngRho : ngRho + 1;
+    long ngJDeposit   = (WarpX::use_filter) ? ngJ   : ngJ   + 1;
+
     BL_ASSERT(OnSameGrids(lev,Ex));
     
 #ifdef _OPENMP
@@ -542,7 +538,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 if (WarpX::use_filter) {
                     grown_box = tile_box;
                     grown_box.grow(1);
-                    ngRho += 1;
                     local_rho.resize(grown_box);
                 } else {
                     local_rho.resize(tile_box);
@@ -552,23 +547,24 @@ PhysicalParticleContainer::Evolve (int lev,
                 rholen = local_rho.length();
 
 #if (BL_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = rholen[1]-1-2*ngRho;
-                const long nz = rholen[2]-1-2*ngRho;
+                const long nx = rholen[0]-1-2*ngRhoDeposit;
+                const long ny = rholen[1]-1-2*ngRhoDeposit;
+                const long nz = rholen[2]-1-2*ngRhoDeposit;
 #else
-                const long nx = rholen[0]-1-2*ngRho;
+                const long nx = rholen[0]-1-2*ngRhoDeposit;
                 const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRho;
+                const long nz = rholen[1]-1-2*ngRhoDeposit;
 #endif
-            	warpx_charge_deposition(data_ptr, &np, xp.data(), yp.data(), zp.data(), wp.data(),
-                                        &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2],
+            	warpx_charge_deposition(data_ptr, &np,
+                                        xp.data(), yp.data(), zp.data(), wp.data(),
+                                        &this->charge,
+                                        &xyzmin[0], &xyzmin[1], &xyzmin[2],
                                         &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRho, &ngRho, &ngRho, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                        &ngRhoDeposit, &ngRhoDeposit, &ngRhoDeposit, 
+                                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                         &lvect, &WarpX::charge_deposition_algo);
 
-                const Box& fabbox = rhofab.box();
                 const int ncomp = 1;
-
                 if (WarpX::use_filter) {
 
                     filtered_rho.resize(tile_box);
@@ -659,8 +655,6 @@ PhysicalParticleContainer::Evolve (int lev,
                     gtbz = tbz;
                     gtbz.grow(1);
 
-                    ngJ += 1;
-
                     local_jx.resize(gtbx);
                     local_jy.resize(gtby);
                     local_jz.resize(gtbz);
@@ -683,9 +677,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 jzntot = local_jz.length();
 
                 warpx_current_deposition(
-                    jx_ptr, &ngJ, jxntot,
-                    jy_ptr, &ngJ, jyntot,
-                    jz_ptr, &ngJ, jzntot,
+                    jx_ptr, &ngJDeposit, jxntot,
+                    jy_ptr, &ngJDeposit, jyntot,
+                    jz_ptr, &ngJDeposit, jzntot,
                     &np, xp.data(), yp.data(), zp.data(),
                     uxp.data(), uyp.data(), uzp.data(),
                     giv.data(), wp.data(), &this->charge,
@@ -697,11 +691,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
                 BL_PROFILE_VAR_START(blp_accumulate);                
-                const int ncomp = 1;
-                const Box& jxbox = jxfab.box();
-                const Box& jybox = jyfab.box();
-                const Box& jzbox = jzfab.box();
 
+                const int ncomp = 1;
                 if (WarpX::use_filter) {
 
                     filtered_jx.resize(tbx);
