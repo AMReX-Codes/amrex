@@ -98,51 +98,57 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
     Real scale_fac;
-
 #if BL_SPACEDIM==3
     scale_fac = dx[0]*dx[1]*dx[2]/num_ppc;
 #elif BL_SPACEDIM==2
     scale_fac = dx[0]*dx[2]/num_ppc;
 #endif
 
-    std::array<Real,PIdx::nattribs> attribs;
-    attribs.fill(0.0);
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const Box& tile_box = mfi.tilebox();
-        const Box& intersectBox = tile_box & part_box;
-        if (!intersectBox.ok()) continue;
-
-        const std::array<Real,3>& tile_corner = WarpX::LowerCorner(intersectBox, lev);
-
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-
-        const auto& boxlo = intersectBox.smallEnd();
-        for (IntVect iv = intersectBox.smallEnd(); iv <= intersectBox.bigEnd(); intersectBox.next(iv))
-        {
-            for (int i_part=0; i_part<num_ppc;i_part++)
-            {
-                std::array<Real, 3> r;
-                plasma_injector->getPositionUnitBox(r, i_part);
-#if ( BL_SPACEDIM == 3 )
-                Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
-                Real y = tile_corner[1] + (iv[1]-boxlo[1] + r[1])*dx[1];
-                Real z = tile_corner[2] + (iv[2]-boxlo[2] + r[2])*dx[2];
-#elif ( BL_SPACEDIM == 2 )
-                Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
-                Real y = 0.;
-                Real z = tile_corner[2] + (iv[1]-boxlo[1] + r[2])*dx[2];
+#ifdef _OPENMP
+#pragma omp parallel
 #endif
-                if (plasma_injector->insideBounds(x, y, z)) {
-                    Real weight;
-                    std::array<Real, 3> u;
-                    plasma_injector->getMomentum(u);
-                    weight = plasma_injector->getDensity(x, y, z) * scale_fac;
-                    attribs[PIdx::w ] = weight;
-                    attribs[PIdx::ux] = u[0];
-                    attribs[PIdx::uy] = u[1];
-                    attribs[PIdx::uz] = u[2];
-                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+    {
+
+        std::array<Real,PIdx::nattribs> attribs;
+        attribs.fill(0.0);
+        
+        for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+            const Box& tile_box  = mfi.tilebox();
+            const Box& intersectBox = tile_box & part_box;
+            if (!intersectBox.ok()) continue;
+            
+            const std::array<Real, 3>& tile_corner = 
+                WarpX::LowerCorner(intersectBox, lev);
+            
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            
+            const auto& boxlo = intersectBox.smallEnd();
+            for (IntVect iv = intersectBox.smallEnd(); 
+                 iv <= intersectBox.bigEnd(); intersectBox.next(iv)) {
+                for (int i_part=0; i_part<num_ppc;i_part++) {
+                    std::array<Real, 3> r;
+                    plasma_injector->getPositionUnitBox(r, i_part);
+#if ( BL_SPACEDIM == 3 )
+                    Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
+                    Real y = tile_corner[1] + (iv[1]-boxlo[1] + r[1])*dx[1];
+                    Real z = tile_corner[2] + (iv[2]-boxlo[2] + r[2])*dx[2];
+#elif ( BL_SPACEDIM == 2 )
+                    Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
+                    Real y = 0.;
+                    Real z = tile_corner[2] + (iv[1]-boxlo[1] + r[2])*dx[2];
+#endif
+                    if (plasma_injector->insideBounds(x, y, z)) {
+                        Real weight;
+                        std::array<Real, 3> u;
+                        plasma_injector->getMomentum(u);
+                        weight = plasma_injector->getDensity(x, y, z) * scale_fac;
+                        attribs[PIdx::w ] = weight;
+                        attribs[PIdx::ux] = u[0];
+                        attribs[PIdx::uy] = u[1];
+                        attribs[PIdx::uz] = u[2];
+                        AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+                    }
                 }
             }
         }
