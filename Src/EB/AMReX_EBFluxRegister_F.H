@@ -67,7 +67,9 @@ extern "C" {
     void amrex_eb_flux_reg_fineadd_dm(const int* lo, const int* hi,
                                       amrex_real* d, const int* dlo, const int* dhi,
                                       const amrex_real* dm, const int* mlo, const int* mhi,
-                                      const int* nc, const int* ratio);
+                                      const amrex_real* cvol, const int* clo, const int* chi,
+                                      const amrex_real* vfrac, const int* vlo, const int* vhi,
+                                      const amrex_real* dx, const int* nc, const int* ratio);
                                       
 #ifdef __cplusplus
 }

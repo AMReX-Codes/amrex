@@ -103,6 +103,7 @@ contains
        centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, &
        as_crse_in, rr_dm_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
        as_fine_in, dm_ftoc, dflo, dfhi, &
+       levmsk, lmlo, lmhi, &
        dx,dt) &
        bind(c,name='cns_eb_compute_dudt')
     use cns_nd_module, only : ctoprim
@@ -114,7 +115,7 @@ contains
          vlo,vhi,axlo,axhi,aylo,ayhi,azlo,azhi, &
          cxlo,cxhi,cylo,cyhi,czlo,czhi, &
          fglo,fghi, blo, bhi, fxlo,fxhi, fylo,fyhi, fzlo,fzhi, &
-         rdclo, rdchi, rfclo, rfchi, dflo, dfhi
+         rdclo, rdchi, rfclo, rfchi, dflo, dfhi, lmlo, lmhi
     integer, intent(in) :: as_crse_in, as_fine_in
     real(rt), intent(inout) :: dudt(utlo(1):uthi(1),utlo(2):uthi(2),utlo(3):uthi(3),nvar)
     real(rt), intent(in   ) :: u ( ulo(1): uhi(1), ulo(2): uhi(2), ulo(3): uhi(3),nvar)
@@ -133,6 +134,7 @@ contains
     real(rt), intent(inout) :: rr_dm_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),nvar)
     integer,  intent(in) ::  rr_flag_crse(rfclo(1):rfchi(1),rfclo(2):rfchi(2),rfclo(3):rfchi(3))
     real(rt), intent(out) :: dm_ftoc(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),nvar)
+    integer,  intent(in) ::  levmsk (lmlo(1):lmhi(1),lmlo(2):lmhi(2),lmlo(3):lmhi(3))
     real(rt), intent(in) :: dx(3), dt
 
     integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(3), dmhi(3)
@@ -222,7 +224,8 @@ contains
          centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &
          flag,fglo,fghi, &
          as_crse, rr_dm_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
-         as_fine, dm_ftoc, dflo, dfhi)
+         as_fine, dm_ftoc, dflo, dfhi, &
+         levmsk, lmlo, lmhi)
     
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
 

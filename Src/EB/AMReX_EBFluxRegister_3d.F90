@@ -444,16 +444,38 @@ contains
   end subroutine amrex_eb_flux_reg_fineadd_va
 
 
-  subroutine amrex_eb_flux_reg_fineadd_dm (lo, hi, d, dlo, dhi, dm, mlo, mhi, nc, ratio) &
+  subroutine amrex_eb_flux_reg_fineadd_dm (lo, hi, d, dlo, dhi, dm, mlo, mhi, &
+       cvol, clo, chi, vfrac, vlo, vhi, dx, nc, ratio) &
        bind(c, name='amrex_eb_flux_reg_fineadd_dm')
-    integer, dimension(3), intent(in) :: lo, hi, dlo, dhi, mlo, mhi, ratio
+    integer, dimension(3), intent(in) :: lo, hi, dlo, dhi, mlo, mhi, ratio, vlo, vhi, clo, chi
     integer, intent(in) :: nc
+    real(rt), intent(in) :: dx(3)
     real(rt), intent(in   ) :: dm(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),nc)
     real(rt), intent(inout) :: d (dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nc)
+    real(rt)                :: cvol ( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))
+    real(rt), intent(in   ) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
 
     integer :: i,j,k,n, ii,jj,kk, ioff, joff, koff, iii, jjj, kkk
+    real(rt) :: fac
 
-     do n = 1, nc
+    fac = 1._rt/(ratio(1)*ratio(2)*ratio(3))
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             cvol(i,j,k) = sum(vfrac(i*ratio(1):i*ratio(1)+ratio(1)-1,  &
+                  &                  j*ratio(2):j*ratio(2)+ratio(2)-1, &
+                  &                  k*ratio(3):k*ratio(3)+ratio(3)-1))
+             if (cvol(i,j,k).gt.1.d-14) then
+                cvol(i,j,k) = fac/cvol(i,j,k)
+             else
+                cvol(i,j,k) = 0._rt
+             end if
+          end do
+       end do
+    end do
+
+    do n = 1, nc
        do k = lo(3), hi(3)
           kk = k*ratio(3)
           do j = lo(2), hi(2)
@@ -468,7 +490,8 @@ contains
                       do i = lo(1), hi(1)
                          ii = i*ratio(1)
                          iii = ii + ioff
-                         d(i,j,k,n) = d(i,j,k,n) + dm(iii,jjj,kkk,n)
+                         d(i,j,k,n) = d(i,j,k,n) + dm(iii,jjj,kkk,n) &
+                              * (vfrac(iii,jjj,kkk)*cvol(i,j,k))
                       end do
 
                    end do

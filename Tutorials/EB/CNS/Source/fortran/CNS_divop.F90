@@ -70,19 +70,20 @@ contains
        centz_y, czylo, czyhi, &
        cellflag, cflo, cfhi,  &
        as_crse, rr_dm_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
-       as_fine, dm_ftoc, dflo, dfhi)
+       as_fine, dm_ftoc, dflo, dfhi, &
+       levmsk, lmlo, lmhi)
 
     use amrex_eb_flux_reg_3d_module, only : crse_cell, crse_fine_boundary_cell, &
          covered_by_fine=>fine_cell
     use cns_module, only : qvar, qrho, qu, qv, qw, qp, qeint, umx, umy, umz, smallr, &
-         use_total_energy_as_eb_weights
+         use_total_energy_as_eb_weights, levmsk_covered, levmsk_interior, levmsk_notcovered
     use cns_eb_hyp_wall_module, only : compute_hyp_wallflux
     use cns_eb_diff_wall_module, only : compute_diff_wallflux
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
          cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi, &
          clo, chi, blo, bhi, fcxlo, fcxhi, fcylo, fcyhi, fczlo, fczhi, &
-         rdclo, rdchi, rfclo, rfchi, dflo, dfhi
+         rdclo, rdchi, rfclo, rfchi, dflo, dfhi, lmlo, lmhi
     logical, intent(in) :: as_crse, as_fine
     integer, intent(in) :: ncomp
     real(rt), intent(in) :: dx(3), dt
@@ -114,6 +115,7 @@ contains
     real(rt), intent(inout) :: rr_dm_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),ncomp)
     integer,  intent(in) ::  rr_flag_crse(rfclo(1):rfchi(1),rfclo(2):rfchi(2),rfclo(3):rfchi(3))
     real(rt), intent(out) :: dm_ftoc(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),ncomp)
+    integer,  intent(in) ::  levmsk (lmlo(1):lmhi(1),lmlo(2):lmhi(2),lmlo(3):lmhi(3))
 
     logical :: valid_cell, crse_donor_cell, fine_donor_cell, ftoc_valid_cell, ftoc_ghost_cell
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1), iii,jjj,kkk
@@ -505,7 +507,7 @@ contains
                    ftoc_ghost_cell = .false.  ! ghost cells just outside valid region
                    if (as_fine) then
                       ftoc_valid_cell = is_inside(i,j,k,lo,hi)
-                      ftoc_ghost_cell = .not.ftoc_ghost_cell
+                      ftoc_ghost_cell = levmsk(i,j,k) .eq. levmsk_notcovered
                    end if
 
                    wtot = 1.d0/wtot
@@ -541,8 +543,11 @@ contains
                                end if
 
                                if (ftoc_ghost_cell) then
-                                  if (is_inside(iii,jjj,kkk,lo,hi)) then
-                                     dm_ftoc(i,j,k,n) = dm_ftoc(i,j,k,n) - dt*dm
+                                  if (is_inside(iii,jjj,kkk,lo-1,hi+1)) then
+                                     if (      levmsk(iii,jjj,kkk) .eq. levmsk_covered &
+                                          .or. levmsk(iii,jjj,kkk) .eq. levmsk_interior) then
+                                        dm_ftoc(i,j,k,n) = dm_ftoc(i,j,k,n) - dt*dm
+                                     end if
                                   end if
                                end if
 

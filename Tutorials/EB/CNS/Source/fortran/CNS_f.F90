@@ -4,6 +4,12 @@ module cns_module
   implicit none
   private
 
+  ! these flags must be the same as in CNS.H
+  integer, parameter, public :: levmsk_interior   = 0 ! valid cells 
+  integer, parameter, public :: levmsk_covered    = 1 ! ghost cells covered by valid cells of this level
+  integer, parameter, public :: levmsk_notcovered = 2 ! ghost cells not covered
+  integer, parameter, public :: levmsk_physbnd    = 3 ! outside domain
+
   integer, parameter, public :: URHO  = 1
   integer, parameter, public :: UMX   = 2
   integer, parameter, public :: UMY   = 3

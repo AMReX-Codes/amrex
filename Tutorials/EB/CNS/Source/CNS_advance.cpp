@@ -147,6 +147,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         BL_TO_FORTRAN_ANYD(*p_rrflag_as_crse),
                                         &as_fine,
                                         BL_TO_FORTRAN_ANYD(dm_ftoc),
+                                        BL_TO_FORTRAN_ANYD(level_mask[mfi]),
                                         dx, &dt);
 
                     if (fr_as_crse) {
