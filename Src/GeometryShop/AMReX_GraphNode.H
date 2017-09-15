@@ -55,7 +55,7 @@ namespace amrex
        Cell indicies of neighboring cells.
        If the arc is a boundary face, the int = -1
     */
-    Array<int> m_arc[2*SpaceDim];
+    std::array<Array<int>, 2*SpaceDim> m_arc;
                   
     /// Cell index of this vof is the index into the vector
                   

@@ -216,11 +216,8 @@ private:
     bool m_isDefined;
 
 
-    void operator=(const EBDataImplem& ebiin)
-      {;}
-
-    EBDataImplem(const EBDataImplem& ebiin)
-      {;}
+    void operator=(const EBDataImplem& ebiin) = delete;
+    EBDataImplem(const EBDataImplem& ebiin) = delete;
 
     void
     coarsenFaceCentroid(RealVect&                a_centroidCoar,
@@ -282,7 +279,7 @@ private:
     typedef int value_type;
 
     ///
-    EBData() : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem() ) )
+    EBData() : m_implem( std::make_shared<EBDataImplem>() )
       {
       }
 
@@ -291,7 +288,7 @@ private:
            int        n,
            bool       alloc,
            bool       shared)
-      : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem(a_region, n, alloc, shared) ) )
+        : m_implem( std::make_shared<EBDataImplem>(a_region, n, alloc, shared) )
 
       {
       }
@@ -333,7 +330,7 @@ private:
     /**
     */
     EBData(const Box& a_box, int a_comps)
-      : m_implem( shared_ptr<EBDataImplem>( new EBDataImplem(a_box, a_comps) ) )
+        : m_implem( std::make_shared<EBDataImplem>(a_box, a_comps) )
       {
       }
 
@@ -459,18 +456,11 @@ private:
     */
     bool operator==(const EBData& a_ebiin)
       {
-        return ((&(*m_implem)) == (&(*a_ebiin.m_implem)));
+          return m_implem.get() == a_ebiin.m_implem.get();
       }
 
     ///
-    EBData& operator=(const EBData& a_ebiin)
-      {
-        if (&a_ebiin != this)
-        {
-          m_implem = a_ebiin.m_implem;
-        }
-        return *this;
-      }
+    EBData& operator=(const EBData& a_ebiin) = default;
 
     ///this is for copy or fillboundary where the meta data is already filled
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
