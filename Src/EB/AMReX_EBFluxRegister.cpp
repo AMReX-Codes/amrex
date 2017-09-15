@@ -325,10 +325,13 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     {
         const Box& wbx = gbx & cfp->box();
         AMREX_ASSERT(wbx.ok());
+        cvol.resize(wbx);
         amrex_eb_flux_reg_fineadd_dm(BL_TO_FORTRAN_BOX(wbx),
                                      BL_TO_FORTRAN_ANYD(*cfp),
                                      BL_TO_FORTRAN_ANYD(dm),
-                                     &nc, m_ratio.getVect());
+                                     BL_TO_FORTRAN_ANYD(cvol),
+                                     BL_TO_FORTRAN_ANYD(volfrac),
+                                     dx, &nc, m_ratio.getVect());
     }
 }
 

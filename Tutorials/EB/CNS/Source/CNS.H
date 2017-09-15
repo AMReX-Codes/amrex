@@ -131,7 +131,14 @@ protected:
     std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
     std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;
 
+    amrex::iMultiFab level_mask;
+
     amrex::EBFluxRegister flux_reg;
+
+    static constexpr int level_mask_interior   = 0; // valid cells
+    static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
+    static constexpr int level_mask_notcovered = 2; // ghost cells not covered
+    static constexpr int level_mask_physbnd    = 3; // outside domain
 
     static constexpr int NUM_GROW = 5;
     enum StateVariable {

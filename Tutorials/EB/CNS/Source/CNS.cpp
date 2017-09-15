@@ -10,6 +10,11 @@
 
 using namespace amrex;
 
+constexpr int CNS::level_mask_interior;
+constexpr int CNS::level_mask_covered;
+constexpr int CNS::level_mask_notcovered;
+constexpr int CNS::level_mask_physbnd;
+
 constexpr int CNS::NUM_GROW;
 
 BCRec     CNS::phys_bc;
@@ -410,6 +415,14 @@ CNS::buildMetrics ()
         facecent[idim].define(ba,dmap,AMREX_SPACEDIM-1,NUM_GROW,MFInfo(),Factory());
     }
     amrex::EB_set_area_fraction_face_centroid(areafrac, facecent);
+
+    level_mask.clear();
+    level_mask.define(grids,dmap,1,1);
+    level_mask.BuildMask(geom.Domain(), geom.periodicity(), 
+                         level_mask_covered,
+                         level_mask_notcovered,
+                         level_mask_physbnd,
+                         level_mask_interior);
 }
 
 Real
