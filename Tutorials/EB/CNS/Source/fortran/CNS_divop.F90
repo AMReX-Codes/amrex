@@ -541,8 +541,10 @@ contains
                                end if
 
                                if (as_fine_valid_cell) then
-                                  dm_as_fine(iii,jjj,kkk,n) = dm_as_fine(iii,jjj,kkk,n) &
-                                       + dt*drho*vfrac(iii,jjj,kkk)
+                                  if (.not.is_inside(iii,jjj,kkk,lo,hi)) then
+                                     dm_as_fine(iii,jjj,kkk,n) = dm_as_fine(iii,jjj,kkk,n) &
+                                          + dt*drho*vfrac(iii,jjj,kkk)
+                                  end if
                                end if
 
                                if (as_fine_ghost_cell) then
