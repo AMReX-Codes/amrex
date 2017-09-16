@@ -69,7 +69,7 @@ contains
        centz_x, czxlo, czxhi, &
        centz_y, czylo, czyhi, &
        cellflag, cflo, cfhi,  &
-       as_crse, rr_dm_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
+       as_crse, rr_drho_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
        as_fine, dm_ftoc, dflo, dfhi, &
        levmsk, lmlo, lmhi)
 
@@ -112,7 +112,7 @@ contains
     real(rt), intent(in) :: centz_x(czxlo(1):czxhi(1),czxlo(2):czxhi(2),czxlo(3):czxhi(3))
     real(rt), intent(in) :: centz_y(czylo(1):czyhi(1),czylo(2):czyhi(2),czylo(3):czyhi(3))
     integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
-    real(rt), intent(inout) :: rr_dm_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),ncomp)
+    real(rt), intent(inout) :: rr_drho_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),ncomp)
     integer,  intent(in) ::  rr_flag_crse(rfclo(1):rfchi(1),rfclo(2):rfchi(2),rfclo(3):rfchi(3))
     real(rt), intent(out) :: dm_ftoc(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),ncomp)
     integer,  intent(in) ::  levmsk (lmlo(1):lmhi(1),lmlo(2):lmhi(2),lmlo(3):lmhi(3))
@@ -121,7 +121,7 @@ contains
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1), iii,jjj,kkk
     integer :: nwalls, iwall
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
-    real(rt) :: divwn, dm
+    real(rt) :: divwn, drho
     real(rt), pointer, contiguous :: optmp(:,:,:), rediswgt(:,:,:)
     real(rt), pointer, contiguous :: divhyp(:,:), divdiff(:,:)
 
@@ -520,12 +520,13 @@ contains
                                jjj = j + jj
                                kkk = k + kk
 
-                               dm = delm(i,j,k,n)*wtot*rediswgt(iii,jjj,kkk)
-                               optmp(iii,jjj,kkk) = optmp(iii,jjj,kkk) + dm
+                               drho = delm(i,j,k,n)*wtot*rediswgt(iii,jjj,kkk)
+                               optmp(iii,jjj,kkk) = optmp(iii,jjj,kkk) + drho
 
                                if (crse_donor_cell) then
                                   if (rr_flag_crse(iii,jjj,kkk).eq.covered_by_fine) then
-                                     rr_dm_crse(i,j,k,n) = rr_dm_crse(i,j,k,n) + dt*dm
+                                     rr_drho_crse(i,j,k,n) = rr_drho_crse(i,j,k,n) &
+                                          + dt*drho*(vfrac(iii,jjj,kkk)/vfrac(i,j,k))
                                   end if
                                end if
 
@@ -533,20 +534,23 @@ contains
                                   if (is_inside(iii,jjj,kkk,lo,hi)) then
                                      if (rr_flag_crse(iii,jjj,kkk).eq.crse_fine_boundary_cell) then
                                         ! the recipient is a crse/fine boundary cell
-                                        rr_dm_crse(iii,jjj,kkk,n) = rr_dm_crse(iii,jjj,kkk,n) - dt*dm
+                                        rr_drho_crse(iii,jjj,kkk,n) = rr_drho_crse(iii,jjj,kkk,n) &
+                                             - dt*drho
                                      end if
                                   end if
                                end if
 
                                if (ftoc_valid_cell) then
-                                  dm_ftoc(iii,jjj,kkk,n) = dm_ftoc(iii,jjj,kkk,n) + dt*dm
+                                  dm_ftoc(iii,jjj,kkk,n) = dm_ftoc(iii,jjj,kkk,n) &
+                                       + dt*drho*vfrac(iii,jjj,kkk)
                                end if
 
                                if (ftoc_ghost_cell) then
                                   if (is_inside(iii,jjj,kkk,lo-1,hi+1)) then
                                      if (      levmsk(iii,jjj,kkk) .eq. levmsk_covered &
                                           .or. levmsk(iii,jjj,kkk) .eq. levmsk_interior) then
-                                        dm_ftoc(i,j,k,n) = dm_ftoc(i,j,k,n) - dt*dm
+                                        dm_ftoc(i,j,k,n) = dm_ftoc(i,j,k,n) &
+                                             - dt*drho*vfrac(iii,jjj,kkk)
                                      end if
                                   end if
                                end if

@@ -79,7 +79,7 @@ extern "C" {
                               const amrex_real* cy, const int* cylo, const int* cyhi,
                               const amrex_real* cz, const int* czlo, const int* czhi,
                               const int* as_crse,
-                              amrex_real* rr_dm_crse, const int* rdclo, const int* rdchi,
+                              amrex_real* rr_drho_crse, const int* rdclo, const int* rdchi,
                               const int* rr_flag_crse, const int* rfclo, const int* rfchi,
                               const int* as_fine,
                               amrex_real* dm_ftoc, const int* dflo, const int* dfhi,

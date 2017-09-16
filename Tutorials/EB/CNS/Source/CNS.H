@@ -126,6 +126,8 @@ protected:
 
     void fixUpGeometry ();
 
+    void printTotal () const;
+
     amrex::MultiFab volfrac;
     amrex::MultiFab bndrycent;
     std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;

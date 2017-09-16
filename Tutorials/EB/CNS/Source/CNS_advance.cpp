@@ -76,7 +76,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     {
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
         FArrayBox dm_ftoc(Box::TheUnitBox(),ncomp);
-        FArrayBox fab_dm_as_crse(Box::TheUnitBox(),ncomp);
+        FArrayBox fab_drho_as_crse(Box::TheUnitBox(),ncomp);
         IArrayBox fab_rrflag_as_crse(Box::TheUnitBox());
 
         for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
@@ -118,8 +118,8 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                 }
                 else
                 {
-                    FArrayBox* p_dm_as_crse = (fr_as_crse) ?
-                        fr_as_crse->getCrseData(mfi) : &fab_dm_as_crse;
+                    FArrayBox* p_drho_as_crse = (fr_as_crse) ?
+                        fr_as_crse->getCrseData(mfi) : &fab_drho_as_crse;
                     const IArrayBox* p_rrflag_as_crse = (fr_as_crse) ?
                         fr_as_crse->getCrseFlag(mfi) : &fab_rrflag_as_crse;
 
@@ -143,7 +143,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
                                         &as_crse,
-                                        BL_TO_FORTRAN_ANYD(*p_dm_as_crse),
+                                        BL_TO_FORTRAN_ANYD(*p_drho_as_crse),
                                         BL_TO_FORTRAN_ANYD(*p_rrflag_as_crse),
                                         &as_fine,
                                         BL_TO_FORTRAN_ANYD(dm_ftoc),

@@ -260,27 +260,33 @@ CNS::postCoarseTimeStep (Real time)
 {
     // This only computes sum on level 0
     if (verbose >= 2) {
-        const MultiFab& S_new = get_new_data(State_Type);
-        MultiFab mf(grids, dmap, 1, 0);
-        std::array<Real,5> tot;
-        for (int comp = 0; comp < 5; ++comp) {
-            MultiFab::Copy(mf, S_new, comp, 0, 1, 0);
-            MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
-            tot[comp] = mf.sum(0,true) * geom.ProbSize();
-        }
+        printTotal();
+    }
+}
+
+void
+CNS::printTotal () const
+{
+    const MultiFab& S_new = get_new_data(State_Type);
+    MultiFab mf(grids, dmap, 1, 0);
+    std::array<Real,5> tot;
+    for (int comp = 0; comp < 5; ++comp) {
+        MultiFab::Copy(mf, S_new, comp, 0, 1, 0);
+        MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
+        tot[comp] = mf.sum(0,true) * geom.ProbSize();
+    }
 #ifdef BL_LAZY
-        Lazy::QueueReduction( [=] () mutable {
+    Lazy::QueueReduction( [=] () mutable {
 #endif
-        ParallelDescriptor::ReduceRealSum(tot.data(), 5, ParallelDescriptor::IOProcessorNumber());
-        amrex::Print().SetPrecision(17) << "\n[CNS] Total mass       is " << tot[0] << "\n"
-                                        <<   "      Total x-momentum is " << tot[1] << "\n"
-                                        <<   "      Total y-momentum is " << tot[2] << "\n"
-                                        <<   "      Total z-momentum is " << tot[3] << "\n"
-                                        <<   "      Total energy     is " << tot[4] << "\n";
+            ParallelDescriptor::ReduceRealSum(tot.data(), 5, ParallelDescriptor::IOProcessorNumber());
+            amrex::Print().SetPrecision(17) << "\n[CNS] Total mass       is " << tot[0] << "\n"
+                                            <<   "      Total x-momentum is " << tot[1] << "\n"
+                                            <<   "      Total y-momentum is " << tot[2] << "\n"
+                                            <<   "      Total z-momentum is " << tot[3] << "\n"
+                                            <<   "      Total energy     is " << tot[4] << "\n";
 #ifdef BL_LAZY
         });
 #endif
-    }
 }
 
 void
@@ -291,6 +297,10 @@ CNS::post_init (Real)
     if (level > 0) return;
     for (int k = parent->finestLevel()-1; k >= 0; --k) {
         getLevel(k).avgDown();
+    }
+
+    if (verbose >= 2) {
+        printTotal();
     }
 }
 

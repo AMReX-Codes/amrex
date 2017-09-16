@@ -456,9 +456,6 @@ contains
     real(rt), intent(in   ) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
 
     integer :: i,j,k,n, ii,jj,kk, ioff, joff, koff, iii, jjj, kkk
-    real(rt) :: fac
-
-    fac = 1._rt/(ratio(1)*ratio(2)*ratio(3))
 
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
@@ -467,7 +464,7 @@ contains
                   &                  j*ratio(2):j*ratio(2)+ratio(2)-1, &
                   &                  k*ratio(3):k*ratio(3)+ratio(3)-1))
              if (cvol(i,j,k).gt.1.d-14) then
-                cvol(i,j,k) = fac/cvol(i,j,k)
+                cvol(i,j,k) = 1._rt/cvol(i,j,k)
              else
                 cvol(i,j,k) = 0._rt
              end if
@@ -490,8 +487,7 @@ contains
                       do i = lo(1), hi(1)
                          ii = i*ratio(1)
                          iii = ii + ioff
-                         d(i,j,k,n) = d(i,j,k,n) + dm(iii,jjj,kkk,n) &
-                              * (vfrac(iii,jjj,kkk)*cvol(i,j,k))
+                         d(i,j,k,n) = d(i,j,k,n) + dm(iii,jjj,kkk,n)*cvol(i,j,k)
                       end do
 
                    end do
