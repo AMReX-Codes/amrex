@@ -35,9 +35,9 @@ cd ..
 ```
 make -j 4
 ```
-or, in order to enable openMP,
+In this case, OpenMP is enabled by default. In order to disable OpenMP:
 ```
-make -j 4 USE_OMP=TRUE
+make -j 4 USE_OMP=FALSE
 ```
 This will compile the code (using 4 procs for the compilation) and generate an executable file in the `Bin` directory.
 
