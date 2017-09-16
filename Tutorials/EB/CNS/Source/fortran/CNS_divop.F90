@@ -70,7 +70,7 @@ contains
        centz_y, czylo, czyhi, &
        cellflag, cflo, cfhi,  &
        as_crse, rr_drho_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
-       as_fine, dm_ftoc, dflo, dfhi, &
+       as_fine, dm_as_fine, dflo, dfhi, &
        levmsk, lmlo, lmhi)
 
     use amrex_eb_flux_reg_3d_module, only : crse_cell, crse_fine_boundary_cell, &
@@ -114,10 +114,10 @@ contains
     integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
     real(rt), intent(inout) :: rr_drho_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),ncomp)
     integer,  intent(in) ::  rr_flag_crse(rfclo(1):rfchi(1),rfclo(2):rfchi(2),rfclo(3):rfchi(3))
-    real(rt), intent(out) :: dm_ftoc(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),ncomp)
+    real(rt), intent(out) :: dm_as_fine(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),ncomp)
     integer,  intent(in) ::  levmsk (lmlo(1):lmhi(1),lmlo(2):lmhi(2),lmlo(3):lmhi(3))
 
-    logical :: valid_cell, crse_donor_cell, fine_donor_cell, ftoc_valid_cell, ftoc_ghost_cell
+    logical :: valid_cell, as_crse_crse_cell, as_crse_covered_cell, as_fine_valid_cell, as_fine_ghost_cell
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1), iii,jjj,kkk
     integer :: nwalls, iwall
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
@@ -495,19 +495,19 @@ contains
                       enddo
                    enddo
 
-                   crse_donor_cell = .false.
-                   fine_donor_cell = .false.
+                   as_crse_crse_cell = .false.
+                   as_crse_covered_cell = .false.
                    if (as_crse) then
-                      crse_donor_cell = is_inside(i,j,k,lo,hi) .and. &
+                      as_crse_crse_cell = is_inside(i,j,k,lo,hi) .and. &
                            rr_flag_crse(i,j,k) .eq. crse_fine_boundary_cell
-                      fine_donor_cell = rr_flag_crse(i,j,k) .eq. covered_by_fine
+                      as_crse_covered_cell = rr_flag_crse(i,j,k) .eq. covered_by_fine
                    end if
 
-                   ftoc_valid_cell = .false.  ! valid cells near box boundary
-                   ftoc_ghost_cell = .false.  ! ghost cells just outside valid region
+                   as_fine_valid_cell = .false.  ! valid cells near box boundary
+                   as_fine_ghost_cell = .false.  ! ghost cells just outside valid region
                    if (as_fine) then
-                      ftoc_valid_cell = is_inside(i,j,k,lo,hi)
-                      ftoc_ghost_cell = levmsk(i,j,k) .eq. levmsk_notcovered
+                      as_fine_valid_cell = is_inside(i,j,k,lo,hi)
+                      as_fine_ghost_cell = levmsk(i,j,k) .eq. levmsk_notcovered
                    end if
 
                    wtot = 1.d0/wtot
@@ -523,14 +523,14 @@ contains
                                drho = delm(i,j,k,n)*wtot*rediswgt(iii,jjj,kkk)
                                optmp(iii,jjj,kkk) = optmp(iii,jjj,kkk) + drho
 
-                               if (crse_donor_cell) then
+                               if (as_crse_crse_cell) then
                                   if (rr_flag_crse(iii,jjj,kkk).eq.covered_by_fine) then
                                      rr_drho_crse(i,j,k,n) = rr_drho_crse(i,j,k,n) &
                                           + dt*drho*(vfrac(iii,jjj,kkk)/vfrac(i,j,k))
                                   end if
                                end if
 
-                               if (fine_donor_cell) then
+                               if (as_crse_covered_cell) then
                                   if (is_inside(iii,jjj,kkk,lo,hi)) then
                                      if (rr_flag_crse(iii,jjj,kkk).eq.crse_fine_boundary_cell) then
                                         ! the recipient is a crse/fine boundary cell
@@ -540,16 +540,16 @@ contains
                                   end if
                                end if
 
-                               if (ftoc_valid_cell) then
-                                  dm_ftoc(iii,jjj,kkk,n) = dm_ftoc(iii,jjj,kkk,n) &
+                               if (as_fine_valid_cell) then
+                                  dm_as_fine(iii,jjj,kkk,n) = dm_as_fine(iii,jjj,kkk,n) &
                                        + dt*drho*vfrac(iii,jjj,kkk)
                                end if
 
-                               if (ftoc_ghost_cell) then
+                               if (as_fine_ghost_cell) then
                                   if (is_inside(iii,jjj,kkk,lo-1,hi+1)) then
                                      if (      levmsk(iii,jjj,kkk) .eq. levmsk_covered &
                                           .or. levmsk(iii,jjj,kkk) .eq. levmsk_interior) then
-                                        dm_ftoc(i,j,k,n) = dm_ftoc(i,j,k,n) &
+                                        dm_as_fine(i,j,k,n) = dm_as_fine(i,j,k,n) &
                                              - dt*drho*vfrac(iii,jjj,kkk)
                                      end if
                                   end if

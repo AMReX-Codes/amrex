@@ -103,7 +103,7 @@ contains
        apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
        centx,cxlo,cxhi,centy,cylo,cyhi,centz,czlo,czhi, &
        as_crse_in, rr_drho_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
-       as_fine_in, dm_ftoc, dflo, dfhi, &
+       as_fine_in, dm_as_fine, dflo, dfhi, &
        levmsk, lmlo, lmhi, &
        dx,dt,level) &
        bind(c,name='cns_eb_compute_dudt')
@@ -134,7 +134,7 @@ contains
     real(rt), intent(in) :: centz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2)
     real(rt), intent(inout) :: rr_drho_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),nvar)
     integer,  intent(in) ::  rr_flag_crse(rfclo(1):rfchi(1),rfclo(2):rfchi(2),rfclo(3):rfchi(3))
-    real(rt), intent(out) :: dm_ftoc(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),nvar)
+    real(rt), intent(out) :: dm_as_fine(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),nvar)
     integer,  intent(in) ::  levmsk (lmlo(1):lmhi(1),lmlo(2):lmhi(2),lmlo(3):lmhi(3))
     real(rt), intent(in) :: dx(3), dt
     integer, intent(in) :: level
@@ -213,7 +213,7 @@ contains
     fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),6:nvar) = 0.d0
     fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),6:nvar) = 0.d0
 
-    dm_ftoc = 0.d0
+    dm_as_fine = 0.d0
 
     call compute_eb_divop(lo,hi,5,dx,dt,fhx,lfxlo,lfxhi,fhy,lfylo,lfyhi,fhz,lfzlo,lfzhi,&
          fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi, &
@@ -226,7 +226,7 @@ contains
          centz(:,:,:,1),czlo,czhi, centz(:,:,:,2),czlo,czhi, &
          flag,fglo,fghi, &
          as_crse, rr_drho_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
-         as_fine, dm_ftoc, dflo, dfhi, &
+         as_fine, dm_as_fine, dflo, dfhi, &
          levmsk, lmlo, lmhi)
     
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0

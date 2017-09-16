@@ -75,7 +75,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 #endif
     {
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        FArrayBox dm_ftoc(Box::TheUnitBox(),ncomp);
+        FArrayBox dm_as_fine(Box::TheUnitBox(),ncomp);
         FArrayBox fab_drho_as_crse(Box::TheUnitBox(),ncomp);
         IArrayBox fab_rrflag_as_crse(Box::TheUnitBox());
 
@@ -124,7 +124,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                         fr_as_crse->getCrseFlag(mfi) : &fab_rrflag_as_crse;
 
                     if (fr_as_fine) {
-                        dm_ftoc.resize(amrex::grow(bx,crse_ratio),ncomp);
+                        dm_as_fine.resize(amrex::grow(bx,crse_ratio),ncomp);
                     }
 
                     cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
@@ -146,7 +146,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         BL_TO_FORTRAN_ANYD(*p_drho_as_crse),
                                         BL_TO_FORTRAN_ANYD(*p_rrflag_as_crse),
                                         &as_fine,
-                                        BL_TO_FORTRAN_ANYD(dm_ftoc),
+                                        BL_TO_FORTRAN_ANYD(dm_as_fine),
                                         BL_TO_FORTRAN_ANYD(level_mask[mfi]),
                                         dx, &dt,&level);
 
@@ -164,7 +164,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                             {&areafrac[0][mfi],
                                              &areafrac[1][mfi],
                                              &areafrac[2][mfi]},
-                                            dm_ftoc);
+                                            dm_as_fine);
                     }
                 }
             }
