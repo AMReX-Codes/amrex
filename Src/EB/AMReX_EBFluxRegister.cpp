@@ -267,17 +267,19 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     Array<FArrayBox*>& fabs = m_cfp_fab[li];
     if (fabs.empty()) return;
 
-    BL_ASSERT(mfi.tilebox().cellCentered());
-    AMREX_ALWAYS_ASSERT(mfi.tilebox().coarsenable(m_ratio));
-    const Box& bx = amrex::coarsen(mfi.tilebox(), m_ratio);
+    const Box& tbx = mfi.tilebox();
+
+    BL_ASSERT(tbx.cellCentered());
+    AMREX_ALWAYS_ASSERT(tbx.coarsenable(m_ratio));
+    const Box& cbx = amrex::coarsen(tbx, m_ratio);
     const int nc = m_cfpatch.nComp();
 
     FArrayBox cvol;
 
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
     {
-        const Box& lobx = amrex::adjCellLo(bx, idim);
-        const Box& hibx = amrex::adjCellHi(bx, idim);
+        const Box& lobx = amrex::adjCellLo(cbx, idim);
+        const Box& hibx = amrex::adjCellHi(cbx, idim);
         for (FArrayBox* cfp : m_cfp_fab[li])
         {
             {
@@ -319,7 +321,12 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
         }
     }
 
-    const Box& gbx = amrex::grow(bx,1);
+    FArrayBox dmgrow(amrex::grow(tbx,m_ratio),nc);
+    dmgrow.setVal(0.0);
+    const Box& dmbx = dm.box();
+    dmgrow.copy(dm,dmbx,0,dmbx,0,nc);
+
+    const Box& gbx = amrex::grow(cbx,1);
 
     for (FArrayBox* cfp : m_cfp_fab[li])
     {
@@ -328,7 +335,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
         cvol.resize(wbx);
         amrex_eb_flux_reg_fineadd_dm(BL_TO_FORTRAN_BOX(wbx),
                                      BL_TO_FORTRAN_ANYD(*cfp),
-                                     BL_TO_FORTRAN_ANYD(dm),
+                                     BL_TO_FORTRAN_ANYD(dmgrow),
                                      BL_TO_FORTRAN_ANYD(cvol),
                                      BL_TO_FORTRAN_ANYD(volfrac),
                                      dx, &nc, m_ratio.getVect());
