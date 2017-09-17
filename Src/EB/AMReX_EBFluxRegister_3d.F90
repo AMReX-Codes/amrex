@@ -487,7 +487,9 @@ contains
                       do i = lo(1), hi(1)
                          ii = i*ratio(1)
                          iii = ii + ioff
+                         !$omp atomic
                          d(i,j,k,n) = d(i,j,k,n) + dm(iii,jjj,kkk,n)*cvol(i,j,k)
+                         !$omp end atomic
                       end do
 
                    end do
