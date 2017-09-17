@@ -76,7 +76,7 @@ contains
     use amrex_eb_flux_reg_3d_module, only : crse_cell, crse_fine_boundary_cell, &
          covered_by_fine=>fine_cell
     use cns_module, only : qvar, qrho, qu, qv, qw, qp, qeint, umx, umy, umz, smallr, &
-         use_total_energy_as_eb_weights, levmsk_covered, levmsk_interior, levmsk_notcovered
+         use_total_energy_as_eb_weights, levmsk_notcovered
     use cns_eb_hyp_wall_module, only : compute_hyp_wallflux
     use cns_eb_diff_wall_module, only : compute_diff_wallflux
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
@@ -117,7 +117,8 @@ contains
     real(rt), intent(out) :: dm_as_fine(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),ncomp)
     integer,  intent(in) ::  levmsk (lmlo(1):lmhi(1),lmlo(2):lmhi(2),lmlo(3):lmhi(3))
 
-    logical :: valid_cell, as_crse_crse_cell, as_crse_covered_cell, as_fine_valid_cell, as_fine_ghost_cell
+    logical :: valid_cell, valid_dst_cell
+    logical :: as_crse_crse_cell, as_crse_covered_cell, as_fine_valid_cell, as_fine_ghost_cell
     integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1), iii,jjj,kkk
     integer :: nwalls, iwall
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
@@ -507,7 +508,7 @@ contains
                    as_fine_ghost_cell = .false.  ! ghost cells just outside valid region
                    if (as_fine) then
                       as_fine_valid_cell = is_inside(i,j,k,lo,hi)
-                      as_fine_ghost_cell = levmsk(i,j,k) .eq. levmsk_notcovered
+                      as_fine_ghost_cell = levmsk(i,j,k) .eq. levmsk_notcovered ! not covered by other grids
                    end if
 
                    wtot = 1.d0/wtot
@@ -523,6 +524,8 @@ contains
                                drho = delm(i,j,k,n)*wtot*rediswgt(iii,jjj,kkk)
                                optmp(iii,jjj,kkk) = optmp(iii,jjj,kkk) + drho
 
+                               valid_dst_cell = is_inside(iii,jjj,kkk,lo,hi)
+
                                if (as_crse_crse_cell) then
                                   if (rr_flag_crse(iii,jjj,kkk).eq.covered_by_fine) then
                                      rr_drho_crse(i,j,k,n) = rr_drho_crse(i,j,k,n) &
@@ -531,7 +534,7 @@ contains
                                end if
 
                                if (as_crse_covered_cell) then
-                                  if (is_inside(iii,jjj,kkk,lo,hi)) then
+                                  if (valid_dst_cell) then
                                      if (rr_flag_crse(iii,jjj,kkk).eq.crse_fine_boundary_cell) then
                                         ! the recipient is a crse/fine boundary cell
                                         rr_drho_crse(iii,jjj,kkk,n) = rr_drho_crse(iii,jjj,kkk,n) &
@@ -541,19 +544,16 @@ contains
                                end if
 
                                if (as_fine_valid_cell) then
-                                  if (.not.is_inside(iii,jjj,kkk,lo,hi)) then
+                                  if (.not.valid_dst_cell) then
                                      dm_as_fine(iii,jjj,kkk,n) = dm_as_fine(iii,jjj,kkk,n) &
                                           + dt*drho*vfrac(iii,jjj,kkk)
                                   end if
                                end if
 
                                if (as_fine_ghost_cell) then
-                                  if (is_inside(iii,jjj,kkk,lo-1,hi+1)) then
-                                     if (      levmsk(iii,jjj,kkk) .eq. levmsk_covered &
-                                          .or. levmsk(iii,jjj,kkk) .eq. levmsk_interior) then
-                                        dm_as_fine(i,j,k,n) = dm_as_fine(i,j,k,n) &
-                                             - dt*drho*vfrac(iii,jjj,kkk)
-                                     end if
+                                  if (valid_dst_cell) then
+                                     dm_as_fine(i,j,k,n) = dm_as_fine(i,j,k,n) &
+                                          - dt*drho*vfrac(iii,jjj,kkk)
                                   end if
                                end if
 

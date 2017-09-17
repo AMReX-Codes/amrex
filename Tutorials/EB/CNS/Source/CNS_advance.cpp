@@ -124,7 +124,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                         fr_as_crse->getCrseFlag(mfi) : &fab_rrflag_as_crse;
 
                     if (fr_as_fine) {
-                        dm_as_fine.resize(amrex::grow(bx,crse_ratio),ncomp);
+                        dm_as_fine.resize(amrex::grow(bx,1),ncomp);
                     }
 
                     cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
