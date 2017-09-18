@@ -211,8 +211,7 @@ namespace amrex
     assert(isDefined());
     assert(a_ndin.direction() == m_direction);
 
-    T* dataPtr =   getIndex(a_ndin, a_comp);
-    return(*dataPtr);
+    return *(getIndex(a_ndin, a_comp));
   }
 /**************************/
   template <class T> inline
@@ -223,8 +222,7 @@ namespace amrex
     assert(isDefined());
     assert(a_ndin.direction() == m_direction);
 
-    T* dataPtr =   getIndex(a_ndin, a_comp);
-    return(*dataPtr);
+    return *(getIndex(a_ndin, a_comp));
   }
 /******************/
   template <class T> inline

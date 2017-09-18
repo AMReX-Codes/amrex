@@ -101,8 +101,8 @@ namespace amrex
   kappaWeight()
   {
     const EBISBox& ebbox = getEBISBox();
-    const Box& box = BaseEBCellFAB<Real>::box();
-    const IntVectSet irregCells = ebbox.getIrregIVS(box);
+    const Box& bx = BaseEBCellFAB<Real>::box();
+    const IntVectSet irregCells = ebbox.getIrregIVS(bx);
     for (VoFIterator vit(irregCells, ebbox.getEBGraph()); vit.ok(); ++vit)
     {
       VolIndex vof = vit();
@@ -409,8 +409,8 @@ namespace amrex
          
     // Find the max on irregular cells.
     const EBISBox& ebbox = getEBISBox();
-    const Box& box = BaseEBCellFAB<Real>::box();
-    const IntVectSet validCells(box);
+    const Box& bx = BaseEBCellFAB<Real>::box();
+    const IntVectSet validCells(bx);
     for (VoFIterator vit(validCells, ebbox.getEBGraph()); vit.ok(); ++vit)
     {
       VolIndex vofi = vit();
@@ -429,8 +429,8 @@ namespace amrex
          
     // Find the min on irregular cells.
     const EBISBox& ebbox = getEBISBox();
-    const Box& box = BaseEBCellFAB<Real>::box();
-    const IntVectSet validCells(box);
+    const Box& bx = BaseEBCellFAB<Real>::box();
+    const IntVectSet validCells(bx);
     for (VoFIterator vit(validCells, ebbox.getEBGraph()); vit.ok(); ++vit)
     {
       VolIndex vofi = vit();

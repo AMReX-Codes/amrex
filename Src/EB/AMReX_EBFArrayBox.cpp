@@ -12,12 +12,12 @@ EBFArrayBox::EBFArrayBox ()
 }
 
 EBFArrayBox::EBFArrayBox (const EBISBox& ebisBox, const EBCellFlagFab& ebflag,
-                          const Box& box, int ncomps)
-    : FArrayBox(box, ncomps),
+                          const Box& bx, int ncomps)
+    : FArrayBox(bx, ncomps),
       m_ebisbox(ebisBox),
       m_ebcellflag(&ebflag)
 {
-    const Box& sect = amrex::enclosedCells(box) & ebisBox.getRegion();
+    const Box& sect = amrex::enclosedCells(bx) & ebisBox.getRegion();
     m_type = ebflag.getType(sect);
 }
 

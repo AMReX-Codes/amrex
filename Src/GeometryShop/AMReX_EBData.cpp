@@ -209,7 +209,7 @@ namespace amrex
         for (faceit.reset(); faceit.ok(); ++faceit)
         {
 
-          Real areaFrac = 1;
+          Real areaF = 1;
           RealVect faceCentroid = RealVect::Zero;
 
 
@@ -253,7 +253,7 @@ namespace amrex
               }
             }
            }
-          m_faceData[idir](faceit(), F_AREAFRAC) = areaFrac;
+          m_faceData[idir](faceit(), F_AREAFRAC) = areaF;
           //idir = face direction, jdir= centroid direction
           for (int jdir = 0; jdir < SpaceDim; jdir++)
           {
@@ -540,14 +540,14 @@ namespace amrex
       for (VoFIterator vofit(ivsIrreg, a_graph); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
-        Real bndryArea  =  PolyGeom::bndryArea(vof, ebisBox);
-        RealVect normal =  PolyGeom::normal(   vof, ebisBox, bndryArea);
+        Real bArea  =  PolyGeom::bndryArea(vof, ebisBox);
+        RealVect nrm =  PolyGeom::normal(   vof, ebisBox, bArea);
 
         //copy results to volData
-        m_volData(vof,V_BNDAREA) = bndryArea;
+        m_volData(vof,V_BNDAREA) = bArea;
         for(int idir = 0; idir < SpaceDim; idir++)
         {
-          m_volData(vof,V_NORMALX+idir) = normal[idir];
+          m_volData(vof,V_NORMALX+idir) = nrm[idir];
         }
       }
     }
