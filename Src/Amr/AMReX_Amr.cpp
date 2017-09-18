@@ -2206,8 +2206,6 @@ Amr::defBaseLevel (Real              strt_time,
 	if (refine_grid_layout) {
 	    ChopGrids(0,lev0,ParallelDescriptor::NProcs());
 	}
-
-        DistributionMapping dmap(*pmap);
     }
     else
     {
