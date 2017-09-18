@@ -323,14 +323,14 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 
     FArrayBox dmgrow(amrex::grow(tbx,m_ratio),nc);
     dmgrow.setVal(0.0);
-    const Box& dmbx = dm.box();
-    dmgrow.copy(dm,dmbx,0,dmbx,0,nc);
+    const Box& tbxg1 = amrex::grow(tbx,1);
+    dmgrow.copy(dm,tbxg1,0,tbxg1,0,nc);
 
-    const Box& gbx = amrex::grow(cbx,1);
+    const Box& cbxg1 = amrex::grow(cbx,1);
 
     for (FArrayBox* cfp : m_cfp_fab[li])
     {
-        const Box& wbx = gbx & cfp->box();
+        const Box& wbx = cbxg1 & cfp->box();
         AMREX_ASSERT(wbx.ok());
         cvol.resize(wbx);
         amrex_eb_flux_reg_fineadd_dm(BL_TO_FORTRAN_BOX(wbx),
