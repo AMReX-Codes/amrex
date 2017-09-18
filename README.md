@@ -129,3 +129,67 @@ and follow the instructions that will pop up in your browser.
 
  - 0: pusher of Boris
  - 1: pusher of J. L. Vay
+
+
+## Running the regression test
+
+In order to run the regression test:
+
+- **Prepare your environment**: Create a new directory (outside of warpx_directory) where the regression tests will be run. Here this directory will be denoted `<regression_directory>`. Then do
+```
+cd <regression_directory>
+cp <warpx_directory>/amrex/Tools/RegressionTesting/regtest.py ./
+cp <warpx_directory>/warpx/Regression/WarpX-tests.ini ./
+export PYTHONPATH=$PYTHONPATH:<warpx_directory>/amrex/Tools/RegressionTesting/
+```
+where `<regression_directory>` and `<warpx_directory>` should be replaced by the proper values for your environment. Then open the file `WarpX-tests.ini` and replace the section
+```
+[main]
+testTopDir     = /home/regtester/AMReX_RegTesting/rt-WarpX/
+webTopDir      = /home/regtester/AMReX_RegTesting/rt-WarpX/web
+```
+by
+```
+[main]
+testTopDir     = <warpx_directory>
+webTopDir      = <warpx_directory>/web
+```
+(using only full paths; not relative paths) and replace the section
+```
+[AMReX]
+dir = /home/regtester/AMReX_RegTesting/amrex/
+branch = development
+
+[source]
+dir = /home/regtester/AMReX_RegTesting/warpx/
+branch = master
+
+[extra-PICSAR]
+dir = /home/regtester/AMReX_RegTesting/picsar/
+branch = master
+```
+by
+```
+[AMReX]
+dir = <warpx_directory>/amrex/
+branch = development
+
+[source]
+dir = <warpx_directory>/warpx/
+branch = master
+
+[extra-PICSAR]
+dir = <warpx_directory>/picsar/
+branch = master
+```
+(again using only full paths; not relative paths)
+
+- **Set the reference:** In the above section of the `WarpX-tests.ini` file, set the `branch` values to the specific git hash that you want to set as your reference. Then type:
+```
+python regtest.py --no_update All --make_benchmarks "Resetting benchmarks" WarpX-tests.ini
+```
+
+- **Run the tests for a particular commit and compare with the reference:** Modify the same section as above to point to the relevant commit, and type:
+```
+python regtest.py --no_update All WarpX-tests.ini
+```
