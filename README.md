@@ -191,5 +191,5 @@ python regtest.py --no_update All --make_benchmarks "Resetting benchmarks" WarpX
 
 - **Run the tests for a particular commit and compare with the reference:** Modify the same section as above to point to the relevant commit, and type:
 ```
-python regtest.py --no_update All WarpX-test.ini
+python regtest.py --no_update All WarpX-tests.ini
 ```
