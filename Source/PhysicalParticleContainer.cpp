@@ -474,8 +474,8 @@ PhysicalParticleContainer::Evolve (int lev,
     
     long ngRho = (rho) ? rho->nGrow() : 0;
     
-    long ngRhoDeposit = (WarpX::use_filter) ? ngRho : ngRho + 1;
-    long ngJDeposit   = (WarpX::use_filter) ? ngJ   : ngJ   + 1;
+    long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
+    long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     BL_ASSERT(OnSameGrids(lev,Ex));
     
