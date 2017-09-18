@@ -3,7 +3,7 @@
 
 Most of \cvode\ is written in C, but many functions also come with two distinct Fortran interfaces.
 One interface is \fcvode, which is bundled with the stable release of \cvode.
-Its usage is described in the CVODE documentation (\url{https://computation.llnl.gov/sites/default/files/public/cv_guide.pdf}).
+Its usage is described in the CVODE documentation.\footnote{\url{https://computation.llnl.gov/sites/default/files/public/cv_guide.pdf}}
 
 The second, newer Fortran interface to \cvode\ uses the \texttt{iso\_c\_binding} feature of the Fortran 2003 standard to implement a ``thinner,'' more direct interface to the C functions in \cvode.
 In contrast to the \fcvode\ interface, the Fortran 2003 interface calls C functions directly, with identical arguments.
