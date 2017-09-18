@@ -97,6 +97,7 @@ namespace amrex
        Return true if a_iv is an irregular cell.
     */
     bool isIrregular(const IntVect& a_iv) const;
+
         
     ///
     /**
@@ -729,7 +730,18 @@ namespace amrex
       {
         return m_implem->nBytesFull();
       }
-        
+
+    ///
+    bool hasIrregular(const Box& a_box) const
+      {
+        bool retval = true;
+        if(isRegular(a_box) || isCovered(a_box))
+        {
+          retval = false;
+        }
+        return retval;
+      }
+
     ///
     const Box& getRegion() const;
         

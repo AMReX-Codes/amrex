@@ -19,6 +19,7 @@
 #include "AMReX_IrregNode.H"
 #include "AMReX_BaseIVFAB.H"
 #include "AMReX_BaseIFFAB.H"
+#include "AMReX_FArrayBox.H"
 
 namespace amrex
 {
@@ -43,6 +44,11 @@ namespace amrex
     ///
     ~EBDataImplem();
 
+    ///this is only defined if there are irregular cells
+    const FArrayBox& getVolumeMask()
+      {
+        return m_volMask;
+      }
     ///
     /**
        Noop.
@@ -197,11 +203,18 @@ namespace amrex
                  bool       shared)
       {
         //this strictly for checkpointing 
+        m_hasVolumeMask = false;
         m_region = a_region;
       }
 private:
+
+
     //internal.  initializes places where we know the answer
     void setCoveredAndRegular();
+
+    void defineVolumeMask();
+    
+    void setVolumeMask();
 
     Box m_region;
 
@@ -215,6 +228,11 @@ private:
     ///
     bool m_isDefined;
 
+    /// only defined if there are cut cells somewhere in m_region
+    FArrayBox m_volMask;
+
+    ///true if there are cut cells somewhere in m_region
+    bool m_hasVolumeMask;
 
     void operator=(const EBDataImplem& ebiin) = delete;
     EBDataImplem(const EBDataImplem& ebiin) = delete;
@@ -300,6 +318,13 @@ private:
 
     EBData (EBData&& rhs) noexcept = default;
 
+    ///this is only defined if there are irregular cells
+    const FArrayBox& getVolumeMask()
+      {
+        return m_implem->getVolumeMask();
+      }
+
+    ///
     const Box& getRegion() const
       {
         return m_implem->getRegion();
