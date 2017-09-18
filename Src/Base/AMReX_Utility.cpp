@@ -860,9 +860,9 @@ amrex::expect::the_string() const
 
 int amrex::StreamRetry::nStreamErrors = 0;
 
-amrex::StreamRetry::StreamRetry(std::ostream &os, const std::string &suffix,
-                                 const int maxtries)
-    : tries(0), maxTries(maxtries), sros(os), spos(os.tellp()), suffix(suffix)
+amrex::StreamRetry::StreamRetry(std::ostream &a_os, const std::string &a_suffix,
+                                 const int a_maxtries)
+    : tries(0), maxTries(a_maxtries), sros(a_os), spos(a_os.tellp()), suffix(a_suffix)
 {
 }
 

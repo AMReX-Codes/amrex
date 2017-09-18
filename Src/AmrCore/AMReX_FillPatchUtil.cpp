@@ -368,9 +368,9 @@ namespace amrex
                         b &= fine_valid_box;
                         const BoxList& diff = amrex::boxDiff(b, fine_valid_box); // skip valid cells
                         FArrayBox& fine_fab = fine[idim][fi];
-                        for (const auto& b : diff)
+                        for (const auto& x : diff)
                         {
-                            fine_fab.copy(bfab[idim], b, 0, b, 0, 1);
+                            fine_fab.copy(bfab[idim], x, 0, x, 0, 1);
                         }
                     }
                 }

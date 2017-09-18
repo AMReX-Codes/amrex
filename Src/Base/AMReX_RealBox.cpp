@@ -10,13 +10,13 @@ RealBox::RealBox (const Box&  bx,
                   const Real* dx,
                   const Real* base)
 {
-    const int* lo = bx.loVect();
-    const int* hi = bx.hiVect();
+    const int* blo = bx.loVect();
+    const int* bhi = bx.hiVect();
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
-        xlo[i] = base[i] + dx[i]*lo[i];
+        xlo[i] = base[i] + dx[i]*blo[i];
         int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
-        xhi[i] = base[i] + dx[i]*(hi[i]+ shft);
+        xhi[i] = base[i] + dx[i]*(bhi[i]+ shft);
     }   
 }
 
@@ -26,18 +26,18 @@ RealBox::RealBox ()
     AMREX_D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
 }
 
-RealBox::RealBox (const Real* lo,
-                  const Real* hi)
+RealBox::RealBox (const Real* a_lo,
+                  const Real* a_hi)
 {
-    AMREX_D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
-    AMREX_D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
+    AMREX_D_EXPR(xlo[0] = a_lo[0] , xlo[1] = a_lo[1] , xlo[2] = a_lo[2]);
+    AMREX_D_EXPR(xhi[0] = a_hi[0] , xhi[1] = a_hi[1] , xhi[2] = a_hi[2]);
 }
 
-RealBox::RealBox (const std::array<Real,BL_SPACEDIM>& lo,
-                  const std::array<Real,BL_SPACEDIM>& hi)
+RealBox::RealBox (const std::array<Real,BL_SPACEDIM>& a_lo,
+                  const std::array<Real,BL_SPACEDIM>& a_hi)
 {
-    AMREX_D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
-    AMREX_D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
+    AMREX_D_EXPR(xlo[0] = a_lo[0] , xlo[1] = a_lo[1] , xlo[2] = a_lo[2]);
+    AMREX_D_EXPR(xhi[0] = a_hi[0] , xhi[1] = a_hi[1] , xhi[2] = a_hi[2]);
 }
 
 RealBox::RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
