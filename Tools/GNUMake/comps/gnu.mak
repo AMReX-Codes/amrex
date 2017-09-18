@@ -33,6 +33,11 @@ ifeq ($(DEBUG),TRUE)
   FFLAGS   += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
   F90FLAGS += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
+  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
+    CXXFLAGS += -Wnull-dereference
+    CFLAGS += -Wnull-dereference
+  endif
+
 else
 
   CXXFLAGS += -g -O3
