@@ -90,10 +90,19 @@ public:
                               const BoxArray            & ba,
                               int                         nneighbor);
 
-    void InitLevelMask(int lev, 
-                       const Geometry &geom, 
-                       const DistributionMapping &dmap, 
-                       const BoxArray &ba );
+    ///
+    /// This resets the particle container to use the given BoxArray
+    /// and DistributionMapping
+    ///
+    void Regrid(const DistributionMapping &dmap, const BoxArray &ba );
+
+    ///
+    /// This builds the internal data structure used for looking up neighbors
+    ///
+    void BuildLevelMask(int lev, 
+                        const Geometry &geom, 
+                        const DistributionMapping &dmap, 
+                        const BoxArray &ba );
 
     ///
     /// This fills the neighbor buffers for each tile with the proper data
@@ -127,7 +136,6 @@ protected:
     NeighborTag getNeighborTag(int lev,
                                const IntVect& neighbor_cell,
                                const BaseFab<int>& mask);
-
     ///
     /// Apply periodic shift to particle position, so naive distance calculation
     /// between neighbors and regular particles will be correct.
@@ -159,7 +167,7 @@ protected:
     };
 
     int num_neighbor_cells;
-    FabArray<BaseFab<int> > mask;
+    std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
 
     void cacheNeighborParticle(int lev, const PairIndex& index, 
                                int particle_index, const NeighborTag& tag);

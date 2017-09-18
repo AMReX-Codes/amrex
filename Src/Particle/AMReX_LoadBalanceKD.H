@@ -78,7 +78,7 @@ namespace loadBalanceKD {
         amrex::DistributionMapping global_dm(procs_map);    
         
         local_cost.define(ba, dm, 1, 0);
-        local_cost.setVal(0.0);
+        local_cost.setVal(1.25);
         myPC.Increment(local_cost, lev);
         
         global_cost.define(global_ba, global_dm, 1, 0);

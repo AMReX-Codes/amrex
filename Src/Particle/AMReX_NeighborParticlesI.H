@@ -22,30 +22,49 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
       num_neighbor_cells(ncells)
 {
-    InitLevelMask(0, geom, dmap, ba);
+    BuildLevelMask(0, geom, dmap, ba);
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-::InitLevelMask(int lev,
-                const Geometry &geom, 
-                const DistributionMapping &dmap, 
-                const BoxArray &ba ) {
+::Regrid(const DistributionMapping &dmap, const BoxArray &ba ) {
+    const int lev = 0;
+    this->SetParticleBoxArray(lev, ba);
+    this->SetParticleDistributionMap(lev, dmap);
+    BuildLevelMask(lev, this->Geom(lev), dmap, ba);
+    this->Redistribute();
+}
 
-    BL_PROFILE("NeighborParticleContainer::InitLevelMask");
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::BuildLevelMask(int lev,
+                 const Geometry &geom, 
+                 const DistributionMapping &dmap, 
+                 const BoxArray &ba ) {
+    
+    BL_PROFILE("NeighborParticleContainer::BuildLevelMask");
     BL_ASSERT(lev == 0);
-    mask.define(ba, dmap, 2, num_neighbor_cells);
-    mask.setVal(-1, num_neighbor_cells);
-    for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const Box& box = mfi.tilebox();
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-        mask.setVal(grid_id, box, 0, 1);
-        mask.setVal(tile_id, box, 1, 1);
-    }
+    BL_ASSERT(dmap == this->ParticleDistributionMap(lev));
+    BL_ASSERT(ba == this->ParticleBoxArray(lev));
 
-    mask.FillBoundary(geom.periodicity());
+    if (mask_ptr == nullptr ||
+        ! BoxArray::SameRefs(mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
+        ! DistributionMapping::SameRefs(mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev))) {        
+        std::cout << "actually rebuilding " << std::endl;
+        mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, num_neighbor_cells));
+        mask_ptr->setVal(-1, num_neighbor_cells);
+        for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
+            const Box& box = mfi.tilebox();
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            mask_ptr->setVal(grid_id, box, 0, 1);
+            mask_ptr->setVal(tile_id, box, 1, 1);
+        }
+        
+        mask_ptr->FillBoundary(geom.periodicity());
+    };
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -82,7 +101,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                         if ((ii == 0) and (jj == 0) and (kk == 0)) continue;
                         IntVect shift(AMREX_D_DECL(ii, jj, kk));
                         IntVect neighbor_cell = iv + shift;
-                        const NeighborTag& tag = getNeighborTag(lev, neighbor_cell, mask[pti]);
+                        const NeighborTag& tag = getNeighborTag(lev, neighbor_cell, (*mask_ptr)[pti]);
                         if ((grid == tag.grid)           and 
                             (tile == tag.tile)           and 
                             (tag.periodic_shift[0] == 0) and 
@@ -478,7 +497,12 @@ buildNeighborList(int lev, bool sort) {
                         j = list[j];
                         continue;
                     }
-                    if ( check_pair(p, tmp_particles[j]) ) {
+                    if ( check_pair(p, tmp_particles[j]) ) {                        
+                        if ((p.pos(0) - tmp_particles[j].pos(0))*(p.pos(0) - tmp_particles[j].pos(0)) + 
+                            (p.pos(1) - tmp_particles[j].pos(1))*(p.pos(1) - tmp_particles[j].pos(1)) +
+                            (p.pos(2) - tmp_particles[j].pos(2))*(p.pos(2) - tmp_particles[j].pos(2)) == 0.0) {
+                            std::cout << p << " " << tmp_particles[j] << " " << i << " " << j << std::endl; 
+                        }
                         nl.push_back(j+1);
                         num_neighbors += 1;
                     }
