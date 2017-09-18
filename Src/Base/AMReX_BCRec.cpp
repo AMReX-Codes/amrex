@@ -17,19 +17,19 @@ BCRec::BCRec (AMREX_D_DECL(int loX, int loY, int loZ),
     AMREX_D_EXPR(bc[BL_SPACEDIM]=hiX,  bc[BL_SPACEDIM+1]=hiY,  bc[BL_SPACEDIM+2]=hiZ);
 }
 
-BCRec::BCRec (const int* lo,
-              const int* hi)
+BCRec::BCRec (const int* a_lo,
+              const int* a_hi)
 {
-    BL_ASSERT(!(lo == 0));
-    BL_ASSERT(!(hi == 0));
+    BL_ASSERT(!(a_lo == 0));
+    BL_ASSERT(!(a_hi == 0));
 
-    AMREX_D_TERM(bc[0] = lo[0];,
-           bc[1] = lo[1];,
-           bc[2] = lo[2];);
+    AMREX_D_TERM(bc[0] = a_lo[0];,
+                 bc[1] = a_lo[1];,
+                 bc[2] = a_lo[2];);
 
-    AMREX_D_TERM(bc[BL_SPACEDIM+0] = hi[0];,
-           bc[BL_SPACEDIM+1] = hi[1];,
-           bc[BL_SPACEDIM+2] = hi[2];);
+    AMREX_D_TERM(bc[BL_SPACEDIM+0] = a_hi[0];,
+                 bc[BL_SPACEDIM+1] = a_hi[1];,
+                 bc[BL_SPACEDIM+2] = a_hi[2];);
 }
 
 BCRec::BCRec (const Box&   bx,
@@ -42,10 +42,10 @@ BCRec::BCRec (const Box&   bx,
     const int* dhi  = domain.hiVect();
     for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
-        int lo = dir;
-        int hi = dir+BL_SPACEDIM;
-        bc[lo] = ( bxlo[dir]<=dlo[dir] ? bc_domain.bc[lo] : INT_DIR );
-        bc[hi] = ( bxhi[dir]>=dhi[dir] ? bc_domain.bc[hi] : INT_DIR );
+        int ilo = dir;
+        int ihi = dir+BL_SPACEDIM;
+        bc[ilo] = ( bxlo[dir]<=dlo[dir] ? bc_domain.bc[ilo] : INT_DIR );
+        bc[ihi] = ( bxhi[dir]>=dhi[dir] ? bc_domain.bc[ihi] : INT_DIR );
     }
 }
 

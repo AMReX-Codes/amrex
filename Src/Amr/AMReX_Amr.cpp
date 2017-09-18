@@ -1047,7 +1047,7 @@ Amr::init (Real strt_time,
 }
 
 void
-Amr::readProbinFile (int& init)
+Amr::readProbinFile (int& a_init)
 {
     BL_PROFILE("Amr::readProbinFile()");
     //
@@ -1082,7 +1082,7 @@ Amr::readProbinFile (int& init)
 
 #ifdef DIMENSION_AGNOSTIC
 
-            amrex_probinit(&init,
+            amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
 			   ZFILL(Geometry::ProbLo()),
@@ -1090,7 +1090,7 @@ Amr::readProbinFile (int& init)
 
 #else
 
-            amrex_probinit(&init,
+            amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
 			   Geometry::ProbLo(),
@@ -1167,10 +1167,10 @@ Amr::InitializeInit(Real              strt_time,
     //
     // Init problem dependent data.
     //
-    int init = true;
+    int linit = true;
 
     if (!probin_file.empty()) {
-        readProbinFile(init);
+        readProbinFile(linit);
     }
 
     cumtime = strt_time;
@@ -1275,9 +1275,9 @@ Amr::restart (const std::string& filename)
     //
     // Init problem dependent data.
     //
-    int init = false;
+    int linit = false;
 
-    readProbinFile(init);
+    readProbinFile(linit);
     //
     // Start calculation from given restart file.
     //
@@ -3508,17 +3508,17 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       // ---- initialize fortran data
       if(scsMyId != ioProcNumSCS) {
         int probin_file_length(probin_file.length());
-	int init(true);
+	int linit(true);
         Array<int> probin_file_name(probin_file_length);
         for(int i(0); i < probin_file_length; ++i) {
           probin_file_name[i] = probin_file[i];
         }
 	amrex::Print() << "Starting to read probin ... \n";
 #ifdef DIMENSION_AGNOSTIC
-        amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
+        amrex_probinit(&linit, probin_file_name.dataPtr(), &probin_file_length,
 		       ZFILL(Geometry::ProbLo()), ZFILL(Geometry::ProbHi()));
 #else
-        amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
+        amrex_probinit(&linit, probin_file_name.dataPtr(), &probin_file_length,
 		       Geometry::ProbLo(), Geometry::ProbHi());
 #endif
       }

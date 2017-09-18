@@ -107,8 +107,8 @@ namespace amrex
         //make them all unit vectors
         for (int itan = 0; itan < BL_SPACEDIM-1; itan++)
         {
-          Real sumSquare;
-          PolyGeom::unifyVector(a_tangen[itan], sumSquare);
+          Real tmpsumSquare;
+          PolyGeom::unifyVector(a_tangen[itan], tmpsumSquare);
         }
       }
 

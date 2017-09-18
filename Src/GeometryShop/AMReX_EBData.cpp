@@ -129,9 +129,9 @@ namespace amrex
           {
             faceData(face, F_AREAFRAC) = 0.;
           }
-          for (int idir = 0; idir < SpaceDim; idir++)
+          for (int jdir = 0; jdir < SpaceDim; jdir++)
           {
-            faceData(face, F_FACECENTROIDX + idir) = 0.;
+            faceData(face, F_FACECENTROIDX + jdir) = 0.;
           }
         }
       }
