@@ -122,15 +122,11 @@ namespace amrex{
 #define MAX_RECV_QUEUE 4
 
     int RTS::ProcCount(){
-	int nProcs=1;
-	MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
-	return nProcs;
+	return _nProcs;
     }
 
     int RTS::MyProc(){
-	int myRank=0;
-	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-	return myRank;
+	return _rank;
     }
 
     int RTS::WorkerThreadCount(){
@@ -222,15 +218,18 @@ namespace amrex{
 	dom[numaID]._lock.unlock();
     }
 
-    void RTS::Init(){
+    void InitializeMPI(){
 	int provided;
 	MPI_Init_thread(0, 0, MPI_THREAD_FUNNELED, &provided);
 	if(provided == MPI_THREAD_SINGLE){//with this MPI, process can't spawn threads
-	    if(_nWrks>1){
-		cerr << "Spawning threads is not allowed by the MPI implementation" << std::endl;;
-	    }    
+	    cerr << "Spawning threads is not allowed by the MPI implementation" << std::endl;;
 	}
+    }
+
+    void RTS::RTS_Init(){
 	NodeHardware hw = query_node_hardware();
+cout <<"num workers " <<_nWrks<< "  vs " << hw.core_per_numa * hw.numa_per_node<<endl;
+
 	assert(_nWrks>0 && _nWrks <= hw.core_per_numa * hw.numa_per_node);
 
 	bool numaAware=true;
@@ -310,10 +309,17 @@ namespace amrex{
 	}
     }
 
-    void RTS::Init(int *rank, int *nProcs){
-	Init();
-	MPI_Comm_rank(MPI_COMM_WORLD, rank);
-	MPI_Comm_size(MPI_COMM_WORLD, nProcs);
+    void RTS::Init(){
+        InitializeMPI();
+        MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &_nProcs);
+        RTS_Init();
+    }
+
+    void RTS::Init(int rank, int nProcs){
+        _rank= rank;
+	_nProcs= nProcs;
+	RTS_Init();
     }
 
     void RTS::Finalize(){
@@ -332,7 +338,7 @@ namespace amrex{
 	free(_stopSignal);
     }
 
-    void RTS::Run(void* taskgraph){
+    void RTS::Iterate(void* taskgraph){
 	_DedicatedScheduler= getenv("DEDICATED_SCHEDULER");
 	char* env= getenv("MAX_MSG_SIZE");
 	//the master thread distributes tasks to workers
