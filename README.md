@@ -184,12 +184,16 @@ branch = master
 ```
 (again using only full paths; not relative paths)
 
-- **Set the reference:** In the above section of the `WarpX-tests.ini` file, set the `branch` values to the specific git hash that you want to set as your reference. Then type:
+- **Set the reference:** Type:
 ```
-python regtest.py --no_update All --make_benchmarks "Resetting benchmarks" WarpX-tests.ini
+python regtest.py --amrex_git_hash <amrex_hash> --source_git_hash <warpx_hash> --extra_src_git_hash <picsar_hash> --make_benchmarks "Resetting benchmarks" WarpX-tests.ini
 ```
+where `<amrex_hash>`, `<warpx_hash>` and `<picsar_hash>` correspond to the git
+hash for the code that you wish to use as a reference (and are optional arguments.)
 
 - **Run the tests for a particular commit and compare with the reference:** Modify the same section as above to point to the relevant commit, and type:
 ```
-python regtest.py --no_update All WarpX-tests.ini
+python regtest.py --amrex_git_hash <amrex_hash> --source_git_hash <warpx_hash> --extra_src_git_hash <picsar_hash> WarpX-tests.ini
 ```
+where `<amrex_hash>`, `<warpx_hash>` and `<picsar_hash>` correspond to the git
+hash for the code that you wish to test (and are optional arguments.)
