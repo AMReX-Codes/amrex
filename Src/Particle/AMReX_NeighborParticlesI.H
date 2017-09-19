@@ -710,12 +710,7 @@ buildNeighborList(int lev, bool sort) {
                         j = list[j];
                         continue;
                     }
-                    if ( check_pair(p, tmp_particles[j]) ) {                        
-                        if ((p.pos(0) - tmp_particles[j].pos(0))*(p.pos(0) - tmp_particles[j].pos(0)) + 
-                            (p.pos(1) - tmp_particles[j].pos(1))*(p.pos(1) - tmp_particles[j].pos(1)) +
-                            (p.pos(2) - tmp_particles[j].pos(2))*(p.pos(2) - tmp_particles[j].pos(2)) == 0.0) {
-                            std::cout << p << " " << tmp_particles[j] << " " << i << " " << j << std::endl; 
-                        }
+                    if ( check_pair(p, tmp_particles[j]) ) {
                         nl.push_back(j+1);
                         num_neighbors += 1;
                     }
