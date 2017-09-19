@@ -43,6 +43,8 @@ module cns_module
 
   logical, save, public :: actually_2D = .false.
   logical, save, public :: use_total_energy_as_eb_weights = .false.
+  logical, save, public :: use_volfrac_as_eb_weights = .false.
+  logical, save, public :: use_mass_as_eb_weights = .false.
 
   integer, save, public :: myproc
 
@@ -62,7 +64,7 @@ contains
     real(rt), intent(in) :: problo_in(3), probhi_in(3)
 
     type(amrex_parmparse) :: pp
-    integer :: dim, i_use_total_energy_as_eb_weights
+    integer :: dim, i_use_total_energy_as_eb_weights, i_use_mass_as_eb_weights, i_use_volfrac_as_eb_weights
 
     physbc_lo = physbc_lo_in
     physbc_hi = physbc_hi_in
@@ -89,8 +91,14 @@ contains
     actually_2D = dim.eq.2
 
     i_use_total_energy_as_eb_weights = 0
+    i_use_mass_as_eb_weights = 0
+    i_use_volfrac_as_eb_weights = 0
     call pp%query("use_total_energy_as_eb_weights", i_use_total_energy_as_eb_weights)
+    call pp%query("use_mass_as_eb_weights", i_use_mass_as_eb_weights)
+    call pp%query("use_volfrac_as_eb_weights", i_use_volfrac_as_eb_weights)
     use_total_energy_as_eb_weights = i_use_total_energy_as_eb_weights .ne. 0
+    use_mass_as_eb_weights = i_use_mass_as_eb_weights .ne. 0
+    use_volfrac_as_eb_weights = i_use_volfrac_as_eb_weights .ne. 0
 
     call amrex_parmparse_destroy(pp)
 

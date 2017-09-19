@@ -645,13 +645,13 @@ MultiFab::minIndex (int comp,
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    const Box& box = amrex::grow(mfi.validbox(),nghost);
-	    const Real lmn = get(mfi).min(box,comp);
+	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
+	    const Real lmn = get(mfi).min(bx,comp);
 
 	    if (lmn < priv_mn)
 	    {
 		priv_mn  = lmn;
-		priv_loc = get(mfi).minIndex(box,comp);
+		priv_loc = get(mfi).minIndex(bx,comp);
 	    }
 	}
 #ifdef _OPENMP
@@ -730,13 +730,13 @@ MultiFab::maxIndex (int comp,
 	
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    const Box& box = amrex::grow(mfi.validbox(),nghost);
-	    const Real lmx = get(mfi).max(box,comp);
+	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
+	    const Real lmx = get(mfi).max(bx,comp);
 
 	    if (lmx > priv_mx)
 	    {
 		priv_mx  = lmx;
-		priv_loc = get(mfi).maxIndex(box,comp);
+		priv_loc = get(mfi).maxIndex(bx,comp);
 	    }
 	}
 #ifdef _OPENMP

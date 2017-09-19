@@ -93,8 +93,8 @@ BARef::define (std::istream& is)
     //
     BL_ASSERT(m_abox.size() == 0);
     int           maxbox;
-    unsigned long hash;
-    is.ignore(bl_ignore_max, '(') >> maxbox >> hash;
+    unsigned long tmphash;
+    is.ignore(bl_ignore_max, '(') >> maxbox >> tmphash;
     resize(maxbox);
     for (Array<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
         is >> *it;

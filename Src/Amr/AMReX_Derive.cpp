@@ -19,20 +19,20 @@ DeriveRec::GrowBoxByOne (const Box& box)
 }
 
 
-DeriveRec::DeriveRec (const std::string& name,
+DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
                       DeriveFunc     der_func,
                       DeriveBoxMap   box_map,
-                      Interpolater*  interp)
+                      Interpolater*  a_interp)
     :
-    derive_name(name),
+    derive_name(a_name),
     variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
     func(der_func),
     func_3d(0),
-    mapper(interp),
+    mapper(a_interp),
     bx_map(box_map),
     n_state(0),
     nsr(0),
@@ -40,20 +40,20 @@ DeriveRec::DeriveRec (const std::string& name,
     bcr(0)
 {}
 
-DeriveRec::DeriveRec (const std::string& name,
+DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
                       DeriveFunc3D   der_func_3d,
                       DeriveBoxMap   box_map,
-                      Interpolater*  interp)
+                      Interpolater*  a_interp)
     :
-    derive_name(name),
+    derive_name(a_name),
     variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
     func(0),
     func_3d(der_func_3d),
-    mapper(interp),
+    mapper(a_interp),
     bx_map(box_map),
     n_state(0),
     nsr(0),
@@ -62,12 +62,12 @@ DeriveRec::DeriveRec (const std::string& name,
 {}
 
 // This version doesn't take a Fortran function name, it is entirely defined by the C++
-DeriveRec::DeriveRec (const std::string&      name,
+DeriveRec::DeriveRec (const std::string&      a_name,
                       IndexType               result_type,
                       int                     nvar_derive,
                       DeriveRec::DeriveBoxMap box_map)
     :
-    derive_name(name),
+    derive_name(a_name),
     variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
@@ -81,21 +81,21 @@ DeriveRec::DeriveRec (const std::string&      name,
     bcr(0)
 {}
 
-DeriveRec::DeriveRec (const std::string& name,
+DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
 		      Array<std::string>& var_names,
                       DeriveFunc     der_func,
                       DeriveBoxMap   box_map,
-                      Interpolater*  interp)
+                      Interpolater*  a_interp)
     :
-    derive_name(name),
+    derive_name(a_name),
     variable_names(var_names),
     der_type(result_type),
     n_derive(nvar_derive),
     func(der_func),
     func_3d(0),
-    mapper(interp),
+    mapper(a_interp),
     bx_map(box_map),
     n_state(0),
     nsr(0),
@@ -103,21 +103,21 @@ DeriveRec::DeriveRec (const std::string& name,
     bcr(0)
 {}
 
-DeriveRec::DeriveRec (const std::string& name,
+DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
 		      Array<std::string>& var_names,
                       DeriveFunc3D     der_func_3d,
                       DeriveBoxMap   box_map,
-                      Interpolater*  interp)
+                      Interpolater*  a_interp)
     :
-    derive_name(name),
+    derive_name(a_name),
     variable_names(var_names),
     der_type(result_type),
     n_derive(nvar_derive),
     func(0),
     func_3d(der_func_3d),
-    mapper(interp),
+    mapper(a_interp),
     bx_map(box_map),
     n_state(0),
     nsr(0),

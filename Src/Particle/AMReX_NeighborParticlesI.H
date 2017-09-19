@@ -22,30 +22,49 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
       num_neighbor_cells(ncells)
 {
-    InitLevelMask(0, geom, dmap, ba);
+    BuildLevelMask(0, geom, dmap, ba);
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-::InitLevelMask(int lev,
-                const Geometry &geom, 
-                const DistributionMapping &dmap, 
-                const BoxArray &ba ) {
+::Regrid(const DistributionMapping &dmap, const BoxArray &ba ) {
+    const int lev = 0;
+    this->SetParticleBoxArray(lev, ba);
+    this->SetParticleDistributionMap(lev, dmap);
+    BuildLevelMask(lev, this->Geom(lev), dmap, ba);
+    this->Redistribute();
+}
 
-    BL_PROFILE("NeighborParticleContainer::InitLevelMask");
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::BuildLevelMask(int lev,
+                 const Geometry &geom, 
+                 const DistributionMapping &dmap, 
+                 const BoxArray &ba ) {
+    
+    BL_PROFILE("NeighborParticleContainer::BuildLevelMask");
     BL_ASSERT(lev == 0);
-    mask.define(ba, dmap, 2, num_neighbor_cells);
-    mask.setVal(-1, num_neighbor_cells);
-    for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const Box& box = mfi.tilebox();
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-        mask.setVal(grid_id, box, 0, 1);
-        mask.setVal(tile_id, box, 1, 1);
-    }
+    BL_ASSERT(dmap == this->ParticleDistributionMap(lev));
+    BL_ASSERT(ba == this->ParticleBoxArray(lev));
 
-    mask.FillBoundary(geom.periodicity());
+    if (mask_ptr == nullptr ||
+        ! BoxArray::SameRefs(mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
+        ! DistributionMapping::SameRefs(mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev))) {        
+        std::cout << "actually rebuilding " << std::endl;
+        mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, num_neighbor_cells));
+        mask_ptr->setVal(-1, num_neighbor_cells);
+        for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
+            const Box& box = mfi.tilebox();
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            mask_ptr->setVal(grid_id, box, 0, 1);
+            mask_ptr->setVal(tile_id, box, 1, 1);
+        }
+        
+        mask_ptr->FillBoundary(geom.periodicity());
+    };
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -57,11 +76,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     BL_ASSERT(lev == 0);
     NeighborCommMap neighbors_to_comm;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-        PairIndex src_index(pti.index(), pti.LocalTileIndex());
-        const Box& tile_box = pti.tilebox();
-        const IntVect& lo = tile_box.smallEnd();
-        const IntVect& hi = tile_box.bigEnd();
-        
+        const int& grid = pti.index();
+        const int& tile = pti.LocalTileIndex(); 
+        PairIndex src_index(grid, tile);
+
         Box shrink_box = pti.tilebox();
         shrink_box.grow(-num_neighbor_cells);
         
@@ -69,58 +87,39 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         for (unsigned i = 0; i < pti.numParticles(); ++i) {
             const ParticleType& p = particles[i];
             const IntVect& iv = this->Index(p, lev);
+            const int nc = num_neighbor_cells;
             
             // if the particle is more than one cell away from 
             // the tile boundary, it's not anybody's neighbor
             if (shrink_box.contains(iv)) continue;
             
-            // shift stores whether we are near the tile boundary in each direction.
-            // -1 means lo, 1 means hi, 0 means not near the boundary
-            IntVect shift = IntVect::TheZeroVector();
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-                if (iv[idim] <= lo[idim]+num_neighbor_cells-1)
-                    shift[idim] = -num_neighbor_cells;
-                else if (iv[idim] >= hi[idim]-num_neighbor_cells+1)
-                    shift[idim] = num_neighbor_cells;
-            }
-            
-            // Based on the value of shift, we add the particle to a map to be sent
-            // to the neighbors. A particle can be sent to up to 3 neighbors in 2D
-            // and up to 7 in 3D, depending on whether is near the tile box corners,
-            // edges, or just the faces. First, add the particle for the "face" neighbors
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-                if (shift[idim] == 0) continue;
-                IntVect neighbor_cell = iv;
-                neighbor_cell.shift(idim, shift[idim]);
-                BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
-                packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
-            }
-            
-            // Now add the particle to the "edge" neighbors
-            for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
-                for (int jdim = 0; jdim < idim; ++jdim) {
-                    if (shift[idim] != 0 and shift[jdim] != 0) {
-                        IntVect neighbor_cell = iv;
-                        neighbor_cell.shift(idim, shift[idim]);
-                        neighbor_cell.shift(jdim, shift[jdim]);
-                        BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                        cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
-                        packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
+            // Figure out all our neighbors, removing duplicates
+            std::vector<NeighborTag> tags;
+            for (int ii = -nc; ii < nc + 1; ii += nc) {
+                for (int jj = -nc; jj < nc + 1; jj += nc) {
+                    for (int kk = -nc; kk < nc + 1; kk += nc) {
+                        if ((ii == 0) and (jj == 0) and (kk == 0)) continue;
+                        IntVect shift(AMREX_D_DECL(ii, jj, kk));
+                        IntVect neighbor_cell = iv + shift;
+                        const NeighborTag& tag = getNeighborTag(lev, neighbor_cell, (*mask_ptr)[pti]);
+                        if ((grid == tag.grid)           and 
+                            (tile == tag.tile)           and 
+                            (tag.periodic_shift[0] == 0) and 
+                            (tag.periodic_shift[1] == 0) and
+                            (tag.periodic_shift[2] == 0)) continue;
+                        tags.push_back(tag);
                     }
                 }
             }
-            
-#if (BL_SPACEDIM == 3)
-            // Finally, add the particle for the "vertex" neighbors (only relevant in 3D)
-            if (shift[0] != 0 and shift[1] != 0 and shift[2] != 0) {
-                IntVect neighbor_cell = iv;
-                neighbor_cell.shift(shift);
-                BL_ASSERT(mask[pti].box().contains(neighbor_cell));
-                cacheNeighborParticle(lev, src_index, i, neighbor_cell, mask[pti]);
-                packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
+            std::sort(tags.begin(), tags.end());
+            auto it = std::unique(tags.begin(), tags.end());
+            tags.erase(it, tags.end());
+
+            // Add neighbors to buffers
+            for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
+                cacheNeighborParticle(lev, src_index, i, tags[j]);
+                packNeighborParticle(lev, p, tags[j], neighbors_to_comm);
             }
-#endif
         }
     }
     
@@ -140,17 +139,12 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     NeighborCommMap neighbors_to_comm;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         PairIndex src_index(pti.index(), pti.LocalTileIndex());
-        const Box& tile_box = pti.tilebox();
-        const IntVect& lo = tile_box.smallEnd();
-        const IntVect& hi = tile_box.bigEnd();
-                
         auto& particles = pti.GetArrayOfStructs();
-        const auto& ids = buffer_id_cache[src_index];
         for (unsigned i = 0; i < buffer_id_cache[src_index].size(); ++i) {
             int particle_index = buffer_id_cache[src_index][i];
-            const IntVect& neighbor_cell = buffer_cell_cache[src_index][i];
+            const NeighborTag& tag = buffer_tag_cache[src_index][i];
             const ParticleType& p = particles[particle_index];
-            packNeighborParticle(lev, neighbor_cell, mask[pti], p, neighbors_to_comm);
+            packNeighborParticle(lev, p, tag, neighbors_to_comm);
         }
     }
     
@@ -169,62 +163,82 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 
     neighbors.clear();
     buffer_id_cache.clear();
-    buffer_cell_cache.clear();
+    buffer_tag_cache.clear();
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell) {
+applyPeriodicShift(int lev, ParticleType& p, const NeighborTag& tag) {
     
     BL_ASSERT(lev == 0);
     
     const Periodicity& periodicity = this->Geom(lev).periodicity();
     if (not periodicity.isAnyPeriodic()) return;
     
+    const RealBox& prob_domain = this->Geom(lev).ProbDomain();
+    for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+        if (not periodicity.isPeriodic(dir)) continue;
+        if      (tag.periodic_shift[dir] == -1) p.pos(dir) += prob_domain.length(dir);
+        else if (tag.periodic_shift[dir] ==  1) p.pos(dir) -= prob_domain.length(dir);
+    }
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+typename NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::NeighborTag 
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
+getNeighborTag(int lev,
+               const IntVect& neighbor_cell,
+               const BaseFab<int>& mask) {
+
+    BL_ASSERT(lev == 0);
+    
+    NeighborTag tag;
+    tag.grid = mask(neighbor_cell, 0);
+    tag.tile = mask(neighbor_cell, 1);
+    for (int dim = 0; dim < 3; ++dim)
+        tag.periodic_shift[dim] = 0;
+
+    const Periodicity& periodicity = this->Geom(lev).periodicity();
+    if (not periodicity.isAnyPeriodic()) return tag;
+
     const Box& domain = this->Geom(lev).Domain();
     const IntVect& lo = domain.smallEnd();
     const IntVect& hi = domain.bigEnd();
-    const RealBox& prob_domain = this->Geom(lev).ProbDomain();
-
+    
     for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
         if (not periodicity.isPeriodic(dir)) continue;
-        if (neighbor_cell[dir] < lo[dir]) {
-            p.pos(dir) += prob_domain.length(dir);
-        } 
-        else if (neighbor_cell[dir] > hi[dir]) {
-            p.pos(dir) -= prob_domain.length(dir);
-        }
+        if      (neighbor_cell[dir] < lo[dir]) tag.periodic_shift[dir] = -1;
+        else if (neighbor_cell[dir] > hi[dir]) tag.periodic_shift[dir] =  1;
     }
+
+    return tag;
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void 
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
 packNeighborParticle(int lev,
-                     const IntVect& neighbor_cell,
-                     const BaseFab<int>& mask,
                      const ParticleType& p,
+                     const NeighborTag& tag,
                      NeighborCommMap& neighbors_to_comm) {
     
     BL_ASSERT(lev == 0);
     
-    const int neighbor_grid = mask(neighbor_cell, 0);
-    if (neighbor_grid >= 0) {
-        const int who = this->ParticleDistributionMap(lev)[neighbor_grid];
+    if (tag.grid >= 0) {
+        const int who = this->ParticleDistributionMap(lev)[tag.grid];
         const int MyProc = ParallelDescriptor::MyProc();
-        const int neighbor_tile = mask(neighbor_cell, 1);
-        PairIndex dst_index(neighbor_grid, neighbor_tile);
+        PairIndex dst_index(tag.grid, tag.tile);
         ParticleType particle = p;
-        applyPeriodicShift(lev, particle, neighbor_cell);
+        applyPeriodicShift(lev, particle, tag);
         if (who == MyProc) {
             size_t old_size = neighbors[dst_index].size();
             size_t new_size = neighbors[dst_index].size() + pdata_size;
             neighbors[dst_index].resize(new_size);
             std::memcpy(&neighbors[dst_index][old_size], &particle, pdata_size);
         } else {
-            NeighborCommTag tag(who, neighbor_grid, neighbor_tile);
-            Array<char>& buffer = neighbors_to_comm[tag];
+            NeighborCommTag comm_tag(who, tag.grid, tag.tile);
+            Array<char>& buffer = neighbors_to_comm[comm_tag];
             size_t old_size = buffer.size();
             size_t new_size = buffer.size() + pdata_size;
             buffer.resize(new_size);
@@ -236,17 +250,15 @@ packNeighborParticle(int lev,
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void 
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
-                      const IntVect& neighbor_cell, const BaseFab<int>& mask) {
+cacheNeighborParticle(int lev, const PairIndex& index,
+                      int particle_index, const NeighborTag& tag) {
     
     BL_ASSERT(lev == 0);
     
-    const int neighbor_grid = mask(neighbor_cell, 0);
-    if (neighbor_grid >= 0) {
-        const int neighbor_tile = mask(neighbor_cell, 1);
-        PairIndex dst_index(neighbor_grid, neighbor_tile);
+    if (tag.grid >= 0) {
+        PairIndex dst_index(tag.grid, tag.tile);
         buffer_id_cache[index].push_back(particle_index);
-        buffer_cell_cache[index].push_back(neighbor_cell);
+        buffer_tag_cache[index].push_back(tag);
     }
 }
 
@@ -299,7 +311,6 @@ fillNeighborsMPI(NeighborCommMap& neighbors_to_comm, bool reuse_rcv_counts) {
     BL_PROFILE("NeighborParticleContainer::fillNeighborsMPI");
     
 #ifdef BL_USE_MPI
-    const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
     
     // count the number of tiles to be sent to each proc
@@ -437,7 +448,6 @@ buildNeighborList(int lev, bool sort) {
 
         int Np = particles.size();
         int Nn = neighbors[index].size() / pdata_size;
-        int Ns = particles.dataShape().first;
         int N = Np + Nn;
 
         Array<IntVect> cells(N);
@@ -487,7 +497,12 @@ buildNeighborList(int lev, bool sort) {
                         j = list[j];
                         continue;
                     }
-                    if ( check_pair(p, tmp_particles[j]) ) {
+                    if ( check_pair(p, tmp_particles[j]) ) {                        
+                        if ((p.pos(0) - tmp_particles[j].pos(0))*(p.pos(0) - tmp_particles[j].pos(0)) + 
+                            (p.pos(1) - tmp_particles[j].pos(1))*(p.pos(1) - tmp_particles[j].pos(1)) +
+                            (p.pos(2) - tmp_particles[j].pos(2))*(p.pos(2) - tmp_particles[j].pos(2)) == 0.0) {
+                            std::cout << p << " " << tmp_particles[j] << " " << i << " " << j << std::endl; 
+                        }
                         nl.push_back(j+1);
                         num_neighbors += 1;
                     }
