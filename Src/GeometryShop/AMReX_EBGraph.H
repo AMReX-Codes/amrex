@@ -22,6 +22,7 @@
 #include "AMReX_FaceIndex.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_GraphNode.H"
+#include "AMReX_EBCellFlag.H"
 
 namespace amrex
 {
@@ -368,10 +369,29 @@ namespace amrex
         return m_fullRegion;
       }
 
+    const EBCellFlagFab& getEBCellFlagFab() const
+      {
+        return m_cellFlags;
+      }
+
     //for debugging
     static bool s_verbose;
+
+  ///    
+  Array<VolIndex>
+  getVoFs (const VolIndex& a_vof,
+           const int& a_dir,
+           const Side::LoHiSide& a_sd,
+           const int& a_steps) const;
   private:
 
+    void setCellFlags();
+
+    void fixCellFlagType();
+
+    ///
+    EBCellFlagFab m_cellFlags;
+    
     ///for serialization
     GraphNode getGraphNode(const IntVect& a_iv) const;
 
@@ -490,6 +510,12 @@ namespace amrex
     Box getFullRegion() const
       {
         return m_implem->getFullRegion();
+      }
+
+    ///
+    const EBCellFlagFab& getEBCellFlagFab() const
+      {
+        return m_implem->getEBCellFlagFab();
       }
 
     ///
@@ -693,6 +719,16 @@ namespace amrex
         return m_implem->copyFromMem(dstbox, dstcomp, numcomp, src);
       }
         
+
+    ///    
+    Array<VolIndex>
+    getVoFs (const VolIndex& a_vof,
+             const int& a_dir,
+             const Side::LoHiSide& a_sd,
+             const int& a_steps) const
+      {
+        return m_implem->getVoFs(a_vof, a_dir, a_sd, a_steps);
+      }
 
     /// this is for copy and fillboundary where the meta data has already been filled
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const

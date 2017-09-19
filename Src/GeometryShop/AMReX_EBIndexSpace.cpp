@@ -55,7 +55,7 @@ namespace amrex
 
     readHeader(a_dirname);
     m_ebisLevel.clear();
-
+    m_ebisLevel.resize(m_nlevels);
     for(int ilev = 0; ilev < m_nlevels; ilev++)
     {
       m_ebisLevel[ilev].reset(new EBISLevel());

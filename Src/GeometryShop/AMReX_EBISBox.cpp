@@ -79,30 +79,7 @@ namespace amrex
                    const Side::LoHiSide& a_sd,
                    const int& a_steps) const
   {
-    assert((a_dir >= 0) && (a_dir < SpaceDim));
-    assert(a_steps >= 0);
-
-    Array<VolIndex> retVoFs(1, a_vof);
-    for (int irad = 1; irad <= a_steps; irad++)
-    {
-      Array<VolIndex> tempVoFs(0);
-      for (int ivof = 0; ivof < retVoFs.size(); ivof++)
-      {
-        const VolIndex& stepVoF = retVoFs[ivof];
-        Array<FaceIndex> faces = getFaces(stepVoF, a_dir, a_sd);
-        for (int iface = 0; iface < faces.size(); iface++)
-        {
-          const FaceIndex& face = faces[iface];
-          if (!face.isBoundary())
-          {
-            const VolIndex& flipVoF = face.getVoF(a_sd);
-            tempVoFs.push_back(flipVoF);
-          }
-        }
-      }
-      retVoFs = tempVoFs;
-    }
-    return retVoFs;
+    return m_graph.getVoFs(a_vof, a_dir, a_sd, a_steps);
   }
 /*******************************/
 

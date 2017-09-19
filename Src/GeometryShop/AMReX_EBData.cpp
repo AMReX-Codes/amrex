@@ -270,7 +270,7 @@ namespace amrex
   EBDataImplem ()
   {
     m_isDefined = false;
-    m_hasVolumeMask = false;
+    //m_hasVolumeMask = false;
 
   }
 /************************/
@@ -289,7 +289,7 @@ namespace amrex
   EBDataImplem (const Box& a_box, int a_comps)
   {
     m_isDefined = false;
-    m_hasVolumeMask = false;
+    //m_hasVolumeMask = false;
   }
 /************************/
   EBDataImplem& 
@@ -330,10 +330,10 @@ namespace amrex
     }
     BL_PROFILE_VAR_STOP(copy_facedata);
     
-    if(m_hasVolumeMask && a_src.m_hasVolumeMask)
-    {
-      m_volMask.copy(a_src.m_volMask, a_srcbox, 0, a_dstbox, 0, m_volMask.nComp());
-    }
+//    if(m_hasVolumeMask && a_src.m_hasVolumeMask)
+//    {
+//      m_volMask.copy(a_src.m_volMask, a_srcbox, 0, a_dstbox, 0, m_volMask.nComp());
+//    }
     return *this;
   }
 /************************/
@@ -365,7 +365,8 @@ namespace amrex
     init_qnan(); // So we have to initialize it to qnan;
 //#endif
     setCoveredAndRegular();
-    defineVolumeMask();
+
+//    defineVolumeMask();
   }
 /************************/
   void
@@ -436,8 +437,8 @@ namespace amrex
     //  pout() << "ebdata initial define domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_region <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
     //}
 
-    defineVolumeMask();
-    setVolumeMask();
+    //defineVolumeMask();
+    //setVolumeMask();
   }
 
 
@@ -947,11 +948,11 @@ namespace amrex
       retval += m_faceData[idir].nBytes(bx, 0, F_FACENUMBER);
     }
     //do we have a volume mask that intersects this box?
-    retval += sizeof(int);
-    if(m_graph.hasIrregular(bx))
-    {
-      retval += m_volMask.nBytes(bx, 0, V_VOLNUMBER);
-    }
+//    retval += sizeof(int);
+//    if(m_graph.hasIrregular(bx))
+//    {
+//      retval += m_volMask.nBytes(bx, 0, V_VOLNUMBER);
+//    }
     return retval;
   }
 /*******************************/
@@ -991,20 +992,20 @@ namespace amrex
     }
 
     //do we have a volume mask that intersects this box?
-    int hasIrreg = 0;
-    if(m_graph.hasIrregular(bx))
-    {
-      hasIrreg = 1;
-    }
-    int* intbuf = (int*) buf;
-    *intbuf = hasIrreg;
+//    int hasIrreg = 0;
+//    if(m_graph.hasIrregular(bx))
+//    {
+//      hasIrreg = 1;
+//    }
 
-    buf    += sizeof(int);
-    retval += sizeof(int);
-    if(hasIrreg == 1)
-    {
-      retval += m_volMask.copyToMem(bx, 0, V_VOLNUMBER, buf);
-    }
+//    int* intbuf = (int*) buf;
+//    *intbuf = hasIrreg;
+//    buf    += sizeof(int);
+//    retval += sizeof(int);
+//    if(hasIrreg == 1)
+//    {
+//      retval += m_volMask.copyToMem(bx, 0, V_VOLNUMBER, buf);
+//    }
     //pout() << "ebdata:: copytomem:   bx = " << bx  << ", retval = " << retval << endl;
     return retval;
   }
@@ -1037,13 +1038,13 @@ namespace amrex
     }
 
     //do we have a volume mask that intersects this box?
-    int hasIrreg = *buf;
-    buf    += sizeof(int);
-    retval += sizeof(int);
-    if(hasIrreg == 1)
-    {
-      retval += m_volMask.copyFromMem(bx, 0, V_VOLNUMBER, buf);
-    }
+//    int hasIrreg = *buf;
+//    buf    += sizeof(int);
+//    retval += sizeof(int);
+//    if(hasIrreg == 1)
+//    {
+//      retval += m_volMask.copyFromMem(bx, 0, V_VOLNUMBER, buf);
+//    }
     //if(m_volData.getIVS().contains(ebd_debiv))
     //{
     //  pout() << "ebdata copyfrommem::domain = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
@@ -1131,55 +1132,56 @@ namespace amrex
       buf    += incrval;
     }
 
-    defineVolumeMask();
-    setVolumeMask();
+    //defineVolumeMask();
+    //setVolumeMask();
 
     m_isDefined = true;
     return retval;
   }
 
 /*******************************/
-  void 
-  EBDataImplem::
-  defineVolumeMask ()
-  {
-    if(m_graph.hasIrregular(m_region))
-    {
-      m_hasVolumeMask = true;
-      m_volMask.resize(m_region, V_VOLNUMBER);
-    }
-  }
+//  void 
+//  EBDataImplem::
+//  defineVolumeMask ()
+//  {
+//    if(m_graph.hasIrregular(m_region))
+//    {
+//      m_hasVolumeMask = true;
+//      m_volMask.resize(m_region, V_VOLNUMBER);
+//    }
+//  }
 /*******************************/
-  void 
-  EBDataImplem::
-  setVolumeMask ()
-  {
-    if(m_hasVolumeMask)
-    {
-      //set everything to zero. then loop and set regular volume fractions to 1.
-      m_volMask.setVal(0.0);
-      for(BoxIterator bit(m_region); bit.ok(); ++bit)
-      {
-        if(m_graph.isRegular(bit()))
-        {
-          m_volMask(bit(), V_VOLFRAC) = 1.0;
-        }
-      }
-
-      //  now loop through the volumes  and set stuff (if it is not nan)
-      const Array<VolIndex>& vofs = m_volData.getVoFs();
-      for(int ivof = 0; ivof < vofs.size(); ivof++)
-      {
-        const VolIndex& vof = vofs[ivof];
-        for(int icomp = 0; icomp < V_VOLNUMBER; icomp++)
-        {
-          if(!std::isnan(m_volData(vof, icomp)))
-          {
-            m_volMask(vof.gridIndex(), icomp) = m_volData(vof, icomp);
-          }
-        }
-      }
-    }
-  }
+//  void 
+//  EBDataImplem::
+//  setVolumeMask ()
+//  {
+//    BL_PROFILE("ebd::set_volume_mask");
+//    if(m_hasVolumeMask)
+//    {
+//      //set everything to zero. then loop and set regular volume fractions to 1.
+//      m_volMask.setVal(0.0);
+//      for(BoxIterator bit(m_region); bit.ok(); ++bit)
+//      {
+//        if(m_graph.isRegular(bit()))
+//        {
+//          m_volMask(bit(), V_VOLFRAC) = 1.0;
+//        }
+//      }
+//
+//      //  now loop through the volumes  and set stuff (if it is not nan)
+//      const Array<VolIndex>& vofs = m_volData.getVoFs();
+//      for(int ivof = 0; ivof < vofs.size(); ivof++)
+//      {
+//        const VolIndex& vof = vofs[ivof];
+//        for(int icomp = 0; icomp < V_VOLNUMBER; icomp++)
+//        {
+//          if(!std::isnan(m_volData(vof, icomp)))
+//          {
+//            m_volMask(vof.gridIndex(), icomp) = m_volData(vof, icomp);
+//          }
+//        }
+//      }
+//    }
+//  }
 /*******************************/
 }
