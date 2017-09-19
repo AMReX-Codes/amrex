@@ -228,7 +228,6 @@ namespace amrex{
 
     void RTS::RTS_Init(){
 	NodeHardware hw = query_node_hardware();
-cout <<"num workers " <<_nWrks<< "  vs " << hw.core_per_numa * hw.numa_per_node<<endl;
 
 	assert(_nWrks>0 && _nWrks <= hw.core_per_numa * hw.numa_per_node);
 

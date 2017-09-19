@@ -47,8 +47,10 @@ namespace amrex {
 	    }
 	    bool isValid(){
 	    }
-	    Box validbox(){
+	    Box& validbox(){
 	    }
+            int localFabIdx(){
+            }
     };
 
     template <class T>
