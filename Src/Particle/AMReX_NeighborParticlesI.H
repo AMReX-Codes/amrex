@@ -74,6 +74,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
     BL_ASSERT(lev == 0);
+
+    const int MyProc = ParallelDescriptor::MyProc();
+
     NeighborCommMap neighbors_to_comm;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         const int& grid = pti.index();
@@ -117,8 +120,32 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 
             // Add neighbors to buffers
             for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
-                cacheNeighborParticle(lev, src_index, i, tags[j]);
-                packNeighborParticle(lev, p, tags[j], neighbors_to_comm);
+                const NeighborTag& tag = tags[j];                
+                PairIndex dst_index(tag.grid, tag.tile);
+                const int who = this->ParticleDistributionMap(lev)[tag.grid];
+
+                if (tag.grid >= 0) {
+                    // cache neighbors 
+                    buffer_id_cache[src_index].push_back(i);
+                    buffer_tag_cache[src_index].push_back(tag);
+                    
+                    ParticleType particle = p; // yes make a copy
+                    applyPeriodicShift(lev, particle, tag);
+
+                    if (who == MyProc) {
+                        size_t old_size = neighbors[dst_index].size();
+                        size_t new_size = neighbors[dst_index].size() + pdata_size;
+                        neighbors[dst_index].resize(new_size);
+                        std::memcpy(&neighbors[dst_index][old_size], &particle, pdata_size);
+                    } else {
+                        NeighborCommTag comm_tag(who, tag.grid, tag.tile);
+                        Array<char>& buffer = neighbors_to_comm[comm_tag];
+                        size_t old_size = buffer.size();
+                        size_t new_size = buffer.size() + pdata_size;
+                        buffer.resize(new_size);
+                        std::memcpy(&buffer[old_size], &particle, pdata_size);
+                    }                    
+                }
             }
         }
     }
@@ -134,6 +161,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     BL_PROFILE("NeighborParticleContainer::updateNeighbors");
     BL_ASSERT(lev == 0);
 
+    const int MyProc = ParallelDescriptor::MyProc();
+ 
     neighbors.clear();
     
     NeighborCommMap neighbors_to_comm;
@@ -143,8 +172,26 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         for (unsigned i = 0; i < buffer_id_cache[src_index].size(); ++i) {
             int particle_index = buffer_id_cache[src_index][i];
             const NeighborTag& tag = buffer_tag_cache[src_index][i];
-            const ParticleType& p = particles[particle_index];
-            packNeighborParticle(lev, p, tag, neighbors_to_comm);
+            if (tag.grid >= 0) {
+                const ParticleType& p = particles[particle_index];
+                const int who = this->ParticleDistributionMap(lev)[tag.grid];
+                PairIndex dst_index(tag.grid, tag.tile);
+                ParticleType particle = p;
+                applyPeriodicShift(lev, particle, tag);
+                if (who == MyProc) {
+                    size_t old_size = neighbors[dst_index].size();
+                    size_t new_size = neighbors[dst_index].size() + pdata_size;
+                    neighbors[dst_index].resize(new_size);
+                    std::memcpy(&neighbors[dst_index][old_size], &particle, pdata_size);
+                } else {
+                    NeighborCommTag comm_tag(who, tag.grid, tag.tile);
+                    Array<char>& buffer = neighbors_to_comm[comm_tag];
+                    size_t old_size = buffer.size();
+                    size_t new_size = buffer.size() + pdata_size;
+                    buffer.resize(new_size);
+                    std::memcpy(&buffer[old_size], &particle, pdata_size);
+                }
+            }
         }
     }
     
@@ -213,53 +260,6 @@ getNeighborTag(int lev,
     }
 
     return tag;
-}
-
-template <int NStructReal, int NStructInt, int NNeighborReal>
-void 
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-packNeighborParticle(int lev,
-                     const ParticleType& p,
-                     const NeighborTag& tag,
-                     NeighborCommMap& neighbors_to_comm) {
-    
-    BL_ASSERT(lev == 0);
-    
-    if (tag.grid >= 0) {
-        const int who = this->ParticleDistributionMap(lev)[tag.grid];
-        const int MyProc = ParallelDescriptor::MyProc();
-        PairIndex dst_index(tag.grid, tag.tile);
-        ParticleType particle = p;
-        applyPeriodicShift(lev, particle, tag);
-        if (who == MyProc) {
-            size_t old_size = neighbors[dst_index].size();
-            size_t new_size = neighbors[dst_index].size() + pdata_size;
-            neighbors[dst_index].resize(new_size);
-            std::memcpy(&neighbors[dst_index][old_size], &particle, pdata_size);
-        } else {
-            NeighborCommTag comm_tag(who, tag.grid, tag.tile);
-            Array<char>& buffer = neighbors_to_comm[comm_tag];
-            size_t old_size = buffer.size();
-            size_t new_size = buffer.size() + pdata_size;
-            buffer.resize(new_size);
-            std::memcpy(&buffer[old_size], &particle, pdata_size);
-        }
-    }
-}
-
-template <int NStructReal, int NStructInt, int NNeighborReal>
-void 
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-cacheNeighborParticle(int lev, const PairIndex& index,
-                      int particle_index, const NeighborTag& tag) {
-    
-    BL_ASSERT(lev == 0);
-    
-    if (tag.grid >= 0) {
-        PairIndex dst_index(tag.grid, tag.tile);
-        buffer_id_cache[index].push_back(particle_index);
-        buffer_tag_cache[index].push_back(tag);
-    }
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
