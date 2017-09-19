@@ -301,6 +301,7 @@ namespace amrex
         int                   a_dstcomp,
         int                   a_numcomp)
   {
+    BL_PROFILE("EBDataImplem::copy");
     assert(m_isDefined);
     assert(a_src.m_isDefined);
     //if(a_src.m_volData.getIVS().contains(ebd_debiv))
@@ -942,6 +943,7 @@ namespace amrex
   nBytes (const Box& bx, int a_srccomp, int a_ncomps) const
   {
 
+    BL_PROFILE("EBDataImplem::nbytes");
     size_t retval = m_volData.nBytes(bx, 0, V_VOLNUMBER);
     for(int idir = 0; idir < SpaceDim; idir++)
     {
@@ -965,6 +967,7 @@ namespace amrex
              void*      dst) const
   {
 
+    BL_PROFILE("EBDataImplem::copyToMem");
     size_t retval = 0;
     unsigned char* buf = (unsigned char*) dst;
 
@@ -1020,6 +1023,7 @@ namespace amrex
                const void* src)
   {
 
+    BL_PROFILE("EBDataImplem::copyFromMem");
     size_t retval = 0;
     unsigned char* buf = (unsigned char*) src;
 
