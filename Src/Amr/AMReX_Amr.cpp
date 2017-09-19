@@ -59,6 +59,7 @@ namespace amrex {
 std::list<std::string> Amr::state_plot_vars;
 std::list<std::string> Amr::state_small_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
+std::list<std::string> Amr::derive_small_plot_vars;
 bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 Array<BoxArray>        Amr::initial_ba;
@@ -129,6 +130,7 @@ Amr::Finalize ()
 {
     Amr::state_plot_vars.clear();
     Amr::derive_plot_vars.clear();
+    Amr::derive_small_plot_vars.clear();
     Amr::regrid_ba.clear();
     Amr::initial_ba.clear();
 
@@ -549,6 +551,21 @@ Amr::isDerivePlotVar (const std::string& name)
     return false;
 }
 
+bool
+Amr::isDeriveSmallPlotVar (const std::string& name)
+{
+    for (std::list<std::string>::const_iterator li = derive_small_plot_vars.begin(), End = derive_small_plot_vars.end();
+         li != End;
+         ++li)
+    {
+        if (*li == name) {
+            return true;
+	}
+    }
+
+    return false;
+}
+
 void 
 Amr::fillDerivePlotVarList ()
 {
@@ -566,10 +583,33 @@ Amr::fillDerivePlotVarList ()
     }
 }
 
+void 
+Amr::fillDeriveSmallPlotVarList ()
+{
+    derive_small_plot_vars.clear();
+    DeriveList& derive_lst = AmrLevel::get_derive_lst();
+    std::list<DeriveRec>& dlist = derive_lst.dlist();
+    for (std::list<DeriveRec>::const_iterator it = dlist.begin(), End = dlist.end();
+         it != End;
+         ++it)
+    {
+        if (it->deriveType() == IndexType::TheCellType())
+        {
+            derive_small_plot_vars.push_back(it->name());
+        }
+    }
+}
+
 void
 Amr::clearDerivePlotVarList ()
 {
     derive_plot_vars.clear();
+}
+
+void
+Amr::clearDeriveSmallPlotVarList ()
+{
+    derive_small_plot_vars.clear();
 }
 
 void
@@ -580,10 +620,24 @@ Amr::addDerivePlotVar (const std::string& name)
 }
 
 void
+Amr::addDeriveSmallPlotVar (const std::string& name)
+{
+    if (!isDeriveSmallPlotVar(name))
+        derive_small_plot_vars.push_back(name);
+}
+
+void
 Amr::deleteDerivePlotVar (const std::string& name)
 {
     if (isDerivePlotVar(name))
         derive_plot_vars.remove(name);
+}
+
+void
+Amr::deleteDeriveSmallPlotVar (const std::string& name)
+{
+    if (isDeriveSmallPlotVar(name))
+        derive_small_plot_vars.remove(name);
 }
 
 Amr::~Amr ()
@@ -3086,7 +3140,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       int max_grid_size_Size(max_grid_size.size()), blocking_factor_Size(blocking_factor.size());
       int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(Geom().size());
       int state_plot_vars_Size(state_plot_vars.size()), derive_plot_vars_Size(derive_plot_vars.size());
-      int state_small_plot_vars_Size(state_small_plot_vars.size());
+      int state_small_plot_vars_Size(state_small_plot_vars.size()), derive_small_plot_vars_Size(derive_small_plot_vars.size());
       if(scsMyId == ioProcNumSCS) {
         allInts.push_back(max_level);
         allInts.push_back(finest_level);
@@ -3143,6 +3197,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(state_plot_vars.size());
         allInts.push_back(state_small_plot_vars.size());
         allInts.push_back(derive_plot_vars.size());
+        allInts.push_back(derive_small_plot_vars.size());
 
         allInts.push_back(VisMF::GetNOutFiles());
         allInts.push_back(VisMF::GetMFFileInStreams());
@@ -3208,16 +3263,17 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         n_error_buf.resize(aSize);
         for(int i(0); i < n_error_buf.size(); ++i)     { n_error_buf[i] = allInts[count++]; }
 
-        dt_level_Size              = allInts[count++];
-        dt_min_Size                = allInts[count++];
-        max_grid_size_Size         = allInts[count++];
-        blocking_factor_Size       = allInts[count++];
-        ref_ratio_Size             = allInts[count++];
-        amr_level_Size             = allInts[count++];
-        geom_Size                  = allInts[count++];
-        state_plot_vars_Size       = allInts[count++];
-        state_small_plot_vars_Size = allInts[count++];
-        derive_plot_vars_Size      = allInts[count++];
+        dt_level_Size               = allInts[count++];
+        dt_min_Size                 = allInts[count++];
+        max_grid_size_Size          = allInts[count++];
+        blocking_factor_Size        = allInts[count++];
+        ref_ratio_Size              = allInts[count++];
+        amr_level_Size              = allInts[count++];
+        geom_Size                   = allInts[count++];
+        state_plot_vars_Size        = allInts[count++];
+        state_small_plot_vars_Size  = allInts[count++];
+        derive_plot_vars_Size       = allInts[count++];
+        derive_small_plot_vars_Size = allInts[count++];
 
         VisMF::SetNOutFiles(allInts[count++]);
         VisMF::SetMFFileInStreams(allInts[count++]);
@@ -3369,6 +3425,9 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	for( lit = derive_plot_vars.begin(); lit != derive_plot_vars.end(); ++lit) {
           allStrings.push_back(*lit);
 	}
+        for( lit = derive_small_plot_vars.begin(); lit != derive_small_plot_vars.end(); ++lit) {
+          allStrings.push_back(*lit);
+	}
 
 	serialStrings = amrex::SerializeStringArray(allStrings);
 	//serialStringsSize = serialStrings.size();
@@ -3399,6 +3458,9 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	}
         for(int i(0); i < derive_plot_vars_Size; ++i) {
           derive_plot_vars.push_back(allStrings[count++]);
+	}
+        for(int i(0); i < derive_small_plot_vars_Size; ++i) {
+          derive_small_plot_vars.push_back(allStrings[count++]);
 	}
       }
 
