@@ -77,7 +77,30 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     const int MyProc = ParallelDescriptor::MyProc();
 
     NeighborCommMap neighbors_to_comm;
+
+    int num_threads = 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single
+    num_threads = omp_get_num_threads();
+#endif
+
+    std::map<NeighborCommTag, Array<Array<char> > > tmp_remote;
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        const int grid = pti.index();
+        const int tile = pti.LocalTileIndex(); 
+        const int who = this->ParticleDistributionMap(lev)[grid];
+        NeighborCommTag comm_tag(who, grid, tile);
+        tmp_remote[comm_tag].resize(num_threads);
+        neighbors_to_comm[comm_tag];
+    }
+    
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif
         const int& grid = pti.index();
         const int& tile = pti.LocalTileIndex(); 
         PairIndex src_index(grid, tile);
@@ -138,7 +161,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                         std::memcpy(&neighbors[dst_index][old_size], &particle, pdata_size);
                     } else {
                         NeighborCommTag comm_tag(who, tag.grid, tag.tile);
-                        Array<char>& buffer = neighbors_to_comm[comm_tag];
+                        Array<char>& buffer = tmp_remote[comm_tag][thread_num];
                         size_t old_size = buffer.size();
                         size_t new_size = buffer.size() + pdata_size;
                         buffer.resize(new_size);
@@ -146,6 +169,35 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                     }                    
                 }
             }
+        }
+    }
+
+    typename std::map<NeighborCommTag, Array<Array<char> > >::iterator it;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single nowait
+#endif
+    for (it=tmp_remote.begin(); it != tmp_remote.end(); it++) {
+#ifdef _OPENMP
+#pragma omp task firstprivate(it)
+#endif
+        {
+            const NeighborCommTag& tag = it->first;
+            Array<Array<char> >& tmp = it->second;
+            for (int i = 0; i < num_threads; ++i) {
+                neighbors_to_comm[tag].insert(neighbors_to_comm[tag].begin(), tmp[i].begin(), tmp[i].end());
+                tmp[i].erase(tmp[i].begin(), tmp[i].end());
+            }
+        }
+    }
+
+    // remove any empty map entries from neighbors_to_comm
+    for (auto pmap_it = neighbors_to_comm.begin(); pmap_it != neighbors_to_comm.end(); /* no ++ */) {
+        if (pmap_it->second.empty()) {
+            neighbors_to_comm.erase(pmap_it++);
+        }
+        else {
+            ++pmap_it;
         }
     }
     
