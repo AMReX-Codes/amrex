@@ -1882,6 +1882,32 @@ AmrLevel::setSmallPlotVariables ()
         //
         parent->clearStateSmallPlotVarList();
     }
+
+    if (pp.contains("derive_small_plot_vars"))
+    {
+        std::string nm;
+      
+        int nDrvPltVars = pp.countval("derive_small_plot_vars");
+      
+        for (int i = 0; i < nDrvPltVars; i++)
+        {
+            pp.get("derive_small_plot_vars", nm, i);
+
+            if (nm == "ALL") 
+                parent->fillDeriveSmallPlotVarList();
+            else if (nm == "NONE")
+                parent->clearDeriveSmallPlotVarList();
+            else
+                parent->addDeriveSmallPlotVar(nm);
+        }
+    }
+    else 
+    {
+        //
+        // The default is to add none of them.
+        //
+        parent->clearDeriveSmallPlotVarList();
+    }
   
 }
 
