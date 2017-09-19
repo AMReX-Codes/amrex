@@ -24,6 +24,7 @@ IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
 Real      CNS::cfl = 0.3;
 int       CNS::do_load_balance = 1;
 int       CNS::refine_cutcells = 1;
+Array<RealBox> CNS::refine_boxes;
 
 CNS::CNS ()
 {}
@@ -320,13 +321,10 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         amrex::TagCutCells(tags, S_new);
     }
 
-#if 0
+    if (!refine_boxes.empty())
     {
         const Real* problo = Geometry::ProbLo();
         const Real* dx = geom.CellSize();
-
-        RealVect fine_tag_lo{0.3,  0.63,  0.36};
-        RealVect fine_tag_hi{0.7,  0.68,  0.39};
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -341,13 +339,14 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
                 RealVect pos {AMREX_D_DECL((cell[0]+0.5)*dx[0]+problo[0],
                                            (cell[1]+0.5)*dx[1]+problo[1],
                                            (cell[2]+0.5)*dx[2]+problo[2])};
-                if (pos > fine_tag_lo && pos < fine_tag_hi) {
-                    fab(cell) = TagBox::SET;
+                for (const auto& rbx : refine_boxes) {
+                    if (rbx.contains(pos)) {
+                        fab(cell) = TagBox::SET;
+                    }
                 }
             }
         }
     }
-#endif
 }
 
 void
@@ -375,6 +374,15 @@ CNS::read_params ()
 
     pp.query("do_load_balance", do_load_balance);
     pp.query("refine_cutcells", refine_cutcells);
+
+    int irefbox = 0;
+    Array<Real> refboxlo, refboxhi;
+    while (pp.queryarr(("refine_box_lo_"+std::to_string(irefbox)).c_str(), refboxlo))
+    {
+        pp.getarr(("refine_box_hi_"+std::to_string(irefbox)).c_str(), refboxhi);
+        refine_boxes.emplace_back(refboxlo.data(), refboxhi.data());
+        ++irefbox;
+    }
 }
 
 void
