@@ -42,8 +42,19 @@ public:
         flag |= static_cast<uint32_t>(n) << pos_numvofs;
     }
 
-    int getNumVoFs () const {
-        return (flag & one_numvofs_mask) >> pos_numvofs;
+    bool operator==(const EBCellFlag& a_input) const
+    {
+      return (flag == (a_input.flag));
+    }
+
+    bool operator!=(const EBCellFlag& a_input) const
+    {
+      return (flag != (a_input.flag));
+    }
+
+    int getNumVoFs () const 
+    {
+     return (flag & one_numvofs_mask) >> pos_numvofs;
     }
 
     bool isRegular () const {
@@ -84,6 +95,11 @@ public:
         flag |= 1 << n;
     }
 
+  uint32_t  getValue() const
+    {
+      return flag;
+    }
+  
 private:
 
     // masks for lowest 5 bits (i.e., bit number 0-4)
