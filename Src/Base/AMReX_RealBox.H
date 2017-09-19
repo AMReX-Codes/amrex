@@ -8,6 +8,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
+#include <AMReX_RealVect.H>
 
 namespace amrex {
 
@@ -64,6 +65,7 @@ public:
     bool ok () const;
     //! Is the specified point contained in the RealBox?
     bool contains (const Real* point, Real eps=0.0) const;
+    bool contains (const RealVect& rv, Real eps=0.0) const { return contains(rv.dataPtr(), eps); }
     //! Is the specified RealBox contained in this RealBox?
     bool contains (const RealBox& bx, Real eps=0.0) const;
 

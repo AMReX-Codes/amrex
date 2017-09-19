@@ -99,7 +99,6 @@ public:
     static void LoadBalance (amrex::Amr& amr);
 
     static int do_load_balance;
-    static int refine_cutcells;
 
 protected:
 
@@ -160,6 +159,9 @@ protected:
     static int verbose;
     static amrex::IntVect hydro_tile_size;
     static amrex_real cfl;
+
+    static int refine_cutcells;
+    static amrex::Array<amrex::RealBox> refine_boxes;
 };
 
 #endif
