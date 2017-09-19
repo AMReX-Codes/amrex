@@ -30,4 +30,4 @@ Doxygen-build:
 	doxygen Doxyfile
 
 Latex-conversion:
-	cd $(SOURCEDIR)/theory; make
+	cd source/latex_theory; make
