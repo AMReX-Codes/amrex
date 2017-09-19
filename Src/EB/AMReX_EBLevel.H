@@ -28,6 +28,7 @@ public:
 //    const FabArray<EBFaceFlagFab>& getMultiEBFaceFlagFab () const { return *m_faceflags; }
     const EBISLayout&              getEBISL     () const { return *m_ebisl; }
 
+
 private:
     std::shared_ptr<FabArray<EBCellFlagFab> > m_cellflags;
     std::shared_ptr<FabArray<EBFaceFlagFab> > m_faceflags;
@@ -35,6 +36,9 @@ private:
 
     static void setFaceConnection (EBFaceFlag& flag, const FaceIndex& face, const EBISBox& ebis);
     void defineDoit (const BoxArray& ba, const DistributionMapping& dm, const Box& domain, const int ng);
+    void setIrregularFaceFab (EBFaceFlagFab & fabs, const EBISBox& ebis, const Box& ccbx);
+  
+    void setIrregularVolFab (EBCellFlagFab & fab, const EBISBox& ebis, const Box& bx);
 };
 
 class MultiFab;

@@ -134,14 +134,14 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     static const std::string BaseName = "/Cell";
     char buf[64];
     sprintf(buf, "Level_%d", level);
-    std::string Level = buf;
+    std::string sLevel = buf;
     //
     // Now for the full pathname of that directory.
     //
     std::string FullPath = dir;
     if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
         FullPath += '/';
-    FullPath += Level;
+    FullPath += sLevel;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -171,7 +171,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         //
         if (n_data_items > 0)
         {
-            std::string PathNameInHeader = Level;
+            std::string PathNameInHeader = sLevel;
             PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
         }

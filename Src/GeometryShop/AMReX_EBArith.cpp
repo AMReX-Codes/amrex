@@ -354,7 +354,6 @@ namespace amrex
       IntVect hiVoFiv = hiFaceVoF.gridIndex();
       IntVect loDomiv = a_domain.smallEnd();
       IntVect hiDomiv = a_domain.bigEnd();
-      Array<FaceIndex> otherFaces;
 
       if (hiVoFiv[faceDir] == loDomiv[faceDir])
       {
@@ -371,7 +370,7 @@ namespace amrex
         else
         {
           VolIndex hiOtherVoF = hiTanFaces[0].getVoF(a_side);
-          Array<FaceIndex> otherFaces = a_ebisBox.getFaces(hiOtherVoF, faceDir, Side::Lo);
+          const Array<FaceIndex>& otherFaces = a_ebisBox.getFaces(hiOtherVoF, faceDir, Side::Lo);
           if (otherFaces.size() != 1)
           {
             uniqueFace = false;
@@ -398,7 +397,7 @@ namespace amrex
         else
         {
           VolIndex loOtherVoF = loTanFaces[0].getVoF(a_side);
-          Array<FaceIndex> otherFaces = a_ebisBox.getFaces(loOtherVoF, faceDir, Side::Hi);
+          const Array<FaceIndex>& otherFaces = a_ebisBox.getFaces(loOtherVoF, faceDir, Side::Hi);
           if (otherFaces.size() != 1)
           {
             uniqueFace = false;

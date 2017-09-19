@@ -49,17 +49,17 @@ public:
     //! Returns length in specified direction.
     Real length (int dir) const { return xhi[dir]-xlo[dir]; }
     //! Sets lo side.
-    void setLo (const Real* lo) { AMREX_D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); }
+    void setLo (const Real* a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
     //! Sets lo side.
-    void setLo (const Array<Real>& lo) { AMREX_D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]); }
+    void setLo (const Array<Real>& a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
     //! Sets lo side in specified direction.
-    void setLo (int dir, Real lo) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xlo[dir] = lo; }
+    void setLo (int dir, Real a_lo) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xlo[dir] = a_lo; }
     //! Sets hi side.
-    void setHi (const Real* hi) { AMREX_D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); }
+    void setHi (const Real* a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
     //! Sets hi side.
-    void setHi (const Array<Real>& hi) { AMREX_D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]); }
+    void setHi (const Array<Real>& a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
     //! Sets hi side in specified direction.
-    void setHi (int dir, Real hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xhi[dir] = hi; }
+    void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xhi[dir] = a_hi; }
     //! Is the RealBox OK; i.e. does it have positive volume?
     bool ok () const;
     //! Is the specified point contained in the RealBox?
