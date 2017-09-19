@@ -52,7 +52,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     if (mask_ptr == nullptr ||
         ! BoxArray::SameRefs(mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
         ! DistributionMapping::SameRefs(mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev))) {        
-        std::cout << "actually rebuilding " << std::endl;
         mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, num_neighbor_cells));
         mask_ptr->setVal(-1, num_neighbor_cells);
         for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
