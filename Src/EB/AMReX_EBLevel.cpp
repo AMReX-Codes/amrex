@@ -124,13 +124,6 @@ namespace amrex
     }
 
     const Box& ibx = amrex::grow(fab.box(),-1) & domain;
-    //begin debug
-    if(fab.box().contains(eblev_debiv))
-    {
-      amrex::Print() << "EBLevel::setIrregularVolFab: initial phase fab(" << eblev_debiv << " = " << fab(eblev_debiv, 0).getValue();
-      amrex::Print() << ", ibx = " << ibx << endl;
-    }
-    //end debug
     for (BoxIterator bi(ibx); bi.ok(); ++bi)
     {
       const IntVect& iv = bi();
@@ -186,12 +179,6 @@ namespace amrex
         } while (std::next_permutation(dirs.begin(), dirs.end()));
       }
     } 
-    //begin debug
-    if(fab.box().contains(eblev_debiv))
-    {
-      amrex::Print() << "EBLevel::setIrregularVolFab: fab(" << eblev_debiv << " = " << fab(eblev_debiv, 0).getValue() << endl;
-    }
-    //end debug
   }
 ///
   void 
