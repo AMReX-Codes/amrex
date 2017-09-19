@@ -202,21 +202,19 @@ namespace amrex
     int ngrowData =0;
     m_graph.define(m_grids, m_dm, 1, ngrowGraph, MFInfo(), DefaultFabFactory<EBGraph>());
 
-    std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
-    EBDataFactory ebdf(graphptr);
-
-    m_data.define(m_grids, m_dm, 1, ngrowData, MFInfo(), ebdf);
     LayoutData<Array<IrregNode> > allNodes(m_grids, m_dm);
-    
+
+
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       const Box& valid  = mfi.validbox();
       Box ghostRegion = valid;
       ghostRegion.grow(ngrowGraph);
-      ghostRegion &= m_domain;
+      Box ghostRegionInt = ghostRegion;
+      ghostRegionInt &= m_domain;
 
       EBGraph& ebgraph = m_graph[mfi];
-      GeometryService::InOut inout = a_geoserver.InsideOutside(ghostRegion, m_domain, m_origin, m_dx);
+      GeometryService::InOut inout = a_geoserver.InsideOutside(ghostRegionInt, m_domain, m_origin, m_dx);
       ebgraph.setDomain(m_domain);
       if (inout == GeometryService::Regular)
       {
@@ -225,7 +223,6 @@ namespace amrex
       }
       else if (inout == GeometryService::Covered)
       {
-
         ebgraph.setToAllCovered();
       }
       else
@@ -235,13 +232,20 @@ namespace amrex
         Array<IrregNode>&   nodes = allNodes[mfi];
 
         a_geoserver.fillGraph(regIrregCovered, nodes, valid,
-                              ghostRegion, m_domain,
+                              ghostRegionInt, m_domain,
                               m_origin, m_dx);
 
         ebgraph.buildGraph(regIrregCovered, nodes, ghostRegion, m_domain);
+
       }
     }
+
     m_graph.FillBoundary();
+
+    std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
+    EBDataFactory ebdf(graphptr);
+
+    m_data.define(m_grids, m_dm, 1, ngrowData, MFInfo(), ebdf);
 
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {

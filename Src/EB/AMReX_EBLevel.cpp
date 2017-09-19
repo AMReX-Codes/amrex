@@ -10,7 +10,9 @@
 #include <omp.h>
 #endif
 
-namespace amrex {
+namespace amrex 
+{
+  static const IntVect eblev_debiv(D_DECL(0,0,0));
 
   Box
   getLevelDomain (const MultiFab& mf)
@@ -176,7 +178,7 @@ namespace amrex {
           }
         } while (std::next_permutation(dirs.begin(), dirs.end()));
       }
-    }        
+    } 
   }
 ///
   void 
@@ -246,8 +248,15 @@ namespace amrex {
       for (MFIter mfi(*m_cellflags); mfi.isValid(); ++mfi)
       {
         auto& fab = (*m_cellflags)[mfi];
-        const Box& bx = fab.box() & domain;
         const EBISBox& ebis = (*m_ebisl)[mfi];
+        const Box& bx = fab.box() & domain;
+
+        //change this to if 0 if you want this to work the old way
+#if 1
+        fab.copy(ebis.getEBGraph().getEBCellFlagFab());
+        fab.setType(ebis.getEBGraph().getEBCellFlagFab().getType());
+#else
+
         if(ebis.isRegular(bx))
         {
           EBCellFlag flag;
@@ -266,6 +275,7 @@ namespace amrex {
         {
           setIrregularVolFab(fab, ebis, bx);
         }
+#endif        
       }
 
       if (m_faceflags) 
