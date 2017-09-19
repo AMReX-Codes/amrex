@@ -143,15 +143,6 @@ protected:
     void applyPeriodicShift(int lev, ParticleType& p, const NeighborTag& tag);
 
     ///
-    /// Pack a particle's data into the proper neighbor buffer, or put it into
-    /// the structure to be sent to the other processes
-    ///
-    void packNeighborParticle(int lev,
-                              const ParticleType& p,
-                              const NeighborTag& tag,
-                              NeighborCommMap& neighbors_to_comm);
-    
-    ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
     void fillNeighborsMPI(NeighborCommMap& neighbors_to_comm, bool reuse_rcv_counts=false);
@@ -168,10 +159,6 @@ protected:
 
     int num_neighbor_cells;
     std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
-
-    void cacheNeighborParticle(int lev, const PairIndex& index, 
-                               int particle_index, const NeighborTag& tag);
-
     std::map<PairIndex, Array<int> > buffer_id_cache;
     std::map<PairIndex, Array<NeighborTag> > buffer_tag_cache;
     
