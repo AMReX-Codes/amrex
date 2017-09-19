@@ -1,0 +1,13 @@
+# changes since the last releas
+
+  -- MFIter now supports dynamic scheduling of OpenMP threads.  For
+     example,
+ 
+       for (MFIter mfi(mf, MFItInfo().SetDynamic(true).EnableTiling(tile_size);
+            mfi.isValid(); ++mfi)
+       { ... }
+
+  -- added EBFluxRegister to Src/EB for refluxing and
+     re-redistribution in EB.
+
+
