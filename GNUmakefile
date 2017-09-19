@@ -13,7 +13,7 @@ COMP    = gcc
 TINY_PROFILE = TRUE
 TINY_PROFILE = FALSE
 
-USE_OMP   = FALSE
+USE_OMP   = TRUE
 
 EBASE     = main
 

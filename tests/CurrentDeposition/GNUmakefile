@@ -5,7 +5,7 @@ USE_PARTICLES = TRUE
 
 DEBUG     = FALSE
 USE_MPI   = TRUE
-USE_OMP   = FALSE
+USE_OMP   = TRUE
 PROFILE   = FALSE
 COMP      = gnu
 DIM       = 3
