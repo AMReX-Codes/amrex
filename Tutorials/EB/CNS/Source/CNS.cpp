@@ -320,7 +320,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         amrex::TagCutCells(tags, S_new);
     }
 
-#if 1
+#if 0
     {
         const Real* problo = Geometry::ProbLo();
         const Real* dx = geom.CellSize();
