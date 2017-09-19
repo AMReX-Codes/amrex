@@ -76,6 +76,7 @@ public:
 
     static bool use_laser;
     static bool use_filter;
+    static bool serialize_ics;
 
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}

@@ -103,16 +103,18 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
 #elif BL_SPACEDIM==2
     scale_fac = dx[0]*dx[2]/num_ppc;
 #endif
-    
+
+#ifdef _OPENMP    
     // First touch all tiles in the map in serial
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();        
         GetParticles(lev)[std::make_pair(grid_id, tile_id)];
     }
+#endif
     
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (not WarpX::serialize_ics)
 #endif
     {        
         std::array<Real,PIdx::nattribs> attribs;

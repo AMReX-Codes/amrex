@@ -35,6 +35,7 @@ long WarpX::noz = 1;
 
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
+bool WarpX::serialize_ics     = false;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -209,6 +210,7 @@ WarpX::ReadParameters ()
 
 	pp.query("use_laser", use_laser);
 	pp.query("use_filter", use_filter);
+	pp.query("serialize_ics", serialize_ics);
         pp.query("do_dive_cleaning", do_dive_cleaning);
 
         pp.query("do_pml", do_pml);
