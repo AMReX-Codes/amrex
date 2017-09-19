@@ -54,9 +54,9 @@ WarpX::UpdateAuxilaryData ()
             dBx.setVal(0.0);
             dBy.setVal(0.0);
             dBz.setVal(0.0);
-            dBx.copy(*Bfield_aux[lev-1][0], 0, 0, 1, 0, ng, crse_period);
-            dBy.copy(*Bfield_aux[lev-1][1], 0, 0, 1, 0, ng, crse_period);
-            dBz.copy(*Bfield_aux[lev-1][2], 0, 0, 1, 0, ng, crse_period);
+            dBx.copy(*Bfield_aux[lev-1][0], 0, 0, 1, ng, ng, crse_period);
+            dBy.copy(*Bfield_aux[lev-1][1], 0, 0, 1, ng, ng, crse_period);
+            dBz.copy(*Bfield_aux[lev-1][2], 0, 0, 1, ng, ng, crse_period);
             MultiFab::Subtract(dBx, *Bfield_cp[lev][0], 0, 0, 1, ng);
             MultiFab::Subtract(dBy, *Bfield_cp[lev][1], 0, 0, 1, ng);
             MultiFab::Subtract(dBz, *Bfield_cp[lev][2], 0, 0, 1, ng);
