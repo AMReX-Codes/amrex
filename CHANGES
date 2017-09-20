@@ -11,3 +11,6 @@
      re-redistribution in EB.
 
 
+  -- amrex.signal_handling = 1 is a new runtime parameter that can be
+     used to control whether AMReX should handle signals like SIGSEGV
+     etc. 
