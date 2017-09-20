@@ -40,22 +40,29 @@ namespace amrex
   {
     for(MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
     {
-      const Box& region = a_grids[mfi];
       const EBGraph & graph = a_graph[mfi];
-      if(region.contains(ebl_debiv))
+      Box region     = graph.getRegion();
+      Box fullRegion = graph.getFullRegion();
+      if(!fullRegion.contains(region))
       {
         amrex::AllPrint() << "ebislevel:" << a_identifier;
-        int ireg = 0; int icov = 0;
-        if(graph.isRegular(ebl_debiv))
-        {
-          ireg = 1;
-        }
-        if(graph.isCovered(ebl_debiv))
-        {
-          icov = 1;
-        }
-        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+        amrex::AllPrint() << ", region = " << region << ", fullRegion = " << fullRegion  << endl;
       }
+//      const Box& region = a_grids[mfi];
+//      if(region.contains(ebl_debiv))
+//      {
+//        amrex::AllPrint() << "ebislevel:" << a_identifier;
+//        int ireg = 0; int icov = 0;
+//        if(graph.isRegular(ebl_debiv))
+//        {
+//          ireg = 1;
+//        }
+//        if(graph.isCovered(ebl_debiv))
+//        {
+//          icov = 1;
+//        }
+//        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+//      }
     }
   }
   void EBISLevel_checkData(const BoxArray            & a_grids,
@@ -242,6 +249,10 @@ namespace amrex
 
     m_graph.FillBoundary();
 
+//begin debug
+//    EBISLevel_checkGraph(m_grids, m_dm, m_graph, string("after initial build"));
+// end debug
+
     std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
     EBDataFactory ebdf(graphptr);
 
@@ -327,7 +338,16 @@ namespace amrex
                                   MFInfo(), DefaultFabFactory<EBGraph>());
     //pout() << "ebislevel::coarsenvofsandfaces: doing ebgraph copy" << endl;
 
+//begin debug
+//    EBISLevel_checkGraph(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_graph, string(" source graph for copy"));
+//end debug
+
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, nghostGraph+1);
+
+//begin debug
+//    EBISLevel_checkGraph( gridsReCo, m_dm, ebgraphReCo, string(" ebgraphReCo after copy "));
+//end debug
+
     ///first deal with the graph
     //pout() << "ebislevel::coarsenvofsandfaces: doing coarsenvofs " << endl;
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
@@ -370,12 +390,16 @@ namespace amrex
     //pout() << "making ebdataReCo" << endl;
     ebdataReCo.define(gridsReCo, m_dm, 1, 0, MFInfo(), ebdfReCo);
 
-//    EBISLevel_checkData(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_data, string(" source data for copy"));
-    //pout() << "doing ebdatareco copy" << endl;
+//begin debug
+//   EBISLevel_checkData(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_data, string(" source data for copy"));
+//end debug
 
+    //pout() << "doing ebdatareco copy" << endl;
     ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, 0, 0);    
 
-    // EBISLevel_checkData(gridsReCo, m_dm, ebdataReCo, string(" ebdataReCo after copy "));
+//begin debug
+    //EBISLevel_checkData(gridsReCo, m_dm, ebdataReCo, string(" ebdataReCo after copy "));
+//end debug
 
     //pout() << "coarsening data" << endl;
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
