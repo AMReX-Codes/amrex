@@ -55,7 +55,7 @@ contains
        ebdivop, oplo, ophi, &
        q, qlo, qhi, &
        lam, mu, xi, clo, chi, &
-       divc, dvlo, dvhi, &
+       divc, optmp, rediswgt, dvlo, dvhi, &
        delm, dmlo, dmhi, &
        vfrac, vlo, vhi, &
        bcent, blo, bhi, &
@@ -99,8 +99,10 @@ contains
     real(rt), intent(in) :: lam(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(rt), intent(in) :: mu (clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(rt), intent(in) :: xi (clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
-    real(rt), intent(inout) :: divc(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
-    real(rt), intent(inout) :: delm(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3),ncomp)
+    real(rt) :: divc    (dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
+    real(rt) :: optmp   (dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
+    real(rt) :: rediswgt(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
+    real(rt) :: delm    (dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3))
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
     real(rt), intent(in) :: bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),3)
     real(rt), intent(in) :: apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
@@ -124,7 +126,6 @@ contains
     integer :: nwalls, iwall
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
     real(rt) :: divwn, drho
-    real(rt), pointer, contiguous :: optmp(:,:,:), rediswgt(:,:,:)
     real(rt), pointer, contiguous :: divhyp(:,:), divdiff(:,:)
 
     !  centroid nondimensional  and zero at face center
@@ -141,9 +142,6 @@ contains
           end do
        end do
     end do
-
-    call amrex_allocate(optmp, lo-2, hi+2)
-    call amrex_allocate(rediswgt, lo-2, hi+2)
 
     call amrex_allocate(divhyp, 1,5, 1,nwalls)
     call amrex_allocate(divdiff, 1,5, 1,nwalls)
@@ -478,9 +476,9 @@ contains
                    enddo
                    divnc = divnc / vtot
                    optmp(i,j,k) = (1.d0-vfrac(i,j,k))*(divnc-divc(i,j,k))
-                   delm(i,j,k,n) = -vfrac(i,j,k)*optmp(i,j,k)
+                   delm(i,j,k) = -vfrac(i,j,k)*optmp(i,j,k)
                 else
-                   delm(i,j,k,n) = 0.d0
+                   delm(i,j,k) = 0.d0
                 end if
              end do
           end do
@@ -530,7 +528,7 @@ contains
                                jjj = j + jj
                                kkk = k + kk
 
-                               drho = delm(i,j,k,n)*wtot*rediswgt(iii,jjj,kkk)
+                               drho = delm(i,j,k)*wtot*rediswgt(iii,jjj,kkk)
                                optmp(iii,jjj,kkk) = optmp(iii,jjj,kkk) + drho
 
                                valid_dst_cell = is_inside(iii,jjj,kkk,lo,hi)
@@ -587,8 +585,6 @@ contains
 
     call amrex_deallocate(divdiff)
     call amrex_deallocate(divhyp)
-    call amrex_deallocate(rediswgt)
-    call amrex_deallocate(optmp)
 
   end subroutine compute_eb_divop
 
