@@ -9,6 +9,7 @@
 #include <list>
 #include <chrono>
 
+#include <AMReX.H>
 #include <AMReX_Utility.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
@@ -215,7 +216,7 @@ namespace ParallelDescriptor
 void
 ParallelDescriptor::Abort (int errorcode, bool backtrace)
 {
-    if (backtrace) {
+    if (backtrace && amrex::system::signal_handling) {
 	BLBackTrace::handler(errorcode);
     } else {
 	MPI_Abort(CommunicatorAll(), errorcode);
@@ -2248,7 +2249,7 @@ void ParallelDescriptor::EndSubCommunicator () {}
 
 void ParallelDescriptor::Abort (int s, bool backtrace)
 { 
-    if (backtrace) {
+    if (backtrace && amrex::system::signal_handling) {
 	BLBackTrace::handler(s);
     } else {
 	std::_Exit(EXIT_FAILURE);
