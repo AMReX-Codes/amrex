@@ -97,10 +97,11 @@ namespace amrex
     int dstGhostData = a_nghost;
     int dstGhostGraph = a_nghost+2; //because of irregular faces at box boundaries
     int srcGhost = 0;
+
 //begin debug
-    BoxArray inpgrids = a_graph.boxArray();
-    DistributionMapping inpdm = a_graph.DistributionMap();
-    EBISL_checkGraph(inpgrids, inpdm, a_graph, string(" input graph"));
+//    BoxArray inpgrids = a_graph.boxArray();
+//    DistributionMapping inpdm = a_graph.DistributionMap();
+//    EBISL_checkGraph(inpgrids, inpdm, a_graph, string(" input graph"));
 //    BoxArray inpgrids = a_data.boxArray();
 //    DistributionMapping inpdm = a_data.DistributionMap();
 //    EBISL_checkData(inpgrids, inpdm, a_data, string(" input to ebisl::define"));
@@ -119,9 +120,8 @@ namespace amrex
     BL_PROFILE_VAR_STOP(copy_data);
 
 //begin debug
-    EBISL_checkGraph(a_grids, a_dm, *m_ebGraph, string(" my graph after copy"));
+//    EBISL_checkGraph(a_grids, a_dm, *m_ebGraph, string(" my graph after copy"));
 //    EBISL_checkData(a_grids, a_dm, *m_ebData, string(" output from ebisl::define"));
-//    amrex::Abort();
 // end debug
       
     m_defined = true;
