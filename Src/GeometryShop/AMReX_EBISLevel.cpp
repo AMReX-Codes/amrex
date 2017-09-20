@@ -250,7 +250,7 @@ namespace amrex
     m_graph.FillBoundary();
 
 //begin debug
-    EBISLevel_checkGraph(m_grids, m_dm, m_graph, string("after initial build"));
+//    EBISLevel_checkGraph(m_grids, m_dm, m_graph, string("after initial build"));
 // end debug
 
     std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
@@ -339,13 +339,13 @@ namespace amrex
     //pout() << "ebislevel::coarsenvofsandfaces: doing ebgraph copy" << endl;
 
 //begin debug
-    EBISLevel_checkGraph(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_graph, string(" source graph for copy"));
+//    EBISLevel_checkGraph(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_graph, string(" source graph for copy"));
 //end debug
 
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, nghostGraph+1);
 
 //begin debug
-    EBISLevel_checkGraph( gridsReCo, m_dm, ebgraphReCo, string(" ebgraphReCo after copy "));
+//    EBISLevel_checkGraph( gridsReCo, m_dm, ebgraphReCo, string(" ebgraphReCo after copy "));
 //end debug
 
     ///first deal with the graph
