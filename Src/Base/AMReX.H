@@ -87,6 +87,8 @@ namespace amrex
 	extern std::string exename;
 	
 	extern int verbose;
+
+        extern int signal_handling;
     }
 }
 
