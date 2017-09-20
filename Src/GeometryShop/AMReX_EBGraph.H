@@ -846,12 +846,12 @@ namespace amrex
         
     ///
     /**
-       This resizes the BaseFab to cover the input region
+       This sets the  BaseFab on the input region to
        1 = regular
        0 = irregular
        -1 = covered
-
        2 outside the domain
+       This does NOT resize the basefab (it was not thread safe to do so).
     */
     void fillIntMask(BaseFab<int>& a_mask,
                      const Box   & a_subbox) const;

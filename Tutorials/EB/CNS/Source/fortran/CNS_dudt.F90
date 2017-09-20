@@ -142,7 +142,8 @@ contains
     integer :: qlo(3), qhi(3), dvlo(3), dvhi(3), dmlo(3), dmhi(3)
     integer :: lfxlo(3), lfylo(3), lfzlo(3), lfxhi(3), lfyhi(3), lfzhi(3)
     integer :: clo(3), chi(3)
-    real(rt), pointer, contiguous :: q(:,:,:,:), divc(:,:,:), dm(:,:,:,:)
+    real(rt), pointer, contiguous :: q(:,:,:,:)
+    real(rt), dimension(:,:,:), pointer, contiguous :: divc, dm, optmp, rediswgt
     real(rt), dimension(:,:,:,:), pointer, contiguous :: fhx,fhy,fhz,fdx,fdy,fdz
     real(rt), dimension(:,:,:), pointer, contiguous :: lambda, mu, xi
     integer, parameter :: nghost = nextra_eb + max(nghost_plm,3) ! 3 because of wall flux
@@ -159,11 +160,13 @@ contains
     
     dvlo = lo-2
     dvhi = hi+2
-    call amrex_allocate(divc, dvlo(1),dvhi(1), dvlo(2),dvhi(2), dvlo(3),dvhi(3))
+    call amrex_allocate(divc, dvlo, dvhi)
+    call amrex_allocate(optmp, dvlo, dvhi) 
+    call amrex_allocate(rediswgt, dvlo, dvhi)
 
     dmlo(1:3) = lo - 1
     dmhi(1:3) = hi + 1
-    call amrex_allocate(dm, dmlo(1),dmhi(1), dmlo(2),dmhi(2), dmlo(3),dmhi(3), 1,5)
+    call amrex_allocate(dm, dmlo, dmhi)
 
     lfxlo = lo - nextra_eb - 1;  lfxlo(1) = lo(1)-nextra_eb
     lfxhi = hi + nextra_eb + 1
@@ -218,7 +221,8 @@ contains
     call compute_eb_divop(lo,hi,5,dx,dt,fhx,lfxlo,lfxhi,fhy,lfylo,lfyhi,fhz,lfzlo,lfzhi,&
          fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi, &
          dudt,utlo,uthi, q,qlo,qhi, lambda, mu, xi, clo, chi, &
-         divc,dvlo,dvhi, dm,dmlo,dmhi, &
+         divc, optmp, rediswgt, dvlo,dvhi, &
+         dm,dmlo,dmhi, &
          volfrac,vlo,vhi, bcent,blo,bhi, &
          apx,axlo,axhi,apy,aylo,ayhi,apz,azlo,azhi, &
          centx(:,:,:,1),cxlo,cxhi, centx(:,:,:,2),cxlo,cxhi, &
@@ -252,6 +256,8 @@ contains
     call amrex_deallocate(fdx)
     call amrex_deallocate(fhx)
     call amrex_deallocate(dm)
+    call amrex_deallocate(rediswgt)
+    call amrex_deallocate(optmp)
     call amrex_deallocate(divc)
     call amrex_deallocate(q)
   end subroutine cns_eb_compute_dudt

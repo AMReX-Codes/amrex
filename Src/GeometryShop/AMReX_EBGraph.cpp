@@ -921,16 +921,21 @@ namespace amrex
                             const Box   & a_subbox) const
   {
     Box fullRegion = getFullRegion();
+
     fullRegion &= a_subbox;
     Box interiorRegion = fullRegion;
-    interiorRegion &= getDomain();
+    interiorRegion &= a_mask.box();
+    const Box& domain = getDomain();
 
-    a_mask.resize(fullRegion, 1);
-    a_mask.setVal(2);
     for(BoxIterator boxit(interiorRegion); boxit.ok(); ++boxit)
     {
       const IntVect& iv = boxit();
-      if(isRegular(iv))
+      if(!domain.contains(iv))
+      {
+        //set values outside domain to 2
+        a_mask(iv, 0) = 2;
+      }
+      else if(isRegular(iv))
       {
         a_mask(iv, 0) = 1;
       }
@@ -1243,6 +1248,7 @@ namespace amrex
        int                  a_destcomp,
        int                  a_numcomp)
   {
+    BL_PROFILE("EBGraphImplem::copy");
     BL_ASSERT(isDefined());
     const Box& testbox = m_region & a_srcbox;
 
@@ -1971,6 +1977,7 @@ namespace amrex
   EBGraphImplem::
   nBytes(const Box& a_region, int start_comp, int ncomps) const
   {
+    BL_PROFILE("EBGraphImplem::nBytes");
     std::size_t linearSize = 0;
     //domain
     linearSize +=  Box::linearSize();
@@ -2002,6 +2009,7 @@ namespace amrex
              int        numcomp,
              void*      a_buf) const
   {
+    BL_PROFILE("EBGraphImplem::copyToMem");
     BL_ASSERT(isDefined());
 
     std::size_t retval = 0;
@@ -2058,6 +2066,7 @@ namespace amrex
                int         numcomp,
                const void* a_buf)
   {
+    BL_PROFILE("EBGraphImplem::copyFromMem");
     BL_ASSERT(isDefined());
 
     std::size_t retval = 0;
