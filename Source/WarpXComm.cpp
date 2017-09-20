@@ -123,9 +123,9 @@ WarpX::UpdateAuxilaryData ()
             dEx.setVal(0.0);
             dEy.setVal(0.0);
             dEz.setVal(0.0);
-            dEx.copy(*Efield_aux[lev-1][0], 0, 0, 1, 0, ng, crse_period);
-            dEy.copy(*Efield_aux[lev-1][1], 0, 0, 1, 0, ng, crse_period);
-            dEz.copy(*Efield_aux[lev-1][2], 0, 0, 1, 0, ng, crse_period);
+            dEx.copy(*Efield_aux[lev-1][0], 0, 0, 1, ng, ng, crse_period);
+            dEy.copy(*Efield_aux[lev-1][1], 0, 0, 1, ng, ng, crse_period);
+            dEz.copy(*Efield_aux[lev-1][2], 0, 0, 1, ng, ng, crse_period);
             MultiFab::Subtract(dEx, *Efield_cp[lev][0], 0, 0, 1, ng);
             MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, 1, ng);
             MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, 1, ng);
