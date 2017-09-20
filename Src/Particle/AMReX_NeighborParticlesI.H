@@ -54,6 +54,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         ! DistributionMapping::SameRefs(mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev))) {        
         mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, num_neighbor_cells));
         mask_ptr->setVal(-1, num_neighbor_cells);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
         for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
             const Box& box = mfi.tilebox();
             const int grid_id = mfi.index();
@@ -63,6 +67,22 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         }
         
         mask_ptr->FillBoundary(geom.periodicity());
+
+        local_neighbors.clear();
+        for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
+            const Box& box = mfi.growntilebox();
+            for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
+                const int grid = (*mask_ptr)[mfi](iv, 0);
+                const int tile = (*mask_ptr)[mfi](iv, 1);
+                const int proc = this->ParticleDistributionMap(lev)[grid];
+                NeighborCommTag comm_tag(proc, grid, tile);
+                local_neighbors.push_back(comm_tag);
+            }
+        }
+
+        std::sort(local_neighbors.begin(), local_neighbors.end());
+        auto it = std::unique(local_neighbors.begin(), local_neighbors.end());
+        local_neighbors.erase(it, local_neighbors.end());
     };
 }
 
@@ -95,7 +115,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         const int grid = pti.index();
         const int tile = pti.LocalTileIndex(); 
-        const int who = this->ParticleDistributionMap(lev)[grid];
 
         PairIndex index(grid, tile);        
         tmp_neighbors[index].resize(num_threads);
@@ -104,8 +123,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         neighbors[index];
         buffer_id_cache[index];
         buffer_tag_cache[index];
+    }
 
-        NeighborCommTag comm_tag(who, grid, tile);
+    for (int i = 0; i < static_cast<int>(local_neighbors.size()); ++i) {
+        const NeighborCommTag& comm_tag = local_neighbors[i];
         tmp_remote[comm_tag].resize(num_threads);
         neighbors_to_comm[comm_tag];
     }
@@ -298,13 +319,13 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         const int grid = pti.index();
         const int tile = pti.LocalTileIndex(); 
-        const int who = this->ParticleDistributionMap(lev)[grid];
-
         PairIndex index(grid, tile);        
         tmp_neighbors[index].resize(num_threads);
         neighbors[index];
+    }
 
-        NeighborCommTag comm_tag(who, grid, tile);
+    for (int i = 0; i < static_cast<int>(local_neighbors.size()); ++i) {
+        const NeighborCommTag& comm_tag = local_neighbors[i];
         tmp_remote[comm_tag].resize(num_threads);
         neighbors_to_comm[comm_tag];
     }

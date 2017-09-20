@@ -72,6 +72,12 @@ class NeighborParticleContainer
                      grid_id == other.grid_id && 
                      tile_id < other.tile_id ));
         }
+
+        bool operator==(const NeighborCommTag& other) const {
+            return ( (proc_id == other.proc_id) and 
+                     (grid_id == other.grid_id) and
+                     (tile_id == other.tile_id) );
+        }
     };    
         
 public:
@@ -158,6 +164,7 @@ protected:
     };
 
     int num_neighbor_cells;
+    std::vector<NeighborCommTag> local_neighbors;
     std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
     std::map<PairIndex, Array<int> > buffer_id_cache;
     std::map<PairIndex, Array<NeighborTag> > buffer_tag_cache;
