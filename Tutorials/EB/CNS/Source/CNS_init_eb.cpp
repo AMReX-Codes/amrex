@@ -229,7 +229,8 @@ initialize_EBIS(const int max_level)
       
             for(int idir = 0; idir < SpaceDim; idir++)
             {
-              translation[idir] = 0.5*n_cell[idir]*fine_dx;
+              int finesize = finest_domain.size()[idir];
+              translation[idir] = 0.5*finesize*fine_dx;
             }
             Real scale = finest_domain.size()[0]*fine_dx;
             pp.get("num_poly", num_poly);
