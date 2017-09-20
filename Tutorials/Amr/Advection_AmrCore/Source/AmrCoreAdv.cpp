@@ -104,106 +104,6 @@ AmrCoreAdv::InitData ()
     }
 }
 
-// Make a new level from scratch using provided BoxArray and DistributionMapping.
-// Only used during initialization.
-// overrides the pure virtual function in AmrCore
-void
-AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
-				const DistributionMapping& dm)
-{
-    const int ncomp = phi_new[lev-1]->nComp();
-    const int nghost = phi_new[lev-1]->nGrow();
-    
-    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
-    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
-
-    t_new[lev] = time;
-    t_old[lev] = time - 1.e200;
-
-    if (lev > 0 && do_reflux) {
-	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
-    }
-
-    FillCoarsePatch(lev, time, *phi_new[lev], 0, ncomp);
-}
-
-// Remake an existing level using provided BoxArray and DistributionMapping and 
-// fill with existing fine and coarse data.
-// overrides the pure virtual function in AmrCore
-void
-AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
-		     const DistributionMapping& dm)
-{
-    const int ncomp = phi_new[lev]->nComp();
-    const int nghost = phi_new[lev]->nGrow();
-
-#if __cplusplus >= 201402L
-    auto new_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
-    auto old_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
-#else
-    std::unique_ptr<MultiFab> new_state(new MultiFab(ba, dm, ncomp, nghost));
-    std::unique_ptr<MultiFab> old_state(new MultiFab(ba, dm, ncomp, nghost));
-#endif
-
-    FillPatch(lev, time, *new_state, 0, ncomp);
-
-    std::swap(new_state, phi_new[lev]);
-    std::swap(old_state, phi_old[lev]);
-
-    t_new[lev] = time;
-    t_old[lev] = time - 1.e200;
-
-    if (lev > 0 && do_reflux) {
-	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
-    }    
-}
-
-// Delete level data
-// overrides the pure virtual function in AmrCore
-void
-AmrCoreAdv::ClearLevel (int lev)
-{
-    phi_new[lev].reset(nullptr);
-    phi_old[lev].reset(nullptr);
-    flux_reg[lev].reset(nullptr);
-}
-
-// initialize data using a fortran routine to compute initial state
-// overrides the pure virtual function in AmrCore
-void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
-				      const DistributionMapping& dm)
-{
-    const int ncomp = 1;
-    const int nghost = 0;
-
-    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
-    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
-
-    t_new[lev] = time;
-    t_old[lev] = time - 1.e200;
-
-    if (lev > 0 && do_reflux) {
-	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
-    }
-
-    const Real* dx = geom[lev].CellSize();
-    const Real* prob_lo = geom[lev].ProbLo();
-    Real cur_time = t_new[lev];
-
-    MultiFab& state = *phi_new[lev];
-
-    for (MFIter mfi(state); mfi.isValid(); ++mfi)
-    {
-        const Box& box = mfi.validbox();
-        const int* lo  = box.loVect();
-        const int* hi  = box.hiVect();
-
-	initdata(lev, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
-		 BL_TO_FORTRAN_3D(state[mfi]), ZFILL(dx),
-		 ZFILL(prob_lo));
-    }
-}
-
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void
@@ -274,6 +174,108 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 	    tagfab.tags_and_untags(itags, tilebox);
 	}
     }
+}
+
+
+// Make a new level from scratch using provided BoxArray and DistributionMapping.
+// Only used during initialization.
+// overrides the pure virtual function in AmrCore
+void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
+				      const DistributionMapping& dm)
+{
+    const int ncomp = 1;
+    const int nghost = 0;
+
+    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+
+    t_new[lev] = time;
+    t_old[lev] = time - 1.e200;
+
+    if (lev > 0 && do_reflux) {
+	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
+    }
+
+    const Real* dx = geom[lev].CellSize();
+    const Real* prob_lo = geom[lev].ProbLo();
+    Real cur_time = t_new[lev];
+
+    MultiFab& state = *phi_new[lev];
+
+    for (MFIter mfi(state); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.validbox();
+        const int* lo  = box.loVect();
+        const int* hi  = box.hiVect();
+
+	initdata(lev, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
+		 BL_TO_FORTRAN_3D(state[mfi]), ZFILL(dx),
+		 ZFILL(prob_lo));
+    }
+}
+
+// Make a new level using provided BoxArray and DistributionMapping and 
+// fill with interpolated coarse level data.
+// overrides the pure virtual function in AmrCore
+void
+AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
+                                    const DistributionMapping& dm)
+{
+    const int ncomp = phi_new[lev-1]->nComp();
+    const int nghost = phi_new[lev-1]->nGrow();
+    
+    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+
+    t_new[lev] = time;
+    t_old[lev] = time - 1.e200;
+
+    if (lev > 0 && do_reflux) {
+	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
+    }
+
+    FillCoarsePatch(lev, time, *phi_new[lev], 0, ncomp);
+}
+
+// Remake an existing level using provided BoxArray and DistributionMapping and 
+// fill with existing fine and coarse data.
+// overrides the pure virtual function in AmrCore
+void
+AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
+		     const DistributionMapping& dm)
+{
+    const int ncomp = phi_new[lev]->nComp();
+    const int nghost = phi_new[lev]->nGrow();
+
+#if __cplusplus >= 201402L
+    auto new_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
+    auto old_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
+#else
+    std::unique_ptr<MultiFab> new_state(new MultiFab(ba, dm, ncomp, nghost));
+    std::unique_ptr<MultiFab> old_state(new MultiFab(ba, dm, ncomp, nghost));
+#endif
+
+    FillPatch(lev, time, *new_state, 0, ncomp);
+
+    std::swap(new_state, phi_new[lev]);
+    std::swap(old_state, phi_old[lev]);
+
+    t_new[lev] = time;
+    t_old[lev] = time - 1.e200;
+
+    if (lev > 0 && do_reflux) {
+	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
+    }    
+}
+
+// Delete level data
+// overrides the pure virtual function in AmrCore
+void
+AmrCoreAdv::ClearLevel (int lev)
+{
+    phi_new[lev].reset(nullptr);
+    phi_old[lev].reset(nullptr);
+    flux_reg[lev].reset(nullptr);
 }
 
 // read in some parameters from inputs file
