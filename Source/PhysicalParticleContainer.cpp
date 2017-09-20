@@ -58,7 +58,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
             Real z = distz(mt);
 #endif
         if (plasma_injector->insideBounds(x, y, z)) {
-            plasma_injector->getMomentum(u);
+	    plasma_injector->getMomentum(u, x, y, z);
             attribs[PIdx::ux] = u[0];
             attribs[PIdx::uy] = u[1];
             attribs[PIdx::uz] = u[2];
@@ -161,7 +161,7 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
                     if (plasma_injector->insideBounds(x, y, z)) {
                         Real weight;
                         std::array<Real, 3> u;
-                        plasma_injector->getMomentum(u);
+                        plasma_injector->getMomentum(u, x, y, z);
                         weight = plasma_injector->getDensity(x, y, z) * scale_fac;
                         attribs[PIdx::w ] = weight;
                         attribs[PIdx::ux] = u[0];

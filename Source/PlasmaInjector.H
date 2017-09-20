@@ -66,7 +66,7 @@ class PlasmaMomentumDistribution
 public:
     using vec3 = std::array<amrex::Real, 3>;
     virtual ~PlasmaMomentumDistribution() {};
-    virtual void getMomentum(vec3& u) = 0;
+    virtual void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z) = 0;
 };
 
 ///
@@ -79,7 +79,7 @@ public:
     ConstantMomentumDistribution(amrex::Real ux,
                                  amrex::Real uy,
                                  amrex::Real uz);
-    virtual void getMomentum(vec3& u) override;
+    virtual void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z) override;
 
 private:
     amrex::Real _ux;
@@ -101,13 +101,27 @@ public:
                                        amrex::Real uy_m,
                                        amrex::Real uz_m,
                                        amrex::Real u_th);
-    virtual void getMomentum(vec3& u) override;
+    virtual void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z) override;
 private:
     amrex::Real _ux_m;
     amrex::Real _uy_m;
     amrex::Real _uz_m;
     amrex::Real _u_th;
 };
+
+///
+/// This is a radially expanding momentum distribution
+/// Particles will have a radial momentum proportional to their 
+/// radius, with proportionality constant u_over_r
+class RadialExpansionMomentumDistribution : public PlasmaMomentumDistribution
+{
+public:
+  RadialExpansionMomentumDistribution( amrex::Real u_over_r );
+  virtual void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z) override;
+private:
+    amrex::Real _u_over_r;
+};
+
 
 ///
 /// PlasmaParticlePosition describes how particles are initialized
@@ -190,7 +204,7 @@ public:
 
     amrex::Array<int> num_particles_per_cell_each_dim;
 
-    void getMomentum(vec3& u);
+    void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z);
 
     void getPositionUnitBox(vec3& r, int i_part);
 

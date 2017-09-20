@@ -47,13 +47,19 @@ particles.species_names = electrons protons
 electrons.charge = -q_e
 electrons.mass = m_e
 electrons.injection_style = "gaussian_beam"
-electrons.gaussian_beam_mean = 0
-electrons.gaussian_beam_sigma = 0.25
-electrons.gaussian_beam_vel = -0.04
+electrons.x_rms = 0.25
+electrons.y_rms = 0.25
+electrons.z_rms = 0.25
+electrons.x_m = 0.
+electrons.y_m = 0.
+electrons.z_m = 0.
+electrons.npart = 32768
+electrons.q_tot = 8.010883097437485e-07
 
 electrons.profile = "constant"
 electrons.density = 1
-electrons.momentum_distribution_type = "constant"
+electrons.momentum_distribution_type = "radial_expansion"
+electrons.v_over_r = -0.04
 
 electrons.xmin = -2
 electrons.xmax =  2

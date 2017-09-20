@@ -71,7 +71,7 @@ ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
     : _ux(ux), _uy(uy), _uz(uz)
 {}
 
-void ConstantMomentumDistribution::getMomentum(vec3& u) {
+void ConstantMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
     u[0] = _ux;
     u[1] = _uy;
     u[2] = _uz;
@@ -85,7 +85,7 @@ GaussianRandomMomentumDistribution::GaussianRandomMomentumDistribution(Real ux_m
 {
 }
 
-void GaussianRandomMomentumDistribution::getMomentum(vec3& u) {
+void GaussianRandomMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
     Real ux_th = amrex::RandomNormal(0.0, _u_th);
     Real uy_th = amrex::RandomNormal(0.0, _u_th);
     Real uz_th = amrex::RandomNormal(0.0, _u_th);
@@ -93,6 +93,15 @@ void GaussianRandomMomentumDistribution::getMomentum(vec3& u) {
     u[0] = _ux_m + ux_th;
     u[1] = _uy_m + uy_th;
     u[2] = _uz_m + uz_th;
+} 
+RadialExpansionMomentumDistribution::RadialExpansionMomentumDistribution(Real u_over_r) : _u_over_r( u_over_r )
+{
+}
+
+void RadialExpansionMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
+  u[0] = _u_over_r * x;
+  u[1] = _u_over_r * y;
+  u[2] = _u_over_r * z;
 }
 
 DiagonalPosition::DiagonalPosition(int num_particles_per_cell):
@@ -273,8 +282,8 @@ void PlasmaInjector::getPositionUnitBox(vec3& r, int i_part) {
   return part_pos->getPositionUnitBox(r, i_part);
 }
 
-void PlasmaInjector::getMomentum(vec3& u) {
-    mom_dist->getMomentum(u);
+void PlasmaInjector::getMomentum(vec3& u, Real x, Real y, Real z) {
+    mom_dist->getMomentum(u, x, y, z);
     u[0] *= PhysConst::c;
     u[1] *= PhysConst::c;
     u[2] *= PhysConst::c;
