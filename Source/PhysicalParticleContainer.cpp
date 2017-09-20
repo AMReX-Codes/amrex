@@ -27,40 +27,46 @@ void PhysicalParticleContainer::InitData()
 }
 
 void 
-PhysicalParticleContainer::AddGaussianBeam(Real mean, Real sigma, Real vel) {
+PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
+                                           Real x_rms, Real y_rms, Real z_rms, 
+                                           Real q_tot, long npart) {
 
     const Geometry& geom     = m_gdb->Geom(0);
     RealBox containing_bx = geom.ProbDomain();
 
     std::mt19937_64 mt(0451);
-    std::normal_distribution<double> dist(0.0, sigma);
+    std::normal_distribution<double> distx(x_m, x_rms);
+    std::normal_distribution<double> disty(y_m, y_rms);
+    std::normal_distribution<double> distz(z_m, z_rms);
 
     std::array<Real,PIdx::nattribs> attribs;
     attribs.fill(0.0);
-   
-    long np = 32768;
+
     if (ParallelDescriptor::IOProcessor()) {
-        for (long i = 0; i < np; ++i) {
+       std::array<Real, 3> u;
+       Real weight;
+       for (long i = 0; i < npart; ++i) {
 #if ( BL_SPACEDIM == 3 )
-            Real x = dist(mt) + mean;
-            Real y = dist(mt) + mean;
-            Real z = dist(mt) + mean;
+            weight = q_tot/npart/charge;
+            Real x = distx(mt);
+            Real y = disty(mt);
+            Real z = distz(mt);
 #elif ( BL_SPACEDIM == 2 )
-            Real x = dist(mt) + mean;
+            weight = q_tot/npart/charge/y_rms;
+            Real x = distx(mt);
             Real y = 0.;
-            Real z = dist(mt) + mean;
+            Real z = distz(mt);
 #endif
-            if (plasma_injector->insideBounds(x, y, z)) {
-                Real weight = 152587890.5;
-                attribs[PIdx::w ] = weight;
-                attribs[PIdx::ux] = PhysConst::c*vel*x;
-                attribs[PIdx::uy] = PhysConst::c*vel*y;
-                attribs[PIdx::uz] = PhysConst::c*vel*z;
-                AddOneParticle(0, 0, 0, x, y, z, attribs);
+        if (plasma_injector->insideBounds(x, y, z)) {
+            plasma_injector->getMomentum(u);
+            attribs[PIdx::ux] = u[0];
+            attribs[PIdx::uy] = u[1];
+            attribs[PIdx::uz] = u[2];
+            attribs[PIdx::w ] = weight;
+            AddOneParticle(0, 0, 0, x, y, z, attribs);
             }
         }
     }
-
     Redistribute();
 }
 
@@ -82,9 +88,15 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
     }
 
     if (plasma_injector->gaussian_beam) {
-        AddGaussianBeam(plasma_injector->gaussian_beam_mean,
-                        plasma_injector->gaussian_beam_sigma,
-                        plasma_injector->gaussian_beam_vel);
+        AddGaussianBeam(plasma_injector->x_m,
+                        plasma_injector->y_m,
+                        plasma_injector->z_m,
+                        plasma_injector->x_rms, 
+                        plasma_injector->y_rms,
+                        plasma_injector->z_rms, 
+                        plasma_injector->q_tot, 
+                        plasma_injector->npart);
+                        
         return;
     }
 

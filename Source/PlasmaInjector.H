@@ -205,9 +205,14 @@ public:
     amrex::Real single_particle_weight;
 
     bool gaussian_beam = false;
-    amrex::Real gaussian_beam_mean;
-    amrex::Real gaussian_beam_sigma;
-    amrex::Real gaussian_beam_vel;
+    amrex::Real x_m;
+    amrex::Real y_m;
+    amrex::Real z_m;
+    amrex::Real x_rms;
+    amrex::Real y_rms;
+    amrex::Real z_rms;
+    amrex::Real q_tot;
+    long npart;
 
 protected:
 

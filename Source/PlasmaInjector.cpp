@@ -176,9 +176,14 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         add_single_particle = true;
         return;
     } else if (part_pos_s == "gaussian_beam") {
-        pp.get("gaussian_beam_mean", gaussian_beam_mean);
-        pp.get("gaussian_beam_sigma", gaussian_beam_sigma);
-        pp.get("gaussian_beam_vel", gaussian_beam_vel);
+        pp.get("x_m", x_m);
+        pp.get("y_m", y_m);
+        pp.get("z_m", z_m);
+        pp.get("x_rms", x_rms);
+        pp.get("y_rms", y_rms);
+        pp.get("z_rms", z_rms);
+        pp.get("q_tot", q_tot);
+        pp.get("npart", npart);
         gaussian_beam = true;
     }
     else if (part_pos_s == "ndiagpercell") {
