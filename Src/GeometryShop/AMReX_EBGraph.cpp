@@ -921,16 +921,21 @@ namespace amrex
                             const Box   & a_subbox) const
   {
     Box fullRegion = getFullRegion();
+
     fullRegion &= a_subbox;
     Box interiorRegion = fullRegion;
-    interiorRegion &= getDomain();
+    interiorRegion &= a_mask.box();
+    const Box& domain = getDomain();
 
-    a_mask.resize(fullRegion, 1);
-    a_mask.setVal(2);
     for(BoxIterator boxit(interiorRegion); boxit.ok(); ++boxit)
     {
       const IntVect& iv = boxit();
-      if(isRegular(iv))
+      if(!domain.contains(iv))
+      {
+        //set values outside domain to 2
+        a_mask(iv, 0) = 2;
+      }
+      else if(isRegular(iv))
       {
         a_mask(iv, 0) = 1;
       }

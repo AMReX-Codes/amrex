@@ -31,22 +31,30 @@ namespace amrex
   {
     for(MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
     {
-      const Box& region = a_grids[mfi];
       const EBGraph & graph = a_graph[mfi];
-      if(region.contains(ebisl_debiv))
+      Box region     = graph.getRegion();
+      Box fullRegion = graph.getFullRegion();
+      if(!fullRegion.contains(region))
       {
         amrex::AllPrint() << "ebislayout:" << a_identifier;
-        int ireg = 0; int icov = 0;
-        if(graph.isRegular(ebisl_debiv))
-        {
-          ireg = 1;
-        }
-        if(graph.isCovered(ebisl_debiv))
-        {
-          icov = 1;
-        }
-        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+        amrex::AllPrint() << ", region = " << region << ", fullRegion = " << fullRegion  << endl;
       }
+//      const Box& region = a_grids[mfi];
+//      const EBGraph & graph = a_graph[mfi];
+//      if(region.contains(ebisl_debiv))
+//      {
+//        amrex::AllPrint() << "ebislayout:" << a_identifier;
+//        int ireg = 0; int icov = 0;
+//        if(graph.isRegular(ebisl_debiv))
+//        {
+//          ireg = 1;
+//        }
+//        if(graph.isCovered(ebisl_debiv))
+//        {
+//          icov = 1;
+//        }
+//        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+//      }
     }
   }
   void EBISL_checkData(const BoxArray          & a_grids,
@@ -90,9 +98,9 @@ namespace amrex
     int dstGhostGraph = a_nghost+2; //because of irregular faces at box boundaries
     int srcGhost = 0;
 //begin debug
-//    BoxArray inpgrids = a_graph.boxArray();
-//    DistributionMapping inpdm = a_graph.DistributionMap();
-//    EBISL_checkGraph(inpgrids, inpdm, a_graph, string(" input graph"));
+    BoxArray inpgrids = a_graph.boxArray();
+    DistributionMapping inpdm = a_graph.DistributionMap();
+    EBISL_checkGraph(inpgrids, inpdm, a_graph, string(" input graph"));
 //    BoxArray inpgrids = a_data.boxArray();
 //    DistributionMapping inpdm = a_data.DistributionMap();
 //    EBISL_checkData(inpgrids, inpdm, a_data, string(" input to ebisl::define"));
@@ -111,7 +119,7 @@ namespace amrex
     BL_PROFILE_VAR_STOP(copy_data);
 
 //begin debug
-//    EBISL_checkGraph(a_grids, a_dm, *m_ebGraph, string(" my graph after copy"));
+    EBISL_checkGraph(a_grids, a_dm, *m_ebGraph, string(" my graph after copy"));
 //    EBISL_checkData(a_grids, a_dm, *m_ebData, string(" output from ebisl::define"));
 //    amrex::Abort();
 // end debug
