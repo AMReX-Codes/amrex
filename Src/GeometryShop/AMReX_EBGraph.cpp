@@ -1243,6 +1243,7 @@ namespace amrex
        int                  a_destcomp,
        int                  a_numcomp)
   {
+    BL_PROFILE("EBGraphImplem::copy");
     BL_ASSERT(isDefined());
     const Box& testbox = m_region & a_srcbox;
 
@@ -1971,6 +1972,7 @@ namespace amrex
   EBGraphImplem::
   nBytes(const Box& a_region, int start_comp, int ncomps) const
   {
+    BL_PROFILE("EBGraphImplem::nBytes");
     std::size_t linearSize = 0;
     //domain
     linearSize +=  Box::linearSize();
@@ -2002,6 +2004,7 @@ namespace amrex
              int        numcomp,
              void*      a_buf) const
   {
+    BL_PROFILE("EBGraphImplem::copyToMem");
     BL_ASSERT(isDefined());
 
     std::size_t retval = 0;
@@ -2058,6 +2061,7 @@ namespace amrex
                int         numcomp,
                const void* a_buf)
   {
+    BL_PROFILE("EBGraphImplem::copyFromMem");
     BL_ASSERT(isDefined());
 
     std::size_t retval = 0;
