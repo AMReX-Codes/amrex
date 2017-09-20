@@ -103,8 +103,8 @@ AmrCoreAdv::InitData ()
     }
 }
 
-// Make a new level from scratch using provided BoxArray and DistributionMapping.
-// Only used during initialization.
+// Make a new level using provided BoxArray and DistributionMapping and 
+// fill with interpolated coarse level data.
 // overrides the pure virtual function in AmrCore
 void
 AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
@@ -167,7 +167,8 @@ AmrCoreAdv::ClearLevel (int lev)
     flux_reg[lev].reset(nullptr);
 }
 
-// initialize data using a fortran routine to compute initial state
+// Make a new level from scratch using provided BoxArray and DistributionMapping.
+// Only used during initialization.
 // overrides the pure virtual function in AmrCore
 void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 					  const DistributionMapping& dm)
