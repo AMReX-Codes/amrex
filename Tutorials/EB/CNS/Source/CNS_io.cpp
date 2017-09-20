@@ -97,7 +97,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         }
 
         // volfrac
-        os << "volfrac\n";
+        os << "vfrac\n";
 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
