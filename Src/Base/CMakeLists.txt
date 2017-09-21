@@ -32,7 +32,8 @@ set ( F77SRC
 set ( F90SRC
    AMReX_bc_types_mod.F90  AMReX_filcc_mod.F90  AMReX_omp_mod.F90        AMReX_string_mod.F90
    AMReX_error_mod.F90     AMReX_fort_mod.F90   AMReX_parmparse_mod.F90
-   AMReX_BaseFab_nd.f90    AMReX_MultiFabUtil_${BL_SPACEDIM}d.f90 AMReX_mempool_f.f90 )     
+   AMReX_BaseFab_nd.f90    AMReX_MultiFabUtil_${BL_SPACEDIM}d.f90 AMReX_MultiFabUtil_nd.F90
+   AMReX_mempool_f.f90 )     
 
 set ( ALLHEADERS
    AMReX_Arena.H        AMReX_BCUtil.H              AMReX_BoxIterator.H   AMReX_FabArray.H
