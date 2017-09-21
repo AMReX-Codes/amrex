@@ -273,6 +273,10 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.query("uz_m", uz_m);
         pp.query("u_th", u_th);
         mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, u_th));
+    } else if (mom_dist_s == "radial_expansion") {
+        Real u_over_r = 0.;
+	pp.query("u_over_r", u_over_r);
+        mom_dist.reset(new RadialExpansionMomentumDistribution(u_over_r));
     } else {
         StringParseAbortMessage("Momentum distribution type", mom_dist_s);
     }
