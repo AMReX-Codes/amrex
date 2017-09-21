@@ -7,6 +7,7 @@
 #endif
 
 #include <AMReX_VisMF.H>
+#include <AMReX_MultiFabUtil.H>
 
 namespace amrex {
 
@@ -58,8 +59,7 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         for (MFIter mfi(m_crse_flag); mfi.isValid(); ++mfi)
         {
             auto& fab = m_crse_flag[mfi];
-            Box bx = fab.box();
-            bx &= cdomain;
+            const Box& bx = fab.box() & cdomain;
 
             fab.setVal(crse_cell);
             bool has_fine = false;
@@ -71,14 +71,17 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                 {
                     const Box& ibx = is.second - iv;
                     fab.setVal(crse_fine_boundary_cell, ibx, 0, 1);
+                    has_fine = true;
                 }
+            }
 
+            for (const auto& iv : pshifts)
+            {
+                cfba.intersections(bx+iv, isects);
                 for (const auto& is : isects)
                 {
-                    Box ibx = is.second - iv;
-                    ibx &= cfba[is.first];
+                    const Box& ibx = is.second - iv;
                     fab.setVal(fine_cell, ibx, 0, 1);
-                    has_fine = true;
                 }
             }
 
@@ -99,7 +102,6 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     {
         Box bx = amrex::grow(cfba[i], 1);
         bx &= cdomain;
-        // xxxxx periodic boundaries???
 
         const BoxList& bl = cfba.complementIn(bx);
         cfp_bl.join(bl);
@@ -123,13 +125,50 @@ EBFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     BoxArray cfp_ba(std::move(cfp_bl));
     DistributionMapping cfp_dm(cfp_procmap);
     m_cfpatch.define(cfp_ba, cfp_dm, nvar, 0);
-    
+
     m_cfp_fab.resize(nlocal);
-    for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
+    {
         const int li = mfi.LocalIndex();
         const int flgi = fine_local_grid_index[li];
         FArrayBox& fab = m_cfpatch[mfi];
         m_cfp_fab[flgi].push_back(&fab);
+    }
+
+    bool is_periodic = m_fine_geom.isAnyPeriodic();
+    if (is_periodic) {
+        m_cfp_mask.define(cfp_ba, cfp_dm, 1, 0);
+
+        const Box& domainbox = m_crse_geom.Domain();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            std::vector< std::pair<int,Box> > isects;
+
+            for (MFIter mfi(m_cfp_mask); mfi.isValid(); ++mfi)
+            {
+                auto& fab = m_cfp_mask[mfi];
+                fab.setVal(1.0);
+                const Box& bx = fab.box();
+                if (!domainbox.contains(bx))  // part of the box is outside periodic boundary
+                {
+                    for (const auto& iv : pshifts)
+                    {
+                        if (iv != IntVect::TheZeroVector())
+                        {
+                            cfba.intersections(bx+iv, isects);
+                            for (const auto& is : isects)
+                            {
+                                const Box& ibx = is.second - iv;
+                                fab.setVal(0.0, ibx, 0, 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -346,7 +385,22 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
 void
 EBFluxRegister::Reflux (MultiFab& state)
 {
+    if (!m_cfp_mask.empty())
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
+        {
+            for (int i = 0; i < m_ncomp; ++i) {
+                m_cfpatch[mfi].mult(m_cfp_mask[mfi],0,i);
+            }
+        }
+    }
+
+
     m_crse_data.ParallelCopy(m_cfpatch, m_crse_geom.periodicity(), FabArrayBase::ADD);
+
     MultiFab::Add(state, m_crse_data, 0, 0, m_ncomp, 0);
 }
 

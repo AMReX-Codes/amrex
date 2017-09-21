@@ -109,6 +109,7 @@ private:
     Array<int> m_crse_fab_flag;
     
     MultiFab m_cfpatch;                   // This is built on crse/fine patches
+    MultiFab m_cfp_mask;
     Array<Array<FArrayBox*> > m_cfp_fab;  // The size of this is (# of local fine grids (# of crse/fine patches for that grid))
 
     Geometry m_fine_geom;
