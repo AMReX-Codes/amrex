@@ -47,13 +47,19 @@ particles.species_names = electrons protons
 electrons.charge = -q_e
 electrons.mass = m_e
 electrons.injection_style = "gaussian_beam"
-electrons.gaussian_beam_mean = 0
-electrons.gaussian_beam_sigma = 0.25
-electrons.gaussian_beam_vel = -0.04
+electrons.x_rms = 0.25
+electrons.y_rms = 0.25
+electrons.z_rms = 0.25
+electrons.x_m = 0.
+electrons.y_m = 0.
+electrons.z_m = 0.
+electrons.npart = 32768
+electrons.q_tot = -8.010883097437485e-07
 
 electrons.profile = "constant"
 electrons.density = 1
-electrons.momentum_distribution_type = "constant"
+electrons.momentum_distribution_type = "radial_expansion"
+electrons.u_over_r = -0.04
 
 electrons.xmin = -2
 electrons.xmax =  2
@@ -69,13 +75,19 @@ electrons.zmax =  2
 protons.charge = q_e
 protons.mass = m_p
 protons.injection_style = "gaussian_beam"
-protons.gaussian_beam_mean = 0
-protons.gaussian_beam_sigma = 0.25
-protons.gaussian_beam_vel = 0.0
+protons.x_rms = 0.25
+protons.y_rms = 0.25
+protons.z_rms = 0.25
+protons.x_m = 0.
+protons.y_m = 0.
+protons.z_m = 0.
+protons.npart = 32768
+protons.q_tot = 8.010883097437485e-07
 
 protons.profile = "constant"
 protons.density = 1
-protons.momentum_distribution_type = "constant"
+protons.momentum_distribution_type = "radial_expansion"
+protons.u_over_r = 0.
 
 protons.xmin = -2
 protons.xmax =  2
