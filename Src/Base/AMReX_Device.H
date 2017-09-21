@@ -98,6 +98,10 @@ public:
 
 #if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
     static void c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
+
+    static cudaStream_t stream_from_index (int idx);
+
+    static void initialize_cuda_c ();
 #endif
 
 private:
@@ -106,6 +110,10 @@ private:
     static int device_id;
     static int is_device_program_running;
 
+#ifdef AMREX_USE_CUDA
+    static const int max_cuda_streams = 100;
+    static cudaStream_t cuda_streams[max_cuda_streams];
+#endif
 };
 
 }
