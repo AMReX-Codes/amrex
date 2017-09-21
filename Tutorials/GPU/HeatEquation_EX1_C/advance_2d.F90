@@ -4,74 +4,10 @@ module advance_module
 
 contains
 
-  subroutine compute_flux (lo, hi, phi, philo, phihi, &
-                           flux, flo, fhi, dx, idir) bind(C, name="compute_flux")
-
-    use amrex_fort_module, only: rt => amrex_real
-#ifdef AMREX_USE_CUDA
-    use cuda_module, only: cuda_stream, numBlocks, numThreads
-#endif
-
-    implicit none
-
-    integer,  intent(in   ) :: lo(2), hi(2), philo(2), phihi(2), flo(2), fhi(2)
-    real(rt), intent(in   ) :: phi (philo(1):phihi(1),philo(2):phihi(2))
-    real(rt), intent(inout) :: flux(  flo(1):  fhi(1),  flo(2):  fhi(2))
-    real(rt), intent(in   ) :: dx(2)
-    integer,  intent(in   ), value :: idir
-
-#ifdef AMREX_USE_CUDA
-    attributes(device) :: phi, flux, dx, philo, phihi, flo, fhi
-    attributes(managed) :: lo, hi
-#endif
-
-    call compute_flux_doit &
-#ifdef AMREX_USE_CUDA
-         <<<numBlocks, numThreads, 0, cuda_stream>>> &
-#endif
-         (lo, hi, phi, philo, phihi, flux, flo, fhi, dx, idir)
-
-  end subroutine compute_flux
-
-
-
-  subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-                         fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt) bind(C, name="update_phi")
-
-    use amrex_fort_module, only: rt => amrex_real
-#ifdef AMREX_USE_CUDA
-    use cuda_module, only: cuda_stream, numBlocks, numThreads
-#endif
-
-    implicit none
-
-    integer,  intent(in   ) :: lo(2), hi(2), polo(2), pohi(2), pnlo(2), pnhi(2), fxlo(2), fxhi(2), fylo(2), fyhi(2)
-    real(rt), intent(in   ) :: phiold(polo(1):pohi(1),polo(2):pohi(2))
-    real(rt), intent(inout) :: phinew(pnlo(1):pnhi(1),pnlo(2):pnhi(2))
-    real(rt), intent(in   ) :: fluxx (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
-    real(rt), intent(in   ) :: fluxy (fylo(1):fyhi(1),fylo(2):fyhi(2))
-    real(rt), intent(in   ) :: dx(2)
-    real(rt), intent(in   ), value :: dt
-
-#ifdef AMREX_USE_CUDA
-    attributes(device) :: phiold, phinew, fluxx, fluxy, dx, polo, pohi, pnlo, pnhi, fxlo, fxhi, fylo, fyhi
-    attributes(managed) :: lo, hi
-#endif
-
-    call update_phi_doit &
-#ifdef AMREX_USE_CUDA
-         <<<numBlocks, numThreads, 0, cuda_stream>>> &
-#endif
-         (lo, hi, phiold, polo, pohi, &
-          phinew, pnlo, pnhi, fluxx, fxlo, fxhi, &
-          fluxy, fylo, fyhi, dx, dt)
-
-  end subroutine update_phi
-
 #ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
-  subroutine compute_flux_doit (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir)
+  subroutine compute_flux (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir) bind(c, name='compute_flux')
 
     use amrex_fort_module, only: rt => amrex_real, get_loop_bounds
 
@@ -101,15 +37,15 @@ contains
        end do
     end do
 
-  end subroutine compute_flux_doit
+  end subroutine compute_flux
 
 
 
 #ifdef AMREX_USE_CUDA
   attributes(global) &
 #endif
-  subroutine update_phi_doit (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
-                              fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt)
+  subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
+                         fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt) bind(c, name='update_phi')
 
     use amrex_fort_module, only: rt => amrex_real, get_loop_bounds
 
@@ -142,6 +78,6 @@ contains
        end do
     end do
 
-  end subroutine update_phi_doit
+  end subroutine update_phi
 
 end module advance_module

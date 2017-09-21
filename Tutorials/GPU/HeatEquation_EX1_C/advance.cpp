@@ -36,12 +36,11 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 
             const Box& sbx = mfi.nodaltilebox(idir-1);
 
-            Device::prepare_for_launch(sbx.loVect(), sbx.hiVect());
-
-            compute_flux(BL_TO_FORTRAN_BOX(sbx),
-                         BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                         BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
-                         dx, idir);
+            FORT_LAUNCH(mfi, sbx, compute_flux,
+                        BL_TO_FORTRAN_BOX(sbx),
+                        BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+                        BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
+                        dx, idir);
 
         }
 
@@ -52,17 +51,16 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
 
-        Device::prepare_for_launch(bx.loVect(), bx.hiVect());
-
-        update_phi(BL_TO_FORTRAN_BOX(bx),
-                   BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(new_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-                   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+        FORT_LAUNCH(mfi, bx, update_phi,
+                    BL_TO_FORTRAN_BOX(bx),
+                    BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+                    BL_TO_FORTRAN_ANYD(new_phi[mfi]),
+                    BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+                    BL_TO_FORTRAN_ANYD(flux[1][mfi]),
 #if (AMREX_SPACEDIM == 3)   
-                   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+                    BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                   dx, dt);
+                    dx, dt);
     }
 
 }
