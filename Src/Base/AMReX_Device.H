@@ -102,6 +102,8 @@ public:
     static cudaStream_t stream_from_index (int idx);
 
     static void initialize_cuda_c ();
+
+    static cudaStream_t cudaStream() { return cuda_stream; }
 #endif
 
 private:
@@ -113,6 +115,7 @@ private:
 #ifdef AMREX_USE_CUDA
     static const int max_cuda_streams = 100;
     static cudaStream_t cuda_streams[max_cuda_streams];
+    static cudaStream_t cuda_stream;
 #endif
 };
 
