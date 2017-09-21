@@ -36,7 +36,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
 
             const Box& sbx = mfi.nodaltilebox(idir-1);
 
-            FORT_LAUNCH(mfi, sbx, compute_flux,
+            FORT_LAUNCH(sbx, compute_flux,
                         BL_TO_FORTRAN_BOX(sbx),
                         BL_TO_FORTRAN_ANYD(old_phi[mfi]),
                         BL_TO_FORTRAN_ANYD(flux[idir-1][mfi]),
@@ -51,7 +51,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     {
         const Box& bx = mfi.validbox();
 
-        FORT_LAUNCH(mfi, bx, update_phi,
+        FORT_LAUNCH(bx, update_phi,
                     BL_TO_FORTRAN_BOX(bx),
                     BL_TO_FORTRAN_ANYD(old_phi[mfi]),
                     BL_TO_FORTRAN_ANYD(new_phi[mfi]),

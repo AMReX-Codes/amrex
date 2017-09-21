@@ -44,23 +44,22 @@
 // as bounds of the box to launch the kernel on.
 
 // The form of the function launch MUST be:
-// FORT_LAUNCH(mfi, box, function, ...)
+// FORT_LAUNCH(box, function, ...)
 // where everything after the function name (represented here by ...)
 // are the actual function arguments, as defined in the Fortran subroutine.
-// mfi is the MFIter, and box is the current Box for this MFIter iteration.
+// box is the current Box for this MFIter iteration.
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
-#define FORT_LAUNCH(mfi, box, function, ...)  \
+#define FORT_LAUNCH(box, function, ...)  \
     dim3 numBlocks, numThreads; \
     Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
-    cudaStream_t stream = Device::stream_from_index(mfi.tileIndex()); \
-    function<<<numBlocks, numThreads, 0, stream>>>(__VA_ARGS__)
+    function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__)
 #define FORT_LAUNCHABLE(func) __global__ func
 
 #else
 
-#define FORT_LAUNCH(mfi, box, function, ...) function(__VA_ARGS__)
+#define FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
 #define FORT_LAUNCHABLE(func) func
 
 #endif
