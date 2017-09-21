@@ -10,6 +10,27 @@
 bool amrex::Device::in_device_launch_region = false;
 int amrex::Device::device_id = 0;
 
+cudaStream_t amrex::Device::cuda_streams[max_cuda_streams];
+
+void
+amrex::Device::initialize_cuda_c () {
+
+    for (int i = 0; i < max_cuda_streams; ++i)
+        cudaStreamCreate(&cuda_streams[i]);
+
+}
+
+cudaStream_t
+amrex::Device::stream_from_index(int idx) {
+
+    if (idx < 0)
+        return 0;
+    else
+        return cuda_streams[idx % max_cuda_streams];
+
+}
+
+
 void
 amrex::Device::initialize_device() {
 
@@ -111,6 +132,8 @@ amrex::Device::initialize_device() {
 #endif
 
     initialize_cuda(&device_id, &my_rank);
+
+    initialize_cuda_c();
 
 #endif
 
