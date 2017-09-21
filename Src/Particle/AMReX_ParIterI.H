@@ -1,6 +1,40 @@
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBase 
+  (ContainerRef pc, int level, MFItInfo& info)
+    : 
+      MFIter(*pc.m_dummy_mf[level], info.EnableTiling(pc.tile_size)),
+      m_level(level),
+      m_pariter_index(0)
+{
+    auto& particles = pc.GetParticles(level);
+    
+    for (int i = 0; i < endIndex; ++i)
+    {
+        int grid = (*index_map)[i];
+        int tile = local_tile_index_map ? (*local_tile_index_map)[i] : 0;
+        auto key = std::make_pair(grid,tile);
+        auto f = particles.find(key);
+        if (f != particles.end() && f->second.numParticles() > 0)
+        {
+            m_valid_index.push_back(i);
+            m_particle_tiles.push_back(&(f->second));
+        }
+    }
+
+    if (m_valid_index.empty())
+    {
+        endIndex = beginIndex;
+    }
+    else
+    {
+        currentIndex = beginIndex = m_valid_index.front();
+        m_valid_index.push_back(endIndex);
+    }
+}
+
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBase 
   (ContainerRef pc, int level)
     : 
     MFIter(*pc.m_dummy_mf[level],
