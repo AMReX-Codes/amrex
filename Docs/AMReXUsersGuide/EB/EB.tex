@@ -1,4 +1,7 @@
 \newcommand{\xbold}{{\bf x}}
+\newcommand{\ibold}{{\bf i}}
+\newcommand{\jbold}{{\bf j}}
+\newcommand{\kbold}{{\bf k}}
 \newcommand{\ebis}{{\tt EBIndexSpace}}
 \newcommand{\baseif}{{\tt BaseIF}}
 \newcommand{\sphereif}{{\tt SphereIF}}
@@ -9,42 +12,48 @@
 \newcommand{\geom}{{\tt GeometryShop}}
 \newcommand{\parm}{{\tt ParmParse}}
 
-For computations with complex geometries, $\tt{AMReX}$ provides data
-structures and iterators for performing Cartesian grid, embedded
-boundary (EB) calculations.   Examples include elliptic solvers and a
-compressible Navier Stokes simulation.  
-The overall goals of $\tt{AMReX}$'s EB tools are to allow users 
-to write simulations involving complex geomtery  without having to
-rewrite the common motifs that appear in these calculations.  
-We give an overview of $\tt{AMReX}$'s EB classes and how to use them.
-
 \section{Overview of Embedded Boundary Description}
 \label{sec:EB:EBOverview}
 
-Cartesian grids with embedded boundaries are 
-useful to describe
-volume-of-fluid representations of irregular boundaries.
+For computations with complex geometries, $\tt{AMReX}$ provides data
+structures and iterators for performing Cartesian grid, embedded
+boundary (EB) calculations.    In this description, the surface of the
+geometry cuts the Cartesian cells.   See figure \ref{fig::ebexample}
+for an illustration.    Because this is a relatively simple grid
+generation technique, grids can be generated quickly and robustly.
+This description can produces arbitrarily small computational volumes,
+however.    This can increase the complexity of embedded boundary
+algorithms.   This is explained more below.
 In this description,
-geometry is represented by volumes ($\Lambda h^d$) and apertures 
-($\vec{A}^\alpha h^{d-1}$).   See figure \ref{fig::volume}
-for an illustration.  In the figure, the grey area represents 
-the region excluded from the solution domain and the arrows represent
-fluxes.  A conservative, ``finite volume'' discretization
-of a flux divergence $\nabla \cdot \vec{F}$ is of the form:
+geometry is represented by volumes ($V = \kappa h^d$) and apertures 
+($A= \alpha h^{d-1}$).   See figure \ref{fig::volume}
+for an illustration.     
+
+\subsection{Finite Volume Discretizations}
+Cartesian grids with embedded boundaries are 
+useful to describe volume-of-fluid representations of irregular
+boundaries.   
+Consider a system of hyperbolic equations for a conserved quantity $U$
+with fluxes $F$:
 \begin{equation}
-\nabla \cdot \vec{F} \approx \frac{1}{\Lambda h} \sum \vec{F}^\alpha \cdot
-\vec{A}^\alpha
+\frac{\partial U}{\partial t} + \nabla \cdot F = 0.
+\label{eqn::hypsys}
 \end{equation}
-This is useful for many important partial differential equations.
-Consider  Poisson's equation with Neumann boundary conditions
+A conservative, finite volume discretization starts with
+the divergence theorm
+$$
+\int_V \nabla \cdot F dV = \int_{\partial V} F \cdot n dA.
+$$
+In an embedded boundary cell, the divergence is discretized  (as
+$D^c(F)$) as follows
 \begin{equation}
-\nabla \cdot \vec{F} = \Delta \phi = \rho \hbox{ on $\Omega$ }.
+D^c(F) = \frac{1}{\kappa h} \left( \sum^D_{d = 1}
+  (F_{d, hi}A_{d,hi} - F_{d, lo}A_{d,lo})  + F^{EB} A^{EB} \right).
+\label{eqn::ebdiv}
 \end{equation}
-\begin{equation}
-\frac{\partial \phi}{\partial n} = 0 \hbox{ on $\partial \Omega$}
-\end{equation}
-The volume-of fluid description reduces the problem to finding
-sufficiently accurate gradients at the apertures.   
+See figure \ref{fig::eb_fluxes} for an illustration.  For a second
+order discretization of the divergence, fluxes must be centered at the
+centroids of the faces.  
 The only geometric information required for second order embedded
 boundary algorithms are:
 \begin{itemize}
@@ -55,71 +64,92 @@ Area fractions
 \item 
 Centers of volume, area.
 \end{itemize}
-The problem with this description of the geometry 
-is it can create  multiply-valued cells and
-non-rectangular connectivity.
-Refer to figure \ref{fig::graph}.  
-The interior of the cartoon airfoil represents the area
-excluded from the domain and the lines connecting the cell centers
-represent the connectivity of the discrete domain
-This very simple geometry produces a graph
-which is more complex than a rectangular lattice simply because
-the grid which surrounds it cannot resolve the geometry.
-The lack of resolution is fundamental to many geometries 
-of interest (trailing edges of airfoils, infinitely thin shells).
-Algorithms which require grid coarsening (multigrid, for example)
-also produce grids where such complex connectivity occurs.
-The connectivity can become arbitrarily complex (see figure 
-\ref{fig::multidivide}) in general, so the software infrastructure
-must support abstractions which can express this complexity.
 
-Our solution to this abstraction problem is to
-define the embedded boundary grid as a graph.
-The irregular part of the index space can be represented by a graph 
-$G = \{N,E\}$, where $N$ is the set of all nodes in the graph, and 
-$E$ the set of all edges of the graph connecting various pairs of 
-nodes. Geometrically,
-the nodes correspond to irregular control volumes (cell fragments) 
-cut out by the intersection of the body with the rectangular mesh, and 
-the edges correspond to the parts of cell faces that abut a pair of irregular 
-cell fragments. The remaining parts of space are indexed using elements
-of $Z^d$, or are covered by the body, and not indexed into at all. However,
-it is possible to think of the entire index space (both the regular and
-irregular parts) as a graph: in the regular part of the index space,
-the nodes are just elements of $Z^d$, and the 
-edges are the cell faces that
-separate pair of successive cells along the coordinate directions. 
+\subsection{Small Cells And Hyperbolic Stability}
 
+A naive time discretization of \ref{eqn::hypsys}
+using \ref{eqn::ebdiv},
+$$
+U^{n+1} = U^{n} - \delta t D^c(F)
+$$
+would have a time step constraint $\dt < h \kappa^{1/D}/V_m$,  that
+goes to zero as the size of the 
+smallest volume  fraction $\kappa$ in the calculation.  Since these volume fractions can
+be arbitrarily small, this is an unacceptable constraint.  One way to remedy
+this is to create  non-conservative approximation to the divergence
+$D^{nc}$, which at a cell $\ibold$, an average of the conservative divergences in the
+$N_\ibold$, the neighborhood of $\ibold$.
+$$
+D^{nc}(F)_\ibold = \frac{\sum_{\jbold \in N_\ibold}\kappa_\jbold D(F)_\jbold}{\sum_{\jbold \in N_\ibold}\kappa_\jbold}
+$$
+We then update the solution using a hybrid divergence $D^H(F) =
+\kappa D^c(F) + (1-\kappa)D^{nc})$
+$$
+U^{n+1,*} = U^n - \delta t D^H(F)
+$$
+To preserve conservation, we calculate $\delta M$, how much mass was gained or
+lost due to not using $D^c$ directly
+$$
+\delta M_\ibold = \kappa (1-\kappa)(D^c(F)_\ibold - D^{nc}(F)_\ibold)
+$$
+We then redistribute this extra mass to neighbors.   The mass is
+broken up into pieces, one for each neighbor $\jbold \in N_\ibold$:
+$$
+\delta M_\ibold = \sum_{\jbold \in N_\ibold} \delta M_{\jbold, \ibold}.
+$$
+A common weighting scheme is  
+mass weighting, where higher density cells get more of the
+redistribution mass.    If $\rho$ is the mass density, this takes the
+form
+$$
+\delta M_{\jbold, \ibold} = \frac{\kappa_\jbold
+  \rho_\jbold}{\sum_{\kbold \in N_\ibold} \kappa_\kbold \rho_\kbold}
+$$
+The solution in the neighborhood is updated using this redistribution
+mass, for all $\jbold \in N_\ibold$,
+$$
+U^{n+1}_\jbold = U^{n+1,*}_\jbold + \delta M_{\jbold,\ibold}
+$$
+See  figure \ref{fig::redistribution} for an illustration of a
+redistribution neighborhood.   Typically, one uses as a neighborhood
+every cell that can be reached via a  monotonic path of unit length.
 
-\begin{figure}
+\begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth]{./EB/volume.pdf}
+  \includegraphics[width=0.5\textwidth]{./EB/areas_and_volumes.pdf}
 \caption{\label{fig::volume}Embedded boundary cell. The grey area represents 
-the region excluded from the solution domain and the arrows represent
-fluxes.}
+the region excluded from the solution.   The areas (labelled with A) are the uncovered
+regions of the cell faces.  The volume (labelled V) is the uncovered
+region of the interior.}
 \end{figure}
 
-\begin{figure}
+
+\begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth]{./EB/graph.pdf}
-\caption{Example of embedded boundary description of an interface. 
-The interior of the cartoon airfoil represents the area
-excluded from the domain and the lines connecting the cell centers
-represent the graph connectivity of the discrete domain.    }
-\label{fig::graph}
+  \includegraphics[width=0.5\textwidth]{./EB/EB_example.pdf}
+\caption{\label{fig::ebexample}Embedded boundary example.   We cut the
+  Cartesian grid with the surface of the geometry.  The parts covered
+  by the geometry (the shaded region) are excluded from the domain.}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
   \centering
-  \includegraphics[width=\textwidth]{./EB/multidivide.pdf}
-\caption{\label{fig::multidivide}Example of embedded boundary description of an interface
-and its corresponding graph description.  The graph
-can be almost arbitrarily complex when the grid is
-underresolved.}
+  \includegraphics[width=0.5\textwidth]{./EB/eb_fluxes.pdf}
+\caption{\label{fig::eb_fluxes}Embedded boundary example.   We cut the
+  Cartesian grid with the surface of the geometry.  The parts covered
+  by the geometry (the shaded region) are excluded from the domain.}
 \end{figure}
 
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=0.5\textwidth]{./EB/redist.pdf}
+\caption{\label{fig::redistribution}
+Redistribution illustration.  Excess mass due to using a hybrid
+divergence $D^H$ instead of the conservative divergence $D^C$ is
+distributed among neighbors.}
+\end{figure}
 
-\section{Initializing \ebis}
+\section{Initializing \ebis, the Geometric Database}
 \label{sec:EB:ebinit}
 
 This geometric information, along with its associated connectivity
@@ -191,19 +221,15 @@ needs to send it a \baseif, which describes an implict function.
     GeometryShop(const BaseIF& a_localGeom)
 \end{lstlisting}
 
-The implicit function's interface needs to be able to do two things,
-create a copy of itself and return the value of the function at any
+The implicit function must be able to return the value of the function at any
 point in space.
 
 \begin{lstlisting}[language=cpp]
     /// Return the value of the function at a_point.  
     virtual Real value(const RealVect& a_point) const = 0;
-
-    ///   Return a newly allocated derived class.  
-    virtual BaseIF* newImplicitFunction() const = 0;
 \end{lstlisting}
 
-To continue with the example above, if one wants to define a geometry
+;To continue with the example above, if one wants to define a geometry
 as a domain with  a sphere cut out of it, one uses the \sphereif
 class, the functions of which are shown below.
 
@@ -257,6 +283,7 @@ following classes which are used compose implicit functions.
 \item $\tt{LatheIF}$        creates a 3D implicit function as the surface of
   revolution of a 2D implicit function.
 \end{itemize}
+\subsection{Geometric example 1 -- Multi-sphere}
 Here is an example that uses many of these tools.  This example
 creates a geometry with multiple spheres cut out.
 
@@ -286,6 +313,7 @@ ComplementIF sideImpMultisphere(impMultisphere, false);
 GeometryShop workshop(sideImpMultisphere)
 \end{lstlisting}
 
+\subsection{Geometric example 2 -- Surface of revolution}
 
 \section{$\tt{EBFarrayBox}$}
 
