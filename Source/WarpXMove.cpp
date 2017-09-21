@@ -108,11 +108,14 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     const BoxArray& ba = mf.boxArray();
     const DistributionMapping& dm = mf.DistributionMap();
     const int nc = mf.nComp();
-    const int ng = std::max(mf.nGrow(), std::abs(num_shift));
+    const int ng = mf.nGrow();
+    
+    BL_ASSERT(ng >= num_shift);
+    
     MultiFab tmpmf(ba, dm, nc, ng);
-    MultiFab::Copy(tmpmf, mf, 0, 0, nc, mf.nGrow());
+    MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
-
+    
     // Make a box that covers the region that the window moved into
     const IndexType& typ = ba.ixType();
     const Box& domainBox = geom.Domain();
