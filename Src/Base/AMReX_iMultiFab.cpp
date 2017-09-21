@@ -204,9 +204,10 @@ iMultiFab::iMultiFab (const BoxArray&            bxs,
                       const DistributionMapping& dm,
                       int                        ncomp,
                       int                        ngrow,
-		      const MFInfo&              info)
+		      const MFInfo&              info,
+                      const FabFactory<IArrayBox>& factory)
     :
-    FabArray<IArrayBox>(bxs,dm,ncomp,ngrow,info)
+    FabArray<IArrayBox>(bxs,dm,ncomp,ngrow,info,factory)
 {
 }
 
@@ -375,13 +376,13 @@ iMultiFab::minIndex (int comp,
 	
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    const Box& box = amrex::grow(mfi.validbox(),nghost);
-	    const int  lmn = get(mfi).min(box,comp);
+	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
+	    const int  lmn = get(mfi).min(bx,comp);
 	    
 	    if (lmn < priv_mn)
 	    {
 		priv_mn  = lmn;
-		priv_loc = get(mfi).minIndex(box,comp);
+		priv_loc = get(mfi).minIndex(bx,comp);
 	    }
 	}
 
@@ -461,13 +462,13 @@ iMultiFab::maxIndex (int comp,
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
-	    const Box& box = amrex::grow(mfi.validbox(),nghost);
-	    const int  lmx = get(mfi).max(box,comp);
+	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
+	    const int  lmx = get(mfi).max(bx,comp);
 	    
 	    if (lmx > priv_mx)
 	    {
 		priv_mx  = lmx;
-		priv_loc = get(mfi).maxIndex(box,comp);
+		priv_loc = get(mfi).maxIndex(bx,comp);
 	    }
 	}
 

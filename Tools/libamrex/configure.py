@@ -43,6 +43,10 @@ def configure(argv):
                         help="Enable AMReX Fortran API [default=yes]",
                         choices=["yes","no"],
                         default="yes")
+    parser.add_argument("--enable-linear-solver",
+                        help="Enable AMReX linear solvers [default=no]",
+                        choices=["yes","no"],
+                        default="no")                        
     parser.add_argument("--allow-different-compiler",
                         help="Allow an application to use a different compiler than the one used to build libamrex [default=no]",
                         choices=["yes","no"],
@@ -73,6 +77,10 @@ def configure(argv):
         f.write("USE_FORTRAN_INTERFACE = FALSE\n")
     else:
         f.write("USE_FORTRAN_INTERFACE = TRUE\n")
+    if args.enable_linear_solver == "no":
+        f.write("USE_LINEAR_SOLVERS = FALSE\n")
+    else:
+        f.write("USE_LINEAR_SOLVERS = TRUE\n")
     if args.allow_different_compiler == "no":
         f.write("ALLOW_DIFFERENT_COMP = FALSE\n")
     else:

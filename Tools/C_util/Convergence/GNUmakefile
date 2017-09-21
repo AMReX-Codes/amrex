@@ -1,4 +1,3 @@
-AMREX_HOME ?= ../../..
 
 TOP = $(AMREX_HOME)
 #
@@ -9,7 +8,7 @@ DEBUG	      = TRUE
 DEBUG	      = FALSE
 DIM	      = 2
 COMP          = g++
-USE_MPI       = TRUE
+USE_MPI       = TRUE 
 #
 # Base name of the executable.
 #
@@ -17,7 +16,8 @@ USE_MPI       = TRUE
 #EBASE = ComputeAmrDataNorms
 #EBASE = DiffFab
 #EBASE = DiffSameDomainRefined
-EBASE = DiffSameDomainRefinedStag
+#EBASE = DiffSameDomainRefinedComposite
+#EBASE = DiffSameDomainRefinedStag
 #EBASE = DiffSameGrid2
 #EBASE = DiffSameGrid
 #EBASE = DiffSameGridRefined

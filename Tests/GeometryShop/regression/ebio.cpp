@@ -34,6 +34,7 @@
 #include "AMReX_IrregFAB.H"
 #include "AMReX_EBDataVarMacros.H"
 #include "AMReX_FabArrayIO.H"
+#include "AMReX_parstream.H"
 
 namespace amrex
 {
@@ -226,7 +227,9 @@ namespace amrex
           Real tol = 1.0e-9;
           if(std::abs(val1-val2) > tol)
           {
-            amrex::Print() << "checkvof: value mismatch at ivec, ivar = "<< ivec  << ","<< icomp<< endl;
+            amrex::Print() << "bad vof = "  << vvof1[ivec] << endl;
+            amrex::Print() << "checkvof: vof value mismatch at ivec, ivar = "<< ivec  << ","<< icomp<< endl;
+            amrex::Print() << "val1 = "  << val1 << ", val2 =" << val2 << endl;
             return -6;
           }
         }
@@ -255,15 +258,23 @@ namespace amrex
             amrex::Print() << "checkvof: vof mismatch at ivec = "<< ivec << endl;
             return -9;
           }
-          for(int icomp = 0; icomp <  F_FACENUMBER; icomp++)
+          const FaceIndex& face = vfac1[ivec];
+          Box reg = ebd1.getRegion();
+          if((reg.contains(face.gridIndex(Side::Lo)))  || (reg.contains(face.gridIndex(Side::Hi))))
           {
-            Real val1 = fdata1(vfac1[ivec], icomp);
-            Real val2 = fdata2(vfac2[ivec], icomp);
-            Real tol = 1.0e-9;
-            if(std::abs(val1-val2) > tol)
+            for(int icomp = 0; icomp <  F_FACENUMBER; icomp++)
             {
-              amrex::Print() << "checkvof: value mismatch at ivec, ivar = "<< ivec  << ","<< icomp<< endl;
-              return -10;
+              Real val1 = fdata1(vfac1[ivec], icomp);
+              Real val2 = fdata2(vfac2[ivec], icomp);
+              Real tol = 1.0e-9;
+              if(std::abs(val1-val2) > tol)
+              {
+                amrex::Print() << "bad face = "  << vfac1[ivec] << endl;
+                amrex::Print() << "eblg domain = " << a_eblg.getDomain() << endl;
+                amrex::Print() << "val1 = "  << val1 << ", val2 =" << val2 << endl;
+                amrex::Print() << "checkvof: face value mismatch at ivec, ivar = "<< ivec  << ","<< icomp<< endl;
+                return -10;
+              }
             }
           }
         }
@@ -278,7 +289,7 @@ namespace amrex
     Box domain;
     Real dx;
     //make the initial geometry
-    //pout() << "making EBIS" << endl;
+    amrex::AllPrint() << "making EBIS" << endl;
     makeGeometry(domain, dx);
     //extract all the info we can from the singleton
     EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
@@ -286,7 +297,7 @@ namespace amrex
     vector<Box> domainsIn = ebisPtr->getDomains();
     int nCellMaxIn = ebisPtr->getNCellMax();
 
-    //pout() << "making EBLevelGrids"  << endl;
+    amrex::AllPrint() << "making eblgIn EBLevelGrids"  << endl;
     vector<EBLevelGrid> eblgIn(numLevelsIn);
     for(int ilev = 0; ilev < numLevelsIn; ilev++)
     {
@@ -296,18 +307,19 @@ namespace amrex
       DistributionMapping dm(ba);
       eblgIn[ilev]= EBLevelGrid(ba, dm, domain, 2);
     }
-    //pout() << "writing EBIS" << endl;
+    amrex::AllPrint() << "writing EBIS" << endl;
     //write the singleton and erase it.
     ebisPtr->write("ebis.plt");
     ebisPtr->clear();
 
     //now read it back in and get all that info again
-    //pout() << "reading EBIS" << endl;
+    amrex::AllPrint() << "reading EBIS" << endl;
     ebisPtr->read("ebis.plt");
     int numLevelsOut = ebisPtr->getNumLevels();
     vector<Box> domainsOut = ebisPtr->getDomains();
     int nCellMaxOut = ebisPtr->getNCellMax();
       
+    amrex::AllPrint() << "making eblgOut EBLevelGrids"  << endl;
     vector<EBLevelGrid> eblgOut(numLevelsOut);
     for(int ilev = 0; ilev < numLevelsOut; ilev++)
     {
@@ -318,7 +330,7 @@ namespace amrex
       eblgOut[ilev]= EBLevelGrid(ba, dm, domain, 2);
     }
 
-    //pout() << "checking EBIS" << endl;
+    amrex::Print() << "checking EBIS" << endl;
     //now check that in==out
     if(numLevelsOut != numLevelsIn)
     {

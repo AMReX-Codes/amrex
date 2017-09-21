@@ -13,7 +13,6 @@
 #ifndef _EBFLUXFAB_H_
 #define _EBFLUXFAB_H_
 
-#include <vector>
 #include "AMReX_Box.H"
 #include "AMReX_EBFaceFAB.H"
 #include "AMReX_IrregFAB.H"
@@ -34,10 +33,11 @@ namespace amrex
     /**
        This stuff required by LevelData in parallel:
     */
-    static int preAllocatable()
+    static bool preAllocatable()
       {
-        return 1; // symmetric messaging
+        return true; // symmetric messaging
       }
+    static bool isCopyOMPSafe () { return true; }
 
     /// default constructor
     EBFluxFAB();

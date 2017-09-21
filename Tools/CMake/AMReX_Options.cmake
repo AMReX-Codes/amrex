@@ -37,7 +37,7 @@ message (STATUS "Configuring AMReX with the following options: ")
 if ( NOT CMAKE_BUILD_TYPE )
    # Default to Release if no other build type specified
    set ( CMAKE_BUILD_TYPE "Release" CACHE STRING
-      "Choose the type of build, options are: Debug Release."
+      "Choose the type of build, options are: Debug, Release."
       FORCE )
 endif ()
 
@@ -52,12 +52,6 @@ message ( STATUS "   CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE} (STRING:\
 
 message ( STATUS "   CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX} (STRING: <path to install dir>)" )
 
-
-set (ENABLE_FORTRAN_MPI 1 CACHE INT "Enable Fortran MPI Communicator" )
-check_option_value ( "ENABLE_FORTRAN_MPI" ${ENABLE_FORTRAN_MPI} 0 1 )
-
-set (ENABLE_FBASELIB 0 CACHE INT "Enable Fortran BaseLib" )
-check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
 
 set (ENABLE_PIC 0 CACHE INT
    "Compile with position-independent code enabled")
@@ -87,7 +81,13 @@ check_option_value ( "ENABLE_PROFILING" ${ENABLE_PROFILING} 0 1 )
 set (ENABLE_TINY_PROFILING 0 CACHE INT "Include 'tiny'-profiling information in AMReX build")
 check_option_value ( "ENABLE_TINY_PROFILING" ${ENABLE_TINY_PROFILING} 0 1 )
 
-set (ENABLE_BACKTRACE 1 CACHE INT "Include backtrace information in AMReX build")
+set (ENABLE_TRACE_PROFILING 0 CACHE INT  "Include trace-profiling information in AMReX build" )
+check_option_value ( "ENABLE_TRACE_PROFILING" ${ENABLE_TRACE_PROFILING} 0 1 )
+
+set (ENABLE_COMM_PROFILING 0 CACHE INT  "Include comm-profiling information in AMReX build" )
+check_option_value ( "ENABLE_COMM_PROFILING" ${ENABLE_COMM_PROFILING} 0 1 )
+
+set (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in AMReX build")
 check_option_value ( "ENABLE_BACKTRACE" ${ENABLE_BACKTRACE} 0 1 )
 
 set (ENABLE_FPE 0 CACHE INT "Enable Floating Point Exceptions checks")
@@ -96,20 +96,19 @@ check_option_value ( "ENABLE_FPE" ${ENABLE_FPE} 0 1 )
 set (ENABLE_ASSERTIONS 0 CACHE INT "Enable assertions")
 check_option_value ( "ENABLE_ASSERTIONS" ${ENABLE_ASSERTIONS} 0 1 )
 
+set (ENABLE_FORTRAN_INTERFACES 1 CACHE INT "Include Fortran interfaces in AMReX build")
+check_option_value ( "ENABLE_FORTRAN_INTERFACES" ${ENABLE_FORTRAN_INTERFACES} 0 1 )
+
+set (ENABLE_LINEAR_SOLVERS 1 CACHE INT "Include Linear solvers in AMReX build")
+check_option_value ( "ENABLE_LINEAR_SOLVERS" ${ENABLE_LINEAR_SOLVERS} 0 1 )
+
+set ( ENABLE_FBASELIB 1 CACHE INT  "Enable Fortran BaseLib" )
+check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
+
+
 set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
 set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
-
-
-#
-# The following are a set of options from previous
-# version of AMReX/CMake. Their use is unclear
-#
-set ( ENABLE_MG_BOXLIB 0 CACHE INT "Enable Fortran for MultiGrid Solver" )
-check_option_value ( "ENABLE_FMG" ${ENABLE_MG_BOXLIB} 0 1 )
-
-set ( ENABLE_FBASELIB 0 CACHE INT  "Enable Fortran BaseLib" )
-check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
 
 # After the options are set, define the following variable
 # so that other included file can check if this file has been

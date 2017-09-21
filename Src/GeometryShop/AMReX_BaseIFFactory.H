@@ -41,6 +41,10 @@ namespace amrex
         return new  BaseIFFAB<T>(ivs, graph, m_direction, ncomps);
       }
 
+    virtual BaseIFFactory<T>* clone () const override {
+        return new BaseIFFactory<T>(*this);
+    }
+
     ///
     BaseIFFactory(shared_ptr<FabArray<EBGraph> > a_graphs, int a_direction)
       {

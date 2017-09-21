@@ -15,7 +15,7 @@
 #define __IntVectSet__H_
 
 #include "AMReX_Box.H"
-#include <set>
+#include <unordered_set>
 
 using namespace std;
 namespace amrex
@@ -30,7 +30,8 @@ namespace amrex
       return lhs < rhs;
     }
   };
-  /// IntVectSet implementation based std::set
+
+  /// IntVectSet implementation based std::unordered_set
   /**
    */
   class IntVectSet
@@ -49,6 +50,12 @@ namespace amrex
 
     ///
     ~IntVectSet(){;}
+
+    ///
+    IntVectSet (IntVectSet&& a_rhs) = default;
+
+    ///
+    IntVectSet& operator= (IntVectSet&& a_rhs) = default;
 
     ///
     void define(const Box&);
@@ -133,7 +140,7 @@ namespace amrex
     int numPts() const;
 
 
-    void define(const std::vector<IntVect>& a_vect);
+    void define(const Array<IntVect>& a_vect);
 
     ///
     size_t linearSize() const;
@@ -143,11 +150,19 @@ namespace amrex
 
     ///
     void linearIn(const void* const buffer );
-    
+
+    using container_type = std::unordered_set<IntVect, IntVect::shift_hasher>;
+    container_type::iterator begin () { return m_stdSet.begin(); }
+    container_type::const_iterator begin() const { return m_stdSet.begin(); }
+    container_type::const_iterator cbegin() const { return m_stdSet.cbegin(); }
+    container_type::iterator end () { return m_stdSet.end(); }
+    container_type::const_iterator end() const { return m_stdSet.end(); }
+    container_type::const_iterator cend() const { return m_stdSet.cend(); }
+      
   private:
 
-    void getVectorIV(std::vector<IntVect>& a_vect) const;
-    std::set<IntVect, lex_compare_iv> m_stdSet;
+    void getVectorIV(Array<IntVect>& a_vect) const;
+    container_type m_stdSet;
   };
 
   ///
@@ -182,7 +197,11 @@ namespace amrex
     void clear();
   private:
     const IntVectSet* m_ivs;
-    std::set<IntVect, lex_compare_iv>::iterator m_iter;
+//    std::set<IntVect, lex_compare_iv>::iterator m_iter;
+    IntVectSet::container_type::const_iterator m_iter;
   };
+
+  IntVectSet intersect (const IntVectSet& a, const IntVectSet& b, const Box& bx);
+  IntVectSet intersect (const IntVectSet& ivs, const Box& bx);
 }
 #endif //  STDSETIVS_H

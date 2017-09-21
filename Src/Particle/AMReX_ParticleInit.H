@@ -12,32 +12,32 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     const Real strttime = ParallelDescriptor::second();
     //
     // Number of processes that read from the file.  //
-    int NStructRealeaders = ParticleType::MaxReaders();
+    int NReaders = ParticleType::MaxReaders();
     //
     // Number of chunks we break the redistribution loop into
-    // This default is just for the case of NProcs = NStructRealeaders = 1.
+    // This default is just for the case of NProcs = NReaders = 1.
     //
-    int NStructRealedist = 1;
+    int NRedist = 1;
 
     if (NProcs <= 1024)
     {
-       if (NStructRealeaders > 1)
-          NStructRealedist = 2;
+       if (NReaders > 1)
+          NRedist = 2;
     }
     else if (NProcs <= 4096)
     {
-       NStructRealeaders = std::max(NStructRealeaders,128);
-       NStructRealedist = 4;
+       NReaders = std::max(NReaders,128);
+       NRedist = 4;
     }
     else if (NProcs <= 8192)
     {
-       NStructRealeaders = std::max(NStructRealeaders,384);
-       NStructRealedist = 32;
+       NReaders = std::max(NReaders,384);
+       NRedist = 32;
     }
     else if (NProcs <= 16384)
     {
-       NStructRealeaders = std::max(NStructRealeaders,512);
-       NStructRealedist = 48;
+       NReaders = std::max(NReaders,512);
+       NRedist = 48;
     }
 
     resizeData();
@@ -50,15 +50,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     long how_many      = 0;
     long how_many_read = 0;
     //
-    // NStructRealeaders will read particles into a AoS.
+    // NReaders will read particles into a AoS.
     // Later they'll each put their chunk into m_particles and call Redistribute().
     //
     AoS nparticles;
 
-    if (MyProc < NStructRealeaders)
+    if (MyProc < NReaders)
     {
         //
-        // Only the first NStructRealeaders MPI processes read particles.
+        // Only the first NReaders MPI processes read particles.
         //
         std::ifstream ifs;
 
@@ -78,7 +78,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 	ParticleLocData pld;
         ParticleType p, p_rep;
 
-        const int Chunk = cnt / NStructRealeaders;
+        const int Chunk = cnt / NReaders;
 
         for (int i = 0; i < MyProc*Chunk; i++)
         {
@@ -96,11 +96,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 
         int MyCnt = Chunk;
 
-        if (MyProc == (NStructRealeaders - 1))
+        if (MyProc == (NReaders - 1))
             //
             // We'll take the remainder.
             //
-            MyCnt += cnt % NStructRealeaders;
+            MyCnt += cnt % NReaders;
 
         const Geometry& geom = Geom(0);
 
@@ -211,17 +211,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     // We've read in all the particles.
     // Now Redistribute() each chunk separately to minimize memory bloat.
     //
-    int NStructRealedist_chunk = NStructRealeaders / NStructRealedist;
+    int NRedist_chunk = NReaders / NRedist;
 
     ParticleLocData pld;
 
-    for (int nr = 0; nr < NStructRealedist; nr++)
+    for (int nr = 0; nr < NRedist; nr++)
     {
         if (m_verbose > 0) {
-            amrex::Print() << "Redistributing from processor " << nr*NStructRealedist_chunk << " to " 
-                                                           << (nr+1)*NStructRealedist_chunk-1 << '\n';
+            amrex::Print() << "Redistributing from processor " << nr*NRedist_chunk << " to " 
+                                                           << (nr+1)*NRedist_chunk-1 << '\n';
         }
-        for (int which = nr*NStructRealedist_chunk; which < (nr+1)*NStructRealedist_chunk; which++)
+        for (int which = nr*NRedist_chunk; which < (nr+1)*NRedist_chunk; which++)
         {
             if (which == MyProc)
             {
@@ -246,12 +246,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     //
     if (m_verbose > 0)
     {
-        if (NStructRealedist*NStructRealedist_chunk < NStructRealeaders) {
-            amrex::Print() << "Redistributing from processor " << NStructRealedist*NStructRealedist_chunk << " to " 
-                           << NStructRealeaders << '\n';
+        if (NRedist*NRedist_chunk < NReaders) {
+            amrex::Print() << "Redistributing from processor " << NRedist*NRedist_chunk << " to " 
+                           << NReaders << '\n';
         }
     }
-    for (int which = NStructRealedist*NStructRealedist_chunk; which < NStructRealeaders; which++)
+    for (int which = NRedist*NRedist_chunk; which < NReaders; which++)
     {
         if (which == MyProc)
         {
@@ -327,7 +327,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile (const std::string& file,
-                                                   int                extradata)
+                                                                                       int                extradata)
 {
     BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
@@ -342,17 +342,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     // We limit this to a rather small number since there's a limit
     // to the number of independent I/O channels on most filesystems.
     //
-    const int NStructRealeaders = ParticleType::MaxReaders();
+    const int NReaders = ParticleType::MaxReaders();
 
-    BL_ASSERT(NStructRealeaders <= NProcs);
+    BL_ASSERT(NReaders <= NProcs);
     //
-    // How many particles each NStructRealeaders reads before redistributing.
+    // How many particles each NReaders reads before redistributing.
     //
     const long NPartPerRedist = ParticleType::MaxParticlesPerRead();
 
     if (m_verbose > 0)
     {
-        amrex::Print() << "Reading with " << NStructRealeaders << " readers\n"
+        amrex::Print() << "Reading with " << NReaders << " readers\n"
                        << "Redistributing after every " << NPartPerRedist << " particles for each reader\n";
     }
     //
@@ -383,9 +383,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     //
     // The same set but in ascending order.
     //
-    Array<int> rprocs(NStructRealeaders);
+    Array<int> rprocs(NReaders);
 
-    if (NStructRealeaders == NProcs)
+    if (NReaders == NProcs)
     {
         //
         // Just set'm.
@@ -396,7 +396,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     else
     {
         //
-        // The I/O Proc builds a set of NStructRealeader integers in the range: [0,NProcs-1].
+        // The I/O Proc builds a set of NReader integers in the range: [0,NProcs-1].
         //
         // It then broadcast'm to all MPI procs.
         //
@@ -416,7 +416,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
                 readers.insert(n);
             }
-            while (readers.size() < NStructRealeaders);
+            while (readers.size() < NReaders);
 
             BL_ASSERT(readers.size() == rprocs.size());
 
@@ -442,7 +442,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
         BL_ASSERT(readers.size() == rprocs.size());
 
-        BL_ASSERT(rprocs.size() == NStructRealeaders);
+        BL_ASSERT(rprocs.size() == NReaders);
     }
 
     int RealSizeInFile = 0;
@@ -507,13 +507,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
         // Skip to our place in the file.
         //
         int id = 0;
-        for ( ; id < NStructRealeaders; id++)
+        for ( ; id < NReaders; id++)
             if (rprocs[id] == MyProc)
                 break;
 
-        BL_ASSERT(id >= 0 && id < NStructRealeaders);
+        BL_ASSERT(id >= 0 && id < NReaders);
 
-        const std::streamoff NSKIP = id * (NP/NStructRealeaders) * (DM+NX) * RealSizeInFile;
+        const std::streamoff NSKIP = id * (NP/NReaders) * (DM+NX) * RealSizeInFile;
 
         if (NSKIP > 0)
         {
@@ -535,17 +535,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     //
     // How many particles each reader gets to read.
     //
-    long MyCnt = NP / NStructRealeaders;
+    long MyCnt = NP / NReaders;
 
     if (MyProc == rprocs[0])
         //
         // Give any remainder to the first reader.
         //
-        MyCnt += NP % NStructRealeaders;
+        MyCnt += NP % NReaders;
 
-    long how_many_redists = NP / (NPartPerRedist*NStructRealeaders), how_many_read = 0;
+    long how_many_redists = NP / (NPartPerRedist*NReaders), how_many_read = 0;
 
-    if (NP % (NPartPerRedist*NStructRealeaders)) how_many_redists++;
+    if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
 
     Array<float>  fxtra, fignore;
     Array<double> dxtra, dignore;
@@ -572,9 +572,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
             BL_ASSERT(MyCnt > how_many_read);
 
-            const long NStructRealead = std::min((MyCnt-how_many_read), NPartPerRedist);
+            const long NRead = std::min((MyCnt-how_many_read), NPartPerRedist);
 
-            for (long i = 0; i < NStructRealead; i++)
+            for (long i = 0; i < NRead; i++)
             {
                 //
                 // We don't read in idata.id or idata.cpu.  We'll set those later
@@ -667,7 +667,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                 m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
             }
 
-            how_many_read += NStructRealead;
+            how_many_read += NRead;
         }
 
         Redistribute();
@@ -864,7 +864,7 @@ InitRandom (long                    icount,
                 p.m_idata.cpu = MyProc;
 
                 for (int i = 0; i < NStructInt; i++) {
-                    p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                    p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
                 }
                 
                 // add the struct
@@ -920,13 +920,13 @@ InitRandom (long                    icount,
             p.m_idata.cpu = ParallelDescriptor::MyProc();
             
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
             
             // locate the particle
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell(): invalid particle");
+                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
             }
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());            
             std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
@@ -1020,7 +1020,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             p.m_idata.cpu = ParallelDescriptor::MyProc();
             
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
 
             // locate the particle
@@ -1106,7 +1106,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
             p.m_idata.cpu = ParallelDescriptor::MyProc();
 
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
 
             // locate the particle
@@ -1193,7 +1193,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                 p.m_idata.cpu = ParallelDescriptor::MyProc();
 
                 for (int i = 0; i < NStructInt; i++) {
-                    p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                    p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
                 }
 
                 // locate the particle

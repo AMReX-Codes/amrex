@@ -15,7 +15,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <vector>
 #include "AMReX_EBISLayout.H"
 #include "AMReX_EBCellFAB.H"
 
@@ -37,11 +36,18 @@ namespace amrex
        and returns a pointer to it.  Responsiblitly
        for calling operator 'delete' on this pointer is passed to the user.
     */
-    virtual EBCellFAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const
+    virtual EBCellFAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
       {
         EBISBox ebisBox = m_ebisl[box_index];
         return new EBCellFAB(ebisBox, box, ncomps);
       }
+
+    virtual EBCellFactory* clone () const override {
+        return new EBCellFactory(*this);
+    }
+
+    EBCellFactory(const EBCellFactory& a_inputs) = default;
+
     ///
     /**
        create the factory with an ispace.  calls full define function
@@ -60,7 +66,6 @@ namespace amrex
     EBISLayout m_ebisl;
 
     //disallowed constructors and all that
-    EBCellFactory(const EBCellFactory& a_inputs);
 
     EBCellFactory();
 

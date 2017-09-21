@@ -17,6 +17,7 @@
 #include "AMReX_EBISLayout.H"
 #include "AMReX_IrregFAB.H"
 #include "AMReX_LayoutData.H"
+#include "AMReX_FabFactory.H"
 
 namespace amrex
 {
@@ -35,7 +36,11 @@ namespace amrex
        and returns a pointer to it.  Responsiblitly
        for calling operator 'delete' on this pointer is passed to the user.
     */
-    virtual IrregFAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const;
+    virtual IrregFAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override;
+
+    virtual IrregFABFactory* clone () const override {
+        return new IrregFABFactory(*this);
+    }
 
     ///
     IrregFABFactory(const EBISLayout                          & a_ebisl, 

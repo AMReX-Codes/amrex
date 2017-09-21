@@ -11,40 +11,47 @@ using namespace std;
 #include <cassert>
 
 namespace amrex{
+    typedef std::queue<Task*> _TaskQueue;
+    typedef std::queue<Data*> _MessageQueue;
+    _TaskQueue _WaitingQueue;
+    _TaskQueue _DataFetchingQueue;  //used in Pull model
+    _TaskQueue _ReadyQueue;
+    _TaskQueue _RunningQueue;
+    _MessageQueue _MsgQueue;
 
-    int RTS::RTS_ProcCount(){
+    int RTS::ProcCount(){
 	return 1;
     }
 
-    int RTS::RTS_MyProc(){
+    int RTS::MyProc(){
 	return 0;
     }
 
-    int RTS::RTS_WorkerThreadCount(){
+    int RTS::WorkerThreadCount(){
 	return 1;
     }
 
-    int RTS::RTS_MyWorkerThread(){
+    int RTS::MyWorkerThread(){
 	return 0;
     }
 
-    void RTS::RTS_Init(){
+    void RTS::Init(){ 
     }
 
-    void RTS::RTS_Init(int *rank, int *nProcs){
-	*rank=0;
-	*nProcs=1;
+    void RTS::Init(int rank, int nProcs){
+	_rank=0;
+	_nProcs=1;
     }
 
-    void RTS::RTS_Finalize(){
+    void RTS::Finalize(){
 	//Now, no task should be alive. Thus, this routine check the content of all task queues.
-	assert(WaitingQueue.size()==0);
-	assert(DataFetchingQueue.size()==0);
-	assert(ReadyQueue.size()==0);
-	assert(RunningQueue.size()==0);
+	assert(_WaitingQueue.size()==0);
+	assert(_DataFetchingQueue.size()==0);
+	assert(_ReadyQueue.size()==0);
+	assert(_RunningQueue.size()==0);
     }
 
-    void RTS::RTS_Run(void* taskgraph){
+    void RTS::Iterate(void* taskgraph){
 	AbstractTaskGraph<Task>* graph= (AbstractTaskGraph<Task>*)taskgraph;
 	//visit all initial tasks 
 	{
@@ -53,12 +60,12 @@ namespace amrex{
 		if(graph->GetRunningMode()== _Push)
 		{
 		    if(t->Dependency()){//all data have arrived
-			ReadyQueue.push(t);
+			_ReadyQueue.push(t);
 		    }else{
-			WaitingQueue.push(t);
+			_WaitingQueue.push(t);
 		    }
 		}else{//Pull mode
-		    DataFetchingQueue.push(t);
+		    _DataFetchingQueue.push(t);
 		}
 		t = graph->Next();
 	    }
@@ -70,21 +77,21 @@ namespace amrex{
 		if(graph->GetRunningMode()== _Push)
 		{
 		    //Process messages
-		    int nMsgs= MsgQueue.size();
+		    int nMsgs= _MsgQueue.size();
 		    for(int i=0; i<nMsgs; i++){
-			Data* msg= MsgQueue.front();
-			MsgQueue.pop();
+			Data* msg= _MsgQueue.front();
+			_MsgQueue.pop();
 			TaskName name= msg->GetRecipient();
 			if(graph->LocateTask(name)){
 			    Task* t= graph->LocateTask(name);
 			    t->GetInputs().push_back(msg->GetSource(), msg, msg->GetTag());
 			}
-			else MsgQueue.push(msg); //Recipient has not been created
+			else _MsgQueue.push(msg); //Recipient has not been created
 		    }
 		}else{
-		    while(DataFetchingQueue.size()){
-			Task* t= DataFetchingQueue.front();
-			DataFetchingQueue.pop();
+		    while(_DataFetchingQueue.size()){
+			Task* t= _DataFetchingQueue.front();
+			_DataFetchingQueue.pop();
 			t->Dependency();//send active messages to pull data from source tasks    
 		    }
 		}
@@ -92,22 +99,22 @@ namespace amrex{
 	    //visit waiting tasks (only in push mode)
 	    if(graph->GetRunningMode()== _Push)
 	    { //no else
-		int nWaitingTasks= WaitingQueue.size();
+		int nWaitingTasks= _WaitingQueue.size();
 		for(int i=0; i<nWaitingTasks; i++){
-		    Task* t= WaitingQueue.front();
-		    WaitingQueue.pop();
+		    Task* t= _WaitingQueue.front();
+		    _WaitingQueue.pop();
 		    if(t->Dependency()){ 
-			ReadyQueue.push(t);
+			_ReadyQueue.push(t);
 		    }else{
-			WaitingQueue.push(t);
+			_WaitingQueue.push(t);
 		    }
 		}
 	    }
 	    //Execute ready tasks
 	    {
-		while(ReadyQueue.size()){
-		    Task* t= ReadyQueue.front();
-		    ReadyQueue.pop();
+		while(_ReadyQueue.size()){
+		    Task* t= _ReadyQueue.front();
+		    _ReadyQueue.pop();
 		    t->RunJob(); 
 		    t->RunPostCompletion(); 
 		    //Flush all outputs
@@ -118,7 +125,7 @@ namespace amrex{
 			int tag= outdata->GetTag();
 			if(graph->LocateTask(dst)){
 			    graph->LocateTask(dst)->GetInputs().push_back(outdata->GetSource(), outdata, tag);
-			}else MsgQueue.push(outdata); 
+			}else _MsgQueue.push(outdata); 
 		    }
 		    //process newly created tasks
 		    while(t->GetNewTasks().size()>0){
@@ -126,17 +133,17 @@ namespace amrex{
 			t->GetNewTasks().pop();
 			graph->GetTaskPool()[nt->MyName()]=nt;
 			if(nt->Dependency()){//all data have arrived
-			    ReadyQueue.push(nt);
+			    _ReadyQueue.push(nt);
 			}else{
-			    WaitingQueue.push(nt);
+			    _WaitingQueue.push(nt);
 			}
 		    }
 		    //keep or destroy task
 		    if(t->isPersistent()){
 			if(t->Dependency()){
-			    ReadyQueue.push(t);
+			    _ReadyQueue.push(t);
 			}else{
-			    WaitingQueue.push(t);
+			    _WaitingQueue.push(t);
 			}
 		    }else{
 			//remove task from the task pool and delete it
@@ -144,7 +151,7 @@ namespace amrex{
 		    }
 		}
 	    }
-	    keepRunning= WaitingQueue.size()>0 || DataFetchingQueue.size()>0|| ReadyQueue.size()>0|| RunningQueue.size()>0|| MsgQueue.size()>0 || graph->GetTaskPool().size()>0;
+	    keepRunning= _WaitingQueue.size()>0 || _DataFetchingQueue.size()>0|| _ReadyQueue.size()>0|| _RunningQueue.size()>0|| _MsgQueue.size()>0 || graph->GetTaskPool().size()>0;
 	}
     }
 

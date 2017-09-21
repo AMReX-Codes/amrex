@@ -173,7 +173,7 @@ contains
 
     implicit none
 
-    integer      :: i, j, k, rhs_nco, phi_nco, lam_nco, oper
+    integer      :: i, j, k, rhs_nco, phi_nco, lam_nco
     integer      :: phi_lo(0:2),phi_hi(0:2)
     integer      :: rhs_lo(0:2),rhs_hi(0:2)
     integer      :: lam_lo(0:2),lam_hi(0:2)
@@ -189,7 +189,7 @@ contains
 
     integer      :: gridlo(0:2), gridhi(0:2)
     real(c_real) :: alpha, beta, dx, laplphi
-    real(c_real) :: xterm, yterm, zterm
+    real(c_real) :: xterm, yterm, zterm, acopt, phipt, oper
     real(c_real) :: phi(phi_lo(0):phi_hi(0),phi_lo(1):phi_hi(1),phi_lo(2):phi_hi(2), 0:phi_nco-1)
     real(c_real) :: rhs(rhs_lo(0):rhs_hi(0),rhs_lo(1):rhs_hi(1),rhs_lo(2):rhs_hi(2), 0:rhs_nco-1)
     real(c_real) :: lam(lam_lo(0):lam_hi(0),lam_lo(1):lam_hi(1),lam_lo(2):lam_hi(2), 0:lam_nco-1)
@@ -214,8 +214,10 @@ contains
                      -bco2(i  ,j  ,k  ,0)*(phi(i  ,j  ,k  ,0) - phi(i  ,j  ,k-1,0)))/dx/dx
 #endif
              laplphi = xterm + yterm + zterm
-
-             oper  = alpha*acoe(i,j,k,0)*phi(i,j,k,0) + beta*laplphi
+             acopt  = acoe(i,j,k,0)
+             phipt  = phi( i,j,k,0)
+             oper = alpha*acopt*phipt + beta*laplphi
+!             oper  = alpha*acoe(i,j,k,0)*phi(i,j,k,0) + beta*laplphi
 
              phi(i,j,k,0) = phi(i,j,k,0) + lam(i,j,k,0)*(rhs(i,j,k,0) - oper)
 

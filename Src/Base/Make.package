@@ -1,7 +1,7 @@
 
 AMREX_BASE=EXE
 
-C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H AMReX_Tuple.H
 
 #
 # Utility classes.
@@ -89,6 +89,7 @@ C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
 C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
+C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 
 #
 # Geometry / Coordinate system routines.
@@ -110,6 +111,11 @@ C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H AMReX_BCUtil.H
 #
 C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
+
+#
+# Misc
+#
+C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
 
 #
 # Fortran interface routines.
@@ -180,6 +186,7 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(AMREX_BASE)_headers += AMReX_TinyProfiler.H
   C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
 endif
+
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

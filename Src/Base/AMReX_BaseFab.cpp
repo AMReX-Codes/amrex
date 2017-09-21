@@ -316,7 +316,7 @@ BaseFab<Real>::norm (const Box& bx,
 #ifdef AMREX_USE_CUDA
     Real* nrm_f = Device::create_device_pointer<Real>().get();
 #else
-    Real nrm;
+    Real nrm = 0.0;
     Real* nrm_f = &nrm;
 #endif
 

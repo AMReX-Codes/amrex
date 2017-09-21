@@ -131,9 +131,11 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
         BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
         prob_domain.setLo(prob_lo);
         prob_domain.setHi(prob_hi);
+        SetOffset(prob_lo.data());
     } else {
         prob_domain.setLo(rb->lo());
         prob_domain.setHi(rb->hi());
+        SetOffset(rb->lo());
     }
 
     pp.query("spherical_origin_fix", Geometry::spherical_origin_fix);
@@ -163,7 +165,7 @@ Geometry::GetVolume (MultiFab&       vol,
 		     const DistributionMapping& dm,
                      int             ngrow) const
 {
-    vol.define(grds,dm,1,ngrow);
+    vol.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
     GetVolume(vol);
 }
 
@@ -199,7 +201,7 @@ Geometry::GetDLogA (MultiFab&       dloga,
                     int             dir,
                     int             ngrow) const
 {
-    dloga.define(grds,dm,1,ngrow);
+    dloga.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -219,7 +221,7 @@ Geometry::GetFaceArea (MultiFab&       area,
 {
     BoxArray edge_boxes(grds);
     edge_boxes.surroundingNodes(dir);
-    area.define(edge_boxes,dm,1,ngrow);
+    area.define(edge_boxes,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
 
     GetFaceArea(area, dir);
 }

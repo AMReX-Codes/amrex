@@ -45,6 +45,12 @@ namespace amrex
     dumpVVoFs( NULL);
 
     dumpVFaces(NULL);
+
+    dumpEBLevel(NULL);
+
+    dumpVoFSten(NULL);
+
+    dumpFaceSten(NULL);
   }
   
 }

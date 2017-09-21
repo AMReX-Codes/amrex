@@ -19,12 +19,10 @@ namespace amrex
   PlaneIF(const RealVect& a_normal,
           const RealVect& a_point,
           const bool&     a_inside)
-
-  {
-    m_normal = a_normal;
-    m_point  = a_point;
-    m_inside = a_inside;
-  }
+      : m_normal(a_normal),
+        m_point (a_point),
+        m_inside(a_inside)
+  {}
 
   Real 
   PlaneIF::

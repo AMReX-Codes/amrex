@@ -48,6 +48,12 @@ else
   MEM_PROFILE := FALSE
 endif
 
+ifdef USE_PROFPARSER
+  USE_PROFPARSER := $(strip $(USE_PROFPARSER))
+else
+  USE_PROFPARSER := FALSE
+endif
+
 ifdef TEST
   TEST := $(strip $(TEST))
 else
@@ -115,6 +121,18 @@ ifdef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
 else
   DIMENSION_AGNOSTIC := FALSE
+endif
+
+ifdef STRICT
+  STRICT := $(strip $(STRICT))
+else
+  STRICT := FALSE
+endif
+
+ifdef USE_EB
+  USE_EB := $(strip $(USE_EB))
+else
+  USE_EB := FALSE
 endif
 
 ifdef EBASE
@@ -186,6 +204,15 @@ else
     DebugSuffix :=
 endif
 
+ifeq ($(USE_PROFPARSER),TRUE)
+  PROFILE := TRUE
+  TRACE_PROFILE := TRUE
+
+  CPPFLAGS += -DBL_USE_PROFPARSER
+  include $(AMREX_HOME)/Src/Extern/ProfParser/Make.package
+  include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
+endif
+
 ifeq ($(PROFILE),TRUE)
     CPPFLAGS    += -DBL_PROFILING
     ifeq ($(TRACE_PROFILE)$(COMM_PROFILE),TRUETRUE)
@@ -235,6 +262,10 @@ ifeq ($(BACKTRACE),TRUE)
     BTSuffix := .BT
 else
     BTSuffix :=
+endif
+
+ifdef CRAY_CPU_TARGET
+    archSuffix += .$(strip $(CRAY_CPU_TARGET))
 endif
 
 ifeq ($(LAZY),TRUE)
@@ -388,6 +419,14 @@ ifeq ($(USE_PARTICLES),TRUE)
   DEFINES += -DUSE_PARTICLES -DPARTICLES
 endif
 
+ifeq ($(STRICT),TRUE)
+  DEFINES += -DAMREX_STRICT_MODE
+endif
+
+ifeq ($(USE_EB),TRUE)
+    CPPFLAGS += -DAMREX_USE_EB
+endif
+
 includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
 fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
@@ -398,7 +437,7 @@ libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(CUDASuffix)$(USERSuffix)
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(CUDASuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 

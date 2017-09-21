@@ -27,11 +27,16 @@ DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
-  CFLAGS   += -g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare -ftrapv
+  CXXFLAGS += -g -O0 -fno-inline -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable
+  CFLAGS   += -g -O0 -fno-inline -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv
 
   FFLAGS   += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
   F90FLAGS += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+
+  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
+    CXXFLAGS += -Wnull-dereference
+    CFLAGS += -Wnull-dereference
+  endif
 
 else
 

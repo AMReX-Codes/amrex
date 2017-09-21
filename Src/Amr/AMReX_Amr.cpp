@@ -59,6 +59,7 @@ namespace amrex {
 std::list<std::string> Amr::state_plot_vars;
 std::list<std::string> Amr::state_small_plot_vars;
 std::list<std::string> Amr::derive_plot_vars;
+std::list<std::string> Amr::derive_small_plot_vars;
 bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
 Array<BoxArray>        Amr::initial_ba;
@@ -129,6 +130,7 @@ Amr::Finalize ()
 {
     Amr::state_plot_vars.clear();
     Amr::derive_plot_vars.clear();
+    Amr::derive_small_plot_vars.clear();
     Amr::regrid_ba.clear();
     Amr::initial_ba.clear();
 
@@ -376,7 +378,7 @@ Amr::InitAmr ()
 
     if (max_level > 0 && !initial_grids_file.empty())
     {
-#define STRIP while( is.get() != '\n' )
+#define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(initial_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
@@ -415,7 +417,7 @@ Amr::InitAmr ()
 
     if (max_level > 0 && !regrid_grids_file.empty())
     {
-#define STRIP while( is.get() != '\n' )
+#define STRIP while( is.get() != '\n' ) {}
         std::ifstream is(regrid_grids_file.c_str(),std::ios::in);
 
         if (!is.good())
@@ -549,6 +551,21 @@ Amr::isDerivePlotVar (const std::string& name)
     return false;
 }
 
+bool
+Amr::isDeriveSmallPlotVar (const std::string& name)
+{
+    for (std::list<std::string>::const_iterator li = derive_small_plot_vars.begin(), End = derive_small_plot_vars.end();
+         li != End;
+         ++li)
+    {
+        if (*li == name) {
+            return true;
+	}
+    }
+
+    return false;
+}
+
 void 
 Amr::fillDerivePlotVarList ()
 {
@@ -566,10 +583,33 @@ Amr::fillDerivePlotVarList ()
     }
 }
 
+void 
+Amr::fillDeriveSmallPlotVarList ()
+{
+    derive_small_plot_vars.clear();
+    DeriveList& derive_lst = AmrLevel::get_derive_lst();
+    std::list<DeriveRec>& dlist = derive_lst.dlist();
+    for (std::list<DeriveRec>::const_iterator it = dlist.begin(), End = dlist.end();
+         it != End;
+         ++it)
+    {
+        if (it->deriveType() == IndexType::TheCellType())
+        {
+            derive_small_plot_vars.push_back(it->name());
+        }
+    }
+}
+
 void
 Amr::clearDerivePlotVarList ()
 {
     derive_plot_vars.clear();
+}
+
+void
+Amr::clearDeriveSmallPlotVarList ()
+{
+    derive_small_plot_vars.clear();
 }
 
 void
@@ -580,10 +620,24 @@ Amr::addDerivePlotVar (const std::string& name)
 }
 
 void
+Amr::addDeriveSmallPlotVar (const std::string& name)
+{
+    if (!isDeriveSmallPlotVar(name))
+        derive_small_plot_vars.push_back(name);
+}
+
+void
 Amr::deleteDerivePlotVar (const std::string& name)
 {
     if (isDerivePlotVar(name))
         derive_plot_vars.remove(name);
+}
+
+void
+Amr::deleteDeriveSmallPlotVar (const std::string& name)
+{
+    if (isDeriveSmallPlotVar(name))
+        derive_small_plot_vars.remove(name);
 }
 
 Amr::~Amr ()
@@ -742,7 +796,9 @@ Amr::writePlotFile ()
 
     if(precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      amrex::Print() << "IOIOIOIO:  precreating directories for " << pltfileTemp << "\n";
+      if (verbose > 1) {
+          amrex::Print() << "IOIOIOIO:  precreating directories for " << pltfileTemp << "\n";
+      }
       amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
     } else {
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
@@ -1045,7 +1101,7 @@ Amr::init (Real strt_time,
 }
 
 void
-Amr::readProbinFile (int& init)
+Amr::readProbinFile (int& a_init)
 {
     BL_PROFILE("Amr::readProbinFile()");
     //
@@ -1059,7 +1115,7 @@ Amr::readProbinFile (int& init)
         probin_file_name[i] = probin_file[i];
 
     if (verbose > 0)
-	amrex::Print() << "Starting to read probin ... \n";
+	amrex::Print() << "Starting to call amrex_probinit ... \n";
 
     const int nAtOnce = probinit_natonce;
     const int MyProc  = ParallelDescriptor::MyProc();
@@ -1080,7 +1136,7 @@ Amr::readProbinFile (int& init)
 
 #ifdef DIMENSION_AGNOSTIC
 
-            amrex_probinit(&init,
+            amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
 			   ZFILL(Geometry::ProbLo()),
@@ -1088,7 +1144,7 @@ Amr::readProbinFile (int& init)
 
 #else
 
-            amrex_probinit(&init,
+            amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
 			   Geometry::ProbLo(),
@@ -1123,12 +1179,12 @@ Amr::readProbinFile (int& init)
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
 
-	amrex::Print() << "MFRead::: PROBINIT max time   = " << piTotal    << '\n'
-		       << "MFRead::: PROBINIT total time = " << piTotalAll << '\n';
+	amrex::Print() << "amrex_probinit max time   = " << piTotal    << '\n'
+		       << "amrex_probinit total time = " << piTotalAll << '\n';
     }
 
     if (verbose > 0)
-	amrex::Print() << "Successfully read probin file: \"" << probin_file << "\"\n";
+	amrex::Print() << "Successfully run amrex_probinit\n";
 }
 
 void
@@ -1157,7 +1213,7 @@ Amr::InitializeInit(Real              strt_time,
 {
     BL_PROFILE("Amr::InitializeInit()");
     BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
-    checkInput();
+    if (check_input) checkInput();
     //
     // Generate internal values from user-supplied values.
     //
@@ -1165,10 +1221,10 @@ Amr::InitializeInit(Real              strt_time,
     //
     // Init problem dependent data.
     //
-    int init = true;
+    int linit = true;
 
     if (!probin_file.empty()) {
-        readProbinFile(init);
+        readProbinFile(linit);
     }
 
     cumtime = strt_time;
@@ -1278,9 +1334,9 @@ Amr::restart (const std::string& filename)
     //
     // Init problem dependent data.
     //
-    int init = false;
+    int linit = false;
 
-    readProbinFile(init);
+    readProbinFile(linit);
     //
     // Start calculation from given restart file.
     //
@@ -1307,7 +1363,7 @@ Amr::restart (const std::string& filename)
             std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
             Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
             ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
-	    if(verbose > 0) {
+	    if(verbose > 2) {
 		amrex::Print() 
 		    << ":::: faHeaderName faHeaderFullName tempCharArray.size() = " << faHeaderName
 		    << "  " << faHeaderFullName << "  " << tempCharArray.size() << "\n";
@@ -2209,8 +2265,6 @@ Amr::defBaseLevel (Real              strt_time,
 	if (refine_grid_layout) {
 	    ChopGrids(0,lev0,ParallelDescriptor::NProcs());
 	}
-
-        DistributionMapping dmap(*pmap);
     }
     else
     {
@@ -2382,6 +2436,7 @@ Amr::regrid (int  lbase,
           //MultiFab::MoveAllFabs(mLDM[iMap]);
 	  DistributionMapping newDistMap(mLDM[iMap]);
           MultiFab::MoveAllFabs(newDistMap);
+          UpdateStateDataDistributionMaps(newDistMap);
         }
     }
 
@@ -2429,6 +2484,19 @@ Amr::regrid (int  lbase,
            printGridSummary(std::cout,start,finest_level);
         }
     }
+}
+
+void
+Amr::InstallNewDistributionMap (int lev, const DistributionMapping& newdm)
+{
+    BL_PROFILE("InstallNewDistributionMap()");
+
+    AmrLevel* a = (*levelbld)(*this,lev,Geom(lev),boxArray(lev),newdm,cumtime);
+    a->init(*amr_level[lev]);
+    amr_level[lev].reset(a);
+
+    this->SetBoxArray(lev, amr_level[lev]->boxArray());
+    this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
 }
 
 void
@@ -2920,7 +2988,7 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     BL_ASSERT(cycle_max[0] == 1);
     // internally these represent the total number of steps at a level, 
     // not the number of cycles
-    int cycles[n];
+    std::vector<int> cycles(n);
     Real best_ratio = 1e200;
     Real best_dt = 0;
     Real ratio;
@@ -2974,6 +3042,21 @@ Amr::RedistributeParticles ()
 }
 #endif
 
+void
+Amr::UpdateStateDataDistributionMaps(DistributionMapping& new_dmap)
+{
+   long mapsize = new_dmap.size();
+   for (int i(0); i < DistributionMap().size(); ++i)
+   {
+      if (DistributionMap()[i].size() == mapsize)
+      {  SetDistributionMap(i, new_dmap); }
+   }
+
+   for (int i(0); i < amr_level.size(); ++i)
+   {
+      amr_level[i]->UpdateDistributionMaps(new_dmap); 
+   } 
+}
 
 void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
@@ -2997,6 +3080,7 @@ Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
 	//MultiFab::MoveAllFabs(mLDM[iMap]);
         DistributionMapping newDistMap(mLDM[iMap]);
         MultiFab::MoveAllFabs(newDistMap);
+        UpdateStateDataDistributionMaps(newDistMap);
 	amrex::Print() << "_in Amr::AddProcsToSidecar:  after calling MoveAllFabs for iMap = "
 	               << iMap << "\n\n";
     }
@@ -3061,7 +3145,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       int max_grid_size_Size(max_grid_size.size()), blocking_factor_Size(blocking_factor.size());
       int ref_ratio_Size(ref_ratio.size()), amr_level_Size(amr_level.size()), geom_Size(Geom().size());
       int state_plot_vars_Size(state_plot_vars.size()), derive_plot_vars_Size(derive_plot_vars.size());
-      int state_small_plot_vars_Size(state_small_plot_vars.size());
+      int state_small_plot_vars_Size(state_small_plot_vars.size()), derive_small_plot_vars_Size(derive_small_plot_vars.size());
       if(scsMyId == ioProcNumSCS) {
         allInts.push_back(max_level);
         allInts.push_back(finest_level);
@@ -3118,6 +3202,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(state_plot_vars.size());
         allInts.push_back(state_small_plot_vars.size());
         allInts.push_back(derive_plot_vars.size());
+        allInts.push_back(derive_small_plot_vars.size());
 
         allInts.push_back(VisMF::GetNOutFiles());
         allInts.push_back(VisMF::GetMFFileInStreams());
@@ -3183,16 +3268,17 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         n_error_buf.resize(aSize);
         for(int i(0); i < n_error_buf.size(); ++i)     { n_error_buf[i] = allInts[count++]; }
 
-        dt_level_Size              = allInts[count++];
-        dt_min_Size                = allInts[count++];
-        max_grid_size_Size         = allInts[count++];
-        blocking_factor_Size       = allInts[count++];
-        ref_ratio_Size             = allInts[count++];
-        amr_level_Size             = allInts[count++];
-        geom_Size                  = allInts[count++];
-        state_plot_vars_Size       = allInts[count++];
-        state_small_plot_vars_Size = allInts[count++];
-        derive_plot_vars_Size      = allInts[count++];
+        dt_level_Size               = allInts[count++];
+        dt_min_Size                 = allInts[count++];
+        max_grid_size_Size          = allInts[count++];
+        blocking_factor_Size        = allInts[count++];
+        ref_ratio_Size              = allInts[count++];
+        amr_level_Size              = allInts[count++];
+        geom_Size                   = allInts[count++];
+        state_plot_vars_Size        = allInts[count++];
+        state_small_plot_vars_Size  = allInts[count++];
+        derive_plot_vars_Size       = allInts[count++];
+        derive_small_plot_vars_Size = allInts[count++];
 
         VisMF::SetNOutFiles(allInts[count++]);
         VisMF::SetMFFileInStreams(allInts[count++]);
@@ -3344,6 +3430,9 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	for( lit = derive_plot_vars.begin(); lit != derive_plot_vars.end(); ++lit) {
           allStrings.push_back(*lit);
 	}
+        for( lit = derive_small_plot_vars.begin(); lit != derive_small_plot_vars.end(); ++lit) {
+          allStrings.push_back(*lit);
+	}
 
 	serialStrings = amrex::SerializeStringArray(allStrings);
 	//serialStringsSize = serialStrings.size();
@@ -3374,6 +3463,9 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 	}
         for(int i(0); i < derive_plot_vars_Size; ++i) {
           derive_plot_vars.push_back(allStrings[count++]);
+	}
+        for(int i(0); i < derive_small_plot_vars_Size; ++i) {
+          derive_small_plot_vars.push_back(allStrings[count++]);
 	}
       }
 
@@ -3481,17 +3573,17 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       // ---- initialize fortran data
       if(scsMyId != ioProcNumSCS) {
         int probin_file_length(probin_file.length());
-	int init(true);
+	int linit(true);
         Array<int> probin_file_name(probin_file_length);
         for(int i(0); i < probin_file_length; ++i) {
           probin_file_name[i] = probin_file[i];
         }
 	amrex::Print() << "Starting to read probin ... \n";
 #ifdef DIMENSION_AGNOSTIC
-        amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
+        amrex_probinit(&linit, probin_file_name.dataPtr(), &probin_file_length,
 		       ZFILL(Geometry::ProbLo()), ZFILL(Geometry::ProbHi()));
 #else
-        amrex_probinit(&init, probin_file_name.dataPtr(), &probin_file_length,
+        amrex_probinit(&linit, probin_file_name.dataPtr(), &probin_file_length,
 		       Geometry::ProbLo(), Geometry::ProbHi());
 #endif
       }
@@ -3554,6 +3646,7 @@ Amr::RedistributeGrids(int how) {
           //MultiFab::MoveAllFabs(mLDM[iMap]);
 	  DistributionMapping newDistMap(mLDM[iMap]);
           MultiFab::MoveAllFabs(newDistMap);
+          UpdateStateDataDistributionMaps(newDistMap);
         }
     }
 #ifdef USE_PARTICLES
@@ -3633,17 +3726,17 @@ using std::endl;
 void
 Amr::BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm)
 {
-  int bcvect[bcrec.vectSize()];
-  if(myLocalId == rootId) {
-    for(int i(0); i < bcrec.vectSize(); ++i) {
-      bcvect[i] = bcrec.vect()[i];
+    std::vector<int> bcvect(bcrec.vectSize());
+    if(myLocalId == rootId) {
+        for(int i(0); i < bcrec.vectSize(); ++i) {
+            bcvect[i] = bcrec.vect()[i];
+        }
     }
-  }
-  ParallelDescriptor::Bcast(bcvect, bcrec.vectSize(), rootId, localComm);
-  if(myLocalId != rootId) {
-    bcrec.setVect(bcvect);
-  }
+    ParallelDescriptor::Bcast(bcvect.data(), bcrec.vectSize(), rootId, localComm);
+    if(myLocalId != rootId) {
+        bcrec.setVect(bcvect.data());
+    }
 }
-
+    
 }
 

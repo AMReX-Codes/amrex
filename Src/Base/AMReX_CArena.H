@@ -63,9 +63,9 @@ protected:
             m_block(0), m_size(0) {}
         
         //! Another constructor.
-        Node (void* block, size_t size)
+        Node (void* a_block, size_t a_size)
             :
-            m_block(block), m_size(size) {}
+            m_block(a_block), m_size(a_size) {}
 
         //! The copy constructor.
         Node (const Node& rhs)

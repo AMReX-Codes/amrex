@@ -212,8 +212,10 @@ struct Particle
 template <int NReal, int NInt>
 class ArrayOfStructs {
 public:
-    using ParticleType = Particle<NReal, NInt>;
-    using RealType     = typename ParticleType::RealType;
+    using ParticleType  = Particle<NReal, NInt>;
+    using RealType      = typename ParticleType::RealType;
+    using Iterator      = typename Array<ParticleType>::iterator;
+    using ConstIterator = typename Array<ParticleType>::const_iterator;
 
 #if CUDA
     using ParticleArray = Array<ParticleType, CudaManagedAllocator<ParticleType> >;
@@ -248,9 +250,14 @@ public:
     const ParticleType& operator[] (int i) const { return m_data[i]; }
     ParticleType      & operator[] (int i)       { return m_data[i]; }
     
-    typename ParticleArray::iterator begin () { return m_data.begin(); }
-    typename ParticleArray::const_iterator begin () const { return m_data.begin(); }
-    typename ParticleArray::const_iterator cbegin () const { return m_data.cbegin(); }
+    Iterator erase( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
+
+    template< class InputIt >
+    void insert( Iterator pos, InputIt first, InputIt last ) { m_data.insert(pos, first, last); }
+
+    typename Array<ParticleType>::iterator begin () { return m_data.begin(); }
+    typename Array<ParticleType>::const_iterator begin () const { return m_data.begin(); }
+    typename Array<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }
         
     typename ParticleArray::iterator end () { return m_data.end(); }
     typename ParticleArray::const_iterator end () const { return m_data.end(); }
@@ -420,22 +427,22 @@ private:
 /// This struct is used to pass initial data into the various Init methods
 /// of the particle container. That data should be initialized in the order
 /// real struct data, int struct data, real array data, int array data. 
-/// If fewer components are specified than the sum of the template parameters,
-/// the extra values will be set to zero. If more components are specified, it 
-/// is a compile-time error.
+/// If fewer components are specified than the template parameters specify for,
+/// a given component, then the extra values will be set to zero. If more components 
+/// are specified, it is a compile-time error.
 ///
 /// Example usage:
 ///
-///     ParticleInitType<0, 2, 4, 1> pdata = {7, 9, 1.5, 2.5, 3.5, 4.5, 11}; 
+///     ParticleInitType<0, 2, 4, 1> pdata = {{}, {7, 9}, {1.5, 2.5, 3.5, 4.5}, {11}}; 
 ///
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleInitType
-{
-    double real_struct_data[NStructReal];
-    int    int_struct_data[NStructInt];
-    double real_array_data[NArrayReal];
-    int    int_array_data[NArrayInt];
-};
+    {
+        std::array<double, NStructReal> real_struct_data;
+        std::array<int,    NStructInt > int_struct_data;
+        std::array<double, NArrayReal > real_array_data;
+        std::array<int,    NArrayInt  > int_array_data;
+    };
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> class ParIterBase;
 

@@ -23,35 +23,34 @@ TRACE_PROFILE = FALSE
 AMREX_HOME = ../../..
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-#
-# Base name of each of the executables we want to build.
-# I'm assuming that each of these is a stand-alone program,
-# that simply needs to link against BoxLib.
-#
-_progs  := vofStructures
+#EBASE  := umapTest
+EBASE  := nbrsTest
 
-ifeq ($(_progs), vofStructures)
-  DEFINES+=-DNCELLMAX=4
-  DEFINES+=-DNFACEMAX=5
-  F90EXE_sources += vofStructures_$(DIM)d.F90
+DEFINES+=-DNCELLMAX=4
+DEFINES+=-DNFACEMAX=5
+ifeq ($(EBASE), umapTest)
+  CEXE_headers += AMReX_EBStruct.H umapTest.H
+  f90EXE_sources += umapTest_nd.f90 umapTest_mod.f90
   F90EXE_sources += AMReX_ebstruct_mod.F90
-  CEXE_headers += Node.H
 endif
 
+ifeq ($(EBASE), nbrsTest)
+  f90EXE_sources += nbrsTest_nd.f90
+  F90EXE_sources += nbrsTest_mod.F90
+endif
+CEXE_sources += $(addsuffix .cpp, $(EBASE))
+
 include $(AMREX_HOME)/Src/Base/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
+include $(AMREX_HOME)/Src/EBAMRTools/Make.package
 
-all: $(addsuffix $(optionsSuffix).ex, $(_progs))
-
-
-$(addsuffix $(optionsSuffix).ex, $(_progs)) \
-   : %$(optionsSuffix).ex : %.cpp $(objForExecs)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(includes) $(LDFLAGS) -o $@ $< $(objForExecs) $(libraries)
-	$(RM) $@.o
+all: $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
 clean::
-	$(RM) bl3_prof bl3_prof.m
-	$(RM) *.ex *.o
+	$(RM) bl_prof
+	$(RM) *.ex
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

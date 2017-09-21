@@ -8,9 +8,31 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_RealBox.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace amrex {
 
 template<class T> class FabArray;
+
+struct MFItInfo
+{
+    bool do_tiling;
+    bool dynamic;
+    IntVect tilesize;
+    MFItInfo () 
+        : do_tiling(false), dynamic(false), tilesize(IntVect::TheZeroVector()) {}
+    MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) {
+        do_tiling = true;
+        tilesize = ts;
+        return *this;
+    }
+    MFItInfo& SetDynamic (bool f) {
+        dynamic = f;
+        return *this;
+    }
+};
 
 class MFIter
 {
@@ -59,6 +81,8 @@ public:
     MFIter (const BoxArray& ba, const DistributionMapping& dm,
 	    const IntVect& tilesize, unsigned char flags_=0);
 
+    MFIter (const FabArrayBase& fabarray, const MFItInfo& info);
+
     MFIter (MFIter&& rhs) = default;
 
     // dtor
@@ -86,7 +110,18 @@ public:
     Box fabbox () const { const Box& r = fabArray.fabbox((*index_map)[currentIndex]); registerBox(r); return r; }
 
     //! Increment iterator to the next tile we own.
+#ifdef _OPENMP
+    void operator++ () {
+        if (dynamic) {
+#pragma omp atomic capture
+            currentIndex = nextDynamicIndex++;
+        } else {
+            ++currentIndex;
+        }
+    }
+#else
     void operator++ ();
+#endif
 
     //! Is the iterator valid i.e. is it associated with a FAB?
     bool isValid () const { return currentIndex < endIndex; }
@@ -172,6 +207,8 @@ protected:
     int           endIndex;
     IndexType     typ;
 
+    bool          dynamic;
+
     const Array<int>* index_map;
     const Array<int>* local_index_map;
     const Array<Box>* tile_array;
@@ -196,6 +233,8 @@ protected:
     mutable Array<Real*> real_device_reduce_list;
 #endif
 
+    static int nextDynamicIndex;
+  
     void Initialize ();
 };
 

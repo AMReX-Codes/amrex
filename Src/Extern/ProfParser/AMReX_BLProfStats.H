@@ -143,7 +143,8 @@ class BLProfStats {
     virtual void InitBLProfDataBlock(const int proc, const std::string &filename,
                                      const long seekpos);
     virtual void CollectFuncStats(amrex::Array<amrex::Array<FuncStat> > &funcStats);
-    virtual void WriteSummary(std::ostream &ios, bool bwriteavg = false, int whichProc = 0);
+    virtual void WriteSummary(std::ostream &ios, bool bwriteavg = false, int whichProc = 0,
+                              bool graphTopPct = true);
     virtual void AddCalcEndTime(double cet) { calcEndTime = cet; }
 
     virtual void SetCPVersion(const int cpv) { }
