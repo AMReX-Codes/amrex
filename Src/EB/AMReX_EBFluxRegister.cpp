@@ -370,14 +370,16 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     for (FArrayBox* cfp : m_cfp_fab[li])
     {
         const Box& wbx = cbxg1 & cfp->box();
-        AMREX_ASSERT(wbx.ok());
-        cvol.resize(wbx);
-        amrex_eb_flux_reg_fineadd_dm(BL_TO_FORTRAN_BOX(wbx),
-                                     BL_TO_FORTRAN_ANYD(*cfp),
-                                     BL_TO_FORTRAN_ANYD(dmgrow),
-                                     BL_TO_FORTRAN_ANYD(cvol),
-                                     BL_TO_FORTRAN_ANYD(volfrac),
-                                     dx, &nc, m_ratio.getVect());
+        if (wbx.ok())
+        {
+            cvol.resize(wbx);
+            amrex_eb_flux_reg_fineadd_dm(BL_TO_FORTRAN_BOX(wbx),
+                                         BL_TO_FORTRAN_ANYD(*cfp),
+                                         BL_TO_FORTRAN_ANYD(dmgrow),
+                                         BL_TO_FORTRAN_ANYD(cvol),
+                                         BL_TO_FORTRAN_ANYD(volfrac),
+                                         dx, &nc, m_ratio.getVect());
+        }
     }
 }
 
@@ -397,7 +399,6 @@ EBFluxRegister::Reflux (MultiFab& state)
             }
         }
     }
-
 
     m_crse_data.ParallelCopy(m_cfpatch, m_crse_geom.periodicity(), FabArrayBase::ADD);
 
