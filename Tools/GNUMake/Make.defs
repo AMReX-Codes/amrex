@@ -339,12 +339,12 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     CUDASuffix := .CUDA
-    DEFINES += -Damrex_launch_subroutine='attributes(global)'
-    DEFINES += -Damrex_subroutine='attributes(device)'
+    DEFINES += -DAMREX_LAUNCH_SUBROUTINE='attributes(global)'
+    DEFINES += -DAMREX_SUBROUTINE='attributes(device)'
 
 else
-    DEFINES += -Damrex_launch_subroutine=""
-    DEFINES += -Damrex_subroutine=""
+    DEFINES += -DAMREX_LAUNCH_SUBROUTINE=""
+    DEFINES += -DAMREX_SUBROUTINE=""
     CUDASuffix :=
 endif
 
