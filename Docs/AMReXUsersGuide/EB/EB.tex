@@ -1,0 +1,537 @@
+\newcommand{\xbold}{{\bf x}}
+\newcommand{\ebis}{{\tt EBIndexSpace}}
+\newcommand{\baseif}{{\tt BaseIF}}
+\newcommand{\sphereif}{{\tt SphereIF}}
+\newcommand{\transformif}{{\tt TransformIF}}
+\newcommand{\latheif}{{\tt LatheIF}}
+\newcommand{\unionif}{{\tt UnionIF}}
+\newcommand{\intersectionif}{{\tt IntersectionIF}}
+\newcommand{\geom}{{\tt GeometryShop}}
+\newcommand{\parm}{{\tt ParmParse}}
+
+For computations with complex geometries, $\tt{AMReX}$ provides data
+structures and iterators for performing Cartesian grid, embedded
+boundary (EB) calculations.   Examples include elliptic solvers and a
+compressible Navier Stokes simulation.  
+The overall goals of $\tt{AMReX}$'s EB tools are to allow users 
+to write simulations involving complex geomtery  without having to
+rewrite the common motifs that appear in these calculations.  
+We give an overview of $\tt{AMReX}$'s EB classes and how to use them.
+
+\section{Overview of Embedded Boundary Description}
+\label{sec:EB:EBOverview}
+
+Cartesian grids with embedded boundaries are 
+useful to describe
+volume-of-fluid representations of irregular boundaries.
+In this description,
+geometry is represented by volumes ($\Lambda h^d$) and apertures 
+($\vec{A}^\alpha h^{d-1}$).   See figure \ref{fig::volume}
+for an illustration.  In the figure, the grey area represents 
+the region excluded from the solution domain and the arrows represent
+fluxes.  A conservative, ``finite volume'' discretization
+of a flux divergence $\nabla \cdot \vec{F}$ is of the form:
+\begin{equation}
+\nabla \cdot \vec{F} \approx \frac{1}{\Lambda h} \sum \vec{F}^\alpha \cdot
+\vec{A}^\alpha
+\end{equation}
+This is useful for many important partial differential equations.
+Consider  Poisson's equation with Neumann boundary conditions
+\begin{equation}
+\nabla \cdot \vec{F} = \Delta \phi = \rho \hbox{ on $\Omega$ }.
+\end{equation}
+\begin{equation}
+\frac{\partial \phi}{\partial n} = 0 \hbox{ on $\partial \Omega$}
+\end{equation}
+The volume-of fluid description reduces the problem to finding
+sufficiently accurate gradients at the apertures.   
+The only geometric information required for second order embedded
+boundary algorithms are:
+\begin{itemize}
+\item
+Volume fractions
+\item
+Area fractions
+\item 
+Centers of volume, area.
+\end{itemize}
+The problem with this description of the geometry 
+is it can create  multiply-valued cells and
+non-rectangular connectivity.
+Refer to figure \ref{fig::graph}.  
+The interior of the cartoon airfoil represents the area
+excluded from the domain and the lines connecting the cell centers
+represent the connectivity of the discrete domain
+This very simple geometry produces a graph
+which is more complex than a rectangular lattice simply because
+the grid which surrounds it cannot resolve the geometry.
+The lack of resolution is fundamental to many geometries 
+of interest (trailing edges of airfoils, infinitely thin shells).
+Algorithms which require grid coarsening (multigrid, for example)
+also produce grids where such complex connectivity occurs.
+The connectivity can become arbitrarily complex (see figure 
+\ref{fig::multidivide}) in general, so the software infrastructure
+must support abstractions which can express this complexity.
+
+Our solution to this abstraction problem is to
+define the embedded boundary grid as a graph.
+The irregular part of the index space can be represented by a graph 
+$G = \{N,E\}$, where $N$ is the set of all nodes in the graph, and 
+$E$ the set of all edges of the graph connecting various pairs of 
+nodes. Geometrically,
+the nodes correspond to irregular control volumes (cell fragments) 
+cut out by the intersection of the body with the rectangular mesh, and 
+the edges correspond to the parts of cell faces that abut a pair of irregular 
+cell fragments. The remaining parts of space are indexed using elements
+of $Z^d$, or are covered by the body, and not indexed into at all. However,
+it is possible to think of the entire index space (both the regular and
+irregular parts) as a graph: in the regular part of the index space,
+the nodes are just elements of $Z^d$, and the 
+edges are the cell faces that
+separate pair of successive cells along the coordinate directions. 
+
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{./EB/volume.pdf}
+\caption{\label{fig::volume}Embedded boundary cell. The grey area represents 
+the region excluded from the solution domain and the arrows represent
+fluxes.}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{./EB/graph.pdf}
+\caption{Example of embedded boundary description of an interface. 
+The interior of the cartoon airfoil represents the area
+excluded from the domain and the lines connecting the cell centers
+represent the graph connectivity of the discrete domain.    }
+\label{fig::graph}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{./EB/multidivide.pdf}
+\caption{\label{fig::multidivide}Example of embedded boundary description of an interface
+and its corresponding graph description.  The graph
+can be almost arbitrarily complex when the grid is
+underresolved.}
+\end{figure}
+
+
+\section{Initializing \ebis}
+\label{sec:EB:ebinit}
+
+This geometric information, along with its associated connectivity
+graph is stored in a distributed database class \ebis which must be
+initialized at the start of the calculation.    The procedure for this
+goes as follows.   To initialize this database, one follows these steps:
+\begin{itemize}
+\item Define an implicit function which describes the surface 
+      and use it define a \geom object (see \S
+      \ref{sec:EB:geometryshop}).
+\item Call $\tt{EBIndexSpace::define}$ with the \geom object.   This
+  will fill the database of graph and moment data.   It is important
+  to define this using the finest resolution of domain that will be
+  used in the calculation.   Coarser information is generated
+  automatically by \ebis by graph coarsening.
+\end{itemize}
+As an illustration, here is how one would define the \ebis where the
+geometry is described as the complement of a sphere of radius 0.1
+centered inside a unit cube where the maxium resolution is $1024^3$.
+The classes involved are described in \S \ref{sec:EB:geometryshop}.
+
+\begin{lstlisting}[language=cpp]
+
+  int nx = 1024;
+  Box domain(IntVect::Zero, (nx-1)*IntVect::Unit);
+  Real dx = 1.0/nx;
+  Real radius = 0.1;
+  Real center = 0.5*RealVect::Unit;
+  bool insideRegular = false;
+  //this is the implicit function
+  SphereIF sphere(radius, center, insideRegular);
+
+  //this is worker object that creates geometric information given an IF
+  GeometryShop workshop(sideImpMultisphere)
+
+  //this is the global, distributed database being initialized
+  EBIndexSpace*  ebis = AMReX_EBIS::instance()
+  ebis->define(domain, RealVect::Zero, dx, workshop);
+
+\end{lstlisting}
+
+%%After this initialization is complete, any part of the calculation can
+%%access the data via $\tt{EBIndexSpace::fillEBISLayout}$.
+
+\subsection{GeometryShop and Implicit Functions}
+\label{sec:EB:geometryshop}
+
+One of the greatest advantages of EB technology is that grid
+generation is robust and fast and can be done to any accuracy
+The foundation class that AMReX uses for
+geometry generation is called \geom.  Given an implicit
+function $I$  \geom interprets the surface upon which $I(\xbold) = 0$
+as the surface with which to cut the grid cells.   \geom interprets
+the positive regions of the implicit function ($\xbold: I(\xbold) > 0$)
+as covered by the geometry  negative regions ($\xbold: I(\xbold) < 0$) 
+as part of  the solution domain.  For example, if one defines her
+implicit function $S$ as
+$$
+S(\xbold) = x^2 + y^2 + z^2 - R^2,
+$$
+the solution domain would be the interior of a sphere of radius $R$.
+Reverse the sign of $S$ and the solution domain would be the exterior
+of the sphere.   
+
+To define a geometry shop, one
+needs to send it a \baseif, which describes an implict function. 
+
+\begin{lstlisting}[language=cpp]
+    GeometryShop(const BaseIF& a_localGeom)
+\end{lstlisting}
+
+The implicit function's interface needs to be able to do two things,
+create a copy of itself and return the value of the function at any
+point in space.
+
+\begin{lstlisting}[language=cpp]
+    /// Return the value of the function at a_point.  
+    virtual Real value(const RealVect& a_point) const = 0;
+
+    ///   Return a newly allocated derived class.  
+    virtual BaseIF* newImplicitFunction() const = 0;
+\end{lstlisting}
+
+To continue with the example above, if one wants to define a geometry
+as a domain with  a sphere cut out of it, one uses the \sphereif
+class, the functions of which are shown below.
+
+\begin{lstlisting}[language=cpp]
+    SphereIF::
+    SphereIF(const Real&     a_radius,
+             const RealVect& a_center,
+             const bool&     a_inside)
+    {
+     m_radius  = a_radius;
+     m_radius2 = m_radius*m_radius;
+     m_inside  = a_inside;
+     m_center  = a_center;
+    }
+
+  Real
+  SphereIF::
+  value(const RealVect& a_point) const
+  {
+    RealVect dist = a_point - m_center;
+    Real distance2 = dist.radSquared();
+    Real retval = distance2 - m_radius2;
+    // Change the sign to change inside to outside
+    if (!m_inside)
+      {
+        retval = -retval;
+      }
+
+    return retval;
+  }
+  BaseIF* 
+  SphereIF::
+  newImplicitFunction() const
+  {
+    SphereIF* spherePtr = new SphereIF(m_radius,
+                                       m_center,
+                                       m_inside);
+
+    return static_cast<BaseIF*>(spherePtr);
+  }
+\end{lstlisting}
+
+One can get by with very simple implicit functions such as sphere and
+plane because one can create more complicated geometries by
+composition of simple implicit functions.    AMReX contains the
+following classes which are used compose implicit functions.
+\begin{itemize}
+\item $\tt{TransformIF}$    allows for translations and rotations of an implicit function.
+\item $\tt{UnionIF}$        produces the union of two implicit functions.  
+\item $\tt{IntersectionIF}$ produces the intersection of two implicit functions.
+\item $\tt{LatheIF}$        creates a 3D implicit function as the surface of
+  revolution of a 2D implicit function.
+\end{itemize}
+Here is an example that uses many of these tools.  This example
+creates a geometry with multiple spheres cut out.
+
+\begin{lstlisting}[language=cpp]
+
+//say you have a bunch of radii and centers of spheres
+/* fill these in however you like */
+vector<Real>     radius(numSpheres);
+vector<RealVect> center(numSpheres);
+...
+//create an implicit function for each sphere
+vector<BaseIF*>  spheres(numSpheres);
+
+for(int isphere = 0; isphere < numSpheres; isphere++)
+{
+  //create each sphere at the origin and translate
+  SphereIF sphereAtZero(radius[isphere], RealVect::Zero, false);
+  TransformIF* movedSphere = new TransformIF(sphereAtZero);
+  movedSphere->translate(center[isphere]);
+  spheres[isphere] = static_cast<BaseIF*>(movedSphere);
+}
+//create an implicit function that is the intersection of all the spheres
+IntersectionIF impMultisphere(spheres);
+//we want the fluid to be the complement (the space outside the sphere
+ComplementIF sideImpMultisphere(impMultisphere, false);
+//create the geometryshop
+GeometryShop workshop(sideImpMultisphere)
+\end{lstlisting}
+
+
+\section{$\tt{EBFarrayBox}$}
+
+The fundamental data structure for embedded boundary calculations is 
+$\tt{EBFArrayBox}$, a class is an a $\tt{FArrayBox}$ with two extra
+data members.
+\begin{itemize}
+\item $\tt{EBFArrayBox::getEBISBox}$ returns an $\tt{EBISBox}$, a data
+  structure that contains the graph and geometric information for a
+  particular box.
+\item $\tt{EBFArrayBox::getEBCellFlagFab}$  is a
+  $\tt{BaseFab<EBCellFlag>}$, where $\tt{EBCellFlag}$ is a class which
+  is a very compact class that specify connectivity information
+  (number of volumes in the cell, which cells are connected to my
+  cell...) for a particular cell.
+\end{itemize}
+If one compiles with $\tt{AMREX\_USE\_EB = TRUE}$, the state data that
+${\tt Amr}$ generates is already of type $\tt{EBFArrayBox}$ under the
+hood and one can access the functions via cast.   The
+$\tt{EBCellFlagFab}$ can be used to choose whether it is necessary to call an
+EB-specfic routine. $\tt{EBCellFlagFab}$  can be sent also be sent to Fortran to 
+enable EB-specific logic.   
+
+\subsection{Example}
+The example below is a simplified version
+of one of the routines in $\tt{Tutorial/EB/CNS}$.   Note  that  it
+carefully calls the more complicated EB fortran routine if the
+particular tile has cut cells.
+
+\begin{lstlisting}[language=cpp]
+void
+CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
+                   EBFluxRegister* fr_as_crse, EBFluxRegister* fr_as_fine)
+{
+    BL_PROFILE("CNS::compute_dSdt()");
+
+    const Real* dx = geom.CellSize();
+    const int ncomp = dSdt.nComp();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+     {
+        //fluxes for the advance
+        std::array<FArrayBox,AMREX_SPACEDIM> flux;
+
+        for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
+                        mfi.isValid(); ++mfi)
+        {
+            //this tile is the subset of the box over which we are computing
+            const Box& bx = mfi.tilebox();
+
+            //because we have compiled with AMREX_USE=EB_TRUE, the
+            //MultiFab holds EBFArrayBox(es) so we can do this cast
+            const EBFArrayBox& sfab = dynamic_cast<EBFArrayBox
+            const&>(S[mfi]);
+            
+            //here we are getting the collection of flags so we know
+            //kind of grid this is and if it is an EB grid, we have
+            //the connectivity info
+            const EBCellFlafgFab & flag = sfab.getEBCellFlagFab();
+
+            if (flag.getType(bx) == FabType::covered) 
+            {
+              //this tile is covered so there are no meaningful data here
+                dSdt[mfi].setVal(0.0, bx, 0, ncomp);
+            } 
+            else 
+            {
+              //create the flux holders for this tile
+              for (int idim=0; idim < AMREX_SPACEDIM; ++idim) 
+              {
+                flux[idim].resize(amrex::surroundingNodes(bx,idim),ncomp);
+              }
+
+              if (flag.getType(amrex::grow(bx,1)) == FabType::regular)
+              {
+                //this tile has no cut cells so we can just proceed
+                //with a (cheaper) non-eb call
+
+                cns_compute_dudt(BL_TO_FORTRAN_BOX(bx),
+                BL_TO_FORTRAN_ANYD(dSdt[mfi]),
+                BL_TO_FORTRAN_ANYD(S[mfi]),
+                BL_TO_FORTRAN_ANYD(flux[0]),
+                BL_TO_FORTRAN_ANYD(flux[1]),
+                BL_TO_FORTRAN_ANYD(flux[2]),
+                dx, &dt);
+
+              }
+              else
+              {
+                //this tile has cut cells so we have to send into Fortran
+                //EBCellFlagFAB as well as lots of geometric
+                //information
+                //the areafrac and facecent objects are member data
+                //filled using EBISBox
+                cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
+                BL_TO_FORTRAN_ANYD(dSdt[mfi]),
+                BL_TO_FORTRAN_ANYD(S[mfi]),
+                BL_TO_FORTRAN_ANYD(flux[0]),
+                BL_TO_FORTRAN_ANYD(flux[1]),
+                BL_TO_FORTRAN_ANYD(flux[2]),
+                BL_TO_FORTRAN_ANYD(flag),
+                BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
+                BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
+                BL_TO_FORTRAN_ANYD(areafrac[1][mfi]),
+                BL_TO_FORTRAN_ANYD(areafrac[2][mfi]),
+                BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
+                BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
+                BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
+                dx, &dt);
+              }
+            }
+          }
+        }
+
+\end{lstlisting}
+
+\subsection{Fortran bits}
+
+Now the Fortran that underlies these two cases is quite different.
+For the non-EB case,    the one loop in the function is given by the
+familiar-looking example below:
+\begin{lstlisting}[language=Fortran]
+    do n = 1, ncomp
+       do       k = lo(3),hi(3)
+          do    j = lo(2),hi(2)
+             do i = lo(1),hi(1)
+                ut(i,j,k,n) = (fx(i,j,k,n)-fx(i+1,j,k,n)) * dxinv(1) &
+                     +        (fy(i,j,k,n)-fy(i,j+1,k,n)) * dxinv(2) &
+                     +        (fz(i,j,k,n)-fz(i,j,k+1,n)) * dxinv(3)
+             end do
+          end do
+       end do
+    end do
+\end{lstlisting}
+
+For the embedded boundary version, the code must is much more
+complicated. To avoid instabilities associated with arbitrarily small
+cells, the divergence is computed in stages.  For this discussion
+$\kappa$ is the volume fraction of a cell.  The stages of the
+divergence are given by
+\begin{itemize}
+\item Compute the $\kappa$-weighted divergence.
+\item Compute a nonconservative approximation to the divergence that
+  is a local average of the previous object.
+\item Update the state with a hybrid divergence.
+\item Redistribute  mass to preserve conservation.
+\end{itemize}
+It is beyond the scope of this document to explain all that.  We
+include it only to provide the context that EB stencils can be much
+more complex that non-EB ones.   Suffice
+it to say that the first step of that process is most closely related
+to the code above.    The loop that computes the $\kappa$-weighted
+divergence is given below.
+
+\begin{lstlisting}[language=Fortran]
+    do n = 1, ncomp
+
+       !
+       ! First, we compute conservative divergence on (lo-2,hi+2)
+       !
+       iwall = 0
+       do       k = lo(3)-2, hi(3)+2
+          do    j = lo(2)-2, hi(2)+2
+             do i = lo(1)-2, hi(1)+2
+                divc(i,j,k) = (fluxx(i,j,k,n)-fluxx(i+1,j,k,n))*dxinv(1) &
+                     +        (fluxy(i,j,k,n)-fluxy(i,j+1,k,n))*dxinv(2) &
+                     +        (fluxz(i,j,k,n)-fluxz(i,j,k+1,n))*dxinv(3)
+             end do
+
+             do i = lo(1)-2, hi(1)+2
+                if (is_covered_cell(cellflag(i,j,k))) then
+                   divc(i,j,k) = 0.d0
+                else if (is_single_valued_cell(cellflag(i,j,k))) then
+
+                   call get_neighbor_cells(cellflag(i,j,k),nbr)
+
+                   ! x-direction lo face
+                   if (apx(i,j,k).lt.1.d0) then
+                      if (centx_y(i,j,k).le.0.d0) then
+                         fracy = -centx_y(i,j,k)*nbr(0,-1,0)
+                         if(centx_z(i,j,k).le. 0.0d0)then
+                            fracz = - centx_z(i,j,k)*nbr(0,0,-1)
+                            fxm = (1.d0-fracz)*(     fracy *fluxx(i,j-1,k  ,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
+                                 &      fracz *(     fracy *fluxx(i,j-1,k-1,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k-1,n))
+                         else
+                            fracz =  centx_z(i,j,k)*nbr(0,0,1)
+                            fxm = (1.d0-fracz)*(     fracy *fluxx(i,j-1,k  ,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
+                                 &      fracz *(     fracy *fluxx(i,j-1,k+1,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k+1,n))
+                         endif
+                      else
+                         fracy = centx_y(i,j,k)*nbr(0,1,0)
+                         if(centx_z(i,j,k).le. 0.0d0)then
+                            fracz = -centx_z(i,j,k)*nbr(0,0,-1)
+                            fxm = (1.d0-fracz)*(     fracy *fluxx(i,j+1,k  ,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
+                                 &      fracz *(     fracy *fluxx(i,j+1,k-1,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k-1,n))
+                         else
+                            fracz = centx_z(i,j,k)*nbr(0,0,1)
+                            fxm = (1.d0-fracz)*(     fracy *fluxx(i,j+1,k  ,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k  ,n)) + &
+                                 &      fracz *(     fracy *fluxx(i,j+1,k+1,n)  + &
+                                 &             (1.d0-fracy)*fluxx(i,j  ,k+1,n))
+                         endif
+                      end if
+                   else
+                      fxm = fluxx(i,j,k,n)
+                   end if
+
+           ![***REDACTED-- THERE ARE SIMILAR TERMS FOR XHI, YLO, YHI, ZLO, ZHI***]
+
+                   iwall = iwall + 1
+                   if (n .eq. 1) then
+                      call compute_hyp_wallflux(divhyp(:,iwall), i,j,k, q(i,j,k,qrho), &
+                           q(i,j,k,qu), q(i,j,k,qv), q(i,j,k,qw), q(i,j,k,qp), &
+                           apx(i,j,k), apx(i+1,j,k), &
+                           apy(i,j,k), apy(i,j+1,k), &
+                           apz(i,j,k), apz(i,j,k+1))
+                      call compute_diff_wallflux(divdiff(:,iwall), dxinv, i,j,k, &
+                           q, qlo, qhi, &
+                           lam, mu, xi, clo, chi, &
+                           bcent, blo, bhi, &
+                           apx, axlo, axhi, &
+                           apy, aylo, ayhi, &
+                           apz, azlo, azhi)
+                   end if
+
+                   divwn = divhyp(n,iwall) + divdiff(n,iwall)
+
+                   ! we assume dx == dy == dz
+                   divc(i,j,k) = -((apx(i+1,j,k)*fxp - apx(i,j,k)*fxm) * dxinv(1) &
+                        +          (apy(i,j+1,k)*fyp - apy(i,j,k)*fym) * dxinv(2) &
+                        +          (apz(i,j,k+1)*fzp - apz(i,j,k)*fzm) * dxinv(3) &
+                        +          divwn * dxinv(1)) / vfrac(i,j,k)
+                end if
+             end do
+          end do
+       end do
+
+\end{lstlisting}
+This should explain why it is desirable to avoid 
+calling the EB-specific routine when possible.

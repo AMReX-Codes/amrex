@@ -1119,32 +1119,30 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute (int lev_min, int lev_max, int nGrow)
 {
+
   BL_PROFILE("ParticleContainer::Redistribute()");
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = ParallelDescriptor::second();
   
-  //
   // On startup there are cases where Redistribute() could be called
   // with a given finestLevel() where that AmrLevel has yet to be defined.
-  //
   int theEffectiveFinestLevel = m_gdb->finestLevel();
 
   while (!m_gdb->LevelDefined(theEffectiveFinestLevel))
       theEffectiveFinestLevel--;
 
-  if (int(m_particles.size()) < theEffectiveFinestLevel+1)
-      {
-          if (Verbose()) {
-              amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing containers from "
-                             << m_particles.size() << " to " 
-                             << theEffectiveFinestLevel + 1 << '\n';
-          }
-          m_particles.resize(theEffectiveFinestLevel+1);
-          m_dummy_mf.resize(theEffectiveFinestLevel+1);
+  if (int(m_particles.size()) < theEffectiveFinestLevel+1) {
+      if (Verbose()) {
+          amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing containers from "
+                         << m_particles.size() << " to " 
+                         << theEffectiveFinestLevel + 1 << '\n';
       }
-
+      m_particles.resize(theEffectiveFinestLevel+1);
+      m_dummy_mf.resize(theEffectiveFinestLevel+1);
+  }
+  
   // It is important to do this even if we don't have more levels because we may have changed the 
-  //    grids at this level in a regrid.
+  // grids at this level in a regrid.
   for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) 
       RedefineDummyMF(lev);
   
@@ -1152,146 +1150,256 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
       lev_max = theEffectiveFinestLevel;
   
   BL_ASSERT(lev_max <= finestLevel());
-  
-  // The valid particles that we don't own.
-  std::map<int, Array<char> > not_ours;
-  ParticleLocData pld;
-  for (int lev = lev_min; lev <= lev_max; lev++)
-  {
-      auto& pmap = m_particles[lev];
-      for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */)
-      {
-          int grid = pmap_it->first.first;
-          int tile = pmap_it->first.second;
-          auto& aos = pmap_it->second.GetArrayOfStructs();
-          auto& soa = pmap_it->second.GetStructOfArrays();
-          unsigned first = 0;
-          unsigned npart = aos.numParticles();
-          if (npart != 0)
-          {
-              for (unsigned pindex = 0; pindex < npart; ++pindex)
-              {
-                  ParticleType& p = aos[pindex];
-                  if (p.m_idata.id > 0)
-                  {
-                      locateParticle(p, pld, lev_min, lev_max, nGrow);
 
-                      if (p.m_idata.id > 0)
-                      {
-                          // The owner of the particle is the CPU owning the finest grid
-                          // in state data that contains the particle.
-                          const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
-                          if (who == MyProc) 
-                          {
-                              if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile)
-                              {
-                                  // We own it but must shift it to another place.
-                                  auto& ptile = m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)];
-                                  ptile.push_back(p);
-                                  for (int comp = 0; comp < NArrayReal; ++comp) {
-                                      ptile.push_back_real(comp, soa.GetRealData(comp)[pindex]);
+  // This will hold the valid particles that go to another process
+  std::map<int, Array<char> > not_ours;
+  
+  int num_threads = 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single
+  num_threads = omp_get_num_threads();
+#endif
+  
+  // these are temporary buffers for each thread
+  std::map<int, Array<Array<char> > > tmp_remote;
+  Array<std::map<std::pair<int, int>, Array<Array<ParticleType> > > > tmp_local;
+  Array<std::map<std::pair<int, int>, Array<StructOfArrays<NArrayReal, NArrayInt> > > > soa_local;
+  tmp_local.resize(theEffectiveFinestLevel+1);
+  soa_local.resize(theEffectiveFinestLevel+1);
+
+  // we resize these buffers outside the parallel region
+  for (int lev = lev_min; lev <= lev_max; lev++) {
+      for (MFIter mfi(*m_dummy_mf[lev], tile_size); mfi.isValid(); ++mfi) {
+          auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+          tmp_local[lev][index].resize(num_threads);
+          soa_local[lev][index].resize(num_threads);
+      }
+  }
+  for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+      tmp_remote[i].resize(num_threads);
+  }
+
+  // first pass: for each tile in parallel, in each thread copies the particles that
+  // need to be moved into it's own, temporary buffer.
+  for (int lev = lev_min; lev <= lev_max; lev++) {
+      auto& pmap = m_particles[lev];
+      typename std::map<std::pair<int, int>, ParticleTileType >::iterator pmap_it;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single nowait
+#endif
+      for (pmap_it = pmap.begin(); pmap_it != pmap.end(); pmap_it++) {
+#ifdef _OPENMP
+#pragma omp task firstprivate(pmap_it)
+#endif
+          {
+#ifdef _OPENMP
+              int thread_num = omp_get_thread_num();
+#else
+              int thread_num = 0;
+#endif
+              int grid = pmap_it->first.first;
+              int tile = pmap_it->first.second;
+              auto& aos = pmap_it->second.GetArrayOfStructs();
+              auto& soa = pmap_it->second.GetStructOfArrays();
+              unsigned first = 0;
+              unsigned npart = aos.numParticles();
+              ParticleLocData pld;
+              if (npart != 0) {
+                  for (unsigned pindex = 0; pindex < npart; ++pindex) {
+                      ParticleType& p = aos[pindex];
+                      if (p.m_idata.id > 0) {
+                      
+                          locateParticle(p, pld, lev_min, lev_max, nGrow);
+                      
+                          if (p.m_idata.id > 0) {
+                              // The owner of the particle is the CPU owning the finest grid
+                              // in state data that contains the particle.
+                              const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
+                              if (who == MyProc) {
+                                  if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
+                                      // We own it but must shift it to another place.
+                                      auto index = std::make_pair(pld.m_grid, pld.m_tile);
+                                      BL_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
+                                      tmp_local[pld.m_lev][index][thread_num].push_back(p);
+                                      for (int comp = 0; comp < NArrayReal; ++comp) {
+                                          Array<Real>& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
+                                          arr.push_back(soa.GetRealData(comp)[pindex]);
+                                      }
+                                      for (int comp = 0; comp < NArrayInt; ++comp) {
+                                          Array<int>& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
+                                          arr.push_back(soa.GetIntData(comp)[pindex]);
+                                      }
+
+                                      // Invalidate the particle so we can reclaim its space.
+                                      p.m_idata.id = -p.m_idata.id;
                                   }
-                                  for (int comp = 0; comp < NArrayInt; ++comp) {
-                                      ptile.push_back_int(comp, soa.GetIntData(comp)[pindex]);
+                               }
+
+                              else {
+                                  auto& particles_to_send = tmp_remote[who][thread_num];
+                                  auto old_size = particles_to_send.size();
+                                  auto new_size = old_size + superparticle_size;
+                                  particles_to_send.resize(new_size);
+                                  std::memcpy(&particles_to_send[old_size], &p, particle_size);
+                                  char* dst = &particles_to_send[old_size] + particle_size;
+                                  for (int comp = 0; comp < NArrayReal; comp++) {
+                                      if (communicate_real_comp[comp]) {
+                                          std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(Real));
+                                          dst += sizeof(Real);
+                                      }
                                   }
-                                  //
+                                  for (int comp = 0; comp < NArrayInt; comp++) {
+                                      if (communicate_int_comp[comp]) {
+                                          std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
+                                          dst += sizeof(int);
+                                      }
+                                   }
                                   // Invalidate the particle so we can reclaim its space.
-                                  //
                                   p.m_idata.id = -p.m_idata.id;
                               }
                           }
-                          else
-                          {
-                              auto& particles_to_send = not_ours[who];
-                              auto old_size = particles_to_send.size();
-                              auto new_size = old_size + superparticle_size;
-                              particles_to_send.resize(new_size);
-                              std::memcpy(&particles_to_send[old_size], &p, particle_size);
-                              char* dst = &particles_to_send[old_size] + particle_size;
-                              for (int comp = 0; comp < NArrayReal; comp++)
-                              {
-                                  if (communicate_real_comp[comp])
-                                  {
-                                      std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(Real));
-                                      dst += sizeof(Real);
-                                  }
-                              }
-                              for (int comp = 0; comp < NArrayInt; comp++)
-                                  {
-                                      if (communicate_int_comp[comp])
-                                          {
-                                              std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
-                                              dst += sizeof(int);
-                                          }
-                                  }
-                              // Invalidate the particle so we can reclaim its space.
-                              p.m_idata.id = -p.m_idata.id;
-                          }
                       }
-                  }
-                  // this is a valid particle
-                  if (p.m_idata.id > 0)
-                  {
-                      if (pindex != first)
-                      {
-                          aos[first] = p;
-                          for (int comp = 0; comp < NArrayReal; comp++)
-                              soa.GetRealData(comp)[first] = soa.GetRealData(comp)[pindex];
-                          for (int comp = 0; comp < NArrayInt; comp++)
-                              soa.GetIntData(comp)[first] = soa.GetIntData(comp)[pindex];
-                      }
-                      ++first;
-                  }
-              }
 
-              aos().erase(aos().begin() + first, aos().begin() + npart);
-              for (int comp = 0; comp < NArrayReal; comp++) {
-                  RealArray& rdata = soa.GetRealData(comp);
-                  rdata.erase(rdata.begin() + first, rdata.begin() + npart);
+                      // this is a valid particle
+                      if (p.m_idata.id > 0) {
+                          if (pindex != first) {
+                              aos[first] = p;
+                              for (int comp = 0; comp < NArrayReal; comp++)
+                                  soa.GetRealData(comp)[first] = soa.GetRealData(comp)[pindex];
+                              for (int comp = 0; comp < NArrayInt; comp++)
+                                  soa.GetIntData(comp)[first] = soa.GetIntData(comp)[pindex];
+                          }
+                          ++first;
+                      }
+                  }
+              
+                  aos().erase(aos().begin() + first, aos().begin() + npart);
+                  for (int comp = 0; comp < NArrayReal; comp++) {
+                      Array<Real>& rdata = soa.GetRealData(comp);
+                      rdata.erase(rdata.begin() + first, rdata.begin() + npart);
+                  }
+                  for (int comp = 0; comp < NArrayInt; comp++) {
+                      Array<int>& idata = soa.GetIntData(comp);
+                      idata.erase(idata.begin() + first, idata.begin() + npart);
+                  }
               }
-              for (int comp = 0; comp < NArrayInt; comp++) {
-                  IntArray& idata = soa.GetIntData(comp);
-                  idata.erase(idata.begin() + first, idata.begin() + npart);
-              }
-          }
-	
-          //
+           }
+        }
+    }
+
+    for (int lev = lev_min; lev <= lev_max; lev++) {
+        auto& pmap = m_particles[lev];
+        for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
+
           // Remove any map entries for which the particle container is now empty.
-          //
           if (pmap_it->second.empty()) {
               pmap.erase(pmap_it++);
           }
           else {
               ++pmap_it;
           }
+        }
+    }
+
+    // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
+    for (int lev = lev_min; lev <= lev_max; lev++) {
+        typename std::map<std::pair<int, int>, Array<Array<ParticleType> > >::iterator pmap_it;
+
+        // we need to create any missing map entries in serial here
+        for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
+            m_particles[lev][pmap_it->first];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single nowait
+#endif
+      for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++) {
+#ifdef _OPENMP
+#pragma omp task firstprivate(pmap_it)
+#endif
+          {
+              auto index = pmap_it->first;
+              auto& aos = m_particles[lev][index].GetArrayOfStructs();
+              auto& soa = m_particles[lev][index].GetStructOfArrays();
+              auto& aos_tmp = pmap_it->second;
+              auto& soa_tmp = soa_local[lev][index];
+              for (int i = 0; i < num_threads; ++i) {
+                  aos.insert(aos.end(), aos_tmp[i].begin(), aos_tmp[i].end());
+                  aos_tmp[i].erase(aos_tmp[i].begin(), aos_tmp[i].end());
+                  for (int comp = 0; comp < NArrayReal; ++comp) {
+                      Array<Real>& arr = soa.GetRealData(comp);
+                      Array<Real>& tmp = soa_tmp[i].GetRealData(comp);
+                      arr.insert(arr.end(), tmp.begin(), tmp.end());
+                      tmp.erase(tmp.begin(), tmp.end());
+                  }
+                  for (int comp = 0; comp < NArrayInt; ++comp) {
+                      Array<int>& arr = soa.GetIntData(comp);
+                      Array<int>& tmp = soa_tmp[i].GetIntData(comp);
+                      arr.insert(arr.end(), tmp.begin(), tmp.end());
+                      tmp.erase(tmp.begin(), tmp.end());
+                  }
+              }
+          }
+      }
+  }
+
+  for (auto& map_it : tmp_remote) {
+      int who = map_it.first;
+      not_ours[who];
+  }  
+
+  std::map<int, Array<Array<char> > >::iterator it;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single nowait
+#endif
+  for (it=tmp_remote.begin(); it != tmp_remote.end(); it++) {
+#ifdef _OPENMP
+#pragma omp task firstprivate(it)
+#endif
+      {
+          int who = it->first;
+          Array<Array<char> >& tmp = it->second;
+          for (int i = 0; i < num_threads; ++i) {
+              not_ours[who].insert(not_ours[who].begin(), tmp[i].begin(), tmp[i].end());
+              tmp[i].erase(tmp[i].begin(), tmp[i].end());
+          }
       }
   }
   
-  if (int(m_particles.size()) > theEffectiveFinestLevel+1)
-  {
+  // remove any empty map entries from not_ours
+  for (auto pmap_it = not_ours.begin(); pmap_it != not_ours.end(); /* no ++ */) {        
+      if (pmap_it->second.empty()) {
+          not_ours.erase(pmap_it++);
+      }
+      else {
+          ++pmap_it;
+      }
+  }
+
+  if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
       // Looks like we lost an AmrLevel on a regrid.
       amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() resizing m_particles from "
                      << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
       BL_ASSERT(int(m_particles.size()) >= 2);
       BL_ASSERT(m_particles[m_particles.size()-1].empty());
-
+      
       m_particles.resize(theEffectiveFinestLevel + 1);
       m_dummy_mf.resize(theEffectiveFinestLevel + 1);
   }
   
-  if (ParallelDescriptor::NProcs() == 1)
-  {
+  if (ParallelDescriptor::NProcs() == 1) {
       BL_ASSERT(not_ours.empty());
   }
-  else
-  {
+  else {
       RedistributeMPI(not_ours, lev_min, lev_max, nGrow);
   }
   
   BL_ASSERT(OK(lev_min, lev_max, nGrow));
   
-  if (m_verbose > 0)
-  {
+  if (m_verbose > 0) {
       Real stoptime = ParallelDescriptor::second() - strttime;
       
       ByteSpread();
@@ -1299,10 +1407,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
 #ifdef BL_LAZY
       Lazy::QueueReduction( [=] () mutable {
 #endif
-	  ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
-          amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() time: " << stoptime << "\n\n";
+              ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
+              amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute() time: " << stoptime << "\n\n";
 #ifdef BL_LAZY
-	});
+          });
 #endif
   }
 }
@@ -3163,7 +3271,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         // Do the grids at this level cover the full domain? If they do
         // there can be no Fine->Crse interactions at this level.
         //
-        const bool GridsCoverDomain = fvalid.contains(Geom(lev).Domain());
+        const bool GridsCoverDomain = fvalid.numPts() == Geom(lev).Domain().numPts();
 
 	const auto& pmap = m_particles[lev];
 	for (const auto& kv : pmap) {
@@ -4170,7 +4278,9 @@ AssignCellDensitySingleLevelFort (int rho_index,
     if (mf_pointer->nGrow() < 1) 
        amrex::Error("Must have at least one ghost cell when in AssignDensitySingleLevel");
 
+#ifdef _OPENMP
     const int       ng          = mf_pointer->nGrow();
+#endif
     const Real      strttime    = ParallelDescriptor::second();
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();

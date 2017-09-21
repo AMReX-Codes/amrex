@@ -78,7 +78,7 @@ extern "C"
     {
         std::vector<std::string> b;
         pp->getarr(name, b);
-        BL_ASSERT(n == b.size());
+        BL_ASSERT(n == static_cast<int>(b.size()));
         for (int i = 0; i < n; ++i) {
             sv[i] = b[i].size() + 1;
             v[i] = new char[sv[i]];

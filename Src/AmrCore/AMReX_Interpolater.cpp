@@ -210,9 +210,8 @@ CellBilinear::interp (const FArrayBox&  crse,
                    &actual_comp,&actual_state);
 }
 
-static
 Array<int>
-GetBCArray (const Array<BCRec>& bcr)
+Interpolater::GetBCArray (const Array<BCRec>& bcr)
 {
     Array<int> bc(2*BL_SPACEDIM*bcr.size());
 

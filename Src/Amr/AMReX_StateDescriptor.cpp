@@ -199,11 +199,11 @@ DescriptorList::addDescriptor (int                         indx,
                                int                         num_comp, 
                                Interpolater*               interp,
                                bool                        extrap,
-                               bool                        store_in_checkpoint)
+                               bool                        a_store_in_checkpoint)
 {
     if (indx >= desc.size())
         desc.resize(indx+1);
-    desc[indx].reset(new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap,store_in_checkpoint));
+    desc[indx].reset(new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap,a_store_in_checkpoint));
 }  
 
 
@@ -236,9 +236,9 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
                                   int                         ident,
                                   int                         nextra, 
                                   int                         num_comp,
-                                  Interpolater*               interp,
-                                  bool                        extrap,
-                                  bool                        store_in_checkpoint)
+                                  Interpolater*               a_interp,
+                                  bool                        a_extrap,
+                                  bool                        a_store_in_checkpoint)
     :
     type(btyp),
     t_type(ttyp),
@@ -248,9 +248,9 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
 #ifdef AMREX_USE_DEVICE
     device_copy(false),
 #endif
-    mapper(interp),
-    m_extrap(extrap),
-    m_store_in_checkpoint(store_in_checkpoint)
+    mapper(a_interp),
+    m_extrap(a_extrap),
+    m_store_in_checkpoint(a_store_in_checkpoint)
 {
     BL_ASSERT (num_comp > 0);
    
@@ -365,18 +365,18 @@ StateDescriptor::define (IndexType                   btyp,
                          int                         ident,
                          int                         nextra,
                          int                         num_comp,
-                         Interpolater*               interp,
-                         bool                        extrap,
-                         bool                        store_in_checkpoint) 
+                         Interpolater*               a_interp,
+                         bool                        a_extrap,
+                         bool                        a_store_in_checkpoint) 
 {
     type     = btyp;
     t_type   = ttyp;
     id       = ident;
     ngrow    = nextra;
     ncomp    = num_comp;
-    mapper   = interp;
-    m_extrap = extrap;
-    m_store_in_checkpoint = store_in_checkpoint;
+    mapper   = a_interp;
+    m_extrap = a_extrap;
+    m_store_in_checkpoint = a_store_in_checkpoint;
 
     BL_ASSERT (num_comp > 0);
    
@@ -395,7 +395,7 @@ StateDescriptor::setComponent (int                               comp,
                                const std::string&                nm,
                                const BCRec&                      bcr,
                                const StateDescriptor::BndryFunc& func,
-                               Interpolater*                     interp, 
+                               Interpolater*                     a_interp, 
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
@@ -403,7 +403,7 @@ StateDescriptor::setComponent (int                               comp,
 
     names[comp]       = nm;
     bc[comp]          = bcr;
-    mapper_comp[comp] = interp;
+    mapper_comp[comp] = a_interp;
     m_master[comp]    = false;
     m_groupsize[comp] = 0;
 
@@ -428,14 +428,14 @@ StateDescriptor::setComponent (int                               comp,
                                const std::string&                nm,
                                const BCRec&                      bcr,
                                const StateDescriptor::BndryFunc& func,
-                               Interpolater*                     interp,
-                               bool                              master,
-                               int                               groupsize)
+                               Interpolater*                     a_interp,
+                               bool                              a_master,
+                               int                               a_groupsize)
 {
-    setComponent(comp,nm,bcr,func,interp,-1,-1);
+    setComponent(comp,nm,bcr,func,a_interp,-1,-1);
 
-    m_master[comp]    = master;
-    m_groupsize[comp] = groupsize;
+    m_master[comp]    = a_master;
+    m_groupsize[comp] = a_groupsize;
 }
 
 void
@@ -570,15 +570,15 @@ StateDescriptor::cleanUpMaps (Interpolater**& maps,
 }
 
 bool
-StateDescriptor::identicalInterps (int scomp,
-                                   int ncomp) const
+StateDescriptor::identicalInterps (int a_scomp,
+                                   int a_ncomp) const
 {
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(a_scomp >= 0);
+    BL_ASSERT(a_ncomp >= 1);
 
-    Interpolater* map = interp(scomp);
+    Interpolater* map = interp(a_scomp);
 
-    for (int i = scomp+1; i < scomp+ncomp; i++)
+    for (int i = a_scomp+1; i < a_scomp+a_ncomp; i++)
         if (!(map == interp(i)))
             return false;
 
@@ -586,19 +586,19 @@ StateDescriptor::identicalInterps (int scomp,
 }
 
 std::vector< std::pair<int,int> >
-StateDescriptor::sameInterps (int scomp,
-                              int ncomp) const
+StateDescriptor::sameInterps (int a_scomp,
+                              int a_ncomp) const
 {
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(a_scomp >= 0);
+    BL_ASSERT(a_ncomp >= 1);
 
     std::vector< std::pair<int,int> > range;
 
-    Interpolater* map = interp(scomp);
+    Interpolater* map = interp(a_scomp);
 
-    int SComp = scomp, NComp = 1;
+    int SComp = a_scomp, NComp = 1;
 
-    for (int i = scomp+1; i < scomp+ncomp; i++)
+    for (int i = a_scomp+1; i < a_scomp+a_ncomp; i++)
     {
         if (map == interp(i))
         {
@@ -618,9 +618,9 @@ StateDescriptor::sameInterps (int scomp,
 
 #ifndef NDEBUG
     int sum = 0;
-    for (int i = 0; i < range.size(); i++)
+    for (int i = 0; i < static_cast<int>(range.size()); i++)
         sum += range[i].second;
-    BL_ASSERT(sum == ncomp);
+    BL_ASSERT(sum == a_ncomp);
 #endif
 
     return range;

@@ -215,3 +215,159 @@ Table 1:  Profile by Function
 
 
 \end{enumerate}
+
+\section{IPM - Cross-Platform Integrated Performance Monitoring}
+
+IPM provides portable profiling capabilities across HPC platforms,
+including support on selected Cray and IBM machines (cori and (TODO:
+verify it works on) summit).  Running an IPM instrumented binary generates
+a summary of number of calls and time spent on MPI communication library
+functions.  In addition, hardware performance counters can also be
+collected through PAPI.
+
+Detailed instructions can be found at \footnote{\url{http://ipm-hpc.sourceforge.net/userguide.html}} and
+\footnote{\url{https://www.nersc.gov/users/software/performance-and-debugging-tools/ipm/}}.
+
+\subsection{Building with IPM on cori}
+
+Steps:
+\begin{enumerate}
+\item Run {\tt module load ipm}.
+\item Build code as normal with {\tt make}.
+\item Re-run the link command (e.g. cut-and-paste) with {\tt \$IPM} added to the end of the line.
+\end{enumerate}
+
+\subsection{Running with IPM on cori}
+
+\begin{enumerate}
+\item Set environment variables: {\tt export IPM\_REPORT=full IPM\_LOG=full IPM\_LOGDIR=$<$dir$>$}
+\item Results will be printed to stdout and an xml file generated in the directory specified by {\tt IPM\_LOGDIR}.
+\item Post-process the xml with {\tt ipm\_parse -html $<$xmlfile$>$}, which produces an directory with html.
+\end{enumerate}
+
+\subsection{Summary MPI Profile}
+
+Example MPI profile output:
+
+\begin{verbatim}
+##IPMv2.0.5########################################################
+#
+# command   : /global/cscratch1/sd/cchan2/projects/lbl/BoxLib/Tests/LinearSolvers/C_CellMG/./main3d.intel.MPI.OMP.ex.ipm inputs.3d.25600 
+# start     : Tue Aug 15 17:34:23 2017   host      : nid11311        
+# stop      : Tue Aug 15 17:34:35 2017   wallclock : 11.54
+# mpi_tasks : 128 on 32 nodes            %comm     : 32.51
+# mem [GB]  : 126.47                     gflop/sec : 0.00
+#
+#           :       [total]        <avg>          min          max
+# wallclock :       1188.42         9.28         8.73        11.54 
+# MPI       :        386.31         3.02         2.51         4.78 
+# %wall     :
+#   MPI     :                      32.52        24.36        41.44 
+# #calls    :
+#   MPI     :       5031172        39306        23067        57189
+# mem [GB]  :        126.47         0.99         0.98         1.00 
+#
+#                             [time]        [count]        <%wall>
+# MPI_Allreduce               225.72         567552          18.99
+# MPI_Waitall                  92.84         397056           7.81
+# MPI_Recv                     29.36            193           2.47
+# MPI_Isend                    25.04        2031810           2.11
+# MPI_Irecv                     4.35        2031810           0.37
+# MPI_Allgather                 2.60            128           0.22
+# MPI_Barrier                   2.24            512           0.19
+# MPI_Gatherv                   1.70            128           0.14
+# MPI_Comm_dup                  1.23            256           0.10
+# MPI_Bcast                     1.14            256           0.10
+# MPI_Send                      0.06            319           0.01
+# MPI_Reduce                    0.02            128           0.00
+# MPI_Comm_free                 0.01            128           0.00
+# MPI_Comm_group                0.00            128           0.00
+# MPI_Comm_size                 0.00            256           0.00
+# MPI_Comm_rank                 0.00            256           0.00
+# MPI_Init                      0.00            128           0.00
+# MPI_Finalize                  0.00            128           0.00
+\end{verbatim}
+
+The total, average, minimum, and maximum wallclock and MPI times across ranks is shown.
+The memory footprint is also collected.
+Finally, results include number of calls and total time spent in each type of MPI call.
+
+\subsection{PAPI Performance Counters}
+
+To collect performance counters, set {\tt IPM\_HPM=$<$list$>$}, where the list is a comma-separated
+list of PAPI counters.  For example: {\tt export IPM\_HPM=PAPI\_L2\_TCA,PAPI\_L2\_TCM}.
+
+For reference, here is the list of available counters on cori, which can be found by running {\tt papi\_avail}:
+\begin{verbatim}
+    Name        Code    Avail Deriv Description (Note)
+PAPI_L1_DCM  0x80000000  Yes   No   Level 1 data cache misses
+PAPI_L1_ICM  0x80000001  Yes   No   Level 1 instruction cache misses
+PAPI_L1_TCM  0x80000006  Yes   Yes  Level 1 cache misses
+PAPI_L2_TCM  0x80000007  Yes   No   Level 2 cache misses
+PAPI_TLB_DM  0x80000014  Yes   No   Data translation lookaside buffer misses
+PAPI_L1_LDM  0x80000017  Yes   No   Level 1 load misses
+PAPI_L2_LDM  0x80000019  Yes   No   Level 2 load misses
+PAPI_STL_ICY 0x80000025  Yes   No   Cycles with no instruction issue
+PAPI_BR_UCN  0x8000002a  Yes   Yes  Unconditional branch instructions
+PAPI_BR_CN   0x8000002b  Yes   No   Conditional branch instructions
+PAPI_BR_TKN  0x8000002c  Yes   No   Conditional branch instructions taken
+PAPI_BR_NTK  0x8000002d  Yes   Yes  Conditional branch instructions not taken
+PAPI_BR_MSP  0x8000002e  Yes   No   Conditional branch instructions mispredicted
+PAPI_TOT_INS 0x80000032  Yes   No   Instructions completed
+PAPI_LD_INS  0x80000035  Yes   No   Load instructions
+PAPI_SR_INS  0x80000036  Yes   No   Store instructions
+PAPI_BR_INS  0x80000037  Yes   No   Branch instructions
+PAPI_RES_STL 0x80000039  Yes   No   Cycles stalled on any resource
+PAPI_TOT_CYC 0x8000003b  Yes   No   Total cycles
+PAPI_LST_INS 0x8000003c  Yes   Yes  Load/store instructions completed
+PAPI_L1_DCA  0x80000040  Yes   Yes  Level 1 data cache accesses
+PAPI_L1_ICH  0x80000049  Yes   No   Level 1 instruction cache hits
+PAPI_L1_ICA  0x8000004c  Yes   No   Level 1 instruction cache accesses
+PAPI_L2_TCH  0x80000056  Yes   Yes  Level 2 total cache hits
+PAPI_L2_TCA  0x80000059  Yes   No   Level 2 total cache accesses
+PAPI_REF_CYC 0x8000006b  Yes   No   Reference clock cycles
+\end{verbatim}
+
+Due to hardware limitations, there is a limit to which counters can be
+collected simultaneously in a single run.  Some counters may map to the
+same registers and thus cannot be collected at the same time.
+
+\subsection{Example HTML Performance Summary}
+
+Running {\tt ipm\_parse -html $<$xmlfile$>$} on the generated xml file
+will produce an HTML document that includes summary performance numbers
+and automatically generated figures.  Some examples are shown here.
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=\columnwidth]{Profiling/figs/summary.png}
+  \end{center}
+  \caption{
+    Sample performance summary generated by IPM
+  }
+  \label{fig:ipm-summary}
+\end{figure}
+
+\begin{figure}
+  \begin{center}
+    \subfloat[Timings]{
+      \includegraphics[width=0.49\columnwidth]{Profiling/figs/timings.png}
+    }
+    \subfloat[PAPI Counters]{
+      \includegraphics[width=0.49\columnwidth]{Profiling/figs/papi.png}
+    } \\
+    \subfloat[MPI Time by Function]{
+      \includegraphics[width=0.49\columnwidth]{Profiling/figs/mpi.png}
+    }
+    \subfloat[MPI Time by Message Size]{
+      \includegraphics[width=0.49\columnwidth]{Profiling/figs/msgsizes.png}
+    } \\
+    \subfloat[Point-to-Point Communication Volume]{
+      \includegraphics[width=0.49\columnwidth]{Profiling/figs/commtopo.png}
+    }
+  \end{center}
+  \caption{
+    Sample performance graphs generated by IPM
+  }
+  \label{fig:ipm-graphs}
+\end{figure}

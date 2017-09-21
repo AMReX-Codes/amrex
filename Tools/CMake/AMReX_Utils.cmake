@@ -57,7 +57,7 @@ function ( find_include_paths dirlist )
    foreach (item ${includes})
 
       get_filename_component ( path ${item} PATH )
-
+      
       if (IS_DIRECTORY ${path})
 
 	 # Check first if it is a valid path
@@ -65,11 +65,12 @@ function ( find_include_paths dirlist )
 	 
 	 foreach ( exclude ${ARG_EXCLUDE})
 	    string (FIND ${path} ${exclude} out )
-	    if ( NOT (${out} EQUAL -1) AND (${path} STREQUAL ${exclude}))
+	    if ( NOT (${out} EQUAL -1) ) 
 	       set (path_is_valid "NO")
 	    endif ()
 	 endforeach ()
-	 	 
+
+	 
 	 if ( NOT (${path} IN_LIST tmp ) AND path_is_valid )	   	    
 	    list ( APPEND tmp ${path} )
 	 endif ()
@@ -78,6 +79,8 @@ function ( find_include_paths dirlist )
       
    endforeach ()
 
+   
+   
    set ( ${dirlist} ${tmp} PARENT_SCOPE )
   
 endfunction ()
@@ -108,8 +111,10 @@ function ( add_define new_define all_defines )
    elseif ( ${ARGC} GREATER 3 )
       message ( AUTHOR_WARNING "Function add_define accept AT MOST 3 args" )
    endif ()
+     
+   string ( FIND "${${all_defines}}" "${new_define}" out )
    
-   if ( ${condition} )
+   if (condition AND (${out} EQUAL -1))
       set ( ${all_defines} "${${all_defines}} -D${new_define}" PARENT_SCOPE )
    endif ()
    

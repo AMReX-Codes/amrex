@@ -71,11 +71,7 @@ namespace amrex {
 #endif
 
 #ifdef BL_USE_FLOAT
-#ifdef BL_USE_FORT_STAR_PRECISION
-#    define REAL_T real*4
-#else
 #    define REAL_T REAL
-#endif
 #if __STDC__==1 || defined(__INTEL_COMPILER)
 #        define BL_REAL(a) a##E0
 #        define BL_REAL_E(a,b) a##E##b
@@ -84,11 +80,7 @@ namespace amrex {
 #        define BL_REAL_E(a,b) a/**/E/**/b
 #endif
 #else
-#ifdef BL_USE_FORT_STAR_PRECISION
-#    define REAL_T real*8
-#else
 #    define REAL_T DOUBLE PRECISION
-#endif
 #if __STDC__==1 || defined(__INTEL_COMPILER)
 #        define BL_REAL(a) a##D0
 #        define BL_REAL_E(a,b) a##D##b

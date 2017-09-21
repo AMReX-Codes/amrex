@@ -34,8 +34,8 @@ ifeq ($(lowercase_comp),intel)
     # periodically.
     ifeq ($(USE_ITTNOTIFY),TRUE)
       DEFINES += -DITTNOTIFY
-      INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2016_DIR)/include
-      LIBRARY_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2016_DIR)/lib64
+      INCLUDE_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2017_DIR)/include
+      LIBRARY_LOCATIONS += $(VTUNE_AMPLIFIER_XE_2017_DIR)/lib64
       LIBRARIES +=  -littnotify
     
     	# Intel Software Development Emulator (SDE) is a tool we use to count

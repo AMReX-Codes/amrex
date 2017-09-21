@@ -7,7 +7,7 @@
 #undef TESTING_POLYNOMINTERPCOEFFS
 #ifdef TESTING_POLYNOMINTERPCOEFFS
 #define NORDER 3
-#define REAL_T real*8
+#define REAL_T double precision
 #define zero 0.d0
 #define one 1.d0
 #else

@@ -143,19 +143,25 @@ public:
     * variable in a ParmParse inputs file.
     */
     static const std::list<std::string>& derivePlotVars () { return derive_plot_vars; }
+    static const std::list<std::string>& deriveSmallPlotVars () { return derive_small_plot_vars; }
     //! Is the string the name of a variable in derive_plot_vars?
     static bool isDerivePlotVar (const std::string& name);
+    static bool isDeriveSmallPlotVar (const std::string& name);
     /**
     * \brief If the string is not the name of a variable in 
     * derive_plot_vars, add it to derive_plot_vars.  
     */
     static void addDerivePlotVar (const std::string& name);
+    static void addDeriveSmallPlotVar (const std::string& name);
     //! Remove the string from derive_plot_vars.
     static void deleteDerivePlotVar (const std::string& name);
+    static void deleteDeriveSmallPlotVar (const std::string& name);
     //! Clear the list of derive_plot_vars.
     static void clearDerivePlotVarList ();
+    static void clearDeriveSmallPlotVarList ();
     //!  Fill the list of derive_plot_vars with all derived quantities.
     static void fillDerivePlotVarList ();
+    static void fillDeriveSmallPlotVarList ();
 
     static void Initialize ();
     static void Finalize ();
@@ -294,12 +300,15 @@ public:
     void RedistributeParticles ();
 #endif
 
+    void InstallNewDistributionMap (int lev, const DistributionMapping& newdm);
+
     void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
     void AddProcsToComp(int nSidecarProcs, int prevSidecarProcs);
     void RedistributeGrids(int how);
     void BroadcastBoundaryPointList(BoundaryPointList &bpl, int myLocalId, int rootId, MPI_Comm comm);
     void PrintData(std::ostream& os);
     static void BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm);
+    void UpdateStateDataDistributionMaps(DistributionMapping& new_dmap);
 
 protected:
 
@@ -426,6 +435,7 @@ protected:
     static std::list<std::string> state_plot_vars;  // State Vars to dump to plotfile 
     static std::list<std::string> state_small_plot_vars;  // State Vars to dump to small plotfile 
     static std::list<std::string> derive_plot_vars; // Derived Vars to dump to plotfile 
+    static std::list<std::string> derive_small_plot_vars; // Derived Vars to dump to small plotfile 
     static bool                   first_plotfile;
     //! Array of BoxArrays read in to initially define grid hierarchy
     static Array<BoxArray> initial_ba;

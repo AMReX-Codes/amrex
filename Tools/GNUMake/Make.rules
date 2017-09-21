@@ -34,6 +34,21 @@ else
 endif
 #	@echo SUCCESS
 
+ifdef CRAY_CPU_TARGET
+	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="
+endif
+
+ifeq ($(USE_PROFPARSER),TRUE)
+BLProfParser.tab.H BLProfParser.tab.cpp: $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y
+	cat $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y
+	bison --defines=BLProfParser.tab.H --output=BLProfParser.tab.cpp \
+		BLProfParserNC.y
+	rm BLProfParserNC.y
+
+BLProfParser.lex.yy.cpp: BLProfParser.tab.H $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.l
+	flex --outfile=BLProfParser.lex.yy.cpp $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.l
+endif
+
 $(amrexlib): $(objForExecs)
 	@echo Building libamrex.a
 	$(SILENT) $(AR) $(ARFLAGS) $@ $^
@@ -92,6 +107,9 @@ realclean:: clean
 	$(SILENT) $(RM) -r $(TmpBuildDir) *~
 	$(SILENT) $(RM) *.ex *.o
 	$(SILENT) $(RM) *.mod
+	$(SILENT) $(RM) BLProfParser.lex.yy.cpp
+	$(SILENT) $(RM) BLProfParser.tab.cpp
+	$(SILENT) $(RM) BLProfParser.tab.H
 
 file_locations:
 	$(AMREX_HOME)/Tools/F_scripts/find_files_vpath.py --vpath "$(FINAL_VPATH_LOCATIONS)" --files "$(CEXE_sources) $(FEXE_sources) $(cEXE_sources) $(fEXE_sources) $(f90EXE_sources) $(F90EXE_sources) $(CEXE_headers) $(cEXE_headers) $(fEXE_headers) $(FEXE_headers)"

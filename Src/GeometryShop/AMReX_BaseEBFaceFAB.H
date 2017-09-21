@@ -16,7 +16,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <vector>
 #include "AMReX_BaseIFFAB.H"
 #include "AMReX_IntVectSet.H"
 #include "AMReX_BaseFab.H"
@@ -58,7 +57,7 @@ namespace amrex
         const FaceIndex* vofPtr = dynamic_cast<const FaceIndex *>(&a_baseInd);
         if (vofPtr == NULL) amrex::Error("Trying to index into an EBCellFAB with something that is not a FaceIndex");
         int retval = 0;
-        const std::vector<FaceIndex>& irrfaces =m_irrFAB.getFaces();
+        const Array<FaceIndex>& irrfaces =m_irrFAB.getFaces();
         for (int iface = 0; iface < irrfaces.size(); iface++)
         {
           if (irrfaces[iface] == *vofPtr)
@@ -76,7 +75,7 @@ namespace amrex
         const FaceIndex* vofPtr = dynamic_cast<const FaceIndex *>(&a_baseInd);
         if (vofPtr == NULL) amrex::Error("Trying to index into an EBCellFAB with something that is not a FaceIndex");
         bool irreg = false;
-        const std::vector<FaceIndex>& irrfaces =m_irrFAB.getFaces();
+        const Array<FaceIndex>& irrfaces =m_irrFAB.getFaces();
         for (int iface = 0; iface < irrfaces.size(); iface++)
         {
           if (irrfaces[iface] == *vofPtr)
@@ -222,6 +221,7 @@ namespace amrex
 
     /// default false but you can make  make this true for your T if you are sure.
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return true; }
 
     ///
     /**

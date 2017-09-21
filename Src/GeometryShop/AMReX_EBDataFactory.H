@@ -22,7 +22,7 @@
 namespace amrex
 {
 
-  ///factory to create BaseIVFABs
+  ///factory to create EBDatas
   class EBDataFactory : public FabFactory<EBData>
   {
   public:
@@ -34,7 +34,7 @@ namespace amrex
     virtual ~EBDataFactory () {}
 
     ///
-    virtual EBData* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const
+    virtual EBData* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
       {
         EBGraph& graph = (*m_graphs)[box_index];
         EBData* retval =  new  EBData();
@@ -42,15 +42,19 @@ namespace amrex
         return retval;
       }
 
+    virtual EBDataFactory* clone () const override {
+        return new EBDataFactory(*this);
+    }
+
     ///
-    EBDataFactory(shared_ptr<FabArray<EBGraph> > a_graphs)
+    EBDataFactory(const shared_ptr<FabArray<EBGraph> >& a_graphs)
       {
         m_graphs = a_graphs;
       }
 
     ///
     void
-    setGraphs(shared_ptr<FabArray<EBGraph> > a_graphs)
+    setGraphs(const shared_ptr<FabArray<EBGraph> >& a_graphs)
       {
         m_graphs = a_graphs;
       }

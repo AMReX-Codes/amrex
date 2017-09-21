@@ -93,8 +93,8 @@ BARef::define (std::istream& is)
     //
     BL_ASSERT(m_abox.size() == 0);
     int           maxbox;
-    unsigned long hash;
-    is.ignore(bl_ignore_max, '(') >> maxbox >> hash;
+    unsigned long tmphash;
+    is.ignore(bl_ignore_max, '(') >> maxbox >> tmphash;
     resize(maxbox);
     for (Array<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
         is >> *it;
@@ -148,6 +148,7 @@ BARef::resize (long n) {
 #endif
     m_abox.resize(n);
     hash.clear();
+    has_hashmap = false;
 #ifdef BL_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
@@ -698,6 +699,7 @@ void
 BoxArray::set (int        i,
                const Box& ibox)
 {
+    BL_ASSERT(m_simple && m_crse_ratio == IntVect::TheUnitVector());
     if (i == 0) {
         m_typ = ibox.ixType();
         m_transformer->setIxType(m_typ);
@@ -902,7 +904,7 @@ BoxArray::intersections (const Box&                         bx,
 			 bool                               first_only,
 			 int                                ng) const
 {
-    // called too many times  BL_PROFILE("BoxArray::intersections()");
+  // This is called too many times BL_PROFILE("BoxArray::intersections()");
 
     BARef::HashType& BoxHashMap = getHashMap();
 
@@ -1024,6 +1026,7 @@ BoxArray::clear_hash_bin () const
 	m_ref->updateMemoryUsage_hash(-1);
 #endif
         m_ref->hash.clear();
+        m_ref->has_hashmap = false;
     }
 }
 
@@ -1167,6 +1170,14 @@ BoxArray::getHashMap () const
 {
     BARef::HashType& BoxHashMap = m_ref->hash;
 
+    bool local_flag;
+#ifdef _OPENMP
+#pragma omp atomic read
+#endif
+    local_flag = m_ref->has_hashmap;
+
+    if (local_flag) return BoxHashMap;
+
 #ifdef _OPENMP
     #pragma omp critical(intersections_lock)
 #endif
@@ -1197,6 +1208,8 @@ BoxArray::getHashMap () const
             m_ref->crsn = maxext;
             m_ref->bbox =boundingbox.coarsen(maxext);
             m_ref->bbox.normalize();
+
+	    m_ref->has_hashmap = true;
 
 #ifdef BL_MEM_PROFILING
 	    m_ref->updateMemoryUsage_hash(1);

@@ -32,7 +32,7 @@ namespace amrex
 /**
    EBIndexSpace represents the geometric information
    of the domain.    It should be generated through
-   the Chombo_EBIS class.  This follows the singleton
+   the AMReX_EBIS class.  This follows the singleton
    pattern.
 */
   class EBIndexSpace
@@ -126,7 +126,7 @@ namespace amrex
         return m_nlevels;
       }
     //for testing
-    vector<Box> getDomains() const
+    const Array<Box>& getDomains() const
       {
         return m_domainLevel;
       }
@@ -134,27 +134,18 @@ namespace amrex
   private:
 
     //only AMReX_EBIS can make one
-    EBIndexSpace()
-      {
-      }
+    EBIndexSpace() = default;
 
     int  m_nCellMax;
     bool m_isDefined;
 
-    std::vector<EBISLevel*> m_ebisLevel;
-    std::vector<Box> m_domainLevel;
+    Array<std::unique_ptr<EBISLevel> > m_ebisLevel;
+    Array<Box> m_domainLevel;
 
     int m_nlevels;
 
-    void operator=(const EBIndexSpace& ebiin)
-      {
-        amrex::Error("no assignment of EBIndexSpace allowed");
-      }
-
-    EBIndexSpace(const EBIndexSpace& ebiin)
-      {
-        amrex::Error("no copy construction of EBIndexSpace allowed");
-      }
+    void operator=(const EBIndexSpace& ebiin) = delete;
+    EBIndexSpace(const EBIndexSpace& ebiin) = delete;
   };
 
 }

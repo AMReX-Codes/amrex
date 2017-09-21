@@ -149,17 +149,17 @@ public:
 #if BL_SPACEDIM > 1
       IntVect ivSize = domain.size();
 #endif
-      long offset = ivDiff[0];
+      long retval = ivDiff[0];
 
 #if BL_SPACEDIM > 1
-      offset += ivDiff[1]*ivSize[0] ;
+      retval += ivDiff[1]*ivSize[0] ;
 #endif
 #if BL_SPACEDIM > 2
-      offset += ivDiff[2]*ivSize[0]*ivSize[1];
+      retval += ivDiff[2]*ivSize[0]*ivSize[1];
 #endif
-      offset += numpts * a_ivar;
+      retval += numpts * a_ivar;
 
-      return offset;
+      return retval;
     }
 
     /**
@@ -172,6 +172,8 @@ public:
     std::size_t nBytes () const { return truesize*sizeof(T); }
 
     static bool preAllocatable () { return true; }
+
+    static bool isCopyOMPSafe () { return true; }
 
     //! Returns bytes used in the Box for those components
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
@@ -345,7 +347,7 @@ public:
     //! Same as above, except the number of modified components is one. N is the component to be modified.
     void setVal (T          x,
                  const Box& bx,
-                 int        N);
+                 int        N = 0);
     //! Same as above, except the sub-box defaults to the entire domain.
     void setVal (T   x,
                  int N);
@@ -1029,13 +1031,13 @@ BaseFab<T>::getVal  (T*             data,
                      int            numcomp) const
 {
     const int loc      = domain.index(pos);
-    const long size    = domain.numPts();
+    const long sz    = domain.numPts();
 
     BL_ASSERT(!(dptr == 0));
     BL_ASSERT(n >= 0 && n + numcomp <= nvar);
 
     for (int k = 0; k < numcomp; k++)
-        data[k] = dptr[loc+(n+k)*size];
+        data[k] = dptr[loc+(n+k)*sz];
 }
 
 template <class T>

@@ -18,16 +18,18 @@
 #include "AMReX_VolIndex.H"
 #include "AMReX_FaceIndex.H"
 #include "AMReX_IntVectSet.H"
-#include "AMReX_FabArray.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_EBGraph.H"
 #include "AMReX_EBData.H"
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_MFIter.H>
 
 namespace amrex
 {
 
   class EBIndexSpace;
   class EBISLayout;
+  template <class FAB> class FabArray;  // avoid circular depencies
 ///
 /**
    EBISLayoutImplem represents the geometric information
@@ -79,7 +81,7 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the vof does not exist at the input data index.
     */
-    std::vector<VolIndex> refine(const VolIndex &  a_vof,
+    Array<VolIndex> refine(const VolIndex &  a_vof,
                                  const int      &  a_ratio,
                                  const MFIter   &  a_datInd) const;
 
@@ -90,7 +92,7 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the face does not exist at the input data index.
     */
-    std::vector<FaceIndex> refine(const FaceIndex &  a_face,
+    Array<FaceIndex> refine(const FaceIndex &  a_face,
                                   const int       &  a_ratio,
                                   const MFIter    &  a_datInd) const;
 
@@ -178,10 +180,10 @@ namespace amrex
 
     DistributionMapping m_dm;
     ///
-    std::vector<EBISLayout> m_fineLevels;
+    Array<EBISLayout> m_fineLevels;
 
     ///
-    std::vector<EBISLayout> m_coarLevels;
+    Array<EBISLayout> m_coarLevels;
 
     ///
     int m_nghost;
@@ -278,6 +280,12 @@ namespace amrex
         m_implem = std::shared_ptr<EBISLayoutImplem>(new EBISLayoutImplem());
       }
 
+      EBISLayout (const EBISLayout& rhs) = default;
+      EBISLayout (EBISLayout&& rhs) noexcept = default;
+      EBISLayout& operator= (const EBISLayout& rhs) = default;
+
+      EBISLayout& operator= (EBISLayout&& rhs) = delete;
+
     ///
     ~EBISLayout()
       {
@@ -304,7 +312,7 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the vof does not exist at the input data index.
     */
-    std::vector<VolIndex> refine(const VolIndex& a_vof,
+    Array<VolIndex> refine(const VolIndex& a_vof,
                                  const int     & a_ratio,
                                  const MFIter  & a_datInd) const
       {
@@ -318,7 +326,7 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the face does not exist at the input data index.
     */
-    std::vector<FaceIndex> refine(const FaceIndex & a_face,
+    Array<FaceIndex> refine(const FaceIndex & a_face,
                                   const int       & a_ratio,
                                   const MFIter    & a_datInd) const
       {

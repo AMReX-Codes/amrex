@@ -21,9 +21,13 @@ subroutine amrex_atomic_accumulate_fab(local_fab, tile_lo, tile_hi, &
      do k = tile_lo(3), tile_hi(3)
         do j = tile_lo(2), tile_hi(2)
            do i = tile_lo(1), tile_hi(1)
+#ifdef _OPENMP
               !$omp atomic
+#endif
               global_fab(i,j,k,comp) = global_fab(i,j,k,comp) + local_fab(i,j,k,comp)
+#ifdef _OPENMP
               !$omp end atomic
+#endif
            end do
         end do
      end do

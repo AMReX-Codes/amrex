@@ -322,9 +322,9 @@ MGT_Solver::initialize(bool nodal)
     //
     if (!pp.query("cg_solver", def_cg_solver))
     {
-        ParmParse pp("cg");
+        ParmParse ppcg("cg");
 
-        pp.query("cg_solver", def_cg_solver);
+        ppcg.query("cg_solver", def_cg_solver);
     }
 
 /*
@@ -333,8 +333,8 @@ MGT_Solver::initialize(bool nodal)
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
 */
     {
-        ParmParse pp("cg");
-        pp.query("v", def_cg_verbose);
+        ParmParse ppcg("cg");
+        ppcg.query("v", def_cg_verbose);
     }
 
     if (def_usecg == 1)
@@ -615,10 +615,10 @@ MGT_Solver::solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif    
-    for ( int lev = 0; lev < m_nlevel; ++lev )
+    for ( int ilev = 0; ilev < m_nlevel; ++ilev )
     {
-	set_rh(*(rh[lev]), lev);
-	set_uu(*(uu[lev]), lev);
+	set_rh(*(rh[ilev]), ilev);
+	set_uu(*(uu[ilev]), ilev);
     }
     
     // Pass in the status flag from here so we can know whether the 
@@ -634,9 +634,9 @@ MGT_Solver::solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for ( int lev = 0; lev < m_nlevel; ++lev )
+    for ( int ilev = 0; ilev < m_nlevel; ++ilev )
     {
-	get_uu(*(uu[lev]), lev, ng);
+	get_uu(*(uu[ilev]), ilev, ng);
     }
 }
 
@@ -690,9 +690,9 @@ MGT_Solver::applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, con
 #ifdef _OPENMP
 #pragma omp parallel
 #endif    
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+  for ( int ilev = 0; ilev < m_nlevel; ++ilev )
   {
-      set_uu(*(uu[lev]), lev);
+      set_uu(*(uu[ilev]), ilev);
   }
 
   mgt_applyop();
@@ -700,9 +700,9 @@ MGT_Solver::applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, con
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+  for ( int ilev = 0; ilev < m_nlevel; ++ilev )
   {
-      get_res(*(res[lev]), lev);
+      get_res(*(res[ilev]), ilev);
   }
 }
 
@@ -728,10 +728,10 @@ MGT_Solver::compute_residual(const Array<MultiFab*>& uu, const Array<MultiFab*>&
 #ifdef _OPENMP
 #pragma omp parallel
 #endif    
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+  for ( int ilev = 0; ilev < m_nlevel; ++ilev )
   {
-      set_rh(*(rh[lev]), lev);
-      set_uu(*(uu[lev]), lev);
+      set_rh(*(rh[ilev]), ilev);
+      set_uu(*(uu[ilev]), ilev);
   }
 
   mgt_compute_residual();
@@ -739,9 +739,9 @@ MGT_Solver::compute_residual(const Array<MultiFab*>& uu, const Array<MultiFab*>&
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-  for ( int lev = 0; lev < m_nlevel; ++lev )
+  for ( int ilev = 0; ilev < m_nlevel; ++ilev )
   {
-      get_res(*(res[lev]), lev);
+      get_res(*(res[ilev]), ilev);
   }
 }
 
@@ -957,7 +957,7 @@ MGT_Solver::set_cfa_const (Real alpha, int lev)
     } else {
 	MFInfo info;
 	info.SetAlloc(false);
-	MultiFab cc(m_grids[lev], m_dmap[lev], 1, 0, info); // cell-centered MF      
+	MultiFab cc(m_grids[lev], m_dmap[lev], 1, 0, info, FArrayBoxFactory()); // cell-centered MF      
 #ifdef _OPENMP
 #pragma omp parallel
 #endif

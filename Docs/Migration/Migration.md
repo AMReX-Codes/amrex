@@ -15,7 +15,7 @@ environment variable `AMREX_HOME` is set to the AMReX directory.
 
 ## Step 0
 
-Make sure your code work with the [latest version of BoxLib on
+Make sure your code works with the [latest version of BoxLib on
 github](https://github.com/BoxLib-Codes/BoxLib). 
 
 ## Step 1
@@ -135,8 +135,8 @@ may be built when this is called multiple times with the same
 `BoxArray`.  If two `MultiFab`s need to share the same
 `DistributionMapping`, only one `DistributionMapping` should be built.
 
-For extensibility, `MultiFab` constructor now also takes an `MFInfo`
-object.  To construct `MultiFab` without allocating memory for the
+For extensibility, the `MultiFab` constructor now also takes an `MFInfo`
+object.  To construct a `MultiFab` without allocating memory for the
 data,
 
     MFInfo info;
@@ -161,8 +161,8 @@ processes.
 ### Step 7
 
 AMReX `migration/7-bindc` branch should be used in this step.  In
-BoxLib, `Amr` class calls a Fortran subroutine `probinit` to perform
-problem specific initialization on Fortran side.  This is a subroutine
+BoxLib, the `Amr` class calls a Fortran subroutine `probinit` to perform
+problem-specific initialization on Fortran side.  This is a subroutine
 provided by application codes.  In AMReX, this subroutine is renamed
 to `amrex_probint`, and it is expected to have `bind(c)` making the
 interface of calling it from C++ clean.  A script
@@ -188,7 +188,7 @@ now changed to `amrex.`.
 AMReX `migration/9-pointers-n-sentinel` branch should be used in this
 step.
 
-`Amr` and `AmrLevel` used to return `MultiFab *` in `derive`
+`Amr` and `AmrLevel` used to return `MultiFab *` in the `derive`
 function; they now return `std::unique_ptr<MultiFab>` for safety.
 Application codes using `Amr` and `AmrLevel` classes need to update by
 changing `MultiFab* mf = derive(...)` to `auto mf = derive(...)` and

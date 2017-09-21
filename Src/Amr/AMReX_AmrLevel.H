@@ -14,6 +14,10 @@
 #include <AMReX_StateDescriptor.H>
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_EBLevel.H>
+#include <AMReX_EBInterpolater.H>
+#endif
 
 #include <memory>
 #include <map>
@@ -207,7 +211,9 @@ public:
     const BoxArray& getEdgeBoxArray (int dir) const;
     const BoxArray& getNodalBoxArray () const;
     //
-    const DistributionMapping& DistributionMap() const { return dmap; }
+    const DistributionMapping& DistributionMap () const { return dmap; }
+    //
+    const FabFactory<FArrayBox>& Factory () const { return *m_factory; }
     //! Number of grids at this level.
     int numGrids () const { return grids.size(); }
     //! Returns the indices defining physical domain.
@@ -290,6 +296,9 @@ public:
     //! Sets a new value for the post-timestep regrid trigger.
     void setPostStepRegrid (int new_val) { post_step_regrid = new_val; }
 
+    //! Update the distribution maps in StateData based on the size of the map
+    void UpdateDistributionMaps ( DistributionMapping& dmap );
+
     //! Boundary condition access function.
     Array<int> getBCArray (int State_Type,
 			   int gridno,
@@ -363,6 +372,10 @@ protected:
               const BoxArray& bl,
 	      const DistributionMapping& dm,
               Real            time);
+
+    AmrLevel (const AmrLevel&) = delete;
+    AmrLevel& operator = (const AmrLevel&) = delete;
+
     //! Common code used by all constructors.
     void finishConstructor (); 
 
@@ -387,16 +400,17 @@ protected:
 
     bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 
+#ifdef AMREX_USE_EB
+    static void SetEBMaxGrowCells (int n) { m_eb_max_grow_cells = n; }
+    static int            m_eb_max_grow_cells;
+    EBLevel               m_eblevel;
+#endif
+    std::unique_ptr<FabFactory<FArrayBox> > m_factory;
+
 private:
 
     mutable BoxArray      edge_grids[BL_SPACEDIM];  // face-centered grids
     mutable BoxArray      nodal_grids;              // all nodal grids
-
-    //
-    // Disallowed.
-    //
-    AmrLevel (const AmrLevel&);
-    AmrLevel& operator = (const AmrLevel&);
 };
 
 //

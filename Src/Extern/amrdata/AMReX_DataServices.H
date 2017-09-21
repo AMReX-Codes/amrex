@@ -11,7 +11,7 @@
 #include <cstdarg>
 #include <string>
 
-#ifdef BL_PROFILING
+#ifdef BL_USE_PROFPARSER
 #include <map>
 #include <AMReX_BLProfUtilities.H>
 #include <AMReX_Array.H>
@@ -48,10 +48,8 @@ class DataServices {
       DumpSliceBoxAllVars,
       MinMaxRequest,
       PointValueRequest,
-#ifndef BL_NOLINEVALUES
       LineValuesRequest,
-#endif
-#ifdef BL_PROFILING 
+#ifdef BL_USE_PROFPARSER 
       WriteSummaryRequest,
       CheckProfDataRequest,
       RunStatsRequest,
@@ -121,13 +119,11 @@ class DataServices {
 		      int &intersectedLevel, Box &intersectedGrid,
 		      Real &dataPointValue, bool &bPointIsValid);
 
-#ifndef BL_NOLINEVALUES
       // LineValuesRequest
       void LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,
                       const string &currentDerived,
                       int coarsestLevelToSearch, int finestLevelToSearch,
                       XYPlotDataList *dataList, bool &lineIsValid);
-#endif
 
   public:
 
@@ -149,7 +145,7 @@ class DataServices {
     void DecrementNumberOfUsers() { --numberOfUsers; }
 
     // profiling functions
-#ifdef BL_PROFILING 
+#ifdef BL_USE_PROFPARSER
     bool ProfDataAvailable()   const { return bProfDataAvailable;   }
     bool RegionDataAvailable() const { return bRegionDataAvailable; }
     bool TraceDataAvailable()  const { return bTraceDataAvailable;  }
@@ -193,12 +189,14 @@ class DataServices {
     void ParseFilterFile();
 
     void PrintCommStats(std::ostream &os, bool printHeaderNames);
-    void WriteSummary(std::ostream &os, bool bWriteAverage, int whichProc, bool bUseTrace);
+    void WriteSummary(std::ostream &os, bool bWriteAverage, int whichProc,
+                      bool bUseTrace, bool graphTopPct);
     void InitProxMap();
     void TCEdison();
     void WriteHTML(const std::string &fFileName, bool simpleCombine, int whichProc);
     void WriteHTMLNC(const std::string &fFileName, int whichProc);
-    void WriteTextTrace(const std::string &fFileName, bool simpleCombine, int whichProc);
+    void WriteTextTrace(const std::string &fFileName, bool simpleCombine = true,
+                        int whichProc = 0, std::string delimString = "\t");
 #endif
 
   private:
@@ -215,7 +213,7 @@ class DataServices {
     static int dsFabOutSize;
     static bool dsBatchMode;
     static bool profiler;
-#ifdef BL_PROFILING 
+#ifdef BL_USE_PROFPARSER
     bool bProfDataAvailable;
     bool bRegionDataAvailable;
     bool bTraceDataAvailable;
