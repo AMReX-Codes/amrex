@@ -22,7 +22,7 @@ F90EXE_sources += AMReX_ebinterp_$(DIM)d.F90
 
 CEXE_headers += AMReX_EBFluxRegister.H AMReX_EBFluxRegister_F.H
 CEXE_sources += AMReX_EBFluxRegister.cpp
-F90EXE_sources += AMReX_EBFluxRegister_$(DIM)d.F90
+F90EXE_sources += AMReX_EBFluxRegister_$(DIM)d.F90 AMReX_EBFluxRegister_nd.F90
 
 CEXE_headers += AMReX_EBAmrUtil.H AMReX_EBAmrUtil_F.H
 CEXE_sources += AMReX_EBAmrUtil.cpp

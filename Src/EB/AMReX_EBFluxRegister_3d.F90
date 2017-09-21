@@ -1,12 +1,10 @@
 module amrex_eb_flux_reg_3d_module
 
   use amrex_fort_module, only : rt => amrex_real
+  use amrex_eb_flux_reg_nd_module, only : crse_cell, crse_fine_boundary_cell, fine_cell, &
+       reredistribution_threshold
   implicit none
   private
-
-  integer, parameter, public :: crse_cell = 0
-  integer, parameter, public :: crse_fine_boundary_cell = 1
-  integer, parameter, public :: fine_cell = 2
 
   public :: amrex_eb_flux_reg_crseadd, amrex_eb_flux_reg_fineadd, &
        amrex_eb_flux_reg_crseadd_va, amrex_eb_flux_reg_fineadd_va, &
@@ -456,6 +454,9 @@ contains
     real(rt), intent(in   ) :: vfrac( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3))
 
     integer :: i,j,k,n, ii,jj,kk, ioff, joff, koff, iii, jjj, kkk
+    real(rt) :: threshold
+
+    threshold = reredistribution_threshold*(ratio(1)*ratio(2)*ratio(3))
 
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
@@ -463,7 +464,7 @@ contains
              cvol(i,j,k) = sum(vfrac(i*ratio(1):i*ratio(1)+ratio(1)-1,  &
                   &                  j*ratio(2):j*ratio(2)+ratio(2)-1, &
                   &                  k*ratio(3):k*ratio(3)+ratio(3)-1))
-             if (cvol(i,j,k).gt.1.d-14) then
+             if (cvol(i,j,k).gt.threshold) then
                 cvol(i,j,k) = 1._rt/cvol(i,j,k)
              else
                 cvol(i,j,k) = 0._rt
