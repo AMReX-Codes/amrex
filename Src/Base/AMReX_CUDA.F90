@@ -51,7 +51,9 @@ contains
 
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
                        cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
+#ifdef BL_USE_F_BASELIB
     use bl_error_module, only: bl_error
+#endif
 
     implicit none
 
@@ -355,7 +357,9 @@ contains
 
     use cudafor, only: cudaMallocManaged, cudaMemAttachGlobal, c_devptr
     use iso_c_binding, only: c_size_t
+#ifdef BL_USE_F_BASELIB
     use bl_error_module, only: bl_error
+#endif
 
     implicit none
 
@@ -636,7 +640,9 @@ contains
 
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
 
+#ifdef BL_USE_F_BASELIB
     use bl_error_module, only: bl_error, bl_warn
+#endif
 
     implicit none
 
@@ -660,7 +666,11 @@ contains
     if (abort == 1) then
        call bl_error(error_string)
     else
+#ifdef BL_USE_F_BASELIB
        call bl_warn(error_string)
+#else
+       call bl_warning(error_string)
+#endif
     end if
 
   end subroutine gpu_error
