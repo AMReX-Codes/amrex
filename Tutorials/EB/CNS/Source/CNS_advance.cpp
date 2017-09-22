@@ -24,13 +24,13 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     }
 
     EBFluxRegister* fr_as_crse = nullptr;
-    if (level < parent->finestLevel()) {
+    if (do_reflux && level < parent->finestLevel()) {
         CNS& fine_level = getLevel(level+1);
         fr_as_crse = &fine_level.flux_reg;
     }
 
     EBFluxRegister* fr_as_fine = nullptr;
-    if (level > 0) {
+    if (do_reflux && level > 0) {
         fr_as_fine = &flux_reg;
     }
 
