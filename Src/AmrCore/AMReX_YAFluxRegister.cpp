@@ -117,7 +117,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         }
     }
 
-    // xxxxx what if cfp_bl is empty?
+    // It's safe even if cfp_bl is empty.
 
     BoxArray cfp_ba(std::move(cfp_bl));
     DistributionMapping cfp_dm(cfp_procmap);
