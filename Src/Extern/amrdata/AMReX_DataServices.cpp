@@ -183,7 +183,9 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     string blpFileName_H("bl_prof_H");
     string blpFullFileName_H(fileName + '/' + blpFileName_H);
     if( ! (yyin = fopen(blpFullFileName_H.c_str(), "r"))) {
-      if(bIOP) { cerr << "Cannot open file:  " << blpFullFileName_H << endl; }
+      if(bIOP) {
+        cerr << "DataServices::Init:  0:  Cannot open file:  " << blpFullFileName_H << endl;
+      }
       bProfDataAvailable = false;
     } else {
       yyparse(&blProfStats_H);
@@ -196,7 +198,9 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     string regPrefix_H("bl_call_stats_H");
     std::string regFileName_H(fileName + '/' + regPrefix_H);
     if( ! (yyin = fopen(regFileName_H.c_str(), "r"))) {
-      if(bIOP) cerr << "Cannot open file:  " << regFileName_H << endl;
+      if(bIOP) {
+        cerr << "DataServices::Init:  1:  Cannot open file:  " << regFileName_H << endl;
+      }
       bRegionDataAvailable = false;
       bTraceDataAvailable  = false;
     } else {
@@ -248,7 +252,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
         std::string regFileName_H_nnnn(fileName + '/' + regHeaderFileNames[i]);
         if( ! (yyin = fopen(regFileName_H_nnnn.c_str(), "r"))) {
           if(bIOP) {
-            cerr << "Cannot open file:  " << regFileName_H_nnnn
+            cerr << "DataServices::Init:  2:  Cannot open file:  " << regFileName_H_nnnn
                  << " ... continuing." << endl;
           }
           continue;
@@ -257,14 +261,18 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
         fclose(yyin);
       }
       if(regOutputStats_H.TraceDataValid()) {
-        if(bIOP) { cout << "Calling InitRegionTimeRanges." << endl; }
+        if(bIOP) {
+	  cout << "Calling InitRegionTimeRanges." << endl;
+	}
         RegionsProfStats::OpenAllStreams(fileName);
         Box myBox(procBoxArray[myProc]);
         bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
         regOutputStats_H.SyncFNamesAndNumbers();
         RegionsProfStats::CloseAllStreams();
         regOutputStats_H.SetFNames(blProfStats_H.BLPFNames());
-        if(bIOP) { cout << "Finished InitRegionTimeRanges." << endl; }
+        if(bIOP) {
+	  cout << "Finished InitRegionTimeRanges." << endl;
+	}
       } else {
         bTraceDataAvailable = false;
       }
@@ -294,7 +302,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     std::string commFileName_H(fileName + '/' + commPrefix_H);
     if( ! (yyin = fopen(commFileName_H.c_str(), "r"))) {
       if(bIOP) {
-        cerr << "Cannot open file:  " << commFileName_H << endl;
+        cerr << "DataServices::Init:  3:  Cannot open file:  " << commFileName_H << endl;
       }
       bCommDataAvailable = false;
     } else {
