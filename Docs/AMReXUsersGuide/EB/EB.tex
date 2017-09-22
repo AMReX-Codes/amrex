@@ -229,7 +229,9 @@ point in space.
     virtual Real value(const RealVect& a_point) const = 0;
 \end{lstlisting}
 
-;To continue with the example above, if one wants to define a geometry
+\subsection{Simple Implicit Function Example, Sphere}
+
+If one wants to define a geometry
 as a domain with  a sphere cut out of it, one uses the \sphereif
 class, the functions of which are shown below.
 
@@ -272,6 +274,8 @@ class, the functions of which are shown below.
   }
 \end{lstlisting}
 
+\subsection{Implicit Function Transformation Tools}
+
 One can get by with very simple implicit functions such as sphere and
 plane because one can create more complicated geometries by
 composition of simple implicit functions.    AMReX contains the
@@ -282,6 +286,7 @@ following classes which are used compose implicit functions.
 \item $\tt{IntersectionIF}$ produces the intersection of two implicit functions.
 \item $\tt{LatheIF}$        creates a 3D implicit function as the surface of
   revolution of a 2D implicit function.
+
 \end{itemize}
 \subsection{Geometric example 1 -- Multi-sphere}
 Here is an example that uses many of these tools.  This example
@@ -314,6 +319,100 @@ GeometryShop workshop(sideImpMultisphere)
 \end{lstlisting}
 
 \subsection{Geometric example 2 -- Surface of revolution}
+
+Here is an example that creates a geometric construction using a
+surface of revolution of a set of polygons.   This particular example
+only makes sense in three dimensions.
+
+\begin{lstlisting}[language=cpp]
+
+/// define EBIndexSpace from the surface of revolution of a set of polygons
+void
+defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size)
+{
+  amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;
+
+  // These  the polygons that get built around the z axis
+  Array<Array<RealVect> > polygons;
+  //....fill the polygons any way you like//
+
+  // Make the Array of (convex) polygons (Arrays of points) into a union
+  // of convex polygons, each made from the intersection of a set of half
+  // planes/spaces - all represented by implicit functions.
+
+  // A list of all the polygons as implicit functions
+  Array<BaseIF*> polytopes;
+  polytopes.resize(0);
+  int numPolys = polygons.size();
+  // Process each polygon
+  for (int p = 0; p < numPolys; p++)
+  {
+    // All the half planes/spaces used to make a polygon
+    Array<BaseIF*> planes;
+    planes.resize(0);
+
+    // Get the current polygon (as a Array of points)
+    const Array<RealVect>& polygon = polygons[p];
+
+    // Get the number of points in the polygon
+    int numPts = polygon.size();
+
+    // Process each pair of points
+    for (int n = 0; n < numPts; n++)
+    {
+      // The normal and point is space used to specify each half plane/space
+      RealVect normal(RealVect::Zero);
+      RealVect point;
+
+      // Set the normal remembering that the last point connects to the first
+      // point.
+      normal[0] = -(polygon[(n+1) % numPts][1] - polygon[n][1]);
+      normal[1] =  (polygon[(n+1) % numPts][0] - polygon[n][0]);
+
+      point = polygon[n];
+
+      // Generate the appropriate half plane/space (as an implicit function)
+      PlaneIF* plane;
+      plane = new PlaneIF(normal,point,true);
+
+      // Save the result
+      planes.push_back(plane);
+    }
+
+    // Intersect all the half planes/spaces to create an implicit function
+    // that represents the polygon
+    IntersectionIF* polygonIF = new IntersectionIF(planes);
+
+    polytopes.push_back(polygonIF);
+  }
+
+  //this makes the cross section the union of all the polgons (around
+  //z-axis, recall)
+  UnionIF crossSection(polytopes);
+            
+  // In 3D rotate about the z-axis 
+  LatheIF lathe(crossSection, false);
+
+  //we are starting around the z axis so we need to translate
+  //over to the center of the x-y plane
+            
+  RealVect translation;
+  for(int idir = 0; idir < SpaceDim; idir++)
+  {
+    translation[idir] = 0.5*finest_domain.size()[idir]*fine_dx;
+  }
+  translation[2] = 0;
+  TransformIF implicit(lathe);
+  implicit.translate(translation);
+
+  //create a workshop from translated surface of revolution
+  GeometryShop gshop(implicit, false);
+  //define th geometric database
+  AMReX_EBIS::instance()->define(finest_domain, RealVect::Zero,
+                                 fine_dx, gshop, max_grid_size);
+}
+
+\end{lstlisting}
 
 \section{$\tt{EBFarrayBox}$}
 
