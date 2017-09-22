@@ -466,6 +466,10 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     if (cgeom)
     {
+
+        nge = 1;
+        ngb = 1;
+
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
         const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell);
