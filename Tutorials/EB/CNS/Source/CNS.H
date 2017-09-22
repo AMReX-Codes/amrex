@@ -153,12 +153,14 @@ protected:
     };
     static int num_state_data_types;
 
-    static amrex::BCRec     phys_bc;
+    static amrex::BCRec phys_bc;
 
     // Parameters
     static int verbose;
     static amrex::IntVect hydro_tile_size;
     static amrex_real cfl;
+
+    static int do_reflux;
 
     static int refine_cutcells;
     static amrex::Array<amrex::RealBox> refine_boxes;
