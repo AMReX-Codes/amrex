@@ -83,7 +83,7 @@ $$
 D^{nc}(F)_\ibold = \frac{\sum_{\jbold \in N_\ibold}\kappa_\jbold D(F)_\jbold}{\sum_{\jbold \in N_\ibold}\kappa_\jbold}
 $$
 We then update the solution using a hybrid divergence $D^H(F) =
-\kappa D^c(F) + (1-\kappa)D^{nc})$
+\kappa D^c(F) + (1-\kappa)D^{nc}$:
 $$
 U^{n+1,*} = U^n - \delta t D^H(F)
 $$
@@ -101,15 +101,24 @@ A common weighting scheme is
 mass weighting, where higher density cells get more of the
 redistribution mass.    If $\rho$ is the mass density, this takes the
 form
-$$
-\delta M_{\jbold, \ibold} = \frac{\kappa_\jbold
+\begin{equation}
+\delta M_{\jbold, \ibold} =  \frac{\delta M_\ibold \kappa_\jbold
   \rho_\jbold}{\sum_{\kbold \in N_\ibold} \kappa_\kbold \rho_\kbold}
-$$
+\label{eqn::massweight}
+\end{equation}
 The solution in the neighborhood is updated using this redistribution
 mass, for all $\jbold \in N_\ibold$,
 $$
-U^{n+1}_\jbold = U^{n+1,*}_\jbold + \delta M_{\jbold,\ibold}
+U^{n+1}_\jbold = U^{n+1,*}_\jbold + \frac{\delta M_{\jbold,\ibold}}{\kappa_\jbold}.
 $$
+If one is using the mass weighting scheme (\ref{eqn::massweight}),
+this comes out to be
+$$
+U^{n+1}_\jbold = U^{n+1,*}_\jbold + 
+ \frac{\delta M_\ibold
+  \rho_\jbold}{\sum_{\kbold \in N_\ibold} \kappa_\kbold \rho_\kbold}.
+$$
+Note that we no longer divide by the volume fraction.
 See  figure \ref{fig::redistribution} for an illustration of a
 redistribution neighborhood.   Typically, one uses as a neighborhood
 every cell that can be reached via a  monotonic path of unit length.
