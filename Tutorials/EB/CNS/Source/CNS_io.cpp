@@ -9,7 +9,7 @@ CNS::restart (Amr& papa, std::istream& is, bool bReadSpecial)
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
-    if (level > 0) {
+    if (do_reflux && level > 0) {
         flux_reg.define(grids, papa.boxArray(level-1),
                         dmap, papa.DistributionMap(level-1),
                         geom, papa.Geom(level-1),

@@ -23,6 +23,7 @@ int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
 Real      CNS::cfl = 0.3;
 int       CNS::do_load_balance = 1;
+int       CNS::do_reflux       = 1;
 int       CNS::refine_cutcells = 1;
 Array<RealBox> CNS::refine_boxes;
 
@@ -37,7 +38,7 @@ CNS::CNS (Amr&            papa,
           Real            time)
     : AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
-    if (level > 0) {
+    if (do_reflux && level > 0) {
         flux_reg.define(bl, papa.boxArray(level-1),
                         dm, papa.DistributionMap(level-1),
                         level_geom, papa.Geom(level-1),
@@ -245,7 +246,7 @@ CNS::post_regrid (int lbase, int new_finest)
 void
 CNS::post_timestep (int iteration)
 {
-    if (level < parent->finestLevel()) {
+    if (do_reflux && level < parent->finestLevel()) {
         CNS& fine_level = getLevel(level+1);
         MultiFab& S_new = get_new_data(State_Type);
         fine_level.flux_reg.Reflux(S_new);
@@ -371,6 +372,8 @@ CNS::read_params ()
         phys_bc.setLo(i,lo_bc[i]);
         phys_bc.setHi(i,hi_bc[i]);
     }
+
+    pp.query("do_reflux", do_reflux);
 
     pp.query("do_load_balance", do_load_balance);
     pp.query("refine_cutcells", refine_cutcells);
