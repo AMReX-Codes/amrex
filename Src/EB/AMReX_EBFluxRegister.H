@@ -2,12 +2,14 @@
 #define AMREX_EBFLUXREGISTER_H_
 
 #include <AMReX_YAFluxRegister.H>
+#include <AMReX_EBCellFlag.H>
 
 namespace amrex {
 
 /*
-  EBFluxRegister is used for refluxing and re-redistribution.  See
-  `Tutorials/EB/CNS` for an example of using this class.
+  EBFluxRegister is used for refluxing, re-redistribution,
+  re-refluxing, and re-re-redistribution.  See `Tutorials/EB/CNS` for
+  an example of using this class.
 
   Reflux for EB is somewhat similar to non-EB.  At the beginning of a
   coarse step, `reset()` is called.  In MFIter for the coarse level
@@ -51,22 +53,35 @@ class EBFluxRegister
 {
 public:
 
-    using YAFluxRegister::YAFluxRegister;
-    using YAFluxRegister::CrseAdd;
-    using YAFluxRegister::FineAdd;
+    EBFluxRegister () = default;
 
+    EBFluxRegister (const BoxArray& fba, const BoxArray& cba,
+                    const DistributionMapping& fdm, const DistributionMapping& cdm,
+                    const Geometry& fgeom, const Geometry& cgeom,
+                    const IntVect& ref_ratio, int fine_lev, int nvar);
+
+    void define (const BoxArray& fba, const BoxArray& cba,
+                 const DistributionMapping& fdm, const DistributionMapping& cdm,
+                 const Geometry& fgeom, const Geometry& cgeom,
+                 const IntVect& ref_ratio, int fine_lev, int nvar);
+
+    using YAFluxRegister::CrseAdd;
     void CrseAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac);
 
+    using YAFluxRegister::FineAdd;
     void FineAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm);
+
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
+                 MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
 
     FArrayBox* getCrseData (const MFIter& mfi) {
         return &(m_crse_data[mfi]);
@@ -75,6 +90,12 @@ public:
     const IArrayBox* getCrseFlag (const MFIter& mfi) const {
         return &(m_crse_flag[mfi]);
     }
+
+private:
+
+    iMultiFab m_cfp_inside_mask;
+
+    void defineExtra (const BoxArray& fba, const DistributionMapping& fdm);
 };
 
 }
