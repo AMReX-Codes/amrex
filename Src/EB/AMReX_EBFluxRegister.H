@@ -2,6 +2,7 @@
 #define AMREX_EBFLUXREGISTER_H_
 
 #include <AMReX_YAFluxRegister.H>
+#include <AMReX_EBCellFlag.H>
 
 namespace amrex {
 
@@ -51,22 +52,37 @@ class EBFluxRegister
 {
 public:
 
-    using YAFluxRegister::YAFluxRegister;
-    using YAFluxRegister::CrseAdd;
-    using YAFluxRegister::FineAdd;
+    EBFluxRegister () = default;
 
+    EBFluxRegister (const BoxArray& fba, const BoxArray& cba,
+                    const DistributionMapping& fdm, const DistributionMapping& cdm,
+                    const Geometry& fgeom, const Geometry& cgeom,
+                    const IntVect& ref_ratio, int fine_lev, int nvar);
+
+    void define (const BoxArray& fba, const BoxArray& cba,
+                 const DistributionMapping& fdm, const DistributionMapping& cdm,
+                 const Geometry& fgeom, const Geometry& cgeom,
+                 const IntVect& ref_ratio, int fine_lev, int nvar);
+
+    void reset ();
+
+    using YAFluxRegister::CrseAdd;
     void CrseAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac);
 
+    using YAFluxRegister::FineAdd;
     void FineAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm);
+
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
+                 MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
 
     FArrayBox* getCrseData (const MFIter& mfi) {
         return &(m_crse_data[mfi]);
@@ -75,6 +91,13 @@ public:
     const IArrayBox* getCrseFlag (const MFIter& mfi) const {
         return &(m_crse_flag[mfi]);
     }
+
+private:
+    MultiFab m_rereflux_crse_data;
+    MultiFab m_rereflux_fine_data;
+    Array<Array<FArrayBox*> > m_rereflux_fine_fab;
+
+    void defineExtra ();
 };
 
 }
