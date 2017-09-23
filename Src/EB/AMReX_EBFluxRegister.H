@@ -7,8 +7,9 @@
 namespace amrex {
 
 /*
-  EBFluxRegister is used for refluxing and re-redistribution.  See
-  `Tutorials/EB/CNS` for an example of using this class.
+  EBFluxRegister is used for refluxing, re-redistribution,
+  re-refluxing, and re-re-redistribution.  See `Tutorials/EB/CNS` for
+  an example of using this class.
 
   Reflux for EB is somewhat similar to non-EB.  At the beginning of a
   coarse step, `reset()` is called.  In MFIter for the coarse level
@@ -64,8 +65,6 @@ public:
                  const Geometry& fgeom, const Geometry& cgeom,
                  const IntVect& ref_ratio, int fine_lev, int nvar);
 
-    void reset ();
-
     using YAFluxRegister::CrseAdd;
     void CrseAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
@@ -93,11 +92,10 @@ public:
     }
 
 private:
-    MultiFab m_rereflux_crse_data;
-    MultiFab m_rereflux_fine_data;
-    Array<Array<FArrayBox*> > m_rereflux_fine_fab;
 
-    void defineExtra ();
+    iMultiFab m_cfp_inside_mask;
+
+    void defineExtra (const BoxArray& fba, const DistributionMapping& fdm);
 };
 
 }
