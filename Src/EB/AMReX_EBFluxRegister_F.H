@@ -50,7 +50,23 @@ extern "C" {
                                       const amrex_real* cvol, const int* clo, const int* chi,
                                       const amrex_real* vfrac, const int* vlo, const int* vhi,
                                       const amrex_real* dx, const int* nc, const int* ratio);
-                                      
+
+
+    void amrex_eb_rereflux_from_crse (const int* lo, const int* hi,
+                                      amrex_real* d, const int* dlo, const int* dhi,
+                                      const amrex_real* s, const int* slo, const int* shi,
+                                      const int* amrflg, const int* aflo, const int* afhi,
+                                      const void* ebflg, const int* eflo, const int* efhi,
+                                      const amrex_real* v, const int* vlo, const int* vhi,
+                                      const int* nc);
+
+    void amrex_eb_rereflux_to_fine (const int* lo, const int* hi,
+                                    amrex_real* fd, const int* fdlo, const int* fdhi,
+                                    const amrex_real* cd, const int* cdlo, const int* cdhi,
+                                    const amrex_real* v, const int* vlo, const int* vhi,
+                                    const int* nc, const int* ratio);
+
+
 #ifdef __cplusplus
 }
 #endif

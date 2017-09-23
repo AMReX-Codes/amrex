@@ -23,7 +23,7 @@ class YAFluxRegister
 {
 public:
     
-    YAFluxRegister () {;}
+    YAFluxRegister () = default;
 
     YAFluxRegister (const BoxArray& fba, const BoxArray& cba,
                     const DistributionMapping& fdm, const DistributionMapping& cdm,
@@ -60,6 +60,7 @@ protected:
     MultiFab m_cfpatch;                   // This is built on crse/fine patches
     MultiFab m_cfp_mask;
     Array<Array<FArrayBox*> > m_cfp_fab;  // The size of this is (# of local fine grids (# of crse/fine patches for that grid))
+    Array<int> m_cfp_localindex;
 
     Geometry m_fine_geom;
     Geometry m_crse_geom;

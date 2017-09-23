@@ -93,8 +93,6 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     int nlocal = 0;
     int myproc = ParallelDescriptor::MyProc();
     
-    Array<int> fine_local_grid_index;
-
     for (int i = 0; i < cfba.size(); ++i)
     {
         Box bx = amrex::grow(cfba[i], 1);
@@ -107,7 +105,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         for (int j = 0; j < bl.size(); ++j) {
             cfp_procmap.push_back(proc);
             if (proc == myproc) {
-                fine_local_grid_index.push_back(nlocal);  // This Array store local index in fine ba/dm.
+                m_cfp_localindex.push_back(nlocal);  // This Array store local index in fine ba/dm.
                                                           // Its size is local size of cfp.
             }
         }
@@ -127,7 +125,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
     {
         const int li = mfi.LocalIndex();
-        const int flgi = fine_local_grid_index[li];
+        const int flgi = m_cfp_localindex[li];
         FArrayBox& fab = m_cfpatch[mfi];
         m_cfp_fab[flgi].push_back(&fab);
     }

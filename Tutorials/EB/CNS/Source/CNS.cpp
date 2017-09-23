@@ -248,8 +248,9 @@ CNS::post_timestep (int iteration)
 {
     if (do_reflux && level < parent->finestLevel()) {
         CNS& fine_level = getLevel(level+1);
-        MultiFab& S_new = get_new_data(State_Type);
-        fine_level.flux_reg.Reflux(S_new);
+        MultiFab& S_crse = get_new_data(State_Type);
+        MultiFab& S_fine = fine_level.get_new_data(State_Type);
+        fine_level.flux_reg.Reflux(S_crse, volfrac, S_fine, fine_level.volfrac);
     }
 
     if (level < parent->finestLevel()) {
