@@ -199,7 +199,13 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 
 
     m_rereflux_crse_data.ParallelCopy(m_rereflux_fine_data, m_crse_geom.periodicity(), FabArrayBase::ADD);
+    m_rereflux_crse_data.ParallelCopy(m_cfpatch, m_crse_geom.periodicity(), FabArrayBase::ADD);
+
+    MultiFab::Add(m_rereflux_crse_data, m_crse_data, 0, 0, m_ncomp, 0);
+    m_crse_data.setVal(0.0);
+
     m_rereflux_crse_data.FillBoundary(m_crse_geom.periodicity());
+
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -236,7 +242,6 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         }
     }
 
-    m_crse_data.ParallelCopy(m_cfpatch, m_crse_geom.periodicity(), FabArrayBase::ADD);
 
     MultiFab::Add(crse_state, m_crse_data, 0, 0, m_ncomp, 0);
 
