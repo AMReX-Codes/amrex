@@ -220,8 +220,8 @@ contains
     integer, intent(in) :: nc
     integer, intent(in) :: amrflg(aflo(1):afhi(1),aflo(2):afhi(2))
     integer, intent(in) ::  ebflg(eflo(1):efhi(1),eflo(2):efhi(2))
-    real(rt), intent(in ) :: s(slo(1):shi(1),slo(2):shi(2)),nc)
-    real(rt), intent(out) :: d(dlo(1):dhi(1),dlo(2):dhi(2)),nc)
+    real(rt), intent(in ) :: s(slo(1):shi(1),slo(2):shi(2),nc)
+    real(rt), intent(out) :: d(dlo(1):dhi(1),dlo(2):dhi(2),nc)
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2))
 
     integer :: i,j,n, nbr(-1:1,-1:1), ii,jj
