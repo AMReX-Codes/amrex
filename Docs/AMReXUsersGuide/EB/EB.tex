@@ -16,24 +16,71 @@
 \label{sec:EB:EBOverview}
 
 For computations with complex geometries, $\tt{AMReX}$ provides data
-structures and iterators for performing Cartesian grid, embedded
-boundary (EB) calculations.    In this description, the surface of the
-geometry cuts the Cartesian cells.   See figure \ref{fig::ebexample}
-for an illustration.    Because this is a relatively simple grid
-generation technique, grids can be generated quickly and robustly.
-This description can produces arbitrarily small computational volumes,
-however.    This can increase the complexity of embedded boundary
-algorithms.   This is explained more below.
-In this description,
+structures and algorithms to employ an embedded boundary (EB) approach to
+PDE discretizations.    In this approach, the underlying computational
+mesh is uniform and block-structured, but the boundary of the irregular-shaped
+computational domain conceptually cuts through this mesh.  Each cell in the mesh
+becomes labeled as regular, cut or covered, and the finite-volume based
+discretization methods traditionally used in AMReX applications can be
+modified to incorporate these cell shapes.  See figure \ref{fig::ebexample}
+for an illustration.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.25\textwidth]{./EB/EB_example.pdf}
+  \caption{\label{fig::ebexample}In the embedded boundary approach to
+    discretizing PDEs, the (uniform) rectangular mesh is cut by the
+    irregular shape of the computational domain.  The cells in the
+    mesh are label as regular, cut or covered.}
+\end{figure}
+Because this is a relatively simple grid
+generation technique, computational meshes for rather complex geometries
+can be generated quickly and robustly.  However, the technique 
+can produce arbitrarily small cut cells in the domain.  In practice such small
+cells can have significant impact on the robustness and stability of
+traditional finite volume methods.  In this chapter we overview
+a class of approaches to deal with this ``small cell'' problem in a
+robust and efficient way, and discuss the tools and data that $\tt{AMReX}$
+provides in order to implement them.  In this context,
 geometry is represented by volumes ($V = \kappa h^d$) and apertures 
-($A= \alpha h^{d-1}$).   See figure \ref{fig::volume}
-for an illustration.     
+($A= \alpha h^{d-1}$), where $h$ is the (uniform) mesh spacing at that AMR level,
+$\kappa$ is the volume fraction and $\alpha$ are the area fractions.
+See figure \ref{fig::volume} for an illustration of a typical such cell in
+two dimensions, where the important geometric components are labeled.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.25\textwidth]{./EB/areas_and_volumes.pdf}
+  \caption{\label{fig::volume}A typical two-dimensional uniform cell that is cut by the embedded
+    boundary. The grey area represents the region excluded from the calculation.   The
+    portion of the cell faces (labelled with A) through which fluxes flow are the ``uncovered''
+    regions of the full cell faces.  The volume (labelled V) is the uncovered
+    region of the interior.}
+\end{figure}
+
+Note that in a completely general implementation of the EB approach, there would be no restrictions
+on the shape or complexity of the EB surface.  One important consequence however is the possibility
+that EB cutting process results in multiple cell fragments in at a single $(i,j,k)$ cell index location
+on the mesh.
+In the block-structured context of $\tt{AMReX}$, this would trigger a significant complication
+because the state data (as well as the geometrical and cell
+connectivity information) can no longer be managed using the logically rectangular
+data structures with implied connectivity graphs that are native to the framework.  Because of this,
+the current release of $\tt{AMReX}$ does NOT support multi-valued cells, and thus places a
+restriction on the complexity of domains (and numerical algorithms) supported.  Similarly, EB
+with AMR is not currently supported, as it leads to complexities in data communication patterns
+and inter-level data transfer operations.  In both cases however, extended support is
+planned for future releases of the library, and the software infrastructure
+underlying the implementation described in this document have been designed with these
+extensions in mind.
+
+This chapter discusses the EB tools, data structures and algorithms currently supported by
+$\tt{AMReX}$ to enable the construction of discretizations of conservation law systems.
+The discussion will focus on general requirements associated with building fluxes and
+taking divergences of them to advance such systems.  We also give examples of how to
+initialize the geometry data structures and access them to build the numerical difference
+operators.
 
 \subsection{Finite Volume Discretizations}
-Cartesian grids with embedded boundaries are 
-useful to describe volume-of-fluid representations of irregular
-boundaries.   
-Consider a system of hyperbolic equations for a conserved quantity $U$
+Consider a system of PDEs to advance a conserved quantity $U$
 with fluxes $F$:
 \begin{equation}
 \frac{\partial U}{\partial t} + \nabla \cdot F = 0.
@@ -44,132 +91,132 @@ the divergence theorm
 $$
 \int_V \nabla \cdot F dV = \int_{\partial V} F \cdot n dA.
 $$
-In an embedded boundary cell, the divergence is discretized  (as
+In an embedded boundary cell, the ``conservative divergence'' is discretized  (as
 $D^c(F)$) as follows
 \begin{equation}
 D^c(F) = \frac{1}{\kappa h} \left( \sum^D_{d = 1}
   (F_{d, hi}A_{d,hi} - F_{d, lo}A_{d,lo})  + F^{EB} A^{EB} \right).
 \label{eqn::ebdiv}
 \end{equation}
-See figure \ref{fig::eb_fluxes} for an illustration.  For a second
-order discretization of the divergence, fluxes must be centered at the
-centroids of the faces.  
-The only geometric information required for second order embedded
-boundary algorithms are:
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.25\textwidth]{./EB/eb_fluxes.pdf}
+  \caption{\label{fig::eb_fluxes}The divergence of fluxes in a cut cell.}
+\end{figure}
+See figure \ref{fig::eb_fluxes} for an illustration of the associated data
+in a two-dimensional context.  For a second-order discretization of the
+divergence, the fluxes on each face must be centered at the face centroids.  
+In our simplified framework, where there is at most a single cut cell
+at each mesh location, $(i,j,k)$, the geometric information required to
+compute second-order fluxes includes:
 \begin{itemize}
 \item
-Volume fractions
+Volume fractions, $\kappa$
 \item
-Area fractions
+Area fractions, $\alpha$
 \item 
-Centers of volume, area.
+Cell and face centroids
 \end{itemize}
+Note that the assumpution of single-valued cells implies that this list of
+information is sufficient to infer the connectivity of the cells.  That is,
+cells are connected if adjacent on the Cartesian mesh, and only via
+coordinate-aligned faces on the mesh.  If an aperture, $\alpha = 0$, between two
+cells, they are not directly connected to each other.
 
-\subsection{Small Cells And Hyperbolic Stability}
+\subsection{Small Cells And Stability}
 
-A naive time discretization of \ref{eqn::hypsys}
-using \ref{eqn::ebdiv},
+In the context of time-explicit advance methods for, say hyperbolic conservation laws, 
+a naive discretization in time of \ref{eqn::hypsys} using \ref{eqn::ebdiv},
 $$
 U^{n+1} = U^{n} - \delta t D^c(F)
 $$
-would have a time step constraint $\dt < h \kappa^{1/D}/V_m$,  that
+would have a time step constraint $\dt \sim h \kappa^{1/D}/V_m$,  which
 goes to zero as the size of the 
-smallest volume  fraction $\kappa$ in the calculation.  Since these volume fractions can
+smallest volume fraction $\kappa$ in the calculation.  Since EB volume fractions can
 be arbitrarily small, this is an unacceptable constraint.  One way to remedy
-this is to create  non-conservative approximation to the divergence
-$D^{nc}$, which at a cell $\ibold$, an average of the conservative divergences in the
-$N_\ibold$, the neighborhood of $\ibold$.
+this is to create ``non-conservative'' approximation to the divergence
+$D^{nc}$, which at a cell $\ibold$, can be formed as an average of the conservative
+divergences in the neighborhodd, $N_\ibold$, of $\ibold$.
 $$
 D^{nc}(F)_\ibold = \frac{\sum_{\jbold \in N_\ibold}\kappa_\jbold D(F)_\jbold}{\sum_{\jbold \in N_\ibold}\kappa_\jbold}
 $$
-We then update the solution using a hybrid divergence $D^H(F) =
-\kappa D^c(F) + (1-\kappa)D^{nc})$
+Incorporating this form, the solution can be updated using a {\it hybrid divergence},
+$D^H(F) = \kappa D^c(F) + (1-\kappa)D^{nc}$:
 $$
 U^{n+1,*} = U^n - \delta t D^H(F)
 $$
-To preserve conservation, we calculate $\delta M$, how much mass was gained or
-lost due to not using $D^c$ directly
+However, we would like our finite-volume scheme to strictly conserve the field quantities
+over the domain.  To enforce this, we calculate $\delta M$, the mass gained or
+lost by not using $D^c$ directly,
 $$
 \delta M_\ibold = \kappa (1-\kappa)(D^c(F)_\ibold - D^{nc}(F)_\ibold)
 $$
-We then redistribute this extra mass to neighbors.   The mass is
-broken up into pieces, one for each neighbor $\jbold \in N_\ibold$:
+This ``excess material'' (mass, if $U=\rho$) can be {\em redistributed}\ in a time-explicit fashion
+to neighboring cells, $\jbold \in N_\ibold$:
 $$
 \delta M_\ibold = \sum_{\jbold \in N_\ibold} \delta M_{\jbold, \ibold}.
 $$
-A common weighting scheme is  
-mass weighting, where higher density cells get more of the
-redistribution mass.    If $\rho$ is the mass density, this takes the
-form
+in order to preserve strict conservation over $N_\ibold$.
+
+Note that the physics at hand may impact the optimal choice of precisely how the excess mass is distributed
+in this fashion.  We introduce a weighting for redistribution, $W$,
+\begin{equation}
+\delta M_{\jbold, \ibold} =  \frac{\delta M_\ibold \kappa_\jbold
+  W_\jbold}{\sum_{\kbold \in N_\ibold} \kappa_\kbold W_\kbold}
+\label{eqn::massweight}
+\end{equation}
+For all $\jbold \in N_\ibold$,
 $$
-\delta M_{\jbold, \ibold} = \frac{\kappa_\jbold
-  \rho_\jbold}{\sum_{\kbold \in N_\ibold} \kappa_\kbold \rho_\kbold}
+U^{n+1}_\jbold = U^{n+1,*}_\jbold + 
+ \frac{\delta M_\ibold
+  W_\jbold}{\sum_{\kbold \in N_\ibold} \kappa_\kbold W_\kbold}.
 $$
-The solution in the neighborhood is updated using this redistribution
-mass, for all $\jbold \in N_\ibold$,
-$$
-U^{n+1}_\jbold = U^{n+1,*}_\jbold + \delta M_{\jbold,\ibold}
-$$
-See  figure \ref{fig::redistribution} for an illustration of a
-redistribution neighborhood.   Typically, one uses as a neighborhood
-every cell that can be reached via a  monotonic path of unit length.
-
-\begin{figure}[p]
+ Typically, the redistribution neighborhood for each cell is one that can be reached via a monotonic
+ path in each coordinate direction of unit length
+(see, e.g., figure \ref{fig::redistribution})
+\begin{figure}[h]
   \centering
-  \includegraphics[width=0.5\textwidth]{./EB/areas_and_volumes.pdf}
-\caption{\label{fig::volume}Embedded boundary cell. The grey area represents 
-the region excluded from the solution.   The areas (labelled with A) are the uncovered
-regions of the cell faces.  The volume (labelled V) is the uncovered
-region of the interior.}
-\end{figure}
-
-
-\begin{figure}[p]
-  \centering
-  \includegraphics[width=0.5\textwidth]{./EB/EB_example.pdf}
-\caption{\label{fig::ebexample}Embedded boundary example.   We cut the
-  Cartesian grid with the surface of the geometry.  The parts covered
-  by the geometry (the shaded region) are excluded from the domain.}
-\end{figure}
-
-\begin{figure}[p]
-  \centering
-  \includegraphics[width=0.5\textwidth]{./EB/eb_fluxes.pdf}
-\caption{\label{fig::eb_fluxes}Embedded boundary example.   We cut the
-  Cartesian grid with the surface of the geometry.  The parts covered
-  by the geometry (the shaded region) are excluded from the domain.}
-\end{figure}
-
-\begin{figure}[p]
-  \centering
-  \includegraphics[width=0.5\textwidth]{./EB/redist.pdf}
+  \includegraphics[width=0.25\textwidth]{./EB/redist.pdf}
 \caption{\label{fig::redistribution}
 Redistribution illustration.  Excess mass due to using a hybrid
 divergence $D^H$ instead of the conservative divergence $D^C$ is
-distributed among neighbors.}
+distributed to neighbor cells.}
 \end{figure}
 
 \section{Initializing \ebis, the Geometric Database}
 \label{sec:EB:ebinit}
 
-This geometric information, along with its associated connectivity
-graph is stored in a distributed database class \ebis which must be
-initialized at the start of the calculation.    The procedure for this
-goes as follows.   To initialize this database, one follows these steps:
+In $\tt{AMReX}$ the geometric information is stored in a distributed database class, \ebis, which must be
+initialized at the start of the calculation.  The procedure for this
+goes as follows:
 \begin{itemize}
-\item Define an implicit function which describes the surface 
-      and use it define a \geom object (see \S
-      \ref{sec:EB:geometryshop}).
-\item Call $\tt{EBIndexSpace::define}$ with the \geom object.   This
-  will fill the database of graph and moment data.   It is important
-  to define this using the finest resolution of domain that will be
-  used in the calculation.   Coarser information is generated
-  automatically by \ebis by graph coarsening.
+\item Define function of position which describes the surface 
+      and use it define a \geom\ object (see \S
+      \ref{sec:EB:geometryshop}) -- specifically, the scalar value returned by this function takes on a
+      negative value inside the fluid, a positive value in the body, and identically zero at the EB.
+\item Construct an \ebis\ with the \geom\ object.   This
+  will fill the underlying database of geometric information, specifically tailored to the
+  actual meshes that will be used.  Thus, the construction requires one to specify
+  the actual mesh resolution that will be used in a calculation.
 \end{itemize}
-As an illustration, here is how one would define the \ebis where the
-geometry is described as the complement of a sphere of radius 0.1
-centered inside a unit cube where the maxium resolution is $1024^3$.
-The classes involved are described in \S \ref{sec:EB:geometryshop}.
+
+To facilitate the first step, $\tt{AMReX}$ defines a virtual class, an ``implicit function'', \baseif, which encapsulates this functionality.
+An instance of a \baseif\ object is required for the construction of a \geom\ object.
+\begin{lstlisting}[language=cpp]
+    GeometryShop(const BaseIF& a_localGeom)
+\end{lstlisting}
+Although the user is free to define their own instance of this class, $\tt{AMReX}$ provides a number of preconfigured useful ones.  This
+are listed in the next section.
+
+\subsection{Example: Spherical EB}
+The spherical implicit function, \sphereif, derives from \baseif, and defines the function
+$$
+S(\xbold) = x^2 + y^2 + z^2 - R^2,
+$$
+In this case, the solution domain is defined as the interior of a sphere of radius $R$.
+If the sign of $S$ is reversed, the solution domain is the exterior of the sphere.
+The following example illustrates how to use the \sphereif\ class to define a \geom\ object:
 
 \begin{lstlisting}[language=cpp]
 
@@ -191,111 +238,38 @@ The classes involved are described in \S \ref{sec:EB:geometryshop}.
 
 \end{lstlisting}
 
-%%After this initialization is complete, any part of the calculation can
-%%access the data via $\tt{EBIndexSpace::fillEBISLayout}$.
+In this case, we construct an $r=0.1$ sphere, centered within a unit cube.  The mesh resolution is $1024^3$.
+The \geom\ object based on this sphere is then used to construct the \ebis, as shown.
 
-\subsection{GeometryShop and Implicit Functions}
-\label{sec:EB:geometryshop}
-
-One of the greatest advantages of EB technology is that grid
-generation is robust and fast and can be done to any accuracy
-The foundation class that AMReX uses for
-geometry generation is called \geom.  Given an implicit
-function $I$  \geom interprets the surface upon which $I(\xbold) = 0$
-as the surface with which to cut the grid cells.   \geom interprets
-the positive regions of the implicit function ($\xbold: I(\xbold) > 0$)
-as covered by the geometry  negative regions ($\xbold: I(\xbold) < 0$) 
-as part of  the solution domain.  For example, if one defines her
-implicit function $S$ as
-$$
-S(\xbold) = x^2 + y^2 + z^2 - R^2,
-$$
-the solution domain would be the interior of a sphere of radius $R$.
-Reverse the sign of $S$ and the solution domain would be the exterior
-of the sphere.   
-
-To define a geometry shop, one
-needs to send it a \baseif, which describes an implict function. 
+\subsubsection{Other basic shapes:}
 
 \begin{lstlisting}[language=cpp]
-    GeometryShop(const BaseIF& a_localGeom)
+    Shape1_IF...)
 \end{lstlisting}
-
-The implicit function must be able to return the value of the function at any
-point in space.
-
 \begin{lstlisting}[language=cpp]
-    /// Return the value of the function at a_point.  
-    virtual Real value(const RealVect& a_point) const = 0;
+    Shape2_IF...)
 \end{lstlisting}
-
-\subsection{Simple Implicit Function Example, Sphere}
-
-If one wants to define a geometry
-as a domain with  a sphere cut out of it, one uses the \sphereif
-class, the functions of which are shown below.
-
 \begin{lstlisting}[language=cpp]
-    SphereIF::
-    SphereIF(const Real&     a_radius,
-             const RealVect& a_center,
-             const bool&     a_inside)
-    {
-     m_radius  = a_radius;
-     m_radius2 = m_radius*m_radius;
-     m_inside  = a_inside;
-     m_center  = a_center;
-    }
-
-  Real
-  SphereIF::
-  value(const RealVect& a_point) const
-  {
-    RealVect dist = a_point - m_center;
-    Real distance2 = dist.radSquared();
-    Real retval = distance2 - m_radius2;
-    // Change the sign to change inside to outside
-    if (!m_inside)
-      {
-        retval = -retval;
-      }
-
-    return retval;
-  }
-  BaseIF* 
-  SphereIF::
-  newImplicitFunction() const
-  {
-    SphereIF* spherePtr = new SphereIF(m_radius,
-                                       m_center,
-                                       m_inside);
-
-    return static_cast<BaseIF*>(spherePtr);
-  }
+    Shape3_IF...)
 \end{lstlisting}
 
 \subsection{Implicit Function Transformation Tools}
 
-One can get by with very simple implicit functions such as sphere and
-plane because one can create more complicated geometries by
-composition of simple implicit functions.    AMReX contains the
-following classes which are used compose implicit functions.
+More complex domains can be constructed by composing these fundamental shapes.
+$\tt{AMReX}$ contains the following classes to compose implicit functions:
 \begin{itemize}
 \item $\tt{TransformIF}$    allows for translations and rotations of an implicit function.
 \item $\tt{UnionIF}$        produces the union of two implicit functions.  
 \item $\tt{IntersectionIF}$ produces the intersection of two implicit functions.
 \item $\tt{LatheIF}$        creates a 3D implicit function as the surface of
   revolution of a 2D implicit function.
-
 \end{itemize}
-\subsection{Geometric example 1 -- Multi-sphere}
-Here is an example that uses many of these tools.  This example
-creates a geometry with multiple spheres cut out.
+
+\subsection{Multi-sphere example}
+The following example creates a geometry using multiple spheres:
 
 \begin{lstlisting}[language=cpp]
 
-//say you have a bunch of radii and centers of spheres
-/* fill these in however you like */
 vector<Real>     radius(numSpheres);
 vector<RealVect> center(numSpheres);
 ...
@@ -304,17 +278,19 @@ vector<BaseIF*>  spheres(numSpheres);
 
 for(int isphere = 0; isphere < numSpheres; isphere++)
 {
-  //create each sphere at the origin and translate
+  // Create sphere at each origin and translate
   SphereIF sphereAtZero(radius[isphere], RealVect::Zero, false);
   TransformIF* movedSphere = new TransformIF(sphereAtZero);
   movedSphere->translate(center[isphere]);
   spheres[isphere] = static_cast<BaseIF*>(movedSphere);
 }
-//create an implicit function that is the intersection of all the spheres
+// Create implicit function as intersection of spheres
 IntersectionIF impMultisphere(spheres);
-//we want the fluid to be the complement (the space outside the sphere
+
+// Fluid will in the complement space outside the sphere
 ComplementIF sideImpMultisphere(impMultisphere, false);
-//create the geometryshop
+
+// Construct the geometryshop
 GeometryShop workshop(sideImpMultisphere)
 \end{lstlisting}
 
@@ -417,30 +393,32 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
 \section{$\tt{EBFarrayBox}$}
 
 The fundamental data structure for embedded boundary calculations is 
-$\tt{EBFArrayBox}$, a class is an a $\tt{FArrayBox}$ with two extra
+$\tt{EBFArrayBox}$. $\tt{EBFArrayBox}$ is an a $\tt{FArrayBox}$ with two extra
 data members.
 \begin{itemize}
 \item $\tt{EBFArrayBox::getEBISBox}$ returns an $\tt{EBISBox}$, a data
-  structure that contains the graph and geometric information for a
-  particular box.
+  structure that contains the geometric information of an \ebis\ but
+  restricted to a given box.
 \item $\tt{EBFArrayBox::getEBCellFlagFab}$  is a
   $\tt{BaseFab<EBCellFlag>}$, where $\tt{EBCellFlag}$ is a class which
-  is a very compact class that specify connectivity information
-  (number of volumes in the cell, which cells are connected to my
-  cell...) for a particular cell.
+  is a class with tools that compactly specifies local cell connectivities
+  on a box.
 \end{itemize}
-If one compiles with $\tt{AMREX\_USE\_EB = TRUE}$, the state data that
-${\tt Amr}$ generates is already of type $\tt{EBFArrayBox}$ under the
-hood and one can access the functions via cast.   The
-$\tt{EBCellFlagFab}$ can be used to choose whether it is necessary to call an
-EB-specfic routine. $\tt{EBCellFlagFab}$  can be sent also be sent to Fortran to 
-enable EB-specific logic.   
+If one compiles with $\tt{AMREX\_USE\_EB = TRUE}$, the state data managed by
+the ${\tt Amr}$ class is automatically of type $\tt{EBFArrayBox}$ (typically the data
+is exposed explicitly as a $\tt{MultiFab}$, but the additional functionality
+may be accessed through a C++ type cast. The
+$\tt{EBCellFlagFab}$ can be used down in $\tt{Fortran}$, e.g., to choose
+locally whether EB-specific operations and data are required for constructing
+discretizations.  In the next section, we show examples of this workflow.
 
-\subsection{Example}
-The example below is a simplified version
-of one of the routines in $\tt{Tutorial/EB/CNS}$.   Note  that  it
-carefully calls the more complicated EB fortran routine if the
-particular tile has cut cells.
+\subsection{$\tt{EBFarrayBox}$ Usage Example}
+In order to make these EB concepts more concrete, we discuss here sample code
+that appears in the $\tt{AMReX}$ tutorial, $\tt{Tutorial/EB/CNS}$.  This code
+implements a time-explicit second-order method of lines integrator for hyperbolic
+and parabolic transport based on a gamma-law gas EOS and constant transport
+properties.  This example also demonstrates how to avoid the more complex/expensive
+EB-related logic if the tile under consideration has no cut cells.
 
 \begin{lstlisting}[language=cpp]
 void
@@ -467,8 +445,8 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
             //because we have compiled with AMREX_USE=EB_TRUE, the
             //MultiFab holds EBFArrayBox(es) so we can do this cast
-            const EBFArrayBox& sfab = dynamic_cast<EBFArrayBox
-            const&>(S[mfi]);
+            const EBFArrayBox& sfab
+                = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             
             //here we are getting the collection of flags so we know
             //kind of grid this is and if it is an EB grid, we have
@@ -532,43 +510,50 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
 \end{lstlisting}
 
-\subsection{Fortran bits}
+This is the main loop in the routine to advance the state.  The state, $\tt{S}$, comes into this routine with grow cells
+properly filled, and this routine features a $\tt{MultiFab}$ iterator loop to step through this data, tile-by-tile and compute
+$\tt{dSdt}$.  Here, we see that the definition of $\tt{sfab}$ incorporates the aforementioned type cast, enabling queries about
+the EB nature of the data.  Of the two possiblities handled, the ``regular'' type without cut cells has a much simpler interface.
+The EB version takes all the same data, but additionally requires (dense) data to specify the volume and face area fractions,
+centroid information, and the $\tt{flag}$ structure that will be queried pointwise for the local cell connectivity.
 
-Now the Fortran that underlies these two cases is quite different.
-For the non-EB case,    the one loop in the function is given by the
-familiar-looking example below:
+\subsection{Fortran code Snippets}
+Much of the code to compute these fluxes and their divergence in this example is too detailed to step through in this context.
+There are however a few salient features worth pointing out.
+
+\subsubsection{The data is cell-centered, even cut cells}
+In order to simplify the construction second-order discretizations, we can base all the numerical operations on the assumption
+that all cell-based data lives at the center of the {\em full}\ cell containing the cut cells.  This means that when we take a
+standard centered difference between cell data at $(i,j,k)$ and $(i+1,j,k)$, e.g., we get a gradient value that is second-order and
+centered on the full face at $i+1/2$, regardless of the aperature.
+
+\subsubsection{Many EB operations can be organized as post-processing}
+Recall that a second-order finite-volume scheme requires that fluxes
+be centered on the face {\em centroid}.  This can be accomplished by post-processing face-centered fluxes with a linear interpolation
+of adjacent face values.  The resulting centroid-based fluxes are second-order, and can be used to construct the conservative
+divergence we seek.  Note that this operation requires the location of the face centroids, and increases the grow cell requirement
+of the flux operators, as does the necessity to form the {\em hybrid divergence}\ operator discussed above.
+
+\subsubsection{The $\tt{flag}$ data}
+$\tt{AMReX}$ provides functions that query the $\tt{flag}$ data in order to infer the local connectivity of cells.  For example,
+the cell itself or its neighbors may be covered or cut.  If cut, the data is centered at the center of the full cell.  If covered,
+the data is invalid and should not be involved in the fluid advance.  An example of such a call is:
+
 \begin{lstlisting}[language=Fortran]
-    do n = 1, ncomp
-       do       k = lo(3),hi(3)
-          do    j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-                ut(i,j,k,n) = (fx(i,j,k,n)-fx(i+1,j,k,n)) * dxinv(1) &
-                     +        (fy(i,j,k,n)-fy(i,j+1,k,n)) * dxinv(2) &
-                     +        (fz(i,j,k,n)-fz(i,j,k+1,n)) * dxinv(3)
-             end do
-          end do
-       end do
-    end do
+   call get_neighbor_cells(cellflag(i,j,k),nbr)
 \end{lstlisting}
 
-For the embedded boundary version, the code must is much more
-complicated. To avoid instabilities associated with arbitrarily small
-cells, the divergence is computed in stages.  For this discussion
-$\kappa$ is the volume fraction of a cell.  The stages of the
-divergence are given by
-\begin{itemize}
-\item Compute the $\kappa$-weighted divergence.
-\item Compute a nonconservative approximation to the divergence that
-  is a local average of the previous object.
-\item Update the state with a hybrid divergence.
-\item Redistribute  mass to preserve conservation.
-\end{itemize}
-It is beyond the scope of this document to explain all that.  We
-include it only to provide the context that EB stencils can be much
-more complex that non-EB ones.   Suffice
-it to say that the first step of that process is most closely related
-to the code above.    The loop that computes the $\kappa$-weighted
-divergence is given below.
+Here, for the $\tt{flag}$ at $(i,j,k)$ is used to fill a local $3^3$ array of integers with the value $1$ if connected to $(i,j,k)$,
+and $0$ if not.  Similar queries:
+
+\begin{lstlisting}[language=Fortran]
+   is_covered_cell(cellflag(i,j,k))
+   is_single_valued_cell(cellflag(i,j,k)
+\end{lstlisting}
+can be used to gather additional detail.
+
+Below, we show a partial listing of the $\tt{cns_eb_compute_dudt}$ code, specifically after the face-centered fluxes have been computed,
+and showing part of the work necessary to interpolate them to face centroids (while appropriately handling covered data).
 
 \begin{lstlisting}[language=Fortran]
     do n = 1, ncomp
@@ -629,7 +614,7 @@ divergence is given below.
                       fxm = fluxx(i,j,k,n)
                    end if
 
-           ![***REDACTED-- THERE ARE SIMILAR TERMS FOR XHI, YLO, YHI, ZLO, ZHI***]
+           <..... similar code for other fluxes removed ....>
 
                    iwall = iwall + 1
                    if (n .eq. 1) then
@@ -660,5 +645,16 @@ divergence is given below.
        end do
 
 \end{lstlisting}
-This should explain why it is desirable to avoid 
-calling the EB-specific routine when possible.
+
+One can easily identify the logic and portions of the code devoted toward the EB corrections.  Note, in particular,
+that diffusive fluxes into the EB need only be computed on cut cells.
+
+\subsubsection{There are many approaches}
+The ``fixes'' that need to occur in these EB algorithms can be managed in a number of ways, depending on the
+needs of the application and programming style.  In this example, the geometrical data is used to fill dense
+data structures so that the sparse geometry information is available uniformally over the entire box.
+Also, the cell types are queried point-by-point in order to form the appropriate stencil. Obviously then
+there is a performance penalty if many of the cells in tile are not actually cut.  There is clearly a trade-off
+in such designs.  Alternatively, one might build sparse data structures similar to those $\tt{AMReX}$ uses to manage
+particles, and apply the EB corrections on this sparse set directly.  Future releases of $\tt{AMReX}$ will
+feature an expanded set of EB tutorials to demonstrate an evolving set of tools provided.
