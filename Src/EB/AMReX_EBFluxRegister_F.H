@@ -63,7 +63,7 @@ extern "C" {
     void amrex_eb_rereflux_to_fine (const int* lo, const int* hi,
                                     amrex_real* fd, const int* fdlo, const int* fdhi,
                                     const amrex_real* cd, const int* cdlo, const int* cdhi,
-                                    const amrex_real* v, const int* vlo, const int* vhi,
+                                    const int* msk, const int * mlo, const int* mhi,
                                     const int* nc, const int* ratio);
 
 
