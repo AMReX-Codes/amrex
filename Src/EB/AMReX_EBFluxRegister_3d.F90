@@ -321,7 +321,7 @@ contains
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
              
-             if (amrflg(i,j,k).eq.crse_fine_boundary_cell) then
+             if (amrflg(i,j,k).eq.crse_fine_boundary_cell .and. vfrac(i,j,k).gt.1.d-14) then
 
                 dm = s(i,j,k,:)*vfrac(i,j,k)
                 d(i,j,k,:) = d(i,j,k,:) + dm
