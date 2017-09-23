@@ -1168,6 +1168,7 @@ BoxArray::getHashMap () const
     BARef::HashType& BoxHashMap = m_ref->hash;
 
     bool local_flag;
+    
 #ifdef _OPENMP
 #pragma omp atomic read
 #endif
