@@ -96,6 +96,8 @@ public:
     void setLevelSteps (int lev, int n) { level_steps[lev] = n; }
     //! Which step are we at for the specified level?
     int levelCount (int lev) const { return level_count[lev]; }
+    //! Which step are we at for the specified level?
+    void setLevelCount (int lev, int n) { level_count[lev] = n; }
     //! Whether to regrid right after restart
     bool RegridOnRestart () const;
     //! Interval between regridding.
