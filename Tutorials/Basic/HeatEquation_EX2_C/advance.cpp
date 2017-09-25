@@ -2,15 +2,23 @@
 #include "myfunc.H"
 #include "myfunc_F.H"
 
+#include <AMReX_BCUtil.H>
+
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
 	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
 	      Real dt,
-              const Geometry& geom)
+              const Geometry& geom,
+              const Array<BCRec>& bc)
 {
     // Fill the ghost cells of each grid from the other grids
     // includes periodic domain boundaries
     phi_old.FillBoundary(geom.periodicity());
+
+    // Fill non-periodic physical boundaries
+    if (!Geometry::isAllPeriodic()) {
+        FillDomainBoundary(phi_old, geom, bc);
+    }
 
     int Ncomp = phi_old.nComp();
     int ng_p = phi_old.nGrow();
@@ -39,7 +47,7 @@ void advance (MultiFab& phi_old,
 #if (AMREX_SPACEDIM == 3)   
                      BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif
-                     dx);
+                     dx, bc[0].data());
     }
     
     // Advance the solution one grid at a time

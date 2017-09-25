@@ -1,7 +1,7 @@
 
 subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi, fluxz, fzlo, fzhi, &
-                         dx) bind(C, name="compute_flux")
+                         dx, bc) bind(C, name="compute_flux")
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -13,6 +13,7 @@ subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
   real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2), fylo(3): fyhi(3))
   real(amrex_real), intent(inout) :: fluxz( fzlo(1): fzhi(1), fzlo(2): fzhi(2), fzlo(3): fzhi(3))
   real(amrex_real), intent(in)    :: dx(3)
+  integer, intent(in)             :: bc(3,2,1) ! (dim,lohi,ncomp)
   
   ! local variables
   integer i,j,k

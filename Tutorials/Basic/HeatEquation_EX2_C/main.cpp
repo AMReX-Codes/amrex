@@ -97,6 +97,25 @@ void main_main ()
                  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
     }
 
+    // Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types
+    Array<BCRec> bc(phi_old.nComp());
+    for (int n = 0; n < phi_old.nComp(); ++n)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            if (Geometry::isPeriodic(idim))
+            {
+                bc[n].setLo(idim, BCType::int_dir); // int_dir "interior Dirichlet" is used for periodic
+                bc[n].setHi(idim, BCType::int_dir);
+            }
+            else
+            {
+                bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation.
+                bc[n].setHi(idim, BCType::foextrap);
+            }
+        }
+    }
+
     // compute the time step
     const Real* dx = geom.CellSize();
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
@@ -124,7 +143,7 @@ void main_main ()
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
-        advance(phi_old, phi_new, flux, dt, geom); 
+        advance(phi_old, phi_new, flux, dt, geom, bc); 
         time = time + dt;
         
         // Tell the I/O Processor to write out which step we're doing
