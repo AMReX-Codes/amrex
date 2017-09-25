@@ -2,6 +2,8 @@
 \newcommand{\ibold}{{\bf i}}
 \newcommand{\jbold}{{\bf j}}
 \newcommand{\kbold}{{\bf k}}
+\newcommand{\nbold}{{\bf k}}
+\newcommand{\cbold}{{\bf k}}
 \newcommand{\ebis}{{\tt EBIndexSpace}}
 \newcommand{\baseif}{{\tt BaseIF}}
 \newcommand{\sphereif}{{\tt SphereIF}}
@@ -243,16 +245,83 @@ The \geom\ object based on this sphere is then used to construct the \ebis, as s
 
 \subsubsection{Other basic shapes:}
 
+\begin{itemize}
+
+\item Planes are made using the class $\tt{PlaneIF}$ which given a normal
+$\nbold$  and a center $\cbold$ gives the implicit function 
+$$
+I(\xbold) = \sum_{1<=d<=D} n_d (x_d - c_d).
+$$
+
 \begin{lstlisting}[language=cpp]
-    Shape1_IF...)
-\end{lstlisting}
-\begin{lstlisting}[language=cpp]
-    Shape2_IF...)
-\end{lstlisting}
-\begin{lstlisting}[language=cpp]
-    Shape3_IF...)
+RealVect normal; 
+RealVect center;
+...fill in values for n and c...
+
+PlaneIF plane(normal,point, true);
+GeometryShop workshop(plane)
+
+EBIndexSpace*  ebis = AMReX_EBIS::instance()
+ebis->define(domain, RealVect::Zero, dx, workshop);
+
 \end{lstlisting}
 
+\item Polynomials of any form can be made using the class
+  $\tt{PolynomialIF}$.  Here is an example that makes a parabola of
+  the form $I(\xbold) = x - y^2 - z^2$. 
+\begin{lstlisting}[language=cpp]
+
+Array<PolyTerm> poly;
+PolyTerm mono;
+Real coef;
+IntVect powers;
+Real amplitude = 1;
+// y^2 term
+coef = amplitude;
+powers = IntVect::Zero;
+powers[1] = 2;
+
+mono.coef   = coef;
+mono.powers = powers;
+poly.push_back(mono);
+
+// z^2 term
+coef = amplitude;
+            RealVect translation;
+      
+            for(int idir = 0; idir < SpaceDim; idir++)
+            {
+              int finesize = finest_domain.size()[idir];
+              translation[idir] = 0.5*finesize*fine_dx;
+            }
+            translation[0] = 0;
+
+            TransformIF implicit(mirror);
+            implicit.translate(translation);
+            impfunc.reset(implicit.newImplicitFunction());
+
+powers = IntVect::Zero;
+powers[2] = 2;
+mono.coef   = coef;
+mono.powers = powers;
+poly.push_back(mono);
+
+// x term
+coef = -1.0;
+powers = IntVect::Zero;
+powers[0] = 1;
+mono.coef   = coef;
+mono.powers = powers;
+
+poly.push_back(mono);
+
+PolynomialIF mirror(poly,false);
+GeometryShop workshop(mirror)
+EBIndexSpace*  ebis = AMReX_EBIS::instance()
+ebis->define(domain, RealVect::Zero, dx, workshop);
+\end{lstlisting}
+
+\end{itemize}
 \subsection{Implicit Function Transformation Tools}
 
 More complex domains can be constructed by composing these fundamental shapes.
@@ -298,7 +367,8 @@ GeometryShop workshop(sideImpMultisphere)
 
 Here is an example that creates a geometric construction using a
 surface of revolution of a set of polygons.   This particular example
-only makes sense in three dimensions.
+only makes sense in three dimensions.   With the right polygons, it
+creates the surface shown in \ref{fig::revolution}.
 
 \begin{lstlisting}[language=cpp]
 
@@ -389,6 +459,87 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
 }
 
 \end{lstlisting}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.375\textwidth]{./EB/revolution.pdf}
+  \caption{\label{fig::revolution} Zero surface of an implicit
+    function made using a surface of revolution.}
+\end{figure}
+\subsection{Geometric example 3 -- A Sphere Inside a Parabola}
+
+Here is an example that creates a geometry of a sphere contained
+within a parabola. This code
+creates the surface shown in \ref{fig::parabolasphere}.
+
+\begin{lstlisting}[language=cpp]
+Array<PolyTerm> poly;
+
+PolyTerm mono;
+Real coef;
+IntVect powers;
+Real amplitude = 1;
+
+// y^2 term
+coef = amplitude;
+powers = IntVect::Zero;
+powers[1] = 2;
+
+mono.coef   = coef;
+mono.powers = powers;
+
+poly.push_back(mono);
+
+// z^2 term
+coef = amplitude;
+powers = IntVect::Zero;
+powers[2] = 2;
+mono.coef   = coef;
+mono.powers = powers;
+poly.push_back(mono);
+
+// x term
+coef = -1.0;
+powers = IntVect::Zero;
+powers[0] = 1;
+mono.coef   = coef;
+mono.powers = powers;
+
+poly.push_back(mono);
+
+PolynomialIF mirror(poly,false);
+RealVect translation;
+
+for(int idir = 0; idir < SpaceDim; idir++)
+{
+  int finesize = finest_domain.size()[idir];
+  translation[idir] = 0.5*finesize*fine_dx;
+}
+RealVect center = translation;
+translation[0] = 0;
+
+TransformIF transform(mirror);
+transform.translate(translation);
+
+Real radius = 0.2*center[0];
+SphereIF sphere(radius, center, true);
+Array<BaseIF*> funcs(2);
+funcs[0] = &transform;
+funcs[1] = &sphere;
+UnionIF implicit(funcs);
+impfunc.reset(implicit.newImplicitFunction());
+GeometryShop gshop(impfunc, false);
+//define th geometric database
+AMReX_EBIS::instance()->define(finest_domain, RealVect::Zero,
+                                 fine_dx, gshop, max_grid_size);
+\end{lstlisting}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.375\textwidth]{./EB/parabsphere.pdf}
+  \caption{\label{fig::parabolasphere} Zero surface of an implicit
+    function made the above code.}
+\end{figure}
 
 \section{$\tt{EBFarrayBox}$}
 
