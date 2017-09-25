@@ -133,6 +133,8 @@ WarpX::WarpX ()
 
     masks.resize(nlevs_max);
     gather_masks.resize(nlevs_max);
+
+    costs.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -242,6 +244,8 @@ WarpX::ReadParameters ()
             fine_tag_lo = RealVect{lo};
             fine_tag_hi = RealVect{hi};
         }
+
+        pp.query("load_balance_int", load_balance_int);
     }
 
     {
@@ -295,6 +299,8 @@ WarpX::ClearLevel (int lev)
     rho_fp[lev].reset();
     F_cp  [lev].reset();
     rho_cp[lev].reset();
+
+    costs[lev].reset();
 }
 
 void
@@ -378,6 +384,10 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, 0));
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
         }
+    }
+
+    if (load_balance_int > 0) {
+        costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
 }
 

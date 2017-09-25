@@ -261,6 +261,8 @@ LaserParticleContainer::Evolve (int lev,
 
     BL_ASSERT(OnSameGrids(lev,jx));
 
+    MultiFab* cost = WarpX::getCosts(lev);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -271,6 +273,8 @@ LaserParticleContainer::Evolve (int lev,
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
+            Real wt = ParallelDescriptor::second();
+
 	    const Box& box = pti.validbox();
 
             auto& attribs = pti.GetAttribs();
@@ -561,6 +565,12 @@ LaserParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_START(blp_copy);
             pti.SetPosition(xp, yp, zp);
             BL_PROFILE_VAR_STOP(blp_copy);
+
+            if (cost) {
+                const Box& tbx = pti.tilebox();
+                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                (*cost)[pti].plus(wt, tbx);
+            }
 	}
     }
 }

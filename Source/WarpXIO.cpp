@@ -163,6 +163,11 @@ WarpX::WriteCheckPointFile() const
         if (do_pml && pml[lev]) {
             pml[lev]->CheckPoint(amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml"));
         }
+
+        if (costs[lev]) {
+            VisMF::Write(*costs[lev],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "costs"));
+        }
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
@@ -355,6 +360,16 @@ WarpX::InitFromCheckpoint ()
                             amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz_cp"));
             }
         }
+
+        if (costs[lev]) {
+            const auto& cost_mf_name = 
+                amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "costs");
+            if (VisMF::Exist(cost_mf_name)) {
+                VisMF::Read(*costs[lev], cost_mf_name);
+            } else {
+                costs[lev]->setVal(0.0);
+            }
+        }
     }
 
     if (do_pml)
@@ -398,7 +413,8 @@ WarpX::WritePlotFile () const
             + static_cast<int>(plot_proc_number)
             + static_cast<int>(plot_divb)
             + static_cast<int>(plot_dive)
-            + static_cast<int>(plot_finepatch)*6;
+            + static_cast<int>(plot_finepatch)*6
+            + static_cast<int>(costs[0] != nullptr);
 
 	for (int lev = 0; lev <= finest_level; ++lev)
 	{
@@ -575,6 +591,16 @@ WarpX::WritePlotFile () const
                     varnames.push_back("Bz_fp");
                 }
                 dcomp += 3;
+            }
+
+            if (costs[0] != nullptr)
+            {
+                MultiFab::Copy(*mf[lev], *costs[lev], 0, dcomp, 1, 0);
+                if (lev == 0)
+                {
+                    varnames.push_back("costs");
+                }
+                dcomp += 1;
             }
 
             BL_ASSERT(dcomp == ncomp);

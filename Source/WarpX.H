@@ -48,7 +48,6 @@ public:
     ~WarpX ();
 
     int Verbose () const { return verbose; }
-    int RegridInt () const { return regrid_int; }
 
     void InitData ();
 
@@ -81,6 +80,14 @@ public:
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}
     const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield_fp[lev][direction];}
+
+    static amrex::MultiFab* getCosts (int lev) {
+        if (m_instance) {
+            return m_instance->costs[lev].get();
+        } else {
+            return nullptr;
+        }
+    }
 
     void ComputeDt ();
     void MoveWindow (bool move_j);
@@ -204,15 +211,6 @@ private:
 
     void ReadParameters ();
 
-    // *************************************************************************
-    void RegridBaseLevel ();
-    bool LoadBalanceBaseLevel ();
-    void splitBoxes (amrex::BoxArray& ba, amrex::Array<long>& newcost, const amrex::Array<long>& cost_in, int heavy_grid_size);
-    amrex::Real getEfficiency(const amrex::DistributionMapping& dm, const amrex::Array<long>& cost);
-    amrex::DistributionMapping getCostCountDM (const amrex::Array<long>& cost, const amrex::BoxArray& ba);
-    bool okToRegrid(int step);
-    // *************************************************************************
-
     void InitFromScratch ();
 
     void AllocLevelData (int lev, const amrex::BoxArray& new_grids,
@@ -330,6 +328,9 @@ private:
     int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;
+
+    int load_balance_int = -1;
+    amrex::Array<std::unique_ptr<amrex::MultiFab> > costs;
 
     // Other runtime parameters
     int verbose = 1;

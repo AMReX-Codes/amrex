@@ -410,6 +410,8 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 
     if (do_not_push) return;
 
+    MultiFab* cost = WarpX::getCosts(lev);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -418,6 +420,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
+            Real wt = ParallelDescriptor::second();
 
             auto& attribs = pti.GetAttribs();
 
@@ -450,6 +453,12 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             BL_PROFILE_VAR_START(blp_copy);
             pti.SetPosition(xp, yp, zp);
             BL_PROFILE_VAR_STOP(blp_copy);
+
+            if (cost) {
+                const Box& tbx = pti.tilebox();
+                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                (*cost)[pti].plus(wt, tbx);
+            }
         }
     }
 }

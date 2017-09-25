@@ -346,6 +346,8 @@ PhysicalParticleContainer::FieldGather (int lev,
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
+    MultiFab* cost = WarpX::getCosts(lev);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -354,6 +356,8 @@ PhysicalParticleContainer::FieldGather (int lev,
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
+            Real wt = ParallelDescriptor::second();
+
 	    const Box& box = pti.validbox();
 
             auto& attribs = pti.GetAttribs();
@@ -410,6 +414,12 @@ PhysicalParticleContainer::FieldGather (int lev,
 	       bzfab.dataPtr(), &ng, bzfab.length(),
 	       &ll4symtry, &l_lower_order_in_v,
 	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
+
+            if (cost) {
+                const Box& tbx = pti.tilebox();
+                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                (*cost)[pti].plus(wt, tbx);
+            }
         }
     }
 }
@@ -492,6 +502,8 @@ PhysicalParticleContainer::Evolve (int lev,
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     BL_ASSERT(OnSameGrids(lev,Ex));
+
+    MultiFab* cost = WarpX::getCosts(lev);
     
 #ifdef _OPENMP
 #pragma omp parallel
@@ -503,6 +515,8 @@ PhysicalParticleContainer::Evolve (int lev,
         
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
+            Real wt = ParallelDescriptor::second();
+
 	    const Box& box = pti.validbox();
 
             auto& attribs = pti.GetAttribs();
@@ -782,6 +796,12 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_START(blp_copy);
                 pti.SetPosition(xp, yp, zp);
                 BL_PROFILE_VAR_STOP(blp_copy);
+            }
+
+            if (cost) {
+                const Box& tbx = pti.tilebox();
+                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                (*cost)[pti].plus(wt, tbx);
             }
 	}
     }
