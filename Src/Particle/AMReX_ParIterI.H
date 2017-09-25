@@ -8,8 +8,9 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
       m_pariter_index(0)
 {
     auto& particles = pc.GetParticles(level);
-    
-    for (int i = 0; i < endIndex; ++i)
+
+    int start = dynamic ? 0 : beginIndex;
+    for (int i = start; i < endIndex; ++i)
     {
         int grid = (*index_map)[i];
         int tile = local_tile_index_map ? (*local_tile_index_map)[i] : 0;
@@ -29,6 +30,20 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
     else
     {
         currentIndex = beginIndex = m_valid_index.front();
+        if (dynamic) {
+#ifdef _OPENMP            
+            int ind = omp_get_thread_num();
+            m_pariter_index += ind;
+            if (ind < m_valid_index.size()) {
+                currentIndex = beginIndex = m_valid_index[ind];
+            } else {
+                currentIndex = endIndex;
+            }
+            for (int i = 0; i < omp_get_num_threads(); ++i) {
+                m_valid_index.push_back(endIndex);
+            }
+#endif
+        }
         m_valid_index.push_back(endIndex);
     }
 }
