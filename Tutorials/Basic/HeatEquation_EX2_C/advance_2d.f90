@@ -1,9 +1,10 @@
 
 subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
                          fluxx, fxlo, fxhi, fluxy, fylo, fyhi, &
-                         dx) bind(C, name="compute_flux")
+                         dx, bc) bind(C, name="compute_flux")
 
   use amrex_fort_module, only : amrex_real
+  use amrex_bc_types_module
   implicit none
 
   integer lo(2), hi(2), domlo(2), domhi(2)
@@ -12,6 +13,7 @@ subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
   real(amrex_real), intent(inout) :: fluxx( fxlo(1): fxhi(1), fxlo(2): fxhi(2))
   real(amrex_real), intent(inout) :: fluxy( fylo(1): fyhi(1), fylo(2): fyhi(2))
   real(amrex_real), intent(in)    :: dx(2)
+  integer, intent(in)             :: bc(2,2,1) ! (dim,lohi,ncomp)
 
   ! local variables
   integer i,j
@@ -29,6 +31,23 @@ subroutine compute_flux (lo, hi, domlo, domhi, phi, philo, phihi, &
      fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx(2)
   end do
   end do
+
+  ! lo-x boundary, ghost cell contains value on boundary
+  if (domlo(1) .eq. lo(1) .and. bc(1,1,1) .eq. amrex_bc_foextrap) then
+     do j = lo(2), hi(2)
+     i = lo(1)
+     fluxx(i,j) = ( phi(i,j) - 2*phi(i-1,j) ) / (0.5d0*dx(1))
+     end do
+  end if
+
+
+  ! lo-y boundary, ghost cell contains value on boundary
+  if (domlo(2) .eq. lo(2) .and. bc(2,1,1) .eq. amrex_bc_foextrap) then
+     do i = lo(1), hi(1)
+        j = lo(2)
+        fluxy(i,j) = ( phi(i,j) - phi(i,j-1) ) / dx(2)
+     end do
+  end if
 
 end subroutine compute_flux
 
