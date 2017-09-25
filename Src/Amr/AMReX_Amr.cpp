@@ -225,7 +225,7 @@ Amr::InitAmr ()
     plot_int               = -1;
     small_plot_int         = -1;
     last_plotfile          = 0;
-    last_smallplotfile     = 0;
+    last_smallplotfile     = -1;
     last_checkpoint        = 0;
     record_run_info        = false;
     record_grid_info       = false;
