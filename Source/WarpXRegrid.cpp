@@ -150,8 +150,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             costs[lev]->setVal(0.0);
         }
 
-        // xxxxx todo PML
-
         SetDistributionMap(lev, dm);
     }
     else
