@@ -1792,6 +1792,20 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 }
 
 
+bool
+VisMF::Exist (const std::string& mf_name)
+{
+    std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
+    int exist;
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ifstream iss;
+        iss.open(FullHdrFileName.c_str(), std::ios::in);
+        exist = iss.good();
+    }
+    ParallelDescriptor::Bcast(&exist, 1, ParallelDescriptor::IOProcessorNumber());
+    return exist;
+}
+
 void
 VisMF::ReadFAHeader (const std::string &fafabName,
 	             Array<char> &faHeader)
