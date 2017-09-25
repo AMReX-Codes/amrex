@@ -41,8 +41,14 @@ program fdump
 
   real(kind=dp_t) :: pa
 
+  character(len=256) :: minval_str, maxval_str
+  real(kind=dp_t) :: minval, maxval
+
   integer :: dm
   type(box) :: bx_a
+
+  minval = -1.d200
+  maxval = 1.d200
 
 
   !---------------------------------------------------------------------------
@@ -64,6 +70,18 @@ program fdump
      case ('--var')
         farg = farg + 1
         call get_command_argument(farg, value = var)
+
+     ! Only print out data larger than this value.
+     case ('--min')
+        farg = farg + 1
+        call get_command_argument(farg, value = minval_str)
+        read(minval_str, *) minval
+
+     ! Only print out data smaller than this value.
+     case ('--max')
+        farg = farg + 1
+        call get_command_argument(farg, value = maxval_str)
+        read(maxval_str, *) maxval
 
      case default
         exit
@@ -123,7 +141,9 @@ program fdump
         do kk = lo_a(3)-ng, hi_a(3)+ng
            do jj = lo_a(2)-ng, hi_a(2)+ng
               do ii = lo_a(1)-ng, hi_a(1)+ng
-                 print *, ii, jj, kk, p_a(ii,jj,kk,1)
+                 if (p_a(ii,jj,kk,1) >= minval .and. p_a(ii,jj,kk,1) <= maxval) then
+                    print *, ii, jj, kk, p_a(ii,jj,kk,1)
+                 end if
               enddo
            enddo
         enddo
