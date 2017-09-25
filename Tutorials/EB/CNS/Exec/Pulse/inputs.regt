@@ -22,7 +22,7 @@ cns.v = 1
 amr.v = 1
 
 # REFINEMENT / REGRIDDING 
-amr.max_level       = 0       # maximum level number allowed
+amr.max_level       = 2       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2 2 2 2 # how often to regrid
 amr.blocking_factor = 16
@@ -52,3 +52,12 @@ sphere_center = 0.45  0.65  0.53
 prob.drho = 1.2e-4
 
 amrex.fpe_trap_invalid=1
+
+cns.refine_cutcells = 0
+
+cns.refine_box_lo_0 = 0.48 0.48 0.48
+cns.refine_box_hi_0 = 0.52 0.52 0.52
+
+cns.refine_box_lo_1 = 0.85 0.85 0.85
+cns.refine_box_hi_1 = 0.99 0.99 0.99
+
