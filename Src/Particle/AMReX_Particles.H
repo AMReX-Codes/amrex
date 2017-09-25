@@ -905,16 +905,6 @@ public:
     }
 #endif
     
-    //! Is the iterator valid i.e. is it associated with a FAB?
-    bool isValid () const 
-        { 
-            if (dynamic) {
-                return m_pariter_index < endIndex - 1;
-            } else {
-                return currentIndex < endIndex;
-            } 
-        }
-
     ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
 
     AoSRef GetArrayOfStructs () const { return GetParticleTile().GetArrayOfStructs(); }
