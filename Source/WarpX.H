@@ -172,8 +172,7 @@ protected:
     //! DistributionMapping and fill with existing fine and coarse
     //! data.  Called by AmrCore::regrid.
     virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
-			      const amrex::DistributionMapping& dm) final
-        { amrex::Abort("RemakeLevel: To be implemented"); }
+			      const amrex::DistributionMapping& dm) final;
 
     //! Delete level data.  Called by AmrCore::regrid.
     virtual void ClearLevel (int lev) final;
@@ -264,6 +263,8 @@ private:
 
     void getLevelMasks(amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks,
                        const int nnodes = 1);
+
+    void LoadBalance ();
 
     // used to zero out fine level data on points shared with the coarse grid
     // in electrostatic mode

@@ -173,9 +173,9 @@ WarpX::EvolveEM (int numsteps)
 
         if (costs[0] != nullptr)
         {
-            if (step > 0 && step-1 % load_balance_int == 0)
+            if (step > 0 && (step-1) % load_balance_int == 0)
             {
-                // LoadBalance();
+                LoadBalance();
             }
 
             for (int lev = 0; lev <= finest_level; ++lev) {
