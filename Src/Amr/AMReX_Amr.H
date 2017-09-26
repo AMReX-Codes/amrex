@@ -39,6 +39,9 @@ public:
 
     Amr (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord);
 
+    Amr (const Amr& rhs) = delete;
+    Amr& operator= (const Amr& rhs) = delete;
+
     void InitAmr ();
 
     //! The destructor.
@@ -339,6 +342,9 @@ protected:
                       int&             new_finest,
                       Array<BoxArray>& new_grids);
 
+    DistributionMapping makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) const;
+    void LoadBalanceLevel0 (Real time);
+
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override;
     virtual BoxArray GetAreaNotToTag (int lev) override;
     virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Array<IntVect>& bf_lev) override;
@@ -429,6 +435,8 @@ protected:
     bool             abort_on_stream_retry_failure;
     int              stream_max_tries;
     int              rebalance_grids;
+    int              loadbalance_with_workestimates;
+    int              loadbalance_level0_int;
 
     bool             bUserStopRequest;
     //
@@ -455,12 +463,6 @@ public:
 
     static bool first_smallplotfile;
 
-private:
-    //
-    // Disallowed
-    //
-    Amr (const Amr& rhs);
-    Amr& operator= (const Amr& rhs);
 };
 
 }
