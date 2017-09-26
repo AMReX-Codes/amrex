@@ -18,10 +18,8 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     MultiFab dSdt(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW,MFInfo(),Factory());
   
-    if (CNS::do_load_balance) {
-        MultiFab& C_new = get_new_data(Cost_Type);
-        C_new.setVal(0.0);
-    }
+    MultiFab& C_new = get_new_data(Cost_Type);
+    C_new.setVal(0.0);
 
     EBFluxRegister* fr_as_crse = nullptr;
     if (do_reflux && level < parent->finestLevel()) {
@@ -68,7 +66,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     int as_crse = (fr_as_crse != nullptr);
     int as_fine = (fr_as_fine != nullptr);
 
-    MultiFab* cost = (do_load_balance) ? &(get_new_data(Cost_Type)) : nullptr;
+    MultiFab& cost = get_new_data(Cost_Type);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -169,10 +167,8 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                 }
             }
 
-            if (do_load_balance) {
-                wt = (ParallelDescriptor::second() - wt) / bx.d_numPts();
-                (*cost)[mfi].plus(wt, bx);
-            }
+            wt = (ParallelDescriptor::second() - wt) / bx.d_numPts();
+            cost[mfi].plus(wt, bx);
         }
     }
 }
