@@ -175,6 +175,11 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
             PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
         }
+
+        // volfrac threshhold for amrvis
+        if (level == parent->finestLevel()) {
+            os << ".000001\n";
+        }
     }
     //
     // We combine all of the multifabs -- state, derived, etc -- into one

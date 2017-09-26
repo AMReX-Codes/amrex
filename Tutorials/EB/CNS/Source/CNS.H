@@ -33,6 +33,10 @@ public:
                             amrex::VisMF::How  how = amrex::VisMF::NFiles,
                             bool               dump_old = true) override;
 
+    virtual std::string thePlotFileType () const override {
+        return {"CartGrid-V2.0"};
+    }
+
     // Write a plotfile to specified directory.
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
