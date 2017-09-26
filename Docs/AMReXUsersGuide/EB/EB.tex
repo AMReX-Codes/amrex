@@ -24,7 +24,7 @@ mesh is uniform and block-structured, but the boundary of the irregular-shaped
 computational domain conceptually cuts through this mesh.  Each cell in the mesh
 becomes labeled as regular, cut or covered, and the finite-volume based
 discretization methods traditionally used in AMReX applications can be
-modified to incorporate these cell shapes.  See figure \ref{fig::ebexample}
+modified to incorporate these cell shapes.  See Figure~\ref{fig::ebexample}
 for an illustration.
 \begin{figure}[h]
   \centering
@@ -42,37 +42,26 @@ cells can have significant impact on the robustness and stability of
 traditional finite volume methods.  In this chapter we overview
 a class of approaches to deal with this ``small cell'' problem in a
 robust and efficient way, and discuss the tools and data that $\tt{AMReX}$
-provides in order to implement them.  In this context,
-geometry is represented by volumes ($V = \kappa h^d$) and apertures 
-($A= \alpha h^{d-1}$), where $h$ is the (uniform) mesh spacing at that AMR level,
-$\kappa$ is the volume fraction and $\alpha$ are the area fractions.
-See figure \ref{fig::volume} for an illustration of a typical such cell in
-two dimensions, where the important geometric components are labeled.
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.25\textwidth]{./EB/areas_and_volumes.pdf}
-  \caption{\label{fig::volume}A typical two-dimensional uniform cell that is cut by the embedded
-    boundary. The grey area represents the region excluded from the calculation.   The
-    portion of the cell faces (labelled with A) through which fluxes flow are the ``uncovered''
-    regions of the full cell faces.  The volume (labelled V) is the uncovered
-    region of the interior.}
-\end{figure}
+provides in order to implement them.  
 
-Note that in a completely general implementation of the EB approach, there would be no restrictions
-on the shape or complexity of the EB surface.  One important consequence however is the possibility
-that EB cutting process results in multiple cell fragments in at a single $(i,j,k)$ cell index location
-on the mesh.
-In the block-structured context of $\tt{AMReX}$, this would trigger a significant complication
-because the state data (as well as the geometrical and cell
-connectivity information) can no longer be managed using the logically rectangular
-data structures with implied connectivity graphs that are native to the framework.  Because of this,
-the current release of $\tt{AMReX}$ does NOT support multi-valued cells, and thus places a
-restriction on the complexity of domains (and numerical algorithms) supported.  Similarly, EB
-with AMR is not currently supported, as it leads to complexities in data communication patterns
-and inter-level data transfer operations.  In both cases however, extended support is
-planned for future releases of the library, and the software infrastructure
-underlying the implementation described in this document have been designed with these
-extensions in mind.
+Note that in a completely general implementation of the EB approach, 
+there would be no restrictions on the shape or complexity of the EB surface.  
+With this generality comes the possibility that the process of "cutting" the cells
+results in a single $(i,j,k$) cell being broken into multiple cell fragments.
+%In the block-structured context of $\tt{AMReX}$, this would trigger a significant complication
+%because the state data (as well as the geometrical and cell
+%connectivity information) can no longer be managed using the logically rectangular
+%data structures with implied connectivity graphs that are native to the framework.  Because of this,
+The current release of $\tt{AMReX}$ does not support multi-valued cells, thus there is a
+practical restriction on the complexity of domains (and numerical algorithms) supported.  
+AMReX support for EB with AMR will be available by early 2018;
+EB support for multi-valued cells will follow.
+%as it leads to complexities in data communication patterns
+%and inter-level data transfer operations.  
+%In both cases however, extended support is
+%planned for future releases of the library, and the software infrastructure
+%underlying the implementation described in this document have been designed with these
+%extensions in mind.
 
 This chapter discusses the EB tools, data structures and algorithms currently supported by
 $\tt{AMReX}$ to enable the construction of discretizations of conservation law systems.
@@ -101,30 +90,40 @@ D^c(F) = \frac{1}{\kappa h} \left( \sum^D_{d = 1}
 \label{eqn::ebdiv}
 \end{equation}
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.25\textwidth]{./EB/eb_fluxes.pdf}
-  \caption{\label{fig::eb_fluxes}The divergence of fluxes in a cut cell.}
-\end{figure}
-See figure \ref{fig::eb_fluxes} for an illustration of the associated data
-in a two-dimensional context.  For a second-order discretization of the
-divergence, the fluxes on each face must be centered at the face centroids.  
-In our simplified framework, where there is at most a single cut cell
-at each mesh location, $(i,j,k)$, the geometric information required to
-compute second-order fluxes includes:
-\begin{itemize}
-\item
-Volume fractions, $\kappa$
-\item
-Area fractions, $\alpha$
-\item 
-Cell and face centroids
-\end{itemize}
-Note that the assumpution of single-valued cells implies that this list of
-information is sufficient to infer the connectivity of the cells.  That is,
-cells are connected if adjacent on the Cartesian mesh, and only via
+Geometry is discretely represented by volumes ($V = \kappa h^d$) and apertures 
+($A= \alpha h^{d-1}$), where $h$ is the (uniform) mesh spacing at that AMR level,
+$\kappa$ is the volume fraction and $\alpha$ are the area fractions.
+Without multivalued cells the volume fractions, area fractions and cell and face centroids 
+(see Figure~\ref{fig::volume}) are the only geometric information needed to 
+compute second-order fluxes centered at the face centroids,  
+and to infer the connectivity of the cells.  
+Cells are connected if adjacent on the Cartesian mesh, and only via
 coordinate-aligned faces on the mesh.  If an aperture, $\alpha = 0$, between two
 cells, they are not directly connected to each other.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.25\textwidth]{./EB/areas_and_volumes.pdf}
+  \hspace{1in} \includegraphics[width=0.25\textwidth]{./EB/eb_fluxes.pdf}
+  \caption{\label{fig::volume} (a) A typical two-dimensional uniform cell that is cut by the embedded
+    boundary. The grey area represents the region excluded from the calculation.   The
+    portion of the cell faces (labelled with A) through which fluxes flow are the ``uncovered''
+    regions of the full cell faces.  The volume (labelled V) is the uncovered
+    region of the interior. (b) Fluxes in a cut cell.}
+\end{figure}
+%\begin{figure}[h]
+%  \centering
+%  \includegraphics[width=0.25\textwidth]{./EB/eb_fluxes.pdf}
+%  \caption{\label{fig::eb_fluxes}The divergence of fluxes in a cut cell.}
+%\end{figure}
+%\begin{itemize}
+%\item
+%Volume fractions,
+%\item
+%Area fractions,
+%\item 
+%Cell and face centroids
+%\end{itemize}
 
 \subsection{Small Cells And Stability}
 
@@ -176,7 +175,7 @@ U^{n+1}_\jbold = U^{n+1,*}_\jbold +
 $$
  Typically, the redistribution neighborhood for each cell is one that can be reached via a monotonic
  path in each coordinate direction of unit length
-(see, e.g., figure \ref{fig::redistribution})
+(see, e.g., Figure~\ref{fig::redistribution})
 \begin{figure}[h]
   \centering
   \includegraphics[width=0.25\textwidth]{./EB/redist.pdf}
