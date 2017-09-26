@@ -23,7 +23,8 @@ void main_main ()
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
-    Array<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
+    Array<int> bc_lo(AMREX_SPACEDIM,0);
+    Array<int> bc_hi(AMREX_SPACEDIM,0);
 
     // inputs parameters
     {
@@ -46,7 +47,17 @@ void main_main ()
         nsteps = 10;
         pp.query("nsteps",nsteps);
 
-        pp.queryarr("is_periodic", is_periodic);
+        // read in BC; see Src/Base/AMReX_BC_TYPES.H for supported types
+        pp.queryarr("bc_lo", bc_lo);
+        pp.queryarr("bc_hi", bc_hi);
+    }
+
+    // determine whether boundary conditions are periodic
+    Array<int> is_periodic(AMREX_SPACEDIM,0);
+    for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
+        if (bc_lo[idim] == INT_DIR && bc_hi[idim] == INT_DIR) {
+            is_periodic[idim] = 1;
+        }
     }
 
     // make BoxArray and Geometry
@@ -97,22 +108,41 @@ void main_main ()
                  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
     }
 
-    // Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types
+    // Set up BCRec; see Src/Base/AMReX_BC_TYPES.H for supported types
     Array<BCRec> bc(phi_old.nComp());
     for (int n = 0; n < phi_old.nComp(); ++n)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {
-            if (Geometry::isPeriodic(idim))
-            {
-                bc[n].setLo(idim, BCType::int_dir); // int_dir "interior Dirichlet" is used for periodic
-                bc[n].setHi(idim, BCType::int_dir);
+            
+            // lo-side BCs
+            if (bc_lo[idim] == INT_DIR) {
+                bc[n].setLo(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
             }
-            else
-            {
-                bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation.
-                bc[n].setHi(idim, BCType::foextrap);
+            else if (bc_lo[idim] == FOEXTRAP) {
+                bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
             }
+            else if (bc_lo[idim] == EXT_DIR) {
+                bc[n].setLo(idim, BCType::ext_dir);  // external Dirichlet
+            }
+            else {
+                amrex::Abort("Invalid bc_lo");
+            }
+
+            // hi-side BCs
+            if (bc_hi[idim] == INT_DIR) {
+                bc[n].setHi(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
+            }
+            else if (bc_hi[idim] == FOEXTRAP) {
+                bc[n].setHi(idim, BCType::foextrap); // first-order extrapolation
+            }
+            else if (bc_hi[idim] == EXT_DIR) {
+                bc[n].setHi(idim, BCType::ext_dir);  // external Dirichlet
+            }
+            else {
+                amrex::Abort("Invalid bc_hi");
+            }
+
         }
     }
 
