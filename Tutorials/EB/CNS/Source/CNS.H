@@ -94,15 +94,13 @@ public:
                            int                 n_error_buf = 0,
                            int                 ngrow = 0) override;
 
+    virtual int WorkEstType () override { return Cost_Type; }
+
     // Define data descriptors.
     static void variableSetUp ();
 
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
-
-    static void LoadBalance (amrex::Amr& amr);
-
-    static int do_load_balance;
 
 protected:
 
