@@ -458,6 +458,11 @@ Amr::InitAmr ()
     rebalance_grids = 0;
     pp.query("rebalance_grids", rebalance_grids);
 
+    loadbalance_with_workestimates = 0;
+    pp.query("loadbalance_with_workestimates", loadbalance_with_workestimates);
+
+    loadbalance_level0_int = 2;
+    pp.query("loadbalance_level0_int", loadbalance_level0_int);
 }
 
 bool
@@ -1868,6 +1873,14 @@ Amr::timeStep (int  level,
                 lev_top = std::min(finest_level, max_level - 1);
 	    }
         }
+
+        if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
+        {
+            if (level_steps[0] == 1 || level_count[0] >= loadbalance_level0_int) {
+                LoadBalanceLevel0(time);
+                level_count[0] = 0;
+            }
+        }
     }
     //
     // Check to see if should write plotfile.
@@ -1966,6 +1979,7 @@ Amr::coarseTimeStep (Real stop_time)
     stepName << "timeStep STEP " << level_steps[0];
 
     const Real run_strt = ParallelDescriptor::second() ;
+
     //
     // Compute new dt.
     //
@@ -2300,8 +2314,8 @@ Amr::regrid (int  lbase,
 
     grid_places(lbase,time,new_finest, new_grid_places);
 
-    bool regrid_level_zero = (!initial) &&
-        (lbase == 0 && new_grid_places[0] != amr_level[0]->boxArray());
+    bool regrid_level_zero = (!initial) && (lbase == 0)
+        && ( loadbalance_with_workestimates || (new_grid_places[0] != amr_level[0]->boxArray()));
 
     const int start = regrid_level_zero ? 0 : lbase+1;
 
@@ -2358,7 +2372,10 @@ Amr::regrid (int  lbase,
         // Construct skeleton of new level.
         //
 
-	if (new_dmap[lev].empty()) {
+        if (loadbalance_with_workestimates && !initial) {
+            new_dmap[lev] = makeLoadBalanceDistributionMap(lev, time, new_grid_places[lev]);
+        }
+        else if (new_dmap[lev].empty()) {
 	    new_dmap[lev].define(new_grid_places[lev]);
 	}
 
@@ -2479,6 +2496,52 @@ Amr::regrid (int  lbase,
            printGridSummary(std::cout,start,finest_level);
         }
     }
+}
+
+DistributionMapping
+Amr::makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) const
+{
+    BL_PROFILE("makeLoadBalanceDistributionMap()");
+
+    amrex::Print() << "Load balance on level " << lev << " at t = " << time << "\n";
+
+    DistributionMapping newdm;
+
+    const int work_est_type = amr_level[0]->WorkEstType();
+
+    if (work_est_type < 0) {
+        amrex::Print() << "\nAMREX WARNING: work estimates type does not exist!\n\n";
+        newdm.define(ba);
+    }
+    else if (amr_level[lev])
+    {
+        DistributionMapping dmtmp;
+        if (ba.size() == boxArray(lev).size()) {
+            dmtmp = DistributionMap(lev);
+        } else {
+            dmtmp.define(ba);
+        }
+
+        MultiFab workest(ba, dmtmp, 1, 0);
+        AmrLevel::FillPatch(*amr_level[lev], workest, 0, time, work_est_type, 0, 1, 0);
+
+        newdm = DistributionMapping::makeKnapSack(workest);
+    }
+    else
+    {
+        newdm.define(ba);
+    }
+
+    return newdm;
+}
+
+void
+Amr::LoadBalanceLevel0 (Real time)
+{
+    BL_PROFILE("LoadBalanceLevel0()");
+    const auto& dm = makeLoadBalanceDistributionMap(0, time, boxArray(0));
+    InstallNewDistributionMap(0, dm);
+    amr_level[0]->post_regrid(0,time);
 }
 
 void
@@ -3162,6 +3225,8 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(sub_cycle);
         allInts.push_back(stream_max_tries);
         allInts.push_back(rebalance_grids);
+        allInts.push_back(loadbalance_with_workestimates);
+        allInts.push_back(loadbalance_level0_int);
 
 	// ---- these are parmparsed in
         allInts.push_back(plot_nfiles);
@@ -3235,6 +3300,8 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         sub_cycle                  = allInts[count++];
         stream_max_tries           = allInts[count++];
         rebalance_grids            = allInts[count++];
+        loadbalance_with_workestimates  = allInts[count++];
+        loadbalance_level0_int     = allInts[count++];
 
         plot_nfiles                = allInts[count++];
         mffile_nstreams            = allInts[count++];
