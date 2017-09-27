@@ -41,9 +41,19 @@ program fdump
 
   real(kind=dp_t) :: pa
 
+  character(len=256) :: minval_str, maxval_str
+  real(kind=dp_t) :: minval, maxval
+
+  character(len=256) :: idx_str
+  integer :: idx(3)
+
   integer :: dm
   type(box) :: bx_a
 
+  minval = -1.d200
+  maxval = 1.d200
+
+  idx(:) = -1
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -64,6 +74,33 @@ program fdump
      case ('--var')
         farg = farg + 1
         call get_command_argument(farg, value = var)
+
+     ! Only print out data larger than this value.
+     case ('--min')
+        farg = farg + 1
+        call get_command_argument(farg, value = minval_str)
+        read(minval_str, *) minval
+
+     ! Only print out data smaller than this value.
+     case ('--max')
+        farg = farg + 1
+        call get_command_argument(farg, value = maxval_str)
+        read(maxval_str, *) maxval
+
+     case ('--i')
+        farg = farg + 1
+        call get_command_argument(farg, value = idx_str)
+        read(idx_str, *) idx(1)
+
+     case ('--j')
+        farg = farg + 1
+        call get_command_argument(farg, value = idx_str)
+        read(idx_str, *) idx(2)
+
+     case ('--k')
+        farg = farg + 1
+        call get_command_argument(farg, value = idx_str)
+        read(idx_str, *) idx(3)
 
      case default
         exit
@@ -121,9 +158,15 @@ program fdump
         endif
         
         do kk = lo_a(3)-ng, hi_a(3)+ng
+           if (idx(3) >= 0 .and. kk /= idx(3)) cycle
            do jj = lo_a(2)-ng, hi_a(2)+ng
+              if (idx(2) >= 0 .and. jj /= idx(2)) cycle
               do ii = lo_a(1)-ng, hi_a(1)+ng
-                 print *, ii, jj, kk, p_a(ii,jj,kk,1)
+                 if (idx(1) >= 0 .and. ii /= idx(1)) cycle
+
+                 if (p_a(ii,jj,kk,1) >= minval .and. p_a(ii,jj,kk,1) <= maxval) then
+                    print *, ii, jj, kk, p_a(ii,jj,kk,1)
+                 end if
               enddo
            enddo
         enddo

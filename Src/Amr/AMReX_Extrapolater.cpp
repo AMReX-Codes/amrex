@@ -24,7 +24,8 @@ namespace Extrapolater
 	BL_ASSERT(scomp >= 0);
 	BL_ASSERT(ncomp <= mf.nComp());
 
-	iMultiFab mask(mf.boxArray(), mf.DistributionMap(), 1, 1);
+	iMultiFab mask(mf.boxArray(), mf.DistributionMap(), 1, 1, MFInfo(),
+                       DefaultFabFactory<IArrayBox>());
 	mask.BuildMask(geom.Domain(), geom.periodicity(),
 		       finebnd, crsebnd, physbnd, interior);
 

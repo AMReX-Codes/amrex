@@ -14,14 +14,15 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_FaceIterator.H"
 #include "AMReX_parstream.H"
+#include "AMReX_Print.H"
+
 
 namespace amrex
 {
-  Box ebg_debbox1(IntVect(D_DECL(30,14,0)), IntVect(D_DECL(49, 33,0)));
-  Box ebg_debbox2(IntVect(D_DECL(14,14,0)), IntVect(D_DECL(33, 33,0)));
-  IntVect ebg_debiv(D_DECL(33, 13, 0));
+  static const IntVect ebg_debiv(D_DECL(0, 0, 0));
+  bool EBGraphImplem::s_verbose = false;
   /*******************************/
-  std::vector<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
+  Array<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
                                                       const Box&  a_box) const
   {
     return
@@ -30,16 +31,16 @@ namespace amrex
         
         
   /*******************************/
-  std::vector<FaceIndex> 
+  Array<FaceIndex> 
   EBGraphImplem::
   getMultiValuedFaces(const int&     a_idir,
                       const Box&     a_box,
                       const EBGraph& a_ebgraph) const
   {
-    std::vector<FaceIndex> multiValuedFaces;
+    Array<FaceIndex> multiValuedFaces;
     Box ghostRegion = a_box;
     ghostRegion.grow(a_idir, 1);
-    const IntVectSet ivsMulti = a_ebgraph.getMultiCells(ghostRegion);
+    const IntVectSet& ivsMulti = a_ebgraph.getMultiCells(ghostRegion);
     //Use faceiterator to only stop at faces once
     FaceIterator faceit(ivsMulti, a_ebgraph, a_idir, FaceStop::SurroundingWithBoundary);
     for (faceit.reset(); faceit.ok(); ++faceit)
@@ -51,12 +52,12 @@ namespace amrex
         bool isMulti = false;
         if (a_ebgraph.getDomain().contains(ivHi))
         {
-          const std::vector<FaceIndex> faces = getAllFaces(ivHi, a_idir, Side::Lo);
+          const Array<FaceIndex> faces = getAllFaces(ivHi, a_idir, Side::Lo);
           isMulti = (faces.size() > 1);
         }
         else if (a_ebgraph.getDomain().contains(ivLo))
         {
-          const std::vector<FaceIndex> faces = getAllFaces(ivLo, a_idir, Side::Hi);
+          const Array<FaceIndex> faces = getAllFaces(ivLo, a_idir, Side::Hi);
           isMulti = (faces.size() > 1);
         }
         else
@@ -168,7 +169,7 @@ namespace amrex
           {
         
             int gNodeIndex = IrregNode::index(idir, sit());
-            std::vector<int>& nodeArcsDir = node.m_arc[gNodeIndex];
+            Array<int>& nodeArcsDir = node.m_arc[gNodeIndex];
             nodeArcsDir.resize(0);
             //find which vof node is connected to in each direction.
             //cannot use isConnected here because it will always return
@@ -176,12 +177,12 @@ namespace amrex
             IntVect  otherIV = iv + sign(sit())*BASISV(idir);
             if (m_domain.contains(otherIV))
             {
-              std::vector<VolIndex> otherVoFs = getVoFs(otherIV);
+              Array<VolIndex> otherVoFs = getVoFs(otherIV);
               bool found = false;
               for (int iother = 0; iother < otherVoFs.size(); iother++)
               {
                 const VolIndex& otherVoF = otherVoFs[iother];
-                std::vector<FaceIndex> otherFaces = getFaces(otherVoF, idir, flip(sit()));
+                Array<FaceIndex> otherFaces = getFaces(otherVoF, idir, flip(sit()));
                 //there are rare cases where the number of other faces is greater than 1
                 for (int iface = 0; iface < otherFaces.size(); iface++)
                 {
@@ -217,8 +218,7 @@ namespace amrex
   /*******************************/
   IntVectSet EBGraphImplem::getIrregCells(const Box& a_subbox) const
   {
-    IntVectSet retval;
-    retval = m_irregIVS;
+    IntVectSet retval = m_irregIVS;
     retval &= a_subbox;
     return retval;
   }
@@ -226,9 +226,7 @@ namespace amrex
   /*******************************/
   IntVectSet EBGraphImplem::getMultiCells(const Box& a_subbox) const
   {
-    IntVectSet retval;
-
-    retval = m_multiIVS;
+    IntVectSet retval = m_multiIVS;
     retval &= a_subbox;
     return retval;
   }
@@ -247,6 +245,10 @@ namespace amrex
     m_tag = AllRegular;
     m_irregIVS = IntVectSet();
     m_multiIVS = IntVectSet();
+    EBCellFlag flag;
+    flag.setRegular();
+    m_cellFlags.setVal(flag);
+    m_cellFlags.setType(FabType::regular);
   }
         
   /*******************************/
@@ -258,20 +260,177 @@ namespace amrex
     m_irregIVS = IntVectSet();
     m_multiIVS = IntVectSet();
 
+    EBCellFlag flag;
+    flag.setCovered();
+    m_cellFlags.setVal(flag);
+    m_cellFlags.setType(FabType::covered);
   }
-        
+/*******************************/
+  Array<VolIndex>
+  EBGraphImplem::
+  getVoFs (const VolIndex& a_vof,
+           const int& a_dir,
+           const Side::LoHiSide& a_sd,
+           const int& a_steps) const
+  {
+    assert((a_dir >= 0) && (a_dir < SpaceDim));
+    assert(a_steps >= 0);
+
+    Array<VolIndex> retVoFs(1, a_vof);
+    for (int irad = 1; irad <= a_steps; irad++)
+    {
+      Array<VolIndex> tempVoFs(0);
+      for (int ivof = 0; ivof < retVoFs.size(); ivof++)
+      {
+        const VolIndex& stepVoF = retVoFs[ivof];
+        Array<FaceIndex> faces = getFaces(stepVoF, a_dir, a_sd);
+        for (int iface = 0; iface < faces.size(); iface++)
+        {
+          const FaceIndex& face = faces[iface];
+          if (!face.isBoundary())
+          {
+            const VolIndex& flipVoF = face.getVoF(a_sd);
+            tempVoFs.push_back(flipVoF);
+          }
+        }
+      }
+      retVoFs = tempVoFs;
+    }
+    return retVoFs;
+  }
         
   /*******************************/
   void 
   EBGraphImplem::
+  setCellFlags()
+  {
+    BL_PROFILE("ebgraph::setCellFlags()");
+    if(isAllRegular())
+    {
+      EBCellFlag flag;
+      flag.setRegular();
+      m_cellFlags.setVal(flag);
+      m_cellFlags.setType(FabType::regular);
+    }
+    else if(isAllCovered())
+    {
+      EBCellFlag flag;
+      flag.setCovered();
+      m_cellFlags.setVal(flag);
+      m_cellFlags.setType(FabType::covered);
+    }
+    else
+    {
+      Box bx = m_region & m_domain;
+      int ipt = 0;
+      for (BoxIterator bi(bx); bi.ok(); ++bi)
+      {
+        const IntVect& iv = bi();
+        auto& cellflag = m_cellFlags(iv);
+        if (isRegular(iv)) 
+        {
+          cellflag.setRegular();
+        } 
+        else if (isCovered(iv)) 
+        {
+          cellflag.setCovered();
+        } 
+        else if (isMultiValued(iv)) 
+        {
+          cellflag.setMultiValued(numVoFs(iv));
+        } 
+        else 
+        {
+          cellflag.setSingleValued();
+        }
+        ipt++;
+      }
+      fixCellFlagType();
+      Box domain = m_domain;
+
+      const Box& ibx = amrex::grow(m_cellFlags.box(),-1) & domain;
+    //begin debug
+    //if(m_region.contains(ebg_debiv))
+    //{
+    //  amrex::Print() << "EBGraph::setCellFlags initial phase flag at " << ebg_debiv << " = " << m_cellFlags(ebg_debiv, 0).getValue();
+    //  amrex::Print() << ", fullregion = " << m_fullRegion << ", ibx = " << ibx << endl;
+    //}
+    // end debug
+      for (BoxIterator bi(ibx); bi.ok(); ++bi)
+      {
+        const IntVect& iv = bi();
+        EBCellFlag& cellflag = m_cellFlags(iv, 0);
+        cellflag.setDisconnected();
+        cellflag.setConnected(IntVect::TheZeroVector());
+
+        const auto& vofs = getVoFs(iv);
+        for (const auto& vi : vofs)
+        {
+          std::array<int,AMREX_SPACEDIM> dirs = {AMREX_D_DECL(0,1,2)};
+          do
+          {
+            IntVect offset_0 = IntVect::TheZeroVector();
+            for (SideIterator sit_0; sit_0.ok(); ++sit_0)
+            {
+              offset_0[dirs[0]] = amrex::sign(sit_0());
+
+              const Array<VolIndex>& vofs_0 = getVoFs(vi, dirs[0], sit_0(), 1);
+              for (const auto& vi_0 : vofs_0)
+              {
+                cellflag.setConnected(offset_0);
+
+#if (AMREX_SPACEDIM >= 2)
+                IntVect offset_1 = offset_0;
+                for (SideIterator sit_1; sit_1.ok(); ++sit_1)
+                {
+                  offset_1[dirs[1]] = amrex::sign(sit_1());
+
+                  const auto& vofs_1 = getVoFs(vi_0, dirs[1], sit_1(), 1);
+                  for (const auto& vi_1 : vofs_1)
+                  {
+                    cellflag.setConnected(offset_1);
+
+#if (AMREX_SPACEDIM == 3)
+                    IntVect offset_2 = offset_1;
+                    for (SideIterator sit_2; sit_2.ok(); ++sit_2)
+                    {
+                      offset_2[dirs[2]] = amrex::sign(sit_2());
+
+                      const auto& vofs_2 = getVoFs(vi_1, dirs[2], sit_2(), 1);
+                      for (const auto& vi_2 : vofs_2)
+                      {
+                        cellflag.setConnected(offset_2);
+                      }
+                    }
+#endif
+                  }
+                }
+#endif
+              }
+            }
+          } while (std::next_permutation(dirs.begin(), dirs.end()));
+        }
+      }        
+    }
+    //begin debug
+    //if(m_region.contains(ebg_debiv))
+    //{
+    //  amrex::Print() << "EBGraph::setCellFlags flag at " << ebg_debiv << " = " << m_cellFlags(ebg_debiv, 0).getValue() << endl;
+    //}
+    //end debug
+  }        
+  /*******************************/
+  void 
+  EBGraphImplem::
   buildGraph(const BaseFab<int>          & a_regIrregCovered,
-             const std::vector<IrregNode>& a_irregGraph,
+             const Array<IrregNode>& a_irregGraph,
              const Box                   & a_validRegion,
              const Box                   & a_domain)
   {
     define(a_validRegion);
     setDomain(a_domain);
-        
+    m_region  &= m_domain;
+
     //remember that this forces a dense representation.
     m_tag = HasIrregular;
     m_multiIVS = IntVectSet();
@@ -319,8 +478,7 @@ namespace amrex
     {
       const IrregNode& inputNode = a_irregGraph[ivecIrreg];
       const IntVect& iv =inputNode.m_cell;
-      std::vector<GraphNodeImplem>& vecNodes =
-        *(m_graph(iv, 0).m_cellList);
+      Array<GraphNodeImplem>& vecNodes = *(m_graph(iv, 0).m_cellList);
       //pick out which node we are talking about
       //by maching its nodeInd with ivecIrreg
       bool foundNode = false;
@@ -345,8 +503,8 @@ namespace amrex
         {
           int irregIndex = IrregNode::index(idir, sit());
           int gNodeIndex = IrregNode::index(idir, sit());
-          const std::vector<int>& irregArcs = inputNode.m_arc[irregIndex];
-          std::vector<int>& nodeArcs = node.m_arc[gNodeIndex];
+          const Array<int>& irregArcs = inputNode.m_arc[irregIndex];
+          Array<int>& nodeArcs = node.m_arc[gNodeIndex];
           nodeArcs.resize(irregArcs.size());
           for (int iarc = 0; iarc < irregArcs.size(); iarc++)
           {
@@ -372,8 +530,8 @@ namespace amrex
           }
         }
       }
-        
     }
+    setCellFlags();
   }
         
   /*******************************/
@@ -408,6 +566,8 @@ namespace amrex
     m_mask.clear();
     m_isMaskBuilt = false;
     m_isDefined= true;
+ 
+    m_cellFlags.resize(m_fullRegion, 1);
   }
         
   /*******************************/
@@ -469,13 +629,13 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<VolIndex> 
+  Array<VolIndex> 
   EBGraphImplem::
   getVoFs(const IntVect& a_iv) const
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(isDomainSet());
-    std::vector<VolIndex> retvec;
+    Array<VolIndex> retvec;
     if (m_tag == AllRegular)
     {
       retvec.push_back(VolIndex(a_iv, 0));
@@ -501,10 +661,12 @@ namespace amrex
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(isDomainSet());
+
     bool retval;
     if (m_tag == AllRegular)
     {
       retval = true;
+
     }
     else if (m_tag == AllCovered)
     {
@@ -522,21 +684,22 @@ namespace amrex
       retval = false;
       amrex::Error("EBGraphImplem::isRegular:Bogus Tag");
     }
+
     return retval;
   }
         
   /*******************************/
-  std::vector<FaceIndex> 
+  Array<FaceIndex> 
   EBGraphImplem::
   getAllFaces(const IntVect&        a_iv,
               const int&            a_idir,
               const Side::LoHiSide& a_sd) const
   {
-    std::vector<FaceIndex> retval(0);
-    std::vector<VolIndex> vofs = getVoFs(a_iv);
+    Array<FaceIndex> retval(0);
+    const Array<VolIndex>& vofs = getVoFs(a_iv);
     for (int ivof= 0; ivof < vofs.size(); ivof++)
     {
-      std::vector<FaceIndex> faces = getFaces(vofs[ivof], a_idir, a_sd);
+      const Array<FaceIndex>& faces = getFaces(vofs[ivof], a_idir, a_sd);
       for(int iface = 0; iface < faces.size(); iface++)
       {
         retval.push_back(faces[iface]);
@@ -709,7 +872,7 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<FaceIndex> 
+  Array<FaceIndex> 
   EBGraphImplem::
   getFaces(const VolIndex&       a_vof,
            const int&            a_idir,
@@ -722,7 +885,7 @@ namespace amrex
     BL_ASSERT((a_idir >= 0) && (a_idir < SpaceDim));
     BL_ASSERT((a_sd == Side::Lo) || (a_sd == Side::Hi));
         
-    std::vector<FaceIndex> retvec;
+    Array<FaceIndex> retvec;
     if (m_tag == AllRegular)
     {
       IntVect otherIV = a_vof.gridIndex()
@@ -758,16 +921,21 @@ namespace amrex
                             const Box   & a_subbox) const
   {
     Box fullRegion = getFullRegion();
+
     fullRegion &= a_subbox;
     Box interiorRegion = fullRegion;
-    interiorRegion &= getDomain();
+    interiorRegion &= a_mask.box();
+    const Box& domain = getDomain();
 
-    a_mask.resize(fullRegion, 1);
-    a_mask.setVal(2);
     for(BoxIterator boxit(interiorRegion); boxit.ok(); ++boxit)
     {
       const IntVect& iv = boxit();
-      if(isRegular(iv))
+      if(!domain.contains(iv))
+      {
+        //set values outside domain to 2
+        a_mask(iv, 0) = 2;
+      }
+      else if(isRegular(iv))
       {
         a_mask(iv, 0) = 1;
       }
@@ -806,7 +974,7 @@ namespace amrex
     }
     else
     {
-      Box b = a_mask.box();
+      const Box& b = a_mask.box();
       for (BoxIterator bit(b); bit.ok(); ++bit)
       {
         if (isCovered(bit())|| isMultiValued(bit()))
@@ -867,70 +1035,32 @@ namespace amrex
         }
       }
   }
-        
-  std::vector<FaceIndex> EBGraph:: getIrregFaces(const Box& a_box,
-                                                 int        a_dir) const
-  {
-    return m_implem->getIrregFaces(a_box, a_dir);
-  }
-  /***********/      
-  std::vector<FaceIndex>  
-  EBGraphImplem::
-  getIrregFaces(const Box& a_box,
-                int        a_dir) const
-  {
-    std::vector<FaceIndex> faces;
-    if (m_tag == AllRegular || m_tag == AllCovered)
-    {
-      // do nothing
-    }
-    else
-    {
-      Box b = a_box & m_domain;
-      IntVectSet ivs = this->getIrregCells(b);
-      for (IVSIterator it(ivs); it.ok(); ++it)
-      {
-        const GraphNode& node = m_graph(it(), 0);
-        IntVect hi = it() + BASISV(a_dir);
-        BL_ASSERT(node.isIrregular());
-        if (b.contains(hi) && m_graph(hi, 0).isIrregular())
-        {
-          std::vector<FaceIndex> faces = node.getFaces(it(), a_dir, Side::Hi, m_domain);
-          for(int iface = 0; iface < faces.size(); iface++)
-          {
-            faces.push_back(faces[iface]);
-          }
-        }
-      }
-    }
-    return faces;
-  }
-        
+
   /*******************************/
   FaceIndex 
   EBGraphImplem::
   coarsen(const FaceIndex& a_fineFace) const
   {
-    VolIndex loVoFCoar = coarsen(a_fineFace.getVoF(Side::Lo));
-    VolIndex hiVoFCoar = coarsen(a_fineFace.getVoF(Side::Hi));
+    const VolIndex& loVoFCoar = coarsen(a_fineFace.getVoF(Side::Lo));
+    const VolIndex& hiVoFCoar = coarsen(a_fineFace.getVoF(Side::Hi));
     return FaceIndex(loVoFCoar, hiVoFCoar, a_fineFace.direction());
   }
         
   /*******************************/
-  std::vector<FaceIndex> 
+  Array<FaceIndex> 
   EBGraphImplem::
   refine(const FaceIndex&     a_coarFace,
          const EBGraphImplem& a_fineGraph) const
   {
-    std::vector<FaceIndex> retval;
-    IntVect ivLoCoar = a_coarFace.gridIndex(Side::Lo);
-    IntVect ivHiCoar = a_coarFace.gridIndex(Side::Hi);
+    Array<FaceIndex> retval;
+    const IntVect& ivLoCoar = a_coarFace.gridIndex(Side::Lo);
+    const IntVect& ivHiCoar = a_coarFace.gridIndex(Side::Hi);
     int direction = a_coarFace.direction();
     if (m_region.contains(ivLoCoar) && m_region.contains(ivHiCoar))
     {
       //interior face
-      std::vector<VolIndex> loVoFFine = refine(a_coarFace.getVoF(Side::Lo));
-      std::vector<VolIndex> hiVoFFine = refine(a_coarFace.getVoF(Side::Hi));
+      const Array<VolIndex>& loVoFFine = refine(a_coarFace.getVoF(Side::Lo));
+      const Array<VolIndex>& hiVoFFine = refine(a_coarFace.getVoF(Side::Hi));
       int idir = a_coarFace.direction();
       for (int ilo = 0; ilo < loVoFFine.size(); ilo++)
       {
@@ -947,16 +1077,16 @@ namespace amrex
     else if (m_region.contains(ivLoCoar))
     {
       //boundary face on the hi side of the domain
-      std::vector<VolIndex> loVoFsFine = refine(a_coarFace.getVoF(Side::Lo));
+      const Array<VolIndex>& loVoFsFine = refine(a_coarFace.getVoF(Side::Lo));
       Box fineRegion = m_region;
       fineRegion.refine(2);
       for (int ivof = 0; ivof < loVoFsFine.size(); ivof++)
       {
-        VolIndex& loVoFFine = loVoFsFine[ivof];
+        const VolIndex& loVoFFine = loVoFsFine[ivof];
         IntVect ivHiFine = loVoFFine.gridIndex() + BASISV(direction);
         if (!fineRegion.contains(ivHiFine))
         {
-          std::vector<FaceIndex> fineFaces = a_fineGraph.getFaces(loVoFFine, direction, Side::Hi);
+          const Array<FaceIndex>& fineFaces = a_fineGraph.getFaces(loVoFFine, direction, Side::Hi);
           retval.insert(retval.end(), fineFaces.begin(), fineFaces.end());
         }
       }
@@ -964,17 +1094,17 @@ namespace amrex
     else if (m_region.contains(ivHiCoar))
     {
       //boundary face on the low side of the domain
-      std::vector<VolIndex> hiVoFsFine = refine(a_coarFace.getVoF(Side::Hi));
+      const Array<VolIndex> hiVoFsFine = refine(a_coarFace.getVoF(Side::Hi));
       Box fineRegion = m_region;
       fineRegion.refine(2);
         
       for (int ivof = 0; ivof < hiVoFsFine.size(); ivof++)
       {
-        VolIndex& hiVoFFine = hiVoFsFine[ivof];
+        const VolIndex& hiVoFFine = hiVoFsFine[ivof];
         IntVect ivLoFine = hiVoFFine.gridIndex() - BASISV(direction);
         if (!fineRegion.contains(ivLoFine) )
         {
-          std::vector<FaceIndex> fineFaces = a_fineGraph.getFaces(hiVoFFine, direction, Side::Lo);
+          const Array<FaceIndex>& fineFaces = a_fineGraph.getFaces(hiVoFFine, direction, Side::Lo);
           retval.insert(retval.end(), fineFaces.begin(), fineFaces.end());
         }
       }
@@ -1028,7 +1158,7 @@ namespace amrex
     //if not neigboring intvects, no way it can be connected
     if (!dirfound) return false;
         
-    std::vector<FaceIndex> faces = getFaces(vofLo, direction, Side::Hi);
+    const Array<FaceIndex>& faces = getFaces(vofLo, direction, Side::Hi);
     bool voffound = false;
     for (int iface = 0; iface < faces.size(); iface++)
     {
@@ -1071,21 +1201,21 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<VolIndex> 
+  Array<VolIndex> 
   EBGraphImplem::
   refine(const VolIndex& a_coarVoF) const
   {
     BL_ASSERT(isDefined());
     BL_ASSERT(isDomainSet());
         
-    std::vector<VolIndex> retval(0);
+    Array<VolIndex> retval(0);
     IntVect ivCoar = a_coarVoF.gridIndex();
     BL_ASSERT(m_domain.contains(ivCoar));
         
     if (m_tag == AllRegular)
     {
       const IntVect& iv = a_coarVoF.gridIndex();
-      Box refbox = Box(iv,iv);
+      Box refbox(iv,iv);
       refbox.refine(2);
       BoxIterator bit(refbox);
       for (bit.reset(); bit.ok(); ++bit)
@@ -1118,9 +1248,11 @@ namespace amrex
        int                  a_destcomp,
        int                  a_numcomp)
   {
+    BL_PROFILE("EBGraphImplem::copy");
     BL_ASSERT(isDefined());
+    const Box& testbox = m_region & a_srcbox;
 
-    Box testbox = m_region & a_srcbox;
+    
     if(!testbox.isEmpty())
     {
       setDomain(a_source.m_domain);
@@ -1130,21 +1262,18 @@ namespace amrex
       Box regionFrom= testbox;
       if (isRegular(regionTo) && a_source.isRegular(regionFrom))
       {
-        return *this;
       }
       else if (isCovered(regionTo) && a_source.isCovered(regionFrom))
       {
-        return *this;
       }
       else if (a_source.isCovered(regionFrom) && regionTo.contains(m_region))
       {
         setToAllCovered();
-        return *this;
       }
       else if (a_source.isRegular(regionFrom) && regionTo.contains(m_region))
       {
         setToAllRegular();
-        return *this;
+
       }
       else if (isAllRegular() && a_source.isAllCovered())
       {
@@ -1187,17 +1316,17 @@ namespace amrex
         //use basefab copy to transfer the data.
         
         //see if we need to generate a source fab
+
         BaseFab<GraphNode>* srcFabPtr;
-        bool needToDelete;
+        std::unique_ptr<BaseFab<GraphNode> > raii;
         if (a_source.hasIrregular())
         {
           srcFabPtr = (BaseFab<GraphNode>*)&a_source.m_graph;
-          needToDelete = false;
         }
         else
         {
-          needToDelete = true;
-          srcFabPtr = new BaseFab<GraphNode>(regionFrom, 1);
+          raii.reset(new BaseFab<GraphNode>(regionFrom, 1));
+          srcFabPtr = raii.get();
           GraphNode srcVal;
           if (a_source.isAllRegular())
           {
@@ -1218,44 +1347,99 @@ namespace amrex
           m_irregIVS = IntVectSet();
           m_graph.resize(m_region, 1);
         }
-        
-        //copy the data
+        //these conditionals only depend on m_tag
+        if (isAllRegular())
+        {
+          GraphNode regularNode;
+          regularNode.defineAsRegular();
+          m_graph.setVal(regularNode);
+        }
+        else if(isAllCovered())
+        {
+          GraphNode  coveredNode;
+          coveredNode.defineAsCovered();
+          m_graph.setVal(coveredNode);
+        }
+        //copy the data and set the tag properly
         m_tag = HasIrregular;
-///do the slow one for debugging
-///      m_graph.slowCopy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
+
         m_graph.copy(*srcFabPtr, regionFrom, 0,regionTo, 0, 1);
         
-        //if we needed to new the basefab, clean it up
-        if (needToDelete)
+        //  now fix up the IntVectSets to match the information
+        if (a_source.hasIrregular())
         {
-          delete srcFabPtr;
-        }
-      }
-      //  now fix up the IntVectSets to match the information
-      if (a_source.hasIrregular())
-      {
-        IntVectSet ivsInterIrreg = (a_source.m_irregIVS);
-        ivsInterIrreg &= regionTo;
-        ivsInterIrreg &= m_region;
+          IntVectSet ivsInterIrreg = (a_source.m_irregIVS);
+          ivsInterIrreg &= regionTo;
+          ivsInterIrreg &= m_region;
         
-        if (!ivsInterIrreg.isEmpty())
-        {
-          for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
+          if (!ivsInterIrreg.isEmpty())
           {
-            IntVect iv = it();
-            (m_irregIVS) |= iv;
-            if (numVoFs(iv) > 1) // this will be correct since we already
-              // did a m_graph copy operation
+            for (IVSIterator it(ivsInterIrreg); it.ok(); ++it)
             {
-              (m_multiIVS) |= iv;
+              IntVect iv = it();
+              (m_irregIVS) |= iv;
+              if (numVoFs(iv) > 1) // this will be correct since we already
+                // did a m_graph copy operation
+              {
+                (m_multiIVS) |= iv;
+              }
             }
           }
         }
       }
     }
+
+    m_cellFlags.copy(a_source.m_cellFlags, a_srcbox, 0, a_destbox, 0, 1);
+    fixCellFlagType();
     return *this;
   }
+  /*******************************/
+  void 
+  EBGraphImplem::
+  fixCellFlagType ()
+  {
+    Box bx = m_region;
+    int nregular=0, nsingle=0, nmulti=0, ncovered=0;
+    int ncells = bx.numPts();
+    for (BoxIterator bi(bx); bi.ok(); ++bi)
+    {
+      const IntVect& iv = bi();
+      if (isRegular(iv)) 
+      {
+        ++nregular;
+      } 
+      else if (isCovered(iv)) 
+      {
+        ++ncovered;
+      } 
+      else if (isMultiValued(iv)) 
+      {
+        ++nmulti;
+//          amrex::Abort("EBLevel: multi-value cell not supported yet");
+      } 
+      else 
+      {
+        ++nsingle;
+      }
+    }
         
+    if (nregular == ncells) 
+    {
+      m_cellFlags.setType(FabType::regular);
+    } 
+    else if (ncovered == ncells) 
+    {
+      m_cellFlags.setType(FabType::covered);
+    } 
+    else if (nmulti > 0) 
+    {
+      m_cellFlags.setType(FabType::multivalued);
+    } 
+    else 
+    {
+      m_cellFlags.setType(FabType::singlevalued);
+    }
+  }
   /*******************************/
   void 
   EBGraphImplem::
@@ -1305,7 +1489,7 @@ namespace amrex
           //the number of sets will be the number of
           //vofs in the coarse cell
         
-          std::vector<std::vector<VolIndex> > fineVoFSets
+          const Array<Array<VolIndex> >& fineVoFSets
             = a_fineGraph.getVoFSets(fineBox);
         
           for (int iset = 0; iset < fineVoFSets.size(); iset++)
@@ -1326,17 +1510,17 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<std::vector<VolIndex> >  
+  Array<Array<VolIndex> >  
   EBGraphImplem::
   getVoFSets(const Box& a_region) const
   {
-    std::vector<std::vector<VolIndex> > retval;
+    Array<Array<VolIndex> > retval;
     //gather all  vofs
-    std::vector<VolIndex> allVoFs;
+    Array<VolIndex> allVoFs;
     for (BoxIterator bit(a_region); bit.ok(); ++bit)
     {
-      std::vector<VolIndex> newVoFs = getVoFs(bit());
-      allVoFs.insert(allVoFs.begin(), newVoFs.begin(), newVoFs.end());
+      const Array<VolIndex>& newVoFs = getVoFs(bit());
+      allVoFs.insert(allVoFs.end(), newVoFs.begin(), newVoFs.end());
     }
         
     std::vector<bool> beenAdded(allVoFs.size(), false);
@@ -1349,7 +1533,7 @@ namespace amrex
         //now find all vofs connected to this inside
         //this cell----not necessarily directly---
         //hence the inner loop of kvof.
-        std::vector<VolIndex> thisVoFSet(1, thisVoF);
+        Array<VolIndex> thisVoFSet(1, thisVoF);
         beenAdded[ivof] = true;
         bool doneAdding = false;
         while (!doneAdding)
@@ -1378,7 +1562,7 @@ namespace amrex
           }
           doneAdding = (thisVoFSet.size() == oldSetSize);
         } //end while !doneadding
-        //add the finished bunch to the list of  vofs.
+          //add the finished bunch to the list of  vofs.
         retval.push_back(thisVoFSet);
       } //end this bunch of connected vofs
     }
@@ -1396,7 +1580,7 @@ namespace amrex
   }
         
   /*******************************/
-  std::vector<int> 
+  Array<int> 
   EBGraphImplem::
   coarsenFaces(const VolIndex&       a_coarVoF,
                const EBGraphImplem&  a_fineGraph,
@@ -1405,11 +1589,11 @@ namespace amrex
   {
     BL_ASSERT(m_isDomainSet);
     BL_ASSERT(a_fineGraph.isDomainSet());
-    std::vector<int> retval;
+    Array<int> retval;
         
     IntVect coarIV = a_coarVoF.gridIndex();
     IntVect otherIV= coarIV + sign(a_sd)*BASISV(a_idir);
-    std::vector<VolIndex> theseFineVoFs = refine(a_coarVoF);
+    const Array<VolIndex>& theseFineVoFs = refine(a_coarVoF);
     EBGraphImplem&  coarGhostGraph  = *this;  //trying to reduce communcation in this
         
     if (m_domain.contains(otherIV))
@@ -1418,11 +1602,11 @@ namespace amrex
       //interior faces.
       //just get all possible vofs to connect to and
       //check connectivity
-      std::vector<VolIndex> otherCoarVoFs = coarGhostGraph.getVoFs(otherIV);
+      const Array<VolIndex>& otherCoarVoFs = coarGhostGraph.getVoFs(otherIV);
       for (int iotherCoar = 0; iotherCoar < otherCoarVoFs.size(); iotherCoar++)
       {
         const VolIndex& otherCoarVoF = otherCoarVoFs[iotherCoar];
-        std::vector<VolIndex> otherFineVoFs = coarGhostGraph.refine(otherCoarVoF);
+        const Array<VolIndex>& otherFineVoFs = coarGhostGraph.refine(otherCoarVoF);
         bool addThisFace = false;
         for (int iotherFine = 0; iotherFine < otherFineVoFs.size(); iotherFine++)
         {
@@ -1454,7 +1638,7 @@ namespace amrex
       for (int ithis = 0; ithis < theseFineVoFs.size() && !hasBoundaryFaceFine ; ithis++)
       {
         const VolIndex& thisVoF = theseFineVoFs[ithis];
-        std::vector<FaceIndex> fineFaces =
+        const Array<FaceIndex>& fineFaces =
           a_fineGraph.getFaces(thisVoF,a_idir, a_sd);
         for (int iface = 0; iface < fineFaces.size() && !hasBoundaryFaceFine; iface++)
         {
@@ -1490,8 +1674,8 @@ namespace amrex
       {
         if (isIrregular(bit()))
         {
-          std::vector<VolIndex> vofsCoar = getVoFs(bit());
-          std::vector<GraphNodeImplem>& nodes =
+          const Array<VolIndex>& vofsCoar = getVoFs(bit());
+          Array<GraphNodeImplem>& nodes =
             *(m_graph(bit(), 0).m_cellList);
           for (int ivof = 0; ivof < vofsCoar.size(); ivof++)
           {
@@ -1501,7 +1685,7 @@ namespace amrex
             {
               for (SideIterator sit; sit.ok(); ++sit)
               {
-                std::vector<int> coarArcs =
+                const Array<int>&& coarArcs =
                   coarsenFaces(vofsCoar[ivof],
                                a_fineGraph,
                                idir, sit());
@@ -1514,6 +1698,7 @@ namespace amrex
         }
       }
     }
+    setCellFlags();
   }
         
   /*******************************/
@@ -1527,7 +1712,7 @@ namespace amrex
         {
           const IntVect& ivCoar = bit();
         
-          const std::vector<GraphNodeImplem>&
+          const Array<GraphNodeImplem>&
             vofsCoar = *(m_graph(ivCoar, 0).m_cellList);
         
           int numVofsCoar = vofsCoar.size();
@@ -1535,7 +1720,7 @@ namespace amrex
           for (int icoar = 0; icoar < numVofsCoar; icoar++)
           {
             VolIndex vofCoar(ivCoar, icoar);
-            std::vector<VolIndex> vofsFine = refine(vofCoar);
+            const Array<VolIndex>& vofsFine = refine(vofCoar);
         
             for (int ifine = 0; ifine < vofsFine.size(); ifine++)
             {
@@ -1545,7 +1730,7 @@ namespace amrex
               {
                 int cellIndexFine = vofsFine[ifine].cellIndex();
         
-                std::vector<GraphNodeImplem>&
+                Array<GraphNodeImplem>&
                   nodesFine = *(a_fineGraph.m_graph(ivFine, 0).m_cellList);
         
                 nodesFine[cellIndexFine].m_coarserNode = icoar;
@@ -1554,7 +1739,7 @@ namespace amrex
               {
                 GraphNode& nodeFine = a_fineGraph.m_graph(ivFine, 0);
         
-                nodeFine.m_cellList = new std::vector<GraphNodeImplem>(1);
+                nodeFine.m_cellList = new Array<GraphNodeImplem>(1);
         
                 (*(nodeFine.m_cellList))[0].m_isRegular   = true;
                 (*(nodeFine.m_cellList))[0].m_coarserNode = icoar;
@@ -1760,6 +1945,10 @@ namespace amrex
     m_isDefined   = true;
     m_isDomainSet = true;
     m_isMaskBuilt = false;
+
+    m_cellFlags.resize(m_fullRegion,1);
+    setCellFlags();
+
     return retval;
   }
   /*******************************/
@@ -1788,16 +1977,27 @@ namespace amrex
   EBGraphImplem::
   nBytes(const Box& a_region, int start_comp, int ncomps) const
   {
+    BL_PROFILE("EBGraphImplem::nBytes");
     std::size_t linearSize = 0;
     //domain
     linearSize +=  Box::linearSize();
-    for (BoxIterator bit(a_region); bit.ok(); ++bit)
+    //for the cell flags
+    linearSize += m_cellFlags.nBytes(a_region, 0, 1);
+    //flag for reg or covered
+    linearSize += sizeof(int);
+    bool isRegBox = isRegular(a_region);
+    bool isCovBox = isCovered(a_region);
+    if((!isRegBox) && (!isCovBox))
     {
-      GraphNode node = getGraphNode(bit());
-      size_t nodeSize = node.linearSize();
-      linearSize += nodeSize;
+      for (BoxIterator bit(a_region); bit.ok(); ++bit)
+      {
+        const GraphNode& node = getGraphNode(bit());
+        size_t nodeSize = node.linearSize();
+        linearSize += nodeSize;
+      }
     }
 
+    //amrex::AllPrint() << "linearsize: a_region = " << a_region << ", retval = " << linearSize << endl;;
     return linearSize;
   }
         
@@ -1809,6 +2009,7 @@ namespace amrex
              int        numcomp,
              void*      a_buf) const
   {
+    BL_PROFILE("EBGraphImplem::copyToMem");
     BL_ASSERT(isDefined());
 
     std::size_t retval = 0;
@@ -1816,17 +2017,44 @@ namespace amrex
 
     m_domain.linearOut(buffer);
     size_t incrval = Box::linearSize();
-    buffer    += incrval;
+    buffer += incrval;
     retval += incrval;
 
-    for (BoxIterator bit(a_region); bit.ok(); ++bit)
+    incrval = m_cellFlags.copyToMem(a_region, 0, 1, buffer);
+    buffer += incrval;
+    retval += incrval;
+
+    int regIrregCovCode = 0;
+    if(isRegular(a_region))
     {
-      GraphNode node = getGraphNode(bit());
-      size_t nodeSize = node.linearSize();
-      node.linearOut(buffer);
-      buffer += nodeSize;
-      retval += nodeSize;
+      regIrregCovCode = -1;
     }
+    if(isCovered(a_region))
+    {
+      regIrregCovCode =  1;
+    }
+    //amrex::AllPrint() << "copytomem   region = " << a_region << ", regirregcov = " << regIrregCovCode << endl;
+
+    int* intbuf = (int*) buffer;
+    *intbuf = regIrregCovCode;
+    incrval = sizeof(int);
+    buffer += incrval;
+    retval += incrval;
+
+    if(regIrregCovCode == 0)
+    {
+      for (BoxIterator bit(a_region); bit.ok(); ++bit)
+      {
+        const GraphNode& node = getGraphNode(bit());
+        size_t nodeSize = node.linearSize();
+        node.linearOut(buffer);
+        buffer += nodeSize;
+        retval += nodeSize;
+      }
+
+    }
+
+    //amrex::AllPrint() << "copytomem:   a_region = " << a_region << ", retval = " << retval << endl;;
     return retval;
   }
         
@@ -1838,6 +2066,7 @@ namespace amrex
                int         numcomp,
                const void* a_buf)
   {
+    BL_PROFILE("EBGraphImplem::copyFromMem");
     BL_ASSERT(isDefined());
 
     std::size_t retval = 0;
@@ -1850,36 +2079,89 @@ namespace amrex
     buffer    += incrval;
     retval += incrval;
 
+    incrval = m_cellFlags.copyFromMem(a_region, 0, 1, buffer);
+    buffer += incrval;
+    retval += incrval;
+
     m_region &= m_domain;
 
+    int regIrregCovCode = 0;
+    int* intbuf = (int*) buffer;
+    regIrregCovCode = *intbuf;
 
+    // amrex::AllPrint() << "copyfrommem region = " << a_region << ", regirregcov = " << regIrregCovCode << endl;
+
+    incrval = sizeof(int);
+    buffer += incrval;
+    retval += incrval;
+
+    bool allRegInput = (regIrregCovCode == -1);
+    bool allCovInput = (regIrregCovCode ==  1);
+
+    if(allRegInput && isRegular(a_region))
+    {
+      //amrex::AllPrint() << "copyfrommem: a_region = " << a_region << ", retval = " << retval << endl;;
+      return retval;
+    }
+    else if(allCovInput && isCovered(a_region))
+    {
+      //amrex::AllPrint() << "copyfrommem: a_region = " << a_region << ", retval = " << retval << endl;;
+      return retval;
+    }
+
+    //to get to this point, something is going to have to change in this object
     if (isAllRegular() || isAllCovered())
     {
-      m_tag = HasIrregular;
       m_multiIVS = IntVectSet();
       m_irregIVS = IntVectSet();
       m_graph.resize(m_region, 1);
+      if(isAllRegular())
+      {
+        GraphNode regularNode;
+        regularNode.defineAsRegular();
+        m_graph.setVal(regularNode);
+      }
+      if(isAllCovered())
+      {
+        GraphNode coveredNode;
+        coveredNode.defineAsCovered();
+        m_graph.setVal(coveredNode);
+      }
+      m_tag = HasIrregular;
     }
     for (BoxIterator bit(a_region); bit.ok(); ++bit)
     {
 
       GraphNode& node = m_graph(bit(), 0);
-
-      node.linearIn(buffer);
-      if (node.isIrregular())
+      if(allRegInput)
       {
-        (m_irregIVS)|=bit();
+        node.defineAsRegular();
       }
-      if (node.size()>1)
+      else if(allCovInput)
       {
-        (m_multiIVS)|=bit();
+        node.defineAsCovered();
       }
-      size_t nodeSize = node.linearSize();
-      buffer += nodeSize;
-      retval += nodeSize;
-
+      else
+      {
+        node.linearIn(buffer);
+        if (node.isIrregular())
+        {
+          (m_irregIVS)|=bit();
+        }
+        if (node.size()>1)
+        {
+          (m_multiIVS)|=bit();
+        }
+        size_t nodeSize = node.linearSize();
+        buffer += nodeSize;
+        retval += nodeSize;
+      }
     }
 
+
+    fixCellFlagType();
+
+    //amrex::AllPrint() << "copyfrommem: a_region = " << a_region << ", retval = " << retval << endl;;
     return retval;
   }
 }

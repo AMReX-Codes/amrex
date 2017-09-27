@@ -20,6 +20,8 @@
 #endif
 
 #ifndef FORTRAN_BOXLIB
+#include <AMReX.H>
+#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLBackTrace.H>
 #endif
 
@@ -132,7 +134,11 @@ extern "C"
 #else
     void backtrace_handler (int s)
     { 
-	amrex::BLBackTrace::handler(s); 
+        if (amrex::system::signal_handling) {
+            amrex::BLBackTrace::handler(s); 
+        } else {
+            amrex::ParallelDescriptor::Abort();
+        }
     }
 #endif
 

@@ -50,12 +50,12 @@
     DEFINES += -DUSE_FCYCLES=1
     # do pure F-cycles until it converges
     ifeq ($(HPGMG_POST_F_CYCLE_TYPE), F)
-      DEFINES += -DUNLIMIT_F_CYCLES=1
+      DEFINES += -DUNLIMIT_FMG_FCYCLES=1
     # do exactly 1 F-cycle followed by however many V-cycles it takes to converge
     else ifeq ($(HPGMG_POST_F_CYCLE_TYPE), V)
-      DEFINES += -DUNLIMIT_FMG_ITERATIONS=1
+      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
     else
-      DEFINES += -DUNLIMIT_FMG_ITERATIONS=1
+      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
     endif
   endif
 

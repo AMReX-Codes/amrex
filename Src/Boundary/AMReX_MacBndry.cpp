@@ -40,7 +40,7 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
     // ALL BCLOC VALUES ARE NOW DEFINED AS A LENGTH IN PHYSICAL
     // DIMENSIONS *RELATIVE* TO THE FACE, NOT IN ABSOLUTE PHYSICAL SPACE
     //
-    const BoxArray& grids  = boxes();
+    const BoxArray& ba     = boxes();
     const Real*     dx     = geom.CellSize();
     const Box&      domain = geom.Domain();
     //
@@ -50,7 +50,7 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
     for (FabSetIter fsi(bndry[Orientation(0,Orientation::low)]); fsi.isValid(); ++fsi)
     {
         const int                  i     = fsi.index();
-        const Box&                 grd   = grids[i];
+        const Box&                 grd   = ba[i];
         RealTuple&                 bloc  = bcloc[i];
         Array< Array<BoundCond> >& bctag = bcond[i];
 

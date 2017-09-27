@@ -75,6 +75,10 @@ namespace amrex{
 		    for(int i=0; i<D; i++) _vect[i]=rhs[i];
 		    return *this;
 		}
+		PointVect<D>& operator= (const PointVect<D>& rhs){
+		    for(int i=0; i<D; i++) _vect[i]=rhs[i];
+		    return *this;
+		}
 		PointVect<D>& operator= (const int val) const{
 		    for(int i=0; i<D; i++) _vect[i]=val;
 		    return *this;

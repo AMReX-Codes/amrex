@@ -72,7 +72,7 @@ GeometryService::InOut SlabService::InsideOutside(const Box&           a_region,
 
 void
 SlabService::fillGraph(BaseFab<int>&      a_regIrregCovered,
-                       Vector<IrregNode>& a_nodes,
+                       Array<<IrregNode>& a_nodes,
                        const Box&         a_validRegion,
                        const Box&         a_ghostRegion,
                        const ProblemDomain&         a_domain,
@@ -127,9 +127,9 @@ SlabService::fillGraph(BaseFab<int>&      a_regIrregCovered,
               for (SideIterator sit; sit.ok(); ++sit)
                 {
                   int arcIndex = node.index(idir, sit());
-                  Vector<int>&      arcs     = node.m_arc[arcIndex];
-                  Vector<Real>&     areaFracs= node.m_areaFrac[arcIndex];
-                  Vector<RealVect>& faceCents= node.m_faceCentroid[arcIndex];
+                  Array<<int>&      arcs     = node.m_arc[arcIndex];
+                  Array<<Real>&     areaFracs= node.m_areaFrac[arcIndex];
+                  Array<<RealVect>& faceCents= node.m_faceCentroid[arcIndex];
                   IntVect otherIV = iv + sign(sit())*BASISV(idir);
                   if (m_coveredRegion.contains(otherIV))
                     {
@@ -170,7 +170,7 @@ SlabService::fillGraph(BaseFab<int>&      a_regIrregCovered,
               for (SideIterator sit; sit.ok(); ++sit)
                 {
                   int arcIndex = node.index(idir, sit());
-                  Vector<int>& arcs = node.m_arc[arcIndex];
+                  Array<<int>& arcs = node.m_arc[arcIndex];
                   if (arcs.size() == 0)
                     {
                       int isign = sign(sit());

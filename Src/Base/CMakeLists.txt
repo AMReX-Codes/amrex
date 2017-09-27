@@ -7,8 +7,10 @@ set (ALLSRC "")
 
 #
 # Utility classes
-# 
-list ( APPEND ALLHEADERS AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H AMReX.H)
+#
+list ( APPEND ALLHEADERS AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H AMReX_Tuple.H )
+
+list ( APPEND ALLHEADERS AMReX.H)
 list ( APPEND CXXSRC     AMReX.cpp AMReX_error_fi.cpp )
 
 list ( APPEND CXXSRC     AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp )
@@ -108,7 +110,7 @@ list ( APPEND ALLHEADERS AMReX_COORDSYS_F.H AMReX_filcc_f.H )
 list ( APPEND F77SRC     AMReX_BLutil_F.f AMReX_BLParmParse_F.f AMReX_BLBoxLib_F.f
    AMReX_BLProfiler_F.f)
 
-list ( APPEND F90SRC     AMReX_BaseFab_nd.f90 AMReX_MultiFabUtil_${DIM}d.f90 )
+list ( APPEND F90SRC     AMReX_BaseFab_nd.f90 AMReX_MultiFabUtil_${DIM}d.f90 AMReX_MultiFabUtil_nd.F90 )
 list ( APPEND ALLHEADERS AMReX_BaseFab_f.H AMReX_MultiFabUtil_F.H )
 
 list ( APPEND F90SRC     AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90 )
@@ -152,7 +154,6 @@ if (ENABLE_TINY_PROFILE)
    list ( APPEND CXXSRC     AMReX_TinyProfiler.cpp )
    list ( APPEND ALLHEADERS AMReX_TinyProfiler.H )
 endif ()
-
 
 # Accumulate sources
 set ( ALLSRC ${CXXSRC} ${F90SRC} ${F77SRC} )

@@ -1,3 +1,6 @@
+//Question? email tannguyen@lbl.gov
+//Created 07-19-2017
+//Last modification 08-14-2017
 #include <iostream>
 #include <string.h>
 
@@ -65,20 +68,22 @@ int main(int argc,char *argv[])
 	if(!(strcmp(argv[argCount], "-v"))) verbose = true;
     }
     RTS rts;
-    rts.RTS_Init(&rank, &nProcs);
+    rts.Init();
+    rank= rts.MyProc();
+    nProcs= rts.ProcCount();
     TokenRingTask::_nTasks= t;
     string graphName= "TokenRing";
     if(verbose && rank==0){
 	cout<<"Creating a 1D Token Ring Graph with "<<t <<" tasks";
-	cout<<"Running the graph with "<< rts.RTS_ProcCount()<<" processes";
+	cout<<"Running the graph with "<< nProcs<<" processes";
     }
     double time = -rts.Time();
     rts.Barrier();
     ArrayGraph<TokenRingTask> *TokenRingGraph= new ArrayGraph<TokenRingTask>(graphName, t, rank, nProcs);
-    rts.RTS_Run(TokenRingGraph);
+    rts.Iterate(TokenRingGraph);
     rts.Barrier();
     time += rts.Time();
     if(verbose && rank==0) cout<<"Graph execution takes "<< time <<" seconds"<<endl;
     delete TokenRingGraph;
-    rts.RTS_Finalize();
+    rts.Finalize();
 };

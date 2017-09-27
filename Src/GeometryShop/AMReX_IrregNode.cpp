@@ -12,29 +12,37 @@
  */
 
 #include "AMReX_IrregNode.H"
+#include <cmath>
 
 namespace amrex
 {
 
-  /*******************************/
-  int IrregNode::
-  index(int a_idir, Side::LoHiSide a_sd)
+  Real IrregNode::bndryArea() const
   {
-    assert(a_idir >= 0 && a_idir < SpaceDim);
-    int retval;
-    if (a_sd == Side::Lo)
-      {
-        retval = a_idir;
-      }
-    else
-      {
-        retval = a_idir + SpaceDim;
-      }
-    return retval;
-  }
-  /*******************************/
+      Real irregArea=0.0;
+      for (int idir=0; idir < SpaceDim; idir++)
+        {
+          int loindex = index(idir, Side::Lo);
+          int hiindex = index(idir, Side::Hi);
+          Real loArea = 0;   
+          Real hiArea = 0;
+          const Array<Real>& loAreas = m_areaFrac[loindex];
+          const Array<Real>& hiAreas = m_areaFrac[hiindex];
+          for(int ilo = 0; ilo < loAreas.size(); ilo++)
+            {
+              loArea += loAreas[ilo];
+            }
+          for(int ihi = 0; ihi < hiAreas.size(); ihi++)
+            {
+              hiArea += hiAreas[ihi];
+            }
+          irregArea += (hiArea-loArea)*(hiArea-loArea);
+        }
 
-  void IrregNode::makeRegular(const IntVect& iv, const Real& a_dx)
+      return std::sqrt(irregArea);
+  }
+
+  void IrregNode::makeRegular(const IntVect& iv, const Real& a_dx, const Box& a_domain)
   {
     m_cell = iv;
     m_volFrac = 1.0;
@@ -44,7 +52,15 @@ namespace amrex
     //low sides
     for (int i=0; i<SpaceDim; i++)
       {
-        m_arc[i].resize(1,0);
+        IntVect otherIV = iv - BASISV(i);
+        if(a_domain.contains(otherIV))
+        {
+          m_arc[i].resize(1,0);
+        }
+        else
+        {
+          m_arc[i].resize(1,-1);
+        }
         m_areaFrac[i].resize(1,1.0);
         RealVect faceCenter = RealVect::Zero;
         faceCenter[i] = -0.5;
@@ -53,7 +69,15 @@ namespace amrex
     //hi sides
     for (int i=0; i<SpaceDim; i++)
       {
-        m_arc[i+SpaceDim].resize(1,0);
+        IntVect otherIV = iv + BASISV(i);
+        if(a_domain.contains(otherIV))
+        {
+          m_arc[i+SpaceDim].resize(1,0);
+        }
+        else
+        {
+          m_arc[i+SpaceDim].resize(1,-1);
+        }
         m_areaFrac[i+SpaceDim].resize(1,1.0);
         RealVect faceCenter = RealVect::Zero;
         faceCenter[i] = 0.5;

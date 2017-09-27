@@ -10,6 +10,7 @@
  *
  */
 #include "AMReX_IrregFABFactory.H"
+#include "AMReX_FabArray.H"
 
 namespace amrex
 {
@@ -22,8 +23,7 @@ namespace amrex
     IntVectSet ivs;
     if(m_useSets)
     {
-      int localIndex = m_sets->localindex(box_index);
-      ivs   = (*m_sets)[localIndex];
+      ivs   = (*m_sets)[box_index];
     }
     else
     {

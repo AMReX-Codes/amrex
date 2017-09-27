@@ -16,7 +16,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <memory>
-#include <vector>
 #include "AMReX_IntVectSet.H"
 #include "AMReX_VolIndex.H"
 #include "AMReX_BaseFab.H"
@@ -62,7 +61,7 @@ namespace amrex
       }
 
     ///
-    virtual ~BaseIVFAB();
+    ~BaseIVFAB();
 
     ///
     /**
@@ -72,12 +71,13 @@ namespace amrex
        are uninitialized.  If it has previously been defined, the old definition
        data is overwritten and lost.
     */
-    virtual void define(const IntVectSet& a_region,
+    void define(const IntVectSet& a_region,
                         const EBGraph&    a_ebgraph,
                         const int&        a_nvarin);
 
     ///default false.   can make it true for T where you  they are fixed size
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return true; }
 
     ///
     BaseIVFAB<T>& copy(const BaseIVFAB<T> & src,
@@ -123,7 +123,7 @@ namespace amrex
 
 
     ///
-    const std::vector<VolIndex>&  getVoFs() const;
+    const Array<VolIndex>&  getVoFs() const;
 
     ///slow!
     IntVectSet getIVS() const
@@ -157,6 +157,10 @@ namespace amrex
         return m_data + (a_ivar*m_vofs.size());
       }
   
+    T* dataPtr () { return m_Memory.data(); }
+
+    std::size_t size () const { return m_Memory.size(); }
+
     void setVal(const T& a_val);
 
     void setVal(int a_comp, const T& a_val);
@@ -168,7 +172,7 @@ namespace amrex
     /**
        needs to be public so that bulk stencils can be constructed
     */
-    virtual T* getIndex(const VolIndex& a_vof,const int& a_comp) const;
+    T* getIndex(const VolIndex& a_vof,const int& a_comp) const;
 
     int numDataTypes() const
       {
@@ -216,6 +220,16 @@ namespace amrex
         return *(getIndex(a_vof, a_comp));
       }
 
+    ///
+    T& operator() (int a_ivof, int a_comp)
+      {  return *(getIndex(a_ivof, a_comp));}
+
+    ///
+    const T& operator() (int a_ivof, int a_comp) const
+      {
+        return *(getIndex(a_ivof, a_comp));
+      }
+
     int numVoFs() const;
 
     int nComp() const {return m_nComp;}
@@ -225,7 +239,7 @@ namespace amrex
     void forall(const BaseIVFAB<T>& a_src, const Box& a_box, int a_srccomp, int a_dstcomp, 
                 int a_numcomp, bool sameRegBox, const F& func);
 
-    void getVoFSubset(vector<VolIndex>& a_vofs,
+    void getVoFSubset(Array<VolIndex>& a_vofs,
                       const Box& a_region) const;
   private:
 
@@ -233,10 +247,22 @@ namespace amrex
     int m_nComp = 0;
 
     IntVectSet m_ivs;
-    std::vector<VolIndex>  m_vofs;
-    std::vector<T>  m_Memory;
+    Array<VolIndex>  m_vofs;
+    Array<T>  m_Memory;
     T* m_data   = nullptr;
 
+    // unfortunately, we return T*, not const T*
+    T* getIndex (int ivof, int icomp) const {
+	return m_data + ivof + icomp*m_vofs.size();
+    }
+
+    int getVolIndexIndex (const VolIndex& a_vof) const {
+	auto low = std::lower_bound(m_vofs.begin(), m_vofs.end(), a_vof);
+	if (low == m_vofs.end() || a_vof != *low) {
+	    amrex::Error("attempt to access data from vof that is not in BaseIVFAB");
+	}
+	return low - m_vofs.begin();
+    }
   };
 }
 #include "AMReX_BaseIVFABI.H"

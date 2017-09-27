@@ -1,5 +1,5 @@
 #
-# Template for Make.local.
+# Template for your own Make.local.
 #
 # If it exists, the Make.local file is included at the end of
 # Make.defs.  Thus one can override various variables here.
@@ -8,6 +8,18 @@
 #
 # Here are some examples.
 #
+
+# Maybe AMReX fails to configure makefile for MPI on your machine.  You could set MPI stuff here,
+# and then compile with NO_MPI_CHECKING=TRUE to tell AMReX not to check MPI stuff.
+#
+#   Wrappers for C++, C and Fortran compilers.
+CXX := mpicxx
+CC  := mpicc
+FC  := mpif90
+F90 := mpif90
+#   AMReX uses MPI in both C++ and Fortran.  Because CXX is used for linking, you MAY need to 
+#   provide path to MPI Fortran library.
+LIBRARIES += -lmpif90
 
 
 # Always have verbosity on even if GNUmakefile set it to FALSE.

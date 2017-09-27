@@ -23,30 +23,30 @@ namespace amrex
 
   //-----------------------------------------------------------------------
   void
+  EBConductivityOpFactory::
   nwoebcoCoarsenStuff(FabArray<EBCellFAB>               & a_acoefCoar,
                       FabArray<EBFluxFAB>               & a_bcoefCoar,
-                      const EBLevelGrid                  & a_eblgFine,
-                      const EBLevelGrid                  & a_eblgCoar,
+                      const EBLevelGrid                 & a_eblgFine,
+                      const EBLevelGrid                 & a_eblgCoar,
                       const FabArray<EBCellFAB>         & a_acoefFine,
                       const FabArray<EBFluxFAB>         & a_bcoefFine,
-                      const int                          & a_refToDepth)
+                      const int                         & a_refToDepth)
   {
     BL_ASSERT(a_refToDepth > 0);
-    BL_ASSERT(a_acoefFine.nGrow() == a_acoefCoar.nGrow());
-    BL_ASSERT(a_acoefFine.nGrow() == a_bcoefCoar.nGrow());
-    BL_ASSERT(a_acoefFine.nGrow() == a_bcoefFine.nGrow());
+    BL_ASSERT(a_acoefFine.nGrow() == m_ghost);
+    BL_ASSERT(a_bcoefFine.nGrow() == m_ghost);
 
     if (a_refToDepth == 1)
     {
       a_acoefCoar.copy(a_acoefFine, 0, 0, 1, 0, 0);
-      a_bcoefCoar.copy(a_bcoefCoar, 0, 0, 1, 0, 0);
+      a_bcoefCoar.copy(a_bcoefFine, 0, 0, 1, 0, 0);
     }
     else
     {
       bool useKappaWeightingInStencil = true;
       bool enableFaceAveraging = true;
       EBCoarseAverage averageOp(a_eblgFine, a_eblgCoar, a_refToDepth, 
-                                a_acoefFine.nGrow(),
+                                m_ghost,
                                 useKappaWeightingInStencil, enableFaceAveraging);
 
 
@@ -54,6 +54,8 @@ namespace amrex
       averageOp.average( a_acoefCoar     ,  a_acoefFine     , 0, 0, 1);
       averageOp.average( a_bcoefCoar     ,  a_bcoefFine     , 0, 0, 1);
     }
+    a_acoefCoar.FillBoundary();
+    a_bcoefCoar.FillBoundary();
   }
   //-----------------------------------------------------------------------
   EBConductivityOpFactory::~EBConductivityOpFactory()
@@ -70,14 +72,12 @@ namespace amrex
                           const vector<int>&                                      a_refRatio,
                           const shared_ptr<ConductivityBaseDomainBCFactory>&      a_domainBCFactory,
                           const shared_ptr<ConductivityBaseEBBCFactory>    &      a_ebBCFactory,
-                          const int     &                                         a_ghostCellsPhi,
-                          const int     &                                         a_ghostCellsRhs,
+                          const int     &                                         a_ghost,
                           int a_numLevels)
   {
     BL_ASSERT(a_eblgs.size() <= a_refRatio.size());
 
-    m_ghostCellsRhs = a_ghostCellsRhs;
-    m_ghostCellsPhi = a_ghostCellsPhi;
+    m_ghost         = a_ghost;
     m_acoef         = a_acoef;
     m_bcoef         = a_bcoef;
     m_alpha         = a_alpha;
@@ -219,12 +219,11 @@ namespace amrex
     shared_ptr<ConductivityBaseDomainBC>  domainBC(m_domainBCFactory->create());
     shared_ptr<ConductivityBaseEBBC>      ebBC(        m_ebBCFactory->create());
 
-    int ngrowA = m_acoef[a_amrLevel]->nGrow();
-    int ngrowB = m_bcoef[a_amrLevel]->nGrow();
+    //these have to be the same
     EBCellFactory cellfact(eblg.getEBISL());
     EBFluxFactory fluxfact(eblg.getEBISL());
-    shared_ptr<FabArray<EBCellFAB> > acoef(new FabArray<EBCellFAB>(eblg.getDBL(), eblg.getDM(), 1, ngrowA, MFInfo(), cellfact));
-    shared_ptr<FabArray<EBFluxFAB> > bcoef(new FabArray<EBFluxFAB>(eblg.getDBL(), eblg.getDM(), 1, ngrowB, MFInfo(), fluxfact));
+    shared_ptr<FabArray<EBCellFAB> > acoef(new FabArray<EBCellFAB>(eblg.getDBL(), eblg.getDM(), 1, m_ghost, MFInfo(), cellfact));
+    shared_ptr<FabArray<EBFluxFAB> > bcoef(new FabArray<EBFluxFAB>(eblg.getDBL(), eblg.getDM(), 1, m_ghost, MFInfo(), fluxfact));
     
     //get coefficients
     nwoebcoCoarsenStuff(*acoef,
@@ -254,8 +253,8 @@ namespace amrex
                            m_beta,
                            acoef,
                            bcoef,
-                           m_ghostCellsPhi,
-                           m_ghostCellsRhs);
+                           m_ghost);
+
     return newOp;
   }    
   

@@ -53,6 +53,7 @@ namespace system
 {
     std::string exename;
     int verbose = 0;
+    int signal_handling = 1;
 }
 }
 
@@ -261,7 +262,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     std::set_new_handler(amrex::OutOfMemory);
 
     if (argv[0][0] != '/') {
-	int bufSize(1024);
+	constexpr int bufSize = 1024;
 	char temp[bufSize];
 	char *rCheck = getcwd(temp, bufSize);
 	if(rCheck == 0) {
@@ -310,10 +311,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 		   << " OMP threads\n";
 #endif
 
-    signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
-    signal(SIGINT,  BLBackTrace::handler);
-    signal(SIGABRT, BLBackTrace::handler);
-
 #ifndef BL_AMRPROF
     if (build_parm_parse)
     {
@@ -343,22 +340,31 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	pp.query("v", system::verbose);
 	pp.query("verbose", system::verbose);
 
-	int invalid = 0, divbyzero=0, overflow=0;
-	pp.query("fpe_trap_invalid", invalid);
-	pp.query("fpe_trap_zero", divbyzero);
-	pp.query("fpe_trap_overflow", overflow);
-	int flags = 0;
-	if (invalid)   flags |= FE_INVALID;
-	if (divbyzero) flags |= FE_DIVBYZERO;
-	if (overflow)  flags |= FE_OVERFLOW;
+        pp.query("signal_handling", system::signal_handling);
+        if (system::signal_handling)
+        {
+            // We could save the singal handlers and restore them in Finalize.
+            signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+            signal(SIGINT,  BLBackTrace::handler);
+            signal(SIGABRT, BLBackTrace::handler);
+
+            int invalid = 0, divbyzero=0, overflow=0;
+            pp.query("fpe_trap_invalid", invalid);
+            pp.query("fpe_trap_zero", divbyzero);
+            pp.query("fpe_trap_overflow", overflow);
+            int flags = 0;
+            if (invalid)   flags |= FE_INVALID;
+            if (divbyzero) flags |= FE_DIVBYZERO;
+            if (overflow)  flags |= FE_OVERFLOW;
 #if defined(__linux__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
-	if (flags != 0) {
-	    feenableexcept(flags);  // trap floating point exceptions
-	    signal(SIGFPE,  BLBackTrace::handler);
-	}
+            if (flags != 0) {
+                feenableexcept(flags);  // trap floating point exceptions
+                signal(SIGFPE,  BLBackTrace::handler);
+            }
 #endif
 #endif
+        }
     }
 
     //

@@ -42,7 +42,13 @@ public:
 	       const DistributionMapping& dm,
 	       int                        ncomp,
 	       int                        ngrow,
-	       const MFInfo&              info = MFInfo());
+#ifdef AMREX_STRICT_MODE
+               const MFInfo&              info,
+               const FabFactory<IArrayBox>& factory);
+#else
+               const MFInfo&              info = MFInfo(),
+               const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>());
+#endif
 
     /**
      * \brief Make an alias iMultiFab. maketype must be
@@ -336,8 +342,13 @@ public:
 			 const DistributionMapping& dm,
 			 int                        nvar,
 			 int                        ngrow,
+#ifdef AMREX_STRICT_MODE
+			 const MFInfo&              info,
+                         const FabFactory<IArrayBox>& factory) override;
+#else
 			 const MFInfo&              info = MFInfo(),
                          const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
+#endif
 
     const IArrayBox& operator[] (int K) const;
 

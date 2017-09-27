@@ -16,29 +16,133 @@
 #include "AMReX_PolyGeom.H"
 #include "AMReX_EBDataVarMacros.H"
 #include "AMReX_parstream.H"
+#include "AMReX_Print.H"
+#include "AMReX_BoxIterator.H"
+#include "AMReX_MemPool.H"
+
+#include <limits>
 
 namespace amrex
 {
 
   bool EBDataImplem::s_verbose = false;
 
+  static const IntVect   ebd_debiv(D_DECL(15, 6, 0));
+  static const VolIndex  ebd_debvof(ebd_debiv, 0);
+  static const IntVect   ebd_debivlo(D_DECL(190,15,0));
+  static const IntVect   ebd_debivhi(D_DECL(191,15,0));
+  static const VolIndex  ebd_debvoflo(ebd_debivlo, 0);
+  static const VolIndex  ebd_debvofhi(ebd_debivhi, 0);
+  static const FaceIndex ebd_debface(ebd_debvoflo, ebd_debvofhi);
 
-//  static const IntVect ebd_ivlo(D_DECL(33,13, 0));
-//  static const IntVect ebd_ivhi(D_DECL(33,14, 0));
-//  static const VolIndex ebd_vlo(ebd_ivlo, 0);
-//  static const VolIndex ebd_vhi(ebd_ivhi, 0);
-//  static const FaceIndex ebd_face(ebd_vlo,ebd_vhi, 1);
-  static const IntVect ebd_ivlobox(D_DECL(32, 16, 0));
-  static const IntVect ebd_ivhibox(D_DECL(47, 23, 0));
-  static const Box ebd_box(ebd_ivlobox, ebd_ivhibox);
-
-  void null_deleter_ebdi(EBDataImplem *)
- {}
+  /******/
+  void checkFaceData (const BaseIFFAB<Real> a_faceData[SpaceDim], const Box& a_valid, const string& a_identifier)
+  {
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      const BaseIFFAB<Real> & data  = a_faceData[idir];
+      const Array<FaceIndex>& faces = data.getFaces();
+      for(int iface = 0; iface < faces.size(); iface++)
+      {
+        if(faces[iface] == ebd_debface)
+        {
+          amrex::Print() << a_identifier << ", valid = " << a_valid << ", areaFrac(" << ebd_debface << ")=" << data(ebd_debface,0) << endl;
+        }
+      }
+    }
+  }
+  /******/
+  extern void null_deleter_ebdi (EBDataImplem* a_input)
+  {
+  }
+  /******/
+  void
+  EBDataImplem::
+  setCoveredAndRegular ()
+  {
+    //regular cell is always unity
+    const vector<VolIndex>& vofs = m_volData.getVoFs();
+    for(int ivof= 0; ivof < vofs.size(); ivof++)
+    {
+      const IntVect& iv = vofs[ivof].gridIndex();
+      bool regular = m_graph.isRegular(iv);
+      bool covered = m_graph.isCovered(iv);
+      if(regular || covered)
+      {
+        if(regular)
+        {
+          m_volData(vofs[ivof], V_VOLFRAC) = 1;
+        }
+        else if(covered)
+        {
+          m_volData(vofs[ivof], V_VOLFRAC) = 0;
+        }
+        m_volData(vofs[ivof], V_BNDAREA) = 0;
+        for (int idir = 0; idir < SpaceDim; idir++)
+        {
+          m_volData(vofs[ivof], V_VOLCENTROIDX + idir) = 0.;
+          m_volData(vofs[ivof], V_BNDCENTROIDX + idir) = 0.;
+          m_volData(vofs[ivof], V_NORMALX      + idir) = 0.;
+        }
+        //no real boundary here but putting something valid for the normal
+        m_volData(vofs[ivof], V_NORMALX) = 1.;
+      }
+    }
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      BaseIFFAB<Real>& faceData = m_faceData[idir];
+      const vector<FaceIndex>& faces = faceData.getFaces();
+      for(int iface = 0; iface < faces.size(); iface++)
+      {
+        const FaceIndex& face = faces[iface];
+        const IntVect  & ivlo = face.gridIndex(Side::Lo);
+        const IntVect  & ivhi = face.gridIndex(Side::Hi);
+        bool regular, covered;
+        if(!face.isBoundary())
+        {
+          regular = (m_graph.isRegular(ivlo) ||  m_graph.isRegular(ivhi));
+          covered = (m_graph.isCovered(ivlo) ||  m_graph.isCovered(ivhi));
+        }
+        else
+        {
+          int cellLo = face.cellIndex(Side::Lo);
+//          int cellHi = face.cellIndex(Side::Hi);
+          IntVect ivCheck;
+          if(cellLo >=0)
+          {
+            ivCheck = ivlo;
+          }
+          else
+          {
+            
+            ivCheck = ivhi;
+          }
+          regular = m_graph.isRegular(ivCheck);
+          covered = m_graph.isCovered(ivCheck);
+        }
+        if(regular || covered)
+        {
+          if(regular)
+          {
+            faceData(face, F_AREAFRAC) = 1.;
+          }
+          else if(covered)
+          {
+            faceData(face, F_AREAFRAC) = 0.;
+          }
+          for (int jdir = 0; jdir < SpaceDim; jdir++)
+          {
+            faceData(face, F_FACECENTROIDX + jdir) = 0.;
+          }
+        }
+      }
+    }
+  }
  /************************/
   void 
   EBDataImplem::
-  addFullIrregularVoFs(const IntVectSet     &    a_vofsToChange,
-                       const Box            &    a_region)
+  addFullIrregularVoFs (const IntVectSet     &    a_vofsToChange,
+                        const Box            &    a_region)
   {
     IntVectSet subset = a_vofsToChange;
     subset &= a_region;
@@ -46,7 +150,7 @@ namespace amrex
     {
       //calculate set by adding in new intvects
       const IntVectSet& ivsOld = m_volData.getIVS();
-      IntVectSet ivsIrreg = m_graph.getIrregCells(m_region);
+      const IntVectSet& ivsIrreg = m_graph.getIrregCells(m_region);
       IntVectSet ivscomp1 = ivsIrreg;
       ivscomp1 -= ivsOld;
       IntVectSet ivscomp2 = ivsOld;
@@ -106,7 +210,7 @@ namespace amrex
         for (faceit.reset(); faceit.ok(); ++faceit)
         {
 
-          Real areaFrac = 1;
+          Real areaF = 1;
           RealVect faceCentroid = RealVect::Zero;
 
 
@@ -114,7 +218,7 @@ namespace amrex
           {
             IntVect ivhi = faceit().gridIndex(Side::Hi);
             IntVect ivlo = faceit().gridIndex(Side::Lo);
-            std::vector<FaceIndex> allFaces = m_graph.getAllFaces(ivhi, idir, Side::Lo);
+            const Array<FaceIndex>& allFaces = m_graph.getAllFaces(ivhi, idir, Side::Lo);
             if (allFaces.size() > 1)
             {
               //now we have the wacky case where two full, single-valued faces were coarsened
@@ -150,7 +254,7 @@ namespace amrex
               }
             }
            }
-          m_faceData[idir](faceit(), F_AREAFRAC) = areaFrac;
+          m_faceData[idir](faceit(), F_AREAFRAC) = areaF;
           //idir = face direction, jdir= centroid direction
           for (int jdir = 0; jdir < SpaceDim; jdir++)
           {
@@ -163,56 +267,85 @@ namespace amrex
 /************************/
 /************************/
   EBDataImplem::
-  EBDataImplem()
+  EBDataImplem ()
   {
     m_isDefined = false;
+    //m_hasVolumeMask = false;
+
   }
 /************************/
   EBDataImplem::
-  ~EBDataImplem()
+  ~EBDataImplem ()
   {
   }
 /************************/
   void 
   EBDataImplem::
-  define(const Box& box, int comps)
+  define (const Box& box, int comps)
   {
   }
 /************************/
   EBDataImplem::
-  EBDataImplem(const Box& a_box, int a_comps)
+  EBDataImplem (const Box& a_box, int a_comps)
   {
+    m_isDefined = false;
+    //m_hasVolumeMask = false;
   }
 /************************/
   EBDataImplem& 
   EBDataImplem::
-  copy(const EBDataImplem&   a_src,
-       const Box&            a_srcbox,
-       int                   a_srccomp,
-       const Box&            a_dstbox,
-       int                   a_dstcomp,
-       int                   a_numcomp)
+  copy (const EBDataImplem&   a_src,
+        const Box&            a_srcbox,
+        int                   a_srccomp,
+        const Box&            a_dstbox,
+        int                   a_dstcomp,
+        int                   a_numcomp)
   {
+    BL_PROFILE("EBDataImplem::copy");
     assert(m_isDefined);
     assert(a_src.m_isDefined);
+    //if(a_src.m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata copy src = " << a_src.m_graph.getDomain() << ",region "  << a_src.m_region << ", a_region = " << a_dstbox <<  ", data(" << ebd_debvof << ",1) = " << a_src.m_volData(ebd_debvof, 1) << endl;
+    //}
+    //if(a_src.m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata copy src = " << a_src.m_graph.getDomain() << ",region "  << a_src.m_region << "\t, srcbox = " << a_srcbox <<  ", data(" << ebd_debface << ",0) = " << a_src.m_faceData[1](ebd_debface, 0) << endl;
+    //}
 
+    BL_PROFILE_VAR("EBData_copy_voldata", copy_voldata);
     m_volData.copy(a_src.m_volData, a_srcbox, 0, a_dstbox, 0,  V_VOLNUMBER);
+    BL_PROFILE_VAR_STOP(copy_voldata);
+
+
+
+
+    BL_PROFILE_VAR("EBData_copy_facedata", copy_facedata);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
-      m_faceData[idir].copy(a_src.m_faceData[idir], a_srcbox, 0, a_dstbox, 0,  F_FACENUMBER);
+      Box grownBox = a_srcbox;
+      grownBox.grow(1);
+      grownBox &= m_graph.getDomain();
+      m_faceData[idir].copy(a_src.m_faceData[idir], grownBox, 0, grownBox, 0,  F_FACENUMBER);
+
     }
-    computeNormalsAndBoundaryAreas(m_graph, m_region);
+    BL_PROFILE_VAR_STOP(copy_facedata);
+    
+//    if(m_hasVolumeMask && a_src.m_hasVolumeMask)
+//    {
+//      m_volMask.copy(a_src.m_volMask, a_srcbox, 0, a_dstbox, 0, m_volMask.nComp());
+//    }
     return *this;
   }
 /************************/
   void 
   EBDataImplem::
-  define(const EBGraph&           a_graph,
-         const Box&               a_region)
+  define (const EBGraph&           a_graph,
+          const Box&               a_region)
   {
     m_graph = a_graph;
     m_region = a_region & a_graph.getDomain();
-    IntVectSet ivsIrreg = a_graph.getIrregCells(a_region);
+    const IntVectSet& ivsIrreg = a_graph.getIrregCells(a_region);
     m_isDefined = true;
     m_volData.define(ivsIrreg, a_graph, V_VOLNUMBER);
     for (int idir = 0; idir < SpaceDim; idir++)
@@ -223,21 +356,30 @@ namespace amrex
       Box regionG1D = a_region;
       regionG1D.grow(idir, 1);
       regionG1D &= a_graph.getDomain();
-      IntVectSet ivsIrregG1D = a_graph.getIrregCells(regionG1D);
+      const IntVectSet& ivsIrregG1D = a_graph.getIrregCells(regionG1D);
       m_faceData[idir].define(ivsIrregG1D, a_graph, idir, F_FACENUMBER);
     }
 
+//#if !defined(NDEBUG) || defined(BL_TESTING)
+    //   init_snan();  // Currently we rely on this to indicate bad data.
+    // wz. How could std::isnan fail on snan?  This is gcc 4.8.4.
+    init_qnan(); // So we have to initialize it to qnan;
+//#endif
+    setCoveredAndRegular();
+
+//    defineVolumeMask();
   }
 /************************/
   void
   EBDataImplem::
-  define(const EBGraph&           a_graph,
-         const std::vector<IrregNode>& a_irregGraph,
-         const Box&               a_validBox,
-         const Box&               a_region)
+  define (const EBGraph&           a_graph,
+          const Array<IrregNode>&  a_irregGraph,
+          const Box&               a_validBox,
+          const Box&               a_region)
 
   {
     BL_PROFILE("EBDataImpem::define");
+
     m_region = a_region & a_graph.getDomain();
     define( a_graph, a_region);
     if (a_graph.hasIrregular())
@@ -261,10 +403,10 @@ namespace amrex
           {
             for (SideIterator sit; sit.ok(); ++sit)
             {
-              std::vector<FaceIndex> faces = a_graph.getFaces(vof, faceDir, sit());
+              const Array<FaceIndex>& faces = a_graph.getFaces(vof, faceDir, sit());
               int nodeind = node.index(faceDir, sit());
-              std::vector<Real> areaFracs         = node.m_areaFrac[nodeind];
-              std::vector<RealVect> faceCentroids = node.m_faceCentroid[nodeind];
+              const Array<Real>& areaFracs         = node.m_areaFrac[nodeind];
+              const Array<RealVect>& faceCentroids = node.m_faceCentroid[nodeind];
               for (int iface = 0; iface < faces.size(); iface++)
               {
                 const Real&     areaFracNode     = areaFracs[iface];
@@ -282,22 +424,73 @@ namespace amrex
         }
       }
     }
+
+//begin debug
+//    checkFaceData(m_faceData, a_validBox, string("right after irregnode init"));
+//end debug
     computeNormalsAndBoundaryAreas(a_graph, a_validBox);
+    //if(m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata initial define::domain = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_region <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
+    //}
+    //if(m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata initial define domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_region = " << a_region <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
+    //}
+
+    //defineVolumeMask();
+    //setVolumeMask();
   }
+
+
+  void EBDataImplem::init_snan ()
+  {
+#ifdef BL_USE_DOUBLE
+      std::size_t n = m_volData.size();
+      if (n > 0) {
+          amrex_array_init_snan(m_volData.dataPtr(), n);
+      }
+      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+          n = m_faceData[idim].size();
+          if (n > 0) {
+              amrex_array_init_snan(m_faceData[idim].dataPtr(), n);
+          }
+      }
+#else
+      init_qnan();
+#endif
+  }
+
+  void EBDataImplem::init_qnan ()
+  {
+      std::size_t n = m_volData.size();
+      if (n > 0) {
+          std::fill(m_volData.dataPtr(), m_volData.dataPtr() + n,
+                    std::numeric_limits<Real>::quiet_NaN());
+      }
+      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+          n = m_faceData[idim].size();
+          if (n > 0) {
+              std::fill(m_faceData[idim].dataPtr(), m_faceData[idim].dataPtr() + n,
+                        std::numeric_limits<Real>::quiet_NaN());
+          }
+      }
+  }
+
 /*******************************/
-  const Real& EBDataImplem::volFrac(const VolIndex& a_vof) const
+  const Real& EBDataImplem::volFrac (const VolIndex& a_vof) const
   {
     return m_volData(a_vof, V_VOLFRAC);
   }
 
 /*******************************/
-  const Real& EBDataImplem::bndryArea(const VolIndex& a_vof) const
+  const Real& EBDataImplem::bndryArea (const VolIndex& a_vof) const
   {
     return m_volData(a_vof, V_BNDAREA);
   }
 
 /*******************************/
-  RealVect EBDataImplem::normal(const VolIndex& a_vof) const
+  RealVect EBDataImplem::normal (const VolIndex& a_vof) const
   {
     RealVect retval;
     for(int idir = 0; idir < SpaceDim; idir++)
@@ -308,7 +501,7 @@ namespace amrex
 
   }
 /*******************************/
-  RealVect EBDataImplem::centroid(const VolIndex& a_vof) const
+  RealVect EBDataImplem::centroid (const VolIndex& a_vof) const
   {
     RealVect retval;
     for(int idir = 0; idir < SpaceDim; idir++)
@@ -318,7 +511,7 @@ namespace amrex
     return retval;
   }
 /*******************************/
-  RealVect EBDataImplem::bndryCentroid(const VolIndex& a_vof) const
+  RealVect EBDataImplem::bndryCentroid (const VolIndex& a_vof) const
   {
     RealVect retval;
 
@@ -329,7 +522,7 @@ namespace amrex
     return retval;
   }
 /*******************************/
-  RealVect EBDataImplem::centroid(const FaceIndex& a_face) const
+  RealVect EBDataImplem::centroid (const FaceIndex& a_face) const
   {
     int faceDir = a_face.direction();
     RealVect retval;
@@ -348,8 +541,8 @@ namespace amrex
 /*******************************/
   void 
   EBDataImplem::
-  computeNormalsAndBoundaryAreas(const EBGraph& a_graph,
-                                 const Box&     a_region)
+  computeNormalsAndBoundaryAreas (const EBGraph& a_graph,
+                                  const Box&     a_region)
   {
     EBISBox ebisBox;
     EBData tempData(this);
@@ -357,18 +550,18 @@ namespace amrex
 
     if (a_graph.hasIrregular())
     {
-      IntVectSet ivsIrreg = a_graph.getIrregCells(a_region);
+      const IntVectSet& ivsIrreg = a_graph.getIrregCells(a_region);
       for (VoFIterator vofit(ivsIrreg, a_graph); vofit.ok(); ++vofit)
       {
         const VolIndex& vof = vofit();
-        Real bndryArea  =  PolyGeom::bndryArea(vof, ebisBox);
-        RealVect normal =  PolyGeom::normal(   vof, ebisBox, bndryArea);
+        Real bArea  =  PolyGeom::bndryArea(vof, ebisBox);
+        RealVect nrm =  PolyGeom::normal(   vof, ebisBox, bArea);
 
         //copy results to volData
-        m_volData(vof,V_BNDAREA) = bndryArea;
+        m_volData(vof,V_BNDAREA) = bArea;
         for(int idir = 0; idir < SpaceDim; idir++)
         {
-          m_volData(vof,V_NORMALX+idir) = normal[idir];
+          m_volData(vof,V_NORMALX+idir) = nrm[idir];
         }
       }
     }
@@ -376,10 +569,10 @@ namespace amrex
 /*******************************/
   void
   EBDataImplem::
-  coarsenBoundaryAreaAndNormal(Real&                    a_bndryAreaCoar,
-                               RealVect&                a_normalCoar,
-                               const std::vector<Real>&      a_bndryAreaFine,
-                               const std::vector<RealVect>&  a_normalFine)
+  coarsenBoundaryAreaAndNormal (Real&                    a_bndryAreaCoar,
+                                RealVect&                a_normalCoar,
+                                const Array<Real>&      a_bndryAreaFine,
+                                const Array<RealVect>&  a_normalFine)
   {
     BL_PROFILE("EBDataImplem::coarsenBoundaryAreaAndNormal");
 
@@ -422,10 +615,10 @@ namespace amrex
 
 
   void EBDataImplem::
-  coarsenVoFs(const EBDataImplem&  a_fineEBDataImplem,
-              const EBGraph&       a_fineGraph,
-              const EBGraph&       a_coarGraph,
-              const Box&           a_validRegion)
+  coarsenVoFs (const EBDataImplem&  a_fineEBDataImplem,
+               const EBGraph&       a_fineGraph,
+               const EBGraph&       a_coarGraph,
+               const Box&           a_validRegion)
   {
     BL_PROFILE("EBDataImplem::coarsenVoFs");
     //unlike before, define needs to be called first
@@ -433,20 +626,20 @@ namespace amrex
 
     if (a_coarGraph.hasIrregular())
     {
-      IntVectSet ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
+      const IntVectSet& ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
 
       for (VoFIterator vofit(ivsIrreg, a_coarGraph); vofit.ok(); ++vofit)
       {
         BL_PROFILE("EBDataImplem::coarsenVoFs_VoFIterator");
         const VolIndex& vofCoar = vofit();
-        std::vector<VolIndex> vofsFine = a_coarGraph.refine(vofCoar);
+        const Array<VolIndex>& vofsFine = a_coarGraph.refine(vofCoar);
         int nFine = vofsFine.size();
-        std::vector<Real> bndryAreaFine(nFine);
-        std::vector<Real> volFracFine(nFine);
-        std::vector<int>  phase(nFine);
-        std::vector<RealVect> bndryCentroidFine(nFine);
-        std::vector<RealVect> volCentroidFine(nFine);
-        std::vector<RealVect> normalFine(nFine);
+        Array<Real> bndryAreaFine(nFine);
+        Array<Real> volFracFine(nFine);
+        Array<int>  phase(nFine);
+        Array<RealVect> bndryCentroidFine(nFine);
+        Array<RealVect> volCentroidFine(nFine);
+        Array<RealVect> normalFine(nFine);
 
         for (int ifine = 0; ifine < nFine; ifine++)
         {
@@ -507,17 +700,17 @@ namespace amrex
   }
 /*******************************/
   void EBDataImplem::
-  coarsenFaces(const EBDataImplem& a_fineEBDataImplem,
-               const EBGraph&      a_fineGraph,
-               const EBGraph&      a_coarGraph,
-               const Box&          a_validRegion)
+  coarsenFaces (const EBDataImplem& a_fineEBDataImplem,
+                const EBGraph&      a_fineGraph,
+                const EBGraph&      a_coarGraph,
+                const Box&          a_validRegion)
   {
     BL_PROFILE("EBDataImplem::coarsenFaces");
 
     //unlike before, the define function has to be called first.
     assert(m_isDefined);
 
-    IntVectSet ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
+    const IntVectSet& ivsIrreg = a_coarGraph.getIrregCells(a_validRegion);
     Box fineRegion = a_fineGraph.getRegion();
 
     if (a_coarGraph.hasIrregular())
@@ -534,10 +727,10 @@ namespace amrex
           BL_PROFILE("EBDataImplem::coarsenFaces_FaceIterator");
 
           const FaceIndex&  faceCoar  = faceit();
-          std::vector<FaceIndex> facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
+          const Array<FaceIndex>& facesFine = a_coarGraph.refine(faceCoar, a_fineGraph);
 
-          std::vector<Real>     areaFracsFine(facesFine.size());
-          std::vector<RealVect> centroidsFine(facesFine.size());
+          Array<Real>     areaFracsFine(facesFine.size());
+          Array<RealVect> centroidsFine(facesFine.size());
           for (int ifine = 0; ifine < facesFine.size(); ifine++)
           {
             BL_PROFILE("EBDataImplem::coarsenFaces_fine");
@@ -576,11 +769,11 @@ namespace amrex
   }
 /*******************************/
   void EBDataImplem::
-  coarsenFaceCentroid(RealVect&                a_centroidCoar,
-                      const std::vector<RealVect>&  a_centroidsFine,
-                      const std::vector<Real>&      a_areaFracFine,
-                      const std::vector<FaceIndex>& a_facesFine,
-                      const FaceIndex&         a_faceCoar)
+  coarsenFaceCentroid (RealVect&                a_centroidCoar,
+                       const Array<RealVect>&  a_centroidsFine,
+                       const Array<Real>&      a_areaFracFine,
+                       const Array<FaceIndex>& a_facesFine,
+                       const FaceIndex&         a_faceCoar)
   {
     BL_PROFILE("EBDataImplem::coarsenFaceCentroid");
 
@@ -614,8 +807,8 @@ namespace amrex
   }
 /*******************************/
   void EBDataImplem::
-  coarsenAreaFrac(Real& a_areaFracCoar,
-                  const std::vector<Real>& a_areaFracFine)
+  coarsenAreaFrac (Real& a_areaFracCoar,
+                   const Array<Real>& a_areaFracFine)
   {
     BL_PROFILE("EBDataImplem::coarsenAreaFrac");
     //this is the factor by which the area of a fine
@@ -635,12 +828,12 @@ namespace amrex
 /*******************************/
   void
   EBDataImplem::
-  coarsenVolFracAndCentroid(Real&                   a_volFracCoar,
-                            RealVect&               a_volCentroidCoar,
-                            const std::vector<Real>&     a_volFracFine,
-                            const std::vector<RealVect>& a_volCentroidFine,
-                            const std::vector<VolIndex>& a_fineVoFs,
-                            const VolIndex&         a_coarVoF)
+  coarsenVolFracAndCentroid (Real&                   a_volFracCoar,
+                             RealVect&               a_volCentroidCoar,
+                             const Array<Real>&     a_volFracFine,
+                             const Array<RealVect>& a_volCentroidFine,
+                             const Array<VolIndex>& a_fineVoFs,
+                             const VolIndex&         a_coarVoF)
   {
     BL_PROFILE("EBDataImplem::coarsenVolFracAndCentroid");
 
@@ -681,9 +874,9 @@ namespace amrex
 /*******************************/
   RealVect
   EBDataImplem::
-  fineToCoarseTransform(const RealVect& a_finePoint,
-                        const IntVect&  a_coarCell,
-                        const IntVect&  a_fineCell)
+  fineToCoarseTransform (const RealVect& a_finePoint,
+                         const IntVect&  a_coarCell,
+                         const IntVect&  a_fineCell)
   {
     RealVect retval;
     //assuming nref = 2. make dxf = 1
@@ -703,11 +896,11 @@ namespace amrex
 /*******************************/
   void
   EBDataImplem::
-  coarsenBndryCentroid(RealVect&               a_bndryCentroidCoar,
-                       const std::vector<RealVect>& a_bndryCentroidFine,
-                       const std::vector<Real>&     a_bndryAreaFine,
-                       const std::vector<VolIndex>& a_fineVoFs,
-                       const VolIndex&         a_coarVoF)
+  coarsenBndryCentroid (RealVect&               a_bndryCentroidCoar,
+                        const Array<RealVect>& a_bndryCentroidFine,
+                        const Array<Real>&     a_bndryAreaFine,
+                        const Array<VolIndex>& a_fineVoFs,
+                        const VolIndex&         a_coarVoF)
   {
     BL_PROFILE("EBDataImplem::coarsenBndryCentroid");
 
@@ -750,12 +943,18 @@ namespace amrex
   nBytes (const Box& bx, int a_srccomp, int a_ncomps) const
   {
 
+    BL_PROFILE("EBDataImplem::nbytes");
     size_t retval = m_volData.nBytes(bx, 0, V_VOLNUMBER);
     for(int idir = 0; idir < SpaceDim; idir++)
     {
       retval += m_faceData[idir].nBytes(bx, 0, F_FACENUMBER);
     }
-
+    //do we have a volume mask that intersects this box?
+//    retval += sizeof(int);
+//    if(m_graph.hasIrregular(bx))
+//    {
+//      retval += m_volMask.nBytes(bx, 0, V_VOLNUMBER);
+//    }
     return retval;
   }
 /*******************************/
@@ -768,8 +967,18 @@ namespace amrex
              void*      dst) const
   {
 
+    BL_PROFILE("EBDataImplem::copyToMem");
     size_t retval = 0;
     unsigned char* buf = (unsigned char*) dst;
+
+    //if(m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata copyto  mem::domain = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
+    //}
+    //if(m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata copyto mem::domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
+    //}
 
     size_t incrval = m_volData.copyToMem(bx, 0, V_VOLNUMBER, buf);
     retval += incrval;
@@ -785,6 +994,22 @@ namespace amrex
 
     }
 
+    //do we have a volume mask that intersects this box?
+//    int hasIrreg = 0;
+//    if(m_graph.hasIrregular(bx))
+//    {
+//      hasIrreg = 1;
+//    }
+
+//    int* intbuf = (int*) buf;
+//    *intbuf = hasIrreg;
+//    buf    += sizeof(int);
+//    retval += sizeof(int);
+//    if(hasIrreg == 1)
+//    {
+//      retval += m_volMask.copyToMem(bx, 0, V_VOLNUMBER, buf);
+//    }
+    //pout() << "ebdata:: copytomem:   bx = " << bx  << ", retval = " << retval << endl;
     return retval;
   }
 
@@ -798,6 +1023,7 @@ namespace amrex
                const void* src)
   {
 
+    BL_PROFILE("EBDataImplem::copyFromMem");
     size_t retval = 0;
     unsigned char* buf = (unsigned char*) src;
 
@@ -815,12 +1041,29 @@ namespace amrex
 
     }
 
+    //do we have a volume mask that intersects this box?
+//    int hasIrreg = *buf;
+//    buf    += sizeof(int);
+//    retval += sizeof(int);
+//    if(hasIrreg == 1)
+//    {
+//      retval += m_volMask.copyFromMem(bx, 0, V_VOLNUMBER, buf);
+//    }
+    //if(m_volData.getIVS().contains(ebd_debiv))
+    //{
+    //  pout() << "ebdata copyfrommem::domain = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debvof << ",1) = " << m_volData(ebd_debvof, 1) << endl;
+    //}
+    //pout() << "ebdata:: copyfrommem: bx = " << bx  << ", retval = " << retval << endl;
+    //if(m_faceData[1].hasFace(ebd_debface))
+    //{
+    //  pout() << "ebdata copyfrommem::domain  = " << m_graph.getDomain() << ",region "  << m_region << ", a_bx = " << bx <<  ", data(" << ebd_debface << ",0) = " << m_faceData[1](ebd_debface, 0) << endl;
+    //}
     return retval;
   }
 /*******************************/
   std::size_t 
   EBDataImplem::
-  nBytesFull() const
+  nBytesFull () const
   {
     //first the region
     size_t retval = m_region.linearSize();
@@ -836,7 +1079,7 @@ namespace amrex
 
   std::size_t 
   EBDataImplem::
-  copyToMemFull(void* dst) const
+  copyToMemFull (void* dst) const
   {
     size_t retval  = 0;
     size_t incrval = 0;
@@ -867,7 +1110,7 @@ namespace amrex
 
   std::size_t 
   EBDataImplem::
-  copyFromMemFull(const void* src)
+  copyFromMemFull (const void* src)
   {
     
     size_t retval  = 0;
@@ -893,9 +1136,56 @@ namespace amrex
       buf    += incrval;
     }
 
+    //defineVolumeMask();
+    //setVolumeMask();
+
     m_isDefined = true;
     return retval;
   }
 
+/*******************************/
+//  void 
+//  EBDataImplem::
+//  defineVolumeMask ()
+//  {
+//    if(m_graph.hasIrregular(m_region))
+//    {
+//      m_hasVolumeMask = true;
+//      m_volMask.resize(m_region, V_VOLNUMBER);
+//    }
+//  }
+/*******************************/
+//  void 
+//  EBDataImplem::
+//  setVolumeMask ()
+//  {
+//    BL_PROFILE("ebd::set_volume_mask");
+//    if(m_hasVolumeMask)
+//    {
+//      //set everything to zero. then loop and set regular volume fractions to 1.
+//      m_volMask.setVal(0.0);
+//      for(BoxIterator bit(m_region); bit.ok(); ++bit)
+//      {
+//        if(m_graph.isRegular(bit()))
+//        {
+//          m_volMask(bit(), V_VOLFRAC) = 1.0;
+//        }
+//      }
+//
+//      //  now loop through the volumes  and set stuff (if it is not nan)
+//      const Array<VolIndex>& vofs = m_volData.getVoFs();
+//      for(int ivof = 0; ivof < vofs.size(); ivof++)
+//      {
+//        const VolIndex& vof = vofs[ivof];
+//        for(int icomp = 0; icomp < V_VOLNUMBER; icomp++)
+//        {
+//          if(!std::isnan(m_volData(vof, icomp)))
+//          {
+//            m_volMask(vof.gridIndex(), icomp) = m_volData(vof, icomp);
+//          }
+//        }
+//      }
+//    }
+//  }
 /*******************************/
 }

@@ -22,7 +22,7 @@
 #include "AMReX_Moments.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_GeometryService.H"
-
+#include <array>
 
 namespace amrex
 {
@@ -45,30 +45,8 @@ namespace amrex
                  Real          a_thrshdVoF = 1.0e-16);
 
     ///
-    ~GeometryShop();
+    ~GeometryShop() {}
 
-    /**
-       Return true if every cell in region is regular at the
-       refinement described by dx.
-    */
-    virtual bool isRegular(const Box&           a_region,
-                           const Box& a_domain,
-                           const RealVect&      a_origin,
-                           const Real&          a_dx) const;
-    ///
-    /**
-       Return true if every cell in region is covered at the
-       refinement described by dx.
-    */
-    virtual bool isCovered(const Box&           a_region,
-                           const Box& a_domain,
-                           const RealVect&      a_origin,
-                           const Real&          a_dx) const;
-
-    virtual bool isIrregular(const Box&           a_region,
-                             const Box& a_domain,
-                             const RealVect&      a_origin,
-                             const Real&          a_dx) const ;
 
 
     ///
@@ -76,30 +54,30 @@ namespace amrex
        Define the internals of the input ebisRegion.
     */
     virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                           std::vector<IrregNode>&   a_nodes,
+                           Array<IrregNode>&    a_nodes,
                            const Box&           a_validRegion,
                            const Box&           a_ghostRegion,
                            const Box&           a_domain,
                            const RealVect&      a_origin,
-                           const Real&          a_dx) const;
+                           const Real&          a_dx) const override;
 
-    GeometryService::InOut InsideOutside(const Box&           a_region,
-                                         const Box&           a_domain,
-                                         const RealVect&      a_origin,
-                                         const Real&          a_dx) const;
+    virtual GeometryService::InOut InsideOutside(const Box&           a_region,
+                                                 const Box&           a_domain,
+                                                 const RealVect&      a_origin,
+                                                 const Real&          a_dx) const override;
     /**
      */
     void computeVoFInternals(Real&                a_volFrac,
-                             std::vector<int>          a_loArc[SpaceDim],
-                             std::vector<int>          a_hiArc[SpaceDim],
-                             std::vector<Real>         a_loAreaFrac[SpaceDim],
-                             std::vector<Real>         a_hiAreaFrac[SpaceDim],
+                             std::array<Array<int>,SpaceDim>& a_loArc,
+                             std::array<Array<int>,SpaceDim>& a_hiArc,
+                             std::array<Array<Real>,SpaceDim>& a_loAreaFrac,
+                             std::array<Array<Real>,SpaceDim>& a_hiAreaFrac,
                              Real&                a_bndryArea,
                              RealVect&            a_normal,
                              RealVect&            a_volCentroid,
                              RealVect&            a_bndryCentroid,
-                             std::vector<RealVect>     a_loFaceCentroid[SpaceDim],
-                             std::vector<RealVect>     a_hiFaceCentroid[SpaceDim],
+                             std::array<Array<RealVect>,SpaceDim>& a_loFaceCentroid,
+                             std::array<Array<RealVect>,SpaceDim>& a_hiFaceCentroid,
                              const BaseFab<int>&  a_regIrregCovered,
                              const Box&           a_domain,
                              const RealVect&      a_origin,
@@ -113,12 +91,38 @@ namespace amrex
                                const Box            & a_domain) const;
 
     void
-    fixRegularCellsNextToCovered(std::vector<IrregNode>     & a_nodes, 
-                                 BaseFab<int>               & a_regIrregCovered,
-                                 const Box                  & a_validRegion,
-                                 const Box                  & a_domain,
-                                 const IntVect              & a_iv,
-                                 const Real                 & a_dx) const;
+    fixRegularCellsNextToCovered(Array<IrregNode>     & a_nodes, 
+                                 BaseFab<int>         & a_regIrregCovered,
+                                 const Box            & a_validRegion,
+                                 const Box            & a_domain,
+                                 const IntVect        & a_iv,
+                                 const Real           & a_dx) const;
+
+    ///
+    /**
+       Return true if every cell in region is regular at the
+       refinement described by dx.
+    */
+    virtual bool isRegular(const Box&           a_region,
+                           const Box&           a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const override
+      {
+        return isRegularEveryPoint(a_region, a_domain, a_origin, a_dx);
+      }
+      
+    ///
+    /**
+       Return true if every cell in region is covered at the
+       refinement described by dx.
+    */
+    virtual bool isCovered(const Box&           a_region,
+                           const Box&           a_domain,
+                           const RealVect&      a_origin,
+                           const Real&          a_dx) const override
+      {
+        return isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx);
+      }
 
   private:
     int  m_verbosity;
@@ -126,7 +130,7 @@ namespace amrex
     Real m_thrshdVoF; //CP, threshold to remove very small VoFs.
 
 
-    const BaseIF* m_implicitFunction;
+    std::unique_ptr<const BaseIF> m_implicitFunction;
 
 
     void edgeData3D(edgeMo               a_edges[4],
@@ -137,7 +141,7 @@ namespace amrex
                     const int            a_faceNormal,
                     const Real&          a_dx,
                     const IntVect&       a_coord,
-                    const Box& a_domain,
+                    const Box&           a_domain,
                     const RealVect&      a_origin) const;
 
     void edgeData2D(edgeMo               a_edges[4],
@@ -146,7 +150,7 @@ namespace amrex
                     bool&                a_faceDontKnow,
                     const Real&          a_dx,
                     const IntVect&       a_coord,
-                    const Box& a_domain,
+                    const Box&           a_domain,
                     const RealVect&      a_origin) const;
 
     void edgeType(bool& a_regular,
@@ -164,7 +168,7 @@ namespace amrex
       refinement described by dx.
   */
   bool isRegularEveryPoint(const Box&           a_region,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const;
 
@@ -174,36 +178,18 @@ namespace amrex
       refinement described by dx.
   */
   bool isCoveredEveryPoint(const Box&           a_region,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const;
 
 
-    bool isIrregularEveryPoint(const Box&           a_region,
-                               const Box& a_domain,
-                               const RealVect&      a_origin,
-                               const Real&          a_dx,
-                               const Real&          a_originVal) const ;
 #if 1
     Real PrismoidalAreaCalc(RealVect& a_xVec,
                             RealVect& a_yVec) const;
 #endif
 
-    Real Min(const Real x, const Real y) const;
-
-    //stuff disallowed for all the usual reasons.
-    GeometryShop()
-    {
-      amrex::Abort("GeometryShop uses strong construction only");
-    }
-    GeometryShop(const GeometryShop& a_workshopin)
-    {
-      amrex::Abort("GeometryShop disallows copy contruction");
-    }
-    void operator=(const GeometryShop& a_workshopin)
-    {
-      amrex::Abort("GeometryShop disallows the assignment operator");
-    }
+    GeometryShop(const GeometryShop& a_workshopin) = delete;
+    void operator=(const GeometryShop& a_workshopin) = delete;
 
   };
 }

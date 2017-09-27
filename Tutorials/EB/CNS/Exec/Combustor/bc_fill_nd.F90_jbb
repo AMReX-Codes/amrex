@@ -1,0 +1,135 @@
+module bc_fill_module
+
+  implicit none
+
+  public
+
+contains
+
+  ! All subroutines in this file must be threadsafe because they are called
+  ! inside OpenMP parallel regions.
+  
+  subroutine cns_hypfill(adv,adv_lo,adv_hi,domlo,domhi,delta,xlo,time,bc) &
+       bind(C, name="cns_hypfill")
+
+    use cns_module, only : center, nvar, urho, umx, umy, umz, ueden, ueint, utemp, problo,probhi
+    use amrex_fort_module, only:  dim=>amrex_spacedim
+    use probdata_module
+    use cns_physics_module, only : cv, gamma
+
+
+    implicit none
+
+    include 'AMReX_bc_types.fi'
+
+    integer          :: adv_lo(3),adv_hi(3)
+    integer          :: bc(dim,2,*)
+    integer          :: domlo(3), domhi(3)
+    double precision :: delta(3), xlo(3), time
+    double precision :: adv(adv_lo(1):adv_hi(1),adv_lo(2):adv_hi(2),adv_lo(3):adv_hi(3),NVAR)
+
+    double precision x(3),xcen(3), r,rmax, rhoin, ein, rhoein, vel(3), M_PI
+
+    integer          :: i,j,k,n
+
+    M_PI = 4.d0*atan2(1.d0,1.d0)
+
+    do n = 1,NVAR
+       call filcc(adv(:,:,:,n),adv_lo(1),adv_lo(2),adv_lo(3),adv_hi(1),adv_hi(2),adv_hi(3),domlo,domhi,delta,xlo,bc(:,:,n))
+    enddo
+
+    if ( bc(3,1,1).eq.EXT_DIR .and. adv_lo(3).lt.domlo(3)) then
+       do       k = adv_lo(3),  domlo(3)-1
+          do    j = adv_lo(2), adv_hi(2)
+             do i = adv_lo(1), adv_hi(1)
+                   x(1) = xlo(1) + delta(1)*(dble(i-adv_lo(1)) + 0.5d0)
+                   x(2) = xlo(2) + delta(2)*(dble(j-adv_lo(2)) + 0.5d0)
+                   x(3) = xlo(3) + delta(3)*(dble(k-adv_lo(3)) + 0.5d0)
+                   r = (x(1)-center(1))**2 + (x(2)-center(2))**2
+                   rmax = (problo(1)-center(1))**2 + (problo(2)-center(2))**2
+                   r=sqrt(r)
+                   rmax=sqrt(rmax)
+                   if(r/rmax.lt.Rsplit)then
+                   rhoein = inflow_p/(gamma-1.d0)
+                   rhoin = rhoein/(cv*inflow_T_in)
+                   vel(1) = 0.d0
+                   vel(2) = 0.d0
+                   vel(3) = uin 
+                   adv(i,j,k,utemp) = inflow_T_in
+                   else
+                   rhoein = inflow_p/(gamma-1.d0)
+                   rhoin = rhoein/(cv*inflow_T_out)
+                   vel(1) =  ( uout * cos(swrlang*M_PI/180.0) ) * ( x(2)-center(2) )/r
+                   vel(2) =  -( uout * cos(swrlang*M_PI/180.0) ) * ( x(1)-center(1) )/r
+                   vel(3) = uout * sin(swrlang*M_PI/180.0)
+                   adv(i,j,k,utemp) = inflow_T_out
+                   endif
+                   adv(i,j,k,urho) = rhoin
+                   adv(i,j,k,umx) = rhoin*vel(1)
+                   adv(i,j,k,umy) = rhoin*vel(2)
+                   adv(i,j,k,umz) = rhoin*vel(3)
+                   adv(i,j,k,ueint) = rhoein 
+                   adv(i,j,k,ueden) = rhoein + 0.5d0*rhoin*(vel(1)**2+vel(2)**2+vel(3)**2)
+   !            adv(i,j,k,:) = inflow_state(:)
+             end do
+          end do
+       end do
+    end if
+
+    if ( bc(3,2,1).eq.FOEXTRAP .and. adv_hi(3).gt.domhi(3)) then
+       do       k = domhi(3)+1,  adv_hi(3)
+          do    j = adv_lo(2), adv_hi(2)
+             do i = adv_lo(1), adv_hi(1)
+
+                 adv(i,j,k,urho) = adv(i,j,domhi(3),urho)
+                 adv(i,j,k,umx) = adv(i,j,domhi(3),umx)
+                 adv(i,j,k,umy) = adv(i,j,domhi(3),umy)
+                 adv(i,j,k,umz) = adv(i,j,domhi(3),umz)
+                 adv(i,j,k,ueint) = outflow_p/(gamma-1.d0)
+                 adv(i,j,k,ueden) = outflow_p/(gamma-1.d0)   +   &
+                       0.5d0*( adv(i,j,k,umx)**2 + adv(i,j,k,umy)**2 + adv(i,j,k,umz)**2)/ adv(i,j,k,urho)
+                 adv(i,j,k,utemp) = outflow_p/(cv*(gamma-1.d0)*adv(i,j,k,urho))
+ 
+
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine cns_hypfill
+
+
+
+  subroutine cns_denfill(adv,adv_lo,adv_hi,domlo,domhi,delta,xlo,time,bc) &
+       bind(C, name="cns_denfill")
+
+    use amrex_fort_module, only: dim=>amrex_spacedim
+    use probdata_module, only : inflow_state
+
+    implicit none
+
+    include 'AMReX_bc_types.fi'
+
+    integer          :: adv_lo(3),adv_hi(3)
+    integer          :: bc(dim,2,*)
+    integer          :: domlo(3), domhi(3)
+    double precision :: delta(3), xlo(3), time
+    double precision :: adv(adv_lo(1):adv_hi(1),adv_lo(2):adv_hi(2),adv_lo(3):adv_hi(3))
+
+    integer :: i,j,k
+
+    call filcc(adv,adv_lo(1),adv_lo(2),adv_lo(3),adv_hi(1),adv_hi(2),adv_hi(3),domlo,domhi,delta,xlo,bc)
+
+    if ( bc(3,1,1).eq.EXT_DIR .and. adv_lo(3).lt.domlo(3)) then
+       do       k = adv_lo(3),  domlo(3)-1
+          do    j = adv_lo(2), adv_hi(2)
+             do i = adv_lo(1), adv_hi(1)
+                adv(i,j,k) = inflow_state(1)
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine cns_denfill
+
+end module bc_fill_module

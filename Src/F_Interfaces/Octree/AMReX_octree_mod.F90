@@ -16,6 +16,7 @@ module amrex_octree_module
      integer, private :: end_index      = 0 ! exclusive
      integer, private :: current_index  = 0
    contains
+     procedure :: clear      => amrex_octree_iter_clear
      procedure :: next       => amrex_octree_iter_next
      procedure :: level      => amrex_octree_iter_level
      procedure :: grid_index => amrex_octree_iter_grid_index
@@ -102,6 +103,11 @@ contains
   subroutine amrex_octree_iter_destroy (oti)
     type(amrex_octree_iter) :: oti
   end subroutine amrex_octree_iter_destroy
+
+  subroutine amrex_octree_iter_clear (oti)
+    class(amrex_octree_iter) :: oti
+    oti%current_index = oti%begin_index - 1 ! as when just built
+  end subroutine amrex_octree_iter_clear
 
   logical function amrex_octree_iter_next (this)
     class(amrex_octree_iter) :: this

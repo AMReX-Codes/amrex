@@ -37,10 +37,6 @@
 #include <limits>
 #include <numeric>
 
-#ifndef BL_AMRPROF
-#include <AMReX_ParmParse.H>
-#endif
-
 namespace amrex {
 //! Parallel frontend that abstracts functionalities needed to spawn processes and handle communication 
 namespace ParallelDescriptor

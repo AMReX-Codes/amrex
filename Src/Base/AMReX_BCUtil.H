@@ -8,6 +8,6 @@
 namespace amrex
 {
     void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Array<BCRec>& bc);
-};
+}
 
 #endif

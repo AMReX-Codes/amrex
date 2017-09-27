@@ -13,6 +13,7 @@ section_sources = Preface/Preface.tex \
                   Basics/Basics.tex \
                   AmrCore/AmrCore.tex \
                   Particle/Particle.tex \
+                  EB/EB.tex \
                   AmrLevel/AmrLevel.tex \
                   Fortran/Fortran.tex \
                   Visualization/Visualization.tex \

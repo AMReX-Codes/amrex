@@ -10,11 +10,11 @@
 domain_bc_type = 1
 eb_bc_type = 1
 order_ebbc = 2
-domain_length = 64.
+domain_length = 1.0
 max_level = 0
 
 ref_ratio = 2 2 2 2 2
-max_grid_size = 16
+max_grid_size = 1024
 block_factor = 8 
 fill_ratio = 0.7
 buffer_size = 2
@@ -23,10 +23,14 @@ which_geom = 5
 sphere_center = 0.5 0.5 0.5
 sphere_radius = 0.1
 
-alpha = 1.0
+alpha = 0.5
 beta  = -0.1
-acoef_val = 1.0
-bcoef_val = 1.0
+acoef_val = 0.5
+bcoef_val = 0.5
 
-num_smooth = 4
+num_smooth = 8
+num_mg     = 1
+max_iterations = 27
+tolerance = 1.0e-9
+hang = 1.0e-10
 num_smooth_bottom = 27

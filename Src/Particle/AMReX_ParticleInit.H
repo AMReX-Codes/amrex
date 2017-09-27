@@ -498,8 +498,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
         RealSizeInFile = (ENDPOS - CURPOS) / (NP*(DM+NX));
 
-        std::cout << RealSizeInFile << std::endl;
-
         BL_ASSERT(RealSizeInFile == sizeof(float) || RealSizeInFile == sizeof(double));
         //
         // Now set stream back to earlier position.
@@ -613,15 +611,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                     {
                         ifs.read((char*)&fxtra[0], extradata*sizeof(float));
 
-                        for (int i = 0; i < extradata; i++)
-                            p.m_rdata.arr[BL_SPACEDIM+i] = fxtra[i];
+                        for (int ii = 0; ii < extradata; ii++)
+                            p.m_rdata.arr[BL_SPACEDIM+ii] = fxtra[ii];
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
                         ifs.read((char*)&dxtra[0], extradata*sizeof(double));
 
-                        for (int i = 0; i < extradata; i++)
-                            p.m_rdata.arr[BL_SPACEDIM+i] = dxtra[i];
+                        for (int ii = 0; ii < extradata; ii++)
+                            p.m_rdata.arr[BL_SPACEDIM+ii] = dxtra[ii];
                     }
                 }
                 //
@@ -866,7 +864,7 @@ InitRandom (long                    icount,
                 p.m_idata.cpu = MyProc;
 
                 for (int i = 0; i < NStructInt; i++) {
-                    p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                    p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
                 }
                 
                 // add the struct
@@ -922,13 +920,13 @@ InitRandom (long                    icount,
             p.m_idata.cpu = ParallelDescriptor::MyProc();
             
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
             
             // locate the particle
             if (!Where(p, pld))
             {
-                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell(): invalid particle");
+                amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom(): invalid particle");
             }
             BL_ASSERT(pld.m_lev >= 0 && pld.m_lev <= finestLevel());            
             std::pair<int, int> ind(pld.m_grid, pld.m_tile); 
@@ -1022,7 +1020,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             p.m_idata.cpu = ParallelDescriptor::MyProc();
             
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
 
             // locate the particle
@@ -1108,7 +1106,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
             p.m_idata.cpu = ParallelDescriptor::MyProc();
 
             for (int i = 0; i < NStructInt; i++) {
-                p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
             }
 
             // locate the particle
@@ -1195,7 +1193,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
                 p.m_idata.cpu = ParallelDescriptor::MyProc();
 
                 for (int i = 0; i < NStructInt; i++) {
-                    p.m_idata.arr[BL_SPACEDIM + i] = pdata.int_struct_data[i];
+                    p.m_idata.arr[2 + i] = pdata.int_struct_data[i];
                 }
 
                 // locate the particle

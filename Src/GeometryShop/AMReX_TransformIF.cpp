@@ -12,7 +12,6 @@
 
 #include "AMReX_PolyGeom.H"
 #include "AMReX_TransformIF.H"
-using std::vector;
 
 namespace amrex
 {
@@ -94,10 +93,10 @@ namespace amrex
     Real temp[SpaceDim+1][SpaceDim+1];
 
     // Set up a scaling vector
-    RealVect scale(D_DECL(a_scale,a_scale,a_scale));
+    RealVect rscale(D_DECL(a_scale,a_scale,a_scale));
 
     // Create the forward transformation matrix
-    matrixScale(temp,scale);
+    matrixScale(temp,rscale);
 
     // Update the overall forward transform
     matrixMultiply(m_transform,temp,m_transform);
@@ -118,10 +117,10 @@ namespace amrex
     Real temp[SpaceDim+1][SpaceDim+1];
 
     // Set up a scaling vector
-    RealVect scale = a_scale;
+    RealVect rscale = a_scale;
 
     // Create the forward transformation matrix
-    matrixScale(temp,scale);
+    matrixScale(temp,rscale);
 
     // Update the overall forward transform
     matrixMultiply(m_transform,temp,m_transform);
@@ -129,11 +128,11 @@ namespace amrex
     // Inverse scaling
     for (int idir = 0; idir < SpaceDim; idir++)
     {
-      scale[idir] = 1.0 / scale[idir];
+      rscale[idir] = 1.0 / rscale[idir];
     }
 
     // Create the inverse transformation matrix
-    matrixScale(temp,scale);
+    matrixScale(temp,rscale);
 
     // Update the overall inverse transform
     matrixMultiply(m_invTransform,m_invTransform,temp);

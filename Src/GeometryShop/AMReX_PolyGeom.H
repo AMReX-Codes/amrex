@@ -16,7 +16,7 @@
 #include "AMReX_REAL.H"
 #include "AMReX_RealVect.H"
 #include "AMReX_Tuple.H"
-#include <vector>
+#include "AMReX_Array.H"
 #include "AMReX_VolIndex.H"
 
 namespace amrex
@@ -107,8 +107,8 @@ namespace amrex
         //make them all unit vectors
         for (int itan = 0; itan < BL_SPACEDIM-1; itan++)
         {
-          Real sumSquare;
-          PolyGeom::unifyVector(a_tangen[itan], sumSquare);
+          Real tmpsumSquare;
+          PolyGeom::unifyVector(a_tangen[itan], tmpsumSquare);
         }
       }
 
@@ -256,13 +256,13 @@ namespace amrex
 
     // solve ax = b (gives icomp component of x using cramers rule).
     static Real
-    matrixSolveComp(const std::vector<std::vector<Real> >& a_A,
-                    const  std::vector<Real>& a_rhs,
+    matrixSolveComp(const Array<Array<Real> >& a_A,
+                    const  Array<Real>& a_rhs,
                     const int& a_icomp);
 
     //return the determinant of a
     static Real
-    determinant(const std::vector< std::vector<Real> >& a_A);
+    determinant(const Array< Array<Real> >& a_A);
 
     /**
        andzvolume computes the volume under
