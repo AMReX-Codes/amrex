@@ -3,6 +3,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Amr.H>
+#include <AMReX_EBTower.H>
 
 #include <CNS.H>
 
@@ -49,8 +50,9 @@ int main (int argc, char* argv[])
 
 	Amr amr;
 
-        //xxxxx This can be done in the constructor of Amr
+        //xxxxx maybe we should have armex::EBInitialize() and EBFinalize()
         initialize_EBIS(amr.maxLevel());
+        EBTower::Build();
 
 	amr.init(strt_time,stop_time);
 
@@ -79,6 +81,8 @@ int main (int argc, char* argv[])
 	if (amr.stepOfLastPlotFile() < amr.levelSteps(0)) {
 	    amr.writePlotFile();
 	}
+
+        EBTower::Destroy();
     }
 
     timer_tot = ParallelDescriptor::second() - timer_tot;
