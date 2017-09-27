@@ -15,8 +15,7 @@ namespace amrex
 {
   void BoxIterator::define (const Box& a_bx)
   {
-    // this algorithm breaks for screwy empty boxes
-    if (a_bx.smallEnd() <= a_bx.bigEnd())
+    if (a_bx.ok() && a_bx.smallEnd() <= a_bx.bigEnd())
       {
         m_current = a_bx.smallEnd();
         m_boxLo   = a_bx.smallEnd();

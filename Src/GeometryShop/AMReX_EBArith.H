@@ -12,7 +12,6 @@
 
 #ifndef _EBArith_H___
 #define _EBArith_H___
-#include <vector>
 #include "AMReX_VolIndex.H"
 #include "AMReX_EBISBox.H"
 #include "AMReX_Stencils.H"
@@ -44,6 +43,7 @@ namespace amrex
         return ivar*SpaceDim + gradDir;
       }
 
+                                         
     ///returns true if coarsenable (either by agglomeration or otherwise)
     static bool
     createCoarserEBLG(EBLevelGrid       &  a_eblgCoar,
@@ -84,7 +84,7 @@ namespace amrex
     ///for hyperbolics, heaven help us all.
     static
     void
-    computeCoveredFaces(vector<VolIndex>&     a_coveredFace,
+    computeCoveredFaces(Array<VolIndex>&     a_coveredFace,
                         IntVectSet&           a_coveredSets,
                         IntVectSet&           a_irregIVS,
                         const int&            a_idir,
@@ -116,14 +116,14 @@ namespace amrex
         monotone path of length <= than radius
     */
     static void
-    getAllVoFsInMonotonePath(std::vector<VolIndex>& a_vofList,
+    getAllVoFsInMonotonePath(Array<VolIndex>& a_vofList,
                              const VolIndex&   a_vof,
                              const EBISBox&    a_ebisBox,
                              const int&        a_redistRad);
 
     ///call the one above this.
     static void
-    getAllVoFsInMonotonePath(std::vector<VolIndex>& a_vofList,
+    getAllVoFsInMonotonePath(Array<VolIndex>& a_vofList,
                              const IntVect&    a_timesMoved,
                              const IntVect&    a_pathSign,
                              const VolIndex&   a_vof,
@@ -132,7 +132,7 @@ namespace amrex
 
     /// get neighbor vofs without regard to path
     static void
-    getAllVoFsWithinRadius(std::vector<VolIndex>& a_vofList,
+    getAllVoFsWithinRadius(Array<VolIndex>& a_vofList,
                            const VolIndex&   a_vof,
                            const EBISBox&    a_ebisBox,
                            const int&        a_redistRad);
@@ -207,11 +207,11 @@ namespace amrex
                                  int             a_ivar=0);
 
     ///for relaxation schemes.  good to have it in one place
-    static void getMultiColors(vector<IntVect>& a_colors);
+    static void getMultiColors(Array<IntVect>& a_colors);
 
     static bool
     isVoFHere(VolIndex& a_vof2,
-              const std::vector<VolIndex>& a_vofsStencil,
+              const Array<VolIndex>& a_vofsStencil,
               const IntVect& a_cell2);
     static void
     getLeastSquaresGradSten(VoFStencil&     a_stencil,
@@ -238,8 +238,8 @@ namespace amrex
 
     static void
     johanStencil(bool&               a_dropOrder,
-                 std::vector<VoFStencil>& a_pointStencils,
-                 std::vector<Real>&       a_distanceAlongLine,
+                 Array<VoFStencil>& a_pointStencils,
+                 Array<Real>&       a_distanceAlongLine,
                  const VolIndex&     a_vof,
                  const EBISBox&      a_ebisBox,
                  const RealVect&     a_dx,
@@ -248,8 +248,8 @@ namespace amrex
 
     static void
     johanStencil(bool&               a_dropOrder,
-                 std::vector<VoFStencil>& a_pointStencils,
-                 std::vector<Real>&       a_distanceAlongLine,
+                 Array<VoFStencil>& a_pointStencils,
+                 Array<Real>&       a_distanceAlongLine,
                  const RealVect&     a_normal,
                  const RealVect&     a_bndryCentroid,
                  const VolIndex&     a_vof,
@@ -273,8 +273,8 @@ namespace amrex
 
     static void
     dataRayCast(bool&               a_dropOrder,
-                std::vector<VoFStencil>& a_pointStencils,
-                std::vector<Real>&       a_distanceAlongLine,
+                Array<VoFStencil>& a_pointStencils,
+                Array<Real>&       a_distanceAlongLine,
                 const RealVect&     a_normal,
                 const RealVect&     a_bndryCentroid,
                 const VolIndex&     a_vof,
@@ -286,15 +286,15 @@ namespace amrex
 
     static void
     calculateWeightingMatrix(RealVect           x0,
-                             std::vector<RealVect>&  xp,
-                             std::vector<RealVect>&  weightMatrix,
+                             Array<RealVect>&  xp,
+                             Array<RealVect>&  weightMatrix,
                              bool&              detZero);
 
     static void
     calculateWeightingMatrixRed(RealVect           x00,
-                                std::vector<RealVect>&  xpp,
+                                Array<RealVect>&  xpp,
                                 IntVect            dimm,
-                                std::vector<RealVect>&  weightMatrix,
+                                Array<RealVect>&  weightMatrix,
                                 bool&              deadRed);
 
     static
@@ -307,7 +307,7 @@ namespace amrex
 
     static bool
     isVoFHere(VolIndex& a_vof2, int& a_whichVoF,
-              const std::vector<VolIndex>& a_vofsStencil,
+              const Array<VolIndex>& a_vofsStencil,
               const IntVect& a_cell2);
 
     static void

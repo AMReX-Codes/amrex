@@ -274,7 +274,7 @@ BaseFab<Real>::norm (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-    Real nrm;
+    Real nrm = 0.0;
 
     if (p == 0 || p == 1)
     {

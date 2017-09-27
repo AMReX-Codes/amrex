@@ -161,7 +161,12 @@ void RegionsProfStats::AddFunctionName(const std::string &fname, int fnumber) {
   if(mFNameNumbersPerProc.size() != dataNProcs) {
     mFNameNumbersPerProc.resize(dataNProcs);
   }
-  std::string fnameNQ(fname.substr(1, fname.length() - 2));
+  std::size_t found;
+  std::string fnameNQ(fname.substr(1, fname.length() - 2));  // ---- remove quotes
+  while((found = fnameNQ.find(" ")) != std::string::npos) {  // ---- replace spaces
+    fnameNQ.replace(found, 1, "_");
+  }
+
   std::map<std::string, int>::iterator mfnnit = mFNameNumbersPerProc[currentProc].find(fnameNQ);
   if(mfnnit == mFNameNumbersPerProc[currentProc].end()) {
     mFNameNumbersPerProc[currentProc].insert(std::pair<std::string, int>(fnameNQ, fnumber));
@@ -189,6 +194,7 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  RegionsProfStats::MakeRegionPlt only supported for 2D" << endl;
+  return TimeRange(0, 0);
 #else
   BL_PROFILE("RegionsProfStats::MakeRegionPlt()");
   int xLength(width), yHeight(height);
@@ -480,6 +486,7 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  RegionsProfStats::AllCallTimesFAB only supported in 2D." << endl;
+  return false;
 #else
 
   int whichFuncNameInt(-1);
@@ -612,7 +619,7 @@ void RegionsProfStats::CollectFuncStats(Array<Array<FuncStat> > &funcStats)
 
 // ----------------------------------------------------------------------
 void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
-                                    int whichProc)
+                                    int whichProc, bool graphTopPct)
 {
   if( ! ParallelDescriptor::IOProcessor()) {
     return;
@@ -625,6 +632,7 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
   for(int i(0); i < fNames.size(); ++i) {
     if(i >= 0) {
       fNames[i] = numbersToFName[i];
+      std::cout << "------------------:: fNames[" << i << "] = " << fNames[i] << std::endl;
     }
   }
 
@@ -687,7 +695,9 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
   std::map<std::string, BLProfiler::ProfStats> mProfStats;  // [fname, pstats]
   CollectMProfStats(mProfStats, funcStats, fNames, calcRunTime, whichProc);
 
-  GraphTopPct(mProfStats, funcStats, fNames, rangeRunTime, dataNProcs, gPercent);
+  if(graphTopPct) {
+    GraphTopPct(mProfStats, funcStats, fNames, rangeRunTime, dataNProcs, gPercent);
+  }
 
 #ifdef BL_TRACE_PROFILING
   MakeFuncPctTimesMF(funcStats, fNames, mProfStats, rangeRunTime, dataNProcs);
@@ -750,7 +760,7 @@ void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,
   csHTMLFile << '\n';
 
   csHTMLFile << "<h3>Function call times  "
-             << "(function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth)</h3>"
+             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth :: call time)</h3>"
 	     << '\n';
 
   csHTMLFile << "<ul>" << '\n';
@@ -991,7 +1001,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
   csHTMLFile << '\n';
 
   csHTMLFile << "<h3>Function calls "
-             << "(function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth)</h3>"
+             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth :: call time)</h3>"
 	     << '\n';
 
   csHTMLFile << "<ul>" << '\n';
@@ -1175,13 +1185,14 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
 }
 
 
-#define PRINTCSTT(IOS, CS) for(int indent(0); indent < CS.callStackDepth; ++indent) { IOS << "---|"; } IOS << "  " << CS.csFNameNumber \
-                           << "  " << fNumberNames[CS.csFNameNumber] << " :: " << CS.totalTime << " :: " << CS.stackTime \
-                           << " :: " << CS.nCSCalls  << " :: " << CS.callStackDepth << '\n';
+#define PRINTCSTT(IOS, CS, DEL) for(int indent(0); indent < CS.callStackDepth; ++indent) \
+    { IOS << "---|"; } IOS << DEL << CS.csFNameNumber \
+    << DEL << fNumberNames[CS.csFNameNumber] << DEL << CS.totalTime << DEL << CS.stackTime \
+    << DEL << CS.nCSCalls  << DEL << CS.callStackDepth << DEL << CS.callTime << '\n';
 
 // ----------------------------------------------------------------------
-void RegionsProfStats::WriteTextTrace(std::ostream &ios,
-                                      bool simpleCombine, int whichProc)
+void RegionsProfStats::WriteTextTrace(std::ostream &ios, bool simpleCombine,
+                                      int whichProc, std::string delimString)
 {
   Array<std::string> fNumberNames(mFNameNumbersPerProc[whichProc].size());
   for(std::map<std::string, int>::const_iterator it = mFNameNumbersPerProc[whichProc].begin();
@@ -1190,7 +1201,8 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios,
     fNumberNames[it->second] = it->first;
   }
 
-  ios << "Text Trace  (function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth)\n\n";
+  ios << "Text Trace  (function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth :: call time)\n\n";
+  ios << std::setprecision(16);
 
   if(simpleCombine) {
     BLProfiler::CallStats *combCallStats = 0;
@@ -1221,23 +1233,23 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios,
               }
 	    } else {
               if(combCallStats == 0) {
-	        PRINTCSTT(ios, cs);
+	        PRINTCSTT(ios, cs, delimString);
 	      } else {
                 combCallStats->nCSCalls  += cs.nCSCalls;
                 combCallStats->totalTime += cs.totalTime;
                 combCallStats->stackTime += cs.stackTime;
-	        PRINTCSTT(ios, (*combCallStats));
+	        PRINTCSTT(ios, (*combCallStats), delimString);
                 delete combCallStats;
                 combCallStats = 0;
               }
 	    }
 	  } else {
             if(combCallStats != 0) {
-	      PRINTCSTT(ios, (*combCallStats));
+	      PRINTCSTT(ios, (*combCallStats), delimString);
               delete combCallStats;
               combCallStats = 0;
             }
-	    PRINTCSTT(ios, cs);
+	    PRINTCSTT(ios, cs, delimString);
 	  }
         }
         ClearBlock(dBlock);
@@ -1256,7 +1268,7 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios,
 	  if(cs.callStackDepth < 0 || cs.csFNameNumber < 0) {
 	    continue;
 	  }
-	  PRINTCSTT(ios, cs);
+	  PRINTCSTT(ios, cs, delimString);
         }
         ClearBlock(dBlock);
       }

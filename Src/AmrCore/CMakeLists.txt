@@ -5,11 +5,14 @@ set (ALLHEADERS "")
 set (ALLSRC "")
 
 
-list ( APPEND CXXSRC      AMReX_AmrCore.cpp AMReX_Cluster.cpp AMReX_ErrorList.cpp )
+
+list ( APPEND CXXSRC      AMReX_AmrCore.cpp AMReX_Cluster.cpp AMReX_ErrorList.cpp ) 
 list ( APPEND ALLHEADERS  AMReX_AmrCore.H   AMReX_Cluster.H   AMReX_ErrorList.H )
+
 
 list ( APPEND CXXSRC      AMReX_FillPatchUtil.cpp AMReX_FluxRegister.cpp )
 list ( APPEND ALLHEADERS  AMReX_FillPatchUtil.H   AMReX_FluxRegister.H )
+
 
 list ( APPEND CXXSRC      AMReX_Interpolater.cpp AMReX_TagBox.cpp AMReX_AmrMesh.cpp )
 list ( APPEND ALLHEADERS  AMReX_Interpolater.H   AMReX_TagBox.H   AMReX_AmrMesh.H   )

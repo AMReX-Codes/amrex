@@ -98,7 +98,7 @@ namespace amrex
                   const Real     & a_dx) const;
 
     void
-    addIrregularNodes(std::vector<IrregNode>   & a_nodes,
+    addIrregularNodes(Array<IrregNode>   & a_nodes,
                       const BaseFab<int>       & a_numVolumes,
                       const IntVect            & a_iv,
                       const Box                & a_domain,
@@ -107,7 +107,7 @@ namespace amrex
     /**
     */
     virtual void fillGraph(BaseFab<int>&              a_regIrregCovered,
-                           std::vector<IrregNode>&    a_nodes,
+                           Array<IrregNode>&    a_nodes,
                            const Box&                 a_validRegion,
                            const Box&                 a_ghostRegion,
                            const Box&                 a_domain,

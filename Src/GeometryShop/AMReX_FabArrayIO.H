@@ -68,7 +68,7 @@ namespace amrex
 
 
     ///
-    FAIOElementVec(const vector<FAIOElement>& a_vec)
+    FAIOElementVec(const Array<FAIOElement>& a_vec)
       {
         m_vec = a_vec;
       }
@@ -96,7 +96,7 @@ namespace amrex
       }
 
     ///
-    vector<FAIOElement> m_vec;
+    Array<FAIOElement> m_vec;
 
   };
 
@@ -118,7 +118,7 @@ namespace amrex
     FAIOHeader(const FabArray<T> & a_data)
       {
         m_ba = a_data.boxArray();
-        vector<FAIOElement> localElements(a_data.local_size());
+        Array<FAIOElement> localElements(a_data.local_size());
         int ielem  = 0;
         int offset = 0;
 
@@ -135,7 +135,7 @@ namespace amrex
           offset += numBytesThisBox;
         }
         FAIOElementVec localVec(localElements);
-        vector<FAIOElementVec> allVecs;
+        Array<FAIOElementVec> allVecs;
         gather(allVecs, localVec, 0);
         FAIOElementVec globalVec;
         if(procID() == 0)
@@ -143,7 +143,7 @@ namespace amrex
           m_vecElem.resize(0);
           for(int ivec = 0; ivec < allVecs.size();  ivec++)
           {
-            const vector<FAIOElement>& onevec = allVecs[ivec].m_vec;
+            const Array<FAIOElement>& onevec = allVecs[ivec].m_vec;
             globalVec.m_vec.insert(globalVec.m_vec.end(), onevec.begin(), onevec.end());
           }
         }
@@ -158,7 +158,7 @@ namespace amrex
       }
 
     BoxArray                   m_ba;        
-    std::vector<FAIOElement>   m_vecElem;   
+    Array<FAIOElement>   m_vecElem;   
     int m_nComp;
   private:
 
@@ -204,7 +204,7 @@ namespace amrex
 
     //box array does not have proper ostream, istream functions.
     a_is >> bxsize;
-    vector<Box> boxes(bxsize);
+    Array<Box> boxes(bxsize);
     for(int ibox = 0; ibox < bxsize; ibox++)
     {
       a_is >> boxes[ibox];
@@ -306,7 +306,7 @@ namespace amrex
           dm = *dmPtr;
         }
 
-        a_data.define(header.m_ba, dm,  header.m_nComp, 0);
+        a_data.define(header.m_ba, dm,  header.m_nComp, 0, MFInfo(), DefaultFabFactory<T>());
 
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {

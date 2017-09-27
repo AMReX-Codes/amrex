@@ -73,11 +73,11 @@ TinyProfiler::stop ()
 	running = false;
 	Real t = ParallelDescriptor::second();
 
-	while (ttstack.size() > global_depth) {
+	while (static_cast<int>(ttstack.size()) > global_depth) {
 	    ttstack.pop();
 	};
 
-	if (ttstack.size() == global_depth)
+	if (static_cast<int>(ttstack.size()) == global_depth)
 	{
 	    const std::pair<Real,Real>& tt = ttstack.top();
 	    

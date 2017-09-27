@@ -82,10 +82,10 @@ namespace amrex
       IntVectSet ivsIrreg = ebis.getIrregIVS(grid);
       VoFIterator & vofit = m_vofit[mfi];
       vofit.define(ivsIrreg, ebis.getEBGraph());
-      const std::vector<VolIndex>& volvec = vofit.getVector();
+      const Array<VolIndex>& volvec = vofit.getVector();
 
       //destination vofs are the same for both open and boundary faces
-      std::vector< std::shared_ptr<BaseIndex  > > baseDstVoFs(volvec.size());
+      Array< std::shared_ptr<BaseIndex  > > baseDstVoFs(volvec.size());
       for(int ivec = 0; ivec < volvec.size(); ivec++)
       {
         baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&volvec[ivec]), &null_deleter_divs_ind);
@@ -94,8 +94,8 @@ namespace amrex
       //THIS IS NOT MEANT TO WORK IN CASES WHERE EMBEDDED BOUNDARIES CROSS COARSE FINE BOUNDARIES
       //first let us dal with the boundary flux stencil
       {
-        std::vector< std::shared_ptr<BaseStencil> > baseSten(volvec.size());
-        std::vector<VoFStencil> allvofsten(volvec.size());
+        Array< std::shared_ptr<BaseStencil> > baseSten(volvec.size());
+        Array<VoFStencil> allvofsten(volvec.size());
         for(int ivec = 0; ivec < volvec.size(); ivec++)
         {
           Real bndryArea = ebis.bndryArea(volvec[ivec]);
@@ -109,11 +109,18 @@ namespace amrex
         m_bdryStencil[mfi] = std::shared_ptr<AggStencil <IrregFAB, EBCellFAB>  >
           (new AggStencil<IrregFAB, EBCellFAB >(baseDstVoFs, baseSten, fluxProxy[mfi].getEBFlux(), cellProxy[mfi]));
       }
+
+      Real full_vol = 1;
+      for (int idir = 0; idir < SpaceDim; ++idir)
+      {
+        full_vol *= m_dx;
+      }
+      Real inv_vol = 1/full_vol;
       // now do open flux stencils for each face direction
       for(int idir = 0; idir < SpaceDim; idir++)
       {
-        std::vector< std::shared_ptr<BaseStencil> > baseSten(volvec.size());
-        std::vector<FaceStencil> allFaceSten(volvec.size());
+        Array< std::shared_ptr<BaseStencil> > baseSten(volvec.size());
+        Array<FaceStencil> allFaceSten(volvec.size());
         for(int ivec = 0; ivec < volvec.size(); ivec++)
         {
           
@@ -122,7 +129,7 @@ namespace amrex
           dirStencil.clear();
           for(SideIterator sit; sit.ok(); ++sit)
           {
-            vector<FaceIndex> faces = ebis.getFaces(vof, idir, sit());
+            Array<FaceIndex> faces = ebis.getFaces(vof, idir, sit());
             int isign = sign(sit());
             for(int iface = 0; iface < faces.size(); iface++)
             {
@@ -135,7 +142,7 @@ namespace amrex
               }
               else
               {
-                interpSten *= 1.0/(m_dx*m_dx);
+                interpSten *= isign * areaFrac * inv_vol;
               }
               dirStencil += interpSten;
             }
@@ -173,7 +180,7 @@ namespace amrex
       else
       {
         BaseFab<Real>       &  regDivF = divF.getSingleValuedFAB();
-        vector<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
+        Array<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
         for(int idir = 0; idir < SpaceDim; idir++)
         {
           regFlux[idir] = &(flux[idir].getSingleValuedFAB());

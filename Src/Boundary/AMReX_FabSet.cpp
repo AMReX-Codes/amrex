@@ -14,13 +14,13 @@ FabSet::FabSet () {}
 
 FabSet::FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp)
     :
-    m_mf(grids,dmap,ncomp,0)
+    m_mf(grids,dmap,ncomp,0,MFInfo(),FArrayBoxFactory())
 {}
 
 void
 FabSet::define (const BoxArray& grids, const DistributionMapping& dm, int ncomp)
 {
-    m_mf.define(grids, dm, ncomp, 0);
+    m_mf.define(grids, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
 }
 
 FabSet&
@@ -145,8 +145,8 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     BL_ASSERT(mfa.boxArray() == mfb.boxArray());
     BL_ASSERT(boxArray() != mfa.boxArray());
 
-    MultiFab bdrya(boxArray(),DistributionMap(),ncomp,0);
-    MultiFab bdryb(boxArray(),DistributionMap(),ncomp,0);
+    MultiFab bdrya(boxArray(),DistributionMap(),ncomp,0,MFInfo(),FArrayBoxFactory());
+    MultiFab bdryb(boxArray(),DistributionMap(),ncomp,0,MFInfo(),FArrayBoxFactory());
 
 #ifdef _OPENMP
 #pragma omp parallel

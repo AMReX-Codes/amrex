@@ -1,0 +1,1 @@
+-Make the graph instantiation NUMA aware (important when there are tasks that allocate data)

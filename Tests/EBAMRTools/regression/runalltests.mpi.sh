@@ -1,6 +1,6 @@
 #!/bin/csh
 echo       'regression/compile'
-make -j10 all USE_MPI=TRUE;
+make -j10  USE_MPI=TRUE;
 echo       'regression/aggpwlfp 1 proc'
 mpirun -np 1 ./aggpwlfpTest2d.gnu.DEBUG.MPI.ex aggpwlfp.inputs | grep -i test;
 echo       'regression/aggpwlfp 2 proc'

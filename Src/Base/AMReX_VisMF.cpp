@@ -443,54 +443,54 @@ VisMF::boxArray () const
 
 Real
 VisMF::min (int fabIndex,
-            int nComp) const
+            int nc) const
 {
     BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
-    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(0 <= nc && nc < m_hdr.m_ncomp);
 
     if(m_hdr.m_min.size() == 0) {  // ---- these were not in the header
       return std::numeric_limits<int>::max();
     }
 
-    return m_hdr.m_min[fabIndex][nComp];
+    return m_hdr.m_min[fabIndex][nc];
 }
 
 Real
-VisMF::min (int nComp) const
+VisMF::min (int nc) const
 {
-    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(0 <= nc && nc < m_hdr.m_ncomp);
 
     if(m_hdr.m_famin.size() == 0) {  // ---- these were not in the header
       return std::numeric_limits<int>::max();
     }
 
-    return m_hdr.m_famin[nComp];
+    return m_hdr.m_famin[nc];
 }
 
 Real
 VisMF::max (int fabIndex,
-            int nComp) const
+            int nc) const
 {
     BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
-    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(0 <= nc && nc < m_hdr.m_ncomp);
 
     if(m_hdr.m_max.size() == 0) {  // ---- these were not in the header
       return -std::numeric_limits<int>::max();
     }
 
-    return m_hdr.m_max[fabIndex][nComp];
+    return m_hdr.m_max[fabIndex][nc];
 }
 
 Real
-VisMF::max (int nComp) const
+VisMF::max (int nc) const
 {
-    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(0 <= nc && nc < m_hdr.m_ncomp);
 
     if(m_hdr.m_famax.size() == 0) {  // ---- these were not in the header
       return -std::numeric_limits<int>::max();
     }
 
-    return m_hdr.m_famax[nComp];
+    return m_hdr.m_famax[nc];
 }
 
 const FArrayBox&
@@ -1217,9 +1217,9 @@ VisMF::RemoveFiles(const std::string &mf_name, bool verbose)
         if(verbose) {
           std::cout << "---- removing:  " << fileName << std::endl;
 	}
-        int retVal(std::remove(fileName.c_str()));
+        int rv(std::remove(fileName.c_str()));
         if(verbose) {
-          if(retVal != 0) {
+          if(rv != 0) {
             std::cout << "---- error removing:  " << fileName << "  errno = "
 	              << strerror(errno) << std::endl;
           }
@@ -1246,11 +1246,11 @@ VisMF::VisMF (const std::string &fafab_name)
 
     m_pa.resize(m_hdr.m_ncomp);
 
-    for(int nComp(0); nComp < m_pa.size(); ++nComp) {
-        m_pa[nComp].resize(m_hdr.m_ba.size());
+    for(int n(0); n < m_pa.size(); ++n) {
+        m_pa[n].resize(m_hdr.m_ba.size());
 
-        for(int ii(0), N(m_pa[nComp].size()); ii < N; ++ii) {
-            m_pa[nComp][ii] = 0;
+        for(int ii(0), N(m_pa[n].size()); ii < N; ++ii) {
+            m_pa[n][ii] = 0;
         }
     }
 }
@@ -1387,7 +1387,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     if (mf.empty()) {
 	DistributionMapping dm(hdr.m_ba);
-	mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow);
+	mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), FArrayBoxFactory());
     } else {
 	BL_ASSERT(amrex::match(hdr.m_ba,mf.boxArray()));
     }
@@ -1471,7 +1471,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         std::cout << "VisMF::Read:  not inFileOrder" << std::endl;
       }
       // ---- make a temporary fabarray in file order
-      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow);
+      fafabFileOrder.define(baFileOrder, dmFileOrder, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), mf.Factory());
     }
 
     FabArray<FArrayBox> &whichFA = inFileOrder ? mf : fafabFileOrder;
@@ -1606,7 +1606,6 @@ VisMF::Read (FabArray<FArrayBox> &mf,
   } else {    // ---- (noFabHeader && useSynchronousReads) == false
 
     int nReqs(0), ioProcNum(coordinatorProc);
-    int myProc(ParallelDescriptor::MyProc());
     int nBoxes(hdr.m_ba.size());
     int totalIOReqs(nBoxes), nFiles(-1);
     std::vector<int> iDone(2);
@@ -1751,7 +1750,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       std::vector<int> recReads(nReqs, -1);
       while(nReqs > 0) {
         rmess = ParallelDescriptor::Recv(recReads, ioProcNum, readTag);
-        for(int ir(0); ir < rmess.count(); ++ir) {
+        for(int ir(0); ir < static_cast<int>(rmess.count()); ++ir) {
 	  int mfIndex(recReads[ir]);
 	  VisMF::readFAB(mf,mfIndex, mf_name, hdr);
 	}
@@ -1793,6 +1792,20 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 }
 
 
+bool
+VisMF::Exist (const std::string& mf_name)
+{
+    std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
+    int exist;
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ifstream iss;
+        iss.open(FullHdrFileName.c_str(), std::ios::in);
+        exist = iss.good();
+    }
+    ParallelDescriptor::Bcast(&exist, 1, ParallelDescriptor::IOProcessorNumber());
+    return exist;
+}
+
 void
 VisMF::ReadFAHeader (const std::string &fafabName,
 	             Array<char> &faHeader)
@@ -1821,11 +1834,11 @@ VisMF::Check (const std::string& mf_name)
     std::string FullHdrFileName(mf_name);
     FullHdrFileName += TheMultiFabHdrFileSuffix;
 
-    std::ifstream ifs(FullHdrFileName.c_str());
-
-    ifs >> hdr;
-
-    ifs.close();
+    {
+        std::ifstream ifs(FullHdrFileName.c_str());
+        ifs >> hdr;
+        ifs.close();
+    }
 
     std::cout << "hdr.version =  " << hdr.m_vers << std::endl;
     std::cout << "hdr.boxarray size =  " << hdr.m_ba.size() << std::endl;

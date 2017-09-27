@@ -32,6 +32,10 @@ else
 endif
 #	@echo SUCCESS
 
+ifdef CRAY_CPU_TARGET
+	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="
+endif
+
 ifeq ($(USE_PROFPARSER),TRUE)
 BLProfParser.tab.H BLProfParser.tab.cpp: $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y
 	cat $(AMREX_HOME)/Src/Extern/ProfParser/BLProfParser.y $(SED0) $(SED1) > BLProfParserNC.y

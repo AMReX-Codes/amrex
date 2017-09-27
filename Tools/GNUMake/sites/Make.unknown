@@ -4,6 +4,7 @@
 
 os_type := $(shell uname)
 
+ifneq ($(NO_MPI_CHECKING),TRUE)
 ifeq ($(USE_MPI),TRUE)
 
   CXX := mpicxx
@@ -46,8 +47,10 @@ ifeq ($(USE_MPI),TRUE)
 
   else
 
-    $(error unknown mpi implementation)
+    $(error Unknown mpi implementation.  You can try setting MPI stuff in amrex/Tools/GNUMake/Make.local and then compile with NO_MPI_CHECKING=TRUE.)
 
   endif
 
 endif
+endif
+

@@ -78,7 +78,8 @@ class RegionsProfStats : public BLProfStats {
                             int width, int height,
 			    amrex::Array<amrex::Array<amrex::Box>> &regionBoxes);
     virtual void CollectFuncStats(amrex::Array<amrex::Array<FuncStat> > &funcStats);
-    virtual void WriteSummary(std::ostream &os, bool bwriteavg = false, int whichProc = 0);
+    virtual void WriteSummary(std::ostream &os, bool bwriteavg = false, int whichProc = 0,
+                              bool graphTopPct = true);
     bool AllCallTimesFAB(amrex::FArrayBox &actFab, const std::string &whichFuncName);
     void FillAllCallTimes(amrex::Array<amrex::Array<Real> > &allCallTimes,
                           const std::string whichFuncName,
@@ -100,7 +101,8 @@ class RegionsProfStats : public BLProfStats {
     void CreateVCallStats(CallTreeNode &callTree,
                           amrex::Array<amrex::BLProfiler::CallStats> &vCallStatsNC);
     void WriteHTMLNC(std::ostream &os, int whichProc = 0);
-    void WriteTextTrace(std::ostream &os, bool simpleCombine = true, int whichProc = 0);
+    void WriteTextTrace(std::ostream &os, bool simpleCombine = true, int whichProc = 0,
+                        std::string delimString = "\t");
 
     static const amrex::Array<std::string> &GetHeaderFileNames() { return regHeaderFileNames; }
     const amrex::Array<std::string> &NumbersToFName() const { return numbersToFName; }

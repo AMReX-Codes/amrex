@@ -22,6 +22,7 @@
 #include "AMReX_FaceIndex.H"
 #include "AMReX_IrregNode.H"
 #include "AMReX_GraphNode.H"
+#include "AMReX_EBCellFlag.H"
 
 namespace amrex
 {
@@ -54,9 +55,6 @@ namespace amrex
 
     
     ///
-    static bool preAllocatable () { return false; }
-
-    ///
     /**
        Makes an EBGraphImplem whose contents are undefined.
     */
@@ -75,7 +73,7 @@ namespace amrex
     /**
        Return the VoFs in the cell.
     */
-    std::vector<VolIndex> getVoFs(const IntVect& a_iv) const;
+    Array<VolIndex> getVoFs(const IntVect& a_iv) const;
         
     ///
     /**
@@ -100,6 +98,7 @@ namespace amrex
        Return true if a_iv is an irregular cell.
     */
     bool isIrregular(const IntVect& a_iv) const;
+
         
     ///
     /**
@@ -132,12 +131,12 @@ namespace amrex
        Return the faces on the side and direction
        of the input VoF.
     */
-    std::vector<FaceIndex> getFaces(const VolIndex& a_vof,
+    Array<FaceIndex> getFaces(const VolIndex& a_vof,
                                     const int& a_idir,
                                     const Side::LoHiSide& a_sd) const;
         
     ///
-    std::vector<std::vector<VolIndex> >  getVoFSets(const Box& a_region) const;
+    Array<Array<VolIndex> >  getVoFSets(const Box& a_region) const;
         
     ///
     /**
@@ -145,7 +144,7 @@ namespace amrex
        EBGraphImplem (factor of two refinement).  The result is only
        defined if this {\tt EBGraphImplem} was defined by coarsening.
     */
-    std::vector<VolIndex> refine(const VolIndex& a_coarVoF) const;
+    Array<VolIndex> refine(const VolIndex& a_coarVoF) const;
         
     ///
     /**
@@ -153,7 +152,7 @@ namespace amrex
        EBGraphImplem (factor of two refinement).  The result is only
        defined if this {\tt EBGraphImplem} was defined by coarsening.
     */
-    std::vector<FaceIndex> refine(const FaceIndex& a_coarFace, const EBGraphImplem& a_fineGraph) const;
+    Array<FaceIndex> refine(const FaceIndex& a_coarFace, const EBGraphImplem& a_fineGraph) const;
         
     ///
     /**
@@ -188,7 +187,7 @@ namespace amrex
     */
     void
     buildGraph(const BaseFab<int>&      a_regIrregCovered,
-               const std::vector<IrregNode>& a_irregGraph,
+               const Array<IrregNode>& a_irregGraph,
                const Box&               a_validRegion,
                const Box&     a_domain);
         
@@ -296,7 +295,7 @@ namespace amrex
                          const Box    & a_coarRegion) const;
         
     //don't ask
-    std::vector<int>
+    Array<int>
     coarsenFaces(const VolIndex&       a_coarVoF,
                  const EBGraphImplem&        a_fineGraph,
                  const int&            a_idir,
@@ -312,13 +311,10 @@ namespace amrex
     IntVectSet getMultiCells(const Box& a_subbox) const;
         
     ///
-    std::vector<FaceIndex>
+    Array<FaceIndex>
     getAllFaces(const IntVect& a_iv,
                 const int& a_idir,
                 const Side::LoHiSide& a_sd) const;
-        
-    std::vector<FaceIndex>
-    getIrregFaces(const Box& a_box, int a_dir) const;
         
     ///
     /**
@@ -349,14 +345,14 @@ namespace amrex
                             const Box &      a_region) const;
         
     ///
-    std::vector<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box, const EBGraph& a_ebgraph) const;
+    Array<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box, const EBGraph& a_ebgraph) const;
         
     //bool operator<(const EBGraphImplem& ebiin) const;
         
         
     int numVoFs(const IntVect& a_iv) const
       {
-        std::vector<VolIndex> vofs = getVoFs(a_iv);
+        Array<VolIndex> vofs = getVoFs(a_iv);
         return vofs.size();
       }
     const IntVectSet& getAllIrregCells() const
@@ -372,8 +368,30 @@ namespace amrex
       {
         return m_fullRegion;
       }
+
+    const EBCellFlagFab& getEBCellFlagFab() const
+      {
+        return m_cellFlags;
+      }
+
+    //for debugging
+    static bool s_verbose;
+
+  ///    
+  Array<VolIndex>
+  getVoFs (const VolIndex& a_vof,
+           const int& a_dir,
+           const Side::LoHiSide& a_sd,
+           const int& a_steps) const;
   private:
 
+    void setCellFlags();
+
+    void fixCellFlagType();
+
+    ///
+    EBCellFlagFab m_cellFlags;
+    
     ///for serialization
     GraphNode getGraphNode(const IntVect& a_iv) const;
 
@@ -392,7 +410,7 @@ namespace amrex
        the BaseFab below is undefined.
     */
     TAG m_tag;
-        
+
     ///
     /**
        the graph description of the box.
@@ -421,14 +439,8 @@ namespace amrex
         
   private:
         
-    void operator=(const EBGraphImplem& ebiin)
-      {
-        
-      }
-    EBGraphImplem(const EBGraphImplem& ebiin)
-      {
-        
-      }
+    void operator=(const EBGraphImplem& ebiin) = delete;
+    EBGraphImplem(const EBGraphImplem& ebiin) = delete;
         
     friend class EBIndexSpace;
     friend class EBISLevel;
@@ -468,6 +480,8 @@ namespace amrex
         
     ///
     ~EBGraph();
+
+    EBGraph (EBGraph&& rhs) noexcept = default;
         
     ///
     /**
@@ -485,7 +499,7 @@ namespace amrex
     /**
        Return the VoFs in the cell.
     */
-    std::vector<VolIndex> getVoFs(const IntVect& a_iv) const;
+    Array<VolIndex> getVoFs(const IntVect& a_iv) const;
         
     int numVoFs(const IntVect& a_iv) const
       {
@@ -496,6 +510,12 @@ namespace amrex
     Box getFullRegion() const
       {
         return m_implem->getFullRegion();
+      }
+
+    ///
+    const EBCellFlagFab& getEBCellFlagFab() const
+      {
+        return m_implem->getEBCellFlagFab();
       }
 
     ///
@@ -553,19 +573,19 @@ namespace amrex
        Return the faces on the side and direction
        of the input VoF.
     */
-    std::vector<FaceIndex> getFaces(const VolIndex& a_vof,
+    Array<FaceIndex> getFaces(const VolIndex& a_vof,
                                     const int& a_idir,
                                     const Side::LoHiSide& a_sd) const;
         
     ///
-    std::vector<std::vector<VolIndex> >  getVoFSets(const Box& a_region) const;
+    Array<Array<VolIndex> >  getVoFSets(const Box& a_region) const;
     ///
     /**
        Returns the corresponding set of VoFs from the next finer
        EBGraph (factor of two refinement).  The result is only
        defined if this {\tt EBGraph} was defined by coarsening.
     */
-    std::vector<VolIndex> refine(const VolIndex& a_coarVoF) const;
+    Array<VolIndex> refine(const VolIndex& a_coarVoF) const;
         
     ///
     /**
@@ -573,7 +593,7 @@ namespace amrex
        EBGraph (factor of two refinement).  The result is only
        defined if this {\tt EBGraph} was defined by coarsening.
     */
-    std::vector<FaceIndex> refine(const FaceIndex& a_coarFace, const EBGraph& a_fineGraph) const;
+    Array<FaceIndex> refine(const FaceIndex& a_coarFace, const EBGraph& a_fineGraph) const;
         
     ///
     /**
@@ -619,7 +639,7 @@ namespace amrex
     */
     void
     buildGraph(const BaseFab<int>&      a_regIrregCovered,
-               const std::vector<IrregNode>& a_irregGraph,
+               const Array<IrregNode>& a_irregGraph,
                const Box&               a_validRegion,
                const Box&     a_domain);
         
@@ -700,6 +720,16 @@ namespace amrex
       }
         
 
+    ///    
+    Array<VolIndex>
+    getVoFs (const VolIndex& a_vof,
+             const int& a_dir,
+             const Side::LoHiSide& a_sd,
+             const int& a_steps) const
+      {
+        return m_implem->getVoFs(a_vof, a_dir, a_sd, a_steps);
+      }
+
     /// this is for copy and fillboundary where the meta data has already been filled
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
       {
@@ -736,7 +766,18 @@ namespace amrex
       {
         return m_implem->nBytesFull();
       }
-        
+
+    ///
+    bool hasIrregular(const Box& a_box) const
+      {
+        bool retval = true;
+        if(isRegular(a_box) || isCovered(a_box))
+        {
+          retval = false;
+        }
+        return retval;
+      }
+
     ///
     const Box& getRegion() const;
         
@@ -765,7 +806,7 @@ namespace amrex
                          const Box    & a_coarRegion) const;
         
     //don't ask
-    std::vector<int>
+    Array<int>
     coarsenFaces(const VolIndex&       a_coarVoF,
                  const EBGraph&        a_fineGraph,
                  const int&            a_idir,
@@ -787,14 +828,10 @@ namespace amrex
     EBGraph(const EBGraph& a_ebiin);
         
     ///
-    std::vector<FaceIndex>
+    Array<FaceIndex>
     getAllFaces(const IntVect& a_iv,
                 const int& a_idir,
                 const Side::LoHiSide& a_sd) const;
-        
-    ///
-    std::vector<FaceIndex>
-    getIrregFaces(const Box& a_box, int a_dir) const;
         
     void fillMask(BaseFab<char>& a_mask) const;
         
@@ -809,12 +846,12 @@ namespace amrex
         
     ///
     /**
-       This resizes the BaseFab to cover the input region
+       This sets the  BaseFab on the input region to
        1 = regular
        0 = irregular
        -1 = covered
-
        2 outside the domain
+       This does NOT resize the basefab (it was not thread safe to do so).
     */
     void fillIntMask(BaseFab<int>& a_mask,
                      const Box   & a_subbox) const;
@@ -842,10 +879,11 @@ namespace amrex
                             const Box&    a_region) const;
         
     ///
-    std::vector<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box) const;
+    Array<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box) const;
         
     ///
     static bool preAllocatable () { return false; }
+    static bool isCopyOMPSafe () { return false; }
         
   private:
         
@@ -871,7 +909,7 @@ namespace amrex
         
   inline void
   EBGraph::buildGraph(const BaseFab<int>&      a_regIrregCovered,
-                      const std::vector<IrregNode>& a_irregGraph,
+                      const Array<IrregNode>& a_irregGraph,
                       const Box&               a_validRegion,
                       const Box&     a_domain)
   {
@@ -913,7 +951,7 @@ namespace amrex
     return m_implem->getIrregCells(a_subbox);
   }
   /*******************************/
-  inline std::vector<VolIndex> EBGraph::getVoFs(const IntVect& a_iv) const
+  inline Array<VolIndex> EBGraph::getVoFs(const IntVect& a_iv) const
   {
     return m_implem->getVoFs(a_iv);
   }
@@ -958,7 +996,7 @@ namespace amrex
     return m_implem->isRegular(a_box);
   }
   /*******************************/
-  inline std::vector<FaceIndex>
+  inline Array<FaceIndex>
   EBGraph::getFaces(const VolIndex& a_vof,
                     const int& a_idir,
                     const Side::LoHiSide& a_sd) const
@@ -966,13 +1004,13 @@ namespace amrex
     return m_implem->getFaces(a_vof, a_idir, a_sd);
   }
   /*******************************/
-  inline std::vector<VolIndex>
+  inline Array<VolIndex>
   EBGraph::refine(const VolIndex& a_coarVoF) const
   {
     return m_implem->refine(a_coarVoF);
   }
   /*******************************/
-  inline std::vector<FaceIndex>
+  inline Array<FaceIndex>
   EBGraph::refine(const FaceIndex& a_coarFace, const EBGraph& a_fineGraph) const
   {
     return m_implem->refine(a_coarFace, *a_fineGraph.m_implem);
@@ -1038,7 +1076,7 @@ namespace amrex
     m_implem->fixFineToCoarse(*a_fineEBIS.m_implem, a_coarRegion);
   }
   /*******************************/
-  inline std::vector<FaceIndex>
+  inline Array<FaceIndex>
   EBGraph::getAllFaces(const IntVect& a_iv,
                        const int& a_idir,
                        const Side::LoHiSide& a_sd) const

@@ -5,12 +5,15 @@
 
 namespace amrex {
 
+int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
+
 MFIter::MFIter (const FabArrayBase& fabarray_, 
 		unsigned char       flags_)
     :
     fabArray(fabarray_),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
+    dynamic(false),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -26,6 +29,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
+    dynamic(false),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -42,6 +46,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     fabArray(fabarray_),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
+    dynamic(false),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -53,10 +58,13 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_)
     :
-    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0, MFInfo().SetAlloc(false))),
+    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0,
+                                 MFInfo().SetAlloc(false),
+                                 FArrayBoxFactory())),
     fabArray(*m_fa),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
+    dynamic(false),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -68,10 +76,13 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
 
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling_)
     :
-    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0, MFInfo().SetAlloc(false))),
+    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0,
+                                 MFInfo().SetAlloc(false),
+                                 FArrayBoxFactory())),
     fabArray(*m_fa),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
+    dynamic(false),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -85,16 +96,45 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
                 const IntVect& tilesize_, unsigned char flags_)
     :
-    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0, MFInfo().SetAlloc(false))),
+    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0,
+                                 MFInfo().SetAlloc(false),
+                                 FArrayBoxFactory())),
     fabArray(*m_fa),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
+    dynamic(false),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
+    Initialize();
+}
+
+
+MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
+    :
+    fabArray(fabarray_),
+    tile_size(info.tilesize),
+    flags(info.do_tiling ? Tiling : 0),
+    dynamic(info.dynamic),
+    index_map(nullptr),
+    local_index_map(nullptr),
+    tile_array(nullptr),
+    local_tile_index_map(nullptr),
+    num_local_tiles(nullptr)
+{
+    if (dynamic) {
+#ifdef _OPENMP
+#pragma omp single
+        nextDynamicIndex = omp_get_num_threads();
+        // yes omp single has an implicit barrier and we need it because nextDynamicIndex is static.
+#else
+        dynamic = false;  // dynamic doesn't make sense if OMP is not used.
+#endif
+    }
+
     Initialize();
 }
 
@@ -172,17 +212,24 @@ MFIter::Initialize ()
 	int nthreads = omp_get_num_threads();
 	if (nthreads > 1)
 	{
-	    int tid = omp_get_thread_num();
-	    int ntot = endIndex - beginIndex;
-	    int nr   = ntot / nthreads;
-	    int nlft = ntot - nr * nthreads;
-	    if (tid < nlft) {  // get nr+1 items
-		beginIndex += tid * (nr + 1);
-		endIndex = beginIndex + nr + 1;
-	    } else {           // get nr items
-		beginIndex += tid * nr + nlft;
-		endIndex = beginIndex + nr;
-	    }	    
+            if (dynamic)
+            {
+                beginIndex = omp_get_thread_num();
+            }
+            else
+            {
+                int tid = omp_get_thread_num();
+                int ntot = endIndex - beginIndex;
+                int nr   = ntot / nthreads;
+                int nlft = ntot - nr * nthreads;
+                if (tid < nlft) {  // get nr+1 items
+                    beginIndex += tid * (nr + 1);
+                    endIndex = beginIndex + nr + 1;
+                } else {           // get nr items
+                    beginIndex += tid * nr + nlft;
+                    endIndex = beginIndex + nr;
+                }
+            }
 	}
 #endif
 

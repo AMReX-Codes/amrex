@@ -10,6 +10,7 @@
  */
 
 
+#include "AMReX_IntVect.H"
 #include "AMReX_GeometryService.H"
 
 namespace amrex
@@ -23,7 +24,7 @@ namespace amrex
   }
 
   bool GeometryService::isIrregular(const Box&           a_region,
-                                    const Box& a_domain,
+                                    const Box&           a_domain,
                                     const RealVect&      a_origin,
                                     const Real&          a_dx) const
   {
@@ -36,7 +37,7 @@ namespace amrex
   }
 
   GeometryService::InOut GeometryService::InsideOutside(const Box&           a_region,
-                                                        const Box& a_domain,
+                                                        const Box&           a_domain,
                                                         const RealVect&      a_origin,
                                                         const Real&          a_dx) const
   {

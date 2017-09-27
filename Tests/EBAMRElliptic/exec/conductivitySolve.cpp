@@ -116,6 +116,29 @@ namespace amrex
     return eekflag;
   }
   //----------------
+  void setPhi(FabArray<EBCellFAB>& a_phi,
+              const EBLevelGrid  & a_eblg,
+              const Real         & a_dx)
+
+  {
+    static const Real pi = 4.0*atan(1.0);
+    for(MFIter mfi(a_eblg.getDBL(), a_eblg.getDM()); mfi.isValid(); ++mfi)
+    {
+      const Box    & grid = a_eblg.getDBL()[mfi];
+      const EBISBox& ebis = a_eblg.getEBISL()[mfi];
+      a_phi[mfi].setVal(0.);
+      IntVectSet ivs(grid);
+      for(VoFIterator vofit(ivs, ebis.getEBGraph()); vofit.ok(); ++vofit)
+      {
+        const IntVect& iv = vofit().gridIndex();
+        Real x = a_dx*(iv[0]+0.5);
+        Real y = a_dx*(iv[1]+0.5);
+        Real val = sin(pi*x)*sin(pi*y);
+        a_phi[mfi](vofit(), 0) = val;
+      }
+    }
+  }
+//----------------
   void defineConductivitySolver(AMREBMultiGrid<FabArray<EBCellFAB> >& a_solver,
                                 const vector<EBLevelGrid>         & a_veblg,
                                 const GridParameters              & a_params,
@@ -187,15 +210,15 @@ namespace amrex
       EBCellFactory cellfact(a_veblg[ilev].getEBISL());
       EBFluxFactory fluxfact(a_veblg[ilev].getEBISL());
 
-      acoef[ilev] = shared_ptr<FabArray<EBCellFAB> >(new FabArray<EBCellFAB>(ba, dm, 1, 0, MFInfo(), cellfact));
-      bcoef[ilev] = shared_ptr<FabArray<EBFluxFAB> >(new FabArray<EBFluxFAB>(ba, dm, 1, 0, MFInfo(), fluxfact));
+      acoef[ilev] = shared_ptr<FabArray<EBCellFAB> >(new FabArray<EBCellFAB>(ba, dm, 1, a_nghost, MFInfo(), cellfact));
+      bcoef[ilev] = shared_ptr<FabArray<EBFluxFAB> >(new FabArray<EBFluxFAB>(ba, dm, 1, a_nghost, MFInfo(), fluxfact));
       
       EBLevelDataOps::setVal(*acoef[ilev], acoefval);
       EBLevelDataOps::setVal(*bcoef[ilev], bcoefval);
     }
     
     EBConductivityOpFactory factory(a_veblg, alpha, beta, acoef, bcoef, a_params.coarsestDx, a_params.refRatio,
-                                    domainBCFact, ebBCFact, a_nghost, a_nghost);
+                                    domainBCFact, ebBCFact, a_nghost);
 
     EBSimpleSolver* simple = new EBSimpleSolver();
     int num_smooth_bottom = 10;
@@ -205,6 +228,19 @@ namespace amrex
 
     AMRLevelOpFactory<FabArray<EBCellFAB> >* factptr = static_cast<AMRLevelOpFactory<FabArray<EBCellFAB> >* >(&factory);
     a_solver.define(a_params.coarsestDomain,*factptr, bottomSolverPtr, a_params.refRatio, enableLevelSolves, numLevels);
+
+    int numSmooth, numMG, maxIter;
+    Real eps, hang;
+    pp.get("num_smooth", numSmooth);
+    pp.get("num_mg",     numMG);
+    pp.get("max_iterations", maxIter);
+    pp.get("tolerance", eps);
+    pp.get("hang",      hang);
+    Real normThresh = 1.0e-30;
+    a_solver.setSolverParameters(numSmooth, numSmooth, numSmooth,
+                                 numMG, maxIter, eps, hang, normThresh);
+    a_solver.m_verbosity = 5;
+
   }
   //----------------
   int conjuctionJunction()
@@ -212,39 +248,39 @@ namespace amrex
     GridParameters params;
 
     getGridParameters(params);
-    makeGeometry(params);
-    std::vector<EBLevelGrid> eblg;
-    getAllIrregEBLG(eblg, params);
-    for(int ilev = 0; ilev < eblg.size(); ilev ++)
-    {
-      amrex::Print() << "grids[" << ilev << "] = " << eblg[ilev].getDBL() << endl;
-    }
-
     int eekflag = makeGeometry(params);
     if(eekflag != 0) return eekflag;
 
     std::vector<EBLevelGrid> veblg;
     getAllIrregEBLG(veblg, params);
+    for(int ilev = 0; ilev < veblg.size(); ilev ++)
+    {
+      amrex::Print() << "grids[" << ilev << "] = " << veblg[ilev].getDBL() << endl;
+    }
 
     int nvar = 1; int nghost = 4;
     vector<FabArray<EBCellFAB>* > phi(veblg.size(), NULL);
     vector<FabArray<EBCellFAB>* > rhs(veblg.size(), NULL);
+    Real dxLev = params.coarsestDx;
     for(int ilev = 0; ilev < veblg.size(); ilev++)
     {
       EBCellFactory fact(veblg[ilev].getEBISL());
       phi[ilev] = new FabArray<EBCellFAB>(veblg[ilev].getDBL(), veblg[ilev].getDM(), nvar, nghost, MFInfo(), fact);
       rhs[ilev] = new FabArray<EBCellFAB>(veblg[ilev].getDBL(), veblg[ilev].getDM(), nvar, nghost, MFInfo(), fact);
-      EBLevelDataOps::setVal(*phi[ilev], 0.0);
+      setPhi(*phi[ilev], veblg[ilev], dxLev);
       EBLevelDataOps::setVal(*rhs[ilev], 1.0);
+      dxLev /= params.refRatio[ilev];
     }
 
     AMREBMultiGrid<FabArray<EBCellFAB> > solver;
     defineConductivitySolver(solver, veblg, params, nghost);
     int lbase = 0; int lmax = params.maxLevel;
 
-    solver.solve(phi, rhs, lbase, lmax);
+    bool zeroPhi = false;
+    solver.solve(phi, rhs, lmax, lbase,  zeroPhi);
       
-//    writeEBPlotFile(string("phi.ebplt"), phi);
+    EBLevelDataOps::writeEBAMRPlotFile(string("phi.ebplt"), phi, veblg, params.refRatio, vector<string>(1, "phi"));
+    EBLevelDataOps::writeEBAMRPlotFile(string("rhs.ebplt"), rhs, veblg, params.refRatio, vector<string>(1, "rhs"));
 
     return 0;
   }

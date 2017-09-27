@@ -146,7 +146,7 @@ namespace amrex
       ghostRegion.grow(1);
       ghostRegion &= domain;
       BaseFab<int> regIrregCovered;
-      std::vector<IrregNode> nodes;
+      Array<IrregNode> nodes;
       gshop.fillGraph(regIrregCovered, nodes, validRegion, ghostRegion, domain, origin, dx);
       EBGraph& ebgraph = allgraphs[mfi];
       ebgraph.buildGraph(regIrregCovered, nodes, validRegion, domain);

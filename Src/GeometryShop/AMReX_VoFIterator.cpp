@@ -17,7 +17,7 @@ namespace amrex
 {
 
   /********************************/
-  const std::vector<VolIndex> &
+  const Array<VolIndex> &
   VoFIterator::getVector() const
   {
     assert(m_isDefined);
@@ -47,7 +47,7 @@ namespace amrex
     m_vols.resize(0);
     for (IVSIterator ivsit(a_ivs); ivsit.ok(); ++ivsit)
     {
-      std::vector<VolIndex> vols = (a_ebgraph.getVoFs(ivsit()));
+      Array<VolIndex> vols = (a_ebgraph.getVoFs(ivsit()));
       for(int ivol = 0; ivol < vols.size(); ivol++)
       {
         m_vols.push_back(vols[ivol]);
@@ -63,7 +63,7 @@ namespace amrex
     m_vols.resize(0);
     for (IVSIterator ivsit(a_ivs); ivsit.ok(); ++ivsit)
     {
-      std::vector<VolIndex> vols = (a_ebgraph.getVoFs(ivsit()));
+      Array<VolIndex> vols = (a_ebgraph.getVoFs(ivsit()));
       for(int ivol = 0; ivol < vols.size(); ivol++)
       {
         m_vols.push_back(vols[ivol]);

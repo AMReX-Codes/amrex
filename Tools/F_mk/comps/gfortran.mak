@@ -73,3 +73,7 @@
   endif
 
   xtr_libraries += -lstdc++
+
+  ifeq ($(ARCH), Darwin)
+       xtr_libraries += -lc++
+  endif

@@ -189,12 +189,14 @@ class DataServices {
     void ParseFilterFile();
 
     void PrintCommStats(std::ostream &os, bool printHeaderNames);
-    void WriteSummary(std::ostream &os, bool bWriteAverage, int whichProc, bool bUseTrace);
+    void WriteSummary(std::ostream &os, bool bWriteAverage, int whichProc,
+                      bool bUseTrace, bool graphTopPct);
     void InitProxMap();
     void TCEdison();
     void WriteHTML(const std::string &fFileName, bool simpleCombine, int whichProc);
     void WriteHTMLNC(const std::string &fFileName, int whichProc);
-    void WriteTextTrace(const std::string &fFileName, bool simpleCombine, int whichProc);
+    void WriteTextTrace(const std::string &fFileName, bool simpleCombine = true,
+                        int whichProc = 0, std::string delimString = "\t");
 #endif
 
   private:

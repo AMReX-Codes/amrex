@@ -1,9 +1,10 @@
-geom_type = flat_plate
+which_geom = 1
 
 # n_cell = 40 40 40 
- n_cell = 32 32 32
+n_cell = 32 32 32
 #n_cell = 64 64 64
 # n_cell = 128 128 128
+max_grid_size = 32
 
 domain_length = 1.0 
 plate_normal  = 1
@@ -13,6 +14,9 @@ plate_hi = 0.8 0.8 0.8
 #what plate plane plate lives on in normal direction
 plate_location = 0.3
 verbosity = 10;
-sphere_center = 0.5 0.5 0.5
-sphere_radius = 0.4
-insideRegular = true 
+
+ref_ratio = 2 2
+block_factor = 16
+fill_ratio = 0.8
+buffer_size = 1
+
