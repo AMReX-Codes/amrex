@@ -1,6 +1,7 @@
 
 #include <AMReX_EBTower.H>
 #include <AMReX_EBISLevel.H>
+#include <AMReX_EBLevel.H>
 
 namespace amrex {
 
@@ -23,9 +24,10 @@ EBTower::Destroy ()
 EBTower::EBTower ()
 {
     const EBIndexSpace* ebis = AMReX_EBIS::instance();
-    const Array<Box>& domains = ebis->getDomains();
 
-    const int nlevels = domains.size();
+    m_domains = ebis->getDomains();
+
+    const int nlevels = m_domains.size();
 
     m_irregular_ba.resize(nlevels);
     m_covered_ba.resize(nlevels);
@@ -54,8 +56,25 @@ EBTower::EBTower ()
         if (covb.size() > 0) {
             m_covered_ba[lev].define(BoxList{std::move(covb)});
         }
-        if (irrb.size() > 0) {
+
+        if (irrb.size() > 0)
+        {
             m_irregular_ba[lev].define(BoxList{std::move(irrb)});
+        }
+    }
+
+    m_cellflags.resize(nlevels);
+
+    for (int lev = 0; lev < nlevels; ++lev)
+    {
+        if (!m_irregular_ba[lev].empty()) 
+        {
+            const BoxArray& ba = m_irregular_ba[lev];
+            DistributionMapping dm {ba};
+            EBLevel eblevel(ba, dm, m_domains[lev], 1);
+
+            m_cellflags[lev].define(ba, dm, 1, 0);
+            m_cellflags[lev].copy(eblevel.getMultiEBCellFlagFab());
         }
     }
 }

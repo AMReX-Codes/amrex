@@ -18,6 +18,11 @@ public:
     EBCellFlag& operator= (const EBCellFlag& rhs) noexcept = default;
     EBCellFlag& operator= (uint32_t i) { flag = i; return *this; }
 
+    EBCellFlag& operator+= (const EBCellFlag& /* rhs */) {
+        amrex::Abort("EBCellFlag::operator+= not supported");
+        return *this;
+    }
+
     void setRegular () {
         flag &= zero_lower_mask; // clean lower bits
         flag |= regular_bits;

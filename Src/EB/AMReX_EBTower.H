@@ -1,7 +1,8 @@
 #ifndef AMREX_EBTOWER_H_
 #define AMREX_EBTOWER_H_
 
-#include <AMReX_BoxArray.H>
+#include <AMReX_FabArray.H>
+#include <AMReX_EBCellFlag.H>
 
 namespace amrex {
 
@@ -19,8 +20,12 @@ private:
 
     static EBTower* m_instance;
 
+    Array<Box> m_domains;
+
     Array<BoxArray> m_covered_ba;
     Array<BoxArray> m_irregular_ba;
+
+    Array<FabArray<EBCellFlagFab> > m_cellflags;
 };
 
 }
