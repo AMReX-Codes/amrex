@@ -30,10 +30,25 @@ Compiling the code
 
 ::
 
-    make -j 4
+    make -j
 
-(in order to compile the code in parallel on 4 cores).  This will
-generate an executable file in the ``Bin`` directory.
+This will generate an executable file in the ``Bin`` directory.
+
+.. note::
+
+    The compilation options are set in the file ``GNUmakefile``. The default
+    options correspond to an optimized code for 3D geometry. You can modify the
+    options in this file in order to (for instance):
+        * Use 2D geometry
+        * Disable OpenMP
+        * Profile or debug the code
+    Alternatively, instead of modifying the file ``GNUmakefile``, you can
+    directly pass the options in command line ; for instance:
+
+    ::
+
+        make -j USE_OMP=FALSE
+
 
 In order to clean a previously compiled version:
 
@@ -41,9 +56,22 @@ In order to clean a previously compiled version:
 
     make realclean
 
-Running the Langmuir tests
---------------------------
+Compiling the code for Cori
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The folder ``tests/Langmuir`` contains code that allow the user to run a
-Langmuir wave case with either WarpX or PICSAR, and to compare the
-results. The instructions below explain how to do this.
+For the `Cori cluster
+<http://www.nersc.gov/users/computational-systems/cori/>`__ at NERSC,
+you need to type the following command **before** compiling:
+
+    * In order to compile for the Haswell architecture
+
+    ::
+
+        module swap PrgEnv-intel PrgEnv-gnu
+
+    * In order to compile for the Knight's Landing (KNL) architecture
+
+    ::
+
+        module swap PrgEnv-intel PrgEnv-gnu
+        module swap craype-haswell craype-mic-knl

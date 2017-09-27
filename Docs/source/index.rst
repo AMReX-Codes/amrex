@@ -3,23 +3,23 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to WarpX's documentation!
-=================================
+WarpX documentation
+===================
+
+WarpX is an advanced electromagnetic Particle-In-Cell code. It supports many
+features including Perfectly-Matched Layers (PML) and **mesh refinement**.
+For details on the algorithms that WarpX implements, see the section :doc:`theory/theory`.
+
+In addition, WarpX is a highly-parallel and highly-optimized code
+and features hybrid OpenMP/MPI parallelization, advanced vectorization
+techniques and load balancing capabilities.
+
+In order to learn to use the code, please see the sections below:
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
- 
+
    installation
-   wiki
-   examples
-   cpp_class
-   python_class
+   running_cpp/running_cpp
+   visualization
    theory/theory
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

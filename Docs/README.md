@@ -18,12 +18,6 @@ and under MacOSX by using Homebrew
 ```
 brew install doxygen
 ```
-Finally, you will need to compile the Python version of WarpX, so that Sphinx can import it:
-```
-pip install swig
-cd ../Python/
-make pybuild
-```
 
 ### Compiling the documentation
 
