@@ -32,7 +32,6 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 
 //    AmrLevel::writePlotFile(dir, os, how);
     
-    int i, n;
     //
     // The list of indices of State to write to plotfile.
     // first component of pair is state_type,
@@ -82,7 +81,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 	//
 	// Names of variables -- first state, then derived
 	//
-	for (i =0; i < plot_var_map.size(); i++)
+	for (int i = 0; i < plot_var_map.size(); i++)
         {
 	    int typ = plot_var_map[i].first;
 	    int comp = plot_var_map[i].second;
@@ -103,22 +102,22 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < BL_SPACEDIM; i++)
             os << Geometry::ProbLo(i) << ' ';
         os << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < BL_SPACEDIM; i++)
             os << Geometry::ProbHi(i) << ' ';
         os << '\n';
-        for (i = 0; i < f_lev; i++)
+        for (int i = 0; i < f_lev; i++)
             os << parent->refRatio(i)[0] << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
             os << parent->Geom(i).Domain() << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
             os << parent->levelSteps(i) << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
         {
             for (int k = 0; k < BL_SPACEDIM; k++)
                 os << parent->Geom(i).CellSize()[k] << ' ';
@@ -158,10 +157,10 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         os << level << ' ' << grids.size() << ' ' << cur_time << '\n';
         os << parent->levelSteps(level) << '\n';
 
-        for (i = 0; i < grids.size(); ++i)
+        for (int i = 0; i < grids.size(); ++i)
         {
             RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-            for (n = 0; n < BL_SPACEDIM; n++)
+            for (int n = 0; n < BL_SPACEDIM; n++)
                 os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
         }
         //
@@ -178,7 +177,9 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 
         // volfrac threshhold for amrvis
         if (level == parent->finestLevel()) {
-            os << ".000001\n";
+            for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
+                os << ".000001\n";
+            }
         }
     }
     //
@@ -193,7 +194,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     //
     // Cull data from state variables -- use no ghost cells.
     //
-    for (i = 0; i < plot_var_map.size(); i++)
+    for (int i = 0; i < plot_var_map.size(); i++)
     {
 	int typ  = plot_var_map[i].first;
 	int comp = plot_var_map[i].second;
@@ -222,10 +223,6 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     }
 
     plotMF.setVal(0.0, cnt, 1, nGrow);
-
-#ifdef AMREX_USE_EB
-    amrex::EB_set_covered(plotMF);
-#endif
 
     MultiFab::Copy(plotMF,volFrac(),0,cnt,1,nGrow);
 
