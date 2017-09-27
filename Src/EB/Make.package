@@ -1,16 +1,25 @@
 
 CEXE_headers += AMReX_EBFArrayBox.H
 CEXE_sources += AMReX_EBFArrayBox.cpp
+
 CEXE_headers += AMReX_EBFabFactory.H
 CEXE_sources += AMReX_EBFabFactory.cpp
+
 CEXE_headers += AMReX_EBMultiFabUtil.H
 CEXE_sources += AMReX_EBMultiFabUtil.cpp
+
 CEXE_headers += AMReX_EBCellFlag.H
 CEXE_sources += AMReX_EBCellFlag.cpp
+
 CEXE_headers += AMReX_EBFaceFlag.H
 CEXE_sources += AMReX_EBFaceFlag.cpp
+
 CEXE_headers += AMReX_EBLevel.H
 CEXE_sources += AMReX_EBLevel.cpp
+
+CEXE_headers += AMReX_EBTower.H
+CEXE_sources += AMReX_EBTower.cpp
+
 CEXE_headers += AMReX_EBCellFlag_F.H
 F90EXE_sources += AMReX_ebcellflag_mod.F90
 F90EXE_sources += AMReX_EBMultiFabUtil_nd.F90
