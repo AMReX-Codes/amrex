@@ -556,9 +556,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::MoveRandom (i
 	  
 	  if (p.m_idata.id <= 0) continue;
 	  
-	  for (int i = 0; i < BL_SPACEDIM; i++)
+	  for (int j = 0; j < BL_SPACEDIM; j++)
               {
-                  p.m_rdata.pos[i] += dist[i]*(2*amrex::Random()-1);
+                  p.m_rdata.pos[j] += dist[j]*(2*amrex::Random()-1);
               }
 	  
 	  Reset(p, true);
@@ -1047,9 +1047,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::CreateVirtual
 	//
 	// Add the aggregated particles to the virtuals.
 	//
-	for (const auto& kv : agg_map)
+	for (const auto& agg_particle : agg_map)
 	  {
-	    virts.push_back(kv.second);
+	    virts.push_back(agg_particle.second);
 	  }
       }
   }
@@ -2459,9 +2459,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
 
     const int MyProc = ParallelDescriptor::MyProc();
 
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
     {
-        if (MyProc == i)
+        if (MyProc == proc)
         {
             //
             // Each CPU opens the file for appending and adds its particles.
@@ -2599,9 +2599,9 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
 
     const int MyProc = ParallelDescriptor::MyProc();
 
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
     {
-        if (MyProc == i)
+        if (MyProc == proc)
         {
             //
             // Each CPU opens the file for appending and adds its particles.
@@ -3091,14 +3091,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 
     const Real stime = ParallelDescriptor::second();
     //
-    // Minimum M required.
+    // Minimum NUMCELLS required.
     //
-    const int M = AMREX_D_TERM(2,+2,+4);
+    const int NUM_CELLS = AMREX_D_TERM(2,+2,+4);
 
-    Array<int>     cgrid(M);
-    Array<int>    cwhich(M),  fwhich(M);
-    Array<Real>    fracs(M),  cfracs(M);
-    Array<IntVect> cells(M),  ccells(M), cfshifts(M);
+    Array<int>     cgrid(NUM_CELLS);
+    Array<int>    cwhich(NUM_CELLS),  fwhich(NUM_CELLS);
+    Array<Real>    fracs(NUM_CELLS),  cfracs(NUM_CELLS);
+    Array<IntVect> cells(NUM_CELLS),  ccells(NUM_CELLS), cfshifts(NUM_CELLS);
 
     ParticleCommData pb;
     //
@@ -3107,8 +3107,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     //
     Array<IntVect>                    pshifts(27);
     std::vector< std::pair<int,Box> > isects;
-    Array<int>                        fgrid(M);
-    Array<Real>                       ffracs(M);
+    Array<int>                        fgrid(NUM_CELLS);
+    Array<Real>                       ffracs(NUM_CELLS);
     Array<IntVect>                    fcells;
     //
     // "fvalid" contains all the valid region of the MultiFab at this level, together
@@ -3275,9 +3275,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
 
 	const auto& pmap = m_particles[lev];
 	for (const auto& kv : pmap) {
-	  const int grid = kv.first.first;
+	  const int gid = kv.first.first;
 	  const auto& aos = kv.second.GetArrayOfStructs();
-	  FArrayBox&  fab = (*mf[lev_index])[grid];
+	  FArrayBox&  fab = (*mf[lev_index])[gid];
 	  for (const auto& p : aos)
             {
                 if (p.m_idata.id <= 0) {
@@ -4675,9 +4675,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NodalDepositi
             fracs[2] = sx[0] * sy[1];
             fracs[3] = sx[1] * sy[1];
 
-            for (int i = 0; i < 4; i++)
+            for (int ind = 0; ind < 4; ind++)
             {
-               fab(cells[i],0) += p.m_rdata.arr[BL_SPACEDIM+rho_index] * fracs[i];
+               fab(cells[ind],0) += p.m_rdata.arr[BL_SPACEDIM+rho_index] * fracs[ind];
             }
 #else
             cells[0] = pld.m_cell;
