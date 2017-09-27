@@ -52,6 +52,7 @@ To use \cvode\ in an \amrex\ application, follow these steps:
   then the backtrace has no information about where in the solver the error occurred.
   Also, if one wishes to compile only the solver library itself and not the examples that come with the source 
   (compiling the examples is enabled by default), one can add \texttt{"-DEXAMPLES\_ENABLE=OFF"}.
+  Users should be aware that the \cvode\ examples are linked dynamically, so when compiling the solver library on Cray system using the Cray compiler wrappers \texttt{cc}, \texttt{CC}, and \texttt{ftn}, one should explicitly disable compiling the examples via the \texttt{"-DEXAMPLES\_ENABLE=OFF"} flag.
 
   \item In the \texttt{GNUmakefile} for the \amrex\ application which uses the Fortran 2003 interface to \cvode, add \texttt{USE\_CVODE = TRUE}, which will compile the Fortran 2003 interfaces and link the \cvode\ libraries.
   Note that one must define the \texttt{CVODE\_LIB\_DIR} environment variable to point to the location where the libraries are installed.
