@@ -6,6 +6,7 @@
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_Print.H>
+#include <AMReX_ParallelDescriptor.H>
 
 namespace amrex {
 
@@ -817,6 +818,53 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     AMREX_D_EXPR(p[0+BL_SPACEDIM*2] = typ[0],
 	   p[1+BL_SPACEDIM*2] = typ[1],
 	   p[2+BL_SPACEDIM*2] = typ[2]);
+}
+
+void
+AllGatherBoxes (Array<Box>& bxs)
+{
+    // cell centered boxes only!
+    const auto szof_bx = Box::linearSize();
+
+    const long count = bxs.size() * static_cast<long>(szof_bx);
+    const auto& countvec = ParallelDescriptor::Gather(count, ParallelDescriptor::IOProcessorNumber());
+    
+    long count_tot = 0L;
+    Array<long> offset(countvec.size(),0L);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        count_tot = countvec[0];
+        for (int i = 1, N = offset.size(); i < N; ++i) {
+            offset[i] = offset[i-1] + countvec[i-1];
+            count_tot += countvec[i];
+        }
+    }
+
+    ParallelDescriptor::Bcast(&count_tot, 1, ParallelDescriptor::IOProcessorNumber());
+
+    if (count_tot == 0) return;
+
+    Array<char> send_buffer(count);
+    char* psend = (count > 0) ? send_buffer.data() : nullptr;
+    char* p = psend;
+    for (const auto& b : bxs) {
+        b.linearOut(p);
+        p += szof_bx;
+    }
+
+    Array<char> recv_buffer(count_tot);
+    ParallelDescriptor::Gatherv(psend, count, recv_buffer.data(), countvec, offset, ParallelDescriptor::IOProcessorNumber());
+
+    ParallelDescriptor::Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::IOProcessorNumber());
+
+    const long nboxes_tot = count_tot/szof_bx;
+    bxs.resize(nboxes_tot);
+
+    p = recv_buffer.data();
+    for (auto& b : bxs) {
+        b.linearIn(p);
+        p += szof_bx;
+    }
 }
 
 }
