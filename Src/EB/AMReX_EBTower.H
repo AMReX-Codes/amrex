@@ -12,6 +12,7 @@ public:
 
     static void Build ();
     static void Destroy ();
+    static const EBTower* get () { return m_instance; }
 
 private:
 

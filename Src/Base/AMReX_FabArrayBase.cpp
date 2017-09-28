@@ -1113,7 +1113,7 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
 	dm_crse_patch.define(iprocs);
 #ifdef AMREX_USE_EB
         EBLevel eblg(ba_crse_patch, dm_crse_patch, cdomain, 0);
-        fact_crse_patch.reset(new EBFArrayBoxFactory(eblg));
+        fact_crse_patch.reset(new EBFArrayBoxFactory(Geometry(), eblg));
 #else
         fact_crse_patch.reset(new FArrayBoxFactory());
 #endif

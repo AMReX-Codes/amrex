@@ -20,6 +20,9 @@ CEXE_sources += AMReX_EBLevel.cpp
 CEXE_headers += AMReX_EBTower.H
 CEXE_sources += AMReX_EBTower.cpp
 
+CEXE_headers += AMReX_EBDataCollection.H
+CEXE_sources += AMReX_EBDataCollection.cpp
+
 CEXE_headers += AMReX_EBCellFlag_F.H
 F90EXE_sources += AMReX_ebcellflag_mod.F90
 F90EXE_sources += AMReX_EBMultiFabUtil_nd.F90

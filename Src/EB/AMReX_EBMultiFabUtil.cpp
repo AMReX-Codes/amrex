@@ -351,7 +351,7 @@ makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
     else
     {
         EBLevel eblevel(ba, dm, eblevel_mold.getDomain(), ngrow);
-        EBFArrayBoxFactory fact(eblevel);
+        EBFArrayBoxFactory fact(Geometry(), eblevel);
         return MultiFab(ba, dm, ncomp, ngrow, info, fact);
     }
 }
@@ -362,7 +362,7 @@ makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
                 const Box& level_domain)
 {
     EBLevel eblevel(ba, dm, level_domain, ngrow);
-    EBFArrayBoxFactory fact(eblevel);
+    EBFArrayBoxFactory fact(Geometry(), eblevel);
     return MultiFab(ba, dm, ncomp, ngrow, info, fact);
 }
 

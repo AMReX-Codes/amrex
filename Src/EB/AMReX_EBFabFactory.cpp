@@ -7,8 +7,10 @@
 namespace amrex
 {
 
-EBFArrayBoxFactory::EBFArrayBoxFactory (const EBLevel& a_eblevel)
-    : m_eblevel(a_eblevel)
+EBFArrayBoxFactory::EBFArrayBoxFactory (const Geometry& a_geom, const EBLevel& a_eblevel)
+        : m_geom(a_geom),
+          m_ebdc(std::make_shared<EBDataCollection>(a_geom)),
+          m_eblevel(a_eblevel)
 {}
 
 FArrayBox*

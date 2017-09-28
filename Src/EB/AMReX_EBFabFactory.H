@@ -4,6 +4,8 @@
 #include <AMReX_FabFactory.H>
 
 #include <AMReX_EBLevel.H>
+#include <AMReX_EBDataCollection.H>
+#include <AMReX_Geometry.H>
 
 namespace amrex
 {
@@ -12,7 +14,7 @@ class EBFArrayBoxFactory
 {
 public:
 
-    EBFArrayBoxFactory (const EBLevel& a_eblevel);
+    EBFArrayBoxFactory (const Geometry& a_geom, const EBLevel& a_eblevel);
     virtual ~EBFArrayBoxFactory () = default;
 
     EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;
@@ -30,6 +32,9 @@ public:
     virtual EBFArrayBoxFactory* clone () const override;
 
 private:
+
+    Geometry m_geom;
+    std::shared_ptr<EBDataCollection> m_ebdc;
     EBLevel m_eblevel;
 };
 
