@@ -33,6 +33,10 @@ public:
                             amrex::VisMF::How  how = amrex::VisMF::NFiles,
                             bool               dump_old = true) override;
 
+    virtual std::string thePlotFileType () const override {
+        return {"CartGrid-V2.0"};
+    }
+
     // Write a plotfile to specified directory.
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
@@ -90,16 +94,13 @@ public:
                            int                 n_error_buf = 0,
                            int                 ngrow = 0) override;
 
+    virtual int WorkEstType () override { return Cost_Type; }
+
     // Define data descriptors.
     static void variableSetUp ();
 
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
-
-    static void LoadBalance (amrex::Amr& amr);
-
-    static int do_load_balance;
-    static int refine_cutcells;
 
 protected:
 
@@ -126,12 +127,21 @@ protected:
 
     void fixUpGeometry ();
 
+    void printTotal () const;
+
     amrex::MultiFab volfrac;
     amrex::MultiFab bndrycent;
     std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
     std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;
 
+    amrex::iMultiFab level_mask;
+
     amrex::EBFluxRegister flux_reg;
+
+    static constexpr int level_mask_interior   = 0; // valid cells
+    static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
+    static constexpr int level_mask_notcovered = 2; // ghost cells not covered
+    static constexpr int level_mask_physbnd    = 3; // outside domain
 
     static constexpr int NUM_GROW = 5;
     enum StateVariable {
@@ -145,12 +155,17 @@ protected:
     };
     static int num_state_data_types;
 
-    static amrex::BCRec     phys_bc;
+    static amrex::BCRec phys_bc;
 
     // Parameters
     static int verbose;
     static amrex::IntVect hydro_tile_size;
     static amrex_real cfl;
+
+    static int do_reflux;
+
+    static int refine_cutcells;
+    static amrex::Array<amrex::RealBox> refine_boxes;
 };
 
 #endif

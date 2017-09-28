@@ -18,19 +18,17 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     MultiFab dSdt(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW,MFInfo(),Factory());
   
-    if (CNS::do_load_balance) {
-        MultiFab& C_new = get_new_data(Cost_Type);
-        C_new.setVal(0.0);
-    }
+    MultiFab& C_new = get_new_data(Cost_Type);
+    C_new.setVal(0.0);
 
     EBFluxRegister* fr_as_crse = nullptr;
-    if (level < parent->finestLevel()) {
+    if (do_reflux && level < parent->finestLevel()) {
         CNS& fine_level = getLevel(level+1);
         fr_as_crse = &fine_level.flux_reg;
     }
 
     EBFluxRegister* fr_as_fine = nullptr;
-    if (level > 0) {
+    if (do_reflux && level > 0) {
         fr_as_fine = &flux_reg;
     }
 
@@ -65,13 +63,19 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     const Real* dx = geom.CellSize();
     const int ncomp = dSdt.nComp();
 
-    MultiFab* cost = (do_load_balance) ? &(get_new_data(Cost_Type)) : nullptr;
+    int as_crse = (fr_as_crse != nullptr);
+    int as_fine = (fr_as_fine != nullptr);
+
+    MultiFab& cost = get_new_data(Cost_Type);
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
+        FArrayBox dm_as_fine(Box::TheUnitBox(),ncomp);
+        FArrayBox fab_drho_as_crse(Box::TheUnitBox(),ncomp);
+        IArrayBox fab_rrflag_as_crse(Box::TheUnitBox());
 
         for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
                         mfi.isValid(); ++mfi)
@@ -87,6 +91,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                 dSdt[mfi].setVal(0.0, bx, 0, ncomp);
             } else {
 
+                // flux is used to store centroid flux needed for reflux
                 for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
                     flux[idim].resize(amrex::surroundingNodes(bx,idim),ncomp);
                 }
@@ -99,18 +104,27 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                      BL_TO_FORTRAN_ANYD(flux[0]),
                                      BL_TO_FORTRAN_ANYD(flux[1]),
                                      BL_TO_FORTRAN_ANYD(flux[2]),
-                                     dx, &dt);
+                                     dx, &dt,&level);
 
                     if (fr_as_crse) {
-                        fr_as_crse->CrseAdd(mfi,flux,dx,dt);
+                        fr_as_crse->CrseAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt);
                     }
 
                     if (fr_as_fine) {
-                        fr_as_fine->FineAdd(mfi,flux,dx,dt);
+                        fr_as_fine->FineAdd(mfi,{&flux[0],&flux[1],&flux[2]},dx,dt);
                     }
                 }
                 else
                 {
+                    FArrayBox* p_drho_as_crse = (fr_as_crse) ?
+                        fr_as_crse->getCrseData(mfi) : &fab_drho_as_crse;
+                    const IArrayBox* p_rrflag_as_crse = (fr_as_crse) ?
+                        fr_as_crse->getCrseFlag(mfi) : &fab_rrflag_as_crse;
+
+                    if (fr_as_fine) {
+                        dm_as_fine.resize(amrex::grow(bx,1),ncomp);
+                    }
+
                     cns_eb_compute_dudt(BL_TO_FORTRAN_BOX(bx),
                                         BL_TO_FORTRAN_ANYD(dSdt[mfi]),
                                         BL_TO_FORTRAN_ANYD(S[mfi]),
@@ -126,22 +140,35 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
                                         BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
-                                        dx, &dt);
+                                        &as_crse,
+                                        BL_TO_FORTRAN_ANYD(*p_drho_as_crse),
+                                        BL_TO_FORTRAN_ANYD(*p_rrflag_as_crse),
+                                        &as_fine,
+                                        BL_TO_FORTRAN_ANYD(dm_as_fine),
+                                        BL_TO_FORTRAN_ANYD(level_mask[mfi]),
+                                        dx, &dt,&level);
 
                     if (fr_as_crse) {
-                        fr_as_crse->CrseAdd(mfi,flux,dx,dt);
+                        fr_as_crse->CrseAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
+                                            volfrac[mfi],
+                                            {&areafrac[0][mfi],
+                                             &areafrac[1][mfi],
+                                             &areafrac[2][mfi]});
                     }
 
                     if (fr_as_fine) {
-                        fr_as_fine->FineAdd(mfi,flux,dx,dt);
+                        fr_as_fine->FineAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
+                                            volfrac[mfi],
+                                            {&areafrac[0][mfi],
+                                             &areafrac[1][mfi],
+                                             &areafrac[2][mfi]},
+                                            dm_as_fine);
                     }
                 }
             }
 
-            if (do_load_balance) {
-                wt = (ParallelDescriptor::second() - wt) / bx.d_numPts();
-                (*cost)[mfi].plus(wt, bx);
-            }
+            wt = (ParallelDescriptor::second() - wt) / bx.d_numPts();
+            cost[mfi].plus(wt, bx);
         }
     }
 }

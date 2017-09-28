@@ -15,6 +15,7 @@
 #include <AMReX_ComplementIF.H>
 #include <AMReX_IntersectionIF.H>
 #include <AMReX_LatheIF.H>
+#include <AMReX_PolynomialIF.H>
 
 #include <AMReX_ParmParse.H>
 
@@ -213,6 +214,123 @@ initialize_EBIS(const int max_level)
             impfunc.reset(static_cast<BaseIF*>(new SphereIF(radius, center, insideRegular)));
 
           }
+          else if (geom_type == "parabola")
+          {
+
+            amrex::Print() << "parabola geometry\n";
+            Array<PolyTerm> poly;
+
+            PolyTerm mono;
+            Real coef;
+            IntVect powers;
+            Real amplitude = 1;
+
+            // y^2 term
+            coef = amplitude;
+            powers = IntVect::Zero;
+            powers[1] = 2;
+
+            mono.coef   = coef;
+            mono.powers = powers;
+
+            poly.push_back(mono);
+
+#if BL_SPACEDIM==3
+            // z^2 term
+            coef = amplitude;
+            powers = IntVect::Zero;
+            powers[2] = 2;
+            mono.coef   = coef;
+            mono.powers = powers;
+            poly.push_back(mono);
+#endif
+            // x term
+            coef = -1.0;
+            powers = IntVect::Zero;
+            powers[0] = 1;
+            mono.coef   = coef;
+            mono.powers = powers;
+
+            poly.push_back(mono);
+
+            PolynomialIF mirror(poly,false);
+            RealVect translation;
+      
+            for(int idir = 0; idir < SpaceDim; idir++)
+            {
+              int finesize = finest_domain.size()[idir];
+              translation[idir] = 0.5*finesize*fine_dx;
+            }
+            translation[0] = 0;
+
+            TransformIF implicit(mirror);
+            implicit.translate(translation);
+            impfunc.reset(implicit.newImplicitFunction());
+
+          }
+
+          else if (geom_type == "parabola_and_sphere")
+          {
+
+            amrex::Print() << "parabola + sphere geometry\n";
+            Array<PolyTerm> poly;
+
+            PolyTerm mono;
+            Real coef;
+            IntVect powers;
+            Real amplitude = 1;
+
+            // y^2 term
+            coef = amplitude;
+            powers = IntVect::Zero;
+            powers[1] = 2;
+
+            mono.coef   = coef;
+            mono.powers = powers;
+
+            poly.push_back(mono);
+
+#if BL_SPACEDIM==3
+            // z^2 term
+            coef = amplitude;
+            powers = IntVect::Zero;
+            powers[2] = 2;
+            mono.coef   = coef;
+            mono.powers = powers;
+            poly.push_back(mono);
+#endif
+            // x term
+            coef = -1.0;
+            powers = IntVect::Zero;
+            powers[0] = 1;
+            mono.coef   = coef;
+            mono.powers = powers;
+
+            poly.push_back(mono);
+
+            PolynomialIF mirror(poly,false);
+            RealVect translation;
+      
+            for(int idir = 0; idir < SpaceDim; idir++)
+            {
+              int finesize = finest_domain.size()[idir];
+              translation[idir] = 0.5*finesize*fine_dx;
+            }
+            RealVect center = translation;
+            translation[0] = 0;
+
+            TransformIF transform(mirror);
+            transform.translate(translation);
+
+            Real radius = 0.2*center[0];
+            SphereIF sphere(radius, center, true);
+            Array<BaseIF*> funcs(2);
+            funcs[0] = &transform;
+            funcs[1] = &sphere;
+            UnionIF implicit(funcs);
+            impfunc.reset(implicit.newImplicitFunction());
+
+          }
           else if (geom_type == "polygon_revolution")
           {
             amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;
@@ -229,7 +347,8 @@ initialize_EBIS(const int max_level)
       
             for(int idir = 0; idir < SpaceDim; idir++)
             {
-              translation[idir] = 0.5*n_cell[idir]*fine_dx;
+              int finesize = finest_domain.size()[idir];
+              translation[idir] = 0.5*finesize*fine_dx;
             }
             Real scale = finest_domain.size()[0]*fine_dx;
             pp.get("num_poly", num_poly);

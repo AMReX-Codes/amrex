@@ -22,30 +22,68 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
       num_neighbor_cells(ncells)
 {
-    InitLevelMask(0, geom, dmap, ba);
+    BuildLevelMask(0, geom, dmap, ba);
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 void
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
-::InitLevelMask(int lev,
-                const Geometry &geom, 
-                const DistributionMapping &dmap, 
-                const BoxArray &ba ) {
+::Regrid(const DistributionMapping &dmap, const BoxArray &ba ) {
+    const int lev = 0;
+    this->SetParticleBoxArray(lev, ba);
+    this->SetParticleDistributionMap(lev, dmap);
+    BuildLevelMask(lev, this->Geom(lev), dmap, ba);
+    this->Redistribute();
+}
 
-    BL_PROFILE("NeighborParticleContainer::InitLevelMask");
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::BuildLevelMask(int lev,
+                 const Geometry &geom, 
+                 const DistributionMapping &dmap, 
+                 const BoxArray &ba ) {
+    
+    BL_PROFILE("NeighborParticleContainer::BuildLevelMask");
     BL_ASSERT(lev == 0);
-    mask.define(ba, dmap, 2, num_neighbor_cells);
-    mask.setVal(-1, num_neighbor_cells);
-    for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const Box& box = mfi.tilebox();
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-        mask.setVal(grid_id, box, 0, 1);
-        mask.setVal(tile_id, box, 1, 1);
-    }
+    BL_ASSERT(dmap == this->ParticleDistributionMap(lev));
+    BL_ASSERT(ba == this->ParticleBoxArray(lev));
 
-    mask.FillBoundary(geom.periodicity());
+    if (mask_ptr == nullptr ||
+        ! BoxArray::SameRefs(mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
+        ! DistributionMapping::SameRefs(mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev))) {        
+        mask_ptr.reset(new FabArray<BaseFab<int> > (ba, dmap, 2, num_neighbor_cells));
+        mask_ptr->setVal(-1, num_neighbor_cells);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
+            const Box& box = mfi.tilebox();
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            mask_ptr->setVal(grid_id, box, 0, 1);
+            mask_ptr->setVal(tile_id, box, 1, 1);
+        }
+        
+        mask_ptr->FillBoundary(geom.periodicity());
+
+        local_neighbors.clear();
+        for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
+            const Box& box = mfi.growntilebox();
+            for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
+                const int grid = (*mask_ptr)[mfi](iv, 0);
+                const int tile = (*mask_ptr)[mfi](iv, 1);
+                const int proc = this->ParticleDistributionMap(lev)[grid];
+                NeighborCommTag comm_tag(proc, grid, tile);
+                local_neighbors.push_back(comm_tag);
+            }
+        }
+
+        std::sort(local_neighbors.begin(), local_neighbors.end());
+        auto it = std::unique(local_neighbors.begin(), local_neighbors.end());
+        local_neighbors.erase(it, local_neighbors.end());
+    };
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -55,52 +93,185 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
     BL_ASSERT(lev == 0);
-    NeighborCommMap neighbors_to_comm;
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const int& grid = pti.index();
-        const int& tile = pti.LocalTileIndex(); 
-        PairIndex src_index(grid, tile);
 
-        Box shrink_box = pti.tilebox();
-        shrink_box.grow(-num_neighbor_cells);
-        
-        auto& particles = pti.GetArrayOfStructs();
-        for (unsigned i = 0; i < pti.numParticles(); ++i) {
-            const ParticleType& p = particles[i];
-            const IntVect& iv = this->Index(p, lev);
-            const int nc = num_neighbor_cells;
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    NeighborCommMap neighbors_to_comm;
+
+    int num_threads = 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single
+    num_threads = omp_get_num_threads();
+#endif
+
+    // tmp data structures used for OMP reduction
+    std::map<PairIndex, Array<Array<char> > > tmp_neighbors;
+    std::map<PairIndex, Array<Array<int> > > tmp_id_cache;
+    std::map<PairIndex, Array<Array<NeighborTag> > > tmp_tag_cache;
+    std::map<NeighborCommTag, Array<Array<char> > > tmp_remote;
+
+    // resize our temporaries in serial
+    for (int i = 0; i < static_cast<int>(local_neighbors.size()); ++i) {
+        const NeighborCommTag& comm_tag = local_neighbors[i];
+        tmp_remote[comm_tag].resize(num_threads);
+        neighbors_to_comm[comm_tag];
+
+        PairIndex index(comm_tag.grid_id, comm_tag.tile_id);
+        tmp_neighbors[index].resize(num_threads);
+        tmp_id_cache[index].resize(num_threads);
+        tmp_tag_cache[index].resize(num_threads);
+        neighbors[index];
+        buffer_id_cache[index];
+        buffer_tag_cache[index];        
+    }
+
+    // First pass - each thread collects the neighbor particles it will send
+    // into a private buffer
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector<NeighborTag> tags;
+        tags.reserve(27);
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+#ifdef _OPENMP
+            int thread_num = omp_get_thread_num();
+#else
+            int thread_num = 0;
+#endif
+            const int& grid = pti.index();
+            const int& tile = pti.LocalTileIndex(); 
+            PairIndex src_index(grid, tile);
             
-            // if the particle is more than one cell away from 
-            // the tile boundary, it's not anybody's neighbor
-            if (shrink_box.contains(iv)) continue;
+            Box shrink_box = pti.tilebox();
+            shrink_box.grow(-num_neighbor_cells);
             
-            // Figure out all our neighbors, removing duplicates
-            std::vector<NeighborTag> tags;
-            for (int ii = -nc; ii < nc + 1; ii += nc) {
-                for (int jj = -nc; jj < nc + 1; jj += nc) {
-                    for (int kk = -nc; kk < nc + 1; kk += nc) {
-                        if ((ii == 0) and (jj == 0) and (kk == 0)) continue;
-                        IntVect shift(AMREX_D_DECL(ii, jj, kk));
-                        IntVect neighbor_cell = iv + shift;
-                        const NeighborTag& tag = getNeighborTag(lev, neighbor_cell, mask[pti]);
-                        if ((grid == tag.grid)           and 
-                            (tile == tag.tile)           and 
-                            (tag.periodic_shift[0] == 0) and 
-                            (tag.periodic_shift[1] == 0) and
-                            (tag.periodic_shift[2] == 0)) continue;
-                        tags.push_back(tag);
+            auto& particles = pti.GetArrayOfStructs();
+            for (unsigned i = 0; i < pti.numParticles(); ++i) {
+                const ParticleType& p = particles[i];
+                const IntVect& iv = this->Index(p, lev);
+                const int nc = num_neighbor_cells;
+                
+                // if the particle is more than one cell away from 
+                // the tile boundary, it's not anybody's neighbor
+                if (shrink_box.contains(iv)) continue;
+                
+                // Figure out all our neighbors, removing duplicates
+                //                std::vector<NeighborTag> tags;
+                for (int ii = -nc; ii < nc + 1; ii += nc) {
+                    for (int jj = -nc; jj < nc + 1; jj += nc) {
+                        for (int kk = -nc; kk < nc + 1; kk += nc) {
+                            if ((ii == 0) and (jj == 0) and (kk == 0)) continue;
+                            IntVect shift(AMREX_D_DECL(ii, jj, kk));
+                            IntVect neighbor_cell = iv + shift;
+                            const NeighborTag& tag = getNeighborTag(lev,
+                                                                    neighbor_cell,
+                                                                    (*mask_ptr)[grid]);
+                            if ((grid == tag.grid)           and 
+                                (tile == tag.tile)           and 
+                                (tag.periodic_shift[0] == 0) and 
+                                (tag.periodic_shift[1] == 0) and
+                                (tag.periodic_shift[2] == 0)) continue;
+                            tags.push_back(tag);
+                        }
                     }
                 }
+                std::sort(tags.begin(), tags.end());
+                auto it = std::unique(tags.begin(), tags.end());
+                tags.erase(it, tags.end());
+                
+                // Add neighbors to buffers
+                for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
+                    const NeighborTag& tag = tags[j];                
+                    PairIndex dst_index(tag.grid, tag.tile);
+                    const int who = this->ParticleDistributionMap(lev)[tag.grid];
+                    
+                    if (tag.grid >= 0) {
+                        // cache neighbors 
+                        tmp_id_cache[src_index][thread_num].push_back(i);
+                        tmp_tag_cache[src_index][thread_num].push_back(tag);
+                        
+                        ParticleType particle = p; // yes make a copy
+                        applyPeriodicShift(lev, particle, tag);
+                        
+                        if (who == MyProc) {
+                            Array<char>& buffer = tmp_neighbors[dst_index][thread_num]; 
+                            size_t old_size = buffer.size();
+                            size_t new_size = buffer.size() + pdata_size;
+                            buffer.resize(new_size);
+                            std::memcpy(&buffer[old_size], &particle, pdata_size);
+                        } else {
+                            NeighborCommTag comm_tag(who, tag.grid, tag.tile);
+                            Array<char>& buffer = tmp_remote[comm_tag][thread_num];
+                            size_t old_size = buffer.size();
+                            size_t new_size = buffer.size() + pdata_size;
+                            buffer.resize(new_size);
+                            std::memcpy(&buffer[old_size], &particle, pdata_size);
+                        }
+                    }
+                }
+                tags.clear();
             }
-            std::sort(tags.begin(), tags.end());
-            auto it = std::unique(tags.begin(), tags.end());
-            tags.erase(it, tags.end());
+        }
+    }
 
-            // Add neighbors to buffers
-            for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
-                cacheNeighborParticle(lev, src_index, i, tags[j]);
-                packNeighborParticle(lev, p, tags[j], neighbors_to_comm);
+    // second pass - for each tile, collect the neighbors owed from all threads
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        const int grid = pti.index();
+        const int tile = pti.LocalTileIndex(); 
+        PairIndex index(grid, tile);
+        for (int i = 0; i < num_threads; ++i) {
+            neighbors[index].insert(neighbors[index].end(),
+                                    tmp_neighbors[index][i].begin(),
+                                    tmp_neighbors[index][i].end());
+            tmp_neighbors[index][i].erase(tmp_neighbors[index][i].begin(), 
+                                          tmp_neighbors[index][i].end());
+            
+            buffer_id_cache[index].insert(buffer_id_cache[index].end(),
+                                          tmp_id_cache[index][i].begin(),
+                                          tmp_id_cache[index][i].end());
+            tmp_id_cache[index][i].erase(tmp_id_cache[index][i].begin(), 
+                                         tmp_id_cache[index][i].end());
+            
+            buffer_tag_cache[index].insert(buffer_tag_cache[index].end(),
+                                           tmp_tag_cache[index][i].begin(),
+                                           tmp_tag_cache[index][i].end());
+            tmp_tag_cache[index][i].erase(tmp_tag_cache[index][i].begin(), 
+                                          tmp_tag_cache[index][i].end());
+        }
+    }
+    
+    // do the same for the remote neighbors
+    typename std::map<NeighborCommTag, Array<Array<char> > >::iterator it;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single nowait
+#endif
+    for (it=tmp_remote.begin(); it != tmp_remote.end(); it++) {
+#ifdef _OPENMP
+#pragma omp task firstprivate(it)
+#endif
+        {
+            const NeighborCommTag& tag = it->first;
+            Array<Array<char> >& tmp = it->second;
+            for (int i = 0; i < num_threads; ++i) {
+                neighbors_to_comm[tag].insert(neighbors_to_comm[tag].begin(), tmp[i].begin(), tmp[i].end());
+                tmp[i].erase(tmp[i].begin(), tmp[i].end());
             }
+        }
+    }
+
+    // remove any empty map entries from neighbors_to_comm
+    for (auto pmap_it = neighbors_to_comm.begin(); pmap_it != neighbors_to_comm.end(); /* no ++ */) {
+        if (pmap_it->second.empty()) {
+            neighbors_to_comm.erase(pmap_it++);
+        }
+        else {
+            ++pmap_it;
         }
     }
     
@@ -115,20 +286,121 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     BL_PROFILE("NeighborParticleContainer::updateNeighbors");
     BL_ASSERT(lev == 0);
 
+    const int MyProc = ParallelDescriptor::MyProc();
+ 
     neighbors.clear();
     
     NeighborCommMap neighbors_to_comm;
+
+    int num_threads = 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single
+    num_threads = omp_get_num_threads();
+#endif
+
+    // tmp data structures used for OMP reduction
+    std::map<PairIndex, Array<Array<char> > > tmp_neighbors;
+    std::map<NeighborCommTag, Array<Array<char> > > tmp_remote;
+
+    // resize our temporaries in serial
+    for (int i = 0; i < static_cast<int>(local_neighbors.size()); ++i) {
+        const NeighborCommTag& comm_tag = local_neighbors[i];
+        tmp_remote[comm_tag].resize(num_threads);
+        neighbors_to_comm[comm_tag];
+
+        PairIndex index(comm_tag.grid_id, comm_tag.tile_id);
+        tmp_neighbors[index].resize(num_threads);
+        neighbors[index];
+    }
+
+    // First pass - each thread collects the neighbor particles it will send
+    // into a private buffer
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif
         PairIndex src_index(pti.index(), pti.LocalTileIndex());
         auto& particles = pti.GetArrayOfStructs();
         for (unsigned i = 0; i < buffer_id_cache[src_index].size(); ++i) {
             int particle_index = buffer_id_cache[src_index][i];
             const NeighborTag& tag = buffer_tag_cache[src_index][i];
-            const ParticleType& p = particles[particle_index];
-            packNeighborParticle(lev, p, tag, neighbors_to_comm);
+            if (tag.grid >= 0) {
+                const ParticleType& p = particles[particle_index];
+                const int who = this->ParticleDistributionMap(lev)[tag.grid];
+                PairIndex dst_index(tag.grid, tag.tile);
+                ParticleType particle = p;
+                applyPeriodicShift(lev, particle, tag);
+                if (who == MyProc) {
+                    Array<char>& buffer = tmp_neighbors[dst_index][thread_num];
+                    size_t old_size = buffer.size();
+                    size_t new_size = buffer.size() + pdata_size;
+                    buffer.resize(new_size);
+                    std::memcpy(&buffer[old_size], &particle, pdata_size);
+                } else {
+                    NeighborCommTag comm_tag(who, tag.grid, tag.tile);
+                    Array<char>& buffer = tmp_remote[comm_tag][thread_num];
+                    size_t old_size = buffer.size();
+                    size_t new_size = buffer.size() + pdata_size;
+                    buffer.resize(new_size);
+                    std::memcpy(&buffer[old_size], &particle, pdata_size);
+                }
+            }
         }
     }
     
+    // second pass - for each tile, collect the neighbors owed from all threads
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+        const int grid = pti.index();
+        const int tile = pti.LocalTileIndex(); 
+        PairIndex index(grid, tile);
+        for (int i = 0; i < num_threads; ++i) {
+            neighbors[index].insert(neighbors[index].end(),
+                                    tmp_neighbors[index][i].begin(),
+                                    tmp_neighbors[index][i].end());
+            tmp_neighbors[index][i].erase(tmp_neighbors[index][i].begin(), 
+                                          tmp_neighbors[index][i].end());
+        }
+    }
+    
+    // do the same for the remote neighbors
+    typename std::map<NeighborCommTag, Array<Array<char> > >::iterator it;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single nowait
+#endif
+    for (it=tmp_remote.begin(); it != tmp_remote.end(); it++) {
+#ifdef _OPENMP
+#pragma omp task firstprivate(it)
+#endif
+        {
+            const NeighborCommTag& tag = it->first;
+            Array<Array<char> >& tmp = it->second;
+            for (int i = 0; i < num_threads; ++i) {
+                neighbors_to_comm[tag].insert(neighbors_to_comm[tag].begin(), tmp[i].begin(), tmp[i].end());
+                tmp[i].erase(tmp[i].begin(), tmp[i].end());
+            }
+        }
+    }
+
+    // remove any empty map entries from neighbors_to_comm
+    for (auto pmap_it = neighbors_to_comm.begin(); pmap_it != neighbors_to_comm.end(); /* no ++ */) {
+        if (pmap_it->second.empty()) {
+            neighbors_to_comm.erase(pmap_it++);
+        }
+        else {
+            ++pmap_it;
+        }
+    }
+
     bool reuse_rcv_counts = true;
     fillNeighborsMPI(neighbors_to_comm, reuse_rcv_counts);
 }
@@ -194,53 +466,6 @@ getNeighborTag(int lev,
     }
 
     return tag;
-}
-
-template <int NStructReal, int NStructInt, int NNeighborReal>
-void 
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-packNeighborParticle(int lev,
-                     const ParticleType& p,
-                     const NeighborTag& tag,
-                     NeighborCommMap& neighbors_to_comm) {
-    
-    BL_ASSERT(lev == 0);
-    
-    if (tag.grid >= 0) {
-        const int who = this->ParticleDistributionMap(lev)[tag.grid];
-        const int MyProc = ParallelDescriptor::MyProc();
-        PairIndex dst_index(tag.grid, tag.tile);
-        ParticleType particle = p;
-        applyPeriodicShift(lev, particle, tag);
-        if (who == MyProc) {
-            size_t old_size = neighbors[dst_index].size();
-            size_t new_size = neighbors[dst_index].size() + pdata_size;
-            neighbors[dst_index].resize(new_size);
-            std::memcpy(&neighbors[dst_index][old_size], &particle, pdata_size);
-        } else {
-            NeighborCommTag comm_tag(who, tag.grid, tag.tile);
-            Array<char>& buffer = neighbors_to_comm[comm_tag];
-            size_t old_size = buffer.size();
-            size_t new_size = buffer.size() + pdata_size;
-            buffer.resize(new_size);
-            std::memcpy(&buffer[old_size], &particle, pdata_size);
-        }
-    }
-}
-
-template <int NStructReal, int NStructInt, int NNeighborReal>
-void 
-NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
-cacheNeighborParticle(int lev, const PairIndex& index,
-                      int particle_index, const NeighborTag& tag) {
-    
-    BL_ASSERT(lev == 0);
-    
-    if (tag.grid >= 0) {
-        PairIndex dst_index(tag.grid, tag.tile);
-        buffer_id_cache[index].push_back(particle_index);
-        buffer_tag_cache[index].push_back(tag);
-    }
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>

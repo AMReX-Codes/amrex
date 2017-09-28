@@ -19,7 +19,7 @@
 
 namespace amrex
 {
-//  static const IntVect ebg_debiv(D_DECL(994,213,7));
+  static const IntVect ebg_debiv(D_DECL(0, 0, 0));
   bool EBGraphImplem::s_verbose = false;
   /*******************************/
   Array<FaceIndex> EBGraph::getMultiValuedFaces(const int&  a_idir,
@@ -245,6 +245,10 @@ namespace amrex
     m_tag = AllRegular;
     m_irregIVS = IntVectSet();
     m_multiIVS = IntVectSet();
+    EBCellFlag flag;
+    flag.setRegular();
+    m_cellFlags.setVal(flag);
+    m_cellFlags.setType(FabType::regular);
   }
         
   /*******************************/
@@ -256,9 +260,165 @@ namespace amrex
     m_irregIVS = IntVectSet();
     m_multiIVS = IntVectSet();
 
+    EBCellFlag flag;
+    flag.setCovered();
+    m_cellFlags.setVal(flag);
+    m_cellFlags.setType(FabType::covered);
+  }
+/*******************************/
+  Array<VolIndex>
+  EBGraphImplem::
+  getVoFs (const VolIndex& a_vof,
+           const int& a_dir,
+           const Side::LoHiSide& a_sd,
+           const int& a_steps) const
+  {
+    assert((a_dir >= 0) && (a_dir < SpaceDim));
+    assert(a_steps >= 0);
+
+    Array<VolIndex> retVoFs(1, a_vof);
+    for (int irad = 1; irad <= a_steps; irad++)
+    {
+      Array<VolIndex> tempVoFs(0);
+      for (int ivof = 0; ivof < retVoFs.size(); ivof++)
+      {
+        const VolIndex& stepVoF = retVoFs[ivof];
+        Array<FaceIndex> faces = getFaces(stepVoF, a_dir, a_sd);
+        for (int iface = 0; iface < faces.size(); iface++)
+        {
+          const FaceIndex& face = faces[iface];
+          if (!face.isBoundary())
+          {
+            const VolIndex& flipVoF = face.getVoF(a_sd);
+            tempVoFs.push_back(flipVoF);
+          }
+        }
+      }
+      retVoFs = tempVoFs;
+    }
+    return retVoFs;
   }
         
-        
+  /*******************************/
+  void 
+  EBGraphImplem::
+  setCellFlags()
+  {
+    BL_PROFILE("ebgraph::setCellFlags()");
+    if(isAllRegular())
+    {
+      EBCellFlag flag;
+      flag.setRegular();
+      m_cellFlags.setVal(flag);
+      m_cellFlags.setType(FabType::regular);
+    }
+    else if(isAllCovered())
+    {
+      EBCellFlag flag;
+      flag.setCovered();
+      m_cellFlags.setVal(flag);
+      m_cellFlags.setType(FabType::covered);
+    }
+    else
+    {
+      Box bx = m_region & m_domain;
+      int ipt = 0;
+      for (BoxIterator bi(bx); bi.ok(); ++bi)
+      {
+        const IntVect& iv = bi();
+        auto& cellflag = m_cellFlags(iv);
+        if (isRegular(iv)) 
+        {
+          cellflag.setRegular();
+        } 
+        else if (isCovered(iv)) 
+        {
+          cellflag.setCovered();
+        } 
+        else if (isMultiValued(iv)) 
+        {
+          cellflag.setMultiValued(numVoFs(iv));
+        } 
+        else 
+        {
+          cellflag.setSingleValued();
+        }
+        ipt++;
+      }
+      fixCellFlagType();
+      Box domain = m_domain;
+
+      const Box& ibx = amrex::grow(m_cellFlags.box(),-1) & domain;
+    //begin debug
+    //if(m_region.contains(ebg_debiv))
+    //{
+    //  amrex::Print() << "EBGraph::setCellFlags initial phase flag at " << ebg_debiv << " = " << m_cellFlags(ebg_debiv, 0).getValue();
+    //  amrex::Print() << ", fullregion = " << m_fullRegion << ", ibx = " << ibx << endl;
+    //}
+    // end debug
+      for (BoxIterator bi(ibx); bi.ok(); ++bi)
+      {
+        const IntVect& iv = bi();
+        EBCellFlag& cellflag = m_cellFlags(iv, 0);
+        cellflag.setDisconnected();
+        cellflag.setConnected(IntVect::TheZeroVector());
+
+        const auto& vofs = getVoFs(iv);
+        for (const auto& vi : vofs)
+        {
+          std::array<int,AMREX_SPACEDIM> dirs = {AMREX_D_DECL(0,1,2)};
+          do
+          {
+            IntVect offset_0 = IntVect::TheZeroVector();
+            for (SideIterator sit_0; sit_0.ok(); ++sit_0)
+            {
+              offset_0[dirs[0]] = amrex::sign(sit_0());
+
+              const Array<VolIndex>& vofs_0 = getVoFs(vi, dirs[0], sit_0(), 1);
+              for (const auto& vi_0 : vofs_0)
+              {
+                cellflag.setConnected(offset_0);
+
+#if (AMREX_SPACEDIM >= 2)
+                IntVect offset_1 = offset_0;
+                for (SideIterator sit_1; sit_1.ok(); ++sit_1)
+                {
+                  offset_1[dirs[1]] = amrex::sign(sit_1());
+
+                  const auto& vofs_1 = getVoFs(vi_0, dirs[1], sit_1(), 1);
+                  for (const auto& vi_1 : vofs_1)
+                  {
+                    cellflag.setConnected(offset_1);
+
+#if (AMREX_SPACEDIM == 3)
+                    IntVect offset_2 = offset_1;
+                    for (SideIterator sit_2; sit_2.ok(); ++sit_2)
+                    {
+                      offset_2[dirs[2]] = amrex::sign(sit_2());
+
+                      const auto& vofs_2 = getVoFs(vi_1, dirs[2], sit_2(), 1);
+                      for (const auto& vi_2 : vofs_2)
+                      {
+                        cellflag.setConnected(offset_2);
+                      }
+                    }
+#endif
+                  }
+                }
+#endif
+              }
+            }
+          } while (std::next_permutation(dirs.begin(), dirs.end()));
+        }
+      }        
+    }
+    //begin debug
+    //if(m_region.contains(ebg_debiv))
+    //{
+    //  amrex::Print() << "EBGraph::setCellFlags flag at " << ebg_debiv << " = " << m_cellFlags(ebg_debiv, 0).getValue() << endl;
+    //}
+    //end debug
+  }        
   /*******************************/
   void 
   EBGraphImplem::
@@ -269,7 +429,8 @@ namespace amrex
   {
     define(a_validRegion);
     setDomain(a_domain);
-        
+    m_region  &= m_domain;
+
     //remember that this forces a dense representation.
     m_tag = HasIrregular;
     m_multiIVS = IntVectSet();
@@ -369,8 +530,8 @@ namespace amrex
           }
         }
       }
-        
     }
+    setCellFlags();
   }
         
   /*******************************/
@@ -405,6 +566,8 @@ namespace amrex
     m_mask.clear();
     m_isMaskBuilt = false;
     m_isDefined= true;
+ 
+    m_cellFlags.resize(m_fullRegion, 1);
   }
         
   /*******************************/
@@ -758,16 +921,21 @@ namespace amrex
                             const Box   & a_subbox) const
   {
     Box fullRegion = getFullRegion();
+
     fullRegion &= a_subbox;
     Box interiorRegion = fullRegion;
-    interiorRegion &= getDomain();
+    interiorRegion &= a_mask.box();
+    const Box& domain = getDomain();
 
-    a_mask.resize(fullRegion, 1);
-    a_mask.setVal(2);
     for(BoxIterator boxit(interiorRegion); boxit.ok(); ++boxit)
     {
       const IntVect& iv = boxit();
-      if(isRegular(iv))
+      if(!domain.contains(iv))
+      {
+        //set values outside domain to 2
+        a_mask(iv, 0) = 2;
+      }
+      else if(isRegular(iv))
       {
         a_mask(iv, 0) = 1;
       }
@@ -1080,11 +1248,11 @@ namespace amrex
        int                  a_destcomp,
        int                  a_numcomp)
   {
+    BL_PROFILE("EBGraphImplem::copy");
     BL_ASSERT(isDefined());
-
     const Box& testbox = m_region & a_srcbox;
 
-
+    
     if(!testbox.isEmpty())
     {
       setDomain(a_source.m_domain);
@@ -1220,9 +1388,58 @@ namespace amrex
         }
       }
     }
+
+    m_cellFlags.copy(a_source.m_cellFlags, a_srcbox, 0, a_destbox, 0, 1);
+    fixCellFlagType();
     return *this;
   }
+  /*******************************/
+  void 
+  EBGraphImplem::
+  fixCellFlagType ()
+  {
+    Box bx = m_region;
+    int nregular=0, nsingle=0, nmulti=0, ncovered=0;
+    int ncells = bx.numPts();
+    for (BoxIterator bi(bx); bi.ok(); ++bi)
+    {
+      const IntVect& iv = bi();
+      if (isRegular(iv)) 
+      {
+        ++nregular;
+      } 
+      else if (isCovered(iv)) 
+      {
+        ++ncovered;
+      } 
+      else if (isMultiValued(iv)) 
+      {
+        ++nmulti;
+//          amrex::Abort("EBLevel: multi-value cell not supported yet");
+      } 
+      else 
+      {
+        ++nsingle;
+      }
+    }
         
+    if (nregular == ncells) 
+    {
+      m_cellFlags.setType(FabType::regular);
+    } 
+    else if (ncovered == ncells) 
+    {
+      m_cellFlags.setType(FabType::covered);
+    } 
+    else if (nmulti > 0) 
+    {
+      m_cellFlags.setType(FabType::multivalued);
+    } 
+    else 
+    {
+      m_cellFlags.setType(FabType::singlevalued);
+    }
+  }
   /*******************************/
   void 
   EBGraphImplem::
@@ -1481,6 +1698,7 @@ namespace amrex
         }
       }
     }
+    setCellFlags();
   }
         
   /*******************************/
@@ -1727,6 +1945,10 @@ namespace amrex
     m_isDefined   = true;
     m_isDomainSet = true;
     m_isMaskBuilt = false;
+
+    m_cellFlags.resize(m_fullRegion,1);
+    setCellFlags();
+
     return retval;
   }
   /*******************************/
@@ -1755,9 +1977,12 @@ namespace amrex
   EBGraphImplem::
   nBytes(const Box& a_region, int start_comp, int ncomps) const
   {
+    BL_PROFILE("EBGraphImplem::nBytes");
     std::size_t linearSize = 0;
     //domain
     linearSize +=  Box::linearSize();
+    //for the cell flags
+    linearSize += m_cellFlags.nBytes(a_region, 0, 1);
     //flag for reg or covered
     linearSize += sizeof(int);
     bool isRegBox = isRegular(a_region);
@@ -1771,6 +1996,7 @@ namespace amrex
         linearSize += nodeSize;
       }
     }
+
     //amrex::AllPrint() << "linearsize: a_region = " << a_region << ", retval = " << linearSize << endl;;
     return linearSize;
   }
@@ -1783,6 +2009,7 @@ namespace amrex
              int        numcomp,
              void*      a_buf) const
   {
+    BL_PROFILE("EBGraphImplem::copyToMem");
     BL_ASSERT(isDefined());
 
     std::size_t retval = 0;
@@ -1790,6 +2017,10 @@ namespace amrex
 
     m_domain.linearOut(buffer);
     size_t incrval = Box::linearSize();
+    buffer += incrval;
+    retval += incrval;
+
+    incrval = m_cellFlags.copyToMem(a_region, 0, 1, buffer);
     buffer += incrval;
     retval += incrval;
 
@@ -1820,7 +2051,9 @@ namespace amrex
         buffer += nodeSize;
         retval += nodeSize;
       }
+
     }
+
     //amrex::AllPrint() << "copytomem:   a_region = " << a_region << ", retval = " << retval << endl;;
     return retval;
   }
@@ -1833,6 +2066,7 @@ namespace amrex
                int         numcomp,
                const void* a_buf)
   {
+    BL_PROFILE("EBGraphImplem::copyFromMem");
     BL_ASSERT(isDefined());
 
     std::size_t retval = 0;
@@ -1845,13 +2079,17 @@ namespace amrex
     buffer    += incrval;
     retval += incrval;
 
+    incrval = m_cellFlags.copyFromMem(a_region, 0, 1, buffer);
+    buffer += incrval;
+    retval += incrval;
+
     m_region &= m_domain;
 
     int regIrregCovCode = 0;
     int* intbuf = (int*) buffer;
     regIrregCovCode = *intbuf;
 
-    //amrex::AllPrint() << "copyfrommem region = " << a_region << ", regirregcov = " << regIrregCovCode << endl;
+    // amrex::AllPrint() << "copyfrommem region = " << a_region << ", regirregcov = " << regIrregCovCode << endl;
 
     incrval = sizeof(int);
     buffer += incrval;
@@ -1919,6 +2157,9 @@ namespace amrex
         retval += nodeSize;
       }
     }
+
+
+    fixCellFlagType();
 
     //amrex::AllPrint() << "copyfrommem: a_region = " << a_region << ", retval = " << retval << endl;;
     return retval;
