@@ -2593,7 +2593,7 @@ DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group 
 #endif
 
 DistributionMapping
-DistributionMapping::makeKnapSack (const MultiFab& weight)
+DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
 {
     BL_PROFILE("makeKnapSack");
 
@@ -2625,7 +2625,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight)
     int nprocs = ParallelDescriptor::NProcs();
     Real eff;
 
-    r.KnapSackProcessorMap(cost, nprocs, &eff, true);
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
 
     return r;
 }
