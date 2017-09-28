@@ -223,7 +223,7 @@ namespace amrex
 
 #ifdef AMREX_USE_EB
         EBLevel eblg (ba_crse_patch, dm, cgeom.Domain(), 0);
-        const EBFArrayBoxFactory factory{eblg};
+        const EBFArrayBoxFactory factory{Geometry(), eblg};
 #else
         const FArrayBoxFactory factory{};
 #endif

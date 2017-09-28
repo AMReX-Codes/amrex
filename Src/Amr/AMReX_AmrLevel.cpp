@@ -17,6 +17,7 @@
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_EBTower.H>
 #endif
 
 namespace amrex {
@@ -78,7 +79,9 @@ AmrLevel::AmrLevel (Amr&            papa,
     grids(ba),
     dmap(dm)
 #ifdef AMREX_USE_EB
+#ifndef AMREX_EB_USE_TOWER
     , m_eblevel(ba, dm, level_geom.Domain(), m_eb_max_grow_cells)
+#endif
 #endif
 {
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
@@ -100,7 +103,10 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(m_eblevel));
+#ifndef AMREX_EB_TOWER
+    m_eblevel.define(ba, dm, level_geom.Domain(), m_eb_max_grow_cells);
+#endif
+    m_factory.reset(new EBFArrayBoxFactory(geom, m_eblevel));
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -325,8 +331,10 @@ AmrLevel::restart (Amr&          papa,
     parent->SetDistributionMap(level, dmap);
 
 #ifdef AMREX_USE_EB
+#ifndef AMREX_EB_USE_TOWER
     m_eblevel.define(grids, dmap, geom.Domain(), m_eb_max_grow_cells);
-    m_factory.reset(new EBFArrayBoxFactory(m_eblevel));
+#endif
+    m_factory.reset(new EBFArrayBoxFactory(geom,m_eblevel));
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
