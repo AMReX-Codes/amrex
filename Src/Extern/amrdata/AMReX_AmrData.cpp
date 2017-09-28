@@ -158,6 +158,7 @@ namespace {
 bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
    fileType = filetype;
    bCartGrid = false;
+   bShowBody = false;
    vCartGrid = -1;
    bTerrain = false;
    if(filetype == Amrvis::FAB || filetype == Amrvis::MULTIFAB) {
@@ -213,6 +214,10 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
      isPltIn >> plotFileVersion;
      if(strncmp(plotFileVersion.c_str(), "CartGrid", 8) == 0) {
        bCartGrid = true;
+       bShowBody = true;
+     }
+     if(strcmp(plotFileVersion.c_str(), "CartGrid-V1.0") == 0) {
+       vCartGrid = 10;
      }
      if(strcmp(plotFileVersion.c_str(), "CartGrid-V1.2") == 0) {
        vCartGrid = 12;
@@ -1785,7 +1790,7 @@ bool AmrData::MinMax(const Box &onBox, const string &derived, int level,
       }
     }
 
-  } else if(bCartGrid && (compIndex != StateNumber("vfrac"))) {
+  } else if(bCartGrid && (compIndex != StateNumber("vfrac")) && bShowBody) {
 #if (BL_SPACEDIM == 1)
     amrex::Abort("AmrData::MinMax:  should not be here for 1d.");
 #else
