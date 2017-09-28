@@ -389,7 +389,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 		      Real            scale,
 		      int             scomp,
 		      int             dcomp,
-		      int             ncomp,
+		      int             nc,
 		      const Geometry& geom)
 {
     BL_PROFILE("FluxRegister::Reflux()");
@@ -401,10 +401,10 @@ FluxRegister::Reflux (MultiFab&       mf,
 	int islo = face.isLow();
 
         MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
-                      mf.DistributionMap(), ncomp, 0, MFInfo(), mf.Factory());
+                      mf.DistributionMap(), nc, 0, MFInfo(), mf.Factory());
 	flux.setVal(0.0);
 
-	bndry[face].copyTo(flux, 0, scomp, 0, ncomp, geom.periodicity());
+	bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -426,7 +426,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 			  sfab.dataPtr(dcomp), sbox.loVect(), sbox.hiVect(),
 			  ffab.dataPtr(     ), fbox.loVect(), fbox.hiVect(),
 			  vfab.dataPtr(     ), vfab.loVect(), vbox.hiVect(),
-			  &ncomp, &scale, &idir, &islo);
+			  &nc, &scale, &idir, &islo);
 			  
 	}
     }
@@ -437,7 +437,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 		      Real            scale,
 		      int             scomp,
 		      int             dcomp,
-		      int             ncomp,
+		      int             nc,
 		      const Geometry& geom)
 {
     const Real* dx = geom.CellSize();
@@ -447,13 +447,13 @@ FluxRegister::Reflux (MultiFab&       mf,
     
     volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, mf.nGrow());
 
-    Reflux(mf,volume,scale,scomp,dcomp,ncomp,geom);
+    Reflux(mf,volume,scale,scomp,dcomp,nc,geom);
 }
 
 void
 FluxRegister::ClearInternalBorders (const Geometry& geom)
 {
-    int ncomp = this->nComp();
+    int nc = this->nComp();
     const Box& domain = geom.Domain();
     
     for (int dir = 0; dir < BL_SPACEDIM; dir++) {
@@ -474,7 +474,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
 		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
-		    frlo[fsi].setVal(0.0, isects[ii].second, 0, ncomp);
+		    frlo[fsi].setVal(0.0, isects[ii].second, 0, nc);
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.smallEnd(dir) == domain.smallEnd(dir)) {
@@ -482,7 +482,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 			const std::vector<std::pair<int,Box> >& isects2 = bahi.intersections(sbx);
 			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
 			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, -domain.length(dir));
-			    frlo[fsi].setVal(0.0, bx2, 0, ncomp);
+			    frlo[fsi].setVal(0.0, bx2, 0, nc);
 			}		      
 		    }
 		}
@@ -492,7 +492,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = balo.intersections(bx);
 		for (int ii = 0; ii < static_cast<int>(isects.size()); ++ii) {
-		    frhi[fsi].setVal(0.0, isects[ii].second, 0, ncomp);
+		    frhi[fsi].setVal(0.0, isects[ii].second, 0, nc);
 		}
 		if (geom.isPeriodic(dir)) {
 		    if (bx.bigEnd(dir) == domain.bigEnd(dir)) {
@@ -500,7 +500,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 			const std::vector<std::pair<int,Box> >& isects2 = balo.intersections(sbx);
 			for (int ii = 0; ii < static_cast<int>(isects2.size()); ++ii) {
 			    const Box& bx2 = amrex::shift(isects2[ii].second, dir, domain.length(dir));
-			    frhi[fsi].setVal(0.0, bx2, 0, ncomp);
+			    frhi[fsi].setVal(0.0, bx2, 0, nc);
 			}		      
 		    }
 		}

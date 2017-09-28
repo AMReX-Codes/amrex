@@ -41,8 +41,7 @@ AmrCoreAdv::AmrCoreAdv ()
     // this will be sized "nlevs_max+1"
     // NOTE: the flux register associated with flux_reg[lev] is associated
     // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
-    // therefore flux_reg[0] and flux_reg[nlevs_max] are never actually 
-    // used in the reflux operation
+    // therefore flux_reg[0] is never actually used in the reflux operation
     flux_reg.resize(nlevs_max+1);
 }
 
@@ -104,12 +103,12 @@ AmrCoreAdv::InitData ()
     }
 }
 
-// Make a new level from scratch using provided BoxArray and DistributionMapping.
-// Only used during initialization.
+// Make a new level using provided BoxArray and DistributionMapping and 
+// fill with interpolated coarse level data.
 // overrides the pure virtual function in AmrCore
 void
 AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
-				const DistributionMapping& dm)
+				    const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev-1]->nComp();
     const int nghost = phi_new[lev-1]->nGrow();
@@ -132,7 +131,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 // overrides the pure virtual function in AmrCore
 void
 AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
-		     const DistributionMapping& dm)
+			 const DistributionMapping& dm)
 {
     const int ncomp = phi_new[lev]->nComp();
     const int nghost = phi_new[lev]->nGrow();
@@ -168,10 +167,11 @@ AmrCoreAdv::ClearLevel (int lev)
     flux_reg[lev].reset(nullptr);
 }
 
-// initialize data using a fortran routine to compute initial state
+// Make a new level from scratch using provided BoxArray and DistributionMapping.
+// Only used during initialization.
 // overrides the pure virtual function in AmrCore
 void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
-				      const DistributionMapping& dm)
+					  const DistributionMapping& dm)
 {
     const int ncomp = 1;
     const int nghost = 0;
@@ -728,5 +728,5 @@ AmrCoreAdv::WritePlotFile () const
     const auto& varnames = PlotFileVarNames();
     
     amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
-				    Geom(), t_new[0], istep, refRatio());
+				   Geom(), t_new[0], istep, refRatio());
 }

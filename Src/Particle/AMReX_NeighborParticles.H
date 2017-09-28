@@ -72,6 +72,12 @@ class NeighborParticleContainer
                      grid_id == other.grid_id && 
                      tile_id < other.tile_id ));
         }
+
+        bool operator==(const NeighborCommTag& other) const {
+            return ( (proc_id == other.proc_id) and 
+                     (grid_id == other.grid_id) and
+                     (tile_id == other.tile_id) );
+        }
     };    
         
 public:
@@ -90,10 +96,19 @@ public:
                               const BoxArray            & ba,
                               int                         nneighbor);
 
-    void InitLevelMask(int lev, 
-                       const Geometry &geom, 
-                       const DistributionMapping &dmap, 
-                       const BoxArray &ba );
+    ///
+    /// This resets the particle container to use the given BoxArray
+    /// and DistributionMapping
+    ///
+    void Regrid(const DistributionMapping &dmap, const BoxArray &ba );
+
+    ///
+    /// This builds the internal data structure used for looking up neighbors
+    ///
+    void BuildLevelMask(int lev, 
+                        const Geometry &geom, 
+                        const DistributionMapping &dmap, 
+                        const BoxArray &ba );
 
     ///
     /// This fills the neighbor buffers for each tile with the proper data
@@ -127,22 +142,12 @@ protected:
     NeighborTag getNeighborTag(int lev,
                                const IntVect& neighbor_cell,
                                const BaseFab<int>& mask);
-
     ///
     /// Apply periodic shift to particle position, so naive distance calculation
     /// between neighbors and regular particles will be correct.
     ///
     void applyPeriodicShift(int lev, ParticleType& p, const NeighborTag& tag);
 
-    ///
-    /// Pack a particle's data into the proper neighbor buffer, or put it into
-    /// the structure to be sent to the other processes
-    ///
-    void packNeighborParticle(int lev,
-                              const ParticleType& p,
-                              const NeighborTag& tag,
-                              NeighborCommMap& neighbors_to_comm);
-    
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
@@ -159,11 +164,8 @@ protected:
     };
 
     int num_neighbor_cells;
-    FabArray<BaseFab<int> > mask;
-
-    void cacheNeighborParticle(int lev, const PairIndex& index, 
-                               int particle_index, const NeighborTag& tag);
-
+    std::vector<NeighborCommTag> local_neighbors;
+    std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
     std::map<PairIndex, Array<int> > buffer_id_cache;
     std::map<PairIndex, Array<NeighborTag> > buffer_tag_cache;
     

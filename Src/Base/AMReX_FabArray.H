@@ -2862,9 +2862,9 @@ if(myProc == 0) {
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
-    for(auto afapIter = allocatedFAPointers.begin(); afapIter != allocatedFAPointers.end(); ++afapIter) {
-      std::cout << "afapIter->first (ngrids) = " << afapIter->first << "  :: ===================" << std::endl;
-      std::map<int, FabArray<FAB> *> &afapMap = afapIter->second;
+    for(auto it = allocatedFAPointers.begin(); it != allocatedFAPointers.end(); ++it) {
+      std::cout << "it->first (ngrids) = " << it->first << "  :: ===================" << std::endl;
+      std::map<int, FabArray<FAB> *> &afapMap = it->second;
       for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
 	auto fap = afapMapIter->second;
         std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << afapMapIter->second << std::endl; 
@@ -3001,9 +3001,9 @@ if(myProc == 0) {
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
-    for(auto afapIter = allocatedFAPointers.begin(); afapIter != allocatedFAPointers.end(); ++afapIter) {
-      std::cout << "afapIter->first (ngrids) = " << afapIter->first << "  :: ===================" << std::endl;
-      std::map<int, FabArray<FAB> *> &afapMap = afapIter->second;
+    for(auto it = allocatedFAPointers.begin(); it != allocatedFAPointers.end(); ++it) {
+      std::cout << "it->first (ngrids) = " << it->first << "  :: ===================" << std::endl;
+      std::map<int, FabArray<FAB> *> &afapMap = it->second;
       for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
 	auto fap = afapMapIter->second;
         std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << afapMapIter->second << std::endl; 

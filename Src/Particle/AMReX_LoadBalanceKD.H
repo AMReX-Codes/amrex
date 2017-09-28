@@ -61,7 +61,7 @@ namespace loadBalanceKD {
 
     template <typename T>
     void computeCost(T& myPC, amrex::MultiFab& local_cost, 
-                     amrex::MultiFab& global_cost, const amrex::Box& domain) {
+                     amrex::MultiFab& global_cost, const amrex::Box& domain, amrex::Real cell_weight) {
         
         const int lev = 0;
         const amrex::BoxArray& ba = myPC.ParticleBoxArray(lev);
@@ -78,7 +78,7 @@ namespace loadBalanceKD {
         amrex::DistributionMapping global_dm(procs_map);    
         
         local_cost.define(ba, dm, 1, 0);
-        local_cost.setVal(0.0);
+        local_cost.setVal(cell_weight);
         myPC.Increment(local_cost, lev);
         
         global_cost.define(global_ba, global_dm, 1, 0);
@@ -86,7 +86,7 @@ namespace loadBalanceKD {
     }
 
     template <typename T>
-    void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs) {
+    void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs, amrex::Real cell_weight) {
         
         const int lev = 0;
         const amrex::Geometry& geom = myPC.Geom(lev);
@@ -94,7 +94,7 @@ namespace loadBalanceKD {
         
         amrex::MultiFab local_cost;
         amrex::MultiFab global_cost;    
-        computeCost<T>(myPC, local_cost, global_cost, domain);
+        computeCost<T>(myPC, local_cost, global_cost, domain, cell_weight);
         
         amrex::FArrayBox *cost;
         for ( amrex::MFIter mfi(global_cost); mfi.isValid(); ++mfi ) {

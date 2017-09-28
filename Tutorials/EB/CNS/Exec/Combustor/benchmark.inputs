@@ -1,6 +1,6 @@
 #this input file is intended to be the one I compare with the Pele equivalent.
 
-max_step = 250
+max_step = 32
 stop_time =  0.2
 
 geometry.is_periodic = 0 0 0
@@ -22,6 +22,10 @@ cns.cfl = 0.3     # cfl number for hyperbolic system
 cns.v = 1
 amr.v = 1
 
+# LOAD BALANCE
+amr.loadbalance_with_workestimates = 1
+amr.loadbalance_level0_int = 1000
+
 # REFINEMENT / REGRIDDING
 amr.max_level       = 2       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
@@ -33,12 +37,12 @@ amr.n_error_buf     = 2 2 2 2 # number of buffer cells in error est
 # CHECKPOINT FILES
 amr.checkpoint_files_output = 0
 amr.check_file      = chk        # root name of checkpoint file
-amr.check_int       = 10         # number of timesteps between checkpoints
+amr.check_int       = -10         # number of timesteps between checkpoints
 
 # PLOTFILES
 amr.plot_files_output = 1
 amr.plot_file         = plt      # root name of plotfile
-amr.plot_int          = 50       # number of timesteps between plotfiles
+amr.plot_int          = 500       # number of timesteps between plotfiles
 amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 

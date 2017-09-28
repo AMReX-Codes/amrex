@@ -1,3 +1,5 @@
+#ifndef _RTS
+#define _RTS
 #include "AMReX_AbstractTask.H"
 #include "AMReX_TaskGraph.H"
 #include <iostream>
@@ -22,17 +24,23 @@ namespace amrex{
     class RTS{
 	private:
             int _nWrks;
+            void RTS_Init();
+	    int _rank, _nProcs;
 
 	public:
-            RTS():_nWrks(1){}
+            RTS(){
+		_nWrks=1; 
+		char* nWrks= getenv("NWORKERS");
+		if(nWrks) _nWrks= atoi(nWrks);
+	    }
             RTS(int nWrks):_nWrks(nWrks){}
 	    int ProcCount();
 	    int MyProc();
 	    int WorkerThreadCount();
 	    int MyWorkerThread();
-	    void Init();
-	    void Init(int *rank, int *nProcs);
-	    void Run(void *graph);
+	    void Init(); //Build the runtime system from scratch
+	    void Init(int rank, int nProcs);//Build the runtime system on pre-existing MPI processes
+	    void Iterate(void *graph);
 	    void Finalize();
             double Time();
             void Barrier();
@@ -41,3 +49,4 @@ namespace amrex{
             }
     };
 }
+#endif
