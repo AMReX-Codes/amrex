@@ -45,6 +45,9 @@ This will generate an executable file in the ``Bin`` directory.
         * Profile or debug the code
         * Choose a given compiler
 
+    For a description of these different options, see section 3 of the
+    `AMReX User's Guide <https://amrex-codes.github.io/AMReXUsersGuide.pdf>`__.
+
     Alternatively, instead of modifying the file ``GNUmakefile``, you can
     directly pass the options in command line ; for instance:
 
