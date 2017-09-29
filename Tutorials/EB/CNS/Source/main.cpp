@@ -53,6 +53,8 @@ int main (int argc, char* argv[])
         //xxxxx maybe we should have armex::EBInitialize() and EBFinalize()
         initialize_EBIS(amr.maxLevel());
         EBTower::Build();
+        AmrLevel::SetEBSupportLevel(EBSupport::full);
+        AmrLevel::SetEBMaxGrowCells(CNS::numGrow());
 
 	amr.init(strt_time,stop_time);
 

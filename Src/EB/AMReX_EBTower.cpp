@@ -72,6 +72,7 @@ EBTower::EBTower ()
     }
 
     m_cellflags.resize(nlevels);
+    m_volfrac.resize(nlevels);
 
     for (int lev = 0; lev < nlevels; ++lev)
     {
@@ -83,6 +84,9 @@ EBTower::EBTower ()
 
             m_cellflags[lev].define(ba, dm, 1, 0);
             initCellFlags(lev, eblg);
+
+            m_volfrac[lev].define(ba, dm, 1, 0);
+            initVolFrac(lev, eblg);
         }
     }
 }
@@ -109,6 +113,37 @@ EBTower::initCellFlags (int lev, const EBLevelGrid& eblg)
     }
 }
 
+void
+EBTower::initVolFrac (int lev, const EBLevelGrid& eblg)
+{
+    MultiFab& volfrac = m_volfrac[lev];
+    const auto& ebisl = eblg.getEBISL();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(volfrac,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        auto& fab = volfrac[mfi];
+        fab.setVal(1.0, bx);
+
+        const EBISBox& ebisbox = ebisl[mfi];
+        
+        for (BoxIterator bi(bx); bi.ok(); ++bi)
+        {
+            const IntVect& iv = bi();
+            const auto& vofs = ebisbox.getVoFs(iv);
+            Real vtot = 0.0;
+            for (const auto& vi : vofs)
+            {
+                vtot += ebisbox.volFrac(vi);
+            }
+            fab(iv) = vtot;
+        }
+    }
+}
+
 int
 EBTower::getIndex (const Box& domain) const
 {
@@ -127,7 +162,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
     int lev = m_instance->getIndex(domain);
 
     const auto& src_flag = m_instance->m_cellflags[lev];
-    a_flag.ParallelCopy(src_flag, 0, 0, 1, 0, a_flag.nGrow(), a_geom.periodicity());
+    a_flag.ParallelCopy(src_flag, 0, 0, 1, 0, a_flag.nGrow());
 
     const BoxArray& cov_ba = m_instance->m_covered_ba[lev];
     auto cov_val = EBCellFlag::TheCoveredCell();
@@ -143,7 +178,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
 
             // covered cells
             cov_ba.intersections(bx, isects);
-            for (const auto& is: isects) {
+            for (const auto& is : isects) {
                 fab.setVal(cov_val, is.second);
             }
 
@@ -152,6 +187,40 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             fab.setType(FabType::undefined);
             auto typ = fab.getType(bx);
             fab.setType(typ);
+        }
+    }
+}
+
+void
+EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
+{
+    BL_PROFILE("EBTower::fillVolFrac()");
+    
+    const Box& domain = a_geom.Domain();
+
+    int lev = m_instance->getIndex(domain);
+
+    const auto& src_volfrac = m_instance->m_volfrac[lev];
+    a_volfrac.setVal(1.0);
+    a_volfrac.ParallelCopy(src_volfrac, 0, 0, 1, 0, a_volfrac.nGrow());
+
+    const BoxArray& cov_ba = m_instance->m_covered_ba[lev];
+    Real cov_val = 0.0;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector<std::pair<int,Box> > isects;
+        for (MFIter mfi(a_volfrac); mfi.isValid(); ++mfi)
+        {
+            auto& fab = a_volfrac[mfi];
+            const Box& bx = fab.box() & domain;
+
+            // covered cells
+            cov_ba.intersections(bx, isects);
+            for (const auto& is : isects) {
+                fab.setVal(cov_val, is.second);
+            }
         }
     }
 }
