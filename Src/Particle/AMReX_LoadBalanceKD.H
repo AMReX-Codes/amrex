@@ -86,7 +86,8 @@ namespace loadBalanceKD {
     }
 
     template <typename T>
-    void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs, amrex::Real cell_weight) {
+    void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs, amrex::Real cell_weight,
+                 amrex::Array<amrex::Real>& box_costs) {
         
         const int lev = 0;
         const amrex::Geometry& geom = myPC.Geom(lev);
@@ -104,7 +105,7 @@ namespace loadBalanceKD {
         KDTree tree = KDTree(domain, *cost, num_procs);
         
         amrex::BoxList new_bl;
-        amrex::Array<amrex::Real> box_costs;
+//      amrex::Array<amrex::Real> box_costs;
         tree.GetBoxes(new_bl, box_costs);
         new_ba.define(new_bl);
     }

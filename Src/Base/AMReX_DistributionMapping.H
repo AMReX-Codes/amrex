@@ -203,6 +203,8 @@ class DistributionMapping
 #endif
 
     static DistributionMapping makeKnapSack   (const MultiFab& weight);
+    static DistributionMapping makeKnapSack   (const Array<Real>& rcost);
+
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
 
