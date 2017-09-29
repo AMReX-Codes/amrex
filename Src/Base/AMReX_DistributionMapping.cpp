@@ -2744,4 +2744,11 @@ operator<< (std::ostream&              os,
     return os;
 }
 
+std::ostream&
+operator<< (std::ostream& os, const DistributionMapping::RefID& id)
+{
+    os << id.data;
+    return os;
+}
+
 }

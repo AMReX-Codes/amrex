@@ -325,6 +325,7 @@ public:
         bool operator!= (const RefID& rhs) const { return data != rhs.data; }
 	const Ref *dataPtr() const { return data; }
 	void PrintPtr(std::ostream &os) const { os << data << '\n'; }
+        friend std::ostream& operator<< (std::ostream& os, const RefID& id);
    private:
         Ref* data;
     };
@@ -335,6 +336,8 @@ public:
 
 //! Our output operator.
 std::ostream& operator<< (std::ostream& os, const DistributionMapping& pmap);
+
+std::ostream& operator<< (std::ostream& os, const DistributionMapping::RefID& id);
 
 }
 
