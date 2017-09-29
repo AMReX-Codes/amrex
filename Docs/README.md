@@ -37,6 +37,13 @@ In order to remove all of the generated files, use:
 make clean
 ```
 
+### Upload the documentation
+
+In order to upload the documentation, so that it becomes available online, type:
+```
+make upload
+```
+
 ## Contributing to the documentation
 
 The documentation is built with several tools:
