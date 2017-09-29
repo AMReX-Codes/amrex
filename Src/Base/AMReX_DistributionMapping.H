@@ -202,7 +202,8 @@ class DistributionMapping
     static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif
 
-    static DistributionMapping makeKnapSack   (const MultiFab& weight);
+    static DistributionMapping makeKnapSack   (const MultiFab& weight,
+                                               int nmax=std::numeric_limits<int>::max());
     static DistributionMapping makeKnapSack   (const Array<Real>& rcost);
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
