@@ -202,9 +202,9 @@ void amrex::RedistFiles() {
     std::ifstream iss;
     std::ofstream oss;
     if(bIOP) {  // main header file
-      std::string readHFile(cpdir + '/' + "bl_comm_prof_H");
-      std::string writeHFile(cpredistdir + '/' + "bl_comm_prof_H");
-      iss.open(readHFile.c_str(), std::ios::in);
+      std::string readCPHFile(cpdir + '/' + "bl_comm_prof_H");
+      std::string writeCPHFile(cpredistdir + '/' + "bl_comm_prof_H");
+      iss.open(readCPHFile.c_str(), std::ios::in);
       iss.seekg(0, std::ios::end);
       long fileLength(iss.tellg());
       char charBuf[fileLength];
@@ -212,7 +212,7 @@ void amrex::RedistFiles() {
       iss.read(charBuf, fileLength);
       iss.close();
 
-      oss.open(writeHFile.c_str(), std::ios::out);
+      oss.open(writeCPHFile.c_str(), std::ios::out);
       oss.write(charBuf, fileLength);
       oss.close();
     }
