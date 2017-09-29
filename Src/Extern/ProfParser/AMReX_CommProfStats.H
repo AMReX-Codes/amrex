@@ -39,8 +39,8 @@ class CommProfStats : public BLProfStats {
       BarrierEntry()
         :  number(-1), name("__uninitialized_Barrier_Entry_name__"),
 	   seekIndex(-1), bNameNumber(-1)  { }
-      BarrierEntry(long n, const std::string &name, long i, int bnn)
-        :  number(n), name(name), seekIndex(i), bNameNumber(bnn)  { }
+      BarrierEntry(long n, const std::string &nm, long i, int bnn)
+        :  number(n), name(nm), seekIndex(i), bNameNumber(bnn)  { }
 
       BarrierEntry &operator=(const BarrierEntry &be);
 

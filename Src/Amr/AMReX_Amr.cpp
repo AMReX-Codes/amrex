@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iomanip>
 #include <limits>
+#include <cmath>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -463,6 +464,9 @@ Amr::InitAmr ()
 
     loadbalance_level0_int = 2;
     pp.query("loadbalance_level0_int", loadbalance_level0_int);
+
+    loadbalance_max_fac = 1.5;
+    pp.query("loadbalance_max_fac", loadbalance_max_fac);
 }
 
 bool
@@ -2525,7 +2529,10 @@ Amr::makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) con
         MultiFab workest(ba, dmtmp, 1, 0);
         AmrLevel::FillPatch(*amr_level[lev], workest, 0, time, work_est_type, 0, 1, 0);
 
-        newdm = DistributionMapping::makeKnapSack(workest);
+        Real navg = static_cast<Real>(ba.size()) / static_cast<Real>(ParallelDescriptor::NProcs());
+        int nmax = std::max(std::round(loadbalance_max_fac*navg), std::ceil(navg));
+
+        newdm = DistributionMapping::makeKnapSack(workest, nmax);
     }
     else
     {
@@ -3227,6 +3234,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         allInts.push_back(rebalance_grids);
         allInts.push_back(loadbalance_with_workestimates);
         allInts.push_back(loadbalance_level0_int);
+        allInts.push_back(loadbalance_max_fac);        
 
 	// ---- these are parmparsed in
         allInts.push_back(plot_nfiles);
@@ -3302,6 +3310,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
         rebalance_grids            = allInts[count++];
         loadbalance_with_workestimates  = allInts[count++];
         loadbalance_level0_int     = allInts[count++];
+        loadbalance_max_fac        = allInts[count++];
 
         plot_nfiles                = allInts[count++];
         mffile_nstreams            = allInts[count++];
