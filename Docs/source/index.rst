@@ -21,5 +21,6 @@ In order to learn to use the code, please see the sections below:
 
    installation
    running_cpp/running_cpp
+   running_python/running_python
    visualization
    theory/theory

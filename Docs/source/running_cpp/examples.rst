@@ -18,5 +18,12 @@ Laser wakefield acceleration
 * :download:`Without mesh refinement<../../../Example/laser_acceleration/inputs>`
 * :download:`With mesh refinement<../../../Example/laser_acceleration/inputs.ebeam.mr>`
 
+Plasma mirror
+-------------
+
+:download:`With mesh refinement<../../../Example/plasma_mirror/inputs.mr>`
+
 Uniform plasma
 --------------
+
+:download:`Without mesh refinement<../../../Example/uniform_plasma/inputs>`

@@ -1,5 +1,5 @@
-Running in pure C++ mode
-========================
+Running WarpX as a compiled executable
+======================================
 
 After compiling the code (see the section :doc:`../installation`), the
 WarpX executable is stored in the folder ``warpx/Bin``. (Its name starts
