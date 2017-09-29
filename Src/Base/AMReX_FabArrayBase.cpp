@@ -1691,4 +1691,11 @@ FabArrayBase::CheckRcvStats(Array<MPI_Status>& recv_stats,
 }
 #endif
 
+std::ostream&
+operator<< (std::ostream& os, const FabArrayBase::BDKey& id)
+{
+    os << "(" << id.m_ba_id << ", " << id.m_dm_id << ")";
+    return os;
+}
+
 }

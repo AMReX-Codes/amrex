@@ -2593,6 +2593,30 @@ DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group 
 #endif
 
 DistributionMapping
+DistributionMapping::makeKnapSack (const Array<Real>& rcost)
+{
+    BL_PROFILE("makeKnapSack");
+
+    DistributionMapping r;
+
+    Array<long> cost(rcost.size());
+
+    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real scale = 1.e9/wmax;
+
+    for (int i = 0; i < rcost.size(); ++i) {
+        cost[i] = long(rcost[i]*scale) + 1L;
+    }
+
+    int nprocs = ParallelDescriptor::NProcs();
+    Real eff;
+
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true);
+
+    return r;
+}
+
+DistributionMapping
 DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
 {
     BL_PROFILE("makeKnapSack");
@@ -2717,6 +2741,13 @@ operator<< (std::ostream&              os,
     if (os.fail())
         amrex::Error("operator<<(ostream &, DistributionMapping &) failed");
 
+    return os;
+}
+
+std::ostream&
+operator<< (std::ostream& os, const DistributionMapping::RefID& id)
+{
+    os << id.data;
     return os;
 }
 
