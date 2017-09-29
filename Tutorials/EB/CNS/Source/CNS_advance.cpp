@@ -2,6 +2,8 @@
 #include <CNS.H>
 #include <CNS_F.H>
 
+#include <AMReX_EBFArrayBox.H>
+
 using namespace amrex;
 
 Real

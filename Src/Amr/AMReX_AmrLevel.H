@@ -407,7 +407,6 @@ protected:
 #ifdef AMREX_USE_EB
     static void SetEBMaxGrowCells (int n) { m_eb_max_grow_cells = n; }
     static int            m_eb_max_grow_cells;
-    EBLevel               m_eblevel;
 #endif
     std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 

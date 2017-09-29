@@ -5,6 +5,7 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_EBAmrUtil.H>
+#include <AMReX_EBFArrayBox.H>
 
 #include <climits>
 

@@ -21,10 +21,6 @@ namespace amrex
     MultiFab makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
                              int ncomp, int ngrow, const MFInfo& info,
                              const MultiFab& mold);
-
-    MultiFab makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
-                             int ncomp, int ngrow, const MFInfo& info,
-                             const Box& level_domain);
 }
 
 #endif
