@@ -102,10 +102,11 @@ public:
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
+    static int numGrow() { return NUM_GROW; };
+
 protected:
 
     static void read_params ();
-    static int numGrow() { return NUM_GROW; };
 
     const amrex::MultiFab& volFrac () const { return volfrac; }
 

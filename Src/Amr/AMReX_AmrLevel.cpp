@@ -22,7 +22,8 @@
 namespace amrex {
 
 #ifdef AMREX_USE_EB
-int AmrLevel::m_eb_max_grow_cells = 6;
+int AmrLevel::m_eb_max_grow_cells = 5;
+EBSupport AmrLevel::m_eb_support_level = EBSupport::volume;
 #endif
 
 DescriptorList AmrLevel::desc_lst;
@@ -97,7 +98,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, ba, dm, m_eb_max_grow_cells, EBSupport::geometry));
+    m_factory.reset(new EBFArrayBoxFactory(geom, ba, dm, m_eb_max_grow_cells, m_eb_support_level));
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -322,7 +323,7 @@ AmrLevel::restart (Amr&          papa,
     parent->SetDistributionMap(level, dmap);
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap, m_eb_max_grow_cells, EBSupport::geometry));
+    m_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap, m_eb_max_grow_cells, m_eb_support_level));
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif

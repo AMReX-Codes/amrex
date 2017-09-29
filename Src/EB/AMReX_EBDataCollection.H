@@ -33,7 +33,15 @@ private:
     Geometry m_geom;
 
     // have to use pointer to break include loop
-    FabArray<EBCellFlagFab>* m_cellflags;
+
+    // EBSupport::basic
+    FabArray<EBCellFlagFab>* m_cellflags = nullptr;
+
+    // EBSupport::geometry
+    MultiFab* m_volfrac = nullptr;
+    MultiFab* m_bndrycent = nullptr;
+    std::array<MultiFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    std::array<MultiFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
 };
 
 }

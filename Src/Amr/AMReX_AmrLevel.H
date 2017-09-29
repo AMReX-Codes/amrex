@@ -15,7 +15,7 @@
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
 #ifdef AMREX_USE_EB
-#include <AMReX_EBLevel.H>
+#include <AMReX_EBSupport.H>
 #include <AMReX_EBInterpolater.H>
 #endif
 
@@ -366,6 +366,13 @@ public:
 			        MPI_Comm scsComm);
     void Check() const;
 
+#ifdef AMREX_USE_EB
+    static void SetEBMaxGrowCells (int n) { m_eb_max_grow_cells = n; }
+    static int            m_eb_max_grow_cells;
+    static void SetEBSupportLevel (EBSupport ebs) { m_eb_support_level = ebs; }
+    static EBSupport      m_eb_support_level;
+#endif
+
 protected:
     //! The constructors -- for derived classes.
     AmrLevel ();
@@ -404,10 +411,6 @@ protected:
 
     bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 
-#ifdef AMREX_USE_EB
-    static void SetEBMaxGrowCells (int n) { m_eb_max_grow_cells = n; }
-    static int            m_eb_max_grow_cells;
-#endif
     std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 
 private:

@@ -11,25 +11,39 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
                                     int a_ngrow, EBSupport a_support)
     : m_ngrow(a_ngrow),
       m_support(a_support),
-      m_geom(a_geom),
-      m_cellflags(new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, a_ngrow))
+      m_geom(a_geom)
 {
-    AMREX_ALWAYS_ASSERT(EBTower::get() != nullptr);
+    if (m_support >= EBSupport::basic)
+    {
+        AMREX_ALWAYS_ASSERT(EBTower::get() != nullptr);
 
-    EBTower::fillEBCellFlag(*m_cellflags, m_geom);
+        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow);
+        EBTower::fillEBCellFlag(*m_cellflags, m_geom);
+
+        if (m_support >= EBSupport::volume)
+        {
+            m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow);
+        }
+    }
 }
 
 EBDataCollection::~EBDataCollection ()
 {
     delete m_cellflags;
+    delete m_volfrac;
+    delete m_bndrycent;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        delete m_areafrac[idim];
+        delete m_facecent[idim];
+    }
 }
 
 const FabArray<EBCellFlagFab>&
 EBDataCollection::getMultiEBCellFlagFab () const
 {
+    BL_ASSERT(m_cellflags != nullptr);
     return *m_cellflags;
 }
-
 
 }
 
