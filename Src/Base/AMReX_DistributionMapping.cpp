@@ -2599,7 +2599,7 @@ DistributionMapping::makeKnapSack (const Array<Real>& rcost)
 
     DistributionMapping r;
 
-    Array<long> cost(weight.size());
+    Array<long> cost(rcost.size());
 
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
     Real scale = 1.e9/wmax;
