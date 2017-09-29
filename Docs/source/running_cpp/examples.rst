@@ -1,4 +1,22 @@
-Examples
-========
+Example input files
+===================
 
-Put here well documented examples of WarpX.
+This section allows you to **download input files** that correspond to different
+physical situations. For a definition of the different parameters
+that are set in these files, see the section :doc:`parameters`.
+
+Plasma wakefield acceleration
+-----------------------------
+
+* :download:`Without mesh refinement<../../../Example/plasma_acceleration/inputs>`
+* :download:`With mesh refinement<../../../Example/plasma_acceleration/inputs.mr>`
+
+
+Laser wakefield acceleration
+----------------------------
+
+* :download:`Without mesh refinement<../../../Example/laser_acceleration/inputs>`
+* :download:`With mesh refinement<../../../Example/laser_acceleration/inputs.ebeam.mr>`
+
+Uniform plasma
+--------------
