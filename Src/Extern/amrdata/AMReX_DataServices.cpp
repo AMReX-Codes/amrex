@@ -1,8 +1,6 @@
-
 // ---------------------------------------------------------------
 // DataServices.cpp
 // ---------------------------------------------------------------
-
 #include <AMReX_AmrvisConstants.H>
 #include <AMReX_DataServices.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -35,13 +33,6 @@ using namespace amrex;
 #ifdef BL_USE_PROFPARSER
 extern int yyparse(void *);
 extern FILE *yyin;
-//extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
-//extern void SimpleRemoveOverlap(amrex::BoxArray &ba);
-//extern void avgDown(amrex::MultiFab &S_crse, amrex::MultiFab &S_fine, int scomp, int dcomp,
-//             int ncomp, amrex::Array<int> &ratio);
-//extern std::string SanitizeName(const std::string &s);
-//extern void WriteFab(const string &filenameprefix, const int xdim, const int ydim,
-//                     const double *data);
 #endif
 
 namespace amrex {
@@ -60,8 +51,6 @@ namespace {
   const int NTIMESLOTS(25600);
 }
 
-//extern FILE *yyin;
-//extern int yyparse(void *);
 
 extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
 extern void SimpleRemoveOverlap(BoxArray &ba);
@@ -73,6 +62,7 @@ extern void WriteFab(const string &filenameprefix, const int xdim, const int ydi
 
 #define SHOWVAL(val) { cout << #val << " = " << val << endl; }
 #endif
+
 
 // ---------------------------------------------------------------
 namespace ParallelDescriptor {
@@ -326,11 +316,12 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
 #endif
 }
 
+
 // ---------------------------------------------------------------
 DataServices::~DataServices() {
   BL_ASSERT(numberOfUsers == 0);
   if( ! profiler) {
-    DataServices::dsArray[dsArrayIndex] = NULL;
+    DataServices::dsArray[dsArrayIndex] = nullptr;
   }
 }
 
@@ -339,6 +330,7 @@ DataServices::~DataServices() {
 void DataServices::SetBatchMode() {
   dsBatchMode = true;
 }
+
 
 // ---------------------------------------------------------------
 void DataServices::SetFabOutSize(int iSize) {
@@ -1552,7 +1544,8 @@ bool DataServices::MinMax(const Box &onBox, const string &derived, int level,
 {
   minMaxValid =  amrData.MinMax(onBox, derived, level, dataMin, dataMax);
   return minMaxValid;
-}  // end MinMax
+}
+
 
 // ---------------------------------------------------------------
 #ifdef BL_USE_PROFPARSER
@@ -1578,6 +1571,7 @@ void DataServices::ParseFilterFile()
     }
 }
 
+
 // ----------------------------------------------------------------------
 void DataServices::WriteSummary(std::ostream &os, bool bWriteAverage,
                                 int whichProc, bool bUseTrace,
@@ -1596,6 +1590,7 @@ void DataServices::WriteSummary(std::ostream &os, bool bWriteAverage,
     blProfStats_H.WriteSummary(os, bWriteAverage, whichProc, graphTopPct);
   }
 }
+
 
 // -----------------------------------------------------------------------
 void DataServices::CheckProfData()
@@ -1643,8 +1638,8 @@ void DataServices::CheckProfData()
     if(bIOP) { cout << "Check Time = " << ParallelDescriptor::second() - dstart << " s." << endl; }
 }
 
-// ----------------------------------------------------------------------
 
+// ----------------------------------------------------------------------
 void DataServices::ProcessGridLog(const std::string &gridlogFileName) {
     if(ParallelDescriptor::IOProcessor()) {
       CommProfStats glOutputStats;
@@ -1677,6 +1672,7 @@ void DataServices::ProcessGridLog(const std::string &gridlogFileName) {
       cout << "---------------- finished processing " << gridlogFileName << endl;
     }
 }
+
 
 // ----------------------------------------------------------------------
 void DataServices::PrintCommStats(std::ostream &os,
@@ -1720,6 +1716,7 @@ void DataServices::PrintCommStats(std::ostream &os,
   }
   os << std::flush;
 }
+
 
 // ----------------------------------------------------------------------
 void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
@@ -1853,6 +1850,7 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
     }
     statsCollected = true;
 }
+
 
 // ----------------------------------------------------------------------
 void DataServices::RunSendsPF(std::string &plotfileName,
@@ -2985,6 +2983,7 @@ void DataServices::RunSyncPointData()
     }
 
 }
+
 
 // ----------------------------------------------------------------------
 void DataServices::RunSendRecv()
