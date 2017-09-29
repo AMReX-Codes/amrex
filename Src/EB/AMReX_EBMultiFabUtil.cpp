@@ -96,7 +96,10 @@ EB_set_volume_fraction (MultiFab& mf)
 
     BL_ASSERT(mf.nComp() == 1);
 
-    const Box& domain = amrex::getLevelDomain(mf);
+    const Box& domain = mf.getDomain();
+
+// xxxxx
+#if 0
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -131,6 +134,7 @@ EB_set_volume_fraction (MultiFab& mf)
             }
         }
     }
+#endif
 }
 
 void
@@ -140,7 +144,10 @@ EB_set_bndry_centroid (MultiFab& mf)
 
     BL_ASSERT(mf.nComp() == AMREX_SPACEDIM);
 
-    const Box& domain = amrex::getLevelDomain(mf);
+    const Box& domain = mf.getDomain();
+
+// xxxxx
+#if 0
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -176,6 +183,7 @@ EB_set_bndry_centroid (MultiFab& mf)
             }
         }
     }
+#endif
 }
 
 void
@@ -184,7 +192,10 @@ EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafra
 {
     BL_PROFILE("EB_set_area_fraction_face_centroid");
 
-    const Box& domain = amrex::getLevelDomain(areafrac[0]);
+// xxxxx
+#if 0
+
+    const Box& domain = areafrac[0].getDomain();
     const auto& cellflagmf = amrex::getMultiEBCellFlagFab(areafrac[0]);
     const EBLevel& eblevel = amrex::getEBLevel(areafrac[0]);
     const EBISLayout& ebisl = eblevel.getEBISL();
@@ -267,6 +278,7 @@ EB_set_area_fraction_face_centroid (std::array<MultiFab,AMREX_SPACEDIM>& areafra
             }
         }
     }
+#endif
 }
 
 void
@@ -341,6 +353,7 @@ makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
                 int ncomp, int ngrow, const MFInfo& info,
                 const MultiFab& mold)
 {
+#if 0
     const auto& fact_mold = dynamic_cast<EBFArrayBoxFactory const&>(mold.Factory());
     const auto& eblevel_mold = fact_mold.getEBLevel();
 
@@ -354,16 +367,9 @@ makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
         EBFArrayBoxFactory fact(Geometry(), eblevel);
         return MultiFab(ba, dm, ncomp, ngrow, info, fact);
     }
-}
-
-MultiFab
-makeMultiEBFab (const BoxArray& ba, const DistributionMapping& dm,
-                int ncomp, int ngrow, const MFInfo& info,
-                const Box& level_domain)
-{
-    EBLevel eblevel(ba, dm, level_domain, ngrow);
-    EBFArrayBoxFactory fact(Geometry(), eblevel);
-    return MultiFab(ba, dm, ncomp, ngrow, info, fact);
+#else
+    return MultiFab();
+#endif
 }
 
 }

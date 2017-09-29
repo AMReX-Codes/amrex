@@ -3,31 +3,33 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
+#include <AMReX_FabArray.H>
 
 namespace amrex
 {
 
-EBFArrayBoxFactory::EBFArrayBoxFactory (const Geometry& a_geom, const EBLevel& a_eblevel)
-        : m_geom(a_geom),
-          m_ebdc(std::make_shared<EBDataCollection>(a_geom)),
-          m_eblevel(a_eblevel)
+EBFArrayBoxFactory::EBFArrayBoxFactory (const Geometry& a_geom,
+                                        const BoxArray& a_ba,
+                                        const DistributionMapping& a_dm,
+                                        int a_ngrow, EBSupport a_support)
+    : m_ngrow(a_ngrow),
+      m_support(a_support),
+      m_geom(a_geom),
+      m_ebdc(std::make_shared<EBDataCollection>(a_geom,a_ba,a_dm,a_ngrow,a_support))
 {}
 
 FArrayBox*
 EBFArrayBoxFactory::create (const Box& box, int ncomps,
                             const FabInfo& info, int box_index) const
 {
-    const auto& ebisl = this->getEBISL();
-    const auto& eblevel = this->getEBLevel();
-    if (ebisl.isDefined())
+    if (m_support == EBSupport::none)
     {
-        const EBISBox& ebisBox = ebisl[box_index];
-        const EBCellFlagFab& ebcellflag = eblevel.getMultiEBCellFlagFab()[box_index];
-        return new EBFArrayBox(ebisBox, ebcellflag, box, ncomps);
+        return new FArrayBox(box, ncomps, info.alloc, info.shared);        
     }
     else
     {
-        return new FArrayBox(box, ncomps, info.alloc, info.shared);        
+        const EBCellFlagFab& ebcellflag = m_ebdc->getMultiEBCellFlagFab()[box_index];
+        return new EBFArrayBox(ebcellflag, box, ncomps);
     }
 }
 

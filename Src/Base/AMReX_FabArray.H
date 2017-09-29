@@ -43,6 +43,10 @@
 #include <AMReX_parstream.H>
 #include <AMReX_SPMD.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#endif
+
 namespace amrex {
 
 /*
@@ -181,6 +185,8 @@ public:
 #endif
 
     const FabFactory<FAB>& Factory () const { return *m_factory; }
+
+    Box getDomain () const { return m_factory->getDomain(); }
 
     /**
     * \brief Return true if the FabArray is well-defined.  That is,

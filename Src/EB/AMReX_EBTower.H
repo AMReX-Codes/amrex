@@ -1,10 +1,12 @@
 #ifndef AMREX_EBTOWER_H_
 #define AMREX_EBTOWER_H_
 
-#include <AMReX_FabArray.H>
 #include <AMReX_EBCellFlag.H>
+#include <AMReX_MultiFab.H>
 
 namespace amrex {
+
+class EBLevelGrid;
 
 class EBTower
 {
@@ -14,10 +16,15 @@ public:
     static void Destroy ();
     static const EBTower* get () { return m_instance; }
 
+    static void fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom);
+
 private:
 
     EBTower ();
     ~EBTower ();
+
+    void initCellFlags (int lev, const EBLevelGrid& eblg);
+    int getIndex (const Box& domain) const;
 
     static EBTower* m_instance;
 
