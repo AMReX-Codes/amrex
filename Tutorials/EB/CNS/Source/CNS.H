@@ -108,7 +108,7 @@ protected:
 
     static void read_params ();
 
-    const amrex::MultiFab& volFrac () const { return volfrac; }
+    const amrex::MultiFab& volFrac () const { return *volfrac; }
 
     CNS& getLevel (int lev) { return dynamic_cast<CNS&>(parent->getLevel(lev)); }
 
@@ -130,7 +130,7 @@ protected:
 
     void printTotal () const;
 
-    amrex::MultiFab volfrac;
+    const amrex::MultiFab* volfrac;
     amrex::MultiFab bndrycent;
     std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
     std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;

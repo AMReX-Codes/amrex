@@ -32,6 +32,8 @@ public:
 
     virtual Box getDomain() const override { return m_geom.Domain(); }
 
+    const MultiFab& getVolFrac() const { return m_ebdc->getVolFrac(); }
+
 private:
 
     int m_ngrow;

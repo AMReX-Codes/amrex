@@ -243,7 +243,7 @@ CNS::post_timestep (int iteration)
         CNS& fine_level = getLevel(level+1);
         MultiFab& S_crse = get_new_data(State_Type);
         MultiFab& S_fine = fine_level.get_new_data(State_Type);
-        fine_level.flux_reg.Reflux(S_crse, volfrac, S_fine, fine_level.volfrac);
+        fine_level.flux_reg.Reflux(S_crse, *volfrac, S_fine, *fine_level.volfrac);
     }
 
     if (level < parent->finestLevel()) {
@@ -268,7 +268,7 @@ CNS::printTotal () const
     std::array<Real,5> tot;
     for (int comp = 0; comp < 5; ++comp) {
         MultiFab::Copy(mf, S_new, comp, 0, 1, 0);
-        MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
+        MultiFab::Multiply(mf, *volfrac, 0, 0, 1, 0);
         tot[comp] = mf.sum(0,true) * geom.ProbSize();
     }
 #ifdef BL_LAZY
@@ -413,9 +413,9 @@ CNS::buildMetrics ()
         amrex::Abort("CNS: must have dx == dy == dz\n");
     }
 
-    volfrac.clear();
-    volfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
-    amrex::EB_set_volume_fraction(volfrac);
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    
+    volfrac = &(ebfactory.getVolFrac());
 
     bndrycent.clear();
     bndrycent.define(grids,dmap,AMREX_SPACEDIM,NUM_GROW,MFInfo(),Factory());
@@ -527,7 +527,7 @@ CNS::fixUpGeometry ()
         {
             cns_eb_fixup_geom(BL_TO_FORTRAN_BOX(bx),
                               BL_TO_FORTRAN_ANYD(flag),
-                              BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                              BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
                               BL_TO_FORTRAN_BOX(domain));
         }
     }
