@@ -66,6 +66,9 @@ namespace amrex
     */
     static EBIndexSpace* instance();
 
+    // delete the singleton
+    static void reset ();
+
   };
 
   ///
