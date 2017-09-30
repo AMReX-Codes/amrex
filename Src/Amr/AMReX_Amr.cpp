@@ -2147,12 +2147,16 @@ Amr::coarseTimeStep (Real stop_time)
                 fclose(fp);
             }
 	}
-	int packed_data[2];
+        int packed_data[4];
 	packed_data[0] = to_stop;
 	packed_data[1] = to_checkpoint;
-	ParallelDescriptor::Bcast(packed_data, 2, ParallelDescriptor::IOProcessorNumber());
+        packed_data[2] = to_plot;
+        packed_data[3] = to_small_plot;
+	ParallelDescriptor::Bcast(packed_data, 4, ParallelDescriptor::IOProcessorNumber());
 	to_stop = packed_data[0];
 	to_checkpoint = packed_data[1];
+        to_plot = packed_data[2];
+        to_small_plot = packed_data[3];
 
     }
 
