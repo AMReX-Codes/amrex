@@ -53,6 +53,7 @@ int main (int argc, char* argv[])
         //xxxxx maybe we should have armex::EBInitialize() and EBFinalize()
         initialize_EBIS(amr.maxLevel());
         EBTower::Build();
+        AMReX_EBIS::reset();  // CNS no longer needs the EBIndexSpace singleton.
         AmrLevel::SetEBSupportLevel(EBSupport::full);
         AmrLevel::SetEBMaxGrowCells(CNS::numGrow());
 
