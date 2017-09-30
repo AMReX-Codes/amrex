@@ -90,51 +90,13 @@ EB_set_single_valued_cells (MultiFab& mf, int icomp, int ncomp, Real val)
 }
 
 void
-EB_set_volume_fraction (MultiFab& mf)
+EB_set_volume_fraction (MultiFab& mf, int ngrow, const FabFactory<FArrayBox>& fact)
 {
     BL_PROFILE("EB_set_volume_fraction");
 
-    BL_ASSERT(mf.nComp() == 1);
+    const auto& ebfact = dynamic_cast<EBFArrayBoxFactory const&>(fact);
 
-    const Box& domain = mf.getDomain();
-
-// xxxxx
-#if 0
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox();
-        EBFArrayBox& fab = dynamic_cast<EBFArrayBox&>(mf[mfi]);
-        fab.setVal(1.0, bx);
-        FabType typ = fab.getType();
-        if (typ != FabType::regular)
-        {
-            if (typ == FabType::covered) {
-                fab.setVal(0.0, bx);
-            }
-            else
-            {
-                const auto& ebisbox = fab.getEBISBox();
-
-                const Box& bx_sect = bx & domain;
-                for (BoxIterator bi(bx_sect); bi.ok(); ++bi)
-                {
-                    const IntVect& iv = bi();
-                    const auto& vofs = ebisbox.getVoFs(iv);
-                    Real vtot = 0.0;
-                    for (const auto& vi : vofs)
-                    {
-                        vtot += ebisbox.volFrac(vi);
-                    }
-                    fab(iv) = vtot;
-                }
-            }
-        }
-    }
-#endif
+    
 }
 
 void

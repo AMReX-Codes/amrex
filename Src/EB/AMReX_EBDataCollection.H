@@ -25,6 +25,7 @@ public:
     EBDataCollection& operator= (EBDataCollection&&) = delete;
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
+    const MultiFab& getVolFrac () const;
 
 private:
 

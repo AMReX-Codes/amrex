@@ -23,6 +23,7 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
         if (m_support >= EBSupport::volume)
         {
             m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow);
+            EBTower::fillVolFrac(*m_volfrac, m_geom);
         }
     }
 }
@@ -41,8 +42,15 @@ EBDataCollection::~EBDataCollection ()
 const FabArray<EBCellFlagFab>&
 EBDataCollection::getMultiEBCellFlagFab () const
 {
-    BL_ASSERT(m_cellflags != nullptr);
+    AMREX_ASSERT(m_cellflags != nullptr);
     return *m_cellflags;
+}
+
+const MultiFab&
+EBDataCollection::getVolFrac () const
+{
+    AMREX_ASSERT(m_volfrac != nullptr);
+    return *m_volfrac;
 }
 
 }
