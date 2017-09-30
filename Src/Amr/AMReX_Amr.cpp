@@ -2108,6 +2108,7 @@ Amr::coarseTimeStep (Real stop_time)
     int to_stop       = 0;    
     int to_checkpoint = 0;
     int to_plot       = 0;
+    int to_small_plot = 0;
     if (message_int > 0 && level_steps[0] % message_int == 0) {
 	if (ParallelDescriptor::IOProcessor())
 	{
@@ -2138,6 +2139,13 @@ Amr::coarseTimeStep (Real stop_time)
 		to_plot = 1;
 		fclose(fp);
 	    }
+
+            if ((fp=fopen("small_plot_and_continue","r")) != 0)
+            {
+                remove("small_plot_and_continue");
+                to_small_plot = 1;
+                fclose(fp);
+            }
 	}
 	int packed_data[2];
 	packed_data[0] = to_stop;
@@ -2168,7 +2176,7 @@ Amr::coarseTimeStep (Real stop_time)
         writePlotFile();
     }
 
-    if (writeSmallPlotNow())
+    if (writeSmallPlotNow() || to_small_plot)
     {
         writeSmallPlotFile();
     }
