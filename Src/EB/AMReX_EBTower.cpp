@@ -123,6 +123,9 @@ EBTower::initCellFlags (int lev, const EBLevelGrid& eblg)
         const EBISBox& ebis = ebisl[mfi];
         fab.copy(ebis.getEBGraph().getEBCellFlagFab());
         fab.setType(ebis.getEBGraph().getEBCellFlagFab().getType());
+        if (fab.getType() == FabType::multivalued) {
+            amrex::Abort("EBTower::initCellFlags: Multi-valued cells not supported");
+        }
     }
 }
 

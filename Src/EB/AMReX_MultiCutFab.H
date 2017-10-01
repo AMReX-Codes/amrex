@@ -2,6 +2,7 @@
 #define AMREX_MULTICUTFAB_H_
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_EBCellFlag.H>
 
 namespace amrex {
 
@@ -11,7 +12,8 @@ public:
 
     MultiCutFab ();
 
-    MultiCutFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow);
+    MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
+                 int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags);
 
     ~MultiCutFab ();
 
@@ -21,14 +23,15 @@ public:
     MultiCutFab& operator= (const MultiCutFab& rhs) = delete;
     MultiCutFab& operator= (MultiCutFab&& rhs) = delete;
 
-    void define (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow);
+    void define (const BoxArray& ba, const DistributionMapping& dm,
+                 int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags);
 
     const FArrayBox& operator[] (const MFIter& mfi) const;
 
 private:
 
     MultiFab m_data;
-
+    const FabArray<EBCellFlagFab>* m_cellflags;
 };
 
 }
