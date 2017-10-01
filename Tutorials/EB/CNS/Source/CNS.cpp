@@ -416,19 +416,9 @@ CNS::buildMetrics ()
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
     
     volfrac = &(ebfactory.getVolFrac());
-
-    bndrycent.clear();
-    bndrycent.define(grids,dmap,AMREX_SPACEDIM,NUM_GROW,MFInfo(),Factory());
-    amrex::EB_set_bndry_centroid(bndrycent);
-
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        const BoxArray& ba = amrex::convert(grids,IntVect::TheDimensionVector(idim));
-        areafrac[idim].clear();
-        areafrac[idim].define(ba,dmap,1,NUM_GROW,MFInfo(),Factory());
-        facecent[idim].clear();
-        facecent[idim].define(ba,dmap,AMREX_SPACEDIM-1,NUM_GROW,MFInfo(),Factory());
-    }
-    amrex::EB_set_area_fraction_face_centroid(areafrac, facecent);
+    bndrycent = &(ebfactory.getBndryCent());
+    areafrac = ebfactory.getAreaFrac();
+    facecent = ebfactory.getFaceCent();
 
     level_mask.clear();
     level_mask.define(grids,dmap,1,1);

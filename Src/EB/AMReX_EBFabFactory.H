@@ -30,9 +30,16 @@ public:
 
     virtual EBFArrayBoxFactory* clone () const override;
 
-    virtual Box getDomain() const override { return m_geom.Domain(); }
+    virtual Box getDomain () const override { return m_geom.Domain(); }
 
-    const MultiFab& getVolFrac() const { return m_ebdc->getVolFrac(); }
+    const MultiFab& getVolFrac () const { return m_ebdc->getVolFrac(); }
+    const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
+    std::array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
+        return m_ebdc->getAreaFrac();
+    }
+    std::array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const {
+        return m_ebdc->getFaceCent();
+    }
 
 private:
 
