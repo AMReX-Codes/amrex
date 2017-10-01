@@ -26,6 +26,8 @@ private:
 
     void initCellFlags (int lev, const EBLevelGrid& eblg);
     void initVolFrac (int lev, const EBLevelGrid& eblg);
+    void initBndryCent (int lev, const EBLevelGrid& eblg);
+    void initFaceGeometry (int lev, const EBLevelGrid& eblg);
 
     int getIndex (const Box& domain) const;
 
@@ -36,8 +38,11 @@ private:
     Array<BoxArray> m_covered_ba;
     Array<BoxArray> m_irregular_ba;
 
-    Array<FabArray<EBCellFlagFab> > m_cellflags;
+    Array<FabArray<EBCellFlagFab>> m_cellflags;
     Array<MultiFab> m_volfrac;
+    Array<MultiFab> m_bndrycent;
+    Array<std::array<MultiFab,AMREX_SPACEDIM>> m_areafrac;
+    Array<std::array<MultiFab,AMREX_SPACEDIM>> m_facecent;
 };
 
 }

@@ -23,6 +23,9 @@ CEXE_sources += AMReX_EBTower.cpp
 CEXE_headers += AMReX_EBDataCollection.H
 CEXE_sources += AMReX_EBDataCollection.cpp
 
+CEXE_headers += AMReX_MultiCutFab.H
+CEXE_sources += AMReX_MultiCutFab.cpp
+
 CEXE_headers += AMReX_EBSupport.H
 
 CEXE_headers += AMReX_EBCellFlag_F.H
