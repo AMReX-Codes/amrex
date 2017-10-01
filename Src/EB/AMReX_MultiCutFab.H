@@ -32,6 +32,8 @@ private:
 
     MultiFab m_data;
     const FabArray<EBCellFlagFab>* m_cellflags;
+
+    void remove ();
 };
 
 }
