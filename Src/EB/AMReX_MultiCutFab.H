@@ -28,6 +28,13 @@ public:
 
     const FArrayBox& operator[] (const MFIter& mfi) const;
 
+    bool ok (const MFIter& mfi) const;
+
+    void setVal (Real val);
+
+    MultiFab& data () { return m_data; }
+    const MultiFab& data () const { return m_data; }
+
 private:
 
     MultiFab m_data;
