@@ -131,9 +131,9 @@ protected:
     void printTotal () const;
 
     const amrex::MultiFab* volfrac;
-    amrex::MultiFab bndrycent;
-    std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
-    std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;
+    const amrex::MultiCutFab* bndrycent;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
 
     amrex::iMultiFab level_mask;
 
