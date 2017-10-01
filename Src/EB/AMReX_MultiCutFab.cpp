@@ -10,7 +10,9 @@ MultiCutFab::MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
                           int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags)
     : m_data(ba,dm,ncomp,ngrow),
       m_cellflags(&cellflags)
-{}
+{
+    remove();
+}
 
 MultiCutFab::~MultiCutFab ()
 {}
@@ -21,6 +23,21 @@ MultiCutFab::define (const BoxArray& ba, const DistributionMapping& dm,
 {
     m_data.define(ba,dm,ncomp,ngrow);
     m_cellflags = &cellflags;
+    remove();
+}
+
+void
+MultiCutFab::remove ()
+{
+    for (MFIter mfi(m_data); mfi.isValid(); ++mfi)
+    {
+        if ((*m_cellflags)[mfi].getType() != FabType::singlevalued)
+        {
+            FArrayBox* p = &(m_data[mfi]);
+            delete p;
+            m_data.setFab(mfi, nullptr, false);
+        }
+    }
 }
 
 const FArrayBox&

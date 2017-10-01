@@ -224,7 +224,7 @@ public:
     void setFab (int K, FAB* elem);
 
     //! Explicitly set the FAB associated with mfi in the FabArray to point to elem.
-    void setFab (const MFIter&mfi, FAB* elem);
+    void setFab (const MFIter&mfi, FAB* elem, bool assertion=true);
 
     //! Releases FAB memory in the FabArray.
     void clear ();
@@ -1194,22 +1194,25 @@ FabArray<FAB>::setFab (int  boxno,
 template <class FAB>
 void
 FabArray<FAB>::setFab (const MFIter& mfi,
-                       FAB* elem)
+                       FAB* elem, bool assertion)
 {
-    //
-    // Must check it is of the proper size.
-    //
-    if (n_comp == 0)
-        n_comp = elem->nComp();
-
-    BL_ASSERT(n_comp == elem->nComp());
-    BL_ASSERT(boxarray.size() > 0);
-    BL_ASSERT(elem->box() == fabbox(mfi.index()));
-    BL_ASSERT(!this->defined(mfi));
-    BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
-
-    if (m_fabs_v.size() == 0) {
-	m_fabs_v.resize(indexArray.size());
+    if (assertion)
+    {
+        //
+        // Must check it is of the proper size.
+        //
+        if (n_comp == 0)
+            n_comp = elem->nComp();
+        
+        BL_ASSERT(n_comp == elem->nComp());
+        BL_ASSERT(boxarray.size() > 0);
+        BL_ASSERT(elem->box() == fabbox(mfi.index()));
+        BL_ASSERT(!this->defined(mfi));
+        BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
+        
+        if (m_fabs_v.size() == 0) {
+            m_fabs_v.resize(indexArray.size());
+        }
     }
 
     m_fabs_v[mfi.LocalIndex()] = elem;
