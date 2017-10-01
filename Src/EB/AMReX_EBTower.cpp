@@ -73,6 +73,9 @@ EBTower::EBTower ()
 
     m_cellflags.resize(nlevels);
     m_volfrac.resize(nlevels);
+    m_bndrycent.resize(nlevels);
+    m_areafrac.resize(nlevels);
+    m_facecent.resize(nlevels);
 
     for (int lev = 0; lev < nlevels; ++lev)
     {
@@ -87,6 +90,16 @@ EBTower::EBTower ()
 
             m_volfrac[lev].define(ba, dm, 1, 0);
             initVolFrac(lev, eblg);
+
+            m_bndrycent[lev].define(ba, dm, 3, 0);
+            initBndryCent(lev, eblg);
+            
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const BoxArray& faceba = amrex::convert(ba, IntVect::TheDimensionVector(idim));
+                m_areafrac[lev][idim].define(faceba, dm, 1, 0);
+                m_facecent[lev][idim].define(faceba, dm, 3, 0);
+            }
+            initFaceGeometry(lev, eblg);
         }
     }
 }
@@ -140,6 +153,109 @@ EBTower::initVolFrac (int lev, const EBLevelGrid& eblg)
                 vtot += ebisbox.volFrac(vi);
             }
             fab(iv) = vtot;
+        }
+    }
+}
+
+void
+EBTower::initBndryCent (int lev, const EBLevelGrid& eblg)
+{
+    MultiFab& bndrycent = m_bndrycent[lev];
+    const auto& ebisl = eblg.getEBISL();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(bndrycent,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        auto& fab = bndrycent[mfi];
+        fab.setVal(-1.0, bx);
+
+        const EBISBox& ebisbox = ebisl[mfi];
+
+        for (BoxIterator bi(bx); bi.ok(); ++bi)
+        {
+            const IntVect& iv = bi();
+            const auto& vofs = ebisbox.getVoFs(iv);
+            for (const auto& vi : vofs)
+            {
+                const auto& bcent = ebisbox.bndryCentroid(vi);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    fab(iv,idim) = bcent[idim];
+                }
+            }
+        }
+    }
+}
+
+void
+EBTower::initFaceGeometry (int lev, const EBLevelGrid& eblg)
+{
+    auto& areafrac = m_areafrac[lev];
+    auto& facecent = m_facecent[lev];
+
+    const auto& ebisl = eblg.getEBISL();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(areafrac[0]); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = amrex::enclosedCells(mfi.validbox());
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            areafrac[idim][mfi].setVal(1.0);
+            facecent[idim][mfi].setVal(0.0);
+        }
+
+        const auto& ebisbox = ebisl[mfi];
+
+        for (BoxIterator bi(bx); bi.ok(); ++bi)
+        {
+            const IntVect& iv = bi();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                {
+                    const auto& lo_faces = ebisbox.getAllFaces(iv, idim, Side::Lo);
+                    if (lo_faces.size() == 0) {
+                        areafrac[idim][mfi](iv) = 0.0;
+                    } else if (lo_faces.size() == 1) {
+                        areafrac[idim][mfi](iv) = ebisbox.areaFrac(lo_faces[0]);
+                        const RealVect& rv = ebisbox.centroid(lo_faces[0]);
+                        int icomp = 0;
+                        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                            if (dir != idim) {
+                                facecent[idim][mfi](iv,icomp) = rv[dir];
+                                ++icomp;
+                            }
+                        }
+                    } else {
+                        amrex::Abort("EBTower: multi-valued face not supported");
+                    }
+                }
+                
+                if (iv[idim] == bx.bigEnd(idim))
+                {
+                    const IntVect& ivhi = iv + IntVect::TheDimensionVector(idim);
+                    const auto& hi_faces = ebisbox.getAllFaces(iv, idim, Side::Hi);
+                    if (hi_faces.size() == 0) {
+                        areafrac[idim][mfi](ivhi) = 0.0;
+                    } else if (hi_faces.size() == 1) {
+                        areafrac[idim][mfi](ivhi) = ebisbox.areaFrac(hi_faces[0]);
+                        const RealVect& rv = ebisbox.centroid(hi_faces[0]);
+                        int icomp = 0;
+                        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                            if (dir != idim) {
+                                facecent[idim][mfi](ivhi,icomp) = rv[dir];
+                                ++icomp;
+                            }
+                        }
+                    } else {
+                        amrex::Abort("EBTower: multi-valued face not supported");
+                    }                        
+                }
+            }
         }
     }
 }

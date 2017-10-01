@@ -9,6 +9,7 @@ namespace amrex {
 
 template <class T> class FabArray;
 class MultiFab;
+class MultiCutFab;
 
 class EBDataCollection
 {
@@ -40,9 +41,9 @@ private:
 
     // EBSupport::geometry
     MultiFab* m_volfrac = nullptr;
-    MultiFab* m_bndrycent = nullptr;
-    std::array<MultiFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
-    std::array<MultiFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    MultiCutFab* m_bndrycent = nullptr;
+    std::array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
+    std::array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
 };
 
 }

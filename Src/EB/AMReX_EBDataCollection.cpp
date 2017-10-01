@@ -2,6 +2,7 @@
 #include <AMReX_EBDataCollection.H>
 #include <AMReX_EBTower.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiCutFab.H>
 
 namespace amrex {
 
