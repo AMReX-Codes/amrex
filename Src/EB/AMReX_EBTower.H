@@ -19,7 +19,10 @@ public:
 
     static void fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom);
     static void fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom);
-    //    static
+    static void fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom);
+    static void fillFaceGeometry (std::array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac,
+                                  std::array<MultiCutFab*,AMREX_SPACEDIM>& a_facecent,
+                                  const Geometry& a_geom);
 
 private:
 

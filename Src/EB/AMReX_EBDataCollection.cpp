@@ -30,11 +30,13 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
         if (m_support == EBSupport::full)
         {
             m_bndrycent = new MultiCutFab(a_ba, a_dm, 3, m_ngrow, *m_cellflags);
+            EBTower::fillBndryCent(*m_bndrycent, m_geom);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
                 m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, m_ngrow, *m_cellflags);
                 m_facecent[idim] = new MultiCutFab(faceba, a_dm, 3, m_ngrow, *m_cellflags);
             }
+            EBTower::fillFaceGeometry(m_areafrac, m_facecent, m_geom);
         }
     }
 }
