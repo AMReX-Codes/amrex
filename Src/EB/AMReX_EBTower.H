@@ -3,6 +3,7 @@
 
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_MultiCutFab.H>
 
 namespace amrex {
 
@@ -18,6 +19,7 @@ public:
 
     static void fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom);
     static void fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom);
+    //    static
 
 private:
 
