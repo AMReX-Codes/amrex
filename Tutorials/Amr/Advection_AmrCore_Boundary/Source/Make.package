@@ -1,6 +1,0 @@
-CEXE_sources += main.cpp AmrCoreAdv.cpp
-
-CEXE_headers += AmrCoreAdv.H
-
-F90EXE_sources += bc_fill_nd.F90
-
