@@ -57,6 +57,8 @@ namespace amrex
     m_ivs = a_ivsin;
     VoFIterator vofit(a_ivsin, a_ebGraph);
     m_vofs = vofit.getVector();
+
+    std::sort(m_vofs.begin(), m_vofs.end());
     
     int nVoFs = m_vofs.size();
     
@@ -93,11 +95,12 @@ namespace amrex
       {
         if(a_src.m_ivs.contains(vof.gridIndex()))
         {
+	  int src_ivof = a_src.getVolIndexIndex(vof);
           for(int icomp = 0; icomp < a_numcomp; icomp++)
           {
             int isrc = a_srccomp + icomp;
             int idst = a_dstcomp + icomp;
-            (*this)(vof, idst) = a_src(vof, isrc);
+            (*this)(ivof, idst) = a_src(src_ivof, isrc);
           }
         }
       }
@@ -122,29 +125,10 @@ namespace amrex
   template <class T> inline
   T*
   BaseIVFAB<T>::getIndex(const VolIndex& a_vof, const int& a_comp) const
-  {
-    
+  {    
     BL_ASSERT((a_comp >= 0) && (a_comp < this->m_nComp));
-    
-    T* dataPtr =  (T*)&(this->m_data[0]);
-    int ivof = -1;
-    bool found = false;
-    for (unsigned int i=0; i<m_vofs.size(); ++i)
-    {
-      if (a_vof == m_vofs[i])
-      {
-        found = true;
-        ivof = i;
-      }
-      if(found) break;
-    }
-    if(!found)
-    {
-      amrex::Error("attempt to access data from vof that is not in BaseIVFAB");
-    }
-    dataPtr += ivof;
-    dataPtr += a_comp*m_vofs.size();
-    return dataPtr;
+    int ivof = this->getVolIndexIndex(a_vof);
+    return this->getIndex(ivof, a_comp);
   }
     
   /********************/
@@ -174,7 +158,7 @@ namespace amrex
   }
   /********************/
   template <class T> inline
-  const std::vector<VolIndex>&
+  const Array<VolIndex>&
   BaseIVFAB<T>::getVoFs() const
   {
     return m_vofs;
@@ -202,7 +186,7 @@ namespace amrex
     }
     else
     {
-      const vector<VolIndex>& vofs = m_vofs;
+      const Array<VolIndex>& vofs = m_vofs;
       for(int i=0; i<vofs.size(); i++)
       {
         const VolIndex& vof=vofs[i];
@@ -225,7 +209,7 @@ namespace amrex
   template<class T> inline
   void
   BaseIVFAB<T>::
-  getVoFSubset(vector<VolIndex>& a_vofsubset, const Box& a_region) const
+  getVoFSubset(Array<VolIndex>& a_vofsubset, const Box& a_region) const
   {
     a_vofsubset.resize(0);
     for(unsigned int ivof=0; ivof<m_vofs.size(); ivof++)
@@ -246,7 +230,7 @@ namespace amrex
     
     size_t retval = 0;
 
-    vector<VolIndex> vofsubset;
+    Array<VolIndex> vofsubset;
     getVoFSubset(vofsubset, a_region);
 
     retval += linearListSize(vofsubset);
@@ -276,7 +260,7 @@ namespace amrex
     size_t retval = 0;
     size_t incval = 0;
 
-    vector<VolIndex> vofsubset;
+    Array<VolIndex> vofsubset;
     getVoFSubset(vofsubset, a_region);
 
     linearListOut(buf, vofsubset);
@@ -316,7 +300,7 @@ namespace amrex
     size_t retval = 0;
     size_t incval = 0;
     
-    vector<VolIndex> vofsubset;
+    Array<VolIndex> vofsubset;
 
     linearListIn(vofsubset, buf);
 
@@ -450,7 +434,7 @@ namespace amrex
     //data
     //define the memory and data holder
     int nVoFs = m_vofs.size();
-    //now allocate the vector set the fab to go into
+    //now allocate the Array set the fab to go into
     //the pool of data at the first component of the first
     //vof
     m_Memory.resize(nVoFs*m_nComp);

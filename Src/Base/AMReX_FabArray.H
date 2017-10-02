@@ -912,11 +912,11 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        nvar,
                          int                        ngrow,
                          const Array<value_type*>&  pval)
-    : shmem()
+    : m_factory(new DefaultFabFactory<FAB>()),
+      shmem()
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false),
-           DefaultFabFactory<FAB>());
+    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false), *m_factory);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         setFab(mfi, new FAB(mfi.fabbox(),nvar,pval[mfi.LocalIndex()]));
@@ -2862,9 +2862,9 @@ if(myProc == 0) {
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
-    for(auto afapIter = allocatedFAPointers.begin(); afapIter != allocatedFAPointers.end(); ++afapIter) {
-      std::cout << "afapIter->first (ngrids) = " << afapIter->first << "  :: ===================" << std::endl;
-      std::map<int, FabArray<FAB> *> &afapMap = afapIter->second;
+    for(auto it = allocatedFAPointers.begin(); it != allocatedFAPointers.end(); ++it) {
+      std::cout << "it->first (ngrids) = " << it->first << "  :: ===================" << std::endl;
+      std::map<int, FabArray<FAB> *> &afapMap = it->second;
       for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
 	auto fap = afapMapIter->second;
         std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << afapMapIter->second << std::endl; 
@@ -3001,9 +3001,9 @@ if(myProc == 0) {
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
-    for(auto afapIter = allocatedFAPointers.begin(); afapIter != allocatedFAPointers.end(); ++afapIter) {
-      std::cout << "afapIter->first (ngrids) = " << afapIter->first << "  :: ===================" << std::endl;
-      std::map<int, FabArray<FAB> *> &afapMap = afapIter->second;
+    for(auto it = allocatedFAPointers.begin(); it != allocatedFAPointers.end(); ++it) {
+      std::cout << "it->first (ngrids) = " << it->first << "  :: ===================" << std::endl;
+      std::map<int, FabArray<FAB> *> &afapMap = it->second;
       for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
 	auto fap = afapMapIter->second;
         std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << afapMapIter->second << std::endl; 

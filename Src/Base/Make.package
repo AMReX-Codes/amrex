@@ -1,7 +1,7 @@
 
 AMREX_BASE=EXE
 
-C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H AMReX_Tuple.H
 
 #
 # Utility classes.
@@ -89,6 +89,7 @@ C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
 C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
+C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 
 #
 # Geometry / Coordinate system routines.
@@ -135,6 +136,7 @@ ifneq ($(BL_NO_FORT),TRUE)
 
   f90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
   f90$(AMREX_BASE)_headers += AMReX_MultiFabUtil_F.H
+  F90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_nd.F90
 
   F90$(AMREX_BASE)_sources += AMReX_filcc_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90
@@ -177,24 +179,6 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
 endif
 
-ifeq ($(USE_EB),TRUE)
-  C$(AMREX_BASE)_headers += AMReX_EBFArrayBox.H
-  C$(AMREX_BASE)_sources += AMReX_EBFArrayBox.cpp
-  C$(AMREX_BASE)_headers += AMReX_EBFabFactory.H
-  C$(AMREX_BASE)_sources += AMReX_EBFabFactory.cpp
-  C$(AMREX_BASE)_headers += AMReX_EBMultiFabUtil.H
-  C$(AMREX_BASE)_sources += AMReX_EBMultiFabUtil.cpp
-  C$(AMREX_BASE)_headers += AMReX_EBCellFlag.H
-  C$(AMREX_BASE)_sources += AMReX_EBCellFlag.cpp
-  C$(AMREX_BASE)_headers += AMReX_EBFaceFlag.H
-  C$(AMREX_BASE)_sources += AMReX_EBFaceFlag.cpp
-  C$(AMREX_BASE)_headers += AMReX_EBLevel.H
-  C$(AMREX_BASE)_sources += AMReX_EBLevel.cpp
-  C$(AMREX_BASE)_headers += AMReX_EBCellFlag_F.H
-  F90$(AMREX_BASE)_sources += AMReX_ebcellflag_mod.F90
-  F90$(AMREX_BASE)_sources += AMReX_EBMultiFabUtil_nd.F90
-  F90$(AMREX_BASE)_sources += AMReX_EBMultiFabUtil_$(DIM)d.F90
-endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

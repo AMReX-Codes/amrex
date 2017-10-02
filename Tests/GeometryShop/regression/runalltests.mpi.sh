@@ -1,6 +1,6 @@
 #!/bin/csh
 echo       'regression/compile'
-make -j10 all USE_MPI=TRUE;
+make -j10 USE_MPI=TRUE;
 echo       'regression/dataArith 1 proc'
 mpirun -np 1 ./dataArith2d.gnu.DEBUG.MPI.ex dataarith.inputs | grep test;
 echo       'regression/dataArith 2 proc'

@@ -157,18 +157,20 @@ namespace amrex
     {
       if (vofs.size() > 0)
         {
-          variables = std::vector<int>(vofs.size(), a_var);
+          variables = Array<int>(vofs.size(), a_var);
         }
     }
+
+  void outputToPout() const;
 
   protected:
 
     /// the VoFs
-    std::vector<VolIndex> vofs;
+    Array<VolIndex> vofs;
     /// the weights
-    std::vector<Real> weights;
+    Array<Real> weights;
 
-    std::vector<int> variables;
+    Array<int> variables;
   };
 
   ///
@@ -212,7 +214,7 @@ namespace amrex
     {
       if (faces.size() > 0)
         {
-          variables = std::vector<int>(faces.size(), a_var);
+          variables = Array<int>(faces.size(), a_var);
         }
     }
 
@@ -261,14 +263,15 @@ namespace amrex
      */
     void operator*=(const Real& scaling);
 
+    void outputToPout() const;
   private:
 
     /// the Faces
-    std::vector<FaceIndex> faces;
+    Array<FaceIndex> faces;
     /// the weights
-    std::vector<Real> weights;
+    Array<Real> weights;
     /// the variable numbers
-    std::vector<int> variables;
+    Array<int> variables;
 
   };
 

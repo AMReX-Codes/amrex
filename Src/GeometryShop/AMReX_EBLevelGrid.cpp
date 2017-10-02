@@ -21,16 +21,17 @@ namespace amrex
               const DistributionMapping &  a_dm,
               const Box                 &  a_probDom)
   {
+    BL_PROFILE("EBLevelGrid::defineCFIVS()");
+
     a_cfivs.define(a_grids, a_dm);
     for (MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
     {
       Box grownBox = mfi.validbox();
       grownBox.grow(1);
       grownBox &= a_probDom;
-      a_cfivs[mfi] = IntVectSet(grownBox);
-      for (int ibox = 0; ibox < a_grids.size(); ibox++)
-      {
-        a_cfivs[mfi] -= a_grids[ibox];
+      const BoxList& bl = a_grids.complementIn(grownBox);
+      for (const auto& b : bl) {
+	  a_cfivs[mfi] |= b;
       }
     }
   }
@@ -81,6 +82,7 @@ namespace amrex
          const EBISLayout          & a_ebisl,
          const Box                 & a_domain)
   {
+    BL_PROFILE("EBLevelGrid::define()");
     m_isDefined = true;
     m_grids = a_dbl;
     m_dm    = a_dm;

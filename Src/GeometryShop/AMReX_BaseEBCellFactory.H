@@ -14,7 +14,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <vector>
 #include "AMReX_EBISLayout.H"
 #include "AMReX_BaseEBCellFAB.H"
 

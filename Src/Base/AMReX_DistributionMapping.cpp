@@ -392,23 +392,23 @@ DistributionMapping::DistributionMapping (DistributionMapping&& rhs) noexcept
 
 
 DistributionMapping::DistributionMapping (const Array<int>& pmap, 
-					  ParallelDescriptor::Color color)
+					  ParallelDescriptor::Color a_color)
     :
     m_ref(std::make_shared<Ref>(pmap)),
-    m_color(color)
+    m_color(a_color)
 {
     dmID = nDistMaps++;
 }
 
 DistributionMapping::DistributionMapping (const BoxArray& boxes,
 					  int nprocs,
-					  ParallelDescriptor::Color color)
+					  ParallelDescriptor::Color a_color)
     :
     m_ref(std::make_shared<Ref>(boxes.size())),
-    m_color(color)
+    m_color(a_color)
 {
     dmID = nDistMaps++;
-    define(boxes,nprocs,color);
+    define(boxes,nprocs,a_color);
 }
 
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
@@ -426,9 +426,9 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 void
 DistributionMapping::define (const BoxArray& boxes,
 			     int nprocs,
-			     ParallelDescriptor::Color color)
+			     ParallelDescriptor::Color a_color)
 {
-    m_color = color;
+    m_color = a_color;
     m_ref->m_pmap.resize(boxes.size());
 
     BL_ASSERT(m_BuildMap != 0);
@@ -1069,8 +1069,8 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         const SFCToken& token = tokens.back();
 
         AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
-               maxijk = std::max(maxijk, token.m_idx[1]);,
-               maxijk = std::max(maxijk, token.m_idx[2]););
+                     maxijk = std::max(maxijk, token.m_idx[1]);,
+                     maxijk = std::max(maxijk, token.m_idx[2]););
     }
     //
     // Set SFCToken::MaxPower for BoxArray.
@@ -1088,8 +1088,9 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     // Split'm up as equitably as possible per team.
     //
     Real volperteam = 0;
-    for (int i = 0, N = tokens.size(); i < N; ++i)
-        volperteam += tokens[i].m_vol;
+    for (const SFCToken& tok : tokens) {
+        volperteam += tok.m_vol;
+    }
     volperteam /= nteams;
 
     std::vector< std::vector<int> > vec(nteams);
@@ -2199,9 +2200,9 @@ DistributionMapping::InitProximityMap(bool makeMap, bool reinit)
       tFabTokens.reserve(tBox.numPts());
       int maxijk(0);
 
-      int i(0);
+      int ii(0);
       for(IntVect iv(tBox.smallEnd()); iv <= tBox.bigEnd(); tBox.next(iv)) {
-          tFabTokens.push_back(SFCToken(i++, iv, 1.0));
+          tFabTokens.push_back(SFCToken(ii++, iv, 1.0));
           const SFCToken &token = tFabTokens.back();
 
           AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
@@ -2442,7 +2443,7 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
 {
     const std::string CheckPointVersion("CheckPointVersion_1.0");
     Array<Geometry> geom;
-    int i, max_level, finest_level;
+    int max_level, finest_level;
     Real calcTime;
     Array<Real> dt_min;
     Array<Real> dt_level;
@@ -2497,21 +2498,21 @@ void DistributionMapping::ReadCheckPointHeader(const std::string &filename,
     allBoxes.resize(max_level + 1);
 
     if (max_level >= max_level) {  // We know this.
-       for (i = 0; i <= max_level; ++i) { is >> geom[i]; }
-       for (i = 0; i <  max_level; ++i) { is >> refRatio[i]; }
-       for (i = 0; i <= max_level; ++i) { is >> dt_level[i]; }
+       for (int i = 0; i <= max_level; ++i) { is >> geom[i]; }
+       for (int i = 0; i <  max_level; ++i) { is >> refRatio[i]; }
+       for (int i = 0; i <= max_level; ++i) { is >> dt_level[i]; }
 
        if(new_checkpoint_format) {
-         for(i = 0; i <= max_level; ++i) { is >> dt_min[i]; }
+         for(int i = 0; i <= max_level; ++i) { is >> dt_min[i]; }
        } else {
-         for(i = 0; i <= max_level; ++i) dt_min[i] = dt_level[i];
+         for(int i = 0; i <= max_level; ++i) dt_min[i] = dt_level[i];
        }
 
        Array<int>  n_cycle_in;
        n_cycle_in.resize(max_level+1);
-       for(i = 0; i <= max_level; ++i) { is >> n_cycle_in[i];  }
-       for(i = 0; i <= max_level; ++i) { is >> level_steps[i]; }
-       for(i = 0; i <= max_level; ++i) { is >> level_count[i]; }
+       for(int i = 0; i <= max_level; ++i) { is >> n_cycle_in[i];  }
+       for(int i = 0; i <= max_level; ++i) { is >> level_steps[i]; }
+       for(int i = 0; i <= max_level; ++i) { is >> level_count[i]; }
 
        // Read levels.
        int lev, level, nstate;
@@ -2592,8 +2593,34 @@ DistributionMapping::TranslateProcMap(const Array<int> &pm_old, const MPI_Group 
 #endif
 
 DistributionMapping
-DistributionMapping::makeKnapSack (const MultiFab& weight)
+DistributionMapping::makeKnapSack (const Array<Real>& rcost)
 {
+    BL_PROFILE("makeKnapSack");
+
+    DistributionMapping r;
+
+    Array<long> cost(rcost.size());
+
+    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real scale = 1.e9/wmax;
+
+    for (int i = 0; i < rcost.size(); ++i) {
+        cost[i] = long(rcost[i]*scale) + 1L;
+    }
+
+    int nprocs = ParallelDescriptor::NProcs();
+    Real eff;
+
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true);
+
+    return r;
+}
+
+DistributionMapping
+DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
+{
+    BL_PROFILE("makeKnapSack");
+
     DistributionMapping r;
 
     Array<long> cost(weight.size());
@@ -2622,7 +2649,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight)
     int nprocs = ParallelDescriptor::NProcs();
     Real eff;
 
-    r.KnapSackProcessorMap(cost, nprocs, &eff, true);
+    r.KnapSackProcessorMap(cost, nprocs, &eff, true, nmax);
 
     return r;
 }
@@ -2714,6 +2741,13 @@ operator<< (std::ostream&              os,
     if (os.fail())
         amrex::Error("operator<<(ostream &, DistributionMapping &) failed");
 
+    return os;
+}
+
+std::ostream&
+operator<< (std::ostream& os, const DistributionMapping::RefID& id)
+{
+    os << id.data;
     return os;
 }
 

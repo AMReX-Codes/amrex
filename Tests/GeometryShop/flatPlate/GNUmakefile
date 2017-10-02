@@ -44,6 +44,9 @@ _progs  := flatPlateTest
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/GeometryShop/Make.package
+include $(AMREX_HOME)/Src/EB/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
+include $(AMREX_HOME)/Src/Boundary/Make.package
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 

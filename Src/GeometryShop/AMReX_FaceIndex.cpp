@@ -138,21 +138,21 @@ namespace amrex
       {
         div[idir] = std::abs(div[idir]);
       }
-    int direction = -1;
+    int dir = -1;
 
     for (int idir = 0; idir < SpaceDim; idir++)
       {
         if (div == BASISV(idir))
           {
-            direction = idir;
+            dir = idir;
             break;
           }
       }
 
-    if (direction < 0)
+    if (dir < 0)
       Error("a_vof1 and a_vof2 are not neighbors!");
 
-    define(a_vof1, a_vof2, direction);
+    define(a_vof1, a_vof2, dir);
   }
 
   /*****************************************/
@@ -228,15 +228,6 @@ namespace amrex
         m_direction = a_facein.m_direction;
       }
     return *this;
-  }
-
-  /******************************/
-  bool FaceIndex::operator==(const FaceIndex& a_facein) const
-  {
-    return((m_loiv == a_facein.m_loiv) &&
-           (m_hiiv == a_facein.m_hiiv) &&
-           (m_loIndex == a_facein.m_loIndex) &&
-           (m_hiIndex == a_facein.m_hiIndex));
   }
 
   /******************************/

@@ -27,14 +27,16 @@
 namespace amrex
 {
 
-  IntVect gs_debiv(D_DECL(994,213,7));
+//  static const IntVect   gs_debiv(D_DECL(994,213,7));
+//  static const IntVect   gs_debivlo(D_DECL(190,15,0));
+//  static const IntVect   gs_debivhi(D_DECL(191,15,0));
   
   bool GeometryShop::isRegularEveryPoint(const Box&           a_region,
-                                         const Box& a_domain,
+                                         const Box&           a_domain,
                                          const RealVect&      a_origin,
                                          const Real&          a_dx) const
   {
-    BL_PROFILE("GeometryShop::isRegularEveryPoint");
+//    BL_PROFILE("GeometryShop::isRegularEveryPoint");
 
     // All corner indices for the current box
     Box allCorners(a_region);
@@ -77,11 +79,11 @@ namespace amrex
   }
 
   bool GeometryShop::isCoveredEveryPoint(const Box&           a_region,
-                                         const Box& a_domain,
+                                         const Box&           a_domain,
                                          const RealVect&      a_origin,
                                          const Real&          a_dx) const
   {
-    BL_PROFILE("GeometryShop::isCoveredEveryPoint");
+//    BL_PROFILE("GeometryShop::isCoveredEveryPoint");
 
     // All corner indices for the current box
     Box allCorners(a_region);
@@ -126,11 +128,7 @@ namespace amrex
                              int           a_verbosity,
                              Real          a_thrshdVoF)
   {
-
-
-
-
-    m_implicitFunction = a_localGeom.newImplicitFunction();
+    m_implicitFunction.reset(a_localGeom.newImplicitFunction());
 
     m_verbosity = a_verbosity;
 
@@ -139,16 +137,9 @@ namespace amrex
 
     m_threshold = 1.0e-15*pow(arg1, arg2);
 
-
     m_thrshdVoF = a_thrshdVoF;
 
   }
-
-  GeometryShop::~GeometryShop()
-  {
-    delete(m_implicitFunction);
-  }
-
 
   /**********************************************/
   GeometryService::InOut 
@@ -159,34 +150,32 @@ namespace amrex
                 const Real&          a_dx) const
   {
     GeometryShop::InOut rtn;
-    //begin debug
-    //bool debugc = (a_region.contains(gs_debiv));
-    //end debug
+//begin debug
+//    bool debugc = (a_region.contains(gs_debivlo) || a_region.contains(gs_debivhi));
+//end debug
     if(isRegularEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Regular;
+//begin debug
 //      if(debugc)
 //      {
 //        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all regular box" << endl;
 //      }
+//end debug
     }
     else if(isCoveredEveryPoint(a_region, a_domain, a_origin, a_dx))
     {
       rtn = GeometryShop::Covered;
+//begin debug
 //      if(debugc)
 //      {
 //        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in an all covered box" << endl;
 //      }
+//end debug
     }
     else
     {
       rtn = GeometryShop::Irregular;
-//begin debug
-//      if(debugc)
-//      {
-//        amrex::AllPrint() << "geometryshop::insideoutside:"<< gs_debiv << " in a mixed box " << endl;
-//      }
-//end debug
     }
     return rtn;
 
@@ -195,21 +184,21 @@ namespace amrex
   /*********************************************/
   void
   GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
-                          std::vector<IrregNode>   & a_nodes,
+                          Array<IrregNode>    & a_nodes,
                           const Box           & a_validRegion,
                           const Box           & a_ghostRegion,
-                          const Box & a_domain,
+                          const Box           & a_domain,
                           const RealVect      & a_origin,
                           const Real          & a_dx) const
   {
-    assert(a_domain.contains(a_ghostRegion));
+    AMREX_ASSERT(a_domain.contains(a_ghostRegion));
     a_nodes.resize(0);
     a_regIrregCovered.resize(a_ghostRegion, 1);
 
 
     Real thrshd = m_thrshdVoF;
 
-    IntVectSet ivsirreg;
+    IntVectSet ivsirreg; // wz. no need to be a set
     IntVectSet ivsdrop ;
     long int numCovered=0, numReg=0, numIrreg=0;
 
@@ -263,12 +252,12 @@ namespace amrex
 
         Real     volFrac, bndryArea;
         RealVect normal, volCentroid, bndryCentroid;
-        std::vector<int> loArc[SpaceDim];
-        std::vector<int> hiArc[SpaceDim];
-        std::vector<Real> loAreaFrac[SpaceDim];
-        std::vector<Real> hiAreaFrac[SpaceDim];
-        std::vector<RealVect> loFaceCentroid[SpaceDim];
-        std::vector<RealVect> hiFaceCentroid[SpaceDim];
+        std::array<Array<int>,SpaceDim> loArc;
+        std::array<Array<int>,SpaceDim> hiArc;
+        std::array<Array<Real>,SpaceDim> loAreaFrac;
+        std::array<Array<Real>,SpaceDim> hiAreaFrac;
+        std::array<Array<RealVect>,SpaceDim> loFaceCentroid;
+        std::array<Array<RealVect>,SpaceDim> hiFaceCentroid;
         computeVoFInternals(volFrac,
                             loArc,
                             hiArc,
@@ -375,12 +364,12 @@ namespace amrex
   /*************/
   void
   GeometryShop::
-  fixRegularCellsNextToCovered(std::vector<IrregNode>    & a_nodes, 
-                               BaseFab<int>              & a_regIrregCovered,
-                               const Box                 & a_validRegion,
-                               const Box                 & a_domain,
-                               const IntVect             & a_iv,
-                               const Real                & a_dx) const
+  fixRegularCellsNextToCovered(Array<IrregNode>    & a_nodes, 
+                               BaseFab<int>        & a_regIrregCovered,
+                               const Box           & a_validRegion,
+                               const Box           & a_domain,
+                               const IntVect       & a_iv,
+                               const Real          & a_dx) const
 
   {
     Box grownBox(a_iv, a_iv);
@@ -432,7 +421,7 @@ namespace amrex
               {
                 a_regIrregCovered(iv, 0) = 0;
                 IrregNode newNode;
-                newNode.makeRegular(iv, a_dx);
+                newNode.makeRegular(iv, a_dx, a_domain);
                 a_nodes.push_back(newNode);
               }
           }
@@ -444,7 +433,7 @@ namespace amrex
   getFullNodeWithCoveredFace(IrregNode            & a_newNode, 
                              const BaseFab<int>   & a_regIrregCovered,
                              const IntVect        & a_iv,
-                             const Box  & a_domain) const
+                             const Box            & a_domain) const
   {
 
     a_newNode.m_cell          = a_iv;
@@ -463,15 +452,15 @@ namespace amrex
           {
             int ishift = sign(sit());
             IntVect ivshift = a_iv + ishift*BASISV(faceDir);
-            std::vector<int> arc;
-            std::vector<Real> areaFrac;
-            std::vector<RealVect> faceCentroid;
+            Array<int> arc;
+            Array<Real> areaFrac;
+            Array<RealVect> faceCentroid;
             if(!a_domain.contains(ivshift))
               {
                 // boundary arcs always -1
                 arc.resize(1,-1);
                 areaFrac.resize(1, 1.0);
-                faceCentroid.resize(1, RealVect::Unit);
+                faceCentroid.resize(1, RealVect::Zero);
               }
             else if (a_regIrregCovered(ivshift, 0) >= 0)
               {
@@ -481,7 +470,7 @@ namespace amrex
                 //it just  knows that the cell index of a regular cell is 0
                 arc.resize(1,0);
                 areaFrac.resize(1, 1.0);
-                faceCentroid.resize(1, RealVect::Unit);
+                faceCentroid.resize(1, RealVect::Zero);
               }
             else if (a_regIrregCovered(ivshift, 0) < 0)
               {
@@ -514,21 +503,21 @@ namespace amrex
   /*********************************************/
   void
   GeometryShop::computeVoFInternals(Real&               a_volFrac,
-                                    std::vector<int>         a_loArc[SpaceDim],
-                                    std::vector<int>         a_hiArc[SpaceDim],
-                                    std::vector<Real>        a_loAreaFrac[SpaceDim],
-                                    std::vector<Real>        a_hiAreaFrac[SpaceDim],
-                                    Real&               a_bndryArea,
-                                    RealVect&           a_normal,
-                                    RealVect&           a_volCentroid,
-                                    RealVect&           a_bndryCentroid,
-                                    std::vector<RealVect>    a_loFaceCentroid[SpaceDim],
-                                    std::vector<RealVect>    a_hiFaceCentroid[SpaceDim],
-                                    const BaseFab<int>& a_regIrregCovered,
-                                    const Box&a_domain,
-                                    const RealVect&     a_origin,
-                                    const Real&         a_dx,
-                                    const IntVect&      a_iv)const
+                                    std::array<Array<int>,SpaceDim>& a_loArc,
+                                    std::array<Array<int>,SpaceDim>& a_hiArc,
+                                    std::array<Array<Real>,SpaceDim>& a_loAreaFrac,
+                                    std::array<Array<Real>,SpaceDim>& a_hiAreaFrac,
+                                    Real&                a_bndryArea,
+                                    RealVect&            a_normal,
+                                    RealVect&            a_volCentroid,
+                                    RealVect&            a_bndryCentroid,
+                                    std::array<Array<RealVect>,SpaceDim>& a_loFaceCentroid,
+                                    std::array<Array<RealVect>,SpaceDim>& a_hiFaceCentroid,
+                                    const BaseFab<int>&  a_regIrregCovered,
+                                    const Box&           a_domain,
+                                    const RealVect&      a_origin,
+                                    const Real&          a_dx,
+                                    const IntVect&       a_iv) const
   {
 
     // need maxDx to properly scale a_bndryArea
@@ -556,16 +545,16 @@ namespace amrex
                    a_domain,
                    a_origin);
 
-        assert(faceRegular || faceCovered || faceDontKnow);
-        assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
+        AMREX_ASSERT(faceRegular || faceCovered || faceDontKnow);
+        AMREX_ASSERT((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
         // define the faceMo
         Face.define(edges,faceNormal,faceCovered,faceRegular,faceDontKnow);
 
         Moments geom;
 
         // answer0,answer1 are vectors whose components contain geometric information
-        std::vector<Real> answer0;
-        std::vector<Real> answer1;
+        Array<Real> answer0;
+        Array<Real> answer1;
 
         int order = 0;
         answer0 = geom.momentCalc2D(order,Face);
@@ -746,8 +735,8 @@ namespace amrex
                            a_domain,
                            a_origin);
 
-                assert(faceRegular || faceCovered || faceDontKnow);
-                assert((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
+                AMREX_ASSERT(faceRegular || faceCovered || faceDontKnow);
+                AMREX_ASSERT((!(faceRegular && faceCovered)) && (!(faceRegular && faceDontKnow)) && (!(faceDontKnow && faceCovered)));
                 Faces[index].define(edges,faceNormal,faceCovered,faceRegular,faceDontKnow);
 
                 // if the face is covered we will deal with it later
@@ -755,8 +744,8 @@ namespace amrex
                   {
                     Moments geom;
                     // answer0 and answer1 have all the geometric facts
-                    std::vector<Real> answer0;
-                    std::vector<Real> answer1;
+                    Array<Real> answer0;
+                    Array<Real> answer1;
 
                     int order = 0;
                     answer0 = geom.momentCalc2D(order,Faces[index]);
@@ -806,11 +795,11 @@ namespace amrex
             faceMo& face = Faces[iFace];
 
             // collect exactly two irregular edges or mayday.
-            std::vector<RealVect> crossingPt;
+            Array<RealVect> crossingPt;
 
-            std::vector<int> cPtHiLo;
-            std::vector<int> edgeHiLo;
-            std::vector<int> edgeDir;
+            Array<int> cPtHiLo;
+            Array<int> edgeHiLo;
+            Array<int> edgeDir;
 
             if (!(face.isCovered()) && !(face.isRegular()))
               {
@@ -890,13 +879,13 @@ namespace amrex
                 // flip area?
                 bool complementArea;
 
-                assert (cPtHiLo.size() == 2);
+                AMREX_ASSERT (cPtHiLo.size() == 2);
 
                 // loEdge-loEdge
                 if (edgeHiLo[0] == 0 && edgeHiLo[1] == 0)
                   {
                     // both crossingPts must be Hi or both must be Lo
-                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
+                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == -1));
 
                     // prismArea gives triangle
@@ -916,7 +905,7 @@ namespace amrex
                 else if (edgeHiLo[0] == 1 && edgeHiLo[1] == 1)
                   {
                     // both crossingPts must be Hi or both must be Lo
-                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
+                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == 1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == -1));
                     // prismArea gives the trapezoid
 
@@ -935,7 +924,7 @@ namespace amrex
                 else if (edgeHiLo[0] == 1 && edgeHiLo[1] == 0)
                   {
                     // cpPtHiLo must be the same or the opposite of edgeHiLo
-                    assert((cPtHiLo[0] == 1 && cPtHiLo[1] == -1) ||
+                    AMREX_ASSERT((cPtHiLo[0] == 1 && cPtHiLo[1] == -1) ||
                            (cPtHiLo[0] == -1 && cPtHiLo[1] == 1));
                     // maxDir > minDir =>prismArea gives trapezoid
                     // maxDir < minDir =>prismArea gives triangle
@@ -974,19 +963,19 @@ namespace amrex
                     // two trapezoids
                     if (cPtHiLo[1] == 1 && cPtHiLo[0] == 1)
                       {
-                        assert(edgeDir[0] == edgeDir[1]);
+                        AMREX_ASSERT(edgeDir[0] == edgeDir[1]);
                         complementArea = false;
                       }
                     else if (cPtHiLo[1] == -1 && cPtHiLo[0] == -1)
                       {
-                        assert(edgeDir[0] == edgeDir[1]);
+                        AMREX_ASSERT(edgeDir[0] == edgeDir[1]);
                         complementArea = true;
                       }
                     // triangle + triangle complement
                     // if the cPtHiLo[0]= loPt then one wants triangle
                     else if (cPtHiLo[0] == -1 && cPtHiLo[1] == 1 )
                       {
-                        assert(edgeDir[0] != edgeDir[1]);
+                        AMREX_ASSERT(edgeDir[0] != edgeDir[1]);
                         // if maxDir < minDir prismArea gives trapezoid
                         // if maxDir > minDir prismArea gives triangle
                         if (maxDir < minDir)
@@ -1038,7 +1027,7 @@ namespace amrex
                   }
 
                 // find upDir
-                std::pair<int,Side::LoHiSide> upDir;
+                // std::pair<int,Side::LoHiSide> upDir;
 
                 // physIntercept is along the segment[physSegLo,physSegHi]
                 // this segment passes through midPt with direction minDir
@@ -1198,12 +1187,12 @@ namespace amrex
 
         Moments geom;
         int order = 0;
-        std::vector<Real> answer0;
+        Array<Real> answer0;
         answer0 = geom.momentCalc3D(order,Vof);
 
         a_volFrac = answer0[0];
 
-        std::vector<Real> answer1;
+        Array<Real> answer1;
         order = 1;
         answer1 = geom.momentCalc3D(order,Vof);
 
@@ -1912,10 +1901,10 @@ namespace amrex
                     HiPt[range] =  0.5;
                   }
 
-                assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
-                assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
-                assert(regular || covered || dontKnow);
-                assert(regular || covered || LoPtChanged || HiPtChanged);
+                AMREX_ASSERT((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
+                AMREX_ASSERT(regular || covered || (!(LoPtChanged && HiPtChanged)));
+                AMREX_ASSERT(regular || covered || dontKnow);
+                AMREX_ASSERT(regular || covered || LoPtChanged || HiPtChanged);
                 bool intersectLo = LoPtChanged;
                 edgeMo Edge;
                 // range means the coordinate direction that varies over the length of the edge
@@ -2070,10 +2059,10 @@ namespace amrex
                 HiPt[range] =  0.5;
               }
 
-            assert(regular || covered || (!(LoPtChanged && HiPtChanged)));
-            assert(regular || covered || dontKnow);
-            assert((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
-            assert(regular || covered || LoPtChanged || HiPtChanged);
+            AMREX_ASSERT(regular || covered || (!(LoPtChanged && HiPtChanged)));
+            AMREX_ASSERT(regular || covered || dontKnow);
+            AMREX_ASSERT((!(regular && covered)) && (!(regular && dontKnow)) && (!(dontKnow && covered)));
+            AMREX_ASSERT(regular || covered || LoPtChanged || HiPtChanged);
             // default is something invalid
             bool intersectLo = LoPtChanged;
 
@@ -2124,20 +2113,6 @@ namespace amrex
       }
 
     return;
-  }
-
-  Real GeometryShop::Min(const Real x, const Real y)const
-  {
-    Real retval;
-    if (x < y)
-      {
-        retval = x;
-      }
-    else
-      {
-        retval = y;
-      }
-    return retval;
   }
 
   //  The following is an implementation of "Brent's Method"
@@ -2231,7 +2206,7 @@ namespace amrex
 
             p = std::abs(p);
 
-            if (2.0 * p < Min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
+            if (2.0 * p < std::min(3.0*xm*q-std::abs(tol1*q), std::abs(e*q)))
               {
                 //  Accept interpolation
                 e = d;
@@ -2327,7 +2302,7 @@ namespace amrex
 
         // Find h
         Real h = 0.5 * (largeX - smallX);
-        assert (h >= 0.0);
+        AMREX_ASSERT (h >= 0.0);
 
         // Prismoidal rule, which is exact on cubics.
         retval = (h/3.0) * (a_yVec[0] + 4.0 * a_yVec[1] + a_yVec[2]);

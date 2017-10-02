@@ -148,7 +148,7 @@ namespace amrex
   //---------
   void
   EBArith::
-  getMultiColors(vector<IntVect>& a_colors)
+  getMultiColors(Array<IntVect>& a_colors)
   {
 
 #if BL_SPACEDIM==2
@@ -171,7 +171,7 @@ namespace amrex
   }
   void
   EBArith::
-  computeCoveredFaces(vector<VolIndex>&     a_coveredFace,
+  computeCoveredFaces(Array<VolIndex>&     a_coveredFace,
                       IntVectSet&           a_coveredSets,
                       IntVectSet&           a_irregIVS,
                       const int&            a_idir,
@@ -189,12 +189,12 @@ namespace amrex
     for (IVSIterator ivsit(a_irregIVS); ivsit.ok(); ++ivsit)
     {
       const IntVect& iv = ivsit();
-      vector<VolIndex> vofs = a_ebisBox.getVoFs(iv);
+      Array<VolIndex> vofs = a_ebisBox.getVoFs(iv);
       bool allVoFsHaveFaces = true;
       for (int ivof = 0; ivof < vofs.size(); ivof++)
       {
         const VolIndex& vof = vofs[ivof];
-        vector<FaceIndex> faces = a_ebisBox.getFaces(vof, a_idir, a_sd);
+        Array<FaceIndex> faces = a_ebisBox.getFaces(vof, a_idir, a_sd);
         if (faces.size() == 0)
         {
           allVoFsHaveFaces = false;
@@ -313,8 +313,8 @@ namespace amrex
     //find the other face
     if (!a_face.isBoundary())
     {
-      vector<FaceIndex> loTanFaces = a_ebisBox.getFaces(loFaceVoF, a_idir, a_side);
-      vector<FaceIndex> hiTanFaces = a_ebisBox.getFaces(hiFaceVoF, a_idir, a_side);
+      Array<FaceIndex> loTanFaces = a_ebisBox.getFaces(loFaceVoF, a_idir, a_side);
+      Array<FaceIndex> hiTanFaces = a_ebisBox.getFaces(hiFaceVoF, a_idir, a_side);
       if ((loTanFaces.size() != 1) || (hiTanFaces.size() != 1))
       {
         uniqueFace = false;
@@ -335,7 +335,7 @@ namespace amrex
         }
         if (uniqueFace)
         {
-          vector<FaceIndex> otherFaces = a_ebisBox.getFaces(loOtherVoF, faceDir, Side::Hi);
+          Array<FaceIndex> otherFaces = a_ebisBox.getFaces(loOtherVoF, faceDir, Side::Hi);
           if (otherFaces.size() != 1)
           {
             uniqueFace = false;
@@ -354,11 +354,10 @@ namespace amrex
       IntVect hiVoFiv = hiFaceVoF.gridIndex();
       IntVect loDomiv = a_domain.smallEnd();
       IntVect hiDomiv = a_domain.bigEnd();
-      vector<FaceIndex> otherFaces;
 
       if (hiVoFiv[faceDir] == loDomiv[faceDir])
       {
-        vector<FaceIndex> hiTanFaces = a_ebisBox.getFaces(hiFaceVoF, a_idir, a_side);
+        Array<FaceIndex> hiTanFaces = a_ebisBox.getFaces(hiFaceVoF, a_idir, a_side);
         if (hiTanFaces.size() != 1)
         {
           uniqueFace = false;
@@ -371,7 +370,7 @@ namespace amrex
         else
         {
           VolIndex hiOtherVoF = hiTanFaces[0].getVoF(a_side);
-          vector<FaceIndex> otherFaces = a_ebisBox.getFaces(hiOtherVoF, faceDir, Side::Lo);
+          const Array<FaceIndex>& otherFaces = a_ebisBox.getFaces(hiOtherVoF, faceDir, Side::Lo);
           if (otherFaces.size() != 1)
           {
             uniqueFace = false;
@@ -385,7 +384,7 @@ namespace amrex
       }
       else if (loVoFiv[faceDir] == hiDomiv[faceDir])
       {
-        vector<FaceIndex> loTanFaces = a_ebisBox.getFaces(loFaceVoF, a_idir, a_side);
+        Array<FaceIndex> loTanFaces = a_ebisBox.getFaces(loFaceVoF, a_idir, a_side);
         if (loTanFaces.size() != 1)
         {
           uniqueFace = false;
@@ -398,7 +397,7 @@ namespace amrex
         else
         {
           VolIndex loOtherVoF = loTanFaces[0].getVoF(a_side);
-          vector<FaceIndex> otherFaces = a_ebisBox.getFaces(loOtherVoF, faceDir, Side::Hi);
+          const Array<FaceIndex>& otherFaces = a_ebisBox.getFaces(loOtherVoF, faceDir, Side::Hi);
           if (otherFaces.size() != 1)
           {
             uniqueFace = false;
@@ -627,12 +626,12 @@ namespace amrex
   /*******/
   void
   EBArith::
-  getAllVoFsInMonotonePath(std::vector<VolIndex>& a_vofList,
+  getAllVoFsInMonotonePath(Array<VolIndex>& a_vofList,
                            const VolIndex&   a_vof,
                            const EBISBox&    a_ebisBox,
                            const int&        a_redistRad)
   {
-    std::vector<VolIndex> vofsStencil;
+    Array<VolIndex> vofsStencil;
     IntVect timesMoved = IntVect::TheZeroVector();
     IntVect pathSign   = IntVect::TheZeroVector();
     EBArith::getAllVoFsInMonotonePath(vofsStencil, timesMoved,
@@ -643,7 +642,7 @@ namespace amrex
   /*******/
   void
   EBArith::
-  getAllVoFsInMonotonePath(std::vector<VolIndex>& a_vofList,
+  getAllVoFsInMonotonePath(Array<VolIndex>& a_vofList,
                            const IntVect&    a_timesMoved,
                            const IntVect&    a_pathSign,
                            const VolIndex&   a_vof,
@@ -685,7 +684,7 @@ namespace amrex
           {
             IntVect newSign = a_pathSign;
             newSign[idir] = -1;
-            std::vector<FaceIndex> facesLo =
+            Array<FaceIndex> facesLo =
               a_ebisBox.getFaces(a_vof, idir, Side::Lo);
             for (int iface = 0; iface < facesLo.size(); iface++)
             {
@@ -700,7 +699,7 @@ namespace amrex
           {
             IntVect newSign = a_pathSign;
             newSign[idir] = 1;
-            std::vector<FaceIndex> facesHi =
+            Array<FaceIndex> facesHi =
               a_ebisBox.getFaces(a_vof, idir, Side::Hi);
             for (int iface = 0; iface < facesHi.size(); iface++)
             {
@@ -731,7 +730,7 @@ namespace amrex
       checkCFIVS = true;
     }
     //get faces on both sides to see in which direction we can do diffs
-    std::vector<FaceIndex> closeFaces = a_ebisBox.getFaces(a_vof, a_idir, a_sd);
+    Array<FaceIndex> closeFaces = a_ebisBox.getFaces(a_vof, a_idir, a_sd);
 
     //boundary faces and multi-valued faces are to be one-sided away from
     a_hasClose = ((closeFaces.size() == 1) && (!closeFaces[0].isBoundary()));
@@ -742,7 +741,7 @@ namespace amrex
       {
         a_hasClose = false;
       }
-      std::vector<FaceIndex> farFaces = a_ebisBox.getFaces(a_closeVoF, a_idir, a_sd);
+      Array<FaceIndex> farFaces = a_ebisBox.getFaces(a_closeVoF, a_idir, a_sd);
       a_hasFar = ((farFaces.size() == 1) && (!farFaces[0].isBoundary()));
       if (a_hasFar)
       {
@@ -757,7 +756,7 @@ namespace amrex
   /*******/
   void
   EBArith::
-  getAllVoFsWithinRadius(std::vector<VolIndex>& a_vofList,
+  getAllVoFsWithinRadius(Array<VolIndex>& a_vofList,
                          const VolIndex&   a_vof,
                          const EBISBox&    a_ebisBox,
                          const int&        a_redistRad)
@@ -934,7 +933,7 @@ namespace amrex
   /***************/
   bool
   EBArith::isVoFHere(VolIndex& a_vof2,
-                     const std::vector<VolIndex>& a_vofsStencil,
+                     const Array<VolIndex>& a_vofsStencil,
                      const IntVect& a_cell2)
   {
     int whichVoF;
@@ -945,7 +944,7 @@ namespace amrex
   /***********/
   bool
   EBArith::isVoFHere(VolIndex& a_vof2, int& a_whichVoF,
-                     const std::vector<VolIndex>& a_vofsStencil,
+                     const Array<VolIndex>& a_vofsStencil,
                      const IntVect& a_cell2)
   {
     BL_PROFILE("EBArith::isVoFHere");
@@ -996,7 +995,7 @@ namespace amrex
       checkCFIVS = true;
     }
     int radius = 1;
-    std::vector<VolIndex> vofList;
+    Array<VolIndex> vofList;
 
     EBArith::getAllVoFsInMonotonePath(vofList, a_vof, a_ebisBox, radius);
 
@@ -1343,20 +1342,20 @@ namespace amrex
   /***/
   void
   EBArith::calculateWeightingMatrix(RealVect           x0,
-                                    std::vector<RealVect>&  xp,
-                                    std::vector<RealVect>&  weightMatrix,
+                                    Array<RealVect>&  xp,
+                                    Array<RealVect>&  weightMatrix,
                                     bool&              detZero)
   {
     BL_PROFILE("EBArith::calculateWeightingMatrix");
     int stenSize = xp.size();
 
-    std::vector<RealVect> deltaX = xp;
+    Array<RealVect> deltaX = xp;
     for (int isten = 0; isten < stenSize; isten++)
     {
       deltaX[isten] -= x0;
     }
 
-    std::vector<RealVect> aTransA(SpaceDim,RealVect::Zero), invATransA(SpaceDim,RealVect::Zero);
+    Array<RealVect> aTransA(SpaceDim,RealVect::Zero), invATransA(SpaceDim,RealVect::Zero);
     for (int idir = 0; idir < SpaceDim; idir++)
     {
       for (int jdir = 0; jdir < SpaceDim; jdir++)
@@ -1437,9 +1436,9 @@ namespace amrex
   }
   void
   EBArith::calculateWeightingMatrixRed(RealVect           x00,
-                                       std::vector<RealVect>&  xpp,
+                                       Array<RealVect>&  xpp,
                                        IntVect            dimm,
-                                       std::vector<RealVect>&  weightMatrix,
+                                       Array<RealVect>&  weightMatrix,
                                        bool&              deadRed)
   //CP: do the same thing for a reduced system, where some neighbors in the normal leastSquare stencil are covered
   //some dimensions might also have vanished. these need to be recorded outside
@@ -1453,7 +1452,7 @@ namespace amrex
     //now cast the problem to reduced dimension: make x0, xp
     int nr = 0;
     RealVect x0=RealVect::Zero;
-    std::vector<RealVect> xp(stenSize,RealVect::Zero);
+    Array<RealVect> xp(stenSize,RealVect::Zero);
     IntVect dirN;
     for (int idir = 0; idir< SpaceDim; idir++)
     {
@@ -1469,13 +1468,13 @@ namespace amrex
       }
     }
 
-    std::vector<RealVect> deltaX = xp;
+    Array<RealVect> deltaX = xp;
     for (int isten = 0; isten < stenSize; isten++)
     {
       deltaX[isten] -= x0;
     }
 
-    std::vector<RealVect> aTransA(SpaceDim,RealVect::Zero), invATransA(SpaceDim,RealVect::Zero);
+    Array<RealVect> aTransA(SpaceDim,RealVect::Zero), invATransA(SpaceDim,RealVect::Zero);
     //CP: using the fact that nr <= SpaceDim
 
     for (int idir = 0; idir < nr; idir++)
@@ -1588,7 +1587,7 @@ namespace amrex
 
     IntVect timesMoved = IntVect::TheZeroVector();
     IntVect pathSign   = IntVect::TheZeroVector();
-    std::vector<VolIndex> vofsStencil;
+    Array<VolIndex> vofsStencil;
     getAllVoFsInMonotonePath(vofsStencil, timesMoved,
                              pathSign, a_vof1, a_ebisBox,
                              imaxdiff);
@@ -1622,7 +1621,7 @@ namespace amrex
     THIS_IS_AN_ERROR_MESSAGE__THIS_WILL_ONLY_COMPILE_WHEN_BL_SPACEDIM_IS_2_OR_3;
 #endif
     //Box domainBox = a_domain;
-    std::vector<IntVect> ivSten(stenSize);
+    Array<IntVect> ivSten(stenSize);
 
     ivSten[0] = iv0 + a_quadrant[0]*BASISV(0)                                                    ;
     ivSten[1] = iv0                           + a_quadrant[1]*BASISV(1)                          ;
@@ -1636,7 +1635,7 @@ namespace amrex
 
     bool dropOrder = false;
 
-    std::vector<VolIndex> volSten(stenSize);
+    Array<VolIndex> volSten(stenSize);
     for (int isten = 0; isten < stenSize; isten++)
     {
       //cp: it needs to be populated anyways
@@ -1686,7 +1685,7 @@ namespace amrex
         x0[idir] = a_dx[idir] * (0.5 + a_centroid[idir] + iv0[idir]);
       }
 
-      std::vector<RealVect> xp(stenSize);
+      Array<RealVect> xp(stenSize);
       for (int isten = 0; isten < stenSize; isten++)
       {
         for (int idir = 0; idir < SpaceDim; idir++)
@@ -1695,7 +1694,7 @@ namespace amrex
         }
       }
 
-      std::vector<RealVect> invATransAdeltaX(stenSize,RealVect::Zero);
+      Array<RealVect> invATransAdeltaX(stenSize,RealVect::Zero);
       bool detZero = false;
       EBArith::calculateWeightingMatrix(x0, xp, invATransAdeltaX, detZero);
 
@@ -1734,8 +1733,8 @@ namespace amrex
           x0[idir] = a_dx[idir] * (0.5 + a_centroid[idir] + iv0[idir]);
         }
 
-        std::vector<RealVect> xp;
-        std::vector<int> volStenIdx;
+        Array<RealVect> xp;
+        Array<int> volStenIdx;
         int ns = 0;
         for (int isten = 0; isten < stenSize; isten++)
         {
@@ -1825,7 +1824,7 @@ namespace amrex
         else
         {
           //calculate weights, corresponding to all stencil points
-          std::vector<RealVect> invATransAdeltaX(ns,RealVect::Zero);
+          Array<RealVect> invATransAdeltaX(ns,RealVect::Zero);
           EBArith::calculateWeightingMatrixRed(x0,xp,dimm,invATransAdeltaX, deadCell);
 
           a_stencil.clear();
@@ -1853,8 +1852,8 @@ namespace amrex
   }
   void
   EBArith::dataRayCast(bool&               a_dropOrder,
-                       std::vector<VoFStencil>& a_pointStencils,
-                       std::vector<Real>&       a_distanceAlongLine,
+                       Array<VoFStencil>& a_pointStencils,
+                       Array<Real>&       a_distanceAlongLine,
                        const RealVect&     a_normal,
                        const RealVect&     a_bndryCentroid,
                        const VolIndex&     a_vof,
@@ -1903,8 +1902,8 @@ namespace amrex
 
     // Find Intersection of planes and ray
     //and the cells in which they live
-    std::vector<RealVect> intersectLoc(a_numPoints);
-    std::vector<IntVect>   intersectIV(a_numPoints);
+    Array<RealVect> intersectLoc(a_numPoints);
+    Array<IntVect>   intersectIV(a_numPoints);
     //equation of line
     //y = y_b + (ny/nx)*(x-xb)
     //we know x because that is the location of the
@@ -2100,8 +2099,8 @@ namespace amrex
   /****/
   void
   EBArith::johanStencil(bool&               a_dropOrder,
-                        std::vector<VoFStencil>& a_pointStencils,
-                        std::vector<Real>&       a_distanceAlongLine,
+                        Array<VoFStencil>& a_pointStencils,
+                        Array<Real>&       a_distanceAlongLine,
                         const VolIndex&     a_vof,
                         const EBISBox&      a_ebisBox,
                         const RealVect&     a_dx,
@@ -2122,8 +2121,8 @@ namespace amrex
   }
   void
   EBArith::johanStencil(bool&               a_dropOrder,
-                        std::vector<VoFStencil>& a_pointStencils,
-                        std::vector<Real>&       a_distanceAlongLine,
+                        Array<VoFStencil>& a_pointStencils,
+                        Array<Real>&       a_distanceAlongLine,
                         const RealVect&     a_normal,
                         const RealVect&     a_bndryCentroid,
                         const VolIndex&     a_vof,

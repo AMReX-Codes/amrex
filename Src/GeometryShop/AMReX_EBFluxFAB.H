@@ -13,7 +13,6 @@
 #ifndef _EBFLUXFAB_H_
 #define _EBFLUXFAB_H_
 
-#include <vector>
 #include "AMReX_Box.H"
 #include "AMReX_EBFaceFAB.H"
 #include "AMReX_IrregFAB.H"

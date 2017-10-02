@@ -1,30 +1,12 @@
 #ifndef _NEIGHBORPARTICLES_H_
 #define _NEIGHBORPARTICLES_H_
 
+#include <unordered_set>
+#include <functional>
+
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_Particles.H"
-
-namespace {
-
-struct NeighborCommTag {
-
-    NeighborCommTag(int pid, int gid, int tid)
-        : proc_id(pid), grid_id(gid), tile_id(tid)
-    {}
-
-    int proc_id;
-    int grid_id;
-    int tile_id;
-};
-
-bool operator<(const NeighborCommTag& l, const NeighborCommTag& r) {
-    return (l.proc_id < r.proc_id || 
-           (l.proc_id == r.proc_id && l.grid_id < r.grid_id) ||
-           (l.proc_id == r.proc_id && l.grid_id == r.grid_id && l.tile_id < r.tile_id ));
-}
-
-}
 
 namespace amrex {
 
@@ -46,6 +28,58 @@ template <int NStructReal, int NStructInt, int NNeighborReal>
 class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
 {
+    
+    struct NeighborTag {
+        int grid;
+        int tile;
+        int periodic_shift[3];
+        
+        bool operator<(const NeighborTag& other) const {
+            if (grid != other.grid) return grid < other.grid;
+            if (tile != other.tile) return tile < other.tile;
+            if (periodic_shift[0] != other.periodic_shift[0]) 
+                return periodic_shift[0] < other.periodic_shift[0];
+            if (periodic_shift[1] != other.periodic_shift[1]) 
+                return periodic_shift[1] < other.periodic_shift[1];
+            if (periodic_shift[2] != other.periodic_shift[2]) 
+                return periodic_shift[2] < other.periodic_shift[2];
+            return false;
+        }
+        
+        bool operator==(const NeighborTag& other) const {
+            return (grid == other.grid) and (tile == other.tile)
+                and (periodic_shift[0] == other.periodic_shift[0])
+                and (periodic_shift[1] == other.periodic_shift[1])
+                and (periodic_shift[2] == other.periodic_shift[2]);
+        }
+    };
+
+    struct NeighborCommTag {
+        
+        NeighborCommTag(int pid, int gid, int tid)
+            : proc_id(pid), grid_id(gid), tile_id(tid)
+            {}
+        
+        int proc_id;
+        int grid_id;
+        int tile_id;
+        
+        bool operator<(const NeighborCommTag& other) const {
+            return (proc_id < other.proc_id || 
+                    (proc_id == other.proc_id && 
+                     grid_id < other.grid_id) ||
+                    (proc_id == other.proc_id && 
+                     grid_id == other.grid_id && 
+                     tile_id < other.tile_id ));
+        }
+
+        bool operator==(const NeighborCommTag& other) const {
+            return ( (proc_id == other.proc_id) and 
+                     (grid_id == other.grid_id) and
+                     (tile_id == other.tile_id) );
+        }
+    };    
+        
 public:
 
     using ParticleType = typename ParticleContainer<NStructReal,
@@ -62,10 +96,19 @@ public:
                               const BoxArray            & ba,
                               int                         nneighbor);
 
-    void InitLevelMask(int lev, 
-                       const Geometry &geom, 
-                       const DistributionMapping &dmap, 
-                       const BoxArray &ba );
+    ///
+    /// This resets the particle container to use the given BoxArray
+    /// and DistributionMapping
+    ///
+    void Regrid(const DistributionMapping &dmap, const BoxArray &ba );
+
+    ///
+    /// This builds the internal data structure used for looking up neighbors
+    ///
+    void BuildLevelMask(int lev, 
+                        const Geometry &geom, 
+                        const DistributionMapping &dmap, 
+                        const BoxArray &ba );
 
     ///
     /// This fills the neighbor buffers for each tile with the proper data
@@ -96,22 +139,15 @@ public:
 
 protected:
     
+    NeighborTag getNeighborTag(int lev,
+                               const IntVect& neighbor_cell,
+                               const BaseFab<int>& mask);
     ///
     /// Apply periodic shift to particle position, so naive distance calculation
     /// between neighbors and regular particles will be correct.
     ///
-    void applyPeriodicShift(int lev, ParticleType& p, const IntVect& neighbor_cell);
+    void applyPeriodicShift(int lev, ParticleType& p, const NeighborTag& tag);
 
-    ///
-    /// Pack a particle's data into the proper neighbor buffer, or put it into
-    /// the structure to be sent to the other processes
-    ///
-    void packNeighborParticle(int lev,
-                              const IntVect& neighbor_cell,
-                              const BaseFab<int>& mask,
-                              const ParticleType& p,
-                              NeighborCommMap& neighbors_to_comm);
-    
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
@@ -128,14 +164,11 @@ protected:
     };
 
     int num_neighbor_cells;
-    FabArray<BaseFab<int> > mask;
-
-    void cacheNeighborParticle(int lev, const PairIndex& index, int particle_index,
-                               const IntVect& neighbor_cell, const BaseFab<int>& mask);
-
+    std::vector<NeighborCommTag> local_neighbors;
+    std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
     std::map<PairIndex, Array<int> > buffer_id_cache;
-    std::map<PairIndex, Array<IntVect> > buffer_cell_cache;
-
+    std::map<PairIndex, Array<NeighborTag> > buffer_tag_cache;
+    
     // each proc knows how many sends it will do, and how many bytes it will rcv 
     // from each other proc.
     Array<long> rcvs;

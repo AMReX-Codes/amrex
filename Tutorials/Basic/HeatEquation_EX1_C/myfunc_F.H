@@ -13,6 +13,7 @@ extern "C"
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
     
     void compute_flux(const int* lo, const int* hi,
+                      const int* domlo, const int* domhi,
                       amrex_real* phi, const int* philo, const int* phihi,
                       amrex_real* fluxx, const int* fxlo, const int* fxhi,
                       amrex_real* fluxy, const int* fylo, const int* fyhi,

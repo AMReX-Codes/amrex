@@ -31,7 +31,7 @@ C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBIndexSpace.H   AMReX_EBISLayout.H   A
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBIndexSpace.cpp AMReX_EBISLayout.cpp AMReX_EBISLevel.cpp AMReX_GeometryService.cpp
 
 
-C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBLevelGrid.H  AMReX_LayoutData.H AMReX_AllRegularService.H
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBLevelGrid.H  AMReX_AllRegularService.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBLevelGrid.cpp  AMReX_AllRegularService.cpp
 
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_EBDebugOut.H AMReX_EBDebugDump.H AMReX_EBFaceFAB.H AMReX_BaseEBFaceFAB.H AMReX_EBArith.H
@@ -47,6 +47,9 @@ C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_EBNormalizeByVolumeFraction.cpp AMReX_E
 
 C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_UnionIF.H   AMReX_IntersectionIF.H   AMReX_ComplementIF.H   AMReX_LatheIF.H   AMReX_TransformIF.H
 C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_UnionIF.cpp AMReX_IntersectionIF.cpp AMReX_ComplementIF.cpp AMReX_LatheIF.cpp AMReX_TransformIF.cpp
+
+C$(GEOMETRYSHOP_BASE)_headers +=   AMReX_PolynomialIF.H   
+C$(GEOMETRYSHOP_BASE)_sources +=   AMReX_PolynomialIF.cpp 
 
 
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/GeometryShop

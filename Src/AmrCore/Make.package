@@ -10,16 +10,17 @@ FEXE_sources += AMReX_FLUXREG_$(DIM)D.F AMReX_INTERP_$(DIM)D.F
 FEXE_headers += AMReX_FillPatchUtil_F.H
 F90EXE_sources += AMReX_FillPatchUtil_$(DIM)d.F90
 
+CEXE_headers += AMReX_YAFluxRegister_F.H
+CEXE_headers += AMReX_YAFluxRegister.H
+CEXE_sources += AMReX_YAFluxRegister.cpp
+F90EXE_sources += AMReX_YAFluxRegister_$(DIM)d.F90
+F90EXE_sources += AMReX_YAFluxRegister_nd.F90
+
+
 ifeq ($(USE_PARTICLES), TRUE)
   CEXE_headers += AMReX_AmrParGDB.H AMReX_AmrParticles.H
 endif
 
-ifeq ($(USE_EB),TRUE)
-  CEXE_headers += AMReX_EBInterpolater.H
-  CEXE_sources += AMReX_EBInterpolater.cpp
-  CEXE_headers += AMReX_EBInterp_f.H
-  F90EXE_sources += AMReX_ebinterp_$(DIM)d.F90
-endif
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/AmrCore
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrCore

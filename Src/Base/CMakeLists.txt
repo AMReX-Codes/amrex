@@ -32,7 +32,8 @@ set ( F77SRC
 set ( F90SRC
    AMReX_bc_types_mod.F90  AMReX_filcc_mod.F90  AMReX_omp_mod.F90        AMReX_string_mod.F90
    AMReX_error_mod.F90     AMReX_fort_mod.F90   AMReX_parmparse_mod.F90
-   AMReX_BaseFab_nd.f90    AMReX_MultiFabUtil_${BL_SPACEDIM}d.f90 AMReX_mempool_f.f90 )     
+   AMReX_BaseFab_nd.f90    AMReX_MultiFabUtil_${BL_SPACEDIM}d.f90 AMReX_MultiFabUtil_nd.F90
+   AMReX_mempool_f.f90 )     
 
 set ( ALLHEADERS
    AMReX_Arena.H        AMReX_BCUtil.H              AMReX_BoxIterator.H   AMReX_FabArray.H
@@ -52,7 +53,7 @@ set ( ALLHEADERS
    AMReX_BCRec.H        AMReX_BoxDomain.H           AMReX_DistributionMapping.H  AMReX_Geometry.H
    AMReX_MemPool.H      AMReX_ParallelDescriptor.H  AMReX_RealVect.H      AMReX_VisMF.H
    AMReX_BC_TYPES.H     AMReX_Box.H                 AMReX_FabArrayBase.H  AMReX.H
-   AMReX_MemProfiler.H  AMReX_ParmParse.H           AMReX_SPACE_F.H )
+   AMReX_MemProfiler.H  AMReX_ParmParse.H           AMReX_SPACE_F.H       AMReX_LayoutData.H)
 
 # Accumulate sources
 set ( ALLSRC ${CXXSRC} ${F90SRC} ${F77SRC} )

@@ -38,9 +38,9 @@ namespace amrex{
     void RTS::Init(){ 
     }
 
-    void RTS::Init(int *rank, int *nProcs){
-	*rank=0;
-	*nProcs=1;
+    void RTS::Init(int rank, int nProcs){
+	_rank=0;
+	_nProcs=1;
     }
 
     void RTS::Finalize(){
@@ -51,7 +51,7 @@ namespace amrex{
 	assert(_RunningQueue.size()==0);
     }
 
-    void RTS::Run(void* taskgraph){
+    void RTS::Iterate(void* taskgraph){
 	AbstractTaskGraph<Task>* graph= (AbstractTaskGraph<Task>*)taskgraph;
 	//visit all initial tasks 
 	{

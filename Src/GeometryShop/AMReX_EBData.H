@@ -19,6 +19,7 @@
 #include "AMReX_IrregNode.H"
 #include "AMReX_BaseIVFAB.H"
 #include "AMReX_BaseIFFAB.H"
+#include "AMReX_FArrayBox.H"
 
 namespace amrex
 {
@@ -42,6 +43,12 @@ namespace amrex
 
     ///
     ~EBDataImplem();
+
+    ///this is only defined if there are irregular cells
+    //const FArrayBox& getVolumeMask()
+    //  {
+    //    return m_volMask;
+    //  }
 
     ///
     /**
@@ -86,7 +93,7 @@ namespace amrex
     ///define the whole thing. valid box= no ghost, region has ghost, defines data holders and fills them
     void
     define(const EBGraph&           a_graph,
-           const std::vector<IrregNode>& a_irregData,
+           const Array<IrregNode>& a_irregData,
            const Box&               a_validBox,
            const Box&               a_region);
 
@@ -197,9 +204,17 @@ namespace amrex
                  bool       shared)
       {
         //this strictly for checkpointing 
+        //m_hasVolumeMask = false;
         m_region = a_region;
       }
 private:
+
+
+    //internal.  initializes places where we know the answer
+    void setCoveredAndRegular();
+
+    //void defineVolumeMask();
+    //void setVolumeMask();
 
     Box m_region;
 
@@ -213,36 +228,38 @@ private:
     ///
     bool m_isDefined;
 
+    /// only defined if there are cut cells somewhere in m_region
+    //FArrayBox m_volMask;
 
-    void operator=(const EBDataImplem& ebiin)
-      {;}
+    ///true if there are cut cells somewhere in m_region
+    //bool m_hasVolumeMask;
 
-    EBDataImplem(const EBDataImplem& ebiin)
-      {;}
+    void operator=(const EBDataImplem& ebiin) = delete;
+    EBDataImplem(const EBDataImplem& ebiin) = delete;
 
     void
     coarsenFaceCentroid(RealVect&                a_centroidCoar,
-                        const std::vector<RealVect>&  a_centroidsFine,
-                        const std::vector<Real>&      a_areaFracFine,
-                        const std::vector<FaceIndex>& a_facesFine,
+                        const Array<RealVect>&  a_centroidsFine,
+                        const Array<Real>&      a_areaFracFine,
+                        const Array<FaceIndex>& a_facesFine,
                         const FaceIndex&         a_faceCoar);
     void
     coarsenAreaFrac(Real& a_areaFracCoar,
-                    const std::vector<Real>& a_areaFracFine);
+                    const Array<Real>& a_areaFracFine);
 
     void
     coarsenVolFracAndCentroid(Real&                   a_volFracCoar,
                               RealVect&               a_volCentroidCoar,
-                              const std::vector<Real>&     a_volFracFine,
-                              const std::vector<RealVect>& a_volCentroidFine,
-                              const std::vector<VolIndex>& a_fineVoFs,
+                              const Array<Real>&     a_volFracFine,
+                              const Array<RealVect>& a_volCentroidFine,
+                              const Array<VolIndex>& a_fineVoFs,
                               const VolIndex&         a_coarVoF);
 
     void
     coarsenBoundaryAreaAndNormal(Real&                    a_bndryAreaCoar,
                                  RealVect&                a_normalCoar,
-                                 const std::vector<Real>&      a_bndryAreaFine,
-                                 const std::vector<RealVect>&  a_normalFine);
+                                 const Array<Real>&      a_bndryAreaFine,
+                                 const Array<RealVect>&  a_normalFine);
 
     RealVect
     fineToCoarseTransform(const RealVect& a_finePoint,
@@ -251,10 +268,16 @@ private:
 
     void
     coarsenBndryCentroid(RealVect&               a_bndryCentroidCoar,
-                         const std::vector<RealVect>& a_bndryCentroidFine,
-                         const std::vector<Real>&     a_bndryAreaFine,
-                         const std::vector<VolIndex>& a_fineVoFs,
+                         const Array<RealVect>& a_bndryCentroidFine,
+                         const Array<Real>&     a_bndryAreaFine,
+                         const Array<VolIndex>& a_fineVoFs,
                          const VolIndex&         a_coarVoF);
+
+    void
+    init_snan ();
+
+    void
+    init_qnan ();
 
     friend class EBIndexSpace;
     friend class EBISLevel;
@@ -274,7 +297,7 @@ private:
     typedef int value_type;
 
     ///
-    EBData() : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem() ) )
+    EBData() : m_implem( std::make_shared<EBDataImplem>() )
       {
       }
 
@@ -283,7 +306,7 @@ private:
            int        n,
            bool       alloc,
            bool       shared)
-      : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem(a_region, n, alloc, shared) ) )
+        : m_implem( std::make_shared<EBDataImplem>(a_region, n, alloc, shared) )
 
       {
       }
@@ -295,6 +318,13 @@ private:
 
     EBData (EBData&& rhs) noexcept = default;
 
+    ///this is only defined if there are irregular cells
+    //const FArrayBox& getVolumeMask()
+    //  {
+    //    return m_implem->getVolumeMask();
+    //  }
+
+    ///
     const Box& getRegion() const
       {
         return m_implem->getRegion();
@@ -325,7 +355,7 @@ private:
     /**
     */
     EBData(const Box& a_box, int a_comps)
-      : m_implem( shared_ptr<EBDataImplem>( new EBDataImplem(a_box, a_comps) ) )
+        : m_implem( std::make_shared<EBDataImplem>(a_box, a_comps) )
       {
       }
 
@@ -384,7 +414,7 @@ private:
     //but it is ok for the valid box to be smaller
     void
     define(const EBGraph&           a_graph,
-           const std::vector<IrregNode>& a_irregData,
+           const Array<IrregNode>& a_irregData,
            const Box&               a_validBox,
            const Box&               a_region)
     
@@ -451,18 +481,11 @@ private:
     */
     bool operator==(const EBData& a_ebiin)
       {
-        return ((&(*m_implem)) == (&(*a_ebiin.m_implem)));
+          return m_implem.get() == a_ebiin.m_implem.get();
       }
 
     ///
-    EBData& operator=(const EBData& a_ebiin)
-      {
-        if (&a_ebiin != this)
-        {
-          m_implem = a_ebiin.m_implem;
-        }
-        return *this;
-      }
+    EBData& operator=(const EBData& a_ebiin) = default;
 
     ///this is for copy or fillboundary where the meta data is already filled
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
