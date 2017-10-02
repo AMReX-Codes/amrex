@@ -12,7 +12,7 @@ set ( CXXSRC
 
 set ( F77SRC AMReX_FLUXREG_${BL_SPACEDIM}D.F AMReX_INTERP_${BL_SPACEDIM}D.F )
 
-set ( F90SRC AMReX_FillPatchUtil_${BL_SPACEDIM}d.F90 AMReX_YAFluxRegister_$(BL_SPACEDIM)d.F90 AMReX_YAFluxRegister_nd.F90 )
+set ( F90SRC AMReX_FillPatchUtil_${BL_SPACEDIM}d.F90 AMReX_YAFluxRegister_${BL_SPACEDIM}d.F90 AMReX_YAFluxRegister_nd.F90 )
 
 set ( ALLHEADERS
    AMReX_AmrCore.H AMReX_Cluster.H AMReX_ErrorList.H

@@ -1,0 +1,3 @@
+CEXE_sources += main.cpp AmrCoreAdv.cpp AmrCoreAdvPhysBC.cpp
+
+CEXE_headers += AmrCoreAdv.H AmrCoreAdvPhysBC.H

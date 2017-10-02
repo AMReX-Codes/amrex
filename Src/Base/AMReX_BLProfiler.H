@@ -128,8 +128,8 @@ class BLProfiler
     struct CommStats {
       CommStats() : cfType(InvalidCFT), size(-2), commpid(-2), tag(-2),
                     timeStamp(-2.0) { }
-      CommStats(CommFuncType cft, int size, int commpid, int tag, Real ts)
-                  : cfType(cft), size(size), commpid(commpid), tag(tag),
+      CommStats(CommFuncType cft, int sz, int cpid, int tg, Real ts)
+                  : cfType(cft), size(sz), commpid(cpid), tag(tg),
                     timeStamp(ts) { }
 
       static std::string CFTToString(CommFuncType cft);
