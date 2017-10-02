@@ -4,9 +4,9 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_PhysBCFunct.H>
 
 #include <AmrCoreAdv.H>
-#include <AmrCoreAdvPhysBC.H>
 #include <AmrCoreAdv_F.H>
 
 using namespace amrex;
@@ -395,7 +395,7 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	Array<Real> stime;
 	GetData(0, time, smf, stime);
 
-	AmrCoreAdvPhysBC physbc(geom[lev],bcs);
+	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(phifill));
 	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
 				     geom[lev], physbc);
     }
@@ -406,17 +406,15 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-        AmrCoreAdvPhysBC cphysbc(geom[lev-1],bcs);
-        AmrCoreAdvPhysBC fphysbc(geom[lev  ],bcs);
+        PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
+        PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
 
 	Interpolater* mapper = &cell_cons_interp;
-
-        Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
 
 	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
 				   0, icomp, ncomp, geom[lev-1], geom[lev],
 				   cphysbc, fphysbc, refRatio(lev-1),
-				   mapper, bcs_array);
+				   mapper, bcs);
     }
 }
 
@@ -435,14 +433,14 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
 
-    AmrCoreAdvPhysBC cphysbc, fphysbc;
-    Interpolater* mapper = &cell_cons_interp;
+    PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
+    PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
 
-    Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
+    Interpolater* mapper = &cell_cons_interp;
 
     amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
 				 cphysbc, fphysbc, refRatio(lev-1),
-				 mapper, bcs_array);
+				 mapper, bcs);
 }
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
