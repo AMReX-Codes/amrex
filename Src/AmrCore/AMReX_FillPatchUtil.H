@@ -24,7 +24,22 @@ namespace amrex
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
+			     Interpolater* mapper, const BCRec& bcs);
+
+    void FillPatchTwoLevels (MultiFab& mf, Real time,
+			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
+			     const Array<MultiFab*>& fmf, const Array<Real>& ft,
+			     int scomp, int dcomp, int ncomp,
+			     const Geometry& cgeom, const Geometry& fgeom, 
+			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
+			     const IntVect& ratio, 
 			     Interpolater* mapper, const Array<BCRec>& bcs);
+
+    void InterpFromCoarseLevel (MultiFab& mf, Real time,
+				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
+				const Geometry& cgeom, const Geometry& fgeom, 
+				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
+				Interpolater* mapper, const BCRec& bcs);
 
     void InterpFromCoarseLevel (MultiFab& mf, Real time,
 				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
