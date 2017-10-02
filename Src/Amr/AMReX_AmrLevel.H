@@ -330,6 +330,10 @@ public:
     * This estimate can be overwritten with different methods
     */
     virtual Real estimateWork();
+
+    //! Which state data type is for work estimates? -1 means none
+    virtual int WorkEstType () { return -1; }
+
     /**
     * \brief Returns one the TimeLevel enums.
     * Asserts that time is between AmrOldTime and AmrNewTime.

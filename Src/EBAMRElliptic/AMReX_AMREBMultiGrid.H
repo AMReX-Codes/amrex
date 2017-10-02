@@ -363,13 +363,13 @@ namespace amrex
   template <class T>
   void
   AMREBMultiGrid<T>::setSolverParameters(const int&   a_pre,
-                                       const int&   a_post,
-                                       const int&   a_bottom,
-                                       const int&   a_numMG,
-                                       const int&   a_iterMax,
-                                       const Real&  a_eps,
-                                       const Real&  a_hang,
-                                       const Real&  a_normThresh)
+                                         const int&   a_post,
+                                         const int&   a_bottom,
+                                         const int&   a_numMG,
+                                         const int&   a_iterMax,
+                                         const Real&  a_eps,
+                                         const Real&  a_hang,
+                                         const Real&  a_normThresh)
   {
     m_solverParamsSet = true;
     m_pre        =    a_pre;
@@ -559,11 +559,11 @@ namespace amrex
       BL_PROFILE("MPI_Allreduce");
       Real recv;
       int result = MPI_Allreduce(&rnorm, &recv, 1, MPI_CH_REAL,
-                                 MPI_MAX, Chombo_MPI::comm);
+                                 MPI_MAX, MPI_COMM_WORLD);
       if (result != MPI_SUCCESS)
       {
         //bark!!!
-        MayDay::Error("sorry, but I had a communcation error on norm");
+        amrex::Error("sorry, but I had a communcation error on norm");
       }
       rnorm = recv;
     }

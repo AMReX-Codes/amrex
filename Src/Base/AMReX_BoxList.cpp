@@ -516,7 +516,7 @@ BoxList::maxSize (const IntVect& chunk)
                 // Determine number and size of (coarsened) cuts.
                 //
                 const int numblk = nlen/bs + (nlen%bs ? 1 : 0);
-                const int size   = nlen/numblk;
+                const int sz     = nlen/numblk;
                 const int extra  = nlen%numblk;
                 //
                 // Number of cuts = number of blocks - 1.
@@ -526,7 +526,7 @@ BoxList::maxSize (const IntVect& chunk)
                     //
                     // Compute size of this chunk, expand by power of 2.
                     //
-                    const int ksize = (k < extra ? size+1 : size) * ratio;
+                    const int ksize = (k < extra ? sz+1 : sz) * ratio;
                     //
                     // Chop from high end.
                     //

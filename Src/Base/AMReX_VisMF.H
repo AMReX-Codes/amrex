@@ -194,6 +194,9 @@ public:
 		      const char *faHeader = nullptr,
 		      int coordinatorProc = ParallelDescriptor::IOProcessorNumber());
 
+    // Does FabArray exist?
+    static bool Exist (const std::string &name);
+
     //! Read only the header of a FabArray, header will be resized here.
     static void ReadFAHeader (const std::string &fafabName,
 		              Array<char> &header);

@@ -2,21 +2,18 @@
 #include "myfunc.H"
 #include "myfunc_F.H"
 
-using namespace amrex;
-
-void advance (MultiFab& old_phi, MultiFab& new_phi,
+void advance (MultiFab& phi_old,
+              MultiFab& phi_new,
 	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
-	      Real dt, const Geometry& geom)
+	      Real dt,
+              const Geometry& geom)
 {
     // Fill the ghost cells of each grid from the other grids
     // includes periodic domain boundaries
-    old_phi.FillBoundary(geom.periodicity());
+    phi_old.FillBoundary(geom.periodicity());
 
-    // Fill non-periodic physical boundaries
-    fill_physbc(old_phi, geom);
-
-    int Ncomp = old_phi.nComp();
-    int ng_p = old_phi.nGrow();
+    int Ncomp = phi_old.nComp();
+    int ng_p = phi_old.nGrow();
     int ng_f = flux[0].nGrow();
 
     const Real* dx = geom.CellSize();
@@ -27,13 +24,16 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     // and we do not have to use flux MultiFab.
     // 
 
+    const Box& domain_bx = geom.Domain();
+
     // Compute fluxes one grid at a time
-    for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
 
         compute_flux(BL_TO_FORTRAN_BOX(bx),
-                     BL_TO_FORTRAN_ANYD(old_phi[mfi]),
+                     BL_TO_FORTRAN_BOX(domain_bx),
+                     BL_TO_FORTRAN_ANYD(phi_old[mfi]),
                      BL_TO_FORTRAN_ANYD(flux[0][mfi]),
                      BL_TO_FORTRAN_ANYD(flux[1][mfi]),
 #if (AMREX_SPACEDIM == 3)   
@@ -43,13 +43,13 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     }
     
     // Advance the solution one grid at a time
-    for ( MFIter mfi(old_phi); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
         
         update_phi(BL_TO_FORTRAN_BOX(bx),
-                   BL_TO_FORTRAN_ANYD(old_phi[mfi]),
-                   BL_TO_FORTRAN_ANYD(new_phi[mfi]),
+                   BL_TO_FORTRAN_ANYD(phi_old[mfi]),
+                   BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                    BL_TO_FORTRAN_ANYD(flux[0][mfi]),
                    BL_TO_FORTRAN_ANYD(flux[1][mfi]),
 #if (AMREX_SPACEDIM == 3)   

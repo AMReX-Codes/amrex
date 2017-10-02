@@ -83,8 +83,7 @@ namespace amrex
                      const Real&                                       a_beta,
                      const shared_ptr<FabArray<EBCellFAB> >&           a_acoef,
                      const shared_ptr<FabArray<EBFluxFAB> >&           a_bcoef,
-                     const int&                                        a_ghostCellsPhi,
-                     const int&                                        a_ghostCellsRHS);
+                     const int&                                        a_ghost);
     
     
     ~EBConductivityOp()
@@ -441,8 +440,7 @@ namespace amrex
                         const MFIter&              a_datInd,
                         const int&                    a_idir);
     
-    const int                   m_ghostPhi;
-    const int                   m_ghostRHS;
+    const int                   m_ghost;
     
     
     EBLevelGrid                     m_eblg;

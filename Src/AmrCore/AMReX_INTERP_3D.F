@@ -60,9 +60,9 @@ c :::
       REAL_T RX, RY, RZ, RXY, RXZ, RYZ, RXYZ
       REAL_T dx00, d0x0, d00x, dx10, dx01, d0x1, dx11
 
-      RX   = one/dfloat(lratiox)
-      RY   = one/dfloat(lratioy)
-      RZ   = one/dfloat(lratioz)
+      RX   = one/lratiox
+      RY   = one/lratioy
+      RZ   = one/lratioz
       RXY  = RX*RY
       RXZ  = RX*RZ
       RYZ  = RY*RZ
@@ -120,13 +120,13 @@ c :::
                   !
                   do koff = klo, khi
                      k = lratioz*kc + koff
-                     fz = dfloat(koff)
+                     fz = koff
                      do joff = jlo, jhi
                         j = lratioy*jc + joff
-                        fy = dfloat(joff)
+                        fy = joff
                         do ioff = ilo, ihi
                            i = lratiox*ic + ioff
-                           fx = dfloat(ioff)
+                           fx = ioff
                            fine(i,j,k,n) = crse(ic,jc,kc,n) +
      $                          fx*sx + fy*sy + fz*sz +
      $                          fx*fy*sxy + fx*fz*sxz + fy*fz*syz +

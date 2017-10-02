@@ -194,6 +194,7 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  RegionsProfStats::MakeRegionPlt only supported for 2D" << endl;
+  return TimeRange(0, 0);
 #else
   BL_PROFILE("RegionsProfStats::MakeRegionPlt()");
   int xLength(width), yHeight(height);
@@ -485,6 +486,7 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  RegionsProfStats::AllCallTimesFAB only supported in 2D." << endl;
+  return false;
 #else
 
   int whichFuncNameInt(-1);

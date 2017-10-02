@@ -20,7 +20,9 @@
 #include "AMReX_EBCellFactory.H"
 #include "AMReX_EBFluxFAB.H"
 #include "AMReX_EBFluxFactory.H"
+#include "AMReX_MultiFab.H"
 #include "AMReX_EBLevelGrid.H"
+#include "AMReX_EBArith.H"
 
 
 //for creating simple grids for tests
@@ -42,6 +44,28 @@ namespace amrex
     ~EBLevelDataOps()
       {
       }
+
+    ///quick and dirty debugging vis.
+    static void  viewEBLevel(const FabArray<EBCellFAB> * a_data, const EBLevelGrid* a_eblg);
+
+    ///writes plotfile that visit can eat.   Just single-valued stuff
+    static void writeSingleLevelEBPlotFile(const std::string         & a_filename,
+                                           const FabArray<EBCellFAB> & a_data,
+                                           const EBLevelGrid         & a_eblg,
+                                           const Array<string>      & a_varNames);
+
+
+    ///writes plotfile that visit can eat.   Just single-valued stuff
+    static void writeEBAMRPlotFile(const std::string                   & a_filename,
+                                   const Array<FabArray<EBCellFAB>* > & a_data,
+                                   const Array<EBLevelGrid>           & a_eblg,
+                                   const Array<int>                   & a_refRat,
+                                   const Array<string>                & a_varNames);
+
+    /// tacks on volume fraction as the last variable
+    static void makePlotMultiFab(MultiFab                              & a_mfSingleValued,
+                                 const FabArray<EBCellFAB>             & a_ebdata,
+                                 const EBLevelGrid                     & a_eblg);
 
     ///
     /**
@@ -210,7 +234,7 @@ namespace amrex
                              const FabArray<EBCellFAB>       &   a_errorCoar,
                              const EBLevelGrid               &   a_eblgFine,
                              const EBLevelGrid               &   a_eblgCoar,
-                             std::vector<string> a_names = std::vector<string>(),
+                             Array<string> a_names = Array<string>(),
                              bool a_useGhost = false);
     ///
     /**

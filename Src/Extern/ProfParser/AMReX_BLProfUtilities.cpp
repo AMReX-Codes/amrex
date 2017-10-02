@@ -430,7 +430,6 @@ void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mPro
     }
 
     const std::string &fName(fNames[fnum]);
-    std::cout << "------------------:: fName = " << fName << std::endl;
     mProfStats.insert(std::pair<std::string, BLProfiler::ProfStats>(fName, ps));
   }
 }

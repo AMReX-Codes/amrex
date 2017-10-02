@@ -30,9 +30,10 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
                      bool raninit, bool mb2,
 		     VisMF::Header::Version writeMinMax,
 		     bool groupsets, bool setbuf, bool useDSS,
-		     int nMultiFabs, bool checkmf);
+		     int nMultiFabs, bool checkmf,
+		     const std::string &dirName);
 void TestReadMF(const std::string &mfName, bool useSyncReads,
-                     int nMultiFabs);
+                     int nMultiFabs, const std::string &dirName);
 void NFileTests(int nOutFiles, const std::string &filePrefix);
 void DSSNFileTests(int nOutFiles, const std::string &filePrefix,
                    bool useIter);
@@ -40,10 +41,9 @@ void DSSNFileTests(int nOutFiles, const std::string &filePrefix,
 
 // -------------------------------------------------------------
 static void PrintUsage(const char *progName) {
-  if(ParallelDescriptor::IOProcessor()) {
     cout << '\n';
     cout << "Usage:" << '\n';
-    cout << progName << '\n';
+    cout << progName << "  inputsfile" << '\n';
     cout << "   [nfiles            = nfiles   ]" << '\n';
     cout << "   [maxgrid           = maxgrid  ]" << '\n';
     cout << "   [ncomps            = ncomps   ]" << '\n';
@@ -72,22 +72,20 @@ static void PrintUsage(const char *progName) {
     cout << "   [usedss            = tf       ]" << '\n';
     cout << "   [usesyncreads      = tf       ]" << '\n';
     cout << "   [nmultifabs        = nmf      ]" << '\n';
+    cout << "   [dirname           = dirname  ]" << '\n';
     cout << '\n';
-    cout << "Running with default values." << '\n';
-    cout << '\n';
-  }
 }
 
 
 // -------------------------------------------------------------
 int main(int argc, char *argv[]) {
 
-  amrex::Initialize(argc,argv);
-  //VisMF::Initialize();
-
   if(argc == 1) {
     PrintUsage(argv[0]);
+    return 0;
   }
+
+  amrex::Initialize(argc,argv);
 
   ParmParse pp;
 
@@ -108,6 +106,7 @@ int main(int argc, char *argv[]) {
   Array<int> testWriteNFilesVersions;
   Array<std::string> readFANames;
   int nReadStreams(1), nMultiFabs(1);
+  std::string dirName("");
 
 
   pp.query("nfiles", nfiles);
@@ -161,6 +160,7 @@ int main(int argc, char *argv[]) {
   }
   pp.query("nreadstreams", nReadStreams);
   nReadStreams = std::max(1, nReadStreams);
+  pp.query("dirname", dirName);
 
 
   if(ParallelDescriptor::IOProcessor()) {
@@ -198,6 +198,7 @@ int main(int argc, char *argv[]) {
     cout << "usedss            = " << useDSS << '\n';
     cout << "usesyncreads      = " << useSyncReads << '\n';
     cout << "nmultifabs        = " << nMultiFabs << '\n';
+    cout << "dirName           = " << dirName << '\n';
 
     cout << '\n';
     cout << "sizeof(int) = " << sizeof(int) << '\n';
@@ -430,9 +431,9 @@ int main(int argc, char *argv[]) {
       }
 
     for(int itimes(0); itimes < ntimes; ++itimes) {
-      ParallelDescriptor::Barrier("TestWriteNFiles::BeforeSleep4");
-      amrex::USleep(4);
-      ParallelDescriptor::Barrier("TestWriteNFiles::AfterSleep4");
+      ParallelDescriptor::Barrier("TestWriteNFiles::BeforeSleep2");
+      amrex::USleep(2);
+      ParallelDescriptor::Barrier("TestWriteNFiles::AfterSleep2");
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "--------------------------------------------------" << endl;
@@ -441,7 +442,7 @@ int main(int argc, char *argv[]) {
 
       TestWriteNFiles(nfiles, maxgrid, ncomps, nboxes, raninit, mb2,
                       hVersion, groupSets, setBuf, useDSS, nMultiFabs,
-		      checkmf);
+		      checkmf, dirName);
 
       ParallelDescriptor::Barrier("TestWriteNFiles::finished");
 
@@ -457,9 +458,9 @@ int main(int argc, char *argv[]) {
   if(testreadmf) {
     VisMF::SetMFFileInStreams(nReadStreams);
     for(int itimes(0); itimes < ntimes; ++itimes) {
-      ParallelDescriptor::Barrier("TestReadMF::BeforeSleep4");
-      amrex::USleep(4);
-      ParallelDescriptor::Barrier("TestReadMF::AfterSleep4");
+      ParallelDescriptor::Barrier("TestReadMF::BeforeSleep2");
+      amrex::USleep(2);
+      ParallelDescriptor::Barrier("TestReadMF::AfterSleep2");
 
       if(ParallelDescriptor::IOProcessor()) {
         cout << endl << "++++++++++++++++++++++++++++++++++++++++++++++++++" << endl;
@@ -467,7 +468,7 @@ int main(int argc, char *argv[]) {
       }
 
       for(int i(0); i < readFANames.size(); ++i) {
-        TestReadMF(readFANames[i], useSyncReads, nMultiFabs);
+        TestReadMF(readFANames[i], useSyncReads, nMultiFabs, dirName);
       }
 
       ParallelDescriptor::Barrier("TestReadMF::finished");

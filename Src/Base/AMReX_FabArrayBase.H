@@ -189,6 +189,7 @@ public:
         bool operator!= (const BDKey& rhs) const {
             return m_ba_id != rhs.m_ba_id || m_dm_id != rhs.m_dm_id;
         }
+        friend std::ostream& operator<< (std::ostream& os, const BDKey& id);
     private:
         BoxArray::RefID            m_ba_id;
         DistributionMapping::RefID m_dm_id;
@@ -593,6 +594,8 @@ protected:
 			      MPI_Datatype datatype, int tag);
 #endif
 };
+
+std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
 
 }
 

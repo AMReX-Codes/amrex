@@ -57,7 +57,7 @@ int TokenRingTask::_nTasks;
 int main(int argc,char *argv[])
 {
     int argCount = 0;
-    int t=1, verbose=0, nWrks=1;
+    int t=1, verbose=0;
     int rank, nProcs;
     /* Argument list
        -t: number of tasks
@@ -65,21 +65,22 @@ int main(int argc,char *argv[])
      */ 
     while(++argCount <argc) {
 	if(!(strcmp(argv[argCount], "-t"))) t = atoi(argv[++argCount]);
-	if(!(strcmp(argv[argCount], "-w"))) nWrks = atoi(argv[++argCount]);
 	if(!(strcmp(argv[argCount], "-v"))) verbose = true;
     }
-    RTS rts(nWrks);
-    rts.Init(&rank, &nProcs);
+    RTS rts;
+    rts.Init();
+    rank= rts.MyProc();
+    nProcs= rts.ProcCount();
     TokenRingTask::_nTasks= t;
     string graphName= "TokenRing";
     if(verbose && rank==0){
 	cout<<"Creating a 1D Token Ring Graph with "<<t <<" tasks";
-	cout<<"Running the graph with "<< rts.ProcCount()<<" processes";
+	cout<<"Running the graph with "<< nProcs<<" processes";
     }
     double time = -rts.Time();
     rts.Barrier();
     ArrayGraph<TokenRingTask> *TokenRingGraph= new ArrayGraph<TokenRingTask>(graphName, t, rank, nProcs);
-    rts.Run(TokenRingGraph);
+    rts.Iterate(TokenRingGraph);
     rts.Barrier();
     time += rts.Time();
     if(verbose && rank==0) cout<<"Graph execution takes "<< time <<" seconds"<<endl;
