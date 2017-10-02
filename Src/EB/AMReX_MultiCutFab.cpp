@@ -1,11 +1,26 @@
 
 #include <AMReX_MultiCutFab.H>
+#include <AMReX_MultiFab.H>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 namespace amrex {
+
+std::size_t
+CutFab::copyFromMem (const Box&  dstbox,
+                     int         dstcomp,
+                     int         numcomp,
+                     const void* src)
+{
+    if (dptr != nullptr) {
+        return FArrayBox::copyFromMem(dstbox, dstcomp, numcomp, src);
+    } else {
+        return sizeof(CutFab::value_type)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
+    }
+}
+
 
 MultiCutFab::MultiCutFab ()
 {}
@@ -35,17 +50,24 @@ MultiCutFab::remove ()
 {
     for (MFIter mfi(m_data); mfi.isValid(); ++mfi)
     {
-        if ((*m_cellflags)[mfi].getType() != FabType::singlevalued)
+        if (!ok(mfi))
         {
-            FArrayBox* p = &(m_data[mfi]);
+            CutFab* p = &(m_data[mfi]);
             delete p;
-            m_data.setFab(mfi, nullptr, false);
+            m_data.setFab(mfi, new CutFab(), false);
         }
     }
 }
 
-const FArrayBox&
+const CutFab&
 MultiCutFab::operator[] (const MFIter& mfi) const
+{
+    AMREX_ASSERT(ok(mfi));
+    return m_data[mfi];
+}
+
+CutFab&
+MultiCutFab::operator[] (const MFIter& mfi)
 {
     AMREX_ASSERT(ok(mfi));
     return m_data[mfi];
@@ -69,6 +91,13 @@ MultiCutFab::setVal (Real val)
             m_data[mfi].setVal(val);
         }
     }
+}
+
+
+void
+MultiCutFab::ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng)
+{
+    m_data.ParallelCopy(src.m_data, scomp, dcomp, ncomp, sng, dng);
 }
 
 }

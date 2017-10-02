@@ -22,7 +22,7 @@
 namespace amrex {
 
 #ifdef AMREX_USE_EB
-int AmrLevel::m_eb_max_grow_cells = 5;
+int AmrLevel::m_eb_max_grow_cells = 6;
 EBSupport AmrLevel::m_eb_support_level = EBSupport::volume;
 #endif
 

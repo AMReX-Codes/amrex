@@ -1208,11 +1208,11 @@ FabArray<FAB>::setFab (const MFIter& mfi,
         BL_ASSERT(boxarray.size() > 0);
         BL_ASSERT(elem->box() == fabbox(mfi.index()));
         BL_ASSERT(!this->defined(mfi));
-        BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
-        
-        if (m_fabs_v.size() == 0) {
-            m_fabs_v.resize(indexArray.size());
-        }
+        BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());        
+    }
+
+    if (m_fabs_v.size() == 0) {
+        m_fabs_v.resize(indexArray.size());
     }
 
     m_fabs_v[mfi.LocalIndex()] = elem;
