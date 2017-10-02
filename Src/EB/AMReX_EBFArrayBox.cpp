@@ -14,7 +14,7 @@ EBFArrayBox::EBFArrayBox (const EBCellFlagFab& ebflag, const Box& bx, int ncomps
     : FArrayBox(bx, ncomps),
       m_ebcellflag(&ebflag)
 {
-    BL_ASSERT(ebflag.box().strictly_contains(amrex::enclosedCells(bx)));
+    BL_ASSERT(ebflag.box().contains(amrex::enclosedCells(bx)));
     const Box& sect = amrex::enclosedCells(bx) & ebflag.getRegion();
     m_type = ebflag.getType(sect);
 }

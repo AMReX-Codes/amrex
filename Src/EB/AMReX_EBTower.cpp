@@ -91,13 +91,13 @@ EBTower::EBTower ()
             m_volfrac[lev].define(ba, dm, 1, 0);
             initVolFrac(lev, eblg);
 
-            m_bndrycent[lev].define(ba, dm, 3, 0);
+            m_bndrycent[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
             initBndryCent(lev, eblg);
             
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const BoxArray& faceba = amrex::convert(ba, IntVect::TheDimensionVector(idim));
-                m_areafrac[lev][idim].define(faceba, dm, 1, 0);
-                m_facecent[lev][idim].define(faceba, dm, 3, 0);
+                m_areafrac[lev][idim].define(faceba, dm, 1, 0, m_cellflags[lev]);
+                m_facecent[lev][idim].define(faceba, dm, 3, 0, m_cellflags[lev]);
             }
             initFaceGeometry(lev, eblg);
         }
@@ -163,13 +163,13 @@ EBTower::initVolFrac (int lev, const EBLevelGrid& eblg)
 void
 EBTower::initBndryCent (int lev, const EBLevelGrid& eblg)
 {
-    MultiFab& bndrycent = m_bndrycent[lev];
+    auto& bndrycent = m_bndrycent[lev];
     const auto& ebisl = eblg.getEBISL();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(bndrycent,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(bndrycent.data(),true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         auto& fab = bndrycent[mfi];
@@ -203,9 +203,9 @@ EBTower::initFaceGeometry (int lev, const EBLevelGrid& eblg)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(areafrac[0]); mfi.isValid(); ++mfi)
+    for (MFIter mfi(m_cellflags[lev]); mfi.isValid(); ++mfi)
     {
-        const Box& bx = amrex::enclosedCells(mfi.validbox());
+        const Box& bx = mfi.validbox();
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             areafrac[idim][mfi].setVal(1.0);
@@ -358,8 +358,7 @@ EBTower::fillBndryCent (MultiCutFab& a_bndrycent, const Geometry& a_geom)
 
     a_bndrycent.setVal(-1.0);
 
-    MultiFab& data_mf = a_bndrycent.data();
-    data_mf.ParallelCopy(src_bndrycent, 0, 0, data_mf.nComp(), 0, data_mf.nGrow());
+    a_bndrycent.ParallelCopy(src_bndrycent, 0, 0, a_bndrycent.nComp(), 0, a_bndrycent.nGrow());
 }
 
 void
@@ -379,10 +378,10 @@ EBTower::fillFaceGeometry (std::array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac,
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         a_areafrac[idim]->setVal(1.0);
         a_facecent[idim]->setVal(0.0);
-        MultiFab& af_mf = a_areafrac[idim]->data();
-        af_mf.ParallelCopy(src_areafrac[idim], 0, 0, af_mf.nComp(), 0, af_mf.nGrow());
-        MultiFab& fc_mf = a_facecent[idim]->data();
-        fc_mf.ParallelCopy(src_facecent[idim], 0, 0, fc_mf.nComp(), 0, fc_mf.nGrow());
+        a_areafrac[idim]->ParallelCopy(src_areafrac[idim], 0, 0, a_areafrac[idim]->nComp(),
+                                       0, a_areafrac[idim]->nGrow());
+        a_facecent[idim]->ParallelCopy(src_facecent[idim], 0, 0, a_facecent[idim]->nComp(),
+                                       0, a_facecent[idim]->nGrow());
     }
 
     // fix area fraction for covered cells.  As for face centroid, we don't care.
@@ -392,21 +391,19 @@ EBTower::fillFaceGeometry (std::array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac,
 #pragma omp parallel
 #endif
     {
-        std::array<MultiFab*,AMREX_SPACEDIM> afrc {AMREX_D_DECL(&(a_areafrac[0]->data()),
-                                                                &(a_areafrac[1]->data()),
-                                                                &(a_areafrac[2]->data()))};
         std::vector<std::pair<int,Box> > isects;
-        for (MFIter mfi(*afrc[0]); mfi.isValid(); ++mfi)
+        for (MFIter mfi(a_areafrac[0]->data()); mfi.isValid(); ++mfi)
         {
             if (a_areafrac[0]->ok(mfi))
             {
-                const Box& ccbx = amrex::enclosedCells(mfi.fabbox()) & domain;
+                const Box& ccbx = amrex::enclosedCells((*a_areafrac[0])[mfi].box()) & domain;
                 
                 // covered cells
                 cov_ba.intersections(ccbx, isects);
                 for (const auto& is : isects) {
                     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
-                        (*afrc[idim])[mfi].setVal(cov_val, is.second);
+                        (*a_areafrac[idim])[mfi].setVal(cov_val,
+                                                        amrex::surroundingNodes(is.second,idim));
                     }
                 }
             }

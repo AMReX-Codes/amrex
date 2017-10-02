@@ -45,9 +45,9 @@ private:
 
     Array<FabArray<EBCellFlagFab>> m_cellflags;
     Array<MultiFab> m_volfrac;
-    Array<MultiFab> m_bndrycent;
-    Array<std::array<MultiFab,AMREX_SPACEDIM>> m_areafrac;
-    Array<std::array<MultiFab,AMREX_SPACEDIM>> m_facecent;
+    Array<MultiCutFab> m_bndrycent;
+    Array<std::array<MultiCutFab,AMREX_SPACEDIM>> m_areafrac;
+    Array<std::array<MultiCutFab,AMREX_SPACEDIM>> m_facecent;
 };
 
 }
