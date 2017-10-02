@@ -22,8 +22,8 @@
 
 using namespace amrex;
 
-const int maxGrid(64);
-const int pdHi(512);
+const int maxGrid(8);
+const int pdHi(63);
 const int nComp(32);
 const int nGhost(0);
 const int nFiles(64);

@@ -1472,4 +1472,11 @@ bool match (const BoxArray& x, const BoxArray& y)
     }
 }
 
+std::ostream&
+operator<< (std::ostream& os, const BoxArray::RefID& id)
+{
+    os << id.data;
+    return os;
+}
+
 }

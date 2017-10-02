@@ -202,7 +202,10 @@ class DistributionMapping
     static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif
 
-    static DistributionMapping makeKnapSack   (const MultiFab& weight);
+    static DistributionMapping makeKnapSack   (const MultiFab& weight,
+                                               int nmax=std::numeric_limits<int>::max());
+    static DistributionMapping makeKnapSack   (const Array<Real>& rcost);
+
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
 
@@ -322,6 +325,7 @@ public:
         bool operator!= (const RefID& rhs) const { return data != rhs.data; }
 	const Ref *dataPtr() const { return data; }
 	void PrintPtr(std::ostream &os) const { os << data << '\n'; }
+        friend std::ostream& operator<< (std::ostream& os, const RefID& id);
    private:
         Ref* data;
     };
@@ -332,6 +336,8 @@ public:
 
 //! Our output operator.
 std::ostream& operator<< (std::ostream& os, const DistributionMapping& pmap);
+
+std::ostream& operator<< (std::ostream& os, const DistributionMapping::RefID& id);
 
 }
 
