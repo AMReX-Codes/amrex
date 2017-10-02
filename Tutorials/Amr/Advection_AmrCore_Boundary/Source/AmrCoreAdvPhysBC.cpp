@@ -2,12 +2,12 @@
 #include <AmrCoreAdvPhysBC.H>
 #include <AMReX_filcc_f.H>
 
-AmrCoreAdvPhysBC::AmrCoreAdvPhysBC (const Geometry& geom, const Array<BCRec>& bcr)
+AmrCoreAdvPhysBC::AmrCoreAdvPhysBC (const Geometry& geom, const BCRec& bcr)
     : m_geom(geom), m_bcr(bcr)
 { }
 
 void
-AmrCoreAdvPhysBC::define (const Geometry& geom, const Array<BCRec>& bcr)
+AmrCoreAdvPhysBC::define (const Geometry& geom, const BCRec& bcr)
 {
     m_geom = geom;
     m_bcr = bcr;
@@ -50,7 +50,7 @@ AmrCoreAdvPhysBC::FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time)
             amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
                             BL_TO_FORTRAN_BOX(domain),
                             dx, problo,
-                            m_bcr[0].data());
+                            m_bcr.data());
         }
     }
 

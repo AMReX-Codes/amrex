@@ -37,8 +37,6 @@ AmrCoreAdv::AmrCoreAdv ()
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
 
-    bcs.resize(1);
-
 //    int bc_lo[] = {INT_DIR, INT_DIR, INT_DIR}; // periodic boundaries
 //    int bc_hi[] = {INT_DIR, INT_DIR, INT_DIR};
 
@@ -52,13 +50,13 @@ AmrCoreAdv::AmrCoreAdv ()
             
             // lo-side BCs
             if (bc_lo[idim] == INT_DIR) {
-                bcs[n].setLo(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
+                bcs.setLo(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
             }
             else if (bc_lo[idim] == FOEXTRAP) {
-                bcs[n].setLo(idim, BCType::foextrap); // first-order extrapolation
+                bcs.setLo(idim, BCType::foextrap); // first-order extrapolation
             }
             else if (bc_lo[idim] == EXT_DIR) {
-                bcs[n].setLo(idim, BCType::ext_dir);  // external Dirichlet
+                bcs.setLo(idim, BCType::ext_dir);  // external Dirichlet
             }
             else {
                 amrex::Abort("Invalid bc_lo");
@@ -66,13 +64,13 @@ AmrCoreAdv::AmrCoreAdv ()
 
             // hi-side BCSs
             if (bc_hi[idim] == INT_DIR) {
-                bcs[n].setHi(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
+                bcs.setHi(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
             }
             else if (bc_hi[idim] == FOEXTRAP) {
-                bcs[n].setHi(idim, BCType::foextrap); // first-order extrapolation
+                bcs.setHi(idim, BCType::foextrap); // first-order extrapolation
             }
             else if (bc_hi[idim] == EXT_DIR) {
-                bcs[n].setHi(idim, BCType::ext_dir);  // external Dirichlet
+                bcs.setHi(idim, BCType::ext_dir);  // external Dirichlet
             }
             else {
                 amrex::Abort("Invalid bc_hi");
@@ -413,10 +411,12 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 
 	Interpolater* mapper = &cell_cons_interp;
 
+        Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
+
 	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
 				   0, icomp, ncomp, geom[lev-1], geom[lev],
 				   cphysbc, fphysbc, refRatio(lev-1),
-				   mapper, bcs);
+				   mapper, bcs_array);
     }
 }
 
@@ -438,9 +438,11 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
     AmrCoreAdvPhysBC cphysbc, fphysbc;
     Interpolater* mapper = &cell_cons_interp;
 
+    Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
+
     amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
 				 cphysbc, fphysbc, refRatio(lev-1),
-				 mapper, bcs);
+				 mapper, bcs_array);
 }
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
