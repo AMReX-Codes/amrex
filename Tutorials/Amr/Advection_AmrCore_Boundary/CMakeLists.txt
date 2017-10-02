@@ -1,7 +1,7 @@
 #
 # This test works for both 2D and 3D builds
 #
-set ( EXENAME  "Advection_AmrCore.exe")
+set ( EXENAME  "Advection_AmrCore_Boundary.exe")
 set (SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
 set (EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/SingleVortex)
 
