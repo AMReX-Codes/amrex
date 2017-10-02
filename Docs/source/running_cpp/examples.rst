@@ -1,6 +1,10 @@
 Example input files
 ===================
 
+.. warning::
+
+   This section is currently in development.
+
 This section allows you to **download input files** that correspond to different
 physical situations. For a definition of the different parameters
 that are set in these files, see the section :doc:`parameters`.
