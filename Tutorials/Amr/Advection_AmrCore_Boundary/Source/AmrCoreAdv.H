@@ -131,7 +131,7 @@ private:
     amrex::Array<std::unique_ptr<amrex::MultiFab> > phi_new;
     amrex::Array<std::unique_ptr<amrex::MultiFab> > phi_old;
 
-    Array<BCRec> bcs;
+    BCRec bcs;
 
     // stores fluxes at coarse-fine interface for synchronization
     // this will be sized "nlevs_max+1"

@@ -15,13 +15,14 @@ class AmrCoreAdvPhysBC
 public:
     AmrCoreAdvPhysBC () {}
     virtual ~AmrCoreAdvPhysBC () {}
-    AmrCoreAdvPhysBC (const Geometry& geom, const Array<BCRec>& bcr);
-    void define (const Geometry& geom, const Array<BCRec>& bcr);
+    AmrCoreAdvPhysBC (const Geometry& geom, const BCRec& bcr);
+    void define (const Geometry& geom, const BCRec& bcr);
     virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time) override;
     using PhysBCFunctBase::FillBoundary;
 private:
-    Geometry     m_geom;
-    Array<BCRec> m_bcr;
+    Geometry  m_geom;
+    BCRec     m_bcr;
+    std::unique_ptr<BndryFunctBase> m_bc_func;
 };
 
 #endif
