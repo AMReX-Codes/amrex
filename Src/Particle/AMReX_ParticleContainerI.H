@@ -1147,9 +1147,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
   for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) 
       RedefineDummyMF(lev);
   
-  if (lev_max == -1)
+  int nlevs_particles;
+  if (lev_max == -1) {
       lev_max = theEffectiveFinestLevel;
-  
+      nlevs_particles = m_particles.size() - 1; 
+  } else {
+      nlevs_particles = lev_max;
+  }
   BL_ASSERT(lev_max <= finestLevel());
 
   // This will hold the valid particles that go to another process
@@ -1183,7 +1187,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
 
   // first pass: for each tile in parallel, in each thread copies the particles that
   // need to be moved into it's own, temporary buffer.
-  for (int lev = lev_min; lev <= lev_max; lev++) {
+  for (int lev = lev_min; lev <= nlevs_particles; lev++) {
       auto& pmap = m_particles[lev];
       typename std::map<std::pair<int, int>, ParticleTileType >::iterator pmap_it;
 #ifdef _OPENMP
