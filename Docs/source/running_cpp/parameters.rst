@@ -83,8 +83,35 @@ Numerics and algorithms
     them from the macroparticles. This uses a bilinear filter
     (see the sub-section **Filtering** in :doc:`../theory/theory`).
 
+* ``algo.current_deposition`` (`integer`)
+    The algorithm to be used for current deposition:
+
+     - ``0``: Esirkepov deposition, vectorized
+     - ``1``: Esirkepov deposition, non-optimized
+     - ``2``: Direct deposition, vectorized
+     - ``3``: Direct deposition, non-optimized
+
+* ``algo.charge_deposition`` (`integer`)
+    The algorithm to be used for the charge density deposition:
+
+     - ``0``: Vectorized version
+     - ``1``: Non-optimized version
+
+* ``algo.field_gathering`` (`integer`)
+    The algorithm to be used for field gathering:
+
+     - ``0``: Vectorized version
+     - ``1``: Non-optimized version
+
+* ``algo.particle_pusher`` (`integer`)
+    The algorithm to be used for the particle pusher:
+
+     - ``0``: Boris pusher
+     - ``1``: Vay pusher
+
 Diagnostics and output
 ----------------------
 
 * ``amr.plot_int`` (`integer`)
-    The number of PIC cycles inbetween two consecutive data dumps.
+    The number of PIC cycles inbetween two consecutive data dumps. Use a
+    negative number to disable data dumping.
