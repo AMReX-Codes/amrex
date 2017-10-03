@@ -27,6 +27,13 @@ public:
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
+
+    CutFab& copy (const CutFab & src,
+                  const Box&     srcbox,
+                  int            srccomp,
+                  const Box&     destbox,
+                  int            destcomp,
+                  int            numcomp);
 };
 
 class MultiCutFab

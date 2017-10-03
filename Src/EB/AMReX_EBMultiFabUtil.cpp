@@ -256,7 +256,8 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
     BoxArray crse_S_fine_BA = S_fine.boxArray();
     crse_S_fine_BA.coarsen(ratio);
 
-    MultiFab crse_S_fine = amrex::makeMultiEBFab(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),S_crse);
+    
+    MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -266,9 +267,9 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
         const Box& tbx = mfi.tilebox();
         auto& crse_fab = crse_S_fine[mfi];
         const auto& fine_fab = S_fine[mfi];
-        const auto& flag_fab = amrex::getEBCellFlagFab(crse_fab);
 
-        FabType typ = flag_fab.getType(tbx);
+        const auto& flag_fab = amrex::getEBCellFlagFab(S_fine[mfi]);
+        FabType typ = flag_fab.getType(amrex::refine(tbx,ratio));
         
         if (typ == FabType::regular || typ == FabType::covered)
         {
@@ -295,7 +296,6 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
             amrex_eb_avgdown_sv(BL_TO_FORTRAN_BOX(tbx),
                                 BL_TO_FORTRAN_N_ANYD(fine_fab,scomp),
                                 BL_TO_FORTRAN_N_ANYD(crse_fab,0),
-                                BL_TO_FORTRAN_ANYD(flag_fab),
                                 BL_TO_FORTRAN_ANYD(vol_fine[mfi]),
                                 BL_TO_FORTRAN_ANYD(vfrac_fine[mfi]),
                                 ratio.getVect(),&ncomp);
