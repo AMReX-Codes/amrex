@@ -43,11 +43,15 @@ contains
 
     call amrex_allocate ( dq, qtlo(1), qthi(1), qtlo(2), qthi(2), qtlo(3), qthi(3), 1, 5)
 
+    call bl_proffortfuncstart_int(0)
     call slopex(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, &
          lo(1),lo(2),lo(3),  &
          hi(1),hi(2),hi(3),QVAR)
 
+    call bl_proffortfuncstop_int(0)
+
+    call bl_proffortfuncstart_int(1)
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
@@ -77,12 +81,17 @@ contains
                flux1, fd1_lo, fd1_hi, 2, 3, 4)
        enddo
     enddo
+    call bl_proffortfuncstop_int(1)
 
+    call bl_proffortfuncstart_int(2)
     call slopey(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, &
          lo(1),lo(2),lo(3),  &
          hi(1),hi(2),hi(3),QVAR)
 
+    call bl_proffortfuncstop_int(2)
+
+    call bl_proffortfuncstart_int(3)
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
@@ -112,12 +121,16 @@ contains
                flux2, fd2_lo, fd2_hi, 3, 2, 4)
        enddo
     enddo
+    call bl_proffortfuncstop_int(3)
      
+    call bl_proffortfuncstart_int(4)
     call slopez(q,qd_lo,qd_hi, &
          dq,qtlo,qthi, &
          lo(1),lo(2),lo(3),   &
          hi(1),hi(2),hi(3),QVAR)
+    call bl_proffortfuncstop_int(4)
     
+    call bl_proffortfuncstart_int(5)
     do       k = lo(3), hi(3)+1
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
@@ -148,6 +161,7 @@ contains
        enddo
     enddo
 
+    call bl_proffortfuncstop_int(5)
     call amrex_deallocate(dq)
 
   end subroutine hyp_mol_gam_3d
