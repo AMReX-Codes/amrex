@@ -109,8 +109,6 @@ CNS::initData ()
 
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(1.0);
-    EB_set_covered(C_new, 0, 1, 0.2);
-    EB_set_single_valued_cells(C_new, 0, 1, 5.0);
 }
 
 void
