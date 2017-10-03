@@ -87,6 +87,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             const auto& sfab = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             const auto& flag = sfab.getEBCellFlagFab();
 
+            //if (1){
             if (flag.getType(bx) == FabType::covered) {
                 dSdt[mfi].setVal(0.0, bx, 0, ncomp);
             } else {

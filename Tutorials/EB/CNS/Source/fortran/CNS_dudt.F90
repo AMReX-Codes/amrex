@@ -189,17 +189,26 @@ contains
     call amrex_allocate(mu, clo, chi)
     call amrex_allocate(xi, clo, chi)
 
+    call bl_proffortfuncstart_int(6)
     call ctoprim(qlo, qhi, u, ulo, uhi, q, qlo, qhi)
+    call bl_proffortfuncstop_int(6)
+
     
+    call bl_proffortfuncstart_int(7)
     call hyp_mol_gam_eb_3d(q, qlo, qhi, lo, hi, dx, &
          fhx, lfxlo, lfxhi, fhy, lfylo, lfyhi, fhz, lfzlo, lfzhi,&
          flag, fglo, fghi)
+    call bl_proffortfuncstop_int(7)
 
+    call bl_proffortfuncstart_int(8)
     call compute_diff_coef(q, qlo, qhi, lambda, mu, xi, clo, chi)
+    call bl_proffortfuncstop_int(8)
 
+    call bl_proffortfuncstart_int(9)
     call eb_diff_mol_3d(lo, hi, dx, q, qlo, qhi, lambda, mu, xi, clo, chi, &
          fdx, lfxlo, lfxhi, fdy, lfylo, lfyhi, fdz, lfzlo, lfzhi,&
          flag, fglo, fghi)
+    call bl_proffortfuncstop_int(9)
 
     fhx = fhx + fdx
     fhy = fhy + fdy
@@ -218,6 +227,7 @@ contains
 
     dm_as_fine = 0.d0
 
+    call bl_proffortfuncstart_int(10)
     call compute_eb_divop(lo,hi,5,dx,dt,fhx,lfxlo,lfxhi,fhy,lfylo,lfyhi,fhz,lfzlo,lfzhi,&
          fx, fxlo, fxhi, fy, fylo, fyhi, fz, fzlo, fzhi, &
          dudt,utlo,uthi, q,qlo,qhi, lambda, mu, xi, clo, chi, &
@@ -234,6 +244,7 @@ contains
          levmsk, lmlo, lmhi)
     
     dudt(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),6:nvar) = 0.d0
+    call bl_proffortfuncstop_int(10)
 
     if (actually_2D) then
        do n = 1, 5
