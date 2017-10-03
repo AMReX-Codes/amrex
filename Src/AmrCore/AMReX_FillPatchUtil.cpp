@@ -123,10 +123,8 @@ namespace amrex
 			     const IntVect& ratio, 
 			     Interpolater* mapper, const BCRec& bcs)
     {
-        Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
-
         FillPatchTwoLevels(mf,time,cmf,ct,fmf,ft,scomp,dcomp,ncomp,cgeom,fgeom,
-                           cbc,fbc,ratio,mapper,bcs_array);
+                           cbc,fbc,ratio,mapper,{{bcs}});
     }
 
 
@@ -206,11 +204,8 @@ namespace amrex
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
 				Interpolater* mapper, const BCRec& bcs)
     {
-
-        Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
         InterpFromCoarseLevel(mf,time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
-                              cbc,fbc,ratio,mapper,bcs_array);
-
+                              cbc,fbc,ratio,mapper,{{bcs}});
     }
 
 
