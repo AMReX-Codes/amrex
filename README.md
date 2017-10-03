@@ -103,34 +103,6 @@ jupyter notebook Visualization.ipynb
 and follow the instructions that will pop up in your browser.
 
 
-## Using WarpX
-
-### Configuration of the input file
-
-`algo.current_deposition`: algorithm for the current deposition
-
- - 3: Scalar classical current deposition
- - 2: Optimized classical current
- - 1: Esirkepov non optimized
- - 0: Esirkepov optimized
-
-`algo.charge_deposition`:
-
- - 0: Optimized version
- - 1: Scalar version
-
-`algo.field_gathering`:
-
- - 0: Optmized subroutines
- - 1: Scalar subroutines
- - 2: General order non-optimized version
-
-`algo.particle_pusher`: algorithm for the particle pusher
-
- - 0: pusher of Boris
- - 1: pusher of J. L. Vay
-
-
 ## Running the regression test
 
 In order to run the regression test:

@@ -18,12 +18,6 @@ and under MacOSX by using Homebrew
 ```
 brew install doxygen
 ```
-Finally, you will need to compile the Python version of WarpX, so that Sphinx can import it:
-```
-pip install swig
-cd ../Python/
-make pybuild
-```
 
 ### Compiling the documentation
 
@@ -41,6 +35,13 @@ You can then browse the documentation by opening the file `build/html/index.html
 In order to remove all of the generated files, use:
 ```
 make clean
+```
+
+### Upload the documentation
+
+In order to upload the documentation, so that it becomes available online, type:
+```
+make upload
 ```
 
 ## Contributing to the documentation

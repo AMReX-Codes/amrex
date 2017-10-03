@@ -1,3 +1,0 @@
-The WarpX Python class
-======================
-
