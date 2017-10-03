@@ -20,14 +20,16 @@
 
 using namespace amrex;
 
+const int SidecarQuitSignal = -57;
+
 namespace
 {
   const unsigned int msps(1000000);
   const int MySignal(42);
 
-  void USleep(double sleepsec) {
-    usleep(sleepsec * msps);
-  }
+//  void USleep(double sleepsec) {
+//    usleep(sleepsec * msps);
+//  }
 
   void SidecarEventLoop() {
     bool finished(false);
@@ -46,7 +48,7 @@ namespace
 	    }
 	  break;
 
-	  case ParallelDescriptor::SidecarQuitSignal:
+	  case SidecarQuitSignal:
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << "Sidecars received the quit signal." << std::endl;
 	    }
@@ -99,7 +101,7 @@ int main(int argc, char *argv[]) {
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << myProcAll << ":: Resizing sidecars = " << nSidecarProcs << std::endl;
       }
-      ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+      ParallelDescriptor::SetNProcsSidecars(nSidecarProcs);
       MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
 
       if(ParallelDescriptor::InSidecarGroup()) {
@@ -120,22 +122,22 @@ int main(int argc, char *argv[]) {
 
 	if(nSidecarProcs > 0) {
           // ---- stop the sidecars
-          sidecarSignal = ParallelDescriptor::SidecarQuitSignal;
+          sidecarSignal = SidecarQuitSignal;
           ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter(0));
 	}
       }
 
       std::cout << myProcAll << ":: Finished timesteps for hMS = " << hMS << std::endl;
-      USleep(1.4);
+      amrex::USleep(1.4);
       ParallelDescriptor::Barrier();
 
     }
 
 
     nSidecarProcs = 0;
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+    ParallelDescriptor::SetNProcsSidecars(nSidecarProcs);
 
-    USleep(0.3);
+    amrex::USleep(0.3);
     ParallelDescriptor::Barrier();
 
     std::cout << "_calling Finalize()" << std::endl;
