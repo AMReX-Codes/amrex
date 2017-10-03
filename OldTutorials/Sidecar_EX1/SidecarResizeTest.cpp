@@ -36,11 +36,11 @@ namespace
 
     while ( ! finished) {
         // Receive the signal from the compute group.
-        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0, ParallelDescriptor::CommunicatorInter(0));
 
 	switch(sidecarSignal) {
 	  case MySignal:
-	    ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
+	    ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter(0));
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << myProcAll << ":: sidecar recv time_step = " << time_step << std::endl;
 	    }
@@ -112,8 +112,8 @@ int main(int argc, char *argv[]) {
           }
 	  if(nSidecarProcs > 0) {
             sidecarSignal = MySignal;
-            ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
-            ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+            ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter(0));
+            ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter(0));
 	  }
         }
 	ts += nSteps;
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
 	if(nSidecarProcs > 0) {
           // ---- stop the sidecars
           sidecarSignal = ParallelDescriptor::SidecarQuitSignal;
-          ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+          ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter(0));
 	}
       }
 
