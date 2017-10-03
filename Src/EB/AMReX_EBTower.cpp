@@ -142,7 +142,7 @@ EBTower::initVolFrac (int lev, const EBLevelGrid& eblg)
     {
         const Box& bx = mfi.tilebox();
         auto& fab = volfrac[mfi];
-        fab.setVal(1.0, bx);
+        fab.setVal(1.0, bx, 0, 1);
 
         const EBISBox& ebisbox = ebisl[mfi];
         
@@ -173,7 +173,7 @@ EBTower::initBndryCent (int lev, const EBLevelGrid& eblg)
     {
         const Box& bx = mfi.tilebox();
         auto& fab = bndrycent[mfi];
-        fab.setVal(-1.0, bx);
+        fab.setVal(-1.0, bx, 0, AMREX_SPACEDIM);
 
         const EBISBox& ebisbox = ebisl[mfi];
 
@@ -298,7 +298,7 @@ EBTower::fillEBCellFlag (FabArray<EBCellFlagFab>& a_flag, const Geometry& a_geom
             // covered cells
             cov_ba.intersections(bx, isects);
             for (const auto& is : isects) {
-                fab.setVal(cov_val, is.second);
+                fab.setVal(cov_val, is.second, 0, 1);
             }
 
             // fix type and region for each fab
@@ -339,7 +339,7 @@ EBTower::fillVolFrac (MultiFab& a_volfrac, const Geometry& a_geom)
             // covered cells
             cov_ba.intersections(bx, isects);
             for (const auto& is : isects) {
-                fab.setVal(cov_val, is.second);
+                fab.setVal(cov_val, is.second, 0, 1);
             }
         }
     }
@@ -403,7 +403,8 @@ EBTower::fillFaceGeometry (std::array<MultiCutFab*,AMREX_SPACEDIM>& a_areafrac,
                 for (const auto& is : isects) {
                     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
                         (*a_areafrac[idim])[mfi].setVal(cov_val,
-                                                        amrex::surroundingNodes(is.second,idim));
+                                                        amrex::surroundingNodes(is.second,idim),
+                                                        0, 1);
                     }
                 }
             }
