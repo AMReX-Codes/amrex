@@ -16,7 +16,7 @@ class EBFArrayBoxFactory
 public:
 
     EBFArrayBoxFactory (const Geometry& a_geom, const BoxArray& a_ba, const DistributionMapping& a_dm,
-                        int a_ngrow, EBSupport a_support);
+                        const Array<int>& a_ngrow, EBSupport a_support);
     virtual ~EBFArrayBoxFactory () = default;
 
     EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;
@@ -43,7 +43,6 @@ public:
 
 private:
 
-    int m_ngrow;
     EBSupport m_support;
     Geometry m_geom;
     std::shared_ptr<EBDataCollection> m_ebdc;

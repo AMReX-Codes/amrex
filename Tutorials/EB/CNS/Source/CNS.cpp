@@ -499,7 +499,7 @@ CNS::fixUpGeometry ()
 
     const auto& S = get_new_data(State_Type);
 
-    const int ng = numGrow()-1;
+    const int ng = 4;
 
     const auto& domain = geom.Domain();
 
