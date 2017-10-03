@@ -102,12 +102,13 @@ public:
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
+    static int numGrow() { return NUM_GROW; };
+
 protected:
 
     static void read_params ();
-    static int numGrow() { return NUM_GROW; };
 
-    const amrex::MultiFab& volFrac () const { return volfrac; }
+    const amrex::MultiFab& volFrac () const { return *volfrac; }
 
     CNS& getLevel (int lev) { return dynamic_cast<CNS&>(parent->getLevel(lev)); }
 
@@ -129,10 +130,10 @@ protected:
 
     void printTotal () const;
 
-    amrex::MultiFab volfrac;
-    amrex::MultiFab bndrycent;
-    std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
-    std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;
+    const amrex::MultiFab* volfrac;
+    const amrex::MultiCutFab* bndrycent;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
 
     amrex::iMultiFab level_mask;
 

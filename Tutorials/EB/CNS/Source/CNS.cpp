@@ -5,6 +5,7 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_EBAmrUtil.H>
+#include <AMReX_EBFArrayBox.H>
 
 #include <climits>
 
@@ -108,8 +109,6 @@ CNS::initData ()
 
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(1.0);
-    EB_set_covered(C_new, 0, 1, 0.2);
-    EB_set_single_valued_cells(C_new, 0, 1, 5.0);
 }
 
 void
@@ -242,7 +241,7 @@ CNS::post_timestep (int iteration)
         CNS& fine_level = getLevel(level+1);
         MultiFab& S_crse = get_new_data(State_Type);
         MultiFab& S_fine = fine_level.get_new_data(State_Type);
-        fine_level.flux_reg.Reflux(S_crse, volfrac, S_fine, fine_level.volfrac);
+        fine_level.flux_reg.Reflux(S_crse, *volfrac, S_fine, *fine_level.volfrac);
     }
 
     if (level < parent->finestLevel()) {
@@ -267,7 +266,7 @@ CNS::printTotal () const
     std::array<Real,5> tot;
     for (int comp = 0; comp < 5; ++comp) {
         MultiFab::Copy(mf, S_new, comp, 0, 1, 0);
-        MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
+        MultiFab::Multiply(mf, *volfrac, 0, 0, 1, 0);
         tot[comp] = mf.sum(0,true) * geom.ProbSize();
     }
 #ifdef BL_LAZY
@@ -412,22 +411,12 @@ CNS::buildMetrics ()
         amrex::Abort("CNS: must have dx == dy == dz\n");
     }
 
-    volfrac.clear();
-    volfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
-    amrex::EB_set_volume_fraction(volfrac);
-
-    bndrycent.clear();
-    bndrycent.define(grids,dmap,AMREX_SPACEDIM,NUM_GROW,MFInfo(),Factory());
-    amrex::EB_set_bndry_centroid(bndrycent);
-
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        const BoxArray& ba = amrex::convert(grids,IntVect::TheDimensionVector(idim));
-        areafrac[idim].clear();
-        areafrac[idim].define(ba,dmap,1,NUM_GROW,MFInfo(),Factory());
-        facecent[idim].clear();
-        facecent[idim].define(ba,dmap,AMREX_SPACEDIM-1,NUM_GROW,MFInfo(),Factory());
-    }
-    amrex::EB_set_area_fraction_face_centroid(areafrac, facecent);
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    
+    volfrac = &(ebfactory.getVolFrac());
+    bndrycent = &(ebfactory.getBndryCent());
+    areafrac = ebfactory.getAreaFrac();
+    facecent = ebfactory.getFaceCent();
 
     level_mask.clear();
     level_mask.define(grids,dmap,1,1);
@@ -510,7 +499,7 @@ CNS::fixUpGeometry ()
 
     const auto& S = get_new_data(State_Type);
 
-    const int ng = numGrow()-1;
+    const int ng = 4;
 
     const auto& domain = geom.Domain();
 
@@ -526,7 +515,7 @@ CNS::fixUpGeometry ()
         {
             cns_eb_fixup_geom(BL_TO_FORTRAN_BOX(bx),
                               BL_TO_FORTRAN_ANYD(flag),
-                              BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                              BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
                               BL_TO_FORTRAN_BOX(domain));
         }
     }
