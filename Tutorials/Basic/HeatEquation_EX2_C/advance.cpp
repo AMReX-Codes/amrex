@@ -16,9 +16,7 @@ void advance (MultiFab& phi_old,
     phi_old.FillBoundary(geom.periodicity());
 
     // Fill non-periodic physical boundaries
-    if (!Geometry::isAllPeriodic()) {
-        FillDomainBoundary(phi_old, geom, bc);
-    }
+    FillDomainBoundary(phi_old, geom, bc);
 
     int Ncomp = phi_old.nComp();
     int ng_p = phi_old.nGrow();

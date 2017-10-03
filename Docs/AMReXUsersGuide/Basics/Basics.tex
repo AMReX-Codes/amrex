@@ -1517,7 +1517,7 @@ subroutine f(u, ulo, uhi,nu) bind(c)
 end subroutine f
 \end{lstlisting}
 
-\section{Boundary}
+\section{Ghost Cells}
 
 \amrex\ uses {\tt MultiFab} as the data container for floating point
 data on multiple {\tt Box}es on a single AMR level.  Each rectangular
@@ -1532,7 +1532,7 @@ boundary.
 
 Interior boundary is the border among the grid {\tt Box}es themselves.
 For example, in Figure~\ref{fig:basics:amrgrids}, the two blue grid
-{\tt Box}es on level 1 share an interior boundary that is 6 cells
+{\tt Box}es on level 1 share an interior boundary that is 10 cells
 long.  For a {\tt MultiFab} with ghost cells on level 1, we can use
 the {\tt MultiFab::FillBoundary} function introduced in
 Section~\ref{sec:basics:multifab} to fill ghost cells at the interior
@@ -1548,50 +1548,10 @@ The third type of boundary is the physical boundary at the physical
 domain.  Note that both coarse and fine AMR levels could have grids
 touching the physical boundary.  It is up to the application codes to
 properly fill the ghost cells at the physical boundary.  However,
-\amrex\ does provide support for some common operations.  To fill
-ghost cells for cell-centered data at the physical boundary, we can
-call
-\begin{lstlisting}[language=cpp]
-  void FillDomainBoundary (MultiFab& phi, const Geometry& geom,
-                           const Array<BCRec>& bc);
-\end{lstlisting}
-Here we need to provide boundary types to each component of the {\tt
-  MultiFab}.  Below is an example of setting up {\tt Array<BCRec>}
-before the call.
-\begin{lstlisting}[language=cpp]
-  // Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types
-  Array<BCRec> bc(phi.nComp());
-  for (int n = 0; n < phi.nComp(); ++n)
-  {
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-      {
-          if (Geometry::isPeriodic(idim))
-          {
-              bc[n].setLo(idim, BCType::int_dir); // interior
-              bc[n].setHi(idim, BCType::int_dir);
-          }
-          else
-          {
-              bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
-              bc[n].setHi(idim, BCType::foextrap);
-          }
-      }
-  }
-\end{lstlisting}
-{\tt amrex::BCType} has the following types,
-\begin{quote}
-\begin{description}
-\item [int\_dir] Interior, including periodic boundary
-\item [ext\_dir] It is the user's responsibility.
-\item [foextrap] First order extrapolation from last cell in interior.
-\item [reflect\_even] Reflection from interior cells with sign
-  unchanged, $q(-i) = q(i)$.
-\item [reflect\_odd] Reflection from interior cells with sign
-  unchanged, $q(-i) = -q(i)$.
-\end{description}
-\end{quote}
-If the type is set to {\tt BCType::ext\_dir}, it is then the user's
-responsibility to fill the ghost cells.
+\amrex\ does provide support for some common operations.  
+See Chapter \ref{Chap:Boundary} for a discussion on domain
+boundary conditions in general, including how to implement
+physical (non-periodic) boundary conditions.
 
 \section{I/O}
 

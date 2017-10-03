@@ -11,6 +11,7 @@
 
 #include <AMReX_AmrCore.H>
 #include <AMReX_FluxRegister.H>
+#include <AMReX_BCRec.H>
 
 using namespace amrex;
 
@@ -129,6 +130,10 @@ private:
     // to avoid a copy
     amrex::Array<std::unique_ptr<amrex::MultiFab> > phi_new;
     amrex::Array<std::unique_ptr<amrex::MultiFab> > phi_old;
+
+    // this is essentially a 2*DIM integer array storing the physical boundary
+    // condition types at the lo/hi walls in each direction
+    BCRec bcs;
 
     // stores fluxes at coarse-fine interface for synchronization
     // this will be sized "nlevs_max+1"
