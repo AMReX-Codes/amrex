@@ -100,9 +100,13 @@ custom boundary conditions, create a local modified copy of
 For multi-level codes using the {\tt Src\_AmrCore} source code, the
 functions described above still work, however additional classes need to
 be set up since the {\tt FillPatch} routines call them.
+In fact it is possible to avoid using the single-level calls directly if
+you fill all your grids and ghost cells using the {\tt FillPatch} routines.
+Refer to {\tt Tutorials/Amr/Advection\_AmrCore/} for an example.
+The class {\tt PhysBCFunct} in {\tt Src/Base/AMReX\_PhysBCFunct.cpp}
+is derived from {\tt PhysBCFunctBase} and contains a {\tt BCRec}, {\tt Geometry},
+and a pointer to a {\tt BndryFunctBase} function.
 
-
-
-
-
-
+The function {\tt FillBoundary} fills physical ghost cells (so it has a different
+functionality from the single-level case described above, where {\tt FillDomainBoundary}
+fills the physical ghost cells).
