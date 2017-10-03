@@ -29,7 +29,6 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 include $(AMREX_HOME)/Src/Base/Make.package
 
 CEXE_sources += BLProfParser.cpp
-CEXE_sources += AMReX_ProfParserBatch.cpp
 
 INCLUDE_LOCATIONS += .
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
