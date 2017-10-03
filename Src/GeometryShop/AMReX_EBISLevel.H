@@ -66,6 +66,9 @@ namespace amrex
     */
     static EBIndexSpace* instance();
 
+    // delete the singleton
+    static void reset ();
+
   };
 
   ///
@@ -133,6 +136,8 @@ namespace amrex
 
     ///define from file
     void  readHeader(const string& a_dirname);
+
+    const FabArray<EBGraph>& getGraph () const { return m_graph; }
 
   private:
     int m_nCellMax;
