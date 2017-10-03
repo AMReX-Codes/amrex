@@ -22,6 +22,20 @@ CutFab::copyFromMem (const Box&  dstbox,
 }
 
 
+CutFab&
+CutFab::copy (const CutFab & src,
+              const Box&     srcbox,
+              int            srccomp,
+              const Box&     destbox,
+              int            destcomp,
+              int            numcomp)
+{
+    if (dptr != nullptr) {
+        FArrayBox::copy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+    }
+    return *this;
+}
+
 MultiCutFab::MultiCutFab ()
 {}
 
