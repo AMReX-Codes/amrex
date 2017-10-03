@@ -823,6 +823,7 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
 void
 AllGatherBoxes (Array<Box>& bxs)
 {
+#ifdef BL_USE_MPI
     // cell centered boxes only!
     const auto szof_bx = Box::linearSize();
 
@@ -865,6 +866,7 @@ AllGatherBoxes (Array<Box>& bxs)
         b.linearIn(p);
         p += szof_bx;
     }
+#endif
 }
 
 }
