@@ -13,11 +13,6 @@ extern "C"
                                const void* flag, const int* flo, const int* fhi,
                                const amrex_real* v, const int* ncomp);
 
-    void amrex_eb_set_single_valued_cells (const int* lo, const int* hi,
-                                           amrex_real* data, const int* dlo, const int* dhi,
-                                           const void* flag, const int* flo, const int* fhi,
-                                           const amrex_real* v, const int* ncomp);
-
     void amrex_eb_avgdown_sv (const int* lo, const int* hi,
                               const amrex_real* fine, const int* flo, const int* fhi,
                               amrex_real* crse, const int* clo, const int* chi,

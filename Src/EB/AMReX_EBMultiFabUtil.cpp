@@ -14,44 +14,15 @@ namespace amrex
 {
 
 void
-EB_set_covered (MultiFab& mf)
+EB_set_covered (MultiFab& mf, Real val)
 {
-    EB_set_covered(mf, 0, mf.nComp());
+    Array<Real> vals(mf.nComp(), val);
+    EB_set_covered(mf, 0, mf.nComp(), vals);
 }
 
 void
-EB_set_covered (MultiFab& mf, int icomp, int ncomp)
+EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Array<Real>& vals)
 {
-    BL_PROFILE("EB_set_covered");
-
-    Array<Real> minvals(ncomp);
-    for (int i = icomp; i < icomp+ncomp; ++i) {
-        minvals[i] = mf.min(i,0,true);
-    }
-    ParallelDescriptor::ReduceRealMin(minvals.data(), ncomp);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        FArrayBox& fab = mf[mfi];
-        const auto& flagfab = amrex::getEBCellFlagFab(fab);
-        amrex_eb_set_covered(BL_TO_FORTRAN_BOX(bx),
-                             BL_TO_FORTRAN_N_ANYD(fab,icomp),
-                             BL_TO_FORTRAN_ANYD(flagfab),
-                             minvals.data(),&ncomp);
-    }
-}
-
-void
-EB_set_covered (MultiFab& mf, int icomp, int ncomp, Real val)
-{
-    BL_PROFILE("EB_set_covered_val");
-
-    Array<Real> vals(ncomp, val);
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -64,28 +35,6 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, Real val)
                              BL_TO_FORTRAN_N_ANYD(fab,icomp),
                              BL_TO_FORTRAN_ANYD(flagfab),
                              vals.data(),&ncomp);
-    }
-}
-
-void
-EB_set_single_valued_cells (MultiFab& mf, int icomp, int ncomp, Real val)
-{
-    BL_PROFILE("EB_set_single_valued_cells");
-
-    Array<Real> vals(ncomp, val);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        FArrayBox& fab = mf[mfi];
-        const auto& flagfab = amrex::getEBCellFlagFab(fab);
-        amrex_eb_set_single_valued_cells(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_N_ANYD(fab,icomp),
-                                         BL_TO_FORTRAN_ANYD(flagfab),
-                                         vals.data(),&ncomp);
     }
 }
 
