@@ -19,9 +19,12 @@
 #include <AMReX_ParmParse.H>
 
 #include <AMReX.H>
+#include <AMReX_MultiFab.H>
 #include <InTransitAnalysis.H>
 
 using namespace amrex;
+
+const int SidecarQuitSignal = -51;
 
 // In this anonymous namespace we define the workflow which occurs when the
 // sidecars receive a particular (user-defined) signal. You have a lot of
@@ -37,7 +40,7 @@ namespace
   const int MySignal = 42;
 
   static int STATIC_SIGNAL_HANDLER (int in_signal) {
-    BL_ASSERT(MySignal != ParallelDescriptor::SidecarQuitSignal);
+    BL_ASSERT(MySignal != SidecarQuitSignal);
     int out_signal = in_signal;
     if (in_signal == MySignal)
     {
@@ -49,8 +52,15 @@ namespace
       int time_step;
       // Receive the necessary data for doing analysis.
       MultiFab::SendMultiFabToSidecars(&mf);
-      Geometry::SendGeometryToSidecars(&geom);
-      ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter());
+      Geometry::SendGeometryToSidecar(&geom, 0);
+      ParallelDescriptor::Bcast(&time_step, 1, 0, ParallelDescriptor::CommunicatorInter(0));
+
+/*
+      MultiFab::copyInter(mfSource, mfDest, srcComp, destComp, numComp,
+                        srcNGhost, destNGhost,
+                        commSrc, commDest, commInter, commBoth,
+                        isSrc);
+*/
 
       InTransitAnalysis ita;
 
@@ -61,7 +71,7 @@ namespace
       if (ParallelDescriptor::IOProcessor())
         std::cout << "Sidecars completed analysis." << std::endl;
     }
-    else if (in_signal != ParallelDescriptor::SidecarQuitSignal)
+    else if (in_signal != SidecarQuitSignal)
     {
       std::ostringstream ss_error_msg;
       ss_error_msg << "Unknown signal sent to sidecars: -----> " << in_signal << " <-----" << std::endl;
@@ -117,7 +127,7 @@ int main(int argc, char *argv[]) {
 std::cout << myProcAll << "::_here 0." << std::endl;
 #ifdef IN_TRANSIT
     const int nSidecarProcs(2);
-    ParallelDescriptor::SetNProcsSidecar(nSidecarProcs);
+    ParallelDescriptor::SetNProcsSidecars(nSidecarProcs);
 #endif
 
 std::cout << myProcAll << "::_here 1." << std::endl;
@@ -198,23 +208,23 @@ ParallelDescriptor::Barrier();
     {
 std::cout << myProcAll << "::_here 5 i = " << i << std::endl;
 ParallelDescriptor::Barrier();
-        ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter(0));
         // For this particular analysis we need to send a MultiFab, a Geometry,
         // and a time step index to the sidecars. For other analyses you will
         // need to send different data.
-std::cout << myProcAll << "::_here 6 i = " << i << std::endl;
-ParallelDescriptor::Barrier();
+        std::cout << myProcAll << "::_here 6 i = " << i << std::endl;
+        ParallelDescriptor::Barrier();
         MultiFab::SendMultiFabToSidecars(&mf);
-std::cout << myProcAll << "::_here 7 i = " << i << std::endl;
-ParallelDescriptor::Barrier();
-        Geometry::SendGeometryToSidecars(&geom);
-        ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+        std::cout << myProcAll << "::_here 7 i = " << i << std::endl;
+        ParallelDescriptor::Barrier();
+        Geometry::SendGeometryToSidecar(&geom, 0);
+        ParallelDescriptor::Bcast(&i, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter(0));
     }
 
     // Don't forget to tell the sidecars to quit! Otherwise they'll keep
     // waiting for signals for more work to do.
-    sidecarSignal = ParallelDescriptor::SidecarQuitSignal;
-    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter());
+    sidecarSignal = SidecarQuitSignal;
+    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank, ParallelDescriptor::CommunicatorInter(0));
 #endif
 
     std::cout << "_calling Finalize()" << std::endl;
