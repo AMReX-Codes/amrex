@@ -22,7 +22,9 @@
 namespace amrex {
 
 #ifdef AMREX_USE_EB
-int AmrLevel::m_eb_max_grow_cells = 6;
+int AmrLevel::m_eb_basic_grow_cells = 5;
+int AmrLevel::m_eb_volume_grow_cells = 4;
+int AmrLevel::m_eb_full_grow_cells = 2;
 EBSupport AmrLevel::m_eb_support_level = EBSupport::volume;
 #endif
 
@@ -98,7 +100,9 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(desc_lst.size());
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, ba, dm, m_eb_max_grow_cells, m_eb_support_level));
+    m_factory.reset(new EBFArrayBoxFactory(geom, ba, dm,
+                                           {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
+                                           m_eb_support_level));
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -323,7 +327,9 @@ AmrLevel::restart (Amr&          papa,
     parent->SetDistributionMap(level, dmap);
 
 #ifdef AMREX_USE_EB
-    m_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap, m_eb_max_grow_cells, m_eb_support_level));
+    m_factory.reset(new EBFArrayBoxFactory(geom, grids, dmap,
+                                           {m_eb_basic_grow_cells, m_eb_volume_grow_cells, m_eb_full_grow_cells},
+                                           m_eb_support_level));
 #else
     m_factory.reset(new FArrayBoxFactory());
 #endif
@@ -1421,7 +1427,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
 #ifdef AMREX_USE_EB
         MultiFab crseMF(crseBA,mf_DM,NComp,0,MFInfo(),
-                        EBFArrayBoxFactory(cgeom, crseBA, mf_DM, 0, EBSupport::basic));
+                        EBFArrayBoxFactory(cgeom, crseBA, mf_DM, {0,0,0}, EBSupport::basic));
 #else
 	MultiFab crseMF(crseBA,mf_DM,NComp,0);
 #endif

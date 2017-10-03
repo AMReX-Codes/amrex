@@ -367,8 +367,14 @@ public:
     void Check() const;
 
 #ifdef AMREX_USE_EB
-    static void SetEBMaxGrowCells (int n) { m_eb_max_grow_cells = n; }
-    static int            m_eb_max_grow_cells;
+    static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) {
+        m_eb_basic_grow_cells = nbasic;
+        m_eb_volume_grow_cells = nvolume;
+        m_eb_full_grow_cells = nfull;
+    }
+    static int            m_eb_basic_grow_cells;
+    static int            m_eb_volume_grow_cells;
+    static int            m_eb_full_grow_cells;
     static void SetEBSupportLevel (EBSupport ebs) { m_eb_support_level = ebs; }
     static EBSupport      m_eb_support_level;
 #endif

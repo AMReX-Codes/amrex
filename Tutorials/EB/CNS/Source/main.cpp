@@ -55,7 +55,7 @@ int main (int argc, char* argv[])
         EBTower::Build();
         AMReX_EBIS::reset();  // CNS no longer needs the EBIndexSpace singleton.
         AmrLevel::SetEBSupportLevel(EBSupport::full);
-        AmrLevel::SetEBMaxGrowCells(CNS::numGrow());
+        AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
 
 	amr.init(strt_time,stop_time);
 

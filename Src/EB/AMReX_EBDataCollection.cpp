@@ -9,7 +9,7 @@ namespace amrex {
 EBDataCollection::EBDataCollection (const Geometry& a_geom,
                                     const BoxArray& a_ba,
                                     const DistributionMapping& a_dm,
-                                    int a_ngrow, EBSupport a_support)
+                                    const Array<int>& a_ngrow, EBSupport a_support)
     : m_ngrow(a_ngrow),
       m_support(a_support),
       m_geom(a_geom)
@@ -18,23 +18,24 @@ EBDataCollection::EBDataCollection (const Geometry& a_geom,
     {
         AMREX_ALWAYS_ASSERT(EBTower::get() != nullptr);
 
-        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow);
+        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0]);
         EBTower::fillEBCellFlag(*m_cellflags, m_geom);
 
         if (m_support >= EBSupport::volume)
         {
-            m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow);
+            m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1]);
             EBTower::fillVolFrac(*m_volfrac, m_geom);
         }
 
         if (m_support == EBSupport::full)
         {
-            m_bndrycent = new MultiCutFab(a_ba, a_dm, 3, m_ngrow, *m_cellflags);
+            const int ng = m_ngrow[2];
+            m_bndrycent = new MultiCutFab(a_ba, a_dm, 3, ng, *m_cellflags);
             EBTower::fillBndryCent(*m_bndrycent, m_geom);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
-                m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, m_ngrow, *m_cellflags);
-                m_facecent[idim] = new MultiCutFab(faceba, a_dm, 3, m_ngrow, *m_cellflags);
+                m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, ng, *m_cellflags);
+                m_facecent[idim] = new MultiCutFab(faceba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
             }
             EBTower::fillFaceGeometry(m_areafrac, m_facecent, m_geom);
         }
@@ -77,14 +78,14 @@ std::array<const MultiCutFab*, AMREX_SPACEDIM>
 EBDataCollection::getAreaFrac () const
 {
     AMREX_ASSERT(m_areafrac[0] != nullptr);
-    return {D_DECL(m_areafrac[0], m_areafrac[1], m_areafrac[2])};
+    return {AMREX_D_DECL(m_areafrac[0], m_areafrac[1], m_areafrac[2])};
 }
 
 std::array<const MultiCutFab*, AMREX_SPACEDIM>
 EBDataCollection::getFaceCent () const
 {
     AMREX_ASSERT(m_facecent[0] != nullptr);
-    return {D_DECL(m_facecent[0], m_facecent[1], m_facecent[2])};
+    return {AMREX_D_DECL(m_facecent[0], m_facecent[1], m_facecent[2])};
 }
 
 }

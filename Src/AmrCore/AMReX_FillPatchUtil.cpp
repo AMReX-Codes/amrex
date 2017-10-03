@@ -246,7 +246,7 @@ namespace amrex
 	}
 
 #ifdef AMREX_USE_EB
-        const EBFArrayBoxFactory factory{cgeom, ba_crse_patch, dm, 0, EBSupport::basic};
+        const EBFArrayBoxFactory factory{cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic};
 #else
         const FArrayBoxFactory factory{};
 #endif

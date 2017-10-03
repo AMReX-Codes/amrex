@@ -97,7 +97,7 @@ EBTower::EBTower ()
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const BoxArray& faceba = amrex::convert(ba, IntVect::TheDimensionVector(idim));
                 m_areafrac[lev][idim].define(faceba, dm, 1, 0, m_cellflags[lev]);
-                m_facecent[lev][idim].define(faceba, dm, 3, 0, m_cellflags[lev]);
+                m_facecent[lev][idim].define(faceba, dm, AMREX_SPACEDIM-1, 0, m_cellflags[lev]);
             }
             initFaceGeometry(lev, eblg);
         }
