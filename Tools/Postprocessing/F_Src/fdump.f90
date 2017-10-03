@@ -47,6 +47,9 @@ program fdump
   character(len=256) :: idx_str
   integer :: idx(3)
 
+  character(len=256) :: lev_str
+  integer :: level
+
   integer :: dm
   type(box) :: bx_a
 
@@ -54,6 +57,8 @@ program fdump
   maxval = 1.d200
 
   idx(:) = -1
+
+  level = -1
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -87,6 +92,7 @@ program fdump
         call get_command_argument(farg, value = maxval_str)
         read(maxval_str, *) maxval
 
+     ! Only print out data with this zone index.
      case ('--i')
         farg = farg + 1
         call get_command_argument(farg, value = idx_str)
@@ -101,6 +107,11 @@ program fdump
         farg = farg + 1
         call get_command_argument(farg, value = idx_str)
         read(idx_str, *) idx(3)
+
+     case ('--level')
+        farg = farg + 1
+        call get_command_argument(farg, value = lev_str)
+        read(lev_str, *) level
 
      case default
         exit
@@ -135,6 +146,8 @@ program fdump
   !---------------------------------------------------------------------------
 
   do i = 1, pf_a%flevel
+
+     if (level >= 0 .and. level /= i) cycle
 
      nboxes_a = nboxes(pf_a, i)
      do j = 1, nboxes_a
