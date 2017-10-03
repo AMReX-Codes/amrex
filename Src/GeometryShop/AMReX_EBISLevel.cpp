@@ -175,7 +175,13 @@ namespace amrex
     return  s_instance;
   }
 
-
+  void
+  AMReX_EBIS::
+  reset()
+  {
+    delete s_instance;
+    s_instance = nullptr;
+  }
 
   EBISLevel::EBISLevel(const Box             & a_domain,
                        const RealVect        & a_origin,
