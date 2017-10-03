@@ -47,39 +47,34 @@ AmrCoreAdv::AmrCoreAdv ()
     int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
 */
     
-    for (int n = 0; n < 1; ++n)
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            
-            // lo-side BCs
-            if (bc_lo[idim] == INT_DIR) {
-                bcs.setLo(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
-            }
-            else if (bc_lo[idim] == FOEXTRAP) {
-                bcs.setLo(idim, BCType::foextrap); // first-order extrapolation
-            }
-            else if (bc_lo[idim] == EXT_DIR) {
-                bcs.setLo(idim, BCType::ext_dir);  // external Dirichlet
-            }
-            else {
-                amrex::Abort("Invalid bc_lo");
-            }
+        // lo-side BCs
+        if (bc_lo[idim] == INT_DIR) {
+            bcs.setLo(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
+        }
+        else if (bc_lo[idim] == FOEXTRAP) {
+            bcs.setLo(idim, BCType::foextrap); // first-order extrapolation
+        }
+        else if (bc_lo[idim] == EXT_DIR) {
+            bcs.setLo(idim, BCType::ext_dir);  // external Dirichlet
+        }
+        else {
+            amrex::Abort("Invalid bc_lo");
+        }
 
-            // hi-side BCSs
-            if (bc_hi[idim] == INT_DIR) {
-                bcs.setHi(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
-            }
-            else if (bc_hi[idim] == FOEXTRAP) {
-                bcs.setHi(idim, BCType::foextrap); // first-order extrapolation
-            }
-            else if (bc_hi[idim] == EXT_DIR) {
-                bcs.setHi(idim, BCType::ext_dir);  // external Dirichlet
-            }
-            else {
-                amrex::Abort("Invalid bc_hi");
-            }
-
+        // hi-side BCSs
+        if (bc_hi[idim] == INT_DIR) {
+            bcs.setHi(idim, BCType::int_dir);  // periodic uses "internal Dirichlet"
+        }
+        else if (bc_hi[idim] == FOEXTRAP) {
+            bcs.setHi(idim, BCType::foextrap); // first-order extrapolation
+        }
+        else if (bc_hi[idim] == EXT_DIR) {
+            bcs.setHi(idim, BCType::ext_dir);  // external Dirichlet
+        }
+        else {
+            amrex::Abort("Invalid bc_hi");
         }
     }
 
