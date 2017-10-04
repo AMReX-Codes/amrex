@@ -11,12 +11,6 @@ CEXE_sources += AMReX_EBMultiFabUtil.cpp
 CEXE_headers += AMReX_EBCellFlag.H
 CEXE_sources += AMReX_EBCellFlag.cpp
 
-#CEXE_headers += AMReX_EBFaceFlag.H
-#CEXE_sources += AMReX_EBFaceFlag.cpp
-
-#CEXE_headers += AMReX_EBLevel.H
-#CEXE_sources += AMReX_EBLevel.cpp
-
 CEXE_headers += AMReX_EBTower.H
 CEXE_sources += AMReX_EBTower.cpp
 
