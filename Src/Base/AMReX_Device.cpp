@@ -17,7 +17,7 @@ void
 amrex::Device::initialize_cuda_c () {
 
     for (int i = 0; i < max_cuda_streams; ++i)
-        cudaStreamCreate(&cuda_streams[i]);
+        CudaAPICheck(cudaStreamCreate(&cuda_streams[i]));
 
     cuda_stream = cuda_streams[0];
 }
