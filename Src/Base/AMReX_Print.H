@@ -22,8 +22,8 @@ namespace amrex
 	Print (std::ostream& os_ = std::cout) 
 	    : rank(ParallelDescriptor::IOProcessorNumber())
 	    , comm(ParallelDescriptor::Communicator())
-	    , os(&os_, [](std::ostream*){})
-	    { ss.precision(os->precision()); }
+	    , os(os_)
+	    { ss.precision(os.precision()); }
 
     /**
     * \brief Print on all processors of the default communicator
@@ -32,8 +32,8 @@ namespace amrex
 	Print (int rank_, std::ostream& os_ = std::cout) 
 	    : rank(rank_)
 	    , comm(ParallelDescriptor::Communicator())
-	    , os(&os_, [](std::ostream*){})
-	    { ss.precision(os->precision()); }
+	    , os(os_)
+	    { ss.precision(os.precision()); }
 
     /**   
     * \brief Print on process rank_ of communicator comm_
@@ -42,41 +42,14 @@ namespace amrex
 	Print (int rank_, MPI_Comm comm_, std::ostream& os_ = std::cout)
 	    : rank(rank_)
 	    , comm(comm_)
-	    , os(&os_, [](std::ostream*){})
-	    { ss.precision(os->precision()); }
-
-        /**
-         * \brief Print to a file on process rank_ of communicator comm_.
-         * If called from an OMP parallel region, each thread will output
-         * to a different file.
-         *
-         */
-        Print (const std::string& file_name_,
-               int rank_ = ParallelDescriptor::IOProcessorNumber(),
-               MPI_Comm comm_ = ParallelDescriptor::Communicator())
-            : rank(rank_)
-            , comm(comm_)
-            , os(NULL, std::default_delete<std::ostream>())
-        {
-            int my_proc = ParallelDescriptor::MyProc(comm);
-	    if (rank == AllProcs || rank == my_proc) {
-                std::string proc_file_name = file_name_ + "." + std::to_string(my_proc);
-#ifdef _OPENMP
-                proc_file_name += "." + std::to_string(omp_get_thread_num());
-#endif
-                os.reset(new std::ofstream(proc_file_name, std::ios_base::app));
-                if (!dynamic_cast<std::ofstream&>(*os).is_open()) {
-                    amrex::Error("Could not open file for appending in amrex::Print()");
-                }
-                ss.precision(os->precision());
-            }
-        }
+	    , os(os_)
+	    { ss.precision(os.precision()); }
 
 	~Print () {
 	    if (rank == AllProcs || rank == ParallelDescriptor::MyProc(comm)) {
-		os->flush();
-		*os << ss.str();
-		os->flush();
+		os.flush();
+		os << ss.str();
+		os.flush();
 	    }
 	}
 
@@ -101,7 +74,7 @@ namespace amrex
     private:
 	int rank;
 	MPI_Comm comm;
-        std::unique_ptr<std::ostream, std::function<void(std::ostream*)>> os;
+        std::ostream &os;
 	std::ostringstream ss;
     };
 
@@ -115,13 +88,94 @@ namespace amrex
 	    : Print(Print::AllProcs, os_) 
 	    {}
 
-        //! All procs output to a unique file (or files if threading is on)
-        AllPrint (const std::string& file_name_)
-            : Print(file_name_, Print::AllProcs)
-        {}
     };
 
+    //! This class prints to a file with a given base name
+    class PrintToFile
+    {
+    public:
 
+	static constexpr int AllProcs = -1;
+
+	PrintToFile (const std::string& file_name_) 
+	    : file_name(file_name_)
+            , rank(ParallelDescriptor::IOProcessorNumber())
+	    , comm(ParallelDescriptor::Communicator())
+        { Initialize(); }
+        
+	PrintToFile (const std::string& file_name_, int rank_ ) 
+	    : file_name(file_name_)
+	    , rank(rank_)
+	    , comm(ParallelDescriptor::Communicator())
+        { Initialize(); }
+        
+	PrintToFile (const std::string& file_name_, int rank_, MPI_Comm comm_)
+	    : file_name(file_name_)
+	    , rank(rank_)
+	    , comm(comm_)
+        { Initialize(); }
+
+	~PrintToFile () {
+	    if (rank == AllProcs || rank == ParallelDescriptor::MyProc(comm)) {
+		ofs.flush();
+		ofs << ss.str();
+		ofs.flush();
+	    }
+	}
+
+        PrintToFile& SetPrecision(int p) {
+            ss.precision(p);
+            return *this;
+	}
+
+	template <typename T>
+	PrintToFile& operator<< (const T& x) {
+            ss << x;
+	    return *this;
+	}
+
+        PrintToFile& operator<< (        std::basic_ostream<char, std::char_traits<char> >& 
+                                 (*func)(std::basic_ostream<char, std::char_traits<char> >&))
+        {
+            ss << func;
+            return *this;
+        }
+
+    private:
+
+        void Initialize() {
+            int my_proc = ParallelDescriptor::MyProc(comm);
+            if (rank == AllProcs || rank == my_proc) {
+                std::string proc_file_name = file_name + "." + std::to_string(my_proc);
+#ifdef _OPENMP
+                proc_file_name += "." + std::to_string(omp_get_thread_num());
+#endif
+                ofs.open(proc_file_name, std::ios_base::app);
+                if (!ofs.is_open()) {
+                    amrex::Error("Could not open file for appending in amrex::Print()");
+                }
+                ss.precision(ofs.precision());
+            }
+        }
+
+        std::string file_name;
+	int rank;
+	MPI_Comm comm;
+        std::ofstream ofs;
+	std::ostringstream ss;
+    };
+
+    //! Print on all processors of the default communicator
+    class AllPrintToFile
+	: public PrintToFile
+    {
+    public:
+        //! Example: AllPrint() << " x = " << x << std::endl;
+	AllPrintToFile (const std::string& file_name_)
+	    : PrintToFile(file_name_, Print::AllProcs)
+	    {}
+
+    };
 }
 
 #endif

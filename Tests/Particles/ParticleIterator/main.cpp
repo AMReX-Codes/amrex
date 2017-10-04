@@ -57,11 +57,13 @@ int main(int argc, char* argv[])
   MyPC.InitOnePerCell(0.5, 0.5, 0.5, pdata);
   MyPC.do_tiling = true;
 
+  amrex::AllPrintToFile("outside") << "outside parallel region. \n";
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
   for (ParIter<1+BL_SPACEDIM> mfi(MyPC, 0); mfi.isValid(); ++mfi) {
-      amrex::AllPrint("particle_iterator_out") << mfi.index() << " " << mfi.tileIndex() << "\n";
+      amrex::AllPrintToFile("particle_iterator_out") << mfi.index() << " " << mfi.tileIndex() << "\n";
   }
       
   amrex::Finalize();
