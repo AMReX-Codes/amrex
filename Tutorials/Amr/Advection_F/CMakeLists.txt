@@ -33,8 +33,13 @@ add_executable ( ${EXENAME} EXCLUDE_FROM_ALL
 
 target_link_libraries ( ${EXENAME} amrex ${AMREX_EXTRA_Fortran_LINK_LINE} )
 
+
+# Fortran modules for the target will not be added to the amrex mod_files folder 
+set ( MOD_DIR ${CMAKE_CURRENT_BINARY_DIR}/mod_files )
+
 set_target_properties ( ${EXENAME} PROPERTIES
-   INCLUDE_DIRECTORIES "${AMREX_INCLUDE_PATHS}"
+   INCLUDE_DIRECTORIES "${MOD_DIR};${AMREX_INCLUDE_PATHS}"
+   Fortran_MODULE_DIRECTORY ${MOD_DIR}
    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} )
 
 add_tutorial (${EXENAME})   

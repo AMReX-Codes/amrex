@@ -5,6 +5,7 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_EBAmrUtil.H>
+#include <AMReX_EBFArrayBox.H>
 
 #include <climits>
 
@@ -21,9 +22,11 @@ BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
-Real      CNS::cfl = 0.3;
-int       CNS::do_reflux       = 1;
-int       CNS::refine_cutcells = 1;
+Real      CNS::cfl       = 0.3;
+int       CNS::do_reflux = 1;
+int       CNS::refine_cutcells          = 1;
+int       CNS::refine_max_dengrad_lev   = -1;
+Real      CNS::refine_dengrad           = 1.0e10;
 Array<RealBox> CNS::refine_boxes;
 
 CNS::CNS ()
@@ -108,8 +111,6 @@ CNS::initData ()
 
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(1.0);
-    EB_set_covered(C_new, 0, 1, 0.2);
-    EB_set_single_valued_cells(C_new, 0, 1, 5.0);
 }
 
 void
@@ -242,7 +243,7 @@ CNS::post_timestep (int iteration)
         CNS& fine_level = getLevel(level+1);
         MultiFab& S_crse = get_new_data(State_Type);
         MultiFab& S_fine = fine_level.get_new_data(State_Type);
-        fine_level.flux_reg.Reflux(S_crse, volfrac, S_fine, fine_level.volfrac);
+        fine_level.flux_reg.Reflux(S_crse, *volfrac, S_fine, *fine_level.volfrac);
     }
 
     if (level < parent->finestLevel()) {
@@ -267,7 +268,7 @@ CNS::printTotal () const
     std::array<Real,5> tot;
     for (int comp = 0; comp < 5; ++comp) {
         MultiFab::Copy(mf, S_new, comp, 0, 1, 0);
-        MultiFab::Multiply(mf, volfrac, 0, 0, 1, 0);
+        MultiFab::Multiply(mf, *volfrac, 0, 0, 1, 0);
         tot[comp] = mf.sum(0,true) * geom.ProbSize();
     }
 #ifdef BL_LAZY
@@ -341,6 +342,37 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
             }
         }
     }
+
+    if (level < refine_max_dengrad_lev)
+    {
+        int ng = 1;
+        const auto& rho = derive("density", time, ng);
+        const MultiFab& S_new = get_new_data(State_Type);
+
+        const char   tagval = TagBox::SET;
+        const char clearval = TagBox::CLEAR;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(*rho,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+
+            const auto& sfab = dynamic_cast<EBFArrayBox const&>(S_new[mfi]);
+            const auto& flag = sfab.getEBCellFlagFab();
+
+            const FabType typ = flag.getType(bx);
+            if (typ != FabType::covered)
+            {
+                cns_tag_denerror(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD(tags[mfi]),
+                                 BL_TO_FORTRAN_ANYD((*rho)[mfi]),
+                                 BL_TO_FORTRAN_ANYD(flag),
+                                 &refine_dengrad, &tagval, &clearval);
+            }
+        }
+    }
 }
 
 void
@@ -369,6 +401,9 @@ CNS::read_params ()
     pp.query("do_reflux", do_reflux);
 
     pp.query("refine_cutcells", refine_cutcells);
+
+    pp.query("refine_max_dengrad_lev", refine_max_dengrad_lev);
+    pp.query("refine_dengrad", refine_dengrad);
 
     int irefbox = 0;
     Array<Real> refboxlo, refboxhi;
@@ -412,22 +447,12 @@ CNS::buildMetrics ()
         amrex::Abort("CNS: must have dx == dy == dz\n");
     }
 
-    volfrac.clear();
-    volfrac.define(grids,dmap,1,NUM_GROW,MFInfo(),Factory());
-    amrex::EB_set_volume_fraction(volfrac);
-
-    bndrycent.clear();
-    bndrycent.define(grids,dmap,AMREX_SPACEDIM,NUM_GROW,MFInfo(),Factory());
-    amrex::EB_set_bndry_centroid(bndrycent);
-
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        const BoxArray& ba = amrex::convert(grids,IntVect::TheDimensionVector(idim));
-        areafrac[idim].clear();
-        areafrac[idim].define(ba,dmap,1,NUM_GROW,MFInfo(),Factory());
-        facecent[idim].clear();
-        facecent[idim].define(ba,dmap,AMREX_SPACEDIM-1,NUM_GROW,MFInfo(),Factory());
-    }
-    amrex::EB_set_area_fraction_face_centroid(areafrac, facecent);
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    
+    volfrac = &(ebfactory.getVolFrac());
+    bndrycent = &(ebfactory.getBndryCent());
+    areafrac = ebfactory.getAreaFrac();
+    facecent = ebfactory.getFaceCent();
 
     level_mask.clear();
     level_mask.define(grids,dmap,1,1);
@@ -510,7 +535,7 @@ CNS::fixUpGeometry ()
 
     const auto& S = get_new_data(State_Type);
 
-    const int ng = numGrow()-1;
+    const int ng = 4;
 
     const auto& domain = geom.Domain();
 
@@ -526,7 +551,7 @@ CNS::fixUpGeometry ()
         {
             cns_eb_fixup_geom(BL_TO_FORTRAN_BOX(bx),
                               BL_TO_FORTRAN_ANYD(flag),
-                              BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                              BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
                               BL_TO_FORTRAN_BOX(domain));
         }
     }
