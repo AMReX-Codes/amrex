@@ -607,7 +607,7 @@ LaserParticleContainer::ComputeSpacing (int lev, Real& Sx, Real& Sy) const
 void
 LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
 {
-    constexpr Real eps = 0.1;
+    constexpr Real eps = 0.01;
     constexpr Real fac = 1.0/(2.0*3.1415926535897932*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);
     weight = fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
 
