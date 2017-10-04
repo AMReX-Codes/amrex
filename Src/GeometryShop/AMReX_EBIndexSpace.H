@@ -130,6 +130,8 @@ namespace amrex
       {
         return m_domainLevel;
       }
+
+    const EBISLevel& getEBISLevel (int lev) const { return *m_ebisLevel[lev]; }
     
   private:
 
