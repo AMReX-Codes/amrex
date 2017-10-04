@@ -84,7 +84,7 @@ Numerics and algorithms
     (see the sub-section **Filtering** in :doc:`../theory/theory`).
 
 * ``algo.current_deposition`` (`integer`)
-    The algorithm to be used for current deposition:
+    The algorithm for current deposition:
 
      - ``0``: Esirkepov deposition, vectorized
      - ``1``: Esirkepov deposition, non-optimized
@@ -92,22 +92,27 @@ Numerics and algorithms
      - ``3``: Direct deposition, non-optimized
 
 * ``algo.charge_deposition`` (`integer`)
-    The algorithm to be used for the charge density deposition:
+    The algorithm for the charge density deposition:
 
      - ``0``: Vectorized version
      - ``1``: Non-optimized version
 
 * ``algo.field_gathering`` (`integer`)
-    The algorithm to be used for field gathering:
+    The algorithm for field gathering:
 
      - ``0``: Vectorized version
      - ``1``: Non-optimized version
 
 * ``algo.particle_pusher`` (`integer`)
-    The algorithm to be used for the particle pusher:
+    The algorithm for the particle pusher:
 
      - ``0``: Boris pusher
      - ``1``: Vay pusher
+
+* ``interpolation.nox``, ``interpolation.noy``, ``interpolation.noz`` (`integer`)
+    The order of the shape factors for the macroparticles, for the 3 dimensions of space. Lower-order shape factors result in faster simulations, but more noisy results,
+
+    Note that the implementation in WarpX is more efficient when these 3 numbers are equal, and when they are between 1 and 3.
 
 Diagnostics and output
 ----------------------
