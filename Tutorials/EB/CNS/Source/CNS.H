@@ -161,11 +161,15 @@ protected:
     // Parameters
     static int verbose;
     static amrex::IntVect hydro_tile_size;
-    static amrex_real cfl;
+    static amrex::Real cfl;
 
     static int do_reflux;
 
     static int refine_cutcells;
+
+    static int refine_max_dengrad_lev;
+    static amrex::Real refine_dengrad;
+
     static amrex::Array<amrex::RealBox> refine_boxes;
 };
 

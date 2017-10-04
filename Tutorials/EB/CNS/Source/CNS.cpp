@@ -22,9 +22,11 @@ BCRec     CNS::phys_bc;
 
 int       CNS::verbose = 0;
 IntVect   CNS::hydro_tile_size {AMREX_D_DECL(1024,16,16)};
-Real      CNS::cfl = 0.3;
-int       CNS::do_reflux       = 1;
-int       CNS::refine_cutcells = 1;
+Real      CNS::cfl       = 0.3;
+int       CNS::do_reflux = 1;
+int       CNS::refine_cutcells          = 1;
+int       CNS::refine_max_dengrad_lev   = -1;
+Real      CNS::refine_dengrad           = 1.0e10;
 Array<RealBox> CNS::refine_boxes;
 
 CNS::CNS ()
@@ -340,6 +342,37 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
             }
         }
     }
+
+    if (level < refine_max_dengrad_lev)
+    {
+        int ng = 1;
+        const auto& rho = derive("density", time, ng);
+        const MultiFab& S_new = get_new_data(State_Type);
+
+        const char   tagval = TagBox::SET;
+        const char clearval = TagBox::CLEAR;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(*rho,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+
+            const auto& sfab = dynamic_cast<EBFArrayBox const&>(S_new[mfi]);
+            const auto& flag = sfab.getEBCellFlagFab();
+
+            const FabType typ = flag.getType(bx);
+            if (typ != FabType::covered)
+            {
+                cns_tag_denerror(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD(tags[mfi]),
+                                 BL_TO_FORTRAN_ANYD((*rho)[mfi]),
+                                 BL_TO_FORTRAN_ANYD(flag),
+                                 &refine_dengrad, &tagval, &clearval);
+            }
+        }
+    }
 }
 
 void
@@ -368,6 +401,9 @@ CNS::read_params ()
     pp.query("do_reflux", do_reflux);
 
     pp.query("refine_cutcells", refine_cutcells);
+
+    pp.query("refine_max_dengrad_lev", refine_max_dengrad_lev);
+    pp.query("refine_dengrad", refine_dengrad);
 
     int irefbox = 0;
     Array<Real> refboxlo, refboxhi;
