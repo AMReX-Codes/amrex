@@ -4,9 +4,35 @@
 
 #include <cstdlib>
 #include <memory>
+#include <AMReX.H>
 
 #ifdef NVML
 #include <nvml.h>
+#endif
+
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+
+#define CudaErrorCheck() ActualCudaErrorCheck()
+
+inline void ActualCudaErrorCheck() {            \
+    cudaError_t err = cudaGetLastError();       \
+    if (err != cudaSuccess) {                   \
+        std::string errStr("CUDA failure: ");   \
+        errStr.append(cudaGetErrorString(err)); \
+        amrex::Abort(errStr);                   \
+    }                                           \
+}
+
+#define CudaAPICheck(error) ActualCudaAPICheck(error)
+
+inline void ActualCudaAPICheck(cudaError_t err) { \
+    if (err != cudaSuccess) {                     \
+        std::string errStr("CUDA failure: ");     \
+        errStr.append(cudaGetErrorString(err));   \
+        amrex::Abort(errStr);                     \
+    }                                             \
+}
+
 #endif
 
 extern "C" {

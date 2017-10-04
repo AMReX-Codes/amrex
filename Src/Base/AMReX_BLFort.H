@@ -54,7 +54,8 @@
 #define FORT_LAUNCH(box, function, ...)  \
     dim3 numBlocks, numThreads; \
     Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
-    function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__)
+    function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+    CudaErrorCheck();
 #define FORT_LAUNCHABLE(func) __global__ func
 
 #else
