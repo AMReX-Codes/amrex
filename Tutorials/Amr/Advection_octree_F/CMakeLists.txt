@@ -13,7 +13,7 @@ set ( EXENAME  "Advection_octree_F.exe")
 #  automagically
 #
 scan_for_sources (F90SRC F77SRC CXXSRC ALLHEADERS)
-print_list (F90SRC)
+
 #
 # Find input files 
 #
