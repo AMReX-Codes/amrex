@@ -669,6 +669,8 @@ public:
 
 inline BoxConverter::~BoxConverter () { }
 
+void AllGatherBoxes (Array<Box>& bxs);
+
 }
 
 #endif /*BL_BOX_H*/
