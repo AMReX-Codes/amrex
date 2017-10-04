@@ -91,6 +91,13 @@ extern "C" {
                             const amrex_real* volfrac, const int* vlo, const int* vhi,
                             const int* domlo, const int* domhi);
 
+    void cns_tag_denerror (const int* lo, const int* hi,
+                           char* tag, const int* tlo, const int* thi,
+                           amrex_real* rho, const int* rlo, const int* rhi,
+                           const void* flag, const int* flo, const int* fhi,
+                           const amrex_real* dengrad, const char* tagval, const char* clearval);
+
+
 #ifdef __cplusplus
 }
 #endif
