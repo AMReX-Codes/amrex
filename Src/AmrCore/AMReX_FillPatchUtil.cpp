@@ -4,7 +4,7 @@
 #include <cmath>
 
 #ifdef AMREX_USE_EB
-#include <AMReX_EBLevel.H>
+#include <AMReX_EBFabFactory.H>
 #endif
 
 #ifdef _OPENMP
@@ -114,6 +114,21 @@ namespace amrex
 	physbcf.FillBoundary(mf, dcomp, ncomp, time);
     }
 
+    void FillPatchTwoLevels (MultiFab& mf, Real time,
+			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
+			     const Array<MultiFab*>& fmf, const Array<Real>& ft,
+			     int scomp, int dcomp, int ncomp,
+			     const Geometry& cgeom, const Geometry& fgeom, 
+			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
+			     const IntVect& ratio, 
+			     Interpolater* mapper, const BCRec& bcs)
+    {
+        Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
+
+        FillPatchTwoLevels(mf,time,cmf,ct,fmf,ft,scomp,dcomp,ncomp,cgeom,fgeom,
+                           cbc,fbc,ratio,mapper,bcs_array);
+    }
+
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
 			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
@@ -189,6 +204,20 @@ namespace amrex
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
+				Interpolater* mapper, const BCRec& bcs)
+    {
+
+        Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
+        InterpFromCoarseLevel(mf,time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
+                              cbc,fbc,ratio,mapper,bcs_array);
+
+    }
+
+
+    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf, 
+				int scomp, int dcomp, int ncomp,
+				const Geometry& cgeom, const Geometry& fgeom, 
+				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
 				Interpolater* mapper, const Array<BCRec>& bcs)
     {
 	const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
@@ -222,8 +251,7 @@ namespace amrex
 	}
 
 #ifdef AMREX_USE_EB
-        EBLevel eblg (ba_crse_patch, dm, cgeom.Domain(), 0);
-        const EBFArrayBoxFactory factory{eblg};
+        const EBFArrayBoxFactory factory{cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic};
 #else
         const FArrayBoxFactory factory{};
 #endif

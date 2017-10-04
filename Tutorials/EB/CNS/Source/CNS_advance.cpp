@@ -2,6 +2,9 @@
 #include <CNS.H>
 #include <CNS_F.H>
 
+#include <AMReX_EBFArrayBox.H>
+#include <AMReX_MultiCutFab.H>
+
 using namespace amrex;
 
 Real
@@ -15,6 +18,7 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     }
 
     MultiFab& S_new = get_new_data(State_Type);
+    MultiFab& S_old = get_old_data(State_Type);
     MultiFab dSdt(grids,dmap,NUM_STATE,0,MFInfo(),Factory());
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW,MFInfo(),Factory());
   
@@ -44,11 +48,14 @@ CNS::advance (Real time, Real dt, int iteration, int ncycle)
     computeTemp(S_new,0);
     
     // RK2 stage 2
-    // After fillpatch Sborder = U^n+0.5*dt*dUdt^n
-    FillPatch(*this, Sborder, NUM_GROW, time+0.5*dt, State_Type, 0, NUM_STATE);
+    // After fillpatch Sborder = U^n+dt*dUdt^n
+    FillPatch(*this, Sborder, NUM_GROW, time+dt, State_Type, 0, NUM_STATE);
     compute_dSdt(Sborder, dSdt, 0.5*dt, fr_as_crse, fr_as_fine);
-    // U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
-    MultiFab::LinComb(S_new, 1.0, Sborder, 0, 0.5*dt, dSdt, 0, 0, NUM_STATE, 0);
+    // S_new = 0.5*(Sborder+S_old) = U^n + 0.5*dt*dUdt^n
+    MultiFab::LinComb(S_new, 0.5, Sborder, 0, 0.5, S_old, 0, 0, NUM_STATE, 0);
+    // S_new += 0.5*dt*dSdt
+    MultiFab::Saxpy(S_new, 0.5*dt, dSdt, 0, 0, NUM_STATE, 0);
+    // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     computeTemp(S_new,0);
     
     return dt;
@@ -87,6 +94,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             const auto& sfab = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             const auto& flag = sfab.getEBCellFlagFab();
 
+            //if (1){
             if (flag.getType(bx) == FabType::covered) {
                 dSdt[mfi].setVal(0.0, bx, 0, ncomp);
             } else {
@@ -132,14 +140,14 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                         BL_TO_FORTRAN_ANYD(flux[1]),
                                         BL_TO_FORTRAN_ANYD(flux[2]),
                                         BL_TO_FORTRAN_ANYD(flag),
-                                        BL_TO_FORTRAN_ANYD(volfrac[mfi]),
-                                        BL_TO_FORTRAN_ANYD(bndrycent[mfi]),
-                                        BL_TO_FORTRAN_ANYD(areafrac[0][mfi]),
-                                        BL_TO_FORTRAN_ANYD(areafrac[1][mfi]),
-                                        BL_TO_FORTRAN_ANYD(areafrac[2][mfi]),
-                                        BL_TO_FORTRAN_ANYD(facecent[0][mfi]),
-                                        BL_TO_FORTRAN_ANYD(facecent[1][mfi]),
-                                        BL_TO_FORTRAN_ANYD(facecent[2][mfi]),
+                                        BL_TO_FORTRAN_ANYD((*volfrac)[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*bndrycent)[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*areafrac[0])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*areafrac[1])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*areafrac[2])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*facecent[0])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*facecent[1])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*facecent[2])[mfi]),
                                         &as_crse,
                                         BL_TO_FORTRAN_ANYD(*p_drho_as_crse),
                                         BL_TO_FORTRAN_ANYD(*p_rrflag_as_crse),
@@ -150,18 +158,18 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
                     if (fr_as_crse) {
                         fr_as_crse->CrseAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
-                                            volfrac[mfi],
-                                            {&areafrac[0][mfi],
-                                             &areafrac[1][mfi],
-                                             &areafrac[2][mfi]});
+                                            (*volfrac)[mfi],
+                                            {&((*areafrac[0])[mfi]),
+                                             &((*areafrac[1])[mfi]),
+                                             &((*areafrac[2])[mfi])});
                     }
 
                     if (fr_as_fine) {
                         fr_as_fine->FineAdd(mfi, {&flux[0],&flux[1],&flux[2]}, dx,dt,
-                                            volfrac[mfi],
-                                            {&areafrac[0][mfi],
-                                             &areafrac[1][mfi],
-                                             &areafrac[2][mfi]},
+                                            (*volfrac)[mfi],
+                                            {&((*areafrac[0])[mfi]),
+                                             &((*areafrac[1])[mfi]),
+                                             &((*areafrac[2])[mfi])},
                                             dm_as_fine);
                     }
                 }

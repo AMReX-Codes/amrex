@@ -12,8 +12,8 @@ class InTransitAnalysis
     private:
         amrex::MultiFab* mf;
         amrex::Geometry* geom;
-        Real norm0;
-        Real probsize;
+        amrex::Real norm0;
+        amrex::Real probsize;
         int time_step;
 };
 

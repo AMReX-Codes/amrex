@@ -123,6 +123,15 @@ BoxList::BoxList (const BoxArray &ba)
 {
 }
 
+BoxList::BoxList (Array<Box>&& bxs)
+    : m_lbox(std::move(bxs)),
+      btype(IndexType::TheCellType())
+{
+    if (m_lbox.size() > 0) {
+        btype = m_lbox[0].ixType();
+    }
+}
+
 BoxList::BoxList(const Box& bx, const IntVect& tilesize)
     : btype(bx.ixType())
 {
