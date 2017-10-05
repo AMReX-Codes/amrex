@@ -471,6 +471,8 @@ MFIter::reduce()
 
     // Do nothing if we don't have enough values to reduce on.
 
+    if (real_reduce_list.empty()) return;
+
     if (real_reduce_list.size() < length()) return;
 
     Real result;
