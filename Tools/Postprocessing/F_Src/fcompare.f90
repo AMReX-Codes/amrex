@@ -4,14 +4,70 @@
 !
 
 module util_module
+  use bl_constants_module, only: dp_t
+  implicit none
   type zone_t
      integer :: level
      integer :: box
      integer :: i
      integer :: j
      integer :: k
+     real(kind=dp_t) :: max_abs_err
   end type zone_t
 end module util_module
+
+module reduction_mod
+  implicit none
+
+  integer, public :: norm
+  integer, public :: n_a, n_b
+  integer, public :: zone_info_var_a
+  contains
+
+    subroutine fort_error_reduce(omp_in, omp_out)
+      use bl_constants_module, only: dp_t
+      implicit none
+      real(dp_t), dimension(:), intent(in) :: omp_in
+      real(dp_t), dimension(:), intent(inout) :: omp_out
+      if (norm == 0) then
+        omp_out(n_a) = max(omp_out(n_a), omp_in(n_a))
+      else
+        omp_out(n_a) = omp_out(n_a) + omp_in(n_a)
+      end if
+    end subroutine fort_error_reduce
+
+    subroutine fort_err_zone_reduce(omp_in, omp_out)
+      use bl_constants_module, only: dp_t
+      use util_module, only: zone_t
+      implicit none
+      type(zone_t), intent(in) :: omp_in
+      type(zone_t), intent(inout) :: omp_out
+
+      if (omp_in % max_abs_err > omp_out % max_abs_err) then
+        omp_out % max_abs_err = omp_in % max_abs_err
+        omp_out % level       = omp_in % level
+        omp_out % box         = omp_in % box
+        omp_out % i           = omp_in % i
+        omp_out % j           = omp_in % j
+        omp_out % k           = omp_in % k
+      end if
+
+    end subroutine fort_err_zone_reduce
+
+    subroutine fort_init_err_zone(omp_priv)
+      use util_module, only: zone_t
+      implicit none
+      type(zone_t), intent(out) :: omp_priv
+
+      omp_priv % level = 0
+      omp_priv % box = 0
+      omp_priv % i = 0
+      omp_priv % j = 0
+      omp_priv % k = 0
+      omp_priv % max_abs_err = 0.0
+    end subroutine fort_init_err_zone
+
+end module reduction_mod
 
 program fcompare
 
@@ -22,6 +78,10 @@ program fcompare
   use plotfile_module
   use multifab_module
   use util_module
+  use reduction_mod, only: fort_error_reduce, &
+                           fort_err_zone_reduce, &
+                           fort_init_err_zone, &
+                           norm, n_a, n_b, zone_info_var_a
 
   implicit none
 
@@ -42,16 +102,13 @@ program fcompare
 
   integer :: nboxes_a, nboxes_b
 
-  integer :: n_a, n_b
   integer, allocatable :: ivar_b(:)
-  integer :: save_var_a, zone_info_var_a
+  integer :: save_var_a
 
   real(kind=dp_t), allocatable :: aerror(:), rerror(:), rerror_denom(:)
 
   logical, allocatable :: has_nan_a(:), has_nan_b(:)
   logical :: any_nans, all_variables_found
-
-  integer :: norm
 
   integer :: narg, farg
   character (len=256) :: fname
@@ -80,8 +137,11 @@ program fcompare
   logical :: do_ghost, gc_warn
 
   type(zone_t) :: err_zone
-  real (kind=dp_t) :: max_abs_err
 
+  !$omp declare reduction(err_reduce: real(kind=dp_t): fort_error_reduce(omp_in, omp_out))
+
+  !$omp declare reduction(err_zone_reduce: zone_t: fort_err_zone_reduce(omp_in, omp_out)) &
+  !$omp   initializer(fort_init_err_zone(omp_priv))
 
   !---------------------------------------------------------------------------
   ! process the command line arguments
@@ -301,7 +361,7 @@ program fcompare
            call push_back(bl, get_box(pf_a,i,j))
         enddo
 
-        call build(ba,bl)
+        call build(ba,bl,sort=.false.)
         call layout_build_ba(la,ba,plotfile_get_pd_box(pf_a,1))
 
         ! destroy the list and boxarray so we start over next level
@@ -329,7 +389,7 @@ program fcompare
 
   gc_warn = .false.
 
-  max_abs_err = -1.d33
+  err_zone%max_abs_err = -1.d33
 
   do i = 1, pf_a%flevel
 
@@ -423,6 +483,11 @@ program fcompare
 
            if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
 
+           !$omp parallel do collapse(2) default(none) &
+           !$omp   shared(lo_a, hi_a, ng, p_a, p_b, norm, n_a, zone_info_var_a, i, j) &
+           !$omp   private(pa, pb, pd) &
+           !$omp   reduction(err_reduce:aerror, rerror, rerror_denom) &
+           !$omp   reduction(err_zone_reduce:err_zone)
            do kk = lo_a(3)-ng, hi_a(3)+ng
               do jj = lo_a(2)-ng, hi_a(2)+ng
                  do ii = lo_a(1)-ng, hi_a(1)+ng
@@ -443,8 +508,8 @@ program fcompare
                        rerror_denom(n_a) = rerror_denom(n_a) + pa**norm
                     endif
 
-                    if (n_a == zone_info_var_a .and. pd > max_abs_err) then
-                       max_abs_err = pd
+                    if (n_a == zone_info_var_a .and. pd > err_zone%max_abs_err) then
+                       err_zone % max_abs_err = pd
                        err_zone % level = i
                        err_zone % box = j
                        err_zone % i = ii

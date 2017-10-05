@@ -66,6 +66,9 @@ namespace amrex
     */
     static EBIndexSpace* instance();
 
+    // delete the singleton
+    static void reset ();
+
   };
 
   ///
@@ -76,10 +79,6 @@ namespace amrex
   class EBISLevel
   {
   public:
-
-    void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);
-
-    void coarsenFaces(EBISLevel& a_fineEBIS);
 
     EBISLevel()
       {
@@ -138,6 +137,8 @@ namespace amrex
     ///define from file
     void  readHeader(const string& a_dirname);
 
+    const FabArray<EBGraph>& getGraph () const { return m_graph; }
+
   private:
     int m_nCellMax;
      
@@ -162,19 +163,11 @@ namespace amrex
 
 
     void defineFromGeometryService(const GeometryService &  a_geoserver);
-
+    void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);
 
     //these are disallowed
-    void operator=(const EBISLevel& ebiin)
-      {
-        amrex::Error("EBISLevel::operator= not allowed");
-      }
-
-    EBISLevel(const EBISLevel& ebiin)
-      {
-        amrex::Error("EBISLevel::copy constructor not allowed");
-      }
-
+    void operator=(const EBISLevel& ebiin) = delete;
+    EBISLevel(const EBISLevel& ebiin) = delete;
   };
 }
 #endif

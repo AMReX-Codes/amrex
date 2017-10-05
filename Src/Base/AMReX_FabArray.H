@@ -43,6 +43,10 @@
 #include <AMReX_parstream.H>
 #include <AMReX_SPMD.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#endif
+
 namespace amrex {
 
 /*
@@ -182,6 +186,8 @@ public:
 
     const FabFactory<FAB>& Factory () const { return *m_factory; }
 
+    Box getDomain () const { return m_factory->getDomain(); }
+
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
     * if FABs are allocated for each Box in the BoxArray and the
@@ -218,7 +224,7 @@ public:
     void setFab (int K, FAB* elem);
 
     //! Explicitly set the FAB associated with mfi in the FabArray to point to elem.
-    void setFab (const MFIter&mfi, FAB* elem);
+    void setFab (const MFIter&mfi, FAB* elem, bool assertion=true);
 
     //! Releases FAB memory in the FabArray.
     void clear ();
@@ -912,11 +918,11 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        nvar,
                          int                        ngrow,
                          const Array<value_type*>&  pval)
-    : shmem()
+    : m_factory(new DefaultFabFactory<FAB>()),
+      shmem()
 {
     m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false),
-           DefaultFabFactory<FAB>());
+    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false), *m_factory);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         setFab(mfi, new FAB(mfi.fabbox(),nvar,pval[mfi.LocalIndex()]));
@@ -1188,22 +1194,25 @@ FabArray<FAB>::setFab (int  boxno,
 template <class FAB>
 void
 FabArray<FAB>::setFab (const MFIter& mfi,
-                       FAB* elem)
+                       FAB* elem, bool assertion)
 {
-    //
-    // Must check it is of the proper size.
-    //
-    if (n_comp == 0)
-        n_comp = elem->nComp();
-
-    BL_ASSERT(n_comp == elem->nComp());
-    BL_ASSERT(boxarray.size() > 0);
-    BL_ASSERT(elem->box() == fabbox(mfi.index()));
-    BL_ASSERT(!this->defined(mfi));
-    BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
+    if (assertion)
+    {
+        //
+        // Must check it is of the proper size.
+        //
+        if (n_comp == 0)
+            n_comp = elem->nComp();
+        
+        BL_ASSERT(n_comp == elem->nComp());
+        BL_ASSERT(boxarray.size() > 0);
+        BL_ASSERT(elem->box() == fabbox(mfi.index()));
+        BL_ASSERT(!this->defined(mfi));
+        BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());        
+    }
 
     if (m_fabs_v.size() == 0) {
-	m_fabs_v.resize(indexArray.size());
+        m_fabs_v.resize(indexArray.size());
     }
 
     m_fabs_v[mfi.LocalIndex()] = elem;
@@ -2862,9 +2871,9 @@ if(myProc == 0) {
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
-    for(auto afapIter = allocatedFAPointers.begin(); afapIter != allocatedFAPointers.end(); ++afapIter) {
-      std::cout << "afapIter->first (ngrids) = " << afapIter->first << "  :: ===================" << std::endl;
-      std::map<int, FabArray<FAB> *> &afapMap = afapIter->second;
+    for(auto it = allocatedFAPointers.begin(); it != allocatedFAPointers.end(); ++it) {
+      std::cout << "it->first (ngrids) = " << it->first << "  :: ===================" << std::endl;
+      std::map<int, FabArray<FAB> *> &afapMap = it->second;
       for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
 	auto fap = afapMapIter->second;
         std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << afapMapIter->second << std::endl; 
@@ -3001,9 +3010,9 @@ if(myProc == 0) {
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
-    for(auto afapIter = allocatedFAPointers.begin(); afapIter != allocatedFAPointers.end(); ++afapIter) {
-      std::cout << "afapIter->first (ngrids) = " << afapIter->first << "  :: ===================" << std::endl;
-      std::map<int, FabArray<FAB> *> &afapMap = afapIter->second;
+    for(auto it = allocatedFAPointers.begin(); it != allocatedFAPointers.end(); ++it) {
+      std::cout << "it->first (ngrids) = " << it->first << "  :: ===================" << std::endl;
+      std::map<int, FabArray<FAB> *> &afapMap = it->second;
       for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
 	auto fap = afapMapIter->second;
         std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << afapMapIter->second << std::endl; 

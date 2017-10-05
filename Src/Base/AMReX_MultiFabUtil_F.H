@@ -9,6 +9,11 @@ extern "C"
 #endif
     void amrex_fort_avg_nd_to_cc(const int* lo, const int* hi, const int* ncomp,
                                  BL_FORT_FAB_ARG(cc), const BL_FORT_FAB_ARG(nd));
+
+    void amrex_fort_int_to_real (const int* lo, const int* hi, const int* ncomp,
+                                 amrex_real* rdata, const int* rlo, const int* rhi,
+                                 const int* idata, const int* ilo, const int* ihi);
+
 #ifdef __cplusplus
 }
 #endif

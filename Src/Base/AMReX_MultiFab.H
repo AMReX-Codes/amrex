@@ -10,11 +10,6 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_Periodicity.H>
 
-#ifdef AMREX_USE_EB
-#include <AMReX_EBFabFactory.H>
-#include <AMReX_EBFArrayBox.H>
-#endif
-
 namespace amrex
 {
 

@@ -6,6 +6,8 @@
 #include <AMReX_Particles.H>
 #include <AMReX_MultiFab.H>
 
+#include "AMReX_KDTree_F.H"
+
 class KDTree {
 
     struct KDNode {
@@ -61,7 +63,7 @@ namespace loadBalanceKD {
 
     template <typename T>
     void computeCost(T& myPC, amrex::MultiFab& local_cost, 
-                     amrex::MultiFab& global_cost, const amrex::Box& domain) {
+                     amrex::MultiFab& global_cost, const amrex::Box& domain, amrex::Real cell_weight) {
         
         const int lev = 0;
         const amrex::BoxArray& ba = myPC.ParticleBoxArray(lev);
@@ -77,16 +79,25 @@ namespace loadBalanceKD {
         amrex::BoxArray global_ba(global_bl);    
         amrex::DistributionMapping global_dm(procs_map);    
         
+        amrex::MultiFab pcounts(ba, dm, 1, 0);
+        pcounts.setVal(0.0);
+        myPC.Increment(pcounts, lev);
+
         local_cost.define(ba, dm, 1, 0);
-        local_cost.setVal(0.0);
-        myPC.Increment(local_cost, lev);
+        for (amrex::MFIter mfi(local_cost); mfi.isValid(); ++mfi) {
+            const amrex::Box& box = ba[mfi];
+            amrex_compute_cost(pcounts[mfi].dataPtr(),
+                               local_cost[mfi].dataPtr(),
+                               box.loVect(), box.hiVect(), cell_weight);
+        } 
         
         global_cost.define(global_ba, global_dm, 1, 0);
         global_cost.copy(local_cost, 0, 0, 1);
     }
 
     template <typename T>
-    void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs) {
+    void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs, amrex::Real cell_weight,
+                 amrex::Array<amrex::Real>& box_costs) {
         
         const int lev = 0;
         const amrex::Geometry& geom = myPC.Geom(lev);
@@ -94,8 +105,8 @@ namespace loadBalanceKD {
         
         amrex::MultiFab local_cost;
         amrex::MultiFab global_cost;    
-        computeCost<T>(myPC, local_cost, global_cost, domain);
-        
+        computeCost<T>(myPC, local_cost, global_cost, domain, cell_weight);
+
         amrex::FArrayBox *cost;
         for ( amrex::MFIter mfi(global_cost); mfi.isValid(); ++mfi ) {
             cost = &global_cost[mfi];
@@ -104,7 +115,7 @@ namespace loadBalanceKD {
         KDTree tree = KDTree(domain, *cost, num_procs);
         
         amrex::BoxList new_bl;
-        amrex::Array<amrex::Real> box_costs;
+//      amrex::Array<amrex::Real> box_costs;
         tree.GetBoxes(new_bl, box_costs);
         new_ba.define(new_bl);
     }

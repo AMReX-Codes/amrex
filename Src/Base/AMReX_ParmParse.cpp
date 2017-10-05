@@ -915,8 +915,8 @@ ParmParse::ParmParse (const std::string& prefix)
     m_pstack.push(prefix);
 }
 
-ParmParse::ParmParse (const Table& table)
-    : m_table(table)
+ParmParse::ParmParse (const Table& a_table)
+    : m_table(a_table)
 {
     m_pstack.push("");
 }

@@ -1,6 +1,8 @@
 
 #include <AMReX_EBAmrUtil.H>
 #include <AMReX_EBAmrUtil_F.H>
+#include <AMReX_EBFArrayBox.H>
+#include <AMReX_EBCellFlag.H>
 
 #ifdef _OPENMP
 #include <omp.h>

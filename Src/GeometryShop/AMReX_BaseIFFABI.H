@@ -15,6 +15,8 @@
 #include "AMReX_SPMD.H"
 #include "AMReX_parstream.H"
 
+#include <cmath>
+
 namespace amrex
 {
   //static const IntVect deb_ivlo(D_DECL(33,13, 0));
@@ -132,25 +134,6 @@ namespace amrex
     for (int iface = 0; iface < m_faces.size(); iface++)
     {
       const FaceIndex& face = m_faces[iface];
-//begin debug
-    IntVect loiv(D_DECL(127, 131, 104));
-    IntVect hiiv(D_DECL(128, 131, 104));
-    FaceIndex debface(VolIndex(loiv, 0), VolIndex(hiiv, 0));
-
-    if(face==debface)
-    {
-      int cond1 = 0;
-      int cond2 = 0;
-      if(intBox.contains(loiv) || intBox.contains(hiiv))
-      {
-        cond1 = 1;
-      }      
-      if(ivsintersect.contains(loiv) || ivsintersect.contains(hiiv))
-      {
-        cond2 = 1;
-      }
-    }
-//end debug
       const IntVect& ivHi = face.gridIndex(Side::Hi);
       const IntVect& ivLo = face.gridIndex(Side::Lo);
       if ((intBox.contains(ivHi) || intBox.contains(ivLo)) &&
@@ -161,7 +144,9 @@ namespace amrex
         {
           int isrccomp = a_srccomp  + icomp;
           int idstcomp = a_destcomp + icomp;
-          (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
+          if (!std::isnan(a_src(src_ifaceindex, isrccomp))) {
+              (*this)(iface, idstcomp) = a_src(src_ifaceindex, isrccomp);
+          }
         }
       }
     }
@@ -226,8 +211,7 @@ namespace amrex
     assert(isDefined());
     assert(a_ndin.direction() == m_direction);
 
-    T* dataPtr =   getIndex(a_ndin, a_comp);
-    return(*dataPtr);
+    return *(getIndex(a_ndin, a_comp));
   }
 /**************************/
   template <class T> inline
@@ -238,8 +222,7 @@ namespace amrex
     assert(isDefined());
     assert(a_ndin.direction() == m_direction);
 
-    T* dataPtr =   getIndex(a_ndin, a_comp);
-    return(*dataPtr);
+    return *(getIndex(a_ndin, a_comp));
   }
 /******************/
   template <class T> inline
@@ -386,10 +369,13 @@ namespace amrex
       for (int icomp = dstcomp; icomp <= endcomp; icomp++)
       {
         //input the data
-        T& dataPt = (*this)(face, icomp);
-        linearIn(dataPt, buffer) ;
+        T value;
+        linearIn(value, buffer) ;
+        if (!std::isnan(value)) {
+            (*this)(face, icomp) = value;
+        }
         //increment the buffer offset
-        incrval = linearSize(dataPt);
+        incrval = linearSize(value);
         buffer += incrval;
         retval += incrval;
       }
@@ -525,8 +511,11 @@ namespace amrex
       const FaceIndex face = m_faces[iface];
       for(int icomp = 0; icomp < m_nComp; icomp++)
       {
-        T& value = (*this)(face, icomp);
+        T value;
         linearIn(value, buf);
+        if (!std::isnan(value)) {
+            (*this)(face, icomp) = value;
+        }
         incval = linearSize(value);
         retval += incval;
         buf    += incval;

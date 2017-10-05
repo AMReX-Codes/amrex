@@ -123,6 +123,15 @@ BoxList::BoxList (const BoxArray &ba)
 {
 }
 
+BoxList::BoxList (Array<Box>&& bxs)
+    : m_lbox(std::move(bxs)),
+      btype(IndexType::TheCellType())
+{
+    if (m_lbox.size() > 0) {
+        btype = m_lbox[0].ixType();
+    }
+}
+
 BoxList::BoxList(const Box& bx, const IntVect& tilesize)
     : btype(bx.ixType())
 {
@@ -516,7 +525,7 @@ BoxList::maxSize (const IntVect& chunk)
                 // Determine number and size of (coarsened) cuts.
                 //
                 const int numblk = nlen/bs + (nlen%bs ? 1 : 0);
-                const int size   = nlen/numblk;
+                const int sz     = nlen/numblk;
                 const int extra  = nlen%numblk;
                 //
                 // Number of cuts = number of blocks - 1.
@@ -526,7 +535,7 @@ BoxList::maxSize (const IntVect& chunk)
                     //
                     // Compute size of this chunk, expand by power of 2.
                     //
-                    const int ksize = (k < extra ? size+1 : size) * ratio;
+                    const int ksize = (k < extra ? sz+1 : sz) * ratio;
                     //
                     // Chop from high end.
                     //

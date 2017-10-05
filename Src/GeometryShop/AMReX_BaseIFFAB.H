@@ -18,6 +18,7 @@
 #include "AMReX_FaceIndex.H"
 #include "AMReX_BaseFab.H"
 #include "AMReX_EBGraph.H"
+#include "AMReX_Print.H"
 
 
 namespace amrex
@@ -194,7 +195,7 @@ namespace amrex
 
     ///default false. can make this true with template specialization if you are sure.
     static bool preAllocatable () { return false; }
-    static bool isCopyOMPSafe () { return true; }
+    static bool isCopyOMPSafe () { return false; }
 
     ///includes all meta data
     std::size_t nBytesFull() const;
@@ -251,16 +252,20 @@ namespace amrex
 
     bool    m_isDefined;
 
-    int getFaceIndexIndex (const FaceIndex& a_face) const {
+    int getFaceIndexIndex (const FaceIndex& a_face) const 
+      {
+        AMREX_ASSERT(std::is_sorted(m_faces.begin(), m_faces.end()));
 	auto low = std::lower_bound(m_faces.begin(), m_faces.end(), a_face);
-	if (low == m_faces.end() || a_face != *low) {
-	    amrex::Error("BaseIFFAB:index not found");
+	if (low == m_faces.end() || a_face != *low) 
+        {
+          amrex::AllPrint() << "face = " << a_face << endl;
+          amrex::Error("BaseIFFAB:index not found");
 	}
 	return low - m_faces.begin();
-    }
+      }
 
     T* getIndex(int ifaceindex, int a_comp) const {
-	return m_data + ifaceindex + a_comp*m_nFaces;
+      return m_data + ifaceindex + a_comp*m_nFaces;
     }
 
   private:

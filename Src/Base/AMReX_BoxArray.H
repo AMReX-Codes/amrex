@@ -442,6 +442,7 @@ public:
         bool operator<  (const RefID& rhs) const { return std::less<BARef*>()(data,rhs.data); }
         bool operator== (const RefID& rhs) const { return data == rhs.data; }
         bool operator!= (const RefID& rhs) const { return data != rhs.data; }
+        friend std::ostream& operator<< (std::ostream& os, const RefID& id);
     private:
         BARef* data;
     };
@@ -489,6 +490,8 @@ private:
 
 //! Write a BoxArray to an ostream in ASCII format.
 std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
+
+std::ostream& operator<< (std::ostream& os, const BoxArray::RefID& id);
 
 }
 

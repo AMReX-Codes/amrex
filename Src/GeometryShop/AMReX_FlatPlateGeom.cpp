@@ -400,7 +400,6 @@ namespace amrex
       const IntVect iv =bit();
       if(a_regIrregCovered(iv, 0) == 0)
       {
-        const IntVect iv =bit();
         addIrregularNodes(a_nodes, numVolumes, iv, a_domain, a_origin, a_dx);
       }
     }

@@ -20,6 +20,7 @@
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseFab.H"
 #include "AMReX_LoHiSide.H"
+#include <array>
 
 namespace amrex
 {
@@ -37,7 +38,10 @@ namespace amrex
     ~IrregNode(){;}
 
     ///return the index into the arc vectors
-    static int index(int a_idir, Side::LoHiSide a_side) ;
+    static int index(int a_idir, Side::LoHiSide a_side) {
+        AMREX_ASSERT(a_idir >= 0 && a_idir < SpaceDim);
+        return (a_side == Side::Lo) ? a_idir : a_idir+SpaceDim;
+    }
 
     ///
     IntVect     m_cell;
@@ -70,40 +74,16 @@ namespace amrex
        For arcs to regular cells, the arc = 0
        If the arc is to the domain boundary, arc  = -1.
     */
-    Array<int>      m_arc[2*SpaceDim];
+    std::array<Array<int>,2*SpaceDim>      m_arc;
 
     ///
-    Array<Real>     m_areaFrac[2*SpaceDim];
+    std::array<Array<Real>,2*SpaceDim>     m_areaFrac;
 
     ///
-    Array<RealVect> m_faceCentroid[2*SpaceDim];
+    std::array<Array<RealVect>,2*SpaceDim> m_faceCentroid;
 
-    Real bndryArea() const
-    {
-      Real retval;
+    Real bndryArea() const;
 
-      Real irregArea=0.0;
-      for (int idir=0; idir < SpaceDim; idir++)
-        {
-          int loindex = index(idir, Side::Lo);
-          int hiindex = index(idir, Side::Hi);
-          Real loArea = 0;   
-          Real hiArea = 0;
-          Array<Real> loAreas = m_areaFrac[loindex];
-          Array<Real> hiAreas = m_areaFrac[hiindex];
-          for(int ilo = 0; ilo < loAreas.size(); ilo++)
-            {
-              loArea += loAreas[ilo];
-            }
-          for(int ihi = 0; ihi < hiAreas.size(); ihi++)
-            {
-              hiArea += hiAreas[ihi];
-            }
-          irregArea += (hiArea-loArea)*(hiArea-loArea);
-        }
-      retval = sqrt(irregArea);
-      return retval;;
-    }
     ///
     /**
        helper function for construction.  makes irregular cell

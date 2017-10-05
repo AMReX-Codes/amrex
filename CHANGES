@@ -1,0 +1,24 @@
+# changes since the last releas
+
+  -- Added a load balance approach to Amr/AmrLevel.  The runtime
+     parameters for this is amr.loadbalance_with_workestimates and
+     amr.loadbalance_level0_int.  The latter is for single level
+     (i.e., amr.max_level=0) only.  For multi-level runs, load balance
+     is done during regrid and thus the load balance interval is
+     controlled by amr.regrid_int.  To use this approach, AmrLevel
+     derivative must has a StateData for work estimates and its index
+     is returned by virtual function int WorkEstType().
+
+  -- MFIter now supports dynamic scheduling of OpenMP threads.  For
+     example,
+ 
+       for (MFIter mfi(mf, MFItInfo().SetDynamic(true).EnableTiling(tile_size);
+            mfi.isValid(); ++mfi)
+       { ... }
+
+  -- Added EBFluxRegister to Src/EB for refluxing and
+     re-redistribution in EB.
+
+  -- amrex.signal_handling = 1 is a new runtime parameter that can be
+     used to control whether AMReX should handle signals like SIGSEGV
+     etc. 
