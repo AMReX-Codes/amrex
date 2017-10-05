@@ -117,19 +117,26 @@ amrex::Device::initialize_device() {
     }
 
     // For each rank that shares a GPU, use round-robin assignment
-    // to assign MPI ranks to GPUs. Arbitrarily, we will say that
-    // ranks are assigned to GPUs in numerical MPI rank order.
+    // to assign MPI ranks to GPUs. We will arbitrarily assign
+    // ranks to GPUs. It would be nice to do better here and be
+    // socket-aware, but this is complicated to get right.
 
     device_id = -1;
+    int j = 0;
     for (auto it = uuid_to_rank.begin(); it != uuid_to_rank.end(); ++it) {
         for (int i = 0; i < it->second.size(); ++i) {
-            if (it->second[i] == my_rank % device_count) {
+            if (it->second[i] == my_rank && i % device_count == j) {
+
                 device_id = i;
+
+                break;
             }
         }
+        j += 1;
+        if (device_id != -1) break;
     }
     if (device_id == -1 || device_id >= device_count)
-        amrex::Abort("Could not associated MPI rank with GPU");
+        amrex::Abort("Could not associate MPI rank with GPU");
 
 #endif
 
