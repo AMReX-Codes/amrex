@@ -9,14 +9,12 @@
 #include <cstdio>
 
 //
-// Error-reporting Functions and Version String
+// Initialize, Finalize, Error Reporting, and Version String Functions
 
 /*
- This class consists entirely of static error-reporting functions that
- are used throughout the BoxLib implementation together with a version
- string.  In the best of all possible worlds we'd use a namespace, but
- we aren't there, yet :-)  Note that all the output functions add a
- terminating exclamation mark, so there is no need to add any punctuation
+ This class consists of initialize, finalize, error-reporting, and version
+ functions that are used throughout AMReX.  Note that all the output functions
+ add a terminating exclamation mark, so there is no need to add any punctuation
  to sentences that get output explicitly.
 */
 
@@ -35,7 +33,7 @@ namespace amrex
     * \brief We maintain a stack of functions that need to be called in Finalize().
     * The functions are called in LIFO order.  The idea here is to allow
     * classes to clean up any "global" state that they maintain when we're
-    * exiting from BoxLib land.
+    * exiting from AMReX.
     */
     void ExecOnFinalize (PTR_TO_VOID_FUNC);
     void ExecOnInitialize (PTR_TO_VOID_FUNC);
@@ -55,7 +53,7 @@ namespace amrex
     /**
     * \brief Prints assertion failed messages to cerr and exits
     * via abort().  Intended for use by the BL_ASSERT() macro
-    * in <BLassert.H>.
+    * in <AMReX_BLassert.H>.
     */
     void Assert (const char* EX,
                  const char* file,
