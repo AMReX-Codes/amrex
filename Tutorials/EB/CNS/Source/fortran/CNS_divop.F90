@@ -36,14 +36,26 @@ contains
     end do
   end subroutine compute_divop
 
+  
+  pure logical function is_inside (i,j,k,lo,hi)
+    integer, intent(in) :: i,j,k,lo(3),hi(3)
+    is_inside = i.ge.lo(1) .and. i.le.hi(1) &
+         .and.  j.ge.lo(2) .and. j.le.hi(2) &
+         .and.  k.ge.lo(3) .and. k.le.hi(3)
+  end function is_inside
+
+
   subroutine compute_eb_divop (lo,hi,ncomp, dx, dt, &
-       fluxx,fxlo,fxhi, &
+       fluxx,fxlo,fxhi, &       ! flux at face center
        fluxy,fylo,fyhi, &
        fluxz,fzlo,fzhi, &
+       fctrdx, fcxlo, fcxhi, &     ! flux at centroid
+       fctrdy, fcylo, fcyhi, &
+       fctrdz, fczlo, fczhi, &
        ebdivop, oplo, ophi, &
        q, qlo, qhi, &
        lam, mu, xi, clo, chi, &
-       divc, dvlo, dvhi, &
+       divc, optmp, rediswgt, dvlo, dvhi, &
        delm, dmlo, dmhi, &
        vfrac, vlo, vhi, &
        bcent, blo, bhi, &
@@ -56,27 +68,41 @@ contains
        centy_z, cyzlo, cyzhi, &
        centz_x, czxlo, czxhi, &
        centz_y, czylo, czyhi, &
-       cellflag, cflo, cfhi)
+       cellflag, cflo, cfhi,  &
+       as_crse, rr_drho_crse, rdclo, rdchi, rr_flag_crse, rfclo, rfchi, &
+       as_fine, dm_as_fine, dflo, dfhi, &
+       levmsk, lmlo, lmhi)
+
+    use amrex_eb_flux_reg_nd_module, only : crse_cell, crse_fine_boundary_cell, &
+         covered_by_fine=>fine_cell, reredistribution_threshold
     use cns_module, only : qvar, qrho, qu, qv, qw, qp, qeint, umx, umy, umz, smallr, &
-         use_total_energy_as_eb_weights
+         use_total_energy_as_eb_weights, use_mass_as_eb_weights, use_volfrac_as_eb_weights, &
+         levmsk_notcovered
     use cns_eb_hyp_wall_module, only : compute_hyp_wallflux
     use cns_eb_diff_wall_module, only : compute_diff_wallflux
     integer, intent(in), dimension(3) :: lo, hi, fxlo,fxhi,fylo,fyhi,fzlo,fzhi,oplo,ophi,&
          dvlo,dvhi,dmlo,dmhi,axlo,axhi,aylo,ayhi,azlo,azhi,cxylo,cxyhi,cxzlo,cxzhi,&
          cyxlo,cyxhi,cyzlo,cyzhi,czxlo,czxhi,czylo,czyhi,vlo,vhi,cflo,cfhi, qlo,qhi, &
-         clo, chi, blo, bhi
+         clo, chi, blo, bhi, fcxlo, fcxhi, fcylo, fcyhi, fczlo, fczhi, &
+         rdclo, rdchi, rfclo, rfchi, dflo, dfhi, lmlo, lmhi
+    logical, intent(in) :: as_crse, as_fine
     integer, intent(in) :: ncomp
     real(rt), intent(in) :: dx(3), dt
-    real(rt), intent(in) :: fluxx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),ncomp)
-    real(rt), intent(in) :: fluxy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),ncomp)
-    real(rt), intent(in) :: fluxz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),ncomp)
+    real(rt), intent(in   ) :: fluxx ( fxlo(1): fxhi(1), fxlo(2): fxhi(2), fxlo(3): fxhi(3),ncomp)
+    real(rt), intent(in   ) :: fluxy ( fylo(1): fyhi(1), fylo(2): fyhi(2), fylo(3): fyhi(3),ncomp)
+    real(rt), intent(in   ) :: fluxz ( fzlo(1): fzhi(1), fzlo(2): fzhi(2), fzlo(3): fzhi(3),ncomp)
+    real(rt), intent(inout) :: fctrdx(fcxlo(1):fcxhi(1),fcxlo(2):fcxhi(2),fcxlo(3):fcxhi(3),ncomp)
+    real(rt), intent(inout) :: fctrdy(fcylo(1):fcyhi(1),fcylo(2):fcyhi(2),fcylo(3):fcyhi(3),ncomp)
+    real(rt), intent(inout) :: fctrdz(fczlo(1):fczhi(1),fczlo(2):fczhi(2),fczlo(3):fczhi(3),ncomp)
     real(rt), intent(inout) :: ebdivop(oplo(1):ophi(1),oplo(2):ophi(2),oplo(3):ophi(3),ncomp)
     real(rt), intent(in) ::   q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),qvar)
     real(rt), intent(in) :: lam(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(rt), intent(in) :: mu (clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(rt), intent(in) :: xi (clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
-    real(rt), intent(inout) :: divc(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
-    real(rt), intent(inout) :: delm(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3),ncomp)
+    real(rt) :: divc    (dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
+    real(rt) :: optmp   (dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
+    real(rt) :: rediswgt(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
+    real(rt) :: delm    (dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3))
     real(rt), intent(in) :: vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
     real(rt), intent(in) :: bcent(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3),3)
     real(rt), intent(in) :: apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
@@ -89,12 +115,17 @@ contains
     real(rt), intent(in) :: centz_x(czxlo(1):czxhi(1),czxlo(2):czxhi(2),czxlo(3):czxhi(3))
     real(rt), intent(in) :: centz_y(czylo(1):czyhi(1),czylo(2):czyhi(2),czylo(3):czyhi(3))
     integer, intent(in) :: cellflag(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
+    real(rt), intent(inout) :: rr_drho_crse(rdclo(1):rdchi(1),rdclo(2):rdchi(2),rdclo(3):rdchi(3),ncomp)
+    integer,  intent(in) ::  rr_flag_crse(rfclo(1):rfchi(1),rfclo(2):rfchi(2),rfclo(3):rfchi(3))
+    real(rt), intent(out) :: dm_as_fine(dflo(1):dfhi(1),dflo(2):dfhi(2),dflo(3):dfhi(3),ncomp)
+    integer,  intent(in) ::  levmsk (lmlo(1):lmhi(1),lmlo(2):lmhi(2),lmlo(3):lmhi(3))
 
-    integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1)
+    logical :: valid_cell, valid_dst_cell
+    logical :: as_crse_crse_cell, as_crse_covered_cell, as_fine_valid_cell, as_fine_ghost_cell
+    integer :: i,j,k,n,ii,jj,kk, nbr(-1:1,-1:1,-1:1), iii,jjj,kkk
     integer :: nwalls, iwall
     real(rt) :: fxp,fxm,fyp,fym,fzp,fzm,divnc, vtot,wtot, fracx,fracy,fracz,dxinv(3)
-    real(rt) :: divwn
-    real(rt), pointer, contiguous :: optmp(:,:,:), rediswgt(:,:,:)
+    real(rt) :: divwn, drho
     real(rt), pointer, contiguous :: divhyp(:,:), divdiff(:,:)
 
     !  centroid nondimensional  and zero at face center
@@ -111,9 +142,6 @@ contains
           end do
        end do
     end do
-
-    call amrex_allocate(optmp, lo-2, hi+2)
-    call amrex_allocate(rediswgt, lo-2, hi+2)
 
     call amrex_allocate(divhyp, 1,5, 1,nwalls)
     call amrex_allocate(divdiff, 1,5, 1,nwalls)
@@ -136,6 +164,8 @@ contains
                 if (is_covered_cell(cellflag(i,j,k))) then
                    divc(i,j,k) = 0.d0
                 else if (is_single_valued_cell(cellflag(i,j,k))) then
+
+                   valid_cell = is_inside(i,j,k,lo,hi)
 
                    call get_neighbor_cells(cellflag(i,j,k),nbr)
 
@@ -176,6 +206,8 @@ contains
                       fxm = fluxx(i,j,k,n)
                    end if
 
+                   if (valid_cell) fctrdx(i,j,k,n) = fxm
+
                    ! x-direction hi face
                    if (apx(i+1,j,k).lt.1.d0) then
                       if (centx_y(i+1,j,k).le.0.d0) then
@@ -213,6 +245,8 @@ contains
                       fxp = fluxx(i+1,j,k,n)
                    end if
 
+                   if (valid_cell) fctrdx(i+1,j,k,n) = fxp
+
                    ! y-direction lo face
                    if (apy(i,j,k).lt.1.d0) then
                       if (centy_x(i,j,k).le.0.d0) then
@@ -233,13 +267,13 @@ contains
                       else
                          fracx =  centy_x(i,j,k)*nbr(1,0,0)
                          if(centy_z(i,j,k).le. 0.0d0)then
-                            fracz = -centx_z(i,j,k)*nbr(0,0,-1)
+                            fracz = -centy_z(i,j,k)*nbr(0,0,-1)
                             fym = (1.d0-fracz)*(     fracx *fluxy(i+1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j,k-1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k-1,n))
                          else
-                            fracz = centx_z(i,j,k)*nbr(0,0,1)
+                            fracz = centy_z(i,j,k)*nbr(0,0,1)
                             fym = (1.d0-fracz)*(     fracx *fluxy(i+1,j,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j,k+1,n)  + &
@@ -249,6 +283,8 @@ contains
                    else
                       fym = fluxy(i,j,k,n)
                    end if
+
+                   if (valid_cell) fctrdy(i,j,k,n) = fym
 
                    ! y-direction hi face
                    if (apy(i,j+1,k).lt.1d0) then
@@ -270,13 +306,13 @@ contains
                       else
                          fracx =  centy_x(i,j+1,k)*nbr(1,0,0)
                          if(centy_z(i,j+1,k).le. 0.0d0)then
-                            fracz = -centx_z(i,j+1,k)*nbr(0,0,-1)
+                            fracz = -centy_z(i,j+1,k)*nbr(0,0,-1)
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i+1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j+1,k-1,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k-1,n))
                          else
-                            fracz = centx_z(i,j+1,k)*nbr(0,0,1)
+                            fracz = centy_z(i,j+1,k)*nbr(0,0,1)
                             fyp = (1.d0-fracz)*(     fracx *fluxy(i+1,j+1,k  ,n)  + &
                                  &             (1.d0-fracx)*fluxy(i  ,j+1,k  ,n)) + &
                                  &      fracz *(     fracx *fluxy(i+1,j+1,k+1,n)  + &
@@ -286,6 +322,8 @@ contains
                    else
                       fyp = fluxy(i,j+1,k,n)
                    end if
+
+                   if (valid_cell) fctrdy(i,j+1,k,n) = fyp
 
                    ! z-direction lo face
                    if(apz(i,j,k).lt.1.d0)then
@@ -324,6 +362,8 @@ contains
                       fzm = fluxz(i,j,k,n)
                    endif
 
+                   if (valid_cell) fctrdz(i,j,k,n) = fzm
+
                    ! z-direction hi face
                    if(apz(i,j,k+1).lt.1.d0)then
                       if(centz_x(i,j,k+1).le. 0.0d0)then
@@ -361,6 +401,8 @@ contains
                       fzp = fluxz(i,j,k+1,n)
                    endif
 
+                   if (valid_cell) fctrdz(i,j,k+1,n) = fzp
+
                    iwall = iwall + 1
                    if (n .eq. 1) then
                       call compute_hyp_wallflux(divhyp(:,iwall), i,j,k, q(i,j,k,qrho), &
@@ -392,10 +434,18 @@ contains
                    do i = lo(1)-2, hi(1)+2
                       rediswgt(i,j,k) = q(i,j,k,qrho)*(q(i,j,k,qeint)+0.5d0*(q(i,j,k,qu)**2+q(i,j,k,qv)**2+q(i,j,k,qw)**2))
                    end do
-                else
+                elseif (use_mass_as_eb_weights) then
                    do i = lo(1)-2, hi(1)+2
                       rediswgt(i,j,k) = q(i,j,k,qrho) 
                       ! rediswgt(i,j,k) = max(smallr, q(i,j,k,qrho)+dt*divc(i,j,k))
+                   end do
+                elseif (use_volfrac_as_eb_weights) then
+                   do i = lo(1)-2, hi(1)+2
+                      rediswgt(i,j,k) = vfrac(i,j,k) 
+                   end do
+                else
+                   do i = lo(1)-2, hi(1)+2
+                      rediswgt(i,j,k) = 1.d0
                    end do
                 end if
              end if
@@ -426,9 +476,9 @@ contains
                    enddo
                    divnc = divnc / vtot
                    optmp(i,j,k) = (1.d0-vfrac(i,j,k))*(divnc-divc(i,j,k))
-                   delm(i,j,k,n) = -vfrac(i,j,k)*optmp(i,j,k)
+                   delm(i,j,k) = -vfrac(i,j,k)*optmp(i,j,k)
                 else
-                   delm(i,j,k,n) = 0.d0
+                   delm(i,j,k) = 0.d0
                 end if
              end do
           end do
@@ -452,14 +502,70 @@ contains
                          end do
                       enddo
                    enddo
-                   
+
+                   as_crse_crse_cell = .false.
+                   as_crse_covered_cell = .false.
+                   if (as_crse) then
+                      as_crse_crse_cell = is_inside(i,j,k,lo,hi) .and. &
+                           rr_flag_crse(i,j,k) .eq. crse_fine_boundary_cell
+                      as_crse_covered_cell = rr_flag_crse(i,j,k) .eq. covered_by_fine
+                   end if
+
+                   as_fine_valid_cell = .false.  ! valid cells near box boundary
+                   as_fine_ghost_cell = .false.  ! ghost cells just outside valid region
+                   if (as_fine) then
+                      as_fine_valid_cell = is_inside(i,j,k,lo,hi)
+                      as_fine_ghost_cell = levmsk(i,j,k) .eq. levmsk_notcovered ! not covered by other grids
+                   end if
+
                    wtot = 1.d0/wtot
                    do kk = -1,1
                       do jj = -1,1
                          do ii = -1,1
                             if((ii.ne. 0 .or. jj.ne.0 .or. kk.ne. 0) .and. nbr(ii,jj,kk).eq.1) then
-                               optmp(i+ii,j+jj,k+kk) = optmp(i+ii,j+jj,k+kk) &
-                                    + delm(i,j,k,n)*wtot*rediswgt(i+ii,j+jj,k+kk)
+
+                               iii = i + ii
+                               jjj = j + jj
+                               kkk = k + kk
+
+                               drho = delm(i,j,k)*wtot*rediswgt(iii,jjj,kkk)
+                               optmp(iii,jjj,kkk) = optmp(iii,jjj,kkk) + drho
+
+                               valid_dst_cell = is_inside(iii,jjj,kkk,lo,hi)
+
+                               if (as_crse_crse_cell) then
+                                  if (rr_flag_crse(iii,jjj,kkk).eq.covered_by_fine &
+                                       .and. vfrac(i,j,k).gt.reredistribution_threshold) then
+                                     rr_drho_crse(i,j,k,n) = rr_drho_crse(i,j,k,n) &
+                                          + dt*drho*(vfrac(iii,jjj,kkk)/vfrac(i,j,k))
+                                  end if
+                               end if
+
+                               if (as_crse_covered_cell) then
+                                  if (valid_dst_cell) then
+                                     if (rr_flag_crse(iii,jjj,kkk).eq.crse_fine_boundary_cell &
+                                          .and. vfrac(iii,jjj,kkk).gt.reredistribution_threshold) then
+                                        ! the recipient is a crse/fine boundary cell
+                                        rr_drho_crse(iii,jjj,kkk,n) = rr_drho_crse(iii,jjj,kkk,n) &
+                                             - dt*drho
+                                     end if
+                                  end if
+                               end if
+
+                               if (as_fine_valid_cell) then
+                                  if (.not.valid_dst_cell) then
+                                     dm_as_fine(iii,jjj,kkk,n) = dm_as_fine(iii,jjj,kkk,n) &
+                                          + dt*drho*vfrac(iii,jjj,kkk)
+                                  end if
+                               end if
+
+                               if (as_fine_ghost_cell) then
+                                  if (valid_dst_cell) then
+                                     dm_as_fine(i,j,k,n) = dm_as_fine(i,j,k,n) &
+                                          - dt*drho*vfrac(iii,jjj,kkk)
+                                  end if
+                               end if
+
                             endif
                          enddo
                       enddo
@@ -481,8 +587,6 @@ contains
 
     call amrex_deallocate(divdiff)
     call amrex_deallocate(divhyp)
-    call amrex_deallocate(rediswgt)
-    call amrex_deallocate(optmp)
 
   end subroutine compute_eb_divop
 

@@ -50,7 +50,7 @@ namespace amrex
        refinement described by dx.
     */
     virtual bool isRegular(const Box&           a_region,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const = 0;
       
@@ -60,12 +60,12 @@ namespace amrex
        refinement described by dx.
     */
     virtual bool isCovered(const Box&           a_region,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const = 0;
       
     virtual bool isIrregular(const Box&           a_region,
-                             const Box& a_domain,
+                             const Box&           a_domain,
                              const RealVect&      a_origin,
                              const Real&          a_dx) const ;
     ///
@@ -79,10 +79,10 @@ namespace amrex
        ghostregion = (grow(validRegion, 1) & domain);
     */
     virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                           Array<IrregNode>&   a_nodes,
+                           Array<IrregNode>&    a_nodes,
                            const Box&           a_validRegion,
                            const Box&           a_ghostRegion,
-                           const Box& a_domain,
+                           const Box&           a_domain,
                            const RealVect&      a_origin,
                            const Real&          a_dx) const = 0;
       
@@ -91,7 +91,7 @@ namespace amrex
     virtual bool canGenerateMultiCells() const;
       
     virtual InOut InsideOutside(const Box&           a_region,
-                                const Box& a_domain,
+                                const Box&           a_domain,
                                 const RealVect&      a_origin,
                                 const Real&          a_dx) const ;
       
@@ -106,9 +106,6 @@ namespace amrex
                              const RealVect&      a_lower,
                              const RealVect&      a_upper);
       
-      
-  protected:
-
   };
 }
 

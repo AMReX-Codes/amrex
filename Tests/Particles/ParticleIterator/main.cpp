@@ -53,10 +53,17 @@ int main(int argc, char* argv[])
   typedef ParticleContainer<1+BL_SPACEDIM> MyParticleContainer;
   MyParticleContainer MyPC(geom, dmap, ba, rr);
 
-  MyPC.InitOnePerCell(0.5, 0.5, 0.5, 1.0);
+  MyParticleContainer::ParticleInitData pdata = {1.0};
+  MyPC.InitOnePerCell(0.5, 0.5, 0.5, pdata);
   MyPC.do_tiling = true;
+
+  amrex::AllPrintToFile("outside") << "outside parallel region. \n";
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
   for (ParIter<1+BL_SPACEDIM> mfi(MyPC, 0); mfi.isValid(); ++mfi) {
-    std::cout << mfi.index() << " " << mfi.tileIndex() << " " << mfi.numTiles() << std::endl;
+      amrex::AllPrintToFile("particle_iterator_out") << mfi.index() << " " << mfi.tileIndex() << "\n";
   }
       
   amrex::Finalize();

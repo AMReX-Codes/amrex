@@ -93,8 +93,8 @@ BARef::define (std::istream& is)
     //
     BL_ASSERT(m_abox.size() == 0);
     int           maxbox;
-    unsigned long hash;
-    is.ignore(bl_ignore_max, '(') >> maxbox >> hash;
+    unsigned long tmphash;
+    is.ignore(bl_ignore_max, '(') >> maxbox >> tmphash;
     resize(maxbox);
     for (Array<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
         is >> *it;
@@ -1168,6 +1168,7 @@ BoxArray::getHashMap () const
     BARef::HashType& BoxHashMap = m_ref->hash;
 
     bool local_flag;
+    
 #ifdef _OPENMP
 #pragma omp atomic read
 #endif
@@ -1469,6 +1470,13 @@ bool match (const BoxArray& x, const BoxArray& y)
 	}
 	return m;
     }
+}
+
+std::ostream&
+operator<< (std::ostream& os, const BoxArray::RefID& id)
+{
+    os << id.data;
+    return os;
 }
 
 }

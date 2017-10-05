@@ -47,14 +47,14 @@ namespace amrex
     }
 
     ///
-    EBDataFactory(shared_ptr<FabArray<EBGraph> > a_graphs)
+    EBDataFactory(const shared_ptr<FabArray<EBGraph> >& a_graphs)
       {
         m_graphs = a_graphs;
       }
 
     ///
     void
-    setGraphs(shared_ptr<FabArray<EBGraph> > a_graphs)
+    setGraphs(const shared_ptr<FabArray<EBGraph> >& a_graphs)
       {
         m_graphs = a_graphs;
       }

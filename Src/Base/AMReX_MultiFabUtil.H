@@ -2,6 +2,7 @@
 #define _MultiFabUtil_H_
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 
 namespace amrex
 {
@@ -51,8 +52,10 @@ namespace amrex
 
     //! Output state data for a single zone
     void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
-}
 
+    //! Convert iMultiFab to MultiFab
+    MultiFab ToMultiFab (const iMultiFab& imf);
+}
 
 
 #endif

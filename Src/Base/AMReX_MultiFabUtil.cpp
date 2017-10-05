@@ -409,4 +409,22 @@ namespace amrex
       
     }
 
+    MultiFab ToMultiFab (const iMultiFab& imf)
+    {
+        MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow());
+
+        const int ncomp = imf.nComp();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+        {
+            const Box& tbx = mfi.growntilebox();
+            amrex_fort_int_to_real(BL_TO_FORTRAN_BOX(tbx), &ncomp,
+                                   BL_TO_FORTRAN_ANYD(mf[mfi]),
+                                   BL_TO_FORTRAN_ANYD(imf[mfi]));
+        }
+
+        return mf;
+    }
 }

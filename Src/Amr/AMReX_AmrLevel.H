@@ -15,7 +15,7 @@
 #include <AMReX_StateData.H>
 #include <AMReX_VisMF.H>
 #ifdef AMREX_USE_EB
-#include <AMReX_EBLevel.H>
+#include <AMReX_EBSupport.H>
 #include <AMReX_EBInterpolater.H>
 #endif
 
@@ -330,6 +330,10 @@ public:
     * This estimate can be overwritten with different methods
     */
     virtual Real estimateWork();
+
+    //! Which state data type is for work estimates? -1 means none
+    virtual int WorkEstType () { return -1; }
+
     /**
     * \brief Returns one the TimeLevel enums.
     * Asserts that time is between AmrOldTime and AmrNewTime.
@@ -361,6 +365,19 @@ public:
                                 int ioProcNumSCS, int ioProcNumAll, int scsMyId,
 			        MPI_Comm scsComm);
     void Check() const;
+
+#ifdef AMREX_USE_EB
+    static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) {
+        m_eb_basic_grow_cells = nbasic;
+        m_eb_volume_grow_cells = nvolume;
+        m_eb_full_grow_cells = nfull;
+    }
+    static int            m_eb_basic_grow_cells;
+    static int            m_eb_volume_grow_cells;
+    static int            m_eb_full_grow_cells;
+    static void SetEBSupportLevel (EBSupport ebs) { m_eb_support_level = ebs; }
+    static EBSupport      m_eb_support_level;
+#endif
 
 protected:
     //! The constructors -- for derived classes.
@@ -400,11 +417,6 @@ protected:
 
     bool                  levelDirectoryCreated;    // for checkpoints and plotfiles
 
-#ifdef AMREX_USE_EB
-    static void SetEBMaxGrowCells (int n) { m_eb_max_grow_cells = n; }
-    static int            m_eb_max_grow_cells;
-    EBLevel               m_eblevel;
-#endif
     std::unique_ptr<FabFactory<FArrayBox> > m_factory;
 
 private:

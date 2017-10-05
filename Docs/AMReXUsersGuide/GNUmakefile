@@ -11,8 +11,10 @@ section_sources = Preface/Preface.tex \
                   GettingStarted/GettingStarted.tex \
                   BuildingAMReX/BuildingAMReX.tex \
                   Basics/Basics.tex \
+                  Boundary/Boundary.tex \
                   AmrCore/AmrCore.tex \
                   Particle/Particle.tex \
+                  EB/EB.tex \
                   AmrLevel/AmrLevel.tex \
                   Fortran/Fortran.tex \
                   Visualization/Visualization.tex \

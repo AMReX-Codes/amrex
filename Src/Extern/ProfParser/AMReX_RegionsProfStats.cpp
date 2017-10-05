@@ -68,8 +68,15 @@ extern void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats
                                Real runTime, int dataNProcs, Real gPercent);
 
 
-#define PRINTCS(CS) fNumberNames[CS.csFNameNumber] << " :: " << CS.totalTime << " :: " << CS.stackTime \
-                      << " :: " << CS.nCSCalls  << " :: " << CS.callStackDepth
+#define PRINTCS(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
+                 << CS.totalTime << " :: " << CS.stackTime << " :: " \
+		 << CS.nCSCalls  << " :: " << CS.callStackDepth << " :: " \
+		 << CS.callTime
+
+#define PRINTCSNC(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
+                   << CS.totalTime << " :: " << CS.stackTime << " :: " \
+		   << CS.nCSCalls  << " :: " << CS.callStackDepth
+
 
 // ----------------------------------------------------------------------
 RegionsProfStats::RegionsProfStats()
@@ -194,6 +201,7 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  RegionsProfStats::MakeRegionPlt only supported for 2D" << endl;
+  return TimeRange(0, 0);
 #else
   BL_PROFILE("RegionsProfStats::MakeRegionPlt()");
   int xLength(width), yHeight(height);
@@ -485,6 +493,7 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  RegionsProfStats::AllCallTimesFAB only supported in 2D." << endl;
+  return false;
 #else
 
   int whichFuncNameInt(-1);
@@ -999,7 +1008,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
   csHTMLFile << '\n';
 
   csHTMLFile << "<h3>Function calls "
-             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth :: call time)</h3>"
+             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth)</h3>"
 	     << '\n';
 
   csHTMLFile << "<ul>" << '\n';
@@ -1115,7 +1124,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
 	  continue;
         }
         if(iCT == vCallTrace.size() - 1) {
-          IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
+          IcsHTMLFile << "<li>" << PRINTCSNC(cs) << "</li>" << '\n';
           for(int n(0); n < cs.callStackDepth; ++n) {
             if( ! listEnds.empty()) {
               IIcsHTMLFile << listEnds.top() << '\n';
@@ -1138,7 +1147,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
             IcsHTMLFile << "<li>" << '\n';
             listEnds.push("</li>");
             IcsHTMLFile << "<a href=\"javascript:void(0)\" onclick=\"collapse('node"
-	                << nodeNumber << "')\">" << PRINTCS(cs) << "</a>" << '\n';
+	                << nodeNumber << "')\">" << PRINTCSNC(cs) << "</a>" << '\n';
             if(cs.callStackDepth < 100) {
               IcsHTMLFile << "<ul id=\"node" << nodeNumber << "\" style=\"display:\">" << '\n';
             } else {
@@ -1146,9 +1155,9 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
             }
             listEnds.push("</ul>");
           } else  if(csNext.callStackDepth == cs.callStackDepth) {
-            IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
+            IcsHTMLFile << "<li>" << PRINTCSNC(cs) << "</li>" << '\n';
           } else {
-            IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
+            IcsHTMLFile << "<li>" << PRINTCSNC(cs) << "</li>" << '\n';
             for(int n(0); n < cs.callStackDepth - csNext.callStackDepth; ++n) {
               if( ! listEnds.empty()) {
                 IIcsHTMLFile << listEnds.top() << '\n';

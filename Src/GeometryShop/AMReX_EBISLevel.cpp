@@ -27,8 +27,8 @@
 namespace amrex
 {
   static const IntVect   ebl_debiv(D_DECL(994,213,7));
-  static const IntVect   ebl_debivlo(D_DECL(127, 131, 104));
-  static const IntVect   ebl_debivhi(D_DECL(128, 131, 104));
+  static const IntVect   ebl_debivlo(D_DECL(190,15,0));
+  static const IntVect   ebl_debivhi(D_DECL(191,15,0));
   static const VolIndex  ebl_debvoflo(ebl_debivlo, 0);
   static const VolIndex  ebl_debvofhi(ebl_debivhi, 0);
   static const FaceIndex ebl_debface(ebl_debvoflo, ebl_debvofhi);
@@ -40,22 +40,29 @@ namespace amrex
   {
     for(MFIter mfi(a_grids, a_dm); mfi.isValid(); ++mfi)
     {
-      const Box& region = a_grids[mfi];
       const EBGraph & graph = a_graph[mfi];
-      if(region.contains(ebl_debiv))
+      Box region     = graph.getRegion();
+      Box fullRegion = graph.getFullRegion();
+      if(!fullRegion.contains(region))
       {
         amrex::AllPrint() << "ebislevel:" << a_identifier;
-        int ireg = 0; int icov = 0;
-        if(graph.isRegular(ebl_debiv))
-        {
-          ireg = 1;
-        }
-        if(graph.isCovered(ebl_debiv))
-        {
-          icov = 1;
-        }
-        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+        amrex::AllPrint() << ", region = " << region << ", fullRegion = " << fullRegion  << endl;
       }
+//      const Box& region = a_grids[mfi];
+//      if(region.contains(ebl_debiv))
+//      {
+//        amrex::AllPrint() << "ebislevel:" << a_identifier;
+//        int ireg = 0; int icov = 0;
+//        if(graph.isRegular(ebl_debiv))
+//        {
+//          ireg = 1;
+//        }
+//        if(graph.isCovered(ebl_debiv))
+//        {
+//          icov = 1;
+//        }
+//        amrex::AllPrint() << ", ireg = " << ireg << ", icov = " << icov << endl;
+//      }
     }
   }
   void EBISLevel_checkData(const BoxArray            & a_grids,
@@ -75,7 +82,7 @@ namespace amrex
         {
           Real areafrac = facedat(ebl_debface, 0);
           amrex::AllPrint() << "ebislevel:" << a_identifier;
-          amrex::AllPrint() << ", ibox = "<< ibox << ", valid = " << region << ", areaFrac = " << areafrac << endl;
+          amrex::AllPrint() << ", ibox = "<< ibox << ", valid = " << region << ", areaFrac( " << ebl_debface << ") = " << areafrac << endl;
         }
       }
       ibox++;
@@ -154,13 +161,13 @@ namespace amrex
   {
   }
 
-  EBIndexSpace* AMReX_EBIS::s_instance = NULL;
+  EBIndexSpace* AMReX_EBIS::s_instance = nullptr;
   ///
   EBIndexSpace* 
   AMReX_EBIS::
   instance()
   {
-    if (s_instance == NULL)
+    if (s_instance == nullptr)
     {
       s_instance = new EBIndexSpace();
     }
@@ -168,23 +175,28 @@ namespace amrex
     return  s_instance;
   }
 
-
+  void
+  AMReX_EBIS::
+  reset()
+  {
+    delete s_instance;
+    s_instance = nullptr;
+  }
 
   EBISLevel::EBISLevel(const Box             & a_domain,
                        const RealVect        & a_origin,
                        const Real            & a_dx,
                        const int             & a_nCellMax,
                        const GeometryService & a_geoserver)
+      : m_nCellMax (a_nCellMax),
+        m_domain   (a_domain),
+        m_origin   (a_origin),
+        m_dx       (a_dx)
   {
     // this is the method called by EBIndexSpace::buildFirstLevel
     BL_PROFILE("EBISLevel::EBISLevel_geoserver_domain");
-    m_domain = a_domain;
-    m_dx = a_dx;
-    m_origin = a_origin;
-    m_nCellMax = a_nCellMax;
 
     defineFromGeometryService(a_geoserver);
-
 
     if(a_geoserver.canGenerateMultiCells())
     {
@@ -198,27 +210,24 @@ namespace amrex
     
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
-    DistributionMapping dm(m_grids);
-    m_dm = dm;
+    m_dm.define(m_grids);
     int ngrowGraph =2;
     int ngrowData =0;
     m_graph.define(m_grids, m_dm, 1, ngrowGraph, MFInfo(), DefaultFabFactory<EBGraph>());
 
-    std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
-    EBDataFactory ebdf(graphptr);
+    LayoutData<Array<IrregNode> > allNodes(m_grids, m_dm);
 
-    m_data.define(m_grids  , dm, 1, ngrowData, MFInfo(), ebdf);
-    LayoutData<Array<IrregNode> > allNodes(m_grids, dm);
-    
+
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
-      Box valid  = mfi.validbox();
+      const Box& valid  = mfi.validbox();
       Box ghostRegion = valid;
       ghostRegion.grow(ngrowGraph);
-      ghostRegion &= m_domain;
+      Box ghostRegionInt = ghostRegion;
+      ghostRegionInt &= m_domain;
 
       EBGraph& ebgraph = m_graph[mfi];
-      GeometryService::InOut inout = a_geoserver.InsideOutside(ghostRegion, m_domain, m_origin, m_dx);
+      GeometryService::InOut inout = a_geoserver.InsideOutside(ghostRegionInt, m_domain, m_origin, m_dx);
       ebgraph.setDomain(m_domain);
       if (inout == GeometryService::Regular)
       {
@@ -227,7 +236,6 @@ namespace amrex
       }
       else if (inout == GeometryService::Covered)
       {
-
         ebgraph.setToAllCovered();
       }
       else
@@ -237,17 +245,28 @@ namespace amrex
         Array<IrregNode>&   nodes = allNodes[mfi];
 
         a_geoserver.fillGraph(regIrregCovered, nodes, valid,
-                              ghostRegion, m_domain,
+                              ghostRegionInt, m_domain,
                               m_origin, m_dx);
 
         ebgraph.buildGraph(regIrregCovered, nodes, ghostRegion, m_domain);
+
       }
     }
+
     m_graph.FillBoundary();
+
+//begin debug
+//    EBISLevel_checkGraph(m_grids, m_dm, m_graph, string("after initial build"));
+// end debug
+
+    std::shared_ptr<FabArray<EBGraph> > graphptr(&m_graph, &null_deleter_fab_ebg);
+    EBDataFactory ebdf(graphptr);
+
+    m_data.define(m_grids, m_dm, 1, ngrowData, MFInfo(), ebdf);
 
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
-      Box valid  = mfi.validbox();
+      const Box& valid  = mfi.validbox();
       Box ghostRegion = valid;
       ghostRegion.grow(ngrowData);
       ghostRegion &= m_domain;
@@ -275,17 +294,17 @@ namespace amrex
   EBISLevel::
   EBISLevel(EBISLevel             & a_fineEBIS,
             const GeometryService & a_geoserver)
+      : m_nCellMax (a_fineEBIS.m_nCellMax),
+        m_domain   (amrex::coarsen(a_fineEBIS.m_domain, 2)),
+        m_origin   (a_fineEBIS.m_origin),
+        m_dx       (2.*a_fineEBIS.m_dx)
   { // method used by EBIndexSpace::buildNextLevel
     BL_PROFILE("EBISLevel::EBISLevel_fineEBIS");
 
-    m_domain = a_fineEBIS.m_domain;
-    m_domain.coarsen(2);
-    m_dx = 2.*a_fineEBIS.m_dx;
-    m_nCellMax = a_fineEBIS.m_nCellMax;
-    m_origin = a_fineEBIS.m_origin;
-
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
+
+    m_dm.define(m_grids);
 
     //create coarsened vofs from fine.
     //create coarse faces from fine
@@ -319,16 +338,22 @@ namespace amrex
     int nghostData  = 0;
     int srcGhost = 0;
   
-    DistributionMapping dmco(m_grids);
-    m_dm = dmco;
-    DistributionMapping dmfc = dmco;
     //need two because of coarsen faces
-    m_graph.define(m_grids, dmco, 1, nghostGraph, MFInfo(), DefaultFabFactory<EBGraph>());
-    FabArray<EBGraph> ebgraphReCo(gridsReCo, dmfc, 1, nghostGraph+1,
+    m_graph.define(m_grids, m_dm, 1, nghostGraph, MFInfo(), DefaultFabFactory<EBGraph>());
+    FabArray<EBGraph> ebgraphReCo(gridsReCo, m_dm, 1, nghostGraph+1,
                                   MFInfo(), DefaultFabFactory<EBGraph>());
     //pout() << "ebislevel::coarsenvofsandfaces: doing ebgraph copy" << endl;
 
+//begin debug
+//    EBISLevel_checkGraph(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_graph, string(" source graph for copy"));
+//end debug
+
     ebgraphReCo.copy(a_fineEBIS.m_graph, 0, 0, 1, srcGhost, nghostGraph+1);
+
+//begin debug
+//    EBISLevel_checkGraph( gridsReCo, m_dm, ebgraphReCo, string(" ebgraphReCo after copy "));
+//end debug
+
     ///first deal with the graph
     //pout() << "ebislevel::coarsenvofsandfaces: doing coarsenvofs " << endl;
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
@@ -366,29 +391,31 @@ namespace amrex
     FabArray<EBData> ebdataReCo;
 
     //pout() << "making m_data" << endl;
-    m_data    .define(m_grids  , dmco, 1, nghostData, MFInfo(), ebdfCoar);
+    m_data    .define(m_grids  , m_dm, 1, nghostData, MFInfo(), ebdfCoar);
 
     //pout() << "making ebdataReCo" << endl;
-    ebdataReCo.define(gridsReCo, dmfc, 1, 0, MFInfo(), ebdfReCo);
+    ebdataReCo.define(gridsReCo, m_dm, 1, 0, MFInfo(), ebdfReCo);
 
-    //EBISLevel_checkData(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_data, string(" source data for copy"));
+//begin debug
+//   EBISLevel_checkData(a_fineEBIS.m_grids, a_fineEBIS.m_dm, a_fineEBIS.m_data, string(" source data for copy"));
+//end debug
+
     //pout() << "doing ebdatareco copy" << endl;
-
     ebdataReCo.copy(a_fineEBIS.m_data, 0, 0, 1, 0, 0);    
 
-    //EBISLevel_checkData(gridsReCo, dmfc, ebdataReCo, string(" ebdataReCo after copy "));
+//begin debug
+    //EBISLevel_checkData(gridsReCo, m_dm, ebdataReCo, string(" ebdataReCo after copy "));
+//end debug
 
     //pout() << "coarsening data" << endl;
-    int ibox = 0;
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       const EBGraph& fineEBGraph = ebgraphReCo[mfi];
       const EBGraph& coarEBGraph =     m_graph[mfi];
       const EBData & fineEBData  =  ebdataReCo[mfi];
-      Box valid = mfi.validbox();
+      const Box& valid = mfi.validbox();
       m_data[mfi].coarsenVoFs (fineEBData, fineEBGraph, coarEBGraph, valid);
       m_data[mfi].coarsenFaces(fineEBData, fineEBGraph, coarEBGraph, valid);
-      ibox++;
     }
 //    m_data.FillBoundary();
   }
@@ -405,7 +432,7 @@ namespace amrex
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
     {
       IntVectSet vofsToChange;
-      Box valid = mfi.validbox();
+      const Box& valid = mfi.validbox();
       m_graph[mfi].getRegNextToMultiValued(vofsToChange, valid);
       m_graph[mfi].addFullIrregularVoFs(vofsToChange);
       m_data[ mfi].addFullIrregularVoFs(vofsToChange, valid);

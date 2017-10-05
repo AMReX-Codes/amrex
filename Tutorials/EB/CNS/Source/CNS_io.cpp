@@ -9,7 +9,7 @@ CNS::restart (Amr& papa, std::istream& is, bool bReadSpecial)
 {
     AmrLevel::restart(papa,is,bReadSpecial);
 
-    if (level > 0) {
+    if (do_reflux && level > 0) {
         flux_reg.define(grids, papa.boxArray(level-1),
                         dmap, papa.DistributionMap(level-1),
                         geom, papa.Geom(level-1),
@@ -32,7 +32,6 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 
 //    AmrLevel::writePlotFile(dir, os, how);
     
-    int i, n;
     //
     // The list of indices of State to write to plotfile.
     // first component of pair is state_type,
@@ -82,7 +81,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
 	//
 	// Names of variables -- first state, then derived
 	//
-	for (i =0; i < plot_var_map.size(); i++)
+	for (int i = 0; i < plot_var_map.size(); i++)
         {
 	    int typ = plot_var_map[i].first;
 	    int comp = plot_var_map[i].second;
@@ -97,28 +96,28 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         }
 
         // volfrac
-        os << "volfrac\n";
+        os << "vfrac\n";
 
         os << BL_SPACEDIM << '\n';
         os << parent->cumTime() << '\n';
         int f_lev = parent->finestLevel();
         os << f_lev << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < BL_SPACEDIM; i++)
             os << Geometry::ProbLo(i) << ' ';
         os << '\n';
-        for (i = 0; i < BL_SPACEDIM; i++)
+        for (int i = 0; i < BL_SPACEDIM; i++)
             os << Geometry::ProbHi(i) << ' ';
         os << '\n';
-        for (i = 0; i < f_lev; i++)
+        for (int i = 0; i < f_lev; i++)
             os << parent->refRatio(i)[0] << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
             os << parent->Geom(i).Domain() << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
             os << parent->levelSteps(i) << ' ';
         os << '\n';
-        for (i = 0; i <= f_lev; i++)
+        for (int i = 0; i <= f_lev; i++)
         {
             for (int k = 0; k < BL_SPACEDIM; k++)
                 os << parent->Geom(i).CellSize()[k] << ' ';
@@ -134,14 +133,14 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     static const std::string BaseName = "/Cell";
     char buf[64];
     sprintf(buf, "Level_%d", level);
-    std::string Level = buf;
+    std::string sLevel = buf;
     //
     // Now for the full pathname of that directory.
     //
     std::string FullPath = dir;
     if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
         FullPath += '/';
-    FullPath += Level;
+    FullPath += sLevel;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -158,10 +157,10 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         os << level << ' ' << grids.size() << ' ' << cur_time << '\n';
         os << parent->levelSteps(level) << '\n';
 
-        for (i = 0; i < grids.size(); ++i)
+        for (int i = 0; i < grids.size(); ++i)
         {
             RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
-            for (n = 0; n < BL_SPACEDIM; n++)
+            for (int n = 0; n < BL_SPACEDIM; n++)
                 os << gridloc.lo(n) << ' ' << gridloc.hi(n) << '\n';
         }
         //
@@ -171,9 +170,16 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         //
         if (n_data_items > 0)
         {
-            std::string PathNameInHeader = Level;
+            std::string PathNameInHeader = sLevel;
             PathNameInHeader += BaseName;
             os << PathNameInHeader << '\n';
+        }
+
+        // volfrac threshhold for amrvis
+        if (level == parent->finestLevel()) {
+            for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
+                os << ".000001\n";
+            }
         }
     }
     //
@@ -188,12 +194,18 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     //
     // Cull data from state variables -- use no ghost cells.
     //
-    for (i = 0; i < plot_var_map.size(); i++)
+    for (int i = 0; i < plot_var_map.size(); i++)
     {
 	int typ  = plot_var_map[i].first;
 	int comp = plot_var_map[i].second;
 	this_dat = &state[typ].newData();
 	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
+#if BL_TESTING
+        // to avoid fcompare failure
+        if (typ == Cost_Type) {
+            plotMF.setVal(0.0, cnt, 1, nGrow);
+        }
+#endif
 	cnt++;
     }
     //
@@ -211,10 +223,6 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
     }
 
     plotMF.setVal(0.0, cnt, 1, nGrow);
-
-#ifdef AMREX_USE_EB
-    amrex::EB_set_covered(plotMF);
-#endif
 
     MultiFab::Copy(plotMF,volFrac(),0,cnt,1,nGrow);
 

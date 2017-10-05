@@ -19,6 +19,7 @@
 #include "AMReX_IrregNode.H"
 #include "AMReX_BaseIVFAB.H"
 #include "AMReX_BaseIFFAB.H"
+#include "AMReX_FArrayBox.H"
 
 namespace amrex
 {
@@ -42,6 +43,12 @@ namespace amrex
 
     ///
     ~EBDataImplem();
+
+    ///this is only defined if there are irregular cells
+    //const FArrayBox& getVolumeMask()
+    //  {
+    //    return m_volMask;
+    //  }
 
     ///
     /**
@@ -197,11 +204,17 @@ namespace amrex
                  bool       shared)
       {
         //this strictly for checkpointing 
+        //m_hasVolumeMask = false;
         m_region = a_region;
       }
 private:
+
+
     //internal.  initializes places where we know the answer
     void setCoveredAndRegular();
+
+    //void defineVolumeMask();
+    //void setVolumeMask();
 
     Box m_region;
 
@@ -215,12 +228,14 @@ private:
     ///
     bool m_isDefined;
 
+    /// only defined if there are cut cells somewhere in m_region
+    //FArrayBox m_volMask;
 
-    void operator=(const EBDataImplem& ebiin)
-      {;}
+    ///true if there are cut cells somewhere in m_region
+    //bool m_hasVolumeMask;
 
-    EBDataImplem(const EBDataImplem& ebiin)
-      {;}
+    void operator=(const EBDataImplem& ebiin) = delete;
+    EBDataImplem(const EBDataImplem& ebiin) = delete;
 
     void
     coarsenFaceCentroid(RealVect&                a_centroidCoar,
@@ -261,6 +276,9 @@ private:
     void
     init_snan ();
 
+    void
+    init_qnan ();
+
     friend class EBIndexSpace;
     friend class EBISLevel;
   };
@@ -279,7 +297,7 @@ private:
     typedef int value_type;
 
     ///
-    EBData() : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem() ) )
+    EBData() : m_implem( std::make_shared<EBDataImplem>() )
       {
       }
 
@@ -288,7 +306,7 @@ private:
            int        n,
            bool       alloc,
            bool       shared)
-      : m_implem( std::shared_ptr<EBDataImplem>( new EBDataImplem(a_region, n, alloc, shared) ) )
+        : m_implem( std::make_shared<EBDataImplem>(a_region, n, alloc, shared) )
 
       {
       }
@@ -300,6 +318,13 @@ private:
 
     EBData (EBData&& rhs) noexcept = default;
 
+    ///this is only defined if there are irregular cells
+    //const FArrayBox& getVolumeMask()
+    //  {
+    //    return m_implem->getVolumeMask();
+    //  }
+
+    ///
     const Box& getRegion() const
       {
         return m_implem->getRegion();
@@ -330,7 +355,7 @@ private:
     /**
     */
     EBData(const Box& a_box, int a_comps)
-      : m_implem( shared_ptr<EBDataImplem>( new EBDataImplem(a_box, a_comps) ) )
+        : m_implem( std::make_shared<EBDataImplem>(a_box, a_comps) )
       {
       }
 
@@ -456,18 +481,11 @@ private:
     */
     bool operator==(const EBData& a_ebiin)
       {
-        return ((&(*m_implem)) == (&(*a_ebiin.m_implem)));
+          return m_implem.get() == a_ebiin.m_implem.get();
       }
 
     ///
-    EBData& operator=(const EBData& a_ebiin)
-      {
-        if (&a_ebiin != this)
-        {
-          m_implem = a_ebiin.m_implem;
-        }
-        return *this;
-      }
+    EBData& operator=(const EBData& a_ebiin) = default;
 
     ///this is for copy or fillboundary where the meta data is already filled
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const

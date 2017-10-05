@@ -1,8 +1,6 @@
-
 // ---------------------------------------------------------------
 // DataServices.cpp
 // ---------------------------------------------------------------
-
 #include <AMReX_AmrvisConstants.H>
 #include <AMReX_DataServices.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -35,13 +33,6 @@ using namespace amrex;
 #ifdef BL_USE_PROFPARSER
 extern int yyparse(void *);
 extern FILE *yyin;
-//extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
-//extern void SimpleRemoveOverlap(amrex::BoxArray &ba);
-//extern void avgDown(amrex::MultiFab &S_crse, amrex::MultiFab &S_fine, int scomp, int dcomp,
-//             int ncomp, amrex::Array<int> &ratio);
-//extern std::string SanitizeName(const std::string &s);
-//extern void WriteFab(const string &filenameprefix, const int xdim, const int ydim,
-//                     const double *data);
 #endif
 
 namespace amrex {
@@ -60,8 +51,6 @@ namespace {
   const int NTIMESLOTS(25600);
 }
 
-//extern FILE *yyin;
-//extern int yyparse(void *);
 
 extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
 extern void SimpleRemoveOverlap(BoxArray &ba);
@@ -73,6 +62,7 @@ extern void WriteFab(const string &filenameprefix, const int xdim, const int ydi
 
 #define SHOWVAL(val) { cout << #val << " = " << val << endl; }
 #endif
+
 
 // ---------------------------------------------------------------
 namespace ParallelDescriptor {
@@ -183,7 +173,9 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     string blpFileName_H("bl_prof_H");
     string blpFullFileName_H(fileName + '/' + blpFileName_H);
     if( ! (yyin = fopen(blpFullFileName_H.c_str(), "r"))) {
-      if(bIOP) { cerr << "Cannot open file:  " << blpFullFileName_H << endl; }
+      if(bIOP) {
+        cerr << "DataServices::Init:  0:  Cannot open file:  " << blpFullFileName_H << endl;
+      }
       bProfDataAvailable = false;
     } else {
       yyparse(&blProfStats_H);
@@ -196,7 +188,9 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     string regPrefix_H("bl_call_stats_H");
     std::string regFileName_H(fileName + '/' + regPrefix_H);
     if( ! (yyin = fopen(regFileName_H.c_str(), "r"))) {
-      if(bIOP) cerr << "Cannot open file:  " << regFileName_H << endl;
+      if(bIOP) {
+        cerr << "DataServices::Init:  1:  Cannot open file:  " << regFileName_H << endl;
+      }
       bRegionDataAvailable = false;
       bTraceDataAvailable  = false;
     } else {
@@ -248,7 +242,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
         std::string regFileName_H_nnnn(fileName + '/' + regHeaderFileNames[i]);
         if( ! (yyin = fopen(regFileName_H_nnnn.c_str(), "r"))) {
           if(bIOP) {
-            cerr << "Cannot open file:  " << regFileName_H_nnnn
+            cerr << "DataServices::Init:  2:  Cannot open file:  " << regFileName_H_nnnn
                  << " ... continuing." << endl;
           }
           continue;
@@ -257,14 +251,18 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
         fclose(yyin);
       }
       if(regOutputStats_H.TraceDataValid()) {
-        if(bIOP) { cout << "Calling InitRegionTimeRanges." << endl; }
+        if(bIOP) {
+	  cout << "Calling InitRegionTimeRanges." << endl;
+	}
         RegionsProfStats::OpenAllStreams(fileName);
         Box myBox(procBoxArray[myProc]);
         bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
         regOutputStats_H.SyncFNamesAndNumbers();
         RegionsProfStats::CloseAllStreams();
         regOutputStats_H.SetFNames(blProfStats_H.BLPFNames());
-        if(bIOP) { cout << "Finished InitRegionTimeRanges." << endl; }
+        if(bIOP) {
+	  cout << "Finished InitRegionTimeRanges." << endl;
+	}
       } else {
         bTraceDataAvailable = false;
       }
@@ -294,7 +292,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     std::string commFileName_H(fileName + '/' + commPrefix_H);
     if( ! (yyin = fopen(commFileName_H.c_str(), "r"))) {
       if(bIOP) {
-        cerr << "Cannot open file:  " << commFileName_H << endl;
+        cerr << "DataServices::Init:  3:  Cannot open file:  " << commFileName_H << endl;
       }
       bCommDataAvailable = false;
     } else {
@@ -318,11 +316,12 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
 #endif
 }
 
+
 // ---------------------------------------------------------------
 DataServices::~DataServices() {
   BL_ASSERT(numberOfUsers == 0);
   if( ! profiler) {
-    DataServices::dsArray[dsArrayIndex] = NULL;
+    DataServices::dsArray[dsArrayIndex] = nullptr;
   }
 }
 
@@ -331,6 +330,7 @@ DataServices::~DataServices() {
 void DataServices::SetBatchMode() {
   dsBatchMode = true;
 }
+
 
 // ---------------------------------------------------------------
 void DataServices::SetFabOutSize(int iSize) {
@@ -1544,7 +1544,8 @@ bool DataServices::MinMax(const Box &onBox, const string &derived, int level,
 {
   minMaxValid =  amrData.MinMax(onBox, derived, level, dataMin, dataMax);
   return minMaxValid;
-}  // end MinMax
+}
+
 
 // ---------------------------------------------------------------
 #ifdef BL_USE_PROFPARSER
@@ -1570,6 +1571,7 @@ void DataServices::ParseFilterFile()
     }
 }
 
+
 // ----------------------------------------------------------------------
 void DataServices::WriteSummary(std::ostream &os, bool bWriteAverage,
                                 int whichProc, bool bUseTrace,
@@ -1588,6 +1590,7 @@ void DataServices::WriteSummary(std::ostream &os, bool bWriteAverage,
     blProfStats_H.WriteSummary(os, bWriteAverage, whichProc, graphTopPct);
   }
 }
+
 
 // -----------------------------------------------------------------------
 void DataServices::CheckProfData()
@@ -1635,8 +1638,8 @@ void DataServices::CheckProfData()
     if(bIOP) { cout << "Check Time = " << ParallelDescriptor::second() - dstart << " s." << endl; }
 }
 
-// ----------------------------------------------------------------------
 
+// ----------------------------------------------------------------------
 void DataServices::ProcessGridLog(const std::string &gridlogFileName) {
     if(ParallelDescriptor::IOProcessor()) {
       CommProfStats glOutputStats;
@@ -1669,6 +1672,7 @@ void DataServices::ProcessGridLog(const std::string &gridlogFileName) {
       cout << "---------------- finished processing " << gridlogFileName << endl;
     }
 }
+
 
 // ----------------------------------------------------------------------
 void DataServices::PrintCommStats(std::ostream &os,
@@ -1712,6 +1716,7 @@ void DataServices::PrintCommStats(std::ostream &os,
   }
   os << std::flush;
 }
+
 
 // ----------------------------------------------------------------------
 void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
@@ -1837,7 +1842,6 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
       std::string pnnFName("rankNodeNumbers.xgr");
       std::ofstream pnnout(pnnFName);
       cout << "---------------- Writing:  " << pnnFName << endl;
-      int dataNProcs(BLProfStats::GetNProcs());
       for(int ip(0); ip < dataNProcs; ++ip) {
         pnnout << ip << " " << rankNodeNumbers[ip] << '\n';
       }
@@ -1846,6 +1850,7 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
     }
     statsCollected = true;
 }
+
 
 // ----------------------------------------------------------------------
 void DataServices::RunSendsPF(std::string &plotfileName,
@@ -2979,6 +2984,7 @@ void DataServices::RunSyncPointData()
 
 }
 
+
 // ----------------------------------------------------------------------
 void DataServices::RunSendRecv()
 {
@@ -3082,10 +3088,10 @@ void DataServices::RunSendRecvList()
                  << BLProfiler::CommStats::CFTToString(srp.unmatchedCFType) << '\t'
                  << srp.fromProc << '\t' << srp.toProc << '\t' << srp.dataSize << '\t'
                  << srp.tag << '\t';
-                 for(std::set<int>::iterator it = whichRegions.begin();
-                     it != whichRegions.end(); ++it)
+                 for(std::set<int>::iterator itwr = whichRegions.begin();
+                     itwr != whichRegions.end(); ++itwr)
                  {
-                   itn = regionNumbersH.find(*it);
+                   itn = regionNumbersH.find(*itwr);
                    srlOut << itn->second << '\t';
                  }
                  srlOut << '\n';
@@ -3099,8 +3105,8 @@ void DataServices::RunSendRecvList()
                 << "From" << '\t' << "To" << '\t' << "Size" << '\t'
                 << "Tag" << '\t' << "sendTime" << '\t' << "recvTime" << '\t'
                 << "totalTime" << '\n';
-        for(auto it = unpairedSR.begin(); it != unpairedSR.end(); ++it) {
-          CommProfStats::SendRecvPairUnpaired &srp = *it;
+        for(auto uit = unpairedSR.begin(); uit != unpairedSR.end(); ++uit) {
+          CommProfStats::SendRecvPairUnpaired &srp = *uit;
           upSROut << BLProfiler::CommStats::CFTToString(srp.unmatchedCFType) << '\t'
                   << srp.fromProc << '\t' << srp.toProc << '\t' << srp.dataSize << '\t'
                   << srp.tag << '\t'
@@ -3139,7 +3145,7 @@ void DataServices::TCEdison()
 
 
 // ----------------------------------------------------------------------
-void DataServices::WriteHTML(const std::string &fileName,
+void DataServices::WriteHTML(const std::string &hFileName,
                                  bool simpleCombine, int whichProc)
 {
   bool bIOP(ParallelDescriptor::IOProcessor());
@@ -3151,12 +3157,12 @@ void DataServices::WriteHTML(const std::string &fileName,
   }
 
   if(bIOP) {
-    RegionsProfStats::OpenAllStreams(fileName);
+    RegionsProfStats::OpenAllStreams(hFileName);
 
-    std::ofstream outStream(fileName.c_str(), std::ios::out | std::ios::trunc);
+    std::ofstream outStream(hFileName.c_str(), std::ios::out | std::ios::trunc);
     if( ! outStream.good()) {
       cerr << "**** Error in DataServices::WriteHTML:  could not open "
-           << fileName << endl;
+           << hFileName << endl;
     } else {
       regOutputStats_H.WriteHTML(outStream, simpleCombine, whichProc);
       outStream.close();
@@ -3168,7 +3174,7 @@ void DataServices::WriteHTML(const std::string &fileName,
 
 
 // ----------------------------------------------------------------------
-void DataServices::WriteHTMLNC(const std::string &fileName, int whichProc)
+void DataServices::WriteHTMLNC(const std::string &hFileName, int whichProc)
 {
   bool bIOP(ParallelDescriptor::IOProcessor());
   if( ! bTraceDataAvailable) {
@@ -3179,12 +3185,12 @@ void DataServices::WriteHTMLNC(const std::string &fileName, int whichProc)
   }
 
   if(bIOP) {
-    RegionsProfStats::OpenAllStreams(fileName);
+    RegionsProfStats::OpenAllStreams(hFileName);
 
-    std::ofstream outStream(fileName.c_str(), std::ios::out | std::ios::trunc);
+    std::ofstream outStream(hFileName.c_str(), std::ios::out | std::ios::trunc);
     if( ! outStream.good()) {
       cerr << "**** Error in DataServices::WriteHTML:  could not open "
-           << fileName << endl;
+           << hFileName << endl;
     } else {
       regOutputStats_H.WriteHTMLNC(outStream, whichProc);
       outStream.close();
@@ -3196,7 +3202,7 @@ void DataServices::WriteHTMLNC(const std::string &fileName, int whichProc)
 
 
 // ----------------------------------------------------------------------
-void DataServices::WriteTextTrace(const std::string &fileName, bool simpleCombine,
+void DataServices::WriteTextTrace(const std::string &tFileName, bool simpleCombine,
                                   int whichProc, std::string delimString)
 {
   bool bIOP(ParallelDescriptor::IOProcessor());
@@ -3209,12 +3215,12 @@ void DataServices::WriteTextTrace(const std::string &fileName, bool simpleCombin
   }
 
   if(bIOP) {
-    RegionsProfStats::OpenAllStreams(fileName);
+    RegionsProfStats::OpenAllStreams(tFileName);
 
-    std::ofstream outStream(fileName.c_str(), std::ios::out | std::ios::trunc);
+    std::ofstream outStream(tFileName.c_str(), std::ios::out | std::ios::trunc);
     if( ! outStream.good()) {
       cerr << "**** Error in DataServices::WriteHTML:  could not open "
-           << fileName << endl;
+           << tFileName << endl;
     } else {
       regOutputStats_H.WriteTextTrace(outStream, simpleCombine, whichProc, delimString);
       outStream.close();

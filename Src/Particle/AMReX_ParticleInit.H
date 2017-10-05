@@ -611,15 +611,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                     {
                         ifs.read((char*)&fxtra[0], extradata*sizeof(float));
 
-                        for (int i = 0; i < extradata; i++)
-                            p.m_rdata.arr[BL_SPACEDIM+i] = fxtra[i];
+                        for (int ii = 0; ii < extradata; ii++)
+                            p.m_rdata.arr[BL_SPACEDIM+ii] = fxtra[ii];
                     }
                     else if (RealSizeInFile == sizeof(double))
                     {
                         ifs.read((char*)&dxtra[0], extradata*sizeof(double));
 
-                        for (int i = 0; i < extradata; i++)
-                            p.m_rdata.arr[BL_SPACEDIM+i] = dxtra[i];
+                        for (int ii = 0; ii < extradata; ii++)
+                            p.m_rdata.arr[BL_SPACEDIM+ii] = dxtra[ii];
                     }
                 }
                 //

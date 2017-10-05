@@ -11,6 +11,7 @@
 
 #include <AMReX_AmrCore.H>
 #include <AMReX_FluxRegister.H>
+#include <AMReX_BCRec.H>
 
 using namespace amrex;
 
@@ -33,8 +34,8 @@ public:
     // initializes multilevel data
     void InitData ();
 
-    // Make a new level from scratch using provided BoxArray and DistributionMapping.
-    // Only used during initialization.
+    // Make a new level using provided BoxArray and DistributionMapping and 
+    // fill with interpolated coarse level data.
     // overrides the pure virtual function in AmrCore
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
 					 const amrex::DistributionMapping& dm) override;
@@ -49,7 +50,8 @@ public:
     // overrides the pure virtual function in AmrCore
     virtual void ClearLevel (int lev) override;
 
-    // initialize data using a fortran routine to compute initial state
+    // Make a new level from scratch using provided BoxArray and DistributionMapping.
+    // Only used during initialization.
     // overrides the pure virtual function in AmrCore
     virtual void MakeNewLevelFromScratch (int lev, amrex::Real time, const amrex::BoxArray& ba,
 					  const amrex::DistributionMapping& dm) override;
@@ -128,6 +130,10 @@ private:
     // to avoid a copy
     amrex::Array<std::unique_ptr<amrex::MultiFab> > phi_new;
     amrex::Array<std::unique_ptr<amrex::MultiFab> > phi_old;
+
+    // this is essentially a 2*DIM integer array storing the physical boundary
+    // condition types at the lo/hi walls in each direction
+    BCRec bcs;
 
     // stores fluxes at coarse-fine interface for synchronization
     // this will be sized "nlevs_max+1"
