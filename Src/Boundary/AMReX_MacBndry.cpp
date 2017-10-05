@@ -52,7 +52,7 @@ MacBndry::setBndryConds (const BCRec&   phys_bc,
         const int                  i     = fsi.index();
         const Box&                 grd   = ba[i];
         RealTuple&                 bloc  = bcloc[i];
-        Array< Array<BoundCond> >& bctag = bcond[i];
+        Vector< Vector<BoundCond> >& bctag = bcond[i];
 
         for (OrientationIter fi; fi; ++fi)
         {

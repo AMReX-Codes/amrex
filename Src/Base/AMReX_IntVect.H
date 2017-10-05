@@ -82,11 +82,11 @@ public:
     explicit IntVect (const int* a);
 
     /**
-    * \brief Construct an IntVect from an Array<int>.  It is an error if
-    * the Array<int> doesn' t have the same dimension as this
+    * \brief Construct an IntVect from an Vector<int>.  It is an error if
+    * the Vector<int> doesn' t have the same dimension as this
     * IntVect.
     */
-    explicit IntVect (const Array<int>& a);
+    explicit IntVect (const Vector<int>& a);
 
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.

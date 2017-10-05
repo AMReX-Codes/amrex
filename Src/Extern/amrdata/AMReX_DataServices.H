@@ -82,7 +82,7 @@ class DataServices {
                    int procWithFab);
 
       // FillVarArrayOfFabs
-      //bool FillVar(Array<FArrayBox *> &destFabs, const Array<Box> &destBoxes,
+      //bool FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxes,
                    //int finestFillLevel, const string &varname,
                    //int procWithFab);
 
@@ -132,10 +132,10 @@ class DataServices {
     const string &GetFileName() const { return fileName; }
     Amrvis::FileType GetFileType()      const { return fileType; }
     bool CanDerive(const string &name) const;
-    bool CanDerive(const Array<string> &names) const;
+    bool CanDerive(const Vector<string> &names) const;
     int  NumDeriveFunc() const;
     void ListDeriveFunc(std::ostream &os) const;
-    const Array<string> &PlotVarNames() const { return amrData.PlotVarNames(); }
+    const Vector<string> &PlotVarNames() const { return amrData.PlotVarNames(); }
     AmrData &AmrDataRef() { return amrData; }
     bool AmrDataOk() { return bAmrDataOk; }  
     void SetWriteToLevel(const int iwtlev)  { iWriteToLevel = iwtlev; }
@@ -177,7 +177,7 @@ class DataServices {
     void RunACTPF(std::string &plotfileName,
                   int maxSmallImageLength,
                   int refRatioAll,
-                  const amrex::Array<string> &actFNames);
+                  const amrex::Vector<string> &actFNames);
 
     void RunSyncPointData();
     void RunSendRecvList();
@@ -209,7 +209,7 @@ class DataServices {
     int numberOfUsers;
     int iWriteToLevel;
 
-    static Array<DataServices *> dsArray;
+    static Vector<DataServices *> dsArray;
     static int dsArrayIndexCounter;
     static int dsFabOutSize;
     static bool dsBatchMode;

@@ -74,9 +74,9 @@ class XYPlotDataList {
   public:
     XYPlotDataList(const string &derived, int minlevel, int maxlevel,
 		   int gridlinein,
-		   const amrex::Array<int> &ratiolist,
-		   const amrex::Array<Real> &dx,
-		   const amrex::Array<char *> &intersectpoint,
+		   const amrex::Vector<int> &ratiolist,
+		   const amrex::Vector<Real> &dx,
+		   const amrex::Vector<char *> &intersectpoint,
 		   Real startx = 0.0);
     XYPlotDataList(XYPlotDataList *src);
     ~XYPlotDataList();
@@ -99,26 +99,26 @@ class XYPlotDataList {
     double XYPDLLoY(const int ilev) const { return xypdlLoY[ilev]; }
     double XYPDLHiY(const int ilev) const { return xypdlHiY[ilev]; }
     char *IntersectPoint(const int ilev) const { return intersectPoint[ilev]; }
-    amrex::Array<double> &XVal(int level) { return xypdlXVal[level]; }
-    amrex::Array<double> &YVal(int level) { return xypdlYVal[level]; }
+    amrex::Vector<double> &XVal(int level) { return xypdlXVal[level]; }
+    amrex::Vector<double> &YVal(int level) { return xypdlYVal[level]; }
 
   protected:
-    amrex::Array<list<XYPlotDataListLink *> > dataSets; 
-    amrex::Array<int> xypdlRatios;        // Used for insertion of data sets beginning
+    amrex::Vector<list<XYPlotDataListLink *> > dataSets; 
+    amrex::Vector<int> xypdlRatios;        // Used for insertion of data sets beginning
                                     // in the middle of a single cell [level]
-    amrex::Array<Real> dX;                // dX in the proper direction [level]
-    amrex::Array<char *> intersectPoint;  // Intersected value (in problem space)
+    amrex::Vector<Real> dX;                // dX in the proper direction [level]
+    amrex::Vector<char *> intersectPoint;  // Intersected value (in problem space)
                                     // for labelling plots [level]
-    amrex::Array<double> xypdlLoY, xypdlHiY;  // [level]
-    amrex::Array<amrex::Array<double> > xypdlXVal, xypdlYVal;  // [level][data]
+    amrex::Vector<double> xypdlLoY, xypdlHiY;  // [level]
+    amrex::Vector<amrex::Vector<double> > xypdlXVal, xypdlYVal;  // [level][data]
 
-    amrex::Array<int> numPoints;
+    amrex::Vector<int> numPoints;
     int  minLevel, maxLevel, curLevel, gridline, whichDir;
     bool updatedQ;
     double startX, endX, offsetX;
     string xypdlDerived;
     XYPlotDataList *copiedFrom;
-    amrex::Array<amrex::BoxList> fabBoxLists, fillBoxLists;
+    amrex::Vector<amrex::BoxList> fabBoxLists, fillBoxLists;
 };
 }
 #endif

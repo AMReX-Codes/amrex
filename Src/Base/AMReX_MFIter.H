@@ -159,11 +159,11 @@ protected:
 
     bool          dynamic;
 
-    const Array<int>* index_map;
-    const Array<int>* local_index_map;
-    const Array<Box>* tile_array;
-    const Array<int>* local_tile_index_map;
-    const Array<int>* num_local_tiles;
+    const Vector<int>* index_map;
+    const Vector<int>* local_index_map;
+    const Vector<Box>* tile_array;
+    const Vector<int>* local_tile_index_map;
+    const Vector<int>* num_local_tiles;
 
     static int nextDynamicIndex;
   

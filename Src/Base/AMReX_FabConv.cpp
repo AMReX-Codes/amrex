@@ -66,7 +66,7 @@ RealDescriptor::format () const &
     return fr.dataPtr();
 }
 
-const Array<long>&
+const Vector<long>&
 RealDescriptor::formatarray () const &
 {
     BL_ASSERT(fr.size() != 0);
@@ -80,7 +80,7 @@ RealDescriptor::order () const &
     return ord.dataPtr();
 }
 
-const Array<int>&
+const Vector<int>&
 RealDescriptor::orderarray () const &
 {
     BL_ASSERT(ord.size() != 0);
@@ -777,7 +777,7 @@ PD_fixdenormals (void*       out,
 static                                                             \
 void                                                               \
 getarray (std::istream&  is,                                       \
-          Array< TYPE >& ar)                                       \
+          Vector< TYPE >& ar)                                       \
 {                                                                  \
     char c;                                                        \
     is >> c;                                                       \
@@ -810,7 +810,7 @@ GETARRAY(long)
 static                                 \
 void                                   \
 putarray (std::ostream&        os,     \
-          const Array< TYPE >& ar)     \
+          const Vector< TYPE >& ar)     \
 {                                      \
     int i;                             \
     os << '(';                         \
@@ -851,12 +851,12 @@ operator>> (std::istream&   is,
     is >> c;
     if (c != '(')
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
-    Array<long> fmt;
+    Vector<long> fmt;
     getarray(is, fmt);
     is >> c;
     if (c != ',')
         amrex::Error("operator>>(istream&,RealDescriptor&): expected a \',\'");
-    Array<int> ord;
+    Vector<int> ord;
     getarray(is, ord);
     is >> c;
     if (c != ')')

@@ -12,7 +12,7 @@ MultiFabCopyDescriptor::~MultiFabCopyDescriptor () {}
 void
 InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 		      BoxList*                returnUnfilledBoxes,
-		      Array<FillBoxId>&       returnedFillBoxIds,
+		      Vector<FillBoxId>&       returnedFillBoxIds,
 		      const Box&              subbox,
 		      MultiFabId              faid1,
 		      MultiFabId              faid2,
@@ -73,7 +73,7 @@ InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 
 void
 InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-		       const Array<FillBoxId>& fillBoxIds,
+		       const Vector<FillBoxId>& fillBoxIds,
 		       MultiFabId              faid1,
 		       MultiFabId              faid2,
 		       FArrayBox&              dest,

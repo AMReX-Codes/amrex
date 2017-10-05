@@ -80,37 +80,37 @@ public:
     //
     long numTags () const;
     //
-    // Returns Array<int> of size domain.numPts() suitable for calling
+    // Returns Vector<int> of size domain.numPts() suitable for calling
     // Fortran, with positions set to same value as in the TagBox
     // dataPtr().
     //
-    Array<int> tags () const;
+    Vector<int> tags () const;
     //
     // Since a TagBox is a BaseFab<char>, we can use this utility
     // function to allocate an integer array to have the same number 
     // of elements as cells in tilebx
     //
-    void get_itags(Array<int>& ar, const Box& tilebx) const;
+    void get_itags(Vector<int>& ar, const Box& tilebx) const;
     //
     // Set values as specified by the array -- this only tags.
     // It's an error if ar.length() != domain.numPts().
     //
-    void tags (const Array<int>& ar);
+    void tags (const Vector<int>& ar);
     //
     // Set values as specified by the array -- this tags and untags.
     // It's an error if ar.length() != domain.numPts().
     //
-    void tags_and_untags (const Array<int>& ar);
+    void tags_and_untags (const Vector<int>& ar);
     //
     // Set values as specified by the array -- this only tags.
     // only changes values in the tilebx region
     // 
-    void tags (const Array<int>& ar, const Box& tilebx);
+    void tags (const Vector<int>& ar, const Box& tilebx);
     //
     // Set values as specified by the array -- this tags and untags.
     // only changes values in the tilebx region
     //
-    void tags_and_untags (const Array<int>& ar, const Box& tilebx);
+    void tags_and_untags (const Vector<int>& ar, const Box& tilebx);
 };
 
 //

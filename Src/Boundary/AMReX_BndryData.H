@@ -100,7 +100,7 @@ public:
     * \brief Return boundary type specifier on given face for grids we own.
     * It's an error if we don't own that grid.
     */
-    const Array< Array<BoundCond> >& bndryConds (int igrid) const;
+    const Vector< Vector<BoundCond> >& bndryConds (int igrid) const;
 
     //! return number of components for which this object is intended
     int nComp () const { return m_ncomp; }
@@ -139,11 +139,11 @@ protected:
     * \brief Map of boundary condition type specifiers.
     * The outer Array dimension is over Orientation.
     */
-    std::map< int, Array< Array<BoundCond> > > bcond;
+    std::map< int, Vector< Vector<BoundCond> > > bcond;
 
     std::map<int,RealTuple> bcloc;
     //! Boundary condition mask
-    Array<MultiMask> masks;
+    Vector<MultiMask> masks;
     //! Domain used for mask definitions.
     Geometry geom;
     int      m_ncomp;

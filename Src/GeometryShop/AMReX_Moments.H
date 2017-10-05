@@ -157,18 +157,18 @@ namespace amrex
   public:
     Moments();
 
-    Array<Real> momentCalc3D(const int& a_order,
+    Vector<Real> momentCalc3D(const int& a_order,
                                    vofMo&     a_vof);
 
-    Array<Real> momentCalc2D(const int&    a_order,
+    Vector<Real> momentCalc2D(const int&    a_order,
                                    const faceMo& a_face);
 
     void  listOfMoments(const int           & a_order,
-                        Array<IntVect>& a_exponents);
+                        Vector<IntVect>& a_exponents);
 
-    void makeMatrix(const Array<IntVect>& a_list,
-                    const Array<IntVect>& a_listPlus,
-                    const Array<Real>   & a_normalVec,
+    void makeMatrix(const Vector<IntVect>& a_list,
+                    const Vector<IntVect>& a_listPlus,
+                    const Vector<Real>   & a_normalVec,
                     Real**                      a_A,
                     const int&                  a_faceNormal=999
                     ); //use default faceNormal for 3D matrix or when SpaceDim==2

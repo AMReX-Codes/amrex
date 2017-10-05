@@ -21,19 +21,19 @@
 namespace amrex
 {
 
-  void dumpVVoFs(const Array<VolIndex>* a_vofs)
+  void dumpVVoFs(const Vector<VolIndex>* a_vofs)
   {
-    const Array<VolIndex>& vofs = *a_vofs;
-    pout() << "Array<volindex> contains:" << endl;
+    const Vector<VolIndex>& vofs = *a_vofs;
+    pout() << "Vector<volindex> contains:" << endl;
     for(int ivof = 0; ivof < vofs.size(); ivof++)
     {
       pout() << vofs[ivof] << std::endl;
     }
   }
-  void dumpVFaces(const Array<FaceIndex>* a_faces)
+  void dumpVFaces(const Vector<FaceIndex>* a_faces)
   {
-    const Array<FaceIndex>& faces = *a_faces;
-    pout() << "Array<FaceIndex> contains:" << endl;
+    const Vector<FaceIndex>& faces = *a_faces;
+    pout() << "Vector<FaceIndex> contains:" << endl;
     for(int iface = 0; iface < faces.size(); iface++)
     {
       pout() << iface << ":" << faces[iface] << endl;
@@ -209,7 +209,7 @@ namespace amrex
       pout()<<"empty ";
       return;
     }
-    const Array<VolIndex>& vofs = a_vectPtr->getVoFs();
+    const Vector<VolIndex>& vofs = a_vectPtr->getVoFs();
     for(int i=0; i<vofs.size(); i++)
     {
       const VolIndex& vof=vofs[i];

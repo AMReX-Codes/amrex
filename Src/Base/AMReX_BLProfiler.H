@@ -145,10 +145,10 @@ class BLProfiler
       static int tagWrapNumber;
       static int tagMin;
       static int tagMax;
-      static Array<std::pair<std::string,int> > barrierNames;  // [name, seek]
-      static Array<std::pair<int,int> > nameTags;              // [nameindex, seek]
-      static Array<std::string> nameTagNames;                  // [name]
-      static Array<int> tagWraps;                              // [index]
+      static Vector<std::pair<std::string,int> > barrierNames;  // [name, seek]
+      static Vector<std::pair<int,int> > nameTags;              // [nameindex, seek]
+      static Vector<std::string> nameTagNames;                  // [name]
+      static Vector<int> tagWraps;                              // [index]
       static int csVersion;
 
       CommFuncType cfType;
@@ -157,9 +157,9 @@ class BLProfiler
     };
 
     static std::map<std::string, BLProfiler *> mFortProfs;  // [fname, fortfunc]
-    static Array<std::string> mFortProfsErrors;     // [error string]
-    static Array<BLProfiler *> mFortProfsInt;     // [fortfuncindex]
-    static Array<std::string> mFortProfsIntNames;     // [fortfuncindex name]
+    static Vector<std::string> mFortProfsErrors;     // [error string]
+    static Vector<BLProfiler *> mFortProfsInt;     // [fortfuncindex]
+    static Vector<std::string> mFortProfsIntNames;     // [fortfuncindex name]
 
     explicit BLProfiler(const std::string &funcname);
     BLProfiler(const std::string &funcname, bool bstart);
@@ -175,17 +175,17 @@ class BLProfiler
 
     static void AddCommStat(const CommFuncType cft, const int size,
                             const int pid, const int tag);
-    static void AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &reqs,
-                            const int completed, const Array<int> &indx,
-			    const Array<MPI_Status> &status, const bool bc);
+    static void AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &reqs,
+                            const int completed, const Vector<int> &indx,
+			    const Vector<MPI_Status> &status, const bool bc);
     static void AddBarrier(const std::string &message, const bool bc);
     static void AddNameTag(const std::string &name);
     static void AddAllReduce(const CommFuncType cft, const int size, const bool bc);
     static void TagRange(const int tagmin, const int tagmax);
     static void AddTagWrap();
 #ifndef BL_AMRPROF
-    static void InitAMR(const int flev, const int mlev, const Array<IntVect> &rr,
-                        const Array<Box> pd);
+    static void InitAMR(const int flev, const int mlev, const Vector<IntVect> &rr,
+                        const Vector<Box> pd);
 #endif
 
     void start();
@@ -233,13 +233,13 @@ class BLProfiler
     static Real startTime;
     static Real timerTime;
 #ifndef BL_AMRPROF
-    static Array<IntVect> refRatio;
-    static Array<Box> probDomain;
+    static Vector<IntVect> refRatio;
+    static Vector<Box> probDomain;
 #endif
     static std::stack<Real> nestedTimeStack;
     static std::map<int, Real> mStepMap;  // [step, time]
     static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
-    static Array<CommStats> vCommStats;
+    static Vector<CommStats> vCommStats;
     static std::string procName;
     static int procNumber;
     static bool blProfDirCreated;
@@ -250,18 +250,18 @@ class BLProfiler
     static int  NameTagNameIndex(const std::string &name);
 
     static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
-    static Array<CallStats> vCallTrace;
+    static Vector<CallStats> vCallTrace;
 
     // region support
     static std::map<std::string, int> mRegionNameNumbers;  // [rname, rnamenumber]
     static int inNRegions;
-    static Array<RStartStop> rStartStop;
+    static Vector<RStartStop> rStartStop;
     static const std::string noRegionName;
 
     static bool bFirstTraceWrite;
 
-    static Array<CallStatsStack> callIndexStack;  // need Array for iterator
-    static Array<CallStatsPatch> callIndexPatch;
+    static Vector<CallStatsStack> callIndexStack;  // need Array for iterator
+    static Vector<CallStatsPatch> callIndexPatch;
 
 #ifdef BL_TRACE_PROFILING
     static int callStackDepth;
@@ -291,7 +291,7 @@ namespace BLProfilerUtils {
   void WriteStats(std::ostream &os,
                   const std::map<std::string, BLProfiler::ProfStats> &mpStats,
 		  const std::map<std::string, int> &fnameNumbers,
-		  const Array<BLProfiler::CallStats> &callTraces,
+		  const Vector<BLProfiler::CallStats> &callTraces,
 		  bool bwriteavg = false, bool bwriteinclusivetimes = false);
 }
 

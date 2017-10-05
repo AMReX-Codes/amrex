@@ -493,8 +493,8 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
         maxDomain[lev] = amrex::refine(maxDomain[lev-1],refRatio[lev-1]);
       }
    }
-   Array<Box> restrictDomain(finestLevel + 1);
-   Array<Box> extendRestrictDomain(finestLevel + 1);
+   Vector<Box> restrictDomain(finestLevel + 1);
+   Vector<Box> extendRestrictDomain(finestLevel + 1);
    regions.resize(finestLevel + 1);
    for(lev = 0; lev <= finestLevel; ++lev) {
       restrictDomain[lev] = probDomain[lev];
@@ -775,7 +775,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
    }  // end for(lev...)
 
    if(bRestrictDomain) {
-      Array<Real> p_lo(BL_SPACEDIM), p_hi(BL_SPACEDIM);
+      Vector<Real> p_lo(BL_SPACEDIM), p_hi(BL_SPACEDIM);
       LoNodeLoc(0,maxDomain[0].smallEnd(),p_lo);
       HiNodeLoc(0,maxDomain[0].bigEnd(),p_hi);
       for(i = 0; i < BL_SPACEDIM; ++i) {
@@ -867,7 +867,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     dataGrids[LevelZero][ComponentZero] = new MultiFab;
     int fabNGrow(0);
 
-    Array<int> pMap(fabBoxArray.size());
+    Vector<int> pMap(fabBoxArray.size());
     pMap[BoxZero] = iopNum;
     DistributionMapping dMap(pMap);
 
@@ -932,7 +932,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
 
-    Array<int> pMap(fabBoxArray.size());
+    Vector<int> pMap(fabBoxArray.size());
     pMap[BoxZero] = iopNum;
     DistributionMapping dMap(pMap);
 
@@ -1029,7 +1029,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 
 
 // ---------------------------------------------------------------
-void AmrData::CellLoc(int lev, IntVect ix, Array<Real> &pos) const {
+void AmrData::CellLoc(int lev, IntVect ix, Vector<Real> &pos) const {
    BL_ASSERT(pos.size() == dxLevel[lev].size());
    for(int i(0); i < BL_SPACEDIM; ++i) {
       pos[i] = probLo[i] + (dxLevel[lev][i])*(0.5 + Real(ix[i]));
@@ -1038,7 +1038,7 @@ void AmrData::CellLoc(int lev, IntVect ix, Array<Real> &pos) const {
 
 
 // ---------------------------------------------------------------
-void AmrData::LoNodeLoc(int lev, IntVect ix, Array<Real> &pos) const {
+void AmrData::LoNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const {
    BL_ASSERT(pos.size() == dxLevel[lev].size());
    for(int i(0); i < BL_SPACEDIM; ++i) {
       pos[i] = probLo[i] + (dxLevel[lev][i])*Real(ix[i]);
@@ -1047,7 +1047,7 @@ void AmrData::LoNodeLoc(int lev, IntVect ix, Array<Real> &pos) const {
 
 
 // ---------------------------------------------------------------
-void AmrData::HiNodeLoc(int lev, IntVect ix, Array<Real> &pos) const {
+void AmrData::HiNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const {
    BL_ASSERT(pos.size() == dxLevel[lev].size());
    for(int i(0); i < BL_SPACEDIM; ++i) {
       pos[i] = probLo[i] + (dxLevel[lev][i])*Real(ix[i]+1);
@@ -1057,7 +1057,7 @@ void AmrData::HiNodeLoc(int lev, IntVect ix, Array<Real> &pos) const {
 
 // ---------------------------------------------------------------
 void AmrData::IntVectFromLocation(const int finestFillLevel,
-                                  const Array<Real> &location,
+                                  const Vector<Real> &location,
                                   IntVect &ivLoc, int &ivLevel,
 				  IntVect &ivFinestFillLev)
 {
@@ -1087,8 +1087,8 @@ void AmrData::IntVectFromLocation(const int finestFillLevel,
 void AmrData::FillVar(FArrayBox *destFab, const Box &destBox,
 		      int finestFillLevel, const string &varname, int procWithFabs)
 {
-  Array<FArrayBox *> destFabs(1);
-  Array<Box> destBoxes(1);
+  Vector<FArrayBox *> destFabs(1);
+  Vector<Box> destBoxes(1);
   destFabs[0] = destFab;
   destBoxes[0] = destBox;
 
@@ -1101,8 +1101,8 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
 		      const string &varname, int destcomp)
 {
   int numFillComps(1);
-  Array<string> varNames(numFillComps);
-  Array<int> destComps(numFillComps);
+  Vector<string> varNames(numFillComps);
+  Vector<int> destComps(numFillComps);
   varNames[0]  = varname;
   destComps[0] = destcomp;
   FillVar(destMultiFab, finestFillLevel, varNames, destComps);
@@ -1111,8 +1111,8 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
 
 // ---------------------------------------------------------------
 void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
-		      const Array<string> &varNames,
-		      const Array<int> &destFillComps)
+		      const Vector<string> &varNames,
+		      const Vector<int> &destFillComps)
 {
 // This function fills the destMultiFab which is defined on
 // the finestFillLevel.
@@ -1135,7 +1135,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
     int nFillComps(1);  // always
     int currentLevel;
 
-    Array<int> cumulativeRefRatios(finestFillLevel + 1, -1);
+    Vector<int> cumulativeRefRatios(finestFillLevel + 1, -1);
 
     cumulativeRefRatios[finestFillLevel] = 1;
     for(currentLevel = finestFillLevel - 1; currentLevel >= 0; --currentLevel) {
@@ -1161,7 +1161,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
     }
 
     MultiFabCopyDescriptor multiFabCopyDesc;
-    Array<MultiFabId> stateDataMFId(finestFillLevel + 1);
+    Vector<MultiFabId> stateDataMFId(finestFillLevel + 1);
     for(currentLevel = 0; currentLevel <= finestFillLevel; ++currentLevel) {
       stateDataMFId[currentLevel] =
            multiFabCopyDesc.RegisterFabArray(dataGrids[currentLevel][stateIndex]);
@@ -1169,11 +1169,11 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
 
     BoxArray localMFBoxes(destBoxes.size());  // These are the ones
 						  // we want to fillpatch.
-    Array< Array< Array< Array<FillBoxId> > > > fillBoxId;
-    Array< Array< Array< Array<BoxArray> > > >  fillBoxIdBAs;
+    Vector< Vector< Vector< Vector<FillBoxId> > > > fillBoxId;
+    Vector< Vector< Vector< Vector<BoxArray> > > >  fillBoxIdBAs;
 			          // [grid][level][fillablesubbox][oldnew]
 			          // oldnew not used here
-    Array< Array< Array<Box> > > savedFineBox;  // [grid][level][fillablesubbox]
+    Vector< Vector< Vector<Box> > > savedFineBox;  // [grid][level][fillablesubbox]
 
     fillBoxId.resize(destBoxes.size());
     fillBoxIdBAs.resize(destBoxes.size());
@@ -1348,7 +1348,7 @@ void AmrData::FillVar(MultiFab &destMultiFab, int finestFillLevel,
 
 
 // ---------------------------------------------------------------
-void AmrData::FillVar(Array<FArrayBox *> &destFabs, const Array<Box> &destBoxes,
+void AmrData::FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxes,
 		      int finestFillLevel, const string &varname, int procWithFabs)
 {
 
@@ -1371,7 +1371,7 @@ void AmrData::FillVar(Array<FArrayBox *> &destFabs, const Array<Box> &destBoxes,
     int numFillComps(1);
 
     int currentLevel;
-    Array<int> cumulativeRefRatios(finestFillLevel + 1, -1);
+    Vector<int> cumulativeRefRatios(finestFillLevel + 1, -1);
 
     cumulativeRefRatios[finestFillLevel] = 1;
     for(currentLevel = finestFillLevel - 1; currentLevel >= 0; --currentLevel) {
@@ -1391,18 +1391,18 @@ void AmrData::FillVar(Array<FArrayBox *> &destFabs, const Array<Box> &destBoxes,
     }
 
     MultiFabCopyDescriptor multiFabCopyDesc;
-    Array<MultiFabId> stateDataMFId(finestFillLevel + 1);
+    Vector<MultiFabId> stateDataMFId(finestFillLevel + 1);
     for(currentLevel = 0; currentLevel <= finestFillLevel; ++currentLevel) {
       stateDataMFId[currentLevel] =
            multiFabCopyDesc.RegisterFabArray(dataGrids[currentLevel][stateIndex]);
     }
 
-    Array<Box> localMFBoxes;      // These are the ones we want to fillpatch.
-    Array< Array< Array< Array<FillBoxId> > > > fillBoxId;
-    Array< Array< Array< Array<BoxArray> > > >  fillBoxIdBAs;
+    Vector<Box> localMFBoxes;      // These are the ones we want to fillpatch.
+    Vector< Vector< Vector< Vector<FillBoxId> > > > fillBoxId;
+    Vector< Vector< Vector< Vector<BoxArray> > > >  fillBoxIdBAs;
 			          // [grid][level][fillablesubbox][oldnew]
 			          // oldnew not used here
-    Array< Array< Array<Box> > > savedFineBox;  // [grid][level][fillablesubbox]
+    Vector< Vector< Vector<Box> > > savedFineBox;  // [grid][level][fillablesubbox]
     if(myproc == procWithFabs) {
       localMFBoxes = destBoxes;
       fillBoxId.resize(destBoxes.size());
@@ -1598,7 +1598,7 @@ bool AmrData::CanDerive(const string &name) const {
 
 
 // ---------------------------------------------------------------
-bool AmrData::CanDerive(const Array<string> &names) const {
+bool AmrData::CanDerive(const Vector<string> &names) const {
   int nFound(0);
   for(int n(0); n < names.size(); ++n) {
     for(int i(0); i < plotVars.size(); ++i) {

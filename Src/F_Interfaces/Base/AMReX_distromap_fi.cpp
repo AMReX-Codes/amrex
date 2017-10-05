@@ -13,7 +13,7 @@ extern "C" {
 
   void amrex_fi_new_distromap_from_pmap (DistributionMapping*& dm, const int* pmap, const int plen)
     {
-      const Array<int> PMap(pmap,pmap+plen);
+      const Vector<int> PMap(pmap,pmap+plen);
       dm = new DistributionMapping(PMap);
     }
 

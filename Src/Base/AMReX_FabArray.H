@@ -156,7 +156,7 @@ public:
               const DistributionMapping& dm,
               int                        nvar,
               int                        ngrow,
-              const Array<value_type*>&  pval);
+              const Vector<value_type*>&  pval);
 
     //! The destructor -- deletes all FABs in the array.
     virtual ~FabArray ();
@@ -450,8 +450,8 @@ public:
       int distMapIndex, fromRank, toRank, seqNum;
     };
 
-    int MoveFabs (const Array<int> &newDistMapArray);
-    //static void MoveAllFabs (const Array<int> &newDistMapArray);
+    int MoveFabs (const Vector<int> &newDistMapArray);
+    //static void MoveAllFabs (const Vector<int> &newDistMapArray);
     static void MoveAllFabs (const DistributionMapping &newDistMap);
     static void MoveAllFabs (const DistributionMapping &oldDistMap, const DistributionMapping &newDistMap);
     static void LockAllFAPointers ();
@@ -555,10 +555,10 @@ private:
     //! Prepost nonblocking receives
     void PostRcvs (const MapOfCopyComTagContainers&       m_RcvVols,
                    const MapOfCopyComTagContainers&       m_RcvTags,
-                   Array<char*>&                          recv_data,
-                   Array<int>&                            recv_size,
-                   Array<int>&                            recv_from,
-                   Array<MPI_Request>&                    recv_reqs,
+                   Vector<char*>&                          recv_data,
+                   Vector<int>&                            recv_size,
+                   Vector<int>&                            recv_from,
+                   Vector<MPI_Request>&                    recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum,
@@ -569,11 +569,11 @@ private:
 #ifdef BL_USE_MPI3
     void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                 char*&                            the_recv_data,
-                                Array<char*>&                     recv_data,
-                                Array<int>&                       recv_size,
-                                Array<int>&                       recv_from,
-                                Array<MPI_Request>&               recv_reqs,
-                                Array<MPI_Aint>          &        recv_disp,
+                                Vector<char*>&                     recv_data,
+                                Vector<int>&                       recv_size,
+                                Vector<int>&                       recv_from,
+                                Vector<MPI_Request>&               recv_reqs,
+                                Vector<MPI_Aint>          &        recv_disp,
                                 int                               icomp,
                                 int                               ncomp,
                                 int                               SeqNum,
@@ -583,9 +583,9 @@ private:
 #ifdef BL_USE_UPCXX
     void PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
                         char*&                            the_recv_data,
-                        Array<char*>&                     recv_data,
-                        Array<int>&                       recv_size,
-                        Array<int>&                       recv_from,
+                        Vector<char*>&                     recv_data,
+                        Vector<int>&                       recv_size,
+                        Vector<int>&                       recv_from,
                         int                               icomp,
                         int                               ncomp,
                         int                               SeqNum,
@@ -600,16 +600,16 @@ public:
 
     //
     char*              fb_the_recv_data;
-    Array<int>         fb_recv_from;
-    Array<char*>       fb_recv_data;
-    Array<int>         fb_recv_size;
-    Array<MPI_Request> fb_recv_reqs;
+    Vector<int>         fb_recv_from;
+    Vector<char*>       fb_recv_data;
+    Vector<int>         fb_recv_size;
+    Vector<MPI_Request> fb_recv_reqs;
 #ifdef BL_USE_MPI3
-    Array<MPI_Aint>    fb_recv_disp;
+    Vector<MPI_Aint>    fb_recv_disp;
 #endif
     //
-    Array<char*>       fb_send_data;
-    Array<MPI_Request> fb_send_reqs;
+    Vector<char*>       fb_send_data;
+    Vector<MPI_Request> fb_send_reqs;
     int                fb_tag;
 };
 
@@ -619,10 +619,10 @@ template <class FAB>
 void
 FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
                          const MapOfCopyComTagContainers&  m_RcvTags,
-                         Array<char*>&                     recv_data,
-                         Array<int>&                       recv_size,
-                         Array<int>&                       recv_from,
-                         Array<MPI_Request>&               recv_reqs,
+                         Vector<char*>&                     recv_data,
+                         Vector<int>&                       recv_size,
+                         Vector<int>&                       recv_from,
+                         Vector<MPI_Request>&               recv_reqs,
                          int                               icomp,
                          int                               ncomp,
                          int                               SeqNum,
@@ -655,8 +655,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
 
     const int nrecv = recv_from.size();
     
-    Array<Array<int> > indv_recv_size;
-    Array<MPI_Request> pre_reqs(nrecv,MPI_REQUEST_NULL);
+    Vector<Vector<int> > indv_recv_size;
+    Vector<MPI_Request> pre_reqs(nrecv,MPI_REQUEST_NULL);
 
     if (!FAB::preAllocatable())
     {
@@ -708,11 +708,11 @@ template <class FAB>
 void
 FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                       char*&                            the_recv_data,
-                                      Array<char*>&                     recv_data,
-                                      Array<int>&                       recv_size,
-                                      Array<int>&                       recv_from,
-                                      Array<MPI_Request>&               recv_reqs,
-                                      Array<MPI_Aint> &                 recv_disp,
+                                      Vector<char*>&                     recv_data,
+                                      Vector<int>&                       recv_size,
+                                      Vector<int>&                       recv_from,
+                                      Vector<MPI_Request>&               recv_reqs,
+                                      Vector<MPI_Aint> &                 recv_disp,
                                       int                               icomp,
                                       int                               ncomp,
                                       int                               SeqNum,
@@ -918,7 +918,7 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          const DistributionMapping& dm,
                          int                        nvar,
                          int                        ngrow,
-                         const Array<value_type*>&  pval)
+                         const Vector<value_type*>&  pval)
     : m_factory(new DefaultFabFactory<FAB>()),
       shmem()
 {
@@ -1083,8 +1083,8 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 
 	shmem.n_values = 0;
 	shmem.n_points = 0;
-	Array<long> offset(n,0);
-	Array<long> nextoffset(nworkers,-1);
+	Vector<long> offset(n,0);
+	Vector<long> nextoffset(nworkers,-1);
 	for (int i = 0; i < n; ++i) {
 	    int K = indexArray[i];
 	    int owner = distributionMap[K] - teamlead;
@@ -1105,7 +1105,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 	size_t bytes = shmem.n_values*sizeof(value_type);
 
 	value_type *mfp;
-	Array<value_type*> dps;
+	Vector<value_type*> dps;
 
 #if defined (BL_USE_UPCXX)
 
@@ -1424,13 +1424,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
         //
 
-	Array<char*>                       send_data;
-	Array<int>                         send_size;
-	Array<int>                         send_rank;
-	Array<MPI_Request>                 send_reqs;
-	Array<const CopyComTagsContainer*> send_cctc;
-        Array<Array<int> >                 indv_send_size;
-        Array<MPI_Request>                 pre_reqs;
+	Vector<char*>                       send_data;
+	Vector<int>                         send_size;
+	Vector<int>                         send_rank;
+	Vector<MPI_Request>                 send_reqs;
+	Vector<const CopyComTagsContainer*> send_cctc;
+        Vector<Vector<int> >                 indv_send_size;
+        Vector<MPI_Request>                 pre_reqs;
 
 #if defined BL_USE_UPCXX || defined BL_USE_MPI3 
         int actual_n_snds = 0;
@@ -1446,7 +1446,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
             for (auto const& kv : *thecpc.m_SndVols)
 	    {
-                Array<int> iss;                
+                Vector<int> iss;                
                 auto const& cctc = thecpc.m_SndTags->at(kv.first);
 
                 std::size_t nbytes = 0;
@@ -1504,12 +1504,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             }
         }
 
-        Array<int>         recv_from;
-        Array<char*>       recv_data;
-        Array<int>         recv_size;
-        Array<MPI_Request> recv_reqs;
+        Vector<int>         recv_from;
+        Vector<char*>       recv_data;
+        Vector<int>         recv_size;
+        Vector<MPI_Request> recv_reqs;
 #ifdef BL_USE_MPI3
-	Array<MPI_Aint>    recv_disp;
+	Vector<MPI_Aint>    recv_disp;
 #endif
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
@@ -1585,7 +1585,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    if (ParallelDescriptor::MPIOneSided())
 	    {
 #if defined(BL_USE_MPI3)
-		Array<MPI_Aint> send_disp(N_snds,0);
+		Vector<MPI_Aint> send_disp(N_snds,0);
                 send_reqs.clear();
 
 		for (int i=0; i<N_snds; ++i) {
@@ -1716,7 +1716,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #endif
 	} else {
 	    if (actual_n_rcvs > 0) {
-		Array<MPI_Status> stats(N_rcvs);
+		Vector<MPI_Status> stats(N_rcvs);
 		BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, recv_reqs.dataPtr(), stats.dataPtr()) );
 		if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
                 {
@@ -1728,7 +1728,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
 	if (N_rcvs > 0)
 	{
-	    Array<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
+	    Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
 
 	    for (int k = 0; k < N_rcvs; ++k)
 	    {
@@ -1810,7 +1810,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #endif
 	    } else {
 		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
-		    Array<MPI_Status> stats;
+		    Vector<MPI_Status> stats;
 		    FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
 		}
 	    }
@@ -2032,9 +2032,9 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
     // ---- give all procs in commBoth source and dest boxarrays and distribution maps
     BoxArray srcBoxArray, destBoxArray;
-    Array<int> srcPMap, destPMap, srcPMapAll, destPMapAll;
+    Vector<int> srcPMap, destPMap, srcPMapAll, destPMapAll;
     DistributionMapping srcDM, destDM, srcDMAll, destDMAll;
-    Array<int> srcIndexArray, destIndexArray;
+    Vector<int> srcIndexArray, destIndexArray;
     if(isSrc) {
       srcIndexArray = src->IndexArray();
     }
@@ -2112,13 +2112,13 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
         //
 	const int N_snds = thecpc.m_SndTags->size();
 
-	Array<char*>                       send_data;
-	Array<int>                         send_size;
-	Array<int>                         send_rank;
-	Array<MPI_Request>                 send_reqs;
-	Array<const CopyComTagsContainer*> send_cctc;
-        Array<Array<int> >                 indv_send_size;
-        Array<MPI_Request>                 pre_reqs;
+	Vector<char*>                       send_data;
+	Vector<int>                         send_size;
+	Vector<int>                         send_rank;
+	Vector<MPI_Request>                 send_reqs;
+	Vector<const CopyComTagsContainer*> send_cctc;
+        Vector<Vector<int> >                 indv_send_size;
+        Vector<MPI_Request>                 pre_reqs;
 
 #if defined BL_USE_UPCXX || defined BL_USE_MPI3
         int actual_n_snds = 0;
@@ -2134,7 +2134,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
             
             for (auto const& kv : *thecpc.m_SndVols)
             {
-                Array<int> iss;                
+                Vector<int> iss;                
                 auto const& cctc = thecpc.m_SndTags->at(kv.first);
 
                 std::size_t nbytes = 0;
@@ -2186,11 +2186,11 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
             }
         }
 
-        Array<MPI_Status>  stats;
-        Array<int>         recv_from;
-        Array<char*>       recv_data;
-        Array<int>         recv_size;
-        Array<MPI_Request> recv_reqs;
+        Vector<MPI_Status>  stats;
+        Vector<int>         recv_from;
+        Vector<char*>       recv_data;
+        Vector<int>         recv_size;
+        Vector<MPI_Request> recv_reqs;
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
@@ -2289,7 +2289,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 
 	if (N_rcvs > 0)
 	{
-	    Array<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
+	    Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
 
 	    for (int k = 0; k < N_rcvs; ++k)
 	    {
@@ -2524,8 +2524,8 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
       }
     }
 
-    Array<int> fapId(faPtrCachedMap.size()), dmId(faPtrCachedMap.size());
-    Array<int> nDM(faPtrCachedMap.size()), fabsAlloced(faPtrCachedMap.size());
+    Vector<int> fapId(faPtrCachedMap.size()), dmId(faPtrCachedMap.size());
+    Vector<int> nDM(faPtrCachedMap.size()), fabsAlloced(faPtrCachedMap.size());
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
     {
@@ -2543,7 +2543,7 @@ FabArray<FAB>::CheckFAPointers (bool abortOnError)
         ++pUnlocked;
       }
     }
-    Array<int> fapIdCheck, dmIdCheck, nDMCheck, fabsAllocedCheck;
+    Vector<int> fapIdCheck, dmIdCheck, nDMCheck, fabsAllocedCheck;
     if(ParallelDescriptor::IOProcessor()) {
       fapIdCheck = fapId;
       dmIdCheck = dmId;
@@ -2671,7 +2671,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   }
 
   // ---- IntVects
-  Array<int> allIntVects;
+  Vector<int> allIntVects;
   if(scsMyId == ioProcNumSCS) {
     for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(mfiter_tile_size[i]); }
     for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(comm_tile_size[i]); }
@@ -2716,7 +2716,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   }
 
   // ---- noallocFAPIds
-  Array<int> setArray;
+  Vector<int> setArray;
   if(scsMyId == ioProcNumSCS) {
     std::set<int>::iterator it;
     for(it = noallocFAPIds.begin(); it != noallocFAPIds.end(); ++it) {
@@ -2752,7 +2752,7 @@ void
 FabArray<FAB>::MoveAllFabs (const DistributionMapping &newDistMap)
 {
   int myProc(ParallelDescriptor::MyProc());
-  const Array<int> &newDistMapArray = newDistMap.ProcessorMap();
+  const Vector<int> &newDistMapArray = newDistMap.ProcessorMap();
 if(myProc == 0) {
   std::cout << "####### start MoveAllFabs ##### new dm ###" << std::endl;
   for(int idm(0); idm < newDistMapArray.size(); ++idm) {
@@ -2893,7 +2893,7 @@ if(myProc == 0) {
 // oldDistMap with newDistMap and move Fabs approriately.
 template <class FAB>
 void
-//FabArray<FAB>::MoveAllFabs (const Array<int> &newDistMapArray)
+//FabArray<FAB>::MoveAllFabs (const Vector<int> &newDistMapArray)
 FabArray<FAB>::MoveAllFabs (const DistributionMapping &oldDistMap, const DistributionMapping &newDistMap)
 {
 
@@ -2902,7 +2902,7 @@ FabArray<FAB>::MoveAllFabs (const DistributionMapping &oldDistMap, const Distrib
   { return; }
 
   int myProc(ParallelDescriptor::MyProc());
-  const Array<int> &newDistMapArray = newDistMap.ProcessorMap();
+  const Vector<int> &newDistMapArray = newDistMap.ProcessorMap();
 if(myProc == 0) {
   std::cout << "####### start MoveAllFabs ##### new dm ###" << std::endl;
   for(int idm(0); idm < newDistMapArray.size(); ++idm) {
@@ -3029,7 +3029,7 @@ if(myProc == 0) {
 
 template <class FAB>
 int
-FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
+FabArray<FAB>::MoveFabs (const Vector<int> &newDistMapArray)
 {
 #if BL_USE_MPI
   BL_PROFILE("FabArray<FAB>::MoveFabs()");
@@ -3099,7 +3099,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
   }
 
   // ---- move the fabs
-  Array<MPI_Request> recvReqs, sendReqs;
+  Vector<MPI_Request> recvReqs, sendReqs;
   int nFabsSent(0);
 
   for(int imoves(0); imoves < fabMoves.size(); ++imoves) {
@@ -3145,7 +3145,7 @@ FabArray<FAB>::MoveFabs (const Array<int> &newDistMapArray)
 
   // ---- wait for all the data to move
   // ---- we could defer Waitall for multiple calls to MoveFabs with a multi-step process
-  Array<MPI_Status>  recvStats(recvReqs.size()), sendStats(sendReqs.size());
+  Vector<MPI_Status>  recvStats(recvReqs.size()), sendStats(sendReqs.size());
 
   if(recvReqs.size() > 0) {
     BL_MPI_REQUIRE( MPI_Waitall(recvReqs.size(), recvReqs.dataPtr(), recvStats.dataPtr()) );
@@ -3372,13 +3372,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
     //
     // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
     //
-    Array<char*> &                     send_data = fb_send_data;
-    Array<int>                         send_size;
-    Array<int>                         send_rank;
-    Array<MPI_Request>&                send_reqs = fb_send_reqs;
-    Array<const CopyComTagsContainer*> send_cctc;
-    Array<Array<int> >                 indv_send_size;
-    Array<MPI_Request>                 pre_reqs;
+    Vector<char*> &                     send_data = fb_send_data;
+    Vector<int>                         send_size;
+    Vector<int>                         send_rank;
+    Vector<MPI_Request>&                send_reqs = fb_send_reqs;
+    Vector<const CopyComTagsContainer*> send_cctc;
+    Vector<Vector<int> >                 indv_send_size;
+    Vector<MPI_Request>                 pre_reqs;
 
     fb_tag = SeqNum;
 
@@ -3399,7 +3399,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 
         for (auto const& kv : *TheFB.m_SndVols)
         {
-            Array<int> iss;                
+            Vector<int> iss;                
             auto const& cctc = TheFB.m_SndTags->at(kv.first);
 
             std::size_t nbytes = 0;
@@ -3537,7 +3537,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 	if (ParallelDescriptor::MPIOneSided())
 	{
 #if defined(BL_USE_MPI3)
-	    Array<MPI_Aint> send_disp(N_snds,0);
+	    Vector<MPI_Aint> send_disp(N_snds,0);
             send_reqs.clear();
 	    
 	    for (int i=0; i<N_snds; ++i) {
@@ -3679,7 +3679,7 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
     } else {
 	if (actual_n_rcvs > 0) {
-	    Array<MPI_Status> stats(N_rcvs);
+	    Vector<MPI_Status> stats(N_rcvs);
 	    BL_MPI_REQUIRE( MPI_Waitall(N_rcvs, fb_recv_reqs.dataPtr(), stats.dataPtr()) );
 	    if (!CheckRcvStats(stats, fb_recv_size, MPI_CHAR, fb_tag))
             {
@@ -3691,7 +3691,7 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if (N_rcvs > 0)
     {
-	Array<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
+	Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
 
 	for (int k = 0; k < N_rcvs; k++) 
 	{
@@ -3757,7 +3757,7 @@ FabArray<FAB>::FillBoundary_finish ()
             }
 #endif
         } else {
-            Array<MPI_Status> stats;
+            Vector<MPI_Status> stats;
             FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
         }
 #endif
@@ -3775,9 +3775,9 @@ template <class FAB>
 void
 FabArray<FAB>::PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
                               char*&                            the_recv_data,
-                              Array<char*>&                     recv_data,
-                              Array<int>&                       recv_size,
-                              Array<int>&                       recv_from,
+                              Vector<char*>&                     recv_data,
+                              Vector<int>&                       recv_size,
+                              Vector<int>&                       recv_from,
                               int                               icomp,
                               int                               ncomp,
                               int                               SeqNum,

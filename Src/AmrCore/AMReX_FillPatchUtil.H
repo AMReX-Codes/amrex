@@ -13,13 +13,13 @@ namespace amrex
 			 const IndexType& boxType, Interpolater* mapper);
 
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
-			       const Array<MultiFab*>& smf, const Array<Real>& stime, 
+			       const Vector<MultiFab*>& smf, const Vector<Real>& stime, 
 			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom, PhysBCFunctBase& physbcf);
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
-			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
-			     const Array<MultiFab*>& fmf, const Array<Real>& ft,
+			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
+			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
@@ -27,13 +27,13 @@ namespace amrex
 			     Interpolater* mapper, const BCRec& bcs);
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
-			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
-			     const Array<MultiFab*>& fmf, const Array<Real>& ft,
+			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
+			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const Array<BCRec>& bcs);
+			     Interpolater* mapper, const Vector<BCRec>& bcs);
 
     void InterpFromCoarseLevel (MultiFab& mf, Real time,
 				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
@@ -45,7 +45,7 @@ namespace amrex
 				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
-				Interpolater* mapper, const Array<BCRec>& bcs);
+				Interpolater* mapper, const Vector<BCRec>& bcs);
 
     void InterpCrseFineBndryBfield (const std::array<MultiFab,BL_SPACEDIM>& crse,
                                     std::array<MultiFab,BL_SPACEDIM>& fine,

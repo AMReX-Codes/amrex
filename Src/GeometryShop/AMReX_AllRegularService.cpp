@@ -52,7 +52,7 @@ namespace amrex
   /*******************/
   void
   AllRegularService::fillGraph(BaseFab<int>&        a_regIrregCovered,
-                               Array<IrregNode>&   a_nodes,
+                               Vector<IrregNode>&   a_nodes,
                                const Box&           a_validRegion,
                                const Box&           a_ghostRegion,
                                const Box& a_domain,

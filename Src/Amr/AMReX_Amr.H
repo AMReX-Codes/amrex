@@ -38,7 +38,7 @@ public:
     //! The constructor.
     Amr ();
 
-    Amr (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord);
+    Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord);
 
     Amr (const Amr& rhs) = delete;
     Amr& operator= (const Amr& rhs) = delete;
@@ -53,22 +53,22 @@ public:
 
     //! First part of initialInit
     void InitializeInit (Real strt_time, Real stop_time, 
-                         const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
+                         const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
 
     //! Second part of initialInit
     void FinalizeInit (Real strt_time, Real stop_time); 
 
     //! Set the timestep on each level.
-    void setDtLevel (const Array<Real>& dt_lev);
+    void setDtLevel (const Vector<Real>& dt_lev);
 
     //! Set the timestep at one level.
     void setDtLevel (Real dt, int lev);
 
     //! Set the dtmin on each level.
-    void setDtMin (const Array<Real>& dt_lev);
+    void setDtMin (const Vector<Real>& dt_lev);
 
     //! Set the cycle count on each level.
-    void setNCycle (const Array<int>& mss);
+    void setNCycle (const Vector<int>& mss);
 
     //! Subcycle in time?
     int subCycle () const { return sub_cycle; }
@@ -91,7 +91,7 @@ public:
     //! Max time step (typically based on physics) at specified level
     Real dtMin (int level) const { return dt_min[level]; }
     //! Array of time steps at all levels.
-    const Array<Real>& dtLevel () const { return dt_level; }
+    const Vector<Real>& dtLevel () const { return dt_level; }
     //! Number of subcycled time steps.
     int nCycle (int level) const { return n_cycle[level]; }
     //! Number of time steps at specified level.
@@ -174,7 +174,7 @@ public:
     //! AmrLevel lev.
     AmrLevel& getLevel (int lev) { return *amr_level[lev]; }
     //! Array of AmrLevels.
-    Array<std::unique_ptr<AmrLevel> >& getAmrLevels ();
+    Vector<std::unique_ptr<AmrLevel> >& getAmrLevels ();
     //! Total number of cells.
     long cellCount ();
     //! Number of cells at given level.
@@ -235,7 +235,7 @@ public:
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const {return last_checkpoint;}
 
-    const Array<BoxArray>& getInitialBA();
+    const Vector<BoxArray>& getInitialBA();
 
     /**
     * \brief Specialized version:
@@ -320,7 +320,7 @@ protected:
 
     //! Initialize grid hierarchy -- called by Amr::init.
     void initialInit (Real strt_time, Real stop_time, 
-                      const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
+                      const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
     //! Read the probin file.
     void readProbinFile (int& init);
     //! Check for valid input.
@@ -328,7 +328,7 @@ protected:
     //! Restart from a checkpoint file.
     void restart (const std::string& filename);
     //! Define and initialize coarsest level.
-    void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Array<int>* pmap = 0);
+    void defBaseLevel (Real start_time, const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
     //! Define and initialize refined levels.
     void bldFineLevels (Real start_time);
     //! Rebuild grid hierarchy finer than lbase.
@@ -341,14 +341,14 @@ protected:
     void grid_places (int              lbase,
                       Real             time,
                       int&             new_finest,
-                      Array<BoxArray>& new_grids);
+                      Vector<BoxArray>& new_grids);
 
     DistributionMapping makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) const;
     void LoadBalanceLevel0 (Real time);
 
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) override;
     virtual BoxArray GetAreaNotToTag (int lev) override;
-    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Array<IntVect>& bf_lev) override;
+    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Vector<IntVect>& bf_lev) override;
 
     //! Do a single timestep on level L.
     virtual void timeStep (int  level,
@@ -391,17 +391,17 @@ protected:
     //
     std::string      regrid_grids_file;   // Grids file that will bypass regridding.
     std::string      initial_grids_file;  // Grids file that will bypass regridding only at initialization.
-    Array<std::unique_ptr<AmrLevel> > amr_level;    // Array of levels
+    Vector<std::unique_ptr<AmrLevel> > amr_level;    // Array of levels
     Real             cumtime;      // Physical time variable.
     Real             start_time;   // Physical time this simulation started.
-    Array<Real>      dt_level;     // Timestep at this level.
-    Array<int>       level_steps;  // Number of time steps at this level.
-    Array<int>       level_count;
-    Array<int>       n_cycle;
+    Vector<Real>      dt_level;     // Timestep at this level.
+    Vector<int>       level_steps;  // Number of time steps at this level.
+    Vector<int>       level_count;
+    Vector<int>       n_cycle;
     std::string      subcycling_mode; //Type of subcycling to use.
-    Array<Real>      dt_min;
+    Vector<Real>      dt_min;
     bool             isPeriodic[BL_SPACEDIM];  // Domain periodic?
-    Array<int>       regrid_int;      // Interval between regridding.
+    Vector<int>       regrid_int;      // Interval between regridding.
     int              last_checkpoint; // Step number of previous checkpoint.
     int              check_int;       // How often checkpoint (# time steps).
     Real             check_per;       // How often checkpoint (units of time).
@@ -426,8 +426,8 @@ protected:
     std::ofstream    gridlog;
     std::ofstream    runlog;
     std::ofstream    runlog_terse;
-    Array<std::unique_ptr<std::fstream> > datalog;
-    Array<std::string> datalogname;
+    Vector<std::unique_ptr<std::fstream> > datalog;
+    Vector<std::string> datalogname;
     int              sub_cycle;
     std::string      restart_chkfile;
     std::string      restart_pltfile;
@@ -450,9 +450,9 @@ protected:
     static std::list<std::string> derive_small_plot_vars; // Derived Vars to dump to small plotfile 
     static bool                   first_plotfile;
     //! Array of BoxArrays read in to initially define grid hierarchy
-    static Array<BoxArray> initial_ba;
+    static Vector<BoxArray> initial_ba;
     //! Array of BoxArrays read in to externally define grid hierarchy at each regrid
-    static Array<BoxArray> regrid_ba;
+    static Vector<BoxArray> regrid_ba;
 
 public:
 

@@ -49,7 +49,7 @@ class DistributionMapping
     /**
     * \brief Create an object with the specified mapping.
     */
-    explicit DistributionMapping (const Array<int>& pmap,
+    explicit DistributionMapping (const Vector<int>& pmap,
 				  ParallelDescriptor::Color color = ParallelDescriptor::DefaultColor());
     //! Build mapping out of BoxArray over nprocs processors.
     explicit DistributionMapping (const BoxArray& boxes,
@@ -85,14 +85,14 @@ class DistributionMapping
     * \brief Build mapping out of an Array of ints. You need to call this if you
     * built your DistributionMapping with the default constructor.
     */
-    void define (const Array<int>& pmap);
+    void define (const Vector<int>& pmap);
     /**
     * \brief Returns a constant reference to the mapping of boxes in the
     * underlying BoxArray to the CPU that holds the FAB on that Box.
     * ProcessorMap()[i] is an integer in the interval [0, NCPU) where
     * NCPU is the number of CPUs being used.
     */
-    const Array<int>& ProcessorMap () const;
+    const Vector<int>& ProcessorMap () const;
     //
     ParallelDescriptor::Color color() const { return m_color; }
 
@@ -110,7 +110,7 @@ class DistributionMapping
     // Replace the cached processor map.  This is to support FabArray::MoveAllFabs
     //   All FabArrays using the cached map must move their fabs before
     //   calling this function.
-    void ReplaceCachedProcessorMap(const Array<int> &newProcMap);
+    void ReplaceCachedProcessorMap(const Vector<int> &newProcMap);
 
     //! Set/get the distribution strategy.
     static void strategy (Strategy how);
@@ -175,21 +175,21 @@ class DistributionMapping
 
 #if !defined(BL_NO_FORT)
     static void ReadCheckPointHeader(const std::string &filename,
-				     Array<IntVect>  &refRatio,
-                                     Array<BoxArray> &allBoxes);
+				     Vector<IntVect>  &refRatio,
+                                     Vector<BoxArray> &allBoxes);
 #endif
-    static void PFCMultiLevelMap(const Array<IntVect>  &refRatio,
-                                 const Array<BoxArray> &allBoxes);
+    static void PFCMultiLevelMap(const Vector<IntVect>  &refRatio,
+                                 const Vector<BoxArray> &allBoxes);
 
-    static Array<Array<int> > MultiLevelMapPFC(const Array<IntVect>  &refRatio,
-                                               const Array<BoxArray> &allBoxes,
+    static Vector<Vector<int> > MultiLevelMapPFC(const Vector<IntVect>  &refRatio,
+                                               const Vector<BoxArray> &allBoxes,
 					       int maxgrid);
-    static Array<Array<int> > MultiLevelMapRandom(const Array<IntVect>  &refRatio,
-                                                  const Array<BoxArray> &allBoxes,
+    static Vector<Vector<int> > MultiLevelMapRandom(const Vector<IntVect>  &refRatio,
+                                                  const Vector<BoxArray> &allBoxes,
 						  int maxgrid,
 						  int maxRank = -1, int minRank = 0);
-    static Array<Array<int> > MultiLevelMapKnapSack(const Array<IntVect>  &refRatio,
-                                                    const Array<BoxArray> &allBoxes,
+    static Vector<Vector<int> > MultiLevelMapKnapSack(const Vector<IntVect>  &refRatio,
+                                                    const Vector<BoxArray> &allBoxes,
 						    int maxgrid);
 
     static int NDistMaps() { return nDistMaps; }
@@ -200,12 +200,12 @@ class DistributionMapping
     bool Check() const;
 
 #ifdef BL_USE_MPI
-    static Array<int> TranslateProcMap(const Array<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
+    static Vector<int> TranslateProcMap(const Vector<int> &pm_old, const MPI_Group group_new, const MPI_Group group_old);
 #endif
 
     static DistributionMapping makeKnapSack   (const MultiFab& weight,
                                                int nmax=std::numeric_limits<int>::max());
-    static DistributionMapping makeKnapSack   (const Array<Real>& rcost);
+    static DistributionMapping makeKnapSack   (const Vector<Real>& rcost);
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
@@ -263,16 +263,16 @@ private:
                               int                      nprocs);
 
     //! Current # of bytes of FAB data.
-    static void CurrentBytesUsed (int nprocs, Array<long>& result);
-    static void CurrentCellsUsed (int nprocs, Array<long>& result);
+    static void CurrentBytesUsed (int nprocs, Vector<long>& result);
+    static void CurrentCellsUsed (int nprocs, Vector<long>& result);
 
     //! Least used ordering of CPUs (by # of bytes of FAB data).
-    void LeastUsedCPUs (int nprocs, Array<int>& result);
+    void LeastUsedCPUs (int nprocs, Vector<int>& result);
     /**
     * \brief rteam: Least used ordering of Teams
     * rworker[i]: Least used ordering of team workers for Team i
     */
-    void LeastUsedTeams (Array<int>& rteam, Array<Array<int> >& rworker, int nteams, int nworkers);
+    void LeastUsedTeams (Vector<int>& rteam, Vector<Vector<int> >& rworker, int nteams, int nworkers);
 
     //! A useful typedef.
     typedef void (DistributionMapping::*PVMF)(const BoxArray &, int);
@@ -294,12 +294,12 @@ private:
 
         explicit Ref (int len) : m_pmap(len) {}
 
-        explicit Ref (const Array<int>& pmap) : m_pmap(pmap) {}
+        explicit Ref (const Vector<int>& pmap) : m_pmap(pmap) {}
 
 	//! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
 	//! Local data -- our processor map.
-        Array<int> m_pmap;
+        Vector<int> m_pmap;
     };
     //
     // The data -- a reference-counted pointer to a Ref.
@@ -311,9 +311,9 @@ private:
     //! Topological proximity map
     static long totalCells;
     static Real bytesPerCell;
-    static Array<int> proximityMap;    // i == rank, pMap[i]   == proximity mapped rank
-    static Array<int> proximityOrder;  // i == rank, pOrder[i] == proximity mapped order
-    static Array<long> totalBoxPoints;  // i == rank
+    static Vector<int> proximityMap;    // i == rank, pMap[i]   == proximity mapped rank
+    static Vector<int> proximityOrder;  // i == rank, pOrder[i] == proximity mapped order
+    static Vector<long> totalBoxPoints;  // i == rank
 
     static int nDistMaps;
 

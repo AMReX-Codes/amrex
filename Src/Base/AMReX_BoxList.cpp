@@ -23,7 +23,7 @@ BoxList::join (const BoxList& blist)
 }
 
 void
-BoxList::join (const Array<Box>& barr)
+BoxList::join (const Vector<Box>& barr)
 {
     BL_ASSERT(barr.size() == 0 || ixType() == barr[0].ixType());
     m_lbox.insert(std::end(m_lbox), std::begin(barr), std::end(barr));
@@ -123,7 +123,7 @@ BoxList::BoxList (const BoxArray &ba)
 {
 }
 
-BoxList::BoxList (Array<Box>&& bxs)
+BoxList::BoxList (Vector<Box>&& bxs)
     : m_lbox(std::move(bxs)),
       btype(IndexType::TheCellType())
 {
@@ -497,7 +497,7 @@ BoxList::minimalBox () const
 BoxList&
 BoxList::maxSize (const IntVect& chunk)
 {
-    Array<Box> new_boxes;
+    Vector<Box> new_boxes;
 
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {

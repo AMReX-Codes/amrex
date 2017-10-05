@@ -358,15 +358,15 @@ private:
     //
     // internal temp data
     //
-    Array< MultiFab* > res;
+    Vector< MultiFab* > res;
     //
     // internal temp data
     //
-    Array< MultiFab* > rhs;
+    Vector< MultiFab* > rhs;
     //
     // internal temp data
     //
-    Array< MultiFab* > cor;
+    Vector< MultiFab* > cor;
     //
     // internal reference to linear operator
     //

@@ -38,16 +38,16 @@ private:
 
     static EBTower* m_instance;
 
-    Array<Box> m_domains;
+    Vector<Box> m_domains;
 
-    Array<BoxArray> m_covered_ba;
-    Array<BoxArray> m_irregular_ba;
+    Vector<BoxArray> m_covered_ba;
+    Vector<BoxArray> m_irregular_ba;
 
-    Array<FabArray<EBCellFlagFab>> m_cellflags;
-    Array<MultiFab> m_volfrac;
-    Array<MultiCutFab> m_bndrycent;
-    Array<std::array<MultiCutFab,AMREX_SPACEDIM>> m_areafrac;
-    Array<std::array<MultiCutFab,AMREX_SPACEDIM>> m_facecent;
+    Vector<FabArray<EBCellFlagFab>> m_cellflags;
+    Vector<MultiFab> m_volfrac;
+    Vector<MultiCutFab> m_bndrycent;
+    Vector<std::array<MultiCutFab,AMREX_SPACEDIM>> m_areafrac;
+    Vector<std::array<MultiCutFab,AMREX_SPACEDIM>> m_facecent;
 };
 
 }

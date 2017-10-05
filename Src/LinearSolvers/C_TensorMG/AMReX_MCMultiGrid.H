@@ -346,15 +346,15 @@ protected:
     //
     // Internal temp data.
     //
-    Array< MultiFab* > res;
+    Vector< MultiFab* > res;
     //
     // Internal temp data.
     //
-    Array< MultiFab* > rhs;
+    Vector< MultiFab* > rhs;
     //
     // Internal temp data.
     //
-    Array< MultiFab* > cor;
+    Vector< MultiFab* > cor;
     //
     // Internal reference to linear operator.
     //

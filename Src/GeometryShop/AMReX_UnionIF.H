@@ -33,7 +33,7 @@ namespace amrex
   public:
 
     ///
-    UnionIF(const Array<BaseIF*>& a_impFuncs);
+    UnionIF(const Vector<BaseIF*>& a_impFuncs);
    
    
     /// Destructor
@@ -52,7 +52,7 @@ namespace amrex
    
   protected:
     int             m_numFuncs; // number of implicit functions
-    Array<BaseIF*> m_impFuncs; // implicit functions
+    Vector<BaseIF*> m_impFuncs; // implicit functions
    
   private:
     UnionIF();

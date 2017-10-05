@@ -152,9 +152,9 @@ namespace amrex
     */
     Box minBox (const Box& b1, const Box& b2);
 
-    Array<int> SerializeBox(const Box &b);
+    Vector<int> SerializeBox(const Box &b);
     int SerializeBoxSize();
-    Box UnSerializeBox(const Array<int> &serarray);
+    Box UnSerializeBox(const Vector<int> &serarray);
 
 
     //! Write an ASCII representation to the ostream.
@@ -670,7 +670,7 @@ public:
 
 inline BoxConverter::~BoxConverter () { }
 
-void AllGatherBoxes (Array<Box>& bxs);
+void AllGatherBoxes (Vector<Box>& bxs);
 
 }
 
