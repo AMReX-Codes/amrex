@@ -1,4 +1,4 @@
-# changes since the last releas
+# changes since the last release
 
   -- Added a load balance approach to Amr/AmrLevel.  The runtime
      parameters for this is amr.loadbalance_with_workestimates and
@@ -22,3 +22,13 @@
   -- amrex.signal_handling = 1 is a new runtime parameter that can be
      used to control whether AMReX should handle signals like SIGSEGV
      etc. 
+
+  -- functions for printing to a file in a parallel and thread-safe manner
+     have been added. For example:
+
+        amrex::AllPrintToFile("output") << "Hello from rank " << rank << 
+                                           " and thread " << thread << "\n";
+
+     will print out the requested information to separate files for each 
+     rank and thread.
+     
