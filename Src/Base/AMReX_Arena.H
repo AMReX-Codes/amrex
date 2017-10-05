@@ -15,6 +15,8 @@ Arena* The_Arena ();
 Arena* The_Nvar_Arena ();
 #endif
 
+Arena* The_FA_Arena ();
+
 /**
 * \brief 
 * A virtual base class for objects that manage their own dynamic
