@@ -7,6 +7,7 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
 
 namespace amrex {

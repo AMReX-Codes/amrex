@@ -7,6 +7,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_NFiles.H>
 #include <AMReX_Print.H>
 #include <iostream>

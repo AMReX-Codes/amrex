@@ -15,7 +15,8 @@
 #include "AMReX_IntVect.H"
 #include "AMReX_VolIndex.H"
 #include "AMReX_IntVectSet.H"
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {

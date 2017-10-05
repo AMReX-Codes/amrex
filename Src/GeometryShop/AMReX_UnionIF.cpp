@@ -12,7 +12,8 @@
 
 
 #include "AMReX_UnionIF.H"
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {

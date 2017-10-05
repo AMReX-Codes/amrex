@@ -10,6 +10,7 @@
 #include <AMReX_Orientation.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {

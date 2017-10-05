@@ -8,6 +8,7 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {

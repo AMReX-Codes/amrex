@@ -5,6 +5,7 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_BoxArray.H>

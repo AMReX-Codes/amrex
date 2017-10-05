@@ -14,7 +14,8 @@
 #define _UNIONIF_H_
 
 #include "AMReX_RealVect.H"
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include "AMReX_BaseIF.H"
 
 namespace amrex
