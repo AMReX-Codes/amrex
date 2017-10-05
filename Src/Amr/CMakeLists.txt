@@ -4,18 +4,18 @@ set (F77SRC "")
 set (ALLHEADERS "")
 set (ALLSRC "")
 
-set (CXXSRC
-   AMReX_Amr.cpp AMReX_AmrLevel.cpp AMReX_AuxBoundaryData.cpp AMReX_Derive.cpp
-   AMReX_Extrapolater.cpp AMReX_StateData.cpp AMReX_StateDescriptor.cpp )
 
-set (F90SRC AMReX_extrapolater_${BL_SPACEDIM}d.f90)
+list ( APPEND ALLHEADERS AMReX_LevelBld.H )
+list ( APPEND ALLHEADERS AMReX_Amr.H   AMReX_AmrLevel.H   AMReX_Derive.H   AMReX_StateData.H )
+list ( APPEND CXXSRC     AMReX_Amr.cpp AMReX_AmrLevel.cpp AMReX_Derive.cpp AMReX_StateData.cpp )
 
-set (F77SRC AMReX_ARRAYLIM_${BL_SPACEDIM}D.F)
+list ( APPEND ALLHEADERS AMReX_PROB_AMR_F.H )
+list ( APPEND ALLHEADERS AMReX_StateDescriptor.H   AMReX_AuxBoundaryData.H   AMReX_Extrapolater.H )
+list ( APPEND CXXSRC     AMReX_StateDescriptor.cpp AMReX_AuxBoundaryData.cpp AMReX_Extrapolater.cpp )
 
-set (ALLHEADERS
-   AMReX_Amr.H AMReX_AmrLevel.H AMReX_AuxBoundaryData.H AMReX_Derive.H
-   AMReX_Extrapolater.H AMReX_LevelBld.H AMReX_PROB_AMR_F.H AMReX_StateData.H
-   AMReX_StateDescriptor.H)
+list ( APPEND F90SRC     AMReX_extrapolater_${DIM}d.f90)
+
+list ( APPEND F77SRC     AMReX_ARRAYLIM_${DIM}D.F)
 
 #
 # This is an option to display arrays in GDB. It is for debugging
@@ -25,8 +25,9 @@ set (ALLHEADERS
 #   set(CXX_header_files ${CXX_header_files} AMReX_DatasetClient.H)
 # endif()
 
-
+# 
 #  Collect sources
+# 
 set ( ALLSRC  ${CXXSRC} ${F90SRC} ${F77SRC} )
 
 #
@@ -41,3 +42,8 @@ target_sources ( amrex PRIVATE ${ALLSRC} ${ALLHEADERS} )
 # Accumulate headers 
 #
 accumulate_headers (ALLHEADERS)   
+
+#
+# Add to include dirs
+#
+accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR})
