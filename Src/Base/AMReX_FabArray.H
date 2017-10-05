@@ -699,7 +699,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
 
         if (recv_size[i] > 0)
         {
-            recv_data[i] = static_cast<char*>(amrex::The_Arena()->alloc(recv_size[i]));
+            recv_data[i] = static_cast<char*>(amrex::The_FA_Arena()->alloc(recv_size[i]));
             recv_reqs[i] = ParallelDescriptor::Arecv(recv_data[i], recv_size[i],
                                                      recv_from[i], SeqNum, comm).req();
         }
@@ -756,7 +756,7 @@ FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVol
     }
     else
     {
-        the_recv_data = static_cast<char*>(amrex::The_Arena()->alloc(TotalRcvsVolume));
+        the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
 
         MPI_Win_attach(win, the_recv_data, TotalRcvsVolume);
 
@@ -1530,7 +1530,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #ifdef BL_USE_UPCXX
                         (BLPgas::alloc(nbytes));
 #else
-                        (amrex::The_Arena()->alloc(nbytes));
+                        (amrex::The_FA_Arena()->alloc(nbytes));
 #endif
                 }
                     
@@ -1700,7 +1700,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         else
                         {
                             ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum);
-                            amrex::The_Arena()->free(send_data[j]);
+                            amrex::The_FA_Arena()->free(send_data[j]);
                         }
                     }
 
@@ -1851,13 +1851,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
 #endif
                 }
-                amrex::The_Arena()->free(the_recv_data);
+                amrex::The_FA_Arena()->free(the_recv_data);
 #endif
             }
             else
             {
                 for (auto p : recv_data) {
-                    amrex::The_Arena()->free(p);
+                    amrex::The_FA_Arena()->free(p);
                 }
             }
 	}
@@ -1871,7 +1871,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 		for (int i = 0; i < N_snds; ++i) {
-		    if (send_data[i]) amrex::The_Arena()->free(send_data[i]);
+		    if (send_data[i]) amrex::The_FA_Arena()->free(send_data[i]);
                 }
 #endif
 	    } else {
@@ -2225,7 +2225,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                 
                 char* data = nullptr;
                 if (nbytes > 0) {
-                    data = static_cast<char*>(amrex::The_Arena()->alloc(nbytes));
+                    data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
                 }
                     
                 send_data.push_back(data);
@@ -2323,7 +2323,7 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
                     else
                     {
                         ParallelDescriptor::Send(send_data[j],send_size[j],send_rank[j],SeqNum, commBoth);
-                        amrex::The_Arena()->free(send_data[j]);
+                        amrex::The_FA_Arena()->free(send_data[j]);
                     }
                 }
 
@@ -2416,12 +2416,12 @@ FabArray<FAB>::copyInter (FabArray<FAB> *src, FabArray<FAB> *dest,
 #endif
 	
             if (the_recv_data) {
-                amrex::The_Arena()->free(the_recv_data);
+                amrex::The_FA_Arena()->free(the_recv_data);
             }
             else
             {
                 for (auto p : recv_data) {
-                    amrex::The_Arena()->free(p);
+                    amrex::The_FA_Arena()->free(p);
                 }
             }
 
@@ -3512,7 +3512,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const Periodicity& period, boo
 #ifdef BL_USE_UPCXX
                     (BLPgas::alloc(nbytes));
 #else
-                    (amrex::The_Arena()->alloc(nbytes));
+                    (amrex::The_FA_Arena()->alloc(nbytes));
 #endif
             }
                     
@@ -3824,13 +3824,13 @@ FabArray<FAB>::FillBoundary_finish ()
                 MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
 #endif
             }
-	    amrex::The_Arena()->free(fb_the_recv_data);
+	    amrex::The_FA_Arena()->free(fb_the_recv_data);
 #endif
 	}
         else
         {
             for (auto p : fb_recv_data) {
-                amrex::The_Arena()->free(p);
+                amrex::The_FA_Arena()->free(p);
             }
         }        
     }
@@ -3844,7 +3844,7 @@ FabArray<FAB>::FillBoundary_finish ()
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 	    for (int i = 0; i < N_snds; ++i) {
-		if (fb_send_data[i]) amrex::The_Arena()->free(fb_send_data[i]);
+		if (fb_send_data[i]) amrex::The_FA_Arena()->free(fb_send_data[i]);
             }
 #endif
         } else {

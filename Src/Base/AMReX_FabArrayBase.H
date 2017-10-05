@@ -592,8 +592,20 @@ protected:
 			      const Array<int>& recv_size,
 			      MPI_Datatype datatype, int tag);
 #endif
+
 };
 
+    class FA_init
+    {
+    public:
+        FA_init ();
+        ~FA_init ();
+    private:
+        static int m_cnt;
+    };
+
 }
+
+static amrex::FA_init file_scope_FA_init_object;
 
 #endif
