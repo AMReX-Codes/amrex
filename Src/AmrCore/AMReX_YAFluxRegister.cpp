@@ -89,7 +89,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     }
 
     BoxList cfp_bl;
-    Array<int> cfp_procmap;
+    Vector<int> cfp_procmap;
     int nlocal = 0;
     int myproc = ParallelDescriptor::MyProc();
     
@@ -211,7 +211,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     BL_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
 
     const int li = mfi.LocalIndex();
-    Array<FArrayBox*>& fabs = m_cfp_fab[li];
+    Vector<FArrayBox*>& fabs = m_cfp_fab[li];
     if (fabs.empty()) return;
 
     BL_ASSERT(mfi.tilebox().cellCentered());

@@ -20,7 +20,7 @@ namespace amrex
 
 
 /********************************/
-  const Array<FaceIndex>&
+  const Vector<FaceIndex>&
   FaceIterator::getVector() const
   {
     return m_faces;
@@ -106,7 +106,7 @@ namespace amrex
 
     for (IVSIterator ivsit(a_ivs); ivsit.ok(); ++ivsit)
     {
-      Array<VolIndex> vofs = a_ebgraph.getVoFs(ivsit());
+      Vector<VolIndex> vofs = a_ebgraph.getVoFs(ivsit());
       for (int ivof=0; ivof<vofs.size(); ++ivof)
       {
         for (int iside=0; iside<2; ++iside )
@@ -115,7 +115,7 @@ namespace amrex
           {
             continue;
           }
-          Array<FaceIndex> faces(
+          Vector<FaceIndex> faces(
             a_ebgraph.getFaces( vofs[ivof], a_direction, sides[iside] ) );
 
           for (int iface=0; iface<faces.size(); ++iface)

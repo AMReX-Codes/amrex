@@ -234,7 +234,7 @@ public:
 
 private:
 
-    Array<std::unique_ptr<ErrorRec> > vec;
+    Vector<std::unique_ptr<ErrorRec> > vec;
 };
 
 std::ostream& operator << (std::ostream& os, const ErrorList& elst);

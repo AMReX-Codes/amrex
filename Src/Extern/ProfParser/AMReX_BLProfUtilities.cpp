@@ -45,7 +45,7 @@ const int maxFabXDim(1024);
 std::string amrex::SanitizeName(const std::string &sname) {
   std::string s(sname);
   std::size_t found;
-  Array<char> replaceChars;
+  Vector<char> replaceChars;
   replaceChars.push_back(' ');
   replaceChars.push_back(':');
   replaceChars.push_back('(');
@@ -88,7 +88,7 @@ void amrex::SimpleRemoveOverlap(BoxArray &ba) {
 // --------------------------------------------------------------------
 void amrex::avgDown_doit(const FArrayBox &fine_fab, FArrayBox &crse_fab,
                          const Box &ovlp, int scomp, int dcomp, int ncomp,
-		         Array<int> &ratio)
+		         Vector<int> &ratio)
 {
     const int  *ovlo   = ovlp.loVect();
     const int  *ovhi   = ovlp.hiVect();
@@ -130,7 +130,7 @@ amrex::Box amrex::FixCoarseBoxSize(const Box &fineBox, int rr) {
 
 // --------------------------------------------------------------------
 void amrex::avgDown(MultiFab &S_crse, MultiFab &S_fine, int scomp, int dcomp,
-                    int ncomp, Array<int> &ratio)
+                    int ncomp, Vector<int> &ratio)
 {
   BL_PROFILE("avgDown()");
     const BoxArray &fgrids = S_fine.boxArray();
@@ -175,7 +175,7 @@ void amrex::RedistFiles() {
     bool bIOP(ParallelDescriptor::IOProcessor());
     int myProc(ParallelDescriptor::MyProc());
     int nProcs(ParallelDescriptor::NProcs());
-    const Array<string> &headerFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<string> &headerFileNames = CommProfStats::GetHeaderFileNames();
     if(nProcs != headerFileNames.size()) {
       if(bIOP) {
         cout << "**** Error:  run with nprocs = " << headerFileNames.size() << endl;
@@ -323,7 +323,7 @@ void amrex::WriteFab(const string &filenameprefix, const int xdim, const int ydi
     if(xdim % maxFabXDim) {
       ++zdim3d;
     }
-    Array<double> data3d(xdim3d * ydim3d * zdim3d, (Real) BLProfiler::InvalidCFT);
+    Vector<double> data3d(xdim3d * ydim3d * zdim3d, (Real) BLProfiler::InvalidCFT);
 
     for(int iy(0); iy < ydim; ++iy) {
       for(int ix(0); ix < xdim; ++ix) {
@@ -343,14 +343,14 @@ long amrex::FileSize(const std::string &filename) {
 
 
 // ----------------------------------------------------------------------
-void amrex::MakeFuncPctTimesMF(const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                               const Array<std::string> &blpFNames,
+void amrex::MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                               const Vector<std::string> &blpFNames,
 		               const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
 			       Real runTime, int dataNProcs)
 {
 #ifdef BL_TRACE_PROFILING
 #if (BL_SPACEDIM == 2)
-  Array<std::pair<Real, int> > funcPctTimes(funcStats.size());
+  Vector<std::pair<Real, int> > funcPctTimes(funcStats.size());
   for(int fnum(0); fnum < funcStats.size(); ++fnum) {
     const std::string &fName(blpFNames[fnum]);
     std::map<std::string, BLProfiler::ProfStats>::const_iterator mpsit = mProfStats.find(fName);
@@ -396,8 +396,8 @@ void amrex::MakeFuncPctTimesMF(const Array<Array<BLProfStats::FuncStat> > &funcS
 
 // ----------------------------------------------------------------------
 void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-                              const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                              const Array<std::string> &fNames,
+                              const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                              const Vector<std::string> &fNames,
 		              Real runTime, int whichProc)
 {
   for(int fnum(0); fnum < funcStats.size(); ++fnum) {
@@ -438,8 +438,8 @@ void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mPro
 
 // ----------------------------------------------------------------------
 void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-                        const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                        const Array<std::string> &fNames,
+                        const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                        const Vector<std::string> &fNames,
 		        Real runTime, int dataNProcs, Real gPercent)
 {
   for(int fnum(0); fnum < funcStats.size(); ++fnum) {

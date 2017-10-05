@@ -26,8 +26,8 @@ namespace amrex
           int hiindex = index(idir, Side::Hi);
           Real loArea = 0;   
           Real hiArea = 0;
-          const Array<Real>& loAreas = m_areaFrac[loindex];
-          const Array<Real>& hiAreas = m_areaFrac[hiindex];
+          const Vector<Real>& loAreas = m_areaFrac[loindex];
+          const Vector<Real>& hiAreas = m_areaFrac[hiindex];
           for(int ilo = 0; ilo < loAreas.size(); ilo++)
             {
               loArea += loAreas[ilo];

@@ -139,9 +139,9 @@ namespace ParallelDescriptor
     extern int m_nProcs_all;
     extern int m_nProcs_comp;
     extern int m_nProcs_sub;
-    extern Array<int> m_num_procs_clr;
-    extern Array<int> m_first_procs_clr;
-    extern Array<int> m_nProcs_sidecar;
+    extern Vector<int> m_num_procs_clr;
+    extern Vector<int> m_first_procs_clr;
+    extern Vector<int> m_nProcs_sidecar;
     extern int nSidecars;
     extern int inWhichSidecar;
 
@@ -234,8 +234,8 @@ namespace ParallelDescriptor
     * this restriction may be removed in the future.
     */
     void
-    SetNProcsSidecars (const Array<int> &compRanksInAll,
-                       const Array<Array<int> > &sidecarRanksInAll,
+    SetNProcsSidecars (const Vector<int> &compRanksInAll,
+                       const Vector<Vector<int> > &sidecarRanksInAll,
 		       bool printRanks = false); 
     /**
     * \brief This version makes one sidecar (number zero in the sidecar array)
@@ -538,9 +538,9 @@ namespace ParallelDescriptor
     extern MPI_Comm m_comm_all;
     extern MPI_Comm m_comm_comp;
     extern MPI_Comm m_comm_sub;
-    extern Array<MPI_Comm> m_comm_sidecar;  // ---- [whichsidecar]
-    extern Array<MPI_Comm> m_comm_inter;    // ---- [whichsidecar]
-    extern Array<MPI_Comm> m_comm_both;     // ---- [whichsidecar]
+    extern Vector<MPI_Comm> m_comm_sidecar;  // ---- [whichsidecar]
+    extern Vector<MPI_Comm> m_comm_inter;    // ---- [whichsidecar]
+    extern Vector<MPI_Comm> m_comm_both;     // ---- [whichsidecar]
 
 
     extern int m_nCommColors;
@@ -701,92 +701,92 @@ namespace ParallelDescriptor
     //! Real sum reduction.
     void ReduceRealSum (Real& rvar, Color color = DefaultColor());
     void ReduceRealSum (Real* rvar, int cnt, Color color = DefaultColor());
-    void ReduceRealSum (Array<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
+    void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
     //! Real sum reduction to specified cpu.
     void ReduceRealSum (Real& rvar, int cpu);
     void ReduceRealSum (Real* rvar, int cnt, int cpu);
-    void ReduceRealSum (Array<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
 
     //! Real max reduction.
     void ReduceRealMax (Real& rvar, Color color = DefaultColor());
     void ReduceRealMax (Real* rvar, int cnt, Color color = DefaultColor());
-    void ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
+    void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
     //! Real max reduction to specified cpu.
     void ReduceRealMax (Real& rvar, int cpu);
     void ReduceRealMax (Real* rvar, int cnt, int cpu);
-    void ReduceRealMax (Array<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
 
     //! Real min reduction.
     void ReduceRealMin (Real& rvar, Color color = DefaultColor());
     void ReduceRealMin (Real* rvar, int cnt, Color color = DefaultColor());
-    void ReduceRealMin (Array<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
+    void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, Color color = DefaultColor());
     //! Real min reduction to specified cpu.
     void ReduceRealMin (Real& rvar, int cpu);
     void ReduceRealMin (Real* rvar, int cnt, int cpu);
-    void ReduceRealMin (Array<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
 
     //! Integer sum reduction.
     void ReduceIntSum (int& rvar, Color color = DefaultColor());
     void ReduceIntSum (int* rvar, int cnt, Color color = DefaultColor());
-    void ReduceIntSum (Array<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
+    void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
     //! Integer sum reduction to specified cpu.
     void ReduceIntSum (int& rvar, int cpu);
     void ReduceIntSum (int* rvar, int cnt, int cpu);
-    void ReduceIntSum (Array<std::reference_wrapper<int> >&& rvar, int cpu);
+    void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
 
     //! Integer max reduction.
     void ReduceIntMax (int& rvar, Color color = DefaultColor());
     void ReduceIntMax (int* rvar, int cnt, Color color = DefaultColor());
-    void ReduceIntMax (Array<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
+    void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
     //! Integer max reduction to specified cpu.
     void ReduceIntMax (int& rvar, int cpu);
     void ReduceIntMax (int* rvar, int cnt, int cpu);
-    void ReduceIntMax (Array<std::reference_wrapper<int> >&& rvar, int cpu);
+    void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
 
     //! Integer min reduction.
     void ReduceIntMin (int& rvar, Color color = DefaultColor());
     void ReduceIntMin (int* rvar, int cnt, Color color = DefaultColor());
-    void ReduceIntMin (Array<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
+    void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, Color color = DefaultColor());
     //! Integer min reduction to specified cpu.
     void ReduceIntMin (int& rvar, int cpu);
     void ReduceIntMin (int* rvar, int cnt, int cpu);
-    void ReduceIntMin (Array<std::reference_wrapper<int> >&& rvar, int cpu);
+    void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
 
     //! Long sum reduction.
     void ReduceLongSum (long& rvar, Color color = DefaultColor());
     void ReduceLongSum (long* rvar, int cnt, Color color = DefaultColor());
-    void ReduceLongSum (Array<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
+    void ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
     //! Long sum reduction to specified cpu.
     void ReduceLongSum (long& rvar, int cpu);
     void ReduceLongSum (long* rvar, int cnt, int cpu);
-    void ReduceLongSum (Array<std::reference_wrapper<long> >&& rvar, int cpu);
+    void ReduceLongSum (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
 
     //! Long max reduction.
     void ReduceLongMax (long& rvar, Color color = DefaultColor());
     void ReduceLongMax (long* rvar, int cnt, Color color = DefaultColor());
-    void ReduceLongMax (Array<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
+    void ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
     //! Long max reduction to specified cpu.
     void ReduceLongMax (long& rvar, int cpu);
     void ReduceLongMax (long* rvar, int cnt, int cpu);
-    void ReduceLongMax (Array<std::reference_wrapper<long> >&& rvar, int cpu);
+    void ReduceLongMax (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
 
     //! Long min reduction.
     void ReduceLongMin (long& rvar, Color color = DefaultColor());
     void ReduceLongMin (long* rvar, int cnt, Color color = DefaultColor());
-    void ReduceLongMin (Array<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
+    void ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
     //! Long min reduction to specified cpu.
     void ReduceLongMin (long& rvar, int cpu);
     void ReduceLongMin (long* rvar, int cnt, int cpu);
-    void ReduceLongMin (Array<std::reference_wrapper<long> >&& rvar, int cpu);
+    void ReduceLongMin (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
 
     //! Long and-wise reduction.
     void ReduceLongAnd (long& rvar, Color color = DefaultColor());
     void ReduceLongAnd (long* rvar, int cnt, Color color = DefaultColor());
-    void ReduceLongAnd (Array<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
+    void ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, Color color = DefaultColor());
     //! Long and-wise reduction to specified cpu.
     void ReduceLongAnd (long& rvar, int cpu);
     void ReduceLongAnd (long* rvar, int cnt, int cpu);
-    void ReduceLongAnd (Array<std::reference_wrapper<long> >&& rvar, int cpu);
+    void ReduceLongAnd (Vector<std::reference_wrapper<long> >&& rvar, int cpu);
 
     // There are no color versions of reducion to specified cpu, because it could
     // be confusing what cpu means.  Is it in the global or colored communicator?
@@ -838,11 +838,11 @@ namespace ParallelDescriptor
 				     T* recv, const std::vector<long>& rc, const std::vector<long>& disp,
 				     int root);
 
-    void Waitsome (Array<MPI_Request>&, int&, Array<int>&, Array<MPI_Status>&);
+    void Waitsome (Vector<MPI_Request>&, int&, Vector<int>&, Vector<MPI_Status>&);
 
     void MPI_Error(const char* file, int line, const char* msg, int rc);
 
-    void ReadAndBcastFile(const std::string &filename, Array<char> &charBuf,
+    void ReadAndBcastFile(const std::string &filename, Vector<char> &charBuf,
                           bool bExitOnError = true,
 			  const MPI_Comm &comm = Communicator() );
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);

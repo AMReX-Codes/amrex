@@ -16,7 +16,7 @@ class AmrMesh
 {
 public:
     AmrMesh ();
-    AmrMesh (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1,
+    AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord=-1,
              std::vector<int> refrat = std::vector<int>());
 
     AmrMesh (const AmrMesh& rhs) = delete;
@@ -39,17 +39,17 @@ public:
     int MaxRefRatio (int lev) const;
 
     //! Return refinement ratios between all levels.
-    const Array<IntVect>& refRatio () const { return ref_ratio; }
+    const Vector<IntVect>& refRatio () const { return ref_ratio; }
 
-    const Array<Geometry>& Geom () const { return geom; }
-    const Array<DistributionMapping>& DistributionMap () const { return dmap; }
-    const Array<BoxArray>& boxArray () const { return grids; }
+    const Vector<Geometry>& Geom () const { return geom; }
+    const Vector<DistributionMapping>& DistributionMap () const { return dmap; }
+    const Vector<BoxArray>& boxArray () const { return grids; }
 
     const Geometry& Geom (int lev) const { return geom[lev]; }
     const DistributionMapping& DistributionMap (int lev) const { return dmap[lev]; }
     const BoxArray& boxArray (int lev) const { return grids[lev]; }
 
-    Array<Geometry>& Geom () { return geom; }
+    Vector<Geometry>& Geom () { return geom; }
     Geometry& Geom (int lev) { return geom[lev]; }
 
     void SetMaxGridSize (int new_mgs) {
@@ -58,13 +58,13 @@ public:
     void SetMaxGridSize (const IntVect& new_mgs) {
         max_grid_size.assign(max_level+1, new_mgs);
     }
-    void SetMaxGridSize (const Array<int>& new_mgs) { 
+    void SetMaxGridSize (const Vector<int>& new_mgs) { 
         max_grid_size.resize(max_level+1);
         for (int i = 0; i <= max_level; ++i) {
             max_grid_size[i] = IntVect{D_DECL(new_mgs[i],new_mgs[i],new_mgs[i])};
         }
     }
-    void SetMaxGridSize (const Array<IntVect>& new_mgs) { 
+    void SetMaxGridSize (const Vector<IntVect>& new_mgs) { 
         max_grid_size.assign(new_mgs.cbegin(), new_mgs.cbegin()+max_level+1);
     }
 
@@ -74,13 +74,13 @@ public:
     void SetBlockingFactor (const IntVect& new_bf) {
         blocking_factor.assign(max_level+1, new_bf);
     }
-    void SetBlockingFactor (const Array<int>& new_bf) {
+    void SetBlockingFactor (const Vector<int>& new_bf) {
         blocking_factor.resize(max_level+1);
         for (int i = 0; i <= max_level; ++i) {
             blocking_factor[i] = IntVect{D_DECL(new_bf[i],new_bf[i],new_bf[i])};
         }
     }
-    void SetBlockingFactor (const Array<IntVect>& new_bf) {
+    void SetBlockingFactor (const Vector<IntVect>& new_bf) {
         blocking_factor.assign(new_bf.cbegin(), new_bf.cend()+max_level+1);
     }
 
@@ -139,7 +139,7 @@ public:
     * this->grids.  It also does not modify new_grids's elements
     * outside the range [lbase+1,new_finest_level].
     */
-    void MakeNewGrids (int lbase, Real time, int& new_finest, Array<BoxArray>& new_grids);
+    void MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids);
 
     //! This function makes new grid for all levels (including level 0).
     void MakeNewGrids (Real time = 0.0);
@@ -153,7 +153,7 @@ public:
     virtual void ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {}
 
     //! Manually tag.  Note that tags is built on level lev grids coarsened by bf_lev[lev].
-    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Array<IntVect>& bf_lev) {}
+    virtual void ManualTagsPlacement (int lev, TagBoxArray& tags, const Vector<IntVect>& bf_lev) {}
 
     virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
 
@@ -164,13 +164,13 @@ protected:
     
     int              verbose;
     int              max_level;    // Maximum allowed level.
-    Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
+    Vector<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
 
     int              finest_level; // Current finest level.
 
-    Array<int>       n_error_buf;     // Buffer cells around each tagged cell.
-    Array<IntVect>   blocking_factor; // Blocking factor in grid generation (by level).
-    Array<IntVect>   max_grid_size;   // Maximum allowable grid size (by level).
+    Vector<int>       n_error_buf;     // Buffer cells around each tagged cell.
+    Vector<IntVect>   blocking_factor; // Blocking factor in grid generation (by level).
+    Vector<IntVect>   max_grid_size;   // Maximum allowable grid size (by level).
     Real             grid_eff;        // Grid efficiency.
     int              n_proper;        // # cells required for proper nesting.
 
@@ -179,14 +179,14 @@ protected:
     bool refine_grid_layout; // chop up grids to have the number of grids no less the number of procs
     bool check_input;
 
-    Array<Geometry>            geom;
-    Array<DistributionMapping> dmap;
-    Array<BoxArray>            grids;    
+    Vector<Geometry>            geom;
+    Vector<DistributionMapping> dmap;
+    Vector<BoxArray>            grids;    
 
     void checkInput();
 
 private:
-  void InitAmrMesh (int max_level_in, const Array<int>& n_cell_in,
+  void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
                     std::vector<int> refrat = std::vector<int>());
 
     static void ProjPeriodic (BoxList& bd, const Geometry& geom);

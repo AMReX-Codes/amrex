@@ -113,7 +113,7 @@ IntVect::IntVect (const int *a)
     AMREX_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 
-IntVect::IntVect (const Array<int> &a)
+IntVect::IntVect (const Vector<int> &a)
 {
     BL_ASSERT(a.size() == BL_SPACEDIM);
     AMREX_D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);

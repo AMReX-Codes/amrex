@@ -27,19 +27,19 @@ namespace amrex
   {
   public:
     void LeastSquares(Real** A,
-                      Array<Real>&x,
-                      const Array<Real>&rhs);
+                      Vector<Real>&x,
+                      const Vector<Real>&rhs);
 
     /// gaussian elimination with partial pivoting
     int gaussElim(Real**A,
-                  Array<Real>& rhs);
+                  Vector<Real>& rhs);
 
     void swapRows(Real** A,
                   const int& rowi,
                   const int& rowj,
                   const int&numberOfCols);
 
-    void swapRows(Array<Real>& rhs,
+    void swapRows(Vector<Real>& rhs,
                   const int& currRow,
                   const int& pivot);
 
@@ -49,7 +49,7 @@ namespace amrex
                   const int& numRows,
                   int& pivot);
 
-    void addRows(Array<Real>& rhs,
+    void addRows(Vector<Real>& rhs,
                  const int& rowi,
                  const Real& alpha,
                  const int& rowj);
@@ -60,7 +60,7 @@ namespace amrex
                  const int& rowj,
                  const int& numberOfCols);
 
-    void timesBeta(Array<Real>&rhs,
+    void timesBeta(Vector<Real>&rhs,
                    const int& currRow,
                    const Real& Beta);
 
@@ -82,14 +82,14 @@ namespace amrex
                 const int& a_numColsB);
 
     void backSolve(Real** a_A,
-                   const Array<Real>& a_rhs,
+                   const Vector<Real>& a_rhs,
                    const int& a_numArows,
-                   Array<Real>& a_x);
+                   Vector<Real>& a_x);
 
     void AtimesX(Real** A,
-                 const Array<Real>&x,
+                 const Vector<Real>&x,
                  const int& numRowsA,
-                 Array<Real>& Ax);
+                 Vector<Real>& Ax);
 
     void allocArray(const int& rows,
                     const int& cols,

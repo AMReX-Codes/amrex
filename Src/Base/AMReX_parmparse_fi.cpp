@@ -59,7 +59,7 @@ extern "C"
 
     void amrex_parmparse_get_intarr (ParmParse* pp, const char* name, int v[], int len)
     {
-	Array<int> r;
+	Vector<int> r;
 	pp->getarr(name, r);
 	for (int i = 0; i < len; ++i) {
 	    v[i] = r[i];
@@ -68,7 +68,7 @@ extern "C"
 
     void amrex_parmparse_get_realarr (ParmParse* pp, const char* name, Real v[], int len)
     {
-	Array<Real> r;
+	Vector<Real> r;
 	pp->getarr(name, r);
 	for (int i = 0; i < len; ++i) {
 	    v[i] = r[i];

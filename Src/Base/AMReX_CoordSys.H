@@ -89,7 +89,7 @@ public:
     }
 
     //! Return location of cell center.
-    void CellCenter (const IntVect& point, Array<Real>& loc) const;
+    void CellCenter (const IntVect& point, Vector<Real>& loc) const;
 
     //! Return location of cell center.
     void CellCenter (const IntVect& point, Real* loc) const;
@@ -119,25 +119,25 @@ public:
     }
 
     //! Sets location of lo face into loc.
-    void LoFace (const IntVect& point, int dir, Array<Real>& loc) const;
+    void LoFace (const IntVect& point, int dir, Vector<Real>& loc) const;
 
     //! Sets location of lo face into loc.
     void LoFace (const IntVect& point, int dir, Real* loc) const;
 
     //! Sets location of hi face into loc.
-    void HiFace (const IntVect& point, int dir, Array<Real>& loc) const;
+    void HiFace (const IntVect& point, int dir, Vector<Real>& loc) const;
 
     //! Sets location of hi face into loc.
     void HiFace (const IntVect& point, int dir, Real* loc) const;
 
     //! Return location of lower left hand corner.
-    void LoNode (const IntVect& point, Array<Real>& loc) const;
+    void LoNode (const IntVect& point, Vector<Real>& loc) const;
 
     //! Return location of lower left hand corner.
     void LoNode (const IntVect& point, Real* loc) const;
 
     //! Return location of upper right hand corner.
-    void HiNode (const IntVect& point, Array<Real>& loc) const;
+    void HiNode (const IntVect& point, Vector<Real>& loc) const;
 
     //! Return location of upper right hand corner.
     void HiNode (const IntVect& point, Real* loc) const;
@@ -227,25 +227,25 @@ public:
     * \brief Return array of physical locations of cell edges
     * in the resize()d input array.
     */
-    void GetEdgeLoc (Array<Real>& loc, const Box& region, int dir) const;
+    void GetEdgeLoc (Vector<Real>& loc, const Box& region, int dir) const;
 
     /**
     * \brief Return array of physical locations of cell centers
     * in the resize()d input array.
     */
-    void GetCellLoc (Array<Real>& loc, const Box& region, int dir) const;
+    void GetCellLoc (Vector<Real>& loc, const Box& region, int dir) const;
 
     /**
     * \brief Return array of volume coordinates at cell edges
     * for region in given direction.
     */
-    void GetEdgeVolCoord (Array<Real>& loc, const Box& region, int dir) const;
+    void GetEdgeVolCoord (Vector<Real>& loc, const Box& region, int dir) const;
 
     /**
     * \brief Return array of volume coordinates at cell centers
     * for region in given direction.
     */
-    void GetCellVolCoord (Array<Real>& loc, const Box& region, int dir) const;
+    void GetCellVolCoord (Vector<Real>& loc, const Box& region, int dir) const;
 
 #ifdef BL_USE_MPI
     static void BroadcastCoordSys (CoordSys &geom, int fromProc, MPI_Comm comm);

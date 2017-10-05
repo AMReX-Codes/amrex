@@ -42,13 +42,13 @@ extern "C" {
         int max_level;
         pp.get("max_level", max_level);
 
-        Array<int> ref_ratio(max_level, 2);
+        Vector<int> ref_ratio(max_level, 2);
         pp.addarr("ref_ratio", ref_ratio);
     }
 
-    void amrex_fi_build_octree_leaves (AmrCore* const amrcore, int* n, Array<treenode>*& leaves)
+    void amrex_fi_build_octree_leaves (AmrCore* const amrcore, int* n, Vector<treenode>*& leaves)
     {
-        leaves = new Array<treenode>;
+        leaves = new Vector<treenode>;
         const int finest_level = amrcore->finestLevel();
         const int myproc = ParallelDescriptor::MyProc();
         for (int lev = 0; lev <= finest_level; ++lev)
@@ -84,7 +84,7 @@ extern "C" {
         *n = leaves->size();
     }
 
-    void amrex_fi_copy_octree_leaves (Array<treenode>* leaves, treenode a_copy[])
+    void amrex_fi_copy_octree_leaves (Vector<treenode>* leaves, treenode a_copy[])
     {
         const int n = leaves->size();
 

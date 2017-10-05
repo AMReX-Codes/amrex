@@ -257,13 +257,13 @@ namespace amrex
 
     // solve ax = b (gives icomp component of x using cramers rule).
     static Real
-    matrixSolveComp(const Array<Array<Real> >& a_A,
-                    const  Array<Real>& a_rhs,
+    matrixSolveComp(const Vector<Vector<Real> >& a_A,
+                    const  Vector<Real>& a_rhs,
                     const int& a_icomp);
 
     //return the determinant of a
     static Real
-    determinant(const Array< Array<Real> >& a_A);
+    determinant(const Vector< Vector<Real> >& a_A);
 
     /**
        andzvolume computes the volume under

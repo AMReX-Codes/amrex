@@ -13,7 +13,7 @@ typedef FabArrayId MultiFabId;
 
 void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                    BoxList*                returnUnfilledBoxes,
-                   Array<FillBoxId>&       returnedFillBoxIds,
+                   Vector<FillBoxId>&       returnedFillBoxIds,
                    const Box&              subbox,
                    MultiFabId              faid1,
                    MultiFabId              faid2,
@@ -26,7 +26,7 @@ void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                    bool                    extrap);
 
 void InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-                    const Array<FillBoxId>& fillBoxIds,
+                    const Vector<FillBoxId>& fillBoxIds,
                     MultiFabId              faid1,
                     MultiFabId              faid2,
                     FArrayBox&              dest,

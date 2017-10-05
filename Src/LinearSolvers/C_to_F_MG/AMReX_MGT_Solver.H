@@ -16,10 +16,10 @@ class MGT_Solver
 {
 public:
 
-    MGT_Solver(const Array<Geometry>& geom, 
+    MGT_Solver(const Vector<Geometry>& geom, 
                int* bc, 
-               const Array<BoxArray>& grids,
-               const Array<DistributionMapping>& dmap,
+               const Vector<BoxArray>& grids,
+               const Vector<DistributionMapping>& dmap,
                bool nodal,
                int stencil_type,
                bool _have_rhcc = false,
@@ -52,52 +52,52 @@ public:
   //
   void set_abeclap_coeffs (Real alpha, // aa is constant one
 			   Real beta,
-			   const Array<Array<MultiFab*> >& bb,
-			   const Array<Array<Real> >& xa,
-			   const Array<Array<Real> >& xb);
-  void set_abeclap_coeffs (const Array<MultiFab*>& aa, // alpha is one
+			   const Vector<Vector<MultiFab*> >& bb,
+			   const Vector<Vector<Real> >& xa,
+			   const Vector<Vector<Real> >& xb);
+  void set_abeclap_coeffs (const Vector<MultiFab*>& aa, // alpha is one
 			   Real beta,
-			   const Array<Array<MultiFab*> >& bb,
-			   const Array<Array<Real> >& xa,
-			   const Array<Array<Real> >& xb);
+			   const Vector<Vector<MultiFab*> >& bb,
+			   const Vector<Vector<Real> >& xa,
+			   const Vector<Vector<Real> >& xb);
   void set_abeclap_coeffs (Real alpha,
-			   const Array<MultiFab*>& aa,
+			   const Vector<MultiFab*>& aa,
 			   Real beta,
-			   const Array<Array<MultiFab*> >& bb,
-			   const Array<Array<Real> >& xa,
-			   const Array<Array<Real> >& xb);
+			   const Vector<Vector<MultiFab*> >& bb,
+			   const Vector<Vector<Real> >& xa,
+			   const Vector<Vector<Real> >& xb);
 
-  void set_mac_coefficients(const Array<Array<MultiFab*> >& bb,
-                            const Array<Array<Real> >& xa,
-                            const Array<Array<Real> >& xb);
+  void set_mac_coefficients(const Vector<Vector<MultiFab*> >& bb,
+                            const Vector<Vector<Real> >& xa,
+                            const Vector<Vector<Real> >& xb);
 
-  void set_gravity_coefficients(const Array<Array<MultiFab*> >& bb,
-                                const Array<Array<Real> >& xa,
-                                const Array<Array<Real> >& xb);
+  void set_gravity_coefficients(const Vector<Vector<MultiFab*> >& bb,
+                                const Vector<Vector<Real> >& xa,
+                                const Vector<Vector<Real> >& xb);
 
-  void set_const_gravity_coeffs(const Array< Array<Real> >& xa,
-                                const Array< Array<Real> >& xb);
+  void set_const_gravity_coeffs(const Vector< Vector<Real> >& xa,
+                                const Vector< Vector<Real> >& xb);
 
   void set_maxorder(const int max_order);
 
-  void solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const BndryData& bd,
+  void solve(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& rh, const BndryData& bd,
 	     Real tol, Real abs_tol, int always_use_bnorm, 
 	     Real& final_resnorm, int need_grad_phi=0);
 
-  void solve_nodal(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
+  void solve_nodal(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& rh,
                    Real tol, Real abs_tol);
 
-  void applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, const BndryData& bd);
+  void applyop(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& res, const BndryData& bd);
 
-  void compute_residual(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
-			const Array<MultiFab*>& res, const BndryData& bd);
+  void compute_residual(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& rh,
+			const Vector<MultiFab*>& res, const BndryData& bd);
 
-  void get_fluxes(int lev, const Array<MultiFab*>& flux, const Real* dx);
+  void get_fluxes(int lev, const Vector<MultiFab*>& flux, const Real* dx);
 
-  void set_nodal_coefficients(const Array<MultiFab*>& aa);
+  void set_nodal_coefficients(const Vector<MultiFab*>& aa);
   void set_nodal_const_coefficients(Real val);
-  void nodal_project(const Array<MultiFab*>& uu, const Array<MultiFab*>& vel, 
-		     const Array<MultiFab*>& rhcc, const Array<MultiFab*>& rhnd, 
+  void nodal_project(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& vel, 
+		     const Vector<MultiFab*>& rhcc, const Vector<MultiFab*>& rhnd, 
 		     const Real& tol, const Real& abs_tol, 
 		     int* lo_inflow=0, int* hi_inflow=0);
 
@@ -116,16 +116,16 @@ public:
   
 private:
 
-   void Build(const Array<Geometry>& geom, 
+   void Build(const Vector<Geometry>& geom, 
 	      int* bc, int  stencil_type,
-	      const Array<DistributionMapping>& dmap,
+	      const Vector<DistributionMapping>& dmap,
 	      int nc,
 	      int ncomp);
 
   int verbose;
   int m_nlevel;
-  Array<BoxArray> m_grids;
-  Array<DistributionMapping> m_dmap;
+  Vector<BoxArray> m_grids;
+  Vector<DistributionMapping> m_dmap;
   bool m_nodal;
   bool have_rhcc;
 

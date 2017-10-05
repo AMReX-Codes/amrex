@@ -97,7 +97,7 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
   bool bWriteHTML(false), bWriteHTMLNC(false), bWriteTextTrace(false);
   bool bRunACTPF(false), bUseDispatch(false);
   string outfileName, delimString("\t");
-  Array<string> actFNames;
+  Vector<string> actFNames;
 
   bParserProf = false;
 

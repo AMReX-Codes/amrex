@@ -287,7 +287,7 @@ ABecLaplacian::setCoefficients (const MultiFab& _a,
 
 void
 ABecLaplacian::setCoefficients (const MultiFab& _a,
-                                const Array<MultiFab*>& _b)
+                                const Vector<MultiFab*>& _b)
 {
     aCoefficients(_a);
     for (int n = 0; n < BL_SPACEDIM; ++n)

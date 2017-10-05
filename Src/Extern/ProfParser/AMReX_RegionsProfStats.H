@@ -55,8 +55,8 @@ class RegionsProfStats : public BLProfStats {
       int streamIndex;
 
       double timeMin, timeMax;
-      amrex::Array<amrex::BLProfiler::RStartStop> rStartStop;
-      amrex::Array<amrex::BLProfiler::CallStats> vCallStats;
+      amrex::Vector<amrex::BLProfiler::RStartStop> rStartStop;
+      amrex::Vector<amrex::BLProfiler::CallStats> vCallStats;
     };
 
 
@@ -77,12 +77,12 @@ class RegionsProfStats : public BLProfStats {
 
     TimeRange MakeRegionPlt(amrex::FArrayBox &rFab, int noregionnumber,
                             int width, int height,
-			    amrex::Array<amrex::Array<amrex::Box>> &regionBoxes);
-    virtual void CollectFuncStats(amrex::Array<amrex::Array<FuncStat> > &funcStats);
+			    amrex::Vector<amrex::Vector<amrex::Box>> &regionBoxes);
+    virtual void CollectFuncStats(amrex::Vector<amrex::Vector<FuncStat> > &funcStats);
     virtual void WriteSummary(std::ostream &os, bool bwriteavg = false, int whichProc = 0,
                               bool graphTopPct = true);
     bool AllCallTimesFAB(amrex::FArrayBox &actFab, const std::string &whichFuncName);
-    void FillAllCallTimes(amrex::Array<amrex::Array<Real> > &allCallTimes,
+    void FillAllCallTimes(amrex::Vector<amrex::Vector<Real> > &allCallTimes,
                           const std::string whichFuncName,
                           int whichFuncNumber, const amrex::Box &procBox);
 
@@ -91,27 +91,27 @@ class RegionsProfStats : public BLProfStats {
 
     static void SetInitDataBlocks(bool b) { bInitDataBlocks = b;    }
     static bool InitDBlocks()             { return bInitDataBlocks; }
-    static void InitDataFileNames(const amrex::Array<std::string> &hfn);
+    static void InitDataFileNames(const amrex::Vector<std::string> &hfn);
     bool TraceDataValid() const { return mFNameNumbersPerProc.size() > 0; }
 		     
     void SyncFNamesAndNumbers();
     bool InitRegionTimeRanges(const amrex::Box &procBox);
 
     void WriteHTML(std::ostream &os, bool simpleCombine = true, int whichProc = 0);
-    void PrintCallTreeNode(CallTreeNode &callTree, amrex::Array<std::string> &fNumberNames);
+    void PrintCallTreeNode(CallTreeNode &callTree, amrex::Vector<std::string> &fNumberNames);
     void CreateVCallStats(CallTreeNode &callTree,
-                          amrex::Array<amrex::BLProfiler::CallStats> &vCallStatsNC);
+                          amrex::Vector<amrex::BLProfiler::CallStats> &vCallStatsNC);
     void WriteHTMLNC(std::ostream &os, int whichProc = 0);
     void WriteTextTrace(std::ostream &os, bool simpleCombine = true, int whichProc = 0,
                         std::string delimString = "\t");
 
-    static const amrex::Array<std::string> &GetHeaderFileNames() { return regHeaderFileNames; }
-    const amrex::Array<std::string> &NumbersToFName() const { return numbersToFName; }
+    static const amrex::Vector<std::string> &GetHeaderFileNames() { return regHeaderFileNames; }
+    const amrex::Vector<std::string> &NumbersToFName() const { return numbersToFName; }
 
     static void OpenAllStreams(const std::string &dirname);
     static void CloseAllStreams();
 
-    void FillRegionTimeRanges(amrex::Array<amrex::Array<TimeRange>> &rtr,  // ---- [region][range]
+    void FillRegionTimeRanges(amrex::Vector<amrex::Vector<TimeRange>> &rtr,  // ---- [region][range]
                               int whichProc);
 
   private:
@@ -119,19 +119,19 @@ class RegionsProfStats : public BLProfStats {
     int csVersion;
     int maxFNumber;
 
-    amrex::Array<std::map<std::string, int> > mFNameNumbersPerProc;  // [proc][fname, fnumber]
-    amrex::Array<amrex::Array<int> > fnameRemap;  // [dataNProc][remappedfnumber]
+    amrex::Vector<std::map<std::string, int> > mFNameNumbersPerProc;  // [proc][fname, fnumber]
+    amrex::Vector<amrex::Vector<int> > fnameRemap;  // [dataNProc][remappedfnumber]
     std::map<std::string, int> mFNameNumbersLocal;  // [fname, fnumber]
-    amrex::Array<std::string> numbersToFName;  // [fname]
-    static amrex::Array<std::string> regHeaderFileNames;
-    static amrex::Array<std::ifstream *> regDataStreams;
+    amrex::Vector<std::string> numbersToFName;  // [fname]
+    static amrex::Vector<std::string> regHeaderFileNames;
+    static amrex::Vector<std::ifstream *> regDataStreams;
     static std::map<std::string, int> regDataFileNames;  // [filename, stream index]
 
     static std::map<Real, std::string, std::greater<Real> > mTimersTotalsSorted;
 
     bool Include(const FuncStat &fs);
 
-    amrex::Array<DataBlock> dataBlocks;
+    amrex::Vector<DataBlock> dataBlocks;
     static bool bInitDataBlocks;
 
     void ReadBlock(DataBlock &dBlock, bool readRSS = true,

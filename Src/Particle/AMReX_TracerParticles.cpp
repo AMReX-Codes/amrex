@@ -26,8 +26,8 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
 
-    Array<std::unique_ptr<MultiFab> > raii_umac(BL_SPACEDIM);
-    Array<MultiFab*> umac_pointer(BL_SPACEDIM);
+    Vector<std::unique_ptr<MultiFab> > raii_umac(BL_SPACEDIM);
+    Vector<MultiFab*> umac_pointer(BL_SPACEDIM);
     // We assume that if umac[0]'s boxArray matches then the others will too...
     if (OnSameGrids(lev, umac[0]))
     {
