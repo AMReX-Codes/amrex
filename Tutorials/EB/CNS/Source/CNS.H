@@ -102,12 +102,13 @@ public:
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
+    static int numGrow() { return NUM_GROW; };
+
 protected:
 
     static void read_params ();
-    static int numGrow() { return NUM_GROW; };
 
-    const amrex::MultiFab& volFrac () const { return volfrac; }
+    const amrex::MultiFab& volFrac () const { return *volfrac; }
 
     CNS& getLevel (int lev) { return dynamic_cast<CNS&>(parent->getLevel(lev)); }
 
@@ -129,10 +130,10 @@ protected:
 
     void printTotal () const;
 
-    amrex::MultiFab volfrac;
-    amrex::MultiFab bndrycent;
-    std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
-    std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;
+    const amrex::MultiFab* volfrac;
+    const amrex::MultiCutFab* bndrycent;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
 
     amrex::iMultiFab level_mask;
 
@@ -160,11 +161,15 @@ protected:
     // Parameters
     static int verbose;
     static amrex::IntVect hydro_tile_size;
-    static amrex_real cfl;
+    static amrex::Real cfl;
 
     static int do_reflux;
 
     static int refine_cutcells;
+
+    static int refine_max_dengrad_lev;
+    static amrex::Real refine_dengrad;
+
     static amrex::Array<amrex::RealBox> refine_boxes;
 };
 

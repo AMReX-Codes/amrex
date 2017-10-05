@@ -1128,7 +1128,6 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
                                   const double tlo, const double thi)
 {
   double dstart(amrex::ParallelDescriptor::second());
-  int idb;
   Real timeMin(std::numeric_limits<Real>::max());
   Real timeMax(-std::numeric_limits<Real>::max());
 
@@ -1185,7 +1184,7 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
     multimap<int, int>::iterator idbMMiter;
     //cout << "==============" << endl;
     int countI(0);
-    for(idb = 0; idb < dataBlocks.size(); ++idb) {
+    for(int idb(0); idb < dataBlocks.size(); ++idb) {
       //cout << "idb dB.proc = " << idb << "  " << dataBlocks[idb].proc << endl;
       //cout << idb << "  " << dataBlocks[idb].proc << endl;
       int t0(dataBlocks[idb].timeMin * 1.0);

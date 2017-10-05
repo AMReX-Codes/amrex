@@ -513,7 +513,6 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
 
     const std::string BName = VisMFBaseName(FullName);
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     std::ofstream FabFile;
     FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 

@@ -1,7 +1,5 @@
 #include "AMReX_LoadBalanceKD.H"
 
-#include "AMReX_KDTree_F.H"
-
 using namespace amrex;
 
 int KDTree::min_box_size = 4;
