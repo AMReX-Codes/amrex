@@ -50,9 +50,19 @@ public:
 namespace amrex
 {
     template <class T>
+    Array<const T*> GetArrOfConstPtrs (const Array<T>& a)
+    {
+	Array<const T*> r;
+        r.reserve(a.size());
+	for (const auto& x : a)  r.push_back(&x);
+	return r;
+    }
+
+    template <class T>
     Array<T*> GetArrOfPtrs (const Array<std::unique_ptr<T> >& a)
     {
 	Array<T*> r;
+        r.reserve(a.size());
 	for (const auto& x : a)  r.push_back(x.get());
 	return r;
     }
@@ -61,6 +71,7 @@ namespace amrex
     Array<const T*> GetArrOfConstPtrs (const Array<std::unique_ptr<T> >& a)
     {
 	Array<const T*> r;
+        r.reserve(a.size());
 	for (const auto& x : a)  r.push_back(x.get());
 	return r;
     }
@@ -75,6 +86,7 @@ namespace amrex
     Array<Array<T*> > GetArrOfArrOfPtrs (const Array<Array<std::unique_ptr<T> > >& a)
     {
 	Array<Array<T*> > r;
+        r.reserve(a.size());
 	for (const auto& x : a)  r.push_back(GetArrOfPtrs(x));
 	return r;
     }
