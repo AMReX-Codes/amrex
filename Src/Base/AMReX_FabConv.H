@@ -5,6 +5,7 @@
 #include <iosfwd>
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 

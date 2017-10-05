@@ -16,7 +16,8 @@
 #include "AMReX_REAL.H"
 #include "AMReX_RealVect.H"
 #include "AMReX_Tuple.H"
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include "AMReX_VolIndex.H"
 
 namespace amrex

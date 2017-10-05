@@ -2,6 +2,7 @@
 #define BL_AMRMESH_H_
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Geometry.H>

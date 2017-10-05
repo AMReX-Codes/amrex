@@ -15,7 +15,8 @@
 
 #include <cmath>
 #include <cstdlib>
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include "Box.H"
 #include "EBISBox.H"
 #include "GeometryService.H"

@@ -5,6 +5,7 @@
 #define _DATASERVICES_H_
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_AmrData.H>
 
 #include <cstdarg>
@@ -14,6 +15,7 @@
 #include <map>
 #include <AMReX_BLProfUtilities.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_BLProfStats.H>
 #include <BLProfParser.tab.H>
 #include <AMReX_CommProfStats.H>

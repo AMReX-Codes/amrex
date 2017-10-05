@@ -2,6 +2,7 @@
 #define _MGT_SOLVER_
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_BCRec.H>

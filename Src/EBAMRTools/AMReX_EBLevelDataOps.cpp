@@ -18,7 +18,8 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_BoxIterator.H"
 #include "AMReX_DistributionMapping.H"
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include "AMReX_PlotFileUtil.H"
 #include <cstdlib>
 namespace amrex

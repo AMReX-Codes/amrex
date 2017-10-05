@@ -12,7 +12,8 @@
 #ifndef _LSQUARES_H_
 #define _LSQUARES_H_
 
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include "AMReX_REAL.H"
 #include "AMReX_RealVect.H"
 

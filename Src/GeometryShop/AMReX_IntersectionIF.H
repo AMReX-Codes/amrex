@@ -15,7 +15,8 @@
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {

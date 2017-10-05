@@ -6,6 +6,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #ifndef BL_AMRPROF
 #include <AMReX_Box.H>
 #endif
