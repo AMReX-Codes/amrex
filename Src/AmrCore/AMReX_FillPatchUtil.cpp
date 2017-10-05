@@ -4,7 +4,7 @@
 #include <cmath>
 
 #ifdef AMREX_USE_EB
-#include <AMReX_EBLevel.H>
+#include <AMReX_EBFabFactory.H>
 #endif
 
 #ifdef _OPENMP
@@ -251,8 +251,7 @@ namespace amrex
 	}
 
 #ifdef AMREX_USE_EB
-        EBLevel eblg (ba_crse_patch, dm, cgeom.Domain(), 0);
-        const EBFArrayBoxFactory factory{eblg};
+        const EBFArrayBoxFactory factory{cgeom, ba_crse_patch, dm, {0,0,0}, EBSupport::basic};
 #else
         const FArrayBoxFactory factory{};
 #endif

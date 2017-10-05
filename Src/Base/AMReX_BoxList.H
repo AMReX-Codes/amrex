@@ -66,6 +66,9 @@ public:
     //!  Construct a BoxList from a BoxArray.
     explicit BoxList (const BoxArray& ba);
 
+    //! Construct a boxlist from a rvalue Array<Box>.
+    explicit BoxList (Array<Box>&& bxs);
+
     //! Make a boxList consisting of non-overlapping tile box from a single Box
     BoxList (const Box& bx, const IntVect& tilesize);
 
