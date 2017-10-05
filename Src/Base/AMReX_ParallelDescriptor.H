@@ -227,7 +227,7 @@ namespace ParallelDescriptor
     * distribution maps and moving data in FabArrays).
     *
     * The union of ranks in the comp and sidecar arrays must be
-    * equal to the set of ranks in 'all' (the boxlib global
+    * equal to the set of ranks in 'all' (the amrex global
     * communicator).  The sets must be disjoint.
     * Global rank zero is required to be in compRanksInAll[0],
     * this restriction may be removed in the future.
