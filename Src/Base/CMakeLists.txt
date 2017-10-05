@@ -8,7 +8,7 @@ set (ALLSRC "")
 #
 # Utility classes
 #
-list ( APPEND ALLHEADERS AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H AMReX_Tuple.H )
+list ( APPEND ALLHEADERS AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_BaseIndex.H AMReX_Tuple.H )
 
 list ( APPEND ALLHEADERS AMReX.H)
 list ( APPEND CXXSRC     AMReX.cpp AMReX_error_fi.cpp )
