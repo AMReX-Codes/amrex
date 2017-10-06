@@ -9,8 +9,15 @@ class MLMG
 {
 public:
 
-    MLMG ();
+    MLMG (MLLinOp& a_lp);
     ~MLMG ();
+
+    void solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& rhs,
+                Real a_tol_real, Real a_tol_abs);
+
+private:
+    
+    MLLinOp& m_lp;
 
 };
 
