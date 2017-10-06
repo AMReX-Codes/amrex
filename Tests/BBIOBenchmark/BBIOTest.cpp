@@ -1,7 +1,7 @@
 // -------------------------------------------------------------
 // BBIOTest.cpp
 // -------------------------------------------------------------
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
@@ -56,7 +56,7 @@ void TestWriteNFiles(int nfiles, int nMB, bool raninit, bool mb2)
   }
 
   // make the data array
-  Array<long> dataArray(nMB * bytesPerMB / sizeof(long), 0);
+  Vector<long> dataArray(nMB * bytesPerMB / sizeof(long), 0);
   if(initData) {
     long *dp = dataArray.dataPtr();
     for(long i(0); i < dataArray.size(); ++i) {
@@ -64,7 +64,7 @@ void TestWriteNFiles(int nfiles, int nMB, bool raninit, bool mb2)
     }
   }
 
-  Array<Real> writeSize, writeRate;
+  Vector<Real> writeSize, writeRate;
   long npts(dataArray.size()), nItemsToWrite(0);
   long totalNBytes(npts * sizeof(long) * nProcs);
   std::string fileName(dirName + "/TestArray_");
@@ -163,9 +163,9 @@ void TestReadNFiles(int nfiles, int nMB, bool raninit, bool mb2)
   }
 
   // make the data array
-  Array<long> dataArray(nMB * bytesPerMB / sizeof(long), 0);
+  Vector<long> dataArray(nMB * bytesPerMB / sizeof(long), 0);
 
-  Array<Real> readSize, readRate;
+  Vector<Real> readSize, readRate;
   long npts(dataArray.size()), nItemsToRead(0);
   long totalNBytes(npts * sizeof(long) * nProcs);
   std::string fileName(dirName + "/TestArray_");
