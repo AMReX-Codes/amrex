@@ -11,6 +11,8 @@ module cuda_module
 
   integer :: cuda_device_id
 
+  integer :: verbose
+
   type(cudaDeviceProp), private :: prop
 
   ! Some C++ static class members will initialize at program load,
@@ -47,7 +49,7 @@ module cuda_module
 
 contains
 
-  subroutine initialize_cuda(id, rank) bind(c, name='initialize_cuda')
+  subroutine initialize_cuda(id, rank, num_devices, num_ranks, ioproc, v) bind(c, name='initialize_cuda')
 
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
                        cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
@@ -57,11 +59,11 @@ contains
 
     implicit none
 
-    integer, intent(in) :: id, rank
+    integer, intent(in) :: id, rank, num_devices, num_ranks, ioproc, v
 
     integer :: i, cudaResult, ilen
 
-    character(32) :: char_id, char_rank
+    character(32) :: char_id, char_rank, device_str, nproc_str
 
     cuda_device_id = id
 
@@ -102,8 +104,23 @@ contains
 
     write(char_id, '(i32)') id
     write(char_rank, '(i32)') rank
+    write(device_str, '(i32)') num_devices
+    write(nproc_str, '(i32)') num_ranks
 
-    print *, "Using GPU " // trim(adjustl(char_id)) // ": " // prop%name(1:ilen) // " on rank " // trim(adjustl(char_rank))
+    if (rank == ioproc) then
+       if (num_ranks == 1) then
+          write(*,'(A)') "CUDA initialized using 1 GPU out of " // trim(adjustl(device_str)) // " available"
+       else if (num_ranks > 1) then
+          write(*,'(A)') "CUDA initialized using " // trim(adjustl(nproc_str)) // " GPUs out of " // trim(adjustl(device_str)) // " available"
+       end if
+    end if
+
+    verbose = v
+
+    if (verbose > 0) then
+       print *, "Using GPU " // trim(adjustl(char_id)) // ": " // prop%name(1:ilen) // " on rank " // trim(adjustl(char_rank))
+    else
+    end if
 
   end subroutine initialize_cuda
 
