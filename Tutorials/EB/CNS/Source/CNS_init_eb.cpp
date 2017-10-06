@@ -24,7 +24,7 @@ using namespace amrex;
 namespace {
     bool eb_initialized = false;
 
-    UnionIF* makeCrossSection(const Array<Array<RealVect> >& a_polygons)
+    UnionIF* makeCrossSection(const Vector<Vector<RealVect> >& a_polygons)
     {
         // The final result
         UnionIF* retval;
@@ -35,18 +35,18 @@ namespace {
         bool inside = true;
         
         // A list of all the polygons as implicit functions
-        Array<BaseIF*> polytopes;
+        Vector<BaseIF*> polytopes;
         polytopes.resize(0);
         
         // Process each polygon
         for (int p = 0; p < numPolys; p++)
         {
             // All the half planes/spaces used to make a polygon
-            Array<BaseIF*> planes;
+            Vector<BaseIF*> planes;
             planes.resize(0);
             
             // Get the current polygon (as a vector of points)
-            const Array<RealVect>& polygon = a_polygons[p];
+            const Vector<RealVect>& polygon = a_polygons[p];
             
             // Get the number of points in the polygon
             int numPts = polygon.size();
@@ -99,7 +99,7 @@ initialize_EBIS(const int max_level)
         ParmParse pp;
         ParmParse ppa("amr");
         ParmParse ppg("geometry");
-        Array<int> n_cell;
+        Vector<int> n_cell;
         ppa.getarr("n_cell", n_cell, 0, SpaceDim);
 
         int max_grid_size = 0;
@@ -111,7 +111,7 @@ initialize_EBIS(const int max_level)
         // 
         //   ParmParse pp;
 
-        Array<int> ref_ratio;
+        Vector<int> ref_ratio;
         ppa.getarr("ref_ratio", ref_ratio, 0, max_level);
       
         IntVect ivlo = IntVect::Zero;
@@ -127,7 +127,7 @@ initialize_EBIS(const int max_level)
           finest_domain.refine(ref_ratio[ilev]);
         }
       
-        Array<Real> prob_lo, prob_hi;
+        Vector<Real> prob_lo, prob_hi;
         ppg.getarr("prob_lo", prob_lo, 0, SpaceDim);
         ppg.getarr("prob_hi", prob_hi, 0, SpaceDim);
         Real fine_dx = (prob_hi[0]-prob_lo[0])/finest_domain.size()[0];
@@ -151,8 +151,8 @@ initialize_EBIS(const int max_level)
         else if (geom_type == "flat_plate") 
         {
           amrex::Print() << "flat plate  geometry\n";
-          Array<Real>  platelovec(SpaceDim);
-          Array<Real>  platehivec(SpaceDim);
+          Vector<Real>  platelovec(SpaceDim);
+          Vector<Real>  platehivec(SpaceDim);
 
           int normalDir;
           Real plateLoc;
@@ -201,7 +201,7 @@ initialize_EBIS(const int max_level)
           else if (geom_type == "sphere")
           {
             amrex::Print() << "sphere geometry\n";
-            Array<Real> centervec(SpaceDim);
+            Vector<Real> centervec(SpaceDim);
             Real radius;
             pp.get(   "sphere_radius", radius);
             pp.getarr("sphere_center", centervec, 0, SpaceDim);
@@ -218,7 +218,7 @@ initialize_EBIS(const int max_level)
           {
 
             amrex::Print() << "parabola geometry\n";
-            Array<PolyTerm> poly;
+            Vector<PolyTerm> poly;
 
             PolyTerm mono;
             Real coef;
@@ -273,7 +273,7 @@ initialize_EBIS(const int max_level)
           {
 
             amrex::Print() << "parabola + sphere geometry\n";
-            Array<PolyTerm> poly;
+            Vector<PolyTerm> poly;
 
             PolyTerm mono;
             Real coef;
@@ -324,7 +324,7 @@ initialize_EBIS(const int max_level)
 
             Real radius = 0.2*center[0];
             SphereIF sphere(radius, center, true);
-            Array<BaseIF*> funcs(2);
+            Vector<BaseIF*> funcs(2);
             funcs[0] = &transform;
             funcs[1] = &sphere;
             UnionIF implicit(funcs);
@@ -337,7 +337,7 @@ initialize_EBIS(const int max_level)
             bool insideRegular = false;
       
             // Data for polygons making up nozzle
-            Array<Array<RealVect> > polygons;
+            Vector<Vector<RealVect> > polygons;
       
       
             // For building each polygon
@@ -360,12 +360,12 @@ initialize_EBIS(const int max_level)
               string nptsstr = "poly_" + std::to_string(ipoly) + "_num_pts";
               int num_pts;
               pp.get(nptsstr.c_str(), num_pts);
-              Array<RealVect> polygon(num_pts);
+              Vector<RealVect> polygon(num_pts);
               for(int ipt = 0; ipt < num_pts; ipt++)
               {
                 RealVect point(RealVect::Zero);
                 string    pointstr = "poly_" + std::to_string(ipoly) + "_point_" + std::to_string(ipt);
-                Array<Real> vecpt;
+                Vector<Real> vecpt;
                 pp.getarr(pointstr.c_str(), vecpt,  0, SpaceDim);
                 for(int idir = 0; idir < SpaceDim; idir++)
                 {
