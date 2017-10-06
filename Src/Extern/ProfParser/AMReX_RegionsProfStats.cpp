@@ -639,7 +639,6 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
   for(int i(0); i < fNames.size(); ++i) {
     if(i >= 0) {
       fNames[i] = numbersToFName[i];
-      std::cout << "------------------:: fNames[" << i << "] = " << fNames[i] << std::endl;
     }
   }
 
