@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     MultiFab mfU(pdBoxArray, nComps, nGhost, Fab_allocate);
     MultiFab mfQ(pdBoxArray, nComps+1, nGhost, Fab_allocate);
 
-    Array<Real> probLo(BL_SPACEDIM), probHi(BL_SPACEDIM);
+    Vector<Real> probLo(BL_SPACEDIM), probHi(BL_SPACEDIM);
     for(int i(0); i < BL_SPACEDIM; ++i) {
       probLo[i] = -2.3;
       probHi[i] =  2.3;

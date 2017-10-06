@@ -101,8 +101,8 @@ private:
                 int                 src_comp, 
                 int                 dest_comp, 
                 int                 ncomp,
-                const Array<BCRec>& bc_dom, 
-                Array<BCRec>&       bcr);
+                const Vector<BCRec>& bc_dom, 
+                Vector<BCRec>&       bcr);
 }
 
 #endif /*_BCREC_H_*/

@@ -37,7 +37,7 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition
-  (AMREX_D_DECL(Array<Real>& x, Array<Real>& y, Array<Real>& z)) const
+  (AMREX_D_DECL(Vector<Real>& x, Vector<Real>& y, Vector<Real>& z)) const
 {
     const auto& aos = GetArrayOfStructs();
     const auto  p     = aos.data();
@@ -52,7 +52,7 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
-  (AMREX_D_DECL(const Array<Real>& x, const Array<Real>& y, const Array<Real>& z)) const
+  (AMREX_D_DECL(const Vector<Real>& x, const Vector<Real>& y, const Vector<Real>& z)) const
 {
     auto& aos = this->GetArrayOfStructs();
     BL_ASSERT(AMREX_D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));

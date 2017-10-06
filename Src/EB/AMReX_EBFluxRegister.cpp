@@ -1,6 +1,7 @@
 
 #include <AMReX_EBFluxRegister.H>
 #include <AMReX_EBFluxRegister_F.H>
+#include <AMReX_EBFArrayBox.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -98,7 +99,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     BL_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
 
     const int li = mfi.LocalIndex();
-    Array<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
+    Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
     if (cfp_fabs.empty()) return;
 
     const Box& tbx = mfi.tilebox();

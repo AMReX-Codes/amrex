@@ -251,7 +251,7 @@ void
 AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
     static bool first = true;
-    static Array<Real> phierr;
+    static Vector<Real> phierr;
 
     // only do this during the first call to ErrorEst
     if (first)
@@ -283,7 +283,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 #pragma omp parallel
 #endif
     {
-        Array<int>  itags;
+        Vector<int>  itags;
 	
 	for (MFIter mfi(state,true); mfi.isValid(); ++mfi)
 	{
@@ -390,8 +390,8 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
     if (lev == 0)
     {
-	Array<MultiFab*> smf;
-	Array<Real> stime;
+	Vector<MultiFab*> smf;
+	Vector<Real> stime;
 	GetData(0, time, smf, stime);
 
 	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(phifill));
@@ -400,8 +400,8 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
     }
     else
     {
-	Array<MultiFab*> cmf, fmf;
-	Array<Real> ctime, ftime;
+	Vector<MultiFab*> cmf, fmf;
+	Vector<Real> ctime, ftime;
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
@@ -424,8 +424,8 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
 {
     BL_ASSERT(lev > 0);
 
-    Array<MultiFab*> cmf;
-    Array<Real> ctime;
+    Vector<MultiFab*> cmf;
+    Vector<Real> ctime;
     GetData(lev-1, time, cmf, ctime);
     
     if (cmf.size() != 1) {
@@ -444,7 +444,7 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
 void
-AmrCoreAdv::GetData (int lev, Real time, Array<MultiFab*>& data, Array<Real>& datatime)
+AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab*>& data, Vector<Real>& datatime)
 {
     data.clear();
     datatime.clear();
@@ -481,7 +481,7 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
         // help keep track of whether a level was already regridded
         // from a coarser level call to regrid
-        static Array<int> last_regrid_step(max_level+1, 0);
+        static Vector<int> last_regrid_step(max_level+1, 0);
 
         // regrid changes level "lev+1" so we don't regrid on max_level
         // also make sure we don't regrid fine levels again if 
@@ -652,7 +652,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 void
 AmrCoreAdv::ComputeDt ()
 {
-    Array<Real> dt_tmp(finest_level+1);
+    Vector<Real> dt_tmp(finest_level+1);
 
     for (int lev = 0; lev <= finest_level; ++lev)
     {
@@ -739,10 +739,10 @@ AmrCoreAdv::PlotFileName (int lev) const
 }
 
 // put together an array of multifabs for writing
-Array<const MultiFab*>
+Vector<const MultiFab*>
 AmrCoreAdv::PlotFileMF () const
 {
-    Array<const MultiFab*> r;
+    Vector<const MultiFab*> r;
     for (int i = 0; i <= finest_level; ++i) {
 	r.push_back(phi_new[i].get());
     }
@@ -750,7 +750,7 @@ AmrCoreAdv::PlotFileMF () const
 }
 
 // set plotfile variable names
-Array<std::string>
+Vector<std::string>
 AmrCoreAdv::PlotFileVarNames () const
 {
     return {"phi"};

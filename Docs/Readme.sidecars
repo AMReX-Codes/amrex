@@ -22,14 +22,14 @@ List of AMReX functions.
   void SetNProcsSidecars (int nscp);
 
   // ---- This version sets sidecar ranks according to the
-  // ---- Array<int> inputs
+  // ---- Vector<int> inputs
   // ---- compRanksInAll[0] must == 0  this restriction may
   // ---- be removed in the future
   // ---- the intersection of all ranks in all arrays must
   // ---- be null and the union must include all ranks in
   // ---- the AMReX global communicator
-  void SetNProcsSidecars (const Array<int> &compRanksInAll,
-                          const Array<Array<int> > &sidecarRanksInAll);
+  void SetNProcsSidecars (const Vector<int> &compRanksInAll,
+                          const Vector<Vector<int> > &sidecarRanksInAll);
 						   
   Functions to communicate data.
 

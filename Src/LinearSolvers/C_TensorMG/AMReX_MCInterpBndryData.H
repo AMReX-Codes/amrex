@@ -75,7 +75,7 @@ public:
 			 int                 mf_start,
 			 int                 bnd_start,
 			 int                 num_comp,
-			 const Array<BCRec>& phys_bc);
+			 const Vector<BCRec>& phys_bc);
     //
     // Set bndry values at fine level, performing necessary interpolations.
     //
@@ -86,7 +86,7 @@ public:
 			 int                  bnd_start,
 			 int                  num_comp,
 			 int                  ratio,
-			 const Array<BCRec>&  phys_bc);
+			 const Vector<BCRec>&  phys_bc);
 };
 
 }

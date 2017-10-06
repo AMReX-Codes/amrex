@@ -6,7 +6,7 @@ using namespace amrex;
 namespace
 {
     // THIS MUST BE CONSISTENT WITH amrex_interpolater_module in AMReX_interpolater_mod.F90!!!
-    static Array<Interpolater*> interp = {
+    static Vector<Interpolater*> interp = {
         &amrex::pc_interp,               // 0 
         &amrex::node_bilinear_interp,    // 1
         &amrex::cell_bilinear_interp,    // 2
@@ -25,8 +25,8 @@ extern "C"
                                     FPhysBC::fill_physbc_funptr_t fill)
     {
         FPhysBC pbc(fill, geom);
-	amrex::FillPatchSingleLevel(*mf, time, Array<MultiFab*>{smf, smf+ns}, 
-				    Array<Real>{stime, stime+ns},
+	amrex::FillPatchSingleLevel(*mf, time, Vector<MultiFab*>{smf, smf+ns}, 
+				    Vector<Real>{stime, stime+ns},
 				    scomp, dcomp, ncomp, *geom, pbc);
     }
 
@@ -40,7 +40,7 @@ extern "C"
 				 int rr, int interp_id,
 				 int* lo_bc[], int* hi_bc[])
     {
-	Array<BCRec> bcs;
+	Vector<BCRec> bcs;
 	// skip first scomp components
 	for (int i = scomp; i < scomp+ncomp; ++i) {
 	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
@@ -49,8 +49,8 @@ extern "C"
         FPhysBC cbc(cfill, cgeom);
         FPhysBC fbc(ffill, fgeom);
 	amrex::FillPatchTwoLevels(*mf, time,
-				  Array<MultiFab*>{cmf, cmf+nc}, Array<Real>{ct, ct+nc},
-				  Array<MultiFab*>{fmf, fmf+nf}, Array<Real>{ft, ft+nf},
+				  Vector<MultiFab*>{cmf, cmf+nc}, Vector<Real>{ct, ct+nc},
+				  Vector<MultiFab*>{fmf, fmf+nf}, Vector<Real>{ft, ft+nf},
 				  scomp, dcomp, ncomp,
 				  *cgeom, *fgeom,
 				  cbc, fbc,
@@ -66,7 +66,7 @@ extern "C"
                                    int rr, int interp_id,
                                    int* lo_bc[], int* hi_bc[])
     {
-	Array<BCRec> bcs;
+	Vector<BCRec> bcs;
         // skip first scomp components
 	for (int i = scomp; i < scomp+ncomp; ++i) {
 	    bcs.emplace_back(lo_bc[i], hi_bc[i]);

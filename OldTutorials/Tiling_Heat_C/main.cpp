@@ -161,7 +161,7 @@ main (int argc, char* argv[])
     DistributionMapping dm{bs};
 
     // Allocate space for the old_phi and new_phi -- we define old_phi and new_phi as
-    Array < std::unique_ptr<MultiFab> > phis(2);
+    Vector < std::unique_ptr<MultiFab> > phis(2);
     phis[0].reset(new MultiFab(bs, dm, Ncomp, Nghost));
     phis[1].reset(new MultiFab(bs, dm, Ncomp, Nghost));
     MultiFab* old_phi = phis[0].get();

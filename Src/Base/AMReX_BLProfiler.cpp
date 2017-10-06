@@ -7,6 +7,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_NFiles.H>
 #include <AMReX_Print.H>
 #include <iostream>
@@ -44,19 +45,19 @@ Real BLProfiler::startTime    = 0.0;
 Real BLProfiler::timerTime    = 0.0;
 
 #ifndef BL_AMRPROF
-Array<IntVect> BLProfiler::refRatio;
-Array<Box> BLProfiler::probDomain;
+Vector<IntVect> BLProfiler::refRatio;
+Vector<Box> BLProfiler::probDomain;
 #endif
 
 std::stack<Real> BLProfiler::nestedTimeStack;
 std::map<int, Real> BLProfiler::mStepMap;
 std::map<std::string, BLProfiler::ProfStats> BLProfiler::mProfStats;
-Array<BLProfiler::CommStats> BLProfiler::vCommStats;
+Vector<BLProfiler::CommStats> BLProfiler::vCommStats;
 std::map<std::string, BLProfiler *> BLProfiler::mFortProfs;
-Array<std::string> BLProfiler::mFortProfsErrors;
+Vector<std::string> BLProfiler::mFortProfsErrors;
 const int mFortProfMaxErrors(32);
-Array<BLProfiler *> BLProfiler::mFortProfsInt;
-Array<std::string> BLProfiler::mFortProfsIntNames;
+Vector<BLProfiler *> BLProfiler::mFortProfsInt;
+Vector<std::string> BLProfiler::mFortProfsIntNames;
 const int mFortProfsIntMaxFuncs(32);
 std::map<std::string, BLProfiler::CommFuncType> BLProfiler::CommStats::cftNames;
 std::set<BLProfiler::CommFuncType> BLProfiler::CommStats::cftExclude;
@@ -66,10 +67,10 @@ int BLProfiler::CommStats::tagWrapNumber(0);
 int BLProfiler::CommStats::tagMin(0);
 int BLProfiler::CommStats::tagMax(0);
 int BLProfiler::CommStats::csVersion(1);
-Array<std::pair<std::string,int> > BLProfiler::CommStats::barrierNames;
-Array<std::pair<int,int> > BLProfiler::CommStats::nameTags;
-Array<std::string> BLProfiler::CommStats::nameTagNames;
-Array<int> BLProfiler::CommStats::tagWraps;
+Vector<std::pair<std::string,int> > BLProfiler::CommStats::barrierNames;
+Vector<std::pair<int,int> > BLProfiler::CommStats::nameTags;
+Vector<std::string> BLProfiler::CommStats::nameTagNames;
+Vector<int> BLProfiler::CommStats::tagWraps;
 
 std::string BLProfiler::procName("NoProcName");
 int BLProfiler::procNumber(-1);
@@ -78,19 +79,19 @@ std::string BLProfiler::blProfDirName("bl_prof");
 int BLProfiler::BLProfVersion(1);
 
 std::map<std::string, int> BLProfiler::mFNameNumbers;
-Array<BLProfiler::CallStats> BLProfiler::vCallTrace;
+Vector<BLProfiler::CallStats> BLProfiler::vCallTrace;
 
 // Region support
 std::map<std::string, int> BLProfiler::mRegionNameNumbers;
 int BLProfiler::inNRegions(0);
-Array<BLProfiler::RStartStop> BLProfiler::rStartStop;
+Vector<BLProfiler::RStartStop> BLProfiler::rStartStop;
 const std::string BLProfiler::noRegionName("__NoRegion__");
 
 bool BLProfiler::bFirstTraceWrite(true);
 int BLProfiler::CallStats::cstatsVersion(1);
 
-Array<BLProfiler::CallStatsStack> BLProfiler::callIndexStack;
-Array<BLProfiler::CallStatsPatch> BLProfiler::callIndexPatch;
+Vector<BLProfiler::CallStatsStack> BLProfiler::callIndexStack;
+Vector<BLProfiler::CallStatsPatch> BLProfiler::callIndexPatch;
 
 #ifdef BL_TRACE_PROFILING
 int BLProfiler::callStackDepth(-1);
@@ -216,9 +217,9 @@ void BLProfiler::Initialize() {
 
   // check for exclude file
   std::string exFile("CommFuncExclude.txt");
-  Array<CommFuncType> vEx;
+  Vector<CommFuncType> vEx;
 
-  Array<char> fileCharPtr;
+  Vector<char> fileCharPtr;
   bool bExitOnError(false);  // in case the file does not exist
   //ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError, ParallelDescriptor::CommunicatorAll());
   ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError);
@@ -368,8 +369,8 @@ void BLProfiler::InitParams(const Real ptl, const bool writeall, const bool writ
 
 
 #ifndef BL_AMRPROF
-void BLProfiler::InitAMR(const int flev, const int mlev, const Array<IntVect> &rr,
-                        const Array<Box> pd)
+void BLProfiler::InitAMR(const int flev, const int mlev, const Vector<IntVect> &rr,
+                        const Vector<Box> pd)
 {
   finestLevel = flev;
   maxLevel    = mlev;
@@ -458,7 +459,7 @@ void BLProfiler::Finalize() {
 
 
   // -------- make sure the set of profiled functions is the same on all processors
-  Array<std::string> localStrings, syncedStrings;
+  Vector<std::string> localStrings, syncedStrings;
   bool alreadySynced;
 
   for(std::map<std::string, ProfStats>::const_iterator it = mProfStats.begin();
@@ -482,7 +483,7 @@ void BLProfiler::Finalize() {
   // ---- add the following names if they have not been called already
   // ---- they will be called below to write the database and the names
   // ---- need to be in the database before it is written
-  Array<std::string> addNames;
+  Vector<std::string> addNames;
   addNames.push_back("ParallelDescriptor::Send(Tsii)i");
   addNames.push_back("ParallelDescriptor::Recv(Tsii)i");
   addNames.push_back("ParallelDescriptor::Gather(TsT1si)d");
@@ -498,8 +499,8 @@ void BLProfiler::Finalize() {
 
   // ---------------------------------- now collect global data onto the ioproc
   int maxlen(0);
-  Array<Real> gtimes(1);
-  Array<long> ncalls(1);
+  Vector<Real> gtimes(1);
+  Vector<long> ncalls(1);
   if(ParallelDescriptor::IOProcessor()) {
     gtimes.resize(nProcs);
     ncalls.resize(nProcs);
@@ -561,8 +562,8 @@ void BLProfiler::Finalize() {
     // ---- if we use an unordered_map for mProfStats, copy to a sorted container
     // ----
     ParallelDescriptor::Barrier();  // ---- wait for everyone (remove after adding filters)
-    Array<long> nCallsOut(mProfStats.size(), 0);
-    Array<Real> totalTimesOut(mProfStats.size(), 0.0);
+    Vector<long> nCallsOut(mProfStats.size(), 0);
+    Vector<Real> totalTimesOut(mProfStats.size(), 0.0);
     int count(0);
     for(std::map<std::string, ProfStats>::const_iterator phit = mProfStats.begin();
         phit != mProfStats.end(); ++phit)
@@ -597,7 +598,7 @@ void BLProfiler::Finalize() {
     }
 
 
-    Array<long> seekPosOut(1);
+    Vector<long> seekPosOut(1);
     if(ParallelDescriptor::IOProcessor()) {
       seekPosOut.resize(nProcs, 0);
     }
@@ -728,7 +729,7 @@ void WriteRow(std::ostream &ios, const std::string &fname,
 void WriteStats(std::ostream &ios,
                 const std::map<std::string, BLProfiler::ProfStats> &mpStats,
 		const std::map<std::string, int> &fnameNumbers,
-		const Array<BLProfiler::CallStats> &callTraces,
+		const Vector<BLProfiler::CallStats> &callTraces,
 		bool bwriteavg, bool bwriteinclusivetimes)
 {
   const int myProc(ParallelDescriptor::MyProc());
@@ -839,7 +840,7 @@ void WriteStats(std::ostream &ios,
 
 #ifdef BL_TRACE_PROFILING
   // -------- write timers sorted by inclusive times
-  Array<std::string> fNumberNames(fnameNumbers.size());
+  Vector<std::string> fNumberNames(fnameNumbers.size());
   for(std::map<std::string, int>::const_iterator it = fnameNumbers.begin();
       it != fnameNumbers.end(); ++it)
   {
@@ -847,12 +848,12 @@ void WriteStats(std::ostream &ios,
   }
 
   // sort by total time
-  Array<BLProfiler::RIpair> funcTotalTimes(fnameNumbers.size());
+  Vector<BLProfiler::RIpair> funcTotalTimes(fnameNumbers.size());
   for(int i(0); i < funcTotalTimes.size(); ++i) {
     funcTotalTimes[i].first  = 0.0;
     funcTotalTimes[i].second = i;
   }
-  Array<int> callStack(64, -1);
+  Vector<int> callStack(64, -1);
   int maxCSD(0);
   std::set<int> recursiveFuncs;
   for(int i(0); i < callTraces.size(); ++i) {
@@ -943,7 +944,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
     }
 
     // -------- make sure the set of region names is the same on all processors
-    Array<std::string> localStrings, syncedStrings;
+    Vector<std::string> localStrings, syncedStrings;
     bool alreadySynced;
     for(std::map<std::string, int>::iterator it = mRegionNameNumbers.begin();
         it != mRegionNameNumbers.end(); ++it)
@@ -1407,9 +1408,9 @@ void BLProfiler::AddAllReduce(const CommFuncType cft, const int size,
 }
 
 
-void BLProfiler::AddWaitsome(const CommFuncType cft, const Array<MPI_Request> &reqs,
-                           const int completed, const Array<int> &indx,
-			   const Array<MPI_Status> &status, const bool beforecall)
+void BLProfiler::AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &reqs,
+                           const int completed, const Vector<int> &indx,
+			   const Vector<MPI_Status> &status, const bool beforecall)
 {
 #ifdef BL_USE_MPI
   if(OnExcludeList(cft)) {

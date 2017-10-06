@@ -122,9 +122,9 @@ namespace
 
             // Create DM on sidecars with default strategy
             const DistributionMapping dm_sidecar(bac, ParallelDescriptor::NProcsSidecar(whichSidecar));
-            const Array<int> pm_sidecar = dm_sidecar.ProcessorMap();
+            const Vector<int> pm_sidecar = dm_sidecar.ProcessorMap();
 
-            Array<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
+            Vector<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
 
             DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {
@@ -329,7 +329,7 @@ int main(int argc, char *argv[]) {
       std::cout << myProcAll << ":: Resizing sidecars = " << nSidecars << std::endl;
     }
 
-    Array<int> randomRanks;
+    Vector<int> randomRanks;
     if(ParallelDescriptor::IOProcessor()) {
       bool printSet(true);
       amrex::UniqueRandomSubset(randomRanks, nProcs, nProcs, printSet);
@@ -349,14 +349,14 @@ int main(int argc, char *argv[]) {
     }
 
     int totalSidecarProcs(6);
-    Array<int> compProcsInAll;
+    Vector<int> compProcsInAll;
 
     for(int i(0); i < nProcs - totalSidecarProcs; ++i) {
       compProcsInAll.push_back(randomRanks[i]);
     }
 
     int sCount(nProcs - totalSidecarProcs);
-    Array<Array<int> > sidecarProcsInAll(nSidecars);
+    Vector<Vector<int> > sidecarProcsInAll(nSidecars);
     sidecarProcsInAll[0].push_back(randomRanks[sCount++]);
     sidecarProcsInAll[0].push_back(randomRanks[sCount++]);
     sidecarProcsInAll[0].push_back(randomRanks[sCount++]);

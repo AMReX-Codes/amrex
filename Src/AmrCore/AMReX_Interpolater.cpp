@@ -97,7 +97,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
                       const IntVect&    ratio,
                       const Geometry& /*crse_geom */,
                       const Geometry& /*fine_geom */,
-                      Array<BCRec>&   /*bcr*/,
+                      Vector<BCRec>&   /*bcr*/,
                       int               actual_comp,
                       int               actual_state)
 {
@@ -115,7 +115,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
     int len0       = crse.box().length(0);
     int slp_len    = num_slope*len0;
 
-    Array<Real> strip(slp_len);
+    Vector<Real> strip(slp_len);
 
     const Real* cdat  = crse.dataPtr(crse_comp);
     Real*       fdat  = fine.dataPtr(fine_comp);
@@ -169,7 +169,7 @@ CellBilinear::interp (const FArrayBox&  crse,
                       const IntVect &   ratio,
                       const Geometry& /*crse_geom*/,
                       const Geometry& /*fine_geom*/,
-                      Array<BCRec>&   /*bcr*/,
+                      Vector<BCRec>&   /*bcr*/,
                       int               actual_comp,
                       int               actual_state)
 {
@@ -190,11 +190,11 @@ CellBilinear::interp (const FArrayBox&  crse,
     int len0       = crse.box().length(0);
     int slp_len    = num_slope*len0;
 
-    Array<Real> slope(slp_len);
+    Vector<Real> slope(slp_len);
 
     int strp_len = len0*ratio[0];
 
-    Array<Real> strip(strp_len);
+    Vector<Real> strip(strp_len);
 
     int strip_lo = ratio[0] * clo[0];
     int strip_hi = ratio[0] * chi[0];
@@ -210,10 +210,10 @@ CellBilinear::interp (const FArrayBox&  crse,
                    &actual_comp,&actual_state);
 }
 
-Array<int>
-Interpolater::GetBCArray (const Array<BCRec>& bcr)
+Vector<int>
+Interpolater::GetBCArray (const Vector<BCRec>& bcr)
 {
-    Array<int> bc(2*BL_SPACEDIM*bcr.size());
+    Vector<int> bc(2*BL_SPACEDIM*bcr.size());
 
     for (int n = 0; n < bcr.size(); n++)
     {
@@ -264,7 +264,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                                 const IntVect&   ratio,
                                 const Geometry&  crse_geom,
                                 const Geometry&  fine_geom,
-                                Array<BCRec>&    bcr,
+                                Vector<BCRec>&    bcr,
                                 int              actual_comp,
                                 int              actual_state)
 {
@@ -291,8 +291,8 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
-    Array<Real> fvc[BL_SPACEDIM];
-    Array<Real> cvc[BL_SPACEDIM];
+    Vector<Real> fvc[BL_SPACEDIM];
+    Vector<Real> cvc[BL_SPACEDIM];
     int dir;
     for (dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -357,7 +357,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
            Real* voffy = new Real[fvc[1].size()];,
            Real* voffz = new Real[fvc[2].size()];);
 
-    Array<int> bc     = GetBCArray(bcr);
+    Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
     FORT_LINCCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
@@ -421,7 +421,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                        const IntVect&   ratio,
                        const Geometry&  crse_geom,
                        const Geometry&  fine_geom,
-                       Array<BCRec>&    bcr,
+                       Vector<BCRec>&    bcr,
                        int              actual_comp,
                        int              actual_state)
 {
@@ -445,7 +445,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     BL_ASSERT(t_long < INT_MAX);
     int c_len = int(t_long);
 
-    Array<Real> cslope(5*c_len);
+    Vector<Real> cslope(5*c_len);
 
     int loslp = cslope_bx.index(crse_bx.smallEnd());
     int hislp = cslope_bx.index(crse_bx.bigEnd());
@@ -463,7 +463,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     int dir;
     int f_len = fslope_bx.longside(dir);
 
-    Array<Real> strip((5+2)*f_len);
+    Vector<Real> strip((5+2)*f_len);
 
     Real* fstrip = strip.dataPtr();
     Real* foff   = fstrip + f_len;
@@ -471,8 +471,8 @@ CellQuadratic::interp (const FArrayBox& crse,
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
-    Array<Real> fvc[BL_SPACEDIM];
-    Array<Real> cvc[BL_SPACEDIM];
+    Vector<Real> fvc[BL_SPACEDIM];
+    Vector<Real> cvc[BL_SPACEDIM];
     for (dir = 0; dir < BL_SPACEDIM; dir++)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
@@ -492,7 +492,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     const int* fslo   = fslope_bx.loVect();
     const int* fshi   = fslope_bx.hiVect();
     int slope_flag    = (do_limited_slope ? 1 : 0);
-    Array<int> bc     = GetBCArray(bcr);
+    Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
 #if (BL_SPACEDIM > 1)
@@ -538,7 +538,7 @@ PCInterp::interp (const FArrayBox& crse,
                   const IntVect&   ratio,
                   const Geometry& /*crse_geom*/,
                   const Geometry& /*fine_geom*/,
-                  Array<BCRec>&   /*bcr*/,
+                  Vector<BCRec>&   /*bcr*/,
                   int               actual_comp,
                   int               actual_state)
 {
@@ -562,7 +562,7 @@ PCInterp::interp (const FArrayBox& crse,
     int long_len = cregion.longside(long_dir);
     int s_len    = long_len*ratio[long_dir];
 
-    Array<Real> strip(s_len);
+    Vector<Real> strip(s_len);
 
     int strip_lo = ratio[long_dir] * cblo[long_dir];
     int strip_hi = ratio[long_dir] * (cbhi[long_dir]+1) - 1;
@@ -613,7 +613,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                                    const IntVect&   ratio,
                                    const Geometry&  crse_geom,
                                    const Geometry&  fine_geom,
-                                   Array<BCRec>&    bcr,
+                                   Vector<BCRec>&    bcr,
                                    int              actual_comp,
                                    int              actual_state)
 {
@@ -639,8 +639,8 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
-    Array<Real> fvc[BL_SPACEDIM];
-    Array<Real> cvc[BL_SPACEDIM];
+    Vector<Real> fvc[BL_SPACEDIM];
+    Vector<Real> cvc[BL_SPACEDIM];
     int dir;
     for (dir = 0; dir < BL_SPACEDIM; dir++)
     {
@@ -704,7 +704,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
            Real* voffy = new Real[fvc[1].size()];,
            Real* voffz = new Real[fvc[2].size()];);
 
-    Array<int> bc     = GetBCArray(bcr);
+    Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
     int slope_flag    = 1;
 
@@ -747,7 +747,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                                     const IntVect&   ratio,
                                     const Geometry&  crse_geom,
                                     const Geometry&  fine_geom,
-                                    Array<BCRec>& bcr)
+                                    Vector<BCRec>& bcr)
 {
     BL_PROFILE("CellConservativeProtected::protect()");
     BL_ASSERT(bcr.size() >= ncomp);
@@ -772,8 +772,8 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     // Get coarse and fine edge-centered volume coordinates.
     //
     int dir;
-    Array<Real> fvc[BL_SPACEDIM];
-    Array<Real> cvc[BL_SPACEDIM];
+    Vector<Real> fvc[BL_SPACEDIM];
+    Vector<Real> cvc[BL_SPACEDIM];
     for (dir = 0; dir < BL_SPACEDIM; dir++)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
@@ -809,7 +809,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     const int* csbhi  = cs_bx.hiVect();
     const int* csblo  = cs_bx.loVect();
 
-    Array<int> bc     = GetBCArray(bcr);
+    Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
 #if (BL_SPACEDIM > 1)
@@ -862,7 +862,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 				 const IntVect&    ratio,
 				 const Geometry&   /* crse_geom */,
 				 const Geometry&   /* fine_geom */,
-				 Array<BCRec>&     bcr,
+				 Vector<BCRec>&     bcr,
 				 int               actual_comp,
 				 int               actual_state)
 {
@@ -905,20 +905,20 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
     const int* fb2lo  = fine_bx2.loVect();
     const int* fb2hi  = fine_bx2.hiVect();
 
-    Array<int> bc     = GetBCArray(bcr);
+    Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
     int ltmp = fb2hi[0]-fb2lo[0]+1;
-    Array<Real> ftmp(ltmp);
+    Vector<Real> ftmp(ltmp);
 
 #if (BL_SPACEDIM >= 2)
     ltmp = (cbhi[0]-cblo[0]+1)*ratio[1];
-    Array<Real> ctmp(ltmp);    
+    Vector<Real> ctmp(ltmp);    
 #endif    
 
 #if (BL_SPACEDIM == 3)
     ltmp = (cbhi[0]-cblo[0]+1)*(cbhi[1]-cblo[1]+1)*ratio[2];
-    Array<Real> ctmp2(ltmp);    
+    Vector<Real> ctmp2(ltmp);    
 #endif    
 
     FORT_QUARTINTERP (fdat,ARLIM(flo),ARLIM(fhi),

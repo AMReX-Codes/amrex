@@ -8,6 +8,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
@@ -87,10 +88,10 @@ class CommProfStats : public BLProfStats {
       int streamIndex;
 
       double timeMin, timeMax;
-      amrex::Array<BarrierEntry> barriers;
-      amrex::Array<ReductionEntry> reductions;
-      amrex::Array<NameTagEntry> nameTags;
-      amrex::Array<amrex::BLProfiler::CommStats> vCommStats;
+      amrex::Vector<BarrierEntry> barriers;
+      amrex::Vector<ReductionEntry> reductions;
+      amrex::Vector<NameTagEntry> nameTags;
+      amrex::Vector<amrex::BLProfiler::CommStats> vCommStats;
     };
 
     struct SendRecvPair {
@@ -151,31 +152,31 @@ class CommProfStats : public BLProfStats {
   public:
     CommProfStats();
     ~CommProfStats();
-    void CheckCommData(amrex::Array<long> &nBMin, amrex::Array<long> &nBMax,
-                       amrex::Array<long> &nRMin, amrex::Array<long> &nRMax);
+    void CheckCommData(amrex::Vector<long> &nBMin, amrex::Vector<long> &nBMax,
+                       amrex::Vector<long> &nRMin, amrex::Vector<long> &nRMax);
     void FillSendFAB(long &totalSends, long &totalSentData,
-		     amrex::Array<long> &totalSendsPerProc,
-		     amrex::Array<long> &totalSentDataPerProc,
+		     amrex::Vector<long> &totalSendsPerProc,
+		     amrex::Vector<long> &totalSentDataPerProc,
 		     amrex::FArrayBox &sendFAB, bool proxmap);
     void ReportSyncPointDataSetup(long &nBMax, long &nRMax);
-    void ReportSyncPointData(amrex::Array<amrex::Array<Real> > &barrierExitTimes,
-                             amrex::Array<amrex::Array<Real> > &barrierWaitTimes,
-                             amrex::Array<amrex::Array<Real> > &reductionWaitTimes,
+    void ReportSyncPointData(amrex::Vector<amrex::Vector<Real> > &barrierExitTimes,
+                             amrex::Vector<amrex::Vector<Real> > &barrierWaitTimes,
+                             amrex::Vector<amrex::Vector<Real> > &reductionWaitTimes,
 			     bool bDoReductions = false);
     void ReportStats(long &totalSentData, long &totalNCommStats,
-                     amrex::Array<long> &totalFuncCalls,
-		     int bytesPerSlot, amrex::Array<long> &msgSizes,
+                     amrex::Vector<long> &totalFuncCalls,
+		     int bytesPerSlot, amrex::Vector<long> &msgSizes,
 		     int &minMsgSize, int &maxMsgSize,
                      Real &timeMin, Real &timeMax, Real &timerTime,
-		     amrex::Array<int> &rankNodeNumbers);
+		     amrex::Vector<int> &rankNodeNumbers);
     void WriteTopoFab();
     void FindTimeRange(Real &timeMin, Real &timeMax);
     void TimelineFAB(amrex::FArrayBox &timelineFAB, const amrex::Box &probDomain,
                      const double tlo, const double thi,
 		     const int rankMin, const int rankMax,
 		     const int rankStride,
-		     const Real ntnMultiplier, const amrex::Array<Real> &ntnNumbers,
-		     const Real bnMultiplier, const amrex::Array<Real> &bnNumbers);
+		     const Real ntnMultiplier, const amrex::Vector<Real> &ntnNumbers,
+		     const Real bnMultiplier, const amrex::Vector<Real> &bnNumbers);
     void SendRecvData(const std::string &filename,
                        const double tlo, const double thi);
     void SendRecvList(std::multimap<Real, SendRecvPairUnpaired> &srMMap);
@@ -191,8 +192,8 @@ class CommProfStats : public BLProfStats {
     virtual void AddTimerTime(const double tt);
     virtual void AddNameTag(const long ntnindex, const long seekindex);
     virtual void AddNameTagName(const std::string &name);
-    const amrex::Array<std::string> &NameTagNames() { return nameTagNames; }
-    const amrex::Array<std::string> &BarrierNames() { return barrierNames; }
+    const amrex::Vector<std::string> &NameTagNames() { return nameTagNames; }
+    const amrex::Vector<std::string> &BarrierNames() { return barrierNames; }
     virtual void AddTagRange(const long tmin, const long tmax);
     virtual void AddGridLevel(const int level, const int ngrids);
     virtual void AddGrid3D(int level, int xlo, int ylo, int zlo,
@@ -209,23 +210,23 @@ class CommProfStats : public BLProfStats {
     virtual void AddMaxLevel(const int lev) { maxLevel = lev; }
     static int  GetMaxLevel() { return maxLevel; }
     virtual void AddRefRatio(const int lev, const amrex::IntVect &rr);
-    void SetRefRatio(const amrex::Array<amrex::IntVect> &rr) { calcRefRatios = rr; }
-    const amrex::Array<amrex::IntVect> &GetRefRatio() const  { return calcRefRatios; }
+    void SetRefRatio(const amrex::Vector<amrex::IntVect> &rr) { calcRefRatios = rr; }
+    const amrex::Vector<amrex::IntVect> &GetRefRatio() const  { return calcRefRatios; }
     virtual void AddTopoCoord(const int nid, const int node,
                       const int tx, const int ty, const int tz,
                       const bool servicenode = false);
     virtual void AddProbDomain(const int lev, const amrex::Box &pd);
-    void SetProbDomain(const amrex::Array<amrex::Box> &pd) { probDomain = pd; }
-    const amrex::Array<amrex::Box> &GetProbDomain() const  { return probDomain; }
+    void SetProbDomain(const amrex::Vector<amrex::Box> &pd) { probDomain = pd; }
+    const amrex::Vector<amrex::Box> &GetProbDomain() const  { return probDomain; }
     virtual void AddCommHeaderFileName(const std::string &hfn);
     const std::map<int, long> &GLMap() const  { return glMap; }
     const std::map<int, int> &GLSizeMap() const  { return glSizeMap; }
 
     static void SetInitDataBlocks(bool b) { bInitDataBlocks = b;    }
     static bool InitDBlocks()             { return bInitDataBlocks; }
-    static void InitDataFileNames(const amrex::Array<std::string> &hfn);
+    static void InitDataFileNames(const amrex::Vector<std::string> &hfn);
     static void InitProxMap();
-    static const amrex::Array<std::string> &GetHeaderFileNames() { return commHeaderFileNames; }
+    static const amrex::Vector<std::string> &GetHeaderFileNames() { return commHeaderFileNames; }
 
     static void OpenAllStreams(const std::string &dirname);
     static void CloseAllStreams();
@@ -241,21 +242,21 @@ class CommProfStats : public BLProfStats {
     static int cpVersion, csSize, finestLevel, maxLevel;
     int tagMin, tagMax;
     std::stack<double> nestedTimeStack;
-    amrex::Array<DataBlock> dataBlocks;
-    amrex::Array<std::string> nameTagNames;
-    amrex::Array<std::string> barrierNames;
-    static amrex::Array<amrex::IntVect> calcRefRatios;
-    amrex::Array<std::map<int, amrex::IntVect> > TopoMap;
-    static amrex::Array<amrex::Box> probDomain;
+    amrex::Vector<DataBlock> dataBlocks;
+    amrex::Vector<std::string> nameTagNames;
+    amrex::Vector<std::string> barrierNames;
+    static amrex::Vector<amrex::IntVect> calcRefRatios;
+    amrex::Vector<std::map<int, amrex::IntVect> > TopoMap;
+    static amrex::Vector<amrex::Box> probDomain;
     std::map<int, long> glMap;     // [proc, npoints]
     std::map<int, int> glSizeMap;  // [grid size, ngrids of that size]
     static bool bInitDataBlocks;
-    static amrex::Array<int> rankFromProx;  // [prox]
-    static amrex::Array<int> proxFromRank;  // [rank]
+    static amrex::Vector<int> rankFromProx;  // [prox]
+    static amrex::Vector<int> proxFromRank;  // [rank]
     static bool bProxMapOK;
-    static amrex::Array<std::string> commHeaderFileNames;
+    static amrex::Vector<std::string> commHeaderFileNames;
     static std::map<std::string, int> commDataFileNames;  // [filename, stream index]
-    static amrex::Array<std::ifstream *> commDataStreams;
+    static amrex::Vector<std::ifstream *> commDataStreams;
 
     void ReadCommStats(DataBlock &dBlock);  // reads whole block
     void ReadCommStatsNoOpen(DataBlock &dBlock);  // files must be open already
@@ -266,9 +267,9 @@ class CommProfStats : public BLProfStats {
     bool IsBlockingRecv(const amrex::BLProfiler::CommFuncType &cft);
 
     // ---- Edison support
-    amrex::Array<Real> edisonNodeFab;  // ---- not a fab yet
-    amrex::Array<Real> edisonCPUFab;   // ---- not a fab yet
-    amrex::Array<amrex::Array<amrex::Array<int> > > edisonNodeXYZ;   // ---- [X][Y][Z]
+    amrex::Vector<Real> edisonNodeFab;  // ---- not a fab yet
+    amrex::Vector<Real> edisonCPUFab;   // ---- not a fab yet
+    amrex::Vector<amrex::Vector<amrex::Vector<int> > > edisonNodeXYZ;   // ---- [X][Y][Z]
 
     friend int yyparse(void *);
 };

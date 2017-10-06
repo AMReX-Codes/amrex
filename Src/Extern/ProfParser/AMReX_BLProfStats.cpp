@@ -51,23 +51,23 @@ std::string BLProfStats::dirName;
 bool BLProfStats::bInitDataBlocks(true);
 std::map<std::string, int> BLProfStats::blpDataFileNames;
 Real BLProfStats::gPercent(0.10);
-Array<std::ifstream *> BLProfStats::blpDataStreams;
+Vector<std::ifstream *> BLProfStats::blpDataStreams;
 bool BLProfStats::bTimeRangeInitialized(false);
 
 extern std::string SanitizeName(const std::string &s);
 extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
 extern long amrex::FileSize(const std::string &filename);
-extern void amrex::MakeFuncPctTimesMF(const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                               const Array<std::string> &blpFNames,
+extern void amrex::MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                               const Vector<std::string> &blpFNames,
 			       const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
 			       Real runTime, int dataNProcs);
 extern void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-                              const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                              const Array<std::string> &fNames,
+                              const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                              const Vector<std::string> &fNames,
                               Real runTime, int whichProc);
 void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-                 const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                 const Array<std::string> &fNames,
+                 const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                 const Vector<std::string> &fNames,
                  Real runTime, int dataNProcs, Real gPercent);
 
 
@@ -207,7 +207,7 @@ std::set<int> BLProfStats::WhichRegions(int proc, Real t) {
   if(proc < 0 || proc >= regionTimeRanges.size()) {
     return whichRegions;
   }
-  Array<Array<TimeRange> > &rtr = regionTimeRanges[proc];
+  Vector<Vector<TimeRange> > &rtr = regionTimeRanges[proc];
   for(int rnum(0); rnum < rtr.size(); ++rnum) {
     for(int range(0); range < rtr[rnum].size(); ++range) {
       TimeRange &tr = rtr[rnum][range];
@@ -263,7 +263,7 @@ void BLProfStats::SetFilter(BLProfStats::FilterStatus fs) {
 
 
 // ----------------------------------------------------------------------
-void BLProfStats::SetFilterTimeRanges(const Array<std::list<TimeRange> > &ftr)
+void BLProfStats::SetFilterTimeRanges(const Vector<std::list<TimeRange> > &ftr)
 {
   filterTimeRanges = ftr;
 }
@@ -479,14 +479,14 @@ amrex::Abort("not implemented yet.");
 // ----------------------------------------------------------------------
 void BLProfStats::ClearBlock(BLPDataBlock &dBlock) {
   dBlock.nCalls.clear();
-  Array<long>().swap(dBlock.nCalls);
+  Vector<long>().swap(dBlock.nCalls);
   dBlock.totalTime.clear();
-  Array<Real>().swap(dBlock.totalTime);
+  Vector<Real>().swap(dBlock.totalTime);
 }
 
 
 // ----------------------------------------------------------------------
-void BLProfStats::CollectFuncStats(Array<Array<FuncStat> > &funcStats)
+void BLProfStats::CollectFuncStats(Vector<Vector<FuncStat> > &funcStats)
 {
   funcStats.resize(blpFNames.size());  // [fnum][proc]
   for(int n(0); n < funcStats.size(); ++n) {
@@ -496,8 +496,8 @@ void BLProfStats::CollectFuncStats(Array<Array<FuncStat> > &funcStats)
   for(int idb(0); idb < blpDataBlocks.size(); ++idb) {
     BLPDataBlock &dBlock = blpDataBlocks[idb];
     ReadBlock(dBlock);
-    Array<long> &nc = dBlock.nCalls;
-    Array<Real> &tt = dBlock.totalTime;
+    Vector<long> &nc = dBlock.nCalls;
+    Vector<Real> &tt = dBlock.totalTime;
 
     for(int fnum(0); fnum < blpFNames.size(); ++fnum) {
       FuncStat &fs = funcStats[fnum][dBlock.proc];
@@ -517,7 +517,7 @@ void BLProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
     return;
   }
 
-  Array<Array<FuncStat> > funcStats;
+  Vector<Vector<FuncStat> > funcStats;
   CollectFuncStats(funcStats);
 
   Real calcRunTime(calcEndTime);
@@ -536,7 +536,7 @@ void BLProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
 
   if(ParallelDescriptor::IOProcessor()) {
     std::map<std::string, int> fnameNumbers;
-    Array<BLProfiler::CallStats> vCallStatsAllOneProc;
+    Vector<BLProfiler::CallStats> vCallStatsAllOneProc;
     bool writeAvg(true), writeInclusive(false);
     BLProfilerUtils::WriteStats(ios, mProfStats, fnameNumbers,
                                 vCallStatsAllOneProc, writeAvg, writeInclusive);

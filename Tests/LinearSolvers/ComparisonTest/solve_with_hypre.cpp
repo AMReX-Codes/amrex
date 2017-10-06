@@ -15,12 +15,12 @@ using namespace amrex;
 
 void setBndryConds(BndryData& levelbd, int ibnd, IntVect ratio);
 
-void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b, 
-		      const Array<MultiFab*>& alph, 
-		      const Array<MultiFab*>& beta, 
-		      const Array<MultiFab*>& rhs, 
-		      const Array<Geometry>& geom, 
-		      const Array<BoxArray>& grids,
+void solve_with_hypre(const Vector<MultiFab*>& soln, Real a, Real b, 
+		      const Vector<MultiFab*>& alph, 
+		      const Vector<MultiFab*>& beta, 
+		      const Vector<MultiFab*>& rhs, 
+		      const Vector<Geometry>& geom, 
+		      const Vector<BoxArray>& grids,
 		      int ibnd)
 {
   const Real run_strt = ParallelDescriptor::second();
@@ -70,7 +70,7 @@ void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b,
 
       hypreSolver.setACoeffs(level, *alph[level]);
 
-      Array<std::unique_ptr<MultiFab> > bcoeffs(BL_SPACEDIM);
+      Vector<std::unique_ptr<MultiFab> > bcoeffs(BL_SPACEDIM);
       for (int n = 0; n < BL_SPACEDIM ; n++) 
       {
 	  BoxArray edge_boxes(grids[level]);
@@ -78,7 +78,7 @@ void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b,
 	  bcoeffs[n].reset(new MultiFab(edge_boxes, 1, 0));
       }
 
-      amrex::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoeffs), *beta[level], geom[level]);
+      amrex::average_cellcenter_to_face(amrex::GetVecOfPtrs(bcoeffs), *beta[level], geom[level]);
 	
       for (int n = 0; n < BL_SPACEDIM ; n++) 
       {

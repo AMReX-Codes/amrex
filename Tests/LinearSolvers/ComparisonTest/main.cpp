@@ -23,34 +23,34 @@ enum bc_t {Periodic = 0,
 solver_t solver_type = All;
 bc_t     bc_type = Periodic;
 
-void build_grids(Array<Geometry>& geom, 
-		 Array<BoxArray>& grids);
-void setup_coef(const Array<MultiFab*> &exac,
-		const Array<MultiFab*> &alph, 
-		const Array<MultiFab*> &beta,
-		const Array<MultiFab*> &rhs, 
-		const Array<Geometry>& geom, 
-		const Array<BoxArray>& grids,
+void build_grids(Vector<Geometry>& geom, 
+		 Vector<BoxArray>& grids);
+void setup_coef(const Vector<MultiFab*> &exac,
+		const Vector<MultiFab*> &alph, 
+		const Vector<MultiFab*> &beta,
+		const Vector<MultiFab*> &rhs, 
+		const Vector<Geometry>& geom, 
+		const Vector<BoxArray>& grids,
 		Real a, Real b, Real sigma, Real w);
-void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b, 
-		    const Array<MultiFab*>& alph, 
-		    const Array<MultiFab*>& beta, 
-		    const Array<MultiFab*>& rhs, 
-		    const Array<Geometry>& geom, 
-		    const Array<BoxArray>& grids,
+void solve_with_F90(const Vector<MultiFab*>& soln, Real a, Real b, 
+		    const Vector<MultiFab*>& alph, 
+		    const Vector<MultiFab*>& beta, 
+		    const Vector<MultiFab*>& rhs, 
+		    const Vector<Geometry>& geom, 
+		    const Vector<BoxArray>& grids,
 		    int ibnd);
 #ifdef USEHYPRE
-void solve_with_hypre(const Array<MultiFab*>& soln, Real a, Real b, 
-		      const Array<MultiFab*>& alph, 
-		      const Array<MultiFab*>& beta, 
-		      const Array<MultiFab*>& rhs, 
-		      const Array<Geometry>& geom, 
-		      const Array<BoxArray>& grids,
+void solve_with_hypre(const Vector<MultiFab*>& soln, Real a, Real b, 
+		      const Vector<MultiFab*>& alph, 
+		      const Vector<MultiFab*>& beta, 
+		      const Vector<MultiFab*>& rhs, 
+		      const Vector<Geometry>& geom, 
+		      const Vector<BoxArray>& grids,
 		      int ibnd);
 #endif
-void compute_norm(const Array<MultiFab*>& soln,
-		  const Array<MultiFab*>& exac, 
-		  const Array<Geometry>& geom, const Array<BoxArray>& grids,
+void compute_norm(const Vector<MultiFab*>& soln,
+		  const Vector<MultiFab*>& exac, 
+		  const Vector<Geometry>& geom, const Vector<BoxArray>& grids,
 		  int nsoln, int iCpp, int iF90, int iHyp);
 
 int main(int argc, char* argv[])
@@ -110,17 +110,17 @@ int main(int argc, char* argv[])
   pp.query("max_level", max_level);
   int nlevel = max_level+1;
 
-  Array<Geometry> geom(nlevel);
-  Array<BoxArray> grids(nlevel);
+  Vector<Geometry> geom(nlevel);
+  Vector<BoxArray> grids(nlevel);
 
   build_grids(geom, grids);
 
-  Array<std::unique_ptr<MultiFab> >  soln(nlevel);
-  Array<std::unique_ptr<MultiFab> > soln1(nlevel);
-  Array<std::unique_ptr<MultiFab> >  exac(nlevel);
-  Array<std::unique_ptr<MultiFab> >  alph(nlevel);
-  Array<std::unique_ptr<MultiFab> >  beta(nlevel);
-  Array<std::unique_ptr<MultiFab> >   rhs(nlevel);
+  Vector<std::unique_ptr<MultiFab> >  soln(nlevel);
+  Vector<std::unique_ptr<MultiFab> > soln1(nlevel);
+  Vector<std::unique_ptr<MultiFab> >  exac(nlevel);
+  Vector<std::unique_ptr<MultiFab> >  alph(nlevel);
+  Vector<std::unique_ptr<MultiFab> >  beta(nlevel);
+  Vector<std::unique_ptr<MultiFab> >   rhs(nlevel);
 
   int nsoln=-1, iF90=-1, iCpp=-1, iHyp=-1;
   switch (solver_type) 
@@ -161,12 +161,12 @@ int main(int argc, char* argv[])
     rhs  [ilev].reset(new MultiFab(grids[ilev], dm, 1, 0));
   }
 
-  auto psoln  = amrex::GetArrOfPtrs(soln);
-  auto psoln1 = amrex::GetArrOfPtrs(soln1);
-  auto pexac  = amrex::GetArrOfPtrs(exac);
-  auto palph  = amrex::GetArrOfPtrs(alph);
-  auto pbeta  = amrex::GetArrOfPtrs(beta);
-  auto prhs   = amrex::GetArrOfPtrs(rhs);
+  auto psoln  = amrex::GetVecOfPtrs(soln);
+  auto psoln1 = amrex::GetVecOfPtrs(soln1);
+  auto pexac  = amrex::GetVecOfPtrs(exac);
+  auto palph  = amrex::GetVecOfPtrs(alph);
+  auto pbeta  = amrex::GetVecOfPtrs(beta);
+  auto prhs   = amrex::GetVecOfPtrs(rhs);
 
   Real a, b, sigma, w;
   pp.get("a",  a);
@@ -231,7 +231,7 @@ int main(int argc, char* argv[])
   amrex::Finalize();
 }
 
-void build_grids(Array<Geometry>& geom, Array<BoxArray>& grids)
+void build_grids(Vector<Geometry>& geom, Vector<BoxArray>& grids)
 {
   ParmParse pp;
   
@@ -299,12 +299,12 @@ void build_grids(Array<Geometry>& geom, Array<BoxArray>& grids)
   }
 }
 
-void setup_coef(const Array<MultiFab*> &exac,
-		const Array<MultiFab*> &alph, 
-		const Array<MultiFab*> &beta,
-		const Array<MultiFab*> &rhs, 
-		const Array<Geometry>& geom, 
-		const Array<BoxArray>& grids,
+void setup_coef(const Vector<MultiFab*> &exac,
+		const Vector<MultiFab*> &alph, 
+		const Vector<MultiFab*> &beta,
+		const Vector<MultiFab*> &rhs, 
+		const Vector<Geometry>& geom, 
+		const Vector<BoxArray>& grids,
 		Real a, Real b, Real sigma, Real w)
 {
   int ibnd = static_cast<int>(bc_type); 

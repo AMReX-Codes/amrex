@@ -270,7 +270,7 @@ ebis->define(domain, RealVect::Zero, dx, workshop);
   the form $I(\xbold) = x - y^2 - z^2$. 
 \begin{lstlisting}[language=cpp]
 
-Array<PolyTerm> poly;
+Vector<PolyTerm> poly;
 PolyTerm mono;
 Real coef;
 IntVect powers;
@@ -378,7 +378,7 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
   amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;
 
   // These  the polygons that get built around the z axis
-  Array<Array<RealVect> > polygons;
+  Vector<Vector<RealVect> > polygons;
   //....fill the polygons any way you like//
 
   // Make the Array of (convex) polygons (Arrays of points) into a union
@@ -386,18 +386,18 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
   // planes/spaces - all represented by implicit functions.
 
   // A list of all the polygons as implicit functions
-  Array<BaseIF*> polytopes;
+  Vector<BaseIF*> polytopes;
   polytopes.resize(0);
   int numPolys = polygons.size();
   // Process each polygon
   for (int p = 0; p < numPolys; p++)
   {
     // All the half planes/spaces used to make a polygon
-    Array<BaseIF*> planes;
+    Vector<BaseIF*> planes;
     planes.resize(0);
 
     // Get the current polygon (as a Array of points)
-    const Array<RealVect>& polygon = polygons[p];
+    const Vector<RealVect>& polygon = polygons[p];
 
     // Get the number of points in the polygon
     int numPts = polygon.size();
@@ -472,7 +472,7 @@ within a parabola. This code
 creates the surface shown in \ref{fig::parabolasphere}.
 
 \begin{lstlisting}[language=cpp]
-Array<PolyTerm> poly;
+Vector<PolyTerm> poly;
 
 PolyTerm mono;
 Real coef;
@@ -522,7 +522,7 @@ transform.translate(translation);
 
 Real radius = 0.2*center[0];
 SphereIF sphere(radius, center, true);
-Array<BaseIF*> funcs(2);
+Vector<BaseIF*> funcs(2);
 funcs[0] = &transform;
 funcs[1] = &sphere;
 UnionIF implicit(funcs);
