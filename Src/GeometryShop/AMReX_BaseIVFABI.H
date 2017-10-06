@@ -158,7 +158,7 @@ namespace amrex
   }
   /********************/
   template <class T> inline
-  const Array<VolIndex>&
+  const Vector<VolIndex>&
   BaseIVFAB<T>::getVoFs() const
   {
     return m_vofs;
@@ -186,7 +186,7 @@ namespace amrex
     }
     else
     {
-      const Array<VolIndex>& vofs = m_vofs;
+      const Vector<VolIndex>& vofs = m_vofs;
       for(int i=0; i<vofs.size(); i++)
       {
         const VolIndex& vof=vofs[i];
@@ -209,7 +209,7 @@ namespace amrex
   template<class T> inline
   void
   BaseIVFAB<T>::
-  getVoFSubset(Array<VolIndex>& a_vofsubset, const Box& a_region) const
+  getVoFSubset(Vector<VolIndex>& a_vofsubset, const Box& a_region) const
   {
     a_vofsubset.resize(0);
     for(unsigned int ivof=0; ivof<m_vofs.size(); ivof++)
@@ -230,7 +230,7 @@ namespace amrex
     
     size_t retval = 0;
 
-    Array<VolIndex> vofsubset;
+    Vector<VolIndex> vofsubset;
     getVoFSubset(vofsubset, a_region);
 
     retval += linearListSize(vofsubset);
@@ -260,7 +260,7 @@ namespace amrex
     size_t retval = 0;
     size_t incval = 0;
 
-    Array<VolIndex> vofsubset;
+    Vector<VolIndex> vofsubset;
     getVoFSubset(vofsubset, a_region);
 
     linearListOut(buf, vofsubset);
@@ -300,7 +300,7 @@ namespace amrex
     size_t retval = 0;
     size_t incval = 0;
     
-    Array<VolIndex> vofsubset;
+    Vector<VolIndex> vofsubset;
 
     linearListIn(vofsubset, buf);
 

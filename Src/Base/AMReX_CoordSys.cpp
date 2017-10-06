@@ -103,7 +103,7 @@ CoordSys::CellCenter (const IntVect& point,
 
 void
 CoordSys::CellCenter (const IntVect& point,
-                      Array<Real>&   loc) const
+                      Vector<Real>&   loc) const
 {
     BL_ASSERT(ok);
     loc.resize(BL_SPACEDIM);
@@ -127,7 +127,7 @@ CoordSys::LoFace (const IntVect& point,
 void
 CoordSys::LoFace (const IntVect& point,
                   int            dir,
-                  Array<Real>&   loc) const
+                  Vector<Real>&   loc) const
 {
     loc.resize(BL_SPACEDIM);
     LoFace(point,dir, loc.dataPtr());
@@ -150,7 +150,7 @@ CoordSys::HiFace (const IntVect& point,
 void
 CoordSys::HiFace (const IntVect& point,
                   int            dir,
-                  Array<Real>&   loc) const
+                  Vector<Real>&   loc) const
 {
     loc.resize(BL_SPACEDIM);
     HiFace(point,dir, loc.dataPtr());
@@ -170,7 +170,7 @@ CoordSys::LoNode (const IntVect& point,
 
 void
 CoordSys::LoNode (const IntVect& point,
-                  Array<Real>&   loc) const
+                  Vector<Real>&   loc) const
 {
     loc.resize(BL_SPACEDIM);
     LoNode(point, loc.dataPtr());
@@ -190,7 +190,7 @@ CoordSys::HiNode (const IntVect& point,
 
 void
 CoordSys::HiNode (const IntVect& point,
-                  Array<Real>&   loc) const
+                  Vector<Real>&   loc) const
 {
     loc.resize(BL_SPACEDIM);
     HiNode(point, loc.dataPtr());
@@ -344,7 +344,7 @@ CoordSys::SetFaceArea (FArrayBox& area,
 }
 
 void
-CoordSys::GetEdgeLoc (Array<Real>& loc, 
+CoordSys::GetEdgeLoc (Vector<Real>& loc, 
                       const Box&   region,
                       int          dir) const 
 {
@@ -362,7 +362,7 @@ CoordSys::GetEdgeLoc (Array<Real>& loc,
 }
 
 void
-CoordSys::GetCellLoc (Array<Real>& loc, 
+CoordSys::GetCellLoc (Vector<Real>& loc, 
                       const Box&   region,
                       int          dir) const
 {
@@ -380,7 +380,7 @@ CoordSys::GetCellLoc (Array<Real>& loc,
 }
 
 void
-CoordSys::GetEdgeVolCoord (Array<Real>& vc,
+CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
                            const Box&   region,
                            int          dir) const
 {
@@ -417,7 +417,7 @@ CoordSys::GetEdgeVolCoord (Array<Real>& vc,
 }
 
 void
-CoordSys::GetCellVolCoord (Array<Real>& vc,
+CoordSys::GetCellVolCoord (Vector<Real>& vc,
                            const Box&   region,
                            int          dir) const
 {

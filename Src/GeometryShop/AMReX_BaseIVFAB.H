@@ -123,7 +123,7 @@ namespace amrex
 
 
     ///
-    const Array<VolIndex>&  getVoFs() const;
+    const Vector<VolIndex>&  getVoFs() const;
 
     ///slow!
     IntVectSet getIVS() const
@@ -239,7 +239,7 @@ namespace amrex
     void forall(const BaseIVFAB<T>& a_src, const Box& a_box, int a_srccomp, int a_dstcomp, 
                 int a_numcomp, bool sameRegBox, const F& func);
 
-    void getVoFSubset(Array<VolIndex>& a_vofs,
+    void getVoFSubset(Vector<VolIndex>& a_vofs,
                       const Box& a_region) const;
   private:
 
@@ -247,8 +247,8 @@ namespace amrex
     int m_nComp = 0;
 
     IntVectSet m_ivs;
-    Array<VolIndex>  m_vofs;
-    Array<T>  m_Memory;
+    Vector<VolIndex>  m_vofs;
+    Vector<T>  m_Memory;
     T* m_data   = nullptr;
 
     // unfortunately, we return T*, not const T*

@@ -45,7 +45,7 @@ SumThisComp(AmrData &amrData, int iComp)
   int finestLevel = amrData.FinestLevel();      
   int nComp = amrData.NComp();
 
-  Array<int> refMult(finestLevel + 1, 1);
+  Vector<int> refMult(finestLevel + 1, 1);
   for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
   {
     int ref_ratio = amrData.RefRatio()[iLevel];
@@ -60,7 +60,7 @@ SumThisComp(AmrData &amrData, int iComp)
   // Compute the sum and sum-squares
   //
   long total_volume = 0;
-  Array<MultiFab*> error(finestLevel+1);
+  Vector<MultiFab*> error(finestLevel+1);
   
   for (int iLevel = finestLevel; iLevel>=0; --iLevel)
   {
@@ -226,8 +226,8 @@ main (int   argc,
       Real dtnew = 0;
       Real dtold = 0;
       Real dt;
-      Array<string> cNames(2);
-      Array<Real> xold;
+      Vector<string> cNames(2);
+      Vector<Real> xold;
       for (int i = nstart; i < nmax; i++) {
 
         File = amrex::Concatenate(iFile, i*nfac, 5);
@@ -278,9 +278,9 @@ compute_flux_all(int nstart,
   int finestLevel;
   int nComp;
   Box dmn;
-  Array<Real> xnew;
-  Array<Real> xold;
-  Array<Real> FLs;
+  Vector<Real> xnew;
+  Vector<Real> xold;
+  Vector<Real> FLs;
   Real sumnew;
   MultiFab tmpmean;
   Real dtnew, dtold;
@@ -308,8 +308,8 @@ compute_flux_all(int nstart,
     dtnew = amrData.Time();
 
     nComp = 2;
-    Array<string> names(2);
-    Array<int>    destcomp(2);
+    Vector<string> names(2);
+    Vector<int>    destcomp(2);
 
     names[0] = amrData.PlotVarNames()[0];
     names[1] = amrData.PlotVarNames()[1];
@@ -335,7 +335,7 @@ compute_flux_all(int nstart,
 	xold[iy] = 0.0;
     }
 
-    const Array<Real>& dx = amrData.DxLevel()[finestLevel];
+    const Vector<Real>& dx = amrData.DxLevel()[finestLevel];
     
     //      if (ParallelDescriptor::IOProcessor())
     //std::cout << "Filling tmpmean ... " << std::flush;
@@ -421,11 +421,11 @@ compute_flux_all(int nstart,
   int finestLevel;
   int nComp=2;
   Box dmn;
-  Array<Real> xnew;
-  Array<Real> xold;
-  Array<Real> FLs;
-  Array<string> names(2);
-  Array<int>    destcomp(2);
+  Vector<Real> xnew;
+  Vector<Real> xold;
+  Vector<Real> FLs;
+  Vector<string> names(2);
+  Vector<int>    destcomp(2);
   Real sumnew;
   MultiFab tmpmean;
   MultiFab tmpphi; 
@@ -494,7 +494,7 @@ compute_flux_all(int nstart,
 	xold[iy] = 0.0;
     }
 
-    const Array<Real>& dx = amrData.DxLevel()[finestLevel];
+    const Vector<Real>& dx = amrData.DxLevel()[finestLevel];
     
     amrData.FillVar(tmpmean,finestLevel,names,destcomp);
     
@@ -565,22 +565,22 @@ compute_flux_all(int nstart,
 void
 compute_flux(AmrData&           amrData, 
 	     int                dir, 
-	     Array<std::string> cNames,
+	     Vector<std::string> cNames,
 	     Real               dt,
-	     Array<Real>&       xold,
+	     Vector<Real>&       xold,
 	     Real&              flux,
 	     Real               phi,
 	     bool               do_init,
  	     Real*              barr)
 { 
-  Array<Real> xnew;
-  Array<Real> FLs;
+  Vector<Real> xnew;
+  Vector<Real> FLs;
   MultiFab tmpmean;
   Real sumnew;
   int finestLevel = 0;
   int nComp = cNames.size();
 
-  Array<int> destFillComps(nComp);
+  Vector<int> destFillComps(nComp);
   for (int i=0; i<nComp; ++i)
     destFillComps[i] = i;
 
@@ -625,7 +625,7 @@ compute_flux(AmrData&           amrData,
     for (int iy=0;iy<xold.size();iy++)
       xold[iy] = 0.0;
   }
-  const Array<Real>& dx = amrData.DxLevel()[finestLevel];
+  const Vector<Real>& dx = amrData.DxLevel()[finestLevel];
       
   amrData.FillVar(tmpmean,finestLevel,cNames,destFillComps);
 

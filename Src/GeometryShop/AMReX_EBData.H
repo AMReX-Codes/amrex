@@ -93,7 +93,7 @@ namespace amrex
     ///define the whole thing. valid box= no ghost, region has ghost, defines data holders and fills them
     void
     define(const EBGraph&           a_graph,
-           const Array<IrregNode>& a_irregData,
+           const Vector<IrregNode>& a_irregData,
            const Box&               a_validBox,
            const Box&               a_region);
 
@@ -239,27 +239,27 @@ private:
 
     void
     coarsenFaceCentroid(RealVect&                a_centroidCoar,
-                        const Array<RealVect>&  a_centroidsFine,
-                        const Array<Real>&      a_areaFracFine,
-                        const Array<FaceIndex>& a_facesFine,
+                        const Vector<RealVect>&  a_centroidsFine,
+                        const Vector<Real>&      a_areaFracFine,
+                        const Vector<FaceIndex>& a_facesFine,
                         const FaceIndex&         a_faceCoar);
     void
     coarsenAreaFrac(Real& a_areaFracCoar,
-                    const Array<Real>& a_areaFracFine);
+                    const Vector<Real>& a_areaFracFine);
 
     void
     coarsenVolFracAndCentroid(Real&                   a_volFracCoar,
                               RealVect&               a_volCentroidCoar,
-                              const Array<Real>&     a_volFracFine,
-                              const Array<RealVect>& a_volCentroidFine,
-                              const Array<VolIndex>& a_fineVoFs,
+                              const Vector<Real>&     a_volFracFine,
+                              const Vector<RealVect>& a_volCentroidFine,
+                              const Vector<VolIndex>& a_fineVoFs,
                               const VolIndex&         a_coarVoF);
 
     void
     coarsenBoundaryAreaAndNormal(Real&                    a_bndryAreaCoar,
                                  RealVect&                a_normalCoar,
-                                 const Array<Real>&      a_bndryAreaFine,
-                                 const Array<RealVect>&  a_normalFine);
+                                 const Vector<Real>&      a_bndryAreaFine,
+                                 const Vector<RealVect>&  a_normalFine);
 
     RealVect
     fineToCoarseTransform(const RealVect& a_finePoint,
@@ -268,9 +268,9 @@ private:
 
     void
     coarsenBndryCentroid(RealVect&               a_bndryCentroidCoar,
-                         const Array<RealVect>& a_bndryCentroidFine,
-                         const Array<Real>&     a_bndryAreaFine,
-                         const Array<VolIndex>& a_fineVoFs,
+                         const Vector<RealVect>& a_bndryCentroidFine,
+                         const Vector<Real>&     a_bndryAreaFine,
+                         const Vector<VolIndex>& a_fineVoFs,
                          const VolIndex&         a_coarVoF);
 
     void
@@ -414,7 +414,7 @@ private:
     //but it is ok for the valid box to be smaller
     void
     define(const EBGraph&           a_graph,
-           const Array<IrregNode>& a_irregData,
+           const Vector<IrregNode>& a_irregData,
            const Box&               a_validBox,
            const Box&               a_region)
     

@@ -134,7 +134,7 @@ amrex::UtilCreateDirectory (const std::string& path,
 			    mode_t mode, bool verbose)
 {
     bool retVal(false);
-    Array<std::pair<std::string, int> > pathError;
+    Vector<std::pair<std::string, int> > pathError;
 
     if (path.length() == 0 || path == path_sep_str) {
         return true;
@@ -334,7 +334,7 @@ namespace
 {
     int nthreads;
 
-    amrex::Array<std::mt19937> generators;
+    amrex::Vector<std::mt19937> generators;
 }
 
 void
@@ -437,14 +437,14 @@ amrex::RestoreRandomState(std::istream& is, int nthreads_old, int nstep_old)
 }
 
 void
-amrex::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
+amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
                            bool printSet)
 {
   if(setSize > poolSize) {
     amrex::Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
   }
   std::set<int> copySet;
-  Array<int> uSetTemp;
+  Vector<int> uSetTemp;
   while(static_cast<int>(copySet.size()) < setSize) {
     int r(amrex::Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
@@ -461,7 +461,7 @@ amrex::UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
 }
 
 void
-amrex::NItemsPerBin (int totalItems, Array<int> &binCounts)
+amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
 {
   if(binCounts.size() == 0) {
     return;
@@ -488,7 +488,7 @@ amrex::NItemsPerBin (int totalItems, Array<int> &binCounts)
 
 // -------------------------------------------------------------------
 int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
-                            const Array<int> &refratios)
+                            const Vector<int> &refratios)
 {
   BL_ASSERT(fromlevel >= 0);
   BL_ASSERT(tolevel >= fromlevel);
@@ -961,15 +961,15 @@ bool amrex::StreamRetry::TryFileOutput()
 }
 
 
-void amrex::SyncStrings(const Array<std::string> &localStrings,
-                         Array<std::string> &syncedStrings, bool &alreadySynced)
+void amrex::SyncStrings(const Vector<std::string> &localStrings,
+                         Vector<std::string> &syncedStrings, bool &alreadySynced)
 {
 #ifdef BL_USE_MPI
   const int nProcs(ParallelDescriptor::NProcs());
   const int ioProcNumber(ParallelDescriptor::IOProcessorNumber());
   int nUnmatched(0);
 
-  Array<std::string> localStringsCopy = localStrings;
+  Vector<std::string> localStringsCopy = localStrings;
 
   // ---- broadcast ioproc strings
   int pfStringsSize(0);
@@ -982,14 +982,14 @@ void amrex::SyncStrings(const Array<std::string> &localStrings,
   }
   ParallelDescriptor::Bcast(&pfStringsSize, 1);
 
-  Array<char> pfCharArray(pfStringsSize + 1);
+  Vector<char> pfCharArray(pfStringsSize + 1);
   if(ParallelDescriptor::IOProcessor()) {
     std::strcpy(pfCharArray.dataPtr(), pfStrings.str().c_str());  // null terminated
   }
   ParallelDescriptor::Bcast(pfCharArray.dataPtr(), pfCharArray.size());
 
   // ---- extract the ioproc strings
-  Array<std::string> ioprocStrings, sendStrings;
+  Vector<std::string> ioprocStrings, sendStrings;
   if( ! ParallelDescriptor::IOProcessor()) {
     std::istringstream pfIn(pfCharArray.dataPtr());
     std::string pfName;
@@ -1037,7 +1037,7 @@ void amrex::SyncStrings(const Array<std::string> &localStrings,
 
   int sendStringsSize(0);
   std::ostringstream ossSendStrings;
-  Array<char> sendCharArray(1);  // cannot be zero for gather call
+  Vector<char> sendCharArray(1);  // cannot be zero for gather call
   if( ! ParallelDescriptor::IOProcessor()) {
     for(int i(0); i < sendStrings.size(); ++i) {
       ossSendStrings << sendStrings[i] << '\n';
@@ -1047,12 +1047,12 @@ void amrex::SyncStrings(const Array<std::string> &localStrings,
     std::strcpy(sendCharArray.dataPtr(), ossSendStrings.str().c_str());  // null terminated
   }
 
-  Array<int> nChars(nProcs, 0);
+  Vector<int> nChars(nProcs, 0);
   ParallelDescriptor::Gather(&sendStringsSize, 1, nChars.dataPtr(), 1, ioProcNumber);
 
   int totalChars(0);
-  Array<char> recvStrings(1);
-  Array<int> offset(nProcs, 0);
+  Vector<char> recvStrings(1);
+  Vector<int> offset(nProcs, 0);
   if(ParallelDescriptor::IOProcessor()) {
     for(int i(0); i < nChars.size(); ++i) {
       totalChars += nChars[i];
@@ -1099,7 +1099,7 @@ void amrex::SyncStrings(const Array<std::string> &localStrings,
   }
   ParallelDescriptor::Bcast(&syncedStringsSize, 1);
 
-  Array<char> syncedCharArray(syncedStringsSize + 1);
+  Vector<char> syncedCharArray(syncedStringsSize + 1);
   if(ParallelDescriptor::IOProcessor()) {
     std::strcpy(syncedCharArray.dataPtr(), syncedStrStr.str().c_str());  // null terminated
   }
@@ -1125,14 +1125,14 @@ void amrex::SyncStrings(const Array<std::string> &localStrings,
 
 
 
-amrex::Array<char> amrex::SerializeStringArray(const Array<std::string> &stringArray)
+amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &stringArray)
 {
   std::ostringstream stringStream;
   for(int i(0); i < stringArray.size(); ++i) {
     stringStream << stringArray[i] << '\n';
   }
 
-  Array<char> charArray(stringStream.str().size() + 1);
+  Vector<char> charArray(stringStream.str().size() + 1);
   std::strcpy(charArray.dataPtr(), stringStream.str().c_str());  // null terminated
 
   return charArray;
@@ -1142,9 +1142,9 @@ amrex::Array<char> amrex::SerializeStringArray(const Array<std::string> &stringA
 
 
 
-amrex::Array<std::string> amrex::UnSerializeStringArray(const Array<char> &charArray)
+amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &charArray)
 {
-  Array<std::string> stringArray;
+  Vector<std::string> stringArray;
   std::istringstream stringStream(charArray.dataPtr());
   std::string sTemp;
   while( ! stringStream.eof()) {
@@ -1160,7 +1160,7 @@ amrex::Array<std::string> amrex::UnSerializeStringArray(const Array<char> &charA
 
 void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
-  Array<int> baseBoxAI;
+  Vector<int> baseBoxAI;
   if(myLocalId == rootId) {
     baseBoxAI = amrex::SerializeBox(bB);
   }
@@ -1174,7 +1174,7 @@ void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &loc
 
 void amrex::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
-  Array<int> sbaG;
+  Vector<int> sbaG;
   if(myLocalId == rootId) {
     sbaG = amrex::SerializeBoxArray(bBA);
   }
@@ -1197,7 +1197,7 @@ void amrex::BroadcastDistributionMapping(DistributionMapping &dM,
     dM.strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
   }
 
-  Array<int> dmapA;
+  Vector<int> dmapA;
 
   if(myLocalId == rootId) {
     dmapA = dM.ProcessorMap();

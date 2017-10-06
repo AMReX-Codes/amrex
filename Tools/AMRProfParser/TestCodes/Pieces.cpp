@@ -1,7 +1,7 @@
 // -------------------------------------------------------------
 // Pieces.cpp
 // -------------------------------------------------------------
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_BLProfiler.H>

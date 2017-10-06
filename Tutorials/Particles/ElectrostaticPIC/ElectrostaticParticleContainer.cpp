@@ -121,7 +121,7 @@ ElectrostaticParticleContainer::DepositCharge(ScalarMeshData& rho) {
 void
 ElectrostaticParticleContainer::
 FieldGather(const VectorMeshData& E,
-            const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) {
+            const Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) {
 
     const int num_levels = E.size();
     const int ng = E[0][0]->nGrow();

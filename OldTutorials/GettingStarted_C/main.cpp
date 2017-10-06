@@ -58,7 +58,7 @@ void main_main ()
   int Ncomp = 2 , Nghost = 6;
 
   // the "1" means only 1 MultiFab; you can declare more if needed
-  Array <std::unique_ptr<MultiFab> > data(1);
+  Vector <std::unique_ptr<MultiFab> > data(1);
 
   DistributionMapping dm(ba);
 

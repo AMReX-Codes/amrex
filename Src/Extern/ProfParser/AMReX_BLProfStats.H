@@ -47,8 +47,8 @@ class BLProfStats {
       long readoffset;
       int streamIndex;
 
-      amrex::Array<long> nCalls;
-      amrex::Array<Real> totalTime;
+      amrex::Vector<long> nCalls;
+      amrex::Vector<Real> totalTime;
     };
 
     struct FuncStat {
@@ -112,13 +112,13 @@ class BLProfStats {
     int  GetMaxRNumber() const  { return maxRNumber; }
 
     void InitFilterTimeRanges();
-    void SetFilterTimeRanges(const amrex::Array<std::list<TimeRange> > &ftr);
-    const amrex::Array<std::list<TimeRange> > &GetFilterTimeRanges() const
+    void SetFilterTimeRanges(const amrex::Vector<std::list<TimeRange> > &ftr);
+    const amrex::Vector<std::list<TimeRange> > &GetFilterTimeRanges() const
                                                 { return filterTimeRanges; }
 
-    void SetRegionTimeRanges(const amrex::Array<amrex::Array<amrex::Array<TimeRange> > > &rtr)
+    void SetRegionTimeRanges(const amrex::Vector<amrex::Vector<amrex::Vector<TimeRange> > > &rtr)
                                              { regionTimeRanges = rtr; }
-    const amrex::Array<amrex::Array<amrex::Array<TimeRange> > > &GetRegionTimeRanges()
+    const amrex::Vector<amrex::Vector<amrex::Vector<TimeRange> > > &GetRegionTimeRanges()
                                              { return regionTimeRanges; }
 
     const std::map<std::string, int> &RegionNames() { return regionNames; }
@@ -142,7 +142,7 @@ class BLProfStats {
     virtual void AddFunctionName(const std::string &fname);
     virtual void InitBLProfDataBlock(const int proc, const std::string &filename,
                                      const long seekpos);
-    virtual void CollectFuncStats(amrex::Array<amrex::Array<FuncStat> > &funcStats);
+    virtual void CollectFuncStats(amrex::Vector<amrex::Vector<FuncStat> > &funcStats);
     virtual void WriteSummary(std::ostream &ios, bool bwriteavg = false, int whichProc = 0,
                               bool graphTopPct = true);
     virtual void AddCalcEndTime(double cet) { calcEndTime = cet; }
@@ -186,7 +186,7 @@ class BLProfStats {
     virtual void AddProbDomain(const int lev, const amrex::Box &pd) { }
     virtual TimeRange MakeRegionPlt(amrex::FArrayBox &rFab, int noregionnumber,
                                int width, int height,
-			       amrex::Array<amrex::Array<amrex::Box>> &regionBoxes)
+			       amrex::Vector<amrex::Vector<amrex::Box>> &regionBoxes)
 			       { return TimeRange(); }
 
     static void OpenAllStreams(const std::string &dirname);
@@ -200,8 +200,8 @@ class BLProfStats {
 
     void CheckData();
 
-    const amrex::Array<std::string> &BLPFNames() { return blpFNames; }
-    void SetFNames(const amrex::Array<std::string> &fNames) { blpFNames = fNames; }
+    const amrex::Vector<std::string> &BLPFNames() { return blpFNames; }
+    void SetFNames(const amrex::Vector<std::string> &fNames) { blpFNames = fNames; }
 
   protected:
     static int verbose;
@@ -223,17 +223,17 @@ class BLProfStats {
     std::set<int> includeSet, excludeSet;
     bool bDefaultInclude;
 
-    amrex::Array<amrex::Array<amrex::Array<TimeRange> > > regionTimeRanges;  // [proc][rnum][range]
-    amrex::Array<std::list<TimeRange> > filterTimeRanges;  // [proc]
+    amrex::Vector<amrex::Vector<amrex::Vector<TimeRange> > > regionTimeRanges;  // [proc][rnum][range]
+    amrex::Vector<std::list<TimeRange> > filterTimeRanges;  // [proc]
 
     static std::map<std::string, int> blpDataFileNames;  // [filename, stream index]
 
-    amrex::Array<std::string> blpFNames;
-    amrex::Array<BLPDataBlock> blpDataBlocks;
+    amrex::Vector<std::string> blpFNames;
+    amrex::Vector<BLPDataBlock> blpDataBlocks;
 
     static Real gPercent;
 
-    static amrex::Array<std::ifstream *> blpDataStreams;
+    static amrex::Vector<std::ifstream *> blpDataStreams;
 
   private:
 

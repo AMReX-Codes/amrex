@@ -65,12 +65,12 @@ PreBuildDirectorHierarchy (const std::string &dirName,
 void
 WriteGenericPlotfileHeader (std::ostream &HeaderFile,
                             int nlevels,
-                            const Array<BoxArray> &bArray,
-                            const Array<std::string> &varnames,
-                            const Array<Geometry> &geom,
+                            const Vector<BoxArray> &bArray,
+                            const Vector<std::string> &varnames,
+                            const Vector<Geometry> &geom,
                             Real time,
-                            const Array<int> &level_steps,
-                            const Array<IntVect> &ref_ratio,
+                            const Vector<int> &level_steps,
+                            const Vector<IntVect> &ref_ratio,
                             const std::string &versionName,
                             const std::string &levelPrefix,
                             const std::string &mfPrefix)
@@ -149,10 +149,10 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 
 void
 WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
-                         const Array<const MultiFab*>& mf,
-                         const Array<std::string>& varnames,
-                         const Array<Geometry>& geom, Real time, const Array<int>& level_steps,
-                         const Array<IntVect>& ref_ratio,
+                         const Vector<const MultiFab*>& mf,
+                         const Vector<std::string>& varnames,
+                         const Vector<Geometry>& geom, Real time, const Vector<int>& level_steps,
+                         const Vector<IntVect>& ref_ratio,
                          const std::string &versionName,
                          const std::string &levelPrefix,
                          const std::string &mfPrefix)
@@ -185,7 +185,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
         FileOpenFailed(HeaderFileName);
       }
 
-      Array<BoxArray> boxArrays(nlevels);
+      Vector<BoxArray> boxArrays(nlevels);
       for(int level(0); level < boxArrays.size(); ++level) {
 	boxArrays[level] = mf[level]->boxArray();
       }
@@ -217,16 +217,16 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 
 void
 WriteSingleLevelPlotfile (const std::string& plotfilename,
-                          const MultiFab& mf, const Array<std::string>& varnames,
+                          const MultiFab& mf, const Vector<std::string>& varnames,
                           const Geometry& geom, Real time, int level_step,
                           const std::string &versionName,
                           const std::string &levelPrefix,
                           const std::string &mfPrefix)
 {
-    Array<const MultiFab*> mfarr(1,&mf);
-    Array<Geometry> geomarr(1,geom);
-    Array<int> level_steps(1,level_step);
-    Array<IntVect> ref_ratio;
+    Vector<const MultiFab*> mfarr(1,&mf);
+    Vector<Geometry> geomarr(1,geom);
+    Vector<int> level_steps(1,level_step);
+    Vector<IntVect> ref_ratio;
 
     WriteMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
                             level_steps, ref_ratio, versionName, levelPrefix, mfPrefix);

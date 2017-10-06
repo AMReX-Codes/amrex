@@ -14,6 +14,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
@@ -222,18 +223,18 @@ namespace amrex
     *   if you want all processors to have the same set,
     *   call this on one processor and broadcast the array
     */
-    void UniqueRandomSubset (Array<int> &uSet, int setSize, int poolSize,
+    void UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
                              bool printSet = false);
 
     /**
     * \brief Fill binCounts with the number of items for each bin.
     *   The remainder items are randomly assigned.
     */
-    void NItemsPerBin (int totalItems, Array<int> &binCounts);
+    void NItemsPerBin (int totalItems, Vector<int> &binCounts);
 
     /* \brief cumulative refinement ratio between levels */
     int CRRBetweenLevels(int fromlevel, int tolevel,
-                         const Array<int> &refratios);
+                         const Vector<int> &refratios);
 
 
 
@@ -276,10 +277,10 @@ namespace amrex
 	static int nStreamErrors;
     };
 
-    Array<char> SerializeStringArray(const Array<std::string> &stringArray);
-    Array<std::string> UnSerializeStringArray(const Array<char> &charArray);
-    void SyncStrings(const Array<std::string> &localStrings,
-                     Array<std::string> &syncedStrings, bool &alreadySynced);
+    Vector<char> SerializeStringArray(const Vector<std::string> &stringArray);
+    Vector<std::string> UnSerializeStringArray(const Vector<char> &charArray);
+    void SyncStrings(const Vector<std::string> &localStrings,
+                     Vector<std::string> &syncedStrings, bool &alreadySynced);
 
     //
     // Memory Usage Counting
@@ -290,7 +291,7 @@ namespace amrex
     template <typename T> long bytesOf (const std::vector<T>& v);
     template <typename Key, typename T, class Compare> long bytesOf (const std::map<Key,T,Compare>& m);
 
-    template<class T> void BroadcastArray(Array<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
+    template<class T> void BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
     void BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm);
     void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm);
     void BroadcastDistributionMapping(DistributionMapping &dM,
@@ -300,7 +301,7 @@ namespace amrex
 
 }
 
-template<class T> void amrex::BroadcastArray(Array<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
+template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   int aT_Size(-2);
   if(myLocalId == rootId) {

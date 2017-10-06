@@ -102,8 +102,8 @@ main (int argc, char* argv[])
 
     ParallelDescriptor::Barrier();
 
-    Array<std::unique_ptr<MultiFab> > mfs(nlevels);
-    Array<BoxArray> bas(nlevels);
+    Vector<std::unique_ptr<MultiFab> > mfs(nlevels);
+    Vector<BoxArray> bas(nlevels);
     bas[0] = ba;
     DistributionMapping dm{ba};
     mfs[0].reset(new MultiFab(ba, dm, 1, 1));
@@ -115,7 +115,7 @@ main (int argc, char* argv[])
 	mfs[lev]->setVal(1.0);
     }
 
-    Array<Real> points(nlevels);
+    Vector<Real> points(nlevels);
     for (int lev=0; lev<nlevels; ++lev) {
 	points[lev] = mfs[lev]->norm1();
 	if (ParallelDescriptor::IOProcessor()) {

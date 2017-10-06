@@ -87,8 +87,8 @@ namespace amrex
       
     for(MFIter mfi(m_eblgFine.getDBL(), m_eblgFine.getDM()); mfi.isValid(); ++mfi)
     {
-      Array< std::shared_ptr<BaseIndex  > > baseDstVoFs;
-      Array< std::shared_ptr<BaseStencil> > baseSten;
+      Vector< std::shared_ptr<BaseIndex  > > baseDstVoFs;
+      Vector< std::shared_ptr<BaseStencil> > baseSten;
       const EBISBox  & ebisFine =   m_eblgFine.getEBISL()[ mfi];
       const EBISBox  & ebisCoFi =   m_eblgCoFi.getEBISL()[ mfi];
 
@@ -107,10 +107,10 @@ namespace amrex
       }
 
       VoFIterator vofit(ivsIrreg, ebisFine.getEBGraph());
-      const Array<VolIndex>& volvec = vofit.getVector();
+      const Vector<VolIndex>& volvec = vofit.getVector();
       baseDstVoFs.resize(volvec.size());
       baseSten.resize(   volvec.size());
-      Array<VoFStencil> allsten(volvec.size());
+      Vector<VoFStencil> allsten(volvec.size());
       for(int ivec = 0; ivec < volvec.size(); ivec++)
       {
         getStencil(allsten[ivec],  volvec[ivec], ebisFine, ebisCoFi, mfi);
@@ -251,8 +251,8 @@ namespace amrex
       if(m_slowMode)
       {
 
-        Array<VolIndex  >& vofs     = m_slowVoFs[mfi];
-        Array<VoFStencil>& stencils = m_slowStencils[mfi];
+        Vector<VolIndex  >& vofs     = m_slowVoFs[mfi];
+        Vector<VoFStencil>& stencils = m_slowStencils[mfi];
         for(int ivof = 0; ivof < vofs.size(); ivof++)
         {
           for(int icomp = 0; icomp < inco; icomp++)

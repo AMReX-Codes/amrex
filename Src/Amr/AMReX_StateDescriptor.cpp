@@ -172,8 +172,8 @@ DescriptorList::setComponent (int                               indx,
 void
 DescriptorList::setComponent (int                               indx,
                               int                               comp,
-                              const Array<std::string>&         nm,
-                              const Array<BCRec>&               bc,
+                              const Vector<std::string>&         nm,
+                              const Vector<BCRec>&               bc,
                               const StateDescriptor::BndryFunc& func,
                               Interpolater*                     interp)
 {
@@ -322,7 +322,7 @@ StateDescriptor::getBC (int i) const
     return bc[i];
 }
 
-const Array<BCRec>&
+const Vector<BCRec>&
 StateDescriptor::getBCs () const
 {
     return bc;

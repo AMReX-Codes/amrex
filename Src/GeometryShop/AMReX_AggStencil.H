@@ -44,8 +44,8 @@ public:
      a_srcData is to provide offsets for source data (can be a dummy but must be the right size)
      a_dstData is to provide offsets for destin data (can be a dummy but must be the right size)
    */
-  AggStencil(const Array<std::shared_ptr<BaseIndex  > >& a_dstVoFs,
-             const Array<std::shared_ptr<BaseStencil> >& a_stencil,
+  AggStencil(const Vector<std::shared_ptr<BaseIndex  > >& a_dstVoFs,
+             const Vector<std::shared_ptr<BaseStencil> >& a_stencil,
              const srcData_t                                 & a_srcData,
              const dstData_t                                 & a_dstData);
 
@@ -86,14 +86,14 @@ public:
     int  dataID;
   } typedef access_t;
 
-  typedef Array<std::pair<access_t, Real> > stencil_t;
+  typedef Vector<std::pair<access_t, Real> > stencil_t;
 
 protected:
 
   int m_destVar;
-  Array<stencil_t>   m_ebstencil;
-  Array<access_t>    m_dstAccess;
-  mutable Array< Array<Real> > m_cacheDst;
+  Vector<stencil_t>   m_ebstencil;
+  Vector<access_t>    m_dstAccess;
+  mutable Vector< Vector<Real> > m_cacheDst;
 
 private:
   /// disallowed operators.   Without code because Jeff says that is better.

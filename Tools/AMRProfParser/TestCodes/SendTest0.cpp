@@ -1,7 +1,7 @@
 // -------------------------------------------------------------
 // SendTest0.cpp
 // -------------------------------------------------------------
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 
     int bSize(20000);
     if(myproc == ParallelDescriptor::IOProcessorNumber()) {
-      Array<int> iBuff(bSize, 0);
+      Vector<int> iBuff(bSize, 0);
       int wakeUpPID = nprocs / 2;
       int tag       = itimes;
       ParallelDescriptor::Send(iBuff.dataPtr(), bSize, wakeUpPID, tag);
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     }
     if(myproc == (nprocs / 2)) {
       sleep(1);
-      Array<int> iBuff(bSize, 0);
+      Vector<int> iBuff(bSize, 0);
       int waitForPID = ParallelDescriptor::IOProcessorNumber();
       int tag        = itimes;
       ParallelDescriptor::Recv(iBuff.dataPtr(), bSize, waitForPID, tag);

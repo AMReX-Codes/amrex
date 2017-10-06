@@ -66,7 +66,7 @@ namespace amrex
       }
 
   private:
-    Array<T> m_data;
+    Vector<T> m_data;
         
   };
 }

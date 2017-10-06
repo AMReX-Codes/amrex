@@ -82,7 +82,7 @@ extern "C" {
     void amrex_fi_make_new_grids (int baselev, Real time, int* new_finest, const BoxArray** ba,
 				  FAmrCore* amrcore)
     {
-	Array<BoxArray> new_grids(baselev+1);
+	Vector<BoxArray> new_grids(baselev+1);
 	new_grids[baselev] = *ba[baselev];
 	amrcore->MakeNewGrids(baselev, time, *new_finest, new_grids);
 	for (int lev = baselev+1; lev <= *new_finest; ++lev) {

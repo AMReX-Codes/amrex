@@ -20,6 +20,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_TagBox.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BoxDomain.H>
@@ -63,8 +64,8 @@ std::list<std::string> Amr::derive_plot_vars;
 std::list<std::string> Amr::derive_small_plot_vars;
 bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
-Array<BoxArray>        Amr::initial_ba;
-Array<BoxArray>        Amr::regrid_ba;
+Vector<BoxArray>        Amr::initial_ba;
+Vector<BoxArray>        Amr::regrid_ba;
 
 namespace
 {
@@ -159,13 +160,13 @@ Amr::RegridOnRestart () const
 }
 
 void
-Amr::setDtMin (const Array<Real>& dt_min_in)
+Amr::setDtMin (const Vector<Real>& dt_min_in)
 {
     for (int i = 0; i <= finest_level; i++)
         dt_min[i] = dt_min_in[i];
 }
 
-Array<std::unique_ptr<AmrLevel> >&
+Vector<std::unique_ptr<AmrLevel> >&
 Amr::getAmrLevels ()
 {
     return amr_level;
@@ -200,7 +201,7 @@ Amr::Amr ()
     InitAmr();
 }
 
-Amr::Amr (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord)
+Amr::Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord)
     :
     AmrCore(rb,max_level_in,n_cell_in,coord)
 {
@@ -709,7 +710,7 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 }
 
 void
-Amr::setDtLevel (const Array<Real>& dt_lev)
+Amr::setDtLevel (const Vector<Real>& dt_lev)
 {
     for (int i = 0; i <= finest_level; i++)
         dt_level[i] = dt_lev[i];
@@ -722,7 +723,7 @@ Amr::setDtLevel (Real dt, int lev)
 }
 
 void
-Amr::setNCycle (const Array<int>& ns)
+Amr::setNCycle (const Vector<int>& ns)
 {
     for (int i = 0; i <= finest_level; i++)
         n_cycle[i] = ns[i];
@@ -1100,7 +1101,7 @@ Amr::init (Real strt_time,
 #endif
 
 #ifdef BL_COMM_PROFILING
-    Array<Box> probDomain(maxLevel()+1);
+    Vector<Box> probDomain(maxLevel()+1);
     for(int i(0); i < probDomain.size(); ++i) {
 	probDomain[i] = Geom(i).Domain();
     }
@@ -1118,7 +1119,7 @@ Amr::readProbinFile (int& a_init)
     //
     int probin_file_length = probin_file.length();
 
-    Array<int> probin_file_name(probin_file_length);
+    Vector<int> probin_file_name(probin_file_length);
 
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
@@ -1200,7 +1201,7 @@ void
 Amr::initialInit (Real              strt_time,
                   Real              stop_time,
                   const BoxArray*   lev0_grids,
-                  const Array<int>* pmap)
+                  const Vector<int>* pmap)
 {
     BL_PROFILE("Amr::initialInit()");
     InitializeInit(strt_time, stop_time, lev0_grids, pmap);
@@ -1218,7 +1219,7 @@ void
 Amr::InitializeInit(Real              strt_time,
                     Real              stop_time,
                     const BoxArray*   lev0_grids,
-                    const Array<int>* pmap)
+                    const Vector<int>* pmap)
 {
     BL_PROFILE("Amr::InitializeInit()");
     BL_COMM_PROFILE_NAMETAG("Amr::InitializeInit TOP");
@@ -1349,11 +1350,11 @@ Amr::restart (const std::string& filename)
     }
 
     // ---- preread and broadcast all FabArray headers if this file exists
-    std::map<std::string, Array<char> > faHeaderMap;
+    std::map<std::string, Vector<char> > faHeaderMap;
     if(prereadFAHeaders) {
       // ---- broadcast the file with the names of the fabarray headers
       std::string faHeaderFilesName(filename + "/FabArrayHeaders.txt");
-      Array<char> faHeaderFileChars;
+      Vector<char> faHeaderFileChars;
       bool bExitOnError(false);  // ---- dont exit if this file does not exist
       ParallelDescriptor::ReadAndBcastFile(faHeaderFilesName, faHeaderFileChars,
                                            bExitOnError);
@@ -1365,7 +1366,7 @@ Amr::restart (const std::string& filename)
           fais >> faHeaderName;
           if( ! fais.eof()) {
             std::string faHeaderFullName(filename + '/' + faHeaderName + "_H");
-            Array<char> &tempCharArray = faHeaderMap[faHeaderFullName];
+            Vector<char> &tempCharArray = faHeaderMap[faHeaderFullName];
             ParallelDescriptor::ReadAndBcastFile(faHeaderFullName, tempCharArray);
 	    if(verbose > 2) {
 		amrex::Print() 
@@ -1385,7 +1386,7 @@ Amr::restart (const std::string& filename)
 
     VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
-    Array<char> fileCharPtr;
+    Vector<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
     std::string fileCharPtrString(fileCharPtr.dataPtr());
     std::istringstream is(fileCharPtrString, std::istringstream::in);
@@ -1421,7 +1422,7 @@ Amr::restart (const std::string& filename)
     is >> mx_lev;
     is >> finest_level;
 
-    Array<Box> inputs_domain(max_level+1);
+    Vector<Box> inputs_domain(max_level+1);
     for (int lev = 0; lev <= max_level; ++lev)
     {
 	Box bx(Geom(lev).Domain().smallEnd(),Geom(lev).Domain().bigEnd());
@@ -1443,7 +1444,7 @@ Amr::restart (const std::string& filename)
            for (int i(0); i <= mx_lev; ++i) { dt_min[i] = dt_level[i]; }
        }
 
-       Array<int>  n_cycle_in;
+       Vector<int>  n_cycle_in;
        n_cycle_in.resize(mx_lev+1);  
        for (int i(0); i <= mx_lev; ++i) { is >> n_cycle_in[i]; }
        bool any_changed = false;
@@ -1733,7 +1734,7 @@ Amr::checkPoint ()
     }
 
     if (ParallelDescriptor::IOProcessor()) {
-	const Array<std::string> &FAHeaderNames = StateData::FabArrayHeaderNames();
+	const Vector<std::string> &FAHeaderNames = StateData::FabArrayHeaderNames();
 	if(FAHeaderNames.size() > 0) {
           std::string FAHeaderFilesName = ckfileTemp + "/FabArrayHeaders.txt";
           std::ofstream FAHeaderFile(FAHeaderFilesName.c_str(),
@@ -2257,7 +2258,7 @@ Amr::writeSmallPlotNow()
 void
 Amr::defBaseLevel (Real              strt_time, 
                    const BoxArray*   lev0_grids,
-                   const Array<int>* pmap)
+                   const Vector<int>* pmap)
 {
     BL_PROFILE("Amr::defBaseLevel()");
     // Just initialize this here for the heck of it
@@ -2325,8 +2326,8 @@ Amr::regrid (int  lbase,
     // Compute positions of new grids.
     //
     int             new_finest;
-    Array<BoxArray> new_grid_places(max_level+1);
-    Array<DistributionMapping> new_dmap(max_level+1);
+    Vector<BoxArray> new_grid_places(max_level+1);
+    Vector<DistributionMapping> new_dmap(max_level+1);
 
     grid_places(lbase,time,new_finest, new_grid_places);
 
@@ -2444,11 +2445,11 @@ Amr::regrid (int  lbase,
     if(rebalance_grids > 0) {
       DistributionMapping::InitProximityMap();
 
-        Array<BoxArray> allBoxes(amr_level.size());
+        Vector<BoxArray> allBoxes(amr_level.size());
 	for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
 	  allBoxes[ilev] = boxArray(ilev);
 	}
-        Array<Array<int> > mLDM;
+        Vector<Vector<int> > mLDM;
 	if(rebalance_grids == 1) {
           mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0)[0]);
 	} else if(rebalance_grids == 2) {
@@ -2683,7 +2684,7 @@ void
 Amr::grid_places (int              lbase,
                   Real             time,
                   int&             new_finest,
-                  Array<BoxArray>& new_grids)
+                  Vector<BoxArray>& new_grids)
 {
     BL_PROFILE("Amr::grid_places()");
 
@@ -2788,7 +2789,7 @@ Amr::GetAreaNotToTag (int lev)
 }
 
 void
-Amr::ManualTagsPlacement (int lev, TagBoxArray& tags, const Array<IntVect>& bf_lev)
+Amr::ManualTagsPlacement (int lev, TagBoxArray& tags, const Vector<IntVect>& bf_lev)
 {
     amr_level[lev]->manual_tags_placement(tags, bf_lev);
 }
@@ -2799,7 +2800,7 @@ Amr::bldFineLevels (Real strt_time)
     BL_PROFILE("Amr::bldFineLevels()");
     finest_level = 0;
 
-    Array<BoxArray> new_grids(max_level+1);
+    Vector<BoxArray> new_grids(max_level+1);
     //
     // Get initial grid placement.
     //
@@ -3106,7 +3107,7 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     return best_dt;
 }
 
-const Array<BoxArray>& Amr::getInitialBA()
+const Vector<BoxArray>& Amr::getInitialBA()
 {
   return initial_ba;
 }
@@ -3138,13 +3139,13 @@ Amr::UpdateStateDataDistributionMaps(DistributionMapping& new_dmap)
 void
 Amr::AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs)
 {
-    Array<BoxArray> allBoxes(finest_level + 1);
+    Vector<BoxArray> allBoxes(finest_level + 1);
 
     for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
       allBoxes[ilev] = boxArray(ilev);
     }
 
-    Array<Array<int> > mLDM;
+    Vector<Vector<int> > mLDM;
     // ---- just use the random map for now
     int maxRank(ParallelDescriptor::NProcsAll() - nSidecarProcs - 1);
     amrex::Print() << "_______ maxRank = " << maxRank << "\n";
@@ -3182,7 +3183,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
     // ---- make a group with ioprocnum and the new comp ranks that were part of the sidecar
     // ---- then initialize all required data for the new ranks (amr, amrlevels, ...)
-    Array<int> groupRanks(prevSidecarProcs - nSidecarProcs + 1, -1);  // ---- + 1 for ioprocnum
+    Vector<int> groupRanks(prevSidecarProcs - nSidecarProcs + 1, -1);  // ---- + 1 for ioprocnum
     groupRanks[0] = ioProcNumAll;
     int ngStart(nProcsAll - prevSidecarProcs);
     for(int ip(1); ip < groupRanks.size(); ++ip) {
@@ -3216,7 +3217,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 
       // ---- pack up the ints
-      Array<int> allInts;
+      Vector<int> allInts;
       //int allIntsSize(0);
       int dt_level_Size(dt_level.size()), dt_min_Size(dt_min.size());
       int max_grid_size_Size(max_grid_size.size()), blocking_factor_Size(blocking_factor.size());
@@ -3376,7 +3377,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 
       // ---- pack up the longs
-      Array<long> allLongs;
+      Vector<long> allLongs;
       if(scsMyId == ioProcNumSCS) {
         allLongs.push_back(VisMF::GetIOBufferSize());
       }
@@ -3391,7 +3392,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 
       // ---- pack up the Reals
-      Array<Real> allReals;
+      Vector<Real> allReals;
       //int allRealsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allReals.push_back(cumtime);
@@ -3427,7 +3428,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 
       // ---- pack up the bools
-      Array<int> allBools;  // ---- just use ints here
+      Vector<int> allBools;  // ---- just use ints here
       //int allBoolsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allBools.push_back(abort_on_stream_retry_failure);
@@ -3489,8 +3490,8 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 
       // ---- pack up the strings
-      Array<std::string> allStrings;
-      Array<char> serialStrings;
+      Vector<std::string> allStrings;
+      Vector<char> serialStrings;
       //int serialStringsSize(0);
       if(scsMyId == ioProcNumSCS) {
         allStrings.push_back(regrid_grids_file);
@@ -3554,7 +3555,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
 
 
       // ---- pack up the IntVects
-      Array<int> allIntVects;
+      Vector<int> allIntVects;
       int allIntVectsSize(0);
       if(scsMyId == ioProcNumSCS) {
 
@@ -3657,7 +3658,7 @@ Amr::AddProcsToComp(int nSidecarProcs, int prevSidecarProcs) {
       if(scsMyId != ioProcNumSCS) {
         int probin_file_length(probin_file.length());
 	int linit(true);
-        Array<int> probin_file_name(probin_file_length);
+        Vector<int> probin_file_name(probin_file_length);
         for(int i(0); i < probin_file_length; ++i) {
           probin_file_name[i] = probin_file[i];
         }
@@ -3706,11 +3707,11 @@ Amr::RedistributeGrids(int how) {
       DistributionMapping::InitProximityMap();
       DistributionMapping::Initialize();
 
-        Array<BoxArray> allBoxes(finest_level + 1);
+        Vector<BoxArray> allBoxes(finest_level + 1);
         for(int ilev(0); ilev < allBoxes.size(); ++ilev) {
           allBoxes[ilev] = boxArray(ilev);
         }
-        Array<Array<int> > mLDM;
+        Vector<Vector<int> > mLDM;
         if(how == 1) {
           mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0)[0]);
         } else if(how == 2) {
@@ -3741,8 +3742,8 @@ Amr::RedistributeGrids(int how) {
 void
 Amr::BroadcastBoundaryPointList(BoundaryPointList &bpl, int myLocalId, int rootId, MPI_Comm comm) {
   bool bcastSource(ParallelDescriptor::MyProc() == rootId);
-  Array<int> pF, pS;
-  Array<double> bplD;
+  Vector<int> pF, pS;
+  Vector<double> bplD;
   if(bcastSource) {  // ---- initialize the source data
     std::multimap< std::pair<int, int>, double >::iterator it;
     for(it = bpl.begin(); it != bpl.end(); ++it) {

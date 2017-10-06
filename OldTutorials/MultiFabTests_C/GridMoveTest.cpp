@@ -34,7 +34,7 @@ const int nTimes(4);
 
 // --------------------------------------------------------------------------
 void SetFabValsToPMap(MultiFab &mf) {
-  const Array<int> &newDMA = mf.DistributionMap().ProcessorMap();
+  const Vector<int> &newDMA = mf.DistributionMap().ProcessorMap();
   for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
     const int index(mfi.index());
     FArrayBox &fab = mf[mfi];
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 
     // ---- make a box, then a boxarray with maxSize
     Box baseBox(IntVect(0,0,0), IntVect(maxGrid - 1, maxGrid - 1, maxGrid - 1));
-    Array<Box> boxes(nProcs);
+    Vector<Box> boxes(nProcs);
 
     for(int p(0); p < boxes.size(); ++p) {
       boxes[p] = baseBox.shift(XDIR, maxGrid);
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
       std::cout << "dmap.size() = " << mf.DistributionMap().size() << std::endl;
     }
 
-    const Array<int> &procMap = mf.DistributionMap().ProcessorMap();
+    const Vector<int> &procMap = mf.DistributionMap().ProcessorMap();
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "procMap.size() = " << procMap.size() << std::endl;
     }
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
     // ------------------ copy entire multifab to nProcs/2) % nProcs
     if(copyAll) {
       // ---- initialize it to (oldmap + (nProcs/2)) % nProcs
-      Array<int> newMap(procMap.size());
+      Vector<int> newMap(procMap.size());
       for(int i(0); i < procMap.size(); ++i) {
         newMap[i] = (procMap[i] + (nProcs/2)) % nProcs;
       }
@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
       nCopies = std::min(nCopies, nProcs/2);
       int nRanksInSet(nCopies * 2);
 
-      Array<int> copyArray;
+      Vector<int> copyArray;
       if(ParallelDescriptor::IOProcessor()) {
         amrex::UniqueRandomSubset(copyArray, nRanksInSet, nProcs);
       } else {
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
       }
       ParallelDescriptor::Bcast(copyArray.dataPtr(), copyArray.size());
         
-      Array<int> newMap(nCopies);
+      Vector<int> newMap(nCopies);
       BoxArray baCopy(nCopies);
       for(int i(0); i < nCopies; ++i) {
         newMap[i] = copyArray[i];
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
     if(moveFabs) {
       VisMF::SetNOutFiles(1);
-      Array<int> copyArray;
+      Vector<int> copyArray;
       int nRanksInSet(8);
       if(nRanksInSet % 2 != 0) {
         amrex::Abort("**** Bad nRanksInSet");
@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
       }
       ParallelDescriptor::Bcast(copyArray.dataPtr(), copyArray.size());
 
-      Array<int> newDistMapArray(mf.DistributionMap().ProcessorMap());
+      Vector<int> newDistMapArray(mf.DistributionMap().ProcessorMap());
       for(int n(0); n < nRanksInSet; n += 2) {
         newDistMapArray[copyArray[n]] = copyArray[n+1];
       }
@@ -204,7 +204,7 @@ int main(int argc, char *argv[]) {
       BoxArray ba16(mf.boxArray());
       ba16.maxSize(16);
 
-      Array<int> randomMap(ba16.size());
+      Vector<int> randomMap(ba16.size());
       if(ParallelDescriptor::IOProcessor()) {
 	for(int ir(0); ir < ba16.size(); ++ ir) {
           randomMap[ir] = amrex::Random_int(nProcs);
@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
       }
       ParallelDescriptor::Bcast(randomMap.dataPtr(), randomMap.size());
         
-      Array<int> newMap16(ba16.size());
+      Vector<int> newMap16(ba16.size());
       for(int i(0); i < newMap16.size(); ++i) {
         newMap16[i] = randomMap[i];
       }

@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     Box bControl(IntVect(0,0,0), IntVect(63,63,63));
     Box bBcast;
 
-    Array<int> aSB;
+    Vector<int> aSB;
     if(bIOP) {
       aSB = amrex::SerializeBox(bControl);
     }
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
       cout << "baBcast = " << baBcast << endl;
     }
 
-    Array<int> aBASerial;
+    Vector<int> aBASerial;
     if(bIOP) {
       aBASerial = amrex::SerializeBoxArray(baControl);
       for(int i(0); i < aSB.size(); ++i) {

@@ -123,7 +123,7 @@ class IntVect;
 //     if (!pp.query("niter",niter)) niter = 20;
 //
 //     // read array of cell sizes if in table
-//     Array<float> dx;
+//     Vector<float> dx;
 //     if (nx=pp.countval("cell_size")) {
 //        // get nx values starting at index 0 and store in dx.
 //        // dx is automatically resized here.
@@ -142,7 +142,7 @@ class IntVect;
 //    // Read all variables with "plot.var" keyword.
 //    //
 //    std::string var_name;
-//    Array<int> range;
+//    Vector<int> range;
 //    int num = pp.countname("var");
 //    for (int k = 0; k < num; k++)
 //    {
@@ -202,8 +202,8 @@ class IntVect;
 *
 *  The query functions search the table for definition names that match a given
 *  string (and prefix) and return values from the corresponding value list.
-*  The values can be returned as ints, Array<int>s, floats, Array<float>s,
-*  doubles, Array<double>s, std::strings, or Array<aSring>s.  All values in the
+*  The values can be returned as ints, Vector<int>s, floats, Vector<float>s,
+*  doubles, Vector<double>s, std::strings, or Vector<aSring>s.  All values in the
 *  table are stored as std::string objects, but if an int, float, or double is
 *  requested, the translation is done automatically.  In the previous example,
 *  the value of niter could be returned as either an std::string, an int, a double,

@@ -36,7 +36,7 @@ public:
     
     ~KDTree();
     
-    void GetBoxes(amrex::BoxList& bl, amrex::Array<amrex::Real>& costs);
+    void GetBoxes(amrex::BoxList& bl, amrex::Vector<amrex::Real>& costs);
     
 private:
     
@@ -44,7 +44,7 @@ private:
 
     void freeKDTree(KDNode* node);
 
-    void walkKDTree(KDNode* node, amrex::BoxList& bl, amrex::Array<amrex::Real>& costs);
+    void walkKDTree(KDNode* node, amrex::BoxList& bl, amrex::Vector<amrex::Real>& costs);
     
     bool partitionNode(KDNode* node, const amrex::FArrayBox& cost);
 
@@ -70,7 +70,7 @@ namespace loadBalanceKD {
         const amrex::DistributionMapping& dm = myPC.ParticleDistributionMap(lev);
         
         amrex::BoxList global_bl;
-        amrex::Array<int> procs_map;
+        amrex::Vector<int> procs_map;
         for (int i = 0; i < amrex::ParallelDescriptor::NProcs(); ++i) {
             global_bl.push_back(domain);
             procs_map.push_back(i);
@@ -97,7 +97,7 @@ namespace loadBalanceKD {
 
     template <typename T>
     void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs, amrex::Real cell_weight,
-                 amrex::Array<amrex::Real>& box_costs) {
+                 amrex::Vector<amrex::Real>& box_costs) {
         
         const int lev = 0;
         const amrex::Geometry& geom = myPC.Geom(lev);
@@ -115,7 +115,7 @@ namespace loadBalanceKD {
         KDTree tree = KDTree(domain, *cost, num_procs);
         
         amrex::BoxList new_bl;
-//      amrex::Array<amrex::Real> box_costs;
+//      amrex::Vector<amrex::Real> box_costs;
         tree.GetBoxes(new_bl, box_costs);
         new_ba.define(new_bl);
     }
