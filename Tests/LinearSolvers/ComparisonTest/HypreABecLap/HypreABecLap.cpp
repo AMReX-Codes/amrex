@@ -84,7 +84,7 @@ void AuxVar::clear()
   slave_flag = 0;
 }
 
-int AuxVar::get_locations(Array<int>& levels, Array<IntVect>& cells)
+int AuxVar::get_locations(Vector<int>& levels, Vector<IntVect>& cells)
 {
   if (slave()) {
     return 1; // failure
@@ -107,7 +107,7 @@ int AuxVar::get_locations(Array<int>& levels, Array<IntVect>& cells)
   return 0; // success
 }
 
-int AuxVar::get_coeffs(Array<Real>& values)
+int AuxVar::get_coeffs(Vector<Real>& values)
 {
   if (slave()) {
     return 1; // failure
@@ -513,7 +513,7 @@ void CrseBndryAuxVar::loadFaceData(const Orientation ori,
 
   MultiFabId mfid = mfcd.RegisterMultiFab(&src);
 
-  Array< Array<FillBoxId> > fbid(face_data[ori].size());
+  Vector< Vector<FillBoxId> > fbid(face_data[ori].size());
   for (int i = firstLocal(); isValid(i); i = nextLocal(i)) {
     int n = face_data[ori][i].size();
     fbid[i].resize(n);
@@ -1015,8 +1015,8 @@ void HypreABecLap::buildMatrixStructure()
           if (!entry(ori)[i](v).empty() &&
               !entry(ori)[i](v).slave()) {
             entry(ori)[i](v).collapse();
-            Array<int> levels;
-            Array<IntVect> cells;
+            Vector<int> levels;
+            Vector<IntVect> cells;
             int retval = entry(ori)[i](v).get_locations(levels, cells);
             BL_ASSERT(retval == 0);
             for (int j = 0; j < levels.size(); j++) {
@@ -1141,8 +1141,8 @@ void HypreABecLap::buildMatrixStructure()
             if (msk(vf) == BndryData::not_covered &&
                 !c_entry[level](ori)[i][j](vc).slave()) {
               c_entry[level](ori)[i][j](vc).collapse();
-              Array<int> levels;
-              Array<IntVect> cells;
+              Vector<int> levels;
+              Vector<IntVect> cells;
               int retval = c_entry[level](ori)[i][j](vc)
                 .get_locations(levels, cells);
               BL_ASSERT(retval == 0);
@@ -1239,7 +1239,7 @@ void HypreABecLap::setRhs(int level, const MultiFab& rhs)
 
     Real* vec = f->dataPtr();
 
-    const Array< Array<BoundCond> > & bcs_i = bd[level].bndryConds(i);
+    const Vector< Vector<BoundCond> > & bcs_i = bd[level].bndryConds(i);
     const BndryData::RealTuple      & bcl_i = bd[level].bndryLocs(i);
     const BndryData::MaskTuple      & msk_i = bd[level].bndryMasks(i);
 
@@ -1402,7 +1402,7 @@ void HypreABecLap::loadMatrix()
       // add b.c.'s to matrix diagonal, and
       // zero out offdiag values at domain boundaries
       
-      const Array< Array<BoundCond> > & bcs_i = bd[level].bndryConds(i);
+      const Vector< Vector<BoundCond> > & bcs_i = bd[level].bndryConds(i);
       const BndryData::RealTuple      & bcl_i = bd[level].bndryLocs(i);
       const BndryData::MaskTuple      & msk_i = bd[level].bndryMasks(i);
 
@@ -1502,11 +1502,11 @@ void HypreABecLap::loadMatrix()
           if (!entry(ori)[i](v).empty() &&
               !entry(ori)[i](v).slave()) {
             entry(ori)[i](v).collapse();
-            Array<int> levels;
-            Array<IntVect> cells;
+            Vector<int> levels;
+            Vector<IntVect> cells;
             int retval = entry(ori)[i](v).get_locations(levels, cells);
             BL_ASSERT(retval == 0);
-            Array<Real> values;
+            Vector<Real> values;
             retval = entry(ori)[i](v).get_coeffs(values);
             BL_ASSERT(retval == 0);
             int ientry = 2 * BL_SPACEDIM + 1;
@@ -1618,12 +1618,12 @@ void HypreABecLap::loadMatrix()
             if (msk(vf) == BndryData::not_covered &&
                 !c_entry[level](ori)[i][j](vc).slave()) {
               c_entry[level](ori)[i][j](vc).collapse();
-              Array<int> levels;
-              Array<IntVect> cells;
+              Vector<int> levels;
+              Vector<IntVect> cells;
               int retval = c_entry[level](ori)[i][j](vc)
                 .get_locations(levels, cells);
               BL_ASSERT(retval == 0);
-              Array<Real> values;
+              Vector<Real> values;
               retval = c_entry[level](ori)[i][j](vc).get_coeffs(values);
               BL_ASSERT(retval == 0);
               int ientry = 2 * BL_SPACEDIM + 1;

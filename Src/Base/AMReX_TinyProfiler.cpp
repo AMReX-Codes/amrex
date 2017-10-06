@@ -134,7 +134,7 @@ TinyProfiler::Finalize ()
     bool properly_nested = improperly_nested_timers.size() == 0;
     ParallelDescriptor::ReduceBoolAnd(properly_nested);
     if (!properly_nested) {
-	Array<std::string> local_imp, sync_imp;
+	Vector<std::string> local_imp, sync_imp;
 	bool synced;
 	for (std::set<std::string>::const_iterator it = improperly_nested_timers.begin();
 	     it != improperly_nested_timers.end(); ++it)
@@ -157,7 +157,7 @@ TinyProfiler::Finalize ()
     std::map<std::string, Stats> lstatsmap = statsmap;
 
     // make sure the set of profiled functions is the same on all processors
-    Array<std::string> localStrings, syncedStrings;
+    Vector<std::string> localStrings, syncedStrings;
     bool alreadySynced;
 
     for(std::map<std::string, Stats>::const_iterator it = lstatsmap.begin();

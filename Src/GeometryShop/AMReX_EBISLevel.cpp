@@ -175,7 +175,13 @@ namespace amrex
     return  s_instance;
   }
 
-
+  void
+  AMReX_EBIS::
+  reset()
+  {
+    delete s_instance;
+    s_instance = nullptr;
+  }
 
   EBISLevel::EBISLevel(const Box             & a_domain,
                        const RealVect        & a_origin,
@@ -209,7 +215,7 @@ namespace amrex
     int ngrowData =0;
     m_graph.define(m_grids, m_dm, 1, ngrowGraph, MFInfo(), DefaultFabFactory<EBGraph>());
 
-    LayoutData<Array<IrregNode> > allNodes(m_grids, m_dm);
+    LayoutData<Vector<IrregNode> > allNodes(m_grids, m_dm);
 
 
     for (MFIter mfi(m_grids, m_dm); mfi.isValid(); ++mfi)
@@ -236,7 +242,7 @@ namespace amrex
       {
         BaseFab<int>             regIrregCovered;
 
-        Array<IrregNode>&   nodes = allNodes[mfi];
+        Vector<IrregNode>&   nodes = allNodes[mfi];
 
         a_geoserver.fillGraph(regIrregCovered, nodes, valid,
                               ghostRegionInt, m_domain,
@@ -274,7 +280,7 @@ namespace amrex
       }
       else
       {
-        const Array<IrregNode>&   nodes = allNodes[mfi];
+        const Vector<IrregNode>&   nodes = allNodes[mfi];
         ebdata.define(ebgraph, nodes, valid, ghostRegion);
       }
     }

@@ -26,7 +26,7 @@ class AmrCore
 public:
 
     AmrCore ();
-    AmrCore (const RealBox* rb, int max_level_in, const Array<int>& n_cell_in, int coord=-1);
+    AmrCore (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord=-1);
 
     AmrCore (const AmrCore& rhs) = delete;
     AmrCore& operator= (const AmrCore& rhs) = delete;

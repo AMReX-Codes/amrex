@@ -183,24 +183,27 @@ The list of available option is reported in Table~\ref{tab:cmakevar}.
   \begin{tabular}{llcc}
     Option name & Description & Defaults & Possible values  \\
     \hline
-    {\tt CMAKE\_BUILD\_TYPE} & Type of \amrex\ build & Release & Debug,Release \\    
-    {\tt BL\_SPACEDIM} & Dimension of \amrex\ build & 3 & 2,3 \\
-    {\tt ENABLE\_DP} & Build with double-precision reals & 1 & 0,1 \\
-    {\tt ENABLE\_PIC} & Build Position Independent Code & 0 & 0,1 \\
-    {\tt ENABLE\_MPI} & Build with MPI support & 1 & 0,1 \\
-    {\tt ENABLE\_OMP} & Build with OpenMP support & 0 & 0,1 \\
-    {\tt ENABLE\_FORTRAN\_INTERFACES} & Build Fortran interfaces  & 1  & 0,1 \\
-    {\tt ENABLE\_LINEAR\_SOLVERS} & Build \amrex\ linear solvers & 1  & 0,1 \\
-    {\tt ENABLE\_FBASELIB}  & Build deprecated Fortran kernel & 1  & 0,1 \\
-    {\tt ENABLE\_PARTICLES} & Build particle classes & 0  & 0,1 \\
-    {\tt ENABLE\_DP\_PARTICLES} & Use double-precision reals in  particle classes & 1 & 0,1 \\    
-    {\tt ENABLE\_PROFILING} &  Build with profiling support & 0  & 0,1 \\
-    {\tt ENABLE\_TINY\_PROFILING} &  Build with tiny-profiling support & 0  & 0,1 \\
-    {\tt ENABLE\_TRACE\_PROFILING} &  Build with trace-profiling support & 0  & 0,1 \\
-    {\tt ENABLE\_COMM\_PROFILING} &  Build with comm-profiling support & 0  & 0,1 \\
-    {\tt ENABLE\_BACKTRACE} & Build with backtrace support & 0  & 0,1 \\
-    {\tt ENABLE\_FPE} & Build with Floating Point Exceptions checks & 0  & 0,1 \\
-    {\tt ENABLE\_ASSERTIONS} & Build with assertions turned on  & 0  & 0,1 \\
+    {\tt DEBUG}        & Build \amrex\ in debug mode & OFF & ON,OFF \\    
+    {\tt DIM}          & Dimension of \amrex\ build & 3 & 2,3 \\
+    {\tt ENABLE\_DP} & Build with double-precision reals & ON & ON,OFF \\
+    {\tt ENABLE\_PIC} & Build Position Independent Code & OFF & ON,OFF \\
+    {\tt ENABLE\_MPI} & Build with MPI support & ON & ON,OFF \\
+    {\tt ENABLE\_OMP} & Build with OpenMP support & OFF & ON,OFF \\
+    {\tt ENABLE\_FORTRAN\_INTERFACES} & Build Fortran API  & ON  & ON,OFF \\
+    {\tt ENABLE\_LINEAR\_SOLVERS} & Build \amrex\ linear solvers & ON  & ON,OFF \\
+    {\tt ENABLE\_FBASELIB}  & Build (deprecated) Fortran kernel & ON  & ON,OFF \\
+    {\tt ENABLE\_AMRDATA}   & Build data services & OFF  & ON,OFF \\
+    {\tt ENABLE\_PARTICLES} & Build particle classes & OFF  & ON,OFF \\
+    {\tt ENABLE\_DP\_PARTICLES} & Use double-precision reals in  particle classes & ON & ON,OFF\\
+    {\tt ENABLE\_BASE\_PROFILE} &  Build with basic profiling support & OFF  & ON,OFF \\
+    {\tt ENABLE\_TINY\_PROFILE} &  Build with tiny profiling support & OFF  & ON,OFF \\
+    {\tt ENABLE\_TRACE\_PROFILE} &  Build with trace-profiling support & OFF  & ON,OFF \\
+    {\tt ENABLE\_COMM\_PROFILE} &  Build with comm-profiling support & OFF  & ON,OFF \\
+    {\tt ENABLE\_MEM\_PROFILE} &  Build with memory-profiling support & OFF  & ON,OFF \\
+    {\tt ENABLE\_PROFPARSER} &  Build with profile parser support & OFF  & ON,OFF \\
+    {\tt ENABLE\_BACKTRACE} & Build with backtrace support & OFF  & ON,OFF \\
+    {\tt ENABLE\_FPE} & Build with Floating Point Exceptions checks & OFF  & ON,OFF \\
+    {\tt ENABLE\_ASSERTIONS} & Build with assertions turned on  & OFF  & ON,OFF \\
     {\tt AMREX\_FFLAGS\_OVERRIDES} &  User-defined Fortran flags & None  & user-defined \\
     {\tt AMREX\_CXXFLAGS\_OVERRIDES} &  User-defined C++ flags & None  & user-defined \\
     \hline
@@ -210,10 +213,13 @@ The list of available option is reported in Table~\ref{tab:cmakevar}.
 \end{table}
 
 
-The option {\tt ENABLE\_LINEAR\_SOLVERS=1} triggers the inclusion of C++-based linear
+The option {\tt ENABLE\_LINEAR\_SOLVERS=ON} triggers the inclusion of C++-based linear
 solvers in the build. Fortran-based linear solvers can be included
-as well by providing  the option {\tt ENABLE\_FBASELIB=1} in addition
-to  {\tt ENABLE\_LINEAR\_SOLVERS=1}.
+as well by providing  the option {\tt ENABLE\_FBASELIB=ON} in addition
+to  {\tt ENABLE\_LINEAR\_SOLVERS=ON}.\\
+The options {\tt DEBUG=ON} implies {\tt ENABLE\_ASSERTION=ON}. In
+order to turn off assertions in debug mode, {\tt
+  ENABLE\_ASSERTION=OFF} must be set explicitly while invoking CMake.
 
 \subsection{Importing AMReX configuration into a CMake project}
 \label{sec:build:cmake:config}
@@ -225,7 +231,7 @@ find_package (AMReX CONFIG REQUIRED HINTS /path/to/installdir/cmake )
 \end{verbatim}
 This will load \amrex-specific CMake variables containing the necessary
 info to compile and link your code to \amrex. For a list of all the available
-configuration variables, refer to the file {\tt AMReXConfig.cmake} in
+configuration variables, refer to the file {\tt AMReXConfig.cmake.in} in
 {\tt /path/to/installdir/cmake/}.
 
 

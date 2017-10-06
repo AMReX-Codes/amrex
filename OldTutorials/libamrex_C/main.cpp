@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     {
         RealBox prob_domain(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
         int max_level = 2;
-        Array<int> n_cell{AMREX_D_DECL(64,64,64)};
+        Vector<int> n_cell{AMREX_D_DECL(64,64,64)};
         MyAmr amr(&prob_domain, max_level, n_cell);
 
         amr.MakeNewGrids();

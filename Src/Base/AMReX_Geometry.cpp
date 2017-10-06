@@ -123,8 +123,8 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     }
 
     if (rb == nullptr) {
-        Array<Real> prob_lo(BL_SPACEDIM);
-        Array<Real> prob_hi(BL_SPACEDIM);
+        Vector<Real> prob_lo(BL_SPACEDIM);
+        Vector<Real> prob_hi(BL_SPACEDIM);
         pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
         BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
         pp.getarr("prob_hi",prob_hi,0,BL_SPACEDIM);
@@ -145,7 +145,7 @@ Geometry::Setup (const RealBox* rb, int coord, int* isper)
     //
     if (isper == nullptr)
     {
-        Array<int> is_per(BL_SPACEDIM,0);
+        Vector<int> is_per(BL_SPACEDIM,0);
         pp.queryarr("is_periodic",is_per,0,BL_SPACEDIM);
         for (int n = 0; n < BL_SPACEDIM; n++)  
             is_periodic[n] = is_per[n];
@@ -252,7 +252,7 @@ Geometry::GetFaceArea (FArrayBox&      area,
 void
 Geometry::periodicShift (const Box&      target,
                          const Box&      src, 
-                         Array<IntVect>& out) const
+                         Vector<IntVect>& out) const
 {
     out.resize(0);
 
@@ -368,7 +368,7 @@ Geometry::BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool b
   int is_periodic[BL_SPACEDIM];
   Real realBox_lo[BL_SPACEDIM];
   Real realBox_hi[BL_SPACEDIM];
-  Array<int> baseBoxAI;
+  Vector<int> baseBoxAI;
 
   CoordSys::BroadcastCoordSys(geom, fromProc, comm, bcastSource);
 

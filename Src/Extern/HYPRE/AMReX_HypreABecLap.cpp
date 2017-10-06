@@ -296,7 +296,7 @@ void HypreABecLap::solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real
 		   reg.loVect(), reg.hiVect(), scalar_b, dx, idim);
     }
 
-    const Array< Array<BoundCond> > & bcs_i = bndry.bndryConds(i);
+    const Vector< Vector<BoundCond> > & bcs_i = bndry.bndryConds(i);
     const BndryData::RealTuple      & bcl_i = bndry.bndryLocs(i);
 
     // add b.c.'s for A matrix and b vector

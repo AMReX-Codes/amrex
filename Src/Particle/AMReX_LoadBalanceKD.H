@@ -6,6 +6,8 @@
 #include <AMReX_Particles.H>
 #include <AMReX_MultiFab.H>
 
+#include "AMReX_KDTree_F.H"
+
 class KDTree {
 
     struct KDNode {
@@ -34,7 +36,7 @@ public:
     
     ~KDTree();
     
-    void GetBoxes(amrex::BoxList& bl, amrex::Array<amrex::Real>& costs);
+    void GetBoxes(amrex::BoxList& bl, amrex::Vector<amrex::Real>& costs);
     
 private:
     
@@ -42,7 +44,7 @@ private:
 
     void freeKDTree(KDNode* node);
 
-    void walkKDTree(KDNode* node, amrex::BoxList& bl, amrex::Array<amrex::Real>& costs);
+    void walkKDTree(KDNode* node, amrex::BoxList& bl, amrex::Vector<amrex::Real>& costs);
     
     bool partitionNode(KDNode* node, const amrex::FArrayBox& cost);
 
@@ -68,7 +70,7 @@ namespace loadBalanceKD {
         const amrex::DistributionMapping& dm = myPC.ParticleDistributionMap(lev);
         
         amrex::BoxList global_bl;
-        amrex::Array<int> procs_map;
+        amrex::Vector<int> procs_map;
         for (int i = 0; i < amrex::ParallelDescriptor::NProcs(); ++i) {
             global_bl.push_back(domain);
             procs_map.push_back(i);
@@ -77,16 +79,25 @@ namespace loadBalanceKD {
         amrex::BoxArray global_ba(global_bl);    
         amrex::DistributionMapping global_dm(procs_map);    
         
+        amrex::MultiFab pcounts(ba, dm, 1, 0);
+        pcounts.setVal(0.0);
+        myPC.Increment(pcounts, lev);
+
         local_cost.define(ba, dm, 1, 0);
-        local_cost.setVal(cell_weight);
-        myPC.Increment(local_cost, lev);
+        for (amrex::MFIter mfi(local_cost); mfi.isValid(); ++mfi) {
+            const amrex::Box& box = ba[mfi];
+            amrex_compute_cost(pcounts[mfi].dataPtr(),
+                               local_cost[mfi].dataPtr(),
+                               box.loVect(), box.hiVect(), cell_weight);
+        } 
         
         global_cost.define(global_ba, global_dm, 1, 0);
         global_cost.copy(local_cost, 0, 0, 1);
     }
 
     template <typename T>
-    void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs, amrex::Real cell_weight) {
+    void balance(T& myPC, amrex::BoxArray& new_ba, int num_procs, amrex::Real cell_weight,
+                 amrex::Vector<amrex::Real>& box_costs) {
         
         const int lev = 0;
         const amrex::Geometry& geom = myPC.Geom(lev);
@@ -95,7 +106,7 @@ namespace loadBalanceKD {
         amrex::MultiFab local_cost;
         amrex::MultiFab global_cost;    
         computeCost<T>(myPC, local_cost, global_cost, domain, cell_weight);
-        
+
         amrex::FArrayBox *cost;
         for ( amrex::MFIter mfi(global_cost); mfi.isValid(); ++mfi ) {
             cost = &global_cost[mfi];
@@ -104,7 +115,7 @@ namespace loadBalanceKD {
         KDTree tree = KDTree(domain, *cost, num_procs);
         
         amrex::BoxList new_bl;
-        amrex::Array<amrex::Real> box_costs;
+//      amrex::Vector<amrex::Real> box_costs;
         tree.GetBoxes(new_bl, box_costs);
         new_ba.define(new_bl);
     }

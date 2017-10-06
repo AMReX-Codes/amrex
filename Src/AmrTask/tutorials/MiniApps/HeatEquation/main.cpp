@@ -25,7 +25,7 @@ void main_main ()
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
-    Array<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
+    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
 
     // inputs parameters
     {

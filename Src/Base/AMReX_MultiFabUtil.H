@@ -2,6 +2,7 @@
 #define _MultiFabUtil_H_
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 
 namespace amrex
 {
@@ -9,22 +10,22 @@ namespace amrex
     void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp);
 
     //! Average face-based MultiFab onto cell-centered MultiFab.
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge);
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge);
 
     //! Average face-based MultiFab onto cell-centered MultiFab.
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& fc);
-    void average_face_to_cellcenter (MultiFab& cc, const Array<const MultiFab*>& fc, const Geometry& geom);
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc);
+    void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc, const Geometry& geom);
 
     //! Average cell-centered MultiFab onto face-based MultiFab.
-    void average_cellcenter_to_face (const Array<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
+    void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
+    void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_edges (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
+    void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
 
     //! Average fine node-based MultiFab onto crse node-centered MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
@@ -51,8 +52,10 @@ namespace amrex
 
     //! Output state data for a single zone
     void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
-}
 
+    //! Convert iMultiFab to MultiFab
+    MultiFab ToMultiFab (const iMultiFab& imf);
+}
 
 
 #endif

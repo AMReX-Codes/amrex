@@ -129,14 +129,14 @@ The protected data members are:
 protected:
     int            verbose;
     int            max_level;       // Maximum allowed level.
-    Array<IntVect> ref_ratio;       // Refinement ratios [0:finest_level-1]
+    Vector<IntVect> ref_ratio;       // Refinement ratios [0:finest_level-1]
 
     int            finest_level;    // Current finest level.
 
-    Array<IntVect> n_error_buf;     // Buffer cells around each tagged cell.
-    Array<IntVect> blocking_factor; // Blocking factor in grid generation 
+    Vector<IntVect> n_error_buf;     // Buffer cells around each tagged cell.
+    Vector<IntVect> blocking_factor; // Blocking factor in grid generation 
                                     // (by level).
-    Array<IntVect> max_grid_size;   // Maximum allowable grid size (by level).
+    Vector<IntVect> max_grid_size;   // Maximum allowable grid size (by level).
     Real           grid_eff;        // Grid efficiency.
     int            n_proper;        // # cells required for proper nesting.
 
@@ -145,9 +145,9 @@ protected:
     bool refine_grid_layout;        // chop up grids to have the number of 
                                     // grids no less the number of procs
 
-    Array<Geometry>            geom;
-    Array<DistributionMapping> dmap;
-    Array<BoxArray>            grids;    
+    Vector<Geometry>            geom;
+    Vector<DistributionMapping> dmap;
+    Vector<BoxArray>            grids;    
 \end{lstlisting}
 
 The following parameters are frequently set via the inputs file or the command line.  
@@ -467,7 +467,7 @@ void
 AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
     static bool first = true;
-    static Array<Real> phierr;
+    static Vector<Real> phierr;
 
     // only do this during the first call to ErrorEst
     if (first)
@@ -499,7 +499,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 #pragma omp parallel
 #endif
     {
-        Array<int>  itags;
+        Vector<int>  itags;
 	
 	for (MFIter mfi(state,true); mfi.isValid(); ++mfi)
 	{

@@ -1,16 +1,27 @@
 
 CEXE_headers += AMReX_EBFArrayBox.H
 CEXE_sources += AMReX_EBFArrayBox.cpp
+
 CEXE_headers += AMReX_EBFabFactory.H
 CEXE_sources += AMReX_EBFabFactory.cpp
+
 CEXE_headers += AMReX_EBMultiFabUtil.H
 CEXE_sources += AMReX_EBMultiFabUtil.cpp
+
 CEXE_headers += AMReX_EBCellFlag.H
 CEXE_sources += AMReX_EBCellFlag.cpp
-CEXE_headers += AMReX_EBFaceFlag.H
-CEXE_sources += AMReX_EBFaceFlag.cpp
-CEXE_headers += AMReX_EBLevel.H
-CEXE_sources += AMReX_EBLevel.cpp
+
+CEXE_headers += AMReX_EBTower.H
+CEXE_sources += AMReX_EBTower.cpp
+
+CEXE_headers += AMReX_EBDataCollection.H
+CEXE_sources += AMReX_EBDataCollection.cpp
+
+CEXE_headers += AMReX_MultiCutFab.H
+CEXE_sources += AMReX_MultiCutFab.cpp
+
+CEXE_headers += AMReX_EBSupport.H
+
 CEXE_headers += AMReX_EBCellFlag_F.H
 F90EXE_sources += AMReX_ebcellflag_mod.F90
 F90EXE_sources += AMReX_EBMultiFabUtil_nd.F90
@@ -22,7 +33,7 @@ F90EXE_sources += AMReX_ebinterp_$(DIM)d.F90
 
 CEXE_headers += AMReX_EBFluxRegister.H AMReX_EBFluxRegister_F.H
 CEXE_sources += AMReX_EBFluxRegister.cpp
-F90EXE_sources += AMReX_EBFluxRegister_$(DIM)d.F90
+F90EXE_sources += AMReX_EBFluxRegister_$(DIM)d.F90 AMReX_EBFluxRegister_nd.F90
 
 CEXE_headers += AMReX_EBAmrUtil.H AMReX_EBAmrUtil_F.H
 CEXE_sources += AMReX_EBAmrUtil.cpp

@@ -558,7 +558,7 @@ FluxRegister::AddProcsToComp(int ioProcNumSCS, int ioProcNumAll,
   ParallelDescriptor::Bcast(&ncomp, 1, ioProcNumSCS, scsComm);
 
   // ---- IntVects
-  Array<int> iv(BL_SPACEDIM, -1);
+  Vector<int> iv(BL_SPACEDIM, -1);
   if(scsMyId == ioProcNumSCS) {
     for(int i(0); i < BL_SPACEDIM; ++i) { iv[i] = ratio[i]; }
   }

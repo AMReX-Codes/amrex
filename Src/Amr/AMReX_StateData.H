@@ -10,6 +10,7 @@
 #include <AMReX_MFCopyDescriptor.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_PhysBCFunct.H>
@@ -120,12 +121,12 @@ public:
     void syncNewTimeLevel (Real t_new);
 
     void RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
-                       Array<MultiFabId>&      mfid);
+                       Vector<MultiFabId>&      mfid);
 
     void InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
-		       Array<MultiFabId>&      mfid,
+		       Vector<MultiFabId>&      mfid,
 		       BoxList*                returnedUnfillableBoxes,
-		       Array<FillBoxId>&       returnedFillBoxIds,
+		       Vector<FillBoxId>&       returnedFillBoxIds,
 		       const Box&              subbox,
 		       Real                    time,
 		       int                     src_comp,
@@ -134,8 +135,8 @@ public:
 		       bool                    extrap = false);
 
     void InterpFillFab (MultiFabCopyDescriptor&  fabCopyDesc,
-			const Array<MultiFabId>& mfid,
-			const Array<FillBoxId>&  fillBoxIds,
+			const Vector<MultiFabId>& mfid,
+			const Vector<FillBoxId>&  fillBoxIds,
 			FArrayBox&               dest,
 			Real                     time,
 			int                      src_comp,
@@ -260,8 +261,8 @@ public:
     //
     bool hasNewData () const { return new_data != 0; }
 
-    void getData (Array<MultiFab*>& data,
-		  Array<Real>& datatime,
+    void getData (Vector<MultiFab*>& data,
+		  Vector<Real>& datatime,
 		  Real time) const;
 
     void AddProcsToComp(const StateDescriptor &sdPtr,
@@ -274,9 +275,9 @@ public:
     // These facilitate prereading FabArray headers to avoid
     // synchronization when reading multiple FabArrays
     //
-    static const Array<std::string> &FabArrayHeaderNames() { return fabArrayHeaderNames; }
+    static const Vector<std::string> &FabArrayHeaderNames() { return fabArrayHeaderNames; }
     static void ClearFabArrayHeaderNames() { fabArrayHeaderNames.clear(); }
-    static void SetFAHeaderMapPtr(std::map<std::string, Array<char> > *fahmp) { faHeaderMap = fahmp; }
+    static void SetFAHeaderMapPtr(std::map<std::string, Vector<char> > *fahmp) { faHeaderMap = fahmp; }
 
 
 private:
@@ -322,11 +323,11 @@ private:
     // This is used as a temporary collection of FabArray header
     // names written during a checkpoint
     //
-    static Array<std::string> fabArrayHeaderNames;
+    static Vector<std::string> fabArrayHeaderNames;
     //
     // This is used to store preread FabArray headers
     //
-    static std::map<std::string, Array<char> > *faHeaderMap;  // ---- [faheader name, the header]
+    static std::map<std::string, Vector<char> > *faHeaderMap;  // ---- [faheader name, the header]
 
     void restartDoit (std::istream& is, const std::string& restart_file);
 };

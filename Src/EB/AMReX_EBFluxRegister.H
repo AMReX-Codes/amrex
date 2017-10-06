@@ -1,16 +1,15 @@
 #ifndef AMREX_EBFLUXREGISTER_H_
 #define AMREX_EBFLUXREGISTER_H_
 
-#include <AMReX_MultiFab.H>
-#include <AMReX_iMultiFab.H>
-#include <AMReX_Geometry.H>
-#include <array>
+#include <AMReX_YAFluxRegister.H>
+#include <AMReX_EBCellFlag.H>
 
 namespace amrex {
 
 /*
-  EBFluxRegister is used for refluxing and re-redistribution.  See
-  `Tutorials/EB/CNS` for an example of using this class.
+  EBFluxRegister is used for refluxing, re-redistribution,
+  re-refluxing, and re-re-redistribution.  See `Tutorials/EB/CNS` for
+  an example of using this class.
 
   Reflux for EB is somewhat similar to non-EB.  At the beginning of a
   coarse step, `reset()` is called.  In MFIter for the coarse level
@@ -50,10 +49,11 @@ namespace amrex {
 */
 
 class EBFluxRegister
+    : public YAFluxRegister
 {
 public:
-    
-    EBFluxRegister () {;}
+
+    EBFluxRegister () = default;
 
     EBFluxRegister (const BoxArray& fba, const BoxArray& cba,
                     const DistributionMapping& fdm, const DistributionMapping& cdm,
@@ -65,22 +65,14 @@ public:
                  const Geometry& fgeom, const Geometry& cgeom,
                  const IntVect& ref_ratio, int fine_lev, int nvar);
 
-    void reset ();
-
-    void CrseAdd (const MFIter& mfi,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt);
-
+    using YAFluxRegister::CrseAdd;
     void CrseAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac);
 
-    void FineAdd (const MFIter& mfi,
-                  const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt);
-
+    using YAFluxRegister::FineAdd;
     void FineAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
@@ -88,7 +80,8 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm);
 
-    void Reflux (MultiFab& state);
+    void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
+                 MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
 
     FArrayBox* getCrseData (const MFIter& mfi) {
         return &(m_crse_data[mfi]);
@@ -98,25 +91,11 @@ public:
         return &(m_crse_flag[mfi]);
     }
 
-    enum {
-        crse_cell = 0, crse_fine_boundary_cell, fine_cell
-    };
-
 private:
 
-    MultiFab m_crse_data;
-    iMultiFab m_crse_flag;
-    Array<int> m_crse_fab_flag;
-    
-    MultiFab m_cfpatch;                   // This is built on crse/fine patches
-    Array<Array<FArrayBox*> > m_cfp_fab;  // The size of this is (# of local fine grids (# of crse/fine patches for that grid))
+    iMultiFab m_cfp_inside_mask;
 
-    Geometry m_fine_geom;
-    Geometry m_crse_geom;
-
-    IntVect m_ratio;
-    int m_fine_level;
-    int m_ncomp;
+    void defineExtra (const BoxArray& fba, const DistributionMapping& fdm);
 };
 
 }

@@ -209,28 +209,28 @@ protected:
 
     bool          dynamic;
 
-    const Array<int>* index_map;
-    const Array<int>* local_index_map;
-    const Array<Box>* tile_array;
-    const Array<int>* local_tile_index_map;
-    const Array<int>* num_local_tiles;
+    const Vector<int>* index_map;
+    const Vector<int>* local_index_map;
+    const Vector<Box>* tile_array;
+    const Vector<int>* local_tile_index_map;
+    const Vector<int>* num_local_tiles;
 
-    mutable Array<FArrayBox*> registered_fabs;
-    mutable Array<int> registered_fabs_indices;
-    mutable Array<Box> registered_boxes;
-    mutable Array<RealBox> registered_realboxes;
+    mutable Vector<FArrayBox*> registered_fabs;
+    mutable Vector<int> registered_fabs_indices;
+    mutable Vector<Box> registered_boxes;
+    mutable Vector<RealBox> registered_realboxes;
 
-    mutable Array<std::shared_ptr<int>> saved_ints;
-    mutable Array<std::shared_ptr<Real>> saved_reals;
+    mutable Vector<std::shared_ptr<int>> saved_ints;
+    mutable Vector<std::shared_ptr<Real>> saved_reals;
 
 #ifdef AMREX_USE_CUDA
     mutable Real* real_reduce_val;
 
     mutable MFReducer reducer;
 
-    mutable Array<Real> real_reduce_list;
+    mutable Vector<Real> real_reduce_list;
 
-    mutable Array<Real*> real_device_reduce_list;
+    mutable Vector<Real*> real_device_reduce_list;
 #endif
 
     static int nextDynamicIndex;

@@ -51,6 +51,7 @@ public:
     virtual ~FabFactory () {}
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
     virtual FabFactory<FAB>* clone () const = 0;
+    virtual Box getDomain () const { return Box(); }
 };
 
 template <class FAB>

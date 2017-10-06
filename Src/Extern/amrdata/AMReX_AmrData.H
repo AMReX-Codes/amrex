@@ -6,6 +6,7 @@
 
 #include <AMReX_AmrvisConstants.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_VisMF.H>
 
@@ -25,35 +26,35 @@ class AmrData {
   
  protected: 
   // List of grids at each level, level 0 being coarsest.
-  Array<Array<MultiFab *> > dataGrids;    // [level][component]
+  Vector<Vector<MultiFab *> > dataGrids;    // [level][component]
   vector<vector<vector<bool> > > dataGridsDefined;  // [level][component][index]
-  Array<Array<VisMF *> > visMF;    // [level][whichMultiFab]
-  Array<int> compIndexToVisMFMap;  // [nComp]
-  Array<int> compIndexToVisMFComponentMap;  // [nComp]
+  Vector<Vector<VisMF *> > visMF;    // [level][whichMultiFab]
+  Vector<int> compIndexToVisMFMap;  // [nComp]
+  Vector<int> compIndexToVisMFComponentMap;  // [nComp]
   
   int finestLevel;   // most refined level available
-  Array<int> refRatio; // refinement ratio between level L and L+1
-  Array< Array<Real> > dxLevel;  // [level][dim];   // grid spacing
-  Array< Array< Array<Real> > > gridLocLo, gridLocHi;
-  Array<Box>  probDomain;
-  Array<Box>  maxDomain;        // max problem domain size
-  Array<Real> probSize, probLo, probHi;
+  Vector<int> refRatio; // refinement ratio between level L and L+1
+  Vector< Vector<Real> > dxLevel;  // [level][dim];   // grid spacing
+  Vector< Vector< Vector<Real> > > gridLocLo, gridLocHi;
+  Vector<Box>  probDomain;
+  Vector<Box>  maxDomain;        // max problem domain size
+  Vector<Real> probSize, probLo, probHi;
   Real time;
-  Array<string> plotVars;
-  Array<Real> vfEps, afEps;
+  Vector<string> plotVars;
+  Vector<Real> vfEps, afEps;
   int nComp, nGrow;
   int nRegions;         // number of boundary regions
   int boundaryWidth;    // number of zones in the boundary regions
   int coordSys;
-  Array< Array< FArrayBox *> > regions; // [lev][nReg]  ptrs to bndry data
+  Vector< Vector< FArrayBox *> > regions; // [lev][nReg]  ptrs to bndry data
   BoxArray fabBoxArray;  // used only for fileType == Amrvis::FAB
   string plotFileVersion;
   
   Amrvis::FileType fileType;
-  bool bCartGrid;
+  bool bCartGrid, bShowBody;
   int  vCartGrid;  // ---- the CartGrid version
   bool bTerrain;
-  Array<int> levelSteps;
+  Vector<int> levelSteps;
   
  public:
   AmrData();
@@ -62,10 +63,10 @@ class AmrData {
   bool ReadData(const string &filename, Amrvis::FileType filetype);
   bool ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype);
   
-  const Array<string> &PlotVarNames() const { return plotVars; }
+  const Vector<string> &PlotVarNames() const { return plotVars; }
   
   int FinestLevel() const		{ return finestLevel; }
-  const Array<int> &RefRatio() const      { return refRatio; }
+  const Vector<int> &RefRatio() const      { return refRatio; }
   const BoxArray &boxArray(int level) const {
     if(fileType == Amrvis::FAB || (fileType == Amrvis::MULTIFAB && level == 0)) {
       return fabBoxArray;
@@ -85,30 +86,30 @@ class AmrData {
   }
 
   // limits of interior region of computational domain at each level
-  const Array<Box> &ProbDomain() const { return probDomain; }
+  const Vector<Box> &ProbDomain() const { return probDomain; }
   // physical size of computational domain
-  const Array<Real> &ProbSize() const    { return probSize; }
-  const Array<Real> &ProbLo()   const    { return probLo;   }
-  const Array<Real> &ProbHi()   const    { return probHi;   }
+  const Vector<Real> &ProbSize() const    { return probSize; }
+  const Vector<Real> &ProbLo()   const    { return probLo;   }
+  const Vector<Real> &ProbHi()   const    { return probHi;   }
   
   // return physical location of cell at index ix, level lev
   // cellLoc   = location of cell center
   // loNodeLoc = location of node (vertex) on lower left hand corner
   // hiNodeLoc = location of node (vertex) on upper right hand corner
-  void  CellLoc(int lev,   IntVect ix, Array<Real> &pos) const;
-  void  LoNodeLoc(int lev, IntVect ix, Array<Real> &pos) const;
-  void  HiNodeLoc(int lev, IntVect ix, Array<Real> &pos) const;
+  void  CellLoc(int lev,   IntVect ix, Vector<Real> &pos) const;
+  void  LoNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const;
+  void  HiNodeLoc(int lev, IntVect ix, Vector<Real> &pos) const;
 
   // find the IntVect given a physical location
   // returns the intvect, the finest level it is contained on,
   // and the intvect at the given finest level
-  void IntVectFromLocation(const int finestFillLevel, const Array<Real> &location,
+  void IntVectFromLocation(const int finestFillLevel, const Vector<Real> &location,
                            IntVect &ivLoc, int &ivLevel, IntVect &ivFinestFillLev);
   
-  const Array< Array< Array<Real> > > &GridLocLo() const { return gridLocLo; }
-  const Array< Array< Array<Real> > > &GridLocHi() const { return gridLocHi; }
-  const Array< Array<Real> > &DxLevel() const { return dxLevel; }
-  const Array<int> &LevelSteps() const { return levelSteps; }
+  const Vector< Vector< Vector<Real> > > &GridLocLo() const { return gridLocLo; }
+  const Vector< Vector< Vector<Real> > > &GridLocHi() const { return gridLocHi; }
+  const Vector< Vector<Real> > &DxLevel() const { return dxLevel; }
+  const Vector<int> &LevelSteps() const { return levelSteps; }
   
   int NComp() const		{ return nComp; }
   int BoundaryWidth() const	{ return boundaryWidth; }
@@ -120,10 +121,10 @@ class AmrData {
   // fill a databox using conservative interpolation
   void FillVar(FArrayBox *destFab, const Box &destBox,
                int finestFillLevel, const string &varName, int procWithFabs);
-  void FillVar(Array<FArrayBox *> &destFabs, const Array<Box> &destBoxes,
+  void FillVar(Vector<FArrayBox *> &destFabs, const Vector<Box> &destBoxes,
                int finestFillLevel, const string &varName, int procWithFabs);
   void FillVar(MultiFab &destMultiFab, int finestFillLevel,
-	       const Array<string> &varNames, const Array<int> &destFillComps);
+	       const Vector<string> &varNames, const Vector<int> &destFillComps);
   void FillVar(MultiFab &destMultiFab, int finestFillLevel,
 	       const string &varname, int destcomp = 0);
   
@@ -132,6 +133,8 @@ class AmrData {
   void SetFileType(Amrvis::FileType type);
   Amrvis::FileType GetFileType() const     { return fileType;  }
   bool CartGrid() const            { return bCartGrid; }
+  bool GetShowBody() const         { return bShowBody; }
+  void SetShowBody(bool tf)        { bShowBody = tf; }
   int  CartGridVersion() const     { return vCartGrid; }
   Real VfEps(int level) const      { return vfEps[level]; }
   void SetVfEps(Real *newvfeps, int finestlev);
@@ -140,7 +143,7 @@ class AmrData {
   void SetBoundaryWidth(int width) { boundaryWidth = width; }
   
   bool CanDerive(const string &name) const;
-  bool CanDerive(const Array<string> &names) const;
+  bool CanDerive(const Vector<string> &names) const;
   int  NumDeriveFunc() const;
   void ListDeriveFunc(std::ostream &os) const;
   int  StateNumber(const string &statename) const;

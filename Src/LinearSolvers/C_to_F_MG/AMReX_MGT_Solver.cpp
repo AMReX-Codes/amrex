@@ -145,10 +145,10 @@ Real  MGT_Solver::def_max_L0_growth;
 //    (\alpha I - \beta \sum_i (1/b_i) \nabla a_i \nabla) \phi
 //
 
-MGT_Solver::MGT_Solver(const Array<Geometry>& geom, 
+MGT_Solver::MGT_Solver(const Vector<Geometry>& geom, 
                        int* bc, 
-		       const Array<BoxArray>& grids,
-		       const Array<DistributionMapping>& dmap,
+		       const Vector<BoxArray>& grids,
+		       const Vector<DistributionMapping>& dmap,
 		       bool nodal,
 		       int stencil_type,
 		       bool _have_rhcc,
@@ -170,10 +170,10 @@ MGT_Solver::MGT_Solver(const Array<Geometry>& geom,
 
 
 void
-MGT_Solver::Build(const Array<Geometry>& geom, 
+MGT_Solver::Build(const Vector<Geometry>& geom, 
                   int* bc, 
                   int stencil_type,
-                  const Array<DistributionMapping>& dmap,
+                  const Vector<DistributionMapping>& dmap,
                   int nc,
                   int ncomp)
     
@@ -206,7 +206,7 @@ MGT_Solver::Build(const Array<Geometry>& geom,
                      &def_min_width,&def_cycle,&def_smoother,&stencil_type);
   }
 
-  Array<int> pm(dm);
+  Vector<int> pm(dm);
   for ( int i = 0; i < dm; ++i ) 
     {
       pm[i] = geom[0].isPeriodic(i)? 1 : 0;
@@ -214,12 +214,12 @@ MGT_Solver::Build(const Array<Geometry>& geom,
 
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
-      const Array<int>& pmap = dmap[lev].ProcessorMap();
+      const Vector<int>& pmap = dmap[lev].ProcessorMap();
       Box domain = geom[lev].Domain();
 
       int nb = m_grids[lev].size();
-      Array<int> lo(nb*dm);
-      Array<int> hi(nb*dm);
+      Vector<int> lo(nb*dm);
+      Vector<int> hi(nb*dm);
 
       for ( int i = 0; i < nb; ++i )
       {
@@ -239,7 +239,7 @@ MGT_Solver::Build(const Array<Geometry>& geom,
       }
     }
 
-  Array<Real> dx(m_nlevel*dm);
+  Vector<Real> dx(m_nlevel*dm);
   for ( int lev = 0; lev < m_nlevel; ++lev )
     {
       for ( int j = 0; j < dm; ++j )
@@ -382,12 +382,12 @@ MGT_Solver::initialize(bool nodal)
 void
 MGT_Solver::set_abeclap_coeffs (Real alpha,
 				Real beta,
-				const Array< Array<MultiFab*> >& bb,
-				const Array< Array<Real> >& xa,
-				const Array< Array<Real> >& xb)
+				const Vector< Vector<MultiFab*> >& bb,
+				const Vector< Vector<Real> >& xa,
+				const Vector< Vector<Real> >& xb)
 {
-    Array<Real> pxa(BL_SPACEDIM, 0.0);
-    Array<Real> pxb(BL_SPACEDIM, 0.0);
+    Vector<Real> pxa(BL_SPACEDIM, 0.0);
+    Vector<Real> pxb(BL_SPACEDIM, 0.0);
 
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -424,14 +424,14 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
 // Here, alpha is one.
 //
 void
-MGT_Solver::set_abeclap_coeffs (const Array<MultiFab*>& aa,
+MGT_Solver::set_abeclap_coeffs (const Vector<MultiFab*>& aa,
 				Real beta,
-				const Array< Array<MultiFab*> >& bb,
-				const Array< Array<Real> >& xa,
-				const Array< Array<Real> >& xb)
+				const Vector< Vector<MultiFab*> >& bb,
+				const Vector< Vector<Real> >& xa,
+				const Vector< Vector<Real> >& xb)
 {
-    Array<Real> pxa(BL_SPACEDIM, 0.0);
-    Array<Real> pxb(BL_SPACEDIM, 0.0);
+    Vector<Real> pxa(BL_SPACEDIM, 0.0);
+    Vector<Real> pxb(BL_SPACEDIM, 0.0);
 
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -465,14 +465,14 @@ MGT_Solver::set_abeclap_coeffs (const Array<MultiFab*>& aa,
 //
 void
 MGT_Solver::set_abeclap_coeffs (Real alpha,
-				const Array<MultiFab*>& aa,
+				const Vector<MultiFab*>& aa,
 				Real beta,
-				const Array< Array<MultiFab*> >& bb,
-				const Array< Array<Real> >& xa,
-				const Array< Array<Real> >& xb)
+				const Vector< Vector<MultiFab*> >& bb,
+				const Vector< Vector<Real> >& xa,
+				const Vector< Vector<Real> >& xb)
 {
-    Array<Real> pxa(BL_SPACEDIM, 0.0);
-    Array<Real> pxb(BL_SPACEDIM, 0.0);
+    Vector<Real> pxa(BL_SPACEDIM, 0.0);
+    Vector<Real> pxb(BL_SPACEDIM, 0.0);
 
     for ( int lev = 0; lev < m_nlevel; ++lev )
     {
@@ -502,9 +502,9 @@ MGT_Solver::set_abeclap_coeffs (Real alpha,
 }
 
 void
-MGT_Solver::set_mac_coefficients(const Array< Array<MultiFab*> >& bb,
-                                 const Array< Array<Real> >& xa,
-                                 const Array< Array<Real> >& xb)
+MGT_Solver::set_mac_coefficients(const Vector< Vector<MultiFab*> >& bb,
+                                 const Vector< Vector<Real> >& xa,
+                                 const Vector< Vector<Real> >& xb)
 {
     Real alpha = 0.0;
     Real beta  = 1.0;
@@ -512,9 +512,9 @@ MGT_Solver::set_mac_coefficients(const Array< Array<MultiFab*> >& bb,
 }
 
 void
-MGT_Solver::set_gravity_coefficients(const Array< Array<MultiFab*> >& bb,
-                                     const Array< Array<Real> >& xa,
-                                     const Array< Array<Real> >& xb)
+MGT_Solver::set_gravity_coefficients(const Vector< Vector<MultiFab*> >& bb,
+                                     const Vector< Vector<Real> >& xa,
+                                     const Vector< Vector<Real> >& xb)
 {
     Real alpha =  0.0;
     Real beta  = -1.0;  // solving (del dot bb grad) phi = RHS
@@ -522,11 +522,11 @@ MGT_Solver::set_gravity_coefficients(const Array< Array<MultiFab*> >& bb,
 }
 
 void
-MGT_Solver::set_const_gravity_coeffs(const Array< Array<Real> >& xa,
-                                     const Array< Array<Real> >& xb)
+MGT_Solver::set_const_gravity_coeffs(const Vector< Vector<Real> >& xa,
+                                     const Vector< Vector<Real> >& xb)
 {
-    Array<Real> pxa(BL_SPACEDIM, 0.0);
-    Array<Real> pxb(BL_SPACEDIM, 0.0);
+    Vector<Real> pxa(BL_SPACEDIM, 0.0);
+    Vector<Real> pxb(BL_SPACEDIM, 0.0);
 
     Real alpha =  0.0;
     Real beta  = -1.0;  // solving (del dot grad) phi = RHS
@@ -543,7 +543,7 @@ MGT_Solver::set_const_gravity_coeffs(const Array< Array<Real> >& xa,
 }
 
 void
-MGT_Solver::set_nodal_coefficients(const Array<MultiFab*>& sig)
+MGT_Solver::set_nodal_coefficients(const Vector<MultiFab*>& sig)
 {
     for ( int lev = 0; lev < m_nlevel; ++lev ) {
 	mgt_init_nodal_coeffs_lev(&lev);
@@ -591,7 +591,7 @@ void MGT_Solver::set_maxorder(const int max_order)
 }
 
 void
-MGT_Solver::solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const BndryData& bd,
+MGT_Solver::solve(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& rh, const BndryData& bd,
 		  Real tol, Real abs_tol, int always_use_bnorm, 
 		  Real& final_resnorm, int need_grad_phi)
 {
@@ -641,7 +641,7 @@ MGT_Solver::solve(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh, const 
 }
 
 void
-MGT_Solver::solve_nodal(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
+MGT_Solver::solve_nodal(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& rh,
                         Real tol, Real abs_tol)
 {
     BL_PROFILE("MGT_Solver::solve_nodal()");
@@ -670,7 +670,7 @@ MGT_Solver::solve_nodal(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
 }
 
 void 
-MGT_Solver::applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, const BndryData& bd)
+MGT_Solver::applyop(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& res, const BndryData& bd)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -707,8 +707,8 @@ MGT_Solver::applyop(const Array<MultiFab*>& uu, const Array<MultiFab*>& res, con
 }
 
 void 
-MGT_Solver::compute_residual(const Array<MultiFab*>& uu, const Array<MultiFab*>& rh,
-			     const Array<MultiFab*>& res, const BndryData& bd)
+MGT_Solver::compute_residual(const Vector<MultiFab*>& uu, const Vector<MultiFab*>& rh,
+			     const Vector<MultiFab*>& res, const BndryData& bd)
 {
   // Copy the boundary register values into the solution array to be copied into F90
   int lev = 0;
@@ -746,7 +746,7 @@ MGT_Solver::compute_residual(const Array<MultiFab*>& uu, const Array<MultiFab*>&
 }
 
 void 
-MGT_Solver::get_fluxes(int lev, const Array<MultiFab*>& flux, const Real* dx)
+MGT_Solver::get_fluxes(int lev, const Vector<MultiFab*>& flux, const Real* dx)
 {
   mgt_compute_flux(lev);
 
@@ -762,8 +762,8 @@ MGT_Solver::get_fluxes(int lev, const Array<MultiFab*>& flux, const Real* dx)
 }
 
 void 
-MGT_Solver::nodal_project(const Array<MultiFab*>& p, const Array<MultiFab*>& vel,
-			  const Array<MultiFab*>& rhcc, const Array<MultiFab*>& rhnd,
+MGT_Solver::nodal_project(const Vector<MultiFab*>& p, const Vector<MultiFab*>& vel,
+			  const Vector<MultiFab*>& rhcc, const Vector<MultiFab*>& rhnd,
 			  const Real& tol, const Real& abs_tol,
 			  int* lo_inflow, int* hi_inflow)
 {

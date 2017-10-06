@@ -68,7 +68,7 @@ namespace amrex
 
 
     ///
-    FAIOElementVec(const Array<FAIOElement>& a_vec)
+    FAIOElementVec(const Vector<FAIOElement>& a_vec)
       {
         m_vec = a_vec;
       }
@@ -96,7 +96,7 @@ namespace amrex
       }
 
     ///
-    Array<FAIOElement> m_vec;
+    Vector<FAIOElement> m_vec;
 
   };
 
@@ -118,7 +118,7 @@ namespace amrex
     FAIOHeader(const FabArray<T> & a_data)
       {
         m_ba = a_data.boxArray();
-        Array<FAIOElement> localElements(a_data.local_size());
+        Vector<FAIOElement> localElements(a_data.local_size());
         int ielem  = 0;
         int offset = 0;
 
@@ -135,7 +135,7 @@ namespace amrex
           offset += numBytesThisBox;
         }
         FAIOElementVec localVec(localElements);
-        Array<FAIOElementVec> allVecs;
+        Vector<FAIOElementVec> allVecs;
         gather(allVecs, localVec, 0);
         FAIOElementVec globalVec;
         if(procID() == 0)
@@ -143,7 +143,7 @@ namespace amrex
           m_vecElem.resize(0);
           for(int ivec = 0; ivec < allVecs.size();  ivec++)
           {
-            const Array<FAIOElement>& onevec = allVecs[ivec].m_vec;
+            const Vector<FAIOElement>& onevec = allVecs[ivec].m_vec;
             globalVec.m_vec.insert(globalVec.m_vec.end(), onevec.begin(), onevec.end());
           }
         }
@@ -158,7 +158,7 @@ namespace amrex
       }
 
     BoxArray                   m_ba;        
-    Array<FAIOElement>   m_vecElem;   
+    Vector<FAIOElement>   m_vecElem;   
     int m_nComp;
   private:
 
@@ -204,7 +204,7 @@ namespace amrex
 
     //box array does not have proper ostream, istream functions.
     a_is >> bxsize;
-    Array<Box> boxes(bxsize);
+    Vector<Box> boxes(bxsize);
     for(int ibox = 0; ibox < bxsize; ibox++)
     {
       a_is >> boxes[ibox];

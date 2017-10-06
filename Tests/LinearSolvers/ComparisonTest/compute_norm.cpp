@@ -8,14 +8,14 @@
 
 using namespace amrex;
 
-void compute_norm(const Array<MultiFab*>& soln,
-		  const Array<MultiFab*>& exac, 
-		  const Array<Geometry>& geom,
-		  const Array<BoxArray>& grids,
+void compute_norm(const Vector<MultiFab*>& soln,
+		  const Vector<MultiFab*>& exac, 
+		  const Vector<Geometry>& geom,
+		  const Vector<BoxArray>& grids,
 		  int nsoln, int iCpp, int iF90, int iHyp)
 {
-  Array<Real> twonorm(nsoln, 0.0);
-  Array<Real> maxnorm(nsoln, 0.0);
+  Vector<Real> twonorm(nsoln, 0.0);
+  Vector<Real> maxnorm(nsoln, 0.0);
   Real volume=0.0;
   
   int nlevel = soln.size();

@@ -40,7 +40,7 @@ class NFilesIter
 
     // ---- constructor for reading
     NFilesIter(const std::string &fileName,
-               const Array<int> &readRanks,
+               const Vector<int> &readRanks,
                bool setBuf = false);
 
     ~NFilesIter();
@@ -122,11 +122,11 @@ class NFilesIter
 
     // ---- these are the file numbers to which each rank wrote  [rank]
     // ---- a rank only writes to one file
-    Array<int> FileNumbersWritten();
+    Vector<int> FileNumbersWritten();
 
     // ---- these are the order of ranks which wrote to each file
     // ---- [filenumber][ranks in order they wrote to filenumber]
-    const Array< Array<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
+    const Vector< Vector<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
 
     void CleanUpMessages();
 
@@ -148,19 +148,19 @@ class NFilesIter
     bool groupSets;
     bool isReading;
     bool finishedReading;
-    Array<int> readRanks;
-    Array< Array<int> > fileNumbersWriteOrder;    // ---- [filenumber][ranks in order they wrote to filenumber]
+    Vector<int> readRanks;
+    Vector< Vector<int> > fileNumbersWriteOrder;    // ---- [filenumber][ranks in order they wrote to filenumber]
     int myReadIndex;
     bool useStaticSetSelection;
     int fileNumber, remainingWriters, deciderProc, coordinatorProc;
     int deciderTag, coordinatorTag, doneTag, writeTag, stReadTag, stWriteTag;
-    Array<int> availableDeciders;
-    Array<int> setZeroProcs;
+    Vector<int> availableDeciders;
+    Vector<int> setZeroProcs;
 
     static int currentDeciderIndex;
 
     // ---- these were ignored by the decider procs and need to be cleaned up
-    Array<std::pair<int, int> > unreadMessages;    // ---- [](tag, nmessages)
+    Vector<std::pair<int, int> > unreadMessages;    // ---- [](tag, nmessages)
 
     static const int indexUndefined = -1;
 

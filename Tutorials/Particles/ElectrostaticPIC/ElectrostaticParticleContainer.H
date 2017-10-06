@@ -31,36 +31,36 @@ class MyParIter
 public:
     using amrex::ParIter<0, 0, PIdx::nattribs>::ParIter;
 
-    const std::array<amrex::Array<amrex::Real>, PIdx::nattribs>& GetAttribs () const {
+    const std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () const {
         return GetStructOfArrays().GetRealData();
     }
 
-    std::array<amrex::Array<amrex::Real>, PIdx::nattribs>& GetAttribs () {
+    std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () {
         return GetStructOfArrays().GetRealData();
     }
 
-    const amrex::Array<amrex::Real>& GetAttribs (int comp) const {
+    const amrex::Vector<amrex::Real>& GetAttribs (int comp) const {
         return GetStructOfArrays().GetRealData(comp);
     }
     
-    amrex::Array<amrex::Real>& GetAttribs (int comp) {
+    amrex::Vector<amrex::Real>& GetAttribs (int comp) {
         return GetStructOfArrays().GetRealData(comp);
     }
 
 };
 
-using VectorMeshData = Array<std::array<std::unique_ptr<MultiFab>, BL_SPACEDIM> >;
-using ScalarMeshData = Array<std::unique_ptr<MultiFab> >;
+using VectorMeshData = Vector<std::array<std::unique_ptr<MultiFab>, BL_SPACEDIM> >;
+using ScalarMeshData = Vector<std::unique_ptr<MultiFab> >;
 
 class ElectrostaticParticleContainer
     : public ParticleContainer<0, 0, PIdx::nattribs>
 {
 public:
 
-    ElectrostaticParticleContainer(const Array<Geometry>            & geom, 
-                                   const Array<DistributionMapping> & dmap,
-                                   const Array<BoxArray>            & ba,
-                                   const Array<int>                 & rr)
+    ElectrostaticParticleContainer(const Vector<Geometry>            & geom, 
+                                   const Vector<DistributionMapping> & dmap,
+                                   const Vector<BoxArray>            & ba,
+                                   const Vector<int>                 & rr)
         : ParticleContainer<0, 0, PIdx::nattribs> (geom, dmap, ba, rr) 
         {
             charge = -PhysConst::q_e;
@@ -74,7 +74,7 @@ public:
     void DepositCharge(ScalarMeshData& rho);
 
     void FieldGather(const VectorMeshData& E,
-                     const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks);
+                     const Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks);
 
     void Evolve(const VectorMeshData& E, ScalarMeshData& rho, const Real& dt);
 
