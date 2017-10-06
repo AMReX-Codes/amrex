@@ -5,17 +5,17 @@
 
 using namespace amrex;
 
-void build_geometry_and_grids (Array<Geometry>& geom, Array<BoxArray>& grids);
-void init_prob (const Array<Geometry>& geom, Array<MultiFab>& alpha, Array<MultiFab>& beta,
-                Array<MultiFab>& rhs, Array<MultiFab>& exact);
-void solve_with_mlmg (const Array<Geometry>& geom, int rr,
-                      Array<MultiFab>& soln,
-                      const Array<MultiFab>& alpha, const Array<MultiFab>& beta,
-                      const Array<MultiFab>& rhs);
-void write_plotfile (const Array<Geometry>& geom, int rr,
-                     const Array<MultiFab>& soln, const Array<MultiFab>& exact,
-                     const Array<MultiFab>& alpha, const Array<MultiFab>& beta,
-                     const Array<MultiFab>& rhs);
+void build_geometry_and_grids (Vector<Geometry>& geom, Vector<BoxArray>& grids);
+void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<MultiFab>& beta,
+                Vector<MultiFab>& rhs, Vector<MultiFab>& exact);
+void solve_with_mlmg (const Vector<Geometry>& geom, int rr,
+                      Vector<MultiFab>& soln,
+                      const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
+                      const Vector<MultiFab>& rhs);
+void write_plotfile (const Vector<Geometry>& geom, int rr,
+                     const Vector<MultiFab>& soln, const Vector<MultiFab>& exact,
+                     const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
+                     const Vector<MultiFab>& rhs);
 
 namespace {
     static int max_level     = 1;
@@ -34,15 +34,15 @@ int main (int argc, char* argv[])
         pp.query("max_level", max_level);
         nlevels = max_level + 1;
 
-        Array<Geometry> geom(nlevels);
-        Array<BoxArray> grids(nlevels);
+        Vector<Geometry> geom(nlevels);
+        Vector<BoxArray> grids(nlevels);
         build_geometry_and_grids(geom, grids);
         
-        Array<MultiFab> soln(nlevels);
-        Array<MultiFab> exact(nlevels);
-        Array<MultiFab> alpha(nlevels);
-        Array<MultiFab> beta(nlevels);
-        Array<MultiFab> rhs(nlevels);
+        Vector<MultiFab> soln(nlevels);
+        Vector<MultiFab> exact(nlevels);
+        Vector<MultiFab> alpha(nlevels);
+        Vector<MultiFab> beta(nlevels);
+        Vector<MultiFab> rhs(nlevels);
         
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
@@ -68,7 +68,7 @@ int main (int argc, char* argv[])
     amrex::Finalize();
 }
 
-void build_geometry_and_grids (Array<Geometry>& geom, Array<BoxArray>& grids)
+void build_geometry_and_grids (Vector<Geometry>& geom, Vector<BoxArray>& grids)
 {
     ParmParse pp;
     pp.query("n_cell", n_cell);

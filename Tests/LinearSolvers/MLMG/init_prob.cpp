@@ -15,8 +15,8 @@ namespace prob {
 
 }
 
-void init_prob (const Array<Geometry>& geom, Array<MultiFab>& alpha, Array<MultiFab>& beta,
-                Array<MultiFab>& rhs, Array<MultiFab>& exact)
+void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<MultiFab>& beta,
+                Vector<MultiFab>& rhs, Vector<MultiFab>& exact)
 {
     const int nlevels = geom.size();
 #ifdef _OPENMP

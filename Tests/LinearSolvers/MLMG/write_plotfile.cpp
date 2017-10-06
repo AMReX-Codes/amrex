@@ -3,14 +3,14 @@
 
 using namespace amrex;
 
-void write_plotfile (const Array<Geometry>& geom, int rr,
-                     const Array<MultiFab>& soln, const Array<MultiFab>& exact,
-                     const Array<MultiFab>& alpha, const Array<MultiFab>& beta,
-                     const Array<MultiFab>& rhs)
+void write_plotfile (const Vector<Geometry>& geom, int rr,
+                     const Vector<MultiFab>& soln, const Vector<MultiFab>& exact,
+                     const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
+                     const Vector<MultiFab>& rhs)
 {
     const int nlevels = geom.size();
 
-    Array<MultiFab> plotmf(nlevels);
+    Vector<MultiFab> plotmf(nlevels);
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         plotmf[ilev].define(soln[ilev].boxArray(), soln[ilev].DistributionMap(), 6, 0);
@@ -25,11 +25,11 @@ void write_plotfile (const Array<Geometry>& geom, int rr,
 
     amrex::WriteMultiLevelPlotfile ("plot",
                                     nlevels,
-                                    amrex::GetArrOfConstPtrs(plotmf),
+                                    amrex::GetVecOfConstPtrs(plotmf),
                                     {"solution", "exact", "error", "alpha", "beta", "rhs"},
                                     geom,
                                     0.0,
-                                    Array<int>(nlevels, 0),
-                                    Array<IntVect>(nlevels, IntVect{AMREX_D_DECL(rr,rr,rr)}));
+                                    Vector<int>(nlevels, 0),
+                                    Vector<IntVect>(nlevels, IntVect{AMREX_D_DECL(rr,rr,rr)}));
 }
 
