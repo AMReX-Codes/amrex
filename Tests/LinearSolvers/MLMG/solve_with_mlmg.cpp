@@ -7,23 +7,23 @@
 
 using namespace amrex;
 
-void solve_with_mlmg (const Array<Geometry>& geom, int rr,
-                      Array<MultiFab>& soln,
-                      const Array<MultiFab>& alpha, const Array<MultiFab>& beta,
-                      const Array<MultiFab>& rhs)
+void solve_with_mlmg (const Vector<Geometry>& geom, int rr,
+                      Vector<MultiFab>& soln,
+                      const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
+                      const Vector<MultiFab>& rhs)
 {
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
 
     const int nlevels = geom.size();
 
-    Array<int> ref_ratio(nlevels-1,rr);
+    Vector<int> ref_ratio(nlevels-1,rr);
 
-    Array<BoxArray> grids;
-    Array<DistributionMapping> dmap;
+    Vector<BoxArray> grids;
+    Vector<DistributionMapping> dmap;
 
-    Array<MultiFab*> psoln;
-    Array<MultiFab const*> prhs;
+    Vector<MultiFab*> psoln;
+    Vector<MultiFab const*> prhs;
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
