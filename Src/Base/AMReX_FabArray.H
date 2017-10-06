@@ -107,12 +107,18 @@ struct MFInfo {
     MFInfo& SetAlloc(bool a) { alloc = a; return *this; }
 };
 
+    template <class T>
+    class MFGraph;
+
 template <class FAB>
 class FabArray
     :
     public FabArrayBase
 {
 public:
+    friend class Action;
+    template <class T>
+    friend class MFGraph;
 
     struct FABType {
         typedef FAB value_type;
