@@ -300,10 +300,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 		   << " OMP threads\n";
 #endif
 
-#ifdef AMREX_USE_DEVICE
-    Device::initialize_device();
-#endif
-
     while ( ! The_Initialize_Function_Stack.empty())
     {
         //
@@ -341,6 +337,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (func_parm_parse) {
         func_parm_parse();
     }
+
+#ifdef AMREX_USE_DEVICE
+    // Initialize after ParmParse so that we can read inputs.
+    Device::initialize_device();
+#endif
 
     {
 	ParmParse pp("amrex");
