@@ -116,7 +116,7 @@ BoxDomain::add (const Box& b)
 {
     BL_ASSERT(b.ixType() == ixType());
 
-    Array<Box> tmp, check;
+    Vector<Box> tmp, check;
 
     check.push_back(b);
 
@@ -154,7 +154,7 @@ BoxDomain::rmBox (const Box& b)
 {
     BL_ASSERT(b.ixType() == ixType());
 
-    Array<Box> tmp;
+    Vector<Box> tmp;
 
     for (auto& bx : *this)
     {

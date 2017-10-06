@@ -74,12 +74,14 @@ namespace amrex{
 	    int _tag;
 	    char* _buffer;
 	    int _serializedDescSize;
+	    int _destRank; //we need this only when there are more than 1 process AND the application controls the task mapping
 	    void* SetBuffer(char* buffer){_buffer= buffer;}  
 	public:
 	    //!Create a message with empty load
 	    Data(TaskName src, TaskName recipient, size_t size) {
 		_src= src; _recipient= recipient;
 		_size=size; _tag=0;
+		_destRank=-1;
 		_serializedDescSize= sizeof(size_t) /*_size*/+ sizeof(int) /*_tag*/ + 2*sizeof(int) /*_src and _recipient length*/ + (src.Dim()+recipient.Dim()) * sizeof(size_t);
 		_buffer= new char[size+_serializedDescSize];
 	    }
@@ -104,6 +106,8 @@ namespace amrex{
 	    void* GetBuffer(){return (void*)(_buffer+_serializedDescSize);}  
 	    size_t GetSize(){return _size;}
 	    void SetTag(size_t tag){_tag= tag;}
+	    void SetDestRank(int destRank){_destRank= destRank;}
+	    int GetDestRank(){return _destRank;}
 	    int GetTag(){return _tag;}
 	    void Free(){
 		delete _buffer;

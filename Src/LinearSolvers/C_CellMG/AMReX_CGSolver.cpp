@@ -768,7 +768,7 @@ BuildGramMatrix (Real*           Gg,
 #endif
     const int Ntmp = (Nrows*(Nrows+3))/2;
 
-    Array<Array<Real> > tmp(nthreads);
+    Vector<Vector<Real> > tmp(nthreads);
 
 #ifdef _OPENMP
 #pragma omp parallel

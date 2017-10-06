@@ -131,8 +131,8 @@ namespace  amrex
     int m_buffGhost;
     //for slow mode, we are just debugging so do stuff pointwise
     bool m_slowMode; //usually false
-    LayoutData<Array<VoFStencil> > m_slowStencils;//usually left undefined
-    LayoutData<Array<VolIndex  > >  m_slowVoFs;   //usually left undefined
+    LayoutData<Vector<VoFStencil> > m_slowStencils;//usually left undefined
+    LayoutData<Vector<VolIndex  > >  m_slowVoFs;   //usually left undefined
 
   private:
 

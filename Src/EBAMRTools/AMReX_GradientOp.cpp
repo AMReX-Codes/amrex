@@ -91,10 +91,10 @@ namespace amrex
       IntVectSet ivsIrreg = ebis.getIrregIVS(grid);
       VoFIterator & vofit = m_vofit[mfi];
       vofit.define(ivsIrreg, ebis.getEBGraph());
-      const Array<VolIndex>& volvec = vofit.getVector();
+      const Vector<VolIndex>& volvec = vofit.getVector();
 
       //destination vofs 
-      Array< std::shared_ptr<BaseIndex  > > baseDstVoFs(volvec.size());
+      Vector< std::shared_ptr<BaseIndex  > > baseDstVoFs(volvec.size());
       for(int ivec = 0; ivec < volvec.size(); ivec++)
       {
         baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&volvec[ivec]), &null_deleter_grads_ind);
@@ -108,10 +108,10 @@ namespace amrex
       // stencils for slopes in irregular cells
       for(int idir = 0; idir < SpaceDim; idir++)
       {
-        Array< std::shared_ptr<BaseStencil> > baseStenLo(volvec.size());
-        Array< std::shared_ptr<BaseStencil> > baseStenHi(volvec.size());
-        Array<VoFStencil> allVoFStenLo(volvec.size());
-        Array<VoFStencil> allVoFStenHi(volvec.size());
+        Vector< std::shared_ptr<BaseStencil> > baseStenLo(volvec.size());
+        Vector< std::shared_ptr<BaseStencil> > baseStenHi(volvec.size());
+        Vector<VoFStencil> allVoFStenLo(volvec.size());
+        Vector<VoFStencil> allVoFStenHi(volvec.size());
 
         for(int ivec = 0; ivec < volvec.size(); ivec++)
         {
@@ -148,8 +148,8 @@ namespace amrex
               const EBISBox      &   a_ebis)
   {
               
-    Array<FaceIndex> facesLo = a_ebis.getFaces(a_vof, a_idir, Side::Lo);
-    Array<FaceIndex> facesHi = a_ebis.getFaces(a_vof, a_idir, Side::Hi);
+    Vector<FaceIndex> facesLo = a_ebis.getFaces(a_vof, a_idir, Side::Lo);
+    Vector<FaceIndex> facesHi = a_ebis.getFaces(a_vof, a_idir, Side::Hi);
 
     bool hasFacesLo = ((facesLo.size() == 1) && (!facesLo[0].isBoundary()));
     bool hasFacesHi = ((facesHi.size() == 1) && (!facesHi[0].isBoundary()));
@@ -165,7 +165,7 @@ namespace amrex
     else if(hasFacesLo)
     {
       const VolIndex& loVoF = facesLo[0].getVoF(Side::Lo);
-      Array<FaceIndex> facesLower = a_ebis.getFaces(loVoF, a_idir, Side::Lo);
+      Vector<FaceIndex> facesLower = a_ebis.getFaces(loVoF, a_idir, Side::Lo);
       bool hasLower = ((facesLower.size() == 1) && (!facesLower[0].isBoundary()));
       if(hasLower)
       {
@@ -186,7 +186,7 @@ namespace amrex
     else if(hasFacesHi)
     {
       const VolIndex& hiVoF = facesHi[0].getVoF(Side::Hi);
-      Array<FaceIndex> facesHigher = a_ebis.getFaces(hiVoF, a_idir, Side::Hi);
+      Vector<FaceIndex> facesHigher = a_ebis.getFaces(hiVoF, a_idir, Side::Hi);
       bool hasHigher = ((facesHigher.size() == 1) && (!facesHigher[0].isBoundary()));
       if(hasHigher)
       {
@@ -250,7 +250,7 @@ namespace amrex
         {
           for(int vecdir = 0; vecdir < SpaceDim; vecdir++)
           {
-            const Array<VolIndex>& vofvec = m_irregVoFsSlow[mfi];
+            const Vector<VolIndex>& vofvec = m_irregVoFsSlow[mfi];
             for(int ivof = 0; ivof < vofvec.size(); ivof++)
             {
               const VoFStencil& vofstenLo = m_loStencilSlow[vecdir][mfi][ivof];

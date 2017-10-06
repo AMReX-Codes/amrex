@@ -49,9 +49,6 @@ if ( NOT AMREX_OPTIONS_SET )
    set ( AMREX_OPTIONS_SET )
 endif ()
 
-# Flags to accumulate preprocessor directives
-set ( AMREX_DEFINES ) 
-
 # Shorter-name variables for the compilers id
 set ( FC_ID  ${CMAKE_Fortran_COMPILER_ID} )
 set ( CC_ID  ${CMAKE_C_COMPILER_ID} )
@@ -65,13 +62,13 @@ set ( AMREX_CXX_FLAGS )
 # GNU compiler specific flags
 set (AMREX_GNU_FFLAGS_DEBUG "-g -O0 -ggdb -fbounds-check -fbacktrace\
  -Wuninitialized -Wunused -finit-real=snan  -finit-integer=2147483647")
-set (AMREX_GNU_FFLAGS_RELEASE "-O3 -DNDEBUG")
+set (AMREX_GNU_FFLAGS_RELEASE "-O3")
 set (AMREX_GNU_FFLAGS_REQUIRED "-ffixed-line-length-none -ffree-line-length-none\
  -fno-range-check -fno-second-underscore")
 set (AMREX_GNU_FFLAGS_FPE "-ffpe-trap=invalid,zero -ftrapv" )
 
 set (AMREX_GNU_CXXFLAGS_DEBUG "-g -O0 -fno-inline -ggdb -Wall -Wno-sign-compare")
-set (AMREX_GNU_CXXFLAGS_RELEASE "-O3 -DNDEBUG")
+set (AMREX_GNU_CXXFLAGS_RELEASE "-O3")
 set (AMREX_GNU_CXXFLAGS_REQUIRED "") #-ftemplate-depth-64 -Wno-deprecated")
 set (AMREX_GNU_CXXFLAGS_FPE "-ftrapv")
 

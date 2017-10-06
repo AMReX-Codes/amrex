@@ -57,8 +57,9 @@ namespace
       isSrc = false;
     }
 
-    MPI_Comm commSrc, commDest, commInter;
-    commInter = ParallelDescriptor::CommunicatorInter();
+    MPI_Comm commSrc, commDest, commInter, commBoth;
+    commInter = ParallelDescriptor::CommunicatorInter(0);
+    commBoth = ParallelDescriptor::CommunicatorBoth(0);
     if(fromComp) {
       commSrc  = ParallelDescriptor::CommunicatorComp();
       commDest = ParallelDescriptor::CommunicatorSidecar();
@@ -73,11 +74,9 @@ namespace
     if(mfDest != 0) {
       VisMF::Write(*mfDest, css.str() + "mfDest_before");
     }
-
-
     MultiFab::copyInter(mfSource, mfDest, srcComp, destComp, numComp,
                         srcNGhost, destNGhost,
-                        commSrc, commDest, commInter,
+                        commSrc, commDest, commInter, commBoth,
                         isSrc);
 
     if(mfSource != 0) {
@@ -106,7 +105,7 @@ namespace
     std::cout << ":::: _in CFATests:  myProcAll myProcComp myProcSidecar = " << myProcAll
               << "  " << myProcComp << "  " << myProcSidecar  << std::endl;
 
-    Array<int> pm_sidecar, pm_comp, pm_sidecar_all, pm_comp_all;
+    Vector<int> pm_sidecar, pm_comp, pm_sidecar_all, pm_comp_all;
     DistributionMapping dm_comp_all, dm_sidecar_all;
     BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &group_all) );
 
@@ -115,14 +114,14 @@ namespace
       pm_sidecar = dm.ProcessorMap();
       pm_sidecar_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
 
-      dm_sidecar_all.define(pm_sidecar_all, addToCache);
+      dm_sidecar_all.define(pm_sidecar_all);
       if(ParallelDescriptor::IOProcessor()) {
         std::cout << myProcAll << ":::: _in CFATests:  dm = " << dm << std::endl;
         std::cout << myProcAll << ":::: _in CFATests:  dm_sidecar_all = " << dm_sidecar_all << std::endl;
       }
     }
 
-      dm_comp_all.define(pm_comp_all, addToCache);
+      dm_comp_all.define(pm_comp_all);
       amrex::USleep(myProcAll / 10.0);
       if(myProcAll == 0) {
         std::cout << myProcAll << ":::: _in CFATests:  dm_comp = " << dm << std::endl;
@@ -140,14 +139,14 @@ namespace
 
     while ( ! finished) {  // ---- Receive the signal from the compute group.
 
-        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0, ParallelDescriptor::CommunicatorInter());
+        ParallelDescriptor::Bcast(&sidecarSignal, 1, 0, ParallelDescriptor::CommunicatorInter(0));
 
 	switch(sidecarSignal) {
 
 	  case S_SendBoxArray:
           {
 	    bac.clear();
-	    BoxArray::RecvBoxArray(bac);
+	    BoxArray::RecvBoxArray(bac, 0);
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << myProcAll << ":: sidecar recv ba.size = " << bac.size() << std::endl;
 	    }
@@ -157,10 +156,10 @@ namespace
             MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &group_all);
 
             // Create DM on sidecars with default strategy
-            const DistributionMapping dm_sidecar(bac, ParallelDescriptor::NProcsSidecar());
-            const Array<int> pm_sidecar = dm_sidecar.ProcessorMap();
+            const DistributionMapping dm_sidecar(bac, ParallelDescriptor::NProcsSidecar(0));
+            const Vector<int> pm_sidecar = dm_sidecar.ProcessorMap();
 
-            Array<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
+            Vector<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
 
             DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {
@@ -177,11 +176,11 @@ namespace
               std::cout << "Sidecars received the S_CopyFabArray signal." << std::endl;
 	    }
 	    bac.clear();
-	    BoxArray::RecvBoxArray(bac);
+	    BoxArray::RecvBoxArray(bac, 0);
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << myProcAll << ":: sidecar recv ba.size = " << bac.size() << std::endl;
 	    }
-	    sc_DM.define(bac, ParallelDescriptor::NProcsSidecar());
+	    sc_DM.define(bac, ParallelDescriptor::NProcsSidecar(0));
             MultiFab mf(bac, sc_DM, nComp, nGhost);
 	    mf.setVal(-1.0);
 	    MultiFab *mfSource = 0;
@@ -219,7 +218,7 @@ namespace
             if(ParallelDescriptor::IOProcessor()) {
               std::cout << "Sidecars received the S_CFATests signal." << std::endl;
 	    }
-	    sc_DM.define(bac, ParallelDescriptor::NProcsSidecar());
+	    sc_DM.define(bac, ParallelDescriptor::NProcsSidecar(0));
             CFATests(bac, sc_DM);
           }
 	  break;
@@ -319,8 +318,8 @@ int main(int argc, char *argv[]) {
 
 	    sidecarSignal = S_CopyFabArray;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                              ParallelDescriptor::CommunicatorInter());
-	    BoxArray::SendBoxArray(ba);
+	                              ParallelDescriptor::CommunicatorInter(0));
+	    BoxArray::SendBoxArray(ba, 0);
 
 	    MultiFab *mfSource = &mf;
 	    MultiFab *mfDest = 0;
@@ -340,8 +339,8 @@ int main(int argc, char *argv[]) {
 
 	    sidecarSignal = S_CopyFabArray;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                              ParallelDescriptor::CommunicatorInter());
-	    BoxArray::SendBoxArray(ba);  // ---- send the sidecar the unshrunk boxarray
+	                              ParallelDescriptor::CommunicatorInter(0));
+	    BoxArray::SendBoxArray(ba, 0);  // ---- send the sidecar the unshrunk boxarray
 
 	    MultiFab *mfSource = &mf;
 	    MultiFab *mfDest = 0;
@@ -362,8 +361,8 @@ int main(int argc, char *argv[]) {
 
 	    sidecarSignal = S_CopyFabArray;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                              ParallelDescriptor::CommunicatorInter());
-	    BoxArray::SendBoxArray(ba);  // ---- send the sidecar the unshifted boxarray
+	                              ParallelDescriptor::CommunicatorInter(0));
+	    BoxArray::SendBoxArray(ba, 0);  // ---- send the sidecar the unshifted boxarray
 
 	    MultiFab *mfSource = &mf;
 	    MultiFab *mfDest = 0;
@@ -378,7 +377,7 @@ int main(int argc, char *argv[]) {
 
 	    sidecarSignal = S_CopyFabArrayFromSidecar;
 	    ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                              ParallelDescriptor::CommunicatorInter());
+	                              ParallelDescriptor::CommunicatorInter(0));
 
 	    MultiFab *mfSource = 0;
 	    MultiFab *mfDest = &mf;
@@ -391,7 +390,7 @@ int main(int argc, char *argv[]) {
 	  // ---- other tests?
 	  //sidecarSignal = S_CFATests;
 	  //ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                            //ParallelDescriptor::CommunicatorInter());
+	                            //ParallelDescriptor::CommunicatorInter(0));
           //CFATests(ba, comp_DM);
 
 	}
@@ -402,7 +401,7 @@ int main(int argc, char *argv[]) {
 	// ---- stop the sidecars
 	sidecarSignal = S_QuitSignal;
 	ParallelDescriptor::Bcast(&sidecarSignal, 1, MPI_IntraGroup_Broadcast_Rank,
-	                          ParallelDescriptor::CommunicatorInter());
+	                          ParallelDescriptor::CommunicatorInter(0));
       }
     }
     

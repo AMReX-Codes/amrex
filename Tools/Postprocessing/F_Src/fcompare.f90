@@ -361,7 +361,7 @@ program fcompare
            call push_back(bl, get_box(pf_a,i,j))
         enddo
 
-        call build(ba,bl)
+        call build(ba,bl,sort=.false.)
         call layout_build_ba(la,ba,plotfile_get_pd_box(pf_a,1))
 
         ! destroy the list and boxarray so we start over next level

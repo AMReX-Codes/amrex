@@ -11,6 +11,7 @@
 #include <AMReX_SPACE.H>
 #include <AMReX_Device.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {
@@ -152,9 +153,9 @@ namespace amrex
     */
     Box minBox (const Box& b1, const Box& b2);
 
-    Array<int> SerializeBox(const Box &b);
+    Vector<int> SerializeBox(const Box &b);
     int SerializeBoxSize();
-    Box UnSerializeBox(const Array<int> &serarray);
+    Box UnSerializeBox(const Vector<int> &serarray);
 
 
     //! Write an ASCII representation to the ostream.
@@ -826,6 +827,8 @@ public:
 };
 
 inline BoxConverter::~BoxConverter () { }
+
+void AllGatherBoxes (Vector<Box>& bxs);
 
 #ifdef AMREX_USE_CUDA
     // \cond CODEGEN

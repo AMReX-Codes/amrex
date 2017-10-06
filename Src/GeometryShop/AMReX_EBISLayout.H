@@ -81,7 +81,7 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the vof does not exist at the input data index.
     */
-    Array<VolIndex> refine(const VolIndex &  a_vof,
+    Vector<VolIndex> refine(const VolIndex &  a_vof,
                                  const int      &  a_ratio,
                                  const MFIter   &  a_datInd) const;
 
@@ -92,7 +92,7 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the face does not exist at the input data index.
     */
-    Array<FaceIndex> refine(const FaceIndex &  a_face,
+    Vector<FaceIndex> refine(const FaceIndex &  a_face,
                                   const int       &  a_ratio,
                                   const MFIter    &  a_datInd) const;
 
@@ -180,10 +180,10 @@ namespace amrex
 
     DistributionMapping m_dm;
     ///
-    Array<EBISLayout> m_fineLevels;
+    Vector<EBISLayout> m_fineLevels;
 
     ///
-    Array<EBISLayout> m_coarLevels;
+    Vector<EBISLayout> m_coarLevels;
 
     ///
     int m_nghost;
@@ -312,7 +312,7 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the vof does not exist at the input data index.
     */
-    Array<VolIndex> refine(const VolIndex& a_vof,
+    Vector<VolIndex> refine(const VolIndex& a_vof,
                                  const int     & a_ratio,
                                  const MFIter  & a_datInd) const
       {
@@ -326,7 +326,7 @@ namespace amrex
        the ratio is greater than the maximum refinement ratio
        or if the face does not exist at the input data index.
     */
-    Array<FaceIndex> refine(const FaceIndex & a_face,
+    Vector<FaceIndex> refine(const FaceIndex & a_face,
                                   const int       & a_ratio,
                                   const MFIter    & a_datInd) const
       {

@@ -90,10 +90,10 @@ For example, if you only have one level, you can define a $\tt{ParticleContainer
 Or, if you have multiple levels, you can use following constructor instead:
 
 \begin{lstlisting}[language=cpp]
-    ParticleContainer (const Array<Geometry>            & geom,
-                       const Array<DistributionMapping> & dmap,
-                       const Array<BoxArray>            & ba,
-                       const Array<int>                 & rr);
+    ParticleContainer (const Vector<Geometry>            & geom,
+                       const Vector<DistributionMapping> & dmap,
+                       const Vector<BoxArray>            & ba,
+                       const Vector<int>                 & rr);
 \end{lstlisting}
 
 Note the set of grids used to define the $\tt{ParticleContainer}$ doesn't have to be the same set used to define the simulation's mesh data. However, it is often desirable to have
@@ -104,7 +104,7 @@ the $\tt{AmrParticleContainer}$ class. The constructor for this class takes a po
   AmrTracerParticleContainer (AmrCore* amr_core);
 \end{lstlisting}
 
-In this case, the $\tt{Array<BoxArray>}$ and $\tt{Array<DistributionMap>}$ used by your $\tt{ParticleContainer}$ will be updated automatically to match those in
+In this case, the $\tt{Vector<BoxArray>}$ and $\tt{Vector<DistributionMap>}$ used by your $\tt{ParticleContainer}$ will be updated automatically to match those in
 your $\tt{AmrCore}$. 
 
 The $\tt{ParticleContainer}$ stores the particle data in a manner prescribed by the set of AMR grids used to define it. If tiling is turned off, then every grid has its own 
@@ -195,8 +195,8 @@ that don't have any particles will be skipped. You can also access the SoA data 
 using MyParIter = ParIter<0, 0, 2, 2>;
 for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
     auto& particle_attributes = pti.GetStructOfArrays();
-    Array<Real>& real_comp0 = particle_attributes.GetRealData(0);
-    Array<int>&  int_comp1  = particle_attributes.GetIntData(1);
+    Vector<Real>& real_comp0 = particle_attributes.GetRealData(0);
+    Vector<int>&  int_comp1  = particle_attributes.GetIntData(1);
     for (int i = 0; i < pti.numParticles; ++i) {
         // do stuff with your SoA data...
     }
@@ -338,7 +338,7 @@ AMReX provides routines for writing particle data to disk for analysis, visualiz
 
 \begin{lstlisting}[language=cpp]
 
-    WriteMultiLevelPlotfile(``plt00000'', output_levs, GetArrOfConstPtrs(output),
+    WriteMultiLevelPlotfile(``plt00000'', output_levs, GetVecOfConstPtrs(output),
                             varnames, geom, 0.0, level_steps, outputRR);
     pc.Checkpoint(``plt00000'', ``particle0'');
 

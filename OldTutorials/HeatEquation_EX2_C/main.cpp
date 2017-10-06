@@ -12,7 +12,7 @@
 
 using namespace amrex;
 
-void advance (MultiFab& old_phi, MultiFab& new_phi, Array<std::unique_ptr<MultiFab> >& flux,
+void advance (MultiFab& old_phi, MultiFab& new_phi, Vector<std::unique_ptr<MultiFab> >& flux,
 	      Real time, Real dt, const Geometry& geom, PhysBCFunct& physbcf,
 	      BCRec& bcr)
 {
@@ -81,7 +81,7 @@ void main_main ()
   int n_cell, max_grid_size, nsteps, plot_int, is_periodic[BL_SPACEDIM];
 
   // Boundary conditions
-  Array<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
+  Vector<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
 
   // inputs parameters
   {
@@ -171,7 +171,7 @@ void main_main ()
 
   // we allocate two phi multifabs; one will store the old state, the other the new
   // we swap the indices each time step to avoid copies of new into old
-  Array<std::unique_ptr<MultiFab> > phi(2);
+  Vector<std::unique_ptr<MultiFab> > phi(2);
   phi[0].reset(new MultiFab(ba, dm, Ncomp, Nghost));
   phi[1].reset(new MultiFab(ba, dm, Ncomp, Nghost));
 
@@ -203,7 +203,7 @@ void main_main ()
   }
 
   // build the flux multifabs
-  Array<std::unique_ptr<MultiFab> > flux(BL_SPACEDIM);
+  Vector<std::unique_ptr<MultiFab> > flux(BL_SPACEDIM);
   for (int dir = 0; dir < BL_SPACEDIM; dir++)
   {
     // flux(dir) has one component, zero ghost cells, and is nodal in direction dir

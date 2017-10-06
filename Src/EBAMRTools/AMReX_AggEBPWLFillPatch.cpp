@@ -108,12 +108,12 @@ namespace amrex
 //    BL_ASSERT(!m_forceNoEBCF);
     LayoutData< IntVectSet > irregRegionsFine;
     LayoutData< IntVectSet > irregRegionsCoFi;
-    LayoutData< Array<VolIndex> > srcVoFs;
+    LayoutData< Vector<VolIndex> > srcVoFs;
     LayoutData< IntVectSet >  coarCeInterp[SpaceDim];
     LayoutData< IntVectSet >  coarLoInterp[SpaceDim];
     LayoutData< IntVectSet >  coarHiInterp[SpaceDim];
-    LayoutData< Array <VoFStencil> >  hiStencils[SpaceDim];
-    LayoutData< Array <VoFStencil> >  loStencils[SpaceDim];
+    LayoutData< Vector <VoFStencil> >  hiStencils[SpaceDim];
+    LayoutData< Vector <VoFStencil> >  loStencils[SpaceDim];
     irregRegionsFine.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
     irregRegionsCoFi.define(m_eblgFine.getDBL(), m_eblgFine.getDM());
     srcVoFs.define(         m_eblgFine.getDBL(), m_eblgFine.getDM());
@@ -143,9 +143,9 @@ namespace amrex
   /*********/
   void
   AggEBPWLFillPatch::
-  defineAggStencils(LayoutData<Array<VoFStencil> >  a_loStencils[SpaceDim],
-                    LayoutData<Array<VoFStencil> >  a_hiStencils[SpaceDim],
-                    const LayoutData< Array<VolIndex> >&   a_srcVoFs)
+  defineAggStencils(LayoutData<Vector<VoFStencil> >  a_loStencils[SpaceDim],
+                    LayoutData<Vector<VoFStencil> >  a_hiStencils[SpaceDim],
+                    const LayoutData< Vector<VolIndex> >&   a_srcVoFs)
                
   {
     BL_PROFILE("AggEBPWLFillPatch::defineAggStencils");
@@ -157,9 +157,9 @@ namespace amrex
                
       for (MFIter mfi(m_eblgCoFi.getDBL(), m_eblgCoFi.getDM()); mfi.isValid(); ++mfi)
       {
-        Array<std::shared_ptr<BaseIndex   > > baseindice(a_srcVoFs[mfi].size());
-        Array<std::shared_ptr<BaseStencil > > basestenlo(a_srcVoFs[mfi].size());
-        Array<std::shared_ptr<BaseStencil > > basestenhi(a_srcVoFs[mfi].size());
+        Vector<std::shared_ptr<BaseIndex   > > baseindice(a_srcVoFs[mfi].size());
+        Vector<std::shared_ptr<BaseStencil > > basestenlo(a_srcVoFs[mfi].size());
+        Vector<std::shared_ptr<BaseStencil > > basestenhi(a_srcVoFs[mfi].size());
                
         for (int ivof= 0; ivof < a_srcVoFs[mfi].size(); ivof++)
         {
@@ -205,10 +205,10 @@ namespace amrex
   /************************************/
   void
   AggEBPWLFillPatch::
-  getOffsets(const LayoutData< Array<VolIndex> >&  a_srcVoFsCoar,
+  getOffsets(const LayoutData< Vector<VolIndex> >&  a_srcVoFsCoar,
              const LayoutData<IntVectSet>        &  a_irregRegionsFine,
-             const LayoutData<Array<VoFStencil> >  a_loStencils[SpaceDim],
-             const LayoutData<Array<VoFStencil> >  a_hiStencils[SpaceDim],
+             const LayoutData<Vector<VoFStencil> >  a_loStencils[SpaceDim],
+             const LayoutData<Vector<VoFStencil> >  a_hiStencils[SpaceDim],
              const LayoutData<IntVectSet>           a_coarLoInte[SpaceDim],
              const LayoutData<IntVectSet>           a_coarHiInte[SpaceDim],
              const LayoutData<IntVectSet>           a_coarCeInte[SpaceDim])
@@ -256,7 +256,7 @@ namespace amrex
     {
       const IntVectSet& ivs = a_irregRegionsFine[mfi];
       VoFIterator vofitfine(ivs, m_eblgFine.getEBISL()[mfi].getEBGraph());
-      const Array<VolIndex>& vofVec = vofitfine.getVector();
+      const Vector<VolIndex>& vofVec = vofitfine.getVector();
       m_fineOffsets[mfi].resize(vofVec.size());
       for (int ivof = 0; ivof < vofVec.size(); ivof++)
       {
@@ -294,7 +294,7 @@ namespace amrex
   AggEBPWLFillPatch::
   getIVS(LayoutData<IntVectSet>& a_irregRegionsFine,
          LayoutData<IntVectSet>& a_irregRegionsCoar,
-         LayoutData< Array<VolIndex> >&   a_srcVoFs)
+         LayoutData< Vector<VolIndex> >&   a_srcVoFs)
                
   {
     BL_PROFILE("AggEBPWLFillPatch::getIVS");
@@ -415,12 +415,12 @@ namespace amrex
   /************************************/
   void
   AggEBPWLFillPatch::
-  getSten(LayoutData<Array<VoFStencil> >  a_loStencils  [SpaceDim],
-          LayoutData<Array<VoFStencil> >  a_hiStencils  [SpaceDim],
+  getSten(LayoutData<Vector<VoFStencil> >  a_loStencils  [SpaceDim],
+          LayoutData<Vector<VoFStencil> >  a_hiStencils  [SpaceDim],
           LayoutData<IntVectSet>           a_coarLoInterp[SpaceDim],
           LayoutData<IntVectSet>           a_coarHiInterp[SpaceDim],
           LayoutData<IntVectSet>           a_coarCeInterp[SpaceDim],
-          const LayoutData< Array<VolIndex> >&   a_srcVoFs)
+          const LayoutData< Vector<VolIndex> >&   a_srcVoFs)
   {
     BL_PROFILE("AggEBPWLFillPatch::getSten");               //
 //    BL_ASSERT(!m_forceNoEBCF);
@@ -440,12 +440,12 @@ namespace amrex
         for (int ivof = 0; ivof < a_srcVoFs[mfi].size(); ivof++)
         {
           const VolIndex& vof = a_srcVoFs[mfi][ivof];
-          Array<FaceIndex> loFaces=
+          Vector<FaceIndex> loFaces=
             ebisBox.getFaces(vof, derivDir, Side::Lo);
-          Array<FaceIndex> hiFaces=
+          Vector<FaceIndex> hiFaces=
             ebisBox.getFaces(vof, derivDir, Side::Hi);
-          Array<VolIndex> loVoFs;
-          Array<VolIndex> hiVoFs;
+          Vector<VolIndex> loVoFs;
+          Vector<VolIndex> hiVoFs;
           for (int iface = 0; iface < loFaces.size(); iface++)
           {
             //use one-sided diff at edge of domain boundary
@@ -462,11 +462,11 @@ namespace amrex
           {
             // have vofs on the low side.
             //one sided diff with low side
-            Array<VolIndex> stenVoFs;
-            Array<Real>     stenWeig;
+            Vector<VolIndex> stenVoFs;
+            Vector<Real>     stenWeig;
                
             Real rfacesLo = Real(loVoFs.size());
-            Array<Real> loWeig(loVoFs.size(), -1.0/rfacesLo);
+            Vector<Real> loWeig(loVoFs.size(), -1.0/rfacesLo);
             stenVoFs = loVoFs;
             stenWeig = loWeig;
             stenVoFs.push_back(vof);
@@ -484,11 +484,11 @@ namespace amrex
           {
             // have vofs on the high side.
             //one sided diff with high side
-            Array<VolIndex> stenVoFs;
-            Array<Real>     stenWeig;
+            Vector<VolIndex> stenVoFs;
+            Vector<Real>     stenWeig;
                
             Real rfacesHi = Real(hiVoFs.size());
-            Array<Real> hiWeig(hiVoFs.size(),  1.0/rfacesHi);
+            Vector<Real> hiWeig(hiVoFs.size(),  1.0/rfacesHi);
             stenVoFs = hiVoFs;
             stenWeig = hiWeig;
             stenVoFs.push_back(vof);

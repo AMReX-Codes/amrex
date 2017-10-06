@@ -33,6 +33,10 @@ public:
                             amrex::VisMF::How  how = amrex::VisMF::NFiles,
                             bool               dump_old = true) override;
 
+    virtual std::string thePlotFileType () const override {
+        return {"CartGrid-V2.0"};
+    }
+
     // Write a plotfile to specified directory.
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
@@ -55,17 +59,17 @@ public:
 
     virtual void computeInitialDt (int                                 finest_level,
                                    int                                 sub_cycle,
-                                   amrex::Array<int>&                  n_cycle,
-                                   const amrex::Array<amrex::IntVect>& ref_ratio,
-                                   amrex::Array<amrex::Real>&          dt_level,
+                                   amrex::Vector<int>&                  n_cycle,
+                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
+                                   amrex::Vector<amrex::Real>&          dt_level,
                                    amrex::Real                         stop_time) override;
 
     virtual void computeNewDt (int                                 finest_level,
                                int                                 sub_cycle,
-                               amrex::Array<int>&                  n_cycle,
-                               const amrex::Array<amrex::IntVect>& ref_ratio,
-                               amrex::Array<amrex::Real>&          dt_min,
-                               amrex::Array<amrex::Real>&          dt_level,
+                               amrex::Vector<int>&                  n_cycle,
+                               const amrex::Vector<amrex::IntVect>& ref_ratio,
+                               amrex::Vector<amrex::Real>&          dt_min,
+                               amrex::Vector<amrex::Real>&          dt_level,
                                amrex::Real                         stop_time,
                                int                                 post_regrid_flag) override;
 
@@ -90,22 +94,21 @@ public:
                            int                 n_error_buf = 0,
                            int                 ngrow = 0) override;
 
+    virtual int WorkEstType () override { return Cost_Type; }
+
     // Define data descriptors.
     static void variableSetUp ();
 
     // Cleanup data descriptors at end of run.
     static void variableCleanUp ();
 
-    static void LoadBalance (amrex::Amr& amr);
-
-    static int do_load_balance;
+    static int numGrow() { return NUM_GROW; };
 
 protected:
 
     static void read_params ();
-    static int numGrow() { return NUM_GROW; };
 
-    const amrex::MultiFab& volFrac () const { return volfrac; }
+    const amrex::MultiFab& volFrac () const { return *volfrac; }
 
     CNS& getLevel (int lev) { return dynamic_cast<CNS&>(parent->getLevel(lev)); }
 
@@ -127,10 +130,10 @@ protected:
 
     void printTotal () const;
 
-    amrex::MultiFab volfrac;
-    amrex::MultiFab bndrycent;
-    std::array<amrex::MultiFab,AMREX_SPACEDIM> areafrac;
-    std::array<amrex::MultiFab,AMREX_SPACEDIM> facecent;
+    const amrex::MultiFab* volfrac;
+    const amrex::MultiCutFab* bndrycent;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
 
     amrex::iMultiFab level_mask;
 
@@ -153,15 +156,21 @@ protected:
     };
     static int num_state_data_types;
 
-    static amrex::BCRec     phys_bc;
+    static amrex::BCRec phys_bc;
 
     // Parameters
     static int verbose;
     static amrex::IntVect hydro_tile_size;
-    static amrex_real cfl;
+    static amrex::Real cfl;
+
+    static int do_reflux;
 
     static int refine_cutcells;
-    static amrex::Array<amrex::RealBox> refine_boxes;
+
+    static int refine_max_dengrad_lev;
+    static amrex::Real refine_dengrad;
+
+    static amrex::Vector<amrex::RealBox> refine_boxes;
 };
 
 #endif

@@ -362,10 +362,10 @@ namespace amrex
   {
   }
 
-  Array<Real> Moments::momentCalc3D(const int& a_order,
+  Vector<Real> Moments::momentCalc3D(const int& a_order,
                                           vofMo&     a_vof)
   {
-    Array<IntVect> list(0),listPlus(0);
+    Vector<IntVect> list(0),listPlus(0);
     listOfMoments(a_order,list);       // this function knows SpaceDim
     listOfMoments(a_order+1,listPlus);
 
@@ -379,7 +379,7 @@ namespace amrex
     Real normalVec[3];
     a_vof.getNormal(normalVec);
 
-    Array<Real> normal(3);
+    Vector<Real> normal(3);
     for (int idir = 0; idir < 3; ++idir)
       {
         normal[idir] = normalVec[idir];
@@ -387,11 +387,11 @@ namespace amrex
 
     makeMatrix(list,listPlus,normal,A);
 
-    Array<Real> rhs(numRows);
-    Array<Real> x(numCols);
-    Array<Real> answer(numRows);
-    Array<Real> answer2DHi;
-    Array<Real> answer2DLo;
+    Vector<Real> rhs(numRows);
+    Vector<Real> x(numCols);
+    Vector<Real> answer(numRows);
+    Vector<Real> answer2DHi;
+    Vector<Real> answer2DLo;
 
     for (int jdir=0;jdir<3;jdir++)
       {
@@ -445,11 +445,11 @@ namespace amrex
     return x;
   }
 
-  Array<Real> Moments::momentCalc2D(const int&    a_order,
+  Vector<Real> Moments::momentCalc2D(const int&    a_order,
                                           const faceMo& a_face)
   {
     // 2 vector because 2D, even if SpaceDim=3
-    Array<Real> normal(2);
+    Vector<Real> normal(2);
     Real normalVec[2];
 
     a_face.getNormal(normalVec);
@@ -461,7 +461,7 @@ namespace amrex
 
     int faceNormal = a_face.getFaceNormal();
 
-    Array<IntVect> list(0),listPlus(0);
+    Vector<IntVect> list(0),listPlus(0);
     listOfMoments(a_order,list); // this function knows SpaceDim
     listOfMoments(a_order+1,listPlus);
 
@@ -479,10 +479,10 @@ namespace amrex
     // make the matrix
     makeMatrix(list,listPlus,normal,A,faceNormal);
 
-    Array<Real> rhs(numRows);
+    Vector<Real> rhs(numRows);
 
     // x is the unknown
-    Array<Real> x(numCols);
+    Vector<Real> x(numCols);
 
     // make the rhs
     edgeMo edges[4];
@@ -538,7 +538,7 @@ namespace amrex
   }
 
   void  Moments::listOfMoments(const int&       a_order,
-                               Array<IntVect>& a_exponents)
+                               Vector<IntVect>& a_exponents)
   {
     AMREX_D_TERM(
            for (int i = 0; i <= a_order; ++i),
@@ -551,9 +551,9 @@ namespace amrex
         }
   }
 
-  void Moments::makeMatrix(const Array<IntVect>& a_list,
-                           const Array<IntVect>& a_listPlus,
-                           const Array<Real>&    a_normalVec,
+  void Moments::makeMatrix(const Vector<IntVect>& a_list,
+                           const Vector<IntVect>& a_listPlus,
+                           const Vector<Real>&    a_normalVec,
                            Real**                 a_A,
                            const int&             a_faceNormal)
   {

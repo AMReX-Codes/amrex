@@ -1,7 +1,7 @@
 // -------------------------------------------------------------
 // IOTest.cpp
 // -------------------------------------------------------------
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
@@ -95,7 +95,7 @@ void DirectoryTests() {
 // -------------------------------------------------------------
 void NFileTests(int nOutFiles, const std::string &filePrefix) {
   int myProc(ParallelDescriptor::MyProc());
-  Array<int> data(32);
+  Vector<int> data(32);
 
   for(int i(0); i < data.size(); ++i) {
     data[i] = (100 * myProc) + i;
@@ -111,7 +111,7 @@ void NFileTests(int nOutFiles, const std::string &filePrefix) {
 
 // -------------------------------------------------------------
 void FileTests() {
-  Array<int> myInts(4096 * 4096);
+  Vector<int> myInts(4096 * 4096);
   for(int i(0); i < myInts.size(); ++i) {
     myInts[i] = i;
   }
@@ -210,7 +210,7 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   }
 
   bool useDir( ! dirName.empty());
-  Array<std::string> pathNames(nMultiFabs);
+  Vector<std::string> pathNames(nMultiFabs);
   if(useDir) {
     // ---- make the directory and nMultiFabs Level_n directories
     for(int nmf(0); nmf < nMultiFabs; ++nmf) {
@@ -257,8 +257,8 @@ void TestWriteNFiles(int nfiles, int maxgrid, int ncomps, int nboxes,
   }
 
   // ---- make the MultiFabs
-  Array<std::string> mfNames(nMultiFabs);
-  Array<MultiFab *> multifabs(nMultiFabs);
+  Vector<std::string> mfNames(nMultiFabs);
+  Vector<MultiFab *> multifabs(nMultiFabs);
   DistributionMapping dmap{bArray};
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::stringstream suffix;
@@ -360,9 +360,9 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
                 int nMultiFabs, const std::string &dirName)
 {
   bool useDir( ! dirName.empty());
-  Array<std::string> pathNames(nMultiFabs);
-  Array<std::string> mfNames(nMultiFabs);
-  Array<MultiFab *> multifabs(nMultiFabs);
+  Vector<std::string> pathNames(nMultiFabs);
+  Vector<std::string> mfNames(nMultiFabs);
+  Vector<MultiFab *> multifabs(nMultiFabs);
 
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::stringstream suffix;
@@ -384,7 +384,7 @@ void TestReadMF(const std::string &mfName, bool useSyncReads,
   ParallelDescriptor::Barrier("TestReadMF:BeforeRead");
   double wallTimeStart(ParallelDescriptor::second());
 
-  Array<Array<char> > faHeaders(nMultiFabs);
+  Vector<Vector<char> > faHeaders(nMultiFabs);
   for(int nmf(0); nmf < nMultiFabs; ++nmf) {
     std::string faHName(mfNames[nmf] + "_H");
     bool bExitOnError(false);  // ---- dont exit if this file does not exist
@@ -456,7 +456,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
 
   if(useIter) {
     int myProc(ParallelDescriptor::MyProc());
-    Array<int> data(10240);
+    Vector<int> data(10240);
 
     for(int i(0); i < data.size(); ++i) {
       data[i] = (100 * myProc) + i;
@@ -475,7 +475,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
   int nProcs    = ParallelDescriptor::NProcs();
   int nOutFiles = NFilesIter::ActualNFiles(noutfiles);
   int mySetPosition = NFilesIter::WhichSetPosition(myProc, nProcs, nOutFiles, groupSets);
-  Array<int> data(10240);
+  Vector<int> data(10240);
   int deciderProc(nProcs - 1), coordinatorProc(-1);
   int deciderTag(ParallelDescriptor::SeqNum());
   int coordinatorTag(ParallelDescriptor::SeqNum());
@@ -526,7 +526,7 @@ void DSSNFileTests(int noutfiles, const std::string &filePrefixIn,
       ParallelDescriptor::Recv(&coordinatorProc, 1, deciderProc, coordinatorTag);
 
       if(myProc == coordinatorProc) {
-	Array<std::deque<int> > procsToWrite(nOutFiles);    // ---- [fileNumber](procsToWriteToFileNumber)
+	Vector<std::deque<int> > procsToWrite(nOutFiles);    // ---- [fileNumber](procsToWriteToFileNumber)
 	// ---- populate with the static nfiles sets
 	for(int i(0); i < nProcs; ++i) {
           int fileNumber(NFilesIter::FileNumber(nOutFiles, i, groupSets));

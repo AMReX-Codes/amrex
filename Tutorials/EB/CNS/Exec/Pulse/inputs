@@ -21,6 +21,10 @@ cns.cfl = 0.3  # cfl number for hyperbolic system
 cns.v = 1
 amr.v = 1
 
+# LOAD BALANCE
+amr.loadbalance_with_workestimates = 1
+amr.loadbalance_level0_int = 1000
+
 # REFINEMENT / REGRIDDING 
 amr.max_level       = 0       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
