@@ -256,6 +256,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 {
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
+#ifdef PMI
+    ParallelDescriptor::PMI_Initialize();
+#endif
+
     //
     // Make sure to catch new failures.
     //

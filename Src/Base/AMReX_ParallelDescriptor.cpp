@@ -14,9 +14,15 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_Print.H>
 
 #ifdef BL_USE_MPI
 #include <AMReX_ccse-mpi.H>
+#endif
+
+#ifdef PMI
+#include <pmi.h>
+#include <unordered_set>
 #endif
 
 #ifdef BL_USE_FORTRAN_MPI
@@ -169,6 +175,92 @@ namespace ParallelDescriptor
 
     typedef std::list<ParallelDescriptor::PTR_TO_SIGNAL_HANDLER> SH_LIST;
     SH_LIST The_Signal_Handler_List;
+
+#ifdef PMI
+    void PMI_Initialize()
+    {
+      int pmi_nid;
+      pmi_mesh_coord_t pmi_mesh_coord;
+      int PMI_stat;
+      int spawned;
+      int appnum;
+      int pmi_size = ParallelDescriptor::m_nProcs_all;
+      int pmi_rank = ParallelDescriptor::m_MyId_all;
+
+      PMI_stat = PMI2_Init(&spawned, &pmi_size, &pmi_rank, &appnum);
+      if (PMI_stat != PMI_SUCCESS) {
+        ParallelDescriptor::Abort();
+      }
+      PMI_stat = PMI_Get_nid(pmi_rank, &pmi_nid);
+      if (PMI_stat != PMI_SUCCESS) {
+        ParallelDescriptor::Abort();
+      }
+      PMI_stat = PMI_Get_meshcoord(pmi_nid, &pmi_mesh_coord);
+      if (PMI_stat != PMI_SUCCESS) {
+        ParallelDescriptor::Abort();
+      }
+
+      // Now each MPI Process knows where it lives in the network mesh.  On
+      // Aries (the interconnect on the Cray XC40), the x-coord indicates the
+      // electrical group (1 group = 1 pair of adjacent cabinets); the y-coord
+      // indicates the chassis (3 chassis per cabinet; 6 chassis per group);
+      // and the z-coord indicates the slot (blade) within each chassis (16 per
+      // chassis). Each slot contains 4 nodes, so there are at most 64 nodes
+      // per chassis, 192 per cabinet, and 384 per group. (Usually there are
+      // fewer than this per cabinet, since cabinets are usually a mixture of
+      // compute nodes, I/O nodes, service nodes, and other things.) The slots
+      // within each chassis (same x and y) are connected all-to-all, as are
+      // slots in the same row across chasses within each group (same x and z).
+
+      // One can use this information apply any kind of optimization we like,
+      // e.g., splitting MPI processes into separate communicators within which
+      // all processes are connected all-to-all. The following is a placeholder
+      // for such an optimization, in which we merely collect the mesh
+      // coordinates onto the IOProcessor and print the unique number of
+      // groups, chassis, and slots occupied by the job. (This is a crude
+      // measure of how fragmented the job is across the network.)
+
+      PMI_PrintMeshcoords(&pmi_mesh_coord);
+    }
+
+    void PMI_PrintMeshcoords(const pmi_mesh_coord_t *pmi_mesh_coord) {
+      unsigned short all_x_meshcoords[ParallelDescriptor::NProcsAll()];
+      unsigned short all_y_meshcoords[ParallelDescriptor::NProcsAll()];
+      unsigned short all_z_meshcoords[ParallelDescriptor::NProcsAll()];
+      MPI_Gather(&pmi_mesh_coord->mesh_x,
+                 1,
+                 MPI_UNSIGNED_SHORT,
+                 all_x_meshcoords,
+                 1,
+                 MPI_UNSIGNED_SHORT,
+                 ParallelDescriptor::IOProcessorNumber(),
+                 ParallelDescriptor::CommunicatorAll());
+      MPI_Gather(&pmi_mesh_coord->mesh_y,
+                 1,
+                 MPI_UNSIGNED_SHORT,
+                 all_y_meshcoords,
+                 1,
+                 MPI_UNSIGNED_SHORT,
+                 ParallelDescriptor::IOProcessorNumber(),
+                 ParallelDescriptor::CommunicatorAll());
+      MPI_Gather(&pmi_mesh_coord->mesh_z,
+                 1,
+                 MPI_UNSIGNED_SHORT,
+                 all_z_meshcoords,
+                 1,
+                 MPI_UNSIGNED_SHORT,
+                 ParallelDescriptor::IOProcessorNumber(),
+                 ParallelDescriptor::CommunicatorAll());
+
+      std::unordered_set<unsigned short> PMI_x_meshcoord(all_x_meshcoords, all_x_meshcoords + ParallelDescriptor::NProcsAll());
+      std::unordered_set<unsigned short> PMI_y_meshcoord(all_y_meshcoords, all_y_meshcoords + ParallelDescriptor::NProcsAll());
+      std::unordered_set<unsigned short> PMI_z_meshcoord(all_z_meshcoords, all_z_meshcoords + ParallelDescriptor::NProcsAll());
+
+      amrex::Print() << "# of unique groups: " << PMI_x_meshcoord.size() << std::endl;
+      amrex::Print() << "# of unique chassis: " << PMI_y_meshcoord.size() << std::endl;
+      amrex::Print() << "# of unique slots: " << PMI_z_meshcoord.size() << std::endl;
+    }
+#endif
 }
 
 void
