@@ -56,8 +56,7 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     }
     mlabec.averageDownCoeffs();
     
-//    MLMG mlmg(mlabec);
-//    mlmg.solve(psoln, prhs, tol_rel, tol_abs);
-
+    MLMG mlmg(mlabec);
+    mlmg.solve(psoln, prhs, tol_rel, tol_abs);
 }
 
