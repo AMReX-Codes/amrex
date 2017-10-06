@@ -6,7 +6,7 @@ TOP = $(AMREX_HOME)
 PRECISION     = DOUBLE
 DEBUG	      = TRUE
 DEBUG	      = FALSE
-DIM	      = 2
+DIM	      = 3
 COMP          = g++
 USE_MPI       = TRUE 
 #
@@ -18,7 +18,7 @@ USE_MPI       = TRUE
 #EBASE = DiffSameDomainRefined
 #EBASE = DiffSameDomainRefinedComposite
 #EBASE = DiffSameDomainRefinedStag
-#EBASE = DiffSameGrid2
+EBASE = DiffSameGrid2
 #EBASE = DiffSameGrid
 #EBASE = DiffSameGridRefined
 #EBASE = DiffUniform
@@ -55,8 +55,11 @@ vpathdir += $(AMREX_HOME)/Src/Amr
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
 vpathdir += $(AMREX_HOME)/Src/Extern/amrdata
 
-CEXE_sources += BCRec.cpp
-CEXE_headers += BCRec.H BC_TYPES.H
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/ProfParser
+vpathdir += $(AMREX_HOME)/Src/Extern/ProfParser
+
+CEXE_sources += AMReX_BCRec.cpp
+CEXE_headers += AMReX_BCRec.H AMReX_BC_TYPES.H
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
