@@ -6,6 +6,7 @@
 #endif
 #include <AMReX_Device.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParmParse.H>
 
 bool amrex::Device::in_device_launch_region = false;
 int amrex::Device::device_id = 0;
@@ -45,8 +46,9 @@ amrex::Device::initialize_device() {
 
 #ifdef AMREX_USE_CUDA
 
-    int n_procs = ParallelDescriptor::NProcs();
-    int my_rank = ParallelDescriptor::MyProc();
+    const int n_procs = ParallelDescriptor::NProcs();
+    const int my_rank = ParallelDescriptor::MyProc();
+    const int ioproc  = ParallelDescriptor::IOProcessorNumber();
 
 #if (defined(NVML) && defined(BL_USE_MPI))
 
@@ -62,6 +64,8 @@ amrex::Device::initialize_device() {
     int total_count = (int) device_count;
 
     amrex::ParallelDescriptor::ReduceIntSum(total_count);
+
+    total_count = total_count / n_procs;
 
     std::map<std::string, int> device_uuid;
 
@@ -147,7 +151,7 @@ amrex::Device::initialize_device() {
 
 #endif
 
-    initialize_cuda(&device_id, &my_rank);
+    initialize_cuda(&device_id, &my_rank, &total_count, &n_procs, &ioproc, &verbose);
 
     initialize_cuda_c();
 
