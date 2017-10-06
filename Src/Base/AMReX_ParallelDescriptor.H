@@ -27,6 +27,10 @@
 #include <AMReX_Lazy.H>
 #endif
 
+#ifdef PMI
+#include <pmi.h>
+#endif
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -846,6 +850,13 @@ namespace ParallelDescriptor
 			  const MPI_Comm &comm = Communicator() );
     void IProbe(int src_pid, int tag, int &mflag, MPI_Status &status);
     void IProbe(int src_pid, int tag, MPI_Comm comm, int &mflag, MPI_Status &status);
+
+    // PMI = Process Management Interface, available on Crays. Provides API to
+    // query topology of the job.
+#ifdef PMI
+    void PMI_Initialize();
+    void PMI_PrintMeshcoords(const pmi_mesh_coord_t *pmi_mesh_coord);
+#endif
 }
 }
 
