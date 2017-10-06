@@ -9,10 +9,10 @@
 using namespace amrex;
 
 void 
-solve_with_f90(const Array<MultiFab*>& rhs,
-	       const Array<MultiFab*>& phi, 
-               const Array< Array<MultiFab*> >& grad_phi_edge, 
-               const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol)
+solve_with_f90(const Vector<MultiFab*>& rhs,
+	       const Vector<MultiFab*>& phi, 
+               const Vector< Vector<MultiFab*> >& grad_phi_edge, 
+               const Vector<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol)
 {
     int nlevs = finest_level - base_level + 1;
 
@@ -31,9 +31,9 @@ solve_with_f90(const Array<MultiFab*>& rhs,
     }
 
     // Have to do some packing because these arrays does not always start with base_level
-    Array<Geometry> geom_p(nlevs);
-    Array<MultiFab*> rhs_p(nlevs);
-    Array<MultiFab*> phi_p(nlevs);
+    Vector<Geometry> geom_p(nlevs);
+    Vector<MultiFab*> rhs_p(nlevs);
+    Vector<MultiFab*> phi_p(nlevs);
     for (int ilev = 0; ilev < nlevs; ++ilev) {
 	geom_p[ilev] = geom[ilev+base_level];
 	rhs_p [ilev] =  rhs[ilev+base_level];

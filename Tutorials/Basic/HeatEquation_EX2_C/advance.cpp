@@ -9,7 +9,7 @@ void advance (MultiFab& phi_old,
 	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
 	      Real dt,
               const Geometry& geom,
-              const Array<BCRec>& bc)
+              const Vector<BCRec>& bc)
 {
     // Fill the ghost cells of each grid from the other grids
     // includes periodic domain boundaries

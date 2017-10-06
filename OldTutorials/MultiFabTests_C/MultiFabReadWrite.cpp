@@ -86,13 +86,13 @@ int main(int argc, char *argv[]) {
       std::cout << "dmap.size() = " << dmap.size() << std::endl;
     }
 
-    const Array<int> procMap = dmap.ProcessorMap();
+    const Vector<int> procMap = dmap.ProcessorMap();
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "procMap.size() = " << procMap.size() << std::endl;
     }
 
     // ---- initialize it to (oldmap + 1) % nprocs
-    Array<int> newMap(procMap.size());
+    Vector<int> newMap(procMap.size());
     for(int i(0); i < procMap.size(); ++i) {
       newMap[i] = (procMap[i] + 1) % ParallelDescriptor::NProcs();
     }

@@ -220,7 +220,7 @@ LinOp::applyBC (MultiFab&      inout,
         BL_ASSERT(level<undrrelxr.size());
 
         const BndryData::RealTuple&      bdl = bgb->bndryLocs(gn);
-        const Array< Array<BoundCond> >& bdc = bgb->bndryConds(gn);
+        const Vector< Vector<BoundCond> >& bdc = bgb->bndryConds(gn);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {

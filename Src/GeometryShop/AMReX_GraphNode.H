@@ -25,7 +25,7 @@ namespace amrex
   ///
   /**
      This is the graph data held for each irregular node.
-     Warning: each GraphNode holds a <EM>Array</EM> of GraphNodeImplems.
+     Warning: each GraphNode holds a <EM>Vrray</EM> of GraphNodeImplems.
   */
   class GraphNodeImplem
   {
@@ -55,7 +55,7 @@ namespace amrex
        Cell indicies of neighboring cells.
        If the arc is a boundary face, the int = -1
     */
-    std::array<Array<int>, 2*SpaceDim> m_arc;
+    std::array<Vector<int>, 2*SpaceDim> m_arc;
                   
     /// Cell index of this vof is the index into the vector
                   
@@ -68,7 +68,7 @@ namespace amrex
     mutable bool m_verbose;
 
     /// List of finer vofs
-    Array<VolIndex> m_finerNodes;
+    Vector<VolIndex> m_finerNodes;
                   
     /// Return the index into the arc vector
     inline int index(int a_idir, Side::LoHiSide a_side) const;
@@ -175,14 +175,14 @@ namespace amrex
        Use the input vof's grid index for a the grid index
        of the list.
     */
-    Array<FaceIndex>
+    Vector<FaceIndex>
     getFaces(const VolIndex&       a_vof,
              const int&            a_idir,
              const Side::LoHiSide& a_sd,
              const Box&  a_domain) const;
                   
     ///
-    Array<FaceIndex>
+    Vector<FaceIndex>
     getFaces(const IntVect&        a_iv,
              const int&            a_idir,
              const Side::LoHiSide& a_sd,
@@ -193,7 +193,7 @@ namespace amrex
        Return all the vofs in the list, using the input
        intvect for the gridIndex
     */
-    Array<VolIndex>
+    Vector<VolIndex>
     getVoFs(const IntVect& a_iv) const;
                   
     ///
@@ -208,7 +208,7 @@ namespace amrex
        EBGraph (factor of two refinement).  The result is only
        defined if this {\tt EBGraph} was defined by coarsening.
     */
-    Array<VolIndex> refine(const VolIndex& a_coarVoF) const;
+    Vector<VolIndex> refine(const VolIndex& a_coarVoF) const;
                   
     ///
     /**
@@ -231,7 +231,7 @@ namespace amrex
     /**
        Get all sets of connected vofs within the box (used in coarsening)
     */
-    Array<Array<VolIndex> >  getVoFSets(const Box& a_box) const;
+    Vector<Vector<VolIndex> >  getVoFSets(const Box& a_box) const;
                   
     ///
     int linearSize() const;
@@ -252,7 +252,7 @@ namespace amrex
        If m_cellList == 1, node is regular and parent is single-valued.
        otherwise, it is a real list (node may still be regular).
     */
-    Array<GraphNodeImplem>* m_cellList;
+    Vector<GraphNodeImplem>* m_cellList;
     mutable bool m_verbose;
     friend class EBISLevel;
   };
@@ -267,7 +267,7 @@ namespace amrex
 /*******************************/
   inline bool GraphNode::isCovered() const
   {
-    return (m_cellList == ((Array<GraphNodeImplem>*) 0));
+    return (m_cellList == ((Vector<GraphNodeImplem>*) 0));
   }
 
 /*******************************/
@@ -280,13 +280,13 @@ namespace amrex
 /*******************************/
   inline bool GraphNode::isRegularWithSingleValuedParent() const
   {
-    return (m_cellList == ((Array<GraphNodeImplem>*) 1));
+    return (m_cellList == ((Vector<GraphNodeImplem>*) 1));
   }
 
 /*******************************/
   inline bool GraphNode::isRegularWithMultiValuedParent() const
   {
-    return (((m_cellList != ((Array<GraphNodeImplem>*) 0)) &&
+    return (((m_cellList != ((Vector<GraphNodeImplem>*) 0)) &&
              ((*m_cellList).size() == 1) &&
              ((*m_cellList)[0]).m_isRegular));
   }
@@ -307,7 +307,7 @@ namespace amrex
   inline void GraphNode::setDefaults()
   {
     m_verbose = false;
-    m_cellList = (Array<GraphNodeImplem>*)1;
+    m_cellList = (Vector<GraphNodeImplem>*)1;
   }
 
 /*******************************/
@@ -330,14 +330,14 @@ namespace amrex
   inline void GraphNode::defineAsRegular()
   {
     clear();
-    m_cellList = (Array<GraphNodeImplem>*) 1;
+    m_cellList = (Vector<GraphNodeImplem>*) 1;
   }
 
 /*******************************/
   inline void GraphNode::defineAsCovered()
   {
     clear();
-    m_cellList = (Array<GraphNodeImplem>*) 0;
+    m_cellList = (Vector<GraphNodeImplem>*) 0;
   }
 
 /*******************************/

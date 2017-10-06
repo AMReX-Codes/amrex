@@ -15,7 +15,8 @@
 
 #include "AMReX_RealVect.H"
 #include "AMReX_BaseIF.H"
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {
@@ -34,7 +35,7 @@ namespace amrex
     /**
        Constructor specifying any number of implicit functions as inputs.
     */
-    IntersectionIF(const Array<BaseIF*>& a_impFuncs);
+    IntersectionIF(const Vector<BaseIF*>& a_impFuncs);
 
     /// Copy constructor
 
@@ -53,7 +54,7 @@ namespace amrex
 
   protected:
     int             m_numFuncs; // number of implicit functions
-    Array<BaseIF*> m_impFuncs; // implicit functions
+    Vector<BaseIF*> m_impFuncs; // implicit functions
 
   private:
     IntersectionIF(const IntersectionIF& a_inputIF);

@@ -73,7 +73,7 @@ namespace amrex
     /**
        Return the VoFs in the cell.
     */
-    Array<VolIndex> getVoFs(const IntVect& a_iv) const;
+    Vector<VolIndex> getVoFs(const IntVect& a_iv) const;
         
     ///
     /**
@@ -131,12 +131,12 @@ namespace amrex
        Return the faces on the side and direction
        of the input VoF.
     */
-    Array<FaceIndex> getFaces(const VolIndex& a_vof,
+    Vector<FaceIndex> getFaces(const VolIndex& a_vof,
                                     const int& a_idir,
                                     const Side::LoHiSide& a_sd) const;
         
     ///
-    Array<Array<VolIndex> >  getVoFSets(const Box& a_region) const;
+    Vector<Vector<VolIndex> >  getVoFSets(const Box& a_region) const;
         
     ///
     /**
@@ -144,7 +144,7 @@ namespace amrex
        EBGraphImplem (factor of two refinement).  The result is only
        defined if this {\tt EBGraphImplem} was defined by coarsening.
     */
-    Array<VolIndex> refine(const VolIndex& a_coarVoF) const;
+    Vector<VolIndex> refine(const VolIndex& a_coarVoF) const;
         
     ///
     /**
@@ -152,7 +152,7 @@ namespace amrex
        EBGraphImplem (factor of two refinement).  The result is only
        defined if this {\tt EBGraphImplem} was defined by coarsening.
     */
-    Array<FaceIndex> refine(const FaceIndex& a_coarFace, const EBGraphImplem& a_fineGraph) const;
+    Vector<FaceIndex> refine(const FaceIndex& a_coarFace, const EBGraphImplem& a_fineGraph) const;
         
     ///
     /**
@@ -187,7 +187,7 @@ namespace amrex
     */
     void
     buildGraph(const BaseFab<int>&      a_regIrregCovered,
-               const Array<IrregNode>& a_irregGraph,
+               const Vector<IrregNode>& a_irregGraph,
                const Box&               a_validRegion,
                const Box&     a_domain);
         
@@ -295,7 +295,7 @@ namespace amrex
                          const Box    & a_coarRegion) const;
         
     //don't ask
-    Array<int>
+    Vector<int>
     coarsenFaces(const VolIndex&       a_coarVoF,
                  const EBGraphImplem&        a_fineGraph,
                  const int&            a_idir,
@@ -311,7 +311,7 @@ namespace amrex
     IntVectSet getMultiCells(const Box& a_subbox) const;
         
     ///
-    Array<FaceIndex>
+    Vector<FaceIndex>
     getAllFaces(const IntVect& a_iv,
                 const int& a_idir,
                 const Side::LoHiSide& a_sd) const;
@@ -345,14 +345,14 @@ namespace amrex
                             const Box &      a_region) const;
         
     ///
-    Array<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box, const EBGraph& a_ebgraph) const;
+    Vector<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box, const EBGraph& a_ebgraph) const;
         
     //bool operator<(const EBGraphImplem& ebiin) const;
         
         
     int numVoFs(const IntVect& a_iv) const
       {
-        Array<VolIndex> vofs = getVoFs(a_iv);
+        Vector<VolIndex> vofs = getVoFs(a_iv);
         return vofs.size();
       }
     const IntVectSet& getAllIrregCells() const
@@ -378,7 +378,7 @@ namespace amrex
     static bool s_verbose;
 
   ///    
-  Array<VolIndex>
+  Vector<VolIndex>
   getVoFs (const VolIndex& a_vof,
            const int& a_dir,
            const Side::LoHiSide& a_sd,
@@ -499,7 +499,7 @@ namespace amrex
     /**
        Return the VoFs in the cell.
     */
-    Array<VolIndex> getVoFs(const IntVect& a_iv) const;
+    Vector<VolIndex> getVoFs(const IntVect& a_iv) const;
         
     int numVoFs(const IntVect& a_iv) const
       {
@@ -573,19 +573,19 @@ namespace amrex
        Return the faces on the side and direction
        of the input VoF.
     */
-    Array<FaceIndex> getFaces(const VolIndex& a_vof,
+    Vector<FaceIndex> getFaces(const VolIndex& a_vof,
                                     const int& a_idir,
                                     const Side::LoHiSide& a_sd) const;
         
     ///
-    Array<Array<VolIndex> >  getVoFSets(const Box& a_region) const;
+    Vector<Vector<VolIndex> >  getVoFSets(const Box& a_region) const;
     ///
     /**
        Returns the corresponding set of VoFs from the next finer
        EBGraph (factor of two refinement).  The result is only
        defined if this {\tt EBGraph} was defined by coarsening.
     */
-    Array<VolIndex> refine(const VolIndex& a_coarVoF) const;
+    Vector<VolIndex> refine(const VolIndex& a_coarVoF) const;
         
     ///
     /**
@@ -593,7 +593,7 @@ namespace amrex
        EBGraph (factor of two refinement).  The result is only
        defined if this {\tt EBGraph} was defined by coarsening.
     */
-    Array<FaceIndex> refine(const FaceIndex& a_coarFace, const EBGraph& a_fineGraph) const;
+    Vector<FaceIndex> refine(const FaceIndex& a_coarFace, const EBGraph& a_fineGraph) const;
         
     ///
     /**
@@ -639,7 +639,7 @@ namespace amrex
     */
     void
     buildGraph(const BaseFab<int>&      a_regIrregCovered,
-               const Array<IrregNode>& a_irregGraph,
+               const Vector<IrregNode>& a_irregGraph,
                const Box&               a_validRegion,
                const Box&     a_domain);
         
@@ -721,7 +721,7 @@ namespace amrex
         
 
     ///    
-    Array<VolIndex>
+    Vector<VolIndex>
     getVoFs (const VolIndex& a_vof,
              const int& a_dir,
              const Side::LoHiSide& a_sd,
@@ -806,7 +806,7 @@ namespace amrex
                          const Box    & a_coarRegion) const;
         
     //don't ask
-    Array<int>
+    Vector<int>
     coarsenFaces(const VolIndex&       a_coarVoF,
                  const EBGraph&        a_fineGraph,
                  const int&            a_idir,
@@ -828,7 +828,7 @@ namespace amrex
     EBGraph(const EBGraph& a_ebiin);
         
     ///
-    Array<FaceIndex>
+    Vector<FaceIndex>
     getAllFaces(const IntVect& a_iv,
                 const int& a_idir,
                 const Side::LoHiSide& a_sd) const;
@@ -879,7 +879,7 @@ namespace amrex
                             const Box&    a_region) const;
         
     ///
-    Array<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box) const;
+    Vector<FaceIndex> getMultiValuedFaces(const int& a_idir, const Box& a_box) const;
         
     ///
     static bool preAllocatable () { return false; }
@@ -909,7 +909,7 @@ namespace amrex
         
   inline void
   EBGraph::buildGraph(const BaseFab<int>&      a_regIrregCovered,
-                      const Array<IrregNode>& a_irregGraph,
+                      const Vector<IrregNode>& a_irregGraph,
                       const Box&               a_validRegion,
                       const Box&     a_domain)
   {
@@ -951,7 +951,7 @@ namespace amrex
     return m_implem->getIrregCells(a_subbox);
   }
   /*******************************/
-  inline Array<VolIndex> EBGraph::getVoFs(const IntVect& a_iv) const
+  inline Vector<VolIndex> EBGraph::getVoFs(const IntVect& a_iv) const
   {
     return m_implem->getVoFs(a_iv);
   }
@@ -996,7 +996,7 @@ namespace amrex
     return m_implem->isRegular(a_box);
   }
   /*******************************/
-  inline Array<FaceIndex>
+  inline Vector<FaceIndex>
   EBGraph::getFaces(const VolIndex& a_vof,
                     const int& a_idir,
                     const Side::LoHiSide& a_sd) const
@@ -1004,13 +1004,13 @@ namespace amrex
     return m_implem->getFaces(a_vof, a_idir, a_sd);
   }
   /*******************************/
-  inline Array<VolIndex>
+  inline Vector<VolIndex>
   EBGraph::refine(const VolIndex& a_coarVoF) const
   {
     return m_implem->refine(a_coarVoF);
   }
   /*******************************/
-  inline Array<FaceIndex>
+  inline Vector<FaceIndex>
   EBGraph::refine(const FaceIndex& a_coarFace, const EBGraph& a_fineGraph) const
   {
     return m_implem->refine(a_coarFace, *a_fineGraph.m_implem);
@@ -1076,7 +1076,7 @@ namespace amrex
     m_implem->fixFineToCoarse(*a_fineEBIS.m_implem, a_coarRegion);
   }
   /*******************************/
-  inline Array<FaceIndex>
+  inline Vector<FaceIndex>
   EBGraph::getAllFaces(const IntVect& a_iv,
                        const int& a_idir,
                        const Side::LoHiSide& a_sd) const

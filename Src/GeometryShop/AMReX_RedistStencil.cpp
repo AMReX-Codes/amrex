@@ -138,7 +138,7 @@ namespace amrex
     //it must be called with the first time
     IntVect timesMoved = IntVect::TheZeroVector();
     IntVect pathSign   = IntVect::TheZeroVector();
-    Array<VolIndex> vofsStencil;
+    Vector<VolIndex> vofsStencil;
     EBArith::getAllVoFsInMonotonePath(vofsStencil, timesMoved,
                                       pathSign, a_srcVoF, ebisBox,
                                       m_redistRadius);

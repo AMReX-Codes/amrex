@@ -103,8 +103,8 @@ int main(int argc, char *argv[]) {
   bool checkFPositions(false), pIFStreams(false);
   bool checkmf(false);
   bool useDSS(false), useSyncReads(false);
-  Array<int> testWriteNFilesVersions;
-  Array<std::string> readFANames;
+  Vector<int> testWriteNFilesVersions;
+  Vector<std::string> readFANames;
   int nReadStreams(1), nMultiFabs(1);
   std::string dirName("");
 
@@ -232,7 +232,7 @@ int main(int argc, char *argv[]) {
   }
   cout << "myproc = " << myproc << " :: tnum = " << myThread << endl;
 
-  Array<unsigned long> fileOffset(nThreads, 0L);  // ---- [tnum]
+  Vector<unsigned long> fileOffset(nThreads, 0L);  // ---- [tnum]
   for(long i(0); i < fileOffset.size(); ++i) {
     for(long j(i); j > 0; --j) {
       fileOffset[i] += baseDataItems * j * sizeof(unsigned long);
@@ -242,7 +242,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  Array<Array<long>> data(nThreads);  // ---- [tnum][data]
+  Vector<Vector<long>> data(nThreads);  // ---- [tnum][data]
   data[myThread].resize(dataItems);
   long startValue(fileOffset[myThread] / sizeof(unsigned long));
   for(long i(0); i < dataItems; ++i) {

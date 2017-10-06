@@ -6,6 +6,11 @@
 ###############################################
 
 #
+# Include module 
+# 
+include (CMakeDependentOption)
+
+#
 # Check weather the AMReX_CMakeVariables.cmake
 # has been loaded; abort if not
 #
@@ -14,101 +19,140 @@ if ( NOT AMREX_VARIABLES_LOADED )
 after including AMReX_CMakeVariables.cmake" )
 endif ()
 
-
 #
 # Define a macro to check the value of the inputs integer options 
 # 
-macro (check_option_value NAME VALUE RANGE_STARTS RANGE_ENDS )
-   
-   if ( ( ${VALUE} GREATER ${RANGE_ENDS} ) OR ( ${VALUE} LESS ${RANGE_STARTS} ) )
-      message ( FATAL_ERROR "Variable ${NAME} has value ${VALUE}. \
-Allowed range is [${RANGE_STARTS}:${RANGE_ENDS}]." )
-   endif ()
-
-   message ( STATUS "   ${NAME} = ${VALUE} (INT: ${RANGE_STARTS},${RANGE_ENDS})" )
+macro (print_option var)
+   message ( STATUS "   ${var} = ${${var}}")
 endmacro ()
-
 
 #
 # Populate the cache and check the value of the user-definable options 
 #
 message (STATUS "Configuring AMReX with the following options: ")
 
-if ( NOT CMAKE_BUILD_TYPE )
-   # Default to Release if no other build type specified
-   set ( CMAKE_BUILD_TYPE "Release" CACHE STRING
-      "Choose the type of build, options are: Debug, Release."
-      FORCE )
+#
+# General options
+# 
+option ( DEBUG "Build in debug mode" OFF )
+print_option (DEBUG)
+
+if (DEBUG)
+   set (CMAKE_BUILD_TYPE "Debug")
+else ()
+   set (CMAKE_BUILD_TYPE "Release")
 endif ()
 
-set ( AMREX_BUILD_TYPE ${CMAKE_BUILD_TYPE} )
-
-# Need to be uppercase so it can be used to refer to CMAKE variable names
-string ( TOUPPER ${AMREX_BUILD_TYPE} AMREX_BUILD_TYPE) 
+string ( TOUPPER ${CMAKE_BUILD_TYPE} AMREX_BUILD_TYPE ) 
 
 
-message ( STATUS "   CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE} (STRING:\
- Debug|Release|RelWithDebInfo|MinSizeRel)" )
-
-message ( STATUS "   CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX} (STRING: <path to install dir>)" )
+message ( STATUS "   CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}" )
 
 
-set (ENABLE_PIC 0 CACHE INT
-   "Compile with position-independent code enabled")
-check_option_value ( "ENABLE_PIC" ${ENABLE_PIC} 0 1 )
+set (DIM 3 CACHE INT "Dimension of AMReX build")
+if ( (${DIM} GREATER 3) OR (${DIM} LESS 1) )
+   message ( FATAL_ERROR "DIM must be either 1, 2 or 3.")
+endif ()
+print_option ( DIM )
 
-set (BL_SPACEDIM 3 CACHE INT "Dimension of AMReX build")
-check_option_value ( "BL_SPACEDIM" ${BL_SPACEDIM} 2 3 )
 
-set (ENABLE_MPI 1 CACHE INT "Enable build with MPI")
-check_option_value ( "ENABLE_MPI" ${ENABLE_MPI} 0 1 )
+option ( ENABLE_PIC "Build position-independent code" OFF)
+print_option ( ENABLE_PIC )
 
-set (ENABLE_OMP 0 CACHE INT "Enable build with OpenMP")
-check_option_value ( "ENABLE_OMP" ${ENABLE_OMP} 0 1 )
+option ( ENABLE_MPI  "Enable MPI"  ON)
+print_option ( ENABLE_MPI )
 
-set (ENABLE_DP 1 CACHE INT "Enable double precision build")
-check_option_value ( "ENABLE_DP" ${ENABLE_DP} 0 1 )
+option ( ENABLE_OMP  "Enable OpenMP" OFF)
+print_option ( ENABLE_OMP )
 
-set (ENABLE_PARTICLES 0 CACHE INT "Include Particles classes in AMReX build")
-check_option_value ( "ENABLE_PARTICLES" ${ENABLE_PARTICLES} 0 1 )
+option (ENABLE_DP "Enable double precision" ON)
+print_option ( ENABLE_DP )
 
-set (ENABLE_DP_PARTICLES 1 CACHE INT "Enable double-precision for particles data") 
-check_option_value ( "ENABLE_DP_PARTICLES" ${ENABLE_DP_PARTICLES} 0 1 )
 
-set (ENABLE_PROFILING 0 CACHE INT "Include profiling information in AMReX build")
-check_option_value ( "ENABLE_PROFILING" ${ENABLE_PROFILING} 0 1 )
+#
+# AMReX components selection
+# 
+option ( ENABLE_FORTRAN_INTERFACES "Build Fortran API" ON )
+print_option (ENABLE_FORTRAN_INTERFACES)
 
-set (ENABLE_TINY_PROFILING 0 CACHE INT "Include 'tiny'-profiling information in AMReX build")
-check_option_value ( "ENABLE_TINY_PROFILING" ${ENABLE_TINY_PROFILING} 0 1 )
+option ( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
+print_option ( ENABLE_LINEAR_SOLVERS )
 
-set (ENABLE_TRACE_PROFILING 0 CACHE INT  "Include trace-profiling information in AMReX build" )
-check_option_value ( "ENABLE_TRACE_PROFILING" ${ENABLE_TRACE_PROFILING} 0 1 )
+option ( ENABLE_FBASELIB "Build Fortran kernel (deprecated)" ON )
+print_option ( ENABLE_FBASELIB )
 
-set (ENABLE_COMM_PROFILING 0 CACHE INT  "Include comm-profiling information in AMReX build" )
-check_option_value ( "ENABLE_COMM_PROFILING" ${ENABLE_COMM_PROFILING} 0 1 )
+option ( ENABLE_AMRDATA "Build data services" OFF)
+print_option ( ENABLE_AMRDATA )
 
-set (ENABLE_BACKTRACE 0 CACHE INT "Include backtrace information in AMReX build")
-check_option_value ( "ENABLE_BACKTRACE" ${ENABLE_BACKTRACE} 0 1 )
+option ( ENABLE_PARTICLES "Build particle classes" OFF)
+print_option ( ENABLE_PARTICLES )
 
-set (ENABLE_FPE 0 CACHE INT "Enable Floating Point Exceptions checks")
-check_option_value ( "ENABLE_FPE" ${ENABLE_FPE} 0 1 )
+if ( ENABLE_PARTICLES )
+   option ( ENABLE_DP_PARTICLES "Enable double-precision particle data" ON )
+   print_option ( ENABLE_DP_PARTICLES )
+endif ()
 
-set (ENABLE_ASSERTIONS 0 CACHE INT "Enable assertions")
-check_option_value ( "ENABLE_ASSERTIONS" ${ENABLE_ASSERTIONS} 0 1 )
 
-set (ENABLE_FORTRAN_INTERFACES 1 CACHE INT "Include Fortran interfaces in AMReX build")
-check_option_value ( "ENABLE_FORTRAN_INTERFACES" ${ENABLE_FORTRAN_INTERFACES} 0 1 )
+#
+# Compilation options
+#  
+option (ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
+print_option ( ENABLE_FPE )
 
-set (ENABLE_LINEAR_SOLVERS 1 CACHE INT "Include Linear solvers in AMReX build")
-check_option_value ( "ENABLE_LINEAR_SOLVERS" ${ENABLE_LINEAR_SOLVERS} 0 1 )
-
-set ( ENABLE_FBASELIB 1 CACHE INT  "Enable Fortran BaseLib" )
-check_option_value ( "ENABLE_FBASELIB" ${ENABLE_FBASELIB} 0 1 )
-
+if (DEBUG)
+   option ( ENABLE_ASSERTION "Enable assertions" ON)
+else ()
+   option ( ENABLE_ASSERTION "Enable assertions" OFF)
+endif ()
+print_option ( ENABLE_ASSERTION )
 
 set (AMREX_FFLAGS_OVERRIDES "" CACHE STRING "User-defined Fortran compiler flags" )
 
 set (AMREX_CXXFLAGS_OVERRIDES "" CACHE STRING "User-defined C++ compiler flags" )
+
+
+#
+# Profiling options
+# 
+option ( ENABLE_BASE_PROFILE "Enable basic profiling" OFF )
+print_option ( ENABLE_BASE_PROFILE )
+
+option ( ENABLE_TINY_PROFILE "NOT ENABLE_BASE_DEBUG" OFF)
+print_option ( ENABLE_TINY_PROFILE ) 
+
+option ( ENABLE_TRACE_PROFILE "Enable trace-profiling" OFF )
+print_option ( ENABLE_TRACE_PROFILE )
+
+option ( ENABLE_MEM_PROFILE   "Enable memory profiling" OFF )
+print_option ( ENABLE_MEM_PROFILE )
+
+option ( ENABLE_COMM_PROFILE  "Enable communicator-profiling" OFF )
+print_option ( ENABLE_COMM_PROFILE )
+
+option ( ENABLE_BACKTRACE "Enable backtracing" OFF)
+print_option ( ENABLE_BACKTRACE )
+
+option ( ENABLE_PROFPARSER "Enable profile parser" OFF)
+print_option ( ENABLE_PROFPARSER )
+
+
+
+# Modify the profiling options if needed ( because of dependencies between
+# the options )
+if (ENABLE_PROFPARSER)
+   set (ENABLE_BASE_PROFILE ON)
+   set (ENABLE_TRACE_PROFILE ON)
+   set (ENABLE_AMRDATA ON)
+endif ()
+
+if (ENABLE_TRACE_PROFILE OR ENABLE_COMM_PROFILE)
+   set (ENABLE_BASE_PROFILE ON)
+endif ()
+
+if (ENABLE_BASE_PROFILE)
+   set (ENABLE_TINY_PROFILE OFF)
+endif()
+
 
 # After the options are set, define the following variable
 # so that other included file can check if this file has been

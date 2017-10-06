@@ -16,10 +16,10 @@
 using namespace amrex;
 
 // declare routines below
-void solve_for_accel(const Array<MultiFab*>& rhs,
-		     const Array<MultiFab*>& phi,
-		     const Array<MultiFab*>& grad_phi,
-                     const Array<Geometry>& geom,
+void solve_for_accel(const Vector<MultiFab*>& rhs,
+		     const Vector<MultiFab*>& phi,
+		     const Vector<MultiFab*>& grad_phi,
+                     const Vector<Geometry>& geom,
 		     int base_level, int finest_level, Real offset);
 
 int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool verbose) 
@@ -55,11 +55,11 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
+    Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
 
     // Build a BoxArray then initialize with the domain.
-    Array<BoxArray> ba(1);
+    Vector<BoxArray> ba(1);
     ba[0].define(domain);
 
     // Break the BoxArrays at both levels into max_grid_size^3 boxes
@@ -75,10 +75,10 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     // ********************************************************************************************
 
     // build a multifab for the rhs on the box array with 
-    Array<std::unique_ptr<MultiFab> > rhs(nlevs);
-    Array<std::unique_ptr<MultiFab> > phi(nlevs);
-    Array<std::unique_ptr<MultiFab> > grad_phi(nlevs);
-    Array<DistributionMapping> dmap(nlevs);
+    Vector<std::unique_ptr<MultiFab> > rhs(nlevs);
+    Vector<std::unique_ptr<MultiFab> > phi(nlevs);
+    Vector<std::unique_ptr<MultiFab> > grad_phi(nlevs);
+    Vector<DistributionMapping> dmap(nlevs);
 
     int lev = 0;
     dmap[lev] = DistributionMapping{ba[lev]};
@@ -96,7 +96,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
 
     // We define the refinement ratio even though we are single level because
     //    we want to use the multilevel interface in the different calls.
-    Array<int> rr(nlevs-1);
+    Vector<int> rr(nlevs-1);
     
     // Build a new particle container to hold my particles.
     std::unique_ptr<MyParticleContainer> MyPC(new MyParticleContainer(geom,dmap,ba,rr));
@@ -145,7 +145,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     int base_level   = 0;
     int finest_level = 0;
 
-    Array<std::unique_ptr<MultiFab> > PartMF(1);
+    Vector<std::unique_ptr<MultiFab> > PartMF(1);
     PartMF[0].reset(new MultiFab(ba[0],dmap[0],1,1));
     PartMF[0]->setVal(0.0);
 
@@ -167,9 +167,9 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     strt_solve = ParallelDescriptor::second();
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(amrex::GetArrOfPtrs(rhs),
-		    amrex::GetArrOfPtrs(phi),
-		    amrex::GetArrOfPtrs(grad_phi),
+    solve_for_accel(amrex::GetVecOfPtrs(rhs),
+		    amrex::GetVecOfPtrs(phi),
+		    amrex::GetVecOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
 
     end_solve = ParallelDescriptor::second() - strt_solve;

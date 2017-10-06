@@ -1,7 +1,7 @@
 
 #include <iostream>
 
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
 
 using namespace amrex;
@@ -13,7 +13,7 @@ main (int argc, char** argv)
 
     ParmParse pp;
 
-    Array<int> arr;
+    Vector<int> arr;
 
     pp.queryarr("arr",arr);
 

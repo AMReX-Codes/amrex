@@ -19,7 +19,7 @@ FMultiGrid::FMultiGrid (const Geometry & geom,
 	amrex::Abort("FMultiGrid: must set crse_ratio if baselevel > 0");
 }
 
-FMultiGrid::FMultiGrid (const Array<Geometry> & geom, 
+FMultiGrid::FMultiGrid (const Vector<Geometry> & geom, 
 			int                     baselevel,
 			IntVect                 crse_ratio)
     :
@@ -79,7 +79,7 @@ FMultiGrid::set_const_gravity_coeffs ()
 }
 
 void 
-FMultiGrid::set_gravity_coeffs (const Array<MultiFab*>& b)
+FMultiGrid::set_gravity_coeffs (const Vector<MultiFab*>& b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq);
     BL_ASSERT(m_nlevels == 1);
@@ -92,7 +92,7 @@ FMultiGrid::set_gravity_coeffs (const Array<MultiFab*>& b)
 }
 
 void 
-FMultiGrid::set_gravity_coeffs (const Array< Array<MultiFab*> >& b)
+FMultiGrid::set_gravity_coeffs (const Vector< Vector<MultiFab*> >& b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq);
     BL_ASSERT(b.size() == m_nlevels);
@@ -105,7 +105,7 @@ FMultiGrid::set_gravity_coeffs (const Array< Array<MultiFab*> >& b)
 }
 
 void 
-FMultiGrid::set_mac_coeffs (const Array<MultiFab*>& b)
+FMultiGrid::set_mac_coeffs (const Vector<MultiFab*>& b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq);
     BL_ASSERT(m_nlevels == 1);
@@ -131,7 +131,7 @@ FMultiGrid::set_scalars (Real alpha, Real beta)
 }
 
 void
-FMultiGrid::set_coefficients (const MultiFab& a, const Array<MultiFab*> & b)
+FMultiGrid::set_coefficients (const MultiFab& a, const Vector<MultiFab*> & b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
     BL_ASSERT(!m_coeff.coeffs_set);
@@ -145,7 +145,7 @@ FMultiGrid::set_coefficients (const MultiFab& a, const Array<MultiFab*> & b)
 }
 
 void
-FMultiGrid::set_coefficients (const Array<MultiFab*>& a, const Array<Array<MultiFab*> > & b)
+FMultiGrid::set_coefficients (const Vector<MultiFab*>& a, const Vector<Vector<MultiFab*> > & b)
 {
     BL_ASSERT(m_coeff.eq_type == invalid_eq || m_coeff.eq_type == general_eq);
     BL_ASSERT(!m_coeff.coeffs_set);
@@ -167,8 +167,8 @@ FMultiGrid::solve (MultiFab& phi,
 		   int need_grad_phi,
 		   int verbose)
 {
-    Array<MultiFab*> phi_p;
-    Array<MultiFab*> rhs_p;
+    Vector<MultiFab*> phi_p;
+    Vector<MultiFab*> rhs_p;
     Copy(phi_p, phi);
     Copy(rhs_p, rhs);
     return solve(phi_p, rhs_p, rel_tol, abs_tol,
@@ -176,8 +176,8 @@ FMultiGrid::solve (MultiFab& phi,
 }
 
 Real
-FMultiGrid::solve (const Array<MultiFab*>& phi,
-		   const Array<MultiFab*>& rhs,
+FMultiGrid::solve (const Vector<MultiFab*>& phi,
+		   const Vector<MultiFab*>& rhs,
 		   Real rel_tol, Real abs_tol,
 		   int always_use_bnorm ,
 		   int need_grad_phi,
@@ -197,7 +197,7 @@ FMultiGrid::solve (const Array<MultiFab*>& phi,
 }
 
 void
-FMultiGrid::get_fluxes (const Array<MultiFab*>& grad_phi, int ilev)
+FMultiGrid::get_fluxes (const Vector<MultiFab*>& grad_phi, int ilev)
 {
     BL_ASSERT(ilev < m_nlevels);
 
@@ -206,7 +206,7 @@ FMultiGrid::get_fluxes (const Array<MultiFab*>& grad_phi, int ilev)
 }
 
 void
-FMultiGrid::get_fluxes (const Array<Array<MultiFab*> >& grad_phi)
+FMultiGrid::get_fluxes (const Vector<Vector<MultiFab*> >& grad_phi)
 {
     for (int ilev = 0; ilev < m_nlevels; ++ilev) 
     {	
@@ -220,9 +220,9 @@ FMultiGrid::compute_residual (MultiFab & phi,
 			      MultiFab & rhs,
 			      MultiFab & res)
 {
-    Array<MultiFab*> phi_p;
-    Array<MultiFab*> rhs_p;
-    Array<MultiFab*> res_p;
+    Vector<MultiFab*> phi_p;
+    Vector<MultiFab*> rhs_p;
+    Vector<MultiFab*> res_p;
     Copy(phi_p, phi);
     Copy(rhs_p, rhs);
     Copy(res_p, res);
@@ -230,9 +230,9 @@ FMultiGrid::compute_residual (MultiFab & phi,
 }
 
 void
-FMultiGrid::compute_residual (const Array<MultiFab*> & phi,
-			      const Array<MultiFab*> & rhs,
-			      const Array<MultiFab*> & res)
+FMultiGrid::compute_residual (const Vector<MultiFab*> & phi,
+			      const Vector<MultiFab*> & rhs,
+			      const Vector<MultiFab*> & res)
 {
     BL_ASSERT(  m_bc.initilized || m_bndry);
     BL_ASSERT(!(m_bc.initilized && m_bndry));
@@ -248,16 +248,16 @@ void
 FMultiGrid::applyop (MultiFab & phi,
 		     MultiFab & res)
 {
-    Array<MultiFab*> phi_p;
-    Array<MultiFab*> res_p;
+    Vector<MultiFab*> phi_p;
+    Vector<MultiFab*> res_p;
     Copy(phi_p, phi);
     Copy(res_p, res);
     applyop(phi_p, res_p);
 }
 
 void
-FMultiGrid::applyop (const Array<MultiFab*> & phi,
-		     const Array<MultiFab*> & res)
+FMultiGrid::applyop (const Vector<MultiFab*> & phi,
+		     const Vector<MultiFab*> & res)
 {
     BL_ASSERT(  m_bc.initilized || m_bndry);
     BL_ASSERT(!(m_bc.initilized && m_bndry));
@@ -271,27 +271,27 @@ FMultiGrid::applyop (const Array<MultiFab*> & phi,
 }
 
 void
-FMultiGrid::Copy (Array<MultiFab*>& dst, const MultiFab& src)
+FMultiGrid::Copy (Vector<MultiFab*>& dst, const MultiFab& src)
 {
     dst.resize(1);
     dst[0] = const_cast<MultiFab*>(&src);
 }
 
 void
-FMultiGrid::Copy (Array<MultiFab*>& dst, const Array<MultiFab*>& src)
+FMultiGrid::Copy (Vector<MultiFab*>& dst, const Vector<MultiFab*>& src)
 {
     dst = src;
 }
 
 void 
-FMultiGrid::Copy (Array<Array<MultiFab*> >& dst, const Array<MultiFab*>& src)
+FMultiGrid::Copy (Vector<Vector<MultiFab*> >& dst, const Vector<MultiFab*>& src)
 {
     dst.resize(1);
     dst[0] = src;
 }
 
 void 
-FMultiGrid::Copy (Array<Array<MultiFab*> >& dst, const Array<Array<MultiFab*> >& src)
+FMultiGrid::Copy (Vector<Vector<MultiFab*> >& dst, const Vector<Vector<MultiFab*> >& src)
 {
     dst = src;
 }
@@ -302,8 +302,8 @@ FMultiGrid::Boundary::set_bndry_values (MacBndry& bndry, IntVect crse_ratio)
     // The values of phys_bc & ref_ratio do not matter
     // because we are not going to use those parts of MacBndry.
     IntVect ref_ratio = IntVect::TheZeroVector();
-    Array<int> lo_bc(BL_SPACEDIM, 0);
-    Array<int> hi_bc(BL_SPACEDIM, 0);
+    Vector<int> lo_bc(BL_SPACEDIM, 0);
+    Vector<int> hi_bc(BL_SPACEDIM, 0);
     BCRec phys_bc(lo_bc.dataPtr(), hi_bc.dataPtr());
 
     if (crse_phi == 0 && phi == 0) 
@@ -344,8 +344,8 @@ FMultiGrid::ABecCoeff::set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg)
     BL_ASSERT( fmg.m_baselevel >= 0 );
     BL_ASSERT( fmg.m_baselevel == 0 || fmg.m_crse_ratio != IntVect::TheZeroVector() );
 
-    Array< Array<Real> > xa(fmg.m_nlevels);
-    Array< Array<Real> > xb(fmg.m_nlevels);
+    Vector< Vector<Real> > xa(fmg.m_nlevels);
+    Vector< Vector<Real> > xb(fmg.m_nlevels);
 
     for (int lev=0; lev < fmg.m_nlevels; ++lev) {
 	xa[lev].resize(BL_SPACEDIM);
@@ -403,7 +403,7 @@ FMultiGrid::ABecCoeff::set_coeffs (MGT_Solver & mgt_solver, FMultiGrid& fmg)
 }
 
 void
-FMultiGrid::init_mgt_solver (const Array<MultiFab*>& phi)
+FMultiGrid::init_mgt_solver (const Vector<MultiFab*>& phi)
 {
     BL_ASSERT(  m_bc.initilized || m_bndry);
     BL_ASSERT(!(m_bc.initilized && m_bndry));
@@ -412,8 +412,8 @@ FMultiGrid::init_mgt_solver (const Array<MultiFab*>& phi)
 
     int ncomp = phi[0]->nComp();
 
-    Array<DistributionMapping> dmap(m_nlevels);
-    Array<BoxArray> ba(m_nlevels);
+    Vector<DistributionMapping> dmap(m_nlevels);
+    Vector<BoxArray> ba(m_nlevels);
 
     for (int ilev = 0; ilev < m_nlevels; ++ilev) 
     {
@@ -423,7 +423,7 @@ FMultiGrid::init_mgt_solver (const Array<MultiFab*>& phi)
 
     bool nodal = false;
     int  nc = 0;
-    Array<int> mg_bc;
+    Vector<int> mg_bc;
     if (m_bc.initilized) 
     {
 	mg_bc = m_bc.mg_bc;

@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
             amrex::AllPrint() << "Box " << bx << " on Proc. " << ParallelDescriptor::MyProc()
                               << " contains Cell " << debugcell << "\n";
 
-            const Array<FaceIndex> faces = ebisbox.getAllFaces(debugcell, 0, Side::Hi);
+            const Vector<FaceIndex> faces = ebisbox.getAllFaces(debugcell, 0, Side::Hi);
             amrex::AllPrint() << "face area : " << ebisbox.areaFrac(faces[0]) << "\n";
           }
         }

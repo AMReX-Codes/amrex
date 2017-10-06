@@ -55,7 +55,7 @@ namespace amrex
        and whether the domain is on the inside (a_inside), i.e. where the
        function is negative.
     */
-    PolynomialIF(const Array<PolyTerm>& a_polynomial,
+    PolynomialIF(const Vector<PolyTerm>& a_polynomial,
                  const bool&             a_inside);
 
     /// Destructor
@@ -68,7 +68,7 @@ namespace amrex
        Return the value of the function at a_point using a_polynomial
     */
     virtual Real value(const RealVect         & a_point,
-                       const Array<PolyTerm> & a_polynomial) const;
+                       const Vector<PolyTerm> & a_polynomial) const;
 
     ///
     /**
@@ -80,7 +80,7 @@ namespace amrex
     virtual BaseIF* newImplicitFunction() const;
 
   protected:
-    Array<PolyTerm> m_polynomial;  // polynomial (term by term)
+    Vector<PolyTerm> m_polynomial;  // polynomial (term by term)
     bool             m_inside;      // inside flag
 
   private:

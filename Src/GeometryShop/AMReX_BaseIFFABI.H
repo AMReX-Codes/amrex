@@ -181,7 +181,7 @@ namespace amrex
   template <class T> inline
   void
   BaseIFFAB<T>::
-  dumpFaces(const Array<FaceIndex>& a_faces) const
+  dumpFaces(const Vector<FaceIndex>& a_faces) const
   {
     for (int iface = 0; iface < a_faces.size(); ++iface)
     {
@@ -258,7 +258,7 @@ namespace amrex
   template <class T> inline
   void
   BaseIFFAB<T>::
-  getFaceSubset(Array<FaceIndex>& a_subFaces, const Box& a_subBox) const
+  getFaceSubset(Vector<FaceIndex>& a_subFaces, const Box& a_subBox) const
   {
     a_subFaces.resize(0);
     for (int iface = 0; iface < m_faces.size(); iface++)
@@ -282,7 +282,7 @@ namespace amrex
   {
     assert(isDefined());
     //create set of cells in fab that are also in the input region
-    Array<FaceIndex> faces;
+    Vector<FaceIndex> faces;
     getFaceSubset(faces, a_region);
     
     //account for list of faces
@@ -315,7 +315,7 @@ namespace amrex
              void*      a_buf) const
   {
     assert(isDefined());
-    Array<FaceIndex> faces;
+    Vector<FaceIndex> faces;
     getFaceSubset(faces, a_region);
 
     //output the faces.
@@ -355,7 +355,7 @@ namespace amrex
     size_t retval  = 0;
     size_t incrval = 0; 
     unsigned char* buffer = (unsigned char *) a_buf;
-    Array<FaceIndex> faces;
+    Vector<FaceIndex> faces;
     linearListIn(faces, buffer);
     incrval =  linearListSize(faces);
     buffer += incrval;

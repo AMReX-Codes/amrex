@@ -45,10 +45,10 @@ BndryData::setBoundLoc (Orientation _face,
     bcloc[_n][_face] = _val;
 }
 
-const Array< Array<BoundCond> >&
+const Vector< Vector<BoundCond> >&
 BndryData::bndryConds (int igrid) const
 {
-    std::map< int, Array< Array<BoundCond> > >::const_iterator it = bcond.find(igrid);
+    std::map< int, Vector< Vector<BoundCond> > >::const_iterator it = bcond.find(igrid);
     BL_ASSERT(it != bcond.end());
     return it->second;
 }
@@ -157,9 +157,9 @@ BndryData::define (const BoxArray& _grids,
         //
         bcloc.insert(bcloc.end(),std::map<int,RealTuple>::value_type(idx,RealTuple()));
 
-        std::map< int, Array< Array<BoundCond> > >::value_type v(idx,Array< Array<BoundCond> >());
+        std::map< int, Vector< Vector<BoundCond> > >::value_type v(idx,Vector< Vector<BoundCond> >());
 
-        Array< Array<BoundCond> >& abc = bcond.insert(bcond.end(),v)->second;
+        Vector< Vector<BoundCond> >& abc = bcond.insert(bcond.end(),v)->second;
 
         abc.resize(2*BL_SPACEDIM);
 

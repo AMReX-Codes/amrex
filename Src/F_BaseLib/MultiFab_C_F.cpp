@@ -33,7 +33,7 @@ MultiFab_C_to_F::MultiFab_C_to_F (const Geometry& geom,
 	pm[i] = geom.isPeriodic(i)? 1 : 0;
     }
 
-    const Array<int>& pmap = dmap.ProcessorMap();
+    const Vector<int>& pmap = dmap.ProcessorMap();
 
     build_layout_from_c(nb, dm, &lo[0], &hi[0], 
 			domain.loVect(), domain.hiVect(), 

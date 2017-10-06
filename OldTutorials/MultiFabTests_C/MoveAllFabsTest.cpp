@@ -37,7 +37,7 @@ const int nTimes(4);
 
 // --------------------------------------------------------------------------
 void SetFabValsToPMap(MultiFab &mf) {
-  const Array<int> &newDMA = mf.DistributionMap().ProcessorMap();
+  const Vector<int> &newDMA = mf.DistributionMap().ProcessorMap();
   for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
     const int index(mfi.index());
     FArrayBox &fab = mf[mfi];
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 
     // ---- make a box, then a boxarray with maxSize
     Box baseBox(IntVect(0,0,0), IntVect(maxGrid - 1, maxGrid - 1, maxGrid - 1));
-    Array<Box> boxes(nBoxes);
+    Vector<Box> boxes(nBoxes);
 
     for(int p(0); p < boxes.size(); ++p) {
       boxes[p] = baseBox.shift(XDIR, maxGrid);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 
     // Build 3 distribution maps, increasing, decreasing and paired.
     // =================
-    Array<int> ai0(ba.size()), ai1(ba.size()), aiMove(ba.size());
+    Vector<int> ai0(ba.size()), ai1(ba.size()), aiMove(ba.size());
     for(int i(0); i < ai0.size(); ++i) {
       ai0[i] = i;
       ai1[i] = ai0.size() - 1 - i;

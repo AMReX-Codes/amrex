@@ -126,10 +126,12 @@ namespace amrex
         return m_nlevels;
       }
     //for testing
-    const Array<Box>& getDomains() const
+    const Vector<Box>& getDomains() const
       {
         return m_domainLevel;
       }
+
+    const EBISLevel& getEBISLevel (int lev) const { return *m_ebisLevel[lev]; }
     
   private:
 
@@ -139,8 +141,8 @@ namespace amrex
     int  m_nCellMax;
     bool m_isDefined;
 
-    Array<std::unique_ptr<EBISLevel> > m_ebisLevel;
-    Array<Box> m_domainLevel;
+    Vector<std::unique_ptr<EBISLevel> > m_ebisLevel;
+    Vector<Box> m_domainLevel;
 
     int m_nlevels;
 

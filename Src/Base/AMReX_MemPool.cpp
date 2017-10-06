@@ -25,7 +25,7 @@ using namespace amrex;
 
 namespace
 {
-    static Array<std::unique_ptr<CArena> > the_memory_pool;
+    static Vector<std::unique_ptr<CArena> > the_memory_pool;
 #if defined(BL_TESTING) || defined(DEBUG)
     static int init_snan = 1;
 #else
