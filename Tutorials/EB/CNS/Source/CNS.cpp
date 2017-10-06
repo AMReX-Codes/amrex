@@ -27,7 +27,7 @@ int       CNS::do_reflux = 1;
 int       CNS::refine_cutcells          = 1;
 int       CNS::refine_max_dengrad_lev   = -1;
 Real      CNS::refine_dengrad           = 1.0e10;
-Array<RealBox> CNS::refine_boxes;
+Vector<RealBox> CNS::refine_boxes;
 
 CNS::CNS ()
 {}
@@ -116,9 +116,9 @@ CNS::initData ()
 void
 CNS::computeInitialDt (int                   finest_level,
                        int                   sub_cycle,
-                       Array<int>&           n_cycle,
-                       const Array<IntVect>& ref_ratio,
-                       Array<Real>&          dt_level,
+                       Vector<int>&           n_cycle,
+                       const Vector<IntVect>& ref_ratio,
+                       Vector<Real>&          dt_level,
                        Real                  stop_time)
 {
     //
@@ -158,10 +158,10 @@ CNS::computeInitialDt (int                   finest_level,
 void
 CNS::computeNewDt (int                   finest_level,
                    int                   sub_cycle,
-                   Array<int>&           n_cycle,
-                   const Array<IntVect>& ref_ratio,
-                   Array<Real>&          dt_min,
-                   Array<Real>&          dt_level,
+                   Vector<int>&           n_cycle,
+                   const Vector<IntVect>& ref_ratio,
+                   Vector<Real>&          dt_min,
+                   Vector<Real>&          dt_level,
                    Real                  stop_time,
                    int                   post_regrid_flag)
 {
@@ -382,7 +382,7 @@ CNS::read_params ()
 
     pp.query("v", verbose);
  
-    Array<int> tilesize(AMREX_SPACEDIM);
+    Vector<int> tilesize(AMREX_SPACEDIM);
     if (pp.queryarr("hydro_tile_size", tilesize, 0, AMREX_SPACEDIM))
     {
 	for (int i=0; i<AMREX_SPACEDIM; i++) hydro_tile_size[i] = tilesize[i];
@@ -390,7 +390,7 @@ CNS::read_params ()
    
     pp.query("cfl", cfl);
 
-    Array<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
+    Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
     pp.getarr("lo_bc", lo_bc, 0, AMREX_SPACEDIM);
     pp.getarr("hi_bc", hi_bc, 0, AMREX_SPACEDIM);
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -406,7 +406,7 @@ CNS::read_params ()
     pp.query("refine_dengrad", refine_dengrad);
 
     int irefbox = 0;
-    Array<Real> refboxlo, refboxhi;
+    Vector<Real> refboxlo, refboxhi;
     while (pp.queryarr(("refine_box_lo_"+std::to_string(irefbox)).c_str(), refboxlo))
     {
         pp.getarr(("refine_box_hi_"+std::to_string(irefbox)).c_str(), refboxhi);

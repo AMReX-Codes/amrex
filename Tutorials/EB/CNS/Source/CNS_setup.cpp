@@ -113,8 +113,8 @@ CNS::variableSetUp ()
 			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
 			   &eb_cell_cons_interp,state_data_extrap,store_in_checkpoint);
 
-    Array<BCRec>       bcs(NUM_STATE);
-    Array<std::string> name(NUM_STATE);
+    Vector<BCRec>       bcs(NUM_STATE);
+    Vector<std::string> name(NUM_STATE);
     BCRec bc;
     int cnt = 0;
     set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "density";

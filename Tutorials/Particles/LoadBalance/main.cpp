@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
     BoxArray new_ba;
     loadBalanceKD::balance<MyParticleContainer>(myPC, new_ba, num_procs);
 
-    Array<int> new_pmap;
+    Vector<int> new_pmap;
     for (int i = 0; i < new_ba.size(); ++i) {
         new_pmap.push_back(0);
     }
