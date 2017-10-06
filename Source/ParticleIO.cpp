@@ -22,7 +22,7 @@ void
 MultiParticleContainer::Checkpoint (const std::string& dir, 
 				    const std::string& name,
 				    bool is_checkpoint,
-                                    const Array<std::string>& varnames) const
+                                    const Vector<std::string>& varnames) const
 {
     for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
 	std::string namei = name + std::to_string(i);

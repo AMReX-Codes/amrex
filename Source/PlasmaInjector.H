@@ -4,7 +4,7 @@
 #include <array>
 
 #include "AMReX_REAL.H"
-#include "AMReX_Array.H"
+#include <AMReX_Vector.H>
 #include "AMReX_ParmParse.H"
 #include "AMReX_Utility.H"
 
@@ -53,7 +53,7 @@ public:
                                    amrex::Real y,
                                    amrex::Real z) const override;
 private:
-    amrex::Array<amrex::Real> params;
+    amrex::Vector<amrex::Real> params;
 };
 
 ///
@@ -173,13 +173,13 @@ private:
 ///
 class RegularPosition : public PlasmaParticlePosition{
 public:
-  RegularPosition(const amrex::Array<int>& num_particles_per_cell_each_dim);
+  RegularPosition(const amrex::Vector<int>& num_particles_per_cell_each_dim);
   virtual void getPositionUnitBox(vec3& r, int i_part) override;
 private:
   amrex::Real _x;
   amrex::Real _y;
   amrex::Real _z;
-  amrex::Array<int> _num_particles_per_cell_each_dim;
+  amrex::Vector<int> _num_particles_per_cell_each_dim;
 };
 
 ///
@@ -202,7 +202,7 @@ public:
 
     int num_particles_per_cell;
 
-    amrex::Array<int> num_particles_per_cell_each_dim;
+    amrex::Vector<int> num_particles_per_cell_each_dim;
 
     void getMomentum(vec3& u, amrex::Real x, amrex::Real y, amrex::Real z);
 
@@ -214,8 +214,8 @@ public:
     bool doInjection() { return part_pos != NULL;}
 
     bool add_single_particle = false;
-    amrex::Array<amrex::Real> single_particle_pos;
-    amrex::Array<amrex::Real> single_particle_vel;
+    amrex::Vector<amrex::Real> single_particle_pos;
+    amrex::Vector<amrex::Real> single_particle_vel;
     amrex::Real single_particle_weight;
 
     bool gaussian_beam = false;

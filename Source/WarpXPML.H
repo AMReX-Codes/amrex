@@ -40,7 +40,7 @@
 
 #endif
 
-struct Sigma : amrex::Array<amrex::Real>
+struct Sigma : amrex::Vector<amrex::Real>
 {
     int lo() const { return m_lo; }
     int hi() const { return m_hi; }
