@@ -10,6 +10,8 @@
 bool amrex::Device::in_device_launch_region = false;
 int amrex::Device::device_id = 0;
 
+int amrex::Device::verbose = 0;
+
 cudaStream_t amrex::Device::cuda_streams[max_cuda_streams];
 cudaStream_t amrex::Device::cuda_stream;
 
@@ -35,6 +37,11 @@ amrex::Device::stream_from_index(int idx) {
 
 void
 amrex::Device::initialize_device() {
+
+    ParmParse pp("device");
+
+    pp.query("v", verbose);
+    pp.query("verbose", verbose);
 
 #ifdef AMREX_USE_CUDA
 

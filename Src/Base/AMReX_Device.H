@@ -138,6 +138,8 @@ private:
     static int device_id;
     static int is_device_program_running;
 
+    static int verbose;
+
 #ifdef AMREX_USE_CUDA
     static const int max_cuda_streams = 100;
     static cudaStream_t cuda_streams[max_cuda_streams];
