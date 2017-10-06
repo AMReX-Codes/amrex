@@ -36,7 +36,7 @@ SMC::build_multifabs ()
 
     RealBox real_box(prob_lo.dataPtr(), prob_hi.dataPtr());  // physical size
     int coord = 0; // Cartesian coordinates
-    Array<int> is_per(3, 1); // triply periodic
+    Vector<int> is_per(3, 1); // triply periodic
     geom.define(bx, &real_box, 0, &is_per[0]);
 
     DistributionMapping dm{ba};

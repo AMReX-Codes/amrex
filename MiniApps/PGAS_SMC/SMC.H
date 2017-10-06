@@ -1,7 +1,7 @@
 #ifndef _SMC_H_
 #define _SMC_H_
 
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
@@ -46,12 +46,12 @@ private:
     static int ngrow;
 
     // runtime parameters;
-    static amrex::Array<int> ncell;
-    static amrex::Array<int> max_grid_size;
+    static amrex::Vector<int> ncell;
+    static amrex::Vector<int> max_grid_size;
     static int max_step;
     static amrex::Real stop_time;
-    static amrex::Array<amrex::Real> prob_lo;
-    static amrex::Array<amrex::Real> prob_hi;
+    static amrex::Vector<amrex::Real> prob_lo;
+    static amrex::Vector<amrex::Real> prob_hi;
     //
     static int  verbose;
     //
