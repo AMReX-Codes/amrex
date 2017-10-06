@@ -28,6 +28,8 @@ public:
 
     void setScalars (Real a, Real b) { m_a_scalar = a; m_b_scalar = b; }
     void setACoeffs (int amrlev, const MultiFab& alpha);
+    void setBCoeffs (int amrlev, int direction, const MultiFab& beta);
+    void averageDownCoeffs ();
 
 private:
 
@@ -35,6 +37,9 @@ private:
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
+
+    static void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+                                               Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b);
 };
 
 }

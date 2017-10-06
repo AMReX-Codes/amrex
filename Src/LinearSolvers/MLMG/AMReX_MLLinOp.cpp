@@ -3,6 +3,9 @@
 
 namespace amrex {
 
+constexpr int MLLinOp::mg_coarsen_ratio;
+constexpr int MLLinOp::mg_box_min_width;
+
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
                   const Vector<DistributionMapping>& a_dmap)
@@ -32,7 +35,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         m_grids[amrlev].push_back(a_grids[amrlev]);
         m_dmap[amrlev].push_back(a_dmap[amrlev]);
 
-        int rr = 2;
+        int rr = mg_coarsen_ratio;
         const Box& dom = a_geom[amrlev].Domain();
         for (int i = 0; i < 30; ++i)
         {
@@ -50,13 +53,11 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
             m_dmap[amrlev].push_back(a_dmap[amrlev]);
 
             if (cdom == a_geom[amrlev-1].Domain()) break;
-            rr *= 2;
+            rr *= mg_coarsen_ratio;
         }
 
         m_amr_ref_ratio[amrlev-1] = rr;
     }
-
-    const int min_width = 2;
 
     // coarsest amr level
     m_num_mg_levels[0] = 1;
@@ -64,9 +65,9 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
 
-    int rr = 2;
+    int rr = mg_coarsen_ratio;
     while (a_geom[0].Domain().coarsenable(rr)
-           and a_grids[0].coarsenable(rr, min_width))
+           and a_grids[0].coarsenable(rr, mg_box_min_width))
     {
         ++(m_num_mg_levels[0]);
 
@@ -77,7 +78,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
         m_dmap[0].push_back(a_dmap[0]);
         
-        rr *= 2;
+        rr *= mg_coarsen_ratio;
     }
 }
 

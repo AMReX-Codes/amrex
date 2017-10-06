@@ -2,6 +2,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
+#include <AMReX_MultiFabUtil.H>
 
 #include <prob_par.H>
 
@@ -31,16 +32,31 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
         prhs.push_back(&(rhs[ilev]));
     }
 
-    MLABecLaplacian mlabc(geom, grids, dmap);
+    MLABecLaplacian mlabec(geom, grids, dmap);
     // set bc ???
-    mlabc.setScalars(prob::a, prob::b);
+    mlabec.setScalars(prob::a, prob::b);
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
-        mlabc.setACoeffs(ilev, alpha[ilev]);
-//        mlabs.setBCoeffs();  // for each direction
+        mlabec.setACoeffs(ilev, alpha[ilev]);
+
+        std::array<MultiFab,AMREX_SPACEDIM> bcoefs;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            const BoxArray& ba = amrex::convert(beta[ilev].boxArray(), IntVect::TheDimensionVector(idim));
+            bcoefs[idim].define(ba, beta[ilev].DistributionMap(), 1, 0);
+        }
+        amrex::average_cellcenter_to_face({AMREX_D_DECL(&(bcoefs[0]),
+                                                        &(bcoefs[1]),
+                                                        &(bcoefs[2]))},
+                                          beta[ilev], geom[ilev]);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            mlabec.setBCoeffs(ilev,idim,bcoefs[idim]);
+        }
     }
+    mlabec.averageDownCoeffs();
     
-//    MLMG mlmg(mlabc);
+//    MLMG mlmg(mlabec);
 //    mlmg.solve(psoln, prhs, tol_rel, tol_abs);
 
 }
