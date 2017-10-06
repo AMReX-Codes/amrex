@@ -60,7 +60,7 @@ public:
     static void GotoNextLine (std::istream& is);
 
     // External fields
-    static amrex::Array<amrex::Real> B_external;
+    static amrex::Vector<amrex::Real> B_external;
 
     // Algorithms
     static long current_deposition_algo;
@@ -130,9 +130,9 @@ public:
     void WriteCheckPointFile () const;
     void WritePlotFile () const;
 
-    void WritePlotFileES(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
-                         const amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi,
-                         const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E);
+    void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                         const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                         const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E);
 
     static std::array<amrex::Real,3> CellSize (int lev);
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
@@ -197,16 +197,16 @@ private:
     /// Both rho and phi are assumed to be node-centered. This method is only used
     /// in electrostatic mode.
     ///
-    void computePhi(const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
-                          amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
+    void computePhi(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                          amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
     ///
     /// Compute the electric field in each direction by computing the gradient
     /// the potential phi using 2nd order centered differences. Both rho and phi
     /// are assumed to be node-centered. This method is only used in electrostatic mode.
     ///
-    void computeE(amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                  const amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi) const;
+    void computeE(amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi) const;
 
     void ReadParameters ();
 
@@ -228,7 +228,7 @@ private:
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
-    static void PackPlotDataPtrs (amrex::Array<const amrex::MultiFab*>& pmf,
+    static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
@@ -258,27 +258,27 @@ private:
     void sumFineToCrseNodal(const amrex::MultiFab& fine, amrex::MultiFab& crse,
                             const amrex::Geometry& cgeom, const amrex::IntVect& ratio);
 
-    void fixRHSForSolve(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rhs,
-                        const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) const ;
+    void fixRHSForSolve(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhs,
+                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) const ;
 
-    void getLevelMasks(amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks,
+    void getLevelMasks(amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks,
                        const int nnodes = 1);
 
     void LoadBalance ();
 
     // used to zero out fine level data on points shared with the coarse grid
     // in electrostatic mode
-    amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > masks;
+    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > masks;
 
     // used to gather the field from the coarse level in electrostatic mode.
-    amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
+    amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
 
-    amrex::Array<int> istep;      // which step?
-    amrex::Array<int> nsubsteps;  // how many substeps on each level?
+    amrex::Vector<int> istep;      // which step?
+    amrex::Vector<int> nsubsteps;  // how many substeps on each level?
 
-    amrex::Array<amrex::Real> t_new;
-    amrex::Array<amrex::Real> t_old;
-    amrex::Array<amrex::Real> dt;
+    amrex::Vector<amrex::Real> t_new;
+    amrex::Vector<amrex::Real> t_old;
+    amrex::Vector<amrex::Real> dt;
 
     // Particle container
     std::unique_ptr<MultiParticleContainer> mypc;
@@ -288,22 +288,22 @@ private:
     //
 
     // Full solution
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_aux;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_aux;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_aux;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_aux;
 
     // Fine patch
-    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > F_fp;
-    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > rho_fp;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > F_fp;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_fp;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp;
 
     // Coarse patch
-    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > F_cp;
-    amrex::Array<            std::unique_ptr<amrex::MultiFab>      > rho_cp;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
-    amrex::Array<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > F_cp;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
 
     // div E cleaning
     int do_dive_cleaning = 0;
@@ -313,7 +313,7 @@ private:
     int pml_ncell = 10;
     int pml_delta = 10;
     std::string pml_type = "pml";   // or apml
-    amrex::Array<std::unique_ptr<PML> > pml;
+    amrex::Vector<std::unique_ptr<PML> > pml;
 
     // Moving window parameters
     int do_moving_window  = 0;
@@ -324,14 +324,14 @@ private:
     // Plasma injection parameters
     int do_plasma_injection  = 0;
     int num_injected_species = -1;
-    amrex::Array<int> injected_plasma_species;
+    amrex::Vector<int> injected_plasma_species;
 
     int do_electrostatic = 0;
     int n_buffer = 4;
     amrex::Real const_dt = 0.5e-11;
 
     int load_balance_int = -1;
-    amrex::Array<std::unique_ptr<amrex::MultiFab> > costs;
+    amrex::Vector<std::unique_ptr<amrex::MultiFab> > costs;
 
     // Other runtime parameters
     int verbose = 1;

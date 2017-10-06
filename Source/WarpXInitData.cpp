@@ -123,7 +123,7 @@ WarpX::InitOpenbc ()
 
     int nprocs = ParallelDescriptor::NProcs();
     int myproc = ParallelDescriptor::MyProc();
-    Array<int> alllohi(6*nprocs,100000);
+    Vector<int> alllohi(6*nprocs,100000);
 
     MPI_Allgather(lohi, 6, MPI_INT, alllohi.data(), 6, MPI_INT, ParallelDescriptor::Communicator());
     
@@ -136,7 +136,7 @@ WarpX::InitOpenbc ()
     }
     BoxArray ba{bl};
 
-    Array<int> iprocmap(nprocs+1);
+    Vector<int> iprocmap(nprocs+1);
     std::iota(iprocmap.begin(), iprocmap.end(), 0);
     iprocmap.back() = myproc;
 

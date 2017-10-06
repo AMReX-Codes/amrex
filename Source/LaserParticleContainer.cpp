@@ -13,7 +13,7 @@ using namespace amrex;
 
 namespace
 {
-    Array<Real> CrossProduct (const Array<Real>& a, const Array<Real>& b)
+    Vector<Real> CrossProduct (const Vector<Real>& a, const Vector<Real>& b)
     {
 	return { a[1]*b[2]-a[2]*b[1],  a[2]*b[0]-a[0]*b[2],  a[0]*b[1]-a[1]*b[0] };
     }
@@ -89,7 +89,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
         prob_domain = Geometry::ProbDomain();
         {
-            Array<Real> lo, hi;
+            Vector<Real> lo, hi;
             if (pp.queryarr("prob_lo", lo)) {
                 prob_domain.setLo(lo);
             }
@@ -115,7 +115,7 @@ LaserParticleContainer::InitData (int lev)
     ComputeSpacing(lev, S_X, S_Y);
     ComputeWeightMobility(S_X, S_Y);
 
-    auto Transform = [&](int i, int j) -> Array<Real>
+    auto Transform = [&](int i, int j) -> Vector<Real>
     {
 #if (BL_SPACEDIM == 3)
 	return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
@@ -129,7 +129,7 @@ LaserParticleContainer::InitData (int lev)
     };
 
     // Given the "lab" frame coordinates, return the real coordinates in the laser plane coordinates
-    auto InverseTransform = [&](const Array<Real>& pos) -> Array<Real>
+    auto InverseTransform = [&](const Vector<Real>& pos) -> Vector<Real>
     {
 #if (BL_SPACEDIM == 3)
 	return {u_X[0]*(pos[0]-position[0])+u_X[1]*(pos[1]-position[1])+u_X[2]*(pos[2]-position[2]),
@@ -139,12 +139,12 @@ LaserParticleContainer::InitData (int lev)
 #endif
     };
 
-    Array<int> plane_lo(2, std::numeric_limits<int>::max());
-    Array<int> plane_hi(2, std::numeric_limits<int>::min());
+    Vector<int> plane_lo(2, std::numeric_limits<int>::max());
+    Vector<int> plane_hi(2, std::numeric_limits<int>::min());
     {
 	auto compute_min_max = [&](Real x, Real y, Real z)
 	{
-	    const Array<Real>& pos_plane = InverseTransform({x, y, z});
+	    const Vector<Real>& pos_plane = InverseTransform({x, y, z});
 	    int i = pos_plane[0]/S_X;
 	    int j = pos_plane[1]/S_Y;
 	    plane_lo[0] = std::min(plane_lo[0], i);
@@ -198,10 +198,10 @@ LaserParticleContainer::InitData (int lev)
     BoxArray plane_ba { Box {IntVect(plane_lo[0],0), IntVect(plane_hi[0],0)} };
 #endif
 
-    Array<Real> particle_x, particle_y, particle_z, particle_w;
+    Vector<Real> particle_x, particle_y, particle_z, particle_w;
 
     const DistributionMapping plane_dm {plane_ba, nprocs};
-    const Array<int>& procmap = plane_dm.ProcessorMap();
+    const Vector<int>& procmap = plane_dm.ProcessorMap();
     for (int i = 0, n = plane_ba.size(); i < n; ++i)
     {
 	if (procmap[i] == myproc)
@@ -209,7 +209,7 @@ LaserParticleContainer::InitData (int lev)
 	    const Box& bx = plane_ba[i];
 	    for (IntVect cell = bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
 	    {
-		const Array<Real>& pos = Transform(cell[0], cell[1]);
+		const Vector<Real>& pos = Transform(cell[0], cell[1]);
 #if (BL_SPACEDIM == 3)
 		const Real* x = pos.data();
 #else
@@ -229,9 +229,9 @@ LaserParticleContainer::InitData (int lev)
 	}
     }
     const int np = particle_z.size();
-    Array<Real> particle_ux(np, 0.0);
-    Array<Real> particle_uy(np, 0.0);
-    Array<Real> particle_uz(np, 0.0);
+    Vector<Real> particle_ux(np, 0.0);
+    Vector<Real> particle_uy(np, 0.0);
+    Vector<Real> particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
     AddNParticles(lev,
@@ -269,7 +269,7 @@ LaserParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
+	Vector<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
         FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
 

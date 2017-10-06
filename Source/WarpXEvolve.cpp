@@ -41,9 +41,9 @@ WarpX::EvolveES(int numsteps) {
 
     // nodal storage for the electrostatic case
     const int num_levels = max_level + 1;
-    Array<std::unique_ptr<MultiFab> > rhoNodal(num_levels);
-    Array<std::unique_ptr<MultiFab> > phiNodal(num_levels); 
-    Array<std::array<std::unique_ptr<MultiFab>, 3> > eFieldNodal(num_levels);  
+    Vector<std::unique_ptr<MultiFab> > rhoNodal(num_levels);
+    Vector<std::unique_ptr<MultiFab> > phiNodal(num_levels); 
+    Vector<std::array<std::unique_ptr<MultiFab>, 3> > eFieldNodal(num_levels);  
     const int ng = 1;
     for (int lev = 0; lev <= max_level; lev++) {
         BoxArray nba = boxArray(lev);
