@@ -134,8 +134,8 @@ int
 Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
                                         const Real*         plo,
                                         const Real*         dx,
-                                        Array<Real>&        fracs,
-                                        Array<IntVect>&     cells)
+                                        Vector<Real>&        fracs,
+                                        Vector<IntVect>&     cells)
 {
     return Particle<NReal, NInt>::CIC_Cells_Fracs(p,plo,dx,dx,fracs,cells);
 }
@@ -172,8 +172,8 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
                                         const Real*         plo,
                                         const Real*         dx_geom,
                                         const Real*         dx_part,
-                                        Array<Real>&        fracs,
-                                        Array<IntVect>&     cells)
+                                        Vector<Real>&        fracs,
+                                        Vector<IntVect>&     cells)
 {
     BL_PROFILE("Particle<NReal, NInt>::CIC_Cells_Fracs()");
     if (dx_geom == dx_part)

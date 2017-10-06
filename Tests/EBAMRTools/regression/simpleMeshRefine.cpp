@@ -38,7 +38,7 @@ namespace amrex
                 Real &       a_dx)
   {
     ParmParse pp;
-    Array<int> n_cell(SpaceDim);
+    Vector<int> n_cell(SpaceDim);
     pp.getarr("n_cell",n_cell,0,SpaceDim);
 
     BL_ASSERT(n_cell.size() == SpaceDim);
@@ -62,7 +62,7 @@ namespace amrex
 
   }
   void
-  makeGeometry(Array<int> &  a_refRat,
+  makeGeometry(Vector<int> &  a_refRat,
                int              &  a_maxGridSize,
                int              &  a_maxLevel,
                const Box        &  a_domainCoar,
@@ -82,7 +82,7 @@ namespace amrex
     }
     RealVect        sphereCenter;
     Real            sphereRadius;
-    Array<Real>sphereCenterVect(SpaceDim);
+    Vector<Real>sphereCenterVect(SpaceDim);
     pp.get("sphere_radius", sphereRadius);
     pp.get("max_grid_size", a_maxGridSize);
     pp.getarr("sphere_center",sphereCenterVect, 0, SpaceDim);
@@ -102,9 +102,9 @@ namespace amrex
     ebisPtr->define(domainFine, origin, dxFine, workshop, a_maxGridSize, ebmaxcoarsen);
   }
   /************/
-  void  getTags(Array<IntVectSet>& a_tags, 
+  void  getTags(Vector<IntVectSet>& a_tags, 
                 const int              & a_maxGridSize,
-                const Array<int> & a_refRat, 
+                const Vector<int> & a_refRat, 
                 const int              & a_maxLevel, 
                 const Box              & a_domainCoar)
   {
@@ -139,15 +139,15 @@ namespace amrex
     Real    dxCoar;
 
     getBaseDomain(domainCoar,  dxCoar);
-    Array<int> refRat;
+    Vector<int> refRat;
     int maxGridSize, maxLevel;
     makeGeometry(refRat, maxGridSize, maxLevel, domainCoar,  dxCoar);
 
-    Array<IntVectSet> tags;
+    Vector<IntVectSet> tags;
     
     getTags(tags, maxGridSize, refRat, maxLevel, domainCoar);
 
-    Array<BoxArray> grids;
+    Vector<BoxArray> grids;
     int block, proper;
     Real gridEff;
     ParmParse pp;

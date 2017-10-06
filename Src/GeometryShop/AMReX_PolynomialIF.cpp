@@ -17,7 +17,7 @@ namespace amrex
 
   ////
   PolynomialIF::
-  PolynomialIF (const Array<PolyTerm>& a_polynomial,
+  PolynomialIF (const Vector<PolyTerm>& a_polynomial,
                 const bool&             a_inside)
   {
     m_polynomial = a_polynomial;
@@ -29,7 +29,7 @@ namespace amrex
   Real 
   PolynomialIF::
   value (const RealVect         & a_point,
-         const Array<PolyTerm> & a_polynomial) const
+         const Vector<PolyTerm> & a_polynomial) const
   {
     Real retval;
 

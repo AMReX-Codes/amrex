@@ -40,7 +40,7 @@ namespace amrex
     }
 
     void FillPatchSingleLevel (MultiFab& mf, Real time, 
-			       const Array<MultiFab*>& smf, const Array<Real>& stime,
+			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom, PhysBCFunctBase& physbcf)
     {
@@ -115,15 +115,15 @@ namespace amrex
     }
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
-			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
-			     const Array<MultiFab*>& fmf, const Array<Real>& ft,
+			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
+			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
 			     Interpolater* mapper, const BCRec& bcs)
     {
-        Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
+        Vector<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
 
         FillPatchTwoLevels(mf,time,cmf,ct,fmf,ft,scomp,dcomp,ncomp,cgeom,fgeom,
                            cbc,fbc,ratio,mapper,bcs_array);
@@ -131,13 +131,13 @@ namespace amrex
 
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
-			     const Array<MultiFab*>& cmf, const Array<Real>& ct,
-			     const Array<MultiFab*>& fmf, const Array<Real>& ft,
+			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
+			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
 			     const Geometry& cgeom, const Geometry& fgeom, 
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio, 
-			     Interpolater* mapper, const Array<BCRec>& bcs)
+			     Interpolater* mapper, const Vector<BCRec>& bcs)
     {
 	BL_PROFILE("FillPatchTwoLevels");
 
@@ -179,7 +179,7 @@ namespace amrex
 		    int gi = fpc.dst_idxs[li];		
 		    const Box& dbx = fpc.dst_boxes[li];
 		    
-		    Array<BCRec> bcr(ncomp);
+		    Vector<BCRec> bcr(ncomp);
 		    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
 		    
 		    mapper->interp(mf_crse_patch[mfi],
@@ -207,7 +207,7 @@ namespace amrex
 				Interpolater* mapper, const BCRec& bcs)
     {
 
-        Array<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
+        Vector<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
         InterpFromCoarseLevel(mf,time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
                               cbc,fbc,ratio,mapper,bcs_array);
 
@@ -218,7 +218,7 @@ namespace amrex
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom, 
 				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
-				Interpolater* mapper, const Array<BCRec>& bcs)
+				Interpolater* mapper, const Vector<BCRec>& bcs)
     {
 	const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
@@ -272,7 +272,7 @@ namespace amrex
 	    FArrayBox& dfab = mf[mfi];
 	    const Box& dbx = dfab.box() & fdomain_g;
 
-	    Array<BCRec> bcr(ncomp);
+	    Vector<BCRec> bcr(ncomp);
 	    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
 	    
 	    mapper->interp(mf_crse_patch[mfi],

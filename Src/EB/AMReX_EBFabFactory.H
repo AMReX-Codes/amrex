@@ -16,7 +16,7 @@ class EBFArrayBoxFactory
 public:
 
     EBFArrayBoxFactory (const Geometry& a_geom, const BoxArray& a_ba, const DistributionMapping& a_dm,
-                        const Array<int>& a_ngrow, EBSupport a_support);
+                        const Vector<int>& a_ngrow, EBSupport a_support);
     virtual ~EBFArrayBoxFactory () = default;
 
     EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;

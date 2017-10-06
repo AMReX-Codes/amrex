@@ -57,7 +57,7 @@ namespace amrex
 
 /***************/
   int getError(FabArray<EBCellFAB> & a_error,
-               Array<EBLevelGrid> & a_eblg,
+               Vector<EBLevelGrid> & a_eblg,
                const Real& a_dxLev1)
   {
     int nghostData = 3;
@@ -196,8 +196,8 @@ namespace amrex
     else if (whichgeom == 5)
     {
       amrex::Print() << "sphere geometry\n";
-      Array<Real> centervec(SpaceDim);
-      Array<int>  ncellsvec(SpaceDim);
+      Vector<Real> centervec(SpaceDim);
+      Vector<int>  ncellsvec(SpaceDim);
       int maxgrid;
       ParmParse pp;
       Real radius;
@@ -237,7 +237,7 @@ namespace amrex
     //and defines it using a geometryservice
     int eekflag = makeGeometry(paramsFine);
 
-    Array<EBLevelGrid> eblgFine, eblgCoar;
+    Vector<EBLevelGrid> eblgFine, eblgCoar;
     getAllIrregEBLG(eblgFine, paramsFine);
     getAllIrregEBLG(eblgCoar, paramsCoar);
     
@@ -255,7 +255,7 @@ namespace amrex
     eekflag = getError(errorFine,eblgFine, dxLev1Fine);
     eekflag = getError(errorCoar,eblgCoar, dxLev1Coar);
 
-    EBLevelDataOps::compareError(errorFine, errorCoar, eblgFine[1], eblgCoar[1], Array<string>(), true);
+    EBLevelDataOps::compareError(errorFine, errorCoar, eblgFine[1], eblgCoar[1], Vector<string>(), true);
     return eekflag;
   }
 }

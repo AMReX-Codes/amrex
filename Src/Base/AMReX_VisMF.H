@@ -32,7 +32,7 @@ public:
     typedef char Setbuf_Char_Type;
 #endif
     //! A simple character buffer for setbuf() usage.
-    typedef Array<Setbuf_Char_Type> IO_Buffer;
+    typedef Vector<Setbuf_Char_Type> IO_Buffer;
     /**
     * \brief How we write out FabArray<FArrayBox>s.
     * These are deprecated, we always use NFiles.
@@ -89,14 +89,14 @@ public:
         int                  m_ncomp; // Number of components in MF.
         int                  m_ngrow; // The number of ghost cells in MF.
         BoxArray             m_ba;    // The BoxArray of the MF.
-        Array< FabOnDisk >   m_fod;   // FabOnDisk info for contained FABs.
+        Vector< FabOnDisk >   m_fod;   // FabOnDisk info for contained FABs.
 	//
 	// These are not defined if they are not in the header
 	//
-        Array< Array<Real> > m_min;   // The min()s of each component of FABs.  [findex][comp]
-        Array< Array<Real> > m_max;   // The max()s of each component of FABs.  [findex][comp]
-        Array<Real>          m_famin; // The min()s of each component of the FabArray.  [comp]
-        Array<Real>          m_famax; // The max()s of each component of the FabArray.  [comp]
+        Vector< Vector<Real> > m_min;   // The min()s of each component of FABs.  [findex][comp]
+        Vector< Vector<Real> > m_max;   // The max()s of each component of FABs.  [findex][comp]
+        Vector<Real>          m_famin; // The min()s of each component of the FabArray.  [comp]
+        Vector<Real>          m_famax; // The max()s of each component of the FabArray.  [comp]
 	RealDescriptor       m_writtenRD;
     };
 
@@ -199,7 +199,7 @@ public:
 
     //! Read only the header of a FabArray, header will be resized here.
     static void ReadFAHeader (const std::string &fafabName,
-		              Array<char> &header);
+		              Vector<char> &header);
 
     //! Check if the multifab is ok, false is returned if not ok
     static bool Check (const std::string &name);
@@ -307,7 +307,7 @@ private:
     //! The VisMF header as read from disk.
     Header m_hdr;
     //! We manage the FABs individually.
-    mutable Array< Array<FArrayBox*> > m_pa;
+    mutable Vector< Vector<FArrayBox*> > m_pa;
     /**
     * \brief Persistent streams.  These open on demand and should
     * be closed when not needed with CloseAllStreams.
@@ -336,10 +336,10 @@ private:
 std::ostream& operator<< (std::ostream& os, const VisMF::FabOnDisk& fod);
 //! Read a FabOnDisk from an istream.
 std::istream& operator>> (std::istream& is, VisMF::FabOnDisk& fod);
-//! Write an Array<FabOnDisk> to an ostream in ASCII.
-std::ostream& operator<< (std::ostream& os, const Array<VisMF::FabOnDisk>& fa);
-//! Read an Array<FabOnDisk> from an istream.
-std::istream& operator>> (std::istream& is, Array<VisMF::FabOnDisk>& fa);
+//! Write an Vector<FabOnDisk> to an ostream in ASCII.
+std::ostream& operator<< (std::ostream& os, const Vector<VisMF::FabOnDisk>& fa);
+//! Read an Vector<FabOnDisk> from an istream.
+std::istream& operator>> (std::istream& is, Vector<VisMF::FabOnDisk>& fa);
 //! Write a VisMF::Header to an ostream in ASCII.
 std::ostream& operator<< (std::ostream& os, const VisMF::Header& hd);
 //! Read a VisMF::Header from an istream.

@@ -15,7 +15,7 @@ main (int argc, char** argv)
 {
     amrex::Initialize(argc, argv);
 
-    typedef std::map<Array<int>,Array<Real> > OurBinMap;
+    typedef std::map<Vector<int>,Vector<Real> > OurBinMap;
 
     OurBinMap bins;
 
@@ -33,7 +33,7 @@ main (int argc, char** argv)
     //
     for (int i = 0; i < 10 + (10*MyProc); i++)
     {
-      Array<int> iv(nKeys);
+      Vector<int> iv(nKeys);
       for (int j=0; j<nKeys; ++j) {
         iv[j] = 1000*MyProc+i;
       }
@@ -46,10 +46,10 @@ main (int argc, char** argv)
     // Used by IOProc but the "1" is so others can call dataPtr()
     // without error.
     //
-    Array<int> nmkeys(1);
-    Array<int> nmvals(1);
-    Array<int> nmentries(1);
-    Array<int> offset(1);
+    Vector<int> nmkeys(1);
+    Vector<int> nmvals(1);
+    Vector<int> nmentries(1);
+    Vector<int> offset(1);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -75,20 +75,20 @@ main (int argc, char** argv)
     //
     // Each CPU must pack its data into simple arrays.
     //
-    Array<int>  lkeys;
-    Array<Real> lvals;
+    Vector<int>  lkeys;
+    Vector<Real> lvals;
 
     for (OurBinMap::const_iterator it = bins.begin(), End = bins.end();
          it != End;
          ++it)
     {
-        const Array<int>& iv = it->first;
+        const Vector<int>& iv = it->first;
         BL_ASSERT(iv.size() == nKeys);
 
         for (int i = 0; i < nKeys; i++)
             lkeys.push_back(iv[i]);
 
-        const Array<Real>& vals = it->second;
+        const Vector<Real>& vals = it->second;
         BL_ASSERT(vals.size() == nVals);
 
         for (int i = 0; i < nVals; i++)
@@ -107,8 +107,8 @@ main (int argc, char** argv)
     //
     // The "global" (keys,vals) pairs into which all processors send their data.
     //
-    Array<int>  keys(1);
-    Array<Real> vals(1);
+    Vector<int>  keys(1);
+    Vector<Real> vals(1);
     //
     // First pass the vals.
     //
@@ -187,13 +187,13 @@ main (int argc, char** argv)
         for (int i = 0; i < nentries; i++)
         {
             int ik = i * nKeys;
-            Array<int> key(nKeys);
+            Vector<int> key(nKeys);
             for (int k=0; k<nKeys; ++k) {
                 key[k] = keys[ik+k];
             }
 
             int iv = i * nVals;
-            Array<Real> val(nVals);
+            Vector<Real> val(nVals);
             for (int k=0; k<nVals; ++k) {
                 val[k] = vals[iv+k];
             }

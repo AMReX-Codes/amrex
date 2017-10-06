@@ -23,8 +23,8 @@ void main_main ()
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
-    Array<int> bc_lo(AMREX_SPACEDIM,0);
-    Array<int> bc_hi(AMREX_SPACEDIM,0);
+    Vector<int> bc_lo(AMREX_SPACEDIM,0);
+    Vector<int> bc_hi(AMREX_SPACEDIM,0);
 
     // inputs parameters
     {
@@ -53,7 +53,7 @@ void main_main ()
     }
 
     // determine whether boundary conditions are periodic
-    Array<int> is_periodic(AMREX_SPACEDIM,0);
+    Vector<int> is_periodic(AMREX_SPACEDIM,0);
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
         if (bc_lo[idim] == INT_DIR && bc_hi[idim] == INT_DIR) {
             is_periodic[idim] = 1;
@@ -109,7 +109,7 @@ void main_main ()
     }
 
     // Set up BCRec; see Src/Base/AMReX_BC_TYPES.H for supported types
-    Array<BCRec> bc(phi_old.nComp());
+    Vector<BCRec> bc(phi_old.nComp());
     for (int n = 0; n < phi_old.nComp(); ++n)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)

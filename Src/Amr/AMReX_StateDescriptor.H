@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_PhysBCFunct.H>
@@ -199,7 +200,7 @@ public:
     //
     // Returns all BCRecs.
     //
-    const Array<BCRec>& getBCs () const;
+    const Vector<BCRec>& getBCs () const;
     //
     // Returns the BndryFunc of specified component.
     //
@@ -243,16 +244,16 @@ private:
     Interpolater*      mapper;   // Default interpolator
     bool               m_extrap; // Can extrapolate in time?
     bool               m_store_in_checkpoint; // Should store this in the checkpoint file?
-    Array<std::string> names;    // Printable names of components
-    Array<BCRec>       bc;       // Array of bndry types for entire level
-    Array<std::unique_ptr<BndryFunc> >  bc_func;  // Array of pointers to bndry fill functions
-    Array<int>         m_master; // Are we a master or slave? (true or false)
-    Array<int>         m_groupsize; // Groupsize if we're a master
+    Vector<std::string> names;    // Printable names of components
+    Vector<BCRec>       bc;       // Array of bndry types for entire level
+    Vector<std::unique_ptr<BndryFunc> >  bc_func;  // Array of pointers to bndry fill functions
+    Vector<int>         m_master; // Are we a master or slave? (true or false)
+    Vector<int>         m_groupsize; // Groupsize if we're a master
     //
     // If mapper_comp[icomp] != 0, that map is used instead of mapper
     // when interpolating icomp; otherwise, mapper is used.
     //
-    Array<Interpolater*> mapper_comp;
+    Vector<Interpolater*> mapper_comp;
     //
     // For component icomp, max_map_start_comp[icomp] and
     // min_map_end_comp[icomp] represent the maximum starting index and
@@ -263,8 +264,8 @@ private:
     // If there is no need to "couple" a component, max_map_start_comp[icomp]
     // and min_map_end_comp[icomp] simply equal icomp.
     //
-    Array<int> max_map_start_comp;
-    Array<int> min_map_end_comp;
+    Vector<int> max_map_start_comp;
+    Vector<int> min_map_end_comp;
 
     static int bf_ext_dir_threadsafe;
     static bool bf_thread_safety (const int* lo,const int* hi,
@@ -329,8 +330,8 @@ public:
     //
     void setComponent (int                               indx,
                        int                               comp,
-                       const Array<std::string>&         nm,
-                       const Array<BCRec>&               bc,
+                       const Vector<std::string>&         nm,
+                       const Vector<BCRec>&               bc,
                        const StateDescriptor::BndryFunc& func,
                        Interpolater*                     interp = 0);
     //
@@ -347,7 +348,7 @@ private:
     DescriptorList (const DescriptorList&);
     DescriptorList& operator= (const DescriptorList&);
 
-    Array<std::unique_ptr<StateDescriptor> > desc;
+    Vector<std::unique_ptr<StateDescriptor> > desc;
 };
 
 }

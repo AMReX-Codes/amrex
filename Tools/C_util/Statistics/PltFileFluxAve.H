@@ -19,10 +19,10 @@ compute_flux_all(int nstart,
 void
 compute_flux(AmrData&           amrData, 
 	     int                dir, 
-	     Array<std::string> cNames,
+	     Vector<std::string> cNames,
 	     Real               dt,
-	     Array<Real>&       xold,
+	     Vector<Real>&       xold,
 	     Real&              flux,
 	     Real               phi,
 	     bool               do_init,
- 	     Array<Real>&       barr);
+ 	     Vector<Real>&       barr);

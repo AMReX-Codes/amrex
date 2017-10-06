@@ -2,6 +2,7 @@
 #define _ParGDB_H
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
@@ -52,10 +53,10 @@ public:
 	    const DistributionMapping & dmap,
 	    const BoxArray            & ba);
 
-    ParGDB (const Array<Geometry>            & geom, 
-	    const Array<DistributionMapping> & dmap,
-	    const Array<BoxArray>            & ba,
-	    const Array<int>                 & rr);
+    ParGDB (const Vector<Geometry>            & geom, 
+	    const Vector<DistributionMapping> & dmap,
+	    const Vector<BoxArray>            & ba,
+	    const Vector<int>                 & rr);
 
     virtual ~ParGDB () {;}
 
@@ -82,10 +83,10 @@ public:
 
 protected:
 
-    Array<Geometry>            m_geom;
-    Array<DistributionMapping> m_dmap;
-    Array<BoxArray>            m_ba;
-    Array<int>                 m_rr;
+    Vector<Geometry>            m_geom;
+    Vector<DistributionMapping> m_dmap;
+    Vector<BoxArray>            m_ba;
+    Vector<int>                 m_rr;
     int                        m_nlevels;
 
 };
@@ -110,10 +111,10 @@ ParGDB::ParGDB (const Geometry            & geom,
 { }
 
 inline
-ParGDB::ParGDB (const Array<Geometry>            & geom, 
-		const Array<DistributionMapping> & dmap,
-		const Array<BoxArray>            & ba,
-		const Array<int>                 & rr)
+ParGDB::ParGDB (const Vector<Geometry>            & geom, 
+		const Vector<DistributionMapping> & dmap,
+		const Vector<BoxArray>            & ba,
+		const Vector<int>                 & rr)
     :
     m_geom(geom),
     m_dmap(dmap),

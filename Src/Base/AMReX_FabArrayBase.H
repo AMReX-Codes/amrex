@@ -85,7 +85,7 @@ public:
     int local_size () const { return indexArray.size(); }
 
     //! Return constant reference to indices in the FabArray that we have access.
-    const Array<int> &IndexArray () const { return indexArray; }
+    const Vector<int> &IndexArray () const { return indexArray; }
 
     //! Return local index in the vector of FABs.
     int localindex (int K) const { 
@@ -207,11 +207,11 @@ public:
     struct TileArray
     {
 	int nuse;
-	Array<int> numLocalTiles;
-	Array<int> indexMap;	
-	Array<int> localIndexMap;
-	Array<int> localTileIndexMap;
-	Array<Box> tileArray;
+	Vector<int> numLocalTiles;
+	Vector<int> indexMap;	
+	Vector<int> localIndexMap;
+	Vector<int> localTileIndexMap;
+	Vector<Box> tileArray;
 	TileArray () : nuse(-1) {;}
 	long bytes () const;
     };
@@ -305,8 +305,8 @@ public:
 	BoxArray            ba_crse_patch;
 	DistributionMapping dm_crse_patch;
         std::unique_ptr<FabFactory<FArrayBox> > fact_crse_patch;
-	Array<int>          dst_idxs;
-	Array<Box>          dst_boxes;
+	Vector<int>          dst_idxs;
+	Vector<Box>          dst_boxes;
 	//
 	BDKey               m_srcbdk;
 	BDKey               m_dstbdk;
@@ -351,7 +351,7 @@ public:
 
         BoxArray            ba_cfb;
         DistributionMapping dm_cfb;
-        Array<int>          fine_grid_idx; // local array
+        Vector<int>          fine_grid_idx; // local array
         //
         BDKey               m_fine_bdk;
         Box                 m_fine_domain;
@@ -386,14 +386,14 @@ public:
 
     //! Block until all send requests complete
     static void WaitForAsyncSends (int                 N_snds,
-                                   Array<MPI_Request>& send_reqs,
-                                   Array<char*>&       send_data,
-                                   Array<MPI_Status>&  stats);
+                                   Vector<MPI_Request>& send_reqs,
+                                   Vector<char*>&       send_data,
+                                   Vector<MPI_Status>&  stats);
 
 #ifdef BL_USE_UPCXX
     //! Block until all send requests complete
     static void WaitForAsyncSends_PGAS (int                 N_snds,
-                                        Array<char*>&       send_data,
+                                        Vector<char*>&       send_data,
                                         upcxx::event*       send_event,
                                         volatile int*       send_counter);
 #endif
@@ -415,7 +415,7 @@ protected:
     //
     mutable BoxArray    boxarray;
     DistributionMapping distributionMap;
-    Array<int>          indexArray;
+    Vector<int>          indexArray;
     std::vector<bool>   ownership;
     int                 n_grow;
     int                 n_comp;
@@ -495,9 +495,9 @@ protected:
 	     const FabArrayBase& srcfa, int srcng,
 	     const Periodicity& period);
 	CPC (const BoxArray& dstba, const DistributionMapping& dstdm, 
-	     const Array<int>& dstidx, int dstng,
+	     const Vector<int>& dstidx, int dstng,
 	     const BoxArray& srcba, const DistributionMapping& srcdm, 
-	     const Array<int>& srcidx, int srcng,
+	     const Vector<int>& srcidx, int srcng,
 	     const Periodicity& period, int myproc);
         ~CPC ();
 
@@ -525,9 +525,9 @@ protected:
 
     private:
 	void define (const BoxArray& ba_dst, const DistributionMapping& dm_dst,
-		     const Array<int>& imap_dst,
+		     const Vector<int>& imap_dst,
 		     const BoxArray& ba_src, const DistributionMapping& dm_src,
-		     const Array<int>& imap_src,
+		     const Vector<int>& imap_src,
 		     int MyProc = ParallelDescriptor::MyProc());
     };
     //
@@ -589,8 +589,8 @@ protected:
     static FabArrayStats m_FA_stats;
 
 #ifdef BL_USE_MPI
-    static bool CheckRcvStats(Array<MPI_Status>& recv_stats,
-			      const Array<int>& recv_size,
+    static bool CheckRcvStats(Vector<MPI_Status>& recv_stats,
+			      const Vector<int>& recv_size,
 			      MPI_Datatype datatype, int tag);
 #endif
 };

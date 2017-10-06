@@ -41,7 +41,7 @@ void test_assign_density(TestParams& parms)
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Array<int> rr(nlevs-1);
+    Vector<int> rr(nlevs-1);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -51,14 +51,14 @@ void test_assign_density(TestParams& parms)
         is_per[i] = 1;
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
+    Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, CoordSys::cartesian, is_per);
     for (int lev = 1; lev < nlevs; lev++) {
 	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
 			 &real_box, CoordSys::cartesian, is_per);
     }
 
-    Array<BoxArray> ba(nlevs);
+    Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
     
     // Now we make the refined level be the center eighth of the domain
@@ -77,11 +77,11 @@ void test_assign_density(TestParams& parms)
         ba[lev].maxSize(parms.max_grid_size);
     }
 
-    Array<DistributionMapping> dmap(nlevs);
+    Vector<DistributionMapping> dmap(nlevs);
 
-    Array<std::unique_ptr<MultiFab> > partMF(nlevs);
-    Array<std::unique_ptr<MultiFab> > density(nlevs);
-    Array<std::unique_ptr<MultiFab> > acceleration(nlevs);
+    Vector<std::unique_ptr<MultiFab> > partMF(nlevs);
+    Vector<std::unique_ptr<MultiFab> > density(nlevs);
+    Vector<std::unique_ptr<MultiFab> > acceleration(nlevs);
     for (int lev = 0; lev < nlevs; lev++) {
         dmap[lev] = DistributionMapping{ba[lev]};
         density[lev].reset(new MultiFab(ba[lev], dmap[lev], 1, 0));
@@ -112,20 +112,20 @@ void test_assign_density(TestParams& parms)
         MultiFab::Copy(*density[lev], *partMF[lev], 0, 0, 1, 0);
     }
 
-    Array<std::string> varnames;
+    Vector<std::string> varnames;
     varnames.push_back("density");
 
-    Array<std::string> particle_varnames;
+    Vector<std::string> particle_varnames;
     particle_varnames.push_back("mass");
 
-    Array<int> level_steps;
+    Vector<int> level_steps;
     level_steps.push_back(0);
     level_steps.push_back(0);
 
     int output_levs = nlevs;
 
-    Array<const MultiFab*> outputMF(output_levs);
-    Array<IntVect> outputRR(output_levs);
+    Vector<const MultiFab*> outputMF(output_levs);
+    Vector<IntVect> outputRR(output_levs);
     for (int lev = 0; lev < output_levs; ++lev) {
         outputMF[lev] = density[lev].get();
         outputRR[lev] = IntVect(D_DECL(2, 2, 2));

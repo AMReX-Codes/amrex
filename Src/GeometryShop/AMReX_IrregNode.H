@@ -74,13 +74,13 @@ namespace amrex
        For arcs to regular cells, the arc = 0
        If the arc is to the domain boundary, arc  = -1.
     */
-    std::array<Array<int>,2*SpaceDim>      m_arc;
+    std::array<Vector<int>,2*SpaceDim>      m_arc;
 
     ///
-    std::array<Array<Real>,2*SpaceDim>     m_areaFrac;
+    std::array<Vector<Real>,2*SpaceDim>     m_areaFrac;
 
     ///
-    std::array<Array<RealVect>,2*SpaceDim> m_faceCentroid;
+    std::array<Vector<RealVect>,2*SpaceDim> m_faceCentroid;
 
     Real bndryArea() const;
 

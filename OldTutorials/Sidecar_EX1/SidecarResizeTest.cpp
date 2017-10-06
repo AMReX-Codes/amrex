@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
       std::cout << "nSidecarProcs from parmparse = " << nSidecarProcsFromParmParse << std::endl;
     }
 
-    Array<int> howManySidecars(3);
+    Vector<int> howManySidecars(3);
     howManySidecars[0] = nSidecarProcsFromParmParse;
     howManySidecars[1] = 1;
     howManySidecars[2] = 4;
