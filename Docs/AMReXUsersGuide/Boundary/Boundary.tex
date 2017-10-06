@@ -15,11 +15,11 @@ If there is more than one variable, we can create an array of {\tt BCRec} object
 and pass in a pointer to the 0-index component since the arrays for all the 
 components are contiguous in memory.
 Here we need to provide boundary types to each component of the {\tt
-MultiFab}.  Below is an example of setting up {\tt Array<BCRec>}
+MultiFab}.  Below is an example of setting up {\tt Vector<BCRec>}
 before the call to ghost cell routines.
 \begin{lstlisting}[language=cpp]
   // Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types
-  Array<BCRec> bc(phi.nComp());
+  Vector<BCRec> bc(phi.nComp());
   for (int n = 0; n < phi.nComp(); ++n)
   {
       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -76,7 +76,7 @@ cells. (refer to Tutorials/Basic/HeatEquation\_EX2\_C for an example).
 \begin{lstlisting}[language=cpp]
 MultiFab mf;
 Geometry geom;
-Array<BCRec> bc;
+Vector<BCRec> bc;
 
 // ...
 
