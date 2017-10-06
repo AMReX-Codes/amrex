@@ -6,7 +6,7 @@ using namespace amrex;
 // Note that tags is built on level lev grids coarsened by bf_lev[lev].
 void
 MyAmr::ManualTagsPlacement (int lev, TagBoxArray& tags,
-                            const Array<IntVect>& bf_lev)
+                            const Vector<IntVect>& bf_lev)
 {
     // let's refine along the line r = (0,0,0) + (1.0,0.9,1.1)*k
     std::array<Real,3> n {1.0, 0.9, 1.1};

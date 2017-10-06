@@ -24,13 +24,13 @@ int main(int argc, char *argv[]) {
       amrex::Abort("**** Error:  must use at least 8 processes.");
     }
 
-    Array<int> compProcsInAll;
+    Vector<int> compProcsInAll;
     compProcsInAll.push_back(0);
     for(int i(1); i < nProcs - totalSidecarProcs; ++i) {
       compProcsInAll.push_back(nProcs - totalSidecarProcs - i);  // ---- backwards
     }
 
-    Array<Array<int> > sidecarProcsInAll(nSidecars);
+    Vector<Vector<int> > sidecarProcsInAll(nSidecars);
     for(int i(nProcs - totalSidecarProcs); i < nProcs; ++i) {
       sidecarProcsInAll[0].push_back(i);
     }

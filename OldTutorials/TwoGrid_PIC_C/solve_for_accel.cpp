@@ -12,21 +12,21 @@
 
 using namespace amrex;
 
-void solve_with_f90  (const Array<MultiFab*>& rhs,
-		      const Array<MultiFab*>& phi,
-		      const Array< Array<MultiFab*> >& grad_phi_edge, 
-                      const Array<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
+void solve_with_f90  (const Vector<MultiFab*>& rhs,
+		      const Vector<MultiFab*>& phi,
+		      const Vector< Vector<MultiFab*> >& grad_phi_edge, 
+                      const Vector<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
 void 
-solve_for_accel(const Array<MultiFab*>& rhs,
-		const Array<MultiFab*>& phi,
-		const Array<MultiFab*>& grad_phi, 
-		const Array<Geometry>& geom, int base_level, int finest_level, Real offset)
+solve_for_accel(const Vector<MultiFab*>& rhs,
+		const Vector<MultiFab*>& phi,
+		const Vector<MultiFab*>& grad_phi, 
+		const Vector<Geometry>& geom, int base_level, int finest_level, Real offset)
 {
  
     Real tol     = 1.e-10;
     Real abs_tol = 1.e-14;
 
-    Array< Array<std::unique_ptr<MultiFab> > > grad_phi_edge(rhs.size());
+    Vector< Vector<std::unique_ptr<MultiFab> > > grad_phi_edge(rhs.size());
 
     for (int lev = base_level; lev <= finest_level ; lev++)
     {
@@ -62,14 +62,14 @@ solve_for_accel(const Array<MultiFab*>& rhs,
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
 
-    solve_with_f90(rhs,phi,amrex::GetArrOfArrOfPtrs(grad_phi_edge),
+    solve_with_f90(rhs,phi,amrex::GetVecOfVecOfPtrs(grad_phi_edge),
 		   geom,base_level,finest_level,tol,abs_tol);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)
     {
         amrex::average_face_to_cellcenter(*grad_phi[lev],
-					   amrex::GetArrOfConstPtrs(grad_phi_edge[lev]),
+					   amrex::GetVecOfConstPtrs(grad_phi_edge[lev]),
 					   geom[lev]);
 	grad_phi[lev]->FillBoundary(0,BL_SPACEDIM,geom[lev].periodicity());
     }
