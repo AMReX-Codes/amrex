@@ -105,7 +105,7 @@ namespace
     std::cout << ":::: _in CFATests:  myProcAll myProcComp myProcSidecar = " << myProcAll
               << "  " << myProcComp << "  " << myProcSidecar  << std::endl;
 
-    Array<int> pm_sidecar, pm_comp, pm_sidecar_all, pm_comp_all;
+    Vector<int> pm_sidecar, pm_comp, pm_sidecar_all, pm_comp_all;
     DistributionMapping dm_comp_all, dm_sidecar_all;
     BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::CommunicatorAll(), &group_all) );
 
@@ -157,9 +157,9 @@ namespace
 
             // Create DM on sidecars with default strategy
             const DistributionMapping dm_sidecar(bac, ParallelDescriptor::NProcsSidecar(0));
-            const Array<int> pm_sidecar = dm_sidecar.ProcessorMap();
+            const Vector<int> pm_sidecar = dm_sidecar.ProcessorMap();
 
-            Array<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
+            Vector<int> pm_all = DistributionMapping::TranslateProcMap(pm_sidecar, group_all, group_sidecar);
 
             DistributionMapping dm_all(pm_all);
             if (ParallelDescriptor::IOProcessor()) {
