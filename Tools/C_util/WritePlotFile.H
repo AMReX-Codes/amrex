@@ -10,19 +10,19 @@
 // Write a MultiFab to a plotfile named "name" using the HyperCLawV1.1 parallel
 // plotfile data format
 void
-writePlotFile (const char*               name,
-	       const amrex::MultiFab&           mf,
-	       const amrex::Geometry&           geom,
-	       const amrex::IntVect&            refRatio,
-	       amrex::Real                      bgVal,
-               const amrex::Array<std::string>& names);
+writePlotFile (const char*                 name,
+	       const amrex::MultiFab&            mf,
+	       const amrex::Geometry&            geom,
+	       const amrex::IntVect&             refRatio,
+	       amrex::Real                       bgVal,
+         const amrex::Vector<std::string>& names);
 
 // Write an array of multifabs pulling all the data from the AmrData
 void
-WritePlotFile(const amrex::Array<amrex::MultiFab*> mfa,
-	      amrex::AmrData&               amrdToMimic,
-	      const std::string&     oFile,
-	      bool                   verbose);
+WritePlotFile(const amrex::Vector<amrex::MultiFab*> mfa,
+	            amrex::AmrData&               amrdToMimic,
+       	      const std::string&     oFile,
+	            bool                   verbose);
 
 
 #endif

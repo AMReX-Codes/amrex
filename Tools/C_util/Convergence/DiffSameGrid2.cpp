@@ -52,8 +52,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<std::string>& derives1 = amrd1.PlotVarNames();
-    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    const Vector<std::string>& derives1 = amrd1.PlotVarNames();
+    const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
 	return false;
@@ -123,15 +123,15 @@ main (int   argc,
 
     int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
-    const Array<std::string>& derives = amrDataI.PlotVarNames();
-    Array<int> destComps(nComp);
+    const Vector<std::string>& derives = amrDataI.PlotVarNames();
+    Vector<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
     //
     // Compute the absolute and relative errors
     //
-    Array<MultiFab*> aerror(finestLevel+1);
-    Array<MultiFab*> rerror(finestLevel+1);
+    Vector<MultiFab*> aerror(finestLevel+1);
+    Vector<MultiFab*> rerror(finestLevel+1);
 
     // keep track of the absolute errors -- if any of them are different than 0, then
     // then we failed the comparison
@@ -190,8 +190,8 @@ main (int   argc,
         if (ParallelDescriptor::IOProcessor())
 	  std::cout << "Level:  " << iLevel << std::endl;
 
-        Array<Real> anorms(nComp,0);
-        Array<Real> rnorms(nComp,0);
+        Vector<Real> anorms(nComp,0);
+        Vector<Real> rnorms(nComp,0);
 
         for (MFIter mfi(*aerror[iLevel]); mfi.isValid(); ++mfi)
         {
@@ -223,8 +223,8 @@ main (int   argc,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            Array<Real> atmp(nComp);
-            Array<Real> rtmp(nComp);
+            Vector<Real> atmp(nComp);
+            Vector<Real> rtmp(nComp);
             for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
             {
                 if (proc != ParallelDescriptor::IOProcessorNumber())
