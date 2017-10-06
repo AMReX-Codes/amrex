@@ -1,13 +1,13 @@
 #include <AMReX_DataServices.H>
 
 void
-ComputeAmrDataNorms (AmrData&     amrData,
-		     Array<Real>& norm0,
-		     Array<Real>& norm1,
-		     Array<Real>& norm2,
+ComputeAmrDataNorms (amrex::AmrData&     amrData,
+		     amrex::Array<amrex::Real>& norm0,
+		     amrex::Array<amrex::Real>& norm1,
+		     amrex::Array<amrex::Real>& norm2,
 		     bool         verbose);
 
 void
-ComputeAmrDataInt (AmrData&     amrData,
-		   Array<Real>& norm1,
+ComputeAmrDataInt (amrex::AmrData&     amrData,
+		   amrex::Array<amrex::Real>& norm1,
 		   bool         verbose);
