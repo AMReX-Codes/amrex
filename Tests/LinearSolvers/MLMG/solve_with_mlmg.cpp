@@ -7,7 +7,7 @@
 
 using namespace amrex;
 
-void solve_with_mlmg (const Vector<Geometry>& geom, int rr,
+void solve_with_mlmg (const Vector<Geometry>& geom,
                       Vector<MultiFab>& soln,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
                       const Vector<MultiFab>& rhs)
@@ -16,8 +16,6 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int rr,
     const Real tol_abs = 0.0;
 
     const int nlevels = geom.size();
-
-    Vector<int> ref_ratio(nlevels-1,rr);
 
     Vector<BoxArray> grids;
     Vector<DistributionMapping> dmap;
@@ -33,12 +31,14 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int rr,
         prhs.push_back(&(rhs[ilev]));
     }
 
-//    MLABecLaplacian mlabc(geom, grids, dmap, ref_ratio);
+    MLABecLaplacian mlabc(geom, grids, dmap);
     // set bc ???
-//    mlabc.setScalars(a, b);
-//    for  each level
-//      mlabc.setACoeffs();
-//      mlabs.setBCoeffs();  // for each direction
+    mlabc.setScalars(prob::a, prob::b);
+    for (int ilev = 0; ilev < nlevels; ++ilev)
+    {
+        mlabc.setACoeffs(ilev, alpha[ilev]);
+//        mlabs.setBCoeffs();  // for each direction
+    }
     
 //    MLMG mlmg(mlabc);
 //    mlmg.solve(psoln, prhs, tol_rel, tol_abs);

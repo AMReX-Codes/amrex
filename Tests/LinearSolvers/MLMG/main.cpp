@@ -8,7 +8,7 @@ using namespace amrex;
 void build_geometry_and_grids (Vector<Geometry>& geom, Vector<BoxArray>& grids);
 void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<MultiFab>& beta,
                 Vector<MultiFab>& rhs, Vector<MultiFab>& exact);
-void solve_with_mlmg (const Vector<Geometry>& geom, int rr,
+void solve_with_mlmg (const Vector<Geometry>& geom,
                       Vector<MultiFab>& soln,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
                       const Vector<MultiFab>& rhs);
@@ -60,7 +60,7 @@ int main (int argc, char* argv[])
             mf.setVal(0.0); // initial guess
         }
         
-        solve_with_mlmg (geom, ref_ratio, soln, alpha, beta, rhs);
+        solve_with_mlmg (geom, soln, alpha, beta, rhs);
 
         write_plotfile (geom, ref_ratio, soln, exact, alpha, beta, rhs);
     }

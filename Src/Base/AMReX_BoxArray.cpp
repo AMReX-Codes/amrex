@@ -524,6 +524,27 @@ BoxArray::refine (const IntVect& iv)
     return *this;
 }
 
+bool
+BoxArray::coarsenable(int refinement_ratio, int min_width) const
+{
+    const long sz = size();
+    if(size() == 0) 
+    {
+        return false;
+    }
+
+    const int rm = refinement_ratio*min_width;
+    for (long ibox = 0; ibox < sz; ++ibox)
+    {
+        const Box& thisbox = (*this)[ibox];
+        if (thisbox.shortside() < rm or !thisbox.coarsenable(refinement_ratio))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 BoxArray&
 BoxArray::coarsen (int refinement_ratio)
 {
