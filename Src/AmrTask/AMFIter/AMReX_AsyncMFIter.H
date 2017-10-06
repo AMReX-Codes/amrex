@@ -261,8 +261,6 @@ namespace amrex {
 			    if(f == tag.dstIndex)
 				l_con.ndcpy++;
 			}
-			l_con.scpy = new LocalCopyDescriptor[l_con.nscpy];
-			l_con.dcpy = new LocalCopyDescriptor[l_con.ndcpy];
 		    }
 		    if(np > 1)
 		    {
@@ -292,8 +290,6 @@ namespace amrex {
 					r_con.nrcv++;
 				}
 			    }
-			    r_con.snd = new RemoteCommDescriptor[r_con.nsnd];
-			    r_con.rcv = new RemoteCommDescriptor[r_con.nrcv];
 			}
 		    }
 		    int scnt, dcnt;
@@ -302,6 +298,8 @@ namespace amrex {
 			scnt = -1;
 			dcnt = -1;
 			LocalConnection &l_con= ((Action*)AbstractTaskGraph<T>::_initialTasks[f])->LCon();
+			l_con.scpy = new LocalCopyDescriptor[l_con.nscpy];
+			l_con.dcpy = new LocalCopyDescriptor[l_con.ndcpy];
 			for(int i=0; i<n_loc_mf; i++)
 			{
 			    const FabArrayBase::CopyComTag& tag = (*TheFB.m_LocTags)[i];
