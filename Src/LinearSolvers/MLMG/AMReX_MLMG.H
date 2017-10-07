@@ -12,7 +12,7 @@ public:
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
-    void solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& rhs,
+    void solve (const Vector<MultiFab*>& sol, const Vector<MultiFab*>& rhs,
                 Real a_tol_real, Real a_tol_abs);
 
 private:

@@ -11,7 +11,7 @@ using namespace amrex;
 void solve_with_mlmg (const Vector<Geometry>& geom,
                       Vector<MultiFab>& soln,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
-                      const Vector<MultiFab>& rhs)
+                      Vector<MultiFab>& rhs)
 {
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
@@ -22,7 +22,7 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     Vector<DistributionMapping> dmap;
 
     Vector<MultiFab*> psoln;
-    Vector<MultiFab const*> prhs;
+    Vector<MultiFab*> prhs;
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {

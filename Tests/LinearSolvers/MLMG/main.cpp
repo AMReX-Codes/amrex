@@ -11,7 +11,7 @@ void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<Mu
 void solve_with_mlmg (const Vector<Geometry>& geom,
                       Vector<MultiFab>& soln,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
-                      const Vector<MultiFab>& rhs);
+                      Vector<MultiFab>& rhs);
 void write_plotfile (const Vector<Geometry>& geom, int rr,
                      const Vector<MultiFab>& soln, const Vector<MultiFab>& exact,
                      const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
