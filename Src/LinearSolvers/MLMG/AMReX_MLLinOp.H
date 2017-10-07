@@ -29,6 +29,8 @@ public:
     int NMGLevels (int amrlev) const { return m_num_mg_levels[amrlev]; }
     const Vector<int>& AMRRefRatio () const { return m_amr_ref_ratio; }
 
+    virtual void prepareForSolve () = 0;
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
