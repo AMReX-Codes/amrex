@@ -2,6 +2,7 @@
 #define AMREX_ML_ABECLAPLACIAN_H_
 
 #include <AMReX_MLLinOp.H>
+#include <AMReX_Array.H>
 #include <limits>
 
 namespace amrex {
@@ -28,8 +29,10 @@ public:
 
     void setScalars (Real a, Real b) { m_a_scalar = a; m_b_scalar = b; }
     void setACoeffs (int amrlev, const MultiFab& alpha);
-    void setBCoeffs (int amrlev, int direction, const MultiFab& beta);
-    void averageDownCoeffs ();
+    void setBCoeffs (int amrlev,
+                     const std::array<MultiFab const*,AMREX_SPACEDIM>& beta);
+
+    virtual void prepareForSolve () final;
 
 private:
 
@@ -37,6 +40,8 @@ private:
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
+
+    void averageDownCoeffs ();
 
     static void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                                Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b);

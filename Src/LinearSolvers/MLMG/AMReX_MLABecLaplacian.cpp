@@ -50,9 +50,12 @@ MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
 }
 
 void
-MLABecLaplacian::setBCoeffs (int amrlev, int direction, const MultiFab& beta)
+MLABecLaplacian::setBCoeffs (int amrlev,
+                             const std::array<MultiFab const*,AMREX_SPACEDIM>& beta)
 {
-    MultiFab::Copy(m_b_coeffs[amrlev][0][direction], beta, 0, 0, 1, 0);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        MultiFab::Copy(m_b_coeffs[amrlev][0][idim], *beta[idim], 0, 0, 1, 0);
+    }
 }
 
 void
@@ -95,6 +98,12 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
         IntVect ratio {AMREX_D_DECL(mg_coarsen_ratio, mg_coarsen_ratio, mg_coarsen_ratio)};
         amrex::average_down_faces(fine, crse, ratio, 0);
     }
+}
+
+void
+MLABecLaplacian::prepareForSolve ()
+{
+    averageDownCoeffs();
 }
 
 }

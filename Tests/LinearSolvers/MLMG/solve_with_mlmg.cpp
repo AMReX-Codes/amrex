@@ -45,16 +45,12 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
             const BoxArray& ba = amrex::convert(beta[ilev].boxArray(), IntVect::TheDimensionVector(idim));
             bcoefs[idim].define(ba, beta[ilev].DistributionMap(), 1, 0);
         }
-        amrex::average_cellcenter_to_face({AMREX_D_DECL(&(bcoefs[0]),
-                                                        &(bcoefs[1]),
-                                                        &(bcoefs[2]))},
+        amrex::average_cellcenter_to_face({AMREX_D_DECL(&bcoefs[0],
+                                                        &bcoefs[1],
+                                                        &bcoefs[2])},
                                           beta[ilev], geom[ilev]);
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-        {
-            mlabec.setBCoeffs(ilev,idim,bcoefs[idim]);
-        }
+        mlabec.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoefs));
     }
-    mlabec.averageDownCoeffs();
     
     MLMG mlmg(mlabec);
     mlmg.solve(psoln, prhs, tol_rel, tol_abs);

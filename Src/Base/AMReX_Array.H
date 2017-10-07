@@ -2,10 +2,8 @@
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 
-#include <algorithm>
-#include <vector>
-#include <memory>
-#include <AMReX_BLassert.H>
+#include <array>
+#include <AMReX_SPACE.H>
 #include <AMReX_Vector.H>
 
 namespace amrex {
@@ -43,6 +41,22 @@ namespace amrex
 	Vector<Vector<T*> > r;
 	for (const auto& x : a)  r.push_back(GetArrOfPtrs(x));
 	return r;
+    }
+}
+
+
+namespace amrex
+{
+    template <class T>
+    std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (std::array<T,AMREX_SPACEDIM>& a)
+    {
+        return {AMREX_D_DECL(&a[0], &a[1], &a[2])};
+    }
+
+    template <class T>
+    std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T,AMREX_SPACEDIM>& a)
+    {
+        return {AMREX_D_DECL(&a[0], &a[1], &a[2])};
     }
 }
 

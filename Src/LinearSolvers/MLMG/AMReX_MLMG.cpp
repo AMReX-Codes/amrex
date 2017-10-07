@@ -17,6 +17,8 @@ MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab*>& rhs,
 {
     AMREX_ASSERT(sol[0]->nGrow() > 0);
 
+    m_lp.prepareForSolve();
+
     const int namrlevs = m_lp.NAMRLevels();
     AMREX_ASSERT(namrlevs <= sol.size());
     AMREX_ASSERT(namrlevs <= rhs.size());
