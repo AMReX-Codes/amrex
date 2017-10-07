@@ -22,7 +22,7 @@ namespace {
     static int nlevels       = 2;
     static int n_cell        = 64;
     static int max_grid_size = 32;
-    static int ref_ratio     = 2;
+    static int ref_ratio     = 4;
 }
 
 int main (int argc, char* argv[])

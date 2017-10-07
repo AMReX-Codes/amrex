@@ -15,9 +15,15 @@ public:
     void solve (const Vector<MultiFab*>& sol, const Vector<MultiFab*>& rhs,
                 Real a_tol_real, Real a_tol_abs);
 
+    void setVerbose (int v) { verbose = v; }
+    void setMaxIters (int i) { max_iters = i; }
+
 private:
-    
-    MLLinOp& m_lp;
+
+    int verbose = 1;
+    int max_iters = 200;
+
+    MLLinOp& linop;
 
 };
 
