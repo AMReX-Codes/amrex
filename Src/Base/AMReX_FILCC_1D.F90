@@ -157,19 +157,24 @@ contains
     ihi = domhi(1)
 
     do n = 1, ncomp
-       do i = blo(1), bhi(2)
 
-          if (bc(1,1,n) .eq. EXT_DIR) then
+       if (bc(1,1,n) .eq. EXT_DIR) then
 
-             ! Do nothing.
+          ! Do nothing.
 
-          else if (bc(1,1,n) .eq. FOEXTRAP) then
+       else if (bc(1,1,n) .eq. FOEXTRAP) then
+
+          do i = blo(1), bhi(1)
 
              if (i < ilo) then
                 q(i,n) = q(ilo,n)
              end if
 
-          else if (bc(1,1,n) .eq. HOEXTRAP) then
+          end do
+
+       else if (bc(1,1,n) .eq. HOEXTRAP) then
+
+          do i = blo(1), bhi(1)
 
              if (i < ilo - 1) then
                 q(i,n) = q(ilo,n)
@@ -181,31 +186,47 @@ contains
                 end if
              end if
 
-          else if (bc(1,1,n) .eq. REFLECT_EVEN) then
+          end do
+
+       else if (bc(1,1,n) .eq. REFLECT_EVEN) then
+
+          do i = blo(1), bhi(1)
 
              if (i < ilo) then
                 q(i,n) = q(ilo+(ilo-i)-1,n)
              end if
 
-          else if (bc(1,1,n) .eq. REFLECT_ODD) then
+          end do
+
+       else if (bc(1,1,n) .eq. REFLECT_ODD) then
+
+          do i = blo(1), bhi(1)
 
              if (i < ilo) then
                 q(i,n) = -q(ilo+(ilo-i)-1,n)
              end if
 
-          end if
+          end do
 
-          if (bc(1,2,n) .eq. EXT_DIR) then
+       end if
 
-             ! Do nothing.
+       if (bc(1,2,n) .eq. EXT_DIR) then
 
-          else if (bc(1,2,n) .eq. FOEXTRAP) then
+          ! Do nothing.
+
+       else if (bc(1,2,n) .eq. FOEXTRAP) then
+
+          do i = blo(1), bhi(1)
 
              if (i > ihi) then
                 q(i,n) = q(ihi,n)
              end if
 
-          else if (bc(1,2,n) .eq. HOEXTRAP) then
+          end do
+
+       else if (bc(1,2,n) .eq. HOEXTRAP) then
+
+          do i = blo(1), bhi(1)
 
              if (i > ihi + 1) then
                 q(i,n) = q(ihi,n)
@@ -217,21 +238,30 @@ contains
                 end if
              end if
 
-          else if (bc(1,2,n) .eq. REFLECT_EVEN) then
+          end do
+
+       else if (bc(1,2,n) .eq. REFLECT_EVEN) then
+
+          do i = blo(1), bhi(1)
 
              if (i > ihi) then
                 q(i,n) = q(ihi-(i-ihi)+1,n)
              end if
 
-          else if (bc(1,2,n) .eq. REFLECT_ODD) then
+          end do
+
+       else if (bc(1,2,n) .eq. REFLECT_ODD) then
+
+          do i = blo(1), bhi(1)
 
              if (i > ihi) then
                 q(i,n) = -q(ihi-(i-ihi)+1,n)
              end if
 
-          end if
+          end do
 
-       end do
+       end if
+
     end do
 
   end subroutine filccn
