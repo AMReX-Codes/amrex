@@ -1570,21 +1570,30 @@ contains
     khi = domhi(3)
 
     do n = 1, ncomp
-       do k = blo(3), bhi(3)
-          do j = blo(2), bhi(2)
-             do i = blo(1), bhi(1)
 
-                if (bc(1,1,n) .eq. EXT_DIR) then
+       if (bc(1,1,n) .eq. EXT_DIR) then
 
-                   ! Do nothing.
+          ! Do nothing.
 
-                else if (bc(1,1,n) .eq. FOEXTRAP) then
+       else if (bc(1,1,n) .eq. FOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (i < ilo) then
                       q(i,j,k,n) = q(ilo,j,k,n)
                    end if
 
-                else if (bc(1,1,n) .eq. HOEXTRAP) then
+                end do
+             end do
+          end do
+
+       else if (bc(1,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (i < ilo - 1) then
                       q(i,j,k,n) = q(ilo,j,k,n)
@@ -1596,33 +1605,65 @@ contains
                       end if
                    end if
 
-                else if (bc(1,1,n) .eq. REFLECT_EVEN) then
+                end do
+             end do
+          end do
+
+       else if (bc(1,1,n) .eq. REFLECT_EVEN) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (i < ilo) then
                       q(i,j,k,n) = q(ilo+(ilo-i)-1,j,k,n)
                    end if
 
-                else if (bc(1,1,n) .eq. REFLECT_ODD) then
+                end do
+             end do
+          end do
+
+       else if (bc(1,1,n) .eq. REFLECT_ODD) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (i < ilo) then
                       q(i,j,k,n) = -q(ilo+(ilo-i)-1,j,k,n)
                    end if
 
-                end if
+                end do
+             end do
+          end do
+
+       end if
 
 
 
-                if (bc(1,2,n) .eq. EXT_DIR) then
+       if (bc(1,2,n) .eq. EXT_DIR) then
 
-                   ! Do nothing.
+          ! Do nothing.
 
-                else if (bc(1,2,n) .eq. FOEXTRAP) then
+       else if (bc(1,2,n) .eq. FOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (i > ihi) then
                       q(i,j,k,n) = q(ihi,j,k,n)
                    end if
 
-                else if (bc(1,2,n) .eq. HOEXTRAP) then
+                end do
+             end do
+          end do
+
+       else if (bc(1,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (i > ihi + 1) then
                       q(i,j,k,n) = q(ihi,j,k,n)
@@ -1634,33 +1675,65 @@ contains
                       end if
                    end if
 
-                else if (bc(1,2,n) .eq. REFLECT_EVEN) then
+                end do
+             end do
+          end do
+
+       else if (bc(1,2,n) .eq. REFLECT_EVEN) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (i > ihi) then
                       q(i,j,k,n) = q(ihi-(i-ihi)+1,j,k,n)
                    end if
 
-                else if (bc(1,2,n) .eq. REFLECT_ODD) then
+                end do
+             end do
+          end do
+
+       else if (bc(1,2,n) .eq. REFLECT_ODD) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (i > ihi) then
                       q(i,j,k,n) = -q(ihi-(i-ihi)+1,j,k,n)
                    end if
 
-                end if
+                end do
+             end do
+          end do
+
+       end if
 
 
 
-                if (bc(2,1,n) .eq. EXT_DIR) then
+       if (bc(2,1,n) .eq. EXT_DIR) then
 
-                   ! Do nothing.
+          ! Do nothing.
 
-                else if (bc(2,1,n) .eq. FOEXTRAP) then
+       else if (bc(2,1,n) .eq. FOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (j < jlo) then
                       q(i,j,k,n) = q(i,jlo,k,n)
                    end if
 
-                else if (bc(2,1,n) .eq. HOEXTRAP) then
+                end do
+             end do
+          end do
+
+       else if (bc(2,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (j < jlo - 1) then
                       q(i,j,k,n) = q(i,jlo,k,n)
@@ -1672,33 +1745,65 @@ contains
                       end if
                    end if
 
-                else if (bc(2,1,n) .eq. REFLECT_EVEN) then
+                end do
+             end do
+          end do
+
+       else if (bc(2,1,n) .eq. REFLECT_EVEN) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (j < jlo) then
                       q(i,j,k,n) = q(i,jlo+(jlo-j)-1,k,n)
                    end if
 
-                else if (bc(2,1,n) .eq. REFLECT_ODD) then
+                end do
+             end do
+          end do
+
+       else if (bc(2,1,n) .eq. REFLECT_ODD) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (j < jlo) then
                       q(i,j,k,n) = -q(i,jlo+(jlo-j)-1,k,n)
                    end if
 
-                end if
+                end do
+             end do
+          end do
+
+       end if
 
 
 
-                if (bc(2,2,n) .eq. EXT_DIR) then
+       if (bc(2,2,n) .eq. EXT_DIR) then
 
-                   ! Do nothing.
+          ! Do nothing.
 
-                else if (bc(2,2,n) .eq. FOEXTRAP) then
+       else if (bc(2,2,n) .eq. FOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (j > jhi) then
                       q(i,j,k,n) = q(i,jhi,k,n)
                    end if
 
-                else if (bc(2,2,n) .eq. HOEXTRAP) then
+                end do
+             end do
+          end do
+
+       else if (bc(2,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (j > jhi + 1) then
                       q(i,j,k,n) = q(i,jhi,k,n)
@@ -1710,33 +1815,65 @@ contains
                       end if
                    end if
 
-                else if (bc(2,2,n) .eq. REFLECT_EVEN) then
+                end do
+             end do
+          end do
+
+       else if (bc(2,2,n) .eq. REFLECT_EVEN) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (j > jhi) then
                       q(i,j,k,n) = q(i,jhi-(j-jhi)+1,k,n)
                    end if
 
-                else if (bc(2,2,n) .eq. REFLECT_ODD) then
+                end do
+             end do
+          end do
+
+       else if (bc(2,2,n) .eq. REFLECT_ODD) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (j > jhi) then
                       q(i,j,k,n) = -q(i,jhi-(j-jhi)+1,k,n)
                    end if
 
-                end if
+                end do
+             end do
+          end do
+
+       end if
 
 
 
-                if (bc(3,1,n) .eq. EXT_DIR) then
+       if (bc(3,1,n) .eq. EXT_DIR) then
 
-                   ! Do nothing.
+          ! Do nothing.
 
-                else if (bc(3,1,n) .eq. FOEXTRAP) then
+       else if (bc(3,1,n) .eq. FOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (k < klo) then
                       q(i,j,k,n) = q(i,j,klo,n)
                    end if
 
-                else if (bc(3,1,n) .eq. HOEXTRAP) then
+                end do
+             end do
+          end do
+
+       else if (bc(3,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (k < klo - 1) then
                       q(i,j,k,n) = q(i,j,klo,n)
@@ -1748,33 +1885,65 @@ contains
                       end if
                    end if
 
-                else if (bc(3,1,n) .eq. REFLECT_EVEN) then
+                end do
+             end do
+          end do
+
+       else if (bc(3,1,n) .eq. REFLECT_EVEN) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (k < klo) then
                       q(i,j,k,n) = q(i,j,klo+(klo-k)-1,n)
                    end if
 
-                else if (bc(3,1,n) .eq. REFLECT_ODD) then
+                end do
+             end do
+          end do
+
+       else if (bc(3,1,n) .eq. REFLECT_ODD) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (k < klo) then
                       q(i,j,k,n) = -q(i,j,klo+(klo-k)-1,n)
                    end if
 
-                end if
+                end do
+             end do
+          end do
+
+       end if
 
 
 
-                if (bc(3,2,n) .eq. EXT_DIR) then
+       if (bc(3,2,n) .eq. EXT_DIR) then
 
-                   ! Do nothing.
+          ! Do nothing.
 
-                else if (bc(3,2,n) .eq. FOEXTRAP) then
+       else if (bc(3,2,n) .eq. FOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (k > khi) then
                       q(i,j,k,n) = q(i,j,khi,n)
                    end if
 
-                else if (bc(3,2,n) .eq. HOEXTRAP) then
+                end do
+             end do
+          end do
+
+       else if (bc(3,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (k > khi + 1) then
                       q(i,j,k,n) = q(i,j,khi,n)
@@ -1786,356 +1955,508 @@ contains
                       end if
                    end if
 
-                else if (bc(3,2,n) .eq. REFLECT_EVEN) then
+                end do
+             end do
+          end do
+
+       else if (bc(3,2,n) .eq. REFLECT_EVEN) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (k > khi) then
                       q(i,j,k,n) = q(i,j,khi-(k-khi)+1,n)
                    end if
 
-                else if (bc(3,2,n) .eq. REFLECT_ODD) then
+                end do
+             end do
+          end do
+
+       else if (bc(3,2,n) .eq. REFLECT_ODD) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
 
                    if (k > khi) then
                       q(i,j,k,n) = -q(i,j,khi-(k-khi)+1,n)
                    end if
 
-                end if
-
-
-
-                !
-                ! First correct the i-j edges and all corners
-                !
-
-                if (i == ilo-1 .and. bc(1,1,n) .eq. HOEXTRAP .and. &
-                    j == jlo-1 .and. bc(2,1,n) .eq. HOEXTRAP) then
-
-                   if (jlo+2 <= je) then
-                      q(i,j,k,n) = half * eighth * (15*q(ilo-1,jlo,k,n) - 10*q(ilo-1,jlo+1,k,n) + 3*q(ilo-1,jlo+2,k,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(ilo-1,jlo,k,n) - q(ilo-1,jlo+1,k,n))
-                   end if
-
-                   if (ilo+2 <= ie) then
-                      q(i,j,k,n) = q(ilo-1,jlo-1,k,n) + &
-                                   half * eighth * (15*q(ilo,jlo-1,k,n) - 10*q(ilo+1,jlo-1,k,n) + 3*q(ilo+2,jlo-1,k,n))
-                   else
-                      q(i,j,k,n) = q(ilo-1,jlo-1,k,n) + half * half * (3*q(ilo,jlo-1,k,n) - q(ilo+1,jlo-1,k,n))
-                   end if
-
-                   if (k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
-                      if (klo+2 <= ke) then
-                         q(i,j,k,n) = eighth * ( (15*q(ilo-1,jlo-1,klo,n) - 10*q(ilo-1,jlo-1,klo+1,n) + &
-                                                  3*q(ilo-1,jlo-1,klo+2,n)) )
-                      else
-                         q(i,j,k,n) = half * (3*q(ilo-1,jlo-1,klo,n) - q(ilo-1,jlo-1,klo+1,n))
-                      end if
-                   end if
-
-                   if (k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
-                      if (khi-2 >= ks) then
-                         q(i,j,k,n) = eighth * ( (15*q(ilo-1,jlo-1,khi,n) - 10*q(ilo-1,jlo-1,khi-1,n) + &
-                                                  3*q(ilo-1,jlo-1,khi-2,n)) )
-                      else
-                         q(i,j,k,n) = half * (3*q(ilo-1,jlo-1,khi,n) - q(ilo-1,jlo-1,khi-1,n))
-                      end if
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-
-                if (i == ilo-1 .and. bc(1,1,n) .eq. HOEXTRAP .and. &
-                    j == jhi+1 .and. bc(2,2,n) .eq. HOEXTRAP) then
-
-                   if (jhi-2 >= js) then
-                      q(i,j,k,n) = half * eighth * (15*q(ilo-1,jhi,k,n) - 10*q(ilo-1,jhi-1,k,n) + 3*q(ilo-1,jhi-2,k,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(ilo-1,jhi,k,n) - q(ilo-1,jhi-1,k,n))
-                   end if
-
-                   if (ilo+2 <= ie) then
-                      q(i,j,k,n) = q(ilo-1,jhi+1,k,n) + &
-                                   half * eighth * (15*q(ilo,jhi+1,k,n) - 10*q(ilo+1,jhi+1,k,n) + 3*q(ilo+2,jhi+1,k,n))
-                   else
-                      q(i,j,k,n) = q(ilo-1,jhi+1,k,n) + half * half * (3*q(ilo,jhi+1,k,n) - q(ilo+1,jhi+1,k,n))
-                   end if
-
-                   if (k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
-                      if (klo+2 <= ke) then
-                         q(i,j,k,n) = eighth * ( (15*q(ilo-1,jhi+1,klo,n) - 10*q(ilo-1,jhi+1,klo+1,n) + &
-                                                  3*q(ilo-1,jhi+1,klo+2,n)) )
-                      else
-                         q(i,j,k,n) = half * (3*q(ilo-1,jhi+1,klo,n) - q(ilo-1,jhi+1,klo+1,n))
-                      end if
-                   end if
-
-                   if (k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
-                      if (khi-2 >= ks) then
-                         q(i,j,k,n) = eighth * ( (15*q(ilo-1,jhi+1,khi,n) - 10*q(ilo-1,jhi+1,khi-1,n) + &
-                                                  3*q(ilo-1,jhi+1,khi-2,n)) )
-                      else
-                         q(i,j,k,n) = half * (3*q(ilo-1,jhi+1,khi,n) - q(ilo-1,jhi+1,khi-1,n))
-                      end if
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-
-                if (i == ihi+1 .and. bc(1,2,n) .eq. HOEXTRAP .and. &
-                    j == jlo-1 .and. bc(2,1,n) .eq. HOEXTRAP) then
-
-                   if (jlo+2 <= je) then
-                      q(i,j,k,n) = half * eighth * (15*q(ihi+1,jlo,k,n) - 10*q(ihi+1,jlo+1,k,n) + 3*q(ihi+1,jlo+2,k,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(ihi+1,jlo,k,n) - q(ihi+1,jlo+1,k,n))
-                   end if
-
-                   if (ihi-2 >= is) then
-                      q(i,j,k,n) = q(ihi+1,jlo-1,k,n) + &
-                                   half * eighth * (15*q(ihi,jlo-1,k,n) - 10*q(ihi-1,jlo-1,k,n) + 3*q(ihi-2,jlo-1,k,n))
-                   else
-                      q(i,j,k,n) = q(ihi+1,jlo-1,k,n) + half * half * (3*q(ihi,jlo-1,k,n) - q(ihi-1,jlo-1,k,n))
-                   end if
-
-                   if (k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
-                      if (klo+2 <= ke) then
-                         q(i,j,k,n) = eighth * (15*q(ihi+1,jlo-1,klo,n) - 10*q(ihi+1,jlo-1,klo+1,n) + 3*q(ihi+1,jlo-1,klo+2,n))
-                      else
-                         q(i,j,k,n) = half * (3*q(ihi+1,jlo-1,klo,n) - q(ihi+1,jlo-1,klo+1,n))
-                      end if
-                   end if
-
-                   if (k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
-                      if (khi-2 >= ks) then
-                         q(i,j,k,n) = eighth * (15*q(ihi+1,jlo-1,khi,n) - 10*q(ihi+1,jlo-1,khi-1,n) + 3*q(ihi+1,jlo-1,khi-2,n))
-                      else
-                         q(i,j,k,n) = half * (3*q(ihi+1,jlo-1,khi,n) - q(ihi+1,jlo-1,khi-1,n))
-                      end if
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-
-                if (i == ihi+1 .and. bc(1,2,n) .eq. HOEXTRAP .and. &
-                    j == jhi+1 .and. bc(2,2,n) .eq. HOEXTRAP) then
-
-                   if (jhi-2 >= js) then
-                      q(i,j,k,n) = half * eighth * (15*q(ihi+1,jhi,k,n) - 10*q(ihi+1,jhi-1,k,n) + 3*q(ihi+1,jhi-2,k,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(ihi+1,jhi,k,n) - q(ihi+1,jhi-1,k,n))
-                   end if
-
-                   if (ihi-2 >= is) then
-                      q(i,j,k,n) = q(ihi+1,jhi+1,k,n) + &
-                                   half * eighth * (15*q(ihi,jhi+1,k,n) - 10*q(ihi-1,jhi+1,k,n) + 3*q(ihi-2,jhi+1,k,n))
-                   else
-                      q(i,j,k,n) = q(ihi+1,jhi+1,k,n) + half * half * (3*q(ihi,jhi+1,k,n) - q(ihi-1,jhi+1,k,n))
-                   end if
-
-                   if (k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
-                      if (klo+2 <= ke) then
-                         q(i,j,k,n) = eighth * (15*q(ihi+1,jhi+1,klo,n) - 10*q(ihi+1,jhi+1,klo+1,n) + 3*q(ihi+1,jhi+1,klo+2,n))
-                      else
-                         q(i,j,k,n) = half * (3*q(ihi+1,jhi+1,klo,n) - q(ihi+1,jhi+1,klo+1,n))
-                      end if
-                   end if
-
-                   if (k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
-                      if (khi-2 >= ks) then
-                         q(i,j,k,n) = eighth * (15*q(ihi+1,jhi+1,khi,n) - 10*q(ihi+1,jhi+1,khi-1,n) + 3*q(ihi+1,jhi+1,khi-2,n))
-                      else
-                         q(i,j,k,n) = half * (3*q(ihi+1,jhi+1,khi,n) - q(ihi+1,jhi+1,khi-1,n))
-                      end if
-                   end if
-
-                end if
-
-                !
-                ! Next correct the i-k edges
-                !
-
-                if (i == ilo-1 .and. bc(1,1,n) .eq. HOEXTRAP .and. &
-                    k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
-
-                   if (klo+2 <= ke) then
-                      q(i,j,k,n) = half * eighth * (15*q(ilo-1,j,klo,n) - 10*q(ilo-1,j,klo+1,n) + 3*q(ilo-1,j,klo+2,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(ilo-1,j,klo,n) - q(ilo-1,j,klo+1,n))
-                   end if
-
-                   if (ilo+2 <= ie) then
-                      q(i,j,k,n) = q(ilo-1,j,klo-1,n) + &
-                                   half * eighth * (15*q(ilo,j,klo-1,n) - 10*q(ilo+1,j,klo-1,n) + 3*q(ilo+2,j,klo-1,n))
-                   else
-                      q(i,j,k,n) = q(ilo-1,j,klo-1,n) + half * half * (3*q(ilo,j,klo-1,n) - q(ilo+1,j,klo-1,n))
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-
-                if (i == ilo-1 .and. bc(1,1,n) .eq. HOEXTRAP .and. &
-                    k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
-
-                   if (khi-2 >= ks) then
-                      q(i,j,k,n) = half * eighth * (15*q(ilo-1,j,khi,n) - 10*q(ilo-1,j,khi-1,n) + 3*q(ilo-1,j,khi-2,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(ilo-1,j,khi,n) - q(ilo-1,j,khi-1,n))
-                   end if
-
-                   if (ilo+2 <= ie) then
-                      q(i,j,k,n) = q(ilo-1,j,khi+1,n) + &
-                                   half * eighth * (15*q(ilo,j,khi+1,n) - 10*q(ilo+1,j,khi+1,n) + 3*q(ilo+2,j,khi+1,n))
-                   else
-                      q(i,j,k,n) = q(ilo-1,j,khi+1,n) + half * half * (3*q(ilo,j,khi+1,n) - q(ilo+1,j,khi+1,n))
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-
-                if (i == ihi+1 .and. bc(1,2,n) .eq. HOEXTRAP .and. &
-                    k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
-
-                   if (klo+2 <= ke) then
-                      q(i,j,k,n) = half * eighth * (15*q(ihi+1,j,klo,n) - 10*q(ihi+1,j,klo+1,n) + 3*q(ihi+1,j,klo+2,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(ihi+1,j,klo,n) - q(ihi+1,j,klo+1,n))
-                   end if
-
-                   if (ihi-2 >= is) then
-                      q(i,j,k,n) = q(ihi+1,j,klo-1,n) + &
-                                 half * eighth * (15*q(ihi,j,klo-1,n) - 10*q(ihi-1,j,klo-1,n) + 3*q(ihi-2,j,klo-1,n))
-                   else
-                      q(i,j,k,n) = q(ihi+1,j,klo-1,n) + half * half * (3*q(ihi,j,klo-1,n) - q(ihi-1,j,klo-1,n))
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-                if (i == ihi+1 .and. bc(1,2,n) .eq. HOEXTRAP .and. &
-                    k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
-
-                   if (khi-2 >= ks) then
-                      q(i,j,k,n) = half * eighth * (15*q(ihi+1,j,khi,n) - 10*q(ihi+1,j,khi-1,n) + 3*q(ihi+1,j,khi-2,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(ihi+1,j,khi,n) - q(ihi+1,j,khi-1,n))
-                   end if
-
-                   if (ihi-2 >= is) then
-                      q(i,j,k,n) = q(ihi+1,j,khi+1,n) + &
-                                   half * eighth * (15*q(ihi,j,khi+1,n) - 10*q(ihi-1,j,khi+1,n) + 3*q(ihi-2,j,khi+1,n))
-                   else
-                      q(i,j,k,n) = q(ihi+1,j,khi+1,n) + half * half * (3*q(ihi,j,khi+1,n) - q(ihi-1,j,khi+1,n))
-                   end if
-
-                end if
-
-                !
-                ! Next correct the j-k edges
-                !
-
-                if (j == jlo-1 .and. bc(2,1,n) .eq. HOEXTRAP .and. &
-                    k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
-
-                   if (klo+2 <= ke) then
-                      q(i,j,k,n) = half * eighth * (15*q(i,jlo-1,klo,n) - 10*q(i,jlo-1,klo+1,n) + 3*q(i,jlo-1,klo+2,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(i,jlo-1,klo,n) - q(i,jlo-1,klo+1,n))
-                   end if
-
-                   if (jlo+2 <= je) then
-                      q(i,j,k,n) = q(i,jlo-1,klo-1,n) + &
-                                   half * eighth * (15*q(i,jlo,klo-1,n) - 10*q(i,jlo+1,klo-1,n) + 3*q(i,jlo+2,klo-1,n))
-                   else
-                      q(i,j,k,n) = q(i,jlo-1,klo-1,n) + half * half * (3*q(i,jlo,klo-1,n) - q(i,jlo+1,klo-1,n))
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-
-                if (j == jlo-1 .and. bc(2,1,n) .eq. HOEXTRAP .and. &
-                    k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
-
-                   if (khi-2 >= ks) then
-                      q(i,j,k,n) = half * eighth * (15*q(i,jlo-1,khi,n) - 10*q(i,jlo-1,khi-1,n) + 3*q(i,jlo-1,khi-2,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(i,jlo-1,khi,n) - q(i,jlo-1,khi-1,n))
-                   end if
-
-                   if (jlo+2 <= je) then
-                      q(i,j,k,n) = q(i,jlo-1,khi+1,n) + &
-                                    half * eighth * (15*q(i,jlo,khi+1,n) - 10*q(i,jlo+1,khi+1,n) + 3*q(i,jlo+2,khi+1,n))
-                   else
-                      q(i,j,k,n) = q(i,jlo-1,khi+1,n) + half * half * (3*q(i,jlo,khi+1,n) - q(i,jlo+1,khi+1,n))
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-
-                if (j == jhi+1 .and. bc(2,2,n) .eq. HOEXTRAP .and. &
-                    k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
-
-                   if (klo+2 <= ke) then
-                      q(i,j,k,n) = half * eighth * (15*q(i,jhi+1,klo,n) - 10*q(i,jhi+1,klo+1,n) + 3*q(i,jhi+1,klo+2,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(i,jhi+1,klo,n) - q(i,jhi+1,klo+1,n))
-                   end if
-
-                   if (jhi-2 >= js) then
-                      q(i,j,k,n) = q(i,jhi+1,klo-1,n) + &
-                                   half * eighth * (15*q(i,jhi,klo-1,n) - 10*q(i,jhi-1,klo-1,n) + 3*q(i,jhi-2,klo-1,n))
-                   else
-                      q(i,j,k,n) = q(i,jhi+1,klo-1,n) + half * half * (3*q(i,jhi,klo-1,n) - q(i,jhi-1,klo-1,n))
-                   end if
-
-                end if
-
-                !
-                ! ****************************************************************************
-                !
-
-                if (j == jhi+1 .and. bc(2,2,n) .eq. HOEXTRAP .and. &
-                    k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
-
-                   if (khi-2 >= ks) then
-                      q(i,j,k,n) = half * eighth * (15*q(i,jhi+1,khi,n) - 10*q(i,jhi+1,khi-1,n) + 3*q(i,jhi+1,khi-2,n))
-                   else
-                      q(i,j,k,n) = half * half * (3*q(i,jhi+1,khi,n) - q(i,jhi+1,khi-1,n))
-                   end if
-
-                   if (jhi-2 >= js) then
-                      q(i,j,k,n) = q(i,jhi+1,khi+1,n) + &
-                                   half * eighth * (15*q(i,jhi,khi+1,n) - 10*q(i,jhi-1,khi+1,n) + 3*q(i,jhi-2,khi+1,n))
-                   else
-                      q(i,j,k,n) = q(i,jhi+1,khi+1,n) + half * half * (3*q(i,jhi,khi+1,n) - q(i,jhi-1,khi+1,n))
-                   end if
-
-                end if
-
+                end do
              end do
           end do
-       end do
+
+       end if
+
+
+
+       ! Now take care of the higher contributions
+
+       !
+       ! First correct the i-j edges and all corners
+       !
+
+       if (bc(1,1,n) .eq. HOEXTRAP .and. bc(2,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (i == ilo-1 .and. j == jlo-1) then
+
+                      if (jlo+2 <= je) then
+                         q(i,j,k,n) = half * eighth * (15*q(ilo-1,jlo,k,n) - 10*q(ilo-1,jlo+1,k,n) + 3*q(ilo-1,jlo+2,k,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(ilo-1,jlo,k,n) - q(ilo-1,jlo+1,k,n))
+                      end if
+
+                      if (ilo+2 <= ie) then
+                         q(i,j,k,n) = q(ilo-1,jlo-1,k,n) + &
+                                      half * eighth * (15*q(ilo,jlo-1,k,n) - 10*q(ilo+1,jlo-1,k,n) + 3*q(ilo+2,jlo-1,k,n))
+                      else
+                         q(i,j,k,n) = q(ilo-1,jlo-1,k,n) + half * half * (3*q(ilo,jlo-1,k,n) - q(ilo+1,jlo-1,k,n))
+                      end if
+
+                      if (k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
+                         if (klo+2 <= ke) then
+                            q(i,j,k,n) = eighth * ( (15*q(ilo-1,jlo-1,klo,n) - 10*q(ilo-1,jlo-1,klo+1,n) + &
+                                                     3*q(ilo-1,jlo-1,klo+2,n)) )
+                         else
+                            q(i,j,k,n) = half * (3*q(ilo-1,jlo-1,klo,n) - q(ilo-1,jlo-1,klo+1,n))
+                         end if
+                      end if
+
+                      if (k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
+                         if (khi-2 >= ks) then
+                            q(i,j,k,n) = eighth * ( (15*q(ilo-1,jlo-1,khi,n) - 10*q(ilo-1,jlo-1,khi-1,n) + &
+                                                     3*q(ilo-1,jlo-1,khi-2,n)) )
+                         else
+                            q(i,j,k,n) = half * (3*q(ilo-1,jlo-1,khi,n) - q(ilo-1,jlo-1,khi-1,n))
+                         end if
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(1,1,n) .eq. HOEXTRAP .and. bc(2,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (i == ilo-1 .and. j == jhi+1) then
+
+                      if (jhi-2 >= js) then
+                         q(i,j,k,n) = half * eighth * (15*q(ilo-1,jhi,k,n) - 10*q(ilo-1,jhi-1,k,n) + 3*q(ilo-1,jhi-2,k,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(ilo-1,jhi,k,n) - q(ilo-1,jhi-1,k,n))
+                      end if
+
+                      if (ilo+2 <= ie) then
+                         q(i,j,k,n) = q(ilo-1,jhi+1,k,n) + &
+                                      half * eighth * (15*q(ilo,jhi+1,k,n) - 10*q(ilo+1,jhi+1,k,n) + 3*q(ilo+2,jhi+1,k,n))
+                      else
+                         q(i,j,k,n) = q(ilo-1,jhi+1,k,n) + half * half * (3*q(ilo,jhi+1,k,n) - q(ilo+1,jhi+1,k,n))
+                      end if
+
+                      if (k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
+                         if (klo+2 <= ke) then
+                            q(i,j,k,n) = eighth * ( (15*q(ilo-1,jhi+1,klo,n) - 10*q(ilo-1,jhi+1,klo+1,n) + &
+                                                     3*q(ilo-1,jhi+1,klo+2,n)) )
+                         else
+                            q(i,j,k,n) = half * (3*q(ilo-1,jhi+1,klo,n) - q(ilo-1,jhi+1,klo+1,n))
+                         end if
+                      end if
+
+                      if (k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
+                         if (khi-2 >= ks) then
+                            q(i,j,k,n) = eighth * ( (15*q(ilo-1,jhi+1,khi,n) - 10*q(ilo-1,jhi+1,khi-1,n) + &
+                                                     3*q(ilo-1,jhi+1,khi-2,n)) )
+                         else
+                            q(i,j,k,n) = half * (3*q(ilo-1,jhi+1,khi,n) - q(ilo-1,jhi+1,khi-1,n))
+                         end if
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(1,2,n) .eq. HOEXTRAP .and. bc(2,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (i == ihi+1 .and. j == jlo-1) then
+
+                      if (jlo+2 <= je) then
+                         q(i,j,k,n) = half * eighth * (15*q(ihi+1,jlo,k,n) - 10*q(ihi+1,jlo+1,k,n) + 3*q(ihi+1,jlo+2,k,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(ihi+1,jlo,k,n) - q(ihi+1,jlo+1,k,n))
+                      end if
+
+                      if (ihi-2 >= is) then
+                         q(i,j,k,n) = q(ihi+1,jlo-1,k,n) + &
+                                      half * eighth * (15*q(ihi,jlo-1,k,n) - 10*q(ihi-1,jlo-1,k,n) + 3*q(ihi-2,jlo-1,k,n))
+                      else
+                         q(i,j,k,n) = q(ihi+1,jlo-1,k,n) + half * half * (3*q(ihi,jlo-1,k,n) - q(ihi-1,jlo-1,k,n))
+                      end if
+
+                      if (k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
+                         if (klo+2 <= ke) then
+                            q(i,j,k,n) = eighth * (15*q(ihi+1,jlo-1,klo,n) - 10*q(ihi+1,jlo-1,klo+1,n) + 3*q(ihi+1,jlo-1,klo+2,n))
+                         else
+                            q(i,j,k,n) = half * (3*q(ihi+1,jlo-1,klo,n) - q(ihi+1,jlo-1,klo+1,n))
+                         end if
+                      end if
+
+                      if (k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
+                         if (khi-2 >= ks) then
+                            q(i,j,k,n) = eighth * (15*q(ihi+1,jlo-1,khi,n) - 10*q(ihi+1,jlo-1,khi-1,n) + 3*q(ihi+1,jlo-1,khi-2,n))
+                         else
+                            q(i,j,k,n) = half * (3*q(ihi+1,jlo-1,khi,n) - q(ihi+1,jlo-1,khi-1,n))
+                         end if
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(1,2,n) .eq. HOEXTRAP .and. bc(2,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (i == ihi+1 .and. j == jhi+1) then
+
+                      if (jhi-2 >= js) then
+                         q(i,j,k,n) = half * eighth * (15*q(ihi+1,jhi,k,n) - 10*q(ihi+1,jhi-1,k,n) + 3*q(ihi+1,jhi-2,k,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(ihi+1,jhi,k,n) - q(ihi+1,jhi-1,k,n))
+                      end if
+
+                      if (ihi-2 >= is) then
+                         q(i,j,k,n) = q(ihi+1,jhi+1,k,n) + &
+                                      half * eighth * (15*q(ihi,jhi+1,k,n) - 10*q(ihi-1,jhi+1,k,n) + 3*q(ihi-2,jhi+1,k,n))
+                      else
+                         q(i,j,k,n) = q(ihi+1,jhi+1,k,n) + half * half * (3*q(ihi,jhi+1,k,n) - q(ihi-1,jhi+1,k,n))
+                      end if
+
+                      if (k == klo-1 .and. bc(3,1,n) .eq. HOEXTRAP) then
+                         if (klo+2 <= ke) then
+                            q(i,j,k,n) = eighth * (15*q(ihi+1,jhi+1,klo,n) - 10*q(ihi+1,jhi+1,klo+1,n) + 3*q(ihi+1,jhi+1,klo+2,n))
+                         else
+                            q(i,j,k,n) = half * (3*q(ihi+1,jhi+1,klo,n) - q(ihi+1,jhi+1,klo+1,n))
+                         end if
+                      end if
+
+                      if (k == khi+1 .and. bc(3,2,n) .eq. HOEXTRAP) then
+                         if (khi-2 >= ks) then
+                            q(i,j,k,n) = eighth * (15*q(ihi+1,jhi+1,khi,n) - 10*q(ihi+1,jhi+1,khi-1,n) + 3*q(ihi+1,jhi+1,khi-2,n))
+                         else
+                            q(i,j,k,n) = half * (3*q(ihi+1,jhi+1,khi,n) - q(ihi+1,jhi+1,khi-1,n))
+                         end if
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! Next correct the i-k edges
+       !
+
+       if (bc(1,1,n) .eq. HOEXTRAP .and. bc(3,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (i == ilo-1 .and. k == klo-1) then
+
+                      if (klo+2 <= ke) then
+                         q(i,j,k,n) = half * eighth * (15*q(ilo-1,j,klo,n) - 10*q(ilo-1,j,klo+1,n) + 3*q(ilo-1,j,klo+2,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(ilo-1,j,klo,n) - q(ilo-1,j,klo+1,n))
+                      end if
+
+                      if (ilo+2 <= ie) then
+                         q(i,j,k,n) = q(ilo-1,j,klo-1,n) + &
+                                      half * eighth * (15*q(ilo,j,klo-1,n) - 10*q(ilo+1,j,klo-1,n) + 3*q(ilo+2,j,klo-1,n))
+                      else
+                         q(i,j,k,n) = q(ilo-1,j,klo-1,n) + half * half * (3*q(ilo,j,klo-1,n) - q(ilo+1,j,klo-1,n))
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(1,1,n) .eq. HOEXTRAP .and. bc(3,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (i == ilo-1 .and. k == khi+1) then
+
+                      if (khi-2 >= ks) then
+                         q(i,j,k,n) = half * eighth * (15*q(ilo-1,j,khi,n) - 10*q(ilo-1,j,khi-1,n) + 3*q(ilo-1,j,khi-2,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(ilo-1,j,khi,n) - q(ilo-1,j,khi-1,n))
+                      end if
+
+                      if (ilo+2 <= ie) then
+                         q(i,j,k,n) = q(ilo-1,j,khi+1,n) + &
+                                      half * eighth * (15*q(ilo,j,khi+1,n) - 10*q(ilo+1,j,khi+1,n) + 3*q(ilo+2,j,khi+1,n))
+                      else
+                         q(i,j,k,n) = q(ilo-1,j,khi+1,n) + half * half * (3*q(ilo,j,khi+1,n) - q(ilo+1,j,khi+1,n))
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(1,2,n) .eq. HOEXTRAP .and. bc(3,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (i == ihi+1 .and. k == klo-1) then
+
+                      if (klo+2 <= ke) then
+                         q(i,j,k,n) = half * eighth * (15*q(ihi+1,j,klo,n) - 10*q(ihi+1,j,klo+1,n) + 3*q(ihi+1,j,klo+2,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(ihi+1,j,klo,n) - q(ihi+1,j,klo+1,n))
+                      end if
+
+                      if (ihi-2 >= is) then
+                         q(i,j,k,n) = q(ihi+1,j,klo-1,n) + &
+                                    half * eighth * (15*q(ihi,j,klo-1,n) - 10*q(ihi-1,j,klo-1,n) + 3*q(ihi-2,j,klo-1,n))
+                      else
+                         q(i,j,k,n) = q(ihi+1,j,klo-1,n) + half * half * (3*q(ihi,j,klo-1,n) - q(ihi-1,j,klo-1,n))
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(1,2,n) .eq. HOEXTRAP .and. bc(3,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (i == ihi+1 .and. k == khi+1) then
+
+                      if (khi-2 >= ks) then
+                         q(i,j,k,n) = half * eighth * (15*q(ihi+1,j,khi,n) - 10*q(ihi+1,j,khi-1,n) + 3*q(ihi+1,j,khi-2,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(ihi+1,j,khi,n) - q(ihi+1,j,khi-1,n))
+                      end if
+
+                      if (ihi-2 >= is) then
+                         q(i,j,k,n) = q(ihi+1,j,khi+1,n) + &
+                                      half * eighth * (15*q(ihi,j,khi+1,n) - 10*q(ihi-1,j,khi+1,n) + 3*q(ihi-2,j,khi+1,n))
+                      else
+                         q(i,j,k,n) = q(ihi+1,j,khi+1,n) + half * half * (3*q(ihi,j,khi+1,n) - q(ihi-1,j,khi+1,n))
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! Next correct the j-k edges
+       !
+
+       if (bc(2,1,n) .eq. HOEXTRAP .and. bc(3,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (j == jlo-1 .and. k == klo-1) then
+
+                      if (klo+2 <= ke) then
+                         q(i,j,k,n) = half * eighth * (15*q(i,jlo-1,klo,n) - 10*q(i,jlo-1,klo+1,n) + 3*q(i,jlo-1,klo+2,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(i,jlo-1,klo,n) - q(i,jlo-1,klo+1,n))
+                      end if
+
+                      if (jlo+2 <= je) then
+                         q(i,j,k,n) = q(i,jlo-1,klo-1,n) + &
+                                      half * eighth * (15*q(i,jlo,klo-1,n) - 10*q(i,jlo+1,klo-1,n) + 3*q(i,jlo+2,klo-1,n))
+                      else
+                         q(i,j,k,n) = q(i,jlo-1,klo-1,n) + half * half * (3*q(i,jlo,klo-1,n) - q(i,jlo+1,klo-1,n))
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(2,1,n) .eq. HOEXTRAP .and. bc(3,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (j == jlo-1 .and. k == khi+1) then
+
+                      if (khi-2 >= ks) then
+                         q(i,j,k,n) = half * eighth * (15*q(i,jlo-1,khi,n) - 10*q(i,jlo-1,khi-1,n) + 3*q(i,jlo-1,khi-2,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(i,jlo-1,khi,n) - q(i,jlo-1,khi-1,n))
+                      end if
+
+                      if (jlo+2 <= je) then
+                         q(i,j,k,n) = q(i,jlo-1,khi+1,n) + &
+                                       half * eighth * (15*q(i,jlo,khi+1,n) - 10*q(i,jlo+1,khi+1,n) + 3*q(i,jlo+2,khi+1,n))
+                      else
+                         q(i,j,k,n) = q(i,jlo-1,khi+1,n) + half * half * (3*q(i,jlo,khi+1,n) - q(i,jlo+1,khi+1,n))
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(2,2,n) .eq. HOEXTRAP .and. bc(3,1,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (j == jhi+1 .and. k == klo-1) then
+
+                      if (klo+2 <= ke) then
+                         q(i,j,k,n) = half * eighth * (15*q(i,jhi+1,klo,n) - 10*q(i,jhi+1,klo+1,n) + 3*q(i,jhi+1,klo+2,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(i,jhi+1,klo,n) - q(i,jhi+1,klo+1,n))
+                      end if
+
+                      if (jhi-2 >= js) then
+                         q(i,j,k,n) = q(i,jhi+1,klo-1,n) + &
+                                      half * eighth * (15*q(i,jhi,klo-1,n) - 10*q(i,jhi-1,klo-1,n) + 3*q(i,jhi-2,klo-1,n))
+                      else
+                         q(i,j,k,n) = q(i,jhi+1,klo-1,n) + half * half * (3*q(i,jhi,klo-1,n) - q(i,jhi-1,klo-1,n))
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
+       !
+       ! ****************************************************************************
+       !
+
+       if (bc(2,2,n) .eq. HOEXTRAP .and. bc(3,2,n) .eq. HOEXTRAP) then
+
+          do k = blo(3), bhi(3)
+             do j = blo(2), bhi(2)
+                do i = blo(1), bhi(1)
+
+                   if (j == jhi+1 .and. k == khi+1) then
+
+                      if (khi-2 >= ks) then
+                         q(i,j,k,n) = half * eighth * (15*q(i,jhi+1,khi,n) - 10*q(i,jhi+1,khi-1,n) + 3*q(i,jhi+1,khi-2,n))
+                      else
+                         q(i,j,k,n) = half * half * (3*q(i,jhi+1,khi,n) - q(i,jhi+1,khi-1,n))
+                      end if
+
+                      if (jhi-2 >= js) then
+                         q(i,j,k,n) = q(i,jhi+1,khi+1,n) + &
+                                      half * eighth * (15*q(i,jhi,khi+1,n) - 10*q(i,jhi-1,khi+1,n) + 3*q(i,jhi-2,khi+1,n))
+                      else
+                         q(i,j,k,n) = q(i,jhi+1,khi+1,n) + half * half * (3*q(i,jhi,khi+1,n) - q(i,jhi-1,khi+1,n))
+                      end if
+
+                   end if
+
+                end do
+             end do
+          end do
+
+       end if
+
     end do
 
   end subroutine filccn
