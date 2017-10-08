@@ -50,6 +50,8 @@ amrex::Device::initialize_device() {
     const int my_rank = ParallelDescriptor::MyProc();
     const int ioproc  = ParallelDescriptor::IOProcessorNumber();
 
+    int total_count = 1;
+
 #if (defined(NVML) && defined(BL_USE_MPI))
 
     nvmlReturn_t nvml_err;
@@ -61,7 +63,7 @@ amrex::Device::initialize_device() {
 
     // Get total number of GPUs seen by all ranks.
 
-    int total_count = (int) device_count;
+    total_count = (int) device_count;
 
     amrex::ParallelDescriptor::ReduceIntSum(total_count);
 
