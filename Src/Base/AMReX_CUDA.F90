@@ -239,7 +239,7 @@ contains
     type(dim3), intent(inout) :: numBlocks, numThreads
 
     integer :: tile_size(AMREX_SPACEDIM), i
-    integer, parameter :: max_threads = 256
+    integer, parameter :: max_threads = 512
 
     ! Our threading strategy will be to allocate thread blocks
     ! preferring the x direction first to guarantee coalesced accesses.
