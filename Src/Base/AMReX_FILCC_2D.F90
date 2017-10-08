@@ -517,7 +517,7 @@ contains
 #ifdef AMREX_USE_CUDA
   attributes(device) &
 #endif
-  subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc, n)
+  subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 
     implicit none
 
@@ -528,11 +528,10 @@ contains
     real(rt), intent(in   ) :: xlo(2), dx(2)
     real(rt), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),ncomp)
     integer,  intent(in   ) :: ncomp
-    integer,  intent(in   ), value :: n
 
     integer :: ilo, ihi, jlo, jhi
     integer :: is, ie, js, je
-    integer :: i, j
+    integer :: i, j, n
 
     is = max(q_lo(1), domlo(1))
     ie = min(q_hi(1), domhi(1))
@@ -544,232 +543,234 @@ contains
     jlo = domlo(2)
     jhi = domhi(2)
 
-    do j = blo(2), bhi(2)
-       do i = blo(1), bhi(1)
+    do n = 1, ncomp
+       do j = blo(2), bhi(2)
+          do i = blo(1), bhi(1)
 
-          if (bc(1,1,n) .eq. EXT_DIR) then
+             if (bc(1,1,n) .eq. EXT_DIR) then
 
-             ! Do nothing.
+                ! Do nothing.
 
-          else if (bc(1,1,n) .eq. FOEXTRAP) then
+             else if (bc(1,1,n) .eq. FOEXTRAP) then
 
-             if (i < ilo) then
-                q(i,j,n) = q(ilo,j,n)
-             end if
-
-          else if (bc(1,1,n) .eq. HOEXTRAP) then
-
-             if (i < ilo - 1) then
-                q(i,j,n) = q(ilo,j,n)
-             else if (i == ilo - 1) then
-                if (ilo+2 <= ie) then
-                   q(i,j,n) = eighth * (15*q(ilo,j,n) - 10*q(ilo+1,j,n) + 3*q(ilo+2,j,n))
-                else
-                   q(i,j,n) = half * (3*q(ilo,j,n) - q(ilo+1,j,n))
+                if (i < ilo) then
+                   q(i,j,n) = q(ilo,j,n)
                 end if
-             end if
 
-          else if (bc(1,1,n) .eq. REFLECT_EVEN) then
+             else if (bc(1,1,n) .eq. HOEXTRAP) then
 
-             if (i < ilo) then
-                q(i,j,n) = q(ilo+(ilo-i)-1,j,n)
-             end if
-
-          else if (bc(1,1,n) .eq. REFLECT_ODD) then
-
-             if (i < ilo) then
-                q(i,j,n) = -q(ilo+(ilo-i)-1,j,n)
-             end if
-
-          end if
-
-
-
-          if (bc(1,2,n) .eq. EXT_DIR) then
-
-             ! Do nothing.
-
-          else if (bc(1,2,n) .eq. FOEXTRAP) then
-
-             if (i > ihi) then
-                q(i,j,n) = q(ihi,j,n)
-             end if
-
-          else if (bc(1,2,n) .eq. HOEXTRAP) then
-
-             if (i > ihi + 1) then
-                q(i,j,n) = q(ihi,j,n)
-             else if (i == ihi + 1) then
-                if (ihi-2 >= is) then
-                   q(i,j,n) = eighth * (15*q(ihi,j,n) - 10*q(ihi-1,j,n) + 3*q(ihi-2,j,n))
-                else
-                   q(i,j,n) = half * (3*q(ihi,j,n) - q(ihi-1,j,n))
+                if (i < ilo - 1) then
+                   q(i,j,n) = q(ilo,j,n)
+                else if (i == ilo - 1) then
+                   if (ilo+2 <= ie) then
+                      q(i,j,n) = eighth * (15*q(ilo,j,n) - 10*q(ilo+1,j,n) + 3*q(ilo+2,j,n))
+                   else
+                      q(i,j,n) = half * (3*q(ilo,j,n) - q(ilo+1,j,n))
+                   end if
                 end if
+
+             else if (bc(1,1,n) .eq. REFLECT_EVEN) then
+
+                if (i < ilo) then
+                   q(i,j,n) = q(ilo+(ilo-i)-1,j,n)
+                end if
+
+             else if (bc(1,1,n) .eq. REFLECT_ODD) then
+
+                if (i < ilo) then
+                   q(i,j,n) = -q(ilo+(ilo-i)-1,j,n)
+                end if
+
              end if
 
-          else if (bc(1,2,n) .eq. REFLECT_EVEN) then
 
-             if (i > ihi) then
-                q(i,j,n) = q(ihi-(i-ihi)+1,j,n)
+
+             if (bc(1,2,n) .eq. EXT_DIR) then
+
+                ! Do nothing.
+
+             else if (bc(1,2,n) .eq. FOEXTRAP) then
+
+                if (i > ihi) then
+                   q(i,j,n) = q(ihi,j,n)
+                end if
+
+             else if (bc(1,2,n) .eq. HOEXTRAP) then
+
+                if (i > ihi + 1) then
+                   q(i,j,n) = q(ihi,j,n)
+                else if (i == ihi + 1) then
+                   if (ihi-2 >= is) then
+                      q(i,j,n) = eighth * (15*q(ihi,j,n) - 10*q(ihi-1,j,n) + 3*q(ihi-2,j,n))
+                   else
+                      q(i,j,n) = half * (3*q(ihi,j,n) - q(ihi-1,j,n))
+                   end if
+                end if
+
+             else if (bc(1,2,n) .eq. REFLECT_EVEN) then
+
+                if (i > ihi) then
+                   q(i,j,n) = q(ihi-(i-ihi)+1,j,n)
+                end if
+
+             else if (bc(1,2,n) .eq. REFLECT_ODD) then
+
+                if (i > ihi) then
+                   q(i,j,n) = -q(ihi-(i-ihi)+1,j,n)
+                end if
+
              end if
 
-          else if (bc(1,2,n) .eq. REFLECT_ODD) then
 
-             if (i > ihi) then
-                q(i,j,n) = -q(ihi-(i-ihi)+1,j,n)
+
+             if (bc(2,1,n) .eq. EXT_DIR) then
+
+                ! Do nothing.
+
+             else if (bc(2,1,n) .eq. FOEXTRAP) then
+
+                if (j < jlo) then
+                   q(i,j,n) = q(i,jlo,n)
+                end if
+
+             else if (bc(2,1,n) .eq. HOEXTRAP) then
+
+                if (j < jlo - 1) then
+                   q(i,j,n) = q(i,jlo,n)
+                else if (j == jlo - 1) then
+                   if (jlo+2 <= je) then
+                      q(i,j,n) = eighth * (15*q(i,jlo,n) - 10*q(i,jlo+1,n) + 3*q(i,jlo+2,n))
+                   else
+                      q(i,j,n) = half * (3*q(i,jlo,n) - q(i,jlo+1,n))
+                   end if
+                end if
+
+             else if (bc(2,1,n) .eq. REFLECT_EVEN) then
+
+                if (j < jlo) then
+                   q(i,j,n) = q(i,jlo+(jlo-j)-1,n)
+                end if
+
+             else if (bc(2,1,n) .eq. REFLECT_ODD) then
+
+                if (j < jlo) then
+                   q(i,j,n) = -q(i,jlo+(jlo-j)-1,n)
+                end if
+
              end if
 
-          end if
 
 
+             if (bc(2,2,n) .eq. EXT_DIR) then
 
-          if (bc(2,1,n) .eq. EXT_DIR) then
+                ! Do nothing.
 
-             ! Do nothing.
+             else if (bc(2,2,n) .eq. FOEXTRAP) then
 
-          else if (bc(2,1,n) .eq. FOEXTRAP) then
+                if (j > jhi) then
+                   q(i,j,n) = q(i,jhi,n)
+                end if
 
-             if (j < jlo) then
-                q(i,j,n) = q(i,jlo,n)
+             else if (bc(2,2,n) .eq. HOEXTRAP) then
+
+                if (j > jhi + 1) then
+                   q(i,j,n) = q(i,jhi,n)
+                else if (j == jhi + 1) then
+                   if (jhi-2 >= js) then
+                      q(i,j,n) = eighth * (15*q(i,jhi,n) - 10*q(i,jhi-1,n) + 3*q(i,jhi-2,n))
+                   else
+                      q(i,j,n) = half * (3*q(i,jhi,n) - q(i,jhi-1,n))
+                   end if
+                end if
+
+             else if (bc(2,2,n) .eq. REFLECT_EVEN) then
+
+                if (j > jhi) then
+                   q(i,j,n) = q(i,jhi-(j-jhi)+1,n)
+                end if
+
+             else if (bc(2,2,n) .eq. REFLECT_ODD) then
+
+                if (j > jhi) then
+                   q(i,j,n) = -q(i,jhi-(j-jhi)+1,n)
+                end if
+
              end if
 
-          else if (bc(2,1,n) .eq. HOEXTRAP) then
 
-             if (j < jlo - 1) then
-                q(i,j,n) = q(i,jlo,n)
-             else if (j == jlo - 1) then
+             if (i == ilo-1 .and. bc(1,1,n) .eq. HOEXTRAP .and. &
+                 j == jlo-1 .and. bc(2,1,n) .eq. HOEXTRAP) then
+
                 if (jlo+2 <= je) then
-                   q(i,j,n) = eighth * (15*q(i,jlo,n) - 10*q(i,jlo+1,n) + 3*q(i,jlo+2,n))
+                   q(i,j,n) = half * eighth * (15*q(ilo-1,jlo,n) - 10*q(ilo-1,jlo+1,n) + 3*q(ilo-1,jlo+2,n))
                 else
-                   q(i,j,n) = half * (3*q(i,jlo,n) - q(i,jlo+1,n))
+                   q(i,j,n) = half * half * (3*q(ilo-1,jlo,n) - q(ilo-1,jlo+1,n))
                 end if
+
+                if (ilo+2 <= ie) then
+                   q(i,j,n) = q(ilo-1,jlo-1,n) + &
+                              half * eighth * (15*q(ilo,jlo-1,n) - 10*q(ilo+1,jlo-1,n) + 3*q(ilo+2,jlo-1,n))
+                else
+                   q(i,j,n) = q(ilo-1,jlo-1,n) + half * half * (3*q(ilo,jlo-1,n) - q(ilo+1,jlo-1,n))
+                end if
+
              end if
 
-          else if (bc(2,1,n) .eq. REFLECT_EVEN) then
+             if (i == ilo-1 .and. bc(1,1,n) .eq. HOEXTRAP .and. &
+                 j == jhi+1 .and. bc(2,2,n) .eq. HOEXTRAP) then
 
-             if (j < jlo) then
-                q(i,j,n) = q(i,jlo+(jlo-j)-1,n)
-             end if
-
-          else if (bc(2,1,n) .eq. REFLECT_ODD) then
-
-             if (j < jlo) then
-                q(i,j,n) = -q(i,jlo+(jlo-j)-1,n)
-             end if
-
-          end if
-
-
-
-          if (bc(2,2,n) .eq. EXT_DIR) then
-
-             ! Do nothing.
-
-          else if (bc(2,2,n) .eq. FOEXTRAP) then
-
-             if (j > jhi) then
-                q(i,j,n) = q(i,jhi,n)
-             end if
-
-          else if (bc(2,2,n) .eq. HOEXTRAP) then
-
-             if (j > jhi + 1) then
-                q(i,j,n) = q(i,jhi,n)
-             else if (j == jhi + 1) then
                 if (jhi-2 >= js) then
-                   q(i,j,n) = eighth * (15*q(i,jhi,n) - 10*q(i,jhi-1,n) + 3*q(i,jhi-2,n))
+                   q(i,j,n) = half * eighth * (15*q(ilo-1,jhi,n) - 10*q(ilo-1,jhi-1,n) + 3*q(ilo-1,jhi-2,n))
                 else
-                   q(i,j,n) = half * (3*q(i,jhi,n) - q(i,jhi-1,n))
+                   q(i,j,n) = half * half * (3*q(ilo-1,jhi,n) - q(ilo-1,jhi-1,n))
                 end if
+
+                if (ilo+2 <= ie) then
+                   q(i,j,n) = q(ilo-1,jhi+1,n) + &
+                              half * eighth * (15*q(ilo,jhi+1,n) - 10*q(ilo+1,jhi+1,n) + 3*q(ilo+2,jhi+1,n))
+                else
+                   q(i,j,n) = q(ilo-1,jhi+1,n) + half * half * (3*q(ilo,jhi+1,n) - q(ilo+1,jhi+1,n))
+                end if
+
              end if
 
-          else if (bc(2,2,n) .eq. REFLECT_EVEN) then
+             if (i == ihi+1 .and. bc(1,2,n) .eq. HOEXTRAP .and. &
+                 j == jlo-1 .and. bc(2,1,n) .eq. HOEXTRAP) then
 
-             if (j > jhi) then
-                q(i,j,n) = q(i,jhi-(j-jhi)+1,n)
+                if (jlo+2 <= je) then
+                   q(i,j,n) = half * eighth * (15*q(ihi+1,jlo,n) - 10*q(ihi+1,jlo+1,n) + 3*q(ihi+1,jlo+2,n))
+                else
+                   q(i,j,n) = half * half * (3*q(ihi+1,jlo,n) - q(ihi+1,jlo+1,n))
+                end if
+
+                if (ihi-2 >= is) then
+                   q(i,j,n) = q(ihi+1,jlo-1,n) + &
+                              half * eighth * (15*q(ihi,jlo-1,n) - 10*q(ihi-1,jlo-1,n) + 3*q(ihi-2,jlo-1,n))
+                else
+                   q(i,j,n) = q(ihi+1,jlo-1,n) + half * half * (3*q(ihi,jlo-1,n) - q(ihi-1,jlo-1,n))
+                end if
+
              end if
 
-          else if (bc(2,2,n) .eq. REFLECT_ODD) then
+             if (i == ihi+1 .and. bc(1,2,n) .eq. HOEXTRAP .and. &
+                 j == jhi+1 .and. bc(2,2,n) .eq. HOEXTRAP) then
 
-             if (j > jhi) then
-                q(i,j,n) = -q(i,jhi-(j-jhi)+1,n)
+                if (jhi-2 >= js) then
+                   q(i,j,n) = half * eighth * (15*q(ihi+1,jhi,n) - 10*q(ihi+1,jhi-1,n) + 3*q(ihi+1,jhi-2,n))
+                else
+                   q(i,j,n) = half * half * (3*q(ihi+1,jhi,n) - q(ihi+1,jhi-1,n))
+                end if
+
+                if (ihi-2 >= is) then
+                   q(i,j,n) = q(ihi+1,jhi+1,n) + &
+                              half * eighth * (15*q(ihi,jhi+1,n) - 10*q(ihi-1,jhi+1,n) + 3*q(ihi-2,jhi+1,n))
+                else
+                   q(i,j,n) = q(ihi+1,jhi+1,n) + half * half * (3*q(ihi,jhi+1,n) - q(ihi-1,jhi+1,n))
+                end if
+
              end if
 
-          end if
-
-
-          if (i == ilo-1 .and. bc(1,1,n) .eq. HOEXTRAP .and. &
-              j == jlo-1 .and. bc(2,1,n) .eq. HOEXTRAP) then
-
-             if (jlo+2 <= je) then
-                q(i,j,n) = half * eighth * (15*q(ilo-1,jlo,n) - 10*q(ilo-1,jlo+1,n) + 3*q(ilo-1,jlo+2,n))
-             else
-                q(i,j,n) = half * half * (3*q(ilo-1,jlo,n) - q(ilo-1,jlo+1,n))
-             end if
-
-             if (ilo+2 <= ie) then
-                q(i,j,n) = q(ilo-1,jlo-1,n) + &
-                           half * eighth * (15*q(ilo,jlo-1,n) - 10*q(ilo+1,jlo-1,n) + 3*q(ilo+2,jlo-1,n))
-             else
-                q(i,j,n) = q(ilo-1,jlo-1,n) + half * half * (3*q(ilo,jlo-1,n) - q(ilo+1,jlo-1,n))
-             end if
-
-          end if
-
-          if (i == ilo-1 .and. bc(1,1,n) .eq. HOEXTRAP .and. &
-              j == jhi+1 .and. bc(2,2,n) .eq. HOEXTRAP) then
-
-             if (jhi-2 >= js) then
-                q(i,j,n) = half * eighth * (15*q(ilo-1,jhi,n) - 10*q(ilo-1,jhi-1,n) + 3*q(ilo-1,jhi-2,n))
-             else
-                q(i,j,n) = half * half * (3*q(ilo-1,jhi,n) - q(ilo-1,jhi-1,n))
-             end if
-
-             if (ilo+2 <= ie) then
-                q(i,j,n) = q(ilo-1,jhi+1,n) + &
-                           half * eighth * (15*q(ilo,jhi+1,n) - 10*q(ilo+1,jhi+1,n) + 3*q(ilo+2,jhi+1,n))
-             else
-                q(i,j,n) = q(ilo-1,jhi+1,n) + half * half * (3*q(ilo,jhi+1,n) - q(ilo+1,jhi+1,n))
-             end if
-
-          end if
-
-          if (i == ihi+1 .and. bc(1,2,n) .eq. HOEXTRAP .and. &
-              j == jlo-1 .and. bc(2,1,n) .eq. HOEXTRAP) then
-
-             if (jlo+2 <= je) then
-                q(i,j,n) = half * eighth * (15*q(ihi+1,jlo,n) - 10*q(ihi+1,jlo+1,n) + 3*q(ihi+1,jlo+2,n))
-             else
-                q(i,j,n) = half * half * (3*q(ihi+1,jlo,n) - q(ihi+1,jlo+1,n))
-             end if
-
-             if (ihi-2 >= is) then
-                q(i,j,n) = q(ihi+1,jlo-1,n) + &
-                           half * eighth * (15*q(ihi,jlo-1,n) - 10*q(ihi-1,jlo-1,n) + 3*q(ihi-2,jlo-1,n))
-             else
-                q(i,j,n) = q(ihi+1,jlo-1,n) + half * half * (3*q(ihi,jlo-1,n) - q(ihi-1,jlo-1,n))
-             end if
-
-          end if
-
-          if (i == ihi+1 .and. bc(1,2,n) .eq. HOEXTRAP .and. &
-              j == jhi+1 .and. bc(2,2,n) .eq. HOEXTRAP) then
-
-             if (jhi-2 >= js) then
-                q(i,j,n) = half * eighth * (15*q(ihi+1,jhi,n) - 10*q(ihi+1,jhi-1,n) + 3*q(ihi+1,jhi-2,n))
-             else
-                q(i,j,n) = half * half * (3*q(ihi+1,jhi,n) - q(ihi+1,jhi-1,n))
-             end if
-
-             if (ihi-2 >= is) then
-                q(i,j,n) = q(ihi+1,jhi+1,n) + &
-                           half * eighth * (15*q(ihi,jhi+1,n) - 10*q(ihi-1,jhi+1,n) + 3*q(ihi-2,jhi+1,n))
-             else
-                q(i,j,n) = q(ihi+1,jhi+1,n) + half * half * (3*q(ihi,jhi+1,n) - q(ihi-1,jhi+1,n))
-             end if
-
-          end if
-
+          end do
        end do
     end do
   end subroutine filccn

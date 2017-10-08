@@ -134,7 +134,7 @@ contains
 #ifdef AMREX_USE_CUDA
   attributes(device) &
 #endif
-  subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc, n)
+  subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 
     implicit none
 
@@ -145,10 +145,9 @@ contains
     real(rt), intent(in   ) :: xlo(1), dx(1)
     real(rt), intent(inout) :: q(q_lo(1):q_hi(1),ncomp)
     integer,  intent(in   ) :: ncomp
-    integer,  intent(in   ), value :: n
 
     integer :: ilo, ihi
-    integer :: i
+    integer :: i, n
     integer :: is, ie
 
     is = max(q_lo(1), domlo(1))
@@ -157,80 +156,82 @@ contains
     ilo = domlo(1)
     ihi = domhi(1)
 
-    do i = blo(1), bhi(2)
+    do n = 1, ncomp
+       do i = blo(1), bhi(2)
 
-       if (bc(1,1,n) .eq. EXT_DIR) then
+          if (bc(1,1,n) .eq. EXT_DIR) then
 
-          ! Do nothing.
+             ! Do nothing.
 
-       else if (bc(1,1,n) .eq. FOEXTRAP) then
+          else if (bc(1,1,n) .eq. FOEXTRAP) then
 
-          if (i < ilo) then
-             q(i,n) = q(ilo,n)
-          end if
-
-       else if (bc(1,1,n) .eq. HOEXTRAP) then
-
-          if (i < ilo - 1) then
-             q(i,n) = q(ilo,n)
-          else if (i == ilo - 1) then
-             if (ilo+2 .le. ie) then
-                q(i,n) = eighth * (fifteen*q(ilo,n) - ten*q(ilo+1,n) + three*q(ilo+2,n))
-             else
-                q(i,n) = half * (three*q(ilo,n) - q(ilo+1,n))
+             if (i < ilo) then
+                q(i,n) = q(ilo,n)
              end if
-          end if
 
-       else if (bc(1,1,n) .eq. REFLECT_EVEN) then
+          else if (bc(1,1,n) .eq. HOEXTRAP) then
 
-          if (i < ilo) then
-             q(i,n) = q(ilo+(ilo-i)-1,n)
-          end if
-
-       else if (bc(1,1,n) .eq. REFLECT_ODD) then
-
-          if (i < ilo) then
-             q(i,n) = -q(ilo+(ilo-i)-1,n)
-          end if
-
-       end if
-
-       if (bc(1,2,n) .eq. EXT_DIR) then
-
-          ! Do nothing.
-
-       else if (bc(1,2,n) .eq. FOEXTRAP) then
-
-          if (i > ihi) then
-             q(i,n) = q(ihi,n)
-          end if
-
-       else if (bc(1,2,n) .eq. HOEXTRAP) then
-
-          if (i > ihi + 1) then
-             q(i,n) = q(ihi,n)
-          else if (i == ihi + 1) then
-             if (ihi-2 .ge. is) then
-                q(i,n) = eighth * (fifteen*q(ihi,n) - ten*q(ihi-1,n) + three*q(ihi-2,n))
-             else
-                q(i,n) = half * (three*q(ihi,n) - q(ihi-1,n))
+             if (i < ilo - 1) then
+                q(i,n) = q(ilo,n)
+             else if (i == ilo - 1) then
+                if (ilo+2 .le. ie) then
+                   q(i,n) = eighth * (fifteen*q(ilo,n) - ten*q(ilo+1,n) + three*q(ilo+2,n))
+                else
+                   q(i,n) = half * (three*q(ilo,n) - q(ilo+1,n))
+                end if
              end if
+
+          else if (bc(1,1,n) .eq. REFLECT_EVEN) then
+
+             if (i < ilo) then
+                q(i,n) = q(ilo+(ilo-i)-1,n)
+             end if
+
+          else if (bc(1,1,n) .eq. REFLECT_ODD) then
+
+             if (i < ilo) then
+                q(i,n) = -q(ilo+(ilo-i)-1,n)
+             end if
+
           end if
 
-       else if (bc(1,2,n) .eq. REFLECT_EVEN) then
+          if (bc(1,2,n) .eq. EXT_DIR) then
 
-          if (i > ihi) then
-             q(i,n) = q(ihi-(i-ihi)+1,n)
+             ! Do nothing.
+
+          else if (bc(1,2,n) .eq. FOEXTRAP) then
+
+             if (i > ihi) then
+                q(i,n) = q(ihi,n)
+             end if
+
+          else if (bc(1,2,n) .eq. HOEXTRAP) then
+
+             if (i > ihi + 1) then
+                q(i,n) = q(ihi,n)
+             else if (i == ihi + 1) then
+                if (ihi-2 .ge. is) then
+                   q(i,n) = eighth * (fifteen*q(ihi,n) - ten*q(ihi-1,n) + three*q(ihi-2,n))
+                else
+                   q(i,n) = half * (three*q(ihi,n) - q(ihi-1,n))
+                end if
+             end if
+
+          else if (bc(1,2,n) .eq. REFLECT_EVEN) then
+
+             if (i > ihi) then
+                q(i,n) = q(ihi-(i-ihi)+1,n)
+             end if
+
+          else if (bc(1,2,n) .eq. REFLECT_ODD) then
+
+             if (i > ihi) then
+                q(i,n) = -q(ihi-(i-ihi)+1,n)
+             end if
+
           end if
 
-       else if (bc(1,2,n) .eq. REFLECT_ODD) then
-
-          if (i > ihi) then
-             q(i,n) = -q(ihi-(i-ihi)+1,n)
-          end if
-
-       end if
-
+       end do
     end do
 
   end subroutine filccn

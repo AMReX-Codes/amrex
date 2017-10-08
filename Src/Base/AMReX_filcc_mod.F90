@@ -97,9 +97,7 @@ contains
 
     call get_loop_bounds(blo, bhi, qlo, qhi)
 
-    do n = 1, nq
-       call filccn(blo, bhi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc, n)
-    end do
+    call filccn(blo, bhi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
   end subroutine amrex_fab_filcc_doit
 
   subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
