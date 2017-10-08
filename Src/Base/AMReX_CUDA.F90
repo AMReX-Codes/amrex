@@ -239,22 +239,12 @@ contains
     type(dim3), intent(inout) :: numBlocks, numThreads
 
     integer :: tile_size(AMREX_SPACEDIM), i
-    integer, parameter :: max_threads = 256, tile_chunk_size = 32
+    integer, parameter :: max_threads = 256
 
     ! Our threading strategy will be to allocate thread blocks
-    ! in multiples of 32 in each dimension, preferring the x
-    ! direction first to guarantee coalesced accesses.
+    ! preferring the x direction first to guarantee coalesced accesses.
 
     tile_size = hi - lo + 1
-
-    ! Round the tiles up to the nearest multiple of the chunk size.
-    ! Only do this for dimensions in which the tile size > 1.
-
-    do i = 1, AMREX_SPACEDIM
-       if (tile_size(i) > 1) then
-          tile_size(i) = ((tile_size(i) + tile_chunk_size - 1) / tile_chunk_size) * tile_chunk_size;
-       end if
-    end do
 
     if (AMREX_SPACEDIM .eq. 1) then
 
