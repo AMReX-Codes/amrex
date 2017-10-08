@@ -12,7 +12,7 @@ public:
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
-    void solve (const Vector<MultiFab*>& sol, const Vector<MultiFab*>& rhs,
+    void solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_real, Real a_tol_abs);
 
     void setVerbose (int v) { verbose = v; }
@@ -24,7 +24,17 @@ private:
     int max_iters = 200;
 
     MLLinOp& linop;
+    int namrlevs;
+    int finest_amr_lev;
 
+    Vector<MultiFab> rhs;
+    Vector<MultiFab> res;
+    // we probably should ask LinOp to make Vector<Vector<MultiFab>> rhs, res, cor, etc.
+    // Pass these to LinOp when call LinOp:: functions
+
+    void oneIter ();
+    void miniCycle ();
+    void mgCycle ();
 };
 
 }
