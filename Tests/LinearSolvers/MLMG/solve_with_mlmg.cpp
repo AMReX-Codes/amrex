@@ -22,7 +22,7 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     Vector<DistributionMapping> dmap;
 
     Vector<MultiFab*> psoln;
-    Vector<MultiFab*> prhs;
+    Vector<MultiFab const*> prhs;
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
