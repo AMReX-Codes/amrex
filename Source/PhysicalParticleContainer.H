@@ -17,8 +17,8 @@ public:
 
     virtual void InitData () final;
 
-    virtual void FieldGatherES(const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                               const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
+    virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                               const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
 
     virtual void FieldGather(int lev,
                              const amrex::MultiFab& Ex,
@@ -28,8 +28,8 @@ public:
                              const amrex::MultiFab& By,
                              const amrex::MultiFab& Bz) final;
 
-    virtual void EvolveES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+    virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, 
                            amrex::Real t, amrex::Real dt) override;
 
     virtual void Evolve (int lev,
@@ -51,10 +51,10 @@ public:
     // Inject particles in Box 'part_box'
     void AddParticles (int lev, amrex::Box part_box = amrex::Box());
 
-    void AddGaussianBeam(amrex::Real mean,
-                         amrex::Real sigma, 
-                         amrex::Real vel);
-
+    void AddGaussianBeam(amrex::Real x_m, amrex::Real y_m, amrex::Real z_m,
+                         amrex::Real x_rms, amrex::Real y_rms, amrex::Real z_rms, 
+                         amrex::Real q_tot, long npart);
+                                           
 protected:
 
     std::string species_name;

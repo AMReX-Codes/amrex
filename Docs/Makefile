@@ -16,6 +16,9 @@ clean:
 	rm -rf 
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)"
 
+upload:
+	rsync -e ssh -avz build/html/ lehe@phare.normalesup.org:WWW/html_warpx/
+
 .PHONY: help Makefile
 
 # Catch-all target: route all unknown targets to Sphinx using the new
@@ -30,4 +33,4 @@ Doxygen-build:
 	doxygen Doxyfile
 
 Latex-conversion:
-	cd $(SOURCEDIR)/theory; make
+	cd source/latex_theory; make

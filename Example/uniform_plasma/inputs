@@ -1,10 +1,10 @@
 # Maximum number of time steps
-max_step = 100
+max_step = 5
 
 # number of grid points
 amr.n_cell =  64 64 64
 
-amr.plot_int = 5   # How often to write plotfiles.
+amr.plot_int = -1   # How often to write plotfiles.
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.

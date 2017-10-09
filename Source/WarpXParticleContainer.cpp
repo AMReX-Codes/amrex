@@ -13,14 +13,14 @@ int WarpXParticleContainer::do_not_push = 0;
 
 #if (BL_SPACEDIM == 2)
 void
-WarpXParIter::GetPosition (Array<Real>& x, Array<Real>& y, Array<Real>& z) const
+WarpXParIter::GetPosition (Vector<Real>& x, Vector<Real>& y, Vector<Real>& z) const
 {
     amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
     y.resize(x.size(), std::numeric_limits<Real>::quiet_NaN());
 }
 
 void
-WarpXParIter::SetPosition (const Array<Real>& x, const Array<Real>& y, const Array<Real>& z)
+WarpXParIter::SetPosition (const Vector<Real>& x, const Vector<Real>& y, const Vector<Real>& z)
 {
     amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(x, z);
 }
@@ -162,7 +162,7 @@ WarpXParticleContainer::AddNParticles (int lev,
 }
 
 void
-WarpXParticleContainer::DepositCharge (Array<std::unique_ptr<MultiFab> >& rho, bool local)
+WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
 {
 
     int num_levels = rho.size();
@@ -248,7 +248,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 #pragma omp parallel
 #endif
     {
-        Array<Real> xp, yp, zp;
+        Vector<Real> xp, yp, zp;
         FArrayBox local_rho;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -410,14 +410,17 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 
     if (do_not_push) return;
 
+    MultiFab* cost = WarpX::getCosts(lev);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        Array<Real> xp, yp, zp, giv;
+        Vector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
+            Real wt = ParallelDescriptor::second();
 
             auto& attribs = pti.GetAttribs();
 
@@ -450,6 +453,12 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             BL_PROFILE_VAR_START(blp_copy);
             pti.SetPosition(xp, yp, zp);
             BL_PROFILE_VAR_STOP(blp_copy);
+
+            if (cost) {
+                const Box& tbx = pti.tilebox();
+                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                (*cost)[pti].plus(wt, tbx);
+            }
         }
     }
 }

@@ -22,7 +22,7 @@
 
 using namespace amrex;
 
-Array<Real> WarpX::B_external(3, 0.0);
+Vector<Real> WarpX::B_external(3, 0.0);
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -35,6 +35,7 @@ long WarpX::noz = 1;
 
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
+bool WarpX::serialize_ics     = false;
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -132,6 +133,8 @@ WarpX::WarpX ()
 
     masks.resize(nlevs_max);
     gather_masks.resize(nlevs_max);
+
+    costs.resize(nlevs_max);
 }
 
 WarpX::~WarpX ()
@@ -209,6 +212,7 @@ WarpX::ReadParameters ()
 
 	pp.query("use_laser", use_laser);
 	pp.query("use_filter", use_filter);
+	pp.query("serialize_ics", serialize_ics);
         pp.query("do_dive_cleaning", do_dive_cleaning);
 
         pp.query("do_pml", do_pml);
@@ -234,12 +238,14 @@ WarpX::ReadParameters ()
         }
 
         if (maxLevel() > 0) {
-            Array<Real> lo, hi;
+            Vector<Real> lo, hi;
             pp.getarr("fine_tag_lo", lo);
             pp.getarr("fine_tag_hi", hi);
             fine_tag_lo = RealVect{lo};
             fine_tag_hi = RealVect{hi};
         }
+
+        pp.query("load_balance_int", load_balance_int);
     }
 
     {
@@ -293,6 +299,8 @@ WarpX::ClearLevel (int lev)
     rho_fp[lev].reset();
     F_cp  [lev].reset();
     rho_cp[lev].reset();
+
+    costs[lev].reset();
 }
 
 void
@@ -302,10 +310,6 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
     int ngJ = ngE;
     int ngRho = ngE;
-    if (WarpX::use_filter) {
-        ngJ   = ((WarpX::nox+1) % 2) ? WarpX::nox+2 : WarpX::nox+1; // Always even number
-        ngRho = ((WarpX::nox+1) % 2) ? WarpX::nox+2 : WarpX::nox+1; // Always even number
-    }
 
     //
     // The fine patch
@@ -380,6 +384,10 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, 0));
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
         }
+    }
+
+    if (load_balance_int > 0) {
+        costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
 }
 
@@ -462,8 +470,8 @@ void WarpX::sumFineToCrseNodal(const amrex::MultiFab& fine,
 }
 
 void
-WarpX::fixRHSForSolve(Array<std::unique_ptr<MultiFab> >& rhs,
-                      const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) const {
+WarpX::fixRHSForSolve(Vector<std::unique_ptr<MultiFab> >& rhs,
+                      const Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) const {
     int num_levels = rhs.size();
     for (int lev = 0; lev < num_levels; ++lev) {
         MultiFab& fine_rhs = *rhs[lev];
@@ -475,7 +483,7 @@ WarpX::fixRHSForSolve(Array<std::unique_ptr<MultiFab> >& rhs,
     }
 }
 
-void WarpX::getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
+void WarpX::getLevelMasks(Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
                           const int nnodes) {
     int num_levels = grids.size();
     BL_ASSERT(num_levels == dmap.size());
@@ -502,12 +510,12 @@ void WarpX::getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& mas
 }
 
 
-void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
-                             Array<std::unique_ptr<MultiFab> >& phi) const {
+void WarpX::computePhi(const Vector<std::unique_ptr<MultiFab> >& rho,
+                             Vector<std::unique_ptr<MultiFab> >& phi) const {
 
 
     int num_levels = rho.size();
-    Array<std::unique_ptr<MultiFab> > rhs(num_levels);
+    Vector<std::unique_ptr<MultiFab> > rhs(num_levels);
     for (int lev = 0; lev < num_levels; ++lev) {
         phi[lev]->setVal(0.0, 2);
         rhs[lev].reset(new MultiFab(rho[lev]->boxArray(), dmap[lev], 1, 0));
@@ -523,15 +531,15 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
     int Ncomp = 1;
     int stencil = ND_CROSS_STENCIL;
     int verbose = 0;
-    Array<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
+    Vector<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
     Real rel_tol = 1.0e-14;
     Real abs_tol = 1.0e-14;
 
-    Array<Geometry>            level_geom(1);
-    Array<BoxArray>            level_grids(1);
-    Array<DistributionMapping> level_dm(1);
-    Array<MultiFab*>           level_phi(1);
-    Array<MultiFab*>           level_rhs(1);
+    Vector<Geometry>            level_geom(1);
+    Vector<BoxArray>            level_grids(1);
+    Vector<DistributionMapping> level_dm(1);
+    Vector<MultiFab*>           level_phi(1);
+    Vector<MultiFab*>           level_rhs(1);
 
     for (int lev = 0; lev < num_levels; ++lev) {
         level_phi[0]   = phi[lev].get();
@@ -558,7 +566,7 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
             int lo_bc[] = {INT_DIR, INT_DIR};
             int hi_bc[] = {INT_DIR, INT_DIR};
 #endif
-            Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+            Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
             NodeBilinear mapper;
 
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
@@ -574,8 +582,8 @@ void WarpX::computePhi(const Array<std::unique_ptr<MultiFab> >& rho,
     }
 }
 
-void WarpX::computeE(Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
-                     const Array<std::unique_ptr<MultiFab> >& phi) const {
+void WarpX::computeE(Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                     const Vector<std::unique_ptr<MultiFab> >& phi) const {
 
     const int num_levels = E.size();
     for (int lev = 0; lev < num_levels; ++lev) {

@@ -4,7 +4,7 @@
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
@@ -78,9 +78,9 @@ int main(int argc, char* argv[])
         IntVect jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 #endif
 
-	Array<std::unique_ptr<MultiFab> > current(3);
-	Array<std::unique_ptr<MultiFab> > Efield(3);
-	Array<std::unique_ptr<MultiFab> > Bfield(3);
+	Vector<std::unique_ptr<MultiFab> > current(3);
+	Vector<std::unique_ptr<MultiFab> > Efield(3);
+	Vector<std::unique_ptr<MultiFab> > Bfield(3);
         // Create the MultiFabs for B
         Bfield[0].reset( new MultiFab(amrex::convert(grids,Bx_nodal_flag),dmap,1,ng));
         Bfield[1].reset( new MultiFab(amrex::convert(grids,By_nodal_flag),dmap,1,ng));
@@ -220,7 +220,7 @@ int main(int argc, char* argv[])
 	int is_per[3] = {0,0,0};
 	Geometry geom{cc_domain, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
-	Array<std::string> varnames{"Ex", "Ey", "Ez", "Bx", "By", "Bz"};
+	Vector<std::string> varnames{"Ex", "Ey", "Ez", "Bx", "By", "Bz"};
 	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }
 
