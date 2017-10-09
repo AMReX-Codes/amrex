@@ -455,7 +455,7 @@ read_file (const char*                     fname,
     //
     if ( fname != 0 && fname[0] != 0 )
     {
-	Array<char> fileCharPtr;
+	Vector<char> fileCharPtr;
 	std::string filename = fname;
 	ParallelDescriptor::ReadAndBcastFile(filename, fileCharPtr);
 	const char* b = fileCharPtr.dataPtr();

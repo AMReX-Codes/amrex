@@ -57,7 +57,7 @@ namespace amrex
         const FaceIndex* vofPtr = dynamic_cast<const FaceIndex *>(&a_baseInd);
         if (vofPtr == NULL) amrex::Error("Trying to index into an EBCellFAB with something that is not a FaceIndex");
         int retval = 0;
-        const Array<FaceIndex>& irrfaces =m_irrFAB.getFaces();
+        const Vector<FaceIndex>& irrfaces =m_irrFAB.getFaces();
         for (int iface = 0; iface < irrfaces.size(); iface++)
         {
           if (irrfaces[iface] == *vofPtr)
@@ -75,7 +75,7 @@ namespace amrex
         const FaceIndex* vofPtr = dynamic_cast<const FaceIndex *>(&a_baseInd);
         if (vofPtr == NULL) amrex::Error("Trying to index into an EBCellFAB with something that is not a FaceIndex");
         bool irreg = false;
-        const Array<FaceIndex>& irrfaces =m_irrFAB.getFaces();
+        const Vector<FaceIndex>& irrfaces =m_irrFAB.getFaces();
         for (int iface = 0; iface < irrfaces.size(); iface++)
         {
           if (irrfaces[iface] == *vofPtr)

@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 
     int finestLevel(amrData.FinestLevel());
     int numberOfLevels(finestLevel + 1);
-    const Array<std::string> &plotVarNames = amrData.PlotVarNames();
+    const Vector<std::string> &plotVarNames = amrData.PlotVarNames();
 
     // ---- print some information about the plot file
     if(ParallelDescriptor::IOProcessor()) {

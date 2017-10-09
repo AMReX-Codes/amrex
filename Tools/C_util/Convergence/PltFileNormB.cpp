@@ -91,8 +91,8 @@ main (int   argc,
     //
     int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
-    const Array<std::string>& derives = amrDataI.PlotVarNames();
-    Array<int> destComps(nComp);
+    const Vector<std::string>& derives = amrDataI.PlotVarNames();
+    Vector<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
     
@@ -100,7 +100,7 @@ main (int   argc,
     //
     // Compute the error
     //
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
@@ -120,7 +120,7 @@ main (int   argc,
         if (ParallelDescriptor::IOProcessor())
             std::cout << "  " << iLevel << "    ";
 
-        Array<Real> norms(nComp);
+        Vector<Real> norms(nComp);
         for (int iComp = 0; iComp < nComp; iComp++)
             norms[iComp] = 0.0;
 
@@ -147,7 +147,7 @@ main (int   argc,
         MPI_Datatype datatype = mpi_data_type(norms.dataPtr());
         if (ParallelDescriptor::IOProcessor())
         {
-            Array<Real> tmp(nComp);
+            Vector<Real> tmp(nComp);
             for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {

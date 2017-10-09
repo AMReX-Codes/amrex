@@ -73,8 +73,8 @@ contains
        as_fine, dm_as_fine, dflo, dfhi, &
        levmsk, lmlo, lmhi)
 
-    use amrex_eb_flux_reg_3d_module, only : crse_cell, crse_fine_boundary_cell, &
-         covered_by_fine=>fine_cell
+    use amrex_eb_flux_reg_nd_module, only : crse_cell, crse_fine_boundary_cell, &
+         covered_by_fine=>fine_cell, reredistribution_threshold
     use cns_module, only : qvar, qrho, qu, qv, qw, qp, qeint, umx, umy, umz, smallr, &
          use_total_energy_as_eb_weights, use_mass_as_eb_weights, use_volfrac_as_eb_weights, &
          levmsk_notcovered
@@ -534,7 +534,8 @@ contains
                                valid_dst_cell = is_inside(iii,jjj,kkk,lo,hi)
 
                                if (as_crse_crse_cell) then
-                                  if (rr_flag_crse(iii,jjj,kkk).eq.covered_by_fine) then
+                                  if (rr_flag_crse(iii,jjj,kkk).eq.covered_by_fine &
+                                       .and. vfrac(i,j,k).gt.reredistribution_threshold) then
                                      rr_drho_crse(i,j,k,n) = rr_drho_crse(i,j,k,n) &
                                           + dt*drho*(vfrac(iii,jjj,kkk)/vfrac(i,j,k))
                                   end if
@@ -542,7 +543,8 @@ contains
 
                                if (as_crse_covered_cell) then
                                   if (valid_dst_cell) then
-                                     if (rr_flag_crse(iii,jjj,kkk).eq.crse_fine_boundary_cell) then
+                                     if (rr_flag_crse(iii,jjj,kkk).eq.crse_fine_boundary_cell &
+                                          .and. vfrac(iii,jjj,kkk).gt.reredistribution_threshold) then
                                         ! the recipient is a crse/fine boundary cell
                                         rr_drho_crse(iii,jjj,kkk,n) = rr_drho_crse(iii,jjj,kkk,n) &
                                              - dt*drho

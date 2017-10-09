@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
   int nProcs(ParallelDescriptor::NProcs());
 
 { // ---- test sync strings
-  Array<std::string> localStrings, syncedStrings;
+  Vector<std::string> localStrings, syncedStrings;
   bool alreadySynced;
 
   localStrings.push_back("allString 0");
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
 }
 
 { // ---- test already synced strings
-  Array<std::string> localStrings, syncedStrings;
+  Vector<std::string> localStrings, syncedStrings;
   bool alreadySynced;
   
   localStrings.push_back("samestrings 0");
@@ -267,8 +267,8 @@ int main(int argc, char *argv[]) {
 
   int nTimes(100);
   long nPts(128 * 128 * 128);
-  Array<Real> nativeVals(nPts);
-  Array<float> floatVals(nPts);
+  Vector<Real> nativeVals(nPts);
+  Vector<float> floatVals(nPts);
   Real nMin(std::numeric_limits<Real>::max());
   Real nMax(-std::numeric_limits<Real>::max());
   float fMin(std::numeric_limits<float>::max());

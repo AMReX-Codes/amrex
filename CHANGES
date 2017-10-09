@@ -1,4 +1,33 @@
-# changes since the last releas
+# changes since the last release
+
+  -- amrex::Array is deprecated and replaced by amrex::Vector.
+     Currently Array is an alias to Vector.  So this should not break
+     any codes.  In the future, we will remove Array completely.
+     Therefore it is recommended that application codes should start
+     replacing Array with Vector.  There is a script,
+     amrex/Tools/Migration/amrex_array_to_vector.sh, to help.  But use
+     it with caution.   If it is completely gibberish to you, you
+     probably shouldn't use the script. 
+
+  -- functions for printing to a file in a parallel and thread-safe manner
+     have been added. For example:
+
+        amrex::AllPrintToFile("output") << "Hello from rank " << rank << 
+                                           " and thread " << thread << "\n";
+
+     will print out the requested information to separate files for each 
+     rank and thread.
+
+# 17.10
+
+  -- Added a load balance approach to Amr/AmrLevel.  The runtime
+     parameters for this is amr.loadbalance_with_workestimates and
+     amr.loadbalance_level0_int.  The latter is for single level
+     (i.e., amr.max_level=0) only.  For multi-level runs, load balance
+     is done during regrid and thus the load balance interval is
+     controlled by amr.regrid_int.  To use this approach, AmrLevel
+     derivative must has a StateData for work estimates and its index
+     is returned by virtual function int WorkEstType().
 
   -- MFIter now supports dynamic scheduling of OpenMP threads.  For
      example,
@@ -7,9 +36,8 @@
             mfi.isValid(); ++mfi)
        { ... }
 
-  -- added EBFluxRegister to Src/EB for refluxing and
+  -- Added EBFluxRegister to Src/EB for refluxing and
      re-redistribution in EB.
-
 
   -- amrex.signal_handling = 1 is a new runtime parameter that can be
      used to control whether AMReX should handle signals like SIGSEGV

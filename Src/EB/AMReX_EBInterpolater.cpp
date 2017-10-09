@@ -29,7 +29,7 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
                                   const IntVect&   ratio,
                                   const Geometry&  crse_geom,
                                   const Geometry&  fine_geom,
-                                  Array<BCRec>&    bcr,
+                                  Vector<BCRec>&    bcr,
                                   int              actual_comp,
                                   int              actual_state)
 {

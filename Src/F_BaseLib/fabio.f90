@@ -1148,7 +1148,7 @@ contains
     read(unit=lun,fmt='(a)') str
     if ( str == '&ML_MULTIFAB' ) then
        call bl_error("PLOTFILE_BUILD: not implemented")
-    else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' ) then 
+    else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' .or. str == 'CartGrid-V2.0' ) then 
        call build_ns_plotfile
     else
        call bl_error('FABIO_ML_MULTIFAB_WRITE_D: Header has improper magic string', str)

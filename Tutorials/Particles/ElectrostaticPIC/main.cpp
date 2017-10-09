@@ -31,13 +31,13 @@ void WritePlotFile(const ScalarMeshData& rhs,
                    const ScalarMeshData& phi,
                    const VectorMeshData& E,
                    const ElectrostaticParticleContainer& pc,
-                   const Array<Geometry>& geom,
+                   const Vector<Geometry>& geom,
                    int nstep)
 {
     int num_output_comp = 2 + BL_SPACEDIM;
     int num_levels = rhs.size();
     IntVect cc_flag = IntVect::TheZeroVector();
-    Array<std::unique_ptr<MultiFab> > output_cc(num_levels);
+    Vector<std::unique_ptr<MultiFab> > output_cc(num_levels);
     for (int lev = 0; lev < num_levels; ++lev) {
         const BoxArray& nodal_ba = rhs[lev]->boxArray();
         output_cc[lev].reset(new MultiFab(amrex::convert(nodal_ba, cc_flag), 
@@ -49,7 +49,7 @@ void WritePlotFile(const ScalarMeshData& rhs,
         }
     }
     
-    Array<std::string> varnames;
+    Vector<std::string> varnames;
     varnames.push_back("rhs");
     varnames.push_back("phi");
     varnames.push_back("Ex");
@@ -58,7 +58,7 @@ void WritePlotFile(const ScalarMeshData& rhs,
     varnames.push_back("Ez");
 #endif
 
-    Array<std::string> particle_varnames;
+    Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
     particle_varnames.push_back("vx");
     particle_varnames.push_back("vy");
@@ -71,19 +71,19 @@ void WritePlotFile(const ScalarMeshData& rhs,
     particle_varnames.push_back("Ez");
 #endif
     
-    Array<int> level_steps;
+    Vector<int> level_steps;
     level_steps.push_back(0);
     level_steps.push_back(0);
     
     int output_levs = num_levels;
     
-    Array<IntVect> outputRR(output_levs);
+    Vector<IntVect> outputRR(output_levs);
     for (int lev = 0; lev < output_levs; ++lev) {
         outputRR[lev] = IntVect(D_DECL(2, 2, 2));
     }
 
     const std::string& pltfile = amrex::Concatenate("plt", nstep, 5);    
-    WriteMultiLevelPlotfile(pltfile, output_levs, GetArrOfConstPtrs(output_cc),
+    WriteMultiLevelPlotfile(pltfile, output_levs, GetVecOfConstPtrs(output_cc),
                             varnames, geom, 0.0, level_steps, outputRR);
 
     pc.Checkpoint(pltfile, "particle0", true, particle_varnames);
@@ -92,7 +92,7 @@ void WritePlotFile(const ScalarMeshData& rhs,
 
 void computeE(      VectorMeshData& E,
               const ScalarMeshData& phi, 
-              const Array<Geometry>& geom) {
+              const Vector<Geometry>& geom) {
 
     const int num_levels = E.size();
     const int finest_level = num_levels - 1;
@@ -161,9 +161,9 @@ void sumFineToCrseNodal(const MultiFab& fine, MultiFab& crse,
     crse.copy(coarsened_fine_data, cgeom.periodicity(), FabArrayBase::ADD);    
 }
 
-void fixRHSForSolve(Array<std::unique_ptr<MultiFab> >& rhs,
-                    const Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
-                    const Array<Geometry>& geom, const IntVect& ratio) {
+void fixRHSForSolve(Vector<std::unique_ptr<MultiFab> >& rhs,
+                    const Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
+                    const Vector<Geometry>& geom, const IntVect& ratio) {
     int num_levels = rhs.size();
     for (int lev = 0; lev < num_levels; ++lev) {
         MultiFab& fine_rhs = *rhs[lev];
@@ -176,15 +176,15 @@ void fixRHSForSolve(Array<std::unique_ptr<MultiFab> >& rhs,
 }
 
 void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
-                Array<BoxArray>& grids,
-                Array<DistributionMapping>& dm,
-                Array<Geometry>& geom,
-                Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) {
+                Vector<BoxArray>& grids,
+                Vector<DistributionMapping>& dm,
+                Vector<Geometry>& geom,
+                Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks) {
 
     int num_levels = rhs.size();
     int finest_level = num_levels - 1;
 
-    Array<std::unique_ptr<MultiFab> > tmp_rhs(num_levels);    
+    Vector<std::unique_ptr<MultiFab> > tmp_rhs(num_levels);    
     for (int lev = 0; lev < num_levels; ++lev) {
         tmp_rhs[lev].reset(new MultiFab(rhs[lev]->boxArray(), dm[lev], 1, 0));
         MultiFab::Copy(*tmp_rhs[lev], *rhs[lev], 0, 0, 1, 0);
@@ -199,15 +199,15 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     int Ncomp = 1;
     int stencil = ND_CROSS_STENCIL;
     int verbose = 0;
-    Array<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
+    Vector<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
     Real rel_tol = 1.0e-14;
     Real abs_tol = 1.0e-14;
 
-    Array<Geometry>            level_geom(1);
-    Array<BoxArray>            level_grids(1);
-    Array<DistributionMapping> level_dm(1);
-    Array<MultiFab*>           level_phi(1);
-    Array<MultiFab*>           level_rhs(1);
+    Vector<Geometry>            level_geom(1);
+    Vector<BoxArray>            level_grids(1);
+    Vector<DistributionMapping> level_dm(1);
+    Vector<MultiFab*>           level_phi(1);
+    Vector<MultiFab*>           level_rhs(1);
     
     for (int lev = 0; lev < num_levels; ++lev) {
         level_phi[0]   = phi[lev].get();
@@ -234,7 +234,7 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
             int lo_bc[] = {INT_DIR, INT_DIR};
             int hi_bc[] = {INT_DIR, INT_DIR};
 #endif
-            Array<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+            Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
             NodeBilinear mapper;
 
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
@@ -254,10 +254,10 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
 }
 
 void
-getLevelMasks(Array<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
-              const Array<BoxArray>& grids,
-              const Array<DistributionMapping>& dmap,
-              const Array<Geometry>& geom,
+getLevelMasks(Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
+              const Vector<BoxArray>& grids,
+              const Vector<DistributionMapping>& dmap,
+              const Vector<Geometry>& geom,
               const int ncells = 1) {
     int num_levels = grids.size();
     BL_ASSERT(num_levels == dmap.size());
@@ -305,7 +305,7 @@ int main(int argc, char* argv[])
 
     int num_levels = max_level + 1;
     
-    Array<int> rr(num_levels-1);
+    Vector<int> rr(num_levels-1);
     for (int lev = 1; lev < num_levels; lev++)
         rr[lev-1] = 2;
 
@@ -325,7 +325,7 @@ int main(int argc, char* argv[])
     Box domain(dom_lo, dom_hi);
    
     // make Geometry for each level
-    Array<Geometry> geom(num_levels);
+    Vector<Geometry> geom(num_levels);
     geom[0].define(domain,&real_box,CoordSys::cartesian,is_periodic);
     for (int lev = 1; lev < num_levels; ++lev) {
 	geom[lev].define(amrex::refine(geom[lev-1].Domain(), rr[lev-1]),
@@ -333,7 +333,7 @@ int main(int argc, char* argv[])
     }
     
     // make grids for each level
-    Array<BoxArray> grids(num_levels);
+    Vector<BoxArray> grids(num_levels);
     grids[0].define(domain);
     if (num_levels > 1) {
         int n_fine = n_cell*rr[0];
@@ -352,10 +352,10 @@ int main(int argc, char* argv[])
     int Nghost = 1;
     int Ncomp  = 1;
     
-    Array<DistributionMapping> dm(num_levels);
-    Array<std::unique_ptr<MultiFab> > phi(num_levels);
-    Array<std::unique_ptr<MultiFab> > rhs(num_levels);
-    Array<std::array<std::unique_ptr<MultiFab>, BL_SPACEDIM> > eField(num_levels);
+    Vector<DistributionMapping> dm(num_levels);
+    Vector<std::unique_ptr<MultiFab> > phi(num_levels);
+    Vector<std::unique_ptr<MultiFab> > rhs(num_levels);
+    Vector<std::array<std::unique_ptr<MultiFab>, BL_SPACEDIM> > eField(num_levels);
 
     for (int lev = 0; lev < num_levels; ++lev) {
         BoxArray nba = grids[lev];
@@ -374,10 +374,10 @@ int main(int argc, char* argv[])
         phi[lev]->setVal(0.0);        
     }
 
-    Array<std::unique_ptr<FabArray<BaseFab<int> > > > masks(num_levels); 
+    Vector<std::unique_ptr<FabArray<BaseFab<int> > > > masks(num_levels); 
     getLevelMasks(masks, grids, dm, geom);
 
-    Array<std::unique_ptr<FabArray<BaseFab<int> > > > gather_masks(num_levels);
+    Vector<std::unique_ptr<FabArray<BaseFab<int> > > > gather_masks(num_levels);
     getLevelMasks(gather_masks, grids, dm, geom, n_buffer + 1); // convert from num nodes to num cells
     
     ElectrostaticParticleContainer myPC(geom, dm, grids, rr);

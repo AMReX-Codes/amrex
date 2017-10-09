@@ -45,6 +45,7 @@ module cns_module
   logical, save, public :: use_total_energy_as_eb_weights = .false.
   logical, save, public :: use_volfrac_as_eb_weights = .false.
   logical, save, public :: use_mass_as_eb_weights = .false.
+  logical, save, public :: do_reredistribution = .true.
 
   integer, save, public :: myproc
 
@@ -58,6 +59,7 @@ contains
        bind(c,name='cns_init_fort')
     use cns_physics_module, only : physics_init
     use amrex_parmparse_module
+    use amrex_eb_flux_reg_nd_module, only : amrex_eb_disable_reredistribution
     integer, intent(in) :: physbc_lo_in(3), physbc_hi_in(3)
     integer, value, intent(in) :: Interior_in, Inflow_in, Outflow_in, Symmetry_in, SlipWall_in, NoSlipWall_in
     integer, value, intent(in) :: myproc_in
@@ -65,6 +67,7 @@ contains
 
     type(amrex_parmparse) :: pp
     integer :: dim, i_use_total_energy_as_eb_weights, i_use_mass_as_eb_weights, i_use_volfrac_as_eb_weights
+    integer :: i_do_reredistribution
 
     physbc_lo = physbc_lo_in
     physbc_hi = physbc_hi_in
@@ -99,6 +102,13 @@ contains
     use_total_energy_as_eb_weights = i_use_total_energy_as_eb_weights .ne. 0
     use_mass_as_eb_weights = i_use_mass_as_eb_weights .ne. 0
     use_volfrac_as_eb_weights = i_use_volfrac_as_eb_weights .ne. 0
+
+    i_do_reredistribution = 1
+    call pp%query("do_reredistribution", i_do_reredistribution)
+    do_reredistribution = i_do_reredistribution .ne. 0
+    if (.not.do_reredistribution) then
+       call amrex_eb_disable_reredistribution()
+    end if
 
     call amrex_parmparse_destroy(pp)
 

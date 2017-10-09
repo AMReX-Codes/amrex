@@ -15,16 +15,16 @@ namespace amrex{
 
 // --------------------------------------------------------------------
 void WritePlotfile(const std::string         &pfversion,
-                   const Array<MultiFab>     &data,
+                   const Vector<MultiFab>     &data,
                    const Real                 time,
-                   const Array<Real>         &probLo,
-                   const Array<Real>         &probHi,
-                   const Array<int>          &refRatio,
-                   const Array<Box>          &probDomain,
-                   const Array<Array<Real> > &dxLevel,
+                   const Vector<Real>         &probLo,
+                   const Vector<Real>         &probHi,
+                   const Vector<int>          &refRatio,
+                   const Vector<Box>          &probDomain,
+                   const Vector<Vector<Real> > &dxLevel,
                    const int                  coordSys,
                    const std::string         &oFile,
-                   const Array<std::string>  &names,
+                   const Vector<std::string>  &names,
                    const bool                 verbose,
                    const bool                 isCartGrid,
                    const Real                *vfeps,
@@ -257,7 +257,7 @@ VisMF::FabOnDisk VisMFWrite(const FArrayBox &fabIn, const std::string &filename,
 
 // --------------------------------------------------------------------
 static std::ostream &operator<<(std::ostream &os,
-                                const Array< Array<Real> > &ar)
+                                const Vector< Vector<Real> > &ar)
 {
     long i = 0, N = ar.size(), M = (N == 0) ? 0 : ar[0].size();
     os << N << ',' << M << '\n';
@@ -269,7 +269,7 @@ static std::ostream &operator<<(std::ostream &os,
       os << '\n';
     }
     if( ! os.good()) {
-      Error("Write of Array<Array<Real>> failed");
+      Error("Write of Vector<Vector<Real>> failed");
     }
     return os;
 }
@@ -323,16 +323,16 @@ long VisMFWriteHeader(const std::string &mf_name, VisMF::Header &hdr,
 
 // --------------------------------------------------------------------
 void WritePlotfile2DFrom3D(const std::string &pfversion,
-                           const Array<MultiFab>     &data,
+                           const Vector<MultiFab>     &data,
                            const Real                 time,
-                           const Array<Real>         &probLo,
-                           const Array<Real>         &probHi,
-                           const Array<int>          &refRatio,
-                           const Array<Box>          &probDomain,
-                           const Array<Array<Real> > &dxLevel,
+                           const Vector<Real>         &probLo,
+                           const Vector<Real>         &probHi,
+                           const Vector<int>          &refRatio,
+                           const Vector<Box>          &probDomain,
+                           const Vector<Vector<Real> > &dxLevel,
                            const int                  coordSys,
                            const std::string         &oFile,
-                           const Array<std::string>  &names,
+                           const Vector<std::string>  &names,
                            const bool                 verbose,
 		           const bool                 isCartGrid,
 		           const Real                *vfeps,
@@ -513,7 +513,6 @@ void WritePlotfile2DFrom3D(const std::string &pfversion,
 
     const std::string BName = VisMFBaseName(FullName);
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     std::ofstream FabFile;
     FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 

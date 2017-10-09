@@ -4,13 +4,14 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
-#include <array>
+using namespace amrex;
 
 void main_main ();
-void advance (amrex::MultiFab& old_phi, amrex::MultiFab& new_phi,
-	      std::array<amrex::MultiFab, AMREX_SPACEDIM>& flux,
-	      amrex::Real dt, const amrex::Geometry& geom);
 
-void fill_physbc (amrex::MultiFab& phi, const amrex::Geometry& geom);
+void advance (MultiFab& phi_old,
+              MultiFab& phi_new,
+	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
+	      Real dt,
+              const Geometry& geom);
 
 #endif

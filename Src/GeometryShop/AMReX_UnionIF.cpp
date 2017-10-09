@@ -12,12 +12,13 @@
 
 
 #include "AMReX_UnionIF.H"
-#include "AMReX_Array.H"
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {
 
-  UnionIF::UnionIF(const Array<BaseIF *>& a_impFuncs)
+  UnionIF::UnionIF(const Vector<BaseIF *>& a_impFuncs)
   {
     // Number of implicit function in union
     m_numFuncs = a_impFuncs.size();
