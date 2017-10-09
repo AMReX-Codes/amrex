@@ -20,7 +20,7 @@ namespace amrex
         }
     }
 
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& edge)
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(edge.size() == BL_SPACEDIM);
@@ -41,7 +41,7 @@ namespace amrex
 	}	
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Array<const MultiFab*>& fc)
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
     {
 	BL_ASSERT(cc.nComp() >= dcomp + BL_SPACEDIM);
 	BL_ASSERT(fc.size() == BL_SPACEDIM);
@@ -68,7 +68,7 @@ namespace amrex
 	}
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, const Array<const MultiFab*>& fc,
+    void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
 				     const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() >= BL_SPACEDIM);
@@ -96,7 +96,7 @@ namespace amrex
 	}
     }
 
-    void average_cellcenter_to_face (const Array<MultiFab*>& fc, const MultiFab& cc,
+    void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
 				     const Geometry& geom)
     {
 	BL_ASSERT(cc.nComp() == 1);
@@ -287,7 +287,7 @@ namespace amrex
 
     // Average fine face-based MultiFab onto crse face-based MultiFab.
     // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_faces (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse,
+    void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
 			     const IntVect& ratio, int ngcrse)
     {
 	BL_ASSERT(crse.size()  == BL_SPACEDIM);
@@ -315,7 +315,7 @@ namespace amrex
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-    void average_down_edges (const Array<const MultiFab*>& fine, const Array<MultiFab*>& crse,
+    void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                              const IntVect& ratio, int ngcrse)
     {
 	BL_ASSERT(crse.size()  == BL_SPACEDIM);
@@ -409,4 +409,22 @@ namespace amrex
       
     }
 
+    MultiFab ToMultiFab (const iMultiFab& imf)
+    {
+        MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow());
+
+        const int ncomp = imf.nComp();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+        {
+            const Box& tbx = mfi.growntilebox();
+            amrex_fort_int_to_real(BL_TO_FORTRAN_BOX(tbx), &ncomp,
+                                   BL_TO_FORTRAN_ANYD(mf[mfi]),
+                                   BL_TO_FORTRAN_ANYD(imf[mfi]));
+        }
+
+        return mf;
+    }
 }

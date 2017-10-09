@@ -102,7 +102,7 @@ main (int   argc,
     MCViscBndry vbd(bs,dm,geom);
 
     BCRec phys_bc;
-    Array<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
+    Vector<int> lo_bc(BL_SPACEDIM), hi_bc(BL_SPACEDIM);
     pp.getarr("lo_bc",lo_bc,0,BL_SPACEDIM);
     pp.getarr("hi_bc",hi_bc,0,BL_SPACEDIM);
     for (int i = 0; i < BL_SPACEDIM; i++)
@@ -114,7 +114,7 @@ main (int   argc,
     
     // Create the BCRec's interpreted by ViscBndry objects
 #if BL_SPACEDIM==2
-    Array<BCRec> pbcarray(4);
+    Vector<BCRec> pbcarray(4);
     pbcarray[0] = BCRec(AMREX_D_DECL(REFLECT_ODD,REFLECT_EVEN,EXT_DIR),
 			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
     pbcarray[1] = BCRec(AMREX_D_DECL(REFLECT_EVEN,REFLECT_ODD,EXT_DIR),
@@ -124,7 +124,7 @@ main (int   argc,
     pbcarray[3] = BCRec(AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR),
 			AMREX_D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
 #elif BL_SPACEDIM==3
-    Array<BCRec> pbcarray(12);
+    Vector<BCRec> pbcarray(12);
 
 #if 1
     pbcarray[0] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);

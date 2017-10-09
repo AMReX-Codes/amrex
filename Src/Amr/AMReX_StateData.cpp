@@ -21,8 +21,8 @@ const Real INVALID_TIME = -1.0e200;
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
 
-Array<std::string> StateData::fabArrayHeaderNames;
-std::map<std::string, Array<char> > *StateData::faHeaderMap;
+Vector<std::string> StateData::fabArrayHeaderNames;
+std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 
 StateData::StateData () 
@@ -276,7 +276,7 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
       std::string FullHeaderPathName(FullPathName + "_H");
       const char *faHeader = 0;
       if(faHeaderMap != 0) {
-        std::map<std::string, Array<char> >::iterator fahmIter;
+        std::map<std::string, Vector<char> >::iterator fahmIter;
 	fahmIter = faHeaderMap->find(FullHeaderPathName);
 	if(fahmIter != faHeaderMap->end()) {
 	  faHeader = fahmIter->second.dataPtr();
@@ -440,7 +440,7 @@ StateData::FillBoundary (FArrayBox&     dest,
     const int* plo = domain.loVect();
     const int* phi = domain.hiVect();
 
-    Array<int> bcrs;
+    Vector<int> bcrs;
 
     Real xlo[BL_SPACEDIM];
     BCRec bcr;
@@ -506,7 +506,7 @@ StateData::FillBoundary (FArrayBox&     dest,
 
 void
 StateData::RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
-                         Array<MultiFabId>&      mfid)
+                         Vector<MultiFabId>&      mfid)
 {
     mfid.resize(2);
     mfid[MFNEWDATA] = multiFabCopyDesc.RegisterFabArray(new_data);
@@ -515,9 +515,9 @@ StateData::RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
 
 void
 StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
-			 Array<MultiFabId>&      mfid,
+			 Vector<MultiFabId>&      mfid,
 			 BoxList*                unfillableBoxes,
-			 Array<FillBoxId>&       returnedFillBoxIds,
+			 Vector<FillBoxId>&       returnedFillBoxIds,
 			 const Box&              subbox,
 			 Real                    time,
 			 int                     src_comp,
@@ -589,8 +589,8 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
 
 void
 StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
-			  const Array<MultiFabId>& mfid,
-			  const Array<FillBoxId>&  fillBoxIds,
+			  const Vector<MultiFabId>& mfid,
+			  const Vector<FillBoxId>&  fillBoxIds,
 			  FArrayBox&               dest,
 			  Real                     time,
 			  int                      src_comp,
@@ -643,8 +643,8 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
 }
 
 void
-StateData::getData (Array<MultiFab*>& data,
-		    Array<Real>& datatime,
+StateData::getData (Vector<MultiFab*>& data,
+		    Vector<Real>& datatime,
 		    Real time) const
 {
     data.clear();

@@ -1,7 +1,7 @@
 
 AMREX_BASE=EXE
 
-C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_BaseIndex.H AMReX_Tuple.H
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_BaseIndex.H AMReX_Tuple.H
 
 #
 # Utility classes.
@@ -136,6 +136,7 @@ ifneq ($(BL_NO_FORT),TRUE)
 
   f90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
   f90$(AMREX_BASE)_headers += AMReX_MultiFabUtil_F.H
+  F90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_nd.F90
 
   F90$(AMREX_BASE)_sources += AMReX_filcc_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90

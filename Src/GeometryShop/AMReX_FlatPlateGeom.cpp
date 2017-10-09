@@ -182,7 +182,7 @@ namespace amrex
   ////////////
   void
   FlatPlateGeom::
-  addIrregularNodes(Array<IrregNode>   & a_nodes,
+  addIrregularNodes(Vector<IrregNode>   & a_nodes,
                     const BaseFab<int>       & a_numVolumes,
                     const IntVect            & a_iv,
                     const Box                & a_domain,
@@ -242,12 +242,12 @@ namespace amrex
             loNode.m_volCentroid   = volCentroidLo;
             hiNode.m_volCentroid   = volCentroidHi;
 
-            loNode.m_arc         [arcInd] = Array<int>(1,otherVolLo);
-            hiNode.m_arc         [arcInd] = Array<int>(1,otherVolHi);
-            loNode.m_areaFrac    [arcInd] = Array<Real>(1,areaFracLo);
-            hiNode.m_areaFrac    [arcInd] = Array<Real>(1,areaFracHi);
-            loNode.m_faceCentroid[arcInd] = Array<RealVect>(1,faceCentroidLo);
-            hiNode.m_faceCentroid[arcInd] = Array<RealVect>(1,faceCentroidHi);
+            loNode.m_arc         [arcInd] = Vector<int>(1,otherVolLo);
+            hiNode.m_arc         [arcInd] = Vector<int>(1,otherVolHi);
+            loNode.m_areaFrac    [arcInd] = Vector<Real>(1,areaFracLo);
+            hiNode.m_areaFrac    [arcInd] = Vector<Real>(1,areaFracHi);
+            loNode.m_faceCentroid[arcInd] = Vector<RealVect>(1,faceCentroidLo);
+            hiNode.m_faceCentroid[arcInd] = Vector<RealVect>(1,faceCentroidHi);
           } // end loop over sides
         } //end if faceDir != normaldir
         else
@@ -261,12 +261,12 @@ namespace amrex
           hiNode.m_arc[     arcIndLo].resize(0);
           hiNode.m_areaFrac[arcIndLo].resize(0);
 
-          loNode.m_arc[         arcIndLo] = Array<int>(1,0);
-          hiNode.m_arc[         arcIndHi] = Array<int>(1,0);
-          loNode.m_areaFrac[    arcIndLo] = Array<Real>(1,1.0);
-          hiNode.m_areaFrac[    arcIndHi] = Array<Real>(1,1.0);
-          loNode.m_faceCentroid[arcIndLo] = Array<RealVect>(1,RealVect::Zero);
-          hiNode.m_faceCentroid[arcIndHi] = Array<RealVect>(1,RealVect::Zero);
+          loNode.m_arc[         arcIndLo] = Vector<int>(1,0);
+          hiNode.m_arc[         arcIndHi] = Vector<int>(1,0);
+          loNode.m_areaFrac[    arcIndLo] = Vector<Real>(1,1.0);
+          hiNode.m_areaFrac[    arcIndHi] = Vector<Real>(1,1.0);
+          loNode.m_faceCentroid[arcIndLo] = Vector<RealVect>(1,RealVect::Zero);
+          hiNode.m_faceCentroid[arcIndHi] = Vector<RealVect>(1,RealVect::Zero);
         }//end faceDir == normaldir
       } //end loop over directions
       a_nodes.push_back(loNode);
@@ -290,10 +290,10 @@ namespace amrex
           bool isCut = isFaceCut(areaFracLo, areaFracHi, a_iv, faceDir, sit(), a_domain, a_origin, a_dx);
           if(!isCut)
           {
-            edgeNode.m_arc         [arcInd] = Array<int>(1,0);
-            edgeNode.m_areaFrac    [arcInd] = Array<Real>(1,0);
-            edgeNode.m_faceCentroid[arcInd] = Array<RealVect>(1,RealVect::Zero);
-            edgeNode.m_faceCentroid[arcInd] = Array<RealVect>(1,RealVect::Zero);
+            edgeNode.m_arc         [arcInd] = Vector<int>(1,0);
+            edgeNode.m_areaFrac    [arcInd] = Vector<Real>(1,0);
+            edgeNode.m_faceCentroid[arcInd] = Vector<RealVect>(1,RealVect::Zero);
+            edgeNode.m_faceCentroid[arcInd] = Vector<RealVect>(1,RealVect::Zero);
           }
           else
           {
@@ -348,7 +348,7 @@ namespace amrex
   void
   FlatPlateGeom::
   fillGraph(BaseFab<int>             & a_regIrregCovered,
-            Array<IrregNode>   & a_nodes,
+            Vector<IrregNode>   & a_nodes,
             const Box                & a_validRegion,
             const Box                & a_ghostRegion,
             const Box                & a_domain,

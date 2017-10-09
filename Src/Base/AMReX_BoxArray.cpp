@@ -96,7 +96,7 @@ BARef::define (std::istream& is)
     unsigned long tmphash;
     is.ignore(bl_ignore_max, '(') >> maxbox >> tmphash;
     resize(maxbox);
-    for (Array<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
+    for (Vector<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
         is >> *it;
     is.ignore(bl_ignore_max, ')');
     if (is.fail())
@@ -812,7 +812,7 @@ BoxArray::contains (const Box& b, bool assume_disjoint_ba) const
 		}
 		result = nbx == nisects;
 	    } else {
-                Array<char> vflag(b.numPts(), 1);
+                Vector<char> vflag(b.numPts(), 1);
                 BaseFab<char> fabflag(b, 1, vflag.data());
                 for (int i = 0, N = isects.size(); i < N; i++) {
                     fabflag.setVal(0, isects[i].second, 0, 1);
@@ -1113,7 +1113,7 @@ void
 BoxArray::SendBoxArray(const BoxArray &ba, int whichSidecar)
 {
     const int MPI_IntraGroup_Broadcast_Rank = ParallelDescriptor::IOProcessor() ? MPI_ROOT : MPI_PROC_NULL;
-    Array<int> ba_serial = amrex::SerializeBoxArray(ba);
+    Vector<int> ba_serial = amrex::SerializeBoxArray(ba);
     int ba_serial_size = ba_serial.size();
     ParallelDescriptor::Bcast(&ba_serial_size, 1, MPI_IntraGroup_Broadcast_Rank,
                               ParallelDescriptor::CommunicatorInter(whichSidecar));
@@ -1127,7 +1127,7 @@ BoxArray::RecvBoxArray(BoxArray &ba, int whichSidecar)
     int ba_serial_size;
     ParallelDescriptor::Bcast(&ba_serial_size, 1, 0,
                               ParallelDescriptor::CommunicatorInter(whichSidecar));
-    Array<int> ba_serial(ba_serial_size);
+    Vector<int> ba_serial(ba_serial_size);
     ParallelDescriptor::Bcast(ba_serial.dataPtr(), ba_serial_size, 0,
                               ParallelDescriptor::CommunicatorInter(whichSidecar));
     ba = amrex::UnSerializeBoxArray(ba_serial);
@@ -1168,6 +1168,7 @@ BoxArray::getHashMap () const
     BARef::HashType& BoxHashMap = m_ref->hash;
 
     bool local_flag;
+    
 #ifdef _OPENMP
 #pragma omp atomic read
 #endif
@@ -1427,12 +1428,12 @@ readBoxArray (BoxArray&     ba,
 }
 
 
-Array<int> SerializeBoxArray(const BoxArray &ba)
+Vector<int> SerializeBoxArray(const BoxArray &ba)
 {
   int nIntsInBox(3 * BL_SPACEDIM);
-  Array<int> retArray(ba.size() * nIntsInBox, -1);
+  Vector<int> retArray(ba.size() * nIntsInBox, -1);
   for(int i(0); i < ba.size(); ++i) {
-    Array<int> aiBox(amrex::SerializeBox(ba[i]));
+    Vector<int> aiBox(amrex::SerializeBox(ba[i]));
     BL_ASSERT(aiBox.size() == nIntsInBox);
     for(int j(0); j < aiBox.size(); ++j) {
       retArray[i * aiBox.size() + j] = aiBox[j];
@@ -1442,13 +1443,13 @@ Array<int> SerializeBoxArray(const BoxArray &ba)
 }
 
 
-BoxArray UnSerializeBoxArray(const Array<int> &serarray)
+BoxArray UnSerializeBoxArray(const Vector<int> &serarray)
 {
   int nIntsInBox(3 * BL_SPACEDIM);
   int nBoxes(serarray.size() / nIntsInBox);
   BoxArray ba(nBoxes);
   for(int i(0); i < nBoxes; ++i) {
-    Array<int> aiBox(nIntsInBox);
+    Vector<int> aiBox(nIntsInBox);
     for(int j(0); j < nIntsInBox; ++j) {
       aiBox[j] = serarray[i * nIntsInBox + j];
     }
@@ -1469,6 +1470,13 @@ bool match (const BoxArray& x, const BoxArray& y)
 	}
 	return m;
     }
+}
+
+std::ostream&
+operator<< (std::ostream& os, const BoxArray::RefID& id)
+{
+    os << id.data;
+    return os;
 }
 
 }

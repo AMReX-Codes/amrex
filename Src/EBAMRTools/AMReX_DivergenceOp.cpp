@@ -82,10 +82,10 @@ namespace amrex
       IntVectSet ivsIrreg = ebis.getIrregIVS(grid);
       VoFIterator & vofit = m_vofit[mfi];
       vofit.define(ivsIrreg, ebis.getEBGraph());
-      const Array<VolIndex>& volvec = vofit.getVector();
+      const Vector<VolIndex>& volvec = vofit.getVector();
 
       //destination vofs are the same for both open and boundary faces
-      Array< std::shared_ptr<BaseIndex  > > baseDstVoFs(volvec.size());
+      Vector< std::shared_ptr<BaseIndex  > > baseDstVoFs(volvec.size());
       for(int ivec = 0; ivec < volvec.size(); ivec++)
       {
         baseDstVoFs [ivec]  = std::shared_ptr<BaseIndex  >((BaseIndex*)(&volvec[ivec]), &null_deleter_divs_ind);
@@ -94,8 +94,8 @@ namespace amrex
       //THIS IS NOT MEANT TO WORK IN CASES WHERE EMBEDDED BOUNDARIES CROSS COARSE FINE BOUNDARIES
       //first let us dal with the boundary flux stencil
       {
-        Array< std::shared_ptr<BaseStencil> > baseSten(volvec.size());
-        Array<VoFStencil> allvofsten(volvec.size());
+        Vector< std::shared_ptr<BaseStencil> > baseSten(volvec.size());
+        Vector<VoFStencil> allvofsten(volvec.size());
         for(int ivec = 0; ivec < volvec.size(); ivec++)
         {
           Real bndryArea = ebis.bndryArea(volvec[ivec]);
@@ -119,8 +119,8 @@ namespace amrex
       // now do open flux stencils for each face direction
       for(int idir = 0; idir < SpaceDim; idir++)
       {
-        Array< std::shared_ptr<BaseStencil> > baseSten(volvec.size());
-        Array<FaceStencil> allFaceSten(volvec.size());
+        Vector< std::shared_ptr<BaseStencil> > baseSten(volvec.size());
+        Vector<FaceStencil> allFaceSten(volvec.size());
         for(int ivec = 0; ivec < volvec.size(); ivec++)
         {
           
@@ -129,7 +129,7 @@ namespace amrex
           dirStencil.clear();
           for(SideIterator sit; sit.ok(); ++sit)
           {
-            Array<FaceIndex> faces = ebis.getFaces(vof, idir, sit());
+            Vector<FaceIndex> faces = ebis.getFaces(vof, idir, sit());
             int isign = sign(sit());
             for(int iface = 0; iface < faces.size(); iface++)
             {
@@ -180,7 +180,7 @@ namespace amrex
       else
       {
         BaseFab<Real>       &  regDivF = divF.getSingleValuedFAB();
-        Array<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
+        Vector<const BaseFab<Real>*> regFlux(3, &(flux[0].getSingleValuedFAB()));
         for(int idir = 0; idir < SpaceDim; idir++)
         {
           regFlux[idir] = &(flux[idir].getSingleValuedFAB());

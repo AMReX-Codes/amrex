@@ -6,7 +6,7 @@
 using namespace amrex;
 
 void
-splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int heavy_grid_size)
+splitBoxes (BoxArray& ba, Vector<long>& newcost, const Vector<long>& cost_in, int heavy_grid_size)
 {
     long totcost = 0;
     for (int i = 0; i < cost_in.size(); i++)
@@ -22,7 +22,7 @@ splitBoxes (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int 
     int half_box_size = base_box_size/2;
     if (half_box_size*2 != base_box_size) return;
 
-    Array<long> cost = newcost;
+    Vector<long> cost = newcost;
 
     BoxList newbl;
     newcost.clear();

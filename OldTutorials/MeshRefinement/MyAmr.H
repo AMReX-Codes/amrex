@@ -13,7 +13,7 @@ public:
 
     //! Manually tag.  Note that tags is built on level lev grids coarsened by bf_lev.
     virtual void ManualTagsPlacement (int lev, amrex::TagBoxArray& tags,
-                                      const amrex::Array<amrex::IntVect>& bf_lev) override;
+                                      const amrex::Vector<amrex::IntVect>& bf_lev) override;
 
     // We could also override 
     //! Tag cells for refinement.  TagBoxArray tags is built on level lev grids.

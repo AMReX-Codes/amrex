@@ -49,27 +49,34 @@ const int ZDIR(2);
 bool RegionsProfStats::bInitDataBlocks(true);
 
 std::map<Real, std::string, std::greater<Real> > RegionsProfStats::mTimersTotalsSorted;
-Array<std::string> RegionsProfStats::regHeaderFileNames;
+Vector<std::string> RegionsProfStats::regHeaderFileNames;
 std::map<std::string, int> RegionsProfStats::regDataFileNames;
-Array<std::ifstream *> RegionsProfStats::regDataStreams;
+Vector<std::ifstream *> RegionsProfStats::regDataStreams;
 
 extern std::string SanitizeName(const std::string &s);
-extern void amrex::MakeFuncPctTimesMF(const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                                      const Array<std::string> &blpFNames,
+extern void amrex::MakeFuncPctTimesMF(const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                                      const Vector<std::string> &blpFNames,
 			              const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
 			              Real runTime, int dataNProcs);
 extern void amrex::CollectMProfStats(std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-                                     const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                                     const Array<std::string> &fNames,
+                                     const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                                     const Vector<std::string> &fNames,
                                      Real runTime, int whichProc);
 extern void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats> &mProfStats,
-                               const Array<Array<BLProfStats::FuncStat> > &funcStats,
-                               const Array<std::string> &fNames,
+                               const Vector<Vector<BLProfStats::FuncStat> > &funcStats,
+                               const Vector<std::string> &fNames,
                                Real runTime, int dataNProcs, Real gPercent);
 
 
-#define PRINTCS(CS) fNumberNames[CS.csFNameNumber] << " :: " << CS.totalTime << " :: " << CS.stackTime \
-                      << " :: " << CS.nCSCalls  << " :: " << CS.callStackDepth
+#define PRINTCS(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
+                 << CS.totalTime << " :: " << CS.stackTime << " :: " \
+		 << CS.nCSCalls  << " :: " << CS.callStackDepth << " :: " \
+		 << CS.callTime
+
+#define PRINTCSNC(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
+                   << CS.totalTime << " :: " << CS.stackTime << " :: " \
+		   << CS.nCSCalls  << " :: " << CS.callStackDepth
+
 
 // ----------------------------------------------------------------------
 RegionsProfStats::RegionsProfStats()
@@ -108,7 +115,7 @@ void RegionsProfStats::SyncFNamesAndNumbers() {
       localNames.insert(mfnnit->first);
     }
   }
-  Array<std::string> localStrings, syncedStrings;
+  Vector<std::string> localStrings, syncedStrings;
   bool alreadySynced;
   for(std::set<std::string>::iterator lsit = localNames.begin();
       lsit != localNames.end(); ++lsit)
@@ -121,7 +128,7 @@ void RegionsProfStats::SyncFNamesAndNumbers() {
 
   for(int p(0); p < dataNProcs; ++p) {
     fnameRemap[p].resize(syncedStrings.size(), -1);  // -1 are names not on proc p
-    Array<int> foundStrings(syncedStrings.size(), -1);
+    Vector<int> foundStrings(syncedStrings.size(), -1);
     std::map<std::string, int>::iterator mfnnit;
     for(mfnnit = mFNameNumbersPerProc[p].begin();
         mfnnit != mFNameNumbersPerProc[p].end(); ++mfnnit)
@@ -190,7 +197,7 @@ void RegionsProfStats::AddTimeMinMax(double tmin, double tmax) {
 // ----------------------------------------------------------------------
 BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int noregionnumber,
                                      int width, int height,
-				     Array<Array<Box>> &regionBoxes)
+				     Vector<Vector<Box>> &regionBoxes)
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  RegionsProfStats::MakeRegionPlt only supported for 2D" << endl;
@@ -205,7 +212,7 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
   rFab.resize(b, 1);
   rFab.setVal(notInRegionValue);
 
-  Array<Real> rStartTime(nRegions, -1.0);
+  Vector<Real> rStartTime(nRegions, -1.0);
   regionBoxes.clear();
   regionBoxes.resize(nRegions);
 
@@ -263,13 +270,13 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
 
 
 // ----------------------------------------------------------------------
-void RegionsProfStats::FillRegionTimeRanges(Array<Array<TimeRange>> &rtr,
+void RegionsProfStats::FillRegionTimeRanges(Vector<Vector<TimeRange>> &rtr,
                                             int whichProc)
 {
   BL_PROFILE("RegionsProfStats::FillRegionTimeRanges()");
 
   int nRegions(maxRNumber + 1);
-  Array<Real> rStartTime(nRegions, -1.0);
+  Vector<Real> rStartTime(nRegions, -1.0);
 
   rtr.resize(nRegions);
 
@@ -313,7 +320,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
   bool bIOP(ParallelDescriptor::IOProcessor());
   if(bIOP) cout << "Starting serial InitRegionTimeRanges." << endl;
   BL_PROFILE_VAR("RegionsProfStats::InitRegionTimeRanges_Serial()", RPSIRTR_S);
-  Array<Array<Array<TimeRange> > > checkRegionTimeRanges;  // [proc][rnum][range]
+  Vector<Vector<Vector<TimeRange> > > checkRegionTimeRanges;  // [proc][rnum][range]
   checkRegionTimeRanges.resize(dataNProcs);
   for(int p(0); p < checkRegionTimeRanges.size(); ++p) {
     checkRegionTimeRanges[p].resize(maxRNumber + 1);
@@ -361,7 +368,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     }
   }
 
-  Array<int> nRanges(maxRNumber + 1, 0);
+  Vector<int> nRanges(maxRNumber + 1, 0);
 
   for(int p(0); p < regionTimeRanges.size(); ++p) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
@@ -374,8 +381,8 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     totalRanges += nRanges[r];
   }
 
-  Array<int> gSmallY(nProcs, -1);
-  Array<int> gBigY(nProcs, -1);
+  Vector<int> gSmallY(nProcs, -1);
+  Vector<int> gBigY(nProcs, -1);
   gSmallY[myProc] = smallY;
   gBigY[myProc]   = bigY;
   ParallelDescriptor::ReduceIntMax(gSmallY.dataPtr(), gSmallY.size());
@@ -392,7 +399,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
       }
     }
   }
-  Array<Real> gAllRanges(dataNProcs * (maxRNumber + 1) * totalRanges * 2);
+  Vector<Real> gAllRanges(dataNProcs * (maxRNumber + 1) * totalRanges * 2);
   for(int p(0); p < regionTimeRanges.size(); ++p) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
       if(p >= smallY && p <= bigY) {    // ---- within myproc range
@@ -406,7 +413,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     }
   }
 
-  Array<int> recvDispl(nProcs, 0), recvCounts(nProcs, 0);
+  Vector<int> recvDispl(nProcs, 0), recvCounts(nProcs, 0);
   for(int p(0); p < nProcs; ++p) {
     recvCounts[p] = (gBigY[p] - gSmallY[p] + 1) * (maxRNumber + 1) * totalRanges * 2;
     recvDispl[p]  = gSmallY[p] * (maxRNumber + 1) * totalRanges * 2;
@@ -416,7 +423,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
 #ifdef BL_USE_MPI
   int myStartIndex(gSmallY[myProc] * (maxRNumber + 1) * totalRanges * 2);
   int sendCount((gBigY[myProc] - gSmallY[myProc] + 1) * (maxRNumber + 1) * totalRanges * 2);
-  Array<Real> localGAllRanges(sendCount, 0.0);
+  Vector<Real> localGAllRanges(sendCount, 0.0);
   for(int i(0); i < sendCount; ++i) {
     localGAllRanges[i] = gAllRanges[myStartIndex + i];
   }
@@ -496,7 +503,7 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
     }
   }
   cout << "**** whichFuncName whichFuncNameInt = " << whichFuncName << "  " <<  whichFuncNameInt << endl;
-  Array<Array<Real> > whichFuncAllTimes(dataNProcs);  // [proc][functime]
+  Vector<Vector<Real> > whichFuncAllTimes(dataNProcs);  // [proc][functime]
   for(int idb(0); idb < dataBlocks.size(); ++idb) {
     DataBlock &dBlock = dataBlocks[idb];
     ReadBlockNoOpen(dBlock);
@@ -552,7 +559,7 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
 
 
 // ----------------------------------------------------------------------
-void RegionsProfStats::FillAllCallTimes(Array<Array<Real> > &allCallTimes,
+void RegionsProfStats::FillAllCallTimes(Vector<Vector<Real> > &allCallTimes,
                                         const std::string whichFuncName,
 					int whichFuncNumber, const Box &procBox)
 {
@@ -590,7 +597,7 @@ void RegionsProfStats::FillAllCallTimes(Array<Array<Real> > &allCallTimes,
 
 
 // ----------------------------------------------------------------------
-void RegionsProfStats::CollectFuncStats(Array<Array<FuncStat> > &funcStats)
+void RegionsProfStats::CollectFuncStats(Vector<Vector<FuncStat> > &funcStats)
 {
   funcStats.resize(numbersToFName.size());  // [fnum][proc]
   for(int n(0); n < funcStats.size(); ++n) {
@@ -628,7 +635,7 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
   Real timeMin(std::numeric_limits<Real>::max());
   Real timeMax(-std::numeric_limits<Real>::max());
 	 
-  Array<std::string> fNames(numbersToFName.size());
+  Vector<std::string> fNames(numbersToFName.size());
   for(int i(0); i < fNames.size(); ++i) {
     if(i >= 0) {
       fNames[i] = numbersToFName[i];
@@ -636,8 +643,8 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
     }
   }
 
-  Array<BLProfiler::CallStats> vCallStatsAllOneProc;
-  Array<Array<FuncStat> > funcStats(fNames.size());  // [fnum][proc]
+  Vector<BLProfiler::CallStats> vCallStatsAllOneProc;
+  Vector<Vector<FuncStat> > funcStats(fNames.size());  // [fnum][proc]
   for(int n(0); n < funcStats.size(); ++n) {
     funcStats[n].resize(dataNProcs);
   }
@@ -717,7 +724,7 @@ void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,
 {
   BLProfiler::CallStats *combCallStats = 0;
 
-  Array<std::string> fNumberNames(mFNameNumbersPerProc[whichProc].size());
+  Vector<std::string> fNumberNames(mFNameNumbersPerProc[whichProc].size());
   for(std::map<std::string, int>::const_iterator it = mFNameNumbersPerProc[whichProc].begin();
       it != mFNameNumbersPerProc[whichProc].end(); ++it)
   {
@@ -791,7 +798,7 @@ void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,
         bLastBlock = true;
       }
       ReadBlock(dBlock, false, true);  // read only the traces
-      Array<BLProfiler::CallStats> &vCallTrace = dBlock.vCallStats;
+      Vector<BLProfiler::CallStats> &vCallTrace = dBlock.vCallStats;
 
       std::cout << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
       if( ! bFirstBlock) {
@@ -933,7 +940,7 @@ void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,
 
 // ----------------------------------------------------------------------
 void RegionsProfStats::CreateVCallStats(CallTreeNode &callTree,
-                                        Array<BLProfiler::CallStats> &vCallStatsNC)
+                                        Vector<BLProfiler::CallStats> &vCallStatsNC)
 {
   std::map<int, CallTreeNode>::iterator miter;
 
@@ -950,7 +957,7 @@ void RegionsProfStats::CreateVCallStats(CallTreeNode &callTree,
 
 // ----------------------------------------------------------------------
 void RegionsProfStats::PrintCallTreeNode(CallTreeNode &callTree,
-                                         Array<std::string> &fNumberNames)
+                                         Vector<std::string> &fNumberNames)
 {
   std::map<int, CallTreeNode>::iterator miter;
 
@@ -969,7 +976,7 @@ void RegionsProfStats::PrintCallTreeNode(CallTreeNode &callTree,
 // ----------------------------------------------------------------------
 void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
 {
-  Array<std::string> fNumberNames(mFNameNumbersPerProc[whichProc].size());
+  Vector<std::string> fNumberNames(mFNameNumbersPerProc[whichProc].size());
   for(std::map<std::string, int>::const_iterator it = mFNameNumbersPerProc[whichProc].begin();
       it != mFNameNumbersPerProc[whichProc].end(); ++it)
   {
@@ -1001,7 +1008,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
   csHTMLFile << '\n';
 
   csHTMLFile << "<h3>Function calls "
-             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth :: call time)</h3>"
+             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth)</h3>"
 	     << '\n';
 
   csHTMLFile << "<ul>" << '\n';
@@ -1040,7 +1047,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
         bLastBlock = true;
       }
       ReadBlock(dBlock, false, true);  // read only the traces
-      Array<BLProfiler::CallStats> &vCallTrace = dBlock.vCallStats;
+      Vector<BLProfiler::CallStats> &vCallTrace = dBlock.vCallStats;
 
       std::cout << "vCallTrace.size() = " << vCallTrace.size() << std::endl;
       if( ! bFirstBlock) {
@@ -1104,10 +1111,10 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
 
   cout << "++++++++++ totalCalls = " << totalCalls << endl;
 
-  Array<BLProfiler::CallStats> vCallStatsNC;
+  Vector<BLProfiler::CallStats> vCallStatsNC;
   CreateVCallStats(callTree, vCallStatsNC);
 
-      Array<BLProfiler::CallStats> &vCallTrace = vCallStatsNC;
+      Vector<BLProfiler::CallStats> &vCallTrace = vCallStatsNC;
       int nodeNumber(-1);
 
       for(int iCT(0); iCT < vCallTrace.size(); ++iCT) {
@@ -1117,7 +1124,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
 	  continue;
         }
         if(iCT == vCallTrace.size() - 1) {
-          IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
+          IcsHTMLFile << "<li>" << PRINTCSNC(cs) << "</li>" << '\n';
           for(int n(0); n < cs.callStackDepth; ++n) {
             if( ! listEnds.empty()) {
               IIcsHTMLFile << listEnds.top() << '\n';
@@ -1140,7 +1147,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
             IcsHTMLFile << "<li>" << '\n';
             listEnds.push("</li>");
             IcsHTMLFile << "<a href=\"javascript:void(0)\" onclick=\"collapse('node"
-	                << nodeNumber << "')\">" << PRINTCS(cs) << "</a>" << '\n';
+	                << nodeNumber << "')\">" << PRINTCSNC(cs) << "</a>" << '\n';
             if(cs.callStackDepth < 100) {
               IcsHTMLFile << "<ul id=\"node" << nodeNumber << "\" style=\"display:\">" << '\n';
             } else {
@@ -1148,9 +1155,9 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
             }
             listEnds.push("</ul>");
           } else  if(csNext.callStackDepth == cs.callStackDepth) {
-            IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
+            IcsHTMLFile << "<li>" << PRINTCSNC(cs) << "</li>" << '\n';
           } else {
-            IcsHTMLFile << "<li>" << PRINTCS(cs) << "</li>" << '\n';
+            IcsHTMLFile << "<li>" << PRINTCSNC(cs) << "</li>" << '\n';
             for(int n(0); n < cs.callStackDepth - csNext.callStackDepth; ++n) {
               if( ! listEnds.empty()) {
                 IIcsHTMLFile << listEnds.top() << '\n';
@@ -1194,7 +1201,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
 void RegionsProfStats::WriteTextTrace(std::ostream &ios, bool simpleCombine,
                                       int whichProc, std::string delimString)
 {
-  Array<std::string> fNumberNames(mFNameNumbersPerProc[whichProc].size());
+  Vector<std::string> fNumberNames(mFNameNumbersPerProc[whichProc].size());
   for(std::map<std::string, int>::const_iterator it = mFNameNumbersPerProc[whichProc].begin();
       it != mFNameNumbersPerProc[whichProc].end(); ++it)
   {
@@ -1211,7 +1218,7 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios, bool simpleCombine,
       DataBlock &dBlock = dataBlocks[idb];
       if(dBlock.proc == whichProc) {
         ReadBlock(dBlock, false, true);  // read only the traces
-        Array<BLProfiler::CallStats> &vCallTrace = dBlock.vCallStats;
+        Vector<BLProfiler::CallStats> &vCallTrace = dBlock.vCallStats;
 
         for(int i(0); i < vCallTrace.size(); ++i) {
           BLProfiler::CallStats &cs = vCallTrace[i];
@@ -1261,7 +1268,7 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios, bool simpleCombine,
       DataBlock &dBlock = dataBlocks[idb];
       if(dBlock.proc == whichProc) {
         ReadBlock(dBlock, false, true);  // read only the traces
-        Array<BLProfiler::CallStats> &vCallTrace = dBlock.vCallStats;
+        Vector<BLProfiler::CallStats> &vCallTrace = dBlock.vCallStats;
 
         for(int i(0); i < vCallTrace.size(); ++i) {
           BLProfiler::CallStats &cs = vCallTrace[i];
@@ -1278,7 +1285,7 @@ void RegionsProfStats::WriteTextTrace(std::ostream &ios, bool simpleCombine,
 
 
 // ----------------------------------------------------------------------
-void RegionsProfStats::InitDataFileNames(const Array<std::string> &hfn) {
+void RegionsProfStats::InitDataFileNames(const Vector<std::string> &hfn) {
   for(int i(0); i < hfn.size(); ++i) {
     std::string dFileName(hfn[i]);
     dFileName.replace(dFileName.find("_H_"), 3, "_D_");
@@ -1317,7 +1324,7 @@ void RegionsProfStats::OpenAllStreams(const std::string &dirname) {
 #ifdef BL_CYCLEOPENS
   int  myProc(ParallelDescriptor::MyProc());
   int nNames(regDataFileNames.size());
-  Array<std::string> aFullFileNames(nNames);
+  Vector<std::string> aFullFileNames(nNames);
   for(std::map<std::string, int>::iterator it = regDataFileNames.begin();
       it != regDataFileNames.end(); ++it)
   {
@@ -1459,9 +1466,9 @@ return false;
 // ----------------------------------------------------------------------
 void RegionsProfStats::ClearBlock(DataBlock &dBlock) {
   dBlock.rStartStop.clear();
-  Array<BLProfiler::RStartStop>().swap(dBlock.rStartStop);
+  Vector<BLProfiler::RStartStop>().swap(dBlock.rStartStop);
   dBlock.vCallStats.clear();
-  Array<BLProfiler::CallStats>().swap(dBlock.vCallStats);
+  Vector<BLProfiler::CallStats>().swap(dBlock.vCallStats);
 }
 
 

@@ -106,7 +106,7 @@ namespace amrex
     bool isDefined() const;
 
     ///
-    const Array<FaceIndex>& getVector() const;
+    const Vector<FaceIndex>& getVector() const;
 
   private:
     ///
@@ -117,7 +117,7 @@ namespace amrex
                   int a_direction, const FaceStop::WhichFaces& a_location);
 
     bool                   m_isDefined;
-    Array<FaceIndex> m_faces;
+    Vector<FaceIndex> m_faces;
     int                    m_iface;
     int                    m_direction;
 

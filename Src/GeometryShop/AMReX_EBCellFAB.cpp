@@ -83,7 +83,7 @@ namespace amrex
         }
       }
 
-    Array<VolIndex>  irrvofs = m_irrFAB.getVoFs();
+    Vector<VolIndex>  irrvofs = m_irrFAB.getVoFs();
     for(int ivof = 0; ivof < irrvofs.size(); ivof++)
     {
         for (int icomp = 0; icomp < nComp(); icomp++)
@@ -153,7 +153,7 @@ namespace amrex
         }
       }
 
-      Array<VolIndex>  irrvofs = m_irrFAB.getVoFs();
+      Vector<VolIndex>  irrvofs = m_irrFAB.getVoFs();
       for(int ivof = 0; ivof < irrvofs.size(); ivof++)
       {
         const VolIndex& vof = irrvofs[ivof];

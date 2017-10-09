@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   BL_PROFILE_VAR("main()", pmain);
 
 
-  Array<double> dmSTimes(nStrategies, 0.0);
+  Vector<double> dmSTimes(nStrategies, 0.0);
 
     ParallelDescriptor::Barrier();
 
@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    Array<char> fileCharPtr;
+    Vector<char> fileCharPtr;
     ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
     std::string fileCharPtrString(fileCharPtr.dataPtr());
     std::istringstream is(fileCharPtrString, std::istringstream::in);

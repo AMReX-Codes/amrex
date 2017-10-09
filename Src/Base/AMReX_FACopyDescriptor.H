@@ -486,12 +486,12 @@ FabArrayCopyDescriptor<FAB>::CollectData_AM_handler(uint32_t src_rank,
 
   BL_ASSERT(CurrentCollectDataObj != NULL);
 
-  Array<int> faid(numboxes);
-  Array<int> fidx(numboxes);
-  Array<int> scomp(numboxes);
-  Array<int> ncomp(numboxes);
-  Array<int> npts(numboxes);
-  Array<Box> bxs;
+  Vector<int> faid(numboxes);
+  Vector<int> fidx(numboxes);
+  Vector<int> scomp(numboxes);
+  Vector<int> ncomp(numboxes);
+  Vector<int> npts(numboxes);
+  Vector<Box> bxs;
   int N = 0;
   const int * md = p;
   for (int i = 0; i < numboxes; ++i, md += Nints)
@@ -613,11 +613,11 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
   const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
 
   // for meta-data
-  Array<int> md_offset, md_icnts, md_bcnts;
+  Vector<int> md_offset, md_icnts, md_bcnts;
   int* md_recv_data;
 
   // for data
-  Array<int> data_sender, data_offset;
+  Vector<int> data_sender, data_offset;
   value_type* recv_data = NULL;
   upcxx::event *copy_events = NULL;
 
@@ -815,7 +815,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     const int NProcs = ParallelDescriptor::NProcs();
 
     {
-        Array<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
+        Vector<int> SndsArray(NProcs,0), RcvsArray(NProcs,0);
 
         for (std::map<int,int>::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)
 	{
@@ -860,16 +860,16 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     const int Nints = 4 + 3*BL_SPACEDIM;  // # of ints in a meta-data
 
     // for meta-data
-    Array<int> md_sender, md_offset, md_icnts, md_bcnts;
+    Vector<int> md_sender, md_offset, md_icnts, md_bcnts;
     int* md_recv_data;
-    Array<int*> md_send_data;
-    Array<MPI_Request> md_recv_reqs, md_send_reqs;
+    Vector<int*> md_send_data;
+    Vector<MPI_Request> md_recv_reqs, md_send_reqs;
 
     // for data
-    Array<int> data_sender, data_offset;
+    Vector<int> data_sender, data_offset;
     value_type* recv_data;
-    Array<value_type*> send_data;
-    Array<MPI_Request> data_recv_reqs, data_send_reqs;
+    Vector<value_type*> send_data;
+    Vector<MPI_Request> data_recv_reqs, data_send_reqs;
 
     if (N_snds > 0)
     {
@@ -973,12 +973,12 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
 	    const int* p = &md_recv_data[md_offset[index]];
 	    int numboxes = md_bcnts[index];
-	    Array<int> faid(numboxes);
-	    Array<int> fidx(numboxes);
-	    Array<int> scomp(numboxes);
-	    Array<int> ncomp(numboxes);
-	    Array<int> npts(numboxes);
-	    Array<Box> bxs;
+	    Vector<int> faid(numboxes);
+	    Vector<int> fidx(numboxes);
+	    Vector<int> scomp(numboxes);
+	    Vector<int> ncomp(numboxes);
+	    Vector<int> npts(numboxes);
+	    Vector<Box> bxs;
 	    int N = 0;
 	    const int * md = p;
 	    for (int i = 0; i < numboxes; ++i, md += Nints)
@@ -1015,7 +1015,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     // Wait and upack data
     if (N_rcvs > 0)
     {
-	Array<MPI_Status> stats(N_rcvs);
+	Vector<MPI_Status> stats(N_rcvs);
 
 	BL_MPI_REQUIRE (MPI_Waitall(N_rcvs, md_send_reqs.dataPtr(), stats.dataPtr()) );
 	for (int i = 0; i < N_rcvs; ++i) {
@@ -1075,7 +1075,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     // Finished send
     if (N_snds > 0)
     {
-	Array<MPI_Status> stats(N_snds);
+	Vector<MPI_Status> stats(N_snds);
         BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::BeforeCall(), N_snds);
 	BL_MPI_REQUIRE( MPI_Waitall(N_snds, data_send_reqs.dataPtr(), stats.dataPtr()) );
         BL_COMM_PROFILE(BLProfiler::Waitall, sizeof(value_type), BLProfiler::AfterCall(), N_snds);

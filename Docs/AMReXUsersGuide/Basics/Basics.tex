@@ -83,7 +83,7 @@ has provided {\tt namespace ParallelDescriptor} in {\tt
  ParallelDescriptor::Barrier();
  
  // Broadcast 100 ints from the I/O Processor
- Array<int> a(100);
+ Vector<int> a(100);
  ParallelDescriptor::Bcast(a.data(), a.size(),
                      ParallelDescriptor::IOProcessorNumber())
  
@@ -153,12 +153,12 @@ The following code shows how to use {\tt ParmParse} to get/query the values.
  Real dt;
  pp.get("dt", dt);  // runtime error if dt is not in inputs
  
- Array<int> numcells;
+ Vector<int> numcells;
  // The variable name 'numcells' can be different from parameter name 'ncells'.
  pp.getarr("ncells", numcells);
  amrex::Print() << numcells.size() << "\n";  // 3
  
- Array<Real> xr {-1.0, 1.0};
+ Vector<Real> xr {-1.0, 1.0};
  if (!queryarr("xrange", xr)) {
      amrex::Print() << "Cannot find xrange in inputs, "
                     << "so the default {-1.0,1.0} will be used\n";
@@ -658,7 +658,7 @@ One can also explicitly construct a distribution.
 passing an array of integers. 
 \begin{lstlisting}[language=cpp]
   DistributionMapping dm;   // empty object
-  Array<int> pmap {...};
+  Vector<int> pmap {...};
   // The user fills the pmap array with the values specifying owner processes
   dm.define(pmap);  // Build DistributionMapping given an array of process IDs.
 \end{lstlisting}
@@ -1517,7 +1517,7 @@ subroutine f(u, ulo, uhi,nu) bind(c)
 end subroutine f
 \end{lstlisting}
 
-\section{Boundary}
+\section{Ghost Cells}
 
 \amrex\ uses {\tt MultiFab} as the data container for floating point
 data on multiple {\tt Box}es on a single AMR level.  Each rectangular
@@ -1532,7 +1532,7 @@ boundary.
 
 Interior boundary is the border among the grid {\tt Box}es themselves.
 For example, in Figure~\ref{fig:basics:amrgrids}, the two blue grid
-{\tt Box}es on level 1 share an interior boundary that is 6 cells
+{\tt Box}es on level 1 share an interior boundary that is 10 cells
 long.  For a {\tt MultiFab} with ghost cells on level 1, we can use
 the {\tt MultiFab::FillBoundary} function introduced in
 Section~\ref{sec:basics:multifab} to fill ghost cells at the interior
@@ -1548,50 +1548,10 @@ The third type of boundary is the physical boundary at the physical
 domain.  Note that both coarse and fine AMR levels could have grids
 touching the physical boundary.  It is up to the application codes to
 properly fill the ghost cells at the physical boundary.  However,
-\amrex\ does provide support for some common operations.  To fill
-ghost cells for cell-centered data at the physical boundary, we can
-call
-\begin{lstlisting}[language=cpp]
-  void FillDomainBoundary (MultiFab& phi, const Geometry& geom,
-                           const Array<BCRec>& bc);
-\end{lstlisting}
-Here we need to provide boundary types to each component of the {\tt
-  MultiFab}.  Below is an example of setting up {\tt Array<BCRec>}
-before the call.
-\begin{lstlisting}[language=cpp]
-  // Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types
-  Array<BCRec> bc(phi.nComp());
-  for (int n = 0; n < phi.nComp(); ++n)
-  {
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-      {
-          if (Geometry::isPeriodic(idim))
-          {
-              bc[n].setLo(idim, BCType::int_dir); // interior
-              bc[n].setHi(idim, BCType::int_dir);
-          }
-          else
-          {
-              bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
-              bc[n].setHi(idim, BCType::foextrap);
-          }
-      }
-  }
-\end{lstlisting}
-{\tt amrex::BCType} has the following types,
-\begin{quote}
-\begin{description}
-\item [int\_dir] Interior, including periodic boundary
-\item [ext\_dir] It is the user's responsibility.
-\item [foextrap] First order extrapolation from last cell in interior.
-\item [reflect\_even] Reflection from interior cells with sign
-  unchanged, $q(-i) = q(i)$.
-\item [reflect\_odd] Reflection from interior cells with sign
-  unchanged, $q(-i) = -q(i)$.
-\end{description}
-\end{quote}
-If the type is set to {\tt BCType::ext\_dir}, it is then the user's
-responsibility to fill the ghost cells.
+\amrex\ does provide support for some common operations.  
+See Chapter \ref{Chap:Boundary} for a discussion on domain
+boundary conditions in general, including how to implement
+physical (non-periodic) boundary conditions.
 
 \section{I/O}
 
@@ -1611,19 +1571,19 @@ source codes and {\tt ParmParse} runtime parameters.
 \begin{lstlisting}[language=cpp]
   void WriteSingleLevelPlotfile (const std::string &plotfilename,
                                  const MultiFab &mf,
-                                 const Array<std::string> &varnames,
+                                 const Vector<std::string> &varnames,
                                  const Geometry &geom,
                                  Real time,
                                  int level_step);
 
   void WriteMultiLevelPlotfile (const std::string &plotfilename,
                                 int nlevels,
-                                const Array<const MultiFab*> &mf,
-                                const Array<std::string> &varnames,
-                                const Array<Geometry> &geom,
+                                const Vector<const MultiFab*> &mf,
+                                const Vector<std::string> &varnames,
+                                const Vector<Geometry> &geom,
                                 Real time,
-                                const Array<int> &level_steps,
-                                const Array<IntVect> &ref_ratio);
+                                const Vector<int> &level_steps,
+                                const Vector<IntVect> &ref_ratio);
 \end{lstlisting}
 {\tt WriteSingleLevelPlotfile} is for single level runs and {\tt
 WriteMultiLevelPlotfile} is for multiple levels.  The name of the
@@ -1643,7 +1603,7 @@ making such strings.
   const std::string& pfname3 = amrex::Concatenate("plt",istep); // plt12344567
 \end{lstlisting}
 Argument {\tt mf} ({\tt MultiFab} for single level and {\tt
-  Array<const MultiFab*>} for multi-level) is the data to be written
+  Vector<const MultiFab*>} for multi-level) is the data to be written
 to the disk.  Note that many visualization tools expect this to be
 cell-centered data.  So for nodal data, we need to convert them to
 cell-centered data through some kind of averaging.  Also note that if
@@ -1652,11 +1612,11 @@ to build a new {\tt MultiFab} at each level to hold all the data on
 that level.  This involves local data copy in memory and is not
 expected to significantly increase the total wall time for writing
 plotfiles.  For the multi-level version, the function expects {\tt
-  Array<const MultiFab*>}, whereas the multi-level data are often
-stored as {\tt Array<std::unique\_ptr<MultiFab>>}.  \amrex\ has a
+  Vector<const MultiFab*>}, whereas the multi-level data are often
+stored as {\tt Vector<std::unique\_ptr<MultiFab>>}.  \amrex\ has a
 helper function for this and one can use it as follows,
 \begin{lstlisting}[language=cpp]
-   WriteMultiLevelPlotfile(......, amrex::GetArrOfConstPtrs(mf), ......);
+   WriteMultiLevelPlotfile(......, amrex::GetVecOfConstPtrs(mf), ......);
 \end{lstlisting}
 Argument {\tt varnames} has the names for each component of the {\tt
 MultiFab} data.  The size of the {\tt Array} should be equal to the
@@ -1725,11 +1685,11 @@ can also be used.  For example,
 \end{lstlisting}
 For reading the {\tt Header} file, \amrex\ can have the I/O process
 read the file from the disk and broadcast it to others as {\tt
-Array<char>}.  Then all processes can read the information with {\tt
+Vector<char>}.  Then all processes can read the information with {\tt
 std::istringstream}.  For example,
 \begin{lstlisting}[language=cpp]
   std::string HeaderFileName {"chk00016/Header"};
-  Array<char> fileChar;
+  Vector<char> fileChar;
   ParallelDescriptor::ReadAndBcastFile(HeaderFileName, fileChar);
   std::istringstream is(std::string{fileChar.data()}, std::istringstream::in);
   // is >> ....;

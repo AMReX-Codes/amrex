@@ -21,4 +21,5 @@ AMReX_AsyncMFIter.o: AMReX_AsyncMFIter.cpp AMReX_AsyncMFIter.H
 
 clean:
 	$(RM) $(OBJECTS)
+	$(RM) *.a
 

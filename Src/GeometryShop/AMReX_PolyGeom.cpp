@@ -250,8 +250,8 @@ namespace amrex
 //using Cramer's rule.
 /**************/
   Real
-  PolyGeom::matrixSolveComp(const Array<Array<Real> >& a_A,
-                            const Array<Real>& a_rhs,
+  PolyGeom::matrixSolveComp(const Vector<Vector<Real> >& a_A,
+                            const Vector<Real>& a_rhs,
                             const int& a_icomp)
   {
     int nVar = a_A.size();
@@ -262,7 +262,7 @@ namespace amrex
     assert(a_icomp >= 0);
     assert(a_icomp< nVar);
 
-    Array<Array<Real> > topMat(a_A);
+    Vector<Vector<Real> > topMat(a_A);
     for (int irow = 0; irow< nVar; irow++)
     {
       topMat[irow][a_icomp] = a_rhs[irow];
@@ -279,7 +279,7 @@ namespace amrex
 /***************/
 /***************/
   Real
-  PolyGeom::determinant(const Array<Array< Real> >& a_A)
+  PolyGeom::determinant(const Vector<Vector< Real> >& a_A)
   {
     int nVar = a_A.size();
     assert(nVar >= 2);

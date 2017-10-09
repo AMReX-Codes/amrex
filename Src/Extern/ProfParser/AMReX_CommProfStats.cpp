@@ -46,8 +46,8 @@ const int XDIR(0);
 const int YDIR(1);
 const int ZDIR(2);
 
-//Array<Array<Real> > barrierExitTimes;  // [proc, bnum]
-//Array<Array<Real> > barrierSkewTimes;
+//Vector<Vector<Real> > barrierExitTimes;  // [proc, bnum]
+//Vector<Vector<Real> > barrierSkewTimes;
 bool bExitTimesDone(false);
 bool bSkewTimesDone(false);
 
@@ -57,23 +57,23 @@ int maxTopNodeNum(0);
 Box topoBox;
 std::map<int, IntVect> pNumTopIVMap;  // [procNumber, topological iv position]
 bool bTopoFabInited(false);
-Array<int> procNodeNumber;
+Vector<int> procNodeNumber;
 
 bool CommProfStats::bInitDataBlocks(true);
 
-Array<int> CommProfStats::rankFromProx;  // [prox]
-Array<int> CommProfStats::proxFromRank;  // [rank]
+Vector<int> CommProfStats::rankFromProx;  // [prox]
+Vector<int> CommProfStats::proxFromRank;  // [rank]
 bool CommProfStats::bProxMapOK(false);
 
 int CommProfStats::cpVersion(-1);
 int CommProfStats::csSize(-1);
 int CommProfStats::finestLevel(-1);
 int CommProfStats::maxLevel(-1);
-Array<IntVect> CommProfStats::calcRefRatios;
-Array<Box> CommProfStats::probDomain;
-Array<std::string> CommProfStats::commHeaderFileNames;
+Vector<IntVect> CommProfStats::calcRefRatios;
+Vector<Box> CommProfStats::probDomain;
+Vector<std::string> CommProfStats::commHeaderFileNames;
 std::map<std::string, int> CommProfStats::commDataFileNames;
-Array<std::ifstream *> CommProfStats::commDataStreams;
+Vector<std::ifstream *> CommProfStats::commDataStreams;
 
 
 extern int amrex::NHops(const Box &tbox, const IntVect &ivfrom, const IntVect &ivto);
@@ -121,7 +121,7 @@ CommProfStats::~CommProfStats() {
 
 
 // ----------------------------------------------------------------------
-void CommProfStats::InitDataFileNames(const Array<std::string> &hfn) {
+void CommProfStats::InitDataFileNames(const Vector<std::string> &hfn) {
   for(int i(0); i < hfn.size(); ++i) {
     std::string dFileName(hfn[i]);
     dFileName.replace(dFileName.find("_H_"), 3, "_D_");
@@ -464,16 +464,16 @@ void CommProfStats::ClearCommStats(DataBlock &dBlock) {
   dBlock.nameTags.clear();
   dBlock.vCommStats.clear();
 
-  Array<BarrierEntry>().swap(dBlock.barriers);           // delete memory
-  Array<ReductionEntry>().swap(dBlock.reductions);
-  Array<NameTagEntry>().swap(dBlock.nameTags);
-  Array<BLProfiler::CommStats>().swap(dBlock.vCommStats);
+  Vector<BarrierEntry>().swap(dBlock.barriers);           // delete memory
+  Vector<ReductionEntry>().swap(dBlock.reductions);
+  Vector<NameTagEntry>().swap(dBlock.nameTags);
+  Vector<BLProfiler::CommStats>().swap(dBlock.vCommStats);
 }
 
 
 // ----------------------------------------------------------------------
-void CommProfStats::CheckCommData(Array<long> &nBMin, Array<long> &nBMax,
-                                  Array<long> &nRMin, Array<long> &nRMax)
+void CommProfStats::CheckCommData(Vector<long> &nBMin, Vector<long> &nBMax,
+                                  Vector<long> &nRMin, Vector<long> &nRMax)
 {
   int myProc(ParallelDescriptor::MyProc());
   cout << myProc << ":  " << "------------------------------------ checking comm data." << endl;
@@ -482,8 +482,8 @@ void CommProfStats::CheckCommData(Array<long> &nBMin, Array<long> &nBMax,
   SHOWVAL(dataBlocks.size());
   cout << myProc << ":  " << "----" << endl;
 
-  Array<long> nBarriers(dataNProcs, 0);
-  Array<long> nReductions(dataNProcs, 0);
+  Vector<long> nBarriers(dataNProcs, 0);
+  Vector<long> nReductions(dataNProcs, 0);
   if(nBMin.size() != dataNProcs) {
     nBMin.resize(dataNProcs, std::numeric_limits<long>::max());
   }
@@ -622,8 +622,8 @@ void CommProfStats::CheckCommData(Array<long> &nBMin, Array<long> &nBMax,
 
 // ----------------------------------------------------------------------
 void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
-				Array<long> &totalSendsPerProc,
-				Array<long> &totalSentDataPerProc,
+				Vector<long> &totalSendsPerProc,
+				Vector<long> &totalSentDataPerProc,
 				FArrayBox &sendFAB, bool proxmap)
 {
   BL_PROFILE("CommProfStats::FillSendFAB");
@@ -735,8 +735,8 @@ void CommProfStats::FillSendFAB(long &totalSends, long &totalSentData,
 // ----------------------------------------------------------------------
 void CommProfStats::ReportSyncPointDataSetup(long &nBMax, long &nRMax)
 {
-  Array<long> nBarriers(dataNProcs, 0L);
-  Array<long> nReductions(dataNProcs, 0L);
+  Vector<long> nBarriers(dataNProcs, 0L);
+  Vector<long> nReductions(dataNProcs, 0L);
   for(int idb(0); idb < dataBlocks.size(); ++idb) {
     DataBlock &dBlock = dataBlocks[idb];
     int proc(dBlock.proc);
@@ -758,9 +758,9 @@ void CommProfStats::ReportSyncPointDataSetup(long &nBMax, long &nRMax)
 
 
 // ----------------------------------------------------------------------
-void CommProfStats::ReportSyncPointData(Array<Array<Real> > &barrierExitTimes,
-                                        Array<Array<Real> > &barrierWaitTimes,
-                                        Array<Array<Real> > &reductionWaitTimes,
+void CommProfStats::ReportSyncPointData(Vector<Vector<Real> > &barrierExitTimes,
+                                        Vector<Vector<Real> > &barrierWaitTimes,
+                                        Vector<Vector<Real> > &reductionWaitTimes,
 					bool bDoReductions)
 {
   procNodeNumber.resize(dataNProcs);
@@ -827,11 +827,11 @@ void CommProfStats::ReportSyncPointData(Array<Array<Real> > &barrierExitTimes,
 
 // ----------------------------------------------------------------------
 void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
-                                Array<long> &totalFuncCalls,
-				int bytesPerSlot, Array<long> &msgSizes,
+                                Vector<long> &totalFuncCalls,
+				int bytesPerSlot, Vector<long> &msgSizes,
 				int &minMsgSize, int &maxMsgSize,
                                 Real &timeMin, Real &timeMax, Real &timerTime,
-				Array<int> &rankNodeNumbers)
+				Vector<int> &rankNodeNumbers)
 {
   amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << "::Processing "
                                 << dataBlocks.size() << " data blocks:" << endl;
@@ -914,8 +914,8 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
                                 const double tlo, const double thi,
                                 const int rankMin, const int rankMax,
 			        const int rankStride,
-				const Real ntnMultiplier, const Array<Real> &ntnNumbers,
-				const Real bnMultiplier, const Array<Real> &bnNumbers)
+				const Real ntnMultiplier, const Vector<Real> &ntnNumbers,
+				const Real bnMultiplier, const Vector<Real> &bnNumbers)
 {
   Real timeRangeAll(thi - tlo);
   //Real ooTimeRangeAll(1.0 / timeRangeAll);
@@ -1128,22 +1128,21 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
                                   const double tlo, const double thi)
 {
   double dstart(amrex::ParallelDescriptor::second());
-  int idb;
   Real timeMin(std::numeric_limits<Real>::max());
   Real timeMax(-std::numeric_limits<Real>::max());
 
-  Array<Array<Real> > sendCallTimes(dataNProcs);  // [proc, bnum]
-  Array<Array<Real> > recvCallTimes(dataNProcs);  // [proc, bnum]
-  Array<Real> dataSentPerProc(dataNProcs * dataNProcs, 0.0);  // [fromproc, toproc]
-  Array<unordered_map<int, unordered_multimap<long, SendRecvPairUnpaired> > > unpairedMessages;
+  Vector<Vector<Real> > sendCallTimes(dataNProcs);  // [proc, bnum]
+  Vector<Vector<Real> > recvCallTimes(dataNProcs);  // [proc, bnum]
+  Vector<Real> dataSentPerProc(dataNProcs * dataNProcs, 0.0);  // [fromproc, toproc]
+  Vector<unordered_map<int, unordered_multimap<long, SendRecvPairUnpaired> > > unpairedMessages;
                                                                        // [tag,[hash,msges]]
-  Array<Array<SendRecvPair> > pairedMessages;
+  Vector<Vector<SendRecvPair> > pairedMessages;
   //unpairedMessages.rehash(minComps);
 
   //double st(0.0);
   double s0(0.0), s1(0.0), s2(0.0), s3(0.0), rtime(0.0), ptime(0.0);
   long maxupmsize(0), upmsize(0), maxupmmapsize(0);
-  Array<long> upmsizeV;
+  Vector<long> upmsizeV;
   int maxTag(-1), maxNMatches(-1);
   //bool matches(false);
   long mTotal(0), mNeg(0);
@@ -1152,7 +1151,7 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
 
 #ifdef _OPENMP
   int nReads(4);
-  Array<omp_lock_t> locks(nReads);
+  Vector<omp_lock_t> locks(nReads);
   for(int i(0); i < locks.size(); ++i) {
     omp_init_lock(&(locks[i]));
   }
@@ -1165,7 +1164,7 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
 
   procNodeNumber.resize(dataNProcs);
 
-  Array<DataBlock> dBlockV(nThreads);
+  Vector<DataBlock> dBlockV(nThreads);
 
   unpairedMessages.resize(nThreads);
   pairedMessages.resize(nThreads);
@@ -1177,7 +1176,7 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
   vector<bool> dataLeft(dataBlocks.size(), true);
 
   // ---- this part orders the indicies by time, then processor number
-  Array<int> idbIndex;
+  Vector<int> idbIndex;
   bool resort(true);
   if(resort) {
     map<int, multimap<int, int> > idbMM;    // [time, [proc, index]]
@@ -1185,7 +1184,7 @@ void CommProfStats::SendRecvData(const std::string &filenameprefix,
     multimap<int, int>::iterator idbMMiter;
     //cout << "==============" << endl;
     int countI(0);
-    for(idb = 0; idb < dataBlocks.size(); ++idb) {
+    for(int idb(0); idb < dataBlocks.size(); ++idb) {
       //cout << "idb dB.proc = " << idb << "  " << dataBlocks[idb].proc << endl;
       //cout << idb << "  " << dataBlocks[idb].proc << endl;
       int t0(dataBlocks[idb].timeMin * 1.0);
@@ -1315,7 +1314,7 @@ double st0 = amrex::ParallelDescriptor::second();
 
 	pair<unordered_multimap<long, SendRecvPairUnpaired>::iterator,
 	     unordered_multimap<long, SendRecvPairUnpaired>::iterator> upmSRPERI;
-	Array<unordered_multimap<long, SendRecvPairUnpaired>::iterator> upmSRPMatchSave;
+	Vector<unordered_multimap<long, SendRecvPairUnpaired>::iterator> upmSRPMatchSave;
 
 	maxTag = std::max(maxTag, cs.tag);
 
@@ -1475,10 +1474,10 @@ s2 += amrex::ParallelDescriptor::second() - st2;
 
   {
     int index;
-    Array<double> sdataTT(dataNProcs * dataNProcs, 0.0);
-    Array<double> sdataDS(dataNProcs * dataNProcs, 0.0);
-    Array<double> sdataNC(dataNProcs * dataNProcs, 0.0);
-    Array<double> sdataNHops(dataNProcs * dataNProcs, 0.0);
+    Vector<double> sdataTT(dataNProcs * dataNProcs, 0.0);
+    Vector<double> sdataDS(dataNProcs * dataNProcs, 0.0);
+    Vector<double> sdataNC(dataNProcs * dataNProcs, 0.0);
+    Vector<double> sdataNHops(dataNProcs * dataNProcs, 0.0);
   SHOWVAL(pairedMessages[0].size());
     cout << endl << "---------------------------------- send receive pairs" << endl;
     for(int i(0); i < pairedMessages[0].size(); ++i) {
@@ -1535,8 +1534,8 @@ s2 += amrex::ParallelDescriptor::second() - st2;
     SHOWVAL(ntimeslots);
     SHOWVAL(dataNProcs);
 
-    Array<double> ttData(dataNProcs * dataNProcs * ntimeslots, 0.0);
-    Array<double> bwData(dataNProcs * dataNProcs * ntimeslots, 0.0);
+    Vector<double> ttData(dataNProcs * dataNProcs * ntimeslots, 0.0);
+    Vector<double> bwData(dataNProcs * dataNProcs * ntimeslots, 0.0);
     for(int i(0); i < pairedMessages[0].size(); ++i) {
       SendRecvPair &srp = pairedMessages[0][i];
       Real ts(srp.recvTime);
@@ -1571,7 +1570,7 @@ return;
 
   {
     int index;
-    Array<double> sdataTT(dataNProcs * dataNProcs, 0.0);
+    Vector<double> sdataTT(dataNProcs * dataNProcs, 0.0);
     cout << endl << "---------------------------------- time data total calculated" << endl;
     for(int i(0); i < pairedMessages.size(); ++i) {
       SendRecvPair &srp = pairedMessages[i];
@@ -1615,7 +1614,7 @@ return;
 
   {
     int index;
-    Array<double> sdataTT(dataNProcs * dataNProcs, 0.0);
+    Vector<double> sdataTT(dataNProcs * dataNProcs, 0.0);
     cout << endl << "---------------------------------- send receive pairs" << endl;
     for(int i(0); i < pairedMessages.size(); ++i) {
       SendRecvPair &srp = pairedMessages[i];
@@ -1627,7 +1626,7 @@ return;
 
   {
     int index;
-    Array<double> sdataTT(dataNProcs * dataNProcs, 0.0);
+    Vector<double> sdataTT(dataNProcs * dataNProcs, 0.0);
     cout << endl << "---------------------------------- time data total calculated" << endl;
     for(int i(0); i < pairedMessages.size(); ++i) {
       SendRecvPair &srp = pairedMessages[i];
@@ -1707,7 +1706,7 @@ return;
       maxSends = std::max(maxSends, static_cast<int> (sendCallTimes[i].size()));
     }
     SHOWVAL(maxSends);
-    Array<double> sdata(maxSends * dataNProcs, 0.0);
+    Vector<double> sdata(maxSends * dataNProcs, 0.0);
 
     for(int ip(0); ip < dataNProcs; ++ip) {
       for(int is(0); is < sendCallTimes[ip].size(); ++is) {
@@ -1727,7 +1726,7 @@ return;
       maxRecvs = std::max(maxRecvs, static_cast<int> (recvCallTimes[i].size()));
     }
     SHOWVAL(maxRecvs);
-    Array<double> rdata(maxRecvs * dataNProcs, 0.0);
+    Vector<double> rdata(maxRecvs * dataNProcs, 0.0);
 
     for(int ip(0); ip < dataNProcs; ++ip) {
       for(int is(0); is < recvCallTimes[ip].size(); ++is) {

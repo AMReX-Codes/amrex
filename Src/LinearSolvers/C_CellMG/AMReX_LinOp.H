@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_Tuple.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BoxArray.H>
@@ -276,26 +277,26 @@ protected:
     //
     // Array (on level) of Tuples (on dimension) of grid spacings
     //
-    Array< Tuple<Real,BL_SPACEDIM> > h;
+    Vector< Tuple<Real,BL_SPACEDIM> > h;
     //
     // Array (on level) of BoxArray's of LinOp's domain
     //
-    Array< BoxArray > gbox;
+    Vector< BoxArray > gbox;
     //
     // Array (on level) of pointers to BndryRegisters along each grid
     //  for scratch data required to modify internal stencil on boundary
     //
-    Array<BndryRegister> undrrelxr;
+    Vector<BndryRegister> undrrelxr;
     //
     // Array (on level) of Arrays (on orientation) of MultiMasks for 
     // whether boundary Fabs are covered, not_covered, outside_domain
     //
-    Array<Array<MultiMask> > maskvals;
+    Vector<Vector<MultiMask> > maskvals;
     //
     // Similar to maskvals, but only for level 0.
     // It's only made if it's needed.  Currently used only in applyBC().
     //
-    Array<Array<MultiMask> > lmaskvals;
+    Vector<Vector<MultiMask> > lmaskvals;
     //
     // boundary data class
     //
@@ -304,7 +305,7 @@ protected:
     // Array (on level) of geometry objects.  Needed for determining
     // whether stuff intersects on periodic domains
     //
-    Array< Geometry > geomarray;
+    Vector< Geometry > geomarray;
     //
     // flag (=1 if use harmonic averaged interpolation for coefficients,
     // =0 is arithmetic averaging)

@@ -5,6 +5,7 @@
 #include <iosfwd>
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 
@@ -124,19 +125,19 @@ public:
     const long* format () const&;
 
     const long* format () && = delete;
-    //! Returns const Array<long> reference to the format array.
+    //! Returns const Vector<long> reference to the format array.
 
-    const Array<long>& formatarray () const&;
-    const Array<long>& formatarray () && = delete;
+    const Vector<long>& formatarray () const&;
+    const Vector<long>& formatarray () && = delete;
 
     //! Returns the order array as a const int*
     const int* order () const&;
     const int* order () && = delete;
 
-    //! Returns const Array<int> reference to the order array.
-    const Array<int>& orderarray () const&;
+    //! Returns const Vector<int> reference to the order array.
+    const Vector<int>& orderarray () const&;
 
-    const Array<int>& orderarray () && = delete;
+    const Vector<int>& orderarray () && = delete;
     //! Returns the number of bytes in the Real.
     int numBytes () const;
 
@@ -208,8 +209,8 @@ public:
                                          const RealDescriptor& od);
 private:
 
-    Array<long> fr;
-    Array<int>  ord;
+    Vector<long> fr;
+    Vector<int>  ord;
     static bool bAlwaysFixDenormals;
     static int writeBufferSize;
     static int readBufferSize;

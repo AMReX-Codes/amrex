@@ -217,7 +217,7 @@ InterpBndryData::setBndryValues (BndryRegister& crse,
                     //
                     // Internal or periodic edge, interpolate from crse data.
                     //
-                    Array<Real> derives(AMREX_D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
+                    Vector<Real> derives(AMREX_D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
 
                     const Mask&      mask           = masks[face][fine_mfi];
                     const int*       mlo            = mask.loVect();

@@ -6,6 +6,7 @@
 #include <array>
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
 #include <AMReX_RealVect.H>
@@ -52,13 +53,13 @@ public:
     //! Sets lo side.
     void setLo (const Real* a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
     //! Sets lo side.
-    void setLo (const Array<Real>& a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
+    void setLo (const Vector<Real>& a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
     //! Sets lo side in specified direction.
     void setLo (int dir, Real a_lo) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xlo[dir] = a_lo; }
     //! Sets hi side.
     void setHi (const Real* a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
     //! Sets hi side.
-    void setHi (const Array<Real>& a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
+    void setHi (const Vector<Real>& a_hi) { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
     //! Sets hi side in specified direction.
     void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xhi[dir] = a_hi; }
     //! Is the RealBox OK; i.e. does it have positive volume?

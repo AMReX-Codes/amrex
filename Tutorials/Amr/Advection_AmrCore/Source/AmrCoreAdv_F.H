@@ -38,6 +38,11 @@ extern "C"
 		       BL_FORT_FAB_ARG_3D(fz)),
 		const amrex_real* dx, const amrex_real& dt);
 
+    void phifill (BL_FORT_FAB_ARG_3D(state),
+		  const int* dlo, const int* dhi,
+		  const amrex_real* dx, const amrex_real* glo, 
+		  const amrex_real* time, const int* bc);
+
 #ifdef __cplusplus
 }
 #endif
