@@ -140,7 +140,7 @@ amrex::Device::initialize_device() {
         for (int i = 0; i < it->second.size(); ++i) {
             if (it->second[i] == my_rank && i % device_count == j) {
 
-                device_id = i;
+                device_id = j;
 
                 break;
             }
