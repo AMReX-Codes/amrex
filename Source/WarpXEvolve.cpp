@@ -232,8 +232,6 @@ WarpX::EvolveEM (int numsteps)
             EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
         }
         
-        mypc->Redistribute();  // Redistribute particles
-
          for (int lev = 0; lev <= max_level; ++lev) {
             ++istep[lev];
         }
@@ -246,6 +244,8 @@ WarpX::EvolveEM (int numsteps)
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
 	MoveWindow(move_j);
+
+        mypc->Redistribute();  // Redistribute particles
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";

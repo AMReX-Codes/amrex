@@ -96,10 +96,7 @@ WarpX::MoveWindow (bool move_j)
         }
     }
     
-    InjectPlasma(num_shift_base, dir);
-    
-    // Redistribute (note - this removes particles that are outside of the box)
-    mypc->Redistribute();
+    InjectPlasma(num_shift_base, dir);    
 }
 
 void
