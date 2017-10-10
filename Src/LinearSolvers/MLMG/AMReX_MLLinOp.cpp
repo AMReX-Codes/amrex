@@ -101,4 +101,26 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
     }
 }
 
+void
+MLLinOp::residual (int amrlev, int mglev,
+                   MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
+                   BCMode bc_mode)
+{
+    apply(amrlev, mglev, resid, sol, bc_mode);
+    MultiFab::Xpay(resid, -1.0, rhs, 0, 0, resid.nComp(), 0);
+}
+
+void
+MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode)
+{
+    applyBC(amrlev, mglev, in, bc_mode);
+    Fapply(amrlev, mglev, out, in);
+}
+
+void
+MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode)
+{
+    
+}
+
 }

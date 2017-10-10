@@ -128,4 +128,10 @@ MLABecLaplacian::prepareForSolve ()
     averageDownCoeffs();
 }
 
+void
+MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in)
+{
+    
+}
+
 }

@@ -11,11 +11,13 @@ class MLLinOp
 {
 public:
 
+    enum struct BCMode { Homogeneous, Inhomogeneous };
+
     MLLinOp () {}
     MLLinOp (const Vector<Geometry>& a_geom,
              const Vector<BoxArray>& a_grids,
              const Vector<DistributionMapping>& a_dmap);
-    ~MLLinOp ();
+    virtual ~MLLinOp ();
 
     MLLinOp (const MLLinOp&) = delete;
     MLLinOp (MLLinOp&&) = delete;
@@ -37,6 +39,12 @@ public:
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
     virtual void prepareForSolve () = 0;
+    virtual void residual (int amrlev, int mglev,
+                           MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
+                           BCMode bc_mode); // const?
+    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode);
+    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode);
+    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) = 0;
 
 protected:
 

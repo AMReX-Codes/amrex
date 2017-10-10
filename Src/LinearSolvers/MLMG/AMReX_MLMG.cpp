@@ -18,7 +18,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
              Real a_tol_real, Real a_tol_abs)
 {
     AMREX_ASSERT(a_sol[0]->nGrow() > 0);
-    AMREX_ASSERT(namrlevs <= sol.size());
+    AMREX_ASSERT(namrlevs <= a_sol.size());
     AMREX_ASSERT(namrlevs <= a_rhs.size());
 
     linop.prepareForSolve();
@@ -174,7 +174,7 @@ MLMG::computeResidual (int alev, int mlev)
     MultiFab& x = *sol[alev];
     const MultiFab& b = rhs[alev];
     MultiFab& r = res[alev][mlev];
-    // xxxxx linop.residual(r, x, b);
+    linop.residual(alev, mlev, r, x, b, MLLinOp::BCMode::Inhomogeneous);
 }
 
 void
