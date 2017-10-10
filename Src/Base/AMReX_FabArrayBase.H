@@ -34,11 +34,10 @@ public:
 
     virtual ~FabArrayBase();
 
-    FabArrayBase (FabArrayBase&& rhs) noexcept = default;
-    
-    FabArrayBase (const FabArrayBase& rhs) = delete;
-    FabArrayBase& operator= (const FabArrayBase& rhs) = delete;
-    FabArrayBase& operator= (FabArrayBase&& rhs) = delete;    
+    FabArrayBase (FabArrayBase&& rhs) noexcept = default;    
+    FabArrayBase (const FabArrayBase& rhs) = default;
+    FabArrayBase& operator= (const FabArrayBase& rhs) = default;
+    FabArrayBase& operator= (FabArrayBase&& rhs) = default;    
 
     void define (const BoxArray&            bxs,
                  const DistributionMapping& dm,
