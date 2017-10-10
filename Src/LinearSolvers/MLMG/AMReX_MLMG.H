@@ -12,7 +12,7 @@ public:
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
-    void solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
+    void solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_real, Real a_tol_abs);
 
     void setVerbose (int v) { verbose = v; }
@@ -30,19 +30,27 @@ private:
     int namrlevs;
     int finest_amr_lev;
 
-                                      // Argument sol is the full solution
-    Vector<MultiFab>          rhs_o;  // Original rhs
+    // To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
+    // in the frame of the original equation, not the correction form
+
+    Vector<MultiFab*>         sol;  // alias to argument a_sol
+    Vector<MultiFab>          rhs;  // Copy of original rhs
 
     // First Vector: Amr levels.  0 is the coarest level
     // Second Vector: MG levels.  0 is the finest level
-    Vector<Vector<MultiFab> > rhs_c;  // = rhs - L(soln)    RHS of the correction form.
-    Vector<Vector<MultiFab> > cor;    // L(cor) = rhs_c     The correction
-    Vector<Vector<MultiFab> > res;    // = rhs_c - L(cor)   Residual of the correction form
+    Vector<Vector<MultiFab> > res;    // = rhs - L(sol)
+    Vector<Vector<MultiFab> > cor;    // L(cor) = res
+    Vector<Vector<MultiFab> > rescor; // = res - L(cor)   Residual of the correction form
 
-    void oneIter (const Vector<MultiFab*>& sol);
+    Vector<MultiFab> cor_hold;
+
+    void oneIter ();
     void miniCycle (int alev);
     void mgCycle ();
-    void computeResidual (int alev);
+    void computeResidual (int alev, int mlev);
+    void computeResWithCrseSolFineCor (int calev, int falev);
+    void computeResWithCrseCorFineCor (int calev, int falev);
+    void interpCorrection (int alev);
 };
 
 }
