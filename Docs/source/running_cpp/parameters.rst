@@ -85,8 +85,7 @@ Laser initialization
     implemented are:
 
     - ``"Gaussian"``: The transverse and longitudinal profiles are Gaussian.
-    - ``"Harris"``: The transverse profile is Gaussian, but the longitudinal profile is given by the Harris function
-        (see ``laser.profile_duration`` for more details)
+    - ``"Harris"``: The transverse profile is Gaussian, but the longitudinal profile is given by the Harris function (see ``laser.profile_duration`` for more details)
 
 * ``laser.e_max`` (`float` ; in V/m)
     Peak amplitude of the laser field.
