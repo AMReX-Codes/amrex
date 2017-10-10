@@ -17,8 +17,8 @@ namespace amrex
   /**************/
   template <class srcData_t, class dstData_t>
   AggStencil<srcData_t, dstData_t>::
-  AggStencil(const Array<std::shared_ptr<BaseIndex>   > & a_dstVoFs,
-             const Array<std::shared_ptr<BaseStencil> > & a_vofStencil,
+  AggStencil(const Vector<std::shared_ptr<BaseIndex>   > & a_dstVoFs,
+             const Vector<std::shared_ptr<BaseStencil> > & a_vofStencil,
              const srcData_t                                  & a_srcData,
              const dstData_t                                  & a_dstData)
   {
@@ -77,8 +77,8 @@ namespace amrex
 
     const int numtypelph = a_lph.numDataTypes();
     const int numtypephi = a_phi.numDataTypes();
-    Array<Real*>       dataPtrsLph(numtypelph);
-    Array<const Real*> dataPtrsPhi(numtypephi);
+    Vector<Real*>       dataPtrsLph(numtypelph);
+    Vector<const Real*> dataPtrsPhi(numtypephi);
     for (int icomp = 0; icomp < a_nco; icomp++)
       {
         int varDst = a_dst + icomp;
@@ -119,9 +119,9 @@ namespace amrex
   AggStencil<srcData_t, dstData_t>::
   cache(const dstData_t& a_lph) const
   {
-    m_cacheDst.resize( m_ebstencil.size(), Array<Real>(a_lph.nComp(), 0.));
+    m_cacheDst.resize( m_ebstencil.size(), Vector<Real>(a_lph.nComp(), 0.));
     BL_PROFILE("AggSten::cache");
-    Array<const Real*> dataPtrsLph(a_lph.numDataTypes());
+    Vector<const Real*> dataPtrsLph(a_lph.numDataTypes());
     for (int ivar = 0; ivar < a_lph.nComp(); ivar++)
       {
         for (int ivec = 0; ivec < dataPtrsLph.size(); ivec++)
@@ -143,7 +143,7 @@ namespace amrex
   uncache(dstData_t& a_lph) const
   {
     BL_PROFILE("AggSten::uncache");
-    Array<Real*> dataPtrsLph(a_lph.numDataTypes());
+    Vector<Real*> dataPtrsLph(a_lph.numDataTypes());
     for (int ivar = 0; ivar < a_lph.nComp(); ivar++)
       {
         for (int ivec = 0; ivec < dataPtrsLph.size(); ivec++)

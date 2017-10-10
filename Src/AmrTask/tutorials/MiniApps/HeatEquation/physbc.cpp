@@ -8,7 +8,7 @@ void fill_physbc (MultiFab& phi, const Geometry& geom)
     if (Geometry::isAllPeriodic()) return;
 
     // Set up BC; see Src/Base/AMReX_BC_TYPES.H for supported types
-    Array<BCRec> bc(phi.nComp());
+    Vector<BCRec> bc(phi.nComp());
     for (int n = 0; n < phi.nComp(); ++n)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)

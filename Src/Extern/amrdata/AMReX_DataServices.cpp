@@ -37,7 +37,7 @@ extern FILE *yyin;
 
 namespace amrex {
 
-Array<DataServices *> DataServices::dsArray;
+Vector<DataServices *> DataServices::dsArray;
 int DataServices::dsArrayIndexCounter = 0;
 int DataServices::dsFabOutSize = 0;
 bool DataServices::dsBatchMode = false;
@@ -55,7 +55,7 @@ namespace {
 extern void PrintTimeRangeList(const std::list<RegionsProfStats::TimeRange> &trList);
 extern void SimpleRemoveOverlap(BoxArray &ba);
 extern void avgDown(MultiFab &S_crse, MultiFab &S_fine, int scomp, int dcomp,
-             int ncomp, Array<int> &ratio);
+             int ncomp, Vector<int> &ratio);
 extern std::string SanitizeName(const std::string &s);
 extern void WriteFab(const string &filenameprefix, const int xdim, const int ydim,
                      const double *data);
@@ -69,7 +69,7 @@ namespace ParallelDescriptor {
   template <> void Bcast (Box *b, size_t n, int root) {
     const int n3SDim(n * 3 * BL_SPACEDIM);
 
-    Array<int> tmp(n3SDim);
+    Vector<int> tmp(n3SDim);
 
     int cnt(0);
 
@@ -210,7 +210,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     BoxArray procBoxArrayTemp(procBox);
     procBoxArrayTemp.maxSize(procMaxGrid);
     // ---- now ensure the boxarray is nprocs long
-    Array<Box> procBoxes;
+    Vector<Box> procBoxes;
     int needMoreBoxes(nProcs - procBoxArrayTemp.size());
     for(int ipb(0); ipb < procBoxArrayTemp.size(); ++ipb) {
       Box b(procBoxArrayTemp[ipb]);
@@ -237,7 +237,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
     if(bTraceDataAvailable) {
       // -------- parse the data headers.  everyone does this for now
       if(bIOP) { cout << "Parsing data headers." << endl; }
-      const Array<string> &regHeaderFileNames = regOutputStats_H.GetHeaderFileNames();
+      const Vector<string> &regHeaderFileNames = regOutputStats_H.GetHeaderFileNames();
       for(int i(0); i < regHeaderFileNames.size(); ++i) {
         std::string regFileName_H_nnnn(fileName + '/' + regHeaderFileNames[i]);
         if( ! (yyin = fopen(regFileName_H_nnnn.c_str(), "r"))) {
@@ -1297,7 +1297,7 @@ bool DataServices::FillVar(MultiFab &destMultiFab, int finestFillLevel,
 // ---------------------------------------------------------------
 //
 //
-// Change this to take an Array<Box> (or BoxArray?) and create
+// Change this to take an Vector<Box> (or BoxArray?) and create
 // a MultiFab and pass the proc number for the multifabs disributionMapping
 // to create the FillVared fabs on separate processors
 //
@@ -1313,8 +1313,8 @@ bool DataServices::WriteFab(const string &fname, const Box &region, int lev,
     data.resize(region, 1);
   }
 
-  Array<FArrayBox *> destFabs(1);
-  Array<Box> destBoxes(1);
+  Vector<FArrayBox *> destFabs(1);
+  Vector<Box> destBoxes(1);
   destFabs[0]  = &data;
   destBoxes[0] = region;
   amrData.FillVar(destFabs, destBoxes, lev, varname,
@@ -1353,7 +1353,7 @@ bool DataServices::WriteFab(const string &fname, const Box &region, int lev,
 // ---------------------------------------------------------------
 //
 //
-// Change this to take an Array<Box> (or BoxArray?) and create
+// Change this to take an Vector<Box> (or BoxArray?) and create
 // a MultiFab and pass the proc number for the multifabs disributionMapping
 // to create the FillVared fabs on separate processors
 //
@@ -1372,8 +1372,8 @@ bool DataServices::WriteFab(const string &fname, const Box &region, int lev) {
   }
   for(int ivar = 0; ivar < amrData.NComp(); ++ivar) {
     //amrData.FillVar(tempdata, lev, amrData.PlotVarNames()[ivar]);
-    Array<FArrayBox *> destFabs(1);
-    Array<Box> destBoxes(1);
+    Vector<FArrayBox *> destFabs(1);
+    Vector<Box> destBoxes(1);
     destFabs[0]  = &tempdata;
     destBoxes[0] = region;
     amrData.FillVar(destFabs, destBoxes, lev, amrData.PlotVarNames()[ivar],
@@ -1427,7 +1427,7 @@ bool DataServices::CanDerive(const string &name) const {
 
 
 // ---------------------------------------------------------------
-bool DataServices::CanDerive(const Array<string> &names) const {
+bool DataServices::CanDerive(const Vector<string> &names) const {
   if( ! bAmrDataOk) {
     return false;
   }
@@ -1610,8 +1610,8 @@ void DataServices::CheckProfData()
 
     if(bCommDataAvailable) {
       if(bIOP) { cout << "Checking CommProfStats." << endl; }
-      Array<long> nBMin, nBMax, nRMin, nRMax;
-      const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+      Vector<long> nBMin, nBMax, nRMin, nRMax;
+      const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
 
       if(myProc < commHeaderFileNames.size()) {
         for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
@@ -1706,7 +1706,7 @@ void DataServices::PrintCommStats(std::ostream &os,
     }
   }
   if(printHeaderNames) {
-    const Array<string> &headerFileNames = commOutputStats_H.GetHeaderFileNames();
+    const Vector<string> &headerFileNames = commOutputStats_H.GetHeaderFileNames();
     if(headerFileNames.size() > 0) {
       os << "headerFileNames:" << '\n';
       for(int i(0); i < headerFileNames.size(); ++i) {
@@ -1734,15 +1734,15 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
     int nMsgSizes(10000), bytesPerSlot(100);
     int minMsgSize(std::numeric_limits<int>::max());
     int maxMsgSize(std::numeric_limits<int>::min());
-    Array<long> msgSizes(nMsgSizes, 0);
-    Array<long> totalFunctionCalls(BLProfiler::NUMBER_OF_CFTS, 0);
+    Vector<long> msgSizes(nMsgSizes, 0);
+    Vector<long> totalFunctionCalls(BLProfiler::NUMBER_OF_CFTS, 0);
     Real timeMin(std::numeric_limits<Real>::max());
     Real timeMax(-std::numeric_limits<Real>::max());
     Real timerTime(0.0);
     long totalNCommStats(0), totalSentData(0);
     int dataNProcs(BLProfStats::GetNProcs());
-    Array<int> rankNodeNumbers(dataNProcs, 0);
-    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    Vector<int> rankNodeNumbers(dataNProcs, 0);
+    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
 
     CommProfStats::SetInitDataBlocks(true);
     CommProfStats::InitDataFileNames(commHeaderFileNames);
@@ -1794,7 +1794,7 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
     timerTime /= nProcs;
 
     if(bIOP) {
-      const Array<std::list<BLProfStats::TimeRange> > &ftRange =
+      const Vector<std::list<BLProfStats::TimeRange> > &ftRange =
                                     commOutputStats_H.GetFilterTimeRanges();
       if( ! ftRange.empty()) {
         if( ! ftRange[0].empty()) {
@@ -1884,8 +1884,8 @@ void DataServices::RunSendsPF(std::string &plotfileName,
 
     int dataNProcs(BLProfStats::GetNProcs());
     long totalSends(0), totalSentData(0);
-    Array<long> totalSendsPerProc(dataNProcs, 0);
-    Array<long> totalSentDataPerProc(dataNProcs, 0);
+    Vector<long> totalSendsPerProc(dataNProcs, 0);
+    Vector<long> totalSentDataPerProc(dataNProcs, 0);
 
     IntVect maxGrid((dataNProcs / nProcs) + refRatioAll, dataNProcs);
     int nLevels(1), finestLevel(0), numState(2), nGrow(0);
@@ -1899,7 +1899,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
       ++nLevels;
     }
     finestLevel = nLevels - 1;
-    Array<Box> probDomain(nLevels);
+    Vector<Box> probDomain(nLevels);
     for(int i(0); i < nLevels; ++i) {
       probDomain[i] = dnpBoxBlocked;
       if(bIOP) { cout << ")))) probDomain[" << i << "] =  " << probDomain[i] << endl; }
@@ -1920,7 +1920,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
            << dnpBoxArray.size() << endl;
     }
 
-    Array<MultiFab> state(nLevels);
+    Vector<MultiFab> state(nLevels);
     const DistributionMapping stateDM(dnpBoxArray);
     state[finestLevel].define(dnpBoxArray, stateDM, numState, nGrow);
     MultiFab &sendMF = state[finestLevel];
@@ -1929,7 +1929,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
     BL_PROFILE_VAR_STOP(runsendspftop)
 
     BL_PROFILE_VAR("runSendsPF_PP", runsendspfpp)
-    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     CommProfStats::SetInitDataBlocks(true);
     CommProfStats::InitDataFileNames(commHeaderFileNames);
     CommProfStats::OpenAllStreams(fileName);
@@ -1981,7 +1981,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
     if(bIOP) cout << "Finished filling finest level sendMF." << endl;
 
     // ---- now the real data is in the multifab, avg down to a reasonable size
-    Array<Array<int> > adRefRatio(state.size() - 1);
+    Vector<Vector<int> > adRefRatio(state.size() - 1);
     for(int i(0); i < finestLevel; ++i) {
       adRefRatio[i].resize(BL_SPACEDIM, refRatioAll);
     }
@@ -2017,10 +2017,10 @@ void DataServices::RunSendsPF(std::string &plotfileName,
     Real highVal(mfMax - (pctHighVals * (mfMax - mfMin)));
     if(bIOP) cout << "mfMin mfMax highVal = " << mfMin << "  " << mfMax << "  " << highVal << endl;
     if(bIOP) cout << "dnpBox = " << dnpBox << endl;
-    Array<int> dmapArray(1);
+    Vector<int> dmapArray(1);
     dmapArray[0] = ParallelDescriptor::IOProcessorNumber();
     DistributionMapping dmapOneProc(dmapArray);
-    Array<int> swapPairs;
+    Vector<int> swapPairs;
     std::set<int> availableIndicies;
     for(int iY(0); iY < dnpBox.length(YDIR); ++iY) {
       availableIndicies.insert(iY);
@@ -2087,7 +2087,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
 
     // ---- copy data into a more ddio favorable configuration
     int sqMG(128);
-    Array<MultiFab> sqState(nLevels);
+    Vector<MultiFab> sqState(nLevels);
     for(int i(0); i < state.size(); ++i) {
       BoxArray sqBA(state[i].boxArray().minimalBox());
       sqBA.maxSize(sqMG);
@@ -2104,20 +2104,20 @@ void DataServices::RunSendsPF(std::string &plotfileName,
 
     std::string plotFileVersion("NavierStokes-V1.1");
     Real time(0.0);
-    Array<Real> probLo(BL_SPACEDIM, 0.0);
-    Array<Real> probHi(BL_SPACEDIM, 1.0);
-    Array<int>  refRatioPerLevel(sqState.size() - 1);
+    Vector<Real> probLo(BL_SPACEDIM, 0.0);
+    Vector<Real> probHi(BL_SPACEDIM, 1.0);
+    Vector<int>  refRatioPerLevel(sqState.size() - 1);
     for(int i(0); i < refRatioPerLevel.size(); ++i) {
       refRatioPerLevel[i] = refRatioAll;
     }
-    Array<Array<Real> > dxLevel(sqState.size());
+    Vector<Vector<Real> > dxLevel(sqState.size());
     for(int i(0); i < sqState.size(); ++i) {
       dxLevel[i].resize(BL_SPACEDIM);
       dxLevel[i][0] = 1.0;
       dxLevel[i][1] = 1.0;
     }
     int coordSys(0);
-    Array<std::string> inVarNames(numState);
+    Vector<std::string> inVarNames(numState);
     inVarNames[0] = "totalSendsP2P";
     inVarNames[1] = "totalSentDataP2P";
     bool verb(false);
@@ -2192,7 +2192,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
     if(bIOP) { cout << endl << "---------------- Timeline." << endl; }
 
-    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     if( ! statsCollected) {
       RunStats(mpiFuncNames, statsCollected);
     }
@@ -2245,7 +2245,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       ++nLevels;
     }
     finestLevel = nLevels - 1;
-    Array<Box> probDomain(nLevels);
+    Vector<Box> probDomain(nLevels);
     for(int i(0); i < nLevels; ++i) {
       probDomain[i] = dnpBoxBlocked;
       if(bIOP) cout << ")))) probDomain[" << i << "] =  " << probDomain[i] << endl;
@@ -2258,11 +2258,11 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     CommProfStats::InitDataFileNames(commHeaderFileNames);
     CommProfStats::OpenAllStreams(fileName);
 
-    Array<MultiFab> state(nLevels);
+    Vector<MultiFab> state(nLevels);
     IntVect cRR(1, 1);
-    Array<string> nameTagNames, barrierNames;
+    Vector<string> nameTagNames, barrierNames;
     Real ntnMultiplier(0.0), bnMultiplier(0.0);
-    Array<Real> ntnNumbers, bnNumbers;
+    Vector<Real> ntnNumbers, bnNumbers;
 
     for(int iLevel(finestLevel); iLevel >= 0; --iLevel) {
       BoxArray dnpBoxArray(probDomain[iLevel]);
@@ -2354,7 +2354,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
     // ---- copy data into a more ddio favorable configuration
     int sqMG(128);
-    Array<MultiFab> sqState(nLevels);
+    Vector<MultiFab> sqState(nLevels);
     for(int i(0); i < state.size(); ++i) {
       BoxArray sqBA(state[i].boxArray().minimalBox());
       sqBA.maxSize(sqMG);
@@ -2371,20 +2371,20 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
     std::string plotFileVersion("CommProfTimeline-V1.0");
     Real time(calcTimeMax);
-    Array<Real> probLo(BL_SPACEDIM, 0.0);
-    Array<Real> probHi(BL_SPACEDIM, 1.0);
-    Array<int>  refRatioPerLevel(sqState.size() - 1);
+    Vector<Real> probLo(BL_SPACEDIM, 0.0);
+    Vector<Real> probHi(BL_SPACEDIM, 1.0);
+    Vector<int>  refRatioPerLevel(sqState.size() - 1);
     for(int i(0); i < refRatioPerLevel.size(); ++i) {
       refRatioPerLevel[i] = refRatioAll;
     }
-    Array<Array<Real> > dxLevel(sqState.size());
+    Vector<Vector<Real> > dxLevel(sqState.size());
     for(int i(0); i < sqState.size(); ++i) {
       dxLevel[i].resize(BL_SPACEDIM);
       dxLevel[i][0] = 1.0;
       dxLevel[i][1] = 1.0;
     }
     int coordSys(0);
-    Array<std::string> inVarNames(numState);
+    Vector<std::string> inVarNames(numState);
     inVarNames[0] = "timeline";
     inVarNames[1] = "mpiCount";
     bool verb(false);
@@ -2484,15 +2484,15 @@ void DataServices::MakeRegionPlt(std::string &plotfileName)
       noRegionNumber = itn->second;
     }
 
-    Array<Array<Box>> regionBoxArray;
+    Vector<Vector<Box>> regionBoxArray;
     regOutputStats_H.MakeRegionPlt(rFab, noRegionNumber, 320, 12, regionBoxArray);
 
     // ---- write the data as a plot file
     int finestLevel(0), nLevels(1), numState(1), nGrow(0);
-    Array<Box> probDomain(nLevels);
+    Vector<Box> probDomain(nLevels);
     BoxArray dnpBoxArray(rFab.box());
     probDomain[0] = rFab.box();
-    Array<MultiFab> state(nLevels);
+    Vector<MultiFab> state(nLevels);
     const DistributionMapping dnpDM(dnpBoxArray);
     state[finestLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
     MultiFab &regionsMF = state[finestLevel];
@@ -2503,21 +2503,21 @@ void DataServices::MakeRegionPlt(std::string &plotfileName)
 
     std::string plotFileVersion("RegionsProf-V1.0");
     Real time(0.0);
-    Array<Real> probLo(BL_SPACEDIM, 0.0);
-    Array<Real> probHi(BL_SPACEDIM, 1.0);
-    Array<int>  refRatioPerLevel(state.size() - 1);
+    Vector<Real> probLo(BL_SPACEDIM, 0.0);
+    Vector<Real> probHi(BL_SPACEDIM, 1.0);
+    Vector<int>  refRatioPerLevel(state.size() - 1);
     int refRatioAll(2);
     for(int i(0); i < refRatioPerLevel.size(); ++i) {
       refRatioPerLevel[i] = refRatioAll;
     }
-    Array<Array<Real> > dxLevel(state.size());
+    Vector<Vector<Real> > dxLevel(state.size());
     for(int i(0); i < state.size(); ++i) {
       dxLevel[i].resize(BL_SPACEDIM);
       dxLevel[i][0] = 1.0;
       dxLevel[i][1] = 1.0;
     }
     int coordSys(0);
-    Array<std::string> inVarNames(numState);
+    Vector<std::string> inVarNames(numState);
     inVarNames[0] = "regions";
     bool verb(false);
     FABio::Format oldFabFormat(FArrayBox::getFormat());
@@ -2544,7 +2544,7 @@ void DataServices::MakeRegionPlt(std::string &plotfileName)
 // ----------------------------------------------------------------------
 void DataServices::RunACTPF(std::string &plotfileName,
                                 int maxSmallImageLength, int refRatioAll,
-	                        const Array<string> &actFNames)
+	                        const Vector<string> &actFNames)
 {
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  DataServices::RunACTPF is only supported for 2D" << endl;
@@ -2583,7 +2583,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     BoxArray procBoxArrayTemp(procBox);
     procBoxArrayTemp.maxSize(procMaxGrid);
     // ---- now ensure the boxarray is nprocs long
-    Array<Box> procBoxes;
+    Vector<Box> procBoxes;
     int needMoreBoxes(nProcs - procBoxArrayTemp.size());
     for(int ipb(0); ipb < procBoxArrayTemp.size(); ++ipb) {
       Box b(procBoxArrayTemp[ipb]);
@@ -2608,7 +2608,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
 
     if(bIOP) cout << "---- procBoxArray = " << procBoxArray << endl;
 
-    Array<Array<Real> > whichFuncAllTimes(dataNProcs);  // [proc][functime]
+    Vector<Vector<Real> > whichFuncAllTimes(dataNProcs);  // [proc][functime]
 
     RegionsProfStats::SetInitDataBlocks(true);
     std::string whichFuncName(actFNames[0]);
@@ -2677,7 +2677,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     }
     if(bIOP) { SHOWVAL(wfnBoxArray); }
 
-    Array<int> myMap(nProcs);
+    Vector<int> myMap(nProcs);
     for(int i(0); i < myMap.size() - 1; ++i) {
       myMap[i] = i;
     }
@@ -2700,7 +2700,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
       ++nLevels;
     }
     finestLevel = nLevels - 1;
-    Array<Box> probDomain(nLevels);
+    Vector<Box> probDomain(nLevels);
     for(int i(0); i < nLevels; ++i) {
       probDomain[i] = dnpBoxBlocked;
       if(bIOP) { cout << ")))) probDomain[" << i << "] =  " << probDomain[i] << endl; }
@@ -2711,7 +2711,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     IntVect maxGrid((dataNProcs / nProcs) + refRatioAll, dataNProcs);
     dnpBoxArray.maxSize(maxGrid);
 
-    Array<MultiFab> state(nLevels);
+    Vector<MultiFab> state(nLevels);
     const DistributionMapping dnpDM(dnpBoxArray);
     state[finestLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
     MultiFab &fLMF = state[finestLevel];
@@ -2719,7 +2719,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
     fLMF.copy(mfWFN);
 
     // ---- make an xgraph of coefficient of variation for each call
-    Array<Real> coeffVar(whichFuncNCalls, 0.0);
+    Vector<Real> coeffVar(whichFuncNCalls, 0.0);
     if(bIOP) cout << ")))) fLMF.boxArray = " << fLMF.boxArray() << endl;
     for(MFIter mfi(fLMF); mfi.isValid(); ++mfi) {
       const FArrayBox &fab = fLMF[mfi];
@@ -2761,7 +2761,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
 
 
     // ---- now the real data is in the multifab, avg down to a reasonable size
-    Array<Array<int> > adRefRatio(state.size() - 1);
+    Vector<Vector<int> > adRefRatio(state.size() - 1);
     for(int i(0); i < finestLevel; ++i) {
       adRefRatio[i].resize(BL_SPACEDIM, refRatioAll);
     }
@@ -2791,7 +2791,7 @@ void DataServices::RunACTPF(std::string &plotfileName,
 
     // ---- copy data into a more ddio favorable configuration
     int sqMG(128);
-    Array<MultiFab> sqState(nLevels);
+    Vector<MultiFab> sqState(nLevels);
     for(int i(0); i < state.size(); ++i) {
       BoxArray sqBA(state[i].boxArray().minimalBox());
       const DistributionMapping sqDM(sqBA);
@@ -2815,20 +2815,20 @@ void DataServices::RunACTPF(std::string &plotfileName,
 
     std::string plotFileVersion("NavierStokes-V1.1");
     Real time(0.0);
-    Array<Real> probLo(BL_SPACEDIM, 0.0);
-    Array<Real> probHi(BL_SPACEDIM, 1.0);
-    Array<int>  refRatioPerLevel(sqState.size() - 1);
+    Vector<Real> probLo(BL_SPACEDIM, 0.0);
+    Vector<Real> probHi(BL_SPACEDIM, 1.0);
+    Vector<int>  refRatioPerLevel(sqState.size() - 1);
     for(int i(0); i < refRatioPerLevel.size(); ++i) {
       refRatioPerLevel[i] = refRatioAll;
     }
-    Array<Array<Real> > dxLevel(sqState.size());
+    Vector<Vector<Real> > dxLevel(sqState.size());
     for(int i(0); i < sqState.size(); ++i) {
       dxLevel[i].resize(BL_SPACEDIM);
       dxLevel[i][0] = 1.0;
       dxLevel[i][1] = 1.0;
     }
     int coordSys(0);
-    Array<std::string> inVarNames(numState);
+    Vector<std::string> inVarNames(numState);
     inVarNames[0] = whichFuncName;
     bool verb(false);
     FABio::Format oldFabFormat(FArrayBox::getFormat());
@@ -2864,18 +2864,18 @@ void DataServices::RunSyncPointData()
     int dataNProcs(BLProfStats::GetNProcs());
 
     bool bDoReductions(true);
-    Array<Array<Real> > barrierExitTimes(dataNProcs);  // [proc, bnum]
-    Array<Array<Real> > barrierWaitTimes(dataNProcs);
-    Array<Array<Real> > barrierSkewTimes(dataNProcs);
-    Array<Array<Real> > reductionWaitTimes(dataNProcs);
+    Vector<Vector<Real> > barrierExitTimes(dataNProcs);  // [proc, bnum]
+    Vector<Vector<Real> > barrierWaitTimes(dataNProcs);
+    Vector<Vector<Real> > barrierSkewTimes(dataNProcs);
+    Vector<Vector<Real> > reductionWaitTimes(dataNProcs);
     long nBMax(0), nRMax(0);
 
-    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     CommProfStats::SetInitDataBlocks(true);
     CommProfStats::InitDataFileNames(commHeaderFileNames);
     CommProfStats::OpenAllStreams(fileName);
 
-    Array<CommProfStats> commOutputStats(commHeaderFileNames.size());
+    Vector<CommProfStats> commOutputStats(commHeaderFileNames.size());
     for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
       if(bRegionDataAvailable) {
         commOutputStats[hfnI].SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
@@ -2927,9 +2927,9 @@ void DataServices::RunSyncPointData()
 
     long nBarriers(nBMax + 1);
     long nReductions(nRMax + 1);
-    Array<Real> bExitAll(dataNProcs * nBarriers);
-    Array<Real> bWaitAll(dataNProcs * nBarriers);
-    Array<Real> rwAll;
+    Vector<Real> bExitAll(dataNProcs * nBarriers);
+    Vector<Real> bWaitAll(dataNProcs * nBarriers);
+    Vector<Real> rwAll;
     if(bDoReductions) {
       rwAll.resize(dataNProcs * nReductions);
     }
@@ -3039,7 +3039,7 @@ void DataServices::RunSendRecvList()
     int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
 
-    const Array<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     std::multimap<Real, CommProfStats::SendRecvPairUnpaired> srMMap;  // [call time, sr]
     if(myProc < commHeaderFileNames.size()) {
       for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {

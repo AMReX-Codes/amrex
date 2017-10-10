@@ -3,6 +3,7 @@
 #define _MULTIGRID_H_
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_BndryData.H>
 #include <AMReX_LinOp.H>
@@ -357,15 +358,15 @@ private:
     //
     // internal temp data
     //
-    Array< MultiFab* > res;
+    Vector< MultiFab* > res;
     //
     // internal temp data
     //
-    Array< MultiFab* > rhs;
+    Vector< MultiFab* > rhs;
     //
     // internal temp data
     //
-    Array< MultiFab* > cor;
+    Vector< MultiFab* > cor;
     //
     // internal reference to linear operator
     //

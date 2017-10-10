@@ -110,6 +110,13 @@ namespace amrex{
 		_nLocalTasks=0;
 		_mode= _Push;
 	    }
+	    void DestroyGraph(){
+		    for(typename std::vector<T*>::iterator it= _initialTasks.begin(); it!= _initialTasks.end(); it++){
+			delete (*it);
+		    }
+		    _initialTasks.clear();
+		    _taskPool.clear();
+	    }
 	    void DestroyTask(Task* t){
 		_taskPool.erase(t->MyName());
 	    }

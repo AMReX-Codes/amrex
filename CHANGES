@@ -1,4 +1,24 @@
-# changes since the last releas
+# changes since the last release
+
+  -- amrex::Array is deprecated and replaced by amrex::Vector.
+     Currently Array is an alias to Vector.  So this should not break
+     any codes.  In the future, we will remove Array completely.
+     Therefore it is recommended that application codes should start
+     replacing Array with Vector.  There is a script,
+     amrex/Tools/Migration/amrex_array_to_vector.sh, to help.  But use
+     it with caution.   If it is completely gibberish to you, you
+     probably shouldn't use the script. 
+
+  -- functions for printing to a file in a parallel and thread-safe manner
+     have been added. For example:
+
+        amrex::AllPrintToFile("output") << "Hello from rank " << rank << 
+                                           " and thread " << thread << "\n";
+
+     will print out the requested information to separate files for each 
+     rank and thread.
+
+# 17.10
 
   -- Added a load balance approach to Amr/AmrLevel.  The runtime
      parameters for this is amr.loadbalance_with_workestimates and

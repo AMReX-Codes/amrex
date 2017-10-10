@@ -79,9 +79,9 @@ class AuxVar {
 
   void collapse();
 
-  int get_locations(Array<int>& levels, Array<IntVect>& cells);
+  int get_locations(Vector<int>& levels, Vector<IntVect>& cells);
 
-  int get_coeffs(Array<Real>& values);
+  int get_coeffs(Vector<Real>& values);
 
   void clear();
 
@@ -216,15 +216,15 @@ class CrseBndryAuxVar : public BndryAuxVarBase {
 
   //~CrseBndryAuxVar(); destructor not needed, PArrayManage is used
 
-  Array< PArray<AuxVarBox> >& operator()(const Orientation ori) {
+  Vector< PArray<AuxVarBox> >& operator()(const Orientation ori) {
     return aux[ori];
   }
 
-  Array< PArray<Mask> >& mask(const Orientation ori) {
+  Vector< PArray<Mask> >& mask(const Orientation ori) {
     return msk[ori];
   }
 
-  Array< PArray<FArrayBox> >& faceData(const Orientation ori) {
+  Vector< PArray<FArrayBox> >& faceData(const Orientation ori) {
     return face_data[ori];
   }
 
@@ -233,10 +233,10 @@ class CrseBndryAuxVar : public BndryAuxVarBase {
   void initialize_slaves(Location loc);
 
   BoxArray                    cgrids, fgrids;
-  Array< PArray<AuxVarBox> >  aux[2*BL_SPACEDIM];
-  Array< PArray<Mask> >       msk[2*BL_SPACEDIM];
-  Array< Array<int> >         fine_index[2*BL_SPACEDIM];
-  Array< PArray<FArrayBox> >  face_data[2*BL_SPACEDIM];
+  Vector< PArray<AuxVarBox> >  aux[2*BL_SPACEDIM];
+  Vector< PArray<Mask> >       msk[2*BL_SPACEDIM];
+  Vector< Vector<int> >         fine_index[2*BL_SPACEDIM];
+  Vector< PArray<FArrayBox> >  face_data[2*BL_SPACEDIM];
 };
 
 
@@ -270,9 +270,9 @@ protected:
   void clearSolver();
 
   int crse_level, fine_level, solver_flag;
-  Array<Geometry> geom;
-  Array<BoxArray> grids;
-  Array<IntVect> fine_ratio;
+  Vector<Geometry> geom;
+  Vector<BoxArray> grids;
+  Vector<IntVect> fine_ratio;
   PArray<BndryData> bd;
 
   int verbose;

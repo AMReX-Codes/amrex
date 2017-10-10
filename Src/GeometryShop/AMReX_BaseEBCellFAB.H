@@ -154,7 +154,7 @@ namespace amrex
     const Box& box() const ;
 
     /// has to be by value because sometimes the Array does not exist.
-    Array<VolIndex> getMultiCells() const ;
+    Vector<VolIndex> getMultiCells() const ;
 
     ///
     const BaseIVFAB<T>& getMultiValuedFAB() const;

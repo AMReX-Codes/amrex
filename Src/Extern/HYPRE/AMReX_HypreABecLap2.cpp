@@ -278,7 +278,7 @@ HypreABecLap2::loadMatrix ()
         // add b.c.'s to matrix diagonal, and
         // zero out offdiag values at domain boundaries
 
-        const Array< Array<BoundCond> > & bcs_i = bd.bndryConds(i);
+        const Vector< Vector<BoundCond> > & bcs_i = bd.bndryConds(i);
         const BndryData::RealTuple      & bcl_i = bd.bndryLocs(i);
         
         const Box& domain = geom.Domain();
@@ -363,7 +363,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
 
         // add b.c.'s to rhs
 
-        const Array< Array<BoundCond> > & bcs_i = bd.bndryConds(i);
+        const Vector< Vector<BoundCond> > & bcs_i = bd.bndryConds(i);
         const BndryData::RealTuple      & bcl_i = bd.bndryLocs(i);
 
         const Box& domain = geom.Domain();

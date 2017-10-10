@@ -157,7 +157,7 @@ namespace amrex
     {
       if (vofs.size() > 0)
         {
-          variables = Array<int>(vofs.size(), a_var);
+          variables = Vector<int>(vofs.size(), a_var);
         }
     }
 
@@ -166,11 +166,11 @@ namespace amrex
   protected:
 
     /// the VoFs
-    Array<VolIndex> vofs;
+    Vector<VolIndex> vofs;
     /// the weights
-    Array<Real> weights;
+    Vector<Real> weights;
 
-    Array<int> variables;
+    Vector<int> variables;
   };
 
   ///
@@ -214,7 +214,7 @@ namespace amrex
     {
       if (faces.size() > 0)
         {
-          variables = Array<int>(faces.size(), a_var);
+          variables = Vector<int>(faces.size(), a_var);
         }
     }
 
@@ -267,11 +267,11 @@ namespace amrex
   private:
 
     /// the Faces
-    Array<FaceIndex> faces;
+    Vector<FaceIndex> faces;
     /// the weights
-    Array<Real> weights;
+    Vector<Real> weights;
     /// the variable numbers
-    Array<int> variables;
+    Vector<int> variables;
 
   };
 

@@ -44,7 +44,7 @@ namespace amrex
         const IntVect& ivCell = bit();
         for (SideIterator sit; sit.ok(); ++sit)
         {
-          const Array< FaceIndex >& faces = m_ebisBox.getAllFaces(ivCell,m_iDir,sit());
+          const Vector< FaceIndex >& faces = m_ebisBox.getAllFaces(ivCell,m_iDir,sit());
           if ( (faces.size()==0) || (faces.size()>1) )
           {
             const int& hilo =  sign(sit());
@@ -326,7 +326,7 @@ namespace amrex
     const IntVect& ivhi = a_facein.gridIndex(Side::Hi);
     BL_ASSERT(m_regionFace.contains(ivhi));
 
-    const Array<FaceIndex>& multiFaces = m_irrFAB.getFaces();
+    const Vector<FaceIndex>& multiFaces = m_irrFAB.getFaces();
     T* returnval;
 
     bool isFaceHere = false;
@@ -360,7 +360,7 @@ namespace amrex
     const IntVect& ivhi = a_facein.gridIndex(Side::Hi);
     BL_ASSERT(m_regionFace.contains(ivhi));
 
-    const Array<FaceIndex>& multiFaces = m_irrFAB.getFaces();
+    const Vector<FaceIndex>& multiFaces = m_irrFAB.getFaces();
     const T* returnval;
 
     bool isFaceHere = false;

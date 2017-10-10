@@ -597,7 +597,7 @@ int myTest()
         }
     }
 
-    Array<std::string> name(1,"vfrac");
+    Vector<std::string> name(1,"vfrac");
     RealBox rb(AMREX_D_DECL(0,0,0),
                AMREX_D_DECL(1,1,1));
     Geometry geom_fine(eblg_fine.getDomain(),&rb);
