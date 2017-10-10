@@ -334,7 +334,7 @@ int testStuff()
   {
     dx[idir] = domlen/ncellsvec[idir];
   }
-  Array<Real> probLo(SpaceDim,0);
+  Vector<Real> probLo(SpaceDim,0);
 
   BaseFab<int> regIrregCovered;
   std::vector<IrregNode>  nodes;

@@ -765,10 +765,10 @@ Box::isSquare () const
 #endif
 }
 
-Array<int> SerializeBox(const Box &b)
+Vector<int> SerializeBox(const Box &b)
 {
   int count(0);
-  Array<int> retArray(BL_SPACEDIM * 3);
+  Vector<int> retArray(BL_SPACEDIM * 3);
   for(int i(0); i < BL_SPACEDIM; ++i) {
     retArray[count] = b.smallEnd(i);
     ++count;
@@ -791,7 +791,7 @@ int SerializeBoxSize() {
 }
 
 
-Box UnSerializeBox(const Array<int> &serarray)
+Box UnSerializeBox(const Vector<int> &serarray)
 {
   BL_ASSERT(serarray.size() == (3 * BL_SPACEDIM));
   const int *iptr = serarray.dataPtr();
@@ -821,7 +821,7 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
 }
 
 void
-AllGatherBoxes (Array<Box>& bxs)
+AllGatherBoxes (Vector<Box>& bxs)
 {
 #ifdef BL_USE_MPI
     // cell centered boxes only!
@@ -831,7 +831,7 @@ AllGatherBoxes (Array<Box>& bxs)
     const auto& countvec = ParallelDescriptor::Gather(count, ParallelDescriptor::IOProcessorNumber());
     
     long count_tot = 0L;
-    Array<long> offset(countvec.size(),0L);
+    Vector<long> offset(countvec.size(),0L);
     if (ParallelDescriptor::IOProcessor())
     {
         count_tot = countvec[0];
@@ -845,7 +845,7 @@ AllGatherBoxes (Array<Box>& bxs)
 
     if (count_tot == 0) return;
 
-    Array<char> send_buffer(count);
+    Vector<char> send_buffer(count);
     char* psend = (count > 0) ? send_buffer.data() : nullptr;
     char* p = psend;
     for (const auto& b : bxs) {
@@ -853,7 +853,7 @@ AllGatherBoxes (Array<Box>& bxs)
         p += szof_bx;
     }
 
-    Array<char> recv_buffer(count_tot);
+    Vector<char> recv_buffer(count_tot);
     ParallelDescriptor::Gatherv(psend, count, recv_buffer.data(), countvec, offset, ParallelDescriptor::IOProcessorNumber());
 
     ParallelDescriptor::Bcast(recv_buffer.data(), count_tot, ParallelDescriptor::IOProcessorNumber());

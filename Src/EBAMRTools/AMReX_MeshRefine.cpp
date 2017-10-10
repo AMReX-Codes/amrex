@@ -39,7 +39,7 @@ namespace amrex
 
     //! Manually tag.  Note that tags is built on level lev grids coarsened by bf_lev.
     virtual void ManualTagsPlacement (int lev, amrex::TagBoxArray& tags,
-                                      const amrex::Array<amrex::IntVect>& bf_lev) override
+                                      const amrex::Vector<amrex::IntVect>& bf_lev) override
       {
         IntVectSet coarsenedTagsLev = (*m_vec_ivs_ptr)[lev];
         coarsenedTagsLev.coarsen(bf_lev[lev][0]);
@@ -60,20 +60,20 @@ namespace amrex
       }
 
     //not safe but this is a private class hidden away.  shhh.
-    void setTags(const Array<IntVectSet>* a_vec_ivs_ptr)
+    void setTags(const Vector<IntVectSet>* a_vec_ivs_ptr)
       {
         m_vec_ivs_ptr = a_vec_ivs_ptr; 
       }
       
   private:
     
-    const Array<IntVectSet>* m_vec_ivs_ptr;
+    const Vector<IntVectSet>* m_vec_ivs_ptr;
 
   };
 
-  void MeshRefine(Array<BoxArray>           &   a_grids,
-                  const Array<IntVectSet>   &   a_tags,
-                  const Array<int>          &   a_refRat,
+  void MeshRefine(Vector<BoxArray>           &   a_grids,
+                  const Vector<IntVectSet>   &   a_tags,
+                  const Vector<int>          &   a_refRat,
                   const int                       &   a_maxLev,
                   const int                       &   a_blockingFactor,
                   const int                       &   a_properNestingRadius,
@@ -83,7 +83,7 @@ namespace amrex
   {
     RealBox prob_domain(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
 
-    Array<int> n_cell(SpaceDim);
+    Vector<int> n_cell(SpaceDim);
     IntVect domsize =  a_coarsestDomain.size();
     for(int idir = 0; idir < SpaceDim; idir++)
     {
@@ -108,7 +108,7 @@ namespace amrex
   }
   //-----------------------------------------------------------------------
   void 
-  getAllIrregEBLG(Array<EBLevelGrid>   & a_eblg,
+  getAllIrregEBLG(Vector<EBLevelGrid>   & a_eblg,
                   const GridParameters       & a_params)
   {
     BL_PROFILE("EBLevelDataOps::getAllIrregRefinedLayouts");
@@ -116,7 +116,7 @@ namespace amrex
 
 
     //make the tags by refining everywhere and getting the irregular cells
-    Array<IntVectSet> tags(a_params.numLevels);
+    Vector<IntVectSet> tags(a_params.numLevels);
     Box domlev = a_params.coarsestDomain;
     for(int ilev = 0; ilev < a_params.numLevels; ilev++)
     {
@@ -140,7 +140,7 @@ namespace amrex
       }
     }
 
-    Array<BoxArray> grids;
+    Vector<BoxArray> grids;
 
     MeshRefine(grids, tags, a_params.refRatio, a_params.maxLevel, 
                a_params.blockFactor, a_params.bufferSize, a_params.maxGridSize, 
@@ -232,7 +232,7 @@ namespace amrex
 
     pp.get("which_geom"    , a_params.whichGeom            );
 
-    Array<int> nCellsArray(SpaceDim);
+    Vector<int> nCellsArray(SpaceDim);
     pp.getarr("n_cell",nCellsArray,0,SpaceDim);
 
     for (int idir = 0; idir < SpaceDim; idir++)

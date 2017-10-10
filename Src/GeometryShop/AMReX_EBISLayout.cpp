@@ -204,7 +204,7 @@ namespace amrex
     return coarFace;
   }
   /****************/
-  Array<VolIndex>
+  Vector<VolIndex>
   EBISLayoutImplem::refine(const VolIndex  & a_vof,
                            const int       & a_ratio,
                            const MFIter    & a_mfi) const
@@ -215,19 +215,19 @@ namespace amrex
       
     //for ratio of 2, just use ebisbox
     EBISBox ebisBoxCoar = (*this)[a_mfi];
-    Array<VolIndex> fineVoFs = ebisBoxCoar.refine(a_vof);
+    Vector<VolIndex> fineVoFs = ebisBoxCoar.refine(a_vof);
     //for ratio > 2, chase its tail
     int ifinelev = 0;
     for (int irat = 4; irat <= a_ratio; irat *= 2)
     {
-      Array<VolIndex> coarVoFs = fineVoFs;
+      Vector<VolIndex> coarVoFs = fineVoFs;
       
       const EBISLayout& ebisl = m_fineLevels[ifinelev];
       EBISBox ebisBox = ebisl[a_mfi];
       fineVoFs.resize(0);
       for (int ivof = 0; ivof < coarVoFs.size(); ivof++)
       {
-        Array<VolIndex> newvofs = ebisBox.refine(coarVoFs[ivof]);
+        Vector<VolIndex> newvofs = ebisBox.refine(coarVoFs[ivof]);
         fineVoFs.insert(fineVoFs.end(), newvofs.begin(), newvofs.end());
       }
       ifinelev++;
@@ -236,7 +236,7 @@ namespace amrex
       
   }
   /****************/
-  Array<FaceIndex>
+  Vector<FaceIndex>
   EBISLayoutImplem::refine(const FaceIndex & a_face,
                            const int       & a_ratio,
                            const MFIter    & a_mfi) const
@@ -248,19 +248,19 @@ namespace amrex
     //for ratio of 2, just use ebisbox
     EBISBox ebisBoxCoar2 =         (*this)[a_mfi];
     EBISBox ebisBoxFine2 = m_fineLevels[0][a_mfi];
-    Array<FaceIndex> fineFaces = ebisBoxCoar2.refine(a_face,ebisBoxFine2);
+    Vector<FaceIndex> fineFaces = ebisBoxCoar2.refine(a_face,ebisBoxFine2);
     //for ratio > 2, chase its tail
     int ifinelev = 0;
     for (int irat = 4; irat <= a_ratio; irat *= 2)
     {
-      Array<FaceIndex> coarFaces = fineFaces;
+      Vector<FaceIndex> coarFaces = fineFaces;
       
       EBISBox ebisBoxCoar = m_fineLevels[ifinelev    ][a_mfi];
       EBISBox ebisBoxFine = m_fineLevels[ifinelev + 1][a_mfi];
       fineFaces.resize(0);
       for (int iface = 0; iface < coarFaces.size(); iface++)
       {
-        Array<FaceIndex> newfaces = ebisBoxCoar.refine(coarFaces[iface],ebisBoxFine);
+        Vector<FaceIndex> newfaces = ebisBoxCoar.refine(coarFaces[iface],ebisBoxFine);
         fineFaces.insert(fineFaces.end(), newfaces.begin(), newfaces.end());
       }
       ifinelev++;

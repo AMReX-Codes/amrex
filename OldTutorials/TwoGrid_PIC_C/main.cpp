@@ -15,14 +15,14 @@
 using namespace amrex;
 
 // declare routines below
-void solve_for_accel(const Array<MultiFab*>& rhs,
-		     const Array<MultiFab*>& phi,
-		     const Array<MultiFab*>& grad_phi, 
-                     const Array<Geometry>& geom, int base_level, int finest_level, Real offset);
+void solve_for_accel(const Vector<MultiFab*>& rhs,
+		     const Vector<MultiFab*>& phi,
+		     const Vector<MultiFab*>& grad_phi, 
+                     const Vector<Geometry>& geom, int base_level, int finest_level, Real offset);
 
-Real                getEfficiency  (const DistributionMapping& dm, const Array<long>& cost);
-DistributionMapping getCostCountDM (const Array<long>& cost, const BoxArray& ba);
-void                splitBoxes     (BoxArray& ba, Array<long>& newcost, const Array<long>& cost_in, int max_grid_size);
+Real                getEfficiency  (const DistributionMapping& dm, const Vector<long>& cost);
+DistributionMapping getCostCountDM (const Vector<long>& cost, const BoxArray& ba);
+void                splitBoxes     (BoxArray& ba, Vector<long>& newcost, const Vector<long>& cost_in, int max_grid_size);
 
 int main(int argc, char* argv[])
 {
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
     const Box domain(domain_lo, domain_hi);
 
     // Define the refinement ratio
-    Array<int> rr(nlevs-1);
+    Vector<int> rr(nlevs-1);
     for (int lev = 1; lev < nlevs; lev++)
         rr[lev-1] = 2;
 
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
     for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1; 
 
     // This defines a Geometry object which is useful for writing the plotfiles  
-    Array<Geometry> geom(nlevs);
+    Vector<Geometry> geom(nlevs);
     geom[0].define(domain, &real_box, coord, is_per);
     for (int lev = 1; lev < nlevs; lev++)
     {
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 
     // Build an array of BoxArrays,
     // then initialize the level 0 BoxArray with the domain.
-    Array<BoxArray> ba(nlevs);
+    Vector<BoxArray> ba(nlevs);
     ba[0].define(domain);
 
     // Now we make the refined level be the center eighth of the domain
@@ -131,10 +131,10 @@ int main(int argc, char* argv[])
     // ********************************************************************************************
 
     // build a multifab for the rhs on the box array with 
-    Array<std::unique_ptr<MultiFab> > rhs(nlevs); 
-    Array<std::unique_ptr<MultiFab> > phi(nlevs);
-    Array<std::unique_ptr<MultiFab> > grad_phi(nlevs);
-    Array<DistributionMapping> dmap(nlevs);
+    Vector<std::unique_ptr<MultiFab> > rhs(nlevs); 
+    Vector<std::unique_ptr<MultiFab> > phi(nlevs);
+    Vector<std::unique_ptr<MultiFab> > grad_phi(nlevs);
+    Vector<DistributionMapping> dmap(nlevs);
 
     for (int lev = 0; lev < nlevs; lev++)
     {
@@ -190,13 +190,13 @@ int main(int argc, char* argv[])
 	const Real eff_target = 0.8;
 	const int lev = 0;
 
-	Array<long> new_particle_cost = MyPC->NumberOfParticlesInGrid(lev);
+	Vector<long> new_particle_cost = MyPC->NumberOfParticlesInGrid(lev);
 	Real neweff = getEfficiency(dmap[0], new_particle_cost);
 
 	if (neweff < eff_target) 
 	{
 	    Real oldeff;
-	    Array<long> old_particle_cost;
+	    Vector<long> old_particle_cost;
 	    int heavy_grid_size = max_grid_size;  // for the most heavy boxes
 
 	    do {
@@ -285,7 +285,7 @@ int main(int argc, char* argv[])
     int base_level   = 0;
     int finest_level = nlevs-1;
 
-    Array<std::unique_ptr<MultiFab> > PartMF(nlevs);
+    Vector<std::unique_ptr<MultiFab> > PartMF(nlevs);
     PartMF[0].reset(new MultiFab(ba[0],dmap[0],1,1));
     PartMF[0]->setVal(0.0);
 
@@ -308,9 +308,9 @@ int main(int argc, char* argv[])
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at level 0 ... " << std::endl;
-    solve_for_accel(amrex::GetArrOfPtrs(rhs),
-		    amrex::GetArrOfPtrs(phi),
-		    amrex::GetArrOfPtrs(grad_phi),
+    solve_for_accel(amrex::GetVecOfPtrs(rhs),
+		    amrex::GetVecOfPtrs(phi),
+		    amrex::GetVecOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
 
     // Fill the particle data with the acceleration at the particle location
@@ -334,9 +334,9 @@ int main(int argc, char* argv[])
     // Use multigrid to solve Lap(phi) = rhs with boundary conditions from level 0
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solving for phi at level 1 ... " << std::endl;
-    solve_for_accel(amrex::GetArrOfPtrs(rhs),
-		    amrex::GetArrOfPtrs(phi),
-		    amrex::GetArrOfPtrs(grad_phi),
+    solve_for_accel(amrex::GetVecOfPtrs(rhs),
+		    amrex::GetVecOfPtrs(phi),
+		    amrex::GetVecOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
     if (ParallelDescriptor::IOProcessor())
        std::cout << "Solved  for phi at level 1 ... " << std::endl;
@@ -372,9 +372,9 @@ int main(int argc, char* argv[])
     MyPC->AssignDensity(0, false, rhs, base_level,1,finest_level);
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
-    solve_for_accel(amrex::GetArrOfPtrs(rhs),
-		    amrex::GetArrOfPtrs(phi),
-		    amrex::GetArrOfPtrs(grad_phi),
+    solve_for_accel(amrex::GetVecOfPtrs(rhs),
+		    amrex::GetVecOfPtrs(phi),
+		    amrex::GetVecOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
 
     // Fill the particle data with the acceleration at the particle location
@@ -392,9 +392,9 @@ int main(int argc, char* argv[])
 }
 
 Real
-getEfficiency(const DistributionMapping& dm, const Array<long>& cost)
+getEfficiency(const DistributionMapping& dm, const Vector<long>& cost)
 {
-    Array<long> cpr(ParallelDescriptor::NProcs(), 0);
+    Vector<long> cpr(ParallelDescriptor::NProcs(), 0);
     Real ctot=0;
     for (int i=0, N=cost.size(); i<N; i++) {
         ctot += cost[i];
@@ -406,7 +406,7 @@ getEfficiency(const DistributionMapping& dm, const Array<long>& cost)
 }
 
 DistributionMapping
-getCostCountDM (const Array<long>& cost, const BoxArray& ba)
+getCostCountDM (const Vector<long>& cost, const BoxArray& ba)
 {
     DistributionMapping res;
     int nprocs = ParallelDescriptor::NProcs();

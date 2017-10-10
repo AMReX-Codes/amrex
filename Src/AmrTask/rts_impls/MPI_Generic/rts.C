@@ -388,7 +388,8 @@ namespace amrex{
 				    t->GetInputs().push_back(msg->GetSource(), msg, msg->GetTag());
 				}
 				else{ //Recipient is either on a remote node or has not been created
-				    int destRank= graph->FindProcessAssociation(name);
+				    int destRank= msg->GetDestRank(); 
+				    if(destRank==-1) destRank= graph->FindProcessAssociation(name); //the runtime handles the mapping
 				    if(destRank== MyProc()) dom[d]._MsgQueue.push(msg);  //keep in local message queue since recipient task has not been created
 				    else {//remote node
 					MPI_Request* req= new MPI_Request;

@@ -11,7 +11,7 @@ namespace amrex
 EBFArrayBoxFactory::EBFArrayBoxFactory (const Geometry& a_geom,
                                         const BoxArray& a_ba,
                                         const DistributionMapping& a_dm,
-                                        const Array<int>& a_ngrow, EBSupport a_support)
+                                        const Vector<int>& a_ngrow, EBSupport a_support)
     : m_support(a_support),
       m_geom(a_geom),
       m_ebdc(std::make_shared<EBDataCollection>(a_geom,a_ba,a_dm,a_ngrow,a_support))

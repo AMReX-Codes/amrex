@@ -7,29 +7,27 @@
 
 using namespace amrex;
 
+typedef void (*funcptr)();
 class MyAction :public Action{
     public:
 	static MultiFab *old_phi, *new_phi;
 	static std::array<MultiFab, AMREX_SPACEDIM>* flux;
 	static Real dt, *dx;
 	void Compute(){
-#if 0
-	    Box& bx = validbox();
-	    int idx = localFabIdx();
+	    Box bx = validbox();
 	    compute_flux(BL_TO_FORTRAN_BOX(bx),
-		    BL_TO_FORTRAN_ANYD((*old_phi)[idx]),
-		    BL_TO_FORTRAN_ANYD((*flux)[0][idx]),
-		    BL_TO_FORTRAN_ANYD((*flux)[1][idx]),
-		    BL_TO_FORTRAN_ANYD((*flux)[2][idx]),
+		    BL_TO_FORTRAN_ANYD(validFab()/*oldphi*/),
+		    BL_TO_FORTRAN_ANYD(validFab((*flux)[0])),
+		    BL_TO_FORTRAN_ANYD(validFab((*flux)[1])),
+		    BL_TO_FORTRAN_ANYD(validFab((*flux)[2])),
 		    dx);
 	    update_phi(BL_TO_FORTRAN_BOX(bx),
-		    BL_TO_FORTRAN_ANYD((*old_phi)[idx]),
-		    BL_TO_FORTRAN_ANYD((*new_phi)[idx]),
-		    BL_TO_FORTRAN_ANYD((*flux)[0][idx]),
-		    BL_TO_FORTRAN_ANYD((*flux)[1][idx]),
-		    BL_TO_FORTRAN_ANYD((*flux)[2][idx]),
+		    BL_TO_FORTRAN_ANYD(validFab()/*oldphi*/),
+		    BL_TO_FORTRAN_ANYD(validFab((*new_phi))),
+		    BL_TO_FORTRAN_ANYD(validFab((*flux)[0])),
+		    BL_TO_FORTRAN_ANYD(validFab((*flux)[1])),
+		    BL_TO_FORTRAN_ANYD(validFab((*flux)[2])),
 		    dx, dt);
-#endif
 	}
 };
 
@@ -57,14 +55,6 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     MyAction::dt= dt;
     MyAction::dx= dx;
 
-    //
-    // Note that this simple example is not optimized.
-    // The following two MFIter loops could be merged
-    // and we do not have to use flux MultiFab.
-    // 
-
-    AMFIter<MyAction> mfi(old_phi, nsteps);
+    AMFIter<MyAction> mfi(old_phi, nsteps, geom.periodicity());
     mfi.Iterate();
-
-
 }

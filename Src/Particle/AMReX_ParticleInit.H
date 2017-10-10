@@ -359,7 +359,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     // tmp_particles should mirror how m_particles is built.
     // At the end of this routine it'll be the new m_particles.
     //
-    Array<ParticleLevel> tmp_particles;
+    Vector<ParticleLevel> tmp_particles;
 
     tmp_particles.reserve(15);  // So we don't ever have to do any copying on a resize.
     tmp_particles.resize(finestLevel()+1);
@@ -383,7 +383,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     //
     // The same set but in ascending order.
     //
-    Array<int> rprocs(NReaders);
+    Vector<int> rprocs(NReaders);
 
     if (NReaders == NProcs)
     {
@@ -547,8 +547,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
     if (NP % (NPartPerRedist*NReaders)) how_many_redists++;
 
-    Array<float>  fxtra, fignore;
-    Array<double> dxtra, dignore;
+    Vector<float>  fxtra, fignore;
+    Vector<double> dxtra, dignore;
 
     if (extradata > 0)
     {
@@ -686,7 +686,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                 auto& tmp_aos = tmp_pmap[kv.first].GetArrayOfStructs()();
 
                 tmp_aos.insert(tmp_aos.end(), aos.begin(), aos.end());
-                Array<ParticleType>().swap(aos);
+                Vector<ParticleType>().swap(aos);
             }
 
             ParticleLevel().swap(pmap);
@@ -810,7 +810,7 @@ InitRandom (long                    icount,
         // very large numbers of particles.
         //
         //
-        Array<typename ParticleType::RealType> pos(icount*BL_SPACEDIM);
+        Vector<typename ParticleType::RealType> pos(icount*BL_SPACEDIM);
 
         if (ParallelDescriptor::IOProcessor())
         {

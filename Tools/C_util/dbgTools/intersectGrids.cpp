@@ -95,13 +95,13 @@ main (int   argc,
     if (iFile.isNull() && ParallelDescriptor::IOProcessor())
         amrex::Abort("You must specify `infile'");
 
-    Array<int> loDims(BL_SPACEDIM);
+    Vector<int> loDims(BL_SPACEDIM);
     if (pp.countval("lodims") != BL_SPACEDIM)
         amrex::Abort("You must specify BL_SPACEDIM `lodims'");
     for (int n = 0; n < BL_SPACEDIM; n++)
         pp.get("lodims", loDims[n], n);
 
-    Array<int> hiDims(BL_SPACEDIM);
+    Vector<int> hiDims(BL_SPACEDIM);
     if (pp.countval("hidims") != BL_SPACEDIM)
         amrex::Abort("You must specify BL_SPACEDIM `hidims'");
     for (int n = 0; n < BL_SPACEDIM; n++)
@@ -115,7 +115,7 @@ main (int   argc,
     if (nCrsRatio == 0)
         amrex::Abort("You must specify `refratio'");
 
-    Array<int> refRatio(nCrsRatio);
+    Vector<int> refRatio(nCrsRatio);
     for (int n = 0; n < nCrsRatio; n++)
         pp.get("refratio", refRatio[n], n);
 
@@ -149,7 +149,7 @@ main (int   argc,
     {
         is >> nGrds;
 
-        Array<Box> oBoxes(nGrds);
+        Vector<Box> oBoxes(nGrds);
 
         int nOBoxes = 0;
         Box inBox;

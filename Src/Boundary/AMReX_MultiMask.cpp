@@ -36,7 +36,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 #endif
     if (initval)
     {
-	Array<IntVect> pshifts(26);
+	Vector<IntVect> pshifts(26);
 	std::vector< std::pair<int,Box> > isects;
 
 	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
@@ -54,7 +54,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 	    {
 		geom.periodicShift(geom.Domain(), face_box, pshifts);
 		
-		for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+		for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
 		     it != End;
 		     ++it)
 		{
@@ -80,7 +80,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 		// Handle special cases if periodic: "face_box" hasn't changed;
 		// reuse pshifts from above.
 		//
-		for (Array<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
+		for (Vector<IntVect>::const_iterator it = pshifts.begin(), End = pshifts.end();
 		     it != End;
 		     ++it)
 		{

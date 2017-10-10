@@ -201,11 +201,11 @@ protected:
     //
     // Array (on level) of "a" coefficients
     //
-    Array< MultiFab* > acoefs;
+    Vector< MultiFab* > acoefs;
     //
     // Array (on level) of Tuple (on dimension) of "b" coefficients
     //
-    Array< Tuple< MultiFab*, BL_SPACEDIM> > bcoefs;
+    Vector< Tuple< MultiFab*, BL_SPACEDIM> > bcoefs;
     //
     // Scalar "alpha" coefficient
     //
@@ -219,11 +219,11 @@ private:
     //
     // Flag, can a coeffs be trusted at a level.
     //
-    Array<int> a_valid;
+    Vector<int> a_valid;
     //
     // Flag, can b coeffs be trusted at a level.
     //
-    Array<int> b_valid;
+    Vector<int> b_valid;
     //
     // Default value for a (MultiFab) coeficient.
     //

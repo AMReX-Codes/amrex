@@ -99,7 +99,7 @@ public:
 			  bool          bReadSpecial = false);
 
     //! Old checkpoint may have different number of states than the new source code.
-    virtual void set_state_in_checkpoint (Array<int>& state_in_checkpoint);
+    virtual void set_state_in_checkpoint (Vector<int>& state_in_checkpoint);
 
     //! Is name a state variable?
     static bool isStateVariable (const std::string& name,
@@ -113,9 +113,9 @@ public:
     */
     virtual void computeInitialDt (int                   finest_level,
                                    int                   sub_cycle,
-                                   Array<int>&           n_cycle,
-                                   const Array<IntVect>& ref_ratio,
-                                   Array<Real>&          dt_level,
+                                   Vector<int>&           n_cycle,
+                                   const Vector<IntVect>& ref_ratio,
+                                   Vector<Real>&          dt_level,
                                    Real                  stop_time) = 0;
     /**
     * \brief Compute the next time step.  This is a pure virtual function
@@ -123,10 +123,10 @@ public:
     */
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
-                               Array<int>&           n_cycle,
-                               const Array<IntVect>& ref_ratio,
-                               Array<Real>&          dt_min,
-                               Array<Real>&          dt_level,
+                               Vector<int>&           n_cycle,
+                               const Vector<IntVect>& ref_ratio,
+                               Vector<Real>&          dt_min,
+                               Vector<Real>&          dt_level,
                                Real                  stop_time,
                                int                   post_regrid_flag) = 0;
     /**
@@ -300,7 +300,7 @@ public:
     void UpdateDistributionMaps ( DistributionMapping& dmap );
 
     //! Boundary condition access function.
-    Array<int> getBCArray (int State_Type,
+    Vector<int> getBCArray (int State_Type,
 			   int gridno,
 			   int scomp,
 			   int ncomp);
@@ -319,7 +319,7 @@ public:
     * the list of tagged points.  Default implementation does nothing.
     */
     virtual void manual_tags_placement (TagBoxArray&    tags,
-                                        const Array<IntVect>& bf_lev);
+                                        const Vector<IntVect>& bf_lev);
     //! Modify list of variables to be plotted
     virtual void setPlotVariables ();
     //! Modify list of variables to be plotted
@@ -408,7 +408,7 @@ protected:
     IntVect               fine_ratio;   // Refinement ratio to finer level.
     static DeriveList     derive_lst;   // List of derived quantities.
     static DescriptorList desc_lst;     // List of state variables.
-    Array<StateData>      state;        // Array of state data.
+    Vector<StateData>      state;        // Array of state data.
 
     BoxArray              m_AreaNotToTag; //Area which shouldn't be tagged on this level.
     Box                   m_AreaToTag;    //Area which is allowed to be tagged on this level.
@@ -526,7 +526,7 @@ private:
     AmrLevel&                  m_amrlevel;
     MultiFab&                  m_leveldata;
     MultiFabCopyDescriptor     m_mfcd;
-    Array< Array<MultiFabId> > m_mfid;     // [level][oldnew]
+    Vector< Vector<MultiFabId> > m_mfid;     // [level][oldnew]
     Interpolater*              m_map;
     std::map<int,Box>          m_ba;
     Real                       m_time;
@@ -536,9 +536,9 @@ private:
     int                        m_ncomp;
     bool                       m_FixUpCorners;
 
-    std::map< int,Array< Array<Box> > >                m_fbox; // [grid][level][validregion]
-    std::map< int,Array< Array<Box> > >                m_cbox; // [grid][level][fillablesubbox]
-    std::map< int,Array< Array< Array<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
+    std::map< int,Vector< Vector<Box> > >                m_fbox; // [grid][level][validregion]
+    std::map< int,Vector< Vector<Box> > >                m_cbox; // [grid][level][fillablesubbox]
+    std::map< int,Vector< Vector< Vector<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
 };
 
 }

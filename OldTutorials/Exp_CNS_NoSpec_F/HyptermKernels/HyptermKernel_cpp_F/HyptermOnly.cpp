@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     mfQ.setVal(0.0);
     mfFlux.setVal(0.2);
 
-    Array<Real> probLo(BL_SPACEDIM), probHi(BL_SPACEDIM);
+    Vector<Real> probLo(BL_SPACEDIM), probHi(BL_SPACEDIM);
     for(int i(0); i < BL_SPACEDIM; ++i) {
       probLo[i] = -2.3;
       probHi[i] =  2.3;

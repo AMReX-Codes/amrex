@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
         myPC.Redistribute();
     }
 
-    myPC.writeParticles(max_step);
+    if (write_particles) myPC.writeParticles(max_step);
     
     amrex::Finalize();
 }
