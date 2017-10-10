@@ -2,6 +2,8 @@
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <AMReX_MLABecLap_F.H>
+
 namespace amrex {
 
 MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
@@ -131,7 +133,36 @@ MLABecLaplacian::prepareForSolve ()
 void
 MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in)
 {
-    
+    const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
+    AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
+                 const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
+                 const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(out, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        const FArrayBox& xfab = in[mfi];
+        FArrayBox& yfab = out[mfi];
+        const FArrayBox& afab = acoef[mfi];
+        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
+                     const FArrayBox& byfab = bycoef[mfi];,
+                     const FArrayBox& bzfab = bzcoef[mfi];);
+
+        amrex_mlabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
+                              BL_TO_FORTRAN_ANYD(yfab),
+                              BL_TO_FORTRAN_ANYD(xfab),
+                              BL_TO_FORTRAN_ANYD(afab),
+                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
+                                           BL_TO_FORTRAN_ANYD(byfab),
+                                           BL_TO_FORTRAN_ANYD(bzfab)),
+                              dxinv, m_a_scalar, m_b_scalar);
+
+    }
 }
 
 }
