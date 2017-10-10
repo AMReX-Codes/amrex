@@ -120,7 +120,21 @@ MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mo
 void
 MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode)
 {
-    
+    const bool cross = true;
+    in.FillBoundary(0, 1, m_geom[amrlev][mglev].periodicity(), cross);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(in, MFItInfo().EnableTiling().SetDynamic(true));
+         mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.tilebox();
+        const Box& vbx = mfi.validbox();
+
+        
+    }
+
 }
 
 }
