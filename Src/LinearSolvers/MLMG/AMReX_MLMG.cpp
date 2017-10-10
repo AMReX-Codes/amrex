@@ -14,20 +14,22 @@ MLMG::~MLMG ()
 {}
 
 void
-MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
+MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_real, Real a_tol_abs)
 {
-    AMREX_ASSERT(sol[0]->nGrow() > 0);
+    AMREX_ASSERT(a_sol[0]->nGrow() > 0);
     AMREX_ASSERT(namrlevs <= sol.size());
     AMREX_ASSERT(namrlevs <= a_rhs.size());
 
     linop.prepareForSolve();
 
-    rhs_o.resize(namrlevs);
+    sol = a_sol;
+
+    rhs.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-        rhs_o[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), 1, 0);
-        MultiFab::Copy(rhs_o[alev], *a_rhs[alev], 0, 0, 1, 0);        
+        rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), 1, 0);
+        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, 1, 0);        
     }
 
     const auto& amrrr = linop.AMRRefRatio();
@@ -35,15 +37,24 @@ MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
     for (int falev = finest_amr_lev; falev > 0; --falev)
     {
         amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
-        amrex::average_down(rhs_o[falev], rhs_o[falev-1], 0, 1, amrrr[falev-1]);
+        amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
     }
 
     const int nc = 1;
     int ng = 0;
-    linop.make(rhs_c, nc, ng);
     linop.make(res, nc, ng);
+    linop.make(rescor, nc, ng);
     ng = 1;
     linop.make(cor, nc, ng);
+
+    cor_hold.resize(namrlevs-1);
+    for (int alev = 1; alev < finest_amr_lev; ++alev)
+    {
+        cor_hold[alev].define(cor[alev][0].boxArray(),
+                              cor[alev][0].DistributionMap(),
+                              cor[alev][0].nComp(),
+                              cor[alev][0].nGrow());
+    }
 
     //
     // TODO: We need to fill the fine amr level ghost cells by interploating from the coarse
@@ -80,7 +91,7 @@ MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
     // TODO: need a multi-levle covergence test function
     // Example: ml_cc.f90
     // 
-    if (true) // replace with the covergence test
+    if (false) // replace with the covergence test
     {
         if (verbose >= 1) {
             amrex::Print() << "MLMG: No iterations needed\n";
@@ -88,9 +99,10 @@ MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
     }
     else
     {
-        for (int iter = 0; iter < max_iters; ++iter)
+//        for (int iter = 0; iter < max_iters; ++iter)
+        for (int iter = 0; iter < 10; ++iter)
         {
-            oneIter(sol);
+            oneIter();
 
             // test convergence
         }
@@ -98,58 +110,54 @@ MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
 }
 
 void
-MLMG::oneIter (const Vector<MultiFab*>& sol)
+MLMG::oneIter ()
 {
     // if converged?
     //    return
 
+    computeResidual(finest_amr_lev, 0);
+
     for (int alev = finest_amr_lev; alev > 0; --alev)
     {
-        computeResidual(alev);
-
         miniCycle(alev);
 
         MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
 
-        // This can be put in a function.
-        // compute residual on the coarse amrlevel
-        // compute current level residual (using correction)
-        // update crse residual with crse/fine residual and restriction of fine residual
+        computeResWithCrseSolFineCor(alev-1,alev);
 
         if (alev != finest_amr_lev) {
-//            MultiFab::Copy(cor_hold[alev], cor[alev][0], 0, 0, 1, 0); // save it for the up cycle
+            MultiFab::Copy(cor_hold[alev], cor[alev][0], 0, 0, 1, 1); // save it for the up cycle
         }
     }
 
     // coarest amr level
     {    
-        computeResidual(0);
-
         // enforce solvability if appropriate
 
         mgCycle ();
 
         MultiFab::Add(*sol[0], cor[0][0], 0, 0, 1, 0);
-        
-        // Add sol[0] += cor[0]
     }
 
     for (int alev = 1; alev <= finest_amr_lev; ++alev)
     {
-        // interpolate uu[alev] from uu[alev-1] && uu_hold[alev-1]
+        interpCorrection(alev);
 
-        // soln[alev] += uu
+        MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
 
-        // if (alev < finest_amr_lev) call plus_plus(uu_hold(n), uu(n), nghost(uu(n)))
+        if (alev != finest_amr_lev) {
+            MultiFab::Add(cor_hold[alev], cor[alev][0], 0, 0, 1, 1);
+        }
 
-        // This can be put in a function
-        // Interpolate uu[alev-1] to supply boundary conditions for new residual calculation
-        // compute defect: res = res - L(uu)
+        computeResWithCrseCorFineCor(alev-1, alev);
 
-        // uu = 0
         miniCycle (alev);
-     
-        // soln += uu
+
+        MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
+
+        if (alev != finest_amr_lev) {
+            MultiFab::Add(cor[alev][0], cor_hold[alev], 0, 0, 1, 1);            
+        }
     }
 
     for (int alev = finest_amr_lev; alev > 0; --alev)
@@ -157,23 +165,49 @@ MLMG::oneIter (const Vector<MultiFab*>& sol)
         // restrict sol[alev] to sol[alev-1]
     }
 
-    for (int alev = 1; alev <= finest_amr_lev; ++alev)
-    {
-        // Interpolate soln to supply boundary conditions 
-    }
+    // ...
 }
 
 void
-MLMG::computeResidual (int alev)
+MLMG::computeResidual (int alev, int mlev)
 {
+    MultiFab& x = *sol[alev];
+    const MultiFab& b = rhs[alev];
+    MultiFab& r = res[alev][mlev];
+    // xxxxx linop.residual(r, x, b);
+}
 
+void
+MLMG::computeResWithCrseSolFineCor (int calev, int falev)
+{
+    MultiFab& crse_sol = *sol[calev];
+    const MultiFab& crse_rhs = rhs[calev];
+    MultiFab& crse_res = res[calev][0];
+    MultiFab& fine_cor = cor[falev][0];
+    MultiFab& fine_res = res[falev][0];
+    MultiFab& fine_rescor = rescor[falev][0];
+
+    // compute crse and fine, and then construct crse/fine residual
+}
+
+void
+MLMG::computeResWithCrseCorFineCor (int calev, int falev)
+{
+    const MultiFab& crse_cor = cor[calev][0];
+    MultiFab& fine_cor = cor[falev][0];
+    MultiFab& fine_res = res[falev][0];
+    MultiFab& fine_rescor = rescor[falev][0];
+
+    // interp correction to supply boundary conditions
+    // compute residual
 }
 
 void
 MLMG::miniCycle (int alev)
 {
-    auto& xs = cor[alev];
-    const auto& bs = res[alev];
+    Vector<MultiFab>& xs = cor[alev];
+    Vector<MultiFab>& bs = res[alev];
+    Vector<MultiFab>& rs = rescor[alev];
 
     for (auto& x : xs) x.setVal(0.0);
 
@@ -189,8 +223,9 @@ MLMG::miniCycle (int alev)
 void
 MLMG::mgCycle ()
 {
-    auto& xs = cor[0];
-    const auto& bs = res[0];
+    Vector<MultiFab>& xs = cor[0];
+    Vector<MultiFab>& bs = res[0];
+    Vector<MultiFab>& rs = rescor[0];
 
     for (auto& x : xs) x.setVal(0.0);
 
@@ -201,6 +236,15 @@ MLMG::mgCycle ()
 
     // compute defect 
     
+}
+
+void
+MLMG::interpCorrection (int alev)
+{
+    const MultiFab& crse_cor = cor[alev-1][0];
+    MultiFab& fine_cor = cor[alev][0];
+    fine_cor.setVal(0.0);
+    // prolongation 
 }
 
 }
