@@ -65,16 +65,9 @@ MLABecLaplacian::averageDownCoeffs ()
     {
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
         auto& fine_b_coeffs = m_b_coeffs[amrlev];
-        auto& crse_a_coeffs = m_a_coeffs[amrlev-1][0];
-        auto& crse_b_coeffs = m_b_coeffs[amrlev-1][0];
-        auto& crse_geom     = m_geom    [amrlev-1][0];
 
         averageDownCoeffsSameAmrLevel(fine_a_coeffs, fine_b_coeffs);
-        
-        crse_a_coeffs.ParallelCopy(fine_a_coeffs.back());
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            crse_b_coeffs[idim].ParallelCopy(fine_b_coeffs.back()[idim], crse_geom.periodicity());
-        }
+        averageDownCoeffsToCoarseAmrLevel(amrlev);
     }
 
     averageDownCoeffsSameAmrLevel(m_a_coeffs[0], m_b_coeffs[0]);
@@ -97,6 +90,35 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                              &(b[mglev][2]))};
         IntVect ratio {AMREX_D_DECL(mg_coarsen_ratio, mg_coarsen_ratio, mg_coarsen_ratio)};
         amrex::average_down_faces(fine, crse, ratio, 0);
+    }
+}
+
+void
+MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
+{
+    auto& fine_a_coeffs = m_a_coeffs[flev  ].back();
+    auto& fine_b_coeffs = m_b_coeffs[flev  ].back();
+    auto& crse_a_coeffs = m_a_coeffs[flev-1].front();
+    auto& crse_b_coeffs = m_b_coeffs[flev-1].front();
+    auto& crse_geom     = m_geom    [flev-1][0];
+
+    amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
+     
+    std::array<MultiFab,AMREX_SPACEDIM> bb;
+    Vector<MultiFab*> crse(AMREX_SPACEDIM);
+    Vector<MultiFab const*> fine(AMREX_SPACEDIM);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        BoxArray ba = fine_b_coeffs[idim].boxArray();
+        ba.coarsen(mg_coarsen_ratio);
+        bb[idim].define(ba, fine_b_coeffs[idim].DistributionMap(), 1, 0);
+        crse[idim] = &bb[idim];
+        fine[idim] = &fine_b_coeffs[idim];
+    }
+    IntVect ratio {AMREX_D_DECL(mg_coarsen_ratio, mg_coarsen_ratio, mg_coarsen_ratio)};
+    amrex::average_down_faces(fine, crse, ratio, 0);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        crse_b_coeffs[idim].ParallelCopy(bb[idim], crse_geom.periodicity());
     }
 }
 

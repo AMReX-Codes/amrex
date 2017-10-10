@@ -41,9 +41,11 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         {
             if (!dom.coarsenable(rr)) amrex::Abort("MLLinOp: Uncoarsenable domain");
 
+            const Box& cdom = amrex::coarsen(dom,rr);
+            if (cdom == a_geom[amrlev-1].Domain()) break;
+
             ++(m_num_mg_levels[amrlev]);
 
-            const Box& cdom = amrex::coarsen(dom,rr);
             m_geom[amrlev].emplace_back(cdom);
 
             m_grids[amrlev].push_back(a_grids[amrlev]);
@@ -52,7 +54,6 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
             m_dmap[amrlev].push_back(a_dmap[amrlev]);
 
-            if (cdom == a_geom[amrlev-1].Domain()) break;
             rr *= mg_coarsen_ratio;
         }
 
@@ -84,5 +85,20 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
 MLLinOp::~MLLinOp ()
 {}
+
+void
+MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
+{
+    mf.clear();
+    mf.resize(m_num_amr_levels);
+    for (int alev = 0; alev < m_num_amr_levels; ++alev)
+    {
+        mf[alev].resize(m_num_mg_levels[alev]);
+        for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev)
+        {
+            mf[alev][mlev].define(m_grids[alev][mlev], m_dmap[alev][mlev], nc, ng);
+        }
+    }
+}
 
 }
