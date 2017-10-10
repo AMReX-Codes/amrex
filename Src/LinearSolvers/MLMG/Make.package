@@ -2,5 +2,8 @@
 CEXE_headers += AMReX_MLMG.H   AMReX_MLLinOp.H   AMReX_MLABecLaplacian.H
 CEXE_sources += AMReX_MLMG.cpp AMReX_MLLinOp.cpp AMReX_MLABecLaplacian.cpp
 
+CEXE_headers += AMReX_MLABecLap_F.H
+F90EXE_sources += AMReX_MLABecLap_$(DIM)d.F90
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
