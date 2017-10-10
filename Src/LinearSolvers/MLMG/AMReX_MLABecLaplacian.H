@@ -45,6 +45,7 @@ private:
 
     static void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                                Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b);
+    void averageDownCoeffsToCoarseAmrLevel (int flev);
 };
 
 }

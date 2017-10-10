@@ -23,24 +23,27 @@ MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
 
     linop.prepareForSolve();
 
-    rhs.resize(namrlevs);
-    res.resize(namrlevs);
+    rhs_o.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-        const auto& ba = a_rhs[alev]->boxArray();
-        const auto& dm = a_rhs[alev]->DistributionMap();
-        rhs[alev].define(ba, dm, 1, 0);
-        res[alev].define(ba, dm, 1, 0);
-        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, 1, 0);
+        rhs_o[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), 1, 0);
+        MultiFab::Copy(rhs_o[alev], *a_rhs[alev], 0, 0, 1, 0);        
     }
-    
+
     const auto& amrrr = linop.AMRRefRatio();
 
     for (int falev = finest_amr_lev; falev > 0; --falev)
     {
         amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
-        amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
+        amrex::average_down(rhs_o[falev], rhs_o[falev-1], 0, 1, amrrr[falev-1]);
     }
+
+    const int nc = 1;
+    int ng = 0;
+    linop.make(rhs_c, nc, ng);
+    linop.make(res, nc, ng);
+    ng = 1;
+    linop.make(cor, nc, ng);
 
     //
     // TODO: We need to fill the fine amr level ghost cells by interploating from the coarse
@@ -87,7 +90,7 @@ MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
     {
         for (int iter = 0; iter < max_iters; ++iter)
         {
-            oneIter();
+            oneIter(sol);
 
             // test convergence
         }
@@ -95,37 +98,38 @@ MLMG::solve (const Vector<MultiFab*>& sol, const Vector<MultiFab const*>& a_rhs,
 }
 
 void
-MLMG::oneIter ()
+MLMG::oneIter (const Vector<MultiFab*>& sol)
 {
     // if converged?
     //    return
 
-    // uu: correction
-
-
     for (int alev = finest_amr_lev; alev > 0; --alev)
     {
-        // Update uu[alev] with res[alev] as rhs
-        // Example: mg.f90
-        // uu = 0
-        miniCycle ();
+        computeResidual(alev);
 
-        // Add sol[n] += cor[n]
+        miniCycle(alev);
+
+        MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
 
         // This can be put in a function.
         // compute residual on the coarse amrlevel
         // compute current level residual (using correction)
         // update crse residual with crse/fine residual and restriction of fine residual
 
-        // uu_hold = uu // save it for the up cycle
-        // zero uu[alev] ???  don't think this is needed because of interpolation going up.
+        if (alev != finest_amr_lev) {
+//            MultiFab::Copy(cor_hold[alev], cor[alev][0], 0, 0, 1, 0); // save it for the up cycle
+        }
     }
 
     // coarest amr level
     {    
+        computeResidual(0);
+
         // enforce solvability if appropriate
-        // Update uu[0] with res[0] as rhs
-        mgCycle (); // Example: mg.f90
+
+        mgCycle ();
+
+        MultiFab::Add(*sol[0], cor[0][0], 0, 0, 1, 0);
         
         // Add sol[0] += cor[0]
     }
@@ -143,7 +147,7 @@ MLMG::oneIter ()
         // compute defect: res = res - L(uu)
 
         // uu = 0
-        minicycle ();
+        miniCycle (alev);
      
         // soln += uu
     }
@@ -160,13 +164,43 @@ MLMG::oneIter ()
 }
 
 void
-MLMG::miniCycle ()
+MLMG::computeResidual (int alev)
 {
+
+}
+
+void
+MLMG::miniCycle (int alev)
+{
+    auto& xs = cor[alev];
+    const auto& bs = res[alev];
+
+    for (auto& x : xs) x.setVal(0.0);
+
+    for (int i = 0; i < nu1; ++i) {
+        int mglev = 0;
+        // linop.smooth(alev, mglev, xs[mglev], bs[mglev]);
+    }
+
+    // for ref ratio of 4 ...
+    
 }
 
 void
 MLMG::mgCycle ()
 {
+    auto& xs = cor[0];
+    const auto& bs = res[0];
+
+    for (auto& x : xs) x.setVal(0.0);
+
+    for (int i = 0; i < nu1; ++i) {
+        int mglev = 0;
+        // linop.smooth(alev, mglev, xs[mglev], bs[mglev]);
+    }
+
+    // compute defect 
+    
 }
 
 }
