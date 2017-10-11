@@ -189,7 +189,13 @@ MLLinOp::updateBC (int amrlev, const MultiFab& crse_bcdata)
     BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
                   AMREX_D_DECL(Outflow,Outflow,Outflow)};
 
-    amrex::Warning("MLLinOp::updateBC() not implemented");
+    static bool first = true;
+    if (first) {
+        if (ParallelDescriptor::IOProcessor()) {
+            amrex::Warning("MLLinOp::updateBC() not implemented");
+        }
+        first = false;
+    }
 }
 
 void
@@ -278,6 +284,13 @@ MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMo
         applyBC(amrlev, mglev, sol, bc_mode);
         Fsmooth(amrlev, mglev, sol, rhs, redblack);
     }
+}
+
+void
+MLLinOp::reflux (int crse_amrlev, MultiFab& res,
+                 const MultiFab& crse_sol, const MultiFab& fine_sol) const
+{
+
 }
 
 }

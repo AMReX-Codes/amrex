@@ -179,7 +179,7 @@ MLMG::computeResidual (int alev, int mlev)
     if (alev > 0) {
         linop.updateBC(alev, *sol[alev-1]);
     }
-    linop.residual(alev, mlev, r, x, b, MLLinOp::BCMode::Inhomogeneous);
+    linop.residual(alev, mlev, r, x, b, BCMode::Inhomogeneous);
 }
 
 void
@@ -188,17 +188,27 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     MultiFab& crse_sol = *sol[calev];
     const MultiFab& crse_rhs = rhs[calev];
     MultiFab& crse_res = res[calev][0];
+
+    MultiFab& fine_sol = *sol[falev];
     MultiFab& fine_cor = cor[falev][0];
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
+    
+    // update bc???
+    linop.residual(calev, 0, crse_res, crse_sol, crse_rhs, BCMode::Inhomogeneous);
 
-    // compute crse and fine, and then construct crse/fine residual
+    linop.residual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
+    MultiFab::Copy(fine_res, fine_rescor, 0, 0, 1, 0);
+
+    linop.reflux(calev, crse_res, crse_sol, fine_sol);
 }
 
 void
 MLMG::computeResWithCrseCorFineCor (int calev, int falev)
 {
+//    const int calev = falev - 1;
     const MultiFab& crse_cor = cor[calev][0];
+
     MultiFab& fine_cor = cor[falev][0];
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
@@ -218,7 +228,7 @@ MLMG::miniCycle (int alev)
 
     for (int i = 0; i < nu1; ++i) {
         int mglev = 0;
-        linop.smooth(alev, mglev, xs[mglev], bs[mglev], MLLinOp::BCMode::Homogeneous);
+        linop.smooth(alev, mglev, xs[mglev], bs[mglev], BCMode::Homogeneous);
     }
 
     // for ref ratio of 4 ...
