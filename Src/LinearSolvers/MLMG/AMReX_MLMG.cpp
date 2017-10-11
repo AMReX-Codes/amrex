@@ -1,6 +1,7 @@
 
 #include <AMReX_MLMG.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_VisMF.H>
 
 namespace amrex {
 
@@ -174,7 +175,13 @@ MLMG::computeResidual (int alev, int mlev)
     MultiFab& x = *sol[alev];
     const MultiFab& b = rhs[alev];
     MultiFab& r = res[alev][mlev];
+
+    if (alev > 0) {
+        linop.updateBC(alev, *sol[alev-1]);
+    }
     linop.residual(alev, mlev, r, x, b, MLLinOp::BCMode::Inhomogeneous);
+    VisMF::Write(r, "res");
+    amrex::Abort("xxxxx");
 }
 
 void

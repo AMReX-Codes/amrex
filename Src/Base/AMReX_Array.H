@@ -3,7 +3,6 @@
 #define BL_ARRAY_H
 
 #include <array>
-#include <AMReX_SPACE.H>
 #include <AMReX_Vector.H>
 
 namespace amrex {
@@ -44,6 +43,9 @@ namespace amrex
     }
 }
 
+#ifndef FORTRAN_BOXLIB
+
+#include <AMReX_SPACE.H>
 
 namespace amrex
 {
@@ -59,5 +61,7 @@ namespace amrex
         return {AMREX_D_DECL(&a[0], &a[1], &a[2])};
     }
 }
+
+#endif
 
 #endif /*BL_ARRAY_H*/

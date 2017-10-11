@@ -33,7 +33,6 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     }
 
     MLABecLaplacian mlabec(geom, grids, dmap);
-    // set bc ???
     mlabec.setScalars(prob::a, prob::b);
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
@@ -50,6 +49,12 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
                                                         &bcoefs[2])},
                                           beta[ilev], geom[ilev]);
         mlabec.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoefs));
+
+        if (ilev == 0) {
+            mlabec.setBC(0, psoln[0]);
+        } else {
+            mlabec.setBC(ilev, psoln[ilev], psoln[ilev-1]);            
+        }
     }
     
     MLMG mlmg(mlabec);
