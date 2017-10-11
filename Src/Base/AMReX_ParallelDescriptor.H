@@ -27,7 +27,7 @@
 #include <AMReX_Lazy.H>
 #endif
 
-#ifdef PMI
+#ifdef AMREX_PMI
 #include <pmi.h>
 #endif
 
@@ -853,7 +853,7 @@ namespace ParallelDescriptor
 
     // PMI = Process Management Interface, available on Crays. Provides API to
     // query topology of the job.
-#ifdef PMI
+#ifdef AMREX_PMI
     void PMI_Initialize();
     void PMI_PrintMeshcoords(const pmi_mesh_coord_t *pmi_mesh_coord);
 #endif

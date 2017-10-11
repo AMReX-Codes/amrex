@@ -20,7 +20,7 @@
 #include <AMReX_ccse-mpi.H>
 #endif
 
-#ifdef PMI
+#ifdef AMREX_PMI
 #include <pmi.h>
 #include <unordered_set>
 #endif
@@ -176,7 +176,7 @@ namespace ParallelDescriptor
     typedef std::list<ParallelDescriptor::PTR_TO_SIGNAL_HANDLER> SH_LIST;
     SH_LIST The_Signal_Handler_List;
 
-#ifdef PMI
+#ifdef AMREX_PMI
     void PMI_Initialize()
     {
       int pmi_nid;

@@ -91,7 +91,7 @@ else
 endif
 
 ifeq ($(USE_PMI), TRUE)
-  DEFINES += -DPMI
+  DEFINES += -DAMREX_PMI
 endif
 
 ifdef USE_UPCXX
