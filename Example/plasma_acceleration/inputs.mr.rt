@@ -43,7 +43,7 @@ algo.particle_pusher = 0
 # CFL
 warpx.cfl = 1.
 particles.nspecies = 3
-particles.species_names = driver beam plasma_e plasma_p
+particles.species_names = driver beam plasma_e
 
 # interpolation
 interpolation.nox = 3
