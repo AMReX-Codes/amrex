@@ -252,14 +252,24 @@ namespace ParallelDescriptor
                  ParallelDescriptor::IOProcessorNumber(),
                  ParallelDescriptor::CommunicatorAll());
 
-      std::unordered_set<unsigned short> PMI_x_meshcoord(all_x_meshcoords, all_x_meshcoords + ParallelDescriptor::NProcsAll());
-      std::unordered_set<unsigned short> PMI_y_meshcoord(all_y_meshcoords, all_y_meshcoords + ParallelDescriptor::NProcsAll());
-      std::unordered_set<unsigned short> PMI_z_meshcoord(all_z_meshcoords, all_z_meshcoords + ParallelDescriptor::NProcsAll());
-
       amrex::Print() << "PMI statistics:" << std::endl;
-      amrex::Print() << "# of unique groups: " << PMI_x_meshcoord.size() << std::endl;
-      amrex::Print() << "# of unique chassis: " << PMI_y_meshcoord.size() << std::endl;
-      amrex::Print() << "# of unique slots: " << PMI_z_meshcoord.size() << std::endl;
+
+      std::vector<unsigned short> PMI_x_meshcoord(all_x_meshcoords, all_x_meshcoords + ParallelDescriptor::NProcsAll());
+      std::vector<unsigned short> PMI_y_meshcoord(all_y_meshcoords, all_y_meshcoords + ParallelDescriptor::NProcsAll());
+      std::vector<unsigned short> PMI_z_meshcoord(all_z_meshcoords, all_z_meshcoords + ParallelDescriptor::NProcsAll());
+
+      std::sort(PMI_x_meshcoord.begin(), PMI_x_meshcoord.end());
+      std::sort(PMI_y_meshcoord.begin(), PMI_y_meshcoord.end());
+      std::sort(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
+
+      auto last = std::unique(PMI_x_meshcoord.begin(), PMI_x_meshcoord.end());
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_x_meshcoord.begin(), last) << std::endl;
+
+      last = std::unique(PMI_y_meshcoord.begin(), PMI_y_meshcoord.end());
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_y_meshcoord.begin(), last) << std::endl;
+
+      last = std::unique(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_z_meshcoord.begin(), last) << std::endl;
     }
 #endif
 }
