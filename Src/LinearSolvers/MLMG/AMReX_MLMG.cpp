@@ -2,6 +2,7 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_Interpolater.H>
 
 namespace amrex {
 
@@ -201,6 +202,9 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, 1, 0);
 
     linop.reflux(calev, crse_res, crse_sol, fine_sol);
+
+    const auto& amrrr = linop.AMRRefRatio();
+    amrex::average_down(fine_res, crse_res, 0, 1, amrrr[calev]);
 }
 
 void
@@ -258,8 +262,26 @@ MLMG::interpCorrection (int alev)
 {
     const MultiFab& crse_cor = cor[alev-1][0];
     MultiFab& fine_cor = cor[alev][0];
-    fine_cor.setVal(0.0);
-    // prolongation 
+
+    BoxArray ba = fine_cor.boxArray();
+    const auto& amrrr = linop.AMRRefRatio();
+    IntVect refratio{AMREX_D_DECL(amrrr[alev-1],amrrr[alev-1],amrrr[alev-1]});
+    ba.coarsen(refratio);
+    
+    MultiFab cfine(ba, fine_cor.DistributionMap(), 1, 0);
+    cfine.copy(crse_cor);
+
+    Geometry g1, g2;
+    Vector<BCRec> bcr;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(fine_cor, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        amrex::pc_interp.interp(cfine[mfi], 0, fine_cor[mfi], 0, 1,
+                                mfi.tilebox(), refratio, g1, g2, bcr, 0, 0);
+    }
 }
 
 }
