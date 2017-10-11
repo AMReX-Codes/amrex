@@ -8,7 +8,7 @@ amr.n_cell =  32 512
 #    this is used to decompose the domain for parallel calculations.
 amr.max_grid_size = 32
 # The lo and hi ends of grids are multipliers of blocking factor
-amr.blocking_factor = 2
+amr.blocking_factor = 32
 
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 1
