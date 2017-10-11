@@ -323,7 +323,7 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                 AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
-                FCrseFlux(crse_amrlev, mfi, flux, crse_sol[mfi]);
+                FFlux(crse_amrlev, mfi, flux, crse_sol[mfi]);
                 fluxreg.CrseAdd(mfi, pflux, dx.data(), dt);
             }
         }
@@ -332,10 +332,18 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
         {
             if (fluxreg.FineHasWork(mfi))
             {
-                fluxreg.CrseAdd(mfi, pflux, dx.data(), dt);            
+                const Box& tbx = mfi.tilebox();
+                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
+                             flux[1].resize(amrex::surroundingNodes(tbx,1));,
+                             flux[2].resize(amrex::surroundingNodes(tbx,2)););
+                const int face_only = true;
+                FFlux(crse_amrlev+1, mfi, flux, fine_sol[mfi], face_only);
+                fluxreg.FineAdd(mfi, pflux, dx.data(), dt);            
             }
         }
     }
+
+    fluxreg.Reflux(res);
 }
 
 }

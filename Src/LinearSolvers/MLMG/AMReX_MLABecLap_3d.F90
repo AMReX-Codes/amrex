@@ -5,7 +5,7 @@ module amrex_mlabeclap_3d_module
   implicit none
 
   private
-  public :: amrex_mlabeclap_adotx, amrex_mlabeclap_crseflux
+  public :: amrex_mlabeclap_adotx, amrex_mlabeclap_flux
 
 contains
 
@@ -46,14 +46,15 @@ contains
   end subroutine amrex_mlabeclap_adotx
 
   
-  subroutine amrex_mlabeclap_crseflux (lo, hi, fx, fxlo, fxhi, fy, fylo, fyhi, &
+  subroutine amrex_mlabeclap_flux (lo, hi, fx, fxlo, fxhi, fy, fylo, fyhi, &
        fz, fzlo, fzhi, sol, slo, shi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, &
-       dxinv, beta) &
-       bind(c, name='amrex_mlabeclap_crseflux')
+       dxinv, beta, face_only) &
+       bind(c, name='amrex_mlabeclap_flux')
     integer, dimension(3), intent(in) :: lo, hi, fxlo, fxhi, fylo, fyhi, fzlo, fzhi, &
          slo, shi, bxlo, bxhi, bylo, byhi, bzlo, bzhi
     real(amrex_real) :: dxinv(3)
     real(amrex_real), value, intent(in) :: beta
+    integer, value, intent(in) :: face_only
     real(amrex_real), intent(inout) :: fx (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
     real(amrex_real), intent(inout) :: fy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
     real(amrex_real), intent(inout) :: fz (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
@@ -69,30 +70,58 @@ contains
     dhy = beta*dxinv(2)
     dhz = beta*dxinv(3)
 
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)+1
-             fx(i,j,k) = -dhx * bx(i,j,k)*(sol(i,j,k) - sol(i-1,j,k))
+    if (face_only .eq. 1) then
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)+1, hi(1)+1-lo(1)
+                fx(i,j,k) = -dhx * bx(i,j,k)*(sol(i,j,k) - sol(i-1,j,k))
+             end do
           end do
        end do
-    end do
-    
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)+1
-          do i = lo(1), hi(1)
-             fy(i,j,k) = -dhy * by(i,j,k)*(sol(i,j,k) - sol(i,j-1,k))
+       
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)+1, hi(2)+1-lo(2)
+             do i = lo(1), hi(1)
+                fy(i,j,k) = -dhy * by(i,j,k)*(sol(i,j,k) - sol(i,j-1,k))
+             end do
           end do
        end do
-    end do
-    
-    do       k = lo(3), hi(3)+1
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             fz(i,j,k) = -dhz * bz(i,j,k)*(sol(i,j,k) - sol(i,j,k-1))
+       
+       do       k = lo(3), hi(3)+1, hi(3)+1-lo(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                fz(i,j,k) = -dhz * bz(i,j,k)*(sol(i,j,k) - sol(i,j,k-1))
+             end do
           end do
        end do
-    end do
-    
-  end subroutine amrex_mlabeclap_crseflux
+
+    else
+
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)+1
+                fx(i,j,k) = -dhx * bx(i,j,k)*(sol(i,j,k) - sol(i-1,j,k))
+             end do
+          end do
+       end do
+       
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)+1
+             do i = lo(1), hi(1)
+                fy(i,j,k) = -dhy * by(i,j,k)*(sol(i,j,k) - sol(i,j-1,k))
+             end do
+          end do
+       end do
+       
+       do       k = lo(3), hi(3)+1
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                fz(i,j,k) = -dhz * bz(i,j,k)*(sol(i,j,k) - sol(i,j,k-1))
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine amrex_mlabeclap_flux
 
 end module amrex_mlabeclap_3d_module
