@@ -3,7 +3,7 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_BndryData.H>
+#include <AMReX_MacBndry.H>
 
 namespace amrex {
 
@@ -32,12 +32,16 @@ public:
     int NMGLevels (int amrlev) const { return m_num_mg_levels[amrlev]; }
     const Vector<int>& AMRRefRatio () const { return m_amr_ref_ratio; }
 
-    // TODO: need a flag to specify Dirichlet/Neumann, ...
-//    void setBC (Vector<MultiFab const*>& a_bcdata = Vector<MultiFab const*>(1,nullptr),
-//                const MultiFab* a_even_crse_bcdata=nullptr);
-
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
+    // TODO: need a flag to specify Dirichlet/Neumann, ...
+
+    // The provided bcdata are expected to have ghost cells already filled.
+    // Do we need crse_data's ghost cells filled?
+    void setBC (int amrlev, const MultiFab* bcdata=nullptr, const MultiFab* crse_bcdata=nullptr);
+
+    void updateBC (int amrlev, const MultiFab& crse_bcdata);
+    
     virtual void prepareForSolve () = 0;
     virtual void residual (int amrlev, int mglev,
                            MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
@@ -50,6 +54,7 @@ protected:
 
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
+    static constexpr int maxorder = 2;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
@@ -61,7 +66,13 @@ protected:
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
 
-    // InterpBndryData type of objects
+    // used to save interpolation coefficients of the first interior cells
+    Vector<Vector<BndryRegister> >       m_undrrelxr;
+
+    // boundary cell flags for covered, not_covered, outside_domain
+    Vector<Vector<std::array<MultiMask,2*AMREX_SPACEDIM> > > m_maskvals;
+
+    Vector<std::unique_ptr<MacBndry> >   m_macbndry;
 
 };
 
