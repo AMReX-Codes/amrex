@@ -29,6 +29,10 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
 
+    m_undrrelxr.resize(m_num_amr_levels);
+
+    m_maskvals.resize(m_num_amr_levels);
+
     m_macbndry.resize(m_num_amr_levels);
 
     // fine amr levels
@@ -84,6 +88,34 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         m_dmap[0].push_back(a_dmap[0]);
         
         rr *= mg_coarsen_ratio;
+    }
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_undrrelxr[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_undrrelxr[amrlev][mglev].define(m_grids[amrlev][mglev],
+                                              m_dmap[amrlev][mglev],
+                                              1, 0, 0, 1);
+        }
+    }
+
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_maskvals[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            for (OrientationIter oitr; oitr; ++oitr)
+            {
+                const Orientation face = oitr();
+                const int ngrow = 1;
+                m_maskvals[amrlev][mglev][face].define(m_grids[amrlev][mglev],
+                                                       m_dmap[amrlev][mglev],
+                                                       m_geom[amrlev][mglev],
+                                                       face, 0, ngrow, 0, 1, true);
+            }
+        }
     }
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -192,31 +224,34 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode)
     const int num_comp = 1;
     const Real* h = m_geom[amrlev][mglev].CellSize();
 
+    const MacBndry& macbndry = *m_macbndry[amrlev];
+    BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
+    const auto& maskvals = m_maskvals[amrlev][mglev];
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(in, MFItInfo().SetDynamic(true));
          mfi.isValid(); ++mfi)
     {
-        const BndryData::RealTuple      & bdl = m_macbndry[amrlev]->bndryLocs(mfi);
-        const Vector<Vector<BoundCond> >& bdc = m_macbndry[amrlev]->bndryConds(mfi);
+        const BndryData::RealTuple      & bdl = macbndry.bndryLocs(mfi);
+        const Vector<Vector<BoundCond> >& bdc = macbndry.bndryConds(mfi);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
-            const Orientation o = oitr();
+            const Orientation ori = oitr();
 
-            int           cdr = o;
-            const FabSet& fs  = m_macbndry[amrlev]->bndryValues(o);
-//xxxxx            const Mask&   m   = maskvals[level][o][mfi];
-            Mask m;
-            Real          bcl = bdl[o];
-            int           bct = bdc[o][0];
+            int           cdr = ori;
+            Real          bcl = bdl[ori];
+            int           bct = bdc[ori][0];
 
             const Box&       vbx   = mfi.validbox();
             FArrayBox&       iofab = in[mfi];
 
-            const FArrayBox& fsfab = fs[mfi];
-            FArrayBox&       ffab  = const_cast<FArrayBox&>(fsfab);  // xxxxx
+            FArrayBox&       ffab  = undrrelxr[ori][mfi];
+            const FArrayBox& fsfab = macbndry.bndryValues(ori)[mfi];
+
+            const Mask&   m   = maskvals[ori][mfi];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
                          iofab.dataPtr(),

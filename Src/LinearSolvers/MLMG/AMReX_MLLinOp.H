@@ -66,6 +66,12 @@ protected:
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
 
+    // used to save interpolation coefficients of the first interior cells
+    Vector<Vector<BndryRegister> >       m_undrrelxr;
+
+    // boundary cell flags for covered, not_covered, outside_domain
+    Vector<Vector<std::array<MultiMask,2*AMREX_SPACEDIM> > > m_maskvals;
+
     Vector<std::unique_ptr<MacBndry> >   m_macbndry;
 
 };
