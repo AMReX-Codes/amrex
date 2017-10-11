@@ -53,9 +53,9 @@ public:
     virtual void prepareForSolve () = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
-    virtual void FCrseFlux (int amrlev, const MFIter& mfi,
-                            std::array<FArrayBox,AMREX_SPACEDIM>& flux,
-                            const FArrayBox& sol) const = 0;
+    virtual void FFlux (int amrlev, const MFIter& mfi,
+                        std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+                        const FArrayBox& sol, const int face_only=0) const = 0;
 
 protected:
 
