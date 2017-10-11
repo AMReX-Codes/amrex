@@ -256,6 +256,7 @@ namespace ParallelDescriptor
       std::unordered_set<unsigned short> PMI_y_meshcoord(all_y_meshcoords, all_y_meshcoords + ParallelDescriptor::NProcsAll());
       std::unordered_set<unsigned short> PMI_z_meshcoord(all_z_meshcoords, all_z_meshcoords + ParallelDescriptor::NProcsAll());
 
+      amrex::Print() << "PMI statistics:" << std::endl;
       amrex::Print() << "# of unique groups: " << PMI_x_meshcoord.size() << std::endl;
       amrex::Print() << "# of unique chassis: " << PMI_y_meshcoord.size() << std::endl;
       amrex::Print() << "# of unique slots: " << PMI_z_meshcoord.size() << std::endl;
