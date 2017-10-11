@@ -33,7 +33,8 @@ public:
                      const std::array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
     virtual void prepareForSolve () final;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) final;
+    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const;
 
 private:
 

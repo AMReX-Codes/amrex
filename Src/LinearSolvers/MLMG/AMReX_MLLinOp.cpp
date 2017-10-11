@@ -195,21 +195,21 @@ MLLinOp::updateBC (int amrlev, const MultiFab& crse_bcdata)
 void
 MLLinOp::residual (int amrlev, int mglev,
                    MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
-                   BCMode bc_mode)
+                   BCMode bc_mode) const
 {
     apply(amrlev, mglev, resid, sol, bc_mode);
     MultiFab::Xpay(resid, -1.0, rhs, 0, 0, resid.nComp(), 0);
 }
 
 void
-MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode)
+MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode) const
 {
     applyBC(amrlev, mglev, in, bc_mode);
     Fapply(amrlev, mglev, out, in);
 }
 
 void
-MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode)
+MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const
 {
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
@@ -268,6 +268,16 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode)
         }
     }
 
+}
+
+void
+MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const
+{
+    for (int redblack = 0; redblack < 2; ++redblack)
+    {
+        applyBC(amrlev, mglev, sol, bc_mode);
+        Fsmooth(amrlev, mglev, sol, rhs, redblack);
+    }
 }
 
 }
