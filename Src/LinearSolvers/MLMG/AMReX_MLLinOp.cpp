@@ -33,6 +33,8 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
     m_maskvals.resize(m_num_amr_levels);
 
+    m_fluxreg.resize(m_num_amr_levels-1);
+
     m_macbndry.resize(m_num_amr_levels);
 
     // fine amr levels
@@ -100,7 +102,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                                               1, 0, 0, 1);
         }
     }
-
+    
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_maskvals[amrlev].resize(m_num_mg_levels[amrlev]);
@@ -118,6 +120,17 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         }
     }
 
+    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev)
+    {
+        const IntVect ratio{AMREX_D_DECL(m_amr_ref_ratio[amrlev],
+                                         m_amr_ref_ratio[amrlev],
+                                         m_amr_ref_ratio[amrlev])};
+        m_fluxreg[amrlev].define(m_grids[amrlev+1][0], m_grids[amrlev][0],
+                                 m_dmap[amrlev+1][0], m_dmap[amrlev][0],
+                                 m_geom[amrlev+1][0], m_geom[amrlev][0],
+                                 ratio, amrlev+1, 1);
+    }
+    
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_macbndry[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
@@ -290,7 +303,39 @@ void
 MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                  const MultiFab& crse_sol, const MultiFab& fine_sol) const
 {
+    YAFluxRegister& fluxreg = m_fluxreg[crse_amrlev];
+    fluxreg.reset();
 
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::array<Real,AMREX_SPACEDIM> dx{AMREX_D_DECL(1.0,1.0,1.0)};
+        Real dt = 1.0;
+        std::array<FArrayBox,AMREX_SPACEDIM> flux;
+        std::array<FArrayBox const*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+
+        for (MFIter mfi(crse_sol, MFItInfo().SetDynamic(true));  mfi.isValid(); ++mfi)
+        {
+            if (fluxreg.CrseHasWork(mfi))
+            {
+                const Box& tbx = mfi.tilebox();
+                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
+                             flux[1].resize(amrex::surroundingNodes(tbx,1));,
+                             flux[2].resize(amrex::surroundingNodes(tbx,2)););
+                FCrseFlux(crse_amrlev, mfi, flux, crse_sol[mfi]);
+                fluxreg.CrseAdd(mfi, pflux, dx.data(), dt);
+            }
+        }
+
+        for (MFIter mfi(fine_sol, MFItInfo().SetDynamic(true));  mfi.isValid(); ++mfi)
+        {
+            if (fluxreg.FineHasWork(mfi))
+            {
+                fluxreg.CrseAdd(mfi, pflux, dx.data(), dt);            
+            }
+        }
+    }
 }
 
 }
