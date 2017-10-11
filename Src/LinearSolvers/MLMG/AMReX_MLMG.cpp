@@ -180,8 +180,6 @@ MLMG::computeResidual (int alev, int mlev)
         linop.updateBC(alev, *sol[alev-1]);
     }
     linop.residual(alev, mlev, r, x, b, MLLinOp::BCMode::Inhomogeneous);
-    VisMF::Write(r, "res");
-    amrex::Abort("xxxxx");
 }
 
 void
@@ -220,7 +218,7 @@ MLMG::miniCycle (int alev)
 
     for (int i = 0; i < nu1; ++i) {
         int mglev = 0;
-        // linop.smooth(alev, mglev, xs[mglev], bs[mglev]);
+        linop.smooth(alev, mglev, xs[mglev], bs[mglev], MLLinOp::BCMode::Homogeneous);
     }
 
     // for ref ratio of 4 ...

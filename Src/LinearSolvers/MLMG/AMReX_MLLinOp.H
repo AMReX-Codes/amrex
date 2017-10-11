@@ -39,16 +39,18 @@ public:
     // The provided bcdata are expected to have ghost cells already filled.
     // Do we need crse_data's ghost cells filled?
     void setBC (int amrlev, const MultiFab* bcdata=nullptr, const MultiFab* crse_bcdata=nullptr);
-
     void updateBC (int amrlev, const MultiFab& crse_bcdata);
-    
+
+    void residual (int amrlev, int mglev,
+                   MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
+                   BCMode bc_mode) const;
+    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode) const;
+    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const;
+    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const;
+
     virtual void prepareForSolve () = 0;
-    virtual void residual (int amrlev, int mglev,
-                           MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
-                           BCMode bc_mode); // const?
-    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode);
-    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode);
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) = 0;
+    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
 
 protected:
 
@@ -67,7 +69,7 @@ protected:
     Vector<Vector<DistributionMapping> > m_dmap;
 
     // used to save interpolation coefficients of the first interior cells
-    Vector<Vector<BndryRegister> >       m_undrrelxr;
+    mutable Vector<Vector<BndryRegister> > m_undrrelxr;
 
     // boundary cell flags for covered, not_covered, outside_domain
     Vector<Vector<std::array<MultiMask,2*AMREX_SPACEDIM> > > m_maskvals;
