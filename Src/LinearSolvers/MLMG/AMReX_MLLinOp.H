@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MacBndry.H>
+#include <AMReX_YAFluxRegister.H>
 
 namespace amrex {
 
@@ -47,6 +48,8 @@ public:
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode) const;
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const;
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const;
+    void reflux (int crse_amrlev, MultiFab& res, 
+                 const MultiFab& crse_sol, const MultiFab& fine_sol) const;
 
     virtual void prepareForSolve () = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
@@ -73,6 +76,8 @@ protected:
 
     // boundary cell flags for covered, not_covered, outside_domain
     Vector<Vector<std::array<MultiMask,2*AMREX_SPACEDIM> > > m_maskvals;
+
+    Vector<YAFluxRegister> m_fluxreg;
 
     Vector<std::unique_ptr<MacBndry> >   m_macbndry;
 

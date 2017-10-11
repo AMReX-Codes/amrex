@@ -21,6 +21,9 @@ void write_plotfile (const Vector<Geometry>& geom, int rr,
         MultiFab::Copy(plotmf[ilev],  beta[ilev], 0, 4, 1, 0);
         MultiFab::Copy(plotmf[ilev],   rhs[ilev], 0, 5, 1, 0);
         MultiFab::Subtract(plotmf[ilev], plotmf[ilev], 1, 2, 1, 0); // error = soln - exact
+
+        amrex::Print() << "Error on level " << ilev << ": " << plotmf[ilev].min(2)
+                       << ", " << plotmf[ilev].max(2) << "\n";
     }
 
     amrex::WriteMultiLevelPlotfile ("plot",
