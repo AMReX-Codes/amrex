@@ -2757,21 +2757,23 @@ template <class FAB>
 void
 FabArray<FAB>::MoveAllFabs (const DistributionMapping &newDistMap)
 {
-  int myProc(ParallelDescriptor::MyProc());
-  const Vector<int> &newDistMapArray = newDistMap.ProcessorMap();
-if(myProc == 0) {
+  const Array<int> &newDistMapArray = newDistMap.ProcessorMap();
+if (ParallelDescriptor::IOProcessor()) {
+  std::cout << "####### start MoveAllFabs ########" << std::endl;
+  std::cout << "new dist map: RefId = " << newDistMap.getRefID() << ", size = " << newDistMap.size() << std::endl;
+/*
   std::cout << "####### start MoveAllFabs ##### new dm ###" << std::endl;
   for(int idm(0); idm < newDistMapArray.size(); ++idm) {
     std::cout << "newDistMapArray[" << idm << "] = " << newDistMapArray[idm] << std::endl;
   }
+}*/
   std::cout << "##########################################" << std::endl;
 }
-
   //DistributionMapping newDistMap(newDistMapArray);
 
 //  std::map<BDKey, FabArray<FAB> *> replaceTheseDistMaps;
   if(ParallelDescriptor::IOProcessor()) {
-    std::cout << "-----------------------------------------------------------" << std::endl;
+    //std::cout << "000-----------------------------------------------------------" << std::endl;
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
     for(auto afapIter = allocatedFAPointers.begin(); afapIter != allocatedFAPointers.end(); ++afapIter) {
@@ -2779,13 +2781,32 @@ if(myProc == 0) {
       std::map<int, FabArray<FAB> *> &afapMap = afapIter->second;
       for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
 	auto faptr = afapMapIter->second;
-        std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << faptr << std::endl;
-	std::cout << "faptr->DistributionMap() = " << faptr->DistributionMap() << std::endl;
+        std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << faptr
+	          << ", BDKey = " << faptr->getBDKey() << std::endl;
       }
     }
-    std::cout << "-----------------------------------------------------------" << std::endl;
+    //std::cout << "000-----------------------------------------------------------" << std::endl;
   }
 
+/*
+  ParallelDescriptor::Barrier();
+
+  if(ParallelDescriptor::MyProc() == 6) {
+    std::cout << "666-----------------------------------------------------------" << std::endl;
+    std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
+              << " cached DistributionMap(s)." << std::endl;
+    for(auto afapIter = allocatedFAPointers.begin(); afapIter != allocatedFAPointers.end(); ++afapIter) {
+      std::cout << "afapIter->first (ngrids) = " << afapIter->first << "  :: ===================" << std::endl;
+      std::map<int, FabArray<FAB> *> &afapMap = afapIter->second;
+      for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
+	auto faptr = afapMapIter->second;
+        std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << faptr
+	          << ", BDKey = " << faptr->getBDKey() << std::endl;
+      }
+    }
+    std::cout << "666-----------------------------------------------------------" << std::endl;
+  }
+*/
   // Get FabArrays with the appropriate size (that matches the new map size).
   typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
                FabArray<FAB>::allocatedFAPointers.find(newDistMapArray.size());
@@ -2797,17 +2818,30 @@ if(myProc == 0) {
   } else {
     std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
     if(ParallelDescriptor::IOProcessor()) {
-      std::cout << "FabArray<FAB>::MoveAllFabs:  moving FABs for "
+      std::cout << "............................................." << std::endl
+                << "FabArray<FAB>::MoveAllFabs:  moving FABs for "
                 << faPtrCachedMap.size() << " FabArray(s).\n";
     }
-
+/*
+    int cached_size = faPtrCachedMap.size();
+    int size_min = cached_size;
+    int size_max = cached_size;
+    ParallelDescriptor::ReduceIntMin(size_min); 
+    ParallelDescriptor::ReduceIntMax(size_max);    
+    std::cout << ParallelDescriptor::MyProc() << " : Size of faPtrCachedMap: " << cached_size << std::endl;
+    BL_ASSERT(size_min == size_max); 
+*/
+    int loop_num = 0;
     for(typename std::map<int, FabArray<FAB> *>::iterator it = faPtrCachedMap.begin();
         it != faPtrCachedMap.end(); ++it)
     {
+      loop_num++;
       FabArray<FAB> *faPtr = it->second;
+//      std::cout << ParallelDescriptor::MyProc() << ", " << loop_num << " : Entering faPtr->ok() " << std::endl;
       if(faPtr->ok() == false) {
         amrex::Abort("**** Error 0 in MoveAllFabs:  faPtr not ok");
       }
+//      std::cout << ParallelDescriptor::MyProc() << ", " << loop_num << " : Exiting faPtr->ok() " << std::endl;
 
       faPtr->flushFPinfo();
 
@@ -2815,9 +2849,8 @@ if(myProc == 0) {
       int nFabsMoved = faPtr->MoveFabs(newDistMapArray);
 
       // Update distribution map and ID key for FabArray
-      amrex::Print() << "RRRRRRRR::  replacing:  " << faPtr->DistributionMap() << std::endl;
-      const DistributionMapping::Ref *refidPtr = faPtr->DistributionMap().getRefID().dataPtr();
-      amrex::Print() << "DDDDDDDD::  refidPtr =  " << refidPtr << std::endl;
+      amrex::Print() << "RRRRRRRR::  replacing:  " << faPtr->DistributionMap().getRefID() << " with : " << newDistMap.getRefID() << std::endl;
+      //const DistributionMapping::Ref *refidPtr = faPtr->DistributionMap().getRefID().dataPtr();
       //faPtr->ModifyDistributionMap().ReplaceCachedProcessorMap(newDistMapArray);
       faPtr->ModifyDistributionMap() = newDistMap;
       faPtr->updateBDKey();
@@ -2826,11 +2859,9 @@ if(myProc == 0) {
 
       // REMOVE! Requires Sync!! 
       ParallelDescriptor::ReduceIntSum(nFabsMoved);
-      amrex::Print() << "FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
+      amrex::Print() << ParallelDescriptor::MyProc() << " :FabArray<FAB>::MoveAllFabs:  moved " << nFabsMoved
                      << " FAB(s) for faPtr = " << faPtr << '\n';
     }
-
-
 
     // ---- flush caches
     flushCPCache();
@@ -2873,8 +2904,7 @@ if(myProc == 0) {
     for(nait = noallocFAPIds.begin(); nait != noallocFAPIds.end(); ++nait) {
         std::cout << "FabArray<FAB>::MoveAllFabs:  noallocFAPIds = " << *nait << std::endl;
     }
-  }
-  if(ParallelDescriptor::IOProcessor()) {
+
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
     std::cout << "FabArray<FAB>::MoveAllFabs:  " << allocatedFAPointers.size()
               << " cached DistributionMap(s)." << std::endl;
@@ -2883,15 +2913,14 @@ if(myProc == 0) {
       std::map<int, FabArray<FAB> *> &afapMap = it->second;
       for(auto afapMapIter = afapMap.begin(); afapMapIter != afapMap.end(); ++afapMapIter) {
 	auto fap = afapMapIter->second;
-        std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << afapMapIter->second << std::endl; 
-	std::cout << "fap->DistributionMap() = " << fap->DistributionMap() << std::endl;
+        std::cout << "afapMapIter->first (aFAPId) = " << afapMapIter->first << "  faptr = " << afapMapIter->second 
+	          << ", BDKey = " << fap->getBDKey() << std::endl;
       }
     }
     std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-  }
-if(myProc == 0) {
-  std::cout << "######### end MoveAllFabs ################" << std::endl;
-}
+    std::cout << "######### end MoveAllFabs ################" << std::endl;
+    }
+
 }
 
 
@@ -3187,7 +3216,7 @@ FabArray<FAB>::MoveFabs (const Vector<int> &newDistMapArray)
     m_fabs_v.push_back(tIFiter->second);
   }
 
-  amrex::Print() << "UUUUUUUU::  updating bdkey for faPtr =  " << this << std::endl;
+  amrex::Print() << "(amrex::FabArray::MoveFabs):  updating bdkey for faPtr =  " << this << std::endl;
   updateBDKey();
 
   return nFabsSent;
