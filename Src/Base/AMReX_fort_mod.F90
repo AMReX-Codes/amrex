@@ -39,7 +39,7 @@ contains
     end do
   end function amrex_coarsen_intvect
 
-  AMREX_DEVICE_SUBROUTINE subroutine get_loop_bounds(blo, bhi, lo, hi)
+  AMREX_DEVICE subroutine get_loop_bounds(blo, bhi, lo, hi)
 
     implicit none
 
@@ -70,7 +70,7 @@ contains
 
 
 
-  AMREX_DEVICE_SUBROUTINE subroutine amrex_add(x, y)
+  AMREX_DEVICE subroutine amrex_add(x, y)
 
     implicit none
 
@@ -91,7 +91,7 @@ contains
 
 
 
-  AMREX_DEVICE_SUBROUTINE subroutine amrex_subtract(x, y)
+  AMREX_DEVICE subroutine amrex_subtract(x, y)
 
     implicit none
 
@@ -112,7 +112,7 @@ contains
 
 
 
-  AMREX_DEVICE_SUBROUTINE subroutine amrex_max(x, y)
+  AMREX_DEVICE subroutine amrex_max(x, y)
 
     implicit none
 
@@ -133,7 +133,7 @@ contains
 
 
 
-  AMREX_DEVICE_SUBROUTINE subroutine amrex_min(x, y)
+  AMREX_DEVICE subroutine amrex_min(x, y)
 
     implicit none
 

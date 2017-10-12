@@ -82,7 +82,7 @@ contains
 
 #endif
 
-  AMREX_LAUNCH_SUBROUTINE subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
+  AMREX_LAUNCH subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
        bind(c, name='amrex_fab_filcc')
 
     implicit none
