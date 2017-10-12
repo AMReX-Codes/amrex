@@ -12,6 +12,8 @@ class MLLinOp
 {
 public:
 
+    friend class MLMG;
+
     enum struct BCMode { Homogeneous, Inhomogeneous };
 
     MLLinOp () {}
@@ -29,33 +31,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap);
 
-    int NAMRLevels () const { return m_num_amr_levels; }
-    int NMGLevels (int amrlev) const { return m_num_mg_levels[amrlev]; }
-    const Vector<int>& AMRRefRatio () const { return m_amr_ref_ratio; }
-
-    void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
-
-    // TODO: need a flag to specify Dirichlet/Neumann, ...
-
-    // The provided bcdata are expected to have ghost cells already filled.
-    // Do we need crse_data's ghost cells filled?
     void setBC (int amrlev, const MultiFab* bcdata=nullptr, const MultiFab* crse_bcdata=nullptr);
-    void updateBC (int amrlev, const MultiFab& crse_bcdata);
-
-    void residual (int amrlev, int mglev,
-                   MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
-                   BCMode bc_mode) const;
-    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode) const;
-    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const;
-    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const;
-    void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& fine_sol) const;
-
-    virtual void prepareForSolve () = 0;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
-                        std::array<FArrayBox,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const = 0;
 
 protected:
 
@@ -82,6 +58,37 @@ protected:
     mutable Vector<YAFluxRegister> m_fluxreg;
 
     Vector<std::unique_ptr<MacBndry> >   m_macbndry;
+
+    //
+    // functions
+    //
+
+    int NAMRLevels () const { return m_num_amr_levels; }
+    int NMGLevels (int amrlev) const { return m_num_mg_levels[amrlev]; }
+    const Vector<int>& AMRRefRatio () const { return m_amr_ref_ratio; }
+
+    void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
+
+    // TODO: need a flag to specify Dirichlet/Neumann, ...
+
+    // The provided bcdata are expected to have ghost cells already filled.
+    // Do we need crse_data's ghost cells filled?
+    void updateBC (int amrlev, const MultiFab& crse_bcdata);
+
+    void residual (int amrlev, int mglev,
+                   MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
+                   BCMode bc_mode) const;
+    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode) const;
+    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const;
+    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const;
+    void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& fine_sol) const;
+
+    virtual void prepareForSolve () = 0;
+    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
+    virtual void FFlux (int amrlev, const MFIter& mfi,
+                        std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+                        const FArrayBox& sol, const int face_only=0) const = 0;
 
 };
 
