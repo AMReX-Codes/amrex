@@ -78,7 +78,9 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 const int proc = this->ParticleDistributionMap(lev)[grid];
                 NeighborCommTag comm_tag(proc, grid, tile);
                 local_neighbors.push_back(comm_tag);
-                neighbor_procs.push_back(proc);
+                if (proc != ParallelDescriptor::MyProc() ) {                   
+                    neighbor_procs.push_back(proc);
+                }
             }
         }
 
@@ -475,6 +477,8 @@ getRcvCountsMPI(const std::map<int, Vector<char> >& send_data) {
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
+    BL_ASSERT(send_data.size() == neighbor_procs.size());
+
     // each proc figures out how many bytes it will send, and how
     // many it will receive
     Vector<long> snds(NProcs, 0);
@@ -487,22 +491,36 @@ getRcvCountsMPI(const std::map<int, Vector<char> >& send_data) {
     }
     ParallelDescriptor::ReduceLongMax(num_snds);
     if (num_snds == 0) return;
+
+    const int num_rcvs = neighbor_procs.size();
+    Vector<MPI_Status>  stats(num_rcvs);
+    Vector<MPI_Request> rreqs(num_rcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
     
-    // communicate that information
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    // Post receives
+    for (int i = 0; i < num_rcvs; ++i) {
+        const int Who = neighbor_procs[i];
+        const long Cnt = 1;
+
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+
+        rreqs[i] = ParallelDescriptor::Arecv(&rcvs[Who], Cnt, Who, SeqNum).req();
+    }
     
-    BL_MPI_REQUIRE( MPI_Alltoall(snds.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    BL_ASSERT(rcvs[MyProc] == 0);
-    
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+    // Send.
+    for (const auto& kv : send_data) {
+        const int Who = kv.first;
+        const long Cnt = 1;
+
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+
+        ParallelDescriptor::Send(&snds[Who], Cnt, Who, SeqNum);        
+    }
+
+    if (num_rcvs > 0) {
+        BL_MPI_REQUIRE( MPI_Waitall(num_rcvs, rreqs.data(), stats.data()) );
+    }
 
 #endif // BL_USE_MPI
 }

@@ -5,14 +5,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_Particles.H"
 
-namespace {
-    template <typename T> void RemoveDuplicates(amrex::Vector<T>& vec) {
-        std::sort(vec.begin(), vec.end());
-        auto it = std::unique(vec.begin(), vec.end());
-        vec.erase(it, vec.end());
-    }
-}
-
 namespace amrex {
 
 ///
@@ -177,7 +169,7 @@ protected:
     // each proc knows how many sends it will do, and how many bytes it will rcv 
     // from each other proc.
     amrex::Vector<int> neighbor_procs;
-    Vector<long> rcvs;
+    amrex::Vector<long> rcvs;
     long num_snds;
 };
 
