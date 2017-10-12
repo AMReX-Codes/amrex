@@ -275,6 +275,16 @@ contains
 
        end if
 
+       ! We need to synchronize the threadblock after each
+       ! dimension, since the results for the corners depend
+       ! on the i, j, and k directions being done in order.
+       ! Note: this will only work if the threadblock size is
+       ! larger in each dimension than the number of ghost zones.
+
+#ifdef AMREX_USE_CUDA
+       call syncthreads()
+#endif
+
 
 
 #if AMREX_SPACEDIM >= 2
@@ -417,6 +427,10 @@ contains
        end if
 #endif
 
+#ifdef AMREX_USE_CUDA
+       call syncthreads()
+#endif
+
 
 
 #if AMREX_SPACEDIM == 3
@@ -557,6 +571,10 @@ contains
           end do
 
        end if
+#endif
+
+#ifdef AMREX_USE_CUDA
+       call syncthreads()
 #endif
 
 
