@@ -82,41 +82,23 @@ contains
 
 #endif
 
-#ifdef AMREX_USE_CUDA
-  attributes(global) &
-#endif
-  subroutine amrex_fab_filcc_doit (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
+  AMREX_LAUNCH_SUBROUTINE subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
+       bind(c, name='amrex_fab_filcc')
+
+    implicit none
+
     integer, intent(in) :: qlo(3), qhi(3), nq
     integer, dimension(amrex_spacedim), intent(in) :: domlo, domhi
     real(amrex_real), intent(in) :: dx(amrex_spacedim), xlo(amrex_spacedim)
     integer, intent(in) :: bc(amrex_spacedim,2,nq)
     real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
-    integer :: n, ql(amrex_spacedim), qh(amrex_spacedim)
 
     integer :: blo(3), bhi(3)
 
     call get_loop_bounds(blo, bhi, qlo, qhi)
 
     call filccn(blo, bhi, q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
-  end subroutine amrex_fab_filcc_doit
 
-  subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
-       bind(c, name='amrex_fab_filcc')
-    integer, intent(in) :: qlo(3), qhi(3), nq
-    integer, dimension(amrex_spacedim), intent(in) :: domlo, domhi
-    real(amrex_real), intent(in) :: dx(amrex_spacedim), xlo(amrex_spacedim)
-    integer, intent(in) :: bc(amrex_spacedim,2,nq)
-    real(amrex_real), intent(inout) :: q(qlo(1):qhi(1),qlo(2):qhi(2),qlo(3):qhi(3),nq)
-
-#ifdef AMREX_USE_CUDA
-    attributes(device) :: q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc
-#endif
-
-    call amrex_fab_filcc_doit &
-#ifdef AMREX_USE_CUDA
-         <<<numBlocks, numThreads, 0, cuda_stream>>> &
-#endif
-         (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc)
   end subroutine amrex_fab_filcc
 
 end module amrex_filcc_module

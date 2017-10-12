@@ -38,16 +38,13 @@ namespace amrex
             FArrayBox& fab = phi[mfi];
             const Box& fab_box = fab.box(); // including ghost cells
 
-#ifdef AMREX_USE_DEVICE
-            Device::prepare_for_launch(fab_box.loVect(), fab_box.hiVect());
-#endif
-            
             if (! grown_domain_box.contains(fab_box))
             {
-                amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                                BL_TO_FORTRAN_BOX(domain_box),
-                                dx, prob_lo,
-                                bcrs_d);
+                FORT_LAUNCH(fab_box, amrex_fab_filcc,
+                            BL_TO_FORTRAN_FAB(fab),
+                            BL_TO_FORTRAN_BOX(domain_box),
+                            dx, prob_lo,
+                            bcrs_d);
             }
         }
     }
