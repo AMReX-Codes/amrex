@@ -150,7 +150,7 @@ MLMG::oneIter ()
             MultiFab::Add(cor_hold[alev], cor[alev][0], 0, 0, 1, 1);
         }
 
-        computeResWithCrseCorFineCor(alev-1, alev);
+        computeResWithCrseCorFineCor(alev);
 
         miniCycle (alev);
 
@@ -208,19 +208,18 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 }
 
 void
-MLMG::computeResWithCrseCorFineCor (int calev, int falev)
+MLMG::computeResWithCrseCorFineCor (int falev)
 {
-//    const int calev = falev - 1;
-    const MultiFab& crse_cor = cor[calev][0];
+    const MultiFab& crse_cor = cor[falev-1][0];
 
     MultiFab& fine_cor = cor[falev][0];
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
 
-//    linop.
-
-    // interp correction to supply boundary conditions
-    // compute residual
+    linop.updateCorBC(falev, crse_cor);
+    // fine_rescor = fine_res - L(fine_cor)
+    linop.correctionResidual(falev, fine_rescor, fine_cor, fine_res);
+    MultiFab::Copy(fine_res, fine_rescor, 0, 0, 1, 0);
 }
 
 void

@@ -62,6 +62,9 @@ protected:
     Vector<std::unique_ptr<MacBndry> >   m_bndry_sol;
     Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
 
+    Vector<std::unique_ptr<MacBndry> > m_bndry_cor;
+    Vector<std::unique_ptr<BndryRegister> > m_crse_cor_br;
+
     //
     // functions
     //
@@ -78,12 +81,16 @@ protected:
     // TODO: need a flag to specify Dirichlet/Neumann, ...
 
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata);
+    void updateCorBC (int amrlev, const MultiFab& crse_bcdata);
 
     void residual (int amrlev, int mglev,
                    MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
                    BCMode bc_mode) const;
-    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode) const;
-    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const;
+    void correctionResidual (int amrlev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs) const;
+    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                const MacBndry* bndry=nullptr) const;
+    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+                  const MacBndry* bndry=nullptr) const;
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const;
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& fine_sol) const;
 
