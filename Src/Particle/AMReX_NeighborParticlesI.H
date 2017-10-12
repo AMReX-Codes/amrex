@@ -646,7 +646,7 @@ buildNeighborList(int lev, bool sort) {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+    for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
         Vector<int>& nl = neighbor_list[index];

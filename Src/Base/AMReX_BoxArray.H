@@ -299,23 +299,7 @@ public:
 
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
-    bool coarsenable(int refinement_ratio) const
-    {
-      if(size() == 0) 
-      {
-        return false;
-      }
-
-      for(int ibox = 0; ibox < size(); ibox++)
-      {
-        const Box& thisbox = (*this)[ibox];
-        if(!thisbox.coarsenable(refinement_ratio))
-        {
-          return false;
-        }
-      }
-      return true;
-    }
+    bool coarsenable(int refinement_ratio, int min_width=1) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);

@@ -887,11 +887,24 @@ private:
 
 public:
     ParIterBase (ContainerRef pc, int level);
+    ParIterBase (ContainerRef pc, int level, MFItInfo& info);
 
+#ifdef _OPENMP
+    void operator++ () {
+        if (dynamic) {
+#pragma omp atomic capture
+            m_pariter_index = nextDynamicIndex++;
+        } else {
+            ++m_pariter_index;
+        }
+        currentIndex = m_valid_index[m_pariter_index];
+    }
+#else
     void operator++ () {
         ++m_pariter_index;
         currentIndex = m_valid_index[m_pariter_index];
     }
+#endif
     
     ParticleTileRef GetParticleTile () const { return *m_particle_tiles[m_pariter_index]; }
 
@@ -928,6 +941,10 @@ public:
         : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
         {}
 
+    ParIter (ContainerType& pc, int level, MFItInfo& info)
+        : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
+        {}
+
     void SetPosition (AMREX_D_DECL(const Vector<Real>& x,
                                    const Vector<Real>& y,
                                    const Vector<Real>& z)) const;
@@ -947,6 +964,11 @@ public:
     ParConstIter (ContainerType const& pc, int level)
         : ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
         {}
+
+    ParConstIter (ContainerType const& pc, int level, MFItInfo& info)
+        : ParIterBase<true,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
+        {}
+
 };
 
 

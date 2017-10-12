@@ -11,6 +11,12 @@ F$(BNDRYLIB_BASE)_headers += AMReX_INTERPBNDRYDATA_F.H
 
 F$(BNDRYLIB_BASE)_sources += AMReX_INTERPBNDRYDATA_$(DIM)D.F AMReX_LO_UTIL.F
 
+CEXE_headers += AMReX_YAFluxRegister_F.H
+CEXE_headers += AMReX_YAFluxRegister.H
+CEXE_sources += AMReX_YAFluxRegister.cpp
+F90EXE_sources += AMReX_YAFluxRegister_$(DIM)d.F90
+F90EXE_sources += AMReX_YAFluxRegister_nd.F90
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Boundary
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
 
