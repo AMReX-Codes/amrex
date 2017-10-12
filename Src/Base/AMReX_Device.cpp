@@ -13,8 +13,12 @@ int amrex::Device::device_id = 0;
 
 int amrex::Device::verbose = 0;
 
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 cudaStream_t amrex::Device::cuda_streams[max_cuda_streams];
 cudaStream_t amrex::Device::cuda_stream;
+
+dim3 amrex::Device::numThreadsMin = dim3(1, 1, 1);
+#endif
 
 void
 amrex::Device::initialize_cuda_c () {
@@ -208,8 +212,12 @@ amrex::Device::prepare_for_launch(const int* lo, const int* hi) {
 
     // Sets the number of threads and blocks in Fortran.
 
-#ifdef AMREX_USE_CUDA
-    set_threads_and_blocks(lo, hi);
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+    int txmin = numThreadsMin.x;
+    int tymin = numThreadsMin.y;
+    int tzmin = numThreadsMin.z;
+
+    set_threads_and_blocks(lo, hi, &txmin, &tymin, &tzmin);
 #endif
 
 }
@@ -316,7 +324,11 @@ amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlock
 
     int bx, by, bz, tx, ty, tz;
 
-    get_threads_and_blocks(lo, hi, &bx, &by, &bz, &tx, &ty, &tz);
+    int txmin = numThreadsMin.x;
+    int tymin = numThreadsMin.y;
+    int tzmin = numThreadsMin.z;
+
+    get_threads_and_blocks(lo, hi, &bx, &by, &bz, &tx, &ty, &tz, &txmin, &tymin, &tzmin);
 
     numBlocks.x = bx;
     numBlocks.y = by;

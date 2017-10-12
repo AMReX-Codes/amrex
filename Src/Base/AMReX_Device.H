@@ -52,8 +52,11 @@ extern "C" {
     void gpu_synchronize();
     void gpu_start_profiler();
     void gpu_stop_profiler();
-    void set_threads_and_blocks(const int* lo, const int* hi);
-    void get_threads_and_blocks(const int* lo, const int* hi, int* bx, int* by, int* bz, int* tx, int* ty, int* tz);
+    void set_threads_and_blocks(const int* lo, const int* hi,
+                                const int* txmin, const int* tymin, const int* tzmin);
+    void get_threads_and_blocks(const int* lo, const int* hi,
+                                int* bx, int* by, int* bz, int* tx, int* ty, int* tz,
+                                const int* txmin, const int* tymin, const int* tzmin);
     void gpu_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t* sz, const int* idx);
     void gpu_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t* sz, const int* idx);
     void gpu_htod_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
@@ -130,6 +133,8 @@ public:
     static void initialize_cuda_c ();
 
     static cudaStream_t cudaStream() { return cuda_stream; }
+
+    static void setNumThreadsMin(int tx, int ty, int tz) { numThreadsMin.x = tx; numThreadsMin.y = ty; numThreadsMin.z = tz; return; }
 #endif
 
 private:
@@ -140,10 +145,12 @@ private:
 
     static int verbose;
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
     static const int max_cuda_streams = 100;
     static cudaStream_t cuda_streams[max_cuda_streams];
     static cudaStream_t cuda_stream;
+
+    static dim3 numThreadsMin;
 #endif
 };
 
