@@ -36,6 +36,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     m_fluxreg.resize(m_num_amr_levels-1);
 
     m_bndry_sol.resize(m_num_amr_levels);
+    m_crse_sol_br.resize(m_num_amr_levels);
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -134,6 +135,19 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         m_bndry_sol[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
                                               1, m_geom[amrlev][0]));
     }
+
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        const int ncomp = 1;
+        const int in_rad = 0;
+        const int out_rad = 1;
+        const int extent_rad = 2;
+        const int crse_ratio = m_amr_ref_ratio[amrlev-1];
+        BoxArray cba = m_grids[amrlev][0];
+        cba.coarsen(crse_ratio);
+        m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
+                                                      in_rad, out_rad, extent_rad, ncomp));
+    }
 }
 
 MLLinOp::~MLLinOp ()
@@ -168,19 +182,9 @@ MLLinOp::setDirichletBC (int amrlev, const MultiFab& bc_data, const MultiFab* cr
     }
     else
     {
-        const int ncomp = 1;
-        const int in_rad = 0;
-        const int out_rad = 1;
-        const int extent_rad = 2;
-        const int crse_ratio = m_amr_ref_ratio[amrlev-1];
-
-        // we could save this. - wqz
-        BoxArray cba = m_grids[amrlev][0];
-        cba.coarsen(crse_ratio);
-        BndryRegister crse_br(cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
-        crse_br.copyFrom(*crse_bcdata, 0, 0, 0, ncomp);
-
-        m_bndry_sol[amrlev]->setBndryValues(crse_br, 0, bc_data, 0, 0, ncomp, crse_ratio, phys_bc);
+        m_crse_sol_br[amrlev]->copyFrom(*crse_bcdata, 0, 0, 0, 1);
+        m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0, bc_data, 0, 0, 1,
+                                            m_amr_ref_ratio[amrlev-1], phys_bc);
     }
 }
 
@@ -188,21 +192,8 @@ void
 MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata)
 {
     AMREX_ALWAYS_ASSERT(amrlev > 0);
-    {
-        const int ncomp = 1;
-        const int in_rad = 0;
-        const int out_rad = 1;
-        const int extent_rad = 2;
-        const int crse_ratio = m_amr_ref_ratio[amrlev-1];
-
-        // we could save this. - wqz
-        BoxArray cba = m_grids[amrlev][0];
-        cba.coarsen(crse_ratio);
-        BndryRegister crse_br(cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
-        crse_br.copyFrom(crse_bcdata, 0, 0, 0, ncomp);
-
-        m_bndry_sol[amrlev]->updateBndryValues(crse_br, 0, 0, ncomp, crse_ratio);
-    }
+    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
 }
 
 void

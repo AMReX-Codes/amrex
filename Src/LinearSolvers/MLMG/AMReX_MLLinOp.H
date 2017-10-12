@@ -60,6 +60,7 @@ protected:
     mutable Vector<YAFluxRegister> m_fluxreg;
 
     Vector<std::unique_ptr<MacBndry> >   m_bndry_sol;
+    Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
 
     //
     // functions
