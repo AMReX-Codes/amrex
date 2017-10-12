@@ -244,15 +244,16 @@ MLMG::miniCycle (int alev)
 void
 MLMG::mgCycle ()
 {
-    Vector<MultiFab>& xs = cor[0];
-    Vector<MultiFab>& bs = res[0];
-    Vector<MultiFab>& rs = rescor[0];
+    const int amrlev = 0;
+    Vector<MultiFab>& xs = cor[amrlev];
+    Vector<MultiFab>& bs = res[amrlev];
+    Vector<MultiFab>& rs = rescor[amrlev];
 
     for (auto& x : xs) x.setVal(0.0);
 
     for (int i = 0; i < nu1; ++i) {
-        int mglev = 0;
-        // linop.smooth(alev, mglev, xs[mglev], bs[mglev]);
+        const int mglev = 0;
+        linop.smooth(amrlev, mglev, xs[mglev], bs[mglev], BCMode::Homogeneous);
     }
 
     // compute defect 
