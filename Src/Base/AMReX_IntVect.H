@@ -75,6 +75,10 @@ public:
     */
     IntVect (AMREX_D_DECL(int i, int j, int k)) { AMREX_D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
 
+#if (AMREX_SPACEDIM > 1)
+    explicit IntVect (int i) { AMREX_D_EXPR(vect[0] = i, vect[1] = i, vect[2] = i); }
+#endif
+
     /**
     * \brief Construct an IntVect setting the coordinates to the
     * corresponding values in the integer array a.
