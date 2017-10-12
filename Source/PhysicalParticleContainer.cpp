@@ -27,46 +27,46 @@ void PhysicalParticleContainer::InitData()
 }
 
 void 
-PhysicalParticleContainer::AddGaussianBeam(Real mean, Real sigma, Real vel) {
+PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
+                                           Real x_rms, Real y_rms, Real z_rms, 
+                                           Real q_tot, long npart) {
 
-    const int       MyProc   = ParallelDescriptor::MyProc();
-    const int       NProcs   = ParallelDescriptor::NProcs();
-    const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
     const Geometry& geom     = m_gdb->Geom(0);
-
     RealBox containing_bx = geom.ProbDomain();
-    const Real* xlo = containing_bx.lo();
-    const Real* xhi = containing_bx.hi();
 
     std::mt19937_64 mt(0451);
-    std::normal_distribution<double> dist(0.0, sigma);
+    std::normal_distribution<double> distx(x_m, x_rms);
+    std::normal_distribution<double> disty(y_m, y_rms);
+    std::normal_distribution<double> distz(z_m, z_rms);
 
     std::array<Real,PIdx::nattribs> attribs;
     attribs.fill(0.0);
-   
-    long np = 32768;
+
     if (ParallelDescriptor::IOProcessor()) {
-        for (long i = 0; i < np; ++i) {
+       std::array<Real, 3> u;
+       Real weight;
+       for (long i = 0; i < npart; ++i) {
 #if ( BL_SPACEDIM == 3 )
-            Real x = dist(mt) + mean;
-            Real y = dist(mt) + mean;
-            Real z = dist(mt) + mean;
+            weight = q_tot/npart/charge;
+            Real x = distx(mt);
+            Real y = disty(mt);
+            Real z = distz(mt);
 #elif ( BL_SPACEDIM == 2 )
-            Real x = dist(mt) + mean;
+            weight = q_tot/npart/charge/y_rms;
+            Real x = distx(mt);
             Real y = 0.;
-            Real z = dist(mt) + mean;
+            Real z = distz(mt);
 #endif
-            if (plasma_injector->insideBounds(x, y, z)) {
-                Real weight = 152587890.5;
-                attribs[PIdx::w ] = weight;
-                attribs[PIdx::ux] = PhysConst::c*vel*x;
-                attribs[PIdx::uy] = PhysConst::c*vel*y;
-                attribs[PIdx::uz] = PhysConst::c*vel*z;
-                AddOneParticle(0, 0, 0, x, y, z, attribs);
+        if (plasma_injector->insideBounds(x, y, z)) {
+	    plasma_injector->getMomentum(u, x, y, z);
+            attribs[PIdx::ux] = u[0];
+            attribs[PIdx::uy] = u[1];
+            attribs[PIdx::uz] = u[2];
+            attribs[PIdx::w ] = weight;
+            AddOneParticle(0, 0, 0, x, y, z, attribs);
             }
         }
     }
-
     Redistribute();
 }
 
@@ -88,9 +88,15 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
     }
 
     if (plasma_injector->gaussian_beam) {
-        AddGaussianBeam(plasma_injector->gaussian_beam_mean,
-                        plasma_injector->gaussian_beam_sigma,
-                        plasma_injector->gaussian_beam_vel);
+        AddGaussianBeam(plasma_injector->x_m,
+                        plasma_injector->y_m,
+                        plasma_injector->z_m,
+                        plasma_injector->x_rms, 
+                        plasma_injector->y_rms,
+                        plasma_injector->z_rms, 
+                        plasma_injector->q_tot, 
+                        plasma_injector->npart);
+                        
         return;
     }
 
@@ -104,51 +110,65 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
     Real scale_fac;
-
 #if BL_SPACEDIM==3
     scale_fac = dx[0]*dx[1]*dx[2]/num_ppc;
 #elif BL_SPACEDIM==2
     scale_fac = dx[0]*dx[2]/num_ppc;
 #endif
 
-    std::array<Real,PIdx::nattribs> attribs;
-    attribs.fill(0.0);
+#ifdef _OPENMP    
+    // First touch all tiles in the map in serial
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-        const Box& tile_box = mfi.tilebox();
-        const Box& intersectBox = tile_box & part_box;
-        if (!intersectBox.ok()) continue;
-
-        const std::array<Real,3>& tile_corner = WarpX::LowerCorner(intersectBox, lev);
-
         const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-
-        const auto& boxlo = intersectBox.smallEnd();
-        for (IntVect iv = intersectBox.smallEnd(); iv <= intersectBox.bigEnd(); intersectBox.next(iv))
-        {
-            for (int i_part=0; i_part<num_ppc;i_part++)
-            {
-                std::array<Real, 3> r;
-                plasma_injector->getPositionUnitBox(r, i_part);
-#if ( BL_SPACEDIM == 3 )
-                Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
-                Real y = tile_corner[1] + (iv[1]-boxlo[1] + r[1])*dx[1];
-                Real z = tile_corner[2] + (iv[2]-boxlo[2] + r[2])*dx[2];
-#elif ( BL_SPACEDIM == 2 )
-                Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
-                Real y = 0.;
-                Real z = tile_corner[2] + (iv[1]-boxlo[1] + r[2])*dx[2];
+        const int tile_id = mfi.LocalTileIndex();        
+        GetParticles(lev)[std::make_pair(grid_id, tile_id)];
+    }
 #endif
-                if (plasma_injector->insideBounds(x, y, z)) {
-                    Real weight;
-                    std::array<Real, 3> u;
-                    plasma_injector->getMomentum(u);
-                    weight = plasma_injector->getDensity(x, y, z) * scale_fac;
-                    attribs[PIdx::w ] = weight;
-                    attribs[PIdx::ux] = u[0];
-                    attribs[PIdx::uy] = u[1];
-                    attribs[PIdx::uz] = u[2];
-                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+    
+#ifdef _OPENMP
+#pragma omp parallel if (not WarpX::serialize_ics)
+#endif
+    {        
+        std::array<Real,PIdx::nattribs> attribs;
+        attribs.fill(0.0);
+        
+        for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+            const Box& tile_box  = mfi.tilebox();
+            const Box& intersectBox = tile_box & part_box;
+            if (!intersectBox.ok()) continue;
+            
+            const std::array<Real, 3>& tile_corner = 
+                WarpX::LowerCorner(intersectBox, lev);
+            
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+            
+            const auto& boxlo = intersectBox.smallEnd();
+            for (IntVect iv = intersectBox.smallEnd(); 
+                 iv <= intersectBox.bigEnd(); intersectBox.next(iv)) {
+                for (int i_part=0; i_part<num_ppc;i_part++) {
+                    std::array<Real, 3> r;
+                    plasma_injector->getPositionUnitBox(r, i_part);
+#if ( BL_SPACEDIM == 3 )
+                    Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
+                    Real y = tile_corner[1] + (iv[1]-boxlo[1] + r[1])*dx[1];
+                    Real z = tile_corner[2] + (iv[2]-boxlo[2] + r[2])*dx[2];
+#elif ( BL_SPACEDIM == 2 )
+                    Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
+                    Real y = 0.;
+                    Real z = tile_corner[2] + (iv[1]-boxlo[1] + r[2])*dx[2];
+#endif
+                    if (plasma_injector->insideBounds(x, y, z)) {
+                        Real weight;
+                        std::array<Real, 3> u;
+                        plasma_injector->getMomentum(u, x, y, z);
+                        weight = plasma_injector->getDensity(x, y, z) * scale_fac;
+                        attribs[PIdx::w ] = weight;
+                        attribs[PIdx::ux] = u[0];
+                        attribs[PIdx::uy] = u[1];
+                        attribs[PIdx::uz] = u[2];
+                        AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+                    }
                 }
             }
         }
@@ -414,7 +434,6 @@ PhysicalParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<Mult
             
             // Particle attributes
             auto& attribs = pti.GetAttribs();
-            auto&  wp = attribs[PIdx::w];
             auto& uxp = attribs[PIdx::ux];
             auto& uyp = attribs[PIdx::uy];
 
@@ -458,6 +477,7 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
+    BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
     
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
     
@@ -468,6 +488,9 @@ PhysicalParticleContainer::Evolve (int lev,
     
     long ngRho = (rho) ? rho->nGrow() : 0;
     
+    long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
+    long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
+
     BL_ASSERT(OnSameGrids(lev,Ex));
     
 #ifdef _OPENMP
@@ -476,6 +499,7 @@ PhysicalParticleContainer::Evolve (int lev,
     {
 	Array<Real> xp, yp, zp, giv;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
+        FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
         
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -534,34 +558,56 @@ PhysicalParticleContainer::Evolve (int lev,
                 const int *rholen;
                 FArrayBox& rhofab = (*rho)[pti];
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
+                Box grown_box;
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 tile_box.grow(ngRho);
-                local_rho.resize(tile_box);
+                if (WarpX::use_filter) {
+                    grown_box = tile_box;
+                    grown_box.grow(1);
+                    local_rho.resize(grown_box);
+                } else {
+                    local_rho.resize(tile_box);
+                }
                 local_rho = 0.0;
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
 
 #if (BL_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = rholen[1]-1-2*ngRho;
-                const long nz = rholen[2]-1-2*ngRho;
+                const long nx = rholen[0]-1-2*ngRhoDeposit;
+                const long ny = rholen[1]-1-2*ngRhoDeposit;
+                const long nz = rholen[2]-1-2*ngRhoDeposit;
 #else
-                const long nx = rholen[0]-1-2*ngRho;
+                const long nx = rholen[0]-1-2*ngRhoDeposit;
                 const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRho;
+                const long nz = rholen[1]-1-2*ngRhoDeposit;
 #endif
-            	warpx_charge_deposition(data_ptr, &np, xp.data(), yp.data(), zp.data(), wp.data(),
-                                        &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2],
+            	warpx_charge_deposition(data_ptr, &np,
+                                        xp.data(), yp.data(), zp.data(), wp.data(),
+                                        &this->charge,
+                                        &xyzmin[0], &xyzmin[1], &xyzmin[2],
                                         &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRho, &ngRho, &ngRho, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                        &ngRhoDeposit, &ngRhoDeposit, &ngRhoDeposit, 
+                                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                         &lvect, &WarpX::charge_deposition_algo);
 
-                const Box& fabbox = rhofab.box();
                 const int ncomp = 1;
-
                 if (WarpX::use_filter) {
-                    WRPX_FILTER_AND_ACCUMULATE(local_rho.dataPtr(), local_rho.loVect(), local_rho.hiVect(), 
-                                               rhofab.dataPtr(), rhofab.loVect(), rhofab.hiVect(), ncomp);
+
+                    filtered_rho.resize(tile_box);
+                    filtered_rho = 0;
+
+                    WRPX_FILTER(local_rho.dataPtr(),
+                                local_rho.loVect(),
+                                local_rho.hiVect(),
+                                filtered_rho.dataPtr(),
+                                filtered_rho.loVect(),
+                                filtered_rho.hiVect(),
+                                ncomp);
+
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_rho),
+                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
+
+
                 } else {
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
                                                 BL_TO_FORTRAN_3D(rhofab), ncomp);
@@ -616,6 +662,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
                 Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
+                Box gtbx, gtby, gtbz;
                 
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 
@@ -623,10 +670,26 @@ PhysicalParticleContainer::Evolve (int lev,
                 tby.grow(ngJ);
                 tbz.grow(ngJ);
                 
-                local_jx.resize(tbx);
-                local_jy.resize(tby);
-                local_jz.resize(tbz);
-                
+                if (WarpX::use_filter) {
+
+                    gtbx = tbx;
+                    gtbx.grow(1);
+                    
+                    gtby = tby;
+                    gtby.grow(1);
+
+                    gtbz = tbz;
+                    gtbz.grow(1);
+
+                    local_jx.resize(gtbx);
+                    local_jy.resize(gtby);
+                    local_jz.resize(gtbz);
+                } else {
+                    local_jx.resize(tbx);
+                    local_jy.resize(tby);
+                    local_jz.resize(tbz);
+                }
+
                 local_jx = 0.0;
                 local_jy = 0.0;
                 local_jz = 0.0;
@@ -640,9 +703,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 jzntot = local_jz.length();
 
                 warpx_current_deposition(
-                    jx_ptr, &ngJ, jxntot,
-                    jy_ptr, &ngJ, jyntot,
-                    jz_ptr, &ngJ, jzntot,
+                    jx_ptr, &ngJDeposit, jxntot,
+                    jy_ptr, &ngJDeposit, jyntot,
+                    jz_ptr, &ngJDeposit, jzntot,
                     &np, xp.data(), yp.data(), zp.data(),
                     uxp.data(), uyp.data(), uzp.data(),
                     giv.data(), wp.data(), &this->charge,
@@ -650,21 +713,56 @@ PhysicalParticleContainer::Evolve (int lev,
                     &dt, &dx[0], &dx[1], &dx[2],
                     &WarpX::nox,&WarpX::noy,&WarpX::noz,
                     &lvect,&WarpX::current_deposition_algo);
-                
+
+                BL_PROFILE_VAR_STOP(blp_pxr_cd);
+
+                BL_PROFILE_VAR_START(blp_accumulate);                
+
                 const int ncomp = 1;
-                const Box& jxbox = jxfab.box();
-                const Box& jybox = jyfab.box();
-                const Box& jzbox = jzfab.box();
-
                 if (WarpX::use_filter) {
-                    WRPX_FILTER_AND_ACCUMULATE(local_jx.dataPtr(), local_jx.loVect(), local_jx.hiVect(), 
-                                               jxfab.dataPtr(), jxfab.loVect(), jxfab.hiVect(), ncomp);
 
-                    WRPX_FILTER_AND_ACCUMULATE(local_jy.dataPtr(), local_jy.loVect(), local_jy.hiVect(), 
-                                               jyfab.dataPtr(), jyfab.loVect(), jyfab.hiVect(), ncomp);
+                    filtered_jx.resize(tbx);
+                    filtered_jx = 0.0;
 
-                    WRPX_FILTER_AND_ACCUMULATE(local_jz.dataPtr(), local_jz.loVect(), local_jz.hiVect(), 
-                                               jzfab.dataPtr(), jzfab.loVect(), jzfab.hiVect(), ncomp);
+                    WRPX_FILTER(local_jx.dataPtr(),
+                                local_jx.loVect(),
+                                local_jx.hiVect(),
+                                filtered_jx.dataPtr(),
+                                filtered_jx.loVect(),
+                                filtered_jx.hiVect(),
+                                ncomp);
+
+                    filtered_jy.resize(tby);
+                    filtered_jy = 0.0;
+
+                    WRPX_FILTER(local_jy.dataPtr(),
+                                local_jy.loVect(),
+                                local_jy.hiVect(),
+                                filtered_jy.dataPtr(),
+                                filtered_jy.loVect(),
+                                filtered_jy.hiVect(),
+                                ncomp);
+
+                    filtered_jz.resize(tbz);
+                    filtered_jz = 0.0;
+
+                    WRPX_FILTER(local_jz.dataPtr(),
+                                local_jz.loVect(),
+                                local_jz.hiVect(),
+                                filtered_jz.dataPtr(),
+                                filtered_jz.loVect(),
+                                filtered_jz.hiVect(),
+                                ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jx),
+                                                BL_TO_FORTRAN_3D(jxfab), ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jy),
+                                                BL_TO_FORTRAN_3D(jyfab), ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jz),
+                                                BL_TO_FORTRAN_3D(jzfab), ncomp);
+                    
                 } else {
                     
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
@@ -676,7 +774,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
                                                 BL_TO_FORTRAN_3D(jzfab), ncomp);
                 }
-                BL_PROFILE_VAR_STOP(blp_pxr_cd);
+                BL_PROFILE_VAR_STOP(blp_accumulate);
                 
                 //
                 // copy particle data back

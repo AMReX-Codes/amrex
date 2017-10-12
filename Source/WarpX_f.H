@@ -3,11 +3,11 @@
 
 #if (BL_SPACEDIM == 3)
 
-#define WRPX_COMPUTE_DIVB               warpx_compute_divb_3d
-#define WRPX_COMPUTE_DIVE               warpx_compute_dive_3d
-#define WRPX_SYNC_CURRENT               warpx_sync_current_3d
-#define WRPX_SYNC_RHO                   warpx_sync_rho_3d
-#define WRPX_CLEAN_EVEC                 warpx_clean_evec_3d
+#define WRPX_COMPUTE_DIVB                warpx_compute_divb_3d
+#define WRPX_COMPUTE_DIVE                warpx_compute_dive_3d
+#define WRPX_SYNC_CURRENT                warpx_sync_current_3d
+#define WRPX_SYNC_RHO                    warpx_sync_rho_3d
+#define WRPX_CLEAN_EVEC                  warpx_clean_evec_3d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em3d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em3d_evec
@@ -26,15 +26,15 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
-#define WRPX_FILTER_AND_ACCUMULATE       warpx_filter_and_accumulate_3d
+#define WRPX_FILTER                      warpx_filter_3d
 
 #elif (BL_SPACEDIM == 2)
 
-#define WRPX_COMPUTE_DIVB               warpx_compute_divb_2d
-#define WRPX_COMPUTE_DIVE               warpx_compute_dive_2d
-#define WRPX_SYNC_CURRENT               warpx_sync_current_2d
-#define WRPX_SYNC_RHO                   warpx_sync_rho_2d
-#define WRPX_CLEAN_EVEC                 warpx_clean_evec_2d
+#define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
+#define WRPX_COMPUTE_DIVE                warpx_compute_dive_2d
+#define WRPX_SYNC_CURRENT                warpx_sync_current_2d
+#define WRPX_SYNC_RHO                    warpx_sync_rho_2d
+#define WRPX_CLEAN_EVEC                  warpx_clean_evec_2d
 
 #define WRPX_PXR_PUSH_BVEC               warpx_pxr_push_em2d_bvec
 #define WRPX_PXR_PUSH_EVEC               warpx_pxr_push_em2d_evec
@@ -53,7 +53,7 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
-#define WRPX_FILTER_AND_ACCUMULATE       warpx_filter_and_accumulate_2d
+#define WRPX_FILTER                      warpx_filter_2d
 
 #endif
 
@@ -358,8 +358,8 @@ extern "C"
                            const BL_FORT_FAB_ARG_3D(F),
                            const amrex::Real* dtdx);
     
-    void WRPX_FILTER_AND_ACCUMULATE(const amrex_real*, const int*, const int*,
-                                    amrex_real*, const int*, const int*, int);
+    void WRPX_FILTER(const amrex_real*, const int*, const int*,
+                     amrex_real*, const int*, const int*, int);
 
 #ifdef __cplusplus
 }

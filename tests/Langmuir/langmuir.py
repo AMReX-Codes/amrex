@@ -111,6 +111,8 @@ geometry.is_periodic = "1     1     1"      # Is periodic?
 geometry.prob_lo     = "%7.0e   %7.0e   %7.0e"%(xmin, ymin, zmin)    # physical domain
 geometry.prob_hi     = "%7.0e   %7.0e   %7.0e"%(xmax, ymax, zmax)
 
+warpx.serialize_ics = 1
+
 # Verbosity
 warpx.verbose = 1
 

@@ -1,0 +1,48 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Reviews of Accelerator Science and Technology
+%% Trim Size: 11in x 8.5in
+%% Text Area: 9.25in (include runningheads) x 6.6in
+%% Main Text: 10/13pt
+%% Date:      16-04-2014
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\documentclass[wsdraft]{ws-rast} % to draw visible frames for the text
+%\documentclass[twocolumn]{ws-rast}
+\documentclass[]{report}
+
+\usepackage{bm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{hyperref}
+
+\usepackage[displaymath]{lineno}\usepackage{bm}% bold math
+
+\input{newcommands}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Mesh refinement}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{AMR/AMR.tex}
+
+%%%%%\input{Particle_pushers/Vay_pusher.tex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Boundary conditions}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{PML/PML.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Moving window and optimal Lorentz boosted frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{Boosted_frame/Boosted_frame.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Inputs and outputs}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\input{input_output/input_output.tex}
+
+
+\end{document}
