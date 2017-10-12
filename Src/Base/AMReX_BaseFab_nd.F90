@@ -7,7 +7,7 @@ module basefab_nd_module
 contains
 
   ! dst = src
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_copy')
+  AMREX_LAUNCH subroutine fort_fab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_copy')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
@@ -33,7 +33,7 @@ contains
 
 
   ! copy from multi-d array to 1d array
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) bind(c, name='fort_fab_copytomem')
+  AMREX_LAUNCH subroutine fort_fab_copytomem (lo, hi, dst, src, slo, shi, ncomp) bind(c, name='fort_fab_copytomem')
     use iso_c_binding, only : c_long
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
     integer, intent(in), value :: ncomp
@@ -64,7 +64,7 @@ contains
 
 
   ! copy from 1d array to multi-d array
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) bind(c, name='fort_fab_copyfrommem')
+  AMREX_LAUNCH subroutine fort_fab_copyfrommem (lo, hi, dst, dlo, dhi, ncomp, src) bind(c, name='fort_fab_copyfrommem')
     use iso_c_binding, only : c_long
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
     integer, intent(in), value :: ncomp
@@ -95,7 +95,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) bind(c, name='fort_fab_setval')
+  AMREX_LAUNCH subroutine fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) bind(c, name='fort_fab_setval')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in), value :: val
@@ -120,7 +120,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_norm (lo, hi, src, slo, shi, ncomp, p, nrm) bind(c, name='fort_fab_norm')
+  AMREX_LAUNCH subroutine fort_fab_norm (lo, hi, src, slo, shi, ncomp, p, nrm) bind(c, name='fort_fab_norm')
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
     integer, intent(in), value :: ncomp, p
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -157,7 +157,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_sum(lo, hi, src, slo, shi, ncomp, sm) bind(c, name='fort_fab_sum')
+  AMREX_LAUNCH subroutine fort_fab_sum(lo, hi, src, slo, shi, ncomp, sm) bind(c, name='fort_fab_sum')
     integer, intent(in) :: lo(3), hi(3), slo(3), shi(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -182,7 +182,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_plus')
+  AMREX_LAUNCH subroutine fort_fab_plus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_plus')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -208,7 +208,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_minus')
+  AMREX_LAUNCH subroutine fort_fab_minus(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_minus')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -234,7 +234,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_mult')
+  AMREX_LAUNCH subroutine fort_fab_mult(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_mult')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -260,7 +260,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_divide')
+  AMREX_LAUNCH subroutine fort_fab_divide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_divide')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -286,7 +286,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_protdivide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_protdivide')
+  AMREX_LAUNCH subroutine fort_fab_protdivide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_protdivide')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -314,7 +314,7 @@ contains
 
 
   ! dst = a/src
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_invert(lo, hi, dst, dlo, dhi, ncomp, a) bind(c, name='fort_fab_invert')
+  AMREX_LAUNCH subroutine fort_fab_invert(lo, hi, dst, dlo, dhi, ncomp, a) bind(c, name='fort_fab_invert')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ), value :: a
@@ -338,7 +338,7 @@ contains
 
 
   ! dst += a*src
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_saxpy')
+  AMREX_LAUNCH subroutine fort_fab_saxpy(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_saxpy')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ), value :: a
@@ -365,7 +365,7 @@ contains
 
 
   ! dst = src + a*dst
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_xpay(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_xpay')
+  AMREX_LAUNCH subroutine fort_fab_xpay(lo, hi, dst, dlo, dhi, a, src, slo, shi, sblo, ncomp) bind(c, name='fort_fab_xpay')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ), value :: a
@@ -392,7 +392,7 @@ contains
 
 
   ! dst = a*x + b*y
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_lincomb(lo, hi, dst, dlo, dhi, a, x, xlo, xhi, xblo, &
+  AMREX_LAUNCH subroutine fort_fab_lincomb(lo, hi, dst, dlo, dhi, a, x, xlo, xhi, xblo, &
                                                       b, y, ylo, yhi, yblo, ncomp) bind(c, name='fort_fab_lincomb')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), xlo(3), xhi(3), xblo(3), &
                            ylo(3), yhi(3), yblo(3)
@@ -424,7 +424,7 @@ contains
 
 
   ! dst = dst + src1*src2
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_addproduct(lo, hi, dst, dlo, dhi, src1, s1lo, s1hi, src2, s2lo, s2hi, ncomp) bind(c, name='fort_fab_addproduct')
+  AMREX_LAUNCH subroutine fort_fab_addproduct(lo, hi, dst, dlo, dhi, src1, s1lo, s1hi, src2, s2lo, s2hi, ncomp) bind(c, name='fort_fab_addproduct')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), s1lo(3), s1hi(3), s2lo(3), s2hi(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src1(s1lo(1):s1hi(1),s1lo(2):s1hi(2),s1lo(3):s1hi(3),ncomp)
@@ -449,7 +449,7 @@ contains
 
 
   ! dot_product
-  AMREX_LAUNCH_SUBROUTINE subroutine fort_fab_dot(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp) bind(c, name='fort_fab_dot')
+  AMREX_LAUNCH subroutine fort_fab_dot(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, ncomp, dp) bind(c, name='fort_fab_dot')
     integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)

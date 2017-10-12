@@ -131,7 +131,7 @@ module filcc_module
 
 contains
 
-  AMREX_DEVICE_SUBROUTINE subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+  AMREX_DEVICE subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 
     implicit none
 
