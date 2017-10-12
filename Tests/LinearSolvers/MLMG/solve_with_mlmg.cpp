@@ -51,9 +51,9 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
         mlabec.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoefs));
 
         if (ilev == 0) {
-            mlabec.setBC(0, psoln[0]);
+            mlabec.setDirichletBC(0, *psoln[0]);
         } else {
-            mlabec.setBC(ilev, psoln[ilev], psoln[ilev-1]);            
+            mlabec.setDirichletBC(ilev, *psoln[ilev], psoln[ilev-1]);            
         }
     }
     

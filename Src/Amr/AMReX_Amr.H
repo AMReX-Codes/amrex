@@ -391,7 +391,7 @@ protected:
     //
     std::string      regrid_grids_file;   // Grids file that will bypass regridding.
     std::string      initial_grids_file;  // Grids file that will bypass regridding only at initialization.
-    Vector<std::unique_ptr<AmrLevel> > amr_level;    // Array of levels
+    Vector<std::unique_ptr<AmrLevel> > amr_level;    // Vector of levels
     Real             cumtime;      // Physical time variable.
     Real             start_time;   // Physical time this simulation started.
     Vector<Real>      dt_level;     // Timestep at this level.

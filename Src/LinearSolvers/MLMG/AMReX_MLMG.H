@@ -9,6 +9,8 @@ class MLMG
 {
 public:
 
+    using BCMode = MLLinOp::BCMode;
+
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
@@ -47,9 +49,9 @@ private:
     void oneIter ();
     void miniCycle (int alev);
     void mgCycle ();
-    void computeResidual (int alev, int mlev);
-    void computeResWithCrseSolFineCor (int calev, int falev);
-    void computeResWithCrseCorFineCor (int calev, int falev);
+    void computeResidual (int alev);
+    void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
+    void computeResWithCrseCorFineCor (int crse_amr_lev, int fine_amr_lev);
     void interpCorrection (int alev);
 };
 
