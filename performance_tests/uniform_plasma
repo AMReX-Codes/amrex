@@ -2,7 +2,7 @@
 max_step = 100
 
 # number of grid points
-amr.n_cell =  32 32 32
+amr.n_cell =  64 64 64
 
 amr.plot_int = -1   # How often to write plotfiles.
 
