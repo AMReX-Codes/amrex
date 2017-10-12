@@ -37,6 +37,10 @@ module cuda_module
   type(dim3) :: numBlocks, numThreads
   !$omp threadprivate(numBlocks, numThreads)
 
+  ! The minimum number of threads per dimension
+  type(dim3) :: numThreadsMin = dim3(1,1,1)
+  !$omp threadprivate(numThreadsMin)
+
   ! Implement our own interface to cudaProfilerStart/cudaProfilerStop
   ! since XL does not provide this.
 
@@ -235,10 +239,10 @@ contains
 
     implicit none
 
-    integer, intent(in)       :: lo(AMREX_SPACEDIM), hi(AMREX_SPACEDIM)
+    integer,    intent(in   ) :: lo(AMREX_SPACEDIM), hi(AMREX_SPACEDIM)
     type(dim3), intent(inout) :: numBlocks, numThreads
 
-    integer :: tile_size(AMREX_SPACEDIM), i
+    integer :: tile_size(AMREX_SPACEDIM)
 
     ! Our threading strategy will be to allocate thread blocks
     ! preferring the x direction first to guarantee coalesced accesses.
@@ -247,7 +251,7 @@ contains
 
     if (AMREX_SPACEDIM .eq. 1) then
 
-       numThreads % x = min(tile_size(1), CUDA_MAX_THREADS)
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS))
        numThreads % y = 1
        numThreads % z = 1
 
@@ -257,8 +261,8 @@ contains
 
     else if (AMREX_SPACEDIM .eq. 2) then
 
-       numThreads % x = min(tile_size(1), CUDA_MAX_THREADS)
-       numThreads % y = min(tile_size(2), CUDA_MAX_THREADS / numThreads % x)
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS / numThreadsMin % y))
+       numThreads % y = max(numThreadsMin % y, min(tile_size(2), CUDA_MAX_THREADS / numThreads % x   ))
        numThreads % z = 1
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
@@ -267,9 +271,9 @@ contains
 
     else
 
-       numThreads % x = min(tile_size(1), CUDA_MAX_THREADS)
-       numThreads % y = min(tile_size(2), CUDA_MAX_THREADS / numThreads % x)
-       numThreads % z = min(tile_size(3), CUDA_MAX_THREADS / (numThreads % x * numThreads % y))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z)))
+       numThreads % y = max(numThreadsMin % y, min(tile_size(2), CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z)))
+       numThreads % z = max(numThreadsMin % z, min(tile_size(3), CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   )))
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
        numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
@@ -281,13 +285,17 @@ contains
 
 
 
-  subroutine set_threads_and_blocks(lo, hi) bind(c, name='set_threads_and_blocks')
+  subroutine set_threads_and_blocks(lo, hi, txmin, tymin, tzmin) bind(c, name='set_threads_and_blocks')
 
     use cudafor, only: dim3
 
     implicit none
 
-    integer, intent(in) :: lo(3), hi(3)
+    integer, intent(in) :: lo(3), hi(3), txmin, tymin, tzmin
+
+    numThreadsMin % x = txmin
+    numThreadsMin % y = tymin
+    numThreadsMin % z = tzmin
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
@@ -295,16 +303,21 @@ contains
 
 
 
-  subroutine get_threads_and_blocks(lo, hi, bx, by, bz, tx, ty, tz) bind(c, name='get_threads_and_blocks')
+  subroutine get_threads_and_blocks(lo, hi, bx, by, bz, tx, ty, tz, txmin, tymin, tzmin) bind(c, name='get_threads_and_blocks')
 
     use cudafor, only: dim3
 
     implicit none
 
     integer, intent(in ) :: lo(3), hi(3)
+    integer, intent(in ) :: txmin, tymin, tzmin
     integer, intent(out) :: bx, by, bz, tx, ty, tz
 
     type(dim3) :: numBlocks, numThreads
+
+    numThreadsMin % x = txmin
+    numThreadsMin % y = tymin
+    numThreadsMin % z = tzmin
 
     call threads_and_blocks(lo, hi, numBlocks, numThreads)
 
