@@ -91,7 +91,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
         Vector<MultiFab*> crse {AMREX_D_DECL(&(b[mglev][0]),
                                              &(b[mglev][1]),
                                              &(b[mglev][2]))};
-        IntVect ratio {AMREX_D_DECL(mg_coarsen_ratio, mg_coarsen_ratio, mg_coarsen_ratio)};
+        IntVect ratio {mg_coarsen_ratio};
         amrex::average_down_faces(fine, crse, ratio, 0);
     }
 }
@@ -117,7 +117,7 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
         crse[idim] = &bb[idim];
         fine[idim] = &fine_b_coeffs[idim];
     }
-    IntVect ratio {AMREX_D_DECL(mg_coarsen_ratio, mg_coarsen_ratio, mg_coarsen_ratio)};
+    IntVect ratio {mg_coarsen_ratio};
     amrex::average_down_faces(fine, crse, ratio, 0);
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

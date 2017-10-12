@@ -35,7 +35,6 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
 
     const auto& amrrr = linop.AMRRefRatio();
-
     for (int falev = finest_amr_lev; falev > 0; --falev)
     {
         amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
@@ -117,7 +116,7 @@ MLMG::oneIter ()
     // if converged?
     //    return
 
-    computeResidual(finest_amr_lev, 0);
+    computeResidual(finest_amr_lev);
 
     for (int alev = finest_amr_lev; alev > 0; --alev)
     {
@@ -172,16 +171,16 @@ MLMG::oneIter ()
 }
 
 void
-MLMG::computeResidual (int alev, int mlev)
+MLMG::computeResidual (int alev)
 {
     MultiFab& x = *sol[alev];
     const MultiFab& b = rhs[alev];
-    MultiFab& r = res[alev][mlev];
+    MultiFab& r = res[alev][0];
 
     if (alev > 0) {
-        linop.updateBC(alev, *sol[alev-1]);
+        linop.updateSolBC(alev, *sol[alev-1]);
     }
-    linop.residual(alev, mlev, r, x, b, BCMode::Inhomogeneous);
+    linop.residual(alev, 0, r, x, b, BCMode::Inhomogeneous);
 }
 
 void
@@ -204,8 +203,8 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 
     linop.reflux(calev, crse_res, crse_sol, fine_sol);
 
-    const auto& amrrr = linop.AMRRefRatio();
-    amrex::average_down(fine_res, crse_res, 0, 1, amrrr[calev]);
+    const int amrrr = linop.AMRRefRatio(calev);
+    amrex::average_down(fine_res, crse_res, 0, 1, amrrr);
 }
 
 void
@@ -267,8 +266,8 @@ MLMG::interpCorrection (int alev)
     MultiFab& fine_cor = cor[alev][0];
 
     BoxArray ba = fine_cor.boxArray();
-    const auto& amrrr = linop.AMRRefRatio();
-    IntVect refratio{AMREX_D_DECL(amrrr[alev-1],amrrr[alev-1],amrrr[alev-1]});
+    const int amrrr = linop.AMRRefRatio(alev-1);
+    IntVect refratio{amrrr};
     ba.coarsen(refratio);
     
     MultiFab cfine(ba, fine_cor.DistributionMap(), 1, 0);

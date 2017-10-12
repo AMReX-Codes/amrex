@@ -35,7 +35,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
     m_fluxreg.resize(m_num_amr_levels-1);
 
-    m_macbndry.resize(m_num_amr_levels);
+    m_bndry_sol.resize(m_num_amr_levels);
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -122,9 +122,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
     for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev)
     {
-        const IntVect ratio{AMREX_D_DECL(m_amr_ref_ratio[amrlev],
-                                         m_amr_ref_ratio[amrlev],
-                                         m_amr_ref_ratio[amrlev])};
+        const IntVect ratio{m_amr_ref_ratio[amrlev]};
         m_fluxreg[amrlev].define(m_grids[amrlev+1][0], m_grids[amrlev][0],
                                  m_dmap[amrlev+1][0], m_dmap[amrlev][0],
                                  m_geom[amrlev+1][0], m_geom[amrlev][0],
@@ -133,7 +131,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_macbndry[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
+        m_bndry_sol[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
                                               1, m_geom[amrlev][0]));
     }
 }
@@ -157,22 +155,18 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
 }
 
 void
-MLLinOp::setBC (int amrlev, const MultiFab* bc_data, const MultiFab* crse_bcdata)
+MLLinOp::setDirichletBC (int amrlev, const MultiFab& bc_data, const MultiFab* crse_bcdata)
 {
-    // xxxxx this will make it Dirichlet
+    // this will make it Dirichlet
     BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
                   AMREX_D_DECL(Outflow,Outflow,Outflow)};
 
-    if (bc_data == nullptr && crse_bcdata == nullptr)
-    {   // xxxxx ?????
-        m_macbndry[amrlev]->setHomogValues(phys_bc, IntVect::TheZeroVector());
-    }
-    else if (bc_data && crse_bcdata == nullptr)
+    if (crse_bcdata == nullptr)
     {
         AMREX_ALWAYS_ASSERT(amrlev == 0);
-        m_macbndry[amrlev]->setBndryValues(*bc_data,0,0,1,phys_bc);
+        m_bndry_sol[amrlev]->setBndryValues(bc_data,0,0,1,phys_bc);
     }
-    else if (bc_data && crse_bcdata)
+    else
     {
         const int ncomp = 1;
         const int in_rad = 0;
@@ -180,34 +174,34 @@ MLLinOp::setBC (int amrlev, const MultiFab* bc_data, const MultiFab* crse_bcdata
         const int extent_rad = 2;
         const int crse_ratio = m_amr_ref_ratio[amrlev-1];
 
+        // we could save this. - wqz
         BoxArray cba = m_grids[amrlev][0];
         cba.coarsen(crse_ratio);
         BndryRegister crse_br(cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
-        crse_br.copyFrom(*crse_bcdata, crse_bcdata->nGrow(), 0, 0, ncomp);
+        crse_br.copyFrom(*crse_bcdata, 0, 0, 0, ncomp);
 
-        m_macbndry[amrlev]->setBndryValues(crse_br, 0, *bc_data, 0, 0, ncomp, crse_ratio, phys_bc); 
-    }
-    else
-    {
-        amrex::Abort("MLLinOp::setBC(): don't know what to do");
+        m_bndry_sol[amrlev]->setBndryValues(crse_br, 0, bc_data, 0, 0, ncomp, crse_ratio, phys_bc);
     }
 }
 
 void
-MLLinOp::updateBC (int amrlev, const MultiFab& crse_bcdata)
+MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata)
 {
     AMREX_ALWAYS_ASSERT(amrlev > 0);
+    {
+        const int ncomp = 1;
+        const int in_rad = 0;
+        const int out_rad = 1;
+        const int extent_rad = 2;
+        const int crse_ratio = m_amr_ref_ratio[amrlev-1];
 
-    // xxxxx this will make it Dirichlet
-    BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
-                  AMREX_D_DECL(Outflow,Outflow,Outflow)};
+        // we could save this. - wqz
+        BoxArray cba = m_grids[amrlev][0];
+        cba.coarsen(crse_ratio);
+        BndryRegister crse_br(cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
+        crse_br.copyFrom(crse_bcdata, 0, 0, 0, ncomp);
 
-    static bool first = true;
-    if (first) {
-        if (ParallelDescriptor::IOProcessor()) {
-            amrex::Warning("MLLinOp::updateBC() not implemented");
-        }
-        first = false;
+        m_bndry_sol[amrlev]->updateBndryValues(crse_br, 0, 0, ncomp, crse_ratio);
     }
 }
 
@@ -243,7 +237,7 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const
     const int num_comp = 1;
     const Real* h = m_geom[amrlev][mglev].CellSize();
 
-    const MacBndry& macbndry = *m_macbndry[amrlev];
+    const MacBndry& macbndry = *m_bndry_sol[amrlev];
     BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals = m_maskvals[amrlev][mglev];
 

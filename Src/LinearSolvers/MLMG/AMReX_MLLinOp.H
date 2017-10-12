@@ -31,7 +31,9 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap);
 
-    void setBC (int amrlev, const MultiFab* bcdata=nullptr, const MultiFab* crse_bcdata=nullptr);
+    // bcdata is expected to have one ghost cell filled.
+    // crse_bcdata, if !nullptr, doesn't need to have ghost cells.
+    void setDirichletBC (int amrlev, const MultiFab& bcdata, const MultiFab* crse_bcdata=nullptr);
 
 protected:
 
@@ -57,7 +59,7 @@ protected:
 
     mutable Vector<YAFluxRegister> m_fluxreg;
 
-    Vector<std::unique_ptr<MacBndry> >   m_macbndry;
+    Vector<std::unique_ptr<MacBndry> >   m_bndry_sol;
 
     //
     // functions
@@ -66,14 +68,15 @@ protected:
     int NAMRLevels () const { return m_num_amr_levels; }
     int NMGLevels (int amrlev) const { return m_num_mg_levels[amrlev]; }
     const Vector<int>& AMRRefRatio () const { return m_amr_ref_ratio; }
+    int AMRRefRatio (int amr_lev) const { return m_amr_ref_ratio[amr_lev]; }
+
+    const Geometry& Geom (int amr_lev) const { return m_geom[amr_lev][0]; }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
     // TODO: need a flag to specify Dirichlet/Neumann, ...
 
-    // The provided bcdata are expected to have ghost cells already filled.
-    // Do we need crse_data's ghost cells filled?
-    void updateBC (int amrlev, const MultiFab& crse_bcdata);
+    void updateSolBC (int amrlev, const MultiFab& crse_bcdata);
 
     void residual (int amrlev, int mglev,
                    MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
