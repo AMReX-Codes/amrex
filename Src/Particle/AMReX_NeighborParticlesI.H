@@ -133,7 +133,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 #pragma omp parallel
 #endif
     {
-        std::vector<NeighborTag> tags;
+        Vector<NeighborTag> tags;
         tags.reserve(27);
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
 #ifdef _OPENMP
@@ -159,7 +159,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 if (shrink_box.contains(iv)) continue;
                 
                 // Figure out all our neighbors, removing duplicates
-                //                std::vector<NeighborTag> tags;
                 for (int ii = -nc; ii < nc + 1; ii += nc) {
                     for (int jj = -nc; jj < nc + 1; jj += nc) {
                         for (int kk = -nc; kk < nc + 1; kk += nc) {
