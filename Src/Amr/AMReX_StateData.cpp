@@ -513,7 +513,24 @@ StateData::FillBoundary (FArrayBox&     dest,
             BL_ASSERT(groupsize != 0);
 
 #ifdef AMREX_USE_DEVICE
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+            // Ensure that our threadblock size is at least
+            // one largeer than the number of ghost zones to compute.
+
+            Box dest_box = dest.box();
+            IntVect left = domain.smallEnd() - dest_box.smallEnd();
+            IntVect rght = dest_box.bigEnd() - domain.bigEnd();
+
+            int ng_x = std::max(left[0], rght[0]);
+            int ng_y = std::max(left[1], rght[1]);
+            int ng_z = std::max(left[2], rght[2]);
+
+            Device::setNumThreadsMin(ng_x + 1, ng_y + 1, ng_z + 1);
+#endif
             Device::prepare_for_launch(dest.loVect(), dest.hiVect());
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+            Device::setNumThreadsMin(1, 1, 1);
+#endif
 #endif
 
             if (groupsize+i <= num_comp)
