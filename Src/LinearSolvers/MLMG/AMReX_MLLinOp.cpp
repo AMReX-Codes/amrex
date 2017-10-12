@@ -306,12 +306,14 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
     YAFluxRegister& fluxreg = m_fluxreg[crse_amrlev];
     fluxreg.reset();
 
+    Real dt = 1.0;
+    const Real* crse_dx = m_geom[crse_amrlev  ][0].CellSize();
+    const Real* fine_dx = m_geom[crse_amrlev+1][0].CellSize();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        std::array<Real,AMREX_SPACEDIM> dx{AMREX_D_DECL(1.0,1.0,1.0)};
-        Real dt = 1.0;
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
         std::array<FArrayBox const*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
@@ -324,7 +326,7 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
                 FFlux(crse_amrlev, mfi, flux, crse_sol[mfi]);
-                fluxreg.CrseAdd(mfi, pflux, dx.data(), dt);
+                fluxreg.CrseAdd(mfi, pflux, crse_dx, dt);
             }
         }
 
@@ -338,7 +340,7 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
                 const int face_only = true;
                 FFlux(crse_amrlev+1, mfi, flux, fine_sol[mfi], face_only);
-                fluxreg.FineAdd(mfi, pflux, dx.data(), dt);            
+                fluxreg.FineAdd(mfi, pflux, fine_dx, dt);            
             }
         }
     }

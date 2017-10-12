@@ -162,9 +162,10 @@ MLMG::oneIter ()
         }
     }
 
-    for (int alev = finest_amr_lev; alev > 0; --alev)
+    const auto& amrrr = linop.AMRRefRatio();
+    for (int falev = finest_amr_lev; falev > 0; --falev)
     {
-        // restrict sol[alev] to sol[alev-1]
+        amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
     }
 
     // ...
@@ -216,6 +217,8 @@ MLMG::computeResWithCrseCorFineCor (int calev, int falev)
     MultiFab& fine_cor = cor[falev][0];
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
+
+//    linop.
 
     // interp correction to supply boundary conditions
     // compute residual
