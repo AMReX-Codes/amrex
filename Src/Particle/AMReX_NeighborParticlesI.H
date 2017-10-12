@@ -69,6 +69,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         mask_ptr->FillBoundary(geom.periodicity());
 
         local_neighbors.clear();
+        neighbor_procs.clear();
         for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
             const Box& box = mfi.growntilebox();
             for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
@@ -77,12 +78,12 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 const int proc = this->ParticleDistributionMap(lev)[grid];
                 NeighborCommTag comm_tag(proc, grid, tile);
                 local_neighbors.push_back(comm_tag);
+                neighbor_procs.push_back(proc);
             }
         }
 
-        std::sort(local_neighbors.begin(), local_neighbors.end());
-        auto it = std::unique(local_neighbors.begin(), local_neighbors.end());
-        local_neighbors.erase(it, local_neighbors.end());
+        RemoveDuplicates(local_neighbors);
+        RemoveDuplicates(neighbor_procs);
     };
 }
 
@@ -177,9 +178,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                         }
                     }
                 }
-                std::sort(tags.begin(), tags.end());
-                auto it = std::unique(tags.begin(), tags.end());
-                tags.erase(it, tags.end());
+                RemoveDuplicates(tags);
                 
                 // Add neighbors to buffers
                 for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
