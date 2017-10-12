@@ -125,7 +125,8 @@ public:
     void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
 			 int scsMyId, MPI_Comm scsComm)
 	{ 
-	  // ---- MoveAllFabs should handle this
+	  m_mf.AddProcsToComp(ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
+          // ---- MoveAllFabs should handle this
 	}
 
 private:

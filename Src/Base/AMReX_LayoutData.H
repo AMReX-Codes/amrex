@@ -29,10 +29,9 @@ namespace amrex
         m_data.resize(local_size());
       }
 
-    LayoutData (const LayoutData& rhs) = delete;
-    LayoutData& operator= (const LayoutData& rhs) = delete;
-    LayoutData& operator= (LayoutData&& rhs) = delete;
-
+    LayoutData (const LayoutData& rhs) = default;
+    LayoutData& operator= (const LayoutData& rhs) = default;
+    LayoutData& operator= (LayoutData&& rhs) = default;
     LayoutData (LayoutData&& rhs) = default;
 
     T& operator[](const MFIter& a_mfi)
