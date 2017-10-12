@@ -514,10 +514,7 @@ module filcc_module
 
 contains
 
-#ifdef AMREX_USE_CUDA
-  attributes(device) &
-#endif
-  subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
+  AMREX_DEVICE_SUBROUTINE subroutine filccn(blo, bhi, q, q_lo, q_hi, ncomp, domlo, domhi, dx, xlo, bc)
 
     implicit none
 

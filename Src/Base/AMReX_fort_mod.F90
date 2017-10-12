@@ -39,10 +39,7 @@ contains
     end do
   end function amrex_coarsen_intvect
 
-#ifdef AMREX_USE_CUDA
-  attributes(device) &
-#endif
-  subroutine get_loop_bounds(blo, bhi, lo, hi)
+  AMREX_DEVICE_SUBROUTINE subroutine get_loop_bounds(blo, bhi, lo, hi)
 
     implicit none
 
@@ -73,10 +70,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
-  attributes(device) &
-#endif
-  subroutine amrex_add(x, y)
+  AMREX_DEVICE_SUBROUTINE subroutine amrex_add(x, y)
 
     implicit none
 
@@ -97,10 +91,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
-  attributes(device) &
-#endif
-  subroutine amrex_subtract(x, y)
+  AMREX_DEVICE_SUBROUTINE subroutine amrex_subtract(x, y)
 
     implicit none
 
@@ -121,10 +112,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
-  attributes(device) &
-#endif
-  subroutine amrex_max(x, y)
+  AMREX_DEVICE_SUBROUTINE subroutine amrex_max(x, y)
 
     implicit none
 
@@ -145,10 +133,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
-  attributes(device) &
-#endif
-  subroutine amrex_min(x, y)
+  AMREX_DEVICE_SUBROUTINE subroutine amrex_min(x, y)
 
     implicit none
 
