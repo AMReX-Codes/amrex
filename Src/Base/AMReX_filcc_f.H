@@ -7,10 +7,10 @@
 extern "C" {
 #endif
 
-    void amrex_fab_filcc (amrex_real* q, const int* qlo, const int* qhi, const int* nq,
-                          const int* domlo, const int* domhi,
-                          const amrex_real* dx, const amrex_real* xlo,
-                          const int* bclo);
+    FORT_LAUNCHABLE(void amrex_fab_filcc)(amrex_real* q, const int* qlo, const int* qhi, const int* nq,
+                                          const int* domlo, const int* domhi,
+                                          const amrex_real* dx, const amrex_real* xlo,
+                                          const int* bclo);
 
 #ifdef __cplusplus
 }
