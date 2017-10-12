@@ -3,6 +3,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_Interpolater.H>
+#include <AMReX_MG_F.H>
 
 namespace amrex {
 
@@ -135,7 +136,7 @@ MLMG::oneIter ()
     {    
         // enforce solvability if appropriate
 
-        mgCycle ();
+        mgCycle (0);
 
         MultiFab::Add(*sol[0], cor[0][0], 0, 0, 1, 0);
     }
@@ -195,7 +196,6 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
     
-    // update bc???
     linop.residual(calev, 0, crse_res, crse_sol, crse_rhs, BCMode::Inhomogeneous);
 
     linop.residual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
@@ -241,22 +241,44 @@ MLMG::miniCycle (int alev)
 }
 
 void
-MLMG::mgCycle ()
+MLMG::mgCycle (int mglev)
 {
     const int amrlev = 0;
-    Vector<MultiFab>& xs = cor[amrlev];
-    Vector<MultiFab>& bs = res[amrlev];
-    Vector<MultiFab>& rs = rescor[amrlev];
+    MultiFab& x = cor[amrlev][mglev];
+    MultiFab& b = res[amrlev][mglev];
+    MultiFab& r = rescor[amrlev][mglev];
+    const int nmglevs = linop.NMGLevels(amrlev);
 
-    for (auto& x : xs) x.setVal(0.0);
+    x.setVal(0.0);
 
-    for (int i = 0; i < nu1; ++i) {
-        const int mglev = 0;
-        linop.smooth(amrlev, mglev, xs[mglev], bs[mglev], BCMode::Homogeneous);
+    if (mglev == nmglevs-1)
+    {
+        // bottom solve
+        for (int i = 0; i < nuf; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
     }
+    else
+    {
+        for (int i = 0; i < nu1; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
+        
+        computeResOfCorrection(amrlev, mglev);
 
-    // compute defect 
-    
+        const int refratio = 2;
+        amrex::average_down(r, res[amrlev][mglev+1], 0, 1, refratio);
+
+        for (int i = 0; i < nu0; ++i) {
+            mgCycle(mglev+1);
+        }
+
+        interpCorrection(amrlev, mglev);
+
+        for (int i = 0; i < nu2; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
+    }    
 }
 
 void
@@ -286,5 +308,36 @@ MLMG::interpCorrection (int alev)
     }
 }
 
+void
+MLMG::interpCorrection (int alev, int mglev)
+{
+    const MultiFab& crse_cor = cor[alev][mglev+1];
+    MultiFab&       fine_cor = cor[alev][mglev  ];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(crse_cor,true); mfi.isValid(); ++mfi)
+    {
+        const Box&         bx = mfi.tilebox();
+        const int          nc = fine_cor.nComp();
+        const FArrayBox& cfab = crse_cor[mfi];
+        FArrayBox&       ffab = fine_cor[mfi];
+
+        FORT_INTERP(ffab.dataPtr(),
+                    ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                    cfab.dataPtr(),
+                    ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                    bx.loVect(), bx.hiVect(), &nc);
+    }    
 }
 
+void
+MLMG::computeResOfCorrection (int amrlev, int mglev)
+{
+    MultiFab& x = cor[amrlev][mglev];
+    const MultiFab& b = res[amrlev][mglev];
+    MultiFab& r = rescor[amrlev][mglev];
+    linop.residual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
+}
+
+}

@@ -25,8 +25,10 @@ private:
     int verbose = 1;
     int max_iters = 200;
 
-    int nu1 = 1;
-    
+    int nu0 = 1;   // center
+    int nu1 = 2;   // pre
+    int nu2 = 2;   // post
+    int nuf = 8;   // bottom
 
     MLLinOp& linop;
     int namrlevs;
@@ -48,11 +50,14 @@ private:
 
     void oneIter ();
     void miniCycle (int alev);
-    void mgCycle ();
+    void mgCycle (int mglev);
     void computeResidual (int alev);
     void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
     void computeResWithCrseCorFineCor (int fine_amr_lev);
     void interpCorrection (int alev);
+    void interpCorrection (int alev, int mglev);
+
+    void computeResOfCorrection (int amrlev, int mglev);
 };
 
 }
