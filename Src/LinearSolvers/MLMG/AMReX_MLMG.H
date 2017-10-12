@@ -51,7 +51,7 @@ private:
     void mgCycle ();
     void computeResidual (int alev);
     void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
-    void computeResWithCrseCorFineCor (int crse_amr_lev, int fine_amr_lev);
+    void computeResWithCrseCorFineCor (int fine_amr_lev);
     void interpCorrection (int alev);
 };
 
