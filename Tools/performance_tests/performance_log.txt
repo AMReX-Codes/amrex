@@ -1,0 +1,10 @@
+## year month day run_name n_node n_mpi n_omp time_initialization(s) time_one_iteration(s)
+2017  10  12  uniform_plasma 1 1 1 1.88 0.8232
+2017  10  12  uniform_plasma 1 1 1 1.87 0.8252
+2017  10  12  uniform_plasma 1 1 1 2.01 0.8244
+2017  10  12  uniform_plasma 1 1 2 2.03 0.4371
+2017  10  12  uniform_plasma 1 1 2 1.88 0.4363
+2017  10  12  uniform_plasma 1 1 2 1.95 0.4367
+2017  10  12  uniform_plasma 2 2 1 0.89 0.2157
+2017  10  12  uniform_plasma 2 2 1 0.69 0.2159
+2017  10  12  uniform_plasma 2 2 1 0.65 0.2161
