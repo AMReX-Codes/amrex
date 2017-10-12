@@ -4,7 +4,7 @@ module advance_module
 
 contains
 
-  AMREX_LAUNCH_SUBROUTINE subroutine compute_flux (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir) bind(c, name='compute_flux')
+  AMREX_LAUNCH subroutine compute_flux (lo, hi, phi, p_lo, p_hi, flx, f_lo, f_hi, dx, idir) bind(c, name='compute_flux')
 
     use amrex_fort_module, only: rt => amrex_real, get_loop_bounds
 
@@ -38,7 +38,7 @@ contains
 
 
 
-  AMREX_LAUNCH_SUBROUTINE subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
+  AMREX_LAUNCH subroutine update_phi (lo, hi, phiold, polo, pohi, phinew, pnlo, pnhi, &
                                                  fluxx, fxlo, fxhi, fluxy, fylo, fyhi, dx, dt) bind(c, name='update_phi')
 
     use amrex_fort_module, only: rt => amrex_real, get_loop_bounds
