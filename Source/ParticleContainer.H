@@ -40,8 +40,8 @@ public:
     /// Performs the field gather operation using the input field E, for all the species
     /// in the MultiParticleContainer. This is the electrostatic version of the field gather.
     ///
-    void FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                        const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks);
+    void FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                        const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks);
 
     ///
     /// Performs the field gather operation using the input fields E and B, for all the species
@@ -56,8 +56,8 @@ public:
     /// field solve, and pushing the particles, for all the species in the MultiParticleContainer.
     /// This is the electrostatic version.
     ///
-    void EvolveES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E, 
-                         amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+    void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E, 
+                         amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, 
                    amrex::Real t, amrex::Real dt);
    
     ///
@@ -90,7 +90,7 @@ public:
     /// in the MultiParticleContainer. rho is assumed to contain node-centered multifabs. 
     /// This version is hard-coded for CIC deposition.
     ///
-    void DepositCharge(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, bool local = false);
+    void DepositCharge(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, bool local = false);
 
     ///
     /// This deposits the particle charge onto a node-centered MultiFab and returns a unique ptr
@@ -108,7 +108,7 @@ public:
     void Checkpoint (const std::string& dir,
 		     const std::string& name,
 		     bool is_checkpoint,
-                     const amrex::Array<std::string>& varnames = amrex::Array<std::string>()) const;
+                     const amrex::Vector<std::string>& varnames = amrex::Vector<std::string>()) const;
 
     void Restart (const std::string& dir, const std::string& name);
 
@@ -120,7 +120,7 @@ public:
 
     void Redistribute ();
 
-    amrex::Array<long> NumberOfParticlesInGrid(int lev) const;
+    amrex::Vector<long> NumberOfParticlesInGrid(int lev) const;
 
     void Increment (amrex::MultiFab& mf, int lev);
 
@@ -136,7 +136,7 @@ protected:
 private:
 
     // physical particles (+ laser)
-    amrex::Array<std::unique_ptr<WarpXParticleContainer> > allcontainers;
+    amrex::Vector<std::unique_ptr<WarpXParticleContainer> > allcontainers;
 
     void ReadParameters ();
 

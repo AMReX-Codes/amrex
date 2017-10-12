@@ -16,8 +16,8 @@ public:
 
     virtual void InitData () final;
 
-    virtual void EvolveES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+    virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, 
                            amrex::Real t, amrex::Real dt) { BL_ASSERT(false); }
 
     virtual void Evolve (int lev,
@@ -32,17 +32,17 @@ private:
 
     // runtime paramters
     laser_t                   profile     = laser_t::Null;
-    amrex::Array<amrex::Real> position;
-    amrex::Array<amrex::Real> nvec;
-    amrex::Array<amrex::Real> p_X;
+    amrex::Vector<amrex::Real> position;
+    amrex::Vector<amrex::Real> nvec;
+    amrex::Vector<amrex::Real> p_X;
     long                      pusher_algo = -1;
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               wavelength  = std::numeric_limits<amrex::Real>::quiet_NaN();
 
     // computed using runtime parameters
-    amrex::Array<amrex::Real> p_Y;
-    amrex::Array<amrex::Real> u_X;
-    amrex::Array<amrex::Real> u_Y;
+    amrex::Vector<amrex::Real> p_Y;
+    amrex::Vector<amrex::Real> u_X;
+    amrex::Vector<amrex::Real> u_Y;
     amrex::Real weight   = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real mobility = std::numeric_limits<amrex::Real>::quiet_NaN();
 

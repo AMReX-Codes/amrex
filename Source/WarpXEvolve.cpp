@@ -41,9 +41,9 @@ WarpX::EvolveES(int numsteps) {
 
     // nodal storage for the electrostatic case
     const int num_levels = max_level + 1;
-    Array<std::unique_ptr<MultiFab> > rhoNodal(num_levels);
-    Array<std::unique_ptr<MultiFab> > phiNodal(num_levels); 
-    Array<std::array<std::unique_ptr<MultiFab>, 3> > eFieldNodal(num_levels);  
+    Vector<std::unique_ptr<MultiFab> > rhoNodal(num_levels);
+    Vector<std::unique_ptr<MultiFab> > phiNodal(num_levels); 
+    Vector<std::array<std::unique_ptr<MultiFab>, 3> > eFieldNodal(num_levels);  
     const int ng = 1;
     for (int lev = 0; lev <= max_level; lev++) {
         BoxArray nba = boxArray(lev);
@@ -63,10 +63,6 @@ WarpX::EvolveES(int numsteps) {
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
         
-        if (ParallelDescriptor::NProcs() > 1) {
-            if (okToRegrid(step)) RegridBaseLevel();
-        }
-
         // At initialization, particles have p^{n-1/2} and x^{n-1/2}.           
         // Beyond one step, particles have p^{n-1/2} and x^{n}.        
         if (is_synchronized) {
@@ -174,6 +170,18 @@ WarpX::EvolveEM (int numsteps)
 
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
+
+        if (costs[0] != nullptr)
+        {
+            if (step > 0 && (step-1) % load_balance_int == 0)
+            {
+                LoadBalance();
+            }
+
+            for (int lev = 0; lev <= finest_level; ++lev) {
+                costs[lev]->setVal(0.0);
+            }
+        }
 
         // At the beginning, we have B^{n-1/2} and E^{n-1/2}.
         // Particles have p^{n-1/2} and x^{n-1/2}.
@@ -340,12 +348,17 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
             Bz = Bfield_cp[lev][2].get();
         }
 
+        MultiFab* cost = costs[lev].get();
+        const IntVect& rr = (lev < finestLevel()) ? refRatio(lev) : IntVect::TheUnitVector();
+
         // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi )
         {
+            Real wt = ParallelDescriptor::second();
+
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
@@ -363,6 +376,13 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
                 BL_TO_FORTRAN_3D((*Bz)[mfi]),
                 &dtsdx[0], &dtsdx[1], &dtsdx[2],
                 &norder);
+
+            if (cost) {
+                Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
+                if (ipatch == 1) cbx.refine(rr);
+                wt = (ParallelDescriptor::second() - wt) / cbx.d_numPts();
+                (*cost)[mfi].plus(wt, cbx);
+            }
         }
     }
 
@@ -456,6 +476,9 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
             jz = current_cp[lev][2].get();
             F  = F_cp[lev].get();
         }
+
+        MultiFab* cost = costs[lev].get();
+        const IntVect& rr = (lev < finestLevel()) ? refRatio(lev) : IntVect::TheUnitVector();
         
         // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
@@ -463,6 +486,8 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
 #endif
         for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi )
         {
+            Real wt = ParallelDescriptor::second();
+
             const Box& tex  = mfi.tilebox(Ex_nodal_flag);
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
@@ -494,6 +519,13 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
                                 BL_TO_FORTRAN_3D((*Ez)[mfi]),
                                 BL_TO_FORTRAN_3D((*F)[mfi]),
                                 &dtsdx_c2[0]);
+            }
+
+            if (cost) {
+                Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
+                if (ipatch == 1) cbx.refine(rr);
+                wt = (ParallelDescriptor::second() - wt) / cbx.d_numPts();
+                (*cost)[mfi].plus(wt, cbx);
             }
         }
     }

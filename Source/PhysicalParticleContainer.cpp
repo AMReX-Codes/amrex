@@ -177,8 +177,8 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
 
 void
 PhysicalParticleContainer::
-FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-               const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
+FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+               const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
 {
 
     const int num_levels = E.size();
@@ -346,14 +346,18 @@ PhysicalParticleContainer::FieldGather (int lev,
 
     BL_ASSERT(OnSameGrids(lev,Ex));
 
+    MultiFab* cost = WarpX::getCosts(lev);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-	Array<Real> xp, yp, zp;
+	Vector<Real> xp, yp, zp;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
+            Real wt = ParallelDescriptor::second();
+
 	    const Box& box = pti.validbox();
 
             auto& attribs = pti.GetAttribs();
@@ -410,13 +414,19 @@ PhysicalParticleContainer::FieldGather (int lev,
 	       bzfab.dataPtr(), &ng, bzfab.length(),
 	       &ll4symtry, &l_lower_order_in_v,
 	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
+
+            if (cost) {
+                const Box& tbx = pti.tilebox();
+                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                (*cost)[pti].plus(wt, tbx);
+            }
         }
     }
 }
 
 void
-PhysicalParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
-                                           Array<std::unique_ptr<MultiFab> >& rho,
+PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                                           Vector<std::unique_ptr<MultiFab> >& rho,
                                      Real t, Real dt)
 {
     BL_PROFILE("PPC::EvolveES()");
@@ -492,17 +502,21 @@ PhysicalParticleContainer::Evolve (int lev,
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     BL_ASSERT(OnSameGrids(lev,Ex));
+
+    MultiFab* cost = WarpX::getCosts(lev);
     
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-	Array<Real> xp, yp, zp, giv;
+	Vector<Real> xp, yp, zp, giv;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
         FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
         
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
+            Real wt = ParallelDescriptor::second();
+
 	    const Box& box = pti.validbox();
 
             auto& attribs = pti.GetAttribs();
@@ -782,6 +796,12 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_START(blp_copy);
                 pti.SetPosition(xp, yp, zp);
                 BL_PROFILE_VAR_STOP(blp_copy);
+            }
+
+            if (cost) {
+                const Box& tbx = pti.tilebox();
+                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                (*cost)[pti].plus(wt, tbx);
             }
 	}
     }

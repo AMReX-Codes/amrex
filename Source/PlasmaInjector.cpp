@@ -125,7 +125,7 @@ void RandomPosition::getPositionUnitBox(vec3& r, int i_part){
     r[2] = amrex::Random();
 }
 
-RegularPosition::RegularPosition(const amrex::Array<int>& num_particles_per_cell_each_dim)
+RegularPosition::RegularPosition(const amrex::Vector<int>& num_particles_per_cell_each_dim)
     : _num_particles_per_cell_each_dim(num_particles_per_cell_each_dim)
 {}
 

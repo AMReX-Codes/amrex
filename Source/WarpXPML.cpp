@@ -106,7 +106,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         }
     }
 
-    Array<Real> fac(BL_SPACEDIM);
+    Vector<Real> fac(BL_SPACEDIM);
     for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
         fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(delta*delta));
     }
@@ -120,7 +120,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         int kdim = (idim+2) % BL_SPACEDIM;
 #endif
 
-        Array<int> direct_faces, side_faces, direct_side_edges, side_side_edges, corners;
+        Vector<int> direct_faces, side_faces, direct_side_edges, side_side_edges, corners;
         for (const auto& kv : isects)
         {
             const Box& grid_box = grids[kv.first];
@@ -522,7 +522,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
         bx.grow(ncell);
         bx &= domain;
         
-        Array<Box> bndryboxes;
+        Vector<Box> bndryboxes;
 #if (BL_SPACEDIM == 3)
         int kbegin = -1, kend = 1;
 #else

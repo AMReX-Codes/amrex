@@ -22,27 +22,27 @@ public:
     using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
 
 #if (BL_SPACEDIM == 2)
-    void GetPosition (amrex::Array<amrex::Real>& x,
-                      amrex::Array<amrex::Real>& y,
-                      amrex::Array<amrex::Real>& z) const;
-    void SetPosition (const amrex::Array<amrex::Real>& x,
-                      const amrex::Array<amrex::Real>& y,
-                      const amrex::Array<amrex::Real>& z);
+    void GetPosition (amrex::Vector<amrex::Real>& x,
+                      amrex::Vector<amrex::Real>& y,
+                      amrex::Vector<amrex::Real>& z) const;
+    void SetPosition (const amrex::Vector<amrex::Real>& x,
+                      const amrex::Vector<amrex::Real>& y,
+                      const amrex::Vector<amrex::Real>& z);
 #endif
 
-    const std::array<amrex::Array<amrex::Real>, PIdx::nattribs>& GetAttribs () const { 
+    const std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () const { 
         return GetStructOfArrays().GetRealData(); 
     }
     
-    std::array<amrex::Array<amrex::Real>, PIdx::nattribs>& GetAttribs () { 
+    std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () { 
         return GetStructOfArrays().GetRealData(); 
     }
 
-    const amrex::Array<amrex::Real>& GetAttribs (int comp) const { 
+    const amrex::Vector<amrex::Real>& GetAttribs (int comp) const { 
         return GetStructOfArrays().GetRealData(comp);
     }
     
-    amrex::Array<amrex::Real>& GetAttribs (int comp) { 
+    amrex::Vector<amrex::Real>& GetAttribs (int comp) { 
         return GetStructOfArrays().GetRealData(comp);
     }
 };
@@ -60,15 +60,15 @@ public:
 
     virtual void InitData () = 0;
 
-    virtual void FieldGatherES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) {}
+    virtual void FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                                const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) {}
 
     virtual void FieldGather (int lev,
                               const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                               const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz) {}
 
-    virtual void EvolveES (const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho, 
+    virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
+                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, 
                            amrex::Real t, amrex::Real dt) = 0;
 
     virtual void Evolve (int lev,
@@ -98,7 +98,7 @@ public:
     void PushX (         amrex::Real dt);
     void PushX (int lev, amrex::Real dt);
 
-    void DepositCharge(amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
+    void DepositCharge(amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                        bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
