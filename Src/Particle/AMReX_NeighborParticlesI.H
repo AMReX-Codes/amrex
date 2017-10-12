@@ -78,7 +78,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 const int proc = this->ParticleDistributionMap(lev)[grid];
                 NeighborCommTag comm_tag(proc, grid, tile);
                 local_neighbors.push_back(comm_tag);
-                if (proc != ParallelDescriptor::MyProc() ) {                   
+                if (proc != ParallelDescriptor::MyProc() and grid >= 0) {
                     neighbor_procs.push_back(proc);
                 }
             }
@@ -509,8 +509,8 @@ getRcvCountsMPI(const std::map<int, Vector<char> >& send_data) {
     }
     
     // Send.
-    for (const auto& kv : send_data) {
-        const int Who = kv.first;
+    for (int i = 0; i < num_rcvs; ++i) {
+        const int Who = neighbor_procs[i];
         const long Cnt = 1;
 
         BL_ASSERT(Who >= 0 && Who < NProcs);
@@ -662,8 +662,15 @@ buildNeighborList(int lev, bool sort) {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    {
+
+    Vector<IntVect> cells;
+    Vector<ParticleType> tmp_particles;
+    BaseFab<int> head;
+    Vector<int>  list;
+
     for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
-        
+
         PairIndex index(pti.index(), pti.LocalTileIndex());
         Vector<int>& nl = neighbor_list[index];
         AoS& particles = pti.GetArrayOfStructs();
@@ -672,23 +679,18 @@ buildNeighborList(int lev, bool sort) {
         int Nn = neighbors[index].size() / pdata_size;
         int N = Np + Nn;
 
-        Vector<IntVect> cells(N);
-        Vector<ParticleType> tmp_particles(N);
+        cells.resize(N);
+        tmp_particles.resize(N);
         std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
-
-        for (int i = 0; i < Nn; ++i) {
-            std::memcpy(&tmp_particles[i + Np],
-                        neighbors[index].dataPtr() + i*pdata_size,
-                        pdata_size);
-        }
+        std::memcpy(&tmp_particles[Np], neighbors[index].dataPtr(), Nn*pdata_size); 
 
         // For each cell on this tile, we build linked lists storing the
         // indices of the particles belonging to it.
         Box box = pti.tilebox();
         box.grow(num_neighbor_cells);
-        BaseFab<int> head(box);
+        head.resize(box);
         head.setVal(-1);
-        Vector<int> list(N, -1);
+        list.resize(N, -1);
 
         for (int i = 0; i < N; ++i) {
             const ParticleType& p = tmp_particles[i];
@@ -738,6 +740,7 @@ buildNeighborList(int lev, bool sort) {
             }
         }
     }
+    }
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -753,7 +756,7 @@ buildNeighborListFort(int lev, bool sort) {
     const Geometry& gm  = this->Geom(lev);
     const Real*     plo = gm.ProbLo();
     const Real*     dx  = gm.CellSize();
-    
+
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
