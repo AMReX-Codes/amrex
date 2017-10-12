@@ -338,6 +338,9 @@ ifeq ($(USE_CUDA),TRUE)
 	DEFINES += -DBL_COALESCE_FABS
     endif
 
+    # Maximum number of CUDA threads per block.
+    CUDA_MAX_THREADS ?= 256
+
     CUDASuffix := .CUDA
     DEFINES += -DAMREX_LAUNCH='attributes(global)'
     DEFINES += -DAMREX_DEVICE='attributes(device)'
@@ -563,5 +566,9 @@ ifeq ($(USE_CUDA),TRUE)
         FFLAGS := $(subst cuda8.0,cuda7.5,$(FFLAGS))
       endif
     endif
+
+    # Set the CUDA threads define in case the user updated it.
+
+    DEFINES += -DCUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
 
 endif

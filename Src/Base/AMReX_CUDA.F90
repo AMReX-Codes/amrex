@@ -239,7 +239,6 @@ contains
     type(dim3), intent(inout) :: numBlocks, numThreads
 
     integer :: tile_size(AMREX_SPACEDIM), i
-    integer, parameter :: max_threads = 512
 
     ! Our threading strategy will be to allocate thread blocks
     ! preferring the x direction first to guarantee coalesced accesses.
@@ -248,7 +247,7 @@ contains
 
     if (AMREX_SPACEDIM .eq. 1) then
 
-       numThreads % x = min(tile_size(1), max_threads)
+       numThreads % x = min(tile_size(1), CUDA_MAX_THREADS)
        numThreads % y = 1
        numThreads % z = 1
 
@@ -258,8 +257,8 @@ contains
 
     else if (AMREX_SPACEDIM .eq. 2) then
 
-       numThreads % x = min(tile_size(1), max_threads)
-       numThreads % y = min(tile_size(2), max_threads / numThreads % x)
+       numThreads % x = min(tile_size(1), CUDA_MAX_THREADS)
+       numThreads % y = min(tile_size(2), CUDA_MAX_THREADS / numThreads % x)
        numThreads % z = 1
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
@@ -268,9 +267,9 @@ contains
 
     else
 
-       numThreads % x = min(tile_size(1), max_threads)
-       numThreads % y = min(tile_size(2), max_threads / numThreads % x)
-       numThreads % z = min(tile_size(3), max_threads / (numThreads % x * numThreads % y))
+       numThreads % x = min(tile_size(1), CUDA_MAX_THREADS)
+       numThreads % y = min(tile_size(2), CUDA_MAX_THREADS / numThreads % x)
+       numThreads % z = min(tile_size(3), CUDA_MAX_THREADS / (numThreads % x * numThreads % y))
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
        numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
