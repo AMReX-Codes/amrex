@@ -111,10 +111,28 @@ public:
                                  const IntVect&  ratio, 
                                  const BCRec&    phys_bc,
                                  int             max_order = IBD_max_order_DEF);
+
+    void updateBndryValues (BndryRegister& crse, int c_start, int bnd_start, int num_comp,
+                            const IntVect& ratio, int max_order = IBD_max_order_DEF);
+
+    void updateBndryValues (BndryRegister& crse, int c_start, int bnd_start, int num_comp,
+                            int ratio, int max_order = IBD_max_order_DEF);
     
     static int IBD_max_order_DEF;
 
     static int maxOrderDEF() {return IBD_max_order_DEF;}
+
+private:
+
+    void BndryValuesDoIt (BndryRegister&  crse,
+                          int             c_start,
+                          const MultiFab* fine,
+                          int             f_start,
+                          int             bnd_start,
+                          int             num_comp,
+                          const IntVect&  ratio, 
+                          const BCRec*    phys_bc,
+                          int             max_order);
 };
 
 }
