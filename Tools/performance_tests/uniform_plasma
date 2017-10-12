@@ -1,0 +1,57 @@
+# Maximum number of time steps
+max_step = 100
+
+# number of grid points
+amr.n_cell =  64 64 64
+
+amr.plot_int = -1   # How often to write plotfiles.
+
+# Maximum allowable size of each subdomain in the problem domain;
+#    this is used to decompose the domain for parallel calculations.
+amr.max_grid_size = 32
+
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+amr.max_level = 0
+particles.nspecies = 2
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1     1     1      # Is periodic?
+geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
+geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
+
+# Verbosity
+warpx.verbose = 1
+
+# Algorithms
+algo.current_deposition = 0
+algo.charge_deposition = 0
+algo.field_gathering = 0
+algo.particle_pusher = 0
+
+# CFL
+warpx.cfl = 1.0
+
+particles.nspecies = 2
+particles.species_names = electrons H_ions
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = "NDiagPerCell"
+electrons.num_particles_per_cell = 1
+electrons.profile = constant
+electrons.density = 1.e25  # number of electrons per m^3
+electrons.momentum_distribution_type = "gaussian"
+electrons.u_th  = 0.01 # uth the std of the (unitless) momentum
+electrons.uz_m  = 10.  # Mean momentum along z (unitless)
+
+H_ions.charge = q_e
+H_ions.mass = m_p
+H_ions.injection_style = "NDiagPerCell"
+H_ions.num_particles_per_cell = 1
+H_ions.profile = constant
+H_ions.density = 1.e25  # number of H_ions per m^3
+H_ions.momentum_distribution_type = "gaussian"
+H_ions.u_th  = 0.01 # uth the std of the (unitless) momentum
+H_ions.uz_m  = 10.  # Mean momentum along z (unitless)
+
