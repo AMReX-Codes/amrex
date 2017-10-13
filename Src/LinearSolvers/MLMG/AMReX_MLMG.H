@@ -11,7 +11,9 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class Cycle : int { smoother = 0, Vcycle = 1, Wcycle = 2, Fcycle = 3 };
+    enum class Cycle : int { Vcycle = 0, Wcycle = 1, Fcycle = 2 };
+
+    enum class BottomSolver : int { smoother = 0, bicgstab = 1, cg = 2, cabicgstab = 3 };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -29,7 +31,9 @@ public:
     void setFinalSmooth (int n) { nuf = n; }
     void setBottomSmooth (int n) { nub = n; }
 
-    void setBottomSolver (Cycle c) { cycle_type = c; }
+    void setCycle (Cycle c) { cycle_type = c; }
+
+    void setBottomSolver (BottomSolver s) { bottom_solver = s; }
 
 private:
 
@@ -44,6 +48,8 @@ private:
     int nub = 0;   // aditional smoothing after bottom cg solver
     
     Cycle cycle_type = Cycle::Vcycle;
+
+    BottomSolver bottom_solver = BottomSolver::smoother;
 
     MLLinOp& linop;
     int namrlevs;
@@ -64,8 +70,14 @@ private:
     Vector<MultiFab> cor_hold;
 
     void oneIter (int iter);
+
     void miniCycle (int alev);
-    void mgCycle (int mglev);
+    void mgCycle ();
+
+    void mgVcycle (int amrlev, int mglev);
+
+    void bottomSolve ();
+
     void computeResidual (int alev);
     void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
     void computeResWithCrseCorFineCor (int fine_amr_lev);

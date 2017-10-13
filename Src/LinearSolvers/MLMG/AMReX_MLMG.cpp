@@ -133,7 +133,7 @@ MLMG::oneIter (int iter)
     {    
         // enforce solvability if appropriate
 
-        mgCycle (0);
+        mgCycle ();
 
         MultiFab::Add(*sol[0], cor[0][0], 0, 0, 1, 0);
     }
@@ -227,39 +227,52 @@ MLMG::computeResWithCrseCorFineCor (int falev)
 }
 
 void
-MLMG::miniCycle (int alev)
+MLMG::miniCycle (int amrlev)
 {
-    Vector<MultiFab>& xs = cor[alev];
-    Vector<MultiFab>& bs = res[alev];
-    Vector<MultiFab>& rs = rescor[alev];
-
-    for (auto& x : xs) x.setVal(0.0);
-
-    for (int i = 0; i < nu1; ++i) {
-        int mglev = 0;
-        linop.smooth(alev, mglev, xs[mglev], bs[mglev], BCMode::Homogeneous);
-    }
-
-    // for ref ratio of 4 ...
-    
+    const int mglev = 0;
+    mgVcycle(amrlev, mglev);
 }
 
 void
-MLMG::mgCycle (int mglev)
+MLMG::mgCycle ()
 {
     const int amrlev = 0;
+    const int mglev = 0;
+    if (cycle_type == Cycle::Vcycle)
+    {
+        mgVcycle (amrlev, mglev);
+    }
+    else if (cycle_type == Cycle::Wcycle)
+    {
+        amrex::Abort("not implemented");
+    }
+    else if (cycle_type == Cycle::Fcycle)
+    {
+        amrex::Abort("not implemented");
+    }
+}
+
+void
+MLMG::mgVcycle (int amrlev, int mglev)
+{
     MultiFab& x = cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
-    const int nmglevs = linop.NMGLevels(amrlev);
+    const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
 
     x.setVal(0.0);
 
-    if (mglev == nmglevs-1)
+    if (mglev == mg_bottom_lev)
     {
-        // bottom solve
-        for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        if (amrlev == 0)
+        {
+            bottomSolve ();
+        }
+        else
+        {
+            for (int i = 0; i < nuf; ++i) {
+                linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+            }
         }
     }
     else
@@ -274,7 +287,7 @@ MLMG::mgCycle (int mglev)
         amrex::average_down(r, res[amrlev][mglev+1], 0, 1, refratio);
 
         for (int i = 0; i < nu0; ++i) {
-            mgCycle(mglev+1);
+            mgVcycle(amrlev, mglev+1);
         }
 
         interpCorrection(amrlev, mglev);
@@ -342,6 +355,41 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
     linop.residual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
+}
+
+void
+MLMG::bottomSolve ()
+{
+    const int amrlev = 0;
+    const int mglev = linop.NMGLevels(amrlev) - 1;
+    MultiFab& x = cor[amrlev][mglev];
+    MultiFab& b = res[amrlev][mglev];
+    
+    if (bottom_solver == BottomSolver::smoother)
+    {
+        for (int i = 0; i < nuf; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
+    }
+    else
+    {
+        if (bottom_solver == BottomSolver::bicgstab)
+        {
+            amrex::Abort("MLMG:: bicgstab not implemented");
+        }
+        else if (bottom_solver == BottomSolver::cg)
+        {
+            amrex::Abort("MLMG:: cg not implemented");
+        }
+        else if (bottom_solver == BottomSolver::cabicgstab)
+        {
+            amrex::Abort("MLMG:: cabicgstab not implemented");
+        }
+
+        for (int i = 0; i < nub; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
+    }
 }
 
 }
