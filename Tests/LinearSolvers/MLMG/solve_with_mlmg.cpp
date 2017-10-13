@@ -3,14 +3,15 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_ParmParse.H>
 
 #include <prob_par.H>
 
 using namespace amrex;
 
-namespace my {
-    extern int max_iter;
-    extern int verbose;
+namespace {
+    static int max_iter = 100;
+    static int verbose  = 2;
 }
 
 void solve_with_mlmg (const Vector<Geometry>& geom,
@@ -18,6 +19,12 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
                       Vector<MultiFab>& rhs)
 {
+    {
+        ParmParse pp;
+        pp.query("max_iter", max_iter);
+        pp.query("verbose", verbose);
+    }
+
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
 
@@ -63,8 +70,8 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     }
     
     MLMG mlmg(mlabec);
-    mlmg.setMaxIter(my::max_iter);
-    mlmg.setVerbose(my::verbose);
+    mlmg.setMaxIter(max_iter);
+    mlmg.setVerbose(verbose);
     mlmg.solve(psoln, prhs, tol_rel, tol_abs);
 }
 

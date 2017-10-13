@@ -11,6 +11,8 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
+    enum class Cycle : int { smoother = 0, Vcycle = 1, Wcycle = 2, Fcycle = 3 };
+
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
@@ -18,17 +20,30 @@ public:
                 Real a_tol_real, Real a_tol_abs);
 
     void setVerbose (int v) { verbose = v; }
-    void setMaxIter (int i) { max_iters = i; }
+    void setMaxIter (int n) { max_iters = n; }
+    void setFixedIter (int nit) { do_fixed_number_of_iters = nit; }
+
+    void setPreSmooth (int n) { nu1 = n; }
+    void setPostSmooth (int n) { nu2 = n; }
+    void setCtrRelax (int n) { nu0 = n; }
+    void setFinalSmooth (int n) { nuf = n; }
+    void setBottomSmooth (int n) { nub = n; }
+
+    void setBottomSolver (Cycle c) { cycle_type = c; }
 
 private:
 
     int verbose = 1;
     int max_iters = 200;
+    int do_fixed_number_of_iters = 0;
 
     int nu0 = 1;   // center
     int nu1 = 2;   // pre
     int nu2 = 2;   // post
-    int nuf = 8;   // bottom
+    int nuf = 8;   // when smoother is used as bottom solver
+    int nub = 0;   // aditional smoothing after bottom cg solver
+    
+    Cycle cycle_type = Cycle::Vcycle;
 
     MLLinOp& linop;
     int namrlevs;
@@ -48,7 +63,7 @@ private:
 
     Vector<MultiFab> cor_hold;
 
-    void oneIter ();
+    void oneIter (int iter);
     void miniCycle (int alev);
     void mgCycle (int mglev);
     void computeResidual (int alev);
