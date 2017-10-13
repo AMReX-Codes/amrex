@@ -225,13 +225,13 @@ The following example illustrates how to use the \sphereif\ class to define a \g
   Box domain(IntVect::Zero, (nx-1)*IntVect::Unit);
   Real dx = 1.0/nx;
   Real radius = 0.1;
-  Real center = 0.5*RealVect::Unit;
+  RealVect center = 0.5*RealVect::Unit;
   bool insideRegular = false;
   //this is the implicit function
   SphereIF sphere(radius, center, insideRegular);
 
   //this is worker object that creates geometric information given an IF
-  GeometryShop workshop(sideImpMultisphere)
+  GeometryShop workshop(sphere)
 
   //this is the global, distributed database being initialized
   EBIndexSpace*  ebis = AMReX_EBIS::instance()
