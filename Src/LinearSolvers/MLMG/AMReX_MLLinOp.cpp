@@ -6,7 +6,6 @@ namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
-constexpr int MLLinOp::maxorder;
 
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,

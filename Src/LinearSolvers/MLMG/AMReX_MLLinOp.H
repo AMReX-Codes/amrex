@@ -35,11 +35,14 @@ public:
     // crse_bcdata, if !nullptr, doesn't need to have ghost cells.
     void setDirichletBC (int amrlev, const MultiFab& bcdata, const MultiFab* crse_bcdata=nullptr);
 
+    void setMaxOrder (int o) { maxorder = o; }
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
-    static constexpr int maxorder = 2;
+
+    int maxorder = 2;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
