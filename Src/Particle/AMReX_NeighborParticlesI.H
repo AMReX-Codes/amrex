@@ -136,7 +136,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 #endif
     {
         Vector<NeighborTag> tags;
-        tags.reserve(27);
+        tags.reserve(AMREX_D_TERM(3, *3, *3));            
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
 #ifdef _OPENMP
             int thread_num = omp_get_thread_num();
@@ -161,10 +161,11 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 if (shrink_box.contains(iv)) continue;
                 
                 // Figure out all our neighbors, removing duplicates
-                for (int ii = -nc; ii < nc + 1; ii += nc) {
-                    for (int jj = -nc; jj < nc + 1; jj += nc) {
-                        for (int kk = -nc; kk < nc + 1; kk += nc) {
-                            if ((ii == 0) and (jj == 0) and (kk == 0)) continue;
+                AMREX_D_TERM(
+                for (int ii = -nc; ii < nc + 1; ii += nc) {,
+                    for (int jj = -nc; jj < nc + 1; jj += nc) {,
+                        for (int kk = -nc; kk < nc + 1; kk += nc) {)
+                            if (AMREX_D_TERM((ii == 0), and (jj == 0), and (kk == 0))) continue;
                             IntVect shift(AMREX_D_DECL(ii, jj, kk));
                             IntVect neighbor_cell = iv + shift;
                             const NeighborTag& tag = getNeighborTag(lev,
@@ -176,9 +177,11 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                                 (tag.periodic_shift[1] == 0) and
                                 (tag.periodic_shift[2] == 0)) continue;
                             tags.push_back(tag);
-                        }
-                    }
-                }
+                AMREX_D_TERM(
+                         },
+                    },
+                })
+                    
                 RemoveDuplicates(tags);
                 
                 // Add neighbors to buffers
