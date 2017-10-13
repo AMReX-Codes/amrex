@@ -236,6 +236,9 @@ contains
   subroutine threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     use cudafor, only: dim3
+#ifdef BL_USE_F_BASELIB
+    use bl_error_module, only: bl_error
+#endif
 
     implicit none
 
@@ -280,6 +283,12 @@ contains
        numBlocks % z = (tile_size(3) + numThreads % z - 1) / numThreads % z
 
     endif
+
+    ! Sanity check: should not exceed CUDA_MAX_THREADS.
+
+    if (numThreads % x * numThreads % y * numThreads % z > CUDA_MAX_THREADS) then
+       call bl_error("Too many CUDA threads requested compared to CUDA_MAX_THREADS.")
+    end if
 
   end subroutine threads_and_blocks
 
