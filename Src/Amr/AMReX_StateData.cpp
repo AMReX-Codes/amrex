@@ -514,18 +514,32 @@ StateData::FillBoundary (FArrayBox&     dest,
 
 #ifdef AMREX_USE_DEVICE
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
-            // Ensure that our threadblock size is at least
-            // one largeer than the number of ghost zones to compute.
+            // Ensure that our threadblock size is such that it is
+            // evenly divisible by the number of zones in the box,
+            // and is at least one larger than the number of ghost zones.
+            // This ensures that the corners plus one interior zone
+            // are all on the same threadblock.
 
-            Box dest_box = dest.box();
-            IntVect left = domain.smallEnd() - dest_box.smallEnd();
-            IntVect rght = dest_box.bigEnd() - domain.bigEnd();
+            const Box dest_box = dest.box();
 
-            int ng_x = std::max(left[0], rght[0]);
-            int ng_y = std::max(left[1], rght[1]);
-            int ng_z = std::max(left[2], rght[2]);
+            const IntVect left = domain.smallEnd() - dest_box.smallEnd();
+            const IntVect rght = dest_box.bigEnd() - domain.bigEnd();
 
-            Device::setNumThreadsMin(ng_x + 1, ng_y + 1, ng_z + 1);
+            int ng[3] = {0, 0, 0};
+
+            for (int n = 0; n < BL_SPACEDIM; ++n)
+                ng[n] = std::max(left[n], rght[n]);
+
+            const IntVect size = dest_box.size();
+            IntVect numThreadsMin(ng[0] + 1, ng[1] + 1, ng[2] + 1);
+
+            for (int n = 0; n < BL_SPACEDIM; ++n) {
+                while (size[n] % numThreadsMin[n] != 0) {
+                    ++numThreadsMin[n];
+                }
+            }
+
+            Device::setNumThreadsMin(numThreadsMin[0], numThreadsMin[1], numThreadsMin[2]);
 #endif
             Device::prepare_for_launch(dest.loVect(), dest.hiVect());
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
