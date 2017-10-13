@@ -18,7 +18,7 @@ public:
                 Real a_tol_real, Real a_tol_abs);
 
     void setVerbose (int v) { verbose = v; }
-    void setMaxIters (int i) { max_iters = i; }
+    void setMaxIter (int i) { max_iters = i; }
 
 private:
 
