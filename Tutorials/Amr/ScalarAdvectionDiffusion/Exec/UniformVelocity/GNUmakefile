@@ -1,13 +1,13 @@
 AMREX_HOME ?= ../../../../..
-
+USE_EB = FALSE
 PRECISION  = DOUBLE
 PROFILE    = FALSE
 
 DEBUG      = TRUE
 DEBUG      = FALSE
 
-DIM        = 2
-#DIM       = 3
+#DIM        = 2
+DIM       = 3
 
 COMP	   = gnu
 

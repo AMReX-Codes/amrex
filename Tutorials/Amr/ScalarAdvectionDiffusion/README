@@ -1,5 +1,9 @@
 Advection_AmrLevel: This tutorial contains an AMR scalar advection/diffusion code that advects 
-and diffuses a single scalar field.  The velocity field that is specified on faces and 
+and diffuses a single scalar field.  The diffusion is done explcitly so this will only be stable
+if the diffusion constant is small (dt_diff = h^2/nu, dt_hyp = h/v_max---need dt_diff >= dt_hyp.
+This means that the diffusion constant less than the finest grid spacing scaled by the fastest 
+wave speed (nu < h*vmax )).
+The velocity field that is specified on faces and 
 the diffusion coefficient is constant.
 
 It is an AMReX based code designed to run in parallel using MPI/OMP.

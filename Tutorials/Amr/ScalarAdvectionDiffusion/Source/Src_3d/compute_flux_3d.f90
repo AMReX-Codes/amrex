@@ -4,11 +4,11 @@ module compute_flux_module
 
   private
 
-  public :: compute_flux_3d
+  public :: godunov_flux_3d
 
 contains
 
-  subroutine compute_flux_3d(lo, hi, dt, dx, &
+  subroutine godunov_flux_3d(lo, hi, dt, dx, &
                              phi,ph_lo,ph_hi, &
                              umac,  u_lo,  u_hi, &
                              vmac,  v_lo,  v_hi, &

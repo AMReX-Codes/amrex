@@ -1,17 +1,17 @@
 
-subroutine advect(time, lo, hi, &
+subroutine advectDiffGodunov(time, lo, hi, &
      &            uin , ui_lo, ui_hi, &
-     &            uout, uo_lo, uo_hi, &
+     &            dphdtout, uo_lo, uo_hi, &
      &            vx  , vx_lo, vx_hi, &
      &            vy  , vy_lo, vy_hi, &
      &            vz  , vz_lo, vz_hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
      &            flxz, fz_lo, fz_hi, &
-     &            dx,dt) bind(C, name="advect")
+     &            dx,dt) bind(C, name="advectDiffGodunov")
   
   use mempool_module, only : bl_allocate, bl_deallocate
-  use compute_flux_module, only : compute_flux_3d
+  use compute_flux_module, only : godunov_flux_3d
 
   implicit none
 
@@ -26,7 +26,7 @@ subroutine advect(time, lo, hi, &
   integer, intent(in) :: fy_lo(3), fy_hi(3)
   integer, intent(in) :: fz_lo(3), fz_hi(3)
   double precision, intent(in   ) :: uin (ui_lo(1):ui_hi(1),ui_lo(2):ui_hi(2),ui_lo(3):ui_hi(3))
-  double precision, intent(inout) :: uout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2),uo_lo(3):uo_hi(3))
+  double precision, intent(inout) :: dphdtout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2),uo_lo(3):uo_hi(3))
   double precision, intent(in   ) :: vx  (vx_lo(1):vx_hi(1),vx_lo(2):vx_hi(2),vx_lo(3):vx_hi(3))
   double precision, intent(in   ) :: vy  (vy_lo(1):vy_hi(1),vy_lo(2):vy_hi(2),vy_lo(3):vy_hi(3))
   double precision, intent(in   ) :: vz  (vz_lo(1):vz_hi(1),vz_lo(2):vz_hi(2),vz_lo(3):vz_hi(3))
@@ -36,13 +36,12 @@ subroutine advect(time, lo, hi, &
 
   integer :: i, j, k
   integer :: glo(3), ghi(3)
-  double precision :: dtdx(3), umax, vmax, wmax
+  double precision ::  umax, vmax, wmax
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:,:), pointer, contiguous :: &
        phix, phix_y, phix_z, phiy, phiy_x, phiy_z, phiz, phiz_x, phiz_y, slope
 
-  dtdx = dt/dx
 
   glo = lo - 1
   ghi = hi + 1
@@ -79,7 +78,7 @@ subroutine advect(time, lo, hi, &
   end if
 
   ! call a function to compute flux
-  call compute_flux_3d(lo, hi, dt, dx, &
+  call godunov_flux_3d(lo, hi, dt, dx, &
                        uin, ui_lo, ui_hi, &
                        vx, vx_lo, vx_hi, &
                        vy, vy_lo, vy_hi, &
@@ -96,15 +95,17 @@ subroutine advect(time, lo, hi, &
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
-           uout(i,j,k) = uin(i,j,k) + &
-                ( (flxx(i,j,k) - flxx(i+1,j,k)) * dtdx(1) &
-                + (flxy(i,j,k) - flxy(i,j+1,k)) * dtdx(2) &
-                + (flxz(i,j,k) - flxz(i,j,k+1)) * dtdx(3) )
+           !notice that some evil bastard has reversed the flux difference
+           ! rather than just put a negative sign out front.
+           dphdtout(i,j,k) =  &
+                ( (flxx(i,j,k) - flxx(i+1,j  ,k  )) /dx(1) &
+                + (flxy(i,j,k) - flxy(i  ,j+1,k  )) /dx(2) &
+                + (flxz(i,j,k) - flxz(i  ,j,  k+1)) /dx(3) )
         enddo
      enddo
   enddo
 
-  ! Scale by face area in order to correctly reflx
+  ! Scale by face area in order to correctly reflux because flux register is pretty stupid
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)+1
