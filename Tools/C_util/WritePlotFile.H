@@ -15,11 +15,11 @@ writePlotFile (const char*               name,
 	       const Geometry&           geom,
 	       const IntVect&            refRatio,
 	       Real                      bgVal,
-               const Array<std::string>& names);
+               const Vector<std::string>& names);
 
 // Write an array of multifabs pulling all the data from the AmrData
 void
-WritePlotFile(const Array<MultiFab*> mfa,
+WritePlotFile(const Vector<MultiFab*> mfa,
 	      AmrData&               amrdToMimic,
 	      const std::string&     oFile,
 	      bool                   verbose);

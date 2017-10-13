@@ -125,7 +125,7 @@ main (int   argc,
     //
     // Compute the error
     //
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
@@ -207,7 +207,7 @@ finestLevelCoveringDomain(const AmrData& amr_data)
     // Find the finest level covering the entire domain.  Return
     // -1 if there isn't one suitable
     int finest_level = amr_data.FinestLevel();
-    const Array<Box>& domain_array = amr_data.ProbDomain();
+    const Vector<Box>& domain_array = amr_data.ProbDomain();
 
     for (int iLevel=finest_level; iLevel>=0; --iLevel)
     {
@@ -228,7 +228,7 @@ getRefRatio(const Box& crse,
     // Compute refinement ratio between crse and fine boxes, return invalid
     // IntVect if there is none suitable
     ParmParse pp("");
-    Array<int> rr_in(BL_SPACEDIM,-1);
+    Vector<int> rr_in(BL_SPACEDIM,-1);
     int Nrr = 0;
     Nrr = pp.countval("ref_ratio",Nrr);
     BL_ASSERT(Nrr==0 || Nrr==BL_SPACEDIM || Nrr==1);
@@ -254,8 +254,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<std::string>& derives1 = amrd1.PlotVarNames();
-    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    const Vector<std::string>& derives1 = amrd1.PlotVarNames();
+    const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
 	return false;

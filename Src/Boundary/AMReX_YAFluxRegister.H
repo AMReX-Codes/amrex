@@ -47,6 +47,14 @@ public:
 
     void Reflux (MultiFab& state);
 
+    bool CrseHasWork (const MFIter& mfi) const {
+        return m_crse_fab_flag[mfi.LocalIndex()] != crse_cell;
+    }
+
+    bool FineHasWork (const MFIter& mfi) const {
+        return !(m_cfp_fab[mfi.LocalIndex()].empty());
+    }
+
     enum {
         crse_cell = 0, crse_fine_boundary_cell, fine_cell
     };

@@ -11,6 +11,7 @@
 #include <AMReX_BoundCond.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Tuple.H>
+#include <AMReX_LayoutData.H>
 
 #include <memory>
 #include <map>
@@ -95,12 +96,14 @@ public:
     * RealTuple is indexed with Orientation.
     */
     const RealTuple& bndryLocs (int igrid) const;
+    const RealTuple& bndryLocs (const MFIter& mfi) const;
 
     /**
     * \brief Return boundary type specifier on given face for grids we own.
     * It's an error if we don't own that grid.
     */
     const Vector< Vector<BoundCond> >& bndryConds (int igrid) const;
+    const Vector< Vector<BoundCond> >& bndryConds (const MFIter& mfi) const;
 
     //! return number of components for which this object is intended
     int nComp () const { return m_ncomp; }
@@ -120,9 +123,18 @@ public:
                        int              comp,
                        const BoundCond& bcn);
 
+    void setBoundCond (Orientation     face,
+                       const MFIter&    mfi,
+                       int              comp,
+                       const BoundCond& bcn);
+
     //! set boundary location for given orientation on nth grid
     void setBoundLoc (Orientation face,
                       int         n,
+                      Real        val);
+
+    void setBoundLoc (Orientation face,
+                      const MFIter& mfi,
                       Real        val);
 
     //! implement public access to const BndryRegister::operator[]
@@ -139,9 +151,9 @@ protected:
     * \brief Map of boundary condition type specifiers.
     * The outer Array dimension is over Orientation.
     */
-    std::map< int, Vector< Vector<BoundCond> > > bcond;
+    LayoutData<Vector< Vector<BoundCond> > > bcond;
 
-    std::map<int,RealTuple> bcloc;
+    LayoutData<RealTuple> bcloc;
     //! Boundary condition mask
     Vector<MultiMask> masks;
     //! Domain used for mask definitions.

@@ -95,7 +95,7 @@ void NeighborListParticleContainer::computeForcesNL() {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+    for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();

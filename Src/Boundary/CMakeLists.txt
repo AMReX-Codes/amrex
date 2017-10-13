@@ -16,6 +16,9 @@ list ( APPEND ALLHEADERS AMReX_BoundCond.H AMReX_LO_BCTYPES.H )
 list ( APPEND ALLHEADERS AMReX_INTERPBNDRYDATA_F.H )
 list ( APPEND F77SRC     AMReX_INTERPBNDRYDATA_${DIM}D.F AMReX_LO_UTIL.F )
 
+list ( APPEND ALLHEADERS AMReX_YAFluxRegister.H   AMReX_YAFluxRegister_F.H )
+list ( APPEND CXXSRC     AMReX_YAFluxRegister.cpp )
+list ( APPEND F90SRC     AMReX_YAFluxRegister_${DIM}d.F90 )
 
 # 
 # Accumulate sources
