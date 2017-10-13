@@ -593,8 +593,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             //this tile is the subset of the box over which we are computing
             const Box& bx = mfi.tilebox();
 
-            //because we have compiled with AMREX_USE=EB_TRUE, the
-            //MultiFab holds EBFArrayBox(es) so we can do this cast
+            //because S was created with the EBFArrayBoxFactory, we can do this cast
             const EBFArrayBox& sfab
                 = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             
