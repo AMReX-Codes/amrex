@@ -14,9 +14,9 @@
 
 void
 ComputeAmrDataNorms (AmrData&     amrData,
-		     Array<Real>& norm0,
-		     Array<Real>& norm1,
-		     Array<Real>& norm2,
+		     Vector<Real>& norm0,
+		     Vector<Real>& norm1,
+		     Vector<Real>& norm2,
 		     bool         verbose)
 {
     std::string oFile, iFileDir, oFileDir;
@@ -36,7 +36,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
     norm1.clear(); norm1.resize(nComp,0.0);
     norm2.clear(); norm2.resize(nComp,0.0);
     
-    Array<int> refMult(finestLevel + 1, 1);
+    Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
 	int ref_ratio = amrData.RefRatio()[iLevel];
@@ -51,7 +51,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
     // Compute the norms
     //
     long total_volume = 0;
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
     {
@@ -97,7 +97,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
 	    total_volume += long(level_volume);
 	    
 	    // Get norms at this level
-	    Array<Real> n0(nComp,0.0), n1(nComp,0.0), n2(nComp,0.0);
+	    Vector<Real> n0(nComp,0.0), n1(nComp,0.0), n2(nComp,0.0);
 	    for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
 	    {
 		FArrayBox& fab = (*error[iLevel])[mfi];
@@ -155,7 +155,7 @@ ComputeAmrDataNorms (AmrData&     amrData,
 
 void
 ComputeAmrDataInt (AmrData&     amrData,
-		   Array<Real>& norm1,
+		   Vector<Real>& norm1,
 		   bool         verbose)
 {
     std::string oFile, iFileDir, oFileDir;
@@ -173,7 +173,7 @@ ComputeAmrDataInt (AmrData&     amrData,
 
     norm1.clear(); norm1.resize(nComp,0.0);
     
-    Array<int> refMult(finestLevel + 1, 1);
+    Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
 	int ref_ratio = amrData.RefRatio()[iLevel];
@@ -188,7 +188,7 @@ ComputeAmrDataInt (AmrData&     amrData,
     // Compute the norms
     //
     long total_volume = 0;
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
     {
@@ -234,7 +234,7 @@ ComputeAmrDataInt (AmrData&     amrData,
 	    total_volume += long(level_volume);
 	    
 	    // Get norms at this level
-	    Array<Real> n1(nComp,0.0);
+	    Vector<Real> n1(nComp,0.0);
 	    for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
 	    {
 		FArrayBox& fab = (*error[iLevel])[mfi];

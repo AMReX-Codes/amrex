@@ -601,7 +601,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             //here we are getting the collection of flags so we know
             //kind of grid this is and if it is an EB grid, we have
             //the connectivity info
-            const EBCellFlafgFab & flag = sfab.getEBCellFlagFab();
+            const EBCellFlagFab & flag = sfab.getEBCellFlagFab();
 
             if (flag.getType(bx) == FabType::covered) 
             {
@@ -702,7 +702,7 @@ and $0$ if not.  Similar queries:
 \end{lstlisting}
 can be used to gather additional detail.
 
-Below, we show a partial listing of the $\tt{cns_eb_compute_dudt}$ code, specifically after the face-centered fluxes have been computed,
+Below, we show a partial listing of the $\tt{cns\_eb\_compute\_dudt}$ code, specifically after the face-centered fluxes have been computed,
 and showing part of the work necessary to interpolate them to face centroids (while appropriately handling covered data).
 
 \begin{lstlisting}[language=Fortran]

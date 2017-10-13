@@ -15,8 +15,8 @@
 // Determine the volume-averaged mean for an AMR data.
 void
 ComputeAmrDataMeanVar  (AmrData&     amrData,
-			Array<Real>& mean,
-			Array<Real>& variance,
+			Vector<Real>& mean,
+			Vector<Real>& variance,
 			int          sComp,
 			int          nComp,
 			bool         verbose)
@@ -36,7 +36,7 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
     mean.clear(); mean.resize(nComp,0.0);
     variance.clear(); variance.resize(nComp,0.0);
     
-    Array<int> refMult(finestLevel + 1, 1);
+    Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
       int ref_ratio = amrData.RefRatio()[iLevel];
@@ -51,7 +51,7 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
     // Compute the sum and sum-squares
     //
     long total_volume = 0;
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
     {
@@ -96,7 +96,7 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
 	total_volume += long(level_volume);
 	
 	// Get norms at this level
-	Array<Real> n1(nComp,0.0), n2(nComp,0.0);
+	Vector<Real> n1(nComp,0.0), n2(nComp,0.0);
 
 	for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
 	{
@@ -160,8 +160,8 @@ ComputeAmrDataMeanVar  (AmrData&     amrData,
 // this is not really correct.
 void
 ComputeAmrDataList  (AmrData&         amrData,
-		     Array<MultiFab*> mean,
-		     Array<MultiFab*> variance,
+		     Vector<MultiFab*> mean,
+		     Vector<MultiFab*> variance,
 		     int              sComp,
 		     int              nComp)
 {
@@ -207,17 +207,17 @@ ComputeAmrDataList  (AmrData&         amrData,
 // Determine the mean and variance for an AMR data.
 void
 ComputeAmrDataMeanVar (AmrData&           amrData,
-		       Array<std::string> cNames,
-		       Array<BoxArray>    bas,
-		       Array<Real>&       mean,
-		       Array<Real>&       variance)
+		       Vector<std::string> cNames,
+		       Vector<BoxArray>    bas,
+		       Vector<Real>&       mean,
+		       Vector<Real>&       variance)
 {
     std::string oFile, iFileDir, oFileDir;
 
     int finestLevel = amrData.FinestLevel();
     int nComp = cNames.size();
 
-    Array<int> refMult(finestLevel + 1, 1);
+    Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
 	int ref_ratio = amrData.RefRatio()[iLevel];
@@ -230,7 +230,7 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
     // Compute the sum and sum-squares
     //
     long total_volume = 0;
-    Array<int> destFillComps(nComp);
+    Vector<int> destFillComps(nComp);
     for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
@@ -272,7 +272,7 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
 	total_volume += long(level_volume);
 	    
 	// Get norms at this level
-	Array<Real> n1(nComp,0.0), n2(nComp,0.0);
+	Vector<Real> n1(nComp,0.0), n2(nComp,0.0);
 
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
@@ -332,8 +332,8 @@ ComputeAmrDataMeanVar (AmrData&           amrData,
 // Determine the mean and variance of a multifab.
 void
 ComputeMeanVarMF (MultiFab&          mf,
-		  Array<Real>&       mean,
-		  Array<Real>&       variance)
+		  Vector<Real>&       mean,
+		  Vector<Real>&       variance)
 {
     
     int nComp = mf.nComp();
@@ -393,8 +393,8 @@ void
 ComputeAmrDataPDF (AmrData&           amrData,
 		   Real**             icount,
 		   int                nBin,
-		   Array<std::string> cNames,
-		   Array<BoxArray>    bas)
+		   Vector<std::string> cNames,
+		   Vector<BoxArray>    bas)
 {
     std::string oFile, iFileDir, oFileDir;
 
@@ -407,7 +407,7 @@ ComputeAmrDataPDF (AmrData&           amrData,
     }
 
     // determine min and max
-    Array<Real> smin(nComp,1.e20), smax(nComp,-1.e20);
+    Vector<Real> smin(nComp,1.e20), smax(nComp,-1.e20);
     for (int iComp = 0; iComp < nComp; iComp++) 
       amrData.MinMax(amrData.ProbDomain()[finestLevel], 
 		     cNames[iComp], finestLevel, smin[iComp], smax[iComp]);
@@ -421,7 +421,7 @@ ComputeAmrDataPDF (AmrData&           amrData,
       }
     }
 
-    Array<int> refMult(finestLevel + 1, 1);
+    Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
 	int ref_ratio = amrData.RefRatio()[iLevel];
@@ -434,7 +434,7 @@ ComputeAmrDataPDF (AmrData&           amrData,
     // Compute the sum and sum-squares
     //
     long total_volume = 0;
-    Array<int> destFillComps(nComp);
+    Vector<int> destFillComps(nComp);
     for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     for (int iLevel = finestLevel; iLevel>=0; --iLevel)
@@ -544,7 +544,7 @@ void
 ComputeAmrDataPDF (AmrData&     amrData,
 		   Real**       icount,
 		   int          nBin,
-		   Array<std::string> cNames)
+		   Vector<std::string> cNames)
 {
     std::string oFile, iFileDir, oFileDir;
         
@@ -558,8 +558,8 @@ ComputeAmrDataPDF (AmrData&     amrData,
     }
 
     // determine min and max
-    Array<Real> smin(nComp,1.e20), smax(nComp,-1.e20);
-    Array<std::string>  VarNames = amrData.PlotVarNames();
+    Vector<Real> smin(nComp,1.e20), smax(nComp,-1.e20);
+    Vector<std::string>  VarNames = amrData.PlotVarNames();
     for (int iComp = 0; iComp < nComp; iComp++) 
       amrData.MinMax(amrData.ProbDomain()[finestLevel], 
 		     VarNames[iComp], finestLevel, smin[iComp], smax[iComp]);
@@ -573,7 +573,7 @@ ComputeAmrDataPDF (AmrData&     amrData,
       }
     }
 
-    Array<int> refMult(finestLevel + 1, 1);
+    Vector<int> refMult(finestLevel + 1, 1);
     for (int iLevel=finestLevel-1; iLevel>=0; --iLevel)
     {
       int ref_ratio = amrData.RefRatio()[iLevel];
@@ -586,7 +586,7 @@ ComputeAmrDataPDF (AmrData&     amrData,
     // Compute the sum and sum-squares
     //
     long total_volume = 0;
-    Array<int> destFillComps(nComp);
+    Vector<int> destFillComps(nComp);
     for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     
@@ -696,8 +696,8 @@ ComputeAmrDataPDF (AmrData&     amrData,
 void
 ComputeAmrDataVAR (AmrData&           amrData,
 		   int                nBin,
-		   Array<std::string> cNames,
-		   Array<Real>        barr,
+		   Vector<std::string> cNames,
+		   Vector<Real>        barr,
 		   std::string        oFile)
 {
 
@@ -767,7 +767,7 @@ ComputeAmrDataVAR (AmrData&           amrData,
       bax.set(i,bx);
     }
 
-    Array<int> destFillComps(nComp);
+    Vector<int> destFillComps(nComp);
     for (int i=0; i<nComp; ++i)
       destFillComps[i] = i;
     MultiFab tmpx(bax,nComp,0);
@@ -786,7 +786,7 @@ ComputeAmrDataVAR (AmrData&           amrData,
 	sh[iComp][iBin] = 0.0;
       }
     }
-    Array<Real> mean(nComp,0.0), variance(nComp,0.0);
+    Vector<Real> mean(nComp,0.0), variance(nComp,0.0);
     Real volume = 0.0;
     for (MFIter mfi(tmpx); mfi.isValid(); ++mfi) {
 
@@ -1020,12 +1020,12 @@ ComputeAmrDataVAR (AmrData&           amrData,
 // the grid at the finest level.
 void
 VariogramUniform (AmrData&             amrData,
-		  Array<std::string>   cNames,
-		  Array<Real>          barr,
-		  Array< Array<int> >  ivoption,
+		  Vector<std::string>   cNames,
+		  Vector<Real>          barr,
+		  Vector< Vector<int> >  ivoption,
 		  int                  nlag,
 		  int                  isill,
-		  Array<Real>          sills,
+		  Vector<Real>          sills,
 		  std::string          oFile)
 {
 
@@ -1046,7 +1046,7 @@ VariogramUniform (AmrData&             amrData,
     }
 
     // Find coarse-grid coordinates of bounding box, round outwardly
-    Array<Real> dx(BL_SPACEDIM);
+    Vector<Real> dx(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dx[i] = amrData.ProbSize()[i]/
 	amrData.ProbDomain()[0].length(i);            
@@ -1063,7 +1063,7 @@ VariogramUniform (AmrData&             amrData,
     IntVect bg = domain.bigEnd();
 
     BoxArray ba(domain);
-    Array<int> destFillComps(nComp);
+    Vector<int> destFillComps(nComp);
     for (int i=0; i<nComp; ++i) destFillComps[i] = i;
     MultiFab mf(ba,nComp,0);
     amrData.FillVar(mf,amrData.FinestLevel(),cNames,destFillComps);
@@ -1076,13 +1076,13 @@ VariogramUniform (AmrData&             amrData,
 // Cross correlation is done with respect to a multifab.
 void
 VariogramCross(AmrData&             amrData,
-	       Array<std::string>   cNames,
+	       Vector<std::string>   cNames,
 	       MultiFab&            mf,
-	       Array<Real>          barr,
-	       Array< Array<int> >  ivoption,
+	       Vector<Real>          barr,
+	       Vector< Vector<int> >  ivoption,
 	       int                  nlag,
 	       int                  isill,
-	       Array<Real>          sills,
+	       Vector<Real>          sills,
 	       std::string          oFile)
 {
     int finestLevel = amrData.FinestLevel();
@@ -1100,7 +1100,7 @@ VariogramCross(AmrData&             amrData,
     }
 
     // Find coarse-grid coordinates of bounding box, round outwardly
-    Array<Real> dx(BL_SPACEDIM);
+    Vector<Real> dx(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dx[i] = amrData.ProbSize()[i]/
 	amrData.ProbDomain()[0].length(i);            
@@ -1117,7 +1117,7 @@ VariogramCross(AmrData&             amrData,
     IntVect bg = domain.bigEnd();
 
     BoxArray ba(domain);
-    Array<int> destFillComps(nComp);
+    Vector<int> destFillComps(nComp);
     for (int i=0; i<nComp; ++i) destFillComps[i] = i;
     MultiFab mf_amr(ba,nComp+1,0);
     mf_amr.setVal(0.);
@@ -1130,15 +1130,15 @@ VariogramCross(AmrData&             amrData,
 
 void
 VariogramUniformMF (const MultiFab&      mf,
-		    Array<Real>          dx,
-		    Array< Array<int> >  ivoption,
+		    Vector<Real>          dx,
+		    Vector< Vector<int> >  ivoption,
 		    int                  nlag,
 		    int                  isill,
-		    Array<Real>          sills,
+		    Vector<Real>          sills,
 		    std::string          oFile)
 {
 
-  Array<int> domloc(BL_SPACEDIM), domhic(BL_SPACEDIM);
+  Vector<int> domloc(BL_SPACEDIM), domhic(BL_SPACEDIM);
   for (MFIter mfi(mf); mfi.isValid(); ++mfi)
   {
     const int* k_lo  = mf[mfi].loVect();
@@ -1161,13 +1161,13 @@ VariogramUniformMF (const MultiFab&      mf,
 
 void
 VariogramUniformMFG (const MultiFab&      mf,
-		     Array<Real>          dx,
+		     Vector<Real>          dx,
 		     IntVect              sm,
 		     IntVect              bg,
-		     Array< Array<int> >  ivoption,
+		     Vector< Vector<int> >  ivoption,
 		     int                  nlag,
 		     int                  isill,
-		     Array<Real>          sills,
+		     Vector<Real>          sills,
 		     std::string          oFile)
 {
 
@@ -1214,19 +1214,19 @@ VariogramUniformMFG (const MultiFab&      mf,
 	int ivhead = ivoption[iv][1];
 	int ivtype = ivoption[iv][2];
 
-      	Array<Real> np(nlag,0.0);
-	Array<Real> gam(nlag,0.0);
-	Array<Real> hm(nlag,0.0);
-	Array<Real> tm(nlag,0.0);
-	Array<Real> hv(nlag,0.0);
-	Array<Real> tv(nlag,0.0);
+      	Vector<Real> np(nlag,0.0);
+	Vector<Real> gam(nlag,0.0);
+	Vector<Real> hm(nlag,0.0);
+	Vector<Real> tm(nlag,0.0);
+	Vector<Real> hv(nlag,0.0);
+	Vector<Real> tv(nlag,0.0);
 
 	for (MFIter mfi(tmpx); mfi.isValid(); ++mfi) {
 	  
 	  const int* lo = tmpx[mfi].loVect();
 	  const int* hi = tmpx[mfi].hiVect();
 
-	  Array<int> lod(BL_SPACEDIM),hid(BL_SPACEDIM);
+	  Vector<int> lod(BL_SPACEDIM),hid(BL_SPACEDIM);
 	  if (dir == 0) {
 	    lod[0] = lo[0]; 
 	    lod[1] = lo[1];
@@ -1400,8 +1400,8 @@ VariogramUniformMFG (const MultiFab&      mf,
 void
 TakeDifferenceFine(AmrData&             amrDataf,
 		   AmrData&             amrDatac,
-		   Array<std::string>   cNames,
-		   Array<Real>          barr,
+		   Vector<std::string>   cNames,
+		   Vector<Real>          barr,
 		   std::string          oFile)
 {
     int nComp = cNames.size();
@@ -1424,8 +1424,8 @@ TakeDifferenceFine(AmrData&             amrDataf,
     }
 
     // Find coarse-grid coordinates of bounding box, round outwardly
-    Array <int> rratio(BL_SPACEDIM);
-    Array<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
+    Vector <int> rratio(BL_SPACEDIM);
+    Vector<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dxf[i] = amrDataf.ProbSize()[i]/
 	amrDataf.ProbDomain()[0].length(i);            
@@ -1458,8 +1458,8 @@ TakeDifferenceFine(AmrData&             amrDataf,
     BoxArray baf(domainf), bac(domainc);
     
     // Fill tmpx with the data
-    Array<int> destFillComps(nComp);
-    Array<std::string> destNames(nComp);
+    Vector<int> destFillComps(nComp);
+    Vector<std::string> destNames(nComp);
     for (int i=0; i<nComp; ++i) 
       destFillComps[i] = i;
     MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
@@ -1494,8 +1494,8 @@ TakeDifferenceFine(AmrData&             amrDataf,
 void
 TakeDifferenceCrse(AmrData&             amrDataf,
 		   AmrData&             amrDatac,
-		   Array<std::string>   cNames,
-		   Array<Real>          barr,
+		   Vector<std::string>   cNames,
+		   Vector<Real>          barr,
 		   std::string          oFile)
 {
     int nComp = cNames.size();
@@ -1518,8 +1518,8 @@ TakeDifferenceCrse(AmrData&             amrDataf,
     }
 
     // Find coarse-grid coordinates of bounding box, round outwardly
-    Array <int> rratio(BL_SPACEDIM);
-    Array<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
+    Vector <int> rratio(BL_SPACEDIM);
+    Vector<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dxf[i] = amrDataf.ProbSize()[i]/
 	amrDataf.ProbDomain()[0].length(i);            
@@ -1552,8 +1552,8 @@ TakeDifferenceCrse(AmrData&             amrDataf,
     BoxArray baf(domainf), bac(domainc);
     
     // Fill tmpx with the data
-    Array<int> destFillComps(nComp);
-    Array<std::string> destNames(nComp);
+    Vector<int> destFillComps(nComp);
+    Vector<std::string> destNames(nComp);
     for (int i=0; i<nComp; ++i) 
       destFillComps[i] = i;
     MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
@@ -1593,8 +1593,8 @@ TakeDifferenceCrse(AmrData&             amrDataf,
 void
 TakeDifferenceSum(AmrData&             amrDataf,
 		  AmrData&             amrDatac,
-		  Array<std::string>   cNames,
-		  Array<Real>          barr,
+		  Vector<std::string>   cNames,
+		  Vector<Real>          barr,
 		  std::string          oFile)
 {
     int nComp = cNames.size();
@@ -1617,8 +1617,8 @@ TakeDifferenceSum(AmrData&             amrDataf,
     }
 
     // Find coarse-grid coordinates of bounding box, round outwardly
-    Array <int> rratio(BL_SPACEDIM);
-    Array<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
+    Vector <int> rratio(BL_SPACEDIM);
+    Vector<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dxf[i] = amrDataf.ProbSize()[i]/
 	amrDataf.ProbDomain()[0].length(i);            
@@ -1651,8 +1651,8 @@ TakeDifferenceSum(AmrData&             amrDataf,
     BoxArray baf(domainf), bac(domainc);
     
     // Fill tmpx with the data
-    Array<int> destFillComps(nComp);
-    Array<std::string> destNames(nComp);
+    Vector<int> destFillComps(nComp);
+    Vector<std::string> destNames(nComp);
     for (int i=0; i<nComp; ++i) 
       destFillComps[i] = i;
     MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);
@@ -1698,9 +1698,9 @@ TakeDifferenceSum(AmrData&             amrDataf,
 // fine solution - coarse solution on the coarse finest level specified.
 void
 TakeDifferenceMean(AmrData&             amrDataf,
-		   Array<std::string>   cNames,
-		   Array<Real>          barr,
-		   Array<int>           rratio,
+		   Vector<std::string>   cNames,
+		   Vector<Real>          barr,
+		   Vector<int>           rratio,
 		   std::string          oFile)
 {
     int nComp = cNames.size();
@@ -1717,7 +1717,7 @@ TakeDifferenceMean(AmrData&             amrDataf,
     }
 
     // Find coarse-grid coordinates of bounding box, round outwardly
-    Array<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
+    Vector<Real> dxc(BL_SPACEDIM),dxf(BL_SPACEDIM);
     for (int i=0; i<BL_SPACEDIM; ++i) {
       dxf[i] = amrDataf.ProbSize()[i]/
 	amrDataf.ProbDomain()[0].length(i);            
@@ -1739,8 +1739,8 @@ TakeDifferenceMean(AmrData&             amrDataf,
     BoxArray baf(domainf), bac(domainc);
     
     // Fill tmpx with the data
-    Array<int> destFillComps(nComp);
-    Array<std::string> destNames(nComp);
+    Vector<int> destFillComps(nComp);
+    Vector<std::string> destNames(nComp);
     for (int i=0; i<nComp; ++i) 
       destFillComps[i] = i;
     MultiFab tmpc(bac,nComp,0), tmpf(baf,nComp,0);

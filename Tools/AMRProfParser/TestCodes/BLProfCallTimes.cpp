@@ -102,9 +102,9 @@ void TestCommCalls() {
   long nChunks(4), chunkSize(1000);
   Real totalTime(0.0);
   long reqsSize(37);
-  Array<MPI_Request> reqs(reqsSize);
-  Array<MPI_Status> status(reqsSize);
-  Array<int> index(reqsSize);
+  Vector<MPI_Request> reqs(reqsSize);
+  Vector<MPI_Status> status(reqsSize);
+  Vector<int> index(reqsSize);
   int completed(0), sendSize(32), destPid(42), tag(127);
 
   for(long t(0); t < nChunks; ++t) {

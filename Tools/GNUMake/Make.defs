@@ -90,6 +90,10 @@ else
   USE_MPI := FALSE
 endif
 
+ifeq ($(USE_PMI), TRUE)
+  DEFINES += -DAMREX_PMI
+endif
+
 ifdef USE_UPCXX
   USE_UPCXX := $(strip $(USE_UPCXX))
 else

@@ -1,0 +1,80 @@
+#ifndef AMREX_ML_MG_H_
+#define AMREX_ML_MG_H_
+
+#include <AMReX_MLLinOp.H>
+
+namespace amrex {
+
+class MLMG
+{
+public:
+
+    using BCMode = MLLinOp::BCMode;
+
+    enum class Cycle : int { smoother = 0, Vcycle = 1, Wcycle = 2, Fcycle = 3 };
+
+    MLMG (MLLinOp& a_lp);
+    ~MLMG ();
+
+    void solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
+                Real a_tol_real, Real a_tol_abs);
+
+    void setVerbose (int v) { verbose = v; }
+    void setMaxIter (int n) { max_iters = n; }
+    void setFixedIter (int nit) { do_fixed_number_of_iters = nit; }
+
+    void setPreSmooth (int n) { nu1 = n; }
+    void setPostSmooth (int n) { nu2 = n; }
+    void setCtrRelax (int n) { nu0 = n; }
+    void setFinalSmooth (int n) { nuf = n; }
+    void setBottomSmooth (int n) { nub = n; }
+
+    void setBottomSolver (Cycle c) { cycle_type = c; }
+
+private:
+
+    int verbose = 1;
+    int max_iters = 200;
+    int do_fixed_number_of_iters = 0;
+
+    int nu0 = 1;   // center
+    int nu1 = 2;   // pre
+    int nu2 = 2;   // post
+    int nuf = 8;   // when smoother is used as bottom solver
+    int nub = 0;   // aditional smoothing after bottom cg solver
+    
+    Cycle cycle_type = Cycle::Vcycle;
+
+    MLLinOp& linop;
+    int namrlevs;
+    int finest_amr_lev;
+
+    // To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
+    // in the frame of the original equation, not the correction form
+
+    Vector<MultiFab*>         sol;  // alias to argument a_sol
+    Vector<MultiFab>          rhs;  // Copy of original rhs
+
+    // First Vector: Amr levels.  0 is the coarest level
+    // Second Vector: MG levels.  0 is the finest level
+    Vector<Vector<MultiFab> > res;    // = rhs - L(sol)
+    Vector<Vector<MultiFab> > cor;    // L(cor) = res
+    Vector<Vector<MultiFab> > rescor; // = res - L(cor)   Residual of the correction form
+
+    Vector<MultiFab> cor_hold;
+
+    void oneIter (int iter);
+    void miniCycle (int alev);
+    void mgCycle (int mglev);
+    void computeResidual (int alev);
+    void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
+    void computeResWithCrseCorFineCor (int fine_amr_lev);
+    void interpCorrection (int alev);
+    void interpCorrection (int alev, int mglev);
+
+    void computeResOfCorrection (int amrlev, int mglev);
+};
+
+}
+
+#endif
