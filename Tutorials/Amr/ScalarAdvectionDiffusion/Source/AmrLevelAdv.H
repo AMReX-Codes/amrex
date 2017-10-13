@@ -150,6 +150,10 @@ public:
     static int  NUM_STATE;
     static int  NUM_GROW;
 
+  amrex::Real
+  compute_dPhiDt_godunov (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
+                          EBFluxRegister* fr_as_crse, EBFluxRegister* fr_as_fine);
+
 protected:
 
     static void read_params ();
