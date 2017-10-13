@@ -101,12 +101,9 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
     else
     {
-//        for (int iter = 0; iter < max_iters; ++iter)
-        for (int iter = 0; iter < 10; ++iter)
+        for (int iter = 0; iter < max_iters; ++iter)
         {
             oneIter();
-
-            // test convergence
         }
     }
 }
@@ -169,6 +166,12 @@ MLMG::oneIter ()
     }
 
     // ...
+    if (verbose > 1) {
+        for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+            Real resmax = res[alev][0].norm0();
+            amrex::Print() << "MLMG: max residual on Level " << alev << " is " << resmax << "\n";
+        }
+    }
 }
 
 void

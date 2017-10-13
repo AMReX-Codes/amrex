@@ -8,6 +8,11 @@
 
 using namespace amrex;
 
+namespace my {
+    extern int max_iter;
+    extern int verbose;
+}
+
 void solve_with_mlmg (const Vector<Geometry>& geom,
                       Vector<MultiFab>& soln,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
@@ -58,6 +63,8 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     }
     
     MLMG mlmg(mlabec);
+    mlmg.setMaxIter(my::max_iter);
+    mlmg.setVerbose(my::verbose);
     mlmg.solve(psoln, prhs, tol_rel, tol_abs);
 }
 
