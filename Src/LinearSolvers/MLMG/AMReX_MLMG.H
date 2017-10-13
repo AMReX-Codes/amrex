@@ -11,9 +11,9 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class Cycle : int { Vcycle = 0, Wcycle = 1, Fcycle = 2 };
+    enum class Cycle { Vcycle, Wcycle, Fcycle };
 
-    enum class BottomSolver : int { smoother = 0, bicgstab = 1, cg = 2, cabicgstab = 3 };
+    enum class BottomSolver { smoother, bicgstab, cg, cabicgstab, cabicgstabquad };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
