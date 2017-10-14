@@ -54,12 +54,12 @@ module_name = {'cpu': 'haswell', 'knl': 'mic-knl'}
 # architecture. Used in batch scripts
 module_Cname = {'cpu': 'haswell', 'knl': 'knl'}
 # Define environment variables
-cwd = os.getcwd()
+cwd = os.getcwd() + '/'
 res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
-bin_dir = cwd + '/Bin/'
+bin_dir = cwd + 'Bin/'
 bin_name = 'perf_tests3d.' + args.compiler + '.' + module_name[args.architecture] + '.TPROF.MPI.OMP.ex'
 log_file = 'performance_log.txt'
-log_dir  = cwd + '/'
+log_dir  = cwd
 
 # Initialize tests
 # ----------------
@@ -68,22 +68,20 @@ if args.mode == 'run':
     config_command = ''
     config_command += 'module unload darshan;' 
     config_command += 'module load craype-hugepages4M;'
-    config_command += 'module load python/2.7-anaconda;'
-    config_command += 'module load h5py-parallel;'
     if args.architecture == 'knl':
         if args.compiler == 'intel':
             config_command += 'module unload PrgEnv-gnu;'
             config_command += 'module load PrgEnv-intel;'
-        elif args.compiler == 'gcc':
+        elif args.compiler == 'gnu':
             config_command += 'module unload PrgEnv-intel;'
             config_command += 'module load PrgEnv-gnu;'
         config_command += 'module unload craype-haswell;'
         config_command += 'module load craype-mic-knl;'
-    elif args.architecture == 'haswell':
+    elif args.architecture == 'cpu':
         if args.compiler == 'intel':
             config_command += 'module unload PrgEnv-gnu;'
             config_command += 'module load PrgEnv-intel;'
-        elif args.compiler == 'gcc':
+        elif args.compiler == 'gnu':
             config_command += 'module unload PrgEnv-intel;'
             config_command += 'module load PrgEnv-gnu;'
         config_command += 'module unload craype-mic-knl;'
@@ -94,12 +92,12 @@ if args.mode == 'run':
 
 # Recompile if requested
 if args.recompile == True:
-    with open(cwd + '/GNUmakefile_perftest') as makefile_handler:
+    with open(cwd + 'GNUmakefile_perftest') as makefile_handler:
         makefile_text = makefile_handler.read()
     makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
-    with open(cwd + '/GNUmakefile_perftest', 'w') as makefile_handler:
+    with open(cwd + 'GNUmakefile_perftest', 'w') as makefile_handler:
         makefile_handler.write( makefile_text )
-    os.system(config_command + "make -j 8 -f GNUmakefile_perftest")
+    os.system(config_command + "rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
 
 # Define functions to run a test and analyse results
 # --------------------------------------------------
@@ -112,15 +110,18 @@ def run_interactive(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     os.makedirs(res_dir)
     # Copy files to res_dir
     shutil.copyfile(bin_dir + bin_name, res_dir + bin_name)
-    shutil.copyfile(cwd + '/' + run_name, res_dir + '/inputs')
+    shutil.copyfile(cwd  + run_name, res_dir + 'inputs')
     os.chdir(res_dir)
     if args.architecture == 'cpu':
-        exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + '; srun '+ \
-                    ' -n ' + str(n_node*n_mpi) + \
-                    ' ./'  + bin_name + ' inputs > my_output.txt'
+        cflag_value = int(32/n_mpi) * 2 # Follow NERSC directives
+        exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + ';' +\
+                       'srun --cpu_bind=cores '     + \
+                       ' -n ' + str(n_node*n_mpi) + \
+                       ' -c ' + str(cflag_value)   + \
+                       ' ./'  + bin_name + ' inputs > perf_output.txt'
     elif args.architecture == 'knl':
         # number of logical cores per MPI process
-        cflag_value = (64/n_mpi) * 4 # Follow NERSC directives
+        cflag_value = int(68/n_mpi) * 4 # Follow NERSC directives
         exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + ';' +\
                        'srun --cpu_bind=cores '     + \
                        ' -n ' + str(n_node*n_mpi) + \
@@ -137,7 +138,7 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     os.makedirs(res_dir)
     # Copy files to res_dir
     shutil.copyfile(bin_dir + bin_name, res_dir + bin_name)
-    shutil.copyfile(cwd + '/' + run_name, res_dir + '/inputs')
+    shutil.copyfile(cwd + run_name, res_dir + 'inputs')
     os.chdir(res_dir)
     batch_string = ''
     batch_string += '#!/bin/bash\n'
@@ -165,9 +166,8 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)
     f_exe.close()
-    os.system('chmod 700 ' + batch_file)
     os.system('chmod 700 ' + bin_name)
-    os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + '/log_jobids_tmp.txt')
+    os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp.txt')
     return 0
 
 # Read output file and return init time and 1-step time
@@ -187,12 +187,13 @@ def read_run_perf(filename):
 
 # Write time into logfile
 def write_perf_logfile(log_file):
-    day = time.strftime('%d') + ' '
-    month = time.strftime('%m') + ' '
-    year = time.strftime('%Y') + ' '
-    log_line = year + ' ' + month + ' ' + day + ' ' + run_name + ' ' + \
-        str(n_node) + ' ' + str(n_mpi) + ' ' + str(n_omp) + ' ' + \
-       str(time_initialization) + ' ' + str(time_one_iteration) + '\n'
+    day = time.strftime('%d')
+    month = time.strftime('%m')
+    year = time.strftime('%Y')
+    log_line = ' '.join([year, month, day, run_name, args.compiler,\
+                         args.architecture, str(n_node), str(n_mpi),\
+                         str(n_omp), str(time_initialization),\
+                         str(time_one_iteration), '\n'])
     f_log = open(log_file, 'a')
     f_log.write(log_line)
     f_log.close()
@@ -207,7 +208,7 @@ def get_nsteps(runname):
 
 def process_analysis():
     dependencies = ''
-    f_log = open(cwd + '/log_jobids_tmp.txt','r')
+    f_log = open(cwd + 'log_jobids_tmp.txt','r')
     for count, current_run in enumerate(test_list):
         line = f_log.readline()
         print(line)
@@ -247,8 +248,8 @@ if args.mode == 'run':
     # Remove file log_jobids_tmp.txt if exists.
     # This file contains the jobid of every perf test
     # It is used to manage the analysis script dependencies
-    if os.path.isfile(cwd + '/log_jobids_tmp.txt'):
-        os.remove(cwd + '/log_jobids_tmp.txt')
+    if os.path.isfile(cwd + 'log_jobids_tmp.txt'):
+        os.remove(cwd + 'log_jobids_tmp.txt')
     for count, current_run in enumerate(test_list):
         # Results folder
         print('run ' + str(current_run))
@@ -256,7 +257,7 @@ if args.mode == 'run':
         n_node   = current_run[1]
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
-        n_steps  = get_nsteps(cwd + '/' + run_name)
+        n_steps  = get_nsteps(cwd + run_name)
         res_dir = res_dir_base + 'perftest' + str(count) + '/'
         # Run the simulation.
         # If you are currently in an interactive session and want to run interactive,
@@ -268,7 +269,7 @@ if args.mode == 'run':
 if args.mode == 'read':
     # Create log_file for performance tests if does not exist
     if not os.path.isfile(log_dir + log_file):
-        log_line = '## year month day run_name n_node n_mpi n_omp time_initialization(s) time_one_iteration(s)\n'
+        log_line = '## year month day run_name compiler architecture n_node n_mpi n_omp time_initialization(s) time_one_iteration(s)\n'
         f_log = open(log_dir + log_file, 'a')
         f_log.write(log_line)
         f_log.close()
@@ -279,7 +280,7 @@ if args.mode == 'read':
         n_node   = current_run[1]
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
-        n_steps  = get_nsteps(cwd + '/' + run_name)
+        n_steps  = get_nsteps(cwd  + run_name)
         res_dir = res_dir_base + 'perftest' + str(count) + '/'
         # Read performance data from the output file
         time_initialization, time_one_iteration = read_run_perf(res_dir + 'perf_output.txt')
