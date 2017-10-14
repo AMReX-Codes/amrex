@@ -43,7 +43,7 @@ protected:
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
 
-    int maxorder = 2;
+    int maxorder = 3;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
