@@ -17,3 +17,12 @@
 2017 10 13 uniform_plasma gnu knl 2 2 1 0.75 0.2119 
 2017 10 13 uniform_plasma gnu knl 2 2 1 0.86 0.2111 
 2017 10 13 uniform_plasma gnu knl 2 2 1 0.71 0.2121 
+2017 10 13 uniform_plasma gnu cpu 1 1 1 0.66 0.1667 
+2017 10 13 uniform_plasma gnu cpu 1 1 1 0.71 0.1653 
+2017 10 13 uniform_plasma gnu cpu 1 1 1 0.8 0.1667 
+2017 10 13 uniform_plasma gnu cpu 1 1 2 0.579 0.09701 
+2017 10 13 uniform_plasma gnu cpu 1 1 2 0.629 0.09651 
+2017 10 13 uniform_plasma gnu cpu 1 1 2 0.892 0.09718 
+2017 10 13 uniform_plasma gnu cpu 2 2 1 0.466 0.04317 
+2017 10 13 uniform_plasma gnu cpu 2 2 1 0.535 0.04414 
+2017 10 13 uniform_plasma gnu cpu 2 2 1 0.542 0.04404 
