@@ -385,7 +385,9 @@ MLMG::bottomSolve ()
         }
 
         MLCGSolver cg_solver(linop, solver_type);
-        cg_solver.solve(x, b);
+        const Real cg_rtol = 1.e-4;
+        const Real cg_atol = -1.0;
+        cg_solver.solve(x, b, cg_rtol, cg_atol);
 
         for (int i = 0; i < nub; ++i) {
             linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);

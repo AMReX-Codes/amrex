@@ -31,8 +31,8 @@ public:
     //
     int solve (MultiFab&       solnL,
 	       const MultiFab& rhsL,
-	       Real            eps_rel    = -1.0,
-	       Real            eps_abs    = -1.0);
+	       Real            eps_rel,
+	       Real            eps_abs);
 
     void setVerbose (int _verbose) { verbose = _verbose; }
     int getVerbose () const { return verbose; }
