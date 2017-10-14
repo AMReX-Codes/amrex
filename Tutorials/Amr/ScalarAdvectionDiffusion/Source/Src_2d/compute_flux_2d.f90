@@ -4,7 +4,7 @@ module compute_flux_module
 
   private
 
-  public :: godunov_flux_2d
+  public :: godunov_flux_2d, mol2ndord_flux_3d
 
 contains
 
@@ -14,12 +14,12 @@ contains
                              vmac,  v_lo,  v_hi, &
                              flxx, fx_lo, fx_hi, &
                              flxy, fy_lo, fy_hi, &
-                             phix_1d, phiy_1d, phix, phiy, slope, glo, ghi)
+                             phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu)
 
     use slope_module, only: slopex, slopey
 
     integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
-    double precision, intent(in) :: dt, dx(2)
+    double precision, intent(in) :: dt, dx(2), nu
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
     integer, intent(in) ::  v_lo(2),  v_hi(2)
@@ -105,6 +105,85 @@ contains
           ! compute final y-fluxes
           flxy(i,j) = phiy(i,j)*vmac(i,j)
 
+       end do
+    end do
+
+  end subroutine compute_flux_2d
+
+
+  subroutine mol2ndord_flux_2d(lo, hi, dt, dx, &
+       phi,ph_lo,ph_hi, &
+       umac,  u_lo,  u_hi, &
+       vmac,  v_lo,  v_hi, &
+       flxx, fx_lo, fx_hi, &
+       flxy, fy_lo, fy_hi, &
+       phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu)
+
+    use slope_module, only: slopex, slopey
+
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
+    double precision, intent(in) :: dt, dx(2), nu
+    integer, intent(in) :: ph_lo(2), ph_hi(2)
+    integer, intent(in) ::  u_lo(2),  u_hi(2)
+    integer, intent(in) ::  v_lo(2),  v_hi(2)
+    integer, intent(in) :: fx_lo(2), fx_hi(2)
+    integer, intent(in) :: fy_lo(2), fy_hi(2)
+    double precision, intent(in   ) :: phi (ph_lo(1):ph_hi(1),ph_lo(2):ph_hi(2))
+    double precision, intent(in   ) :: umac( u_lo(1): u_hi(1), u_lo(2): u_hi(2))
+    double precision, intent(in   ) :: vmac( v_lo(1): v_hi(1), v_lo(2): v_hi(2))
+    double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
+    double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
+    double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
+         phix_1d, phiy_1d, phix, phiy, slope
+         
+    integer :: i, j, k
+
+
+    call slopex(glo, ghi, &
+                phi, ph_lo, ph_hi, &
+                slope, glo, ghi)
+
+    ! compute phi on x faces using umac to upwind; ignore transverse terms
+    do    j = lo(2)-1, hi(2)+1
+       do i = lo(1)  , hi(1)+1
+
+          if (umac(i,j) .lt. 0.d0) then
+             phix_1d(i,j) = phi(i  ,j) - 0.5d0*slope(i  ,j)
+          else
+             phix_1d(i,j) = phi(i-1,j) + 0.5d0*slope(i-1,j)
+          end if
+
+       end do
+    end do
+
+    call slopey(glo, ghi, &
+                phi, ph_lo, ph_hi, &
+                slope, glo, ghi)
+
+    ! compute phi on y faces using umac to upwind; ignore transverse terms
+    do    j = lo(2)  , hi(2)+1
+       do i = lo(1)-1, hi(1)+1
+
+          if (vmac(i,j) .lt. 0.d0) then
+             phiy_1d(i,j) = phi(i,j  ) - (0.5d0)*slope(i,j  )
+          else
+             phiy_1d(i,j) = phi(i,j-1) + (0.5d0)*slope(i,j-1)
+          end if
+
+       end do
+    end do
+
+    ! compute final x-fluxes
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)+1
+          flxx(i,j) = phix(i,j)*umac(i,j)
+       end do
+    end do
+
+    ! compute final y-fluxes
+    do    j = lo(2), hi(2)+1
+       do i = lo(1), hi(1)
+          flxy(i,j) = phiy(i,j)*vmac(i,j)
        end do
     end do
 

@@ -89,6 +89,14 @@ public:
                                  amrex::Real dt,
                                  int  iteration,
                                  int  ncycle) override;
+  amrex::Real advanceGodunov (amrex::Real time,
+                              amrex::Real dt,
+                              int  iteration,
+                              int  ncycle) override;
+  amrex::Real advanceMOLRK2  (amrex::Real time,
+                              amrex::Real dt,
+                              int  iteration,
+                              int  ncycle) override;
     //
     //Estimate time step.
     //
@@ -151,8 +159,11 @@ public:
     static int  NUM_GROW;
 
   amrex::Real
-  compute_dPhiDt_godunov (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
-                          EBFluxRegister* fr_as_crse, EBFluxRegister* fr_as_fine);
+  compute_dPhiDt_godunov  (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
+                           FluxRegister* fr_as_crse, FluxRegister* fr_as_fine);
+  amrex::Real
+  compute_dPhiDt_MOL2dOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
+                           FluxRegister* fr_as_crse, FluxRegister* fr_as_fine);
 
 protected:
 
