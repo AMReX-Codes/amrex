@@ -4,7 +4,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_MG_F.H>
-#include <AMReX_CGSolver.H>
+#include <AMReX_MLCGSolver.H>
 
 namespace amrex {
 
@@ -374,25 +374,18 @@ MLMG::bottomSolve ()
     }
     else
     {
-        CGSolver::Solver solver_type;
+        MLCGSolver::Solver solver_type;
         if (bottom_solver == BottomSolver::bicgstab)
         {
-            solver_type = CGSolver::BiCGStab;
+            solver_type = MLCGSolver::Solver::BiCGStab;
         }
         else if (bottom_solver == BottomSolver::cg)
         {
-            solver_type = CGSolver::CG;         
-        }
-        else if (bottom_solver == BottomSolver::cabicgstab)
-        {
-            solver_type = CGSolver::CABiCGStab;
-        }
-        else if (bottom_solver == BottomSolver::cabicgstabquad)
-        {
-            solver_type = CGSolver::CABiCGStabQuad;
+            solver_type = MLCGSolver::Solver::CG;         
         }
 
-//        CGSolver cg_solver(
+        MLCGSolver cg_solver(linop, solver_type);
+        cg_solver.solve(x, b);
 
         for (int i = 0; i < nub; ++i) {
             linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);

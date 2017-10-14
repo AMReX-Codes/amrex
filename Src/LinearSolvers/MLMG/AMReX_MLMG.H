@@ -13,7 +13,7 @@ public:
 
     enum class Cycle { Vcycle, Wcycle, Fcycle };
 
-    enum class BottomSolver { smoother, bicgstab, cg, cabicgstab, cabicgstabquad };
+    enum class BottomSolver : int { smoother, bicgstab, cg };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -34,6 +34,9 @@ public:
     void setCycle (Cycle c) { cycle_type = c; }
 
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
+    void setCGVerbose (int v) { cg_verbose = v; }
+    void setCGMaxIter (int n) { cg_maxiter = n; }
+    void setCGUnstableCriterion (int n) { cg_unstable_criterion = n; }
 
 private:
 
@@ -49,7 +52,10 @@ private:
     
     Cycle cycle_type = Cycle::Vcycle;
 
-    BottomSolver bottom_solver = BottomSolver::smoother;
+    BottomSolver bottom_solver = BottomSolver::bicgstab;
+    int cg_verbose            = 0;
+    int cg_maxiter            = 100;
+    int cg_unstable_criterion = 10;
 
     MLLinOp& linop;
     int namrlevs;
