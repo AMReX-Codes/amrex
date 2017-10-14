@@ -238,6 +238,74 @@ advance (Real time,
          int  ncycle)
 {
   BL_PROFILE("AmrLevelAdv::advance()");
+  
+  advanceMOLRK2(time, dt, iteration, ncycle);
+}
+
+
+AmrLevelAdv::
+advanceMOLRK2 (Real time,
+               Real dt,
+               int  iteration,
+               int  ncycle)
+{
+  for (int i = 0; i < num_state_data_types; ++i) 
+  {
+    state[i].allocOldData();
+    state[i].swapTimeLevels(dt);
+  }
+
+  MultiFab& S_new = get_new_data(State_Type);
+  MultiFab& S_old = get_old_data(State_Type);
+  MultiFab dDphiDt(grids,dmap,NUM_STATE,0);
+  MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
+  
+  MultiFab& C_new = get_new_data(Cost_Type);
+  C_new.setVal(0.0);
+
+  FluxRegister* fr_as_crse = nullptr;
+  if (do_reflux && level < parent->finestLevel()) 
+  {
+    CNS& fine_level = getLevel(level+1);
+    fr_as_crse = &fine_level.flux_reg;
+  }
+
+  FluxRegister* fr_as_fine = nullptr;
+  if (do_reflux && level > 0) 
+  {
+    fr_as_fine = &flux_reg;
+  }
+
+  if (fr_as_crse) 
+  {
+    fr_as_crse->setVal(0.);
+  }
+
+ // RK2 stage 1
+ FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
+ compute_dDphiDtMOL(Sborder, dDphiDt, 0.5*dt, fr_as_crse, fr_as_fine);
+ // U^* = U^n + dt*dUdt^n
+ MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
+ computeTemp(S_new,0);
+    
+ // RK2 stage 2
+ // After fillpatch Sborder = U^n+dt*dUdt^n
+ FillPatch(*this, Sborder, NUM_GROW, time+dt, State_Type, 0, NUM_STATE);
+ compute_dDphiDtMOL(Sborder, dDphiDt, 0.5*dt, fr_as_crse, fr_as_fine);
+ // S_new = 0.5*(Sborder+S_old) = U^n + 0.5*dt*dUdt^n
+ MultiFab::LinComb(S_new, 0.5, Sborder, 0, 0.5, S_old, 0, 0, NUM_STATE, 0);
+ // S_new += 0.5*dt*dDphiDt
+ MultiFab::Saxpy(S_new, 0.5*dt, dDphiDt, 0, 0, NUM_STATE, 0);
+ // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
+
+}
+AmrLevelAdv::
+advanceGodunov (Real time,
+                Real dt,
+                int  iteration,
+                int  ncycle)
+{
+  BL_PROFILE("AmrLevelAdv::advance()");
         
   for (int i = 0; i < num_state_data_types; ++i) 
   {
@@ -253,14 +321,14 @@ advance (Real time,
   MultiFab& C_new = get_new_data(Cost_Type);
   C_new.setVal(0.0);
 
-  EBFluxRegister* fr_as_crse = nullptr;
+  FluxRegister* fr_as_crse = nullptr;
   if (do_reflux && level < parent->finestLevel()) 
   {
     CNS& fine_level = getLevel(level+1);
     fr_as_crse = &fine_level.flux_reg;
   }
 
-  EBFluxRegister* fr_as_fine = nullptr;
+  FluxRegister* fr_as_fine = nullptr;
   if (do_reflux && level > 0) 
   {
     fr_as_fine = &flux_reg;
@@ -280,26 +348,6 @@ advance (Real time,
   compute_dPhiDt_godunov(Sborder, dDphiDt, dt, fr_as_crse, fr_as_fine);
   // U^n+1 = U^n + dt*dUdt^n
   MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
-    
-/** this is the RK Stuff
-
- // RK2 stage 1
- FillPatch(*this, Sborder, NUM_GROW, time, State_Type, 0, NUM_STATE);
- compute_dDphiDt(Sborder, dDphiDt, 0.5*dt, fr_as_crse, fr_as_fine);
- // U^* = U^n + dt*dUdt^n
- MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
- computeTemp(S_new,0);
-    
- // RK2 stage 2
- // After fillpatch Sborder = U^n+dt*dUdt^n
- FillPatch(*this, Sborder, NUM_GROW, time+dt, State_Type, 0, NUM_STATE);
- compute_dDphiDt(Sborder, dDphiDt, 0.5*dt, fr_as_crse, fr_as_fine);
- // S_new = 0.5*(Sborder+S_old) = U^n + 0.5*dt*dUdt^n
- MultiFab::LinComb(S_new, 0.5, Sborder, 0, 0.5, S_old, 0, 0, NUM_STATE, 0);
- // S_new += 0.5*dt*dDphiDt
- MultiFab::Saxpy(S_new, 0.5*dt, dDphiDt, 0, 0, NUM_STATE, 0);
- // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
- */
 }
 //
 //Advance grids at this level in time.
@@ -308,7 +356,7 @@ advance (Real time,
 Real
 AmrLevelAdv::
 compute_dPhiDt_godunov (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
-                        EBFluxRegister* fr_as_crse, EBFluxRegister* fr_as_fine)
+                        FluxRegister* fr_as_crse, FluxRegister* fr_as_fine)
 {
 
   const Real* dx = geom.CellSize();
@@ -387,6 +435,126 @@ compute_dPhiDt_godunov (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
                                      BL_TO_FORTRAN_3D(flux[1]), 
                                      BL_TO_FORTRAN_3D(flux[2])), 
                         dx, dt);
+
+      if (do_reflux) 
+      {
+        for (int i = 0; i < BL_SPACEDIM ; i++)
+          fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
+      }
+    }
+  }
+
+  if (do_reflux) 
+  {
+    if (fr_as_fine) 
+    {
+      for (int i = 0; i < BL_SPACEDIM ; i++)
+        fr_as_fine->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
+    }
+    if (fr_as_crse) 
+    {
+      for (int i = 0; i < BL_SPACEDIM ; i++)
+        fr_as_crse->CrseAdd(fluxes[i],i,0,0,NUM_STATE,-1.);
+    }
+  }
+
+#ifdef PARTICLES
+  if (TracerPC) 
+  {
+    TracerPC->AdvectWithUmac(Umac, level, dt);
+  }
+#endif
+
+  return dt;
+}
+
+
+//
+//Advance grids at this level in time.
+// computes dphi/dt = -div(F).   Needs dt to be sent in because FluxRegister
+// needs the fluxes to be multiplied by dt*area
+Real
+AmrLevelAdv::
+compute_dPhiDt_MOL2ndOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
+                          FluxRegister* fr_as_crse, FluxRegister* fr_as_fine)
+{
+
+  const Real* dx = geom.CellSize();
+  const Real* prob_lo = geom.ProbLo();
+
+  FluxRegister *current = fr_as_fine;
+    
+  int finest_level = parent->finestLevel();
+
+  if (do_reflux && fr_as_crse)
+  {
+    fr_as_crse->setVal(0.0);
+  }
+
+
+  MultiFab fluxes[BL_SPACEDIM];
+
+  if (do_reflux)
+  {
+    for (int j = 0; j < BL_SPACEDIM; j++)
+    {
+      BoxArray ba = Sborder.boxArray();
+      ba.surroundingNodes(j);
+      fluxes[j].define(ba, dmap, NUM_STATE, 0);
+    }
+  }
+
+  // MF to hold the mac velocity
+  MultiFab Umac[BL_SPACEDIM];
+  for (int i = 0; i < BL_SPACEDIM; i++) 
+  {
+    BoxArray ba = Sborder.boxArray();
+    ba.surroundingNodes(i);
+    Umac[i].define(ba, dmap, 1, iteration);
+  }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  {
+    FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+
+    for (MFIter mfi(Sborder, true); mfi.isValid(); ++mfi)
+    {
+      const Box& bx = mfi.tilebox();
+
+      const FArrayBox& statein = Sborder[mfi];
+      FArrayBox& dphidtout     =  dPhiDt[mfi];
+
+      // Allocate fabs for fluxes and Godunov velocities.
+      for (int i = 0; i < BL_SPACEDIM ; i++) 
+      {
+        const Box& bxtmp = amrex::surroundingNodes(bx,i);
+        flux[i].resize(bxtmp,NUM_STATE);
+        uface[i].resize(amrex::grow(bxtmp, iteration), 1);
+      }
+
+      get_face_velocity(level, ctr_time,
+                        AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
+                                     BL_TO_FORTRAN(uface[1]),
+                                     BL_TO_FORTRAN(uface[2])),
+                        dx, prob_lo);
+
+      for (int i = 0; i < BL_SPACEDIM ; i++) 
+      {
+        const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
+        Umac[i][mfi].copy(uface[i], bxtmp);
+      }
+      advectDiffMOL2ndOrd(time, bx.loVect(), bx.hiVect(),
+                          BL_TO_FORTRAN_3D(statein), 
+                          BL_TO_FORTRAN_3D(dphidtout),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
+                                       BL_TO_FORTRAN_3D(uface[1]),
+                                       BL_TO_FORTRAN_3D(uface[2])),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
+                                       BL_TO_FORTRAN_3D(flux[1]), 
+                                       BL_TO_FORTRAN_3D(flux[2])), 
+                          dx, dt);
 
       if (do_reflux) 
       {
