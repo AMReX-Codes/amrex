@@ -8,3 +8,12 @@
 2017 10 13 uniform_plasma intel knl 2 2 1 0.54 0.2152 
 2017 10 13 uniform_plasma intel knl 2 2 1 0.6 0.2163 
 2017 10 13 uniform_plasma intel knl 2 2 1 0.6 0.217 
+2017 10 13 uniform_plasma gnu knl 1 1 1 1.17 0.8062 
+2017 10 13 uniform_plasma gnu knl 1 1 1 1.39 0.8062 
+2017 10 13 uniform_plasma gnu knl 1 1 1 1.4 0.8067 
+2017 10 13 uniform_plasma gnu knl 1 1 2 1.07 0.4271 
+2017 10 13 uniform_plasma gnu knl 1 1 2 1.02 0.4249 
+2017 10 13 uniform_plasma gnu knl 1 1 2 1.06 0.425 
+2017 10 13 uniform_plasma gnu knl 2 2 1 0.75 0.2119 
+2017 10 13 uniform_plasma gnu knl 2 2 1 0.86 0.2111 
+2017 10 13 uniform_plasma gnu knl 2 2 1 0.71 0.2121 
