@@ -36,7 +36,7 @@ public:
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
     void setCGVerbose (int v) { cg_verbose = v; }
     void setCGMaxIter (int n) { cg_maxiter = n; }
-    void setCGUnstableCriterion (int n) { cg_unstable_criterion = n; }
+    void setCGUnstableCriterion (Real x) { cg_unstable_criterion = x; }
 
 private:
 
@@ -53,9 +53,9 @@ private:
     Cycle cycle_type = Cycle::Vcycle;
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
-    int cg_verbose            = 0;
-    int cg_maxiter            = 100;
-    int cg_unstable_criterion = 10;
+    int  cg_verbose            = 0;
+    int  cg_maxiter            = 100;
+    Real cg_unstable_criterion = 10.0;
 
     MLLinOp& linop;
     int namrlevs;
