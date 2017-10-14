@@ -385,6 +385,10 @@ MLMG::bottomSolve ()
         }
 
         MLCGSolver cg_solver(linop, solver_type);
+        cg_solver.setVerbose(cg_verbose);
+        cg_solver.setMaxIter(cg_maxiter);
+        cg_solver.setUnstableCriterion(cg_unstable_criterion);
+
         const Real cg_rtol = 1.e-4;
         const Real cg_atol = -1.0;
         cg_solver.solve(x, b, cg_rtol, cg_atol);
