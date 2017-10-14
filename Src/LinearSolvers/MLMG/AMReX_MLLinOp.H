@@ -13,6 +13,7 @@ class MLLinOp
 public:
 
     friend class MLMG;
+    friend class MLCGSolver;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
 
@@ -68,6 +69,8 @@ protected:
     Vector<std::unique_ptr<MacBndry> > m_bndry_cor;
     Vector<std::unique_ptr<BndryRegister> > m_crse_cor_br;
 
+    Vector<Vector<Real> > m_Anorm;
+
     //
     // functions
     //
@@ -86,8 +89,7 @@ protected:
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata);
     void updateCorBC (int amrlev, const MultiFab& crse_bcdata);
 
-    void residual (int amrlev, int mglev,
-                   MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
+    void residual (int amrlev, int mglev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
                    BCMode bc_mode) const;
     void correctionResidual (int amrlev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs) const;
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
@@ -103,6 +105,7 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         std::array<FArrayBox,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
+    virtual Real Anorm (int amrlev, int mglev) const = 0;
 
 };
 

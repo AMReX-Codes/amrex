@@ -38,6 +38,8 @@ private:
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
+    mutable Vector<Vector<Real> > m_Anorm;
+
     //
     // functions
     //
@@ -53,6 +55,7 @@ private:
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
     virtual void FFlux (int amrlev, const MFIter& mfi, std::array<FArrayBox,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
+    virtual Real Anorm (int amrlev, int mglev) const final;
 
 };
 
