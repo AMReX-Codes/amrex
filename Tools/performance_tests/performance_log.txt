@@ -1,10 +1,10 @@
-## year month day run_name n_node n_mpi n_omp time_initialization(s) time_one_iteration(s)
-2017  10  12  uniform_plasma 1 1 1 1.88 0.8232
-2017  10  12  uniform_plasma 1 1 1 1.87 0.8252
-2017  10  12  uniform_plasma 1 1 1 2.01 0.8244
-2017  10  12  uniform_plasma 1 1 2 2.03 0.4371
-2017  10  12  uniform_plasma 1 1 2 1.88 0.4363
-2017  10  12  uniform_plasma 1 1 2 1.95 0.4367
-2017  10  12  uniform_plasma 2 2 1 0.89 0.2157
-2017  10  12  uniform_plasma 2 2 1 0.69 0.2159
-2017  10  12  uniform_plasma 2 2 1 0.65 0.2161
+## year month day run_name compiler architecture n_node n_mpi n_omp time_initialization(s) time_one_iteration(s)
+2017 10 13 uniform_plasma intel knl 1 1 1 1.88 0.8257 
+2017 10 13 uniform_plasma intel knl 1 1 1 1.87 0.8229 
+2017 10 13 uniform_plasma intel knl 1 1 1 1.87 0.8244 
+2017 10 13 uniform_plasma intel knl 1 1 2 1.87 0.4372 
+2017 10 13 uniform_plasma intel knl 1 1 2 1.89 0.4374 
+2017 10 13 uniform_plasma intel knl 1 1 2 1.9 0.4366 
+2017 10 13 uniform_plasma intel knl 2 2 1 0.54 0.2152 
+2017 10 13 uniform_plasma intel knl 2 2 1 0.6 0.2163 
+2017 10 13 uniform_plasma intel knl 2 2 1 0.6 0.217 
