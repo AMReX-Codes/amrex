@@ -16,10 +16,6 @@ namespace amrex
   int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
   int      AmrLevelAdv::NUM_GROW        = 3;  // number of ghost cells
 
-#ifdef PARTICLES
-  std::unique_ptr<AmrTracerParticleContainer> AmrLevelAdv::TracerPC =  nullptr;
-  int AmrLevelAdv::do_tracers                       =  0;
-#endif
 
 //
 //Default constructor.  Builds invalid object.
@@ -81,12 +77,6 @@ namespace amrex
               bool               dump_old) 
   {
     AmrLevel::checkPoint(dir, os, how, dump_old);
-#ifdef PARTICLES
-    if (do_tracers and level == 0) 
-    {
-      TracerPC->Checkpoint(dir, "Tracer", true);
-    }
-#endif
   }
 
 //
@@ -100,13 +90,6 @@ namespace amrex
   {
 
     AmrLevel::writePlotFile (dir,os,how);
-
-#ifdef PARTICLES
-    if (do_tracers and level == 0) 
-    {
-      TracerPC->Checkpoint(dir, "Tracer", true);
-    }
-#endif
   }
 
 //
@@ -146,9 +129,6 @@ namespace amrex
   variableCleanUp () 
   {
     desc_lst.clear();
-#ifdef PARTICLES
-    TracerPC.reset();
-#endif
   }
 
 //
@@ -181,10 +161,6 @@ namespace amrex
                BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
                ZFILL(prob_lo));
     }
-
-#ifdef PARTICLES
-    init_particles();
-#endif
 
     if (verbose) 
     {
@@ -241,7 +217,11 @@ namespace amrex
            int  ncycle)
   {
     BL_PROFILE("AmrLevelAdv::advance()");
-  
+    MultiFab& S_new = get_new_data(Phi_Type);
+    Real maxval = S_new.max(0);
+    Real minval = S_new.min(0);
+    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
+//    return advanceGodunov(time, dt, iteration, ncycle);
     return advanceMOLRK2(time, dt, iteration, ncycle);
   }
 
@@ -461,13 +441,6 @@ namespace amrex
       }
     }
 
-#ifdef PARTICLES
-    if (TracerPC) 
-    {
-      TracerPC->AdvectWithUmac(Umac, level, dt);
-    }
-#endif
-
     return dt;
   }
 
@@ -585,13 +558,6 @@ namespace amrex
           fr_as_crse->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
       }
     }
-
-#ifdef PARTICLES
-    if (TracerPC) 
-    {
-      TracerPC->AdvectWithUmac(Umac, level, dt);
-    }
-#endif
 
     return dt;
   }
@@ -807,19 +773,6 @@ namespace amrex
     if (level < finest_level)
       avgDown();
 
-#ifdef PARTICLES    
-    if (TracerPC)
-    {
-      const int ncycle = parent->nCycle(level);
-	
-      if (iteration < ncycle || level == 0)
-      {
-        int ngrow = (level == 0) ? 0 : iteration;
-	    
-        TracerPC->Redistribute(level, TracerPC->finestLevel(), ngrow);
-      }
-    }
-#endif
   }
 
 //
@@ -829,12 +782,6 @@ namespace amrex
   AmrLevelAdv::
   post_regrid (int lbase, int new_finest) 
   {
-#ifdef PARTICLES
-    if (TracerPC && level == lbase) 
-    {
-      TracerPC->Redistribute(lbase);
-    }
-#endif
   }
 
 //
@@ -844,14 +791,6 @@ namespace amrex
   AmrLevelAdv::
   post_restart() 
   {
-#ifdef PARTICLES
-    if (do_tracers and level == 0) 
-    {
-      BL_ASSERT(TracerPC == 0);
-      TracerPC.reset(new AmrTracerParticleContainer(parent));
-      TracerPC->Restart(parent->theRestartFile(), "Tracer");
-    }
-#endif
   }
 
 //
@@ -953,9 +892,6 @@ namespace amrex
       amrex::Abort("Please set geom.is_periodic = 1 1 1");
     }
 
-#ifdef PARTICLES
-    pp.query("do_tracers", do_tracers);
-#endif 
 
 
 
@@ -1025,29 +961,4 @@ namespace amrex
                         0,S_fine.nComp(),parent->refRatio(level));
   }
 
-#ifdef PARTICLES
-  void
-  AmrLevelAdv::
-  init_particles ()
-  {
-    if (do_tracers and level == 0)
-    {
-      BL_ASSERT(TracerPC == nullptr);
-      
-      TracerPC.reset(new AmrTracerParticleContainer(parent));
-      TracerPC->do_tiling = true;
-      TracerPC->tile_size = IntVect(AMREX_D_DECL(1024000,4,4));
-
-      const BoxArray& ba = TracerPC->ParticleBoxArray(0);
-      const DistributionMapping& dm = TracerPC->ParticleDistributionMap(0);
-
-      AmrTracerParticleContainer::ParticleInitData pdata = {1.0};
-
-      TracerPC->SetVerbose(0);
-      TracerPC->InitOnePerCell(0.5, 0.5, 0.5, pdata);
-
-      TracerPC->Redistribute();
-    }
-  }
-#endif
 }

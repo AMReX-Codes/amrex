@@ -8,6 +8,7 @@ geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     = -1.0 -1.0 -1.0 
 geometry.prob_hi     =  1.0  1.0  1.0
 amr.n_cell           =  64   64   64
+adv.diffusion_coeff = 0.00  # diffusion coefficient
 
 # TIME STEP CONTROL
 adv.cfl            = 0.9     # cfl number for hyperbolic system
@@ -15,7 +16,6 @@ adv.cfl            = 0.9     # cfl number for hyperbolic system
 # VERBOSITY
 adv.v              = 1       # verbosity in Adv
 amr.v              = 1       # verbosity in Amr
-amr.diffusion_coef = 0.001   # diffusion coefficient
 #amr.grid_log         = grdlog  # name of grid logging file
 
 # REFINEMENT / REGRIDDING

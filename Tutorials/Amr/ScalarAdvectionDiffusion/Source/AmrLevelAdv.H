@@ -1,9 +1,6 @@
 #ifndef _AmrLevelAdv_H_
 #define _AmrLevelAdv_H_
 
-#ifdef PARTICLES
-#include <AMReX_AmrParticles.H>
-#endif
 
 #include <AMReX_AmrLevel.H>
 #include <AMReX_MultiFab.H>
@@ -155,10 +152,6 @@ namespace amrex
                            amrex::Real         time,
 			   int          n_error_buf = 0, int ngrow = 0) override;
 
-#ifdef PARTICLES
-    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
-#endif
-
     static int  NUM_STATE;
     static int  NUM_GROW;
 
@@ -196,11 +189,6 @@ namespace amrex
     static amrex::Real  diffco;
     static int          do_reflux;
   
-#ifdef PARTICLES
-    void init_particles ();
-    static int       do_tracers;
-    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
-#endif
   };    
 
 //
