@@ -19,4 +19,4 @@ USE_OMP    = FALSE
 Bpack   := ./Make.package 
 Blocs   := . 
 
-include ../Make.Adv
+include ../Make.Adv.Diff

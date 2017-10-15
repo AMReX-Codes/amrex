@@ -33,7 +33,7 @@ contains
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          phix_1d, phiy_1d, phix, phiy, slope
          
-    integer :: i, j, k
+    integer :: i, j
     double precision :: hdtdx(2)
 
     hdtdx = 0.5*(dt/dx)
@@ -85,7 +85,8 @@ contains
           end if
 
           ! compute final x-fluxes
-          flxx(i,j) = phix(i,j)*umac(i,j)
+          ! including diffusive fluxes
+          flxx(i,j) = phix(i,j)*umac(i,j)  - nu*(phi(i,j) - phi(i-1,j))/dx(1)
 
        end do
     end do
@@ -103,7 +104,8 @@ contains
           end if
 
           ! compute final y-fluxes
-          flxy(i,j) = phiy(i,j)*vmac(i,j)
+          ! including diffusive fluxes
+          flxy(i,j) = phiy(i,j)*vmac(i,j)  - nu*(phi(i,j) - phi(i,j-1))/dx(2)
 
        end do
     end do
@@ -136,7 +138,7 @@ contains
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          phix_1d, phiy_1d, phix, phiy, slope
          
-    integer :: i, j, k
+    integer :: i, j
 
 
     call slopex(glo, ghi, &
