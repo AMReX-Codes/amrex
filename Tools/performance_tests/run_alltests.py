@@ -291,4 +291,4 @@ if args.mode == 'read':
         
     os.system('git add ' + log_dir + log_file + ';'\
               'git commit -m "performance tests";'\
-              'git push -u origin performance_tests')
+              'git push -u origin master')
