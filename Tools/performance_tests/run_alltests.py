@@ -152,8 +152,10 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     batch_string += '#SBATCH --account=m2852\n'
     batch_string += 'export OMP_NUM_THREADS=' + str(n_omp) + '\n'
     if args.architecture == 'cpu':
-        batch_string += 'srun '+ \
+        cflag_value = int(32/n_mpi) * 2 # Follow NERSC directives
+        batch_string += 'srun --cpu_bind=cores '+ \
                     ' -n ' + str(n_node*n_mpi) + \
+                    ' -c ' + str(cflag_value)   + \
                     ' ./'  + bin_name + ' inputs > perf_output.txt'
     elif args.architecture == 'knl':
         # number of logical cores per MPI process
@@ -240,9 +242,9 @@ def process_analysis():
 # each element of test_list contains
 # [str runname, int n_node, int n_mpi, int n_omp]
 test_list = []
-test_list.extend([['uniform_plasma', 1, 1, 1]]*3)
-test_list.extend([['uniform_plasma', 1, 1, 2]]*3)
-test_list.extend([['uniform_plasma', 2, 2, 1]]*3)
+test_list.extend([['uniform_plasma', 1, 8, 16]]*3)
+test_list.extend([['uniform_plasma', 1, 4, 32]]*3)
+test_list.extend([['uniform_plasma', 2, 4, 32]]*3)
 n_tests   = len(test_list)
 if args.mode == 'run':
     # Remove file log_jobids_tmp.txt if exists.

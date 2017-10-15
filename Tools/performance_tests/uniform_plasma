@@ -2,13 +2,13 @@
 max_step = 100
 
 # number of grid points
-amr.n_cell =  64 64 64
+amr.n_cell =  128 128 128
 
 amr.plot_int = -1   # How often to write plotfiles.
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
-amr.max_grid_size = 32
+amr.max_grid_size = 64
 
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
