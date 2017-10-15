@@ -155,12 +155,11 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
      &            dx,dt,nu) bind(C, name="advectDiffMOL2ndOrd")
   
   use mempool_module, only : bl_allocate, bl_deallocate
-  use compute_flux_module, only : godunov_flux_3d
-
+  use compute_flux_module, only : mol2ndord_flux_3d
   implicit none
 
   integer, intent(in) :: lo(3), hi(3)
-  double precision, intent(in) :: dx(3), dt, time
+  double precision, intent(in) :: dx(3), dt, time, nu
   integer, intent(in) :: ui_lo(3), ui_hi(3)
   integer, intent(in) :: uo_lo(3), uo_hi(3)
   integer, intent(in) :: vx_lo(3), vx_hi(3)
@@ -222,7 +221,7 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
   end if
 
   ! call a function to compute flux
-  call mol2ndOrd_flux_3d(lo, hi, dt, dx, &
+  call mol2ndord_flux_3d(lo, hi, dt, dx, &
                          uin, ui_lo, ui_hi, &
                          vx, vx_lo, vx_hi, &
                          vy, vy_lo, vy_hi, &

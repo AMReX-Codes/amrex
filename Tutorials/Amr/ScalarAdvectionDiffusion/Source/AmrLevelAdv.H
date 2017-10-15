@@ -6,6 +6,8 @@
 #endif
 
 #include <AMReX_AmrLevel.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_REAL.H>
 #include <AMReX_FluxRegister.H>
 
 #include <memory>
@@ -18,15 +20,17 @@
 enum StateType { Phi_Type = 0,
                  NUM_STATE_TYPE };
 
+namespace amrex
+{
 //
 // AmrLevel-derived class for hyperbolic conservation equations
 //
 
-class AmrLevelAdv
+  class AmrLevelAdv
     :
     public amrex::AmrLevel
-{
-public:
+  {
+  public:
     //
     //Default constructor.  Builds invalid object.
     //
@@ -89,14 +93,14 @@ public:
                                  amrex::Real dt,
                                  int  iteration,
                                  int  ncycle) override;
-  amrex::Real advanceGodunov (amrex::Real time,
-                              amrex::Real dt,
-                              int  iteration,
-                              int  ncycle) override;
-  amrex::Real advanceMOLRK2  (amrex::Real time,
-                              amrex::Real dt,
-                              int  iteration,
-                              int  ncycle) override;
+    amrex::Real advanceGodunov (amrex::Real time,
+                                amrex::Real dt,
+                                int  iteration,
+                                int  ncycle) ;
+    amrex::Real advanceMOLRK2  (amrex::Real time,
+                                amrex::Real dt,
+                                int  iteration,
+                                int  ncycle) ;
     //
     //Estimate time step.
     //
@@ -158,14 +162,14 @@ public:
     static int  NUM_STATE;
     static int  NUM_GROW;
 
-  amrex::Real
-  compute_dPhiDt_godunov  (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
-                           FluxRegister* fr_as_crse, FluxRegister* fr_as_fine);
-  amrex::Real
-  compute_dPhiDt_MOL2dOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real dt,
-                           FluxRegister* fr_as_crse, FluxRegister* fr_as_fine);
+    amrex::Real
+    compute_dPhiDt_godunov  (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
+                             FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int iteration);
+    amrex::Real
+    compute_dPhiDt_MOL2dOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
+                             FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int iteration);
 
-protected:
+  protected:
 
     static void read_params ();
 
@@ -197,31 +201,32 @@ protected:
     static int       do_tracers;
     static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
 #endif
-};    
+  };    
 
 //
 // Inlines.
 //
 
-inline
-AmrLevelAdv&
-AmrLevelAdv::getLevel (int lev)
-{
+  inline
+  AmrLevelAdv&
+  AmrLevelAdv::getLevel (int lev)
+  {
     return *(AmrLevelAdv *) &parent->getLevel(lev);
-}
+  }
 
-inline
-amrex::FluxRegister&
-AmrLevelAdv::getFluxReg ()
-{
+  inline
+  amrex::FluxRegister&
+  AmrLevelAdv::getFluxReg ()
+  {
     BL_ASSERT(flux_reg);
     return *flux_reg;
-}
+  }
 
-inline
-amrex::FluxRegister&
-AmrLevelAdv::getFluxReg (int lev)
-{
+  inline
+  amrex::FluxRegister&
+  AmrLevelAdv::getFluxReg (int lev)
+  {
     return getLevel(lev).getFluxReg();
+  }
 }
 #endif /*_AmrLevelAdv_H_*/

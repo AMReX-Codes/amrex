@@ -230,8 +230,9 @@ contains
                      - hdtdx(3)*( 0.5d0*(wmac(i-1,j  ,k+1)+wmac(i-1,j,k)) * (phiz_y(i-1,j  ,k+1)-phiz_y(i-1,j,k)) )
              end if
 
-             ! compute final x-fluxes
-             flxx(i,j,k) = umac(i,j,k)*phix(i,j,k)
+             ! compute final x-fluxes 
+             ! including diffusive fluxes
+             flxx(i,j,k) = umac(i,j,k)*phix(i,j,k) - nu*(phi(i,j,k) - phi(i-1,j,k))/dx(1)
 
           end do
        end do
@@ -253,7 +254,8 @@ contains
              end if
 
              ! compute final y-fluxes
-             flxy(i,j,k) = vmac(i,j,k)*phiy(i,j,k)
+             !(including diffusive fluxes)
+             flxy(i,j,k) = vmac(i,j,k)*phiy(i,j,k) - nu*(phi(i,j,k) - phi(i,j-1,k))/dx(1)
 
           end do
        end do
@@ -274,8 +276,9 @@ contains
                      - hdtdx(2)*( 0.5d0*(vmac(i  ,j+1,k-1)+vmac(i,j,k-1)) * (phiy_x(i  ,j+1,k-1)-phiy_x(i,j,k-1)) )
              end if
 
-             ! compute final z-fluxes
-             flxz(i,j,k) = wmac(i,j,k)*phiz(i,j,k)
+             ! compute final z-fluxes 
+             !(including diffusive fluxes)
+             flxz(i,j,k) = wmac(i,j,k)*phiz(i,j,k) - nu*(phi(i,j,k) - phi(i,j,k-1))/dx(2)
 
           end do
        end do
@@ -384,7 +387,8 @@ contains
           do i = lo(1), hi(1)+1
 
              ! compute final x-fluxes
-             flxx(i,j,k) = umac(i,j,k)*phix(i,j,k)
+             ! including diffusive fluxes
+             flxx(i,j,k) = umac(i,j,k)*phix(i,j,k) - nu*(phi(i,j,k) - phi(i-1,j,k))/dx(1)
 
           end do
        end do
@@ -395,7 +399,8 @@ contains
           do i = lo(1), hi(1)
 
              ! compute final y-fluxes
-             flxy(i,j,k) = vmac(i,j,k)*phiy(i,j,k)
+             !(including diffusive fluxes)  
+             flxy(i,j,k) = vmac(i,j,k)*phiy(i,j,k) - nu*(phi(i,j,k) - phi(i,j-1,k))/dx(2)
 
           end do
        end do
@@ -407,7 +412,8 @@ contains
           do i = lo(1), hi(1)
 
              ! compute final z-fluxes
-             flxz(i,j,k) = wmac(i,j,k)*phiz(i,j,k)
+             !(including diffusive fluxes)
+             flxz(i,j,k) = wmac(i,j,k)*phiz(i,j,k) - nu*(phi(i,j,k) - phi(i,j,k-1))/dx(3)
 
           end do
        end do
