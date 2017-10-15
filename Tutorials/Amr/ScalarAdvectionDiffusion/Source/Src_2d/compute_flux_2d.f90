@@ -4,7 +4,7 @@ module compute_flux_module
 
   private
 
-  public :: godunov_flux_2d, mol2ndord_flux_3d
+  public :: godunov_flux_2d, mol2ndord_flux_2d
 
 contains
 
@@ -110,7 +110,7 @@ contains
        end do
     end do
 
-  end subroutine compute_flux_2d
+  end subroutine godunov_flux_2d
 
 
   subroutine mol2ndord_flux_2d(lo, hi, dt, dx, &
@@ -189,6 +189,6 @@ contains
        end do
     end do
 
-  end subroutine compute_flux_2d
+  end subroutine mol2ndord_flux_2d
 
 end module compute_flux_module
