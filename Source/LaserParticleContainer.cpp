@@ -48,6 +48,12 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	pp.query("pusher_algo", pusher_algo);
 	pp.get("e_max", e_max);
 	pp.get("wavelength", wavelength);
+    // Boosted-frame: parse the gamma of the boost
+    // Note: it is assumed that the boost is along the propagation
+    // direction of the laser (i.e. along nvec). In this case, the antenna
+    // moves with a velocity -beta_boost along nvec.
+    pp.get("gamma_boost", gamma_boost);
+    beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
 
 	if ( profile == laser_t::Gaussian ) {
 	    // Parse the properties of the Gaussian profile
@@ -261,6 +267,14 @@ LaserParticleContainer::Evolve (int lev,
     long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
+    Real t_lab = t;
+    if (gamma_boost > 1) {
+        // Convert time from the boosted to the lab-frame
+        // (in order to later calculate the amplitude of the field,
+        // at the position of the antenna, in the lab-frame)
+        t_lab = gamma_boost * t;
+    }
+
     BL_ASSERT(OnSameGrids(lev,jx));
 
     MultiFab* cost = WarpX::getCosts(lev);
@@ -397,7 +411,7 @@ LaserParticleContainer::Evolve (int lev,
 	    // at the position of the emission plane
 	    if (profile == laser_t::Gaussian) {
 		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
-				      &t, &wavelength, &e_max, &profile_waist, &profile_duration,
+				      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
 				      &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
 	    }
 
@@ -414,13 +428,20 @@ LaserParticleContainer::Evolve (int lev,
                 Real sign_charge = std::copysign( 1.0, wp[i] );
                 Real v_over_c = sign_charge * mobility * amplitude_E[i];
                 BL_ASSERT( v_over_c < 1 );
-                giv[i] = std::sqrt( 1 - v_over_c * v_over_c );
-                Real gamma = 1./giv[i];
                 // The velocity is along the laser polarization p_X
                 Real vx = PhysConst::c * v_over_c * p_X[0];
                 Real vy = PhysConst::c * v_over_c * p_X[1];
                 Real vz = PhysConst::c * v_over_c * p_X[2];
+                // When running in the boosted-frame, their is additional
+                // velocity along nvec
+                if (gamma_boost > 1.) {
+                    vx -= PhysConst::c * beta_boost * nvec[0];
+                    vy -= PhysConst::c * beta_boost * nvec[1];
+                    vz -= PhysConst::c * beta_boost * nvec[2];
+                }
                 // Get the corresponding momenta
+                giv[i] = std::sqrt( 1 - pow(gamma_boost *  v_over_c, 2) )/gamma_boost;
+                Real gamma = 1./giv[i];
                 uxp[i] = gamma * vx;
                 uyp[i] = gamma * vy;
                 uzp[i] = gamma * vz;
@@ -444,24 +465,24 @@ LaserParticleContainer::Evolve (int lev,
             Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
             Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
             Box gtbx, gtby, gtbz;
-            
+
             const std::array<Real, 3>& xyzmin = xyzmin_tile;
-            
+
             tbx.grow(ngJ);
             tby.grow(ngJ);
             tbz.grow(ngJ);
-            
+
             if (WarpX::use_filter) {
-                
+
                 gtbx = tbx;
                 gtbx.grow(1);
-                
+
                 gtby = tby;
                 gtby.grow(1);
-                
+
                 gtbz = tbz;
                 gtbz.grow(1);
-                
+
                 local_jx.resize(gtbx);
                 local_jy.resize(gtby);
                 local_jz.resize(gtbz);
@@ -470,19 +491,19 @@ LaserParticleContainer::Evolve (int lev,
                 local_jy.resize(tby);
                 local_jz.resize(tbz);
             }
-            
+
             local_jx = 0.0;
             local_jy = 0.0;
             local_jz = 0.0;
-            
+
             jx_ptr = local_jx.dataPtr();
             jy_ptr = local_jy.dataPtr();
             jz_ptr = local_jz.dataPtr();
-            
+
             jxntot = local_jx.length();
             jyntot = local_jy.length();
             jzntot = local_jz.length();
-            
+
             warpx_current_deposition(
                 jx_ptr, &ngJDeposit, jxntot,
                 jy_ptr, &ngJDeposit, jyntot,
@@ -497,10 +518,10 @@ LaserParticleContainer::Evolve (int lev,
 
             const int ncomp = 1;
             if (WarpX::use_filter) {
-                
+
                 filtered_jx.resize(tbx);
                 filtered_jx = 0.0;
-                
+
                 WRPX_FILTER(local_jx.dataPtr(),
                             local_jx.loVect(),
                             local_jx.hiVect(),
@@ -508,10 +529,10 @@ LaserParticleContainer::Evolve (int lev,
                             filtered_jx.loVect(),
                             filtered_jx.hiVect(),
                             ncomp);
-                
+
                 filtered_jy.resize(tby);
                 filtered_jy = 0.0;
-                
+
                 WRPX_FILTER(local_jy.dataPtr(),
                             local_jy.loVect(),
                             local_jy.hiVect(),
@@ -519,10 +540,10 @@ LaserParticleContainer::Evolve (int lev,
                             filtered_jy.loVect(),
                             filtered_jy.hiVect(),
                             ncomp);
-                
+
                 filtered_jz.resize(tbz);
                 filtered_jz = 0.0;
-                
+
                 WRPX_FILTER(local_jz.dataPtr(),
                             local_jz.loVect(),
                             local_jz.hiVect(),
@@ -530,30 +551,30 @@ LaserParticleContainer::Evolve (int lev,
                             filtered_jz.loVect(),
                             filtered_jz.hiVect(),
                             ncomp);
-                
+
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jx),
                                             BL_TO_FORTRAN_3D(jxfab), ncomp);
-                
+
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jy),
                                             BL_TO_FORTRAN_3D(jyfab), ncomp);
-                
+
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jz),
                                             BL_TO_FORTRAN_3D(jzfab), ncomp);
-                
+
             } else {
-                
+
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
                                             BL_TO_FORTRAN_3D(jxfab), ncomp);
-                
+
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
                                             BL_TO_FORTRAN_3D(jyfab), ncomp);
-                
+
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
                                             BL_TO_FORTRAN_3D(jzfab), ncomp);
             }
-            
+
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
-            
+
 	    //
 	    // copy particle data back
 	    //
@@ -609,4 +630,8 @@ LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
     // The mobility is the constant of proportionality between the field to
     // be emitted, and the corresponding velocity that the particles need to have.
     mobility = (Sx * Sy)/(weight * PhysConst::mu0 * PhysConst::c * PhysConst::c);
+    // When running in the boosted-frame, the input parameters (and in particular
+    // the amplitude of the field) are given in the lab-frame.
+    // Therefore, the mobility needs to be modified by a factor gamma_boost.
+    mobility = mobility/gamma_boost;
 }

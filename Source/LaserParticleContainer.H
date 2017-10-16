@@ -17,7 +17,7 @@ public:
     virtual void InitData () final;
 
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, 
+                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) { BL_ASSERT(false); }
 
     virtual void Evolve (int lev,
@@ -38,6 +38,8 @@ private:
     long                      pusher_algo = -1;
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               wavelength  = std::numeric_limits<amrex::Real>::quiet_NaN();
+    amrex::Real               gamma_boost = 1;
+    amrex::Real               beta_boost = 0;
 
     // computed using runtime parameters
     amrex::Vector<amrex::Real> p_Y;
