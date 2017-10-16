@@ -41,7 +41,10 @@ namespace amrex
   {
     flux_reg = 0;
     if (level > 0 && do_reflux)
-      flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
+      flux_reg = new YAFluxRegister(bl, papa.boxArray(level-1),
+                                    dm, papa.DistributionMap(level-1),
+                                    level_geom, papa.Geom(level-1),
+                                    papa.refRatio(level-1), level, NUM_STATE);
   }
 
 //
@@ -66,7 +69,10 @@ namespace amrex
 
     BL_ASSERT(flux_reg == 0);
     if (level > 0 && do_reflux)
-      flux_reg = new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE);
+      flux_reg = new YAFluxRegister(grids, papa.boxArray(level-1),
+                                    dmap, papa.DistributionMap(level-1),
+                                    geom, papa.Geom(level-1),
+                                    papa.refRatio(level-1), level, NUM_STATE);
   }
 
   void 
@@ -244,13 +250,13 @@ namespace amrex
     MultiFab dDphiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
   
-    FluxRegister* fr_as_crse = nullptr;
+    YAFluxRegister* fr_as_crse = nullptr;
     if (do_reflux && level < parent->finestLevel()) 
     {
       fr_as_crse = &getFluxReg(level+1);
     }
 
-    FluxRegister* fr_as_fine = nullptr;
+    YAFluxRegister* fr_as_fine = nullptr;
     if (do_reflux && level > 0) 
     {
       fr_as_fine = &getFluxReg(level);
@@ -258,7 +264,7 @@ namespace amrex
 
     if (fr_as_crse) 
     {
-      fr_as_crse->setVal(0.);
+      fr_as_crse->reset();
     }
 
     // RK2 stage 1
@@ -301,13 +307,13 @@ namespace amrex
     MultiFab dDphiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
   
-    FluxRegister* fr_as_crse = nullptr;
+    YAFluxRegister* fr_as_crse = nullptr;
     if (do_reflux && level < parent->finestLevel()) 
     {
       fr_as_crse = &getFluxReg(level+1);
     }
 
-    FluxRegister* fr_as_fine = nullptr;
+    YAFluxRegister* fr_as_fine = nullptr;
     if (do_reflux && level > 0) 
     {
       fr_as_fine = &getFluxReg(level);
@@ -315,7 +321,7 @@ namespace amrex
 
     if (fr_as_crse) 
     {
-      fr_as_crse->setVal(0.);
+      fr_as_crse->reset();
     }
 
 /** doing this as Godunov first to make sure I did not 
@@ -331,50 +337,27 @@ namespace amrex
   }
 //
 //Advance grids at this level in time.
-// computes dphi/dt = -div(F).   Needs dt to be sent in because FluxRegister
+// computes dphi/dt = -div(F).   Needs dt to be sent in because YAFluxRegister
 // needs the fluxes to be multiplied by dt*area
   amrex::Real
   AmrLevelAdv::
   compute_dPhiDt_godunov (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
-                          FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, 
+                          YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine, 
                           int iteration)
   {
 
     const Real* dx = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
 
-    if (do_reflux && fr_as_crse)
-    {
-      fr_as_crse->setVal(0.0);
-    }
-
-
     MultiFab fluxes[BL_SPACEDIM];
 
-    if (do_reflux)
-    {
-      for (int j = 0; j < BL_SPACEDIM; j++)
-      {
-        BoxArray ba = Sborder.boxArray();
-        ba.surroundingNodes(j);
-        fluxes[j].define(ba, dmap, NUM_STATE, 0);
-      }
-    }
-
-    // MF to hold the mac velocity
-    MultiFab Umac[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
-    {
-      BoxArray ba = Sborder.boxArray();
-      ba.surroundingNodes(i);
-      Umac[i].define(ba, dmap, 1, iteration);
-    }
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-      FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+      std::array<FArrayBox,AMREX_SPACEDIM> flux;
+      std::array<FArrayBox,AMREX_SPACEDIM> uface;
 
       for (MFIter mfi(Sborder, true); mfi.isValid(); ++mfi)
       {
@@ -401,11 +384,6 @@ namespace amrex
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        for (int i = 0; i < BL_SPACEDIM ; i++) 
-        {
-          const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
-          Umac[i][mfi].copy(uface[i], bxtmp);
-        }
         advectDiffGodunov(time, bx.loVect(), bx.hiVect(),
                           BL_TO_FORTRAN_3D(statein), 
                           BL_TO_FORTRAN_3D(dphidtout),
@@ -417,27 +395,28 @@ namespace amrex
                                        BL_TO_FORTRAN_3D(flux[2])), 
                           dx, dt, diffco);
 
-        if (do_reflux) 
+        if(do_reflux)
         {
-          for (int i = 0; i < BL_SPACEDIM ; i++)
-            fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
+          std::array<const FArrayBox*,AMREX_SPACEDIM> fluxPtrs;
+          for(int idir = 0; idir < SpaceDim; idir++)
+          {
+            fluxPtrs[idir] = &flux[idir];
+          }
+          if (fr_as_crse) 
+          {
+          
+            fr_as_crse->CrseAdd(mfi,fluxPtrs,dx,dt);
+          }
+
+          if (fr_as_fine) 
+          {
+            fr_as_fine->FineAdd(mfi,fluxPtrs,dx,dt);
+          }
         }
+
       }
     }
 
-    if (do_reflux) 
-    {
-      if (fr_as_fine) 
-      {
-        for (int i = 0; i < BL_SPACEDIM ; i++)
-          fr_as_fine->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
-      }
-      if (fr_as_crse) 
-      {
-        for (int i = 0; i < BL_SPACEDIM ; i++)
-          fr_as_crse->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
-      }
-    }
 
     return dt;
   }
@@ -445,44 +424,20 @@ namespace amrex
 
 //
 //Advance grids at this level in time.
-// computes dphi/dt = -div(F).   Needs dt to be sent in because FluxRegister
+// computes dphi/dt = -div(F).   Needs dt to be sent in because YAFluxRegister
 // needs the fluxes to be multiplied by dt*area
   Real
   AmrLevelAdv::
   compute_dPhiDt_MOL2dOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
-                           FluxRegister* fr_as_crse, FluxRegister* fr_as_fine,
+                           YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine,
                            int iteration)
   {
 
     const Real* dx = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
 
-    if (do_reflux && fr_as_crse)
-    {
-      fr_as_crse->setVal(0.0);
-    }
-
-
     MultiFab fluxes[BL_SPACEDIM];
 
-    if (do_reflux)
-    {
-      for (int j = 0; j < BL_SPACEDIM; j++)
-      {
-        BoxArray ba = Sborder.boxArray();
-        ba.surroundingNodes(j);
-        fluxes[j].define(ba, dmap, NUM_STATE, 0);
-      }
-    }
-
-    // MF to hold the mac velocity
-    MultiFab Umac[BL_SPACEDIM];
-    for (int i = 0; i < BL_SPACEDIM; i++) 
-    {
-      BoxArray ba = Sborder.boxArray();
-      ba.surroundingNodes(i);
-      Umac[i].define(ba, dmap, 1, iteration);
-    }
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -515,11 +470,6 @@ namespace amrex
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        for (int i = 0; i < BL_SPACEDIM ; i++) 
-        {
-          const Box& bxtmp = mfi.grownnodaltilebox(i, iteration);
-          Umac[i][mfi].copy(uface[i], bxtmp);
-        }
         advectDiffMOL2ndOrd(time, bx.loVect(), bx.hiVect(),
                             BL_TO_FORTRAN_3D(statein), 
                             BL_TO_FORTRAN_3D(dphidtout),
@@ -531,27 +481,27 @@ namespace amrex
                                          BL_TO_FORTRAN_3D(flux[2])), 
                             dx, dt, diffco);
 
-        if (do_reflux) 
+        if(do_reflux)
         {
-          for (int i = 0; i < BL_SPACEDIM ; i++)
-            fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
+          std::array<const FArrayBox*,AMREX_SPACEDIM> fluxPtrs;
+          for(int idir = 0; idir < SpaceDim; idir++)
+          {
+            fluxPtrs[idir] = &flux[idir];
+          }
+          if (fr_as_crse) 
+          {
+          
+            fr_as_crse->CrseAdd(mfi,fluxPtrs,dx,dt);
+          }
+
+          if (fr_as_fine) 
+          {
+            fr_as_fine->FineAdd(mfi,fluxPtrs,dx,dt);
+          }
         }
       }
     }
 
-    if (do_reflux) 
-    {
-      if (fr_as_fine) 
-      {
-        for (int i = 0; i < BL_SPACEDIM ; i++)
-          fr_as_fine->FineAdd(fluxes[i],i,0,0,NUM_STATE,1.);
-      }
-      if (fr_as_crse) 
-      {
-        for (int i = 0; i < BL_SPACEDIM ; i++)
-          fr_as_crse->CrseInit(fluxes[i],i,0,0,NUM_STATE,-1.);
-      }
-    }
 
     return dt;
   }
@@ -918,7 +868,7 @@ namespace amrex
 
     const Real strt = ParallelDescriptor::second();
 
-    getFluxReg(level+1).Reflux(get_new_data(Phi_Type),1.0,0,0,NUM_STATE,geom);
+    getFluxReg(level+1).Reflux(get_new_data(Phi_Type));
     
     if (verbose)
     {

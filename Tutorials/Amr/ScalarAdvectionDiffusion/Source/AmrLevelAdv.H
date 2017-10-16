@@ -5,7 +5,7 @@
 #include <AMReX_AmrLevel.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_REAL.H>
-#include <AMReX_FluxRegister.H>
+#include <AMReX_YAFluxRegister.H>
 
 #include <memory>
 #include <iostream>
@@ -157,10 +157,10 @@ namespace amrex
 
     amrex::Real
     compute_dPhiDt_godunov  (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
-                             FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int iteration);
+                             YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine, int iteration);
     amrex::Real
     compute_dPhiDt_MOL2dOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
-                             FluxRegister* fr_as_crse, FluxRegister* fr_as_fine, int iteration);
+                             YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine, int iteration);
 
   protected:
 
@@ -168,8 +168,8 @@ namespace amrex
 
     // inline functioned implemented below
     AmrLevelAdv& getLevel (int lev);
-    amrex::FluxRegister& getFluxReg ();
-    amrex::FluxRegister& getFluxReg (int lev);
+    amrex::YAFluxRegister& getFluxReg ();
+    amrex::YAFluxRegister& getFluxReg (int lev);
 
     void reflux ();
 
@@ -180,7 +180,7 @@ namespace amrex
     //
     // The data.
     //
-    amrex::FluxRegister*        flux_reg;
+    amrex::YAFluxRegister*        flux_reg;
     //
     // Static data members.
     //
@@ -203,7 +203,7 @@ namespace amrex
   }
 
   inline
-  amrex::FluxRegister&
+  amrex::YAFluxRegister&
   AmrLevelAdv::getFluxReg ()
   {
     BL_ASSERT(flux_reg);
@@ -211,7 +211,7 @@ namespace amrex
   }
 
   inline
-  amrex::FluxRegister&
+  amrex::YAFluxRegister&
   AmrLevelAdv::getFluxReg (int lev)
   {
     return getLevel(lev).getFluxReg();
