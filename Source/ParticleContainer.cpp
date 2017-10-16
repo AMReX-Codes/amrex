@@ -57,8 +57,8 @@ MultiParticleContainer::InitData ()
 }
 
 void
-MultiParticleContainer::FieldGatherES (const Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
-                                       const amrex::Array<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
+MultiParticleContainer::FieldGatherES (const Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                                       const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
 {
     for (auto& pc : allcontainers) {
 	pc->FieldGatherES(E, masks);
@@ -76,8 +76,8 @@ MultiParticleContainer::FieldGather (int lev,
 }
 
 void
-MultiParticleContainer::EvolveES (const Array<std::array<std::unique_ptr<MultiFab>, 3> >& E,
-                                        Array<std::unique_ptr<MultiFab> >& rho,
+MultiParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
+                                        Vector<std::unique_ptr<MultiFab> >& rho,
                                   Real t, Real dt)
 {
 
@@ -132,7 +132,7 @@ MultiParticleContainer::PushX (Real dt)
 
 void
 MultiParticleContainer::
-DepositCharge (Array<std::unique_ptr<MultiFab> >& rho, bool local)
+DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
 {
     int nlevs = rho.size();
     int ng = rho[0]->nGrow();
@@ -186,11 +186,11 @@ MultiParticleContainer::Redistribute ()
     }
 }
 
-Array<long>
+Vector<long>
 MultiParticleContainer::NumberOfParticlesInGrid(int lev) const
 {
     const bool only_valid=true, only_local=true;
-    Array<long> r = allcontainers[0]->NumberOfParticlesInGrid(lev,only_valid,only_local);
+    Vector<long> r = allcontainers[0]->NumberOfParticlesInGrid(lev,only_valid,only_local);
     for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
 	const auto& ri = allcontainers[i]->NumberOfParticlesInGrid(lev,only_valid,only_local);
 	for (unsigned j=0, m=ri.size(); j<m; ++j) {

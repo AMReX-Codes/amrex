@@ -28,6 +28,7 @@
 
 #define WRPX_LORENTZ_TRANSFORM           warpx_lorentz_transform_3d
 #define WRPX_FILL_SLICE                  warpx_fill_slice_3d
+#define WRPX_FILTER                      warpx_filter_3d
 
 #elif (BL_SPACEDIM == 2)
 
@@ -53,6 +54,8 @@
 #define WRPX_INTERPOLATE_CIC_TWO_LEVELS  warpx_interpolate_cic_two_levels_2d
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
+
+#define WRPX_FILTER                      warpx_filter_2d
 
 #endif
 
@@ -127,19 +130,19 @@ extern "C"
 				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength, amrex::Real* e_max, amrex::Real* waist,
 				amrex::Real* duration, amrex::Real* t_peak, amrex::Real* f, amrex::Real* amplitude );
 
-  void warpx_harris_laser( const long* np,
-				amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
-        amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
-
-	// Maxwell solver
-
+        void warpx_harris_laser( const long* np,
+                                 amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
+                                 amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
+    
+    // Maxwell solver
+    
         void WRPX_PXR_PUSH_EVEC(
-				const int* xlo, const int* xhi,
-				const int* ylo, const int* yhi,
-				const int* zlo, const int* zhi,
-				BL_FORT_FAB_ARG_3D(ex),
-				BL_FORT_FAB_ARG_3D(ey),
-				BL_FORT_FAB_ARG_3D(ez),
+                                const int* xlo, const int* xhi,
+                                const int* ylo, const int* yhi,
+                                const int* zlo, const int* zhi,
+                                BL_FORT_FAB_ARG_3D(ex),
+                                BL_FORT_FAB_ARG_3D(ey),
+                                BL_FORT_FAB_ARG_3D(ez),
 				const BL_FORT_FAB_ARG_3D(bx),
 				const BL_FORT_FAB_ARG_3D(by),
 				const BL_FORT_FAB_ARG_3D(bz),
@@ -364,6 +367,9 @@ extern "C"
                            BL_FORT_FAB_ARG_3D(ez),
                            const BL_FORT_FAB_ARG_3D(F),
                            const amrex::Real* dtdx);
+    
+    void WRPX_FILTER(const amrex_real*, const int*, const int*,
+                     amrex_real*, const int*, const int*, int);
 
 #ifdef __cplusplus
 }

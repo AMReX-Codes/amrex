@@ -23,7 +23,7 @@ CEXE_sources += WarpXPML.cpp
 CEXE_headers += WarpXPML.H
 
 F90EXE_sources += WarpX_f.F90 WarpX_picsar.F90 WarpX_laser.F90 WarpX_pml.F90 WarpX_electrostatic.F90
-F90EXE_sources += WarpX_boosted_frame.F90
+F90EXE_sources += WarpX_boosted_frame.F90 WarpX_filter.F90
 
 ifeq ($(USE_OPENBC_POISSON),TRUE)
   F90EXE_sources += openbc_f.F90

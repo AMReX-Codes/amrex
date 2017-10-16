@@ -1,0 +1,124 @@
+# Maximum number of time steps
+max_step = 10000
+
+# number of grid points
+amr.n_cell =  128 128 64
+
+# Maximum allowable size of each subdomain in the problem domain;
+#    this is used to decompose the domain for parallel calculations.
+amr.max_grid_size = 32
+# The lo and hi ends of grids are multipliers of blocking factor
+amr.blocking_factor = 32
+
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+amr.max_level = 0
+warpx.fine_tag_lo = -220.e-6   -220.e-6   -350.e-6 
+warpx.fine_tag_hi =  220.e-6    220.e-6    0.e-6
+
+amr.plot_int = 200   # How often to write plotfiles.  "<= 0" means no plotfiles.
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 0 0 0      # Is periodic?
+geometry.prob_lo     = -220.e-6   -220.e-6   -350.e-6     # physical domain
+geometry.prob_hi     =  220.e-6    220.e-6    0.e-6
+
+# Verbosity
+warpx.verbose = 1
+warpx.plot_raw_fields = 1
+warpx.do_dive_cleaning = 0
+warpx.use_filter = 1
+warpx.do_pml = 1
+
+# Algorithms
+algo.current_deposition = 3
+algo.charge_deposition = 0
+algo.field_gathering = 0
+algo.particle_pusher = 0
+
+# CFL
+warpx.cfl = .99
+particles.nspecies = 3
+particles.species_names = driver beam plasma_e plasma_p
+
+#
+# The driver species information
+#
+
+driver.charge = -q_e
+driver.mass = m_e
+driver.injection_style = "NUniformPerCell"
+driver.xmin = -20.e-6
+driver.xmax = 20.e-6
+driver.ymin = -20.e-6
+driver.ymax = 20.e-6
+driver.zmin = -90.e-6
+driver.zmax = -40.e-6
+
+driver.profile = "constant"
+driver.density = 2.e22                   # number of particles per m^3
+driver.num_particles_per_cell_each_dim = 2 2 2
+
+driver.momentum_distribution_type = "constant"
+driver.ux = 0.0
+driver.uy = 0.0
+driver.uz = 1e6
+
+#
+# The beam species information
+#
+
+beam.charge = -q_e
+beam.mass = m_e
+beam.injection_style = "NUniformPerCell"
+
+beam.xmin = -10.e-6
+beam.xmax = 10.e-6
+beam.ymin = -10.e-6
+beam.ymax = 10.e-6
+beam.zmin = -230.e-6
+beam.zmax = -210.e-6
+
+beam.profile = "constant"
+beam.density = 5.e20                    # number of particles per m^3
+beam.num_particles_per_cell_each_dim = 4 4 4
+
+beam.momentum_distribution_type = "gaussian"
+beam.ux_m = 0.0
+beam.uy_m = 0.0
+beam.uz_m = 1.e3
+beam.u_th = 2.
+
+#
+# The plasma species information
+#
+
+plasma_e.charge = -q_e
+plasma_e.mass = m_e
+plasma_e.injection_style = "NUniformPerCell"
+
+plasma_e.xmin = -120.e-6
+plasma_e.xmax =  120.e-6
+plasma_e.ymin = -120.e-6
+plasma_e.ymax =  120.e-6
+plasma_e.zmin = 0.e-6
+
+plasma_e.profile = "constant"
+plasma_e.density = 1e22
+plasma_e.num_particles_per_cell_each_dim = 1 1 1
+
+plasma_e.momentum_distribution_type = "constant"
+plasma_e.ux = 0.0
+plasma_e.uy = 0.0
+plasma_e.uz = 0.0
+# plasma.u_th = 0.
+
+# Moving window
+warpx.do_moving_window = 1
+warpx.moving_window_dir = z
+warpx.moving_window_v = 1. # in units of the speed of light
+
+# Particle Injection
+warpx.do_plasma_injection = 1
+warpx.num_injected_species = 1
+warpx.injected_plasma_species = 2

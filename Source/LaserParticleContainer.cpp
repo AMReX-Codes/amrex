@@ -13,7 +13,7 @@ using namespace amrex;
 
 namespace
 {
-    Array<Real> CrossProduct (const Array<Real>& a, const Array<Real>& b)
+    Vector<Real> CrossProduct (const Vector<Real>& a, const Vector<Real>& b)
     {
 	return { a[1]*b[2]-a[2]*b[1],  a[2]*b[0]-a[0]*b[2],  a[0]*b[1]-a[1]*b[0] };
     }
@@ -61,7 +61,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	    // Parse the properties of the Harris profile
 	   pp.get("profile_waist", profile_waist);
 	   pp.get("profile_duration", profile_duration);
-     pp.get("profile_focal_distance", profile_focal_distance);
+           pp.get("profile_focal_distance", profile_focal_distance);
 	}
 
 	// Plane normal
@@ -89,7 +89,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
         prob_domain = Geometry::ProbDomain();
         {
-            Array<Real> lo, hi;
+            Vector<Real> lo, hi;
             if (pp.queryarr("prob_lo", lo)) {
                 prob_domain.setLo(lo);
             }
@@ -115,7 +115,7 @@ LaserParticleContainer::InitData (int lev)
     ComputeSpacing(lev, S_X, S_Y);
     ComputeWeightMobility(S_X, S_Y);
 
-    auto Transform = [&](int i, int j) -> Array<Real>
+    auto Transform = [&](int i, int j) -> Vector<Real>
     {
 #if (BL_SPACEDIM == 3)
 	return { position[0] + (S_X*(i+0.5))*u_X[0] + (S_Y*(j+0.5))*u_Y[0],
@@ -129,7 +129,7 @@ LaserParticleContainer::InitData (int lev)
     };
 
     // Given the "lab" frame coordinates, return the real coordinates in the laser plane coordinates
-    auto InverseTransform = [&](const Array<Real>& pos) -> Array<Real>
+    auto InverseTransform = [&](const Vector<Real>& pos) -> Vector<Real>
     {
 #if (BL_SPACEDIM == 3)
 	return {u_X[0]*(pos[0]-position[0])+u_X[1]*(pos[1]-position[1])+u_X[2]*(pos[2]-position[2]),
@@ -139,12 +139,12 @@ LaserParticleContainer::InitData (int lev)
 #endif
     };
 
-    Array<int> plane_lo(2, std::numeric_limits<int>::max());
-    Array<int> plane_hi(2, std::numeric_limits<int>::min());
+    Vector<int> plane_lo(2, std::numeric_limits<int>::max());
+    Vector<int> plane_hi(2, std::numeric_limits<int>::min());
     {
 	auto compute_min_max = [&](Real x, Real y, Real z)
 	{
-	    const Array<Real>& pos_plane = InverseTransform({x, y, z});
+	    const Vector<Real>& pos_plane = InverseTransform({x, y, z});
 	    int i = pos_plane[0]/S_X;
 	    int j = pos_plane[1]/S_Y;
 	    plane_lo[0] = std::min(plane_lo[0], i);
@@ -198,10 +198,10 @@ LaserParticleContainer::InitData (int lev)
     BoxArray plane_ba { Box {IntVect(plane_lo[0],0), IntVect(plane_hi[0],0)} };
 #endif
 
-    Array<Real> particle_x, particle_y, particle_z, particle_w;
+    Vector<Real> particle_x, particle_y, particle_z, particle_w;
 
     const DistributionMapping plane_dm {plane_ba, nprocs};
-    const Array<int>& procmap = plane_dm.ProcessorMap();
+    const Vector<int>& procmap = plane_dm.ProcessorMap();
     for (int i = 0, n = plane_ba.size(); i < n; ++i)
     {
 	if (procmap[i] == myproc)
@@ -209,7 +209,7 @@ LaserParticleContainer::InitData (int lev)
 	    const Box& bx = plane_ba[i];
 	    for (IntVect cell = bx.smallEnd(); cell <= bx.bigEnd(); bx.next(cell))
 	    {
-		const Array<Real>& pos = Transform(cell[0], cell[1]);
+		const Vector<Real>& pos = Transform(cell[0], cell[1]);
 #if (BL_SPACEDIM == 3)
 		const Real* x = pos.data();
 #else
@@ -229,9 +229,9 @@ LaserParticleContainer::InitData (int lev)
 	}
     }
     const int np = particle_z.size();
-    Array<Real> particle_ux(np, 0.0);
-    Array<Real> particle_uy(np, 0.0);
-    Array<Real> particle_uz(np, 0.0);
+    Vector<Real> particle_ux(np, 0.0);
+    Vector<Real> particle_uy(np, 0.0);
+    Vector<Real> particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
     AddNParticles(lev,
@@ -256,20 +256,27 @@ LaserParticleContainer::Evolve (int lev,
 
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ  = jx.nGrow();
-
     long ngRho = (rho) ? rho->nGrow() : 0;
 
+    long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
+    long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
+
     BL_ASSERT(OnSameGrids(lev,jx));
+
+    MultiFab* cost = WarpX::getCosts(lev);
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-	Array<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
+	Vector<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
+        FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
+            Real wt = ParallelDescriptor::second();
+
 	    const Box& box = pti.validbox();
 
             auto& attribs = pti.GetAttribs();
@@ -325,42 +332,61 @@ LaserParticleContainer::Evolve (int lev,
                 Real* data_ptr;
                 const int *rholen;
                 FArrayBox& rhofab = (*rho)[pti];
-#ifdef _OPENMP
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
+                Box grown_box;
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 tile_box.grow(ngRho);
-                local_rho.resize(tile_box);
+                if (WarpX::use_filter) {
+                    grown_box = tile_box;
+                    grown_box.grow(1);
+                    local_rho.resize(grown_box);
+                } else {
+                    local_rho.resize(tile_box);
+                }
                 local_rho = 0.0;
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
-#else
-                const std::array<Real, 3>& xyzmin = xyzmin_grid;
-                data_ptr = rhofab.dataPtr();
-                rholen = rhofab.length();
-#endif
 
 #if (BL_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = rholen[1]-1-2*ngRho;
-                const long nz = rholen[2]-1-2*ngRho;
+                const long nx = rholen[0]-1-2*ngRhoDeposit;
+                const long ny = rholen[1]-1-2*ngRhoDeposit;
+                const long nz = rholen[2]-1-2*ngRhoDeposit;
 #else
-                const long nx = rholen[0]-1-2*ngRho;
+                const long nx = rholen[0]-1-2*ngRhoDeposit;
                 const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRho;
+                const long nz = rholen[1]-1-2*ngRhoDeposit;
 #endif
-            	warpx_charge_deposition(rhofab.dataPtr(),
-                                        &np, xp.data(), yp.data(), zp.data(), wp.data(),
-                                        &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
+            	warpx_charge_deposition(data_ptr, &np,
+					xp.data(), yp.data(), zp.data(), wp.data(),
+                                        &this->charge,
+					&xyzmin[0], &xyzmin[1], &xyzmin[2],
                                         &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRho, &ngRho, &ngRho, &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                        &ngRhoDeposit, &ngRhoDeposit, &ngRhoDeposit,
+					&WarpX::nox,&WarpX::noy,&WarpX::noz,
                                         &lvect, &WarpX::charge_deposition_algo);
 
-#ifdef _OPENMP
-                const Box& fabbox = rhofab.box();
                 const int ncomp = 1;
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                            BL_TO_FORTRAN_3D(rhofab), ncomp);
-#endif
+                if (WarpX::use_filter) {
+
+                    filtered_rho.resize(tile_box);
+                    filtered_rho = 0;
+
+                    WRPX_FILTER(local_rho.dataPtr(),
+                                local_rho.loVect(),
+                                local_rho.hiVect(),
+                                filtered_rho.dataPtr(),
+                                filtered_rho.loVect(),
+                                filtered_rho.hiVect(),
+                                ncomp);
+
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_rho),
+                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
+
+
+                } else {
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
+                }
             }
 
 	    //
@@ -375,10 +401,10 @@ LaserParticleContainer::Evolve (int lev,
 				      &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
 	    }
 
-      if (profile == laser_t::Harris) {
+            if (profile == laser_t::Harris) {
 		warpx_harris_laser( &np, plane_Xp.data(), plane_Yp.data(),
-				      &t, &wavelength, &e_max, &profile_waist, &profile_duration,
-				      &profile_focal_distance, amplitude_E.data() );
+                                    &t, &wavelength, &e_max, &profile_waist, &profile_duration,
+                                    &profile_focal_distance, amplitude_E.data() );
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
@@ -414,80 +440,132 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_START(blp_pxr_cd);
             Real *jx_ptr, *jy_ptr, *jz_ptr;
             const int  *jxntot, *jyntot, *jzntot;
-#ifdef _OPENMP
-                Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
-                Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
-                Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
+            Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
+            Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
+            Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
+            Box gtbx, gtby, gtbz;
+            
+            const std::array<Real, 3>& xyzmin = xyzmin_tile;
+            
+            tbx.grow(ngJ);
+            tby.grow(ngJ);
+            tbz.grow(ngJ);
+            
+            if (WarpX::use_filter) {
                 
-                const std::array<Real, 3>& xyzmin = xyzmin_tile;
+                gtbx = tbx;
+                gtbx.grow(1);
                 
-                tbx.grow(ngJ);
-                tby.grow(ngJ);
-                tbz.grow(ngJ);
+                gtby = tby;
+                gtby.grow(1);
                 
+                gtbz = tbz;
+                gtbz.grow(1);
+                
+                local_jx.resize(gtbx);
+                local_jy.resize(gtby);
+                local_jz.resize(gtbz);
+            } else {
                 local_jx.resize(tbx);
                 local_jy.resize(tby);
                 local_jz.resize(tbz);
-                
-                local_jx = 0.0;
-                local_jy = 0.0;
-                local_jz = 0.0;
-                
-                jx_ptr = local_jx.dataPtr();
-                jy_ptr = local_jy.dataPtr();
-                jz_ptr = local_jz.dataPtr();
-                
-                jxntot = local_jx.length();
-                jyntot = local_jy.length();
-                jzntot = local_jz.length();
-#else                
-                const std::array<Real, 3>& xyzmin = xyzmin_grid;
+            }
+            
+            local_jx = 0.0;
+            local_jy = 0.0;
+            local_jz = 0.0;
+            
+            jx_ptr = local_jx.dataPtr();
+            jy_ptr = local_jy.dataPtr();
+            jz_ptr = local_jz.dataPtr();
+            
+            jxntot = local_jx.length();
+            jyntot = local_jy.length();
+            jzntot = local_jz.length();
+            
+            warpx_current_deposition(
+                jx_ptr, &ngJDeposit, jxntot,
+                jy_ptr, &ngJDeposit, jyntot,
+                jz_ptr, &ngJDeposit, jzntot,
+                &np, xp.data(), yp.data(), zp.data(),
+                uxp.data(), uyp.data(), uzp.data(),
+                giv.data(), wp.data(), &this->charge,
+                &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                &dt, &dx[0], &dx[1], &dx[2],
+                &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                &lvect,&WarpX::current_deposition_algo);
 
-                jx_ptr = jxfab.dataPtr();
-                jy_ptr = jyfab.dataPtr();
-                jz_ptr = jzfab.dataPtr();
-
-                jxntot = jxfab.length();
-                jyntot = jyfab.length();
-                jzntot = jzfab.length();
-#endif
-
-                warpx_current_deposition(
-                    jx_ptr, &ngJ, jxntot,
-                    jy_ptr, &ngJ, jyntot,
-                    jz_ptr, &ngJ, jzntot,
-                    &np, xp.data(), yp.data(), zp.data(),
-                    uxp.data(), uyp.data(), uzp.data(),
-                    giv.data(), wp.data(), &this->charge,
-                    &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                    &dt, &dx[0], &dx[1], &dx[2],
-                    &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                    &lvect,&WarpX::current_deposition_algo);
+            const int ncomp = 1;
+            if (WarpX::use_filter) {
                 
-#ifdef _OPENMP
-                const int ncomp = 1;
-
-                const Box& jxbox = jxfab.box();
+                filtered_jx.resize(tbx);
+                filtered_jx = 0.0;
+                
+                WRPX_FILTER(local_jx.dataPtr(),
+                            local_jx.loVect(),
+                            local_jx.hiVect(),
+                            filtered_jx.dataPtr(),
+                            filtered_jx.loVect(),
+                            filtered_jx.hiVect(),
+                            ncomp);
+                
+                filtered_jy.resize(tby);
+                filtered_jy = 0.0;
+                
+                WRPX_FILTER(local_jy.dataPtr(),
+                            local_jy.loVect(),
+                            local_jy.hiVect(),
+                            filtered_jy.dataPtr(),
+                            filtered_jy.loVect(),
+                            filtered_jy.hiVect(),
+                            ncomp);
+                
+                filtered_jz.resize(tbz);
+                filtered_jz = 0.0;
+                
+                WRPX_FILTER(local_jz.dataPtr(),
+                            local_jz.loVect(),
+                            local_jz.hiVect(),
+                            filtered_jz.dataPtr(),
+                            filtered_jz.loVect(),
+                            filtered_jz.hiVect(),
+                            ncomp);
+                
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jx),
+                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
+                
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jy),
+                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
+                
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jz),
+                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
+                
+            } else {
+                
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
                                             BL_TO_FORTRAN_3D(jxfab), ncomp);
                 
-                const Box& jybox = jyfab.box();
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
                                             BL_TO_FORTRAN_3D(jyfab), ncomp);
                 
-                const Box& jzbox = jzfab.box();
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
                                             BL_TO_FORTRAN_3D(jzfab), ncomp);
-
-#endif
+            }
+            
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
-
+            
 	    //
 	    // copy particle data back
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
             pti.SetPosition(xp, yp, zp);
             BL_PROFILE_VAR_STOP(blp_copy);
+
+            if (cost) {
+                const Box& tbx = pti.tilebox();
+                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                (*cost)[pti].plus(wt, tbx);
+            }
 	}
     }
 }
@@ -524,7 +602,7 @@ LaserParticleContainer::ComputeSpacing (int lev, Real& Sx, Real& Sy) const
 void
 LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
 {
-    constexpr Real eps = 0.1;
+    constexpr Real eps = 0.01;
     constexpr Real fac = 1.0/(2.0*3.1415926535897932*PhysConst::mu0*PhysConst::c*PhysConst::c*eps);
     weight = fac * wavelength * Sx * Sy / std::min(Sx,Sy) * e_max;
 

@@ -19,6 +19,8 @@ geometry.is_periodic = 1     1     0      # Is periodic?
 geometry.prob_lo     = -30.e-6  -30.e-6   -70.e-6       # physical domain
 geometry.prob_hi     =  30.e-6  30.e-6     1.e-6
 
+warpx.serialize_ics = 1
+
 # Verbosity
 warpx.verbose = 1
 warpx.plot_raw_fields = 1

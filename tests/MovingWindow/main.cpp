@@ -1,7 +1,7 @@
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 
@@ -18,8 +18,8 @@ void testMovingWindow() {
   int do_moving_window, moving_window_dir;
   Real moving_window_x = 0.0;
   Real moving_window_v = 0.0;
-  Array<Real> prob_lo(BL_SPACEDIM);
-  Array<Real> prob_hi(BL_SPACEDIM);
+  Vector<Real> prob_lo(BL_SPACEDIM);
+  Vector<Real> prob_hi(BL_SPACEDIM);
 
   Real dt = 1.2e-15;
 
@@ -100,7 +100,7 @@ void testMovingWindow() {
     MultiFab outputE(ba, dm, 1, 0);
     MultiFab::Copy(outputE, E, 0, 0, 1, 0);
     const std::string& plotname = amrex::Concatenate("plt", step, 5);
-    Array<std::string> varnames{"E"};
+    Vector<std::string> varnames{"E"};
     amrex::WriteSingleLevelPlotfile(plotname, outputE, varnames, geom, 0.0, 0);
 
     // update the window and figure out how much to shift

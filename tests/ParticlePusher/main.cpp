@@ -4,7 +4,7 @@
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_PlotFileUtil.H>
 
@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 
 	Real xyzmin[3] = {0.5, 1.4, 0.3};
 
-	Array<Real> xp, yp, zp, uxp, uyp, uzp, giv, Exp, Eyp, Ezp, Bxp, Byp, Bzp;
+	Vector<Real> xp, yp, zp, uxp, uyp, uzp, giv, Exp, Eyp, Ezp, Bxp, Byp, Bzp;
 	Real dx[3] = {1.0/nx, 1.0/ny, 1.0/nz};
 
 	std::mt19937 rand_eng(42);
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
 	int is_per[3] = {0,0,0};
 	Geometry geom{plotbox, &realbox, 0, is_per};
 	std::string plotname{"plt00000"};
-	Array<std::string> varnames{"x", "y", "z", "ux", "uy", "uz", "gamma"};
+	Vector<std::string> varnames{"x", "y", "z", "ux", "uy", "uz", "gamma"};
 	amrex::WriteSingleLevelPlotfile(plotname, plotmf, varnames, geom, 0.0, 0);
     }
 

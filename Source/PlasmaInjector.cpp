@@ -71,7 +71,7 @@ ConstantMomentumDistribution::ConstantMomentumDistribution(Real ux,
     : _ux(ux), _uy(uy), _uz(uz)
 {}
 
-void ConstantMomentumDistribution::getMomentum(vec3& u) {
+void ConstantMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
     u[0] = _ux;
     u[1] = _uy;
     u[2] = _uz;
@@ -85,7 +85,7 @@ GaussianRandomMomentumDistribution::GaussianRandomMomentumDistribution(Real ux_m
 {
 }
 
-void GaussianRandomMomentumDistribution::getMomentum(vec3& u) {
+void GaussianRandomMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
     Real ux_th = amrex::RandomNormal(0.0, _u_th);
     Real uy_th = amrex::RandomNormal(0.0, _u_th);
     Real uz_th = amrex::RandomNormal(0.0, _u_th);
@@ -93,6 +93,15 @@ void GaussianRandomMomentumDistribution::getMomentum(vec3& u) {
     u[0] = _ux_m + ux_th;
     u[1] = _uy_m + uy_th;
     u[2] = _uz_m + uz_th;
+} 
+RadialExpansionMomentumDistribution::RadialExpansionMomentumDistribution(Real u_over_r) : _u_over_r( u_over_r )
+{
+}
+
+void RadialExpansionMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Real z) {
+  u[0] = _u_over_r * x;
+  u[1] = _u_over_r * y;
+  u[2] = _u_over_r * z;
 }
 
 DiagonalPosition::DiagonalPosition(int num_particles_per_cell):
@@ -116,7 +125,7 @@ void RandomPosition::getPositionUnitBox(vec3& r, int i_part){
     r[2] = amrex::Random();
 }
 
-RegularPosition::RegularPosition(const amrex::Array<int>& num_particles_per_cell_each_dim)
+RegularPosition::RegularPosition(const amrex::Vector<int>& num_particles_per_cell_each_dim)
     : _num_particles_per_cell_each_dim(num_particles_per_cell_each_dim)
 {}
 
@@ -176,9 +185,14 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         add_single_particle = true;
         return;
     } else if (part_pos_s == "gaussian_beam") {
-        pp.get("gaussian_beam_mean", gaussian_beam_mean);
-        pp.get("gaussian_beam_sigma", gaussian_beam_sigma);
-        pp.get("gaussian_beam_vel", gaussian_beam_vel);
+        pp.get("x_m", x_m);
+        pp.get("y_m", y_m);
+        pp.get("z_m", z_m);
+        pp.get("x_rms", x_rms);
+        pp.get("y_rms", y_rms);
+        pp.get("z_rms", z_rms);
+        pp.get("q_tot", q_tot);
+        pp.get("npart", npart);
         gaussian_beam = true;
     }
     else if (part_pos_s == "ndiagpercell") {
@@ -259,6 +273,10 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.query("uz_m", uz_m);
         pp.query("u_th", u_th);
         mom_dist.reset(new GaussianRandomMomentumDistribution(ux_m, uy_m, uz_m, u_th));
+    } else if (mom_dist_s == "radial_expansion") {
+        Real u_over_r = 0.;
+	pp.query("u_over_r", u_over_r);
+        mom_dist.reset(new RadialExpansionMomentumDistribution(u_over_r));
     } else {
         StringParseAbortMessage("Momentum distribution type", mom_dist_s);
     }
@@ -268,8 +286,8 @@ void PlasmaInjector::getPositionUnitBox(vec3& r, int i_part) {
   return part_pos->getPositionUnitBox(r, i_part);
 }
 
-void PlasmaInjector::getMomentum(vec3& u) {
-    mom_dist->getMomentum(u);
+void PlasmaInjector::getMomentum(vec3& u, Real x, Real y, Real z) {
+    mom_dist->getMomentum(u, x, y, z);
     u[0] *= PhysConst::c;
     u[1] *= PhysConst::c;
     u[2] *= PhysConst::c;

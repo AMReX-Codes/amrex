@@ -106,7 +106,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         }
     }
 
-    Array<Real> fac(BL_SPACEDIM);
+    Vector<Real> fac(BL_SPACEDIM);
     for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
         fac[idim] = 4.0*PhysConst::c/(dx[idim]*static_cast<Real>(delta*delta));
     }
@@ -120,7 +120,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
         int kdim = (idim+2) % BL_SPACEDIM;
 #endif
 
-        Array<int> direct_faces, side_faces, direct_side_edges, side_side_edges, corners;
+        Vector<int> direct_faces, side_faces, direct_side_edges, side_side_edges, corners;
         for (const auto& kv : isects)
         {
             const Box& grid_box = grids[kv.first];
@@ -439,14 +439,15 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     DistributionMapping dm{ba};
 
-    int nge = (do_dive_cleaning) ? 1 : 0;
+    int nge = 2;
+    int ngb = 2;
 
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 3, nge));
     pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 3, nge));
     pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, 3, nge));
-    pml_B_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Bx_nodal_flag), dm, 2, 1));
-    pml_B_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::By_nodal_flag), dm, 2, 1));
-    pml_B_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Bz_nodal_flag), dm, 2, 1));
+    pml_B_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Bx_nodal_flag), dm, 2, ngb));
+    pml_B_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::By_nodal_flag), dm, 2, ngb));
+    pml_B_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Bz_nodal_flag), dm, 2, ngb));
 
     pml_E_fp[0]->setVal(0.0);
     pml_E_fp[1]->setVal(0.0);
@@ -465,6 +466,10 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     if (cgeom)
     {
+
+        nge = 1;
+        ngb = 1;
+
         BoxArray grid_cba = grid_ba;
         grid_cba.coarsen(ref_ratio);
         const BoxArray& cba = MakeBoxArray(*cgeom, grid_cba, ncell);
@@ -474,9 +479,9 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_E_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Ex_nodal_flag), cdm, 3, nge));
         pml_E_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::Ey_nodal_flag), cdm, 3, nge));
         pml_E_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Ez_nodal_flag), cdm, 3, nge));
-        pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), cdm, 2, 1));
-        pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), cdm, 2, 1));
-        pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), cdm, 2, 1));
+        pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), cdm, 2, ngb));
+        pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), cdm, 2, ngb));
+        pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), cdm, 2, ngb));
         
         pml_E_cp[0]->setVal(0.0);
         pml_E_cp[1]->setVal(0.0);
@@ -517,7 +522,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
         bx.grow(ncell);
         bx &= domain;
         
-        Array<Box> bndryboxes;
+        Vector<Box> bndryboxes;
 #if (BL_SPACEDIM == 3)
         int kbegin = -1, kend = 1;
 #else

@@ -51,8 +51,19 @@ WarpX::MoveWindow (bool move_j)
             }
 
             if (do_dive_cleaning) {
-                shiftMF(*F_fp[lev], geom[lev], num_shift, dir);
+                shiftMF(*F_fp[lev],   geom[lev], num_shift, dir);
                 shiftMF(*rho_fp[lev], geom[lev], num_shift, dir);
+            }
+
+            if (do_pml && pml[lev]->ok()) {
+                const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_fp();
+                const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_fp();                
+                shiftMF(*pml_B[dim], geom[lev], num_shift, dir);
+                shiftMF(*pml_E[dim], geom[lev], num_shift, dir);
+                if (do_dive_cleaning) {
+                    MultiFab* pml_F = pml[lev]->GetF_fp();
+                    shiftMF(*pml_F, geom[lev], num_shift, dir);
+                }
             }
 
             if (lev > 0) {
@@ -70,14 +81,22 @@ WarpX::MoveWindow (bool move_j)
                     shiftMF(*F_cp[lev], geom[lev-1], num_shift_crse, dir);
                     shiftMF(*rho_cp[lev], geom[lev-1], num_shift_crse, dir);
                 }
+
+                if (do_pml && pml[lev]->ok()) {
+                    const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_cp();
+                    const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_cp();                
+                    shiftMF(*pml_B[dim], geom[lev-1], num_shift_crse, dir);
+                    shiftMF(*pml_E[dim], geom[lev-1], num_shift_crse, dir);
+                    if (do_dive_cleaning) {
+                        MultiFab* pml_F = pml[lev]->GetF_cp();
+                        shiftMF(*pml_F, geom[lev-1], num_shift_crse, dir);
+                    }
+                }
             }
         }
     }
     
-    InjectPlasma(num_shift_base, dir);
-    
-    // Redistribute (note - this removes particles that are outside of the box)
-    mypc->Redistribute();
+    InjectPlasma(num_shift_base, dir);    
 }
 
 void
@@ -86,11 +105,14 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     const BoxArray& ba = mf.boxArray();
     const DistributionMapping& dm = mf.DistributionMap();
     const int nc = mf.nComp();
-    const int ng = std::max(mf.nGrow(), std::abs(num_shift));
+    const int ng = mf.nGrow();
+    
+    BL_ASSERT(ng >= num_shift);
+    
     MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
-
+    
     // Make a box that covers the region that the window moved into
     const IndexType& typ = ba.ixType();
     const Box& domainBox = geom.Domain();

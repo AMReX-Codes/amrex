@@ -1,0 +1,95 @@
+# Maximum number of time steps
+max_step = 60
+
+# number of grid points
+amr.n_cell =   512 512 512
+
+# Maximum allowable size of each subdomain in the problem domain;
+#    this is used to decompose the domain for parallel calculations.
+amr.max_grid_size = 64
+
+# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+amr.max_level = 0
+
+amr.plot_int = -1   # How often to write plotfiles.  "<= 0" means no plotfiles.
+
+# Geometry
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1     1     0      # Is periodic?
+geometry.prob_lo     = -200.e-6   -200.e-6   -200.e-6    # physical domain
+geometry.prob_hi     =  200.e-6    200.e-6    200.e-6
+
+# Verbosity
+warpx.verbose = 1
+
+# Algorithms
+algo.current_deposition = 3
+algo.charge_deposition = 0
+algo.field_gathering = 0
+algo.particle_pusher = 0
+
+# CFL
+warpx.cfl = 1.0
+
+# Information about the particle species
+particles.nspecies = 2
+particles.species_names = beam plasma
+
+#
+# The beam species information
+#
+
+beam.charge = -q_e
+beam.mass = m_e
+beam.injection_style = "NDiagPerCell"
+
+beam.xmin = -20.e-6
+beam.xmax = 20.e-6
+beam.ymin = -20.e-6
+beam.ymax = 20.e-6
+beam.zmin = -150.e-6
+beam.zmax = -100.e-6
+
+beam.profile = "constant"
+beam.density = 1e23                    # number of particles per m^3
+beam.num_particles_per_cell = 4
+
+beam.momentum_distribution_type = "constant"
+beam.ux = 0.0
+beam.uy = 0.0
+beam.uz = 1e9
+
+#
+# The plasma species information
+#
+
+plasma.charge = -q_e
+plasma.mass = m_e
+plasma.injection_style = "NDiagPerCell"
+
+plasma.xmin = -200.e-6
+plasma.xmax = 200.e-6
+plasma.ymin = -200.e-6
+plasma.ymax = 200.e-6
+plasma.zmin = 0.e-6
+
+plasma.profile = "constant"
+plasma.density = 1e22                  # number of particles per m^3
+plasma.num_particles_per_cell = 4
+
+plasma.momentum_distribution_type = "constant"
+plasma.ux = 0.0
+plasma.uy = 0.0
+plasma.uz = 0.0
+
+warpx.do_pml = 0
+
+# Moving window
+warpx.do_moving_window = 1
+warpx.moving_window_dir = z
+warpx.moving_window_v = 1.0 # in units of the speed of light
+
+# Particle Injection
+warpx.do_plasma_injection = 1
+warpx.num_injected_species = 1
+warpx.injected_plasma_species = 1 0

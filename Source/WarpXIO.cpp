@@ -163,6 +163,11 @@ WarpX::WriteCheckPointFile() const
         if (do_pml && pml[lev]) {
             pml[lev]->CheckPoint(amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "pml"));
         }
+
+        if (costs[lev]) {
+            VisMF::Write(*costs[lev],
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, level_prefix, "costs"));
+        }
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
@@ -185,7 +190,7 @@ WarpX::InitFromCheckpoint ()
 
 	VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
-	Array<char> fileCharPtr;
+	Vector<char> fileCharPtr;
 	ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
 	std::string fileCharPtrString(fileCharPtr.dataPtr());
 	std::istringstream is(fileCharPtrString, std::istringstream::in);
@@ -355,6 +360,16 @@ WarpX::InitFromCheckpoint ()
                             amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "jz_cp"));
             }
         }
+
+        if (costs[lev]) {
+            const auto& cost_mf_name = 
+                amrex::MultiFabFileFullPrefix(lev, restart_chkfile, level_prefix, "costs");
+            if (VisMF::Exist(cost_mf_name)) {
+                VisMF::Read(*costs[lev], cost_mf_name);
+            } else {
+                costs[lev]->setVal(0.0);
+            }
+        }
     }
 
     if (do_pml)
@@ -434,8 +449,8 @@ WarpX::WritePlotFile () const
     amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
 
     {
-	Array<std::string> varnames;
-	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
+	Vector<std::string> varnames;
+	Vector<std::unique_ptr<MultiFab> > mf(finest_level+1);
 
         const int ncomp = 3*3
             + static_cast<int>(plot_part_per_cell)
@@ -444,14 +459,15 @@ WarpX::WritePlotFile () const
             + static_cast<int>(plot_proc_number)
             + static_cast<int>(plot_divb)
             + static_cast<int>(plot_dive)
-            + static_cast<int>(plot_finepatch)*6;
+            + static_cast<int>(plot_finepatch)*6
+            + static_cast<int>(costs[0] != nullptr);
 
 	for (int lev = 0; lev <= finest_level; ++lev)
 	{
 	    const int ngrow = 0;
 	    mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
-	    Array<const MultiFab*> srcmf(BL_SPACEDIM);
+	    Vector<const MultiFab*> srcmf(BL_SPACEDIM);
 	    PackPlotDataPtrs(srcmf, current_fp[lev]);
 	    int dcomp = 0;
 	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
@@ -512,7 +528,7 @@ WarpX::WritePlotFile () const
 
             if (plot_part_per_grid || plot_part_per_proc)
             {
-                const Array<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
+                const Vector<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
 
                 if (plot_part_per_grid)
                 {
@@ -623,6 +639,16 @@ WarpX::WritePlotFile () const
                 dcomp += 3;
             }
 
+            if (costs[0] != nullptr)
+            {
+                MultiFab::Copy(*mf[lev], *costs[lev], 0, dcomp, 1, 0);
+                if (lev == 0)
+                {
+                    varnames.push_back("costs");
+                }
+                dcomp += 1;
+            }
+
             BL_ASSERT(dcomp == ncomp);
 	}
 
@@ -634,7 +660,7 @@ WarpX::WritePlotFile () const
 #endif
 
 	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1,
-                                       amrex::GetArrOfConstPtrs(mf),
+                                       amrex::GetVecOfConstPtrs(mf),
                                        varnames, Geom(), t_new[0], istep, refRatio());
     }
 
@@ -763,7 +789,7 @@ WarpX::WritePlotFile () const
         }
     }
 
-    Array<std::string> particle_varnames;
+    Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 
     particle_varnames.push_back("velocity_x");
@@ -787,9 +813,9 @@ WarpX::WritePlotFile () const
 
 void
 WarpX::
-WritePlotFileES (const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
-                 const amrex::Array<std::unique_ptr<amrex::MultiFab> >& phi,
-                 const amrex::Array<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E)
+WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
+                 const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
+                 const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E)
 {
     BL_PROFILE("WarpX::WritePlotFileES()");
 
@@ -802,8 +828,8 @@ WritePlotFileES (const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
     amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
 
     {
-	Array<std::string> varnames;
-	Array<std::unique_ptr<MultiFab> > mf(finest_level+1);
+	Vector<std::string> varnames;
+	Vector<std::unique_ptr<MultiFab> > mf(finest_level+1);
 
 	for (int lev = 0; lev <= finest_level; ++lev) {
             int ncomp = 5;
@@ -836,7 +862,7 @@ WritePlotFileES (const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
         }
 
         amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1,
-                                       amrex::GetArrOfConstPtrs(mf),
+                                       amrex::GetVecOfConstPtrs(mf),
                                        varnames, Geom(), t_new[0], istep, refRatio());
     }
 
@@ -871,7 +897,7 @@ WritePlotFileES (const amrex::Array<std::unique_ptr<amrex::MultiFab> >& rho,
         }
     }
 
-    Array<std::string> particle_varnames;
+    Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 
     particle_varnames.push_back("velocity_x");
@@ -1013,7 +1039,7 @@ WarpX::WriteJobInfo (const std::string& dir) const
 }
 
 void
-WarpX::PackPlotDataPtrs (Array<const MultiFab*>& pmf,
+WarpX::PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
                          const std::array<std::unique_ptr<MultiFab>,3>& data)
 {
     BL_ASSERT(pmf.size() == BL_SPACEDIM);
