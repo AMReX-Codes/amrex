@@ -7,6 +7,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_AmrLevel.H>
+#include "DebugDump.H"
 
 using namespace amrex;
 

@@ -297,9 +297,7 @@ contains
                                flxx, fx_lo, fx_hi, &
                                flxy, fy_lo, fy_hi, &
                                flxz, fz_lo, fz_hi, &
-                               phix, phix_y, phix_z, &
-                               phiy, phiy_x, phiy_z, &
-                               phiz, phiz_x, phiz_y, &
+                               phix, phiy,  phiz, &
                                slope, glo, ghi, nu)
 
     use slope_module, only: slopex, slopey, slopez
@@ -321,7 +319,7 @@ contains
     double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
     double precision, intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3)) :: &
-         phix, phix_y, phix_z, phiy, phiy_x, phiy_z, phiz, phiz_x, phiz_y, slope
+         phix, phiy, phiz, slope
          
     integer :: i, j, k
 

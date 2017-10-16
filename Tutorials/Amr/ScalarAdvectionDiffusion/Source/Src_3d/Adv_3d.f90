@@ -183,7 +183,7 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:,:), pointer, contiguous :: &
-       phix, phix_y, phix_z, phiy, phiy_x, phiy_z, phiz, phiz_x, phiz_y, slope
+       phix, phiy, phiz, slope
 
 
   glo = lo - 1
@@ -191,14 +191,8 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
 
   ! edge states
   call bl_allocate(phix  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phix_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phix_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
   call bl_allocate(phiy  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiy_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiy_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
   call bl_allocate(phiz  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiz_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiz_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
   ! slope
   call bl_allocate(slope,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))  
   
@@ -229,9 +223,7 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
                          flxx, fx_lo, fx_hi, &
                          flxy, fy_lo, fy_hi, &
                          flxz, fz_lo, fz_hi, &
-                         phix, phix_y, phix_z, &
-                         phiy, phiy_x, phiy_z, &
-                         phiz, phiz_x, phiz_y, &
+                         phix, phiy, phiz,  &
                          slope, glo, ghi,nu)
 
   ! Do a conservative update
@@ -272,14 +264,8 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
   enddo
 
   call bl_deallocate(phix  )
-  call bl_deallocate(phix_y)
-  call bl_deallocate(phix_z)
   call bl_deallocate(phiy  )
-  call bl_deallocate(phiy_x)
-  call bl_deallocate(phiy_z)
   call bl_deallocate(phiz  )
-  call bl_deallocate(phiz_x)
-  call bl_deallocate(phiz_y)
   call bl_deallocate(slope)
 
 end subroutine advectDiffMOL2ndOrd
