@@ -272,7 +272,7 @@ LaserParticleContainer::Evolve (int lev,
         // Convert time from the boosted to the lab-frame
         // (in order to later calculate the amplitude of the field,
         // at the position of the antenna, in the lab-frame)
-        t_lab = gamma_boost * t;
+      t_lab = 1./gamma_boost * t;
     }
 
     BL_ASSERT(OnSameGrids(lev,jx));
