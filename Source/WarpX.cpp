@@ -457,6 +457,12 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #endif
 }
 
+IntVect
+WarpX::RefRatio (int lev)
+{
+    return GetInstance().refRatio(lev);
+}
+
 void WarpX::zeroOutBoundary(amrex::MultiFab& input_data,
                             amrex::MultiFab& bndry_data,
                             const FabArray<BaseFab<int> >& mask) const {

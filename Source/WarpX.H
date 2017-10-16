@@ -138,6 +138,8 @@ public:
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
 
+    static amrex::IntVect RefRatio (int lev);
+
     static amrex::IntVect Bx_nodal_flag;
     static amrex::IntVect By_nodal_flag;
     static amrex::IntVect Bz_nodal_flag;
