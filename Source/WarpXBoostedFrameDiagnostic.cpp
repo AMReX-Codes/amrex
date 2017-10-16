@@ -34,8 +34,10 @@ namespace {
         // define the multifab that stores slice
         BoxArray ba = cell_centered_data.boxArray();
         const DistributionMapping& dm = cell_centered_data.DistributionMap();
+
         std::vector< std::pair<int, Box> > isects;
         ba.intersections(slice_box, isects, false, 0);
+
         Array<Box> boxes;
         Array<int> procs;
         for (int i = 0; i < isects.size(); ++i) {
@@ -43,7 +45,7 @@ namespace {
             boxes.push_back(isects[i].second);
             slice_to_full_ba_map.push_back(isects[i].first);
         }
-        procs.push_back(ParallelDescriptor::MyProc());
+
         BoxArray slice_ba(&boxes[0], boxes.size());
         DistributionMapping slice_dmap(procs);
         std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, 10, 0));
