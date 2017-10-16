@@ -264,9 +264,10 @@ namespace amrex
     // RK2 stage 1
     FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
     compute_dPhiDt_MOL2dOrd(Sborder, dDphiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
+
     // U^* = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
-
+    /**/
     // RK2 stage 2
     // After fillpatch Sborder = U^n+dt*dUdt^n
     FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
@@ -277,7 +278,7 @@ namespace amrex
     MultiFab::Saxpy(S_new, 0.5*dt, dDphiDt, 0, 0, NUM_STATE, 0);
     // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     
-    
+    /**/ 
     return dt;
   }
   Real
@@ -296,7 +297,7 @@ namespace amrex
     }
 
     MultiFab& S_new = get_new_data(Phi_Type);
-    MultiFab& S_old = get_old_data(Phi_Type);
+
     MultiFab dDphiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
   
@@ -326,6 +327,7 @@ namespace amrex
     compute_dPhiDt_godunov(Sborder, dDphiDt, time, dt, fr_as_crse, fr_as_fine, iteration);
     // U^n+1 = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
+    return dt;
   }
 //
 //Advance grids at this level in time.
@@ -340,10 +342,6 @@ namespace amrex
 
     const Real* dx = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
-
-    FluxRegister *current = fr_as_fine;
-    
-    int finest_level = parent->finestLevel();
 
     if (do_reflux && fr_as_crse)
     {
@@ -458,10 +456,6 @@ namespace amrex
 
     const Real* dx = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
-
-    FluxRegister *current = fr_as_fine;
-    
-    int finest_level = parent->finestLevel();
 
     if (do_reflux && fr_as_crse)
     {

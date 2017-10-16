@@ -11,7 +11,7 @@ amr.n_cell           =  64   64   64
 adv.diffusion_coeff = 0.00  # diffusion coefficient
 
 # TIME STEP CONTROL
-adv.cfl            = 0.9     # cfl number for hyperbolic system
+adv.cfl            = 0.25     # cfl number for hyperbolic system
 
 # VERBOSITY
 adv.v              = 1       # verbosity in Adv

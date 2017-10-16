@@ -119,7 +119,7 @@ contains
        vmac,  v_lo,  v_hi, &
        flxx, fx_lo, fx_hi, &
        flxy, fy_lo, fy_hi, &
-       phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu)
+       phix_1d, phiy_1d, slope, glo, ghi, nu)
 
     use slope_module, only: slopex, slopey
 
@@ -136,7 +136,8 @@ contains
     double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
     double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
-         phix_1d, phiy_1d, phix, phiy, slope
+         phix_1d, phiy_1d, slope
+    double precision phi1, phi2, ftemp, veltemp, diffterm
          
     integer :: i, j
 
@@ -148,6 +149,9 @@ contains
     ! compute phi on x faces using umac to upwind; ignore transverse terms
     do    j = lo(2)-1, hi(2)+1
        do i = lo(1)  , hi(1)+1
+
+          phi1 =  phi(i  ,j) - 0.5d0*slope(i  ,j)
+          phi2 =  phi(i-1,j) + 0.5d0*slope(i-1,j)
 
           if (umac(i,j) .lt. 0.d0) then
              phix_1d(i,j) = phi(i  ,j) - 0.5d0*slope(i  ,j)
@@ -178,14 +182,22 @@ contains
     ! compute final x-fluxes
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)+1
-          flxx(i,j) = phix(i,j)*umac(i,j)
+          ! including diffusive fluxes
+          veltemp  = umac(i,j) 
+          diffterm = - nu*(phi(i,j) - phi(i-1,j))/dx(1)
+          phi1  = phix_1d(i,j)
+          ftemp  = phix_1d(i,j)*umac(i,j)  - nu*(phi(i,j) - phi(i-1,j))/dx(1)
+          flxx(i,j) = phix_1d(i,j)*umac(i,j)  - nu*(phi(i,j) - phi(i-1,j))/dx(1)
        end do
     end do
 
     ! compute final y-fluxes
     do    j = lo(2), hi(2)+1
        do i = lo(1), hi(1)
-          flxy(i,j) = phiy(i,j)*vmac(i,j)
+          ! including diffusive fluxes
+          ftemp  = phiy_1d(i,j)*vmac(i,j)  - nu*(phi(i,j) - phi(i,j-1))/dx(2)
+
+          flxy(i,j) = phiy_1d(i,j)*vmac(i,j)  - nu*(phi(i,j) - phi(i,j-1))/dx(2)
        end do
     end do
 

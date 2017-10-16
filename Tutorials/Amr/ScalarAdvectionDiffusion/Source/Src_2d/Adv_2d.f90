@@ -72,18 +72,6 @@ subroutine advectDiffGodunov(time, lo, hi, &
                        flxy, fy_lo, fy_hi, &
                        phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu)
 
-  ! Final fluxes
-  do    j = lo(2), hi(2)
-     do i = lo(1), hi(1)+1
-        flxx(i,j) = phix(i,j) * vx(i,j)
-     end do
-  end do
-  !
-  do    j = lo(2), hi(2)+1
-     do i = lo(1), hi(1)
-        flxy(i,j) = phiy(i,j) * vy(i,j)
-     end do
-  end do
 
   ! Do a conservative update
   do    j = lo(2),hi(2)
@@ -149,10 +137,10 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
 
   integer :: i, j
   integer :: glo(2), ghi(2)
-  double precision :: umax, vmax
+  double precision :: umax, vmax, fhi, flo
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
-  double precision, dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, phix, phiy, slope
+  double precision, dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, slope
 
   glo = lo - 1
   ghi = hi + 1
@@ -160,8 +148,6 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
   ! edge states
   call bl_allocate(phix_1d, glo(1), ghi(1), glo(2), ghi(2))
   call bl_allocate(phiy_1d, glo(1), ghi(1), glo(2), ghi(2))
-  call bl_allocate(phix   , glo(1), ghi(1), glo(2), ghi(2))
-  call bl_allocate(phiy   , glo(1), ghi(1), glo(2), ghi(2))
   ! slope                                                 
   call bl_allocate(slope  , glo(1), ghi(1), glo(2), ghi(2))
 
@@ -188,26 +174,18 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
        vy, vy_lo, vy_hi, &
        flxx, fx_lo, fx_hi, &
        flxy, fy_lo, fy_hi, &
-       phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu)
+       phix_1d, phiy_1d,  slope, glo, ghi, nu)
 
-  ! Final fluxes
-  do    j = lo(2), hi(2)
-     do i = lo(1), hi(1)+1
-        flxx(i,j) = phix(i,j) * vx(i,j)
-     end do
-  end do
-  !
-  do    j = lo(2), hi(2)+1
-     do i = lo(1), hi(1)
-        flxy(i,j) = phiy(i,j) * vy(i,j)
-     end do
-  end do
 
   ! Do a conservative update
   do    j = lo(2),hi(2)
      do i = lo(1),hi(1)
         !notice that some evil bastard has reversed the flux difference
         ! rather than just put a negative sign out front.
+        flo = flxx(i,j)
+        fhi = flxx(i+1,j)
+        fhi = flxy(i,j+1)
+        flo = flxy(i,j  )
         dphidtout(i,j) = &
              ( (flxx(i,j) - flxx(i+1,j  )) / dx(1) &
              + (flxy(i,j) - flxy(i  ,j+1)) / dx(2) )
@@ -230,8 +208,6 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
 
   call bl_deallocate(phix_1d)
   call bl_deallocate(phiy_1d)
-  call bl_deallocate(phix)
-  call bl_deallocate(phiy)
   call bl_deallocate(slope)
 
 end subroutine advectDiffMOL2ndOrd

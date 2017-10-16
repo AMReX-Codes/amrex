@@ -3,17 +3,18 @@ USE_EB = FALSE
 PRECISION  = DOUBLE
 PROFILE    = FALSE
 
-DEBUG      = TRUE
 DEBUG      = FALSE
+DEBUG      = TRUE
 
-#DIM        = 2
+
 DIM       = 3
-
+DIM        = 2
 COMP	   = gnu
 
 #USE_PARTICLES = TRUE
 
 USE_MPI    = TRUE
+USE_MPI    = FALSE
 USE_OMP    = FALSE
 
 Bpack   := ./Make.package 
