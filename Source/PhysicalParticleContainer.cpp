@@ -719,8 +719,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 if (nfine < np)
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
-                    AMREX_ASSERT(pti.tilebox.coarsenable(ref_ratio));
-
                     const std::array<Real,3>& cxyzmin_grid
                         = WarpX::LowerCorner(amrex::coarsen(box,ref_ratio), lev-1);
 

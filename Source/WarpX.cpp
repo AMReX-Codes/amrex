@@ -366,7 +366,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     //
     // The coarse patch
     //
-    if (lev > 0 && n_field_gather_buffer > 0)
+    if (lev > 0)
     {
         BoxArray cba = ba;
         cba.coarsen(refRatio(lev-1));
@@ -396,7 +396,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     //
     // Copy of the coarse aux
     //
-    if (lev > 0)
+    if (lev > 0 && n_field_gather_buffer > 0)
     {
         BoxArray cba = ba;
         cba.coarsen(refRatio(lev-1));
