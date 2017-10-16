@@ -163,6 +163,13 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                     Efield_cax[lev][idim] = std::move(pmf);
                 }
             }
+            {
+                int ng = buffer_masks[lev]->nGrow();
+                auto pmf = std::unique_ptr<iMultiFab>(new iMultiFab(buffer_masks[lev]->boxArray(),
+                                                                    dm, 1, ng));
+                pmf->ParallelCopy(*buffer_masks[lev], 0, 0, 1, ng, ng);
+                buffer_masks[lev] = std::move(pmf);                
+            }
         }
 
         if (costs[lev] != nullptr) {

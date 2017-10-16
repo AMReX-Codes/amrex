@@ -13,6 +13,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
+#include <AMReX_iMultiFab.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
@@ -139,6 +140,8 @@ public:
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
 
     static amrex::IntVect RefRatio (int lev);
+
+    static const amrex::iMultiFab* BufferMasks (int lev);
 
     static amrex::IntVect Bx_nodal_flag;
     static amrex::IntVect By_nodal_flag;
@@ -268,6 +271,9 @@ private:
 
     void LoadBalance ();
 
+    void BuildBufferMasks ();
+    const amrex::iMultiFab* getBufferMasks (int lev) const { return buffer_masks[lev].get(); }
+
     // used to zero out fine level data on points shared with the coarse grid
     // in electrostatic mode
     amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > masks;
@@ -310,6 +316,7 @@ private:
     // Copy of the coarse aux
     amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cax;
     amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cax;
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > buffer_masks;
 
     // div E cleaning
     int do_dive_cleaning = 0;

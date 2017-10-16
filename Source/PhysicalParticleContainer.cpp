@@ -509,6 +509,8 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_ASSERT(OnSameGrids(lev,Ex));
 
     MultiFab* cost = WarpX::getCosts(lev);
+
+    const iMultiFab* bmasks = WarpX::BufferMasks(lev);
     
 #ifdef _OPENMP
 #pragma omp parallel
@@ -570,10 +572,10 @@ PhysicalParticleContainer::Evolve (int lev,
                 inexflag.resize(np);
                 auto& aos = pti.GetArrayOfStructs();
                 int i = 0;
+                const auto& msk = (*bmasks)[pti];
                 for (const auto& p : aos) {
                     const IntVect& iv = Index(p, lev);
-                    // xxxxx TODO mask
-                    inexflag[i++] = true;
+                    inexflag[i++] = msk(iv);
                 }
 
                 pid.resize(np);

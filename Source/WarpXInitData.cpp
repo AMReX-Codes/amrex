@@ -29,6 +29,8 @@ WarpX::InitData ()
 
     ComputePMLFactors();
 
+    BuildBufferMasks();
+
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "\nGrids Summary:\n";
         printGridSummary(std::cout, 0, finestLevel());

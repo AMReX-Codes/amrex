@@ -28,6 +28,8 @@
 
 #define WRPX_FILTER                      warpx_filter_3d
 
+#define WRPX_BUILD_BUFFER_MASK           warpx_build_buffer_mask_3d
+
 #elif (BL_SPACEDIM == 2)
 
 #define WRPX_COMPUTE_DIVB                warpx_compute_divb_2d
@@ -54,6 +56,8 @@
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
 #define WRPX_FILTER                      warpx_filter_2d
+
+#define WRPX_BUILD_BUFFER_MASK           warpx_build_buffer_mask_2d
 
 #endif
 
@@ -360,6 +364,9 @@ extern "C"
     
     void WRPX_FILTER(const amrex_real*, const int*, const int*,
                      amrex_real*, const int*, const int*, int);
+
+//    void WRPX_BUILD_BUFFER_MASK (const
+
 
 #ifdef __cplusplus
 }

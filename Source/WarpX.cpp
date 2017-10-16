@@ -131,6 +131,7 @@ WarpX::WarpX ()
 
     Efield_cax.resize(nlevs_max);
     Bfield_cax.resize(nlevs_max);
+    buffer_masks.resize(nlevs_max);
 
     pml.resize(nlevs_max);
 
@@ -302,6 +303,8 @@ WarpX::ClearLevel (int lev)
 	Bfield_cax[lev][i].reset();
     }
 
+    buffer_masks[lev].reset();
+
     F_fp  [lev].reset();
     rho_fp[lev].reset();
     F_cp  [lev].reset();
@@ -410,6 +413,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
         Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
         Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
+
+        buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
     }
 
     if (load_balance_int > 0) {
@@ -680,4 +685,38 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                            BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
                            dx.data());
     }
+}
+
+void
+WarpX::BuildBufferMasks ()
+{
+    for (int lev = 1; lev <= maxLevel(); ++lev)
+    {
+        if (buffer_masks[lev])
+        {
+            auto& bmasks = *buffer_masks[lev];
+            iMultiFab tmp(bmasks.boxArray(), bmasks.DistributionMap(), 1, n_field_gather_buffer);
+            const int covered = 1;
+            const int notcovered = 0;
+            const int physbnd = 1;
+            const int interior = 1;
+            const Box& dom = Geom(lev).Domain();
+            const auto& period = Geom(lev).periodicity();
+            tmp.BuildMask(dom, period, covered, notcovered, physbnd, interior);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(bmasks, true); mfi.isValid(); ++mfi)
+            {
+                const Box& tbx = mfi.tilebox();
+                bmasks[mfi].setVal(1, tbx, 0, 1);
+            }
+        }
+    }
+}
+
+const iMultiFab*
+WarpX::BufferMasks (int lev)
+{
+    return GetInstance().getBufferMasks(lev);
 }
