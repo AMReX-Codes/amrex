@@ -77,6 +77,12 @@ public:
     static bool use_filter;
     static bool serialize_ics;
 
+    // Back transformation diagnostic
+    static bool do_boosted_frame_diagnostic;
+    static int  num_snapshots_lab;
+    static Real dt_snapshots_lab;
+    static Real gamma_boost;
+
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}
     const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield_fp[lev][direction];}

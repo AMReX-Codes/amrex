@@ -165,13 +165,10 @@ WarpX::EvolveEM (int numsteps)
 
     const Real* current_lo = geom[0].ProbLo();
     const Real* current_hi = geom[0].ProbHi();
-    Real dt_snapshots_lab = 1.0e-15;
-    int N_snapshots = 10;
-    Real gamma_boost = 10.0;    
     Real dt_boost = dt[0];
     BoostedFrameDiagnostic myBoostedFrameDiagnostic(current_lo[2], current_hi[2],
                                                     moving_window_v, dt_snapshots_lab,
-                                                    N_snapshots, gamma_boost, dt_boost);
+                                                    num_snapshots_lab, gamma_boost, dt_boost);
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {

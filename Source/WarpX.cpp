@@ -37,6 +37,11 @@ bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
 
+bool WarpX::do_boosted_frame_diagnostic = false;
+int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
+Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
+Real WarpX::gamma_boost = std::numeric_limits<Real>::lowest();
+
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
 IntVect WarpX::By_nodal_flag(0,1,0);
@@ -206,6 +211,13 @@ WarpX::ReadParameters ()
 		 0, num_injected_species);
 	}
 
+        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
+        if (do_boosted_frame_diagnostic) {
+            pp.get("num_snapshots_lab", num_snapshots_lab);
+            pp.get("dt_snapshots_lab", dt_snapshots_lab);
+            pp.get("gamma_boost", gamma_boost);
+        }
+        
         pp.query("do_electrostatic", do_electrostatic);
         pp.query("n_buffer", n_buffer);
         pp.query("const_dt", const_dt);
@@ -260,7 +272,7 @@ WarpX::ReadParameters ()
 	    amrex::Abort("warpx.nox must >= 1");
 	}
     }
-
+    
     {
 	ParmParse pp("algo");
 	pp.query("current_deposition", current_deposition_algo);
