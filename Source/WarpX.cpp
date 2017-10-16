@@ -709,7 +709,10 @@ WarpX::BuildBufferMasks ()
             for (MFIter mfi(bmasks, true); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.tilebox();
-                bmasks[mfi].setVal(1, tbx, 0, 1);
+                warpx_build_buffer_masks (BL_TO_FORTRAN_BOX(tbx),
+                                          BL_TO_FORTRAN_ANYD(bmasks[mfi]),
+                                          BL_TO_FORTRAN_ANYD(tmp[mfi]),
+                                          &n_field_gather_buffer);
             }
         }
     }
