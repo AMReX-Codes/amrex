@@ -46,6 +46,8 @@ namespace {
             slice_to_full_ba_map.push_back(isects[i].first);
         }
 
+        BL_ASSERT(boxes.size() > 0);
+
         BoxArray slice_ba(&boxes[0], boxes.size());
         DistributionMapping slice_dmap(procs);
         std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, 10, 0));
@@ -111,13 +113,21 @@ void
 BoostedFrameDiagnostic::
 writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {
     
+    const RealBox& domain_z_boost = geom.ProbDomain();
+    const Real zlo_boost = domain_z_boost.lo(2);
+    const Real zhi_boost = domain_z_boost.hi(2);
+
     for (int i = 0; i < N_snapshots_; ++i) {
         snapshots_[i].updateCurrentZPositions(t_boost, 
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
         
+        if ( (snapshots_[i].current_z_boost < zlo_boost) or 
+             (snapshots_[i].current_z_boost > zhi_boost) ) continue;
+
         // for each z position, fill a slice with the data.
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
+
         std::unique_ptr<MultiFab> slice = getSliceData(cell_centered_data, geom,
                                                        snapshots_[i].current_z_boost);
 
