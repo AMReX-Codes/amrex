@@ -272,8 +272,10 @@ LaserParticleContainer::Evolve (int lev,
         // Convert time from the boosted to the lab-frame
         // (in order to later calculate the amplitude of the field,
         // at the position of the antenna, in the lab-frame)
-      Real z0_boost = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
-      t_lab = 1./gamma_boost + gamma_boost*beta_boost*z0_boost;
+      Real z0_boost = nvec[0]*position[0] + 
+	              nvec[1]*position[1] + 
+                      nvec[2]*position[2];
+      t_lab = 1./gamma_boost*t + gamma_boost*beta_boost*z0_boost/PhysConst::c;
     }
 
     BL_ASSERT(OnSameGrids(lev,jx));
