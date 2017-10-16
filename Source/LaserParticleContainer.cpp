@@ -52,7 +52,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
     // Note: it is assumed that the boost is along the propagation
     // direction of the laser (i.e. along nvec). In this case, the antenna
     // moves with a velocity -beta_boost along nvec.
-    pp.get("gamma_boost", gamma_boost);
+    pp.query("gamma_boost", gamma_boost);
     beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
 
 	if ( profile == laser_t::Gaussian ) {
