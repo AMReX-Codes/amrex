@@ -24,7 +24,10 @@ public:
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
-                         amrex::MultiFab* rho, amrex::Real t, amrex::Real dt) final;
+                         amrex::MultiFab* rho,
+                         const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
+                         const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
+                         amrex::Real t, amrex::Real dt) final;
 
     virtual void PostRestart () final;
 

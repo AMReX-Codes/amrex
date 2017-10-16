@@ -129,6 +129,9 @@ WarpX::WarpX ()
     Efield_cp.resize(nlevs_max);
     Bfield_cp.resize(nlevs_max);
 
+    Efield_cax.resize(nlevs_max);
+    Bfield_cax.resize(nlevs_max);
+
     pml.resize(nlevs_max);
 
     masks.resize(nlevs_max);
@@ -214,6 +217,7 @@ WarpX::ReadParameters ()
 	pp.query("use_filter", use_filter);
 	pp.query("serialize_ics", serialize_ics);
         pp.query("do_dive_cleaning", do_dive_cleaning);
+        pp.query("n_field_gather_buffer", n_field_gather_buffer);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
@@ -293,6 +297,9 @@ WarpX::ClearLevel (int lev)
 	current_cp[lev][i].reset();
 	Efield_cp [lev][i].reset();
 	Bfield_cp [lev][i].reset();
+
+	Efield_cax[lev][i].reset();
+	Bfield_cax[lev][i].reset();
     }
 
     F_fp  [lev].reset();
@@ -359,7 +366,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     //
     // The coarse patch
     //
-    if (lev > 0)
+    if (lev > 0 && n_field_gather_buffer > 0)
     {
         BoxArray cba = ba;
         cba.coarsen(refRatio(lev-1));
@@ -384,6 +391,25 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, 0));
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
         }
+    }
+
+    //
+    // Copy of the coarse aux
+    //
+    if (lev > 0)
+    {
+        BoxArray cba = ba;
+        cba.coarsen(refRatio(lev-1));
+
+        // Create the MultiFabs for B
+        Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
+        Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
+        Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
+
+        // Create the MultiFabs for E
+        Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
+        Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
+        Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
     }
 
     if (load_balance_int > 0) {

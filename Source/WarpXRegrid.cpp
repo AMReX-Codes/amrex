@@ -145,6 +145,26 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             }
         }
 
+        if (lev > 0 && n_field_gather_buffer > 0) {
+            for (int idim=0; idim < 3; ++idim)
+            {
+                {
+                    int ng = Bfield_cax[lev][idim]->nGrow();
+                    auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Bfield_cax[lev][idim]->boxArray(),
+                                                                      dm, 1, ng));
+                    pmf->ParallelCopy(*Bfield_cax[lev][idim], 0, 0, 1, ng, ng);
+                    Bfield_cax[lev][idim] = std::move(pmf);
+                }
+                {
+                    int ng = Efield_cax[lev][idim]->nGrow();
+                    auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Efield_cax[lev][idim]->boxArray(),
+                                                                      dm, 1, ng));
+                    pmf->ParallelCopy(*Efield_cax[lev][idim], 0, 0, 1, ng, ng);
+                    Efield_cax[lev][idim] = std::move(pmf);
+                }
+            }
+        }
+
         if (costs[lev] != nullptr) {
             costs[lev].reset(new MultiFab(costs[lev]->boxArray(), dm, 1, 0));
             costs[lev]->setVal(0.0);

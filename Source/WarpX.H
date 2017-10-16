@@ -305,8 +305,14 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
 
+    // Copy of the coarse aux
+    amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cax;
+    amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cax;
+
     // div E cleaning
     int do_dive_cleaning = 0;
+
+    int n_field_gather_buffer = 0;
 
     // PML
     int do_pml = 1;

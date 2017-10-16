@@ -480,7 +480,10 @@ PhysicalParticleContainer::Evolve (int lev,
 				   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 				   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 				   MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                   MultiFab* rho, Real t, Real dt)
+                                   MultiFab* rho,
+                                   const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
+                                   const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
+                                   Real t, Real dt)
 {
     BL_PROFILE("PPC::Evolve()");
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);

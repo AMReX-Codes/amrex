@@ -43,6 +43,12 @@ public:
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
                          amrex::MultiFab* rho,
+                         const amrex::MultiFab* cEx,
+                         const amrex::MultiFab* cEy,
+                         const amrex::MultiFab* cEz,
+                         const amrex::MultiFab* cBx,
+                         const amrex::MultiFab* cBy,
+                         const amrex::MultiFab* cBz,
                          amrex::Real t,
                          amrex::Real dt) final;
 

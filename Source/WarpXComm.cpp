@@ -57,6 +57,12 @@ WarpX::UpdateAuxilaryData ()
             dBx.copy(*Bfield_aux[lev-1][0], 0, 0, 1, ng, ng, crse_period);
             dBy.copy(*Bfield_aux[lev-1][1], 0, 0, 1, ng, ng, crse_period);
             dBz.copy(*Bfield_aux[lev-1][2], 0, 0, 1, ng, ng, crse_period);
+            if (Bfield_cax[lev][0])
+            {
+                MultiFab::Copy(*Bfield_cax[lev][0], dBx, 0, 0, 1, ng);
+                MultiFab::Copy(*Bfield_cax[lev][1], dBy, 0, 0, 1, ng);
+                MultiFab::Copy(*Bfield_cax[lev][2], dBz, 0, 0, 1, ng);
+            }
             MultiFab::Subtract(dBx, *Bfield_cp[lev][0], 0, 0, 1, ng);
             MultiFab::Subtract(dBy, *Bfield_cp[lev][1], 0, 0, 1, ng);
             MultiFab::Subtract(dBz, *Bfield_cp[lev][2], 0, 0, 1, ng);
@@ -126,6 +132,12 @@ WarpX::UpdateAuxilaryData ()
             dEx.copy(*Efield_aux[lev-1][0], 0, 0, 1, ng, ng, crse_period);
             dEy.copy(*Efield_aux[lev-1][1], 0, 0, 1, ng, ng, crse_period);
             dEz.copy(*Efield_aux[lev-1][2], 0, 0, 1, ng, ng, crse_period);
+            if (Efield_cax[lev][0])
+            {
+                MultiFab::Copy(*Efield_cax[lev][0], dEx, 0, 0, 1, ng);
+                MultiFab::Copy(*Efield_cax[lev][1], dEy, 0, 0, 1, ng);
+                MultiFab::Copy(*Efield_cax[lev][2], dEz, 0, 0, 1, ng);
+            }
             MultiFab::Subtract(dEx, *Efield_cp[lev][0], 0, 0, 1, ng);
             MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, 1, ng);
             MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, 1, ng);
