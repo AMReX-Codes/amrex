@@ -180,12 +180,13 @@ main (int   argc,
         ba2Coarse.coarsen(refine_ratio);
 
         // Define new_data1 in case the boxarrays are not the same
-        MultiFab new_data1(ba2Coarse,1,0,Fab_allocate);
+        DistributionMapping dm2Coarse(ba2Coarse);
+        MultiFab new_data1(ba2Coarse,dm2Coarse,1,0);
 
         //
         // Construct MultiFab for errors
         //
-	error[iLevel] = new MultiFab(ba2Coarse, nComp, 0);
+	error[iLevel] = new MultiFab(ba2Coarse, dm2Coarse, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
         //

@@ -201,12 +201,13 @@ main (int   argc,
         ba2Coarse.coarsen(refine_ratio);
 
         // Define new_data1 in case the boxarrays are not the same
-        MultiFab new_data1(ba2Coarse,1,0,Fab_allocate);
+        DistributionMapping dm2Coarse(ba2Coarse);
+        MultiFab new_data1(ba2Coarse,dm2Coarse,1,0);
 
         //
         // Construct MultiFab for errors
         //
-	error[iLevel] = new MultiFab(ba2Coarse, nComp, 0);
+	error[iLevel] = new MultiFab(ba2Coarse, dm2Coarse, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
         //
@@ -238,6 +239,10 @@ main (int   argc,
                 FArrayBox data2Coarse(ba2Coarse[index], 1);
                 int ncCoarse = 1;
 
+                Box box2c = ba2Coarse[mfi];
+		IntVect loiv = box2c.smallEnd();
+		IntVect hiiv = box2c.bigEnd();
+
                 FORT_CV_AVGDOWN_STAG(&nodal_dir,
 				     data2Coarse.dataPtr(),
                                      ARLIM(data2Coarse.loVect()),
@@ -246,8 +251,8 @@ main (int   argc,
 				     data2Fine[mfi].dataPtr(),
 				     ARLIM(data2Fine[mfi].loVect()),
 				     ARLIM(data2Fine[mfi].hiVect()), 
-				     ba2Coarse[index].loVect(), 
-				     ba2Coarse[index].hiVect(),
+				     loiv.getVect(),
+				     hiiv.getVect(),
 				     refine_ratio.getVect());
 
 

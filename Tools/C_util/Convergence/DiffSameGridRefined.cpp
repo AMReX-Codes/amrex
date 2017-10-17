@@ -17,6 +17,7 @@ using std::ios;
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_AmrData.H>
 #include <AVGDOWN_F.H>
 
 #ifndef NDEBUG
@@ -24,7 +25,7 @@ using std::ios;
 #endif
 
 #define GARBAGE 666.e+40
-
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
@@ -163,7 +164,8 @@ main (int   argc,
         //
         // Construct MultiFab for errors
         //
-	error[iLevel] = new MultiFab(ba1, nComp, 0);
+        DistributionMapping dm(ba1);
+	error[iLevel] = new MultiFab(ba1, dm, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
         //

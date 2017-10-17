@@ -110,7 +110,8 @@ main (int   argc,
     {
         const BoxArray& baI = amrDataI.boxArray(iLevel);
 
-        MultiFab dataI(baI, nComp, 0);
+        DistributionMapping dm(baI);
+        MultiFab dataI(baI, dm, nComp, 0);
 
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
 
