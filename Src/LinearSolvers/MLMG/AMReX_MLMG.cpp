@@ -56,7 +56,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         cor_hold[alev].define(cor[alev][0].boxArray(),
                               cor[alev][0].DistributionMap(),
                               cor[alev][0].nComp(),
-                              cor[alev][0].nGrow());
+                              0);
     }
 
     //
@@ -126,7 +126,7 @@ MLMG::oneIter (int iter)
         computeResWithCrseSolFineCor(alev-1,alev);
 
         if (alev != finest_amr_lev) {
-            MultiFab::Copy(cor_hold[alev], cor[alev][0], 0, 0, 1, 1); // save it for the up cycle
+            MultiFab::Copy(cor_hold[alev], cor[alev][0], 0, 0, 1, 0); // save it for the up cycle
         }
     }
 
@@ -146,7 +146,7 @@ MLMG::oneIter (int iter)
         MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
 
         if (alev != finest_amr_lev) {
-            MultiFab::Add(cor_hold[alev], cor[alev][0], 0, 0, 1, 1);
+            MultiFab::Add(cor_hold[alev], cor[alev][0], 0, 0, 1, 0);
         }
 
         computeResWithCrseCorFineCor(alev);
@@ -156,7 +156,7 @@ MLMG::oneIter (int iter)
         MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
 
         if (alev != finest_amr_lev) {
-            MultiFab::Add(cor[alev][0], cor_hold[alev], 0, 0, 1, 1);            
+            MultiFab::Add(cor[alev][0], cor_hold[alev], 0, 0, 1, 0);
         }
     }
 
@@ -201,6 +201,9 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
     
+    if (calev > 0) {
+        linop.updateSolBC(calev, *sol[calev-1]);
+    }
     linop.residual(calev, 0, crse_res, crse_sol, crse_rhs, BCMode::Inhomogeneous);
 
     linop.residual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
