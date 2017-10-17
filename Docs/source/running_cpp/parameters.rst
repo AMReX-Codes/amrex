@@ -97,6 +97,11 @@ Laser initialization
 
         E_{max} = a_0 \frac{2 \pi m_e c}{e\lambda} = a_0 \times (4.0 \cdot 10^{12} \;V.m^{-1})
 
+    When running a *boosted-frame simulation*, provide the value of ``laser.e_max``
+    in the laboratory frame, and use ``laser.gamma_boost`` to automatically
+    perform the conversion to the boosted frame.
+
+
 * ``laser.position`` (`3 floats in 3D and 2D` ; in meters)
     The coordinates of one of the point of the antenna that will emit the laser.
     The plane of the antenna is entirely defined by ``laser.position`` and ``laser.direction``.
@@ -110,9 +115,17 @@ Laser initialization
     .. note::
         In 2D, ``laser.position`` is still given by 3 numbers, but the second number is ignored.
 
+    When running a *boosted-frame simulation*, provide the value of
+    ``laser.e_max`` in the laboratory frame, and use ``laser.gamma_boost``
+    to automatically perform the conversion to the boosted frame.
+
 *  ``laser.profile_t_peak`` (`float`; in seconds)
     The time at which the laser reaches its peak intensity, at the position
     given by ``laser.position`` (only used for the ``"gaussian"`` profile)
+
+    When running a *boosted-frame simulation*, provide the value of
+    ``laser.profile_t_peak`` in the laboratory frame, and use ``laser.gamma_boost``
+    to automatically perform the conversion to the boosted frame.
 
 *  ``laser.profile_duration`` (`float` ; in seconds)
 
@@ -130,6 +143,12 @@ Laser initialization
 
         E(\boldsymbol{x},t) \propto \frac{1}{32}\left[10 - 15 \cos\left(\frac{2\pi t}{\tau}\right) + 6 \cos\left(\frac{4\pi t}{\tau}\right) - \cos\left(\frac{6\pi t}{\tau}\right) \right]
 
+    For :math:`t>\tau`, :math:`E(\boldsymbol{x},t)=0`.
+
+    When running a *boosted-frame simulation*, provide the value of
+    ``laser.profile_duration`` in the laboratory frame, and use ``laser.gamma_boost``
+    to automatically perform the conversion to the boosted frame.
+
 * ``laser.profile_waist`` (`float` ; in meters)
     The waist of the transverse Gaussian laser profile, defined as :math:`w_0` :
 
@@ -137,10 +156,12 @@ Laser initialization
 
         E(\boldsymbol{x},t) \propto \exp\left( -\frac{\boldsymbol{x}_\perp^2}{w_0^2} \right)
 
-    For :math:`t>\tau`, :math:`E(\boldsymbol{x},t)=0`.
-
 * ``laser.wavelength`` (`float`; in meters)
     The wavelength of the laser in vacuum.
+
+    When running a *boosted-frame simulation*, provide the value of
+    ``laser.wavelength`` in the laboratory frame, and use ``laser.gamma_boost``
+    to automatically perform the conversion to the boosted frame.
 
 * ``laser.polarization`` (`3 floats in 3D and 2D`)
     The coordinates of a vector that points in the direction of polarization of
@@ -162,6 +183,19 @@ Laser initialization
 
     Use a negative number for a defocussing laser instead of a focussing laser.
 
+    When running a *boosted-frame simulation*, provide the value of
+    ``laser.profile_focal_distance`` in the laboratory frame, and use ``laser.gamma_boost``
+    to automatically perform the conversion to the boosted frame.
+
+* ``laser.gamma_boost`` (`float`)
+    The Lorentz factor of the boosted frame in which the simulation is run.
+    (It is assumed that the corresponding Lorentz transform is along the
+    ``laser.direction``.)
+
+    When using this parameter, the laser parameters are automatically converted
+    to the boosted frame, and the laser is emitted by a moving antenna. (In
+    particular, the laser focal plane will be moving in the boosted frame, as
+    it should.)
 
 Numerics and algorithms
 -----------------------
