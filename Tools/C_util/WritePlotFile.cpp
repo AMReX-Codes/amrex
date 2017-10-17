@@ -13,8 +13,10 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_DistributionMapping.H>
 #include <WritePlotFile.H>
 
+using namespace amrex;
 std::string
 thePlotFileType ()
 {
@@ -91,7 +93,8 @@ writePlotFile (const std::string&        dir,
     }
     const int Coord = 0;
     BoxArray tba = BoxArray(&tmpb,1);
-    MultiFab level0_dat(tba,mf.nComp(),mf.nGrow(),Fab_allocate);
+    DistributionMapping dm {tba};
+    MultiFab level0_dat(tba,dm,mf.nComp(),mf.nGrow());
     for (int j=0; j<mf.nComp(); ++j)
         level0_dat.setVal(0.5*(mf.min(j)+mf.max(j)),j,1);
     //level0_dat.setVal(bgVal);

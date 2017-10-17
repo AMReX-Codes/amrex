@@ -14,6 +14,7 @@
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_DistributionMapping.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -21,6 +22,8 @@
 
 #define GARBAGE 666.e+40
 
+
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
@@ -143,20 +146,21 @@ main (int   argc,
         const BoxArray& baI = amrDataI.boxArray(iLevel);
         const BoxArray& baE = amrDataE.boxArray(iLevel);
 
+        DistributionMapping dm {baI}; 
         if (baI != baE)
         {
             std::cout << "ERROR: BoxArrays are not the same at level " << iLevel << std::endl;
             ParallelDescriptor::Abort();
         }
 
-	aerror[iLevel] = new MultiFab(baI, nComp, 0);
+	aerror[iLevel] = new MultiFab(baI, dm, nComp, 0);
 	aerror[iLevel]->setVal(GARBAGE);
 
-	rerror[iLevel] = new MultiFab(baI, nComp, 0);
+	rerror[iLevel] = new MultiFab(baI, dm, nComp, 0);
 	rerror[iLevel]->setVal(GARBAGE);
 
-        MultiFab dataI(baI, nComp, 0);
-        MultiFab dataE(baE, nComp, 0);
+        MultiFab dataI(baI, dm, nComp, 0);
+        MultiFab dataE(baE, dm, nComp, 0);
 
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
         amrDataE.FillVar(dataE, iLevel, derives, destComps);
