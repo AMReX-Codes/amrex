@@ -1,30 +1,33 @@
 
 TOP = $(AMREX_HOME)
+USE_EB =FALSE
 #
 # Variables for the user to set ...
 #
 PRECISION     = DOUBLE
 DEBUG	      = TRUE
 DEBUG	      = FALSE
-DIM	      = 3
+#DIM	      = 3
+DIM	      = 2
 COMP          = g++
-USE_MPI       = TRUE 
+#USE_MPI       = TRUE 
+USE_MPI       = FALSE
 #
 # Base name of the executable.
 #
 #EBASE = Add
-#EBASE = ComputeAmrDataNorms
+### this has no main EBASE = ComputeAmrDataNorms
 #EBASE = DiffFab
-#EBASE = DiffSameDomainRefined
-#EBASE = DiffSameDomainRefinedComposite
-#EBASE = DiffSameDomainRefinedStag
-EBASE = DiffSameGrid2
+## did not work EBASE = DiffSameDomainRefined
+## did not work EBASE = DiffSameDomainRefinedComposite
+## did not work EBASE = DiffSameDomainRefinedStag
+#EBASE = DiffSameGrid2
 #EBASE = DiffSameGrid
 #EBASE = DiffSameGridRefined
 #EBASE = DiffUniform
 #EBASE = PltFileNormB
 #EBASE = PltFileNorm
-#EBASE = PltFileScalConvRate
+EBASE = PltFileScalConvRate
 
 CEXE_sources += $(EBASE).cpp
 

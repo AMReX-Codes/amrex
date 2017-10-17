@@ -24,7 +24,7 @@ using std::ios;
 #endif
 
 #define GARBAGE 666.e+40
-
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
