@@ -3,16 +3,32 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_ParmParse.H>
 
 #include <prob_par.H>
 
 using namespace amrex;
+
+namespace {
+    static int max_iter = 100;
+    static int verbose  = 2;
+    static int cg_verbose = 0;
+    static int linop_maxorder = 2;
+}
 
 void solve_with_mlmg (const Vector<Geometry>& geom,
                       Vector<MultiFab>& soln,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
                       Vector<MultiFab>& rhs)
 {
+    {
+        ParmParse pp;
+        pp.query("max_iter", max_iter);
+        pp.query("verbose", verbose);
+        pp.query("cg_verbose", cg_verbose);
+        pp.query("linop_maxorder", linop_maxorder);
+    }
+
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
 
@@ -33,6 +49,8 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     }
 
     MLABecLaplacian mlabec(geom, grids, dmap);
+    mlabec.setMaxOrder(linop_maxorder);
+
     mlabec.setScalars(prob::a, prob::b);
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
@@ -58,6 +76,9 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     }
     
     MLMG mlmg(mlabec);
+    mlmg.setMaxIter(max_iter);
+    mlmg.setVerbose(verbose);
+    mlmg.setCGVerbose(cg_verbose);
     mlmg.solve(psoln, prhs, tol_rel, tol_abs);
 }
 

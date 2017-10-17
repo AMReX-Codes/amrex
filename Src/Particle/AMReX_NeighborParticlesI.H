@@ -69,6 +69,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         mask_ptr->FillBoundary(geom.periodicity());
 
         local_neighbors.clear();
+        neighbor_procs.clear();
         for (MFIter mfi(*mask_ptr, this->tile_size); mfi.isValid(); ++mfi) {
             const Box& box = mfi.growntilebox();
             for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
@@ -77,13 +78,15 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 const int proc = this->ParticleDistributionMap(lev)[grid];
                 NeighborCommTag comm_tag(proc, grid, tile);
                 local_neighbors.push_back(comm_tag);
+                if (proc != ParallelDescriptor::MyProc() and grid >= 0) {
+                    neighbor_procs.push_back(proc);
+                }
             }
         }
 
-        std::sort(local_neighbors.begin(), local_neighbors.end());
-        auto it = std::unique(local_neighbors.begin(), local_neighbors.end());
-        local_neighbors.erase(it, local_neighbors.end());
-    };
+        RemoveDuplicates(local_neighbors);
+        RemoveDuplicates(neighbor_procs);
+    }
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -132,8 +135,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
 #pragma omp parallel
 #endif
     {
-        std::vector<NeighborTag> tags;
-        tags.reserve(27);
+        Vector<NeighborTag> tags;
+        tags.reserve(AMREX_D_TERM(3, *3, *3));            
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
 #ifdef _OPENMP
             int thread_num = omp_get_thread_num();
@@ -158,11 +161,11 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 if (shrink_box.contains(iv)) continue;
                 
                 // Figure out all our neighbors, removing duplicates
-                //                std::vector<NeighborTag> tags;
-                for (int ii = -nc; ii < nc + 1; ii += nc) {
-                    for (int jj = -nc; jj < nc + 1; jj += nc) {
-                        for (int kk = -nc; kk < nc + 1; kk += nc) {
-                            if ((ii == 0) and (jj == 0) and (kk == 0)) continue;
+                AMREX_D_TERM(
+                for (int ii = -nc; ii < nc + 1; ii += nc) {,
+                    for (int jj = -nc; jj < nc + 1; jj += nc) {,
+                        for (int kk = -nc; kk < nc + 1; kk += nc) {)
+                            if (AMREX_D_TERM((ii == 0), and (jj == 0), and (kk == 0))) continue;
                             IntVect shift(AMREX_D_DECL(ii, jj, kk));
                             IntVect neighbor_cell = iv + shift;
                             const NeighborTag& tag = getNeighborTag(lev,
@@ -174,12 +177,12 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                                 (tag.periodic_shift[1] == 0) and
                                 (tag.periodic_shift[2] == 0)) continue;
                             tags.push_back(tag);
-                        }
-                    }
-                }
-                std::sort(tags.begin(), tags.end());
-                auto it = std::unique(tags.begin(), tags.end());
-                tags.erase(it, tags.end());
+                AMREX_D_TERM(
+                         },
+                    },
+                })
+                    
+                RemoveDuplicates(tags);
                 
                 // Add neighbors to buffers
                 for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
@@ -477,6 +480,8 @@ getRcvCountsMPI(const std::map<int, Vector<char> >& send_data) {
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
+    BL_ASSERT(send_data.size() == neighbor_procs.size());
+
     // each proc figures out how many bytes it will send, and how
     // many it will receive
     Vector<long> snds(NProcs, 0);
@@ -489,22 +494,36 @@ getRcvCountsMPI(const std::map<int, Vector<char> >& send_data) {
     }
     ParallelDescriptor::ReduceLongMax(num_snds);
     if (num_snds == 0) return;
+
+    const int num_rcvs = neighbor_procs.size();
+    Vector<MPI_Status>  stats(num_rcvs);
+    Vector<MPI_Request> rreqs(num_rcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
     
-    // communicate that information
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    // Post receives
+    for (int i = 0; i < num_rcvs; ++i) {
+        const int Who = neighbor_procs[i];
+        const long Cnt = 1;
+
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+
+        rreqs[i] = ParallelDescriptor::Arecv(&rcvs[Who], Cnt, Who, SeqNum).req();
+    }
     
-    BL_MPI_REQUIRE( MPI_Alltoall(snds.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 rcvs.dataPtr(),
-                                 1,
-                                 ParallelDescriptor::Mpi_typemap<long>::type(),
-                                 ParallelDescriptor::Communicator()) );
-    BL_ASSERT(rcvs[MyProc] == 0);
-    
-    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
-                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+    // Send.
+    for (int i = 0; i < num_rcvs; ++i) {
+        const int Who = neighbor_procs[i];
+        const long Cnt = 1;
+
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+
+        ParallelDescriptor::Send(&snds[Who], Cnt, Who, SeqNum);        
+    }
+
+    if (num_rcvs > 0) {
+        BL_MPI_REQUIRE( MPI_Waitall(num_rcvs, rreqs.data(), stats.data()) );
+    }
 
 #endif // BL_USE_MPI
 }
@@ -646,8 +665,15 @@ buildNeighborList(int lev, bool sort) {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    {
+
+    Vector<IntVect> cells;
+    Vector<ParticleType> tmp_particles;
+    BaseFab<int> head;
+    Vector<int>  list;
+
     for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
-        
+
         PairIndex index(pti.index(), pti.LocalTileIndex());
         Vector<int>& nl = neighbor_list[index];
         AoS& particles = pti.GetArrayOfStructs();
@@ -656,23 +682,18 @@ buildNeighborList(int lev, bool sort) {
         int Nn = neighbors[index].size() / pdata_size;
         int N = Np + Nn;
 
-        Vector<IntVect> cells(N);
-        Vector<ParticleType> tmp_particles(N);
+        cells.resize(N);
+        tmp_particles.resize(N);
         std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
-
-        for (int i = 0; i < Nn; ++i) {
-            std::memcpy(&tmp_particles[i + Np],
-                        neighbors[index].dataPtr() + i*pdata_size,
-                        pdata_size);
-        }
+        std::memcpy(&tmp_particles[Np], neighbors[index].dataPtr(), Nn*pdata_size); 
 
         // For each cell on this tile, we build linked lists storing the
         // indices of the particles belonging to it.
         Box box = pti.tilebox();
         box.grow(num_neighbor_cells);
-        BaseFab<int> head(box);
+        head.resize(box);
         head.setVal(-1);
-        Vector<int> list(N, -1);
+        list.resize(N, -1);
 
         for (int i = 0; i < N; ++i) {
             const ParticleType& p = tmp_particles[i];
@@ -722,6 +743,7 @@ buildNeighborList(int lev, bool sort) {
             }
         }
     }
+    }
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -737,7 +759,7 @@ buildNeighborListFort(int lev, bool sort) {
     const Geometry& gm  = this->Geom(lev);
     const Real*     plo = gm.ProbLo();
     const Real*     dx  = gm.CellSize();
-    
+
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());

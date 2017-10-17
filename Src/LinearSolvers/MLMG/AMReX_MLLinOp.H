@@ -13,6 +13,7 @@ class MLLinOp
 public:
 
     friend class MLMG;
+    friend class MLCGSolver;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
 
@@ -35,11 +36,14 @@ public:
     // crse_bcdata, if !nullptr, doesn't need to have ghost cells.
     void setDirichletBC (int amrlev, const MultiFab& bcdata, const MultiFab* crse_bcdata=nullptr);
 
+    void setMaxOrder (int o) { maxorder = o; }
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
-    static constexpr int maxorder = 2;
+
+    int maxorder = 3;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
@@ -60,6 +64,12 @@ protected:
     mutable Vector<YAFluxRegister> m_fluxreg;
 
     Vector<std::unique_ptr<MacBndry> >   m_bndry_sol;
+    Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
+
+    Vector<std::unique_ptr<MacBndry> > m_bndry_cor;
+    Vector<std::unique_ptr<BndryRegister> > m_crse_cor_br;
+
+    Vector<Vector<Real> > m_Anorm;
 
     //
     // functions
@@ -77,12 +87,15 @@ protected:
     // TODO: need a flag to specify Dirichlet/Neumann, ...
 
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata);
+    void updateCorBC (int amrlev, const MultiFab& crse_bcdata);
 
-    void residual (int amrlev, int mglev,
-                   MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
+    void residual (int amrlev, int mglev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
                    BCMode bc_mode) const;
-    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode) const;
-    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const;
+    void correctionResidual (int amrlev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs) const;
+    void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                const MacBndry* bndry=nullptr) const;
+    void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+                  const MacBndry* bndry=nullptr) const;
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const;
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& fine_sol) const;
 
@@ -92,6 +105,7 @@ protected:
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         std::array<FArrayBox,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
+    virtual Real Anorm (int amrlev, int mglev) const = 0;
 
 };
 
