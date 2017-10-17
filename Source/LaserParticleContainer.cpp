@@ -74,6 +74,16 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
 	nvec = { nvec[0]*s, nvec[1]*s, nvec[2]*s };
 
+    // Get the position of the plane, along the boost direction, in the lab frame
+    // and convert the position of the antenna to the boosted frame
+    if (gamma_boost > 1.) {
+        Z0_lab = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
+        Real Z0_boost = Z0_lab/gamma_boost;
+        position[0] += (Z0_boost-Z0_lab)*nvec[0];
+        position[1] += (Z0_boost-Z0_lab)*nvec[1];
+        position[2] += (Z0_boost-Z0_lab)*nvec[2];
+    }
+
 	// The first polarization vector
 	s = 1.0/std::sqrt(p_X[0]*p_X[0] + p_X[1]*p_X[1] + p_X[2]*p_X[2]);
 	p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
@@ -272,10 +282,7 @@ LaserParticleContainer::Evolve (int lev,
         // Convert time from the boosted to the lab-frame
         // (in order to later calculate the amplitude of the field,
         // at the position of the antenna, in the lab-frame)
-      Real z0_boost = nvec[0]*position[0] + 
-	              nvec[1]*position[1] + 
-                      nvec[2]*position[2];
-      t_lab = 1./gamma_boost*t + gamma_boost*beta_boost*z0_boost/PhysConst::c;
+        t_lab = 1./gamma_boost*t + beta_boost*Z0_lab/PhysConst::c;
     }
 
     BL_ASSERT(OnSameGrids(lev,jx));
