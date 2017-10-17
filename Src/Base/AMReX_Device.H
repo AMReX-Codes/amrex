@@ -14,23 +14,23 @@
 
 #define CudaErrorCheck() ActualCudaErrorCheck()
 
-inline void ActualCudaErrorCheck() {            \
-    cudaError_t err = cudaGetLastError();       \
-    if (err != cudaSuccess) {                   \
-        std::string errStr("CUDA failure: ");   \
-        errStr.append(cudaGetErrorString(err)); \
-        amrex::Abort(errStr);                   \
-    }                                           \
+inline void ActualCudaErrorCheck() {
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::string errStr("CUDA failure: ");
+        errStr.append(cudaGetErrorString(err));
+        amrex::Abort(errStr);
+    }
 }
 
 #define CudaAPICheck(error) ActualCudaAPICheck(error)
 
-inline void ActualCudaAPICheck(cudaError_t err) { \
-    if (err != cudaSuccess) {                     \
-        std::string errStr("CUDA failure: ");     \
-        errStr.append(cudaGetErrorString(err));   \
-        amrex::Abort(errStr);                     \
-    }                                             \
+inline void ActualCudaAPICheck(cudaError_t err) {
+    if (err != cudaSuccess) {
+        std::string errStr("CUDA failure: ");
+        errStr.append(cudaGetErrorString(err));
+        amrex::Abort(errStr);
+    }
 }
 
 #endif
