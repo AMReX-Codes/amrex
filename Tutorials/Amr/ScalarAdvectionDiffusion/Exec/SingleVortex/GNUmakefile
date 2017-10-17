@@ -1,5 +1,5 @@
 AMREX_HOME ?= ../../../..
-USE_EB = FALSE
+USE_EB=FALSE
 PRECISION  = DOUBLE
 PROFILE    = FALSE
 
@@ -11,7 +11,7 @@ DIM        = 2
 
 COMP	   = gnu
 
-USE_PARTICLES = TRUE
+USE_PARTICLES = FALSE
 
 USE_MPI    = TRUE
 USE_OMP    = FALSE
@@ -19,4 +19,4 @@ USE_OMP    = FALSE
 Bpack   := ./Make.package 
 Blocs   := . 
 
-include ../Make.Adv
+include ../Make.Adv.Diff
