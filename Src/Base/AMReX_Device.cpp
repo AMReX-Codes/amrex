@@ -236,8 +236,8 @@ amrex::Device::get_host_pointer(const void* ptr) {
 void
 amrex::Device::check_for_errors() {
 
-#ifdef AMREX_USE_CUDA
-    check_for_gpu_errors();
+#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+    CudaErrorCheck();
 #endif
 
 }
