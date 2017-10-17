@@ -18,16 +18,16 @@ USE_MPI       = FALSE
 #EBASE = Add
 ### this has no main EBASE = ComputeAmrDataNorms
 #EBASE = DiffFab
-## did not work EBASE = DiffSameDomainRefined
-## did not work EBASE = DiffSameDomainRefinedComposite
-## did not work EBASE = DiffSameDomainRefinedStag
+#EBASE = DiffSameDomainRefined
+#EBASE = DiffSameDomainRefinedComposite
+#EBASE = DiffSameDomainRefinedStag
 #EBASE = DiffSameGrid2
 #EBASE = DiffSameGrid
 #EBASE = DiffSameGridRefined
 #EBASE = DiffUniform
 #EBASE = PltFileNormB
 #EBASE = PltFileNorm
-EBASE = PltFileScalConvRate
+#EBASE = PltFileScalConvRate
 
 CEXE_sources += $(EBASE).cpp
 
