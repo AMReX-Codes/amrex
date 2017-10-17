@@ -214,10 +214,10 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     Vector<FArrayBox*>& fabs = m_cfp_fab[li];
     if (fabs.empty()) return;
 
-    BL_ASSERT(mfi.tilebox().cellCentered());
-    AMREX_ALWAYS_ASSERT(mfi.tilebox().coarsenable(m_ratio));
     const Box& bx = amrex::coarsen(mfi.tilebox(), m_ratio);
     const int nc = m_cfpatch.nComp();
+
+    AMREX_ALWAYS_ASSERT(bx.cellCentered());
 
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
     {
