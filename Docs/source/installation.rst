@@ -13,7 +13,7 @@ single directory (e.g. ``warpx_directory``):
     cd warpx_directory
     git clone https://bitbucket.org/berkeleylab/amrex.git
     git clone https://bitbucket.org/berkeleylab/picsar.git
-    git clone https://bitbucket.org/berkeleylab/warpx.git
+    git clone https://github.com/AMReX-Codes/amrex.git
 
 You should then switch to the branch ``development`` of AMReX
 
