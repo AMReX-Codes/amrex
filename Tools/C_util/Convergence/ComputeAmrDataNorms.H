@@ -1,5 +1,8 @@
 #include <AMReX_DataServices.H>
+#include <AMReX_AmrData.H>
 
+#ifndef _computeamredatanorms__
+#define _computeamredatanorms__
 void
 ComputeAmrDataNorms (amrex::AmrData&     amrData,
 		     amrex::Vector<amrex::Real>& norm0,
@@ -9,6 +12,7 @@ ComputeAmrDataNorms (amrex::AmrData&     amrData,
 
 
 void
-ComputeAmrDataInt (AmrData&     amrData,
-		   Vector<Real>& norm1,
+ComputeAmrDataInt (amrex::AmrData&     amrData,
+                     amrex::Vector<amrex::Real>& norm1,
 		   bool         verbose);
+#endif

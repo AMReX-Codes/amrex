@@ -10,13 +10,14 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
+#include <AMReX_AmrData.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
 #endif
 
 using std::ios;
-
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
