@@ -9,7 +9,9 @@ import argparse, re, time
 # Before running performance tests, make sure you have the latest version 
 # of performance_log.txt
 # A typical execution reads:
-# python run_alltests.py --no-recompile --compiler=intel --architecture=knl --mode=run
+# > python run_alltests.py --no-recompile --compiler=gnu --architecture=cpu --mode=run --no-commit --log_file='my_performance_log.txt'
+# These are default values, and will give the same result as 
+# > python run_alltests.py
 # To add a new test item, extent the test_list with a line like
 # test_list.extend([['my_input_file', n_node, n_mpi, n_omp]]*3)
 # - my_input_file must be in warpx/performance_tests
@@ -37,15 +39,25 @@ import argparse, re, time
 # Create parser and read arguments
 parser = argparse.ArgumentParser(
     description='Run performance tests and write results in files')
-parser.add_argument('--recompile', dest='recompile', action='store_true')
-parser.add_argument('--no-recompile', dest='recompile', action='store_false')
+parser.add_argument('--recompile', dest='recompile', action='store_true', default=False)
+parser.add_argument('--no-recompile', dest='recompile', action='store_false', default=False)
+parser.add_argument('--commit', dest='commit', action='store_true', default=False)
+parser.add_argument('--no-commit', dest='commit', action='store_false', default=False)
 parser.add_argument( '--compiler', choices=['gnu', 'intel'], default='gnu',
     help='which compiler to use')
 parser.add_argument( '--architecture', choices=['cpu', 'knl'], default='cpu',
     help='which architecture to cross-compile for NERSC machines')
 parser.add_argument( '--mode', choices=['run', 'read'], default='run',
     help='whether to run perftests or read their perf output. run calls read')
+parser.add_argument( '--log_file', dest = 'log_file', default='my_performance_log.txt',
+    help='name of log file where data will be written. ignored if option --commit is used')
+
 args = parser.parse_args()
+
+log_file = args.log_file
+if args.commit == True:
+    log_file = 'performance_log.txt'
+
 # Dictionaries
 # compiler names. Used for WarpX executable name
 compiler_name = {'intel': 'intel', 'gnu': 'gcc'}
@@ -58,7 +70,6 @@ cwd = os.getcwd() + '/'
 res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
 bin_dir = cwd + 'Bin/'
 bin_name = 'perf_tests3d.' + args.compiler + '.' + module_name[args.architecture] + '.TPROF.MPI.OMP.ex'
-log_file = 'performance_log.txt'
 log_dir  = cwd
 
 # Initialize tests
@@ -227,7 +238,12 @@ def process_analysis():
     batch_string += '#SBATCH -o read_output.txt\n'
     batch_string += '#SBATCH --mail-type=end\n'
     batch_string += '#SBATCH --account=m2852\n'
-    batch_string += 'python run_alltests.py --no-recompile --compiler=' + args.compiler + ' --architecture=' + args.architecture + ' --mode=read\n'
+    batch_string += 'python run_alltests.py --no-recompile --compiler=' + args.compiler + ' --architecture=' + args.architecture + ' --mode=read' + ' --log_file=' + log_file
+    if args.commit == True:
+        batch_string += ' --commit'
+    else:
+        batch_string += ' --no-commit'
+    batch_string += '\n'
     batch_file = 'slurm_perfread'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)
@@ -288,7 +304,7 @@ if args.mode == 'read':
         time_initialization, time_one_iteration = read_run_perf(res_dir + 'perf_output.txt')
         # Write performance data to the performance log file
         write_perf_logfile(log_dir + log_file)
-        
-    os.system('git add ' + log_dir + log_file + ';'\
-              'git commit -m "performance tests";'\
-              'git push -u origin master')
+    if args.commit == True:
+        os.system('git add ' + log_dir + log_file + ';'\
+                  'git commit -m "performance tests";'\
+                  'git push -u origin master')
