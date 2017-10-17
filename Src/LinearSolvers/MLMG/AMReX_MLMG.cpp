@@ -3,6 +3,8 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_Interpolater.H>
+#include <AMReX_MG_F.H>
+#include <AMReX_MLCGSolver.H>
 
 namespace amrex {
 
@@ -100,18 +102,15 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
     else
     {
-//        for (int iter = 0; iter < max_iters; ++iter)
-        for (int iter = 0; iter < 10; ++iter)
+        for (int iter = 0; iter < max_iters; ++iter)
         {
-            oneIter();
-
-            // test convergence
+            oneIter(iter);
         }
     }
 }
 
 void
-MLMG::oneIter ()
+MLMG::oneIter (int iter)
 {
     // if converged?
     //    return
@@ -150,7 +149,7 @@ MLMG::oneIter ()
             MultiFab::Add(cor_hold[alev], cor[alev][0], 0, 0, 1, 1);
         }
 
-        computeResWithCrseCorFineCor(alev-1, alev);
+        computeResWithCrseCorFineCor(alev);
 
         miniCycle (alev);
 
@@ -168,6 +167,13 @@ MLMG::oneIter ()
     }
 
     // ...
+    if (verbose > 1) {
+        for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+            Real resmax = res[alev][0].norm0();
+            amrex::Print() << "MLMG: Iter " << iter << " Level " << alev 
+                           << " max resid " << resmax << "\n";
+        }
+    }
 }
 
 void
@@ -195,7 +201,6 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
     
-    // update bc???
     linop.residual(calev, 0, crse_res, crse_sol, crse_rhs, BCMode::Inhomogeneous);
 
     linop.residual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
@@ -208,55 +213,90 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 }
 
 void
-MLMG::computeResWithCrseCorFineCor (int calev, int falev)
+MLMG::computeResWithCrseCorFineCor (int falev)
 {
-//    const int calev = falev - 1;
-    const MultiFab& crse_cor = cor[calev][0];
+    const MultiFab& crse_cor = cor[falev-1][0];
 
     MultiFab& fine_cor = cor[falev][0];
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
 
-//    linop.
-
-    // interp correction to supply boundary conditions
-    // compute residual
+    linop.updateCorBC(falev, crse_cor);
+    // fine_rescor = fine_res - L(fine_cor)
+    linop.correctionResidual(falev, fine_rescor, fine_cor, fine_res);
+    MultiFab::Copy(fine_res, fine_rescor, 0, 0, 1, 0);
 }
 
 void
-MLMG::miniCycle (int alev)
+MLMG::miniCycle (int amrlev)
 {
-    Vector<MultiFab>& xs = cor[alev];
-    Vector<MultiFab>& bs = res[alev];
-    Vector<MultiFab>& rs = rescor[alev];
-
-    for (auto& x : xs) x.setVal(0.0);
-
-    for (int i = 0; i < nu1; ++i) {
-        int mglev = 0;
-        linop.smooth(alev, mglev, xs[mglev], bs[mglev], BCMode::Homogeneous);
-    }
-
-    // for ref ratio of 4 ...
-    
+    const int mglev = 0;
+    mgVcycle(amrlev, mglev);
 }
 
 void
 MLMG::mgCycle ()
 {
-    Vector<MultiFab>& xs = cor[0];
-    Vector<MultiFab>& bs = res[0];
-    Vector<MultiFab>& rs = rescor[0];
-
-    for (auto& x : xs) x.setVal(0.0);
-
-    for (int i = 0; i < nu1; ++i) {
-        int mglev = 0;
-        // linop.smooth(alev, mglev, xs[mglev], bs[mglev]);
+    const int amrlev = 0;
+    const int mglev = 0;
+    if (cycle_type == Cycle::Vcycle)
+    {
+        mgVcycle (amrlev, mglev);
     }
+    else if (cycle_type == Cycle::Wcycle)
+    {
+        amrex::Abort("not implemented");
+    }
+    else if (cycle_type == Cycle::Fcycle)
+    {
+        amrex::Abort("not implemented");
+    }
+}
 
-    // compute defect 
-    
+void
+MLMG::mgVcycle (int amrlev, int mglev)
+{
+    MultiFab& x = cor[amrlev][mglev];
+    MultiFab& b = res[amrlev][mglev];
+    MultiFab& r = rescor[amrlev][mglev];
+    const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
+
+    x.setVal(0.0);
+
+    if (mglev == mg_bottom_lev)
+    {
+        if (amrlev == 0)
+        {
+            bottomSolve ();
+        }
+        else
+        {
+            for (int i = 0; i < nuf; ++i) {
+                linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nu1; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
+        
+        computeResOfCorrection(amrlev, mglev);
+
+        const int refratio = 2;
+        amrex::average_down(r, res[amrlev][mglev+1], 0, 1, refratio);
+
+        for (int i = 0; i < nu0; ++i) {
+            mgVcycle(amrlev, mglev+1);
+        }
+
+        interpCorrection(amrlev, mglev);
+
+        for (int i = 0; i < nu2; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
+    }    
 }
 
 void
@@ -286,5 +326,77 @@ MLMG::interpCorrection (int alev)
     }
 }
 
+void
+MLMG::interpCorrection (int alev, int mglev)
+{
+    const MultiFab& crse_cor = cor[alev][mglev+1];
+    MultiFab&       fine_cor = cor[alev][mglev  ];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(crse_cor,true); mfi.isValid(); ++mfi)
+    {
+        const Box&         bx = mfi.tilebox();
+        const int          nc = fine_cor.nComp();
+        const FArrayBox& cfab = crse_cor[mfi];
+        FArrayBox&       ffab = fine_cor[mfi];
+
+        FORT_INTERP(ffab.dataPtr(),
+                    ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                    cfab.dataPtr(),
+                    ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                    bx.loVect(), bx.hiVect(), &nc);
+    }    
 }
 
+void
+MLMG::computeResOfCorrection (int amrlev, int mglev)
+{
+    MultiFab& x = cor[amrlev][mglev];
+    const MultiFab& b = res[amrlev][mglev];
+    MultiFab& r = rescor[amrlev][mglev];
+    linop.residual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
+}
+
+void
+MLMG::bottomSolve ()
+{
+    const int amrlev = 0;
+    const int mglev = linop.NMGLevels(amrlev) - 1;
+    MultiFab& x = cor[amrlev][mglev];
+    MultiFab& b = res[amrlev][mglev];
+    
+    if (bottom_solver == BottomSolver::smoother)
+    {
+        for (int i = 0; i < nuf; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
+    }
+    else
+    {
+        MLCGSolver::Solver solver_type;
+        if (bottom_solver == BottomSolver::bicgstab)
+        {
+            solver_type = MLCGSolver::Solver::BiCGStab;
+        }
+        else if (bottom_solver == BottomSolver::cg)
+        {
+            solver_type = MLCGSolver::Solver::CG;         
+        }
+
+        MLCGSolver cg_solver(linop, solver_type);
+        cg_solver.setVerbose(cg_verbose);
+        cg_solver.setMaxIter(cg_maxiter);
+        cg_solver.setUnstableCriterion(cg_unstable_criterion);
+
+        const Real cg_rtol = 1.e-4;
+        const Real cg_atol = -1.0;
+        cg_solver.solve(x, b, cg_rtol, cg_atol);
+
+        for (int i = 0; i < nub; ++i) {
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+        }
+    }
+}
+
+}

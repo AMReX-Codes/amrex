@@ -45,19 +45,8 @@
    DEFINES += -DUSE_GSRB=1
   endif
 
-# if this is true then the first cycle we do is F
-  ifeq ($(HPGMG_FCYCLES), TRUE)
-    DEFINES += -DUSE_FCYCLES=1
-    # do pure F-cycles until it converges
-    ifeq ($(HPGMG_POST_F_CYCLE_TYPE), F)
-      DEFINES += -DUNLIMIT_FMG_FCYCLES=1
-    # do exactly 1 F-cycle followed by however many V-cycles it takes to converge
-    else ifeq ($(HPGMG_POST_F_CYCLE_TYPE), V)
-      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
-    else
-      DEFINES += -DUNLIMIT_FMG_VCYCLES=1
-    endif
-  endif
+  DEFINES += -DHPGMG_F_CYCLES=$(HPGMG_F_CYCLES)
+  DEFINES += -DHPGMG_V_CYCLES=$(HPGMG_V_CYCLES)
 
 # is this a Helmholtz problem or a Poisson problem?
   ifeq ($(HPGMG_HELMHOLTZ), TRUE)

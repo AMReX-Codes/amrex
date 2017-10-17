@@ -6,7 +6,6 @@ namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
-constexpr int MLLinOp::maxorder;
 
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
@@ -36,6 +35,10 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     m_fluxreg.resize(m_num_amr_levels-1);
 
     m_bndry_sol.resize(m_num_amr_levels);
+    m_crse_sol_br.resize(m_num_amr_levels);
+
+    m_bndry_cor.resize(m_num_amr_levels);
+    m_crse_cor_br.resize(m_num_amr_levels);
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -134,6 +137,48 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         m_bndry_sol[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
                                               1, m_geom[amrlev][0]));
     }
+
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        const int ncomp = 1;
+        const int in_rad = 0;
+        const int out_rad = 1;
+        const int extent_rad = 2;
+        const int crse_ratio = m_amr_ref_ratio[amrlev-1];
+        BoxArray cba = m_grids[amrlev][0];
+        cba.coarsen(crse_ratio);
+        m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
+                                                      in_rad, out_rad, extent_rad, ncomp));
+    }
+
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        const int ncomp = 1;
+        const int in_rad = 0;
+        const int out_rad = 1;
+        const int extent_rad = 2;
+        const int crse_ratio = m_amr_ref_ratio[amrlev-1];
+        BoxArray cba = m_grids[amrlev][0];
+        cba.coarsen(crse_ratio);
+        m_crse_cor_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
+                                                      in_rad, out_rad, extent_rad, ncomp));
+        m_crse_cor_br[amrlev]->setVal(0.0);
+    }
+
+    // This has be to done after m_crse_cor_br is defined.
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_bndry_cor[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                              1, m_geom[amrlev][0]));
+        // this will make it Dirichlet
+        BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
+                      AMREX_D_DECL(Outflow,Outflow,Outflow)};
+        
+        MultiFab bc_data(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
+        bc_data.setVal(0.0);
+        m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, 1,
+                                            m_amr_ref_ratio[amrlev-1], phys_bc);
+    }
 }
 
 MLLinOp::~MLLinOp ()
@@ -168,19 +213,9 @@ MLLinOp::setDirichletBC (int amrlev, const MultiFab& bc_data, const MultiFab* cr
     }
     else
     {
-        const int ncomp = 1;
-        const int in_rad = 0;
-        const int out_rad = 1;
-        const int extent_rad = 2;
-        const int crse_ratio = m_amr_ref_ratio[amrlev-1];
-
-        // we could save this. - wqz
-        BoxArray cba = m_grids[amrlev][0];
-        cba.coarsen(crse_ratio);
-        BndryRegister crse_br(cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
-        crse_br.copyFrom(*crse_bcdata, 0, 0, 0, ncomp);
-
-        m_bndry_sol[amrlev]->setBndryValues(crse_br, 0, bc_data, 0, 0, ncomp, crse_ratio, phys_bc);
+        m_crse_sol_br[amrlev]->copyFrom(*crse_bcdata, 0, 0, 0, 1);
+        m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0, bc_data, 0, 0, 1,
+                                            m_amr_ref_ratio[amrlev-1], phys_bc);
     }
 }
 
@@ -188,21 +223,16 @@ void
 MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata)
 {
     AMREX_ALWAYS_ASSERT(amrlev > 0);
-    {
-        const int ncomp = 1;
-        const int in_rad = 0;
-        const int out_rad = 1;
-        const int extent_rad = 2;
-        const int crse_ratio = m_amr_ref_ratio[amrlev-1];
+    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
+}
 
-        // we could save this. - wqz
-        BoxArray cba = m_grids[amrlev][0];
-        cba.coarsen(crse_ratio);
-        BndryRegister crse_br(cba, m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
-        crse_br.copyFrom(crse_bcdata, 0, 0, 0, ncomp);
-
-        m_bndry_sol[amrlev]->updateBndryValues(crse_br, 0, 0, ncomp, crse_ratio);
-    }
+void
+MLLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata)
+{
+    AMREX_ALWAYS_ASSERT(amrlev > 0);
+    m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_bndry_cor[amrlev]->updateBndryValues(*m_crse_cor_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
 }
 
 void
@@ -215,14 +245,24 @@ MLLinOp::residual (int amrlev, int mglev,
 }
 
 void
-MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode) const
+MLLinOp::correctionResidual (int amrlev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs) const
 {
-    applyBC(amrlev, mglev, in, bc_mode);
+    AMREX_ALWAYS_ASSERT(amrlev > 0);
+    const int mglev = 0;
+    apply(amrlev, mglev, resid, sol, BCMode::Inhomogeneous, m_bndry_cor[amrlev].get());
+    MultiFab::Xpay(resid, -1.0, rhs, 0, 0, resid.nComp(), 0);
+}
+
+void
+MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                const MacBndry* bndry) const
+{
+    applyBC(amrlev, mglev, in, bc_mode, bndry);
     Fapply(amrlev, mglev, out, in);
 }
 
 void
-MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const
+MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, const MacBndry* bndry) const
 {
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
@@ -232,12 +272,12 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode) const
 
     int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
 
-    int flagden = 0;
+    int flagden = 1;  // Fill in undrrelxr
 
     const int num_comp = 1;
     const Real* h = m_geom[amrlev][mglev].CellSize();
 
-    const MacBndry& macbndry = *m_bndry_sol[amrlev];
+    const MacBndry& macbndry = (bndry == nullptr) ? *m_bndry_sol[amrlev] : *bndry;
     BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals = m_maskvals[amrlev][mglev];
 
