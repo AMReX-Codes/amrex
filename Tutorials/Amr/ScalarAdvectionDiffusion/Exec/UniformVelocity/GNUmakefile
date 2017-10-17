@@ -1,22 +1,23 @@
-AMREX_HOME ?= ../../../..
+AMREX_HOME ?= ../../../../..
 USE_EB = FALSE
 PRECISION  = DOUBLE
 PROFILE    = FALSE
 
-DEBUG      = TRUE
 DEBUG      = FALSE
+DEBUG      = TRUE
 
+
+DIM       = 3
 DIM        = 2
-#DIM       = 3
-
 COMP	   = gnu
 
-USE_PARTICLES = TRUE
+#USE_PARTICLES = TRUE
 
 USE_MPI    = TRUE
+USE_MPI    = FALSE
 USE_OMP    = FALSE
 
 Bpack   := ./Make.package 
 Blocs   := . 
 
-include ../Make.Adv
+include ../Make.Adv.Diff

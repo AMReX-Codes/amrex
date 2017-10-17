@@ -1,17 +1,21 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
 max_step = 1000000
-stop_time = 7.0
+stop_time = 2.0
 
 # PROBLEM SIZE & GEOMETRY
 geometry.is_periodic =  1  1  1
 geometry.coord_sys   =  0       # 0 => cart
-geometry.prob_lo     = -1.0 -1.0 -1.0 
+geometry.prob_lo     =  0.0  0.0  0.0 
 geometry.prob_hi     =  1.0  1.0  1.0
 amr.n_cell           =  64   64   64
 
 # TIME STEP CONTROL
-adv.cfl            = 0.9     # cfl number for hyperbolic system
-
+adv.diffusion_coeff = 0.00  # diffusion coefficient
+adv.cfl            = 0.1     # cfl number for hyperbolic system
+                             # In this test problem, the velocity is
+			     # time-dependent.  We could use 0.9 in
+			     # the 3D test, but need to use 0.7 in 2D
+			     # to satisfy CFL condition.
 # VERBOSITY
 adv.v              = 1       # verbosity in Adv
 amr.v              = 1       # verbosity in Amr
@@ -32,7 +36,7 @@ amr.check_int               = 10    # number of timesteps between checkpoints
 # PLOTFILES
 amr.plot_files_output = 1      # 0 will disable plot files
 amr.plot_file         = plt    # root name of plot file
-amr.plot_int          = 10     # number of timesteps between plot files
+amr.plot_int          = 100    # number of timesteps between plot files
 
 # PROBIN FILENAME
 amr.probin_file = probin
