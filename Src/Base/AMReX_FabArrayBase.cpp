@@ -1461,13 +1461,16 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
             //  This must be consistent with ParticleContainer::getTileIndex function!!!
             //
 	    
-	    IntVect nt_in_fab, tsize, nleft;
+            constexpr int chunk_size = 2; // so that tiles are coarsenable (if tilesize is coarsenable)
+	    IntVect nt_in_fab, tsize, nleft, nlftchk, nlftlft;
 	    int ntiles = 1;
 	    for (int d=0; d<BL_SPACEDIM; d++) {
 		int ncells = bx.length(d);
 		nt_in_fab[d] = std::max(ncells/tileSize[d], 1);
 		tsize    [d] = ncells/nt_in_fab[d];
-		nleft    [d] = ncells - nt_in_fab[d]*tsize[d];
+                nleft    [d] = ncells - nt_in_fab[d]*tsize[d];
+                nlftchk  [d] = nleft[d] / chunk_size;
+                nlftlft  [d] = nleft[d] - chunk_size*nlftchk[d];
 		ntiles *= nt_in_fab[d];
 	    }
 	    
@@ -1489,10 +1492,20 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 		}
 		
 		for (int d=0; d<BL_SPACEDIM; d++) {
-		    if (ijk[d] < nleft[d]) {
-			small[d] = ijk[d]*(tsize[d]+1);
-			big[d] = small[d] + tsize[d];
-		    } else {
+		    if (ijk[d] < nlftchk[d])
+                    {
+                        const int actual_tile_size = tsize[d] + chunk_size;
+			small[d] = ijk[d]*actual_tile_size;
+			big[d] = small[d] + actual_tile_size-1;
+                    }
+                    else if (ijk[d] == nlftchk[d])
+                    {
+                        const int actual_tile_size = tsize[d] + nlftlft[d];
+			small[d] = ijk[d]*tsize[d] + nleft[d] - nlftlft[d];
+			big[d] = small[d] + actual_tile_size - 1;
+		    }
+                    else
+                    {
 			small[d] = ijk[d]*tsize[d] + nleft[d];
 			big[d] = small[d] + tsize[d] - 1;
 		    }
