@@ -82,11 +82,7 @@ private:
 
     Vector<iMultiFab> fine_mask;
 
-    Real res_target;
-    Real max_norm;
-    std::string norm_name;
-
-    bool oneIter (int iter);
+    void oneIter (int iter);
 
     void miniCycle (int alev);
     void mgCycle ();

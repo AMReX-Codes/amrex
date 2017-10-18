@@ -69,12 +69,14 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     Real rhsnorm0 = MLRhsNormInf(local); 
     ParallelDescriptor::ReduceRealMax({resnorm0, rhsnorm0}, rhs[0].color());
 
-    if (verbose > 0)
+    if (verbose >= 1)
     {
         amrex::Print() << "MLMG: Initial rhs               = " << rhsnorm0 << "\n"
                        << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
     }
 
+    Real max_norm;
+    std::string norm_name;
     if (always_use_bnorm or rhsnorm0 >= resnorm0) {
         norm_name = "bnorm";
         max_norm = rhsnorm0;
@@ -82,11 +84,11 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         norm_name = "resid0";
         max_norm = resnorm0;
     }
-    res_target = std::max(a_tol_abs, a_tol_real*max_norm);
+    const Real res_target = std::max(a_tol_abs, a_tol_real*max_norm);
 
     if (resnorm0 <= res_target)
     {
-        if (verbose > 0) {
+        if (verbose >= 1) {
             amrex::Print() << "MLMG: No iterations needed\n";
         }
     }
@@ -94,15 +96,58 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     {
         for (int iter = 0; iter < max_iters; ++iter)
         {
-            bool converged = oneIter(iter);
-            if (converged) {
+            oneIter(iter);
+
+            bool converged = false;
+            Real composite_norminf;
+
+            // Test convergence on the fine amr level
+            computeResidual(finest_amr_lev);
+            Real fine_norminf = res[finest_amr_lev][0].norm0();
+            composite_norminf = fine_norminf;
+            if (verbose >= 2) {
+                amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1 << " Fine resid/"
+                               << norm_name << " = " << fine_norminf/max_norm << "\n";
+            }
+            bool fine_converged = (fine_norminf <= res_target);
+
+            if (namrlevs == 1 and fine_converged)
+            {
+                converged = true;
+            }
+            else if (fine_converged)
+            {
+                // finest level is converged, but we still need to test the coarse levels
+                computeMLResidual(finest_amr_lev-1);
+                Real crse_norminf = MLResNormInf(finest_amr_lev-1);
+                if (verbose >= 2) {
+                    amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1
+                                   << " Crse resid/" << norm_name << " = "
+                                   << crse_norminf/max_norm << "\n";
+                }
+                converged = (crse_norminf <= res_target);
+                composite_norminf = std::max(fine_norminf, crse_norminf);
+            }
+            else
+            {
+                converged = false;
+            }
+
+            if (converged)
+            {
+                if (verbose >= 1) {
+                    amrex::Print() << "MLMG: Final Iter. " << iter+1
+                                   << " composite resid/" << norm_name << " = "
+                                   << composite_norminf/max_norm << "\n";
+                }
+
                 break;
             }
         }
     }
 }
 
-bool
+void
 MLMG::oneIter (int iter)
 {
     for (int alev = finest_amr_lev; alev > 0; --alev)
@@ -153,39 +198,6 @@ MLMG::oneIter (int iter)
     {
         amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
     }
-
-    computeResidual(finest_amr_lev);
-
-    Real fine_norminf = res[fine_norminf][0].norm0();
-    if (verbose > 0) {
-        amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1 << " Fine resid/"
-                       << norm_name << " = " << fine_norminf/max_norm << "\n";
-    }
-
-    bool fine_converged = fine_norminf <= res_target;
-    if (finest_amr_lev == 0 and fine_converged)
-    {
-        return true;
-    }
-    else if (fine_converged) // finest level is converged, but we still need to test the coarse levels
-    {
-        computeMLResidual(finest_amr_lev-1);
-        Real crse_norminf = MLResNormInf(finest_amr_lev-1);
-        if (verbose > 0) {
-            amrex::Print() << "MLMG: Iteration " << std::setw(3) << iter+1
-                           << " Crse resid/" << norm_name << " = " << crse_norminf/max_norm << "\n";
-        }
-        if (crse_norminf <= res_target)
-        {
-            if (verbose > 0) {
-                amrex::Print() << "MLMG: Final Iter. " << iter+1
-                               << " composite resid/" << norm_name << " = "
-                               << std::max(crse_norminf,fine_norminf)/max_norm << "\n";
-            }
-            return true;
-        }
-    }
-    return false;
 }
 
 void
