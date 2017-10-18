@@ -95,14 +95,14 @@ set (AMREX_PGI_CXXFLAGS_REQUIRED "")#-ftemplate-depth-64 -Wno-deprecated")
 set (AMREX_PGI_CXXFLAGS_FPE "")
 
 # Cray compiler specific flags
-set (AMREX_Cray_FFLAGS_DEBUG "-O0 -e -i")
-set (AMREX_Cray_FFLAGS_RELEASE "-02")
-set (AMREX_Cray_FFLAGS_REQUIRED "-extend")
+set (AMREX_Cray_FFLAGS_DEBUG "-g -O0 -e i")
+set (AMREX_Cray_FFLAGS_RELEASE "-O2")
+set (AMREX_Cray_FFLAGS_REQUIRED "-N 255 -h list=a")
 set (AMREX_Cray_FFLAGS_FPE "")
 
-set (AMREX_Cray_CXXFLAGS_DEBUG "-O0")
-set (AMREX_Cray_CXXFLAGS_RELEASE "-02")
-set (AMREX_Cray_CXXFLAGS_REQUIRED "")#-ftemplate-depth-64 -Wno-deprecated")
+set (AMREX_Cray_CXXFLAGS_DEBUG "-g -O0")
+set (AMREX_Cray_CXXFLAGS_RELEASE "-O2")
+set (AMREX_Cray_CXXFLAGS_REQUIRED "-h std=c++11 -h list=a")#-ftemplate-depth-64 -Wno-deprecated")
 set (AMREX_Cray_CXXFLAGS_FPE "")
 
 
