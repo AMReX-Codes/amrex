@@ -299,6 +299,16 @@ contains
        call bl_error("Too many CUDA threads per block requested compared to device limit.")
     end if
 
+    ! Blocks or threads should be at least one in every dimension.
+
+    if (min(numThreads % x, numThreads % y, numThreads % z) < 1) then
+       call bl_error("Number of CUDA threads per block must be positive.")
+    end if
+
+    if (min(numBlocks % x, numBlocks % y, numBlocks % z) < 1) then
+       call bl_error("Number of CUDA threadblocks must be positive.")
+    end if
+
   end subroutine threads_and_blocks
 
 
