@@ -21,45 +21,9 @@ void
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_real, Real a_tol_abs)
 {
-    AMREX_ASSERT(a_sol[0]->nGrow() > 0);
-    AMREX_ASSERT(namrlevs <= a_sol.size());
-    AMREX_ASSERT(namrlevs <= a_rhs.size());
+    Real solve_start_time = ParallelDescriptor::second();
 
-    linop.prepareForSolve();
-
-    sol = a_sol;
-
-    rhs.resize(namrlevs);
-    for (int alev = 0; alev < namrlevs; ++alev)
-    {
-        rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), 1, 0);
-        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, 1, 0);        
-    }
-
-    const auto& amrrr = linop.AMRRefRatio();
-    for (int falev = finest_amr_lev; falev > 0; --falev)
-    {
-        amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
-        amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
-    }
-
-    const int nc = 1;
-    int ng = 0;
-    linop.make(res, nc, ng);
-    linop.make(rescor, nc, ng);
-    ng = 1;
-    linop.make(cor, nc, ng);
-
-    cor_hold.resize(namrlevs-1);
-    for (int alev = 1; alev < finest_amr_lev; ++alev)
-    {
-        cor_hold[alev].define(cor[alev][0].boxArray(),
-                              cor[alev][0].DistributionMap(),
-                              cor[alev][0].nComp(),
-                              0);
-    }
-
-    buildFineMask();
+    prepareForSolve(a_sol, a_rhs);
 
     bool bndryregister_updated = true;  // We did that when setBC.
     computeMLResidual(finest_amr_lev, bndryregister_updated);
@@ -94,6 +58,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
     else
     {
+        Real iter_start_time = ParallelDescriptor::second();
         for (int iter = 0; iter < max_iters; ++iter)
         {
             oneIter(iter);
@@ -144,6 +109,15 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                 break;
             }
         }
+        timer[iter_time] = ParallelDescriptor::second() - iter_start_time;
+    }
+
+    timer[solve_time] = ParallelDescriptor::second() - solve_start_time;
+    if (verbose >= 1) {
+        ParallelDescriptor::ReduceRealMax(timer.data(), timer.size());
+        amrex::Print() << "MLMG: Timers: Solve = " << timer[solve_time]
+                       << " Iter = " << timer[iter_time]
+                       << " Bottom = " << timer[bottom_time] << "\n";
     }
 }
 
@@ -403,6 +377,8 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
 void
 MLMG::bottomSolve ()
 {
+    Real bottom_start_time = ParallelDescriptor::second();
+
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
     MultiFab& x = cor[amrlev][mglev];
@@ -439,6 +415,7 @@ MLMG::bottomSolve ()
             linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
         }
     }
+    timer[bottom_time] += ParallelDescriptor::second() - bottom_start_time;
 }
 
 Real
@@ -510,6 +487,52 @@ MLMG::buildFineMask ()
             }
         }
     }
+}
+
+void
+MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs)
+{
+    AMREX_ASSERT(a_sol[0]->nGrow() > 0);
+    AMREX_ASSERT(namrlevs <= a_sol.size());
+    AMREX_ASSERT(namrlevs <= a_rhs.size());
+
+    timer.assign(ntimers, 0.0);
+
+    linop.prepareForSolve();
+    
+    sol = a_sol;
+    
+    rhs.resize(namrlevs);
+    for (int alev = 0; alev < namrlevs; ++alev)
+    {
+        rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), 1, 0);
+        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, 1, 0);        
+    }
+
+    const auto& amrrr = linop.AMRRefRatio();
+    for (int falev = finest_amr_lev; falev > 0; --falev)
+    {
+        amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
+        amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
+    }
+
+    const int nc = 1;
+    int ng = 0;
+    linop.make(res, nc, ng);
+    linop.make(rescor, nc, ng);
+    ng = 1;
+    linop.make(cor, nc, ng);
+
+    cor_hold.resize(namrlevs-1);
+    for (int alev = 1; alev < finest_amr_lev; ++alev)
+    {
+        cor_hold[alev].define(cor[alev][0].boxArray(),
+                              cor[alev][0].DistributionMap(),
+                              cor[alev][0].nComp(),
+                              0);
+    }
+
+    buildFineMask();
 }
 
 }
