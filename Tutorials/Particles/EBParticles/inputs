@@ -1,0 +1,9 @@
+size = 64
+max_grid_size = 64
+max_step = 1000
+write_particles = 1
+dt = 0.0005
+do_nl = 1
+
+particles.do_tiling = 1
+
