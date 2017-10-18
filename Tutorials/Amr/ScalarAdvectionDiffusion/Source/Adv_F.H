@@ -58,6 +58,21 @@ extern "C"
                            const amrex_real* dx, const amrex_real& dt,
                            const amrex_real& nu);
 
+
+  void advectDiffMOL4thOrd(const amrex_real& time, const int* lo, const int*hi,
+                           const BL_FORT_FAB_ARG_3D(statein),
+                           BL_FORT_FAB_ARG_3D(dphidtout),
+                           AMREX_D_DECL(const BL_FORT_FAB_ARG_3D(xvel),
+                                        const BL_FORT_FAB_ARG_3D(yvel),
+                                        const BL_FORT_FAB_ARG_3D(zvel)),
+                           AMREX_D_DECL(BL_FORT_FAB_ARG_3D(fx),
+                                        BL_FORT_FAB_ARG_3D(fy),
+                                        BL_FORT_FAB_ARG_3D(fz)),
+                           const amrex_real* dx, const amrex_real& dt,
+                           const amrex_real& nu);
+
+
+
 #ifdef __cplusplus
 }
 #endif
