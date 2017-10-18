@@ -26,6 +26,10 @@ extern "C"
 			  const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
 			  const amrex_real* val);
 
+    amrex_real fort_fab_norminfmask (const int* lo, const int* hi,
+                                     const int* msk, const int* mlo, const int* mhi,
+                                     const amrex_real* src, const int* slo, const int* shi, const int* ncomp);
+
     amrex_real fort_fab_norm (const int* lo, const int* hi,
 			const amrex_real* src, const int* slo, const int* shi, const int* ncomp,
 			const int* p);
