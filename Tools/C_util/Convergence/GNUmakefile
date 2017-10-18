@@ -28,6 +28,7 @@ USE_MPI       = FALSE
 #EBASE = PltFileNormB
 #EBASE = PltFileNorm
 #EBASE = PltFileScalConvRate
+EBASE  = RichardsonConvergenceTest
 
 CEXE_sources += $(EBASE).cpp
 
