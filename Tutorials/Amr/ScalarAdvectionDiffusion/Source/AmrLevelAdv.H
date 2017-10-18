@@ -98,6 +98,10 @@ namespace amrex
                                 amrex::Real dt,
                                 int  iteration,
                                 int  ncycle) ;
+    amrex::Real advanceMOLRK3  (Real time,
+                                Real dt,
+                                int  iteration,
+                                int  ncycle);
     //
     //Estimate time step.
     //
@@ -109,23 +113,23 @@ namespace amrex
     //
     //Compute initial `dt'.
     //
-    virtual void computeInitialDt (int                   finest_level,
-                                   int                   sub_cycle,
-                                   amrex::Vector<int>&           n_cycle,
+    virtual void computeInitialDt (int                                  finest_level,
+                                   int                                  sub_cycle,
+                                   amrex::Vector<int>&                  n_cycle,
                                    const amrex::Vector<amrex::IntVect>& ref_ratio,
                                    amrex::Vector<amrex::Real>&          dt_level,
-                                   amrex::Real                  stop_time) override;
+                                   amrex::Real                          stop_time) override;
     //
     //Compute new `dt'.
     //
-    virtual void computeNewDt (int                   finest_level,
-                               int                   sub_cycle,
-                               amrex::Vector<int>&           n_cycle,
+    virtual void computeNewDt (int                                  finest_level,
+                               int                                  sub_cycle,
+                               amrex::Vector<int>&                  n_cycle,
                                const amrex::Vector<amrex::IntVect>& ref_ratio,
                                amrex::Vector<amrex::Real>&          dt_min,
                                amrex::Vector<amrex::Real>&          dt_level,
-                               amrex::Real                  stop_time,
-                               int                   post_regrid_flag) override;
+                               amrex::Real                          stop_time,
+                               int                                  post_regrid_flag) override;
     //
     //Do work after timestep().
     //
@@ -159,8 +163,13 @@ namespace amrex
     compute_dPhiDt_godunov  (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
                              YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine, int iteration);
     amrex::Real
-    compute_dPhiDt_MOL2dOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
-                             YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine, int iteration);
+    compute_dPhiDt_MOL2ndOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
+                              YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine, int iteration);
+
+
+    amrex::Real
+    compute_dPhiDt_MOL4thOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
+                              YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine, int iteration);
 
   protected:
 

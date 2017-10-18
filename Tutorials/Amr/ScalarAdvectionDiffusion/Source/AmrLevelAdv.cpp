@@ -247,7 +247,7 @@ namespace amrex
 
     MultiFab& S_new = get_new_data(Phi_Type);
     MultiFab& S_old = get_old_data(Phi_Type);
-    MultiFab dDphiDt(grids,dmap,NUM_STATE,0);
+    MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
   
     YAFluxRegister* fr_as_crse = nullptr;
@@ -269,19 +269,19 @@ namespace amrex
 
     // RK2 stage 1
     FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
-    compute_dPhiDt_MOL2dOrd(Sborder, dDphiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_MOL2ndOrd(Sborder, dPhiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
 
     // U^* = U^n + dt*dUdt^n
-    MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
+    MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
     /**/
     // RK2 stage 2
     // After fillpatch Sborder = U^n+dt*dUdt^n
     FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
-    compute_dPhiDt_MOL2dOrd(Sborder, dDphiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_MOL2ndOrd(Sborder, dPhiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
     // S_new = 0.5*(Sborder+S_old) = U^n + 0.5*dt*dUdt^n
     MultiFab::LinComb(S_new, 0.5, Sborder, 0, 0.5, S_old, 0, 0, NUM_STATE, 0);
-    // S_new += 0.5*dt*dDphiDt
-    MultiFab::Saxpy(S_new, 0.5*dt, dDphiDt, 0, 0, NUM_STATE, 0);
+    // S_new += 0.5*dt*dPhiDt
+    MultiFab::Saxpy(S_new, 0.5*dt, dPhiDt, 0, 0, NUM_STATE, 0);
     // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
     
     /**/ 
@@ -303,8 +303,10 @@ namespace amrex
 
     MultiFab& S_new = get_new_data(Phi_Type);
     MultiFab& S_old = get_old_data(Phi_Type);
-    MultiFab dDphiDt(grids,dmap,NUM_STATE,0);
+    MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
+    MultiFab u1(grids,dmap,NUM_STATE,0);
+    MultiFab u2(grids,dmap,NUM_STATE,0);
   
     YAFluxRegister* fr_as_crse = nullptr;
     if (do_reflux && level < parent->finestLevel()) 
@@ -323,23 +325,48 @@ namespace amrex
       fr_as_crse->reset();
     }
 
-    // RK2 stage 1
+    // RK3 stage 1
     FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
-    compute_dPhiDt_MOL2dOrd(Sborder, dDphiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
+    //the dt/6 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
-    // U^* = U^n + dt*dUdt^n
-    MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
-    /**/
-    // RK2 stage 2
-    // After fillpatch Sborder = U^n+dt*dUdt^n
-    FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
-    compute_dPhiDt_MOL2dOrd(Sborder, dDphiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
-    // S_new = 0.5*(Sborder+S_old) = U^n + 0.5*dt*dUdt^n
-    MultiFab::LinComb(S_new, 0.5, Sborder, 0, 0.5, S_old, 0, 0, NUM_STATE, 0);
-    // S_new += 0.5*dt*dDphiDt
-    MultiFab::Saxpy(S_new, 0.5*dt, dDphiDt, 0, 0, NUM_STATE, 0);
-    // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
+    // U^1 = U^n + dt*dPhiDt^n
+    MultiFab::LinComb(u1, 1.0, S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    ///fillpatch works with uold and unew
+    ///so need to put this into S_new
+    ///need to also save u1 
+    S_new.copy(u1);
     
+    /**/
+    // RK3 stage 2
+    // After fillpatch Sborder = U^n+dt*dUdt^n = u1 (including ghost)
+    FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
+    //the dt/6 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+
+    //           u2 = 3/4 U^n + 1/4 U^1 + 1/4 dPhiDt^1
+    //this makes u2 = 3/4 u^n + 1/4 u^1
+    MultiFab::LinComb(u2, 0.75, S_old, 0, 0.25, u1, 0, 0, NUM_STATE, 0);
+    //this makes u2 = 3/4 u^n + 1/4 u^1 + 1/4*dt*dPhiDt^1
+    MultiFab::Saxpy(u2, 0.25*dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    ///fillpatch works with uold and unew
+    ///so need to put this into S_new so u2 is the thing in the ghost cells
+    S_new.copy(u2);
+
+    // After fillpatch Sborder = u2.   I am not so sure about what dt to use here.  
+    //I am using time+dt so that, away from coarse-fine boundaries, no interpolation is done.
+    FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
+    //the 2*dt/3 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
+
+    // RK3 stage 3
+    //           S_new = 1/3 u^n + 2/3 u^2 + 2/3 dtL(u^2)
+
+    //this makes S_new = 1/3 u^n + 2/3 u^2
+    MultiFab::LinComb(S_new, 1./3., S_old, 0, 2./3., u2, 0, 0, NUM_STATE, 0);
+    //this makes S_new = 1/3 u^n + 2/3  u^2 + 2/3 dtL(u^2)
+    MultiFab::Saxpy(S_new, 2.*dt/3., dPhiDt, 0, 0, NUM_STATE, 0);
+
     /**/ 
     return dt;
   }
@@ -360,7 +387,7 @@ namespace amrex
 
     MultiFab& S_new = get_new_data(Phi_Type);
 
-    MultiFab dDphiDt(grids,dmap,NUM_STATE,0);
+    MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
   
     YAFluxRegister* fr_as_crse = nullptr;
@@ -386,9 +413,9 @@ namespace amrex
     // overly complicated godunov
     FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
     //dt needs to be there because it weights the fluxes
-    compute_dPhiDt_godunov(Sborder, dDphiDt, time, dt, fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_godunov(Sborder, dPhiDt, time, dt, fr_as_crse, fr_as_fine, iteration);
     // U^n+1 = U^n + dt*dUdt^n
-    MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
+    MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
     return dt;
   }
 //
@@ -404,9 +431,6 @@ namespace amrex
 
     const Real* dx = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
-
-    MultiFab fluxes[BL_SPACEDIM];
-
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -484,16 +508,96 @@ namespace amrex
 // needs the fluxes to be multiplied by dt*area
   Real
   AmrLevelAdv::
-  compute_dPhiDt_MOL2dOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
-                           YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine,
-                           int iteration)
+  compute_dPhiDt_MOL4thOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
+                            YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine,
+                            int iteration)
   {
 
     const Real* dx = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
 
-    MultiFab fluxes[BL_SPACEDIM];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+      FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
 
+      for (MFIter mfi(Sborder, true); mfi.isValid(); ++mfi)
+      {
+        const Box& bx = mfi.tilebox();
+
+        const FArrayBox& statein = Sborder[mfi];
+        FArrayBox& dphidtout     =  dPhiDt[mfi];
+
+        // Allocate fabs for fluxes and Godunov velocities.
+        for (int i = 0; i < BL_SPACEDIM ; i++) 
+        {
+          const Box& bxtmp = amrex::surroundingNodes(bx,i);
+          flux[i].resize(bxtmp,NUM_STATE);
+          uface[i].resize(amrex::grow(bxtmp, iteration), 1);
+        }
+
+        const Real prev_time = state[Phi_Type].prevTime();
+        const Real cur_time = state[Phi_Type].curTime();
+        const Real ctr_time = 0.5*(prev_time + cur_time);
+
+        get_face_velocity(level, ctr_time,
+                          AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
+                                       BL_TO_FORTRAN(uface[1]),
+                                       BL_TO_FORTRAN(uface[2])),
+                          dx, prob_lo);
+
+        advectDiffMOL2ndOrd(time, bx.loVect(), bx.hiVect(),
+                            BL_TO_FORTRAN_3D(statein), 
+                            BL_TO_FORTRAN_3D(dphidtout),
+                            AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
+                                         BL_TO_FORTRAN_3D(uface[1]),
+                                         BL_TO_FORTRAN_3D(uface[2])),
+                            AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
+                                         BL_TO_FORTRAN_3D(flux[1]), 
+                                         BL_TO_FORTRAN_3D(flux[2])), 
+                            dx, dt, diffco);
+
+        if(do_reflux)
+        {
+          std::array<const FArrayBox*,AMREX_SPACEDIM> fluxPtrs;
+          for(int idir = 0; idir < SpaceDim; idir++)
+          {
+            fluxPtrs[idir] = &flux[idir];
+          }
+          if (fr_as_crse) 
+          {
+          
+            fr_as_crse->CrseAdd(mfi,fluxPtrs,dx,dt);
+          }
+
+          if (fr_as_fine) 
+          {
+            fr_as_fine->FineAdd(mfi,fluxPtrs,dx,dt);
+          }
+        }
+      }
+    }
+
+
+    return dt;
+  }
+
+
+
+//
+//Advance grids at this level in time.
+// computes dphi/dt = -div(F).   Needs dt to be sent in because YAFluxRegister
+// needs the fluxes to be multiplied by dt*area
+  Real
+  AmrLevelAdv::
+  compute_dPhiDt_MOL2ndOrd (const MultiFab& Sborder, MultiFab& dPhiDt, Real time, Real dt,
+                            YAFluxRegister* fr_as_crse, YAFluxRegister* fr_as_fine,
+                            int iteration)
+  {
+
+    const Real* dx = geom.CellSize();
+    const Real* prob_lo = geom.ProbLo();
 
 #ifdef _OPENMP
 #pragma omp parallel
