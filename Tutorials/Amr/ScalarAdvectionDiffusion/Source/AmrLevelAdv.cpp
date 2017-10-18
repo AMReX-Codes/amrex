@@ -287,6 +287,62 @@ namespace amrex
     /**/ 
     return dt;
   }
+
+  Real
+  AmrLevelAdv::
+  advanceMOLRK3 (Real time,
+                 Real dt,
+                 int  iteration,
+                 int  ncycle)
+  {
+    for (int i = 0; i < NUM_STATE_TYPE; ++i) 
+    {
+      state[i].allocOldData();
+      state[i].swapTimeLevels(dt);
+    }
+
+    MultiFab& S_new = get_new_data(Phi_Type);
+    MultiFab& S_old = get_old_data(Phi_Type);
+    MultiFab dDphiDt(grids,dmap,NUM_STATE,0);
+    MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
+  
+    YAFluxRegister* fr_as_crse = nullptr;
+    if (do_reflux && level < parent->finestLevel()) 
+    {
+      fr_as_crse = &getFluxReg(level+1);
+    }
+
+    YAFluxRegister* fr_as_fine = nullptr;
+    if (do_reflux && level > 0) 
+    {
+      fr_as_fine = &getFluxReg(level);
+    }
+
+    if (fr_as_crse) 
+    {
+      fr_as_crse->reset();
+    }
+
+    // RK2 stage 1
+    FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
+    compute_dPhiDt_MOL2dOrd(Sborder, dDphiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
+
+    // U^* = U^n + dt*dUdt^n
+    MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dDphiDt, 0, 0, NUM_STATE, 0);
+    /**/
+    // RK2 stage 2
+    // After fillpatch Sborder = U^n+dt*dUdt^n
+    FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
+    compute_dPhiDt_MOL2dOrd(Sborder, dDphiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
+    // S_new = 0.5*(Sborder+S_old) = U^n + 0.5*dt*dUdt^n
+    MultiFab::LinComb(S_new, 0.5, Sborder, 0, 0.5, S_old, 0, 0, NUM_STATE, 0);
+    // S_new += 0.5*dt*dDphiDt
+    MultiFab::Saxpy(S_new, 0.5*dt, dDphiDt, 0, 0, NUM_STATE, 0);
+    // We now have S_new = U^{n+1} = (U^n+0.5*dt*dUdt^n) + 0.5*dt*dUdt^*
+    
+    /**/ 
+    return dt;
+  }
   Real
   AmrLevelAdv::
   advanceGodunov (Real time,
