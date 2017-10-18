@@ -528,7 +528,7 @@ StateData::FillBoundary (FArrayBox&     dest,
             int ng[3] = {0, 0, 0};
 
             for (int n = 0; n < BL_SPACEDIM; ++n)
-                ng[n] = std::max(left[n], rght[n]);
+                ng[n] = std::max(0, std::max(left[n], rght[n]));
 
             const IntVect size = dest_box.size();
             IntVect numThreadsMin(ng[0] + 1, ng[1] + 1, ng[2] + 1);
@@ -538,6 +538,9 @@ StateData::FillBoundary (FArrayBox&     dest,
                     ++numThreadsMin[n];
                 }
             }
+
+            if (std::min({numThreadsMin[0], numThreadsMin[1], numThreadsMin[2]}) < 1)
+                amrex::Error("Minimum number of CUDA threads must be positive.");
 
             Device::setNumThreadsMin(numThreadsMin[0], numThreadsMin[1], numThreadsMin[2]);
 #endif
