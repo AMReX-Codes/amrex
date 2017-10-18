@@ -23,7 +23,7 @@ using std::ios;
 #endif
 
 #define GARBAGE 666.e+40
-
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
@@ -110,7 +110,8 @@ main (int   argc,
     {
         const BoxArray& baI = amrDataI.boxArray(iLevel);
 
-        MultiFab dataI(baI, nComp, 0);
+        DistributionMapping dm(baI);
+        MultiFab dataI(baI, dm, nComp, 0);
 
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
 

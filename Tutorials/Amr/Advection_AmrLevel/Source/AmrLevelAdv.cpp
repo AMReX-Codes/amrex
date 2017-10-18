@@ -224,6 +224,11 @@ AmrLevelAdv::advance (Real time,
                       int  iteration,
                       int  ncycle)
 {
+    MultiFab& S_mm = get_new_data(Phi_Type);
+    Real maxval = S_mm.max(0);
+    Real minval = S_mm.min(0);
+
+    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
     for (int k = 0; k < NUM_STATE_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);

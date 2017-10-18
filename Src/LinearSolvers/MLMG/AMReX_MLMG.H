@@ -2,6 +2,7 @@
 #define AMREX_ML_MG_H_
 
 #include <AMReX_MLLinOp.H>
+#include <AMReX_iMultiFab.H>
 
 namespace amrex {
 
@@ -11,9 +12,9 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class Cycle : int { Vcycle = 0, Wcycle = 1, Fcycle = 2 };
+    enum class Cycle { Vcycle, Wcycle, Fcycle };
 
-    enum class BottomSolver : int { smoother = 0, bicgstab = 1, cg = 2, cabicgstab = 3 };
+    enum class BottomSolver : int { smoother, bicgstab, cg };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -34,6 +35,11 @@ public:
     void setCycle (Cycle c) { cycle_type = c; }
 
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
+    void setCGVerbose (int v) { cg_verbose = v; }
+    void setCGMaxIter (int n) { cg_maxiter = n; }
+    void setCGUnstableCriterion (Real x) { cg_unstable_criterion = x; }
+
+    void setAlwaysUseBNorm (int flag) { always_use_bnorm = flag; }
 
 private:
 
@@ -49,7 +55,12 @@ private:
     
     Cycle cycle_type = Cycle::Vcycle;
 
-    BottomSolver bottom_solver = BottomSolver::smoother;
+    BottomSolver bottom_solver = BottomSolver::bicgstab;
+    int  cg_verbose            = 0;
+    int  cg_maxiter            = 100;
+    Real cg_unstable_criterion = 10.0;
+
+    int always_use_bnorm = 0;
 
     MLLinOp& linop;
     int namrlevs;
@@ -69,7 +80,13 @@ private:
 
     Vector<MultiFab> cor_hold;
 
-    void oneIter (int iter);
+    Vector<iMultiFab> fine_mask;
+
+    Real res_target;
+    Real max_norm;
+    std::string norm_name;
+
+    bool oneIter (int iter);
 
     void miniCycle (int alev);
     void mgCycle ();
@@ -78,6 +95,7 @@ private:
 
     void bottomSolve ();
 
+    void computeMLResidual (int amrlevmax, bool bndryregister_updated = false);
     void computeResidual (int alev);
     void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
     void computeResWithCrseCorFineCor (int fine_amr_lev);
@@ -85,6 +103,11 @@ private:
     void interpCorrection (int alev, int mglev);
 
     void computeResOfCorrection (int amrlev, int mglev);
+
+    Real ResNormInf (int amrlev, bool local = false);
+    Real MLResNormInf (int alevmax, bool local = false);
+    Real MLRhsNormInf (bool local = false);
+    void buildFineMask ();
 };
 
 }

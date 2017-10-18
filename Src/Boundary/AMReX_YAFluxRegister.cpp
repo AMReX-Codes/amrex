@@ -214,10 +214,10 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     Vector<FArrayBox*>& fabs = m_cfp_fab[li];
     if (fabs.empty()) return;
 
-    BL_ASSERT(mfi.tilebox().cellCentered());
-    AMREX_ALWAYS_ASSERT(mfi.tilebox().coarsenable(m_ratio));
     const Box& bx = amrex::coarsen(mfi.tilebox(), m_ratio);
     const int nc = m_cfpatch.nComp();
+
+    AMREX_ALWAYS_ASSERT(bx.cellCentered());
 
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
     {
@@ -255,7 +255,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
 
 
 void
-YAFluxRegister::Reflux (MultiFab& state)
+YAFluxRegister::Reflux (MultiFab& state, int dc)
 {
     if (!m_cfp_mask.empty())
     {
@@ -272,7 +272,8 @@ YAFluxRegister::Reflux (MultiFab& state)
 
     m_crse_data.ParallelCopy(m_cfpatch, m_crse_geom.periodicity(), FabArrayBase::ADD);
 
-    MultiFab::Add(state, m_crse_data, 0, 0, m_ncomp, 0);
+    BL_ASSERT(state.nComp() >= dc + m_ncomp);
+    MultiFab::Add(state, m_crse_data, 0, dc, m_ncomp, 0);
 }
 
 }
