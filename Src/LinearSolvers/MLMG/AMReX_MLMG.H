@@ -2,6 +2,7 @@
 #define AMREX_ML_MG_H_
 
 #include <AMReX_MLLinOp.H>
+#include <AMReX_iMultiFab.H>
 
 namespace amrex {
 
@@ -38,6 +39,8 @@ public:
     void setCGMaxIter (int n) { cg_maxiter = n; }
     void setCGUnstableCriterion (Real x) { cg_unstable_criterion = x; }
 
+    void setAlwaysUseBNorm (int flag) { always_use_bnorm = flag; }
+
 private:
 
     int verbose = 1;
@@ -57,6 +60,8 @@ private:
     int  cg_maxiter            = 100;
     Real cg_unstable_criterion = 10.0;
 
+    int always_use_bnorm = 0;
+
     MLLinOp& linop;
     int namrlevs;
     int finest_amr_lev;
@@ -75,7 +80,13 @@ private:
 
     Vector<MultiFab> cor_hold;
 
-    void oneIter (int iter);
+    Vector<iMultiFab> fine_mask;
+
+    Real res_target;
+    Real max_norm;
+    std::string norm_name;
+
+    bool oneIter (int iter);
 
     void miniCycle (int alev);
     void mgCycle ();
@@ -91,6 +102,12 @@ private:
     void interpCorrection (int alev, int mglev);
 
     void computeResOfCorrection (int amrlev, int mglev);
+
+    void computeMLResidual (int amrlevmax, bool bndryregister_updated = false);
+    Real ResNormInf (int amrlev, bool local = false);
+    Real MLResNormInf (int alevmax, bool local = false);
+    Real MLRhsNormInf (bool local = false);
+    void buildFineMask ();
 };
 
 }
