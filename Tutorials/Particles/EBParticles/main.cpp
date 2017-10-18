@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     ParmParse pp;
     
     int size, max_step, max_grid_size;
-    bool write_particles, do_nl;
+    bool write_particles;
     Real dx, dt;
 
     pp.get("size", size);
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     pp.get("max_grid_size", max_grid_size);
     pp.get("write_particles", write_particles);
     pp.get("dt", dt);
-    pp.get("do_nl", do_nl);
+    dx = 1.0;
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
@@ -38,7 +38,6 @@ int main(int argc, char* argv[])
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
     IntVect domain_hi(AMREX_D_DECL(size - 1, size - 1, size - 1));
     const Box domain(domain_lo, domain_hi);
-    dx = 1.0;
     
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -46,8 +45,7 @@ int main(int argc, char* argv[])
     Geometry geom(domain, &real_box, CoordSys::cartesian, is_per);
 
     BoxArray ba(domain);
-    ba.maxSize(max_grid_size);
-    
+    ba.maxSize(max_grid_size);    
     DistributionMapping dmap(ba);
 
     // set up our sphere
@@ -81,7 +79,6 @@ int main(int argc, char* argv[])
 
     MultiFab dummy(ba, dmap, 1, 0, MFInfo(), ebfactory);
 
-    int num_neighbor_cells = 1;
     EBParticleContainer myPC(geom, dmap, ba);
 
     myPC.InitParticles(radius, center);
