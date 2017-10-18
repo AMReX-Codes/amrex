@@ -72,6 +72,10 @@ bin_dir = cwd + 'Bin/'
 bin_name = 'perf_tests3d.' + args.compiler + '.' + module_name[args.architecture] + '.TPROF.MPI.OMP.ex'
 log_dir  = cwd
 
+day = time.strftime('%d')
+month = time.strftime('%m')
+year = time.strftime('%Y')
+
 # Initialize tests
 # ----------------
 if args.mode == 'run':
@@ -124,7 +128,7 @@ def run_interactive(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     shutil.copyfile(cwd  + run_name, res_dir + 'inputs')
     os.chdir(res_dir)
     if args.architecture == 'cpu':
-        cflag_value = int(32/n_mpi) * 2 # Follow NERSC directives
+        cflag_value = max(1, int(32/n_mpi) * 2) # Follow NERSC directives
         exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + ';' +\
                        'srun --cpu_bind=cores '     + \
                        ' -n ' + str(n_node*n_mpi) + \
@@ -132,7 +136,7 @@ def run_interactive(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
                        ' ./'  + bin_name + ' inputs > perf_output.txt'
     elif args.architecture == 'knl':
         # number of logical cores per MPI process
-        cflag_value = int(68/n_mpi) * 4 # Follow NERSC directives
+        cflag_value = max(1,int(68/n_mpi) * 4) # Follow NERSC directives
         exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + ';' +\
                        'srun --cpu_bind=cores '     + \
                        ' -n ' + str(n_node*n_mpi) + \
@@ -154,7 +158,7 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     batch_string = ''
     batch_string += '#!/bin/bash\n'
     batch_string += '#SBATCH --job-name=' + run_name + str(n_node) + str(n_mpi) + str(n_omp) + '\n'
-    batch_string += '#SBATCH --time=01:00:00\n'
+    batch_string += '#SBATCH --time=00:40:00\n'
     batch_string += '#SBATCH -C ' + module_Cname[args.architecture] + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH --partition=regular\n'
@@ -163,14 +167,14 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     batch_string += '#SBATCH --account=m2852\n'
     batch_string += 'export OMP_NUM_THREADS=' + str(n_omp) + '\n'
     if args.architecture == 'cpu':
-        cflag_value = int(32/n_mpi) * 2 # Follow NERSC directives
+        cflag_value = max(1, int(32/n_mpi) * 2) # Follow NERSC directives
         batch_string += 'srun --cpu_bind=cores '+ \
                     ' -n ' + str(n_node*n_mpi) + \
                     ' -c ' + str(cflag_value)   + \
                     ' ./'  + bin_name + ' inputs > perf_output.txt'
     elif args.architecture == 'knl':
         # number of logical cores per MPI process
-        cflag_value = (64/n_mpi) * 4 # Follow NERSC directives
+        cflag_value = max(1, int(64/n_mpi) * 4) # Follow NERSC directives
         batch_string += 'srun --cpu_bind=cores '     + \
                         ' -n ' + str(n_node*n_mpi) + \
                         ' -c ' + str(cflag_value)   + \
@@ -200,9 +204,6 @@ def read_run_perf(filename):
 
 # Write time into logfile
 def write_perf_logfile(log_file):
-    day = time.strftime('%d')
-    month = time.strftime('%m')
-    year = time.strftime('%Y')
     log_line = ' '.join([year, month, day, run_name, args.compiler,\
                          args.architecture, str(n_node), str(n_mpi),\
                          str(n_omp), str(time_initialization),\
@@ -232,6 +233,7 @@ def process_analysis():
     batch_string += '#SBATCH --time=00:05:00\n'
     batch_string += '#SBATCH -C ' + module_Cname[args.architecture] + '\n'
     batch_string += '#SBATCH -N 1\n'
+    batch_string += '#SBATCH -S 4\n'
     batch_string += '#SBATCH --partition=regular\n'
     batch_string += '#SBATCH --qos=normal\n'
     batch_string += '#SBATCH -e read_error.txt\n'
@@ -256,12 +258,14 @@ def process_analysis():
 # -------------------------------------------------
 
 # each element of test_list contains
-# [str runname, int n_node, int n_mpi, int n_omp]
+# [str runname, int n_node, int n_mpi PER NODE, int n_omp]
 test_list = []
+n_repeat = 3
 test_list.extend([['uniform_plasma', 1, 8, 16]]*3)
 test_list.extend([['uniform_plasma', 1, 4, 32]]*3)
 test_list.extend([['uniform_plasma', 2, 4, 32]]*3)
 n_tests   = len(test_list)
+
 if args.mode == 'run':
     # Remove file log_jobids_tmp.txt if exists.
     # This file contains the jobid of every perf test
@@ -276,7 +280,9 @@ if args.mode == 'run':
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
         n_steps  = get_nsteps(cwd + run_name)
-        res_dir = res_dir_base + 'perftest' + str(count) + '/'
+        res_dir = '_'.join([year, month, day, run_name, args.compiler,\
+                         args.architecture, str(n_node), str(n_mpi),\
+                         str(n_omp)]) + '/'
         # Run the simulation.
         # If you are currently in an interactive session and want to run interactive,
         # just replace run_batch with run_interactive
@@ -293,17 +299,20 @@ if args.mode == 'read':
         f_log.close()
     for count, current_run in enumerate(test_list):
         # Results folder
-        print('read ' + str(current_run))
-        run_name = current_run[0]
-        n_node   = current_run[1]
-        n_mpi    = current_run[2]
-        n_omp    = current_run[3]
-        n_steps  = get_nsteps(cwd  + run_name)
-        res_dir = res_dir_base + 'perftest' + str(count) + '/'
-        # Read performance data from the output file
-        time_initialization, time_one_iteration = read_run_perf(res_dir + 'perf_output.txt')
-        # Write performance data to the performance log file
-        write_perf_logfile(log_dir + log_file)
+        if count not in [22, 23, 24, 25, 6, 7]:
+            print('read ' + str(current_run))
+            run_name = current_run[0]
+            n_node   = current_run[1]
+            n_mpi    = current_run[2]
+            n_omp    = current_run[3]
+            n_steps  = get_nsteps(cwd  + run_name)
+            res_dir = '_'.join([year, month, day, run_name, args.compiler,\
+                                args.architecture, str(n_node), str(n_mpi),\
+                                str(n_omp)]) + '/'
+            # Read performance data from the output file
+            time_initialization, time_one_iteration = read_run_perf(res_dir + 'perf_output.txt')
+            # Write performance data to the performance log file
+            write_perf_logfile(log_dir + log_file)
     if args.commit == True:
         os.system('git add ' + log_dir + log_file + ';'\
                   'git commit -m "performance tests";'\
