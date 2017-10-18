@@ -17,6 +17,7 @@ using std::ios;
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_AmrData.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
@@ -25,7 +26,7 @@ using std::ios;
 #include <AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40
- 
+using namespace amrex; 
 static
 void
 PrintUsage (const char* progName)
@@ -140,7 +141,8 @@ main (int   argc,
 	if (ParallelDescriptor::IOProcessor())
 	  std::cout << "Ratio for level " << iLevel << " is " << refine_ratio << std::endl;
 
-	error[iLevel] = new MultiFab(crseBA, nComp, 0);
+        DistributionMapping dm(crseBA);
+	error[iLevel] = new MultiFab(crseBA, dm, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
 	for (int iComp=0; iComp<nComp; ++iComp)
@@ -148,7 +150,7 @@ main (int   argc,
             MultiFab& exact = amrDataF.GetGrids(exact_level,iComp);
             const BoxArray& exactBA = exact.boxArray();
             const BoxArray crseBA = ::BoxArray(exactBA).coarsen(refine_ratio);
-            MultiFab aveExact(crseBA,1,0,Fab_allocate);
+            MultiFab aveExact(crseBA,dm, 1,0);
 	    std::cout << crseBA;
             int nc = exact.nComp();
             for (MFIter amfi(aveExact); amfi.isValid(); ++amfi)
