@@ -246,6 +246,7 @@ contains
     type(dim3), intent(inout) :: numBlocks, numThreads
 
     integer :: tile_size(AMREX_SPACEDIM)
+    integer :: numThreadsTotal
 
     ! Our threading strategy will be to allocate thread blocks
     ! preferring the x direction first to guarantee coalesced accesses.
@@ -284,10 +285,18 @@ contains
 
     endif
 
-    ! Sanity check: should not exceed CUDA_MAX_THREADS.
+    ! Sanity checks
 
-    if (numThreads % x * numThreads % y * numThreads % z > CUDA_MAX_THREADS) then
-       call bl_error("Too many CUDA threads requested compared to CUDA_MAX_THREADS.")
+    numThreadsTotal = numThreads % x * numThreads % y * numThreads % z
+
+    ! Should not exceed CUDA_MAX_THREADS or maximum allowable threads per block.
+
+    if (numThreadsTotal > CUDA_MAX_THREADS) then
+       call bl_error("Too many CUDA threads per block requested compared to CUDA_MAX_THREADS.")
+    end if
+
+    if (numThreadsTotal > prop % maxThreadsPerBlock) then
+       call bl_error("Too many CUDA threads per block requested compared to device limit.")
     end if
 
   end subroutine threads_and_blocks
