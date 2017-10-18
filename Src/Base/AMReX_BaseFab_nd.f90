@@ -122,7 +122,9 @@ contains
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                nrm = max(nrm, abs(src(i,j,k,n)))
+                if (msk(i,j,k).eq.1) then
+                   nrm = max(nrm, abs(src(i,j,k,n)))
+                end if
              end do
           end do
        end do

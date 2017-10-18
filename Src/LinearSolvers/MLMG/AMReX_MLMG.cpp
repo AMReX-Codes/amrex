@@ -189,6 +189,21 @@ MLMG::oneIter (int iter)
 }
 
 void
+MLMG::computeMLResidual (int amrlevmax, bool bndryregister_updated)
+{
+    const int mglev = 0;
+    for (int alev = amrlevmax; alev >= 0; --alev) {
+        if (alev > 0 && !bndryregister_updated) {
+            linop.updateSolBC(alev, *sol[alev-1]);
+        }
+        linop.residual(alev, 0, res[alev][mglev], *sol[alev], rhs[alev], BCMode::Inhomogeneous);
+        if (alev < finest_amr_lev) {
+            linop.reflux(alev, res[alev][mglev], *sol[alev], *sol[alev+1]);
+        }
+    }
+}
+
+void
 MLMG::computeResidual (int alev)
 {
     MultiFab& x = *sol[alev];
@@ -414,18 +429,6 @@ MLMG::bottomSolve ()
     }
 }
 
-void
-MLMG::computeMLResidual (int amrlevmax, bool bndryregister_updated)
-{
-    const int mglev = 0;
-    for (int alev = 0; alev <= amrlevmax; ++alev) {
-        if (alev > 0 && !bndryregister_updated) {
-            linop.updateSolBC(alev, *sol[alev-1]);
-        }
-        linop.residual(alev, 0, res[alev][mglev], *sol[alev], rhs[alev], BCMode::Inhomogeneous);
-    }
-}
-
 Real
 MLMG::ResNormInf (int alev, bool local)
 {
@@ -471,12 +474,15 @@ MLMG::buildFineMask ()
     fine_mask.clear();
     fine_mask.resize(namrlevs-1);
     
+    const auto& amrrr = linop.AMRRefRatio();
     for (int alev = 0; alev < finest_amr_lev; ++alev)
     {
         fine_mask[alev].define(rhs[alev].boxArray(), rhs[alev].DistributionMap(), 1, 0);
         fine_mask[alev].setVal(1);
 
-        const BoxArray& baf = rhs[alev+1].boxArray();
+        BoxArray baf = rhs[alev+1].boxArray();
+        baf.coarsen(amrrr[alev]);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
