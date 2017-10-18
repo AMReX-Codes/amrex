@@ -82,6 +82,11 @@ private:
 
     Vector<iMultiFab> fine_mask;
 
+    enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
+    Vector<Real> timer;
+
+    void prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs);
+
     void oneIter (int iter);
 
     void miniCycle (int alev);
