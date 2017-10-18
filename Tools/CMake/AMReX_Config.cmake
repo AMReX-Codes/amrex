@@ -69,6 +69,16 @@ if (ENABLE_OMP)
    append ( OpenMP_Fortran_FLAGS AMREX_EXTRA_Fortran_FLAGS ) 
    append ( OpenMP_C_FLAGS AMREX_EXTRA_C_FLAGS )
    append ( OpenMP_CXX_FLAGS AMREX_EXTRA_CXX_FLAGS )
+else ()
+   if ( ${FC_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+      list ( APPEND AMREX_EXTRA_Fortran_FLAGS  "-h noomp")
+   endif ()
+   if ( ${CC_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+      list ( APPEND AMREX_EXTRA_C_FLAGS  "-h noomp")
+   endif ()
+   if ( ${CXX_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+      list ( APPEND AMREX_EXTRA_CXX_FLAGS  "-h noomp")
+   endif ()
 endif()
 
 
