@@ -5,7 +5,7 @@ AMReX is a publicly available software framework designed for
 building massively parallel block-structured adaptive mesh refinement
 (AMR) applications.
 
-Key features of  include:
+Key features of AMReX include:
 
 -   and Fortran interfaces
 
