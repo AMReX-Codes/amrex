@@ -11,6 +11,7 @@ Welcome to amrex's documentation!
    :caption: Contents:
 
    intro
+   Basics
 
 
 Indices and tables
