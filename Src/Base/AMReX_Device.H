@@ -33,6 +33,18 @@ inline void ActualCudaAPICheck(cudaError_t err) {
     }
 }
 
+#ifdef NVML
+#define NvmlAPICheck(error) ActualNvmlAPICheck(error)
+
+inline void ActualNvmlAPICheck(nvmlReturn_t err) {
+    if (err != NVML_SUCCESS) {
+        std::string errStr("NVML failure: ");
+        errStr.append(nvmlErrorString(err));
+        amrex::Abort(errStr);
+        }
+}
+#endif
+
 #endif
 
 extern "C" {
