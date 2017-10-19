@@ -141,7 +141,11 @@ MLMG::oneIter (int iter)
     {    
         // enforce solvability if appropriate
 
-        mgCycle ();
+        if (iter < nfcycles) {
+            mgFcycle ();
+        } else {
+            mgVcycle (0, 0);
+        }
 
         MultiFab::Add(*sol[0], cor[0][0], 0, 0, 1, 0);
     }
@@ -251,25 +255,6 @@ MLMG::miniCycle (int amrlev)
 }
 
 void
-MLMG::mgCycle ()
-{
-    const int amrlev = 0;
-    const int mglev = 0;
-    if (cycle_type == Cycle::Vcycle)
-    {
-        mgVcycle (amrlev, mglev);
-    }
-    else if (cycle_type == Cycle::Wcycle)
-    {
-        amrex::Abort("not implemented");
-    }
-    else if (cycle_type == Cycle::Fcycle)
-    {
-        amrex::Abort("not implemented");
-    }
-}
-
-void
 MLMG::mgVcycle (int amrlev, int mglev)
 {
     MultiFab& x = cor[amrlev][mglev];
@@ -283,7 +268,7 @@ MLMG::mgVcycle (int amrlev, int mglev)
     {
         if (amrlev == 0)
         {
-            bottomSolve ();
+            bottomSolve();
         }
         else
         {
@@ -300,8 +285,8 @@ MLMG::mgVcycle (int amrlev, int mglev)
         
         computeResOfCorrection(amrlev, mglev);
 
-        const int refratio = 2;
-        amrex::average_down(r, res[amrlev][mglev+1], 0, 1, refratio);
+        const int ratio = 2;
+        amrex::average_down(r, res[amrlev][mglev+1], 0, 1, ratio);
 
         for (int i = 0; i < nu0; ++i) {
             mgVcycle(amrlev, mglev+1);
@@ -313,6 +298,40 @@ MLMG::mgVcycle (int amrlev, int mglev)
             linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
         }
     }    
+}
+
+void
+MLMG::mgFcycle ()
+{
+    const int amrlev = 0;
+    const int ratio = 2;
+    const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
+
+    for (int mglev = 1; mglev <= mg_bottom_lev; ++mglev)
+    {
+        amrex::average_down(res[amrlev][mglev-1], res[amrlev][mglev], 0, 1, ratio);
+    }
+
+    cor[amrlev][mg_bottom_lev].setVal(0.0);
+    bottomSolve();
+
+    for (int mglev = mg_bottom_lev-1; mglev >= 0; --mglev)
+    {
+        cor[amrlev][mglev].setVal(0.0);  // interp next line performs add not assignment
+        interpCorrection(amrlev, mglev); // interp from mglev+1 to mglev
+
+        MultiFab tmp(cor[amrlev][mglev].boxArray(),
+                     cor[amrlev][mglev].DistributionMap(),
+                     1, 0);
+        MultiFab::Copy(tmp, cor[amrlev][mglev], 0, 0, 1, 0);
+
+        computeResOfCorrection(amrlev, mglev);
+        MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,1,0);
+
+        mgVcycle(amrlev, mglev);
+
+        MultiFab::Add(cor[amrlev][mglev], tmp, 0, 0, 1, 0);
+    }
 }
 
 void
