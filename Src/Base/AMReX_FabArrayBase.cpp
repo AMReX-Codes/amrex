@@ -98,7 +98,11 @@ FA_init::FA_init ()
         // staging data because that will have
         // better MPI performance than managed memory.
 
+#ifdef AMREX_USE_CUDA_AWARE_MPI
         the_FA_arena->SetDeviceMemory();
+#else
+        the_FA_arena->SetHostAlloc();
+#endif
 #endif
 
     }
