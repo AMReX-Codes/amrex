@@ -142,7 +142,7 @@ MLMG::oneIter (int iter)
     {    
         // enforce solvability if appropriate
 
-        if (iter < nfcycles) {
+        if (iter < max_fmg_iters) {
             mgFcycle ();
         } else {
             mgVcycle (0, 0);

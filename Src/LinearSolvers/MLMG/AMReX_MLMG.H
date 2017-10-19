@@ -22,6 +22,7 @@ public:
 
     void setVerbose (int v) { verbose = v; }
     void setMaxIter (int n) { max_iters = n; }
+    void setMaxFmgIter (int n) { max_fmg_iters = n; }
     void setFixedIter (int nit) { do_fixed_number_of_iters = nit; }
 
     void setPreSmooth (int n) { nu1 = n; }
@@ -29,8 +30,6 @@ public:
     void setCtrRelax (int n) { nu0 = n; }
     void setFinalSmooth (int n) { nuf = n; }
     void setBottomSmooth (int n) { nub = n; }
-
-    void setNFCycles (int n) { nfcycles = n; }
 
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
     void setCGVerbose (int v) { cg_verbose = v; }
@@ -51,7 +50,7 @@ private:
     int nuf = 8;   // when smoother is used as bottom solver
     int nub = 0;   // aditional smoothing after bottom cg solver
 
-    int nfcycles = 20;
+    int max_fmg_iters = 20;
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  cg_verbose            = 0;
