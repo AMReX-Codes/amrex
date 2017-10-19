@@ -1,3 +1,6 @@
+Basics
+===================
+
 In this chapter, we present the basics of . The implementation
 source codes are in amrex/Src/Base/. Note that  classes
 and functions are in namespace amrex. For clarity, we usually
@@ -9,7 +12,7 @@ parallel codes using . It should also be noted that this is not
 a comprehensive reference manual.
 
 HeatEquation\_EX1\_C Example
-============================
+----------------------------
 
 The source code tree for the heat equation example is simple, as shown
 in Figure [fig:Basics\_Heat\_flowchart]. We recommend you study
@@ -31,7 +34,7 @@ below in action.
    | Build the code here by editing the GNUmakefile and running make.
 
 Dimensionality
-==============
+----------------------------
 
 As we have mentioned in Chapter [Chap:BuildingAMReX], the
 dimensionality of  must be set at compile time. A macro, AMREX\_SPACEDIM, is defined to be the number of spatial
@@ -46,13 +49,13 @@ do
 The coordinate directions are zero based.
 
 Array
-=====
+----------------------------
 
 Array class in AMReX\_Array.H is derived from std::vector. The only difference between Array and std::vector is that Array::operator[] provides bound checking
 when compiled with DEBUG=TRUE.
 
 Real
-====
+----------------------------
 
  can be compiled to use either double precision (which is the
 default) or single precision. amrex::Real is typedef’d to
@@ -64,7 +67,7 @@ type is accessible in Fortran codes via
         use amrex_fort_module, only : amrex_real
 
 ParallelDescriptor
-==================
+----------------------------
 
  users do not need to use MPI directly. Parallel communication
 is often handled by the data abstraction classes (e.g., MultiFab; Section [sec:basics:multifab]). In addition, has provided namespace ParallelDescriptor in <AMReX\_ParallelDescriptor.H>. The frequently used functions are
@@ -92,7 +95,7 @@ is often handled by the data abstraction classes (e.g., MultiFab; Section [sec:
      ParallelDescriptor::ReduceRealSum(x);
 
 Print
-=====
+----------------------------
 
  provides classes in AMReX\_Print.H for printing messages
 to standard output or any  ostream. The main reason one
@@ -119,7 +122,7 @@ examples.
      ofs.close();
 
 ParmParse
-=========
+----------------------------
 
 ParmParse in AMReX\_ParmParse.H is a class providing a
 database for the storage and retrieval of command-line and input-file
@@ -190,7 +193,7 @@ with
 to change the value of ncells and hydro.cfl.
 
 Example of AMR Grids
-====================
+----------------------------
 
 In block-structured AMR, there is a hierarchy of logically rectangular
 grids. The computational domain on each AMR level is decomposed into
@@ -217,7 +220,7 @@ levels.
    0, 1, and 2, respectively.
 
 Box, IntVect and IndexType
-==========================
+----------------------------
 
 Box in AMReX\_Box.H is the data structure for representing
 a rectangular domain in indexing space. For example, in
@@ -476,7 +479,7 @@ like in the following examples.
       b0 &= b3;             // Runtime error because of type mismatch!
 
 RealBox and Geometry
-====================
+----------------------------
 
 A RealBox stores the physical location in floating-point numbers
 of the lower and upper corners of a rectangular domain.
@@ -549,7 +552,7 @@ domain and the indexing space domain. For example,
       if (Geometry::isAnyPeriodic()) {}      // Periodic in any direction?
 
 BoxArray
-========
+----------------------------
 
 BoxArray is a class in AMReX\_BoxArray.H for storing a
 collection of Boxes on a single AMR level. One can make a BoxArray out of a single Box and then chop it into multiple
@@ -654,7 +657,7 @@ to perform those intersections, functions amrex::intersect, BoxArray::intersects
 used.
 
 DistributionMapping
-===================
+----------------------------
 
 DistributionMapping is a class in AMReX\_DistributionMapping.H describes which process owns the data
 living on the domains specified by the Boxes in a BoxArray. Like BoxArray, there is an element for each Box in DistributionMapping, including the ones owned by other
@@ -691,7 +694,7 @@ passing an array of integers.
       dm.define(pmap);  // Build DistributionMapping given an array of process IDs.
 
 BaseFab, FArrayBox and IArrayBox
-================================
+----------------------------
 
  is a block-structured AMR framework. Although AMR introduces
 irregularity to the data and algorithms, there is regularity at the
@@ -854,7 +857,7 @@ alias contains a non-owning pointer. It should be emphasized that the
 alias will contain a dangling pointer after the original FArrayBox reaches its end of life.
 
 FabArray, MultiFab and iMultiFab
-================================
+----------------------------
 
 FabArray<FAB> is a class template in AMReX\_FabArray.H for
 a collection of FABs on the same AMR level associated with a
@@ -1070,7 +1073,7 @@ performed on all components if unspecified (assuming the two MultiFabs have the 
 which source is used is unspecified.
 
 MFIter and Tiling
-=================
+----------------------------
 
 In this section, we will first show how MFIter works without
 tiling. Then we will introduce the concept of logical tiling.
@@ -1444,7 +1447,7 @@ two ways of using these functions.
 But Box& bx = mfi.validbox() is not legal and will not compile.
 
 Calling Fortran or C
-====================
+----------------------------
 
 In Section [sec:basics:mfiter], we have shown that a typical
 pattern for working with MultiFabs is use MFIter to
@@ -1581,7 +1584,7 @@ matching BL\_TO\_FORTRAN\_FAB(fab) is then like below,
     end subroutine f
 
 Ghost Cells
-===========
+----------------------------
 
  uses MultiFab as the data container for floating point
 data on multiple Boxes on a single AMR level. Each rectangular
@@ -1617,7 +1620,7 @@ boundary conditions in general, including how to implement
 physical (non-periodic) boundary conditions.
 
 I/O
-===
+----------------------------
 
 In this section, we will discuss parallel I/O capabilities for mesh
 data in . Section [sec:Particles:IO] will discuss I/O for
@@ -1795,7 +1798,7 @@ that could be different from any other existing DistributionMapping objects. It 
 data including those in ghost cells are written/read by VisMF::Write/Read.
 
 Memory Allocation
-=================
+----------------------------
 
  has a Fortran module, mempool\_module that can be used to
 allocate memory for Fortran pointers. The reason that such a module
@@ -1821,7 +1824,7 @@ its own memory pool. Here are examples of using the module.
 The downside of this is we have to use pointer instead of allocatable. This means we must explicitly free the memory via bl\_deallocate and we need to declare the pointers as contiguous for performance reason.
 
 Abort and Assertion
-===================
+----------------------------
 
 amrex::Abort(const char\* message) is used to terminate a run
 usually when something goes wrong. This function takes a message and
