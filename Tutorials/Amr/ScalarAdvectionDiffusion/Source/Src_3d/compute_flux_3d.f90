@@ -420,19 +420,21 @@ contains
 
   end subroutine mol2ndord_flux_3d
 
-
+  !phi coming in is assumed to be cell-averaged
+  !velocity is pointwise on faces
   subroutine mol4thord_flux_3d(lo, hi, dt, dx, &
-                               phi,ph_lo,ph_hi, &
+                               phi ,ph_lo,ph_hi, &
                                umac,  u_lo,  u_hi, &
                                vmac,  v_lo,  v_hi, &
                                wmac,  w_lo,  w_hi, &
                                flxx, fx_lo, fx_hi, &
                                flxy, fy_lo, fy_hi, &
                                flxz, fz_lo, fz_hi, &
-                               phix, phiy,  phiz, &
-                               slope, glo, ghi, nu)
+                               fluxptx, phiptx, phiavex, &
+                               fluxpty, phipty, phiavey, &
+                               fluxptz, phiptz, phiavez, &
+                               phiptcc, glo, ghi, nu)
 
-    use slope_module, only: slopex, slopey, slopez
 
     integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3)
     double precision, intent(in) :: dt, dx(3), nu
@@ -451,75 +453,141 @@ contains
     double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
     double precision, intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3)) :: &
-         phix, phiy, phiz, slope
+         fluxptx, fluxpty, fluxptz,  phiptx, phipty, phiptz, phiavex, phiavey, phiavez, phiptcc
          
+    double precision :: diffflux
     integer :: i, j, k
 
-    call slopex(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
-                
-    ! compute phi on x faces using umac to upwind
+    !STEP 0 
+    ! 2.1 get cell-centered phi so we can compute a pointwise, fourth order gradient at faces
+    ! needed  for diffusive fluxes
+
+    do       k = lo(3)-2, hi(3)+2
+       do    j = lo(2)-2, hi(2)+2
+          do i = lo(1)-2, hi(1)+2
+             phiptcc(i,j,k)  = phi(i,j,k) - (1.0d0/24.d0)* &
+                  (phi(i+1,j  ,k  )+phi(i-1,j  ,k  )&
+                  +phi(i  ,j+1,k  )+phi(i  ,j-1,k  )&
+                  +phi(i  ,j  ,k+1)+phi(i  ,j  ,k-1)&
+                  -6.d0*phi(i,j,k))
+          end do
+       end do
+    end do
+    ! STEP ONE--- HYPERBOLIC FLUXES
+    ! compute face average phi on x faces via eqn 17 of mccorquodale, colella
     do       k = lo(3)-1, hi(3)+1
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)  , hi(1)+1
 
-             if (umac(i,j,k) .lt. 0.d0) then
-                phix(i,j,k) = phi(i  ,j,k) - (0.5d0)*slope(i  ,j,k)
-             else
-                phix(i,j,k) = phi(i-1,j,k) + (0.5d0)*slope(i-1,j,k)
-             end if
+             phiavex(i,j,k)  = &
+                  (7.d0/12.d0)*(phi(i  ,j,k) + phi(i-1,j,k)) &
+                 -(1.d0/12.d0)*(phi(i-2,j,k) + phi(i+1,j,k))
 
           end do
        end do
     end do
 
-    call slopey(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
-                
-    ! compute phi on y faces using vmac to upwind
+    !same for y faces
     do       k = lo(3)-1, hi(3)+1
        do    j = lo(2)  , hi(2)+1
           do i = lo(1)-1, hi(1)+1
 
-             if (vmac(i,j,k) .lt. 0.d0) then
-                phiy(i,j,k) = phi(i,j  ,k) - (0.5d0)*slope(i,j  ,k)
-             else
-                phiy(i,j,k) = phi(i,j-1,k) + (0.5d0)*slope(i,j-1,k)
-             end if
+             phiavey(i,j,k)  = &
+                  (7.d0/12.d0)*(phi(i,j  ,k) + phi(i,j-1,k)) &
+                 -(1.d0/12.d0)*(phi(i,j-2,k) + phi(i,j+1,k))
 
           end do
        end do
     end do
-
-    call slopez(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
-                
-    ! compute phi on z faces using wmac to upwind
+    !same for z faces
     do       k = lo(3)  , hi(3)+1
        do    j = lo(2)-1, hi(2)+1
           do i = lo(1)-1, hi(1)+1
 
-             if (wmac(i,j,k) .lt. 0.d0) then
-                phiz(i,j,k) = phi(i,j,k  ) - (0.5d0)*slope(i,j,k  )
-             else
-                phiz(i,j,k) = phi(i,j,k-1) + (0.5d0)*slope(i,j,k-1)
-             end if
+             phiavez(i,j,k)  = &
+                  (7.d0/12.d0)*(phi(i,j,k  ) + phi(i,j,k-1)) &
+                 -(1.d0/12.d0)*(phi(i,j,k-2) + phi(i,j,k+1))
 
           end do
        end do
     end do
 
+    !now get point valued phi at faces so we can multiply by point valued velocity
+    ! phipt = phiave - (h^2/24)*(lapl^2d(phi_ave))
+    ! while I am at it, multiply in pointwise velocity so we get pointwise *HYPERBOLIC* flux
+    !also  get pointwise diffusive fluxes using 4th order finite differences of pointwise phi
+
+    do       k = lo(3)-1, hi(3)+1
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)  , hi(1)+1
+             phiptx(i,j,k)  = phiavex(i,j,k) - (1.0d0/24.d0)* &
+                  (phiavex(i,j+1,k  )+phiavex(i,j-1,k  )&
+                  +phiavex(i,j  ,k+1)+phiavex(i,j  ,k-1)&
+                  -4.d0*phiavex(i,j,k))
+             
+             diffflux  = (-nu/dx(1))* &
+                  ( phiptcc(i  ,j  ,k  ) - phiptcc(i-1,j  ,k  ) &
+                  -(phiptcc(i+1,j  ,k  ) + phiptcc(i-1,j  ,k  ) - 2.0d0*phiptcc(i  ,j  ,k  )) &
+                  +(phiptcc(i  ,j  ,k  ) + phiptcc(i-2,j  ,k  ) - 2.0d0*phiptcc(i-1,j  ,k  )))
+
+             fluxptx(i,j,k) = umac(i,j,k)*phiptx(i,j,k) + diffflux
+
+          end do
+       end do
+    end do
+
+    !same for y faces
+    do       k = lo(3)-1, hi(3)+1
+       do    j = lo(2)  , hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+
+             phipty(i,j,k)  = phiavey(i,j,k) - (1.0d0/24.d0)* &
+                  (phiavey(i+1,j,k  )+phiavey(i-1,j,k  )&
+                  +phiavey(i  ,j,k+1)+phiavey(i  ,j,k-1)&
+                  -4.d0*phiavey(i,j,k))
+
+             diffflux  = (-nu/dx(2))* &
+                  ( phiptcc(i  ,j  ,k  ) - phiptcc(i  ,j-1,k  ) &
+                  -(phiptcc(i  ,j+1,k  ) + phiptcc(i  ,j-1,k  ) - 2.0d0*phiptcc(i  ,j  ,k  )) &
+                  +(phiptcc(i  ,j  ,k  ) + phiptcc(i  ,j-2,k  ) - 2.0d0*phiptcc(i  ,j-1,k  )))
+
+             fluxpty(i,j,k) = vmac(i,j,k)*phipty(i,j,k) + diffflux
+
+          end do
+       end do
+    end do
+
+    !same for z faces
+    do       k = lo(3)  , hi(3)+1
+       do    j = lo(2)-1, hi(2)+1
+          do i = lo(1)-1, hi(1)+1
+
+             phiptz(i,j,k)  = phiavez(i,j,k) - (1.0d0/24.d0)* &
+                  (phiavez(i+1,j  ,k)+phiavez(i-1,j  ,k)&
+                  +phiavez(i  ,j+1,k)+phiavez(i  ,j-1,k)&
+                  -4.d0*phiavez(i,j,k))
+
+             diffflux  = (-nu/dx(3))* &
+                  ( phiptcc(i  ,j  ,k  ) - phiptcc(i  ,j  ,k-1) &
+                  -(phiptcc(i  ,j  ,k+1) + phiptcc(i  ,j  ,k-1) - 2.0d0*phiptcc(i  ,j  ,k  )) &
+                  +(phiptcc(i  ,j  ,k  ) + phiptcc(i  ,j  ,k-2) - 2.0d0*phiptcc(i  ,j  ,k-1)))
+
+
+             fluxptz(i,j,k) = wmac(i,j,k)*phiptz(i,j,k) + diffflux
+          end do
+       end do
+    end do
+
+    ! now transform pointwise hyperbolic fluxes into face-averaged hyperbolic fluxes
+    !fluxave = fluxpt + (1/24)(Lapl2d(fluxpt))
+
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
-
-             ! compute final x-fluxes
-             ! including diffusive fluxes
-             flxx(i,j,k) = umac(i,j,k)*phix(i,j,k) - nu*(phi(i,j,k) - phi(i-1,j,k))/dx(1)
-
+             flxx(i,j,k)  = fluxptx(i,j,k) + (1.0d0/24.d0)* &
+                  (fluxptx(i,j+1,k  )+fluxptx(i,j-1,k  )&
+                  +fluxptx(i,j  ,k+1)+fluxptx(i,j  ,k-1)&
+                  -4.d0*fluxptx(i,j,k))
           end do
        end do
     end do
@@ -527,29 +595,25 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)+1
           do i = lo(1), hi(1)
-
-             ! compute final y-fluxes
-             !(including diffusive fluxes)  
-             flxy(i,j,k) = vmac(i,j,k)*phiy(i,j,k) - nu*(phi(i,j,k) - phi(i,j-1,k))/dx(2)
-
+             flxy(i,j,k)  = fluxpty(i,j,k) + (1.0d0/24.d0)* &
+                  (fluxpty(i+1,j,k  )+fluxpty(i-1,j,k  )&
+                  +fluxpty(i  ,j,k+1)+fluxpty(i  ,j,k-1)&
+                  -4.d0*fluxpty(i,j,k))
           end do
        end do
     end do
 
-    ! update phi on z faces by adding in xy and yx transverse terms
     do       k = lo(3), hi(3)+1
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-
-             ! compute final z-fluxes
-             !(including diffusive fluxes)
-             flxz(i,j,k) = wmac(i,j,k)*phiz(i,j,k) - nu*(phi(i,j,k) - phi(i,j,k-1))/dx(3)
-
+             flxz(i,j,k)  = fluxptz(i,j,k) + (1.0d0/24.d0)* &
+                  (fluxptz(i+1,j  ,k)+fluxptz(i-1,j  ,k)&
+                  +fluxptz(i  ,j+1,k)+fluxptz(i  ,j-1,k)&
+                  -4.d0*fluxptz(i,j,k))
           end do
        end do
     end do
-
-
-  end subroutine mol4thord_flux_3d
+ 
+ end subroutine mol4thord_flux_3d
 
 end module compute_flux_module

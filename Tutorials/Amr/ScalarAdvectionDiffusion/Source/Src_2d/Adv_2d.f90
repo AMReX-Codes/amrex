@@ -76,7 +76,7 @@ subroutine advectDiffGodunov(time, lo, hi, &
   ! Do a conservative update
   do    j = lo(2),hi(2)
      do i = lo(1),hi(1)
-        !notice that some evil bastard has reversed the flux difference
+        !notice that some mad scientist has reversed the flux difference
         ! rather than just put a negative sign out front.
         dphidtout(i,j) = &
              ( (flxx(i,j) - flxx(i+1,j  )) / dx(1) &
@@ -180,7 +180,7 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
   ! Do a conservative update
   do    j = lo(2),hi(2)
      do i = lo(1),hi(1)
-        !notice that some evil bastard has reversed the flux difference
+        !notice that some mad scientist has reversed the flux difference
         ! rather than just put a negative sign out front.
         flo = flxx(i,j)
         fhi = flxx(i+1,j)
@@ -247,17 +247,20 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
   integer :: glo(2), ghi(2)
   double precision :: umax, vmax, fhi, flo
 
-  ! Some compiler may not support 'contiguous'.  Remove it in that case.
-  double precision, dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, slope
+  double precision, dimension(:,:), pointer, contiguous :: &
+         fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey,  phiptcc
 
-  glo = lo - 1
-  ghi = hi + 1
+  glo = lo - 3
+  ghi = hi + 3
 
-  ! edge states
-  call bl_allocate(phix_1d, glo(1), ghi(1), glo(2), ghi(2))
-  call bl_allocate(phiy_1d, glo(1), ghi(1), glo(2), ghi(2))
-  ! slope                                                 
-  call bl_allocate(slope  , glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(fluxptx  ,glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(fluxpty  ,glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate( phiptx  ,glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate( phipty  ,glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(phiavex  ,glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(phiavey  ,glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(phiptcc  ,glo(1), ghi(1), glo(2), ghi(2))
+
 
   ! We like to allocate these **pointers** here and then pass them to a function
   ! to remove their pointerness for performance, because normally pointers could
@@ -277,18 +280,19 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
 
   ! call a function to compute flux
   call mol4thord_flux_2d(lo, hi, dt, dx, &
-       uin, ui_lo, ui_hi, &
-       vx, vx_lo, vx_hi, &
-       vy, vy_lo, vy_hi, &
-       flxx, fx_lo, fx_hi, &
-       flxy, fy_lo, fy_hi, &
-       phix_1d, phiy_1d,  slope, glo, ghi, nu)
-
+                         uin, ui_lo, ui_hi, &
+                         vx, vx_lo, vx_hi, &
+                         vy, vy_lo, vy_hi, &
+                         flxx, fx_lo, fx_hi, &
+                         flxy, fy_lo, fy_hi, &
+                         fluxptx, phiptx, phiavex,&
+                         fluxpty, phipty, phiavey,&
+                         phiptcc, glo, ghi,nu)
 
   ! Do a conservative update
   do    j = lo(2),hi(2)
      do i = lo(1),hi(1)
-        !notice that some evil bastard has reversed the flux difference
+        !notice that some mad scientist has reversed the flux difference
         ! rather than just put a negative sign out front.
         flo = flxx(i,j)
         fhi = flxx(i+1,j)
@@ -314,8 +318,12 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      enddo
   enddo
 
-  call bl_deallocate(phix_1d)
-  call bl_deallocate(phiy_1d)
-  call bl_deallocate(slope)
+  call bl_deallocate(fluxptx)
+  call bl_deallocate(fluxpty)
+  call bl_deallocate( phiptx)
+  call bl_deallocate( phipty)
+  call bl_deallocate(phiavex)
+  call bl_deallocate(phiavey)
+  call bl_deallocate(phiptcc)
 
 end subroutine advectDiffMOL4thOrd

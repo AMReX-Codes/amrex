@@ -95,7 +95,7 @@ subroutine advectDiffGodunov(time, lo, hi, &
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
-           !notice that some evil bastard has reversed the flux difference
+           !notice that some mad scientist has reversed the flux difference
            ! rather than just put a negative sign out front.
            dphdtout(i,j,k) =  &
                 ( (flxx(i,j,k) - flxx(i+1,j  ,k  )) /dx(1) &
@@ -230,7 +230,7 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
-           !notice that some evil bastard has reversed the flux difference
+           !notice that some mad scientist has reversed the flux difference
            ! rather than just put a negative sign out front.
            dphdtout(i,j,k) =  &
                 ( (flxx(i,j,k) - flxx(i+1,j  ,k  )) /dx(1) &
@@ -311,18 +311,24 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:,:), pointer, contiguous :: &
-       phix, phiy, phiz, slope
+         fluxptx, fluxpty, fluxptz,  phiptx, phipty, phiptz, phiavex, phiavey, phiavez, phiptcc
 
 
-  glo = lo - 1
-  ghi = hi + 1
 
-  ! edge states
-  call bl_allocate(phix  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiy  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiz  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  ! slope
-  call bl_allocate(slope,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))  
+  glo = lo - 3
+  ghi = hi + 3
+
+  call bl_allocate(fluxptx  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(fluxpty  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(fluxptz  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate( phiptx  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate( phipty  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate( phiptz  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(phiavex  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(phiavey  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(phiavez  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(phiptcc  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+
   
   ! We like to allocate these **pointers** here and then pass them to a function
   ! to remove their pointerness for performance, because normally pointers could
@@ -351,14 +357,16 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
                          flxx, fx_lo, fx_hi, &
                          flxy, fy_lo, fy_hi, &
                          flxz, fz_lo, fz_hi, &
-                         phix, phiy, phiz,  &
-                         slope, glo, ghi,nu)
+                         fluxptx, phiptx, phiavex,&
+                         fluxpty, phipty, phiavey,&
+                         fluxptz, phiptz, phiavez,&
+                         phiptcc, glo, ghi,nu)
 
   ! Do a conservative update
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
-           !notice that some evil bastard has reversed the flux difference
+           !notice that some mad scientist has reversed the flux difference
            ! rather than just put a negative sign out front.
            dphdtout(i,j,k) =  &
                 ( (flxx(i,j,k) - flxx(i+1,j  ,k  )) /dx(1) &
@@ -391,9 +399,16 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      enddo
   enddo
 
-  call bl_deallocate(phix  )
-  call bl_deallocate(phiy  )
-  call bl_deallocate(phiz  )
-  call bl_deallocate(slope)
+  call bl_deallocate(fluxptx)
+  call bl_deallocate(fluxpty)
+  call bl_deallocate(fluxptz)
+  call bl_deallocate( phiptx)
+  call bl_deallocate( phipty)
+  call bl_deallocate( phiptz)
+  call bl_deallocate(phiavex)
+  call bl_deallocate(phiavey)
+  call bl_deallocate(phiavez)
+  call bl_deallocate(phiptcc)
+
 
 end subroutine advectDiffMOL4thOrd
