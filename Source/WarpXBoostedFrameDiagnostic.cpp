@@ -118,12 +118,14 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
     const Real zhi_boost = domain_z_boost.hi(2);
 
     for (int i = 0; i < N_snapshots_; ++i) {
-        snapshots_[i].updateCurrentZPositions(t_boost, 
+        snapshots_[i].updateCurrentZPositions(t_boost,
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
         
-        if ( (snapshots_[i].current_z_boost < zlo_boost) or 
-             (snapshots_[i].current_z_boost > zhi_boost) ) continue;
+        if ( (snapshots_[i].current_z_boost < zlo_boost) or
+             (snapshots_[i].current_z_boost > zhi_boost) or
+             (snapshots_[i].current_z_lab < snapshots_[i].zmin_lab) or
+             (snapshots_[i].current_z_lab > snapshots_[i].zmax_lab) ) continue;
 
         // for each z position, fill a slice with the data.
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
