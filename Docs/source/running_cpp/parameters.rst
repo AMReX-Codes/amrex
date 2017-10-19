@@ -15,7 +15,7 @@ Overall simulation parameters
 
 * ``warpx.gamma_boost`` (`float`)
     The Lorentz factor of the boosted frame in which the simulation is run.
-    (The corresponding Lorentz transformation is assumed to along ``warpx.boost_direction``.)
+    (The corresponding Lorentz transformation is assumed to be along ``warpx.boost_direction``.)
 
     When using this parameter, some of the input parameters are automatically
     converted to the boosted frame. (See the corresponding documentation of each

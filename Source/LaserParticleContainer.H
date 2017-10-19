@@ -38,8 +38,6 @@ private:
     long                      pusher_algo = -1;
     amrex::Real               e_max       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real               wavelength  = std::numeric_limits<amrex::Real>::quiet_NaN();
-    amrex::Real               gamma_boost = 1;
-    amrex::Real               beta_boost = 0;
     amrex::Real               Z0_lab = 0; // Position of the antenna in the lab frame
 
     // computed using runtime parameters

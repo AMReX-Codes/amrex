@@ -48,12 +48,6 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	pp.query("pusher_algo", pusher_algo);
 	pp.get("e_max", e_max);
 	pp.get("wavelength", wavelength);
-    // Boosted-frame: parse the gamma of the boost
-    // Note: it is assumed that the boost is along the propagation
-    // direction of the laser (i.e. along nvec). In this case, the antenna
-    // moves with a velocity -beta_boost along nvec.
-    pp.query("gamma_boost", gamma_boost);
-    beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
 
 	if ( profile == laser_t::Gaussian ) {
 	    // Parse the properties of the Gaussian profile
@@ -74,11 +68,15 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	Real s = 1.0/std::sqrt(nvec[0]*nvec[0] + nvec[1]*nvec[1] + nvec[2]*nvec[2]);
 	nvec = { nvec[0]*s, nvec[1]*s, nvec[2]*s };
 
-    // Get the position of the plane, along the boost direction, in the lab frame
-    // and convert the position of the antenna to the boosted frame
-    if (gamma_boost > 1.) {
+    if (WarpX::gamma_boost > 1.) {
+        // Check that the laser direction is equal to the boost direction
+        BL_ASSERT( nvec[0]*WarpX::boost_direction[0]
+                + nvec[1]*WarpX::boost_direction[1]
+                + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12 );
+        // Get the position of the plane, along the boost direction, in the lab frame
+        // and convert the position of the antenna to the boosted frame
         Z0_lab = nvec[0]*position[0] + nvec[1]*position[1] + nvec[2]*position[2];
-        Real Z0_boost = Z0_lab/gamma_boost;
+        Real Z0_boost = Z0_lab/WarpX::gamma_boost;
         position[0] += (Z0_boost-Z0_lab)*nvec[0];
         position[1] += (Z0_boost-Z0_lab)*nvec[1];
         position[2] += (Z0_boost-Z0_lab)*nvec[2];
@@ -278,11 +276,11 @@ LaserParticleContainer::Evolve (int lev,
     long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     Real t_lab = t;
-    if (gamma_boost > 1) {
+    if (WarpX::gamma_boost > 1) {
         // Convert time from the boosted to the lab-frame
         // (in order to later calculate the amplitude of the field,
         // at the position of the antenna, in the lab-frame)
-        t_lab = 1./gamma_boost*t + beta_boost*Z0_lab/PhysConst::c;
+        t_lab = 1./WarpX::gamma_boost*t + WarpX::beta_boost*Z0_lab/PhysConst::c;
     }
 
     BL_ASSERT(OnSameGrids(lev,jx));
@@ -444,13 +442,13 @@ LaserParticleContainer::Evolve (int lev,
                 Real vz = PhysConst::c * v_over_c * p_X[2];
                 // When running in the boosted-frame, their is additional
                 // velocity along nvec
-                if (gamma_boost > 1.) {
-                    vx -= PhysConst::c * beta_boost * nvec[0];
-                    vy -= PhysConst::c * beta_boost * nvec[1];
-                    vz -= PhysConst::c * beta_boost * nvec[2];
+                if (WarpX::gamma_boost > 1.) {
+                    vx -= PhysConst::c * WarpX::beta_boost * nvec[0];
+                    vy -= PhysConst::c * WarpX::beta_boost * nvec[1];
+                    vz -= PhysConst::c * WarpX::beta_boost * nvec[2];
                 }
                 // Get the corresponding momenta
-                giv[i] = std::sqrt( 1 - pow(gamma_boost *  v_over_c, 2) )/gamma_boost;
+                giv[i] = std::sqrt( 1 - pow(WarpX::gamma_boost *  v_over_c, 2) )/WarpX::gamma_boost;
                 Real gamma = 1./giv[i];
                 uxp[i] = gamma * vx;
                 uyp[i] = gamma * vy;
@@ -642,6 +640,6 @@ LaserParticleContainer::ComputeWeightMobility (Real Sx, Real Sy)
     mobility = (Sx * Sy)/(weight * PhysConst::mu0 * PhysConst::c * PhysConst::c);
     // When running in the boosted-frame, the input parameters (and in particular
     // the amplitude of the field) are given in the lab-frame.
-    // Therefore, the mobility needs to be modified by a factor gamma_boost.
-    mobility = mobility/gamma_boost;
+    // Therefore, the mobility needs to be modified by a factor WarpX::gamma_boost.
+    mobility = mobility/WarpX::gamma_boost;
 }
