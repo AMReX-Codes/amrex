@@ -12,8 +12,6 @@ public:
 
     using BCMode = MLLinOp::BCMode;
 
-    enum class Cycle { Vcycle, Wcycle, Fcycle };
-
     enum class BottomSolver : int { smoother, bicgstab, cg };
 
     MLMG (MLLinOp& a_lp);
@@ -32,7 +30,7 @@ public:
     void setFinalSmooth (int n) { nuf = n; }
     void setBottomSmooth (int n) { nub = n; }
 
-    void setCycle (Cycle c) { cycle_type = c; }
+    void setNFCycles (int n) { nfcycles = n; }
 
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
     void setCGVerbose (int v) { cg_verbose = v; }
@@ -52,8 +50,8 @@ private:
     int nu2 = 2;   // post
     int nuf = 8;   // when smoother is used as bottom solver
     int nub = 0;   // aditional smoothing after bottom cg solver
-    
-    Cycle cycle_type = Cycle::Vcycle;
+
+    int nfcycles = 20;
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  cg_verbose            = 0;
@@ -90,9 +88,9 @@ private:
     void oneIter (int iter);
 
     void miniCycle (int alev);
-    void mgCycle ();
 
     void mgVcycle (int amrlev, int mglev);
+    void mgFcycle ();
 
     void bottomSolve ();
 
