@@ -51,8 +51,6 @@ amrex::Device::initialize_device() {
     const int my_rank = ParallelDescriptor::MyProc();
     const int ioproc  = ParallelDescriptor::IOProcessorNumber();
 
-    int total_count = 1;
-
     // Temporary character buffer for CUDA/NVML APIs.
     unsigned int char_length = 256;
     char c[char_length];
@@ -196,13 +194,16 @@ amrex::Device::initialize_device() {
 
     ParallelDescriptor::Barrier();
 
-    // Get total number of GPUs seen by all ranks.
+    // Total number of GPUs seen by all ranks.
 
-    total_count = (int) nvml_device_count;
+    Real count = 0.0;
+    for (auto it = uuid_to_rank.begin(); it != uuid_to_rank.end(); ++it) {
+        count += 1.0 / it->second.size();
+    }
 
-    amrex::ParallelDescriptor::ReduceIntSum(total_count);
+    ParallelDescriptor::ReduceRealSum(count);
 
-    total_count = total_count / n_procs;
+    int total_count = (int) count;
 
     initialize_cuda(&device_id, &my_rank, &total_count, &n_procs, &ioproc, &verbose);
 
