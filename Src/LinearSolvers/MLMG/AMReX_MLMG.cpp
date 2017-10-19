@@ -5,6 +5,7 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_MG_F.H>
 #include <AMReX_MLCGSolver.H>
+#include <AMReX_BC_TYPES.H>
 
 namespace amrex {
 
@@ -317,8 +318,7 @@ MLMG::mgFcycle ()
 
     for (int mglev = mg_bottom_lev-1; mglev >= 0; --mglev)
     {
-        cor[amrlev][mglev]->setVal(0.0);  // interp next line performs add not assignment
-        addInterpCorrection(amrlev, mglev); // interp from mglev+1 to mglev
+        interpCorrection (amrlev, mglev);
 
         computeResOfCorrection(amrlev, mglev);
         MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,1,0);
@@ -354,6 +354,36 @@ MLMG::interpCorrection (int alev)
         amrex::pc_interp.interp(cfine[mfi], 0, fine_cor[mfi], 0, 1,
                                 mfi.tilebox(), refratio, g1, g2, bcr, 0, 0);
     }
+}
+
+void
+MLMG::interpCorrection (int alev, int mglev)
+{
+    MultiFab& crse_cor = *cor[alev][mglev+1];
+    MultiFab& fine_cor = *cor[alev][mglev  ];
+    const Geometry& crse_geom = linop.Geom(alev,mglev+1);
+    const Geometry& fine_geom = linop.Geom(alev,mglev  );
+    crse_cor.FillBoundary(crse_geom.periodicity());
+    Vector<BCRec> bcr(1);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (crse_geom.isPeriodic(idim)) {
+            bcr[0].setLo(idim,BCType::int_dir);
+            bcr[0].setHi(idim,BCType::int_dir);
+        } else {
+            bcr[0].setLo(idim,BCType::ext_dir);
+            bcr[0].setHi(idim,BCType::ext_dir);
+        }
+    }
+    IntVect refratio{2};
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(fine_cor, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        amrex::cell_cons_interp.interp(crse_cor[mfi], 0, fine_cor[mfi], 0, 1,
+                                       mfi.tilebox(), refratio, crse_geom, fine_geom,
+                                       bcr, 0, 0);
+    }    
 }
 
 void
@@ -546,6 +576,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
             cor[alev][mglev].reset(new MultiFab(res[alev][mglev].boxArray(),
                                                 res[alev][mglev].DistributionMap(),
                                                 nc, ng));
+            cor[alev][mglev]->setVal(0.0);
         }
     }
 
@@ -559,6 +590,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
             cor_hold[alev][mglev].reset(new MultiFab(cor[alev][mglev]->boxArray(),
                                                      cor[alev][mglev]->DistributionMap(),
                                                      nc, ng));
+            cor_hold[alev][mglev]->setVal(0.0);
         }
     }
     for (int alev = 1; alev < finest_amr_lev; ++alev)
@@ -567,6 +599,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         cor_hold[alev][0].reset(new MultiFab(cor[alev][0]->boxArray(),
                                              cor[alev][0]->DistributionMap(),
                                              nc, ng));
+        cor_hold[alev][0]->setVal(0.0);
     }
 
     buildFineMask();

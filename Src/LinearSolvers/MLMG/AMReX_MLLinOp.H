@@ -80,7 +80,7 @@ protected:
     const Vector<int>& AMRRefRatio () const { return m_amr_ref_ratio; }
     int AMRRefRatio (int amr_lev) const { return m_amr_ref_ratio[amr_lev]; }
 
-    const Geometry& Geom (int amr_lev) const { return m_geom[amr_lev][0]; }
+    const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
