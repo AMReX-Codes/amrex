@@ -231,7 +231,7 @@ MLMG::computeResidual (int alev)
 
     const MultiFab* crse_bcdata = nullptr;
     if (alev > 0) {
-        crse_bcdata = sol[alev-1]; // TODO: don't have to do this everytime. - wqz
+        crse_bcdata = sol[alev-1];
     }
     linop.solutionResidual(alev, r, x, b, crse_bcdata);
 }
@@ -297,8 +297,11 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
         cor[amrlev][mglev]->setVal(0.0);
+        bool skip_fillboundary = true;
         for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
+            linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev],
+                         BCMode::Homogeneous, skip_fillboundary);
+            skip_fillboundary = false;
         }
 
         // rescor = res - L(cor)
@@ -316,8 +319,11 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     else
     {
         cor[amrlev][mglev_bottom]->setVal(0.0);
+        bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom]);
+            linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom],
+                         BCMode::Homogeneous, skip_fillboundary);
+            skip_fillboundary = false;
         }
     }
     
@@ -480,8 +486,9 @@ MLMG::bottomSolve ()
 
     if (bottom_solver == BottomSolver::smoother)
     {
+        bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b);
+            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous, skip_fillboundary);
         }
     }
     else
