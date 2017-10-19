@@ -13,6 +13,22 @@ Overall simulation parameters
     The number of PIC cycles to perform.
 
 
+* ``warpx.gamma_boost`` (`float`)
+    The Lorentz factor of the boosted frame in which the simulation is run.
+    (The corresponding Lorentz transformation is assumed to along ``warpx.boost_direction``.)
+
+    When using this parameter, some of the input parameters are automatically
+    converted to the boosted frame. (See the corresponding documentation of each
+    input parameters.)
+
+    .. note::
+
+        For now, only the laser parameters will be converted.
+
+* ``warpx.boost_direction`` (`3 floats in 3D`)
+    The coordinates of a vector that points in the propagation direction of
+    the Lorentz transform. The norm of this vector is unimportant, only its direction matters.
+
 Setting up the field mesh
 -------------------------
 
@@ -97,8 +113,8 @@ Laser initialization
 
         E_{max} = a_0 \frac{2 \pi m_e c}{e\lambda} = a_0 \times (4.0 \cdot 10^{12} \;V.m^{-1})
 
-    When running a *boosted-frame simulation*, provide the value of ``laser.e_max``
-    in the laboratory frame, and use ``laser.gamma_boost`` to automatically
+    When running a **boosted-frame simulation**, provide the value of ``laser.e_max``
+    in the laboratory frame, and use ``warpx.gamma_boost`` to automatically
     perform the conversion to the boosted frame.
 
 
@@ -115,16 +131,17 @@ Laser initialization
     .. note::
         In 2D, ``laser.position`` is still given by 3 numbers, but the second number is ignored.
 
-    When running a *boosted-frame simulation*, provide the value of
-    ``laser.e_max`` in the laboratory frame, and use ``laser.gamma_boost``
-    to automatically perform the conversion to the boosted frame.
+    When running a **boosted-frame simulation**, provide the value of
+    ``laser.position`` in the laboratory frame, and use ``warpx.gamma_boost``
+    to automatically perform the conversion to the boosted frame. Note that,
+    in this case, the laser antenna will be moving, in the boosted frame.
 
 *  ``laser.profile_t_peak`` (`float`; in seconds)
     The time at which the laser reaches its peak intensity, at the position
     given by ``laser.position`` (only used for the ``"gaussian"`` profile)
 
-    When running a *boosted-frame simulation*, provide the value of
-    ``laser.profile_t_peak`` in the laboratory frame, and use ``laser.gamma_boost``
+    When running a **boosted-frame simulation**, provide the value of
+    ``laser.profile_t_peak`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
 *  ``laser.profile_duration`` (`float` ; in seconds)
@@ -141,12 +158,10 @@ Laser initialization
 
     .. math::
 
-        E(\boldsymbol{x},t) \propto \frac{1}{32}\left[10 - 15 \cos\left(\frac{2\pi t}{\tau}\right) + 6 \cos\left(\frac{4\pi t}{\tau}\right) - \cos\left(\frac{6\pi t}{\tau}\right) \right]
+        E(\boldsymbol{x},t) \propto \frac{1}{32}\left[10 - 15 \cos\left(\frac{2\pi t}{\tau}\right) + 6 \cos\left(\frac{4\pi t}{\tau}\right) - \cos\left(\frac{6\pi t}{\tau}\right) \right]\Theta(\tau - t)
 
-    For :math:`t>\tau`, :math:`E(\boldsymbol{x},t)=0`.
-
-    When running a *boosted-frame simulation*, provide the value of
-    ``laser.profile_duration`` in the laboratory frame, and use ``laser.gamma_boost``
+    When running a **boosted-frame simulation**, provide the value of
+    ``laser.profile_duration`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
 * ``laser.profile_waist`` (`float` ; in meters)
@@ -159,8 +174,8 @@ Laser initialization
 * ``laser.wavelength`` (`float`; in meters)
     The wavelength of the laser in vacuum.
 
-    When running a *boosted-frame simulation*, provide the value of
-    ``laser.wavelength`` in the laboratory frame, and use ``laser.gamma_boost``
+    When running a **boosted-frame simulation**, provide the value of
+    ``laser.wavelength`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
 * ``laser.polarization`` (`3 floats in 3D and 2D`)
@@ -177,25 +192,21 @@ Laser initialization
 
     The plane of the antenna that will emit the laser is orthogonal to this vector.
 
+    .. warning::
+
+        When running **boosted-frame simulations**, ``laser.direction`` should
+        be parallel to ``warpx.boost_direction``, for now.
+
 * ``laser.profile_focal_distance`` (`float`; in meters)
     The distance from ``laser_position`` to the focal plane.
     (where the distance is defined along the direction given by ``laser.direction``.)
 
     Use a negative number for a defocussing laser instead of a focussing laser.
 
-    When running a *boosted-frame simulation*, provide the value of
-    ``laser.profile_focal_distance`` in the laboratory frame, and use ``laser.gamma_boost``
+    When running a **boosted-frame simulation**, provide the value of
+    ``laser.profile_focal_distance`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
-* ``laser.gamma_boost`` (`float`)
-    The Lorentz factor of the boosted frame in which the simulation is run.
-    (It is assumed that the corresponding Lorentz transform is along the
-    ``laser.direction``.)
-
-    When using this parameter, the laser parameters are automatically converted
-    to the boosted frame, and the laser is emitted by a moving antenna. (In
-    particular, the laser focal plane will be moving in the boosted frame, as
-    it should.)
 
 Numerics and algorithms
 -----------------------
