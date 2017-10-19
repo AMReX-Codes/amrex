@@ -16,6 +16,7 @@
 #endif
 
 using std::ios;
+using namespace amrex;
 
 static
 void

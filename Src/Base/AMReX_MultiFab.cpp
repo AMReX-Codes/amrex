@@ -827,6 +827,24 @@ MultiFab::maxIndex (int comp,
 }
 
 Real
+MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
+{
+    Real nm0 = -std::numeric_limits<Real>::max();
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:nm0)
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    {
+	nm0 = std::max(nm0, get(mfi).norminfmask(mfi.growntilebox(nghost), mask[mfi], comp, 1));
+    }
+
+    if (!local)	ParallelDescriptor::ReduceRealMax(nm0,this->color());
+
+    return nm0;
+}
+
+Real
 MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 {
     Real nm0 = -std::numeric_limits<Real>::max();

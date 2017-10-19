@@ -225,13 +225,13 @@ The following example illustrates how to use the \sphereif\ class to define a \g
   Box domain(IntVect::Zero, (nx-1)*IntVect::Unit);
   Real dx = 1.0/nx;
   Real radius = 0.1;
-  Real center = 0.5*RealVect::Unit;
-  bool insideRegular = false;
+  RealVect center = 0.5*RealVect::Unit;
+  bool insideRegular = true;
   //this is the implicit function
   SphereIF sphere(radius, center, insideRegular);
 
   //this is worker object that creates geometric information given an IF
-  GeometryShop workshop(sideImpMultisphere)
+  GeometryShop workshop(sphere)
 
   //this is the global, distributed database being initialized
   EBIndexSpace*  ebis = AMReX_EBIS::instance()
@@ -593,8 +593,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             //this tile is the subset of the box over which we are computing
             const Box& bx = mfi.tilebox();
 
-            //because we have compiled with AMREX_USE=EB_TRUE, the
-            //MultiFab holds EBFArrayBox(es) so we can do this cast
+            //because S was created with the EBFArrayBoxFactory, we can do this cast
             const EBFArrayBox& sfab
                 = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             
