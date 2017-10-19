@@ -542,9 +542,16 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     ifneq ($(MAKE_CUDA_PATH),)
-        LIBRARIES += -lnvToolsExt
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
         INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
+
+        ifeq ($(PROFILE),TRUE)
+            LIBRARIES += -lnvToolsExt
+        endif
+
+        ifeq ($(TINY_PROFILE),TRUE)
+            LIBRARIES += -lnvToolsExt
+        endif
     endif
 
     # Optionally add in NVML support.
