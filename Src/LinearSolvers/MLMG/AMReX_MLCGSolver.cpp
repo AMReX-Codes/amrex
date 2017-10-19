@@ -116,7 +116,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     MultiFab v    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
     MultiFab t    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
 
-    Lp.residual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
+    Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
 
     MultiFab::Copy(sorig,sol,0,0,1,0);
     MultiFab::Copy(rh,   r,  0,0,1,0);
@@ -302,7 +302,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     MultiFab::Copy(sorig,sol,0,0,1,0);
 
-    Lp.residual(amrlev, mglev, r, sorig, rhs, MLLinOp::BCMode::Homogeneous);
+    Lp.correctionResidual(amrlev, mglev, r, sorig, rhs, MLLinOp::BCMode::Homogeneous);
 
     sol.setVal(0);
 

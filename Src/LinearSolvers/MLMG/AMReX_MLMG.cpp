@@ -7,6 +7,26 @@
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_BC_TYPES.H>
 
+// sol: full solution
+// rhs: rhs of the original equation L(sol) = rhs
+// res: rhs of the residual equation L(cor) = res
+//      usually res is the result of rhs-L(sol), but is the result of res-L(cor).
+// cor/cor_hold: correction
+// rescor: res - L(cor)
+
+// x and b as in L(x) = b.  Here x could be either sol or cor.
+
+// BCMode: Inhomogeneous for original equation, Homogeneous for residual equation
+
+// LinOp functions:
+//     solutionresidual()  : rhs - L(sol), sol.FillBoundary() will be called.
+//                           BC data can be optionally provided.
+//     correctionResidual(): res - L(cor), cor.FillBoundary() will be called.
+//                           There are BC modes: Homogeneous and Inhomogeneous.
+//                           For Inhomogeneous, BC data can be optionally provided.
+//     reflux()            : Given sol on crse and fine AMR levels, reflux coarse res at crse/fine.
+//     smooth()            : L(cor) = res. cor.FillBoundary() will be called.
+
 namespace amrex {
 
 MLMG::MLMG (MLLinOp& a_lp)
@@ -122,6 +142,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
 }
 
+// in  : Residual (res) on the finest AMR level
+// out : sol on all AMR levels
 void
 MLMG::oneIter (int iter)
 {
@@ -131,6 +153,7 @@ MLMG::oneIter (int iter)
 
         MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, 1, 0);
 
+        // compute residual for the coarse AMR level
         computeResWithCrseSolFineCor(alev-1,alev);
 
         if (alev != finest_amr_lev) {
@@ -153,6 +176,7 @@ MLMG::oneIter (int iter)
 
     for (int alev = 1; alev <= finest_amr_lev; ++alev)
     {
+        // (Fine AMR correction) = I(Coarse AMR correction)
         interpCorrection(alev);
 
         MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, 1, 0);
@@ -161,6 +185,7 @@ MLMG::oneIter (int iter)
             MultiFab::Add(*cor_hold[alev][0], *cor[alev][0], 0, 0, 1, 0);
         }
 
+        // Update fine AMR level correction
         computeResWithCrseCorFineCor(alev);
 
         miniCycle(alev);
@@ -179,21 +204,24 @@ MLMG::oneIter (int iter)
     }
 }
 
+// Compute multi-level Residual (res) up to amrlevmax.
 void
 MLMG::computeMLResidual (int amrlevmax, bool bndryregister_updated)
 {
     const int mglev = 0;
     for (int alev = amrlevmax; alev >= 0; --alev) {
+        const MultiFab* crse_bcdata = nullptr;
         if (alev > 0 && !bndryregister_updated) {
-            linop.updateSolBC(alev, *sol[alev-1]);
+            crse_bcdata = sol[alev-1];
         }
-        linop.residual(alev, 0, res[alev][mglev], *sol[alev], rhs[alev], BCMode::Inhomogeneous);
+        linop.solutionResidual(alev, res[alev][mglev], *sol[alev], rhs[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, res[alev][mglev], *sol[alev], *sol[alev+1]);
         }
     }
 }
 
+// Compute single AMR level residual without masking.
 void
 MLMG::computeResidual (int alev)
 {
@@ -201,12 +229,14 @@ MLMG::computeResidual (int alev)
     const MultiFab& b = rhs[alev];
     MultiFab& r = res[alev][0];
 
+    const MultiFab* crse_bcdata = nullptr;
     if (alev > 0) {
-        linop.updateSolBC(alev, *sol[alev-1]); // TODO: don't have to do this everytime. - wqz
+        crse_bcdata = sol[alev-1]; // TODO: don't have to do this everytime. - wqz
     }
-    linop.residual(alev, 0, r, x, b, BCMode::Inhomogeneous);
+    linop.solutionResidual(alev, r, x, b, crse_bcdata);
 }
 
+// Compute coarse AMR level composite residual with coarse solution and fine correction
 void
 MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 {
@@ -219,12 +249,13 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
     
+    const MultiFab* crse_bcdata = nullptr;
     if (calev > 0) {
-        linop.updateSolBC(calev, *sol[calev-1]);
+        crse_bcdata = sol[calev-1];
     }
-    linop.residual(calev, 0, crse_res, crse_sol, crse_rhs, BCMode::Inhomogeneous);
+    linop.solutionResidual(calev, crse_res, crse_sol, crse_rhs, crse_bcdata);
 
-    linop.residual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
+    linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, 1, 0);
 
     linop.reflux(calev, crse_res, crse_sol, fine_sol);
@@ -233,6 +264,7 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     amrex::average_down(fine_res, crse_res, 0, 1, amrrr);
 }
 
+// Compute fine AMR level residual fine_res = fine_res - L(fine_cor) with coarse providing BC.
 void
 MLMG::computeResWithCrseCorFineCor (int falev)
 {
@@ -242,9 +274,9 @@ MLMG::computeResWithCrseCorFineCor (int falev)
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
 
-    linop.updateCorBC(falev, crse_cor);
     // fine_rescor = fine_res - L(fine_cor)
-    linop.correctionResidual(falev, fine_rescor, fine_cor, fine_res);
+    linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
+                             BCMode::Inhomogeneous, &crse_cor);
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, 1, 0);
 }
 
@@ -255,6 +287,8 @@ MLMG::miniCycle (int amrlev)
     mgVcycle(amrlev, mglev);
 }
 
+// in   : Residual (res) 
+// out  : Correction (cor) from bottom to this function's local top
 void
 MLMG::mgVcycle (int amrlev, int mglev_top)
 {
@@ -263,40 +297,43 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
         cor[amrlev][mglev]->setVal(0.0);
-        
         for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev], BCMode::Homogeneous);
+            linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
         }
 
+        // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
 
+        // res_crse = R(rescor_fine); this provides res/b to the level below
         const int ratio = 2;
         amrex::average_down(rescor[amrlev][mglev], res[amrlev][mglev+1], 0, 1, ratio);
     }
 
-    // at the bottom
-    cor[amrlev][mglev_bottom]->setVal(0.0);
     if (amrlev == 0)
     {
         bottomSolve();
     }
     else
     {
+        cor[amrlev][mglev_bottom]->setVal(0.0);
         for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom],
-                         res[amrlev][mglev_bottom], BCMode::Homogeneous);
+            linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom]);
         }
     }
     
     for (int mglev = mglev_bottom-1; mglev >= 0; --mglev)
     {
+        // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
         for (int i = 0; i < nu2; ++i) {
-            linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev], BCMode::Homogeneous);
+            linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
         }
     }
 }
 
+// FMG cycle on the coarest AMR level.
+// in:  Residual on the top MG level (i.e., 0)
+// out: Correction (cor) on all MG levels
 void
 MLMG::mgFcycle ()
 {
@@ -309,22 +346,26 @@ MLMG::mgFcycle ()
         amrex::average_down(res[amrlev][mglev-1], res[amrlev][mglev], 0, 1, ratio);
     }
 
-    cor[amrlev][mg_bottom_lev]->setVal(0.0);
     bottomSolve();
 
     for (int mglev = mg_bottom_lev-1; mglev >= 0; --mglev)
     {
+        // cor_fine = I(cor_crse)
         interpCorrection (amrlev, mglev);
 
+        // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
+        // res = rescor; this provides b to the vcycle below
         MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,1,0);
 
+        // save cor; do v-cycle; add the saved to cor
         std::swap(cor[amrlev][mglev], cor_hold[amrlev][mglev]);
         mgVcycle(amrlev, mglev);
         MultiFab::Add(*cor[amrlev][mglev], *cor_hold[amrlev][mglev], 0, 0, 1, 0);
     }
 }
 
+// Interpolate correction from coarse to fine AMR level.
 void
 MLMG::interpCorrection (int alev)
 {
@@ -352,6 +393,9 @@ MLMG::interpCorrection (int alev)
     }
 }
 
+// Interpolate correction between MG levels
+// inout: Correction (cor) on coarse MG lev.  (out due to FillBoundary)
+// out  : Correction (cor) on fine MG lev.
 void
 MLMG::interpCorrection (int alev, int mglev)
 {
@@ -382,6 +426,7 @@ MLMG::interpCorrection (int alev, int mglev)
     }    
 }
 
+// (Fine MG level correction) += I(Coarse MG level correction)
 void
 MLMG::addInterpCorrection (int alev, int mglev)
 {
@@ -405,15 +450,22 @@ MLMG::addInterpCorrection (int alev, int mglev)
     }    
 }
 
+// Compute rescor = res - L(cor)
+// in   : res
+// inout: cor (out due to FillBoundary in linop.correctionResidual)
+// out  : rescor
 void
 MLMG::computeResOfCorrection (int amrlev, int mglev)
 {
     MultiFab& x = *cor[amrlev][mglev];
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
-    linop.residual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
+    linop.correctionResidual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
 }
 
+// At the true bottom of the coarset AMR level.
+// in  : Residual (res) as b
+// out : Correction (cor) as x
 void
 MLMG::bottomSolve ()
 {
@@ -424,10 +476,12 @@ MLMG::bottomSolve ()
     MultiFab& x = *cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
     
+    x.setVal(0.0);
+
     if (bottom_solver == BottomSolver::smoother)
     {
         for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+            linop.smooth(amrlev, mglev, x, b);
         }
     }
     else
@@ -452,12 +506,13 @@ MLMG::bottomSolve ()
         cg_solver.solve(x, b, cg_rtol, cg_atol);
 
         for (int i = 0; i < nub; ++i) {
-            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+            linop.smooth(amrlev, mglev, x, b);
         }
     }
     timer[bottom_time] += ParallelDescriptor::second() - bottom_start_time;
 }
 
+// Compute single-level masked inf-norm of Residual (res).
 Real
 MLMG::ResNormInf (int alev, bool local)
 {
@@ -469,6 +524,7 @@ MLMG::ResNormInf (int alev, bool local)
     }
 }
 
+// Computes multi-level masked inf-norm of Residual (res).
 Real
 MLMG::MLResNormInf (int alevmax, bool local)
 {
@@ -482,6 +538,7 @@ MLMG::MLResNormInf (int alevmax, bool local)
     return r;
 }
 
+// Compute multi-level masked inf-norm of RHS (rhs).
 Real
 MLMG::MLRhsNormInf (bool local)
 {
