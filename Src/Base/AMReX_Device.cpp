@@ -1,9 +1,6 @@
 
 #include <iostream>
-#ifdef NVML
-#include <nvml.h>
 #include <map>
-#endif
 #include <AMReX_Device.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -56,7 +53,7 @@ amrex::Device::initialize_device() {
 
     int total_count = 1;
 
-#if (defined(NVML) && defined(BL_USE_MPI))
+#ifdef BL_USE_MPI
 
     // Temporary character buffer for CUDA/NVML APIs.
     unsigned int char_length = 256;
