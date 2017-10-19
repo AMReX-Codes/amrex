@@ -564,7 +564,14 @@ ifeq ($(USE_CUDA),TRUE)
         endif
     endif
 
-    # Optionally add in NVML support.
+    # Bring in NVML support. This is required,
+    # but should not be a problem since NVML ships
+    # with the CUDA driver for modern versions.
+    # If you get a link failure looking for -lnvidia-ml,
+    # check to make sure that you've got the path
+    # containing libnvidia-ml.so in the LIBRARY_LOCATIONS.
+    # You can set the environment variable NVML_PATH
+    # to provide this if it's in a nonstandard location.
 
     MAKE_NVML_PATH :=
 
@@ -572,13 +579,13 @@ ifeq ($(USE_CUDA),TRUE)
         MAKE_NVML_PATH := $(NVML_PATH)
     else ifneq ($(SYSTEM_NVML_PATH),)
         MAKE_NVML_PATH := $(SYSTEM_NVML_PATH)
+    else
+        # Look for the library in the usual location.
+        MAKE_NVML_PATH := /usr/lib64/nvidia
     endif
 
-    ifneq ($(MAKE_NVML_PATH),)
-        DEFINES += -DNVML
-        LIBRARIES += -lnvidia-ml
-        LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
-    endif
+    LIBRARIES += -lnvidia-ml
+    LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
 
     ifeq ($(NO_CUDA_8_SUPPORT),TRUE)
       DEFINES += -DNO_CUDA_8
