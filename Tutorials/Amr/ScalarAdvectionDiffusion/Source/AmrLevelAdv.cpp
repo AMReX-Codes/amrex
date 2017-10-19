@@ -112,7 +112,7 @@ namespace amrex
 
     desc_lst.addDescriptor(Phi_Type,IndexType::TheCellType(),
                            StateDescriptor::Point,0,NUM_STATE,
-                           &cell_cons_interp);
+                           &quartic_interp);
 
     int lo_bc[BL_SPACEDIM];
     int hi_bc[BL_SPACEDIM];

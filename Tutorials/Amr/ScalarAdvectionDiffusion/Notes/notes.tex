@@ -42,3 +42,47 @@ dt/6, 2\dt/3$, respectively.
   \item I am not sure what time to use for time dependent
     vellocities.   
 \end{itemize}
+
+
+\section{Basic Algorithm}
+
+We start with cell averaged scalar $<\phi>$ and a pointwise velocity at faces.
+
+\begin{itemize}
+  \item Get pointwise $\phi$ because I will need this to get higher
+    order gradient at faces.  
+$$
+\phi = <\phi> -\frac{h^2}{24}(L(<\phi>)),
+$$
+   where $L$ is the standard second order Laplacian.
+\item Get the average of the scalar over the faces .
+$$
+<\phi>_{i+1/2} =  \frac{7}{12}(<\phi>_i    + <\phi>_{i+1})
+                -\frac{1}{12}(<\phi>_{i-1} + <\phi>_{i+2})
+$$
+
+\item Get the point values of the scalar on faces from the face
+  average:
+$$
+\phi_{i+1/2} = <\phi>_{i+1/2} - \frac{1}{24} L^T(<phi>)_{i+1/2},
+$$
+where $L^T$ is the Laplacian that does not include terms normal to the
+face (what McCorquodale refers to as the ``transverse Laplacian'').
+
+\item Compute pointwise fluxes $F$ (including diffusion fluxes).
+$$
+F_{i+1/2} = u_{i+1/2} \phi_{i+1/2}  - nu G^x(phi)_{i+1/2}
+$$
+where the normal gradient $G^x$ is computed using fourth order finite
+differences  of the pointwise cell-centered scalar $\phi$.
+$$
+G^x(\phi)_{i+1/2} = \frac{\partial \phi}{\partial x} + O(h^4) 
+= (1/h)(\phi_{i+1}-\phi_{i}) 
+- (1/(4h))((\phi_{i+2} + \phi_i - 2\phi_{i+1}) - (\phi_{i+1} + \phi_{i-1} - 2\phi_{i}))
+$$
+
+\item Transform the pointwise fluxes $F$ into face-averaged fluxes $<F>$
+$$
+<F> = F - (1/24) L^T(F).
+$$    
+\end{itemize}
