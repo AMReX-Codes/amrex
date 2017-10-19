@@ -62,12 +62,15 @@ amrex::Device::initialize_device() {
 
     nvml_err = nvmlInit();
 
-    unsigned int device_count;
-    nvml_err = nvmlDeviceGetCount(&device_count);
+    unsigned int nvml_device_count;
+    nvml_err = nvmlDeviceGetCount(&nvml_device_count);
+
+    int cuda_device_count;
+    cudaGetDeviceCount(&cuda_device_count);
 
     // Get total number of GPUs seen by all ranks.
 
-    total_count = (int) device_count;
+    total_count = (int) nvml_device_count;
 
     amrex::ParallelDescriptor::ReduceIntSum(total_count);
 
@@ -80,7 +83,7 @@ amrex::Device::initialize_device() {
 
     std::string s;
 
-    for (unsigned int i = 0; i < device_count; ++i) {
+    for (unsigned int i = 0; i < nvml_device_count; ++i) {
 
 	nvmlDevice_t handle;
 	nvml_err = nvmlDeviceGetHandleByIndex(i, &handle);
@@ -88,10 +91,41 @@ amrex::Device::initialize_device() {
 	nvml_err = nvmlDeviceGetUUID(handle, uuid, char_length);
 	s = uuid;
 
-	if (device_uuid.find(s) == device_uuid.end())
-	    device_uuid[s] = 1;
-	else
+        bool present = false;
+
+        if (device_uuid.find(s) != device_uuid.end())
+            present = true;
+
+	if (present) {
+
 	    device_uuid[s] += 1;
+
+	} else {
+
+            // Add this device to our list, but only if it's
+            // visible to CUDA.
+
+            nvmlPciInfo_t pci_info;
+            nvml_err = nvmlDeviceGetPciInfo(handle, &pci_info);
+
+            char bus_id[char_length];
+
+            for (int cuda_device = 0; cuda_device < cuda_device_count; ++cuda_device) {
+
+                CudaAPICheck(cudaDeviceGetPCIBusId(bus_id, char_length, cuda_device));
+                CudaAPICheck(cudaDeviceReset());
+
+                std::string s_n(pci_info.busId);
+                std::string s_c(bus_id);
+
+                if (s_c == s_n) {
+                    device_uuid[s] = 1;
+                    break;
+                }
+
+            }
+
+        }
 
     }
 
@@ -101,7 +135,7 @@ amrex::Device::initialize_device() {
     // later in situations with unequal distributions of devices per node.
 
     int strlen = s.size();
-    int len = device_count * strlen;
+    int len = cuda_device_count * strlen;
 
     char sendbuf[len];
     char recvbuf[n_procs][len];
@@ -123,7 +157,7 @@ amrex::Device::initialize_device() {
     for (auto it = device_uuid.begin(); it != device_uuid.end(); ++it) {
         it->second = 0;
         for (int i = 0; i < n_procs; ++i) {
-            for (int j = 0; j < device_count; ++j) {
+            for (int j = 0; j < cuda_device_count; ++j) {
                 std::string temp_s(&recvbuf[i][j * strlen], strlen);
                 if (it->first == temp_s) {
                     it->second += 1;
@@ -136,13 +170,14 @@ amrex::Device::initialize_device() {
     // For each rank that shares a GPU, use round-robin assignment
     // to assign MPI ranks to GPUs. We will arbitrarily assign
     // ranks to GPUs. It would be nice to do better here and be
-    // socket-aware, but this is complicated to get right.
+    // socket-aware, but this is complicated to get right. It is
+    // better for this to be offloaded to the job launcher.
 
     device_id = -1;
     int j = 0;
     for (auto it = uuid_to_rank.begin(); it != uuid_to_rank.end(); ++it) {
         for (int i = 0; i < it->second.size(); ++i) {
-            if (it->second[i] == my_rank && i % device_count == j) {
+            if (it->second[i] == my_rank && i % cuda_device_count == j) {
 
                 device_id = j;
 
@@ -152,10 +187,12 @@ amrex::Device::initialize_device() {
         j += 1;
         if (device_id != -1) break;
     }
-    if (device_id == -1 || device_id >= device_count)
+    if (device_id == -1 || device_id >= cuda_device_count)
         amrex::Abort("Could not associate MPI rank with GPU");
 
 #endif
+
+    ParallelDescriptor::Barrier();
 
     initialize_cuda(&device_id, &my_rank, &total_count, &n_procs, &ioproc, &verbose);
 
