@@ -220,7 +220,7 @@ MLLinOp::setDirichletBC (int amrlev, const MultiFab& bc_data, const MultiFab* cr
 }
 
 void
-MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata)
+MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata) const
 {
     AMREX_ALWAYS_ASSERT(amrlev > 0);
     m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
@@ -228,7 +228,7 @@ MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata)
 }
 
 void
-MLLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata)
+MLLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata) const
 {
     AMREX_ALWAYS_ASSERT(amrlev > 0);
     m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
@@ -236,21 +236,38 @@ MLLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata)
 }
 
 void
-MLLinOp::residual (int amrlev, int mglev,
-                   MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
-                   BCMode bc_mode) const
+MLLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                           const MultiFab* crse_bcdata)
 {
-    apply(amrlev, mglev, resid, sol, bc_mode);
-    MultiFab::Xpay(resid, -1.0, rhs, 0, 0, resid.nComp(), 0);
+    if (crse_bcdata != nullptr) {
+        updateSolBC(amrlev, *crse_bcdata);
+    }
+    const int mglev = 0;
+    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous);
+    MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
 }
 
 void
-MLLinOp::correctionResidual (int amrlev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs) const
+MLLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                             BCMode bc_mode, const MultiFab* crse_bcdata)
 {
-    AMREX_ALWAYS_ASSERT(amrlev > 0);
-    const int mglev = 0;
-    apply(amrlev, mglev, resid, sol, BCMode::Inhomogeneous, m_bndry_cor[amrlev].get());
-    MultiFab::Xpay(resid, -1.0, rhs, 0, 0, resid.nComp(), 0);
+    if (bc_mode == BCMode::Inhomogeneous)
+    {
+        if (crse_bcdata)
+        {
+            AMREX_ALWAYS_ASSERT(mglev == 0);
+            AMREX_ALWAYS_ASSERT(amrlev > 0);
+            updateCorBC(amrlev, *crse_bcdata);
+        }
+        apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, m_bndry_cor[amrlev].get());
+    }
+    else
+    {
+        AMREX_ALWAYS_ASSERT(crse_bcdata == nullptr);
+        apply(amrlev, mglev, resid, x, BCMode::Homogeneous);
+    }
+
+    MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
 }
 
 void

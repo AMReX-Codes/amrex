@@ -86,17 +86,19 @@ protected:
 
     // TODO: need a flag to specify Dirichlet/Neumann, ...
 
-    void updateSolBC (int amrlev, const MultiFab& crse_bcdata);
-    void updateCorBC (int amrlev, const MultiFab& crse_bcdata);
+    void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
+    void updateCorBC (int amrlev, const MultiFab& crse_bcdata) const;
 
-    void residual (int amrlev, int mglev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs,
-                   BCMode bc_mode) const;
-    void correctionResidual (int amrlev, MultiFab& resid, MultiFab& sol, const MultiFab& rhs) const;
+    void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                           const MultiFab* crse_bcdata=nullptr);
+    void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                             BCMode bc_mode, const MultiFab* crse_bcdata=nullptr);
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                 const MacBndry* bndry=nullptr) const;
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                   const MacBndry* bndry=nullptr) const;
-    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const;
+    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                 BCMode bc_mode = BCMode::Homogeneous) const;
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& fine_sol) const;
 
     virtual void prepareForSolve () = 0;
