@@ -133,7 +133,7 @@ MLMG::oneIter (int iter)
         computeResWithCrseSolFineCor(alev-1,alev);
 
         if (alev != finest_amr_lev) {
-            MultiFab::Copy(*cor_hold[alev][0], *cor[alev][0], 0, 0, 1, 0); // save it for the up cycle
+            std::swap(cor_hold[alev][0], cor[alev][0]); // save it for the up cycle
         }
     }
 
@@ -162,7 +162,7 @@ MLMG::oneIter (int iter)
 
         computeResWithCrseCorFineCor(alev);
 
-        miniCycle (alev);
+        miniCycle(alev);
 
         MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, 1, 0);
 
