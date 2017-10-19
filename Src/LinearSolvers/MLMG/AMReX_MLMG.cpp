@@ -256,49 +256,45 @@ MLMG::miniCycle (int amrlev)
 }
 
 void
-MLMG::mgVcycle (int amrlev, int mglev)
+MLMG::mgVcycle (int amrlev, int mglev_top)
 {
-    MultiFab& x = *cor[amrlev][mglev];
-    MultiFab& b = res[amrlev][mglev];
-    MultiFab& r = rescor[amrlev][mglev];
-    const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
+    const int mglev_bottom = linop.NMGLevels(amrlev) - 1;
 
-    x.setVal(0.0);
-
-    if (mglev == mg_bottom_lev)
+    for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
-        if (amrlev == 0)
-        {
-            bottomSolve();
-        }
-        else
-        {
-            for (int i = 0; i < nuf; ++i) {
-                linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
-            }
-        }
-    }
-    else
-    {
-        for (int i = 0; i < nu1; ++i) {
-            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
-        }
+        cor[amrlev][mglev]->setVal(0.0);
         
+        for (int i = 0; i < nu1; ++i) {
+            linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev], BCMode::Homogeneous);
+        }
+
         computeResOfCorrection(amrlev, mglev);
 
         const int ratio = 2;
-        amrex::average_down(r, res[amrlev][mglev+1], 0, 1, ratio);
+        amrex::average_down(rescor[amrlev][mglev], res[amrlev][mglev+1], 0, 1, ratio);
+    }
 
-        for (int i = 0; i < nu0; ++i) {
-            mgVcycle(amrlev, mglev+1);
+    // at the bottom
+    cor[amrlev][mglev_bottom]->setVal(0.0);
+    if (amrlev == 0)
+    {
+        bottomSolve();
+    }
+    else
+    {
+        for (int i = 0; i < nuf; ++i) {
+            linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom],
+                         res[amrlev][mglev_bottom], BCMode::Homogeneous);
         }
-
+    }
+    
+    for (int mglev = mglev_bottom-1; mglev >= 0; --mglev)
+    {
         addInterpCorrection(amrlev, mglev);
-
         for (int i = 0; i < nu2; ++i) {
-            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
+            linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev], BCMode::Homogeneous);
         }
-    }    
+    }
 }
 
 void
