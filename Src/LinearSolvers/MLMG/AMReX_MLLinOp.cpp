@@ -279,13 +279,16 @@ MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mo
 }
 
 void
-MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, const MacBndry* bndry) const
+MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+                  const MacBndry* bndry, bool skip_fillboundary) const
 {
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
 
     const bool cross = true;
-    in.FillBoundary(0, 1, m_geom[amrlev][mglev].periodicity(), cross);
+    if (!skip_fillboundary) {
+        in.FillBoundary(0, 1, m_geom[amrlev][mglev].periodicity(), cross);
+    }
 
     int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
 
@@ -341,12 +344,14 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, const Mac
 }
 
 void
-MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, BCMode bc_mode) const
+MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                 BCMode bc_mode, bool skip_fillboundary) const
 {
     for (int redblack = 0; redblack < 2; ++redblack)
     {
-        applyBC(amrlev, mglev, sol, bc_mode);
+        applyBC(amrlev, mglev, sol, bc_mode, nullptr, skip_fillboundary);
         Fsmooth(amrlev, mglev, sol, rhs, redblack);
+        skip_fillboundary = false;
     }
 }
 
