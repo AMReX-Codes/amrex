@@ -633,7 +633,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         }
     }
 
-    cor_hold.resize(namrlevs-1);
+    cor_hold.resize(std::max(namrlevs-1,1));
     {
         const int alev = 0;
         const int nmglevs = linop.NMGLevels(alev);
