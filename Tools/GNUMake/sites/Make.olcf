@@ -25,9 +25,9 @@ ifeq ($(USE_MPI),TRUE)
   LIBRARIES += -lmpichf90
 endif
 
-# If the cudatoolkit module is loaded, CUDATOOLKIT_HOME is set as the toolkit location.
+# If the cudatoolkit module is loaded, OLCF_CUDA_ROOT is set as the toolkit location.
 
-SYSTEM_CUDA_PATH=$(CUDATOOLKIT_HOME)
+SYSTEM_CUDA_PATH=$(OLCF_CUDA_ROOT)
 
 # Signal no support for CUDA 8.
 

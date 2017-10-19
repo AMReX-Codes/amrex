@@ -60,8 +60,8 @@ else
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  CXXFLAGS += -Mcuda=cuda8.0
-  CFLAGS   += -Mcuda=cuda8.0
+  CXXFLAGS += -Mcuda=cuda9.0
+  CFLAGS   += -Mcuda=cuda9.0
 endif
 
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
@@ -120,8 +120,8 @@ else
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  F90FLAGS += -Mcuda=cuda8.0 -Mnomain
-  FFLAGS   += -Mcuda=cuda8.0 -Mnomain
+  F90FLAGS += -Mcuda=cuda9.0 -Mnomain
+  FFLAGS   += -Mcuda=cuda9.0 -Mnomain
 endif
 
 ########################################################################
