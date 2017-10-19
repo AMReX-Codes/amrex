@@ -69,14 +69,14 @@ private:
 
     Vector<MultiFab*>         sol;  // alias to argument a_sol
     Vector<MultiFab>          rhs;  // Copy of original rhs
+                                    // L(sol) = rhs
 
     // First Vector: Amr levels.  0 is the coarest level
     // Second Vector: MG levels.  0 is the finest level
-    Vector<Vector<MultiFab> > res;    // = rhs - L(sol)
-    Vector<Vector<MultiFab> > cor;    // L(cor) = res
-    Vector<Vector<MultiFab> > rescor; // = res - L(cor)   Residual of the correction form
-
-    Vector<MultiFab> cor_hold;
+    Vector<Vector<MultiFab> >                   res; // = rhs - L(sol)
+    Vector<Vector<std::unique_ptr<MultiFab> > > cor; // L(cor) = res
+    Vector<Vector<std::unique_ptr<MultiFab> > > cor_hold;
+    Vector<Vector<MultiFab> >                rescor; // = res - L(cor)  Residual of the correction form
 
     Vector<iMultiFab> fine_mask;
 
