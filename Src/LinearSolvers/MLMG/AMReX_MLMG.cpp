@@ -128,12 +128,12 @@ MLMG::oneIter (int iter)
     {
         miniCycle(alev);
 
-        MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
+        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, 1, 0);
 
         computeResWithCrseSolFineCor(alev-1,alev);
 
         if (alev != finest_amr_lev) {
-            MultiFab::Copy(cor_hold[alev], cor[alev][0], 0, 0, 1, 0); // save it for the up cycle
+            MultiFab::Copy(*cor_hold[alev][0], *cor[alev][0], 0, 0, 1, 0); // save it for the up cycle
         }
     }
 
@@ -147,27 +147,27 @@ MLMG::oneIter (int iter)
             mgVcycle (0, 0);
         }
 
-        MultiFab::Add(*sol[0], cor[0][0], 0, 0, 1, 0);
+        MultiFab::Add(*sol[0], *cor[0][0], 0, 0, 1, 0);
     }
 
     for (int alev = 1; alev <= finest_amr_lev; ++alev)
     {
         interpCorrection(alev);
 
-        MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
+        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, 1, 0);
 
         if (alev != finest_amr_lev) {
-            MultiFab::Add(cor_hold[alev], cor[alev][0], 0, 0, 1, 0);
+            MultiFab::Add(*cor_hold[alev][0], *cor[alev][0], 0, 0, 1, 0);
         }
 
         computeResWithCrseCorFineCor(alev);
 
         miniCycle (alev);
 
-        MultiFab::Add(*sol[alev], cor[alev][0], 0, 0, 1, 0);
+        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, 1, 0);
 
         if (alev != finest_amr_lev) {
-            MultiFab::Add(cor[alev][0], cor_hold[alev], 0, 0, 1, 0);
+            MultiFab::Add(*cor[alev][0], *cor_hold[alev][0], 0, 0, 1, 0);
         }
     }
 
@@ -214,7 +214,7 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     MultiFab& crse_res = res[calev][0];
 
     MultiFab& fine_sol = *sol[falev];
-    MultiFab& fine_cor = cor[falev][0];
+    MultiFab& fine_cor = *cor[falev][0];
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
     
@@ -235,9 +235,9 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 void
 MLMG::computeResWithCrseCorFineCor (int falev)
 {
-    const MultiFab& crse_cor = cor[falev-1][0];
+    const MultiFab& crse_cor = *cor[falev-1][0];
 
-    MultiFab& fine_cor = cor[falev][0];
+    MultiFab& fine_cor = *cor[falev][0];
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
 
@@ -257,7 +257,7 @@ MLMG::miniCycle (int amrlev)
 void
 MLMG::mgVcycle (int amrlev, int mglev)
 {
-    MultiFab& x = cor[amrlev][mglev];
+    MultiFab& x = *cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
     const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
@@ -312,33 +312,28 @@ MLMG::mgFcycle ()
         amrex::average_down(res[amrlev][mglev-1], res[amrlev][mglev], 0, 1, ratio);
     }
 
-    cor[amrlev][mg_bottom_lev].setVal(0.0);
+    cor[amrlev][mg_bottom_lev]->setVal(0.0);
     bottomSolve();
 
     for (int mglev = mg_bottom_lev-1; mglev >= 0; --mglev)
     {
-        cor[amrlev][mglev].setVal(0.0);  // interp next line performs add not assignment
+        cor[amrlev][mglev]->setVal(0.0);  // interp next line performs add not assignment
         addInterpCorrection(amrlev, mglev); // interp from mglev+1 to mglev
-
-        MultiFab tmp(cor[amrlev][mglev].boxArray(),
-                     cor[amrlev][mglev].DistributionMap(),
-                     1, 0);
-        MultiFab::Copy(tmp, cor[amrlev][mglev], 0, 0, 1, 0);
 
         computeResOfCorrection(amrlev, mglev);
         MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,1,0);
 
+        std::swap(cor[amrlev][mglev], cor_hold[amrlev][mglev]);
         mgVcycle(amrlev, mglev);
-
-        MultiFab::Add(cor[amrlev][mglev], tmp, 0, 0, 1, 0);
+        MultiFab::Add(*cor[amrlev][mglev], *cor_hold[amrlev][mglev], 0, 0, 1, 0);
     }
 }
 
 void
 MLMG::interpCorrection (int alev)
 {
-    const MultiFab& crse_cor = cor[alev-1][0];
-    MultiFab& fine_cor = cor[alev][0];
+    const MultiFab& crse_cor = *cor[alev-1][0];
+    MultiFab& fine_cor = *cor[alev][0];
 
     BoxArray ba = fine_cor.boxArray();
     const int amrrr = linop.AMRRefRatio(alev-1);
@@ -364,8 +359,8 @@ MLMG::interpCorrection (int alev)
 void
 MLMG::addInterpCorrection (int alev, int mglev)
 {
-    const MultiFab& crse_cor = cor[alev][mglev+1];
-    MultiFab&       fine_cor = cor[alev][mglev  ];
+    const MultiFab& crse_cor = *cor[alev][mglev+1];
+    MultiFab&       fine_cor = *cor[alev][mglev  ];
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -387,7 +382,7 @@ MLMG::addInterpCorrection (int alev, int mglev)
 void
 MLMG::computeResOfCorrection (int amrlev, int mglev)
 {
-    MultiFab& x = cor[amrlev][mglev];
+    MultiFab& x = *cor[amrlev][mglev];
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
     linop.residual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
@@ -400,7 +395,7 @@ MLMG::bottomSolve ()
 
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
-    MultiFab& x = cor[amrlev][mglev];
+    MultiFab& x = *cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
     
     if (bottom_solver == BottomSolver::smoother)
@@ -539,16 +534,39 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     int ng = 0;
     linop.make(res, nc, ng);
     linop.make(rescor, nc, ng);
+
     ng = 1;
-    linop.make(cor, nc, ng);
+    cor.resize(namrlevs);
+    for (int alev = 0; alev <= finest_amr_lev; ++alev)
+    {
+        const int nmglevs = linop.NMGLevels(alev);
+        cor[alev].resize(nmglevs);
+        for (int mglev = 0; mglev < nmglevs; ++mglev)
+        {
+            cor[alev][mglev].reset(new MultiFab(res[alev][mglev].boxArray(),
+                                                res[alev][mglev].DistributionMap(),
+                                                nc, ng));
+        }
+    }
 
     cor_hold.resize(namrlevs-1);
+    {
+        const int alev = 0;
+        const int nmglevs = linop.NMGLevels(alev);
+        cor_hold[alev].resize(nmglevs);
+        for (int mglev = 0; mglev < nmglevs-1; ++mglev)
+        {
+            cor_hold[alev][mglev].reset(new MultiFab(cor[alev][mglev]->boxArray(),
+                                                     cor[alev][mglev]->DistributionMap(),
+                                                     nc, ng));
+        }
+    }
     for (int alev = 1; alev < finest_amr_lev; ++alev)
     {
-        cor_hold[alev].define(cor[alev][0].boxArray(),
-                              cor[alev][0].DistributionMap(),
-                              cor[alev][0].nComp(),
-                              0);
+        cor_hold[alev].resize(1);
+        cor_hold[alev][0].reset(new MultiFab(cor[alev][0]->boxArray(),
+                                             cor[alev][0]->DistributionMap(),
+                                             nc, ng));
     }
 
     buildFineMask();
