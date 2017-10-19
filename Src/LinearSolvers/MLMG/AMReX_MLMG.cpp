@@ -292,7 +292,7 @@ MLMG::mgVcycle (int amrlev, int mglev)
             mgVcycle(amrlev, mglev+1);
         }
 
-        interpCorrection(amrlev, mglev);
+        addInterpCorrection(amrlev, mglev);
 
         for (int i = 0; i < nu2; ++i) {
             linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous);
@@ -318,7 +318,7 @@ MLMG::mgFcycle ()
     for (int mglev = mg_bottom_lev-1; mglev >= 0; --mglev)
     {
         cor[amrlev][mglev].setVal(0.0);  // interp next line performs add not assignment
-        interpCorrection(amrlev, mglev); // interp from mglev+1 to mglev
+        addInterpCorrection(amrlev, mglev); // interp from mglev+1 to mglev
 
         MultiFab tmp(cor[amrlev][mglev].boxArray(),
                      cor[amrlev][mglev].DistributionMap(),
@@ -362,7 +362,7 @@ MLMG::interpCorrection (int alev)
 }
 
 void
-MLMG::interpCorrection (int alev, int mglev)
+MLMG::addInterpCorrection (int alev, int mglev)
 {
     const MultiFab& crse_cor = cor[alev][mglev+1];
     MultiFab&       fine_cor = cor[alev][mglev  ];

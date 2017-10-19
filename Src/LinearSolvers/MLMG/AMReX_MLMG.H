@@ -99,7 +99,7 @@ private:
     void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
     void computeResWithCrseCorFineCor (int fine_amr_lev);
     void interpCorrection (int alev);
-    void interpCorrection (int alev, int mglev);
+    void addInterpCorrection (int alev, int mglev);
 
     void computeResOfCorrection (int amrlev, int mglev);
 
