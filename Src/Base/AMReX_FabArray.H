@@ -1619,7 +1619,15 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #endif
 	    for (int j=0; j<N_snds; ++j)
 	    {
+#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_AWARE_MPI
 		char* dptr = send_data[j];
+#else
+                char* dptr = (char*) Device::get_host_pointer(send_data[j]);
+#endif
+#else
+                char* dptr = send_data[j];
+#endif
                 if (dptr != nullptr)
                 {
                     auto const& cctc = *send_cctc[j];
@@ -1828,7 +1836,15 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #endif
                 for (int k = 0; k < N_rcvs; ++k)
 		{
+#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_AWARE_MPI
 		    const char* dptr = recv_data[k];
+#else
+                    const char* dptr = (char*) Device::get_host_pointer(recv_data[k]);
+#endif
+#else
+                    const char* dptr = recv_data[k];
+#endif
                     if (dptr != nullptr)
                     {
                         auto const& cctc = *recv_cctc[k];
