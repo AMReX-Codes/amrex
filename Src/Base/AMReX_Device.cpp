@@ -58,72 +58,75 @@ amrex::Device::initialize_device() {
 
 #if (defined(NVML) && defined(BL_USE_MPI))
 
-    nvmlReturn_t nvml_err;
+    // Temporary character buffer for CUDA/NVML APIs.
+    unsigned int char_length = 256;
+    char c[char_length];
 
-    nvml_err = nvmlInit();
+    NvmlAPICheck(nvmlInit());
+
+    // Count the number of NVML visible devices.
 
     unsigned int nvml_device_count;
-    nvml_err = nvmlDeviceGetCount(&nvml_device_count);
+    NvmlAPICheck(nvmlDeviceGetCount(&nvml_device_count));
 
-    int cuda_device_count;
-    cudaGetDeviceCount(&cuda_device_count);
+    if (nvml_device_count <= 0)
+        return;
 
-    // Get total number of GPUs seen by all ranks.
+    // Get the PCI bus ID and UUID for each NVML visible device.
 
-    total_count = (int) nvml_device_count;
+    std::vector<std::string> nvml_PCI_ids;
+    std::vector<std::string> nvml_UUIDs;
 
-    amrex::ParallelDescriptor::ReduceIntSum(total_count);
-
-    total_count = total_count / n_procs;
-
-    std::map<std::string, int> device_uuid;
-
-    unsigned int char_length = 256;
-    char uuid[char_length];
-
-    std::string s;
-
-    for (unsigned int i = 0; i < nvml_device_count; ++i) {
+    for (int i = 0; i < nvml_device_count; ++i) {
 
 	nvmlDevice_t handle;
-	nvml_err = nvmlDeviceGetHandleByIndex(i, &handle);
+	NvmlAPICheck(nvmlDeviceGetHandleByIndex(i, &handle));
 
-	nvml_err = nvmlDeviceGetUUID(handle, uuid, char_length);
-	s = uuid;
+	NvmlAPICheck(nvmlDeviceGetUUID(handle, c, char_length));
+	nvml_UUIDs.push_back(std::string(c));
 
-        bool present = false;
+        nvmlPciInfo_t pci_info;
+        NvmlAPICheck(nvmlDeviceGetPciInfo(handle, &pci_info));
+        nvml_PCI_ids.push_back(std::string(pci_info.busId));
 
-        if (device_uuid.find(s) != device_uuid.end())
-            present = true;
+    }
 
-	if (present) {
+    // Count the number of CUDA visible devices.
 
-	    device_uuid[s] += 1;
+    int cuda_device_count;
+    CudaAPICheck(cudaGetDeviceCount(&cuda_device_count));
 
-	} else {
+    if (cuda_device_count <= 0)
+        return;
 
-            // Add this device to our list, but only if it's
-            // visible to CUDA.
+    // Get the PCI bus ID for each CUDA visible device.
 
-            nvmlPciInfo_t pci_info;
-            nvml_err = nvmlDeviceGetPciInfo(handle, &pci_info);
+    std::vector<std::string> cuda_PCI_ids;
 
-            char bus_id[char_length];
+    for (int cuda_device = 0; cuda_device < cuda_device_count; ++cuda_device) {
 
-            for (int cuda_device = 0; cuda_device < cuda_device_count; ++cuda_device) {
+        CudaAPICheck(cudaDeviceGetPCIBusId(c, char_length, cuda_device));
 
-                CudaAPICheck(cudaDeviceGetPCIBusId(bus_id, char_length, cuda_device));
-                CudaAPICheck(cudaDeviceReset());
+        // Reset the device after accessing it; this is necessary
+        // if the device is using exclusive process mode (without MPS).
 
-                std::string s_n(pci_info.busId);
-                std::string s_c(bus_id);
+        CudaAPICheck(cudaDeviceReset());
 
-                if (s_c == s_n) {
-                    device_uuid[s] = 1;
-                    break;
-                }
+        cuda_PCI_ids.push_back(std::string(c));
 
-            }
+    }
+
+    // Using the PCI bus ID as a translation factor,
+    // figure out the UUIDs of the CUDA visible devices.
+
+    std::vector<std::string> cuda_UUIDs;
+
+    for (unsigned int nvml_device = 0; nvml_device < nvml_device_count; ++nvml_device) {
+
+        for (int cuda_device = 0; cuda_device < cuda_device_count; ++cuda_device) {
+
+            if (cuda_PCI_ids[cuda_device] == nvml_PCI_ids[nvml_device])
+                cuda_UUIDs.push_back(nvml_UUIDs[nvml_device]);
 
         }
 
@@ -132,18 +135,18 @@ amrex::Device::initialize_device() {
     // Gather the list of device UUID's from all ranks. For simplicitly we'll
     // assume that every rank sees the same number of devices and every device
     // UUID has the same number of characters; this assumption could be lifted
-    // later in situations with unequal distributions of devices per node.
+    // later in situations with unequal distributions of devices per node/rank.
 
-    int strlen = s.size();
+    int strlen = cuda_UUIDs[0].size();
     int len = cuda_device_count * strlen;
 
     char sendbuf[len];
     char recvbuf[n_procs][len];
 
     int i = 0;
-    for (auto it = device_uuid.begin(); it != device_uuid.end(); ++it) {
+    for (std::string s : cuda_UUIDs) {
         for (int j = 0; j < strlen; ++j) {
-            sendbuf[i * strlen + j] = it->first[j];
+            sendbuf[i * strlen + j] = s[j];
         }
         ++i;
     }
@@ -154,14 +157,12 @@ amrex::Device::initialize_device() {
 
     std::map<std::string, std::vector<int>> uuid_to_rank;
 
-    for (auto it = device_uuid.begin(); it != device_uuid.end(); ++it) {
-        it->second = 0;
+    for (std::string s : cuda_UUIDs) {
         for (int i = 0; i < n_procs; ++i) {
             for (int j = 0; j < cuda_device_count; ++j) {
                 std::string temp_s(&recvbuf[i][j * strlen], strlen);
-                if (it->first == temp_s) {
-                    it->second += 1;
-                    uuid_to_rank[it->first].push_back(i);
+                if (s == temp_s) {
+                    uuid_to_rank[s].push_back(i);
                 }
             }
         }
@@ -171,7 +172,9 @@ amrex::Device::initialize_device() {
     // to assign MPI ranks to GPUs. We will arbitrarily assign
     // ranks to GPUs. It would be nice to do better here and be
     // socket-aware, but this is complicated to get right. It is
-    // better for this to be offloaded to the job launcher.
+    // better for this to be offloaded to the job launcher. Note that
+    // the logic here will still work even if there's only one GPU
+    // visible to each rank.
 
     device_id = -1;
     int j = 0;
@@ -193,6 +196,14 @@ amrex::Device::initialize_device() {
 #endif
 
     ParallelDescriptor::Barrier();
+
+    // Get total number of GPUs seen by all ranks.
+
+    total_count = (int) nvml_device_count;
+
+    amrex::ParallelDescriptor::ReduceIntSum(total_count);
+
+    total_count = total_count / n_procs;
 
     initialize_cuda(&device_id, &my_rank, &total_count, &n_procs, &ioproc, &verbose);
 
