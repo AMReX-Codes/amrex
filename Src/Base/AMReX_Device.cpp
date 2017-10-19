@@ -53,8 +53,6 @@ amrex::Device::initialize_device() {
 
     int total_count = 1;
 
-#ifdef BL_USE_MPI
-
     // Temporary character buffer for CUDA/NVML APIs.
     unsigned int char_length = 256;
     char c[char_length];
@@ -148,7 +146,13 @@ amrex::Device::initialize_device() {
         ++i;
     }
 
+#ifdef BL_USE_MPI
     MPI_Allgather(sendbuf, len, MPI_CHAR, recvbuf, len, MPI_CHAR, MPI_COMM_WORLD);
+#else
+    for (int j = 0; j < len; ++j) {
+        recvbuf[0][j] = sendbuf[j];
+    }
+#endif
 
     // Count up the number of ranks that share each GPU, and record their rank number.
 
@@ -189,8 +193,6 @@ amrex::Device::initialize_device() {
     }
     if (device_id == -1 || device_id >= cuda_device_count)
         amrex::Abort("Could not associate MPI rank with GPU");
-
-#endif
 
     ParallelDescriptor::Barrier();
 
