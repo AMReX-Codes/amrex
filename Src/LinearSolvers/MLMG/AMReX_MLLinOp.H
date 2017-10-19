@@ -96,9 +96,9 @@ protected:
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                 const MacBndry* bndry=nullptr) const;
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
-                  const MacBndry* bndry=nullptr) const;
+                  const MacBndry* bndry=nullptr, bool skip_fillboundary=false) const;
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                 BCMode bc_mode = BCMode::Homogeneous) const;
+                 BCMode bc_mode = BCMode::Homogeneous, bool skip_fillboundary=false) const;
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& fine_sol) const;
 
     virtual void prepareForSolve () = 0;
