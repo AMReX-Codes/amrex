@@ -42,6 +42,8 @@ void
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_real, Real a_tol_abs)
 {
+    BL_PROFILE("MLMG::solve()");
+
     Real solve_start_time = ParallelDescriptor::second();
 
     prepareForSolve(a_sol, a_rhs);
@@ -147,6 +149,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 void
 MLMG::oneIter (int iter)
 {
+    BL_PROFILE("MLMG::oneIter()");
+
     for (int alev = finest_amr_lev; alev > 0; --alev)
     {
         miniCycle(alev);
@@ -208,6 +212,8 @@ MLMG::oneIter (int iter)
 void
 MLMG::computeMLResidual (int amrlevmax, bool bndryregister_updated)
 {
+    BL_PROFILE("MLMG::computeMLResidual()");
+
     const int mglev = 0;
     for (int alev = amrlevmax; alev >= 0; --alev) {
         const MultiFab* crse_bcdata = nullptr;
@@ -225,6 +231,8 @@ MLMG::computeMLResidual (int amrlevmax, bool bndryregister_updated)
 void
 MLMG::computeResidual (int alev)
 {
+    BL_PROFILE("MLMG::computeResidual()");
+
     MultiFab& x = *sol[alev];
     const MultiFab& b = rhs[alev];
     MultiFab& r = res[alev][0];
@@ -240,6 +248,8 @@ MLMG::computeResidual (int alev)
 void
 MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 {
+    BL_PROFILE("MLMG::computeResWithCrseSolFineCor()");
+
     MultiFab& crse_sol = *sol[calev];
     const MultiFab& crse_rhs = rhs[calev];
     MultiFab& crse_res = res[calev][0];
@@ -268,6 +278,8 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 void
 MLMG::computeResWithCrseCorFineCor (int falev)
 {
+    BL_PROFILE("MLMG::computeResWithCrseCorFineCor()");
+
     const MultiFab& crse_cor = *cor[falev-1][0];
 
     MultiFab& fine_cor = *cor[falev][0];
@@ -283,6 +295,7 @@ MLMG::computeResWithCrseCorFineCor (int falev)
 void
 MLMG::miniCycle (int amrlev)
 {
+    BL_PROFILE("MLMG::miniCycle()");
     const int mglev = 0;
     mgVcycle(amrlev, mglev);
 }
@@ -292,8 +305,14 @@ MLMG::miniCycle (int amrlev)
 void
 MLMG::mgVcycle (int amrlev, int mglev_top)
 {
+    BL_PROFILE("MLMG::mgVcycle()");
+    BL_PROFILE_VAR_NS("MLMG::mgVcycle_up", blp_up);
+    BL_PROFILE_VAR_NS("MLMG::mgVcycle_bottom", blp_bottom);
+    BL_PROFILE_VAR_NS("MLMG::mgVcycle_down", blp_down);
+
     const int mglev_bottom = linop.NMGLevels(amrlev) - 1;
 
+    BL_PROFILE_VAR_START(blp_down);
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
         cor[amrlev][mglev]->setVal(0.0);
@@ -311,7 +330,9 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         const int ratio = 2;
         amrex::average_down(rescor[amrlev][mglev], res[amrlev][mglev+1], 0, 1, ratio);
     }
+    BL_PROFILE_VAR_STOP(blp_down);
 
+    BL_PROFILE_VAR_START(blp_bottom);
     if (amrlev == 0)
     {
         bottomSolve();
@@ -326,8 +347,10 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
             skip_fillboundary = false;
         }
     }
+    BL_PROFILE_VAR_STOP(blp_bottom);
     
-    for (int mglev = mglev_bottom-1; mglev >= 0; --mglev)
+    BL_PROFILE_VAR_START(blp_up);
+    for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
@@ -335,6 +358,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
         }
     }
+    BL_PROFILE_VAR_STOP(blp_up);
 }
 
 // FMG cycle on the coarest AMR level.
@@ -343,6 +367,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
 void
 MLMG::mgFcycle ()
 {
+    BL_PROFILE("MLMG::mgFcycle()");
+
     const int amrlev = 0;
     const int ratio = 2;
     const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
@@ -375,6 +401,8 @@ MLMG::mgFcycle ()
 void
 MLMG::interpCorrection (int alev)
 {
+    BL_PROFILE("MLMG::interpCorrection_1");
+
     const MultiFab& crse_cor = *cor[alev-1][0];
     MultiFab& fine_cor = *cor[alev][0];
 
@@ -405,6 +433,8 @@ MLMG::interpCorrection (int alev)
 void
 MLMG::interpCorrection (int alev, int mglev)
 {
+    BL_PROFILE("MLMG::interpCorrection_2");
+
     MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab& fine_cor = *cor[alev][mglev  ];
     const Geometry& crse_geom = linop.Geom(alev,mglev+1);
@@ -436,6 +466,8 @@ MLMG::interpCorrection (int alev, int mglev)
 void
 MLMG::addInterpCorrection (int alev, int mglev)
 {
+    BL_PROFILE("MLMG::addInterpCorrection()");
+
     const MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab&       fine_cor = *cor[alev][mglev  ];
 #ifdef _OPENMP
@@ -463,6 +495,7 @@ MLMG::addInterpCorrection (int alev, int mglev)
 void
 MLMG::computeResOfCorrection (int amrlev, int mglev)
 {
+    BL_PROFILE("MLMG:computeResOfCorrection()");
     MultiFab& x = *cor[amrlev][mglev];
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
@@ -475,6 +508,8 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
 void
 MLMG::bottomSolve ()
 {
+    BL_PROFILE("MLMG::bottomSolve()");
+
     Real bottom_start_time = ParallelDescriptor::second();
 
     const int amrlev = 0;
@@ -523,6 +558,7 @@ MLMG::bottomSolve ()
 Real
 MLMG::ResNormInf (int alev, bool local)
 {
+    BL_PROFILE("MLMG::ResNormInf()");
     const int mglev = 0;
     if (alev < finest_amr_lev) {
         return res[alev][mglev].norm0(fine_mask[alev],0,0,local);
@@ -535,6 +571,7 @@ MLMG::ResNormInf (int alev, bool local)
 Real
 MLMG::MLResNormInf (int alevmax, bool local)
 {
+    BL_PROFILE("MLMG::MLResNormInf()");
     const int mglev = 0;
     Real r = 0.0;
     for (int alev = 0; alev <= alevmax; ++alev)
@@ -549,6 +586,7 @@ MLMG::MLResNormInf (int alevmax, bool local)
 Real
 MLMG::MLRhsNormInf (bool local)
 {
+    BL_PROFILE("MLMG::MLRhsNormInf()");
     Real r = 0.0;
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
@@ -564,6 +602,8 @@ MLMG::MLRhsNormInf (bool local)
 void
 MLMG::buildFineMask ()
 {
+    BL_PROFILE("MLMG::buildFineMask()");
+
     fine_mask.clear();
     fine_mask.resize(namrlevs-1);
     
@@ -596,6 +636,8 @@ MLMG::buildFineMask ()
 void
 MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs)
 {
+    BL_PROFILE("MLMG::prepareForSolve()");
+
     AMREX_ASSERT(a_sol[0]->nGrow() > 0);
     AMREX_ASSERT(namrlevs <= a_sol.size());
     AMREX_ASSERT(namrlevs <= a_rhs.size());

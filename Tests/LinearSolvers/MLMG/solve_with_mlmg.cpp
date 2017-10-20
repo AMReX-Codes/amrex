@@ -22,6 +22,8 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
                       Vector<MultiFab>& rhs)
 {
+    BL_PROFILE("solve_with_mlmg");
+
     {
         ParmParse pp;
         pp.query("max_iter", max_iter);

@@ -1,5 +1,6 @@
 
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParmParse.H>
 
 #include <fort.H>
 #include <prob_par.H>
@@ -8,16 +9,27 @@ using namespace amrex;
 
 namespace prob {
 
-    const amrex::Real a     = 1.e-3;
-    const amrex::Real b     = 1.0;
-    const amrex::Real sigma = 10.0;
-    const amrex::Real w     = 0.05;
+    amrex::Real a     = 1.e-3;
+    amrex::Real b     = 1.0;
+    amrex::Real sigma = 10.0;
+    amrex::Real w     = 0.05;
 
 }
+
+using namespace prob;
 
 void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<MultiFab>& beta,
                 Vector<MultiFab>& rhs, Vector<MultiFab>& exact)
 {
+    {
+        ParmParse pp("prob");
+        pp.query("a"    , a);
+        pp.query("b"    , b);
+        pp.query("sigma", sigma);
+        pp.query("w"    , w);
+    }
+
+
     const int nlevels = geom.size();
 #ifdef _OPENMP
 #pragma omp parallel
@@ -37,7 +49,7 @@ void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<Mu
                           BL_TO_FORTRAN_ANYD(beta[ilev][mfi]),
                           BL_TO_FORTRAN_ANYD(rhs[ilev][mfi]),
                           dx, problo, probhi,
-                          &prob::a, &prob::b, &prob::sigma, &prob::w);
+                          &a, &b, &sigma, &w);
         }
     }
 }
