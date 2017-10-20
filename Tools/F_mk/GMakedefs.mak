@@ -101,6 +101,11 @@ ifdef CUDA
   FPPFLAGS += -DCUDA
 endif
 
+ifdef BL_USE_F_BASELIB
+  CPPFLAGS += -DBL_USE_F_BASELIB
+  FPPFLAGS += -DBL_USE_F_BASELIB
+endif
+
 F_C_LINK := UNDERSCORE
 
 odir=.
