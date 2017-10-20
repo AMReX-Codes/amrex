@@ -54,15 +54,14 @@ subroutine initdata(level, time, lo, hi, &
        &                                 phi_lo(3):phi_hi(3))
   double precision, intent(in) :: dx(3), prob_lo(3)
 
-  integer          :: dm
   integer          :: i,j,k
   double precision :: xlo,ylo,xhi,yhi,zlo,zhi, pi, denom, integralval
   
   pi = 4.d0*atan(1.0)
   if(dim.eq.2) then
-     denom = 1.0d0/(dx(1)*dx(2)*pi)
+     denom = (dx(1)*dx(2)*pi*pi*4.0d0)
   else
-     denom = 1.0d0/(dx(1)*dx(2)*dx(3)*pi)
+     denom = (dx(1)*dx(2)*dx(3)*pi*pi*pi*8.0d0)
   endif
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
@@ -78,9 +77,9 @@ subroutine initdata(level, time, lo, hi, &
            xhi = pi*dx(1)*(i+1)
 
            if(dim .eq. 2) then
-              integralval = (cos(xlo) - cos(xhi))*(cos(ylo) - cos(yhi))
+              integralval = (cos(2.d0*xlo) - cos(2.d0*xhi))*(cos(2.d0*ylo) - cos(2.d0*yhi))
            else
-              integralval = (cos(xlo) - cos(xhi))*(cos(ylo) - cos(yhi))*(cos(zlo) - cos(zhi))
+              integralval = (cos(2.d0*xlo) - cos(2.d0*xhi))*(cos(2.d0*ylo) - cos(2.d0*yhi))*(cos(2.d0*zlo) - cos(2.d0*zhi))
            end if
            
            phi(i,j,k) = integralval/denom
