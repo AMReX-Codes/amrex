@@ -19,6 +19,8 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap)
 {
+    BL_PROFILE("MLABecLaplacian::define()");
+
     MLLinOp::define(a_geom, a_grids, a_dmap);
 
     m_a_coeffs.resize(m_num_amr_levels);
@@ -128,6 +130,8 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 void
 MLABecLaplacian::prepareForSolve ()
 {
+    BL_PROFILE("MLABecLaplacian::prepareForSolve()");
+
     averageDownCoeffs();
 
     m_Anorm.resize(m_num_amr_levels);
@@ -140,6 +144,8 @@ MLABecLaplacian::prepareForSolve ()
 void
 MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
+    BL_PROFILE("MLABecLaplacian::Fapply()");
+
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
@@ -175,6 +181,8 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 void
 MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
+    BL_PROFILE("MLABecLaplacian::Fsmooth()");
+
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
@@ -301,6 +309,8 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
                         std::array<FArrayBox,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only) const
 {
+    BL_PROFILE("MLABecLaplacian::FFlux()");
+
     const int mglev = 0;
     AMREX_D_TERM(const auto& bx = m_b_coeffs[amrlev][mglev][0][mfi];,
                  const auto& by = m_b_coeffs[amrlev][mglev][1][mfi];,
@@ -322,6 +332,8 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
 Real
 MLABecLaplacian::Anorm (int amrlev, int mglev) const
 {
+    BL_PROFILE("MLABecLaplacian::Anorm()");
+
     if (m_Anorm[amrlev][mglev] < 0.0)
     {
         const MultiFab& acoef = m_a_coeffs[amrlev][mglev];

@@ -30,6 +30,8 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
     
     {
+        BL_PROFILE("main()");
+
         ParmParse pp;
         pp.query("max_level", max_level);
         nlevels = max_level + 1;
