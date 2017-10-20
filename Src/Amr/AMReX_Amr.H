@@ -15,6 +15,10 @@
 
 #include <AMReX_AmrCore.H>
 
+#ifdef AMREX_USE_CATALYST
+class vtkCPProcessor;
+#endif
+
 namespace amrex {
 
 class AmrLevel;
@@ -306,6 +310,10 @@ public:
     void RedistributeParticles ();
 #endif
 
+#ifdef AMREX_USE_CATALYST
+    void computeInSitu ();
+#endif
+
     void InstallNewDistributionMap (int lev, const DistributionMapping& newdm);
 
     void AddProcsToSidecar(int nSidecarProcs, int prevSidecarProcs);
@@ -453,6 +461,10 @@ protected:
     static Vector<BoxArray> initial_ba;
     //! Array of BoxArrays read in to externally define grid hierarchy at each regrid
     static Vector<BoxArray> regrid_ba;
+
+#ifdef AMREX_USE_CATALYST
+  vtkCPProcessor* catalyst;
+#endif
 
 public:
 

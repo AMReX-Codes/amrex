@@ -53,6 +53,28 @@
 #include <DatasetClient.H>
 #endif
 
+#ifdef AMREX_USE_CATALYST
+#include <vtkAMRBox.h>
+#include <vtkAMRInformation.h> // maybe not necessary
+#include <vtkCellData.h>
+#include <vtkCommunicator.h>
+#include <vtkCPDataDescription.h>
+#include <vtkCPInputDataDescription.h>
+#include <vtkCPProcessor.h>
+#include <vtkCPPythonScriptPipeline.h>
+#include <vtkDoubleArray.h>
+#include <vtkFloatArray.h>
+#include <vtkImageData.h>
+#include <vtkMultiBlockDataSet.h>
+#include <vtkMultiPieceDataSet.h>
+#include <vtkMultiProcessController.h>
+#include <vtkNew.h>
+#include <vtkOverlappingAMR.h>
+#include <vtkUniformGrid.h>
+#include <vtkUnsignedCharArray.h>
+#include <vector>
+#endif
+
 namespace amrex {
 
 //
@@ -94,7 +116,9 @@ namespace
     bool prereadFAHeaders;
     VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
     VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
-
+#ifdef AMREX_USE_CATALYST
+    std::list<std::string> catalyst_scripts;
+#endif
 }
 
 void
@@ -124,6 +148,10 @@ Amr::Initialize ()
 
     amrex::ExecOnFinalize(Amr::Finalize);
 
+#ifdef AMREX_USE_CATALYST
+    //catalyst_scripts.push_back("/global/cscratch1/sd/acbauer/Nyx/Nyx/Exec/LyA/gridwriter.py");
+    catalyst_scripts.push_back("catalyst.py");
+#endif
     initialized = true;
 }
 
@@ -196,6 +224,9 @@ Amr::derive (const std::string& name,
 Amr::Amr ()
     :
     AmrCore()
+#ifdef AMREX_USE_CATALYST
+    , catalyst(NULL)
+#endif
 {
     Initialize();
     InitAmr();
@@ -204,6 +235,9 @@ Amr::Amr ()
 Amr::Amr (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord)
     :
     AmrCore(rb,max_level_in,n_cell_in,coord)
+#ifdef AMREX_USE_CATALYST
+    , catalyst(NULL)
+#endif
 {
     Initialize();
     InitAmr();
@@ -468,6 +502,9 @@ Amr::InitAmr ()
 
     loadbalance_max_fac = 1.5;
     pp.query("loadbalance_max_fac", loadbalance_max_fac);
+#ifdef AMREX_USE_CATALYST
+    // ACB fill in catalyst_scripts...
+#endif
 }
 
 bool
@@ -652,6 +689,13 @@ Amr::deleteDeriveSmallPlotVar (const std::string& name)
 
 Amr::~Amr ()
 {
+#ifdef AMREX_USE_CATALYST
+  if (catalyst) {
+    catalyst->Finalize();
+    catalyst->Delete();
+    catalyst = NULL;
+  }
+#endif
     levelbld->variableCleanUp();
 
     Amr::Finalize();
@@ -1106,6 +1150,31 @@ Amr::init (Real strt_time,
 	probDomain[i] = Geom(i).Domain();
     }
     BL_COMM_PROFILE_INITAMR(finest_level, max_level, ref_ratio, probDomain);
+#endif
+
+#ifdef AMREX_USE_CATALYST
+    if (!catalyst_scripts.empty()) {
+      Real catalystInitTime0 = ParallelDescriptor::second();
+
+      catalyst = vtkCPProcessor::New();
+      catalyst->Initialize();
+      for (std::list<std::string>::iterator it=catalyst_scripts.begin();
+           it!=catalyst_scripts.end();it++)
+      {
+        vtkNew<vtkCPPythonScriptPipeline> pipeline;
+        pipeline->Initialize(it->c_str());
+        catalyst->AddPipeline(pipeline.GetPointer());
+      }
+      if (max_level == 0 && amr_level[0]->numGrids() == vtkMultiProcessController::GetGlobalController()->GetNumberOfProcesses()) {
+        amrex::Print() << "Catalyst adaptor will generate a Cartesian grid (i.e. vtkImageData)\n";
+      } else if (max_level == 0) {
+        amrex::Print() << "Catalyst adaptor will generate a multi-piece of Cartesian grids (i.e. vtkMultiPiece of vtkImageData)\n";
+      } else {
+        amrex::Print() << "Catalyst adaptor will generate an AMR grid (i.e. vtkOverlappingAMR)\n";
+      }
+      Real catalystInitTime = ParallelDescriptor::second() - catalystInitTime0;
+      amrex::Print() << "Catalyst initialization time is " << catalystInitTime << endl;
+    }
 #endif
     BL_PROFILE_REGION_STOP("Amr::init()");
 }
@@ -2186,6 +2255,10 @@ Amr::coarseTimeStep (Real stop_time)
         writeSmallPlotFile();
     }
 
+#ifdef AMREX_USE_CATALYST
+    computeInSitu();
+#endif
+
     bUserStopRequest = to_stop;
     if (to_stop)
     {
@@ -3117,6 +3190,234 @@ void
 Amr::RedistributeParticles ()
 {
     amr_level[0]->particle_redistribute(0,true);
+}
+#endif
+
+#ifdef AMREX_USE_CATALYST
+// Catalyst helper functions that don't need to be exposed
+namespace
+{
+void AddVTKDataArrayFromPointer(Real* data, Box fabbox, vtkImageData* grid, const std::string& name)
+{
+  int extent[6];
+  grid->GetExtent(extent);
+  if (sizeof(Real) == 4) {
+    vtkNew<vtkFloatArray> vtkdata;
+    vtkdata->SetNumberOfTuples(grid->GetNumberOfCells());
+    vtkdata->SetName(name.c_str());
+    int counter = 0;
+    int istart = extent[0] - fabbox.smallEnd(0);
+    int jstart = extent[2] - fabbox.smallEnd(1);
+    int kstart = extent[4] - fabbox.smallEnd(2);
+    int ilen = fabbox.bigEnd(0) - fabbox.smallEnd(0)+1;
+    int jlen = fabbox.bigEnd(1) - fabbox.smallEnd(1)+1;
+    for (int k=0;k<extent[5]-extent[4];k++) {
+      for (int j=0;j<extent[3]-extent[2];j++) {
+        for (int i=0;i<extent[1]-extent[0];i++) {
+          vtkdata->SetTypedTuple(counter, (float*)data+istart+i+(jstart+j)*ilen+(kstart+k)*(ilen*jlen));
+          counter++;
+        }
+      }
+    }
+    grid->GetCellData()->AddArray(vtkdata.GetPointer());
+  } else if (sizeof(Real) == 8) {
+    vtkNew<vtkDoubleArray> vtkdata;
+    vtkdata->SetNumberOfTuples(grid->GetNumberOfCells());
+    vtkdata->SetName(name.c_str());
+    int counter = 0;
+    int istart = extent[0] - fabbox.smallEnd(0);
+    int jstart = extent[2] - fabbox.smallEnd(1);
+    int kstart = extent[4] - fabbox.smallEnd(2);
+    int ilen = fabbox.bigEnd(0) - fabbox.smallEnd(0)+1;
+    int jlen = fabbox.bigEnd(1) - fabbox.smallEnd(1)+1;
+    for (int k=0;k<extent[5]-extent[4];k++) {
+      for (int j=0;j<extent[3]-extent[2];j++) {
+        for (int i=0;i<extent[1]-extent[0];i++) {
+          vtkdata->SetTypedTuple(counter, (double*)data+istart+i+(jstart+j)*ilen+(kstart+k)*(ilen*jlen));
+          counter++;
+        }
+      }
+    }
+    grid->GetCellData()->AddArray(vtkdata.GetPointer());
+  }
+}
+}
+void
+Amr::computeInSitu()
+{
+  if (catalyst) {
+    Real catalystProcessTime0 = ParallelDescriptor::second();
+    vtkNew<vtkCPDataDescription> dataDescription;
+    dataDescription->AddInput("input");
+    vtkIdType dd = levelSteps(0);
+    dataDescription->SetTimeData(cumtime, dd);
+    if (catalyst->RequestDataDescription(dataDescription.GetPointer())) {
+      // make grid
+      vtkMultiProcessController* controller = vtkMultiProcessController::GetGlobalController();
+      int myRank = controller->GetLocalProcessId();
+      int numProcs = controller->GetNumberOfProcesses();
+      vtkCPInputDataDescription* inputDataDescription = dataDescription->GetInputDescriptionByName("input");
+      if (max_level == 0) {
+        int numGrids = amr_level[0]->numGrids();
+#ifdef CATALYST_IMAGEDATA
+        if (numGrids == numProcs) {
+          // no refinement and one block per MPI rank so use vtkImageData
+          vtkNew<vtkImageData> grid;
+          inputDataDescription->SetGrid(grid.GetPointer());
+          const Box& domain = this->getLevel(0).Domain();
+          const RealBox& probDomain = this->Geom(0).ProbDomain();
+          double spacing[3] = {0, 0, 0};
+          int wholeExtent[6] = {0, 0, 0, 0, 0, 0};
+          for (int i=0;i<BL_SPACEDIM;i++) {
+            spacing[i] = (probDomain.hi(i) - probDomain.lo(i)) / (domain.bigEnd(i) - domain.smallEnd(i) + 1);
+            wholeExtent[2*i] = domain.smallEnd(i);
+            wholeExtent[2*i+1] = domain.bigEnd(i)+1;
+          }
+          grid->SetSpacing(spacing);
+          double globalOrigin[3] = {probDomain.lo(0), probDomain.lo(1), probDomain.lo(2)};
+          grid->SetOrigin(globalOrigin);
+          int extent[6];
+          for (int e=0;e<3;e++) {
+            extent[2*e] = amr_level[0]->boxArray()[myRank].smallEnd(e);
+            extent[2*e+1] = amr_level[0]->boxArray()[myRank].bigEnd(e)+1;
+          }
+          grid->SetExtent(extent);
+          MultiFab& mfab = amr_level[0]->get_new_data(0); // acbauer check on get_new_data(0) arg -- i think it is the current time step
+          AddVTKDataArrayFromPointer(mfab[myRank].dataPtr(0), mfab[myRank].box(), grid.GetPointer(), "simdata");
+          inputDataDescription->SetWholeExtent(wholeExtent);
+          printf("vtkImageData----------- ACB on %d numgrids %d extent %d %d %d %d %d %d whole %d %d %d %d %d %d\n", myRank, numGrids, extent[0], extent[1], extent[2], extent[3], extent[4], extent[5], wholeExtent[0], wholeExtent[1], wholeExtent[2], wholeExtent[3], wholeExtent[4], wholeExtent[5]);
+        }
+        else
+#endif
+        {
+          // if max_level == 0 but different number of blocks than MPI processes
+          // no refinement but not one block per MPI rank so use multipiece
+          printf("vtkMultiPiece----------- ACB on %d numgrids %d\n", myRank, numGrids);
+          vtkNew<vtkMultiBlockDataSet> multiBlock;
+          multiBlock->SetNumberOfBlocks(1);
+          vtkNew<vtkMultiPieceDataSet> multiPiece;
+          multiBlock->SetBlock(0, multiPiece.GetPointer());
+          multiPiece->SetNumberOfPieces(numGrids);
+          inputDataDescription->SetGrid(multiBlock.GetPointer());
+          const Box& domain = this->getLevel(0).Domain();
+          const RealBox& probDomain = this->Geom(0).ProbDomain();
+          double globalOrigin[3] = {probDomain.lo(0), probDomain.lo(1), probDomain.lo(2)};
+          double spacing[3] = {0, 0, 0};
+          for (int i=0;i<BL_SPACEDIM;i++) {
+            spacing[i] = (probDomain.hi(i) - probDomain.lo(i)) / (domain.bigEnd(i) - domain.smallEnd(i) + 1);
+          }
+          MultiFab& mfab = amr_level[0]->get_new_data(0); // acbauer check on get_new_data(0) arg -- i think it is the current time step
+          for (MFIter mfi(mfab); mfi.isValid(); ++mfi)
+          {
+            vtkNew<vtkImageData> grid;
+            grid->SetSpacing(spacing);
+            grid->SetOrigin(globalOrigin);
+            int extent[6];
+            for (int e=0;e<3;e++) {
+              extent[2*e] = amr_level[0]->boxArray()[mfi.index()].smallEnd(e);
+              extent[2*e+1] = amr_level[0]->boxArray()[mfi.index()].bigEnd(e)+1;
+            }
+            grid->SetExtent(extent);
+            // grid->SetExtent(mfi.fabbox().smallEnd(0), mfi.fabbox().bigEnd(0)+1,
+            //                 mfi.fabbox().smallEnd(1), mfi.fabbox().bigEnd(1)+1,
+            //                 mfi.fabbox().smallEnd(2), mfi.fabbox().bigEnd(2)+1);
+            AddVTKDataArrayFromPointer(mfab[mfi].dataPtr(0), mfi.fabbox(), grid.GetPointer(), "simdata");
+            multiPiece->SetPiece(mfi.index(), grid.GetPointer());
+            //printf("vtkMultiPiece ----------- ACB on %d numgrids %d extent %d %d %d %d %d %d otherextent %d %d %d %d %d %d\n", myRank, numGrids, extent[0], extent[1], extent[2], extent[3], extent[4], extent[5], otherextent[0], otherextent[1], otherextent[2], otherextent[3], otherextent[4], otherextent[5]);
+          }
+        }
+      } else {
+        // assuming we'll have AMR refinement at some point
+        std::vector<int> numBlocks(finest_level+1);
+        for (int level=0; level <= finest_level; ++level) {
+          numBlocks[level] = amr_level[level]->numGrids();
+        }
+        vtkNew<vtkOverlappingAMR> grid;
+        grid->Initialize(finest_level+1, &numBlocks[0]);
+        grid->SetGridDescription(VTK_XYZ_GRID); // 3D grid
+        // compute global bounding box
+        const Box& domain = this->getLevel(0).Domain();
+        const RealBox& probDomain = this->Geom(0).ProbDomain();
+        double coarseSpacing[3] = {0, 0, 0};
+        for (int i=0;i<BL_SPACEDIM;i++) {
+          coarseSpacing[i] = (probDomain.hi(i) - probDomain.lo(i)) / (domain.bigEnd(i) - domain.smallEnd(i) + 1);
+        }
+        double globalOrigin[3] = {probDomain.lo(0), probDomain.lo(1), probDomain.lo(2)};
+        grid->SetOrigin(globalOrigin);
+        for (int level=0; level <= finest_level; ++level) {
+          int numGridsAtLevel = amr_level[level]->numGrids();
+          double spacing[3] = {coarseSpacing[0]/std::pow(2, level),
+                               coarseSpacing[1]/std::pow(2, level),
+                               coarseSpacing[2]/std::pow(2, level)}; // acbauer -- this could be pow(4,level+1) instead of 2 depending on refinement ratio
+          grid->GetAMRInfo()->SetSpacing(level, spacing);
+          grid->GetAMRInfo()->SetRefinementRatio(level, 2); // acbauer -- could be 4 also
+          for (int g=0;g<numGridsAtLevel;g++) {
+            int cellExtents[6];
+            for (int ce=0;ce<3;ce++) {
+              cellExtents[2*ce] = amr_level[level]->boxArray()[g].smallEnd(ce);
+              cellExtents[2*ce+1] = amr_level[level]->boxArray()[g].bigEnd(ce);
+            }
+            vtkAMRBox vtkbox(cellExtents);
+            grid->GetAMRInfo()->SetAMRBox(level, g, vtkbox);
+          }
+        }
+        // after the following we should have the blanking set up for when we add the grids later
+        grid->GenerateParentChildInformation();
+
+        for (int level=0; level <= finest_level; ++level) {
+          MultiFab& mfab = amr_level[level]->get_new_data(0); // acbauer check on get_new_data(0) arg
+          //std::cerr << level << " ACB PPPPPPPPPPPPPPPPPPPPPPP prob domain " << probDomain << " domain " << domain << " numgrids " << amr_level[level]->numGrids() << std::endl;
+
+          double spacing[3] = {coarseSpacing[0]/std::pow(2, level),
+                               coarseSpacing[1]/std::pow(2, level),
+                               coarseSpacing[2]/std::pow(2, level)}; // acbauer -- this could be pow(4,level+1) instead of 2 depending on refinement ratio
+          for (MFIter mfi(mfab); mfi.isValid(); ++mfi)
+          {
+            //std::cerr << "ACB ============================ Amr::computeInSitu() level " << level << " index " << mfi.index() << std::endl;
+            vtkNew<vtkUniformGrid> uniformGrid;
+
+            uniformGrid->SetSpacing(spacing);
+            uniformGrid->SetOrigin(0, 0, 0); // acbauer get the origin too...
+            // BoxLib extents are with respect to cells and VTK extens are with respect to points
+            // uniformGrid->SetExtent(mfi.validbox().smallEnd(0), mfi.validbox().bigEnd(0)+1,
+            //                        mfi.validbox().smallEnd(1), mfi.validbox().bigEnd(1)+1,
+            //                        mfi.validbox().smallEnd(2), mfi.validbox().bigEnd(2)+1);
+            int extent[6];
+            for (int e=0;e<3;e++) {
+              extent[2*e] = amr_level[level]->boxArray()[mfi.index()].smallEnd(e);
+              extent[2*e+1] = amr_level[level]->boxArray()[mfi.index()].bigEnd(e)+1;
+            }
+            uniformGrid->SetExtent(extent);
+            // uniformGrid->SetExtent(mfi.fabbox().smallEnd(0), mfi.fabbox().bigEnd(0)+1,
+            //                        mfi.fabbox().smallEnd(1), mfi.fabbox().bigEnd(1)+1,
+            //                        mfi.fabbox().smallEnd(2), mfi.fabbox().bigEnd(2)+1);
+
+            grid->SetDataSet(level, mfi.index(), uniformGrid.GetPointer());
+            AddVTKDataArrayFromPointer(mfab[mfi].dataPtr(0), mfi.fabbox(), uniformGrid.GetPointer(), "simdata");
+           // GlobalDataAdaptor->SetValidBlockExtent(mfi.index(),
+            //                                        mfi.validbox().smallEnd(0), mfi.validbox().bigEnd(0),
+            //                                        mfi.validbox().smallEnd(1), mfi.validbox().bigEnd(1),
+            //                                        mfi.validbox().smallEnd(2), mfi.validbox().bigEnd(2));
+
+            // GlobalDataAdaptor->SetBlockData(mfi.index(), simulation_data[mfi].dataPtr(0));
+
+            // //std::cout << "Box " << mfi.index() << " overall min: " << simulation_data[mfi].min(0) << " valid box min: " << simulation_data[mfi].min(mfi.validbox(),0);
+            // //std::cout << " overall max: " << simulation_data[mfi].max(0) << " valid box max: " << simulation_data[mfi].max(mfi.validbox(),0) << std::endl;;
+
+            // GlobalDataAdaptor->SetBlockExtent(mfi.index(),
+            //                                   data_box.smallEnd(0), data_box.bigEnd(0),
+            //                                   data_box.smallEnd(1), data_box.bigEnd(1),
+            //                                   data_box.smallEnd(2), data_box.bigEnd(2));
+          } // end MFIter loop
+        } // end level loop
+        inputDataDescription->SetGrid(grid.GetPointer());
+      }
+
+      catalyst->CoProcess(dataDescription.GetPointer());
+    }
+    Real catalystProcessTime = ParallelDescriptor::second() - catalystProcessTime0;
+    amrex::Print() << "Catalyst process time is " << catalystProcessTime << endl;
+  }
 }
 #endif
 
