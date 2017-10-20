@@ -805,11 +805,14 @@ Amr::writePlotFile ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
-      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      if (verbose > 1) {
-          amrex::Print() << "IOIOIOIO:  precreating directories for " << pltfileTemp << "\n";
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  precreating directories for " << pltfileTemp << "\n";
       }
-      amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
+      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
+      amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
+      for(int i(0); i <= finest_level; ++i) {
+        amr_level[i]->CreateLevelDirectory(pltfileTemp);
+      }
     } else {
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
@@ -928,6 +931,9 @@ Amr::writeSmallPlotFile ()
     //  it to a bad suffix if there were stream errors.
     //
     if(precreateDirectories) {    // ---- make all directories at once
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  precreating directories for " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
@@ -1670,9 +1676,15 @@ Amr::checkPoint ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
+      if (verbose > 0) {
+        amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint::  precreating directories for "
+	               << ckfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
+        amrex::Print() << "IOIOIOIO:  Amr::checkPoint::  precreating directories for "
+	               << ckfileTemp << "  for level " << i << "\n";
         amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
