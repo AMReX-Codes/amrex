@@ -34,12 +34,7 @@ sys.path.insert(0, os.path.join( os.path.abspath(__file__), '../Python') )
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'breathe' ]
-
-# Path to the Doxygen output
-breathe_default_project = "WarpX"
-breathe_projects = { "WarpX": "../doxyxml" }
+    'sphinx.ext.githubpages' ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

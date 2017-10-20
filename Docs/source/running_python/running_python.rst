@@ -1,6 +1,7 @@
 Running WarpX from Python
 =========================
 
-.. warning::
+.. toctree::
+   :maxdepth: 1
 
-   This section is currently in development.
+   api_reference
