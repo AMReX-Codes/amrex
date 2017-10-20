@@ -27,7 +27,6 @@ public:
 
     void setPreSmooth (int n) { nu1 = n; }
     void setPostSmooth (int n) { nu2 = n; }
-    void setCtrRelax (int n) { nu0 = n; }
     void setFinalSmooth (int n) { nuf = n; }
     void setBottomSmooth (int n) { nub = n; }
 
@@ -44,7 +43,6 @@ private:
     int max_iters = 200;
     int do_fixed_number_of_iters = 0;
 
-    int nu0 = 1;   // center
     int nu1 = 2;   // pre
     int nu2 = 2;   // post
     int nuf = 8;   // when smoother is used as bottom solver
