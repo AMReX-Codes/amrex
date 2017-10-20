@@ -44,7 +44,6 @@ bool WarpX::serialize_ics     = false;
 bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
-Real WarpX::gamma_boost = std::numeric_limits<Real>::lowest();
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
