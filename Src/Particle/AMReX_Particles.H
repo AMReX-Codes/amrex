@@ -799,6 +799,11 @@ public:
     static bool do_tiling;
     static IntVect tile_size;
     
+    void SetLevelDirectoriesCreated(bool tf) {
+      levelDirectoriesCreated = tf;
+    }
+
+
 protected:
 
     //
@@ -843,6 +848,7 @@ protected:
     ParGDBBase* m_gdb;
     bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
+    bool        levelDirectoriesCreated;
     
 private:
     void AssignDensityDoit (int rho_index, 

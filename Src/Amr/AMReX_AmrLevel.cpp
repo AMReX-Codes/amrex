@@ -139,10 +139,16 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     std::vector<std::pair<int,int> > plot_var_map;
     for (int typ = 0; typ < desc_lst.size(); typ++)
+    {
         for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
+	{
             if (parent->isStatePlotVar(desc_lst[typ].name(comp)) &&
                 desc_lst[typ].getType() == IndexType::TheCellType())
+	    {
                 plot_var_map.push_back(std::pair<int,int>(typ,comp));
+	    }
+	}
+    }
 
     int n_data_items = plot_var_map.size();
 
@@ -212,19 +218,24 @@ AmrLevel::writePlotFile (const std::string& dir,
     // Now for the full pathname of that directory.
     //
     std::string FullPath = dir;
-    if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
+    if ( ! FullPath.empty() && FullPath[FullPath.size()-1] != '/')
+    {
         FullPath += '/';
+    }
     FullPath += sLevel;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
-    if (ParallelDescriptor::IOProcessor())
-        if (!amrex::UtilCreateDirectory(FullPath, 0755))
+    if ( ! levelDirectoryCreated) {
+      if (ParallelDescriptor::IOProcessor()) {
+        amrex::Print() << "IOIOIOIO:CD  AmrLevel::writePlotFile:  " << FullPath << "\n";
+        if ( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
             amrex::CreateDirectoryFailed(FullPath);
-    //
-    // Force other processors to wait till directory is built.
-    //
-    ParallelDescriptor::Barrier();
+	}
+      }
+      // Force other processors to wait until directory is built.
+      ParallelDescriptor::Barrier();
+    }
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -2128,13 +2139,15 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
 
     std::string LevelDir, FullPath;
     LevelDirectoryNames(dir, LevelDir, FullPath);
+    amrex::Print() << "IOIOIOIO:  AmrLevel::CreateLevelDirectory:  dir LevelDir FullPath = "
+                   << dir << "  " << LevelDir << "  " << FullPath << '\n';
 
     if(ParallelDescriptor::IOProcessor()) {
+      amrex::Print() << "IOIOIOIO:CD  AmrLevel::CreateLevelDirectory:  " << FullPath << "\n";
       if( ! amrex::UtilCreateDirectory(FullPath, 0755)) {
         amrex::CreateDirectoryFailed(FullPath);
       }
     }
-
     levelDirectoryCreated = true;
 }
 
