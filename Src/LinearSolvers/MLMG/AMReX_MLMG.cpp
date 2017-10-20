@@ -341,7 +341,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     {
         cor[amrlev][mglev_bottom]->setVal(0.0);
         bool skip_fillboundary = true;
-        for (int i = 0; i < nuf; ++i) {
+        for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom],
                          BCMode::Homogeneous, skip_fillboundary);
             skip_fillboundary = false;
