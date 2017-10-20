@@ -10,6 +10,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_NFiles.H>
 #include <AMReX_Print.H>
+#include <AMReX_ParmParse.H>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -35,10 +36,12 @@ int BLProfiler::currentStep = 0;
 const int defaultFlushSize = 8192000;
 int BLProfiler::csFlushSize = defaultFlushSize;
 int BLProfiler::traceFlushSize = defaultFlushSize;
+int BLProfiler::flushInterval = -1;
 int BLProfiler::nProfFiles  = 96;
 int BLProfiler::finestLevel = -1;
 int BLProfiler::maxLevel    = -1;
 
+Real BLProfiler::flushTimeInterval = -1.0;
 Real BLProfiler::pctTimeLimit = 5.0;
 Real BLProfiler::calcRunTime  = 0.0;
 Real BLProfiler::startTime    = 0.0;
@@ -221,7 +224,6 @@ void BLProfiler::Initialize() {
 
   Vector<char> fileCharPtr;
   bool bExitOnError(false);  // in case the file does not exist
-  //ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError, ParallelDescriptor::CommunicatorAll());
   ParallelDescriptor::ReadAndBcastFile(exFile, fileCharPtr, bExitOnError);
 
   CommStats::cftExclude.erase(AllCFTypes);
@@ -256,6 +258,13 @@ void BLProfiler::Initialize() {
 #endif
   }
   bInitialized = true;
+}
+
+
+void BLProfiler::InitParams() {
+  ParmParse pParse("blprofiler");
+  pParse.query("prof_nfiles", nProfFiles);
+  amrex::Print() << "PPPPPPPP::  nProfFiles = " << nProfFiles << std::endl;
 }
 
 
