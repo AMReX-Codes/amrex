@@ -440,26 +440,35 @@ MLMG::interpCorrection (int alev, int mglev)
     const Geometry& crse_geom = linop.Geom(alev,mglev+1);
     const Geometry& fine_geom = linop.Geom(alev,mglev  );
     crse_cor.FillBoundary(crse_geom.periodicity());
-    Vector<BCRec> bcr(1);
+    Vector<BCRec> domain_bcr(1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (crse_geom.isPeriodic(idim)) {
-            bcr[0].setLo(idim,BCType::int_dir);
-            bcr[0].setHi(idim,BCType::int_dir);
+            domain_bcr[0].setLo(idim,BCType::int_dir);
+            domain_bcr[0].setHi(idim,BCType::int_dir);
         } else {
-            bcr[0].setLo(idim,BCType::ext_dir);
-            bcr[0].setHi(idim,BCType::ext_dir);
+            domain_bcr[0].setLo(idim,BCType::ext_dir);
+            domain_bcr[0].setHi(idim,BCType::ext_dir);
         }
     }
+
+    // if it's 1d or 2d, we probably should just use pc because cell_cons_interp is volume weighted.
+    // - w.z.
+
     IntVect refratio{2};
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(fine_cor, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
-        amrex::cell_cons_interp.interp(crse_cor[mfi], 0, fine_cor[mfi], 0, 1,
-                                       mfi.tilebox(), refratio, crse_geom, fine_geom,
-                                       bcr, 0, 0);
-    }    
+        Vector<BCRec> bcr(1);
+        for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex::setBC(bx,fine_geom.Domain(),0,0,1,domain_bcr,bcr);
+            amrex::cell_cons_interp.interp(crse_cor[mfi], 0, fine_cor[mfi], 0, 1,
+                                           mfi.tilebox(), refratio, crse_geom, fine_geom,
+                                           bcr, 0, 0);
+        }
+    }
 }
 
 // (Fine MG level correction) += I(Coarse MG level correction)
