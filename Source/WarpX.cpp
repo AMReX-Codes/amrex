@@ -24,6 +24,10 @@ using namespace amrex;
 
 Vector<Real> WarpX::B_external(3, 0.0);
 
+Real WarpX::gamma_boost = 1.;
+Real WarpX::beta_boost = 0.;
+Vector<Real> WarpX::boost_direction(3, 0.0);
+
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
 long WarpX::field_gathering_algo = 1;
@@ -174,8 +178,22 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
 
-        pp.queryarr("B_external", B_external);
+        // Boosted-frame parameters
+        pp.query("gamma_boost", gamma_boost);
+        beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
+        pp.queryarr("boost_direction", boost_direction);
+        if( gamma_boost > 1. ){
+            // Read and normalize the boost direction
+            Real s = 1.0/std::sqrt(boost_direction[0]*boost_direction[0] +
+                                   boost_direction[1]*boost_direction[1] +
+                                   boost_direction[2]*boost_direction[2]);
+	    boost_direction = { boost_direction[0]*s,
+                                boost_direction[1]*s,
+                                boost_direction[2]*s };
+        }
         
+        pp.queryarr("B_external", B_external);
+
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
 	{

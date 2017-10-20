@@ -81,7 +81,11 @@ public:
     static bool do_boosted_frame_diagnostic;
     static int  num_snapshots_lab;
     static Real dt_snapshots_lab;
-    static Real gamma_boost;
+
+    // Boosted frame parameters
+    static amrex::Real gamma_boost;
+    static amrex::Real beta_boost;
+    static amrex::Vector<amrex::Real> boost_direction;
 
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}
