@@ -42,8 +42,8 @@ public:
 
 protected:
     AmrCore* m_amrcore;
-    Array<DistributionMapping> m_dmap;
-    Array<BoxArray>            m_ba;
+    Vector<DistributionMapping> m_dmap;
+    Vector<BoxArray>            m_ba;
 };
 
 inline 

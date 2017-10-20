@@ -20,7 +20,7 @@ MCViscBndry::setBndryConds (const BCRec& bc,
     for (OrientationIter fi; fi; ++fi)
     {
 	RealTuple &bloc = bcloc[fi()];
-	Array< Array<BoundCond> >& bctag = bcond[fi()];
+	Vector< Vector<BoundCond> >& bctag = bcond[fi()];
 	
 	int dir = fi().coordDir();
 	Real delta = dx[dir]*ratio;

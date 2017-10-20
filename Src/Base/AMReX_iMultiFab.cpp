@@ -401,8 +401,8 @@ iMultiFab::minIndex (int comp,
 
     if (NProcs > 1)
     {
-        Array<int> mns(1);
-        Array<int>  locs(1);
+        Vector<int> mns(1);
+        Vector<int>  locs(1);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -487,8 +487,8 @@ iMultiFab::maxIndex (int comp,
 
     if (NProcs > 1)
     {
-        Array<int> mxs(1);
-        Array<int>  locs(1);
+        Vector<int> mxs(1);
+        Vector<int>  locs(1);
 
         if (ParallelDescriptor::IOProcessor())
         {

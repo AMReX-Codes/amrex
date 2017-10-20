@@ -73,7 +73,7 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 				  int                 mf_start,
 				  int                 bnd_start,
 				  int                 num_comp,
-				  const Array<BCRec>& bc )
+				  const Vector<BCRec>& bc )
 {
     if (!bdfunc_set)
         bdfunc_init();
@@ -149,7 +149,7 @@ MCInterpBndryData::setBndryValues (const BndryRegister& crse,
 				   int                  bnd_start,
 				   int                  num_comp,
 				   int                  ratio,
-				   const Array<BCRec>&  bc)
+				   const Vector<BCRec>&  bc)
 {
     if (!bdfunc_set)
         bdfunc_init();

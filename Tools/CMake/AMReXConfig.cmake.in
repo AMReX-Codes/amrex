@@ -31,7 +31,7 @@ set (AMREX_CMAKE_DIR     @AMREX_CMAKE_DIR@)
 #
 # Compilation 
 #
-set (AMREX_DEFINES             "@AMREX_DEFINES@" )
+set (AMREX_DEFINES             @AMREX_DEFINES@ )
 set (AMREX_Fortran_FLAGS       "@AMREX_Fortran_FLAGS@")
 set (AMREX_Fortran_DEFINITIONS "@AMREX_Fortran_DEFINITIONS@")
 set (AMREX_CXX_FLAGS           "@AMREX_CXX_FLAGS@")
@@ -48,21 +48,76 @@ set (AMREX_EXTRA_CXX_LINK_LINE     "@AMREX_EXTRA_CXX_LINK_LINE@")
 
 
 # 
-# Code configuration options
+# Configuration options
 #
+
+# General options
+set (AMREX_DEBUG               @DEBUG@) 
+set (AMREX_DIM                 @DIM@)
 set (ENABLE_PIC                @ENABLE_PIC@)
-set (BL_SPACEDIM               @BL_SPACEDIM@)
 set (ENABLE_MPI                @ENABLE_MPI@)
 set (ENABLE_OMP                @ENABLE_OMP@)
 set (ENABLE_DP                 @ENABLE_DP@)
-set (ENABLE_PARTICLES          @ENABLE_PARTICLES@)
-set (ENABLE_DP_PARTICLES       @ENABLE_DP_PARTICLES@)
-set (ENABLE_PROFILING          @ENABLE_PROFILING@)
-set (ENABLE_TINY_PROFILING     @ENABLE_TINY_PROFILING@)
-set (ENABLE_TRACE_PROFILING    @ENABLE_TRACE_PROFILING@)
-set (ENABLE_COMM_PROFILING     @ENABLE_COMM_PROFILING@)
-set (ENABLE_BACKTRACE          @ENABLE_BACKTRACE@)
-set (ENABLE_ASSERTIONS         @ENABLE_ASSERTIONS@)
-set (ENABLE_FBASELIB           @ENABLE_FBASELIB@)
+
+# Components selection
 set (ENABLE_FORTRAN_INTERFACES @ENABLE_FORTRAN_INTERFACES@)
 set (ENABLE_LINEAR_SOLVERS     @ENABLE_LINEAR_SOLVERS@)
+set (ENABLE_FBASELIB           @ENABLE_FBASELIB@)
+set (ENABLE_AMRDATA            @ENABLE_AMRDATA@)
+set (ENABLE_PARTICLES          @ENABLE_PARTICLES@)
+set (ENABLE_DP_PARTICLES       @ENABLE_DP_PARTICLES@)
+
+# Compilation options 
+set (ENABLE_FPE                @ENABLE_FPE@)
+set (ENABLE_ASSERTION          @ENABLE_ASSERTION@)
+
+# Profiling options
+set (ENABLE_BASE_PROFILE       @ENABLE_BASE_PROFILE@)
+set (ENABLE_TINY_PROFILE       @ENABLE_TINY_PROFILE@)
+set (ENABLE_TRACE_PROFILE      @ENABLE_TRACE_PROFILE@)
+set (ENABLE_MEM_PROFILE        @ENABLE_MEM_PROFILE@)
+set (ENABLE_COMM_PROFILE       @ENABLE_COMM_PROFILE@)
+set (ENABLE_BACKTRACE          @ENABLE_BACKTRACE@)
+set (ENABLE_PROFPARSER         @ENABLE_PROFPARSER@)
+
+
+#
+# Add utility to print imported options if user wants to
+# 
+function ( echo_amrex_option var )
+   message ( STATUS "    ${var} = ${${var}}")
+endfunction ()
+
+function ( echo_amrex_config_options )
+
+   message (STATUS "AMReX configuration options: ")
+   
+   # General options
+   echo_amrex_option ( AMREX_DEBUG )
+   echo_amrex_option ( AMREX_DIM   )
+   echo_amrex_option ( ENABLE_PIC  )
+   echo_amrex_option ( ENABLE_MPI  )
+   echo_amrex_option ( ENABLE_OMP  )
+   echo_amrex_option ( ENABLE_DP   )
+
+   # Components selection
+   echo_amrex_option ( ENABLE_FORTRAN_INTERFACES )
+   echo_amrex_option ( ENABLE_LINEAR_SOLVERS     )
+   echo_amrex_option ( ENABLE_FBASELIB           )
+   echo_amrex_option ( ENABLE_AMRDATA            )
+   echo_amrex_option ( ENABLE_PARTICLES          )
+   echo_amrex_option ( ENABLE_DP_PARTICLES       )
+
+   # Compilation options 
+   echo_amrex_option ( ENABLE_FPE        )
+   echo_amrex_option ( ENABLE_ASSERTION  )
+
+   # Profiling options
+   echo_amrex_option ( ENABLE_BASE_PROFILE   )
+   echo_amrex_option ( ENABLE_TINY_PROFILE   )
+   echo_amrex_option ( ENABLE_TRACE_PROFILE  )
+   echo_amrex_option ( ENABLE_MEM_PROFILE    )
+   echo_amrex_option ( ENABLE_COMM_PROFILE   )
+   echo_amrex_option ( ENABLE_BACKTRACE      )
+   echo_amrex_option ( ENABLE_PROFPARSER     )
+endfunction ()

@@ -1,9 +1,6 @@
 #ifndef _NEIGHBORPARTICLES_H_
 #define _NEIGHBORPARTICLES_H_
 
-#include <unordered_set>
-#include <functional>
-
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_Particles.H"
@@ -86,7 +83,7 @@ public:
                                                     NStructInt, 0, 0>::ParticleType;
     using MyParIter = ParIter<NStructReal, NStructInt, 0, 0>;
     using PairIndex = std::pair<int, int>;
-    using NeighborCommMap = std::map<NeighborCommTag, Array<char> >;
+    using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
     using AoS = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::AoS;
 
     NeighborParticleContainer(ParGDBBase* gdb, int ncells);
@@ -132,8 +129,8 @@ public:
 
     void buildNeighborListFort(int lev, bool sort=false);
 
-    std::map<PairIndex, Array<char> > neighbors;
-    std::map<PairIndex, Array<int> > neighbor_list;
+    std::map<PairIndex, Vector<char> > neighbors;
+    std::map<PairIndex, Vector<int> > neighbor_list;
     const size_t pdata_size = (NNeighborReal+BL_SPACEDIM)*
         sizeof(typename ParticleType::RealType);
 
@@ -157,21 +154,22 @@ protected:
     ///
     /// Perform handshake to figure out how many bytes each proc should receive
     ///
-    void getRcvCountsMPI(const std::map<int, Array<char> >& send_data);
+    void getRcvCountsMPI(const std::map<int, Vector<char> >& send_data);
 
     virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) {
         return false;
     };
 
     int num_neighbor_cells;
-    std::vector<NeighborCommTag> local_neighbors;
+    amrex::Vector<NeighborCommTag> local_neighbors;
     std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
-    std::map<PairIndex, Array<int> > buffer_id_cache;
-    std::map<PairIndex, Array<NeighborTag> > buffer_tag_cache;
+    std::map<PairIndex, Vector<int> > buffer_id_cache;
+    std::map<PairIndex, Vector<NeighborTag> > buffer_tag_cache;
     
     // each proc knows how many sends it will do, and how many bytes it will rcv 
     // from each other proc.
-    Array<long> rcvs;
+    amrex::Vector<int> neighbor_procs;
+    amrex::Vector<long> rcvs;
     long num_snds;
 };
 

@@ -12,10 +12,12 @@ if ( NOT AMREX_OPTIONS_SET )
 included before AMReX_Configure.cmake" )
 endif ()
 
+
 #
 # Find AMReX Git version
 #
 find_git_version ( AMREX_GIT_VERSION )
+
 
 #
 # Decide whether or not to use PIC 
@@ -24,110 +26,16 @@ if (ENABLE_PIC)
    set (CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 endif ()
 
-#
-# Detect Fortran name mangling scheme for C/Fortran interface 
-#
-include(FortranCInterface)
-include(${FortranCInterface_BINARY_DIR}/Output.cmake)
-
-if ( ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )  AND
-      ( FortranCInterface_GLOBAL_CASE STREQUAL "UPPER") )
-   message(STATUS "Fortran name mangling scheme to UPPERCASE \
-(upper case, no append underscore)")
-   add_define ( BL_FORT_USE_UPPERCASE AMREX_DEFINES )
-elseif ( ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "") AND
-      ( FortranCInterface_GLOBAL_CASE STREQUAL "LOWER") )
-   message(STATUS "Fortran name mangling scheme to LOWERCASE \
-(lower case, no append underscore)")
-   add_define ( BL_FORT_USE_LOWERCASE AMREX_DEFINES )
-elseif ( ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "_" ) AND
-      ( FortranCInterface_GLOBAL_CASE STREQUAL "LOWER") )
-   message(STATUS "Fortran name mangling scheme to UNDERSCORE \
-(lower case, append underscore)")
-   add_define ( BL_FORT_USE_UNDERSCORE AMREX_DEFINES )
-else ()
-   message(AUTHOR_WARNING "Fortran to C mangling not backward\
- compatible with older style BoxLib code") 
-endif ()
-
-
-# ------------------------------------------------------------- #
-#    Set preprocessor flags 
-# ------------------------------------------------------------- #
 
 #
-# This defines were always on in older version
-# of AMReX/CMake. Need more details on these???
+# Set preprocessor flags
 #
-add_define (BL_NOLINEVALUES AMREX_DEFINES)
-add_define (AMREX_NOLINEVALUES AMREX_DEFINES)
-add_define (BL_PARALLEL_IO AMREX_DEFINES)
-add_define (AMREX_PARALLEL_IO AMREX_DEFINES)
-add_define (BL_SPACEDIM=${BL_SPACEDIM} AMREX_DEFINES)
-add_define (AMREX_SPACEDIM=${BL_SPACEDIM} AMREX_DEFINES)
-add_define (BL_${CMAKE_SYSTEM_NAME} AMREX_DEFINES)
-add_define (AMREX_${CMAKE_SYSTEM_NAME} AMREX_DEFINES)
+include (AMReX_Defines)
 
-if ( ENABLE_DP )
-   add_define (BL_USE_DOUBLE AMREX_DEFINES)
-   add_define (AMREX_USE_DOUBLE AMREX_DEFINES)
-else ()
-   add_define (BL_USE_FLOAT AMREX_DEFINES)
-   add_define (AMREX_USE_FLOAT AMREX_DEFINES)
-endif ()
-
-add_define (USE_PARTICLES AMREX_DEFINES ENABLE_PARTICLES)
-
-add_define (BL_PROFILING AMREX_DEFINES ENABLE_PROFILING)
-add_define (AMREX_PROFILING AMREX_DEFINES ENABLE_PROFILING) 
-
-add_define (BL_TINY_PROFILING AMREX_DEFINES ENABLE_TINY_PROFILING)
-add_define (AMREX_TINY_PROFILING AMREX_DEFINES ENABLE_TINY_PROFILING)
-
-add_define (BL_COMM_PROFILING AMREX_DEFINES ENABLE_COMM_PROFILING)
-add_define (AMREX_COMM_PROFILING AMREX_DEFINES ENABLE_COMM_PROFILING)
-# Comm profiling needs base profiling as well
-add_define (BL_PROFILING AMREX_DEFINES ENABLE_COMM_PROFILING)
-add_define (AMREX_PROFILING AMREX_DEFINES ENABLE_COMM_PROFILING)
-
-add_define (BL_TRACE_PROFILING AMREX_DEFINES ENABLE_TRACE_PROFILING)
-add_define (AMREX_TRACE_PROFILING AMREX_DEFINES ENABLE_TRACE_PROFILING)
-
-
-if ( ENABLE_PARTICLES AND ( NOT ENABLE_DP_PARTICLES ) ) 
-   add_define ( BL_SINGLE_PRECISION_PARTICLES AMREX_DEFINES )
-   add_define ( AMREX_SINGLE_PRECISION_PARTICLES AMREX_DEFINES )
-endif ()
-
-if (ENABLE_FBASELIB)
-   add_define ( BL_USE_FORTRAN_MPI AMREX_DEFINES ENABLE_MPI)
-   add_define ( AMREX_USE_FORTRAN_MPI AMREX_DEFINES ENABLE_MPI)
-   add_define ( BL_USE_F_BASELIB  AMREX_DEFINES )
-   add_define ( AMREX_USE_F_BASELIB  AMREX_DEFINES )
-endif ()
-
-add_define (BL_USE_MPI AMREX_DEFINES ENABLE_MPI)
-add_define (AMREX_USE_MPI AMREX_DEFINES ENABLE_MPI)
-
-add_define (BL_USE_OMP AMREX_DEFINES ENABLE_OMP)
-add_define (AMREX_USE_OMP AMREX_DEFINES ENABLE_OMP)
-
-add_define (BL_USE_F_INTERFACES AMREX_DEFINES ENABLE_FORTRAN_INTERFACES)
-
-add_define (BL_USE_ASSERTION AMREX_DEFINES ENABLE_ASSERTIONS) 
-
-add_define (AMREX_GIT_VERSION=\\"${AMREX_GIT_VERSION}\\" AMREX_DEFINES)
-
-
-#
-# Add all preprocessor definitions to compile string
-# 
-add_definitions ( ${AMREX_DEFINES} )
 
 # ------------------------------------------------------------- #
 #    Setup third party packages 
 # ------------------------------------------------------------- #
-
 if (ENABLE_MPI)
    find_package (MPI REQUIRED)
    # Includes
@@ -161,6 +69,16 @@ if (ENABLE_OMP)
    append ( OpenMP_Fortran_FLAGS AMREX_EXTRA_Fortran_FLAGS ) 
    append ( OpenMP_C_FLAGS AMREX_EXTRA_C_FLAGS )
    append ( OpenMP_CXX_FLAGS AMREX_EXTRA_CXX_FLAGS )
+else ()
+   if ( ${FC_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+      list ( APPEND AMREX_EXTRA_Fortran_FLAGS  "-h noomp")
+   endif ()
+   if ( ${CC_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+      list ( APPEND AMREX_EXTRA_C_FLAGS  "-h noomp")
+   endif ()
+   if ( ${CXX_ID} STREQUAL "Cray" ) # Cray has OMP on by default
+      list ( APPEND AMREX_EXTRA_CXX_FLAGS  "-h noomp")
+   endif ()
 endif()
 
 

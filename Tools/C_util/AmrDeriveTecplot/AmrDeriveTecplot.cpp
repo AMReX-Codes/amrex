@@ -167,7 +167,7 @@ GetBndryCells (const BoxArray& ba,
 
     if (geom.isAnyPeriodic())
     {
-        Array<IntVect> pshifts(27);
+        Vector<IntVect> pshifts(27);
 
         const Box& domain = geom.Domain();
 
@@ -211,8 +211,8 @@ public:
 };
 
 void
-Collate(Array<Real>& NodeRaw,
-        Array<int>&  EltRaw,
+Collate(Vector<Real>& NodeRaw,
+        Vector<int>&  EltRaw,
         int          nCompPerNode)
 {
 
@@ -220,8 +220,8 @@ Collate(Array<Real>& NodeRaw,
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     BL_ASSERT(IOProc==0);
     const int nProcs = ParallelDescriptor::NProcs(); 
-    Array<int> nmdataR(nProcs,0);
-    Array<int> offsetR(nProcs,0);
+    Vector<int> nmdataR(nProcs,0);
+    Vector<int> offsetR(nProcs,0);
     //
     // Tell root CPU how many Real data elements each CPU will be sending.
     //
@@ -256,8 +256,8 @@ Collate(Array<Real>& NodeRaw,
                 ParallelDescriptor::Communicator());
 
     // Now communicate the element info
-    Array<int> nmdataI(nProcs,0);
-    Array<int> offsetI(nProcs,0);
+    Vector<int> nmdataI(nProcs,0);
+    Vector<int> offsetI(nProcs,0);
     int countI = EltRaw.size();
     MPI_Gather(&countI,
                1,
@@ -348,9 +348,9 @@ main (int   argc,
 
     AmrData& amrData = dataServices.AmrDataRef();
 
-    const Array<std::string>& names = amrData.PlotVarNames();
+    const Vector<std::string>& names = amrData.PlotVarNames();
 
-    Array<int> comps;
+    Vector<int> comps;
     if (int nc = pp.countval("comps"))
     {
         comps.resize(nc);
@@ -371,7 +371,7 @@ main (int   argc,
     Box subbox;
     if (int nx=pp.countval("box"))
     {
-        Array<int> barr;
+        Vector<int> barr;
         pp.getarr("box",barr,0,nx);
         int d=BL_SPACEDIM;
         BL_ASSERT(barr.size()==2*d);
@@ -385,17 +385,17 @@ main (int   argc,
 
     int finestLevel = amrData.FinestLevel(); pp.query("finestLevel",finestLevel);
     int Nlev = finestLevel + 1;
-    Array<BoxArray> gridArray(Nlev);
-    Array<Box> subboxArray(Nlev);
+    Vector<BoxArray> gridArray(Nlev);
+    Vector<Box> subboxArray(Nlev);
 
     int nGrowPer = 0; pp.query("nGrowPer",nGrowPer);
     PArray<Geometry> geom(Nlev);
 
-    Array<Real> LO(BL_SPACEDIM,0);
-    Array<Real> HI(BL_SPACEDIM,1);
+    Vector<Real> LO(BL_SPACEDIM,0);
+    Vector<Real> HI(BL_SPACEDIM,1);
     RealBox rb(LO.dataPtr(),HI.dataPtr());
     int coordSys = 0;
-    Array<int> isPer(BL_SPACEDIM,0);
+    Vector<int> isPer(BL_SPACEDIM,0);
 
     for (int lev=0; lev<Nlev; ++lev)
     {
@@ -426,7 +426,7 @@ main (int   argc,
 	  //const Box& probDomain = amrData.ProbDomain()[lev];
             const BoxArray& ba = amrData.boxArray(lev);
             BoxList bladd;
-            Array<IntVect> shifts;
+            Vector<IntVect> shifts;
             for (int i=0; i<ba.size(); ++i)
             {
                 geom[lev].periodicShift(subboxArray[lev],ba[i],shifts);
@@ -603,7 +603,7 @@ main (int   argc,
 
     int nElts = (connect_cc ? elements.size() : nodeMap.size());
     std::cerr << "Before connData allocated " << elements.size() << " elements"  << endl;
-    Array<int> connData(MYLEN*nElts);
+    Vector<int> connData(MYLEN*nElts);
     std::cerr << "After connData allocated " << elements.size() << " elements" << endl;
 
     if (connect_cc) {
@@ -715,15 +715,15 @@ main (int   argc,
     int tmpDatLen = nCompsFINAL*nNodesFINAL;
     std::cerr << "Final node data allocated (size=" << tmpDatLen << ")" << endl;
 
-    //const Array<Array<Real> >& dxLevel = amrData.DxLevel();  // Do not trust dx from file...compute our own
-    Array<Array<Real> > dxLevel(Nlev);
+    //const Vector<Vector<Real> >& dxLevel = amrData.DxLevel();  // Do not trust dx from file...compute our own
+    Vector<Vector<Real> > dxLevel(Nlev);
     for (int i=0; i<Nlev; ++i)
     {
         dxLevel[i].resize(BL_SPACEDIM);
         for (int j=0; j<BL_SPACEDIM; ++j)
             dxLevel[i][j] = amrData.ProbSize()[j]/amrData.ProbDomain()[i].length(j);
     }
-    const Array<Real>& plo = amrData.ProbLo();
+    const Vector<Real>& plo = amrData.ProbLo();
 
     // Handy structures for loading data in usual fab ordering (transpose of mef/flt ordering)
 #define BIN_POINT
@@ -731,7 +731,7 @@ main (int   argc,
 #ifdef BIN_POINT
     Real* data = tmpData.dataPtr();
 #else /* BLOCK ordering */
-    Array<Real*> fdat(comps.size()+BL_SPACEDIM);
+    Vector<Real*> fdat(comps.size()+BL_SPACEDIM);
     for (int i=0; i<fdat.size(); ++i)
         fdat[i] = tmpData.dataPtr(i);
 #endif
@@ -744,7 +744,7 @@ main (int   argc,
     {
         const Node& node = nodeVect[i];
 
-        const Array<Real>& dx = dxLevel[node.level];
+        const Vector<Real>& dx = dxLevel[node.level];
         const IntVect& iv = node.iv;
 
         const BoxArray& grids = fileData[node.level].boxArray();
@@ -773,7 +773,7 @@ main (int   argc,
 	levPrev = node.level;
 	jGridPrev = jGrid;
 
-	Array<IntVect> ivt;
+	Vector<IntVect> ivt;
         if (connect_cc) {
             ivt.resize(1,iv);
         } else {

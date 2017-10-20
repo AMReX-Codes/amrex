@@ -16,12 +16,12 @@ namespace amrex
 void
 EB_set_covered (MultiFab& mf, Real val)
 {
-    Array<Real> vals(mf.nComp(), val);
+    Vector<Real> vals(mf.nComp(), val);
     EB_set_covered(mf, 0, mf.nComp(), vals);
 }
 
 void
-EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Array<Real>& vals)
+EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& vals)
 {
 #ifdef _OPENMP
 #pragma omp parallel

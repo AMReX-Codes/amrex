@@ -106,11 +106,11 @@ main (int   argc,
       int Nlev = finestLevel + 1;
 
       // limit analysis to components specified
-      Array<std::string> cNames;
-      Array<std::string> varNames = amrData.PlotVarNames();
+      Vector<std::string> cNames;
+      Vector<std::string> varNames = amrData.PlotVarNames();
       if (int nx=pp.countval("cNames"))
       {
-	Array<int> var_match(nx,0);
+	Vector<int> var_match(nx,0);
 	pp.getarr("cNames",cNames,0,nx);
 	for (int ic=0; ic<nx; ic++) {
 	  for (int iv=0; iv<varNames.size(); iv++){
@@ -134,8 +134,8 @@ main (int   argc,
     
       // limit to a smaller region    
       Box domain = amrData.ProbDomain()[0];
-      Array<Real> barr;
-      Array<BoxArray> bas;
+      Vector<Real> barr;
+      Vector<BoxArray> bas;
       vector<Real> bbll,bbur;
       bool do_bounds = 0;
       if (int nx=pp.countval("bounds"))
@@ -196,7 +196,7 @@ main (int   argc,
       // 3: 
       
       if (analysis_type == 1) { // mean and variance of a plot file
-	Array<Real> mean, variance;
+	Vector<Real> mean, variance;
 	AmrData& amrData =  dataServices.AmrDataRef();
 	ComputeAmrDataMeanVar(amrData, mean, variance, 0, nComp, verbose);
 
@@ -279,7 +279,7 @@ main (int   argc,
 	if (nvarg == 0)
 	  amrex::Abort("No variogram is specified");
 
-	Array< Array<int> > ivoption(nvarg);
+	Vector< Vector<int> > ivoption(nvarg);
 	for (int i=0; i<nvarg; i++) {
 	  int nopt = pp.countval("varg");
 	  ivoption[i].resize(nopt);
@@ -289,7 +289,7 @@ main (int   argc,
 	int isill = 0;
 	pp.query("isill",isill);
 	
-	Array<Real> mean(nComp), variance(nComp);
+	Vector<Real> mean(nComp), variance(nComp);
 	if (isill == 1) 
 	  ComputeAmrDataMeanVar (amrData,cNames,bas,mean,variance);
 
@@ -393,7 +393,7 @@ main (int   argc,
 	if (nvarg == 0)
 	  amrex::Abort("No variogram is specified");
 
-	Array< Array<int> > ivoption(nvarg);
+	Vector< Vector<int> > ivoption(nvarg);
 	for (int i=0; i<nvarg; i++) {
 	  int nopt = pp.countval("varg");
 	  ivoption[i].resize(nopt);
@@ -406,8 +406,8 @@ main (int   argc,
 	MultiFab secmf;
 	VisMF::Read(secmf,sFile);
 	
-	Array<Real> mean, variance;
-	Array<Real> secmean, secvariance;
+	Vector<Real> mean, variance;
+	Vector<Real> secmean, secvariance;
 	if (isill == 1) {
 
 	  mean.resize(nComp+secmf.nComp());
@@ -436,7 +436,7 @@ main (int   argc,
 	std::string oFile;
 	pp.query("outfile",oFile);
 
-	Array<int> rratio(BL_SPACEDIM,0);
+	Vector<int> rratio(BL_SPACEDIM,0);
 	if (int nx=pp.countval("rratio"))
 	  pp.getarr("rratio",rratio,0,BL_SPACEDIM);
 	for (int i=0;i<BL_SPACEDIM; i++)
@@ -469,7 +469,7 @@ main (int   argc,
 	if (nvarg == 0)
 	  amrex::Abort("No variogram is specified");
 
-	Array< Array<int> > ivoption(nvarg);
+	Vector< Vector<int> > ivoption(nvarg);
 	for (int i=0; i<nvarg; i++) {
 	  int nopt = pp.countval("varg");
 	  ivoption[i].resize(nopt);
@@ -483,8 +483,8 @@ main (int   argc,
 	MultiFab mfIn;
 	VisMF::Read(mfIn,iFile);
 	  
-	Array<Real> mean(mfIn.nComp(),0.0), variance(mfIn.nComp(),0.0);
-	Array<Real> dx(BL_SPACEDIM);
+	Vector<Real> mean(mfIn.nComp(),0.0), variance(mfIn.nComp(),0.0);
+	Vector<Real> dx(BL_SPACEDIM);
 	dx[0] = 2;
 	dx[1] = 2;
 

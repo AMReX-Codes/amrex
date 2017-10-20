@@ -418,6 +418,8 @@ public:
     */
     BaseFab<T>& shiftHalf (const IntVect& num_halfs);
 
+    Real norminfmask (const Box& subbox, const BaseFab<int>& mask, int scomp=0, int ncomp=1) const;
+
     /**
     * \brief Compute the Lp-norm of this FAB using components (scomp : scomp+ncomp-1).
     *   p < 0  -> ERROR
@@ -1690,6 +1692,10 @@ BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
                               int        ns,
                               int        num);
+template <>
+Real
+BaseFab<Real>::norminfmask (const Box& subbox, const BaseFab<int>& mask, int comp, int ncomp) const;
+
 template <>
 Real
 BaseFab<Real>::norm (const Box& subbox,

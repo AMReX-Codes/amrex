@@ -121,6 +121,7 @@ CGSolver::CGSolver (LinOp& _lp,
     Initialize();
     maxiter = def_maxiter;
     verbose = def_verbose;
+    cg_solver = def_cg_solver;
     set_mg_precond();
 }
 
@@ -139,6 +140,8 @@ CGSolver::~CGSolver ()
     delete mg_precond;
 }
 
+namespace {
+
 static
 void
 Spacer (std::ostream& os, int lev)
@@ -154,6 +157,8 @@ Real
 norm_inf (const MultiFab& res, bool local = false)
 {
     return res.norm0(0,0,local);
+}
+
 }
 
 int
@@ -177,6 +182,8 @@ CGSolver::solve (MultiFab&       sol,
 
     return -1;
 }
+
+namespace {
 
 static
 void
@@ -349,6 +356,8 @@ SetMonomialBasis (Real  Tp[((4*SSS_MAX)+1)][((4*SSS_MAX)+1)],
 // Forward declaration of BuildGramMatrix().
 //
 static void BuildGramMatrix (Real* Gg, const MultiFab& PR, const MultiFab& rt, int sss);
+
+}
 
 //
 // Based on Erin Carson/Jim Demmel/Nick Knight's s-Step BiCGStab Algorithm 3.4.
@@ -744,6 +753,8 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
     return ret;
 }
 
+namespace {
+
 static
 void
 BuildGramMatrix (Real*           Gg,
@@ -768,7 +779,7 @@ BuildGramMatrix (Real*           Gg,
 #endif
     const int Ntmp = (Nrows*(Nrows+3))/2;
 
-    Array<Array<Real> > tmp(nthreads);
+    Vector<Vector<Real> > tmp(nthreads);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -822,6 +833,8 @@ BuildGramMatrix (Real*           Gg,
             Gg[mm*Ncols + nn] = Gg[nn*Ncols + mm];
         }
     }
+}
+
 }
 
 int

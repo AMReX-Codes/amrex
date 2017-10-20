@@ -10,13 +10,14 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
+#include <AMReX_AmrData.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
 #endif
 
 using std::ios;
-
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
@@ -70,8 +71,8 @@ main (int   argc,
     if (fFile.empty())
         amrex::Abort("You must specify `errorF'");
 
-    Array<Real> norm0c, norm1c, norm2c;
-    Array<Real> norm0f, norm1f, norm2f;
+    Vector<Real> norm0c, norm1c, norm2c;
+    Vector<Real> norm0f, norm1f, norm2f;
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -89,7 +90,7 @@ main (int   argc,
     // Write norms to screen
     if (ParallelDescriptor::IOProcessor())
     {
-	const Array<std::string>& names = amrDataC.PlotVarNames();
+	const Vector<std::string>& names = amrDataC.PlotVarNames();
 	int maxl = 0;
 	for (int i=0; i<names.size(); ++i)
 	    maxl = std::max(maxl,int(names[i].size()));
@@ -129,8 +130,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
                         const AmrData& amrd2)
 {
-    const Array<std::string>& derives1 = amrd1.PlotVarNames();
-    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    const Vector<std::string>& derives1 = amrd1.PlotVarNames();
+    const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
         return false;

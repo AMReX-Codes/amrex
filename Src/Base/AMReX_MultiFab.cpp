@@ -397,7 +397,7 @@ MultiFab::MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp
 }
 
 MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
-                    const Array<Real*>& p)
+                    const Vector<Real*>& p)
     :
     FabArray<FArrayBox>(ba, dm, ncomp, ngrow, p)
 {
@@ -669,8 +669,8 @@ MultiFab::minIndex (int comp,
 
     if (NProcs > 1)
     {
-        Array<Real> mns(1);
-        Array<int>  locs(1);
+        Vector<Real> mns(1);
+        Vector<int>  locs(1);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -754,8 +754,8 @@ MultiFab::maxIndex (int comp,
 
     if (NProcs > 1)
     {
-        Array<Real> mxs(1);
-        Array<int>  locs(1);
+        Vector<Real> mxs(1);
+        Vector<int>  locs(1);
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -793,6 +793,24 @@ MultiFab::maxIndex (int comp,
     }
 
     return loc;
+}
+
+Real
+MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
+{
+    Real nm0 = -std::numeric_limits<Real>::max();
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(max:nm0)
+#endif
+    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    {
+	nm0 = std::max(nm0, get(mfi).norminfmask(mfi.growntilebox(nghost), mask[mfi], comp, 1));
+    }
+
+    if (!local)	ParallelDescriptor::ReduceRealMax(nm0,this->color());
+
+    return nm0;
 }
 
 Real
@@ -842,19 +860,19 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
     return nm0;
 }
 
-Array<Real>
-MultiFab::norm0 (const Array<int>& comps, int nghost, bool local) const
+Vector<Real>
+MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
 {
     int n = comps.size();
     const Real rmax = std::numeric_limits<Real>::max();
-    Array<Real> nm0(n, -rmax);
+    Vector<Real> nm0(n, -rmax);
 
 #ifdef _OPENMP
     int nthreads = omp_get_max_threads();
 #else
     int nthreads = 1;
 #endif
-    Array<Array<Real> > priv_nm0(nthreads, Array<Real>(n, -rmax));
+    Vector<Vector<Real> > priv_nm0(nthreads, Vector<Real>(n, -rmax));
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -917,20 +935,20 @@ MultiFab::norm2 (int comp, const Periodicity& period) const
     return nm2;
 }
 
-Array<Real>
-MultiFab::norm2 (const Array<int>& comps) const
+Vector<Real>
+MultiFab::norm2 (const Vector<int>& comps) const
 {
     BL_ASSERT(ixType().cellCentered());
 
     int n = comps.size();
-    Array<Real> nm2(n, 0.e0);
+    Vector<Real> nm2(n, 0.e0);
 
 #ifdef _OPENMP
     int nthreads = omp_get_max_threads();
 #else
     int nthreads = 1;
 #endif
-    Array<Array<Real> > priv_nm2(nthreads, Array<Real>(n, 0.0));
+    Vector<Vector<Real> > priv_nm2(nthreads, Vector<Real>(n, 0.0));
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1003,20 +1021,20 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     return nm1;
 }
 
-Array<Real>
-MultiFab::norm1 (const Array<int>& comps, int ngrow, bool local) const
+Vector<Real>
+MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 {
     BL_ASSERT(ixType().cellCentered());
 
     int n = comps.size();
-    Array<Real> nm1(n, 0.e0);
+    Vector<Real> nm1(n, 0.e0);
 
 #ifdef _OPENMP
     int nthreads = omp_get_max_threads();
 #else
     int nthreads = 1;
 #endif
-    Array<Array<Real> > priv_nm1(nthreads, Array<Real>(n, 0.0));
+    Vector<Vector<Real> > priv_nm1(nthreads, Vector<Real>(n, 0.0));
 
 #ifdef _OPENMP
 #pragma omp parallel

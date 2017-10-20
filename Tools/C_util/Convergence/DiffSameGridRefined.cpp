@@ -17,6 +17,7 @@ using std::ios;
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_AmrData.H>
 #include <AVGDOWN_F.H>
 
 #ifndef NDEBUG
@@ -24,7 +25,7 @@ using std::ios;
 #endif
 
 #define GARBAGE 666.e+40
-
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
@@ -130,8 +131,8 @@ main (int   argc,
 
     int nComp       = amrData1.NComp();
     int finestLevel = amrData1.FinestLevel();
-    const Array<std::string>& derives = amrData1.PlotVarNames();
-    Array<int> destComps(nComp);
+    const Vector<std::string>& derives = amrData1.PlotVarNames();
+    Vector<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
     
@@ -139,7 +140,7 @@ main (int   argc,
     //
     // Compute the error
     //
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
@@ -163,7 +164,8 @@ main (int   argc,
         //
         // Construct MultiFab for errors
         //
-	error[iLevel] = new MultiFab(ba1, nComp, 0);
+        DistributionMapping dm(ba1);
+	error[iLevel] = new MultiFab(ba1, dm, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
         //
@@ -187,7 +189,7 @@ main (int   argc,
         // For each component, average the fine fields down and calculate
         // the errors
         //
-        Array<Real> norms(nComp);
+        Vector<Real> norms(nComp);
         for (int iComp = 0; iComp < nComp; iComp++)
             norms[iComp] = 0.0;
 
@@ -254,7 +256,7 @@ main (int   argc,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            Array<Real> tmp(nComp);
+            Vector<Real> tmp(nComp);
             for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
@@ -325,8 +327,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<std::string>& derives1 = amrd1.PlotVarNames();
-    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    const Vector<std::string>& derives1 = amrd1.PlotVarNames();
+    const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
 	return false;
@@ -344,7 +346,7 @@ getRefRatio(const Box& crse,
     // Compute refinement ratio between crse and fine boxes, return invalid
     // IntVect if there is none suitable
     ParmParse pp("");
-    Array<int> rr_in(BL_SPACEDIM,-1);
+    Vector<int> rr_in(BL_SPACEDIM,-1);
     int Nrr = pp.countval("ref_ratio");
     BL_ASSERT(Nrr==0 || Nrr==BL_SPACEDIM || Nrr==1);
     if (Nrr>0)

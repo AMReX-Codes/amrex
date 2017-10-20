@@ -24,3 +24,4 @@ dl_malloc.o:
 
 clean:
 	$(RM) $(OBJECTS)
+	$(RM) *.a

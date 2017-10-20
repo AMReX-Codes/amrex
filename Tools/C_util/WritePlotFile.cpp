@@ -13,8 +13,10 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_DistributionMapping.H>
 #include <WritePlotFile.H>
 
+using namespace amrex;
 std::string
 thePlotFileType ()
 {
@@ -34,7 +36,7 @@ writePlotFile (const std::string&        dir,
 	       const Geometry&           geom,
 	       const IntVect&            refRatio,
 	       Real                      bgVal,
-               const Array<std::string>& names)
+               const Vector<std::string>& names)
 {
     //
     // Faked data
@@ -43,12 +45,12 @@ writePlotFile (const std::string&        dir,
     const Real cumTime = 0.0;
     const Real curTime = cumTime;
     const int finestLevel = 1;
-    Array< Box > domain(finestLevel+1);
+    Vector< Box > domain(finestLevel+1);
     const IndexType& ixType = mf.boxArray().ixType();
     if (ixType != IndexType::TheCellType())
 	amrex::Error("writePlotfile unable to handle non cell-centered data for now");
     Box tmpb = Box(geom.Domain()).convert(ixType);
-    Array<int> corr(BL_SPACEDIM);
+    Vector<int> corr(BL_SPACEDIM);
     for (int d = 0; d < BL_SPACEDIM; d++)
     {
 	corr[d] = (ixType.ixType(d) == IndexType::CELL ? 1 : 0);
@@ -59,8 +61,8 @@ writePlotFile (const std::string&        dir,
     }
     domain[0] = tmpb;
     const int levelSteps = 0;
-    Array< Array< Real > > dx(finestLevel+1);
-    Array< Array<RealBox> > grid_loc(finestLevel+1);
+    Vector< Vector< Real > > dx(finestLevel+1);
+    Vector< Vector<RealBox> > grid_loc(finestLevel+1);
     const BoxArray& grids = mf.boxArray();
     for (int j = 0; j<= finestLevel; j++)
     {
@@ -91,7 +93,8 @@ writePlotFile (const std::string&        dir,
     }
     const int Coord = 0;
     BoxArray tba = BoxArray(&tmpb,1);
-    MultiFab level0_dat(tba,mf.nComp(),mf.nGrow(),Fab_allocate);
+    DistributionMapping dm {tba};
+    MultiFab level0_dat(tba,dm,mf.nComp(),mf.nGrow());
     for (int j=0; j<mf.nComp(); ++j)
         level0_dat.setVal(0.5*(mf.min(j)+mf.max(j)),j,1);
     //level0_dat.setVal(bgVal);
@@ -223,7 +226,7 @@ writePlotFile (const char*               name,
 	       const Geometry&           geom,
 	       const IntVect&            refRatio,
 	       Real                      bgVal,
-               const Array<std::string>& names)
+               const Vector<std::string>& names)
 {
 
     double dPlotFileTime0(ParallelDescriptor::second());
@@ -287,12 +290,12 @@ writePlotFile (const char*               name,
     
 }
 
-void WritePlotFile(const Array<MultiFab*> mfa,
+void WritePlotFile(const Vector<MultiFab*> mfa,
 		   AmrData&               amrdToMimic,
 		   const std::string&     oFile,
 		   bool                   verbose)
 {
-    const Array<std::string>& derives = amrdToMimic.PlotVarNames();
+    const Vector<std::string>& derives = amrdToMimic.PlotVarNames();
     int ntype = amrdToMimic.NComp();
     int finestLevel = amrdToMimic.FinestLevel();    
     

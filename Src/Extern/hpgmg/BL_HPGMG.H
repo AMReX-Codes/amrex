@@ -191,7 +191,7 @@ extern "C" {
     void MGResetTimers (mg_type * all_grids);
     void zero_vector (level_type * level, int component_id);
     void MGSolve (mg_type *all_grids, int onLevel, int u_id, int F_id, double a, double b, double dtol, double rtol);
-    void FMGSolve(mg_type *all_grids, int onLevel, int u_id, int F_id, double a, double b, double dtol, double rtol);
+    void FMGSolve(mg_type *all_grids, int onLevel, int u_id, int F_id, double a, double b, double rtol);
     void MGPrintTiming (mg_type * all_grids, int fromLevel);
     double error (level_type * level, int id_a, int id_b);
     void destroy_level (level_type * level);

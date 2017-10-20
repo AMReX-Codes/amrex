@@ -145,14 +145,14 @@ protected:
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
-	       Array<std::string>& var_names,
+	       Vector<std::string>& var_names,
                DeriveFunc          der_func,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
-	       Array<std::string>& var_names,
+	       Vector<std::string>& var_names,
                DeriveFunc3D        der_func_3d,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
@@ -182,7 +182,7 @@ private:
     //    
     // Names of derived variables
     //
-    Array<std::string> variable_names;  
+    Vector<std::string> variable_names;  
     //
     // Type of derived quantity.
     //
@@ -273,14 +273,14 @@ public:
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-	      Array<std::string>&     var_names,
+	      Vector<std::string>&     var_names,
               DeriveFunc              der_func,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-	      Array<std::string>&     var_names,
+	      Vector<std::string>&     var_names,
               DeriveFunc3D            der_func_3d,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);

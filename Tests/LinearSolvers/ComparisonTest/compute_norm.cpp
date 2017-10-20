@@ -8,20 +8,24 @@
 
 using namespace amrex;
 
-void compute_norm(const Array<MultiFab*>& soln,
-		  const Array<MultiFab*>& exac, 
-		  const Array<Geometry>& geom,
-		  const Array<BoxArray>& grids,
+void compute_norm(const Vector<MultiFab*>& soln,
+		  const Vector<MultiFab*>& exac, 
+		  const Vector<Geometry>& geom,
+		  const Vector<BoxArray>& grids,
 		  int nsoln, int iCpp, int iF90, int iHyp)
 {
-  Array<Real> twonorm(nsoln, 0.0);
-  Array<Real> maxnorm(nsoln, 0.0);
+  Vector<Real> twonorm(nsoln, 0.0);
+  Vector<Real> maxnorm(nsoln, 0.0);
   Real volume=0.0;
   
   int nlevel = soln.size();
   int ref_ratio = 2.;
 
+  Vector<Vector<Real> > levmaxnorm(nlevel);
+
   for (int ilev=0; ilev<nlevel; ilev++) {
+
+    levmaxnorm[ilev].resize(nsoln, 0.0);
 
     BoxArray baf;
 
@@ -55,14 +59,24 @@ void compute_norm(const Array<MultiFab*>& soln,
 	 BL_TO_FORTRAN(mask),
 	 BL_TO_FORTRAN(volbox),
 	 twonorm.dataPtr(),
-	 maxnorm.dataPtr(),
+	 levmaxnorm[ilev].dataPtr(),
 	 &volume, &nsoln);
     }
+  }
+
+  for (int isol = 0; isol < nsoln; ++isol) {
+      for (int ilev = 0; ilev < nlevel; ++ilev) {
+          maxnorm[isol] = std::max(maxnorm[isol], levmaxnorm[ilev][isol]);
+      }
   }
 
   ParallelDescriptor::ReduceRealSum(twonorm.dataPtr(), nsoln);
   ParallelDescriptor::ReduceRealSum(volume);
   ParallelDescriptor::ReduceRealMax(maxnorm.dataPtr(), nsoln);
+
+  for (int ilev = 0; ilev < nlevel; ++ilev) {
+      ParallelDescriptor::ReduceRealMax(levmaxnorm[ilev].data(), nsoln);
+  }
 
   for (int i=0; i<nsoln; i++) {
       twonorm[i] = std::sqrt(twonorm[i] / volume); 
@@ -79,6 +93,11 @@ void compute_norm(const Array<MultiFab*>& soln,
     if (iF90 >= 0) {
       std::cout << "----------------------------------------" << std::endl;
       std::cout << "BoxLib_F: max-norm error = "<< maxnorm[iF90] << std::endl;
+      if (nlevel > 1) {
+          for (int ilev = 0; ilev < nlevel; ++ilev) {
+              std::cout << "    Lev " << ilev << " max-norm error = "<< levmaxnorm[ilev][iF90] << std::endl;
+          }
+      }
       std::cout << "BoxLib_F:   2-norm error = "<< twonorm[iF90] << std::endl;
     }
     if (iHyp >= 0) {

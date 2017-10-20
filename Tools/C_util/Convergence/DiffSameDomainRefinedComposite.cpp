@@ -9,22 +9,24 @@ using std::ios;
 #include <unistd.h>
 
 #include <WritePlotFile.H>
-#include <REAL.H>
-#include <Box.H>
-#include <FArrayBox.H>
-#include <ParmParse.H>
-#include <ParallelDescriptor.H>
-#include <DataServices.H>
-#include <Utility.H>
-#include <VisMF.H>
-#include <AVGDOWN_F.H>
-#include "ArrayLim.H"
+#include <AMReX_REAL.H>
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_DataServices.H>
+#include <AMReX_Utility.H>
+#include <AMReX_VisMF.H>
+#include <AMReX_AVGDOWN_F.H>
+#include "AMReX_ArrayLim.H"
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
 #endif
 
 #define GARBAGE 666.e+40
+
+using namespace amrex;
 
 static
 void
@@ -70,7 +72,7 @@ int
 main (int   argc,
       char* argv[])
 {
-    BoxLib::Initialize(argc,argv);
+  amrex::Initialize(argc,argv);
 
     if (argc == 1)
         PrintUsage(argv[0]);
@@ -93,11 +95,11 @@ main (int   argc,
     }
     pp.query("infile1", iFile1);
     if (iFile1.empty())
-        BoxLib::Abort("You must specify `infile1'");
+        amrex::Abort("You must specify `infile1'");
 
     pp.query("reffile", iFile2);
     if (iFile2.empty())
-        BoxLib::Abort("You must specify `reffile'");
+        amrex::Abort("You must specify `reffile'");
 
     pp.query("diffile", difFile);
 
@@ -111,7 +113,7 @@ main (int   argc,
     DataServices dataServices2(iFile2, fileType);
 
     if (!dataServices1.AmrDataOk() || !dataServices2.AmrDataOk())
-        BoxLib::Abort("ERROR: Dataservices not OK");
+        amrex::Abort("ERROR: Dataservices not OK");
 
     //
     // Generate AmrData Objects 
@@ -123,7 +125,7 @@ main (int   argc,
     // Initial Tests 
     //
     if (amrData1.FinestLevel() != amrData2.FinestLevel())
-        BoxLib::Abort("ERROR: Finest level is not the same in the two plotfiles");
+        amrex::Abort("ERROR: Finest level is not the same in the two plotfiles");
 
     int nComp1      = amrData1.NComp();
     int nComp2      = amrData2.NComp();
@@ -137,8 +139,8 @@ main (int   argc,
     }
 
     int finestLevel = amrData1.FinestLevel();
-    const Array<std::string>& derives = amrData1.PlotVarNames();
-    Array<int> destComps(nComp);
+    const Vector<std::string>& derives = amrData1.PlotVarNames();
+    Vector<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
     
@@ -146,14 +148,14 @@ main (int   argc,
     //
     // Compute the error
     //
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
              << "-----------------------------------------------" << std::endl;
              
     int ratio = 1;
-    Array<Real> sum_norms(nComp);
+    Vector<Real> sum_norms(nComp);
         for (int iComp = 0; iComp < nComp; iComp++)
             sum_norms[iComp] = 0.0;
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
@@ -175,7 +177,7 @@ main (int   argc,
         const Box& domain2     = amrData2.ProbDomain()[iLevel];
         IntVect refine_ratio   = getRefRatio(domain1, domain2);
         if (refine_ratio == IntVect())
-            BoxLib::Error("Cannot find refinement ratio from data to exact");
+            amrex::Error("Cannot find refinement ratio from data to exact");
 
         if (verbose)
             std::cerr << "level = " << iLevel << "  Ref_Ratio = " << refine_ratio
@@ -185,19 +187,20 @@ main (int   argc,
         ba2Coarse.coarsen(refine_ratio);
 
         // Define new_data1 in case the boxarrays are not the same
-        MultiFab new_data1(ba2Coarse,1,0,Fab_allocate);
+        DistributionMapping dm2Coarse(ba2Coarse);
+        MultiFab new_data1(ba2Coarse,dm2Coarse, 1,0);
 
         //
         // Construct MultiFab for errors
         //
-	      error[iLevel] = new MultiFab(ba2Coarse, nComp, 0);
-	      error[iLevel]->setVal(GARBAGE);
+        error[iLevel] = new MultiFab(ba2Coarse, dm2Coarse, nComp, 0);
+        error[iLevel]->setVal(GARBAGE);
 
         //
         // For each component, average the fine fields down and calculate
         // the errors
         //
-        Array<Real> norms(nComp);
+        Vector<Real> norms(nComp);
         for (int iComp = 0; iComp < nComp; iComp++)
             norms[iComp] = 0.0;
 
@@ -282,7 +285,7 @@ main (int   argc,
         MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type();
         if (ParallelDescriptor::IOProcessor())
         {
-            Array<Real> tmp(nComp);
+            Vector<Real> tmp(nComp);
             for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
@@ -356,7 +359,7 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
 	delete error[iLevel];
 
-    BoxLib::Finalize();
+    amrex::Finalize();
 }
 
 
@@ -364,8 +367,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<std::string>& derives1 = amrd1.PlotVarNames();
-    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    const Vector<std::string>& derives1 = amrd1.PlotVarNames();
+    const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
 	return false;
@@ -383,7 +386,7 @@ getRefRatio(const Box& crse,
     // Compute refinement ratio between crse and fine boxes, return invalid
     // IntVect if there is none suitable
     ParmParse pp("");
-    Array<int> rr_in(BL_SPACEDIM,-1);
+    Vector<int> rr_in(BL_SPACEDIM,-1);
 
     int Nrr = pp.countval("ref_ratio");
 

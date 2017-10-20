@@ -10,6 +10,7 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_BaseFab.H>
 
 namespace amrex
@@ -41,10 +42,10 @@ namespace amrex
     void readBoxArray (BoxArray& ba, std::istream& s, bool b);
 
     //! Create a 1D Array of cells from all boxes in a BoxArray 
-    Array<int> SerializeBoxArray(const BoxArray &ba);
+    Vector<int> SerializeBoxArray(const BoxArray &ba);
 
     //! Construct a BoxArray (in BL_SPACEDIM dimensions) from a 1D Array of cells
-    BoxArray UnSerializeBoxArray(const Array<int> &serarray);
+    BoxArray UnSerializeBoxArray(const Vector<int> &serarray);
 
     //! Note that two BoxArrays that match are not necessarily equal.
     bool match (const BoxArray& x, const BoxArray& y);
@@ -76,7 +77,7 @@ struct BARef
     //
     // The data.
     //
-    Array<Box> m_abox;
+    Vector<Box> m_abox;
     //
     // Box hash stuff.
     //
@@ -245,7 +246,7 @@ public:
     //! Remove all Boxes from the BoxArray.
     void clear ();
 
-    //! Resize the BoxArray.  See Array<T>::resize() for the gory details.
+    //! Resize the BoxArray.  See Vector<T>::resize() for the gory details.
     void resize (long len);
 
     //! Return the number of boxes in the BoxArray.
@@ -298,23 +299,7 @@ public:
 
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
-    bool coarsenable(int refinement_ratio) const
-    {
-      if(size() == 0) 
-      {
-        return false;
-      }
-
-      for(int ibox = 0; ibox < size(); ibox++)
-      {
-        const Box& thisbox = (*this)[ibox];
-        if(!thisbox.coarsenable(refinement_ratio))
-        {
-          return false;
-        }
-      }
-      return true;
-    }
+    bool coarsenable(int refinement_ratio, int min_width=1) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);

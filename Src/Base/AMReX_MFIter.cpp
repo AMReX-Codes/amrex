@@ -376,8 +376,8 @@ MFGhostIter::Initialize ()
     int pid = rit*nthreads+tid;
 
     BoxList alltiles;
-    Array<int> allindex;
-    Array<int> alllocalindex;
+    Vector<int> allindex;
+    Vector<int> alllocalindex;
 
     for (int i=0; i < fabArray.IndexArray().size(); ++i) {
 	int K = fabArray.IndexArray()[i];

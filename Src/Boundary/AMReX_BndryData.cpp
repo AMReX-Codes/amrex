@@ -38,6 +38,15 @@ BndryData::setBoundCond (Orientation     _face,
 }
 
 void
+BndryData::setBoundCond (Orientation     _face,
+                         const MFIter&   mfi,
+                         int              _comp,
+                         const BoundCond& _bcn)
+{
+    bcond[mfi][_face][_comp] = _bcn;
+}
+
+void
 BndryData::setBoundLoc (Orientation _face,
                         int         _n,
                         Real        _val)
@@ -45,20 +54,36 @@ BndryData::setBoundLoc (Orientation _face,
     bcloc[_n][_face] = _val;
 }
 
-const Array< Array<BoundCond> >&
+void
+BndryData::setBoundLoc (Orientation _face,
+                        const MFIter& mfi,
+                        Real        _val)
+{
+    bcloc[mfi][_face] = _val;
+}
+
+const Vector< Vector<BoundCond> >&
 BndryData::bndryConds (int igrid) const
 {
-    std::map< int, Array< Array<BoundCond> > >::const_iterator it = bcond.find(igrid);
-    BL_ASSERT(it != bcond.end());
-    return it->second;
+    return bcond[igrid];
+}
+
+const Vector< Vector<BoundCond> >&
+BndryData::bndryConds (const MFIter& mfi) const
+{
+    return bcond[mfi];
 }
 
 const BndryData::RealTuple&
 BndryData::bndryLocs (int igrid) const
 {
-    std::map<int,RealTuple>::const_iterator it = bcloc.find(igrid);
-    BL_ASSERT(it != bcloc.end());
-    return it->second;
+    return bcloc[igrid];
+}
+
+const BndryData::RealTuple&
+BndryData::bndryLocs (const MFIter& mfi) const
+{
+    return bcloc[mfi];
 }
 
 void
@@ -147,19 +172,15 @@ BndryData::define (const BoxArray& _grids,
     // We'll use the low 0 side as the model.
     //
     //
+
+    bcloc.define(grids, _dmap);
+    bcond.define(grids, _dmap);
+
     for (FabSetIter bfsi(bndry[Orientation(0,Orientation::low)]);
          bfsi.isValid();
          ++bfsi)
     {
-        const int idx = bfsi.index();
-        //
-        // Insert with a hint since we know the indices are increasing.
-        //
-        bcloc.insert(bcloc.end(),std::map<int,RealTuple>::value_type(idx,RealTuple()));
-
-        std::map< int, Array< Array<BoundCond> > >::value_type v(idx,Array< Array<BoundCond> >());
-
-        Array< Array<BoundCond> >& abc = bcond.insert(bcond.end(),v)->second;
+        Vector< Vector<BoundCond> >& abc = bcond[bfsi];
 
         abc.resize(2*BL_SPACEDIM);
 

@@ -2,7 +2,7 @@
 #include <map>
 #include <vector>
 
-#include "AMReX_Array.H"
+#include <AMReX_Vector.H>
 #include "AMReX_FabArray.H"
 #include "AMReX_Particles.H"
 
@@ -30,23 +30,23 @@ int main(int argc, char* argv[])
  
   const Box domain(domain_lo, domain_hi);
 
-  Array<int> rr(nlevs-1);
+  Vector<int> rr(nlevs-1);
   for (int lev = 1; lev < nlevs; lev++)
     rr[lev-1] = 2;
  
   int is_per[BL_SPACEDIM];
   for (int i = 0; i < BL_SPACEDIM; i++) is_per[i] = 1;
 
-  Array<Geometry> geom(nlevs);
+  Vector<Geometry> geom(nlevs);
   geom[0].define(domain, &real_box, coord, is_per);
 
-  Array<BoxArray> ba(nlevs);
+  Vector<BoxArray> ba(nlevs);
   ba[0].define(domain);  
 
   for (int lev = 0; lev < nlevs; lev++)
     ba[lev].maxSize(max_grid_size);
 
-  Array<DistributionMapping> dmap(nlevs);
+  Vector<DistributionMapping> dmap(nlevs);
   for (int lev = 0; lev < nlevs; lev++)
     dmap[lev].define(ba[lev]);
 

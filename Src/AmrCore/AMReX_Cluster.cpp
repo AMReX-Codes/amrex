@@ -190,7 +190,7 @@ FindCut (const int* hist,
     // If we got here, there was no obvious cutpoint, try
     // finding place where change in second derivative is max.
     //
-    Array<int> dhist(len,0);
+    Vector<int> dhist(len,0);
     for (i = 1; i < len-1; i++)
         dhist[i] = hist[i+1] - 2*hist[i] + hist[i-1];
 

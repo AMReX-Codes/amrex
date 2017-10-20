@@ -423,7 +423,7 @@ int testStuff()
   Box domain(ivlo, ivhi);
 
   Real dx = domlen/ncellsvec[0];
-  Array<Real> probLo(SpaceDim,0);
+  Vector<Real> probLo(SpaceDim,0);
 
   BaseFab<int> regIrregCovered;
   std::vector<IrregNode>  nodes;

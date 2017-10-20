@@ -140,7 +140,7 @@ namespace amrex
     int numPts() const;
 
 
-    void define(const Array<IntVect>& a_vect);
+    void define(const Vector<IntVect>& a_vect);
 
     ///
     size_t linearSize() const;
@@ -161,7 +161,7 @@ namespace amrex
       
   private:
 
-    void getVectorIV(Array<IntVect>& a_vect) const;
+    void getVectorIV(Vector<IntVect>& a_vect) const;
     container_type m_stdSet;
   };
 

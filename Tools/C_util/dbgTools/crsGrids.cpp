@@ -59,7 +59,7 @@ main (int   argc,
     if (nCrsRatio == 0)
         amrex::Abort("You must specify `crsratio'");
 
-    Array<int> crsRatio(nCrsRatio);
+    Vector<int> crsRatio(nCrsRatio);
     for (int n = 0; n < nCrsRatio; n++)
         pp.get("crsratio", crsRatio[n], n);
 
