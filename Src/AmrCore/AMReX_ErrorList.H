@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_ArrayLim.H>
 
@@ -233,7 +234,7 @@ public:
 
 private:
 
-    Array<std::unique_ptr<ErrorRec> > vec;
+    Vector<std::unique_ptr<ErrorRec> > vec;
 };
 
 std::ostream& operator << (std::ostream& os, const ErrorList& elst);

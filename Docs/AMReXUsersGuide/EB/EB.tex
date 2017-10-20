@@ -225,13 +225,13 @@ The following example illustrates how to use the \sphereif\ class to define a \g
   Box domain(IntVect::Zero, (nx-1)*IntVect::Unit);
   Real dx = 1.0/nx;
   Real radius = 0.1;
-  Real center = 0.5*RealVect::Unit;
-  bool insideRegular = false;
+  RealVect center = 0.5*RealVect::Unit;
+  bool insideRegular = true;
   //this is the implicit function
   SphereIF sphere(radius, center, insideRegular);
 
   //this is worker object that creates geometric information given an IF
-  GeometryShop workshop(sideImpMultisphere)
+  GeometryShop workshop(sphere)
 
   //this is the global, distributed database being initialized
   EBIndexSpace*  ebis = AMReX_EBIS::instance()
@@ -270,7 +270,7 @@ ebis->define(domain, RealVect::Zero, dx, workshop);
   the form $I(\xbold) = x - y^2 - z^2$. 
 \begin{lstlisting}[language=cpp]
 
-Array<PolyTerm> poly;
+Vector<PolyTerm> poly;
 PolyTerm mono;
 Real coef;
 IntVect powers;
@@ -378,7 +378,7 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
   amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;
 
   // These  the polygons that get built around the z axis
-  Array<Array<RealVect> > polygons;
+  Vector<Vector<RealVect> > polygons;
   //....fill the polygons any way you like//
 
   // Make the Array of (convex) polygons (Arrays of points) into a union
@@ -386,18 +386,18 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
   // planes/spaces - all represented by implicit functions.
 
   // A list of all the polygons as implicit functions
-  Array<BaseIF*> polytopes;
+  Vector<BaseIF*> polytopes;
   polytopes.resize(0);
   int numPolys = polygons.size();
   // Process each polygon
   for (int p = 0; p < numPolys; p++)
   {
     // All the half planes/spaces used to make a polygon
-    Array<BaseIF*> planes;
+    Vector<BaseIF*> planes;
     planes.resize(0);
 
     // Get the current polygon (as a Array of points)
-    const Array<RealVect>& polygon = polygons[p];
+    const Vector<RealVect>& polygon = polygons[p];
 
     // Get the number of points in the polygon
     int numPts = polygon.size();
@@ -472,7 +472,7 @@ within a parabola. This code
 creates the surface shown in \ref{fig::parabolasphere}.
 
 \begin{lstlisting}[language=cpp]
-Array<PolyTerm> poly;
+Vector<PolyTerm> poly;
 
 PolyTerm mono;
 Real coef;
@@ -522,7 +522,7 @@ transform.translate(translation);
 
 Real radius = 0.2*center[0];
 SphereIF sphere(radius, center, true);
-Array<BaseIF*> funcs(2);
+Vector<BaseIF*> funcs(2);
 funcs[0] = &transform;
 funcs[1] = &sphere;
 UnionIF implicit(funcs);
@@ -593,15 +593,14 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             //this tile is the subset of the box over which we are computing
             const Box& bx = mfi.tilebox();
 
-            //because we have compiled with AMREX_USE=EB_TRUE, the
-            //MultiFab holds EBFArrayBox(es) so we can do this cast
+            //because S was created with the EBFArrayBoxFactory, we can do this cast
             const EBFArrayBox& sfab
                 = dynamic_cast<EBFArrayBox const&>(S[mfi]);
             
             //here we are getting the collection of flags so we know
             //kind of grid this is and if it is an EB grid, we have
             //the connectivity info
-            const EBCellFlafgFab & flag = sfab.getEBCellFlagFab();
+            const EBCellFlagFab & flag = sfab.getEBCellFlagFab();
 
             if (flag.getType(bx) == FabType::covered) 
             {
@@ -702,7 +701,7 @@ and $0$ if not.  Similar queries:
 \end{lstlisting}
 can be used to gather additional detail.
 
-Below, we show a partial listing of the $\tt{cns_eb_compute_dudt}$ code, specifically after the face-centered fluxes have been computed,
+Below, we show a partial listing of the $\tt{cns\_eb\_compute\_dudt}$ code, specifically after the face-centered fluxes have been computed,
 and showing part of the work necessary to interpolate them to face centroids (while appropriately handling covered data).
 
 \begin{lstlisting}[language=Fortran]

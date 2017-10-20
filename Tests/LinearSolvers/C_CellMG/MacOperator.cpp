@@ -411,13 +411,13 @@ mac_level_driver (AmrCore*        parent,
     }
     else if (the_solver == 3 ) 
     {
-        Array<BoxArray> bav(1);
+        Vector<BoxArray> bav(1);
         bav[0] = mac_phi->boxArray();
-        Array<DistributionMapping> dmv(1);
+        Vector<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
 	int stencil = CC_CROSS_STENCIL;
-        Array<Geometry> geom(1);
+        Vector<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
         int mg_bc[2*BL_SPACEDIM];
@@ -437,8 +437,8 @@ mac_level_driver (AmrCore*        parent,
         MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
 
         // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
-        Array< Array<Real> > xa(1);
-        Array< Array<Real> > xb(1);
+        Vector< Vector<Real> > xa(1);
+        Vector< Vector<Real> > xb(1);
  
         xa[0].resize(BL_SPACEDIM);
         xb[0].resize(BL_SPACEDIM);
@@ -457,7 +457,7 @@ mac_level_driver (AmrCore*        parent,
         }
 
         // Set alpha and beta as in (alpha - del dot beta grad)
-	Array<Array<MultiFab*> > bb_p(1);
+	Vector<Vector<MultiFab*> > bb_p(1);
 	bb_p[0].resize(BL_SPACEDIM);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
@@ -466,8 +466,8 @@ mac_level_driver (AmrCore*        parent,
 
         mgt_solver.set_mac_coefficients(bb_p, xa, xb);
 
-	Array<MultiFab*> mac_phi_p = { mac_phi };
-	Array<MultiFab*> Rhs_p = { &Rhs };
+	Vector<MultiFab*> mac_phi_p = { mac_phi };
+	Vector<MultiFab*> Rhs_p = { &Rhs };
 
 	int always_use_bnorm = 0;
         Real final_resnorm;
@@ -544,13 +544,13 @@ mac_sync_driver (AmrCore*            parent,
     }
     else if (the_solver == 3 )
     {
-        Array<BoxArray> bav(1);
+        Vector<BoxArray> bav(1);
         bav[0] = mac_sync_phi->boxArray();
-        Array<DistributionMapping> dmv(1);
+        Vector<DistributionMapping> dmv(1);
         dmv[0] = Rhs.DistributionMap();
         bool nodal = false;
 	int stencil = CC_CROSS_STENCIL;
-        Array<Geometry> geom(1);
+        Vector<Geometry> geom(1);
         geom[0] = mac_bndry.getGeom();
 
         int mg_bc[2*BL_SPACEDIM];
@@ -571,8 +571,8 @@ mac_sync_driver (AmrCore*            parent,
         MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
 
         // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
-        Array< Array<Real> > xa(1);
-        Array< Array<Real> > xb(1);
+        Vector< Vector<Real> > xa(1);
+        Vector< Vector<Real> > xb(1);
  
         xa[0].resize(BL_SPACEDIM);
         xb[0].resize(BL_SPACEDIM);
@@ -591,7 +591,7 @@ mac_sync_driver (AmrCore*            parent,
         }
 
         // Set alpha and beta as in (alpha - del dot beta grad)
-	Array<Array<MultiFab*> > bb_p(1);
+	Vector<Vector<MultiFab*> > bb_p(1);
 	bb_p[0].resize(BL_SPACEDIM);
         for ( int i = 0; i < BL_SPACEDIM; ++i )
         {
@@ -600,8 +600,8 @@ mac_sync_driver (AmrCore*            parent,
 
         mgt_solver.set_mac_coefficients(bb_p, xa, xb);
 
-        Array<MultiFab*> mac_phi_p = { mac_sync_phi };
-        Array<MultiFab*> Rhs_p = { &Rhs };
+        Vector<MultiFab*> mac_phi_p = { mac_sync_phi };
+        Vector<MultiFab*> Rhs_p = { &Rhs };
 
 	int always_use_bnorm = 0;
         Real final_resnorm;

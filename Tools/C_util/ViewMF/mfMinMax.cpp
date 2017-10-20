@@ -46,7 +46,7 @@ main (int   argc,
     MultiFab mf;
     VisMF::Read(mf,iFile);
 
-    Array<int> comps;
+    Vector<int> comps;
     if (int nc = pp.countval("comps"))
     {
         comps.resize(nc);

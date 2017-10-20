@@ -59,17 +59,17 @@ public:
 
     virtual void computeInitialDt (int                                 finest_level,
                                    int                                 sub_cycle,
-                                   amrex::Array<int>&                  n_cycle,
-                                   const amrex::Array<amrex::IntVect>& ref_ratio,
-                                   amrex::Array<amrex::Real>&          dt_level,
+                                   amrex::Vector<int>&                  n_cycle,
+                                   const amrex::Vector<amrex::IntVect>& ref_ratio,
+                                   amrex::Vector<amrex::Real>&          dt_level,
                                    amrex::Real                         stop_time) override;
 
     virtual void computeNewDt (int                                 finest_level,
                                int                                 sub_cycle,
-                               amrex::Array<int>&                  n_cycle,
-                               const amrex::Array<amrex::IntVect>& ref_ratio,
-                               amrex::Array<amrex::Real>&          dt_min,
-                               amrex::Array<amrex::Real>&          dt_level,
+                               amrex::Vector<int>&                  n_cycle,
+                               const amrex::Vector<amrex::IntVect>& ref_ratio,
+                               amrex::Vector<amrex::Real>&          dt_min,
+                               amrex::Vector<amrex::Real>&          dt_level,
                                amrex::Real                         stop_time,
                                int                                 post_regrid_flag) override;
 
@@ -170,7 +170,7 @@ protected:
     static int refine_max_dengrad_lev;
     static amrex::Real refine_dengrad;
 
-    static amrex::Array<amrex::RealBox> refine_boxes;
+    static amrex::Vector<amrex::RealBox> refine_boxes;
 };
 
 #endif

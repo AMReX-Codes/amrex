@@ -8,6 +8,7 @@
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {
@@ -51,8 +52,8 @@ public:
 
     friend class BoxDomain;
 
-    typedef Array<Box>::iterator       iterator;
-    typedef Array<Box>::const_iterator const_iterator;
+    typedef Vector<Box>::iterator       iterator;
+    typedef Vector<Box>::const_iterator const_iterator;
 
     //! Construct an empty BoxList with IndexType::TheCellType().
     BoxList ();
@@ -66,8 +67,8 @@ public:
     //!  Construct a BoxList from a BoxArray.
     explicit BoxList (const BoxArray& ba);
 
-    //! Construct a boxlist from a rvalue Array<Box>.
-    explicit BoxList (Array<Box>&& bxs);
+    //! Construct a boxlist from a rvalue Vector<Box>.
+    explicit BoxList (Vector<Box>&& bxs);
 
     //! Make a boxList consisting of non-overlapping tile box from a single Box
     BoxList (const Box& bx, const IntVect& tilesize);
@@ -87,7 +88,7 @@ public:
     //! Join the BoxList to ourselves.
     void join (const BoxList& blist);
     //! Join the Array of Boxes to ourselves.    
-    void join (const Array<Box>& barr);
+    void join (const Vector<Box>& barr);
     //! Catenate the BoxList to ourselves. Removes entries from blist.
     void catenate (BoxList& blist);
 
@@ -183,17 +184,17 @@ public:
     //! Applies Box::convert(IndexType) to each Box in the BoxList.
     BoxList& convert (IndexType typ);
 
-    //! Returns a reference to the Array<Box>.
-    Array<Box>& data() { return m_lbox; }
-    //! Returns a constant reference to the Array<Box>.
-    const Array<Box>& data() const { return m_lbox; }
+    //! Returns a reference to the Vector<Box>.
+    Vector<Box>& data() { return m_lbox; }
+    //! Returns a constant reference to the Vector<Box>.
+    const Vector<Box>& data() const { return m_lbox; }
 
 private:
     //! Core simplify routine.
     int simplify_doit (bool best);
 
     //! The list of Boxes.
-    Array<Box> m_lbox;
+    Vector<Box> m_lbox;
     //! The IndexType of Boxes in the BoxList.
     IndexType btype;
 

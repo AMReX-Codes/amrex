@@ -9,7 +9,7 @@ namespace amrex {
 EBDataCollection::EBDataCollection (const Geometry& a_geom,
                                     const BoxArray& a_ba,
                                     const DistributionMapping& a_dm,
-                                    const Array<int>& a_ngrow, EBSupport a_support)
+                                    const Vector<int>& a_ngrow, EBSupport a_support)
     : m_ngrow(a_ngrow),
       m_support(a_support),
       m_geom(a_geom)

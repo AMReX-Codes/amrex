@@ -214,7 +214,7 @@ namespace amrex
 
     mutable bool    m_verbose;
 ///
-    const Array<FaceIndex>& getFaces() const
+    const Vector<FaceIndex>& getFaces() const
       {
         return m_faces;
       }
@@ -238,16 +238,16 @@ namespace amrex
   private:
     void   setDefaultValues();
 
-    void   getFaceSubset(Array<FaceIndex>& a_subFaces, const Box& a_subBox) const;
+    void   getFaceSubset(Vector<FaceIndex>& a_subFaces, const Box& a_subBox) const;
   protected:
 
     //because my debugging functions get confounded  by templates
-    void dumpFaces(const Array<FaceIndex>& a_faces) const;
+    void dumpFaces(const Vector<FaceIndex>& a_faces) const;
     int m_nFaces;
     int m_nComp;
     int m_direction;
     IntVectSet m_ivs;
-    Array<FaceIndex> m_faces;
+    Vector<FaceIndex> m_faces;
     T* m_data;
 
     bool    m_isDefined;

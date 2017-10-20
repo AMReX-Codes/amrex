@@ -12,9 +12,9 @@ using namespace amrex;
 // -------------------------------------------------------------------
 XYPlotDataList::XYPlotDataList(const string &derived, int minlevel,
                                int maxlevel, int gridlinein,
-			       const Array<int> &ratiolist,
-			       const Array<Real> &dx,
-			       const Array<char *> &intersectpoint,
+			       const Vector<int> &ratiolist,
+			       const Vector<Real> &dx,
+			       const Vector<char *> &intersectpoint,
 			       Real offsetx)
   : dataSets(maxlevel + 1),
     xypdlRatios(ratiolist),
@@ -138,7 +138,7 @@ for(int iCurLevel(maxLevel); iCurLevel >= minLevel; --iCurLevel) {
     }
   }
 
-  Array<BoxList> unfilledBoxLists(iCurLevel + 1);
+  Vector<BoxList> unfilledBoxLists(iCurLevel + 1);
   if(unfilledBoxLists[iCurLevel].isEmpty()) {  // convert to correct type
     unfilledBoxLists[iCurLevel].convert(probDomain.ixType());
   }

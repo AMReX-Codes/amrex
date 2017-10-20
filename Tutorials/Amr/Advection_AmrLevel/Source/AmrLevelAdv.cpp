@@ -224,6 +224,11 @@ AmrLevelAdv::advance (Real time,
                       int  iteration,
                       int  ncycle)
 {
+    MultiFab& S_mm = get_new_data(Phi_Type);
+    Real maxval = S_mm.max(0);
+    Real minval = S_mm.min(0);
+
+    amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
     for (int k = 0; k < NUM_STATE_TYPE; k++) {
         state[k].allocOldData();
         state[k].swapTimeLevels(dt);
@@ -415,9 +420,9 @@ AmrLevelAdv::initialTimeStep ()
 void
 AmrLevelAdv::computeInitialDt (int                   finest_level,
 	  	               int                   sub_cycle,
-                               Array<int>&           n_cycle,
-                               const Array<IntVect>& ref_ratio,
-                               Array<Real>&          dt_level,
+                               Vector<int>&           n_cycle,
+                               const Vector<IntVect>& ref_ratio,
+                               Vector<Real>&          dt_level,
                                Real                  stop_time)
 {
     //
@@ -459,10 +464,10 @@ AmrLevelAdv::computeInitialDt (int                   finest_level,
 void
 AmrLevelAdv::computeNewDt (int                   finest_level,
 		           int                   sub_cycle,
-                           Array<int>&           n_cycle,
-                           const Array<IntVect>& ref_ratio,
-                           Array<Real>&          dt_min,
-                           Array<Real>&          dt_level,
+                           Vector<int>&           n_cycle,
+                           const Vector<IntVect>& ref_ratio,
+                           Vector<Real>&          dt_min,
+                           Vector<Real>&          dt_level,
                            Real                  stop_time,
                            int                   post_regrid_flag)
 {
@@ -627,7 +632,7 @@ AmrLevelAdv::errorEst (TagBoxArray& tags,
 #pragma omp parallel
 #endif
     {
-        Array<int>  itags;
+        Vector<int>  itags;
 	
 	for (MFIter mfi(S_new,true); mfi.isValid(); ++mfi)
 	{
@@ -698,7 +703,7 @@ AmrLevelAdv::read_params ()
     ppa.query("probin_file",probin_file);
 
     int probin_file_length = probin_file.length();
-    Array<int> probin_file_name(probin_file_length);
+    Vector<int> probin_file_name(probin_file_length);
 
     for (int i = 0; i < probin_file_length; i++)
 	probin_file_name[i] = probin_file[i];

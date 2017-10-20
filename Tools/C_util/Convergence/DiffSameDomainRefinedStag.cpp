@@ -25,6 +25,7 @@ using std::ios;
 
 #define GARBAGE 666.e+40
 
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
@@ -137,8 +138,8 @@ main (int   argc,
     }
 
     int finestLevel = amrData1.FinestLevel();
-    const Array<std::string>& derives = amrData1.PlotVarNames();
-    Array<int> destComps(nComp);
+    const Vector<std::string>& derives = amrData1.PlotVarNames();
+    Vector<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
     
@@ -146,7 +147,7 @@ main (int   argc,
     //
     // Compute the error
     //
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
         std::cout << "Level  L"<< norm << " norm of Error in Each Component" << std::endl
@@ -200,19 +201,20 @@ main (int   argc,
         ba2Coarse.coarsen(refine_ratio);
 
         // Define new_data1 in case the boxarrays are not the same
-        MultiFab new_data1(ba2Coarse,1,0,Fab_allocate);
+        DistributionMapping dm2Coarse(ba2Coarse);
+        MultiFab new_data1(ba2Coarse,dm2Coarse,1,0);
 
         //
         // Construct MultiFab for errors
         //
-	error[iLevel] = new MultiFab(ba2Coarse, nComp, 0);
+	error[iLevel] = new MultiFab(ba2Coarse, dm2Coarse, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
         //
         // For each component, average the fine fields down and calculate
         // the errors
         //
-        Array<Real> norms(nComp);
+        Vector<Real> norms(nComp);
         for (int iComp = 0; iComp < nComp; iComp++)
             norms[iComp] = 0.0;
 
@@ -237,6 +239,10 @@ main (int   argc,
                 FArrayBox data2Coarse(ba2Coarse[index], 1);
                 int ncCoarse = 1;
 
+                Box box2c = ba2Coarse[mfi];
+		IntVect loiv = box2c.smallEnd();
+		IntVect hiiv = box2c.bigEnd();
+
                 FORT_CV_AVGDOWN_STAG(&nodal_dir,
 				     data2Coarse.dataPtr(),
                                      ARLIM(data2Coarse.loVect()),
@@ -245,8 +251,8 @@ main (int   argc,
 				     data2Fine[mfi].dataPtr(),
 				     ARLIM(data2Fine[mfi].loVect()),
 				     ARLIM(data2Fine[mfi].hiVect()), 
-				     ba2Coarse[index].loVect(), 
-				     ba2Coarse[index].hiVect(),
+				     loiv.getVect(),
+				     hiiv.getVect(),
 				     refine_ratio.getVect());
 
 
@@ -282,7 +288,7 @@ main (int   argc,
         MPI_Datatype datatype = ParallelDescriptor::Mpi_typemap<Real>::type();
         if (ParallelDescriptor::IOProcessor())
         {
-            Array<Real> tmp(nComp);
+            Vector<Real> tmp(nComp);
             for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
                 if (proc != ParallelDescriptor::IOProcessorNumber())
                 {
@@ -353,8 +359,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<std::string>& derives1 = amrd1.PlotVarNames();
-    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    const Vector<std::string>& derives1 = amrd1.PlotVarNames();
+    const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
 	return false;
@@ -372,7 +378,7 @@ getRefRatio(const Box& crse,
     // Compute refinement ratio between crse and fine boxes, return invalid
     // IntVect if there is none suitable
     ParmParse pp("");
-    Array<int> rr_in(BL_SPACEDIM,-1);
+    Vector<int> rr_in(BL_SPACEDIM,-1);
 
     int Nrr = pp.countval("ref_ratio");
 

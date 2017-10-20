@@ -16,6 +16,7 @@
 #endif
 
 using std::ios;
+using namespace amrex;
 
 static
 void
@@ -67,7 +68,7 @@ main (int   argc,
     if (iFile.empty())
         amrex::Abort("You must specify `infile'");
 
-    Array<Real> norm0, norm1, norm2;
+    Vector<Real> norm0, norm1, norm2;
 
     DataServices::SetBatchMode();
     Amrvis::FileType fileType(Amrvis::NEWPLT);
@@ -85,7 +86,7 @@ main (int   argc,
       // Write norms to screen
       if (ParallelDescriptor::IOProcessor())
       {
-	const Array<std::string>& names = amrData.PlotVarNames();
+	const Vector<std::string>& names = amrData.PlotVarNames();
 	int maxl = 0;
 	for (int i=0; i<names.size(); ++i)
 	    maxl = std::max(maxl,int(names[i].size()));
@@ -117,7 +118,7 @@ main (int   argc,
       // Write norms to screen
       if (ParallelDescriptor::IOProcessor())
       {
-	const Array<std::string>& names = amrData.PlotVarNames();
+	const Vector<std::string>& names = amrData.PlotVarNames();
 	int maxl = 0;
 	for (int i=0; i<names.size(); ++i)
 	    maxl = std::max(maxl,int(names[i].size()));

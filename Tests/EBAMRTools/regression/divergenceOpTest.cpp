@@ -184,8 +184,8 @@ namespace amrex
     else if (whichgeom == 5)
     {
       amrex::Print() << "sphere geometry\n";
-      Array<Real> centervec(SpaceDim);
-      Array<int>  ncellsvec(SpaceDim);
+      Vector<Real> centervec(SpaceDim);
+      Vector<int>  ncellsvec(SpaceDim);
       int maxgrid;
       ParmParse pp;
       Real radius;
@@ -225,7 +225,7 @@ namespace amrex
     int eekflag = makeGeometry(paramsFine);
     if(eekflag != 0) return eekflag;
 
-    Array<EBLevelGrid> veblgCoar, veblgFine;
+    Vector<EBLevelGrid> veblgCoar, veblgFine;
     getAllIrregEBLG(veblgCoar, paramsCoar);
     getAllIrregEBLG(veblgFine, paramsFine);
 

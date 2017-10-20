@@ -75,7 +75,7 @@ public:
      * \brief Make an ALIAS MultiFab given an array of Real pointers.
      */
     MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
-              const Array<Real*>& p);
+              const Vector<Real*>& p);
 
     virtual ~MultiFab () override;
 
@@ -143,6 +143,8 @@ public:
     */
     Real norm0 (int comp = 0, int nghost = 0, bool local = false) const;
 
+    Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
+
     /**
     * \brief Returns the maximum *absolute* value contained in 
     * component comp of the MultiFab in the intersection of the BoxArray
@@ -155,7 +157,7 @@ public:
     * each component of "comps" of the MultiFab.  No ghost cells are used.
     */
 
-    Array<Real> norm0 (const Array<int>& comps, int nghost = 0, bool local = false) const;
+    Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false) const;
     /**
     * \brief Returns the L1 norm of component "comp" over the MultiFab.
     * No ghost cells are used.  This version has no double counting for nodal data.
@@ -170,7 +172,7 @@ public:
     * \brief Returns the L1 norm of each component of "comps" over the MultiFab.
     * ngrow ghost cells are used.
     */
-    Array<Real> norm1 (const Array<int>& comps, int ngrow = 0, bool local = false) const;
+    Vector<Real> norm1 (const Vector<int>& comps, int ngrow = 0, bool local = false) const;
     /**
     * \brief Returns the L2 norm of component "comp" over the MultiFab.
     * No ghost cells are used.
@@ -185,7 +187,7 @@ public:
     * \brief Returns the L2 norm of each component of "comps" over the MultiFab.
     * No ghost cells are used.
     */
-    Array<Real> norm2 (const Array<int>& comps) const;
+    Vector<Real> norm2 (const Vector<int>& comps) const;
     /**
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */

@@ -7,6 +7,7 @@
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
 
 namespace amrex {
@@ -74,6 +75,10 @@ public:
     */
     IntVect (AMREX_D_DECL(int i, int j, int k)) { AMREX_D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k); }
 
+#if (AMREX_SPACEDIM > 1)
+    explicit IntVect (int i) { AMREX_D_EXPR(vect[0] = i, vect[1] = i, vect[2] = i); }
+#endif
+
     /**
     * \brief Construct an IntVect setting the coordinates to the
     * corresponding values in the integer array a.
@@ -81,11 +86,11 @@ public:
     explicit IntVect (const int* a);
 
     /**
-    * \brief Construct an IntVect from an Array<int>.  It is an error if
-    * the Array<int> doesn' t have the same dimension as this
+    * \brief Construct an IntVect from an Vector<int>.  It is an error if
+    * the Vector<int> doesn' t have the same dimension as this
     * IntVect.
     */
-    explicit IntVect (const Array<int>& a);
+    explicit IntVect (const Vector<int>& a);
 
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.

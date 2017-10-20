@@ -9,12 +9,12 @@
 
 using namespace amrex;
 
-void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b, 
-		    const Array<MultiFab*>& alph, 
-		    const Array<MultiFab*>& beta, 
-		    const Array<MultiFab*>& rhs, 
-		    const Array<Geometry>& geom, 
-		    const Array<BoxArray>& grids,
+void solve_with_F90(const Vector<MultiFab*>& soln, Real a, Real b, 
+		    const Vector<MultiFab*>& alph, 
+		    const Vector<MultiFab*>& beta, 
+		    const Vector<MultiFab*>& rhs, 
+		    const Vector<Geometry>& geom, 
+		    const Vector<BoxArray>& grids,
 		    int ibnd)
 {
   const Real run_strt = ParallelDescriptor::second();
@@ -57,7 +57,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
     }
   }
    
-  Array< Array<std::unique_ptr<MultiFab> > > bcoeffs(nlevel);
+  Vector< Vector<std::unique_ptr<MultiFab> > > bcoeffs(nlevel);
   for (int ilev=0; ilev<nlevel; ilev++ ) {
 
     const DistributionMapping& dm = soln[ilev]->DistributionMap();
@@ -72,7 +72,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
       bcoeffs[ilev][n].reset(new MultiFab(edge_boxes,dm,1,0));
     }
 
-    amrex::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoeffs[ilev]),
+    amrex::average_cellcenter_to_face(amrex::GetVecOfPtrs(bcoeffs[ilev]),
 				       *beta[ilev], geom[ilev]);
   }
 
@@ -84,7 +84,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
       fmg.set_maxorder(maxorder);
 
       fmg.set_scalars(a, b);
-      fmg.set_coefficients(alph, amrex::GetArrOfArrOfPtrs(bcoeffs));
+      fmg.set_coefficients(alph, amrex::GetVecOfVecOfPtrs(bcoeffs));
 
       fmg.solve(soln, rhs, tolerance_rel, tolerance_abs); 
   }
@@ -103,7 +103,7 @@ void solve_with_F90(const Array<MultiFab*>& soln, Real a, Real b,
 	  fmg.set_maxorder(maxorder);
 
 	  fmg.set_scalars(a, b);
-	  fmg.set_coefficients(*alph[ilev], amrex::GetArrOfPtrs(bcoeffs[ilev]));
+	  fmg.set_coefficients(*alph[ilev], amrex::GetVecOfPtrs(bcoeffs[ilev]));
 	  
 	  fmg.solve(*soln[ilev], *rhs[ilev], tolerance_rel, tolerance_abs);
       }

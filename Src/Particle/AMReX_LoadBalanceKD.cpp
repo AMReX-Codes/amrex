@@ -14,7 +14,7 @@ KDTree::~KDTree() {
     freeKDTree(root);
 }
     
-void KDTree::GetBoxes(BoxList& bl, Array<Real>& costs) {        
+void KDTree::GetBoxes(BoxList& bl, Vector<Real>& costs) {        
     walkKDTree(root, bl, costs);
 }
     
@@ -43,7 +43,7 @@ void KDTree::freeKDTree(KDNode* node) {
     }
 }
 
-void KDTree::walkKDTree(KDNode* node, BoxList& bl, Array<Real>& costs) {
+void KDTree::walkKDTree(KDNode* node, BoxList& bl, Vector<Real>& costs) {
     
     if (node->left == NULL && node->right == NULL) {
         costs.push_back(node->cost);

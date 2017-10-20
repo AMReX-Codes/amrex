@@ -13,12 +13,14 @@
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_AmrData.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
 #endif
 
 #define GARBAGE 666.e+40
+using namespace amrex;
 
 static
 void
@@ -45,8 +47,8 @@ bool
 amrDatasHaveSameDerives(const AmrData& amrd1,
 			const AmrData& amrd2)
 {
-    const Array<std::string>& derives1 = amrd1.PlotVarNames();
-    const Array<std::string>& derives2 = amrd2.PlotVarNames();
+    const Vector<std::string>& derives1 = amrd1.PlotVarNames();
+    const Vector<std::string>& derives2 = amrd2.PlotVarNames();
     int length = derives1.size();
     if (length != derives2.size())
 	return false;
@@ -116,14 +118,14 @@ main (int   argc,
 
     int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
-    const Array<std::string>& derives = amrDataI.PlotVarNames();
-    Array<int> destComps(nComp);
+    const Vector<std::string>& derives = amrDataI.PlotVarNames();
+    Vector<int> destComps(nComp);
     for (int i = 0; i < nComp; i++) 
         destComps[i] = i;
     //
     // Compute the error
     //
-    Array<MultiFab*> error(finestLevel+1);
+    Vector<MultiFab*> error(finestLevel+1);
     
     if (ParallelDescriptor::IOProcessor())
         std::cout << "L"<< norm << " norm of Error in Each Component" << std::endl
@@ -140,11 +142,13 @@ main (int   argc,
             ParallelDescriptor::Abort();
         }
 
-	error[iLevel] = new MultiFab(baI, nComp, 0);
+        DistributionMapping dmI(baI);
+	error[iLevel] = new MultiFab(baI, dmI, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
-        MultiFab dataI(baI, nComp, 0);
-        MultiFab dataE(baE, nComp, 0);
+        DistributionMapping dmE(baE);
+        MultiFab dataI(baI, dmI, nComp, 0);
+        MultiFab dataE(baE, dmE, nComp, 0);
 
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
         amrDataE.FillVar(dataE, iLevel, derives, destComps);
@@ -163,7 +167,7 @@ main (int   argc,
         if (ParallelDescriptor::IOProcessor())
 	  std::cout << "Level:  " << iLevel << std::endl;
 
-        Array<Real> norms(nComp,0);
+        Vector<Real> norms(nComp,0);
 
         for (MFIter mfi(*error[iLevel]); mfi.isValid(); ++mfi)
         {
@@ -183,7 +187,7 @@ main (int   argc,
 
         if (ParallelDescriptor::IOProcessor())
         {
-            Array<Real> tmp(nComp);
+            Vector<Real> tmp(nComp);
             for (int proc = 0; proc < ParallelDescriptor::NProcs(); proc++)
             {
                 if (proc != ParallelDescriptor::IOProcessorNumber())

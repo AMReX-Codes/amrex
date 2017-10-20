@@ -18,19 +18,19 @@ main (int argc, char** argv)
 
   BL_PROFILE_VAR("main()", pmain);
 
-  Array<DistributionMapping::Strategy> dmStrategies(nStrategies);
+  Vector<DistributionMapping::Strategy> dmStrategies(nStrategies);
   dmStrategies[0] = DistributionMapping::ROUNDROBIN;
   dmStrategies[1] = DistributionMapping::KNAPSACK;
   dmStrategies[2] = DistributionMapping::SFC;
   dmStrategies[3] = DistributionMapping::PFC;
 
-  Array<std::string> dmSNames(nStrategies);
+  Vector<std::string> dmSNames(nStrategies);
   dmSNames[0] = "ROUNDROBIN";
   dmSNames[1] = "KNAPSACK";
   dmSNames[2] = "SFC";
   dmSNames[3] = "PFC";
 
-  Array<double> dmSTimes(nStrategies, 0.0);
+  Vector<double> dmSTimes(nStrategies, 0.0);
 
   for(int iS(0); iS < nStrategies * nTimes; ++iS) {
 

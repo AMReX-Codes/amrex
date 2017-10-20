@@ -45,8 +45,8 @@ EBTower::EBTower ()
         const auto& ebisl = ebis->getEBISLevel(lev);
         const auto& graph = ebisl.getGraph();
 
-        Array<Box> covb;
-        Array<Box> irrb;
+        Vector<Box> covb;
+        Vector<Box> irrb;
 
         for (MFIter mfi(graph); mfi.isValid(); ++mfi)
         {

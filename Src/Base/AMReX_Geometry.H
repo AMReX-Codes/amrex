@@ -151,7 +151,7 @@ public:
     */
     void periodicShift (const Box&      target,
                         const Box&      src, 
-                        Array<IntVect>& out) const;
+                        Vector<IntVect>& out) const;
 
 #ifdef BL_USE_MPI
     //! Send Geometry to sidecar procs.
