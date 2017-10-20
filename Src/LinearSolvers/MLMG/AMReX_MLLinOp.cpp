@@ -386,7 +386,7 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
         std::array<FArrayBox const*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
-        for (MFIter mfi(crse_sol, MFItInfo().SetDynamic(true));  mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
             if (fluxreg.CrseHasWork(mfi))
             {
@@ -399,7 +399,11 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
             }
         }
 
-        for (MFIter mfi(fine_sol, MFItInfo().SetDynamic(true));  mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+
+        for (MFIter mfi(fine_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
             if (fluxreg.FineHasWork(mfi))
             {
