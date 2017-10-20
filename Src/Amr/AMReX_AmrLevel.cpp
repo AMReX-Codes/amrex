@@ -286,6 +286,8 @@ AmrLevel::writePlotFile (const std::string& dir,
     std::string TheFullPath = FullPath;
     TheFullPath += BaseName;
     VisMF::Write(plotMF,TheFullPath,how,true);
+
+    levelDirectoryCreated = false;  // ---- now that the plotfile is finished
 }
 
 

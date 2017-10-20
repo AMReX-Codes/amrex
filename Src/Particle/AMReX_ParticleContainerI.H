@@ -1703,7 +1703,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                    << pdir << "  " << levelDirectoriesCreated <<  std::endl;
     if ( ! levelDirectoriesCreated) {
       if (ParallelDescriptor::IOProcessor()) {
-        amrex::Print() << "IOIOIOIO:  Particle::Checkpoint:0:  creating directory:  "
+        amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:0:  creating directory:  "
 	               << pdir << std::endl;;
         if ( ! amrex::UtilCreateDirectory(pdir, 0755)) {
             amrex::CreateDirectoryFailed(pdir);
@@ -1864,7 +1864,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	    
 	    if ( ! levelDirectoriesCreated) {
               if (ParallelDescriptor::IOProcessor()) {
-                amrex::Print() << "IOIOIOIO:  Particle::Checkpoint:1:  creating directory:  "
+                amrex::Print() << "IOIOIOIO:CD  Particle::Checkpoint:1:  creating directory:  "
 		               << LevelDir << std::endl;;
 	        if ( ! amrex::UtilCreateDirectory(LevelDir, 0755)) {
 		  amrex::CreateDirectoryFailed(LevelDir);

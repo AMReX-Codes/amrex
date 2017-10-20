@@ -806,7 +806,7 @@ Amr::writePlotFile ()
 
     if(precreateDirectories) {    // ---- make all directories at once
       if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  precreating directories for " << pltfileTemp << "\n";
+          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  precreating directories for " << pltfileTemp << "\n";
       }
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
@@ -814,6 +814,9 @@ Amr::writePlotFile ()
         amr_level[i]->CreateLevelDirectory(pltfileTemp);
       }
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  creating directory:  " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
@@ -932,7 +935,7 @@ Amr::writeSmallPlotFile ()
     //
     if(precreateDirectories) {    // ---- make all directories at once
       if (verbose > 0) {
-          amrex::Print() << "IOIOIOIO:CD  precreating directories for " << pltfileTemp << "\n";
+          amrex::Print() << "IOIOIOIO:CD  Amr::writeSmallPlotFile:  precreating directories for " << pltfileTemp << "\n";
       }
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
@@ -941,6 +944,9 @@ Amr::writeSmallPlotFile ()
       }
       ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writeSmallPlotFile:  creating directory:  " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
@@ -1677,18 +1683,21 @@ Amr::checkPoint ()
 
     if(precreateDirectories) {    // ---- make all directories at once
       if (verbose > 0) {
-        amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint::  precreating directories for "
+        amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint:  precreating directories for "
 	               << ckfileTemp << "\n";
       }
       amrex::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
-        amrex::Print() << "IOIOIOIO:  Amr::checkPoint::  precreating directories for "
+        amrex::Print() << "IOIOIOIO:  Amr::checkPoint:  precreating directories for "
 	               << ckfileTemp << "  for level " << i << "\n";
         amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint:  creating directory:  " << ckfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
     }
