@@ -58,29 +58,4 @@ contains
 
   end subroutine warpx_lorentz_transform_3d
 
-  subroutine warpx_fill_slice_3d(full_data, flo, fhi, slice_data, slo, shi, tlo, thi) &
-       bind(C, name="warpx_fill_slice_3d")
-
-    integer(c_int),   intent(in)    :: flo(3), fhi(3)
-    integer(c_int),   intent(in)    :: slo(3), shi(3)
-    integer(c_int),   intent(in)    :: tlo(3), thi(3)
-    real(amrex_real), intent(inout) :: full_data(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3), 10)
-    real(amrex_real), intent(inout) :: slice_data(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3), 10)
-    
-    integer n, i, j, k
-    
-    do n = 1, 10
-       do k = tlo(3), thi(3)
-          do j = tlo(2), thi(2)
-             do i = tlo(1), thi(1)
-                
-                slice_data(i, j, k, n) = full_data(i, j, k, n)
-
-             end do
-          end do
-       end do
-    end do
-
-  end subroutine warpx_fill_slice_3d
-
 end module warpx_boosted_frame_module

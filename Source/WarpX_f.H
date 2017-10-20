@@ -27,7 +27,6 @@
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
 #define WRPX_LORENTZ_TRANSFORM           warpx_lorentz_transform_3d
-#define WRPX_FILL_SLICE                  warpx_fill_slice_3d
 #define WRPX_FILTER                      warpx_filter_3d
 
 #elif (BL_SPACEDIM == 2)
@@ -261,10 +260,6 @@ extern "C"
     void WRPX_LORENTZ_TRANSFORM(amrex::Real* data, const int* dlo, const int* dhi,
                                 const int* tlo, const int* thi,
                                 const amrex::Real* gamma_boost, const amrex::Real* beta_boost);
-
-    void WRPX_FILL_SLICE(const amrex::Real* fdata, const int* flo, const int* fhi,
-                         amrex::Real* sdata, const int* slo, const int* shi,
-                         const int* tlo, const int* thi);
 
 //  These functions are used to evolve E and B in the PML
 
