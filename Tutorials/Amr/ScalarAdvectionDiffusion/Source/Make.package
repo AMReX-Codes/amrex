@@ -1,0 +1,5 @@
+CEXE_sources += AmrLevelAdv.cpp LevelBldAdv.cpp main.cpp DebugOut.cpp 
+
+CEXE_headers += AmrLevelAdv.H DebugDump.H DebugOut.H
+
+FEXE_headers += Adv_F.H

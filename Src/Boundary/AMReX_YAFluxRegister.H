@@ -45,7 +45,15 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt);
 
-    void Reflux (MultiFab& state);
+    void Reflux (MultiFab& state, int dc = 0);
+
+    bool CrseHasWork (const MFIter& mfi) const {
+        return m_crse_fab_flag[mfi.LocalIndex()] != crse_cell;
+    }
+
+    bool FineHasWork (const MFIter& mfi) const {
+        return !(m_cfp_fab[mfi.LocalIndex()].empty());
+    }
 
     enum {
         crse_cell = 0, crse_fine_boundary_cell, fine_cell

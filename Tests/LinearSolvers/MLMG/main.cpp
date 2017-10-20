@@ -18,11 +18,11 @@ void write_plotfile (const Vector<Geometry>& geom, int rr,
                      const Vector<MultiFab>& rhs);
 
 namespace {
-    static int max_level     = 1;
-    static int nlevels       = 2;
-    static int n_cell        = 64;
-    static int max_grid_size = 32;
-    static int ref_ratio     = 2;
+    int max_level     = 1;
+    int nlevels       = 2;
+    int n_cell        = 64;
+    int max_grid_size = 32;
+    int ref_ratio     = 2;
 }
 
 int main (int argc, char* argv[])
@@ -30,9 +30,15 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
     
     {
+        BL_PROFILE("main()");
+
         ParmParse pp;
         pp.query("max_level", max_level);
         nlevels = max_level + 1;
+
+        pp.query("n_cell", n_cell);
+        pp.query("max_grid_size", max_grid_size);
+        pp.query("ref_ratio", ref_ratio);
 
         Vector<Geometry> geom(nlevels);
         Vector<BoxArray> grids(nlevels);

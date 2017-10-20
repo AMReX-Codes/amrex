@@ -16,7 +16,7 @@ public:
     MLABecLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap);
-    ~MLABecLaplacian ();
+    virtual ~MLABecLaplacian ();
 
     MLABecLaplacian (const MLABecLaplacian&) = delete;
     MLABecLaplacian (MLABecLaplacian&&) = delete;
@@ -29,11 +29,7 @@ public:
 
     void setScalars (Real a, Real b) { m_a_scalar = a; m_b_scalar = b; }
     void setACoeffs (int amrlev, const MultiFab& alpha);
-    void setBCoeffs (int amrlev,
-                     const std::array<MultiFab const*,AMREX_SPACEDIM>& beta);
-
-    virtual void prepareForSolve () final;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) final;
+    void setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
 private:
 
@@ -42,11 +38,25 @@ private:
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
-    void averageDownCoeffs ();
+    mutable Vector<Vector<Real> > m_Anorm;
+
+    //
+    // functions
+    //
 
     static void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                                Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b);
+
+    void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
+
+    virtual void prepareForSolve () final;
+    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
+    virtual void FFlux (int amrlev, const MFIter& mfi, std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+                        const FArrayBox& sol, const int face_only=0) const final;
+    virtual Real Anorm (int amrlev, int mglev) const final;
+
 };
 
 }

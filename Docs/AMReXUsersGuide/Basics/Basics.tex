@@ -194,7 +194,7 @@ grids.  The computational domain on each AMR level is decomposed into
 a union of rectangular domains.  Figure~\ref{fig:basics:amrgrids}
 shows an example of AMR grids.  There are three total levels in the
 example.  In \amrex\ numbering convention, the coarsest level is level
-0.  The coarsest grid ({\emph{black}) covers the domain with $16^2$
+0.  The coarsest grid ({\emph{black}}) covers the domain with $16^2$
 cells. Bold lines represent grid boundaries.  There are two
 intermediate resolution grids ({\emph{blue}}) at level 1 and the
 cells are a factor of two finer than those at level 0.  The two finest
@@ -837,7 +837,7 @@ operations that require data owned by other processes, remote
 communications are involved.  Thus, the construction of a {\tt
   FabArray} requires a {\tt DistributionMapping}
 (Section~\ref{sec:basics:dm}) that specifies which process owns which
-{\tt Box}.  For level 2 ({\emph{red}) in
+{\tt Box}.  For level 2 ({\emph{red}}) in
 Figure~\ref{fig:basics:amrgrids}, there are two {\tt Box}es.  Suppose
 there are two parallel processes, and we use a {\tt
   DistributionMapping} that assigns one {\tt Box} to each process.

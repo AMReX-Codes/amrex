@@ -23,7 +23,7 @@ using std::ios;
 #include <AVGDOWN_F.H>
 
 #define GARBAGE 666.e+40
-
+using namespace amrex;
 static
 void
 PrintUsage (const char* progName)
