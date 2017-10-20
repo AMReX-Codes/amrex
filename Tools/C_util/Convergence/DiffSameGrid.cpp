@@ -13,12 +13,14 @@
 #include <AMReX_DataServices.H>
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_AmrData.H>
 
 #ifndef NDEBUG
 #include <TV_TempWrite.H>
 #endif
 
 #define GARBAGE 666.e+40
+using namespace amrex;
 
 static
 void
@@ -140,11 +142,13 @@ main (int   argc,
             ParallelDescriptor::Abort();
         }
 
-	error[iLevel] = new MultiFab(baI, nComp, 0);
+        DistributionMapping dmI(baI);
+	error[iLevel] = new MultiFab(baI, dmI, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
-        MultiFab dataI(baI, nComp, 0);
-        MultiFab dataE(baE, nComp, 0);
+        DistributionMapping dmE(baE);
+        MultiFab dataI(baI, dmI, nComp, 0);
+        MultiFab dataE(baE, dmE, nComp, 0);
 
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
         amrDataE.FillVar(dataE, iLevel, derives, destComps);

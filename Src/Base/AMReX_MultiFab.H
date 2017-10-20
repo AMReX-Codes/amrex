@@ -143,6 +143,8 @@ public:
     */
     Real norm0 (int comp = 0, int nghost = 0, bool local = false) const;
 
+    Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
+
     /**
     * \brief Returns the maximum *absolute* value contained in 
     * component comp of the MultiFab in the intersection of the BoxArray

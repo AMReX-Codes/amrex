@@ -101,6 +101,13 @@ namespace amrex
     {
 	std::for_each(a.begin(), a.end(), [](std::unique_ptr<T>& p) { p.reset(); });
     }
+
+    template <class T> 
+    void RemoveDuplicates(Vector<T>& vec) {
+        std::sort(vec.begin(), vec.end());
+        auto it = std::unique(vec.begin(), vec.end());
+        vec.erase(it, vec.end());
+    }
 }
 
 #endif

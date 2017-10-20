@@ -1,5 +1,5 @@
 AMREX_HOME ?= ../../../..
-
+USE_EB = FALSE
 PRECISION  = DOUBLE
 PROFILE    = FALSE
 

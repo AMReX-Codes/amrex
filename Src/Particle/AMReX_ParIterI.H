@@ -3,7 +3,7 @@ template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NA
 ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBase 
   (ContainerRef pc, int level, MFItInfo& info)
     : 
-      MFIter(*pc.m_dummy_mf[level], info.EnableTiling(pc.tile_size)),
+      MFIter(*pc.m_dummy_mf[level], pc.do_tiling ? info.EnableTiling(pc.tile_size) : info),
       m_level(level),
       m_pariter_index(0)
 {

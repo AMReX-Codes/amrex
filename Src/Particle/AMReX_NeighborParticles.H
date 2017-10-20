@@ -1,9 +1,6 @@
 #ifndef _NEIGHBORPARTICLES_H_
 #define _NEIGHBORPARTICLES_H_
 
-#include <unordered_set>
-#include <functional>
-
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_Particles.H"
@@ -164,14 +161,15 @@ protected:
     };
 
     int num_neighbor_cells;
-    std::vector<NeighborCommTag> local_neighbors;
+    amrex::Vector<NeighborCommTag> local_neighbors;
     std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
     std::map<PairIndex, Vector<int> > buffer_id_cache;
     std::map<PairIndex, Vector<NeighborTag> > buffer_tag_cache;
     
     // each proc knows how many sends it will do, and how many bytes it will rcv 
     // from each other proc.
-    Vector<long> rcvs;
+    amrex::Vector<int> neighbor_procs;
+    amrex::Vector<long> rcvs;
     long num_snds;
 };
 
