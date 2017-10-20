@@ -80,6 +80,7 @@ MLCGSolver::solve (MultiFab&       sol,
                    Real            eps_rel,
                    Real            eps_abs)
 {
+    BL_PROFILE("MLCGSolver::solve()");
     switch (cg_solver)
     {
     case Solver::CG:
