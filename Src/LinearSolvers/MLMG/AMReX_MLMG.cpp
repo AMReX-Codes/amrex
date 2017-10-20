@@ -350,7 +350,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     BL_PROFILE_VAR_STOP(blp_bottom);
     
     BL_PROFILE_VAR_START(blp_up);
-    for (int mglev = mglev_bottom-1; mglev >= 0; --mglev)
+    for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
