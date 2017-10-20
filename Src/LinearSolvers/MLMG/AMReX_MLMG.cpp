@@ -6,6 +6,7 @@
 #include <AMReX_MG_F.H>
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_BC_TYPES.H>
+#include <AMReX_MLMG_F.H>
 
 // sol: full solution
 // rhs: rhs of the original equation L(sol) = rhs
@@ -420,7 +421,7 @@ MLMG::interpCorrection (int alev)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(fine_cor, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
         amrex::pc_interp.interp(cfine[mfi], 0, fine_cor[mfi], 0, 1,
                                 mfi.tilebox(), refratio, g1, g2, bcr, 0, 0);
@@ -437,37 +438,21 @@ MLMG::interpCorrection (int alev, int mglev)
 
     MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab& fine_cor = *cor[alev][mglev  ];
+
     const Geometry& crse_geom = linop.Geom(alev,mglev+1);
-    const Geometry& fine_geom = linop.Geom(alev,mglev  );
     crse_cor.FillBoundary(crse_geom.periodicity());
-    Vector<BCRec> domain_bcr(1);
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (crse_geom.isPeriodic(idim)) {
-            domain_bcr[0].setLo(idim,BCType::int_dir);
-            domain_bcr[0].setHi(idim,BCType::int_dir);
-        } else {
-            domain_bcr[0].setLo(idim,BCType::ext_dir);
-            domain_bcr[0].setHi(idim,BCType::ext_dir);
-        }
-    }
 
-    // if it's 1d or 2d, we probably should just use pc because cell_cons_interp is volume weighted.
-    // - w.z.
-
-    IntVect refratio{2};
+    const int refratio = 2;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
-        Vector<BCRec> bcr(1);
-        for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            amrex::setBC(bx,fine_geom.Domain(),0,0,1,domain_bcr,bcr);
-            amrex::cell_cons_interp.interp(crse_cor[mfi], 0, fine_cor[mfi], 0, 1,
-                                           mfi.tilebox(), refratio, crse_geom, fine_geom,
-                                           bcr, 0, 0);
-        }
+        const Box& bx = mfi.tilebox();
+        amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                 BL_TO_FORTRAN_ANYD(crse_cor[mfi]),
+                                 &refratio);
     }
 }
 
