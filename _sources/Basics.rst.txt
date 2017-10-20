@@ -1,4 +1,7 @@
-In this chapter, we present the basics of . The implementation
+Introduction
+============================
+
+In this chapter, we present the basics of AMReX. The implementation
 source codes are in amrex/Src/Base/. Note that  classes
 and functions are in namespace amrex. For clarity, we usually
 drop amrex:: in the example codes here. It is also assumed that
@@ -12,16 +15,14 @@ HeatEquation\_EX1\_C Example
 ============================
 
 The source code tree for the heat equation example is simple, as shown
-in Figure [fig:Basics\_Heat\_flowchart]. We recommend you study
+in Figure 4.1. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
 below in action.
 
-.. figure:: ./Basics/figs/flowchart.pdf
-   :alt: [fig:Basics\_Heat\_flowchart] Source code tree for the
-   HeatEquation\_EX1\_C example.
+.. figure:: ../Basics/figs/flowchart.png
    :width: 4.00000in
 
-   [fig:Basics\_Heat\_flowchart] Source code tree for the
+   Figure 4.1:  Source code tree for the
    HeatEquation\_EX1\_C example.
 
 -  | Base/
@@ -194,7 +195,7 @@ Example of AMR Grids
 
 In block-structured AMR, there is a hierarchy of logically rectangular
 grids. The computational domain on each AMR level is decomposed into
-a union of rectangular domains. Figure [fig:basics:amrgrids]
+a union of rectangular domains. Figure 4.2
 shows an example of AMR grids. There are three total levels in the
 example. In  numbering convention, the coarsest level is level
 0. The coarsest grid (*black*) covers the domain with :math:`16^2`
@@ -206,13 +207,10 @@ finer than the level 1 cells. Note that there is no direct
 parent-child connection. In this chapter, we will focus on single
 levels.
 
-.. figure:: ./Basics/amrgrids.pdf
-   :alt: [fig:basics:amrgrids] Example of AMR grids. There are
-   three levels in total. There are 1, 2 and 2 Boxes on levels
-   0, 1, and 2, respectively.
+.. figure:: ../Basics/amrgrids.png
    :width: 3.00000in
 
-   [fig:basics:amrgrids] Example of AMR grids. There are
+   Figure 4.2: Example of AMR grids. There are
    three levels in total. There are 1, 2 and 2 Boxes on levels
    0, 1, and 2, respectively.
 
@@ -221,7 +219,7 @@ Box, IntVect and IndexType
 
 Box in AMReX\_Box.H is the data structure for representing
 a rectangular domain in indexing space. For example, in
-Figure [fig:basics:amrgrids], there are 1, 2 and 2 Boxes on
+Figure 4.2, there are 1, 2 and 2 Boxes on
 levels 0, 1 and 2, respectively. Box is a dimension dependent
 class. It has lower and upper corners (represented by IntVect
 and an index type (represented by IndexType). There are no
@@ -356,17 +354,13 @@ same domain of :math:`64^3` cells. Note that in  convention, the
 lower side of a cell has the same integer value as the cell centered
 index. That is if we consider a cell based index represent :math:`i`, the
 nodal index with the same integer value represents :math:`i-1/2`.
-Figure [fig:basics:indextypes] shows a 2D example of various index
+Figure 4.3 shows a 2D example of various index
 types.
 
-.. figure:: ./Basics/indextypes.pdf
-   :alt: [fig:basics:indextypes] Some of the different index
-   types in two dimensions: (a) cell-centered, (b) :math:`x`-face-centered
-   (i.e., nodal in :math:`x`-direction only), and (c) corner/nodal,
-   i.e., nodal in all dimensions.
+.. figure:: ../Basics/indextypes.png
    :width: 5.00000in
 
-   [fig:basics:indextypes] Some of the different index
+   Figure 4.3: Some of the different index
    types in two dimensions: (a) cell-centered, (b) :math:`x`-face-centered
    (i.e., nodal in :math:`x`-direction only), and (c) corner/nodal,
    i.e., nodal in all dimensions.
@@ -865,7 +859,7 @@ structures. To construct a FabArray, a BoxArray must be
 provided because it is intended to hold *grid* data defined on
 a union of rectangular regions embedded in a uniform index space. For
 example, an FabArray object can be used to hold data for one
-level of the example grids of Figure [fig:basics:amrgrids].
+level of the example grids of Figure 4.2.
 
 FabArray is a parallel data structure that the data (i.e.,
 FAB) are distributed among parallel processes. On each process,
@@ -875,7 +869,7 @@ operations that require data owned by other processes, remote
 communications are involved. Thus, the construction of a FabArray requires a DistributionMapping
 (Section [sec:basics:dm]) that specifies which process owns which
 Box. For level 2 (*red*) in
-Figure [fig:basics:amrgrids], there are two Boxes. Suppose
+Figure 4.2 there are two Boxes. Suppose
 there are two parallel processes, and we use a DistributionMapping that assigns one Box to each process.
 For FabArray on each process, it is built on a BoxArray with
 2 Boxes, but contains only one FAB.
@@ -1295,27 +1289,21 @@ requires only two minor changes.
 The kernels functions like f1 and f2 in the two examples
 here usually require very little changes.
 
-.. figure:: ./Basics/cc_validbox.pdf
-   :alt: [fig:basics:cc\_tilebox] Example of cell-centered tile boxes.
-   Each grid is *logically* broken into 4 tiles, and each
-   tile has :math:`4^2` cells. There are 8 tiles in total.
-   :width: 90.0%
+.. figure:: ../Basics/cc_validbox.png
+   :width: 30.0%
 
-   [fig:basics:cc\_tilebox] Example of cell-centered tile boxes.
+   Figure 4.4: Example of cell-centered tile boxes.
    Each grid is *logically* broken into 4 tiles, and each
    tile has :math:`4^2` cells. There are 8 tiles in total.
 
-.. figure:: ./Basics/cc_tilebox.pdf
-   :alt: [fig:basics:cc\_tilebox] Example of cell-centered tile boxes.
-   Each grid is *logically* broken into 4 tiles, and each
-   tile has :math:`4^2` cells. There are 8 tiles in total.
-   :width: 90.0%
+.. figure:: ../Basics/cc_tilebox.png
+   :width: 30.0%
 
-   [fig:basics:cc\_tilebox] Example of cell-centered tile boxes.
+   Figure 4.5: Example of cell-centered tile boxes.
    Each grid is *logically* broken into 4 tiles, and each
    tile has :math:`4^2` cells. There are 8 tiles in total.
 
-Figures [fig:basics:cc\_validbox] & [fig:basics:cc\_tilebox]
+Figures 4.4 & 4.5
 show an example of the difference between validbox and tilebox. In this example, there are two grids of cell-centered
 index type. Function validbox always returns a Box for the
 valid region of an FArrayBox no matter whether or not tiling is
@@ -1338,35 +1326,23 @@ in that direction.  has a default tile size IntVect{1024000,8,8} in 3D and no t
 when tile size is not explicitly set but the tiling flag is on. One
 can change the default size using ParmParse parameter fabarray.mfiter\_tile\_size.
 
-.. figure:: ./Basics/ec_validbox.pdf
-   :alt: [fig:basics:ec\_tilebox] Example of face tile boxes.
-   Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
-         \times 4` points, whereas others have :math:`4 \times 4` points.
-   Points from different Boxes may overlap, but points from
-   different tiles of the same Box do not.
-   :width: 90.0%
+.. figure:: ../Basics/ec_validbox.png
+   :width: 30.0%
 
-   [fig:basics:ec\_tilebox] Example of face tile boxes.
+   Figure 4.6: Example of face tile boxes.
    Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
-         \times 4` points, whereas others have :math:`4 \times 4` points.
+   by the symbols. There are 8 tiles in total. Some tiles have 
+   5x4 points, whereas others have 4x4 points.
    Points from different Boxes may overlap, but points from
    different tiles of the same Box do not.
 
-.. figure:: ./Basics/ec_tilebox.pdf
-   :alt: [fig:basics:ec\_tilebox] Example of face tile boxes.
-   Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
-         \times 4` points, whereas others have :math:`4 \times 4` points.
-   Points from different Boxes may overlap, but points from
-   different tiles of the same Box do not.
-   :width: 90.0%
+.. figure:: ../Basics/ec_tilebox.png
+   :width: 30.0%
 
-   [fig:basics:ec\_tilebox] Example of face tile boxes.
+   Figure 4.7: Example of face tile boxes.
    Each grid is *logically* broken into 4 tiles as indicated
-   by the symbols. There are 8 tiles in total. Some tiles have :math:`5
-         \times 4` points, whereas others have :math:`4 \times 4` points.
+   by the symbols. There are 8 tiles in total. Some tiles have 
+   5x4 points, whereas others have 4x4 points.
    Points from different Boxes may overlap, but points from
    different tiles of the same Box do not.
 
@@ -1376,8 +1352,7 @@ F, use MFIter via operator []. These different MultiFabs may have different BoxA
 might be cell-centered, whereas F might be nodal in
 :math:`x`-direction and cell in other directions. The MFIter::validbox and tilebox functions return Boxes of
 the same type as the MultiFab used in defining the MFIter
-(F in this example). Figures [fig:basics:ec\_validbox] &
-[fig:basics:ec\_tilebox] show an example of non-cell-centered valid
+(F in this example). Figures 4.6 & 4.7 show an example of non-cell-centered valid
 and tile boxes. Besides validbox and tilebox, MFIter has a number of functions returning various Boxes.
 Examples include,
 
@@ -1402,29 +1377,20 @@ the basic design principle of these various tiling functions. Tiling
 is a way of domain decomposition for work sharing. Overlapping tiles
 is undesirable because works would be wasted and for multi-threaded
 codes race conditions could occur.
-Figures [fig:basics:cc\_growbox] & [fig:basics:ec\_growbox]
-show examples of growntilebox.
+Figures 4.8 & 4.9 show examples of growntilebox.
 
-.. figure:: ./Basics/cc_growbox.pdf
-   :alt: [fig:basics:ec\_growbox] Example of face type grown
-   tile boxes. As indicated by symbols, there are 8 tiles and
-   four in each grid in this example. Tiles from the same grid do
-   not overlap even though they have face index type.
-   :width: 90.0%
+.. figure:: ../Basics/cc_growbox.png
+   :width: 30.0%
 
-   [fig:basics:ec\_growbox] Example of face type grown
+   Figure 4.8: Example of face type grown
    tile boxes. As indicated by symbols, there are 8 tiles and
    four in each grid in this example. Tiles from the same grid do
    not overlap even though they have face index type. 
 
-.. figure:: ./Basics/ec_growbox.pdf
-   :alt: [fig:basics:ec\_growbox] Example of face type grown
-   tile boxes. As indicated by symbols, there are 8 tiles and
-   four in each grid in this example. Tiles from the same grid do
-   not overlap even though they have face index type.
-   :width: 90.0%
+.. figure:: ../Basics/ec_growbox.png
+   :width: 30.0%
 
-   [fig:basics:ec\_growbox] Example of face type grown
+   Figure 4.9: Example of face type grown
    tile boxes. As indicated by symbols, there are 8 tiles and
    four in each grid in this example. Tiles from the same grid do
    not overlap even though they have face index type. 
@@ -1595,7 +1561,7 @@ transformation it becomes either interior boundary or coarse/fine
 boundary.
 
 Interior boundary is the border among the grid Boxes themselves.
-For example, in Figure [fig:basics:amrgrids], the two blue grid
+For example, in Figure 4.2, the two blue grid
 Boxes on level 1 share an interior boundary that is 10 cells
 long. For a MultiFab with ghost cells on level 1, we can use
 the MultiFab::FillBoundary function introduced in

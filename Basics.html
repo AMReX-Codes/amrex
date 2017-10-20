@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>HeatEquation_EX1_C Example &mdash; amrex 10.17 documentation</title>
+  <title>Introduction &mdash; amrex 10.17 documentation</title>
   
 
   
@@ -35,7 +35,10 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="amrex 10.17 documentation" href="index.html"/> 
+    <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
+        <link rel="up" title="Basics" href="Chapter4.html"/>
+        <link rel="next" title="Boundary Conditions" href="Boundary.html"/>
+        <link rel="prev" title="Basics" href="Chapter4.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -89,8 +92,56 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="intro.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Chapter4.html">Basics</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#heatequation-ex1-c-example">HeatEquation_EX1_C Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dimensionality">Dimensionality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#array">Array</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#real">Real</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#paralleldescriptor">ParallelDescriptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#print">Print</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parmparse">ParmParse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-of-amr-grids">Example of AMR Grids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#box-intvect-and-indextype">Box, IntVect and IndexType</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#intvect">IntVect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#indextype">IndexType</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#box">Box</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#realbox-and-geometry">RealBox and Geometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#boxarray">BoxArray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#distributionmapping">DistributionMapping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#basefab-farraybox-and-iarraybox">BaseFab, FArrayBox and IArrayBox</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fabarray-multifab-and-imultifab">FabArray, MultiFab and iMultiFab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mfiter-and-tiling">MFIter and Tiling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mfiter-without-tiling">MFIter without Tiling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mfiter-with-tiling">MFIter with Tiling</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#calling-fortran-or-c">Calling Fortran or C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ghost-cells">Ghost Cells</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#i-o">I/O</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#plotfile">Plotfile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#checkpoint-file">Checkpoint File</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#memory-allocation">Memory Allocation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#abort-and-assertion">Abort and Assertion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrCore.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Amr.html">Amr Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particles.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
 </ul>
 
             
@@ -135,7 +186,9 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>HeatEquation_EX1_C Example</li>
+          <li><a href="Chapter4.html">Basics</a> &raquo;</li>
+        
+      <li>Introduction</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -154,7 +207,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <p>In this chapter, we present the basics of . The implementation
+  <div class="section" id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p>In this chapter, we present the basics of AMReX. The implementation
 source codes are in amrex/Src/Base/. Note that &nbsp;classes
 and functions are in namespace amrex. For clarity, we usually
 drop amrex:: in the example codes here. It is also assumed that
@@ -163,12 +218,18 @@ the tutorial in amrex/Tutorials/Basic/HeatEquation_EX1_C while reading this chap
 After reading this chapter, one should be able to develop single-level
 parallel codes using . It should also be noted that this is not
 a comprehensive reference manual.</p>
+</div>
 <div class="section" id="heatequation-ex1-c-example">
 <h1>HeatEquation_EX1_C Example<a class="headerlink" href="#heatequation-ex1-c-example" title="Permalink to this headline">¶</a></h1>
 <p>The source code tree for the heat equation example is simple, as shown
-in Figure [fig:Basics_Heat_flowchart]. We recommend you study
+in Figure 4.1. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
 below in action.</p>
+<div class="figure" id="id1">
+<a class="reference internal image-reference" href="_images/flowchart.png"><img alt="_images/flowchart.png" src="_images/flowchart.png" style="width: 4.00000in;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.1:  Source code tree for the
+HeatEquation_EX1_C example.</span></p>
+</div>
 <ul>
 <li><div class="first line-block">
 <div class="line">Base/</div>
@@ -330,7 +391,7 @@ with</p>
 <h1>Example of AMR Grids<a class="headerlink" href="#example-of-amr-grids" title="Permalink to this headline">¶</a></h1>
 <p>In block-structured AMR, there is a hierarchy of logically rectangular
 grids. The computational domain on each AMR level is decomposed into
-a union of rectangular domains. Figure&nbsp;[fig:basics:amrgrids]
+a union of rectangular domains. Figure&nbsp;4.2
 shows an example of AMR grids. There are three total levels in the
 example. In &nbsp;numbering convention, the coarsest level is level
 0. The coarsest grid (<em>black</em>) covers the domain with <span class="math">\(16^2\)</span>
@@ -341,12 +402,18 @@ grids (<em>red</em>) are at level 2 and the cells are a factor of two
 finer than the level 1 cells. Note that there is no direct
 parent-child connection. In this chapter, we will focus on single
 levels.</p>
+<div class="figure" id="id2">
+<a class="reference internal image-reference" href="_images/amrgrids.png"><img alt="_images/amrgrids.png" src="_images/amrgrids.png" style="width: 3.00000in;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.2: Example of AMR grids. There are
+three levels in total. There are 1, 2 and 2 Boxes on levels
+0, 1, and 2, respectively.</span></p>
+</div>
 </div>
 <div class="section" id="box-intvect-and-indextype">
 <h1>Box, IntVect and IndexType<a class="headerlink" href="#box-intvect-and-indextype" title="Permalink to this headline">¶</a></h1>
 <p>Box in AMReX_Box.H is the data structure for representing
 a rectangular domain in indexing space. For example, in
-Figure&nbsp;[fig:basics:amrgrids], there are 1, 2 and 2 Boxes on
+Figure&nbsp;4.2, there are 1, 2 and 2 Boxes on
 levels 0, 1 and 2, respectively. Box is a dimension dependent
 class. It has lower and upper corners (represented by IntVect
 and an index type (represented by IndexType). There are no
@@ -460,8 +527,15 @@ same domain of <span class="math">\(64^3\)</span> cells. Note that in &nbsp;conv
 lower side of a cell has the same integer value as the cell centered
 index. That is if we consider a cell based index represent <span class="math">\(i\)</span>, the
 nodal index with the same integer value represents <span class="math">\(i-1/2\)</span>.
-Figure&nbsp;[fig:basics:indextypes] shows a 2D example of various index
+Figure&nbsp;4.3 shows a 2D example of various index
 types.</p>
+<div class="figure" id="id3">
+<a class="reference internal image-reference" href="_images/indextypes.png"><img alt="_images/indextypes.png" src="_images/indextypes.png" style="width: 5.00000in;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.3: Some of the different index
+types in two dimensions: (a) cell-centered, (b) <span class="math">\(x\)</span>-face-centered
+(i.e., nodal in <span class="math">\(x\)</span>-direction only), and (c) corner/nodal,
+i.e., nodal in all dimensions.</span></p>
+</div>
 <p>There are a number of ways of converting a Box from one type to
 another.</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Box</span> <span class="n">b0</span> <span class="p">({</span><span class="mi">64</span><span class="p">,</span><span class="mi">64</span><span class="p">,</span><span class="mi">64</span><span class="p">},</span> <span class="p">{</span><span class="mi">127</span><span class="p">,</span><span class="mi">127</span><span class="p">,</span><span class="mi">127</span><span class="p">});</span> <span class="o">//</span> <span class="n">Index</span> <span class="nb">type</span><span class="p">:</span> <span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">cell</span><span class="p">,</span> <span class="n">cell</span><span class="p">)</span>
@@ -891,7 +965,7 @@ structures. To construct a FabArray, a BoxArray must be
 provided because it is intended to hold <em>grid</em> data defined on
 a union of rectangular regions embedded in a uniform index space. For
 example, an FabArray object can be used to hold data for one
-level of the example grids of Figure&nbsp;[fig:basics:amrgrids].</p>
+level of the example grids of Figure&nbsp;4.2.</p>
 <p>FabArray is a parallel data structure that the data (i.e.,
 FAB) are distributed among parallel processes. On each process,
 the FabArray contains only the FAB objects owned by this
@@ -900,7 +974,7 @@ operations that require data owned by other processes, remote
 communications are involved. Thus, the construction of a FabArray requires a DistributionMapping
 (Section&nbsp;[sec:basics:dm]) that specifies which process owns which
 Box. For level 2 (<em>red</em>) in
-Figure&nbsp;[fig:basics:amrgrids], there are two Boxes. Suppose
+Figure&nbsp;4.2 there are two Boxes. Suppose
 there are two parallel processes, and we use a DistributionMapping that assigns one Box to each process.
 For FabArray on each process, it is built on a BoxArray with
 2 Boxes, but contains only one FAB.</p>
@@ -1274,7 +1348,19 @@ requires only two minor changes.</p>
 </div>
 <p>The kernels functions like f1 and f2 in the two examples
 here usually require very little changes.</p>
-<p>Figures&nbsp;[fig:basics:cc_validbox] &amp; [fig:basics:cc_tilebox]
+<div class="figure" id="id4">
+<a class="reference internal image-reference" href="_images/cc_validbox.png"><img alt="_images/cc_validbox.png" src="_images/cc_validbox.png" style="width: 30.0%;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.4: Example of cell-centered tile boxes.
+Each grid is <em>logically</em> broken into 4 tiles, and each
+tile has <span class="math">\(4^2\)</span> cells. There are 8 tiles in total.</span></p>
+</div>
+<div class="figure" id="id5">
+<a class="reference internal image-reference" href="_images/cc_tilebox.png"><img alt="_images/cc_tilebox.png" src="_images/cc_tilebox.png" style="width: 30.0%;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.5: Example of cell-centered tile boxes.
+Each grid is <em>logically</em> broken into 4 tiles, and each
+tile has <span class="math">\(4^2\)</span> cells. There are 8 tiles in total.</span></p>
+</div>
+<p>Figures&nbsp;4.4 &amp; 4.5
 show an example of the difference between validbox and tilebox. In this example, there are two grids of cell-centered
 index type. Function validbox always returns a Box for the
 valid region of an FArrayBox no matter whether or not tiling is
@@ -1293,14 +1379,31 @@ A tile size larger than the grid size simply means tiling is disable
 in that direction. &nbsp;has a default tile size IntVect{1024000,8,8} in 3D and no tiling in 2D. This is used
 when tile size is not explicitly set but the tiling flag is on. One
 can change the default size using ParmParse parameter fabarray.mfiter_tile_size.</p>
+<div class="figure" id="id6">
+<a class="reference internal image-reference" href="_images/ec_validbox.png"><img alt="_images/ec_validbox.png" src="_images/ec_validbox.png" style="width: 30.0%;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.6: Example of face tile boxes.
+Each grid is <em>logically</em> broken into 4 tiles as indicated
+by the symbols. There are 8 tiles in total. Some tiles have
+5x4 points, whereas others have 4x4 points.
+Points from different Boxes may overlap, but points from
+different tiles of the same Box do not.</span></p>
+</div>
+<div class="figure" id="id7">
+<a class="reference internal image-reference" href="_images/ec_tilebox.png"><img alt="_images/ec_tilebox.png" src="_images/ec_tilebox.png" style="width: 30.0%;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.7: Example of face tile boxes.
+Each grid is <em>logically</em> broken into 4 tiles as indicated
+by the symbols. There are 8 tiles in total. Some tiles have
+5x4 points, whereas others have 4x4 points.
+Points from different Boxes may overlap, but points from
+different tiles of the same Box do not.</span></p>
+</div>
 <p>Usually MFIter is used for accessing multiple MultiFabs
 like the second example, in which two MultiFabs, U and
 F, use MFIter via operator []. These different MultiFabs may have different BoxArrays. For example, U
 might be cell-centered, whereas F might be nodal in
 <span class="math">\(x\)</span>-direction and cell in other directions. The MFIter::validbox and tilebox functions return Boxes of
 the same type as the MultiFab used in defining the MFIter
-(F in this example). Figures&nbsp;[fig:basics:ec_validbox] &amp;
-[fig:basics:ec_tilebox] show an example of non-cell-centered valid
+(F in this example). Figures&nbsp;4.6 &amp; 4.7 show an example of non-cell-centered valid
 and tile boxes. Besides validbox and tilebox, MFIter has a number of functions returning various Boxes.
 Examples include,</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Box</span> <span class="n">fabbox</span><span class="p">()</span> <span class="n">const</span><span class="p">;</span>       <span class="o">//</span> <span class="n">Return</span> <span class="n">the</span> <span class="n">Box</span> <span class="n">of</span> <span class="n">the</span> <span class="n">FArrayBox</span>
@@ -1323,8 +1426,21 @@ the basic design principle of these various tiling functions. Tiling
 is a way of domain decomposition for work sharing. Overlapping tiles
 is undesirable because works would be wasted and for multi-threaded
 codes race conditions could occur.
-Figures&nbsp;[fig:basics:cc_growbox] &amp; [fig:basics:ec_growbox]
-show examples of growntilebox.</p>
+Figures&nbsp;4.8 &amp; 4.9 show examples of growntilebox.</p>
+<div class="figure" id="id8">
+<a class="reference internal image-reference" href="_images/cc_growbox.png"><img alt="_images/cc_growbox.png" src="_images/cc_growbox.png" style="width: 30.0%;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.8: Example of face type grown
+tile boxes. As indicated by symbols, there are 8 tiles and
+four in each grid in this example. Tiles from the same grid do
+not overlap even though they have face index type.</span></p>
+</div>
+<div class="figure" id="id9">
+<a class="reference internal image-reference" href="_images/ec_growbox.png"><img alt="_images/ec_growbox.png" src="_images/ec_growbox.png" style="width: 30.0%;" /></a>
+<p class="caption"><span class="caption-text">Figure 4.9: Example of face type grown
+tile boxes. As indicated by symbols, there are 8 tiles and
+four in each grid in this example. Tiles from the same grid do
+not overlap even though they have face index type.</span></p>
+</div>
 <p>These functions in MFIter return Box by value. There are
 two ways of using these functions.</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">const</span> <span class="n">Box</span><span class="o">&amp;</span> <span class="n">bx</span> <span class="o">=</span> <span class="n">mfi</span><span class="o">.</span><span class="n">validbox</span><span class="p">();</span>  <span class="o">//</span> <span class="n">const</span><span class="o">&amp;</span> <span class="n">to</span> <span class="n">temporary</span> <span class="nb">object</span> <span class="ow">is</span> <span class="n">legal</span>
@@ -1473,7 +1589,7 @@ considered a basic type in the discussion here because after periodic
 transformation it becomes either interior boundary or coarse/fine
 boundary.</p>
 <p>Interior boundary is the border among the grid Boxes themselves.
-For example, in Figure&nbsp;[fig:basics:amrgrids], the two blue grid
+For example, in Figure&nbsp;4.2, the two blue grid
 Boxes on level 1 share an interior boundary that is 10 cells
 long. For a MultiFab with ghost cells on level 1, we can use
 the MultiFab::FillBoundary function introduced in
@@ -1703,6 +1819,15 @@ has ghost cells and it also has the same number of components as MultiFab mf2. I
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Boundary.html" class="btn btn-neutral float-right" title="Boundary Conditions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Chapter4.html" class="btn btn-neutral" title="Basics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>

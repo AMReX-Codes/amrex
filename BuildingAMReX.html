@@ -1,0 +1,473 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Introduction &mdash; amrex 10.17 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
+        <link rel="up" title="Building AMReX" href="Chapter3.html"/>
+        <link rel="next" title="Basics" href="Chapter4.html"/>
+        <link rel="prev" title="Building AMReX" href="Chapter3.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> amrex
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                10.17
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">AMReX Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="Chapter3.html">Building AMReX</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-with-gnu-make">Building with GNU Make</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dissecting-a-simple-make-file">Dissecting a Simple Make File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tweaking-make-system">Tweaking Make System</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#building-libamrex">Building libamrex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-with-cmake">Building with CMake</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#customization-options">Customization options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#importing-amrex-configuration-into-a-cmake-project">Importing AMReX configuration into a CMake project</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AmrCore.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Amr.html">Amr Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Particles.html">Particles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Fortran.html">Fortran Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="EB.html">AmrCore Source Code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Visualization.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Profiling.html">Profiling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CVODE.html">CVODE</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">amrex</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="Chapter3.html">Building AMReX</a> &raquo;</li>
+        
+      <li>Introduction</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/BuildingAMReX.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p>In this chapter, we discuss ’s build systems. There are three
+ways to use . The approach used by &nbsp;developers uses GNU
+Make. There is no installation step in this approach. Application
+codes adopt ’s build system and compile &nbsp;while compiling
+their own codes. This will be discussed in more detail in
+Section&nbsp;[sec:build:make]. The second approach is to build into a library and install it (Section&nbsp;[sec:build:lib]). Then an
+application code uses its own build system and links &nbsp;as an
+external library. &nbsp;can also be built with Cmake
+(Section&nbsp;[sec:build:cmake]).</p>
+</div>
+<div class="section" id="building-with-gnu-make">
+<h1>Building with GNU Make<a class="headerlink" href="#building-with-gnu-make" title="Permalink to this headline">¶</a></h1>
+<p>In this build approach, you write your own make files defining a
+number of variables and rules. Then you invoke make to start
+the building process. This will result in an executable upon
+successful completion. The temporary files generated in the building
+process are stored in a temporary directory named tmp_build_dir.</p>
+<div class="section" id="dissecting-a-simple-make-file">
+<h2>Dissecting a Simple Make File<a class="headerlink" href="#dissecting-a-simple-make-file" title="Permalink to this headline">¶</a></h2>
+<p>An example of building with GNU Make can be found in amrex/Tutorials/Basic/HelloWorld_C. Table&nbsp;[tab:makevarimp]
+shows a list of important variables.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="22%" />
+<col width="57%" />
+<col width="22%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Variable</th>
+<th class="head">Value</th>
+<th class="head">Default</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>AMREX_HOME</td>
+<td>Path to amrex</td>
+<td>environment</td>
+</tr>
+<tr class="row-odd"><td>COMP</td>
+<td>gnu, cray, ibm, intel, llvm, or pgi</td>
+<td>none</td>
+</tr>
+<tr class="row-even"><td>DEBUG</td>
+<td>TRUE or FALSE</td>
+<td>TRUE</td>
+</tr>
+<tr class="row-odd"><td>DIM</td>
+<td>1 or 2 or 3</td>
+<td>none</td>
+</tr>
+<tr class="row-even"><td>USE_MPI</td>
+<td>TRUE or FALSE</td>
+<td>FALSE</td>
+</tr>
+<tr class="row-odd"><td>USE_OMP</td>
+<td>TRUE or FALSE</td>
+<td>FALSE</td>
+</tr>
+</tbody>
+</table>
+<p>Table: [tab:makevarimp] Important make variables</p>
+<p>At the beginning of amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile, AMREX_HOME
+is set to the path to the top directory of . Note that in the
+example ?= is a conditional variable assignment operator that
+only has an effect if AMREX_HOME has not been defined
+(including in the environment). One can also set AMREX_HOME
+as an environment variable. For example in bash,
+one can set export AMREX_HOME=/path/to/amrex; in tcsh one can set
+setenv AMREX_HOME /path/to/amrex.</p>
+<p>One must set the COMP variable to choose a compiler. Currently
+the list of supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must also set the
+DIM variable to either 1, 2, or 3, depending on the
+dimensionality of the problem.</p>
+<p>Variables DEBUG, USE_MPI and USE_OMP are optional
+with default set to TRUE, FALSE and FALSE,
+respectively. The meaning of these variables should be obvious.
+When DEBUG = TRUE, aggressive compiler optimization flags are turned
+off and assertions in &nbsp;source code are turned on. For
+production runs, DEBUG should be set to FALSE.</p>
+<p>After defining these make variables, a number of files, Make.defs, Make.package and Make.rules, are included in
+GNUmakefile. based applications do not need to include
+all directories in ; an application which does not use particles,
+for example, does not need to include files from the Particle
+directory in its build.
+In this simple example, we only need to include $(AMREX_HOME)/Src/Base/Make.package. An application code also
+has its own Make.package file (e.g., ./Make.package in
+this example) to append source files to the build system using
+operator +=. Variables for various source files are shown
+below.</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>CEXE_sources</dt>
+<dd>source files. Note that source files are assumed to have a .cpp extension.</dd>
+<dt>CEXE_headers</dt>
+<dd>headers with .h or .H extension.</dd>
+<dt>cEXE_sources</dt>
+<dd>C source files with .c extension.</dd>
+<dt>cEXE_headers</dt>
+<dd>C headers with .h extension.</dd>
+<dt>f90EXE_sources</dt>
+<dd>Free format Fortran source with .f90 extension.</dd>
+<dt>F90EXE_sources</dt>
+<dd>Free format Fortran source with .F90 extension. Note that these Fortran files will go through
+preprocessing.</dd>
+</dl>
+</div></blockquote>
+<p>In this simple example, the extra source file, main.cpp is in
+the current directory that is already in the build system’s search
+path. If this example has files in a subdirectory (e.g., mysrcdir), you will then need to add the following to Make.package.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">VPATH_LOCATIONS</span> <span class="o">+=</span> <span class="n">mysrcdir</span>
+<span class="n">INCLUDE_LOCATIONS</span> <span class="o">+=</span> <span class="n">mysrcdir</span>
+</pre></div>
+</div>
+<p>Here VPATH_LOCATIONS and INCLUDE_LOCATIONS are the search
+path for source and header files, respectively.</p>
+</div>
+<div class="section" id="tweaking-make-system">
+<h2>Tweaking Make System<a class="headerlink" href="#tweaking-make-system" title="Permalink to this headline">¶</a></h2>
+<p>The GNU Make build system is located at amrex/Tools/GNUMake.
+You can read README.md and the make files there for more
+information. Here we will give a brief overview.</p>
+<p>Besides building executable, other common make commands include:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>make clean</dt>
+<dd>This removes the executable, .o files, and
+the temporarily generated files. Note that one can add additional
+targets to this rule by using the double colon (::)</dd>
+<dt>make realclean</dt>
+<dd>This removes all files generated by make.</dd>
+<dt>make help</dt>
+<dd>This shows the rules for compilation.</dd>
+<dt>make print-xxx</dt>
+<dd>This shows the value of variable xxx. This is
+very useful for debugging and tweaking the make system.</dd>
+</dl>
+</div></blockquote>
+<p>Compiler flags are set in amrex/Tools/GNUMake/comps/. Note that
+variables like CC and CFLAGS are reset in that directory
+and their values in environment variables are disregarded. Site
+specific setups (e.g., MPI installation) are in amrex/Tools/GNUMake/sites/, which includes a generic setup in Make.unknown. You can override the setup by having your own sites/Make.$(host_name) file, where variable host_name is your
+host name in the make system and can be found via make
+print-host_name. You can also have a amrex/Tools/GNUMake/Make.local file to override various variables.
+See amrex/Tools/GNUMake/Make.local.template for an example.</p>
+</div>
+</div>
+<div class="section" id="building-libamrex">
+<h1>Building libamrex<a class="headerlink" href="#building-libamrex" title="Permalink to this headline">¶</a></h1>
+<p>If an application code already has its own elaborated build system and
+wants to use &nbsp;as an external library, this might be your
+choice. In this approach, one runs ./configure, followed by
+make and make install. In the top &nbsp;directory, one
+can run ./configure -h to show the various options for the configure script. This approach is built on the &nbsp;GNU Make
+system. Thus Section&nbsp;[sec:build:make] is recommended if any fine
+tuning is needed.</p>
+</div>
+<div class="section" id="building-with-cmake">
+<h1>Building with CMake<a class="headerlink" href="#building-with-cmake" title="Permalink to this headline">¶</a></h1>
+<p>An alternative to the approach described in Section&nbsp;[sec:build:lib]
+is to install &nbsp;as an external library by using the CMake build system.
+A CMake build is a two-steps process. First cmake is invoked to create
+configuration files and makefiles in a chosen directory (builddir).
+This is roughly equivalent to running ./configure (see Section
+&nbsp;[sec:build:lib]). Next, the actual build and installation are performed
+by issuing make install from within builddir. This will install
+the library files in a chosen installation directory ( installdir). If no installation path is provided by the user,
+&nbsp;will be installed in /path/to/amrex/installdir.
+The CMake build process is summarized as follow:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">builddir</span>
+<span class="n">cd</span>    <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">builddir</span>
+<span class="n">cmake</span> <span class="p">[</span><span class="n">options</span><span class="p">]</span> <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="p">:</span><span class="n">PATH</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">installdir</span>  <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">amrex</span>
+<span class="n">make</span> <span class="n">install</span>
+</pre></div>
+</div>
+<p>In the above snippet, indicates one or more options for the customization
+of the build, as described in Subsection&nbsp;[sec:build:cmake:options].
+Although the &nbsp;source could be used as build directory, we advise against doing so.
+After the installation is complete, builddir can be removed.</p>
+<div class="section" id="customization-options">
+<h2>Customization options<a class="headerlink" href="#customization-options" title="Permalink to this headline">¶</a></h2>
+<p>&nbsp;configuration settings may be specified on the command line with the -D option.
+For example, one can enable OpenMP support as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DENABLE_OMP</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="p">:</span><span class="n">PATH</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">installdir</span>  <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">amrex</span>
+</pre></div>
+</div>
+<p>The list of available option is reported in Table&nbsp;[tab:cmakevar].</p>
+<div class="line-block">
+<div class="line">The option ENABLE_LINEAR_SOLVERS=ON triggers the inclusion of C++-based linear
+solvers in the build. Fortran-based linear solvers can be included
+as well by providing the option ENABLE_FBASELIB=ON in addition
+to ENABLE_LINEAR_SOLVERS=ON.</div>
+<div class="line">The options DEBUG=ON implies ENABLE_ASSERTION=ON. In
+order to turn off assertions in debug mode, ENABLE_ASSERTION=OFF must be set explicitly while invoking CMake.</div>
+</div>
+</div>
+<div class="section" id="importing-amrex-configuration-into-a-cmake-project">
+<h2>Importing AMReX configuration into a CMake project<a class="headerlink" href="#importing-amrex-configuration-into-a-cmake-project" title="Permalink to this headline">¶</a></h2>
+<p>In order to import the &nbsp;configuration options into your CMake
+build system, include the following line in the appropriate
+CMakeLists.txt file:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">find_package</span> <span class="p">(</span><span class="n">AMReX</span> <span class="n">CONFIG</span> <span class="n">REQUIRED</span> <span class="n">HINTS</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">installdir</span><span class="o">/</span><span class="n">cmake</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>This will load -specific CMake variables containing the necessary
+info to compile and link your code to . For a list of all the available
+configuration variables, refer to the file AMReXConfig.cmake.in in
+/path/to/installdir/cmake/.</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Chapter4.html" class="btn btn-neutral float-right" title="Basics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="Chapter3.html" class="btn btn-neutral" title="Building AMReX" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, AMReX Team.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'10.17',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

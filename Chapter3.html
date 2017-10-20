@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Search &mdash; amrex 10.17 documentation</title>
+  <title>Building AMReX &mdash; amrex 10.17 documentation</title>
   
 
   
@@ -34,8 +34,10 @@
   
         <link rel="index" title="Index"
               href="genindex.html"/>
-        <link rel="search" title="Search" href="#"/>
-    <link rel="top" title="amrex 10.17 documentation" href="index.html"/> 
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="amrex 10.17 documentation" href="index.html"/>
+        <link rel="next" title="Introduction" href="BuildingAMReX.html"/>
+        <link rel="prev" title="Downloading the Code" href="GettingStarted.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -71,7 +73,7 @@
 
           
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="#" method="get">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -89,10 +91,16 @@
             
             
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="intro.html">AMReX Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter2.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Chapter3.html">Building AMReX</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Building AMReX</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#building-with-gnu-make">Building with GNU Make</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#building-libamrex">Building libamrex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#building-with-cmake">Building with CMake</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="Chapter4.html">Basics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Boundary.html">Boundary Conditions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="AmrCore.html">AmrCore Source Code</a></li>
@@ -147,10 +155,14 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Search</li>
+      <li>Building AMReX</li>
     
     
       <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/Chapter3.rst.txt" rel="nofollow"> View page source</a>
+          
         
       </li>
     
@@ -162,19 +174,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <noscript>
-  <div id="fallback" class="admonition warning">
-    <p class="last">
-      Please activate JavaScript to enable the search
-      functionality.
-    </p>
-  </div>
-  </noscript>
+  <div class="section" id="building-amrex">
+<h1>Building AMReX<a class="headerlink" href="#building-amrex" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html#building-with-gnu-make">Building with GNU Make</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#dissecting-a-simple-make-file">Dissecting a Simple Make File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#tweaking-make-system">Tweaking Make System</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html#building-libamrex">Building libamrex</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BuildingAMReX.html#building-with-cmake">Building with CMake</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#customization-options">Customization options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BuildingAMReX.html#importing-amrex-configuration-into-a-cmake-project">Importing AMReX configuration into a CMake project</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
 
-  
-  <div id="search-results">
-  
-  </div>
 
            </div>
            <div class="articleComments">
@@ -182,6 +201,15 @@
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="BuildingAMReX.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="GettingStarted.html" class="btn btn-neutral" title="Downloading the Code" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
@@ -221,7 +249,6 @@
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
       <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-      <script type="text/javascript" src="_static/searchtools.js"></script>
 
   
 
@@ -237,14 +264,7 @@
           SphinxRtdTheme.StickyNav.enable();
       });
   </script>
-  
-  <script type="text/javascript">
-    jQuery(function() { Search.loadIndex("searchindex.js"); });
-  </script>
-  
-  <script type="text/javascript" id="searchindexloader"></script>
    
-
 
 </body>
 </html>
