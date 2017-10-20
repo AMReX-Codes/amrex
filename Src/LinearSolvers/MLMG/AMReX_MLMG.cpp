@@ -411,20 +411,23 @@ MLMG::interpCorrection (int alev)
     const int amrrr = linop.AMRRefRatio(alev-1);
     IntVect refratio{amrrr};
     ba.coarsen(refratio);
-    
-    MultiFab cfine(ba, fine_cor.DistributionMap(), 1, 0);
-    cfine.copy(crse_cor);
 
-    Geometry g1, g2;
-    Vector<BCRec> bcr;
+    const Geometry& crse_geom = linop.Geom(alev-1,0);
+    
+    MultiFab cfine(ba, fine_cor.DistributionMap(), 1, 1);
+    cfine.setVal(0.0);
+    cfine.ParallelCopy(crse_cor, 0, 0, 1, 0, 1, crse_geom.periodicity());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
-        amrex::pc_interp.interp(cfine[mfi], 0, fine_cor[mfi], 0, 1,
-                                mfi.tilebox(), refratio, g1, g2, bcr, 0, 0);
+        const Box& bx = mfi.tilebox();
+        amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                 BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                 &refratio[0]);
     }
 }
 
