@@ -68,7 +68,7 @@ namespace {
             int full_gid = slice_to_full_ba_map[slice_gid];
             
             const Box& slice_box = mfi.validbox();
-            const Box& full_box  = ba[full_gid];
+            const Box& full_box  = cell_centered_data[full_gid].box();
             const Box& tile_box  = mfi.tilebox();
             
             WRPX_FILL_SLICE(cell_centered_data[full_gid].dataPtr(),
