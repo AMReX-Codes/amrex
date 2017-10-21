@@ -578,7 +578,7 @@ contains
        end do
     end do
 
-    ! now transform pointwise hyperbolic fluxes into face-averaged hyperbolic fluxes
+    ! now transform pointwise  fluxes into face-averaged  fluxes
     !fluxave = fluxpt + (1/24)(Lapl2d(fluxpt))
 
     do       k = lo(3), hi(3)

@@ -227,8 +227,17 @@ namespace amrex
     Real maxval = S_new.max(0);
     Real minval = S_new.min(0);
     amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
-//    return advanceGodunov(time, dt, iteration, ncycle);
-    return advanceMOLRK2(time, dt, iteration, ncycle);
+    Real dtval;
+    dtval = advanceGodunov(time, dt, iteration, ncycle);
+//    dtval = advanceMOLRK2(time, dt, iteration, ncycle);
+//    dtval = advanceMOLRK3(time, dt, iteration, ncycle);
+//    dtval = advanceMOLRK4(time, dt, iteration, ncycle);
+    ParmParse pp;
+    if(pp.contains("fixed_dt"))
+    {
+      pp.get("fixed_dt", dtval);
+    }
+    return dtval;
   }
 
 
@@ -271,6 +280,15 @@ namespace amrex
     FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
     compute_dPhiDt_MOL2ndOrd(Sborder, dPhiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
 
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest)
+    {
+      S_new.copy(dPhiDt);
+      return dt;
+    }
+
     // U^* = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
     /**/
@@ -304,9 +322,93 @@ namespace amrex
     MultiFab& S_new = get_new_data(Phi_Type);
     MultiFab& S_old = get_old_data(Phi_Type);
     MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
+
+    MultiFab u1(grids,dmap,NUM_STATE,NUM_GROW);
+    MultiFab u2(grids,dmap,NUM_STATE,NUM_GROW);
+  
+    YAFluxRegister* fr_as_crse = nullptr;
+    if (do_reflux && level < parent->finestLevel()) 
+    {
+      fr_as_crse = &getFluxReg(level+1);
+    }
+
+    YAFluxRegister* fr_as_fine = nullptr;
+    if (do_reflux && level > 0) 
+    {
+      fr_as_fine = &getFluxReg(level);
+    }
+
+    if (fr_as_crse) 
+    {
+      fr_as_crse->reset();
+    }
+
+
+    // RK3 stage 1
+    //FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
+    S_old.FillBoundary();
+    //the dt/6 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(S_old, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest)
+    {
+      S_new.copy(dPhiDt);
+      return dt;
+    }
+
+    // U^1 = U^n + dt*dPhiDt^n
+    MultiFab::LinComb(u1, 1.0, S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    u1.FillBoundary();
+
+    compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+
+    //           u2 = 3/4 U^n + 1/4 U^1 + 1/4 dPhiDt^1
+    //this makes u2 = 3/4 u^n + 1/4 u^1
+    MultiFab::LinComb(u2, 0.75, S_old, 0, 0.25, u1, 0, 0, NUM_STATE, 0);
+    //this makes u2 = 3/4 u^n + 1/4 u^1 + 1/4*dt*dPhiDt^1
+    MultiFab::Saxpy(u2, 0.25*dt, dPhiDt, 0, 0, NUM_STATE, 0);
+
+    u2.FillBoundary();
+    //the 2*dt/3 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(u2, dPhiDt, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
+
+    // RK3 stage 3
+    //           S_new = 1/3 u^n + 2/3 u^2 + 2/3 dtL(u^2)
+
+    //this makes S_new = 1/3 u^n + 2/3 u^2
+    MultiFab::LinComb(S_new, 1./3., S_old, 0, 2./3., u2, 0, 0, NUM_STATE, 0);
+    //this makes S_new = 1/3 u^n + 2/3  u^2 + 2/3 dtL(u^2)
+    MultiFab::Saxpy(S_new, 2.*dt/3., dPhiDt, 0, 0, NUM_STATE, 0);
+
+    /**/ 
+    return dt;
+  }
+
+#if 0
+  Real
+  AmrLevelAdv::
+  advanceMOLRK4 (Real time,
+                 Real dt,
+                 int  iteration,
+                 int  ncycle)
+  {
+    for (int i = 0; i < NUM_STATE_TYPE; ++i) 
+    {
+      state[i].allocOldData();
+      state[i].swapTimeLevels(dt);
+    }
+
+    MultiFab& S_new = get_new_data(Phi_Type);
+    MultiFab& S_old = get_old_data(Phi_Type);
+    MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
-    MultiFab u1(grids,dmap,NUM_STATE,0);
-    MultiFab u2(grids,dmap,NUM_STATE,0);
+    MultiFab u1(grids,dmap,NUM_STATE,NUM_GROW);
+    MultiFab u2(grids,dmap,NUM_STATE,NUM_GROW);
+    MultiFab u3(grids,dmap,NUM_STATE,NUM_GROW);
+    MultiFab u4(grids,dmap,NUM_STATE,NUM_GROW);
   
     YAFluxRegister* fr_as_crse = nullptr;
     if (do_reflux && level < parent->finestLevel()) 
@@ -326,7 +428,7 @@ namespace amrex
     }
 
     // RK3 stage 1
-    FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
+    FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE); // 
     //the dt/6 is for the flux register.
     compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
@@ -370,6 +472,7 @@ namespace amrex
     /**/ 
     return dt;
   }
+#endif
   Real
   AmrLevelAdv::
   advanceGodunov (Real time,
@@ -414,6 +517,16 @@ namespace amrex
     FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
     //dt needs to be there because it weights the fluxes
     compute_dPhiDt_godunov(Sborder, dPhiDt, time, dt, fr_as_crse, fr_as_fine, iteration);
+
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest)
+    {
+      S_new.copy(dPhiDt);
+      return dt;
+    }
+
     // U^n+1 = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
     return dt;
@@ -547,7 +660,7 @@ namespace amrex
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        advectDiffMOL2ndOrd(time, bx.loVect(), bx.hiVect(),
+        advectDiffMOL4thOrd(time, bx.loVect(), bx.hiVect(),
                             BL_TO_FORTRAN_3D(statein), 
                             BL_TO_FORTRAN_3D(dphidtout),
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -715,6 +828,11 @@ namespace amrex
     ParallelDescriptor::ReduceRealMin(dt_est);
     dt_est *= cfl;
 
+    ParmParse pp;
+    if(pp.contains("fixed_dt"))
+    {
+      pp.get("fixed_dt", dt_est);
+    }
     if (verbose) 
     {
       amrex::Print() << "AmrLevelAdv::estTimeStep at level " << level 
