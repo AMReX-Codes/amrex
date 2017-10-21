@@ -50,10 +50,6 @@ list ( APPEND CXXSRC AMReX_IntersectionIF.cpp     AMReX_PlaneIF.cpp          AMR
 list ( APPEND CXXSRC AMReX_EBFluxFactory.cpp      AMReX_EBNormalizeByVolumeFraction.cpp   )
 list ( APPEND CXXSRC AMReX_IntVectSet.cpp         AMReX_PolyGeom.cpp         AMReX_VolIndex.cpp )
 
-
-list ( APPEND F90SRC 
-
-list ( APPEND F77SRC     AMReX_ARRAYLIM_${DIM}D.F)
 #
 # This is an option to display arrays in GDB. It is for debugging
 # AMReX and currently not supported by cmake.# 
