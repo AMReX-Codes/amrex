@@ -17,10 +17,10 @@ list ( APPEND CXXSRC AMReX_EBMultiFabUtil.cpp  AMReX_MultiCutFab.cpp )
 
 list ( APPEND F90SRC AMReX_EBFluxRegister_${DIM}d.F90 )
 list ( APPEND F90SRC AMReX_EBFluxRegister_nd.F90 )
-list ( APPEND F90SRC AMReX_EBMultiFabUtil_{DIM}d.F90 
+list ( APPEND F90SRC AMReX_EBMultiFabUtil_${DIM}d.F90 )
 list ( APPEND F90SRC AMReX_EBMultiFabUtil_nd.F90 )
 list ( APPEND F90SRC AMReX_EBAmrUtil_nd.F90      )
-list ( APPEND F90SRC AMReX_ebinterp_{DIM}d.F90   )
+list ( APPEND F90SRC AMReX_ebinterp_${DIM}d.F90   )
 list ( APPEND F90SRC AMReX_ebcellflag_mod.F90    )
 #
 # This is an option to display arrays in GDB. It is for debugging
