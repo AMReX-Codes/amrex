@@ -163,12 +163,14 @@ WarpX::EvolveEM (int numsteps)
 
     bool max_time_reached = false;
 
-    const Real* current_lo = geom[0].ProbLo();
-    const Real* current_hi = geom[0].ProbHi();
-    Real dt_boost = dt[0];
-    BoostedFrameDiagnostic myBoostedFrameDiagnostic(current_lo[2], current_hi[2],
-                                                    moving_window_v, dt_snapshots_lab,
-                                                    num_snapshots_lab, gamma_boost, dt_boost);
+    if (do_boosted_frame_diagnostic) {
+        const Real* current_lo = geom[0].ProbLo();
+        const Real* current_hi = geom[0].ProbHi();
+        Real dt_boost = dt[0];
+        BoostedFrameDiagnostic myBoostedFrameDiagnostic(current_lo[2], current_hi[2],
+                                                        moving_window_v, dt_snapshots_lab,
+                                                        num_snapshots_lab, gamma_boost, dt_boost);
+    }
 
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
@@ -263,8 +265,10 @@ WarpX::EvolveEM (int numsteps)
 	    t_new[i] = cur_time;
 	}
 
-        std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
-        myBoostedFrameDiagnostic.writeLabFrameData(*cell_centered_data, geom[0], cur_time);
+        if (do_boosted_frame_diagnostic) {
+            std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
+            myBoostedFrameDiagnostic.writeLabFrameData(*cell_centered_data, geom[0], cur_time);
+        }
 
 	if (to_make_plot)
         {
