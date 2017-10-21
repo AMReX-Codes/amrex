@@ -10,7 +10,7 @@ list ( APPEND ALLHEADERS AMReX_AggStencilI.H        AMReX_BaseIVFactory.H    AMR
 list ( APPEND ALLHEADERS AMReX_GeometryService.H    AMReX_PolyGeom.H )
 list ( APPEND ALLHEADERS AMReX_AllRegularService.H  AMReX_ComplementIF.H     AMReX_EBIndexSpace.H )
 list ( APPEND ALLHEADERS AMReX_GeometryShop.H       AMReX_PolynomialIF.H )
-list ( APPEND ALLHEADERS AMReX_BaseEBCellFAB.H      AMReX_EBArith.H )        AMReX_EBISBox.H )
+list ( APPEND ALLHEADERS AMReX_BaseEBCellFAB.H      AMReX_EBArith.H          AMReX_EBISBox.H )
 list ( APPEND ALLHEADERS AMReX_GraphNode.H          AMReX_RedistStencil.H )
 list ( APPEND ALLHEADERS AMReX_BaseEBCellFABI.H     AMReX_EBCellFAB.H        AMReX_EBISLayout.H )
 list ( APPEND ALLHEADERS AMReX_IntersectionIF.H     AMReX_SlabService.H )
