@@ -4,4 +4,5 @@ Running WarpX from Python
 .. toctree::
    :maxdepth: 1
 
-   api_reference
+   how_to_run
+   examples

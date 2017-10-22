@@ -1,2 +1,0 @@
-pyWarpX API reference
-=====================
