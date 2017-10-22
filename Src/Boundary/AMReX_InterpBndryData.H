@@ -87,6 +87,20 @@ public:
                                  int             bnd_start,
                                  int             num_comp,
                                  const BCRec&    phys_bc);
+
+    virtual void setBndryValues (const MultiFab& mf,
+                                 int             mf_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 int             ratio,
+                                 const BCRec&    phys_bc);
+
+    virtual void setBndryValues (const MultiFab& mf,
+                                 int             mf_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 const IntVect&  ratio,
+                                 const BCRec&    phys_bc);
     //
     // set bndry values at fine level, performing necessary interpolations
     //

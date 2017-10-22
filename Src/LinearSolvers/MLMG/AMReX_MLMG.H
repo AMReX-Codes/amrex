@@ -91,7 +91,7 @@ private:
 
     void bottomSolve ();
 
-    void computeMLResidual (int amrlevmax, bool bndryregister_updated = false);
+    void computeMLResidual (int amrlevmax);
     void computeResidual (int alev);
     void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
     void computeResWithCrseCorFineCor (int fine_amr_lev);
