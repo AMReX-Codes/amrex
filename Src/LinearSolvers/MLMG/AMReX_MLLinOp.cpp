@@ -1,4 +1,5 @@
 
+#include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_LO_F.H>
 
@@ -133,11 +134,15 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                                  m_geom[amrlev+1][0], m_geom[amrlev][0],
                                  ratio, amrlev+1, 1);
     }
-    
+
+    // BC
+
+    m_needs_coarse_data_for_bc = (m_grids[0][0].numPts() != m_geom[0][0].Domain().numPts());
+        
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_bndry_sol[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                              1, m_geom[amrlev][0]));
+                                               1, m_geom[amrlev][0]));
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -172,7 +177,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     {
         m_bndry_cor[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
                                               1, m_geom[amrlev][0]));
-        // this will make it Dirichlet
+        // this will make it Dirichlet, what we want for correction
         BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
                       AMREX_D_DECL(Outflow,Outflow,Outflow)};
         
@@ -202,24 +207,82 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
 }
 
 void
-MLLinOp::setDirichletBC (int amrlev, const MultiFab& bc_data, const MultiFab* crse_bcdata)
+MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
+                      const std::array<BCType,AMREX_SPACEDIM>& a_hibc)
 {
-    BL_PROFILE("MLLinOp::setDirichletBC()");
+    m_lobc = a_lobc;
+    m_hibc = a_hibc;
+}
 
-    // this will make it Dirichlet
-    BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
-                  AMREX_D_DECL(Outflow,Outflow,Outflow)};
+void
+MLLinOp::setBCWithCoarseData (const MultiFab& crse, int crse_ratio)
+{
+    m_coarse_data_for_bc = &crse;
+    m_coarse_data_crse_ratio = crse_ratio;
+}
 
-    if (crse_bcdata == nullptr)
+void
+MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
+{
+    BL_PROFILE("MLLinOp::setLevelBC()");
+
+    BCRec phys_bc;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        AMREX_ALWAYS_ASSERT(amrlev == 0);
-        m_bndry_sol[amrlev]->setBndryValues(bc_data,0,0,1,phys_bc);
+        AMREX_ALWAYS_ASSERT(m_lobc[idim] != BCType::Bogus);
+        if (m_lobc[idim] == BCType::Dirichlet) {
+            phys_bc.setLo(idim, Outflow);  // MacBndry treats it as Dirichlet
+        } else {
+            phys_bc.setLo(idim, Inflow);   // MacBndry treats it as Neumann
+        }
+        AMREX_ALWAYS_ASSERT(m_hibc[idim] != BCType::Bogus);
+        if (m_hibc[idim] == BCType::Dirichlet) {
+            phys_bc.setHi(idim, Outflow);  // MacBndry treats it as Dirichlet
+        } else {
+            phys_bc.setHi(idim, Inflow);   // MacBndry treats it as Neumann
+        }        
+    }
+
+    MultiFab zero;
+    if (a_levelbcdata == nullptr) {
+        zero.define(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
+        zero.setVal(0.0);
+    } else {
+        AMREX_ALWAYS_ASSERT(a_levelbcdata->nGrow() >= 1);
+    }
+    const MultiFab& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
+
+    if (amrlev == 0)
+    {
+        if (needsCoarseDataForBC())
+        {
+            AMREX_ALWAYS_ASSERT( m_coarse_data_for_bc != nullptr );
+            if (m_crse_sol_br[amrlev] == nullptr)
+            {
+                const int ncomp = 1;
+                const int in_rad = 0;
+                const int out_rad = 1;
+                const int extent_rad = 2;
+                const int crse_ratio = m_coarse_data_crse_ratio;
+                BoxArray cba = m_grids[amrlev][0];
+                cba.coarsen(crse_ratio);
+                m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
+                                                              in_rad, out_rad,
+                                                              extent_rad, ncomp));
+            }
+            m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+            m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
+                                                bcdata, 0, 0, 1,
+                                                m_coarse_data_crse_ratio, phys_bc);
+        }
+        else
+        {
+            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,phys_bc);
+        }
     }
     else
     {
-        m_crse_sol_br[amrlev]->copyFrom(*crse_bcdata, 0, 0, 0, 1);
-        m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0, bc_data, 0, 0, 1,
-                                            m_amr_ref_ratio[amrlev-1], phys_bc);
+        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], phys_bc);
     }
 }
 

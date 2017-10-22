@@ -49,8 +49,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
     prepareForSolve(a_sol, a_rhs);
 
-    bool bndryregister_updated = true;  // We did that when setBC.
-    computeMLResidual(finest_amr_lev, bndryregister_updated);
+    computeMLResidual(finest_amr_lev);
 
     bool local = true;
     Real resnorm0 = MLResNormInf(finest_amr_lev, local); 
@@ -211,16 +210,13 @@ MLMG::oneIter (int iter)
 
 // Compute multi-level Residual (res) up to amrlevmax.
 void
-MLMG::computeMLResidual (int amrlevmax, bool bndryregister_updated)
+MLMG::computeMLResidual (int amrlevmax)
 {
     BL_PROFILE("MLMG::computeMLResidual()");
 
     const int mglev = 0;
     for (int alev = amrlevmax; alev >= 0; --alev) {
-        const MultiFab* crse_bcdata = nullptr;
-        if (alev > 0 && !bndryregister_updated) {
-            crse_bcdata = sol[alev-1];
-        }
+        const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         linop.solutionResidual(alev, res[alev][mglev], *sol[alev], rhs[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, res[alev][mglev], *sol[alev], *sol[alev+1]);
