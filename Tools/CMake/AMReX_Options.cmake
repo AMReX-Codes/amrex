@@ -72,7 +72,7 @@ print_option ( ENABLE_DP )
 #
 # AMReX components selection
 # 
-option ( ENABLE_EB "Build EB Code" ON )
+option ( ENABLE_EB "Build EB Code" OFF )
 print_option (ENABLE_EB)
 
 option ( ENABLE_FORTRAN_INTERFACES "Build Fortran API" ON )
