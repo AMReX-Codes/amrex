@@ -15,8 +15,8 @@ contains
 ! in the lab frame. This routine assumes that the simulation frame is moving
 ! in the positive z direction with respect to the lab frame.
 ! 
-  subroutine warpx_lorentz_transform_3d(data, dlo, dhi, tlo, thi, gamma_boost, beta_boost) &
-       bind(C, name="warpx_lorentz_transform_3d")
+  subroutine warpx_lorentz_transform_z(data, dlo, dhi, tlo, thi, gamma_boost, beta_boost) &
+       bind(C, name="warpx_lorentz_transform_z")
 
     integer(c_int),   intent(in)    :: dlo(3), dhi(3)
     integer(c_int),   intent(in)    :: tlo(3), thi(3)
@@ -44,8 +44,7 @@ contains
              data(i, j, k, 2) = e_lab
              data(i, j, k, 4) = b_lab
 
-             ! Transform the charge and current density. Only the z component of rho is
-             ! affected.
+             ! Transform the charge and current density. Only the z component of j is affected.
              j_lab = gamma_boost*(data(i, j, k, 9) + beta_boost*clight*data(i, j, k, 10))
              r_lab = gamma_boost*(data(i, j, k, 10) + beta_boost*data(i, j, k, 9)/clight)
 
@@ -56,6 +55,6 @@ contains
        end do
     end do
 
-  end subroutine warpx_lorentz_transform_3d
+  end subroutine warpx_lorentz_transform_z
 
 end module warpx_boosted_frame_module

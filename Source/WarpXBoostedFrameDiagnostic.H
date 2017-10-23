@@ -64,6 +64,7 @@ class BoostedFrameDiagnostic {
     amrex::Real dt_boost_;
     int N_snapshots_;
     int Nz_lab_;    
+    int boost_direction_;
 
     std::vector<LabSnapShot> snapshots_;
 
@@ -72,7 +73,7 @@ public:
     BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab, 
                            amrex::Real v_window_lab, amrex::Real dt_snapshots_lab,
                            int N_snapshots, amrex::Real gamma_boost,
-                           amrex::Real dt_boost);
+                           amrex::Real dt_boost, int boost_direction);
     
     void writeLabFrameData(const amrex::MultiFab& cell_centered_data,
                            const amrex::Geometry& geom, amrex::Real t_boost);

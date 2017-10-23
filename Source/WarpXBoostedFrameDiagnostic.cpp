@@ -7,11 +7,13 @@ using namespace amrex;
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots, 
-                       Real gamma_boost, Real dt_boost)
+                       Real gamma_boost, Real dt_boost, 
+                       int boost_direction)
     : gamma_boost_(gamma_boost),
       dt_snapshots_lab_(dt_snapshots_lab),
       dt_boost_(dt_boost),
-      N_snapshots_(N_snapshots)
+      N_snapshots_(N_snapshots),
+      boost_direction_(boost_direction)
 {
     inv_gamma_boost_ = 1.0 / gamma_boost_;
     beta_boost_ = std::sqrt(1.0 - inv_gamma_boost_*inv_gamma_boost_);
@@ -36,8 +38,8 @@ BoostedFrameDiagnostic::
 writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {
     
     const RealBox& domain_z_boost = geom.ProbDomain();
-    const Real zlo_boost = domain_z_boost.lo(2);
-    const Real zhi_boost = domain_z_boost.hi(2);
+    const Real zlo_boost = domain_z_boost.lo(boost_direction_);
+    const Real zhi_boost = domain_z_boost.hi(boost_direction_);
 
     for (int i = 0; i < N_snapshots_; ++i) {
         snapshots_[i].updateCurrentZPositions(t_boost,
@@ -52,19 +54,20 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
         // for each z position, fill a slice with the data.
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
 
-        const int dir = 2;
         const int ncomp = cell_centered_data.nComp();
         const int start_comp = 0;
-        std::unique_ptr<MultiFab> slice = amrex::get_slice_data(dir, snapshots_[i].current_z_boost, 
-                                                                cell_centered_data, geom, start_comp, ncomp);
+        std::unique_ptr<MultiFab> slice = amrex::get_slice_data(boost_direction_,
+                                                                snapshots_[i].current_z_boost,
+                                                                cell_centered_data, geom,
+                                                                start_comp, ncomp);
 
         // transform it to the lab frame
         for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
             const Box& box = mfi.validbox();
             const Box& tile_box = mfi.tilebox();
-            WRPX_LORENTZ_TRANSFORM((*slice)[mfi].dataPtr(), box.loVect(), box.hiVect(),
-                                   tile_box.loVect(), tile_box.hiVect(),
-                                   &gamma_boost_, &beta_boost_);
+            WRPX_LORENTZ_TRANSFORM_Z(BL_TO_FORTRAN_ANYD((*slice)[mfi]), 
+                                     BL_TO_FORTRAN_BOX(tile_box),
+                                     &gamma_boost_, &beta_boost_);
         }
         
         // and write it to disk.
