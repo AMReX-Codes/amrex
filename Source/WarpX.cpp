@@ -233,6 +233,14 @@ WarpX::ReadParameters ()
             pp.get("num_snapshots_lab", num_snapshots_lab);
             pp.get("dt_snapshots_lab", dt_snapshots_lab);
             pp.get("gamma_boost", gamma_boost);
+            if (not do_moving_window) {
+                amrex::Abort("The moving window shoudld be on if using the boosted frame diagnostic");
+            }
+            std::string s;
+	    pp.get("moving_window_dir", s);
+	    if ( not (s == "z" || s == "Z")) {
+                amrex::Abort("The boosted frame diagnostic currently only works if the boost is in the z direction.");
+            }
         }
         
         pp.query("do_electrostatic", do_electrostatic);
