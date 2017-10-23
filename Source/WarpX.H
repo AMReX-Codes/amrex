@@ -235,6 +235,8 @@ private:
     void InitPML ();
     void ComputePMLFactors ();
 
+    void InitDiagnostics ();
+
     void InjectPlasma(int num_shift, int dir);
 
     void WriteWarpXHeader(const std::string& name) const;
