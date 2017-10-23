@@ -331,6 +331,37 @@ initialize_EBIS(const int max_level)
             impfunc.reset(implicit.newImplicitFunction());
 
           }
+          else if (geom_type == "interior_box")
+          {
+            amrex::Print() << "box within a box" << endl;
+            bool inside = true;  
+            
+            // A list of all the polygons as implicit functions
+            Vector<BaseIF*> planes;
+            // Process each polygon
+            for(int idir =0; idir < SpaceDim; idir++)
+            {
+              Real domlen = fine_dx*finest_domain.size()[idir];
+              RealVect pointLo = 1.5*fine_dx*BASISREALV(idir);
+              RealVect pointHi = (domlen - 1.5*fine_dx)*BASISREALV(idir);
+              RealVect normalLo = BASISREALV(idir);
+              RealVect normalHi = -BASISREALV(idir);
+              PlaneIF* planeLo = new PlaneIF(normalLo,pointLo,inside);
+              PlaneIF* planeHi = new PlaneIF(normalHi,pointHi,inside);
+
+              planes.push_back(planeLo);
+              planes.push_back(planeHi);
+            }
+            
+        
+
+            IntersectionIF* intersectif = new IntersectionIF(planes);
+            UnionIF* unionif = new UnionIF(planes);
+
+            impfunc.reset(intersectif);
+        
+          }
+      
           else if (geom_type == "polygon_revolution")
           {
             amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;
@@ -404,7 +435,7 @@ initialize_EBIS(const int max_level)
               }
               else
               {
-                  impfunc.reset(crossSection->newImplicitFunction());
+                impfunc.reset(crossSection->newImplicitFunction());
               }
             }
             else
