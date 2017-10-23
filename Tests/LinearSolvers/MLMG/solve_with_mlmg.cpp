@@ -57,8 +57,8 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     mlabec.setMaxOrder(linop_maxorder);
 
     // BC
-    mlabec.setDomainBC({MLLinOp::BCType::Dirichlet,MLLinOp::BCType::Dirichlet,MLLinOp::BCType::Dirichlet},
-                       {MLLinOp::BCType::Dirichlet,MLLinOp::BCType::Dirichlet,MLLinOp::BCType::Dirichlet});
+    mlabec.setDomainBC({prob::bc_type,prob::bc_type,prob::bc_type},
+                       {prob::bc_type,prob::bc_type,prob::bc_type});
     for (int ilev = 0; ilev < nlevels; ++ilev) {
         mlabec.setLevelBC(ilev, psoln[ilev]);
     }
