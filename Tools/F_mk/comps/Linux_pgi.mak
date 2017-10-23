@@ -25,10 +25,10 @@
     endif
 
     ifdef ACC
-      F90FLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
-      FFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
-      CFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
-      CXXFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
+      F90FLAGS += -acc -Minfo=acc -ta=tesla:cuda9.0
+      FFLAGS += -acc -Minfo=acc -ta=tesla:cuda9.0
+      CFLAGS += -acc -Minfo=acc -ta=tesla:cuda9.0
+      CXXFLAGS += -acc -Minfo=acc -ta=tesla:cuda9.0
     else
       F90FLAGS += -noacc
       FFLAGS += -noacc
@@ -37,10 +37,10 @@
     endif
 
     ifdef CUDA
-      F90FLAGS += -Mcuda=cuda8.0
-      FFLAGS += -Mcuda=cuda8.0
-      CFLAGS += -Mcuda=cuda8.0
-      CXXFLAGS += -Mcuda=cuda8.0
+      F90FLAGS += -Mcuda=cuda9.0
+      FFLAGS += -Mcuda=cuda9.0
+      CFLAGS += -Mcuda=cuda9.0
+      CXXFLAGS += -Mcuda=cuda9.0
     endif
 
     ifdef NDEBUG
