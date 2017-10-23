@@ -63,7 +63,8 @@ Distribution across MPI ranks and parallelization
     Maximum allowable size of each **subdomain**
     (expressed in number of grid points, in each direction).
     Each subdomain has its own ghost cells, and can be handled by a
-    different MPI rank.
+    different MPI rank ; several OpenMP threads can work simultaneously on the
+    same subdomain.
 
     If ``max_grid_size`` is such that the total number of subdomains is
     **larger** that the number of MPI ranks used, than some MPI ranks

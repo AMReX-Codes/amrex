@@ -75,7 +75,7 @@ def load_plasma(ncells, domain_min, domain_max, injected_plasma_density, injecte
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
     add_particles(0, plasma_xp[lo:hi], plasma_yp[lo:hi], plasma_zp[lo:hi],
-                  plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi], 
+                  plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi],
                   plasma_wp[lo:hi], unique_particles=True)
 
     comm.Barrier()
@@ -114,7 +114,7 @@ max_step = 1000
 # number of grid points
 amr.n_cell =   "%d  %d  %d" % tuple(ncells)
 
-# Maximum allowable size of each subdomain in the problem domain; 
+# Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
 amr.max_grid_size = 32
 
@@ -125,7 +125,7 @@ amr.plot_int = 2 # 100  # How often to write plotfiles.  "<= 0" means no plotfil
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = "1     1     0"      # Is periodic?  
+geometry.is_periodic = "1     1     0"      # Is periodic?
 geometry.prob_lo     = "%e   %e   %e" % tuple(domain_min)    # physical domain
 geometry.prob_hi     = "%e   %e   %e" % tuple(domain_max)
 
@@ -193,5 +193,4 @@ for i in range(1, max_step + 1):
     new_x = warpx.getProbLo(direction)
 
 warpx.finalize()
-
 amrex.finalize()
