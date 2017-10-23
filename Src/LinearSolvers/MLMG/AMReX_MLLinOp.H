@@ -80,6 +80,7 @@ protected:
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
+    bool m_domain_covered;
 
     // BC
 
@@ -143,6 +144,12 @@ protected:
     virtual Real Anorm (int amrlev, int mglev) const = 0;
 
 private:
+
+    void defineGrids (const Vector<Geometry>& a_geom,
+                      const Vector<BoxArray>& a_grids,
+                      const Vector<DistributionMapping>& a_dmap);
+    void defineAuxData ();
+    void defineBC ();
 
 };
 
