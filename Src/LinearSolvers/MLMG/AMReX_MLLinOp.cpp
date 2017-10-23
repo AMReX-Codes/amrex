@@ -95,7 +95,13 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         rr *= mg_coarsen_ratio;
     }
 
-    m_domain_covered = (m_grids[0][0].numPts() == m_geom[0][0].Domain().numPts());
+    m_domain_covered.resize(m_num_amr_levels, false);
+    m_domain_covered[0] = (m_grids[0][0].numPts() == m_geom[0][0].Domain().numPts());
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        if (!m_domain_covered[amrlev-1]) break;
+        m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() == m_geom[amrlev][0].Domain().numPts());
+    }
 }
 
 void
@@ -152,7 +158,7 @@ MLLinOp::defineBC ()
     m_bndry_cor.resize(m_num_amr_levels);
     m_crse_cor_br.resize(m_num_amr_levels);
 
-    m_needs_coarse_data_for_bc = !m_domain_covered;
+    m_needs_coarse_data_for_bc = !m_domain_covered[0];
         
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -227,6 +233,21 @@ MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
 {
     m_lobc = a_lobc;
     m_hibc = a_hibc;
+
+
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    bool singular_bc = (itlo == m_lobc.end()) && (ithi == m_hibc.end());
+
+    if (singular_bc)
+    {
+        m_singular = m_domain_covered;
+    }
+    else
+    {
+        m_singular.clear();
+        m_singular.resize(m_num_amr_levels, false);
+    }
 }
 
 void
