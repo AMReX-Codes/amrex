@@ -122,8 +122,17 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
     
     const int nlevels = 1;
     const std::string level_prefix = "Level_";
-    PreBuildDirectorHierarchy(file_name,
-                              level_prefix, nlevels, true);
+
+    if (!UtilCreateDirectory(file_name, 0755))
+        CreateDirectoryFailed(file_name);
+    for(int i(0); i < nlevels; ++i) {
+        const std::string &fullpath = LevelFullPath(i, file_name);
+        if (!UtilCreateDirectory(fullpath, 0755))
+            CreateDirectoryFailed(fullpath);
+    }
+    
+    ParallelDescriptor::Barrier();
+
     writeSnapShotHeader();
 }
 
