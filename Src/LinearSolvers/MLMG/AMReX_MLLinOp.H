@@ -80,7 +80,7 @@ protected:
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
-    bool m_domain_covered;
+    Vector<int>                          m_domain_covered;
 
     // BC
 
@@ -90,6 +90,8 @@ protected:
     bool m_needs_coarse_data_for_bc;
     int m_coarse_data_crse_ratio;
     const MultiFab* m_coarse_data_for_bc = nullptr;
+
+    Vector<int> m_singular;
     
     Vector<std::unique_ptr<MacBndry> >   m_bndry_sol;
     Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
