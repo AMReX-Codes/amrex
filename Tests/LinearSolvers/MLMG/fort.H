@@ -14,7 +14,7 @@ extern "C" {
                         amrex_real* rhs,   const int* rlo, const int* rhi,
                         const amrex_real* dx, const amrex_real* problo, const amrex_real* probhi,
                         const amrex_real* a, const amrex_real* b,
-                        const amrex_real* sigma, const amrex_real* w);
+                        const amrex_real* sigma, const amrex_real* w, const char* bct);
 
 #ifdef __cplusplus
 }
