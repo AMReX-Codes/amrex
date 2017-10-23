@@ -233,42 +233,45 @@ contains
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey, phiptcc
          
-    double precision :: diffflux
+    double precision :: diffflux, phicctemp, debtemp
     integer :: i, j
 
     !STEP 0 
     ! 2.1 get cell-centered phi so we can compute a pointwise, fourth order gradient at faces
     ! needed  for diffusive fluxes
 
-    do    j = lo(2)-2, hi(2)+2
-       do i = lo(1)-2, hi(1)+2
-          phiptcc(i,j)  = phi(i,j) - (1.0d0/24.d0)* &
+    do    j = lo(2)-3, hi(2)+3
+       do i = lo(1)-3, hi(1)+3
+          phicctemp  = phi(i,j) - (1.0d0/24.d0)* &
                (phi(i+1,j  )+phi(i-1,j  )&
                +phi(i  ,j+1)+phi(i  ,j-1)&
                -4.d0*phi(i,j))
+          phiptcc(i,j)  = phicctemp
        end do
     end do
 
     ! STEP ONE--- HYPERBOLIC FLUXES
     ! compute face average phi on x faces via eqn 17 of mccorquodale, colella
     
-    do    j = lo(2)-1, hi(2)+1
+    do    j = lo(2)-2, hi(2)+2
        do i = lo(1)  , hi(1)+1
 
-          phiavex(i,j)  = &
+          debtemp  = &
                 (7.d0/12.d0)*(phi(i  ,j) + phi(i-1,j)) &
                -(1.d0/12.d0)*(phi(i-2,j) + phi(i+1,j))
 
+          phiavex(i,j)  = debtemp
        end do
     end do
 
     !same for y faces
     do    j = lo(2)  , hi(2)+1
-       do i = lo(1)-1, hi(1)+1
+       do i = lo(1)-2, hi(1)+2
 
-          phiavey(i,j)  = &
+          debtemp  = &
                 (7.d0/12.d0)*(phi(i,j  ) + phi(i,j-1)) &
                -(1.d0/12.d0)*(phi(i,j-2) + phi(i,j+1))
+          phiavey(i,j)  = debtemp
 
        end do
     end do
@@ -282,6 +285,8 @@ contains
        do i = lo(1)  , hi(1)+1
           phiptx(i,j)  =    phiavex(i,j  ) - (1.0d0/24.d0)* &
                (phiavex(i,j+1) + phiavex(i,j-1) - 2.d0*phiavex(i,j))
+
+          debtemp  = phiptx(i,j)
 
           diffflux  = (-nu/dx(1))* &
                ( phiptcc(i  ,j) - phiptcc(i-1,j) &
@@ -301,6 +306,8 @@ contains
           phipty(i,j)  = phiavey(i,j) - (1.0d0/24.d0)* &
                (phiavey(i+1,j)+phiavey(i-1,j)-2.d0*phiavey(i,j))
 
+          debtemp  = phipty(i,j)
+
           diffflux  = (-nu/dx(2))* &
                ( phiptcc(i,j  ) - phiptcc(i,j-1) &
                -(phiptcc(i,j+1) + phiptcc(i,j-1) - 2.0d0*phiptcc(i,j  )) &
@@ -316,15 +323,19 @@ contains
     
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)+1
-          flxx(i,j)  = fluxptx(i,j) + (1.0d0/24.d0)* &
+          debtemp  = fluxptx(i,j) + (1.0d0/24.d0)* &
                (fluxptx(i,j+1) + fluxptx(i,j-1) - 2.d0*fluxptx(i,j))
+
+          flxx(i,j)  = debtemp
        end do
     end do
 
     do    j = lo(2), hi(2)+1
        do i = lo(1), hi(1)
-          flxy(i,j)  = fluxpty(i,j) + (1.0d0/24.d0)* &
+          debtemp  = fluxpty(i,j) + (1.0d0/24.d0)* &
                (fluxpty(i+1,j) + fluxpty(i-1,j) - 2.d0*fluxpty(i,j))
+          flxy(i,j)  = debtemp
+
        end do
     end do
  

@@ -59,12 +59,12 @@ def main(argv):
         coarsteps = 1
 
     truncstr = "truncation_error_only=" + trunconly
-    ncellcoarstr   = "amr.n_cells=\"" + str(coarcells) + " " + str(coarcells) + " " + str(coarcells) + "\""
-    ncellmedistr   = "amr.n_cells=\"" + str(medicells) + " " + str(medicells) + " " + str(medicells) + "\""
-    ncellfinestr   = "amr.n_cells=\"" + str(finecells) + " " + str(finecells) + " " + str(finecells) + "\""
-    maxgridcoarstr = "amr.maxgrid=\""  + str(coarmaxgrid) + "\""
-    maxgridmedistr = "amr.maxgrid=\""  + str(medimaxgrid) + "\""
-    maxgridfinestr = "amr.maxgrid=\""  + str(finemaxgrid) + "\""
+    ncellcoarstr   = "amr.n_cell=\"" + str(coarcells) + " " + str(coarcells) + " " + str(coarcells) + "\""
+    ncellmedistr   = "amr.n_cell=\"" + str(medicells) + " " + str(medicells) + " " + str(medicells) + "\""
+    ncellfinestr   = "amr.n_cell=\"" + str(finecells) + " " + str(finecells) + " " + str(finecells) + "\""
+    maxgridcoarstr = "amr.max_grid_size=\""  + str(coarmaxgrid) + "\""
+    maxgridmedistr = "amr.max_grid_size=\""  + str(medimaxgrid) + "\""
+    maxgridfinestr = "amr.max_grid_size=\""  + str(finemaxgrid) + "\""
     maxstepcoarstr = "max_step=\""  + str(coarsteps) + "\""
     maxstepmedistr = "max_step=\""  + str(medisteps) + "\""
     maxstepfinestr = "max_step=\""  + str(finesteps) + "\""
@@ -110,6 +110,16 @@ def main(argv):
     cleanupcoar = "mv " + pltfilecoar + " _plt.coar"
     cleanupmedi = "mv " + pltfilemedi + " _plt.medi"
     cleanupfine = "mv " + pltfilefine + " _plt.fine"
+
+    if(os.path.exists("_plt.coar")):
+        command = "rm  -rf _plt.coar"
+        os.system(command)
+    if(os.path.exists("_plt.medi")):
+        command = "rm  -rf _plt.medi"
+        os.system(command)
+    if(os.path.exists("_plt.fine")):
+        command = "rm  -rf _plt.fine"
+        os.system(command)
     print commandcoar
     os.system(commandcoar)
     print cleanupcoar
