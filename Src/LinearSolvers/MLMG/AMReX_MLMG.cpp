@@ -165,8 +165,12 @@ MLMG::oneIter (int iter)
     }
 
     // coarest amr level
-    {    
+    {
         // enforce solvability if appropriate
+        if (linop.isSingular(0)) {
+            Real offset = res[0][0].sum() / linop.Geom(0,0).Domain().d_numPts();
+            res[0][0].plus(-offset, 0, 1);
+        }
 
         if (iter < max_fmg_iters) {
             mgFcycle ();
@@ -508,7 +512,7 @@ MLMG::bottomSolve ()
     const int mglev = linop.NMGLevels(amrlev) - 1;
     MultiFab& x = *cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
-    
+
     x.setVal(0.0);
 
     if (bottom_solver == BottomSolver::smoother)
@@ -520,6 +524,12 @@ MLMG::bottomSolve ()
     }
     else
     {
+        // enforce solvability if appropriateq
+        if (linop.isSingular(amrlev)) {
+            Real offset = b.sum() / linop.Geom(amrlev,mglev).Domain().d_numPts();
+            b.plus(-offset, 0, 1);
+        }
+
         MLCGSolver::Solver solver_type;
         if (bottom_solver == BottomSolver::bicgstab)
         {
@@ -652,6 +662,18 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     {
         amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
         amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
+    }
+
+    // enforce solvability if appropriate
+    if (linop.isSingular(0))
+    {
+        Real offset = rhs[0].sum() / linop.Geom(0,0).Domain().d_numPts();
+        if (verbose >= 4) {
+            amrex::Print() << "MLMG: Subtracting " << offset << " from rhs\n";
+        }
+        for (int alev = 0; alev < namrlevs; ++alev) {
+            rhs[alev].plus(-offset, 0, 1);
+        }
     }
 
     const int nc = 1;
