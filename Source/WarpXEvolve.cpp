@@ -6,7 +6,6 @@
 #include <WarpXConst.H>
 #include <WarpX_f.H>
 #include <WarpX_py.H>
-#include <WarpXBoostedFrameDiagnostic.H>
 
 using namespace amrex;
 
@@ -167,11 +166,14 @@ WarpX::EvolveEM (int numsteps)
         const Real* current_lo = geom[0].ProbLo();
         const Real* current_hi = geom[0].ProbHi();
         Real dt_boost = dt[0];
-        BoostedFrameDiagnostic myBoostedFrameDiagnostic(current_lo[2], current_hi[2],
-                                                        moving_window_v, dt_snapshots_lab,
-                                                        num_snapshots_lab, gamma_boost, dt_boost);
-    }
 
+        myBFD.reset(new BoostedFrameDiagnostic(current_lo[moving_window_dir], 
+                                               current_hi[moving_window_dir],
+                                               moving_window_v, dt_snapshots_lab,
+                                               num_snapshots_lab, gamma_boost, dt_boost, 
+                                               moving_window_dir));
+    }
+    
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
         if (warpx_py_print_step) {
@@ -267,7 +269,7 @@ WarpX::EvolveEM (int numsteps)
 
         if (do_boosted_frame_diagnostic) {
             std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
-            myBoostedFrameDiagnostic.writeLabFrameData(*cell_centered_data, geom[0], cur_time);
+            myBFD->writeLabFrameData(*cell_centered_data, geom[0], cur_time);
         }
 
 	if (to_make_plot)
