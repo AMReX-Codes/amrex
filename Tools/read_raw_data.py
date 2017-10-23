@@ -54,29 +54,32 @@ def read_lab_snapshot(snapshot):
 
     '''
 
-    data = {}
-
     hdrs = glob(snapshot + "/Level_0/slice?????_H")
     hdrs.sort()
-
-    if (len(hdrs) == 0):
-        print("The provided directory appears to be empty.")
-        return data
 
     boxes, file_names, offsets, header = _read_header(hdrs[0])
     dom_lo, dom_hi = _combine_boxes(boxes)
     domain_size = dom_hi - dom_lo + 1
     
+    space_dim = len(dom_lo)
+        
+    data = {}
     for i in range(header.ncomp):
-        data[_component_names[i]] = np.zeros((domain_size[0], domain_size[1], len(hdrs)))
-
+        if space_dim == 3:
+            data[component_names[i]] = np.zeros((domain_size[0], domain_size[1], len(hdrs)))
+        elif space_dim == 2:
+            data[component_names[i]] = np.zeros((domain_size[0], len(hdrs)))
+    
     for i, hdr in enumerate(hdrs):
         slice_data = _read_slice(snapshot, hdr)
         if data is None:
             data = slice_data
         else:
             for k,v in slice_data.items():
-                data[k][:,:,i] = v[:,:,0]
+                if space_dim == 3:
+                    data[k][:,:,i] = v[:,:,0]
+                elif space_dim == 2:
+                    data[k][:,i] = v[:,0]
                 
     return data
 
