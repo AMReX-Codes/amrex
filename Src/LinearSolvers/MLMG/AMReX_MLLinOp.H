@@ -120,6 +120,8 @@ protected:
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
 
+    bool isSingular (int amrlev) const { return m_singular[amrlev]; }
+
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
