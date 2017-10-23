@@ -16,6 +16,7 @@
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
+#include <WarpXBoostedFrameDiagnostic.H>
 
 class NoOpPhysBC
     : public amrex::PhysBCFunctBase
@@ -295,6 +296,9 @@ private:
 
     // Particle container
     std::unique_ptr<MultiParticleContainer> mypc;
+
+    // Boosted Frame Diagnostics
+    std::unique_ptr<BoostedFrameDiagnostic> myBFD;
 
     //
     // Fields: First array for level, second for direction
