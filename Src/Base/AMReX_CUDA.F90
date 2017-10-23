@@ -57,7 +57,7 @@ contains
 
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
                        cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
-#ifdef BL_USE_F_BASELIB
+#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
     use bl_error_module, only: bl_error
 #endif
 
@@ -236,7 +236,7 @@ contains
   subroutine threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     use cudafor, only: dim3
-#ifdef BL_USE_F_BASELIB
+#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
     use bl_error_module, only: bl_error
 #endif
 
@@ -404,7 +404,7 @@ contains
 
     use cudafor, only: cudaMallocManaged, cudaMemAttachGlobal, c_devptr
     use iso_c_binding, only: c_size_t
-#ifdef BL_USE_F_BASELIB
+#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
     use bl_error_module, only: bl_error
 #endif
 
@@ -687,7 +687,7 @@ contains
 
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
 
-#ifdef BL_USE_F_BASELIB
+#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
     use bl_error_module, only: bl_error, bl_warn
 #endif
 
@@ -713,7 +713,7 @@ contains
     if (abort == 1) then
        call bl_error(error_string)
     else
-#ifdef BL_USE_F_BASELIB
+#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
        call bl_warn(error_string)
 #else
        call bl_warning(error_string)
