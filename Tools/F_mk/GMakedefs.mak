@@ -33,6 +33,9 @@ endif
 ifdef ACC
   acc_suffix 	:= .acc
 endif
+ifdef CUDA
+  cuda_suffix   := .cuda
+endif
 ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
@@ -57,7 +60,7 @@ ifdef HDF
   hdf_suffix := .hdf
 endif
 
-suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(acc_suffix)$(mic_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
+suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(acc_suffix)$(cuda_suffix)$(mic_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
 
 sources     =
 fsources    =
