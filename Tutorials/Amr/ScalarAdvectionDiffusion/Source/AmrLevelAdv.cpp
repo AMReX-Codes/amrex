@@ -14,7 +14,7 @@ namespace amrex
   int      AmrLevelAdv::do_reflux       = 1;
 
   int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
-  int      AmrLevelAdv::NUM_GROW        = 3;  // number of ghost cells
+  int      AmrLevelAdv::NUM_GROW        = 4;  // number of ghost cells
 
 
 //
@@ -228,9 +228,9 @@ namespace amrex
     Real minval = S_new.min(0);
     amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
     Real dtval;
-    dtval = advanceGodunov(time, dt, iteration, ncycle);
-//    dtval = advanceMOLRK2(time, dt, iteration, ncycle);
-//    dtval = advanceMOLRK3(time, dt, iteration, ncycle);
+//    dtval = advanceGodunov(time, dt, iteration, ncycle);
+//  dtval = advanceMOLRK2(time, dt, iteration, ncycle);
+    dtval = advanceMOLRK3(time, dt, iteration, ncycle);
 //    dtval = advanceMOLRK4(time, dt, iteration, ncycle);
     ParmParse pp;
     if(pp.contains("fixed_dt"))
@@ -346,9 +346,10 @@ namespace amrex
 
     // RK3 stage 1
     //FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
-    S_old.FillBoundary();
+    u1.copy(S_old);
+    u1.FillBoundary(geom.periodicity());
     //the dt/6 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(S_old, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
     bool truncationErrorTest = false;
     ParmParse pp;
@@ -359,7 +360,9 @@ namespace amrex
       return dt;
     }
 
-    // U^1 = U^n + dt*dPhiDt^n
+    //u1 is already set to u^n
+    // this sets U1 = U^n + dt*dPhiDt^n
+    MultiFab::Saxpy(u1, dt, dPhiDt, 0, 0, NUM_STATE, 0);
     MultiFab::LinComb(u1, 1.0, S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
     u1.FillBoundary();
 
@@ -564,12 +567,15 @@ namespace amrex
         {
           const Box& bxtmp = amrex::surroundingNodes(bx,i);
           flux[i].resize(bxtmp,NUM_STATE);
+          //I have no idea why iteration comes into this but
+          //it is inherited from the advection example
           uface[i].resize(amrex::grow(bxtmp, iteration), 1);
         }
 
         const Real prev_time = state[Phi_Type].prevTime();
         const Real cur_time = state[Phi_Type].curTime();
-        const Real ctr_time = 0.5*(prev_time + cur_time);
+        //velocity for godunov is at time n+1/2 because that is wheree flux is centered
+        const Real ctr_time = 0.5*(prev_time + cur_time); 
 
         get_face_velocity(level, ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
@@ -642,17 +648,20 @@ namespace amrex
         const FArrayBox& statein = Sborder[mfi];
         FArrayBox& dphidtout     =  dPhiDt[mfi];
 
+        Box grownBox = grow(bx,NUM_GROW);
         // Allocate fabs for fluxes and Godunov velocities.
         for (int i = 0; i < BL_SPACEDIM ; i++) 
         {
           const Box& bxtmp = amrex::surroundingNodes(bx,i);
           flux[i].resize(bxtmp,NUM_STATE);
-          uface[i].resize(amrex::grow(bxtmp, iteration), 1);
+          //here I have to stop the madness of using iteration because
+          //I have a bigger stencil.
+          Box velBox = surroundingNodes(grownBox, i);
+          uface[i].resize(velBox, 1);
         }
 
-        const Real prev_time = state[Phi_Type].prevTime();
-        const Real cur_time = state[Phi_Type].curTime();
-        const Real ctr_time = 0.5*(prev_time + cur_time);
+        //velocity is a time because this is MOL
+        const Real ctr_time = time;
 
         get_face_velocity(level, ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
@@ -730,12 +739,13 @@ namespace amrex
         {
           const Box& bxtmp = amrex::surroundingNodes(bx,i);
           flux[i].resize(bxtmp,NUM_STATE);
+          //I have no idea why iteration comes into this but
+          //it is inherited from the advection example (stencil size here is the same as Goudnov)
           uface[i].resize(amrex::grow(bxtmp, iteration), 1);
         }
 
-        const Real prev_time = state[Phi_Type].prevTime();
-        const Real cur_time = state[Phi_Type].curTime();
-        const Real ctr_time = 0.5*(prev_time + cur_time);
+        //MOL
+        const Real ctr_time = time;
 
         get_face_velocity(level, ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),

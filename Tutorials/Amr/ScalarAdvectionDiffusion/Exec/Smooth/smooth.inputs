@@ -1,6 +1,7 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
 max_step = 1000000
-max_step = 0
+max_step = 1
+
 stop_time = 7.0
 
 # PROBLEM SIZE & GEOMETRY
@@ -41,3 +42,4 @@ amr.probin_file = probin
 
 # TRACER PARTICLES
 adv.do_tracers = 0
+fixed_dt = 0.0002
