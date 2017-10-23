@@ -21,7 +21,16 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<DistributionMapping>& a_dmap)
 {
     BL_PROFILE("MLLinOp::define()");
+    defineGrids(a_geom, a_grids, a_dmap);
+    defineAuxData();
+    defineBC();
+}
 
+void
+MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
+                      const Vector<BoxArray>& a_grids,
+                      const Vector<DistributionMapping>& a_dmap)
+{
     m_num_amr_levels = a_geom.size();
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
@@ -30,18 +39,6 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
-
-    m_undrrelxr.resize(m_num_amr_levels);
-
-    m_maskvals.resize(m_num_amr_levels);
-
-    m_fluxreg.resize(m_num_amr_levels-1);
-
-    m_bndry_sol.resize(m_num_amr_levels);
-    m_crse_sol_br.resize(m_num_amr_levels);
-
-    m_bndry_cor.resize(m_num_amr_levels);
-    m_crse_cor_br.resize(m_num_amr_levels);
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -98,6 +95,16 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         rr *= mg_coarsen_ratio;
     }
 
+    m_domain_covered = (m_grids[0][0].numPts() == m_geom[0][0].Domain().numPts());
+}
+
+void
+MLLinOp::defineAuxData ()
+{
+    m_undrrelxr.resize(m_num_amr_levels);
+    m_maskvals.resize(m_num_amr_levels);
+    m_fluxreg.resize(m_num_amr_levels-1);
+
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_undrrelxr[amrlev].resize(m_num_mg_levels[amrlev]);
@@ -134,10 +141,18 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                                  m_geom[amrlev+1][0], m_geom[amrlev][0],
                                  ratio, amrlev+1, 1);
     }
+}
 
-    // BC
+void
+MLLinOp::defineBC ()
+{
+    m_bndry_sol.resize(m_num_amr_levels);
+    m_crse_sol_br.resize(m_num_amr_levels);
 
-    m_needs_coarse_data_for_bc = (m_grids[0][0].numPts() != m_geom[0][0].Domain().numPts());
+    m_bndry_cor.resize(m_num_amr_levels);
+    m_crse_cor_br.resize(m_num_amr_levels);
+
+    m_needs_coarse_data_for_bc = !m_domain_covered;
         
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
