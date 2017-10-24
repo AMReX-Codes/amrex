@@ -498,10 +498,10 @@ StateData::FillBoundary (FArrayBox&     dest,
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
 
-	const int* dlo_f = dest.loVectF();
-	const int* dhi_f = dest.hiVectF();
-	const int* plo_f = domain.loVectF();
-	const int* phi_f = domain.hiVectF();
+	const int* dlo = dest.loVect();
+	const int* dhi = dest.hiVect();
+	const int* plo = domain.loVect();
+	const int* phi = domain.hiVect();
 
         int bcidx = 2 * AMREX_SPACEDIM * i;
 
@@ -555,20 +555,20 @@ StateData::FillBoundary (FArrayBox&     dest,
                 // Can do the whole group at once.
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx,xlo_f,time_f,&bcrs_f[bcidx],groupsize);
+		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo_f,time_f,&bcrs_f[bcidx],groupsize);
 
                 i += groupsize;
             }
             else
             {
-                desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx,xlo_f,time_f,&bcrs_f[bcidx]);
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo_f,time_f,&bcrs_f[bcidx]);
 
                 i++;
             }
         }
         else
         {
-            desc->bndryFill(sc)(dat,dlo_f,dhi_f,plo_f,phi_f,dx,xlo_f,time_f,&bcrs_f[bcidx]);
+            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo_f,time_f,&bcrs_f[bcidx]);
 
             i++;
         }

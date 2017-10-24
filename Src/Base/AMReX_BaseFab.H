@@ -183,10 +183,9 @@ public:
     int nComp () const { return nvar; }
 
     //! for calls to fortran.  
-    const int* nCompPtr() const {return &nvar;}
-    const int* nCompPtrF() const {
+    const int* nCompPtr() const {
 #ifdef AMREX_USE_CUDA
-        return (int*) Device::get_host_pointer(nvar_d);
+        return nvar_d;
 #else
         return &nvar;
 #endif
@@ -225,7 +224,6 @@ public:
     * Fortran subroutines.
     */
     const int* loVect () const { return domain.loVect(); }
-    const int* loVectF () const { return domain.loVectF(); }
 
     /**
     * \brief Returns the upper corner of the domain.  
@@ -236,7 +234,6 @@ public:
     * Fortran subroutines.
     */
     const int* hiVect () const { return domain.hiVect(); }
-    const int* hiVectF () const { return domain.hiVectF(); }
 
     /**
     * \brief Returns true if the domain of fab is totally contained within

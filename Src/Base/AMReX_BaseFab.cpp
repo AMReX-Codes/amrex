@@ -210,7 +210,7 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     FORT_LAUNCH(destbox, fort_fab_copy,
                 BL_TO_FORTRAN_BOX(destbox),
                 BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVect()),
                 numcomp);
 }
 
@@ -380,7 +380,7 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     FORT_LAUNCH(destbox, fort_fab_plus,
                 BL_TO_FORTRAN_BOX(destbox),
                 BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVect()),
                 numcomp);
 
     return *this;
@@ -405,7 +405,7 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     FORT_LAUNCH(destbox, fort_fab_mult,
                 BL_TO_FORTRAN_BOX(destbox),
                 BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVect()),
                 numcomp);
     return *this;
 }
@@ -431,7 +431,7 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
                 BL_TO_FORTRAN_BOX(destbox),
                 BL_TO_FORTRAN_N_ANYD(*this,destcomp),
                 a,
-                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVect()),
                 numcomp);
     return *this;
 }
@@ -457,7 +457,7 @@ BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
                 BL_TO_FORTRAN_BOX(destbox),
                 BL_TO_FORTRAN_N_ANYD(*this,destcomp),
                 a,
-                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVect()),
                 numcomp);
     return *this;
 }
@@ -506,7 +506,7 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     FORT_LAUNCH(destbox, fort_fab_minus,
                 BL_TO_FORTRAN_BOX(destbox),
                 BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVect()),
                 numcomp);
     return *this;
 }
@@ -530,7 +530,7 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     FORT_LAUNCH(destbox, fort_fab_divide,
                 BL_TO_FORTRAN_BOX(destbox),
                 BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVect()),
                 numcomp);
     return *this;
 }
@@ -554,7 +554,7 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
     FORT_LAUNCH(destbox, fort_fab_protdivide,
                 BL_TO_FORTRAN_BOX(destbox),
                 BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(src,srccomp), ARLIM_3D(srcbox.loVect()),
                 numcomp);
     return *this;
 }
@@ -588,8 +588,8 @@ BaseFab<Real>::linComb (const BaseFab<Real>& f1,
     FORT_LAUNCH(b, fort_fab_lincomb,
                 BL_TO_FORTRAN_BOX(b),
                 BL_TO_FORTRAN_N_ANYD(*this,comp),
-                alpha, BL_TO_FORTRAN_N_ANYD(f1,comp1), ARLIM_3D(b1.loVectF()),
-                beta,  BL_TO_FORTRAN_N_ANYD(f2,comp2), ARLIM_3D(b2.loVectF()),
+                alpha, BL_TO_FORTRAN_N_ANYD(f1,comp1), ARLIM_3D(b1.loVect()),
+                beta,  BL_TO_FORTRAN_N_ANYD(f2,comp2), ARLIM_3D(b2.loVect()),
                 numcomp);
     return *this;
 }
@@ -617,7 +617,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     FORT_LAUNCH(xbx, fort_fab_dot,
                 BL_TO_FORTRAN_BOX(xbx),
                 BL_TO_FORTRAN_N_ANYD(*this,xcomp),
-                BL_TO_FORTRAN_N_ANYD(y,ycomp), ARLIM_3D(ybx.loVectF()),
+                BL_TO_FORTRAN_N_ANYD(y,ycomp), ARLIM_3D(ybx.loVect()),
                 numcomp, dp_f);
 
     return *dp_f;

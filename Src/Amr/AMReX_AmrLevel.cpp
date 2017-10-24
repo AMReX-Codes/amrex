@@ -544,13 +544,13 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
 
 #ifdef AMREX_USE_CUDA
     std::shared_ptr<Real> t_ptr = Device::create_host_pointer<Real>(&time);
-    Real* time_f = (Real*) Device::get_host_pointer(t_ptr.get());
+    Real* time_f = t_ptr.get();
 
     std::shared_ptr<Real> xlo_ptr = Device::create_host_pointer<Real>(xlo, 3, AMREX_SPACEDIM);
-    Real* xlo_f = (Real*) Device::get_host_pointer(xlo_ptr.get());
+    Real* xlo_f = xlo_ptr.get();
 
     std::shared_ptr<int> bc_ptr = Device::create_host_pointer(bcrs, 2 * AMREX_SPACEDIM * num_comp);
-    int* bcrs_f = (int*) Device::get_host_pointer(bc_ptr.get());
+    int* bcrs_f = bc_ptr.get();
 #else
     const Real* time_f = &time;
     const Real* xlo_f  = xlo;
@@ -1560,18 +1560,18 @@ AmrLevel::derive (const std::string& name,
         {
             int         grid_no = mfi.index();
             Real*       ddat    = (*mf)[mfi].dataPtr();
-            const int*  dlo     = (*mf)[mfi].loVectF();
-            const int*  dhi     = (*mf)[mfi].hiVectF();
+            const int*  dlo     = (*mf)[mfi].loVect();
+            const int*  dhi     = (*mf)[mfi].hiVect();
 	    const Box&  gtbx    = mfi.growntilebox();
-	    const int*  lo      = gtbx.loVectF();
-	    const int*  hi      = gtbx.hiVectF();
+	    const int*  lo      = gtbx.loVect();
+	    const int*  hi      = gtbx.hiVect();
             int         n_der   = rec->numDerive();
             Real*       cdat    = srcMF[mfi].dataPtr();
-            const int*  clo     = srcMF[mfi].loVectF();
-            const int*  chi     = srcMF[mfi].hiVectF();
+            const int*  clo     = srcMF[mfi].loVect();
+            const int*  chi     = srcMF[mfi].hiVect();
             int         n_state = rec->numState();
-            const int*  dom_lo  = state[index].getDomain().loVectF();
-            const int*  dom_hi  = state[index].getDomain().hiVectF();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
 	    const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
@@ -1624,15 +1624,15 @@ AmrLevel::derive (const std::string& name,
         {
             int         grid_no = mfi.index();
             Real*       ddat    = (*mf)[mfi].dataPtr();
-            const int*  dlo     = (*mf)[mfi].loVectF();
-            const int*  dhi     = (*mf)[mfi].hiVectF();
+            const int*  dlo     = (*mf)[mfi].loVect();
+            const int*  dhi     = (*mf)[mfi].hiVect();
             int         n_der   = rec->numDerive();
             Real*       cdat    = srcMF[mfi].dataPtr();
-            const int*  clo     = srcMF[mfi].loVectF();
-            const int*  chi     = srcMF[mfi].hiVectF();
+            const int*  clo     = srcMF[mfi].loVect();
+            const int*  chi     = srcMF[mfi].hiVect();
             int         n_state = rec->numState();
-            const int*  dom_lo  = state[index].getDomain().loVectF();
-            const int*  dom_hi  = state[index].getDomain().hiVectF();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
 	    const RealBox& rbx  = mfi.registerRealBox(RealBox((*mf)[mfi].box(),geom.CellSize(),geom.ProbLo()));
@@ -1742,18 +1742,18 @@ AmrLevel::derive (const std::string& name,
         {
             int         idx     = mfi.index();
             Real*       ddat    = mf[mfi].dataPtr(dcomp);
-            const int*  dlo     = mf[mfi].loVectF();
-            const int*  dhi     = mf[mfi].hiVectF();
+            const int*  dlo     = mf[mfi].loVect();
+            const int*  dhi     = mf[mfi].hiVect();
 	    const Box&  gtbx    = mfi.growntilebox();
-	    const int*  lo      = gtbx.loVectF();
-	    const int*  hi      = gtbx.hiVectF();
+	    const int*  lo      = gtbx.loVect();
+	    const int*  hi      = gtbx.hiVect();
             int         n_der   = rec->numDerive();
             Real*       cdat    = srcMF[mfi].dataPtr();
-            const int*  clo     = srcMF[mfi].loVectF();
-            const int*  chi     = srcMF[mfi].hiVectF();
+            const int*  clo     = srcMF[mfi].loVect();
+            const int*  chi     = srcMF[mfi].hiVect();
             int         n_state = rec->numState();
-            const int*  dom_lo  = state[index].getDomain().loVectF();
-            const int*  dom_hi  = state[index].getDomain().hiVectF();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
             const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
@@ -1806,15 +1806,15 @@ AmrLevel::derive (const std::string& name,
         {
             int         idx     = mfi.index();
             Real*       ddat    = mf[mfi].dataPtr(dcomp);
-            const int*  dlo     = mf[mfi].loVectF();
-            const int*  dhi     = mf[mfi].hiVectF();
+            const int*  dlo     = mf[mfi].loVect();
+            const int*  dhi     = mf[mfi].hiVect();
             int         n_der   = rec->numDerive();
             Real*       cdat    = srcMF[mfi].dataPtr();
-            const int*  clo     = srcMF[mfi].loVectF();
-            const int*  chi     = srcMF[mfi].hiVectF();
+            const int*  clo     = srcMF[mfi].loVect();
+            const int*  chi     = srcMF[mfi].hiVect();
             int         n_state = rec->numState();
-            const int*  dom_lo  = state[index].getDomain().loVectF();
-            const int*  dom_hi  = state[index].getDomain().hiVectF();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
             const RealBox& rbx  = mfi.registerRealBox(RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo()));

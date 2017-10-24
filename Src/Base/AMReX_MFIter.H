@@ -279,7 +279,7 @@ T*
 MFIter::get_fortran_pointer(const T* ptr, const int n, const int m) {
     std::shared_ptr<T> s_ptr = Device::create_host_pointer(ptr, n, m);
     register_ptr(s_ptr);
-    return (T*) Device::get_host_pointer(s_ptr.get());
+    return s_ptr.get();
 }
 #endif
 
