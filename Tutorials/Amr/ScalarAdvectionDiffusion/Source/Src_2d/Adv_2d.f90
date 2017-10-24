@@ -247,9 +247,9 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
   double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
   double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
 
-  integer :: i, j
+  integer :: i, j, numphi
   integer :: glo(2), ghi(2)
-  double precision :: umax, vmax, fhi, flo
+  double precision :: umax, vmax, fhi, flo, phitot
 
   double precision, dimension(:,:), pointer, contiguous :: &
          fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey,  phiptcc
@@ -309,6 +309,32 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      enddo
   enddo
 
+!    numphi = 0
+!    phitot = 0.0d0
+!    do    j = debloface(2), debhiface(2)
+!       do i = debloface(1), debhiface(1)
+!          numphi = numphi + 1
+!          phitot = phitot +flxy(i,j)
+!!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+!       enddo
+!    enddo
+!    if(numphi .gt. 0) then
+!       print*, "**************** final y flux = ", phitot/numphi
+!    endif
+
+    numphi = 0
+    phitot = 0.0d0
+    do    j = deblocell(2), debhicell(2)
+       do i = deblocell(1), debhicell(1)
+          numphi = numphi + 1
+          phitot = phitot + dphidtout(i,j)
+!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+       enddo
+    enddo
+    if(numphi .gt. 0) then
+       print*, "**************** ndphidt, final dphidt = ", numphi, phitot/numphi
+    endif
+       
   ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)
      do i = lo(1), hi(1)+1

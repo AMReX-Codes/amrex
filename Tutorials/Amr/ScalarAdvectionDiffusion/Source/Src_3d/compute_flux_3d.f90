@@ -433,10 +433,13 @@ contains
                                fluxptx, phiptx, phiavex, &
                                fluxpty, phipty, phiavey, &
                                fluxptz, phiptz, phiavez, &
-                               phiptcc, glo, ghi, nu)
+                               phiptcc, glo, ghi, nu, &
+                               deblocell, debhicell, &
+                               debloface, debhiface)
 
 
     integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3)
+    integer, intent(in) :: deblocell(3), debhicell(3), debloface(3), debhiface(3)
     double precision, intent(in) :: dt, dx(3), nu
     integer, intent(in) :: ph_lo(3), ph_hi(3)
     integer, intent(in) ::  u_lo(3),  u_hi(3)

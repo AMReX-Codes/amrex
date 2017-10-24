@@ -345,19 +345,19 @@ contains
        end do
     end do
 
-    numphi = 0
-    phitot = 0.0d0
-    do    j = debloface(2), debhiface(2)
-       do i = debloface(1), debhiface(1)
-          numphi = numphi + 1
-          phitot = phitot +flxy(i,j)
-!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
-       enddo
-    enddo
-    if(numphi .gt. 0) then
-       print*, "**************** final yflux = ", phitot/numphi
-    endif
-       
+!    numphi = 0
+!    phitot = 0.0d0
+!    do    j = debloface(2), debhiface(2)
+!       do i = debloface(1), debhiface(1)
+!          numphi = numphi + 1
+!          phitot = phitot +flxy(i,j)
+!!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+!       enddo
+!    enddo
+!    if(numphi .gt. 0) then
+!       print*, "**************** final yflux = ", phitot/numphi
+!    endif
+!       
  
  end subroutine mol4thord_flux_2d
 
