@@ -93,7 +93,7 @@ void GaussianRandomMomentumDistribution::getMomentum(vec3& u, Real x, Real y, Re
     u[0] = _ux_m + ux_th;
     u[1] = _uy_m + uy_th;
     u[2] = _uz_m + uz_th;
-} 
+}
 RadialExpansionMomentumDistribution::RadialExpansionMomentumDistribution(Real u_over_r) : _u_over_r( u_over_r )
 {
 }
@@ -102,17 +102,6 @@ void RadialExpansionMomentumDistribution::getMomentum(vec3& u, Real x, Real y, R
   u[0] = _u_over_r * x;
   u[1] = _u_over_r * y;
   u[2] = _u_over_r * z;
-}
-
-DiagonalPosition::DiagonalPosition(int num_particles_per_cell):
-  _num_particles_per_cell(num_particles_per_cell)
-{}
-
-void DiagonalPosition::getPositionUnitBox(vec3& r, int i_part){
-  Real particle_shift = (0.5+i_part)/_num_particles_per_cell;
-  r[0] = particle_shift;
-  r[1] = particle_shift;
-  r[2] = particle_shift;
 }
 
 RandomPosition::RandomPosition(int num_particles_per_cell):
@@ -195,10 +184,7 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.get("npart", npart);
         gaussian_beam = true;
     }
-    else if (part_pos_s == "ndiagpercell") {
-        pp.query("num_particles_per_cell", num_particles_per_cell);
-        part_pos.reset(new DiagonalPosition(num_particles_per_cell));
-    } else if (part_pos_s == "nrandompercell") {
+    else if (part_pos_s == "nrandompercell") {
         pp.query("num_particles_per_cell", num_particles_per_cell);
         part_pos.reset(new RandomPosition(num_particles_per_cell));
     } else if (part_pos_s == "nuniformpercell") {

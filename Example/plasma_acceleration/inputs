@@ -41,7 +41,8 @@ particles.species_names = beam plasma
 
 beam.charge = -q_e
 beam.mass = m_e
-beam.injection_style = "NDiagPerCell"
+beam.injection_style = "NUniformPerCell"
+beam.num_particles_per_cell_each_dim = 2 2 1
 
 beam.xmin = -20.e-6
 beam.xmax = 20.e-6
@@ -52,7 +53,6 @@ beam.zmax = -100.e-6
 
 beam.profile = "constant"
 beam.density = 1e23                    # number of particles per m^3
-beam.num_particles_per_cell = 4
 
 beam.momentum_distribution_type = "constant"
 beam.ux = 0.0
@@ -65,7 +65,8 @@ beam.uz = 1e9
 
 plasma.charge = -q_e
 plasma.mass = m_e
-plasma.injection_style = "NDiagPerCell"
+plasma.injection_style = "NUniformPerCell"
+plasma.num_particles_per_cell_each_dim = 2 2 1
 
 plasma.xmin = -200.e-6
 plasma.xmax = 200.e-6
@@ -75,7 +76,6 @@ plasma.zmin = 0.e-6
 
 plasma.profile = "constant"
 plasma.density = 1e22                  # number of particles per m^3
-plasma.num_particles_per_cell = 4
 
 plasma.momentum_distribution_type = "constant"
 plasma.ux = 0.0
