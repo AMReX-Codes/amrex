@@ -513,6 +513,11 @@ MLMG::bottomSolve ()
     MultiFab& x = *cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
 
+    if (linop.isSingular(amrlev)) {
+        Real offset = b.sum() / linop.Geom(amrlev,mglev).Domain().d_numPts();
+        b.plus(-offset, 0, 1);
+    }
+
     x.setVal(0.0);
 
     if (bottom_solver == BottomSolver::smoother)

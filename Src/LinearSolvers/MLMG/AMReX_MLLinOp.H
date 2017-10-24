@@ -91,8 +91,6 @@ protected:
     int m_coarse_data_crse_ratio;
     const MultiFab* m_coarse_data_for_bc = nullptr;
 
-    Vector<int> m_singular;
-    
     Vector<std::unique_ptr<MacBndry> >   m_bndry_sol;
     Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
 
@@ -120,8 +118,6 @@ protected:
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
 
-    bool isSingular (int amrlev) const { return m_singular[amrlev]; }
-
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
@@ -140,6 +136,7 @@ protected:
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& fine_sol) const;
 
     virtual void prepareForSolve () = 0;
+    virtual bool isSingular (int amrlev) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
