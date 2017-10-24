@@ -27,12 +27,6 @@ MLPoisson::prepareForSolve ()
 {
     BL_PROFILE("MLPoisson::prepareForSolve()");
 
-    m_Anorm.resize(m_num_amr_levels);
-    for (int alev = 0; alev < m_num_amr_levels; ++alev)
-    {
-        m_Anorm[alev].assign(m_num_mg_levels[alev], -1.0);
-    }
-
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
     auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
