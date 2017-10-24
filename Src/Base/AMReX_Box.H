@@ -261,32 +261,26 @@ public:
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
-    const int* loVect () const& { return smallend.getVect(); }
-
-    const int* loVect () && = delete;
-
-    //! Similar to loVect(). This one returns a pointer for the device to operate on.
-    const int* loVectF () const& {
+    const int* loVect () const& { 
 #ifdef AMREX_USE_CUDA
-        return (int*) Device::get_host_pointer(lo_d.get());
+        return lo_d.get();
 #else
         return smallend.getVect();
 #endif
     }
-	
+
+    const int* loVect () && = delete;
+
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
-    const int* hiVect () const& { return bigend.getVect(); }
-
-    const int* hiVect () && = delete;
-
-    //! Similar to hiVect(). This one returns a pointer for the device to operate on.
-    const int* hiVectF () const& {
+    const int* hiVect () const& { 
 #ifdef AMREX_USE_CUDA
-        return (int*) Device::get_host_pointer(hi_d.get());
+        return hi_d.get();
 #else
         return bigend.getVect();
 #endif
     }
+
+    const int* hiVect () && = delete;
 
     //! Returns the coordinate normal to given face.
     int operator[] (Orientation face) const;
