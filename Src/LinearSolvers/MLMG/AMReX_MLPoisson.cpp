@@ -75,13 +75,8 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
 void
 MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
-#if 0
     BL_PROFILE("MLPoisson::Fsmooth()");
 
-    const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
-    AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
-                 const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
-                 const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
     const auto& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals  = m_maskvals [amrlev][mglev];
 
@@ -109,8 +104,7 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 #endif
 
-    const int nc = 1;
-    const Real* h = m_geom[amrlev][mglev].CellSize();
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -133,11 +127,6 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
         const Box&       vbx     = mfi.validbox();
         FArrayBox&       solnfab = sol[mfi];
         const FArrayBox& rhsfab  = rhs[mfi];
-        const FArrayBox& afab    = acoef[mfi];
-
-        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
-                     const FArrayBox& byfab = bycoef[mfi];,
-                     const FArrayBox& bzfab = bzcoef[mfi];);
 
         const FArrayBox& f0fab = f0[mfi];
         const FArrayBox& f1fab = f1[mfi];
@@ -155,49 +144,28 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-        FORT_GSRB(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
-                  rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
-                  &m_a_scalar, &m_b_scalar,
-                  afab.dataPtr(), ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
-                  bxfab.dataPtr(), ARLIM(bxfab.loVect()),   ARLIM(bxfab.hiVect()),
-                  byfab.dataPtr(), ARLIM(byfab.loVect()),   ARLIM(byfab.hiVect()),
-                  f0fab.dataPtr(), ARLIM(f0fab.loVect()),   ARLIM(f0fab.hiVect()),
-                  m0.dataPtr(), ARLIM(m0.loVect()),   ARLIM(m0.hiVect()),
-                  f1fab.dataPtr(), ARLIM(f1fab.loVect()),   ARLIM(f1fab.hiVect()),
-                  m1.dataPtr(), ARLIM(m1.loVect()),   ARLIM(m1.hiVect()),
-                  f2fab.dataPtr(), ARLIM(f2fab.loVect()),   ARLIM(f2fab.hiVect()),
-                  m2.dataPtr(), ARLIM(m2.loVect()),   ARLIM(m2.hiVect()),
-                  f3fab.dataPtr(), ARLIM(f3fab.loVect()),   ARLIM(f3fab.hiVect()),
-                  m3.dataPtr(), ARLIM(m3.loVect()),   ARLIM(m3.hiVect()),
-                  tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-                  &nc, h, &redblack);
+        amrex::Abort("MLPoisson::Fsmooth: 2d not supported yet");
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        FORT_GSRB(solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
-                  rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
-                  &m_a_scalar, &m_b_scalar,
-                  afab.dataPtr(), ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                  bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                  byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                  bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                  f0fab.dataPtr(), ARLIM(f0fab.loVect()), ARLIM(f0fab.hiVect()),
-                  m0.dataPtr(), ARLIM(m0.loVect()), ARLIM(m0.hiVect()),
-                  f1fab.dataPtr(), ARLIM(f1fab.loVect()), ARLIM(f1fab.hiVect()),
-                  m1.dataPtr(), ARLIM(m1.loVect()), ARLIM(m1.hiVect()),
-                  f2fab.dataPtr(), ARLIM(f2fab.loVect()), ARLIM(f2fab.hiVect()),
-                  m2.dataPtr(), ARLIM(m2.loVect()), ARLIM(m2.hiVect()),
-                  f3fab.dataPtr(), ARLIM(f3fab.loVect()), ARLIM(f3fab.hiVect()),
-                  m3.dataPtr(), ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
-                  f4fab.dataPtr(), ARLIM(f4fab.loVect()), ARLIM(f4fab.hiVect()),
-                  m4.dataPtr(), ARLIM(m4.loVect()), ARLIM(m4.hiVect()),
-                  f5fab.dataPtr(), ARLIM(f5fab.loVect()), ARLIM(f5fab.hiVect()),
-                  m5.dataPtr(), ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
-                  tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-                  &nc, h, &redblack);
+        amrex_mlpoisson_gsrb(BL_TO_FORTRAN_BOX(tbx),
+                             BL_TO_FORTRAN_ANYD(solnfab),
+                             BL_TO_FORTRAN_ANYD(rhsfab),
+                             BL_TO_FORTRAN_ANYD(f0fab),
+                             BL_TO_FORTRAN_ANYD(f1fab),
+                             BL_TO_FORTRAN_ANYD(f2fab),
+                             BL_TO_FORTRAN_ANYD(f3fab),
+                             BL_TO_FORTRAN_ANYD(f4fab),
+                             BL_TO_FORTRAN_ANYD(f5fab),
+                             BL_TO_FORTRAN_ANYD(m0),
+                             BL_TO_FORTRAN_ANYD(m1),
+                             BL_TO_FORTRAN_ANYD(m2),
+                             BL_TO_FORTRAN_ANYD(m3),
+                             BL_TO_FORTRAN_ANYD(m4),
+                             BL_TO_FORTRAN_ANYD(m5),
+                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);
 #endif
     }
-#endif
 }
 
 void
