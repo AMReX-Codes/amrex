@@ -557,7 +557,7 @@ AmrLevel::setPhysBoundaryValues (FArrayBox& dest,
     const int* bcrs_f  = bcrs;
 #endif
 
-    state[state_indx].FillBoundary(dest,time_f,geom.CellSize(),geom.CellSizeF(),xlo_f,bcrs_f,
+    state[state_indx].FillBoundary(dest,time_f,geom.CellSize(),xlo_f,bcrs_f,
                                    geom.ProbDomain(),dest_comp,src_comp,num_comp);
 
 #ifdef AMREX_USE_DEVICE
@@ -1572,7 +1572,7 @@ AmrLevel::derive (const std::string& name,
             int         n_state = rec->numState();
             const int*  dom_lo  = state[index].getDomain().loVectF();
             const int*  dom_hi  = state[index].getDomain().hiVectF();
-            const Real* dx      = geom.CellSizeF();
+            const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
 	    const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
             const Real* xlo     = rbx.loF();
@@ -1633,7 +1633,7 @@ AmrLevel::derive (const std::string& name,
             int         n_state = rec->numState();
             const int*  dom_lo  = state[index].getDomain().loVectF();
             const int*  dom_hi  = state[index].getDomain().hiVectF();
-            const Real* dx      = geom.CellSizeF();
+            const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
 	    const RealBox& rbx  = mfi.registerRealBox(RealBox((*mf)[mfi].box(),geom.CellSize(),geom.ProbLo()));
             const Real* xlo     = rbx.loF();
@@ -1754,7 +1754,7 @@ AmrLevel::derive (const std::string& name,
             int         n_state = rec->numState();
             const int*  dom_lo  = state[index].getDomain().loVectF();
             const int*  dom_hi  = state[index].getDomain().hiVectF();
-            const Real* dx      = geom.CellSizeF();
+            const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
             const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
             const Real* xlo     = rbx.loF();
@@ -1815,7 +1815,7 @@ AmrLevel::derive (const std::string& name,
             int         n_state = rec->numState();
             const int*  dom_lo  = state[index].getDomain().loVectF();
             const int*  dom_hi  = state[index].getDomain().hiVectF();
-            const Real* dx      = geom.CellSizeF();
+            const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
             const RealBox& rbx  = mfi.registerRealBox(RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo()));
             const Real* xlo     = rbx.loF();

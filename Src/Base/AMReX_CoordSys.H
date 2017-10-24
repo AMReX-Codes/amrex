@@ -74,12 +74,10 @@ public:
     static Real Offset (int dir) { return offset[dir]; }
 
     //! Returns the cellsize for each coordinate direction.
-    const Real* CellSize () const { return dx; }
-
-    const Real* CellSizeF () const {
+    const Real* CellSize () const {
 	BL_ASSERT(ok);
 #ifdef AMREX_USE_CUDA
-	return (Real*) Device::get_host_pointer(dx_d.get());
+	return (Real*) dx_d.get();
 #else
 	return dx;
 #endif

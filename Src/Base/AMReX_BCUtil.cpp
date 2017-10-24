@@ -21,7 +21,7 @@ namespace amrex
         }
         // Inside grown_domain_box, we have good data.
     
-        const Real* dx = geom.CellSizeF();
+        const Real* dx = geom.CellSize();
         const Real* prob_lo = Geometry::ProbLo();
 
 #ifdef AMREX_USE_CUDA
