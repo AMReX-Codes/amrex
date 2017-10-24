@@ -39,8 +39,6 @@ protected:
 
 private:
 
-    mutable Vector<Vector<Real> > m_Anorm;
-
     Vector<int> m_is_singular;
 };
 
