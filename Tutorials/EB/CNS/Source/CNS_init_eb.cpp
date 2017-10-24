@@ -16,6 +16,7 @@
 #include <AMReX_IntersectionIF.H>
 #include <AMReX_LatheIF.H>
 #include <AMReX_PolynomialIF.H>
+#include <AMReX_AnisotropicDxPlaneIF.H>
 
 #include <AMReX_ParmParse.H>
 
@@ -131,6 +132,11 @@ initialize_EBIS(const int max_level)
         ppg.getarr("prob_lo", prob_lo, 0, SpaceDim);
         ppg.getarr("prob_hi", prob_hi, 0, SpaceDim);
         Real fine_dx = (prob_hi[0]-prob_lo[0])/finest_domain.size()[0];
+        RealVect dxVec;
+        for(int idir = 0; idir < SpaceDim; idir++)
+        {
+          dxVec[idir] = (prob_hi[idir]-prob_lo[idir])/finest_domain.size()[idir];
+        }
         RealVect origin = RealVect::Zero;
   
 
@@ -197,6 +203,29 @@ initialize_EBIS(const int max_level)
             bool normalInside = true;
 
             impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
+          }
+          else if (geom_type == "anisotropic_ramp")
+          {
+            amrex::Print() << "anisotropic ramp geometry\n";
+            int upDir;
+            int indepVar;
+            Real startPt;
+            Real slope;
+            pp.get("up_dir",upDir);
+            pp.get("indep_var",indepVar);
+            pp.get("start_pt", startPt);
+            pp.get("ramp_slope", slope);
+
+            RealVect normal = RealVect::Zero;
+            normal[upDir] = 1.0;
+            normal[indepVar] = -slope;
+
+            RealVect point = RealVect::Zero;
+            point[upDir] = -slope*startPt;
+
+            bool normalInside = true;
+
+            impfunc.reset(static_cast<BaseIF*>(new AnisotropicDxPlaneIF(normal,point,normalInside,dxVec)));
           }
           else if (geom_type == "sphere")
           {
@@ -331,6 +360,37 @@ initialize_EBIS(const int max_level)
             impfunc.reset(implicit.newImplicitFunction());
 
           }
+          else if (geom_type == "interior_box")
+          {
+            amrex::Print() << "box within a box" << endl;
+            bool inside = true;  
+            
+            // A list of all the polygons as implicit functions
+            Vector<BaseIF*> planes;
+            // Process each polygon
+            for(int idir =0; idir < SpaceDim; idir++)
+            {
+              Real domlen = fine_dx*finest_domain.size()[idir];
+              RealVect pointLo = 1.5*fine_dx*BASISREALV(idir);
+              RealVect pointHi = (domlen - 1.5*fine_dx)*BASISREALV(idir);
+              RealVect normalLo = BASISREALV(idir);
+              RealVect normalHi = -BASISREALV(idir);
+              PlaneIF* planeLo = new PlaneIF(normalLo,pointLo,inside);
+              PlaneIF* planeHi = new PlaneIF(normalHi,pointHi,inside);
+
+              planes.push_back(planeLo);
+              planes.push_back(planeHi);
+            }
+            
+        
+
+            IntersectionIF* intersectif = new IntersectionIF(planes);
+            UnionIF* unionif = new UnionIF(planes);
+
+            impfunc.reset(intersectif);
+        
+          }
+      
           else if (geom_type == "polygon_revolution")
           {
             amrex::Print() << "creating geometry from polygon surfaces of revolution" << endl;
@@ -404,7 +464,7 @@ initialize_EBIS(const int max_level)
               }
               else
               {
-                  impfunc.reset(crossSection->newImplicitFunction());
+                impfunc.reset(crossSection->newImplicitFunction());
               }
             }
             else
