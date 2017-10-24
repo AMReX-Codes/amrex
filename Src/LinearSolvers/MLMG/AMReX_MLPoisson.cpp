@@ -190,62 +190,13 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 Real
 MLPoisson::Anorm (int amrlev, int mglev) const
 {
-#if 0
     BL_PROFILE("MLPoisson::Anorm()");
 
-    if (m_Anorm[amrlev][mglev] < 0.0)
-    {
-        const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
-        AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
-                     const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
-                     const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
-        const Real* dx = m_geom[amrlev][mglev].CellSize();
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-        const int nc = 1;
-        Real res = 0.0;
-
-#ifdef _OPENMP
-#pragma omp parallel reduction(max:res)
-#endif
-        {
-            for (MFIter mfi(acoef,true); mfi.isValid(); ++mfi)
-            {
-                Real tres;
-	    
-                const Box&       tbx  = mfi.tilebox();
-                const FArrayBox& afab = acoef[mfi];
-                AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
-                             const FArrayBox& byfab = bycoef[mfi];,
-                             const FArrayBox& bzfab = bzcoef[mfi];);
-
-#if (BL_SPACEDIM==2)
-                FORT_NORMA(&tres,
-                           &m_a_scalar, &m_b_scalar,
-                           afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                           bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                           byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                           tbx.loVect(), tbx.hiVect(), &nc, dx);
-#elif (BL_SPACEDIM==3)
-                
-                FORT_NORMA(&tres,
-                           &m_a_scalar, &m_b_scalar,
-                           afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
-                           bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
-                           byfab.dataPtr(), ARLIM(byfab.loVect()), ARLIM(byfab.hiVect()),
-                           bzfab.dataPtr(), ARLIM(bzfab.loVect()), ARLIM(bzfab.hiVect()),
-                           tbx.loVect(), tbx.hiVect(), &nc, dx);
-#endif
-                
-                res = std::max(res, tres);
-            }
-        }
-        
-        ParallelDescriptor::ReduceRealMax(res, acoef.color());
-        m_Anorm[amrlev][mglev] = res;
-    }
-#endif
-
-    return m_Anorm[amrlev][mglev];
+    return 4.0*(AMREX_D_DECL(dxinv[0]*dxinv[0],
+                            +dxinv[1]*dxinv[1],
+                            +dxinv[2]*dxinv[2]));
 }
 
 }
