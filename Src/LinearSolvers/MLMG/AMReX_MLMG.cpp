@@ -525,6 +525,7 @@ MLMG::bottomSolve ()
         bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
             linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous, skip_fillboundary);
+            skip_fillboundary = false;
         }
     }
     else
