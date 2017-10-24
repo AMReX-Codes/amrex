@@ -105,8 +105,6 @@ protected:
 
     mutable Vector<YAFluxRegister> m_fluxreg;
 
-    Vector<Vector<Real> > m_Anorm;
-
     //
     // functions
     //
