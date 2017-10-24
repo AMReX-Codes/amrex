@@ -188,9 +188,11 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                 for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
                     const NeighborTag& tag = tags[j];                
                     PairIndex dst_index(tag.grid, tag.tile);
-                    const int who = this->ParticleDistributionMap(lev)[tag.grid];
                     
                     if (tag.grid >= 0) {
+
+                        const int who = this->ParticleDistributionMap(lev)[tag.grid];
+
                         // cache neighbors 
                         tmp_id_cache[src_index][thread_num].push_back(i);
                         tmp_tag_cache[src_index][thread_num].push_back(tag);
@@ -685,7 +687,8 @@ buildNeighborList(int lev, bool sort) {
         cells.resize(N);
         tmp_particles.resize(N);
         std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
-        std::memcpy(&tmp_particles[Np], neighbors[index].dataPtr(), Nn*pdata_size); 
+        if (Nn > 0)
+           std::memcpy(&tmp_particles[Np], neighbors[index].dataPtr(), Nn*pdata_size); 
 
         // For each cell on this tile, we build linked lists storing the
         // indices of the particles belonging to it.
