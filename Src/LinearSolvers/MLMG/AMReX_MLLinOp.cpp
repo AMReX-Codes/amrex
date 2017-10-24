@@ -453,15 +453,20 @@ MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
 void
 MLLinOp::reflux (int crse_amrlev, MultiFab& res,
-                 const MultiFab& crse_sol, const MultiFab& fine_sol) const
+                 const MultiFab& crse_sol, MultiFab& fine_sol) const
 {
     BL_PROFILE("MLLinOp::reflux()");
     YAFluxRegister& fluxreg = m_fluxreg[crse_amrlev];
     fluxreg.reset();
 
+    const int fine_amrlev = crse_amrlev+1;
+
     Real dt = 1.0;
-    const Real* crse_dx = m_geom[crse_amrlev  ][0].CellSize();
-    const Real* fine_dx = m_geom[crse_amrlev+1][0].CellSize();
+    const Real* crse_dx = m_geom[crse_amrlev][0].CellSize();
+    const Real* fine_dx = m_geom[fine_amrlev][0].CellSize();
+
+    const int mglev = 0;
+    applyBC(fine_amrlev, mglev, fine_sol, BCMode::Inhomogeneous, m_bndry_sol[fine_amrlev].get());
 
 #ifdef _OPENMP
 #pragma omp parallel
