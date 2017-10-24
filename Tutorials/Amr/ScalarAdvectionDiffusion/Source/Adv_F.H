@@ -69,7 +69,9 @@ extern "C"
                                         BL_FORT_FAB_ARG_3D(fy),
                                         BL_FORT_FAB_ARG_3D(fz)),
                            const amrex_real* dx, const amrex_real& dt,
-                           const amrex_real& nu);
+                           const amrex_real& nu, 
+                           const int* deblocell, const int* debhicell,
+                           const int* debloface, const int* debhiface);
 
 
 

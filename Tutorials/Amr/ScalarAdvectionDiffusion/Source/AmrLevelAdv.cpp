@@ -635,6 +635,20 @@ namespace amrex
     const Real* dx = geom.CellSize();
     const Real* prob_lo = geom.ProbLo();
 
+    int reftocoarsest=1;
+    ParmParse pp;
+    pp.query("ref_to_coarsest", reftocoarsest);
+    Box domain = geom.Domain();
+
+    IntVect startpt;
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      startpt[idir] = domain.size()[idir]/4;
+    }
+    startpt.coarsen(reftocoarsest);
+    Box debboxcc(startpt, startpt);
+    debboxcc.refine(reftocoarsest);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -660,6 +674,10 @@ namespace amrex
           uface[i].resize(velBox, 1);
         }
 
+        int debdir = 1;
+        Box debugboxcell = debboxcc & bx;
+        Box debugboxface = bdryLo(debugboxcell, debdir, 1);
+
         //velocity is a time because this is MOL
         const Real ctr_time = time;
 
@@ -678,7 +696,10 @@ namespace amrex
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                          BL_TO_FORTRAN_3D(flux[1]), 
                                          BL_TO_FORTRAN_3D(flux[2])), 
-                            dx, dt, diffco);
+                            dx, dt, diffco, 
+                            debugboxcell.loVect(), debugboxcell.hiVect(),
+                            debugboxface.loVect(), debugboxface.hiVect()
+                          );
 
         if(do_reflux)
         {
