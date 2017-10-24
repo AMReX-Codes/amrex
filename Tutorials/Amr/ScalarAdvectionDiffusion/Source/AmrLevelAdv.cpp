@@ -655,7 +655,7 @@ namespace amrex
     {
       FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
 
-      for (MFIter mfi(Sborder, true); mfi.isValid(); ++mfi)
+      for (MFIter mfi(Sborder); mfi.isValid(); ++mfi)
       {
         const Box& bx = mfi.tilebox();
 
@@ -674,9 +674,9 @@ namespace amrex
           uface[i].resize(velBox, 1);
         }
 
-        int debdir = 1;
+        int debdir = 2;
         Box debugboxcell = debboxcc & bx;
-        Box debugboxface = bdryLo(debugboxcell, debdir, 1);
+        Box debugboxface = bdryHi(debugboxcell, debdir, 1);
 
         //velocity is a time because this is MOL
         const Real ctr_time = time;
