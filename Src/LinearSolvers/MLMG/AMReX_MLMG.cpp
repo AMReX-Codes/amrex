@@ -524,12 +524,6 @@ MLMG::bottomSolve ()
     }
     else
     {
-        // enforce solvability if appropriateq
-        if (linop.isSingular(amrlev)) {
-            Real offset = b.sum() / linop.Geom(amrlev,mglev).Domain().d_numPts();
-            b.plus(-offset, 0, 1);
-        }
-
         MLCGSolver::Solver solver_type;
         if (bottom_solver == BottomSolver::bicgstab)
         {
