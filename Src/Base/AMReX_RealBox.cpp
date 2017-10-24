@@ -161,30 +161,6 @@ RealBox::copy_xhi() const
 #endif
 }
 
-const Real*
-RealBox::loF() const& {
-#ifdef AMREX_USE_CUDA
-    if (xlo_d.get() == nullptr)
-        initialize_lo();
-
-    return (Real*) Device::get_host_pointer(xlo_d.get());
-#else
-    return xlo;
-#endif
-}
-
-const Real*
-RealBox::hiF() const& {
-#ifdef AMREX_USE_CUDA
-    if (xhi_d.get() == nullptr)
-        initialize_hi();
-
-    return (Real*) Device::get_host_pointer(xhi_d.get());
-#else
-    return xhi;
-#endif
-}
-
 bool
 RealBox::contains (const RealBox& rb, Real eps) const
 {

@@ -48,15 +48,30 @@ public:
     void copy_xhi() const;
 
     //! Returns lo side.
-    const Real* lo () const& { return xlo; }
+    const Real* lo () const& {
+#ifdef AMREX_USE_CUDA
+        if (xlo_d.get() == nullptr)
+            initialize_lo();
 
-    const Real* loF () const&;
+        return (Real*) xlo_d.get();
+#else
+        return xlo;
+#endif
+    }
 
     const Real* lo () && = delete;
-    //! Returns hide side.
-    const Real* hi () const& { return xhi; }
 
-    const Real* hiF () const&;
+    //! Returns hi side.
+    const Real* hi () const& {
+#ifdef AMREX_USE_CUDA
+        if (xhi_d.get() == nullptr)
+            initialize_hi();
+
+        return (Real*) xhi_d.get();
+#else
+        return xhi;
+#endif
+    }
 
     const Real* hi () && = delete;
     //! Returns length in specified direction.

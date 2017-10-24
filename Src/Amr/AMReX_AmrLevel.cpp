@@ -1575,7 +1575,7 @@ AmrLevel::derive (const std::string& name,
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
 	    const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
-            const Real* xlo     = rbx.loF();
+            const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
 #ifdef AMREX_USE_CUDA
@@ -1636,7 +1636,7 @@ AmrLevel::derive (const std::string& name,
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
 	    const RealBox& rbx  = mfi.registerRealBox(RealBox((*mf)[mfi].box(),geom.CellSize(),geom.ProbLo()));
-            const Real* xlo     = rbx.loF();
+            const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
 #ifdef AMREX_USE_CUDA
@@ -1757,7 +1757,7 @@ AmrLevel::derive (const std::string& name,
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
             const RealBox& rbx  = mfi.registerRealBox(RealBox(gtbx,geom.CellSize(),geom.ProbLo()));
-            const Real* xlo     = rbx.loF();
+            const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
 #ifdef AMREX_USE_CUDA
@@ -1818,7 +1818,7 @@ AmrLevel::derive (const std::string& name,
             const Real* dx      = geom.CellSize();
             const int*  bcr     = rec->getBC();
             const RealBox& rbx  = mfi.registerRealBox(RealBox(mf[mfi].box(),geom.CellSize(),geom.ProbLo()));
-            const Real* xlo     = rbx.loF();
+            const Real* xlo     = rbx.lo();
             Real        dt      = parent->dtLevel(level);
 
 #ifdef AMREX_USE_CUDA
