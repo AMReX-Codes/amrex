@@ -68,8 +68,6 @@ warpx.moving_window_v = 1.0 # in units of the speed of light
 warpx.do_plasma_injection = 1
 warpx.num_injected_species = 1
 warpx.injected_plasma_species = 0
-warpx.injected_plasma_density = 1.e25
-warpx.injected_plasma_ppc = 1
 
 # Laser
 warpx.use_laser    = 1
