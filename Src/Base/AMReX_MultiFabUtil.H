@@ -55,6 +55,9 @@ namespace amrex
 
     //! Convert iMultiFab to MultiFab
     MultiFab ToMultiFab (const iMultiFab& imf);
+
+    //! Extract a slice from the given cell-centered MultiFab at coordinate "coord" along direction "dir". 
+    std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int fstart, int ncomp);
 }
 
 
