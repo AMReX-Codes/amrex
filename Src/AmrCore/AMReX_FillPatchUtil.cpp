@@ -333,7 +333,7 @@ namespace amrex
                 cmf[idim].copy(crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
             }
 
-            const Real* dx = cgeom.CellSizeF();
+            const Real* dx = cgeom.CellSize();
 
             const int use_limiter = 0;
 

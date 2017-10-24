@@ -159,7 +159,6 @@ public:
     void FillBoundary (FArrayBox&     dest,
                        const Real*    time_f,
                        const Real*    dx,
-		       const Real*    dx_f,
                        const Real*    xlo_f,
                        const int*     bcrs_f,
                        const RealBox& prob_domain,
