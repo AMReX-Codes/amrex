@@ -16,6 +16,7 @@
 #include <AMReX_IntersectionIF.H>
 #include <AMReX_LatheIF.H>
 #include <AMReX_PolynomialIF.H>
+#include <AMReX_AnisotropicDxPlaneIF.H>
 
 #include <AMReX_ParmParse.H>
 
@@ -131,6 +132,11 @@ initialize_EBIS(const int max_level)
         ppg.getarr("prob_lo", prob_lo, 0, SpaceDim);
         ppg.getarr("prob_hi", prob_hi, 0, SpaceDim);
         Real fine_dx = (prob_hi[0]-prob_lo[0])/finest_domain.size()[0];
+        RealVect dxVec;
+        for(int idir = 0; idir < SpaceDim; idir++)
+        {
+          dxVec[idir] = (prob_hi[idir]-prob_lo[idir])/finest_domain.size()[idir];
+        }
         RealVect origin = RealVect::Zero;
   
 
@@ -197,6 +203,29 @@ initialize_EBIS(const int max_level)
             bool normalInside = true;
 
             impfunc.reset(static_cast<BaseIF*>(new PlaneIF(normal,point,normalInside)));
+          }
+          else if (geom_type == "anisotropic_ramp")
+          {
+            amrex::Print() << "anisotropic ramp geometry\n";
+            int upDir;
+            int indepVar;
+            Real startPt;
+            Real slope;
+            pp.get("up_dir",upDir);
+            pp.get("indep_var",indepVar);
+            pp.get("start_pt", startPt);
+            pp.get("ramp_slope", slope);
+
+            RealVect normal = RealVect::Zero;
+            normal[upDir] = 1.0;
+            normal[indepVar] = -slope;
+
+            RealVect point = RealVect::Zero;
+            point[upDir] = -slope*startPt;
+
+            bool normalInside = true;
+
+            impfunc.reset(static_cast<BaseIF*>(new AnisotropicDxPlaneIF(normal,point,normalInside,dxVec)));
           }
           else if (geom_type == "sphere")
           {
