@@ -253,3 +253,17 @@ Diagnostics and output
 * ``amr.plot_int`` (`integer`)
     The number of PIC cycles inbetween two consecutive data dumps. Use a
     negative number to disable data dumping.
+
+* ``warpx.do_boosted_frame_diagnostic`` (`0 or 1`)
+    Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
+    perform on-the-fly conversion to the laboratory frame, when running
+    boosted-frame simulations)
+
+* ``warpx.num_snapshots_lab`` (`integer`)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    The number of lab-frame snapshots that will be written.
+
+* ``warpx.dt_snapshots_lab`` (`float`, in seconds)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    The time interval inbetween the lab-frame snapshots (where this
+    time interval is expressed in the laboratory frame).
