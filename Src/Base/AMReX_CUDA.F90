@@ -383,7 +383,7 @@ contains
 
   subroutine gpu_hostalloc(x, sz) bind(c, name='gpu_hostalloc')
 
-    use cudafor, only: cudaHostAlloc, cudaHostAllocMapped, cudaHostAllocWriteCombined
+    use cudafor, only: cudaHostAlloc, cudaHostAllocMapped
     use iso_c_binding, only: c_size_t, c_ptr
 
     implicit none
@@ -393,7 +393,7 @@ contains
 
     integer :: cudaResult
 
-    cudaResult = cudaHostAlloc(x, sz, ior(cudaHostAllocMapped, cudaHostAllocWriteCombined))
+    cudaResult = cudaHostAlloc(x, sz, cudaHostAllocMapped)
     call gpu_error_test(cudaResult)
 
   end subroutine gpu_hostalloc
