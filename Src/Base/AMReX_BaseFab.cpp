@@ -264,6 +264,18 @@ BaseFab<Real>::invert (Real       val,
     return *this;
 }
 
+template <>
+Real
+BaseFab<Real>::norminfmask (const Box& bx, const BaseFab<int>& mask, int comp, int ncomp) const
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+    
+    return fort_fab_norminfmask(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                                BL_TO_FORTRAN_ANYD(mask),
+                                BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
+}
+
 template<>
 Real
 BaseFab<Real>::norm (const Box& bx,

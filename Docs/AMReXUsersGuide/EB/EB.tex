@@ -2,8 +2,8 @@
 \newcommand{\ibold}{{\bf i}}
 \newcommand{\jbold}{{\bf j}}
 \newcommand{\kbold}{{\bf k}}
-\newcommand{\nbold}{{\bf k}}
-\newcommand{\cbold}{{\bf k}}
+\newcommand{\nbold}{{\bf n}}
+\newcommand{\cbold}{{\bf c}}
 \newcommand{\ebis}{{\tt EBIndexSpace}}
 \newcommand{\baseif}{{\tt BaseIF}}
 \newcommand{\sphereif}{{\tt SphereIF}}
@@ -226,7 +226,7 @@ The following example illustrates how to use the \sphereif\ class to define a \g
   Real dx = 1.0/nx;
   Real radius = 0.1;
   RealVect center = 0.5*RealVect::Unit;
-  bool insideRegular = false;
+  bool insideRegular = true;
   //this is the implicit function
   SphereIF sphere(radius, center, insideRegular);
 
@@ -234,7 +234,7 @@ The following example illustrates how to use the \sphereif\ class to define a \g
   GeometryShop workshop(sphere)
 
   //this is the global, distributed database being initialized
-  EBIndexSpace*  ebis = AMReX_EBIS::instance()
+  EBIndexSpace*  ebis = AMReX_EBIS::instance();
   ebis->define(domain, RealVect::Zero, dx, workshop);
 
 \end{lstlisting}
@@ -260,7 +260,7 @@ RealVect center;
 PlaneIF plane(normal,point, true);
 GeometryShop workshop(plane)
 
-EBIndexSpace*  ebis = AMReX_EBIS::instance()
+EBIndexSpace*  ebis = AMReX_EBIS::instance();
 ebis->define(domain, RealVect::Zero, dx, workshop);
 
 \end{lstlisting}
@@ -316,7 +316,7 @@ poly.push_back(mono);
 
 PolynomialIF mirror(poly,false);
 GeometryShop workshop(mirror)
-EBIndexSpace*  ebis = AMReX_EBIS::instance()
+EBIndexSpace*  ebis = AMReX_EBIS::instance();
 ebis->define(domain, RealVect::Zero, dx, workshop);
 \end{lstlisting}
 
@@ -452,7 +452,7 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
 
   //create a workshop from translated surface of revolution
   GeometryShop gshop(implicit, false);
-  //define th geometric database
+  //define the geometric database
   AMReX_EBIS::instance()->define(finest_domain, RealVect::Zero,
                                  fine_dx, gshop, max_grid_size);
 }
@@ -528,7 +528,7 @@ funcs[1] = &sphere;
 UnionIF implicit(funcs);
 impfunc.reset(implicit.newImplicitFunction());
 GeometryShop gshop(impfunc, false);
-//define th geometric database
+//define the geometric database
 AMReX_EBIS::instance()->define(finest_domain, RealVect::Zero,
                                  fine_dx, gshop, max_grid_size);
 \end{lstlisting}

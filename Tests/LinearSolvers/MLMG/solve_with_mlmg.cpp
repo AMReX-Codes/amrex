@@ -11,6 +11,7 @@ using namespace amrex;
 
 namespace {
     static int max_iter = 100;
+    static int max_fmg_iter = 20;
     static int verbose  = 2;
     static int cg_verbose = 0;
     static int linop_maxorder = 2;
@@ -21,9 +22,12 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
                       Vector<MultiFab>& rhs)
 {
+    BL_PROFILE("solve_with_mlmg");
+
     {
         ParmParse pp;
         pp.query("max_iter", max_iter);
+        pp.query("max_fmg_iter", max_fmg_iter);
         pp.query("verbose", verbose);
         pp.query("cg_verbose", cg_verbose);
         pp.query("linop_maxorder", linop_maxorder);
@@ -49,7 +53,15 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     }
 
     MLABecLaplacian mlabec(geom, grids, dmap);
+
     mlabec.setMaxOrder(linop_maxorder);
+
+    // BC
+    mlabec.setDomainBC({prob::bc_type,prob::bc_type,prob::bc_type},
+                       {prob::bc_type,prob::bc_type,prob::bc_type});
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        mlabec.setLevelBC(ilev, psoln[ilev]);
+    }
 
     mlabec.setScalars(prob::a, prob::b);
     for (int ilev = 0; ilev < nlevels; ++ilev)
@@ -67,18 +79,14 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
                                                         &bcoefs[2])},
                                           beta[ilev], geom[ilev]);
         mlabec.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoefs));
-
-        if (ilev == 0) {
-            mlabec.setDirichletBC(0, *psoln[0]);
-        } else {
-            mlabec.setDirichletBC(ilev, *psoln[ilev], psoln[ilev-1]);            
-        }
     }
     
     MLMG mlmg(mlabec);
     mlmg.setMaxIter(max_iter);
+    mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
     mlmg.setCGVerbose(cg_verbose);
+
     mlmg.solve(psoln, prhs, tol_rel, tol_abs);
 }
 
