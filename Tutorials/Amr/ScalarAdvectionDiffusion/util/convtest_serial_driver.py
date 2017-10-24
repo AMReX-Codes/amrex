@@ -100,12 +100,11 @@ def main(argv):
     else:
         pltfilefine = "plt0000" + str(finesteps)
     
-
     print "coar plot file = " + pltfilecoar + ", medi plot file = " + pltfilemedi+ ", fine plot file = " + pltfilefine
 
-    commandcoar = execname + " "  + inputname + " amr.plot_int=100000  " + ncellcoarstr + " " + maxgridcoarstr + " " + maxstepcoarstr + " " + truncstr + " | tee screen.out.coar"
-    commandmedi = execname + " "  + inputname + " amr.plot_int=100000  " + ncellmedistr + " " + maxgridmedistr + " " + maxstepmedistr + " " + truncstr + " | tee screen.out.medi"
-    commandfine = execname + " "  + inputname + " amr.plot_int=100000  " + ncellfinestr + " " + maxgridfinestr + " " + maxstepfinestr + " " + truncstr + " | tee screen.out.fine"
+    commandcoar = execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=1 " + ncellcoarstr + " " + maxgridcoarstr + " " + maxstepcoarstr + " " + truncstr + " | tee screen.out.coar"
+    commandmedi = execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=2 " + ncellmedistr + " " + maxgridmedistr + " " + maxstepmedistr + " " + truncstr + " | tee screen.out.medi"
+    commandfine = execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=4 " + ncellfinestr + " " + maxgridfinestr + " " + maxstepfinestr + " " + truncstr + " | tee screen.out.fine"
 
     cleanupcoar = "mv " + pltfilecoar + " _plt.coar"
     cleanupmedi = "mv " + pltfilemedi + " _plt.medi"

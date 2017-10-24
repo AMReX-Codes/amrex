@@ -84,14 +84,14 @@ subroutine advectDiffGodunov(time, lo, hi, &
      enddo
   enddo
 
-  ! Scale by face area in order to correctly reflux because flux register is pretty stupid
+  ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)
      do i = lo(1), hi(1)+1
         flxx(i,j) = flxx(i,j) * ( dt * dx(2))
      enddo
   enddo
   
-  ! Scale by face area in order to correctly reflux because flux register is pretty stupid
+  ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)+1 
      do i = lo(1), hi(1)
         flxy(i,j) = flxy(i,j) * (dt * dx(1))
@@ -192,14 +192,14 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
      enddo
   enddo
 
-  ! Scale by face area in order to correctly reflux because flux register is pretty stupid
+  ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)
      do i = lo(1), hi(1)+1
         flxx(i,j) = flxx(i,j) * ( dt * dx(2))
      enddo
   enddo
   
-  ! Scale by face area in order to correctly reflux because flux register is pretty stupid
+  ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)+1 
      do i = lo(1), hi(1)
         flxy(i,j) = flxy(i,j) * (dt * dx(1))
@@ -221,7 +221,10 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      &            vy  , vy_lo, vy_hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
-     &            dx,dt, nu) bind(C, name="advectDiffMOL4thOrd")
+     &            dx,dt, nu,          &
+     &            deblocell, debhicell, &
+     &            debloface, debhiface &
+     ) bind(C, name="advectDiffMOL4thOrd")
   
   use mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : mol4thord_flux_2d
@@ -229,6 +232,7 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
   implicit none
 
   integer, intent(in) :: lo(2), hi(2)
+  integer, intent(in) :: deblocell(2), debhicell(2), debloface(2), debhiface(2)
   double precision, intent(in) :: dx(2), dt, time, nu
   integer, intent(in) :: ui_lo(2), ui_hi(2)
   integer, intent(in) :: uo_lo(2), uo_hi(2)
@@ -287,7 +291,8 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
                          flxy, fy_lo, fy_hi, &
                          fluxptx, phiptx, phiavex,&
                          fluxpty, phipty, phiavey,&
-                         phiptcc, glo, ghi,nu)
+                         phiptcc, glo, ghi,nu,&
+                         deblocell, debhicell, debloface, debhiface)
 
   ! Do a conservative update
   do    j = lo(2),hi(2)
@@ -304,14 +309,14 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      enddo
   enddo
 
-  ! Scale by face area in order to correctly reflux because flux register is pretty stupid
+  ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)
      do i = lo(1), hi(1)+1
         flxx(i,j) = flxx(i,j) * ( dt * dx(2))
      enddo
   enddo
   
-  ! Scale by face area in order to correctly reflux because flux register is pretty stupid
+  ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)+1 
      do i = lo(1), hi(1)
         flxy(i,j) = flxy(i,j) * (dt * dx(1))

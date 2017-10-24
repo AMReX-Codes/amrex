@@ -215,10 +215,13 @@ contains
                                flxy, fy_lo, fy_hi, &
                                fluxptx, phiptx, phiavex, &
                                fluxpty, phipty, phiavey, &
-                               phiptcc, glo, ghi, nu)
+                               phiptcc, glo, ghi, nu, &
+                               deblocell, debhicell, &
+                               debloface, debhiface)
 
 
     integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
+    integer, intent(in) :: deblocell(2), debhicell(2), debloface(2), debhiface(2)
     double precision, intent(in) :: dt, dx(2), nu
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
@@ -233,8 +236,8 @@ contains
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey, phiptcc
          
-    double precision :: diffflux, phicctemp, debtemp
-    integer :: i, j
+    double precision :: diffflux, phicctemp, debtemp, phitot
+    integer :: i, j, numphi
 
     !STEP 0 
     ! 2.1 get cell-centered phi so we can compute a pointwise, fourth order gradient at faces
@@ -264,6 +267,7 @@ contains
        end do
     end do
 
+    
     !same for y faces
     do    j = lo(2)  , hi(2)+1
        do i = lo(1)-2, hi(1)+2
@@ -294,6 +298,7 @@ contains
                +(phiptcc(i  ,j) + phiptcc(i-2,j) - 2.0d0*phiptcc(i-1,j)))
 
           fluxptx(i,j) = umac(i,j)*phiptx(i,j) + diffflux
+!          fluxptx(i,j) =  diffflux
 
        end do
     end do
@@ -314,6 +319,7 @@ contains
                +(phiptcc(i,j  ) + phiptcc(i,j-2) - 2.0d0*phiptcc(i,j-1)))
 
           fluxpty(i,j) = vmac(i,j)*phipty(i,j) + diffflux
+!          fluxpty(i,j) =  diffflux
 
        end do
     end do
@@ -338,6 +344,20 @@ contains
 
        end do
     end do
+
+    numphi = 0
+    phitot = 0.0d0
+    do    j = debloface(2), debhiface(2)
+       do i = debloface(1), debhiface(1)
+          numphi = numphi + 1
+          phitot = phitot +flxy(i,j)
+!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+       enddo
+    enddo
+    if(numphi .gt. 0) then
+       print*, "**************** final yflux = ", phitot/numphi
+    endif
+       
  
  end subroutine mol4thord_flux_2d
 
