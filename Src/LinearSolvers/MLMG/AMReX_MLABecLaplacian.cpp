@@ -139,6 +139,30 @@ MLABecLaplacian::prepareForSolve ()
     {
         m_Anorm[alev].assign(m_num_mg_levels[alev], -1.0);
     }
+
+    m_is_singular.clear();
+    m_is_singular.resize(m_num_amr_levels, false);
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    {  // No Dirichlet
+        for (int alev = 0; alev < m_num_amr_levels; ++alev)
+        {
+            if (m_domain_covered[alev])
+            {
+                if (m_a_scalar == 0.0)
+                {
+                    m_is_singular[alev] = true;
+                }
+                else
+                {
+                    Real asum = m_a_coeffs[alev][0].sum();
+                    Real amax = m_a_coeffs[alev][0].norm0();
+                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                }
+            }
+        }
+    }
 }
 
 void

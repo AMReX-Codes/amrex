@@ -233,18 +233,6 @@ MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
 {
     m_lobc = a_lobc;
     m_hibc = a_hibc;
-
-#if 0
-    if (Geom(0,0).isAllPeriodic())
-    {
-        m_singular = m_domain_covered;
-    }
-    else
-#endif
-    {
-        m_singular.clear();
-        m_singular.resize(m_num_amr_levels, false);
-    }
 }
 
 void
