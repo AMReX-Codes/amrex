@@ -218,10 +218,9 @@ public:
     // of the dimensions up to date. These have no effect
     // if CUDA is not defined.
     //
-    void initialize_device_memory();
-    void copy_device_memory();
-    void copy_lo();
-    void copy_hi();
+    void initialize_device_memory() const;
+    void copy_lo() const;
+    void copy_hi() const;
 #endif
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
@@ -263,6 +262,7 @@ public:
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
     const int* loVect () const& { 
 #ifdef AMREX_USE_CUDA
+        copy_lo();
         return lo_d.get();
 #else
         return smallend.getVect();
@@ -274,6 +274,7 @@ public:
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
     const int* hiVect () const& { 
 #ifdef AMREX_USE_CUDA
+        copy_hi();
         return hi_d.get();
 #else
         return bigend.getVect();
@@ -385,40 +386,16 @@ public:
     long index (const IntVect& v) const;
 
     //! Redefine the small end of the Box.
-    Box& setSmall (const IntVect& sm) {
-	smallend = sm;
-#ifdef AMREX_USE_DEVICE
-	copy_lo();
-#endif
-	return *this;
-    }
+    Box& setSmall (const IntVect& sm) { smallend = sm; return *this; }
 
     //! Redefine the small end of the Box.
-    Box& setSmall (int dir, int sm_index)  {
-	smallend.setVal(dir,sm_index);
-#ifdef AMREX_USE_DEVICE
-	copy_lo();
-#endif
-	return *this;
-    }
+    Box& setSmall (int dir, int sm_index)  { smallend.setVal(dir,sm_index); return *this; }
 
     //! Redefine the big end of the Box.
-    Box& setBig (const IntVect& bg) {
-	bigend = bg;
-#ifdef AMREX_USE_DEVICE
-	copy_hi();
-#endif
-	return *this;
-    }
+    Box& setBig (const IntVect& bg) { bigend = bg; return *this; }
 
     //! Redefine the big end of the Box.
-    Box& setBig (int dir, int bg_index) {
-	bigend.setVal(dir,bg_index);
-#ifdef AMREX_USE_DEVICE
-	copy_hi();
-#endif
-	return *this;
-    }
+    Box& setBig (int dir, int bg_index) { bigend.setVal(dir,bg_index); return *this; }
 
     /**
     * \brief Set the entire range in a given direction, starting at
@@ -438,9 +415,6 @@ public:
         initialize_device_memory();
 #endif
         smallend.shift(dir,nzones); bigend.shift(dir,nzones);
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -450,9 +424,6 @@ public:
         initialize_device_memory();
 #endif
         smallend.shift(iv); bigend.shift(iv);
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -564,9 +535,6 @@ public:
         initialize_device_memory();
 #endif
         smallend += v; bigend += v;
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -585,9 +553,6 @@ public:
         initialize_device_memory();
 #endif
         smallend -= v; bigend -= v;
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -625,9 +590,6 @@ public:
         initialize_device_memory();
 #endif
         smallend.diagShift(-i); bigend.diagShift(i);
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -637,9 +599,6 @@ public:
         initialize_device_memory();
 #endif
         smallend -= v; bigend += v;
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -652,9 +611,6 @@ public:
         initialize_device_memory();
 #endif
         smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell);
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -667,9 +623,6 @@ public:
         initialize_device_memory();
 #endif
         smallend.shift(idir, -n_cell);
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -683,9 +636,6 @@ public:
         initialize_device_memory();
 #endif
         bigend.shift(idir,n_cell);
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
         return *this;
     }
 
@@ -774,8 +724,8 @@ private:
     IndexType       btype;
 
 #ifdef AMREX_USE_CUDA
-    std::shared_ptr<int> lo_d;
-    std::shared_ptr<int> hi_d;
+    mutable std::shared_ptr<int> lo_d;
+    mutable std::shared_ptr<int> hi_d;
 #endif
 };
 

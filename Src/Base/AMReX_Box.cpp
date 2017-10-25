@@ -120,7 +120,7 @@ Box::Box (const IntVect& small,
 
 #ifdef AMREX_USE_DEVICE
 void
-Box::initialize_device_memory()
+Box::initialize_device_memory() const
 {
 #ifdef AMREX_USE_CUDA
     const size_t sz = 3 * sizeof(int);
@@ -129,44 +129,33 @@ Box::initialize_device_memory()
     lo_d.reset(lo_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
     copy_lo();
 
+    for (int i = BL_SPACEDIM; i < 3; ++i)
+	lo_d.get()[i] = 0;
+
     int* hi_temp = static_cast<int*>(amrex::The_Box_Arena()->alloc(sz));
     hi_d.reset(hi_temp, [](int* ptr) { amrex::The_Box_Arena()->free(ptr); });
     copy_hi();
-#endif
-}
 
-void
-Box::copy_device_memory()
-{
-  copy_lo();
-  copy_hi();
-}
-
-void
-Box::copy_lo()
-{
-#ifdef AMREX_USE_CUDA
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	lo_d.get()[i] = smallend[i];
-    }
-    for (int i = BL_SPACEDIM; i < 3; ++i) {
-	lo_d.get()[i] = 0;
-    }
-#endif
-}
-
-void
-Box::copy_hi()
-{
-#ifdef AMREX_USE_CUDA
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	hi_d.get()[i] = bigend[i];
-    }
-    for (int i = BL_SPACEDIM; i < 3; ++i) {
+    for (int i = BL_SPACEDIM; i < 3; ++i)
 	hi_d.get()[i] = 0;
-    }
 #endif
 }
+
+#ifdef AMREX_USE_CUDA
+void
+Box::copy_lo() const
+{
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+	lo_d.get()[i] = smallend[i];
+}
+
+void
+Box::copy_hi() const
+{
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+	hi_d.get()[i] = bigend[i];
+}
+#endif
 #endif
 
 Box&
@@ -178,9 +167,6 @@ Box::convert (const IntVect& typ)
 #endif
     IntVect shft(typ - btype.ixType());
     bigend += shft;
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     btype = IndexType(typ);
     return *this;
 }
@@ -199,9 +185,6 @@ Box::convert (IndexType t)
       bigend.shift(dir,off);
       btype.setType(dir, (IndexType::CellIndex) typ);
    }
-#ifdef AMREX_USE_DEVICE
-   copy_device_memory();
-#endif
    return *this;
 }
 
@@ -253,9 +236,6 @@ Box::surroundingNodes (int dir)
         //
         btype.set(dir);
     }
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return *this;
 }
 
@@ -280,9 +260,6 @@ Box::surroundingNodes ()
         if ((btype[i] == 0))
             bigend.shift(i,1);
     btype.setall();
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return *this;
 }
 
@@ -312,9 +289,6 @@ Box::enclosedCells (int dir)
         //
         btype.unset(dir);
     }
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return *this;
 }
 
@@ -339,9 +313,6 @@ Box::enclosedCells ()
         if (btype[i])
             bigend.shift(i,-1);
     btype.clear();
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return *this;
 }
 
@@ -415,9 +386,6 @@ Box::grow (Orientation face,
     } else {
         bigend.shift(idir,n_cell);
     }
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return *this;
 }
 
@@ -466,9 +434,6 @@ Box::shiftHalf (int dir,
         nshift += (bit_dir ? 0 : nbit);
     smallend.shift(dir,nshift);
     bigend.shift(dir,nshift);
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return *this;
 }
 
@@ -546,9 +511,6 @@ Box::refine (const IntVect& ref_ratio)
         bigend += shft;
         bigend *= ref_ratio;
         bigend -= shft;
-#ifdef AMREX_USE_DEVICE
-        copy_device_memory();
-#endif
     }
     return *this;
 }
@@ -656,9 +618,6 @@ Box::chop (int dir,
         //
         bigend.setVal(dir,chop_pnt-1);
     }
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return Box(sm,bg,btype);
 }
 
@@ -717,10 +676,6 @@ Box::coarsen (const IntVect& ref_ratio)
     {
         bigend.coarsen(ref_ratio);
     }
-
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
 
     return *this;
 }
@@ -820,9 +775,6 @@ Box::minBox (const Box &b)
 #endif
     smallend.min(b.smallend);
     bigend.max(b.bigend);
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return *this;
 }
 
@@ -987,9 +939,6 @@ Box::setRange (int dir,
 #endif
     smallend.setVal(dir,sm_index);
     bigend.setVal(dir,sm_index+n_cells-1);
-#ifdef AMREX_USE_DEVICE
-    copy_device_memory();
-#endif
     return *this;
 }
 
