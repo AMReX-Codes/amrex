@@ -364,7 +364,7 @@ namespace amrex
     // this sets U1 = U^n + dt*dPhiDt^n
     MultiFab::Saxpy(u1, dt, dPhiDt, 0, 0, NUM_STATE, 0);
     MultiFab::LinComb(u1, 1.0, S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    u1.FillBoundary();
+    u1.FillBoundary(geom.periodicity());
 
     compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
@@ -374,7 +374,7 @@ namespace amrex
     //this makes u2 = 3/4 u^n + 1/4 u^1 + 1/4*dt*dPhiDt^1
     MultiFab::Saxpy(u2, 0.25*dt, dPhiDt, 0, 0, NUM_STATE, 0);
 
-    u2.FillBoundary();
+    u2.FillBoundary(geom.periodicity());
     //the 2*dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u2, dPhiDt, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
 
