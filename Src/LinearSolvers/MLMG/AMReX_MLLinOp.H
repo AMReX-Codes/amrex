@@ -133,13 +133,14 @@ protected:
                  BCMode bc_mode = BCMode::Homogeneous, bool skip_fillboundary=false) const;
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const;
+    void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const;
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
-                        std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
     virtual Real Anorm (int amrlev, int mglev) const = 0;
 
