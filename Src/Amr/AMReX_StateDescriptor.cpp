@@ -223,9 +223,6 @@ StateDescriptor::StateDescriptor ()
     id(-1),
     ncomp(0),
     ngrow(0),
-#ifdef AMREX_USE_DEVICE
-    device_copy(false),
-#endif
     mapper(0),
     m_extrap(false),
     m_store_in_checkpoint(true)
@@ -245,9 +242,6 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     id(ident),
     ncomp(num_comp),
     ngrow(nextra),
-#ifdef AMREX_USE_DEVICE
-    device_copy(false),
-#endif
     mapper(a_interp),
     m_extrap(a_extrap),
     m_store_in_checkpoint(a_store_in_checkpoint)

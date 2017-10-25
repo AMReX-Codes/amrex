@@ -113,11 +113,6 @@ namespace amrex {
 struct MFInfo {
     bool    alloc = true;
     MFInfo& SetAlloc(bool a) { alloc = a; return *this; }
-
-#ifdef AMREX_USE_DEVICE
-    bool    device = false;
-    MFInfo& SetDevice(bool d) { device = d; return *this; }
-#endif
 };
 
     template <class T>
@@ -505,11 +500,6 @@ protected:
     // ---- set of ids of fabarrays created without allocating memory
     static std::set<int> noallocFAPIds;
 
-#ifdef AMREX_USE_DEVICE
-    // for device memory
-    bool device;
-#endif
-
     // for shared memory
     struct ShMem {
 	ShMem () : alloc(false), n_values(0), n_points(0)
@@ -823,13 +813,6 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
-#ifdef AMREX_USE_DEVICE
-    if (Device::inDeviceLaunchRegion()) {
-	int idx = mfi.tileIndex();
-	if (mfi.registerFab(fab, idx))
-	    fab.toDevice(idx);
-    }
-#endif
     return fab;
 }
 
@@ -840,13 +823,6 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     FAB& fab = *m_fabs_v[mfi.LocalIndex()];
-#ifdef AMREX_USE_DEVICE
-    if (Device::inDeviceLaunchRegion()) {
-	int idx = mfi.tileIndex();
-	if (mfi.registerFab(fab, idx))
-	    fab.toDevice(idx);
-    }
-#endif
     return fab;
 }
 
@@ -908,9 +884,6 @@ FabArray<FAB>::setVal (value_type   val,
 template <class FAB>
 FabArray<FAB>::FabArray ()
     : shmem()
-#ifdef AMREX_USE_DEVICE
-      , device(false)
-#endif
 {
     m_FA_stats.recordBuild();
 }
@@ -923,9 +896,6 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 			 const MFInfo&              info,
                          const FabFactory<FAB>&     factory)
     : m_factory(factory.clone()),
-#ifdef AMREX_USE_DEVICE
-      device(false), 
-#endif
       shmem()
 {
     m_FA_stats.recordBuild();
@@ -935,19 +905,11 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 template <class FAB>
 FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp)
     : m_factory(rhs.Factory().clone()), 
-#ifdef AMREX_USE_DEVICE
-      device(false),
-#endif
       shmem()
 {
     m_FA_stats.recordBuild();
-    MFInfo info;
-    info.SetAlloc(false);
-#ifdef AMREX_USE_DEVICE
-    info.SetDevice(false);
-#endif
     define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrow(),
-           info, *m_factory);
+           MFInfo().SetAlloc(false), *m_factory);
 
     if (maketype == amrex::make_alias)
     {
@@ -969,18 +931,10 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
                          int                        ngrow,
                          const Vector<value_type*>&  pval)
     : m_factory(new DefaultFabFactory<FAB>()),
-#ifdef AMREX_USE_DEVICE
-      device(false),
-#endif
       shmem()
 {
     m_FA_stats.recordBuild();
-    MFInfo info;
-    info.SetAlloc(false);
-#ifdef AMREX_USE_DEVICE
-    info.SetDevice(false);
-#endif
-    define(bxs,dm,nvar,ngrow,info, *m_factory);
+    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false), *m_factory);
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
         setFab(mfi, new FAB(mfi.fabbox(),nvar,pval[mfi.LocalIndex()]));
@@ -994,9 +948,6 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     , m_factory    (std::move(rhs.m_factory))
     , m_fabs_v     (std::move(rhs.m_fabs_v))
     , shmem        (std::move(rhs.shmem))
-#ifdef AMREX_USE_DEVICE
-    , device       (false)
-#endif
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     m_FA_stats.recordBuild();
@@ -1127,9 +1078,6 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, const MFInfo& info)
 
     FabInfo fab_info;
     fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
-#ifdef AMREX_USE_DEVICE
-    fab_info.SetDevice(info.device);
-#endif
 
     m_factory.reset(factory.clone());    
 
