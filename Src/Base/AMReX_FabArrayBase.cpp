@@ -23,6 +23,7 @@ namespace amrex {
 //
 bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
+int     FabArrayBase::use_cuda_aware_mpi;
 
 #ifdef AMREX_USE_CUDA
 
@@ -98,11 +99,10 @@ FA_init::FA_init ()
         // staging data because that will have
         // better MPI performance than managed memory.
 
-#ifdef AMREX_USE_CUDA_AWARE_MPI
-        the_FA_arena->SetDeviceMemory();
-#else
-        the_FA_arena->SetHostAlloc();
-#endif
+        if (FabArrayBase::use_cuda_aware_mpi)
+            the_FA_arena->SetDeviceMemory();
+        else
+            the_FA_arena->SetHostAlloc();
 #endif
 
     }
@@ -205,6 +205,11 @@ FabArrayBase::Initialize ()
 		     ([] () -> MemProfiler::MemInfo {
 			 return {m_CFinfo_stats.bytes, m_CFinfo_stats.bytes_hwm};
 		     }));
+#endif
+
+#ifdef AMREX_USE_CUDA
+    FabArrayBase::use_cuda_aware_mpi = 1;
+    pp.query("use_cuda_aware_mpi", FabArrayBase::use_cuda_aware_mpi);
 #endif
 }
 
