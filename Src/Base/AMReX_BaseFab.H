@@ -255,6 +255,7 @@ public:
     //! Same as above except works on const FABs.
     const T* dataPtr (int n = 0) const { BL_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
+    
     void setPtr (T* p, long sz) { BL_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
     //! Returns true if the data for the FAB has been allocated.
@@ -390,7 +391,6 @@ public:
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
-
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
@@ -909,7 +909,6 @@ protected:
     T*      dptr;     // The data pointer.
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
-
 };
 
 template <class T>
@@ -1321,7 +1320,7 @@ BaseFab<T>::clear ()
 		ptr->~T();
 	    }
 	    amrex::The_Arena()->free(dptr);
-
+	    
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
 	    } else {

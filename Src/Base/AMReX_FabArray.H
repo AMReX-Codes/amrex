@@ -27,9 +27,6 @@
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxDomain.H>
-#ifdef AMREX_USE_DEVICE
-#include <AMReX_Device.H>
-#endif
 #include <AMReX_FabFactory.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>
@@ -555,7 +552,7 @@ protected:
 private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
 
-    void AllocFabs (const FabFactory<FAB>& factory, const MFInfo& info);
+    void AllocFabs (const FabFactory<FAB>& factory);
 
     void FBEP_nowait (int scomp, int ncomp, const Periodicity& period, bool cross,
 		      bool enforce_periodicity_only = false);
@@ -812,8 +809,7 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
-    FAB& fab = *m_fabs_v[mfi.LocalIndex()];
-    return fab;
+    return *m_fabs_v[mfi.LocalIndex()];
 }
 
 template <class FAB>
@@ -822,8 +818,7 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
-    FAB& fab = *m_fabs_v[mfi.LocalIndex()];
-    return fab;
+    return *m_fabs_v[mfi.LocalIndex()];
 }
 
 template <class FAB>
@@ -1036,7 +1031,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(factory, info);
+        AllocFabs(factory);
 #ifdef AMREX_USE_DEVICE
 	Device::synchronize();
 #endif
@@ -1068,7 +1063,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
 template <class FAB>
 void
-FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, const MFInfo& info)
+FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 {
     const int n = indexArray.size();
     const int nworkers = ParallelDescriptor::TeamSize();
