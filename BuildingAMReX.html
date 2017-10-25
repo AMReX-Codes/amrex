@@ -206,8 +206,8 @@ successful completion. The temporary files generated in the building
 process are stored in a temporary directory named tmp_build_dir.</p>
 <div class="section" id="dissecting-a-simple-make-file">
 <h2>Dissecting a Simple Make File<a class="headerlink" href="#dissecting-a-simple-make-file" title="Permalink to this headline">¶</a></h2>
-<p>An example of building with GNU Make can be found in amrex/Tutorials/Basic/HelloWorld_C. Table&nbsp;[tab:makevarimp]
-shows a list of important variables.</p>
+<p>An example of building with GNU Make can be found in amrex/Tutorials/Basic/HelloWorld_C.
+Table&nbsp;[tab:makevarimp] shows a list of important variables.</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="22%" />
@@ -353,7 +353,7 @@ This is roughly equivalent to running ./configure (see Section
 &nbsp;[sec:build:lib]). Next, the actual build and installation are performed
 by issuing make install from within builddir. This will install
 the library files in a chosen installation directory ( installdir). If no installation path is provided by the user,
-&nbsp;will be installed in /path/to/amrex/installdir.
+AMReX will be installed in /path/to/amrex/installdir.
 The CMake build process is summarized as follow:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">builddir</span>
 <span class="n">cd</span>    <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">builddir</span>
@@ -363,7 +363,7 @@ The CMake build process is summarized as follow:</p>
 </div>
 <p>In the above snippet, indicates one or more options for the customization
 of the build, as described in Subsection&nbsp;[sec:build:cmake:options].
-Although the &nbsp;source could be used as build directory, we advise against doing so.
+Although the AMReX source could be used as build directory, we advise against doing so.
 After the installation is complete, builddir can be removed.</p>
 <div class="section" id="customization-options">
 <h2>Customization options<a class="headerlink" href="#customization-options" title="Permalink to this headline">¶</a></h2>
@@ -373,6 +373,138 @@ For example, one can enable OpenMP support as follows:</p>
 </pre></div>
 </div>
 <p>The list of available option is reported in Table&nbsp;[tab:cmakevar].</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="28%" />
+<col width="48%" />
+<col width="8%" />
+<col width="15%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Option name</th>
+<th class="head">Description</th>
+<th class="head">Defaults</th>
+<th class="head">Possible values</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>DEBUG}</td>
+<td>Build amrexin debug mode</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>DIM</td>
+<td>Dimension of amrexbuild</td>
+<td>3</td>
+<td>2,3</td>
+</tr>
+<tr class="row-even"><td>ENABLE_DP}</td>
+<td>Build with double-precision reals</td>
+<td>ON</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_PIC}</td>
+<td>Build Position Independent Code</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_MPI}</td>
+<td>Build with MPI support</td>
+<td>ON</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_OMP}</td>
+<td>Build with OpenMP support</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_FORTRAN_INTERFACES</td>
+<td>Build Fortran API</td>
+<td>ON</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_LINEAR_SOLVERS</td>
+<td>Build amrexlinear solvers</td>
+<td>ON</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_FBASELIB</td>
+<td>Build (deprecated) Fortran kernel</td>
+<td>ON</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_AMRDATA</td>
+<td>Build data services</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_PARTICLES</td>
+<td>Build particle classes</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_DP_PARTICLES</td>
+<td>Use double-precision reals in particle classes</td>
+<td>ON</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_BASE_PROFILE</td>
+<td>Build with basic profiling support</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_TINY_PROFILE</td>
+<td>Build with tiny profiling support</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_TRACE_PROFILE</td>
+<td>Build with trace-profiling support</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_COMM_PROFILE</td>
+<td>Build with comm-profiling support</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_MEM_PROFILE</td>
+<td>Build with memory-profiling support</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_PROFPARSER</td>
+<td>Build with profile parser support</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_BACKTRACE</td>
+<td>Build with backtrace support</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>ENABLE_FPE</td>
+<td>Build with Floating Point Exceptions checks</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-even"><td>ENABLE_ASSERTIONS</td>
+<td>Build with assertions turned on</td>
+<td>OFF</td>
+<td>ON,OFF</td>
+</tr>
+<tr class="row-odd"><td>AMREX_FFLAGS_OVERRIDES</td>
+<td>User-defined Fortran flags</td>
+<td>None</td>
+<td>user-defined</td>
+</tr>
+<tr class="row-even"><td>AMREX_CXXFLAGS_OVERRIDES</td>
+<td>User-defined C++ flags</td>
+<td>None</td>
+<td>user-defined</td>
+</tr>
+</tbody>
+</table>
 <div class="line-block">
 <div class="line">The option ENABLE_LINEAR_SOLVERS=ON triggers the inclusion of C++-based linear
 solvers in the build. Fortran-based linear solvers can be included
