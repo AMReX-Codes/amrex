@@ -137,21 +137,6 @@ public:
 };
 
 ///
-/// Particles are initialized on the cell diagonal,
-/// with regular spacing.
-///
-class DiagonalPosition : public PlasmaParticlePosition{
-public:
-  DiagonalPosition(int num_particles_per_cell);
-  virtual void getPositionUnitBox(vec3& r, int i_part) override;
-private:
-  amrex::Real _x;
-  amrex::Real _y;
-  amrex::Real _z;
-  int _num_particles_per_cell;
-};
-
-///
 /// Particles are initialized with a random uniform
 /// distribution inside each cell
 ///
