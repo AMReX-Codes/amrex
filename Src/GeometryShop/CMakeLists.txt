@@ -8,7 +8,7 @@ set (ALLSRC "")
 list ( APPEND ALLHEADERS AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H )
 list ( APPEND CXXSRC     AMReX_GeometryShop.cpp AMReX_Moments.cpp )
 
-list ( APPEND ALLHEADERS AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_PlaneIF.H )
+list ( APPEND ALLHEADERS AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_PlaneIF.H AMReX_AnisotropicDxPlaneIF.H )
 list ( APPEND ALLHEADERS AMReX_IrregNode.H   AMReX_LoHiSide.H )
    
 list ( APPEND CXXSRC     AMReX_LSquares.cpp AMReX_SphereIF.cpp  AMReX_PlaneIF.cpp )
