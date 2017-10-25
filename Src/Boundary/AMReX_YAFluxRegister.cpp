@@ -208,7 +208,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
                          const Real* dx, Real dt)
 {
-    BL_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
+    BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
 
     const int li = mfi.LocalIndex();
     Vector<FArrayBox*>& fabs = m_cfp_fab[li];
