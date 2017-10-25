@@ -478,10 +478,10 @@ StateData::PrepareForFillBoundary(FArrayBox& dest,
 
 void
 StateData::FillBoundary (FArrayBox&     dest,
-                         const Real*    time_f,
+                         const Real*    time,
                          const Real*    dx,
-                         const Real*    xlo_f,
-                         const int*     bcrs_f,
+                         const Real*    xlo,
+                         const int*     bcrs,
                          const RealBox& prob_domain,
                          int            dest_comp,
                          int            src_comp,
@@ -492,16 +492,17 @@ StateData::FillBoundary (FArrayBox&     dest,
    
     if (domain.contains(dest.box())) return;
 
+    const Box& bx  = dest.box();
+    const int* dlo = dest.loVect();
+    const int* dhi = dest.hiVect();
+    const int* plo = domain.loVect();
+    const int* phi = domain.hiVect();
+
     for (int i = 0; i < num_comp; )
     {
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
-
-	const int* dlo = dest.loVect();
-	const int* dhi = dest.hiVect();
-	const int* plo = domain.loVect();
-	const int* phi = domain.hiVect();
 
         int bcidx = 2 * AMREX_SPACEDIM * i;
 
@@ -519,17 +520,15 @@ StateData::FillBoundary (FArrayBox&     dest,
             // This ensures that the corners plus one interior zone
             // are all on the same threadblock.
 
-            const Box dest_box = dest.box();
-
-            const IntVect left = domain.smallEnd() - dest_box.smallEnd();
-            const IntVect rght = dest_box.bigEnd() - domain.bigEnd();
+            const IntVect left = domain.smallEnd() - bx.smallEnd();
+            const IntVect rght = bx.bigEnd() - domain.bigEnd();
 
             int ng[3] = {0, 0, 0};
 
             for (int n = 0; n < BL_SPACEDIM; ++n)
                 ng[n] = std::max(0, std::max(left[n], rght[n]));
 
-            const IntVect size = dest_box.size();
+            const IntVect size = bx.size();
             IntVect numThreadsMin(ng[0] + 1, ng[1] + 1, ng[2] + 1);
 
             for (int n = 0; n < BL_SPACEDIM; ++n) {
@@ -555,20 +554,20 @@ StateData::FillBoundary (FArrayBox&     dest,
                 // Can do the whole group at once.
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo_f,time_f,&bcrs_f[bcidx],groupsize);
+		desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,time,&bcrs[bcidx],groupsize);
 
                 i += groupsize;
             }
             else
             {
-                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo_f,time_f,&bcrs_f[bcidx]);
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,time,&bcrs[bcidx]);
 
                 i++;
             }
         }
         else
         {
-            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo_f,time_f,&bcrs_f[bcidx]);
+            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,time,&bcrs[bcidx]);
 
             i++;
         }
