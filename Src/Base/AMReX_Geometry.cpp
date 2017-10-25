@@ -177,9 +177,6 @@ Geometry::GetVolume (MultiFab&       vol) const
 #endif
     for (MFIter mfi(vol,true); mfi.isValid(); ++mfi)
     {
-#ifdef AMREX_USE_DEVICE
-        Device::synchronize();
-#endif
 	CoordSys::SetVolume(vol[mfi], mfi.growntilebox());
     }
 }
