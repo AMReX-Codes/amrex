@@ -657,7 +657,7 @@ namespace amrex
 
       for (MFIter mfi(Sborder); mfi.isValid(); ++mfi)
       {
-        const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.validbox();
 
         const FArrayBox& statein = Sborder[mfi];
         FArrayBox& dphidtout     =  dPhiDt[mfi];
@@ -674,9 +674,17 @@ namespace amrex
           uface[i].resize(velBox, 1);
         }
 
-        int debdir = 2;
+        int debdir = 0;
         Box debugboxcell = debboxcc & bx;
-        Box debugboxface = bdryHi(debugboxcell, debdir, 1);
+        int printstuff = 0;
+        Box debugboxfaceHi;
+        Box debugboxfaceLo; 
+        if(debugboxcell.ok())
+        {
+          debugboxfaceHi = bdryHi(debugboxcell, debdir, 1);
+          debugboxfaceLo = bdryLo(debugboxcell, debdir, 1);
+          printstuff = 1;
+        }
 
         //velocity is a time because this is MOL
         const Real ctr_time = time;
@@ -698,7 +706,9 @@ namespace amrex
                                          BL_TO_FORTRAN_3D(flux[2])), 
                             dx, dt, diffco, 
                             debugboxcell.loVect(), debugboxcell.hiVect(),
-                            debugboxface.loVect(), debugboxface.hiVect()
+                            debugboxfaceHi.loVect(), debugboxfaceHi.hiVect(),
+                            debugboxfaceLo.loVect(), debugboxfaceLo.hiVect(),
+                            &printstuff
                           );
 
         if(do_reflux)

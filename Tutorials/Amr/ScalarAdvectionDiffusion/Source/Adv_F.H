@@ -71,7 +71,9 @@ extern "C"
                            const amrex_real* dx, const amrex_real& dt,
                            const amrex_real& nu, 
                            const int* deblocell, const int* debhicell,
-                           const int* debloface, const int* debhiface);
+                           const int* deblofaceHi, const int* debhifaceHi,
+                           const int* deblofaceLo, const int* debhifaceLo,
+                           const int* printstuff);
 
 
 
