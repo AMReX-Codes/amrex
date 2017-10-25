@@ -342,16 +342,6 @@ ifeq ($(USE_CUDA),TRUE)
 	DEFINES += -DBL_COALESCE_FABS
     endif
 
-    # If we're using MPI, do we want to CUDA-aware MPI (MPI sends and receives
-    # directly from GPU buffers) or normal MPI (MPI sends and receives
-    # from host buffers, and data is staged through the host to and from the GPU)?
-
-    ifeq ($(USE_MPI),TRUE)
-        ifneq ($(USE_CUDA_AWARE_MPI),FALSE)
-            DEFINES += -DAMREX_USE_CUDA_AWARE_MPI
-        endif
-    endif
-
     # Maximum number of CUDA threads per block.
     CUDA_MAX_THREADS ?= 256
 
