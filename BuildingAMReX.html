@@ -187,15 +187,15 @@
             
   <div class="section" id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
-<p>In this chapter, we discuss ’s build systems. There are three
-ways to use . The approach used by &nbsp;developers uses GNU
+<p>In this chapter, we discuss AMReX’s build systems. There are three
+ways to use AMReX. The approach used by AMReX developers uses GNU
 Make. There is no installation step in this approach. Application
-codes adopt ’s build system and compile &nbsp;while compiling
+codes adopt AMReX’s build system and compile AMReX while compiling
 their own codes. This will be discussed in more detail in
-Section&nbsp;[sec:build:make]. The second approach is to build into a library and install it (Section&nbsp;[sec:build:lib]). Then an
-application code uses its own build system and links &nbsp;as an
-external library. &nbsp;can also be built with Cmake
-(Section&nbsp;[sec:build:cmake]).</p>
+Section 3.1. The second approach is to build into a library and
+install it (Section 3.2). Then an application code uses its own build system
+and links AMReX as an external library. AMReX can also be built with Cmake
+(Section 3.3).</p>
 </div>
 <div class="section" id="building-with-gnu-make">
 <h1>Building with GNU Make<a class="headerlink" href="#building-with-gnu-make" title="Permalink to this headline">¶</a></h1>
@@ -207,7 +207,7 @@ process are stored in a temporary directory named tmp_build_dir.</p>
 <div class="section" id="dissecting-a-simple-make-file">
 <h2>Dissecting a Simple Make File<a class="headerlink" href="#dissecting-a-simple-make-file" title="Permalink to this headline">¶</a></h2>
 <p>An example of building with GNU Make can be found in amrex/Tutorials/Basic/HelloWorld_C.
-Table&nbsp;[tab:makevarimp] shows a list of important variables.</p>
+The table below shows a list of important variables.</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="22%" />
@@ -247,9 +247,9 @@ Table&nbsp;[tab:makevarimp] shows a list of important variables.</p>
 </tr>
 </tbody>
 </table>
-<p>Table: [tab:makevarimp] Important make variables</p>
+<p>Table: Important make variables</p>
 <p>At the beginning of amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile, AMREX_HOME
-is set to the path to the top directory of . Note that in the
+is set to the path to the top directory of AMReX. Note that in the
 example ?= is a conditional variable assignment operator that
 only has an effect if AMREX_HOME has not been defined
 (including in the environment). One can also set AMREX_HOME
@@ -257,22 +257,23 @@ as an environment variable. For example in bash,
 one can set export AMREX_HOME=/path/to/amrex; in tcsh one can set
 setenv AMREX_HOME /path/to/amrex.</p>
 <p>One must set the COMP variable to choose a compiler. Currently
-the list of supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must also set the
-DIM variable to either 1, 2, or 3, depending on the
+the list of supported compilers includes gnu, cray, ibm, intel, llvm, and pgi.
+One must also set the DIM variable to either 1, 2, or 3, depending on the
 dimensionality of the problem.</p>
 <p>Variables DEBUG, USE_MPI and USE_OMP are optional
 with default set to TRUE, FALSE and FALSE,
 respectively. The meaning of these variables should be obvious.
 When DEBUG = TRUE, aggressive compiler optimization flags are turned
-off and assertions in &nbsp;source code are turned on. For
+off and assertions in AMReX source code are turned on. For
 production runs, DEBUG should be set to FALSE.</p>
-<p>After defining these make variables, a number of files, Make.defs, Make.package and Make.rules, are included in
+<p>After defining these make variables, a number of files,
+Make.defs, Make.package and Make.rules, are included in
 GNUmakefile. based applications do not need to include
-all directories in ; an application which does not use particles,
+all directories in AMReX; an application which does not use particles,
 for example, does not need to include files from the Particle
 directory in its build.
-In this simple example, we only need to include $(AMREX_HOME)/Src/Base/Make.package. An application code also
-has its own Make.package file (e.g., ./Make.package in
+In this simple example, we only need to include $(AMREX_HOME)/Src/Base/Make.package.
+An application code also has its own Make.package file (e.g., ./Make.package in
 this example) to append source files to the build system using
 operator +=. Variables for various source files are shown
 below.</p>
@@ -295,7 +296,8 @@ preprocessing.</dd>
 </div></blockquote>
 <p>In this simple example, the extra source file, main.cpp is in
 the current directory that is already in the build system’s search
-path. If this example has files in a subdirectory (e.g., mysrcdir), you will then need to add the following to Make.package.</p>
+path. If this example has files in a subdirectory (e.g., mysrcdir),
+you will then need to add the following to Make.package.</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">VPATH_LOCATIONS</span> <span class="o">+=</span> <span class="n">mysrcdir</span>
 <span class="n">INCLUDE_LOCATIONS</span> <span class="o">+=</span> <span class="n">mysrcdir</span>
 </pre></div>
@@ -327,8 +329,10 @@ very useful for debugging and tweaking the make system.</dd>
 <p>Compiler flags are set in amrex/Tools/GNUMake/comps/. Note that
 variables like CC and CFLAGS are reset in that directory
 and their values in environment variables are disregarded. Site
-specific setups (e.g., MPI installation) are in amrex/Tools/GNUMake/sites/, which includes a generic setup in Make.unknown. You can override the setup by having your own sites/Make.$(host_name) file, where variable host_name is your
-host name in the make system and can be found via make
+specific setups (e.g., MPI installation) are in amrex/Tools/GNUMake/sites/,
+which includes a generic setup in Make.unknown.
+You can override the setup by having your own sites/Make.$(host_name) file,
+where variable host_name is your host name in the make system and can be found via make
 print-host_name. You can also have a amrex/Tools/GNUMake/Make.local file to override various variables.
 See amrex/Tools/GNUMake/Make.local.template for an example.</p>
 </div>
@@ -336,23 +340,24 @@ See amrex/Tools/GNUMake/Make.local.template for an example.</p>
 <div class="section" id="building-libamrex">
 <h1>Building libamrex<a class="headerlink" href="#building-libamrex" title="Permalink to this headline">¶</a></h1>
 <p>If an application code already has its own elaborated build system and
-wants to use &nbsp;as an external library, this might be your
+wants to use AMReX as an external library, this might be your
 choice. In this approach, one runs ./configure, followed by
-make and make install. In the top &nbsp;directory, one
-can run ./configure -h to show the various options for the configure script. This approach is built on the &nbsp;GNU Make
-system. Thus Section&nbsp;[sec:build:make] is recommended if any fine
-tuning is needed.</p>
+make and make install. In the top AMReX directory, one
+can run ./configure -h to show the various options for the configure script.
+This approach is built on the AMReX GNU Make
+system. Thus Section 3.1 is recommended if any fine tuning is needed.</p>
 </div>
 <div class="section" id="building-with-cmake">
 <h1>Building with CMake<a class="headerlink" href="#building-with-cmake" title="Permalink to this headline">¶</a></h1>
-<p>An alternative to the approach described in Section&nbsp;[sec:build:lib]
-is to install &nbsp;as an external library by using the CMake build system.
+<p>An alternative to the approach described in Section 3.2
+is to install AMReX as an external library by using the CMake build system.
 A CMake build is a two-steps process. First cmake is invoked to create
 configuration files and makefiles in a chosen directory (builddir).
-This is roughly equivalent to running ./configure (see Section
-&nbsp;[sec:build:lib]). Next, the actual build and installation are performed
+This is roughly equivalent to running ./configure (see Section 3.2).
+Next, the actual build and installation are performed
 by issuing make install from within builddir. This will install
-the library files in a chosen installation directory ( installdir). If no installation path is provided by the user,
+the library files in a chosen installation directory ( installdir).
+If no installation path is provided by the user,
 AMReX will be installed in /path/to/amrex/installdir.
 The CMake build process is summarized as follow:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">builddir</span>
@@ -362,7 +367,7 @@ The CMake build process is summarized as follow:</p>
 </pre></div>
 </div>
 <p>In the above snippet, indicates one or more options for the customization
-of the build, as described in Subsection&nbsp;[sec:build:cmake:options].
+of the build, as described in Subsection 3.3.1.
 Although the AMReX source could be used as build directory, we advise against doing so.
 After the installation is complete, builddir can be removed.</p>
 <div class="section" id="customization-options">
@@ -372,7 +377,7 @@ For example, one can enable OpenMP support as follows:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cmake</span> <span class="o">-</span><span class="n">DENABLE_OMP</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span><span class="n">DCMAKE_INSTALL_PREFIX</span><span class="p">:</span><span class="n">PATH</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">installdir</span>  <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">amrex</span>
 </pre></div>
 </div>
-<p>The list of available option is reported in Table&nbsp;[tab:cmakevar].</p>
+<p>The list of available option is reported in the table below.</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="28%" />
@@ -388,7 +393,7 @@ For example, one can enable OpenMP support as follows:</p>
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>DEBUG}</td>
+<tr class="row-even"><td>DEBUG</td>
 <td>Build amrexin debug mode</td>
 <td>OFF</td>
 <td>ON,OFF</td>
@@ -398,22 +403,22 @@ For example, one can enable OpenMP support as follows:</p>
 <td>3</td>
 <td>2,3</td>
 </tr>
-<tr class="row-even"><td>ENABLE_DP}</td>
+<tr class="row-even"><td>ENABLE_DP</td>
 <td>Build with double-precision reals</td>
 <td>ON</td>
 <td>ON,OFF</td>
 </tr>
-<tr class="row-odd"><td>ENABLE_PIC}</td>
+<tr class="row-odd"><td>ENABLE_PIC</td>
 <td>Build Position Independent Code</td>
 <td>OFF</td>
 <td>ON,OFF</td>
 </tr>
-<tr class="row-even"><td>ENABLE_MPI}</td>
+<tr class="row-even"><td>ENABLE_MPI</td>
 <td>Build with MPI support</td>
 <td>ON</td>
 <td>ON,OFF</td>
 </tr>
-<tr class="row-odd"><td>ENABLE_OMP}</td>
+<tr class="row-odd"><td>ENABLE_OMP</td>
 <td>Build with OpenMP support</td>
 <td>OFF</td>
 <td>ON,OFF</td>
@@ -505,18 +510,16 @@ For example, one can enable OpenMP support as follows:</p>
 </tr>
 </tbody>
 </table>
-<div class="line-block">
-<div class="line">The option ENABLE_LINEAR_SOLVERS=ON triggers the inclusion of C++-based linear
+<p>The option ENABLE_LINEAR_SOLVERS=ON triggers the inclusion of C++-based linear
 solvers in the build. Fortran-based linear solvers can be included
 as well by providing the option ENABLE_FBASELIB=ON in addition
-to ENABLE_LINEAR_SOLVERS=ON.</div>
-<div class="line">The options DEBUG=ON implies ENABLE_ASSERTION=ON. In
-order to turn off assertions in debug mode, ENABLE_ASSERTION=OFF must be set explicitly while invoking CMake.</div>
-</div>
+to ENABLE_LINEAR_SOLVERS=ON.</p>
+<p>The options DEBUG=ON implies ENABLE_ASSERTION=ON. In order to turn off assertions in debug mode,
+ENABLE_ASSERTION=OFF must be set explicitly while invoking CMake.</p>
 </div>
 <div class="section" id="importing-amrex-configuration-into-a-cmake-project">
 <h2>Importing AMReX configuration into a CMake project<a class="headerlink" href="#importing-amrex-configuration-into-a-cmake-project" title="Permalink to this headline">¶</a></h2>
-<p>In order to import the &nbsp;configuration options into your CMake
+<p>In order to import the AMReX configuration options into your CMake
 build system, include the following line in the appropriate
 CMakeLists.txt file:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">find_package</span> <span class="p">(</span><span class="n">AMReX</span> <span class="n">CONFIG</span> <span class="n">REQUIRED</span> <span class="n">HINTS</span> <span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">installdir</span><span class="o">/</span><span class="n">cmake</span> <span class="p">)</span>
