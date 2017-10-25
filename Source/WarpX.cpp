@@ -228,11 +228,21 @@ WarpX::ReadParameters ()
 		 0, num_injected_species);
 	}
 
-        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
+        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);       
         if (do_boosted_frame_diagnostic) {
+            
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0, 
+                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (std::abs(boost_direction[0] - 0.0) < 1.0e-12) and 
+                                              (std::abs(boost_direction[1] - 0.0) < 1.0e-12) and 
+                                              (std::abs(boost_direction[2] - 1.0) < 1.0e012) , 
+                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
+
             pp.get("num_snapshots_lab", num_snapshots_lab);
             pp.get("dt_snapshots_lab", dt_snapshots_lab);
             pp.get("gamma_boost", gamma_boost);
+
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
                 "The moving window should be on if using the boosted frame diagnostic.");
 
@@ -240,7 +250,7 @@ WarpX::ReadParameters ()
 	    pp.get("moving_window_dir", s);
 
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
-                "The boosted frame diagnostic currently only works if the boost is in the z direction.");            
+                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
         }
         
         pp.query("do_electrostatic", do_electrostatic);
