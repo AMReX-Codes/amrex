@@ -96,7 +96,7 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                          const FArrayBox& dm)
 {
-    BL_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
+    BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
 
     const int li = mfi.LocalIndex();
     Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
