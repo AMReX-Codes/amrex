@@ -53,7 +53,7 @@ public:
         if (xlo_d.get() == nullptr)
             initialize_lo();
 
-        return (Real*) xlo_d.get();
+        return xlo_d.get();
 #else
         return xlo;
 #endif
@@ -67,7 +67,7 @@ public:
         if (xhi_d.get() == nullptr)
             initialize_hi();
 
-        return (Real*) xhi_d.get();
+        return xhi_d.get();
 #else
         return xhi;
 #endif
