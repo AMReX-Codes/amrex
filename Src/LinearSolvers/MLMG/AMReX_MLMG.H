@@ -18,7 +18,7 @@ public:
     ~MLMG ();
 
     void solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-                Real a_tol_real, Real a_tol_abs);
+                Real a_tol_rela, Real a_tol_abs);
 
     void setVerbose (int v) { verbose = v; }
     void setMaxIter (int n) { max_iters = n; }

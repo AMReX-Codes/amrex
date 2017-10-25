@@ -40,7 +40,7 @@ MLMG::~MLMG ()
 
 void
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-             Real a_tol_real, Real a_tol_abs)
+             Real a_tol_rela, Real a_tol_abs)
 {
     BL_PROFILE("MLMG::solve()");
 
@@ -70,7 +70,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         norm_name = "resid0";
         max_norm = resnorm0;
     }
-    const Real res_target = std::max(a_tol_abs, a_tol_real*max_norm);
+    const Real res_target = std::max(a_tol_abs, a_tol_rela*max_norm);
 
     if (resnorm0 <= res_target)
     {
