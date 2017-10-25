@@ -90,7 +90,7 @@ EBFluxRegister::CrseAdd (const MFIter& mfi,
 
 void
 EBFluxRegister::FineAdd (const MFIter& mfi,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
                          const Real* dx, Real dt,
                          const FArrayBox& volfrac,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
@@ -102,12 +102,24 @@ EBFluxRegister::FineAdd (const MFIter& mfi,
     Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
     if (cfp_fabs.empty()) return;
 
-    const Box& tbx = mfi.tilebox();
-
-    BL_ASSERT(tbx.cellCentered());
-    AMREX_ALWAYS_ASSERT(tbx.coarsenable(m_ratio));
-    const Box& cbx = amrex::coarsen(tbx, m_ratio);
     const int nc = m_cfpatch.nComp();
+
+    const Box& tbx = mfi.tilebox();
+    BL_ASSERT(tbx.cellCentered());
+    const Box& cbx = amrex::coarsen(tbx, m_ratio);
+    const Box& fbx = amrex::refine(cbx, m_ratio);
+    
+    std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
+    std::array<FArrayBox,AMREX_SPACEDIM> ftmp;
+    if (fbx != tbx) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            const Box& b = amrex::surroundingNodes(fbx,idim);
+            ftmp[idim].resize(b,nc);
+            ftmp[idim].setVal(0.0);
+            ftmp[idim].copy(*a_flux[idim]);
+            flux[idim] = &ftmp[idim];
+        }
+    }
 
     FArrayBox cvol;
 
