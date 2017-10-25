@@ -473,7 +473,8 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
 #endif
     {
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox const*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        std::array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
         for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
@@ -483,8 +484,8 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                 AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
-                FFlux(crse_amrlev, mfi, flux, crse_sol[mfi]);
-                fluxreg.CrseAdd(mfi, pflux, crse_dx, dt);
+                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi]);
+                fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
             }
         }
 
@@ -501,13 +502,42 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
                 const int face_only = true;
-                FFlux(crse_amrlev+1, mfi, flux, fine_sol[mfi], face_only);
-                fluxreg.FineAdd(mfi, pflux, fine_dx, dt);            
+                FFlux(crse_amrlev+1, mfi, pflux, fine_sol[mfi], face_only);
+                fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
             }
         }
     }
 
     fluxreg.Reflux(res);
+}
+
+void
+MLLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
+{
+    BL_PROFILE("MLLinOp::compFlux()");
+
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::array<FArrayBox,AMREX_SPACEDIM> flux;
+        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        {
+            const Box& tbx = mfi.tilebox();
+            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
+                         flux[1].resize(amrex::surroundingNodes(tbx,1));,
+                         flux[2].resize(amrex::surroundingNodes(tbx,2)););
+            FFlux(amrlev, mfi, pflux, sol[mfi]);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& nbx = mfi.nodaltilebox(idim);
+                (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, 1);
+            }
+        }
+    }
 }
 
 }
