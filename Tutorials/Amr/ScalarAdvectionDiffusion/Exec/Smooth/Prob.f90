@@ -81,8 +81,13 @@ subroutine initdata(level, time, lo, hi, &
            else
               integralval = (cos(2.d0*xlo) - cos(2.d0*xhi))*(cos(2.d0*ylo) - cos(2.d0*yhi))*(cos(2.d0*zlo) - cos(2.d0*zhi))
            end if
-           
+
+!!debug set to 1d           
+!           integralval = (cos(2.d0*xlo) - cos(2.d0*xhi))
+!           denom = dx(1)*pi*2.0d0
+!!end debug
            phi(i,j,k) = integralval/denom
+
         end do
      end do
   end do

@@ -217,11 +217,13 @@ contains
                                fluxpty, phipty, phiavey, &
                                phiptcc, glo, ghi, nu, &
                                deblocell, debhicell, &
-                               debloface, debhiface)
+                               hisidedebfacelo, hisidedebfacehi, &
+                               losidedebfacelo, losidedebfacehi, printstuff)
 
-
-    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
-    integer, intent(in) :: deblocell(2), debhicell(2), debloface(2), debhiface(2)
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), printstuff
+    integer, intent(in) :: deblocell(2), debhicell(2)
+    integer, intent(in) :: hisidedebfacelo(2), hisidedebfacehi(2)
+    integer, intent(in) :: losidedebfacelo(2), losidedebfacehi(2)
     double precision, intent(in) :: dt, dx(2), nu
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
@@ -345,19 +347,6 @@ contains
        end do
     end do
 
-!    numphi = 0
-!    phitot = 0.0d0
-!    do    j = debloface(2), debhiface(2)
-!       do i = debloface(1), debhiface(1)
-!          numphi = numphi + 1
-!          phitot = phitot +flxy(i,j)
-!!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
-!       enddo
-!    enddo
-!    if(numphi .gt. 0) then
-!       print*, "**************** final yflux = ", phitot/numphi
-!    endif
-!       
  
  end subroutine mol4thord_flux_2d
 

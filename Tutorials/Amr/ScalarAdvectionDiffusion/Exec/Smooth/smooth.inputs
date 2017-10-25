@@ -10,7 +10,7 @@ geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0. 0. 0.
 geometry.prob_hi     =  1.0  1.0  1.0
 amr.n_cell           =  64   64   64
-adv.diffusion_coeff = 0.0001  # diffusion coefficient
+adv.diffusion_coeff = 0.000001  # diffusion coefficient
 
 # TIME STEP CONTROL
 adv.cfl            = 0.25     # cfl number for hyperbolic system
@@ -25,7 +25,7 @@ amr.max_level       = 0       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2       # how often to regrid
 amr.blocking_factor = 8       # block factor in grid generation
-amr.max_grid_size   = 16
+amr.max_grid_size   = 1024
 
 # CHECKPOINT FILES
 amr.checkpoint_files_output = 0     # 0 will disable checkpoint files

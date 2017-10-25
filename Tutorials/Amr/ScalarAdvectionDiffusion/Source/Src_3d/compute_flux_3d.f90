@@ -435,11 +435,14 @@ contains
                                fluxptz, phiptz, phiavez, &
                                phiptcc, glo, ghi, nu, &
                                deblocell, debhicell, &
-                               debloface, debhiface)
+                               hisidedebfacelo, hisidedebfacehi, &
+                               losidedebfacelo, losidedebfacehi, printstuff)
 
 
-    integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3)
-    integer, intent(in) :: deblocell(3), debhicell(3), debloface(3), debhiface(3)
+    integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3), printstuff
+    integer, intent(in) :: deblocell(3), debhicell(3)
+    integer, intent(in) :: hisidedebfacelo(3), hisidedebfacehi(3)
+    integer, intent(in) :: losidedebfacelo(3), losidedebfacehi(3)
     double precision, intent(in) :: dt, dx(3), nu
     integer, intent(in) :: ph_lo(3), ph_hi(3)
     integer, intent(in) ::  u_lo(3),  u_hi(3)
