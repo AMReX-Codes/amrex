@@ -185,8 +185,6 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_DEVICE
-    releaseDeviceData();
-
     Device::synchronize();
 #endif
 
@@ -432,8 +430,6 @@ MFIter::operator++ () {
 #ifdef DEBUG
     Device::synchronize();
 #endif
-
-    releaseDeviceData();
 #endif
 
 }
@@ -498,18 +494,6 @@ MFIter::reduce()
 
     *real_reduce_val = result;
 
-}
-#endif
-
-#ifdef AMREX_USE_DEVICE
-void
-MFIter::releaseDeviceData() {
-    if (Device::inDeviceLaunchRegion()) {
-	for (int i = 0; i < registered_fabs.size(); ++i)
-	    registered_fabs[i]->toHost(registered_fabs_indices[i]);
-	registered_fabs.clear();
-	registered_fabs_indices.clear();
-    }
 }
 #endif
 

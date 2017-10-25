@@ -146,12 +146,6 @@ public:
 
     const RealBox& registerRealBox (const RealBox& rbox) const;
 
-    //! Maintain a record of all FABs that have been sent to the device.
-    template<class FAB>
-    bool registerFab(const FAB& fab, int idx = -1) const { return false; }
-
-    bool registerFab(const FArrayBox& fab, int idx = -1) const;
-
     //! Maintain a record of scalar values that are used on the device.
     template<typename T>
     void register_ptr(std::shared_ptr<T> ptr) {}
@@ -165,9 +159,6 @@ public:
     template<typename T>
     T* get_fortran_pointer(const T* ptr, const int n = 1, const int m = -1);
 #endif
-
-    //! Return all data from the device to the host.
-    void releaseDeviceData();
 
 #ifdef AMREX_USE_CUDA
     //! Maintain a list of values to reduce.
@@ -215,8 +206,6 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
-    mutable Vector<FArrayBox*> registered_fabs;
-    mutable Vector<int> registered_fabs_indices;
     mutable Vector<Box> registered_boxes;
     mutable Vector<RealBox> registered_realboxes;
 
@@ -253,21 +242,6 @@ MFIter::registerRealBox(const RealBox& rbox) const
 {
     registered_realboxes.push_back(rbox);
     return rbox;
-}
-
-// Store a FAB in our list. Return true if we registered it;
-// return false if we had already registered it.
-inline
-bool
-MFIter::registerFab(const FArrayBox& fab, int idx) const
-{
-    FArrayBox* fab_p = const_cast<FArrayBox*>(&fab);
-    if (std::find(registered_fabs.begin(), registered_fabs.end(), fab_p) == registered_fabs.end()) {
-	registered_fabs.push_back(fab_p);
-	registered_fabs_indices.push_back(idx);
-	return true;
-    }
-    return false;
 }
 
 #ifdef AMREX_USE_CUDA

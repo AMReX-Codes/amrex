@@ -108,13 +108,7 @@ StateData::define (const Box&             p_domain,
     }
     int ncomp = desc->nComp();
 
-    MFInfo info;
-
-#ifdef AMREX_USE_DEVICE
-    info.SetDevice(d.deviceCopy());
-#endif
-
-    new_data = new MultiFab(grids,dmap,ncomp,desc->nExtra(), info, *m_factory);
+    new_data = new MultiFab(grids,dmap,ncomp,desc->nExtra(), MFInfo(), *m_factory);
 
     old_data = 0;
 }
@@ -240,16 +234,11 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     int nsets;
     is >> nsets;
 
-    MFInfo info;
-#ifdef AMREX_USE_DEVICE
-    info.SetDevice(desc->deviceCopy());
-#endif
-
     old_data = (nsets == 2) ? new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                           info, *m_factory)
+                                           MFInfo(), *m_factory)
                               : nullptr;
     new_data =                new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                           info, *m_factory);
+                                           MFInfo(), *m_factory);
 
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
@@ -312,11 +301,7 @@ StateData::restart (const StateDescriptor& d,
     new_time.stop  = rhs.new_time.stop;
     old_data = 0;
 
-    MFInfo info;
-#ifdef AMREX_USE_DEVICE
-    info.SetDevice(d.deviceCopy());
-#endif
-    new_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), info, *m_factory);
+    new_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory);
     new_data->setVal(0.);
 }
 
@@ -332,11 +317,7 @@ StateData::allocOldData ()
 {
     if (old_data == 0)
     {
-	MFInfo info;
-#ifdef AMREX_USE_DEVICE
-	info.SetDevice(desc->deviceCopy());
-#endif
-        old_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), info, *m_factory);
+        old_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory);
     }
 }
 
