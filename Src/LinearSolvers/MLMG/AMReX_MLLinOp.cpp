@@ -502,7 +502,7 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
                 const int face_only = true;
-                FFlux(crse_amrlev+1, mfi, pflux, fine_sol[mfi], face_only);
+                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], face_only);
                 fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
             }
         }
