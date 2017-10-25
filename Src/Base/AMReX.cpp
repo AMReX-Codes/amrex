@@ -213,19 +213,30 @@ amrex::Warning (const std::string& msg)
 
 void
 amrex::Assert (const char* EX,
-                const char* file,
-                int         line)
+               const char* file,
+               int         line,
+               const char* msg)
 {
     const int N = 512;
 
     char buf[N];
 
-    snprintf(buf,
-             N,
-             "Assertion `%s' failed, file \"%s\", line %d",
-             EX,
-             file,
-             line);
+    if (msg) {
+        snprintf(buf,
+                 N,
+                 "Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+                 EX,
+                 file,
+                 line,
+                 msg);
+    } else {
+        snprintf(buf,
+                 N,
+                 "Assertion `%s' failed, file \"%s\", line %d",
+                 EX,
+                 file,
+                 line);
+    }
 
     write_to_stderr_without_buffering(buf);
 
