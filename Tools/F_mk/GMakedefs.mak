@@ -103,6 +103,10 @@ endif
 ifdef CUDA
   CPPFLAGS += -DCUDA
   FPPFLAGS += -DCUDA
+
+  ifndef CUDA_VERSION
+    CUDA_VERSION := 9.0
+  endif
 endif
 
 F_C_LINK := UNDERSCORE

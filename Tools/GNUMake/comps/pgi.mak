@@ -60,8 +60,8 @@ else
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  CXXFLAGS += -Mcuda=cuda9.0
-  CFLAGS   += -Mcuda=cuda9.0
+  CXXFLAGS += -Mcuda=cuda$(CUDA_VERSION)
+  CFLAGS   += -Mcuda=cuda$(CUDA_VERSION)
 endif
 
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
@@ -122,8 +122,8 @@ endif
 # Note that we do not have a Fortran main
 
 ifeq ($(USE_CUDA),TRUE)
-  F90FLAGS += -Mcuda=cuda9.0 -Mnomain
-  FFLAGS   += -Mcuda=cuda9.0 -Mnomain
+  F90FLAGS += -Mcuda=cuda$(CUDA_VERSION) -Mnomain
+  FFLAGS   += -Mcuda=cuda$(CUDA_VERSION) -Mnomain
 endif
 
 ########################################################################
