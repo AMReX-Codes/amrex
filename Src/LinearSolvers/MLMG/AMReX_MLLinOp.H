@@ -44,11 +44,12 @@ public:
     // domain bc is not Dirichlet.
     bool needsCoarseDataForBC () const { return m_needs_coarse_data_for_bc; }
 
-    // If needs coarse data for bc, this must be called.  MultiFab
+    // If needs coarse data for bc, this should be called.  MultiFab
     // crse does not need to have ghost cells.  The data are at coarse
-    // resolution.  If this needs to be called, it must be called
-    // before `setLevelBC`.
-    void setBCWithCoarseData (const MultiFab& crse, int crse_ratio);
+    // resolution.  If this is called, it *MUST* be called before
+    // `setLevelBC`.  If crse is nullptr, then bc value is assumed to
+    // be zero.
+    void setBCWithCoarseData (const MultiFab* crse, int crse_ratio);
 
     // Must be called for each level.  Argument `levelbcdata` is used
     // to supply Dirichlet bc at the physical domain.  However, even
