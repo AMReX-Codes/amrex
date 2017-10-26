@@ -236,9 +236,9 @@ MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
 }
 
 void
-MLLinOp::setBCWithCoarseData (const MultiFab& crse, int crse_ratio)
+MLLinOp::setBCWithCoarseData (const MultiFab* crse, int crse_ratio)
 {
-    m_coarse_data_for_bc = &crse;
+    m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
 }
 
@@ -277,7 +277,6 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     {
         if (needsCoarseDataForBC())
         {
-            AMREX_ALWAYS_ASSERT( m_coarse_data_for_bc != nullptr );
             if (m_crse_sol_br[amrlev] == nullptr)
             {
                 const int ncomp = 1;
@@ -291,7 +290,11 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                                                               in_rad, out_rad,
                                                               extent_rad, ncomp));
             }
-            m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+            if (m_coarse_data_for_bc != nullptr) {
+                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+            } else {
+                m_crse_sol_br[amrlev]->setVal(0.0);
+            }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
                                                 bcdata, 0, 0, 1,
                                                 m_coarse_data_crse_ratio, phys_bc);

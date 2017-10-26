@@ -756,7 +756,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.solutionResidual(alev, *a_res[alev], *a_sol[alev], *a_rhs[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, *a_res[alev], *a_sol[alev], *a_sol[alev+1]);
-            amrex::average_down(*a_res[alev+1], *a_res[alev], 0, 0, amrrr[alev]); 
+            amrex::average_down(*a_res[alev+1], *a_res[alev], 0, 1, amrrr[alev]); 
         }
     }    
 }
