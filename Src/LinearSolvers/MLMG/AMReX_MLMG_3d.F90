@@ -1,5 +1,6 @@
 module amrex_mlmg_interp_module
 
+  use amrex_error_module
   use amrex_fort_module, only : amrex_real
   implicit none
 
@@ -40,19 +41,23 @@ contains
           end do
        end do
        
-    else
+    else if (ratio == 4) then
 
        do k = lo(3), hi(3)
-          kc = k/2
+          kc = k/4
           do j = lo(2), hi(2)
-             jc = j/2
+             jc = j/4
              do i = lo(1), hi(1)
-                ic = i/2
+                ic = i/4
                 ff(i,j,k) = cc(ic,jc,kc)
              end do
           end do
        end do
        
+    else
+
+       call amrex_abort("amrex_mlmg_lin_cc_interp: only ratio 2 and 4 are supported")
+
     end if
 
   end subroutine amrex_mlmg_lin_cc_interp
