@@ -72,7 +72,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         norm_name = "resid0";
         max_norm = resnorm0;
     }
-    const Real res_target = std::max(a_tol_abs, a_tol_rela*max_norm);
+    const Real res_target = std::max(a_tol_abs, std::max(a_tol_rela,1.e-13)*max_norm);
 
     if (resnorm0 <= res_target)
     {
