@@ -121,6 +121,12 @@ ifndef USE_CUDA_UM
   USE_CUDA_UM = TRUE
 endif
 
+ifeq ($(USE_CUDA),TRUE)
+  ifndef CUDA_VERSION
+    CUDA_VERSION := 9.0
+  endif
+endif
+
 ifdef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
 else
