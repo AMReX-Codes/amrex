@@ -1188,14 +1188,7 @@ BoxArray::getHashMap () const
 {
     BARef::HashType& BoxHashMap = m_ref->hash;
 
-    bool local_flag;
-    
-#ifdef _OPENMP
-#pragma omp atomic read
-#endif
-    local_flag = m_ref->has_hashmap;
-
-    if (local_flag) return BoxHashMap;
+    if (m_ref->HasHashMap()) return BoxHashMap;
 
 #ifdef _OPENMP
     #pragma omp critical(intersections_lock)
