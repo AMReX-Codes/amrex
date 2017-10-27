@@ -60,6 +60,7 @@ set (ENABLE_OMP                @ENABLE_OMP@)
 set (ENABLE_DP                 @ENABLE_DP@)
 
 # Components selection
+set (ENABLE_EB                 @ENABLE_EB@)
 set (ENABLE_FORTRAN_INTERFACES @ENABLE_FORTRAN_INTERFACES@)
 set (ENABLE_LINEAR_SOLVERS     @ENABLE_LINEAR_SOLVERS@)
 set (ENABLE_FBASELIB           @ENABLE_FBASELIB@)
@@ -101,6 +102,7 @@ function ( echo_amrex_config_options )
    echo_amrex_option ( ENABLE_DP   )
 
    # Components selection
+   echo_amrex_option ( ENABLE_EB )
    echo_amrex_option ( ENABLE_FORTRAN_INTERFACES )
    echo_amrex_option ( ENABLE_LINEAR_SOLVERS     )
    echo_amrex_option ( ENABLE_FBASELIB           )

@@ -113,17 +113,37 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
                                  int             num_comp,
                                  const BCRec&    bc)
 {
+    setBndryValues(mf, mf_start, bnd_start, num_comp, IntVect::TheUnitVector(), bc);
+}
+
+void
+InterpBndryData::setBndryValues (const MultiFab& mf,
+                                 int             mf_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 int             ref_ratio,
+                                 const BCRec&    bc)
+{
+    setBndryValues(mf, mf_start, bnd_start, num_comp, IntVect{ref_ratio}, bc);
+}
+
+void
+InterpBndryData::setBndryValues (const MultiFab& mf,
+                                 int             mf_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 const IntVect&  ref_ratio,
+                                 const BCRec&    bc)
+{
     //
     // Check that boxarrays are identical.
     //
     BL_ASSERT(grids.size());
     BL_ASSERT(grids == mf.boxArray());
 
-    IntVect ref_ratio = IntVect::TheUnitVector();
-
-    for (int n = bnd_start; n < bnd_start+num_comp; ++n)
+    for (int n = bnd_start; n < bnd_start+num_comp; ++n) {
 	setBndryConds(bc, ref_ratio, n);
-
+    }
 
     // TODO: tiling - wqz
 #ifdef _OPENMP

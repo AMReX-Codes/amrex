@@ -47,7 +47,7 @@ contains
     real(rt), intent(in   ) :: f(flo(1):fhi(1),nc)
     real(rt), intent(inout) :: d(dlo(1):dhi(1),nc)
     
-    integer :: i,n,ii,ioff
+    integer :: i,n,ii
     real(rt) :: fac
 
     ! dx is fine.
@@ -60,14 +60,22 @@ contains
     if (side .eq. 0) then ! lo-side
 
        i = lo(1)
-       ii = (i+1)*ratio(1) !!!          
-       d(i,:) = d(i,:) - fac*f(ii,:)
+       ii = (i+1)*ratio(1) !!!
+       do n = 1, nc
+          !$omp atomic
+          d(i,n) = d(i,n) - fac*f(ii,n)
+          !$omp end atomic
+       end do
 
     else ! hi-side
 
        i = lo(1)
        ii = i*ratio(1) !!!
-       d(i,:) = d(i,:) + fac*f(ii,:)
+       do n = 1, nc
+          !$omp atomic
+          d(i,n) = d(i,n) + fac*f(ii,n)
+          !$omp end atomic
+       end do
 
     end if
 

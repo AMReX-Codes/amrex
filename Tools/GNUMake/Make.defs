@@ -310,6 +310,9 @@ else
     OMPSuffix	:=
 endif
 
+DEFINES += -DAMREX_LAUNCH=""
+DEFINES += -DAMREX_DEVICE=""
+
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
   DEFINES += -DBL_SINGLE_PRECISION_PARTICLES
   amrex_particle_real = float
