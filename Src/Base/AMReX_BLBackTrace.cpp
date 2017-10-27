@@ -80,6 +80,22 @@ BLBackTrace::handler(int s)
 
 #ifdef __linux__
 void
+BLBackTrace::print_backtrace_info (std::string filename)
+{
+    if (FILE* p = fopen(filename.c_str(), "w"))
+    {
+      BLBackTrace::print_backtrace_info(p);
+      fclose(p);
+    }
+    else
+    {
+      std::cout << "Warning @ BLBackTrace::print_backtrace_info: " 
+                << filename << " is not a valid output file."
+                << std::endl;
+    }
+}
+
+void
 BLBackTrace::print_backtrace_info (FILE* f)
 {
     const int nbuf = 32;
