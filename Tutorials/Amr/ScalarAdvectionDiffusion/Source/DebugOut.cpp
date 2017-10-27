@@ -129,3 +129,71 @@ maxMinMF(const MultiFab* a_data)
     amrex::Print() << "comp = " << icomp << ", max = " << maxVal << ", min = " << minVal << endl;
   }
 }
+
+
+void 
+printMF(const MultiFab* a_data)
+{
+  amrex::Print() << "data for multifab "  <<endl;
+  int ibox = 0;
+  for(MFIter mfi(*a_data); mfi.isValid(); ++mfi)
+  {
+    amrex::Print() << "box " << ibox << ":";
+    const FArrayBox& fab = (*a_data)[mfi];
+    printFAB(&fab);
+  }
+}
+
+
+void 
+printMFEdge(const MultiFab* a_data)
+{
+  amrex::Print() << "data for multifab "  <<endl;
+  int ibox = 0;
+  for(MFIter mfi(*a_data); mfi.isValid(); ++mfi)
+  {
+    amrex::Print() << "box " << ibox << ":";
+    Box bx = mfi.validbox();
+    Box sidebox = adjCellLo(bx, 0, 3);
+    sidebox.shift(0,3);
+    const FArrayBox& fab = (*a_data)[mfi];
+    for(BoxIterator bit(sidebox); bit.ok(); ++bit)
+    {
+      amrex::Print() << bit()  << "\t" ;
+      for (int ivar = 0; ivar < fab.nComp(); ivar++)
+      {
+        amrex::Print() << "\t" << fab(bit(),ivar);
+      }
+      amrex::Print() << "\n";
+    }
+  }
+}
+
+void 
+printFABEdge(const FArrayBox* a_data, const Box* bxptr)
+{
+  amrex::Print() << "data for fab "  <<endl;
+
+  const FArrayBox& fab = (*a_data);
+  Box bx;
+  if(bxptr != NULL)
+  {
+    bx = *bxptr;
+  }
+  else
+  {
+    bx = fab.box();
+  }
+
+  Box sidebox = adjCellLo(bx, 0, 3);
+  sidebox.shift(0,3);
+  for(BoxIterator bit(sidebox); bit.ok(); ++bit)
+  {
+    amrex::Print() << bit()  << "\t" ;
+    for (int ivar = 0; ivar < fab.nComp(); ivar++)
+    {
+      amrex::Print() << "\t" << fab(bit(),ivar);
+    }
+    amrex::Print() << "\n";
+  }
+}

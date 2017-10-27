@@ -315,47 +315,47 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      enddo
   enddo
   
-!  if(printstuff.eq.1) then
-!     numphi = 0
-!     phitot = 0.0d0
-!     do    j = losidedebfacelo(2), losidedebfacehi(2)
-!        do i = losidedebfacelo(1), losidedebfacehi(1)
-!           numphi = numphi + 1
-!           phitot = phitot +flxx(i,j)
-!           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
-!        enddo
-!     enddo
-!     if(numphi .gt. 0) then
-!        print*, "**************** nflux, final x  flux lo = ", numphi, phitot/numphi
-!     endif
-!     numphi = 0
-!     phitot = 0.0d0
-!     do    j = hisidedebfacelo(2), hisidedebfacehi(2)
-!        do i = hisidedebfacelo(1), hisidedebfacehi(1)
-!           numphi = numphi + 1
-!           phitot = phitot +flxx(i,j)
-!           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
-!        enddo
-!     enddo
-!     if(numphi .gt. 0) then
-!        print*, "**************** nflux, final x  flux hi = ", numphi, phitot/numphi
-!     endif
-!
-!     numphi = 0
-!     rnumphi = 0.0d0
-!     phitot = 0.0d0
-!     do    j = deblocell(2), debhicell(2)
-!        do i = deblocell(1), debhicell(1)
-!           numphi = numphi + 1
-!           rnumphi = rnumphi+ 1.0d0
-!           phitot = phitot + dphidtout(i,j)
-!           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
-!        enddo
-!     enddo
-!     if(numphi .gt. 0) then
-!        print*, "**************** ndphidt, final dphidt = ", numphi, phitot/rnumphi
-!     endif
-! endif
+  if(printstuff.eq.1) then
+     numphi = 0
+     phitot = 0.0d0
+     do    j = losidedebfacelo(2), losidedebfacehi(2)
+        do i = losidedebfacelo(1), losidedebfacehi(1)
+           numphi = numphi + 1
+           phitot = phitot +flxx(i,j)
+           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+        enddo
+     enddo
+     if(numphi .gt. 0) then
+        print*, "**************** nflux, final x  flux lo = ", numphi, phitot/numphi
+     endif
+     numphi = 0
+     phitot = 0.0d0
+     do    j = hisidedebfacelo(2), hisidedebfacehi(2)
+        do i = hisidedebfacelo(1), hisidedebfacehi(1)
+           numphi = numphi + 1
+           phitot = phitot +flxx(i,j)
+           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+        enddo
+     enddo
+     if(numphi .gt. 0) then
+        print*, "**************** nflux, final x  flux hi = ", numphi, phitot/numphi
+     endif
+
+     numphi = 0
+     rnumphi = 0.0d0
+     phitot = 0.0d0
+     do    j = deblocell(2), debhicell(2)
+        do i = deblocell(1), debhicell(1)
+           numphi = numphi + 1
+           rnumphi = rnumphi+ 1.0d0
+           phitot = phitot + dphidtout(i,j)
+           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+        enddo
+     enddo
+     if(numphi .gt. 0) then
+        print*, "**************** ndphidt, final dphidt = ", numphi, phitot/rnumphi
+     endif
+ endif
        
   ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)

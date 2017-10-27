@@ -98,7 +98,13 @@ namespace amrex
                                 amrex::Real dt,
                                 int  iteration,
                                 int  ncycle) ;
+
     amrex::Real advanceMOLRK3  (Real time,
+                                Real dt,
+                                int  iteration,
+                                int  ncycle);
+
+    amrex::Real  advanceMOLRK4 (Real time,
                                 Real dt,
                                 int  iteration,
                                 int  ncycle);
