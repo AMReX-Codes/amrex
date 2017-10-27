@@ -34,4 +34,7 @@
 
 #endif
 
+#define FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
+#define FORT_LAUNCHABLE(func) func
+
 #endif

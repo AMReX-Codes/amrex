@@ -44,11 +44,12 @@ public:
     // domain bc is not Dirichlet.
     bool needsCoarseDataForBC () const { return m_needs_coarse_data_for_bc; }
 
-    // If needs coarse data for bc, this must be called.  MultiFab
+    // If needs coarse data for bc, this should be called.  MultiFab
     // crse does not need to have ghost cells.  The data are at coarse
-    // resolution.  If this needs to be called, it must be called
-    // before `setLevelBC`.
-    void setBCWithCoarseData (const MultiFab& crse, int crse_ratio);
+    // resolution.  If this is called, it *MUST* be called before
+    // `setLevelBC`.  If crse is nullptr, then bc value is assumed to
+    // be zero.
+    void setBCWithCoarseData (const MultiFab* crse, int crse_ratio);
 
     // Must be called for each level.  Argument `levelbcdata` is used
     // to supply Dirichlet bc at the physical domain.  However, even
@@ -133,13 +134,14 @@ protected:
                  BCMode bc_mode = BCMode::Homogeneous, bool skip_fillboundary=false) const;
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const;
+    void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const;
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
-                        std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
     virtual Real Anorm (int amrlev, int mglev) const = 0;
 

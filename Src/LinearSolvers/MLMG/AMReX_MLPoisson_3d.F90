@@ -26,9 +26,9 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             y(i,j,k) = dhx * (x(i-1,j,k) + 2.d0*x(i,j,k) + x(i+1,j,k)) &
-                  +     dhy * (x(i,j-1,k) + 2.d0*x(i,j,k) + x(i,j+1,k)) &
-                  +     dhz * (x(i,j,k-1) + 2.d0*x(i,j,k) + x(i,j,k+1))
+             y(i,j,k) = dhx * (x(i-1,j,k) - 2.d0*x(i,j,k) + x(i+1,j,k)) &
+                  +     dhy * (x(i,j-1,k) - 2.d0*x(i,j,k) + x(i,j+1,k)) &
+                  +     dhz * (x(i,j,k-1) - 2.d0*x(i,j,k) + x(i,j,k+1))
           end do
        end do
     end do
@@ -134,59 +134,39 @@ contains
 
     integer :: i,j, k, ioff
     real(amrex_real) :: dhx, dhy, dhz, cf0, cf1, cf2, cf3, cf4, cf5
-    real(amrex_real) :: g_m_d, res
+    real(amrex_real) :: gamma, g_m_d, res
     real(amrex_real), parameter :: omega = 1.15d0
 
     dhx = dxinv(1)*dxinv(1)
     dhy = dxinv(2)*dxinv(2)
     dhz = dxinv(3)*dxinv(3)
 
+    gamma = -2.d0*(dhx+dhy+dhz)
+
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
           ioff = mod(lo(1) + j + k + redblack,2)
           do i = lo(1) + ioff, hi(1), 2
 
-             if ((i .eq. blo(1)) .and. (m0(blo(1)-1,j,k).gt.0)) then
-                cf0 = f0(blo(1),j,k)
-             else
-                cf0 = 0.d0
-             end if
+             cf0 = merge(f0(blo(1),j,k), 0.d0,  &
+                  &      (i .eq. blo(1)) .and. (m0(blo(1)-1,j,k).gt.0))
+             cf1 = merge(f1(i,blo(2),k), 0.d0,  &
+                  &      (j .eq. blo(2)) .and. (m1(i,blo(2)-1,k).gt.0))
+             cf2 = merge(f2(i,j,blo(3)), 0.d0,  &
+                  &      (k .eq. blo(3)) .and. (m2(i,j,blo(3)-1).gt.0))
+             cf3 = merge(f3(bhi(1),j,k), 0.d0,  &
+                  &      (i .eq. bhi(1)) .and. (m3(bhi(1)+1,j,k).gt.0))
+             cf4 = merge(f4(i,bhi(2),k), 0.d0,  &
+                  &      (j .eq. bhi(2)) .and. (m4(i,bhi(2)+1,k).gt.0))
+             cf5 = merge(f5(i,j,bhi(3)), 0.d0,  &
+                  &      (k .eq. bhi(3)) .and. (m5(i,j,bhi(3)+1).gt.0))
 
-             if ((j .eq. blo(2)) .and. (m1(i,blo(2)-1,k).gt.0)) then
-                cf1 = f1(i,blo(2),k)
-             else
-                cf1 = 0.d0
-             end if
+             g_m_d = gamma + dhx*(cf0+cf3) + dhy*(cf1+cf4) + dhz*(cf2+cf5)
 
-             if ((k .eq. blo(3)) .and. (m2(i,j,blo(3)-1).gt.0)) then
-                cf2 = f2(i,j,blo(3))
-             else 
-                cf2 = 0.d0
-             end if
-
-             if ((i .eq. bhi(1)) .and. (m3(bhi(1)+1,j,k).gt.0)) then
-                cf3 = f3(bhi(1),j,k)
-             else
-                cf3 = 0.d0
-             end if
-
-             if ((j .eq. bhi(2)) .and. (m4(i,bhi(2)+1,k).gt.0)) then
-                cf4 = f4(i,bhi(2),k)
-             else
-                cf4 = 0.d0
-             end if
-
-             if ((k .eq. bhi(3)) .and. (m5(i,j,bhi(3)+1).gt.0)) then
-                cf5 = f5(i,j,bhi(3))
-             else
-                cf5 = 0.d0
-             end if
-
-             g_m_d = dhx*(cf0 + cf3) + dhy*(cf1 + cf4) + dhz*(cf2 + cf5)
-
-             res = rhs(i,j,k) - dhx*(phi(i-1,j,k) + phi(i+1,j,k))  &
-                  &           - dhy*(phi(i,j-1,k) + phi(i,j+1,k))  &
-                  &           - dhz*(phi(i,j,k-1) + phi(i,j,k+1))
+             res = rhs(i,j,k) - gamma*phi(i,j,k) &
+                  - dhx*(phi(i-1,j,k) + phi(i+1,j,k))  &
+                  - dhy*(phi(i,j-1,k) + phi(i,j+1,k))  &
+                  - dhz*(phi(i,j,k-1) + phi(i,j,k+1))
 
              phi(i,j,k) = phi(i,j,k) + omega/g_m_d * res
 
