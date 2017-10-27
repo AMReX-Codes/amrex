@@ -3,8 +3,11 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 
+#include <prob_par.H>
+
 using namespace amrex;
 
+void init_prob_parms ();
 void build_geometry_and_grids (Vector<Geometry>& geom, Vector<BoxArray>& grids);
 void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<MultiFab>& beta,
                 Vector<MultiFab>& rhs, Vector<MultiFab>& exact);
@@ -30,6 +33,8 @@ int main (int argc, char* argv[])
     amrex::Initialize(argc, argv);
     
     {
+        BL_PROFILE("main()");
+
         ParmParse pp;
         pp.query("max_level", max_level);
         nlevels = max_level + 1;
@@ -37,6 +42,8 @@ int main (int argc, char* argv[])
         pp.query("n_cell", n_cell);
         pp.query("max_grid_size", max_grid_size);
         pp.query("ref_ratio", ref_ratio);
+
+        init_prob_parms();
 
         Vector<Geometry> geom(nlevels);
         Vector<BoxArray> grids(nlevels);
@@ -101,7 +108,11 @@ void build_geometry_and_grids (Vector<Geometry>& geom, Vector<BoxArray>& grids)
     RealBox real_box{prob_lo, prob_hi};
 
     const int coord = 0;  // Cartesian coordinates
-    std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};  // Non-periodic for now
+    std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
+    if (prob::bc_type == MLLinOp::BCType::Periodic)
+    {
+        std::fill(is_periodic.begin(), is_periodic.end(), 1);
+    }
 
     geom[0].define(dom0, &real_box, coord, is_periodic.data());
     for (int ilev=1, n=grids.size(); ilev < n; ++ilev)

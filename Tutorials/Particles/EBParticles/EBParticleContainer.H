@@ -33,7 +33,8 @@ namespace amrex {
         void bounceWalls(const MultiFab& dummy,
                          const MultiFab* volfrac,
                          const MultiCutFab* bndrycent,
-                         std::array<const MultiCutFab*, AMREX_SPACEDIM>& areafrac);
+                         std::array<const MultiCutFab*, AMREX_SPACEDIM>& areafrac,
+                         const Real dt);
         
         void writeParticles(int n);
     };
