@@ -36,6 +36,7 @@ struct BLBackTrace
 {
     static void handler(int s);
     static void print_backtrace_info (FILE* f);
+    static void print_backtrace_info (std::string filename);
 
 #ifdef BL_BACKTRACING
     static std::stack<std::pair<std::string, std::string> > bt_stack;
