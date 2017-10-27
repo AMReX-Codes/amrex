@@ -17,8 +17,12 @@ public:
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
-    void solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-                Real a_tol_real, Real a_tol_abs);
+    Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
+                Real a_tol_rela, Real a_tol_abs);
+
+    void getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
+    void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
+                       const Vector<MultiFab const*>& a_rhs);
 
     void setVerbose (int v) { verbose = v; }
     void setMaxIter (int n) { max_iters = n; }

@@ -57,7 +57,8 @@ namespace amrex
     */
     void Assert (const char* EX,
                  const char* file,
-                 int         line);
+                 int         line,
+                 const char* msg = nullptr);
     /**
     * \brief Prints out an out-of-memory message and aborts.  It is
     *         called by various BoxLib routines when a call to new fails.

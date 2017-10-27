@@ -43,11 +43,11 @@ do
 \end{verbatim}
 The coordinate directions are zero based.
 
-\section{Array}
+\section{Vector}
 
-{\tt Array} class in {\tt AMReX\_Array.H} is derived from {\tt
-  std::vector}.  The only difference between {\tt Array} and {\tt
-  std::vector} is that {\tt Array::operator[]} provides bound checking
+{\tt Vector} class in {\tt AMReX\_Vector.H} is derived from {\tt
+  std::vector}.  The only difference between {\tt Vector} and {\tt
+  std::vector} is that {\tt Vector::operator[]} provides bound checking
 when compiled with {\tt DEBUG=TRUE}.
 
 \section{Real}
@@ -1619,14 +1619,14 @@ helper function for this and one can use it as follows,
    WriteMultiLevelPlotfile(......, amrex::GetVecOfConstPtrs(mf), ......);
 \end{lstlisting}
 Argument {\tt varnames} has the names for each component of the {\tt
-MultiFab} data.  The size of the {\tt Array} should be equal to the
+MultiFab} data.  The size of the {\tt Vector} should be equal to the
 number of components.  Argument {\tt geom} is for passing {\tt
 Geometry} objects that contain the physical domain
 information. Argument {\tt time} is for the time associated with the
 data.  Argument {\tt level\_step} is for the current time step
 associated with the data.  For multi-level plotfiles, argument {\tt
 nlevels} is the total number of levels, and we also need to provide
-the refinement ratio via an {\tt Array} of size {\tt nlevels-1}.
+the refinement ratio via an {\tt Vector} of size {\tt nlevels-1}.
 
 We note that \amrex\ does not overwrite old plotfiles if the new
 plotfile has the same name.  The old plotfiles will be renamed to
