@@ -39,6 +39,8 @@ contains
     end do
   end function amrex_coarsen_intvect
 
+
+
   AMREX_DEVICE subroutine get_loop_bounds(blo, bhi, lo, hi)
 
     implicit none

@@ -93,9 +93,10 @@ void EBParticleContainer::moveParticles(const Real dt) {
 }
 
 void EBParticleContainer::bounceWalls(const MultiFab& dummy,
-                                                const MultiFab* volfrac,
-                                                const MultiCutFab* bndrycent,
-                                                std::array<const MultiCutFab*, AMREX_SPACEDIM>& areafrac)
+                                      const MultiFab* volfrac,
+                                      const MultiCutFab* bndrycent,
+                                      std::array<const MultiCutFab*, AMREX_SPACEDIM>& areafrac,
+                                      const Real dt) 
 {
     
     BL_PROFILE("EBParticleContainer::bounceWalls");
@@ -119,7 +120,7 @@ void EBParticleContainer::bounceWalls(const MultiFab& dummy,
         if (flag.getType(bx) == FabType::regular) {
             continue;
         } else {
-            amrex_bounce_walls(particles.data(), &Np, plo, dx,
+            amrex_bounce_walls(particles.data(), &Np, plo, dx, &dt,
                                flag.dataPtr(), flag.loVect(), flag.hiVect(),
                                (*bndrycent)[pti].dataPtr(), 
                                (*bndrycent)[pti].loVect(), (*bndrycent)[pti].hiVect(),

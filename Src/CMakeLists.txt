@@ -32,6 +32,11 @@ include (Amr/CMakeLists.txt)
 #
 # Optional components
 #
+if (ENABLE_EB)
+   include (EB/CMakeLists.txt)
+   include (GeometryShop/CMakeLists.txt)
+endif ()
+
 if (ENABLE_FBASELIB)
    include (F_BaseLib/CMakeLists.txt)
 endif ()

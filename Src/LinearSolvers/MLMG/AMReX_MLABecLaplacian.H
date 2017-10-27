@@ -7,6 +7,8 @@
 
 namespace amrex {
 
+// (alpha * a - beta * (del dot b grad)) phi
+
 class MLABecLaplacian
     : public MLLinOp
 {
@@ -31,6 +33,17 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
+protected:
+
+    virtual void prepareForSolve () final;
+    virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
+    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
+    virtual void FFlux (int amrlev, const MFIter& mfi,
+                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
+                        const FArrayBox& sol, const int face_only=0) const final;
+    virtual Real Anorm (int amrlev, int mglev) const final;
+
 private:
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
@@ -39,6 +52,8 @@ private:
     Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
     mutable Vector<Vector<Real> > m_Anorm;
+
+    Vector<int> m_is_singular;
 
     //
     // functions
@@ -49,14 +64,6 @@ private:
 
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
-
-    virtual void prepareForSolve () final;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
-    virtual void FFlux (int amrlev, const MFIter& mfi, std::array<FArrayBox,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const final;
-    virtual Real Anorm (int amrlev, int mglev) const final;
-
 };
 
 }

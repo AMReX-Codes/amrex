@@ -17,20 +17,22 @@ public:
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
-    void solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-                Real a_tol_real, Real a_tol_abs);
+    Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
+                Real a_tol_rela, Real a_tol_abs);
+
+    void getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
+    void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
+                       const Vector<MultiFab const*>& a_rhs);
 
     void setVerbose (int v) { verbose = v; }
     void setMaxIter (int n) { max_iters = n; }
+    void setMaxFmgIter (int n) { max_fmg_iters = n; }
     void setFixedIter (int nit) { do_fixed_number_of_iters = nit; }
 
     void setPreSmooth (int n) { nu1 = n; }
     void setPostSmooth (int n) { nu2 = n; }
-    void setCtrRelax (int n) { nu0 = n; }
     void setFinalSmooth (int n) { nuf = n; }
     void setBottomSmooth (int n) { nub = n; }
-
-    void setNFCycles (int n) { nfcycles = n; }
 
     void setBottomSolver (BottomSolver s) { bottom_solver = s; }
     void setCGVerbose (int v) { cg_verbose = v; }
@@ -45,13 +47,12 @@ private:
     int max_iters = 200;
     int do_fixed_number_of_iters = 0;
 
-    int nu0 = 1;   // center
     int nu1 = 2;   // pre
     int nu2 = 2;   // post
     int nuf = 8;   // when smoother is used as bottom solver
     int nub = 0;   // aditional smoothing after bottom cg solver
 
-    int nfcycles = 20;
+    int max_fmg_iters = 20;
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  cg_verbose            = 0;
@@ -69,14 +70,14 @@ private:
 
     Vector<MultiFab*>         sol;  // alias to argument a_sol
     Vector<MultiFab>          rhs;  // Copy of original rhs
+                                    // L(sol) = rhs
 
     // First Vector: Amr levels.  0 is the coarest level
     // Second Vector: MG levels.  0 is the finest level
-    Vector<Vector<MultiFab> > res;    // = rhs - L(sol)
-    Vector<Vector<MultiFab> > cor;    // L(cor) = res
-    Vector<Vector<MultiFab> > rescor; // = res - L(cor)   Residual of the correction form
-
-    Vector<MultiFab> cor_hold;
+    Vector<Vector<MultiFab> >                   res; // = rhs - L(sol)
+    Vector<Vector<std::unique_ptr<MultiFab> > > cor; // L(cor) = res
+    Vector<Vector<std::unique_ptr<MultiFab> > > cor_hold;
+    Vector<Vector<MultiFab> >                rescor; // = res - L(cor)  Residual of the correction form
 
     Vector<iMultiFab> fine_mask;
 
@@ -94,11 +95,12 @@ private:
 
     void bottomSolve ();
 
-    void computeMLResidual (int amrlevmax, bool bndryregister_updated = false);
+    void computeMLResidual (int amrlevmax);
     void computeResidual (int alev);
     void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
     void computeResWithCrseCorFineCor (int fine_amr_lev);
     void interpCorrection (int alev);
+    void interpCorrection (int alev, int mglev);
     void addInterpCorrection (int alev, int mglev);
 
     void computeResOfCorrection (int amrlev, int mglev);

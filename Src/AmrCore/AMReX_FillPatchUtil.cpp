@@ -267,25 +267,28 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
-	{
-	    FArrayBox& dfab = mf[mfi];
-	    const Box& dbx = dfab.box() & fdomain_g;
-
+        {
 	    Vector<BCRec> bcr(ncomp);
-	    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
-	    
-	    mapper->interp(mf_crse_patch[mfi],
-			   0,
-			   mf[mfi],
-			   dcomp,
-			   ncomp,
-			   dbx,
-			   ratio,
-			   cgeom,
-			   fgeom,
-			   bcr,
-			   idummy1, idummy2);	    
+
+            for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+            {
+                FArrayBox& dfab = mf[mfi];
+                const Box& dbx = dfab.box() & fdomain_g;
+                
+                amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+                
+                mapper->interp(mf_crse_patch[mfi],
+                               0,
+                               mf[mfi],
+                               dcomp,
+                               ncomp,
+                               dbx,
+                               ratio,
+                               cgeom,
+                               fgeom,
+                               bcr,
+                               idummy1, idummy2);	    
+            }
 	}
 
 	fbc.FillBoundary(mf, dcomp, ncomp, time);

@@ -205,18 +205,33 @@ YAFluxRegister::CrseAdd (const MFIter& mfi,
 
 void
 YAFluxRegister::FineAdd (const MFIter& mfi,
-                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
+                         const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
                          const Real* dx, Real dt)
 {
-    BL_ASSERT(m_cfpatch.nComp() == flux[0]->nComp());
+    BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
 
     const int li = mfi.LocalIndex();
     Vector<FArrayBox*>& fabs = m_cfp_fab[li];
     if (fabs.empty()) return;
 
-    const Box& bx = amrex::coarsen(mfi.tilebox(), m_ratio);
     const int nc = m_cfpatch.nComp();
 
+    const Box& tbx = mfi.tilebox();
+    const Box& bx = amrex::coarsen(tbx, m_ratio);
+    const Box& fbx = amrex::refine(bx, m_ratio);
+
+    std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
+    std::array<FArrayBox,AMREX_SPACEDIM> ftmp;
+    if (fbx != tbx) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            const Box& b = amrex::surroundingNodes(fbx,idim);
+            ftmp[idim].resize(b,nc);
+            ftmp[idim].setVal(0.0);
+            ftmp[idim].copy(*a_flux[idim]);
+            flux[idim] = &ftmp[idim];
+        }
+    }
+    
     AMREX_ALWAYS_ASSERT(bx.cellCentered());
 
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)

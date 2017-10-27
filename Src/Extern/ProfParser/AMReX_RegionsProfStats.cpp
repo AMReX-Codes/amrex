@@ -69,12 +69,16 @@ extern void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats
 
 
 #define PRINTCS(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
-                 << CS.totalTime << " :: " << CS.stackTime << " :: " \
+                 << CS.totalTime << " :: " << CS.stackTime << " :: " << \
+                 ((CS.totalTime > 0.0) ? (( 1.0 - (CS.stackTime / CS.totalTime)) * 100.0) :  ( 0.0 )) \
+		 << " % :: " \
 		 << CS.nCSCalls  << " :: " << CS.callStackDepth << " :: " \
 		 << CS.callTime
 
 #define PRINTCSNC(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
-                   << CS.totalTime << " :: " << CS.stackTime << " :: " \
+                   << CS.totalTime << " :: " << CS.stackTime << " :: " << \
+                   ((CS.totalTime > 0.0) ? (( 1.0 - (CS.stackTime / CS.totalTime)) * 100.0) :  ( 0.0 )) \
+		   << " % :: " \
 		   << CS.nCSCalls  << " :: " << CS.callStackDepth
 
 
@@ -639,7 +643,6 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
   for(int i(0); i < fNames.size(); ++i) {
     if(i >= 0) {
       fNames[i] = numbersToFName[i];
-      std::cout << "------------------:: fNames[" << i << "] = " << fNames[i] << std::endl;
     }
   }
 
@@ -767,7 +770,7 @@ void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,
   csHTMLFile << '\n';
 
   csHTMLFile << "<h3>Function call times  "
-             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth :: call time)</h3>"
+             << "(function number :: function name :: inclusive time :: exclusive time :: 1-e/i % :: ncalls :: callstackdepth :: call time)</h3>"
 	     << '\n';
 
   csHTMLFile << "<ul>" << '\n';
@@ -1008,7 +1011,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
   csHTMLFile << '\n';
 
   csHTMLFile << "<h3>Function calls "
-             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth)</h3>"
+             << "(function number :: function name :: inclusive time :: exclusive time :: 1-e/i % :: ncalls :: callstackdepth)</h3>"
 	     << '\n';
 
   csHTMLFile << "<ul>" << '\n';
