@@ -24,6 +24,8 @@
     use amrex_fort_module, only : amrex_real
     use eb_particle_module, only : particle_t
 
+    implicit none
+
     integer,          intent(in   )         :: np
     type(particle_t), intent(inout), target :: particles(np)
     real(amrex_real), intent(in   )         :: dt
@@ -47,7 +49,7 @@
 
   end subroutine amrex_move_particles
 
-  subroutine amrex_bounce_walls(particles, np, plo, dx, &
+  subroutine amrex_bounce_walls(particles, np, plo, dx, dt, &
        flag, fglo, fghi, bcent, blo, bhi, apx, axlo, axhi, apy, aylo, ayhi) &
        bind(c,name='amrex_bounce_walls')
     
@@ -65,7 +67,7 @@
     real(amrex_real), intent(in) :: apx(axlo(1):axhi(1),axlo(2):axhi(2))
     real(amrex_real), intent(in) :: apy(aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(amrex_real), intent(in) :: plo(2)
-    real(amrex_real), intent(in) :: dx(2)
+    real(amrex_real), intent(in) :: dx(2), dt
 
     real(amrex_real) inv_dx(2)
     real(amrex_real) :: lx, ly
@@ -94,8 +96,8 @@
 
        if (is_covered_cell(flag(i, j))) then
 
-          p%pos(1) = p%pos(1) - 0.0005d0 * p%vel(1)
-          p%pos(2) = p%pos(2) - 0.0005d0 * p%vel(2)
+          p%pos(1) = p%pos(1) - dt * p%vel(1)
+          p%pos(2) = p%pos(2) - dt * p%vel(2)
 
           lx = (p%pos(1) - plo(1))*inv_dx(1)
           ly = (p%pos(2) - plo(2))*inv_dx(2)
@@ -103,8 +105,8 @@
           i = floor(lx)
           j = floor(ly)
 
-          p%pos(1) = p%pos(1) + 0.0005d0 * p%vel(1)
-          p%pos(2) = p%pos(2) + 0.0005d0 * p%vel(2)
+          p%pos(1) = p%pos(1) + dt * p%vel(1)
+          p%pos(2) = p%pos(2) + dt * p%vel(2)
        end if
 
 ! this is a cut cell. compute normal

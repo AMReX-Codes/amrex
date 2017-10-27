@@ -76,7 +76,9 @@ contains
              do j = lo(2), hi(2)
                 do joff = 0, ratio(2)-1
                    jj = j*ratio(2)+joff
+                   !$omp atomic
                    d(i,j,n) = d(i,j,n) - fac*f(ii,jj,n)
+                   !$omp end atomic
                 end do
              end do
           end do
@@ -90,7 +92,9 @@ contains
              do j = lo(2), hi(2)
                 do joff = 0, ratio(2)-1
                    jj = j*ratio(2)+joff
+                   !$omp atomic
                    d(i,j,n) = d(i,j,n) + fac*f(ii,jj,n)
+                   !$omp end atomic
                 end do
              end do
           end do
@@ -110,7 +114,9 @@ contains
              do ioff = 0, ratio(1)-1
                 do i = lo(1), hi(1)
                    ii = i*ratio(1)+ioff
+                   !$omp atomic
                    d(i,j,n) = d(i,j,n) - fac*f(ii,jj,n)
+                   !$omp end atomic
                 end do
              end do
           end do
@@ -124,7 +130,9 @@ contains
              do ioff = 0, ratio(1)-1
                 do i = lo(1), hi(1)
                    ii = i*ratio(1)+ioff
+                   !$omp atomic
                    d(i,j,n) = d(i,j,n) + fac*f(ii,jj,n)
+                   !$omp end atomic
                 end do
              end do
           end do

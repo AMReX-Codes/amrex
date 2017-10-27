@@ -13,6 +13,8 @@
 #include <omp.h>
 #endif
 
+#define CG_USE_OLD_CONVERGENCE_CRITERIA 1
+
 namespace amrex {
 
 namespace {

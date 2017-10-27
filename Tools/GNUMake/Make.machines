@@ -36,9 +36,19 @@ ifeq ($(findstring titan, $(host_name)), titan)
   which_computer := titan
 endif
 
-ifeq ($(findstring summit, $(host_name)), summit)
+ifeq ($(findstring summitdev, $(host_name)), summitdev)
   which_site := olcf
-  which_computer := summit
+  which_computer := summitdev
+endif
+
+ifeq ($(findstring ray, $(host_name)), ray)
+  which_site := llnl
+  which_computer := ray
+endif
+
+ifeq ($(findstring rzmanta, $(host_name)), rzmanta)
+  which_site := llnl
+  which_computer := rzmanta
 endif
 
 ifeq ($(findstring mira, $(host_name)), mira)

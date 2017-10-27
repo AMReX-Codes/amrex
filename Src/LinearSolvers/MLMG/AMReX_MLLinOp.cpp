@@ -1,4 +1,5 @@
 
+#include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_LO_F.H>
 
@@ -20,7 +21,16 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<DistributionMapping>& a_dmap)
 {
     BL_PROFILE("MLLinOp::define()");
+    defineGrids(a_geom, a_grids, a_dmap);
+    defineAuxData();
+    defineBC();
+}
 
+void
+MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
+                      const Vector<BoxArray>& a_grids,
+                      const Vector<DistributionMapping>& a_dmap)
+{
     m_num_amr_levels = a_geom.size();
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
@@ -29,18 +39,6 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
-
-    m_undrrelxr.resize(m_num_amr_levels);
-
-    m_maskvals.resize(m_num_amr_levels);
-
-    m_fluxreg.resize(m_num_amr_levels-1);
-
-    m_bndry_sol.resize(m_num_amr_levels);
-    m_crse_sol_br.resize(m_num_amr_levels);
-
-    m_bndry_cor.resize(m_num_amr_levels);
-    m_crse_cor_br.resize(m_num_amr_levels);
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -97,6 +95,22 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
         rr *= mg_coarsen_ratio;
     }
 
+    m_domain_covered.resize(m_num_amr_levels, false);
+    m_domain_covered[0] = (m_grids[0][0].numPts() == m_geom[0][0].Domain().numPts());
+    for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        if (!m_domain_covered[amrlev-1]) break;
+        m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() == m_geom[amrlev][0].Domain().numPts());
+    }
+}
+
+void
+MLLinOp::defineAuxData ()
+{
+    m_undrrelxr.resize(m_num_amr_levels);
+    m_maskvals.resize(m_num_amr_levels);
+    m_fluxreg.resize(m_num_amr_levels-1);
+
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_undrrelxr[amrlev].resize(m_num_mg_levels[amrlev]);
@@ -133,11 +147,23 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                                  m_geom[amrlev+1][0], m_geom[amrlev][0],
                                  ratio, amrlev+1, 1);
     }
-    
+}
+
+void
+MLLinOp::defineBC ()
+{
+    m_bndry_sol.resize(m_num_amr_levels);
+    m_crse_sol_br.resize(m_num_amr_levels);
+
+    m_bndry_cor.resize(m_num_amr_levels);
+    m_crse_cor_br.resize(m_num_amr_levels);
+
+    m_needs_coarse_data_for_bc = !m_domain_covered[0];
+        
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_bndry_sol[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                              1, m_geom[amrlev][0]));
+                                               1, m_geom[amrlev][0]));
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -172,7 +198,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     {
         m_bndry_cor[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
                                               1, m_geom[amrlev][0]));
-        // this will make it Dirichlet
+        // this will make it Dirichlet, what we want for correction
         BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
                       AMREX_D_DECL(Outflow,Outflow,Outflow)};
         
@@ -202,24 +228,85 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
 }
 
 void
-MLLinOp::setDirichletBC (int amrlev, const MultiFab& bc_data, const MultiFab* crse_bcdata)
+MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
+                      const std::array<BCType,AMREX_SPACEDIM>& a_hibc)
 {
-    BL_PROFILE("MLLinOp::setDirichletBC()");
+    m_lobc = a_lobc;
+    m_hibc = a_hibc;
+}
 
-    // this will make it Dirichlet
-    BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
-                  AMREX_D_DECL(Outflow,Outflow,Outflow)};
+void
+MLLinOp::setBCWithCoarseData (const MultiFab* crse, int crse_ratio)
+{
+    m_coarse_data_for_bc = crse;
+    m_coarse_data_crse_ratio = crse_ratio;
+}
 
-    if (crse_bcdata == nullptr)
+void
+MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
+{
+    BL_PROFILE("MLLinOp::setLevelBC()");
+
+    BCRec phys_bc;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-        AMREX_ALWAYS_ASSERT(amrlev == 0);
-        m_bndry_sol[amrlev]->setBndryValues(bc_data,0,0,1,phys_bc);
+        AMREX_ALWAYS_ASSERT(m_lobc[idim] != BCType::Bogus);
+        if (m_lobc[idim] == BCType::Dirichlet) {
+            phys_bc.setLo(idim, Outflow);  // MacBndry treats it as Dirichlet
+        } else {
+            phys_bc.setLo(idim, Inflow);   // MacBndry treats it as Neumann
+        }
+        AMREX_ALWAYS_ASSERT(m_hibc[idim] != BCType::Bogus);
+        if (m_hibc[idim] == BCType::Dirichlet) {
+            phys_bc.setHi(idim, Outflow);  // MacBndry treats it as Dirichlet
+        } else {
+            phys_bc.setHi(idim, Inflow);   // MacBndry treats it as Neumann
+        }        
+    }
+
+    MultiFab zero;
+    if (a_levelbcdata == nullptr) {
+        zero.define(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
+        zero.setVal(0.0);
+    } else {
+        AMREX_ALWAYS_ASSERT(a_levelbcdata->nGrow() >= 1);
+    }
+    const MultiFab& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
+
+    if (amrlev == 0)
+    {
+        if (needsCoarseDataForBC())
+        {
+            if (m_crse_sol_br[amrlev] == nullptr)
+            {
+                const int ncomp = 1;
+                const int in_rad = 0;
+                const int out_rad = 1;
+                const int extent_rad = 2;
+                const int crse_ratio = m_coarse_data_crse_ratio;
+                BoxArray cba = m_grids[amrlev][0];
+                cba.coarsen(crse_ratio);
+                m_crse_sol_br[amrlev].reset(new BndryRegister(cba, m_dmap[amrlev][0],
+                                                              in_rad, out_rad,
+                                                              extent_rad, ncomp));
+            }
+            if (m_coarse_data_for_bc != nullptr) {
+                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+            } else {
+                m_crse_sol_br[amrlev]->setVal(0.0);
+            }
+            m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
+                                                bcdata, 0, 0, 1,
+                                                m_coarse_data_crse_ratio, phys_bc);
+        }
+        else
+        {
+            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,phys_bc);
+        }
     }
     else
     {
-        m_crse_sol_br[amrlev]->copyFrom(*crse_bcdata, 0, 0, 0, 1);
-        m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0, bc_data, 0, 0, 1,
-                                            m_amr_ref_ratio[amrlev-1], phys_bc);
+        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], phys_bc);
     }
 }
 
@@ -369,24 +456,30 @@ MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
 void
 MLLinOp::reflux (int crse_amrlev, MultiFab& res,
-                 const MultiFab& crse_sol, const MultiFab& fine_sol) const
+                 const MultiFab& crse_sol, MultiFab& fine_sol) const
 {
     BL_PROFILE("MLLinOp::reflux()");
     YAFluxRegister& fluxreg = m_fluxreg[crse_amrlev];
     fluxreg.reset();
 
+    const int fine_amrlev = crse_amrlev+1;
+
     Real dt = 1.0;
-    const Real* crse_dx = m_geom[crse_amrlev  ][0].CellSize();
-    const Real* fine_dx = m_geom[crse_amrlev+1][0].CellSize();
+    const Real* crse_dx = m_geom[crse_amrlev][0].CellSize();
+    const Real* fine_dx = m_geom[fine_amrlev][0].CellSize();
+
+    const int mglev = 0;
+    applyBC(fine_amrlev, mglev, fine_sol, BCMode::Inhomogeneous, m_bndry_sol[fine_amrlev].get());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox const*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        std::array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
-        for (MFIter mfi(crse_sol, MFItInfo().SetDynamic(true));  mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
             if (fluxreg.CrseHasWork(mfi))
             {
@@ -394,12 +487,16 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                 AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
-                FFlux(crse_amrlev, mfi, flux, crse_sol[mfi]);
-                fluxreg.CrseAdd(mfi, pflux, crse_dx, dt);
+                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi]);
+                fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
             }
         }
 
-        for (MFIter mfi(fine_sol, MFItInfo().SetDynamic(true));  mfi.isValid(); ++mfi)
+#ifdef _OPENMP
+#pragma omp barrier
+#endif
+
+        for (MFIter mfi(fine_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
             if (fluxreg.FineHasWork(mfi))
             {
@@ -408,13 +505,42 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
                 const int face_only = true;
-                FFlux(crse_amrlev+1, mfi, flux, fine_sol[mfi], face_only);
-                fluxreg.FineAdd(mfi, pflux, fine_dx, dt);            
+                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], face_only);
+                fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
             }
         }
     }
 
     fluxreg.Reflux(res);
+}
+
+void
+MLLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
+{
+    BL_PROFILE("MLLinOp::compFlux()");
+
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::array<FArrayBox,AMREX_SPACEDIM> flux;
+        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        {
+            const Box& tbx = mfi.tilebox();
+            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
+                         flux[1].resize(amrex::surroundingNodes(tbx,1));,
+                         flux[2].resize(amrex::surroundingNodes(tbx,2)););
+            FFlux(amrlev, mfi, pflux, sol[mfi]);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& nbx = mfi.nodaltilebox(idim);
+                (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, 1);
+            }
+        }
+    }
 }
 
 }

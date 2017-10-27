@@ -139,6 +139,30 @@ MLABecLaplacian::prepareForSolve ()
     {
         m_Anorm[alev].assign(m_num_mg_levels[alev], -1.0);
     }
+
+    m_is_singular.clear();
+    m_is_singular.resize(m_num_amr_levels, false);
+    auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
+    auto ithi = std::find(m_hibc.begin(), m_hibc.end(), BCType::Dirichlet);
+    if (itlo == m_lobc.end() && ithi == m_hibc.end())
+    {  // No Dirichlet
+        for (int alev = 0; alev < m_num_amr_levels; ++alev)
+        {
+            if (m_domain_covered[alev])
+            {
+                if (m_a_scalar == 0.0)
+                {
+                    m_is_singular[alev] = true;
+                }
+                else
+                {
+                    Real asum = m_a_coeffs[alev][0].sum();
+                    Real amax = m_a_coeffs[alev][0].norm0();
+                    m_is_singular[alev] = (asum <= amax * 1.e-12);
+                }
+            }
+        }
+    }
 }
 
 void
@@ -306,7 +330,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
 void
 MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
-                        std::array<FArrayBox,AMREX_SPACEDIM>& flux,
+                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only) const
 {
     BL_PROFILE("MLABecLaplacian::FFlux()");
@@ -319,9 +343,9 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
     amrex_mlabeclap_flux(BL_TO_FORTRAN_BOX(box),
-                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(flux[0]),
-                                      BL_TO_FORTRAN_ANYD(flux[1]),
-                                      BL_TO_FORTRAN_ANYD(flux[2])),
+                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
+                                      BL_TO_FORTRAN_ANYD(*flux[1]),
+                                      BL_TO_FORTRAN_ANYD(*flux[2])),
                          BL_TO_FORTRAN_ANYD(sol),
                          AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
                                       BL_TO_FORTRAN_ANYD(by),
