@@ -442,6 +442,14 @@ DistributionMapping::define (const Vector<int>& pmap)
     m_ref->m_pmap = pmap;
 }
 
+void
+DistributionMapping::define (const Vector<int>& pmap,
+                             ParallelDescriptor::Color a_color)
+{
+    m_color = a_color;
+    m_ref->m_pmap = pmap;
+}
+
 DistributionMapping::~DistributionMapping () { }
 
 void
