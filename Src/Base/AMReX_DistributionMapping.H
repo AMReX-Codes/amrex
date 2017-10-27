@@ -178,6 +178,9 @@ class DistributionMapping
 				     Vector<IntVect>  &refRatio,
                                      Vector<BoxArray> &allBoxes);
 #endif
+    /* The proximity mapping options (PFC) were designed for Hopper. It
+       needs to be reconfigured before it can be applied to other systems.
+       Will currently see undefined behavior on any system. */
     static void PFCMultiLevelMap(const Vector<IntVect>  &refRatio,
                                  const Vector<BoxArray> &allBoxes);
 
