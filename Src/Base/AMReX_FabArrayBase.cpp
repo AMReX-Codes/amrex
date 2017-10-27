@@ -23,7 +23,9 @@ namespace amrex {
 //
 bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
+#ifdef AMREX_USE_CUDA
 int     FabArrayBase::use_cuda_aware_mpi;
+#endif
 
 #ifdef AMREX_USE_CUDA
 
