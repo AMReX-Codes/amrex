@@ -80,7 +80,7 @@ BLBackTrace::handler(int s)
 
 #ifdef __linux__
 void
-BLBackTrace::print_backtrace_info (std::string filename)
+BLBackTrace::print_backtrace_info (const std::string& filename)
 {
     if (FILE* p = fopen(filename.c_str(), "w"))
     {
