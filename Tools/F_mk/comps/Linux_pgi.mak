@@ -65,6 +65,6 @@
         LDFLAGS += -pgc++libs
     endif
 
-    ifeq ($(findstring summit, $(HOST)), summit)
+    ifeq ($(findstring summitdev, $(HOST)), summitdev)
        libraries += -L /sw/summitdev/gcc/5.4.0new/lib64/ -latomic
     endif

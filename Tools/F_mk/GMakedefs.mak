@@ -180,7 +180,7 @@ ifeq ($(ARCH),Linux)
     include $(AMREX_HOME)/Tools/F_mk/comps/Linux_lahey.mak
   endif
 
-  ifeq ($(findstring summit, $(HOST)), summit)
+  ifeq ($(findstring summitdev, $(HOST)), summitdev)
     override CPP_ARGS := -E
   endif
 endif
