@@ -241,6 +241,13 @@ contains
     double precision :: diffflux, phicctemp, debtemp, phitot
     integer :: i, j, numphi
 
+    fluxptx = 1.0d30
+    fluxpty = 1.0d30
+    phiptx  = 1.0d30
+    phipty  = 1.0d30
+    phiavex = 1.0d30
+    phiavey = 1.0d30
+    phiptcc = 1.0d30
     !STEP 0 
     ! 2.1 get cell-centered phi so we can compute a pointwise, fourth order gradient at faces
     ! needed  for diffusive fluxes

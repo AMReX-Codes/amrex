@@ -230,8 +230,8 @@ namespace amrex
     Real dtval;
 //    dtval = advanceGodunov(time, dt, iteration, ncycle);
 //  dtval = advanceMOLRK2(time, dt, iteration, ncycle);
-    dtval = advanceMOLRK3(time, dt, iteration, ncycle);
-//    dtval = advanceMOLRK4(time, dt, iteration, ncycle);
+//    dtval = advanceMOLRK3(time, dt, iteration, ncycle);
+    dtval = advanceMOLRK4(time, dt, iteration, ncycle);
     ParmParse pp;
     if(pp.contains("fixed_dt"))
     {
@@ -363,7 +363,6 @@ namespace amrex
     //u1 is already set to u^n
     // this sets U1 = U^n + dt*dPhiDt^n
     MultiFab::Saxpy(u1, dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    MultiFab::LinComb(u1, 1.0, S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
     u1.FillBoundary(geom.periodicity());
 
     compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
@@ -390,7 +389,7 @@ namespace amrex
     return dt;
   }
 
-#if 0
+
   Real
   AmrLevelAdv::
   advanceMOLRK4 (Real time,
@@ -407,7 +406,6 @@ namespace amrex
     MultiFab& S_new = get_new_data(Phi_Type);
     MultiFab& S_old = get_old_data(Phi_Type);
     MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
-    MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
     MultiFab u1(grids,dmap,NUM_STATE,NUM_GROW);
     MultiFab u2(grids,dmap,NUM_STATE,NUM_GROW);
     MultiFab u3(grids,dmap,NUM_STATE,NUM_GROW);
@@ -430,52 +428,57 @@ namespace amrex
       fr_as_crse->reset();
     }
 
+    //phi^1 = phi^n + dt*F(phi^n)
     // RK3 stage 1
-    FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE); // 
+    u1.copy(S_old);
+    u1.FillBoundary(geom.periodicity());
     //the dt/6 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
-    // U^1 = U^n + dt*dPhiDt^n
-    MultiFab::LinComb(u1, 1.0, S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    ///fillpatch works with uold and unew
-    ///so need to put this into S_new
-    ///need to also save u1 
-    S_new.copy(u1);
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest)
+    {
+      S_new.copy(dPhiDt);
+      return dt;
+    }
+
+    // phi^1 = phi^n + dt*dPhiDt^n
+    // this sets U1 = U^n + dt*dPhiDt^n
+    MultiFab::LinComb(u1, 1., S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    u1.FillBoundary(geom.periodicity());
+
+    //phi^2 = phi^n + dt/2*F(phi^1)
+    //the dt/3 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+    MultiFab::LinComb(u2, 1., S_old, 0, 0.5*dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    u2.FillBoundary(geom.periodicity());
+
+    //phi^3 = phi^n + dt/2*F(phi^2)
+    //the dt/3 is for the flux register.
+    compute_dPhiDt_MOL4thOrd(u2, dPhiDt, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+    MultiFab::LinComb(u3, 1., S_old, 0, 0.5*dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    u3.FillBoundary(geom.periodicity());
+
+
+    //phi^4 = phi^n + dt*F(phi^3)
+    //the dt/6. is for the flux register.
+    compute_dPhiDt_MOL4thOrd(u3, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+    MultiFab::LinComb(u4, 1., S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    u4.FillBoundary(geom.periodicity());
+
+    //phi^n+1  = 1/6(phi1 +  2 phi2  + 2phi3  + phi4)
+    S_new.setVal(0.);
+
+    MultiFab::Saxpy(  S_new, 1./6., u1, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(  S_new, 1./3., u2, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(  S_new, 1./3., u3, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(  S_new, 1./6., u4, 0, 0, NUM_STATE, 0);
     
-    /**/
-    // RK3 stage 2
-    // After fillpatch Sborder = U^n+dt*dUdt^n = u1 (including ghost)
-    FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
-    //the dt/6 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
-
-    //           u2 = 3/4 U^n + 1/4 U^1 + 1/4 dPhiDt^1
-    //this makes u2 = 3/4 u^n + 1/4 u^1
-    MultiFab::LinComb(u2, 0.75, S_old, 0, 0.25, u1, 0, 0, NUM_STATE, 0);
-    //this makes u2 = 3/4 u^n + 1/4 u^1 + 1/4*dt*dPhiDt^1
-    MultiFab::Saxpy(u2, 0.25*dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    ///fillpatch works with uold and unew
-    ///so need to put this into S_new so u2 is the thing in the ghost cells
-    S_new.copy(u2);
-
-    // After fillpatch Sborder = u2.   I am not so sure about what dt to use here.  
-    //I am using time+dt so that, away from coarse-fine boundaries, no interpolation is done.
-    FillPatch(*this, Sborder, NUM_GROW, time+dt, Phi_Type, 0, NUM_STATE);
-    //the 2*dt/3 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(Sborder, dPhiDt, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
-
-    // RK3 stage 3
-    //           S_new = 1/3 u^n + 2/3 u^2 + 2/3 dtL(u^2)
-
-    //this makes S_new = 1/3 u^n + 2/3 u^2
-    MultiFab::LinComb(S_new, 1./3., S_old, 0, 2./3., u2, 0, 0, NUM_STATE, 0);
-    //this makes S_new = 1/3 u^n + 2/3  u^2 + 2/3 dtL(u^2)
-    MultiFab::Saxpy(S_new, 2.*dt/3., dPhiDt, 0, 0, NUM_STATE, 0);
-
-    /**/ 
     return dt;
   }
-#endif
+
   Real
   AmrLevelAdv::
   advanceGodunov (Real time,
@@ -640,11 +643,11 @@ namespace amrex
     pp.query("ref_to_coarsest", reftocoarsest);
     Box domain = geom.Domain();
 
-    IntVect startpt;
-    for(int idir = 0; idir < SpaceDim; idir++)
-    {
-      startpt[idir] = domain.size()[idir]/4;
-    }
+    IntVect startpt = IntVect::Zero;
+//    for(int idir = 0; idir < SpaceDim; idir++)
+//    {
+//      startpt[idir] = domain.size()[idir]/4;
+//    }
     startpt.coarsen(reftocoarsest);
     Box debboxcc(startpt, startpt);
     debboxcc.refine(reftocoarsest);
@@ -708,7 +711,7 @@ namespace amrex
                             debugboxcell.loVect(), debugboxcell.hiVect(),
                             debugboxfaceHi.loVect(), debugboxfaceHi.hiVect(),
                             debugboxfaceLo.loVect(), debugboxfaceLo.hiVect(),
-                            &printstuff
+                           &printstuff
                           );
 
         if(do_reflux)

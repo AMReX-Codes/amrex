@@ -18,5 +18,6 @@ subroutine get_face_velocity(level, time, &
 
   vx = adv_vel(1)
   vy = adv_vel(2)
+  vy = 0.0d0
 
 end subroutine get_face_velocity
