@@ -135,9 +135,9 @@ ifeq ($(findstring titan, $(HOST)), titan)
         F90 := ftn
     endif
 endif
-ifeq ($(findstring summit, $(HOST)), summit)
+ifeq ($(findstring summitdev, $(HOST)), summitdev)
     #
-    # summit (Oak Ridge, OLCF machine)
+    # summitdev (Oak Ridge, OLCF machine)
 		#
 		# Cray machines require you use their compiler wrappers
 		# even if you aren't using Cray compiler
