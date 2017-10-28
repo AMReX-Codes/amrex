@@ -64,6 +64,9 @@ public:
     void setLevelBC (int amrlev, const MultiFab* levelbcdata);
 
     void setMaxOrder (int o) { maxorder = o; }
+    void setAgglomeration (int f) { do_agglomeration = f; }
+    void setConsolidation (int f) { do_consolidation = f; }
+    void setAgglomerationGridSize (int n) { agg_grid_size = n; }
 
 protected:
 
@@ -71,6 +74,16 @@ protected:
     static constexpr int mg_box_min_width = 2;
 
     int maxorder = 3;
+
+    int do_agglomeration = 1;
+    int do_consolidation = 1;
+#if (AMREX_SPACEDIM == 1)
+    int agg_grid_size = 32;
+#elif (AMREX_SPACEDIM == 2)
+    int agg_grid_size = 16;
+#elif (AMREX_SPACEDIM == 3)
+    int agg_grid_size = 8;
+#endif
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
@@ -84,7 +97,6 @@ protected:
     Vector<int>                          m_domain_covered;
 
     // BC
-
     std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
     std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
 
