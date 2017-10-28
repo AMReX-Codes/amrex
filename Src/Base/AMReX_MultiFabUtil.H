@@ -20,7 +20,6 @@ namespace amrex
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
-    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.

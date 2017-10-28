@@ -355,7 +355,6 @@ namespace amrex
 // *************************************************************************************************************
 
     // Average fine face-based MultiFab onto crse face-based MultiFab.
-    // This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
 			     const IntVect& ratio, int ngcrse)
     {
@@ -365,19 +364,40 @@ namespace amrex
 
 	int ncomp = crse[0]->nComp();
 
+        if (fine[0]->DistributionMap() == crse[0]->DistributionMap()
+            && BoxArray::SameRefs(fine[0]->boxArray(), crse[0]->boxArray()))
+        {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (int n=0; n<BL_SPACEDIM; ++n) {
-            for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+            for (int n=0; n<BL_SPACEDIM; ++n) {
+                for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+                {
+                    const Box& tbx = mfi.growntilebox(ngcrse);
+                    
+                    BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
+                        (tbx.loVect(),tbx.hiVect(),
+                         BL_TO_FORTRAN((*fine[n])[mfi]),
+                         BL_TO_FORTRAN((*crse[n])[mfi]),
+                         ratio.getVect(),n,ncomp);
+                }
+            }
+        }
+        else
+        {
+            std::array<MultiFab,AMREX_SPACEDIM> ctmp;
+            Vector<MultiFab*> vctmp(AMREX_SPACEDIM);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
-                const Box& tbx = mfi.growntilebox(ngcrse);
-
-                BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
-                    (tbx.loVect(),tbx.hiVect(),
-                     BL_TO_FORTRAN((*fine[n])[mfi]),
-                     BL_TO_FORTRAN((*crse[n])[mfi]),
-                     ratio.getVect(),n,ncomp);
+                BoxArray cba = fine[idim]->boxArray();
+                cba.coarsen(ratio);
+                ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse);
+                vctmp[idim] = &ctmp[idim];
+            }
+            average_down_faces(fine, vctmp, ratio, ngcrse);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);
             }
         }
     }
