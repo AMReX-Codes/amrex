@@ -2691,7 +2691,7 @@ FabArray<FAB>::AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
   amrex::BroadcastBoxArray(boxarray, scsMyId, ioProcNumSCS, scsComm);
 
   // ---- DistributionMapping
-  amrex::BroadcastDistributionMapping(distributionMap, scsMyId, ioProcNumSCS, scsComm, true);
+  amrex::BroadcastDistributionMapping(distributionMap, scsMyId, ioProcNumSCS, scsComm);
 
   // ---- ints
   ParallelDescriptor::Bcast(&n_grow, 1, ioProcNumSCS, scsComm);
