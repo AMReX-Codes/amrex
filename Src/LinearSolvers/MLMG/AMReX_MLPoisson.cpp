@@ -184,8 +184,6 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 Real
 MLPoisson::Anorm (int amrlev, int mglev) const
 {
-    BL_PROFILE("MLPoisson::Anorm()");
-
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
     return 4.0*(AMREX_D_DECL(dxinv[0]*dxinv[0],

@@ -79,28 +79,77 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
 
-    int rr = mg_coarsen_ratio;
-    while (a_geom[0].Domain().coarsenable(rr)
-           and a_grids[0].coarsenable(rr, mg_box_min_width))
-    {
-        ++(m_num_mg_levels[0]);
-
-        m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
-
-        m_grids[0].push_back(a_grids[0]);
-        m_grids[0].back().coarsen(rr);
-
-        m_dmap[0].push_back(a_dmap[0]);
-        
-        rr *= mg_coarsen_ratio;
-    }
-
     m_domain_covered.resize(m_num_amr_levels, false);
     m_domain_covered[0] = (m_grids[0][0].numPts() == m_geom[0][0].Domain().numPts());
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
         if (!m_domain_covered[amrlev-1]) break;
         m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() == m_geom[amrlev][0].Domain().numPts());
+    }
+
+    if (do_agglomeration && m_domain_covered[0])
+    {
+        Vector<Box> domainboxes;
+        Box dbx = m_geom[0][0].Domain();
+        Real nbxs = static_cast<Real>(m_grids[0][0].size());
+        Real threshold_npts = static_cast<Real>(AMREX_D_TERM(agg_grid_size,*agg_grid_size,*agg_grid_size));
+        Vector<int> agg_flag;
+        domainboxes.push_back(dbx);
+        agg_flag.push_back(false);
+        while (dbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
+        {
+            dbx.coarsen(mg_coarsen_ratio);
+            domainboxes.push_back(dbx);
+            bool to_agg = (dbx.d_numPts() / nbxs) < 0.999*threshold_npts;
+            agg_flag.push_back(to_agg);
+        }
+
+        int first_agglev = std::distance(agg_flag.begin(),
+                                         std::find(agg_flag.begin(),agg_flag.end(),1));
+        int nmaxlev = domainboxes.size();
+        int rr = mg_coarsen_ratio;
+        for (int lev = 1; lev < nmaxlev; ++lev)
+        {
+            if (lev >= first_agglev or !a_grids[0].coarsenable(rr,mg_box_min_width))
+            {
+                m_geom[0].emplace_back(domainboxes[lev]);
+            
+                m_grids[0].emplace_back(domainboxes[lev]);
+                m_grids[0].back().maxSize(agg_grid_size);
+
+                // no consolidation yet
+                m_dmap[0].emplace_back(m_grids[0].back());
+            }
+            else
+            {
+                m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+                
+                m_grids[0].push_back(a_grids[0]);
+                m_grids[0].back().coarsen(rr);
+            
+                m_dmap[0].push_back(a_dmap[0]);
+            }
+
+            ++(m_num_mg_levels[0]);
+            rr *= mg_coarsen_ratio;
+        }
+    }
+    else
+    {
+        int rr = mg_coarsen_ratio;
+        while (a_geom[0].Domain().coarsenable(rr)
+               and a_grids[0].coarsenable(rr, mg_box_min_width))
+        {
+            m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+            
+            m_grids[0].push_back(a_grids[0]);
+            m_grids[0].back().coarsen(rr);
+            
+            m_dmap[0].push_back(a_dmap[0]);
+            
+            ++(m_num_mg_levels[0]);
+            rr *= mg_coarsen_ratio;
+        }
     }
 }
 
