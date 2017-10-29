@@ -143,7 +143,7 @@ protected:
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                   const MacBndry* bndry=nullptr, bool skip_fillboundary=false) const;
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                 BCMode bc_mode = BCMode::Homogeneous, bool skip_fillboundary=false) const;
+                 bool skip_fillboundary=false) const;
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const;
     void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const;

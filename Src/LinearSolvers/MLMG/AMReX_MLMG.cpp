@@ -330,7 +330,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         bool skip_fillboundary = true;
         for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev],
-                         BCMode::Homogeneous, skip_fillboundary);
+                         skip_fillboundary);
             skip_fillboundary = false;
         }
 
@@ -354,7 +354,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         bool skip_fillboundary = true;
         for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom],
-                         BCMode::Homogeneous, skip_fillboundary);
+                         skip_fillboundary);
             skip_fillboundary = false;
         }
     }
@@ -573,7 +573,7 @@ MLMG::bottomSolve ()
     {
         bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous, skip_fillboundary);
+            linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
             skip_fillboundary = false;
         }
     }
