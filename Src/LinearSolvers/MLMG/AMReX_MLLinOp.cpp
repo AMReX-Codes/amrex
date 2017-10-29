@@ -1,7 +1,6 @@
 
 #include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
-#include <AMReX_LO_F.H>
 #include <AMReX_MLLinOp_F.H>
 
 namespace amrex {
@@ -474,6 +473,7 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
             const Mask&   m   = maskvals[ori][mfi];
 
+#if 0
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
                          iofab.dataPtr(),
                          ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
@@ -486,6 +486,7 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                          ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
                          vbx.loVect(),
                          vbx.hiVect(), &num_comp, h);
+#endif
         }
     }
 
@@ -493,12 +494,12 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
 void
 MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                 BCMode bc_mode, bool skip_fillboundary) const
+                 bool skip_fillboundary) const
 {
     BL_PROFILE("MLLinOp::smooth()");
     for (int redblack = 0; redblack < 2; ++redblack)
     {
-        applyBC(amrlev, mglev, sol, bc_mode, nullptr, skip_fillboundary);
+        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, nullptr, skip_fillboundary);
         Fsmooth(amrlev, mglev, sol, rhs, redblack);
         skip_fillboundary = false;
     }
