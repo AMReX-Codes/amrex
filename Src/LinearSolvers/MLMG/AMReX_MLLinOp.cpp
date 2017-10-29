@@ -2,6 +2,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_LO_F.H>
+#include <AMReX_MLLinOp_F.H>
 
 namespace amrex {
 

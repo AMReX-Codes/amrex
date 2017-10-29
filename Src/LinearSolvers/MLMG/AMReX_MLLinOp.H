@@ -75,7 +75,7 @@ protected:
 
     int maxorder = 3;
 
-    int do_agglomeration = 1;
+    int do_agglomeration = 0;
     int do_consolidation = 1;
 #if (AMREX_SPACEDIM == 1)
     int agg_grid_size = 32;
