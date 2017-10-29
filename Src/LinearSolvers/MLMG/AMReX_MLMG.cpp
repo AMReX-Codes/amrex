@@ -453,9 +453,27 @@ MLMG::interpCorrection (int alev, int mglev)
     MultiFab& fine_cor = *cor[alev][mglev  ];
 
     const Geometry& crse_geom = linop.Geom(alev,mglev+1);
-    crse_cor.FillBoundary(crse_geom.periodicity());
-
     const int refratio = 2;
+
+    MultiFab cfine;
+    const MultiFab* cmf;
+    
+    if (amrex::isMFIterSafe(crse_cor, fine_cor))
+    {
+        crse_cor.FillBoundary(crse_geom.periodicity());
+        cmf = &crse_cor;
+    }
+    else
+    {
+        BoxArray cba = fine_cor.boxArray();
+        cba.coarsen(refratio);
+        const int nc = crse_cor.nComp();
+        const int ng = crse_cor.nGrow();
+        cfine.define(cba, fine_cor.DistributionMap(), nc, ng);
+        cfine.ParallelCopy(crse_cor, 0, 0, nc, 0, ng, crse_geom.periodicity());
+        cmf = & cfine;
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -464,7 +482,7 @@ MLMG::interpCorrection (int alev, int mglev)
         const Box& bx = mfi.tilebox();
         amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
                                  BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                 BL_TO_FORTRAN_ANYD(crse_cor[mfi]),
+                                 BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
                                  &refratio);
     }
 }
@@ -477,6 +495,26 @@ MLMG::addInterpCorrection (int alev, int mglev)
 
     const MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab&       fine_cor = *cor[alev][mglev  ];
+
+    const int refratio = 2;
+    MultiFab cfine;
+    const MultiFab* cmf;
+
+    if (amrex::isMFIterSafe(crse_cor, fine_cor))
+    {
+        cmf = &crse_cor;
+    }
+    else
+    {
+        BoxArray cba = fine_cor.boxArray();
+        cba.coarsen(refratio);
+        const int nc = crse_cor.nComp();
+        const int ng = 0;
+        cfine.define(cba, fine_cor.DistributionMap(), nc, 0);
+        cfine.ParallelCopy(crse_cor);
+        cmf = & cfine;
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -484,7 +522,7 @@ MLMG::addInterpCorrection (int alev, int mglev)
     {
         const Box&         bx = mfi.tilebox();
         const int          nc = fine_cor.nComp();
-        const FArrayBox& cfab = crse_cor[mfi];
+        const FArrayBox& cfab =   (*cmf)[mfi];
         FArrayBox&       ffab = fine_cor[mfi];
 
         FORT_INTERP(ffab.dataPtr(),
