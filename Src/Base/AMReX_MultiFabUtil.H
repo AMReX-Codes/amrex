@@ -57,6 +57,13 @@ namespace amrex
 
     //! Extract a slice from the given cell-centered MultiFab at coordinate "coord" along direction "dir". 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int fstart, int ncomp);
+
+    // Is it safe to have these two MultiFabs in the same MFiter?
+    // Ture means safe; false means maybe.
+    inline bool isMFIterSafe (const MultiFab& x, const MultiFab& y) {
+        return x.DistributionMap() == y.DistributionMap()
+            && BoxArray::SameRefs(x.boxArray(), y.boxArray());
+    }
 }
 
 

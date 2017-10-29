@@ -364,8 +364,7 @@ namespace amrex
 
 	int ncomp = crse[0]->nComp();
 
-        if (fine[0]->DistributionMap() == crse[0]->DistributionMap()
-            && BoxArray::SameRefs(fine[0]->boxArray(), crse[0]->boxArray()))
+        if (isMFIterSafe(*fine[0], *crse[0]))
         {
 #ifdef _OPENMP
 #pragma omp parallel
