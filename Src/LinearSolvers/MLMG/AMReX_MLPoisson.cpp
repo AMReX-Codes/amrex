@@ -186,7 +186,7 @@ MLPoisson::Anorm (int amrlev, int mglev) const
 {
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    return 4.0*(AMREX_D_DECL(dxinv[0]*dxinv[0],
+    return 4.0*(AMREX_D_TERM(dxinv[0]*dxinv[0],
                             +dxinv[1]*dxinv[1],
                             +dxinv[2]*dxinv[2]));
 }
