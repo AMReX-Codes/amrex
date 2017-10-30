@@ -236,9 +236,9 @@ MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
 }
 
 void
-MLLinOp::setBCWithCoarseData (const MultiFab& crse, int crse_ratio)
+MLLinOp::setBCWithCoarseData (const MultiFab* crse, int crse_ratio)
 {
-    m_coarse_data_for_bc = &crse;
+    m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
 }
 
@@ -277,7 +277,6 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     {
         if (needsCoarseDataForBC())
         {
-            AMREX_ALWAYS_ASSERT( m_coarse_data_for_bc != nullptr );
             if (m_crse_sol_br[amrlev] == nullptr)
             {
                 const int ncomp = 1;
@@ -291,7 +290,11 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                                                               in_rad, out_rad,
                                                               extent_rad, ncomp));
             }
-            m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+            if (m_coarse_data_for_bc != nullptr) {
+                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+            } else {
+                m_crse_sol_br[amrlev]->setVal(0.0);
+            }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
                                                 bcdata, 0, 0, 1,
                                                 m_coarse_data_crse_ratio, phys_bc);
@@ -473,7 +476,8 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
 #endif
     {
         std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox const*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        std::array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
         for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
@@ -483,8 +487,8 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                 AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
-                FFlux(crse_amrlev, mfi, flux, crse_sol[mfi]);
-                fluxreg.CrseAdd(mfi, pflux, crse_dx, dt);
+                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi]);
+                fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
             }
         }
 
@@ -501,13 +505,42 @@ MLLinOp::reflux (int crse_amrlev, MultiFab& res,
                              flux[1].resize(amrex::surroundingNodes(tbx,1));,
                              flux[2].resize(amrex::surroundingNodes(tbx,2)););
                 const int face_only = true;
-                FFlux(crse_amrlev+1, mfi, flux, fine_sol[mfi], face_only);
-                fluxreg.FineAdd(mfi, pflux, fine_dx, dt);            
+                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], face_only);
+                fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
             }
         }
     }
 
     fluxreg.Reflux(res);
+}
+
+void
+MLLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
+{
+    BL_PROFILE("MLLinOp::compFlux()");
+
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::array<FArrayBox,AMREX_SPACEDIM> flux;
+        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        {
+            const Box& tbx = mfi.tilebox();
+            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
+                         flux[1].resize(amrex::surroundingNodes(tbx,1));,
+                         flux[2].resize(amrex::surroundingNodes(tbx,2)););
+            FFlux(amrlev, mfi, pflux, sol[mfi]);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& nbx = mfi.nodaltilebox(idim);
+                (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, 1);
+            }
+        }
+    }
 }
 
 }
