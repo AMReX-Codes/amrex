@@ -328,7 +328,6 @@ contains
                +(phiptcc(i,j  ) + phiptcc(i,j-2) - 2.0d0*phiptcc(i,j-1)))
 
           fluxpty(i,j) = vmac(i,j)*phipty(i,j) + diffflux
-!          fluxpty(i,j) =  diffflux
 
        end do
     end do
@@ -342,6 +341,10 @@ contains
                (fluxptx(i,j+1) + fluxptx(i,j-1) - 2.d0*fluxptx(i,j))
 
           flxx(i,j)  = debtemp
+
+!debug   just set the flux = phiavex
+!          flxx(i,j)  = phiavex(i,j)
+!end debug
        end do
     end do
 
@@ -351,6 +354,9 @@ contains
                (fluxpty(i+1,j) + fluxpty(i-1,j) - 2.d0*fluxpty(i,j))
           flxy(i,j)  = debtemp
 
+!debug   just set the flux = phiavex
+!          flxy(i,j)  = phiavey(i,j)
+!end debug
        end do
     end do
 
