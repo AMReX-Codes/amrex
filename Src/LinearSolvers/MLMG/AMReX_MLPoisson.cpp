@@ -27,6 +27,8 @@ MLPoisson::prepareForSolve ()
 {
     BL_PROFILE("MLPoisson::prepareForSolve()");
 
+    MLLinOp::prepareForSolve();
+
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
     auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);

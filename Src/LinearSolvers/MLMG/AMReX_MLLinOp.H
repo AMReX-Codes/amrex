@@ -148,7 +148,7 @@ protected:
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const;
     void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const;
 
-    virtual void prepareForSolve () = 0;
+    virtual void prepareForSolve ();
     virtual bool isSingular (int amrlev) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;

@@ -387,7 +387,7 @@ MLLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const Multi
         updateSolBC(amrlev, *crse_bcdata);
     }
     const int mglev = 0;
-    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous);
+    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
     MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
 }
 
@@ -409,7 +409,7 @@ MLLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x
     else
     {
         AMREX_ALWAYS_ASSERT(crse_bcdata == nullptr);
-        apply(amrlev, mglev, resid, x, BCMode::Homogeneous);
+        apply(amrlev, mglev, resid, x, BCMode::Homogeneous, nullptr);
     }
 
     MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
@@ -431,6 +431,7 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
     BL_PROFILE("MLLinOp::applyBC()");
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
+    BL_ASSERT(bndry != nullptr || bc_mode == BCMode::Homogeneous);
 
     const bool cross = true;
     if (!skip_fillboundary) {
@@ -439,21 +440,21 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
     int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
 
-    int flagden = 1;  // Fill in undrrelxr
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    const int num_comp = 1;
-    const Real* h = m_geom[amrlev][mglev].CellSize();
-
+    // When bndry is nullptr, either m_bndry_sol or m_bndry_sol is fine
+    // because bndryValues are not actually being used.
     const MacBndry& macbndry = (bndry == nullptr) ? *m_bndry_sol[amrlev] : *bndry;
-    BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals = m_maskvals[amrlev][mglev];
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(in, MFItInfo().SetDynamic(true));
-         mfi.isValid(); ++mfi)
+    for (MFIter mfi(in, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
+        const Box& vbx   = mfi.validbox();
+        FArrayBox& iofab = in[mfi];
+
         const BndryData::RealTuple      & bdl = macbndry.bndryLocs(mfi);
         const Vector<Vector<BoundCond> >& bdc = macbndry.bndryConds(mfi);
 
@@ -461,32 +462,20 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
         {
             const Orientation ori = oitr();
 
-            int           cdr = ori;
-            Real          bcl = bdl[ori];
-            int           bct = bdc[ori][0];
+            int  cdr = ori;
+            Real bcl = bdl[ori];
+            int  bct = bdc[ori][0];
 
-            const Box&       vbx   = mfi.validbox();
-            FArrayBox&       iofab = in[mfi];
-
-            FArrayBox&       ffab  = undrrelxr[ori][mfi];
             const FArrayBox& fsfab = macbndry.bndryValues(ori)[mfi];
 
-            const Mask&   m   = maskvals[ori][mfi];
+            const Mask& m = maskvals[ori][mfi];
 
-#if 0
-            FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-                         iofab.dataPtr(),
-                         ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
-                         &cdr, &bct, &bcl,
-                         fsfab.dataPtr(), 
-                         ARLIM(fsfab.loVect()), ARLIM(fsfab.hiVect()),
-                         m.dataPtr(),
-                         ARLIM(m.loVect()), ARLIM(m.hiVect()),
-                         ffab.dataPtr(),
-                         ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
-                         vbx.loVect(),
-                         vbx.hiVect(), &num_comp, h);
-#endif
+            amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
+                                   BL_TO_FORTRAN_ANYD(iofab),
+                                   BL_TO_FORTRAN_ANYD(m),
+                                   cdr, bct, bcl,
+                                   BL_TO_FORTRAN_ANYD(fsfab),
+                                   maxorder, dxinv, flagbc);
         }
     }
 
@@ -589,6 +578,50 @@ MLLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxe
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& nbx = mfi.nodaltilebox(idim);
                 (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, 1);
+            }
+        }
+    }
+}
+
+void
+MLLinOp::prepareForSolve ()
+{
+    for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
+    {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            const MacBndry& macbndry = *m_bndry_sol[amrlev];
+            const auto& maskvals = m_maskvals[amrlev][mglev];
+            const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+            BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
+            MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 0, MFInfo().SetAlloc(false));
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(foo, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+            {
+                const Box& vbx = mfi.validbox();
+                
+                const BndryData::RealTuple      & bdl = macbndry.bndryLocs(mfi);
+                const Vector<Vector<BoundCond> >& bdc = macbndry.bndryConds(mfi);
+
+                for (OrientationIter oitr; oitr; ++oitr)
+                {
+                    const Orientation ori = oitr();
+                    
+                    int  cdr = ori;
+                    Real bcl = bdl[ori];
+                    int  bct = bdc[ori][0];
+                    
+                    FArrayBox& ffab = undrrelxr[ori][mfi];
+                    const Mask& m   =  maskvals[ori][mfi];
+
+                    amrex_mllinop_comp_interp_coef0(BL_TO_FORTRAN_BOX(vbx),
+                                                    BL_TO_FORTRAN_ANYD(ffab),
+                                                    BL_TO_FORTRAN_ANYD(m),
+                                                    cdr, bct, bcl, maxorder, dxinv);
+                }
             }
         }
     }

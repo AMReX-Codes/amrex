@@ -16,7 +16,7 @@ extern "C" {
                                  const int inhomog);
 
 
-    void amrex_mllinop_comp_interp_coefs (const int* lo, const int* hi,
+    void amrex_mllinop_comp_interp_coef0 (const int* lo, const int* hi,
                                           amrex_real* den, const int* dlo, const int* dhi,
                                           const int* mask, const int* mlo, const int* mhi,
                                           const int cdir, const int bct, const amrex_real bcl,
