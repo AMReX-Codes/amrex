@@ -225,6 +225,12 @@ Numerics and algorithms
      - ``2``: Direct deposition, vectorized
      - ``3``: Direct deposition, non-optimized
 
+     .. warning ::
+
+        The vectorized Esirkepov deposition
+        (``algo.current_deposition=0``) is currently not functional in WarpX.
+        All the other methods (``1``, ``2`` and ``3``) are functional.
+
 * ``algo.charge_deposition`` (`integer`)
     The algorithm for the charge density deposition:
 
