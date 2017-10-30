@@ -226,7 +226,6 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
                    rho_prof_s.begin(),
                    ::tolower);
     if (rho_prof_s == "constant") {
-        Real density;
         pp.get("density", density);
         rho_prof.reset(new ConstantDensityProfile(density));
     } else if (rho_prof_s == "custom") {
