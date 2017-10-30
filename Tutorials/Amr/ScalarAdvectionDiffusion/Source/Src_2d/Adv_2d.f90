@@ -285,6 +285,17 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      call bl_error("CFL violation. Use smaller adv.cfl.")
   end if
 
+  !checking to see if periodic cosine worked
+  if(printstuff.eq.1) then
+     do    j = deblocell(2), debhicell(2)
+!        do i = deblocell(1), debhicell(1)
+           print*, "*** j phiave -2 -1 0 1 = ", j, uin(-2,j),uin(-1,j),uin(0,j),uin(1,j), "****"
+!        enddo
+     enddo
+     if(numphi .gt. 0) then
+        print*, "**************** ndphidt, final dphidt = ", numphi, phitot/rnumphi
+     endif
+ endif
   ! call a function to compute flux
   call mol4thord_flux_2d(lo, hi, dt, dx, &
                          uin, ui_lo, ui_hi, &

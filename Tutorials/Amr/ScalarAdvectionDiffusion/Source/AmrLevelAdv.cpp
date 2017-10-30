@@ -405,11 +405,15 @@ namespace amrex
 
     MultiFab& S_new = get_new_data(Phi_Type);
     MultiFab& S_old = get_old_data(Phi_Type);
-    MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
+
     MultiFab u1(grids,dmap,NUM_STATE,NUM_GROW);
     MultiFab u2(grids,dmap,NUM_STATE,NUM_GROW);
     MultiFab u3(grids,dmap,NUM_STATE,NUM_GROW);
-    MultiFab u4(grids,dmap,NUM_STATE,NUM_GROW);
+
+    MultiFab k1(grids,dmap,NUM_STATE,0);
+    MultiFab k2(grids,dmap,NUM_STATE,0);
+    MultiFab k3(grids,dmap,NUM_STATE,0);
+    MultiFab k4(grids,dmap,NUM_STATE,0);
   
     YAFluxRegister* fr_as_crse = nullptr;
     if (do_reflux && level < parent->finestLevel()) 
@@ -433,48 +437,50 @@ namespace amrex
     u1.copy(S_old);
     u1.FillBoundary(geom.periodicity());
     //the dt/6 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+    compute_dPhiDt_MOL4thOrd(u1, k1, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
     bool truncationErrorTest = false;
     ParmParse pp;
     pp.query("truncation_error_only", truncationErrorTest);
     if(truncationErrorTest)
     {
-      S_new.copy(dPhiDt);
+      S_new.copy(k1);
       return dt;
     }
 
-    // phi^1 = phi^n + dt*dPhiDt^n
-    // this sets U1 = U^n + dt*dPhiDt^n
-    MultiFab::LinComb(u1, 1., S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    // phi^1 = phi^n + dt/2*dPhiDt^n
+    // this sets U1 = U^n + dt*dPhiDt^n 
+    k1.mult(dt);
+    MultiFab::LinComb(u1, 1., S_old, 0, 0.5, k1, 0, 0, NUM_STATE, 0);
     u1.FillBoundary(geom.periodicity());
 
-    //phi^2 = phi^n + dt/2*F(phi^1)
+    //phi^2 = phi^n + dt/2*dPhiDt(phi^1)
     //the dt/3 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/3., fr_as_crse, fr_as_fine, iteration);
-    MultiFab::LinComb(u2, 1., S_old, 0, 0.5*dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    compute_dPhiDt_MOL4thOrd(u1, k2, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+    k2.mult(dt);
+    MultiFab::LinComb(u2, 1., S_old, 0, 0.5, k2, 0, 0, NUM_STATE, 0);
     u2.FillBoundary(geom.periodicity());
 
-    //phi^3 = phi^n + dt/2*F(phi^2)
+    //phi^3 = phi^n + dt*dPhiDt(phi^2)
     //the dt/3 is for the flux register.
-    compute_dPhiDt_MOL4thOrd(u2, dPhiDt, time, dt/3., fr_as_crse, fr_as_fine, iteration);
-    MultiFab::LinComb(u3, 1., S_old, 0, 0.5*dt, dPhiDt, 0, 0, NUM_STATE, 0);
+    compute_dPhiDt_MOL4thOrd(u2, k3, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+    k3.mult(dt);
+    MultiFab::LinComb(u3, 1., S_old, 0, 1.0, k3, 0, 0, NUM_STATE, 0);
     u3.FillBoundary(geom.periodicity());
 
 
     //phi^4 = phi^n + dt*F(phi^3)
     //the dt/6. is for the flux register.
-    compute_dPhiDt_MOL4thOrd(u3, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
-    MultiFab::LinComb(u4, 1., S_old, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
-    u4.FillBoundary(geom.periodicity());
+    compute_dPhiDt_MOL4thOrd(u3, k4, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+    k4.mult(dt);
 
     //phi^n+1  = 1/6(phi1 +  2 phi2  + 2phi3  + phi4)
-    S_new.setVal(0.);
+    S_new.copy(S_old);
 
-    MultiFab::Saxpy(  S_new, 1./6., u1, 0, 0, NUM_STATE, 0);
-    MultiFab::Saxpy(  S_new, 1./3., u2, 0, 0, NUM_STATE, 0);
-    MultiFab::Saxpy(  S_new, 1./3., u3, 0, 0, NUM_STATE, 0);
-    MultiFab::Saxpy(  S_new, 1./6., u4, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(  S_new, 1./6., k1, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(  S_new, 1./3., k2, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(  S_new, 1./3., k3, 0, 0, NUM_STATE, 0);
+    MultiFab::Saxpy(  S_new, 1./6., k4, 0, 0, NUM_STATE, 0);
     
     return dt;
   }

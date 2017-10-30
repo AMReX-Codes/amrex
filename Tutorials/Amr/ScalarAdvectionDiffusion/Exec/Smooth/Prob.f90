@@ -83,8 +83,8 @@ subroutine initdata(level, time, lo, hi, &
            end if
 
 !!debug set to 1d           
-           integralval = (sin(2.d0*xhi) - sin(2.d0*xlo))
-           denom = dx(1)*pi*2.0d0
+!           integralval = (sin(2.d0*xhi) - sin(2.d0*xlo))
+!           denom = dx(1)*pi*2.0d0
 !!end debug
            phi(i,j,k) = integralval/denom
 
