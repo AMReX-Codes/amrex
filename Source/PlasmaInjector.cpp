@@ -188,6 +188,7 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.query("num_particles_per_cell", num_particles_per_cell);
         part_pos.reset(new RandomPosition(num_particles_per_cell));
     } else if (part_pos_s == "nuniformpercell") {
+        num_particles_per_cell_each_dim.resize(3);
         pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
 #if ( BL_SPACEDIM == 2 )
         num_particles_per_cell_each_dim[2] = num_particles_per_cell_each_dim[1];
