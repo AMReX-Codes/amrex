@@ -89,7 +89,9 @@ contains
                       kk =  k*ratio(3)+koff
                       do joff = 0, ratio(2)-1
                          jj = j*ratio(2)+joff
+                         !$omp atomic
                          d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
+                         !$omp end atomic
                       end do
                    end do
                 end do
@@ -108,7 +110,9 @@ contains
                       kk = k*ratio(3)+koff
                       do joff = 0, ratio(2)-1
                          jj = j*ratio(2)+joff
+                         !$omp atomic
                          d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
+                         !$omp end atomic
                       end do
                    end do
                 end do
@@ -133,7 +137,9 @@ contains
                    do ioff = 0, ratio(1)-1
                       do i = lo(1), hi(1)
                          ii = i*ratio(1)+ioff
+                         !$omp atomic
                          d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
+                         !$omp end atomic
                       end do
                    end do
                 end do
@@ -152,7 +158,9 @@ contains
                    do ioff = 0, ratio(1)-1
                       do i = lo(1), hi(1)
                          ii = i*ratio(1)+ioff
+                         !$omp atomic
                          d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
+                         !$omp end atomic
                       end do
                    end do
                 end do
@@ -177,7 +185,9 @@ contains
                    do ioff = 0, ratio(1)-1
                       do i = lo(1), hi(1)
                          ii = i*ratio(1)+ioff
+                         !$omp atomic
                          d(i,j,k,n) = d(i,j,k,n) - fac*f(ii,jj,kk,n)
+                         !$omp end atomic
                       end do
                    end do
                 end do
@@ -196,7 +206,9 @@ contains
                    do ioff = 0, ratio(1)-1
                       do i = lo(1), hi(1)
                          ii = i*ratio(1)+ioff
+                         !$omp atomic
                          d(i,j,k,n) = d(i,j,k,n) + fac*f(ii,jj,kk,n)
+                         !$omp end atomic
                       end do
                    end do
                 end do

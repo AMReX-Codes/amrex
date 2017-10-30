@@ -1,0 +1,30 @@
+#
+# For ray and rzmanta at LLNL
+#
+
+LLNL_MACHINES := ray rzmanta
+
+ifneq ($(which_computer), $(findstring $(which_computer), $(LLNL_MACHINES)))
+  $(error Unknown LLNL computer, $(which_computer))
+endif
+
+ifeq ($(which_computer),$(filter $(which_computer),ray rzmanta))
+
+  ifeq ($(USE_MPI),TRUE)
+    CC  = mpicc
+    CXX = mpicxx
+    FC  = mpif90
+    F90 = mpif90
+  endif
+
+  # If the cuda module is loaded, CUDA_HOME is set as the toolkit location.
+
+  SYSTEM_CUDA_PATH=$(CUDA_HOME)
+
+  ifeq ($(lowercase_comp),gnu)
+       override XTRALIBS := -lgfortran
+  endif
+
+  SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
+endif
