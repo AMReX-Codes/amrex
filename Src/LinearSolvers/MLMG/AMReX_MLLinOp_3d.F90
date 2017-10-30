@@ -102,7 +102,9 @@ contains
        end do
        
        call polyInterpCoeff(xInt, x, lenx+2, coef)
-       coef2(-lenx:1) = coef(-1:lenx:-1)
+       do m = -lenx, 1
+          coef2(m) = coef(-m)
+       end do
 
        select case (cdir)
        case (0)  ! xlo
@@ -186,8 +188,8 @@ contains
     integer, value, intent(in) :: cdir, bct, maxorder
     real(amrex_real), value, intent(in) :: bcl
     real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) ::  den(dlo(1):dhi(2),dlo(2):dhi(2),dlo(3):dhi(3))
-    integer         , intent(in   ) :: mask(mlo(1):mhi(2),mlo(2):mhi(2),mlo(3):mhi(3))
+    real(amrex_real), intent(inout) ::  den(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+    integer         , intent(in   ) :: mask(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
     integer :: i,j,k,idim,lenx,m
     real(amrex_real) ::    x(-1:maxorder-2)
