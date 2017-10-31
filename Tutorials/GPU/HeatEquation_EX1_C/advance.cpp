@@ -19,7 +19,7 @@ void advance (MultiFab& old_phi, MultiFab& new_phi,
     int ng_p = old_phi.nGrow();
     int ng_f = flux[0].nGrow();
 
-    const Real* dx = geom.CellSizeF();
+    const Real* dx = geom.CellSize();
 
     //
     // Note that this simple example is not optimized.
