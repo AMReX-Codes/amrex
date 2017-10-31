@@ -64,7 +64,7 @@ compiler_name = {'intel': 'intel', 'gnu': 'gcc'}
 # architecture. Used for WarpX executable name
 module_name = {'cpu': 'haswell', 'knl': 'mic-knl'}
 # architecture. Used in batch scripts
-module_Cname = {'cpu': 'haswell', 'knl': 'knl'}
+module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache'}
 # Define environment variables
 cwd = os.getcwd() + '/'
 res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
@@ -158,7 +158,7 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     batch_string = ''
     batch_string += '#!/bin/bash\n'
     batch_string += '#SBATCH --job-name=' + run_name + str(n_node) + str(n_mpi) + str(n_omp) + '\n'
-    batch_string += '#SBATCH --time=00:40:00\n'
+    batch_string += '#SBATCH --time=00:20:00\n'
     batch_string += '#SBATCH -C ' + module_Cname[args.architecture] + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH --partition=regular\n'
@@ -240,7 +240,7 @@ def process_analysis():
     batch_string += '#SBATCH -o read_output.txt\n'
     batch_string += '#SBATCH --mail-type=end\n'
     batch_string += '#SBATCH --account=m2852\n'
-    batch_string += 'python run_alltests.py --no-recompile --compiler=' + args.compiler + ' --architecture=' + args.architecture + ' --mode=read' + ' --log_file=' + log_file
+    batch_string += 'python ' + __file__ + ' --no-recompile --compiler=' + args.compiler + ' --architecture=' + args.architecture + ' --mode=read' + ' --log_file=' + log_file
     if args.commit == True:
         batch_string += ' --commit'
     else:
@@ -259,11 +259,12 @@ def process_analysis():
 
 # each element of test_list contains
 # [str runname, int n_node, int n_mpi PER NODE, int n_omp]
+
 test_list = []
-n_repeat = 3
-test_list.extend([['uniform_plasma', 1, 8, 16]]*3)
-test_list.extend([['uniform_plasma', 1, 4, 32]]*3)
-test_list.extend([['uniform_plasma', 2, 4, 32]]*3)
+n_repeat = 1
+test_list.extend([['uniform_plasma', 1, 8, 16]]*n_repeat)
+test_list.extend([['uniform_plasma', 1, 4, 32]]*n_repeat)
+test_list.extend([['uniform_plasma', 2, 4, 32]]*n_repeat)
 n_tests   = len(test_list)
 
 if args.mode == 'run':
@@ -280,7 +281,8 @@ if args.mode == 'run':
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
         n_steps  = get_nsteps(cwd + run_name)
-        res_dir = '_'.join([year, month, day, run_name, args.compiler,\
+        res_dir = res_dir_base
+        res_dir += '_'.join([year, month, day, run_name, args.compiler,\
                          args.architecture, str(n_node), str(n_mpi),\
                          str(n_omp)]) + '/'
         # Run the simulation.
@@ -297,23 +299,46 @@ if args.mode == 'read':
         f_log = open(log_dir + log_file, 'a')
         f_log.write(log_line)
         f_log.close()
+    log_line = '## ' + year + ' ' + month + ' ' + day + ' ' + time.strftime('%H') + ' ' +  time.strftime('%M') + ' ' + time.strftime('%S') + '\n'
+    f_log = open(log_dir + log_file, 'a')
+    f_log.write(log_line)
+    f_log.close()
     for count, current_run in enumerate(test_list):
         # Results folder
-        if count not in [22, 23, 24, 25, 6, 7]:
-            print('read ' + str(current_run))
-            run_name = current_run[0]
-            n_node   = current_run[1]
-            n_mpi    = current_run[2]
-            n_omp    = current_run[3]
-            n_steps  = get_nsteps(cwd  + run_name)
-            res_dir = '_'.join([year, month, day, run_name, args.compiler,\
-                                args.architecture, str(n_node), str(n_mpi),\
-                                str(n_omp)]) + '/'
-            # Read performance data from the output file
-            time_initialization, time_one_iteration = read_run_perf(res_dir + 'perf_output.txt')
-            # Write performance data to the performance log file
-            write_perf_logfile(log_dir + log_file)
+        print('read ' + str(current_run))
+        run_name = current_run[0]
+        n_node   = current_run[1]
+        n_mpi    = current_run[2]
+        n_omp    = current_run[3]
+        n_steps  = get_nsteps(cwd  + run_name)
+        print('n_steps = ' + str(n_steps))
+        res_dir = res_dir_base
+        res_dir += '_'.join([year, month, day, run_name, args.compiler,\
+                             args.architecture, str(n_node), str(n_mpi),\
+                             str(n_omp)]) + '/'
+        # Read performance data from the output file
+        time_initialization, time_one_iteration = read_run_perf(res_dir + 'perf_output.txt')
+        # Write performance data to the performance log file
+        write_perf_logfile(log_dir + log_file)
+
+    # Store test parameters fot record
+    dir_record_base = '../../../warpx_perf_record/'
+    if not os.path.exists(dir_record_base):
+        os.mkdir(dir_record_base)
+    count = 0
+    dir_record = dir_record_base + '_'.join([year, month, day]) + '_0'
+    while os.path.exists(dir_record):
+        count += 1
+        dir_record = dir_record[:-1] + str(count)
+    os.mkdir(dir_record)
+    shutil.copy(__file__, dir_record)
+    shutil.copy(log_dir + log_file, dir_record)
+    for count, current_run in enumerate(test_list):
+        shutil.copy(current_run[0], dir_record)
+
+    # Commit results to the Repo
     if args.commit == True:
         os.system('git add ' + log_dir + log_file + ';'\
                   'git commit -m "performance tests";'\
                   'git push -u origin master')
+        
