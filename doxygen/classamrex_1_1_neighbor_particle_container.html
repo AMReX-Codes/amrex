@@ -407,7 +407,7 @@ Additional Inherited Members</h2></td></tr>
 <div class="textblock"><h3>template&lt;int NStructReal, int NStructInt, int NNeighborReal&gt;<br/>
 class amrex::NeighborParticleContainer&lt; NStructReal, NStructInt, NNeighborReal &gt;</h3>
 
-<p>This is a container for particles that undergo short-range interations. In addition to the normal <a class="el" href="classamrex_1_1_particle_container.html">ParticleContainer</a> methods, each tile contains a "neighbor
+<p>This is a container for particles that undergo short-range interations. In addition to the normal <a class="el" href="classamrex_1_1_particle_container.html" title="A distributed container for Particles sorted onto grids and tiles. ">ParticleContainer</a> methods, each tile contains a "neighbor
 buffer" that is filled with data corresponding to the particles within 1 neighbor cell of the tile boundaries. This allows the N^2 search over each pair of particles to proceed locally, instead of over the entire domain.</p>
 <p>Note that neighbor particles are different than "ghost" particles, which are used in AMR subcycling to keep track of coarse level particles that may move on to fine levels during a fine level time step.</p>
 <p>Note: For the neighbor particles, we don't communicate the integer components, only the real data. </p>
