@@ -75,7 +75,7 @@ protected:
 
     int maxorder = 3;
 
-    int do_agglomeration = 0;
+    int do_agglomeration = 1;
     int do_consolidation = 1;
 #if (AMREX_SPACEDIM == 1)
     int agg_grid_size = 32;
@@ -109,6 +109,28 @@ protected:
 
     Vector<std::unique_ptr<MacBndry> > m_bndry_cor;
     Vector<std::unique_ptr<BndryRegister> > m_crse_cor_br;
+
+    // In case of agglomeration, coarse MG grids on amr level 0 are
+    // not simply coarsened from fine MG grids.  So we need to build
+    // bcond and bcloc for each MG level.
+    using RealTuple = std::array<Real,2*BL_SPACEDIM>;
+    using BCTuple   = std::array<BoundCond,2*BL_SPACEDIM>;
+    class BndryCondLoc
+    {
+    public:
+        BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm);
+        void setBndryConds (const Geometry& geom, const BCRec& phys_bc, int ratio);
+        const BCTuple& bndryConds (const MFIter& mfi) const {
+            return bcond[mfi];
+        }
+        const RealTuple& bndryLocs (const MFIter& mfi) const {
+            return bcloc[mfi];
+        }
+    private:
+        LayoutData<BCTuple>   bcond;
+        LayoutData<RealTuple> bcloc;
+    };
+    Vector<Vector<std::unique_ptr<BndryCondLoc> > > m_bcondloc;
 
     // used to save interpolation coefficients of the first interior cells
     mutable Vector<Vector<BndryRegister> > m_undrrelxr;

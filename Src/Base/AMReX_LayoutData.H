@@ -25,9 +25,12 @@ namespace amrex
                 const DistributionMapping & a_dm)
       {
         FabArrayBase::define(a_grids, a_dm, 1, 0);
-
+        m_define_function_called = true;
+        addThisBD();
         m_data.resize(local_size());
       }
+
+    ~LayoutData () { if (m_define_function_called) clearThisBD(); }
 
     LayoutData (const LayoutData& rhs) = default;
     LayoutData& operator= (const LayoutData& rhs) = default;
@@ -65,8 +68,8 @@ namespace amrex
       }
 
   private:
-    Vector<T> m_data;
-        
+      Vector<T> m_data;
+      bool m_define_function_called = false;
   };
 }
 #endif

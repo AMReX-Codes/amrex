@@ -2,6 +2,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLLinOp_F.H>
+#include <AMReX_LO_BCTYPES.H>
 
 namespace amrex {
 
@@ -256,6 +257,17 @@ MLLinOp::defineBC ()
         m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, 1,
                                             m_amr_ref_ratio[amrlev-1], phys_bc);
     }
+
+    m_bcondloc.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_bcondloc[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_bcondloc[amrlev][mglev].reset(new BndryCondLoc(m_grids[amrlev][mglev],
+                                                             m_dmap[amrlev][mglev]));
+        } 
+    }
 }
 
 MLLinOp::~MLLinOp ()
@@ -322,6 +334,8 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     }
     const MultiFab& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
 
+    int br_ref_ratio;
+
     if (amrlev == 0)
     {
         if (needsCoarseDataForBC())
@@ -347,15 +361,23 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
                                                 bcdata, 0, 0, 1,
                                                 m_coarse_data_crse_ratio, phys_bc);
+            br_ref_ratio = m_coarse_data_crse_ratio;
         }
         else
         {
             m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,phys_bc);
+            br_ref_ratio = 1;
         }
     }
     else
     {
         m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], phys_bc);
+        br_ref_ratio = m_amr_ref_ratio[amrlev-1];
+    }
+
+    for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+    {
+        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], phys_bc, br_ref_ratio);
     }
 }
 
@@ -442,10 +464,11 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    // When bndry is nullptr, either m_bndry_sol or m_bndry_sol is fine
-    // because bndryValues are not actually being used.
-    const MacBndry& macbndry = (bndry == nullptr) ? *m_bndry_sol[amrlev] : *bndry;
     const auto& maskvals = m_maskvals[amrlev][mglev];
+
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+
+    FArrayBox foo(Box::TheUnitBox());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -455,8 +478,8 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
         const Box& vbx   = mfi.validbox();
         FArrayBox& iofab = in[mfi];
 
-        const BndryData::RealTuple      & bdl = macbndry.bndryLocs(mfi);
-        const Vector<Vector<BoundCond> >& bdc = macbndry.bndryConds(mfi);
+        const RealTuple & bdl = bcondloc.bndryLocs(mfi);
+        const BCTuple   & bdc = bcondloc.bndryConds(mfi);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
@@ -464,9 +487,9 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
             int  cdr = ori;
             Real bcl = bdl[ori];
-            int  bct = bdc[ori][0];
+            int  bct = bdc[ori];
 
-            const FArrayBox& fsfab = macbndry.bndryValues(ori)[mfi];
+            const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
 
             const Mask& m = maskvals[ori][mfi];
 
@@ -590,7 +613,7 @@ MLLinOp::prepareForSolve ()
     {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            const MacBndry& macbndry = *m_bndry_sol[amrlev];
+            const auto& bcondloc = *m_bcondloc[amrlev][mglev];
             const auto& maskvals = m_maskvals[amrlev][mglev];
             const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
@@ -602,9 +625,9 @@ MLLinOp::prepareForSolve ()
             for (MFIter mfi(foo, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
             {
                 const Box& vbx = mfi.validbox();
-                
-                const BndryData::RealTuple      & bdl = macbndry.bndryLocs(mfi);
-                const Vector<Vector<BoundCond> >& bdc = macbndry.bndryConds(mfi);
+
+                const RealTuple & bdl = bcondloc.bndryLocs(mfi);
+                const BCTuple   & bdc = bcondloc.bndryConds(mfi);
 
                 for (OrientationIter oitr; oitr; ++oitr)
                 {
@@ -612,7 +635,7 @@ MLLinOp::prepareForSolve ()
                     
                     int  cdr = ori;
                     Real bcl = bdl[ori];
-                    int  bct = bdc[ori][0];
+                    int  bct = bdc[ori];
                     
                     FArrayBox& ffab = undrrelxr[ori][mfi];
                     const Mask& m   =  maskvals[ori][mfi];
@@ -623,6 +646,58 @@ MLLinOp::prepareForSolve ()
                                                     cdr, bct, bcl, maxorder, dxinv);
                 }
             }
+        }
+    }
+}
+
+MLLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm)
+    : bcond(ba, dm),
+      bcloc(ba, dm)
+{
+}
+
+void
+MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc, int ratio)
+{
+    // Same as MacBndry::setBndryConds
+
+    const Real* dx     = geom.CellSize();
+    const Box&  domain = geom.Domain();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(bcloc); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        RealTuple & bloc  = bcloc[mfi];
+        BCTuple   & bctag = bcond[mfi];
+        for (OrientationIter fi; fi; ++fi)
+        {
+            const Orientation face = fi();
+            const int         dir  = face.coordDir();
+
+            if (domain[face] == bx[face] && !geom.isPeriodic(dir))
+            {
+                //
+                // All physical bc values are located on face.
+                //
+                const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
+
+                bctag[face] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
+                bloc[face]  = 0;
+            }
+            else
+            {
+                //
+                // Internal bndry.
+                //
+                const Real delta = dx[dir]*ratio;
+
+                bctag[face] = LO_DIRICHLET;
+		bloc[face]  = 0.5*delta;
+            }
+
         }
     }
 }
