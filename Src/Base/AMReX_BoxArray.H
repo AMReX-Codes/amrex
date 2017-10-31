@@ -310,6 +310,7 @@ public:
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     bool coarsenable(int refinement_ratio, int min_width=1) const;
+    bool coarsenable(const IntVect& refinement_ratio, int min_width=1) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);

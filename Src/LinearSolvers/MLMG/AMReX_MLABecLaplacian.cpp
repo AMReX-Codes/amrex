@@ -132,6 +132,8 @@ MLABecLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
 
+    MLLinOp::prepareForSolve();
+
     averageDownCoeffs();
 
     m_Anorm.resize(m_num_amr_levels);

@@ -297,7 +297,7 @@ ifneq ($(MAKECMDGOALS),realclean)
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),uninstall)
 ifneq ($(MAKECMDGOALS),distclean)
-
+ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
 ifdef CEXE_sources
 -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
 endif
@@ -318,6 +318,7 @@ ifneq "$(strip $(f90EXE_sources) $(F90EXE_sources))" ""
 include $(depEXETempDir)/f90.depends
 endif
 
+endif
 endif
 endif
 endif

@@ -1,7 +1,8 @@
 
 #include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
-#include <AMReX_LO_F.H>
+#include <AMReX_MLLinOp_F.H>
+#include <AMReX_LO_BCTYPES.H>
 
 namespace amrex {
 
@@ -79,28 +80,77 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
 
-    int rr = mg_coarsen_ratio;
-    while (a_geom[0].Domain().coarsenable(rr)
-           and a_grids[0].coarsenable(rr, mg_box_min_width))
-    {
-        ++(m_num_mg_levels[0]);
-
-        m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
-
-        m_grids[0].push_back(a_grids[0]);
-        m_grids[0].back().coarsen(rr);
-
-        m_dmap[0].push_back(a_dmap[0]);
-        
-        rr *= mg_coarsen_ratio;
-    }
-
     m_domain_covered.resize(m_num_amr_levels, false);
     m_domain_covered[0] = (m_grids[0][0].numPts() == m_geom[0][0].Domain().numPts());
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
         if (!m_domain_covered[amrlev-1]) break;
         m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() == m_geom[amrlev][0].Domain().numPts());
+    }
+
+    if (do_agglomeration && m_domain_covered[0])
+    {
+        Vector<Box> domainboxes;
+        Box dbx = m_geom[0][0].Domain();
+        Real nbxs = static_cast<Real>(m_grids[0][0].size());
+        Real threshold_npts = static_cast<Real>(AMREX_D_TERM(agg_grid_size,*agg_grid_size,*agg_grid_size));
+        Vector<int> agg_flag;
+        domainboxes.push_back(dbx);
+        agg_flag.push_back(false);
+        while (dbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
+        {
+            dbx.coarsen(mg_coarsen_ratio);
+            domainboxes.push_back(dbx);
+            bool to_agg = (dbx.d_numPts() / nbxs) < 0.999*threshold_npts;
+            agg_flag.push_back(to_agg);
+        }
+
+        int first_agglev = std::distance(agg_flag.begin(),
+                                         std::find(agg_flag.begin(),agg_flag.end(),1));
+        int nmaxlev = domainboxes.size();
+        int rr = mg_coarsen_ratio;
+        for (int lev = 1; lev < nmaxlev; ++lev)
+        {
+            if (lev >= first_agglev or !a_grids[0].coarsenable(rr,mg_box_min_width))
+            {
+                m_geom[0].emplace_back(domainboxes[lev]);
+            
+                m_grids[0].emplace_back(domainboxes[lev]);
+                m_grids[0].back().maxSize(agg_grid_size);
+
+                // no consolidation yet
+                m_dmap[0].emplace_back(m_grids[0].back());
+            }
+            else
+            {
+                m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+                
+                m_grids[0].push_back(a_grids[0]);
+                m_grids[0].back().coarsen(rr);
+            
+                m_dmap[0].push_back(a_dmap[0]);
+            }
+
+            ++(m_num_mg_levels[0]);
+            rr *= mg_coarsen_ratio;
+        }
+    }
+    else
+    {
+        int rr = mg_coarsen_ratio;
+        while (a_geom[0].Domain().coarsenable(rr)
+               and a_grids[0].coarsenable(rr, mg_box_min_width))
+        {
+            m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+            
+            m_grids[0].push_back(a_grids[0]);
+            m_grids[0].back().coarsen(rr);
+            
+            m_dmap[0].push_back(a_dmap[0]);
+            
+            ++(m_num_mg_levels[0]);
+            rr *= mg_coarsen_ratio;
+        }
     }
 }
 
@@ -207,6 +257,17 @@ MLLinOp::defineBC ()
         m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, 1,
                                             m_amr_ref_ratio[amrlev-1], phys_bc);
     }
+
+    m_bcondloc.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_bcondloc[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_bcondloc[amrlev][mglev].reset(new BndryCondLoc(m_grids[amrlev][mglev],
+                                                             m_dmap[amrlev][mglev]));
+        } 
+    }
 }
 
 MLLinOp::~MLLinOp ()
@@ -273,6 +334,8 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
     }
     const MultiFab& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
 
+    int br_ref_ratio;
+
     if (amrlev == 0)
     {
         if (needsCoarseDataForBC())
@@ -298,15 +361,23 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
                                                 bcdata, 0, 0, 1,
                                                 m_coarse_data_crse_ratio, phys_bc);
+            br_ref_ratio = m_coarse_data_crse_ratio;
         }
         else
         {
             m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,phys_bc);
+            br_ref_ratio = 1;
         }
     }
     else
     {
         m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], phys_bc);
+        br_ref_ratio = m_amr_ref_ratio[amrlev-1];
+    }
+
+    for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+    {
+        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], phys_bc, br_ref_ratio);
     }
 }
 
@@ -338,7 +409,7 @@ MLLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const Multi
         updateSolBC(amrlev, *crse_bcdata);
     }
     const int mglev = 0;
-    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous);
+    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
     MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
 }
 
@@ -360,7 +431,7 @@ MLLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x
     else
     {
         AMREX_ALWAYS_ASSERT(crse_bcdata == nullptr);
-        apply(amrlev, mglev, resid, x, BCMode::Homogeneous);
+        apply(amrlev, mglev, resid, x, BCMode::Homogeneous, nullptr);
     }
 
     MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
@@ -382,6 +453,7 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
     BL_PROFILE("MLLinOp::applyBC()");
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
+    BL_ASSERT(bndry != nullptr || bc_mode == BCMode::Homogeneous);
 
     const bool cross = true;
     if (!skip_fillboundary) {
@@ -390,52 +462,43 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
     int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
 
-    int flagden = 1;  // Fill in undrrelxr
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    const int num_comp = 1;
-    const Real* h = m_geom[amrlev][mglev].CellSize();
-
-    const MacBndry& macbndry = (bndry == nullptr) ? *m_bndry_sol[amrlev] : *bndry;
-    BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals = m_maskvals[amrlev][mglev];
+
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+
+    FArrayBox foo(Box::TheUnitBox());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(in, MFItInfo().SetDynamic(true));
-         mfi.isValid(); ++mfi)
+    for (MFIter mfi(in, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
-        const BndryData::RealTuple      & bdl = macbndry.bndryLocs(mfi);
-        const Vector<Vector<BoundCond> >& bdc = macbndry.bndryConds(mfi);
+        const Box& vbx   = mfi.validbox();
+        FArrayBox& iofab = in[mfi];
+
+        const RealTuple & bdl = bcondloc.bndryLocs(mfi);
+        const BCTuple   & bdc = bcondloc.bndryConds(mfi);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
             const Orientation ori = oitr();
 
-            int           cdr = ori;
-            Real          bcl = bdl[ori];
-            int           bct = bdc[ori][0];
+            int  cdr = ori;
+            Real bcl = bdl[ori];
+            int  bct = bdc[ori];
 
-            const Box&       vbx   = mfi.validbox();
-            FArrayBox&       iofab = in[mfi];
+            const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
 
-            FArrayBox&       ffab  = undrrelxr[ori][mfi];
-            const FArrayBox& fsfab = macbndry.bndryValues(ori)[mfi];
+            const Mask& m = maskvals[ori][mfi];
 
-            const Mask&   m   = maskvals[ori][mfi];
-
-            FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-                         iofab.dataPtr(),
-                         ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
-                         &cdr, &bct, &bcl,
-                         fsfab.dataPtr(), 
-                         ARLIM(fsfab.loVect()), ARLIM(fsfab.hiVect()),
-                         m.dataPtr(),
-                         ARLIM(m.loVect()), ARLIM(m.hiVect()),
-                         ffab.dataPtr(),
-                         ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
-                         vbx.loVect(),
-                         vbx.hiVect(), &num_comp, h);
+            amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
+                                   BL_TO_FORTRAN_ANYD(iofab),
+                                   BL_TO_FORTRAN_ANYD(m),
+                                   cdr, bct, bcl,
+                                   BL_TO_FORTRAN_ANYD(fsfab),
+                                   maxorder, dxinv, flagbc);
         }
     }
 
@@ -443,12 +506,12 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
 void
 MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                 BCMode bc_mode, bool skip_fillboundary) const
+                 bool skip_fillboundary) const
 {
     BL_PROFILE("MLLinOp::smooth()");
     for (int redblack = 0; redblack < 2; ++redblack)
     {
-        applyBC(amrlev, mglev, sol, bc_mode, nullptr, skip_fillboundary);
+        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, nullptr, skip_fillboundary);
         Fsmooth(amrlev, mglev, sol, rhs, redblack);
         skip_fillboundary = false;
     }
@@ -539,6 +602,102 @@ MLLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxe
                 const Box& nbx = mfi.nodaltilebox(idim);
                 (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, 1);
             }
+        }
+    }
+}
+
+void
+MLLinOp::prepareForSolve ()
+{
+    for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
+    {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+            const auto& maskvals = m_maskvals[amrlev][mglev];
+            const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+            BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
+            MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 0, MFInfo().SetAlloc(false));
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(foo, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+            {
+                const Box& vbx = mfi.validbox();
+
+                const RealTuple & bdl = bcondloc.bndryLocs(mfi);
+                const BCTuple   & bdc = bcondloc.bndryConds(mfi);
+
+                for (OrientationIter oitr; oitr; ++oitr)
+                {
+                    const Orientation ori = oitr();
+                    
+                    int  cdr = ori;
+                    Real bcl = bdl[ori];
+                    int  bct = bdc[ori];
+                    
+                    FArrayBox& ffab = undrrelxr[ori][mfi];
+                    const Mask& m   =  maskvals[ori][mfi];
+
+                    amrex_mllinop_comp_interp_coef0(BL_TO_FORTRAN_BOX(vbx),
+                                                    BL_TO_FORTRAN_ANYD(ffab),
+                                                    BL_TO_FORTRAN_ANYD(m),
+                                                    cdr, bct, bcl, maxorder, dxinv);
+                }
+            }
+        }
+    }
+}
+
+MLLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm)
+    : bcond(ba, dm),
+      bcloc(ba, dm)
+{
+}
+
+void
+MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc, int ratio)
+{
+    // Same as MacBndry::setBndryConds
+
+    const Real* dx     = geom.CellSize();
+    const Box&  domain = geom.Domain();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(bcloc); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        RealTuple & bloc  = bcloc[mfi];
+        BCTuple   & bctag = bcond[mfi];
+        for (OrientationIter fi; fi; ++fi)
+        {
+            const Orientation face = fi();
+            const int         dir  = face.coordDir();
+
+            if (domain[face] == bx[face] && !geom.isPeriodic(dir))
+            {
+                //
+                // All physical bc values are located on face.
+                //
+                const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
+
+                bctag[face] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
+                bloc[face]  = 0;
+            }
+            else
+            {
+                //
+                // Internal bndry.
+                //
+                const Real delta = dx[dir]*ratio;
+
+                bctag[face] = LO_DIRICHLET;
+		bloc[face]  = 0.5*delta;
+            }
+
         }
     }
 }

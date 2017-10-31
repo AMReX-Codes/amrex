@@ -1,23 +1,28 @@
 
-CEXE_headers += AMReX_MLMG.H   AMReX_MLLinOp.H   AMReX_MLCGSolver.H
-CEXE_sources += AMReX_MLMG.cpp AMReX_MLLinOp.cpp AMReX_MLCGSolver.cpp
-
+CEXE_headers   += AMReX_MLMG.H
+CEXE_sources   += AMReX_MLMG.cpp
 CEXE_headers   += AMReX_MLMG_F.H
 F90EXE_sources += AMReX_MLMG_$(DIM)d.F90
 
 
+CEXE_headers   += AMReX_MLLinOp.H
+CEXE_sources   += AMReX_MLLinOp.cpp
+CEXE_headers   += AMReX_MLLinOp_F.H
+F90EXE_sources += AMReX_MLLinOp_$(DIM)d.F90
 
-CEXE_headers += AMReX_MLABecLaplacian.H
-CEXE_sources += AMReX_MLABecLaplacian.cpp
 
+CEXE_headers   += AMReX_MLCGSolver.H
+CEXE_sources   += AMReX_MLCGSolver.cpp
+
+
+CEXE_headers   += AMReX_MLABecLaplacian.H
+CEXE_sources   += AMReX_MLABecLaplacian.cpp
 CEXE_headers   += AMReX_MLABecLap_F.H
 F90EXE_sources += AMReX_MLABecLap_$(DIM)d.F90
 
 
-
-CEXE_headers += AMReX_MLPoisson.H
-CEXE_sources += AMReX_MLPoisson.cpp
-
+CEXE_headers   += AMReX_MLPoisson.H
+CEXE_sources   += AMReX_MLPoisson.cpp
 CEXE_headers   += AMReX_MLPoisson_F.H
 F90EXE_sources += AMReX_MLPoisson_$(DIM)d.F90
 
