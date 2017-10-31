@@ -17,6 +17,7 @@ SHA=`git rev-parse --verify HEAD`
 
 # Clone the existing gh-pages for this repo into out/
 # Create a new empty branch if gh-pages doesn't exist yet (should only happen on first deply)
+rm -rf out
 git clone $REPO out
 cd out
 git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
@@ -31,7 +32,7 @@ doxygen doxygen.conf
 cd ../..
 
 # move it to the right place
-mkdir out/doxygen
+mkdir -p out/doxygen
 mv Docs/Doxygen/html/* out/doxygen/
 
 # now do sphinx
