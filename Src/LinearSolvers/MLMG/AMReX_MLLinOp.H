@@ -96,6 +96,9 @@ protected:
     Vector<Vector<DistributionMapping> > m_dmap;
     Vector<int>                          m_domain_covered;
 
+    Vector<Vector<MPI_Comm> >            m_comm;
+//    Vector<MPI_Comm,>                     m_comm_raii;
+
     // BC
     std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
     std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
@@ -186,7 +189,8 @@ private:
                       const Vector<DistributionMapping>& a_dmap);
     void defineAuxData ();
     void defineBC ();
-    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
+    static std::pair<DistributionMapping,MPI_Comm> makeConsolidatedDMap (const BoxArray& ba,
+                                                                         MPI_Comm dcomm);
 };
 
 }

@@ -41,6 +41,10 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
 
+    m_comm.resize(m_num_amr_levels);
+
+    auto default_comm = ParallelDescriptor::Communicator();
+
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
@@ -48,6 +52,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         m_geom[amrlev].push_back(a_geom[amrlev]);
         m_grids[amrlev].push_back(a_grids[amrlev]);
         m_dmap[amrlev].push_back(a_dmap[amrlev]);
+        m_comm[amrlev].push_back(default_comm);
 
         int rr = mg_coarsen_ratio;
         const Box& dom = a_geom[amrlev].Domain();
@@ -67,6 +72,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             m_grids[amrlev].back().coarsen(rr);
 
             m_dmap[amrlev].push_back(a_dmap[amrlev]);
+            m_comm[amrlev].push_back(default_comm);
 
             rr *= mg_coarsen_ratio;
         }
@@ -79,6 +85,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_geom[0].push_back(a_geom[0]);
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
+    m_comm[0].push_back(default_comm);
 
     m_domain_covered.resize(m_num_amr_levels, false);
     m_domain_covered[0] = (m_grids[0][0].numPts() == m_geom[0][0].Domain().numPts());
@@ -120,11 +127,15 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
                 if (do_consolidation)
                 {
-                    m_dmap[0].push_back(makeConsolidatedDMap(m_grids[0].back()));
+                    const auto& dmap_comm = makeConsolidatedDMap(m_grids[0].back(),
+                                                                 default_comm);
+                    m_dmap[0].push_back(dmap_comm.first);
+                    m_comm[0].push_back(dmap_comm.second);
                 }
                 else
                 {
                     m_dmap[0].emplace_back(m_grids[0].back());
+                    m_comm[0].push_back(default_comm);
                 }
             }
             else
@@ -135,6 +146,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 m_grids[0].back().coarsen(rr);
             
                 m_dmap[0].push_back(a_dmap[0]);
+                m_comm[0].push_back(default_comm);
             }
 
             ++(m_num_mg_levels[0]);
@@ -153,6 +165,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             m_grids[0].back().coarsen(rr);
             
             m_dmap[0].push_back(a_dmap[0]);
+            m_comm[0].push_back(default_comm);
             
             ++(m_num_mg_levels[0]);
             rr *= mg_coarsen_ratio;
@@ -708,14 +721,16 @@ MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc
     }
 }
 
-DistributionMapping
-MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
+std::pair<DistributionMapping,MPI_Comm>
+MLLinOp::makeConsolidatedDMap (const BoxArray& ba, MPI_Comm dcomm)
 {
     const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
 
     const int nprocs = ParallelDescriptor::NProcs();
     AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
     const int nboxes = ba.size();
+
+    MPI_Comm comm = dcomm;
 
     Vector<int> pmap(ba.size());
     if (nboxes >= nprocs)
@@ -736,7 +751,7 @@ MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
         }
     }
 
-    return DistributionMapping{pmap};
+    return std::make_pair(DistributionMapping{pmap}, comm);
 }
 
 }
