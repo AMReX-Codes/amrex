@@ -43,10 +43,6 @@
 #include <omp.h>
 #endif
 
-#if CUDA
-#include "AMReX_CudaManagedAllocator.H"
-#endif
-
 namespace amrex {
   
 namespace
@@ -218,16 +214,10 @@ public:
     using Iterator      = typename Vector<ParticleType>::iterator;
     using ConstIterator = typename Vector<ParticleType>::const_iterator;
 
-#if CUDA
-    using ParticleVector = Vector<ParticleType, CudaManagedAllocator<ParticleType> >;
-#else
-    using ParticleVector = Vector<ParticleType>;
-#endif
-
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
 
-    const ParticleVector& operator()() const { return m_data; }
-          ParticleVector& operator()()       { return m_data; }
+    const Vector<ParticleType>& operator()() const { return m_data; }
+    Vector      <ParticleType>& operator()()       { return m_data; }
 
     std::size_t size () const { return m_data.size(); }
     int numParticles () const { return m_data.size(); }
@@ -260,9 +250,9 @@ public:
     typename Vector<ParticleType>::const_iterator begin () const { return m_data.begin(); }
     typename Vector<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }
         
-    typename ParticleVector::iterator end () { return m_data.end(); }
-    typename ParticleVector::const_iterator end () const { return m_data.end(); }
-    typename ParticleVector::const_iterator cend () const { return m_data.cend(); }
+    typename Vector::iterator end () { return m_data.end(); }
+    typename Vector::const_iterator end () const { return m_data.end(); }
+    typename Vector::const_iterator cend () const { return m_data.cend(); }
 
 private:
     ParticleVector m_data;
@@ -272,37 +262,29 @@ template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeIn
 
 template <int NReal, int NInt>
 struct StructOfArrays {
+  
+    std::array<Vector<Real>, NReal>& GetRealData () { return m_rdata; }
+    std::array<Vector<int>,   NInt>& GetIntData  () { return m_idata; }
 
-#if CUDA
-    using RealVector = Vector<Real, CudaManagedAllocator<Real>>;
-    using  IntVector = Vector<int , CudaManagedAllocator<int >>;
-#else
-    using RealVector = Vector<Real>;
-    using  IntVector = Vector<int >;
-#endif
+    const std::array<Vector<Real>, NReal>& GetRealData () const { return m_rdata; }
+    const std::array<Vector<int>,   NInt>& GetIntData  () const { return m_idata; }
 
-    std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
-    std::array< IntVector,   NInt>& GetIntData  () { return m_idata; }
-
-    const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
-    const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
-
-    RealVector& GetRealData (const int index) {
+    Vector<Real>& GetRealData (const int index) {
         BL_ASSERT(index < NReal);
         return m_rdata[index];
     }
     
-    const RealVector& GetRealData (const int index) const {
+    const Vector<Real>& GetRealData (const int index) const {
         BL_ASSERT(index < NReal);
         return m_rdata[index];
     }
 
-    IntVector& GetIntData (const int index) {
+    Vector<int>& GetIntData (const int index) {
         BL_ASSERT(index < NInt);
         return m_idata[index];
     }
     
-    const IntVector& GetIntData (const int index) const {
+    const Vector<int>& GetIntData (const int index) const {
         BL_ASSERT(index < NInt);
         return m_idata[index];
     }
@@ -317,8 +299,9 @@ struct StructOfArrays {
     }
 
 private:
-    std::array<RealVector, NReal> m_rdata;
-    std::array< IntVector,  NInt> m_idata;    
+
+    std::array<Vector<Real>, NReal> m_rdata;
+    std::array<Vector<int>,  NInt>  m_idata;
 };
 
 
@@ -468,11 +451,6 @@ public:
     using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     using AoS = typename ParticleTileType::AoS;
     using SoA = typename ParticleTileType::SoA;
-
-    using RealArray     = typename SoA::RealArray;
-    using  IntArray     = typename SoA::IntArray;
-    using ParticleArray = typename AoS::ParticleArray;
-
 
     ParticleContainer ()
       : 

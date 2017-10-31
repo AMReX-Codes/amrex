@@ -1297,7 +1297,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
     for (int lev = lev_min; lev <= lev_max; lev++) {
         auto& pmap = m_particles[lev];
         for (auto pmap_it = pmap.begin(); pmap_it != pmap.end(); /* no ++ */) {
-
+              aos().erase(aos().begin() + first, aos().begin() + npart);
+              for (int comp = 0; comp < NArrayReal; comp++) {
+                  Array<Real>& rdata = soa.GetRealData(comp);
+                  rdata.erase(rdata.begin() + first, rdata.begin() + npart);
+              }
+              for (int comp = 0; comp < NArrayInt; comp++) {
+                  Array<int>& idata = soa.GetIntData(comp);
+                  idata.erase(idata.begin() + first, idata.begin() + npart);
+              }
+          }
+	
+          //
           // Remove any map entries for which the particle container is now empty.
           if (pmap_it->second.empty()) {
               pmap.erase(pmap_it++);
