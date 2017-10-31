@@ -290,7 +290,7 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
   use compute_flux_module, only : mol4thord_flux_3d
   implicit none
 
-  integer, intent(in) :: lo(3), hi(3)
+  integer, intent(in) :: lo(3), hi(3), printstuff
   integer, intent(in) :: deblocell(3), debhicell(3)
   integer, intent(in) :: hisidedebfacelo(3), hisidedebfacehi(3)
   integer, intent(in) :: losidedebfacelo(3), losidedebfacehi(3)
