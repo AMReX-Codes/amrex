@@ -330,7 +330,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         bool skip_fillboundary = true;
         for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev],
-                         BCMode::Homogeneous, skip_fillboundary);
+                         skip_fillboundary);
             skip_fillboundary = false;
         }
 
@@ -354,7 +354,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         bool skip_fillboundary = true;
         for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom],
-                         BCMode::Homogeneous, skip_fillboundary);
+                         skip_fillboundary);
             skip_fillboundary = false;
         }
     }
@@ -453,9 +453,28 @@ MLMG::interpCorrection (int alev, int mglev)
     MultiFab& fine_cor = *cor[alev][mglev  ];
 
     const Geometry& crse_geom = linop.Geom(alev,mglev+1);
-    crse_cor.FillBoundary(crse_geom.periodicity());
-
     const int refratio = 2;
+
+    MultiFab cfine;
+    const MultiFab* cmf;
+    
+    if (amrex::isMFIterSafe(crse_cor, fine_cor))
+    {
+        crse_cor.FillBoundary(crse_geom.periodicity());
+        cmf = &crse_cor;
+    }
+    else
+    {
+        BoxArray cba = fine_cor.boxArray();
+        cba.coarsen(refratio);
+        const int nc = crse_cor.nComp();
+        const int ng = crse_cor.nGrow();
+        cfine.define(cba, fine_cor.DistributionMap(), nc, ng);
+        cfine.setVal(0.0);
+        cfine.ParallelCopy(crse_cor, 0, 0, nc, 0, ng, crse_geom.periodicity());
+        cmf = & cfine;
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -464,7 +483,7 @@ MLMG::interpCorrection (int alev, int mglev)
         const Box& bx = mfi.tilebox();
         amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
                                  BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                 BL_TO_FORTRAN_ANYD(crse_cor[mfi]),
+                                 BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
                                  &refratio);
     }
 }
@@ -477,14 +496,34 @@ MLMG::addInterpCorrection (int alev, int mglev)
 
     const MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab&       fine_cor = *cor[alev][mglev  ];
+
+    const int refratio = 2;
+    MultiFab cfine;
+    const MultiFab* cmf;
+
+    if (amrex::isMFIterSafe(crse_cor, fine_cor))
+    {
+        cmf = &crse_cor;
+    }
+    else
+    {
+        BoxArray cba = fine_cor.boxArray();
+        cba.coarsen(refratio);
+        const int nc = crse_cor.nComp();
+        const int ng = 0;
+        cfine.define(cba, fine_cor.DistributionMap(), nc, 0);
+        cfine.ParallelCopy(crse_cor);
+        cmf = &cfine;
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(crse_cor,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*cmf,true); mfi.isValid(); ++mfi)
     {
         const Box&         bx = mfi.tilebox();
         const int          nc = fine_cor.nComp();
-        const FArrayBox& cfab = crse_cor[mfi];
+        const FArrayBox& cfab =   (*cmf)[mfi];
         FArrayBox&       ffab = fine_cor[mfi];
 
         FORT_INTERP(ffab.dataPtr(),
@@ -535,7 +574,7 @@ MLMG::bottomSolve ()
     {
         bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous, skip_fillboundary);
+            linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
             skip_fillboundary = false;
         }
     }

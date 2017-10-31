@@ -527,22 +527,29 @@ BoxArray::refine (const IntVect& iv)
 bool
 BoxArray::coarsenable(int refinement_ratio, int min_width) const
 {
-    const long sz = size();
-    if(size() == 0) 
-    {
-        return false;
-    }
+    return coarsenable(IntVect{refinement_ratio}, min_width);
+}
 
-    const int rm = refinement_ratio*min_width;
+bool
+BoxArray::coarsenable(const IntVect& refinement_ratio, int min_width) const
+{
+    const long sz = size();
+    if(size() == 0) return false;
+
+    const Box& first = (*this)[0];
+    bool res = first.coarsenable(refinement_ratio,min_width);
+    if (res == false) return false;
+
+#ifdef _OPENMP
+#pragma omp parallel for reduction(&&:res)
+#endif
     for (long ibox = 0; ibox < sz; ++ibox)
     {
-        const Box& thisbox = (*this)[ibox];
-        if (thisbox.shortside() < rm or !thisbox.coarsenable(refinement_ratio))
-        {
-            return false;
-        }
-    }
-    return true;
+        const Box& thisbox = (*this)[ibox];        
+        res = res && thisbox.coarsenable(refinement_ratio,min_width);
+    }        
+
+    return res;
 }
 
 BoxArray&

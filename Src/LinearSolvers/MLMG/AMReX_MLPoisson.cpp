@@ -27,6 +27,8 @@ MLPoisson::prepareForSolve ()
 {
     BL_PROFILE("MLPoisson::prepareForSolve()");
 
+    MLLinOp::prepareForSolve();
+
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
     auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
@@ -184,11 +186,9 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 Real
 MLPoisson::Anorm (int amrlev, int mglev) const
 {
-    BL_PROFILE("MLPoisson::Anorm()");
-
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    return 4.0*(AMREX_D_DECL(dxinv[0]*dxinv[0],
+    return 4.0*(AMREX_D_TERM(dxinv[0]*dxinv[0],
                             +dxinv[1]*dxinv[1],
                             +dxinv[2]*dxinv[2]));
 }
