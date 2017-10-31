@@ -226,7 +226,7 @@ in Figure 4.1. We recommend you study
 main.cpp and advance.cpp to see some of the classes described
 below in action.</p>
 <div class="figure" id="id1">
-<a class="reference internal image-reference" href="_images/flowchart.png"><img alt="_images/flowchart.png" src="_images/flowchart.png" style="width: 4.00000in;" /></a>
+<a class="reference internal image-reference" href="../Basics/figs/flowchart.png"><img alt="../Basics/figs/flowchart.png" src="../Basics/figs/flowchart.png" style="width: 4.00000in;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.1:  Source code tree for the
 HeatEquation_EX1_C example.</span></p>
 </div>
@@ -403,7 +403,7 @@ finer than the level 1 cells. Note that there is no direct
 parent-child connection. In this chapter, we will focus on single
 levels.</p>
 <div class="figure" id="id2">
-<a class="reference internal image-reference" href="_images/amrgrids.png"><img alt="_images/amrgrids.png" src="_images/amrgrids.png" style="width: 3.00000in;" /></a>
+<a class="reference internal image-reference" href="../Basics/amrgrids.png"><img alt="../Basics/amrgrids.png" src="../Basics/amrgrids.png" style="width: 3.00000in;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.2: Example of AMR grids. There are
 three levels in total. There are 1, 2 and 2 Boxes on levels
 0, 1, and 2, respectively.</span></p>
@@ -530,7 +530,7 @@ nodal index with the same integer value represents <span class="math">\(i-1/2\)<
 Figure&nbsp;4.3 shows a 2D example of various index
 types.</p>
 <div class="figure" id="id3">
-<a class="reference internal image-reference" href="_images/indextypes.png"><img alt="_images/indextypes.png" src="_images/indextypes.png" style="width: 5.00000in;" /></a>
+<a class="reference internal image-reference" href="../Basics/indextypes.png"><img alt="../Basics/indextypes.png" src="../Basics/indextypes.png" style="width: 5.00000in;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.3: Some of the different index
 types in two dimensions: (a) cell-centered, (b) <span class="math">\(x\)</span>-face-centered
 (i.e., nodal in <span class="math">\(x\)</span>-direction only), and (c) corner/nodal,
@@ -1349,13 +1349,13 @@ requires only two minor changes.</p>
 <p>The kernels functions like f1 and f2 in the two examples
 here usually require very little changes.</p>
 <div class="figure" id="id4">
-<a class="reference internal image-reference" href="_images/cc_validbox.png"><img alt="_images/cc_validbox.png" src="_images/cc_validbox.png" style="width: 30.0%;" /></a>
+<a class="reference internal image-reference" href="../Basics/cc_validbox.png"><img alt="../Basics/cc_validbox.png" src="../Basics/cc_validbox.png" style="width: 30.0%;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.4: Example of cell-centered tile boxes.
 Each grid is <em>logically</em> broken into 4 tiles, and each
 tile has <span class="math">\(4^2\)</span> cells. There are 8 tiles in total.</span></p>
 </div>
 <div class="figure" id="id5">
-<a class="reference internal image-reference" href="_images/cc_tilebox.png"><img alt="_images/cc_tilebox.png" src="_images/cc_tilebox.png" style="width: 30.0%;" /></a>
+<a class="reference internal image-reference" href="../Basics/cc_tilebox.png"><img alt="../Basics/cc_tilebox.png" src="../Basics/cc_tilebox.png" style="width: 30.0%;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.5: Example of cell-centered tile boxes.
 Each grid is <em>logically</em> broken into 4 tiles, and each
 tile has <span class="math">\(4^2\)</span> cells. There are 8 tiles in total.</span></p>
@@ -1380,7 +1380,7 @@ in that direction. &nbsp;has a default tile size IntVect{1024000,8,8} in 3D and 
 when tile size is not explicitly set but the tiling flag is on. One
 can change the default size using ParmParse parameter fabarray.mfiter_tile_size.</p>
 <div class="figure" id="id6">
-<a class="reference internal image-reference" href="_images/ec_validbox.png"><img alt="_images/ec_validbox.png" src="_images/ec_validbox.png" style="width: 30.0%;" /></a>
+<a class="reference internal image-reference" href="../Basics/ec_validbox.png"><img alt="../Basics/ec_validbox.png" src="../Basics/ec_validbox.png" style="width: 30.0%;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.6: Example of face tile boxes.
 Each grid is <em>logically</em> broken into 4 tiles as indicated
 by the symbols. There are 8 tiles in total. Some tiles have
@@ -1389,7 +1389,7 @@ Points from different Boxes may overlap, but points from
 different tiles of the same Box do not.</span></p>
 </div>
 <div class="figure" id="id7">
-<a class="reference internal image-reference" href="_images/ec_tilebox.png"><img alt="_images/ec_tilebox.png" src="_images/ec_tilebox.png" style="width: 30.0%;" /></a>
+<a class="reference internal image-reference" href="../Basics/ec_tilebox.png"><img alt="../Basics/ec_tilebox.png" src="../Basics/ec_tilebox.png" style="width: 30.0%;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.7: Example of face tile boxes.
 Each grid is <em>logically</em> broken into 4 tiles as indicated
 by the symbols. There are 8 tiles in total. Some tiles have
@@ -1428,14 +1428,14 @@ is undesirable because works would be wasted and for multi-threaded
 codes race conditions could occur.
 Figures&nbsp;4.8 &amp; 4.9 show examples of growntilebox.</p>
 <div class="figure" id="id8">
-<a class="reference internal image-reference" href="_images/cc_growbox.png"><img alt="_images/cc_growbox.png" src="_images/cc_growbox.png" style="width: 30.0%;" /></a>
+<a class="reference internal image-reference" href="../Basics/cc_growbox.png"><img alt="../Basics/cc_growbox.png" src="../Basics/cc_growbox.png" style="width: 30.0%;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.8: Example of face type grown
 tile boxes. As indicated by symbols, there are 8 tiles and
 four in each grid in this example. Tiles from the same grid do
 not overlap even though they have face index type.</span></p>
 </div>
 <div class="figure" id="id9">
-<a class="reference internal image-reference" href="_images/ec_growbox.png"><img alt="_images/ec_growbox.png" src="_images/ec_growbox.png" style="width: 30.0%;" /></a>
+<a class="reference internal image-reference" href="../Basics/ec_growbox.png"><img alt="../Basics/ec_growbox.png" src="../Basics/ec_growbox.png" style="width: 30.0%;" /></a>
 <p class="caption"><span class="caption-text">Figure 4.9: Example of face type grown
 tile boxes. As indicated by symbols, there are 8 tiles and
 four in each grid in this example. Tiles from the same grid do
