@@ -154,6 +154,8 @@ protected:
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
 
+    MPI_Comm Communicator (int amrlev, int mglev) const { return m_comm[amrlev][mglev]; } 
+
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
