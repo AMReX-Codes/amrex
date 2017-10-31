@@ -21,6 +21,8 @@ list ( APPEND ALLHEADERS AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H AMReX_SPAC
 list ( APPEND CXXSRC     AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp )
 list ( APPEND ALLHEADERS AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H )
 
+list ( APPEND ALLHEADERS AMReX_ParallelReduce.H )
+
 list ( APPEND CXXSRC     AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp )
 list ( APPEND ALLHEADERS AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H )
 
