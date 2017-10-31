@@ -531,9 +531,9 @@ contains
                   +phiavex(i,j  ,k+1)+phiavex(i,j  ,k-1)&
                   -4.d0*phiavex(i,j,k))
              
-             diffflux  = (-nu/dx(1))*( phiptcc(i  ,j  ,k  ) - phiptcc(i-1,j  ,k  )) &
-                  -(nu/3.0d0)*(phiptcc(i+1,j  ,k  ) + phiptcc(i-1,j  ,k  ) - 2.0d0*phiptcc(i  ,j  ,k  )) &
-                  +(nu/3.0d0)*(phiptcc(i  ,j  ,k  ) + phiptcc(i-2,j  ,k  ) - 2.0d0*phiptcc(i-1,j  ,k  ))
+             diffflux  = (-nu/dx(1))* &
+                  ((27.0d0/24.0d0)*(phiptcc(i  ,j,k) - phiptcc(i-1,j,k)) &
+                  +( 1.0d0/24.0d0)*(phiptcc(i-2,j,k) - phiptcc(i+1,j,k)))
 
              fluxptx(i,j,k) = umac(i,j,k)*phiptx(i,j,k) + diffflux
 
@@ -551,9 +551,9 @@ contains
                   +phiavey(i  ,j,k+1)+phiavey(i  ,j,k-1)&
                   -4.d0*phiavey(i,j,k))
 
-             diffflux  = (-nu/dx(2))*( phiptcc(i  ,j  ,k  ) - phiptcc(i  ,j-1,k  ) )&
-                  -(nu/3.0d0)*(phiptcc(i  ,j+1,k  ) + phiptcc(i  ,j-1,k  ) - 2.0d0*phiptcc(i  ,j  ,k  )) &
-                  +(nu/3.0d0)*(phiptcc(i  ,j  ,k  ) + phiptcc(i  ,j-2,k  ) - 2.0d0*phiptcc(i  ,j-1,k  ))
+             diffflux  = (-nu/dx(2))* &
+                  ((27.0d0/24.0d0)*(phiptcc(i,j  ,k) - phiptcc(i,j-1,k)) &
+                  +( 1.0d0/24.0d0)*(phiptcc(i,j-2,k) - phiptcc(i,j+1,k)))
 
              fluxpty(i,j,k) = vmac(i,j,k)*phipty(i,j,k) + diffflux
 
@@ -571,10 +571,9 @@ contains
                   +phiavez(i  ,j+1,k)+phiavez(i  ,j-1,k)&
                   -4.d0*phiavez(i,j,k))
 
-             diffflux  = (-nu/dx(3))*( phiptcc(i  ,j  ,k  ) - phiptcc(i  ,j  ,k-1)) &
-                  -(nu/3.0d0)*(phiptcc(i  ,j  ,k+1) + phiptcc(i  ,j  ,k-1) - 2.0d0*phiptcc(i  ,j  ,k  )) &
-                  +(nu/3.0d0)*(phiptcc(i  ,j  ,k  ) + phiptcc(i  ,j  ,k-2) - 2.0d0*phiptcc(i  ,j  ,k-1))
-
+             diffflux  = (-nu/dx(3))* &
+                  ((27.0d0/24.0d0)*(phiptcc(i,j,k  ) - phiptcc(i,j,k-1)) &
+                  +( 1.0d0/24.0d0)*(phiptcc(i,j,k-2) - phiptcc(i,j,k+1)))
 
              fluxptz(i,j,k) = wmac(i,j,k)*phiptz(i,j,k) + diffflux
           end do
