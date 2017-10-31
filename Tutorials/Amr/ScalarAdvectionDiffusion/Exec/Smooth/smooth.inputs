@@ -10,7 +10,7 @@ geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0. 0. 0.
 geometry.prob_hi     =  1.0  1.0  1.0
 amr.n_cell           =  64   64   64
-adv.diffusion_coeff = 0.000001  # diffusion coefficient
+adv.diffusion_coeff = 0.0001  # diffusion coefficient
 
 # TIME STEP CONTROL
 adv.cfl            = 0.25     # cfl number for hyperbolic system
@@ -42,4 +42,4 @@ amr.probin_file = probin
 
 # TRACER PARTICLES
 adv.do_tracers = 0
-fixed_dt = 0.0002
+#fixed_dt = 0.0002

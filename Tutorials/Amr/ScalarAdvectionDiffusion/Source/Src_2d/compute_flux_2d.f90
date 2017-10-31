@@ -301,12 +301,13 @@ contains
 
           debtemp  = phiptx(i,j)
 
-          diffflux  = (-nu/dx(1))* &
-               ( phiptcc(i  ,j) - phiptcc(i-1,j) &
-               -(phiptcc(i+1,j) + phiptcc(i-1,j) - 2.0d0*phiptcc(i  ,j)) &
-               +(phiptcc(i  ,j) + phiptcc(i-2,j) - 2.0d0*phiptcc(i-1,j)))
+          diffflux  = (-nu/dx(1))*( phiptcc(i  ,j) - phiptcc(i-1,j)) &
+               -(1.0d0/6.0d0)*(phiptcc(i+1,j) + phiptcc(i-1,j) - 2.0d0*phiptcc(i  ,j)) &
+               +(1.0d0/6.0d0)*(phiptcc(i  ,j) + phiptcc(i-2,j) - 2.0d0*phiptcc(i-1,j))
 
           fluxptx(i,j) = umac(i,j)*phiptx(i,j) + diffflux
+
+!uncomment to just do diffusion
 !          fluxptx(i,j) =  diffflux
 
        end do
@@ -322,12 +323,14 @@ contains
 
           debtemp  = phipty(i,j)
 
-          diffflux  = (-nu/dx(2))* &
-               ( phiptcc(i,j  ) - phiptcc(i,j-1) &
-               -(phiptcc(i,j+1) + phiptcc(i,j-1) - 2.0d0*phiptcc(i,j  )) &
-               +(phiptcc(i,j  ) + phiptcc(i,j-2) - 2.0d0*phiptcc(i,j-1)))
+          diffflux  = (-nu/(dx(2)))*( phiptcc(i,j  ) - phiptcc(i,j-1)) &
+               -(1.0d0/6.0d0)*(phiptcc(i,j+1) + phiptcc(i,j-1) - 2.0d0*phiptcc(i,j  )) &
+               +(1.0d0/6.0d0)*(phiptcc(i,j  ) + phiptcc(i,j-2) - 2.0d0*phiptcc(i,j-1))
 
           fluxpty(i,j) = vmac(i,j)*phipty(i,j) + diffflux
+
+!uncomment to just do diffusion
+!          fluxpty(i,j) =  diffflux
 
        end do
     end do
