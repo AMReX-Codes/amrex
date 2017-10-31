@@ -204,7 +204,16 @@ namespace amrex
     static amrex::Real  cfl;
     static amrex::Real  diffco;
     static int          do_reflux;
-  
+
+    //only persistent if not on finest level
+    MultiFab m_k1;
+    MultiFab m_k2;
+    MultiFab m_k3;
+    MultiFab m_k4;
+ 
+    void
+    fillGhostCellsRK4 (MultiFab & a_phiC, //phi on the coarser level
+                       const int& a_stage); //rk4 stage to fill ghost for;
   };    
 
 //

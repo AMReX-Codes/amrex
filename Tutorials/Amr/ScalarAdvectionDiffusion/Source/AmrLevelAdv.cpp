@@ -20,6 +20,62 @@ namespace amrex
 //
 //Default constructor.  Builds invalid object.
 //
+  /////
+  void
+  AmrLevelAdv::
+  fillGhostCellsRK4 (MultiFab & a_phiC, //phi on the coarser level
+                     const int& a_stage) //rk4 stage to fill ghost for
+  {
+    if(level > 0)
+    {
+      BL_ASSERT(a_stage >= 1);
+      BL_ASSERT(a_stage <= 3);
+      Real dt_f    = parent->dtLevel(level);
+      Real dt_c    = parent->dtLevel(level-1);
+      Real tf      = getLevel(level  ).state[Phi_Type].curTime();
+      Real tc_new  = getLevel(level-1).state[Phi_Type].curTime();
+      Real tc_old  = getLevel(level-1).state[Phi_Type].prevTime();
+      BL_ASSERT(tf >= tc_old);
+      BL_ASSERT(tf <  tc_new);
+      Real xi;//coefficient from mccorquodale
+      if(a_stage == 1)
+      {
+        xi = (tf + 0.5*dt_f - tc_old)/dt_c;
+      }
+      else if(a_stage == 2)
+      {
+        xi = (tf + 0.5*dt_f - tc_old)/dt_c; //why, yes, this *is* the same as stage 1
+      }
+      else
+      {
+        xi = (tf + dt_f - tc_old)/dt_c;
+      }
+
+      MultiFab & k1  = getLevel(level-1).m_k1;
+      MultiFab & k2  = getLevel(level-1).m_k2;
+      MultiFab & k3  = getLevel(level-1).m_k3;
+      MultiFab & k4  = getLevel(level-1).m_k4;
+      MultiFab& oldC = getLevel(level-1).get_old_data(Phi_Type);
+      for (MFIter mfi(a_phiC); mfi.isValid(); ++mfi)
+      {
+        const Box& box     = mfi.validbox();
+        const int* lo      = box.loVect();
+        const int* hi      = box.hiVect();
+
+        timeinterpolaterk4(xi, ARLIM_3D(lo), ARLIM_3D(hi),
+                           BL_TO_FORTRAN_3D(a_phiC[mfi]),
+                           BL_TO_FORTRAN_3D(  oldC[mfi]),
+                           BL_TO_FORTRAN_3D(    k1[mfi]),
+                           BL_TO_FORTRAN_3D(    k2[mfi]),
+                           BL_TO_FORTRAN_3D(    k3[mfi]),
+                           BL_TO_FORTRAN_3D(    k4[mfi]));
+      }
+
+      //now we can spatially interpolate 
+    }
+    a_phiC.FillBoundary(geom.periodicity());
+  }
+///
   AmrLevelAdv::
   AmrLevelAdv ()
   {
@@ -240,7 +296,7 @@ namespace amrex
     return dtval;
   }
 
-
+  /////
   Real
   AmrLevelAdv::
   advanceMOLRK2 (Real time,
@@ -327,7 +383,7 @@ namespace amrex
     MultiFab u2(grids,dmap,NUM_STATE,NUM_GROW);
   
     YAFluxRegister* fr_as_crse = nullptr;
-    if (do_reflux && level < parent->finestLevel()) 
+    if (do_reflux && level < parent->finestLevel() ) 
     {
       fr_as_crse = &getFluxReg(level+1);
     }
@@ -452,22 +508,21 @@ namespace amrex
     // this sets U1 = U^n + dt*dPhiDt^n 
     k1.mult(dt);
     MultiFab::LinComb(u1, 1., S_old, 0, 0.5, k1, 0, 0, NUM_STATE, 0);
-    u1.FillBoundary(geom.periodicity());
+    fillGhostCellsRK4(u1, 1);
 
     //phi^2 = phi^n + dt/2*dPhiDt(phi^1)
     //the dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u1, k2, time, dt/3., fr_as_crse, fr_as_fine, iteration);
     k2.mult(dt);
     MultiFab::LinComb(u2, 1., S_old, 0, 0.5, k2, 0, 0, NUM_STATE, 0);
-    u2.FillBoundary(geom.periodicity());
+    fillGhostCellsRK4(u2, 2);
 
     //phi^3 = phi^n + dt*dPhiDt(phi^2)
     //the dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u2, k3, time, dt/3., fr_as_crse, fr_as_fine, iteration);
     k3.mult(dt);
     MultiFab::LinComb(u3, 1., S_old, 0, 1.0, k3, 0, 0, NUM_STATE, 0);
-    u3.FillBoundary(geom.periodicity());
-
+    fillGhostCellsRK4(u3, 3);
 
     //phi^4 = phi^n + dt*F(phi^3)
     //the dt/6. is for the flux register.
@@ -481,7 +536,20 @@ namespace amrex
     MultiFab::Saxpy(  S_new, 1./3., k2, 0, 0, NUM_STATE, 0);
     MultiFab::Saxpy(  S_new, 1./3., k3, 0, 0, NUM_STATE, 0);
     MultiFab::Saxpy(  S_new, 1./6., k4, 0, 0, NUM_STATE, 0);
-    
+
+    //if we are not on the finest level, need to save the k objects for c/f time interpolation
+    if(level < parent->finestLevel() ) 
+    {
+      m_k1.define(grids,dmap,NUM_STATE,0);
+      m_k2.define(grids,dmap,NUM_STATE,0);
+      m_k3.define(grids,dmap,NUM_STATE,0);
+      m_k4.define(grids,dmap,NUM_STATE,0);
+
+      m_k1.copy(k1);
+      m_k2.copy(k2);
+      m_k3.copy(k3);
+      m_k4.copy(k4);
+    }
     return dt;
   }
 
