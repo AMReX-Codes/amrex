@@ -470,6 +470,7 @@ MLMG::interpCorrection (int alev, int mglev)
         const int nc = crse_cor.nComp();
         const int ng = crse_cor.nGrow();
         cfine.define(cba, fine_cor.DistributionMap(), nc, ng);
+        cfine.setVal(0.0);
         cfine.ParallelCopy(crse_cor, 0, 0, nc, 0, ng, crse_geom.periodicity());
         cmf = & cfine;
     }
@@ -512,13 +513,13 @@ MLMG::addInterpCorrection (int alev, int mglev)
         const int ng = 0;
         cfine.define(cba, fine_cor.DistributionMap(), nc, 0);
         cfine.ParallelCopy(crse_cor);
-        cmf = & cfine;
+        cmf = &cfine;
     }
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(crse_cor,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*cmf,true); mfi.isValid(); ++mfi)
     {
         const Box&         bx = mfi.tilebox();
         const int          nc = fine_cor.nComp();
