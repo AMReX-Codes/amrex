@@ -57,7 +57,7 @@ subroutine initdata(level, time, lo, hi, &
   integer          :: i,j,k
   double precision :: xlo,ylo,xhi,yhi,zlo,zhi, pi, denom, integralval
   
-  pi = 4.d0*atan(1.0)
+  pi = 3.14159265358979323846264338327950288d0
   if(dim.eq.2) then
      denom = (dx(1)*dx(2)*pi*pi*4.0d0)
   else
@@ -65,32 +65,43 @@ subroutine initdata(level, time, lo, hi, &
   endif
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
-     zlo = pi*dx(3)*(k)
-     zhi = pi*dx(3)*(k+1)
+     zlo = dx(3)*(k)
+     zhi = dx(3)*(k+1)
 
      do j=lo(2),hi(2)
-        ylo = pi*dx(2)*(j)
-        yhi = pi*dx(2)*(j+1)
+        ylo = dx(2)*(j)
+        yhi = dx(2)*(j+1)
 
         do i=lo(1),hi(1)
-           xlo = pi*dx(1)*(i)
-           xhi = pi*dx(1)*(i+1)
+           xlo = dx(1)*(i)
+           xhi = dx(1)*(i+1)
 
            if(dim .eq. 2) then
-              integralval = (sin(2.d0*xhi) - sin(2.d0*xlo))*(sin(2.d0*yhi) - sin(2.d0*ylo))
+              integralval = (sin(2.d0*pi*xhi) - sin(2.d0*pi*xlo))*(sin(2.d0*pi*yhi) - sin(2.d0*pi*ylo))
            else
-              integralval = (sin(2.d0*xhi) - sin(2.d0*xlo))*(sin(2.d0*yhi) - sin(2.d0*ylo))*(sin(2.d0*zhi) - sin(2.d0*zlo))
+              integralval = (sin(2.d0*pi*xhi) - sin(2.d0*pi*xlo))*(sin(2.d0*pi*yhi) - sin(2.d0*pi*ylo))*(sin(2.d0*pi*zhi) - sin(2.d0*pi*zlo))
            end if
 
 !!debug set to 1d           
-!           integralval = (sin(2.d0*xhi) - sin(2.d0*xlo))
+!           integralval = (sin(2.d0*pi*xhi) - sin(2.d0*pi*xlo))
 !           denom = dx(1)*pi*2.0d0
-!!end debug
+!           if(j.eq.0) then
+!!              if((i.eq.0).or.(i.eq.63)) then
+!              if(i.eq.63) then
+!!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, sin(2.d0*pi*xhi), sin(2.d0*pi*xlo), integralval, denom
+!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, sin(2.d0*pi*1.0d0), sin(2.d0*pi*xlo), integralval, denom
+!              endif
+!           endif
+!!!end debug
            phi(i,j,k) = integralval/denom
 
         end do
      end do
   end do
   !$omp end parallel do
+
+!  j = 0
+!  k = 0
+!  print*, "*** init phi 0  1  62 63= ", j, phi(0,j,k),phi(1,j,k),phi(62,j,k),phi(63,j,k), "****"
 
 end subroutine initdata
