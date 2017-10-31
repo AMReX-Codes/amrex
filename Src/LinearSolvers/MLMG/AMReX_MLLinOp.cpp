@@ -118,8 +118,14 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 m_grids[0].emplace_back(domainboxes[lev]);
                 m_grids[0].back().maxSize(agg_grid_size);
 
-                // no consolidation yet
-                m_dmap[0].emplace_back(m_grids[0].back());
+                if (do_consolidation)
+                {
+                    m_dmap[0].push_back(makeConsolidatedDMap(m_grids[0].back()));
+                }
+                else
+                {
+                    m_dmap[0].emplace_back(m_grids[0].back());
+                }
             }
             else
             {
@@ -700,6 +706,37 @@ MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc
 
         }
     }
+}
+
+DistributionMapping
+MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
+{
+    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
+
+    const int nprocs = ParallelDescriptor::NProcs();
+    AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
+    const int nboxes = ba.size();
+
+    Vector<int> pmap(ba.size());
+    if (nboxes >= nprocs)
+    {
+        for (int iproc = 0; iproc < nprocs; ++iproc) {
+            for (int ibox : sfc[iproc]) {
+                pmap[ibox] = iproc;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nboxes; ++i) { // after nboxes sfc[i] is empty
+            for (int ibox : sfc[i]) {
+                const int iproc = i;
+                pmap[ibox] = iproc;
+            }
+        }
+    }
+
+    return DistributionMapping{pmap};
 }
 
 }
