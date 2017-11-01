@@ -22,7 +22,7 @@ namespace ParallelAllReduce {
     void Max (T* v, int cnt, MPI_Comm comm)
     {
         Vector<T> tmp(v, v+cnt);
-        MPI_Allreduce(&tmp, v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
+        MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
                       MPI_MAX, comm);
     }
 
@@ -51,7 +51,7 @@ namespace ParallelAllReduce {
     void Sum (T* v, int cnt, MPI_Comm comm)
     {
         Vector<T> tmp(v, v+cnt);
-        MPI_Allreduce(&tmp, v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
+        MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
                       MPI_SUM, comm);
     }
 
