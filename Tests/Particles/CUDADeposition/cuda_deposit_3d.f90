@@ -49,7 +49,7 @@ subroutine cuda_push_particles(particles, ns, np) &
   cuda_result = cudaMemcpy(ns_d, ns, 1, cudaMemcpyHostToDevice)
   cuda_result = cudaMemcpy(np_d, np, 1, cudaMemcpyHostToDevice)
 
-  numThreads = dim3(256,1,1)
+  numThreads = dim3(512,1,1)
   numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
 
   call push_kernel<<<numBlocks, numThreads>>>(particles, ns_d, np_d)
@@ -77,9 +77,6 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, &
   real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
   real(amrex_real) lx, ly, lz
   real(amrex_real) inv_dx(3)
-
-  lx = particles(10, n)
-
   inv_dx = 1.0d0/dx
 
   count = counts(gid+1)
@@ -116,7 +113,7 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, &
  
 end subroutine deposit_kernel
 
-subroutine cuda_deposit_cic(particles, ns, np, np_loc, &
+subroutine cuda_deposit_cic(particles, ns, np, &
      counts, offsets, ngrids, gid, &
      rho, lo, hi, plo, dx) &
      bind(c,name='cuda_deposit_cic')
@@ -128,7 +125,7 @@ subroutine cuda_deposit_cic(particles, ns, np, np_loc, &
 
   implicit none
   
-  integer, value       :: ns, np, ngrids, gid, np_loc
+  integer, value       :: ns, np, ngrids, gid
   real(amrex_real)     :: particles(ns,np)
   integer              :: counts(ngrids), offsets(ngrids)
   integer              :: lo(3)
@@ -152,23 +149,19 @@ subroutine cuda_deposit_cic(particles, ns, np, np_loc, &
   stream = cuda_streams(mod(gid, max_cuda_streams) + 1)
 
   cuda_result = cudaMemcpyAsync(lo_d, lo, 3, cudaMemcpyHostToDevice, stream)
-
   cuda_result = cudaMemcpyAsync(hi_d, hi, 3, cudaMemcpyHostToDevice, stream)
 
   cuda_result = cudaMemcpyAsync(plo_d, plo, 3, cudaMemcpyHostToDevice, stream)
-
   cuda_result = cudaMemcpyAsync(dx_d,  dx,  3, cudaMemcpyHostToDevice, stream)
 
   cuda_result = cudaMemcpyAsync(ns_d, ns, 1, cudaMemcpyHostToDevice, stream)
-
   cuda_result = cudaMemcpyAsync(np_d, np, 1, cudaMemcpyHostToDevice, stream)
 
   cuda_result = cudaMemcpyAsync(ngrids_d, ngrids, 1, cudaMemcpyHostToDevice, stream)
+  cuda_result = cudaMemcpyAsync(gid_d, gid, 1, cudaMemcpyHostToDevice, stream)
 
-  cuda_result = cudaMemcpyAsync(gid_d,    gid,    1, cudaMemcpyHostToDevice, stream)
-
-  numThreads = dim3(256,1,1)
-  numBlocks  = dim3(ceiling(real(np_loc)/numThreads%x),1,1)
+  numThreads = dim3(512,1,1)
+  numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
 
   call deposit_kernel<<<numBlocks, numThreads, 0, stream>>>(particles, ns_d, np_d, &
        counts, offsets, ngrids_d, gid_d, &
@@ -201,7 +194,6 @@ attributes(global) subroutine interpolate_kernel(particles, ns, np, &
   real(amrex_real) inv_dx(3)
   inv_dx = 1.0d0/dx
 
-
   offset = offsets(gid+1)
   count  = counts(gid+1)
 
@@ -210,8 +202,6 @@ attributes(global) subroutine interpolate_kernel(particles, ns, np, &
      lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
      ly = (particles(2, n) - plo(2))*inv_dx(2) + 0.5d0
      lz = (particles(3, n) - plo(3))*inv_dx(3) + 0.5d0
-
-     lx = particles(10, n)
 
      i = floor(lx)
      j = floor(ly)
@@ -239,7 +229,7 @@ attributes(global) subroutine interpolate_kernel(particles, ns, np, &
  
 end subroutine interpolate_kernel
 
-subroutine cuda_interpolate_cic(particles, ns, np, np_loc, &
+subroutine cuda_interpolate_cic(particles, ns, np, &
      counts, offsets, ngrids, gid, & 
      acc, lo, hi, plo, dx) &
      bind(c,name='cuda_interpolate_cic')
@@ -251,7 +241,7 @@ subroutine cuda_interpolate_cic(particles, ns, np, np_loc, &
   
   implicit none
   
-  integer, value       :: ns, np, ngrids, gid, np_loc
+  integer, value       :: ns, np, ngrids, gid
   real(amrex_real)     :: particles(ns,np)
   integer              :: counts(ngrids)
   integer              :: offsets(ngrids)
@@ -287,8 +277,8 @@ subroutine cuda_interpolate_cic(particles, ns, np, np_loc, &
   cuda_result = cudaMemcpyAsync(gid_d, gid, 1, cudaMemcpyHostToDevice, stream)
   cuda_result = cudaMemcpyAsync(ngrids_d, ngrids, 1, cudaMemcpyHostToDevice, stream)
 
-  numThreads = dim3(256,1,1)
-  numBlocks  = dim3(ceiling(real(np_loc)/numThreads%x),1,1)
+  numThreads = dim3(512,1,1)
+  numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
 
   call interpolate_kernel<<<numBlocks, numThreads, 0, stream>>>(particles, ns_d, np_d, &
        counts, offsets, ngrids_d, gid_d, &
