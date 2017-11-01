@@ -138,5 +138,5 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
   
   partMF.SumBoundary(gm.periodicity());
   
-  //  CopyParticlesFromDevice();
+  CopyParticlesFromDevice();
 }
