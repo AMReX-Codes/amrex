@@ -59,8 +59,6 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   }
 
 #endif
-
-  CopyParticlesToDevice();
 }
 
 void MyParticleContainer::CopyParticlesToDevice() {
@@ -102,9 +100,11 @@ void MyParticleContainer::CopyParticlesFromDevice() {
 #endif
 }
 
-void MyParticleContainer::Deposit(MultiFab& partMF) {
+void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
 
-  BL_PROFILE("Particle Deposit.");
+  BL_PROFILE("Particle Process.");
+
+  CopyParticlesToDevice();
 
   const int lev = 0;
   const Geometry& gm  = Geom(lev);
@@ -116,6 +116,7 @@ void MyParticleContainer::Deposit(MultiFab& partMF) {
     int nstride = particles.dataShape().first;
     const long np  = pti.numParticles();    
     FArrayBox& rhofab = partMF[pti];
+    FArrayBox& accfab = acc[pti];
     const Box& box    = rhofab.box();        
 
 #if CUDA
@@ -130,24 +131,14 @@ void MyParticleContainer::Deposit(MultiFab& partMF) {
   		plo, dx);
 #endif // CUDA    
   }
-  partMF.SumBoundary(gm.periodicity());
-}
-
-void MyParticleContainer::Interpolate(MultiFab& acc) {
-  
-  BL_PROFILE("Particle Interpolate.");
-  
-  const int lev = 0;
-  const Geometry& gm  = Geom(lev);
-  const Real*     plo = gm.ProbLo();
-  const Real*     dx  = gm.CellSize();  
 
   for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
     const auto& particles = pti.GetArrayOfStructs();
     int nstride = particles.dataShape().first;
     const long np  = pti.numParticles();    
+    FArrayBox& rhofab = partMF[pti];
     FArrayBox& accfab = acc[pti];
-    const Box& box    = accfab.box();
+    const Box& box    = rhofab.box();        
 
 #if CUDA    
     cuda_interpolate_cic((Real*) device_particles, nstride, m_np, np,
@@ -161,37 +152,24 @@ void MyParticleContainer::Interpolate(MultiFab& acc) {
 		    plo, dx);
 #endif // CUDA    
   }
-}
-
-void MyParticleContainer::Push() {
-  
-  BL_PROFILE("Particle Push.");
 
 #if CUDA
     cuda_push_particles((Real*) device_particles, 11, m_np);
 #else
-    const int lev = 0;
-    const Geometry& gm  = Geom(lev);
-    const Real*     plo = gm.ProbLo();
-    const Real*     dx  = gm.CellSize();
-
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-      const auto& particles = pti.GetArrayOfStructs();
-      int nstride = particles.dataShape().first;
-      const long np  = pti.numParticles();
-      push_particles(particles.data(), nstride, np);
-    }
-#endif // CUDA
-}
-
-void MyParticleContainer::Redistribute() {
-#if CUDA
-  CopyParticlesFromDevice();
-#endif
+    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
+    const auto& particles = pti.GetArrayOfStructs();
+    int nstride = particles.dataShape().first;
+    const long np  = pti.numParticles();    
+    FArrayBox& rhofab = partMF[pti];
+    FArrayBox& accfab = acc[pti];
+    const Box& box    = rhofab.box();        
+    
+    push_particles(particles.data(), nstride, np);    
+  }
+#endif // CUDA    
+    
+  partMF.SumBoundary(gm.periodicity());
   
-  Redistribute();
-  
-#if CUDA
-  CopyParticlesToDevice();
-#endif
+  //  CopyParticlesFromDevice();
+
 }

@@ -91,7 +91,7 @@ void test_assign_density(TestParams& parms)
   Real mass = 10.0;
   myPC.InitParticles(num_particles, mass);
 
-  myPC.Deposit(density);
+  myPC.Deposit(density, E);
 
   Real offset = myPC.sumParticleMass(0, 0);
 
@@ -99,10 +99,6 @@ void test_assign_density(TestParams& parms)
   std::cout << "Total mesh mass is: " << density.sum(0) << std::endl;
   
   field_solve(density, phi, E, geom, offset);
-
-  myPC.Interpolate(E);
-
-  myPC.Push();
 
   WriteSingleLevelPlotfile("plt00000", density, {"density"}, geom, 0.0, 0);
   myPC.Checkpoint("plt00000", "particle0", true);
