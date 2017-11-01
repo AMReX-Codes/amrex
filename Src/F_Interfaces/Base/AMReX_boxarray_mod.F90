@@ -96,7 +96,7 @@ module amrex_boxarray_module
      pure subroutine amrex_fi_boxarray_nodal_type (ba, inodal) bind(c)
        import
        implicit none
-       type(c_ptr), value :: ba
+       type(c_ptr), value, intent(in) :: ba
        integer, intent(inout) :: inodal(3)
      end subroutine amrex_fi_boxarray_nodal_type
   end interface
