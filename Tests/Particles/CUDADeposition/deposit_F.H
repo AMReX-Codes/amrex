@@ -24,7 +24,7 @@ extern "C"
 		       int ngrids, int gid,
 		       amrex_real* acc, const int* lo, const int* hi,
 		       const amrex_real* plo, const amrex_real* dx);
-
+  
 #ifdef __cplusplus
 };
 #endif

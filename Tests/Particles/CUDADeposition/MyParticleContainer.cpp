@@ -38,6 +38,8 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
 
   const int lev = 0;
   int offset = 0;
+  particle_counts.clear();
+  particle_offsets.clear();
   for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
     const auto& particles = pti.GetArrayOfStructs();
     const long np  = pti.numParticles();
@@ -49,7 +51,7 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   m_ngrids = particle_counts.size();
   cudaMalloc((void**) &device_particle_offsets, m_ngrids*sizeof(int)); 
   cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int)); 
-
+  
 }
 
 void MyParticleContainer::CopyParticlesToDevice() {
@@ -62,8 +64,8 @@ void MyParticleContainer::CopyParticlesToDevice() {
     const long np  = pti.numParticles();
     cudaMemcpy(device_particles + offset,
 	       particles.data(), np*psize, cudaMemcpyHostToDevice);
-    particle_counts.clear();
-    particle_offsets.clear();
+    particle_counts.push_back(np);
+    particle_offsets.push_back(offset);
     offset += np;
   }
 
@@ -88,7 +90,7 @@ void MyParticleContainer::CopyParticlesFromDevice() {
 
 void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
 
-  BL_PROFILE("Particle Deposit.");
+  BL_PROFILE("Particle GPU Deposit.");
 
   CopyParticlesToDevice();
 
@@ -110,18 +112,18 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
 		m_ngrids, pti.index(),
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
-    
+
     interpolate_cic((Real*) device_particles, nstride, np,
 		    device_particle_counts, device_particle_offsets, 
 		    m_ngrids, pti.index(),
 		    accfab.dataPtr(), box.loVect(), box.hiVect(), 
 		    plo, dx);
-    
-    push_particles((Real*) device_particles, nstride, np);
-    
+
+    push_particles(device_particles, nstride, np);
+
   }
   
   partMF.SumBoundary(gm.periodicity());
-  
-  CopyParticlesFromDevice();
+
+  //  CopyParticlesFromDevice();
 }
