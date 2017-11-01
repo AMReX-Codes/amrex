@@ -12,10 +12,9 @@ USE_PARTICLES = TRUE
 
 PRECISION = DOUBLE
 
-USE_MPI     = FALSE
-USE_OMP     = FALSE
-USE_CUDA    = TRUE
-USE_CUDA_UM = TRUE
+USE_MPI   = FALSE
+USE_OMP   = FALSE
+USE_CUDA  = TRUE
 
 ###################################################
 

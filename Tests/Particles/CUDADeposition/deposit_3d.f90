@@ -5,7 +5,7 @@ attributes(global) subroutine push_kernel(particles)
   implicit none
   
   integer              :: ns, np
-  real(amrex_real)     :: particles(ns, np)
+  real(amrex_real)     :: particles(5, 20971520)
   integer i
 
   real(amrex_real) mass, charge, dt, fac
@@ -39,7 +39,7 @@ subroutine push_particles(particles, ns, np) &
   implicit none
   
   integer, value   :: ns, np
-  real(amrex_real) :: particles(ns, np)
+  real(amrex_real) :: particles(5, 20971520)
 
   attributes(device) :: particles
 
@@ -62,7 +62,7 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, rho, lo, hi, plo
   use amrex_fort_module, only : amrex_real  
   implicit none
 
-  integer              :: ns, np
+  integer, value       :: ns, np  
   real(amrex_real)     :: particles(ns, np)
   integer, intent(in)  :: lo(3), hi(3)
   real(amrex_real)     :: rho(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
@@ -70,7 +70,6 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, rho, lo, hi, plo
   real(amrex_real)     :: dx(3)
   
   integer i, j, k, n
-  real(amrex_real) retval
   real(amrex_real) wx_lo, wy_lo, wz_lo, wx_hi, wy_hi, wz_hi
   real(amrex_real) lx, ly, lz
   real(amrex_real) inv_dx(3)
@@ -81,7 +80,7 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, rho, lo, hi, plo
      lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
      ly = (particles(2, n) - plo(2))*inv_dx(2) + 0.5d0
      lz = (particles(3, n) - plo(3))*inv_dx(3) + 0.5d0
-
+     
      i = floor(lx)
      j = floor(ly)
      k = floor(lz)
@@ -93,26 +92,15 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, rho, lo, hi, plo
      wx_lo = 1.0d0 - wx_hi
      wy_lo = 1.0d0 - wy_hi
      wz_lo = 1.0d0 - wz_hi
-
      
-
-     retval = atomicadd(rho(i-1, j-1, k-1), wx_lo*wy_lo*wz_lo*particles(4, n))
-     retval = atomicadd(rho(i-1, j-1, k),   wx_lo*wy_lo*wz_hi*particles(4, n))
-     retval = atomicadd(rho(i-1, j,   k-1), wx_lo*wy_hi*wz_lo*particles(4, n))
-     retval = atomicadd(rho(i-1, j,   k),   wx_lo*wy_hi*wz_hi*particles(4, n))
-     retval = atomicadd(rho(i,   j-1, k-1), wx_hi*wy_lo*wz_lo*particles(4, n))
-     retval = atomicadd(rho(i,   j-1, k),   wx_hi*wy_lo*wz_hi*particles(4, n))
-     retval = atomicadd(rho(i,   j,   k-1), wx_hi*wy_hi*wz_lo*particles(4, n))
-     retval = atomicadd(rho(i,   j,   k),   wx_hi*wy_hi*wz_hi*particles(4, n))
-
-     ! rho(i-1, j-1, k-1) = rho(i-1, j-1, k-1) + wx_lo*wy_lo*wz_lo*particles(4, n)
-     ! rho(i-1, j-1, k)   = rho(i-1, j-1, k)   + wx_lo*wy_lo*wz_hi*particles(4, n)
-     ! rho(i-1, j,   k-1) = rho(i-1, j,   k-1) + wx_lo*wy_hi*wz_lo*particles(4, n)
-     ! rho(i-1, j,   k)   = rho(i-1, j,   k)   + wx_lo*wy_hi*wz_hi*particles(4, n)
-     ! rho(i,   j-1, k-1) = rho(i,   j-1, k-1) + wx_hi*wy_lo*wz_lo*particles(4, n)
-     ! rho(i,   j-1, k)   = rho(i,   j-1, k)   + wx_hi*wy_lo*wz_hi*particles(4, n)
-     ! rho(i,   j,   k-1) = rho(i,   j,   k-1) + wx_hi*wy_hi*wz_lo*particles(4, n)
-     ! rho(i,   j,   k)   = rho(i,   j,   k)   + wx_hi*wy_hi*wz_hi*particles(4, n)
+     rho(i-1, j-1, k-1) = rho(i-1, j-1, k-1) + wx_lo*wy_lo*wz_lo*particles(4, n)
+     rho(i-1, j-1, k)   = rho(i-1, j-1, k)   + wx_lo*wy_lo*wz_hi*particles(4, n)
+     rho(i-1, j,   k-1) = rho(i-1, j,   k-1) + wx_lo*wy_hi*wz_lo*particles(4, n)
+     rho(i-1, j,   k)   = rho(i-1, j,   k)   + wx_lo*wy_hi*wz_hi*particles(4, n)
+     rho(i,   j-1, k-1) = rho(i,   j-1, k-1) + wx_hi*wy_lo*wz_lo*particles(4, n)
+     rho(i,   j-1, k)   = rho(i,   j-1, k)   + wx_hi*wy_lo*wz_hi*particles(4, n)
+     rho(i,   j,   k-1) = rho(i,   j,   k-1) + wx_hi*wy_hi*wz_lo*particles(4, n)
+     rho(i,   j,   k)   = rho(i,   j,   k)   + wx_hi*wy_hi*wz_hi*particles(4, n)
   end if
  
 end subroutine deposit_kernel
