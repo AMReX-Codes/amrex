@@ -168,7 +168,11 @@ protected:
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
 
+#ifdef BL_USE_MPI
     bool isBottomActive () const { m_bottom_comm != MPI_COMM_NULL; }
+#else
+    bool isBottomActive () const { return true; }
+#endif
     MPI_Comm BottomCommunicator () const { return m_bottom_comm; }
     MPI_Comm Communicator (int amrlev, int mglev) const {
         if (amrlev == 0 && mglev == NMGLevels(0)-1) {
