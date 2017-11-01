@@ -560,6 +560,8 @@ MLMG::bottomSolve ()
 
     Real bottom_start_time = ParallelDescriptor::second();
 
+    int old_sn = ParallelDescriptor::SeqNum(3);
+    
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
     MultiFab& x = *cor[amrlev][mglev];
@@ -607,6 +609,9 @@ MLMG::bottomSolve ()
             linop.smooth(amrlev, mglev, x, b);
         }
     }
+
+    ParallelDescriptor::SeqNum(2, old_sn);
+
     timer[bottom_time] += ParallelDescriptor::second() - bottom_start_time;
 }
 

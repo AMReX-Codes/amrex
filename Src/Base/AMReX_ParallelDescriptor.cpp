@@ -2511,6 +2511,10 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
 	seqno = newvalue;
         result = seqno;
       }
+      case 3:  // ---- jump 
+      {
+          seqno += (m_MaxTag-m_MinTag) / 2;
+      }
       break;
       default:  // ---- error
       {
