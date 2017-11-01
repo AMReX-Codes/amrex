@@ -6,39 +6,8 @@
 #include <AMReX_Vector.H>
 
 namespace amrex {
-/**
-* \brief This class is a thin wrapper around std::vector.  Unlike vector,
-* Array::operator[] provides bound checking when compiled with
-* DEBUG=TRUE.
-*/
 
-template <class T, class Allocator=std::allocator<T> >
-class Array
-    :
-        public std::vector<T, Allocator>
-{
-public:
-
-    using std::vector<T, Allocator>::vector;
-
-    T& operator[] (std::size_t i)
-    {
-	BL_ASSERT(i < this->size());
-	return this->std::vector<T, Allocator>::operator[](i);
-    }
-
-    const T& operator[] (std::size_t i) const
-    {
-	BL_ASSERT(i < this->size());
-	return this->std::vector<T, Allocator>::operator[](i);
-    }
-
-    //! get access to the underlying array 
-    T* dataPtr () { return this->data(); }
-    //! get access to the underlying array 
-    const T* dataPtr () const { return this->data(); }
-};
-
+    template <class T> using Array = Vector<T>;
 }
 
 namespace amrex
