@@ -20,7 +20,6 @@ namespace amrex
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
-    //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
@@ -58,6 +57,13 @@ namespace amrex
 
     //! Extract a slice from the given cell-centered MultiFab at coordinate "coord" along direction "dir". 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int fstart, int ncomp);
+
+    // Is it safe to have these two MultiFabs in the same MFiter?
+    // Ture means safe; false means maybe.
+    inline bool isMFIterSafe (const MultiFab& x, const MultiFab& y) {
+        return x.DistributionMap() == y.DistributionMap()
+            && BoxArray::SameRefs(x.boxArray(), y.boxArray());
+    }
 }
 
 

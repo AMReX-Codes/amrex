@@ -27,6 +27,8 @@ MLPoisson::prepareForSolve ()
 {
     BL_PROFILE("MLPoisson::prepareForSolve()");
 
+    MLLinOp::prepareForSolve();
+
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
     auto itlo = std::find(m_lobc.begin(), m_lobc.end(), BCType::Dirichlet);
@@ -164,8 +166,8 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 
 void
 MLPoisson::FFlux (int amrlev, const MFIter& mfi,
-                        std::array<FArrayBox,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only) const
+                  const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
+                  const FArrayBox& sol, const int face_only) const
 {
     BL_PROFILE("MLPoisson::FFlux()");
 
@@ -174,9 +176,9 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
     amrex_mlpoisson_flux(BL_TO_FORTRAN_BOX(box),
-                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(flux[0]),
-                                      BL_TO_FORTRAN_ANYD(flux[1]),
-                                      BL_TO_FORTRAN_ANYD(flux[2])),
+                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
+                                      BL_TO_FORTRAN_ANYD(*flux[1]),
+                                      BL_TO_FORTRAN_ANYD(*flux[2])),
                          BL_TO_FORTRAN_ANYD(sol),
                          dxinv, face_only);
 }
@@ -184,11 +186,9 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
 Real
 MLPoisson::Anorm (int amrlev, int mglev) const
 {
-    BL_PROFILE("MLPoisson::Anorm()");
-
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    return 4.0*(AMREX_D_DECL(dxinv[0]*dxinv[0],
+    return 4.0*(AMREX_D_TERM(dxinv[0]*dxinv[0],
                             +dxinv[1]*dxinv[1],
                             +dxinv[2]*dxinv[2]));
 }

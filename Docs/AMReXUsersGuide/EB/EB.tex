@@ -381,7 +381,7 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
   Vector<Vector<RealVect> > polygons;
   //....fill the polygons any way you like//
 
-  // Make the Array of (convex) polygons (Arrays of points) into a union
+  // Make the Vector of (convex) polygons (Vectors of points) into a union
   // of convex polygons, each made from the intersection of a set of half
   // planes/spaces - all represented by implicit functions.
 
@@ -396,7 +396,7 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
     Vector<BaseIF*> planes;
     planes.resize(0);
 
-    // Get the current polygon (as a Array of points)
+    // Get the current polygon (as a Vector of points)
     const Vector<RealVect>& polygon = polygons[p];
 
     // Get the number of points in the polygon
@@ -431,7 +431,7 @@ defineGeometry(const Real& fine_dx, const  Box& finest_domain, int max_grid_size
     polytopes.push_back(polygonIF);
   }
 
-  //this makes the cross section the union of all the polgons (around
+  //this makes the cross section the union of all the polygons (around
   //z-axis, recall)
   UnionIF crossSection(polytopes);
             
