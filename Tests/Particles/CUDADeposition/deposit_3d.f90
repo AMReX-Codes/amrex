@@ -48,7 +48,7 @@ subroutine push_particles(particles, ns, np) &
   type(dim3) :: numThreads, numBlocks
 
   cuda_result = cudaMemcpy(ns_d, ns, 1, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(np_d, np, 1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpy(np_d, np,  1, cudaMemcpyHostToDevice)
 
   numThreads = dim3(256,1,1)
   numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
@@ -58,15 +58,15 @@ subroutine push_particles(particles, ns, np) &
 end subroutine push_particles
 
 attributes(global) subroutine deposit_kernel(particles, ns, np, &
-     counts, offsets, ngrids, gid, &
+     counts, offsets, gid, &
      rho, lo, hi, plo, dx)
   
   use amrex_fort_module, only : amrex_real  
   implicit none
 
   integer              :: ns, np, ngrids, gid
-  integer              :: counts(ngrids)
-  integer              :: offsets(ngrids)
+  integer              :: counts(:)
+  integer              :: offsets(:)
   real(amrex_real)     :: particles(ns, np)
   integer, intent(in)  :: lo(3), hi(3)
   real(amrex_real)     :: rho(lo(1):hi(1), lo(2):hi(2), lo(3):hi(3))
@@ -81,11 +81,11 @@ attributes(global) subroutine deposit_kernel(particles, ns, np, &
   real(amrex_real) inv_dx(3)
   inv_dx = 1.0d0/dx
 
-  offset = offsets(gid+1)
-  count  = counts(gid+1)
+!  offset = offsets(gid+1)
+!  count  = counts(gid+1)
 
   n = blockDim%x * (blockIdx%x - 1) + threadIdx%x
-  if (n > offset .and. n <= offset + count) then
+  if (n > 0 .and. n <= np) then
 
      lx = (particles(1, n) - plo(1))*inv_dx(1) + 0.5d0
      ly = (particles(2, n) - plo(2))*inv_dx(2) + 0.5d0
@@ -143,7 +143,7 @@ subroutine deposit_cic(particles, ns, np, &
   attributes(device)         :: offsets
   integer,  device           :: lo_d(3), hi_d(3)
   real(amrex_real), device   :: plo_d(3), dx_d(3)
-  integer, device            :: ns_d, np_d, gid_d, ngrids_d
+  integer, device            :: ns_d, np_d, gid_d
 
   integer :: cuda_result
   integer(kind=cuda_stream_kind) :: stream
@@ -157,15 +157,13 @@ subroutine deposit_cic(particles, ns, np, &
 
   cuda_result = cudaMemcpy(ns_d,  ns,  1, cudaMemcpyHostToDevice)
   cuda_result = cudaMemcpy(np_d,  np,  1, cudaMemcpyHostToDevice)
-
   cuda_result = cudaMemcpy(gid_d, gid, 1, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(ngrids_d, ngrids, 1, cudaMemcpyHostToDevice)
 
   numThreads = dim3(256,1,1)
   numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
 
   call deposit_kernel<<<numBlocks, numThreads>>>(particles, ns_d, np_d, &
-       counts, offsets, ngrids_d, gid_d, &
+       counts, offsets, gid_d, &
        rho, lo_d, hi_d, &
        plo_d, dx_d)
 
