@@ -165,8 +165,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     if (do_agglomeration || do_consolidation)
     {
-        // xxxxx build bottom communicator
-        m_bottom_comm = m_default_comm;
+        m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
     }
     else
     {
@@ -751,6 +750,34 @@ MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
     }
 
     return DistributionMapping{pmap};
+}
+
+MPI_Comm
+MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
+{
+#ifdef BL_USE_MPI
+    MPI_Comm newcomm;
+    MPI_Group defgrp, newgrp;
+
+    MPI_Comm_group(m_default_comm, &defgrp);
+
+    Array<int> newgrp_ranks = dm.ProcessorMap();
+    std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
+    auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
+    newgrp_ranks.erase(last, newgrp_ranks.end());
+    
+    MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+
+    MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
+    m_raii_comm.reset(new CommContainer(newcomm));
+
+    MPI_Group_free(&defgrp);
+    MPI_Group_free(&newgrp);
+
+    return newcomm;
+#else
+    return m_default_comm;
+#endif
 }
 
 }
