@@ -236,6 +236,13 @@ namespace amrex
     int CRRBetweenLevels(int fromlevel, int tolevel,
                          const Vector<int> &refratios);
 
+    /* \brief Create a semi-unique hash output to compare Distribution Maps.
+              Use multiple hashes of different sizes to ensure uniqueness. */
+    int HashDistributionMap(const DistributionMapping & dm, int hashSize);
+
+    /* \brief Create a semi-unique hash output to compare BoxArrays
+              Use multiple hashes of different sizes to ensure uniqueness. */
+    int HashBoxArray(const BoxArray & ba, int hashSize);
 
 
     class expect;
@@ -295,8 +302,7 @@ namespace amrex
     void BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm);
     void BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm);
     void BroadcastDistributionMapping(DistributionMapping &dM,
-                                      int myLocalId, int rootId, const MPI_Comm &localComm,
-				      bool addToCache);
+                                      int myLocalId, int rootId, const MPI_Comm &localComm);
     void USleep(double sleepsec);
 
 }

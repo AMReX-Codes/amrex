@@ -9,8 +9,8 @@
     else
         CC  := pgcc
         CXX := pgc++
-        FC  := pgf95
-        F90 := pgf95
+        FC  := pgfortran
+        F90 := pgfortran
     endif
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
@@ -25,15 +25,22 @@
     endif
 
     ifdef ACC
-      F90FLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
-      FFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
-      CFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
-      CXXFLAGS += -acc -Minfo=acc -ta=tesla:cuda8.0
+      F90FLAGS += -acc -Minfo=acc -ta=tesla:cuda$(CUDA_VERSION)
+      FFLAGS += -acc -Minfo=acc -ta=tesla:cuda$(CUDA_VERSION)
+      CFLAGS += -acc -Minfo=acc -ta=tesla:cuda$(CUDA_VERSION)
+      CXXFLAGS += -acc -Minfo=acc -ta=tesla:cuda$(CUDA_VERSION)
     else
       F90FLAGS += -noacc
       FFLAGS += -noacc
       CFLAGS += -noacc
       CXXFLAGS += -noacc
+    endif
+
+    ifdef CUDA
+      F90FLAGS += -Mcuda=cuda$(CUDA_VERSION)
+      FFLAGS += -Mcuda=cuda$(CUDA_VERSION)
+      CFLAGS += -Mcuda=cuda$(CUDA_VERSION)
+      CXXFLAGS += -Mcuda=cuda$(CUDA_VERSION)
     endif
 
     ifdef NDEBUG
@@ -56,4 +63,8 @@
     ifneq ($(findstring titan, $(HOST)), titan)
         #The wrappers should pick this up on Titan, so don't add it in that case.
         LDFLAGS += -pgc++libs
+    endif
+
+    ifeq ($(findstring summitdev, $(HOST)), summitdev)
+       libraries += -L /sw/summitdev/gcc/5.4.0new/lib64/ -latomic
     endif
