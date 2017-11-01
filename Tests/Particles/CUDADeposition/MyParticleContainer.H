@@ -30,15 +30,8 @@ private:
   void CopyParticlesFromDevice();
 
   int m_np;
-  int m_ngrids;
   size_t psize;
-
-  std::vector<int> particle_counts;
-  std::vector<int> particle_offsets;
-
   ParticleType* device_particles;
-  int* device_particle_offsets;
-  int* device_particle_counts;  
 
 };
 

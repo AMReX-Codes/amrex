@@ -18,7 +18,6 @@ MyParticleContainer::MyParticleContainer(const Geometry            & geom,
   : ParticleContainer<1+2*BL_SPACEDIM> (geom, dmap, ba)
 {
   m_np = 0;
-  m_ngrids = 0;
   psize = sizeof(ParticleType);
 }
 
@@ -50,30 +49,19 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
 
   m_ngrids = particle_counts.size();
   cudaMalloc((void**) &device_particle_offsets, m_ngrids*sizeof(int)); 
-  cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int)); 
-  
+  cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int));   
 }
 
 void MyParticleContainer::CopyParticlesToDevice() {
   const int lev = 0;
   int offset = 0;
-  particle_counts.clear();
-  particle_offsets.clear();
   for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
     const auto& particles = pti.GetArrayOfStructs();
     const long np  = pti.numParticles();
     cudaMemcpy(device_particles + offset,
 	       particles.data(), np*psize, cudaMemcpyHostToDevice);
-    particle_counts.push_back(np);
-    particle_offsets.push_back(offset);
     offset += np;
   }
-
-  cudaMemcpy(device_particle_counts, particle_counts.data(), 
-	     m_ngrids*sizeof(int), cudaMemcpyHostToDevice);
-
-  cudaMemcpy(device_particle_offsets, particle_offsets.data(),
-	     m_ngrids*sizeof(int), cudaMemcpyHostToDevice);
 }
 
 void MyParticleContainer::CopyParticlesFromDevice() {
@@ -89,8 +77,6 @@ void MyParticleContainer::CopyParticlesFromDevice() {
 }
 
 void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
-
-  BL_PROFILE("Particle GPU Deposit.");
 
   CopyParticlesToDevice();
 
@@ -108,8 +94,6 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
     const Box& box    = rhofab.box();        
     
     deposit_cic((Real*) device_particles, nstride, np,
-		device_particle_counts, device_particle_offsets, 
-		m_ngrids, pti.index(),
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
 
@@ -125,5 +109,5 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
   
   partMF.SumBoundary(gm.periodicity());
 
-  //  CopyParticlesFromDevice();
+  CopyParticlesFromDevice();
 }
