@@ -6,7 +6,7 @@
 #include <AMReX_Vector.H>
 
 namespace amrex {
-    
+
     template <class T> using Array = Vector<T>;
 }
 
