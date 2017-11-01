@@ -77,6 +77,7 @@ protected:
 
     int do_agglomeration = 1;
     int do_consolidation = 1;
+
 #if (AMREX_SPACEDIM == 1)
     int agg_grid_size = 32;
 #elif (AMREX_SPACEDIM == 2)
@@ -218,6 +219,7 @@ private:
     void defineAuxData ();
     void defineBC ();
     static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
+    static DistributionMapping makeConsolidatedDMap (const DistributionMapping& fdm);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
 };
 
