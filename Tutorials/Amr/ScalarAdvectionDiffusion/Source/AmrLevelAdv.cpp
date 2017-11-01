@@ -36,50 +36,48 @@ namespace amrex
       DistributionMapping dmCoar = getLevel(level-1).dmap;
       MultiFab phiC(coarGrids,dmCoar,NUM_STATE,0);
       MultiFab& oldC = getLevel(level-1).get_old_data(Phi_Type);
+      Real tc_new  = getLevel(level-1).state[Phi_Type].curTime();
+      Real tc_old  = getLevel(level-1).state[Phi_Type].prevTime();
+      BL_ASSERT(tf >= tc_old);
+      BL_ASSERT(tf <  tc_new);
+      Real xi;//coefficient from mccorquodale
       if(a_stage == 0)
       {
-        phiC.copy(oldC);
+        xi = (tf - tc_old)/dt_c;
+      }
+      else if(a_stage == 1)
+      {
+        xi = (tf + 0.5*dt_f - tc_old)/dt_c;
+      }
+      else if(a_stage == 2)
+      {
+        xi = (tf + 0.5*dt_f - tc_old)/dt_c; //why, yes, this *is* the same as stage 1
       }
       else
       {
-        Real tc_new  = getLevel(level-1).state[Phi_Type].curTime();
-        Real tc_old  = getLevel(level-1).state[Phi_Type].prevTime();
-        BL_ASSERT(tf >= tc_old);
-        BL_ASSERT(tf <  tc_new);
-        Real xi;//coefficient from mccorquodale
-        if(a_stage == 1)
-        {
-          xi = (tf + 0.5*dt_f - tc_old)/dt_c;
-        }
-        else if(a_stage == 2)
-        {
-          xi = (tf + 0.5*dt_f - tc_old)/dt_c; //why, yes, this *is* the same as stage 1
-        }
-        else
-        {
-          xi = (tf + dt_f - tc_old)/dt_c;
-        }
-
-        MultiFab & k1  = getLevel(level-1).m_k1;
-        MultiFab & k2  = getLevel(level-1).m_k2;
-        MultiFab & k3  = getLevel(level-1).m_k3;
-        MultiFab & k4  = getLevel(level-1).m_k4;
-
-        for (MFIter mfi(phiC); mfi.isValid(); ++mfi)
-        {
-          const Box& box     = mfi.validbox();
-          const int* lo      = box.loVect();
-          const int* hi      = box.hiVect();
-
-          timeinterpolaterk4(xi, ARLIM_3D(lo), ARLIM_3D(hi),
-                             BL_TO_FORTRAN_3D(  phiC[mfi]),
-                             BL_TO_FORTRAN_3D(  oldC[mfi]),
-                             BL_TO_FORTRAN_3D(    k1[mfi]),
-                             BL_TO_FORTRAN_3D(    k2[mfi]),
-                             BL_TO_FORTRAN_3D(    k3[mfi]),
-                             BL_TO_FORTRAN_3D(    k4[mfi]));
-        }
+        xi = (tf + dt_f - tc_old)/dt_c;
       }
+
+      MultiFab & k1  = getLevel(level-1).m_k1;
+      MultiFab & k2  = getLevel(level-1).m_k2;
+      MultiFab & k3  = getLevel(level-1).m_k3;
+      MultiFab & k4  = getLevel(level-1).m_k4;
+
+      for (MFIter mfi(phiC); mfi.isValid(); ++mfi)
+      {
+        const Box& box     = mfi.validbox();
+        const int* lo      = box.loVect();
+        const int* hi      = box.hiVect();
+
+        timeinterpolaterk4(xi, ARLIM_3D(lo), ARLIM_3D(hi),
+                           BL_TO_FORTRAN_3D(  phiC[mfi]),
+                           BL_TO_FORTRAN_3D(  oldC[mfi]),
+                           BL_TO_FORTRAN_3D(    k1[mfi]),
+                           BL_TO_FORTRAN_3D(    k2[mfi]),
+                           BL_TO_FORTRAN_3D(    k3[mfi]),
+                           BL_TO_FORTRAN_3D(    k4[mfi]));
+      }
+
       //now we can spatially interpolate 
       //these need to be in vectors but they are the same data
       //since we have already done time interpolation
