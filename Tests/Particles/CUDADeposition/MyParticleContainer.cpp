@@ -65,9 +65,11 @@ void MyParticleContainer::CopyParticlesToDevice() {
 }
 
 void MyParticleContainer::CopyParticlesFromDevice() {
+  std::cout << "Copying particles from device" << std::endl;
   const int lev = 0;
   int offset = 0;
   for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+    std::cout << "doing loop" << std::endl;
     auto& particles = pti.GetArrayOfStructs();
     const long np  = pti.numParticles();
     cudaMemcpy(particles.data(), device_particles + offset,
@@ -79,6 +81,8 @@ void MyParticleContainer::CopyParticlesFromDevice() {
 void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
 
   CopyParticlesToDevice();
+
+  // process_particles(device_particles, 5, m_np);
 
   const int lev = 0;
   const Geometry& gm  = Geom(lev);

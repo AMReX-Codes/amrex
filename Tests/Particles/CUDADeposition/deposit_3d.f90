@@ -50,8 +50,8 @@ subroutine push_particles(particles, ns, np) &
   cuda_result = cudaMemcpy(ns_d, ns, 1, cudaMemcpyHostToDevice)
   cuda_result = cudaMemcpy(np_d, np,  1, cudaMemcpyHostToDevice)
 
-  numThreads = dim3(256,1,1)
-  numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
+  numBlocks  = dim3(256,1,1)
+  numThreads = dim3(ceiling(real(np)/numBlocks%x),1,1)
 
   call push_kernel<<<numBlocks, numThreads>>>(particles, ns_d, np_d)
 
@@ -139,15 +139,15 @@ subroutine deposit_cic(particles, ns, np, rho, lo, hi, plo, dx) &
   cuda_result = cudaMemcpy(dx_d,  dx,  3, cudaMemcpyHostToDevice)
 
   cuda_result = cudaMemcpy(ns_d, ns, 1, cudaMemcpyHostToDevice)
-  cuda_result = cudaMemcpy(np_d, np, 1, cudaMemcpyHostToDevice)
+  cuda_result = cudaMemcpy(np_d, np,  1, cudaMemcpyHostToDevice)
 
-  numThreads = dim3(256,1,1)
-  numBlocks  = dim3(ceiling(real(np)/numThreads%x),1,1)
+  numBlocks  = dim3(256,1,1)
+  numThreads = dim3(ceiling(real(np)/numBlocks%x),1,1)
 
   call deposit_kernel<<<numBlocks, numThreads>>>(particles, ns_d, np_d, &
        rho, lo_d, hi_d, &
        plo_d, dx_d)
-
+  
 end subroutine deposit_cic
 
 attributes(global) subroutine interpolate_kernel(particles, ns, np, &
