@@ -140,6 +140,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
+        Real avg_npts, threshold_npts;
+        if (do_consolidation) {
+            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
+            threshold_npts = static_cast<Real>(AMREX_D_TERM(agg_grid_size,*agg_grid_size,*agg_grid_size));
+        }
         while (a_geom[0].Domain().coarsenable(rr)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
@@ -150,8 +155,16 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
             if (do_consolidation)
             {
-                // xxxxxxxxxx
-                m_dmap[0].push_back(a_dmap[0]);
+                if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
+                {
+                    const auto& dm = makeConsolidatedDMap(m_dmap[0].back());
+                    m_dmap[0].push_back(dm);
+                }
+                else
+                {
+                    auto dm = m_dmap[0].back();
+                    m_dmap[0].push_back(dm);
+                }
             }
             else
             {
@@ -749,6 +762,16 @@ MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
         }
     }
 
+    return DistributionMapping{pmap};
+}
+
+DistributionMapping
+MLLinOp::makeConsolidatedDMap (const DistributionMapping& fdm)
+{
+    Vector<int> pmap = fdm.ProcessorMap();
+    for (auto& x: pmap) {
+        x /= 2;
+    }
     return DistributionMapping{pmap};
 }
 
