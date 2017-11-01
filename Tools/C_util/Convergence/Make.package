@@ -1,9 +1,9 @@
 CEXE_headers += 
 
-CEXE_sources += AMReX_DataServices.cpp AMReX_AmrData.cpp
+CEXE_sources += AMReX_DataServices.cpp AMReX_AmrData.cpp DebugOut.cpp
 
 CEXE_sources += ComputeAmrDataNorms.cpp WritePlotFile.cpp
-CEXE_headers += ComputeAmrDataNorms.H   WritePlotFile.H
+CEXE_headers += ComputeAmrDataNorms.H   WritePlotFile.H  DebugOut.H  DebugDump.H 
 FEXE_sources += AMReX_FABUTIL_$(DIM)D.F AMReX_AVGDOWN_$(DIM)D.F
 
 #ifeq ($(USE_ARRAYVIEW),TRUE)
