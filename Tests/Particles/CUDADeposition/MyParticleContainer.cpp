@@ -114,52 +114,29 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
 		m_ngrids, pti.index(),
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
-#else 
+    
+    cuda_interpolate_cic((Real*) device_particles, nstride, np,
+		    device_particle_counts, device_particle_offsets, 
+		    m_ngrids, pti.index(),
+		    accfab.dataPtr(), box.loVect(), box.hiVect(), 
+		    plo, dx);
+    
+    cuda_push_particles((Real*) device_particles, nstride, np);
+#else
     deposit_cic(particles.data(), nstride, np,
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
-#endif // CUDA    
-  }
-
-  for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
-    const auto& particles = pti.GetArrayOfStructs();
-    int nstride = particles.dataShape().first;
-    const long np  = pti.numParticles();    
-    FArrayBox& rhofab = partMF[pti];
-    FArrayBox& accfab = acc[pti];
-    const Box& box    = rhofab.box();        
-
-#if CUDA    
-    cuda_interpolate_cic((Real*) device_particles, nstride, np,
-			 device_particle_counts, device_particle_offsets, 
-			 m_ngrids, pti.index(),
-			 accfab.dataPtr(), box.loVect(), box.hiVect(), 
-			 plo, dx);
-#else
+    
     interpolate_cic(particles.data(), nstride, np,
 		    accfab.dataPtr(), box.loVect(), box.hiVect(), 
 		    plo, dx);
-#endif // CUDA    
-  }
-
-#if CUDA
-    cuda_push_particles((Real*) device_particles, 11, m_np);
-#else
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
-    const auto& particles = pti.GetArrayOfStructs();
-    int nstride = particles.dataShape().first;
-    const long np  = pti.numParticles();    
-    FArrayBox& rhofab = partMF[pti];
-    FArrayBox& accfab = acc[pti];
-    const Box& box    = rhofab.box();        
     
     push_particles(particles.data(), nstride, np);    
+#endif // CUDA
+
   }
-#endif // CUDA    
-    
+  
   partMF.SumBoundary(gm.periodicity());
   
-  CopyParticlesFromDevice();
-
-}   
-    
+  //  CopyParticlesFromDevice();
+}
