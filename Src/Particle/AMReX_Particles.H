@@ -250,9 +250,9 @@ public:
     typename Vector<ParticleType>::const_iterator begin () const { return m_data.begin(); }
     typename Vector<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }
         
-    typename Vector::iterator end () { return m_data.end(); }
-    typename Vector::const_iterator end () const { return m_data.end(); }
-    typename Vector::const_iterator cend () const { return m_data.cend(); }
+    typename Vector<ParticleType>::iterator end () { return m_data.end(); }
+    typename Vector<ParticleType>::const_iterator end () const { return m_data.end(); }
+    typename Vector<ParticleType>::const_iterator cend () const { return m_data.cend(); }
 
 private:
     ParticleVector m_data;
