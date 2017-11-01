@@ -566,7 +566,9 @@ MLMG::bottomSolve ()
     MultiFab& b = res[amrlev][mglev];
 
     if (linop.isSingular(amrlev)) {
-        Real offset = b.sum() / linop.Geom(amrlev,mglev).Domain().d_numPts();
+        const bool local = true;
+        Real offset = b.sum(0,local) / linop.Geom(amrlev,mglev).Domain().d_numPts();
+        ParallelAllReduce::Sum(offset, linop.BottomCommunicator());
         b.plus(-offset, 0, 1);
     }
 
