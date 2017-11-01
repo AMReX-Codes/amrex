@@ -600,7 +600,8 @@ void BLProfiler::Finalize(bool bFlushing) {
     }
 
     const int nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
-    std::string cFileName(cdir + '/' + cdir + "_D_");
+    std::string phFilePrefix("bl_prof");
+    std::string cFileName(cdir + '/' + phFilePrefix + "_D_");
     long seekPos(0);
     bool setBuf(true);
     NFilesIter nfi(nOutFiles, cFileName, groupSets, setBuf);
@@ -624,7 +625,6 @@ void BLProfiler::Finalize(bool bFlushing) {
     ParallelDescriptor::Gather(&seekPos, 1, seekPosOut.dataPtr(), 1, iopNum);
 
     if(ParallelDescriptor::IOProcessor()) {
-      std::string phFilePrefix("bl_prof");
       std::string phFileName(cdir + '/' + phFilePrefix + "_H");
       std::ofstream phHeaderFile;
       phHeaderFile.open(phFileName.c_str(), std::ios::out | std::ios::trunc);
@@ -637,7 +637,7 @@ void BLProfiler::Finalize(bool bFlushing) {
         phHeaderFile << "phFName " << '"' << phit->first << '"' << '\n';
       }
 
-      std::string dFileName(cdir + "_D_");
+      std::string dFileName(phFilePrefix + "_D_");
       for(int p(0); p < nProcs; ++p) {
         std::string dFullName(NFilesIter::FileName(nOutFiles, dFileName, p, groupSets));
 	phHeaderFile << "BLProfProc " << p << " datafile " << dFullName
