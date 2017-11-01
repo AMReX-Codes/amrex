@@ -82,12 +82,9 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
 
   CopyParticlesToDevice();
 
-  // process_particles(device_particles, 5, m_np);
+  process_particles(device_particles, 5, m_np);
 
-  const int lev = 0;
-  const Geometry& gm  = Geom(lev);
-  const Real*     plo = gm.ProbLo();
-  const Real*     dx  = gm.CellSize();  
+  CopyParticlesFromDevice();
 
   for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
     const auto& particles = pti.GetArrayOfStructs();
@@ -112,4 +109,5 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
   }
   
   CopyParticlesFromDevice();
+
 }
