@@ -74,6 +74,8 @@ private:
     int    verbose   = 0;
     int    maxiter   = 100;
     int    unstable_criterion = 10;
+
+    Real dotxy (const MultiFab& r, const MultiFab& z, bool local = false);
 };
 
 }

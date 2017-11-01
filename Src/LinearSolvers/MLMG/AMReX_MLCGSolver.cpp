@@ -53,16 +53,6 @@ sxay (MultiFab&       ss,
     sxay(ss,xx,a,yy,0);
 }
 
-static
-Real
-dotxy (const MultiFab& r,
-       const MultiFab& z)
-{
-    const int ncomp = 1;
-    const int nghost = 0;
-    return MultiFab::Dot(r,0,z,0,ncomp,nghost);
-}
-
 }
 
 MLCGSolver::MLCGSolver (MLLinOp& _lp, Solver _solver)
@@ -212,7 +202,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         // in the following two dotxy()s.  We do that by calculating the "local"
         // values and then reducing the two local values at the same time.
         //
-        Real tvals[2] = { dotxy(t,t), dotxy(t,s) };
+        Real tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
 
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
 
@@ -440,6 +430,18 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     }
 
     return ret;
+}
+
+Real
+MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
+{
+    const int ncomp = 1;
+    const int nghost = 0;
+    Real result = MultiFab::Dot(r,0,z,0,ncomp,nghost,true);
+    if (!local) {
+        ParallelAllReduce::Sum(result, Lp.BottomCommunicator());
+    }
+    return result;
 }
 
 }
