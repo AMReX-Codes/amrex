@@ -47,6 +47,10 @@ cd out
 git config user.name "Travis CI"
 git config user.email "$COMMIT_AUTHOR_EMAIL"
 
+if git diff-index --quiet HEAD; then
+    exit 0
+fi
+
 # Commit the "changes", i.e. the new version.
 # The delta will show diffs between new and old versions.
 git add --all
@@ -57,6 +61,5 @@ chmod 600 ../id_rsa_travis
 eval `ssh-agent -s`
 ssh-add ../id_rsa_travis
 
-git push $SSH_REPO $TARGET_BRANCH || true
+git push $SSH_REPO $TARGET_BRANCH
 ssh-agent -k
-
