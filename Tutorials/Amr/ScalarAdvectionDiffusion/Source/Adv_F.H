@@ -21,7 +21,9 @@ extern "C"
 		   const int* tagval, const int* clearval,
 		   const int* lo, const int* hi,
 		   const amrex_real* dx, const amrex_real* problo,
-		   const amrex_real* time, const int* level);
+		   const amrex_real* time, const int* level,
+                   const int* domlo, const int* domhi, 
+                   const int* tag_domain_middle);
   
   void initdata(const int& level, const amrex_real& time, 
 		const int* lo, const int* hi,

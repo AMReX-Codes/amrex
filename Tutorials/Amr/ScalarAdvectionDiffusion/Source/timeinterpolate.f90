@@ -42,7 +42,7 @@ subroutine timeinterpolaterk4(xi, lo, hi, &
                                         k4_lo(3):k4_hi(3))
 
   integer          :: i,j,k
-  double precision :: k_1, k_2, k_3, k_4, squcoef, cubcoef
+  double precision :: k_1, k_2, k_3, k_4, squcoef, cubcoef, phival
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
      do j=lo(2),hi(2)
@@ -56,7 +56,8 @@ subroutine timeinterpolaterk4(xi, lo, hi, &
            squcoef = 0.5d0*(-3.0d0*k_1 + 2.0d0*k_2 + 2.0d0*k_3 - k_4)
            cubcoef = (2.0d0/3.0d0)*(k_1 - k_2 - k_3 + k_4)
 
-           phi(i,j,k) = old(i,j,k) + xi*k_1 + xi*xi*squcoef + xi*xi*xi*cubcoef
+           phival = old(i,j,k) + xi*k_1 + xi*xi*squcoef + xi*xi*xi*cubcoef
+           phi(i,j,k) = phival
 
         end do
      end do
