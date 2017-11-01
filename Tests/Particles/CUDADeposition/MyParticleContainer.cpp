@@ -1,6 +1,3 @@
-#include <cuda_runtime_api.h>
-#include <cuda.h>
-
 #include "MyParticleContainer.H"
 
 #include "deposit_F.H"
@@ -52,29 +49,22 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int));   
 }
 
-void MyParticleContainer::CopyParticlesToDevice() {
-  const int lev = 0;
-  int offset = 0;
-  for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-    const auto& particles = pti.GetArrayOfStructs();
-    const long np  = pti.numParticles();
-    cudaMemcpy(device_particles + offset,
-	       particles.data(), np*psize, cudaMemcpyHostToDevice);
-    offset += np;
-  }
-}
+void MyParticleContainer::Deposit(MultiFab& partMF) {
 
-void MyParticleContainer::CopyParticlesFromDevice() {
-  std::cout << "Copying particles from device" << std::endl;
   const int lev = 0;
-  int offset = 0;
-  for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-    std::cout << "doing loop" << std::endl;
-    auto& particles = pti.GetArrayOfStructs();
-    const long np  = pti.numParticles();
-    cudaMemcpy(particles.data(), device_particles + offset,
-	       np*psize, cudaMemcpyDeviceToHost);
-    offset += np;
+  const Geometry& gm          = Geom(lev);
+  const Real*     plo         = gm.ProbLo();
+  const Real*     dx          = gm.CellSize();
+  
+  for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {    
+    const auto& particles = pti.GetArrayOfStructs();
+    int nstride = particles.dataShape().first;
+    const long np  = pti.numParticles();    
+    FArrayBox& rhofab = partMF[pti];
+    const Box& box    = rhofab.box();        
+    deposit_cic(particles.data(), nstride, np,
+		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
+		plo, dx);
   }
 }
 

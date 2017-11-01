@@ -58,7 +58,6 @@ subroutine deposit_cic(particles, ns, np, rho, lo, hi, plo, dx) &
   
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
-  use cudafor
   
   implicit none
   
