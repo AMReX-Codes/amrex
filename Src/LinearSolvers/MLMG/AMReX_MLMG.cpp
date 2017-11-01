@@ -556,6 +556,8 @@ MLMG::bottomSolve ()
 {
     BL_PROFILE("MLMG::bottomSolve()");
 
+    if (!linop.isBottomActive()) return;
+
     Real bottom_start_time = ParallelDescriptor::second();
 
     const int amrlev = 0;

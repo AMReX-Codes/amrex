@@ -96,8 +96,8 @@ protected:
     Vector<Vector<DistributionMapping> > m_dmap;
     Vector<int>                          m_domain_covered;
 
-    Vector<Vector<MPI_Comm> >            m_comm;
-//    Vector<MPI_Comm,>                     m_comm_raii;
+    MPI_Comm m_default_comm = MPI_COMM_NULL;
+    MPI_Comm m_bottom_comm = MPI_COMM_NULL;
 
     // BC
     std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
@@ -154,7 +154,15 @@ protected:
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
 
-    MPI_Comm Communicator (int amrlev, int mglev) const { return m_comm[amrlev][mglev]; } 
+    bool isBottomActive () const { m_bottom_comm != MPI_COMM_NULL; }
+    MPI_Comm BottomCommunicator () const { return m_bottom_comm; }
+    MPI_Comm Communicator (int amrlev, int mglev) const {
+        if (amrlev == 0 && mglev == NMGLevels(0)-1) {
+            return m_bottom_comm;
+        } else {
+            return m_default_comm;
+        }
+    }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
@@ -191,8 +199,7 @@ private:
                       const Vector<DistributionMapping>& a_dmap);
     void defineAuxData ();
     void defineBC ();
-    static std::pair<DistributionMapping,MPI_Comm> makeConsolidatedDMap (const BoxArray& ba,
-                                                                         MPI_Comm dcomm);
+    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
 };
 
 }
