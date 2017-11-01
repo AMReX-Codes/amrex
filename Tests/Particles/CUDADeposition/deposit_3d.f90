@@ -6,9 +6,9 @@ subroutine push_particles(particles, ns, np) &
   
   implicit none
 
-  integer, value       :: ns, np
+  integer              :: ns, np
   real(amrex_real)     :: particles(ns, np)
-  integer n
+  integer i
 
   real(amrex_real) mass, charge, dt, fac
   mass = 1.d0
@@ -26,11 +26,12 @@ subroutine push_particles(particles, ns, np) &
      particles(2, n) = particles(2, n) + dt * particles(6, n)
      particles(3, n) = particles(3, n) + dt * particles(7, n)
 
-  end do
+  end if
 
 end subroutine push_particles
 
 subroutine deposit_cic(particles, ns, np, &
+     counts, offsets, ngrids, gid, &
      rho, lo, hi, plo, dx) &
      bind(c,name='deposit_cic')
   
@@ -84,6 +85,7 @@ subroutine deposit_cic(particles, ns, np, &
 end subroutine deposit_cic
 
 subroutine interpolate_cic(particles, ns, np, &
+     counts, offsets, ngrids, gid, & 
      acc, lo, hi, plo, dx) &
      bind(c,name='interpolate_cic')
   

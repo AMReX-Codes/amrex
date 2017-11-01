@@ -1,3 +1,6 @@
+#include <cuda_runtime_api.h>
+#include <cuda.h>
+
 #include "MyParticleContainer.H"
 
 #include "deposit_F.H"
@@ -26,8 +29,6 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   InitRandom(num_particles, iseed, pdata, serialize);
   m_np = num_particles;
 
-#ifdef AMREX_USE_CUDA  
-
   cudaError_t err_code;
   err_code = cudaMalloc((void**) &device_particles, m_np*psize); 
   if (err_code != cudaSuccess) {
@@ -48,11 +49,10 @@ void MyParticleContainer::InitParticles(int num_particles, Real mass) {
   m_ngrids = particle_counts.size();
   cudaMalloc((void**) &device_particle_offsets, m_ngrids*sizeof(int)); 
   cudaMalloc((void**) &device_particle_counts,  m_ngrids*sizeof(int)); 
-#endif
+
 }
 
 void MyParticleContainer::CopyParticlesToDevice() {
-#ifdef AMREX_USE_CUDA
   const int lev = 0;
   int offset = 0;
   particle_counts.clear();
@@ -72,11 +72,9 @@ void MyParticleContainer::CopyParticlesToDevice() {
 
   cudaMemcpy(device_particle_offsets, particle_offsets.data(),
 	     m_ngrids*sizeof(int), cudaMemcpyHostToDevice);
-#endif
 }
 
 void MyParticleContainer::CopyParticlesFromDevice() {
-#ifdef AMREX_USE_CUDA
   const int lev = 0;
   int offset = 0;
   for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
@@ -86,7 +84,6 @@ void MyParticleContainer::CopyParticlesFromDevice() {
 	       np*psize, cudaMemcpyDeviceToHost);
     offset += np;
   }
-#endif
 }
 
 void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
@@ -107,33 +104,21 @@ void MyParticleContainer::Deposit(MultiFab& partMF, MultiFab& acc) {
     FArrayBox& rhofab = partMF[pti];
     FArrayBox& accfab = acc[pti];
     const Box& box    = rhofab.box();        
-
-#if CUDA
-    cuda_deposit_cic((Real*) device_particles, nstride, np,
+    
+    deposit_cic((Real*) device_particles, nstride, np,
 		device_particle_counts, device_particle_offsets, 
 		m_ngrids, pti.index(),
   		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
   		plo, dx);
     
-    cuda_interpolate_cic((Real*) device_particles, nstride, np,
+    interpolate_cic((Real*) device_particles, nstride, np,
 		    device_particle_counts, device_particle_offsets, 
 		    m_ngrids, pti.index(),
 		    accfab.dataPtr(), box.loVect(), box.hiVect(), 
 		    plo, dx);
     
-    cuda_push_particles((Real*) device_particles, nstride, np);
-#else
-    deposit_cic(particles.data(), nstride, np,
-  		rhofab.dataPtr(), box.loVect(), box.hiVect(), 
-  		plo, dx);
+    push_particles((Real*) device_particles, nstride, np);
     
-    interpolate_cic(particles.data(), nstride, np,
-		    accfab.dataPtr(), box.loVect(), box.hiVect(), 
-		    plo, dx);
-    
-    push_particles(particles.data(), nstride, np);    
-#endif // CUDA
-
   }
   
   partMF.SumBoundary(gm.periodicity());

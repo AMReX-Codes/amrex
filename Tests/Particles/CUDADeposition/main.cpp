@@ -19,13 +19,6 @@ struct TestParams {
   bool verbose;
 };
 
-// declare routines below
-void solve_for_accel(const Array<MultiFab*>& rhs,
-		     const Array<MultiFab*>& phi,
-		     const Array<MultiFab*>& grad_phi,
-                     const Array<Geometry>& geom,
-		     int base_level, int finest_level, Real offset);
-
 void test_assign_density(TestParams& parms)
 {
 
