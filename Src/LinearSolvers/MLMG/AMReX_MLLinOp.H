@@ -169,7 +169,7 @@ protected:
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
 
 #ifdef BL_USE_MPI
-    bool isBottomActive () const { m_bottom_comm != MPI_COMM_NULL; }
+    bool isBottomActive () const { return m_bottom_comm != MPI_COMM_NULL; }
 #else
     bool isBottomActive () const { return true; }
 #endif
