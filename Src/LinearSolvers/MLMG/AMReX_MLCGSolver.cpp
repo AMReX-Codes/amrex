@@ -129,10 +129,10 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
 #ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
     Real rnorm = norm_inf(r);
-    ParallelAllReduce::Max(rnorm, Lp.Communicator(amrlev,mglev));
+    ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
 #else
     Real       rnorm    = norm_inf(r);
-    ParallelAllReduce::Max(rnorm, Lp.Communicator(amrlev,mglev));
+    ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
     const Real Lp_norm  = Lp.Anorm(amrlev,mglev);
     Real       sol_norm = 0;
 #endif
@@ -188,7 +188,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(s,     r, -alpha,  v);
 
         rnorm = norm_inf(s);
-        ParallelAllReduce::Max(rnorm, Lp.Communicator(amrlev,mglev));
+        ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
         {
@@ -202,7 +202,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #else
         sol_norm = norm_inf(sol);
-        ParallelAllReduce::Max(sol_norm, Lp.Communicator(amrlev,mglev));
+        ParallelAllReduce::Max(sol_norm, Lp.BottomCommunicator());
         if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0 ) || rnorm < eps_abs ) break;
 #endif
         MultiFab::Copy(sh,s,0,0,1,0);
@@ -214,7 +214,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         //
         Real tvals[2] = { dotxy(t,t), dotxy(t,s) };
 
-        ParallelAllReduce::Sum(tvals,2,Lp.Communicator(amrlev,mglev));
+        ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
 
         if ( tvals[0] )
 	{
@@ -228,7 +228,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(r,     s, -omega,  t);
 
         rnorm = norm_inf(r);
-        ParallelAllReduce::Max(rnorm, Lp.Communicator(amrlev,mglev));
+        ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
         {
@@ -242,7 +242,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #else
         sol_norm = norm_inf(sol);
-        ParallelAllReduce::Max(sol_norm, Lp.Communicator(amrlev,mglev));
+        ParallelAllReduce::Max(sol_norm, Lp.BottomCommunicator());
         if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0 ) || rnorm < eps_abs ) break;
 #endif
         if ( omega == 0 )
@@ -317,7 +317,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     sol.setVal(0);
 
     Real       rnorm    = norm_inf(r);
-    ParallelAllReduce::Max(rnorm, Lp.Communicator(amrlev,mglev));
+    ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
     const Real rnorm0   = rnorm;
     Real       minrnorm = rnorm;
 
@@ -383,7 +383,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         rnorm = norm_inf(r);
         sol_norm = norm_inf(sol);
 
-        ParallelAllReduce::Max<Real>({rnorm, sol_norm}, Lp.Communicator(amrlev,mglev));
+        ParallelAllReduce::Max<Real>({rnorm, sol_norm}, Lp.BottomCommunicator());
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
         {
