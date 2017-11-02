@@ -135,6 +135,9 @@ ifneq ($(BL_NO_FORT),TRUE)
   f90$(AMREX_BASE)_headers += AMReX_BaseFab_f.H
 
   f90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
+
+  f90$(AMREX_BASE)_sources +=  AMReX_constants_mod.f90
+
   f90$(AMREX_BASE)_headers += AMReX_MultiFabUtil_F.H
   F90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_nd.F90
 
