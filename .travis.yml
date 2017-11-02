@@ -16,4 +16,5 @@ addons:
   apt:
     packages:
       - doxygen
-      - mpich
+      - openmpi
+      - gfortran
