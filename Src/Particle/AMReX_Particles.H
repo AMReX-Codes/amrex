@@ -430,6 +430,10 @@ struct ParticleInitType
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> class ParIterBase;
 
+    /**
+     * \brief A distributed container for Particles sorted onto grids and tiles.
+     
+     */
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
 class ParticleContainer
 {

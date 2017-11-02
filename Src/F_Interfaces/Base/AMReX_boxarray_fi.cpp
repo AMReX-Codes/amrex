@@ -50,14 +50,22 @@ extern "C" {
         const Box& bx = (*ba)[i];
         const int* lov = bx.loVect();
 	const int* hiv = bx.hiVect();
-	for (int i = 0; i < BL_SPACEDIM; ++i) {
-	    lo[i] = lov[i];
-	    hi[i] = hiv[i];
+	for (int idim = 0; idim < BL_SPACEDIM; ++idim) {
+	    lo[idim] = lov[idim];
+	    hi[idim] = hiv[idim];
 	}
     }
 
     void amrex_fi_print_boxarray (const BoxArray* ba)
     {
 	AllPrint() << *ba;
+    }
+
+    void amrex_fi_boxarray_nodal_type (const BoxArray* ba, int inodal[3])
+    {
+        const IndexType typ = ba->ixType();
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            inodal[idim] = typ[idim];
+        }
     }
 }

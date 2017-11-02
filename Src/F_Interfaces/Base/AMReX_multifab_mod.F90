@@ -32,6 +32,7 @@ module amrex_multifab_module
      procedure :: move          => amrex_multifab_move     ! transfer ownership
      procedure :: ncomp         => amrex_multifab_ncomp
      procedure :: nghost        => amrex_multifab_nghost
+     procedure :: nodal_type    => amrex_multifab_nodal_type   ! get index type
      generic   :: dataPtr       => amrex_multifab_dataptr_iter, amrex_multifab_dataptr_int
      procedure :: min           => amrex_multifab_min
      procedure :: max           => amrex_multifab_max
@@ -76,6 +77,7 @@ module amrex_multifab_module
      generic   :: assignment(=) => amrex_imultifab_assign   ! shallow copy
      procedure :: ncomp         => amrex_imultifab_ncomp
      procedure :: nghost        => amrex_imultifab_nghost
+     procedure :: nodal_type    => amrex_imultifab_nodal_type ! get index type
      procedure :: dataPtr       => amrex_imultifab_dataptr
      procedure :: setval        => amrex_imultifab_setval
      procedure, private :: amrex_imultifab_assign
@@ -464,6 +466,12 @@ contains
     amrex_multifab_nghost = this%ng
   end function amrex_multifab_nghost
 
+  pure function amrex_multifab_nodal_type (this) result(nodal)
+    class(amrex_multifab), intent(in) :: this
+    logical, dimension(3) :: nodal
+    nodal = this%ba%nodal_type()
+  end function amrex_multifab_nodal_type
+
   function amrex_multifab_dataPtr_iter (this, mfi) result(dp)
     class(amrex_multifab), intent(in) :: this
     type(amrex_mfiter), intent(in) :: mfi
@@ -722,6 +730,12 @@ contains
     class(amrex_imultifab), intent(in) :: this
     amrex_imultifab_nghost = this%ng
   end function amrex_imultifab_nghost
+
+  pure function amrex_imultifab_nodal_type (this) result(nodal)
+    class(amrex_imultifab), intent(in) :: this
+    logical, dimension(3) :: nodal
+    nodal = this%ba%nodal_type()
+  end function amrex_imultifab_nodal_type
 
   function amrex_imultifab_dataPtr (this, mfi) result(dp)
     class(amrex_imultifab) :: this
