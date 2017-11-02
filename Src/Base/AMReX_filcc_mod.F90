@@ -1,10 +1,10 @@
 
 #include "AMReX_BC_TYPES.H"
-#include "AMReX_CONSTANTS.H"
 
 module amrex_filcc_module
 
   use amrex_fort_module, only : amrex_real, amrex_spacedim, get_loop_bounds
+  use amrex_constants_module
 
   implicit none
 
