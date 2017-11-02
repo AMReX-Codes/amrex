@@ -21,6 +21,7 @@ module amrex_boxarray_module
      generic   :: maxSize       => amrex_boxarray_maxsize_int, &  ! make the boxes smaller
           &                        amrex_boxarray_maxsize_int3, amrex_boxarray_maxsize_iv
      procedure :: get_box       => amrex_boxarray_get_box
+     procedure :: nodal_type    => amrex_boxarray_nodal_type  ! get index type
      procedure, private :: amrex_boxarray_assign
      procedure, private :: amrex_boxarray_install
      procedure, private :: amrex_boxarray_maxsize_int
@@ -91,6 +92,13 @@ module amrex_boxarray_module
        implicit none
        type(c_ptr), value :: ba
      end subroutine amrex_fi_print_boxarray
+
+     pure subroutine amrex_fi_boxarray_nodal_type (ba, inodal) bind(c)
+       import
+       implicit none
+       type(c_ptr), value, intent(in) :: ba
+       integer, intent(inout) :: inodal(3)
+     end subroutine amrex_fi_boxarray_nodal_type
   end interface
 
 contains
@@ -180,5 +188,16 @@ contains
     type(amrex_boxarray), intent(in) :: ba
     call amrex_fi_print_boxarray(ba%p)
   end subroutine amrex_boxarray_print
+
+  pure function amrex_boxarray_nodal_type (this) result(nodal)
+    class(amrex_boxarray), intent(in) :: this
+    logical, dimension(3) :: nodal
+    integer, dimension(3) :: inodal
+    inodal = 0
+    call amrex_fi_boxarray_nodal_type(this%p,inodal)
+    nodal(1) = inodal(1) .ne. 0
+    nodal(2) = inodal(2) .ne. 0
+    nodal(3) = inodal(3) .ne. 0
+  end function amrex_boxarray_nodal_type
 
 end module amrex_boxarray_module
