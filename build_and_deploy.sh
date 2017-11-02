@@ -63,8 +63,3 @@ ssh-add ../id_rsa_travis
 
 git push $SSH_REPO $TARGET_BRANCH || true
 ssh-agent -k
-cd ..
-
-echo "Building libamrex... "
-./configure
-make -j
