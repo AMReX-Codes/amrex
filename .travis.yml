@@ -16,3 +16,4 @@ addons:
   apt:
     packages:
       - doxygen
+      - mpich
