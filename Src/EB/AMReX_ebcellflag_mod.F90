@@ -50,7 +50,7 @@ contains
 
   pure subroutine get_neighbor_cells_int (flag, ngbr)
     integer, intent(in) :: flag
-    integer, intent(inout) :: ngbr(-1:1,-1:1)
+    integer, intent(out) :: ngbr(-1:1,-1:1)
     integer :: i, j
     do j = -1,1
        do i = -1,1
@@ -65,7 +65,7 @@ contains
 
   pure subroutine get_neighbor_cells_real (flag, ngbr)
     integer, intent(in) :: flag
-    real(amrex_real), intent(inout) :: ngbr(-1:1,-1:1)
+    real(amrex_real), intent(out) :: ngbr(-1:1,-1:1)
     integer :: i, j
     do j = -1,1
        do i = -1,1
@@ -89,7 +89,7 @@ contains
 
   pure subroutine get_neighbor_cells_int (flag, ngbr)
     integer, intent(in) :: flag
-    integer, intent(inout) :: ngbr(-1:1,-1:1,-1:1)
+    integer, intent(out) :: ngbr(-1:1,-1:1,-1:1)
     integer :: i, j, k
     do k = -1,1
        do j = -1,1
@@ -106,7 +106,7 @@ contains
 
   pure subroutine get_neighbor_cells_real (flag, ngbr)
     integer, intent(in) :: flag
-    real(amrex_real), intent(inout) :: ngbr(-1:1,-1:1,-1:1)
+    real(amrex_real), intent(out) :: ngbr(-1:1,-1:1,-1:1)
     integer :: i, j, k
     do k = -1,1
        do j = -1,1
