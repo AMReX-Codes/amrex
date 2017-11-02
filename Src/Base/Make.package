@@ -17,6 +17,8 @@ C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H AMReX_SPA
 C$(AMREX_BASE)_sources += AMReX_DistributionMapping.cpp AMReX_ParallelDescriptor.cpp
 C$(AMREX_BASE)_headers += AMReX_DistributionMapping.H AMReX_ParallelDescriptor.H
 
+C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
+
 C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp
 C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H
 
