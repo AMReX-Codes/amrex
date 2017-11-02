@@ -108,11 +108,11 @@ contains
 
     integer,          intent(in   ) :: lo(3), hi(3)
     integer,          intent(in   ) :: q_lo(3), q_hi(3)
+    integer,          intent(in   ) :: ncomp
     integer,          intent(in   ) :: domlo(amrex_spacedim), domhi(amrex_spacedim)
     real(amrex_real), intent(in   ) :: xlo(amrex_spacedim), dx(amrex_spacedim)
     real(amrex_real), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
     integer,          intent(in   ) :: bc(amrex_spacedim,2,ncomp)
-    integer,          intent(in   ) :: ncomp
 
     integer :: ilo, ihi, jlo, jhi, klo, khi
     integer :: is, ie, js, je, ks, ke
