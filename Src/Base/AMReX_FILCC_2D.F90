@@ -5,7 +5,6 @@
 #endif
 
 #include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
 #include "AMReX_BC_TYPES.H"
 
 #define SDIM 2
@@ -50,6 +49,8 @@ subroutine filcc(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo,bc)
 end subroutine filcc
 
 subroutine hoextraptocc(q,q_l1,q_l2,q_h1,q_h2,domlo,domhi,dx,xlo)
+
+  use amrex_constants_module
 
   implicit none
 
