@@ -20,14 +20,6 @@ namespace amrex {
 namespace {
 
 static
-Real
-norm_inf (const MultiFab& res)
-{
-    const bool local = true;
-    return res.norm0(0,0,local);
-}
-
-static
 void
 sxay (MultiFab&       ss,
       const MultiFab& xx,
@@ -119,10 +111,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
 #ifdef CG_USE_OLD_CONVERGENCE_CRITERIA
     Real rnorm = norm_inf(r);
-    ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
 #else
     Real       rnorm    = norm_inf(r);
-    ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
     const Real Lp_norm  = Lp.Anorm(amrlev,mglev);
     Real       sol_norm = 0;
 #endif
@@ -178,7 +168,6 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(s,     r, -alpha,  v);
 
         rnorm = norm_inf(s);
-        ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
         {
@@ -192,7 +181,6 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #else
         sol_norm = norm_inf(sol);
-        ParallelAllReduce::Max(sol_norm, Lp.BottomCommunicator());
         if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0 ) || rnorm < eps_abs ) break;
 #endif
         MultiFab::Copy(sh,s,0,0,1,0);
@@ -218,7 +206,6 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(r,     s, -omega,  t);
 
         rnorm = norm_inf(r);
-        ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
         {
@@ -232,7 +219,6 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 #else
         sol_norm = norm_inf(sol);
-        ParallelAllReduce::Max(sol_norm, Lp.BottomCommunicator());
         if ( rnorm < eps_rel*(Lp_norm*sol_norm + rnorm0 ) || rnorm < eps_abs ) break;
 #endif
         if ( omega == 0 )
@@ -307,7 +293,6 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     sol.setVal(0);
 
     Real       rnorm    = norm_inf(r);
-    ParallelAllReduce::Max(rnorm, Lp.BottomCommunicator());
     const Real rnorm0   = rnorm;
     Real       minrnorm = rnorm;
 
@@ -370,9 +355,8 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         }
         sxay(sol, sol, alpha, p);
         sxay(  r,   r,-alpha, q);
-        rnorm = norm_inf(r);
-        sol_norm = norm_inf(sol);
-
+        rnorm = norm_inf(r,true);
+        sol_norm = norm_inf(sol,true);
         ParallelAllReduce::Max<Real>({rnorm, sol_norm}, Lp.BottomCommunicator());
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
@@ -443,5 +427,16 @@ MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
     }
     return result;
 }
+
+Real
+MLCGSolver::norm_inf (const MultiFab& res, bool local)
+{
+    Real result = res.norm0(0,0,true);
+    if (!local) {
+        ParallelAllReduce::Max(result, Lp.BottomCommunicator());
+    }
+    return result;
+}
+
 
 }
