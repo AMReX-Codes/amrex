@@ -54,12 +54,12 @@ fi
 # Commit the "changes", i.e. the new version.
 # The delta will show diffs between new and old versions.
 git add --all
-git commit -m "Deploy to GitHub Pages: ${SHA}"
+git commit -m "Deploy to GitHub Pages: ${SHA}" || true
 
 openssl aes-256-cbc -K $encrypted_6602cdd8f9c9_key -iv $encrypted_6602cdd8f9c9_iv -in ../id_rsa_travis.enc -out ../id_rsa_travis -d
 chmod 600 ../id_rsa_travis
 eval `ssh-agent -s`
 ssh-add ../id_rsa_travis
 
-git push $SSH_REPO $TARGET_BRANCH
+git push $SSH_REPO $TARGET_BRANCH || true
 ssh-agent -k
