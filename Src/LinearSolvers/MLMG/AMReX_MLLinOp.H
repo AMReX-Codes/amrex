@@ -137,7 +137,8 @@ protected:
     {
     public:
         BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm);
-        void setBndryConds (const Geometry& geom, const BCRec& phys_bc, int ratio);
+        void setBndryConds (const Geometry& geom, const Real* dx,
+                            const BCRec& phys_bc, int ratio);
         const BCTuple& bndryConds (const MFIter& mfi) const {
             return bcond[mfi];
         }

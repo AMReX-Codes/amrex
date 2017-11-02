@@ -407,9 +407,11 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
 
+    const Real* dx = m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
-        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], phys_bc, br_ref_ratio);
+        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], dx,
+                                                 phys_bc, br_ref_ratio);
     }
 }
 
@@ -689,11 +691,11 @@ MLLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMappi
 }
 
 void
-MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc, int ratio)
+MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const Real* dx,
+                                      const BCRec& phys_bc, int ratio)
 {
     // Same as MacBndry::setBndryConds
 
-    const Real* dx     = geom.CellSize();
     const Box&  domain = geom.Domain();
 
 #ifdef _OPENMP
