@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['half',['half',['../classamrex__constants__module.html#a0054397f5649f24a3da0cb5933162018',1,'amrex_constants_module']]],
   ['handler',['handler',['../structamrex_1_1_b_l_back_trace.html#a24b1c852ff2149fe973fad9501e2b5ec',1,'amrex::BLBackTrace']]],
   ['has_5fhi',['has_hi',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1coar__logic__t.html#abe2cbe67bb21161339af140af33b6134',1,'amrex::AggEBPWLFillPatch::coar_logic_t']]],
   ['has_5flo',['has_lo',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1coar__logic__t.html#ad0c865f28bd64dbf25c5632ee7a9eaa4',1,'amrex::AggEBPWLFillPatch::coar_logic_t']]],

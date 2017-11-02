@@ -66,7 +66,7 @@ var searchData=
   ['setdynamic',['SetDynamic',['../structamrex_1_1_m_f_it_info.html#aaa6176ad6388845a422006125572577e',1,'amrex::MFItInfo::SetDynamic()'],['../classamrex_1_1_n_files_iter.html#afaabf4f7bbf8f45e425237a5116fffda',1,'amrex::NFilesIter::SetDynamic()']]],
   ['setfab',['setFab',['../classamrex_1_1_fab_array.html#a56f866d5ace5debf481ebb2770c1fdb2',1,'amrex::FabArray::setFab(int K, FAB *elem)'],['../classamrex_1_1_fab_array.html#ad120e19b398c8fdcd683fc66a2828b5a',1,'amrex::FabArray::setFab(const MFIter &amp;mfi, FAB *elem, bool assertion=true)']]],
   ['setfabio',['setFABio',['../classamrex_1_1_f_array_box.html#a7a5acc633fa80ec1cb999be2c4bbdc02',1,'amrex::FArrayBox']]],
-  ['setfacearea',['setFaceArea',['../classamrex_1_1face_mo.html#a2503e291efd5d93c4beaf686111b7f85',1,'amrex::faceMo::setFaceArea()'],['../classamrex_1_1_coord_sys.html#addd25ef6595e734e8c05f880387852ff',1,'amrex::CoordSys::SetFaceArea()']]],
+  ['setfacearea',['SetFaceArea',['../classamrex_1_1_coord_sys.html#addd25ef6595e734e8c05f880387852ff',1,'amrex::CoordSys::SetFaceArea()'],['../classamrex_1_1face_mo.html#a2503e291efd5d93c4beaf686111b7f85',1,'amrex::faceMo::setFaceArea()']]],
   ['setfacecentroid',['setFaceCentroid',['../classamrex_1_1face_mo.html#aef5672a77d375239f9f04538a4d2bab5',1,'amrex::faceMo']]],
   ['setfaheadermapptr',['SetFAHeaderMapPtr',['../classamrex_1_1_state_data.html#a0ae8938d03e0425949acee6bfdf003af',1,'amrex::StateData']]],
   ['setfinestlevel',['SetFinestLevel',['../classamrex_1_1_amr_mesh.html#a7bedfae41bcead7ccfa7693f43763533',1,'amrex::AmrMesh']]],

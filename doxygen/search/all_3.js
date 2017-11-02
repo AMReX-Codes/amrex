@@ -181,7 +181,7 @@ var searchData=
   ['countname',['countname',['../classamrex_1_1_parm_parse.html#a8f87715d95cc1566d9b0188867a40363',1,'amrex::ParmParse']]],
   ['countrecords',['countRecords',['../classamrex_1_1_parm_parse.html#a23502086f6a092fd49198f80b5933012',1,'amrex::ParmParse']]],
   ['countval',['countval',['../classamrex_1_1_parm_parse.html#a5fa6149dba1e6786bb41d612daabe9bf',1,'amrex::ParmParse']]],
-  ['covered',['covered',['../classamrex_1_1_bndry_data.html#a4d31afbfcfb31a6229877bb9ad880fb9a843d5274aec429fe8bea1719d6162727',1,'amrex::BndryData::covered()'],['../classamrex_1_1_geometry_service.html#ab6546708b1e12c188511a708769040d0a89b7ebf5b4cefa802a097b9dd15fe788',1,'amrex::GeometryService::Covered()'],['../namespaceamrex.html#abd2e3d292645433cefc947725585f87aaa72ed46ebb1280e51746ce28ded53942',1,'amrex::covered()']]],
+  ['covered',['Covered',['../classamrex_1_1_geometry_service.html#ab6546708b1e12c188511a708769040d0a89b7ebf5b4cefa802a097b9dd15fe788',1,'amrex::GeometryService::Covered()'],['../classamrex_1_1_bndry_data.html#a4d31afbfcfb31a6229877bb9ad880fb9a843d5274aec429fe8bea1719d6162727',1,'amrex::BndryData::covered()'],['../namespaceamrex.html#abd2e3d292645433cefc947725585f87aaa72ed46ebb1280e51746ce28ded53942',1,'amrex::covered()']]],
   ['cp_5frecv_5fevent',['cp_recv_event',['../namespaceamrex_1_1_b_l_pgas.html#af28d723ceea6075a8c0cc70fb1cb0336',1,'amrex::BLPgas']]],
   ['cp_5fsend_5fcounter',['cp_send_counter',['../namespaceamrex_1_1_b_l_pgas.html#a006a6e9402010787ee8cb2fb2b75a144',1,'amrex::BLPgas']]],
   ['cp_5fsend_5fevent',['cp_send_event',['../namespaceamrex_1_1_b_l_pgas.html#a670380fc0263565e4a2d453e158fb7e1',1,'amrex::BLPgas']]],
