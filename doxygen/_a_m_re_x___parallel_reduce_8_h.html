@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.6"/>
-<title>AMReX: /home/travis/build/AMReX-Codes/amrex/Src/Base/AMReX_FabArrayBase.H File Reference</title>
+<title>AMReX: /home/travis/build/AMReX-Codes/amrex/Src/Base/AMReX_ParallelReduce.H File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -85,59 +85,45 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Classes</a> &#124;
 <a href="#namespaces">Namespaces</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
-<div class="title">AMReX_FabArrayBase.H File Reference</div>  </div>
+<div class="title">AMReX_ParallelReduce.H File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><code>#include &lt;<a class="el" href="_a_m_re_x___box_array_8_h_source.html">AMReX_BoxArray.H</a>&gt;</code><br/>
-<code>#include &lt;<a class="el" href="_a_m_re_x___distribution_mapping_8_h_source.html">AMReX_DistributionMapping.H</a>&gt;</code><br/>
-<code>#include &lt;<a class="el" href="_a_m_re_x___parallel_descriptor_8_h_source.html">AMReX_ParallelDescriptor.H</a>&gt;</code><br/>
-<code>#include &lt;<a class="el" href="_a_m_re_x___parallel_reduce_8_h_source.html">AMReX_ParallelReduce.H</a>&gt;</code><br/>
-<code>#include &lt;<a class="el" href="_a_m_re_x___periodicity_8_h_source.html">AMReX_Periodicity.H</a>&gt;</code><br/>
+<div class="textblock"><code>#include &lt;<a class="el" href="_a_m_re_x___parallel_descriptor_8_h_source.html">AMReX_ParallelDescriptor.H</a>&gt;</code><br/>
 <code>#include &lt;<a class="el" href="_a_m_re_x___print_8_h_source.html">AMReX_Print.H</a>&gt;</code><br/>
 </div>
-<p><a href="_a_m_re_x___fab_array_base_8_h_source.html">Go to the source code of this file.</a></p>
+<p><a href="_a_m_re_x___parallel_reduce_8_h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
-Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_factory.html">amrex::FabFactory&lt; FAB &gt;</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array_base.html">amrex::FabArrayBase</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_cache_stats.html">amrex::FabArrayBase::CacheStats</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_copy_com_tag.html">amrex::FabArrayBase::CopyComTag</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_b_d_key.html">amrex::FabArrayBase::BDKey</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_tile_array.html">amrex::FabArrayBase::TileArray</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html">amrex::FabArrayBase::FabComTag</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_f_pinfo.html">amrex::FabArrayBase::FPinfo</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_c_finfo.html">amrex::FabArrayBase::CFinfo</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_f_b.html">amrex::FabArrayBase::FB</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_c_p_c.html">amrex::FabArrayBase::CPC</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_array_base_1_1_fab_array_stats.html">amrex::FabArrayBase::FabArrayStats</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
 Namespaces</h2></td></tr>
 <tr class="memitem:namespaceamrex"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html">amrex</a></td></tr>
 <tr class="memdesc:namespaceamrex"><td class="mdescLeft">&#160;</td><td class="mdescRight">A Real vector in SpaceDim-dimensional space. <br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:namespaceamrex_1_1_parallel_all_reduce"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_all_reduce.html">amrex::ParallelAllReduce</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a049702dd862399b25a2acf1c140bf4bb"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a049702dd862399b25a2acf1c140bf4bb">amrex::operator&lt;&lt;</a> (std::ostream &amp;os, const FabArrayBase::BDKey &amp;id)</td></tr>
-<tr class="separator:a049702dd862399b25a2acf1c140bf4bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab2033288ee049b713286a813d1143320"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ab2033288ee049b713286a813d1143320"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_all_reduce.html#ab2033288ee049b713286a813d1143320">amrex::ParallelAllReduce::Max</a> (T &amp;rvar, <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> comm)</td></tr>
+<tr class="separator:ab2033288ee049b713286a813d1143320"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5e4e6e80c32ce286813e997f49d10305"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a5e4e6e80c32ce286813e997f49d10305"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_all_reduce.html#a5e4e6e80c32ce286813e997f49d10305">amrex::ParallelAllReduce::Max</a> (T *rvar, int cnt, <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> comm)</td></tr>
+<tr class="separator:a5e4e6e80c32ce286813e997f49d10305"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aec4851bdc1cec40c7b0abe1abda16ac2"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:aec4851bdc1cec40c7b0abe1abda16ac2"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_all_reduce.html#aec4851bdc1cec40c7b0abe1abda16ac2">amrex::ParallelAllReduce::Max</a> (Vector&lt; std::reference_wrapper&lt; T &gt; &gt; &amp;&amp;v, <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> comm)</td></tr>
+<tr class="separator:aec4851bdc1cec40c7b0abe1abda16ac2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a14efdbebcf9e7e93a41f31b53b4f25a2"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a14efdbebcf9e7e93a41f31b53b4f25a2"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_all_reduce.html#a14efdbebcf9e7e93a41f31b53b4f25a2">amrex::ParallelAllReduce::Sum</a> (T &amp;rvar, <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> comm)</td></tr>
+<tr class="separator:a14efdbebcf9e7e93a41f31b53b4f25a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a332f5df8b9151080bfe9e703cd0bb8e8"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a332f5df8b9151080bfe9e703cd0bb8e8"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_all_reduce.html#a332f5df8b9151080bfe9e703cd0bb8e8">amrex::ParallelAllReduce::Sum</a> (T *rvar, int cnt, <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> comm)</td></tr>
+<tr class="separator:a332f5df8b9151080bfe9e703cd0bb8e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1d80d5c95de6b70945a6660e7ad21044"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a1d80d5c95de6b70945a6660e7ad21044"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_all_reduce.html#a1d80d5c95de6b70945a6660e7ad21044">amrex::ParallelAllReduce::Sum</a> (Vector&lt; std::reference_wrapper&lt; T &gt; &gt; &amp;&amp;v, <a class="el" href="_a_m_re_x__ccse-mpi_8_h.html#a68c509d4adb3f4a1d6fe3a9b0b87c7b9">MPI_Comm</a> comm)</td></tr>
+<tr class="separator:a1d80d5c95de6b70945a6660e7ad21044"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 </div><!-- contents -->
 <!-- start footer part -->

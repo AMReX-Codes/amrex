@@ -441,7 +441,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:a5e16712b9f4c3f14537cd0b561758aa5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel gather.  <a href="#a5e16712b9f4c3f14537cd0b561758aa5">More...</a><br/></td></tr>
 <tr class="separator:a5e16712b9f4c3f14537cd0b561758aa5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adc1ee2d527e98fe750f038480efc439c"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_descriptor.html#adc1ee2d527e98fe750f038480efc439c">SeqNum</a> (int getsetinc=0, int newvalue=0)</td></tr>
-<tr class="memdesc:adc1ee2d527e98fe750f038480efc439c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns sequential message sequence numbers, usually used as tags for send/recv. getsetinc has these values: 0: return the current sequence number and increment 1: return the current sequence number 2: set the current sequence number to newvalue.  <a href="#adc1ee2d527e98fe750f038480efc439c">More...</a><br/></td></tr>
+<tr class="memdesc:adc1ee2d527e98fe750f038480efc439c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns sequential message sequence numbers, usually used as tags for send/recv. getsetinc has these values: 0: return the current sequence number and increment 1: return the current sequence number 2: set the current sequence number to newvalue 3: jump the current sequence number and return the sequence number before the call.  <a href="#adc1ee2d527e98fe750f038480efc439c">More...</a><br/></td></tr>
 <tr class="separator:adc1ee2d527e98fe750f038480efc439c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a76e895f86c3c537adaa425cc00b716b0"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex_1_1_parallel_descriptor.html#a76e895f86c3c537adaa425cc00b716b0">SubSeqNum</a> (int getsetinc=0, int newvalue=0)</td></tr>
 <tr class="separator:a76e895f86c3c537adaa425cc00b716b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -4775,7 +4775,7 @@ template&lt;class T &gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p>Returns sequential message sequence numbers, usually used as tags for send/recv. getsetinc has these values: 0: return the current sequence number and increment 1: return the current sequence number 2: set the current sequence number to newvalue. </p>
+<p>Returns sequential message sequence numbers, usually used as tags for send/recv. getsetinc has these values: 0: return the current sequence number and increment 1: return the current sequence number 2: set the current sequence number to newvalue 3: jump the current sequence number and return the sequence number before the call. </p>
 
 </div>
 </div>

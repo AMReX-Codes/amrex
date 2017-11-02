@@ -299,6 +299,7 @@ var searchData=
   ['amrex_5forientation_2eh',['AMReX_Orientation.H',['../_a_m_re_x___orientation_8_h.html',1,'']]],
   ['amrex_5fparalleldescriptor_2ecpp',['AMReX_ParallelDescriptor.cpp',['../_a_m_re_x___parallel_descriptor_8cpp.html',1,'']]],
   ['amrex_5fparalleldescriptor_2eh',['AMReX_ParallelDescriptor.H',['../_a_m_re_x___parallel_descriptor_8_h.html',1,'']]],
+  ['amrex_5fparallelreduce_2eh',['AMReX_ParallelReduce.H',['../_a_m_re_x___parallel_reduce_8_h.html',1,'']]],
   ['amrex_5fpargdb_2eh',['AMReX_ParGDB.H',['../_a_m_re_x___par_g_d_b_8_h.html',1,'']]],
   ['amrex_5fpariteri_2eh',['AMReX_ParIterI.H',['../_a_m_re_x___par_iter_i_8_h.html',1,'']]],
   ['amrex_5fparmparse_2ecpp',['AMReX_ParmParse.cpp',['../_a_m_re_x___parm_parse_8cpp.html',1,'']]],
