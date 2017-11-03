@@ -248,7 +248,7 @@ def test_suite(argv):
     suite.make_test_dirs()
 
     if suite.slack_post:
-        msg = "{} ({}) test suite started, id: {}\n{}".format(
+        msg = "> {} ({}) test suite started, id: {}\n> {}".format(
             suite.suiteName, suite.sub_title, suite.test_dir, args.note)
         suite.slack_post_it(msg)
 
