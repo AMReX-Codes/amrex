@@ -852,12 +852,14 @@ def test_suite(argv):
 
                         cmd_name = os.path.basename(test.analysisRoutine)
                         cmd_string = "./{} {} {}".format(cmd_name, option, output_file)
-                        _, _, rc = test_util.run(cmd_string)
+                        outfile = "{}.analysis.out".format(test.name)
+                        _, _, rc = test_util.run(cmd_string, outfile=outfile, store_command=True)
 
                         if rc == 0:
                             analysis_successful = True
                         else:
                             analysis_successful = False
+                            suite.log.warn("analysis failed...")
 
                         test.compare_successful = test.compare_successful and analysis_successful
 
@@ -875,6 +877,10 @@ def test_suite(argv):
                 shutil.copy("{}.err.out".format(test.name), suite.full_web_dir)
                 test.has_stderr = True
             shutil.copy("{}.compare.out".format(test.name), suite.full_web_dir)
+            try:
+                shutil.copy("{}.analysis.out".format(test.name), suite.full_web_dir)
+            except:
+                pass
 
             shutil.copy(test.inputFile, "{}/{}.{}".format(
                 suite.full_web_dir, test.name, test.inputFile) )
