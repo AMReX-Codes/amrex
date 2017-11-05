@@ -1,11 +1,28 @@
 
 #include "AMReX_LO_BCTYPES.H"
 
-module amrex_mllinop_3d_module
+module amrex_mllinop_nd_module
 
   use amrex_error_module
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module, only : amrex_real, amrex_spacedim
   implicit none
+
+#if (AMREX_SPACEDIM == 1)
+  integer, parameter :: xlo_dir = 0
+  integer, parameter :: xhi_dir = 1
+#elif (AMREX_SPACEDIM == 2)
+  integer, parameter :: xlo_dir = 0
+  integer, parameter :: ylo_dir = 1
+  integer, parameter :: xhi_dir = 2
+  integer, parameter :: yhi_dir = 3
+#else
+  integer, parameter :: xlo_dir = 0
+  integer, parameter :: ylo_dir = 1
+  integer, parameter :: zlo_dir = 2
+  integer, parameter :: xhi_dir = 3
+  integer, parameter :: yhi_dir = 4
+  integer, parameter :: zhi_dir = 5
+#endif
   
   private
   public :: amrex_mllinop_apply_bc, amrex_mllinop_comp_interp_coef0
@@ -41,7 +58,7 @@ contains
        end if
        
        select case (cdir)
-       case (0)  ! xlo
+       case (xlo_dir)
           do    k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 if (mask(lo(1)-1,j,k) .gt. 0) then
@@ -49,7 +66,7 @@ contains
                 end if
              end do
           end do
-       case (3)  ! xhi
+       case (xhi_dir)
           do    k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 if (mask(hi(1)+1,j,k) .gt. 0) then
@@ -57,7 +74,8 @@ contains
                 end if
              end do
           end do
-       case (1)  ! ylo
+#if (AMREX_SPACEDIM >= 2)
+       case (ylo_dir)  
           do    k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 if (mask(i,lo(2)-1,k) .gt. 0) then
@@ -65,7 +83,7 @@ contains
                 end if
              end do
           end do
-       case (4)  ! yhi
+       case (yhi_dir)
           do    k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 if (mask(i,hi(2)+1,k) .gt. 0) then
@@ -73,7 +91,8 @@ contains
                 end if
              end do
           end do
-       case (2)  ! zlo
+#if (AMREX_SPACEDIM == 3)
+       case (zlo_dir)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 if (mask(i,j,lo(3)-1) .gt. 0) then
@@ -81,7 +100,7 @@ contains
                 end if
              end do
           end do
-       case (5)  ! zhi
+       case (zhi_dir)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 if (mask(i,j,hi(3)+1) .gt. 0) then
@@ -89,11 +108,13 @@ contains
                 end if
              end do
           end do
+#endif
+#endif
        end select
 
     else if (bct == LO_DIRICHLET) then
 
-       idim = mod(cdir,3) + 1 ! cdir starts with 0; idim starts with 1
+       idim = mod(cdir,amrex_spacedim) + 1 ! cdir starts with 0; idim starts with 1
        lenx = MIN(hi(idim)-lo(idim), maxorder-2)
        
        x(-1) = -bcl*dxinv(idim)
@@ -107,7 +128,7 @@ contains
        end do
 
        select case (cdir)
-       case (0)  ! xlo
+       case (xlo_dir)
           do    k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 if (mask(lo(1)-1,j,k) .gt. 0) then
@@ -118,7 +139,7 @@ contains
                 end if
              end do
           end do
-       case (3)  ! xhi
+       case (xhi_dir)
           do    k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 if (mask(hi(1)+1,j,k) .gt. 0) then
@@ -129,7 +150,8 @@ contains
                 end if
              end do
           end do
-       case (1)  ! ylo
+#if (AMREX_SPACEDIM >= 2)
+       case (ylo_dir)
           do    k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 if (mask(i,lo(2)-1,k) .gt. 0) then
@@ -140,7 +162,7 @@ contains
                 end if
              end do
           end do
-       case (4)  ! yhi
+       case (yhi_dir)
           do    k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 if (mask(i,hi(2)+1,k) .gt. 0) then
@@ -151,7 +173,8 @@ contains
                 end if
              end do
           end do
-       case (2)  ! zlo
+#if (AMREX_SPACEDIM == 3)
+       case (zlo_dir)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 if (mask(i,j,lo(3)-1) .gt. 0) then
@@ -162,7 +185,7 @@ contains
                 end if
              end do
           end do
-       case (5)  ! zhi
+       case (zhi_dir)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 if (mask(i,j,hi(3)+1) .gt. 0) then
@@ -173,10 +196,12 @@ contains
                 end if
              end do
           end do
+#endif
+#endif
        end select
 
     else
-       call amrex_error("amrex_mllinop_3d_module: unknown bc");
+       call amrex_error("amrex_mllinop_nd_module: unknown bc");
     end if
 
   end subroutine amrex_mllinop_apply_bc
@@ -200,42 +225,46 @@ contains
     if (bct == LO_NEUMANN) then
 
        select case (cdir)
-       case (0)  ! xlo
+       case (xlo_dir)
           do    k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 den(lo(1),j,k) = 1.d0
              end do
           end do
-       case (3)  ! xhi
+       case (xhi_dir)
           do    k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 den(hi(1),j,k) = 1.d0
              end do
           end do
-       case (1)  ! ylo
+#if (AMREX_SPACEDIM >= 2)
+       case (ylo_dir)
           do    k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 den(i,lo(2),k) = 1.d0
              end do
           end do
-       case (4)  ! yhi
+       case (yhi_dir)
           do    k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 den(i,hi(2),k) = 1.d0
              end do
           end do
-       case (2)  ! zlo
+#if (AMREX_SPACEDIM == 3)
+       case (zlo_dir)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 den(i,j,lo(3)) = 1.d0
              end do
           end do
-       case (5)  ! zhi
+       case (zhi_dir)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 den(i,j,hi(3)) = 1.d0
              end do
           end do
+#endif
+#endif
        end select
 
     else if (bct == LO_REFLECT_ODD .or. bct == LO_DIRICHLET) then
@@ -243,7 +272,7 @@ contains
        if (bct == LO_REFLECT_ODD) then
           c0 = 1.d0
        else
-          idim = mod(cdir,3) + 1 ! cdir starts with 0; idim starts with 1
+          idim = mod(cdir,amrex_spacedim) + 1 ! cdir starts with 0; idim starts with 1
           lenx = MIN(hi(idim)-lo(idim), maxorder-2)
           
           x(-1) = -bcl*dxinv(idim)
@@ -257,7 +286,7 @@ contains
        end if
        
        select case (cdir)
-       case (0)  ! xlo
+       case (xlo_dir)
           do    k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 if (mask(lo(1)-1,j,k) .gt. 0) then
@@ -267,7 +296,7 @@ contains
                 end if
              end do
           end do
-       case (3)  ! xhi
+       case (xhi_dir)
           do    k = lo(3), hi(3)
              do j = lo(2), hi(2)
                 if (mask(hi(1)+1,j,k) .gt. 0) then
@@ -277,7 +306,8 @@ contains
                 end if
              end do
           end do
-       case (1)  ! ylo
+#if (AMREX_SPACEDIM >= 2)
+       case (ylo_dir)
           do    k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 if (mask(i,lo(2)-1,k) .gt. 0) then
@@ -287,7 +317,7 @@ contains
                 end if
              end do
           end do
-       case (4)  ! yhi
+       case (yhi_dir)
           do    k = lo(3), hi(3)
              do i = lo(1), hi(1)
                 if (mask(i,hi(2)+1,k) .gt. 0) then
@@ -297,7 +327,8 @@ contains
                 end if
              end do
           end do
-       case (2)  ! zlo
+#if (AMREX_SPACEDIM == 3)
+       case (zlo_dir)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 if (mask(i,j,lo(3)-1) .gt. 0) then
@@ -307,7 +338,7 @@ contains
                 end if
              end do
           end do
-       case (5)  ! zhi
+       case (zhi_dir)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
                 if (mask(i,j,hi(3)+1) .gt. 0) then
@@ -317,10 +348,12 @@ contains
                 end if
              end do
           end do
+#endif
+#endif
        end select
        
     end if
     
   end subroutine amrex_mllinop_comp_interp_coef0
   
-end module amrex_mllinop_3d_module
+end module amrex_mllinop_nd_module
