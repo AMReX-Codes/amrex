@@ -44,7 +44,7 @@ contains
     real(amrex_real), intent(inout) :: fx (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
     real(amrex_real), intent(inout) :: fy (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
     real(amrex_real), intent(inout) :: fz (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
-    real(amrex_real), intent(in   ) :: sol( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))    
+    real(amrex_real), intent(in   ) :: sol( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))
     
     integer :: i,j,k
     real(amrex_real) :: dhx, dhy, dhz
