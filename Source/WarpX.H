@@ -140,6 +140,7 @@ public:
                          const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E);
 
     static std::array<amrex::Real,3> CellSize (int lev);
+    static amrex::RealBox getRealBox(const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
 
@@ -229,7 +230,7 @@ private:
     void InitPML ();
     void ComputePMLFactors ();
 
-    void InjectPlasma(int num_shift, int dir);
+    void InjectPlasma(int lev, amrex::RealBox particleBox);
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
@@ -325,6 +326,8 @@ private:
     int moving_window_dir = -1;
     amrex::Real moving_window_x  = std::numeric_limits<amrex::Real>::max();
     amrex::Real moving_window_v  = std::numeric_limits<amrex::Real>::max();
+    Real current_injection_position;
+    Real last_injection_time;
 
     // Plasma injection parameters
     int do_plasma_injection  = 0;

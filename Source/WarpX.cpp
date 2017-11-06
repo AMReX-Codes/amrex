@@ -423,11 +423,18 @@ WarpX::CellSize (int lev)
 #endif
 }
 
-std::array<Real,3>
-WarpX::LowerCorner(const Box& bx, int lev)
+amrex::RealBox
+WarpX::getRealBox(const Box& bx, int lev)
 {
     const auto& gm = GetInstance().Geom(lev);
     const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    return( grid_box );
+}
+
+std::array<Real,3>
+WarpX::LowerCorner(const Box& bx, int lev)
+{
+    const RealBox grid_box = getRealBox( bx, lev );
     const Real* xyzmin = grid_box.lo();
 #if (BL_SPACEDIM == 3)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
@@ -439,8 +446,7 @@ WarpX::LowerCorner(const Box& bx, int lev)
 std::array<Real,3>
 WarpX::UpperCorner(const Box& bx, int lev)
 {
-    const auto& gm = GetInstance().Geom(lev);
-    const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    const RealBox grid_box = getRealBox( bx, lev );
     const Real* xyzmax = grid_box.hi();
 #if (BL_SPACEDIM == 3)
     return { xyzmax[0], xyzmax[1], xyzmax[2] };

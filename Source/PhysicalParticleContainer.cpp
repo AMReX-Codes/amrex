@@ -71,7 +71,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
 }
 
 void
-PhysicalParticleContainer::AddParticles (int lev, Box part_box)
+PhysicalParticleContainer::AddParticles (int lev, RealBox part_realbox)
 {
     BL_PROFILE("PhysicalParticleContainer::AddParticles()");
 
@@ -102,8 +102,9 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
 
     if ( not plasma_injector->doInjection() ) return;
 
+    // If no part_realbox is provided, initialize particles in the whole domain
     const Geometry& geom = Geom(lev);
-    if (!part_box.ok()) part_box = geom.Domain();
+    if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
 
@@ -132,32 +133,61 @@ PhysicalParticleContainer::AddParticles (int lev, Box part_box)
         std::array<Real,PIdx::nattribs> attribs;
         attribs.fill(0.0);
 
+        // Loop through the tiles
         for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
-            const Box& tile_box  = mfi.tilebox();
-            const Box& intersectBox = tile_box & part_box;
-            if (!intersectBox.ok()) continue;
 
-            const std::array<Real, 3>& tile_corner =
-                WarpX::LowerCorner(intersectBox, lev);
+            const Box& tile_box  = mfi.tilebox();
+            const RealBox tile_realbox = WarpX::getRealBox(tile_box, lev);
+
+            // Find the cells of part_box that overlap with tile_realbox
+            // If there is no overlap, just go to the next tile in the loop
+            RealBox overlap_realbox;
+            Box overlap_box;
+            bool no_overlap = 0;
+            for (int dir=0; dir<BL_SPACEDIM; dir++) {
+                if ( tile_realbox.lo(dir) < part_realbox.hi(dir) ) {
+                    overlap_realbox.setLo( dir, part_realbox.lo(dir) +
+                        std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir]) * dx[dir]);
+                } else {
+                    no_overlap = 1; break;
+                }
+                if ( tile_realbox.hi(dir) > part_realbox.lo(dir) ) {
+                    overlap_realbox.setHi( dir, part_realbox.lo(dir) +
+                        std::ceil( (tile_realbox.hi(dir) - part_realbox.lo(dir))/dx[dir]) * dx[dir]);
+                } else {
+                    no_overlap = 1; break;
+                }
+                // Count the number of cells in this direction in overlap_realbox
+                overlap_box.setSmall( dir, 0 );
+                overlap_box.setBig( dir,
+                    int( (overlap_realbox.hi(dir)-overlap_realbox.lo(dir))/dx[dir] ));
+            }
+            if (no_overlap == 1) continue; // Go to the next tile
 
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
 
-            const auto& boxlo = intersectBox.smallEnd();
-            for (IntVect iv = intersectBox.smallEnd();
-                 iv <= intersectBox.bigEnd(); intersectBox.next(iv)) {
+            // Loop through the cells of overlap_realbox and inject
+            // the corresponding particles
+            const auto& overlap_corner = overlap_realbox.lo();
+            for (IntVect iv = overlap_box.smallEnd();
+                 iv <= overlap_box.bigEnd(); overlap_box.next(iv)) {
                 for (int i_part=0; i_part<num_ppc;i_part++) {
                     std::array<Real, 3> r;
                     plasma_injector->getPositionUnitBox(r, i_part);
 #if ( BL_SPACEDIM == 3 )
-                    Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
-                    Real y = tile_corner[1] + (iv[1]-boxlo[1] + r[1])*dx[1];
-                    Real z = tile_corner[2] + (iv[2]-boxlo[2] + r[2])*dx[2];
+                    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
+                    Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
+                    Real z = overlap_corner[2]+ (iv[2] + r[2])*dx[2];
 #elif ( BL_SPACEDIM == 2 )
-                    Real x = tile_corner[0] + (iv[0]-boxlo[0] + r[0])*dx[0];
+                    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
                     Real y = 0.;
-                    Real z = tile_corner[2] + (iv[1]-boxlo[1] + r[2])*dx[2];
+                    Real z = overlap_corner[2] + (iv[1] + r[2])*dx[2];
 #endif
+                    // If the new particle is not inside the tile box,
+                    // go to the next generated particle.
+                    if(!tile_realbox.contains({x, y, z})) continue;
+
                     if (plasma_injector->insideBounds(x, y, z)) {
                         Real dens;
                         std::array<Real, 3> u;

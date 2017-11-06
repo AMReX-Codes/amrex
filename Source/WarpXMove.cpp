@@ -1,5 +1,6 @@
 
 #include <WarpX.H>
+#include <WarpXConst.H>
 
 using namespace amrex;
 
@@ -33,14 +34,15 @@ WarpX::MoveWindow (bool move_j)
 
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
+
+    // Shift the mesh fields
     for (int lev = 0; lev <= max_level; ++lev) {
-        
+
         if (lev > 0) {
             num_shift_crse = num_shift;
             num_shift *= refRatio(lev-1)[dir];
         }
 
-        // shift the mesh fields
         for (int dim = 0; dim < 3; ++dim) {
 
             shiftMF(*Bfield_fp[lev][dim], geom[lev], num_shift, dir);
@@ -57,7 +59,7 @@ WarpX::MoveWindow (bool move_j)
 
             if (do_pml && pml[lev]->ok()) {
                 const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_fp();
-                const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_fp();                
+                const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_fp();
                 shiftMF(*pml_B[dim], geom[lev], num_shift, dir);
                 shiftMF(*pml_E[dim], geom[lev], num_shift, dir);
                 if (do_dive_cleaning) {
@@ -84,7 +86,7 @@ WarpX::MoveWindow (bool move_j)
 
                 if (do_pml && pml[lev]->ok()) {
                     const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_cp();
-                    const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_cp();                
+                    const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_cp();
                     shiftMF(*pml_B[dim], geom[lev-1], num_shift_crse, dir);
                     shiftMF(*pml_E[dim], geom[lev-1], num_shift_crse, dir);
                     if (do_dive_cleaning) {
@@ -95,8 +97,48 @@ WarpX::MoveWindow (bool move_j)
             }
         }
     }
-    
-    InjectPlasma(num_shift_base, dir);    
+
+    // Continuously inject plasma in new cells (by default only on level 0)
+    if (WarpX::do_plasma_injection) {
+        const int lev = 0;
+
+        if (WarpX::gamma_boost > 1){
+            // In boosted-frame simulations, the plasma has moved since the last
+            // call to this function, and injection position needs to be updated
+            current_injection_position -= WarpX::beta_boost *
+                WarpX::boost_direction[dir] * PhysConst::c * dt[0];
+        }
+
+        // particleBox encloses the cells where we generate particles
+        // (only injects particles in an integer number of cells,
+        // for correct particle spacing)
+        RealBox particleBox = geom[lev].ProbDomain();
+        Real new_injection_position;
+        if (moving_window_v > 0){
+            // Forward-moving window
+            Real dx = geom[lev].CellSize(dir);
+            new_injection_position = current_injection_position +
+                std::floor( (geom[lev].ProbHi(dir) - current_injection_position)/dx ) * dx;
+        } else {
+            // Backward-moving window
+            Real dx = geom[lev].CellSize(dir);
+            new_injection_position = current_injection_position -
+                std::floor( (current_injection_position - geom[lev].ProbLo(dir))/dx) * dx;
+        }
+        // Modify the corresponding bounds of the particleBox
+        if (num_shift > 0) {
+            particleBox.setLo( dir, current_injection_position );
+            particleBox.setHi( dir, new_injection_position );
+        } else {
+            particleBox.setLo( dir, new_injection_position );
+            particleBox.setHi( dir, current_injection_position );
+        }
+        // Perform the injection of new particles in particleBox
+        if (particleBox.ok()) {
+            InjectPlasma( lev, particleBox);
+            current_injection_position = new_injection_position;
+        }
+    }
 }
 
 void
@@ -106,13 +148,13 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     const DistributionMapping& dm = mf.DistributionMap();
     const int nc = mf.nComp();
     const int ng = mf.nGrow();
-    
+
     BL_ASSERT(ng >= num_shift);
-    
+
     MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
-    
+
     // Make a box that covers the region that the window moved into
     const IndexType& typ = ba.ixType();
     const Box& domainBox = geom.Domain();
