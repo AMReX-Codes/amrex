@@ -23,14 +23,14 @@ You should then switch to the branch ``development`` of AMReX
     git checkout development
     cd ..
 
-Compiling the code
-~~~~~~~~~~~~~~~~~~
+Compiling WarpX as an executable
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``cd`` into the directory ``warpx`` and type
 
 ::
 
-    make -j
+    make -j 4
 
 This will generate an executable file in the ``Bin`` directory.
 
@@ -45,15 +45,16 @@ This will generate an executable file in the ``Bin`` directory.
         * Profile or debug the code
         * Choose a given compiler
 
-    For a description of these different options, see section 3 of the
-    `AMReX User's Guide <https://amrex-codes.github.io/AMReXUsersGuide.pdf>`__.
+    For a description of these different options, see the `corresponding page
+    <https://amrex-codes.github.io/amrex/BuildingAMReX.html#building-with-gnu-make>`__ in
+    the AMReX documentation.
 
     Alternatively, instead of modifying the file ``GNUmakefile``, you can
     directly pass the options in command line ; for instance:
 
     ::
 
-        make -j USE_OMP=FALSE
+        make -j 4 USE_OMP=FALSE
 
 
 In order to clean a previously compiled version:
@@ -62,8 +63,29 @@ In order to clean a previously compiled version:
 
     make realclean
 
-Compiling the code for Cori
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to learn how to use the executable, see the section :doc:`running_cpp/running_cpp`.
+
+
+Compiling WarpX as a Python package
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``cd`` into the directory ``warpx/Python`` (instead of ``warpx``
+in the previous section) and type
+
+::
+
+    make -j 4
+
+This will compile the code, and install the Python bindings as a package (named
+``pywarpx``) in your standard Python installation (i.e. in your
+``site-packages`` directory). The note on compiler options from the previous
+section also hold when compiling the Python package.
+
+In order to learn how to use the Python package, see the section :doc:`running_python/running_python`.
+
+
+Compiling WarpX for Cori
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 For the `Cori cluster
 <http://www.nersc.gov/users/computational-systems/cori/>`__ at NERSC,

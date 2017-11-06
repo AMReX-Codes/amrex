@@ -86,7 +86,7 @@ def set_initial_conditions(ncells, domain_min, domain_max):
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
     add_particles(0, beam_xp[lo:hi], beam_yp[lo:hi], beam_zp[lo:hi],
-                  beam_uxp[lo:hi], beam_uyp[lo:hi], beam_uzp[lo:hi], 
+                  beam_uxp[lo:hi], beam_uyp[lo:hi], beam_uzp[lo:hi],
                   beam_wp[lo:hi], 1)
 
     # now do the plasma species
@@ -111,7 +111,7 @@ def set_initial_conditions(ncells, domain_min, domain_max):
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
     add_particles(1, plasma_xp[lo:hi], plasma_yp[lo:hi], plasma_zp[lo:hi],
-                  plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi], 
+                  plasma_uxp[lo:hi], plasma_uyp[lo:hi], plasma_uzp[lo:hi],
                   plasma_wp[lo:hi], 1)
 
     comm.Barrier()
@@ -141,14 +141,14 @@ def inject_plasma(num_shift, direction):
     particle_shift = (0.5 + P) / num_ppc
 
     pos = [[],[],[]]
-    
+
     if (num_shift > 0):
         pos[0] = (X + particle_shift)*dx[0] + domain_min[0]
         pos[1] = (Y + particle_shift)*dx[1] + domain_min[1]
         pos[2] = (Z + particle_shift)*dx[2] + domain_min[2]
         pos[direction] -= domain_min[direction]
         pos[direction] += domain_max[direction]
-    
+
     if (num_shift < 0):
         pos[0] = (X + particle_shift)*dx[0] + domain_min[0]
         pos[1] = (Y + particle_shift)*dx[1] + domain_min[1]
@@ -169,7 +169,7 @@ def inject_plasma(num_shift, direction):
     lo, hi = get_parallel_indices(Np, comm.rank, comm.size)
 
     add_particles(1, xp[lo:hi], yp[lo:hi], zp[lo:hi],
-                  uxp[lo:hi], uyp[lo:hi], uzp[lo:hi], 
+                  uxp[lo:hi], uyp[lo:hi], uzp[lo:hi],
                   wp[lo:hi], 1)
 
     comm.Barrier()
@@ -186,7 +186,7 @@ max_step = 60
 # number of grid points
 amr.n_cell =   "%d  %d  %d" % tuple(ncells)
 
-# Maximum allowable size of each subdomain in the problem domain; 
+# Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
 amr.max_grid_size = 32
 
@@ -197,7 +197,7 @@ amr.plot_int = 2   # How often to write plotfiles.  "<= 0" means no plotfiles.
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = "1     1     0"      # Is periodic?  
+geometry.is_periodic = "1     1     0"      # Is periodic?
 geometry.prob_lo     = "%7.0e   %7.0e   %7.0e" % tuple(domain_min)    # physical domain
 geometry.prob_hi     = "%7.0e   %7.0e   %7.0e" % tuple(domain_max)
 
@@ -218,10 +218,6 @@ warpx.moving_window_dir = 'z'
 warpx.moving_window_v = 1.0  # in units of the speed of light
 
 warpx.do_plasma_injection = 0
-#warpx.num_injected_species = 1
-#warpx.injected_plasma_species = 1
-#warpx.injected_plasma_density = 1e22
-#warpx.injected_plasma_ppc = 4
 
 # --- Initialize the simulation
 amrex = AMReX()

@@ -35,7 +35,8 @@ particles.species_names = electrons
 
 electrons.charge = -q_e
 electrons.mass = m_e
-electrons.injection_style = "NDiagPerCell"
+electrons.injection_style = "NUniformPerCell"
+electrons.num_particles_per_cell_each_dim = 2 2 1
 
 electrons.xmin = -20.e-6
 electrons.xmax =  20.e-6
@@ -43,7 +44,6 @@ electrons.ymin = -20.e-6
 electrons.ymax =  20.e-6
 electrons.zmin =   0.e-6
 
-electrons.num_particles_per_cell = 4
 electrons.profile = constant
 electrons.density = 1.e23  # number of electrons per m^3
 
@@ -60,8 +60,6 @@ warpx.moving_window_v = 1.0 # in units of the speed of light
 warpx.do_plasma_injection = 1
 warpx.num_injected_species = 1
 warpx.injected_plasma_species = 0
-warpx.injected_plasma_density = 1e23
-warpx.injected_plasma_ppc = 4
 
 # Laser
 warpx.use_laser    = 1
