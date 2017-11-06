@@ -75,8 +75,9 @@ protected:
 
     int maxorder = 3;
 
-    int do_agglomeration = 0;
+    int do_agglomeration = 1;
     int do_consolidation = 1;
+
 #if (AMREX_SPACEDIM == 1)
     int agg_grid_size = 32;
 #elif (AMREX_SPACEDIM == 2)
@@ -95,6 +96,23 @@ protected:
     Vector<Vector<BoxArray> >            m_grids;
     Vector<Vector<DistributionMapping> > m_dmap;
     Vector<int>                          m_domain_covered;
+
+    MPI_Comm m_default_comm = MPI_COMM_NULL;
+    MPI_Comm m_bottom_comm = MPI_COMM_NULL;
+    struct CommContainer {
+        MPI_Comm comm;
+        CommContainer (MPI_Comm m) : comm(m) {}
+        CommContainer (const CommContainer&) = delete;
+        CommContainer (CommContainer&&) = delete;
+        void operator= (const CommContainer&) = delete;
+        void operator= (CommContainer&&) = delete;
+        ~CommContainer () {
+#ifdef BL_USE_MPI
+            if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
+#endif
+        }
+    };
+    std::unique_ptr<CommContainer> m_raii_comm;
 
     // BC
     std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
@@ -119,7 +137,8 @@ protected:
     {
     public:
         BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm);
-        void setBndryConds (const Geometry& geom, const BCRec& phys_bc, int ratio);
+        void setBndryConds (const Geometry& geom, const Real* dx,
+                            const BCRec& phys_bc, int ratio);
         const BCTuple& bndryConds (const MFIter& mfi) const {
             return bcond[mfi];
         }
@@ -150,6 +169,20 @@ protected:
     int AMRRefRatio (int amr_lev) const { return m_amr_ref_ratio[amr_lev]; }
 
     const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
+
+#ifdef BL_USE_MPI
+    bool isBottomActive () const { return m_bottom_comm != MPI_COMM_NULL; }
+#else
+    bool isBottomActive () const { return true; }
+#endif
+    MPI_Comm BottomCommunicator () const { return m_bottom_comm; }
+    MPI_Comm Communicator (int amrlev, int mglev) const {
+        if (amrlev == 0 && mglev == NMGLevels(0)-1) {
+            return m_bottom_comm;
+        } else {
+            return m_default_comm;
+        }
+    }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
@@ -186,7 +219,9 @@ private:
                       const Vector<DistributionMapping>& a_dmap);
     void defineAuxData ();
     void defineBC ();
-
+    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
+    static DistributionMapping makeConsolidatedDMap (const DistributionMapping& fdm);
+    MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
 };
 
 }

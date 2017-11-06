@@ -6,8 +6,8 @@ extern "C"
 {
     void amrex_fi_new_geometry (Geometry*& geom, int lo[3], int hi[3])
     {
-	Box domain(IntVect(AMREX_D_DECL(lo[0],lo[1],lo[2])),
-		   IntVect(AMREX_D_DECL(hi[0],hi[1],hi[2])));
+	const Box domain{IntVect{AMREX_D_DECL(lo[0],lo[1],lo[2])},
+                         IntVect{AMREX_D_DECL(hi[0],hi[1],hi[2])}};
 	geom = new Geometry(domain);
     }
 
