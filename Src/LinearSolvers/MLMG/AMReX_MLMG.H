@@ -52,7 +52,7 @@ private:
     int nuf = 8;   // when smoother is used as bottom solver
     int nub = 0;   // aditional smoothing after bottom cg solver
 
-    int max_fmg_iters = 20;
+    int max_fmg_iters = 0;
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  cg_verbose            = 0;

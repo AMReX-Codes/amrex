@@ -121,17 +121,22 @@ contains
 
     is = max(q_lo(1), domlo(1))
     ie = min(q_hi(1), domhi(1))
-    js = max(q_lo(2), domlo(2))
-    je = min(q_hi(2), domhi(2))
-    ks = max(q_lo(3), domlo(3))
-    ke = min(q_hi(3), domhi(3))
-
     ilo = domlo(1)
     ihi = domhi(1)
+
+#if AMREX_SPACEDIM >= 2
+    js = max(q_lo(2), domlo(2))
+    je = min(q_hi(2), domhi(2))
     jlo = domlo(2)
     jhi = domhi(2)
+#endif
+
+#if AMREX_SPACEDIM == 3
+    ks = max(q_lo(3), domlo(3))
+    ke = min(q_hi(3), domhi(3))
     klo = domlo(3)
     khi = domhi(3)
+#endif
 
     do n = 1, ncomp
 

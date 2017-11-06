@@ -2512,6 +2512,11 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
         result = seqno;
       }
       break;
+      case 3:  // ---- jump 
+      {
+          seqno += (m_MaxTag-m_MinTag) / 2;
+      }
+      break;
       default:  // ---- error
       {
 	amrex::Abort("**** Error in ParallelDescriptor::SeqNum:  bad getsetinc.");
