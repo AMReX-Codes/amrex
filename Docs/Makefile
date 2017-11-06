@@ -16,14 +16,11 @@ clean:
 	rm -rf 
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)"
 
-upload:
-	rsync -e ssh -avz build/html/ lehe@phare.normalesup.org:WWW/html_warpx/
-
 .PHONY: help Makefile
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile Doxygen-build Latex-conversion
+%: Makefile Latex-conversion
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 Python-build:

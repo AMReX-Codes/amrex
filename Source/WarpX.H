@@ -78,6 +78,11 @@ public:
     static bool use_filter;
     static bool serialize_ics;
 
+    // Boosted frame parameters
+    static amrex::Real gamma_boost;
+    static amrex::Real beta_boost;
+    static amrex::Vector<amrex::Real> boost_direction;
+
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield (int lev, int direction) {return *Efield_fp[lev][direction];}
     const amrex::MultiFab& getBfield (int lev, int direction) {return *Bfield_fp[lev][direction];}
