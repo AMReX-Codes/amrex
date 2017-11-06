@@ -516,7 +516,8 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
     {
         const Box& grid_bx = grid_ba[i];
         const IntVect& grid_bx_sz = grid_bx.size();
-        BL_ASSERT(grid_bx.shortside() > ncell);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(grid_bx.shortside() > ncell,
+                                         "Consider using larger amr.blocking_factor");
 
         Box bx = grid_bx;
         bx.grow(ncell);
