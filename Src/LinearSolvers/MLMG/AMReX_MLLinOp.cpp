@@ -655,6 +655,35 @@ MLLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxe
 }
 
 void
+MLLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
+{
+    BL_PROFILE("MLLinOp::compGrad()");
+
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+    {
+        AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                     const Box& ybx = mfi.nodaltilebox(1);,
+                     const Box& zbx = mfi.nodaltilebox(2););
+        amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
+                                        BL_TO_FORTRAN_BOX(ybx),
+                                        BL_TO_FORTRAN_BOX(zbx)),
+                           BL_TO_FORTRAN_ANYD(sol[mfi]),
+                           AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
+                           dxinv);
+    }
+}
+
+void
 MLLinOp::prepareForSolve ()
 {
     for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
