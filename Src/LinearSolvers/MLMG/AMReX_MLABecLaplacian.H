@@ -64,6 +64,8 @@ private:
 
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
+
+    void applyMetricTermsCoeffs ();
 };
 
 }
