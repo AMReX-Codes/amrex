@@ -167,11 +167,8 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 
     int finest_level = nlevels-1;
 
-    //
-    // Only let 64 CPUs be writing at any one time.
-    //
-    int saveNFiles(VisMF::GetNOutFiles());
-    VisMF::SetNOutFiles(64);
+//    int saveNFiles(VisMF::GetNOutFiles());
+//    VisMF::SetNOutFiles(std::max(1024,saveNFiles));
 
     bool callBarrier(true);
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
@@ -212,7 +209,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 	VisMF::Write(*data, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
     }
 
-    VisMF::SetNOutFiles(saveNFiles);
+//    VisMF::SetNOutFiles(saveNFiles);
 }
 
 void
