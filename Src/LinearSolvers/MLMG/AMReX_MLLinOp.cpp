@@ -229,6 +229,20 @@ MLLinOp::defineAuxData ()
                                  m_geom[amrlev+1][0], m_geom[amrlev][0],
                                  ratio, amrlev+1, 1);
     }
+
+#if (AMREX_SPACEDIM != 3)
+    m_metric_factor.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_metric_factor[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_metric_factor[amrlev][mglev].reset(new MetricFactor(m_grids[amrlev][mglev],
+                                                                  m_dmap[amrlev][mglev],
+                                                                  m_geom[amrlev][mglev]));
+        }
+    }
+#endif
 }
 
 void
@@ -804,5 +818,100 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     return m_default_comm;
 #endif
 }
+
+void
+MLLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
+{
+#if (AMREX_SPACEDIM != 3)
+    
+    const auto& mfac = *m_metric_factor[amrlev][mglev];
+
+    int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.tilebox();
+        const Vector<Real>& r = (nextra==0) ? mfac.cellCenters(mfi) : mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        const int rlo = vbx.loVect()[0];
+        const int rhi = vbx.hiVect()[0] + nextra;
+        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
+                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                   r.data(), &rlo, &rhi);
+    }
+#endif
+}
+
+void
+MLLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
+{
+#if (AMREX_SPACEDIM != 3)
+    
+    const auto& mfac = *m_metric_factor[amrlev][mglev];
+
+    int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.tilebox();
+        const Vector<Real>& r = (nextra==0) ? mfac.invCellCenters(mfi) : mfac.invCellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        const int rlo = vbx.loVect()[0];
+        const int rhi = vbx.hiVect()[0] + nextra;
+        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
+                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                   r.data(), &rlo, &rhi);
+    }
+#endif
+}
+
+#if (AMREX_SPACEDIM != 3)
+
+MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
+                                     const Geometry& geom)
+    : r_cellcenter(ba,dm),
+      r_celledge(ba,dm),
+      inv_r_cellcenter(ba,dm),
+      inv_r_celledge(ba,dm)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(r_cellcenter); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+
+        auto& rcc = r_cellcenter[mfi];
+        geom.GetCellLoc(rcc, bx, 0);
+
+        auto& rce = r_celledge[mfi];
+        geom.GetEdgeLoc(rce, bx, 0);
+
+        auto& ircc = inv_r_cellcenter[mfi];
+        const int N = rcc.size();
+        ircc.resize(N);
+        for (int i = 0; i < N; ++i) {
+            ircc[i] = 1.0/rcc[i];
+        }
+
+        auto& irce = inv_r_celledge[mfi];
+        irce.resize(N+1);
+        if (rce[0] == 0.0) {
+            irce[0] = 0.0;
+        } else {
+            irce[0] = 1.0/rce[0];
+        }
+        for (int i = 1; i < N+1; ++i) {
+            irce[i] = 1.0/rce[i];
+        }        
+    }
+}
+
+#endif
 
 }

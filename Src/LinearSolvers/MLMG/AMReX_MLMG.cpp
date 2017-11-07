@@ -510,7 +510,7 @@ MLMG::addInterpCorrection (int alev, int mglev)
         cba.coarsen(refratio);
         const int nc = crse_cor.nComp();
         const int ng = 0;
-        cfine.define(cba, fine_cor.DistributionMap(), nc, 0);
+        cfine.define(cba, fine_cor.DistributionMap(), nc, ng);
         cfine.ParallelCopy(crse_cor);
         cmf = &cfine;
     }
@@ -632,7 +632,6 @@ Real
 MLMG::MLResNormInf (int alevmax, bool local)
 {
     BL_PROFILE("MLMG::MLResNormInf()");
-    const int mglev = 0;
     Real r = 0.0;
     for (int alev = 0; alev <= alevmax; ++alev)
     {
@@ -712,7 +711,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     for (int alev = 0; alev < namrlevs; ++alev)
     {
         rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), 1, 0);
-        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, 1, 0);        
+        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, 1, 0);
+        linop.applyMetricTerm(alev, 0, rhs[alev]);
     }
 
     const auto& amrrr = linop.AMRRefRatio();
@@ -785,6 +785,9 @@ MLMG::getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol
     BL_PROFILE("MLMG::getFluxes()");
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
         linop.compFlux (alev, a_grad_sol[alev], *sol[alev]);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            linop.unapplyMetricTerm(alev, 0, *a_grad_sol[alev][idim]);
+        }
     }
 }
 
@@ -800,12 +803,26 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
         const MultiFab* crse_bcdata = (alev > 0) ? a_sol[alev-1] : nullptr;
-        linop.solutionResidual(alev, *a_res[alev], *a_sol[alev], *a_rhs[alev], crse_bcdata);
+        const MultiFab* prhs = a_rhs[alev];
+#if (AMREX_SPACEDIM != 3)
+        MultiFab rhstmp(prhs->boxArray(), prhs->DistributionMap(), 1, 0);
+        MultiFab::Copy(rhstmp, *prhs, 0, 0, 1, 0);
+        linop.applyMetricTerm(alev, 0, rhstmp);
+        prhs = &rhstmp;
+#endif
+        linop.solutionResidual(alev, *a_res[alev], *a_sol[alev], *prhs, crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, *a_res[alev], *a_sol[alev], *a_sol[alev+1]);
             amrex::average_down(*a_res[alev+1], *a_res[alev], 0, 1, amrrr[alev]); 
         }
-    }    
+    }
+
+
+#if (AMREX_SPACEDIM != 3)
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        linop.unapplyMetricTerm(alev, 0, *a_res[alev]);
+    }
+#endif
 }
 
 }

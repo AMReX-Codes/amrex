@@ -159,6 +159,30 @@ protected:
 
     mutable Vector<YAFluxRegister> m_fluxreg;
 
+#if (AMREX_SPACEDIM != 3)
+    struct MetricFactor {
+        MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
+                      const Geometry& geom);
+        const Vector<Real>& cellCenters (const MFIter& mfi) const {
+            return r_cellcenter[mfi];
+        }
+        const Vector<Real>& cellEdges (const MFIter& mfi) const {
+            return r_celledge[mfi];
+        }
+        const Vector<Real>& invCellCenters (const MFIter& mfi) const {
+            return inv_r_cellcenter[mfi];
+        }
+        const Vector<Real>& invCellEdges (const MFIter& mfi) const {
+            return inv_r_celledge[mfi];
+        }
+        LayoutData<Vector<Real> > r_cellcenter;
+        LayoutData<Vector<Real> > r_celledge;
+        LayoutData<Vector<Real> > inv_r_cellcenter;
+        LayoutData<Vector<Real> > inv_r_celledge;
+    };
+    Vector<Vector<std::unique_ptr<MetricFactor> > > m_metric_factor;
+#endif
+
     //
     // functions
     //
@@ -202,6 +226,9 @@ protected:
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const;
     void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const;
+
+    void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
+    void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
 
     virtual void prepareForSolve ();
     virtual bool isSingular (int amrlev) const = 0;

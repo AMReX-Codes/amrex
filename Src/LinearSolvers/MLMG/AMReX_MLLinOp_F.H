@@ -21,6 +21,11 @@ extern "C" {
                                           const int* mask, const int* mlo, const int* mhi,
                                           const int cdir, const int bct, const amrex_real bcl,
                                           const int maxorder, const amrex_real* dxinv);
+
+    void amrex_mllinop_apply_metric (const int* lo, const int* hi,
+                                     amrex_real* d, const int* dlo, const int* dhi,
+                                     const amrex_real* r, const int* rlo, const int* rhi);
+
     
 #ifdef __cplusplus
 }
