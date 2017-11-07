@@ -81,7 +81,7 @@ namespace amrex
                            BL_TO_FORTRAN_3D(    k4[mfi]));
       }
       //debug turn off time interp
-      phiC.copy(oldC);
+      //phiC.copy(oldC);
       //end debug
 
       //now we can spatially interpolate 
