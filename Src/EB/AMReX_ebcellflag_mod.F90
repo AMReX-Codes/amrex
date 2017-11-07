@@ -26,7 +26,7 @@ module amrex_ebcellflag_module
 
 contains
 
-  pure function get_neighbor_cells_int_single (flag,i,j,k)
+  elemental function get_neighbor_cells_int_single (flag,i,j,k)
     integer, intent(in) :: flag
     integer, intent(in) :: i, j, k
     integer :: get_neighbor_cells_int_single
