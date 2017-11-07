@@ -127,16 +127,15 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             {
                 if (verbose >= 1) {
                     amrex::Print() << "MLMG: Final Iter. " << iter+1
-                                   << " composite resid/" << norm_name << " = "
+                                   << " resid/" << norm_name << " = "
                                    << composite_norminf/max_norm << "\n";
                 }
-
                 break;
             }
         }
         if (!converged) {
             amrex::Print() << "MLMG: Failed to converge after " << max_iters << " iterations."
-                           << " composite resid/" << norm_name << " = "
+                           << " resid/" << norm_name << " = "
                            << composite_norminf/max_norm << "\n";
             amrex::Abort("MLMG failed");
         }
@@ -556,15 +555,21 @@ MLMG::bottomSolve ()
 {
     BL_PROFILE("MLMG::bottomSolve()");
 
+    if (!linop.isBottomActive()) return;
+
     Real bottom_start_time = ParallelDescriptor::second();
 
+    int old_sn = ParallelDescriptor::SeqNum(3);
+    
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
     MultiFab& x = *cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
 
     if (linop.isSingular(amrlev)) {
-        Real offset = b.sum() / linop.Geom(amrlev,mglev).Domain().d_numPts();
+        const bool local = true;
+        Real offset = b.sum(0,local) / linop.Geom(amrlev,mglev).Domain().d_numPts();
+        ParallelAllReduce::Sum(offset, linop.BottomCommunicator());
         b.plus(-offset, 0, 1);
     }
 
@@ -603,6 +608,9 @@ MLMG::bottomSolve ()
             linop.smooth(amrlev, mglev, x, b);
         }
     }
+
+    ParallelDescriptor::SeqNum(2, old_sn);
+
     timer[bottom_time] += ParallelDescriptor::second() - bottom_start_time;
 }
 

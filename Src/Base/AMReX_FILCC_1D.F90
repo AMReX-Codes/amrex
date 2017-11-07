@@ -5,7 +5,6 @@
 #endif
 
 #include "AMReX_REAL.H"
-#include "AMReX_CONSTANTS.H"
 #include "AMReX_BC_TYPES.H"
 
 #define SDIM 1

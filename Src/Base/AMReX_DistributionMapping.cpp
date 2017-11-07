@@ -2733,6 +2733,52 @@ DistributionMapping::makeSFC (const MultiFab& weight,
     return r;
 }
 
+
+std::vector<std::vector<int> >
+DistributionMapping::makeSFC (const BoxArray& ba)
+{
+    std::vector<SFCToken> tokens;
+
+    const int N = ba.size();
+
+    tokens.reserve(N);
+
+    int maxijk = 0;
+
+    for (int i = 0; i < N; ++i)
+    {
+	const Box& bx = ba[i];
+        tokens.push_back(SFCToken(i,bx.smallEnd(),1.0));
+
+        const SFCToken& token = tokens.back();
+
+        AMREX_D_TERM(maxijk = std::max(maxijk, token.m_idx[0]);,
+                     maxijk = std::max(maxijk, token.m_idx[1]);,
+                     maxijk = std::max(maxijk, token.m_idx[2]););
+    }
+    //
+    // Set SFCToken::MaxPower for BoxArray.
+    //
+    int m = 0;
+    for ( ; (1 << m) <= maxijk; ++m) {
+        ;  // do nothing
+    }
+    SFCToken::MaxPower = m;
+    //
+    // Put'm in Morton space filling curve order.
+    //
+    std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
+
+    const int nprocs = ParallelDescriptor::NProcs();
+    Real volper = static_cast<Real>(N)/static_cast<Real>(nprocs);
+
+    std::vector< std::vector<int> > r(nprocs);
+    Distribute(tokens, nprocs, volper, r);
+
+    return r;
+}
+
+
 std::ostream&
 operator<< (std::ostream&              os,
             const DistributionMapping& pmap)

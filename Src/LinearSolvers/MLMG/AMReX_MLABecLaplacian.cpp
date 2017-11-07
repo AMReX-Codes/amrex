@@ -407,7 +407,7 @@ MLABecLaplacian::Anorm (int amrlev, int mglev) const
             }
         }
         
-        ParallelDescriptor::ReduceRealMax(res, acoef.color());
+        ParallelAllReduce::Max(res, Communicator(amrlev,mglev));
         m_Anorm[amrlev][mglev] = res;
     }
 
