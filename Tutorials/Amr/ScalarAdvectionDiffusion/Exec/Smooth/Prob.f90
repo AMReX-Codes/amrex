@@ -57,7 +57,7 @@ subroutine initdata(level, time, lo, hi, &
   integer          :: i,j,k
   double precision :: xlo,ylo,xhi,yhi,zlo,zhi, pi, denom, integralval, freq
   
-  freq = 1.0d0
+  freq = 2.0d0
   pi = 3.14159265358979323846264338327950288d0
   if(dim.eq.2) then
      denom = (dx(1)*dx(2)*pi*pi*freq*freq)
@@ -78,19 +78,19 @@ subroutine initdata(level, time, lo, hi, &
            xhi = dx(1)*(i+1)
 
            if(dim .eq. 2) then
-              integralval = (cos(freq*pi*xhi) - cos(freq*pi*xlo))*(cos(freq*pi*yhi) - cos(freq*pi*ylo))
+              integralval = (sin(freq*pi*xhi) - sin(freq*pi*xlo))*(sin(freq*pi*yhi) - sin(freq*pi*ylo))
            else
-              integralval = -(cos(freq*pi*xhi) - cos(freq*pi*xlo))*(cos(freq*pi*yhi) - cos(freq*pi*ylo))*(cos(freq*pi*zhi) - cos(freq*pi*zlo))
+              integralval = (sin(freq*pi*xhi) - sin(freq*pi*xlo))*(sin(freq*pi*yhi) - sin(freq*pi*ylo))*(sin(freq*pi*zhi) - sin(freq*pi*zlo))
            end if
 
 !!debug set to 1d           
-!           integralval = (cos(freq*pi*xhi) - cos(freq*pi*xlo))
+!           integralval = (sin(freq*pi*xhi) - sin(freq*pi*xlo))
 !           denom = dx(1)*pi*freq
 !           if(j.eq.0) then
 !!              if((i.eq.0).or.(i.eq.63)) then
-!              if(i.eq.63) then
-!!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, cos(freq*pi*xhi), cos(freq*pi*xlo), integralval, denom
-!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, cos(freq*pi*1.0d0), cos(freq*pi*xlo), integralval, denom
+!             if(i.eq.63) then
+!!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, sin(freq*pi*xhi), sin(freq*pi*xlo), integralval, denom
+!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, sin(freq*pi*1.0d0), sin(freq*pi*xlo), integralval, denom
 !              endif
 !           endif
 !!!end debug
