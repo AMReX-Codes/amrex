@@ -1558,7 +1558,7 @@ void DataServices::ParseFilterFile()
 
     if( ! (yyin = fopen(filterFileName.c_str(), "r"))) {
       if(bIOP) {
-        cerr << "Cannot open file:  " << filterFileName << endl;
+        cerr << "DataServices::ParseFilterFile:  Cannot open file:  " << filterFileName << endl;
       }
     } else {
       yyparse(&regOutputStats_H);
@@ -1620,7 +1620,7 @@ void DataServices::CheckProfData()
             std::string commFileName_H_nnnn(fileName + '/' + commHeaderFileNames[hfnI]);
             if( ! ( yyin = fopen(commFileName_H_nnnn.c_str(), "r"))) {
               if(bIOP) {
-                cerr << "Cannot open file:  " << commFileName_H_nnnn
+                cerr << "DataServices::CheckProfData:  Cannot open file:  " << commFileName_H_nnnn
                      << "  continuing ...." << endl;
                 continue;
               }
@@ -1644,7 +1644,7 @@ void DataServices::ProcessGridLog(const std::string &gridlogFileName) {
     if(ParallelDescriptor::IOProcessor()) {
       CommProfStats glOutputStats;
       if( ! ( yyin = fopen(gridlogFileName.c_str(), "r"))) {
-        cout << "Cannot open file:  " << gridlogFileName << endl;
+        cout << "DataServices::ProcessGridLog:  Cannot open file:  " << gridlogFileName << endl;
       } else {
         cout << "---------------- parsing " << gridlogFileName << endl;
         yyparse(&glOutputStats);
@@ -1763,7 +1763,7 @@ void DataServices::RunStats(std::map<int, string> &mpiFuncNames,
 
           if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
             if(bIOP) {
-              cerr << "A:  Cannot open file:  " << commDataHeaderFileName
+              cerr << "DataServices::RunStats:  Cannot open file:  " << commDataHeaderFileName
                    << "  continuing ...." << endl;
             }
             continue;
@@ -1947,7 +1947,7 @@ void DataServices::RunSendsPF(std::string &plotfileName,
 
           if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
             if(bIOP) {
-              cerr << "Cannot open file:  " << commDataHeaderFileName
+              cerr << "DataServices::RunSendsPF:  Cannot open file:  " << commDataHeaderFileName
                    << " ... continuing." << endl;
             }
             continue;
@@ -2212,7 +2212,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
           if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
             if(bIOP) {
-              cerr << "Cannot open file:  " << commDataHeaderFileName
+              cerr << "DataServices::RunTimelinePF:  1:  Cannot open file:  " << commDataHeaderFileName
                    << " ... continuing." << endl;
             }
             continue;
@@ -2300,7 +2300,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
         if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
           if(bIOP) {
-            cerr << "Cannot open file:  " << commDataHeaderFileName
+            cerr << "DataServices::RunTimelinePF:  2:  Cannot open file:  " << commDataHeaderFileName
                  << " ... continuing." << endl;
           }
           continue;
@@ -2885,7 +2885,7 @@ void DataServices::RunSyncPointData()
       std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
       if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
         if(bIOP) {
-          cerr << "Cannot open file:  " << commDataHeaderFileName
+          cerr << "DataServices::RunSyncPointData:  Cannot open file:  " << commDataHeaderFileName
                << " ... continuing." << endl;
         }
         continue;
@@ -3004,7 +3004,7 @@ void DataServices::RunSendRecv()
           std::string commFileName_H_nnnn(dirName + '/' + commHeaderFileNames[hfnI]);
           if( ! ( yyin = fopen(commFileName_H_nnnn.c_str(), "r"))) {
             if(bIOP) {
-              cerr << "Cannot open file:  " << commFileName_H_nnnn
+              cerr << "DataServices::RunSendRecv:  Cannot open file:  " << commFileName_H_nnnn
                    << " ... continuing." << endl;
             }
             continue;
@@ -3048,7 +3048,7 @@ void DataServices::RunSendRecvList()
           std::string commFileName_H_nnnn(fileName + '/' + commHeaderFileNames[hfnI]);
           if( ! ( yyin = fopen(commFileName_H_nnnn.c_str(), "r"))) {
             if(bIOP) {
-              cerr << "Cannot open file:  " << commFileName_H_nnnn
+              cerr << "DataServices::RunSendRecvList:  Cannot open file:  " << commFileName_H_nnnn
                    << " ... continuing." << endl;
             }
             continue;
@@ -3134,7 +3134,7 @@ void DataServices::TCEdison()
     commOutputStats_H.InitEdisonTopoMF();
     std::string topoFileName("edisontopo.out");
     if( ! ( yyin = fopen(topoFileName.c_str(), "r"))) {
-      cout << "Cannot open file:  " << topoFileName << endl;
+      cout << "DataServices::TCEdison:  Cannot open file:  " << topoFileName << endl;
     } else {
       yyparse(&commOutputStats_H);
       fclose(yyin);
