@@ -173,21 +173,21 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
 
-    // Boosted-frame parameters
-    pp.query("gamma_boost", gamma_boost);
-    beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
-    pp.queryarr("boost_direction", boost_direction);
-    if( gamma_boost > 1. ){
-        // Read and normalize the boost direction
-        Real s = 1.0/std::sqrt(boost_direction[0]*boost_direction[0] +
-                            boost_direction[1]*boost_direction[1] +
-                            boost_direction[2]*boost_direction[2]);
+        // Boosted-frame parameters
+        pp.query("gamma_boost", gamma_boost);
+        beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
+        pp.queryarr("boost_direction", boost_direction);
+        if( gamma_boost > 1. ) {
+            // Read and normalize the boost direction
+            Real s = 1.0/std::sqrt(boost_direction[0]*boost_direction[0] +
+                                   boost_direction[1]*boost_direction[1] +
+                                   boost_direction[2]*boost_direction[2]);
 	    boost_direction = { boost_direction[0]*s,
                             boost_direction[1]*s,
                             boost_direction[2]*s };
-    }
+        }
 
-    pp.queryarr("B_external", B_external);
+        pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
@@ -253,6 +253,27 @@ WarpX::ReadParameters ()
         if (maxLevel() > 0) {
             pp.query("plot_finepatch", plot_finepatch);
             pp.query("plot_crsepatch", plot_crsepatch);
+        }
+
+        {
+            int hv = checkpoint_headerversion;
+            pp.query("checkpoint_headerversion", hv);
+            checkpoint_headerversion = static_cast<VisMF::Header::Version>(hv);
+            hv = plot_headerversion;
+            pp.query("plot_headerversion", hv);
+            plot_headerversion = static_cast<VisMF::Header::Version>(hv);
+            pp.query("usesingleread", use_single_read);
+            pp.query("usesinglewrite", use_single_write);
+            ParmParse ppv("vismf");
+            ppv.add("usesingleread", use_single_read);
+            ppv.add("usesinglewrite", use_single_write);
+            pp.query("mffile_nstreams", mffile_nstreams);
+            VisMF::SetMFFileInStreams(mffile_nstreams);
+            pp.query("field_io_nfiles", field_io_nfiles);
+            VisMF::SetNOutFiles(field_io_nfiles);
+            pp.query("particle_io_nfiles", particle_io_nfiles);
+            ParmParse ppp("particles");
+            ppp.add("particles_nfiles", particle_io_nfiles);
         }
 
         if (maxLevel() > 0) {
