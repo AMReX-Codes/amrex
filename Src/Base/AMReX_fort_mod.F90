@@ -41,7 +41,7 @@ contains
 
 
 
-  AMREX_DEVICE subroutine get_loop_bounds(blo, bhi, lo, hi)
+  AMREX_DEVICE subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='get_loop_bounds')
 
     implicit none
 
