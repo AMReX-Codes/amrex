@@ -142,9 +142,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const 
               }
           }
       }
-      
+
       const BoxArray& ba = ParticleBoxArray(lev);
-      BL_ASSERT(ba.ixType().cellCentered());
+      BL_ASSERT(ba.ixType().cellCentered());      
       ba.intersections(Box(iv, iv), isects, true, nGrow);
       
       if (!isects.empty()) {
@@ -397,6 +397,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
     if (!success)
     {
         success = (nGrow > 0) && Where(p, pld, lev_min, lev_min, nGrow);
+        pld.m_grown_gridbox = pld.m_gridbox; // reset grown box for subsequent calls.
     }
 
     if (!success)
