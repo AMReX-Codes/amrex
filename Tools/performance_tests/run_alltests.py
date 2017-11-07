@@ -364,7 +364,7 @@ if args.mode == 'read':
         write_perf_logfile(log_dir + log_file)
 
     # Store test parameters fot record
-    dir_record_base = '../../../perf_warpx_record/'
+    dir_record_base = './perf_warpx_record/'
     if not os.path.exists(dir_record_base):
         os.mkdir(dir_record_base)
     count = 0
