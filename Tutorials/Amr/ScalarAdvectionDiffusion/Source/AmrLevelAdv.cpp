@@ -62,7 +62,10 @@ namespace amrex
       MultiFab & k2  = getLevel(level-1).m_k2;
       MultiFab & k3  = getLevel(level-1).m_k3;
       MultiFab & k4  = getLevel(level-1).m_k4;
-
+      BoxArray bak1 = k1.boxArray();
+      BoxArray bak2 = k2.boxArray();
+      BoxArray bak3 = k3.boxArray();
+      BoxArray bak4 = k4.boxArray();
       for (MFIter mfi(phiC); mfi.isValid(); ++mfi)
       {
         const Box& box     = mfi.validbox();
@@ -77,6 +80,9 @@ namespace amrex
                            BL_TO_FORTRAN_3D(    k3[mfi]),
                            BL_TO_FORTRAN_3D(    k4[mfi]));
       }
+      //debug turn off time interp
+      phiC.copy(oldC);
+      //end debug
 
       //now we can spatially interpolate 
       //these need to be in vectors but they are the same data
@@ -90,6 +96,7 @@ namespace amrex
         bcs.setLo(idir, BCType::int_dir);  // periodic uses "internal Dirichlet"
         bcs.setHi(idir, BCType::int_dir);  // periodic uses "internal Dirichlet"
       }
+
       Vector<Real> timevec(2, tf);
       Vector<MultiFab*> coarmf(2, &phiC);
       Vector<MultiFab*> finemf(2, &phiSave);
@@ -453,7 +460,8 @@ namespace amrex
     if(truncationErrorTest)
     {
       S_new.copy(dPhiDt);
-      return dt;
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
     }
 
     //u1 is already set to u^n
@@ -476,10 +484,13 @@ namespace amrex
     // RK3 stage 3
     //           S_new = 1/3 u^n + 2/3 u^2 + 2/3 dtL(u^2)
 
-    //this makes S_new = 1/3 u^n + 2/3 u^2
-    MultiFab::LinComb(S_new, 1./3., S_old, 0, 2./3., u2, 0, 0, NUM_STATE, 0);
-    //this makes S_new = 1/3 u^n + 2/3  u^2 + 2/3 dtL(u^2)
-    MultiFab::Saxpy(S_new, 2.*dt/3., dPhiDt, 0, 0, NUM_STATE, 0);
+    if(!truncationErrorTest)
+    {
+      //this makes S_new = 1/3 u^n + 2/3 u^2
+      MultiFab::LinComb(S_new, 1./3., S_old, 0, 2./3., u2, 0, 0, NUM_STATE, 0);
+      //this makes S_new = 1/3 u^n + 2/3  u^2 + 2/3 dtL(u^2)
+      MultiFab::Saxpy(S_new, 2.*dt/3., dPhiDt, 0, 0, NUM_STATE, 0);
+    }
 
     /**/ 
     return dt;
@@ -541,7 +552,8 @@ namespace amrex
     if(truncationErrorTest)
     {
       S_new.copy(k1);
-      return dt;
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
     }
 
     // phi^1 = phi^n + dt/2*dPhiDt^n
@@ -570,13 +582,15 @@ namespace amrex
     k4.mult(dt);
 
     //phi^n+1  = 1/6(phi1 +  2 phi2  + 2phi3  + phi4)
-    S_new.copy(S_old);
+    if(!truncationErrorTest)
+    {
+      S_new.copy(S_old);
 
-    MultiFab::Saxpy(  S_new, 1./6., k1, 0, 0, NUM_STATE, 0);
-    MultiFab::Saxpy(  S_new, 1./3., k2, 0, 0, NUM_STATE, 0);
-    MultiFab::Saxpy(  S_new, 1./3., k3, 0, 0, NUM_STATE, 0);
-    MultiFab::Saxpy(  S_new, 1./6., k4, 0, 0, NUM_STATE, 0);
-
+      MultiFab::Saxpy(  S_new, 1./6., k1, 0, 0, NUM_STATE, 0);
+      MultiFab::Saxpy(  S_new, 1./3., k2, 0, 0, NUM_STATE, 0);
+      MultiFab::Saxpy(  S_new, 1./3., k3, 0, 0, NUM_STATE, 0);
+      MultiFab::Saxpy(  S_new, 1./6., k4, 0, 0, NUM_STATE, 0);
+    }
     //if we are not on the finest level, need to save the k objects for c/f time interpolation
     if(level < parent->finestLevel() ) 
     {

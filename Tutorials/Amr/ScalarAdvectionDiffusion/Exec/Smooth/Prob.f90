@@ -55,13 +55,14 @@ subroutine initdata(level, time, lo, hi, &
   double precision, intent(in) :: dx(3), prob_lo(3)
 
   integer          :: i,j,k
-  double precision :: xlo,ylo,xhi,yhi,zlo,zhi, pi, denom, integralval
+  double precision :: xlo,ylo,xhi,yhi,zlo,zhi, pi, denom, integralval, freq
   
+  freq = 1.0d0
   pi = 3.14159265358979323846264338327950288d0
   if(dim.eq.2) then
-     denom = (dx(1)*dx(2)*pi*pi*4.0d0)
+     denom = (dx(1)*dx(2)*pi*pi*freq*freq)
   else
-     denom = (dx(1)*dx(2)*dx(3)*pi*pi*pi*8.0d0)
+     denom = (dx(1)*dx(2)*dx(3)*pi*pi*pi*freq*freq*freq)
   endif
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
@@ -77,19 +78,19 @@ subroutine initdata(level, time, lo, hi, &
            xhi = dx(1)*(i+1)
 
            if(dim .eq. 2) then
-              integralval = (sin(2.d0*pi*xhi) - sin(2.d0*pi*xlo))*(sin(2.d0*pi*yhi) - sin(2.d0*pi*ylo))
+              integralval = (cos(freq*pi*xhi) - cos(freq*pi*xlo))*(cos(freq*pi*yhi) - cos(freq*pi*ylo))
            else
-              integralval = (sin(2.d0*pi*xhi) - sin(2.d0*pi*xlo))*(sin(2.d0*pi*yhi) - sin(2.d0*pi*ylo))*(sin(2.d0*pi*zhi) - sin(2.d0*pi*zlo))
+              integralval = -(cos(freq*pi*xhi) - cos(freq*pi*xlo))*(cos(freq*pi*yhi) - cos(freq*pi*ylo))*(cos(freq*pi*zhi) - cos(freq*pi*zlo))
            end if
 
 !!debug set to 1d           
-!           integralval = (sin(2.d0*pi*xhi) - sin(2.d0*pi*xlo))
-!           denom = dx(1)*pi*2.0d0
+!           integralval = (cos(freq*pi*xhi) - cos(freq*pi*xlo))
+!           denom = dx(1)*pi*freq
 !           if(j.eq.0) then
 !!              if((i.eq.0).or.(i.eq.63)) then
 !              if(i.eq.63) then
-!!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, sin(2.d0*pi*xhi), sin(2.d0*pi*xlo), integralval, denom
-!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, sin(2.d0*pi*1.0d0), sin(2.d0*pi*xlo), integralval, denom
+!!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, cos(freq*pi*xhi), cos(freq*pi*xlo), integralval, denom
+!                 print*, "i xlo xhi sinxhi sinxlo integralval, denom", i, xlo, xhi, cos(freq*pi*1.0d0), cos(freq*pi*xlo), integralval, denom
 !              endif
 !           endif
 !!!end debug
