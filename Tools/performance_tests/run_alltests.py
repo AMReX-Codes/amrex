@@ -112,7 +112,7 @@ if args.recompile == True:
     makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
     with open(cwd + 'GNUmakefile_perftest', 'w') as makefile_handler:
         makefile_handler.write( makefile_text )
-    os.system(config_command + "rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
+    os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
 
 # Define functions to run a test and analyse results
 # --------------------------------------------------
@@ -158,7 +158,7 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     batch_string = ''
     batch_string += '#!/bin/bash\n'
     batch_string += '#SBATCH --job-name=' + run_name + str(n_node) + str(n_mpi) + str(n_omp) + '\n'
-    batch_string += '#SBATCH --time=01:00:00\n'
+    batch_string += '#SBATCH --time=00:30:00\n'
     batch_string += '#SBATCH -C ' + module_Cname[args.architecture] + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH --partition=regular\n'
@@ -288,16 +288,11 @@ def process_analysis():
 
 test_list = []
 n_repeat = 1
-# filename1 = 'io_strongscaling1'
-# test_list.extend([[filename1, 1, 16, 8]]*n_repeat)
+filename1 = 'uniform_plasma'
 
-test_list.extend([['io_weakscaling1_1', 1, 16, 8]]*n_repeat)
-test_list.extend([['io_weakscaling1_2', 2, 16, 8]]*n_repeat)
-test_list.extend([['io_weakscaling1_4', 4, 16, 8]]*n_repeat)
-test_list.extend([['io_weakscaling1_8', 8, 16, 8]]*n_repeat)
-test_list.extend([['io_weakscaling1_16', 16, 16, 8]]*n_repeat)
-test_list.extend([['io_weakscaling1_32', 32, 16, 8]]*n_repeat)
-test_list.extend([['io_weakscaling1_64', 64, 16, 8]]*n_repeat)
+test_list.extend([[filename1, 1, 8, 16]]*3)
+test_list.extend([[filename1, 1, 4, 32]]*3)
+test_list.extend([[filename1, 2, 4, 32]]*3)
 
 n_tests   = len(test_list)
 
@@ -354,10 +349,7 @@ if args.mode == 'read':
         res_dir = res_dir_base
         res_dir += '_'.join([year, month, day, run_name, args.compiler,\
                              args.architecture, str(n_node), str(n_mpi),\
-                             str(n_omp)]) + '/'
-#        res_dir += '_'.join([year, month, '02', run_name, args.compiler,\
-#                             args.architecture, str(n_node), str(n_mpi),\
-#                             str(n_omp)]) + '/'
+                             str(n_ omp)]) + '/'
         # Read performance data from the output file
         timing_list = read_run_perf(res_dir + 'perf_output.txt')
         # Write performance data to the performance log file
