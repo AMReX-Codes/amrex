@@ -128,11 +128,33 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 }
 
 void
+MLABecLaplacian::applyMetricTermsCoeffs ()
+{
+#if (AMREX_SPACEDIM != 3)
+    for (int alev = 0; alev < m_num_amr_levels; ++alev)
+    {
+        for (int mglev = 0; mglev < m_num_mg_levels[alev]; ++mglev)
+        {
+            applyMetricTerm(alev, mglev, m_a_coeffs[alev][mglev]);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                applyMetricTerm(alev, mglev, m_b_coeffs[alev][mglev][idim]);
+            }
+        }
+    }
+#endif
+}
+
+void
 MLABecLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
 
     MLLinOp::prepareForSolve();
+
+#if (AMREX_SPACEDIM != 3)
+    applyMetricTermsCoeffs();
+#endif
 
     averageDownCoeffs();
 
