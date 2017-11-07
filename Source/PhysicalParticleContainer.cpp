@@ -200,7 +200,7 @@ PhysicalParticleContainer::AddParticles (int lev, RealBox part_realbox)
                             // and `getDensity` with lab-frame Parameters
                             // (Assumes that the plasma has a low velocity,
                             // and that the boost is along z)
-                            Real t = WarpX::t_new[lev];
+                            Real t = WarpX::GetInstance().gett_new(lev);
                             Real v_boost = WarpX::beta_boost*PhysConst::c;
                             Real z_lab = WarpX::gamma_boost*( z - v_boost*t );
                             plasma_injector->getMomentum(u, x, y, z_lab);
