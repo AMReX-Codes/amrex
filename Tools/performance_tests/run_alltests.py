@@ -158,7 +158,7 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     batch_string = ''
     batch_string += '#!/bin/bash\n'
     batch_string += '#SBATCH --job-name=' + run_name + str(n_node) + str(n_mpi) + str(n_omp) + '\n'
-    batch_string += '#SBATCH --time=00:20:00\n'
+    batch_string += '#SBATCH --time=01:00:00\n'
     batch_string += '#SBATCH -C ' + module_Cname[args.architecture] + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH --partition=regular\n'
@@ -189,6 +189,8 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
 
 # Read output file and return init time and 1-step time
 def read_run_perf(filename):
+    timing_list = []
+    # Search inclusive time to get simulation step time
     partition_limit = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
     with open(filename) as file_handler:
         output_text = file_handler.read()
@@ -198,16 +200,40 @@ def read_run_perf(filename):
     search_area = output_text.partition(partition_limit)[2]
     line_match_looptime = re.search('\nWarpX::Evolve().*', search_area)
     time_wo_initialization = float(line_match_looptime.group(0).split()[3])
-    time_one_iteration = time_wo_initialization/n_steps
-    time_initialization = total_time - time_wo_initialization
-    return time_initialization, time_one_iteration
+    timing_list += [str(total_time - time_wo_initialization)]
+    timing_list += [str(time_wo_initialization/n_steps)]
+    # Search exclusive time to get routines timing
+    partition_limit1 = 'NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %'
+    partition_limit2 = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
+    file_handler.close()
+    with open(filename) as file_handler:
+        output_text = file_handler.read()
+    search_area = output_text.partition(partition_limit1)[2].partition(partition_limit2)[0]
+    pattern_list = ['\nParticleContainer::Redistribute().*',\
+                    '\nFabArray::FillBoundary().*',\
+                    '\nFabArray::ParallelCopy().*',\
+                    '\nPICSAR::CurrentDeposition.*',\
+                    '\nPICSAR::FieldGather.*',\
+                    '\nPICSAR::ParticlePush.*',\
+                    '\nPPC::Evolve::Copy.*',\
+                    '\nWarpX::EvolveEM().*',\
+                    'NArrayInt>::Checkpoint().*',\
+                    'NArrayInt>::WriteParticles().*',\
+                    '\nVisMF::Write_FabArray.*',\
+                    '\nWriteMultiLevelPlotfile().*']
+    for pattern in pattern_list:
+        timing = '0'
+        line_match = re.search(pattern, search_area)
+        if line_match is not None:
+            timing = [str(float(line_match.group(0).split()[3])/n_steps)]
+        timing_list += timing
+    return timing_list
 
 # Write time into logfile
 def write_perf_logfile(log_file):
     log_line = ' '.join([year, month, day, run_name, args.compiler,\
                          args.architecture, str(n_node), str(n_mpi),\
-                         str(n_omp), str(time_initialization),\
-                         str(time_one_iteration), '\n'])
+                         str(n_omp)] +  timing_list + ['\n'])
     f_log = open(log_file, 'a')
     f_log.write(log_line)
     f_log.close()
@@ -262,9 +288,17 @@ def process_analysis():
 
 test_list = []
 n_repeat = 1
-test_list.extend([['uniform_plasma', 1, 8, 16]]*n_repeat)
-test_list.extend([['uniform_plasma', 1, 4, 32]]*n_repeat)
-test_list.extend([['uniform_plasma', 2, 4, 32]]*n_repeat)
+# filename1 = 'io_strongscaling1'
+# test_list.extend([[filename1, 1, 16, 8]]*n_repeat)
+
+test_list.extend([['io_weakscaling1_1', 1, 16, 8]]*n_repeat)
+test_list.extend([['io_weakscaling1_2', 2, 16, 8]]*n_repeat)
+test_list.extend([['io_weakscaling1_4', 4, 16, 8]]*n_repeat)
+test_list.extend([['io_weakscaling1_8', 8, 16, 8]]*n_repeat)
+test_list.extend([['io_weakscaling1_16', 16, 16, 8]]*n_repeat)
+test_list.extend([['io_weakscaling1_32', 32, 16, 8]]*n_repeat)
+test_list.extend([['io_weakscaling1_64', 64, 16, 8]]*n_repeat)
+
 n_tests   = len(test_list)
 
 if args.mode == 'run':
@@ -295,7 +329,12 @@ if args.mode == 'run':
 if args.mode == 'read':
     # Create log_file for performance tests if does not exist
     if not os.path.isfile(log_dir + log_file):
-        log_line = '## year month day run_name compiler architecture n_node n_mpi n_omp time_initialization(s) time_one_iteration(s)\n'
+        log_line = '## year month day run_name compiler architecture n_node n_mpi ' +\
+                   'n_omp time_initialization time_one_iteration Redistribute '+\
+                   'FillBoundary ParallelCopy CurrentDeposition FieldGather '+\
+                   'ParthiclePush Copy EvolveEM Checkpoint '+\
+                   'WriteParticles Write_FabArray '+\
+                   'WriteMultiLevelPlotfile(unit: second)\n'
         f_log = open(log_dir + log_file, 'a')
         f_log.write(log_line)
         f_log.close()
@@ -316,13 +355,16 @@ if args.mode == 'read':
         res_dir += '_'.join([year, month, day, run_name, args.compiler,\
                              args.architecture, str(n_node), str(n_mpi),\
                              str(n_omp)]) + '/'
+#        res_dir += '_'.join([year, month, '02', run_name, args.compiler,\
+#                             args.architecture, str(n_node), str(n_mpi),\
+#                             str(n_omp)]) + '/'
         # Read performance data from the output file
-        time_initialization, time_one_iteration = read_run_perf(res_dir + 'perf_output.txt')
+        timing_list = read_run_perf(res_dir + 'perf_output.txt')
         # Write performance data to the performance log file
         write_perf_logfile(log_dir + log_file)
 
     # Store test parameters fot record
-    dir_record_base = '../../../warpx_perf_record/'
+    dir_record_base = '../../../perf_warpx_record/'
     if not os.path.exists(dir_record_base):
         os.mkdir(dir_record_base)
     count = 0
