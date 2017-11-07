@@ -67,4 +67,4 @@ cd ..
 
 echo "Building libamrex... "
 ./configure
-make -j
+make
