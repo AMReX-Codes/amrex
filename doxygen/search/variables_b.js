@@ -122,6 +122,7 @@ var searchData=
   ['m_5fgroup_5fall',['m_group_all',['../namespaceamrex_1_1_parallel_descriptor.html#abfa4acb56bf102877d3771b587c39796',1,'amrex::ParallelDescriptor']]],
   ['m_5fgroup_5fcomp',['m_group_comp',['../namespaceamrex_1_1_parallel_descriptor.html#a18d12c4fa15f173aaa7f5ed23e898b3e',1,'amrex::ParallelDescriptor']]],
   ['m_5fgroup_5fsidecar',['m_group_sidecar',['../namespaceamrex_1_1_parallel_descriptor.html#a072d6348954f5186c9c1ff0992640f25',1,'amrex::ParallelDescriptor']]],
+  ['m_5fgrown_5fgridbox',['m_grown_gridbox',['../structamrex_1_1_particle_loc_data.html#a12ff326b3e7086df34eb217f6e7e7f61',1,'amrex::ParticleLocData']]],
   ['m_5fhasdefaultweights',['m_hasDefaultWeights',['../classamrex_1_1_redist_stencil.html#ad5a9c87d9edab21be38c04dd5fa3f3b4',1,'amrex::RedistStencil']]],
   ['m_5fhasebcf',['m_hasEBCF',['../classamrex_1_1_e_b_fast_f_r.html#abf892b2708258a3f56cb84fcf9c9bea5',1,'amrex::EBFastFR']]],
   ['m_5fhasmulticells',['m_hasMultiCells',['../classamrex_1_1_base_e_b_cell_f_a_b.html#aa461a0b0fe09a51aa29bef8eb581a5c7',1,'amrex::BaseEBCellFAB']]],
