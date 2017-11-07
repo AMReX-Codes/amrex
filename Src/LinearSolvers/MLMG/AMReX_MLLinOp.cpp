@@ -41,6 +41,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
 
+    m_default_comm = ParallelDescriptor::Communicator();
+
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
@@ -118,8 +120,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 m_grids[0].emplace_back(domainboxes[lev]);
                 m_grids[0].back().maxSize(agg_grid_size);
 
-                // no consolidation yet
-                m_dmap[0].emplace_back(m_grids[0].back());
+                const auto& dm = makeConsolidatedDMap(m_grids[0].back());
+                m_dmap[0].push_back(dm);
             }
             else
             {
@@ -138,6 +140,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
+        Real avg_npts, threshold_npts;
+        if (do_consolidation) {
+            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
+            threshold_npts = static_cast<Real>(AMREX_D_TERM(agg_grid_size,*agg_grid_size,*agg_grid_size));
+        }
         while (a_geom[0].Domain().coarsenable(rr)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
@@ -145,12 +152,37 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             
             m_grids[0].push_back(a_grids[0]);
             m_grids[0].back().coarsen(rr);
-            
-            m_dmap[0].push_back(a_dmap[0]);
+
+            if (do_consolidation)
+            {
+                if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
+                {
+                    const auto& dm = makeConsolidatedDMap(m_dmap[0].back());
+                    m_dmap[0].push_back(dm);
+                }
+                else
+                {
+                    auto dm = m_dmap[0].back();
+                    m_dmap[0].push_back(dm);
+                }
+            }
+            else
+            {
+                m_dmap[0].push_back(a_dmap[0]);
+            }
             
             ++(m_num_mg_levels[0]);
             rr *= mg_coarsen_ratio;
         }
+    }
+
+    if (do_agglomeration || do_consolidation)
+    {
+        m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
+    }
+    else
+    {
+        m_bottom_comm = m_default_comm;
     }
 }
 
@@ -375,9 +407,11 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
 
+    const Real* dx = m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
-        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], phys_bc, br_ref_ratio);
+        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], dx,
+                                                 phys_bc, br_ref_ratio);
     }
 }
 
@@ -657,11 +691,11 @@ MLLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMappi
 }
 
 void
-MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc, int ratio)
+MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const Real* dx,
+                                      const BCRec& phys_bc, int ratio)
 {
     // Same as MacBndry::setBndryConds
 
-    const Real* dx     = geom.CellSize();
     const Box&  domain = geom.Domain();
 
 #ifdef _OPENMP
@@ -700,6 +734,75 @@ MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc
 
         }
     }
+}
+
+DistributionMapping
+MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
+{
+    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
+
+    const int nprocs = ParallelDescriptor::NProcs();
+    AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
+    const int nboxes = ba.size();
+
+    Vector<int> pmap(ba.size());
+    if (nboxes >= nprocs)
+    {
+        for (int iproc = 0; iproc < nprocs; ++iproc) {
+            for (int ibox : sfc[iproc]) {
+                pmap[ibox] = iproc;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nboxes; ++i) { // after nboxes sfc[i] is empty
+            for (int ibox : sfc[i]) {
+                const int iproc = i;
+                pmap[ibox] = iproc;
+            }
+        }
+    }
+
+    return DistributionMapping{pmap};
+}
+
+DistributionMapping
+MLLinOp::makeConsolidatedDMap (const DistributionMapping& fdm)
+{
+    Vector<int> pmap = fdm.ProcessorMap();
+    for (auto& x: pmap) {
+        x /= 2;
+    }
+    return DistributionMapping{pmap};
+}
+
+MPI_Comm
+MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
+{
+#ifdef BL_USE_MPI
+    MPI_Comm newcomm;
+    MPI_Group defgrp, newgrp;
+
+    MPI_Comm_group(m_default_comm, &defgrp);
+
+    Array<int> newgrp_ranks = dm.ProcessorMap();
+    std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
+    auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
+    newgrp_ranks.erase(last, newgrp_ranks.end());
+    
+    MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+
+    MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
+    m_raii_comm.reset(new CommContainer(newcomm));
+
+    MPI_Group_free(&defgrp);
+    MPI_Group_free(&newgrp);
+
+    return newcomm;
+#else
+    return m_default_comm;
+#endif
 }
 
 }

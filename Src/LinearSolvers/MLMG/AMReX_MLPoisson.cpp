@@ -140,7 +140,18 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-        amrex::Abort("MLPoisson::Fsmooth: 2d not supported yet");
+        amrex_mlpoisson_gsrb(BL_TO_FORTRAN_BOX(tbx),
+                             BL_TO_FORTRAN_ANYD(solnfab),
+                             BL_TO_FORTRAN_ANYD(rhsfab),
+                             BL_TO_FORTRAN_ANYD(f0fab),
+                             BL_TO_FORTRAN_ANYD(f1fab),
+                             BL_TO_FORTRAN_ANYD(f2fab),
+                             BL_TO_FORTRAN_ANYD(f3fab),
+                             BL_TO_FORTRAN_ANYD(m0),
+                             BL_TO_FORTRAN_ANYD(m1),
+                             BL_TO_FORTRAN_ANYD(m2),
+                             BL_TO_FORTRAN_ANYD(m3),
+                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);
 #endif
 
 #if (AMREX_SPACEDIM == 3)

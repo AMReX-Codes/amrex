@@ -109,10 +109,10 @@ contains
 
           weight = wx*factor
 
-          rho(i, j, 1) = rho(i, j, 1) + weight*particles(2, n)
+          rho(i, 1) = rho(i, 1) + weight*particles(2, n)
 
           do comp = 2, nc
-             rho(i, j, comp) = rho(i, j, comp) + weight*particles(2, n)*particles(1+comp, n) 
+             rho(i, comp) = rho(i, comp) + weight*particles(2, n)*particles(1+comp, n) 
           end do
 
        end do
@@ -144,8 +144,8 @@ contains
        wx_lo = 1.0d0 - wx_hi
 
        do nc = 1, ncomp
-          acceleration(nc) = wx_lo*wy_lo*acc(i-1, nc) + &
-                             wx_hi*wy_lo*acc(i,   nc) + &
+          acceleration(nc) = wx_lo*acc(i-1, nc) + &
+                             wx_hi*acc(i,   nc)
        
           if (abs(acceleration(nc) - 5.d0) .ge. 1.0d-9) then
              print *, particles(1, n)
