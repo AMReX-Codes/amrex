@@ -128,32 +128,27 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const 
 
   std::vector< std::pair<int, Box> > isects;
   
-  for (int lev = lev_max; lev >= lev_min; lev--)
-    {
-        const IntVect& iv = Index(p, lev);
-        const BoxArray& ba = ParticleBoxArray(lev);
-        BL_ASSERT(ba.ixType().cellCentered());
-
-        if (lev == pld.m_lev) {
-            // The fact that we are here means this particle does not belong to any finer grids.
-            if (0 <= pld.m_grid && pld.m_grid < ba.size())
-            {
-                if (pld.m_grown_gridbox.contains(iv))
-                {
-                    pld.m_cell = iv;
-                    if (!pld.m_tilebox.contains(iv)) {
-                        pld.m_tile = getTileIndex(iv, pld.m_gridbox, pld.m_tilebox);
-                    }
-                    return true;
-                }
-            }
-        }
-
-        ba.intersections(Box(iv, iv), isects, true, nGrow);
-        
-        if (!isects.empty())
-        {
-	  const Box& bx = ba.getCellCenteredBox(isects[0].first);
+  for (int lev = lev_max; lev >= lev_min; lev--) {
+      const IntVect& iv = Index(p, lev);
+      if (lev == pld.m_lev) {
+          // The fact that we are here means this particle does not belong to any finer grids.
+          if (pld.m_grid >= 0) {
+              if (pld.m_grown_gridbox.contains(iv)) {
+                  pld.m_cell = iv;
+                  if (!pld.m_tilebox.contains(iv)) {
+                      pld.m_tile = getTileIndex(iv, pld.m_gridbox, pld.m_tilebox);
+                  }
+                  return true;
+              }
+          }
+      }
+      
+      const BoxArray& ba = ParticleBoxArray(lev);
+      BL_ASSERT(ba.ixType().cellCentered());
+      ba.intersections(Box(iv, iv), isects, true, nGrow);
+      
+      if (!isects.empty()) {
+          const Box& bx = ba.getCellCenteredBox(isects[0].first);
 	  pld.m_lev  = lev;
 	  pld.m_grid = isects[0].first;
 	  pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
@@ -161,8 +156,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const 
 	  pld.m_gridbox = bx;
           pld.m_grown_gridbox = amrex::grow(bx, nGrow);
 	  return true;
-        }
-    }
+      }
+  }
+
   return false;
 }
 
