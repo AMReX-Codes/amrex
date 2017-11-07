@@ -72,13 +72,15 @@ CFInterpTest()
 
   MultiFab phiSave(baf, dmf, 1, 0);
 
+  int ngrow = 3;
   MultiFab coarData(bac, dmc, 1, 0);
-  MultiFab fineData(baf, dmf, 1, 1);
+  MultiFab fineData(baf, dmf, 1, ngrow);
   Real tf = 1.0;
   Vector<Real> timevec(2, tf);
   int isrc = 0; int idst = 0; int inco = ncomp;
   Geometry geomC(domc);
   Geometry geomF(domf);
+
   BCRec bcs;
   for (int idir = 0; idir < SpaceDim; idir++)
   {
@@ -135,7 +137,7 @@ CFInterpTest()
     {
       FArrayBox&  fineFab = fineData[mff];
       Box iterBox= mff.validbox();
-      iterBox.grow(idir,1);
+      iterBox.grow(idir,ngrow);
       iterBox &= domf;
       BoxIterator bit(iterBox);
       for (bit.reset(); bit.ok(); ++bit)
@@ -211,7 +213,7 @@ CFInterpTest()
     Box iterBox= mff.validbox();
     for (int idir = 0; idir < SpaceDim; idir++)
     {
-      iterBox.grow(idir,1);
+      iterBox.grow(idir,ngrow);
       iterBox &= domf;
       BoxIterator bit(iterBox);
       for (bit.reset(); bit.ok(); ++bit)

@@ -15,7 +15,7 @@ namespace amrex
   int      AmrLevelAdv::do_reflux       = 1;
 
   int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
-  int      AmrLevelAdv::NUM_GROW        = 4;  // number of ghost cells
+  int      AmrLevelAdv::NUM_GROW        = 5;  // number of ghost cells
 
 
   /////
@@ -351,6 +351,14 @@ namespace amrex
                  int  iteration,
                  int  ncycle)
   {
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest && (iteration > 1))
+    {
+      return dt;
+    }
+
     for (int i = 0; i < NUM_STATE_TYPE; ++i) 
     {
       state[i].allocOldData();
@@ -383,14 +391,12 @@ namespace amrex
     FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
     compute_dPhiDt_MOL2ndOrd(Sborder, dPhiDt, time, 0.5*dt, fr_as_crse, fr_as_fine, iteration);
 
-    bool truncationErrorTest = false;
-    ParmParse pp;
-    pp.query("truncation_error_only", truncationErrorTest);
     if(truncationErrorTest)
     {
       S_new.copy(dPhiDt);
       return dt;
     }
+    
 
     // U^* = U^n + dt*dUdt^n
     MultiFab::LinComb(S_new, 1.0, Sborder, 0, dt, dPhiDt, 0, 0, NUM_STATE, 0);
@@ -416,6 +422,15 @@ namespace amrex
                  int  iteration,
                  int  ncycle)
   {
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+
+    if(truncationErrorTest && (iteration > 1))
+    {
+      return dt;
+    }
+
     for (int i = 0; i < NUM_STATE_TYPE; ++i) 
     {
       state[i].allocOldData();
@@ -454,9 +469,6 @@ namespace amrex
     //the dt/6 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u1, dPhiDt, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
-    bool truncationErrorTest = false;
-    ParmParse pp;
-    pp.query("truncation_error_only", truncationErrorTest);
     if(truncationErrorTest)
     {
       S_new.copy(dPhiDt);
@@ -504,6 +516,14 @@ namespace amrex
                  int  iteration,
                  int  ncycle)
   {
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest && (iteration > 1))
+    {
+      return dt;
+    }
+
     for (int i = 0; i < NUM_STATE_TYPE; ++i) 
     {
       state[i].allocOldData();
@@ -546,9 +566,6 @@ namespace amrex
     //the dt/6 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u1, k1, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
-    bool truncationErrorTest = false;
-    ParmParse pp;
-    pp.query("truncation_error_only", truncationErrorTest);
     if(truncationErrorTest)
     {
       S_new.copy(k1);
@@ -616,6 +633,14 @@ namespace amrex
   {
     BL_PROFILE("AmrLevelAdv::advance()");
         
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
+    if(truncationErrorTest && (iteration > 1))
+    {
+      return dt;
+    }
+
     for (int i = 0; i < NUM_STATE_TYPE; ++i) 
     {
       state[i].allocOldData();
@@ -623,6 +648,7 @@ namespace amrex
     }
 
     MultiFab& S_new = get_new_data(Phi_Type);
+    MultiFab& S_old = get_old_data(Phi_Type);
 
     MultiFab dPhiDt(grids,dmap,NUM_STATE,0);
     MultiFab Sborder(grids,dmap,NUM_STATE,NUM_GROW);
@@ -652,9 +678,6 @@ namespace amrex
     //dt needs to be there because it weights the fluxes
     compute_dPhiDt_godunov(Sborder, dPhiDt, time, dt, fr_as_crse, fr_as_fine, iteration);
 
-    bool truncationErrorTest = false;
-    ParmParse pp;
-    pp.query("truncation_error_only", truncationErrorTest);
     if(truncationErrorTest)
     {
       S_new.copy(dPhiDt);
@@ -1161,11 +1184,18 @@ namespace amrex
     //
     int finest_level = parent->finestLevel();
 
-    if (do_reflux && level < finest_level)
-      reflux();
+    bool truncationErrorTest = false;
+    ParmParse pp;
+    pp.query("truncation_error_only", truncationErrorTest);
 
-    if (level < finest_level)
-      avgDown();
+    if(!truncationErrorTest)
+    {
+      if (do_reflux && level < finest_level)
+        reflux();
+
+      if (level < finest_level)
+        avgDown();
+    }
 
   }
 
