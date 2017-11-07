@@ -5,6 +5,7 @@ python:
 
 install: 
   - pip install --user sphinx sphinx_rtd_theme
+  - sudo apt-get install mpich2 gfortran
 
 script: bash ./build_and_deploy.sh
 
