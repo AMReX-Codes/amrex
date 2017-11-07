@@ -226,6 +226,7 @@ protected:
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const;
     void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const;
+    void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const;
 
     void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
     void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;

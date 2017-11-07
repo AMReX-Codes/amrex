@@ -780,6 +780,15 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 }
 
 void
+MLMG::getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
+{
+    BL_PROFILE("MLMG::getGradSolution()");
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        linop.compGrad(alev, a_grad_sol[alev], *sol[alev]);
+    }
+}
+
+void
 MLMG::getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
 {
     BL_PROFILE("MLMG::getFluxes()");

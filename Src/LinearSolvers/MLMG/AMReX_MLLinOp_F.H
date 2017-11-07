@@ -26,6 +26,23 @@ extern "C" {
                                      amrex_real* d, const int* dlo, const int* dhi,
                                      const amrex_real* r, const int* rlo, const int* rhi);
 
+
+    void amrex_mllinop_grad (const int* xlo, const int* xhi,
+#if (AMREX_SPACEDIM >= 2)
+                             const int* ylo, const int* yhi,
+#if (AMREX_SPACEDIM == 3)
+                             const int* zlo, const int* zhi,
+#endif
+#endif
+                             const amrex_real* dat, const int* dlo, const int* dhi,
+                             amrex_real* gx, const int* gxlo, const int* gxhi,
+#if (AMREX_SPACEDIM >= 2)
+                             amrex_real* gy, const int* gylo, const int* gyhi,
+#if (AMREX_SPACEDIM == 3)
+                             amrex_real* gz, const int* gzlo, const int* gzhi,
+#endif
+#endif
+                             const amrex_real* dxinv);
     
 #ifdef __cplusplus
 }
