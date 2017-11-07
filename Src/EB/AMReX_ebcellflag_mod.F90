@@ -5,7 +5,7 @@ module amrex_ebcellflag_module
   private
   public :: is_regular_cell, is_single_valued_cell, is_multi_valued_cell, &
        is_covered_cell, get_neighbor_cells, num_neighbor_cells, &
-       set_regular_cell, amrex_ebcellflag_count
+       set_regular_cell, amrex_ebcellflag_count, get_neighbor_cells_int_single
   
   integer, parameter :: w_type      = 2
   integer, parameter :: w_numvofs   = 3
@@ -25,6 +25,18 @@ module amrex_ebcellflag_module
   end interface get_neighbor_cells
 
 contains
+
+  pure function get_neighbor_cells_int_single (flag,i,j,k)
+    integer, intent(in) :: flag
+    integer, intent(in) :: i, j, k
+    integer :: get_neighbor_cells_int_single
+
+    if (btest(flag,pos_ngbr(i,j,k))) then
+      get_neighbor_cells_int_single = 1
+    else
+      get_neighbor_cells_int_single = 0
+    end if
+  end function get_neighbor_cells_int_single
   
   elemental logical function is_regular_cell (flag)
     integer, intent(in) :: flag
