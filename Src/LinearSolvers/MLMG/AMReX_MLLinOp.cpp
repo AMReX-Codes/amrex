@@ -8,6 +8,15 @@ namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
+int MLLinOp::do_agglomeration = 1;
+int MLLinOp::do_consolidation = 1;
+#if (AMREX_SPACEDIM == 1)
+int MLLinOp::agg_grid_size = 32;
+#elif (AMREX_SPACEDIM == 2)
+int MLLinOp::agg_grid_size = 16;
+#elif (AMREX_SPACEDIM == 3)
+int MLLinOp::agg_grid_size = 8;
+#endif
 
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
