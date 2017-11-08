@@ -349,7 +349,7 @@ if args.mode == 'read':
         res_dir = res_dir_base
         res_dir += '_'.join([year, month, day, run_name, args.compiler,\
                              args.architecture, str(n_node), str(n_mpi),\
-                             str(n_ omp)]) + '/'
+                             str(n_omp)]) + '/'
         # Read performance data from the output file
         timing_list = read_run_perf(res_dir + 'perf_output.txt')
         # Write performance data to the performance log file
