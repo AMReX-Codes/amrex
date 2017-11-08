@@ -47,6 +47,7 @@ const int YDIR(1);
 const int ZDIR(2);
 
 bool RegionsProfStats::bInitDataBlocks(true);
+bool RegionsProfStats::persistentStreams(true);
 
 std::map<Real, std::string, std::greater<Real> > RegionsProfStats::mTimersTotalsSorted;
 Vector<std::string> RegionsProfStats::regHeaderFileNames;
@@ -332,7 +333,12 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
 
   for(int idb(0); idb < dataBlocks.size(); ++idb) {
     DataBlock &dBlock = dataBlocks[idb];
-      ReadBlockNoOpen(dBlock, true, false);  // dont need to read the trace data
+      if (persistentStreams){
+         ReadBlockNoOpen(dBlock, true, false);  // dont need to read the trace data
+      }
+      else{
+         ReadBlock(dBlock, true, false); // dont need to read the trace data
+      }
 
       for(int i(0); i < dBlock.rStartStop.size(); ++i) {
         BLProfiler::RStartStop &rss = dBlock.rStartStop[i];
@@ -348,7 +354,6 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
   if(bIOP) cout << "Finished serial InitRegionTimeRanges." << endl;
 #endif
 
-
   BL_PROFILE_VAR("RegionsProfStats::InitRegionTimeRanges_Parallel()", RPSIRTR_P);
   regionTimeRanges.resize(dataNProcs);
   for(int p(0); p < regionTimeRanges.size(); ++p) {
@@ -358,7 +363,13 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
   for(int idb(0); idb < dataBlocks.size(); ++idb) {
     DataBlock &dBlock = dataBlocks[idb];
     if(dBlock.proc >= smallY && dBlock.proc <= bigY) {    // ---- within myproc range
-      ReadBlockNoOpen(dBlock, true, false);  // dont need to read the trace data
+      if (persistentStreams){
+         ReadBlockNoOpen(dBlock, true, false);  // dont need to read the trace data
+      }
+      else{
+         ReadBlock(dBlock, true, false); // dont need to read the trace data
+      }
+
 
       for(int i(0); i < dBlock.rStartStop.size(); ++i) {
         BLProfiler::RStartStop &rss = dBlock.rStartStop[i];
@@ -510,7 +521,12 @@ bool RegionsProfStats::AllCallTimesFAB(FArrayBox &actFab,
   Vector<Vector<Real> > whichFuncAllTimes(dataNProcs);  // [proc][functime]
   for(int idb(0); idb < dataBlocks.size(); ++idb) {
     DataBlock &dBlock = dataBlocks[idb];
-    ReadBlockNoOpen(dBlock);
+    if (persistentStreams){
+       ReadBlockNoOpen(dBlock);
+    }
+    else{
+       ReadBlock(dBlock);
+    }
     for(int i(0); i < dBlock.vCallStats.size(); ++i) {
       BLProfiler::CallStats &cs = dBlock.vCallStats[i];
       if(cs.csFNameNumber < 0) {  // ---- the unused cs
@@ -577,7 +593,12 @@ void RegionsProfStats::FillAllCallTimes(Vector<Vector<Real> > &allCallTimes,
     proc = dBlock.proc;
 
     if(proc >= smallY && proc <= bigY) {    // ---- within from proc range
-      ReadBlockNoOpen(dBlock, false, true);  // ---- only read trace data
+      if (persistentStreams){
+        ReadBlockNoOpen(dBlock, false, true);  // ---- only read trace data
+      }
+      else{
+        ReadBlock(dBlock, false, true);  // ------ only read trace data
+      }
       for(int i(0); i < dBlock.vCallStats.size(); ++i) {
         BLProfiler::CallStats &cs = dBlock.vCallStats[i];
         if(cs.csFNameNumber < 0) {  // ---- the unused cs
@@ -1338,7 +1359,15 @@ void RegionsProfStats::OpenAllStreams(const std::string &dirname) {
   for(int s(0); s < nNames; ++s) {
     index = (s + myProc) % nNames;
     regDataStreams[index] = new std::ifstream(aFullFileNames[index].c_str());
-  }
+
+    if (regDataStreams[index]->fail())
+    {
+      cout << "****regDataStreams failed. Continuing without persistent streams." << std::endl;
+      persistentStreams = false;
+      CloseAllStreams();
+      break;
+    }
+ }
 #else
   for(std::map<std::string, int>::iterator it = regDataFileNames.begin();
       it != regDataFileNames.end(); ++it)
@@ -1346,6 +1375,14 @@ void RegionsProfStats::OpenAllStreams(const std::string &dirname) {
     std::string fullFileName(dirname + '/' + it->first);
     regDataStreams[dsIndex] = new std::ifstream(fullFileName.c_str());
     ++dsIndex;
+
+    if (regDataStreams[dsIndex]->fail())
+    {
+      cout << "****regDataStreams failed. Continuing without persistent streams." << std::endl;
+      persistentStreams = false;
+      CloseAllStreams();
+      break;
+    }
   }
 #endif
   BL_PROFILE_VAR_STOP(regsopenallstreams);
@@ -1356,8 +1393,15 @@ void RegionsProfStats::OpenAllStreams(const std::string &dirname) {
 void RegionsProfStats::CloseAllStreams() {
   BL_PROFILE_VAR("BLProfStats::ClosellStreams", regsclosellstreams);
   for(int i(0); i < regDataStreams.size(); ++i) {
-    regDataStreams[i]->close();
-    delete regDataStreams[i];
+    if (regDataStreams[i] != nullptr)
+    {
+      if (regDataStreams[i]->is_open())
+      {
+        regDataStreams[i]->close();
+      }
+      delete regDataStreams[i];
+      regDataStreams[i] = nullptr;
+    }
   }
   BL_PROFILE_VAR_STOP(regsclosellstreams);
 }
