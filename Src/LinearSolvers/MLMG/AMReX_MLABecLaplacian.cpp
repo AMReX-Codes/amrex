@@ -304,7 +304,17 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 
 #if (AMREX_SPACEDIM == 1)
-        amrex::Abort("MLABecLaplacian::Fsmooth: 1d not supported");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(tbx == vbx, "MLABecLaplacian::Fsmooth: 1d tiling not supported");
+        FORT_LINESOLVE (solnfab.dataPtr(), ARLIM(solnfab.loVect()),ARLIM(solnfab.hiVect()),
+                        rhsfab.dataPtr(), ARLIM(rhsfab.loVect()), ARLIM(rhsfab.hiVect()),
+                        &m_a_scalar, &m_b_scalar,
+                        afab.dataPtr(), ARLIM(afab.loVect()),    ARLIM(afab.hiVect()),
+                        bxfab.dataPtr(), ARLIM(bxfab.loVect()),   ARLIM(bxfab.hiVect()),
+                        f0fab.dataPtr(), ARLIM(f0fab.loVect()),   ARLIM(f0fab.hiVect()),
+                        m0.dataPtr(), ARLIM(m0.loVect()),   ARLIM(m0.hiVect()),
+                        f1fab.dataPtr(), ARLIM(f1fab.loVect()),   ARLIM(f1fab.hiVect()),
+                        m1.dataPtr(), ARLIM(m1.loVect()),   ARLIM(m1.hiVect()),
+                        tbx.loVect(), tbx.hiVect(), &nc, h);
 #endif
 
 #if (AMREX_SPACEDIM == 2)
@@ -407,7 +417,13 @@ MLABecLaplacian::Anorm (int amrlev, int mglev) const
                              const FArrayBox& byfab = bycoef[mfi];,
                              const FArrayBox& bzfab = bzcoef[mfi];);
 
-#if (BL_SPACEDIM==2)
+#if (BL_SPACEDIM == 1)
+                FORT_NORMA(&tres,
+                           &m_a_scalar, &m_b_scalar,
+                           afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),
+                           bxfab.dataPtr(), ARLIM(bxfab.loVect()), ARLIM(bxfab.hiVect()),
+                           tbx.loVect(), tbx.hiVect(), &nc, dx);
+#elif (BL_SPACEDIM==2)
                 FORT_NORMA(&tres,
                            &m_a_scalar, &m_b_scalar,
                            afab.dataPtr(),  ARLIM(afab.loVect()), ARLIM(afab.hiVect()),

@@ -145,7 +145,19 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 
 #if (AMREX_SPACEDIM == 1)
-        amrex::Abort("MLPoisson::Fsmooth: 1d not supported");
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        
+        amrex_mlpoisson_gsrb(BL_TO_FORTRAN_BOX(tbx),
+                             BL_TO_FORTRAN_ANYD(solnfab),
+                             BL_TO_FORTRAN_ANYD(rhsfab),
+                             BL_TO_FORTRAN_ANYD(f0fab),
+                             BL_TO_FORTRAN_ANYD(f1fab),
+                             BL_TO_FORTRAN_ANYD(m0),
+                             BL_TO_FORTRAN_ANYD(m1),
+                             rc.data(), re.data(),
+                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);            
 #endif
 
 #if (AMREX_SPACEDIM == 2)
