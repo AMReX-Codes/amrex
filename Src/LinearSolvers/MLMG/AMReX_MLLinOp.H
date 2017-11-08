@@ -64,9 +64,21 @@ public:
     void setLevelBC (int amrlev, const MultiFab* levelbcdata);
 
     void setMaxOrder (int o) { maxorder = o; }
-    void setAgglomeration (bool f) { do_agglomeration = f; }
-    void setConsolidation (bool f) { do_consolidation = f; }
-    void setAgglomerationGridSize (int n) { agg_grid_size = n; }
+    static int setAgglomeration (bool f) {
+        int s = do_agglomeration;
+        do_agglomeration = f;
+        return s;
+    }
+    static int setConsolidation (bool f) {
+        int s = do_consolidation;
+        do_consolidation = f;
+        return s;
+    }
+    static int setAgglomerationGridSize (int n) {
+        int s = agg_grid_size;
+        agg_grid_size = n;
+        return s;
+    }
 
 protected:
 
@@ -75,16 +87,9 @@ protected:
 
     int maxorder = 3;
 
-    int do_agglomeration = 1;
-    int do_consolidation = 1;
-
-#if (AMREX_SPACEDIM == 1)
-    int agg_grid_size = 32;
-#elif (AMREX_SPACEDIM == 2)
-    int agg_grid_size = 16;
-#elif (AMREX_SPACEDIM == 3)
-    int agg_grid_size = 8;
-#endif
+    static int do_agglomeration;
+    static int do_consolidation;
+    static int agg_grid_size;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
