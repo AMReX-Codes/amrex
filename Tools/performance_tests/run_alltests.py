@@ -333,10 +333,6 @@ if args.mode == 'read':
         f_log = open(log_dir + log_file, 'a')
         f_log.write(log_line)
         f_log.close()
-    log_line = '## ' + year + ' ' + month + ' ' + day + ' ' + time.strftime('%H') + ' ' +  time.strftime('%M') + ' ' + time.strftime('%S') + '\n'
-    f_log = open(log_dir + log_file, 'a')
-    f_log.write(log_line)
-    f_log.close()
     for count, current_run in enumerate(test_list):
         # Results folder
         print('read ' + str(current_run))
