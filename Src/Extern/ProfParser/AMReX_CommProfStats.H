@@ -240,6 +240,7 @@ class CommProfStats : public BLProfStats {
   private:
     int currentDataBlock;
     static int cpVersion, csSize, finestLevel, maxLevel;
+    static bool persistentStreams;
     int tagMin, tagMax;
     std::stack<double> nestedTimeStack;
     amrex::Vector<DataBlock> dataBlocks;

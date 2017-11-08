@@ -132,7 +132,7 @@ class RegionsProfStats : public BLProfStats {
     bool Include(const FuncStat &fs);
 
     amrex::Vector<DataBlock> dataBlocks;
-    static bool bInitDataBlocks;
+    static bool bInitDataBlocks, persistentStreams;
 
     void ReadBlock(DataBlock &dBlock, bool readRSS = true,
                    bool readTraces = true);  // reads whole block
