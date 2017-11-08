@@ -214,6 +214,9 @@ namespace amrex
     void
     fillGhostCellsRK4 (MultiFab & a_phiC, //phi on the coarser level
                        const int& a_stage); //rk4 stage to fill ghost for;
+    void
+    fillGhostCellsRK3 (MultiFab & a_phiC, //phi on the coarser level
+                       const int& a_stage); //rk3 stage to fill ghost for;
   };    
 
 //

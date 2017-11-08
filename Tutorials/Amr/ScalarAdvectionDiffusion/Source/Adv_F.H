@@ -87,6 +87,13 @@ extern "C"
                           BL_FORT_FAB_ARG_3D(k3),
                           BL_FORT_FAB_ARG_3D(k4));
 
+  void timeinterpolaterk3(const amrex_real& xi, 
+                          const int* lo, const int* hi,
+                          BL_FORT_FAB_ARG_3D(phinew),
+                          BL_FORT_FAB_ARG_3D(phiold),
+                          BL_FORT_FAB_ARG_3D(k1),
+                          BL_FORT_FAB_ARG_3D(k2));
+
 
 #ifdef __cplusplus
 }
