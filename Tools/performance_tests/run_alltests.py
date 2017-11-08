@@ -42,7 +42,6 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--recompile', dest='recompile', action='store_true', default=False)
 parser.add_argument('--no-recompile', dest='recompile', action='store_false', default=False)
 parser.add_argument('--commit', dest='commit', action='store_true', default=False)
-parser.add_argument('--no-commit', dest='commit', action='store_false', default=False)
 parser.add_argument( '--compiler', choices=['gnu', 'intel'], default='gnu',
     help='which compiler to use')
 parser.add_argument( '--architecture', choices=['cpu', 'knl'], default='cpu',
@@ -269,8 +268,6 @@ def process_analysis():
     batch_string += 'python ' + __file__ + ' --no-recompile --compiler=' + args.compiler + ' --architecture=' + args.architecture + ' --mode=read' + ' --log_file=' + log_file
     if args.commit == True:
         batch_string += ' --commit'
-    else:
-        batch_string += ' --no-commit'
     batch_string += '\n'
     batch_file = 'slurm_perfread'
     f_exe = open(batch_file,'w')
