@@ -54,10 +54,16 @@ int main(int argc, char *argv[]) {
 
     amrex::Initialize(argc,argv);    
 
+    amrex::system::verbose = 0;
+
     BL_PROFILE_VAR("main()", pmain);
     BL_PROFILE_REGION_START("main");
 
-    //int nProcs(ParallelDescriptor::NProcs());
+    amrex::Print() << std::endl << std::endl;
+    amrex::Print() << " ++++++++++++++++++++++++++++++++++++++++++++++++++++ " << std::endl;
+    amrex::Print() << " ++++++++++++ Beginning MoveAllFabsTest +++++++++++++ " << std::endl;
+
+    int nProcs(ParallelDescriptor::NProcs());
     int nBoxes(8);
 
     // ---- make a box, then a boxarray with maxSize
@@ -73,16 +79,20 @@ int main(int argc, char *argv[]) {
     // =================
     Vector<int> ai0(ba.size()), ai1(ba.size()), aiMove(ba.size());
     for(int i(0); i < ai0.size(); ++i) {
-      ai0[i] = i;
-      ai1[i] = ai0.size() - 1 - i;
-      aiMove[i] = i % (ai0.size() / 2);
+      ai0[i] = i%nProcs;
+      ai1[i] = (ai0.size() - 1 - i)%nProcs;
+      aiMove[i] = (i % (ai0.size() / 2))%nProcs;
     }
 
     DistributionMapping dm0(ai0);
     DistributionMapping dm1(ai1);
     DistributionMapping dmMove(aiMove);
 
-    // Confirm all 3 distrubtion maps are different
+    amrex::Print() << "dm0: = " << dm0 << std::endl;
+    amrex::Print() << "dm1: = " << dm1 << std::endl;
+    amrex::Print() << "dmMove: = " << dmMove << std::endl;
+
+    // Confirm all 3 distribution maps are different
     // =================
     SHOWEXPCTVAL(DistributionMapping::SameRefs(dm0, dm0), 1);
     SHOWEXPCTVAL(DistributionMapping::SameRefs(dm0, dm1), 0);
@@ -129,8 +139,12 @@ int main(int argc, char *argv[]) {
     // Exchange any fab with map 0 to map move.
     // (Should change Multifabs 0 & 2, leaving 1 unchanged).
     // =================
+    amrex::Print() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+    amrex::Print() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
     MultiFab::MoveAllFabs(dm0, dmMove);
-
+    amrex::Print() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+    amrex::Print() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+ 
     // Confirm new Keys are correct and print distribution maps 
     // =================
     MultiFab::BDKey bdkey0new = mf0.getBDKey();
@@ -150,7 +164,11 @@ int main(int argc, char *argv[]) {
     // Now, exchange ALL fabs of appropriate size (all of them) to 
     // map 0 (which none of them should currently be). 
     // =================
+    amrex::Print() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+    amrex::Print() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
     MultiFab::MoveAllFabs(dm0);
+    amrex::Print() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+    amrex::Print() << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
 
     // Confirm result
     // =================
