@@ -84,8 +84,8 @@ subroutine initdata(level, time, lo, hi, &
            end if
 
 !!debug set to 1d           
-!           integralval = (sin(freq*pi*xhi) - sin(freq*pi*xlo))
-!           denom = dx(1)*pi*freq
+           integralval = (sin(freq*pi*xhi) - sin(freq*pi*xlo))
+           denom = dx(1)*pi*freq
 !           if(j.eq.0) then
 !!              if((i.eq.0).or.(i.eq.63)) then
 !             if(i.eq.63) then

@@ -468,9 +468,9 @@ contains
     ! 2.1 get cell-centered phi so we can compute a pointwise, fourth order gradient at faces
     ! needed  for diffusive fluxes
 
-    do       k = lo(3)-2, hi(3)+2
-       do    j = lo(2)-2, hi(2)+2
-          do i = lo(1)-2, hi(1)+2
+    do       k = lo(3)-3, hi(3)+3
+       do    j = lo(2)-3, hi(2)+3
+          do i = lo(1)-3, hi(1)+3
              phiptcc(i,j,k)  = phi(i,j,k) - (1.0d0/24.d0)* &
                   (phi(i+1,j  ,k  )+phi(i-1,j  ,k  )&
                   +phi(i  ,j+1,k  )+phi(i  ,j-1,k  )&
@@ -481,8 +481,8 @@ contains
     end do
     ! STEP ONE--- HYPERBOLIC FLUXES
     ! compute face average phi on x faces via eqn 17 of mccorquodale, colella
-    do       k = lo(3)-1, hi(3)+1
-       do    j = lo(2)-1, hi(2)+1
+    do       k = lo(3)-2, hi(3)+2
+       do    j = lo(2)-2, hi(2)+2
           do i = lo(1)  , hi(1)+1
 
              phiavex(i,j,k)  = &
@@ -494,9 +494,9 @@ contains
     end do
 
     !same for y faces
-    do       k = lo(3)-1, hi(3)+1
+    do       k = lo(3)-2, hi(3)+2
        do    j = lo(2)  , hi(2)+1
-          do i = lo(1)-1, hi(1)+1
+          do i = lo(1)-2, hi(1)+2
 
              phiavey(i,j,k)  = &
                   (7.d0/12.d0)*(phi(i,j  ,k) + phi(i,j-1,k)) &
@@ -507,8 +507,8 @@ contains
     end do
     !same for z faces
     do       k = lo(3)  , hi(3)+1
-       do    j = lo(2)-1, hi(2)+1
-          do i = lo(1)-1, hi(1)+1
+       do    j = lo(2)-2, hi(2)+2
+          do i = lo(1)-2, hi(1)+2
 
              phiavez(i,j,k)  = &
                   (7.d0/12.d0)*(phi(i,j,k  ) + phi(i,j,k-1)) &

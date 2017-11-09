@@ -900,10 +900,10 @@ namespace amrex
     Box domain = geom.Domain();
 
     IntVect startpt = IntVect::Zero;
-//    for(int idir = 0; idir < SpaceDim; idir++)
-//    {
-//      startpt[idir] = domain.size()[idir]/4;
-//    }
+    for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      startpt[idir] = domain.size()[idir]/4;
+    }
     startpt.coarsen(reftocoarsest);
     Box debboxcc(startpt, startpt);
     debboxcc.refine(reftocoarsest);
