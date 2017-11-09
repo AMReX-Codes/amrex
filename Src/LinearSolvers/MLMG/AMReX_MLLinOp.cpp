@@ -966,6 +966,21 @@ MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMappi
             for (int i = 1; i < N+1; ++i) {
                 irce[i] = 1.0/rce[i];
             }
+
+            if (Geometry::IsSPHERICAL()) {
+                for (auto& x : rcc) {
+                    x = x*x;
+                }
+                for (auto& x : rce) {
+                    x = x*x;
+                }
+                for (auto& x : ircc) {
+                    x = x*x;
+                }
+                for (auto& x : irce) {
+                    x = x*x;
+                }                    
+            }
         }
     }
 }
