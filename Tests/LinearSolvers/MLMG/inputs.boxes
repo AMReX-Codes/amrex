@@ -9,15 +9,10 @@ prob.bc_type = Dirichlet
 #prob.bc_type = Neumann
 #prob.bc_type = Periodic
 
-composite_solve = 1   # Do composite solve?
+composite_solve = 0      # Do composite solve?
+fine_leve_solve_only = 1 # Fine level solve only?  If composite_solve=1, this flag has no effect.
 
 # Grids
-#
-# If the grids covers the whole domain, we will do a single level solve.
-#
-# If not, we will add a coarse level.  Depending on the composite_solve
-# parameter, it will be either a composite solve or level by level solve.
-#
 boxes = grids/grids.213
 ref_ratio = 2
 max_grid_size = 64
