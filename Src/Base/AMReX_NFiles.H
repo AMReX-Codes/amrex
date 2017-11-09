@@ -38,6 +38,11 @@ class NFilesIter
     // ---- deciderproc defaults to nprocs - 1 if < 0
     void SetDynamic(int deciderproc = -1);
 
+    // ---- call this to use a file per process for a sparse
+    // ---- set of writers.  ranksToWrite.size() will set noutfiles
+    // ---- rank ranksToWrite[n] will write to file_n
+    void SetSparseFPP(const Vector<int> &ranksToWrite);
+
     // ---- constructor for reading
     NFilesIter(const std::string &fileName,
                const Vector<int> &readRanks,
@@ -156,6 +161,9 @@ class NFilesIter
     int deciderTag, coordinatorTag, doneTag, writeTag, stReadTag, stWriteTag;
     Vector<int> availableDeciders;
     Vector<int> setZeroProcs;
+    bool useSparseFPP;
+    Vector<int> sparseWritingRanks;
+    int mySparseFileNumber;
 
     static int currentDeciderIndex;
 
