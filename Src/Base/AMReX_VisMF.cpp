@@ -882,13 +882,14 @@ VisMF::WriteHeader (const std::string &mf_name,
     return bytesWritten;
 }
 
+
 long
 VisMF::Write (const FabArray<FArrayBox>&    mf,
               const std::string& mf_name,
               VisMF::How         how,
               bool               set_ghost)
 {
-    BL_PROFILE("VisMF::Write_FabArray");
+    BL_PROFILE("VisMF::Write(FabArray)");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
     BL_ASSERT(currentVersion != VisMF::Header::Undefined_v1);
 
@@ -920,6 +921,22 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
         }
     }
 
+    // ---- check if mf has sparse data
+    bool useSparseFPP(false);
+    const Vector<int> &pmap = mf.DistributionMap().ProcessorMap();
+    std::set<int> procsWithData;
+    Vector<int> procsWithDataVector;
+    for(int i(0); i < pmap.size(); ++i) {
+      procsWithData.insert(pmap[i]);
+    }
+    if(procsWithData.size() < nOutFiles) {
+      useSparseFPP = true;
+      amrex::Print() << "SSSSSSSS:  in VisMF::Write:  useSparseFPP for:  " << mf_name << '\n';
+      for(std::set<int>::iterator it = procsWithData.begin(); it != procsWithData.end(); ++it) {
+        procsWithDataVector.push_back(*it);
+      }
+    }
+
     int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
     long bytesWritten(0);
     bool calcMinMax(false);
@@ -931,7 +948,9 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     bool oldHeader(currentVersion == VisMF::Header::Version_v1);
 
-      if(useDynamicSetSelection) {
+      if(useSparseFPP) {
+        nfi.SetSparseFPP(procsWithDataVector);
+      } else if(useDynamicSetSelection) {
         nfi.SetDynamic();
       }
       for( ; nfi.ReadyToWrite(); ++nfi) {
