@@ -862,6 +862,8 @@ MLLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
     
+    if (Geometry::IsCartesian()) return;
+
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
     int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
@@ -887,7 +889,9 @@ void
 MLLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
-    
+
+    if (Geometry::IsCartesian()) return;
+
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
     int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
@@ -917,6 +921,7 @@ MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMappi
       inv_r_cellcenter(ba,dm),
       inv_r_celledge(ba,dm)
 {
+    bool is_cart = Geometry::IsCartesian();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -924,29 +929,44 @@ MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMappi
     {
         const Box& bx = mfi.validbox();
 
-        auto& rcc = r_cellcenter[mfi];
-        geom.GetCellLoc(rcc, bx, 0);
-
-        auto& rce = r_celledge[mfi];
-        geom.GetEdgeLoc(rce, bx, 0);
-
-        auto& ircc = inv_r_cellcenter[mfi];
-        const int N = rcc.size();
-        ircc.resize(N);
-        for (int i = 0; i < N; ++i) {
-            ircc[i] = 1.0/rcc[i];
+        if (is_cart)
+        {
+            const int N = bx.length(0);
+            auto& rcc = r_cellcenter[mfi];
+            rcc.resize(N, 1.0);
+            auto& rce = r_celledge[mfi];
+            rce.resize(N+1, 1.0);
+            auto& ircc = inv_r_cellcenter[mfi];
+            ircc.resize(N, 1.0);
+            auto& irce = inv_r_celledge[mfi];
+            irce.resize(N+1, 1.0);
         }
-
-        auto& irce = inv_r_celledge[mfi];
-        irce.resize(N+1);
-        if (rce[0] == 0.0) {
-            irce[0] = 0.0;
-        } else {
-            irce[0] = 1.0/rce[0];
+        else
+        {
+            auto& rcc = r_cellcenter[mfi];
+            geom.GetCellLoc(rcc, bx, 0);
+            
+            auto& rce = r_celledge[mfi];
+            geom.GetEdgeLoc(rce, bx, 0);
+            
+            auto& ircc = inv_r_cellcenter[mfi];
+            const int N = rcc.size();
+            ircc.resize(N);
+            for (int i = 0; i < N; ++i) {
+                ircc[i] = 1.0/rcc[i];
+            }
+            
+            auto& irce = inv_r_celledge[mfi];
+            irce.resize(N+1);
+            if (rce[0] == 0.0) {
+                irce[0] = 0.0;
+            } else {
+                irce[0] = 1.0/rce[0];
+            }
+            for (int i = 1; i < N+1; ++i) {
+                irce[i] = 1.0/rce[i];
+            }
         }
-        for (int i = 1; i < N+1; ++i) {
-            irce[i] = 1.0/rce[i];
-        }        
     }
 }
 
