@@ -20,6 +20,7 @@ public:
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rela, Real a_tol_abs);
 
+    void getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
     void getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
@@ -52,7 +53,7 @@ private:
     int nuf = 8;   // when smoother is used as bottom solver
     int nub = 0;   // aditional smoothing after bottom cg solver
 
-    int max_fmg_iters = 20;
+    int max_fmg_iters = 0;
 
     BottomSolver bottom_solver = BottomSolver::bicgstab;
     int  cg_verbose            = 0;

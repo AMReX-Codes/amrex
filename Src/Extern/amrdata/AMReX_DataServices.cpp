@@ -992,17 +992,17 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       std::map<int, std::string> *mpiFuncNamesPtr;
       std::string *plotfileNamePtr;
       int maxSmallImageLength, refRatioAll, nTimeSlots;
-      bool *proxMapPtr;
+      bool *statsCollectedPtr;
 
       mpiFuncNamesPtr = (std::map<int, std::string> *) va_arg(ap, void *);
       plotfileNamePtr =  (std::string *) va_arg(ap, void *);
       maxSmallImageLength = va_arg(ap, int);
       refRatioAll = va_arg(ap, int);
       nTimeSlots = va_arg(ap, int);
-      proxMapPtr = (bool *) va_arg(ap, bool *);
+      statsCollectedPtr = (bool *) va_arg(ap, bool *);
 
       ds->RunTimelinePF(*mpiFuncNamesPtr, *plotfileNamePtr, maxSmallImageLength,
-                         refRatioAll, nTimeSlots, *proxMapPtr);
+                         refRatioAll, nTimeSlots, *statsCollectedPtr);
     }
     break;
 
@@ -1863,13 +1863,6 @@ void DataServices::RunSendsPF(std::string &plotfileName,
     bool bIOP(ParallelDescriptor::IOProcessor());
     //int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
-    if(BL_SPACEDIM != 2) {
-      if(bIOP) {
-        cout << "DataServices::RunSendsPF:   only supported for 2D."
-	     << endl;
-      }
-      return;
-    }
     if( ! bCommDataAvailable) {
       if(bIOP) {
         cout << "DataServices::RunSendsPF:  comm data is not available." << endl;

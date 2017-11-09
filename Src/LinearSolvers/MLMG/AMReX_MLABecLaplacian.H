@@ -29,7 +29,7 @@ public:
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap);
 
-    void setScalars (Real a, Real b) { m_a_scalar = a; m_b_scalar = b; }
+    void setScalars (Real a, Real b);
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const std::array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
@@ -59,11 +59,12 @@ private:
     // functions
     //
 
-    static void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                               Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b);
-
+    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+                                        Vector<std::array<MultiFab,AMREX_SPACEDIM> >& b);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
+
+    void applyMetricTermsCoeffs ();
 };
 
 }

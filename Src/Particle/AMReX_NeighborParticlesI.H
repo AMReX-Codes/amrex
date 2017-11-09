@@ -479,7 +479,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>::
 getRcvCountsMPI(const std::map<int, Vector<char> >& send_data) {
 
 #ifdef BL_USE_MPI
-    const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
     BL_ASSERT(send_data.size() == neighbor_procs.size());
