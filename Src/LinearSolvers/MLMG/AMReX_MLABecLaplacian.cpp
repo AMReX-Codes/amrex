@@ -101,7 +101,7 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
     {
         if (m_a_scalar == 0.0)
         {
-            a[mglev-1].setVal(0.0);
+            a[mglev].setVal(0.0);
         }
         else
         {
