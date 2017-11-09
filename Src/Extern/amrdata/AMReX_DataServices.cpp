@@ -2163,6 +2163,8 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
                                      int refRatioAll, int nTimeSlots,
 	                             bool &statsCollected)
 {
+    BL_PROFILE("DataServices::RunTimelinePF()");
+
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  DataServices::RunTimelinePF is only supported for 2D" << endl;
 #else
@@ -2190,7 +2192,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       RunStats(mpiFuncNames, statsCollected);
     }
 
-    BL_PROFILE_VAR("runTimelinePF_ALL", runtimelinepfall)
     double dstart(ParallelDescriptor::second());
 
     Real calcTimeMin( std::numeric_limits<Real>::max());
@@ -2244,8 +2245,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       if(bIOP) cout << ")))) probDomain[" << i << "] =  " << probDomain[i] << endl;
       dnpBoxBlocked.refine(refRatioAll);
     }
-
-    BL_PROFILE_VAR_STOP(runtimelinepfall)
 
     CommProfStats::SetInitDataBlocks(true);
     CommProfStats::InitDataFileNames(commHeaderFileNames);
@@ -2435,7 +2434,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       cout << "------------------------------------ End timeline." << endl;
       cout << endl;
     }
-    BL_PROFILE_VAR_STOP(runtimelinepfall)
 #endif
 }
 
