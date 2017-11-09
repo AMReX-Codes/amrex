@@ -49,6 +49,20 @@ MLABecLaplacian::~MLABecLaplacian ()
 {}
 
 void
+MLABecLaplacian::setScalars (Real a, Real b)
+{
+    m_a_scalar = a;
+    m_b_scalar = b;
+    if (a == 0.0)
+    {
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+        {
+            m_a_coeffs[amrlev][0].setVal(0.0);
+        }
+    }
+}
+
+void
 MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
 {
     MultiFab::Copy(m_a_coeffs[amrlev][0], alpha, 0, 0, 1, 0);
@@ -85,7 +99,14 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
-        amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
+        if (m_a_scalar == 0.0)
+        {
+            a[mglev-1].setVal(0.0);
+        }
+        else
+        {
+            amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
+        }
         
         Vector<const MultiFab*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
                                                    &(b[mglev-1][1]),
@@ -107,7 +128,9 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
     auto& crse_b_coeffs = m_b_coeffs[flev-1].front();
     auto& crse_geom     = m_geom    [flev-1][0];
 
-    amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
+    if (m_a_scalar != 0.0) {
+        amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
+    }
      
     std::array<MultiFab,AMREX_SPACEDIM> bb;
     Vector<MultiFab*> crse(AMREX_SPACEDIM);
