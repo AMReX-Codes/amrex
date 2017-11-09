@@ -1,5 +1,7 @@
 # WarpX
 
+Online documentation: https://ecp-warpx.github.io/index.html
+
 ## Overview
 
 This repository is a project to build an **electromagnetic Particle-In-Cell (PIC) code** with mesh refinement, based on:

@@ -12,7 +12,7 @@ amr.blocking_factor = 32
 
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 1
-warpx.fine_tag_lo = -2.e-6   -17.e-6 
+warpx.fine_tag_lo = -2.e-6   -17.e-6
 warpx.fine_tag_hi =  2.e-6   -12.e-6
 
 amr.plot_int = 200   # How often to write plotfiles.  "<= 0" means no plotfiles.
@@ -29,9 +29,9 @@ warpx.plot_raw_fields = 1
 warpx.do_dive_cleaning = 0
 warpx.use_filter = 1
 warpx.do_pml = 1
-warpx.plot_raw_fields = 1 
-warpx.plot_raw_fields_guards = 1 
-warpx.plot_finepatch = 1 
+warpx.plot_raw_fields = 1
+warpx.plot_raw_fields_guards = 1
+warpx.plot_finepatch = 1
 warpx.plot_crsepatch = 1
 
 # Algorithms
@@ -87,7 +87,7 @@ plasma_e.ymax =  15.e-6
 plasma_e.zmin = 0.e-6
 plasma_e.profile = "constant"
 plasma_e.density = 1.e25
-plasma_e.num_particles_per_cell_each_dim = 2 2 2
+plasma_e.num_particles_per_cell_each_dim = 2 2
 plasma_e.momentum_distribution_type = "constant"
 plasma_e.ux = 0.0
 plasma_e.uy = 0.0
