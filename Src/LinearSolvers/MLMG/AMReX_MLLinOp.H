@@ -63,7 +63,10 @@ public:
     // the lowest to the solver is always 0.
     void setLevelBC (int amrlev, const MultiFab* levelbcdata);
 
+    void setVerbose (int v) { verbose = v; }
+
     void setMaxOrder (int o) { maxorder = o; }
+
     static int setAgglomeration (bool f) {
         int s = do_agglomeration;
         do_agglomeration = f;
@@ -85,11 +88,13 @@ protected:
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
 
-    int maxorder = 3;
-
     static int do_agglomeration;
     static int do_consolidation;
     static int agg_grid_size;
+
+    int verbose = 0;
+
+    int maxorder = 3;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;

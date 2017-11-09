@@ -409,7 +409,9 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                                                               extent_rad, ncomp));
             }
             if (m_coarse_data_for_bc != nullptr) {
-                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+                const Box& cbx = amrex::coarsen(m_geom[0][0].Domain(), m_coarse_data_crse_ratio);
+                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1,
+                                                Geometry::periodicity(cbx));
             } else {
                 m_crse_sol_br[amrlev]->setVal(0.0);
             }
@@ -444,7 +446,7 @@ MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata) const
     BL_PROFILE("MLLinOp::updateSolBC()");
 
     AMREX_ALWAYS_ASSERT(amrlev > 0);
-    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1, m_geom[amrlev-1][0].periodicity());
     m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
 }
 
@@ -453,7 +455,7 @@ MLLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata) const
 {
     BL_PROFILE("MLLinOp::updateCorBC()");
     AMREX_ALWAYS_ASSERT(amrlev > 0);
-    m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1, m_geom[amrlev-1][0].periodicity());
     m_bndry_cor[amrlev]->updateBndryValues(*m_crse_cor_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
 }
 
