@@ -326,8 +326,7 @@ private:
     int moving_window_dir = -1;
     amrex::Real moving_window_x  = std::numeric_limits<amrex::Real>::max();
     amrex::Real moving_window_v  = std::numeric_limits<amrex::Real>::max();
-    Real current_injection_position;
-    Real last_injection_time;
+    Real current_injection_position = 0;
 
     // Plasma injection parameters
     int do_plasma_injection  = 0;
