@@ -23,7 +23,7 @@ amr.v              = 1       # verbosity in Amr
 
 
 # REFINEMENT / REGRIDDING
-amr.max_level       = 0       # maximum level number allowed
+amr.max_level       = 1       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2000000 # how often to regrid
 amr.blocking_factor = 8       # block factor in grid generation

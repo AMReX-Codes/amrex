@@ -27,7 +27,7 @@ namespace amrex
     if(level > 0)
     {
       BL_ASSERT(a_stage >= 0);
-      BL_ASSERT(a_stage <= 3);
+      BL_ASSERT(a_stage <= 2);
       //this one needs to be prevTime because we just did swapTimeLevels
       Real tf      = getLevel(level  ).state[Phi_Type].prevTime(); 
       Real dt_f    = parent->dtLevel(level);
@@ -47,15 +47,15 @@ namespace amrex
       }
       else if(a_stage == 1)
       {
-        xi = (tf + 0.5*dt_f - tc_old)/dt_c;
+        xi = (tf + dt_f - tc_old)/dt_c;
       }
       else if(a_stage == 2)
       {
-        xi = (tf + 0.5*dt_f - tc_old)/dt_c; //why, yes, this *is* the same as stage 1
+        xi = (tf + 0.5*dt_f - tc_old)/dt_c; 
       }
       else
       {
-        xi = (tf + dt_f - tc_old)/dt_c;
+        amrex::Error("bogus stage number");
       }
 
       MultiFab & k1  = getLevel(level-1).m_k1;
@@ -588,7 +588,7 @@ namespace amrex
     MultiFab::Saxpy(u2, 0.25*dt, k2, 0, 0, NUM_STATE, 0);
     k2.mult(dt);
 
-    fillGhostCellsRK3(u2, 1);
+    fillGhostCellsRK3(u2, 2);
     //the 2*dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u2, k3, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
 
