@@ -140,8 +140,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a400f9bfe07b9e4a18bee1f6cf6b98b29"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f119b545c70dc14f232664bc31df5ef"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_fab_set.html">FabSet</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_set.html#a2f119b545c70dc14f232664bc31df5ef">copyFrom</a> (const <a class="el" href="classamrex_1_1_fab_set.html">FabSet</a> &amp;src, int scomp, int dcomp, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>)</td></tr>
 <tr class="separator:a2f119b545c70dc14f232664bc31df5ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abfc18a45209eff5d1ea1386b46a39605"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_fab_set.html">FabSet</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_set.html#abfc18a45209eff5d1ea1386b46a39605">copyFrom</a> (const <a class="el" href="classamrex_1_1_multi_fab.html">MultiFab</a> &amp;src, int ngrow, int scomp, int dcomp, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>)</td></tr>
-<tr class="separator:abfc18a45209eff5d1ea1386b46a39605"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:affeffcfe2649fbc28d92deae76916215"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_fab_set.html">FabSet</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_set.html#affeffcfe2649fbc28d92deae76916215">copyFrom</a> (const <a class="el" href="classamrex_1_1_multi_fab.html">MultiFab</a> &amp;src, int ngrow, int scomp, int dcomp, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>())</td></tr>
+<tr class="separator:affeffcfe2649fbc28d92deae76916215"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb11e15ccfd9eb9cf7b9cfc75f4bd30d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_fab_set.html">FabSet</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_set.html#abb11e15ccfd9eb9cf7b9cfc75f4bd30d">plusFrom</a> (const <a class="el" href="classamrex_1_1_fab_set.html">FabSet</a> &amp;src, int scomp, int dcomp, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>)</td></tr>
 <tr class="separator:abb11e15ccfd9eb9cf7b9cfc75f4bd30d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a20ff927f81d91df3a565fb0b06de0ef1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_fab_set.html">FabSet</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_set.html#a20ff927f81d91df3a565fb0b06de0ef1">plusFrom</a> (const <a class="el" href="classamrex_1_1_multi_fab.html">MultiFab</a> &amp;src, int ngrow, int scomp, int dcomp, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>())</td></tr>
@@ -482,7 +482,7 @@ Friends</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="abfc18a45209eff5d1ea1386b46a39605"></a>
+<a class="anchor" id="affeffcfe2649fbc28d92deae76916215"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -514,7 +514,13 @@ Friends</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>ncomp</em>&#160;</td>
+          <td class="paramname"><em>ncomp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;&#160;</td>
+          <td class="paramname"><em>period</em> = <code><a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>()</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
