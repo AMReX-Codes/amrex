@@ -13,7 +13,7 @@ void init_prob (const Vector<Geometry>& geom, Vector<MultiFab>& alpha, Vector<Mu
 void solve_with_mlmg (const Vector<Geometry>& geom, int rr,
                       Vector<MultiFab>& soln,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
-                      Vector<MultiFab>& rhs);
+                      Vector<MultiFab>& rhs, const Vector<MultiFab>& exact);
 void write_plotfile (const Vector<Geometry>& geom, int rr,
                      const Vector<MultiFab>& soln, const Vector<MultiFab>& exact,
                      const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
@@ -68,7 +68,7 @@ int main (int argc, char* argv[])
             mf.setVal(0.0); // initial guess
         }
         
-        solve_with_mlmg (geom, ref_ratio, soln, alpha, beta, rhs);
+        solve_with_mlmg (geom, ref_ratio, soln, alpha, beta, rhs, exact);
 
         write_plotfile (geom, ref_ratio, soln, exact, alpha, beta, rhs);
     }
