@@ -172,7 +172,7 @@ protected:
 #if (AMREX_SPACEDIM != 3)
     struct MetricFactor {
         MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
-                      const Geometry& geom);
+                      const Geometry& geom, bool null_metric);
         const Vector<Real>& cellCenters (const MFIter& mfi) const {
             return r_cellcenter[mfi];
         }
