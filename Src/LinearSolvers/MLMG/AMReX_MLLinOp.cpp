@@ -238,6 +238,7 @@ MLLinOp::defineAuxData ()
     }
 
 #if (AMREX_SPACEDIM != 3)
+    bool no_metric_term = Geometry::IsCartesian() || !info.has_metric_term;
     m_metric_factor.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -246,7 +247,8 @@ MLLinOp::defineAuxData ()
         {
             m_metric_factor[amrlev][mglev].reset(new MetricFactor(m_grids[amrlev][mglev],
                                                                   m_dmap[amrlev][mglev],
-                                                                  m_geom[amrlev][mglev]));
+                                                                  m_geom[amrlev][mglev],
+                                                                  no_metric_term));
         }
     }
 #endif
@@ -926,13 +928,12 @@ MLLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 #if (AMREX_SPACEDIM != 3)
 
 MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
-                                     const Geometry& geom)
+                                     const Geometry& geom, bool null_metric)
     : r_cellcenter(ba,dm),
       r_celledge(ba,dm),
       inv_r_cellcenter(ba,dm),
       inv_r_celledge(ba,dm)
 {
-    bool no_metric_term = Geometry::IsCartesian() || !info.has_metric_term;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -940,7 +941,7 @@ MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMappi
     {
         const Box& bx = mfi.validbox();
 
-        if (no_metric_term)
+        if (null_metric)
         {
             const int N = bx.length(0);
             auto& rcc = r_cellcenter[mfi];
