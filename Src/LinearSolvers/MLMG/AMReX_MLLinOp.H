@@ -1,12 +1,28 @@
 #ifndef AMREX_ML_LINOP_H_
 #define AMREX_ML_LINOP_H_
 
+#include <AMReX_SPACE.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MacBndry.H>
 #include <AMReX_YAFluxRegister.H>
 
 namespace amrex {
+
+struct LPInfo
+{
+    bool do_agglomeration = 1;
+    bool do_consolidation = 1;
+    int agg_grid_size = AMREX_D_PICK(32, 16, 8);
+    int con_grid_size = AMREX_D_PICK(32, 16, 8);
+    bool has_metric_term = true;
+
+    LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
+    LPInfo& setConsolidation (bool x) { do_agglomeration = x; return *this; }
+    LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
+    LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
+    LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
+};
 
 class MLLinOp
 {
@@ -21,7 +37,8 @@ public:
     MLLinOp () {}
     MLLinOp (const Vector<Geometry>& a_geom,
              const Vector<BoxArray>& a_grids,
-             const Vector<DistributionMapping>& a_dmap);
+             const Vector<DistributionMapping>& a_dmap,
+             const LPInfo& a_info = LPInfo());
     virtual ~MLLinOp ();
 
     MLLinOp (const MLLinOp&) = delete;
@@ -31,7 +48,8 @@ public:
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
-                 const Vector<DistributionMapping>& a_dmap);
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo());
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.
@@ -67,36 +85,12 @@ public:
 
     void setMaxOrder (int o) { maxorder = o; }
 
-    static int setMetricTerm (bool f) {
-        int s = has_metric_term;
-        has_metric_term = f;
-        return s;
-    }
-    static int setAgglomeration (bool f) {
-        int s = do_agglomeration;
-        do_agglomeration = f;
-        return s;
-    }
-    static int setConsolidation (bool f) {
-        int s = do_consolidation;
-        do_consolidation = f;
-        return s;
-    }
-    static int setAgglomerationGridSize (int n) {
-        int s = agg_grid_size;
-        agg_grid_size = n;
-        return s;
-    }
-
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
 
-    static int do_agglomeration;
-    static int do_consolidation;
-    static int agg_grid_size;
-    static int has_metric_term;
+    LPInfo info;
 
     int verbose = 0;
 

@@ -8,30 +8,23 @@ namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
-int MLLinOp::has_metric_term = 0;
-int MLLinOp::do_agglomeration = 1;
-int MLLinOp::do_consolidation = 1;
-#if (AMREX_SPACEDIM == 1)
-int MLLinOp::agg_grid_size = 32;
-#elif (AMREX_SPACEDIM == 2)
-int MLLinOp::agg_grid_size = 16;
-#elif (AMREX_SPACEDIM == 3)
-int MLLinOp::agg_grid_size = 8;
-#endif
 
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
-                  const Vector<DistributionMapping>& a_dmap)
+                  const Vector<DistributionMapping>& a_dmap,
+                  const LPInfo& a_info)
 {
-    define(a_geom, a_grids, a_dmap);
+    define(a_geom, a_grids, a_dmap, a_info);
 }
 
 void
 MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
-                 const Vector<DistributionMapping>& a_dmap)
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info)
 {
     BL_PROFILE("MLLinOp::define()");
+    info = a_info;
     defineGrids(a_geom, a_grids, a_dmap);
     defineAuxData();
     defineBC();
@@ -100,12 +93,14 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() == m_geom[amrlev][0].Domain().numPts());
     }
 
-    if (do_agglomeration && m_domain_covered[0])
+    if (info.do_agglomeration && m_domain_covered[0])
     {
         Vector<Box> domainboxes;
         Box dbx = m_geom[0][0].Domain();
         Real nbxs = static_cast<Real>(m_grids[0][0].size());
-        Real threshold_npts = static_cast<Real>(AMREX_D_TERM(agg_grid_size,*agg_grid_size,*agg_grid_size));
+        Real threshold_npts = static_cast<Real>(AMREX_D_TERM(info.agg_grid_size,
+                                                             *info.agg_grid_size,
+                                                             *info.agg_grid_size));
         Vector<int> agg_flag;
         domainboxes.push_back(dbx);
         agg_flag.push_back(false);
@@ -128,7 +123,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 m_geom[0].emplace_back(domainboxes[lev]);
             
                 m_grids[0].emplace_back(domainboxes[lev]);
-                m_grids[0].back().maxSize(agg_grid_size);
+                m_grids[0].back().maxSize(info.agg_grid_size);
 
                 const auto& dm = makeConsolidatedDMap(m_grids[0].back());
                 m_dmap[0].push_back(dm);
@@ -151,9 +146,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     {
         int rr = mg_coarsen_ratio;
         Real avg_npts, threshold_npts;
-        if (do_consolidation) {
+        if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
-            threshold_npts = static_cast<Real>(AMREX_D_TERM(agg_grid_size,*agg_grid_size,*agg_grid_size));
+            threshold_npts = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
+                                                            *info.con_grid_size,
+                                                            *info.con_grid_size));
         }
         while (a_geom[0].Domain().coarsenable(rr)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
@@ -163,7 +160,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             m_grids[0].push_back(a_grids[0]);
             m_grids[0].back().coarsen(rr);
 
-            if (do_consolidation)
+            if (info.do_consolidation)
             {
                 if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
                 {
@@ -186,7 +183,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         }
     }
 
-    if (do_agglomeration || do_consolidation)
+    if (info.do_agglomeration || info.do_consolidation)
     {
         m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
     }
@@ -876,7 +873,7 @@ MLLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
     
-    if (Geometry::IsCartesian() || !has_metric_term) return;
+    if (Geometry::IsCartesian() || !info.has_metric_term) return;
 
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
@@ -904,7 +901,7 @@ MLLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
 
-    if (Geometry::IsCartesian() || !has_metric_term) return;
+    if (Geometry::IsCartesian() || !info.has_metric_term) return;
 
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
@@ -935,7 +932,7 @@ MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMappi
       inv_r_cellcenter(ba,dm),
       inv_r_celledge(ba,dm)
 {
-    bool no_metric_term = Geometry::IsCartesian() || !has_metric_term;
+    bool no_metric_term = Geometry::IsCartesian() || !info.has_metric_term;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif

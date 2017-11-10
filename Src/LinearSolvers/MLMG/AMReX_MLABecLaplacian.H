@@ -17,7 +17,8 @@ public:
     MLABecLaplacian () {}
     MLABecLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
-                     const Vector<DistributionMapping>& a_dmap);
+                     const Vector<DistributionMapping>& a_dmap,
+                     const LPInfo& a_info = LPInfo());
     virtual ~MLABecLaplacian ();
 
     MLABecLaplacian (const MLABecLaplacian&) = delete;
@@ -27,7 +28,8 @@ public:
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
-                 const Vector<DistributionMapping>& a_dmap);
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo());
 
     void setScalars (Real a, Real b);
     void setACoeffs (int amrlev, const MultiFab& alpha);
