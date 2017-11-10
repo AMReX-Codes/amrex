@@ -241,6 +241,8 @@ protected:
     void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
     void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
 
+    void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr);
+
     virtual void prepareForSolve ();
     virtual bool isSingular (int amrlev) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
