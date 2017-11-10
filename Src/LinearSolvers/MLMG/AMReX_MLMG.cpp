@@ -142,6 +142,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         timer[iter_time] = ParallelDescriptor::second() - iter_start_time;
     }
 
+    if (final_fill_bc) fillSolutionBC();
+
     timer[solve_time] = ParallelDescriptor::second() - solve_start_time;
     if (verbose >= 1) {
         ParallelDescriptor::ReduceRealMax(timer.data(), timer.size());
@@ -832,6 +834,16 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.unapplyMetricTerm(alev, 0, *a_res[alev]);
     }
 #endif
+}
+
+void
+MLMG::fillSolutionBC ()
+{
+    for (int alev = 0; alev <= finest_amr_lev; ++alev)
+    {
+        const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
+        linop.fillSolutionBC(alev, *sol[alev], crse_bcdata);
+    }
 }
 
 }

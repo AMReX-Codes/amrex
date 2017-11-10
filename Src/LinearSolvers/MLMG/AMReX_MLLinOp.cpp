@@ -473,6 +473,17 @@ MLLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const Multi
 }
 
 void
+MLLinOp::fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata)
+{
+    BL_PROFILE("MLLinOp::fillSolutionBC()");
+    if (crse_bcdata != nullptr) {
+        updateSolBC(amrlev, *crse_bcdata);
+    }
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());    
+}
+
+void
 MLLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                              BCMode bc_mode, const MultiFab* crse_bcdata)
 {
