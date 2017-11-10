@@ -1374,7 +1374,6 @@ void RegionsProfStats::OpenAllStreams(const std::string &dirname) {
   {
     std::string fullFileName(dirname + '/' + it->first);
     regDataStreams[dsIndex] = new std::ifstream(fullFileName.c_str());
-    ++dsIndex;
 
     if (regDataStreams[dsIndex]->fail())
     {
@@ -1383,7 +1382,8 @@ void RegionsProfStats::OpenAllStreams(const std::string &dirname) {
       CloseAllStreams();
       break;
     }
-  }
+    ++dsIndex;
+ }
 #endif
   BL_PROFILE_VAR_STOP(regsopenallstreams);
 }

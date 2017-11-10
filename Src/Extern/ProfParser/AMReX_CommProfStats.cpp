@@ -394,8 +394,6 @@ void CommProfStats::OpenAllStreams(const std::string &dirname) {
     commDataStreams[dsIndex] = new std::ifstream(fullFileName.c_str());
     ++dsIndex;
 
-    std::cout << "COpen " << dsIndex << " = " << commDataStreams[dsIndex]->fail() << std::endl;
-
     if (commDataStreams[dsIndex]->fail())
     {
       cout << "****commDataStreams failed. Continuing without persistent streams." << std::endl;
@@ -403,6 +401,8 @@ void CommProfStats::OpenAllStreams(const std::string &dirname) {
       CloseAllStreams();
       break;
     }
+
+    ++dsIndex;
   }
   BL_PROFILE_VAR_STOP(cpsopenallstreams);
 }
