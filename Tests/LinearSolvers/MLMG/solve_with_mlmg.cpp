@@ -41,8 +41,9 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int ref_ratio,
         pp.query("consolidation", consolidation);
     }
 
-    MLLinOp::setAgglomeration(agglomeration);
-    MLLinOp::setConsolidation(consolidation);
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
 
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
@@ -65,7 +66,7 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int ref_ratio,
             prhs.push_back(&(rhs[ilev]));
         }
         
-        MLABecLaplacian mlabec(geom, grids, dmap);
+        MLABecLaplacian mlabec(geom, grids, dmap, info);
 
         mlabec.setMaxOrder(linop_maxorder);
         
