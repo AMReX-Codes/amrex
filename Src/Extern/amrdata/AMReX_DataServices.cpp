@@ -992,17 +992,17 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
       std::map<int, std::string> *mpiFuncNamesPtr;
       std::string *plotfileNamePtr;
       int maxSmallImageLength, refRatioAll, nTimeSlots;
-      bool *proxMapPtr;
+      bool *statsCollectedPtr;
 
       mpiFuncNamesPtr = (std::map<int, std::string> *) va_arg(ap, void *);
       plotfileNamePtr =  (std::string *) va_arg(ap, void *);
       maxSmallImageLength = va_arg(ap, int);
       refRatioAll = va_arg(ap, int);
       nTimeSlots = va_arg(ap, int);
-      proxMapPtr = (bool *) va_arg(ap, bool *);
+      statsCollectedPtr = (bool *) va_arg(ap, bool *);
 
       ds->RunTimelinePF(*mpiFuncNamesPtr, *plotfileNamePtr, maxSmallImageLength,
-                         refRatioAll, nTimeSlots, *proxMapPtr);
+                         refRatioAll, nTimeSlots, *statsCollectedPtr);
     }
     break;
 
@@ -1863,13 +1863,6 @@ void DataServices::RunSendsPF(std::string &plotfileName,
     bool bIOP(ParallelDescriptor::IOProcessor());
     //int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
-    if(BL_SPACEDIM != 2) {
-      if(bIOP) {
-        cout << "DataServices::RunSendsPF:   only supported for 2D."
-	     << endl;
-      }
-      return;
-    }
     if( ! bCommDataAvailable) {
       if(bIOP) {
         cout << "DataServices::RunSendsPF:  comm data is not available." << endl;
@@ -2170,6 +2163,8 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
                                      int refRatioAll, int nTimeSlots,
 	                             bool &statsCollected)
 {
+    BL_PROFILE("DataServices::RunTimelinePF()");
+
 #if (BL_SPACEDIM != 2)
   cout << "**** Error:  DataServices::RunTimelinePF is only supported for 2D" << endl;
 #else
@@ -2197,7 +2192,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       RunStats(mpiFuncNames, statsCollected);
     }
 
-    BL_PROFILE_VAR("runTimelinePF_ALL", runtimelinepfall)
     double dstart(ParallelDescriptor::second());
 
     Real calcTimeMin( std::numeric_limits<Real>::max());
@@ -2252,8 +2246,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       dnpBoxBlocked.refine(refRatioAll);
     }
 
-    BL_PROFILE_VAR_STOP(runtimelinepfall)
-
     CommProfStats::SetInitDataBlocks(true);
     CommProfStats::InitDataFileNames(commHeaderFileNames);
     CommProfStats::OpenAllStreams(fileName);
@@ -2290,9 +2282,10 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
         //int hfnI((hfnI_I + myProc) % commHeaderFileNames.size());  // cycle reads
         int hfnI(hfnI_I);
 
+
         CommProfStats commOutputStats;
         if(bRegionDataAvailable) {
-          commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
+//          commOutputStats.SetRegionTimeRanges(commOutputStats_H.GetRegionTimeRanges());
           commOutputStats.SetFilterTimeRanges(commOutputStats_H.GetFilterTimeRanges());
         }
 
@@ -2442,7 +2435,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       cout << "------------------------------------ End timeline." << endl;
       cout << endl;
     }
-    BL_PROFILE_VAR_STOP(runtimelinepfall)
 #endif
 }
 
