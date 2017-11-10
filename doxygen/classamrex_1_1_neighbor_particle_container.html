@@ -342,10 +342,10 @@ Public Attributes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:a8128b1afe7232366d728dac1d0641e56"><td class="memItemLeft" align="right" valign="top">NeighborTag&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_neighbor_particle_container.html#a8128b1afe7232366d728dac1d0641e56">getNeighborTag</a> (int lev, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;neighbor_cell, const <a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a>&lt; int &gt; &amp;mask)</td></tr>
-<tr class="separator:a8128b1afe7232366d728dac1d0641e56"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6441249ead60b36f16ac74ed557ca8f4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_neighbor_particle_container.html#a6441249ead60b36f16ac74ed557ca8f4">applyPeriodicShift</a> (int lev, <a class="el" href="classamrex_1_1_neighbor_particle_container.html#a3eba62dfc0c2094a04b504e87ce7a6c7">ParticleType</a> &amp;p, const NeighborTag &amp;tag)</td></tr>
-<tr class="separator:a6441249ead60b36f16ac74ed557ca8f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a965456cf6472af1b0726f72808717429"><td class="memItemLeft" align="right" valign="top">NeighborTag&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_neighbor_particle_container.html#a965456cf6472af1b0726f72808717429">getNeighborTag</a> (int lev, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;neighbor_cell, const <a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a>&lt; int &gt; &amp;mask, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;periodicity, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;<a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a54267e9174e171df90d3594f0c32e114">lo</a>, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;<a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a6569fdcb051e8fff2ef4c57db6f9c642">hi</a>)</td></tr>
+<tr class="separator:a965456cf6472af1b0726f72808717429"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a10453d5fee89b04324f92cc5aff0c059"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_neighbor_particle_container.html#a10453d5fee89b04324f92cc5aff0c059">applyPeriodicShift</a> (int lev, <a class="el" href="classamrex_1_1_neighbor_particle_container.html#a3eba62dfc0c2094a04b504e87ce7a6c7">ParticleType</a> &amp;p, const NeighborTag &amp;tag, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;periodicity, const <a class="el" href="classamrex_1_1_real_box.html">RealBox</a> &amp;prob_domain)</td></tr>
+<tr class="separator:a10453d5fee89b04324f92cc5aff0c059"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab2f88c4e8dd6870ea437b253a8cae052"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_neighbor_particle_container.html#ab2f88c4e8dd6870ea437b253a8cae052">fillNeighborsMPI</a> (<a class="el" href="classamrex_1_1_neighbor_particle_container.html#a1560002bbaa698b95957be4999f5c0b2">NeighborCommMap</a> &amp;neighbors_to_comm, bool reuse_rcv_counts=false)</td></tr>
 <tr class="separator:ab2f88c4e8dd6870ea437b253a8cae052"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0e4f9754e2d635711afbc83c22e4040d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_neighbor_particle_container.html#a0e4f9754e2d635711afbc83c22e4040d">getRcvCountsMPI</a> (const std::map&lt; int, <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; char &gt; &gt; &amp;send_data)</td></tr>
@@ -552,7 +552,7 @@ template&lt;int NStructReal, int NStructInt, int NNeighborReal&gt; </div>
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a class="anchor" id="a6441249ead60b36f16ac74ed557ca8f4"></a>
+<a class="anchor" id="a10453d5fee89b04324f92cc5aff0c059"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
@@ -577,7 +577,19 @@ template&lt;int NStructReal, int NStructInt, int NNeighborReal&gt; </div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const NeighborTag &amp;&#160;</td>
-          <td class="paramname"><em>tag</em>&#160;</td>
+          <td class="paramname"><em>tag</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;&#160;</td>
+          <td class="paramname"><em>periodicity</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_box.html">RealBox</a> &amp;&#160;</td>
+          <td class="paramname"><em>prob_domain</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -804,7 +816,7 @@ template&lt;int NStructReal, int NStructInt, int NNeighborReal&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a8128b1afe7232366d728dac1d0641e56"></a>
+<a class="anchor" id="a965456cf6472af1b0726f72808717429"></a>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
@@ -829,7 +841,25 @@ template&lt;int NStructReal, int NStructInt, int NNeighborReal&gt; </div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const <a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a>&lt; int &gt; &amp;&#160;</td>
-          <td class="paramname"><em>mask</em>&#160;</td>
+          <td class="paramname"><em>mask</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;&#160;</td>
+          <td class="paramname"><em>periodicity</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;&#160;</td>
+          <td class="paramname"><em>lo</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;&#160;</td>
+          <td class="paramname"><em>hi</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
