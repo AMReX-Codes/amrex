@@ -84,7 +84,7 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
   int maxSmallImageLength(800), refRatioAll(4), nTimeSlots(NTIMESLOTS);
   std::map<int, string> mpiFuncNames;
 
-  amrex::BLProfiler::SetBlProfDirName("blpp_prof");
+  amrex::BLProfiler::SetBlProfDirName("bl_profprof");
 
   int verbose(-1), whichProc(0);
   bool runCheck(false), runSendRecv(false), runSendRecvList(false), runSyncPointData(false);
