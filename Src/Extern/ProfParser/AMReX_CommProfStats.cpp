@@ -392,7 +392,6 @@ void CommProfStats::OpenAllStreams(const std::string &dirname) {
   {
     std::string fullFileName(dirname + '/' + it->first);
     commDataStreams[dsIndex] = new std::ifstream(fullFileName.c_str());
-    ++dsIndex;
 
     if (commDataStreams[dsIndex]->fail())
     {
