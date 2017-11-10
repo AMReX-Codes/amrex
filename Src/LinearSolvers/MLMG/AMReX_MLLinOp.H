@@ -67,6 +67,11 @@ public:
 
     void setMaxOrder (int o) { maxorder = o; }
 
+    static int setMetricTerm (bool f) {
+        int s = has_metric_term;
+        has_metric_term = f;
+        return s;
+    }
     static int setAgglomeration (bool f) {
         int s = do_agglomeration;
         do_agglomeration = f;
@@ -91,6 +96,7 @@ protected:
     static int do_agglomeration;
     static int do_consolidation;
     static int agg_grid_size;
+    static int has_metric_term;
 
     int verbose = 0;
 

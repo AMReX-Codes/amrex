@@ -8,6 +8,7 @@ namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
+int MLLinOp::has_metric_term = 0;
 int MLLinOp::do_agglomeration = 1;
 int MLLinOp::do_consolidation = 1;
 #if (AMREX_SPACEDIM == 1)
@@ -875,7 +876,7 @@ MLLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
     
-    if (Geometry::IsCartesian()) return;
+    if (Geometry::IsCartesian() || !has_metric_term) return;
 
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
@@ -903,7 +904,7 @@ MLLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
 #if (AMREX_SPACEDIM != 3)
 
-    if (Geometry::IsCartesian()) return;
+    if (Geometry::IsCartesian() || !has_metric_term) return;
 
     const auto& mfac = *m_metric_factor[amrlev][mglev];
 
@@ -934,7 +935,7 @@ MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMappi
       inv_r_cellcenter(ba,dm),
       inv_r_celledge(ba,dm)
 {
-    bool is_cart = Geometry::IsCartesian();
+    bool no_metric_term = Geometry::IsCartesian() || !has_metric_term;
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -942,7 +943,7 @@ MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMappi
     {
         const Box& bx = mfi.validbox();
 
-        if (is_cart)
+        if (no_metric_term)
         {
             const int N = bx.length(0);
             auto& rcc = r_cellcenter[mfi];
