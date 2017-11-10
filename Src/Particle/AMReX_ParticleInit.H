@@ -3,7 +3,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile (const std::string& file, int extradata, const IntVect* Nrep)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile()");
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromAsciiFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= NStructReal);
 
@@ -329,7 +329,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile (const std::string& file,
                                                                                        int                extradata)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile()");
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromBinaryFile()");
     BL_ASSERT(!file.empty());
     BL_ASSERT(extradata <= NStructReal);
 
@@ -733,7 +733,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryMetaFile (const std::string& metafile,
                                                        int                extradata)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryMetaFile()");
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromBinaryMetaFile()");
     const Real strttime = ParallelDescriptor::second();
 
     std::ifstream ifs(metafile.c_str(), std::ios::in);
@@ -773,7 +773,7 @@ InitRandom (long                    icount,
             bool                    serialize,
             RealBox                 containing_bx)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandom()");
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitRandom()");
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount > 0);
 
@@ -966,7 +966,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     unsigned long           iseed,
                     const ParticleInitData& pdata)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitRandomPerBox()");
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitRandomPerBox()");
     BL_ASSERT(iseed  > 0);
     BL_ASSERT(icount_per_box > 0);
 
@@ -1061,7 +1061,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdata)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitOnePerCell()");
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitOnePerCell()");
 
     BL_ASSERT(m_gdb != 0);
 
@@ -1146,7 +1146,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitNRandomPerCell()");
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitNRandomPerCell()");
 
     BL_ASSERT(m_gdb != 0);
 

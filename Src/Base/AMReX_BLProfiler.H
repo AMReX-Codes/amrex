@@ -167,7 +167,8 @@ class BLProfiler
     ~BLProfiler();
 
     static void Initialize();
-    static void Finalize();
+    static void InitParams();
+    static void Finalize(bool bFlushing = false);
 
     static void WriteCallTrace(bool bFlushing = false);
     static void WriteCommStats(bool bFlushing = false);
@@ -216,7 +217,13 @@ class BLProfiler
     static int GetTraceFlushSize() { return traceFlushSize; }
     static void SetTraceFlushSize(int fsize) { traceFlushSize = fsize; }
 
+    static int GetFlushInterval() { return flushInterval; }
+    static void SetFlushInterval(int finterval) { flushInterval = finterval; }
+    static Real GetFlushTimeInterval() { return flushTimeInterval; }
+    static void SetFlushTimeInterval(Real ftinterval) { flushTimeInterval = ftinterval; }
+
     static void SetNFiles(int nfiles) { nProfFiles = nfiles; }
+    static int  GetNFiles() { return nProfFiles; }
 
   private:
     Real bltstart, bltelapsed;
@@ -226,12 +233,15 @@ class BLProfiler
     static bool bWriteAll, bWriteFabs, groupSets;
     static bool bFirstCommWrite;
     static bool bInitialized, bNoOutput;
-    static int  currentStep, csFlushSize, traceFlushSize, nProfFiles;
+    static int  currentStep, nProfFiles;
+    static int  csFlushSize, traceFlushSize;
+    static int  csFlushCount, traceFlushCount, flushInterval;
     static int  finestLevel, maxLevel;
     static Real pctTimeLimit;
     static Real calcRunTime;
     static Real startTime;
     static Real timerTime;
+    static Real flushTimeInterval;
 #ifndef BL_AMRPROF
     static Vector<IntVect> refRatio;
     static Vector<Box> probDomain;
@@ -356,6 +366,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 }
 
 #define BL_PROFILE_INITIALIZE()  amrex::BLProfiler::Initialize();
+#define BL_PROFILE_INITPARAMS()  amrex::BLProfiler::InitParams();
 #define BL_PROFILE_FINALIZE()    amrex::BLProfiler::Finalize();
 
 #define BL_PROFILE(fname) amrex::BLProfiler bl_profiler__((fname));
@@ -388,6 +399,8 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
                                             bl_profiler__##rvname.start();
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)  bl_profiler__##rvname.stop();   \
     amrex::BLProfiler::RegionStop(fname);
+
+#define BL_PROFILE_FLUSH() { amrex::BLProfiler::Finalize(true); }
 
 #define BL_TRACE_PROFILE_FLUSH() { amrex::BLProfiler::WriteCallTrace(true); }
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize) { amrex::BLProfiler::SetTraceFlushSize(fsize); }
@@ -427,6 +440,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #include <AMReX_TinyProfiler.H>
 
 #define BL_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
+#define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
 #define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler__((fname));
 #define BL_PROFILE_T(a, T)
@@ -445,6 +459,7 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
+#define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
 #define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)
@@ -461,6 +476,7 @@ class BLProfiler
   public:
     BLProfiler(const std::string &funcname) { }
     static void Initialize() { }
+    static void InitParams() { }
     static void Finalize() { }
     static void WriteStats(std::ostream &os) { }
     static void WriteCommStats() { }
@@ -474,6 +490,7 @@ class BLProfiler
 }
 
 #define BL_PROFILE_INITIALIZE()
+#define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
 #define BL_PROFILE(a)
 #define BL_PROFILE_T(a, T)
@@ -496,6 +513,7 @@ class BLProfiler
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
+#define BL_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_FLUSH()
 #define BL_TRACE_PROFILE_SETFLUSHSIZE(fsize)
 #define BL_PROFILE_CHANGE_FORT_INT_NAME(fname, intname)

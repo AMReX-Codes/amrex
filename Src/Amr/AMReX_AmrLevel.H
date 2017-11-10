@@ -49,9 +49,9 @@ public:
     //! The destructor.
     virtual ~AmrLevel ();
     //! Get the level directory names
-    virtual void LevelDirectoryNames (const std::string &dir,
-                                      std::string &LevelDir,
-                                      std::string &FullPath);
+    void LevelDirectoryNames (const std::string &dir,
+                              std::string &LevelDir,
+                              std::string &FullPath);
     //! Create the Level_ directory for checkpoint and plot files
     virtual void CreateLevelDirectory (const std::string &dir);
     /**
