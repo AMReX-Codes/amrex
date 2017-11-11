@@ -791,13 +791,17 @@ MLMG::getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_gr
 }
 
 void
-MLMG::getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
+MLMG::getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_flux)
 {
     BL_PROFILE("MLMG::getFluxes()");
+    const Real betainv = 1.0 / linop.getBScalar();
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compFlux (alev, a_grad_sol[alev], *sol[alev]);
+        linop.compFlux(alev, a_flux[alev], *sol[alev]);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            linop.unapplyMetricTerm(alev, 0, *a_grad_sol[alev][idim]);
+            linop.unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+            if (betainv != 1.0) {
+                a_flux[alev][idim]->mult(betainv);
+            }
         }
     }
 }

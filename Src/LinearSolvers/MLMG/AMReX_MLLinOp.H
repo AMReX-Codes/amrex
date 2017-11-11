@@ -32,7 +32,7 @@ public:
     friend class MLCGSolver;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
-    enum struct BCType { Dirichlet, Neumann, Periodic, Bogus };
+    enum struct BCType { Dirichlet, Neumann, ReflectOdd, Periodic, Bogus };
 
     MLLinOp () {}
     MLLinOp (const Vector<Geometry>& a_geom,
@@ -251,6 +251,7 @@ protected:
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
     virtual Real Anorm (int amrlev, int mglev) const = 0;
+    virtual Real getBScalar () const = 0;
 
 private:
 
