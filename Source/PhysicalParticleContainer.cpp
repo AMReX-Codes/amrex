@@ -71,7 +71,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
 }
 
 void
-PhysicalParticleContainer::AddParticles (int lev, RealBox part_realbox)
+PhysicalParticleContainer::AddParticles (int lev)
 {
     BL_PROFILE("PhysicalParticleContainer::AddParticles()");
 
@@ -100,7 +100,24 @@ PhysicalParticleContainer::AddParticles (int lev, RealBox part_realbox)
         return;
     }
 
-    if ( not plasma_injector->doInjection() ) return;
+    if ( plasma_injector->doInjection() ) {
+        AddPlasma( lev );
+    }
+}
+
+/**
+ * Create new macroparticles for this species, with a fixed
+ * number of particles per cell (in the cells of `part_realbox`).
+ * The new particles are only created inside the intersection of `part_realbox`
+ * with the local grid for the current proc.
+ * @param lev the index of the refinement level
+ * @param part_realbox the box in which new particles should be created
+ * (this box should correspond to an integer number of cells in each direction,
+ * but its boundaries need not be aligned with the actual cells of the simulation)
+ */
+void
+PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
+{
 
     // If no part_realbox is provided, initialize particles in the whole domain
     const Geometry& geom = Geom(lev);

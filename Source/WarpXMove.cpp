@@ -135,7 +135,13 @@ WarpX::MoveWindow (bool move_j)
         }
         // Perform the injection of new particles in particleBox
         if (particleBox.ok() and (current_injection_position != new_injection_position)){
-            InjectPlasma( lev, particleBox);
+            for (int i = 0; i < num_injected_species; ++i) {
+                int ispecies = injected_plasma_species[i];
+                WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
+                auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
+                ppc.AddPlasma(lev, particleBox);
+            }
+            // Update the injection position
             current_injection_position = new_injection_position;
         }
     }

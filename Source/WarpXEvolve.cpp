@@ -695,17 +695,3 @@ WarpX::ComputeDt ()
         dt[0] = const_dt;
     }
 }
-
-void
-WarpX::InjectPlasma (int lev, RealBox particleBox)
-{
-    if(do_plasma_injection)
-    {
-        for (int i = 0; i < num_injected_species; ++i) {
-            int ispecies = injected_plasma_species[i];
-            WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-            auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
-            ppc.AddParticles(lev, particleBox);
-        }
-    }
-}
