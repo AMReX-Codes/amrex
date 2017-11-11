@@ -138,12 +138,14 @@ protected:
     
     NeighborTag getNeighborTag(int lev,
                                const IntVect& neighbor_cell,
-                               const BaseFab<int>& mask);
+                               const BaseFab<int>& mask, const Periodicity& periodicity,
+			       const IntVect& lo, const IntVect& hi);
     ///
     /// Apply periodic shift to particle position, so naive distance calculation
     /// between neighbors and regular particles will be correct.
     ///
-    void applyPeriodicShift(int lev, ParticleType& p, const NeighborTag& tag);
+    void applyPeriodicShift(int lev, ParticleType& p, const NeighborTag& tag,
+			    const Periodicity& periodicity, const RealBox& prob_domain);
 
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers

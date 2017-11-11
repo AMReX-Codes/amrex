@@ -1,6 +1,6 @@
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-bool 
+bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = false;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -142,9 +142,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const 
               }
           }
       }
-      
+
       const BoxArray& ba = ParticleBoxArray(lev);
-      BL_ASSERT(ba.ixType().cellCentered());
+      BL_ASSERT(ba.ixType().cellCentered());      
       ba.intersections(Box(iv, iv), isects, true, nGrow);
       
       if (!isects.empty()) {
@@ -178,42 +178,35 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::EnforcePeriod
 
     BL_ASSERT(lev_max <= finestLevel());
 
-    //
     // Create a copy "dummy" particle to check for periodic outs.
-    //
     ParticleType p_prime = p;
-
-    if (PeriodicShift(p_prime))
-    {
+    if (PeriodicShift(p_prime)) {
         std::vector< std::pair<int,Box> > isects;
-
-        for (int lev = lev_max; lev >= lev_min; lev--)
-        {
+        for (int lev = lev_max; lev >= lev_min; lev--) {
             const IntVect& iv = Index(p_prime, lev);
             const BoxArray& ba = ParticleBoxArray(lev);
             BL_ASSERT(ba.ixType().cellCentered());
-
+            
             ba.intersections(Box(iv,iv),isects,true,0);
-
-            if (!isects.empty())
-            {
+            
+            if (!isects.empty()) {
                 AMREX_D_TERM(p.m_rdata.pos[0] = p_prime.m_rdata.pos[0];,
-                       p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
-                       p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
-
+                             p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
+                             p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
+                
                 const Box& bx = ba.getCellCenteredBox(isects[0].first);
-
+                
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
 		pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
                 pld.m_cell = iv;
                 pld.m_gridbox = bx;
-
+                pld.m_grown_gridbox = bx;
                 return true;
             }
         }
     }
-
+    
     return false;
 }
 
@@ -222,26 +215,19 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift (ParticleType& p) const
 {
-    //    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift()");
-
-    //
     // This routine should only be called when Where() returns false.
-    //
     BL_ASSERT(m_gdb != 0);
-    //
+
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
-    //
     const Geometry& geom    = Geom(0);
     const Box&      dmn     = geom.Domain();
     const IntVect&  iv      = Index(p, 0);
     bool            shifted = false;  
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         if (!geom.isPeriodic(i)) continue;
 
-        if (iv[i] > dmn.bigEnd(i))
-        {
+        if (iv[i] > dmn.bigEnd(i)) {
             if (p.m_rdata.pos[i] == geom.ProbHi(i))
                 //
                 // Don't let particles lie exactly on the domain face.
@@ -249,21 +235,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift
                 // periodic shift will bring it back inside.
                 //
                 p.m_rdata.pos[i] += .125*geom.CellSize(i);
-
+            
             p.m_rdata.pos[i] -= geom.ProbLength(i);
-
+            
             if (p.m_rdata.pos[i] <= geom.ProbLo(i))
                 //
                 // This can happen due to precision issues.
                 //
                 p.m_rdata.pos[i] += .125*geom.CellSize(i);
-
+            
             BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));
-
+            
             shifted = true;
         }
-        else if (iv[i] < dmn.smallEnd(i))
-        {
+        else if (iv[i] < dmn.smallEnd(i)) {
             if (p.m_rdata.pos[i] == geom.ProbLo(i))
                 //
                 // Don't let particles lie exactly on the domain face.
@@ -271,17 +256,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift
                 // periodic shift will bring it back inside.
                 //
                 p.m_rdata.pos[i] -= .125*geom.CellSize(i);
-
+            
             p.m_rdata.pos[i] += geom.ProbLength(i);
-
+            
             if (p.m_rdata.pos[i] >= geom.ProbHi(i))
                 //
                 // This can happen due to precision issues.
                 //
                 p.m_rdata.pos[i] -= .125*geom.CellSize(i);
-
+            
             BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
-
+            
             shifted = true;
         }
     }
@@ -397,6 +382,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
     if (!success)
     {
         success = (nGrow > 0) && Where(p, pld, lev_min, lev_min, nGrow);
+        pld.m_grown_gridbox = pld.m_gridbox; // reset grown box for subsequent calls.
     }
 
     if (!success)

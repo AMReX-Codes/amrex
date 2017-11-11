@@ -1,12 +1,28 @@
 #ifndef AMREX_ML_LINOP_H_
 #define AMREX_ML_LINOP_H_
 
+#include <AMReX_SPACE.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MacBndry.H>
 #include <AMReX_YAFluxRegister.H>
 
 namespace amrex {
+
+struct LPInfo
+{
+    bool do_agglomeration = 1;
+    bool do_consolidation = 1;
+    int agg_grid_size = AMREX_D_PICK(32, 16, 8);
+    int con_grid_size = AMREX_D_PICK(32, 16, 8);
+    bool has_metric_term = true;
+
+    LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
+    LPInfo& setConsolidation (bool x) { do_agglomeration = x; return *this; }
+    LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
+    LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
+    LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
+};
 
 class MLLinOp
 {
@@ -16,12 +32,13 @@ public:
     friend class MLCGSolver;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
-    enum struct BCType { Dirichlet, Neumann, Periodic, Bogus };
+    enum struct BCType { Dirichlet, Neumann, ReflectOdd, Periodic, Bogus };
 
     MLLinOp () {}
     MLLinOp (const Vector<Geometry>& a_geom,
              const Vector<BoxArray>& a_grids,
-             const Vector<DistributionMapping>& a_dmap);
+             const Vector<DistributionMapping>& a_dmap,
+             const LPInfo& a_info = LPInfo());
     virtual ~MLLinOp ();
 
     MLLinOp (const MLLinOp&) = delete;
@@ -31,7 +48,8 @@ public:
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
-                 const Vector<DistributionMapping>& a_dmap);
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo());
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.
@@ -63,28 +81,20 @@ public:
     // the lowest to the solver is always 0.
     void setLevelBC (int amrlev, const MultiFab* levelbcdata);
 
+    void setVerbose (int v) { verbose = v; }
+
     void setMaxOrder (int o) { maxorder = o; }
-    void setAgglomeration (bool f) { do_agglomeration = f; }
-    void setConsolidation (bool f) { do_consolidation = f; }
-    void setAgglomerationGridSize (int n) { agg_grid_size = n; }
 
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
 
+    LPInfo info;
+
+    int verbose = 0;
+
     int maxorder = 3;
-
-    int do_agglomeration = 1;
-    int do_consolidation = 1;
-
-#if (AMREX_SPACEDIM == 1)
-    int agg_grid_size = 32;
-#elif (AMREX_SPACEDIM == 2)
-    int agg_grid_size = 16;
-#elif (AMREX_SPACEDIM == 3)
-    int agg_grid_size = 8;
-#endif
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
@@ -159,6 +169,30 @@ protected:
 
     mutable Vector<YAFluxRegister> m_fluxreg;
 
+#if (AMREX_SPACEDIM != 3)
+    struct MetricFactor {
+        MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
+                      const Geometry& geom, bool null_metric);
+        const Vector<Real>& cellCenters (const MFIter& mfi) const {
+            return r_cellcenter[mfi];
+        }
+        const Vector<Real>& cellEdges (const MFIter& mfi) const {
+            return r_celledge[mfi];
+        }
+        const Vector<Real>& invCellCenters (const MFIter& mfi) const {
+            return inv_r_cellcenter[mfi];
+        }
+        const Vector<Real>& invCellEdges (const MFIter& mfi) const {
+            return inv_r_celledge[mfi];
+        }
+        LayoutData<Vector<Real> > r_cellcenter;
+        LayoutData<Vector<Real> > r_celledge;
+        LayoutData<Vector<Real> > inv_r_cellcenter;
+        LayoutData<Vector<Real> > inv_r_celledge;
+    };
+    Vector<Vector<std::unique_ptr<MetricFactor> > > m_metric_factor;
+#endif
+
     //
     // functions
     //
@@ -202,6 +236,12 @@ protected:
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
     void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const;
     void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const;
+    void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const;
+
+    void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
+    void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
+
+    void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr);
 
     virtual void prepareForSolve ();
     virtual bool isSingular (int amrlev) const = 0;
@@ -211,6 +251,7 @@ protected:
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
     virtual Real Anorm (int amrlev, int mglev) const = 0;
+    virtual Real getBScalar () const = 0;
 
 private:
 

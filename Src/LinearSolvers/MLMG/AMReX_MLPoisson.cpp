@@ -5,18 +5,20 @@ namespace amrex {
 
 MLPoisson::MLPoisson (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
-                      const Vector<DistributionMapping>& a_dmap)
+                      const Vector<DistributionMapping>& a_dmap,
+                      const LPInfo& a_info)
 {
-    define(a_geom, a_grids, a_dmap);
+    define(a_geom, a_grids, a_dmap, a_info);
 }
 
 void
 MLPoisson::define (const Vector<Geometry>& a_geom,
                    const Vector<BoxArray>& a_grids,
-                   const Vector<DistributionMapping>& a_dmap)
+                   const Vector<DistributionMapping>& a_dmap,
+                   const LPInfo& a_info)
 {
     BL_PROFILE("MLPoisson::define()");
-    MLLinOp::define(a_geom, a_grids, a_dmap);
+    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
 }
 
 MLPoisson::~MLPoisson ()
@@ -61,10 +63,19 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
         const FArrayBox& xfab = in[mfi];
         FArrayBox& yfab = out[mfi];
 
+#if (AMREX_SPACEDIM != 3)
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+#endif
         amrex_mlpoisson_adotx(BL_TO_FORTRAN_BOX(bx),
                               BL_TO_FORTRAN_ANYD(yfab),
                               BL_TO_FORTRAN_ANYD(xfab),
-                              dxinv);
+#if (AMREX_SPACEDIM != 3)
+                              rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
+#endif
+                              dxinv);                                         
     }
 }
 
@@ -136,10 +147,26 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 
 #if (AMREX_SPACEDIM == 1)
-        amrex::Abort("MLPoisson::Fsmooth: 1d not supported");
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        
+        amrex_mlpoisson_gsrb(BL_TO_FORTRAN_BOX(tbx),
+                             BL_TO_FORTRAN_ANYD(solnfab),
+                             BL_TO_FORTRAN_ANYD(rhsfab),
+                             BL_TO_FORTRAN_ANYD(f0fab),
+                             BL_TO_FORTRAN_ANYD(f1fab),
+                             BL_TO_FORTRAN_ANYD(m0),
+                             BL_TO_FORTRAN_ANYD(m1),
+                             rc.data(), re.data(),
+                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);            
 #endif
 
 #if (AMREX_SPACEDIM == 2)
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& rc = mfac.cellCenters(mfi);
+        const auto& re = mfac.cellEdges(mfi);
+        
         amrex_mlpoisson_gsrb(BL_TO_FORTRAN_BOX(tbx),
                              BL_TO_FORTRAN_ANYD(solnfab),
                              BL_TO_FORTRAN_ANYD(rhsfab),
@@ -151,7 +178,8 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
                              BL_TO_FORTRAN_ANYD(m1),
                              BL_TO_FORTRAN_ANYD(m2),
                              BL_TO_FORTRAN_ANYD(m3),
-                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);
+                             rc.data(), re.data(),
+                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);            
 #endif
 
 #if (AMREX_SPACEDIM == 3)
@@ -186,11 +214,20 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
     const Box& box = mfi.tilebox();
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
+#if (AMREX_SPACEDIM != 3)
+    const auto& mfac = *m_metric_factor[amrlev][mglev];
+    const auto& rc = mfac.cellCenters(mfi);
+    const auto& re = mfac.cellEdges(mfi);
+    const Box& vbx = m_grids[amrlev][mglev][mfi];
+#endif
     amrex_mlpoisson_flux(BL_TO_FORTRAN_BOX(box),
                          AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
                                       BL_TO_FORTRAN_ANYD(*flux[1]),
                                       BL_TO_FORTRAN_ANYD(*flux[2])),
                          BL_TO_FORTRAN_ANYD(sol),
+#if (AMREX_SPACEDIM != 3)
+                         rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
+#endif
                          dxinv, face_only);
 }
 
