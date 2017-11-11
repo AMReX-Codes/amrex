@@ -114,7 +114,7 @@ WarpX::MoveWindow (bool move_j)
         // for correct particle spacing)
         RealBox particleBox = geom[lev].ProbDomain();
         Real new_injection_position;
-        if (moving_window_v > 0){
+        if (moving_window_v >= 0){
             // Forward-moving window
             Real dx = geom[lev].CellSize(dir);
             new_injection_position = current_injection_position +
@@ -126,7 +126,7 @@ WarpX::MoveWindow (bool move_j)
                 std::floor( (current_injection_position - geom[lev].ProbLo(dir))/dx) * dx;
         }
         // Modify the corresponding bounds of the particleBox
-        if (num_shift > 0) {
+        if (moving_window_v >= 0) {
             particleBox.setLo( dir, current_injection_position );
             particleBox.setHi( dir, new_injection_position );
         } else {
@@ -134,7 +134,7 @@ WarpX::MoveWindow (bool move_j)
             particleBox.setHi( dir, current_injection_position );
         }
         // Perform the injection of new particles in particleBox
-        if (particleBox.ok()) {
+        if (particleBox.ok() and (current_injection_position != new_injection_position)){
             InjectPlasma( lev, particleBox);
             current_injection_position = new_injection_position;
         }

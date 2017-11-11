@@ -143,17 +143,18 @@ PhysicalParticleContainer::AddParticles (int lev, RealBox part_realbox)
             // If there is no overlap, just go to the next tile in the loop
             RealBox overlap_realbox;
             Box overlap_box;
+            Real ncells_adjust;
             bool no_overlap = 0;
             for (int dir=0; dir<BL_SPACEDIM; dir++) {
                 if ( tile_realbox.lo(dir) < part_realbox.hi(dir) ) {
-                    overlap_realbox.setLo( dir, part_realbox.lo(dir) +
-                        std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir]) * dx[dir]);
+                    ncells_adjust = std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir] );
+                    overlap_realbox.setLo( dir, part_realbox.lo(dir) + std::max(ncells_adjust, 0.) * dx[dir]);
                 } else {
                     no_overlap = 1; break;
                 }
                 if ( tile_realbox.hi(dir) > part_realbox.lo(dir) ) {
-                    overlap_realbox.setHi( dir, part_realbox.lo(dir) +
-                        std::ceil( (tile_realbox.hi(dir) - part_realbox.lo(dir))/dx[dir]) * dx[dir]);
+                    ncells_adjust = std::floor( (part_realbox.hi(dir) - tile_realbox.hi(dir))/dx[dir] );
+                    overlap_realbox.setHi( dir, part_realbox.hi(dir) - std::max(ncells_adjust, 0.) * dx[dir]);
                 } else {
                     no_overlap = 1; break;
                 }
