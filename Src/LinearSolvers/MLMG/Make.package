@@ -5,6 +5,10 @@ CEXE_headers   += AMReX_MLMG_F.H
 F90EXE_sources += AMReX_MLMG_$(DIM)d.F90
 
 
+CEXE_headers   += AMReX_MLMGBndry.H
+CEXE_sources   += AMReX_MLMGBndry.cpp
+
+
 CEXE_headers   += AMReX_MLLinOp.H
 CEXE_sources   += AMReX_MLLinOp.cpp
 CEXE_headers   += AMReX_MLLinOp_F.H
