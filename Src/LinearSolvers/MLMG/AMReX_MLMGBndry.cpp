@@ -70,10 +70,8 @@ MLMGBndry::setBoxBC (RealTuple& bloc, BCTuple& bctag, const Box& bx, const Box& 
         else
         {
             // Internal bndry.
-            const Real delta = dx[dir]*ratio;
-            
             bctag[face] = LO_DIRICHLET;
-            bloc[face]  = 0.5*dx[dir];
+            bloc[face]  = 0.5*ratio*dx[dir];
             // If this is next to another same level box, bloc is
             // wrong.  But it doesn't matter, because we also have
             // mask.  It is used only if mask says it is next to
