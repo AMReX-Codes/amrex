@@ -222,6 +222,13 @@ WarpX::ReadParameters ()
 	  injected_plasma_species.resize(num_injected_species);
 	  pp.getarr("injected_plasma_species", injected_plasma_species,
 		 0, num_injected_species);
+      if (moving_window_v >= 0){
+          // Inject particles continuously from the right end of the box
+          current_injection_position = geom[0].ProbHi(moving_window_dir);
+      } else {
+          // Inject particles continuously from the left end of the box
+          current_injection_position = geom[0].ProbLo(moving_window_dir);
+      }
 	}
 
         pp.query("do_electrostatic", do_electrostatic);
