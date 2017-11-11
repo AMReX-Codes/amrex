@@ -92,7 +92,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="classamrex_1_1_interp_bndry_data-members.html">List of all members</a>  </div>
   <div class="headertitle">
-<div class="title">amrex::InterpBndryData Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span></div>  </div>
+<div class="title">amrex::InterpBndryData Class Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -127,8 +127,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a9e3a19f47c44b99ca92c3042a730c160"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4dd747e3d5e6b38f92d23d9bae511bbd"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_interp_bndry_data.html#a4dd747e3d5e6b38f92d23d9bae511bbd">setBndryConds</a> (const <a class="el" href="classamrex_1_1_b_c_rec.html">BCRec</a> &amp;phys_bc, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a3a6ea573223fb7730509e32b93601c15">ratio</a>)</td></tr>
 <tr class="separator:a4dd747e3d5e6b38f92d23d9bae511bbd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a18ec00f2ec2713c26e52b719879a0181"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_interp_bndry_data.html#a18ec00f2ec2713c26e52b719879a0181">setBndryConds</a> (const <a class="el" href="classamrex_1_1_b_c_rec.html">BCRec</a> &amp;phys_bc, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;<a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a3a6ea573223fb7730509e32b93601c15">ratio</a>, int comp=0)=0</td></tr>
-<tr class="separator:a18ec00f2ec2713c26e52b719879a0181"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a834b29613637b7aedd5ada18b7e33080"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_interp_bndry_data.html#a834b29613637b7aedd5ada18b7e33080">setBndryConds</a> (const <a class="el" href="classamrex_1_1_b_c_rec.html">BCRec</a> &amp;phys_bc, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;<a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a3a6ea573223fb7730509e32b93601c15">ratio</a>, int comp=0)</td></tr>
+<tr class="separator:a834b29613637b7aedd5ada18b7e33080"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aed3688b851edabbdefbcbe81c5f51b21"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_interp_bndry_data.html#aed3688b851edabbdefbcbe81c5f51b21">setBndryValues</a> (const <a class="el" href="classamrex_1_1_multi_fab.html">MultiFab</a> &amp;mf, int mf_start, int bnd_start, int num_comp, const <a class="el" href="classamrex_1_1_b_c_rec.html">BCRec</a> &amp;phys_bc)</td></tr>
 <tr class="separator:aed3688b851edabbdefbcbe81c5f51b21"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2cd3291710fa05174dedeae1237696fa"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_interp_bndry_data.html#a2cd3291710fa05174dedeae1237696fa">setBndryValues</a> (const <a class="el" href="classamrex_1_1_multi_fab.html">MultiFab</a> &amp;mf, int mf_start, int bnd_start, int num_comp, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a3a6ea573223fb7730509e32b93601c15">ratio</a>, const <a class="el" href="classamrex_1_1_b_c_rec.html">BCRec</a> &amp;phys_bc)</td></tr>
@@ -558,7 +558,7 @@ Additional Inherited Members</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a18ec00f2ec2713c26e52b719879a0181"></a>
+<a class="anchor" id="a834b29613637b7aedd5ada18b7e33080"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -591,12 +591,12 @@ Additional Inherited Members</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
-<p>Implemented in <a class="el" href="classamrex_1_1_mac_bndry.html#af8d34108797db541f2d5ef276a94634e">amrex::MacBndry</a>.</p>
+<p>Reimplemented in <a class="el" href="classamrex_1_1_mac_bndry.html#af8d34108797db541f2d5ef276a94634e">amrex::MacBndry</a>.</p>
 
 </div>
 </div>
