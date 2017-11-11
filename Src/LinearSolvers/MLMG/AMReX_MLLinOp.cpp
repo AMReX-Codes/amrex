@@ -2,7 +2,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLLinOp_F.H>
-#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MLMGBndry.H>
 
 namespace amrex {
 
@@ -267,8 +267,8 @@ MLLinOp::defineBC ()
         
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_sol[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                               1, m_geom[amrlev][0]));
+        m_bndry_sol[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                1, m_geom[amrlev][0]));
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -301,16 +301,19 @@ MLLinOp::defineBC ()
     // This has be to done after m_crse_cor_br is defined.
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_cor[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                              1, m_geom[amrlev][0]));
-        // this will make it Dirichlet, what we want for correction
-        BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
-                      AMREX_D_DECL(Outflow,Outflow,Outflow)};
-        
+        m_bndry_cor[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                1, m_geom[amrlev][0]));
         MultiFab bc_data(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
         bc_data.setVal(0.0);
         m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, 1,
-                                            m_amr_ref_ratio[amrlev-1], phys_bc);
+                                            m_amr_ref_ratio[amrlev-1], BCRec());
+        m_bndry_cor[amrlev]->setLOBndryConds({AMREX_D_DECL(BCType::Dirichlet,
+                                                           BCType::Dirichlet,
+                                                           BCType::Dirichlet)},
+                                             {AMREX_D_DECL(BCType::Dirichlet,
+                                                           BCType::Dirichlet,
+                                                           BCType::Dirichlet)},
+                                              m_amr_ref_ratio[amrlev-1]);
     }
 
     m_bcondloc.resize(m_num_amr_levels);
@@ -363,23 +366,6 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 {
     BL_PROFILE("MLLinOp::setLevelBC()");
 
-    BCRec phys_bc;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    {
-        AMREX_ALWAYS_ASSERT(m_lobc[idim] != BCType::Bogus);
-        if (m_lobc[idim] == BCType::Dirichlet) {
-            phys_bc.setLo(idim, Outflow);  // MacBndry treats it as Dirichlet
-        } else {
-            phys_bc.setLo(idim, Inflow);   // MacBndry treats it as Neumann
-        }
-        AMREX_ALWAYS_ASSERT(m_hibc[idim] != BCType::Bogus);
-        if (m_hibc[idim] == BCType::Dirichlet) {
-            phys_bc.setHi(idim, Outflow);  // MacBndry treats it as Dirichlet
-        } else {
-            phys_bc.setHi(idim, Inflow);   // MacBndry treats it as Neumann
-        }        
-    }
-
     MultiFab zero;
     if (a_levelbcdata == nullptr) {
         zero.define(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
@@ -417,26 +403,28 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
             }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
                                                 bcdata, 0, 0, 1,
-                                                m_coarse_data_crse_ratio, phys_bc);
+                                                m_coarse_data_crse_ratio, BCRec());
             br_ref_ratio = m_coarse_data_crse_ratio;
         }
         else
         {
-            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,phys_bc);
+            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,BCRec());
             br_ref_ratio = 1;
         }
     }
     else
     {
-        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], phys_bc);
+        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], BCRec());
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
+
+    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc, m_hibc, br_ref_ratio);
 
     const Real* dx = m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
-        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], dx,
-                                                 phys_bc, br_ref_ratio);
+        m_bcondloc[amrlev][mglev]->setLOBndryConds(m_geom[amrlev][mglev], dx,
+                                                   m_lobc, m_hibc, br_ref_ratio);
     }
 }
 
@@ -509,7 +497,7 @@ MLLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x
 
 void
 MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                const MacBndry* bndry) const
+                const MLMGBndry* bndry) const
 {
     BL_PROFILE("MLLinOp::apply()");
     applyBC(amrlev, mglev, in, bc_mode, bndry);
@@ -518,7 +506,7 @@ MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mo
 
 void
 MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
-                  const MacBndry* bndry, bool skip_fillboundary) const
+                  const MLMGBndry* bndry, bool skip_fillboundary) const
 {
     BL_PROFILE("MLLinOp::applyBC()");
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
@@ -756,11 +744,11 @@ MLLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMappi
 }
 
 void
-MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const Real* dx,
-                                      const BCRec& phys_bc, int ratio)
+MLLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
+                                        const std::array<BCType,AMREX_SPACEDIM>& lobc,
+                                        const std::array<BCType,AMREX_SPACEDIM>& hibc,
+                                        int ratio)
 {
-    // Same as MacBndry::setBndryConds
-
     const Box&  domain = geom.Domain();
 
 #ifdef _OPENMP
@@ -771,33 +759,8 @@ MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const Real* dx,
         const Box& bx = mfi.validbox();
         RealTuple & bloc  = bcloc[mfi];
         BCTuple   & bctag = bcond[mfi];
-        for (OrientationIter fi; fi; ++fi)
-        {
-            const Orientation face = fi();
-            const int         dir  = face.coordDir();
 
-            if (domain[face] == bx[face] && !geom.isPeriodic(dir))
-            {
-                //
-                // All physical bc values are located on face.
-                //
-                const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
-
-                bctag[face] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
-                bloc[face]  = 0;
-            }
-            else
-            {
-                //
-                // Internal bndry.
-                //
-                const Real delta = dx[dir]*ratio;
-
-                bctag[face] = LO_DIRICHLET;
-		bloc[face]  = 0.5*delta;
-            }
-
-        }
+        MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc, hibc, dx, ratio);
     }
 }
 
