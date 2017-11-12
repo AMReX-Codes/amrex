@@ -843,6 +843,8 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
 void
 MLMG::fillSolutionBC ()
 {
+    BL_PROFILE("MLMG::fillSolutionBC()");
+
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
