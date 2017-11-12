@@ -35,6 +35,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap)
 {
+    BL_PROFILE("MLLinOp::defineGrids()");
+
     m_num_amr_levels = a_geom.size();
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
@@ -196,6 +198,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 void
 MLLinOp::defineAuxData ()
 {
+    BL_PROFILE("MLLinOp::defineAuxData()");
+
     m_undrrelxr.resize(m_num_amr_levels);
     m_maskvals.resize(m_num_amr_levels);
     m_fluxreg.resize(m_num_amr_levels-1);
@@ -257,6 +261,8 @@ MLLinOp::defineAuxData ()
 void
 MLLinOp::defineBC ()
 {
+    BL_PROFILE("MLLinOp::defineBC()");
+
     m_bndry_sol.resize(m_num_amr_levels);
     m_crse_sol_br.resize(m_num_amr_levels);
 
@@ -696,6 +702,8 @@ MLLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad,
 void
 MLLinOp::prepareForSolve ()
 {
+    BL_PROFILE("MLLinOp::prepareForSolve()");
+
     for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
     {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
@@ -767,6 +775,8 @@ MLLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
 DistributionMapping
 MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
 {
+    BL_PROFILE("MLLinOp::makeConsolidatedDMap()");
+
     const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
 
     const int nprocs = ParallelDescriptor::NProcs();
@@ -808,6 +818,8 @@ MLLinOp::makeConsolidatedDMap (const DistributionMapping& fdm)
 MPI_Comm
 MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
 {
+    BL_PROFILE("MLLinOp::makeSubCommunicator()");
+
 #ifdef BL_USE_MPI
     MPI_Comm newcomm;
     MPI_Group defgrp, newgrp;
