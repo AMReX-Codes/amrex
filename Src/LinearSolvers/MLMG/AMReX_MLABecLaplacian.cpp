@@ -82,6 +82,8 @@ MLABecLaplacian::setBCoeffs (int amrlev,
 void
 MLABecLaplacian::averageDownCoeffs ()
 {
+    BL_PROFILE("MLABecLaplacian::averageDownCoeffs()");
+
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
