@@ -93,6 +93,12 @@ public:
                              std::ostream&      os,
                              VisMF::How         how = VisMF::NFiles,
                              bool               dump_old = true);
+    //! Do pre-checkpoint work to avoid synchronizations while writing the amr hierarchy
+    virtual void checkPointPre (const std::string& dir,
+                                std::ostream&      os);
+    //! Do post-checkpoint work to avoid synchronizations while writing the amr hierarchy
+    virtual void checkPointPost (const std::string& dir,
+                                 std::ostream&      os);
     //! Restart from a checkpoint file.
     virtual void restart (Amr&          papa,
                           std::istream& is,
