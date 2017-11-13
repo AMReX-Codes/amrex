@@ -1751,7 +1751,15 @@ Amr::checkPoint ()
     }
 
     for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPointPre(ckfileTemp, HeaderFile);
+    }
+
+    for (int i = 0; i <= finest_level; ++i) {
         amr_level[i]->checkPoint(ckfileTemp, HeaderFile);
+    }
+
+    for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPointPost(ckfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
