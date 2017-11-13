@@ -39,7 +39,7 @@ int BLProfiler::traceFlushSize = defaultFlushSize;
 int BLProfiler::csFlushCount = 0;
 int BLProfiler::traceFlushCount = 0;
 int BLProfiler::flushInterval = -1;
-int BLProfiler::nProfFiles  = 128;
+int BLProfiler::nProfFiles  = 256;
 int BLProfiler::finestLevel = -1;
 int BLProfiler::maxLevel    = -1;
 
