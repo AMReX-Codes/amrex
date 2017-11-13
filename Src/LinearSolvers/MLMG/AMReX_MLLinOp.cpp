@@ -2,12 +2,20 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLLinOp_F.H>
-#include <AMReX_LO_BCTYPES.H>
+#include <AMReX_MLMGBndry.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
+
+namespace {
+    // experimental features
+    bool initialized = false;
+    int consolidation_ratio = 2;
+    int consolidation_strategy = 3;
+}
 
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
@@ -24,6 +32,14 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const LPInfo& a_info)
 {
     BL_PROFILE("MLLinOp::define()");
+
+    if (!initialized) {
+	ParmParse pp("mg");
+	pp.query("consolidation_ratio", consolidation_ratio);
+	pp.query("consolidation_strategy", consolidation_strategy);
+	initialized = true;
+    }
+
     info = a_info;
     defineGrids(a_geom, a_grids, a_dmap);
     defineAuxData();
@@ -35,6 +51,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap)
 {
+    BL_PROFILE("MLLinOp::defineGrids()");
+
     m_num_amr_levels = a_geom.size();
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
@@ -145,6 +163,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
+	int con_factor = 1;
         Real avg_npts, threshold_npts;
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
@@ -164,7 +183,9 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             {
                 if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
                 {
-                    const auto& dm = makeConsolidatedDMap(m_dmap[0].back());
+		    con_factor *= consolidation_ratio;
+                    const auto& dm = makeConsolidatedDMap(m_grids[0].back(),
+							  m_dmap[0].back(), con_factor);
                     m_dmap[0].push_back(dm);
                 }
                 else
@@ -196,6 +217,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 void
 MLLinOp::defineAuxData ()
 {
+    BL_PROFILE("MLLinOp::defineAuxData()");
+
     m_undrrelxr.resize(m_num_amr_levels);
     m_maskvals.resize(m_num_amr_levels);
     m_fluxreg.resize(m_num_amr_levels-1);
@@ -257,6 +280,8 @@ MLLinOp::defineAuxData ()
 void
 MLLinOp::defineBC ()
 {
+    BL_PROFILE("MLLinOp::defineBC()");
+
     m_bndry_sol.resize(m_num_amr_levels);
     m_crse_sol_br.resize(m_num_amr_levels);
 
@@ -267,8 +292,8 @@ MLLinOp::defineBC ()
         
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_sol[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                               1, m_geom[amrlev][0]));
+        m_bndry_sol[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                1, m_geom[amrlev][0]));
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -301,16 +326,19 @@ MLLinOp::defineBC ()
     // This has be to done after m_crse_cor_br is defined.
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_cor[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                              1, m_geom[amrlev][0]));
-        // this will make it Dirichlet, what we want for correction
-        BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
-                      AMREX_D_DECL(Outflow,Outflow,Outflow)};
-        
+        m_bndry_cor[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                1, m_geom[amrlev][0]));
         MultiFab bc_data(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
         bc_data.setVal(0.0);
         m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, 1,
-                                            m_amr_ref_ratio[amrlev-1], phys_bc);
+                                            m_amr_ref_ratio[amrlev-1], BCRec());
+        m_bndry_cor[amrlev]->setLOBndryConds({AMREX_D_DECL(BCType::Dirichlet,
+                                                           BCType::Dirichlet,
+                                                           BCType::Dirichlet)},
+                                             {AMREX_D_DECL(BCType::Dirichlet,
+                                                           BCType::Dirichlet,
+                                                           BCType::Dirichlet)},
+                                              m_amr_ref_ratio[amrlev-1]);
     }
 
     m_bcondloc.resize(m_num_amr_levels);
@@ -363,23 +391,6 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 {
     BL_PROFILE("MLLinOp::setLevelBC()");
 
-    BCRec phys_bc;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    {
-        AMREX_ALWAYS_ASSERT(m_lobc[idim] != BCType::Bogus);
-        if (m_lobc[idim] == BCType::Dirichlet) {
-            phys_bc.setLo(idim, Outflow);  // MacBndry treats it as Dirichlet
-        } else {
-            phys_bc.setLo(idim, Inflow);   // MacBndry treats it as Neumann
-        }
-        AMREX_ALWAYS_ASSERT(m_hibc[idim] != BCType::Bogus);
-        if (m_hibc[idim] == BCType::Dirichlet) {
-            phys_bc.setHi(idim, Outflow);  // MacBndry treats it as Dirichlet
-        } else {
-            phys_bc.setHi(idim, Inflow);   // MacBndry treats it as Neumann
-        }        
-    }
-
     MultiFab zero;
     if (a_levelbcdata == nullptr) {
         zero.define(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
@@ -417,26 +428,28 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
             }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
                                                 bcdata, 0, 0, 1,
-                                                m_coarse_data_crse_ratio, phys_bc);
+                                                m_coarse_data_crse_ratio, BCRec());
             br_ref_ratio = m_coarse_data_crse_ratio;
         }
         else
         {
-            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,phys_bc);
+            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,BCRec());
             br_ref_ratio = 1;
         }
     }
     else
     {
-        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], phys_bc);
+        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], BCRec());
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
+
+    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc, m_hibc, br_ref_ratio);
 
     const Real* dx = m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
-        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], dx,
-                                                 phys_bc, br_ref_ratio);
+        m_bcondloc[amrlev][mglev]->setLOBndryConds(m_geom[amrlev][mglev], dx,
+                                                   m_lobc, m_hibc, br_ref_ratio);
     }
 }
 
@@ -509,7 +522,7 @@ MLLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x
 
 void
 MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                const MacBndry* bndry) const
+                const MLMGBndry* bndry) const
 {
     BL_PROFILE("MLLinOp::apply()");
     applyBC(amrlev, mglev, in, bc_mode, bndry);
@@ -518,7 +531,7 @@ MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mo
 
 void
 MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
-                  const MacBndry* bndry, bool skip_fillboundary) const
+                  const MLMGBndry* bndry, bool skip_fillboundary) const
 {
     BL_PROFILE("MLLinOp::applyBC()");
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
@@ -708,6 +721,8 @@ MLLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad,
 void
 MLLinOp::prepareForSolve ()
 {
+    BL_PROFILE("MLLinOp::prepareForSolve()");
+
     for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
     {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
@@ -756,11 +771,11 @@ MLLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMappi
 }
 
 void
-MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const Real* dx,
-                                      const BCRec& phys_bc, int ratio)
+MLLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
+                                        const std::array<BCType,AMREX_SPACEDIM>& lobc,
+                                        const std::array<BCType,AMREX_SPACEDIM>& hibc,
+                                        int ratio)
 {
-    // Same as MacBndry::setBndryConds
-
     const Box&  domain = geom.Domain();
 
 #ifdef _OPENMP
@@ -771,73 +786,59 @@ MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const Real* dx,
         const Box& bx = mfi.validbox();
         RealTuple & bloc  = bcloc[mfi];
         BCTuple   & bctag = bcond[mfi];
-        for (OrientationIter fi; fi; ++fi)
-        {
-            const Orientation face = fi();
-            const int         dir  = face.coordDir();
 
-            if (domain[face] == bx[face] && !geom.isPeriodic(dir))
-            {
-                //
-                // All physical bc values are located on face.
-                //
-                const int p_bc  = (face.isLow() ? phys_bc.lo(dir) : phys_bc.hi(dir));
-
-                bctag[face] = (p_bc == Outflow) ? LO_DIRICHLET : LO_NEUMANN;
-                bloc[face]  = 0;
-            }
-            else
-            {
-                //
-                // Internal bndry.
-                //
-                const Real delta = dx[dir]*ratio;
-
-                bctag[face] = LO_DIRICHLET;
-		bloc[face]  = 0.5*delta;
-            }
-
-        }
+        MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc, hibc, dx, ratio);
     }
 }
 
 DistributionMapping
 MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
 {
+    BL_PROFILE("MLLinOp::makeConsolidatedDMap()");
+
     const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
 
     const int nprocs = ParallelDescriptor::NProcs();
     AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
-    const int nboxes = ba.size();
 
     Vector<int> pmap(ba.size());
-    if (nboxes >= nprocs)
-    {
-        for (int iproc = 0; iproc < nprocs; ++iproc) {
-            for (int ibox : sfc[iproc]) {
-                pmap[ibox] = iproc;
-            }
-        }
-    }
-    else
-    {
-        for (int i = 0; i < nboxes; ++i) { // after nboxes sfc[i] is empty
-            for (int ibox : sfc[i]) {
-                const int iproc = i;
-                pmap[ibox] = iproc;
-            }
-        }
+    for (int iproc = 0; iproc < nprocs; ++iproc) {
+	for (int ibox : sfc[iproc]) {
+	    pmap[ibox] = iproc;
+	}
     }
 
     return DistributionMapping{pmap};
 }
 
 DistributionMapping
-MLLinOp::makeConsolidatedDMap (const DistributionMapping& fdm)
+MLLinOp::makeConsolidatedDMap (const BoxArray& ba, const DistributionMapping& fdm, int factor)
 {
+    const int nprocs = ParallelDescriptor::NProcs();
     Vector<int> pmap = fdm.ProcessorMap();
-    for (auto& x: pmap) {
-        x /= 2;
+    if (consolidation_strategy == 1) {
+	for (auto& x: pmap) {
+	    x /= consolidation_ratio;
+	}
+    } else if (consolidation_strategy == 2) {
+	int nprocs_con = static_cast<int>(std::ceil(static_cast<Real>(nprocs)
+						    / static_cast<Real>(factor)));
+	for (auto& x: pmap) {
+	    auto d = std::div(x,nprocs_con);
+	    x = d.rem;
+	}
+    } else if (consolidation_strategy == 3) {
+	if (factor == consolidation_ratio) {
+	    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
+	    for (int iproc = 0; iproc < nprocs; ++iproc) {
+		for (int ibox : sfc[iproc]) {
+		    pmap[ibox] = iproc;
+		}
+	    }
+	}
+	for (auto& x: pmap) {
+	    x /= consolidation_ratio;
+	}
     }
     return DistributionMapping{pmap};
 }
@@ -845,6 +846,8 @@ MLLinOp::makeConsolidatedDMap (const DistributionMapping& fdm)
 MPI_Comm
 MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
 {
+    BL_PROFILE("MLLinOp::makeSubCommunicator()");
+
 #ifdef BL_USE_MPI
     MPI_Comm newcomm;
     MPI_Group defgrp, newgrp;
