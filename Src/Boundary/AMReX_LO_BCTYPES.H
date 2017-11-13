@@ -15,7 +15,9 @@ namespace amrex {
         Neumann          = LO_NEUMANN,
         reflect_odd      = LO_REFLECT_ODD,
         Marshak          = LO_MARSHAK,
-        SanchezPomraning = LO_SANCHEZ_POMRANING
+        SanchezPomraning = LO_SANCHEZ_POMRANING,
+        Periodic,
+        bogus    
     };
 }
 #endif
