@@ -1,12 +1,29 @@
 #ifndef AMREX_ML_LINOP_H_
 #define AMREX_ML_LINOP_H_
 
+#include <AMReX_SPACE.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_MacBndry.H>
+#include <AMReX_BndryRegister.H>
 #include <AMReX_YAFluxRegister.H>
+#include <AMReX_MLMGBndry.H>
 
 namespace amrex {
+
+struct LPInfo
+{
+    bool do_agglomeration = 1;
+    bool do_consolidation = 1;
+    int agg_grid_size = AMREX_D_PICK(32, 16, 8);
+    int con_grid_size = AMREX_D_PICK(32, 16, 8);
+    bool has_metric_term = true;
+
+    LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
+    LPInfo& setConsolidation (bool x) { do_agglomeration = x; return *this; }
+    LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
+    LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
+    LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
+};
 
 class MLLinOp
 {
@@ -16,12 +33,13 @@ public:
     friend class MLCGSolver;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
-    enum struct BCType { Dirichlet, Neumann, Periodic, Bogus };
+    using BCType = LinOpBCType;
 
     MLLinOp () {}
     MLLinOp (const Vector<Geometry>& a_geom,
              const Vector<BoxArray>& a_grids,
-             const Vector<DistributionMapping>& a_dmap);
+             const Vector<DistributionMapping>& a_dmap,
+             const LPInfo& a_info = LPInfo());
     virtual ~MLLinOp ();
 
     MLLinOp (const MLLinOp&) = delete;
@@ -31,7 +49,8 @@ public:
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
-                 const Vector<DistributionMapping>& a_dmap);
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo());
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.
@@ -63,33 +82,20 @@ public:
     // the lowest to the solver is always 0.
     void setLevelBC (int amrlev, const MultiFab* levelbcdata);
 
+    void setVerbose (int v) { verbose = v; }
+
     void setMaxOrder (int o) { maxorder = o; }
-    static int setAgglomeration (bool f) {
-        int s = do_agglomeration;
-        do_agglomeration = f;
-        return s;
-    }
-    static int setConsolidation (bool f) {
-        int s = do_consolidation;
-        do_consolidation = f;
-        return s;
-    }
-    static int setAgglomerationGridSize (int n) {
-        int s = agg_grid_size;
-        agg_grid_size = n;
-        return s;
-    }
 
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
     static constexpr int mg_box_min_width = 2;
 
-    int maxorder = 3;
+    LPInfo info;
 
-    static int do_agglomeration;
-    static int do_consolidation;
-    static int agg_grid_size;
+    int verbose = 0;
+
+    int maxorder = 3;
 
     int m_num_amr_levels;
     Vector<int> m_amr_ref_ratio;
@@ -120,17 +126,17 @@ protected:
     std::unique_ptr<CommContainer> m_raii_comm;
 
     // BC
-    std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
-    std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
+    std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
+    std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
 
     bool m_needs_coarse_data_for_bc;
     int m_coarse_data_crse_ratio;
     const MultiFab* m_coarse_data_for_bc = nullptr;
 
-    Vector<std::unique_ptr<MacBndry> >   m_bndry_sol;
+    Vector<std::unique_ptr<MLMGBndry> >   m_bndry_sol;
     Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
 
-    Vector<std::unique_ptr<MacBndry> > m_bndry_cor;
+    Vector<std::unique_ptr<MLMGBndry> > m_bndry_cor;
     Vector<std::unique_ptr<BndryRegister> > m_crse_cor_br;
 
     // In case of agglomeration, coarse MG grids on amr level 0 are
@@ -142,8 +148,10 @@ protected:
     {
     public:
         BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm);
-        void setBndryConds (const Geometry& geom, const Real* dx,
-                            const BCRec& phys_bc, int ratio);
+        void setLOBndryConds (const Geometry& geom, const Real* dx,
+                              const std::array<BCType,AMREX_SPACEDIM>& lobc,
+                              const std::array<BCType,AMREX_SPACEDIM>& hibc,
+                              int ratio);
         const BCTuple& bndryConds (const MFIter& mfi) const {
             return bcond[mfi];
         }
@@ -167,7 +175,7 @@ protected:
 #if (AMREX_SPACEDIM != 3)
     struct MetricFactor {
         MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
-                      const Geometry& geom);
+                      const Geometry& geom, bool null_metric);
         const Vector<Real>& cellCenters (const MFIter& mfi) const {
             return r_cellcenter[mfi];
         }
@@ -223,9 +231,9 @@ protected:
     void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                              BCMode bc_mode, const MultiFab* crse_bcdata=nullptr);
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                const MacBndry* bndry=nullptr) const;
+                const MLMGBndry* bndry=nullptr) const;
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
-                  const MacBndry* bndry=nullptr, bool skip_fillboundary=false) const;
+                  const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                  bool skip_fillboundary=false) const;
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
@@ -236,6 +244,8 @@ protected:
     void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
     void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const;
 
+    void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr);
+
     virtual void prepareForSolve ();
     virtual bool isSingular (int amrlev) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
@@ -244,6 +254,7 @@ protected:
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;
     virtual Real Anorm (int amrlev, int mglev) const = 0;
+    virtual Real getBScalar () const = 0;
 
 private:
 
@@ -253,7 +264,9 @@ private:
     void defineAuxData ();
     void defineBC ();
     static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
-    static DistributionMapping makeConsolidatedDMap (const DistributionMapping& fdm);
+    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba,
+						     const DistributionMapping& fdm,
+						     int factor);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
 };
 

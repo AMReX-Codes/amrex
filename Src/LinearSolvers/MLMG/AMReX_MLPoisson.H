@@ -17,7 +17,8 @@ public:
     MLPoisson () {}
     MLPoisson (const Vector<Geometry>& a_geom,
                const Vector<BoxArray>& a_grids,
-               const Vector<DistributionMapping>& a_dmap);
+               const Vector<DistributionMapping>& a_dmap,
+               const LPInfo& a_info = LPInfo());
     virtual ~MLPoisson ();
 
     MLPoisson (const MLPoisson&) = delete;
@@ -27,7 +28,8 @@ public:
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
-                 const Vector<DistributionMapping>& a_dmap);
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info = LPInfo());
 
 protected:
 
@@ -39,6 +41,7 @@ protected:
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
     virtual Real Anorm (int amrlev, int mglev) const final;
+    virtual Real getBScalar () const final { return 1.0; }
 
 private:
 

@@ -9,19 +9,21 @@ namespace amrex {
 
 MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
-                                  const Vector<DistributionMapping>& a_dmap)
+                                  const Vector<DistributionMapping>& a_dmap,
+                                  const LPInfo& a_info)
 {
-    define(a_geom, a_grids, a_dmap);
+    define(a_geom, a_grids, a_dmap, a_info);
 }
 
 void
 MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
-                         const Vector<DistributionMapping>& a_dmap)
+                         const Vector<DistributionMapping>& a_dmap,
+                         const LPInfo& a_info)
 {
     BL_PROFILE("MLABecLaplacian::define()");
 
-    MLLinOp::define(a_geom, a_grids, a_dmap);
+    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
@@ -80,6 +82,8 @@ MLABecLaplacian::setBCoeffs (int amrlev,
 void
 MLABecLaplacian::averageDownCoeffs ()
 {
+    BL_PROFILE("MLABecLaplacian::averageDownCoeffs()");
+
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
