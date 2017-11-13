@@ -46,7 +46,9 @@ extern "C"
                                       BL_FORT_FAB_ARG_3D(fy),
                                       BL_FORT_FAB_ARG_3D(fz)),
                          const amrex_real* dx, const amrex_real& dt,
-                         const amrex_real& nu);
+                         const amrex_real& nu,
+                         const int* uselimit
+    );
 
   void advectDiffMOL2ndOrd(const amrex_real& time, const int* lo, const int*hi,
                            const BL_FORT_FAB_ARG_3D(statein),
@@ -58,7 +60,8 @@ extern "C"
                                         BL_FORT_FAB_ARG_3D(fy),
                                         BL_FORT_FAB_ARG_3D(fz)),
                            const amrex_real* dx, const amrex_real& dt,
-                           const amrex_real& nu);
+                           const amrex_real& nu,
+                           const int* uselimit);
 
 
   void advectDiffMOL4thOrd(const amrex_real& time, const int* lo, const int*hi,
@@ -75,7 +78,8 @@ extern "C"
                            const int* deblocell, const int* debhicell,
                            const int* deblofaceHi, const int* debhifaceHi,
                            const int* deblofaceLo, const int* debhifaceLo,
-                           const int* printstuff);
+                           const int* printstuff,
+                           const int* uselimit);
 
 
   void timeinterpolaterk4(const amrex_real& xi, 

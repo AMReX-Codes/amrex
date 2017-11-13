@@ -421,6 +421,14 @@ namespace amrex
 
     m_algorithm = algorithm;
     m_use_limiting = use_limiting;
+    if(m_use_limiting)
+    {
+      m_iuselimit = 1;
+    }
+    else
+    {
+      m_iuselimit = 0;
+    }
 
   }
   void
@@ -917,7 +925,7 @@ namespace amrex
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                        BL_TO_FORTRAN_3D(flux[1]), 
                                        BL_TO_FORTRAN_3D(flux[2])), 
-                          dx, dt, diffco);
+                          dx, dt, diffco, &m_iuselimit);
 
         if(do_reflux)
         {
@@ -1033,7 +1041,7 @@ namespace amrex
                             debugboxcell.loVect(), debugboxcell.hiVect(),
                             debugboxfaceHi.loVect(), debugboxfaceHi.hiVect(),
                             debugboxfaceLo.loVect(), debugboxfaceLo.hiVect(),
-                           &printstuff
+                           &printstuff, &m_iuselimit
                           );
 
         if(do_reflux)
@@ -1118,7 +1126,7 @@ namespace amrex
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                          BL_TO_FORTRAN_3D(flux[1]), 
                                          BL_TO_FORTRAN_3D(flux[2])), 
-                            dx, dt, diffco);
+                            dx, dt, diffco,  &m_iuselimit);
 
         if(do_reflux)
         {

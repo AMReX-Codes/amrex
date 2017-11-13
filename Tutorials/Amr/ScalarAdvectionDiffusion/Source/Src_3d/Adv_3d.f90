@@ -8,14 +8,14 @@ subroutine advectDiffGodunov(time, lo, hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
      &            flxz, fz_lo, fz_hi, &
-     &            dx,dt, nu) bind(C, name="advectDiffGodunov")
+     &            dx,dt, nu, uselimit) bind(C, name="advectDiffGodunov")
   
   use mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : godunov_flux_3d
 
   implicit none
 
-  integer, intent(in) :: lo(3), hi(3)
+  integer, intent(in) :: lo(3), hi(3),  uselimit
   double precision, intent(in) :: dx(3), dt, time, nu
   integer, intent(in) :: ui_lo(3), ui_hi(3)
   integer, intent(in) :: uo_lo(3), uo_hi(3)
@@ -89,7 +89,7 @@ subroutine advectDiffGodunov(time, lo, hi, &
                        phix, phix_y, phix_z, &
                        phiy, phiy_x, phiy_z, &
                        phiz, phiz_x, phiz_y, &
-                       slope, glo, ghi, nu)
+                       slope, glo, ghi, nu, uselimit)
 
   ! Do a conservative update
   do       k = lo(3), hi(3)
@@ -152,13 +152,13 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
      &            flxz, fz_lo, fz_hi, &
-     &            dx,dt,nu) bind(C, name="advectDiffMOL2ndOrd")
+     &            dx,dt,nu,uselimit) bind(C, name="advectDiffMOL2ndOrd")
   
   use mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : mol2ndord_flux_3d
   implicit none
 
-  integer, intent(in) :: lo(3), hi(3)
+  integer, intent(in) :: lo(3), hi(3), uselimit
   double precision, intent(in) :: dx(3), dt, time, nu
   integer, intent(in) :: ui_lo(3), ui_hi(3)
   integer, intent(in) :: uo_lo(3), uo_hi(3)
@@ -224,7 +224,7 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
                          flxy, fy_lo, fy_hi, &
                          flxz, fz_lo, fz_hi, &
                          phix, phiy, phiz,  &
-                         slope, glo, ghi,nu)
+                         slope, glo, ghi,nu, uselimit)
 
   ! Do a conservative update
   do       k = lo(3), hi(3)
@@ -283,14 +283,14 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
                  dx,dt,nu, &
                  deblocell, debhicell, &
                  hisidedebfacelo, hisidedebfacehi, &
-                 losidedebfacelo, losidedebfacehi, printstuff &
+                 losidedebfacelo, losidedebfacehi, printstuff, uselimit &
      ) bind(C, name="advectDiffMOL4thOrd")
   
   use mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : mol4thord_flux_3d
   implicit none
 
-  integer, intent(in) :: lo(3), hi(3), printstuff
+  integer, intent(in) :: lo(3), hi(3), printstuff, uselimit
   integer, intent(in) :: deblocell(3), debhicell(3)
   integer, intent(in) :: hisidedebfacelo(3), hisidedebfacehi(3)
   integer, intent(in) :: losidedebfacelo(3), losidedebfacehi(3)
@@ -312,9 +312,11 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
   double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
   double precision, intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
 
-  integer :: i, j, k, numphi
+  integer :: i, j, k
   integer :: glo(3), ghi(3)
-  double precision ::  umax, vmax, wmax, phitot
+  double precision ::  umax, vmax, wmax
+! integer ::  numphi
+! double precision::  phitot
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:,:), pointer, contiguous :: &
@@ -370,7 +372,7 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
        phiptcc, glo, ghi,nu, &
        deblocell, debhicell, &
        hisidedebfacelo, hisidedebfacehi,&
-       losidedebfacelo, losidedebfacehi, printstuff)
+       losidedebfacelo, losidedebfacehi, printstuff, uselimit)
   ! Do a conservative update
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)

@@ -14,11 +14,11 @@ contains
                              vmac,  v_lo,  v_hi, &
                              flxx, fx_lo, fx_hi, &
                              flxy, fy_lo, fy_hi, &
-                             phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu)
+                             phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu,  uselimit)
 
-    use slope_module, only: slopex, slopey
+    use slope_module, only: slopex, slopey, slopex_nolim, slopey_nolim
 
-    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), uselimit
     double precision, intent(in) :: dt, dx(2), nu
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
@@ -38,9 +38,16 @@ contains
 
     hdtdx = 0.5*(dt/dx)
 
-    call slopex(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopex_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+
+       call slopex(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
 
     ! compute phi on x faces using umac to upwind; ignore transverse terms
     do    j = lo(2)-1, hi(2)+1
@@ -55,10 +62,15 @@ contains
        end do
     end do
 
-    call slopey(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
-
+    if(uselimit .eq. 0) then
+       call slopey_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopey(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
     ! compute phi on y faces using umac to upwind; ignore transverse terms
     do    j = lo(2)  , hi(2)+1
        do i = lo(1)-1, hi(1)+1
@@ -119,11 +131,11 @@ contains
        vmac,  v_lo,  v_hi, &
        flxx, fx_lo, fx_hi, &
        flxy, fy_lo, fy_hi, &
-       phix_1d, phiy_1d, slope, glo, ghi, nu)
+       phix_1d, phiy_1d, slope, glo, ghi, nu, uselimit)
 
-    use slope_module, only: slopex, slopey
+    use slope_module, only: slopex, slopey, slopex_nolim, slopey_nolim
 
-    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), uselimit
     double precision, intent(in) :: dt, dx(2), nu
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
@@ -142,9 +154,15 @@ contains
     integer :: i, j
 
 
-    call slopex(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopex_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopex(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
 
     ! compute phi on x faces using umac to upwind; ignore transverse terms
     do    j = lo(2)-1, hi(2)+1
@@ -161,10 +179,16 @@ contains
 
        end do
     end do
-
-    call slopey(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    
+    if(uselimit .eq. 0) then
+       call slopey_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopey(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
 
     ! compute phi on y faces using umac to upwind; ignore transverse terms
     do    j = lo(2)  , hi(2)+1
@@ -218,9 +242,9 @@ contains
                                phiptcc, glo, ghi, nu, &
                                deblocell, debhicell, &
                                hisidedebfacelo, hisidedebfacehi, &
-                               losidedebfacelo, losidedebfacehi, printstuff)
+                               losidedebfacelo, losidedebfacehi, printstuff, uselimit)
 
-    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), printstuff
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), printstuff, uselimit
     integer, intent(in) :: deblocell(2), debhicell(2)
     integer, intent(in) :: hisidedebfacelo(2), hisidedebfacehi(2)
     integer, intent(in) :: losidedebfacelo(2), losidedebfacehi(2)
@@ -238,8 +262,10 @@ contains
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey, phiptcc
          
-    double precision :: diffflux, phicctemp, debtemp, phitot
-    integer :: i, j, numphi
+    double precision :: diffflux, phicctemp, debtemp
+    integer :: i, j
+!    integer ::  numphi
+!    double precision :: phitot
 
     fluxptx = 1.0d30
     fluxpty = 1.0d30
