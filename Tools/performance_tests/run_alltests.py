@@ -9,7 +9,9 @@ import argparse, re, time
 # Before running performance tests, make sure you have the latest version 
 # of performance_log.txt
 # A typical execution reads:
-# python run_alltests.py --no-recompile --compiler=intel --architecture=knl --mode=run
+# > python run_alltests.py --no-recompile --compiler=gnu --architecture=cpu --mode=run --no-commit --log_file='my_performance_log.txt'
+# These are default values, and will give the same result as 
+# > python run_alltests.py
 # To add a new test item, extent the test_list with a line like
 # test_list.extend([['my_input_file', n_node, n_mpi, n_omp]]*3)
 # - my_input_file must be in warpx/performance_tests
@@ -37,29 +39,41 @@ import argparse, re, time
 # Create parser and read arguments
 parser = argparse.ArgumentParser(
     description='Run performance tests and write results in files')
-parser.add_argument('--recompile', dest='recompile', action='store_true')
-parser.add_argument('--no-recompile', dest='recompile', action='store_false')
+parser.add_argument('--recompile', dest='recompile', action='store_true', default=False)
+parser.add_argument('--no-recompile', dest='recompile', action='store_false', default=False)
+parser.add_argument('--commit', dest='commit', action='store_true', default=False)
 parser.add_argument( '--compiler', choices=['gnu', 'intel'], default='gnu',
     help='which compiler to use')
 parser.add_argument( '--architecture', choices=['cpu', 'knl'], default='cpu',
     help='which architecture to cross-compile for NERSC machines')
 parser.add_argument( '--mode', choices=['run', 'read'], default='run',
     help='whether to run perftests or read their perf output. run calls read')
+parser.add_argument( '--log_file', dest = 'log_file', default='my_performance_log.txt',
+    help='name of log file where data will be written. ignored if option --commit is used')
+
 args = parser.parse_args()
+
+log_file = args.log_file
+if args.commit == True:
+    log_file = 'performance_log.txt'
+
 # Dictionaries
 # compiler names. Used for WarpX executable name
 compiler_name = {'intel': 'intel', 'gnu': 'gcc'}
 # architecture. Used for WarpX executable name
 module_name = {'cpu': 'haswell', 'knl': 'mic-knl'}
 # architecture. Used in batch scripts
-module_Cname = {'cpu': 'haswell', 'knl': 'knl'}
+module_Cname = {'cpu': 'haswell', 'knl': 'knl,quad,cache'}
 # Define environment variables
 cwd = os.getcwd() + '/'
 res_dir_base = os.environ['SCRATCH'] + '/performance_warpx/'
 bin_dir = cwd + 'Bin/'
 bin_name = 'perf_tests3d.' + args.compiler + '.' + module_name[args.architecture] + '.TPROF.MPI.OMP.ex'
-log_file = 'performance_log.txt'
 log_dir  = cwd
+
+day = time.strftime('%d')
+month = time.strftime('%m')
+year = time.strftime('%Y')
 
 # Initialize tests
 # ----------------
@@ -97,7 +111,7 @@ if args.recompile == True:
     makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
     with open(cwd + 'GNUmakefile_perftest', 'w') as makefile_handler:
         makefile_handler.write( makefile_text )
-    os.system(config_command + "rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
+    os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
 
 # Define functions to run a test and analyse results
 # --------------------------------------------------
@@ -113,7 +127,7 @@ def run_interactive(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     shutil.copyfile(cwd  + run_name, res_dir + 'inputs')
     os.chdir(res_dir)
     if args.architecture == 'cpu':
-        cflag_value = int(32/n_mpi) * 2 # Follow NERSC directives
+        cflag_value = max(1, int(32/n_mpi) * 2) # Follow NERSC directives
         exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + ';' +\
                        'srun --cpu_bind=cores '     + \
                        ' -n ' + str(n_node*n_mpi) + \
@@ -121,7 +135,7 @@ def run_interactive(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
                        ' ./'  + bin_name + ' inputs > perf_output.txt'
     elif args.architecture == 'knl':
         # number of logical cores per MPI process
-        cflag_value = int(68/n_mpi) * 4 # Follow NERSC directives
+        cflag_value = max(1,int(68/n_mpi) * 4) # Follow NERSC directives
         exec_command = 'export OMP_NUM_THREADS=' + str(n_omp) + ';' +\
                        'srun --cpu_bind=cores '     + \
                        ' -n ' + str(n_node*n_mpi) + \
@@ -143,7 +157,7 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     batch_string = ''
     batch_string += '#!/bin/bash\n'
     batch_string += '#SBATCH --job-name=' + run_name + str(n_node) + str(n_mpi) + str(n_omp) + '\n'
-    batch_string += '#SBATCH --time=01:00:00\n'
+    batch_string += '#SBATCH --time=00:30:00\n'
     batch_string += '#SBATCH -C ' + module_Cname[args.architecture] + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH --partition=regular\n'
@@ -152,14 +166,14 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
     batch_string += '#SBATCH --account=m2852\n'
     batch_string += 'export OMP_NUM_THREADS=' + str(n_omp) + '\n'
     if args.architecture == 'cpu':
-        cflag_value = int(32/n_mpi) * 2 # Follow NERSC directives
+        cflag_value = max(1, int(32/n_mpi) * 2) # Follow NERSC directives
         batch_string += 'srun --cpu_bind=cores '+ \
                     ' -n ' + str(n_node*n_mpi) + \
                     ' -c ' + str(cflag_value)   + \
                     ' ./'  + bin_name + ' inputs > perf_output.txt'
     elif args.architecture == 'knl':
         # number of logical cores per MPI process
-        cflag_value = (64/n_mpi) * 4 # Follow NERSC directives
+        cflag_value = max(1, int(64/n_mpi) * 4) # Follow NERSC directives
         batch_string += 'srun --cpu_bind=cores '     + \
                         ' -n ' + str(n_node*n_mpi) + \
                         ' -c ' + str(cflag_value)   + \
@@ -174,6 +188,8 @@ def run_batch(run_name, res_dir, n_node=1, n_mpi=1, n_omp=1):
 
 # Read output file and return init time and 1-step time
 def read_run_perf(filename):
+    timing_list = []
+    # Search inclusive time to get simulation step time
     partition_limit = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
     with open(filename) as file_handler:
         output_text = file_handler.read()
@@ -183,19 +199,40 @@ def read_run_perf(filename):
     search_area = output_text.partition(partition_limit)[2]
     line_match_looptime = re.search('\nWarpX::Evolve().*', search_area)
     time_wo_initialization = float(line_match_looptime.group(0).split()[3])
-    time_one_iteration = time_wo_initialization/n_steps
-    time_initialization = total_time - time_wo_initialization
-    return time_initialization, time_one_iteration
+    timing_list += [str(total_time - time_wo_initialization)]
+    timing_list += [str(time_wo_initialization/n_steps)]
+    # Search exclusive time to get routines timing
+    partition_limit1 = 'NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %'
+    partition_limit2 = 'NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %'
+    file_handler.close()
+    with open(filename) as file_handler:
+        output_text = file_handler.read()
+    search_area = output_text.partition(partition_limit1)[2].partition(partition_limit2)[0]
+    pattern_list = ['\nParticleContainer::Redistribute().*',\
+                    '\nFabArray::FillBoundary().*',\
+                    '\nFabArray::ParallelCopy().*',\
+                    '\nPICSAR::CurrentDeposition.*',\
+                    '\nPICSAR::FieldGather.*',\
+                    '\nPICSAR::ParticlePush.*',\
+                    '\nPPC::Evolve::Copy.*',\
+                    '\nWarpX::EvolveEM().*',\
+                    'NArrayInt>::Checkpoint().*',\
+                    'NArrayInt>::WriteParticles().*',\
+                    '\nVisMF::Write_FabArray.*',\
+                    '\nWriteMultiLevelPlotfile().*']
+    for pattern in pattern_list:
+        timing = '0'
+        line_match = re.search(pattern, search_area)
+        if line_match is not None:
+            timing = [str(float(line_match.group(0).split()[3])/n_steps)]
+        timing_list += timing
+    return timing_list
 
 # Write time into logfile
 def write_perf_logfile(log_file):
-    day = time.strftime('%d')
-    month = time.strftime('%m')
-    year = time.strftime('%Y')
     log_line = ' '.join([year, month, day, run_name, args.compiler,\
                          args.architecture, str(n_node), str(n_mpi),\
-                         str(n_omp), str(time_initialization),\
-                         str(time_one_iteration), '\n'])
+                         str(n_omp)] +  timing_list + ['\n'])
     f_log = open(log_file, 'a')
     f_log.write(log_line)
     f_log.close()
@@ -221,13 +258,17 @@ def process_analysis():
     batch_string += '#SBATCH --time=00:05:00\n'
     batch_string += '#SBATCH -C ' + module_Cname[args.architecture] + '\n'
     batch_string += '#SBATCH -N 1\n'
+    batch_string += '#SBATCH -S 4\n'
     batch_string += '#SBATCH --partition=regular\n'
     batch_string += '#SBATCH --qos=normal\n'
     batch_string += '#SBATCH -e read_error.txt\n'
     batch_string += '#SBATCH -o read_output.txt\n'
     batch_string += '#SBATCH --mail-type=end\n'
     batch_string += '#SBATCH --account=m2852\n'
-    batch_string += 'python run_alltests.py --no-recompile --compiler=' + args.compiler + ' --architecture=' + args.architecture + ' --mode=read\n'
+    batch_string += 'python ' + __file__ + ' --no-recompile --compiler=' + args.compiler + ' --architecture=' + args.architecture + ' --mode=read' + ' --log_file=' + log_file
+    if args.commit == True:
+        batch_string += ' --commit'
+    batch_string += '\n'
     batch_file = 'slurm_perfread'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)
@@ -240,12 +281,18 @@ def process_analysis():
 # -------------------------------------------------
 
 # each element of test_list contains
-# [str runname, int n_node, int n_mpi, int n_omp]
+# [str runname, int n_node, int n_mpi PER NODE, int n_omp]
+
 test_list = []
-test_list.extend([['uniform_plasma', 1, 8, 16]]*3)
-test_list.extend([['uniform_plasma', 1, 4, 32]]*3)
-test_list.extend([['uniform_plasma', 2, 4, 32]]*3)
+n_repeat = 1
+filename1 = 'uniform_plasma'
+
+test_list.extend([[filename1, 1, 8, 16]]*3)
+test_list.extend([[filename1, 1, 4, 32]]*3)
+test_list.extend([[filename1, 2, 4, 32]]*3)
+
 n_tests   = len(test_list)
+
 if args.mode == 'run':
     # Remove file log_jobids_tmp.txt if exists.
     # This file contains the jobid of every perf test
@@ -260,7 +307,10 @@ if args.mode == 'run':
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
         n_steps  = get_nsteps(cwd + run_name)
-        res_dir = res_dir_base + 'perftest' + str(count) + '/'
+        res_dir = res_dir_base
+        res_dir += '_'.join([year, month, day, run_name, args.compiler,\
+                         args.architecture, str(n_node), str(n_mpi),\
+                         str(n_omp)]) + '/'
         # Run the simulation.
         # If you are currently in an interactive session and want to run interactive,
         # just replace run_batch with run_interactive
@@ -271,7 +321,12 @@ if args.mode == 'run':
 if args.mode == 'read':
     # Create log_file for performance tests if does not exist
     if not os.path.isfile(log_dir + log_file):
-        log_line = '## year month day run_name compiler architecture n_node n_mpi n_omp time_initialization(s) time_one_iteration(s)\n'
+        log_line = '## year month day run_name compiler architecture n_node n_mpi ' +\
+                   'n_omp time_initialization time_one_iteration Redistribute '+\
+                   'FillBoundary ParallelCopy CurrentDeposition FieldGather '+\
+                   'ParthiclePush Copy EvolveEM Checkpoint '+\
+                   'WriteParticles Write_FabArray '+\
+                   'WriteMultiLevelPlotfile(unit: second)\n'
         f_log = open(log_dir + log_file, 'a')
         f_log.write(log_line)
         f_log.close()
@@ -283,12 +338,34 @@ if args.mode == 'read':
         n_mpi    = current_run[2]
         n_omp    = current_run[3]
         n_steps  = get_nsteps(cwd  + run_name)
-        res_dir = res_dir_base + 'perftest' + str(count) + '/'
+        print('n_steps = ' + str(n_steps))
+        res_dir = res_dir_base
+        res_dir += '_'.join([year, month, day, run_name, args.compiler,\
+                             args.architecture, str(n_node), str(n_mpi),\
+                             str(n_omp)]) + '/'
         # Read performance data from the output file
-        time_initialization, time_one_iteration = read_run_perf(res_dir + 'perf_output.txt')
+        timing_list = read_run_perf(res_dir + 'perf_output.txt')
         # Write performance data to the performance log file
         write_perf_logfile(log_dir + log_file)
+
+    # Store test parameters fot record
+    dir_record_base = './perf_warpx_record/'
+    if not os.path.exists(dir_record_base):
+        os.mkdir(dir_record_base)
+    count = 0
+    dir_record = dir_record_base + '_'.join([year, month, day]) + '_0'
+    while os.path.exists(dir_record):
+        count += 1
+        dir_record = dir_record[:-1] + str(count)
+    os.mkdir(dir_record)
+    shutil.copy(__file__, dir_record)
+    shutil.copy(log_dir + log_file, dir_record)
+    for count, current_run in enumerate(test_list):
+        shutil.copy(current_run[0], dir_record)
+
+    # Commit results to the Repo
+    if args.commit == True:
+        os.system('git add ' + log_dir + log_file + ';'\
+                  'git commit -m "performance tests";'\
+                  'git push -u origin master')
         
-    os.system('git add ' + log_dir + log_file + ';'\
-              'git commit -m "performance tests";'\
-              'git push -u origin master')
