@@ -70,9 +70,9 @@ $$
 Given that we will updating the diffusion explicitly, we can
 reformulate the equation as 
 $$
-\frac{\partial \phi}{\partial t} =  -\nabla \cdot \fbold, 
+\frac{\partial \phi}{\partial t} =  -\nabla \cdot \Fbold, 
 $$
-where $\fbold = \vbold \phi - \nu \nabla phi$.
+where $\Fbold = \vbold \phi - \nu \nabla phi$.
 The algorithms here are implemented in finite volume form:
 $$
 D(F)_\ibold = \frac{1}{dx} \sum^D_{d = 1} (F_{\iph} - F_\imh)
@@ -97,10 +97,97 @@ from both sides and pick the upwind state.   For the diffusive flux,
 we simply take a centered difference of $\phi^n$ at the face.  So, for
 diffusion, in this algorithm, we are first order in time.   Since we
 are only working with small diffusion coefficients, it does not seem
-to matter to the convergence numbers.
+to matter to the convergence numbers.   For coarse-fine interpolation,
+this algorithm just uses FillPatch.
 
 \subsection{RK2}
+
+The second-order RK scheme uses two evaluations of $\nabla \cdot F$ at
+fixed times to advance the solution
+$$
+\begin{array}{l}
+\phi^\nph = \phi^n -  \frac{\dt}{2} D(F)^n\\
+\phi^{n+1} = \phi^n - \dt D(F)^\nph
+\end{array}
+$$
+We evaluate the divergence operator using spatial extrapolation and
+upwinding.
+$$
+\begin{array}{l}
+\phi_{i+1/2, L} = \phi_i + \frac{\dx}{2} \Delta^{vl,x} \phi_i, \\
+\phi_{i+1/2, R} = \phi_{i+1} - \frac{\dx}{2} \Delta^{vl,x} \phi_{i+1}
+\end{array}
+$$
+where $\Delta^{vl,x}(\phi)$ is the van Leer limited slope of $\phi$ in
+the $x$ direction.   To compute the flux at the face, we pick the
+upwind state then multiply by the normal velocity at the face.   
+ For coarse-fine interpolation,  this algorithm just uses FillPatch.
+
 \subsection{RK3 (TVD)}
+
+For our third-order RK3 TVD  integrator, we  use what Gottlieb and Shu
+\cite{gottlieb_shu} cite as the optimal third order TVD RK3
+integrator.
+$$
+\begin{array}{l}
+\phi^1 = \phi^n - \dt D(F(\phi^n)) \\
+\phi^2 = \frac{3}{4} \phi^n + \frac{1}{4} (\phi^1 - \dt D(F(\phi^1)))\\
+\phi^{n+1} = \frac{1}{3} \phi^n +  \frac{2}{3}(\phi^2 - dt D(F(\phi^2)))
+\end{array}
+$$
+Our spatia discretization is discribed by McCorquodale and Colella
+\cite{mccorquodate_colella} and is fourth order in space.   As of the
+writing of this document,  we have implemented the simpler version
+presented there.
+\begin{itemize}
+  \item Get pointwise $\phi$ because I will need this to get higher
+    order gradient at faces.  
+$$
+\phi = <\phi> -\frac{h^2}{24}(L(<\phi>)),
+$$
+   where $L$ is the standard second order Laplacian.
+\item Get the average of the scalar over the faces .
+$$
+<\phi>_{i+1/2} =  \frac{7}{12}(<\phi>_i    + <\phi>_{i+1})
+                -\frac{1}{12}(<\phi>_{i-1} + <\phi>_{i+2})
+$$
+
+\item Get the point values of the scalar on faces from the face
+  average:
+$$
+\phi_{i+1/2} = <\phi>_{i+1/2} - \frac{1}{24} L^T(<phi>)_{i+1/2},
+$$
+where $L^T$ is the Laplacian that does not include terms normal to the
+face (what McCorquodale refers to as the ``transverse Laplacian'').
+
+\item Compute pointwise fluxes $F$ (including diffusion fluxes).
+$$
+F_{i+1/2} = u_{i+1/2} \phi_{i+1/2}  - nu G^x(phi)_{i+1/2}
+$$
+where the normal gradient $G^x$ is computed using fourth order finite
+differences  of the pointwise cell-centered scalar $\phi$.
+$$
+G^x(\phi)_{i+1/2} = \frac{\partial \phi}{\partial x} + O(h^4) 
+= (1/h)(\phi_{i+1}-\phi_{i}) 
+- (1/(4h))((\phi_{i+2} + \phi_i - 2\phi_{i+1}) - (\phi_{i+1} + \phi_{i-1} - 2\phi_{i}))
+$$
+
+\item Transform the pointwise fluxes $F$ into face-averaged fluxes $<F>$
+$$
+<F> = F - (1/24) L^T(F).
+$$    
+\end{itemize}
+My next task is to implement the more complicated algorithm described
+in \cite{mccorquodale_collela}, which includes limiting and Riemann
+problems.   For coarse-fine interpolation, we use FillPatchUtil
+quartic interpolation for spatial interplation.   For time
+interpolation,     We form  a polynomial in time (following Fok and
+Rosales \cite{fok_rosales}).
+$$
+\phi(t^{l-1} + \Xi \dt^{l-1}) = \phi^0 + \xi k_1 + \frac{\xi^2}{2}(k_2-k_1)
+$$
+where $k_1 = -D(F(\phi^n)), k_2 = -D(F(\phi^1))$.
+
 \subsection{RK4}
 
 \bibliography{references}
