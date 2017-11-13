@@ -3,11 +3,19 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MLMGBndry.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
+
+namespace {
+    // experimental features
+    bool initialized = false;
+    int consolidation_ratio = 2;
+    int consolidation_strategy = 3;
+}
 
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
@@ -24,6 +32,14 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
                  const LPInfo& a_info)
 {
     BL_PROFILE("MLLinOp::define()");
+
+    if (!initialized) {
+	ParmParse pp("mg");
+	pp.query("consolidation_ratio", consolidation_ratio);
+	pp.query("consolidation_strategy", consolidation_strategy);
+	initialized = true;
+    }
+
     info = a_info;
     defineGrids(a_geom, a_grids, a_dmap);
     defineAuxData();
@@ -147,6 +163,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
+	int con_factor = 1;
         Real avg_npts, threshold_npts;
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
@@ -166,7 +183,9 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             {
                 if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
                 {
-                    const auto& dm = makeConsolidatedDMap(m_dmap[0].back());
+		    con_factor *= consolidation_ratio;
+                    const auto& dm = makeConsolidatedDMap(m_grids[0].back(),
+							  m_dmap[0].back(), con_factor);
                     m_dmap[0].push_back(dm);
                 }
                 else
@@ -781,36 +800,45 @@ MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
 
     const int nprocs = ParallelDescriptor::NProcs();
     AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
-    const int nboxes = ba.size();
 
     Vector<int> pmap(ba.size());
-    if (nboxes >= nprocs)
-    {
-        for (int iproc = 0; iproc < nprocs; ++iproc) {
-            for (int ibox : sfc[iproc]) {
-                pmap[ibox] = iproc;
-            }
-        }
-    }
-    else
-    {
-        for (int i = 0; i < nboxes; ++i) { // after nboxes sfc[i] is empty
-            for (int ibox : sfc[i]) {
-                const int iproc = i;
-                pmap[ibox] = iproc;
-            }
-        }
+    for (int iproc = 0; iproc < nprocs; ++iproc) {
+	for (int ibox : sfc[iproc]) {
+	    pmap[ibox] = iproc;
+	}
     }
 
     return DistributionMapping{pmap};
 }
 
 DistributionMapping
-MLLinOp::makeConsolidatedDMap (const DistributionMapping& fdm)
+MLLinOp::makeConsolidatedDMap (const BoxArray& ba, const DistributionMapping& fdm, int factor)
 {
+    const int nprocs = ParallelDescriptor::NProcs();
     Vector<int> pmap = fdm.ProcessorMap();
-    for (auto& x: pmap) {
-        x /= 2;
+    if (consolidation_strategy == 1) {
+	for (auto& x: pmap) {
+	    x /= consolidation_ratio;
+	}
+    } else if (consolidation_strategy == 2) {
+	int nprocs_con = static_cast<int>(std::ceil(static_cast<Real>(nprocs)
+						    / static_cast<Real>(factor)));
+	for (auto& x: pmap) {
+	    auto d = std::div(x,nprocs_con);
+	    x = d.rem;
+	}
+    } else if (consolidation_strategy == 3) {
+	if (factor == consolidation_ratio) {
+	    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
+	    for (int iproc = 0; iproc < nprocs; ++iproc) {
+		for (int ibox : sfc[iproc]) {
+		    pmap[ibox] = iproc;
+		}
+	    }
+	}
+	for (auto& x: pmap) {
+	    x /= consolidation_ratio;
+	}
     }
     return DistributionMapping{pmap};
 }
