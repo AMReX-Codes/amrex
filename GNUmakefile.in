@@ -11,7 +11,7 @@ ifeq ($(USE_FORTRAN_INTERFACE),TRUE)
     Pdirs += F_Interfaces/Base F_Interfaces/Octree F_Interfaces/AmrCore
 endif
 ifeq ($(USE_LINEAR_SOLVERS),TRUE)
-   Pdirs += LinearSolvers/C_CellMG LinearSolvers/C_to_F_MG
+   Pdirs += LinearSolvers/MLMG LinearSolvers/C_CellMG LinearSolvers/C_to_F_MG
 endif
 Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
