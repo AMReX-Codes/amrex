@@ -12,6 +12,9 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize ()
 {
     levelDirectoriesCreated = false;
+    usePrePost = false;
+    doUnlink = true;
+
     num_real_comm_comps = 0;
     for (int i = 0; i < NArrayReal; ++i) {
         if (communicate_real_comp[i]) ++num_real_comm_comps;
@@ -1756,6 +1759,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	}
 	
         HdrFileName += "Header";
+        HdrFileNamePrePost = HdrFileName;
 	
         HdrFile.open(HdrFileName.c_str(), std::ios::out|std::ios::trunc);
 	
@@ -1839,7 +1843,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     //
     // We'll allow up to nOutFiles active writers at a time.
     //
-    int nOutFiles(64);
+    int nOutFiles(256);
     ParmParse pp("particles");
     pp.query("particles_nfiles",nOutFiles);
     if(nOutFiles == -1) {
@@ -1857,8 +1861,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	
         if (gotsome)
 	  {
-            if (!LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/')
+            if ( ! LevelDir.empty() && LevelDir[LevelDir.size()-1] != '/') {
 	      LevelDir += '/';
+	    }
 	    
             LevelDir = amrex::Concatenate(LevelDir + "Level_", lev, 1);
 	    
@@ -1884,7 +1889,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             std::ofstream ParticleHeader(HeaderFileName);
             
             ParticleBoxArray(lev).writeOn(ParticleHeader);
-            ParticleHeader << "\n";
+            ParticleHeader << '\n';
 
             ParticleHeader.flush();
             ParticleHeader.close();
@@ -1940,6 +1945,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             if (gotsome)
             {
+		BL_PROFILE("PC<NNNN>::Checkpoint:unlink");
                 //
                 // Unlink any zero-length data files.
                 //
@@ -1979,13 +1985,33 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         ParallelDescriptor::ReduceRealMax(stoptime, IOProcNumber);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            std::cout << "ParticleContainer<NStructReal, NStructInt, NArrayReal, "
-	              << "NArrayInt>::Checkpoint() time: " << stoptime << '\n';
-        }
+        amrex::Print() << "ParticleContainer<NStructReal, NStructInt, NArrayReal, "
+	               << "NArrayInt>::Checkpoint() time: " << stoptime << '\n';
     }
 }
+
+
+/*
+*/
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::CheckpointPre ()
+{
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPre()");
+    amrex::Print() << "NCNCNCNC:  _in PC<NNNN>::checkPointPre:  " << std::endl;
+}
+
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::CheckpointPost ()
+{
+    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPost()");
+    amrex::Print() << "NCNCNCNC:  _in PC<NNNN>::checkPointPost:  " << std::endl;
+}
+
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
@@ -2016,7 +2042,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                                                                                    Vector<long>&   where,
                                                                                    bool           is_checkpoint) const
 {
-
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::WriteParticles()");
 
     // For a each grid, the tiles it contains
@@ -2031,8 +2056,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
         // Only write out valid particles.
         int cnt = 0;	
         for (const auto& p : kv.second.GetArrayOfStructs()) {
-            if (p.m_idata.id > 0)
+            if (p.m_idata.id > 0) {
                 cnt++;
+	    }
 	}
 
         count[grid] += cnt;
@@ -2050,7 +2076,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
       which[grid] = fnum;
       where[grid] = VisMF::FileOffset(ofs);
       
-      if (count[grid] == 0) continue;
+      if (count[grid] == 0) {
+        continue;
+      }
       
       if (is_checkpoint) {
 	// First write out the integer data in binary.
@@ -2063,8 +2091,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
             int pindex = 0;
             for (const auto& p : pbox.GetArrayOfStructs()) {
                 if (p.m_idata.id > 0) {
-                    for (int j = 0; j < 2 + NStructInt; j++)
+                    for (int j = 0; j < 2 + NStructInt; j++) {
                         iptr[j] = p.m_idata.arr[j];
+		    }
                     iptr += 2 + NStructInt;
                     const auto& soa  = pbox.GetStructOfArrays();
                     for (int j = 0; j < NArrayInt; j++) {
