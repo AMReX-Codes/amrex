@@ -2427,57 +2427,67 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l02737"></a><span class="lineno"> 2737</span>&#160;                       <span class="keywordtype">int</span>               comp,</div>
 <div class="line"><a name="l02738"></a><span class="lineno"> 2738</span>&#160;                       <span class="keywordtype">int</span>               numcomp)</div>
 <div class="line"><a name="l02739"></a><span class="lineno"> 2739</span>&#160;{</div>
-<div class="line"><a name="l02740"></a><span class="lineno"> 2740</span>&#160;    Real alpha = (t2-t)/(t2-t1);</div>
-<div class="line"><a name="l02741"></a><span class="lineno"> 2741</span>&#160;    Real beta = (t-t1)/(t2-t1);</div>
-<div class="line"><a name="l02742"></a><span class="lineno"> 2742</span>&#160;    <span class="keywordflow">return</span> linComb(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);</div>
-<div class="line"><a name="l02743"></a><span class="lineno"> 2743</span>&#160;}</div>
-<div class="line"><a name="l02744"></a><span class="lineno"> 2744</span>&#160;</div>
-<div class="line"><a name="l02745"></a><span class="lineno"> 2745</span>&#160;<span class="comment">//</span></div>
-<div class="line"><a name="l02746"></a><span class="lineno"> 2746</span>&#160;<span class="comment">// Linear combination, Result is alpha*f1 + beta*f2</span></div>
-<div class="line"><a name="l02747"></a><span class="lineno"> 2747</span>&#160;<span class="comment">// Data is taken from b1 region of f1, b2 region of f2</span></div>
-<div class="line"><a name="l02748"></a><span class="lineno"> 2748</span>&#160;<span class="comment">// and stored in b region of this FAB.</span></div>
-<div class="line"><a name="l02749"></a><span class="lineno"> 2749</span>&#160;<span class="comment">// Boxes b, b1 and b2 must be the same size.</span></div>
-<div class="line"><a name="l02750"></a><span class="lineno"> 2750</span>&#160;<span class="comment">// Data is taken from component comp1 of f1, comp2 of f2,</span></div>
-<div class="line"><a name="l02751"></a><span class="lineno"> 2751</span>&#160;<span class="comment">// and stored in component comp of this FAB.</span></div>
-<div class="line"><a name="l02752"></a><span class="lineno"> 2752</span>&#160;<span class="comment">// This fab is returned as a reference for chaining.</span></div>
-<div class="line"><a name="l02753"></a><span class="lineno"> 2753</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l02740"></a><span class="lineno"> 2740</span>&#160;  Real tol = 1.0e-16;</div>
+<div class="line"><a name="l02741"></a><span class="lineno"> 2741</span>&#160;  <span class="keywordflow">if</span>(std::abs(t2-t1) &gt; tol)</div>
+<div class="line"><a name="l02742"></a><span class="lineno"> 2742</span>&#160;  {</div>
+<div class="line"><a name="l02743"></a><span class="lineno"> 2743</span>&#160;    Real alpha = (t2-t)/(t2-t1);</div>
+<div class="line"><a name="l02744"></a><span class="lineno"> 2744</span>&#160;    Real beta = (t-t1)/(t2-t1);</div>
+<div class="line"><a name="l02745"></a><span class="lineno"> 2745</span>&#160;</div>
+<div class="line"><a name="l02746"></a><span class="lineno"> 2746</span>&#160;    <span class="keywordflow">return</span> linComb(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);</div>
+<div class="line"><a name="l02747"></a><span class="lineno"> 2747</span>&#160;  }</div>
+<div class="line"><a name="l02748"></a><span class="lineno"> 2748</span>&#160;  <span class="keywordflow">else</span></div>
+<div class="line"><a name="l02749"></a><span class="lineno"> 2749</span>&#160;  {</div>
+<div class="line"><a name="l02750"></a><span class="lineno"> 2750</span>&#160;    copy(f1);</div>
+<div class="line"><a name="l02751"></a><span class="lineno"> 2751</span>&#160;  }</div>
+<div class="line"><a name="l02752"></a><span class="lineno"> 2752</span>&#160;  <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l02753"></a><span class="lineno"> 2753</span>&#160;}</div>
 <div class="line"><a name="l02754"></a><span class="lineno"> 2754</span>&#160;</div>
-<div class="line"><a name="l02755"></a><span class="lineno"> 2755</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l02756"></a><span class="lineno"> 2756</span>&#160;<a class="code" href="classamrex_1_1_base_fab.html">BaseFab&lt;T&gt;</a>&amp;</div>
-<div class="line"><a name="l02757"></a><span class="lineno"><a class="line" href="classamrex_1_1_base_fab.html#ae821407bd8fde22957482d80d8f5bec9"> 2757</a></span>&#160;<a class="code" href="classamrex_1_1_base_fab.html#ae821407bd8fde22957482d80d8f5bec9">BaseFab&lt;T&gt;::linComb</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_base_fab.html">BaseFab&lt;T&gt;</a>&amp;  f1,</div>
-<div class="line"><a name="l02758"></a><span class="lineno"> 2758</span>&#160;                     <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">Box</a>&amp;         b1,</div>
-<div class="line"><a name="l02759"></a><span class="lineno"> 2759</span>&#160;                     <span class="keywordtype">int</span>                comp1,</div>
-<div class="line"><a name="l02760"></a><span class="lineno"> 2760</span>&#160;                     <span class="keyword">const</span> <a class="code" href="classamrex_1_1_base_fab.html">BaseFab&lt;T&gt;</a>&amp;  f2,</div>
-<div class="line"><a name="l02761"></a><span class="lineno"> 2761</span>&#160;                     <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">Box</a>&amp;         b2,</div>
-<div class="line"><a name="l02762"></a><span class="lineno"> 2762</span>&#160;                     <span class="keywordtype">int</span>                comp2,</div>
-<div class="line"><a name="l02763"></a><span class="lineno"> 2763</span>&#160;                     Real               alpha,</div>
-<div class="line"><a name="l02764"></a><span class="lineno"> 2764</span>&#160;                     Real               beta,</div>
-<div class="line"><a name="l02765"></a><span class="lineno"> 2765</span>&#160;                     <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">Box</a>&amp;         b,</div>
-<div class="line"><a name="l02766"></a><span class="lineno"> 2766</span>&#160;                     <span class="keywordtype">int</span>                comp,</div>
-<div class="line"><a name="l02767"></a><span class="lineno"> 2767</span>&#160;                     <span class="keywordtype">int</span>                numcomp)</div>
-<div class="line"><a name="l02768"></a><span class="lineno"> 2768</span>&#160;{</div>
-<div class="line"><a name="l02769"></a><span class="lineno"> 2769</span>&#160;    ForAllThisBNNXCBNYCBN(T,b,comp,numcomp,f1,b1,comp1,f2,b2,comp2)</div>
-<div class="line"><a name="l02770"></a><span class="lineno"> 2770</span>&#160;    {</div>
-<div class="line"><a name="l02771"></a><span class="lineno"> 2771</span>&#160;        thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));</div>
-<div class="line"><a name="l02772"></a><span class="lineno"> 2772</span>&#160;    } EndForTX</div>
-<div class="line"><a name="l02773"></a><span class="lineno"> 2773</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
-<div class="line"><a name="l02774"></a><span class="lineno"> 2774</span>&#160;}</div>
-<div class="line"><a name="l02775"></a><span class="lineno"> 2775</span>&#160;</div>
-<div class="line"><a name="l02776"></a><span class="lineno"> 2776</span>&#160;    <span class="comment">// \cond CODEGEN</span></div>
-<div class="line"><a name="l02777"></a><span class="lineno"> 2777</span>&#160;    <span class="keyword">class </span>BF_init</div>
-<div class="line"><a name="l02778"></a><span class="lineno"> 2778</span>&#160;    {</div>
-<div class="line"><a name="l02779"></a><span class="lineno"> 2779</span>&#160;    <span class="keyword">public</span>:</div>
-<div class="line"><a name="l02780"></a><span class="lineno"> 2780</span>&#160;        BF_init ();</div>
-<div class="line"><a name="l02781"></a><span class="lineno"> 2781</span>&#160;        ~BF_init ();</div>
-<div class="line"><a name="l02782"></a><span class="lineno"> 2782</span>&#160;    <span class="keyword">private</span>:</div>
-<div class="line"><a name="l02783"></a><span class="lineno"> 2783</span>&#160;        <span class="keyword">static</span> <span class="keywordtype">int</span> m_cnt;</div>
-<div class="line"><a name="l02784"></a><span class="lineno"> 2784</span>&#160;    };</div>
-<div class="line"><a name="l02785"></a><span class="lineno"> 2785</span>&#160;    <span class="comment">// \endcond</span></div>
-<div class="line"><a name="l02786"></a><span class="lineno"> 2786</span>&#160;}</div>
-<div class="line"><a name="l02787"></a><span class="lineno"> 2787</span>&#160;</div>
-<div class="line"><a name="l02788"></a><span class="lineno"> 2788</span>&#160;<span class="keyword">static</span> amrex::BF_init file_scope_BF_init_object;</div>
-<div class="line"><a name="l02789"></a><span class="lineno"> 2789</span>&#160;</div>
-<div class="line"><a name="l02790"></a><span class="lineno"> 2790</span>&#160;<span class="preprocessor">#endif </span><span class="comment">/*BL_BASEFAB_H*/</span><span class="preprocessor"></span></div>
+<div class="line"><a name="l02755"></a><span class="lineno"> 2755</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l02756"></a><span class="lineno"> 2756</span>&#160;<span class="comment">// Linear combination, Result is alpha*f1 + beta*f2</span></div>
+<div class="line"><a name="l02757"></a><span class="lineno"> 2757</span>&#160;<span class="comment">// Data is taken from b1 region of f1, b2 region of f2</span></div>
+<div class="line"><a name="l02758"></a><span class="lineno"> 2758</span>&#160;<span class="comment">// and stored in b region of this FAB.</span></div>
+<div class="line"><a name="l02759"></a><span class="lineno"> 2759</span>&#160;<span class="comment">// Boxes b, b1 and b2 must be the same size.</span></div>
+<div class="line"><a name="l02760"></a><span class="lineno"> 2760</span>&#160;<span class="comment">// Data is taken from component comp1 of f1, comp2 of f2,</span></div>
+<div class="line"><a name="l02761"></a><span class="lineno"> 2761</span>&#160;<span class="comment">// and stored in component comp of this FAB.</span></div>
+<div class="line"><a name="l02762"></a><span class="lineno"> 2762</span>&#160;<span class="comment">// This fab is returned as a reference for chaining.</span></div>
+<div class="line"><a name="l02763"></a><span class="lineno"> 2763</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l02764"></a><span class="lineno"> 2764</span>&#160;</div>
+<div class="line"><a name="l02765"></a><span class="lineno"> 2765</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l02766"></a><span class="lineno"> 2766</span>&#160;<a class="code" href="classamrex_1_1_base_fab.html">BaseFab&lt;T&gt;</a>&amp;</div>
+<div class="line"><a name="l02767"></a><span class="lineno"><a class="line" href="classamrex_1_1_base_fab.html#ae821407bd8fde22957482d80d8f5bec9"> 2767</a></span>&#160;<a class="code" href="classamrex_1_1_base_fab.html#ae821407bd8fde22957482d80d8f5bec9">BaseFab&lt;T&gt;::linComb</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_base_fab.html">BaseFab&lt;T&gt;</a>&amp;  f1,</div>
+<div class="line"><a name="l02768"></a><span class="lineno"> 2768</span>&#160;                     <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">Box</a>&amp;         b1,</div>
+<div class="line"><a name="l02769"></a><span class="lineno"> 2769</span>&#160;                     <span class="keywordtype">int</span>                comp1,</div>
+<div class="line"><a name="l02770"></a><span class="lineno"> 2770</span>&#160;                     <span class="keyword">const</span> <a class="code" href="classamrex_1_1_base_fab.html">BaseFab&lt;T&gt;</a>&amp;  f2,</div>
+<div class="line"><a name="l02771"></a><span class="lineno"> 2771</span>&#160;                     <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">Box</a>&amp;         b2,</div>
+<div class="line"><a name="l02772"></a><span class="lineno"> 2772</span>&#160;                     <span class="keywordtype">int</span>                comp2,</div>
+<div class="line"><a name="l02773"></a><span class="lineno"> 2773</span>&#160;                     Real               alpha,</div>
+<div class="line"><a name="l02774"></a><span class="lineno"> 2774</span>&#160;                     Real               beta,</div>
+<div class="line"><a name="l02775"></a><span class="lineno"> 2775</span>&#160;                     <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">Box</a>&amp;         b,</div>
+<div class="line"><a name="l02776"></a><span class="lineno"> 2776</span>&#160;                     <span class="keywordtype">int</span>                comp,</div>
+<div class="line"><a name="l02777"></a><span class="lineno"> 2777</span>&#160;                     <span class="keywordtype">int</span>                numcomp)</div>
+<div class="line"><a name="l02778"></a><span class="lineno"> 2778</span>&#160;{</div>
+<div class="line"><a name="l02779"></a><span class="lineno"> 2779</span>&#160;    ForAllThisBNNXCBNYCBN(T,b,comp,numcomp,f1,b1,comp1,f2,b2,comp2)</div>
+<div class="line"><a name="l02780"></a><span class="lineno"> 2780</span>&#160;    {</div>
+<div class="line"><a name="l02781"></a><span class="lineno"> 2781</span>&#160;        thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));</div>
+<div class="line"><a name="l02782"></a><span class="lineno"> 2782</span>&#160;    } EndForTX</div>
+<div class="line"><a name="l02783"></a><span class="lineno"> 2783</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l02784"></a><span class="lineno"> 2784</span>&#160;}</div>
+<div class="line"><a name="l02785"></a><span class="lineno"> 2785</span>&#160;</div>
+<div class="line"><a name="l02786"></a><span class="lineno"> 2786</span>&#160;    <span class="comment">// \cond CODEGEN</span></div>
+<div class="line"><a name="l02787"></a><span class="lineno"> 2787</span>&#160;    <span class="keyword">class </span>BF_init</div>
+<div class="line"><a name="l02788"></a><span class="lineno"> 2788</span>&#160;    {</div>
+<div class="line"><a name="l02789"></a><span class="lineno"> 2789</span>&#160;    <span class="keyword">public</span>:</div>
+<div class="line"><a name="l02790"></a><span class="lineno"> 2790</span>&#160;        BF_init ();</div>
+<div class="line"><a name="l02791"></a><span class="lineno"> 2791</span>&#160;        ~BF_init ();</div>
+<div class="line"><a name="l02792"></a><span class="lineno"> 2792</span>&#160;    <span class="keyword">private</span>:</div>
+<div class="line"><a name="l02793"></a><span class="lineno"> 2793</span>&#160;        <span class="keyword">static</span> <span class="keywordtype">int</span> m_cnt;</div>
+<div class="line"><a name="l02794"></a><span class="lineno"> 2794</span>&#160;    };</div>
+<div class="line"><a name="l02795"></a><span class="lineno"> 2795</span>&#160;    <span class="comment">// \endcond</span></div>
+<div class="line"><a name="l02796"></a><span class="lineno"> 2796</span>&#160;}</div>
+<div class="line"><a name="l02797"></a><span class="lineno"> 2797</span>&#160;</div>
+<div class="line"><a name="l02798"></a><span class="lineno"> 2798</span>&#160;<span class="keyword">static</span> amrex::BF_init file_scope_BF_init_object;</div>
+<div class="line"><a name="l02799"></a><span class="lineno"> 2799</span>&#160;</div>
+<div class="line"><a name="l02800"></a><span class="lineno"> 2800</span>&#160;<span class="preprocessor">#endif </span><span class="comment">/*BL_BASEFAB_H*/</span><span class="preprocessor"></span></div>
 <div class="ttc" id="classamrex_1_1_box_html_a63b7187607c41474becd59240a1fe67c"><div class="ttname"><a href="classamrex_1_1_box.html#a63b7187607c41474becd59240a1fe67c">amrex::Box::bigEnd</a></div><div class="ttdeci">const IntVect &amp; bigEnd() const &amp;</div><div class="ttdoc">Get the bigend. </div><div class="ttdef"><b>Definition:</b> AMReX_Box.H:224</div></div>
 <div class="ttc" id="classamrex_1_1_base_fab_html_a9a52c7475015824cfb60e6c67ecad522"><div class="ttname"><a href="classamrex_1_1_base_fab.html#a9a52c7475015824cfb60e6c67ecad522">amrex::BaseFab::operator=</a></div><div class="ttdeci">BaseFab&lt; T &gt; &amp; operator=(const BaseFab&lt; T &gt; &amp;rhs)=delete</div></div>
 <div class="ttc" id="classamrex_1_1_box_html_ac579173dd3e6da5c5814174be20a54d8"><div class="ttname"><a href="classamrex_1_1_box.html#ac579173dd3e6da5c5814174be20a54d8">amrex::Box::smallEnd</a></div><div class="ttdeci">const IntVect &amp; smallEnd() const &amp;</div><div class="ttdoc">Get the smallend of the box. </div><div class="ttdef"><b>Definition:</b> AMReX_Box.H:217</div></div>
@@ -2505,7 +2515,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="ttc" id="namespaceamrex_html_aea69993eec3c9ca497cd0e47522b2ec6"><div class="ttname"><a href="namespaceamrex.html#aea69993eec3c9ca497cd0e47522b2ec6">amrex::Abort</a></div><div class="ttdeci">void Abort(const char *msg=0)</div><div class="ttdoc">Print out message to cerr and exit via abort(). </div><div class="ttdef"><b>Definition:</b> AMReX.cpp:186</div></div>
 <div class="ttc" id="classamrex_1_1_base_fab_html_a61408cfb890844e04d8896a50f3727aa"><div class="ttname"><a href="classamrex_1_1_base_fab.html#a61408cfb890844e04d8896a50f3727aa">amrex::BaseFab::operator-=</a></div><div class="ttdeci">BaseFab&lt; T &gt; &amp; operator-=(T r)</div><div class="ttdef"><b>Definition:</b> AMReX_BaseFab.H:2182</div></div>
 <div class="ttc" id="classamrex_1_1_base_fab_html_ab6952e47b8add4a4f1017b2cfa430a38"><div class="ttname"><a href="classamrex_1_1_base_fab.html#ab6952e47b8add4a4f1017b2cfa430a38">amrex::BaseFab::operator()</a></div><div class="ttdeci">T &amp; operator()(const IntVect &amp;p, int N)</div><div class="ttdoc">Returns a reference to the Nth component value defined at position p in the domain. This operator may be inefficient if the C++ compiler is unable to optimize the C++ code. </div><div class="ttdef"><b>Definition:</b> AMReX_BaseFab.H:917</div></div>
-<div class="ttc" id="classamrex_1_1_base_fab_html_ae821407bd8fde22957482d80d8f5bec9"><div class="ttname"><a href="classamrex_1_1_base_fab.html#ae821407bd8fde22957482d80d8f5bec9">amrex::BaseFab::linComb</a></div><div class="ttdeci">BaseFab&lt; T &gt; &amp; linComb(const BaseFab&lt; T &gt; &amp;f1, const Box &amp;b1, int comp1, const BaseFab&lt; T &gt; &amp;f2, const Box &amp;b2, int comp2, Real alpha, Real beta, const Box &amp;b, int comp, int numcomp=1)</div><div class="ttdoc">Linear combination. Result is alpha*f1 + beta*f2. Data is taken from b1 region of f1...</div><div class="ttdef"><b>Definition:</b> AMReX_BaseFab.H:2757</div></div>
+<div class="ttc" id="classamrex_1_1_base_fab_html_ae821407bd8fde22957482d80d8f5bec9"><div class="ttname"><a href="classamrex_1_1_base_fab.html#ae821407bd8fde22957482d80d8f5bec9">amrex::BaseFab::linComb</a></div><div class="ttdeci">BaseFab&lt; T &gt; &amp; linComb(const BaseFab&lt; T &gt; &amp;f1, const Box &amp;b1, int comp1, const BaseFab&lt; T &gt; &amp;f2, const Box &amp;b2, int comp2, Real alpha, Real beta, const Box &amp;b, int comp, int numcomp=1)</div><div class="ttdoc">Linear combination. Result is alpha*f1 + beta*f2. Data is taken from b1 region of f1...</div><div class="ttdef"><b>Definition:</b> AMReX_BaseFab.H:2767</div></div>
 <div class="ttc" id="classamrex_1_1_base_fab_html_a61944781ac783ff9fba39a9e87ec8d6e"><div class="ttname"><a href="classamrex_1_1_base_fab.html#a61944781ac783ff9fba39a9e87ec8d6e">amrex::BaseFab::numpts</a></div><div class="ttdeci">long numpts</div><div class="ttdef"><b>Definition:</b> AMReX_BaseFab.H:907</div></div>
 <div class="ttc" id="namespaceamrex_html_ae4e0f8aface4c69e30b8808160a07dff"><div class="ttname"><a href="namespaceamrex.html#ae4e0f8aface4c69e30b8808160a07dff">amrex::TotalBytesAllocatedInFabs</a></div><div class="ttdeci">long TotalBytesAllocatedInFabs()</div><div class="ttdef"><b>Definition:</b> AMReX_BaseFab.cpp:71</div></div>
 <div class="ttc" id="classamrex_1_1_base_fab_html_a8cc7fa79866b2813a9066ba15dfb655d"><div class="ttname"><a href="classamrex_1_1_base_fab.html#a8cc7fa79866b2813a9066ba15dfb655d">amrex::BaseFab::isCopyOMPSafe</a></div><div class="ttdeci">static bool isCopyOMPSafe()</div><div class="ttdef"><b>Definition:</b> AMReX_BaseFab.H:173</div></div>
