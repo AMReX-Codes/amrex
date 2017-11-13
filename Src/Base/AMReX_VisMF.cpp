@@ -39,8 +39,8 @@ long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
 //
 // Set these in Initialize().
 //
-int VisMF::nOutFiles(64);
-int VisMF::nMFFileInStreams(1);
+int VisMF::nOutFiles(256);
+int VisMF::nMFFileInStreams(4);
 
 namespace
 {
