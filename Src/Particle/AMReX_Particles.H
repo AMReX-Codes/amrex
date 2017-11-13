@@ -686,6 +686,10 @@ public:
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
                      const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
 
+    void CheckpointPre ();
+
+    void CheckpointPost ();
+
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
 
     void WritePlotFile (const std::string& dir, const std::string& name, 
@@ -803,6 +807,20 @@ public:
       levelDirectoriesCreated = tf;
     }
 
+    void SetUsePrePost(bool tf) {
+      usePrePost = tf;
+    }
+    bool GetUsePrePost() {
+      return usePrePost;
+    }
+
+    void SetUseUnlink(bool tf) {
+      doUnlink = tf;
+    }
+    bool GetUseUnlink() {
+      return doUnlink;
+    }
+
 
 protected:
 
@@ -848,7 +866,18 @@ protected:
     ParGDBBase* m_gdb;
     bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
-    bool        levelDirectoriesCreated;
+
+    // ---- variables for i/o optimization saved for pre and post checkpoint
+    bool         levelDirectoriesCreated;
+    bool         usePrePost;
+    bool         doUnlink;
+    long nparticlesPrePost;
+    Vector<bool> gotsomePrePost;        // ---- [level]
+    Vector<Vector<int>>  whichPrePost;  // ---- [level]
+    Vector<Vector<int>>  countPrePost;  // ---- [level]
+    Vector<Vector<long>> wherePrePost;  // ---- [level]
+    mutable std::string HdrFileNamePrePost;
+
     
 private:
     void AssignDensityDoit (int rho_index, 
