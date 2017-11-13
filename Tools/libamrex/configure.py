@@ -44,9 +44,9 @@ def configure(argv):
                         choices=["yes","no"],
                         default="yes")
     parser.add_argument("--enable-linear-solver",
-                        help="Enable AMReX linear solvers [default=no]",
+                        help="Enable AMReX linear solvers [default=yes]",
                         choices=["yes","no"],
-                        default="no")                        
+                        default="yes")
     parser.add_argument("--allow-different-compiler",
                         help="Allow an application to use a different compiler than the one used to build libamrex [default=no]",
                         choices=["yes","no"],
