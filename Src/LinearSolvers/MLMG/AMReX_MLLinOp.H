@@ -264,7 +264,9 @@ private:
     void defineAuxData ();
     void defineBC ();
     static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
-    static DistributionMapping makeConsolidatedDMap (const DistributionMapping& fdm);
+    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba,
+						     const DistributionMapping& fdm,
+						     int factor);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
 };
 
