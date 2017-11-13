@@ -75,7 +75,7 @@ $$
 where $\Fbold = \vbold \phi - \nu \nabla phi$.
 The algorithms here are implemented in finite volume form:
 $$
-D(F)_\ibold = \frac{1}{dx} \sum^D_{d = 1} (F_{\iph} - F_\imh)
+D(F)_\ibold = \frac{1}{\dx} \sum^D_{d = 1} (F_{\iph} - F_\imh)
 $$
 and are
 therefore strongly conservative.
@@ -136,7 +136,7 @@ $$
 \end{array}
 $$
 Our spatia discretization is discribed by McCorquodale and Colella
-\cite{mccorquodate_colella} and is fourth order in space.   As of the
+\cite{mccorquodale_collela} and is fourth order in space.   As of the
 writing of this document,  we have implemented the simpler version
 presented there.
 \begin{itemize}
@@ -184,11 +184,15 @@ quartic interpolation for spatial interplation.   For time
 interpolation,     We form  a polynomial in time (following Fok and
 Rosales \cite{fok_rosales}).
 $$
-\phi(t^{l-1} + \Xi \dt^{l-1}) = \phi^0 + \xi k_1 + \frac{\xi^2}{2}(k_2-k_1)
+\phi(t^{l-1} + \xi \dt^{l-1}) = \phi^0 + \xi k_1 + \frac{\xi^2}{2}(k_2-k_1)
 $$
 where $k_1 = -D(F(\phi^n)), k_2 = -D(F(\phi^1))$.
 
 \subsection{RK4}
+
+This option has precisely the same discretization as McCorquodale.
+The only exception being the spacial coarse-fine interpolation is done
+via FillPatchUtil using quartic interpolation.
 
 \bibliography{references}
 

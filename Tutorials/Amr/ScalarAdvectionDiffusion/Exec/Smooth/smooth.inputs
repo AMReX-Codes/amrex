@@ -21,6 +21,9 @@ amr.v              = 1       # verbosity in Amr
 
 #amr.grid_log         = grdlog  # name of grid logging file
 
+#this can be godunov, rk2, rk3, rk4
+algorithm = "rk3"
+use_limiting = true
 
 # REFINEMENT / REGRIDDING
 amr.max_level       = 1       # maximum level number allowed

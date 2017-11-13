@@ -17,6 +17,7 @@ namespace amrex
   int      AmrLevelAdv::NUM_STATE       = 1;  // One variable in the state
   int      AmrLevelAdv::NUM_GROW        = 5;  // number of ghost cells
 
+  using std::string;
 
   /////
   void
@@ -223,6 +224,7 @@ namespace amrex
   AmrLevelAdv ()
   {
     flux_reg = 0;
+    initSwitches();
   }
 
 //
@@ -238,6 +240,7 @@ namespace amrex
     :
     AmrLevel(papa,lev,level_geom,bl,dm,time) 
   {
+    initSwitches();
     flux_reg = 0;
     if (level > 0 && do_reflux)
       flux_reg = new YAFluxRegister(bl, papa.boxArray(level-1),
@@ -379,6 +382,49 @@ namespace amrex
 //
   void
   AmrLevelAdv::
+  initSwitches()
+  {
+    string algorithm("rk3");
+    ParmParse pp;
+    pp.query("algorithm", algorithm);
+    static bool printedstuff = false;
+    bool use_limiting = true;
+    pp.query("use_limiting",use_limiting);
+    m_use_fixed_dt = false;
+    pp.query("use_fixed_dt", m_use_fixed_dt);
+    if(m_use_fixed_dt)
+    {
+      pp.get("fixed_dt", m_fixed_dt);
+    }
+
+    if(!printedstuff)
+    {
+      amrex::Print() << "**** using the " << algorithm << " algorithm ";
+      if(use_limiting)
+      {
+        amrex::Print() << "with limting ON ****" << endl;
+      }
+      else
+      {
+        amrex::Print() << "with limting OFF ****" << endl;
+      }
+      if(m_use_fixed_dt)
+      {
+        amrex::Print() << "using fixed dt = " << m_fixed_dt  << endl;
+      }
+      else
+      {
+        amrex::Print() << "dt calculated dynamically" << endl;
+      }
+      printedstuff = true;
+    }
+
+    m_algorithm = algorithm;
+    m_use_limiting = use_limiting;
+
+  }
+  void
+  AmrLevelAdv::
   init (AmrLevel &old)
   {
     AmrLevelAdv* oldlev = (AmrLevelAdv*) &old;
@@ -394,6 +440,7 @@ namespace amrex
     MultiFab& S_new = get_new_data(Phi_Type);
 
     FillPatch(old, S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
+
   }
 
 //
@@ -412,6 +459,7 @@ namespace amrex
     setTimeLevel(cur_time,dt_old,dt);
     MultiFab& S_new = get_new_data(Phi_Type);
     FillCoarsePatch(S_new, 0, cur_time, Phi_Type, 0, NUM_STATE);
+
   }
 
   Real
@@ -427,14 +475,32 @@ namespace amrex
     Real minval = S_new.min(0);
     amrex::Print() << "phi max = " << maxval << ", min = " << minval  << endl;
     Real dtval;
-//    dtval = advanceGodunov(time, dt, iteration, ncycle);
-//  dtval = advanceMOLRK2(time, dt, iteration, ncycle);
-    dtval = advanceMOLRK3(time, dt, iteration, ncycle);
-//    dtval = advanceMOLRK4(time, dt, iteration, ncycle);
-    ParmParse pp;
-    if(pp.contains("fixed_dt"))
+
+    if(m_algorithm.compare(string("godunov")) == 0)
     {
-      pp.get("fixed_dt", dtval);
+      dtval = advanceGodunov(time, dt, iteration, ncycle);
+    }
+    else if(m_algorithm.compare(string("rk2")) == 0)
+    {
+      dtval = advanceMOLRK2(time, dt, iteration, ncycle);
+    }
+    else if(m_algorithm.compare(string("rk3")) == 0)
+    {
+      dtval = advanceMOLRK3(time, dt, iteration, ncycle);
+    }
+    else if(m_algorithm.compare(string("rk4")) == 0)
+    {
+      dtval = advanceMOLRK4(time, dt, iteration, ncycle);
+    }
+    else
+    {
+      amrex::Error("bogus algorithm parameter");
+    }
+
+
+    if(m_use_fixed_dt);
+    {
+      dtval = m_fixed_dt;
     }
     return dtval;
   }

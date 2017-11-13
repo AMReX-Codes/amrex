@@ -217,6 +217,11 @@ namespace amrex
     void
     fillGhostCellsRK3 (MultiFab & a_phiC, //phi on the coarser level
                        const int& a_stage); //rk3 stage to fill ghost for;
+
+    bool m_use_fixed_dt, m_use_limiting;
+    std::string m_algorithm;
+    Real m_fixed_dt;
+    void initSwitches();
   };    
 
 //
