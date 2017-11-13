@@ -221,6 +221,7 @@ namespace amrex
     bool m_use_fixed_dt, m_use_limiting;
     std::string m_algorithm;
     Real m_fixed_dt;
+    int  m_iuselimit;
     void initSwitches();
   };    
 
