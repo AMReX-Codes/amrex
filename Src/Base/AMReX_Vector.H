@@ -58,6 +58,15 @@ namespace amrex
     }
 
     template <class T>
+    Vector<T*> GetVecOfPtrs (Vector<T>& a)
+    {
+	Vector<T*> r;
+        r.reserve(a.size());
+	for (auto& x : a)  r.push_back(&x);
+	return r;
+    }
+
+    template <class T>
     Vector<T*> GetVecOfPtrs (const Vector<std::unique_ptr<T> >& a)
     {
 	Vector<T*> r;
