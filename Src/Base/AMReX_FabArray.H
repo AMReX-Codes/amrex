@@ -1055,8 +1055,12 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 		       int                        nvar,
 		       int                        ngrow,
 		       const MFInfo&              info,
-                       const FabFactory<FAB>&     factory)
+                       const FabFactory<FAB>&     a_factory)
 {
+    std::unique_ptr<FabFactory<FAB> > factory(a_factory.clone());
+
+    clear();
+
     define_function_called = true;
 
     BL_ASSERT(ngrow >= 0);
@@ -1066,7 +1070,8 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(factory);
+        m_factory = std::move(factory);
+        AllocFabs(*m_factory);
     }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
@@ -1105,8 +1110,6 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 
     FabInfo fab_info;
     fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
-
-    m_factory.reset(factory.clone());    
 
     m_fabs_v.reserve(n);
 
