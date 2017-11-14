@@ -48,16 +48,9 @@ public:
 
 namespace amrex
 {
-    template <class T>
-    Vector<const T*> GetVecOfConstPtrs (const Vector<T>& a)
-    {
-	Vector<const T*> r;
-        r.reserve(a.size());
-	for (const auto& x : a)  r.push_back(&x);
-	return r;
-    }
+    /////////////////////////////////////////////////////////////
 
-    template <class T>
+    template <class T, typename = typename T::FABType>
     Vector<T*> GetVecOfPtrs (Vector<T>& a)
     {
 	Vector<T*> r;
@@ -75,6 +68,17 @@ namespace amrex
 	return r;
     }
 
+    /////////////////////////////////////////////////////////////
+
+    template <class T, typename = typename T::FABType>
+    Vector<const T*> GetVecOfConstPtrs (const Vector<T>& a)
+    {
+	Vector<const T*> r;
+        r.reserve(a.size());
+	for (const auto& x : a)  r.push_back(&x);
+	return r;
+    }
+
     template <class T>
     Vector<const T*> GetVecOfConstPtrs (const Vector<std::unique_ptr<T> >& a)
     {
@@ -84,11 +88,13 @@ namespace amrex
 	return r;
     }
 
-    template <class T>
+    template <class T, typename = typename T::FABType>
     Vector<const T*> GetVecOfConstPtrs (const Vector<T*>& a)
     {
 	return {a.begin(), a.end()};
     }
+
+    /////////////////////////////////////////////////////////////
 
     template <class T>
     Vector<Vector<T*> > GetVecOfVecOfPtrs (const Vector<Vector<std::unique_ptr<T> > >& a)
@@ -98,6 +104,8 @@ namespace amrex
 	for (const auto& x : a)  r.push_back(GetVecOfPtrs(x));
 	return r;
     }
+
+    /////////////////////////////////////////////////////////////
 
     template <class T>
     void FillNull (Vector<T*>& a)
@@ -110,6 +118,8 @@ namespace amrex
     {
 	std::for_each(a.begin(), a.end(), [](std::unique_ptr<T>& p) { p.reset(); });
     }
+
+    /////////////////////////////////////////////////////////////
 
     template <class T> 
     void RemoveDuplicates(Vector<T>& vec) {
