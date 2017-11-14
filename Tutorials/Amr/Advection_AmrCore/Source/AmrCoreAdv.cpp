@@ -6,6 +6,10 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_PhysBCFunct.H>
 
+#ifdef BL_MEM_PROFILING
+#include <AMReX_MemProfiler.H>
+#endif
+
 #include <AmrCoreAdv.H>
 #include <AmrCoreAdv_F.H>
 
@@ -122,6 +126,14 @@ AmrCoreAdv::Evolve ()
 	    last_plot_file_step = step+1;
 	    WritePlotFile();
 	}
+
+#ifdef BL_MEM_PROFILING
+        {
+            std::ostringstream ss;
+            ss << "[STEP " << step+1 << "]";
+            MemProfiler::report(ss.str());
+        }
+#endif
 
 	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
     }
