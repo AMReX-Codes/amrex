@@ -1751,7 +1751,15 @@ Amr::checkPoint ()
     }
 
     for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPointPre(ckfileTemp, HeaderFile);
+    }
+
+    for (int i = 0; i <= finest_level; ++i) {
         amr_level[i]->checkPoint(ckfileTemp, HeaderFile);
+    }
+
+    for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPointPost(ckfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -2094,9 +2102,8 @@ Amr::coarseTimeStep (Real stop_time)
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
     BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
-    BL_TRACE_PROFILE_FLUSH();
     BL_COMM_PROFILE_NAMETAG(stepName.str());
-    BL_COMM_PROFILE_FLUSH();
+    BL_PROFILE_FLUSH();
 
     if (verbose > 0)
     {

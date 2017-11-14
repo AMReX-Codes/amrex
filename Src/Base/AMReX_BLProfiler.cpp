@@ -36,8 +36,10 @@ int BLProfiler::currentStep = 0;
 const int defaultFlushSize = 8192000;
 int BLProfiler::csFlushSize = defaultFlushSize;
 int BLProfiler::traceFlushSize = defaultFlushSize;
+int BLProfiler::csFlushCount = 0;
+int BLProfiler::traceFlushCount = 0;
 int BLProfiler::flushInterval = -1;
-int BLProfiler::nProfFiles  = 96;
+int BLProfiler::nProfFiles  = 256;
 int BLProfiler::finestLevel = -1;
 int BLProfiler::maxLevel    = -1;
 
@@ -264,7 +266,15 @@ void BLProfiler::Initialize() {
 void BLProfiler::InitParams() {
   ParmParse pParse("blprofiler");
   pParse.query("prof_nfiles", nProfFiles);
-  amrex::Print() << "PPPPPPPP::  nProfFiles = " << nProfFiles << std::endl;
+  pParse.query("prof_csflushsize", csFlushSize);
+  pParse.query("prof_traceflushsize", traceFlushSize);
+  pParse.query("prof_flushinterval", flushInterval);
+  pParse.query("prof_flushtimeinterval", flushTimeInterval);
+  amrex::Print() << "PPPPPPPP::  nProfFiles         = " << nProfFiles << '\n';
+  amrex::Print() << "PPPPPPPP::  csFlushSize        = " << csFlushSize << '\n';
+  amrex::Print() << "PPPPPPPP::  traceFlushSize     = " << traceFlushSize << '\n';
+  amrex::Print() << "PPPPPPPP::  flushInterval      = " << flushInterval << '\n';
+  amrex::Print() << "PPPPPPPP::  flushTimeInterval  = " << flushTimeInterval << " s." << '\n';
 }
 
 
@@ -448,7 +458,7 @@ void BLProfiler::RegionStop(const std::string &rname) {
 }
 
 
-void BLProfiler::Finalize() {
+void BLProfiler::Finalize(bool bFlushing) {
   if( ! bInitialized) {
     return;
   }
@@ -590,7 +600,8 @@ void BLProfiler::Finalize() {
     }
 
     const int nOutFiles = std::max(1, std::min(nProcs, nProfFiles));
-    std::string cFileName(cdir + '/' + cdir + "_D_");
+    std::string phFilePrefix("bl_prof");
+    std::string cFileName(cdir + '/' + phFilePrefix + "_D_");
     long seekPos(0);
     bool setBuf(true);
     NFilesIter nfi(nOutFiles, cFileName, groupSets, setBuf);
@@ -614,7 +625,6 @@ void BLProfiler::Finalize() {
     ParallelDescriptor::Gather(&seekPos, 1, seekPosOut.dataPtr(), 1, iopNum);
 
     if(ParallelDescriptor::IOProcessor()) {
-      std::string phFilePrefix("bl_prof");
       std::string phFileName(cdir + '/' + phFilePrefix + "_H");
       std::ofstream phHeaderFile;
       phHeaderFile.open(phFileName.c_str(), std::ios::out | std::ios::trunc);
@@ -627,7 +637,7 @@ void BLProfiler::Finalize() {
         phHeaderFile << "phFName " << '"' << phit->first << '"' << '\n';
       }
 
-      std::string dFileName(cdir + "_D_");
+      std::string dFileName(phFilePrefix + "_D_");
       for(int p(0); p < nProcs; ++p) {
         std::string dFullName(NFilesIter::FileName(nOutFiles, dFileName, p, groupSets));
 	phHeaderFile << "BLProfProc " << p << " datafile " << dFullName
@@ -930,13 +940,14 @@ void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace dat
     if(bFlushing) {
       int nCT(vCallTrace.size());
       ParallelDescriptor::ReduceIntMax(nCT);
-      if(nCT < traceFlushSize) {
+      bool doFlush(nCT > traceFlushSize);
+      if(doFlush) {
+	  amrex::Print() << "Flushing call traces:  nCT traceFlushSize = " << nCT
+			 << "  " << traceFlushSize << "\n";
+      } else {
 	  amrex::Print() << "Bypassing call trace flush, nCT < traceFlushSize:  " << nCT
 			 << "  " << traceFlushSize << "\n";
 	  return;
-      } else {
-	  amrex::Print() << "Flushing call traces:  nCT traceFlushSize = " << nCT
-			 << "  " << traceFlushSize << "\n";
       }
     }
 
