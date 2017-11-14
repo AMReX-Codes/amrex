@@ -140,79 +140,70 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;    }</div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00061"></a><span class="lineno"><a class="line" href="namespaceamrex.html#af63001c4c248ad54ddfad31b28809879">   61</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a> <a class="code" href="namespaceamrex.html#af63001c4c248ad54ddfad31b28809879">GetVecOfPtrs</a> (<a class="code" href="classamrex_1_1_vector.html">Vector&lt;T&gt;</a>&amp; a)</div>
+<div class="line"><a name="l00061"></a><span class="lineno"><a class="line" href="namespaceamrex.html#a22a501f5be1e47c511f000546bcae72a">   61</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a> <a class="code" href="namespaceamrex.html#a22a501f5be1e47c511f000546bcae72a">GetVecOfPtrs</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;std::unique_ptr&lt;T&gt; &gt;&amp; a)</div>
 <div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;    {</div>
 <div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a> r;</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;        r.reserve(a.<a class="code" href="classamrex_1_1_vector.html#ac1b29a43c8db162da73dba28c7ad737d">size</a>());</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">auto</span>&amp; x : a)  r.push_back(&amp;x);</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;        r.reserve(a.size());</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; x : a)  r.push_back(x.get());</div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;    <span class="keywordflow">return</span> r;</div>
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;    }</div>
 <div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;</div>
 <div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="namespaceamrex.html#a22a501f5be1e47c511f000546bcae72a">   70</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a> <a class="code" href="namespaceamrex.html#af63001c4c248ad54ddfad31b28809879">GetVecOfPtrs</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;std::unique_ptr&lt;T&gt; &gt;&amp; a)</div>
+<div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="namespaceamrex.html#a36a4c65f6872127d9a779ef9f971777d">   70</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;const T*&gt;</a> <a class="code" href="namespaceamrex.html#a809b743e617050c2f221b8e62dbc9b98">GetVecOfConstPtrs</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;std::unique_ptr&lt;T&gt; &gt;&amp; a)</div>
 <div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    {</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a> r;</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;const T*&gt;</a> r;</div>
 <div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;        r.reserve(a.size());</div>
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; x : a)  r.push_back(x.get());</div>
 <div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;    <span class="keywordflow">return</span> r;</div>
 <div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;    }</div>
 <div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;</div>
 <div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="namespaceamrex.html#a36a4c65f6872127d9a779ef9f971777d">   79</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;const T*&gt;</a> <a class="code" href="namespaceamrex.html#a809b743e617050c2f221b8e62dbc9b98">GetVecOfConstPtrs</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;std::unique_ptr&lt;T&gt; &gt;&amp; a)</div>
+<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="namespaceamrex.html#a898ca5f8d7db79991ea6398be89c38ed">   79</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;const T*&gt;</a> <a class="code" href="namespaceamrex.html#a809b743e617050c2f221b8e62dbc9b98">GetVecOfConstPtrs</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a>&amp; a)</div>
 <div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    {</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;const T*&gt;</a> r;</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;        r.reserve(a.size());</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; x : a)  r.push_back(x.get());</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    <span class="keywordflow">return</span> r;</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    }</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00088"></a><span class="lineno"><a class="line" href="namespaceamrex.html#a898ca5f8d7db79991ea6398be89c38ed">   88</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;const T*&gt;</a> <a class="code" href="namespaceamrex.html#a809b743e617050c2f221b8e62dbc9b98">GetVecOfConstPtrs</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a>&amp; a)</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;    {</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;    <span class="keywordflow">return</span> {a.begin(), a.end()};</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;    <span class="keywordflow">return</span> {a.begin(), a.end()};</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;    }</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00085"></a><span class="lineno"><a class="line" href="namespaceamrex.html#a77fdd4258ec656fb99a6124a73501803">   85</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;Vector&lt;T*&gt;</a> &gt; <a class="code" href="namespaceamrex.html#a77fdd4258ec656fb99a6124a73501803">GetVecOfVecOfPtrs</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;<a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;std::unique_ptr&lt;T&gt; &gt; &gt;&amp; a)</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    {</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;Vector&lt;T*&gt;</a> &gt; r;</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;        r.reserve(a.size());</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; x : a)  r.push_back(<a class="code" href="namespaceamrex.html#a22a501f5be1e47c511f000546bcae72a">GetVecOfPtrs</a>(x));</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;    <span class="keywordflow">return</span> r;</div>
 <div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;    }</div>
 <div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;</div>
 <div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00094"></a><span class="lineno"><a class="line" href="namespaceamrex.html#a77fdd4258ec656fb99a6124a73501803">   94</a></span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;Vector&lt;T*&gt;</a> &gt; <a class="code" href="namespaceamrex.html#a77fdd4258ec656fb99a6124a73501803">GetVecOfVecOfPtrs</a> (<span class="keyword">const</span> <a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;<a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;std::unique_ptr&lt;T&gt; &gt; &gt;&amp; a)</div>
+<div class="line"><a name="l00094"></a><span class="lineno"><a class="line" href="namespaceamrex.html#aabc637934b6fa1a7b0664ad3b61f0f69">   94</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="namespaceamrex.html#aabc637934b6fa1a7b0664ad3b61f0f69">FillNull</a> (<a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a>&amp; a)</div>
 <div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;    {</div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;Vector&lt;T*&gt;</a> &gt; r;</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;        r.reserve(a.size());</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; x : a)  r.push_back(<a class="code" href="namespaceamrex.html#af63001c4c248ad54ddfad31b28809879">GetVecOfPtrs</a>(x));</div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    <span class="keywordflow">return</span> r;</div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    }</div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;</div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00103"></a><span class="lineno"><a class="line" href="namespaceamrex.html#aabc637934b6fa1a7b0664ad3b61f0f69">  103</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="namespaceamrex.html#aabc637934b6fa1a7b0664ad3b61f0f69">FillNull</a> (<a class="code" href="classamrex_1_1_vector.html">Vector&lt;T*&gt;</a>&amp; a)</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;    {</div>
-<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    std::for_each(a.begin(), a.end(), [](T*&amp; p) { p = <span class="keyword">nullptr</span>; });</div>
-<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;    }</div>
-<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;</div>
-<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a name="l00109"></a><span class="lineno"><a class="line" href="namespaceamrex.html#abc4288a3fe5ceaea66583df8f170785f">  109</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="namespaceamrex.html#aabc637934b6fa1a7b0664ad3b61f0f69">FillNull</a> (<a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;std::unique_ptr&lt;T&gt; &gt;&amp; a)</div>
-<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;    {</div>
-<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;    std::for_each(a.begin(), a.end(), [](std::unique_ptr&lt;T&gt;&amp; p) { p.reset(); });</div>
-<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;    }</div>
-<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;</div>
-<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; </div>
-<div class="line"><a name="l00115"></a><span class="lineno"><a class="line" href="namespaceamrex.html#adc731523d4241d981e7279b29c5d7a6d">  115</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="namespaceamrex.html#adc731523d4241d981e7279b29c5d7a6d">RemoveDuplicates</a>(<a class="code" href="classamrex_1_1_vector.html">Vector&lt;T&gt;</a>&amp; vec) {</div>
-<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;        std::sort(vec.begin(), vec.end());</div>
-<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;        <span class="keyword">auto</span> it = std::unique(vec.begin(), vec.end());</div>
-<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160;        vec.erase(it, vec.end());</div>
-<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;    }</div>
-<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;}</div>
-<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;</div>
-<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;<span class="preprocessor"></span></div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    std::for_each(a.begin(), a.end(), [](T*&amp; p) { p = <span class="keyword">nullptr</span>; });</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;    }</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
+<div class="line"><a name="l00100"></a><span class="lineno"><a class="line" href="namespaceamrex.html#abc4288a3fe5ceaea66583df8f170785f">  100</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="namespaceamrex.html#aabc637934b6fa1a7b0664ad3b61f0f69">FillNull</a> (<a class="code" href="classamrex_1_1_vector.html">Vector</a>&lt;std::unique_ptr&lt;T&gt; &gt;&amp; a)</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;    {</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    std::for_each(a.begin(), a.end(), [](std::unique_ptr&lt;T&gt;&amp; p) { p.reset(); });</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;    }</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt; </div>
+<div class="line"><a name="l00106"></a><span class="lineno"><a class="line" href="namespaceamrex.html#adc731523d4241d981e7279b29c5d7a6d">  106</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="namespaceamrex.html#adc731523d4241d981e7279b29c5d7a6d">RemoveDuplicates</a>(<a class="code" href="classamrex_1_1_vector.html">Vector&lt;T&gt;</a>&amp; vec) {</div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;        std::sort(vec.begin(), vec.end());</div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;        <span class="keyword">auto</span> it = std::unique(vec.begin(), vec.end());</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;        vec.erase(it, vec.end());</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;    }</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;}</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;</div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160;<span class="preprocessor"></span></div>
 <div class="ttc" id="classamrex_1_1_vector_html_a6a42df7ea8ac250bb3211eaaa111281f"><div class="ttname"><a href="classamrex_1_1_vector.html#a6a42df7ea8ac250bb3211eaaa111281f">amrex::Vector::operator[]</a></div><div class="ttdeci">T &amp; operator[](std::size_t i)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:26</div></div>
 <div class="ttc" id="_a_m_re_x___b_lassert_8_h_html_a53ebc8b227de416f458800faa44c619e"><div class="ttname"><a href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a></div><div class="ttdeci">#define BL_ASSERT(EX)</div><div class="ttdef"><b>Definition:</b> AMReX_BLassert.H:49</div></div>
 <div class="ttc" id="_a_m_re_x___b_lassert_8_h_html"><div class="ttname"><a href="_a_m_re_x___b_lassert_8_h.html">AMReX_BLassert.H</a></div></div>
-<div class="ttc" id="namespaceamrex_html_adc731523d4241d981e7279b29c5d7a6d"><div class="ttname"><a href="namespaceamrex.html#adc731523d4241d981e7279b29c5d7a6d">amrex::RemoveDuplicates</a></div><div class="ttdeci">void RemoveDuplicates(Vector&lt; T &gt; &amp;vec)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:115</div></div>
-<div class="ttc" id="namespaceamrex_html_aabc637934b6fa1a7b0664ad3b61f0f69"><div class="ttname"><a href="namespaceamrex.html#aabc637934b6fa1a7b0664ad3b61f0f69">amrex::FillNull</a></div><div class="ttdeci">void FillNull(Vector&lt; T * &gt; &amp;a)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:103</div></div>
+<div class="ttc" id="namespaceamrex_html_adc731523d4241d981e7279b29c5d7a6d"><div class="ttname"><a href="namespaceamrex.html#adc731523d4241d981e7279b29c5d7a6d">amrex::RemoveDuplicates</a></div><div class="ttdeci">void RemoveDuplicates(Vector&lt; T &gt; &amp;vec)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:106</div></div>
+<div class="ttc" id="namespaceamrex_html_aabc637934b6fa1a7b0664ad3b61f0f69"><div class="ttname"><a href="namespaceamrex.html#aabc637934b6fa1a7b0664ad3b61f0f69">amrex::FillNull</a></div><div class="ttdeci">void FillNull(Vector&lt; T * &gt; &amp;a)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:94</div></div>
 <div class="ttc" id="classamrex_1_1_vector_html_ac1b29a43c8db162da73dba28c7ad737d"><div class="ttname"><a href="classamrex_1_1_vector.html#ac1b29a43c8db162da73dba28c7ad737d">amrex::Vector::size</a></div><div class="ttdeci">long size() const </div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:43</div></div>
-<div class="ttc" id="namespaceamrex_html_a77fdd4258ec656fb99a6124a73501803"><div class="ttname"><a href="namespaceamrex.html#a77fdd4258ec656fb99a6124a73501803">amrex::GetVecOfVecOfPtrs</a></div><div class="ttdeci">Vector&lt; Vector&lt; T * &gt; &gt; GetVecOfVecOfPtrs(const Vector&lt; Vector&lt; std::unique_ptr&lt; T &gt; &gt; &gt; &amp;a)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:94</div></div>
+<div class="ttc" id="namespaceamrex_html_a77fdd4258ec656fb99a6124a73501803"><div class="ttname"><a href="namespaceamrex.html#a77fdd4258ec656fb99a6124a73501803">amrex::GetVecOfVecOfPtrs</a></div><div class="ttdeci">Vector&lt; Vector&lt; T * &gt; &gt; GetVecOfVecOfPtrs(const Vector&lt; Vector&lt; std::unique_ptr&lt; T &gt; &gt; &gt; &amp;a)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:85</div></div>
 <div class="ttc" id="classamrex_1_1_vector_html"><div class="ttname"><a href="classamrex_1_1_vector.html">amrex::Vector</a></div><div class="ttdoc">This class is a thin wrapper around std::vector. Unlike vector, Vector::operator[] provides bound che...</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:18</div></div>
-<div class="ttc" id="namespaceamrex_html_af63001c4c248ad54ddfad31b28809879"><div class="ttname"><a href="namespaceamrex.html#af63001c4c248ad54ddfad31b28809879">amrex::GetVecOfPtrs</a></div><div class="ttdeci">Vector&lt; T * &gt; GetVecOfPtrs(Vector&lt; T &gt; &amp;a)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:61</div></div>
 <div class="ttc" id="namespaceamrex_html_a809b743e617050c2f221b8e62dbc9b98"><div class="ttname"><a href="namespaceamrex.html#a809b743e617050c2f221b8e62dbc9b98">amrex::GetVecOfConstPtrs</a></div><div class="ttdeci">Vector&lt; const T * &gt; GetVecOfConstPtrs(const Vector&lt; T &gt; &amp;a)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:52</div></div>
+<div class="ttc" id="namespaceamrex_html_a22a501f5be1e47c511f000546bcae72a"><div class="ttname"><a href="namespaceamrex.html#a22a501f5be1e47c511f000546bcae72a">amrex::GetVecOfPtrs</a></div><div class="ttdeci">Vector&lt; T * &gt; GetVecOfPtrs(const Vector&lt; std::unique_ptr&lt; T &gt; &gt; &amp;a)</div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:61</div></div>
 <div class="ttc" id="classamrex_1_1_vector_html_a6a70bd3c70b04dd1008736d9545c18ce"><div class="ttname"><a href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">amrex::Vector::dataPtr</a></div><div class="ttdeci">T * dataPtr()</div><div class="ttdoc">get access to the underlying data pointer </div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:39</div></div>
 <div class="ttc" id="classamrex_1_1_vector_html_a9b58a8d43d0a3d8621d5b93b881fe7ce"><div class="ttname"><a href="classamrex_1_1_vector.html#a9b58a8d43d0a3d8621d5b93b881fe7ce">amrex::Vector::dataPtr</a></div><div class="ttdeci">const T * dataPtr() const </div><div class="ttdoc">get access to the underlying data pointer </div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:41</div></div>
 </div><!-- fragment --></div><!-- contents -->
