@@ -263,10 +263,9 @@ private:
                       const Vector<DistributionMapping>& a_dmap);
     void defineAuxData ();
     void defineBC ();
-    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
-    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba,
-						     const DistributionMapping& fdm,
-						     int factor);
+    static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);
+    static void makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm,
+                                      int ratio, int strategy);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
 };
 
