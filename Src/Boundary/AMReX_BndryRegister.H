@@ -107,6 +107,8 @@ public:
 		 int                        ncomp,
 		 const DistributionMapping& dm);
 
+    void clear ();
+
     //! Get box domain (as an array of boxes).
     const BoxArray& boxes () const { return grids; }
 
