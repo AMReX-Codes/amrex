@@ -465,6 +465,23 @@ AmrLevel::checkPoint (const std::string& dir,
     levelDirectoryCreated = false;  // ---- now that the checkpoint is finished
 }
 
+
+void
+AmrLevel::checkPointPre (const std::string& dir,
+                         std::ostream&      os)
+{
+    BL_PROFILE("AmrLevel::checkPointPre()");
+}
+
+
+void
+AmrLevel::checkPointPost (const std::string& dir,
+                          std::ostream&      os)
+{
+    BL_PROFILE("AmrLevel::checkPointPost()");
+}
+
+
 AmrLevel::~AmrLevel ()
 {
     parent = 0;

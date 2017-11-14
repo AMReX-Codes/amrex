@@ -24,6 +24,7 @@ NFilesIter::NFilesIter(int noutfiles, const std::string &fileprefix,
   fileNumber    = FileNumber(nOutFiles, myProc, groupSets);
   filePrefix    = fileprefix;
   fullFileName  = FileName(fileNumber, filePrefix);
+  useSparseFPP  = false;
 
   finishedWriting = false;
 
@@ -114,6 +115,57 @@ void NFilesIter::SetDynamic(int deciderproc)
 }
 
 
+void NFilesIter::SetSparseFPP(const Vector<int> &ranksToWrite)
+{
+  if(ranksToWrite.empty()) {
+    return;
+  }
+  if(ranksToWrite.size() > nProcs) {
+    amrex::Abort("**** Error in NFilesIter::SetSparseFPP:  ranksToWrite.size() > nProcs.");
+  }
+
+  sparseWritingRanks = ranksToWrite;
+
+  // ---- do more error checking here
+  // ---- ranks in range, is dynamic on already
+  mySparseFileNumber = -1;
+  for(int r(0); r < ranksToWrite.size(); ++r) {
+    if(ranksToWrite[r] < 0 || ranksToWrite[r] >= nProcs) {
+      amrex::Abort("**** Error in NFilesIter::SetSparseFPP:  rank out of range.");
+    }
+    if(ranksToWrite[r] == myProc) {
+      if(mySparseFileNumber == -1) {
+        mySparseFileNumber = r;
+      } else {
+        amrex::Abort("**** Error in NFilesIter::SetSparseFPP:  ranksToWrite not unique.");
+      }
+    }
+  }
+
+  nOutFiles = ranksToWrite.size();
+
+  if(myProc == coordinatorProc) {
+    // ---- get the write order from ranksToWrite
+    fileNumbersWriteOrder.clear();
+    fileNumbersWriteOrder.resize(nOutFiles);
+    for(int i(0); i < fileNumbersWriteOrder.size(); ++i) {
+      fileNumbersWriteOrder[i].push_back(ranksToWrite[i]);
+    }
+  }
+
+  if(mySparseFileNumber != -1) {
+    fileNumber    = mySparseFileNumber;
+    fullFileName  = FileName(fileNumber, filePrefix);
+  } else {
+    fullFileName  = "fullFileNameUndefined";
+  }
+  //std::cout << myProc << "::mySparseFileNumber fullFileName = " << mySparseFileNumber << "  " << fullFileName << std::endl;
+
+  useSparseFPP = true;
+  useStaticSetSelection = true;
+}
+
+
 NFilesIter::NFilesIter(const std::string &filename,
 		       const Vector<int> &readranks,
                        bool setBuf)
@@ -166,6 +218,29 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
 
   if(useStaticSetSelection) {
 
+    if(useSparseFPP) {
+
+      //sparseWritingRanks = ranksToWrite;
+      if(mySparseFileNumber != -1) {
+        std::cout << myProc << ":: fullFileName = " << fullFileName << std::endl;
+        if( ! appendFirst) {
+          fileStream.open(fullFileName.c_str(),
+                          std::ios::out | std::ios::trunc | std::ios::binary);
+        } else {
+          fileStream.open(fullFileName.c_str(),
+                          std::ios::out | std::ios::app | std::ios::binary);
+        }
+        if( ! fileStream.good()) {
+          amrex::FileOpenFailed(fullFileName);
+        }
+        return true;
+      } else {
+        return false;
+      }
+
+
+    } else {  // ---- the general static set selection
+
     for(int iSet(0); iSet < nSets; ++iSet) {
       if(mySetPosition == iSet) {
         if(iSet == 0 && ! appendFirst) {   // ---- first set
@@ -190,6 +265,7 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
         }
         ParallelDescriptor::Recv(&iBuff, 1, waitForPID, stWriteTag);
       }
+    }
     }
 
   } else {    // ---- use dynamic set selection
@@ -295,6 +371,17 @@ NFilesIter &NFilesIter::operator++() {
   } else {  // ---- writing
 
     if(useStaticSetSelection) {
+
+      if(useSparseFPP) {
+
+        if(mySparseFileNumber != -1) {
+          fileStream.flush();
+          fileStream.close();
+	}
+        finishedWriting = true;
+
+      } else {  // ---- the general static set selection
+
       fileStream.flush();
       fileStream.close();
 
@@ -311,6 +398,8 @@ NFilesIter &NFilesIter::operator++() {
         }
       }
       finishedWriting = true;
+
+      }
 
     } else {    // ---- use dynamic set selection
 

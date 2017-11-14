@@ -37,6 +37,8 @@ amr.checkpoint_headerversion  (def:  Version_v1  (1) )
 amr.prereadFAHeaders          (def:  true)
 amr.precreateDirectories      (def:  true)
 
+particles.particles_nfiles = 1024
+
 you can also call these to set fabconv buffer sizes:
 RealDescriptor::SetReadBufferSize(rbs);
 RealDescriptor::SetWriteBufferSize(wbs);
