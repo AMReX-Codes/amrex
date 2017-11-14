@@ -159,9 +159,7 @@ void NFilesIter::SetSparseFPP(const Vector<int> &ranksToWrite)
   } else {
     fullFileName  = "fullFileNameUndefined";
   }
-  amrex::USleep(myProc / 10);
-  std::cout << myProc << "::mySparseFileNumber fullFileName = " << mySparseFileNumber << "  " << fullFileName << std::endl;
-
+  //std::cout << myProc << "::mySparseFileNumber fullFileName = " << mySparseFileNumber << "  " << fullFileName << std::endl;
 
   useSparseFPP = true;
   useStaticSetSelection = true;
