@@ -283,6 +283,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 , <a class="el" href="classamrex_1_1_base_fab.html#a3ac1c517bd0fc4554a0fefdf3399c1d2">amrex::BaseFab&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_i_f_f_a_b.html#a9494827d0d2d3e84d7cf94106a03e12b">amrex::BaseIFFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_umap.html#a2be3b4f65316383ea177b70132beda04">amrex::BaseUmap&lt; T &gt;</a>
+, <a class="el" href="classamrex_1_1_bndry_register.html#acb41d395fa564b8c3c9d46327920d239">amrex::BndryRegister</a>
 , <a class="el" href="classamrex_1_1_box_array.html#afed0e52f6570fe4960ce4758f5558761">amrex::BoxArray</a>
 , <a class="el" href="classamrex_1_1_box_list.html#a1b546c6d1a623b0335f40983e1d46b8a">amrex::BoxList</a>
 , <a class="el" href="classamrex_1_1_derive_list.html#aca9fade63e5fd3aeda71e2c7d58f933d">amrex::DeriveList</a>
@@ -290,9 +291,11 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 , <a class="el" href="classamrex_1_1_e_b_index_space.html#a58aacb2767f2eeefa8bfcd98d136e026">amrex::EBIndexSpace</a>
 , <a class="el" href="classamrex_1_1_error_list.html#ab6e092af66fad6472ea4b6b7b273be26">amrex::ErrorList</a>
 , <a class="el" href="classamrex_1_1_fab_array.html#a7544c03f72d87f3f49ea0683848dc8aa">amrex::FabArray&lt; T &gt;</a>
+, <a class="el" href="classamrex_1_1_fab_array_base.html#a10399c20d1f9186d481354025e58f6dc">amrex::FabArrayBase</a>
 , <a class="el" href="classamrex_1_1_fab_array_copy_descriptor.html#a3c2f6e2dcbd913aa5ec7f4a9b0a037af">amrex::FabArrayCopyDescriptor&lt; FAB &gt;</a>
 , <a class="el" href="classamrex_1_1_fab_set.html#a400f9bfe07b9e4a18bee1f6cf6b98b29">amrex::FabSet</a>
 , <a class="el" href="classamrex_1_1_face_stencil.html#a569f1bd3a57034d8451668644293a548">amrex::FaceStencil</a>
+, <a class="el" href="classamrex_1_1_flux_register.html#a453233dd69feba7dad7ae904a24d7aa2">amrex::FluxRegister</a>
 , <a class="el" href="classamrex_1_1_graph_node.html#a5121e8a02394c639704d4d66bb3e3855">amrex::GraphNode</a>
 , <a class="el" href="classamrex_1_1_index_type.html#a2a7ae0e1157cac0786dea54f6898608d">amrex::IndexType</a>
 , <a class="el" href="classamrex_1_1_int_vect_set.html#a2fb420c6c3f09646fde7fbe595226b4c">amrex::IntVectSet</a>
@@ -511,24 +514,24 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </li>
 <li>contains()
 : <a class="el" href="classamrex_1_1_base_fab.html#aa1fab0c54e8fbc889de111cd3ed24f2f">amrex::BaseFab&lt; T &gt;</a>
-, <a class="el" href="classamrex_1_1_box.html#a6dd6ad5cd35b15525c078d47adba93b6">amrex::Box</a>
-, <a class="el" href="classamrex_1_1_box_array.html#a07747cdf96210e6a8f5e3ad5df4b3755">amrex::BoxArray</a>
+, <a class="el" href="classamrex_1_1_box.html#ad7f4d4cf2ed85e596562f66408305211">amrex::Box</a>
+, <a class="el" href="classamrex_1_1_box_array.html#aef0cb56c35eb69699a65b8cedac0ee8f">amrex::BoxArray</a>
 , <a class="el" href="classamrex_1_1_box_list.html#acfa6ebc3707c51857bc92183cb455ba5">amrex::BoxList</a>
-, <a class="el" href="classamrex_1_1_int_vect_set.html#a5f639454f7eb1feab3f64af5c5e70601">amrex::IntVectSet</a>
+, <a class="el" href="classamrex_1_1_int_vect_set.html#a4401ab1d87f60c59f19fccf82ebed666">amrex::IntVectSet</a>
 , <a class="el" href="classamrex_1_1_parm_parse.html#af4728cdbfdc1409ae08d340a8698cd6a">amrex::ParmParse</a>
-, <a class="el" href="classamrex_1_1_real_box.html#a96fd4f100c941b923679edc08bf07c0b">amrex::RealBox</a>
+, <a class="el" href="classamrex_1_1_real_box.html#ae49e223399444bdb0a0af80c9e2dfe7c">amrex::RealBox</a>
 </li>
 <li>contains_inf()
 : <a class="el" href="classamrex_1_1_f_array_box.html#a4eee157ae5ff50e79c48aed601b7a4de">amrex::FArrayBox</a>
 , <a class="el" href="classamrex_1_1_multi_fab.html#a402bc5b94a219d842b9a08e65d4ce09b">amrex::MultiFab</a>
 </li>
 <li>contains_nan()
-: <a class="el" href="classamrex_1_1_f_array_box.html#adca8484e7aa90a665fc6bff891c4008e">amrex::FArrayBox</a>
-, <a class="el" href="classamrex_1_1_multi_fab.html#adce743afb019874bcb8fa493db51c4d9">amrex::MultiFab</a>
+: <a class="el" href="classamrex_1_1_f_array_box.html#a042de01a64f158943749ba32ada45776">amrex::FArrayBox</a>
+, <a class="el" href="classamrex_1_1_multi_fab.html#a5a891e1dbee1ec3eef0fae0be13f6103">amrex::MultiFab</a>
 </li>
 <li>convert()
-: <a class="el" href="classamrex_1_1_box.html#a86a3243d220809540f80282b86631061">amrex::Box</a>
-, <a class="el" href="classamrex_1_1_box_array.html#af2179cbe6df46ce5bf844646775fb55e">amrex::BoxArray</a>
+: <a class="el" href="classamrex_1_1_box.html#a180b910f6352566b76ad98a03b4ca494">amrex::Box</a>
+, <a class="el" href="classamrex_1_1_box_array.html#ad830f3b87aaa26bf46f53cc54eed83ce">amrex::BoxArray</a>
 , <a class="el" href="classamrex_1_1_box_list.html#a0ba008d0086f8b70140bd8fb0d08b1a4">amrex::BoxList</a>
 </li>
 <li>convertFromNativeFormat()
@@ -541,7 +544,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classamrex_1_1_e_b_arith.html#a20a64727442d29f324b4ef5184205efc">amrex::EBArith</a>
 </li>
 <li>convertToNativeFormat()
-: <a class="el" href="classamrex_1_1_real_descriptor.html#a2ef2cf488b706a11674fe3be527147bc">amrex::RealDescriptor</a>
+: <a class="el" href="classamrex_1_1_real_descriptor.html#a72d5b0bcc86c85cbed16e52b0bff6673">amrex::RealDescriptor</a>
 </li>
 <li>Coord()
 : <a class="el" href="classamrex_1_1_coord_sys.html#a4125c12241aead6f1ba39316d18bec26">amrex::CoordSys</a>
@@ -556,12 +559,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classamrex_1_1_coord_sys.html#a51a15de25fa3980be23f00847f23f84c">amrex::CoordSys</a>
 </li>
 <li>CoordSys()
-: <a class="el" href="classamrex_1_1_coord_sys.html#a2050a523bf85efe20fef4ef62db4a8d6">amrex::CoordSys</a>
+: <a class="el" href="classamrex_1_1_coord_sys.html#a416d64647d1553fbf387cb7f44fab4f9">amrex::CoordSys</a>
 </li>
 <li>copy()
-: <a class="el" href="classamrex_1_1_base_e_b_cell_f_a_b.html#a2b6ddcfe26c887b06af6504195ae54be">amrex::BaseEBCellFAB&lt; T &gt;</a>
+: <a class="el" href="classamrex_1_1_base_e_b_cell_f_a_b.html#a9691b3936a4e407ac603f70cb8d50b90">amrex::BaseEBCellFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_e_b_face_f_a_b.html#aa45242660ece547ca59e5616ae6cf18d">amrex::BaseEBFaceFAB&lt; T &gt;</a>
-, <a class="el" href="classamrex_1_1_base_fab.html#a8183ce50eb2882fa7432cd08989cba52">amrex::BaseFab&lt; T &gt;</a>
+, <a class="el" href="classamrex_1_1_base_fab.html#ae93aac87861aecebef856760a67bd224">amrex::BaseFab&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_i_f_f_a_b.html#a66cb49974ff32bdded9e0d2e6b359698">amrex::BaseIFFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_i_v_f_a_b.html#ab99b466830dba2f2b0a6239e45bb1c36">amrex::BaseIVFAB&lt; T &gt;</a>
 </li>
@@ -574,7 +577,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 , <a class="el" href="classamrex_1_1_e_b_flux_f_a_b.html#ac63e06c82ba69d86ce3a879b5bcfb9a8">amrex::EBFluxFAB</a>
 , <a class="el" href="classamrex_1_1_e_b_graph.html#ac23efca5ebb964437cf431939abf3c4b">amrex::EBGraph</a>
 , <a class="el" href="classamrex_1_1_e_b_graph_implem.html#a53c216fa99209907883fcb2ee5cb1329">amrex::EBGraphImplem</a>
-, <a class="el" href="classamrex_1_1_fab_array.html#aa9b8434579afa8f9c0ec62305b04d463">amrex::FabArray&lt; T &gt;</a>
+, <a class="el" href="classamrex_1_1_fab_array.html#a750ed96b0152380b2e400ce0aac9ee46">amrex::FabArray&lt; T &gt;</a>
 </li>
 <li>Copy()
 : <a class="el" href="classamrex_1_1_fab_set.html#a469669c164630747b67a4c290884a5ed">amrex::FabSet</a>
@@ -587,12 +590,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </li>
 <li>copyFrom()
 : <a class="el" href="classamrex_1_1_bndry_register.html#af9a7b006622b33878423e6be4fd7fcc3">amrex::BndryRegister</a>
-, <a class="el" href="classamrex_1_1_fab_set.html#affeffcfe2649fbc28d92deae76916215">amrex::FabSet</a>
+, <a class="el" href="classamrex_1_1_fab_set.html#a2f119b545c70dc14f232664bc31df5ef">amrex::FabSet</a>
 </li>
 <li>copyFromMem()
 : <a class="el" href="classamrex_1_1_base_e_b_cell_f_a_b.html#a9d78ad5204e4ca1a694e0f4b88c38a8e">amrex::BaseEBCellFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_e_b_face_f_a_b.html#a9c198e66ffe63306b9c680b6e8239975">amrex::BaseEBFaceFAB&lt; T &gt;</a>
-, <a class="el" href="classamrex_1_1_base_fab.html#a81515f79d866165cf915e066d9767809">amrex::BaseFab&lt; T &gt;</a>
+, <a class="el" href="classamrex_1_1_base_fab.html#ac51d051c9f72dafafe9c0f4ab6fe2b4d">amrex::BaseFab&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_i_f_f_a_b.html#a222b9a0e7367ae970a9570e49258b420">amrex::BaseIFFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_i_v_f_a_b.html#af0cf58c2456fe6e0d4720a8ec28671be">amrex::BaseIVFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_e_b_data.html#ad906cf9e23e52bc27ca7155bffb661d6">amrex::EBData</a>
@@ -629,7 +632,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>copyToMem()
 : <a class="el" href="classamrex_1_1_base_e_b_cell_f_a_b.html#aa4d58f3f2111046b1b80033f63150f9c">amrex::BaseEBCellFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_e_b_face_f_a_b.html#a2ad214366d288ceacf48cb10b1aabbd3">amrex::BaseEBFaceFAB&lt; T &gt;</a>
-, <a class="el" href="classamrex_1_1_base_fab.html#ac08acb1a9f5c44b4b697a54cfa6473d8">amrex::BaseFab&lt; T &gt;</a>
+, <a class="el" href="classamrex_1_1_base_fab.html#adcb62a96a477f83ac1567a38c450c87a">amrex::BaseFab&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_i_f_f_a_b.html#afb3e927d663cdf4be06399edc795b975">amrex::BaseIFFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_base_i_v_f_a_b.html#afe870b7014282cddcdcc0021e07d393b">amrex::BaseIVFAB&lt; T &gt;</a>
 , <a class="el" href="classamrex_1_1_e_b_data.html#a3787727972903c7a9ac589a36ab46a1e">amrex::EBData</a>
@@ -701,7 +704,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classamrex_1_1_poly_geom.html#a1e88f5106da7f8b3c0d3ad2f43bf23f0">amrex::PolyGeom</a>
 </li>
 <li>CrseAdd()
-: <a class="el" href="classamrex_1_1_flux_register.html#ac01db2619376c784ccb95918f39d483e">amrex::FluxRegister</a>
+: <a class="el" href="classamrex_1_1_flux_register.html#a4f11b763bb868b4245b5135f02da8217">amrex::FluxRegister</a>
 , <a class="el" href="classamrex_1_1_y_a_flux_register.html#af1f29032a951f8bcf81022fe1117ec28">amrex::YAFluxRegister</a>
 </li>
 <li>CrseHasWork()

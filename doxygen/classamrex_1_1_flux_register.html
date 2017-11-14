@@ -131,6 +131,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a8cc3f9a89b01e82521248e4bb7ce6074"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae0f19ac94fa685e649d56cbdec3eebca"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_flux_register.html#ae0f19ac94fa685e649d56cbdec3eebca">define</a> (const <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> &amp;fine_boxes, const <a class="el" href="classamrex_1_1_distribution_mapping.html">DistributionMapping</a> &amp;dm, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;ref_ratio, int fine_lev, int nvar)</td></tr>
 <tr class="separator:ae0f19ac94fa685e649d56cbdec3eebca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a453233dd69feba7dad7ae904a24d7aa2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_flux_register.html#a453233dd69feba7dad7ae904a24d7aa2">clear</a> ()</td></tr>
+<tr class="separator:a453233dd69feba7dad7ae904a24d7aa2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac6ede466176b1730c8f411921a46b3f4"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_flux_register.html#ac6ede466176b1730c8f411921a46b3f4">refRatio</a> () const </td></tr>
 <tr class="separator:ac6ede466176b1730c8f411921a46b3f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ace37e480b63f61b9b5ac77268e7f0ccc"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_flux_register.html#ace37e480b63f61b9b5ac77268e7f0ccc">fineLevel</a> () const </td></tr>
@@ -198,6 +200,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a50339ee95902a57f40f9251322cbd143 inherit pub_methods_classamrex_1_1_bndry_register"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_bndry_register.html#a50339ee95902a57f40f9251322cbd143">define</a> (<a class="el" href="classamrex_1_1_orientation.html">Orientation</a> face, <a class="el" href="classamrex_1_1_index_type.html">IndexType</a> typ, int in_rad, int out_rad, int extent_rad, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>, const <a class="el" href="classamrex_1_1_distribution_mapping.html">DistributionMapping</a> &amp;dm)</td></tr>
 <tr class="memdesc:a50339ee95902a57f40f9251322cbd143 inherit pub_methods_classamrex_1_1_bndry_register"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build FABs along given face, specifying the <a class="el" href="classamrex_1_1_distribution_mapping.html" title="Calculates the distribution of FABs to MPI processes. ">DistributionMapping</a>.  <a href="#a50339ee95902a57f40f9251322cbd143">More...</a><br/></td></tr>
 <tr class="separator:a50339ee95902a57f40f9251322cbd143 inherit pub_methods_classamrex_1_1_bndry_register"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acb41d395fa564b8c3c9d46327920d239 inherit pub_methods_classamrex_1_1_bndry_register"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_bndry_register.html#acb41d395fa564b8c3c9d46327920d239">clear</a> ()</td></tr>
+<tr class="separator:acb41d395fa564b8c3c9d46327920d239 inherit pub_methods_classamrex_1_1_bndry_register"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a481cc8f63d2903492d64ddd2d1733b41 inherit pub_methods_classamrex_1_1_bndry_register"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_bndry_register.html#a481cc8f63d2903492d64ddd2d1733b41">boxes</a> () const </td></tr>
 <tr class="memdesc:a481cc8f63d2903492d64ddd2d1733b41 inherit pub_methods_classamrex_1_1_bndry_register"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get box domain (as an array of boxes).  <a href="#a481cc8f63d2903492d64ddd2d1733b41">More...</a><br/></td></tr>
 <tr class="separator:a481cc8f63d2903492d64ddd2d1733b41 inherit pub_methods_classamrex_1_1_bndry_register"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -458,6 +462,21 @@ Additional Inherited Members</h2></td></tr>
 <p>AddProcsToComp. </p>
 
 <p>Reimplemented from <a class="el" href="classamrex_1_1_bndry_register.html#a5f4b5cf293b11fadc3874b0061b214a1">amrex::BndryRegister</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a453233dd69feba7dad7ae904a24d7aa2"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::FluxRegister::clear </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
