@@ -79,7 +79,7 @@ public:
 
     virtual ~MultiFab () override;
 
-    MultiFab (MultiFab&& rhs) noexcept = default;
+    MultiFab (MultiFab&& rhs) noexcept;
     MultiFab& operator= (MultiFab&& rhs) noexcept = default;
 
     MultiFab (const MultiFab& rhs) = delete;
