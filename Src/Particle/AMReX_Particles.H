@@ -871,12 +871,15 @@ protected:
     bool         levelDirectoriesCreated;
     bool         usePrePost;
     bool         doUnlink;
+    int maxnextidPrePost;
+    mutable int nOutFilesPrePost;
     long nparticlesPrePost;
-    Vector<bool> gotsomePrePost;        // ---- [level]
-    Vector<Vector<int>>  whichPrePost;  // ---- [level]
-    Vector<Vector<int>>  countPrePost;  // ---- [level]
-    Vector<Vector<long>> wherePrePost;  // ---- [level]
+    Vector<long> nParticlesAtLevelPrePost;  // ---- [level]
+    mutable Vector<Vector<int>>  whichPrePost;  // ---- [level]
+    mutable Vector<Vector<int>>  countPrePost;  // ---- [level]
+    mutable Vector<Vector<long>> wherePrePost;  // ---- [level]
     mutable std::string HdrFileNamePrePost;
+    mutable Vector<std::string> filePrefixPrePost;
 
     
 private:
