@@ -151,11 +151,11 @@ void
 AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 				    const DistributionMapping& dm)
 {
-    const int ncomp = phi_new[lev-1]->nComp();
-    const int nghost = phi_new[lev-1]->nGrow();
+    const int ncomp = phi_new[lev-1].nComp();
+    const int nghost = phi_new[lev-1].nGrow();
     
-    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
-    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+    phi_new[lev].define(ba, dm, ncomp, nghost);
+    phi_old[lev].define(ba, dm, ncomp, nghost);
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
@@ -164,7 +164,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
     }
 
-    FillCoarsePatch(lev, time, *phi_new[lev], 0, ncomp);
+    FillCoarsePatch(lev, time, phi_new[lev], 0, ncomp);
 }
 
 // Remake an existing level using provided BoxArray and DistributionMapping and 
@@ -174,18 +174,13 @@ void
 AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 			 const DistributionMapping& dm)
 {
-    const int ncomp = phi_new[lev]->nComp();
-    const int nghost = phi_new[lev]->nGrow();
+    const int ncomp = phi_new[lev].nComp();
+    const int nghost = phi_new[lev].nGrow();
 
-#if __cplusplus >= 201402L
-    auto new_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
-    auto old_state = std::make_unique<MultiFab>(ba, dm, ncomp, nghost);
-#else
-    std::unique_ptr<MultiFab> new_state(new MultiFab(ba, dm, ncomp, nghost));
-    std::unique_ptr<MultiFab> old_state(new MultiFab(ba, dm, ncomp, nghost));
-#endif
+    MultiFab new_state(ba, dm, ncomp, nghost);
+    MultiFab old_state(ba, dm, ncomp, nghost);
 
-    FillPatch(lev, time, *new_state, 0, ncomp);
+    FillPatch(lev, time, new_state, 0, ncomp);
 
     std::swap(new_state, phi_new[lev]);
     std::swap(old_state, phi_old[lev]);
@@ -203,8 +198,8 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 void
 AmrCoreAdv::ClearLevel (int lev)
 {
-    phi_new[lev].reset(nullptr);
-    phi_old[lev].reset(nullptr);
+    phi_new[lev].clear();
+    phi_old[lev].clear();
     flux_reg[lev].reset(nullptr);
 }
 
@@ -217,8 +212,8 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     const int ncomp = 1;
     const int nghost = 0;
 
-    phi_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
-    phi_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+    phi_new[lev].define(ba, dm, ncomp, nghost);
+    phi_old[lev].define(ba, dm, ncomp, nghost);
 
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
@@ -231,7 +226,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     const Real* prob_lo = geom[lev].ProbLo();
     Real cur_time = t_new[lev];
 
-    MultiFab& state = *phi_new[lev];
+    MultiFab& state = phi_new[lev];
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
@@ -277,7 +272,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
     const Real* dx      = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
 
-    const MultiFab& state = *phi_new[lev];
+    const MultiFab& state = phi_new[lev];
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -349,9 +344,9 @@ AmrCoreAdv::AverageDown ()
 {
     for (int lev = finest_level-1; lev >= 0; --lev)
     {
-	amrex::average_down(*phi_new[lev+1], *phi_new[lev],
-			     geom[lev+1], geom[lev],
-			     0, phi_new[lev]->nComp(), refRatio(lev));
+	amrex::average_down(phi_new[lev+1], phi_new[lev],
+                            geom[lev+1], geom[lev],
+                            0, phi_new[lev].nComp(), refRatio(lev));
     }
 }
 
@@ -359,9 +354,9 @@ AmrCoreAdv::AverageDown ()
 void
 AmrCoreAdv::AverageDownTo (int crse_lev)
 {
-    amrex::average_down(*phi_new[crse_lev+1], *phi_new[crse_lev],
-			 geom[crse_lev+1], geom[crse_lev],
-			 0, phi_new[crse_lev]->nComp(), refRatio(crse_lev));
+    amrex::average_down(phi_new[crse_lev+1], phi_new[crse_lev],
+                        geom[crse_lev+1], geom[crse_lev],
+                        0, phi_new[crse_lev].nComp(), refRatio(crse_lev));
 }
 
 // compute the number of cells at a level
@@ -453,18 +448,18 @@ AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab*>& data, Vector<Real>& 
 
     if (time > t_new[lev] - teps && time < t_new[lev] + teps)
     {
-	data.push_back(phi_new[lev].get());
+	data.push_back(&phi_new[lev]);
 	datatime.push_back(t_new[lev]);
     }
     else if (time > t_old[lev] - teps && time < t_old[lev] + teps)
     {
-	data.push_back(phi_old[lev].get());
+	data.push_back(&phi_old[lev]);
 	datatime.push_back(t_old[lev]);
     }
     else
     {
-	data.push_back(phi_old[lev].get());
-	data.push_back(phi_new[lev].get());
+	data.push_back(&phi_old[lev]);
+	data.push_back(&phi_new[lev]);
 	datatime.push_back(t_old[lev]);
 	datatime.push_back(t_new[lev]);
     }
@@ -535,7 +530,7 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 	if (do_reflux)
 	{
             // update lev based on coarse-fine flux mismatch
-	    flux_reg[lev+1]->Reflux(*phi_new[lev], 1.0, 0, 0, phi_new[lev]->nComp(), geom[lev]);
+	    flux_reg[lev+1]->Reflux(phi_new[lev], 1.0, 0, 0, phi_new[lev].nComp(), geom[lev]);
 	}
 
 	AverageDownTo(lev); // average lev+1 down to lev
@@ -553,7 +548,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
     t_old[lev] = t_new[lev];
     t_new[lev] += dt;
 
-    MultiFab& S_new = *phi_new[lev];
+    MultiFab& S_new = phi_new[lev];
 
     const Real old_time = t_old[lev];
     const Real new_time = t_new[lev];
@@ -692,7 +687,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
     const Real* dx = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
     const Real cur_time = t_new[lev];
-    const MultiFab& S_new = *phi_new[lev];
+    const MultiFab& S_new = phi_new[lev];
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(min:dt_est)
@@ -744,7 +739,7 @@ AmrCoreAdv::PlotFileMF () const
 {
     Vector<const MultiFab*> r;
     for (int i = 0; i <= finest_level; ++i) {
-	r.push_back(phi_new[i].get());
+	r.push_back(&phi_new[i]);
     }
     return r;
 }
