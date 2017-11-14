@@ -168,10 +168,10 @@ public:
     virtual ~FabArray ();
 
     FabArray (FabArray<FAB>&& rhs) noexcept;
+    FabArray<FAB>& operator= (FabArray<FAB>&& rhs) noexcept;
 
     FabArray (const FabArray<FAB>& rhs) = delete;
     FabArray<FAB>& operator= (const FabArray<FAB>& rhs) = delete;
-    FabArray<FAB>& operator= (FabArray<FAB>&& rhs) = delete;
 
     /**
     * \brief Define this FabArray identically to that performed by
@@ -946,6 +946,20 @@ FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     m_FA_stats.recordBuild();
+    rhs.m_fabs_v.clear();
+    rhs.boxarray.clear();
+    rhs.m_factory.reset();
+}
+
+template <class FAB>
+FabArray<FAB>&
+FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
+{
+    FabArrayBase::operator=(rhs);
+    m_factory = std::move(rhs.m_factory);
+    define_function_called = rhs.define_function_called;  // ???
+    m_FA_stats.recordBuild();                             // ???
+    // ??? shared memory
     rhs.m_fabs_v.clear();
     rhs.boxarray.clear();
     rhs.m_factory.reset();

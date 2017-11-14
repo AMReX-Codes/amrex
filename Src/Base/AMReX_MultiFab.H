@@ -80,10 +80,10 @@ public:
     virtual ~MultiFab () override;
 
     MultiFab (MultiFab&& rhs) noexcept = default;
+    MultiFab& operator= (MultiFab&& rhs) noexcept = default;
 
     MultiFab (const MultiFab& rhs) = delete;
     MultiFab& operator= (const MultiFab& rhs) = delete;
-    MultiFab& operator= (MultiFab&& rhs) = delete;
 
     virtual void define (const BoxArray&            bxs,
 			 const DistributionMapping& dm,
