@@ -2103,7 +2103,6 @@ Amr::coarseTimeStep (Real stop_time)
     BL_PROFILE_ADD_STEP(level_steps[0]);
     BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
     BL_COMM_PROFILE_NAMETAG(stepName.str());
-    BL_PROFILE_FLUSH();
 
     if (verbose > 0)
     {
