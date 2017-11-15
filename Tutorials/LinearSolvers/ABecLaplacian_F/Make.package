@@ -1,0 +1,3 @@
+
+F90EXE_sources += main.F90 mytest.F90
+
