@@ -229,7 +229,7 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
                                ) bind(C, name="advectDiffMOL4thOrd")
 
   use mempool_module, only : bl_allocate, bl_deallocate
-  use compute_flux_module, only : mol4thord_flux_2d
+  use compute_flux_module, only : mol4thord_flux_2d_limited, mol4thord_flux_2d_nolimit
 
   implicit none
 
@@ -298,18 +298,35 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
 !     enddo
 ! endif
   ! call a function to compute flux
-  call mol4thord_flux_2d(lo, hi, dt, dx, &
-                         uin, ui_lo, ui_hi, &
-                         vx, vx_lo, vx_hi, &
-                         vy, vy_lo, vy_hi, &
-                         flxx, fx_lo, fx_hi, &
-                         flxy, fy_lo, fy_hi, &
-                         fluxptx, phiptx, phiavex,&
-                         fluxpty, phipty, phiavey,&
-                         phiptcc, glo, ghi,nu,&
-                         deblocell, debhicell, &
-                         hisidedebfacelo, hisidedebfacehi,&
-                         hisidedebfacelo, hisidedebfacehi, printstuff, uselimit)
+  if(uselimit.eq.1) then
+     call mol4thord_flux_2d_limited(&
+          lo, hi, dt, dx, &
+          uin, ui_lo, ui_hi, &
+          vx, vx_lo, vx_hi, &
+          vy, vy_lo, vy_hi, &
+          flxx, fx_lo, fx_hi, &
+          flxy, fy_lo, fy_hi, &
+          fluxptx, phiptx, phiavex,&
+          fluxpty, phipty, phiavey,&
+          phiptcc, glo, ghi,nu,&
+          deblocell, debhicell, &
+          hisidedebfacelo, hisidedebfacehi,&
+          hisidedebfacelo, hisidedebfacehi, printstuff)
+  else
+     call mol4thord_flux_2d_nolimit(&
+          lo, hi, dt, dx, &
+          uin, ui_lo, ui_hi, &
+          vx, vx_lo, vx_hi, &
+          vy, vy_lo, vy_hi, &
+          flxx, fx_lo, fx_hi, &
+          flxy, fy_lo, fy_hi, &
+          fluxptx, phiptx, phiavex,&
+          fluxpty, phipty, phiavey,&
+          phiptcc, glo, ghi,nu,&
+          deblocell, debhicell, &
+          hisidedebfacelo, hisidedebfacehi,&
+          hisidedebfacelo, hisidedebfacehi, printstuff)
+  endif
 
   ! Do a conservative update
   do    j = lo(2),hi(2)
