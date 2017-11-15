@@ -117,6 +117,18 @@ contains
 
 
   subroutine solve_poisson ()
+    type(amrex_poisson) :: poisson
+
+    if (composite_solve) then
+
+       call amrex_poisson_build(poisson, geom, ba, dm, metric_term=.false., &
+            agglomeration=agglomeration, consolidation=consolidation)
+       
+       call poisson%set_maxorder(linop_maxorder)
+
+    else
+
+    end if
   end subroutine solve_poisson
 
 
