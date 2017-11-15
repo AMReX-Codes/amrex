@@ -44,6 +44,8 @@ public:
 
     void setFinalFillBC (int flag) { final_fill_bc = flag; }
 
+    int numAMRLevels () const { return namrlevs; }
+
 private:
 
     int verbose = 1;

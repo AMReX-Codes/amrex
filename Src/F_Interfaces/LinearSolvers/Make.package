@@ -8,7 +8,7 @@ F90EXE_sources += AMReX_multigrid_mod.F90
 CEXE_sources += AMReX_poisson_fi.cpp
 CEXE_sources += AMReX_abeclaplacian_fi.cpp
 CEXE_sources += AMReX_linop_fi.cpp
-CEXE_soruces += AMReX_multigrid_fi.cpp 
+CEXE_sources += AMReX_multigrid_fi.cpp 
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/LinearSolvers
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_Interfaces/LinearSolvers
