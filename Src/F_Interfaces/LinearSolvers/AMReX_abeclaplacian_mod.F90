@@ -6,7 +6,7 @@ module amrex_abeclapacian_module
   implicit none
 
   private
-  public :: amrex_abeclapacian, amrex_abeclapacian_build, amrex_abeclapacian_destroy
+  public :: amrex_abeclapacian_build, amrex_abeclapacian_destroy
 
   type, extends(amrex_linop), public :: amrex_abeclapacian
    contains

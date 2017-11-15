@@ -118,6 +118,8 @@ contains
 
   subroutine solve_poisson ()
     type(amrex_poisson) :: poisson
+    type(amrex_multigrid) :: multigrid
+    integer :: ilev
 
     if (composite_solve) then
 
@@ -126,6 +128,19 @@ contains
        
        call poisson%set_maxorder(linop_maxorder)
 
+       ! This is a 3d problem with Dirichlet BC
+       call poisson%set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
+                                  [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
+
+       do ilev = 0, max_level
+          ! Input: solution multifab's ghost cells at physical boundaries contain bc values.
+          call poisson%set_level_bc(ilev, solution(ilev))
+       end do
+
+       call amrex_multigrid_build(multigrid,poisson)
+
+       call amrex_poisson_destroy(poisson)
+       call amrex_multigrid_destroy(multigrid)
     else
 
     end if

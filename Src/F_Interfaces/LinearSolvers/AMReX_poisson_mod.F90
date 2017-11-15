@@ -6,7 +6,7 @@ module amrex_poisson_module
   implicit none
 
   private
-  public :: amrex_poisson, amrex_poisson_build, amrex_poisson_destroy
+  public :: amrex_poisson_build, amrex_poisson_destroy
 
   type, extends(amrex_linop), public :: amrex_poisson
    contains

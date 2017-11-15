@@ -4,7 +4,6 @@ module amrex_linop_module
   implicit none
 
   private
-  public :: amrex_linop
 
   type, public :: amrex_linop
      logical     :: owner =.false.
