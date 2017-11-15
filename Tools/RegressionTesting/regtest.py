@@ -265,7 +265,7 @@ def test_suite(argv):
         report.report_all_runs(suite, active_test_list)
 
         if suite.slack_post:
-            msg = "> copied benchmarks\n{}".format(args.copy_benchmarks)
+            msg = "> copied benchmarks\n> {}".format(args.copy_benchmarks)
             suite.slack_post_it(msg)
 
         sys.exit("done")
