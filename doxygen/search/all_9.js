@@ -116,7 +116,7 @@ var searchData=
   ['invertmatrix',['invertMatrix',['../classamrex_1_1_poly_geom.html#a1d3055fc8831da70f26d6c64d3a1880c',1,'amrex::PolyGeom']]],
   ['invnormdist',['InvNormDist',['../namespaceamrex.html#aeb571560dc9f12004d96e105ab1137e9',1,'amrex']]],
   ['invnormdistbest',['InvNormDistBest',['../namespaceamrex.html#a0dace3a79fc48a8b02686c10363b70a9',1,'amrex']]],
-  ['inwhichsidecar',['InWhichSidecar',['../namespaceamrex_1_1_parallel_descriptor.html#a22c499a39346c2d7fd3a394588198e3d',1,'amrex::ParallelDescriptor::InWhichSidecar()'],['../namespaceamrex_1_1_parallel_descriptor.html#a4639ba83cf32b5866731068d46563fc5',1,'amrex::ParallelDescriptor::inWhichSidecar()']]],
+  ['inwhichsidecar',['inWhichSidecar',['../namespaceamrex_1_1_parallel_descriptor.html#a4639ba83cf32b5866731068d46563fc5',1,'amrex::ParallelDescriptor::inWhichSidecar()'],['../namespaceamrex_1_1_parallel_descriptor.html#a22c499a39346c2d7fd3a394588198e3d',1,'amrex::ParallelDescriptor::InWhichSidecar()']]],
   ['io_5fbuffer',['IO_Buffer',['../classamrex_1_1_vis_m_f.html#a0027a67a36ec8d1b6eca3e2377c9c050',1,'amrex::VisMF']]],
   ['io_5fbuffer_5fsize',['IO_Buffer_Size',['../classamrex_1_1_vis_m_f.html#aabda29e4a41d9175464745a74072d819ac67ac04832d2bbe370aa12c6ca513e85',1,'amrex::VisMF']]],
   ['io_5foffset',['io_offset',['../classamrex_1_1_real_vect.html#aec1894e6522770880dc552babe7ec205',1,'amrex::RealVect']]],
