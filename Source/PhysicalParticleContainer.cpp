@@ -204,7 +204,11 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
 #endif
                     // If the new particle is not inside the tile box,
                     // go to the next generated particle.
-                    if(!tile_realbox.contains({x, y, z})) continue;
+#if ( BL_SPACEDIM == 3 )
+                    if(!tile_realbox.contains( {x, y, z} )) continue;
+#elif ( BL_SPACEDIM == 2 )
+                    if(!tile_realbox.contains( {x, z} )) continue;
+#endif
 
                     if (plasma_injector->insideBounds(x, y, z)) {
                         Real dens;
