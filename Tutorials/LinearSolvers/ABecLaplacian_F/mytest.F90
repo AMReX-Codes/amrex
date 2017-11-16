@@ -179,14 +179,14 @@ contains
 
     if (composite_solve) then
 
-       call amrex_poisson_build(poisson, geom, ba, dm, metric_term=.false., &
-            agglomeration=agglomeration, consolidation=consolidation)
+       call amrex_poisson_build(poisson, geom, ba, dm, &
+            metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
        
        call poisson%set_maxorder(linop_maxorder)
 
        ! This is a 3d problem with Dirichlet BC
        call poisson%set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
-                                  [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
+            &                     [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
 
        do ilev = 0, max_level
           ! solution multifab's ghost cells at physical boundaries have been set to bc values.
@@ -205,7 +205,23 @@ contains
        call amrex_multigrid_destroy(multigrid)
 
     else
+       do ilev = 0, max_level
 
+          call amrex_poisson_build(poisson, [geom(ilev)], [ba(ilev)], [dm(ilev)], &
+               metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
+       
+          call poisson%set_maxorder(linop_maxorder)
+
+          ! This is a 3d problem with Dirichlet BC
+          call poisson%set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
+               &                     [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
+               
+          if (ilev > 0) then
+             ! use coarse level data to set up bc at corase/fine boundary
+             call poisson%set_coarse_fine_bc(solution(ilev-1), ref_ratio)
+          end if
+
+       end do
     end if
   end subroutine solve_poisson
 
@@ -240,7 +256,7 @@ contains
        call plotmf(ilev)%copy(      solution(ilev), 1, 1, 1, 0)
        call plotmf(ilev)%copy(           rhs(ilev), 1, 2, 1, 0)
        call plotmf(ilev)%copy(exact_solution(ilev), 1, 3, 1, 0)
-       call plotmf(ilev)%copy(      solution(ilev), 1, 3, 1, 0)
+       call plotmf(ilev)%copy(      solution(ilev), 1, 4, 1, 0)
        call plotmf(ilev)%subtract(exact_solution(ilev),1,1,1,0)
        if (allocated(acoef)) then
           call plotmf(ilev)%copy(acoef(ilev), 1, 5, 1, 0)
