@@ -1,5 +1,10 @@
 # changes since the last release
 
+  -- Added procedures to Fortran amrex_multifab_module to add,
+     subtract, multiply, divide, saxpy and lincomb (linear
+     combination).  Note that we call it saxpy, but it doesn't mean
+     single precision.
+
   -- The `configure; make; make install` build approach enables linear
      solvers by default now.
 
