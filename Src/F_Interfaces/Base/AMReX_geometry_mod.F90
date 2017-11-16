@@ -4,11 +4,13 @@ module amrex_geometry_module
   use iso_c_binding
   use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real
   use amrex_box_module
+  use amrex_parmparse_module
 
   implicit none
 
   private
 
+  public :: amrex_geometry_set_coord_sys, amrex_geometry_set_prob_domain, amrex_geometry_set_periodic
   public :: amrex_pmask, amrex_problo, amrex_probhi
   public :: amrex_geometry_build, amrex_geometry_destroy, amrex_geometry_init_data
   public :: amrex_is_periodic, amrex_is_any_periodic, amrex_is_all_periodic
@@ -74,6 +76,34 @@ module amrex_geometry_module
   end interface
 
 contains
+
+  subroutine amrex_geometry_set_coord_sys (csys)
+    integer, intent(in) :: csys
+    type(amrex_parmparse) :: pp
+    call amrex_parmparse_build(pp,"geometry")
+    call pp%add("coord_sys", csys)
+    call amrex_parmparse_destroy(pp)
+  end subroutine amrex_geometry_set_coord_sys
+
+  subroutine amrex_geometry_set_prob_domain (pblo, pbhi)
+    real(amrex_real), intent(in) :: pblo(3), pbhi(3)
+    type(amrex_parmparse) :: pp
+    call amrex_parmparse_build(pp,"geometry")
+    call pp%addarr("prob_lo", pblo)
+    call pp%addarr("prob_hi", pbhi)
+    call amrex_parmparse_destroy(pp)
+  end subroutine amrex_geometry_set_prob_domain
+
+  subroutine amrex_geometry_set_periodic (periodic)
+    logical, intent(in) :: periodic(3)
+    integer :: imask(3)
+    type(amrex_parmparse) :: pp
+    call amrex_parmparse_build(pp,"geometry")
+    imask = 0
+    where(periodic) imask = 1
+    call pp%addarr("is_periodic", imask)
+    call amrex_parmparse_destroy(pp)
+  end subroutine amrex_geometry_set_periodic
 
   subroutine amrex_geometry_init ()
     integer :: imask(3)
