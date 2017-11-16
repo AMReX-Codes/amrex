@@ -360,6 +360,15 @@ public:
 			  int       scomp,
 			  int       ncomp,
 	                  int       dcomp=0);
+
+    static void FillPatchAdd(AmrLevel& amrlevel,
+                             MultiFab& leveldata,
+                             int       boxGrow,
+                             Real      time,
+                             int       index,
+                             int       scomp,
+                             int       ncomp,
+                             int       dcomp=0);
     
     virtual void AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
                                 int ioProcNumSCS, int ioProcNumAll, int scsMyId,

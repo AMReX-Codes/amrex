@@ -155,7 +155,8 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
                          const Vector<IntVect>& ref_ratio,
                          const std::string &versionName,
                          const std::string &levelPrefix,
-                         const std::string &mfPrefix)
+                         const std::string &mfPrefix,
+                         const Vector<std::string>& extra_dirs)
 {
     BL_PROFILE("WriteMultiLevelPlotfile()");
 
@@ -167,14 +168,18 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 
     int finest_level = nlevels-1;
 
-    //
-    // Only let 64 CPUs be writing at any one time.
-    //
-    int saveNFiles(VisMF::GetNOutFiles());
-    VisMF::SetNOutFiles(64);
+//    int saveNFiles(VisMF::GetNOutFiles());
+//    VisMF::SetNOutFiles(std::max(1024,saveNFiles));
 
-    bool callBarrier(true);
+    bool callBarrier(false);
     PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
+    if (!extra_dirs.empty()) {
+        for (const auto& d : extra_dirs) {
+            const std::string ed = plotfilename+"/"+d;
+            amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
+        }
+    }
+    ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor()) {
       std::string HeaderFileName(plotfilename + "/Header");
@@ -212,7 +217,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 	VisMF::Write(*data, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
     }
 
-    VisMF::SetNOutFiles(saveNFiles);
+//    VisMF::SetNOutFiles(saveNFiles);
 }
 
 void
@@ -221,7 +226,8 @@ WriteSingleLevelPlotfile (const std::string& plotfilename,
                           const Geometry& geom, Real time, int level_step,
                           const std::string &versionName,
                           const std::string &levelPrefix,
-                          const std::string &mfPrefix)
+                          const std::string &mfPrefix,
+                          const Vector<std::string>& extra_dirs)
 {
     Vector<const MultiFab*> mfarr(1,&mf);
     Vector<Geometry> geomarr(1,geom);
@@ -229,7 +235,7 @@ WriteSingleLevelPlotfile (const std::string& plotfilename,
     Vector<IntVect> ref_ratio;
 
     WriteMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
-                            level_steps, ref_ratio, versionName, levelPrefix, mfPrefix);
+                            level_steps, ref_ratio, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
 
 }

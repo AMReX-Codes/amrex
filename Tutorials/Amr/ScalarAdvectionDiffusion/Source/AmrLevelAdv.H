@@ -98,7 +98,13 @@ namespace amrex
                                 amrex::Real dt,
                                 int  iteration,
                                 int  ncycle) ;
+
     amrex::Real advanceMOLRK3  (Real time,
+                                Real dt,
+                                int  iteration,
+                                int  ncycle);
+
+    amrex::Real  advanceMOLRK4 (Real time,
                                 Real dt,
                                 int  iteration,
                                 int  ncycle);
@@ -198,7 +204,25 @@ namespace amrex
     static amrex::Real  cfl;
     static amrex::Real  diffco;
     static int          do_reflux;
-  
+
+    //only persistent if not on finest level
+    MultiFab m_k1;
+    MultiFab m_k2;
+    MultiFab m_k3;
+    MultiFab m_k4;
+ 
+    void
+    fillGhostCellsRK4 (MultiFab & a_phiC, //phi on the coarser level
+                       const int& a_stage); //rk4 stage to fill ghost for;
+    void
+    fillGhostCellsRK3 (MultiFab & a_phiC, //phi on the coarser level
+                       const int& a_stage); //rk3 stage to fill ghost for;
+
+    bool m_use_fixed_dt, m_use_limiting;
+    std::string m_algorithm;
+    Real m_fixed_dt;
+    int  m_iuselimit;
+    void initSwitches();
   };    
 
 //

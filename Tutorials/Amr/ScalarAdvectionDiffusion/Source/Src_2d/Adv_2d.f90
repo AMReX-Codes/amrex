@@ -6,14 +6,14 @@ subroutine advectDiffGodunov(time, lo, hi, &
      &            vy  , vy_lo, vy_hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
-     &            dx,dt, nu) bind(C, name="advectDiffGodunov")
+     &            dx,dt, nu, uselimit) bind(C, name="advectDiffGodunov")
   
   use mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : godunov_flux_2d
 
   implicit none
 
-  integer, intent(in) :: lo(2), hi(2)
+  integer, intent(in) :: lo(2), hi(2), uselimit
   double precision, intent(in) :: dx(2), dt, time, nu
   integer, intent(in) :: ui_lo(2), ui_hi(2)
   integer, intent(in) :: uo_lo(2), uo_hi(2)
@@ -70,7 +70,8 @@ subroutine advectDiffGodunov(time, lo, hi, &
                        vy, vy_lo, vy_hi, &
                        flxx, fx_lo, fx_hi, &
                        flxy, fy_lo, fy_hi, &
-                       phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu)
+                       phix_1d, phiy_1d, phix, phiy, &
+                       slope, glo, ghi, nu, uselimit)
 
 
   ! Do a conservative update
@@ -113,14 +114,14 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
      &            vy  , vy_lo, vy_hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
-     &            dx,dt, nu) bind(C, name="advectDiffMOL2ndOrd")
+     &            dx,dt, nu, uselimit) bind(C, name="advectDiffMOL2ndOrd")
   
   use mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : mol2ndord_flux_2d
 
   implicit none
 
-  integer, intent(in) :: lo(2), hi(2)
+  integer, intent(in) :: lo(2), hi(2), uselimit
   double precision, intent(in) :: dx(2), dt, time, nu
   integer, intent(in) :: ui_lo(2), ui_hi(2)
   integer, intent(in) :: uo_lo(2), uo_hi(2)
@@ -174,7 +175,7 @@ subroutine advectDiffMOL2ndOrd(time, lo, hi, &
        vy, vy_lo, vy_hi, &
        flxx, fx_lo, fx_hi, &
        flxy, fy_lo, fy_hi, &
-       phix_1d, phiy_1d,  slope, glo, ghi, nu)
+       phix_1d, phiy_1d,  slope, glo, ghi, nu, uselimit)
 
 
   ! Do a conservative update
@@ -215,24 +216,27 @@ end subroutine advectDiffMOL2ndOrd
 
 
 subroutine advectDiffMOL4thOrd(time, lo, hi, &
-     &            uin , ui_lo, ui_hi, &
-     &            dphidtout, uo_lo, uo_hi, &
-     &            vx  , vx_lo, vx_hi, &
-     &            vy  , vy_lo, vy_hi, &
-     &            flxx, fx_lo, fx_hi, &
-     &            flxy, fy_lo, fy_hi, &
-     &            dx,dt, nu,          &
-     &            deblocell, debhicell, &
-     &            debloface, debhiface &
-     ) bind(C, name="advectDiffMOL4thOrd")
-  
+                               uin , ui_lo, ui_hi, &
+                               dphidtout, uo_lo, uo_hi, &
+                               vx  , vx_lo, vx_hi, &
+                               vy  , vy_lo, vy_hi, &
+                               flxx, fx_lo, fx_hi, &
+                               flxy, fy_lo, fy_hi, &
+                               dx,dt, nu,          &
+                               deblocell, debhicell, &
+                               hisidedebfacelo, hisidedebfacehi, &
+                               losidedebfacelo, losidedebfacehi, printstuff, uselimit &
+                               ) bind(C, name="advectDiffMOL4thOrd")
+
   use mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module, only : mol4thord_flux_2d
 
   implicit none
 
-  integer, intent(in) :: lo(2), hi(2)
-  integer, intent(in) :: deblocell(2), debhicell(2), debloface(2), debhiface(2)
+  integer, intent(in) :: lo(2), hi(2), printstuff, uselimit
+  integer, intent(in) :: deblocell(2), debhicell(2)
+  integer, intent(in) :: hisidedebfacelo(2), hisidedebfacehi(2)
+  integer, intent(in) :: losidedebfacelo(2), losidedebfacehi(2)
   double precision, intent(in) :: dx(2), dt, time, nu
   integer, intent(in) :: ui_lo(2), ui_hi(2)
   integer, intent(in) :: uo_lo(2), uo_hi(2)
@@ -247,9 +251,11 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
   double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
   double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
 
-  integer :: i, j, numphi
+  integer :: i, j
   integer :: glo(2), ghi(2)
-  double precision :: umax, vmax, fhi, flo, phitot
+  double precision :: umax, vmax, fhi, flo
+! integer numphi
+!  double precision :: phitot, rnumphi
 
   double precision, dimension(:,:), pointer, contiguous :: &
          fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey,  phiptcc
@@ -282,6 +288,15 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      call bl_error("CFL violation. Use smaller adv.cfl.")
   end if
 
+  !checking to see if periodic cosine worked
+!  if(printstuff.eq.1) then
+!     do    j = deblocell(2), debhicell(2)
+!!        do i = deblocell(1), debhicell(1)
+!           print*, "*** j phiave -2 -1  0  1 = ", j, uin(-2,j),uin(-1,j),uin(0 ,j),uin(1,j), "****"
+!           print*, "*** j phiave 62 63 64 65 = ", j, uin(62,j),uin(63,j),uin(64,j),uin(65,j), "****"
+!!        enddo
+!     enddo
+! endif
   ! call a function to compute flux
   call mol4thord_flux_2d(lo, hi, dt, dx, &
                          uin, ui_lo, ui_hi, &
@@ -292,7 +307,9 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
                          fluxptx, phiptx, phiavex,&
                          fluxpty, phipty, phiavey,&
                          phiptcc, glo, ghi,nu,&
-                         deblocell, debhicell, debloface, debhiface)
+                         deblocell, debhicell, &
+                         hisidedebfacelo, hisidedebfacehi,&
+                         hisidedebfacelo, hisidedebfacehi, printstuff, uselimit)
 
   ! Do a conservative update
   do    j = lo(2),hi(2)
@@ -306,34 +323,51 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
         dphidtout(i,j) = &
              ( (flxx(i,j) - flxx(i+1,j  )) / dx(1) &
              + (flxy(i,j) - flxy(i  ,j+1)) / dx(2) )
+
      enddo
   enddo
-
-!    numphi = 0
-!    phitot = 0.0d0
-!    do    j = debloface(2), debhiface(2)
-!       do i = debloface(1), debhiface(1)
-!          numphi = numphi + 1
-!          phitot = phitot +flxy(i,j)
-!!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
-!       enddo
-!    enddo
-!    if(numphi .gt. 0) then
-!       print*, "**************** final y flux = ", phitot/numphi
-!    endif
-
-    numphi = 0
-    phitot = 0.0d0
-    do    j = deblocell(2), debhicell(2)
-       do i = deblocell(1), debhicell(1)
-          numphi = numphi + 1
-          phitot = phitot + dphidtout(i,j)
-!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
-       enddo
-    enddo
-    if(numphi .gt. 0) then
-       print*, "**************** ndphidt, final dphidt = ", numphi, phitot/numphi
-    endif
+  
+!  if(printstuff.eq.1) then
+!     numphi = 0
+!     phitot = 0.0d0
+!     do    j = losidedebfacelo(2), losidedebfacehi(2)
+!        do i = losidedebfacelo(1), losidedebfacehi(1)
+!           numphi = numphi + 1
+!           phitot = phitot +flxx(i,j)
+!           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+!        enddo
+!     enddo
+!     if(numphi .gt. 0) then
+!        print*, "**************** nflux, final x  flux lo = ", numphi, phitot/numphi
+!     endif
+!     numphi = 0
+!     phitot = 0.0d0
+!     do    j = hisidedebfacelo(2), hisidedebfacehi(2)
+!        do i = hisidedebfacelo(1), hisidedebfacehi(1)
+!           numphi = numphi + 1
+!           phitot = phitot +flxx(i,j)
+!           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+!        enddo
+!     enddo
+!     if(numphi .gt. 0) then
+!        print*, "**************** nflux, final x  flux hi = ", numphi, phitot/numphi
+!     endif
+!
+!     numphi = 0
+!     rnumphi = 0.0d0
+!     phitot = 0.0d0
+!     do    j = deblocell(2), debhicell(2)
+!        do i = deblocell(1), debhicell(1)
+!           numphi = numphi + 1
+!           rnumphi = rnumphi+ 1.0d0
+!           phitot = phitot + dphidtout(i,j)
+!           !          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
+!        enddo
+!     enddo
+!     if(numphi .gt. 0) then
+!        print*, "**************** ndphidt, final dphidt = ", numphi, phitot/rnumphi
+!     endif
+! endif
        
   ! Scale by face area in order to correctly reflux because flux register requires this
   do    j = lo(2), hi(2)
