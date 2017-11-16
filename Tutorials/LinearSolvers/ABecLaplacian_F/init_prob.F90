@@ -32,7 +32,7 @@ contains
           elo = lbound(pexact)
           ehi = ubound(pexact)
           call actual_init_poisson(bx%lo, bx%hi, prhs, rlo(1:3), rhi(1:3), pexact, elo(1:3), ehi(1:3), &
-               amrex_problo, amrex_probhi, )
+               amrex_problo, amrex_probhi, geom(ilev)%dx)
        end do
 
        call amrex_mfiter_destroy(mfi)
@@ -52,10 +52,11 @@ contains
   end subroutine init_prob_abeclaplacian
 
 
-  subroutine actual_init_poisson (lo, hi, rhs, rlo, rhi, exact, elo, ehi)
+  subroutine actual_init_poisson (lo, hi, rhs, rlo, rhi, exact, elo, ehi, problo, probhi, dx)
     integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, elo, ehi
     real(amrex_real), intent(inout) :: rhs  (rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
     real(amrex_real), intent(inout) :: exact(elo(1):ehi(1),elo(2):ehi(2),elo(3):ehi(3))
+    real(amrex_real), dimension(3), intent(in) :: problo, probhi, dx
   end subroutine actual_init_poisson
 
 end module init_prob_module
