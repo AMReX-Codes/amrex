@@ -14,11 +14,11 @@ contains
                              vmac,  v_lo,  v_hi, &
                              flxx, fx_lo, fx_hi, &
                              flxy, fy_lo, fy_hi, &
-                             phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu)
+                             phix_1d, phiy_1d, phix, phiy, slope, glo, ghi, nu,  uselimit)
 
-    use slope_module, only: slopex, slopey
+    use slope_module, only: slopex, slopey, slopex_nolim, slopey_nolim
 
-    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), uselimit
     double precision, intent(in) :: dt, dx(2), nu
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
@@ -38,9 +38,16 @@ contains
 
     hdtdx = 0.5*(dt/dx)
 
-    call slopex(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopex_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+
+       call slopex(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
 
     ! compute phi on x faces using umac to upwind; ignore transverse terms
     do    j = lo(2)-1, hi(2)+1
@@ -55,10 +62,15 @@ contains
        end do
     end do
 
-    call slopey(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
-
+    if(uselimit .eq. 0) then
+       call slopey_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopey(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
     ! compute phi on y faces using umac to upwind; ignore transverse terms
     do    j = lo(2)  , hi(2)+1
        do i = lo(1)-1, hi(1)+1
@@ -119,11 +131,11 @@ contains
        vmac,  v_lo,  v_hi, &
        flxx, fx_lo, fx_hi, &
        flxy, fy_lo, fy_hi, &
-       phix_1d, phiy_1d, slope, glo, ghi, nu)
+       phix_1d, phiy_1d, slope, glo, ghi, nu, uselimit)
 
-    use slope_module, only: slopex, slopey
+    use slope_module, only: slopex, slopey, slopex_nolim, slopey_nolim
 
-    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), uselimit
     double precision, intent(in) :: dt, dx(2), nu
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
@@ -142,9 +154,15 @@ contains
     integer :: i, j
 
 
-    call slopex(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopex_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopex(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
 
     ! compute phi on x faces using umac to upwind; ignore transverse terms
     do    j = lo(2)-1, hi(2)+1
@@ -161,10 +179,16 @@ contains
 
        end do
     end do
-
-    call slopey(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    
+    if(uselimit .eq. 0) then
+       call slopey_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopey(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
 
     ! compute phi on y faces using umac to upwind; ignore transverse terms
     do    j = lo(2)  , hi(2)+1
@@ -217,11 +241,13 @@ contains
                                fluxpty, phipty, phiavey, &
                                phiptcc, glo, ghi, nu, &
                                deblocell, debhicell, &
-                               debloface, debhiface)
+                               hisidedebfacelo, hisidedebfacehi, &
+                               losidedebfacelo, losidedebfacehi, printstuff, uselimit)
 
-
-    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
-    integer, intent(in) :: deblocell(2), debhicell(2), debloface(2), debhiface(2)
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2), printstuff, uselimit
+    integer, intent(in) :: deblocell(2), debhicell(2)
+    integer, intent(in) :: hisidedebfacelo(2), hisidedebfacehi(2)
+    integer, intent(in) :: losidedebfacelo(2), losidedebfacehi(2)
     double precision, intent(in) :: dt, dx(2), nu
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
@@ -236,9 +262,18 @@ contains
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey, phiptcc
          
-    double precision :: diffflux, phicctemp, debtemp, phitot
-    integer :: i, j, numphi
+    double precision :: diffflux, phicctemp, debtemp
+    integer :: i, j
+!    integer ::  numphi
+!    double precision :: phitot
 
+    fluxptx = 1.0d30
+    fluxpty = 1.0d30
+    phiptx  = 1.0d30
+    phipty  = 1.0d30
+    phiavex = 1.0d30
+    phiavey = 1.0d30
+    phiptcc = 1.0d30
     !STEP 0 
     ! 2.1 get cell-centered phi so we can compute a pointwise, fourth order gradient at faces
     ! needed  for diffusive fluxes
@@ -293,11 +328,12 @@ contains
           debtemp  = phiptx(i,j)
 
           diffflux  = (-nu/dx(1))* &
-               ( phiptcc(i  ,j) - phiptcc(i-1,j) &
-               -(phiptcc(i+1,j) + phiptcc(i-1,j) - 2.0d0*phiptcc(i  ,j)) &
-               +(phiptcc(i  ,j) + phiptcc(i-2,j) - 2.0d0*phiptcc(i-1,j)))
+               ((27.0d0/24.0d0)*(phiptcc(i  ,j) - phiptcc(i-1,j)) &
+               +( 1.0d0/24.0d0)*(phiptcc(i-2,j) - phiptcc(i+1,j)))
 
           fluxptx(i,j) = umac(i,j)*phiptx(i,j) + diffflux
+
+!uncomment to just do diffusion
 !          fluxptx(i,j) =  diffflux
 
        end do
@@ -314,12 +350,14 @@ contains
           debtemp  = phipty(i,j)
 
           diffflux  = (-nu/dx(2))* &
-               ( phiptcc(i,j  ) - phiptcc(i,j-1) &
-               -(phiptcc(i,j+1) + phiptcc(i,j-1) - 2.0d0*phiptcc(i,j  )) &
-               +(phiptcc(i,j  ) + phiptcc(i,j-2) - 2.0d0*phiptcc(i,j-1)))
+               ((27.0d0/24.0d0)*(phiptcc(i,j  ) - phiptcc(i,j-1)) &
+               +( 1.0d0/24.0d0)*(phiptcc(i,j-2) - phiptcc(i,j+1)))
 
           fluxpty(i,j) = vmac(i,j)*phipty(i,j) + diffflux
+
+!uncomment to just do diffusion
 !          fluxpty(i,j) =  diffflux
+
 
        end do
     end do
@@ -333,6 +371,10 @@ contains
                (fluxptx(i,j+1) + fluxptx(i,j-1) - 2.d0*fluxptx(i,j))
 
           flxx(i,j)  = debtemp
+
+!debug   just set the flux = phiavex
+!          flxx(i,j)  = phiavex(i,j)
+!end debug
        end do
     end do
 
@@ -342,22 +384,12 @@ contains
                (fluxpty(i+1,j) + fluxpty(i-1,j) - 2.d0*fluxpty(i,j))
           flxy(i,j)  = debtemp
 
+!debug   just set the flux = phiavex
+!          flxy(i,j)  = phiavey(i,j)
+!end debug
        end do
     end do
 
-!    numphi = 0
-!    phitot = 0.0d0
-!    do    j = debloface(2), debhiface(2)
-!       do i = debloface(1), debhiface(1)
-!          numphi = numphi + 1
-!          phitot = phitot +flxy(i,j)
-!!          print*, "*** i j phiave = ", i, j, phiavex(i,j), "****"
-!       enddo
-!    enddo
-!    if(numphi .gt. 0) then
-!       print*, "**************** final yflux = ", phitot/numphi
-!    endif
-!       
  
  end subroutine mol4thord_flux_2d
 

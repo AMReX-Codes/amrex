@@ -219,6 +219,8 @@ class DistributionMapping
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
 
+    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba);
+
 private:
 
     //! Ways to create the processor map.
