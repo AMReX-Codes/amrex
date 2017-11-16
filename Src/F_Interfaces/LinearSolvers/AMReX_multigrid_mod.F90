@@ -37,7 +37,7 @@ module amrex_multigrid_module
      procedure, private :: amrex_multigrid_set_final_fill_bc
 
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
-     final :: amrex_multigrid_assign
+     final :: amrex_multigrid_destroy
 #endif
   end type amrex_multigrid
 
