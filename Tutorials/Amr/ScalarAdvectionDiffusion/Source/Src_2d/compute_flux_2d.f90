@@ -668,10 +668,10 @@ contains
        enddo
     enddo
     !now we do it all again for the y direction. 
-    do    j = lo(2), hi(2)+1
-       do i = lo(1), hi(1)
+    do    j = lo(2)  , hi(2)+1
+       do i = lo(1)-2, hi(1)+2
           mono1 = dwfminuy(i,j) * dwfplusy(i,j)
-          mono2 = (phi(i,j)-phi(i-2,j))*(phi(i+2,j)-phi(i,j))
+          mono2 = (phi(i,j)-phi(i,j-2))*(phi(i,j+2)-phi(i,j))
           if((mono1 .lt. 0.0d0).or.(mono2 .lt. 0.0d0)) then
 
              !see if all second derivs in sight are the same sign.   If they are,
@@ -679,10 +679,10 @@ contains
              !this stuff comes from equation 26
              d2wlim = 0.0d0
              signd2 = 0.0d0
-             d2wc1 = d2wcy(i-1,j)
-             d2wc2 = d2wcy(i  ,j)
-             d2wc3 = d2wcy(i+1,j)
-             d2wf1 = d2wfy(i  ,j)
+             d2wc1 = d2wcy(i,j-1)
+             d2wc2 = d2wcy(i,j  )
+             d2wc3 = d2wcy(i,j+1)
+             d2wf1 = d2wfy(i,j  )
              d2wlim = min(abs(d2wf1), 1.25d0*abs(d2wc1))
              d2wlim = min(d2wlim    , 1.25d0*abs(d2wc2))
              d2wlim = min(d2wlim    , 1.25d0*abs(d2wc3))
@@ -702,10 +702,10 @@ contains
                 d2wlim = 0.0d0
              endif
              !equation 27 below
-             maxw = max(abs(phi(i,j)),abs(phi(i+1,j)))
-             maxw = max(maxw         ,abs(phi(i-1,j)))
-             maxw = max(maxw         ,abs(phi(i+2,j)))
-             maxw = max(maxw         ,abs(phi(i-2,j)))
+             maxw = max(abs(phi(i,j)),abs(phi(i,j+1)))
+             maxw = max(maxw         ,abs(phi(i,j-1)))
+             maxw = max(maxw         ,abs(phi(i,j+2)))
+             maxw = max(maxw         ,abs(phi(i,j-2)))
              dwthresh = 1.0d-12*(maxw)
              if(abs(d2wf1).lt.dwthresh) then
                 rho = 0.0d0
@@ -716,12 +716,12 @@ contains
                 applylim = .false.
              else
                 !this stuff is equation 28
-                d3wmin = min(d3wy(i,j),d3wy(i-1,j))
-                d3wmin = min(d3wmin   ,d3wy(i+1,j))
-                d3wmin = min(d3wmin   ,d3wy(i+2,j))
-                d3wmax = max(d3wy(i,j),d3wy(i-1,j))
-                d3wmax = max(d3wmax   ,d3wy(i+1,j))
-                d3wmax = max(d3wmax   ,d3wy(i+2,j))
+                d3wmin = min(d3wy(i,j),d3wy(i,j-1))
+                d3wmin = min(d3wmin   ,d3wy(i,j+1))
+                d3wmin = min(d3wmin   ,d3wy(i,j+2))
+                d3wmax = max(d3wy(i,j),d3wy(i,j-1))
+                d3wmax = max(d3wmax   ,d3wy(i,j+1))
+                d3wmax = max(d3wmax   ,d3wy(i,j+2))
                 dwthresh = 0.1d0*max(abs(d3wmax),abs(d3wmin))
                 if((d3wmax - d3wmin).lt. dwthresh) then
                    applylim = .false.
