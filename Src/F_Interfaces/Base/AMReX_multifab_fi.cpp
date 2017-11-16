@@ -97,6 +97,44 @@ extern "C" {
         mf->setVal(val, ic, nc, ng);
     }
 
+    void amrex_fi_multifab_add (MultiFab* dstmf, const MultiFab* srcmf,
+                                int srccomp, int dstcomp, int nc, int ng)
+    {
+        MultiFab::Add(*dstmf, *srcmf, srccomp, dstcomp, nc, ng);
+    }
+
+    void amrex_fi_multifab_subtract (MultiFab* dstmf, const MultiFab* srcmf,
+                                     int srccomp, int dstcomp, int nc, int ng)
+    {
+        MultiFab::Subtract(*dstmf, *srcmf, srccomp, dstcomp, nc, ng);
+    }
+
+    void amrex_fi_multifab_multiply (MultiFab* dstmf, const MultiFab* srcmf,
+                                     int srccomp, int dstcomp, int nc, int ng)
+    {
+        MultiFab::Multiply(*dstmf, *srcmf, srccomp, dstcomp, nc, ng);
+    }
+
+    void amrex_fi_multifab_divide (MultiFab* dstmf, const MultiFab* srcmf,
+                                   int srccomp, int dstcomp, int nc, int ng)
+    {
+        MultiFab::Divide(*dstmf, *srcmf, srccomp, dstcomp, nc, ng);
+    }
+
+    void amrex_fi_multifab_saxpy (MultiFab* dstmf, Real a, const MultiFab* srcmf,
+                                  int srccomp, int dstcomp, int nc, int ng)
+    {
+        MultiFab::Saxpy(*dstmf, a, *srcmf, srccomp, dstcomp, nc, ng);
+    }
+
+    void amrex_fi_multifab_lincomb (MultiFab* dstmf,
+                                    Real a, const MultiFab* srcmf1, int srccomp1,
+                                    Real b, const MultiFab* srcmf2, int srccomp2,
+                                    int dstcomp, int nc, int ng)
+    {
+        MultiFab::LinComb(*dstmf, a, *srcmf1, srccomp1, b, *srcmf2, srccomp2, dstcomp, nc, ng);
+    }
+
     void amrex_fi_multifab_copy (MultiFab* dstmf, const MultiFab* srcmf,
                                  int srccomp, int dstcomp, int nc, int ng)
     {
