@@ -124,10 +124,13 @@ contains
   subroutine amrex_geometry_init_data (geom)  ! geom%p must be valid!
     type(amrex_geometry), intent(inout) :: geom
     integer :: i, lo(3), hi(3)
+    logical, external :: omp_in_parallel
+    !$omp parallel if(.not.omp_in_parallel())
     if (.not.amrex_geometry_initialzied) then
        call amrex_geometry_init()
        amrex_geometry_initialzied = .true.
     end if
+    !$omp end parallel
     call amrex_fi_geometry_get_intdomain(geom%p, lo, hi)
     geom%domain = amrex_box(lo, hi)
     do i = 1, ndims

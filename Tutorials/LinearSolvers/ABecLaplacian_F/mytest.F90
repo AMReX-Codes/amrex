@@ -14,7 +14,9 @@ module mytest_module
   integer, save :: max_grid_size = 64
 
   logical, save :: composite_solve = .true.
-  
+
+  ! prob_type 1 here is Poisson with homogeneous Dirichlet boundary.
+  ! prob_type 2 here is ABecLaplacian with homogeneous Neumann boundary.
   integer, save :: prob_type = 1
 
   integer, save :: verbose = 2
@@ -33,7 +35,7 @@ module mytest_module
   type(amrex_multifab), allocatable :: rhs(:)
   type(amrex_multifab), allocatable :: exact_solution(:)
   type(amrex_multifab), allocatable :: acoef(:)
-  type(amrex_multifab), allocatable :: bcoef(:,:)
+  type(amrex_multifab), allocatable :: bcoef(:)
   
 
   private
@@ -74,6 +76,7 @@ contains
 
 
   subroutine init_data ()
+    use init_prob_module
     allocate(geom(0:max_level))
     allocate(ba(0:max_level))
     allocate(dm(0:max_level))
@@ -82,11 +85,64 @@ contains
     allocate(exact_solution(0:max_level))
     if (prob_type .eq. 2) then
        allocate(acoef(0:max_level))
-       allocate(bcoef(3,0:max_level))
+       allocate(bcoef(0:max_level))
     end if
 
-    ! buid ....
+    call init_geom()
+    call init_grids()
+    call init_mf()
+    if (prob_type .eq. 1) then
+       call init_prob_poisson(geom,solution, rhs, exact_solution)
+    else
+       call init_prob_abeclaplacian(geom,solution, rhs, exact_solution, acoef, bcoef)
+    end if
   end subroutine init_data
+
+
+  subroutine init_geom ()
+    integer :: ilev
+    type(amrex_box) :: domain
+    call amrex_geometry_set_coord_sys(0)  ! Cartesian
+    call amrex_geometry_set_prob_domain([0._amrex_real,0._amrex_real,0._amrex_real], &
+         &                              [1._amrex_real,1._amrex_real,1._amrex_real])
+    call amrex_geometry_set_periodic([.false., .false., .false.])
+    domain = amrex_box([0,0,0], [n_cell-1,n_cell-1,n_cell-1])
+    do ilev = 0, max_level
+       call amrex_geometry_build(geom(ilev), domain)
+       call domain%refine(ref_ratio)
+    end do
+  end subroutine init_geom
+
+
+  subroutine init_grids ()
+    integer :: ilev
+    type(amrex_box) :: dom
+    dom = geom(0)%domain
+    do ilev = 0, max_level
+       call amrex_boxarray_build(ba(ilev), dom)
+       call ba(ilev)%maxSize(max_grid_size)
+       call dom%grow(-n_cell/4)     ! fine level cover the middle of the coarse domain
+       call dom%refine(ref_ratio)
+    end do
+  end subroutine init_grids
+
+
+  subroutine init_mf ()
+    integer :: ilev
+    do ilev = 0, max_level
+       call amrex_distromap_build(dm(ilev),ba(ilev))
+       ! one ghost cell to store boundary conditions
+       call amrex_multifab_build(solution(ilev), ba(ilev), dm(ilev), nc=1, ng=1)
+       call amrex_multifab_build(rhs(ilev), ba(ilev), dm(ilev), nc=1, ng=0)
+       call amrex_multifab_build(exact_solution(ilev), ba(ilev), dm(ilev), nc=1, ng=0)
+       if (allocated(acoef)) then
+          call amrex_multifab_build(acoef(ilev), ba(ilev), dm(ilev), nc=1, ng=0)
+          ! 1 ghost cell for averaging from cell centers to faces
+          call amrex_multifab_build(bcoef(ilev), ba(ilev), dm(ilev), nc=1, ng=1)
+       end if
+    end do
+  end subroutine init_mf
+
 
   subroutine finalize ()
     integer :: ilev, idim
@@ -99,9 +155,7 @@ contains
        call amrex_multifab_destroy(exact_solution(ilev))
        if (allocated(acoef)) then
           call amrex_multifab_destroy(acoef(ilev))
-          do idim = 1, 3
-             call amrex_multifab_destroy(bcoef(idim,ilev))
-          end do
+          call amrex_multifab_destroy(bcoef(ilev))
        end if
     end do
   end subroutine finalize
@@ -120,6 +174,8 @@ contains
     type(amrex_poisson) :: poisson
     type(amrex_multigrid) :: multigrid
     integer :: ilev
+
+    return
 
     if (composite_solve) then
 
