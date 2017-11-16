@@ -28,9 +28,9 @@ extern "C" {
         linop->setDomainBC(lobc,hibc);
     }
 
-    void amrex_fi_linop_set_bc_with_coarse_data (MLLinOp* linop, const MultiFab* crse, int crse_ratio)
+    void amrex_fi_linop_set_coarse_fine_bc (MLLinOp* linop, const MultiFab* crse, int crse_ratio)
     {
-        linop->setBCWithCoarseData(crse, crse_ratio);
+        linop->setCoarseFineBC(crse, crse_ratio);
     }
 
     void amrex_fi_linop_set_level_bc (MLLinOp* linop, int amrlev, const MultiFab* levelbcdata)
