@@ -31,6 +31,7 @@ module mytest_module
   type(amrex_geometry), allocatable :: geom(:)
   type(amrex_boxarray), allocatable :: ba(:)
   type(amrex_distromap), allocatable :: dm(:)
+
   type(amrex_multifab), allocatable :: solution(:)
   type(amrex_multifab), allocatable :: rhs(:)
   type(amrex_multifab), allocatable :: exact_solution(:)
@@ -174,8 +175,7 @@ contains
     type(amrex_poisson) :: poisson
     type(amrex_multigrid) :: multigrid
     integer :: ilev
-
-    return
+    real(amrex_real) :: err
 
     if (composite_solve) then
 
@@ -189,14 +189,21 @@ contains
                                   [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
 
        do ilev = 0, max_level
-          ! Input: solution multifab's ghost cells at physical boundaries contain bc values.
+          ! solution multifab's ghost cells at physical boundaries have been set to bc values.
           call poisson%set_level_bc(ilev, solution(ilev))
        end do
 
        call amrex_multigrid_build(multigrid,poisson)
+       call multigrid%set_verbose(verbose)
+       call multigrid%set_cg_verbose(cg_verbose)
+       call multigrid%set_max_iter(max_iter)
+       call multigrid%set_max_fmg_iter(max_fmg_iter)
+
+       err = multigrid%solve(solution, rhs, 1.e-10_amrex_real, 0.0_amrex_real)
 
        call amrex_poisson_destroy(poisson)
        call amrex_multigrid_destroy(multigrid)
+
     else
 
     end if
@@ -207,6 +214,49 @@ contains
   end subroutine solve_abeclaplacian
 
   subroutine write_plotfile ()
+    type(amrex_multifab) :: plotmf(0:max_level)
+    type(amrex_string), allocatable :: varname(:)
+    integer, dimension(0:max_level) :: steps, rr
+    integer :: ilev, nc
+
+    if (allocated(acoef)) then
+       nc = 6
+    else
+       nc = 4
+    end if
+    allocate(varname(nc))
+
+    call amrex_string_build(varname(1), "solution")
+    call amrex_string_build(varname(2), "rhs")
+    call amrex_string_build(varname(3), "exact_solution")
+    call amrex_string_build(varname(4), "error")
+    if (allocated(acoef)) then
+       call amrex_string_build(varname(5), "aceof")
+       call amrex_string_build(varname(6), "bcoef")
+    end if
+
+    do ilev = 0, max_level
+       call amrex_multifab_build(plotmf(ilev), ba(ilev), dm(ilev), nc, 0)
+       call plotmf(ilev)%copy(      solution(ilev), 1, 1, 1, 0)
+       call plotmf(ilev)%copy(           rhs(ilev), 1, 2, 1, 0)
+       call plotmf(ilev)%copy(exact_solution(ilev), 1, 3, 1, 0)
+       call plotmf(ilev)%copy(      solution(ilev), 1, 3, 1, 0)
+       call plotmf(ilev)%subtract(exact_solution(ilev),1,1,1,0)
+       if (allocated(acoef)) then
+          call plotmf(ilev)%copy(acoef(ilev), 1, 5, 1, 0)
+          call plotmf(ilev)%copy(bcoef(ilev), 1, 6, 1, 0)
+       end if
+    end do
+
+    steps = 1
+    rr = ref_ratio
+
+    call amrex_write_plotfile("plot", max_level+1, plotmf, varname, geom, 0._amrex_real, steps, rr)
+
+    ! let's not realy on finalizer, which is feature not all compilers support properly.
+    do ilev = 0, max_level
+       call amrex_multifab_destroy(plotmf(ilev))
+    end do
   end subroutine write_plotfile
 
 end module mytest_module
