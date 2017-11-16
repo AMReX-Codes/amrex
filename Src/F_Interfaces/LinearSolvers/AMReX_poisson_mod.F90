@@ -41,7 +41,8 @@ contains
     class(amrex_poisson), intent(inout) :: dst
     type (amrex_poisson), intent(in   ) :: src
     call amrex_poisson_destroy(dst)
-    !
+    dst%owner = .false.
+    dst%p = src%p
   end subroutine amrex_poisson_assign
 
 

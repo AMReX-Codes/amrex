@@ -50,8 +50,8 @@ extern "C" {
         mlmg->getFluxes(fluxes);
     }
 
-    void amrex_fi_comp_residual (MLMG* mlmg, MultiFab* a_res[], MultiFab* a_sol[],
-                                 MultiFab* a_rhs[])
+    void amrex_fi_multigrid_comp_residual (MLMG* mlmg, MultiFab* a_res[], MultiFab* a_sol[],
+                                           MultiFab* a_rhs[])
     {
         const int n = mlmg->numAMRLevels();
         mlmg->compResidual(Vector<MultiFab*>{a_res, a_res+n},
@@ -59,8 +59,33 @@ extern "C" {
                            Vector<const MultiFab*>{a_rhs, a_rhs+n});
     }
 
-    void setVerbose (MLMG* mlmg, int v)
+    void amrex_fi_multigrid_set_verbose (MLMG* mlmg, int v)
     {
         mlmg->setVerbose(v);
+    }
+
+    void amrex_fi_multigrid_set_max_iter (MLMG* mlmg, int n)
+    {
+        mlmg->setMaxIter(n);
+    }
+
+    void amrex_fi_multigrid_set_max_fmg_iter (MLMG* mlmg, int n)
+    {
+        mlmg->setMaxFmgIter(n);
+    }
+
+    void amrex_fi_multigrid_set_cg_verbose (MLMG* mlmg, int n)
+    {
+        mlmg->setCGVerbose(n);
+    }
+
+    void amrex_fi_multigrid_set_always_use_bnorm (MLMG* mlmg, int f)
+    {
+        mlmg->setAlwaysUseBNorm(f);
+    }
+
+    void amrex_fi_multigrid_set_final_fill_bc (MLMG* mlmg, int f)
+    {
+        mlmg->setFinalFillBC(f);
     }
 }
