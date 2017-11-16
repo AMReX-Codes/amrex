@@ -430,14 +430,16 @@ contains
     double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
     double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
     double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
-         fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey, phiptcc
+         fluxptx, fluxpty,  phiptx, phipty,  phiavex, phiavey, phiptcc 
 
     double precision, dimension(:,:), pointer, contiguous :: &
          dwfminux, dwfminuy, dwfplusx, dwfplusy, d2wfx, d2wfy, d2wcx, d2wcy, d3wx, d3wy, &
          wleftx, wrighx, wlefty, wrighy
          
          
-    double precision :: diffflux, phicctemp, debtemp
+    double precision :: diffflux, phicctemp, debtemp, mono1, mono2, signd2, d2wlim, &
+         d2wc1, d2wc2, d2wc3, d2wf1, rho, d3wmin, d3wmax, dwthresh, maxw
+    logical :: applylim
     integer :: i, j
 !    integer ::  numphi
 !    double precision :: phitot
@@ -549,6 +551,11 @@ contains
           d3wx(i,j) = d2wcx(i,j) - d2wcx(i-1,j)
        enddo
     enddo
+    do    j = lo(2)  , hi(2)+1
+       do i = lo(1)-2, hi(1)+2
+          d3wy(i,j) = d2wcy(i,j) - d2wcx(i,j-1)
+       enddo
+    enddo
 
     do    j = lo(2)  , hi(2)+1
        do i = lo(1)-2, hi(1)+2
@@ -557,8 +564,198 @@ contains
     enddo
 
     !initialize left and right states
-    !HERE
+    do    j = lo(2)-2, hi(2)+2
+       do i = lo(1)  , hi(1)+1
+          wleftx(i,j) = phiavex(i,j)
+          wrighx(i,j) = phiavex(i,j)
+       enddo
+    enddo
+    do    j = lo(2)  , hi(2)+1
+       do i = lo(1)-2, hi(1)+2
+          wlefty(i,j) = phiavey(i,j)
+          wrighy(i,j) = phiavey(i,j)
+       enddo
+    enddo
 
+    !now for the really complicted stuff in 2.4.1
+    !If there are extrema detected a cell, modify the states
+    !that are extrapolate from that cell.  If monotonoic but there
+    ! is a huge jump in the state, mollify that
+    do    j = lo(2)-2, hi(2)+2
+       do i = lo(1)  , hi(1)+1
+          mono1 = dwfminux(i,j) * dwfplusx(i,j)
+          mono2 = (phi(i,j)-phi(i-2,j))*(phi(i+2,j)-phi(i,j))
+          if((mono1 .lt. 0.0d0).or.(mono2 .lt. 0.0d0)) then
+
+             !see if all second derivs in sight are the same sign.   If they are,
+             ! calculate d2wlim.     Otherwise, d2wlim = 0 
+             !this stuff comes from equation 26
+             d2wlim = 0.0d0
+             signd2 = 0.0d0
+             d2wc1 = d2wcx(i-1,j)
+             d2wc2 = d2wcx(i  ,j)
+             d2wc3 = d2wcx(i+1,j)
+             d2wf1 = d2wfx(i  ,j)
+             d2wlim = min(abs(d2wf1), 1.25d0*abs(d2wc1))
+             d2wlim = min(d2wlim    , 1.25d0*abs(d2wc2))
+             d2wlim = min(d2wlim    , 1.25d0*abs(d2wc3))
+             if((d2wc1.gt.0.0d0) .and. &
+                (d2wc2.gt.0.0d0) .and. &
+                (d2wc3.gt.0.0d0) .and. &
+                (d2wf1.gt.0.0d0)) then
+                signd2 = 1.0d0
+                d2wlim = d2wlim*signd2
+             else if((d2wc1.lt.0.0d0) .and. &
+                     (d2wc2.lt.0.0d0) .and. &
+                     (d2wc3.lt.0.0d0) .and. &
+                     (d2wf1.lt.0.0d0)) then
+                signd2 = -1.0d0
+                d2wlim = d2wlim*signd2
+             else
+                d2wlim = 0.0d0
+             endif
+             !equation 27 below
+             maxw = max(abs(phi(i,j)),abs(phi(i+1,j)))
+             maxw = max(maxw         ,abs(phi(i-1,j)))
+             maxw = max(maxw         ,abs(phi(i+2,j)))
+             maxw = max(maxw         ,abs(phi(i-2,j)))
+             dwthresh = 1.0d-12*(maxw)
+             if(abs(d2wf1).lt.dwthresh) then
+                rho = 0.0d0
+             else
+                rho = d2wlim/d2wf1
+             endif
+             if(rho .lt. (1.0d0 - 1.0d-12)) then
+                applylim = .false.
+             else
+                !this stuff is equation 28
+                d3wmin = min(d3wx(i,j),d3wx(i-1,j))
+                d3wmin = min(d3wmin   ,d3wx(i+1,j))
+                d3wmin = min(d3wmin   ,d3wx(i+2,j))
+                d3wmax = max(d3wx(i,j),d3wx(i-1,j))
+                d3wmax = max(d3wmax   ,d3wx(i+1,j))
+                d3wmax = max(d3wmax   ,d3wx(i+2,j))
+                dwthresh = 0.1d0*max(abs(d3wmax),abs(d3wmin))
+                if((d3wmax - d3wmin).lt. dwthresh) then
+                   applylim = .false.
+                else
+                   applylim = .true.
+                endif
+             endif
+             !the following covered equations 29-32
+             if(applylim) then
+                if((dwfminux(i,j)*dwfplusx(i,j)).lt.0.0) then
+
+                   wrighx(i,j) = phi(i,j) -  rho*dwfminux(i,j) !eqn 29 (corrected)
+                   wleftx(i,j) = phi(i,j) +  rho*dwfplusx(i,j) !eqn 30
+
+                else if(abs(dwfminux(i,j)) .ge. 2.0d0*abs(dwfplusx(i,j))) then
+                   !equation 31
+                   wrighx(i,j) = phi(i,j) -  2.0d0*(1.0d0-rho)*dwfplusx(i,j) - rho*dwfminux(i,j)
+                else if(abs(dwfplusx(i,j)) .ge. 2.0d0*abs(dwfminux(i,j))) then
+                   !equation 32
+                   wleftx(i,j) = phi(i,j) +  2.0d0*(1.0d0-rho)*dwfminux(i,j) + rho*dwfplusx(i,j)
+                endif
+             endif
+          else !monotonic but still need to check for big jumps in the state
+             if(abs(dwfminux(i,j)) .ge. (2.0d0*abs(dwfplusx(i,j)))) then
+                wrighx(i,j) = phi(i,j) -  2.0d0*dwfplusx(i,j) !eqn 33
+             endif
+             if(abs(dwfplusx(i,j)) .ge. (2.0d0*abs(dwfminux(i,j)))) then
+                wleftx(i,j) = phi(i,j) +  2.0d0*dwfminux(i,j) !eqn 34
+             endif
+          endif
+       enddo
+    enddo
+    !now we do it all again for the y direction. 
+    do    j = lo(2), hi(2)+1
+       do i = lo(1), hi(1)
+          mono1 = dwfminuy(i,j) * dwfplusy(i,j)
+          mono2 = (phi(i,j)-phi(i-2,j))*(phi(i+2,j)-phi(i,j))
+          if((mono1 .lt. 0.0d0).or.(mono2 .lt. 0.0d0)) then
+
+             !see if all second derivs in sight are the same sign.   If they are,
+             ! calculate d2wlim.     Otherwise, d2wlim = 0 
+             !this stuff comes from equation 26
+             d2wlim = 0.0d0
+             signd2 = 0.0d0
+             d2wc1 = d2wcy(i-1,j)
+             d2wc2 = d2wcy(i  ,j)
+             d2wc3 = d2wcy(i+1,j)
+             d2wf1 = d2wfy(i  ,j)
+             d2wlim = min(abs(d2wf1), 1.25d0*abs(d2wc1))
+             d2wlim = min(d2wlim    , 1.25d0*abs(d2wc2))
+             d2wlim = min(d2wlim    , 1.25d0*abs(d2wc3))
+             if((d2wc1.gt.0.0d0) .and. &
+                (d2wc2.gt.0.0d0) .and. &
+                (d2wc3.gt.0.0d0) .and. &
+                (d2wf1.gt.0.0d0)) then
+                signd2 = 1.0d0
+                d2wlim = d2wlim*signd2
+             else if((d2wc1.lt.0.0d0) .and. &
+                     (d2wc2.lt.0.0d0) .and. &
+                     (d2wc3.lt.0.0d0) .and. &
+                     (d2wf1.lt.0.0d0)) then
+                signd2 = -1.0d0
+                d2wlim = d2wlim*signd2
+             else
+                d2wlim = 0.0d0
+             endif
+             !equation 27 below
+             maxw = max(abs(phi(i,j)),abs(phi(i+1,j)))
+             maxw = max(maxw         ,abs(phi(i-1,j)))
+             maxw = max(maxw         ,abs(phi(i+2,j)))
+             maxw = max(maxw         ,abs(phi(i-2,j)))
+             dwthresh = 1.0d-12*(maxw)
+             if(abs(d2wf1).lt.dwthresh) then
+                rho = 0.0d0
+             else
+                rho = d2wlim/d2wf1
+             endif
+             if(rho .lt. (1.0d0 - 1.0d-12)) then
+                applylim = .false.
+             else
+                !this stuff is equation 28
+                d3wmin = min(d3wy(i,j),d3wy(i-1,j))
+                d3wmin = min(d3wmin   ,d3wy(i+1,j))
+                d3wmin = min(d3wmin   ,d3wy(i+2,j))
+                d3wmax = max(d3wy(i,j),d3wy(i-1,j))
+                d3wmax = max(d3wmax   ,d3wy(i+1,j))
+                d3wmax = max(d3wmax   ,d3wy(i+2,j))
+                dwthresh = 0.1d0*max(abs(d3wmax),abs(d3wmin))
+                if((d3wmax - d3wmin).lt. dwthresh) then
+                   applylim = .false.
+                else
+                   applylim = .true.
+                endif
+             endif
+             !the following covered equations 29-32
+             if(applylim) then
+                if((dwfminuy(i,j)*dwfplusy(i,j)).lt.0.0) then
+
+                   wrighy(i,j) = phi(i,j) -  rho*dwfminuy(i,j) !eqn 29 (corrected)
+                   wlefty(i,j) = phi(i,j) +  rho*dwfplusy(i,j) !eqn 30
+
+                else if(abs(dwfminuy(i,j)) .ge. 2.0d0*abs(dwfplusy(i,j))) then
+                   !equation 31
+                   wrighy(i,j) = phi(i,j) -  2.0d0*(1.0d0-rho)*dwfplusy(i,j) - rho*dwfminuy(i,j)
+                else if(abs(dwfplusy(i,j)) .ge. 2.0d0*abs(dwfminuy(i,j))) then
+                   !equation 32
+                   wlefty(i,j) = phi(i,j) +  2.0d0*(1.0d0-rho)*dwfminuy(i,j) + rho*dwfplusy(i,j)
+                endif
+             endif
+
+          else !monotonic but still need to check for big jumps in the state
+             if(abs(dwfminuy(i,j)) .ge. (2.0d0*abs(dwfplusy(i,j)))) then
+                wrighy(i,j) = phi(i,j) -  2.0d0*dwfplusy(i,j) !eqn 33
+             endif
+             if(abs(dwfplusx(i,j)) .ge. (2.0d0*abs(dwfminux(i,j)))) then
+                wlefty(i,j) = phi(i,j) +  2.0d0*dwfminuy(i,j) !eqn 34
+             endif
+          endif
+    
+       enddo
+    enddo
     !now get point valued phi at faces so we can multiply by point valued velocity
     ! phipt = phiave - (h^2/24)*(lapl^2d(phi_ave))
     ! while I am at it, multiply in pointwise velocity so we get pointwise *HYPERBOLIC* flux
