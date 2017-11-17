@@ -634,7 +634,7 @@ buildNeighborList(int lev, bool sort) {
         // using these lists, we build a neighbor list containing both
         // kinds of particles.
         int p_start_index = 0;
-        for (unsigned i = 0; i < N; ++i) {
+        for (unsigned i = 0; i < Np; ++i) {
             const ParticleType& p = tmp_particles[i];
             
             int num_neighbors = 0;
