@@ -32,6 +32,7 @@ bool VisMF::checkFilePositions(false);
 bool VisMF::usePersistentIFStreams(false);
 bool VisMF::useSynchronousReads(false);
 bool VisMF::useDynamicSetSelection(true);
+bool VisMF::allowSparseWrites(true);
 
 long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
 
@@ -82,6 +83,7 @@ VisMF::Initialize ()
     pp.query("usesynchronousreads", useSynchronousReads);
     pp.query("usedynamicsetselection", useDynamicSetSelection);
     pp.query("iobuffersize", ioBufferSize);
+    pp.query("allowsparsewrites", allowSparseWrites);
 
     initialized = true;
 }
@@ -929,7 +931,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     for(int i(0); i < pmap.size(); ++i) {
       procsWithData.insert(pmap[i]);
     }
-    if(procsWithData.size() < nOutFiles) {
+    if(allowSparseWrites && (procsWithData.size() < nOutFiles)) {
       useSparseFPP = true;
       amrex::Print() << "SSSSSSSS:  in VisMF::Write:  useSparseFPP for:  " << mf_name << '\n';
       for(std::set<int>::iterator it = procsWithData.begin(); it != procsWithData.end(); ++it) {
@@ -1189,6 +1191,19 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	    fileNumbers[i] = NFilesIter::FileNumber(nFiles, i, groupSets);
 	  }
 	}
+
+if(nfi.GetSparseFPP()) {
+  std::cout << "SPARSE CHECK:" << std::endl;
+  std::cout << "SPARSE CHECK:  fileNumbers:" << std::endl;
+  for(int i(0); i < fileNumbers.size(); ++i) {
+    std::cout << "fileNumbers[" << i << "] = " << fileNumbers[i] << std::endl;
+  }
+  std::cout << "SPARSE CHECK:  FileNumbersWritten:" << std::endl;
+  for(int i(0); i < nProcs; ++i) {
+    std::cout << "FileNumbersWritten[" << i << "] = " << nfi.FileNumbersWritten()[i] << std::endl;
+  }
+}
+ParallelDescriptor::Barrier();
 
 	const Vector< Vector<int> > &fileNumbersWriteOrder = nfi.FileNumbersWriteOrder();
 

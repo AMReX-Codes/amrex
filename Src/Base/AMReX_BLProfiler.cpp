@@ -650,7 +650,7 @@ void BLProfiler::Finalize(bool bFlushing) {
 
     BL_PROFILE_REGION_STOP(noRegionName);
 
-    WriteCallTrace();
+    WriteCallTrace(bFlushing);
 
     ParallelDescriptor::Barrier("BLProfiler::Finalize");
   }
@@ -658,7 +658,7 @@ void BLProfiler::Finalize(bool bFlushing) {
                  << ParallelDescriptor::second() - finalizeStart << "\n";
 
 #ifdef BL_COMM_PROFILING
-  WriteCommStats();
+  WriteCommStats(bFlushing);
 #endif
 
   WriteFortProfErrors();
@@ -936,7 +936,6 @@ void WriteStats(std::ostream &ios,
 
 
 void BLProfiler::WriteCallTrace(bool bFlushing) {   // ---- write call trace data
-
     if(bFlushing) {
       int nCT(vCallTrace.size());
       ParallelDescriptor::ReduceIntMax(nCT);

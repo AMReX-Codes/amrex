@@ -328,6 +328,7 @@ private:
     static bool usePersistentIFStreams;
     static bool useSynchronousReads;
     static bool useDynamicSetSelection;
+    static bool allowSparseWrites;
     
     static long ioBufferSize;   // ---- the settable buffer size
 };
