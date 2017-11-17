@@ -69,11 +69,12 @@ namespace amrex
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-        timeinterpolaterk3(xi, ARLIM_3D(lo), ARLIM_3D(hi),
-                           BL_TO_FORTRAN_3D(  phiC[mfi]),
-                           BL_TO_FORTRAN_3D(  oldC[mfi]),
-                           BL_TO_FORTRAN_3D(    k1[mfi]),
-                           BL_TO_FORTRAN_3D(    k2[mfi]));
+        timeinterprk3_jbb(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+                          BL_TO_FORTRAN_3D(  phiC[mfi]),
+                          BL_TO_FORTRAN_3D(  oldC[mfi]),
+                          BL_TO_FORTRAN_3D(    k1[mfi]),
+                          BL_TO_FORTRAN_3D(    k2[mfi]),
+                          &tf, &tc_old, &dt_c, &dt_f);
       }
       //debug turn off time interp
       //phiC.copy(oldC);
@@ -137,23 +138,6 @@ namespace amrex
       Real tc_old  = getLevel(level-1).state[Phi_Type].prevTime();
       BL_ASSERT(tf >= tc_old);
       BL_ASSERT(tf <  tc_new);
-      Real xi;//coefficient from mccorquodale
-      if(a_stage == 0)
-      {
-        xi = (tf - tc_old)/dt_c;
-      }
-      else if(a_stage == 1)
-      {
-        xi = (tf + 0.5*dt_f - tc_old)/dt_c;
-      }
-      else if(a_stage == 2)
-      {
-        xi = (tf + 0.5*dt_f - tc_old)/dt_c; //why, yes, this *is* the same as stage 1
-      }
-      else
-      {
-        xi = (tf + dt_f - tc_old)/dt_c;
-      }
 
       MultiFab & k1  = getLevel(level-1).m_k1;
       MultiFab & k2  = getLevel(level-1).m_k2;
@@ -169,13 +153,14 @@ namespace amrex
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
 
-        timeinterpolaterk4(xi, ARLIM_3D(lo), ARLIM_3D(hi),
-                           BL_TO_FORTRAN_3D(  phiC[mfi]),
-                           BL_TO_FORTRAN_3D(  oldC[mfi]),
-                           BL_TO_FORTRAN_3D(    k1[mfi]),
-                           BL_TO_FORTRAN_3D(    k2[mfi]),
-                           BL_TO_FORTRAN_3D(    k3[mfi]),
-                           BL_TO_FORTRAN_3D(    k4[mfi]));
+        timeinterprk4_jbb(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+                          BL_TO_FORTRAN_3D(  phiC[mfi]),
+                          BL_TO_FORTRAN_3D(  oldC[mfi]),
+                          BL_TO_FORTRAN_3D(    k1[mfi]),
+                          BL_TO_FORTRAN_3D(    k2[mfi]),
+                          BL_TO_FORTRAN_3D(    k3[mfi]),
+                          BL_TO_FORTRAN_3D(    k4[mfi]),
+                          &tf, &tc_old, &dt_c, &dt_f);
       }
       //debug turn off time interp
       //phiC.copy(oldC);
