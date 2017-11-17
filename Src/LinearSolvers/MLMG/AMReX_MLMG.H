@@ -20,6 +20,7 @@ public:
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rela, Real a_tol_abs);
 
+    void getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
     void getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
@@ -41,6 +42,10 @@ public:
 
     void setAlwaysUseBNorm (int flag) { always_use_bnorm = flag; }
 
+    void setFinalFillBC (int flag) { final_fill_bc = flag; }
+
+    int numAMRLevels () const { return namrlevs; }
+
 private:
 
     int verbose = 1;
@@ -60,6 +65,8 @@ private:
     Real cg_unstable_criterion = 10.0;
 
     int always_use_bnorm = 0;
+
+    int final_fill_bc = 0;
 
     MLLinOp& linop;
     int namrlevs;
@@ -109,6 +116,8 @@ private:
     Real MLResNormInf (int alevmax, bool local = false);
     Real MLRhsNormInf (bool local = false);
     void buildFineMask ();
+
+    void fillSolutionBC ();
 };
 
 }

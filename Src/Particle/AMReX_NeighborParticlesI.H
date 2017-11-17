@@ -411,7 +411,8 @@ applyPeriodicShift(int lev, ParticleType& p, const NeighborCopyTag& tag) {
     const Periodicity& periodicity = this->Geom(lev).periodicity();
     if (not periodicity.isAnyPeriodic()) return;
     
-    const RealBox& prob_domain = this->Geom(lev).ProbDomain();
+    BL_ASSERT(lev == 0);    
+    if (not periodicity.isAnyPeriodic()) return;    
     for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
         if (not periodicity.isPeriodic(dir)) continue;
         if      (tag.periodic_shift[dir] == -1) p.pos(dir) += prob_domain.length(dir);
@@ -434,14 +435,8 @@ getNeighborCopyTag(int lev,
 
     for (int dim = 0; dim < 3; ++dim)
         tag.periodic_shift[dim] = 0;
-
-    const Periodicity& periodicity = this->Geom(lev).periodicity();
     if (not periodicity.isAnyPeriodic()) return tag;
 
-    const Box& domain = this->Geom(lev).Domain();
-    const IntVect& lo = domain.smallEnd();
-    const IntVect& hi = domain.bigEnd();
-    
     for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
         if (not periodicity.isPeriodic(dir)) continue;
         if      (neighbor_cell[dir] < lo[dir]) tag.periodic_shift[dir] = -1;
