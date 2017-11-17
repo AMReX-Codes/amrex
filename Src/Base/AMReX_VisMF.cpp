@@ -1203,7 +1203,6 @@ if(nfi.GetSparseFPP()) {
     std::cout << "FileNumbersWritten[" << i << "] = " << nfi.FileNumbersWritten()[i] << std::endl;
   }
 }
-ParallelDescriptor::Barrier();
 
 	const Vector< Vector<int> > &fileNumbersWriteOrder = nfi.FileNumbersWriteOrder();
 
@@ -1228,6 +1227,7 @@ ParallelDescriptor::Barrier();
       }
       delete whichRD;
     }
+ParallelDescriptor::Barrier();
 }
 
 
