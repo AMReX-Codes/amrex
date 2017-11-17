@@ -59,7 +59,7 @@ contains
 
     integer :: ilev
     integer :: rlo(4), rhi(4), elo(4), ehi(4), alo(4), ahi(4), blo(4), bhi(4)
-    type(amrex_box) :: bx
+    type(amrex_box) :: bx, gbx
     type(amrex_mfiter) :: mfi
     real(amrex_real), contiguous, dimension(:,:,:,:), pointer :: prhs, pexact, pa, pb
 
@@ -72,6 +72,7 @@ contains
        
        do while (mfi%next())
           bx = mfi%tilebox()
+          gbx = mfi%growntilebox(1)
           prhs   =>            rhs(ilev) % dataptr(mfi)
           pexact => exact_solution(ilev) % dataptr(mfi)
           pa     =>          acoef(ilev) % dataptr(mfi)
@@ -84,8 +85,9 @@ contains
           ahi = ubound(pa)
           blo = lbound(pb)
           bhi = ubound(pb)
-          call actual_init_abeclapcian(bx%lo, bx%hi, prhs, rlo(1:3), rhi(1:3), &
-               pexact, elo(1:3), ehi(1:3), pa, alo(1:3), ahi(1:3), pb, blo(1:3), bhi(1:3), &
+          call actual_init_abeclapcian(bx%lo, bx%hi, gbx%lo, gbx%hi, &
+               prhs, rlo(1:3), rhi(1:3), pexact, elo(1:3), ehi(1:3), &
+               pa, alo(1:3), ahi(1:3), pb, blo(1:3), bhi(1:3), &
                amrex_problo, amrex_probhi, geom(ilev)%dx)
        end do
 
@@ -129,9 +131,9 @@ contains
   end subroutine actual_init_poisson
 
 
-  subroutine actual_init_abeclapcian (lo, hi, rhs, rlo, rhi, exact, elo, ehi, &
+  subroutine actual_init_abeclapcian (lo, hi, glo, ghi, rhs, rlo, rhi, exact, elo, ehi, &
        alpha, alo, ahi, beta, blo, bhi, prob_lo, prob_hi, dx)
-    integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, elo, ehi, alo, ahi, blo, bhi
+    integer, dimension(3), intent(in) :: lo, hi, glo, ghi, rlo, rhi, elo, ehi, alo, ahi, blo, bhi
     real(amrex_real), intent(inout) :: rhs  (rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
     real(amrex_real), intent(inout) :: exact(elo(1):ehi(1),elo(2):ehi(2),elo(3):ehi(3))
     real(amrex_real), intent(inout) :: alpha(alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
@@ -156,11 +158,11 @@ contains
 
     theta = 0.5d0*log(3.d0) / (w + 1.d-50)
     
-    do k = lo(3)-1, hi(3)+1
+    do k = glo(3), ghi(3)
        z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)
-       do j = lo(2)-1, hi(2)+1
+       do j = glo(2), ghi(2)
           y = prob_lo(2) + dx(2) * (dble(j)+0.5d0)
-          do i = lo(1)-1, hi(1)+1
+          do i = glo(1), ghi(1)
              x = prob_lo(1) + dx(1) * (dble(i)+0.5d0)
              
              r = sqrt((x-xc)**2 + (y-yc)**2 + (z-zc)**2)
