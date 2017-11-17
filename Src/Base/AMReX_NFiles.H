@@ -42,6 +42,7 @@ class NFilesIter
     // ---- set of writers.  ranksToWrite.size() will set noutfiles
     // ---- rank ranksToWrite[n] will write to file_n
     void SetSparseFPP(const Vector<int> &ranksToWrite);
+    bool GetSparseFPP() const { return useSparseFPP; }
 
     // ---- constructor for reading
     NFilesIter(const std::string &fileName,
