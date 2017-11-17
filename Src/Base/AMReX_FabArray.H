@@ -1061,6 +1061,8 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 
     clear();
 
+    m_factory = std::move(factory);
+
     define_function_called = true;
 
     BL_ASSERT(ngrow >= 0);
@@ -1070,7 +1072,6 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        m_factory = std::move(factory);
         AllocFabs(*m_factory);
     }
 
@@ -1117,7 +1118,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
     {
 	int K = indexArray[i];
         const Box& tmpbox = fabbox(K);
-        m_fabs_v.push_back(m_factory->create(tmpbox, n_comp, fab_info, K));
+        m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
     }
     
 #ifdef BL_USE_TEAM
