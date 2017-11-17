@@ -1,0 +1,8 @@
+# ------------------  INPUTS TO MAIN PROGRAM  -------------------
+# PROBLEM SIZE & GEOMETRY
+geometry.is_periodic =  1  1  1
+geometry.coord_sys   =  0       # 0 => cart
+geometry.prob_lo     =  0. 0. 0.
+geometry.prob_hi     =  1.0  1.0  1.0
+
+

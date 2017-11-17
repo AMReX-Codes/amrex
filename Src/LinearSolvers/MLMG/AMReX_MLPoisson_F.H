@@ -10,6 +10,9 @@ extern "C" {
     void amrex_mlpoisson_adotx (const int* lo, const int* hi,
                                 amrex_real* y, const int* ylo, const int* yhi,
                                 const amrex_real* x, const int* xlo, const int* xhi,
+#if (AMREX_SPACEDIM != 3)
+                                const amrex_real* rc, const amrex_real* re, const int* rlo, const int* rhi,
+#endif
                                 const amrex_real* dxinv);
 
     void amrex_mlpoisson_flux (const int* lo, const int* hi,
@@ -21,6 +24,9 @@ extern "C" {
 #endif
 #endif
                                const amrex_real* sol, const int* slo, const int* shi,
+#if (AMREX_SPACEDIM != 3)
+                               const amrex_real* rc, const amrex_real* re, const int* rlo, const int* rhi,
+#endif
                                const amrex_real* dxinv, const int face_only);
 
     void amrex_mlpoisson_gsrb (const int* lo, const int* hi,
@@ -46,8 +52,12 @@ extern "C" {
                                const int* m5, const int* m5lo, const int* m5hi,
 #endif
 #endif
+#if (AMREX_SPACEDIM != 3)
+                               const amrex_real* rc, const amrex_real* re,
+#endif
                                const int* blo, const int* bhi, const amrex_real* dxinv,
                                const int redblack);
+
 
 #ifdef __cplusplus
 }

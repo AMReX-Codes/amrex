@@ -83,6 +83,7 @@ struct ParticleLocData
   IntVect m_cell {AMREX_D_DECL(-1,-1,-1)};
   Box     m_gridbox;
   Box     m_tilebox;
+  Box     m_grown_gridbox;
 };
 
 
@@ -807,7 +808,7 @@ public:
 
     static bool do_tiling;
     static IntVect tile_size;
-    
+
 protected:
 
     //

@@ -1,0 +1,200 @@
+\documentclass{article}
+
+\bibliographystyle{plain}
+
+\usepackage{epsfig}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\newcommand{\ibold}{{\bf i}}
+\newcommand{\jbold}{{\bf j}}
+\newcommand{\ebold}{{\bf e}}
+\newcommand{\vbold}{{\bf v}}
+\newcommand{\xbold}{{\bf x}}
+\newcommand{\ubold}{{\bf u}}
+\newcommand{\nbold}{{\bf n}}
+\newcommand{\Fbold}{{\bf F}}
+\newcommand{\ubar}{{\bar {\bf u}}}
+\newcommand{\vb}{{\bf u}}
+\newcommand{\npo}{{n + 1}}
+\newcommand{\dt}{{\Delta t}}
+\newcommand{\dx}{{h}}
+\newcommand{\nph}{{n + \frac{1}{2}}}
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\iph}{{\ibold + \half \ebold^d}}
+\newcommand{\imh}{{\ibold - \half \ebold^d}}
+
+
+\title{Scalar Advection-Diffusion Example in AMReX}
+
+\author{Dan Graves}
+\begin{document}
+
+\begin{abstract}
+  The advection-diffusion example is intended to explore how one does
+  a higher order algorithm in AMReX.    The example consists of an
+  $\tt{AmrLevel}$-derived class with several variations of
+  advection-diffusion algorithms implemented and tested.  These
+  include a second-order Godunov algorithm, as well second, third, and
+  fourth order Runge-Kutta.   Diffusion terms are updated explicitly,
+  making this example only appropriate for sufficiently small
+  diffusion coefficients.
+\end{abstract}
+
+\section{Introduction}
+
+Given a velocity field $\vbold$, a scalar field  $\phi$ and a
+diffusion coefficient $\nu$, the standard way to write the 
+scalar advection-diffusion equation  is given by 
+$$
+\frac{\partial \phi}{\partial t} + \nabla \cdot (\vbold \phi) = \nabla
+(\nu \nabla \phi).
+\cot 
+$$
+For this application, we are assuming that 
+\begin{itemize}
+\item The diffusion coefficient is constant.  This would be fairly
+  trivial to change.
+\item For any grid spacing $\dx$ we intend to us, the diffusion
+  coefficient $\nu$ is sufficiently small that the time
+  step $\dt$ is controlled by the advective CFL condition
+$$
+\dt < \frac{\dx}{v_m}.
+$$
+where $v_m= \max|\vbold|$;
+Roughly speaking, this means that 
+$$
+\nu < v_m \dx.
+$$
+\end{itemize}
+Given that we will updating the diffusion explicitly, we can
+reformulate the equation as 
+$$
+\frac{\partial \phi}{\partial t} =  -\nabla \cdot \Fbold, 
+$$
+where $\Fbold = \vbold \phi - \nu \nabla phi$.
+The algorithms here are implemented in finite volume form:
+$$
+D(F)_\ibold = \frac{1}{\dx} \sum^D_{d = 1} (F_{\iph} - F_\imh)
+$$
+and are
+therefore strongly conservative.
+
+\section{Algorithm Choices}
+
+\subsection{Second Order Godunov} 
+
+In second-order Godunov, we extrapolate in space and time to get a
+flux at the half time step.   I will not go into great detail here
+because this is fairly old hat to my audience.
+$$
+\phi_{i+1/2} = \phi_i + \half\dx \partial{\phi}{\partial x} + \half\dt \partial{\phi}{\partial t}
+$$
+We use the equation of motion to substitute spatial derivatives for
+the time derivative and we get.   We use  limited van Leer slopes to
+approximate the spatial derivatives.  We extrapolate to every face
+from both sides and pick the upwind state.   For the diffusive flux,
+we simply take a centered difference of $\phi^n$ at the face.  So, for
+diffusion, in this algorithm, we are first order in time.   Since we
+are only working with small diffusion coefficients, it does not seem
+to matter to the convergence numbers.   For coarse-fine interpolation,
+this algorithm just uses FillPatch.
+
+\subsection{RK2}
+
+The second-order RK scheme uses two evaluations of $\nabla \cdot F$ at
+fixed times to advance the solution
+$$
+\begin{array}{l}
+\phi^\nph = \phi^n -  \frac{\dt}{2} D(F)^n\\
+\phi^{n+1} = \phi^n - \dt D(F)^\nph
+\end{array}
+$$
+We evaluate the divergence operator using spatial extrapolation and
+upwinding.
+$$
+\begin{array}{l}
+\phi_{i+1/2, L} = \phi_i + \frac{\dx}{2} \Delta^{vl,x} \phi_i, \\
+\phi_{i+1/2, R} = \phi_{i+1} - \frac{\dx}{2} \Delta^{vl,x} \phi_{i+1}
+\end{array}
+$$
+where $\Delta^{vl,x}(\phi)$ is the van Leer limited slope of $\phi$ in
+the $x$ direction.   To compute the flux at the face, we pick the
+upwind state then multiply by the normal velocity at the face.   
+ For coarse-fine interpolation,  this algorithm just uses FillPatch.
+
+\subsection{RK3 (TVD)}
+
+For our third-order RK3 TVD  integrator, we  use what Gottlieb and Shu
+\cite{gottlieb_shu} cite as the optimal third order TVD RK3
+integrator.
+$$
+\begin{array}{l}
+\phi^1 = \phi^n - \dt D(F(\phi^n)) \\
+\phi^2 = \frac{3}{4} \phi^n + \frac{1}{4} (\phi^1 - \dt D(F(\phi^1)))\\
+\phi^{n+1} = \frac{1}{3} \phi^n +  \frac{2}{3}(\phi^2 - dt D(F(\phi^2)))
+\end{array}
+$$
+Our spatia discretization is discribed by McCorquodale and Colella
+\cite{mccorquodale_collela} and is fourth order in space.   As of the
+writing of this document,  we have implemented the simpler version
+presented there.
+\begin{itemize}
+  \item Get pointwise $\phi$ because I will need this to get higher
+    order gradient at faces.  
+$$
+\phi = <\phi> -\frac{h^2}{24}(L(<\phi>)),
+$$
+   where $L$ is the standard second order Laplacian.
+\item Get the average of the scalar over the faces .
+$$
+<\phi>_{i+1/2} =  \frac{7}{12}(<\phi>_i    + <\phi>_{i+1})
+                -\frac{1}{12}(<\phi>_{i-1} + <\phi>_{i+2})
+$$
+
+\item Get the point values of the scalar on faces from the face
+  average:
+$$
+\phi_{i+1/2} = <\phi>_{i+1/2} - \frac{1}{24} L^T(<phi>)_{i+1/2},
+$$
+where $L^T$ is the Laplacian that does not include terms normal to the
+face (what McCorquodale refers to as the ``transverse Laplacian'').
+
+\item Compute pointwise fluxes $F$ (including diffusion fluxes).
+$$
+F_{i+1/2} = u_{i+1/2} \phi_{i+1/2}  - nu G^x(phi)_{i+1/2}
+$$
+where the normal gradient $G^x$ is computed using fourth order finite
+differences  of the pointwise cell-centered scalar $\phi$.
+$$
+G^x(\phi)_{i+1/2} = \frac{\partial \phi}{\partial x} + O(h^4) 
+= (1/h)(\phi_{i+1}-\phi_{i}) 
+- (1/(4h))((\phi_{i+2} + \phi_i - 2\phi_{i+1}) - (\phi_{i+1} + \phi_{i-1} - 2\phi_{i}))
+$$
+
+\item Transform the pointwise fluxes $F$ into face-averaged fluxes $<F>$
+$$
+<F> = F - (1/24) L^T(F).
+$$    
+\end{itemize}
+My next task is to implement the more complicated algorithm described
+in \cite{mccorquodale_collela}, which includes limiting and Riemann
+problems.   For coarse-fine interpolation, we use FillPatchUtil
+quartic interpolation for spatial interplation.   For time
+interpolation,     We form  a polynomial in time (following Fok and
+Rosales \cite{fok_rosales}).
+$$
+\phi(t^{l-1} + \xi \dt^{l-1}) = \phi^0 + \xi k_1 + \frac{\xi^2}{2}(k_2-k_1)
+$$
+where $k_1 = -D(F(\phi^n)), k_2 = -D(F(\phi^1))$.
+
+\subsection{RK4}
+
+This option has precisely the same discretization as McCorquodale.
+The only exception being the spacial coarse-fine interpolation is done
+via FillPatchUtil using quartic interpolation.
+
+\bibliography{references}
+
+\end{document}
+
