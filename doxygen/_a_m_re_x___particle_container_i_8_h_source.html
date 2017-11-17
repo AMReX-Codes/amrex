@@ -1435,7 +1435,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l01345"></a><span class="lineno"> 1345</span>&#160;          <span class="keywordtype">int</span> who = it-&gt;first;</div>
 <div class="line"><a name="l01346"></a><span class="lineno"> 1346</span>&#160;          <a class="code" href="classamrex_1_1_vector.html">Vector&lt;Vector&lt;char&gt;</a> &gt;&amp; tmp = it-&gt;second;</div>
 <div class="line"><a name="l01347"></a><span class="lineno"> 1347</span>&#160;          <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; num_threads; ++i) {</div>
-<div class="line"><a name="l01348"></a><span class="lineno"> 1348</span>&#160;              not_ours[who].insert(not_ours[who].begin(), tmp[i].begin(), tmp[i].end());</div>
+<div class="line"><a name="l01348"></a><span class="lineno"> 1348</span>&#160;              not_ours[who].insert(not_ours[who].end(), tmp[i].begin(), tmp[i].end());</div>
 <div class="line"><a name="l01349"></a><span class="lineno"> 1349</span>&#160;              tmp[i].erase(tmp[i].begin(), tmp[i].end());</div>
 <div class="line"><a name="l01350"></a><span class="lineno"> 1350</span>&#160;          }</div>
 <div class="line"><a name="l01351"></a><span class="lineno"> 1351</span>&#160;      }</div>

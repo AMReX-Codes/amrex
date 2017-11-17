@@ -1,6 +1,7 @@
 var searchData=
 [
   ['cache',['cache',['../classamrex_1_1_agg_stencil.html#a4f48312cc775c9d90cd8c9753b5c2d0c',1,'amrex::AggStencil']]],
+  ['cacheneighborinfo',['cacheNeighborInfo',['../classamrex_1_1_neighbor_particle_container.html#a06cc902ba86e3cd428260a699b372885',1,'amrex::NeighborParticleContainer']]],
   ['cachestats',['CacheStats',['../structamrex_1_1_fab_array_base_1_1_cache_stats.html#a133fda6931b3c51c21e4328a0f1580cf',1,'amrex::FabArrayBase::CacheStats']]],
   ['calculateminmax',['CalculateMinMax',['../structamrex_1_1_vis_m_f_1_1_header.html#af970e6b297855697a3a6c053778bc817',1,'amrex::VisMF::Header']]],
   ['calculateweightingmatrix',['calculateWeightingMatrix',['../classamrex_1_1_e_b_arith.html#a7b1ef94336ddf50d7b6c77361925c9b9',1,'amrex::EBArith']]],
