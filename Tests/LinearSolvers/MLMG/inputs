@@ -5,6 +5,11 @@ prob.b = 1.0
 prob.sigma = 1.0
 prob.w = 0.05
 
+prob.bc_type = Dirichlet
+#prob.bc_type = Neumann
+#prob.bc_type = Periodic
+
+
 # Grids
 max_level = 2
 ref_ratio = 2

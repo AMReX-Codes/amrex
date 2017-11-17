@@ -53,7 +53,15 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     }
 
     MLABecLaplacian mlabec(geom, grids, dmap);
+
     mlabec.setMaxOrder(linop_maxorder);
+
+    // BC
+    mlabec.setDomainBC({prob::bc_type,prob::bc_type,prob::bc_type},
+                       {prob::bc_type,prob::bc_type,prob::bc_type});
+    for (int ilev = 0; ilev < nlevels; ++ilev) {
+        mlabec.setLevelBC(ilev, psoln[ilev]);
+    }
 
     mlabec.setScalars(prob::a, prob::b);
     for (int ilev = 0; ilev < nlevels; ++ilev)
@@ -71,12 +79,6 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
                                                         &bcoefs[2])},
                                           beta[ilev], geom[ilev]);
         mlabec.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoefs));
-
-        if (ilev == 0) {
-            mlabec.setDirichletBC(0, *psoln[0]);
-        } else {
-            mlabec.setDirichletBC(ilev, *psoln[ilev], psoln[ilev-1]);            
-        }
     }
     
     MLMG mlmg(mlabec);
@@ -84,6 +86,7 @@ void solve_with_mlmg (const Vector<Geometry>& geom,
     mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
     mlmg.setCGVerbose(cg_verbose);
+
     mlmg.solve(psoln, prhs, tol_rel, tol_abs);
 }
 

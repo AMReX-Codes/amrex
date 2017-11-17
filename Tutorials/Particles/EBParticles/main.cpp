@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 
         myPC.Redistribute();
 
-        myPC.bounceWalls(dummy, volfrac, bndrycent, areafrac);
+        myPC.bounceWalls(dummy, volfrac, bndrycent, areafrac, dt);
 
         myPC.Redistribute();
 

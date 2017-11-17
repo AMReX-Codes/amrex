@@ -1192,18 +1192,6 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	  }
 	}
 
-if(nfi.GetSparseFPP()) {
-  std::cout << "SPARSE CHECK:" << std::endl;
-  std::cout << "SPARSE CHECK:  fileNumbers:" << std::endl;
-  for(int i(0); i < fileNumbers.size(); ++i) {
-    std::cout << "fileNumbers[" << i << "] = " << fileNumbers[i] << std::endl;
-  }
-  std::cout << "SPARSE CHECK:  FileNumbersWritten:" << std::endl;
-  for(int i(0); i < nProcs; ++i) {
-    std::cout << "FileNumbersWritten[" << i << "] = " << nfi.FileNumbersWritten()[i] << std::endl;
-  }
-}
-
 	const Vector< Vector<int> > &fileNumbersWriteOrder = nfi.FileNumbersWriteOrder();
 
 	for(int fn(0); fn < fileNumbersWriteOrder.size(); ++fn) {

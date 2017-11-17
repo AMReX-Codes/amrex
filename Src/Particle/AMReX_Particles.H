@@ -795,6 +795,11 @@ public:
         return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
     }
 
+    MFIter MakeMFIter (int lev, bool tile) const {
+        BL_ASSERT(m_dummy_mf[lev] != nullptr);
+        return MFIter(*m_dummy_mf[lev], tile ? tile_size : IntVect::TheZeroVector());
+    }
+
     // struct-of-array stuff
     std::vector<bool> communicate_real_comp;
     std::vector<bool> communicate_int_comp;
