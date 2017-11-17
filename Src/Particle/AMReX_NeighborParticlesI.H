@@ -643,7 +643,6 @@ buildNeighborList(int lev, bool sort) {
             const IntVect& cell = cells[i];
             Box bx(cell, cell);
             bx.grow(num_neighbor_cells);
-            bx &= head.box();
             
             for (IntVect iv = bx.smallEnd(); iv <= bx.bigEnd(); bx.next(iv)) {
                 int j = head(iv);
