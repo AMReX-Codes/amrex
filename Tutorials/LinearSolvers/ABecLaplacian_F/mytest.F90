@@ -28,15 +28,16 @@ module mytest_module
   logical, save :: consolidation = .true.
 
   ! data
-  type(amrex_geometry), allocatable :: geom(:)
-  type(amrex_boxarray), allocatable :: ba(:)
-  type(amrex_distromap), allocatable :: dm(:)
+  type(amrex_geometry), allocatable, save :: geom(:)
+  type(amrex_boxarray), allocatable, save :: ba(:)
+  type(amrex_distromap), allocatable, save :: dm(:)
 
-  type(amrex_multifab), allocatable :: solution(:)
-  type(amrex_multifab), allocatable :: rhs(:)
-  type(amrex_multifab), allocatable :: exact_solution(:)
-  type(amrex_multifab), allocatable :: acoef(:)
-  type(amrex_multifab), allocatable :: bcoef(:)
+  type(amrex_multifab), allocatable, save :: solution(:)
+  type(amrex_multifab), allocatable, save :: rhs(:)
+  type(amrex_multifab), allocatable, save :: exact_solution(:)
+  type(amrex_multifab), allocatable, save :: acoef(:)
+  type(amrex_multifab), allocatable, save :: bcoef(:)
+  real(amrex_real), save :: ascalar, bscalar
   
 
   private
@@ -95,7 +96,7 @@ contains
     if (prob_type .eq. 1) then
        call init_prob_poisson(geom,solution, rhs, exact_solution)
     else
-       call init_prob_abeclaplacian(geom,solution, rhs, exact_solution, acoef, bcoef)
+       call init_prob_abeclaplacian(geom,solution, rhs, exact_solution, acoef, bcoef, ascalar, bscalar)
     end if
   end subroutine init_data
 
@@ -186,7 +187,7 @@ contains
 
        ! This is a 3d problem with Dirichlet BC
        call poisson % set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
-            &                     [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
+            &                       [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
 
        do ilev = 0, max_level
           ! solution multifab's ghost cells at physical boundaries have been set to bc values.
@@ -216,7 +217,7 @@ contains
 
           ! This is a 3d problem with Dirichlet BC
           call poisson % set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
-               &                     [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
+               &                       [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
                
           if (ilev > 0) then
              ! use coarse level data to set up bc at corase/fine boundary
@@ -244,7 +245,6 @@ contains
 
        end do
     end if
-    
 
   end subroutine solve_poisson
 
