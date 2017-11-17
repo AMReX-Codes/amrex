@@ -220,14 +220,32 @@ extern "C" {
 
     // MFIter routines
 
-    void amrex_fi_new_mfiter_r (MFIter*& mfi, MultiFab* mf, int tiling)
+    void amrex_fi_new_mfiter_r (MFIter*& mfi, MultiFab* mf, int tiling, int dynamic)
     {
-	mfi = new MFIter(*mf, (bool)tiling);
+        if (tiling) {
+            mfi = new MFIter(*mf, MFItInfo().EnableTiling().SetDynamic(dynamic));
+        } else {
+            mfi = new MFIter(*mf, MFItInfo().SetDynamic(dynamic));
+        }
     }
 
-    void amrex_fi_new_mfiter_i (MFIter*& mfi, iMultiFab* imf, int tiling)
+    void amrex_fi_new_mfiter_i (MFIter*& mfi, iMultiFab* imf, int tiling, int dynamic)
     {
-	mfi = new MFIter(*imf, (bool)tiling);
+        if (tiling) {
+            mfi = new MFIter(*imf, MFItInfo().EnableTiling().SetDynamic(dynamic));
+        } else {
+            mfi = new MFIter(*imf, MFItInfo().SetDynamic(dynamic));
+        }
+    }
+
+    void amrex_fi_new_mfiter_rs (MFIter*& mfi, MultiFab* mf, const int* tilesize, int dynamic)
+    {
+        mfi = new MFIter(*mf, MFItInfo().EnableTiling(IntVect(tilesize)).SetDynamic(dynamic));
+    }
+
+    void amrex_fi_new_mfiter_is (MFIter*& mfi, iMultiFab* imf, const int* tilesize, int dynamic)
+    {
+        mfi = new MFIter(*imf, MFItInfo().EnableTiling(IntVect(tilesize)).SetDynamic(dynamic));
     }
 
     void amrex_fi_delete_mfiter (MFIter* mfi)
@@ -264,9 +282,59 @@ extern "C" {
 	}
     }
 
+    void amrex_fi_mfiter_tilebox_iv (MFIter* mfi, int lo[3], int hi[3], const int nodal[3])
+    {
+        const Box& bx = mfi->tilebox(IntVect(nodal));
+	const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
+	}
+    }
+
     void amrex_fi_mfiter_nodaltilebox (MFIter* mfi, int dir, int lo[3], int hi[3], int nodal[3])
     {
 	const Box& bx = mfi->nodaltilebox(dir);
+	const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	const IntVect& t = bx.type();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
+	    nodal[i] = t[i];
+	}
+    }
+
+    void amrex_fi_mfiter_growntilebox (MFIter* mfi, int lo[3], int hi[3], int ng, int nodal[3])
+    {
+	const Box& bx = mfi->growntilebox(ng);
+	const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	const IntVect& t = bx.type();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
+	    nodal[i] = t[i];
+	}
+    }
+
+    void amrex_fi_mfiter_grownnodaltilebox (MFIter* mfi, int lo[3], int hi[3], int dir, int ng, int nodal[3])
+    {
+	const Box& bx = mfi->grownnodaltilebox(dir, ng);
+	const int* lov = bx.loVect();
+	const int* hiv = bx.hiVect();
+	const IntVect& t = bx.type();
+	for (int i = 0; i < BL_SPACEDIM; ++i) {
+	    lo[i] = lov[i];
+	    hi[i] = hiv[i];
+	    nodal[i] = t[i];
+	}
+    }
+
+    void amrex_fi_mfiter_validbox (MFIter* mfi, int lo[3], int hi[3], int nodal[3])
+    {
+	const Box& bx = mfi->validbox();
 	const int* lov = bx.loVect();
 	const int* hiv = bx.hiVect();
 	const IntVect& t = bx.type();
