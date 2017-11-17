@@ -1727,7 +1727,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     //
     std::ofstream HdrFile;
 
-    long nparticles;
+    long nparticles = 0;
     int maxnextid;
 
     if(usePrePost) {
