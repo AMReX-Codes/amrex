@@ -68,4 +68,9 @@ extern "C" {
             inodal[idim] = typ[idim];
         }
     }
+
+    long amrex_fi_boxarray_numpts (const BoxArray* ba)
+    {
+        return ba->numPts();
+    }
 }
