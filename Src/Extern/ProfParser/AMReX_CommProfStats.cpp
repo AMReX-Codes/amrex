@@ -895,7 +895,7 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
   //if(nTimerTimes > 0) {
     //timerTime /= nTimerTimes;
   //}
-  amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << "::done." << endl;
+  amrex::Print(Print::AllProcs) << ParallelDescriptor::MyProc() << "::done." << '\n';
 }
 
 
@@ -925,7 +925,7 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
   Real timeRangeFab(fabTimeHi - fabTimeLo);
   Real ooTimeRangeFab(1.0 / timeRangeFab);
 
-  int index(-1), xi(-1);
+  long index(-1), xi(-1);
   //int nTimeSlotsTotal(probDomain.length(XDIR));
   int nTimeSlotsFab(timelineFAB.box().length(XDIR));
   //int nRanksTotal(probDomain.length(YDIR));
@@ -947,8 +947,8 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
     Real *timeline(timelineFAB.dataPtr(0));
     Real *mpiCount(timelineFAB.dataPtr(1));
 
-    int prevIndex(0);
-    for(int i(0); i < dBlock.vCommStats.size(); ++i) {
+    long prevIndex(0);
+    for(long i(0); i < dBlock.vCommStats.size(); ++i) {
       BLProfiler::CommStats &cs = dBlock.vCommStats[i];
       Real ts(cs.timeStamp);
       if((ts <= fabTimeHi && ts >= fabTimeLo) && InTimeRange(dBlock.proc, ts)) {  // within time range
@@ -1019,9 +1019,9 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
 	      cout << "::::  prevTs fabTimeLo = " << prevTs << "  " << fabTimeLo << endl;
 	      prevTs = fabTimeLo;
 	    }
-            int prevXi(nTimeSlotsFab * ((prevTs - fabTimeLo) * ooTimeRangeFab));
+            long prevXi(nTimeSlotsFab * ((prevTs - fabTimeLo) * ooTimeRangeFab));
             prevIndex = (((proc - fabRankLo) / rankStride) * nTimeSlotsFab) + prevXi;
-	    for(int idx(prevIndex); idx < index; ++idx) {
+	    for(long idx(prevIndex); idx < index; ++idx) {
 	      if(idx < 0 || idx >= timelineFAB.box().numPts() || idx > index) {
 	        SHOWVAL(proc)
 	        SHOWVAL(ts)
@@ -1032,7 +1032,9 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
 	        SHOWVAL(index)
 	        SHOWVAL(prevIndex)
 	        SHOWVAL(timelineFAB.box().size())
-	        amrex::Abort("idx out of range.");
+	        //amrex::Abort("idx out of range.");
+	        amrex::Print() << "CommProfStats::TimelineFAB::idx out of range." << std::endl;
+		continue;
 	      }
               timeline[idx] = cs.cfType;
               mpiCount[idx] += 1.0;
