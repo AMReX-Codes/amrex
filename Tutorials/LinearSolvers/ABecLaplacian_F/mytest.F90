@@ -55,22 +55,22 @@ contains
 
     call amrex_parmparse_build(pp)
 
-    call pp%query("max_level", max_level)
-    call pp%query("ref_ratio", ref_ratio)
-    call pp%query("n_cell", n_cell);
-    call pp%query("max_grid_size", max_grid_size)
+    call pp % query("max_level", max_level)
+    call pp % query("ref_ratio", ref_ratio)
+    call pp % query("n_cell", n_cell);
+    call pp % query("max_grid_size", max_grid_size)
 
-    call pp%query("composite_solve", composite_solve)
+    call pp % query("composite_solve", composite_solve)
 
-    call pp%query("prob_type", prob_type)
+    call pp % query("prob_type", prob_type)
 
-    call pp%query("verbose", verbose)
-    call pp%query("cg_verbose", cg_verbose)
-    call pp%query("max_iter", max_iter)
-    call pp%query("max_fmg_iter", max_fmg_iter)
-    call pp%query("linop_maxorder", linop_maxorder)
-    call pp%query("agglomeration", agglomeration)
-    call pp%query("consolidation", consolidation)
+    call pp % query("verbose", verbose)
+    call pp % query("cg_verbose", cg_verbose)
+    call pp % query("max_iter", max_iter)
+    call pp % query("max_fmg_iter", max_fmg_iter)
+    call pp % query("linop_maxorder", linop_maxorder)
+    call pp % query("agglomeration", agglomeration)
+    call pp % query("consolidation", consolidation)
 
     call amrex_parmparse_destroy(pp)
   end subroutine init_parameters
@@ -110,7 +110,7 @@ contains
     domain = amrex_box([0,0,0], [n_cell-1,n_cell-1,n_cell-1])
     do ilev = 0, max_level
        call amrex_geometry_build(geom(ilev), domain)
-       call domain%refine(ref_ratio)
+       call domain % refine(ref_ratio)
     end do
   end subroutine init_geom
 
@@ -118,12 +118,12 @@ contains
   subroutine init_grids ()
     integer :: ilev
     type(amrex_box) :: dom
-    dom = geom(0)%domain
+    dom = geom(0) % domain
     do ilev = 0, max_level
        call amrex_boxarray_build(ba(ilev), dom)
-       call ba(ilev)%maxSize(max_grid_size)
-       call dom%grow(-n_cell/4)     ! fine level cover the middle of the coarse domain
-       call dom%refine(ref_ratio)
+       call ba(ilev) % maxSize(max_grid_size)
+       call dom % grow(-n_cell/4)     ! fine level cover the middle of the coarse domain
+       call dom % refine(ref_ratio)
     end do
   end subroutine init_grids
 
@@ -182,24 +182,24 @@ contains
        call amrex_poisson_build(poisson, geom, ba, dm, &
             metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
        
-       call poisson%set_maxorder(linop_maxorder)
+       call poisson % set_maxorder(linop_maxorder)
 
        ! This is a 3d problem with Dirichlet BC
-       call poisson%set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
+       call poisson % set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
             &                     [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
 
        do ilev = 0, max_level
           ! solution multifab's ghost cells at physical boundaries have been set to bc values.
-          call poisson%set_level_bc(ilev, solution(ilev))
+          call poisson % set_level_bc(ilev, solution(ilev))
        end do
 
-       call amrex_multigrid_build(multigrid,poisson)
-       call multigrid%set_verbose(verbose)
-       call multigrid%set_cg_verbose(cg_verbose)
-       call multigrid%set_max_iter(max_iter)
-       call multigrid%set_max_fmg_iter(max_fmg_iter)
+       call amrex_multigrid_build(multigrid, poisson)
+       call multigrid % set_verbose(verbose)
+       call multigrid % set_cg_verbose(cg_verbose)
+       call multigrid % set_max_iter(max_iter)
+       call multigrid % set_max_fmg_iter(max_fmg_iter)
 
-       err = multigrid%solve(solution, rhs, 1.e-10_amrex_real, 0.0_amrex_real)
+       err = multigrid % solve(solution, rhs, 1.e-10_amrex_real, 0.0_amrex_real)
 
        call amrex_poisson_destroy(poisson)
        call amrex_multigrid_destroy(multigrid)
@@ -210,19 +210,42 @@ contains
           call amrex_poisson_build(poisson, [geom(ilev)], [ba(ilev)], [dm(ilev)], &
                metric_term=.false., agglomeration=agglomeration, consolidation=consolidation)
        
-          call poisson%set_maxorder(linop_maxorder)
+          call poisson % set_maxorder(linop_maxorder)
+
+          ! The order of the following set bc calls matters.
 
           ! This is a 3d problem with Dirichlet BC
-          call poisson%set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
+          call poisson % set_domain_bc([amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet], &
                &                     [amrex_lo_dirichlet, amrex_lo_dirichlet, amrex_lo_dirichlet])
                
           if (ilev > 0) then
              ! use coarse level data to set up bc at corase/fine boundary
-             call poisson%set_coarse_fine_bc(solution(ilev-1), ref_ratio)
+             call poisson % set_coarse_fine_bc(solution(ilev-1), ref_ratio)
           end if
+
+          ! Note that to the linear solver, the level is ZERO.  In
+          ! this test problem, when lev > 0, solution(lev) is going to
+          ! be ignored because fine level grids are completed
+          ! surrounded by coarse level.  If fine level grids do touch
+          ! phyical domain, the multifab must have bc values at
+          ! physical boundaries stored in ghost cells.
+          call poisson % set_level_bc(0, solution(ilev))
+
+          call amrex_multigrid_build(multigrid, poisson);
+          call multigrid % set_verbose(verbose)
+          call multigrid % set_cg_verbose(cg_verbose)
+          call multigrid % set_max_iter(max_iter)
+          call multigrid % set_max_fmg_iter(max_fmg_iter)
+
+          err = multigrid % solve([solution(ilev)], [rhs(ilev)], 1.e-10_amrex_real, 0.0_amrex_real)
+
+          call amrex_poisson_destroy(poisson)
+          call amrex_multigrid_destroy(multigrid)
 
        end do
     end if
+    
+
   end subroutine solve_poisson
 
 
@@ -253,14 +276,14 @@ contains
 
     do ilev = 0, max_level
        call amrex_multifab_build(plotmf(ilev), ba(ilev), dm(ilev), nc, 0)
-       call plotmf(ilev)%copy(      solution(ilev), 1, 1, 1, 0)
-       call plotmf(ilev)%copy(           rhs(ilev), 1, 2, 1, 0)
-       call plotmf(ilev)%copy(exact_solution(ilev), 1, 3, 1, 0)
-       call plotmf(ilev)%copy(      solution(ilev), 1, 4, 1, 0)
-       call plotmf(ilev)%subtract(exact_solution(ilev),1,1,1,0)
+       call plotmf(ilev) % copy(      solution(ilev), 1, 1, 1, 0)
+       call plotmf(ilev) % copy(           rhs(ilev), 1, 2, 1, 0)
+       call plotmf(ilev) % copy(exact_solution(ilev), 1, 3, 1, 0)
+       call plotmf(ilev) % copy(      solution(ilev), 1, 4, 1, 0)
+       call plotmf(ilev) % subtract(exact_solution(ilev),1,1,1,0)
        if (allocated(acoef)) then
-          call plotmf(ilev)%copy(acoef(ilev), 1, 5, 1, 0)
-          call plotmf(ilev)%copy(bcoef(ilev), 1, 6, 1, 0)
+          call plotmf(ilev) % copy(acoef(ilev), 1, 5, 1, 0)
+          call plotmf(ilev) % copy(bcoef(ilev), 1, 6, 1, 0)
        end if
     end do
 

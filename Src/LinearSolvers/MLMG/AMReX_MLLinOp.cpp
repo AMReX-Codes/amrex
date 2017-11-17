@@ -399,6 +399,8 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 {
     BL_PROFILE("MLLinOp::setLevelBC()");
 
+    AMREX_ALWAYS_ASSERT(amrlev >= 0 && amrlev < m_num_amr_levels);
+
     MultiFab zero;
     if (a_levelbcdata == nullptr) {
         zero.define(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
