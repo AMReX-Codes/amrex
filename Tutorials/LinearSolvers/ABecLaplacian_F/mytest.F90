@@ -250,6 +250,33 @@ contains
 
 
   subroutine solve_abeclaplacian ()
+!    type(amrex_abeclaplacian) :: abeclap
+    type(amrex_multigrid) :: multgrid
+    integer :: ilev, idim
+    real(amrex_real) :: err
+    type(amrex_multifab), allocatable :: beta(:,:)
+    logical :: nodal(3)
+
+    ! For ABecLaplacian, the b coefficents are on faces
+    allocate(beta(amrex_spacedim,0:max_level))
+    do ilev = 0, max_level
+       do idim = 1, amrex_spacedim
+          nodal = .false.
+          nodal(idim) = .true.
+          call amrex_multifab_build(beta(idim,ilev), ba(ilev), dm(ilev), 1, 0, nodal)
+       end do
+       call amrex_average_cellcenter_to_face(beta(:,ilev), bcoef(ilev), geom(ilev))
+    end do
+
+    
+
+
+    ! cannot trust Fortran compiler to do this correctly
+    do ilev = 0, max_level
+       do idim = 1, amrex_spacedim
+          call amrex_multifab_destroy(beta(idim,ilev))
+       end do
+    end do
   end subroutine solve_abeclaplacian
 
   subroutine write_plotfile ()
@@ -280,7 +307,7 @@ contains
        call plotmf(ilev) % copy(           rhs(ilev), 1, 2, 1, 0)
        call plotmf(ilev) % copy(exact_solution(ilev), 1, 3, 1, 0)
        call plotmf(ilev) % copy(      solution(ilev), 1, 4, 1, 0)
-       call plotmf(ilev) % subtract(exact_solution(ilev),1,1,1,0)
+       call plotmf(ilev) % subtract(exact_solution(ilev),1,4,1,0)
        if (allocated(acoef)) then
           call plotmf(ilev) % copy(acoef(ilev), 1, 5, 1, 0)
           call plotmf(ilev) % copy(bcoef(ilev), 1, 6, 1, 0)
