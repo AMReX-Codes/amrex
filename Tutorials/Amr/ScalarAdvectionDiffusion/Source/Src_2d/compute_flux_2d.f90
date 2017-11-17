@@ -493,7 +493,7 @@ contains
     ! compute face average phi on x faces via eqn 17 of mccorquodale, colella
     
     do    j = lo(2)-2, hi(2)+2
-       do i = lo(1)  , hi(1)+1
+       do i = lo(1)-1, hi(1)+2
 
           debtemp  = &
                 (7.d0/12.d0)*(phi(i  ,j) + phi(i-1,j)) &
@@ -505,7 +505,7 @@ contains
 
     
     !same for y faces
-    do    j = lo(2)  , hi(2)+1
+    do    j = lo(2)-1, hi(2)+2
        do i = lo(1)-2, hi(1)+2
 
           debtemp  = &
