@@ -37,6 +37,8 @@ const char* path_sep_str = "/";
 #include <sys/param.h>
 #include <unistd.h>
 
+using std::ostringstream;
+
 //
 // Return true if argument is a non-zero length string of digits.
 //
@@ -499,6 +501,79 @@ int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
   }
   return rr;
 }
+
+// -------------------------------------------------------------------
+int amrex::HashDistributionMap(const DistributionMapping &dm, int hashSize)
+{
+  BL_ASSERT(hashSize > 0);
+
+  const Vector<int> &dmArrayMap = dm.ProcessorMap();
+  Vector<long> hash(hashSize, 0);
+
+  // Create hash by summing processer map over
+  //   a looped hash array of given size. 
+  for (int i=0; i<dmArrayMap.size(); i++)
+  {
+    int hashIndex = (i%hashSize);
+    hash[hashIndex] += dmArrayMap[i];
+  }
+
+  // Output hash is the ones digit of each element
+  //   of the hash array.
+  ostringstream outstr;
+  for (int j=0; j<hashSize; j++)
+  {
+     outstr << (hash[j]%10); 
+  }
+
+  //
+  return ( std::atoi(outstr.str().c_str()) );
+}
+
+// -------------------------------------------------------------------
+int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
+{
+  BL_ASSERT(hashSize > 0);
+
+  Vector<long> hash(hashSize, 0);
+  int hashSum(0), hashCount(0);
+
+  // Create hash by summing smallEnd, bigEnd and type
+  //   over a looped hash array of given size.
+  // For any empty boxes, skip BL_SPACEDIM inputs.
+  // For an empty box array, hash=0, regardless of size.
+  if (!ba.empty())
+  {
+    for (int i=0; i<ba.size(); i++)
+    {
+      if (!ba[i].isEmpty())
+      {
+        for (int j=0; j<BL_SPACEDIM; j++)
+        {
+           hashSum = ba[i].smallEnd(j) + ba[i].bigEnd(j) + ba[i].ixType()[j];
+           hash[(hashCount%hashSize)] += hashSum;
+           hashCount++;
+        }
+      }
+      else
+      {
+        hashCount+=BL_SPACEDIM;
+      }
+    }
+  }
+
+  // Output hash is the ones digit of each element
+  //   of the hash array.
+  ostringstream outstr;
+  for (int j=0; j<hashSize; j++)
+  {
+     outstr << (hash[j]%10); 
+  }
+
+  return ( std::atoi(outstr.str().c_str()) );
+} 
+
+
 
 //
 // Fortran entry points for amrex::Random().
@@ -1171,7 +1246,6 @@ void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &loc
 }
 
 
-
 void amrex::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
   Vector<int> sbaG;
@@ -1186,28 +1260,33 @@ void amrex::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MP
   }
 }
 
-
 void amrex::BroadcastDistributionMapping(DistributionMapping &dM,
-                                          int myLocalId, int rootId, const MPI_Comm &localComm,
-					  bool addToCache)
+                                          int myLocalId, int rootId, const MPI_Comm &localComm)
 {
+  // ---- Strategy
   int dmStrategy(dM.strategy());
   ParallelDescriptor::Bcast(&dmStrategy, 1, rootId, localComm);
   if(myLocalId != rootId) {
     dM.strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
   }
 
+  // ---- Color & dmap
   Vector<int> dmapA;
-
+  int colorInt;
   if(myLocalId == rootId) {
     dmapA = dM.ProcessorMap();
+    colorInt = dM.color().to_int();
   }
   amrex::BroadcastArray(dmapA, myLocalId, rootId, localComm);
+  ParallelDescriptor::Bcast(&colorInt, 1, rootId, localComm);
   if(dmapA.size() > 0) {
     if(myLocalId != rootId) {
-      dM.define(dmapA);
+      ParallelDescriptor::Color colorA(colorInt); 
+      dM.define(dmapA, colorA);
     }
   }
+
+  // ---- dmID and nDistMaps
   int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());
   ParallelDescriptor::Bcast(&dmID, 1, rootId, localComm);
   ParallelDescriptor::Bcast(&nDM, 1, rootId, localComm);

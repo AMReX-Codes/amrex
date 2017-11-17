@@ -107,6 +107,8 @@ public:
 		 int                        ncomp,
 		 const DistributionMapping& dm);
 
+    void clear ();
+
     //! Get box domain (as an array of boxes).
     const BoxArray& boxes () const { return grids; }
 
@@ -134,14 +136,16 @@ public:
                              int             nghost,
                              int             src_comp,
                              int             dest_comp,
-                             int             num_comp);
+                             int             num_comp,
+                             const Periodicity& period = Periodicity::NonPeriodic());
 
     //! Increment the boundary FABs on intersect with given MultiFab.
     BndryRegister& plusFrom (const MultiFab& src,
                              int             nghost,
                              int             src_comp,
                              int             dest_comp,
-                             int             num_comp);
+                             int             num_comp,
+                             const Periodicity& period = Periodicity::NonPeriodic());
 
     //! Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
     BndryRegister& linComb (Real            a,

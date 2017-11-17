@@ -1,26 +1,46 @@
 
 #include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
-#include <AMReX_LO_F.H>
+#include <AMReX_MLLinOp_F.H>
+#include <AMReX_MLMGBndry.H>
+#include <AMReX_ParmParse.H>
 
 namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
 constexpr int MLLinOp::mg_box_min_width;
 
+namespace {
+    // experimental features
+    bool initialized = false;
+    int consolidation_ratio = 2;
+    int consolidation_strategy = 3;
+}
+
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
-                  const Vector<DistributionMapping>& a_dmap)
+                  const Vector<DistributionMapping>& a_dmap,
+                  const LPInfo& a_info)
 {
-    define(a_geom, a_grids, a_dmap);
+    define(a_geom, a_grids, a_dmap, a_info);
 }
 
 void
 MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
-                 const Vector<DistributionMapping>& a_dmap)
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info)
 {
     BL_PROFILE("MLLinOp::define()");
+
+    if (!initialized) {
+	ParmParse pp("mg");
+	pp.query("consolidation_ratio", consolidation_ratio);
+	pp.query("consolidation_strategy", consolidation_strategy);
+	initialized = true;
+    }
+
+    info = a_info;
     defineGrids(a_geom, a_grids, a_dmap);
     defineAuxData();
     defineBC();
@@ -31,6 +51,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap)
 {
+    BL_PROFILE("MLLinOp::defineGrids()");
+
     m_num_amr_levels = a_geom.size();
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
@@ -39,6 +61,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
+
+    m_default_comm = ParallelDescriptor::Communicator();
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -79,22 +103,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_grids[0].push_back(a_grids[0]);
     m_dmap[0].push_back(a_dmap[0]);
 
-    int rr = mg_coarsen_ratio;
-    while (a_geom[0].Domain().coarsenable(rr)
-           and a_grids[0].coarsenable(rr, mg_box_min_width))
-    {
-        ++(m_num_mg_levels[0]);
-
-        m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
-
-        m_grids[0].push_back(a_grids[0]);
-        m_grids[0].back().coarsen(rr);
-
-        m_dmap[0].push_back(a_dmap[0]);
-        
-        rr *= mg_coarsen_ratio;
-    }
-
     m_domain_covered.resize(m_num_amr_levels, false);
     m_domain_covered[0] = (m_grids[0][0].numPts() == m_geom[0][0].Domain().numPts());
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -102,11 +110,123 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         if (!m_domain_covered[amrlev-1]) break;
         m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() == m_geom[amrlev][0].Domain().numPts());
     }
+
+    bool agged = false;
+    bool coned = false;
+
+    if (info.do_agglomeration && m_domain_covered[0])
+    {
+        Vector<Box> domainboxes;
+        Box dbx = m_geom[0][0].Domain();
+        Real nbxs = static_cast<Real>(m_grids[0][0].size());
+        Real threshold_npts = static_cast<Real>(AMREX_D_TERM(info.agg_grid_size,
+                                                             *info.agg_grid_size,
+                                                             *info.agg_grid_size));
+        Vector<int> agg_flag;
+        domainboxes.push_back(dbx);
+        agg_flag.push_back(false);
+        while (dbx.coarsenable(mg_coarsen_ratio,mg_box_min_width))
+        {
+            dbx.coarsen(mg_coarsen_ratio);
+            domainboxes.push_back(dbx);
+            bool to_agg = (dbx.d_numPts() / nbxs) < 0.999*threshold_npts;
+            agg_flag.push_back(to_agg);
+        }
+
+        int first_agglev = std::distance(agg_flag.begin(),
+                                         std::find(agg_flag.begin(),agg_flag.end(),1));
+        int nmaxlev = domainboxes.size();
+        int rr = mg_coarsen_ratio;
+        for (int lev = 1; lev < nmaxlev; ++lev)
+        {
+            if (lev >= first_agglev or !a_grids[0].coarsenable(rr,mg_box_min_width))
+            {
+                m_geom[0].emplace_back(domainboxes[lev]);
+            
+                m_grids[0].emplace_back(domainboxes[lev]);
+                m_grids[0].back().maxSize(info.agg_grid_size);
+
+                m_dmap[0].push_back(DistributionMapping());
+                agged = true;
+            }
+            else
+            {
+                m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+                
+                m_grids[0].push_back(a_grids[0]);
+                m_grids[0].back().coarsen(rr);
+            
+                m_dmap[0].push_back(a_dmap[0]);
+            }
+
+            ++(m_num_mg_levels[0]);
+            rr *= mg_coarsen_ratio;
+        }
+    }
+    else
+    {
+        int rr = mg_coarsen_ratio;
+        Real avg_npts, threshold_npts;
+        if (info.do_consolidation) {
+            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
+            threshold_npts = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
+                                                            *info.con_grid_size,
+                                                            *info.con_grid_size));
+        }
+        while (a_geom[0].Domain().coarsenable(rr)
+               and a_grids[0].coarsenable(rr, mg_box_min_width))
+        {
+            m_geom[0].emplace_back(amrex::coarsen(a_geom[0].Domain(),rr));
+            
+            m_grids[0].push_back(a_grids[0]);
+            m_grids[0].back().coarsen(rr);
+
+            if (info.do_consolidation)
+            {
+                if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
+                {
+                    coned = true;
+                    m_dmap[0].push_back(DistributionMapping());
+                }
+                else
+                {
+                    m_dmap[0].push_back(m_dmap[0].back());
+                }
+            }
+            else
+            {
+                m_dmap[0].push_back(a_dmap[0]);
+            }
+            
+            ++(m_num_mg_levels[0]);
+            rr *= mg_coarsen_ratio;
+        }
+    }
+
+    if (agged)
+    {
+        makeAgglomeratedDMap(m_grids[0], m_dmap[0]);
+    }
+    else if (coned)
+    {
+        makeConsolidatedDMap(m_grids[0], m_dmap[0], consolidation_ratio, consolidation_strategy);
+    }
+
+    if (info.do_agglomeration || info.do_consolidation)
+    {
+        m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
+    }
+    else
+    {
+        m_bottom_comm = m_default_comm;
+    }
 }
 
 void
 MLLinOp::defineAuxData ()
 {
+    BL_PROFILE("MLLinOp::defineAuxData()");
+
     m_undrrelxr.resize(m_num_amr_levels);
     m_maskvals.resize(m_num_amr_levels);
     m_fluxreg.resize(m_num_amr_levels-1);
@@ -147,11 +267,29 @@ MLLinOp::defineAuxData ()
                                  m_geom[amrlev+1][0], m_geom[amrlev][0],
                                  ratio, amrlev+1, 1);
     }
+
+#if (AMREX_SPACEDIM != 3)
+    bool no_metric_term = Geometry::IsCartesian() || !info.has_metric_term;
+    m_metric_factor.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_metric_factor[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_metric_factor[amrlev][mglev].reset(new MetricFactor(m_grids[amrlev][mglev],
+                                                                  m_dmap[amrlev][mglev],
+                                                                  m_geom[amrlev][mglev],
+                                                                  no_metric_term));
+        }
+    }
+#endif
 }
 
 void
 MLLinOp::defineBC ()
 {
+    BL_PROFILE("MLLinOp::defineBC()");
+
     m_bndry_sol.resize(m_num_amr_levels);
     m_crse_sol_br.resize(m_num_amr_levels);
 
@@ -162,8 +300,8 @@ MLLinOp::defineBC ()
         
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_sol[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                               1, m_geom[amrlev][0]));
+        m_bndry_sol[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                1, m_geom[amrlev][0]));
     }
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
@@ -196,16 +334,30 @@ MLLinOp::defineBC ()
     // This has be to done after m_crse_cor_br is defined.
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
-        m_bndry_cor[amrlev].reset(new MacBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
-                                              1, m_geom[amrlev][0]));
-        // this will make it Dirichlet, what we want for correction
-        BCRec phys_bc{AMREX_D_DECL(Outflow,Outflow,Outflow),
-                      AMREX_D_DECL(Outflow,Outflow,Outflow)};
-        
+        m_bndry_cor[amrlev].reset(new MLMGBndry(m_grids[amrlev][0], m_dmap[amrlev][0],
+                                                1, m_geom[amrlev][0]));
         MultiFab bc_data(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
         bc_data.setVal(0.0);
         m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, 1,
-                                            m_amr_ref_ratio[amrlev-1], phys_bc);
+                                            m_amr_ref_ratio[amrlev-1], BCRec());
+        m_bndry_cor[amrlev]->setLOBndryConds({AMREX_D_DECL(BCType::Dirichlet,
+                                                           BCType::Dirichlet,
+                                                           BCType::Dirichlet)},
+                                             {AMREX_D_DECL(BCType::Dirichlet,
+                                                           BCType::Dirichlet,
+                                                           BCType::Dirichlet)},
+                                              m_amr_ref_ratio[amrlev-1]);
+    }
+
+    m_bcondloc.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_bcondloc[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_bcondloc[amrlev][mglev].reset(new BndryCondLoc(m_grids[amrlev][mglev],
+                                                             m_dmap[amrlev][mglev]));
+        } 
     }
 }
 
@@ -236,7 +388,7 @@ MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
 }
 
 void
-MLLinOp::setBCWithCoarseData (const MultiFab* crse, int crse_ratio)
+MLLinOp::setCoarseFineBC (const MultiFab* crse, int crse_ratio)
 {
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
@@ -247,22 +399,7 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 {
     BL_PROFILE("MLLinOp::setLevelBC()");
 
-    BCRec phys_bc;
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    {
-        AMREX_ALWAYS_ASSERT(m_lobc[idim] != BCType::Bogus);
-        if (m_lobc[idim] == BCType::Dirichlet) {
-            phys_bc.setLo(idim, Outflow);  // MacBndry treats it as Dirichlet
-        } else {
-            phys_bc.setLo(idim, Inflow);   // MacBndry treats it as Neumann
-        }
-        AMREX_ALWAYS_ASSERT(m_hibc[idim] != BCType::Bogus);
-        if (m_hibc[idim] == BCType::Dirichlet) {
-            phys_bc.setHi(idim, Outflow);  // MacBndry treats it as Dirichlet
-        } else {
-            phys_bc.setHi(idim, Inflow);   // MacBndry treats it as Neumann
-        }        
-    }
+    AMREX_ALWAYS_ASSERT(amrlev >= 0 && amrlev < m_num_amr_levels);
 
     MultiFab zero;
     if (a_levelbcdata == nullptr) {
@@ -272,6 +409,8 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
         AMREX_ALWAYS_ASSERT(a_levelbcdata->nGrow() >= 1);
     }
     const MultiFab& bcdata = (a_levelbcdata == nullptr) ? zero : *a_levelbcdata;
+
+    int br_ref_ratio;
 
     if (amrlev == 0)
     {
@@ -291,22 +430,36 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                                                               extent_rad, ncomp));
             }
             if (m_coarse_data_for_bc != nullptr) {
-                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+                const Box& cbx = amrex::coarsen(m_geom[0][0].Domain(), m_coarse_data_crse_ratio);
+                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1,
+                                                Geometry::periodicity(cbx));
             } else {
                 m_crse_sol_br[amrlev]->setVal(0.0);
             }
             m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
                                                 bcdata, 0, 0, 1,
-                                                m_coarse_data_crse_ratio, phys_bc);
+                                                m_coarse_data_crse_ratio, BCRec());
+            br_ref_ratio = m_coarse_data_crse_ratio;
         }
         else
         {
-            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,phys_bc);
+            m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1,BCRec());
+            br_ref_ratio = 1;
         }
     }
     else
     {
-        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], phys_bc);
+        m_bndry_sol[amrlev]->setBndryValues(bcdata,0,0,1, m_amr_ref_ratio[amrlev-1], BCRec());
+        br_ref_ratio = m_amr_ref_ratio[amrlev-1];
+    }
+
+    m_bndry_sol[amrlev]->setLOBndryConds(m_lobc, m_hibc, br_ref_ratio);
+
+    const Real* dx = m_geom[amrlev][0].CellSize();
+    for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+    {
+        m_bcondloc[amrlev][mglev]->setLOBndryConds(m_geom[amrlev][mglev], dx,
+                                                   m_lobc, m_hibc, br_ref_ratio);
     }
 }
 
@@ -316,7 +469,7 @@ MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata) const
     BL_PROFILE("MLLinOp::updateSolBC()");
 
     AMREX_ALWAYS_ASSERT(amrlev > 0);
-    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1, m_geom[amrlev-1][0].periodicity());
     m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
 }
 
@@ -325,7 +478,7 @@ MLLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata) const
 {
     BL_PROFILE("MLLinOp::updateCorBC()");
     AMREX_ALWAYS_ASSERT(amrlev > 0);
-    m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1, m_geom[amrlev-1][0].periodicity());
     m_bndry_cor[amrlev]->updateBndryValues(*m_crse_cor_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
 }
 
@@ -338,8 +491,19 @@ MLLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const Multi
         updateSolBC(amrlev, *crse_bcdata);
     }
     const int mglev = 0;
-    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous);
+    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
     MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
+}
+
+void
+MLLinOp::fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata)
+{
+    BL_PROFILE("MLLinOp::fillSolutionBC()");
+    if (crse_bcdata != nullptr) {
+        updateSolBC(amrlev, *crse_bcdata);
+    }
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());    
 }
 
 void
@@ -360,7 +524,7 @@ MLLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x
     else
     {
         AMREX_ALWAYS_ASSERT(crse_bcdata == nullptr);
-        apply(amrlev, mglev, resid, x, BCMode::Homogeneous);
+        apply(amrlev, mglev, resid, x, BCMode::Homogeneous, nullptr);
     }
 
     MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
@@ -368,7 +532,7 @@ MLLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x
 
 void
 MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                const MacBndry* bndry) const
+                const MLMGBndry* bndry) const
 {
     BL_PROFILE("MLLinOp::apply()");
     applyBC(amrlev, mglev, in, bc_mode, bndry);
@@ -377,11 +541,12 @@ MLLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mo
 
 void
 MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
-                  const MacBndry* bndry, bool skip_fillboundary) const
+                  const MLMGBndry* bndry, bool skip_fillboundary) const
 {
     BL_PROFILE("MLLinOp::applyBC()");
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
+    BL_ASSERT(bndry != nullptr || bc_mode == BCMode::Homogeneous);
 
     const bool cross = true;
     if (!skip_fillboundary) {
@@ -390,52 +555,43 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
     int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
 
-    int flagden = 1;  // Fill in undrrelxr
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    const int num_comp = 1;
-    const Real* h = m_geom[amrlev][mglev].CellSize();
-
-    const MacBndry& macbndry = (bndry == nullptr) ? *m_bndry_sol[amrlev] : *bndry;
-    BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals = m_maskvals[amrlev][mglev];
+
+    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+
+    FArrayBox foo(Box::TheUnitBox());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(in, MFItInfo().SetDynamic(true));
-         mfi.isValid(); ++mfi)
+    for (MFIter mfi(in, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
-        const BndryData::RealTuple      & bdl = macbndry.bndryLocs(mfi);
-        const Vector<Vector<BoundCond> >& bdc = macbndry.bndryConds(mfi);
+        const Box& vbx   = mfi.validbox();
+        FArrayBox& iofab = in[mfi];
+
+        const RealTuple & bdl = bcondloc.bndryLocs(mfi);
+        const BCTuple   & bdc = bcondloc.bndryConds(mfi);
 
         for (OrientationIter oitr; oitr; ++oitr)
         {
             const Orientation ori = oitr();
 
-            int           cdr = ori;
-            Real          bcl = bdl[ori];
-            int           bct = bdc[ori][0];
+            int  cdr = ori;
+            Real bcl = bdl[ori];
+            int  bct = bdc[ori];
 
-            const Box&       vbx   = mfi.validbox();
-            FArrayBox&       iofab = in[mfi];
+            const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
 
-            FArrayBox&       ffab  = undrrelxr[ori][mfi];
-            const FArrayBox& fsfab = macbndry.bndryValues(ori)[mfi];
+            const Mask& m = maskvals[ori][mfi];
 
-            const Mask&   m   = maskvals[ori][mfi];
-
-            FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-                         iofab.dataPtr(),
-                         ARLIM(iofab.loVect()), ARLIM(iofab.hiVect()),
-                         &cdr, &bct, &bcl,
-                         fsfab.dataPtr(), 
-                         ARLIM(fsfab.loVect()), ARLIM(fsfab.hiVect()),
-                         m.dataPtr(),
-                         ARLIM(m.loVect()), ARLIM(m.hiVect()),
-                         ffab.dataPtr(),
-                         ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
-                         vbx.loVect(),
-                         vbx.hiVect(), &num_comp, h);
+            amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
+                                   BL_TO_FORTRAN_ANYD(iofab),
+                                   BL_TO_FORTRAN_ANYD(m),
+                                   cdr, bct, bcl,
+                                   BL_TO_FORTRAN_ANYD(fsfab),
+                                   maxorder, dxinv, flagbc);
         }
     }
 
@@ -443,12 +599,12 @@ MLLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 
 void
 MLLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                 BCMode bc_mode, bool skip_fillboundary) const
+                 bool skip_fillboundary) const
 {
     BL_PROFILE("MLLinOp::smooth()");
     for (int redblack = 0; redblack < 2; ++redblack)
     {
-        applyBC(amrlev, mglev, sol, bc_mode, nullptr, skip_fillboundary);
+        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, nullptr, skip_fillboundary);
         Fsmooth(amrlev, mglev, sol, rhs, redblack);
         skip_fillboundary = false;
     }
@@ -539,6 +695,340 @@ MLLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxe
                 const Box& nbx = mfi.nodaltilebox(idim);
                 (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, 1);
             }
+        }
+    }
+}
+
+void
+MLLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
+{
+    BL_PROFILE("MLLinOp::compGrad()");
+
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+    {
+        AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                     const Box& ybx = mfi.nodaltilebox(1);,
+                     const Box& zbx = mfi.nodaltilebox(2););
+        amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
+                                        BL_TO_FORTRAN_BOX(ybx),
+                                        BL_TO_FORTRAN_BOX(zbx)),
+                           BL_TO_FORTRAN_ANYD(sol[mfi]),
+                           AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
+                           dxinv);
+    }
+}
+
+void
+MLLinOp::prepareForSolve ()
+{
+    BL_PROFILE("MLLinOp::prepareForSolve()");
+
+    for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
+    {
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+            const auto& maskvals = m_maskvals[amrlev][mglev];
+            const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+            BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
+            MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 0, MFInfo().SetAlloc(false));
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(foo, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+            {
+                const Box& vbx = mfi.validbox();
+
+                const RealTuple & bdl = bcondloc.bndryLocs(mfi);
+                const BCTuple   & bdc = bcondloc.bndryConds(mfi);
+
+                for (OrientationIter oitr; oitr; ++oitr)
+                {
+                    const Orientation ori = oitr();
+                    
+                    int  cdr = ori;
+                    Real bcl = bdl[ori];
+                    int  bct = bdc[ori];
+                    
+                    FArrayBox& ffab = undrrelxr[ori][mfi];
+                    const Mask& m   =  maskvals[ori][mfi];
+
+                    amrex_mllinop_comp_interp_coef0(BL_TO_FORTRAN_BOX(vbx),
+                                                    BL_TO_FORTRAN_ANYD(ffab),
+                                                    BL_TO_FORTRAN_ANYD(m),
+                                                    cdr, bct, bcl, maxorder, dxinv);
+                }
+            }
+        }
+    }
+}
+
+MLLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm)
+    : bcond(ba, dm),
+      bcloc(ba, dm)
+{
+}
+
+void
+MLLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
+                                        const std::array<BCType,AMREX_SPACEDIM>& lobc,
+                                        const std::array<BCType,AMREX_SPACEDIM>& hibc,
+                                        int ratio)
+{
+    const Box&  domain = geom.Domain();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(bcloc); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        RealTuple & bloc  = bcloc[mfi];
+        BCTuple   & bctag = bcond[mfi];
+
+        MLMGBndry::setBoxBC(bloc, bctag, bx, domain, lobc, hibc, dx, ratio);
+    }
+}
+
+MPI_Comm
+MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
+{
+    BL_PROFILE("MLLinOp::makeSubCommunicator()");
+
+#ifdef BL_USE_MPI
+    MPI_Comm newcomm;
+    MPI_Group defgrp, newgrp;
+
+    MPI_Comm_group(m_default_comm, &defgrp);
+
+    Array<int> newgrp_ranks = dm.ProcessorMap();
+    std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
+    auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
+    newgrp_ranks.erase(last, newgrp_ranks.end());
+    
+    MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+
+    MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
+    m_raii_comm.reset(new CommContainer(newcomm));
+
+    MPI_Group_free(&defgrp);
+    MPI_Group_free(&newgrp);
+
+    return newcomm;
+#else
+    return m_default_comm;
+#endif
+}
+
+void
+MLLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
+{
+#if (AMREX_SPACEDIM != 3)
+    
+    if (Geometry::IsCartesian() || !info.has_metric_term) return;
+
+    const auto& mfac = *m_metric_factor[amrlev][mglev];
+
+    int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.tilebox();
+        const Vector<Real>& r = (nextra==0) ? mfac.cellCenters(mfi) : mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        const int rlo = vbx.loVect()[0];
+        const int rhi = vbx.hiVect()[0] + nextra;
+        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
+                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                   r.data(), &rlo, &rhi);
+    }
+#endif
+}
+
+void
+MLLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
+{
+#if (AMREX_SPACEDIM != 3)
+
+    if (Geometry::IsCartesian() || !info.has_metric_term) return;
+
+    const auto& mfac = *m_metric_factor[amrlev][mglev];
+
+    int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.tilebox();
+        const Vector<Real>& r = (nextra==0) ? mfac.invCellCenters(mfi) : mfac.invCellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        const int rlo = vbx.loVect()[0];
+        const int rhi = vbx.hiVect()[0] + nextra;
+        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
+                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                   r.data(), &rlo, &rhi);
+    }
+#endif
+}
+
+#if (AMREX_SPACEDIM != 3)
+
+MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
+                                     const Geometry& geom, bool null_metric)
+    : r_cellcenter(ba,dm),
+      r_celledge(ba,dm),
+      inv_r_cellcenter(ba,dm),
+      inv_r_celledge(ba,dm)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(r_cellcenter); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+
+        if (null_metric)
+        {
+            const int N = bx.length(0);
+            auto& rcc = r_cellcenter[mfi];
+            rcc.resize(N, 1.0);
+            auto& rce = r_celledge[mfi];
+            rce.resize(N+1, 1.0);
+            auto& ircc = inv_r_cellcenter[mfi];
+            ircc.resize(N, 1.0);
+            auto& irce = inv_r_celledge[mfi];
+            irce.resize(N+1, 1.0);
+        }
+        else
+        {
+            auto& rcc = r_cellcenter[mfi];
+            geom.GetCellLoc(rcc, bx, 0);
+            
+            auto& rce = r_celledge[mfi];
+            geom.GetEdgeLoc(rce, bx, 0);
+            
+            auto& ircc = inv_r_cellcenter[mfi];
+            const int N = rcc.size();
+            ircc.resize(N);
+            for (int i = 0; i < N; ++i) {
+                ircc[i] = 1.0/rcc[i];
+            }
+            
+            auto& irce = inv_r_celledge[mfi];
+            irce.resize(N+1);
+            if (rce[0] == 0.0) {
+                irce[0] = 0.0;
+            } else {
+                irce[0] = 1.0/rce[0];
+            }
+            for (int i = 1; i < N+1; ++i) {
+                irce[i] = 1.0/rce[i];
+            }
+
+            if (Geometry::IsSPHERICAL()) {
+                for (auto& x : rcc) {
+                    x = x*x;
+                }
+                for (auto& x : rce) {
+                    x = x*x;
+                }
+                for (auto& x : ircc) {
+                    x = x*x;
+                }
+                for (auto& x : irce) {
+                    x = x*x;
+                }                    
+            }
+        }
+    }
+}
+
+#endif
+
+
+void
+MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm)
+{
+    BL_PROFILE("MLLinOp::makeAgglomeratedDMap");
+
+    BL_ASSERT(!dm[0].empty());
+    for (int i = 1, N=ba.size(); i < N; ++i)
+    {
+        if (dm[i].empty())
+        {
+            const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
+            
+            const int nprocs = ParallelDescriptor::NProcs();
+            AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
+            
+            Vector<int> pmap(ba[i].size());
+            for (int iproc = 0; iproc < nprocs; ++iproc) {
+                for (int ibox : sfc[iproc]) {
+                    pmap[ibox] = iproc;
+                }
+            }
+            dm[i].define(pmap);
+        }
+    }
+}
+
+
+void
+MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm,
+                               int ratio, int strategy)
+{
+    BL_PROFILE("MLLinOp::makeConsolidatedDMap()");
+
+    int factor = 1;
+    BL_ASSERT(!dm[0].empty());
+    for (int i = 1, N=ba.size(); i < N; ++i)
+    {
+        if (dm[i].empty())
+        {
+            factor *= ratio;
+
+            const int nprocs = ParallelDescriptor::NProcs();
+            Vector<int> pmap = dm[i-1].ProcessorMap();
+            if (strategy == 1) {
+                for (auto& x: pmap) {
+                    x /= ratio;
+                }
+            } else if (strategy == 2) {
+                int nprocs_con = static_cast<int>(std::ceil(static_cast<Real>(nprocs)
+                                                            / static_cast<Real>(factor)));
+                for (auto& x: pmap) {
+                    auto d = std::div(x,nprocs_con);
+                    x = d.rem;
+                }
+            } else if (strategy == 3) {
+                if (factor == ratio) {
+                    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
+                    for (int iproc = 0; iproc < nprocs; ++iproc) {
+                        for (int ibox : sfc[iproc]) {
+                            pmap[ibox] = iproc;
+                        }
+                    }
+                }
+                for (auto& x: pmap) {
+                    x /= ratio;
+                }
+            }
+            dm[i].define(pmap);
         }
     }
 }

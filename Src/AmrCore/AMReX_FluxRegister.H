@@ -53,6 +53,9 @@ public:
                  const IntVect&             ref_ratio,
                  int                        fine_lev,
                  int                        nvar);
+
+    void clear ();
+
     //
     // Returns the refinement ratio.
     //

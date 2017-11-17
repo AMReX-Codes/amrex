@@ -2481,14 +2481,10 @@ Amr::regrid (int  lbase,
 	}
         Vector<Vector<int> > mLDM;
 	if(rebalance_grids == 1) {
-          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0)[0]);
-	} else if(rebalance_grids == 2) {
           mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0]);
-	} else if(rebalance_grids == 3) {
+	} else if(rebalance_grids == 2) {
           mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0)[0]);
-	} else if(rebalance_grids == 4) {  // ---- move all grids to proc zero
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0], 0);
-	} else {
+        } else {
 	}
 
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
@@ -3743,15 +3739,9 @@ Amr::RedistributeGrids(int how) {
         }
         Vector<Vector<int> > mLDM;
         if(how == 1) {
-          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0)[0]);
-        } else if(how == 2) {
           mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0]);
-        } else if(how == 3) {
+        } else if(how == 2) {
           mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0)[0]);
-        } else if(how == 0) {   // ---- move all grids to proc zero
-	  int minRank(0), maxRank(0);
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0],
-	                                                  maxRank, minRank);
         } else {
 	  return;
         }
