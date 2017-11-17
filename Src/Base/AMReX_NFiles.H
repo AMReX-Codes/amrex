@@ -37,6 +37,7 @@ class NFilesIter
     // ---- call this to use dynamic set selection
     // ---- deciderproc defaults to nprocs - 1 if < 0
     void SetDynamic(int deciderproc = -1);
+    bool GetDynamic() { return ( ! useStaticSetSelection); }
 
     // ---- call this to use a file per process for a sparse
     // ---- set of writers.  ranksToWrite.size() will set noutfiles

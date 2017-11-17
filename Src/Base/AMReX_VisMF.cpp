@@ -1038,7 +1038,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       }
 
 
-    if(useDynamicSetSelection) {
+    if(nfi.GetDynamic()) {
       coordinatorProc = nfi.CoordinatorProc();
     }
 
@@ -1048,8 +1048,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       hdr.CalculateMinMax(mf, coordinatorProc);
     }
 
-    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion,
-		       useDynamicSetSelection, nfi);
+    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion, nfi);
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
@@ -1065,7 +1064,6 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
                     VisMF::Header &hdr,
 		    bool groupSets,
 		    VisMF::Header::Version whichVersion,
-		    bool useDynamicSetSelection,
 		    NFilesIter &nfi)
 {
     BL_PROFILE("VisMF::FindOffsets");
@@ -1073,7 +1071,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
     const int myProc(ParallelDescriptor::MyProc());
     const int nProcs(ParallelDescriptor::NProcs());
     int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
-    if(useDynamicSetSelection) {
+    if(nfi.GetDynamic()) {
       coordinatorProc = nfi.CoordinatorProc();
     }
 
@@ -1183,7 +1181,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	}
 
 	Vector<int> fileNumbers;
-        if(useDynamicSetSelection) {
+        if(nfi.GetDynamic()) {
 	  fileNumbers = nfi.FileNumbersWritten();
         } else {
 	  fileNumbers.resize(nProcs);
@@ -1215,7 +1213,6 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
       }
       delete whichRD;
     }
-ParallelDescriptor::Barrier();
 }
 
 
