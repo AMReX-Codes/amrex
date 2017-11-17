@@ -156,15 +156,6 @@ public:
 
 protected:
     
-    NeighborCopyTag getNeighborCopyTag(int lev,
-                                       const IntVect& neighbor_cell,
-                                       const BaseFab<int>& mask);
-    ///
-    /// Apply periodic shift to particle position, so naive distance calculation
-    /// between neighbors and regular particles will be correct.
-    ///
-    void applyPeriodicShift(int lev, ParticleType& p, const NeighborCopyTag& tag);
-
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
     ///
