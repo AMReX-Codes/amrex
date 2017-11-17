@@ -280,7 +280,6 @@ private:
                              VisMF::Header &hdr,
 			     bool groupSets,
 			     VisMF::Header::Version whichVersion,
-			     bool useDynamicSetSelection,
 			     NFilesIter &nfi);
     /**
     * \brief Make a new FAB from a fab in a FabArray<FArrayBox> on disk.
