@@ -443,9 +443,9 @@ CNS::buildMetrics ()
 
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
-    if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
-        amrex::Abort("CNS: must have dx == dy == dz\n");
-    }
+//    if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
+//        amrex::Abort("CNS: must have dx == dy == dz\n");
+//    }
 
     const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
     

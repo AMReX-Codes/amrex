@@ -5,7 +5,7 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_VisMF.H>
-
+using namespace amrex;
 extern "C" {
     
     // dump multifab to file

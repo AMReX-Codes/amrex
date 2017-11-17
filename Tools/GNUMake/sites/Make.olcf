@@ -2,7 +2,7 @@
 # For titan at OLCF
 #
 
-OLCF_MACHINES := titan summit
+OLCF_MACHINES := titan summitdev
 
 ifneq ($(which_computer), $(findstring $(which_computer), $(OLCF_MACHINES)))
   $(error Unknown OLCF computer, $(which_computer))
@@ -25,15 +25,34 @@ ifeq ($(USE_MPI),TRUE)
   LIBRARIES += -lmpichf90
 endif
 
+# If the cudatoolkit module is loaded, OLCF_CUDA_ROOT is set as the toolkit location.
+
+SYSTEM_CUDA_PATH=$(OLCF_CUDA_ROOT)
+
+# Signal no support for CUDA 8.
+
+NO_CUDA_8_SUPPORT = TRUE
+
 endif
 
-ifeq ($(which_computer),$(filter $(which_computer),summit))
+ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 
 ifeq ($(USE_MPI),TRUE)
-  CC  = mpicc
-  CXX = mpicxx
-  FC  = mpif77
-  F90 = mpif90
+
+  CC  := mpicc
+  CXX := mpicxx
+  FC  := mpif90
+  F90 := mpif90
+
+  # If we're using CUDA, make sure that the C/C++ MPI
+  # wrappers are calling nvcc to compile the code.
+  # This is OpenMPI/Spectrum MPI specific.
+
+  ifeq ($(USE_CUDA),TRUE)
+    OMPI_CC := nvcc
+    OMPI_CXX := nvcc
+  endif
+
   LIBRARIES += -lmpi_mpifh
 endif
 
@@ -41,5 +60,10 @@ ifeq ($(lowercase_comp),gnu)
   override XTRALIBS := -lgfortran
 endif
 
-endif
+# If the cuda module is loaded, CUDAPATH is set as the toolkit location.
 
+SYSTEM_CUDA_PATH=$(CUDAPATH)
+
+SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
+endif

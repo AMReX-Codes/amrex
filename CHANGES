@@ -1,5 +1,11 @@
 # changes since the last release
 
+  -- AMREX_ASSERT_WITH_MESSAGE and AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+     are new macros for assertion when it fails additional message
+     will be printed.   For example:
+
+         AMREX_ASSERT_WITH_MESSAGE(x > y, "reason why x > y must be true");
+
   -- amrex::Array is deprecated and replaced by amrex::Vector.
      Currently Array is an alias to Vector.  So this should not break
      any codes.  In the future, we will remove Array completely.

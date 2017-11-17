@@ -1,6 +1,7 @@
 #ifndef MY_PROB_PAR_H_
 #define MY_PROB_PAR_H_
 
+#include <AMReX_MLLinOp.H>
 
 namespace prob {
 
@@ -9,6 +10,7 @@ namespace prob {
     extern amrex::Real sigma;
     extern amrex::Real w;
 
+    extern amrex::MLLinOp::BCType bc_type;
 }
 
 #endif
