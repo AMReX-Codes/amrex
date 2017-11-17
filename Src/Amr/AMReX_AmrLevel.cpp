@@ -2066,6 +2066,23 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
     MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
 
+void
+AmrLevel::FillPatchAdd(AmrLevel& amrlevel,
+		       MultiFab& leveldata,
+                       int       boxGrow,
+                       Real      time,
+                       int       index,
+                       int       scomp,
+                       int       ncomp,
+                       int       dcomp)
+{
+    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(boxGrow <= leveldata.nGrow());
+    FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
+    const MultiFab& mf_fillpatched = fpi.get_mf();
+    MultiFab::Add(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
+}
+
 
 
 void

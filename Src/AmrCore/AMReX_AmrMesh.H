@@ -157,6 +157,8 @@ public:
 
     virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
 
+    long CountCells (int& lev);
+
     static void Initialize ();
     static void Finalize ();
 

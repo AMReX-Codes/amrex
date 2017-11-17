@@ -19,11 +19,11 @@ contains
                              phix, phix_y, phix_z, &
                              phiy, phiy_x, phiy_z, &
                              phiz, phiz_x, phiz_y, &
-                             slope, glo, ghi, nu)
+                             slope, glo, ghi, nu, uselimit)
 
-    use slope_module, only: slopex, slopey, slopez
+    use slope_module, only: slopex, slopey, slopez,slopex_nolim, slopey_nolim, slopez_nolim
 
-    integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3)
+    integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3), uselimit
     double precision, intent(in) :: dt, dx(3), nu
     integer, intent(in) :: ph_lo(3), ph_hi(3)
     integer, intent(in) ::  u_lo(3),  u_hi(3)
@@ -48,9 +48,15 @@ contains
     hdtdx = 0.5*(dt/dx)
     tdtdx = (1.d0/3.d0)*(dt/dx)
 
-    call slopex(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopex_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopex(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
                 
     ! compute phi on x faces using umac to upwind; ignore transverse terms
     do       k = lo(3)-1, hi(3)+1
@@ -67,9 +73,15 @@ contains
        end do
     end do
 
-    call slopey(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopey_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopey(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
                 
     ! compute phi on y faces using vmac to upwind; ignore transverse terms
     do       k = lo(3)-1, hi(3)+1
@@ -86,9 +98,15 @@ contains
        end do
     end do
 
-    call slopez(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopez_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopez(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
                 
     ! compute phi on z faces using wmac to upwind; ignore transverse terms
     do       k = lo(3)  , hi(3)+1
@@ -298,11 +316,11 @@ contains
                                flxy, fy_lo, fy_hi, &
                                flxz, fz_lo, fz_hi, &
                                phix, phiy,  phiz, &
-                               slope, glo, ghi, nu)
+                               slope, glo, ghi, nu, uselimit)
 
-    use slope_module, only: slopex, slopey, slopez
+    use slope_module, only: slopex, slopey, slopez,slopex_nolim, slopey_nolim, slopez_nolim
 
-    integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3)
+    integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3), uselimit
     double precision, intent(in) :: dt, dx(3), nu
     integer, intent(in) :: ph_lo(3), ph_hi(3)
     integer, intent(in) ::  u_lo(3),  u_hi(3)
@@ -323,9 +341,15 @@ contains
          
     integer :: i, j, k
 
-    call slopex(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopex_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopex(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
                 
     ! compute phi on x faces using umac to upwind
     do       k = lo(3)-1, hi(3)+1
@@ -342,9 +366,15 @@ contains
        end do
     end do
 
-    call slopey(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopey_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopey(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
                 
     ! compute phi on y faces using vmac to upwind
     do       k = lo(3)-1, hi(3)+1
@@ -361,9 +391,15 @@ contains
        end do
     end do
 
-    call slopez(glo, ghi, &
-                phi, ph_lo, ph_hi, &
-                slope, glo, ghi)
+    if(uselimit .eq. 0) then
+       call slopez_nolim(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    else
+       call slopez(glo, ghi, &
+            phi, ph_lo, ph_hi, &
+            slope, glo, ghi)
+    endif
                 
     ! compute phi on z faces using wmac to upwind
     do       k = lo(3)  , hi(3)+1
@@ -435,11 +471,14 @@ contains
                                fluxptz, phiptz, phiavez, &
                                phiptcc, glo, ghi, nu, &
                                deblocell, debhicell, &
-                               debloface, debhiface)
+                               hisidedebfacelo, hisidedebfacehi, &
+                               losidedebfacelo, losidedebfacehi, printstuff, uselimit)
 
 
-    integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3)
-    integer, intent(in) :: deblocell(3), debhicell(3), debloface(3), debhiface(3)
+    integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3), printstuff, uselimit
+    integer, intent(in) :: deblocell(3), debhicell(3)
+    integer, intent(in) :: hisidedebfacelo(3), hisidedebfacehi(3)
+    integer, intent(in) :: losidedebfacelo(3), losidedebfacehi(3)
     double precision, intent(in) :: dt, dx(3), nu
     integer, intent(in) :: ph_lo(3), ph_hi(3)
     integer, intent(in) ::  u_lo(3),  u_hi(3)
@@ -465,9 +504,9 @@ contains
     ! 2.1 get cell-centered phi so we can compute a pointwise, fourth order gradient at faces
     ! needed  for diffusive fluxes
 
-    do       k = lo(3)-2, hi(3)+2
-       do    j = lo(2)-2, hi(2)+2
-          do i = lo(1)-2, hi(1)+2
+    do       k = lo(3)-3, hi(3)+3
+       do    j = lo(2)-3, hi(2)+3
+          do i = lo(1)-3, hi(1)+3
              phiptcc(i,j,k)  = phi(i,j,k) - (1.0d0/24.d0)* &
                   (phi(i+1,j  ,k  )+phi(i-1,j  ,k  )&
                   +phi(i  ,j+1,k  )+phi(i  ,j-1,k  )&
@@ -478,8 +517,8 @@ contains
     end do
     ! STEP ONE--- HYPERBOLIC FLUXES
     ! compute face average phi on x faces via eqn 17 of mccorquodale, colella
-    do       k = lo(3)-1, hi(3)+1
-       do    j = lo(2)-1, hi(2)+1
+    do       k = lo(3)-2, hi(3)+2
+       do    j = lo(2)-2, hi(2)+2
           do i = lo(1)  , hi(1)+1
 
              phiavex(i,j,k)  = &
@@ -491,9 +530,9 @@ contains
     end do
 
     !same for y faces
-    do       k = lo(3)-1, hi(3)+1
+    do       k = lo(3)-2, hi(3)+2
        do    j = lo(2)  , hi(2)+1
-          do i = lo(1)-1, hi(1)+1
+          do i = lo(1)-2, hi(1)+2
 
              phiavey(i,j,k)  = &
                   (7.d0/12.d0)*(phi(i,j  ,k) + phi(i,j-1,k)) &
@@ -504,8 +543,8 @@ contains
     end do
     !same for z faces
     do       k = lo(3)  , hi(3)+1
-       do    j = lo(2)-1, hi(2)+1
-          do i = lo(1)-1, hi(1)+1
+       do    j = lo(2)-2, hi(2)+2
+          do i = lo(1)-2, hi(1)+2
 
              phiavez(i,j,k)  = &
                   (7.d0/12.d0)*(phi(i,j,k  ) + phi(i,j,k-1)) &
@@ -529,9 +568,8 @@ contains
                   -4.d0*phiavex(i,j,k))
              
              diffflux  = (-nu/dx(1))* &
-                  ( phiptcc(i  ,j  ,k  ) - phiptcc(i-1,j  ,k  ) &
-                  -(phiptcc(i+1,j  ,k  ) + phiptcc(i-1,j  ,k  ) - 2.0d0*phiptcc(i  ,j  ,k  )) &
-                  +(phiptcc(i  ,j  ,k  ) + phiptcc(i-2,j  ,k  ) - 2.0d0*phiptcc(i-1,j  ,k  )))
+                  ((27.0d0/24.0d0)*(phiptcc(i  ,j,k) - phiptcc(i-1,j,k)) &
+                  +( 1.0d0/24.0d0)*(phiptcc(i-2,j,k) - phiptcc(i+1,j,k)))
 
              fluxptx(i,j,k) = umac(i,j,k)*phiptx(i,j,k) + diffflux
 
@@ -550,9 +588,8 @@ contains
                   -4.d0*phiavey(i,j,k))
 
              diffflux  = (-nu/dx(2))* &
-                  ( phiptcc(i  ,j  ,k  ) - phiptcc(i  ,j-1,k  ) &
-                  -(phiptcc(i  ,j+1,k  ) + phiptcc(i  ,j-1,k  ) - 2.0d0*phiptcc(i  ,j  ,k  )) &
-                  +(phiptcc(i  ,j  ,k  ) + phiptcc(i  ,j-2,k  ) - 2.0d0*phiptcc(i  ,j-1,k  )))
+                  ((27.0d0/24.0d0)*(phiptcc(i,j  ,k) - phiptcc(i,j-1,k)) &
+                  +( 1.0d0/24.0d0)*(phiptcc(i,j-2,k) - phiptcc(i,j+1,k)))
 
              fluxpty(i,j,k) = vmac(i,j,k)*phipty(i,j,k) + diffflux
 
@@ -571,10 +608,8 @@ contains
                   -4.d0*phiavez(i,j,k))
 
              diffflux  = (-nu/dx(3))* &
-                  ( phiptcc(i  ,j  ,k  ) - phiptcc(i  ,j  ,k-1) &
-                  -(phiptcc(i  ,j  ,k+1) + phiptcc(i  ,j  ,k-1) - 2.0d0*phiptcc(i  ,j  ,k  )) &
-                  +(phiptcc(i  ,j  ,k  ) + phiptcc(i  ,j  ,k-2) - 2.0d0*phiptcc(i  ,j  ,k-1)))
-
+                  ((27.0d0/24.0d0)*(phiptcc(i,j,k  ) - phiptcc(i,j,k-1)) &
+                  +( 1.0d0/24.0d0)*(phiptcc(i,j,k-2) - phiptcc(i,j,k+1)))
 
              fluxptz(i,j,k) = wmac(i,j,k)*phiptz(i,j,k) + diffflux
           end do

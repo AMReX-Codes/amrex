@@ -21,7 +21,9 @@ extern "C"
 		   const int* tagval, const int* clearval,
 		   const int* lo, const int* hi,
 		   const amrex_real* dx, const amrex_real* problo,
-		   const amrex_real* time, const int* level);
+		   const amrex_real* time, const int* level,
+                   const int* domlo, const int* domhi, 
+                   const int* tag_domain_middle);
   
   void initdata(const int& level, const amrex_real& time, 
 		const int* lo, const int* hi,
@@ -44,7 +46,9 @@ extern "C"
                                       BL_FORT_FAB_ARG_3D(fy),
                                       BL_FORT_FAB_ARG_3D(fz)),
                          const amrex_real* dx, const amrex_real& dt,
-                         const amrex_real& nu);
+                         const amrex_real& nu,
+                         const int* uselimit
+    );
 
   void advectDiffMOL2ndOrd(const amrex_real& time, const int* lo, const int*hi,
                            const BL_FORT_FAB_ARG_3D(statein),
@@ -56,7 +60,8 @@ extern "C"
                                         BL_FORT_FAB_ARG_3D(fy),
                                         BL_FORT_FAB_ARG_3D(fz)),
                            const amrex_real* dx, const amrex_real& dt,
-                           const amrex_real& nu);
+                           const amrex_real& nu,
+                           const int* uselimit);
 
 
   void advectDiffMOL4thOrd(const amrex_real& time, const int* lo, const int*hi,
@@ -71,8 +76,27 @@ extern "C"
                            const amrex_real* dx, const amrex_real& dt,
                            const amrex_real& nu, 
                            const int* deblocell, const int* debhicell,
-                           const int* debloface, const int* debhiface);
+                           const int* deblofaceHi, const int* debhifaceHi,
+                           const int* deblofaceLo, const int* debhifaceLo,
+                           const int* printstuff,
+                           const int* uselimit);
 
+
+  void timeinterpolaterk4(const amrex_real& xi, 
+                          const int* lo, const int* hi,
+                          BL_FORT_FAB_ARG_3D(phinew),
+                          BL_FORT_FAB_ARG_3D(phiold),
+                          BL_FORT_FAB_ARG_3D(k1),
+                          BL_FORT_FAB_ARG_3D(k2),
+                          BL_FORT_FAB_ARG_3D(k3),
+                          BL_FORT_FAB_ARG_3D(k4));
+
+  void timeinterpolaterk3(const amrex_real& xi, 
+                          const int* lo, const int* hi,
+                          BL_FORT_FAB_ARG_3D(phinew),
+                          BL_FORT_FAB_ARG_3D(phiold),
+                          BL_FORT_FAB_ARG_3D(k1),
+                          BL_FORT_FAB_ARG_3D(k2));
 
 
 #ifdef __cplusplus

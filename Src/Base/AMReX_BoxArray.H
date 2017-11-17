@@ -74,6 +74,16 @@ struct BARef
     void updateMemoryUsage_box (int s);
     void updateMemoryUsage_hash (int s);
 #endif
+
+    inline bool HasHashMap () const {
+        bool r;
+#ifdef _OPENMP
+#pragma omp atomic read
+#endif
+        r = has_hashmap;
+        return r;
+    }
+
     //
     // The data.
     //
@@ -300,6 +310,7 @@ public:
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     bool coarsenable(int refinement_ratio, int min_width=1) const;
+    bool coarsenable(const IntVect& refinement_ratio, int min_width=1) const;
 
     //! Coarsen each Box in the BoxArray to the specified ratio.
     BoxArray& coarsen (const IntVect& refinement_ratio);

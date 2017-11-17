@@ -87,6 +87,12 @@ FluxRegister::define (const BoxArray&            fine_boxes,
     }
 }
 
+void
+FluxRegister::clear ()
+{
+    BndryRegister::clear();
+}
+
 FluxRegister::~FluxRegister () {}
 
 Real
