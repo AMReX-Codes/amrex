@@ -9,14 +9,24 @@ WarpX::MoveWindow (bool move_j)
 {
     if (do_moving_window == 0) return;
 
-    // compute the number of cells to shift on the base level
+    // Update the continuous position of the moving window,
+    // and of the plasma injection
+    moving_window_x += moving_window_v * dt[0];
     int dir = moving_window_dir;
+    // Continuously inject plasma in new cells (by default only on level 0)
+    if (WarpX::do_plasma_injection and (WarpX::gamma_boost > 1)){
+        // In boosted-frame simulations, the plasma has moved since the last
+        // call to this function, and injection position needs to be updated
+        current_injection_position -= WarpX::beta_boost *
+            WarpX::boost_direction[dir] * PhysConst::c * dt[0];
+    }
+
+    // compute the number of cells to shift on the base level
     Real new_lo[BL_SPACEDIM];
     Real new_hi[BL_SPACEDIM];
     const Real* current_lo = geom[0].ProbLo();
     const Real* current_hi = geom[0].ProbHi();
     const Real* dx = geom[0].CellSize();
-    moving_window_x += moving_window_v * dt[0];
     int num_shift_base = static_cast<int>((moving_window_x - current_lo[dir]) / dx[dir]);
 
     if (num_shift_base == 0) return;
@@ -101,13 +111,6 @@ WarpX::MoveWindow (bool move_j)
     // Continuously inject plasma in new cells (by default only on level 0)
     if (WarpX::do_plasma_injection) {
         const int lev = 0;
-
-        if (WarpX::gamma_boost > 1){
-            // In boosted-frame simulations, the plasma has moved since the last
-            // call to this function, and injection position needs to be updated
-            current_injection_position -= WarpX::beta_boost *
-                WarpX::boost_direction[dir] * PhysConst::c * dt[0];
-        }
 
         // particleBox encloses the cells where we generate particles
         // (only injects particles in an integer number of cells,
