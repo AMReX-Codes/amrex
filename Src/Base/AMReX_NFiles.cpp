@@ -220,7 +220,6 @@ bool NFilesIter::ReadyToWrite(bool appendFirst) {
     if(useSparseFPP) {
 
       if(mySparseFileNumber != -1) {
-        std::cout << myProc << ":: fullFileName = " << fullFileName << std::endl;
         if( ! appendFirst) {
           fileStream.open(fullFileName.c_str(),
                           std::ios::out | std::ios::trunc | std::ios::binary);
