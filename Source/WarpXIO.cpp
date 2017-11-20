@@ -746,9 +746,9 @@ WarpX::WritePlotFile () const
     Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 
-    particle_varnames.push_back("velocity_x");
-    particle_varnames.push_back("velocity_y");
-    particle_varnames.push_back("velocity_z");
+    particle_varnames.push_back("momentum_x");
+    particle_varnames.push_back("momentum_y");
+    particle_varnames.push_back("momentum_z");
 
     particle_varnames.push_back("Ex");
     particle_varnames.push_back("Ey");
@@ -854,9 +854,9 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 
-    particle_varnames.push_back("velocity_x");
-    particle_varnames.push_back("velocity_y");
-    particle_varnames.push_back("velocity_z");
+    particle_varnames.push_back("momentum_x");
+    particle_varnames.push_back("momentum_y");
+    particle_varnames.push_back("momentum_z");
 
     particle_varnames.push_back("Ex");
     particle_varnames.push_back("Ey");
