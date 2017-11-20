@@ -16,6 +16,7 @@
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
+#include <WarpXBoostedFrameDiagnostic.H>
 
 class NoOpPhysBC
     : public amrex::PhysBCFunctBase
@@ -76,6 +77,11 @@ public:
     static bool use_laser;
     static bool use_filter;
     static bool serialize_ics;
+
+    // Back transformation diagnostic
+    static bool do_boosted_frame_diagnostic;
+    static int  num_snapshots_lab;
+    static Real dt_snapshots_lab;
 
     // Boosted frame parameters
     static amrex::Real gamma_boost;
@@ -232,8 +238,13 @@ private:
 
     void InjectPlasma(int lev, amrex::RealBox particleBox);
 
+    void InitDiagnostics ();
+
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
+
+    std::unique_ptr<amrex::MultiFab> GetCellCenteredData();
+
     static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
@@ -289,6 +300,9 @@ private:
     // Particle container
     std::unique_ptr<MultiParticleContainer> mypc;
 
+    // Boosted Frame Diagnostics
+    std::unique_ptr<BoostedFrameDiagnostic> myBFD;
+
     //
     // Fields: First array for level, second for direction
     //
@@ -324,9 +338,14 @@ private:
     // Moving window parameters
     int do_moving_window  = 0;
     int moving_window_dir = -1;
+<<<<<<< HEAD
     amrex::Real moving_window_x  = std::numeric_limits<amrex::Real>::max();
     amrex::Real moving_window_v  = std::numeric_limits<amrex::Real>::max();
     Real current_injection_position = 0;
+=======
+    amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
+    amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
+>>>>>>> master
 
     // Plasma injection parameters
     int do_plasma_injection  = 0;

@@ -160,8 +160,7 @@ WarpX::EvolveEM (int numsteps)
         numsteps_max = std::min(istep[0]+numsteps, max_step);
     }
 
-    bool max_time_reached = false;
-
+    bool max_time_reached = false;    
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
         if (warpx_py_print_step) {
@@ -254,6 +253,11 @@ WarpX::EvolveEM (int numsteps)
 	for (int i = 0; i <= max_level; ++i) {
 	    t_new[i] = cur_time;
 	}
+
+        if (do_boosted_frame_diagnostic) {
+            std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
+            myBFD->writeLabFrameData(*cell_centered_data, geom[0], cur_time);
+        }
 
 	if (to_make_plot)
         {
