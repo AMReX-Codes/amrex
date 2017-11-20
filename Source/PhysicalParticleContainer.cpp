@@ -131,7 +131,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
 #if BL_SPACEDIM==3
     scale_fac = dx[0]*dx[1]*dx[2]/num_ppc;
 #elif BL_SPACEDIM==2
-    scale_fac = dx[0]*dx[2]/num_ppc;
+    scale_fac = dx[0]*dx[1]/num_ppc;
 #endif
 
 #ifdef _OPENMP
@@ -149,10 +149,6 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
     {
         std::array<Real,PIdx::nattribs> attribs;
         attribs.fill(0.0);
-
-        std::cout << "0 " << part_realbox.lo(0) << " " << part_realbox.hi(0) << " " << dx[0] << std::endl;
-        std::cout << "1 " << part_realbox.lo(1) << " " << part_realbox.hi(1) << " " << dx[1] << std::endl;
-        std::cout << "2 " << part_realbox.lo(2) << " " << part_realbox.hi(2) << " " << dx[2] << std::endl;
 
         // Loop through the tiles
         for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
