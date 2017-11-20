@@ -2358,7 +2358,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
       name += amrex::Concatenate("", lev, 1);
       name += '/';
       name += ParticleType::DataPrefix();
-      name += amrex::Concatenate("", which[grid], 4);
+      name += amrex::Concatenate("", which[grid], 5);
       
       std::ifstream ParticleFile;
       
