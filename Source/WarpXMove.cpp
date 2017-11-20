@@ -145,6 +145,7 @@ WarpX::MoveWindow (bool move_j)
                 ppc.AddPlasma(lev, particleBox);
             }
             // Update the injection position
+            std::cout << "Moving window " << dir << " " << current_injection_position << " " << new_injection_position << std::endl;
             current_injection_position = new_injection_position;
         }
     }

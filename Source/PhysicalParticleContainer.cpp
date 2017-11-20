@@ -125,7 +125,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
 
     int num_ppc = plasma_injector->num_particles_per_cell;
 
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
+    const Real* dx = geom.CellSize();
 
     Real scale_fac;
 #if BL_SPACEDIM==3
@@ -150,6 +150,10 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
         std::array<Real,PIdx::nattribs> attribs;
         attribs.fill(0.0);
 
+        std::cout << "0 " << part_realbox.lo(0) << " " << part_realbox.hi(0) << " " << dx[0] << std::endl;
+        std::cout << "1 " << part_realbox.lo(1) << " " << part_realbox.hi(1) << " " << dx[1] << std::endl;
+        std::cout << "2 " << part_realbox.lo(2) << " " << part_realbox.hi(2) << " " << dx[2] << std::endl;
+
         // Loop through the tiles
         for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
 
@@ -162,6 +166,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
             Box overlap_box;
             Real ncells_adjust;
             bool no_overlap = 0;
+
             for (int dir=0; dir<BL_SPACEDIM; dir++) {
                 if ( tile_realbox.lo(dir) < part_realbox.hi(dir) ) {
                     ncells_adjust = std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir] );
@@ -196,18 +201,18 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
 #if ( BL_SPACEDIM == 3 )
                     Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
                     Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
-                    Real z = overlap_corner[2]+ (iv[2] + r[2])*dx[2];
+                    Real z = overlap_corner[2] + (iv[2] + r[2])*dx[2];
 #elif ( BL_SPACEDIM == 2 )
                     Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
-                    Real y = 0.;
-                    Real z = overlap_corner[2] + (iv[1] + r[2])*dx[2];
+                    Real y = 0;
+                    Real z = overlap_corner[1] + (iv[1] + r[1])*dx[1];
 #endif
                     // If the new particle is not inside the tile box,
                     // go to the next generated particle.
 #if ( BL_SPACEDIM == 3 )
-                    if(!tile_realbox.contains( {x, y, z} )) continue;
+                    if(!tile_realbox.contains( RealVect{x, y, z} )) continue;
 #elif ( BL_SPACEDIM == 2 )
-                    if(!tile_realbox.contains( {x, z} )) continue;
+                    if(!tile_realbox.contains( RealVect{x, z} )) continue;
 #endif
 
                     if (plasma_injector->insideBounds(x, y, z)) {
