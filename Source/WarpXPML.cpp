@@ -425,7 +425,7 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt, const std::string& p
 
 PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm, 
           const Geometry* geom, const Geometry* cgeom,
-          int ncell, int delta, int ref_ratio, int do_dive_cleaning)
+          int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window)
     : m_geom(geom),
       m_cgeom(cgeom)
 {
@@ -441,6 +441,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     int nge = 2;
     int ngb = 2;
+    int ngf = (do_moving_window) ? 2 : 0;
 
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 3, nge));
     pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 3, nge));
@@ -458,7 +459,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
     if (do_dive_cleaning)
     {
-        pml_F_fp.reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()), dm, 3, 0));
+        pml_F_fp.reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()), dm, 3, ngf));
         pml_F_fp->setVal(0.0);
     }
 
@@ -492,7 +493,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
 
         if (do_dive_cleaning)
         {
-            pml_F_cp.reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()), cdm, 3, 0));
+            pml_F_cp.reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()), cdm, 3, ngf));
             pml_F_cp->setVal(0.0);
         }
 

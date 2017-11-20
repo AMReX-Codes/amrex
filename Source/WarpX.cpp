@@ -26,7 +26,7 @@ Vector<Real> WarpX::B_external(3, 0.0);
 
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
-Vector<Real> WarpX::boost_direction(3, 0.0);
+Vector<Real> WarpX::boost_direction = {0,0,1};
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -180,9 +180,9 @@ WarpX::ReadParameters ()
     // Boosted-frame parameters
     pp.query("gamma_boost", gamma_boost);
     beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
-    pp.queryarr("boost_direction", boost_direction);
     if( gamma_boost > 1. ){
         // Read and normalize the boost direction
+        pp.queryarr("boost_direction", boost_direction);
         Real s = 1.0/std::sqrt(boost_direction[0]*boost_direction[0] +
                             boost_direction[1]*boost_direction[1] +
                             boost_direction[2]*boost_direction[2]);
@@ -338,7 +338,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
     int ngJ = ngE;
     int ngRho = ngE;
-
+    int ngF = (do_moving_window) ? 2 : 0;
+    
     //
     // The fine patch
     //
@@ -356,7 +357,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     if (do_dive_cleaning)
     {
-        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, 0));
+        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
     }
 
@@ -409,7 +410,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
         if (do_dive_cleaning)
         {
-            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, 0));
+            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, ngF));
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
         }
     }
