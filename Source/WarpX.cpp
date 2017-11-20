@@ -26,7 +26,7 @@ Vector<Real> WarpX::B_external(3, 0.0);
 
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
-Vector<Real> WarpX::boost_direction = {0,0,1};
+Vector<Real> WarpX::boost_direction = {0,0,0};
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -177,21 +177,31 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
 
-        // Boosted-frame parameters
-        pp.query("gamma_boost", gamma_boost);
-        beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
-        if( gamma_boost > 1. ){
-            // Read and normalize the boost direction
-            pp.queryarr("boost_direction", boost_direction);
-            Real s = 1.0/std::sqrt(boost_direction[0]*boost_direction[0] +
-                                   boost_direction[1]*boost_direction[1] +
-                                   boost_direction[2]*boost_direction[2]);
-	    boost_direction = { boost_direction[0]*s,
-                                boost_direction[1]*s,
-                                boost_direction[2]*s };
-        }
-        
-        pp.queryarr("B_external", B_external);
+    // Boosted-frame parameters
+    pp.query("gamma_boost", gamma_boost);
+    beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
+    if( gamma_boost > 1. ){
+        // Read the boost direction
+        std::string s;
+	    pp.get("boost_direction", s);
+	    if (s == "x" || s == "X") {
+		   boost_direction[0] = 1.;
+	     }
+#if (BL_SPACEDIM == 3)
+	    else if (s == "y" || s == "Y") {
+		   boost_direction[1] = 1.;
+	    }
+#endif
+	    else if (s == "z" || s == "Z") {
+		   boost_direction[BL_SPACEDIM-1] = 1.;
+	    }
+        else {
+		const std::string msg = "Unknown boost_dir: "+s;
+		amrex::Abort(msg.c_str());
+	    }
+    }
+
+    pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
@@ -228,15 +238,15 @@ WarpX::ReadParameters ()
 		 0, num_injected_species);
 	}
 
-        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);       
+        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
         if (do_boosted_frame_diagnostic) {
-            
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0, 
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                 "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (std::abs(boost_direction[0] - 0.0) < 1.0e-12) and 
-                                              (std::abs(boost_direction[1] - 0.0) < 1.0e-12) and 
-                                              (std::abs(boost_direction[2] - 1.0) < 1.0e012) , 
+            std::string s;
+    	    pp.get("boost_direction", s);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
                 "The boosted frame diagnostic currently only works if the boost is in the z direction.");
 
             pp.get("num_snapshots_lab", num_snapshots_lab);
@@ -246,13 +256,11 @@ WarpX::ReadParameters ()
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
                 "The moving window should be on if using the boosted frame diagnostic.");
 
-            std::string s;
-	    pp.get("moving_window_dir", s);
-
+	        pp.get("moving_window_dir", s);
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
-                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
+                "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
         }
-        
+
         pp.query("do_electrostatic", do_electrostatic);
         pp.query("n_buffer", n_buffer);
         pp.query("const_dt", const_dt);
@@ -304,7 +312,7 @@ WarpX::ReadParameters ()
 	    "warpx.nox, noy and noz must be equal");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE( nox >= 1, "warpx.nox must >= 1");
     }
-    
+
     {
 	ParmParse pp("algo");
 	pp.query("current_deposition", current_deposition_algo);
