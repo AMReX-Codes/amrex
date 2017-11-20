@@ -4,6 +4,7 @@ from collections import namedtuple
 
 HeaderInfo = namedtuple('HeaderInfo', ['version', 'how', 'ncomp', 'nghost'])
 
+_component_names = ['Ex', 'Ey', 'Ez', 'Bx', 'By', 'Bz', 'jx', 'jy', 'jz', 'rho']
 
 def read_data(plt_file):
     '''
@@ -43,6 +44,46 @@ def read_data(plt_file):
     return all_data
 
 
+def read_lab_snapshot(snapshot):
+    '''
+
+    This reads the data from one of the lab frame snapshots generated when
+    WarpX is run with boosted frame diagnostics turned on. It returns a 
+    dictionary of numpy arrays, where each key corresponds to one of the
+    data fields ("Ex", "By,", etc... ). These values are cell-centered.
+
+    '''
+
+    hdrs = glob(snapshot + "/Level_0/slice?????_H")
+    hdrs.sort()
+
+    boxes, file_names, offsets, header = _read_header(hdrs[0])
+    dom_lo, dom_hi = _combine_boxes(boxes)
+    domain_size = dom_hi - dom_lo + 1
+    
+    space_dim = len(dom_lo)
+        
+    data = {}
+    for i in range(header.ncomp):
+        if space_dim == 3:
+            data[component_names[i]] = np.zeros((domain_size[0], domain_size[1], len(hdrs)))
+        elif space_dim == 2:
+            data[component_names[i]] = np.zeros((domain_size[0], len(hdrs)))
+    
+    for i, hdr in enumerate(hdrs):
+        slice_data = _read_slice(snapshot, hdr)
+        if data is None:
+            data = slice_data
+        else:
+            for k,v in slice_data.items():
+                if space_dim == 3:
+                    data[k][:,:,i] = v[:,:,0]
+                elif space_dim == 2:
+                    data[k][:,i] = v[:,0]
+                
+    return data
+
+
 def _get_field_names(raw_file):
     header_files = glob(raw_file + "*_H")
     return [hf.split("/")[-1][:-2] for hf in header_files]
@@ -59,8 +100,7 @@ def _line_to_numpy_arrays(line):
     return lo_corner, hi_corner, node_type
 
 
-def _read_header(raw_file, field):
-    header_file = raw_file + field + "_H"
+def _read_header(header_file):
     with open(header_file, "r") as f:
 
         version = int(f.readline())
@@ -105,7 +145,8 @@ def _combine_boxes(boxes):
 
 def _read_field(raw_file, field_name):
 
-    boxes, file_names, offsets, header = _read_header(raw_file, field_name)
+    header_file = raw_file + field + "_H"
+    boxes, file_names, offsets, header = _read_header(header_file)
 
     ng = header.nghost
     lo, hi = _combine_boxes(boxes)
@@ -123,6 +164,35 @@ def _read_field(raw_file, field_name):
             data[[slice(l,h+1) for l, h in zip(lo+ng, hi+ng)]] = arr
 
     return data
+
+
+
+def _read_slice(snapshot, header_fn):
+  
+    boxes, file_names, offsets, header = _read_header(header_fn)
+
+    ng = header.nghost
+    dom_lo, dom_hi = _combine_boxes(boxes)
+      
+    all_data = {}
+    for i in range(header.ncomp):
+        all_data[_component_names[i]] = np.zeros(dom_hi - dom_lo + 1)
+    
+    for box, fn, offset in zip(boxes, file_names, offsets):
+        lo = box[0] - dom_lo
+        hi = box[1] - dom_lo
+        shape = hi - lo + 1
+        size = np.product(shape)
+        with open(snapshot + "/Level_0/" + fn, "rb") as f:
+            f.seek(offset)
+            f.readline()  # always skip the first line
+            arr = np.fromfile(f, 'float64', header.ncomp*size)
+            for i in range(header.ncomp):
+                comp_data = arr[i*size:(i+1)*size].reshape(shape, order='F')
+                data = all_data[_component_names[i]]
+                data[[slice(l,h+1) for l, h in zip(lo, hi)]] = comp_data
+                all_data[_component_names[i]] = data
+    return all_data
 
 
 if __name__ == "__main__":
