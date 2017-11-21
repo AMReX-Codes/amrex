@@ -44,8 +44,26 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
                                         k4_lo(3):k4_hi(3))
 
   integer          :: i,j,k
-  double precision :: k_1, k_2, k_3, k_4, squcoef, cubcoef, phival
-  double precision  :: xi
+  double precision :: k_1, k_2, k_3, k_4, squcoef, cubcoef, u0
+  double precision  :: xi, fn, fnfprime, fnfdouble, dt2, dt3
+
+  !this gets us to u0
+  xi = (tf - tc_old)/dt_c
+
+ !debug set to old method
+  if(stage .eq. 0) then
+     xi = (tf - tc_old)/dt_c
+  else if(stage .eq. 1) then
+     xi = (tf + 0.5*dt_f - tc_old)/dt_c
+  else if(stage .eq. 2) then
+     xi = (tf + 0.5*dt_f - tc_old)/dt_c !why, yes, this *is* the same as stage 1
+  else
+     xi = (tf + dt_f - tc_old)/dt_c;
+  endif
+  !end debug     
+
+  dt2 = dt_f*dt_f
+  dt3 = dt_f*dt_f*dt_f
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
      do j=lo(2),hi(2)
@@ -59,8 +77,27 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
            squcoef = 0.5d0*(-3.0d0*k_1 + 2.0d0*k_2 + 2.0d0*k_3 - k_4)
            cubcoef = (2.0d0/3.0d0)*(k_1 - k_2 - k_3 + k_4)
 
-           phival = old(i,j,k) + xi*k_1 + xi*xi*squcoef + xi*xi*xi*cubcoef
-           phi(i,j,k) = phival
+           u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef + xi*xi*xi*cubcoef
+
+           fn = k_1
+           fnfprime  = (-3.0d0*k_1 + 2.0d0*k_2 + 2.0d0*k_3 - k_4)/dt_f
+           fnfdouble = (-4.0d0*k_2 + k_3)/(dt_f*dt_f)
+           if(stage.eq.0) then
+              phi(i,j,k) = u0
+           else if(stage.eq.1) then
+              phi(i,j,k) = u0 + 0.5d0*dt_f*fn
+           else if(stage.eq.2) then
+              phi(i,j,k) = u0 + 0.5d0*dt_f*fn + 0.25d0*dt2*fnfprime + 0.0625d0*dt3*fn*fnfdouble
+           else if(stage.eq.3) then
+              phi(i,j,k) = u0 + 0.5d0*dt_f*fn + 0.5d0*dt2*fnfprime + 0.25d0*dt3*fn*fnfprime + 0.125d0*dt3*fn*fnfdouble
+           else
+              print*, "bogus stage"
+              stop
+           endif
+
+!debug set to old method
+           phi(i,j,k) = u0
+!end debug              
 
         end do
      end do
@@ -101,8 +138,11 @@ subroutine timeinterprk3_jbb(stage, lo, hi, &
                                         k2_lo(3):k2_hi(3))
 
   integer          :: i,j,k
-  double precision :: k_1, k_2,  squcoef,  phival
+  double precision :: k_1, k_2,  squcoef, u0
   double precision :: xi
+
+  xi = (tf - tc_old)/dt_c
+
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
      do j=lo(2),hi(2)
@@ -113,9 +153,18 @@ subroutine timeinterprk3_jbb(stage, lo, hi, &
            !straight outta fok and rosales
            squcoef = 0.5d0*(k_2 - k_1)
 
-           phival = old(i,j,k) + xi*k_1 + xi*xi*squcoef 
-           phi(i,j,k) = phival
+           u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef 
 
+           if(stage.eq.0) then
+              phi(i,j,k) = u0
+           else if(stage.eq.1) then
+              phi(i,j,k) = u0 + k_1
+           else if(stage.eq.2) then
+              phi(i,j,k) = u0 + 0.25d0*dt_f*(k_1 + k_2)
+           else
+              print*, "bogus stage rk3"
+              stop
+           endif
         end do
      end do
   end do

@@ -370,7 +370,7 @@ namespace amrex
   initSwitches()
   {
     string algorithm("rk3");
-    ParmParse pp;
+    ParmParse pp("adv");
     pp.query("algorithm", algorithm);
     static bool printedstuff = false;
     bool use_limiting = true;
@@ -685,6 +685,13 @@ namespace amrex
     bool truncationErrorTest = false;
     ParmParse pp;
     pp.query("truncation_error_only", truncationErrorTest);
+    int truncationStage = 1;
+    pp.query("truncation_error_stage", truncationStage);
+    if(truncationErrorTest &&((truncationStage < 1) || truncationStage > 4))
+    {
+      amrex::Error("bogus truncation error stage");
+    }
+
     if(truncationErrorTest && (iteration > 1))
     {
       return dt;
@@ -732,7 +739,7 @@ namespace amrex
     //the dt/6 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u1, k1, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
-    if(truncationErrorTest)
+    if(truncationErrorTest && (truncationStage==1))
     {
       S_new.copy(k1);
       //cannot just return here because we still need the k coefs for finer levels
@@ -748,6 +755,14 @@ namespace amrex
     //phi^2 = phi^n + dt/2*dPhiDt(phi^1)
     //the dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u1, k2, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+
+    if(truncationErrorTest && (truncationStage==2))
+    {
+      S_new.copy(k2);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
+
     k2.mult(dt);
     MultiFab::LinComb(u2, 1., S_old, 0, 0.5, k2, 0, 0, NUM_STATE, 0);
     fillGhostCellsRK4(u2, 2);
@@ -755,6 +770,14 @@ namespace amrex
     //phi^3 = phi^n + dt*dPhiDt(phi^2)
     //the dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u2, k3, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+
+    if(truncationErrorTest && (truncationStage==3))
+    {
+      S_new.copy(k3);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
+
     k3.mult(dt);
     MultiFab::LinComb(u3, 1., S_old, 0, 1.0, k3, 0, 0, NUM_STATE, 0);
     fillGhostCellsRK4(u3, 3);
@@ -762,6 +785,14 @@ namespace amrex
     //phi^4 = phi^n + dt*F(phi^3)
     //the dt/6. is for the flux register.
     compute_dPhiDt_MOL4thOrd(u3, k4, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+
+
+    if(truncationErrorTest && (truncationStage==4))
+    {
+      S_new.copy(k3);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
     k4.mult(dt);
 
     //phi^n+1  = 1/6(phi1 +  2 phi2  + 2phi3  + phi4)
