@@ -149,12 +149,18 @@ public:
 
     void buildNeighborListFort(int lev, bool sort=false);
 
+    void setRealCommComp(int i, bool value);
+    void setIntCommComp(int i, bool value);
+
     std::map<PairIndex, Vector<char> > neighbors;
     std::map<PairIndex, Vector<int>  > neighbor_list;
-    const size_t pdata_size = (NNeighborReal+BL_SPACEDIM)*
-        sizeof(typename ParticleType::RealType);
-
+    const size_t pdata_size = sizeof(ParticleType);
+    
 protected:
+    
+    void initializeCommComps();
+    
+    void calcCommSize();
     
     ///
     /// Perform the MPI communication neccesary to fill neighbor buffers
@@ -170,6 +176,7 @@ protected:
         return false;
     };
 
+    size_t cdata_size;
     int num_neighbor_cells;
     amrex::Vector<NeighborCommTag> local_neighbors;
     std::unique_ptr<FabArray<BaseFab<int> > > mask_ptr;
@@ -183,6 +190,9 @@ protected:
     amrex::Vector<long> rcvs;
     long num_snds;
     std::map<int, Vector<char> > send_data;
+
+    std::array<bool, BL_SPACEDIM + NStructReal> rc; 
+    std::array<bool, 2 + NStructInt>  ic;
 };
 
 #include "AMReX_NeighborParticlesI.H"

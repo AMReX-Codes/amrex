@@ -10,8 +10,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (gdb),
       num_neighbor_cells(ncells)
 {
+    initializeCommComps();
 }
-
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
 NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
@@ -23,6 +23,52 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
       num_neighbor_cells(ncells)
 {
     BuildLevelMask(0, geom, dmap, ba);
+    initializeCommComps();
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::initializeCommComps() {
+    for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii)
+        rc[ii] = true;
+    for (int ii = 0; ii < 2 + NStructInt; ++ii)
+        ic[ii] = true;
+    calcCommSize();
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::setRealCommComp(int i, bool value) {
+    rc[i] = value;
+    calcCommSize();
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::setIntCommComp(int i, bool value) {
+    ic[i] = value;
+    calcCommSize();
+}
+
+template <int NStructReal, int NStructInt, int NNeighborReal>
+void
+NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
+::calcCommSize() {
+    size_t comm_size = 0;
+    for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
+        if (rc[ii]) {
+            comm_size += sizeof(typename ParticleType::RealType);
+        }
+    }
+    for (int ii = 0; ii < 2 + NStructInt; ++ii) {
+        if (ic[ii]) {
+            comm_size += sizeof(int);
+        }
+    }
+    cdata_size = comm_size;
 }
 
 template <int NStructReal, int NStructInt, int NNeighborReal>
@@ -323,7 +369,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     
     for (auto& kv : remote_map) {
         int np = kv.second.size();
-        int data_size = np * pdata_size;
+        int data_size = np * cdata_size;
         Vector<char>& buffer = send_data[kv.first.proc_id];
         size_t old_size = buffer.size();
         size_t new_size = buffer.size() + 2*sizeof(int) + sizeof(int) + data_size;
@@ -340,7 +386,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
             const NeighborIndexMap& nim = kv.second[i];
             PairIndex src_index(nim.src_grid, nim.src_tile);
             Vector<NeighborCopyTag>& tags = buffer_tag_cache[src_index][nim.thread_num];
-            tags[nim.src_index].dst_offset = buffer_offset + i*pdata_size;
+            tags[nim.src_index].dst_offset = buffer_offset + i*cdata_size;
         }
     }
 }
@@ -402,7 +448,22 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
                     BL_ASSERT(tag.dst_offset < buffer.size());
                     std::memcpy(&buffer[tag.dst_offset], &p, pdata_size);
                 } else {
-                    std::memcpy(&send_data[who][tag.dst_offset], &p, pdata_size);
+                    char* dst = &send_data[who][tag.dst_offset];
+                    char* src = (char *) &p;
+                    for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
+                        if (rc[ii]) {
+                            std::memcpy(dst, src, sizeof(Real)); 
+                            dst += sizeof(Real);
+                        }
+                        src += sizeof(Real);
+                    }
+                    for (int ii = 0; ii < 2 + NStructInt; ++ii) {
+                        if (ic[ii]) {
+                            std::memcpy(dst, src, sizeof(int));
+                            dst += sizeof(int);
+                        }
+                        src += sizeof(int);
+                    }
                 }
             }
         }
@@ -554,7 +615,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
             char* buffer = &recvdata[offset];
-            int num_tiles, gid, tid, size;
+            int num_tiles, gid, tid, size, np;
             std::memcpy(&num_tiles, buffer, sizeof(int)); buffer += sizeof(int);
             for (int j = 0; j < num_tiles; ++j) {
                 std::memcpy(&gid,  buffer, sizeof(int)); buffer += sizeof(int);
@@ -562,12 +623,34 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 std::memcpy(&size, buffer, sizeof(int)); buffer += sizeof(int);
                 
                 if (size == 0) continue;
+
+                np = size / cdata_size;
                 
                 PairIndex dst_index(gid, tid);
                 size_t old_size = neighbors[dst_index].size();
-                size_t new_size = neighbors[dst_index].size() + size;
+                size_t new_size = neighbors[dst_index].size() + np*pdata_size;
                 neighbors[dst_index].resize(new_size);
-                std::memcpy(&neighbors[dst_index][old_size], buffer, size); buffer += size;
+                
+                char* dst = &neighbors[dst_index][old_size];
+                char* src = buffer;
+
+                for (int n = 0; n < np; ++n) {
+                    for (int ii = 0; ii < BL_SPACEDIM + NStructReal; ++ii) {
+                        if (rc[ii]) {
+                            std::memcpy(dst, src, sizeof(Real)); 
+                            src += sizeof(Real);
+                        }
+                        dst += sizeof(Real);
+                    }
+                    for (int ii = 0; ii < 2 + NStructInt; ++ii) {
+                        if (ic[ii]) {
+                            std::memcpy(dst, src, sizeof(int));                        
+                            src += sizeof(int);
+                        }
+                        dst += sizeof(int);
+                    }
+                }
+                buffer += size;
             }
         }
     }
