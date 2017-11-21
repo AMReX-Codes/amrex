@@ -25,9 +25,9 @@ Overall simulation parameters
 
         For now, only the laser parameters will be converted.
 
-* ``warpx.boost_direction`` (`3 floats in 3D`)
-    The coordinates of a vector that points in the propagation direction of
-    the Lorentz transform. The norm of this vector is unimportant, only its direction matters.
+* ``warpx.boost_direction`` (string: ``x``, ``y`` or ``z``)
+    The direction of the Lorentz-transform for boosted-frame simulations
+    (The direction ``y`` cannot be used in 2D simulations.)
 
 Setting up the field mesh
 -------------------------
