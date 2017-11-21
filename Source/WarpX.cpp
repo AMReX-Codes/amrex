@@ -136,6 +136,7 @@ WarpX::WarpX ()
     Efield_cax.resize(nlevs_max);
     Bfield_cax.resize(nlevs_max);
     buffer_masks.resize(nlevs_max);
+    current_buf.resize(nlevs_max);
 
     pml.resize(nlevs_max);
 
@@ -319,6 +320,7 @@ WarpX::ClearLevel (int lev)
 
 	Efield_cax[lev][i].reset();
 	Bfield_cax[lev][i].reset();
+        current_buf[lev][i].reset();
     }
 
     buffer_masks[lev].reset();
@@ -432,6 +434,10 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
         Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
         Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
+
+        current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
+        current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
+        current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
 
         buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
     }

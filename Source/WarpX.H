@@ -322,6 +322,8 @@ private:
     amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cax;
     amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cax;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > buffer_masks;
+    // If current deposition buffers are used
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
 
     // div E cleaning
     int do_dive_cleaning = 0;

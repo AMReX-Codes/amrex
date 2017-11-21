@@ -298,9 +298,21 @@ WarpX::SyncCurrent ()
         const auto& period = Geom(lev).periodicity();
         const int ngsrc = current_cp[lev+1][0]->nGrow();
         const int ngdst = 0;
-        current_fp[lev][0]->copy(*current_cp[lev+1][0],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
-        current_fp[lev][1]->copy(*current_cp[lev+1][1],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
-        current_fp[lev][2]->copy(*current_cp[lev+1][2],0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        const MultiFab* ccx = current_cp[lev+1][0].get();
+        const MultiFab* ccy = current_cp[lev+1][1].get();
+        const MultiFab* ccz = current_cp[lev+1][2].get();
+        if (current_buf[lev+1][0])
+        {
+            MultiFab::Add(*current_buf[lev+1][0], *current_cp[lev+1][0], 0, 0, 1, ngsrc);
+            MultiFab::Add(*current_buf[lev+1][1], *current_cp[lev+1][1], 0, 0, 1, ngsrc);
+            MultiFab::Add(*current_buf[lev+1][2], *current_cp[lev+1][2], 0, 0, 1, ngsrc);
+            ccx = current_buf[lev+1][0].get();
+            ccy = current_buf[lev+1][1].get();
+            ccz = current_buf[lev+1][2].get();
+        }
+        current_fp[lev][0]->copy(*ccx,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        current_fp[lev][1]->copy(*ccy,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
+        current_fp[lev][2]->copy(*ccz,0,0,1,ngsrc,ngdst,period,FabArrayBase::ADD);
     }
 
     // Sum up coarse patch
