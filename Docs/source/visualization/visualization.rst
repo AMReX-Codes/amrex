@@ -6,3 +6,4 @@ Visualizing the simulation results
 
    yt
    visit
+   pyside
