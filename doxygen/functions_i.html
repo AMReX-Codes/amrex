@@ -133,6 +133,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li>IBD_max_order_DEF
 : <a class="el" href="classamrex_1_1_interp_bndry_data.html#a3c37f7ae3bebb39f7fac821540e10227">amrex::InterpBndryData</a>
 </li>
+<li>ic
+: <a class="el" href="classamrex_1_1_neighbor_particle_container.html#aa16d86cdeb934c582eebb04a21e32719">amrex::NeighborParticleContainer&lt; NStructReal, NStructInt, NNeighborReal &gt;</a>
+</li>
 <li>Id()
 : <a class="el" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">amrex::FabArrayId</a>
 , <a class="el" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">amrex::FillBoxId</a>
@@ -278,6 +281,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 , <a class="el" href="classamrex_1_1_tiny_profiler.html#a0aa1d955349c9f07bfe14b493855258e">amrex::TinyProfiler</a>
 , <a class="el" href="classamrex_1_1_vis_m_f.html#aca0f6fbf4458284d275ca2f0625c2303">amrex::VisMF</a>
 </li>
+<li>initializeCommComps()
+: <a class="el" href="classamrex_1_1_neighbor_particle_container.html#a9fc777a6611729b79c56fc8f1782c830">amrex::NeighborParticleContainer&lt; NStructReal, NStructInt, NNeighborReal &gt;</a>
+</li>
 <li>initialized
 : <a class="el" href="classamrex_1_1_box_array.html#a88d35757727faba3973cc46625237e74">amrex::BoxArray</a>
 , <a class="el" href="classamrex_1_1_f_array_box.html#a2d4b7df27f35926ab4a1377d5864aed8">amrex::FArrayBox</a>
@@ -369,10 +375,10 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classamrex_1_1_state_data.html#add0ef828c3264079f14cc05abcbb6cb8">amrex::StateData</a>
 </li>
 <li>InterpBndryData()
-: <a class="el" href="classamrex_1_1_interp_bndry_data.html#a4ebe1cee4ef46fae4fb6d53219e10dc6">amrex::InterpBndryData</a>
+: <a class="el" href="classamrex_1_1_interp_bndry_data.html#aaf5621e5b48610f485a220c581374dea">amrex::InterpBndryData</a>
 </li>
 <li>InterpDoit()
-: <a class="el" href="structamrex_1_1_particle.html#a9f0503bbdca2d87308b8eb9a5d002ca3">amrex::Particle&lt; NReal, NInt &gt;</a>
+: <a class="el" href="structamrex_1_1_particle.html#a978fa793824d54757dac33400fb43e87">amrex::Particle&lt; NReal, NInt &gt;</a>
 </li>
 <li>InterpFillFab()
 : <a class="el" href="classamrex_1_1_state_data.html#a64b6d97172a5fa5f54ecaed8181bbe28">amrex::StateData</a>
@@ -449,8 +455,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classamrex_1_1_coord_sys.html#a3b5a3879b50d95cfcffb2eca6839ffdf">amrex::CoordSys</a>
 </li>
 <li>invert()
-: <a class="el" href="classamrex_1_1_base_fab.html#a0a851697d189e870eb4416e1b65a07ed">amrex::BaseFab&lt; T &gt;</a>
-, <a class="el" href="classamrex_1_1_multi_fab.html#abc88cd9b7b451baaea2d53b97d20368a">amrex::MultiFab</a>
+: <a class="el" href="classamrex_1_1_base_fab.html#a35862ca343785adec26866d0a4384fef">amrex::BaseFab&lt; T &gt;</a>
+, <a class="el" href="classamrex_1_1_multi_fab.html#a773e797a62924f1a23e4774c11b97f6f">amrex::MultiFab</a>
 </li>
 <li>invertMatrix()
 : <a class="el" href="classamrex_1_1_poly_geom.html#a1d3055fc8831da70f26d6c64d3a1880c">amrex::PolyGeom</a>
@@ -468,7 +474,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="structamrex_1_1_vis_m_f_1_1_persistent_i_f_stream.html#a1e023351bf031aee0da7cc17272716ae">amrex::VisMF::PersistentIFStream</a>
 </li>
 <li>IrregFAB()
-: <a class="el" href="classamrex_1_1_irreg_f_a_b.html#aaa4fe52dc9ae993f8aa00abe52703911">amrex::IrregFAB</a>
+: <a class="el" href="classamrex_1_1_irreg_f_a_b.html#a61b42070978c80b6d06c7de56cd2309e">amrex::IrregFAB</a>
 </li>
 <li>IrregFABFactory()
 : <a class="el" href="classamrex_1_1_irreg_f_a_b_factory.html#aa274535fbb14fa756f78c5ea31bd3027">amrex::IrregFABFactory</a>
@@ -530,9 +536,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </li>
 <li>isCovered()
 : <a class="el" href="classamrex_1_1_all_regular_service.html#ad6a68f8295f71c9208d075eecde6481e">amrex::AllRegularService</a>
-, <a class="el" href="classamrex_1_1_e_b_graph.html#a6b659dd10037fdaeb168f7a90097c482">amrex::EBGraph</a>
+, <a class="el" href="classamrex_1_1_e_b_graph.html#aee7466e8db13f4218c589bd219118e52">amrex::EBGraph</a>
 , <a class="el" href="classamrex_1_1_e_b_graph_implem.html#a407b367a89c4f938e762711bf2e54fff">amrex::EBGraphImplem</a>
-, <a class="el" href="classamrex_1_1_e_b_i_s_box.html#aaf8aa6a82480ccdf686f4dafc8d9ff2c">amrex::EBISBox</a>
+, <a class="el" href="classamrex_1_1_e_b_i_s_box.html#af7e2a6deba782c21cabd59d6bc7caab0">amrex::EBISBox</a>
 , <a class="el" href="classamrex_1_1edge_mo.html#a41b9bb52d414b6807cd93200171d6ca2">amrex::edgeMo</a>
 , <a class="el" href="classamrex_1_1face_mo.html#a017fefe2bae5c809d823a9ea561d5d2b">amrex::faceMo</a>
 , <a class="el" href="classamrex_1_1_flat_plate_geom.html#a159ed8d3c5abf2023cc943456101a8fc">amrex::FlatPlateGeom</a>
@@ -627,7 +633,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 : <a class="el" href="classamrex_1_1_all_regular_service.html#a412bacd4a1f9019eb3100bb48fa048c0">amrex::AllRegularService</a>
 , <a class="el" href="classamrex_1_1_e_b_graph.html#a11dc9dbdfe81f4f3321b61eb393829b3">amrex::EBGraph</a>
 , <a class="el" href="classamrex_1_1_e_b_graph_implem.html#a66dd51b016ae3de8e1c034281062b053">amrex::EBGraphImplem</a>
-, <a class="el" href="classamrex_1_1_e_b_i_s_box.html#ae27e087b14f3e081e0b3abad43004989">amrex::EBISBox</a>
+, <a class="el" href="classamrex_1_1_e_b_i_s_box.html#a9cf98cfa99b5e7dc562ffd03359f90f9">amrex::EBISBox</a>
 , <a class="el" href="classamrex_1_1edge_mo.html#a9f879b88abdc1f6d86109adcc7742f2e">amrex::edgeMo</a>
 , <a class="el" href="classamrex_1_1face_mo.html#abed9ca3200254e955fc7268b3e2a8838">amrex::faceMo</a>
 , <a class="el" href="classamrex_1_1_flat_plate_geom.html#a5d1aa3ae41d5916b727db8fde1008bbc">amrex::FlatPlateGeom</a>

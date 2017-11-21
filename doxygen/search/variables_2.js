@@ -2,6 +2,7 @@ var searchData=
 [
   ['c_5fsys',['c_sys',['../classamrex_1_1_coord_sys.html#a7d23e22bdc876c2b6f832f29f7b48c35',1,'amrex::CoordSys']]],
   ['cachedataallocated',['cacheDataAllocated',['../structamrex_1_1_fab_copy_descriptor.html#a405adb5266b8deb2c2e18cea095eee45',1,'amrex::FabCopyDescriptor']]],
+  ['cdata_5fsize',['cdata_size',['../classamrex_1_1_neighbor_particle_container.html#a4aaa5af70eae0fbd06997eea114964df',1,'amrex::NeighborParticleContainer']]],
   ['cell_5fbilinear_5finterp',['cell_bilinear_interp',['../namespaceamrex.html#a5fa0044ab8f93865e1fc48bb78a6e5e8',1,'amrex']]],
   ['cell_5fcons_5finterp',['cell_cons_interp',['../namespaceamrex.html#a5a7cd403bb1a4e3a44a90722f83f40f5',1,'amrex']]],
   ['ch_5fmax_5fmpi_5fmessage_5fsize',['CH_MAX_MPI_MESSAGE_SIZE',['../namespaceamrex.html#af01f0adcc682bfe50c568071f5b58c0c',1,'amrex']]],

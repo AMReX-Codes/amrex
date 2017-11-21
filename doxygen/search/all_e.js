@@ -41,7 +41,7 @@ var searchData=
   ['nextdynamicindex',['nextDynamicIndex',['../classamrex_1_1_m_f_iter.html#a07296b12634219c4a15337435852a67b',1,'amrex::MFIter']]],
   ['nextid',['NextID',['../structamrex_1_1_particle.html#a3a8d988966904ac3cfc8be4c71b950af',1,'amrex::Particle::NextID()'],['../structamrex_1_1_particle.html#a4b87ccd982d25100ecae8f60f8f290f8',1,'amrex::Particle::NextID(int nextid)']]],
   ['nextra',['nExtra',['../classamrex_1_1_state_descriptor.html#a26212f534ce6944b22b6ab0fe084268c',1,'amrex::StateDescriptor']]],
-  ['nfabarrays',['nFabArrays',['../classamrex_1_1_fab_array_base.html#a59f3cb011e49d144afbd0e9ff1a1b852',1,'amrex::FabArrayBase::nFabArrays()'],['../classamrex_1_1_fab_array_base.html#a32bffa98a6a75bf8570863d63699d84a',1,'amrex::FabArrayBase::NFabArrays()']]],
+  ['nfabarrays',['NFabArrays',['../classamrex_1_1_fab_array_base.html#a32bffa98a6a75bf8570863d63699d84a',1,'amrex::FabArrayBase::NFabArrays()'],['../classamrex_1_1_fab_array_base.html#a59f3cb011e49d144afbd0e9ff1a1b852',1,'amrex::FabArrayBase::nFabArrays()']]],
   ['nfabcomtags',['nFabComTags',['../classamrex_1_1_fab_array_copy_descriptor.html#a763b6b17ed0232092aa0a7d18e74dcc7',1,'amrex::FabArrayCopyDescriptor']]],
   ['nfabcopydescs',['nFabCopyDescs',['../classamrex_1_1_fab_array_copy_descriptor.html#a1af4bdca134932bb4ffa3790bb5c16df',1,'amrex::FabArrayCopyDescriptor']]],
   ['nfiles',['NFiles',['../classamrex_1_1_vis_m_f.html#aa50a3ce471ac0bdf8f78134f0004e156a167fa24b841257fa58af35b658f5d6c1',1,'amrex::VisMF']]],
