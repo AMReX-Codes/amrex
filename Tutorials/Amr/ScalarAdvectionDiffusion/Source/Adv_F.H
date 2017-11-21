@@ -82,21 +82,23 @@ extern "C"
                            const int* uselimit);
 
 
-  void timeinterpk4_mccorq(const amrex_real& xi, 
-                          const int* lo, const int* hi,
-                          BL_FORT_FAB_ARG_3D(phinew),
-                          BL_FORT_FAB_ARG_3D(phiold),
-                          BL_FORT_FAB_ARG_3D(k1),
-                          BL_FORT_FAB_ARG_3D(k2),
-                          BL_FORT_FAB_ARG_3D(k3),
-                          BL_FORT_FAB_ARG_3D(k4));
 
-  void timeinterpk3_mccorq(const amrex_real& xi, 
-                          const int* lo, const int* hi,
-                          BL_FORT_FAB_ARG_3D(phinew),
-                          BL_FORT_FAB_ARG_3D(phiold),
-                          BL_FORT_FAB_ARG_3D(k1),
-                          BL_FORT_FAB_ARG_3D(k2));
+
+  void timeinterpk4_simplepoly(const amrex_real& xi, 
+                               const int* lo, const int* hi,
+                               BL_FORT_FAB_ARG_3D(phinew),
+                               BL_FORT_FAB_ARG_3D(phiold),
+                               BL_FORT_FAB_ARG_3D(k1),
+                               BL_FORT_FAB_ARG_3D(k2),
+                               BL_FORT_FAB_ARG_3D(k3),
+                               BL_FORT_FAB_ARG_3D(k4));
+
+  void timeinterpk3_simplepoly(const amrex_real& xi, 
+                               const int* lo, const int* hi,
+                               BL_FORT_FAB_ARG_3D(phinew),
+                               BL_FORT_FAB_ARG_3D(phiold),
+                               BL_FORT_FAB_ARG_3D(k1),
+                               BL_FORT_FAB_ARG_3D(k2));
 
 
 
@@ -115,6 +117,31 @@ extern "C"
                          const amrex_real* dt_f);
 
   void timeinterprk3_jbb(const int* stage, 
+                         const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_3D(phinew),
+                         BL_FORT_FAB_ARG_3D(phiold),
+                         BL_FORT_FAB_ARG_3D(k1),
+                         BL_FORT_FAB_ARG_3D(k2),
+                         const amrex_real* tf,
+                         const amrex_real* tc_old,
+                         const amrex_real* dt_c,
+                         const amrex_real* dt_f);
+
+
+  void timeinterprk4_pwm(const int* xi, 
+                         const int* lo, const int* hi,
+                         BL_FORT_FAB_ARG_3D(phinew),
+                         BL_FORT_FAB_ARG_3D(phiold),
+                         BL_FORT_FAB_ARG_3D(k1),
+                         BL_FORT_FAB_ARG_3D(k2),
+                         BL_FORT_FAB_ARG_3D(k3),
+                         BL_FORT_FAB_ARG_3D(k4),
+                         const amrex_real* tf,
+                         const amrex_real* tc_old,
+                         const amrex_real* dt_c,
+                         const amrex_real* dt_f);
+
+  void timeinterprk3_pwm(const int* stage, 
                          const int* lo, const int* hi,
                          BL_FORT_FAB_ARG_3D(phinew),
                          BL_FORT_FAB_ARG_3D(phiold),
