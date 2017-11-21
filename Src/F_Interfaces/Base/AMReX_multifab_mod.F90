@@ -36,10 +36,13 @@ module amrex_multifab_module
      generic   :: dataPtr       => amrex_multifab_dataptr_iter, amrex_multifab_dataptr_int
      procedure :: min           => amrex_multifab_min
      procedure :: max           => amrex_multifab_max
+     procedure :: sum           => amrex_multifab_sum
      procedure :: norm0         => amrex_multifab_norm0
      procedure :: norm1         => amrex_multifab_norm1
      procedure :: norm2         => amrex_multifab_norm2
      procedure :: setval        => amrex_multifab_setval
+     procedure :: plus          => amrex_multifab_plus
+     procedure :: mult          => amrex_multifab_mult
      procedure :: add           => amrex_multifab_add
      procedure :: subtract      => amrex_multifab_subtract
      procedure :: multiply      => amrex_multifab_multiply
@@ -193,6 +196,14 @@ module amrex_multifab_module
        integer(c_int), value :: comp, nghost
      end function amrex_fi_multifab_max
 
+     function amrex_fi_multifab_sum (mf, comp) bind(c)
+       import
+       implicit none
+       real(amrex_real) :: amrex_fi_multifab_sum
+       type(c_ptr), value :: mf
+       integer(c_int), value :: comp
+     end function amrex_fi_multifab_sum
+
      function amrex_fi_multifab_norm0 (mf, comp) bind(c)
        import
        implicit none
@@ -224,6 +235,22 @@ module amrex_multifab_module
        real(amrex_real), value :: val
        integer(c_int), value :: ic, nc, ng
      end subroutine amrex_fi_multifab_setval
+
+     subroutine amrex_fi_multifab_plus (mf, val, ic, nc, ng) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+       real(amrex_real), value :: val
+       integer(c_int), value :: ic, nc, ng
+     end subroutine amrex_fi_multifab_plus
+
+     subroutine amrex_fi_multifab_mult (mf, val, ic, nc, ng) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+       real(amrex_real), value :: val
+       integer(c_int), value :: ic, nc, ng
+     end subroutine amrex_fi_multifab_mult
 
      subroutine amrex_fi_multifab_add (dstmf, srcmf, srccomp, dstcomp, nc, ng) bind(c)
        import
@@ -631,6 +658,17 @@ contains
     end if
   end function amrex_multifab_max
 
+  function amrex_multifab_sum (this, comp) result(r)
+    class(amrex_multifab), intent(in) :: this
+    integer(c_int), intent(in), optional :: comp
+    real(amrex_real) :: r
+    if (present(comp)) then
+       r = amrex_fi_multifab_sum(this%p, comp-1)
+    else
+       r = amrex_fi_multifab_sum(this%p, 0)
+    end if
+  end function amrex_multifab_sum
+
   function amrex_multifab_norm0 (this, comp) result(r)
     class(amrex_multifab), intent(in) :: this
     integer(c_int), intent(in), optional :: comp
@@ -674,6 +712,20 @@ contains
     ng = this%ng;   if (present(nghost)) ng = nghost
     call amrex_fi_multifab_setval(this%p, val, ic, nc, ng)
   end subroutine amrex_multifab_setval
+
+  subroutine amrex_multifab_plus (this, val, icomp, ncomp, nghost)
+    class(amrex_multifab), intent(inout) :: this
+    real(amrex_real), intent(in) :: val
+    integer, intent(in) :: icomp, ncomp, nghost
+    call amrex_fi_multifab_plus(this%p, val, icomp-1, ncomp, nghost)
+  end subroutine amrex_multifab_plus
+
+  subroutine amrex_multifab_mult (this, val, icomp, ncomp, nghost)
+    class(amrex_multifab), intent(inout) :: this
+    real(amrex_real), intent(in) :: val
+    integer, intent(in) :: icomp, ncomp, nghost
+    call amrex_fi_multifab_mult(this%p, val, icomp-1, ncomp, nghost)
+  end subroutine amrex_multifab_mult
 
   subroutine amrex_multifab_add (this, srcmf, srccomp, dstcomp, nc, ng)
     class(amrex_multifab), intent(inout) :: this

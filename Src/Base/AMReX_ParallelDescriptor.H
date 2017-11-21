@@ -867,7 +867,7 @@ do									\
 {									\
   if ( int l_status_ = (x) )						\
     {									\
-      ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x, l_status_);   \
+        amrex::ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x, l_status_); \
     }									\
 }									\
 while ( false )
