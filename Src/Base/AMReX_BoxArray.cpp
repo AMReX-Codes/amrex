@@ -628,6 +628,38 @@ BoxArray::grow (int dir,
 }
 
 BoxArray&
+BoxArray::growLo (int dir,
+                  int n_cell)
+{
+    uniqify();
+
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++) {
+        m_ref->m_abox[i].growLo(dir, n_cell);
+    }
+    return *this;
+}
+
+BoxArray&
+BoxArray::growHi (int dir,
+                  int n_cell)
+{
+    uniqify();
+
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++) {
+        m_ref->m_abox[i].growHi(dir, n_cell);
+    }
+    return *this;
+}
+
+BoxArray&
 BoxArray::surroundingNodes ()
 {
     
