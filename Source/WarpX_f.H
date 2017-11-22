@@ -63,6 +63,12 @@
 extern "C"
 {
 #endif
+
+        void warpx_copy_slice(const int* lo, const int* hi,
+                              const amrex_real* tmp, const int* tlo, const int* thi,
+                              amrex_real* buf, const int* blo, const int* bhi,
+                              const int* ncomp, const int* i_boost, const int* i_lab);
+    
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
