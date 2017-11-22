@@ -905,10 +905,11 @@ BoxArray::minimalBox () const
 #pragma omp parallel
 #endif
 	    {
-#ifdef _OPENMP
-		int tid = omp_get_num_threads();
-#else
+#ifndef _OPENMP
 		int tid = 0;
+#else
+		int tid = omp_get_num_threads();
+#pragma omp for
 #endif
 		for (int i = 0; i < N; ++i) {
 		    bxs[tid].minBox(m_ref->m_abox[i]);
