@@ -908,7 +908,7 @@ BoxArray::minimalBox () const
 #ifndef _OPENMP
 		int tid = 0;
 #else
-		int tid = omp_get_num_threads();
+		int tid = omp_get_thread_num();
 #pragma omp for
 #endif
 		for (int i = 0; i < N; ++i) {

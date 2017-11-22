@@ -293,7 +293,7 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 	
 	int newsize = 0;
 	
-#if _OPENMP
+#ifdef _OPENMP
 	bool start_omp_parallel = !omp_in_parallel();
 #pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
 #endif
