@@ -225,7 +225,7 @@ TagBox::numTags (const Box& b) const
 }
 
 long
-TagBox::collate (std::vector<IntVect>& ar, int start) const
+TagBox::collate (Vector<IntVect>& ar, int start) const
 {
     BL_ASSERT(start >= 0);
     //
@@ -491,7 +491,7 @@ TagBoxArray::numTags () const
 }
 
 void
-TagBoxArray::collate (std::vector<IntVect>& TheGlobalCollateSpace) const
+TagBoxArray::collate (Vector<IntVect>& TheGlobalCollateSpace) const
 {
     BL_PROFILE("TagBoxArray::collate()");
 
@@ -508,7 +508,7 @@ TagBoxArray::collate (std::vector<IntVect>& TheGlobalCollateSpace) const
     //
     // Local space for holding just those tags we want to gather to the root cpu.
     //
-    std::vector<IntVect> TheLocalCollateSpace(count);
+    Vector<IntVect> TheLocalCollateSpace(count);
 
     count = 0;
 
@@ -520,12 +520,7 @@ TagBoxArray::collate (std::vector<IntVect>& TheGlobalCollateSpace) const
 
     if (count > 0)
     {
-        //
-        // Remove duplicate IntVects.
-        //
-	std::set<IntVect> tmp (TheLocalCollateSpace.begin(),
-			       TheLocalCollateSpace.end());
-	TheLocalCollateSpace.assign( tmp.begin(), tmp.end() );
+        amrex::RemoveDuplicates(TheLocalCollateSpace);
 	count = TheLocalCollateSpace.size();
     }
     //
@@ -575,12 +570,7 @@ TagBoxArray::collate (std::vector<IntVect>& TheGlobalCollateSpace) const
 
     if (ParallelDescriptor::IOProcessor())
     {
-        //
-        // Remove yet more possible duplicate IntVects.
-        //
-	std::set<IntVect> tmp (TheGlobalCollateSpace.begin(),
-			       TheGlobalCollateSpace.end());
-	TheGlobalCollateSpace.assign( tmp.begin(), tmp.end() );
+        amrex::RemoveDuplicates(TheGlobalCollateSpace);
 	numtags = TheGlobalCollateSpace.size();
     }
 

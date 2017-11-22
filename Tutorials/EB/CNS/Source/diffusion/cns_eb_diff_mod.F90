@@ -16,7 +16,7 @@ contains
        flux2, fd2_lo, fd2_hi, &
        flux3, fd3_lo, fd3_hi, &
        flag, fglo, fghi)
-    use amrex_ebcellflag_module, only : get_neighbor_cells
+    use amrex_ebcellflag_module, only : get_neighbor_cells, get_neighbor_cells_int_single
     integer, intent(in) :: qd_lo(3), qd_hi(3)
     integer, intent(in) :: lo(3), hi(3), fglo(3), fghi(3)
     integer, intent(in) :: clo(3), chi(3)
@@ -56,13 +56,10 @@ contains
              dvdx = (q(i,j,k,qv)-q(i-1,j,k,qv))*dxinv(1)
              dwdx = (q(i,j,k,qw)-q(i-1,j,k,qw))*dxinv(1)
 
-             call get_neighbor_cells(flag(i-1,j,k), nbrlo)
-             call get_neighbor_cells(flag(i  ,j,k), nbrhi)
-
-             jhip = j + nbrhi(0, 1,0)
-             jhim = j - nbrhi(0,-1,0)
-             jlop = j + nbrlo(0, 1,0)
-             jlom = j - nbrlo(0,-1,0)
+             jhip = j + get_neighbor_cells_int_single(flag(i  ,j,k),0, 1,0)
+             jhim = j - get_neighbor_cells_int_single(flag(i  ,j,k),0,-1,0)
+             jlop = j + get_neighbor_cells_int_single(flag(i-1,j,k),0, 1,0)
+             jlom = j - get_neighbor_cells_int_single(flag(i-1,j,k),0,-1,0)
              whi = weights(jhip-jhim)
              wlo = weights(jlop-jlom)
              dudy = (0.5d0*dxinv(2)) * &
@@ -72,10 +69,10 @@ contains
                   ((q(i  ,jhip,k,qv)-q(i  ,jhim,k,qv))*whi &
                   +(q(i-1,jlop,k,qv)-q(i-1,jlom,k,qv))*wlo)
 
-             khip = k + nbrhi(0,0, 1)
-             khim = k - nbrhi(0,0,-1)
-             klop = k + nbrlo(0,0, 1)
-             klom = k - nbrlo(0,0,-1)
+             khip = k + get_neighbor_cells_int_single(flag(i  ,j,k),0,0, 1)
+             khim = k - get_neighbor_cells_int_single(flag(i  ,j,k),0,0,-1)
+             klop = k + get_neighbor_cells_int_single(flag(i-1,j,k),0,0, 1)
+             klom = k - get_neighbor_cells_int_single(flag(i-1,j,k),0,0,-1)
              whi = weights(khip-khim)
              wlo = weights(klop-klom)
              dudz = (0.5d0*dxinv(3)) * &
@@ -112,13 +109,10 @@ contains
              dvdy = (q(i,j,k,qv)-q(i,j-1,k,qv))*dxinv(2)
              dwdy = (q(i,j,k,qw)-q(i,j-1,k,qw))*dxinv(2)
 
-             call get_neighbor_cells(flag(i,j-1,k), nbrlo)
-             call get_neighbor_cells(flag(i,j  ,k), nbrhi)
-
-             ihip = i + nbrhi( 1,0,0)
-             ihim = i - nbrhi(-1,0,0)
-             ilop = i + nbrlo( 1,0,0)
-             ilom = i - nbrlo(-1,0,0)
+             ihip = i + get_neighbor_cells_int_single(flag(i,j  ,k), 1,0,0)
+             ihim = i - get_neighbor_cells_int_single(flag(i,j  ,k),-1,0,0)
+             ilop = i + get_neighbor_cells_int_single(flag(i,j-1,k), 1,0,0)
+             ilom = i - get_neighbor_cells_int_single(flag(i,j-1,k),-1,0,0)
              whi = weights(ihip-ihim)
              wlo = weights(ilop-ilom)
              dudx = (0.5d0*dxinv(1)) * &
@@ -128,10 +122,10 @@ contains
                   ((q(ihip,j  ,k,qv)-q(ihim,j  ,k,qv))*whi &
                   +(q(ilop,j-1,k,qv)-q(ilom,j-1,k,qv))*wlo)
 
-             khip = k + nbrhi(0,0, 1)
-             khim = k - nbrhi(0,0,-1)
-             klop = k + nbrlo(0,0, 1)
-             klom = k - nbrlo(0,0,-1)
+             khip = k + get_neighbor_cells_int_single(flag(i,j  ,k),0,0, 1)
+             khim = k - get_neighbor_cells_int_single(flag(i,j  ,k),0,0,-1)
+             klop = k + get_neighbor_cells_int_single(flag(i,j-1,k),0,0, 1)
+             klom = k - get_neighbor_cells_int_single(flag(i,j-1,k),0,0,-1)
              whi = weights(khip-khim)
              wlo = weights(klop-klom)
              dvdz = (0.5d0*dxinv(3)) * &
@@ -168,13 +162,10 @@ contains
              dvdz = (q(i,j,k,qv)-q(i,j,k-1,qv))*dxinv(3)
              dwdz = (q(i,j,k,qw)-q(i,j,k-1,qw))*dxinv(3)
 
-             call get_neighbor_cells(flag(i,j,k-1), nbrlo)
-             call get_neighbor_cells(flag(i,j,k  ), nbrhi)
-
-             ihip = i + nbrhi( 1,0,0)
-             ihim = i - nbrhi(-1,0,0)
-             ilop = i + nbrlo( 1,0,0)
-             ilom = i - nbrlo(-1,0,0)
+             ihip = i + get_neighbor_cells_int_single(flag(i,j,k  ), 1,0,0)
+             ihim = i - get_neighbor_cells_int_single(flag(i,j,k  ),-1,0,0)
+             ilop = i + get_neighbor_cells_int_single(flag(i,j,k-1), 1,0,0)
+             ilom = i - get_neighbor_cells_int_single(flag(i,j,k-1),-1,0,0)
              whi = weights(ihip-ihim)
              wlo = weights(ilop-ilom)
              dudx = (0.5d0*dxinv(1)) * &
@@ -184,10 +175,10 @@ contains
                   ((q(ihip,j,k  ,qw)-q(ihim,j,k  ,qw))*whi &
                   +(q(ilop,j,k-1,qw)-q(ilom,j,k-1,qw))*wlo)
 
-             jhip = j + nbrhi(0, 1,0)
-             jhim = j - nbrhi(0,-1,0)
-             jlop = j + nbrlo(0, 1,0)
-             jlom = j - nbrlo(0,-1,0)
+             jhip = j + get_neighbor_cells_int_single(flag(i,j,k  ),0 ,1,0)
+             jhim = j - get_neighbor_cells_int_single(flag(i,j,k  ),0,-1,0)
+             jlop = j + get_neighbor_cells_int_single(flag(i,j,k-1),0 ,1,0)
+             jlom = j - get_neighbor_cells_int_single(flag(i,j,k-1),0,-1,0)
              whi = weights(jhip-jhim)
              wlo = weights(jlop-jlom)
              dvdy = (0.5d0*dxinv(2)) * &

@@ -1345,7 +1345,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           int who = it->first;
           Vector<Vector<char> >& tmp = it->second;
           for (int i = 0; i < num_threads; ++i) {
-              not_ours[who].insert(not_ours[who].begin(), tmp[i].begin(), tmp[i].end());
+              not_ours[who].insert(not_ours[who].end(), tmp[i].begin(), tmp[i].end());
               tmp[i].erase(tmp[i].begin(), tmp[i].end());
           }
       }

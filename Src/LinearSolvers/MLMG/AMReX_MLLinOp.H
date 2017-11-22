@@ -68,7 +68,7 @@ public:
     // resolution.  If this is called, it *MUST* be called before
     // `setLevelBC`.  If crse is nullptr, then bc value is assumed to
     // be zero.
-    void setBCWithCoarseData (const MultiFab* crse, int crse_ratio);
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio);
 
     // Must be called for each level.  Argument `levelbcdata` is used
     // to supply Dirichlet bc at the physical domain.  However, even

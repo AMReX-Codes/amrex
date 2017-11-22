@@ -1,5 +1,13 @@
 # changes since the last release
 
+  -- Ported more features (including dynamic scheduling and explicit
+     tile size) of MFIter from C++ to Fortran.
+
+  -- Added procedures to Fortran amrex_multifab_module to add,
+     subtract, multiply, divide, saxpy and lincomb (linear
+     combination).  Note that we call it saxpy, but it doesn't mean
+     single precision.
+
   -- The `configure; make; make install` build approach enables linear
      solvers by default now.
 

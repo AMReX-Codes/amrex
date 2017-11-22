@@ -1,106 +1,14 @@
 
 module init_prob_module
-  use amrex_base_module
+  use amrex_fort_module, only : amrex_real
   implicit none
   private
-  public :: init_prob_poisson, init_prob_abeclaplacian
-
-  real(amrex_real), private, parameter :: a = 1.d-3
-  real(amrex_real), private, parameter :: b = 1.d0
+  public :: actual_init_poisson, actual_init_abeclap
 
 contains
 
-  subroutine init_prob_poisson (geom, solution, rhs, exact_solution)
-    type(amrex_geometry), intent(in   ) :: geom(0:)
-    type(amrex_multifab), intent(inout) :: solution(0:)
-    type(amrex_multifab), intent(inout) :: rhs(0:)
-    type(amrex_multifab), intent(inout) :: exact_solution(0:)
-
-    integer :: ilev
-    integer :: rlo(4), rhi(4), elo(4), ehi(4)
-    type(amrex_box) :: bx
-    type(amrex_mfiter) :: mfi
-    real(amrex_real), contiguous, dimension(:,:,:,:), pointer :: prhs, pexact
-
-    do ilev = 0, size(rhs)-1
-       !$omp parallel private(rlo,rhi,elo,ehi,bx,mfi,prhs,pexact)
-       call amrex_mfiter_build(mfi, rhs(ilev), tiling=.true.)
-       
-       do while (mfi%next())
-          bx = mfi%tilebox()
-          prhs   =>            rhs(ilev) % dataptr(mfi)
-          pexact => exact_solution(ilev) % dataptr(mfi)
-          rlo = lbound(prhs)
-          rhi = ubound(prhs)
-          elo = lbound(pexact)
-          ehi = ubound(pexact)
-          call actual_init_poisson(bx%lo, bx%hi, prhs, rlo(1:3), rhi(1:3), pexact, elo(1:3), ehi(1:3), &
-               amrex_problo, amrex_probhi, geom(ilev)%dx)
-       end do
-
-       call amrex_mfiter_destroy(mfi)
-       !$omp end parallel
-
-       ! This will be used to provide bc and initial guess for the solver.
-       call solution(ilev)%setVal(0.0_amrex_real)
-    end do
-
-  end subroutine init_prob_poisson
-
-
-  subroutine init_prob_abeclaplacian (geom, solution, rhs, exact_solution, acoef, bcoef, ascalar, bscalar)
-    type(amrex_geometry), intent(in   ) :: geom(0:)
-    type(amrex_multifab), intent(inout) :: solution(0:)
-    type(amrex_multifab), intent(inout) :: rhs(0:)
-    type(amrex_multifab), intent(inout) :: exact_solution(0:)
-    type(amrex_multifab), intent(inout) :: acoef(0:)
-    type(amrex_multifab), intent(inout) :: bcoef(0:)
-    real(amrex_real), intent(out) :: ascalar, bscalar
-
-    integer :: ilev
-    integer :: rlo(4), rhi(4), elo(4), ehi(4), alo(4), ahi(4), blo(4), bhi(4)
-    type(amrex_box) :: bx, gbx
-    type(amrex_mfiter) :: mfi
-    real(amrex_real), contiguous, dimension(:,:,:,:), pointer :: prhs, pexact, pa, pb
-
-    ascalar = a
-    bscalar = b
-
-    do ilev = 0, size(rhs)-1
-       !$omp parallel private(rlo,rhi,elo,ehi,alo,ahi,blo,bhi,bx,mfi,prhs,pexact,pa,pb)
-       call amrex_mfiter_build(mfi, rhs(ilev), tiling=.true.)
-       
-       do while (mfi%next())
-          bx = mfi%tilebox()
-          gbx = mfi%growntilebox(1)
-          prhs   =>            rhs(ilev) % dataptr(mfi)
-          pexact => exact_solution(ilev) % dataptr(mfi)
-          pa     =>          acoef(ilev) % dataptr(mfi)
-          pb     =>          bcoef(ilev) % dataptr(mfi)
-          rlo = lbound(prhs)
-          rhi = ubound(prhs)
-          elo = lbound(pexact)
-          ehi = ubound(pexact)
-          alo = lbound(pa)
-          ahi = ubound(pa)
-          blo = lbound(pb)
-          bhi = ubound(pb)
-          call actual_init_abeclapcian(bx%lo, bx%hi, gbx%lo, gbx%hi, &
-               prhs, rlo(1:3), rhi(1:3), pexact, elo(1:3), ehi(1:3), &
-               pa, alo(1:3), ahi(1:3), pb, blo(1:3), bhi(1:3), &
-               amrex_problo, amrex_probhi, geom(ilev)%dx)
-       end do
-
-       call amrex_mfiter_destroy(mfi)
-       !$omp end parallel
-
-       ! This will be used to provide bc and initial guess for the solver.
-       call solution(ilev)%setVal(0.0_amrex_real)
-    end do
-  end subroutine init_prob_abeclaplacian
-
-
-  subroutine actual_init_poisson (lo, hi, rhs, rlo, rhi, exact, elo, ehi, prob_lo, prob_hi, dx)
+  subroutine actual_init_poisson (lo, hi, rhs, rlo, rhi, exact, elo, ehi, prob_lo, prob_hi, dx) &
+       bind(c,name='actual_init_poisson')
     integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, elo, ehi
     real(amrex_real), intent(inout) :: rhs  (rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
     real(amrex_real), intent(inout) :: exact(elo(1):ehi(1),elo(2):ehi(2),elo(3):ehi(3))
@@ -131,13 +39,15 @@ contains
   end subroutine actual_init_poisson
 
 
-  subroutine actual_init_abeclapcian (lo, hi, glo, ghi, rhs, rlo, rhi, exact, elo, ehi, &
-       alpha, alo, ahi, beta, blo, bhi, prob_lo, prob_hi, dx)
+  subroutine actual_init_abeclap (lo, hi, glo, ghi, rhs, rlo, rhi, exact, elo, ehi, &
+       alpha, alo, ahi, beta, blo, bhi, a, b, prob_lo, prob_hi, dx) &
+       bind(c,name='actual_init_abeclap')
     integer, dimension(3), intent(in) :: lo, hi, glo, ghi, rlo, rhi, elo, ehi, alo, ahi, blo, bhi
     real(amrex_real), intent(inout) :: rhs  (rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
     real(amrex_real), intent(inout) :: exact(elo(1):ehi(1),elo(2):ehi(2),elo(3):ehi(3))
     real(amrex_real), intent(inout) :: alpha(alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
     real(amrex_real), intent(inout) :: beta (blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3))
+    real(amrex_real), intent(in), value :: a, b
     real(amrex_real), dimension(3), intent(in) :: prob_lo, prob_hi, dx
 
     integer :: i,j,k
@@ -203,6 +113,6 @@ contains
        end do
     end do
 
-  end subroutine actual_init_abeclapcian
+  end subroutine actual_init_abeclap
 
 end module init_prob_module
