@@ -10,6 +10,10 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace amrex {
 
 #ifdef BL_MEM_PROFILING
@@ -880,10 +884,34 @@ BoxArray::minimalBox () const
     const int N = size();
     if (N > 0)
     {
-        minbox = m_ref->m_abox[0];
-	for (int i = 1; i < N; ++i) {
-            minbox.minBox(m_ref->m_abox[i]);
-        }
+#if _OPENMP
+	bool use_single_thread = omp_in_parallel();
+	const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
+#else
+	bool use_single_thread = true;
+	const int nthreads = 1;
+#endif
+	if (use_single_thread)
+	{
+	    minbox = m_ref->m_abox[0];
+	    for (int i = 1; i < N; ++i) {
+		minbox.minBox(m_ref->m_abox[i]);
+	    }
+	}
+	else
+	{
+	    Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	    for (int i = 0; i < N; ++i) {
+		bxs[i].minBox(m_ref->m_abox[i]);
+	    }
+	    minbox = bxs[0];
+	    for (int i = 1; i < nthreads; ++i) {
+		minbox.minBox(bxs[i]);
+	    }
+	}
     }
     minbox.coarsen(m_crse_ratio).convert(ixType());
     return minbox;
