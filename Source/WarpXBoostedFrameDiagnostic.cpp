@@ -25,11 +25,14 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
     writeMetaData();
 
+    data_buffer_.resize(N_snapshots);
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
         LabSnapShot snapshot(t_lab, zmin_lab + v_window_lab * t_lab,
                              zmax_lab + v_window_lab * t_lab, i);
         snapshots_.push_back(snapshot);
+        buff_counter_.push_back(0);
+        data_buffer_[i].reset( nullptr );
     }
 }
 
@@ -45,7 +48,7 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
         snapshots_[i].updateCurrentZPositions(t_boost,
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
-        
+
         if ( (snapshots_[i].current_z_boost < zlo_boost) or
              (snapshots_[i].current_z_boost > zhi_boost) or
              (snapshots_[i].current_z_lab < snapshots_[i].zmin_lab) or
@@ -65,15 +68,27 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
         for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
             const Box& box = mfi.validbox();
             const Box& tile_box = mfi.tilebox();
-            WRPX_LORENTZ_TRANSFORM_Z(BL_TO_FORTRAN_ANYD((*slice)[mfi]), 
+            WRPX_LORENTZ_TRANSFORM_Z(BL_TO_FORTRAN_ANYD((*slice)[mfi]),
                                      BL_TO_FORTRAN_BOX(tile_box),
                                      &gamma_boost_, &beta_boost_);
         }
+
+        if (buff_counter_[i] == 0) {
+            BoxArray buff_ba = slice->boxArray();
+            buff_ba.growHi(boost_direction_, num_buffer_ - 1);
+            const DistributionMapping& buff_dm = slice->DistributionMap();
+            data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
+        }
         
-        // and write it to disk.
-        std::stringstream ss;
-        ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("slice", i_lab, 5);    
-        VisMF::Write(*slice, ss.str());
+        data_buffer_[i]->copy(*slice, 0, 0, ncomp);
+        ++buff_counter_[i];
+
+        if (buff_counter_[i] == num_buffer_) {
+            std::stringstream ss;
+            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
+            VisMF::Write(*data_buffer_[i], ss.str());
+            buff_counter_[i] = 0;
+        }
     }
 }
 
