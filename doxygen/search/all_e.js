@@ -136,6 +136,7 @@ var searchData=
   ['numrange',['numRange',['../classamrex_1_1_derive_rec.html#a57248d041a24da08203ca3b0bbe83e73',1,'amrex::DeriveRec']]],
   ['numsides',['NUMSIDES',['../classamrex_1_1_side.html#ac42bd5bce68af2b361b95738f55be87ca899d42f48ca874e942f346121b11839c',1,'amrex::Side']]],
   ['numstate',['numState',['../classamrex_1_1_derive_rec.html#a7df994b8acd412aa145c2ad332c3e292',1,'amrex::DeriveRec']]],
+  ['numstates',['numStates',['../classamrex_1_1_amr_level.html#a4df6731d78a56c7b54ddc55877650d14',1,'amrex::AmrLevel']]],
   ['numtag',['numTag',['../classamrex_1_1_cluster.html#ae5a63154b89efabb280d13af57e6c876',1,'amrex::Cluster::numTag() const '],['../classamrex_1_1_cluster.html#a383ec11003c6d469426d879bb5284cd2',1,'amrex::Cluster::numTag(const Box &amp;b) const ']]],
   ['numtags',['numTags',['../classamrex_1_1_tag_box.html#ab971786f48ba6f99853f6bc5436c4a77',1,'amrex::TagBox::numTags(const Box &amp;bx) const '],['../classamrex_1_1_tag_box.html#a563c5e63a40fc5df9572498abb58acf1',1,'amrex::TagBox::numTags() const '],['../classamrex_1_1_tag_box_array.html#a9d3995c4c36f88292bdcfa45c2ec09e9',1,'amrex::TagBoxArray::numTags()']]],
   ['numtypes',['NUMTYPES',['../classamrex_1_1_face_stop.html#a37ec41a3856aad220e1b1ece257abba4a4496601bb82177eb24d887c130d13ad1',1,'amrex::FaceStop']]],
