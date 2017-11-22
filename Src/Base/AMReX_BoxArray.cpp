@@ -884,7 +884,7 @@ BoxArray::minimalBox () const
     const int N = size();
     if (N > 0)
     {
-#if _OPENMP
+#ifdef _OPENMP
 	bool use_single_thread = omp_in_parallel();
 	const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
 #else
