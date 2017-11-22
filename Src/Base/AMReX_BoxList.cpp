@@ -267,32 +267,46 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 {
     BL_PROFILE("BoxList::complementIn");
 
-    BoxList bl(b);
-#if (AMREX_SPACEDIM == 3)
-    bl.maxSize(64);
-#else
-    bl.maxSize(128);
-#endif
-    const int N = bl.size();
-
-    Vector<BoxList> vbl(N);
-
-    int newsize = 0;
-
-#if _OPENMP
-    bool start_omp_parallel = !omp_in_parallel();
-#pragma omp parallel for if(start_omp_parallel) reduction(+:newsize)
-#endif
-    for (int i = 0; i < N; ++i)
+    if (ba.size() == 0)
     {
-	ba.complementIn(vbl[i], bl.m_lbox[i]);
-	newsize += vbl[i].size();
+	clear();
+	push_back(b);
     }
+    else if (ba.size() == 1)
+    {
+	*this = amrex::boxDiff(b, ba[0]);
+    }
+    else
+    {
+	Box mbox = ba.minimalBox();
+	*this = amrex::boxDiff(b, mbox);
 
-    m_lbox.clear();
-    m_lbox.reserve(newsize);
-    for (int i = 0; i < N; ++i) {
-	m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
+	BoxList bl(mbox);
+#if (AMREX_SPACEDIM == 3)
+	bl.maxSize(64);
+#else
+	bl.maxSize(128);
+#endif
+	const int N = bl.size();
+	
+	Vector<BoxList> vbl(N);
+	
+	int newsize = 0;
+	
+#ifdef _OPENMP
+	bool start_omp_parallel = !omp_in_parallel();
+#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
+#endif
+	for (int i = 0; i < N; ++i)
+	{
+	    ba.complementIn(vbl[i], bl.m_lbox[i]);
+	    newsize += vbl[i].size();
+	}
+	
+	m_lbox.reserve(size()+newsize);
+	for (int i = 0; i < N; ++i) {
+	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
+	}
     }
 
     return *this;
