@@ -902,10 +902,17 @@ BoxArray::minimalBox () const
 	{
 	    Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel
 #endif
-	    for (int i = 0; i < N; ++i) {
-		bxs[i].minBox(m_ref->m_abox[i]);
+	    {
+#ifdef _OPENMP
+		int tid = omp_get_num_threads();
+#else
+		int tid = 0;
+#endif
+		for (int i = 0; i < N; ++i) {
+		    bxs[tid].minBox(m_ref->m_abox[i]);
+		}
 	    }
 	    minbox = bxs[0];
 	    for (int i = 1; i < nthreads; ++i) {
