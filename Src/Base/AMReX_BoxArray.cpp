@@ -983,7 +983,16 @@ BoxArray::intersections (const Box&                         bx,
 BoxList
 BoxArray::complementIn (const Box& bx) const
 {
-    BoxList bl(bx);
+    BoxList bl(bx.ixType());
+    complementIn(bl, bx);
+    return bl;
+}
+
+void
+BoxArray::complementIn (BoxList& bl, const Box& bx) const
+{
+    bl.clear();
+    bl.push_back(bx);
 
     if (!empty()) 
     {
@@ -1007,7 +1016,7 @@ BoxArray::complementIn (const Box& bx) const
         Box cbx(sm,bg);
         cbx.normalize();
 
-	if (!cbx.intersects(m_ref->bbox)) return bl;
+	if (!cbx.intersects(m_ref->bbox)) return;
 
 	auto TheEnd = BoxHashMap.cend();
 
@@ -1032,14 +1041,12 @@ BoxArray::complementIn (const Box& bx) const
                             const BoxList& diff = amrex::boxDiff(b, isect);
                             newbl.join(diff);
                         }
-                        std::swap(bl,newbl);
+                        bl.swap(newbl);
                     }
                 }
             }
         }
     }
-
-    return bl;
 }
 
 void

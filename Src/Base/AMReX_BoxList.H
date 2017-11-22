@@ -194,6 +194,11 @@ public:
     //! Returns a constant reference to the Vector<Box>.
     const Vector<Box>& data() const { return m_lbox; }
 
+    void swap (BoxList& rhs) {
+	std::swap(m_lbox, rhs.m_lbox);
+	std::swap(btype, rhs.btype);
+    }
+
 private:
     //! Core simplify routine.
     int simplify_doit (bool best);
