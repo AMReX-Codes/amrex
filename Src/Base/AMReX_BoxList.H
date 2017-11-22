@@ -78,6 +78,8 @@ public:
     BoxList& operator= (const BoxList& rhs) = default;
     BoxList& operator= (BoxList&& rhs) = default;
 
+    void reserve (std::size_t n) { m_lbox.reserve(n); }
+
     //! Append a Box to this BoxList.
     void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); m_lbox.push_back(bn); }
 
