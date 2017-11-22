@@ -10,7 +10,7 @@ MyTest::initProbPoisson ()
     for (int ilev = 0; ilev <= max_level; ++ilev)
     {
 #ifdef _OPENMP
-#oragma omp parallel
+#pragma omp parallel
 #endif
         for (MFIter mfi(rhs[ilev], true); mfi.isValid(); ++mfi)
         {
@@ -32,7 +32,7 @@ MyTest::initProbABecLaplacian ()
     for (int ilev = 0; ilev <= max_level; ++ilev)
     {
 #ifdef _OPENMP
-#oragma omp parallel
+#pragma omp parallel
 #endif
         for (MFIter mfi(rhs[ilev], true); mfi.isValid(); ++mfi)
         {
