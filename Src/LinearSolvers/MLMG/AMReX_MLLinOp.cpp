@@ -388,7 +388,7 @@ MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
 }
 
 void
-MLLinOp::setBCWithCoarseData (const MultiFab* crse, int crse_ratio)
+MLLinOp::setCoarseFineBC (const MultiFab* crse, int crse_ratio)
 {
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
@@ -398,6 +398,8 @@ void
 MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 {
     BL_PROFILE("MLLinOp::setLevelBC()");
+
+    AMREX_ALWAYS_ASSERT(amrlev >= 0 && amrlev < m_num_amr_levels);
 
     MultiFab zero;
     if (a_levelbcdata == nullptr) {

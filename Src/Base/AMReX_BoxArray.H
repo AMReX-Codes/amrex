@@ -324,10 +324,20 @@ public:
     //! Grow each Box in the BoxArray by the specified amount.
     BoxArray& grow (const IntVect& iv);
     /**
-    * \brief Grow each Box in the BoxArray on the low and high end
-    * by n_cell cells in idir direction.
+    * \brief Grow each Box in the BoxArray on the low and high ends
+    * by n_cell cells in the idir direction.
     */
     BoxArray& grow (int idir, int n_cell);
+    /**
+    * \brief Grow each Box in the BoxArray on the low end
+    * by n_cell cells in the idir direction.
+    */
+    BoxArray& growLo (int idir, int n_cell);
+    /**
+    * \brief Grow each Box in the BoxArray on the high end
+    * by n_cell cells in the idir direction.
+    */
+    BoxArray& growHi (int idir, int n_cell);
     /**
     * \brief Apply surroundingNodes(Box) to each Box in BoxArray.
     * See the documentation of Box for details.
@@ -422,6 +432,7 @@ public:
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;
+    void complementIn (BoxList& bl, const Box& b) const;
 
     //! Clear out the internal hash table used by intersections.
     void clear_hash_bin () const;

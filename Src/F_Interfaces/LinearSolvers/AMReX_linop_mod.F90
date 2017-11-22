@@ -11,11 +11,11 @@ module amrex_linop_module
    contains
      procedure :: set_maxorder             => amrex_linop_set_maxorder
      procedure :: set_domain_bc            => amrex_linop_set_domain_bc
-     procedure :: set_bc_with_coarse_data  => amrex_linop_set_bc_with_coarse_data
+     procedure :: set_coarse_fine_bc       => amrex_linop_set_coarse_fine_bc
      procedure :: set_level_bc             => amrex_linop_set_level_bc
      procedure, private :: amrex_linop_set_maxorder
      procedure, private :: amrex_linop_set_domain_bc
-     procedure, private :: amrex_linop_set_bc_with_coarse_data
+     procedure, private :: amrex_linop_set_coarse_fine_bc
      procedure, private :: amrex_linop_set_level_bc
   end type amrex_linop
 
@@ -36,12 +36,12 @@ module amrex_linop_module
        integer(c_int), intent(in) :: lobc(*), hibc(*)
      end subroutine amrex_fi_linop_set_domain_bc
 
-     subroutine amrex_fi_linop_set_bc_with_coarse_data (linop, mf, crse_ratio) bind(c)
+     subroutine amrex_fi_linop_set_coarse_fine_bc (linop, mf, crse_ratio) bind(c)
        import
        implicit none
        type(c_ptr), value :: linop, mf
        integer(c_int), value :: crse_ratio
-     end subroutine amrex_fi_linop_set_bc_with_coarse_data
+     end subroutine amrex_fi_linop_set_coarse_fine_bc
 
      subroutine amrex_fi_linop_set_level_bc (linop, lev, mf) bind(c)
        import
@@ -67,12 +67,12 @@ contains
   end subroutine amrex_linop_set_domain_bc
 
 
-  subroutine amrex_linop_set_bc_with_coarse_data (this, crse_bcdata, crse_ratio)
+  subroutine amrex_linop_set_coarse_fine_bc (this, crse_bcdata, crse_ratio)
     class(amrex_linop), intent(inout) :: this
     type(amrex_multifab), intent(in) :: crse_bcdata
     integer, intent(in) :: crse_ratio
-    call amrex_fi_linop_set_bc_with_coarse_data(this%p, crse_bcdata%p, crse_ratio)
-  end subroutine amrex_linop_set_bc_with_coarse_data
+    call amrex_fi_linop_set_coarse_fine_bc(this%p, crse_bcdata%p, crse_ratio)
+  end subroutine amrex_linop_set_coarse_fine_bc
 
 
   subroutine amrex_linop_set_level_bc (this, lev, bcdata)

@@ -398,6 +398,8 @@ AmrMesh::MakeBaseGrids () const
 void
 AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& new_grids)
 {
+    BL_PROFILE("AmrMesh::MakeNewGrids()");
+
     BL_ASSERT(lbase < max_level);
 
     // Add at most one new level
@@ -462,6 +464,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
         p_n[i].simplify();
     }
+
     //
     // Now generate grids from finest level down.
     //
@@ -617,7 +620,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         //
         // Create initial cluster containing all tagged points.
         //
-	std::vector<IntVect> tagvec;
+	Vector<IntVect> tagvec;
 	tags.collate(tagvec);
         tags.clear();
 

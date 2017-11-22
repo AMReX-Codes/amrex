@@ -163,7 +163,7 @@ contains
 
   function amrex_multigrid_solve (mg, sol, rhs, tol_rel, tol_abs) result(r)
     class(amrex_multigrid), intent(inout) :: mg
-    type(amrex_multifab), intent(inout) :: sol(0:)
+    type(amrex_multifab) :: sol(0:)
     type(amrex_multifab), intent(in) :: rhs(0:)
     real(amrex_real), intent(in) :: tol_rel, tol_abs
     real(amrex_real) :: r
