@@ -10,10 +10,10 @@ geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0. 0. 0.
 geometry.prob_hi     =  1.0  1.0  1.0
 amr.n_cell           =  64   64   64
-adv.diffusion_coeff = 0.0001  # diffusion coefficient
+adv.diffusion_coeff = 0.001  # diffusion coefficient
 
 # TIME STEP CONTROL
-adv.cfl            = 0.25     # cfl number for hyperbolic system
+adv.cfl            = 0.1     # cfl number for hyperbolic system
 
 # VERBOSITY
 adv.v              = 1       # verbosity in Adv
@@ -22,9 +22,9 @@ amr.v              = 1       # verbosity in Amr
 #amr.grid_log         = grdlog  # name of grid logging file
 
 #this can be godunov, rk2, rk3, rk4
-adv.algorithm = "rk3"
+adv.algorithm = "rk4"
 adv.use_limiting = false
-adv.do_reflux= 0
+adv.do_reflux= 1
 adv.use_fixed_dt = false
 
 #adv.fixed_dt = 0.0002
@@ -52,4 +52,4 @@ amr.probin_file = probin
 adv.do_tracers = 0
 amrex.fpe_trap_invalid=1 
 
-truncation_error_stage = 2
+truncation_error_stage = 1
