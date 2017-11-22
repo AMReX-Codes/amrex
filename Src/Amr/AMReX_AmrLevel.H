@@ -216,6 +216,8 @@ public:
     const FabFactory<FArrayBox>& Factory () const { return *m_factory; }
     //! Number of grids at this level.
     int numGrids () const { return grids.size(); }
+    //! Number of states at this level.
+    int numStates () const { return state.size(); }
     //! Returns the indices defining physical domain.
     const Box& Domain () const { return geom.Domain(); }
     //! Timestep n at this level.
