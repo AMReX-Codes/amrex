@@ -130,6 +130,9 @@ public:
 
     BoxList& complementIn (const Box&     b,
                            const BoxList& bl);
+    BoxList& complementIn (const Box&     b,
+                            BoxList&&     bl);
+    BoxList& complementIn (const Box& b, const BoxArray& ba);
     //! Refine each Box in the BoxList by the ratio.
     BoxList& refine (int ratio);
     //! Refine each Box in the BoxList by the ratio.
