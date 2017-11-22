@@ -54,7 +54,7 @@ def read_lab_snapshot(snapshot):
 
     '''
 
-    hdrs = glob(snapshot + "/Level_0/slice?????_H")
+    hdrs = glob(snapshot + "/Level_0/buffer?????_H")
     hdrs.sort()
 
     boxes, file_names, offsets, header = _read_header(hdrs[0])
@@ -62,24 +62,27 @@ def read_lab_snapshot(snapshot):
     domain_size = dom_hi - dom_lo + 1
     
     space_dim = len(dom_lo)
+
+    buffer_data = _read_buffer(snapshot, hdrs[0])
+    buffer_size = buffer_data['Bx'].shape[2]
         
     data = {}
     for i in range(header.ncomp):
         if space_dim == 3:
-            data[component_names[i]] = np.zeros((domain_size[0], domain_size[1], len(hdrs)))
+            data[_component_names[i]] = np.zeros((domain_size[0], domain_size[1], buffer_size*len(hdrs)))
         elif space_dim == 2:
-            data[component_names[i]] = np.zeros((domain_size[0], len(hdrs)))
+            data[_component_names[i]] = np.zeros((domain_size[0], buffer_size*len(hdrs)))
     
     for i, hdr in enumerate(hdrs):
-        slice_data = _read_slice(snapshot, hdr)
+        buffer_data = _read_buffer(snapshot, hdr)
         if data is None:
-            data = slice_data
+            data = buffer_data
         else:
-            for k,v in slice_data.items():
+            for k,v in buffer_data.items():
                 if space_dim == 3:
-                    data[k][:,:,i] = v[:,:,0]
+                    data[k][:,:,buffer_size*i:buffer_size*(i+1)] = v[:,:,:]
                 elif space_dim == 2:
-                    data[k][:,i] = v[:,0]
+                    data[k][:,buffer_size*i:buffer_size*(i+1)] = v[:,:]
                 
     return data
 
@@ -167,7 +170,7 @@ def _read_field(raw_file, field_name):
 
 
 
-def _read_slice(snapshot, header_fn):
+def _read_buffer(snapshot, header_fn):
   
     boxes, file_names, offsets, header = _read_header(header_fn)
 
