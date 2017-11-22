@@ -285,7 +285,7 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
 #endif
     for (int i = 0; i < N; ++i)
     {
-	vbl[i] = ba.complementIn(bl.m_lbox[i]);
+	ba.complementIn(vbl[i], bl.m_lbox[i]);
 	newsize += vbl[i].size();
     }
 

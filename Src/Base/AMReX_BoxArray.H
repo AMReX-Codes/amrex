@@ -422,6 +422,7 @@ public:
 
     //! Return box - boxarray
     BoxList complementIn (const Box& b) const;
+    void complementIn (BoxList& bl, const Box& b) const;
 
     //! Clear out the internal hash table used by intersections.
     void clear_hash_bin () const;
