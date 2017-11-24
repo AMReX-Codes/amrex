@@ -820,7 +820,7 @@ contains
          integer(kind=c_size_t), intent(in), value :: n
        end subroutine amrex_real_array_init
     end interface
-    type(fab), intent(out) :: fb
+    type(fab), target, intent(out) :: fb
     type(box), intent(in)  :: bx
     integer, intent(in), optional :: ng, nc
     logical, intent(in), optional :: nodal(:)
