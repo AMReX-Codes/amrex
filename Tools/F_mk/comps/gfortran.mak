@@ -15,9 +15,9 @@
 
   # Enforce gcc minimum version of 4.8.
 
-  gcc_version       := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
-  gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-  gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+  gcc_version       := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
+  gcc_major_version := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+  gcc_minor_version := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
   gcc_major_le_4 := $(shell expr $(gcc_major_version) \<= 4)
   gcc_minor_lt_8 := $(shell expr $(gcc_minor_version) \< 8)
