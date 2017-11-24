@@ -1,5 +1,3 @@
-# Note: gfortran > 4.4 is needed.  
-#
 # to compile mt19937ar.f90, we need -fno-range-check, since that
 # routine relies on overflows when doing initializations
 
@@ -13,6 +11,20 @@
   else
     CC  := gcc
     CXX := g++
+  endif
+
+  # Enforce gcc minimum version of 4.8.
+
+  gcc_version       := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
+  gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+  gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+
+  gcc_major_le_4 := $(shell expr $(gcc_major_version) \<= 4)
+  gcc_minor_lt_8 := $(shell expr $(gcc_minor_version) \< 8)
+  ifeq ($(gcc_major_le_4),1)
+    ifeq ($(gcc_minor_lt_8),1)
+        $(error GCC >= 4.8 required! Your version is $(gcc_version))
+    endif
   endif
 
   F90FLAGS += -J$(mdir) -I$(mdir)
