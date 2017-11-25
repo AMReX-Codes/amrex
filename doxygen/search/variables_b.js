@@ -288,6 +288,7 @@ var searchData=
   ['maxsize',['maxsize',['../structamrex_1_1_fab_array_base_1_1_cache_stats.html#a3ecc000d62df91bdbdd6ee43745cb2d0',1,'amrex::FabArrayBase::CacheStats']]],
   ['maxuse',['maxuse',['../structamrex_1_1_fab_array_base_1_1_cache_stats.html#a12603fe9f0ebd8dadb43060b0a189f60',1,'amrex::FabArrayBase::CacheStats']]],
   ['message_5fint',['message_int',['../classamrex_1_1_amr.html#a37d45dad31dd3b070c0a14578937365b',1,'amrex::Amr']]],
+  ['mffile_5fnstreams',['mffile_nstreams',['../namespaceamrex.html#a5b71dcdf9f42d1ea8bf9c95f24d150b4',1,'amrex']]],
   ['mfghostiter_5ftile_5fsize',['mfghostiter_tile_size',['../classamrex_1_1_fab_array_base.html#a31677ce1cdddcbc405f41bb1a4351d35',1,'amrex::FabArrayBase']]],
   ['mfiter_5ftile_5fsize',['mfiter_tile_size',['../classamrex_1_1_fab_array_base.html#a8635aa060ab92c84d2641b61e0584052',1,'amrex::FabArrayBase']]],
   ['mfnewdata',['MFNEWDATA',['../namespaceamrex.html#ac145c9dc5118c7cb6a36b2017bd2a096',1,'amrex']]],

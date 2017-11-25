@@ -22,6 +22,7 @@ var searchData=
   ['regrid_5fba',['regrid_ba',['../classamrex_1_1_amr.html#ad17547793e589e382cafaea103a01637',1,'amrex::Amr']]],
   ['regrid_5fgrids_5ffile',['regrid_grids_file',['../classamrex_1_1_amr.html#aaa8cb07b444ec3f7be3a7680c7e37363',1,'amrex::Amr']]],
   ['regrid_5fint',['regrid_int',['../classamrex_1_1_amr.html#a2fc94106d0164a3cfc3e206db6b7e768',1,'amrex::Amr']]],
+  ['regrid_5fon_5frestart',['regrid_on_restart',['../namespaceamrex.html#a54360d5e4005db7d308c6aff7628d08d',1,'amrex']]],
   ['res',['res',['../_a_m_re_x_8cpp.html#ab0bd7560790c13b656fd58e17e35143e',1,'AMReX.cpp']]],
   ['restart_5fchkfile',['restart_chkfile',['../classamrex_1_1_amr.html#ac00b1478382804abeb82dd75b4ab5194',1,'amrex::Amr']]],
   ['restart_5fpltfile',['restart_pltfile',['../classamrex_1_1_amr.html#a295b3f0ab02158ef294ed68349f41dae',1,'amrex::Amr']]],

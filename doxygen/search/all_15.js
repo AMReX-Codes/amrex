@@ -27,6 +27,7 @@ var searchData=
   ['updateneighbors',['updateNeighbors',['../classamrex_1_1_neighbor_particle_container.html#a274184b09d00fe3f83676b4cb1fa9900',1,'amrex::NeighborParticleContainer']]],
   ['updatestatedatadistributionmaps',['UpdateStateDataDistributionMaps',['../classamrex_1_1_amr.html#aba640c2783fea9e9c87eb2f7dee8e714',1,'amrex::Amr']]],
   ['upperindex',['UpperIndex',['../classamrex_1_1_coord_sys.html#a963f59d99a41920b77dc7464f15b09bd',1,'amrex::CoordSys']]],
+  ['use_5fefficient_5fregrid',['use_efficient_regrid',['../namespaceamrex.html#af1ff4a567f8d0cdc485062507aac9742',1,'amrex']]],
   ['use_5ffixed_5fcoarse_5fgrids',['use_fixed_coarse_grids',['../classamrex_1_1_amr_mesh.html#a3162b5c3697f4ce32d585ca434ac40a5',1,'amrex::AmrMesh']]],
   ['use_5ffixed_5fupto_5flevel',['use_fixed_upto_level',['../classamrex_1_1_amr_mesh.html#a15a5406d39363635d73cc1d986546fe7',1,'amrex::AmrMesh']]],
   ['use_5freorg_5fversion',['USE_REORG_VERSION',['../_a_m_re_x___i_n_t_e_r_p_b_n_d_r_y_d_a_t_a__2_d_8_f.html#a75b29ef8ed9d3d579fb522d665cff97c',1,'AMReX_INTERPBNDRYDATA_2D.F']]],

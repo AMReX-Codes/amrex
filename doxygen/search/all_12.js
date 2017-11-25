@@ -90,6 +90,7 @@ var searchData=
   ['regrid_5fgrids_5ffile',['regrid_grids_file',['../classamrex_1_1_amr.html#aaa8cb07b444ec3f7be3a7680c7e37363',1,'amrex::Amr']]],
   ['regrid_5fint',['regrid_int',['../classamrex_1_1_amr.html#a2fc94106d0164a3cfc3e206db6b7e768',1,'amrex::Amr']]],
   ['regrid_5flevel_5f0_5fon_5frestart',['regrid_level_0_on_restart',['../classamrex_1_1_amr.html#a5c2a28dfa0840069f813bf56565b4007',1,'amrex::Amr']]],
+  ['regrid_5fon_5frestart',['regrid_on_restart',['../namespaceamrex.html#a54360d5e4005db7d308c6aff7628d08d',1,'amrex']]],
   ['regridint',['regridInt',['../classamrex_1_1_amr.html#ac6b7e80d6de43482fa71350d10279eda',1,'amrex::Amr']]],
   ['regridonly',['RegridOnly',['../classamrex_1_1_amr.html#a86f9100ac981896785004b56d5a2f3d6',1,'amrex::Amr']]],
   ['regridonrestart',['RegridOnRestart',['../classamrex_1_1_amr.html#aaf992abe83c2b9c572accc4f535eab95',1,'amrex::Amr']]],
