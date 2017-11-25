@@ -569,7 +569,7 @@ PhysicalParticleContainer::Evolve (int lev,
             long nfine = np;
             if (cEx && !do_not_push)
             {
-                BL_PROFILE_VAR_START(bl_partition);
+                BL_PROFILE_VAR_START(blp_partition);
                 inexflag.resize(np);
                 auto& aos = pti.GetArrayOfStructs();
                 int i = 0;
@@ -615,7 +615,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     }
                     std::swap(uzp, tmp);
                 }
-                BL_PROFILE_VAR_STOP(bl_partition);
+                BL_PROFILE_VAR_STOP(blp_partition);
             }
 
 	    //
