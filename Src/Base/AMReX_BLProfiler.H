@@ -440,8 +440,8 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
-#define BL_PROFILE_REGION_START(rname)
-#define BL_PROFILE_REGION_STOP(rname)
+#define BL_PROFILE_REGION_START(rname)    amrex::TinyProfiler::StartRegion(rname);
+#define BL_PROFILE_REGION_STOP(rname)     amrex::TinyProfiler::StopRegion(rname);
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)

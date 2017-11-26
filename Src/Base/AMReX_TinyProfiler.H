@@ -4,6 +4,7 @@
 #include <string>
 #include <stack>
 #include <map>
+#include <vector>
 #include <utility>
 #include <limits>
 
@@ -26,6 +27,9 @@ public:
 
     static void Initialize ();
     static void Finalize ();
+
+    static void StartRegion (std::string regname);
+    static void StopRegion (const std::string& regname);
 
 private:
     //! stats on a single process
@@ -60,12 +64,15 @@ private:
     };
 
     std::string fname;
-    bool running;
     int global_depth;
+    std::vector<Stats*> stats;
 
+    static std::vector<std::string> regionstack;
     static std::stack<std::pair<Real,Real> > ttstack;
-    static std::map<std::string, Stats> statsmap;
+    static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static Real t_init;
+
+    static void PrintStats(std::map<std::string,Stats>& regstats, Real dt_max);
 };
 
 }
