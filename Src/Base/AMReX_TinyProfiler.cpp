@@ -25,14 +25,28 @@ namespace {
     std::set<std::string> improperly_nested_timers;
 }
 
-TinyProfiler::TinyProfiler (const std::string &funcname)
+TinyProfiler::TinyProfiler (std::string funcname)
+    : fname(std::move(funcname)),
+      running(false)
+{
+    start();
+}
+
+TinyProfiler::TinyProfiler (std::string funcname, bool start_)
+    : fname(std::move(funcname)),
+      running(false)
+{
+    if (start_) start();
+}
+
+TinyProfiler::TinyProfiler (const char* funcname)
     : fname(funcname),
       running(false)
 {
     start();
 }
 
-TinyProfiler::TinyProfiler (const std::string &funcname, bool start_)
+TinyProfiler::TinyProfiler (const char* funcname, bool start_)
     : fname(funcname),
       running(false)
 {
