@@ -15,8 +15,10 @@ namespace amrex {
 class TinyProfiler
 {
 public:
-    TinyProfiler (const std::string &funcname);
-    TinyProfiler (const std::string &funcname, bool start_);
+    TinyProfiler (std::string funcname);
+    TinyProfiler (std::string funcname, bool start_);
+    TinyProfiler (const char* funcname);
+    TinyProfiler (const char* funcname, bool start_);
     ~TinyProfiler ();
 
     void start ();
