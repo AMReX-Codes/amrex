@@ -3,7 +3,6 @@ var searchData=
   ['p',['p',['../structamrex__parmparse__module_1_1amrex__parmparse.html#add6764a664666a9bdb4065f20184514e',1,'amrex_parmparse_module::amrex_parmparse']]],
   ['parent',['parent',['../classamrex_1_1_amr_level.html#aeb2c20016c60209d0bc5112f262957c2',1,'amrex::AmrLevel']]],
   ['parsers',['parsers',['../namespaceamrex.html#acb46d3ab354f11ed5418c8dfb6ba202c',1,'amrex']]],
-  ['path_5fsep_5fstr',['path_sep_str',['../_a_m_re_x___utility_8cpp.html#ade19ac173bdb5dfb4ba5139e0d377b16',1,'AMReX_Utility.cpp']]],
   ['pc_5finterp',['pc_interp',['../namespaceamrex.html#add23b3df81e9353cea327552654d630b',1,'amrex']]],
   ['pdata_5fsize',['pdata_size',['../classamrex_1_1_neighbor_particle_container.html#a6cf0e475dc102a3d33ab154aa10a5b5e',1,'amrex::NeighborParticleContainer']]],
   ['physbnd',['physbnd',['../namespaceamrex_1_1_extrapolater.html#a38f2083124f56b276e74ec1112306ed1',1,'amrex::Extrapolater']]],
