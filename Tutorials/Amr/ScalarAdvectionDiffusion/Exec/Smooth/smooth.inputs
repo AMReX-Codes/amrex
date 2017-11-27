@@ -10,7 +10,7 @@ geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0. 0. 0.
 geometry.prob_hi     =  1.0  1.0  1.0
 amr.n_cell           =  64   64   64
-adv.diffusion_coeff = 0.001  # diffusion coefficient
+adv.diffusion_coeff = 0.000  # diffusion coefficient
 
 # TIME STEP CONTROL
 adv.cfl            = 0.1     # cfl number for hyperbolic system

@@ -85,28 +85,30 @@ extern "C"
 
 
   void timeinterprk4_simplepoly(const int* stage, 
-                               const int* lo, const int* hi,
-                               BL_FORT_FAB_ARG_3D(phinew),
-                               BL_FORT_FAB_ARG_3D(phiold),
-                               BL_FORT_FAB_ARG_3D(k1),
-                               BL_FORT_FAB_ARG_3D(k2),
-                               BL_FORT_FAB_ARG_3D(k3),
-                               BL_FORT_FAB_ARG_3D(k4),
-                               const amrex_real* tf,
-                               const amrex_real* tc_old,
-                               const amrex_real* dt_c,
-                               const amrex_real* dt_f);
+                                const int* lo, const int* hi,
+                                BL_FORT_FAB_ARG_3D(phinew),
+                                BL_FORT_FAB_ARG_3D(phiold),
+                                BL_FORT_FAB_ARG_3D(k1),
+                                BL_FORT_FAB_ARG_3D(k2),
+                                BL_FORT_FAB_ARG_3D(k3),
+                                BL_FORT_FAB_ARG_3D(k4),
+                                const amrex_real* tf,
+                                const amrex_real* tc_old,
+                                const amrex_real* dt_c,
+                                const amrex_real* dt_f,
+                                const int* iter, const int* nref);
 
   void timeinterprk3_simplepoly(const int* stage, 
-                               const int* lo, const int* hi,
-                               BL_FORT_FAB_ARG_3D(phinew),
-                               BL_FORT_FAB_ARG_3D(phiold),
-                               BL_FORT_FAB_ARG_3D(k1),
-                               BL_FORT_FAB_ARG_3D(k2),
-                               const amrex_real* tf,
-                               const amrex_real* tc_old,
-                               const amrex_real* dt_c,
-                               const amrex_real* dt_f);
+                                const int* lo, const int* hi,
+                                BL_FORT_FAB_ARG_3D(phinew),
+                                BL_FORT_FAB_ARG_3D(phiold),
+                                BL_FORT_FAB_ARG_3D(k1),
+                                BL_FORT_FAB_ARG_3D(k2),
+                                const amrex_real* tf,
+                                const amrex_real* tc_old,
+                                const amrex_real* dt_c,
+                                const amrex_real* dt_f,
+                                const int* iter, const int* nref);
 
 
 
@@ -122,7 +124,8 @@ extern "C"
                          const amrex_real* tf,
                          const amrex_real* tc_old,
                          const amrex_real* dt_c,
-                         const amrex_real* dt_f);
+                         const amrex_real* dt_f,
+                         const int* iter, const int* nref);
 
   void timeinterprk3_jbb(const int* stage, 
                          const int* lo, const int* hi,
@@ -133,7 +136,8 @@ extern "C"
                          const amrex_real* tf,
                          const amrex_real* tc_old,
                          const amrex_real* dt_c,
-                         const amrex_real* dt_f);
+                         const amrex_real* dt_f,
+                         const int* iter, const int* nref);
 
 
   void timeinterprk4_pwm(const int* stage, 
@@ -147,7 +151,22 @@ extern "C"
                          const amrex_real* tf,
                          const amrex_real* tc_old,
                          const amrex_real* dt_c,
-                         const amrex_real* dt_f);
+                         const amrex_real* dt_f,
+                         const int* iter, const int* nref);
+
+  void timeinterprk4_pwm_cd(const int* stage, 
+                            const int* lo, const int* hi,
+                            BL_FORT_FAB_ARG_3D(phinew),
+                            BL_FORT_FAB_ARG_3D(phiold),
+                            BL_FORT_FAB_ARG_3D(k1),
+                            BL_FORT_FAB_ARG_3D(k2),
+                            BL_FORT_FAB_ARG_3D(k3),
+                            BL_FORT_FAB_ARG_3D(k4),
+                            const amrex_real* tf,
+                            const amrex_real* tc_old,
+                            const amrex_real* dt_c,
+                            const amrex_real* dt_f,
+                            const int* iter, const int* nref);
 
   void timeinterprk3_pwm(const int* stage, 
                          const int* lo, const int* hi,
@@ -158,7 +177,8 @@ extern "C"
                          const amrex_real* tf,
                          const amrex_real* tc_old,
                          const amrex_real* dt_c,
-                         const amrex_real* dt_f);
+                         const amrex_real* dt_f,
+                         const int* iter, const int* nref);
 
 #ifdef __cplusplus
 }
