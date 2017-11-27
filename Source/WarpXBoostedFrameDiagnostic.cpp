@@ -25,12 +25,17 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 
     writeMetaData();
 
+    data_buffer_.resize(N_snapshots);
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
         LabSnapShot snapshot(t_lab, zmin_lab + v_window_lab * t_lab,
                              zmax_lab + v_window_lab * t_lab, i);
         snapshots_.push_back(snapshot);
+        buff_counter_.push_back(0);
+        data_buffer_[i].reset( nullptr );
     }
+
+    AMREX_ALWAYS_ASSERT(max_box_size_ >= num_buffer_);
 }
 
 void
@@ -45,7 +50,7 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
         snapshots_[i].updateCurrentZPositions(t_boost,
                                               inv_gamma_boost_,
                                               inv_beta_boost_);
-        
+
         if ( (snapshots_[i].current_z_boost < zlo_boost) or
              (snapshots_[i].current_z_boost > zhi_boost) or
              (snapshots_[i].current_z_lab < snapshots_[i].zmin_lab) or
@@ -63,17 +68,51 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
 
         // transform it to the lab frame
         for (MFIter mfi(*slice); mfi.isValid(); ++mfi) {
-            const Box& box = mfi.validbox();
             const Box& tile_box = mfi.tilebox();
-            WRPX_LORENTZ_TRANSFORM_Z(BL_TO_FORTRAN_ANYD((*slice)[mfi]), 
+            WRPX_LORENTZ_TRANSFORM_Z(BL_TO_FORTRAN_ANYD((*slice)[mfi]),
                                      BL_TO_FORTRAN_BOX(tile_box),
                                      &gamma_boost_, &beta_boost_);
         }
+
+        if (buff_counter_[i] == 0) {
+            Box buff_box = geom.Domain();
+            buff_box.setSmall(boost_direction_, i_lab - num_buffer_ + 1);
+            buff_box.setBig(boost_direction_, i_lab);
+            BoxArray buff_ba(buff_box);
+            buff_ba.maxSize(max_box_size_);
+            DistributionMapping buff_dm(buff_ba);
+            data_buffer_[i].reset( new MultiFab(buff_ba, buff_dm, ncomp, 0) );
+        }
         
-        // and write it to disk.
-        std::stringstream ss;
-        ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("slice", i_lab, 5);    
-        VisMF::Write(*slice, ss.str());
+        Real dx = geom.CellSize(boost_direction_);
+        int i_boost = (snapshots_[i].current_z_boost - geom.ProbLo(boost_direction_))/dx;
+        Box slice_box = geom.Domain();
+        slice_box.setSmall(boost_direction_, i_boost);
+        slice_box.setBig(boost_direction_, i_boost);
+        BoxArray slice_ba(slice_box);
+        slice_ba.maxSize(max_box_size_);
+        MultiFab tmp(slice_ba, data_buffer_[i]->DistributionMap(), ncomp, 0);
+        tmp.copy(*slice, 0, 0, ncomp);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
+            const Box& tile_box  = mfi.tilebox();
+            warpx_copy_slice(BL_TO_FORTRAN_BOX(tile_box),
+                             BL_TO_FORTRAN_ANYD(tmp[mfi]),
+                             BL_TO_FORTRAN_ANYD((*data_buffer_[i])[mfi]),
+                             &ncomp, &i_boost, &i_lab);
+        }
+
+        ++buff_counter_[i];
+
+        if (buff_counter_[i] == num_buffer_) {
+            std::stringstream ss;
+            ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
+            VisMF::Write(*data_buffer_[i], ss.str());
+            buff_counter_[i] = 0;
+        }
     }
 }
 

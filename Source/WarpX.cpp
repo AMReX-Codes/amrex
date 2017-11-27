@@ -193,7 +193,7 @@ WarpX::ReadParameters ()
 	    }
 #endif
 	    else if (s == "z" || s == "Z") {
-		   boost_direction[BL_SPACEDIM-1] = 1.;
+	      boost_direction[2] = 1.;
 	    }
         else {
 		const std::string msg = "Unknown boost_dir: "+s;

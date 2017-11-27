@@ -57,4 +57,30 @@ contains
 
   end subroutine warpx_lorentz_transform_z
 
+  subroutine warpx_copy_slice(lo, hi, tmp, tlo, thi, &
+                              buf, blo, bhi, ncomp, &
+                              i_boost, i_lab) &
+       bind(C, name="warpx_copy_slice")
+
+    use amrex_fort_module, only : amrex_real
+    
+    integer       ,   intent(in)    :: ncomp, i_boost, i_lab
+    integer       ,   intent(in)    :: lo(3), hi(3)
+    integer       ,   intent(in)    :: tlo(3), thi(3)
+    integer       ,   intent(in)    :: blo(3), bhi(3)
+    real(amrex_real), intent(inout) :: tmp(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3), ncomp)
+    real(amrex_real), intent(inout) :: buf(blo(1):bhi(1),blo(2):bhi(2),blo(3):bhi(3), ncomp)
+    
+    integer n, i, j, k
+    
+    do n = 1, ncomp
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             buf(i, j, i_lab, n) = tmp(i, j, i_boost, n)
+          end do
+       end do
+    end do
+    
+  end subroutine warpx_copy_slice
+
 end module warpx_boosted_frame_module
