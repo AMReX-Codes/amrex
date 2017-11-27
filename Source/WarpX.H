@@ -236,8 +236,6 @@ private:
     void InitPML ();
     void ComputePMLFactors ();
 
-    void InjectPlasma(int lev, amrex::RealBox particleBox);
-
     void InitDiagnostics ();
 
     void WriteWarpXHeader(const std::string& name) const;

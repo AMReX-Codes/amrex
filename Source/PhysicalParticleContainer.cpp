@@ -186,7 +186,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
 
-            // Loop through the cells of overlap_realbox and inject
+            // Loop through the cells of overlap_box and inject
             // the corresponding particles
             const auto& overlap_corner = overlap_realbox.lo();
             for (IntVect iv = overlap_box.smallEnd();
