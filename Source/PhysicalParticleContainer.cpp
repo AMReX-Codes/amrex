@@ -179,7 +179,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                 // Count the number of cells in this direction in overlap_realbox
                 overlap_box.setSmall( dir, 0 );
                 overlap_box.setBig( dir,
-                    int( (overlap_realbox.hi(dir)-overlap_realbox.lo(dir))/dx[dir] ));
+				    int( round((overlap_realbox.hi(dir)-overlap_realbox.lo(dir))/dx[dir] )) - 1);
             }
             if (no_overlap == 1) continue; // Go to the next tile
 
