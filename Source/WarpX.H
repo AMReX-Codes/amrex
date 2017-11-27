@@ -241,7 +241,7 @@ private:
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
-    
+
     std::unique_ptr<amrex::MultiFab> GetCellCenteredData();
 
     static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,

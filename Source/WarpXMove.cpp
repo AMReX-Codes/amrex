@@ -34,7 +34,7 @@ WarpX::MoveWindow (bool move_j)
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
     for (int lev = 0; lev <= max_level; ++lev) {
-        
+
         if (lev > 0) {
             num_shift_crse = num_shift;
             num_shift *= refRatio(lev-1)[dir];
@@ -57,7 +57,7 @@ WarpX::MoveWindow (bool move_j)
 
             if (do_pml && pml[lev]->ok()) {
                 const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_fp();
-                const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_fp();                
+                const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_fp();
                 shiftMF(*pml_B[dim], geom[lev], num_shift, dir);
                 shiftMF(*pml_E[dim], geom[lev], num_shift, dir);
                 if (do_dive_cleaning) {
@@ -84,7 +84,7 @@ WarpX::MoveWindow (bool move_j)
 
                 if (do_pml && pml[lev]->ok()) {
                     const std::array<MultiFab*, 3>& pml_B = pml[lev]->GetB_cp();
-                    const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_cp();                
+                    const std::array<MultiFab*, 3>& pml_E = pml[lev]->GetE_cp();
                     shiftMF(*pml_B[dim], geom[lev-1], num_shift_crse, dir);
                     shiftMF(*pml_E[dim], geom[lev-1], num_shift_crse, dir);
                     if (do_dive_cleaning) {
@@ -95,8 +95,8 @@ WarpX::MoveWindow (bool move_j)
             }
         }
     }
-    
-    InjectPlasma(num_shift_base, dir);    
+
+    InjectPlasma(num_shift_base, dir);
 }
 
 void
@@ -106,13 +106,13 @@ WarpX::shiftMF(MultiFab& mf, const Geometry& geom, int num_shift, int dir)
     const DistributionMapping& dm = mf.DistributionMap();
     const int nc = mf.nComp();
     const int ng = mf.nGrow();
-    
+
     BL_ASSERT(ng >= num_shift);
-    
+
     MultiFab tmpmf(ba, dm, nc, ng);
     MultiFab::Copy(tmpmf, mf, 0, 0, nc, ng);
     tmpmf.FillBoundary(geom.periodicity());
-    
+
     // Make a box that covers the region that the window moved into
     const IndexType& typ = ba.ixType();
     const Box& domainBox = geom.Domain();
