@@ -29,8 +29,6 @@
 #include <omp.h>
 #endif
 
-const char* path_sep_str = "/";
-
 #include <sys/types.h>
 #include <sys/times.h>
 #include <sys/time.h>
@@ -38,6 +36,10 @@ const char* path_sep_str = "/";
 #include <unistd.h>
 
 using std::ostringstream;
+
+namespace {
+    const char* path_sep_str = "/";
+}
 
 //
 // Return true if argument is a non-zero length string of digits.
