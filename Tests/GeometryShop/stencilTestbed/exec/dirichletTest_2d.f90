@@ -1,7 +1,7 @@
 
 module stencil_test_module
 
-  use bl_fort_module, only : dim=>bl_spacedim
+  use amrex_fort_module, only : dim=>amrex_spacedim
   implicit none
 
   private

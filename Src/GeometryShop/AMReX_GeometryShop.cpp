@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <list>
 
 #include "AMReX_GeometryShop.H"
 #include "AMReX_RealVect.H"
@@ -181,10 +182,174 @@ namespace amrex
 
   }
 
+
+
+  struct Edge
+  {
+    Edge(const IntVect& lhs, const IntVect& rhs)
+      {
+	ID = -1;
+	if (lhs < rhs) {
+	  IV_l = lhs;
+	  IV_r = rhs;
+	} else {
+	  IV_l = rhs;
+	  IV_r = lhs;
+	}
+      }
+
+    bool operator== (const Edge& rhs) const
+      {
+	return IV_l==rhs.IV_l && IV_r==rhs.IV_r;
+      }
+    bool operator< (const Edge& rhs) const
+      {
+        if (IV_l==rhs.IV_l) {
+	  return IV_r < rhs.IV_r;
+        }
+	return IV_l < rhs.IV_l;
+      }
+
+    IntVect IV_l,IV_r;
+    size_t ID;
+  };
+
+  std::ostream& operator<<(std::ostream& os, const Edge& e)
+  {
+    os << "EDGE: " << e.IV_l << " : " << e.IV_r << " ID=" << e.ID;
+    return os;
+  }
+
+  typedef std::map<Edge, RealVect> PMap;
+
+  typedef PMap::iterator PMapIt;
+
+  struct PMapItCompare
+  {
+    bool operator() (const PMapIt& lhs, const PMapIt& rhs) const {
+      const RealVect& l = lhs->second;
+      const RealVect& r = rhs->second;
+      const void* vl=&l;
+      const void* vr=&r;
+      return vl<vr;
+    }
+  };
+
+  struct Triangle
+  {
+    Triangle() : p(3), mArea(-1) {}
+    Real Area();
+    const PMapIt& operator[] (int n) const { return p[n]; }
+    PMapIt& operator[] (int n) { return p[n]; }
+    static int xComp,yComp,zComp;
+    Array<PMapIt> p;
+    
+  private:
+    void my_area();
+    Real mArea;
+  };
+
+  int Triangle::xComp = 0;
+  int Triangle::yComp = 1;
+  int Triangle::zComp = 2;
+
+  Real
+  Triangle::Area()
+  {
+    if (mArea<0)
+      my_area();
+    return mArea;
+  }
+
+  void
+  Triangle::my_area()
+  {
+#ifndef NDEBUG
+    for (int i=0; i<p.size(); ++i)
+    {
+      BL_ASSERT(xComp>=0 && xComp<(*p[i]).second.size());
+      BL_ASSERT(yComp>=0 && yComp<(*p[i]).second.size());
+      BL_ASSERT(zComp>=0 && zComp<(*p[i]).second.size());
+    }
+#endif
+
+    const RealVect& p0 = (*p[0]).second;
+    const RealVect& p1 = (*p[1]).second;
+    const RealVect& p2 = (*p[2]).second;
+    mArea = 0.5*sqrt(
+      pow(  ( p1[yComp] - p0[yComp])*(p2[zComp]-p0[zComp]) 
+	    -(p1[zComp] - p0[zComp])*(p2[yComp]-p0[yComp]), 2)
+      
+      + pow(( p1[zComp] - p0[zComp])*(p2[xComp]-p0[xComp]) 
+	    -(p1[xComp] - p0[xComp])*(p2[zComp]-p0[zComp]), 2)
+      
+      + pow(( p1[xComp] - p0[xComp])*(p2[yComp]-p0[yComp]) 
+	    -(p1[yComp] - p0[yComp])*(p2[xComp]-p0[xComp]), 2));
+  }    
+
+  struct Segment
+  {
+    Segment() {}
+    Segment(const PMapIt& p1, const PMapIt& p2) : p({p1, p2}) {}
+    const PMapIt& ID_l() const {return p[0];}
+    const PMapIt& ID_r() const {return p[1];}
+    const PMapIt& operator[] (int n) const { return p[n]; }
+    PMapIt& operator[] (int n) { return p[n]; }
+    void flip ();
+    std::array<PMapIt,2> p;
+  };
+
+  void
+  Segment::flip()
+  {
+    PMapIt ptmp = p[0];
+    p[0] = p[1];
+    p[1] = ptmp;
+  }
+
+  list<Segment>::iterator FindMySeg(list<Segment>& segs, const PMapIt& idx)
+  {
+    for (list<Segment>::iterator it=segs.begin(); it!=segs.end(); ++it)
+    {
+      if ( ((*it).ID_l() == idx) || ((*it).ID_r() == idx) )
+	return it;
+    }
+    return segs.end();
+  }
+
+  
+  PMap vertCache;
+  list<Segment> segments;
+
+  pair<bool,PMapIt> SetIntersect(const IntVect& p1,const IntVect& p2,const RealVect& intersect,PMap& vertCache)
+  {
+    PMapIt fwd,rev;
+    Edge edge(p1,p2);
+    fwd = vertCache.find(edge);
+    if (fwd == vertCache.end())
+    {
+      rev = vertCache.find(Edge(p2,p1));
+        
+      if (rev == vertCache.end())
+      {
+	edge.ID = vertCache.size(); // Number this edge
+	std::pair<Edge,RealVect> ent(edge,intersect);
+	std::pair<PMapIt,bool> it = vertCache.insert(ent);
+	BL_ASSERT(it.second);
+	return make_pair(true,it.first);
+      }
+      else
+      {
+	return make_pair(false,rev);
+      }
+    }
+    return make_pair(false,fwd);
+  }
+
   /*********************************************/
   void
   GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
-                          Vector<IrregNode>    & a_nodes,
+                          Vector<IrregNode>   & a_nodes,
                           const Box           & a_validRegion,
                           const Box           & a_ghostRegion,
                           const Box           & a_domain,
@@ -305,6 +470,176 @@ namespace amrex
           }
 
       } // end loop over cut cells in the box
+
+    Vector<IntVect> pt(4);
+    Vector<RealVect> x(4);
+    Vector<Real> v(4);
+    for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
+    {
+      pt[0] = ivsit();
+      pt[1] = pt[0] + BASISV(0);
+      pt[2] = pt[1] + BASISV(1);
+      pt[3] = pt[0] + BASISV(1);
+
+      for (int i=0; i<4; ++i)
+      {
+	for (int idir=0; idir<SpaceDim; ++idir)
+	{
+	  x[i][idir] = a_origin[idir] + pt[i][idir]*a_dx;
+	}
+	v[i] = m_implicitFunction->value(x[i]);
+      }
+
+      int segCase = 0;
+      if (v[0] < 0) segCase |= 1;
+      if (v[1] < 0) segCase |= 2;
+      if (v[2] < 0) segCase |= 4;
+      if (v[3] < 0) segCase |= 8;
+      
+      switch (segCase)
+      {
+      case 1:
+      case 14:
+	segments.push_back(Segment(vertCache.find(Edge(pt[0],pt[1])),
+				   vertCache.find(Edge(pt[0],pt[3]))));
+	break;
+      case 2:
+      case 13:
+	segments.push_back(Segment(vertCache.find(Edge(pt[0],pt[1])),
+				   vertCache.find(Edge(pt[1],pt[2]))));
+	break;
+      case 3:
+      case 12:
+	segments.push_back(Segment(vertCache.find(Edge(pt[1],pt[2])),
+				   vertCache.find(Edge(pt[0],pt[3]))));
+	break;
+      case 4:
+      case 11:
+	segments.push_back(Segment(vertCache.find(Edge(pt[1],pt[2])),
+				   vertCache.find(Edge(pt[2],pt[3]))));
+       break;
+      case 6:
+      case 9:
+	segments.push_back(Segment(vertCache.find(Edge(pt[0],pt[1])),
+				   vertCache.find(Edge(pt[2],pt[3]))));
+	break;
+      case 7:
+      case 8:
+	segments.push_back(Segment(vertCache.find(Edge(pt[2],pt[3])),
+				   vertCache.find(Edge(pt[0],pt[3]))));
+	break;
+      case 5:
+      case 10:
+	segments.push_back(Segment(vertCache.find(Edge(pt[0],pt[1])),
+				   vertCache.find(Edge(pt[1],pt[2]))));
+	segments.push_back(Segment(vertCache.find(Edge(pt[2],pt[3])),
+				   vertCache.find(Edge(pt[0],pt[3]))));
+	break;
+      }
+    }
+
+    PMapIt idx = segments.front().ID_r();
+    segments.pop_front();
+    list<list<Segment>> cLines;
+    
+    cLines.push_back(list<Segment>());
+    while (segments.begin() != segments.end())
+    {
+      list<Segment>::iterator segIt = FindMySeg(segments,idx);
+      if (segIt != segments.end())
+      {
+	const PMapIt& idx_l = (*segIt).ID_l();
+	const PMapIt& idx_r = (*segIt).ID_r();
+
+	if ( idx_l == idx )
+	{
+	  idx = idx_r;
+	  cLines.back().push_back(*segIt);
+	}
+	else
+	{
+	  idx = idx_l;
+	  Segment nseg(*segIt); nseg.flip();
+	  cLines.back().push_back(nseg);
+	}
+
+	segments.erase(segIt);
+      }
+      else
+      {
+	cLines.push_back(list<Segment>());
+	idx = segments.front().ID_r();
+	segments.pop_front();
+      }
+    }
+
+    // Connect up the line fragments as much as possible
+    bool changed;
+    do
+    {
+      changed = false;
+      for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end(); ++it)
+      {
+	if (!it->empty())
+	{
+	  const PMapIt& idx_l = it->front().ID_l();
+	  const PMapIt& idx_r = it->back().ID_r();
+	  for (std::list<list<Segment>>::iterator it1 = cLines.begin(); it1!=cLines.end(); ++it1)
+	  {
+	    if (!(*it1).empty() && it!=it1)
+	    {
+	      if (idx_r == it1->front().ID_l())
+	      {
+		(*it).splice(it->end(),*it1);
+		changed = true;
+	      }
+	      else if (idx_r == it1->back().ID_r())
+	      {
+		it1->reverse();
+		for (list<Segment>::iterator it2=it1->begin(); it2!=it1->end(); ++it2)
+		  it2->flip();
+		it->splice(it->end(),*it1);
+		changed = true;
+	      }
+	      else if (idx_l == it1->front().ID_l())
+	      {
+		it1->reverse();
+		for (list<Segment>::iterator it2=it1->begin(); it2!=it1->end(); ++it2)
+		  it2->flip();
+		it->splice(it->begin(),*it1);
+		changed = true;
+	      }
+	    }
+	  }
+	}
+      }
+    } while(changed);
+
+    // Clear out empty placeholders for lines we connected up to others.
+    for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end();)
+    {
+      if (it->empty())
+	cLines.erase(it++);
+      else
+	it++;
+    }
+
+    std::ofstream ofs("junk");
+    for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end(); ++it)
+    {
+      list<Segment>::const_iterator slit=it->begin();
+      const RealVect& pt0 = slit->ID_l()->second;
+      ofs << pt0[0] << " " << pt0[1] << std::endl;
+      for (  ; slit!=it->end(); ++slit)
+      {
+	const RealVect& pt = slit->ID_r()->second;
+	ofs << pt[0] << " " << pt[1] << std::endl;
+      }
+    }
+    ofs.close();
+
+    amrex::Print() << "************** number of cLines: " << cLines.size() << std::endl;
+    amrex::Print() << "************** number of intersections: " << vertCache.size() << std::endl;
 
     // CP: fix sweep that removes cells with volFrac less than a certain threshold
     for(IVSIterator ivsit(ivsdrop); ivsit.ok(); ++ivsit)
@@ -2023,6 +2358,28 @@ namespace amrex
                   {
                     amrex::Error("Bogus intersection calculated");
                   }
+
+		IntVect p1 = a_iv + lohi*BASISV(domain);
+		IntVect p2 = p1   + BASISV(range);
+		RealVect iPoint;
+		iPoint[range] = intercept;
+		pair<bool,PMapIt> bpit = SetIntersect(p1,p2,iPoint,vertCache);
+		if (bpit.first)
+		{
+		  const PMapIt& pmit = bpit.second;
+		  IntVect diff = p2 - p1;
+		  RealVect& intersect = pmit->second;
+		  for (int idir=0; idir<SpaceDim; ++idir) {
+		    if (diff[idir] == 0) {
+		      intersect[idir] = a_origin[idir] + p1[idir]*a_dx;
+		    }
+		    else
+		    {
+		      intersect[idir] = a_origin[idir] + (p1[idir]+intercept)*a_dx;
+		    }
+		  }
+		  
+		}
               }
 
             // express the answer relative to dx and cell-center
