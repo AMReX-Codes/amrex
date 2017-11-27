@@ -1,6 +1,117 @@
 
 
-! this does the proper mccorqodale algorithm
+! this does the proper mccorqodale algorithm (this one is from the chombodoc notes)
+subroutine timeinterprk4_pwm_cd(stage, lo, hi, &
+     phi,  phi_lo, phi_hi, &
+     old, old_lo, old_hi, &
+     k1 , k1_lo, k1_hi, &
+     k2 , k2_lo, k2_hi, &
+     k3 , k3_lo, k3_hi, &
+     k4 , k4_lo, k4_hi, &
+     tf, tc_old, dt_c, dt_f, iter, nref &
+     ) bind(C, name="timeinterprk4_pwm_cd")
+
+  use amrex_fort_module, only : amrex_real, dim=>bl_spacedim
+  implicit none
+  integer, intent(in) :: lo(3), hi(3), iter, nref
+  integer, intent(in) :: phi_lo(3), phi_hi(3)
+  integer, intent(in) :: old_lo(3), old_hi(3)
+  integer, intent(in) :: k1_lo(3), k1_hi(3)
+  integer, intent(in) :: k2_lo(3), k2_hi(3)
+  integer, intent(in) :: k3_lo(3), k3_hi(3)
+  integer, intent(in) :: k4_lo(3), k4_hi(3), stage
+
+  double precision, intent(in)    :: tf, tc_old, dt_c, dt_f
+  double precision, intent(inout) :: phi(phi_lo(1):phi_hi(1), &
+                                         phi_lo(2):phi_hi(2), &
+                                         phi_lo(3):phi_hi(3))
+
+  double precision, intent(in)    :: old(old_lo(1):old_hi(1), &
+                                         old_lo(2):old_hi(2), &
+                                         old_lo(3):old_hi(3))
+
+  double precision, intent(in)    :: k1(k1_lo(1):k1_hi(1), &
+                                        k1_lo(2):k1_hi(2), &
+                                        k1_lo(3):k1_hi(3))
+  double precision, intent(in)    :: k2(k2_lo(2):k2_hi(2), &
+                                        k2_lo(2):k2_hi(2), &
+                                        k2_lo(3):k2_hi(3))
+  double precision, intent(in)    :: k3(k3_lo(1):k3_hi(1), &
+                                        k3_lo(2):k3_hi(2), &
+                                        k3_lo(3):k3_hi(3))
+  double precision, intent(in)    :: k4(k4_lo(1):k4_hi(1), &
+                                        k4_lo(2):k4_hi(2), &
+                                        k4_lo(3):k4_hi(3))
+
+  integer          :: i,j,k
+  double precision :: k_1, k_2, k_3, k_4, utemp(0:3)
+  double precision  :: rs,  rnref, quadco, cubeco, rnref2, rnref3
+  double precision  :: sonref, s2onref2, s3onref3, sonref2, sonref3, s2onref3
+  
+  rs    = iter
+  rnref = nref
+  rnref2 = rnref*rnref
+  rnref3 = rnref*rnref*rnref
+
+  sonref  = rs/rnref
+  sonref2 = rs/(rnref**2)
+  sonref3 = rs/(rnref**3)
+  s2onref2 = (rs**2)/(rnref**2)
+  s2onref3 = (rs**2)/(rnref**3)
+  s3onref3 = (rs**3)/(rnref**3)
+  !print*, "*************IN PWM CD VERSION****************"
+
+  !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
+  do k=lo(3),hi(3)
+     do j=lo(2),hi(2)
+        do i=lo(1),hi(1)
+
+           k_1 = k1(i,j,k)
+           k_2 = k2(i,j,k)
+           k_3 = k3(i,j,k)
+           k_4 = k4(i,j,k)
+           quadco = (-3.0d0*k_1 + 2.0d0*k_2 + 2.0d0*k_3 - k_4)
+           cubeco = (k_1 - k_2 -k_3 + k_4)
+
+           !eqn 45 in design doc (pg 17)
+           utemp(0) = old(i,j,k)  &
+                +               (sonref  )*k_1  &
+                + 0.5d0*        (s2onref2)*quadco & 
+                + (2.0d0/3.0d0)*(s3onref3)*cubeco
+
+           !eqn 53 in design doc (pg 18)
+           utemp(1) = old(i,j,k)  &
+                +               (sonref   + (0.5d0/rnref))*k_1 &
+                + 0.5d0*        (s2onref2 +       sonref2 )*quadco &
+                + (2.0d0/3.0d0)*(s3onref3 + 1.5d0*s2onref3)*cubeco 
+
+           !eqn 54 in design doc (pg 18)
+           utemp(2) = old(i,j,k)  &
+                +               (sonref   + (0.5d0/rnref))*k_1 &
+                + 0.5d0*        (s2onref2 +       sonref2  + 0.5d0/rnref2)*quadco &
+                + (2.0d0/3.0d0)*(s3onref3 + 1.5d0*s2onref3 + 1.5d0*sonref3 + 0.375d0/rnref3)*cubeco &
+                + 0.25d0*(k_2-k_3)/rnref2
+
+
+           !eqn 54 in design doc (pg 18)
+           !note the last term has the opposite sign of the one for u(2)
+           utemp(3) = old(i,j,k)  &
+                + (sonref + 1.0d0/rnref)*k_1 &
+                + 0.5d0*(s2onref2 + 2.0d0*sonref2 + 1.0d0/rnref2)*quadco &
+                + (2.0d0/3.0d0)*(s3onref3 + 3.0d0*s2onref3 + 3.0d0*sonref3 + 0.75d0/rnref3)*cubeco &
+                + 0.5d0*(k_3-k_2)/rnref2
+                
+           
+           phi(i,j,k) = utemp(stage)
+
+        end do
+     end do
+  end do
+
+end subroutine timeinterprk4_pwm_cd
+
+
+
 subroutine timeinterprk4_pwm(stage, lo, hi, &
      phi,  phi_lo, phi_hi, &
      old, old_lo, old_hi, &
@@ -8,12 +119,12 @@ subroutine timeinterprk4_pwm(stage, lo, hi, &
      k2 , k2_lo, k2_hi, &
      k3 , k3_lo, k3_hi, &
      k4 , k4_lo, k4_hi, &
-     tf, tc_old, dt_c, dt_f &
+     tf, tc_old, dt_c, dt_f, iter, nref &
      ) bind(C, name="timeinterprk4_pwm")
 
   use amrex_fort_module, only : amrex_real, dim=>bl_spacedim
   implicit none
-  integer, intent(in) :: lo(3), hi(3)
+  integer, intent(in) :: lo(3), hi(3), iter, nref
   integer, intent(in) :: phi_lo(3), phi_hi(3)
   integer, intent(in) :: old_lo(3), old_hi(3)
   integer, intent(in) :: k1_lo(3), k1_hi(3)
@@ -92,7 +203,7 @@ subroutine timeinterprk4_pwm(stage, lo, hi, &
 
            phi(i,j,k) = utemp(stage)
 
-!debug set to old method (have to fix xi at top for this to work)
+!debug set to old method 
 !           phi(i,j,k) = utemp(0)
 !end debug              
 
@@ -111,13 +222,13 @@ subroutine timeinterprk3_pwm(stage, lo, hi, &
      old, old_lo, old_hi, &
      k1 , k1_lo, k1_hi, &
      k2 , k2_lo, k2_hi, &
-     tf, tc_old, dt_c, dt_f  &
+     tf, tc_old, dt_c, dt_f, iter, nref  &
      ) bind(C, name="timeinterprk3_pwm")
 
   use amrex_fort_module, only : amrex_real, dim=>bl_spacedim
   implicit none
   double precision, intent(in)    :: tf, tc_old, dt_c, dt_f
-  integer, intent(in) :: lo(3), hi(3),stage
+  integer, intent(in) :: lo(3), hi(3),stage, iter, nref
   integer, intent(in) :: phi_lo(3), phi_hi(3)
   integer, intent(in) :: old_lo(3), old_hi(3)
   integer, intent(in) :: k1_lo(3), k1_hi(3)
@@ -195,12 +306,12 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
      k2 , k2_lo, k2_hi, &
      k3 , k3_lo, k3_hi, &
      k4 , k4_lo, k4_hi, &
-     tf, tc_old, dt_c, dt_f &
+     tf, tc_old, dt_c, dt_f, iter, nref &
      ) bind(C, name="timeinterprk4_jbb")
 
   use amrex_fort_module, only : amrex_real, dim=>bl_spacedim
   implicit none
-  integer, intent(in) :: lo(3), hi(3)
+  integer, intent(in) :: lo(3), hi(3), iter, nref
   integer, intent(in) :: phi_lo(3), phi_hi(3)
   integer, intent(in) :: old_lo(3), old_hi(3)
   integer, intent(in) :: k1_lo(3), k1_hi(3)
@@ -295,13 +406,13 @@ subroutine timeinterprk3_jbb(stage, lo, hi, &
      old, old_lo, old_hi, &
      k1 , k1_lo, k1_hi, &
      k2 , k2_lo, k2_hi, &
-     tf, tc_old, dt_c, dt_f  &
+     tf, tc_old, dt_c, dt_f, iter, nref  &
      ) bind(C, name="timeinterprk3_jbb")
 
   use amrex_fort_module, only : amrex_real, dim=>bl_spacedim
   implicit none
   double precision, intent(in)    :: tf, tc_old, dt_c, dt_f
-  integer, intent(in) :: lo(3), hi(3),stage
+  integer, intent(in) :: lo(3), hi(3),stage, iter, nref
   integer, intent(in) :: phi_lo(3), phi_hi(3)
   integer, intent(in) :: old_lo(3), old_hi(3)
   integer, intent(in) :: k1_lo(3), k1_hi(3)
@@ -382,12 +493,12 @@ subroutine timeinterprk4_simplepoly(stage, lo, hi, &
      k2 , k2_lo, k2_hi, &
      k3 , k3_lo, k3_hi, &
      k4 , k4_lo, k4_hi, &
-     tf, tc_old, dt_c, dt_f  &
+     tf, tc_old, dt_c, dt_f, iter, nref  &
      ) bind(C, name="timeinterprk4_simplepoly")
 
   use amrex_fort_module, only : amrex_real, dim=>bl_spacedim
   implicit none
-  integer, intent(in) :: lo(3), hi(3), stage
+  integer, intent(in) :: lo(3), hi(3), stage, iter, nref
   integer, intent(in) :: phi_lo(3), phi_hi(3)
   integer, intent(in) :: old_lo(3), old_hi(3)
   integer, intent(in) :: k1_lo(3), k1_hi(3)
@@ -471,12 +582,12 @@ subroutine timeinterprk3_simplepoly(stage, lo, hi, &
      old, old_lo, old_hi, &
      k1 , k1_lo, k1_hi, &
      k2 , k2_lo, k2_hi, &
-     tf, tc_old, dt_c, dt_f  &
+     tf, tc_old, dt_c, dt_f, iter, nref  &
      ) bind(C, name="timeinterprk3_simplepoly")
 
   use amrex_fort_module, only : amrex_real, dim=>bl_spacedim
   implicit none
-  integer, intent(in) :: lo(3), hi(3), stage
+  integer, intent(in) :: lo(3), hi(3), stage, iter, nref
   integer, intent(in) :: phi_lo(3), phi_hi(3)
   integer, intent(in) :: old_lo(3), old_hi(3)
   integer, intent(in) :: k1_lo(3), k1_hi(3)
