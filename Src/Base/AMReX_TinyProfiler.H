@@ -75,6 +75,17 @@ private:
     static void PrintStats(std::map<std::string,Stats>& regstats, Real dt_max);
 };
 
+class TinyProfileRegion
+{
+public:
+    TinyProfileRegion (std::string a_regname);
+    TinyProfileRegion (const char* a_regname);
+    ~TinyProfileRegion ();
+private:
+    std::string regname;
+    TinyProfiler tprof;
+};
+
 }
 
 #endif
