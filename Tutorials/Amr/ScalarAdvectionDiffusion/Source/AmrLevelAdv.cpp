@@ -157,15 +157,15 @@ namespace amrex
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
         int nref = refrat[0];
-        timeinterprk4_simplepoly(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
-                                 BL_TO_FORTRAN_3D(  phiC[mfi]),
-                                 BL_TO_FORTRAN_3D(  oldC[mfi]),
-                                 BL_TO_FORTRAN_3D(    k1[mfi]),
-                                 BL_TO_FORTRAN_3D(    k2[mfi]),
-                                 BL_TO_FORTRAN_3D(    k3[mfi]),
-                                 BL_TO_FORTRAN_3D(    k4[mfi]),
-                                 &tf, &tc_old, &dt_c, &dt_f, 
-                                 &a_iteration, &nref);
+        timeinterprk4_jbb(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+                          BL_TO_FORTRAN_3D(  phiC[mfi]),
+                          BL_TO_FORTRAN_3D(  oldC[mfi]),
+                          BL_TO_FORTRAN_3D(    k1[mfi]),
+                          BL_TO_FORTRAN_3D(    k2[mfi]),
+                          BL_TO_FORTRAN_3D(    k3[mfi]),
+                          BL_TO_FORTRAN_3D(    k4[mfi]),
+                          &tf, &tc_old, &dt_c, &dt_f, 
+                          &a_iteration, &nref);
       }
       //debug turn off time interp
       //phiC.copy(oldC);

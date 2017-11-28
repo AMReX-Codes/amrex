@@ -368,16 +368,22 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
         do i=lo(1),hi(1)
 
            !the ks get multiplied by dt in the code
-           k_1 = k1(i,j,k)/dt_c
-           k_2 = k2(i,j,k)/dt_c
-           k_3 = k3(i,j,k)/dt_c
-           k_4 = k4(i,j,k)/dt_c
+           k_1 = k1(i,j,k)
+           k_2 = k2(i,j,k)
+           k_3 = k3(i,j,k)
+           k_4 = k4(i,j,k)
            !straight outta mccorquodale
            squcoef = 0.5d0*(-3.0d0*k_1 + 2.0d0*k_2 + 2.0d0*k_3 - k_4)
            cubcoef = (2.0d0/3.0d0)*(k_1 - k_2 - k_3 + k_4)
 
            u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef + xi*xi*xi*cubcoef
 
+           !the ks get multiplied by dt in the code and the following formulae 
+           ! assume that they have not been.
+           k_1 = k_1/dt_c
+           k_2 = k_2/dt_c
+           k_3 = k_3/dt_c
+           k_4 = k_4/dt_c
            fn = k_1
            fnfprime  = (-3.0d0*k_1 + 2.0d0*k_2 + 2.0d0*k_3 - k_4)/dt_f
            fnfdouble = (-4.0d0*k_2 + k_3)/(dt_f*dt_f)
@@ -444,14 +450,19 @@ subroutine timeinterprk3_jbb(stage, lo, hi, &
   do k=lo(3),hi(3)
      do j=lo(2),hi(2)
         do i=lo(1),hi(1)
-           !these get multiplied by dt in the code
-           k_1 = k1(i,j,k)/dt_c
-           k_2 = k2(i,j,k)/dt_c
+
+           k_1 = k1(i,j,k)
+           k_2 = k2(i,j,k)
+
            !straight outta fok and rosales
            squcoef = 0.5d0*(k_2 - k_1)
 
            u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef 
 
+           !these get multiplied by dt in the code
+           ! and the following formulae assume they have not been
+           k_1 = k1(i,j,k)/dt_c
+           k_2 = k2(i,j,k)/dt_c
            if(stage.eq.0) then
               phi(i,j,k) = u0
            else if(stage.eq.1) then
