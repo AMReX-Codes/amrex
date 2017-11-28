@@ -538,11 +538,12 @@ namespace amrex
       }
     }
 
+    list<list<Segment>> cLines;
+    cLines.push_back(list<Segment>());
+    cLines.back().push_back(segments.front());
+
     PMapIt idx = segments.front().ID_r();
     segments.pop_front();
-    list<list<Segment>> cLines;
-    
-    cLines.push_back(list<Segment>());
     while (segments.begin() != segments.end())
     {
       list<Segment>::iterator segIt = FindMySeg(segments,idx);
@@ -586,11 +587,11 @@ namespace amrex
 	  const PMapIt& idx_r = it->back().ID_r();
 	  for (std::list<list<Segment>>::iterator it1 = cLines.begin(); it1!=cLines.end(); ++it1)
 	  {
-	    if (!(*it1).empty() && it!=it1)
+	    if (!it1->empty() && it!=it1)
 	    {
 	      if (idx_r == it1->front().ID_l())
 	      {
-		(*it).splice(it->end(),*it1);
+		it->splice(it->end(),*it1);
 		changed = true;
 	      }
 	      else if (idx_r == it1->back().ID_r())
@@ -2369,16 +2370,8 @@ namespace amrex
 		  const PMapIt& pmit = bpit.second;
 		  IntVect diff = p2 - p1;
 		  RealVect& intersect = pmit->second;
-		  for (int idir=0; idir<SpaceDim; ++idir) {
-		    if (diff[idir] == 0) {
-		      intersect[idir] = a_origin[idir] + p1[idir]*a_dx;
-		    }
-		    else
-		    {
-		      intersect[idir] = a_origin[idir] + (p1[idir]+intercept)*a_dx;
-		    }
-		  }
-		  
+                  intersect[domain] = a_origin[domain] + p1[domain]*a_dx;
+                  intersect[range] = intercept;
 		}
               }
 
