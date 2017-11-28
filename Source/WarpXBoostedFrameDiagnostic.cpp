@@ -15,6 +15,9 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
       N_snapshots_(N_snapshots),
       boost_direction_(boost_direction)
 {
+
+    BL_PROFILE("BoostedFrameDiagnostic::BoostedFrameDiagnostic");
+
     inv_gamma_boost_ = 1.0 / gamma_boost_;
     beta_boost_ = std::sqrt(1.0 - inv_gamma_boost_*inv_gamma_boost_);
     inv_beta_boost_ = 1.0 / beta_boost_;
@@ -41,6 +44,8 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
 void
 BoostedFrameDiagnostic::
 writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {
+
+    BL_PROFILE("BoostedFrameDiagnostic::writeLabFrameData");
     
     const RealBox& domain_z_boost = geom.ProbDomain();
     const Real zlo_boost = domain_z_boost.lo(boost_direction_);
@@ -120,6 +125,9 @@ void
 BoostedFrameDiagnostic::
 writeMetaData() 
 {
+
+    BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
+
     if (ParallelDescriptor::IOProcessor()) {
         std::string DiagnosticDirectory = "lab_frame_data";
         

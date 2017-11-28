@@ -396,6 +396,8 @@ WarpX::InitFromCheckpoint ()
 std::unique_ptr<MultiFab>
 WarpX::GetCellCenteredData() {
 
+    BL_PROFILE("WarpX::GetCellCenteredData");
+
     const int ng =  1;
     const int nc = 10;
     const int lev = 0;
