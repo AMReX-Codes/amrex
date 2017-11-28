@@ -236,6 +236,13 @@ WarpX::ReadParameters ()
 	  injected_plasma_species.resize(num_injected_species);
 	  pp.getarr("injected_plasma_species", injected_plasma_species,
 		 0, num_injected_species);
+      if (moving_window_v >= 0){
+          // Inject particles continuously from the right end of the box
+          current_injection_position = geom[0].ProbHi(moving_window_dir);
+      } else {
+          // Inject particles continuously from the left end of the box
+          current_injection_position = geom[0].ProbLo(moving_window_dir);
+      }
 	}
 
         pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
@@ -457,11 +464,18 @@ WarpX::CellSize (int lev)
 #endif
 }
 
-std::array<Real,3>
-WarpX::LowerCorner(const Box& bx, int lev)
+amrex::RealBox
+WarpX::getRealBox(const Box& bx, int lev)
 {
     const auto& gm = GetInstance().Geom(lev);
     const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    return( grid_box );
+}
+
+std::array<Real,3>
+WarpX::LowerCorner(const Box& bx, int lev)
+{
+    const RealBox grid_box = getRealBox( bx, lev );
     const Real* xyzmin = grid_box.lo();
 #if (BL_SPACEDIM == 3)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
@@ -473,8 +487,7 @@ WarpX::LowerCorner(const Box& bx, int lev)
 std::array<Real,3>
 WarpX::UpperCorner(const Box& bx, int lev)
 {
-    const auto& gm = GetInstance().Geom(lev);
-    const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    const RealBox grid_box = getRealBox( bx, lev );
     const Real* xyzmax = grid_box.hi();
 #if (BL_SPACEDIM == 3)
     return { xyzmax[0], xyzmax[1], xyzmax[2] };

@@ -699,26 +699,3 @@ WarpX::ComputeDt ()
         dt[0] = const_dt;
     }
 }
-
-void
-WarpX::InjectPlasma (int num_shift, int dir)
-{
-    if(do_plasma_injection)
-    {
-        const int lev = 0;
-
-        // particleBox encloses the cells where we generate particles
-        Box particleBox = geom[lev].Domain();
-        int domainLength = particleBox.length(dir);
-        int sign = (num_shift < 0) ? -1 : 1;
-        particleBox.shift(dir, sign*(domainLength - std::abs(num_shift)));
-        particleBox &= geom[lev].Domain();
-
-        for (int i = 0; i < num_injected_species; ++i) {
-            int ispecies = injected_plasma_species[i];
-            WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-            auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
-            ppc.AddParticles(lev, particleBox);
-        }
-    }
-}
