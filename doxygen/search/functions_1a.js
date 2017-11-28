@@ -143,6 +143,7 @@ var searchData=
   ['_7etagbox',['~TagBox',['../classamrex_1_1_tag_box.html#afe1db412d36741917d888ebca4214b0a',1,'amrex::TagBox']]],
   ['_7etagboxarray',['~TagBoxArray',['../classamrex_1_1_tag_box_array.html#aa39754ad9270741af7aa6f6278cf8229',1,'amrex::TagBoxArray']]],
   ['_7etinyprofiler',['~TinyProfiler',['../classamrex_1_1_tiny_profiler.html#ac86f51f4e2e72d2b045260f22d50475d',1,'amrex::TinyProfiler']]],
+  ['_7etinyprofileregion',['~TinyProfileRegion',['../classamrex_1_1_tiny_profile_region.html#a529634d28a0589df7b0e0fd5f7294834',1,'amrex::TinyProfileRegion']]],
   ['_7etracerparticlecontainer',['~TracerParticleContainer',['../classamrex_1_1_tracer_particle_container.html#ae0d245e958caa5df6c59bfd50ca6b83f',1,'amrex::TracerParticleContainer']]],
   ['_7etransformif',['~TransformIF',['../classamrex_1_1_transform_i_f.html#ad10a37e739ebaac50416f7ab1094adf2',1,'amrex::TransformIF']]],
   ['_7eunionif',['~UnionIF',['../classamrex_1_1_union_i_f.html#a08915ecd281d0d0d78fa9ad1fa012260',1,'amrex::UnionIF']]],

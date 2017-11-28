@@ -36,6 +36,7 @@ var searchData=
   ['bl_5fprofile_5ffinalize',['BL_PROFILE_FINALIZE',['../_a_m_re_x___b_l_profiler_8_h.html#af6e6a59876ea1cd91a6c98ca7490f915',1,'AMReX_BLProfiler.H']]],
   ['bl_5fprofile_5finit_5fparams',['BL_PROFILE_INIT_PARAMS',['../_a_m_re_x___b_l_profiler_8_h.html#a72cfac084889bde918ce0e8daf7923f9',1,'AMReX_BLProfiler.H']]],
   ['bl_5fprofile_5finitialize',['BL_PROFILE_INITIALIZE',['../_a_m_re_x___b_l_profiler_8_h.html#af4a614227ddc7bbdb956a6f28dce1786',1,'AMReX_BLProfiler.H']]],
+  ['bl_5fprofile_5fregion',['BL_PROFILE_REGION',['../_a_m_re_x___b_l_profiler_8_h.html#a1b632c17e5e6317b933457cdbc249e04',1,'AMReX_BLProfiler.H']]],
   ['bl_5fprofile_5fregion_5fstart',['BL_PROFILE_REGION_START',['../_a_m_re_x___b_l_profiler_8_h.html#a82756cf1b5c74e5768f02b27c8d7d2fe',1,'AMReX_BLProfiler.H']]],
   ['bl_5fprofile_5fregion_5fstop',['BL_PROFILE_REGION_STOP',['../_a_m_re_x___b_l_profiler_8_h.html#ad8ea62a61c6045d82e8dc32d5dad229b',1,'AMReX_BLProfiler.H']]],
   ['bl_5fprofile_5fregion_5fvar',['BL_PROFILE_REGION_VAR',['../_a_m_re_x___b_l_profiler_8_h.html#afdccb2b9ccba29b24bfd6407b4fa294d',1,'AMReX_BLProfiler.H']]],
