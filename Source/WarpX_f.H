@@ -28,6 +28,7 @@
 
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_3d
+#define WRPX_COPY_SLICE                  warpx_copy_slice_3d
 
 #elif (BL_SPACEDIM == 2)
 
@@ -56,6 +57,7 @@
 
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_2d
+#define WRPX_COPY_SLICE                  warpx_copy_slice_2d
 
 #endif
 
@@ -64,10 +66,10 @@ extern "C"
 {
 #endif
 
-        void warpx_copy_slice(const int* lo, const int* hi,
-                              const amrex_real* tmp, const int* tlo, const int* thi,
-                              amrex_real* buf, const int* blo, const int* bhi,
-                              const int* ncomp, const int* i_boost, const int* i_lab);
+        void WRPX_COPY_SLICE(const int* lo, const int* hi,
+                             const amrex_real* tmp, const int* tlo, const int* thi,
+                             amrex_real* buf, const int* blo, const int* bhi,
+                             const int* ncomp, const int* i_boost, const int* i_lab);
     
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,

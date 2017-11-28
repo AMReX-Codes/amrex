@@ -99,10 +99,10 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
 #endif
         for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi) {
             const Box& tile_box  = mfi.tilebox();
-            warpx_copy_slice(BL_TO_FORTRAN_BOX(tile_box),
-                             BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                             BL_TO_FORTRAN_ANYD((*data_buffer_[i])[mfi]),
-                             &ncomp, &i_boost, &i_lab);
+            WRPX_COPY_SLICE(BL_TO_FORTRAN_BOX(tile_box),
+                            BL_TO_FORTRAN_ANYD(tmp[mfi]),
+                            BL_TO_FORTRAN_ANYD((*data_buffer_[i])[mfi]),
+                            &ncomp, &i_boost, &i_lab);
         }
 
         ++buff_counter_[i];
