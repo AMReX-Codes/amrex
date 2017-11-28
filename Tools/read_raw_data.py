@@ -62,9 +62,13 @@ def read_lab_snapshot(snapshot):
     domain_size = dom_hi - dom_lo + 1
     
     space_dim = len(dom_lo)
+    if space_dim == 2:
+        direction = 1
+    else:
+        direction = 2
 
     buffer_data = _read_buffer(snapshot, hdrs[0])
-    buffer_size = buffer_data['Bx'].shape[2]
+    buffer_size = buffer_data['Bx'].shape[direction]
         
     data = {}
     for i in range(header.ncomp):
