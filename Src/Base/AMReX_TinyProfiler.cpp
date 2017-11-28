@@ -17,24 +17,36 @@
 
 namespace amrex {
 
-std::stack<std::pair<Real,Real> >          TinyProfiler::ttstack;
-std::map<std::string, TinyProfiler::Stats> TinyProfiler::statsmap;
-Real                                       TinyProfiler::t_init = std::numeric_limits<Real>::max();
+std::vector<std::string>          TinyProfiler::regionstack;
+std::stack<std::pair<Real,Real> > TinyProfiler::ttstack;
+std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
+Real TinyProfiler::t_init = std::numeric_limits<Real>::max();
 
 namespace {
     std::set<std::string> improperly_nested_timers;
+    static constexpr char mainregion[] = "main";
 }
 
-TinyProfiler::TinyProfiler (const std::string &funcname)
-    : fname(funcname),
-      running(false)
+TinyProfiler::TinyProfiler (std::string funcname)
+    : fname(std::move(funcname))
 {
     start();
 }
 
-TinyProfiler::TinyProfiler (const std::string &funcname, bool start_)
-    : fname(funcname),
-      running(false)
+TinyProfiler::TinyProfiler (std::string funcname, bool start_)
+    : fname(std::move(funcname))
+{
+    if (start_) start();
+}
+
+TinyProfiler::TinyProfiler (const char* funcname)
+    : fname(funcname)
+{
+    start();
+}
+
+TinyProfiler::TinyProfiler (const char* funcname, bool start_)
+    : fname(funcname)
 {
     if (start_) start();
 }
@@ -50,15 +62,19 @@ TinyProfiler::start ()
 #ifdef _OPENMP
 #pragma omp master
 #endif
-    if (!running) {
-	running = true;
+    if (stats.empty())
+    {
 	Real t = ParallelDescriptor::second();
 
 	ttstack.push(std::make_pair(t, 0.0));
 	global_depth = ttstack.size();
 
-	Stats& st = statsmap[fname];
-	++st.depth;
+        for (auto const& region : regionstack)
+        {
+            Stats& st = statsmap[region][fname];
+            ++st.depth;
+            stats.push_back(&st);
+        }
     }
 }
 
@@ -68,9 +84,8 @@ TinyProfiler::stop ()
 #ifdef _OPENMP
 #pragma omp master
 #endif
-    if (running) 
+    if (!stats.empty()) 
     {
-	running = false;
 	Real t = ParallelDescriptor::second();
 
 	while (static_cast<int>(ttstack.size()) > global_depth) {
@@ -86,14 +101,17 @@ TinyProfiler::stop ()
 	    
 	    Real dtin = t - tt.first; // elapsed time since start() is called.
 	    Real dtex = dtin - tt.second;
-	    
-	    Stats& st = statsmap[fname];
-	    --st.depth;
-	    ++st.n;
-	    if (st.depth == 0)
-		st.dtin += dtin;
-	    st.dtex += dtex;
-	    
+
+            for (Stats* st : stats)
+            {
+                --(st->depth);
+                ++(st->n);
+                if (st->depth == 0) {
+                    st->dtin += dtin;
+                }
+                st->dtex += dtex;
+            }
+                
 	    ttstack.pop();
 	    if (!ttstack.empty()) {
 		std::pair<Real,Real>& parent = ttstack.top();
@@ -102,12 +120,15 @@ TinyProfiler::stop ()
 	} else {
 	    improperly_nested_timers.insert(fname);
 	} 
+
+        stats.clear();
     }
 }
 
 void
 TinyProfiler::Initialize ()
 {
+    regionstack.push_back(mainregion);
     t_init = ParallelDescriptor::second();
 }
 
@@ -122,6 +143,9 @@ TinyProfiler::Finalize ()
     }
 
     Real t_final = ParallelDescriptor::second();
+
+    // make a local copy so that any functions call after this will not be recorded in the local copy.
+    auto lstatsmap = statsmap;
 
     bool properly_nested = improperly_nested_timers.size() == 0;
     ParallelDescriptor::ReduceBoolAnd(properly_nested);
@@ -145,31 +169,83 @@ TinyProfiler::Finalize ()
 	}
     }
 
-    // make a local copy so that any functions call after this will be recorded in the local copy.
-    std::map<std::string, Stats> lstatsmap = statsmap;
+    int nprocs = ParallelDescriptor::NProcs();
+    int ioproc = ParallelDescriptor::IOProcessorNumber();
 
-    // make sure the set of profiled functions is the same on all processors
-    Vector<std::string> localStrings, syncedStrings;
-    bool alreadySynced;
+    Real dt_max = t_final - t_init;
+    ParallelDescriptor::ReduceRealMax(dt_max, ioproc);
+    Real dt_min = t_final - t_init;
+    ParallelDescriptor::ReduceRealMin(dt_min, ioproc);
+    Real dt_avg = t_final - t_init;
+    ParallelDescriptor::ReduceRealSum(dt_avg, ioproc);
+    dt_avg /= Real(nprocs);
 
-    for(std::map<std::string, Stats>::const_iterator it = lstatsmap.begin();
-	it != lstatsmap.end(); ++it)
+    if  (ParallelDescriptor::IOProcessor())
     {
-	localStrings.push_back(it->first);
+	std::cout << "\n\n";
+	std::cout << std::setprecision(4) 
+                  <<"TinyProfiler total time across processes [min...avg...max]: " 
+		  << dt_min << " ... " << dt_avg << " ... " << dt_max << "\n";
     }
 
-    amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
+    // make sure the set of regions is the same on all processes.
+    {
+        Vector<std::string> localRegions, syncedRegions;
+        bool alreadySynced;
 
-    if( ! alreadySynced) {  // add the new name
-	for(int i(0); i < syncedStrings.size(); ++i) {
-	    std::map<std::string, Stats>::const_iterator it = lstatsmap.find(syncedStrings[i]);
-	    if(it == lstatsmap.end()) {
-		lstatsmap.insert(std::make_pair(syncedStrings[i], Stats()));
-	    }
-	}
+        for (auto const& kv : lstatsmap) {
+            localRegions.push_back(kv.first);
+        }
+
+        amrex::SyncStrings(localRegions, syncedRegions, alreadySynced);
+
+        if (!alreadySynced) {
+            for (auto const& s : syncedRegions) {
+                if (lstatsmap.find(s) == lstatsmap.end()) {
+                    lstatsmap.insert(std::make_pair(s,std::map<std::string,Stats>()));
+                }
+            }
+        }
     }
 
-    if (lstatsmap.empty()) return;
+    PrintStats(lstatsmap[mainregion], dt_max);
+    for (auto& kv : lstatsmap) {
+        if (kv.first != mainregion) {
+            if (ParallelDescriptor::IOProcessor()) {
+                std::cout << "\n\nBEGIN REGION " << kv.first << "\n";
+            }
+            PrintStats(kv.second, dt_max);
+            if (ParallelDescriptor::IOProcessor()) {
+                std::cout << "END REGION " << kv.first << "\n";
+            }
+        }
+    }
+}
+
+void
+TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
+{
+    // make sure the set of profiled functions is the same on all processes
+    {
+        Vector<std::string> localStrings, syncedStrings;
+        bool alreadySynced;
+
+        for(auto const& kv : regstats) {
+            localStrings.push_back(kv.first);
+        }
+        
+        amrex::SyncStrings(localStrings, syncedStrings, alreadySynced);
+        
+        if (! alreadySynced) {  // add the new name
+            for (auto const& s : syncedStrings) {
+                if (regstats.find(s) == regstats.end()) {
+                    regstats.insert(std::make_pair(s, Stats()));
+                }
+            }
+        }
+    }
+
+    if (regstats.empty()) return;
 
     int nprocs = ParallelDescriptor::NProcs();
     int ioproc = ParallelDescriptor::IOProcessorNumber();
@@ -179,8 +255,7 @@ TinyProfiler::Finalize ()
     long maxncalls = 0;
 
     // now collect global data onto the ioproc
-    for (std::map<std::string, Stats>::const_iterator it = lstatsmap.begin();
-	it != lstatsmap.end(); ++it)
+    for (auto it = regstats.cbegin(); it != regstats.cend(); ++it)
     {
 	long n = it->second.n;
 	Real dts[2] = {it->second.dtin, it->second.dtex};
@@ -221,22 +296,10 @@ TinyProfiler::Finalize ()
 	}
     }
 
-    Real dt_max = t_final - t_init;
-    ParallelDescriptor::ReduceRealMax(dt_max, ioproc);
-    Real dt_min = t_final - t_init;
-    ParallelDescriptor::ReduceRealMin(dt_min, ioproc);
-    Real dt_avg = t_final - t_init;
-    ParallelDescriptor::ReduceRealSum(dt_avg, ioproc);
-    dt_avg /= Real(nprocs);
-
     if (ParallelDescriptor::IOProcessor()) {
 
 	std::cout << std::setfill(' ') << std::setprecision(4);
 	int wt = 9;
-
-	std::cout << "\n\n";
-	std::cout << "TinyProfiler total time across processes [min...avg...max]: " 
-		  << dt_min << " ... " << dt_avg << " ... " << dt_max << "\n";
 
 	int wnc = (int) std::log10 ((double) maxncalls) + 1;
 	wnc = std::max(wnc, int(std::string("NCalls").size()));
@@ -258,8 +321,7 @@ TinyProfiler::Finalize ()
 		  << std::setw(wt+2) << "Excl. Max"
 		  << std::setw(wp+2)  << "Max %"
 		  << "\n" << hline << "\n";
-	for (std::vector<ProcStats>::const_iterator it = allprocstats.begin();
-	     it != allprocstats.end(); ++it)
+	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
 	{
 	    std::cout << std::setprecision(4) << std::left
 		      << std::setw(maxfnamelen) << it->fname
@@ -287,8 +349,7 @@ TinyProfiler::Finalize ()
 		  << std::setw(wt+2) << "Incl. Max"
 		  << std::setw(wp+2)  << "Max %"
 		  << "\n" << hline << "\n";
-	for (std::vector<ProcStats>::const_iterator it = allprocstats.begin();
-	     it != allprocstats.end(); ++it)
+	for (auto it = allprocstats.cbegin(); it != allprocstats.cend(); ++it)
 	{
 	    std::cout << std::setprecision(4) << std::left
 		      << std::setw(maxfnamelen) << it->fname
@@ -306,6 +367,44 @@ TinyProfiler::Finalize ()
 
 	std::cout << std::endl;
     }
+}
+
+void
+TinyProfiler::StartRegion (std::string regname)
+{
+    if (std::find(regionstack.begin(), regionstack.end(), regname) == regionstack.end()) {
+        regionstack.emplace_back(std::move(regname));
+    }
+}
+
+void
+TinyProfiler::StopRegion (const std::string& regname)
+{
+    if (regname == regionstack.back()) {
+        regionstack.pop_back();
+    }
+}
+
+TinyProfileRegion::TinyProfileRegion (std::string a_regname)
+    : regname(std::move(a_regname)),
+      tprof(regname, false)
+{
+    TinyProfiler::StartRegion(regname);
+    tprof.start();
+}
+
+TinyProfileRegion::TinyProfileRegion (const char* a_regname)
+    : regname(a_regname),
+      tprof(a_regname, false)
+{
+    TinyProfiler::StartRegion(a_regname);
+    tprof.start();
+}
+
+TinyProfileRegion::~TinyProfileRegion ()
+{
+    tprof.stop();
+    TinyProfiler::StopRegion(regname);
 }
 
 }
