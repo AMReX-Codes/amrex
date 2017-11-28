@@ -351,7 +351,7 @@ var searchData=
   ['mfghostiter',['MFGhostIter',['../classamrex_1_1_fab_array_base.html#a0730c47ed240b86d1a24126a0adf6b13',1,'amrex::FabArrayBase::MFGhostIter()'],['../classamrex_1_1_m_f_ghost_iter.html#a2af23493d978ba121e15f39b9da67648',1,'amrex::MFGhostIter::MFGhostIter()']]],
   ['mfghostiter',['MFGhostIter',['../classamrex_1_1_m_f_ghost_iter.html',1,'amrex']]],
   ['mfghostiter_5ftile_5fsize',['mfghostiter_tile_size',['../classamrex_1_1_fab_array_base.html#a31677ce1cdddcbc405f41bb1a4351d35',1,'amrex::FabArrayBase']]],
-  ['mfgraph',['MFGraph',['../classamrex_1_1_fab_array.html#a60f56cd45cbe9dc96de858a4ecc30f5a',1,'amrex::FabArray']]],
+  ['mfgraph',['MFGraph',['../classamrex_1_1_fab_array.html#a60f56cd45cbe9dc96de858a4ecc30f5a',1,'amrex::FabArray::MFGraph()'],['../classamrex_1_1_amr.html#a60f56cd45cbe9dc96de858a4ecc30f5a',1,'amrex::Amr::MFGraph()'],['../classamrex_1_1_amr_level.html#a60f56cd45cbe9dc96de858a4ecc30f5a',1,'amrex::AmrLevel::MFGraph()']]],
   ['mfgraph',['MFGraph',['../classamrex_1_1_m_f_graph.html',1,'amrex']]],
   ['mfinfo',['MFInfo',['../structamrex_1_1_m_f_info.html',1,'amrex']]],
   ['mfiter',['MFIter',['../classamrex_1_1_m_f_iter.html',1,'amrex']]],
