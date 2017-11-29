@@ -17,6 +17,7 @@
 #include <AMReX_LatheIF.H>
 #include <AMReX_PolynomialIF.H>
 #include <AMReX_AnisotropicDxPlaneIF.H>
+#include <AMReX_AnisotropicIF.H>
 
 #include <AMReX_ParmParse.H>
 
@@ -226,6 +227,24 @@ initialize_EBIS(const int max_level)
             bool normalInside = true;
 
             impfunc.reset(static_cast<BaseIF*>(new AnisotropicDxPlaneIF(normal,point,normalInside,dxVec)));
+          }
+
+          else if (geom_type == "anisotropic_sphere")
+          {
+            amrex::Print() << "anisotropic sphere geometry\n";
+            Vector<Real> centervec(SpaceDim);
+            Real radius;
+            pp.get(   "sphere_radius", radius);
+            pp.getarr("sphere_center", centervec, 0, SpaceDim);
+            RealVect center;
+            for(int idir = 0; idir < SpaceDim; idir++)
+            {
+              center[idir] = centervec[idir];
+            }
+            bool insideRegular = false;
+            shared_ptr<BaseIF> baseif(new SphereIF(radius, center, insideRegular));
+
+            impfunc.reset(static_cast<BaseIF*>(new AnisotropicIF(baseif,dxVec)));
           }
           else if (geom_type == "sphere")
           {
