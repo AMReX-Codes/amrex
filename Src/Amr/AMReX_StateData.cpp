@@ -413,11 +413,27 @@ StateData::replaceOldData (MultiFab* mf)
     delete mf;
 }
 
+// This version does NOT delete the replaced data.
+
+void
+StateData::replaceOldData (StateData& s)
+{
+    std::swap(old_data, s.old_data);
+}
+
 void
 StateData::replaceNewData (MultiFab* mf)
 {
     std::swap(new_data, mf);
     delete mf;
+}
+
+// This version does NOT delete the replaced data.
+
+void
+StateData::replaceNewData (StateData& s)
+{
+    std::swap(new_data, s.new_data);
 }
 
 void

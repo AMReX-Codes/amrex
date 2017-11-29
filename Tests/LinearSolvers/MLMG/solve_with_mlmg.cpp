@@ -125,7 +125,7 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int ref_ratio,
             const int solver_level = 0; // 0 even though ilev may be > 0
             if (ilev > 0)
             {
-                mlabec.setBCWithCoarseData(&soln[ilev-1], ref_ratio);
+                mlabec.setCoarseFineBC(&soln[ilev-1], ref_ratio);
             }
             mlabec.setLevelBC(solver_level, &soln[ilev]); 
             

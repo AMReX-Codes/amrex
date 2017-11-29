@@ -26,7 +26,7 @@ subroutine fort_set_coef (lo, hi, exact, elo, ehi, alpha, alo, ahi, beta, blo, b
   yc = (prob_hi(2) + prob_lo(2))/2.d0
   zc = (prob_hi(3) + prob_lo(3))/2.d0
 
-  theta = 0.5d0*log(3.0) / (w + 1.d-50)
+  theta = 0.5d0*log(3.d0) / (w + 1.d-50)
       
   do k = lo(3)-1, hi(3)+1
      z = prob_lo(3) + dx(3) * (dble(k)+0.5d0)

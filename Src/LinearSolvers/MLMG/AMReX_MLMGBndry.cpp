@@ -35,8 +35,8 @@ MLMGBndry::setLOBndryConds (const std::array<LinOpBCType,AMREX_SPACEDIM>& lo,
         setBoxBC(bloc, bct, grd, domain, lo, hi, dx, ratio);
 
         const int comp = 0;
-        for (int i = 0; i < 2*AMREX_SPACEDIM; ++i) {
-            bctag[i][comp] = bct[i];
+        for (int idim = 0; idim < 2*AMREX_SPACEDIM; ++idim) {
+            bctag[idim][comp] = bct[idim];
         }
     }
 }
