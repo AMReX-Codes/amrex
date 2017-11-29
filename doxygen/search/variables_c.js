@@ -33,7 +33,7 @@ var searchData=
   ['notinsidecar',['notInSidecar',['../namespaceamrex_1_1_parallel_descriptor.html#af7f5d9b03dc326aba89fb9fb996fcc96',1,'amrex::ParallelDescriptor']]],
   ['nprocs_5fundefined',['nProcs_undefined',['../namespaceamrex_1_1_parallel_descriptor.html#a79a15f1f32efcf3a6682881d228808d5',1,'amrex::ParallelDescriptor']]],
   ['nsidecars',['nSidecars',['../namespaceamrex_1_1_parallel_descriptor.html#a989af8a7ee795fa719957eadbc265b59',1,'amrex::ParallelDescriptor']]],
-  ['nstr',['nstr',['../namespaceamrex.html#a9b8a7805a4a32fed1684aafdf95984ed',1,'amrex::nstr()'],['../_a_m_re_x_8cpp.html#ae078190369c20a6e00eec508f558852f',1,'NSTR():&#160;AMReX.cpp']]],
+  ['nstr',['NSTR',['../_a_m_re_x_8cpp.html#ae078190369c20a6e00eec508f558852f',1,'NSTR():&#160;AMReX.cpp'],['../namespaceamrex.html#a9b8a7805a4a32fed1684aafdf95984ed',1,'amrex::nstr()']]],
   ['num_5fbuild',['num_build',['../structamrex_1_1_fab_array_base_1_1_fab_array_stats.html#a11d7300007b694fa66c0aead6b930f06',1,'amrex::FabArrayBase::FabArrayStats']]],
   ['num_5ffabarrays',['num_fabarrays',['../structamrex_1_1_fab_array_base_1_1_fab_array_stats.html#ab4b3c50d480036fa2cd0506f9e8f96ff',1,'amrex::FabArrayBase::FabArrayStats']]],
   ['num_5fint_5fsoa_5fcomps',['num_int_soa_comps',['../classamrex_1_1_particle_container.html#a0cddb16f78a5ef5c074fcaccdafebeee',1,'amrex::ParticleContainer']]],

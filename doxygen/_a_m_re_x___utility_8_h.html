@@ -88,6 +88,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <a href="#nested-classes">Classes</a> &#124;
 <a href="#namespaces">Namespaces</a> &#124;
 <a href="#define-members">Macros</a> &#124;
+<a href="#typedef-members">Typedefs</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">AMReX_Utility.H File Reference</div>  </div>
@@ -96,6 +97,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="textblock"><code>#include &lt;iostream&gt;</code><br/>
 <code>#include &lt;string&gt;</code><br/>
 <code>#include &lt;map&gt;</code><br/>
+<code>#include &lt;chrono&gt;</code><br/>
+<code>#include &lt;type_traits&gt;</code><br/>
 <code>#include &lt;sys/types.h&gt;</code><br/>
 <code>#include &lt;unistd.h&gt;</code><br/>
 <code>#include &lt;sys/wait.h&gt;</code><br/>
@@ -127,6 +130,11 @@ Namespaces</h2></td></tr>
 Macros</h2></td></tr>
 <tr class="memitem:a93b4a56e5a8af340d43839230b94843c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_a_m_re_x___utility_8_h.html#a93b4a56e5a8af340d43839230b94843c">BL_IGNORE_MAX</a>&#160;&#160;&#160;100000</td></tr>
 <tr class="separator:a93b4a56e5a8af340d43839230b94843c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:ae337b46a7ca54b353861635503079536"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ae337b46a7ca54b353861635503079536">amrex::MaxResSteadyClock</a> = std::conditional&lt; std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock &gt;::type</td></tr>
+<tr class="separator:ae337b46a7ca54b353861635503079536"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -236,6 +244,8 @@ Functions</h2></td></tr>
 <tr class="separator:a4b0e217dfd7d0701976fc22ff1d4a1ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af353083e449d736188c80257c096f518"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af353083e449d736188c80257c096f518">amrex::USleep</a> (double sleepsec)</td></tr>
 <tr class="separator:af353083e449d736188c80257c096f518"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a264e86a5ee72c5d32bf8498067ff2d91"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a264e86a5ee72c5d32bf8498067ff2d91">amrex::second</a> ()</td></tr>
+<tr class="separator:a264e86a5ee72c5d32bf8498067ff2d91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a class="anchor" id="a93b4a56e5a8af340d43839230b94843c"></a>

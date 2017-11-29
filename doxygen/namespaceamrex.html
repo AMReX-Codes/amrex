@@ -628,6 +628,8 @@ Typedefs</h2></td></tr>
 <tr class="memitem:a62563da3fe4e55c8bba5b5e1aadf2495"><td class="memTemplParams" colspan="2">template&lt;class T , std::size_t N&gt; </td></tr>
 <tr class="memitem:a62563da3fe4e55c8bba5b5e1aadf2495"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a62563da3fe4e55c8bba5b5e1aadf2495">Tuple</a> = std::array&lt; T, N &gt;</td></tr>
 <tr class="separator:a62563da3fe4e55c8bba5b5e1aadf2495"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae337b46a7ca54b353861635503079536"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ae337b46a7ca54b353861635503079536">MaxResSteadyClock</a> = std::conditional&lt; std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock &gt;::type</td></tr>
+<tr class="separator:ae337b46a7ca54b353861635503079536"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ffd900db646020685b37acf03d06464"><td class="memItemLeft" align="right" valign="top">typedef double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a8ffd900db646020685b37acf03d06464">amrex_particle_real</a></td></tr>
 <tr class="separator:a8ffd900db646020685b37acf03d06464"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a042e8014dbfc4905aac0c32c745df7ac"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a042e8014dbfc4905aac0c32c745df7ac">TracerParIter</a> = <a class="el" href="classamrex_1_1_par_iter.html">ParIter</a>&lt; <a class="el" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a> &gt;</td></tr>
@@ -1517,6 +1519,8 @@ Functions</h2></td></tr>
 <tr class="separator:a4b0e217dfd7d0701976fc22ff1d4a1ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af353083e449d736188c80257c096f518"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af353083e449d736188c80257c096f518">USleep</a> (double sleepsec)</td></tr>
 <tr class="separator:af353083e449d736188c80257c096f518"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a264e86a5ee72c5d32bf8498067ff2d91"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a264e86a5ee72c5d32bf8498067ff2d91">second</a> ()</td></tr>
+<tr class="separator:a264e86a5ee72c5d32bf8498067ff2d91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4ad8b7a21907586ee3a86bda5163cd2d"><td class="memTemplParams" colspan="2">template&lt;class T , typename  = typename T::FABType&gt; </td></tr>
 <tr class="memitem:a4ad8b7a21907586ee3a86bda5163cd2d"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; T * &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a4ad8b7a21907586ee3a86bda5163cd2d">GetVecOfPtrs</a> (<a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; T &gt; &amp;a)</td></tr>
 <tr class="separator:a4ad8b7a21907586ee3a86bda5163cd2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1944,6 +1948,18 @@ template&lt;class T &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">typedef int <a class="el" href="namespaceamrex.html#a9f4d0df7602cb80e9c2217dae6b9281d">amrex::key_table_type</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="ae337b46a7ca54b353861635503079536"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespaceamrex.html#ae337b46a7ca54b353861635503079536">amrex::MaxResSteadyClock</a> = typedef std::conditional&lt;std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock&gt;::type</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -13308,6 +13324,21 @@ template&lt;class T &gt; </div>
 </table>
 </div><div class="memdoc">
 <p>Returns a <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> obtained by multiplying each of the components of the given <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> by a scalar. </p>
+
+</div>
+</div>
+<a class="anchor" id="a264e86a5ee72c5d32bf8498067ff2d91"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double amrex::second </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
