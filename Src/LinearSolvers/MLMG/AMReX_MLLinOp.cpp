@@ -111,6 +111,9 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() == m_geom[amrlev][0].Domain().numPts());
     }
 
+    bool agged = false;
+    bool coned = false;
+
     if (info.do_agglomeration && m_domain_covered[0])
     {
         Vector<Box> domainboxes;
@@ -143,8 +146,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 m_grids[0].emplace_back(domainboxes[lev]);
                 m_grids[0].back().maxSize(info.agg_grid_size);
 
-                const auto& dm = makeConsolidatedDMap(m_grids[0].back());
-                m_dmap[0].push_back(dm);
+                m_dmap[0].push_back(DistributionMapping());
+                agged = true;
             }
             else
             {
@@ -163,7 +166,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
-	int con_factor = 1;
         Real avg_npts, threshold_npts;
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
@@ -183,15 +185,12 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             {
                 if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
                 {
-		    con_factor *= consolidation_ratio;
-                    const auto& dm = makeConsolidatedDMap(m_grids[0].back(),
-							  m_dmap[0].back(), con_factor);
-                    m_dmap[0].push_back(dm);
+                    coned = true;
+                    m_dmap[0].push_back(DistributionMapping());
                 }
                 else
                 {
-                    auto dm = m_dmap[0].back();
-                    m_dmap[0].push_back(dm);
+                    m_dmap[0].push_back(m_dmap[0].back());
                 }
             }
             else
@@ -202,6 +201,15 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             ++(m_num_mg_levels[0]);
             rr *= mg_coarsen_ratio;
         }
+    }
+
+    if (agged)
+    {
+        makeAgglomeratedDMap(m_grids[0], m_dmap[0]);
+    }
+    else if (coned)
+    {
+        makeConsolidatedDMap(m_grids[0], m_dmap[0], consolidation_ratio, consolidation_strategy);
     }
 
     if (info.do_agglomeration || info.do_consolidation)
@@ -380,7 +388,7 @@ MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
 }
 
 void
-MLLinOp::setBCWithCoarseData (const MultiFab* crse, int crse_ratio)
+MLLinOp::setCoarseFineBC (const MultiFab* crse, int crse_ratio)
 {
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;
@@ -390,6 +398,8 @@ void
 MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 {
     BL_PROFILE("MLLinOp::setLevelBC()");
+
+    AMREX_ALWAYS_ASSERT(amrlev >= 0 && amrlev < m_num_amr_levels);
 
     MultiFab zero;
     if (a_levelbcdata == nullptr) {
@@ -791,58 +801,6 @@ MLLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
     }
 }
 
-DistributionMapping
-MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
-{
-    BL_PROFILE("MLLinOp::makeConsolidatedDMap()");
-
-    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
-
-    const int nprocs = ParallelDescriptor::NProcs();
-    AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
-
-    Vector<int> pmap(ba.size());
-    for (int iproc = 0; iproc < nprocs; ++iproc) {
-	for (int ibox : sfc[iproc]) {
-	    pmap[ibox] = iproc;
-	}
-    }
-
-    return DistributionMapping{pmap};
-}
-
-DistributionMapping
-MLLinOp::makeConsolidatedDMap (const BoxArray& ba, const DistributionMapping& fdm, int factor)
-{
-    const int nprocs = ParallelDescriptor::NProcs();
-    Vector<int> pmap = fdm.ProcessorMap();
-    if (consolidation_strategy == 1) {
-	for (auto& x: pmap) {
-	    x /= consolidation_ratio;
-	}
-    } else if (consolidation_strategy == 2) {
-	int nprocs_con = static_cast<int>(std::ceil(static_cast<Real>(nprocs)
-						    / static_cast<Real>(factor)));
-	for (auto& x: pmap) {
-	    auto d = std::div(x,nprocs_con);
-	    x = d.rem;
-	}
-    } else if (consolidation_strategy == 3) {
-	if (factor == consolidation_ratio) {
-	    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
-	    for (int iproc = 0; iproc < nprocs; ++iproc) {
-		for (int ibox : sfc[iproc]) {
-		    pmap[ibox] = iproc;
-		}
-	    }
-	}
-	for (auto& x: pmap) {
-	    x /= consolidation_ratio;
-	}
-    }
-    return DistributionMapping{pmap};
-}
-
 MPI_Comm
 MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
 {
@@ -1001,5 +959,78 @@ MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMappi
 }
 
 #endif
+
+
+void
+MLLinOp::makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm)
+{
+    BL_PROFILE("MLLinOp::makeAgglomeratedDMap");
+
+    BL_ASSERT(!dm[0].empty());
+    for (int i = 1, N=ba.size(); i < N; ++i)
+    {
+        if (dm[i].empty())
+        {
+            const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
+            
+            const int nprocs = ParallelDescriptor::NProcs();
+            AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
+            
+            Vector<int> pmap(ba[i].size());
+            for (int iproc = 0; iproc < nprocs; ++iproc) {
+                for (int ibox : sfc[iproc]) {
+                    pmap[ibox] = iproc;
+                }
+            }
+            dm[i].define(pmap);
+        }
+    }
+}
+
+
+void
+MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm,
+                               int ratio, int strategy)
+{
+    BL_PROFILE("MLLinOp::makeConsolidatedDMap()");
+
+    int factor = 1;
+    BL_ASSERT(!dm[0].empty());
+    for (int i = 1, N=ba.size(); i < N; ++i)
+    {
+        if (dm[i].empty())
+        {
+            factor *= ratio;
+
+            const int nprocs = ParallelDescriptor::NProcs();
+            Vector<int> pmap = dm[i-1].ProcessorMap();
+            if (strategy == 1) {
+                for (auto& x: pmap) {
+                    x /= ratio;
+                }
+            } else if (strategy == 2) {
+                int nprocs_con = static_cast<int>(std::ceil(static_cast<Real>(nprocs)
+                                                            / static_cast<Real>(factor)));
+                for (auto& x: pmap) {
+                    auto d = std::div(x,nprocs_con);
+                    x = d.rem;
+                }
+            } else if (strategy == 3) {
+                if (factor == ratio) {
+                    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
+                    for (int iproc = 0; iproc < nprocs; ++iproc) {
+                        for (int ibox : sfc[iproc]) {
+                            pmap[ibox] = iproc;
+                        }
+                    }
+                }
+                for (auto& x: pmap) {
+                    x /= ratio;
+                }
+            }
+            dm[i].define(pmap);
+        }
+    }
+}
 
 }

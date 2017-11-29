@@ -68,7 +68,7 @@ public:
     // resolution.  If this is called, it *MUST* be called before
     // `setLevelBC`.  If crse is nullptr, then bc value is assumed to
     // be zero.
-    void setBCWithCoarseData (const MultiFab* crse, int crse_ratio);
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio);
 
     // Must be called for each level.  Argument `levelbcdata` is used
     // to supply Dirichlet bc at the physical domain.  However, even
@@ -263,10 +263,9 @@ private:
                       const Vector<DistributionMapping>& a_dmap);
     void defineAuxData ();
     void defineBC ();
-    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
-    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba,
-						     const DistributionMapping& fdm,
-						     int factor);
+    static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);
+    static void makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm,
+                                      int ratio, int strategy);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
 };
 
