@@ -148,7 +148,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     const int MyProc = ParallelDescriptor::MyProc();
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
     const Periodicity& periodicity = this->Geom(lev).periodicity();
-    const RealBox& prob_domain = this->Geom(lev).ProbDomain();
     const Box& domain = this->Geom(lev).Domain();
     const IntVect& lo = domain.smallEnd();
     const IntVect& hi = domain.bigEnd();
