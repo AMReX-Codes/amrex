@@ -124,6 +124,7 @@ var searchData=
   ['amrtracerparticlecontainer',['AmrTracerParticleContainer',['../classamrex_1_1_amr_tracer_particle_container.html#ad044827a807fc8f0f55d4b21fe9451ce',1,'amrex::AmrTracerParticleContainer']]],
   ['and',['And',['../classamrex_1_1_mask.html#a874cbd0be9955c4d21b7719c2a4a9791',1,'amrex::Mask::And(const Mask &amp;src)'],['../classamrex_1_1_mask.html#ac2133843a6688390bb195764fbb5ce71',1,'amrex::Mask::And(const Mask &amp;src, int srccomp, int destcomp, int numcomp=1)'],['../classamrex_1_1_mask.html#a930370da77c0a36861d7a71787ddc8b9',1,'amrex::Mask::And(const Mask &amp;src, const Box &amp;subbox, int srccomp, int destcomp, int numcomp=1)'],['../classamrex_1_1_mask.html#a654fd339308e5e2cce26b55050497f22',1,'amrex::Mask::And(const Mask &amp;src, const Box &amp;srcbox, const Box &amp;destbox, int srccomp, int destcomp, int numcomp=1)']]],
   ['anisotropicdxplaneif',['AnisotropicDxPlaneIF',['../classamrex_1_1_anisotropic_dx_plane_i_f.html#aeca6d5020b842c6cd5f2c64ca2aad5e5',1,'amrex::AnisotropicDxPlaneIF']]],
+  ['anisotropicif',['AnisotropicIF',['../classamrex_1_1_anisotropic_i_f.html#acc2d41f357d2625d99551a436a33af5c',1,'amrex::AnisotropicIF']]],
   ['any',['any',['../classamrex_1_1_index_type.html#a23729f98bfcee7204775071b19c01b8f',1,'amrex::IndexType']]],
   ['append',['append',['../classamrex_1_1_cluster_list.html#ac43f48e56f1fd91ced82b35b4f8f8458',1,'amrex::ClusterList']]],
   ['appendtable',['appendTable',['../classamrex_1_1_parm_parse.html#aae5998fd0e44f742cf1154536dd56045',1,'amrex::ParmParse']]],

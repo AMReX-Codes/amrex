@@ -11,6 +11,7 @@ var searchData=
   ['_7eamrparticlecontainer',['~AmrParticleContainer',['../classamrex_1_1_amr_particle_container.html#aeef741ce3e4fd839fdf17033875e55d7',1,'amrex::AmrParticleContainer']]],
   ['_7eamrtracerparticlecontainer',['~AmrTracerParticleContainer',['../classamrex_1_1_amr_tracer_particle_container.html#a949e9845cea415781da33b68212f9709',1,'amrex::AmrTracerParticleContainer']]],
   ['_7eanisotropicdxplaneif',['~AnisotropicDxPlaneIF',['../classamrex_1_1_anisotropic_dx_plane_i_f.html#aaeb655ee782904a29d854a3924f70c75',1,'amrex::AnisotropicDxPlaneIF']]],
+  ['_7eanisotropicif',['~AnisotropicIF',['../classamrex_1_1_anisotropic_i_f.html#a20738c55b601afeb55e562d62f6bcd7b',1,'amrex::AnisotropicIF']]],
   ['_7earena',['~Arena',['../classamrex_1_1_arena.html#a515142557e6b630fbad746e3c33776e5',1,'amrex::Arena']]],
   ['_7ebaseebcellfab',['~BaseEBCellFAB',['../classamrex_1_1_base_e_b_cell_f_a_b.html#a02e3ccad65f99240fd5cfbbc4a3b033c',1,'amrex::BaseEBCellFAB']]],
   ['_7ebaseebcellfactory',['~BaseEBCellFactory',['../classamrex_1_1_base_e_b_cell_factory.html#a7c115403a9973b785c9d574eebe0b728',1,'amrex::BaseEBCellFactory']]],

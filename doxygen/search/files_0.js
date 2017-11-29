@@ -19,6 +19,7 @@ var searchData=
   ['amrex_5famrpargdb_2eh',['AMReX_AmrParGDB.H',['../_a_m_re_x___amr_par_g_d_b_8_h.html',1,'']]],
   ['amrex_5famrparticles_2eh',['AMReX_AmrParticles.H',['../_a_m_re_x___amr_particles_8_h.html',1,'']]],
   ['amrex_5fanisotropicdxplaneif_2eh',['AMReX_AnisotropicDxPlaneIF.H',['../_a_m_re_x___anisotropic_dx_plane_i_f_8_h.html',1,'']]],
+  ['amrex_5fanisotropicif_2eh',['AMReX_AnisotropicIF.H',['../_a_m_re_x___anisotropic_i_f_8_h.html',1,'']]],
   ['amrex_5farena_2ecpp',['AMReX_Arena.cpp',['../_a_m_re_x___arena_8cpp.html',1,'']]],
   ['amrex_5farena_2eh',['AMReX_Arena.H',['../_a_m_re_x___arena_8_h.html',1,'']]],
   ['amrex_5farray_2eh',['AMReX_Array.H',['../_a_m_re_x___array_8_h.html',1,'']]],

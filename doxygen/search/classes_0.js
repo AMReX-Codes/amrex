@@ -41,6 +41,7 @@ var searchData=
   ['amrparticlecontainer',['AmrParticleContainer',['../classamrex_1_1_amr_particle_container.html',1,'amrex']]],
   ['amrtracerparticlecontainer',['AmrTracerParticleContainer',['../classamrex_1_1_amr_tracer_particle_container.html',1,'amrex']]],
   ['anisotropicdxplaneif',['AnisotropicDxPlaneIF',['../classamrex_1_1_anisotropic_dx_plane_i_f.html',1,'amrex']]],
+  ['anisotropicif',['AnisotropicIF',['../classamrex_1_1_anisotropic_i_f.html',1,'amrex']]],
   ['arena',['Arena',['../classamrex_1_1_arena.html',1,'amrex']]],
   ['arithop',['arithOp',['../classamrex_1_1_irreg_f_a_b_1_1arith_op.html',1,'amrex::IrregFAB']]],
   ['arrayofstructs',['ArrayOfStructs',['../classamrex_1_1_array_of_structs.html',1,'amrex']]],
