@@ -1,5 +1,5 @@
 // We only support BL_PROFILE, BL_PROFILE_VAR, BL_PROFILE_VAR_STOP, BL_PROFILE_VAR_START,
-// and BL_PROFILE_VAR_NS.
+// BL_PROFILE_VAR_NS, and BL_PROFILE_REGION.
 
 #include <algorithm>
 #include <iostream>
@@ -64,7 +64,7 @@ TinyProfiler::start ()
 #endif
     if (stats.empty())
     {
-	Real t = ParallelDescriptor::second();
+	Real t = amrex::second();
 
 	ttstack.push(std::make_pair(t, 0.0));
 	global_depth = ttstack.size();
@@ -86,7 +86,7 @@ TinyProfiler::stop ()
 #endif
     if (!stats.empty()) 
     {
-	Real t = ParallelDescriptor::second();
+	Real t = amrex::second();
 
 	while (static_cast<int>(ttstack.size()) > global_depth) {
 	    ttstack.pop();
@@ -129,7 +129,7 @@ void
 TinyProfiler::Initialize ()
 {
     regionstack.push_back(mainregion);
-    t_init = ParallelDescriptor::second();
+    t_init = amrex::second();
 }
 
 void
@@ -142,7 +142,7 @@ TinyProfiler::Finalize ()
 	finalized = true;
     }
 
-    Real t_final = ParallelDescriptor::second();
+    Real t_final = amrex::second();
 
     // make a local copy so that any functions call after this will not be recorded in the local copy.
     auto lstatsmap = statsmap;
