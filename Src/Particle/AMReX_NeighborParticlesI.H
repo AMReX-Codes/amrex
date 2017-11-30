@@ -500,7 +500,7 @@ getRcvCountsMPI() {
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
 
-    BL_ASSERT(send_data.size() == neighbor_procs.size());
+    BL_ASSERT(send_data.size() <= neighbor_procs.size());
 
     // each proc figures out how many bytes it will send, and how
     // many it will receive
