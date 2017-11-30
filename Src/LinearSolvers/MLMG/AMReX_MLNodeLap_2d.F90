@@ -1,10 +1,11 @@
 module amrex_mlnodelap_2d_module
 
   use amrex_fort_module, only : amrex_real
+  use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann, amrex_lo_inflow
   implicit none
 
   private
-  public :: amrex_mlndlap_sigma_cctoedge
+  public :: amrex_mlndlap_sigma_cctoedge, amrex_mlndlap_divu
 
 contains
 
@@ -30,5 +31,60 @@ contains
     end do
 
   end subroutine amrex_mlndlap_sigma_cctoedge
+
+
+  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, dxinv, ndlo, ndhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_divu')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, ndlo, ndhi, bclo, bchi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
+
+    integer :: i,j
+    real(amrex_real) :: facx, facy
+
+    facx = 0.5d0*dxinv(1)
+    facy = 0.5d0*dxinv(2)
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          rhs(i,j) = facx*(-vel(i-1,j-1,1)+vel(i,j-1,1)-vel(i-1,j,1)+vel(i,j,1)) &
+               &   + facy*(-vel(i-1,j-1,2)-vel(i,j-1,2)+vel(i-1,j,2)+vel(i,j,2))
+       end do
+    end do
+
+    if (lo(1) .eq. ndlo(1)) then
+       if (bclo(1) .eq. amrex_lo_dirichlet) then
+          rhs(lo(1),lo(2):hi(2)) = 0.d0
+       else if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then 
+          rhs(lo(1),lo(2):hi(2)) = 2.d0*rhs(lo(1),lo(2):hi(2))
+       end if
+    end if
+
+    if (hi(1) .eq. ndhi(1)) then
+       if (bchi(1) .eq. amrex_lo_dirichlet) then
+          rhs(hi(1),lo(2):hi(2)) = 0.d0
+       else if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
+          rhs(hi(1),lo(2):hi(2)) = 2.d0*rhs(hi(1),lo(2):hi(2))
+       end if
+    end if
+
+    if (lo(2) .eq. ndlo(2)) then
+       if (bclo(2) .eq. amrex_lo_dirichlet) then
+          rhs(lo(1):hi(1),lo(2)) = 0.d0
+       else if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
+          rhs(lo(1):hi(1),lo(2)) = 2.d0*rhs(lo(1):hi(1),lo(2))
+       end if
+    end if
+
+    if (hi(2) .eq. ndhi(2)) then
+       if (bchi(2) .eq. amrex_lo_dirichlet) then
+          rhs(lo(1):hi(1),hi(2)) = 0.d0
+       else if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
+          rhs(lo(1):hi(1),hi(2)) = 2.d0*rhs(lo(1):hi(1),hi(2))
+       end if
+    end if
+
+  end subroutine amrex_mlndlap_divu
 
 end module amrex_mlnodelap_2d_module
