@@ -590,7 +590,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00500"></a><span class="lineno">  500</span>&#160;<span class="preprocessor">#ifdef BL_USE_MPI</span></div>
 <div class="line"><a name="l00501"></a><span class="lineno">  501</span>&#160;<span class="preprocessor"></span>    <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a0455b3ad4f2a4c13b57d33e4c6325dca">NProcs</a> = <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a0455b3ad4f2a4c13b57d33e4c6325dca">ParallelDescriptor::NProcs</a>();</div>
 <div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160;</div>
-<div class="line"><a name="l00503"></a><span class="lineno">  503</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(send_data.size() == neighbor_procs.size());</div>
+<div class="line"><a name="l00503"></a><span class="lineno">  503</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(send_data.size() &lt;= neighbor_procs.size());</div>
 <div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160;</div>
 <div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;    <span class="comment">// each proc figures out how many bytes it will send, and how</span></div>
 <div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160;    <span class="comment">// many it will receive</span></div>
