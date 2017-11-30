@@ -1,5 +1,4 @@
 
-#include <AMReX_VisMF.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MLMGBndry.H>
@@ -17,13 +16,9 @@ namespace {
     int consolidation_strategy = 3;
 }
 
-MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
-                  const Vector<BoxArray>& a_grids,
-                  const Vector<DistributionMapping>& a_dmap,
-                  const LPInfo& a_info)
-{
-    define(a_geom, a_grids, a_dmap, a_info);
-}
+MLLinOp::MLLinOp () {}
+
+MLLinOp::~MLLinOp () {}
 
 void
 MLLinOp::define (const Vector<Geometry>& a_geom,
@@ -360,9 +355,6 @@ MLLinOp::defineBC ()
         } 
     }
 }
-
-MLLinOp::~MLLinOp ()
-{}
 
 void
 MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const

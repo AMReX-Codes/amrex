@@ -36,11 +36,7 @@ public:
     enum struct BCMode { Homogeneous, Inhomogeneous };
     using BCType = LinOpBCType;
 
-    MLLinOp () {}
-    MLLinOp (const Vector<Geometry>& a_geom,
-             const Vector<BoxArray>& a_grids,
-             const Vector<DistributionMapping>& a_dmap,
-             const LPInfo& a_info = LPInfo());
+    MLLinOp ();
     virtual ~MLLinOp ();
 
     MLLinOp (const MLLinOp&) = delete;
@@ -51,7 +47,7 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo());
+                 const LPInfo& a_info);
 
     // Boundary of the whole domain. This functions must be called,
     // and must be called before other bc functions.

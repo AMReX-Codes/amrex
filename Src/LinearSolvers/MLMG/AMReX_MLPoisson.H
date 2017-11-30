@@ -1,7 +1,7 @@
 #ifndef AMREX_MLPOISSON_H_
 #define AMREX_MLPOISSON_H_
 
-#include <AMReX_MLLinOp.H>
+#include <AMReX_MLCellLinOp.H>
 #include <AMReX_Array.H>
 #include <limits>
 
@@ -10,7 +10,7 @@ namespace amrex {
 // del dot grad phi
 
 class MLPoisson
-    : public MLLinOp
+    : public MLCellLinOp
 {
 public:
 

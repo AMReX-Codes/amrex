@@ -1,7 +1,7 @@
 #ifndef AMREX_ML_ABECLAPLACIAN_H_
 #define AMREX_ML_ABECLAPLACIAN_H_
 
-#include <AMReX_MLLinOp.H>
+#include <AMReX_MLCellLinOp.H>
 #include <AMReX_Array.H>
 #include <limits>
 
@@ -10,7 +10,7 @@ namespace amrex {
 // (alpha * a - beta * (del dot b grad)) phi
 
 class MLABecLaplacian
-    : public MLLinOp
+    : public MLCellLinOp
 {
 public:
 
