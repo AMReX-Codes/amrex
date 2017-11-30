@@ -99,6 +99,40 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
     }
 }
 
+void
+MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
+                          const Vector<const MultiFab*>& rhnd,
+                          const Vector<const MultiFab*>& rhcc) const
+{
+    AMREX_ALWAYS_ASSERT(rhs.size() == 1);
+    AMREX_ALWAYS_ASSERT(rhcc[0] == nullptr);
+
+    for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
+    {
+        vel[ilev]->FillBoundary(m_geom[ilev][0].periodicity());
+
+        const Real* dxinv = m_geom[ilev][0].InvCellSize();
+
+        const auto& nddom = amrex::surroundingNodes(m_geom[ilev][0].Domain());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(*rhs[ilev], true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),                               
+                               BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                               BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
+                               dxinv, BL_TO_FORTRAN_BOX(nddom),
+                               m_lobc.data(), m_hibc.data());
+        }
+
+        if (rhnd[ilev]) {
+            MultiFab::Copy(*rhs[ilev], *rhnd[ilev], 0, 0, 1, 0);
+        }
+    }
+}
 
 // average codes
 

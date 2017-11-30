@@ -32,6 +32,10 @@ public :
 
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
+    void compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
+                  const Vector<const MultiFab*>& rhnd,
+                  const Vector<const MultiFab*>& rhcc) const;
+
 protected:
 
     virtual void prepareForSolve () final;

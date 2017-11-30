@@ -4,7 +4,7 @@ module amrex_mlnodelap_3d_module
   implicit none
 
   private
-  public :: amrex_mlndlap_sigma_cctoedge
+  public :: amrex_mlndlap_sigma_cctoedge, amrex_mlndlap_divu
 
 contains
 
@@ -53,5 +53,14 @@ contains
     end do
 
   end subroutine amrex_mlndlap_sigma_cctoedge
+
+
+  subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, dxinv) &
+       bind(c,name='amrex_mlndlap_divu')
+    integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, vlo, vhi
+    real(amrex_real), intent(in) :: dxinv(3)
+    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
+    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
+  end subroutine amrex_mlndlap_divu
 
 end module amrex_mlnodelap_3d_module
