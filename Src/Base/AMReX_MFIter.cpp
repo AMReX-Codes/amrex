@@ -283,6 +283,22 @@ MFIter::tilebox (const IntVect& nodal) const
 }
 
 Box
+MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const
+{
+    Box bx = tilebox(nodal);
+    const Box& vbx = validbox();
+    for (int d=0; d<BL_SPACEDIM; ++d) {
+	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
+	    bx.growLo(d, ngrow[d]);
+	}
+	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
+	    bx.growHi(d, ngrow[d]);
+	}
+    }
+    return bx;
+}
+
+Box
 MFIter::nodaltilebox (int dir) const 
 { 
     BL_ASSERT(dir < BL_SPACEDIM);
