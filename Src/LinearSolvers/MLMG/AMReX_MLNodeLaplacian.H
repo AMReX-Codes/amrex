@@ -6,6 +6,7 @@
 namespace amrex {
 
 // del dot (sigma grah phi) = rhs
+// where phi and rhs are nodal, and sigma is cell-centered.
 
 class MLNodeLaplacian
     : public MLLinOp
@@ -29,7 +30,7 @@ public :
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo());
 
-    void setSigma (int amrlev, const std::array<MultiFab const*,AMREX_SPACEDIM>& a_sigma);
+    void setSigma (int amrlev, const MultiFab& a_sigma);
 
 protected:
 

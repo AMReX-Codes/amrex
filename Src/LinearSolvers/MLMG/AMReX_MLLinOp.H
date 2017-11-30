@@ -7,6 +7,7 @@
 #include <AMReX_BndryRegister.H>
 #include <AMReX_YAFluxRegister.H>
 #include <AMReX_MLMGBndry.H>
+#include <AMReX_VisMF.H>
 
 namespace amrex {
 
