@@ -39,7 +39,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         ba.enclosedCells();
     }
 
-    MLLinOp::define(a_geom, cc_grids, a_dmap, a_info);
+    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info);
 
     m_sigma.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -108,7 +108,7 @@ MLNodeLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLNodeLaplacian::prepareForSolve()");
 
-    MLLinOp::prepareForSolve();
+    MLNodeLinOp::prepareForSolve();
 
 #if (AMREX_SPACEDIM != 3)
     // applyMetricTermsCoeffs();

@@ -1,7 +1,7 @@
 #ifndef AMREX_ML_NODE_LAPLACIAN_H_
 #define AMREX_ML_NODE_LAPLACIAN_H_
 
-#include <AMReX_MLLinOp.H>
+#include <AMReX_MLNodeLinOp.H>
 
 namespace amrex {
 
@@ -9,7 +9,7 @@ namespace amrex {
 // where phi and rhs are nodal, and sigma is cell-centered.
 
 class MLNodeLaplacian
-    : public MLLinOp
+    : public MLNodeLinOp
 {
 public :
 

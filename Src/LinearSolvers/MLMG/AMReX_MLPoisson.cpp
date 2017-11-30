@@ -1,3 +1,4 @@
+
 #include <AMReX_MLPoisson.H>
 #include <AMReX_MLPoisson_F.H>
 
@@ -18,7 +19,7 @@ MLPoisson::define (const Vector<Geometry>& a_geom,
                    const LPInfo& a_info)
 {
     BL_PROFILE("MLPoisson::define()");
-    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info);
 }
 
 MLPoisson::~MLPoisson ()
@@ -29,7 +30,7 @@ MLPoisson::prepareForSolve ()
 {
     BL_PROFILE("MLPoisson::prepareForSolve()");
 
-    MLLinOp::prepareForSolve();
+    MLCellLinOp::prepareForSolve();
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
