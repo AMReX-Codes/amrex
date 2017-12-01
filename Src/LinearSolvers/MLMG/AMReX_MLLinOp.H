@@ -99,6 +99,8 @@ protected:
 
     Vector<int> m_num_mg_levels;
 
+    IntVect m_ixtype;
+
     // first Vector is for amr level and second is mg level
     Vector<Vector<Geometry> >            m_geom;
     Vector<Vector<BoxArray> >            m_grids;

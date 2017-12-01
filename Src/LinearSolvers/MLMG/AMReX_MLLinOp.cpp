@@ -236,7 +236,9 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
         mf[alev].resize(m_num_mg_levels[alev]);
         for (int mlev = 0; mlev < m_num_mg_levels[alev]; ++mlev)
         {
-            mf[alev][mlev].define(m_grids[alev][mlev], m_dmap[alev][mlev], nc, ng);
+            auto ba = m_grids[alev][mlev];
+            ba.convert(m_ixtype);
+            mf[alev][mlev].define(ba, m_dmap[alev][mlev], nc, ng);
         }
     }
 }

@@ -3,7 +3,10 @@
 
 namespace amrex {
 
-MLNodeLinOp::MLNodeLinOp () {}
+MLNodeLinOp::MLNodeLinOp ()
+{
+    m_ixtype = IntVect::TheNodeVector();
+}
 
 MLNodeLinOp::~MLNodeLinOp () {}
 
