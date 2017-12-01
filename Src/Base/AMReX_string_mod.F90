@@ -13,7 +13,7 @@ module amrex_string_module
      character(kind=c_char), allocatable :: data(:)
   end type amrex_string
 
-  public :: amrex_string_f_to_c, amrex_string_c_to_f, amrex_string_build
+  public :: amrex_string_f_to_c, amrex_string_c_to_f, amrex_string_build, amrex_string_f_to_lower
 
 contains
 
@@ -52,5 +52,21 @@ contains
     end do
     str%data(n+1) = c_null_char
   end subroutine amrex_string_build
+
+
+  function amrex_string_f_to_lower (fstr) result(flo)
+    character(len=*), intent(in) :: fstr
+    character(len=len_trim(fstr)) :: flo
+    integer :: i, n
+    n = len_trim(fstr)
+    do i = 1, n
+       select case(fstr(i:i))
+          case ("A":"Z")
+             flo(i:i) = achar(iachar(fstr(i:i))+32)
+          case default
+             flo(i:i) = fstr(i:i)
+       end select
+    end do
+  end function amrex_string_f_to_lower
 
 end module amrex_string_module

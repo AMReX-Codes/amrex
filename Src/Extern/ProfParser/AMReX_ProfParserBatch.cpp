@@ -345,7 +345,7 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
 				   maxSmallImageLength,
 				   refRatioAll,
 				   nTimeSlots,
-				   &proxMap);
+				   &statsCollected);
       }
     } else {
       pdServices.RunTimelinePF(mpiFuncNames, plotfileName,

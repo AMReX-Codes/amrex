@@ -19,6 +19,7 @@ using std::ios;
 #include <AMReX_VisMF.H>
 #include <AMReX_AVGDOWN_F.H>
 #include "AMReX_ArrayLim.H"
+#include "DebugDump.H"
 #include <iomanip>
 
 #ifndef NDEBUG
