@@ -16,13 +16,13 @@ namespace amrex {
 
 /**
 * This class is meant to hold all information needed to completely
-* describe the "long" type on a machine.  To describe a "long" both
-* the number of bytes in the long and their ordering, relative to canonical
+* describe the "int" or "long" type on a machine.  To describe an integer both
+* the number of bytes and their ordering, relative to canonical
 * ordering 1 .. sizeof(long), needs to be specified.
-* This allows us to write out "long"s in the native format on a machine,
+* This allows us to write out integers in the native format on a machine,
 * and then by also saving the IntDescriptor, we can read them back in on
 * another machine and have enough information to construct the exact same
-* "long" values.
+* values.
 */
 
 class IntDescriptor
@@ -30,10 +30,10 @@ class IntDescriptor
 
 public:
     /**
-    * \brief An enumeration describing the two ordering of a "long"
+    * \brief An enumeration describing the two orderings
     * that we currently support: NormalOrder and ReverseOrder.
-    * Other ordering may be added as BoxLib is ported to run on
-    * machines with non-standard "long" orderings.
+    * Other orderings may be added as BoxLib is ported to run on
+    * machines with non-standard orderings.
     */
     enum Ordering { NormalOrder = 1, ReverseOrder = 2 };
     /**
@@ -46,9 +46,9 @@ public:
     //! Construct a specific IntDescriptor.
     IntDescriptor (long     nb,
                    Ordering ordering = NormalOrder);
-    //! Returns the ordering of the "long".
+    //! Returns the ordering.
     Ordering order () const;
-    //! Returns the number of bytes in a "long".
+    //! Returns the number of bytes.
     int numBytes () const;
     //! The equality operator.
     bool operator== (const IntDescriptor& id) const;
