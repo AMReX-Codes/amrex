@@ -46,6 +46,11 @@ namespace amrex
     return GeometryService::Irregular;
   }
 
+  bool GeometryService::pointOutside(const RealVect& a_pt) const
+  {
+    amrex::Abort("GeometryService::pointOutside not implemented in the general case");
+  }
+
   bool GeometryService::intersection(const RealVect& a_lo1, const RealVect& a_hi1,
                                      const RealVect& a_lo2, const RealVect& a_hi2)
   {
