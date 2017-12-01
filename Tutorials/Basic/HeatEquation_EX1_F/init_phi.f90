@@ -22,7 +22,7 @@ contains
     type(amrex_mfiter) :: mfi
     real(amrex_real), contiguous, pointer :: p(:,:,:,:)
 
-    !$omp parallel private(bx,p,lo,hi)
+    !$omp parallel private(mfi,bx,p,lo,hi)
     call amrex_mfiter_build(mfi, phi, tiling=.true.)
     do while(mfi%next())
        bx = mfi%tilebox()

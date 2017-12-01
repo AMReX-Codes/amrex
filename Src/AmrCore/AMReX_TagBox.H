@@ -70,7 +70,7 @@ public:
     // starting at given location.  Returns the number of
     // collated points.
     //
-    long collate (std::vector<IntVect>& ar, int start) const;
+    long collate (Vector<IntVect>& ar, int start) const;
     //
     // Returns number of tagged cells in specified Box.
     //
@@ -178,7 +178,7 @@ public:
     //
     // Calls collate() on all contained TagBoxes.
     //
-    void collate (std::vector<IntVect>& TheGlobalCollateSpace) const;
+    void collate (Vector<IntVect>& TheGlobalCollateSpace) const;
 
     virtual void AddProcsToComp (int ioProcNumSCS, int ioProcNumAll,
                                  int scsMyId, MPI_Comm scsComm) override;

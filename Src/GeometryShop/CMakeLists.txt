@@ -8,7 +8,7 @@ set (ALLSRC "")
 list ( APPEND ALLHEADERS AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H )
 list ( APPEND CXXSRC     AMReX_GeometryShop.cpp AMReX_Moments.cpp )
 
-list ( APPEND ALLHEADERS AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_PlaneIF.H AMReX_AnisotropicDxPlaneIF.H )
+list ( APPEND ALLHEADERS AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_AnisotropicIF.H	AMReX_PlaneIF.H	AMReX_AnisotropicDxPlaneIF.H )
 list ( APPEND ALLHEADERS AMReX_IrregNode.H   AMReX_LoHiSide.H )
    
 list ( APPEND CXXSRC     AMReX_LSquares.cpp AMReX_SphereIF.cpp  AMReX_PlaneIF.cpp )
@@ -25,6 +25,11 @@ list ( APPEND CXXSRC     AMReX_VoFIterator.cpp AMReX_FaceIterator.cpp )
 
 list ( APPEND ALLHEADERS AMReX_BaseIVFAB.H AMReX_BaseIVFABI.H AMReX_BaseIVFactory.H )
 list ( APPEND ALLHEADERS AMReX_BaseIFFAB.H AMReX_BaseIFFABI.H AMReX_EBData.H  AMReX_EBDataFactory.H )
+list ( APPEND ALLHEADERS AMReX_BaseEBFaceFABI.H )
+list ( APPEND ALLHEADERS AMReX_BaseEBCellFAB.H )
+list ( APPEND ALLHEADERS AMReX_BaseEBCellFABI.H )
+list ( APPEND ALLHEADERS AMReX_EBCellFactory.H )
+
 list ( APPEND CXXSRC     AMReX_EBData.cpp )
 
 list ( APPEND ALLHEADERS AMReX_EBISBox.H   AMReX_PolyGeom.H )
@@ -39,7 +44,6 @@ list ( APPEND CXXSRC     AMReX_EBLevelGrid.cpp  AMReX_AllRegularService.cpp )
 
 list ( APPEND ALLHEADERS AMReX_EBDebugOut.H AMReX_EBDebugDump.H AMReX_EBFaceFAB.H AMReX_BaseEBFaceFAB.H AMReX_EBArith.H )
 list ( APPEND CXXSRC     AMReX_EBDebugOut.cpp AMReX_EBFaceFAB.cpp AMReX_EBArith.cpp )
-
 
 list ( APPEND ALLHEADERS AMReX_RedistStencil.H  AMReX_EBLevelRedist.H AMReX_EBFluxFAB.H AMReX_IrregFAB.H )
 list ( APPEND ALLHEADERS AMReX_EBFluxFactory.H   AMReX_IrregFABFactory.H )

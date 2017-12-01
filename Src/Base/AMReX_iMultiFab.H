@@ -61,10 +61,10 @@ public:
     virtual ~iMultiFab () override = default;
     
     iMultiFab (iMultiFab&& rhs) noexcept = default;
+    iMultiFab& operator= (iMultiFab&& rhs) noexcept = delete;
 
     iMultiFab (const iMultiFab& rhs) = delete;
     iMultiFab& operator= (const iMultiFab& rhs) = delete;
-    iMultiFab& operator= (iMultiFab&& rhs) = delete;
 
     void operator= (const int& r);
     //

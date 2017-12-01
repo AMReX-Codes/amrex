@@ -7,6 +7,10 @@
 #include <AMReX_BoxList.H>
 #include <AMReX_BLProfiler.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace amrex {
 
 void
@@ -19,6 +23,7 @@ void
 BoxList::join (const BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
+    m_lbox.reserve(m_lbox.size() + blist.size());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
 }
 
@@ -26,6 +31,7 @@ void
 BoxList::join (const Vector<Box>& barr)
 {
     BL_ASSERT(barr.size() == 0 || ixType() == barr[0].ixType());
+    m_lbox.reserve(m_lbox.size() + barr.size());
     m_lbox.insert(std::end(m_lbox), std::begin(barr), std::end(barr));
 }
 
@@ -33,6 +39,7 @@ void
 BoxList::catenate (BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
+    m_lbox.reserve(m_lbox.size() + blist.size());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
     blist.m_lbox.clear();
 }
@@ -233,7 +240,6 @@ BoxList
 complementIn (const Box&     b,
               const BoxList& bl)
 {
-    BL_PROFILE("amrex::complementIn");
     BL_ASSERT(bl.ixType() == b.ixType());
     BoxList newb(b.ixType());
     newb.complementIn(b,bl);
@@ -244,9 +250,65 @@ BoxList&
 BoxList::complementIn (const Box&     b,
                        const BoxList& bl)
 {
-    BL_PROFILE("BoxList::complementIn");
     BoxArray ba(bl);
-    *this = ba.complementIn(b);
+    return complementIn(b, ba);
+}
+
+BoxList&
+BoxList::complementIn (const Box& b,
+                       BoxList&&  bl)
+{
+    BoxArray ba(std::move(bl));
+    return complementIn(b, ba);
+}
+
+BoxList&
+BoxList::complementIn (const Box& b, const BoxArray& ba)
+{
+    BL_PROFILE("BoxList::complementIn");
+
+    if (ba.size() == 0)
+    {
+	clear();
+	push_back(b);
+    }
+    else if (ba.size() == 1)
+    {
+	*this = amrex::boxDiff(b, ba[0]);
+    }
+    else
+    {
+	Box mbox = ba.minimalBox();
+	*this = amrex::boxDiff(b, mbox);
+
+	BoxList bl(mbox);
+#if (AMREX_SPACEDIM == 3)
+	bl.maxSize(64);
+#else
+	bl.maxSize(128);
+#endif
+	const int N = bl.size();
+	
+	Vector<BoxList> vbl(N);
+	
+	int newsize = 0;
+	
+#ifdef _OPENMP
+	bool start_omp_parallel = !omp_in_parallel();
+#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
+#endif
+	for (int i = 0; i < N; ++i)
+	{
+	    ba.complementIn(vbl[i], bl.m_lbox[i]);
+	    newsize += vbl[i].size();
+	}
+	
+	m_lbox.reserve(size()+newsize);
+	for (int i = 0; i < N; ++i) {
+	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
+	}
+    }
+
     return *this;
 }
 

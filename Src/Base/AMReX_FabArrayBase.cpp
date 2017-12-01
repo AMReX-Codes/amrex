@@ -168,6 +168,16 @@ FabArrayBase::define (const BoxArray&            bxs,
     }
 }
 
+void
+FabArrayBase::clear ()
+{
+    boxarray.clear();
+    distributionMap = DistributionMapping();
+    indexArray.clear();
+    ownership.clear();
+    m_bdkey = BDKey();
+}
+
 Box
 FabArrayBase::fabbox (int K) const
 {

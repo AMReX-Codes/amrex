@@ -389,6 +389,7 @@ BoxList
 ClusterList::boxList() const
 {
     BoxList blst;
+    blst.reserve(lst.size());
     for (std::list<Cluster*>::const_iterator cli = lst.begin(), End = lst.end();
          cli != End;
          ++cli)
@@ -402,6 +403,7 @@ void
 ClusterList::boxList (BoxList& blst) const
 {
     blst.clear();
+    blst.reserve(lst.size());
     for (std::list<Cluster*>::const_iterator cli = lst.begin(), End = lst.end();
          cli != End;
          ++cli)
