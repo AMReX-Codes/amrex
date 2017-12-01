@@ -343,7 +343,7 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
 
   integer          :: i,j,k
   double precision :: k_1, k_2, k_3, k_4, squcoef, cubcoef, u0,  utemp(0:3)
-  double precision  :: xi, fn, fnfprime, fnfdouble, dt2, dt3
+  double precision  :: xi, fn, fnfprime, fnsqfdouble, dt2, dt3, fprimsqfn
 
   !this gets us to u0
   xi = (tf - tc_old)/dt_c
@@ -378,19 +378,15 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
 
            u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef + xi*xi*xi*cubcoef
 
-           !the ks get multiplied by dt in the code and the following formulae 
-           ! assume that they have not been.
-           k_1 = k_1/dt_c
-           k_2 = k_2/dt_c
-           k_3 = k_3/dt_c
-           k_4 = k_4/dt_c
-           fn = k_1
-           fnfprime  = (-3.0d0*k_1 + 2.0d0*k_2 + 2.0d0*k_3 - k_4)/dt_f
-           fnfdouble = (-4.0d0*k_2 + k_3)/(dt_f*dt_f)
+           fn = k_1/dt_f
+           fnfprime  = (0.5d0/dt2)*(k_4 + 3.0d0*k_1 - 4.0d0*k_3)
+           fnsqfdouble = (1.0d0/dt3)*(8.0d0*k_2 + 8.0d0*k_3 - 14.0d0*k_1 - 2.0d0*k_4)
+           fprimsqfn = (4.0d0/dt3)*(k_3 - k_2)
+
            utemp(0) =  u0
            utemp(1) =  u0 + 0.5d0*dt_f*fn
-           utemp(2) =  u0 + 0.5d0*dt_f*fn + 0.25d0*dt2*fnfprime + 0.0625d0*dt3*fn*fnfdouble
-           utemp(3) =  u0 + 0.5d0*dt_f*fn +  0.5d0*dt2*fnfprime + 0.2500d0*dt3*fn*fnfprime + 0.125d0*dt3*fn*fnfdouble
+           utemp(2) =  u0 + 0.5d0*dt_f*fn + 0.25d0*dt2*fnfprime + 0.0625d0*dt3*fnsqfdouble
+           utemp(3) =  u0 +       dt_f*fn +  0.5d0*dt2*fnfprime + 0.1250d0*dt3*fnsqfdouble + 0.25d0*dt3*fprimsqfn
 
            phi(i,j,k) = utemp(stage)
 
