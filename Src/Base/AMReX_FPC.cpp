@@ -18,10 +18,40 @@ const int FPC::reverse_double_order_2[] = { 2, 1, 4, 3, 6, 5, 8, 7 };
 const long FPC::ieee_float[]  = { 32L,  8L, 23L, 0L, 1L,  9L, 0L,   0x7FL };
 const long FPC::ieee_double[] = { 64L, 11L, 52L, 0L, 1L, 12L, 0L,  0x3FFL };
 //
-// Every copy of the library will have exactly one
-// nativeLongDescriptor and nativeRealDescriptor compiled into it.
+// Every copy of the library will have exactly one nativeIntDescriptor,
+// nativeLongDescriptor, and nativeRealDescriptor compiled into it.
 // Each machine on which AMReX runs MUST have them defined below.
 //
+const
+IntDescriptor&
+FPC::NativeIntDescriptor ()
+{
+#if defined(__i486__) || \
+    defined(i386) || \
+    defined(__i386__) || \
+    defined(__x86_64) || \
+    defined(__amd64__) || \
+    defined(__LITTLE_ENDIAN__) || \
+    defined(__powerpc__) || \
+    defined(powerpc)
+    static const IntDescriptor nld(sizeof(int), IntDescriptor::ReverseOrder);
+#endif
+
+#if defined(__sgi) || \
+    defined(__sun) || \
+    defined(_AIX)  || \
+    defined(__ppc__) || \
+    defined(__ppc64__) || \
+    defined(_SX)   || \
+    defined(__hpux)
+#if !defined(__LITTLE_ENDIAN__)
+    static const IntDescriptor  nld(sizeof(int), IntDescriptor::NormalOrder);
+#endif
+#endif
+
+    return nld;
+}
+
 const
 IntDescriptor&
 FPC::NativeLongDescriptor ()
