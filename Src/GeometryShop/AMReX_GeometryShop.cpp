@@ -16,8 +16,10 @@
 #include <iostream>
 #include <string>
 #include <list>
+#include <map>
 
 #include "AMReX_GeometryShop.H"
+#include "AMReX_GeomIntersectUtils.H"
 #include "AMReX_RealVect.H"
 #include "AMReX.H"
 #include "AMReX_Print.H"
@@ -182,159 +184,28 @@ namespace amrex
 
   }
 
-
-
-  struct Edge
+  bool
+  GeometryShop::pointOutside(const RealVect& a_pt) const
   {
-    Edge(const IntVect& lhs, const IntVect& rhs)
-      {
-	ID = -1;
-	if (lhs < rhs) {
-	  IV_l = lhs;
-	  IV_r = rhs;
-	} else {
-	  IV_l = rhs;
-	  IV_r = lhs;
-	}
-      }
-
-    bool operator== (const Edge& rhs) const
-      {
-	return IV_l==rhs.IV_l && IV_r==rhs.IV_r;
-      }
-    bool operator< (const Edge& rhs) const
-      {
-        if (IV_l==rhs.IV_l) {
-	  return IV_r < rhs.IV_r;
-        }
-	return IV_l < rhs.IV_l;
-      }
-
-    IntVect IV_l,IV_r;
-    size_t ID;
-  };
-
-  std::ostream& operator<<(std::ostream& os, const Edge& e)
-  {
-    os << "EDGE: " << e.IV_l << " : " << e.IV_r << " ID=" << e.ID;
-    return os;
+    // If the implicit function value is positive then the current
+    // pt is outside the domain
+    return m_implicitFunction->value(a_pt) > 0.0;
   }
 
-  typedef std::map<Edge, RealVect> PMap;
-
-  typedef PMap::iterator PMapIt;
-
-  struct PMapItCompare
+  std::pair<bool,NodeMapIt> InsertNode(const IntVect& p1,const IntVect& p2,const RealVect& intersect,NodeMap& intersects)
   {
-    bool operator() (const PMapIt& lhs, const PMapIt& rhs) const {
-      const RealVect& l = lhs->second;
-      const RealVect& r = rhs->second;
-      const void* vl=&l;
-      const void* vr=&r;
-      return vl<vr;
-    }
-  };
-
-  struct Triangle
-  {
-    Triangle() : p(3), mArea(-1) {}
-    Real Area();
-    const PMapIt& operator[] (int n) const { return p[n]; }
-    PMapIt& operator[] (int n) { return p[n]; }
-    static int xComp,yComp,zComp;
-    Array<PMapIt> p;
-    
-  private:
-    void my_area();
-    Real mArea;
-  };
-
-  int Triangle::xComp = 0;
-  int Triangle::yComp = 1;
-  int Triangle::zComp = 2;
-
-  Real
-  Triangle::Area()
-  {
-    if (mArea<0)
-      my_area();
-    return mArea;
-  }
-
-  void
-  Triangle::my_area()
-  {
-#ifndef NDEBUG
-    for (int i=0; i<p.size(); ++i)
-    {
-      BL_ASSERT(xComp>=0 && xComp<(*p[i]).second.size());
-      BL_ASSERT(yComp>=0 && yComp<(*p[i]).second.size());
-      BL_ASSERT(zComp>=0 && zComp<(*p[i]).second.size());
-    }
-#endif
-
-    const RealVect& p0 = (*p[0]).second;
-    const RealVect& p1 = (*p[1]).second;
-    const RealVect& p2 = (*p[2]).second;
-    mArea = 0.5*sqrt(
-      pow(  ( p1[yComp] - p0[yComp])*(p2[zComp]-p0[zComp]) 
-	    -(p1[zComp] - p0[zComp])*(p2[yComp]-p0[yComp]), 2)
-      
-      + pow(( p1[zComp] - p0[zComp])*(p2[xComp]-p0[xComp]) 
-	    -(p1[xComp] - p0[xComp])*(p2[zComp]-p0[zComp]), 2)
-      
-      + pow(( p1[xComp] - p0[xComp])*(p2[yComp]-p0[yComp]) 
-	    -(p1[yComp] - p0[yComp])*(p2[xComp]-p0[xComp]), 2));
-  }    
-
-  struct Segment
-  {
-    Segment() {}
-    Segment(const PMapIt& p1, const PMapIt& p2) : p({p1, p2}) {}
-    const PMapIt& ID_l() const {return p[0];}
-    const PMapIt& ID_r() const {return p[1];}
-    const PMapIt& operator[] (int n) const { return p[n]; }
-    PMapIt& operator[] (int n) { return p[n]; }
-    void flip ();
-    std::array<PMapIt,2> p;
-  };
-
-  void
-  Segment::flip()
-  {
-    PMapIt ptmp = p[0];
-    p[0] = p[1];
-    p[1] = ptmp;
-  }
-
-  list<Segment>::iterator FindMySeg(list<Segment>& segs, const PMapIt& idx)
-  {
-    for (list<Segment>::iterator it=segs.begin(); it!=segs.end(); ++it)
-    {
-      if ( ((*it).ID_l() == idx) || ((*it).ID_r() == idx) )
-	return it;
-    }
-    return segs.end();
-  }
-
-  
-  PMap vertCache;
-  list<Segment> segments;
-
-  pair<bool,PMapIt> SetIntersect(const IntVect& p1,const IntVect& p2,const RealVect& intersect,PMap& vertCache)
-  {
-    PMapIt fwd,rev;
+    NodeMapIt fwd,rev;
     Edge edge(p1,p2);
-    fwd = vertCache.find(edge);
-    if (fwd == vertCache.end())
+    fwd = intersects.find(edge);
+    if (fwd == intersects.end())
     {
-      rev = vertCache.find(Edge(p2,p1));
+      rev = intersects.find(Edge(p2,p1));
         
-      if (rev == vertCache.end())
+      if (rev == intersects.end())
       {
-	edge.ID = vertCache.size(); // Number this edge
+	edge.ID = intersects.size(); // Number this edge
 	std::pair<Edge,RealVect> ent(edge,intersect);
-	std::pair<PMapIt,bool> it = vertCache.insert(ent);
+	std::pair<NodeMapIt,bool> it = intersects.insert(ent);
 	BL_ASSERT(it.second);
 	return make_pair(true,it.first);
       }
@@ -350,6 +221,7 @@ namespace amrex
   void
   GeometryShop::fillGraph(BaseFab<int>        & a_regIrregCovered,
                           Vector<IrregNode>   & a_nodes,
+                          NodeMap             & a_intersections,
                           const Box           & a_validRegion,
                           const Box           & a_ghostRegion,
                           const Box           & a_domain,
@@ -411,6 +283,7 @@ namespace amrex
       }
 
     // now loop through irregular cells and make nodes for each  one.
+    a_intersections.clear();
     for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
       {
         const IntVect& iv = ivsit();
@@ -434,6 +307,7 @@ namespace amrex
                             bndryCentroid,
                             loFaceCentroid,
                             hiFaceCentroid,
+                            a_intersections,
                             a_regIrregCovered,
                             a_domain,
                             a_origin,
@@ -470,580 +344,6 @@ namespace amrex
           }
 
       } // end loop over cut cells in the box
-
-#if BL_SPACEDIM==2
-    Vector<IntVect> pt(4);
-    Vector<RealVect> x(4);
-    Vector<Real> v(4);
-    for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
-    {
-      pt[0] = ivsit();
-      pt[1] = pt[0] + BASISV(0);
-      pt[2] = pt[1] + BASISV(1);
-      pt[3] = pt[0] + BASISV(1);
-
-      for (int i=0; i<4; ++i)
-      {
-	for (int idir=0; idir<SpaceDim; ++idir)
-	{
-	  x[i][idir] = a_origin[idir] + pt[i][idir]*a_dx;
-	}
-	v[i] = m_implicitFunction->value(x[i]);
-      }
-
-      int segCase = 0;
-      if (v[0] < 0) segCase |= 1;
-      if (v[1] < 0) segCase |= 2;
-      if (v[2] < 0) segCase |= 4;
-      if (v[3] < 0) segCase |= 8;
-      
-      switch (segCase)
-      {
-      case 1:
-      case 14:
-	segments.push_back(Segment(vertCache.find(Edge(pt[0],pt[1])),
-				   vertCache.find(Edge(pt[0],pt[3]))));
-	break;
-      case 2:
-      case 13:
-	segments.push_back(Segment(vertCache.find(Edge(pt[0],pt[1])),
-				   vertCache.find(Edge(pt[1],pt[2]))));
-	break;
-      case 3:
-      case 12:
-	segments.push_back(Segment(vertCache.find(Edge(pt[1],pt[2])),
-				   vertCache.find(Edge(pt[0],pt[3]))));
-	break;
-      case 4:
-      case 11:
-	segments.push_back(Segment(vertCache.find(Edge(pt[1],pt[2])),
-				   vertCache.find(Edge(pt[2],pt[3]))));
-       break;
-      case 6:
-      case 9:
-	segments.push_back(Segment(vertCache.find(Edge(pt[0],pt[1])),
-				   vertCache.find(Edge(pt[2],pt[3]))));
-	break;
-      case 7:
-      case 8:
-	segments.push_back(Segment(vertCache.find(Edge(pt[2],pt[3])),
-				   vertCache.find(Edge(pt[0],pt[3]))));
-	break;
-      case 5:
-      case 10:
-	segments.push_back(Segment(vertCache.find(Edge(pt[0],pt[1])),
-				   vertCache.find(Edge(pt[1],pt[2]))));
-	segments.push_back(Segment(vertCache.find(Edge(pt[2],pt[3])),
-				   vertCache.find(Edge(pt[0],pt[3]))));
-	break;
-      }
-    }
-
-    list<list<Segment>> cLines;
-    cLines.push_back(list<Segment>());
-    cLines.back().push_back(segments.front());
-
-    PMapIt idx = segments.front().ID_r();
-    segments.pop_front();
-    while (segments.begin() != segments.end())
-    {
-      list<Segment>::iterator segIt = FindMySeg(segments,idx);
-      if (segIt != segments.end())
-      {
-	const PMapIt& idx_l = (*segIt).ID_l();
-	const PMapIt& idx_r = (*segIt).ID_r();
-
-	if ( idx_l == idx )
-	{
-	  idx = idx_r;
-	  cLines.back().push_back(*segIt);
-	}
-	else
-	{
-	  idx = idx_l;
-	  Segment nseg(*segIt); nseg.flip();
-	  cLines.back().push_back(nseg);
-	}
-
-	segments.erase(segIt);
-      }
-      else
-      {
-	cLines.push_back(list<Segment>());
-	idx = segments.front().ID_r();
-	segments.pop_front();
-      }
-    }
-
-    // Connect up the line fragments as much as possible
-    bool changed;
-    do
-    {
-      changed = false;
-      for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end(); ++it)
-      {
-	if (!it->empty())
-	{
-	  const PMapIt& idx_l = it->front().ID_l();
-	  const PMapIt& idx_r = it->back().ID_r();
-	  for (std::list<list<Segment>>::iterator it1 = cLines.begin(); it1!=cLines.end(); ++it1)
-	  {
-	    if (!it1->empty() && it!=it1)
-	    {
-	      if (idx_r == it1->front().ID_l())
-	      {
-		it->splice(it->end(),*it1);
-		changed = true;
-	      }
-	      else if (idx_r == it1->back().ID_r())
-	      {
-		it1->reverse();
-		for (list<Segment>::iterator it2=it1->begin(); it2!=it1->end(); ++it2)
-		  it2->flip();
-		it->splice(it->end(),*it1);
-		changed = true;
-	      }
-	      else if (idx_l == it1->front().ID_l())
-	      {
-		it1->reverse();
-		for (list<Segment>::iterator it2=it1->begin(); it2!=it1->end(); ++it2)
-		  it2->flip();
-		it->splice(it->begin(),*it1);
-		changed = true;
-	      }
-	    }
-	  }
-	}
-      }
-    } while(changed);
-
-    // Clear out empty placeholders for lines we connected up to others.
-    for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end();)
-    {
-      if (it->empty())
-	cLines.erase(it++);
-      else
-	it++;
-    }
-
-    std::ofstream ofs("contourLines.dat");
-    for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end(); ++it)
-    {
-      list<Segment>::const_iterator slit=it->begin();
-      const RealVect& pt0 = slit->ID_l()->second;
-      ofs << pt0[0] << " " << pt0[1] << std::endl;
-      for (  ; slit!=it->end(); ++slit)
-      {
-	const RealVect& pt = slit->ID_r()->second;
-	ofs << pt[0] << " " << pt[1] << std::endl;
-      }
-    }
-    ofs.close();
-
-    amrex::Print() << "************** number of cLines: " << cLines.size() << std::endl;
-#else
-    static int edgeTable[256]={
-      0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
-      0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
-      0x190, 0x99 , 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
-      0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90,
-      0x230, 0x339, 0x33 , 0x13a, 0x636, 0x73f, 0x435, 0x53c,
-      0xa3c, 0xb35, 0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30,
-      0x3a0, 0x2a9, 0x1a3, 0xaa , 0x7a6, 0x6af, 0x5a5, 0x4ac,
-      0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0,
-      0x460, 0x569, 0x663, 0x76a, 0x66 , 0x16f, 0x265, 0x36c,
-      0xc6c, 0xd65, 0xe6f, 0xf66, 0x86a, 0x963, 0xa69, 0xb60,
-      0x5f0, 0x4f9, 0x7f3, 0x6fa, 0x1f6, 0xff , 0x3f5, 0x2fc,
-      0xdfc, 0xcf5, 0xfff, 0xef6, 0x9fa, 0x8f3, 0xbf9, 0xaf0,
-      0x650, 0x759, 0x453, 0x55a, 0x256, 0x35f, 0x55 , 0x15c,
-      0xe5c, 0xf55, 0xc5f, 0xd56, 0xa5a, 0xb53, 0x859, 0x950,
-      0x7c0, 0x6c9, 0x5c3, 0x4ca, 0x3c6, 0x2cf, 0x1c5, 0xcc ,
-      0xfcc, 0xec5, 0xdcf, 0xcc6, 0xbca, 0xac3, 0x9c9, 0x8c0,
-      0x8c0, 0x9c9, 0xac3, 0xbca, 0xcc6, 0xdcf, 0xec5, 0xfcc,
-      0xcc , 0x1c5, 0x2cf, 0x3c6, 0x4ca, 0x5c3, 0x6c9, 0x7c0,
-      0x950, 0x859, 0xb53, 0xa5a, 0xd56, 0xc5f, 0xf55, 0xe5c,
-      0x15c, 0x55 , 0x35f, 0x256, 0x55a, 0x453, 0x759, 0x650,
-      0xaf0, 0xbf9, 0x8f3, 0x9fa, 0xef6, 0xfff, 0xcf5, 0xdfc,
-      0x2fc, 0x3f5, 0xff , 0x1f6, 0x6fa, 0x7f3, 0x4f9, 0x5f0,
-      0xb60, 0xa69, 0x963, 0x86a, 0xf66, 0xe6f, 0xd65, 0xc6c,
-      0x36c, 0x265, 0x16f, 0x66 , 0x76a, 0x663, 0x569, 0x460,
-      0xca0, 0xda9, 0xea3, 0xfaa, 0x8a6, 0x9af, 0xaa5, 0xbac,
-      0x4ac, 0x5a5, 0x6af, 0x7a6, 0xaa , 0x1a3, 0x2a9, 0x3a0,
-      0xd30, 0xc39, 0xf33, 0xe3a, 0x936, 0x83f, 0xb35, 0xa3c,
-      0x53c, 0x435, 0x73f, 0x636, 0x13a, 0x33 , 0x339, 0x230,
-      0xe90, 0xf99, 0xc93, 0xd9a, 0xa96, 0xb9f, 0x895, 0x99c,
-      0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x99 , 0x190,
-      0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
-      0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0   };
-
-    static int triTable[256][16] =
-      {{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 8, 3, 9, 8, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 3, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {9, 2, 10, 0, 2, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {2, 8, 3, 2, 10, 8, 10, 9, 8, -1, -1, -1, -1, -1, -1, -1},
-       {3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 11, 2, 8, 11, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 9, 0, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 11, 2, 1, 9, 11, 9, 8, 11, -1, -1, -1, -1, -1, -1, -1},
-       {3, 10, 1, 11, 10, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 10, 1, 0, 8, 10, 8, 11, 10, -1, -1, -1, -1, -1, -1, -1},
-       {3, 9, 0, 3, 11, 9, 11, 10, 9, -1, -1, -1, -1, -1, -1, -1},
-       {9, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 3, 0, 7, 3, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 1, 9, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 1, 9, 4, 7, 1, 7, 3, 1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 10, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {3, 4, 7, 3, 0, 4, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1},
-       {9, 2, 10, 9, 0, 2, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1},
-       {2, 10, 9, 2, 9, 7, 2, 7, 3, 7, 9, 4, -1, -1, -1, -1},
-       {8, 4, 7, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {11, 4, 7, 11, 2, 4, 2, 0, 4, -1, -1, -1, -1, -1, -1, -1},
-       {9, 0, 1, 8, 4, 7, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1},
-       {4, 7, 11, 9, 4, 11, 9, 11, 2, 9, 2, 1, -1, -1, -1, -1},
-       {3, 10, 1, 3, 11, 10, 7, 8, 4, -1, -1, -1, -1, -1, -1, -1},
-       {1, 11, 10, 1, 4, 11, 1, 0, 4, 7, 11, 4, -1, -1, -1, -1},
-       {4, 7, 8, 9, 0, 11, 9, 11, 10, 11, 0, 3, -1, -1, -1, -1},
-       {4, 7, 11, 4, 11, 9, 9, 11, 10, -1, -1, -1, -1, -1, -1, -1},
-       {9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {9, 5, 4, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 5, 4, 1, 5, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {8, 5, 4, 8, 3, 5, 3, 1, 5, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 10, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {3, 0, 8, 1, 2, 10, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1},
-       {5, 2, 10, 5, 4, 2, 4, 0, 2, -1, -1, -1, -1, -1, -1, -1},
-       {2, 10, 5, 3, 2, 5, 3, 5, 4, 3, 4, 8, -1, -1, -1, -1},
-       {9, 5, 4, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 11, 2, 0, 8, 11, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1},
-       {0, 5, 4, 0, 1, 5, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1},
-       {2, 1, 5, 2, 5, 8, 2, 8, 11, 4, 8, 5, -1, -1, -1, -1},
-       {10, 3, 11, 10, 1, 3, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1},
-       {4, 9, 5, 0, 8, 1, 8, 10, 1, 8, 11, 10, -1, -1, -1, -1},
-       {5, 4, 0, 5, 0, 11, 5, 11, 10, 11, 0, 3, -1, -1, -1, -1},
-       {5, 4, 8, 5, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1},
-       {9, 7, 8, 5, 7, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {9, 3, 0, 9, 5, 3, 5, 7, 3, -1, -1, -1, -1, -1, -1, -1},
-       {0, 7, 8, 0, 1, 7, 1, 5, 7, -1, -1, -1, -1, -1, -1, -1},
-       {1, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {9, 7, 8, 9, 5, 7, 10, 1, 2, -1, -1, -1, -1, -1, -1, -1},
-       {10, 1, 2, 9, 5, 0, 5, 3, 0, 5, 7, 3, -1, -1, -1, -1},
-       {8, 0, 2, 8, 2, 5, 8, 5, 7, 10, 5, 2, -1, -1, -1, -1},
-       {2, 10, 5, 2, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1},
-       {7, 9, 5, 7, 8, 9, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1},
-       {9, 5, 7, 9, 7, 2, 9, 2, 0, 2, 7, 11, -1, -1, -1, -1},
-       {2, 3, 11, 0, 1, 8, 1, 7, 8, 1, 5, 7, -1, -1, -1, -1},
-       {11, 2, 1, 11, 1, 7, 7, 1, 5, -1, -1, -1, -1, -1, -1, -1},
-       {9, 5, 8, 8, 5, 7, 10, 1, 3, 10, 3, 11, -1, -1, -1, -1},
-       {5, 7, 0, 5, 0, 9, 7, 11, 0, 1, 0, 10, 11, 10, 0, -1},
-       {11, 10, 0, 11, 0, 3, 10, 5, 0, 8, 0, 7, 5, 7, 0, -1},
-       {11, 10, 5, 7, 11, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 3, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {9, 0, 1, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 8, 3, 1, 9, 8, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1},
-       {1, 6, 5, 2, 6, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 6, 5, 1, 2, 6, 3, 0, 8, -1, -1, -1, -1, -1, -1, -1},
-       {9, 6, 5, 9, 0, 6, 0, 2, 6, -1, -1, -1, -1, -1, -1, -1},
-       {5, 9, 8, 5, 8, 2, 5, 2, 6, 3, 2, 8, -1, -1, -1, -1},
-       {2, 3, 11, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {11, 0, 8, 11, 2, 0, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1},
-       {0, 1, 9, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1},
-       {5, 10, 6, 1, 9, 2, 9, 11, 2, 9, 8, 11, -1, -1, -1, -1},
-       {6, 3, 11, 6, 5, 3, 5, 1, 3, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 11, 0, 11, 5, 0, 5, 1, 5, 11, 6, -1, -1, -1, -1},
-       {3, 11, 6, 0, 3, 6, 0, 6, 5, 0, 5, 9, -1, -1, -1, -1},
-       {6, 5, 9, 6, 9, 11, 11, 9, 8, -1, -1, -1, -1, -1, -1, -1},
-       {5, 10, 6, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 3, 0, 4, 7, 3, 6, 5, 10, -1, -1, -1, -1, -1, -1, -1},
-       {1, 9, 0, 5, 10, 6, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1},
-       {10, 6, 5, 1, 9, 7, 1, 7, 3, 7, 9, 4, -1, -1, -1, -1},
-       {6, 1, 2, 6, 5, 1, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 5, 5, 2, 6, 3, 0, 4, 3, 4, 7, -1, -1, -1, -1},
-       {8, 4, 7, 9, 0, 5, 0, 6, 5, 0, 2, 6, -1, -1, -1, -1},
-       {7, 3, 9, 7, 9, 4, 3, 2, 9, 5, 9, 6, 2, 6, 9, -1},
-       {3, 11, 2, 7, 8, 4, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1},
-       {5, 10, 6, 4, 7, 2, 4, 2, 0, 2, 7, 11, -1, -1, -1, -1},
-       {0, 1, 9, 4, 7, 8, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1},
-       {9, 2, 1, 9, 11, 2, 9, 4, 11, 7, 11, 4, 5, 10, 6, -1},
-       {8, 4, 7, 3, 11, 5, 3, 5, 1, 5, 11, 6, -1, -1, -1, -1},
-       {5, 1, 11, 5, 11, 6, 1, 0, 11, 7, 11, 4, 0, 4, 11, -1},
-       {0, 5, 9, 0, 6, 5, 0, 3, 6, 11, 6, 3, 8, 4, 7, -1},
-       {6, 5, 9, 6, 9, 11, 4, 7, 9, 7, 11, 9, -1, -1, -1, -1},
-       {10, 4, 9, 6, 4, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 10, 6, 4, 9, 10, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1},
-       {10, 0, 1, 10, 6, 0, 6, 4, 0, -1, -1, -1, -1, -1, -1, -1},
-       {8, 3, 1, 8, 1, 6, 8, 6, 4, 6, 1, 10, -1, -1, -1, -1},
-       {1, 4, 9, 1, 2, 4, 2, 6, 4, -1, -1, -1, -1, -1, -1, -1},
-       {3, 0, 8, 1, 2, 9, 2, 4, 9, 2, 6, 4, -1, -1, -1, -1},
-       {0, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {8, 3, 2, 8, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1},
-       {10, 4, 9, 10, 6, 4, 11, 2, 3, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 2, 2, 8, 11, 4, 9, 10, 4, 10, 6, -1, -1, -1, -1},
-       {3, 11, 2, 0, 1, 6, 0, 6, 4, 6, 1, 10, -1, -1, -1, -1},
-       {6, 4, 1, 6, 1, 10, 4, 8, 1, 2, 1, 11, 8, 11, 1, -1},
-       {9, 6, 4, 9, 3, 6, 9, 1, 3, 11, 6, 3, -1, -1, -1, -1},
-       {8, 11, 1, 8, 1, 0, 11, 6, 1, 9, 1, 4, 6, 4, 1, -1},
-       {3, 11, 6, 3, 6, 0, 0, 6, 4, -1, -1, -1, -1, -1, -1, -1},
-       {6, 4, 8, 11, 6, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {7, 10, 6, 7, 8, 10, 8, 9, 10, -1, -1, -1, -1, -1, -1, -1},
-       {0, 7, 3, 0, 10, 7, 0, 9, 10, 6, 7, 10, -1, -1, -1, -1},
-       {10, 6, 7, 1, 10, 7, 1, 7, 8, 1, 8, 0, -1, -1, -1, -1},
-       {10, 6, 7, 10, 7, 1, 1, 7, 3, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 6, 1, 6, 8, 1, 8, 9, 8, 6, 7, -1, -1, -1, -1},
-       {2, 6, 9, 2, 9, 1, 6, 7, 9, 0, 9, 3, 7, 3, 9, -1},
-       {7, 8, 0, 7, 0, 6, 6, 0, 2, -1, -1, -1, -1, -1, -1, -1},
-       {7, 3, 2, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {2, 3, 11, 10, 6, 8, 10, 8, 9, 8, 6, 7, -1, -1, -1, -1},
-       {2, 0, 7, 2, 7, 11, 0, 9, 7, 6, 7, 10, 9, 10, 7, -1},
-       {1, 8, 0, 1, 7, 8, 1, 10, 7, 6, 7, 10, 2, 3, 11, -1},
-       {11, 2, 1, 11, 1, 7, 10, 6, 1, 6, 7, 1, -1, -1, -1, -1},
-       {8, 9, 6, 8, 6, 7, 9, 1, 6, 11, 6, 3, 1, 3, 6, -1},
-       {0, 9, 1, 11, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {7, 8, 0, 7, 0, 6, 3, 11, 0, 11, 6, 0, -1, -1, -1, -1},
-       {7, 11, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {3, 0, 8, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 1, 9, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {8, 1, 9, 8, 3, 1, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1},
-       {10, 1, 2, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 10, 3, 0, 8, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1},
-       {2, 9, 0, 2, 10, 9, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1},
-       {6, 11, 7, 2, 10, 3, 10, 8, 3, 10, 9, 8, -1, -1, -1, -1},
-       {7, 2, 3, 6, 2, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {7, 0, 8, 7, 6, 0, 6, 2, 0, -1, -1, -1, -1, -1, -1, -1},
-       {2, 7, 6, 2, 3, 7, 0, 1, 9, -1, -1, -1, -1, -1, -1, -1},
-       {1, 6, 2, 1, 8, 6, 1, 9, 8, 8, 7, 6, -1, -1, -1, -1},
-       {10, 7, 6, 10, 1, 7, 1, 3, 7, -1, -1, -1, -1, -1, -1, -1},
-       {10, 7, 6, 1, 7, 10, 1, 8, 7, 1, 0, 8, -1, -1, -1, -1},
-       {0, 3, 7, 0, 7, 10, 0, 10, 9, 6, 10, 7, -1, -1, -1, -1},
-       {7, 6, 10, 7, 10, 8, 8, 10, 9, -1, -1, -1, -1, -1, -1, -1},
-       {6, 8, 4, 11, 8, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {3, 6, 11, 3, 0, 6, 0, 4, 6, -1, -1, -1, -1, -1, -1, -1},
-       {8, 6, 11, 8, 4, 6, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1},
-       {9, 4, 6, 9, 6, 3, 9, 3, 1, 11, 3, 6, -1, -1, -1, -1},
-       {6, 8, 4, 6, 11, 8, 2, 10, 1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 10, 3, 0, 11, 0, 6, 11, 0, 4, 6, -1, -1, -1, -1},
-       {4, 11, 8, 4, 6, 11, 0, 2, 9, 2, 10, 9, -1, -1, -1, -1},
-       {10, 9, 3, 10, 3, 2, 9, 4, 3, 11, 3, 6, 4, 6, 3, -1},
-       {8, 2, 3, 8, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1},
-       {0, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 9, 0, 2, 3, 4, 2, 4, 6, 4, 3, 8, -1, -1, -1, -1},
-       {1, 9, 4, 1, 4, 2, 2, 4, 6, -1, -1, -1, -1, -1, -1, -1},
-       {8, 1, 3, 8, 6, 1, 8, 4, 6, 6, 10, 1, -1, -1, -1, -1},
-       {10, 1, 0, 10, 0, 6, 6, 0, 4, -1, -1, -1, -1, -1, -1, -1},
-       {4, 6, 3, 4, 3, 8, 6, 10, 3, 0, 3, 9, 10, 9, 3, -1},
-       {10, 9, 4, 6, 10, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 9, 5, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 3, 4, 9, 5, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1},
-       {5, 0, 1, 5, 4, 0, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1},
-       {11, 7, 6, 8, 3, 4, 3, 5, 4, 3, 1, 5, -1, -1, -1, -1},
-       {9, 5, 4, 10, 1, 2, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1},
-       {6, 11, 7, 1, 2, 10, 0, 8, 3, 4, 9, 5, -1, -1, -1, -1},
-       {7, 6, 11, 5, 4, 10, 4, 2, 10, 4, 0, 2, -1, -1, -1, -1},
-       {3, 4, 8, 3, 5, 4, 3, 2, 5, 10, 5, 2, 11, 7, 6, -1},
-       {7, 2, 3, 7, 6, 2, 5, 4, 9, -1, -1, -1, -1, -1, -1, -1},
-       {9, 5, 4, 0, 8, 6, 0, 6, 2, 6, 8, 7, -1, -1, -1, -1},
-       {3, 6, 2, 3, 7, 6, 1, 5, 0, 5, 4, 0, -1, -1, -1, -1},
-       {6, 2, 8, 6, 8, 7, 2, 1, 8, 4, 8, 5, 1, 5, 8, -1},
-       {9, 5, 4, 10, 1, 6, 1, 7, 6, 1, 3, 7, -1, -1, -1, -1},
-       {1, 6, 10, 1, 7, 6, 1, 0, 7, 8, 7, 0, 9, 5, 4, -1},
-       {4, 0, 10, 4, 10, 5, 0, 3, 10, 6, 10, 7, 3, 7, 10, -1},
-       {7, 6, 10, 7, 10, 8, 5, 4, 10, 4, 8, 10, -1, -1, -1, -1},
-       {6, 9, 5, 6, 11, 9, 11, 8, 9, -1, -1, -1, -1, -1, -1, -1},
-       {3, 6, 11, 0, 6, 3, 0, 5, 6, 0, 9, 5, -1, -1, -1, -1},
-       {0, 11, 8, 0, 5, 11, 0, 1, 5, 5, 6, 11, -1, -1, -1, -1},
-       {6, 11, 3, 6, 3, 5, 5, 3, 1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 10, 9, 5, 11, 9, 11, 8, 11, 5, 6, -1, -1, -1, -1},
-       {0, 11, 3, 0, 6, 11, 0, 9, 6, 5, 6, 9, 1, 2, 10, -1},
-       {11, 8, 5, 11, 5, 6, 8, 0, 5, 10, 5, 2, 0, 2, 5, -1},
-       {6, 11, 3, 6, 3, 5, 2, 10, 3, 10, 5, 3, -1, -1, -1, -1},
-       {5, 8, 9, 5, 2, 8, 5, 6, 2, 3, 8, 2, -1, -1, -1, -1},
-       {9, 5, 6, 9, 6, 0, 0, 6, 2, -1, -1, -1, -1, -1, -1, -1},
-       {1, 5, 8, 1, 8, 0, 5, 6, 8, 3, 8, 2, 6, 2, 8, -1},
-       {1, 5, 6, 2, 1, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 3, 6, 1, 6, 10, 3, 8, 6, 5, 6, 9, 8, 9, 6, -1},
-       {10, 1, 0, 10, 0, 6, 9, 5, 0, 5, 6, 0, -1, -1, -1, -1},
-       {0, 3, 8, 5, 6, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {10, 5, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {11, 5, 10, 7, 5, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {11, 5, 10, 11, 7, 5, 8, 3, 0, -1, -1, -1, -1, -1, -1, -1},
-       {5, 11, 7, 5, 10, 11, 1, 9, 0, -1, -1, -1, -1, -1, -1, -1},
-       {10, 7, 5, 10, 11, 7, 9, 8, 1, 8, 3, 1, -1, -1, -1, -1},
-       {11, 1, 2, 11, 7, 1, 7, 5, 1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 3, 1, 2, 7, 1, 7, 5, 7, 2, 11, -1, -1, -1, -1},
-       {9, 7, 5, 9, 2, 7, 9, 0, 2, 2, 11, 7, -1, -1, -1, -1},
-       {7, 5, 2, 7, 2, 11, 5, 9, 2, 3, 2, 8, 9, 8, 2, -1},
-       {2, 5, 10, 2, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1},
-       {8, 2, 0, 8, 5, 2, 8, 7, 5, 10, 2, 5, -1, -1, -1, -1},
-       {9, 0, 1, 5, 10, 3, 5, 3, 7, 3, 10, 2, -1, -1, -1, -1},
-       {9, 8, 2, 9, 2, 1, 8, 7, 2, 10, 2, 5, 7, 5, 2, -1},
-       {1, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 7, 0, 7, 1, 1, 7, 5, -1, -1, -1, -1, -1, -1, -1},
-       {9, 0, 3, 9, 3, 5, 5, 3, 7, -1, -1, -1, -1, -1, -1, -1},
-       {9, 8, 7, 5, 9, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {5, 8, 4, 5, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1},
-       {5, 0, 4, 5, 11, 0, 5, 10, 11, 11, 3, 0, -1, -1, -1, -1},
-       {0, 1, 9, 8, 4, 10, 8, 10, 11, 10, 4, 5, -1, -1, -1, -1},
-       {10, 11, 4, 10, 4, 5, 11, 3, 4, 9, 4, 1, 3, 1, 4, -1},
-       {2, 5, 1, 2, 8, 5, 2, 11, 8, 4, 5, 8, -1, -1, -1, -1},
-       {0, 4, 11, 0, 11, 3, 4, 5, 11, 2, 11, 1, 5, 1, 11, -1},
-       {0, 2, 5, 0, 5, 9, 2, 11, 5, 4, 5, 8, 11, 8, 5, -1},
-       {9, 4, 5, 2, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {2, 5, 10, 3, 5, 2, 3, 4, 5, 3, 8, 4, -1, -1, -1, -1},
-       {5, 10, 2, 5, 2, 4, 4, 2, 0, -1, -1, -1, -1, -1, -1, -1},
-       {3, 10, 2, 3, 5, 10, 3, 8, 5, 4, 5, 8, 0, 1, 9, -1},
-       {5, 10, 2, 5, 2, 4, 1, 9, 2, 9, 4, 2, -1, -1, -1, -1},
-       {8, 4, 5, 8, 5, 3, 3, 5, 1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 4, 5, 1, 0, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {8, 4, 5, 8, 5, 3, 9, 0, 5, 0, 3, 5, -1, -1, -1, -1},
-       {9, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 11, 7, 4, 9, 11, 9, 10, 11, -1, -1, -1, -1, -1, -1, -1},
-       {0, 8, 3, 4, 9, 7, 9, 11, 7, 9, 10, 11, -1, -1, -1, -1},
-       {1, 10, 11, 1, 11, 4, 1, 4, 0, 7, 4, 11, -1, -1, -1, -1},
-       {3, 1, 4, 3, 4, 8, 1, 10, 4, 7, 4, 11, 10, 11, 4, -1},
-       {4, 11, 7, 9, 11, 4, 9, 2, 11, 9, 1, 2, -1, -1, -1, -1},
-       {9, 7, 4, 9, 11, 7, 9, 1, 11, 2, 11, 1, 0, 8, 3, -1},
-       {11, 7, 4, 11, 4, 2, 2, 4, 0, -1, -1, -1, -1, -1, -1, -1},
-       {11, 7, 4, 11, 4, 2, 8, 3, 4, 3, 2, 4, -1, -1, -1, -1},
-       {2, 9, 10, 2, 7, 9, 2, 3, 7, 7, 4, 9, -1, -1, -1, -1},
-       {9, 10, 7, 9, 7, 4, 10, 2, 7, 8, 7, 0, 2, 0, 7, -1},
-       {3, 7, 10, 3, 10, 2, 7, 4, 10, 1, 10, 0, 4, 0, 10, -1},
-       {1, 10, 2, 8, 7, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 9, 1, 4, 1, 7, 7, 1, 3, -1, -1, -1, -1, -1, -1, -1},
-       {4, 9, 1, 4, 1, 7, 0, 8, 1, 8, 7, 1, -1, -1, -1, -1},
-       {4, 0, 3, 7, 4, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {4, 8, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {9, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {3, 0, 9, 3, 9, 11, 11, 9, 10, -1, -1, -1, -1, -1, -1, -1},
-       {0, 1, 10, 0, 10, 8, 8, 10, 11, -1, -1, -1, -1, -1, -1, -1},
-       {3, 1, 10, 11, 3, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 2, 11, 1, 11, 9, 9, 11, 8, -1, -1, -1, -1, -1, -1, -1},
-       {3, 0, 9, 3, 9, 11, 1, 2, 9, 2, 11, 9, -1, -1, -1, -1},
-       {0, 2, 11, 8, 0, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {3, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {2, 3, 8, 2, 8, 10, 10, 8, 9, -1, -1, -1, -1, -1, -1, -1},
-       {9, 10, 2, 0, 9, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {2, 3, 8, 2, 8, 10, 0, 1, 8, 1, 10, 8, -1, -1, -1, -1},
-       {1, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {1, 3, 8, 9, 1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-       {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
-
-    Vector<IntVect> pt(8);
-    Vector<RealVect> x(8);
-    Vector<Real> v(8);
-    Vector<Triangle> triangles; // result
-
-    for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
-    {
-      pt[0] = ivsit();
-      pt[1] = pt[0] + BASISV(0);
-      pt[2] = pt[1] + BASISV(1);
-      pt[3] = pt[0] + BASISV(1);
-      pt[4] = pt[0] + BASISV(2);
-      pt[5] = pt[4] + BASISV(0);
-      pt[6] = pt[5] + BASISV(1);
-      pt[7] = pt[4] + BASISV(1);
-
-      for (int i=0; i<8; ++i)
-      {
-	for (int idir=0; idir<SpaceDim; ++idir)
-	{
-	  x[i][idir] = a_origin[idir] + pt[i][idir]*a_dx;
-	}
-	v[i] = m_implicitFunction->value(x[i]);
-      }
-
-      int cubeindex = 0;
-      if (v[0] < 0) cubeindex |= 1;
-      if (v[1] < 0) cubeindex |= 2;
-      if (v[2] < 0) cubeindex |= 4;
-      if (v[3] < 0) cubeindex |= 8;
-      if (v[4] < 0) cubeindex |= 16;
-      if (v[5] < 0) cubeindex |= 32;
-      if (v[6] < 0) cubeindex |= 64;
-      if (v[7] < 0) cubeindex |= 128;
-      
-      /* Cube is entirely in/out of the surface */
-      if (edgeTable[cubeindex] == 0) break;
-
-      std::array<PMapIt,12> vertlist;
-
-      if (edgeTable[cubeindex] & 1)
-        vertlist[0]  = vertCache.find(Edge(pt[0],pt[1]));
-      if (edgeTable[cubeindex] & 2)
-        vertlist[1]  = vertCache.find(Edge(pt[1],pt[2]));
-      if (edgeTable[cubeindex] & 4)
-        vertlist[2]  = vertCache.find(Edge(pt[2],pt[3]));
-      if (edgeTable[cubeindex] & 8)
-        vertlist[3]  = vertCache.find(Edge(pt[3],pt[0]));
-      if (edgeTable[cubeindex] & 16)
-        vertlist[4]  = vertCache.find(Edge(pt[4],pt[5]));
-      if (edgeTable[cubeindex] & 32)
-        vertlist[5]  = vertCache.find(Edge(pt[5],pt[6]));
-      if (edgeTable[cubeindex] & 64)
-        vertlist[6]  = vertCache.find(Edge(pt[6],pt[7]));
-      if (edgeTable[cubeindex] & 128)
-        vertlist[7]  = vertCache.find(Edge(pt[7],pt[4]));
-      if (edgeTable[cubeindex] & 256)
-        vertlist[8]  = vertCache.find(Edge(pt[0],pt[4]));
-      if (edgeTable[cubeindex] & 512)
-        vertlist[9]  = vertCache.find(Edge(pt[1],pt[5]));
-      if (edgeTable[cubeindex] & 1024)
-        vertlist[10]  = vertCache.find(Edge(pt[2],pt[6]));
-      if (edgeTable[cubeindex] & 2048)
-        vertlist[11]  = vertCache.find(Edge(pt[3],pt[7]));
-
-      /* Create the triangles */
-      int nTriang = 0;
-      for (int i=0;triTable[cubeindex][i]!=-1;i+=3)
-        nTriang++;
-
-      for (int j=0; j<nTriang; ++j)
-      {
-        triangles.push_back(Triangle());
-        Triangle& tri = triangles.back();
-        int j3 = 3*j;
-        tri[0] = vertlist[triTable[cubeindex][j3  ]];
-        tri[1] = vertlist[triTable[cubeindex][j3+1]];
-        tri[2] = vertlist[triTable[cubeindex][j3+2]];
-      }
-    }
-    amrex::Print() << "************** number of triangles: " << triangles.size() << std::endl;
-
-    Vector<PMapIt> orderedNodes(vertCache.size());
-    for (PMapIt it=vertCache.begin(); it!=vertCache.end(); ++it)
-    {
-      orderedNodes[it->first.ID] = it;
-    }
-
-    std::ofstream ofs("contourSurfaces.dat");
-    ofs << orderedNodes.size() << " " << triangles.size() << std::endl;
-    for (int i=0; i<orderedNodes.size(); ++i)
-    {
-      const RealVect& vec = orderedNodes[i]->second;
-      ofs << vec[0] << " " << vec[1] << " " << vec[2] << std::endl;
-    }
-
-    for (int i=0; i<triangles.size(); ++i)
-    {
-      const Triangle& tri = triangles[i];
-      for (int j=0; j<3; ++j)
-      {
-        ofs << tri[j]->first.ID + 1 << " ";
-      }
-      ofs << std::endl;
-    }
-    ofs.close();
-
-#endif
-
-    amrex::Print() << "************** number of intersections: " << vertCache.size() << std::endl;
 
     // CP: fix sweep that removes cells with volFrac less than a certain threshold
     for(IVSIterator ivsit(ivsdrop); ivsit.ok(); ++ivsit)
@@ -1103,7 +403,7 @@ namespace amrex
   /*************/
   void
   GeometryShop::
-  fixRegularCellsNextToCovered(Vector<IrregNode>    & a_nodes, 
+  fixRegularCellsNextToCovered(Vector<IrregNode>   & a_nodes, 
                                BaseFab<int>        & a_regIrregCovered,
                                const Box           & a_validRegion,
                                const Box           & a_domain,
@@ -1252,6 +552,7 @@ namespace amrex
                                     RealVect&            a_bndryCentroid,
                                     std::array<Vector<RealVect>,SpaceDim>& a_loFaceCentroid,
                                     std::array<Vector<RealVect>,SpaceDim>& a_hiFaceCentroid,
+                                    NodeMap&             a_intersections,
                                     const BaseFab<int>&  a_regIrregCovered,
                                     const Box&           a_domain,
                                     const RealVect&      a_origin,
@@ -1276,6 +577,7 @@ namespace amrex
 
         // get edgeType and intersection points
         edgeData2D(edges,
+                   a_intersections,
                    faceCovered,
                    faceRegular,
                    faceDontKnow,
@@ -1464,6 +766,7 @@ namespace amrex
                 bool faceRegular;
                 bool faceDontKnow;
                 edgeData3D(edges,
+                           a_intersections,
                            faceCovered,
                            faceRegular,
                            faceDontKnow,
@@ -2480,6 +1783,7 @@ namespace amrex
 
 
   void GeometryShop::edgeData3D(edgeMo a_edges[4],
+                                NodeMap& a_intersections,
                                 bool& a_faceCovered,
                                 bool& a_faceRegular,
                                 bool& a_faceDontKnow,
@@ -2598,10 +1902,10 @@ namespace amrex
                     IntVect p2 = p1   + BASISV(range);
                     RealVect iPoint;
                     iPoint[range] = intercept;
-                    pair<bool,PMapIt> bpit = SetIntersect(p1,p2,iPoint,vertCache);
+                    pair<bool,NodeMapIt> bpit = InsertNode(p1,p2,iPoint,a_intersections);
                     if (bpit.first)
                     {
-                      const PMapIt& pmit = bpit.second;
+                      const NodeMapIt& pmit = bpit.second;
                       IntVect diff = p2 - p1;
                       RealVect& intersect = pmit->second;
 
@@ -2671,13 +1975,14 @@ namespace amrex
       }
     return;
   }
-  void GeometryShop::edgeData2D(edgeMo a_edges[4],
-                                bool& a_faceCovered,
-                                bool& a_faceRegular,
-                                bool& a_faceDontKnow,
-                                const Real& a_dx,
-                                const IntVect& a_iv,
-                                const Box& a_domain,
+  void GeometryShop::edgeData2D(edgeMo          a_edges[4],
+                                NodeMap&        a_intersections,
+                                bool&           a_faceCovered,
+                                bool&           a_faceRegular,
+                                bool&           a_faceDontKnow,
+                                const Real&     a_dx,
+                                const IntVect&  a_iv,
+                                const Box&      a_domain,
                                 const RealVect& a_origin) const
   {
     // index counts which edge:xLo=0,xHi=1,yLo=2,yHi=3
@@ -2784,10 +2089,10 @@ namespace amrex
 		IntVect p2 = p1   + BASISV(range);
 		RealVect iPoint;
 		iPoint[range] = intercept;
-		pair<bool,PMapIt> bpit = SetIntersect(p1,p2,iPoint,vertCache);
+		pair<bool,NodeMapIt> bpit = InsertNode(p1,p2,iPoint,a_intersections);
 		if (bpit.first)
 		{
-		  const PMapIt& pmit = bpit.second;
+		  const NodeMapIt& pmit = bpit.second;
 		  IntVect diff = p2 - p1;
 		  RealVect& intersect = pmit->second;
                   intersect[domain] = a_origin[domain] + p1[domain]*a_dx;

@@ -53,11 +53,12 @@ namespace amrex
      */
     virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
                            Vector<IrregNode>&   a_nodes,
+                           NodeMap&             a_intersections,
                            const Box&           a_validRegion,
                            const Box&           a_ghostRegion,
                            const Box& a_domain,
                            const RealVect&      a_origin,
-                           const Real&          a_dx) const;
+                           const Real&          a_dx) const override;
   };
 }
 #endif
