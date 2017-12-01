@@ -56,7 +56,7 @@ public:
     bool operator!= (const IntDescriptor& id) const;
 
 private:
-
+    friend std::istream& operator>> (std::istream& is, IntDescriptor& id);
     long     numbytes;
     Ordering ord;
 };

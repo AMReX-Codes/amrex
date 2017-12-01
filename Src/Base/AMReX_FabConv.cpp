@@ -49,6 +49,45 @@ IntDescriptor::operator!= (const IntDescriptor& id) const
     return !operator==(id);
 }
 
+std::ostream&
+operator<< (std::ostream& os,
+            const IntDescriptor& id)
+{
+    amrex::StreamRetry sr(os, "opRD", 4);
+
+    while(sr.TryOutput()) {
+        os << "(";
+        os << id.numBytes();
+        os << ',';
+        os << id.order();
+        os << ")";
+    }
+    return os;
+}
+
+std::istream&
+operator>> (std::istream& is,
+            IntDescriptor& id)
+{
+    char c;
+    is >> c;
+    if (c != '(')
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
+    int numbytes;
+    is >> numbytes;
+    id.numbytes = numbytes;
+    is >> c;
+    if (c != ',')
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \',\'");
+    int ord;
+    is >> ord;
+    id.ord = (IntDescriptor::Ordering) ord;
+    is >> c;
+    if (c != ')')
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
+    return is;
+}
+
 RealDescriptor::RealDescriptor ()
 {}
 
@@ -829,15 +868,15 @@ PUTARRAY(long)
 
 std::ostream&
 operator<< (std::ostream&         os,
-            const RealDescriptor& id)
+            const RealDescriptor& rd)
 {
   amrex::StreamRetry sr(os, "opRD", 4);
 
   while(sr.TryOutput()) {
     os << "(";
-    putarray(os, id.formatarray());
+    putarray(os, rd.formatarray());
     os << ',';
-    putarray(os, id.orderarray());
+    putarray(os, rd.orderarray());
     os << ")";
   }
   return os;
