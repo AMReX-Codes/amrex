@@ -393,6 +393,54 @@ WarpX::InitFromCheckpoint ()
 }
 
 
+std::unique_ptr<MultiFab>
+WarpX::GetCellCenteredData() {
+
+    BL_PROFILE("WarpX::GetCellCenteredData");
+
+    const int ng =  1;
+    const int nc = 10;
+    const int lev = 0;
+    auto cc = std::unique_ptr<MultiFab>( new MultiFab(boxArray(lev),
+                                                      DistributionMap(lev),
+                                                      nc, ng) );
+
+    Array<const MultiFab*> srcmf(BL_SPACEDIM);
+    int dcomp = 0;
+
+    // first the electric field
+    PackPlotDataPtrs(srcmf, Efield_aux[lev]);
+    amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
+    amrex::average_node_to_cellcenter(*cc, dcomp+1, *Efield_aux[lev][1], 0, 1);
+#endif
+    dcomp += 3;
+    
+    // then the magnetic field
+    PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
+    amrex::average_face_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
+    MultiFab::Copy(*cc, *Bfield_aux[lev][1], 0, dcomp+1, 1, ng);
+#endif
+    dcomp += 3;
+
+    // then the current density
+    PackPlotDataPtrs(srcmf, current_fp[lev]);
+    amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
+    amrex::average_node_to_cellcenter(*cc, dcomp+1, *current_fp[lev][1], 0, 1);
+#endif
+    dcomp += 3;
+
+    const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
+    amrex::average_node_to_cellcenter(*cc, dcomp, *charge_density, 0, 1);
+        
+    return cc;
+}
+
 void
 WarpX::WritePlotFile () const
 {
@@ -746,9 +794,9 @@ WarpX::WritePlotFile () const
     Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 
-    particle_varnames.push_back("velocity_x");
-    particle_varnames.push_back("velocity_y");
-    particle_varnames.push_back("velocity_z");
+    particle_varnames.push_back("momentum_x");
+    particle_varnames.push_back("momentum_y");
+    particle_varnames.push_back("momentum_z");
 
     particle_varnames.push_back("Ex");
     particle_varnames.push_back("Ey");
@@ -854,9 +902,9 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 
-    particle_varnames.push_back("velocity_x");
-    particle_varnames.push_back("velocity_y");
-    particle_varnames.push_back("velocity_z");
+    particle_varnames.push_back("momentum_x");
+    particle_varnames.push_back("momentum_y");
+    particle_varnames.push_back("momentum_z");
 
     particle_varnames.push_back("Ex");
     particle_varnames.push_back("Ey");

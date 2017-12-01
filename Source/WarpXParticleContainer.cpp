@@ -281,15 +281,15 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
             data_ptr = rhofab.dataPtr();
             rholen = rhofab.length();
 #endif
-            
+
 #if (BL_SPACEDIM == 3)
-            long nx = box.length(0);
-            long ny = box.length(1);
-            long nz = box.length(2); 
-#elif (BL_SPACEDIM == 2)
-            long nx = box.length(0);
-            long ny = 0;
-            long nz = box.length(1); 
+            const long nx = rholen[0]-1-2*ng;
+            const long ny = rholen[1]-1-2*ng;
+            const long nz = rholen[2]-1-2*ng;
+#else
+            const long nx = rholen[0]-1-2*ng;
+            const long ny = 0;
+            const long nz = rholen[1]-1-2*ng;
 #endif
 
             long nxg = ng;
