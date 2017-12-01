@@ -46,7 +46,7 @@ protected:
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const final;
     virtual Real Anorm (int amrlev, int mglev) const final;
-    virtual Real getBScalar () const final { return 1.0; }
+    virtual Real getBScalar () const { return 1.0; }
 
 private:
 

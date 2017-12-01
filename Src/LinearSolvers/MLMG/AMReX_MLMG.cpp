@@ -40,11 +40,11 @@ MLMG::~MLMG ()
 
 Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-             Real a_tol_rela, Real a_tol_abs)
+             Real a_tol_rel, Real a_tol_abs)
 {
     BL_PROFILE_REGION("MLMG::solve()");
 
-    Real solve_start_time = ParallelDescriptor::second();
+    Real solve_start_time = amrex::second();
 
     Real composite_norminf;
 
@@ -72,7 +72,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         norm_name = "resid0";
         max_norm = resnorm0;
     }
-    const Real res_target = std::max(a_tol_abs, std::max(a_tol_rela,1.e-13)*max_norm);
+    const Real res_target = std::max(a_tol_abs, std::max(a_tol_rel,1.e-13)*max_norm);
 
     if (resnorm0 <= res_target)
     {
@@ -83,7 +83,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     }
     else
     {
-        Real iter_start_time = ParallelDescriptor::second();
+        Real iter_start_time = amrex::second();
         bool converged = false;
         for (int iter = 0; iter < max_iters; ++iter)
         {
@@ -139,12 +139,12 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                            << composite_norminf/max_norm << "\n";
             amrex::Abort("MLMG failed");
         }
-        timer[iter_time] = ParallelDescriptor::second() - iter_start_time;
+        timer[iter_time] = amrex::second() - iter_start_time;
     }
 
     if (final_fill_bc) fillSolutionBC();
 
-    timer[solve_time] = ParallelDescriptor::second() - solve_start_time;
+    timer[solve_time] = amrex::second() - solve_start_time;
     if (verbose >= 1) {
         ParallelDescriptor::ReduceRealMax(timer.data(), timer.size());
         amrex::Print() << "MLMG: Timers: Solve = " << timer[solve_time]
@@ -559,7 +559,7 @@ MLMG::bottomSolve ()
 
     if (!linop.isBottomActive()) return;
 
-    Real bottom_start_time = ParallelDescriptor::second();
+    Real bottom_start_time = amrex::second();
 
     int old_sn = ParallelDescriptor::SeqNum(3);
     
@@ -613,7 +613,7 @@ MLMG::bottomSolve ()
 
     ParallelDescriptor::SeqNum(2, old_sn);
 
-    timer[bottom_time] += ParallelDescriptor::second() - bottom_start_time;
+    timer[bottom_time] += amrex::second() - bottom_start_time;
 }
 
 // Compute single-level masked inf-norm of Residual (res).
