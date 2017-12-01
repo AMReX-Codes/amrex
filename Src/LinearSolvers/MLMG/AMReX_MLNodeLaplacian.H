@@ -39,7 +39,7 @@ public :
 protected:
 
     virtual void prepareForSolve () final;
-    virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
+    virtual bool isSingular (int amrlev) const final { return false; }
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
     virtual void FFlux (int amrlev, const MFIter& mfi,
@@ -51,9 +51,6 @@ protected:
 private:
 
     Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_sigma;
-
-    Vector<int> m_is_singular;
-
 };
 
 }

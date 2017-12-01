@@ -4,7 +4,10 @@
 
 namespace amrex {
 
-MLCellLinOp::MLCellLinOp () {}
+MLCellLinOp::MLCellLinOp ()
+{
+    m_ixtype = IntVect::TheCellVector();
+}
 
 MLCellLinOp::~MLCellLinOp () {}
 
