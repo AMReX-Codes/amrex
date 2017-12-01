@@ -24,6 +24,11 @@ extern "C" {
                                        const amrex_real* sigcc, const int* clo, const int* chi);
 
 
+    void amrex_mlndlap_avgdown_coeff (const int* lo, const int* hi,
+                                      amrex_real* crse, const int* clo, const int* chi,
+                                      const amrex_real* fine, const int* flo, const int* fhi,
+                                      const int* idim);
+
     void amrex_mlndlap_divu (const int* lo, const int* hi,
                              amrex_real* rhs, const int* rlo, const int* rhi,
                              const amrex_real* vel, const int* vlo, const int* vhi,
