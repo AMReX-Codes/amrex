@@ -35,7 +35,9 @@ namespace amrex {
 struct BLBackTrace
 {
     static void handler(int s);
+    // Abort backtrace. Used automatically.
     static void print_backtrace_info (FILE* f);
+    // Non-abort backtrace. Prints to specified file and continues.
     static void print_backtrace_info (const std::string& filename);
 
 #ifdef BL_BACKTRACING
