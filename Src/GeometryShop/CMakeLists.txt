@@ -25,6 +25,7 @@ list ( APPEND CXXSRC     AMReX_VoFIterator.cpp AMReX_FaceIterator.cpp )
 
 list ( APPEND ALLHEADERS AMReX_BaseIVFAB.H AMReX_BaseIVFABI.H AMReX_BaseIVFactory.H )
 list ( APPEND ALLHEADERS AMReX_BaseIFFAB.H AMReX_BaseIFFABI.H AMReX_EBData.H  AMReX_EBDataFactory.H )
+list ( APPEND ALLHEADERS AMReX_BaseEBFaceFABI.H )
 list ( APPEND CXXSRC     AMReX_EBData.cpp )
 
 list ( APPEND ALLHEADERS AMReX_EBISBox.H   AMReX_PolyGeom.H )
