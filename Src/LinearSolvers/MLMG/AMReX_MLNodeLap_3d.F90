@@ -4,7 +4,7 @@ module amrex_mlnodelap_3d_module
   implicit none
 
   private
-  public :: amrex_mlndlap_sigma_cctoedge, amrex_mlndlap_divu
+  public :: amrex_mlndlap_sigma_cctoedge, amrex_mlndlap_avgdown_coeff, amrex_mlndlap_divu
 
 contains
 
@@ -53,6 +53,15 @@ contains
     end do
 
   end subroutine amrex_mlndlap_sigma_cctoedge
+
+
+  subroutine amrex_mlndlap_avgdown_coeff (lo, hi, crse, clo, chi, fine, flo, fhi, idim) &
+       bind(c,name='amrex_mlndlap_avgdown_coeff')
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi
+    integer, intent(in) :: idim
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+  end subroutine amrex_mlndlap_avgdown_coeff
 
 
   subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, dxinv) &

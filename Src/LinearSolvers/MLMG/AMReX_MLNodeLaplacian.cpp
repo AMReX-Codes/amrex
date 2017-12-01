@@ -3,6 +3,7 @@
 
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_F.H>
+#include <AMReX_MultiFabUtil.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -134,8 +135,72 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     }
 }
 
-// average codes
+void
+MLNodeLaplacian::averageDownCoeffs ()
+{
+    BL_PROFILE("MLNodeLaplacian::averageDownCoeffs()");
 
+    for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
+    {
+        averageDownCoeffsSameAmrLevel(amrlev);
+        averageDownCoeffsToCoarseAmrLevel(amrlev);
+    }
+
+    averageDownCoeffsSameAmrLevel(0);
+}
+
+void
+MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
+{
+    amrex::Abort("MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel: to be implemented");
+}
+
+void
+MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
+{
+    for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            const MultiFab& fine = m_sigma[amrlev][mglev-1][idim];
+            MultiFab& crse = m_sigma[amrlev][mglev][idim];
+            if (amrex::isMFIterSafe(crse, fine))
+            {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                for (MFIter mfi(crse, true); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    amrex_mlndlap_avgdown_coeff(BL_TO_FORTRAN_BOX(bx),
+                                                BL_TO_FORTRAN_ANYD(crse[mfi]),
+                                                BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                                &idim);
+                }
+            }
+            else
+            {
+                BoxArray ba = fine.boxArray();
+                ba.coarsen(2);
+                MultiFab tmp(ba, fine.DistributionMap(), 1, 0);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi)
+                {
+                    const Box& bx = mfi.tilebox();
+                    amrex_mlndlap_avgdown_coeff(BL_TO_FORTRAN_BOX(bx),
+                                                BL_TO_FORTRAN_ANYD(tmp[mfi]),
+                                                BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                                &idim);
+                }
+                crse.ParallelCopy(tmp);
+            }
+            
+            crse.FillBoundary(m_geom[amrlev][mglev].periodicity());
+        }
+    }
+}
 
 void
 MLNodeLaplacian::prepareForSolve ()
@@ -144,19 +209,19 @@ MLNodeLaplacian::prepareForSolve ()
 
     MLNodeLinOp::prepareForSolve();
 
-    // averageDownCoeffs();
+    averageDownCoeffs();
 }
 
 void
 MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
-
+    amrex::Abort("MLNodeLaplacian::Fapply to be implemented");
 }
 
 void
 MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const
 {
-
+    amrex::Abort("MLNodeLaplacian::Fsmooth to be implemented");
 }
 
 void
@@ -164,13 +229,13 @@ MLNodeLaplacian::FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only) const
 {
-
+    amrex::Abort("MLNodeLaplacian::FFlux to be implemented");
 }
 
 Real
 MLNodeLaplacian::Anorm (int amrlev, int mglev) const
 {
-
+    amrex::Abort("MLNodeLaplacian::Anorm to be implemented");
 }
 
 }

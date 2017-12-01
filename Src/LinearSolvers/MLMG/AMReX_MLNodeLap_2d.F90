@@ -5,7 +5,7 @@ module amrex_mlnodelap_2d_module
   implicit none
 
   private
-  public :: amrex_mlndlap_sigma_cctoedge, amrex_mlndlap_divu
+  public :: amrex_mlndlap_sigma_cctoedge, amrex_mlndlap_avgdown_coeff, amrex_mlndlap_divu
 
 contains
 
@@ -31,6 +31,31 @@ contains
     end do
 
   end subroutine amrex_mlndlap_sigma_cctoedge
+
+
+  subroutine amrex_mlndlap_avgdown_coeff (lo, hi, crse, clo, chi, fine, flo, fhi, idim) &
+       bind(c,name='amrex_mlndlap_avgdown_coeff')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi
+    integer, intent(in) :: idim
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
+
+    integer :: i,j
+
+    if (idim .eq. 0) then
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             crse(i,j) = 2.d0*fine(2*i,2*j)*fine(2*i+1,2*j)/(fine(2*i,2*j)+fine(2*i+1,2*j))
+          end do
+       end do
+    else
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             crse(i,j) = 2.d0*fine(2*i,2*j)*fine(2*i,2*j+1)/(fine(2*i,2*j)+fine(2*i,2*j+1))
+          end do
+       end do
+    end if
+  end subroutine amrex_mlndlap_avgdown_coeff
 
 
   subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, dxinv, ndlo, ndhi, bclo, bchi) &

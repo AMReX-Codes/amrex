@@ -123,7 +123,7 @@ protected:
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final;
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) final;
 
-    virtual void prepareForSolve ();
+    virtual void prepareForSolve () override;
 
 private:
 
