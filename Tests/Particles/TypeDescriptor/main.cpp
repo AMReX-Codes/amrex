@@ -32,11 +32,11 @@ void writeIntData(const int* data, std::size_t size, std::ostream& os,
     }
     else if (id.numBytes() == 4)
     {
-        writeIntData<Int32>(data, size, os, id);
+        writeIntData<std::int32_t>(data, size, os, id);
     }
     else if (id.numBytes() == 8)
     {
-        writeIntData<Int64>(data, size, os, id);
+        writeIntData<std::int64_t>(data, size, os, id);
     }
     else {
         amrex::Error("Don't know how to work with this integer type.");
@@ -52,11 +52,11 @@ void readIntData(int* data, std::size_t size, std::istream& is,
     } 
     else if (id.numBytes() == 4)
     {
-        readIntData<Int32>(data, size, is, id);
+        readIntData<std::int32_t>(data, size, is, id);
     }
     else if (id.numBytes() == 8)
     {
-        readIntData<Int64>(data, size, is, id);
+        readIntData<std::int64_t>(data, size, is, id);
     }
     else {
         amrex::Error("Don't know how to work with this integer type.");
@@ -91,11 +91,15 @@ int main(int argc, char* argv[])
 {
   amrex::Initialize(argc,argv);
 
-  IntDescriptor r32(4, IntDescriptor::ReverseOrder);
-  IntDescriptor r64(8, IntDescriptor::ReverseOrder);
+  IntDescriptor little32(4, IntDescriptor::ReverseOrder);
+  IntDescriptor little64(8, IntDescriptor::ReverseOrder);
+  IntDescriptor big32(4, IntDescriptor::NormalOrder);
+  IntDescriptor big64(8, IntDescriptor::NormalOrder);
 
-  testIntIO(r32);
-  testIntIO(r64);
+  testIntIO(little32);
+  testIntIO(little64);
+  testIntIO(big32);
+  testIntIO(big64);
 
   amrex::Finalize();
 }

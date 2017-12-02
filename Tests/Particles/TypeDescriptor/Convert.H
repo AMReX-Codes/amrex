@@ -8,16 +8,6 @@
 #include "AMReX_FPC.H"
 #include "AMReX_FabConv.H"
 
-union Int32 {
-    char bytes[4];
-    std::int32_t n;
-};
-
-union Int64 {
-    char bytes[8];
-    std::int64_t n;
-};
-
 template<typename T> T swapBytes(T value);
 
 template<> std::int16_t swapBytes<std::int16_t>(std::int16_t val)
@@ -45,11 +35,9 @@ void writeIntData(const int* data, std::size_t size, std::ostream& os,
     T value;
     bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
     for (std::size_t j = 0; j < size; ++j) {
-        value.n = data[j];
-        // swap here;
-        for (int i = 0; i < id.numBytes(); ++i) {
-            os << value.bytes[i];
-        }
+        value = data[j];
+        if (swapEndian) value = swapBytes<T>(value);
+        os.write((char*) &value, sizeof(T));
     }
 }
 
@@ -60,11 +48,9 @@ void readIntData(int* data, std::size_t size, std::istream& is,
     T value;
     bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
     for (std::size_t j = 0; j < size; ++j) {
-        for (int i = 0; i < id.numBytes(); ++i) {
-            is.read((char*) &value.bytes[i], sizeof(char));
-        }
-        // swap here;
-        data[j] = value.n;
+        is.read((char*) &value, sizeof(T));
+        if (swapEndian) value = swapBytes<T>(value);
+        data[j] = value;
     }
 }
 
