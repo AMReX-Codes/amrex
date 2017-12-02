@@ -38,10 +38,10 @@ list ( APPEND CXXSRC     AMReX_parstream.cpp )
 list ( APPEND ALLHEADERS AMReX_parstream.H )
 
 #
-# FAB I/O stuff
+# I/O stuff
 # 
 list ( APPEND CXXSRC     AMReX_FabConv.cpp AMReX_FPC.cpp )
-list ( APPEND ALLHEADERS AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H )
+list ( APPEND ALLHEADERS AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H)
 
 #
 # Index space

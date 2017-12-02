@@ -39,9 +39,9 @@ C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
 #
-# FAB I/O stuff.
+# I/O stuff.
 #
-C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H
+C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H
 C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp
 
 #
