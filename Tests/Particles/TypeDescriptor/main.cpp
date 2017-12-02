@@ -30,6 +30,10 @@ void writeIntData(const int* data, std::size_t size, std::ostream& os,
     {
         os.write((char*) data, size*sizeof(int));
     }
+    else if (id.numBytes() == 2)
+    {
+        writeIntData<std::int16_t>(data, size, os, id);
+    }
     else if (id.numBytes() == 4)
     {
         writeIntData<std::int32_t>(data, size, os, id);
@@ -50,6 +54,10 @@ void readIntData(int* data, std::size_t size, std::istream& is,
     {
         is.read((char*) data, size * id.numBytes());
     } 
+    else if (id.numBytes() == 2)
+    {
+        readIntData<std::int16_t>(data, size, is, id);
+    }
     else if (id.numBytes() == 4)
     {
         readIntData<std::int32_t>(data, size, is, id);
@@ -91,13 +99,19 @@ int main(int argc, char* argv[])
 {
   amrex::Initialize(argc,argv);
 
+  IntDescriptor little16(2, IntDescriptor::ReverseOrder);
   IntDescriptor little32(4, IntDescriptor::ReverseOrder);
   IntDescriptor little64(8, IntDescriptor::ReverseOrder);
+
+  IntDescriptor big16(2, IntDescriptor::NormalOrder);
   IntDescriptor big32(4, IntDescriptor::NormalOrder);
   IntDescriptor big64(8, IntDescriptor::NormalOrder);
 
+  testIntIO(little16);
   testIntIO(little32);
   testIntIO(little64);
+
+  testIntIO(big16);
   testIntIO(big32);
   testIntIO(big64);
 
