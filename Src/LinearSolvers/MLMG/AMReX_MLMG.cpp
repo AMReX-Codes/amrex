@@ -717,22 +717,25 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         linop.applyMetricTerm(alev, 0, rhs[alev]);
     }
 
-    const auto& amrrr = linop.AMRRefRatio();
-    for (int falev = finest_amr_lev; falev > 0; --falev)
+    if (linop.isCellCentered())
     {
-        amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
-        amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
-    }
-
-    // enforce solvability if appropriate
-    if (linop.isSingular(0))
-    {
-        Real offset = rhs[0].sum() / linop.Geom(0,0).Domain().d_numPts();
-        if (verbose >= 4) {
-            amrex::Print() << "MLMG: Subtracting " << offset << " from rhs\n";
+        const auto& amrrr = linop.AMRRefRatio();
+        for (int falev = finest_amr_lev; falev > 0; --falev)
+        {
+            amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
+            amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
         }
-        for (int alev = 0; alev < namrlevs; ++alev) {
-            rhs[alev].plus(-offset, 0, 1);
+
+        // enforce solvability if appropriate
+        if (linop.isSingular(0))
+        {
+            Real offset = rhs[0].sum() / linop.Geom(0,0).Domain().d_numPts();
+            if (verbose >= 4) {
+                amrex::Print() << "MLMG: Subtracting " << offset << " from rhs\n";
+            }
+            for (int alev = 0; alev < namrlevs; ++alev) {
+                rhs[alev].plus(-offset, 0, 1);
+            }
         }
     }
 

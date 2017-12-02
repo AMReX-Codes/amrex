@@ -157,6 +157,8 @@ protected:
         }
     }
 
+    bool isCellCentered () const { return m_ixtype == 0; }
+
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
@@ -179,11 +181,6 @@ protected:
 
     virtual void prepareForSolve () = 0;
     virtual bool isSingular (int amrlev) const = 0;
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
-    virtual void FFlux (int amrlev, const MFIter& mfi,
-                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const = 0;
     virtual Real Anorm (int amrlev, int mglev) const = 0;
     virtual Real getBScalar () const = 0;
 
