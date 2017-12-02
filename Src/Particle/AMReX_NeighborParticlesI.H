@@ -120,12 +120,13 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
             const Box& box = mfi.growntilebox();
             for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
                 const int grid = (*mask_ptr)[mfi](iv, 0);
-                const int tile = (*mask_ptr)[mfi](iv, 1);
-                const int proc = this->ParticleDistributionMap(lev)[grid];
-                NeighborCommTag comm_tag(proc, grid, tile);
-                local_neighbors.push_back(comm_tag);
-                if (proc != ParallelDescriptor::MyProc() and grid >= 0) {
-                    neighbor_procs.push_back(proc);
+                if (grid >= 0) {
+                   const int tile = (*mask_ptr)[mfi](iv, 1);
+                   const int proc = this->ParticleDistributionMap(lev)[grid];
+                   NeighborCommTag comm_tag(proc, grid, tile);
+                   local_neighbors.push_back(comm_tag);
+                   if (proc != ParallelDescriptor::MyProc())  
+                       neighbor_procs.push_back(proc);
                 }
             }
         }
