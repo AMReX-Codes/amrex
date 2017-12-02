@@ -1,5 +1,5 @@
-#ifndef CONVERT_H_
-#define CONVERT_H_
+#ifndef AMREX_INTCONV_H_
+#define AMREX_INTCONV_H_
 
 #include <iostream>
 #include <cstring>

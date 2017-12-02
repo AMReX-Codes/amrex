@@ -7,8 +7,7 @@
 #include "AMReX_FPC.H"
 #include "AMReX_FabConv.H"
 #include "AMReX_Vector.H"
-
-#include "Convert.H"
+#include "AMReX_IntConv.H"
 
 using namespace amrex;
 
