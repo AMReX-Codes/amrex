@@ -215,7 +215,27 @@ MLNodeLaplacian::prepareForSolve ()
 void
 MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
-    amrex::Abort("MLNodeLaplacian::Fapply to be implemented");
+    const auto& sigma = m_sigma[amrlev][mglev];
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(out,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        const FArrayBox& xfab = in[mfi];
+        FArrayBox& yfab = out[mfi];
+        AMREX_D_TERM(const FArrayBox& sxfab = sigma[0][mfi];,
+                     const FArrayBox& syfab = sigma[1][mfi];,
+                     const FArrayBox& szfab = szfab[2][mfi];);
+        amrex_mlndlap_adotx(BL_TO_FORTRAN_BOX(bx),
+                            BL_TO_FORTRAN_ANYD(yfab),
+                            BL_TO_FORTRAN_ANYD(xfab),
+                            AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                         BL_TO_FORTRAN_ANYD(syfab),
+                                         BL_TO_FORTRAN_ANYD(szfab)),
+                            dxinv);
+    }
 }
 
 void

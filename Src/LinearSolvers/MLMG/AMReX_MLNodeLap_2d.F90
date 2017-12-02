@@ -5,7 +5,8 @@ module amrex_mlnodelap_2d_module
   implicit none
 
   private
-  public :: amrex_mlndlap_sigma_cctoedge, amrex_mlndlap_avgdown_coeff, amrex_mlndlap_divu
+  public :: amrex_mlndlap_sigma_cctoedge, amrex_mlndlap_avgdown_coeff, amrex_mlndlap_divu, &
+       amrex_mlndlap_adotx
 
 contains
 
@@ -111,5 +112,26 @@ contains
     end if
 
   end subroutine amrex_mlndlap_divu
+
+
+  subroutine amrex_mlndlap_adotx (lo, hi, y, ylo, yhi, x, xlo, xhi, &
+       sx, sxlo, sxhi, sy, sylo, syhi, dxinv) bind(c,name='amrex_mlndlap_adotx')
+    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, sylo, syhi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) ::  y( ylo(1): yhi(1), ylo(2): yhi(2))
+    real(amrex_real), intent(in   ) ::  x( xlo(1): xhi(1), xlo(2): xhi(2))
+    real(amrex_real), intent(in   ) :: sx(sxlo(1):sxhi(1),sxlo(2):sxhi(2))
+    real(amrex_real), intent(in   ) :: sy(sylo(1):syhi(1),sylo(2):syhi(2))
+    
+    integer :: i,j
+!    real(amrex_real) :: dhx, dhy
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_adotx  
 
 end module amrex_mlnodelap_2d_module
