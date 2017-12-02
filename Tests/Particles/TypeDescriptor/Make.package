@@ -1,0 +1,3 @@
+CEXE_headers += Convert.H
+CEXE_sources += main.cpp
+
