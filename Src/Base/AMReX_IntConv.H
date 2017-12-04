@@ -10,40 +10,6 @@
 
 namespace amrex {
 
-/**
-* \brief Functions for writing integer data to disk in a portable, self-describing manner.
-*/
-
-    //! Write int data to the ostream. The arguments are a pointer to data
-    //! to write, the size of the data buffer, the ostream, and an optional
-    //! IntDescriptor that describes the data format to use for writing. If no
-    //! IntDescriptor is provided, the data will be written using the native
-    //! format for your machine.
-    void writeIntData(const int* data, std::size_t size, std::ostream& os,
-                      const IntDescriptor& id = FPC::NativeIntDescriptor());
-
-    //! Read int data from the istream. The arguments are a pointer to data buffer
-    //! to read into, the size of that buffer, the istream, and an IntDescriptor
-    //! that describes the format of the data on disk. 
-    //! The buffer is assumed to be large enough to store 'size' integers, and it is
-    //! the user's reponsiblity to allocate this data.
-    void readIntData(int* data, std::size_t size, std::istream& is, const IntDescriptor& id);
-
-    //! Write long data to the ostream. The arguments are a pointer to data
-    //! to write, the size of the data buffer, the ostream, and an optional
-    //! IntDescriptor that describes the data format to use for writing. If no
-    //! IntDescriptor is provided, the data will be written using the native
-    //! format for your machine.
-    void writeLongData(const long* data, std::size_t size, std::ostream& os,
-                       const IntDescriptor& id = FPC::NativeLongDescriptor());
-
-    //! Read int data from the istream. The arguments are a pointer to data buffer
-    //! to read into, the size of that buffer, the istream, and an IntDescriptor
-    //! that describes the format of the data on disk. 
-    //! The buffer is assumed to be large enough to store 'size' longs, and it is
-    //! the user's reponsiblity to allocate this data.
-    void readLongData(long* data, std::size_t size, std::istream& is, const IntDescriptor& id);
-
     template<typename T> T swapBytes(T value);
     
     template <typename To, typename From>

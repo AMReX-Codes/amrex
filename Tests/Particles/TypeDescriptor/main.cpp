@@ -7,22 +7,10 @@
 #include "AMReX_FPC.H"
 #include "AMReX_FabConv.H"
 #include "AMReX_Vector.H"
-#include "AMReX_IntConv.H"
+#include "AMReX_VectorIO.H"
 #include "AMReX_Utility.H"
 
 using namespace amrex;
-
-void writeRealData(const Real* data, std::size_t size, std::ostream& os,
-                   const RealDescriptor& rd = FPC::NativeRealDescriptor())
-{
-    RealDescriptor::convertFromNativeFormat(os, static_cast<long>(size), data, rd);
-}
-
-void readRealData(Real* data, std::size_t size, std::istream& is,
-                  const RealDescriptor& rd)
-{
-    RealDescriptor::convertToNativeFormat(data, static_cast<long>(size), is, rd);
-}
 
 void testIntIO(const IntDescriptor& id_out) {
 
