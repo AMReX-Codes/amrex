@@ -28,7 +28,7 @@ void testIntIO(const IntDescriptor& id_out) {
     std::string header_file_name = "int_header_H";
     
     amrex::Vector<int> idata_out;
-    for (int i = 0; i < 100; ++i) {
+    for (int i = -99; i <= 100; ++i) {
         idata_out.push_back(i);
     }
     
@@ -49,12 +49,12 @@ void testIntIO(const IntDescriptor& id_out) {
     
     AMREX_ALWAYS_ASSERT(id_out == id_in);
     
-    amrex::Vector<int> idata_in(100);
+    amrex::Vector<int> idata_in(idata_out.size());
     ifs.open(data_file_name.c_str(), std::ios::in|std::ios::binary);
     readIntData(idata_in.data(), idata_in.size(), ifs, id_in);
     ifs.close();
     
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < static_cast<int>(idata_in.size()); ++i) {
         AMREX_ALWAYS_ASSERT(idata_in[i] == idata_out[i]);
     }
 }
@@ -65,10 +65,10 @@ void testLongIO(const IntDescriptor& id_out) {
     std::string header_file_name = "long_header_H";
     
     amrex::Vector<long> idata_out;
-    for (int i = 0; i < 100; ++i) {
+    for (int i = -99; i <= 100; ++i) {
         idata_out.push_back(i);
     }
-    
+
     std::ofstream ofs;
     ofs.open(data_file_name.c_str(), std::ios::out|std::ios::binary);
     writeLongData(idata_out.data(), idata_out.size(), ofs, id_out);
@@ -86,12 +86,12 @@ void testLongIO(const IntDescriptor& id_out) {
     
     AMREX_ALWAYS_ASSERT(id_out == id_in);
     
-    amrex::Vector<long> idata_in(100);
+    amrex::Vector<long> idata_in(idata_out.size());
     ifs.open(data_file_name.c_str(), std::ios::in|std::ios::binary);
     readLongData(idata_in.data(), idata_in.size(), ifs, id_in);
     ifs.close();
     
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < static_cast<int>(idata_in.size()); ++i) {
         AMREX_ALWAYS_ASSERT(idata_in[i] == idata_out[i]);
     }
 }
@@ -123,6 +123,8 @@ int main(int argc, char* argv[])
     testLongIO(big16);
     testLongIO(big32);
     testLongIO(big64);
+
+    amrex::Print() << "passed!" << std::endl;
     
     amrex::Finalize();
 }
