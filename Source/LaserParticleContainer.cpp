@@ -87,9 +87,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
 
 	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
-	if (std::abs(dp) > 1.e-14) {
-	    amrex::Abort("Laser plane vector is not perpendicular to the main polarization vector");
-	}
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14, 
+                                         "Laser plane vector is not perpendicular to the main polarization vector");
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
 

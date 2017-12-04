@@ -29,6 +29,8 @@ WarpX::InitData ()
 
     ComputePMLFactors();
 
+    InitDiagnostics();
+
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "\nGrids Summary:\n";
         printGridSummary(std::cout, 0, finestLevel());
@@ -42,6 +44,21 @@ WarpX::InitData ()
 	if (check_int > 0) {
 	    WriteCheckPointFile();
 	}
+    }
+}
+
+void
+WarpX::InitDiagnostics () {
+    if (do_boosted_frame_diagnostic) {
+        const Real* current_lo = geom[0].ProbLo();
+        const Real* current_hi = geom[0].ProbHi();
+        Real dt_boost = dt[0];
+        
+        myBFD.reset(new BoostedFrameDiagnostic(current_lo[moving_window_dir], 
+                                               current_hi[moving_window_dir],
+                                               moving_window_v, dt_snapshots_lab,
+                                               num_snapshots_lab, gamma_boost, dt_boost, 
+                                               moving_window_dir));
     }
 }
 
@@ -75,12 +92,13 @@ WarpX::InitPML ()
     if (do_pml)
     {
         pml[0].reset(new PML(boxArray(0), DistributionMap(0), &Geom(0), nullptr,
-                             pml_ncell, pml_delta, 0, do_dive_cleaning));
+                             pml_ncell, pml_delta, 0, do_dive_cleaning, do_moving_window));
         for (int lev = 1; lev <= finest_level; ++lev)
         {
             pml[lev].reset(new PML(boxArray(lev), DistributionMap(lev),
                                    &Geom(lev), &Geom(lev-1),
-                                   pml_ncell, pml_delta, refRatio(lev-1)[0], do_dive_cleaning));
+                                   pml_ncell, pml_delta, refRatio(lev-1)[0], do_dive_cleaning,
+                                   do_moving_window));
         }
     }
 }

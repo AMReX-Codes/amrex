@@ -109,7 +109,7 @@ class PML
 public:
     PML (const amrex::BoxArray& ba, const amrex::DistributionMapping& dm, 
          const amrex::Geometry* geom, const amrex::Geometry* cgeom,
-         int ncell, int delta, int ref_ratio, int do_dive_cleaning);
+         int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window);
 
     void ComputePMLFactors (amrex::Real dt, const std::string& pml_type);
 

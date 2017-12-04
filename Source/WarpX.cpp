@@ -26,7 +26,7 @@ Vector<Real> WarpX::B_external(3, 0.0);
 
 Real WarpX::gamma_boost = 1.;
 Real WarpX::beta_boost = 0.;
-Vector<Real> WarpX::boost_direction(3, 0.0);
+Vector<Real> WarpX::boost_direction = {0,0,0};
 
 long WarpX::current_deposition_algo = 3;
 long WarpX::charge_deposition_algo = 0;
@@ -40,6 +40,10 @@ long WarpX::noz = 1;
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
+
+bool WarpX::do_boosted_frame_diagnostic = false;
+int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
+Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
 
 #if (BL_SPACEDIM == 3)
 IntVect WarpX::Bx_nodal_flag(1,0,0);
@@ -173,19 +177,29 @@ WarpX::ReadParameters ()
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
 
-        // Boosted-frame parameters
-        pp.query("gamma_boost", gamma_boost);
-        beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
-        pp.queryarr("boost_direction", boost_direction);
-        if( gamma_boost > 1. ) {
-            // Read and normalize the boost direction
-            Real s = 1.0/std::sqrt(boost_direction[0]*boost_direction[0] +
-                                   boost_direction[1]*boost_direction[1] +
-                                   boost_direction[2]*boost_direction[2]);
-	    boost_direction = { boost_direction[0]*s,
-                            boost_direction[1]*s,
-                            boost_direction[2]*s };
-        }
+    // Boosted-frame parameters
+    pp.query("gamma_boost", gamma_boost);
+    beta_boost = std::sqrt(1.-1./pow(gamma_boost,2));
+    if( gamma_boost > 1. ){
+        // Read the boost direction
+        std::string s;
+	    pp.get("boost_direction", s);
+	    if (s == "x" || s == "X") {
+		   boost_direction[0] = 1.;
+	     }
+#if (BL_SPACEDIM == 3)
+	    else if (s == "y" || s == "Y") {
+		   boost_direction[1] = 1.;
+	    }
+#endif
+	    else if (s == "z" || s == "Z") {
+	      boost_direction[2] = 1.;
+	    }
+        else {
+		const std::string msg = "Unknown boost_dir: "+s;
+		amrex::Abort(msg.c_str());
+	    }
+    }
 
         pp.queryarr("B_external", B_external);
 
@@ -222,7 +236,37 @@ WarpX::ReadParameters ()
 	  injected_plasma_species.resize(num_injected_species);
 	  pp.getarr("injected_plasma_species", injected_plasma_species,
 		 0, num_injected_species);
+      if (moving_window_v >= 0){
+          // Inject particles continuously from the right end of the box
+          current_injection_position = geom[0].ProbHi(moving_window_dir);
+      } else {
+          // Inject particles continuously from the left end of the box
+          current_injection_position = geom[0].ProbLo(moving_window_dir);
+      }
 	}
+
+        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
+        if (do_boosted_frame_diagnostic) {
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
+                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
+
+            std::string s;
+    	    pp.get("boost_direction", s);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
+                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
+
+            pp.get("num_snapshots_lab", num_snapshots_lab);
+            pp.get("dt_snapshots_lab", dt_snapshots_lab);
+            pp.get("gamma_boost", gamma_boost);
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
+                "The moving window should be on if using the boosted frame diagnostic.");
+
+	        pp.get("moving_window_dir", s);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
+                "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
+        }
 
         pp.query("do_electrostatic", do_electrostatic);
         pp.query("n_buffer", n_buffer);
@@ -292,12 +336,9 @@ WarpX::ReadParameters ()
 	pp.query("nox", nox);
 	pp.query("noy", noy);
 	pp.query("noz", noz);
-	if (nox != noy || nox != noz) {
-	    amrex::Abort("warpx.nox, noy and noz must be equal");
-	}
-	if (nox < 1) {
-	    amrex::Abort("warpx.nox must >= 1");
-	}
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( nox == noy and nox == noz ,
+	    "warpx.nox, noy and noz must be equal");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( nox >= 1, "warpx.nox must >= 1");
     }
 
     {
@@ -349,7 +390,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
     int ngJ = ngE;
     int ngRho = ngE;
-
+    int ngF = (do_moving_window) ? 2 : 0;
+    
     //
     // The fine patch
     //
@@ -367,7 +409,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     if (do_dive_cleaning)
     {
-        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, 0));
+        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
     }
 
@@ -420,7 +462,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
         if (do_dive_cleaning)
         {
-            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, 0));
+            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, ngF));
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
         }
     }
@@ -444,11 +486,18 @@ WarpX::CellSize (int lev)
 #endif
 }
 
-std::array<Real,3>
-WarpX::LowerCorner(const Box& bx, int lev)
+amrex::RealBox
+WarpX::getRealBox(const Box& bx, int lev)
 {
     const auto& gm = GetInstance().Geom(lev);
     const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    return( grid_box );
+}
+
+std::array<Real,3>
+WarpX::LowerCorner(const Box& bx, int lev)
+{
+    const RealBox grid_box = getRealBox( bx, lev );
     const Real* xyzmin = grid_box.lo();
 #if (BL_SPACEDIM == 3)
     return { xyzmin[0], xyzmin[1], xyzmin[2] };
@@ -460,8 +509,7 @@ WarpX::LowerCorner(const Box& bx, int lev)
 std::array<Real,3>
 WarpX::UpperCorner(const Box& bx, int lev)
 {
-    const auto& gm = GetInstance().Geom(lev);
-    const RealBox grid_box{bx, gm.CellSize(), gm.ProbLo()};
+    const RealBox grid_box = getRealBox( bx, lev );
     const Real* xyzmax = grid_box.hi();
 #if (BL_SPACEDIM == 3)
     return { xyzmax[0], xyzmax[1], xyzmax[2] };
