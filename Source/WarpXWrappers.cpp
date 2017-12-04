@@ -176,11 +176,16 @@ extern "C"
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
 
         const int level = 0;
-        *num_tiles = myspc.numLocalTilesAtLevel(level);
-        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
-        
-        double** data = (double**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
+
         int i = 0;
+        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {}
+
+        // *num_tiles = myspc.numLocalTilesAtLevel(level);
+        *num_tiles = i;
+        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
+
+        double** data = (double**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
+        i = 0;
         for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
             auto& aos = pti.GetArrayOfStructs();
             data[i] = (double*) aos.data();
@@ -195,11 +200,16 @@ extern "C"
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
 
         const int level = 0;
-        *num_tiles = myspc.numLocalTilesAtLevel(level);
-        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
-        
-        double** data = (double**) malloc(*num_tiles*sizeof(double*));
+
         int i = 0;
+        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {}
+
+        // *num_tiles = myspc.numLocalTilesAtLevel(level);
+        *num_tiles = i;
+        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
+
+        double** data = (double**) malloc(*num_tiles*sizeof(double*));
+        i = 0;
         for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
             auto& soa = pti.GetStructOfArrays();
             data[i] = (double*) soa.GetRealData(comp).dataPtr();
