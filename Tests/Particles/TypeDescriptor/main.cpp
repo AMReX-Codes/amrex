@@ -8,18 +8,20 @@
 #include "AMReX_FabConv.H"
 #include "AMReX_Vector.H"
 #include "AMReX_IntConv.H"
+#include "AMReX_Utility.H"
 
 using namespace amrex;
 
-void writeRealData(const Real* data, std::size_t size, std::ostream& os)
+void writeRealData(const Real* data, std::size_t size, std::ostream& os,
+                   const RealDescriptor& rd = FPC::NativeRealDescriptor())
 {
-    return;
+    RealDescriptor::convertFromNativeFormat(os, static_cast<long>(size), data, rd);
 }
 
 void readRealData(Real* data, std::size_t size, std::istream& is,
                   const RealDescriptor& rd)
 {
-    return;
+    RealDescriptor::convertToNativeFormat(data, static_cast<long>(size), is, rd);
 }
 
 void testIntIO(const IntDescriptor& id_out) {
@@ -96,6 +98,48 @@ void testLongIO(const IntDescriptor& id_out) {
     }
 }
 
+void testRealIO(const RealDescriptor& rd_out) {
+
+    std::string data_file_name   = "real_data.dat";
+    std::string header_file_name = "real_header_H";
+    
+    amrex::Vector<Real> rdata_out;
+    for (int i = -99; i <= 100; ++i) {
+        rdata_out.push_back(amrex::Random());
+    }
+
+    std::ofstream ofs;
+    ofs.open(data_file_name.c_str(), std::ios::out|std::ios::binary);
+    writeRealData(rdata_out.data(), rdata_out.size(), ofs, rd_out);
+    ofs.close();
+    
+    ofs.open(header_file_name.c_str(), std::ios::out);
+    ofs << rd_out << "\n";
+    ofs.close();
+    
+    RealDescriptor rd_in;
+    std::ifstream ifs;
+    ifs.open(header_file_name.c_str(), std::ios::in);
+    ifs >> rd_in;
+    ifs.close();
+    
+    AMREX_ALWAYS_ASSERT(rd_out == rd_in);
+    
+    amrex::Vector<Real> rdata_in(rdata_out.size());
+    ifs.open(data_file_name.c_str(), std::ios::in|std::ios::binary);
+    readRealData(rdata_in.data(), rdata_in.size(), ifs, rd_in);
+    ifs.close();
+    
+    for (int i = 0; i < static_cast<int>(rdata_in.size()); ++i) {
+        if (rd_in == FPC::Native32RealDescriptor() || 
+            rd_in == FPC::Ieee32NormalRealDescriptor()) {
+            AMREX_ALWAYS_ASSERT(std::abs(rdata_in[i] - rdata_out[i]) <= 1e-7);
+        } else{
+            AMREX_ALWAYS_ASSERT(rdata_in[i] == rdata_out[i]);
+        }
+    }
+}
+
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -123,6 +167,11 @@ int main(int argc, char* argv[])
     testLongIO(big16);
     testLongIO(big32);
     testLongIO(big64);
+
+    testRealIO(FPC::NativeRealDescriptor());
+    testRealIO(FPC::Native32RealDescriptor());
+    testRealIO(FPC::Ieee32NormalRealDescriptor());
+    testRealIO(FPC::Ieee64NormalRealDescriptor());
 
     amrex::Print() << "passed!" << std::endl;
     
