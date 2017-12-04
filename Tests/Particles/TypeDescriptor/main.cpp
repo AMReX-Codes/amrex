@@ -70,24 +70,37 @@ void readIntData(int* data, std::size_t size, std::istream& is,
     }
 }
 
-void testIntIO(const IntDescriptor& id) {
-  std::string file_name = "int_data.dat";
- 
+void testIntIO(const IntDescriptor& id_out) {
+
+  std::string data_file_name = "int_data.dat";
+  std::string header_file_name = "int_header_H";
+
   amrex::Vector<int> idata_out;
   for (int i = 0; i < 100; ++i) {
       idata_out.push_back(i);
   }
 
   std::ofstream ofs;
-  ofs.open(file_name.c_str(), std::ios::out|std::ios::binary);
-  writeIntData(idata_out.data(), idata_out.size(), ofs, id);
+  ofs.open(data_file_name.c_str(), std::ios::out|std::ios::binary);
+  writeIntData(idata_out.data(), idata_out.size(), ofs, id_out);
   ofs.close();
 
-  amrex::Vector<int> idata_in(100);
+  ofs.open(header_file_name.c_str(), std::ios::out);
+  ofs << id_out << "\n";
+  ofs.close();
 
+  IntDescriptor id_in;
   std::ifstream ifs;
-  ifs.open(file_name.c_str(), std::ios::in|std::ios::binary);
-  readIntData(idata_in.data(), idata_in.size(), ifs, id);
+  ifs.open(header_file_name.c_str(), std::ios::in);
+  ifs >> id_in;
+  ifs.close();
+
+  AMREX_ALWAYS_ASSERT(id_out == id_in);
+
+  amrex::Vector<int> idata_in(100);
+  ifs.open(data_file_name.c_str(), std::ios::in|std::ios::binary);
+  readIntData(idata_in.data(), idata_in.size(), ifs, id_in);
+  ifs.close();
 
   for (int i = 0; i < 100; ++i) {
       AMREX_ALWAYS_ASSERT(idata_in[i] == idata_out[i]);
