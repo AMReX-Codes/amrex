@@ -8,70 +8,69 @@
 #include "AMReX_FPC.H"
 #include "AMReX_FabConv.H"
 
-/// These are the integer types we support right now
+namespace amrex {
 
-template<typename T> T swapBytes(T value);
+/**
+* \brief Functions for writing integer data to disk in a portable, self-describing manner.
+*/
 
-template<> std::int16_t swapBytes<std::int16_t>(std::int16_t val)
-{
-    return (val << 8) | ((val >> 8) & 0xFF);
-}
+    //! Write int data to the ostream. The arguments are a pointer to data
+    //! to write, the size of the data buffer, the ostream, and an optional
+    //! IntDescriptor that describes the data format to use for writing. If no
+    //! IntDescriptor is provided, the data will be written using the native
+    //! format for your machine.
+    void writeIntData(const int* data, std::size_t size, std::ostream& os,
+                      const IntDescriptor& id = FPC::NativeIntDescriptor());
 
-template<> std::int32_t swapBytes<std::int32_t>(std::int32_t val)
-{
-    val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF ); 
-    return (val << 16) | ((val >> 16) & 0xFFFF);
-}
+    //! Read int data from the istream. The arguments are a pointer to data buffer
+    //! to read into, the size of that buffer, the istream, and an IntDescriptor
+    //! that describes the format of the data on disk. 
+    //! The buffer is assumed to be large enough to store 'size' integers, and it is
+    //! the user's reponsiblity to allocate this data.
+    void readIntData(int* data, std::size_t size, std::istream& is, const IntDescriptor& id);
 
-template<> std::int64_t swapBytes<std::int64_t>(std::int64_t val)
-{
-    val = ((val << 8) & 0xFF00FF00FF00FF00ULL ) | ((val >> 8) & 0x00FF00FF00FF00FFULL );
-    val = ((val << 16) & 0xFFFF0000FFFF0000ULL ) | ((val >> 16) & 0x0000FFFF0000FFFFULL );
-    return (val << 32) | ((val >> 32) & 0xFFFFFFFFULL);
-}
+    //! Write long data to the ostream. The arguments are a pointer to data
+    //! to write, the size of the data buffer, the ostream, and an optional
+    //! IntDescriptor that describes the data format to use for writing. If no
+    //! IntDescriptor is provided, the data will be written using the native
+    //! format for your machine.
+    void writeLongData(const long* data, std::size_t size, std::ostream& os,
+                       const IntDescriptor& id = FPC::NativeLongDescriptor());
 
-template<> std::uint16_t swapBytes<std::uint16_t>(std::uint16_t val)
-{
-    return (val << 8) | (val >> 8 );
-}
+    //! Read int data from the istream. The arguments are a pointer to data buffer
+    //! to read into, the size of that buffer, the istream, and an IntDescriptor
+    //! that describes the format of the data on disk. 
+    //! The buffer is assumed to be large enough to store 'size' longs, and it is
+    //! the user's reponsiblity to allocate this data.
+    void readLongData(long* data, std::size_t size, std::istream& is, const IntDescriptor& id);
 
-template<> std::uint32_t swapBytes<std::uint32_t>(std::uint32_t val)
-{
-    val = ((val << 8) & 0xFF00FF00 ) | ((val >> 8) & 0xFF00FF ); 
-    return (val << 16) | (val >> 16);
-}
-
-template<> std::uint64_t swapBytes<std::uint64_t>(std::uint64_t val)
-{
-    val = ((val << 8) & 0xFF00FF00FF00FF00ULL ) | ((val >> 8) & 0x00FF00FF00FF00FFULL );
-    val = ((val << 16) & 0xFFFF0000FFFF0000ULL ) | ((val >> 16) & 0x0000FFFF0000FFFFULL );
-    return (val << 32) | (val >> 32);
-}
-
-template <typename T>
-void writeIntData(const int* data, std::size_t size, std::ostream& os,
-                  const amrex::IntDescriptor& id)
-{
-    T value;
-    bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
-    for (std::size_t j = 0; j < size; ++j) {
-        value = data[j];
-        if (swapEndian) value = swapBytes<T>(value);
-        os.write((char*) &value, sizeof(T));
+    template<typename T> T swapBytes(T value);
+    
+    template <typename To, typename From>
+    void writeIntData(const From* data, std::size_t size, std::ostream& os,
+                      const amrex::IntDescriptor& id)
+    {
+        To value;
+        bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
+        for (std::size_t j = 0; j < size; ++j) {
+            value = data[j];
+            if (swapEndian) value = swapBytes<To>(value);
+            os.write((char*) &value, sizeof(To));
+        }
     }
-}
-
-template <typename T>
-void readIntData(int* data, std::size_t size, std::istream& is,
-                 const amrex::IntDescriptor& id)
-{
-    T value;
-    bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
-    for (std::size_t j = 0; j < size; ++j) {
-        is.read((char*) &value, sizeof(T));
-        if (swapEndian) value = swapBytes<T>(value);
-        data[j] = value;
-    }
+    
+    template <typename To, typename From>
+    void readIntData(To* data, std::size_t size, std::istream& is,
+                     const amrex::IntDescriptor& id)
+    {
+        From value;
+        bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
+        for (std::size_t j = 0; j < size; ++j) {
+            is.read((char*) &value, sizeof(From));
+            if (swapEndian) value = swapBytes<From>(value);
+            data[j] = value;
+        }
+    }   
 }
 
 #endif

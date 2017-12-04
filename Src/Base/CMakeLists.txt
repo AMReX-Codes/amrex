@@ -40,7 +40,7 @@ list ( APPEND ALLHEADERS AMReX_parstream.H )
 #
 # I/O stuff
 # 
-list ( APPEND CXXSRC     AMReX_FabConv.cpp AMReX_FPC.cpp )
+list ( APPEND CXXSRC     AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp)
 list ( APPEND ALLHEADERS AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H)
 
 #

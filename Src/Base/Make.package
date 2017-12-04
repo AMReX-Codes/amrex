@@ -42,7 +42,7 @@ C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 # I/O stuff.
 #
 C${AMREX_BASE}_headers += AMReX_FabConv.H AMReX_FPC.H AMReX_Print.H AMReX_IntConv.H
-C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp
+C${AMREX_BASE}_sources += AMReX_FabConv.cpp AMReX_FPC.cpp AMReX_IntConv.cpp
 
 #
 # Index space.
