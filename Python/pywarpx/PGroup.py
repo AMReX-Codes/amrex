@@ -148,7 +148,7 @@ class PGroups(object):
         self._pgroups = []
         for igroup in range(self.ngroups):
             self._pgroups.append(PGroup(igroup, self.ispecie))
-        
+
     def __iter__(self):
         self.setuppgroups()
         for igroup in range(self.ngroups):
@@ -158,3 +158,6 @@ class PGroups(object):
         self.setuppgroups()
         return self._pgroups[key]
 
+    def __len__(self):
+        self.setuppgroups()
+        return len(self._pgroups)
