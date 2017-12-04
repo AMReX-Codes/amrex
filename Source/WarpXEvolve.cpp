@@ -68,6 +68,7 @@ WarpX::EvolveES(int numsteps) {
         if (is_synchronized) {
             // on first step, push X by 0.5*dt
             mypc->PushXES(0.5*dt[lev]);
+            UpdatePlasmaInjectionPosition(0.5*dt[lev]);
             mypc->Redistribute();
             mypc->DepositCharge(rhoNodal);
             computePhi(rhoNodal, phiNodal);
@@ -92,6 +93,7 @@ WarpX::EvolveES(int numsteps) {
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
             mypc->PushXES(-0.5*dt[lev]);
+            UpdatePlasmaInjectionPosition(-0.5*dt[lev]);
             is_synchronized = true;
         }
 
@@ -194,6 +196,7 @@ WarpX::EvolveEM (int numsteps)
             FillBoundaryB();
             EvolveE(0.5*dt[0], DtType::SecondHalf);
             mypc->PushX(0.5*dt[0]);
+            UpdatePlasmaInjectionPosition(0.5*dt[0]);
             mypc->Redistribute();  // Redistribute particles
             is_synchronized = false;
         }
@@ -226,6 +229,7 @@ WarpX::EvolveEM (int numsteps)
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
             EvolveE(0.5*dt[0], DtType::FirstHalf); // We now have E^{n+1/2}
             mypc->PushX(-0.5*dt[0]);
+            UpdatePlasmaInjectionPosition(-0.5*dt[0]);
             is_synchronized = true;
         } else {
             EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
