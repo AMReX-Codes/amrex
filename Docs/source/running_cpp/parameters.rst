@@ -25,9 +25,9 @@ Overall simulation parameters
 
         For now, only the laser parameters will be converted.
 
-* ``warpx.boost_direction`` (`3 floats in 3D`)
-    The coordinates of a vector that points in the propagation direction of
-    the Lorentz transform. The norm of this vector is unimportant, only its direction matters.
+* ``warpx.boost_direction`` (string: ``x``, ``y`` or ``z``)
+    The direction of the Lorentz-transform for boosted-frame simulations
+    (The direction ``y`` cannot be used in 2D simulations.)
 
 Setting up the field mesh
 -------------------------
@@ -260,3 +260,17 @@ Diagnostics and output
 * ``amr.plot_int`` (`integer`)
     The number of PIC cycles inbetween two consecutive data dumps. Use a
     negative number to disable data dumping.
+
+* ``warpx.do_boosted_frame_diagnostic`` (`0 or 1`)
+    Whether to use the **back-transformed diagnostics** (i.e. diagnostics that
+    perform on-the-fly conversion to the laboratory frame, when running
+    boosted-frame simulations)
+
+* ``warpx.num_snapshots_lab`` (`integer`)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    The number of lab-frame snapshots that will be written.
+
+* ``warpx.dt_snapshots_lab`` (`float`, in seconds)
+    Only used when ``warpx.do_boosted_frame_diagnostic`` is ``1``.
+    The time interval inbetween the lab-frame snapshots (where this
+    time interval is expressed in the laboratory frame).

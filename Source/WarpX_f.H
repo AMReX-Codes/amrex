@@ -26,7 +26,9 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_3d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
+#define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_3d
+#define WRPX_COPY_SLICE                  warpx_copy_slice_3d
 
 #elif (BL_SPACEDIM == 2)
 
@@ -53,7 +55,9 @@
 #define WRPX_PUSH_LEAPFROG               warpx_push_leapfrog_2d
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
+#define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
 #define WRPX_FILTER                      warpx_filter_2d
+#define WRPX_COPY_SLICE                  warpx_copy_slice_2d
 
 #endif
 
@@ -61,6 +65,12 @@
 extern "C"
 {
 #endif
+
+        void WRPX_COPY_SLICE(const int* lo, const int* hi,
+                             const amrex_real* tmp, const int* tlo, const int* thi,
+                             amrex_real* buf, const int* blo, const int* bhi,
+                             const int* ncomp, const int* i_boost, const int* i_lab);
+    
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -255,6 +265,10 @@ extern "C"
 #endif
                                       const amrex::Real* dt, const amrex::Real* prob_lo,
                                       const amrex::Real* prob_hi);
+
+    void WRPX_LORENTZ_TRANSFORM_Z(amrex::Real* data, const int* dlo, const int* dhi,
+                                  const int* tlo, const int* thi,
+                                  const amrex::Real* gamma_boost, const amrex::Real* beta_boost);
 
 //  These functions are used to evolve E and B in the PML
 

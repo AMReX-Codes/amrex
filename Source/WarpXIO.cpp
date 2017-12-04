@@ -101,9 +101,6 @@ WarpX::WriteCheckPointFile() const
 
     amrex::Print() << "  Writing checkpoint " << checkpointname << "\n";
 
-    const int checkpoint_nfiles = 64;  // could make this parameter
-    VisMF::SetNOutFiles(checkpoint_nfiles);
-
     const int nlevels = finestLevel()+1;
     amrex::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
 
@@ -180,9 +177,6 @@ WarpX::InitFromCheckpoint ()
     BL_PROFILE("WarpX::InitFromCheckpoint()");
 
     amrex::Print() << "  Restart from checkpoint " << restart_chkfile << "\n";
-
-    const int checkpoint_nfiles = 64;  // could make this parameter
-    VisMF::SetNOutFiles(checkpoint_nfiles);
 
     // Header
     {
@@ -392,6 +386,54 @@ WarpX::InitFromCheckpoint ()
     }
 }
 
+
+std::unique_ptr<MultiFab>
+WarpX::GetCellCenteredData() {
+
+    BL_PROFILE("WarpX::GetCellCenteredData");
+
+    const int ng =  1;
+    const int nc = 10;
+    const int lev = 0;
+    auto cc = std::unique_ptr<MultiFab>( new MultiFab(boxArray(lev),
+                                                      DistributionMap(lev),
+                                                      nc, ng) );
+
+    Array<const MultiFab*> srcmf(BL_SPACEDIM);
+    int dcomp = 0;
+
+    // first the electric field
+    PackPlotDataPtrs(srcmf, Efield_aux[lev]);
+    amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
+    amrex::average_node_to_cellcenter(*cc, dcomp+1, *Efield_aux[lev][1], 0, 1);
+#endif
+    dcomp += 3;
+    
+    // then the magnetic field
+    PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
+    amrex::average_face_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
+    MultiFab::Copy(*cc, *Bfield_aux[lev][1], 0, dcomp+1, 1, ng);
+#endif
+    dcomp += 3;
+
+    // then the current density
+    PackPlotDataPtrs(srcmf, current_fp[lev]);
+    amrex::average_edge_to_cellcenter(*cc, dcomp, srcmf);
+#if (BL_SPACEDIM == 2)
+    MultiFab::Copy(*cc, *cc, dcomp+1, dcomp+2, 1, ng);
+    amrex::average_node_to_cellcenter(*cc, dcomp+1, *current_fp[lev][1], 0, 1);
+#endif
+    dcomp += 3;
+
+    const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
+    amrex::average_node_to_cellcenter(*cc, dcomp, *charge_density, 0, 1);
+        
+    return cc;
+}
 
 void
 WarpX::WritePlotFile () const
@@ -613,23 +655,23 @@ WarpX::WritePlotFile () const
         }
 #endif
 
+        Vector<std::string> rfs;
+        if (plot_raw_fields) rfs.emplace_back("raw_fields"); // pre-build raw_fields/
 	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1,
                                        amrex::GetVecOfConstPtrs(mf),
-                                       varnames, Geom(), t_new[0], istep, refRatio());
+                                       varnames, Geom(), t_new[0], istep, refRatio(),
+                                       "HyperCLaw-V1.1",
+                                       "Level_",
+                                       "Cell",
+                                       rfs);
     }
 
     if (plot_raw_fields)
     {
-        const int raw_plot_nfiles = 64;  // could make this parameter
-        VisMF::SetNOutFiles(raw_plot_nfiles);
-
         const int nlevels = finestLevel()+1;
-        const std::string raw_plotfilename = plotfilename + "/raw_fields";
-        amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
-
         for (int lev = 0; lev < nlevels; ++lev)
         {
-
+            const std::string raw_plotfilename = plotfilename + "/raw_fields";
             // Plot auxilary patch
             if (plot_raw_fields_guards) {
                 VisMF::Write(*Efield_aux[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_aux"));
@@ -746,9 +788,9 @@ WarpX::WritePlotFile () const
     Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 
-    particle_varnames.push_back("velocity_x");
-    particle_varnames.push_back("velocity_y");
-    particle_varnames.push_back("velocity_z");
+    particle_varnames.push_back("momentum_x");
+    particle_varnames.push_back("momentum_y");
+    particle_varnames.push_back("momentum_z");
 
     particle_varnames.push_back("Ex");
     particle_varnames.push_back("Ey");
@@ -815,19 +857,19 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
             dcomp += 1;
         }
 
+        Vector<std::string> rfs(1,"raw_fields"); // pre-build raw_fields/
         amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1,
                                        amrex::GetVecOfConstPtrs(mf),
-                                       varnames, Geom(), t_new[0], istep, refRatio());
+                                       varnames, Geom(), t_new[0], istep, refRatio(),
+                                       "HyperCLaw-V1.1",
+                                       "Level_",
+                                       "Cell",
+                                       rfs);
     }
 
     {
-        const int raw_plot_nfiles = 64;  // could make this parameter
-        VisMF::SetNOutFiles(raw_plot_nfiles);
-
-        const int nlevels = finestLevel()+1;
         const std::string raw_plotfilename = plotfilename + "/raw_fields";
-        amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
-
+        const int nlevels = finestLevel()+1;
         for (int lev = 0; lev < nlevels; ++lev) {
             const DistributionMapping& dm = DistributionMap(lev);
 
@@ -854,9 +896,9 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
 
-    particle_varnames.push_back("velocity_x");
-    particle_varnames.push_back("velocity_y");
-    particle_varnames.push_back("velocity_z");
+    particle_varnames.push_back("momentum_x");
+    particle_varnames.push_back("momentum_y");
+    particle_varnames.push_back("momentum_z");
 
     particle_varnames.push_back("Ex");
     particle_varnames.push_back("Ey");

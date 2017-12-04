@@ -31,6 +31,8 @@ WarpX::InitData ()
 
     BuildBufferMasks();
 
+    InitDiagnostics();
+
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "\nGrids Summary:\n";
         printGridSummary(std::cout, 0, finestLevel());
@@ -44,6 +46,21 @@ WarpX::InitData ()
 	if (check_int > 0) {
 	    WriteCheckPointFile();
 	}
+    }
+}
+
+void
+WarpX::InitDiagnostics () {
+    if (do_boosted_frame_diagnostic) {
+        const Real* current_lo = geom[0].ProbLo();
+        const Real* current_hi = geom[0].ProbHi();
+        Real dt_boost = dt[0];
+        
+        myBFD.reset(new BoostedFrameDiagnostic(current_lo[moving_window_dir], 
+                                               current_hi[moving_window_dir],
+                                               moving_window_v, dt_snapshots_lab,
+                                               num_snapshots_lab, gamma_boost, dt_boost, 
+                                               moving_window_dir));
     }
 }
 

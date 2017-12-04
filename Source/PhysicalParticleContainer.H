@@ -29,7 +29,7 @@ public:
                              const amrex::MultiFab& Bz) final;
 
     virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho, 
+                                 amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                            amrex::Real t, amrex::Real dt) override;
 
     virtual void Evolve (int lev,
@@ -58,12 +58,13 @@ public:
     virtual void PostRestart () final {}
 
     // Inject particles in Box 'part_box'
-    void AddParticles (int lev, amrex::Box part_box = amrex::Box());
+    void AddParticles (int lev);
+    void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
 
     void AddGaussianBeam(amrex::Real x_m, amrex::Real y_m, amrex::Real z_m,
-                         amrex::Real x_rms, amrex::Real y_rms, amrex::Real z_rms, 
+                         amrex::Real x_rms, amrex::Real y_rms, amrex::Real z_rms,
                          amrex::Real q_tot, long npart);
-                                           
+
 protected:
 
     std::string species_name;

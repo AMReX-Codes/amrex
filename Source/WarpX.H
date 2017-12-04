@@ -14,9 +14,11 @@
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_VisMF.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
+#include <WarpXBoostedFrameDiagnostic.H>
 
 class NoOpPhysBC
     : public amrex::PhysBCFunctBase
@@ -78,6 +80,11 @@ public:
     static bool use_filter;
     static bool serialize_ics;
 
+    // Back transformation diagnostic
+    static bool do_boosted_frame_diagnostic;
+    static int  num_snapshots_lab;
+    static Real dt_snapshots_lab;
+
     // Boosted frame parameters
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
@@ -97,6 +104,7 @@ public:
 
     void ComputeDt ();
     void MoveWindow (bool move_j);
+    void UpdatePlasmaInjectionPosition (Real dt);
 
     void EvolveE (         amrex::Real dt, DtType typ);
     void EvolveE (int lev, amrex::Real dt, DtType typ);
@@ -141,6 +149,7 @@ public:
                          const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E);
 
     static std::array<amrex::Real,3> CellSize (int lev);
+    static amrex::RealBox getRealBox(const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
 
@@ -234,10 +243,13 @@ private:
     void InitPML ();
     void ComputePMLFactors ();
 
-    void InjectPlasma(int num_shift, int dir);
+    void InitDiagnostics ();
 
     void WriteWarpXHeader(const std::string& name) const;
     void WriteJobInfo (const std::string& dir) const;
+
+    std::unique_ptr<amrex::MultiFab> GetCellCenteredData();
+
     static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
@@ -296,6 +308,9 @@ private:
     // Particle container
     std::unique_ptr<MultiParticleContainer> mypc;
 
+    // Boosted Frame Diagnostics
+    std::unique_ptr<BoostedFrameDiagnostic> myBFD;
+
     //
     // Fields: First array for level, second for direction
     //
@@ -340,8 +355,10 @@ private:
     // Moving window parameters
     int do_moving_window  = 0;
     int moving_window_dir = -1;
-    amrex::Real moving_window_x  = std::numeric_limits<amrex::Real>::max();
-    amrex::Real moving_window_v  = std::numeric_limits<amrex::Real>::max();
+
+    amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
+    amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
+    Real current_injection_position = 0;
 
     // Plasma injection parameters
     int do_plasma_injection  = 0;
@@ -382,6 +399,14 @@ private:
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
     bool plot_raw_fields_guards = false;
+
+    amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
+    amrex::VisMF::Header::Version plot_headerversion       = amrex::VisMF::Header::Version_v1;
+    bool use_single_read = true;
+    bool use_single_write = true;
+    int mffile_nstreams = 4;
+    int field_io_nfiles = 1024;
+    int particle_io_nfiles = 1024;
 
     amrex::RealVect fine_tag_lo;
     amrex::RealVect fine_tag_hi;

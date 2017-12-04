@@ -42,12 +42,12 @@ WarpX::EvolveES(int numsteps) {
     // nodal storage for the electrostatic case
     const int num_levels = max_level + 1;
     Vector<std::unique_ptr<MultiFab> > rhoNodal(num_levels);
-    Vector<std::unique_ptr<MultiFab> > phiNodal(num_levels); 
-    Vector<std::array<std::unique_ptr<MultiFab>, 3> > eFieldNodal(num_levels);  
+    Vector<std::unique_ptr<MultiFab> > phiNodal(num_levels);
+    Vector<std::array<std::unique_ptr<MultiFab>, 3> > eFieldNodal(num_levels);
     const int ng = 1;
     for (int lev = 0; lev <= max_level; lev++) {
         BoxArray nba = boxArray(lev);
-        nba.surroundingNodes(); 
+        nba.surroundingNodes();
         rhoNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, ng));
         phiNodal[lev].reset(new MultiFab(nba, dmap[lev], 1, 2));
 
@@ -59,15 +59,16 @@ WarpX::EvolveES(int numsteps) {
     const int lev = 0;
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
-        
+
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
-        
-        // At initialization, particles have p^{n-1/2} and x^{n-1/2}.           
-        // Beyond one step, particles have p^{n-1/2} and x^{n}.        
+
+        // At initialization, particles have p^{n-1/2} and x^{n-1/2}.
+        // Beyond one step, particles have p^{n-1/2} and x^{n}.
         if (is_synchronized) {
             // on first step, push X by 0.5*dt
             mypc->PushXES(0.5*dt[lev]);
+            UpdatePlasmaInjectionPosition(0.5*dt[lev]);
             mypc->Redistribute();
             mypc->DepositCharge(rhoNodal);
             computePhi(rhoNodal, phiNodal);
@@ -88,17 +89,18 @@ WarpX::EvolveES(int numsteps) {
 
         computePhi(rhoNodal, phiNodal);
         computeE(eFieldNodal, phiNodal);
-        
+
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
             mypc->PushXES(-0.5*dt[lev]);
+            UpdatePlasmaInjectionPosition(-0.5*dt[lev]);
             is_synchronized = true;
-        } 
+        }
 
         mypc->Redistribute();
-        
+
         ++istep[0];
-        
+
         cur_time += dt[0];
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
@@ -152,7 +154,7 @@ WarpX::EvolveEM (int numsteps)
     Real cur_time = t_new[0];
     static int last_plot_file_step = 0;
     static int last_check_file_step = 0;
-    
+
     int numsteps_max;
     if (numsteps < 0) {  // Note that the default argument is numsteps = -1
         numsteps_max = max_step;
@@ -161,7 +163,6 @@ WarpX::EvolveEM (int numsteps)
     }
 
     bool max_time_reached = false;
-
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
         if (warpx_py_print_step) {
@@ -195,6 +196,7 @@ WarpX::EvolveEM (int numsteps)
             FillBoundaryB();
             EvolveE(0.5*dt[0], DtType::SecondHalf);
             mypc->PushX(0.5*dt[0]);
+            UpdatePlasmaInjectionPosition(0.5*dt[0]);
             mypc->Redistribute();  // Redistribute particles
             is_synchronized = false;
         }
@@ -227,11 +229,12 @@ WarpX::EvolveEM (int numsteps)
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
             EvolveE(0.5*dt[0], DtType::FirstHalf); // We now have E^{n+1/2}
             mypc->PushX(-0.5*dt[0]);
+            UpdatePlasmaInjectionPosition(-0.5*dt[0]);
             is_synchronized = true;
         } else {
             EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
         }
-        
+
          for (int lev = 0; lev <= max_level; ++lev) {
             ++istep[lev];
         }
@@ -254,6 +257,11 @@ WarpX::EvolveEM (int numsteps)
 	for (int i = 0; i <= max_level; ++i) {
 	    t_new[i] = cur_time;
 	}
+
+        if (do_boosted_frame_diagnostic) {
+            std::unique_ptr<MultiFab> cell_centered_data = GetCellCenteredData();
+            myBFD->writeLabFrameData(*cell_centered_data, geom[0], cur_time);
+        }
 
 	if (to_make_plot)
         {
@@ -289,13 +297,13 @@ WarpX::EvolveEM (int numsteps)
         FillBoundaryE();
         FillBoundaryB();
         UpdateAuxilaryData();
-        
+
         for (int lev = 0; lev <= finest_level; ++lev) {
             mypc->FieldGather(lev,
                               *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                               *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
         }
-        
+
 	WritePlotFile();
     }
 
@@ -327,7 +335,7 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
         int patch_level = (ipatch == 0) ? lev : lev-1;
         const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
         const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
-        
+
         MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
         if (ipatch == 0)
         {
@@ -362,7 +370,7 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-            
+
             // Call picsar routine for each tile
             WRPX_PXR_PUSH_BVEC(
                 tbx.loVect(), tbx.hiVect(),
@@ -405,7 +413,7 @@ WarpX::EvolveB (int lev, Real dt, DtType typ)
                 const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
                 const Box& tby  = mfi.tilebox(By_nodal_flag);
                 const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-                
+
                 WRPX_PUSH_PML_BVEC(
                     tbx.loVect(), tbx.hiVect(),
                     tby.loVect(), tby.hiVect(),
@@ -479,7 +487,7 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
 
         MultiFab* cost = costs[lev].get();
         const IntVect& rr = (lev < finestLevel()) ? refRatio(lev) : IntVect::TheUnitVector();
-        
+
         // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
 #pragma omp parallel
@@ -552,7 +560,7 @@ WarpX::EvolveE (int lev, Real dt, DtType typ)
                 const Box& tex  = mfi.tilebox(Ex_nodal_flag);
                 const Box& tey  = mfi.tilebox(Ey_nodal_flag);
                 const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-                
+
                 WRPX_PUSH_PML_EVEC(
                     tex.loVect(), tex.hiVect(),
                     tey.loVect(), tey.hiVect(),
@@ -699,27 +707,3 @@ WarpX::ComputeDt ()
         dt[0] = const_dt;
     }
 }
-
-void
-WarpX::InjectPlasma (int num_shift, int dir)
-{
-    if(do_plasma_injection)
-    {
-        const int lev = 0;
-
-        // particleBox encloses the cells where we generate particles
-        Box particleBox = geom[lev].Domain();
-        int domainLength = particleBox.length(dir);
-        int sign = (num_shift < 0) ? -1 : 1;
-        particleBox.shift(dir, sign*(domainLength - std::abs(num_shift)));
-        particleBox &= geom[lev].Domain();
-
-        for (int i = 0; i < num_injected_species; ++i) {
-            int ispecies = injected_plasma_species[i];
-            WarpXParticleContainer& pc = mypc->GetParticleContainer(ispecies);
-            auto& ppc = dynamic_cast<PhysicalParticleContainer&>(pc);
-            ppc.AddParticles(lev, particleBox);
-        }
-    }
-}
-
