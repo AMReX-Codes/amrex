@@ -181,7 +181,7 @@ public:
                                        const RealDescriptor& id);
 
     /**
-    * \brief Read nitems from istream in ReadDescriptor format and
+    * \brief Read nitems from istream in RealDescriptor format and
     * convert them to the native Real format.  The out array is
     * assumed to be large enough to hold the resulting output.
     */
