@@ -102,6 +102,7 @@ public:
 
     void ComputeDt ();
     void MoveWindow (bool move_j);
+    void UpdatePlasmaInjectionPosition (Real dt);
 
     void EvolveE (         amrex::Real dt, DtType typ);
     void EvolveE (int lev, amrex::Real dt, DtType typ);
