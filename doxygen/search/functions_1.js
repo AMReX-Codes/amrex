@@ -156,11 +156,5 @@ var searchData=
   ['average_5fface_5fto_5fcellcenter',['average_face_to_cellcenter',['../namespaceamrex.html#a467ca4ce27050b2e2b168c01ad6e1be6',1,'amrex::average_face_to_cellcenter(MultiFab &amp;cc, int dcomp, const Vector&lt; const MultiFab * &gt; &amp;fc)'],['../namespaceamrex.html#abdb4a7a5967743f8bce82ac78128963d',1,'amrex::average_face_to_cellcenter(MultiFab &amp;cc, const Vector&lt; const MultiFab * &gt; &amp;fc, const Geometry &amp;geom)']]],
   ['average_5fnode_5fto_5fcellcenter',['average_node_to_cellcenter',['../namespaceamrex.html#a4ff4097e7e8236604cf32102be9f4eea',1,'amrex']]],
   ['averagesync',['AverageSync',['../classamrex_1_1_multi_fab.html#a7e5a1ca37cf868e20311541187b08216',1,'amrex::MultiFab']]],
-  ['axby',['axby',['../classamrex_1_1_e_b_level_data_ops.html#a0e2525832492a54ebfc5422897ce1e14',1,'amrex::EBLevelDataOps::axby()'],['../classamrex_1_1_e_b_cell_f_a_b.html#aeae199a99739c968c9dfc9dba3c3e4a7',1,'amrex::EBCellFAB::axby()']]],
-  ['swapbytes_3c_20std_3a_3aint16_5ft_20_3e',['swapBytes&lt; std::int16_t &gt;',['../_a_m_re_x___int_conv_8cpp.html#a350530f9c8ead8517a93623dc646cfe9',1,'AMReX_IntConv.cpp']]],
-  ['swapbytes_3c_20std_3a_3aint32_5ft_20_3e',['swapBytes&lt; std::int32_t &gt;',['../_a_m_re_x___int_conv_8cpp.html#af684faf4f9430ffe6df4262c9bf42cd0',1,'AMReX_IntConv.cpp']]],
-  ['swapbytes_3c_20std_3a_3aint64_5ft_20_3e',['swapBytes&lt; std::int64_t &gt;',['../_a_m_re_x___int_conv_8cpp.html#a72295d12027c625898106d5f56a70076',1,'AMReX_IntConv.cpp']]],
-  ['swapbytes_3c_20std_3a_3auint16_5ft_20_3e',['swapBytes&lt; std::uint16_t &gt;',['../_a_m_re_x___int_conv_8cpp.html#a89fd61fdae7cad98afdd2a70e73e7416',1,'AMReX_IntConv.cpp']]],
-  ['swapbytes_3c_20std_3a_3auint32_5ft_20_3e',['swapBytes&lt; std::uint32_t &gt;',['../_a_m_re_x___int_conv_8cpp.html#a8597332ad70a6da97d7581a1016fe27a',1,'AMReX_IntConv.cpp']]],
-  ['swapbytes_3c_20std_3a_3auint64_5ft_20_3e',['swapBytes&lt; std::uint64_t &gt;',['../_a_m_re_x___int_conv_8cpp.html#a6447a646bf98e3f241d68a6d6d92c26f',1,'AMReX_IntConv.cpp']]]
+  ['axby',['axby',['../classamrex_1_1_e_b_level_data_ops.html#a0e2525832492a54ebfc5422897ce1e14',1,'amrex::EBLevelDataOps::axby()'],['../classamrex_1_1_e_b_cell_f_a_b.html#aeae199a99739c968c9dfc9dba3c3e4a7',1,'amrex::EBCellFAB::axby()']]]
 ];
