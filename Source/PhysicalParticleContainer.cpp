@@ -583,6 +583,8 @@ PhysicalParticleContainer::Evolve (int lev,
 
     const iMultiFab* bmasks = WarpX::BufferMasks(lev);
     
+    bool has_buffer = cEx || cjx; 
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -637,7 +639,7 @@ PhysicalParticleContainer::Evolve (int lev,
 	    giv.resize(np);
 
             long nfine = np;
-            if (cEx && !do_not_push)
+            if (has_buffer && !do_not_push)
             {
                 BL_PROFILE_VAR_START(blp_partition);
                 inexflag.resize(np);
@@ -771,10 +773,12 @@ PhysicalParticleContainer::Evolve (int lev,
                 const int l_lower_order_in_v = true;
                 long lvect_fieldgathe = 64;
 
+                const long np_gather = (cEx) ? nfine : np;
+
                 BL_PROFILE_VAR_START(blp_pxr_fg);
 
                 warpx_geteb_energy_conserving(
-                    &nfine, xp.data(), yp.data(), zp.data(),
+                    &np_gather, xp.data(), yp.data(), zp.data(),
                     Exp.data(),Eyp.data(),Ezp.data(),
                     Bxp.data(),Byp.data(),Bzp.data(),
                     &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
@@ -789,7 +793,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     &ll4symtry, &l_lower_order_in_v,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
-                if (nfine < np)
+                if (np_gather < np)
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
                     const std::array<Real,3>& cxyzmin_grid
@@ -846,6 +850,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
                 Box gtbx, gtby, gtbz;
 
+                const long np_current = (cjx) ? nfine : np;
+
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
                 tbx.grow(ngJ);
@@ -888,7 +894,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     jx_ptr, &ngJDeposit, jxntot,
                     jy_ptr, &ngJDeposit, jyntot,
                     jz_ptr, &ngJDeposit, jzntot,
-                    &nfine, xp.data(), yp.data(), zp.data(),
+                    &np_current, xp.data(), yp.data(), zp.data(),
                     uxp.data(), uyp.data(), uzp.data(),
                     giv.data(), wp.data(), &this->charge,
                     &xyzmin[0], &xyzmin[1], &xyzmin[2],
@@ -958,7 +964,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 }
                 BL_PROFILE_VAR_STOP(blp_accumulate);
                 
-                if (nfine < np)
+                if (np_current < np)
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
                     const Box& ctilebox = amrex::coarsen(pti.tilebox(),ref_ratio);

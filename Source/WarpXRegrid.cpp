@@ -145,9 +145,10 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             }
         }
 
-        if (lev > 0 && n_field_gather_buffer > 0) {
+        if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0)) {
             for (int idim=0; idim < 3; ++idim)
             {
+                if (Bfield_cax[lev][idim])
                 {
                     int ng = Bfield_cax[lev][idim]->nGrow();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Bfield_cax[lev][idim]->boxArray(),
@@ -155,6 +156,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                     // pmf->ParallelCopy(*Bfield_cax[lev][idim], 0, 0, 1, ng, ng);
                     Bfield_cax[lev][idim] = std::move(pmf);
                 }
+                if (Efield_cax[lev][idim])
                 {
                     int ng = Efield_cax[lev][idim]->nGrow();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(Efield_cax[lev][idim]->boxArray(),
@@ -162,6 +164,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                     // pmf->ParallelCopy(*Efield_cax[lev][idim], 0, 0, 1, ng, ng);
                     Efield_cax[lev][idim] = std::move(pmf);
                 }
+                if (current_buf[lev][idim])
                 {
                     int ng = current_buf[lev][idim]->nGrow();
                     auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_buf[lev][idim]->boxArray(),
@@ -170,6 +173,7 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                     current_buf[lev][idim] = std::move(pmf);
                 }
             }
+            if (buffer_masks[lev])
             {
                 int ng = buffer_masks[lev]->nGrow();
                 auto pmf = std::unique_ptr<iMultiFab>(new iMultiFab(buffer_masks[lev]->boxArray(),

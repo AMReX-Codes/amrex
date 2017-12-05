@@ -282,6 +282,7 @@ WarpX::ReadParameters ()
 	pp.query("serialize_ics", serialize_ics);
         pp.query("do_dive_cleaning", do_dive_cleaning);
         pp.query("n_field_gather_buffer", n_field_gather_buffer);
+        pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
@@ -482,24 +483,28 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     //
     // Copy of the coarse aux
     //
-    if (lev > 0 && n_field_gather_buffer > 0)
+    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0))
     {
         BoxArray cba = ba;
         cba.coarsen(refRatio(lev-1));
 
-        // Create the MultiFabs for B
-        Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
-        Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
-        Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
+        if (n_field_gather_buffer > 0) {
+            // Create the MultiFabs for B
+            Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
+            Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
+            Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
+            
+            // Create the MultiFabs for E
+            Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
+            Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
+            Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
+        }
 
-        // Create the MultiFabs for E
-        Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
-        Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
-        Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
-
-        current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
-        current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
-        current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
+        if (n_current_deposition_buffer > 0) {
+            current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
+            current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
+            current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
+        }
 
         buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
     }
@@ -783,12 +788,13 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 void
 WarpX::BuildBufferMasks ()
 {
+    int ngbuffer = std::max(n_field_gather_buffer, n_current_deposition_buffer);
     for (int lev = 1; lev <= maxLevel(); ++lev)
     {
         if (buffer_masks[lev])
         {
             auto& bmasks = *buffer_masks[lev];
-            iMultiFab tmp(bmasks.boxArray(), bmasks.DistributionMap(), 1, n_field_gather_buffer);
+            iMultiFab tmp(bmasks.boxArray(), bmasks.DistributionMap(), 1, ngbuffer);
             const int covered = 1;
             const int notcovered = 0;
             const int physbnd = 1;
@@ -805,7 +811,7 @@ WarpX::BuildBufferMasks ()
                 warpx_build_buffer_masks (BL_TO_FORTRAN_BOX(tbx),
                                           BL_TO_FORTRAN_ANYD(bmasks[mfi]),
                                           BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                                          &n_field_gather_buffer);
+                                          &ngbuffer);
             }
         }
     }
