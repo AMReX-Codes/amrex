@@ -384,7 +384,8 @@ private:
     bool plot_raw_fields_guards = false;
 
     amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
-    amrex::VisMF::Header::Version plot_headerversion       = amrex::VisMF::Header::Version_v1;
+//    amrex::VisMF::Header::Version plotfile_headerversion   = amrex::VisMF::Header::NoFabHeader_v1;
+    amrex::VisMF::Header::Version plotfile_headerversion  = amrex::VisMF::Header::Version_v1;
     bool use_single_read = true;
     bool use_single_write = true;
     int mffile_nstreams = 4;

@@ -300,12 +300,13 @@ WarpX::ReadParameters ()
         }
 
         {
-            int hv = checkpoint_headerversion;
-            pp.query("checkpoint_headerversion", hv);
-            checkpoint_headerversion = static_cast<VisMF::Header::Version>(hv);
-            hv = plot_headerversion;
-            pp.query("plot_headerversion", hv);
-            plot_headerversion = static_cast<VisMF::Header::Version>(hv);
+            bool plotfile_min_max = true;
+            pp.query("plotfile_min_max", plotfile_min_max);
+            if (plotfile_min_max) {
+                plotfile_headerversion = amrex::VisMF::Header::Version_v1;
+            } else {
+                plotfile_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
+            }
             pp.query("usesingleread", use_single_read);
             pp.query("usesinglewrite", use_single_write);
             ParmParse ppv("vismf");

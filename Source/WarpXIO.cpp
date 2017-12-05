@@ -97,6 +97,9 @@ WarpX::WriteCheckPointFile() const
 {
     BL_PROFILE("WarpX::WriteCheckPointFile()");
 
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(checkpoint_headerversion);
+
     const std::string& checkpointname = amrex::Concatenate(check_file,istep[0]);
 
     amrex::Print() << "  Writing checkpoint " << checkpointname << "\n";
@@ -168,6 +171,8 @@ WarpX::WriteCheckPointFile() const
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 
@@ -439,6 +444,9 @@ void
 WarpX::WritePlotFile () const
 {
     BL_PROFILE("WarpX::WritePlotFile()");
+
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(plotfile_headerversion);
 
     const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
 
@@ -805,6 +813,8 @@ WarpX::WritePlotFile () const
     WriteJobInfo(plotfilename);
 
     WriteWarpXHeader(plotfilename);
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 void
@@ -815,13 +825,14 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
 {
     BL_PROFILE("WarpX::WritePlotFileES()");
 
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(plotfile_headerversion);
+
     const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
 
     amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
 
     const int nlevels = finestLevel()+1;
-    const std::string raw_plotfilename = plotfilename + "/raw_fields";
-    amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
 
     {
 	Vector<std::string> varnames;
@@ -913,6 +924,8 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     WriteJobInfo(plotfilename);
 
     WriteWarpXHeader(plotfilename);
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 void
