@@ -32,6 +32,7 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_NFiles.H>
+#include <AMReX_VectorIO.H>
 
 #include <AMReX_Particles_F.H>
 
@@ -447,6 +448,12 @@ public:
     //
     using ParticleType = Particle<NStructReal, NStructInt>;
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
+
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+    RealDescriptor ParticleRealDescriptor = FPC::Native32RealDescriptor();
+#else
+    RealDescriptor ParticleRealDescriptor = FPC::NativeRealDescriptor();
+#endif
 
     using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
