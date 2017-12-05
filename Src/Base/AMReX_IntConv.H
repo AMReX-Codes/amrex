@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <cstring>
-#include <stdint.h>
+#include <cstdint>
 
 #include "AMReX_FPC.H"
 #include "AMReX_FabConv.H"
