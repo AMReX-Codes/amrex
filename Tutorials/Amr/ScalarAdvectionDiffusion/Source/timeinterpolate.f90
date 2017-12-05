@@ -345,8 +345,10 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
   double precision :: k_1, k_2, k_3, k_4, squcoef, cubcoef, u0,  utemp(0:3)
   double precision  :: xi, fn, fnfprime, fnsqfdouble, dt2, dt3, fprimsqfn
 
-  !this gets us to u0
+  !this gets us to un
   xi = (tf - tc_old)/dt_c
+
+! this is to use  the polynomial to get to the right time level.
 !  if(stage .eq. 0) then
 !     xi = (tf              - tc_old)/dt_c
 !  else if(stage .eq. 1) then
@@ -379,14 +381,20 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
            u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef + xi*xi*xi*cubcoef
 
            fn = k_1/dt_f
-           fnfprime  = (0.5d0/dt2)*(k_4 + 3.0d0*k_1 - 4.0d0*k_3)
-           fnsqfdouble = (1.0d0/dt3)*(8.0d0*k_2 + 8.0d0*k_3 - 14.0d0*k_1 - 2.0d0*k_4)
+           fnfprime  = (1.0d0/dt2)*(4.0d0*k_3 - k_4 - 3.0d0*k_1)
+           fnsqfdouble = (2.0d0/dt3)*(2.0d0*k_4 + 2.0d0*k_1 + 4.0d0*k_2 - 8.0d0*k_3)
            fprimsqfn = (4.0d0/dt3)*(k_3 - k_2)
 
            utemp(0) =  u0
            utemp(1) =  u0 + 0.5d0*dt_f*fn
            utemp(2) =  u0 + 0.5d0*dt_f*fn + 0.25d0*dt2*fnfprime + 0.0625d0*dt3*fnsqfdouble
            utemp(3) =  u0 +       dt_f*fn +  0.5d0*dt2*fnfprime + 0.1250d0*dt3*fnsqfdouble + 0.25d0*dt3*fprimsqfn
+
+! here we let the polynomial get us to the right u (so just taking out the first deriv terms.
+!           utemp(0) =  u0
+!           utemp(1) =  u0 
+!           utemp(2) =  u0 + 0.25d0*dt2*fnfprime + 0.0625d0*dt3*fnsqfdouble
+!           utemp(3) =  u0 +  0.5d0*dt2*fnfprime + 0.1250d0*dt3*fnsqfdouble + 0.25d0*dt3*fprimsqfn
 
            phi(i,j,k) = utemp(stage)
 
@@ -436,7 +444,7 @@ subroutine timeinterprk3_jbb(stage, lo, hi, &
                                         k2_lo(3):k2_hi(3))
 
   integer          :: i,j,k
-  double precision :: k_1, k_2,  squcoef, u0
+  double precision :: k_1, k_2,  squcoef, u0, fn, fnfprime, utemp(0:2)
   double precision :: xi
 
 
@@ -455,20 +463,15 @@ subroutine timeinterprk3_jbb(stage, lo, hi, &
 
            u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef 
 
-           !these get multiplied by dt in the code
-           ! and the following formulae assume they have not been
-           k_1 = k1(i,j,k)/dt_c
-           k_2 = k2(i,j,k)/dt_c
-           if(stage.eq.0) then
-              phi(i,j,k) = u0
-           else if(stage.eq.1) then
-              phi(i,j,k) = u0 + k_1
-           else if(stage.eq.2) then
-              phi(i,j,k) = u0 + 0.25d0*dt_f*(k_1 + k_2)
-           else
-              print*, "bogus stage rk3"
-              stop
-           endif
+           fn       = k_1/dt_f
+           fnfprime = (k_2 - k_1)/dt_f
+
+           utemp(0) = u0
+           utemp(1) = u0 +       dt_f*fn
+           utemp(2) = u0 + 0.5d0*dt_f*fn + 0.25d0*fnfprime
+
+           phi(i,j,k) = utemp(stage)
+
         end do
      end do
   end do

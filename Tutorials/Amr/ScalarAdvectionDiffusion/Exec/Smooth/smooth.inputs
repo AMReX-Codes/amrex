@@ -22,7 +22,7 @@ amr.v              = 1       # verbosity in Amr
 #amr.grid_log         = grdlog  # name of grid logging file
 
 #this can be godunov, rk2, rk3, rk4
-adv.algorithm = "rk4"
+adv.algorithm = "rk3"
 adv.use_limiting = false
 adv.do_reflux= 1
 adv.use_fixed_dt = false
