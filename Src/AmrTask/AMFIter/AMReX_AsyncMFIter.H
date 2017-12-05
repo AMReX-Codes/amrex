@@ -280,11 +280,6 @@ namespace amrex {
 		}
 		return bx;
 	    }
-
-
-
-
-
     };//end class Action
 
     template <class T>
@@ -327,25 +322,27 @@ namespace amrex {
 		    AbstractTaskGraph<T>::_nProcs= nProcs;
 		    AbstractTaskGraph<T>::_rank= rank;
 		    //create an initial graph corresponding to the coarsest AMR level, this graph will evolve with time
-		    for(int s=0; s< amr->amr_level[0]->numStates(); s++){
-			MultiFab& mf = amr->amr_level[0]->get_new_data(0);
-			for(int i=0; i< mf.local_size(); i++){
-			    TaskName name(0 /*level*/, s/*state*/, mf.IndexArray()[i] /*fab*/);
-			    T *t= new T();
-			    t->InitAmr(amr, max_step, stop_time);
-			    t->SetMF(mf);
-			    t->SetFab(mf.m_fabs_v[i]);
-			    t->SetIdx(mf.IndexArray()[i]);
-			    t->SetName(name);
-			    t->SetLocalIdx(i);
-			    if(i==0) t->SetMaster();
-			    if(do_tiling){
-				IntVect ts= FabArrayBase::mfiter_tile_size;
-				t->generateTileArray(ts); //create tile array associated with this FAB
+		    for(int l=0; l<= amr->finest_level; l++){
+			for(int s=0; s< amr->amr_level[l]->numStates(); s++){
+			    MultiFab& mf = amr->amr_level[l]->get_new_data(s);
+			    for(int i=0; i< mf.local_size(); i++){
+				TaskName name(l /*level*/, s/*state*/, mf.IndexArray()[i] /*fab*/);
+				T *t= new T();
+				t->SetName(name);
+				t->SetLocalIdx(i);
+				t->SetMF(mf);
+				t->SetFab(mf.m_fabs_v[i]);
+				t->SetIdx(mf.IndexArray()[i]);
+				t->InitAmrTask(amr, max_step, stop_time);
+				if(i==0) t->SetMaster();
+				if(do_tiling){
+				    IntVect ts= FabArrayBase::mfiter_tile_size;
+				    t->generateTileArray(ts); //create tile array associated with this FAB
+				}
+				if(do_tiling) t->enable_tiling();
+				AbstractTaskGraph<T>::_initialTasks.push_back(t);
+				AbstractTaskGraph<T>::_taskPool[name]= t;
 			    }
-			    if(do_tiling) t->enable_tiling();
-			    AbstractTaskGraph<T>::_initialTasks.push_back(t);
-			    AbstractTaskGraph<T>::_taskPool[name]= t;
 			}
 		    }
 		    AbstractTaskGraph<T>::_begin= *(AbstractTaskGraph<T>::_initialTasks.begin());
