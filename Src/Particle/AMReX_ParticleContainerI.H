@@ -2089,7 +2089,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                 ++pindex;
             }
 	}
-        amrex::writeIntData(istuff.dataPtr(), istuff.size(), ofs);
+	ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
       }
       
       // Write the Real data in binary.
@@ -2115,8 +2115,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
               ++pindex;
           }
       }
-
-      amrex::writeRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
+      
+      ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(typename ParticleType::RealType));
     }
 }
 
@@ -2312,19 +2312,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
     const int iChunkSize = 2 + NStructInt + NArrayInt;
     Vector<int> istuff(cnt*iChunkSize);
     if (is_checkpoint)
-        readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
+        ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
 
     // Then the real data in binary.
     const int rChunkSize = BL_SPACEDIM + NStructReal + NArrayReal;
     Vector<RTYPE> rstuff(cnt*rChunkSize);
-    readRealData(rstuff.dataPtr(), rstuff.size(), ifs, ParticleRealDescriptor);
+    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(RTYPE));
 
     // Now reassemble the particles.
     int*   iptr = istuff.dataPtr();
     RTYPE* rptr = rstuff.dataPtr();
 
     // If we are restarting from a plotfile instead of a checkpoint file, then we do not
-    // read in the particle id's, so we need to reset the id counter to zero and re-number
+    //    read in the particle id's, so we need to reset the id counter to zero and renumber them
     if (!is_checkpoint) {
       int maxnextid = 1;
       ParticleType::NextID(maxnextid);
