@@ -116,16 +116,17 @@ DataServices::DataServices(const string &filename, const Amrvis::FileType &filet
 {
   numberOfUsers = 0;  // the user must do all incrementing and decrementing
   bAmrDataOk = amrData.ReadData(fileName, fileType);
+  cout << "bAmrDataOk: " << bAmrDataOk << endl;
   profiler = (fileType == Amrvis::PROFDATA);
 
-  if( ! profiler) {
-    if(bAmrDataOk) {
+//  if( ! profiler) {
+    if((bAmrDataOk)||(profiler)) {
       dsArrayIndex = DataServices::dsArrayIndexCounter;
       ++DataServices::dsArrayIndexCounter;
       DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
       DataServices::dsArray[dsArrayIndex] = this;
     }
-  }
+//  }
 
 #ifdef BL_USE_PROFPARSER
   bProfDataAvailable = false;
@@ -150,6 +151,9 @@ DataServices::DataServices() {
 
 // ---------------------------------------------------------------
 void DataServices::Init(const string &filename, const Amrvis::FileType &filetype) {
+
+  BL_PROFILE("DataServices::Init");
+
   fileName = filename;
   fileType = filetype;
   bAmrDataOk = false;
@@ -247,28 +251,32 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
           }
           continue;
         }
+        BL_PROFILE_VAR("DataServices::Init(), parsing data headers.", yydheaders);
         yyparse(&regOutputStats_H);
+        BL_PROFILE_VAR_STOP(yydheaders);
+
         fclose(yyin);
       }
+
       if(regOutputStats_H.TraceDataValid()) {
-        if(bIOP) {
-	  cout << "Calling InitRegionTimeRanges." << endl;
-	}
+//        if(bIOP) {
+//	  cout << "Calling InitRegionTimeRanges." << endl;
+//	}
         RegionsProfStats::OpenAllStreams(fileName);
         Box myBox(procBoxArray[myProc]);
-        bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
+//        bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
         regOutputStats_H.SyncFNamesAndNumbers();
         RegionsProfStats::CloseAllStreams();
         regOutputStats_H.SetFNames(blProfStats_H.BLPFNames());
-        if(bIOP) {
-	  cout << "Finished InitRegionTimeRanges." << endl;
-	}
+//        if(bIOP) {
+//	  cout << "Finished InitRegionTimeRanges." << endl;
+//	}
       } else {
         bTraceDataAvailable = false;
       }
 
     }
-
+/*
     bool bParseFilterFile(true);
     if(bParseFilterFile) {
       if(bIOP) cout << "Parsing filter file." << endl;
@@ -283,7 +291,7 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
       }
 
     }
-
+*/
     // ----------------------------------------------- comm headers
 
     // -------- parse the main header file.  everyone does this for now
@@ -304,13 +312,67 @@ void DataServices::Init(const string &filename, const Amrvis::FileType &filetype
       fclose(yyin);
     } else {
     }
+/*
+    if(bRegionDataAvailable) {
+      commOutputStats_H.SetRegionTimeRanges(regOutputStats_H.GetRegionTimeRanges());
+      commOutputStats_H.SetFilterTimeRanges(regOutputStats_H.GetFilterTimeRanges());
+    }
+*/
+    bAmrDataOk = true;
+  } // if (profiler)
+  #endif
+#endif
+}
 
+// ---------------------------------------------------------------
+void DataServices::InitRegionTimeRanges() {
+
+  BL_PROFILE("DataServices::InitRegionTimeRanges");
+
+#ifdef BL_USE_PROFPARSER
+  #if (BL_SPACEDIM == 2)
+  if (profiler)
+  {
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    int  myProc(ParallelDescriptor::MyProc());
+
+    if(bTraceDataAvailable) {
+      if(regOutputStats_H.TraceDataValid()) {
+        if(bIOP) {
+	  cout << "Calling InitRegionTimeRanges." << endl;
+	}
+        RegionsProfStats::OpenAllStreams(fileName);
+        Box myBox(procBoxArray[myProc]);
+        bRegionDataAvailable = regOutputStats_H.InitRegionTimeRanges(myBox);
+        RegionsProfStats::CloseAllStreams();
+        if(bIOP) {
+	  cout << "Finished InitRegionTimeRanges." << endl;
+	}
+      } else {
+        bTraceDataAvailable = false;
+      }
+
+    }
+
+    if (dsBatchMode) {
+      if(bIOP) { cout << "Parsing filter file." << endl; }
+      ParseFilterFile();
+
+      if( ! regOutputStats_H.TimeRangeInitialized()) {
+        regOutputStats_H.InitFilterTimeRanges();
+        if(bIOP) {
+          cout << ">>>> timerangelist =" ;
+          PrintTimeRangeList(regOutputStats_H.GetFilterTimeRanges()[0]);
+        }
+
+      }
+    }
+    // ----------------------------------------------- comm headers
     if(bRegionDataAvailable) {
       commOutputStats_H.SetRegionTimeRanges(regOutputStats_H.GetRegionTimeRanges());
       commOutputStats_H.SetFilterTimeRanges(regOutputStats_H.GetFilterTimeRanges());
     }
 
-    bAmrDataOk = true;
   } // if (profiler)
   #endif
 #endif
@@ -328,7 +390,7 @@ DataServices::~DataServices() {
 
 // ---------------------------------------------------------------
 void DataServices::SetBatchMode() {
-  dsBatchMode = true;
+    dsBatchMode = true;
 }
 
 
@@ -410,6 +472,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     if( ! ParallelDescriptor::IOProcessor()) {
       ds = new DataServices();
       ds->Init(newFileName, newFileType);
+
     }
 
     ds->bAmrDataOk = ds->amrData.ReadData(ds->fileName, ds->fileType);
@@ -445,18 +508,20 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
   if(ParallelDescriptor::IOProcessor()) {
     va_start(ap, ds);
-    if (!profiler) {
+//    if (!profiler) {
       whichDSIndex = ds->dsArrayIndex;
-    }
+//    }
   }
 
-  if (!profiler) {
+//  if (!profiler) {
     ParallelDescriptor::Bcast(&whichDSIndex, 1, 0);
     if( ! ParallelDescriptor::IOProcessor()) {
       ds = DataServices::dsArray[whichDSIndex];
     }
     BL_ASSERT(ds != NULL);
-  }
+//  }
+
+  ParallelDescriptor::Barrier();
 
   switch(requestType) {
     case DeleteRequest:
@@ -925,7 +990,14 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
 // Profiler Data Requests
 #ifdef BL_USE_PROFPARSER
-    case CheckProfDataRequest:
+    case InitTimeRanges:
+    {
+      std::cout << "Dispatch::---- InitTimeRangesDataRequest" << std::endl;
+      ds->InitRegionTimeRanges();
+    }
+    break;
+
+   case CheckProfDataRequest:
     {
       std::cout << "Dispatch::---- CheckProfDataRequest" << std::endl;
       ds->CheckProfData();
@@ -3028,14 +3100,15 @@ void DataServices::RunSendRecvList()
       return;
     }
 
-    int  myProc(ParallelDescriptor::MyProc());
-    int  nProcs(ParallelDescriptor::NProcs());
+//    int  myProc(ParallelDescriptor::MyProc());
+//    int  nProcs(ParallelDescriptor::NProcs());
 
+    if(ParallelDescriptor::IOProcessor()) {
     const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
     std::multimap<Real, CommProfStats::SendRecvPairUnpaired> srMMap;  // [call time, sr]
-    if(myProc < commHeaderFileNames.size()) {
+//    if(myProc < commHeaderFileNames.size()) {
       for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
-        if(myProc == hfnI % nProcs) {
+//        if(myProc == hfnI % nProcs) {
           CommProfStats commOutputStats;
           std::string commFileName_H_nnnn(fileName + '/' + commHeaderFileNames[hfnI]);
           if( ! ( yyin = fopen(commFileName_H_nnnn.c_str(), "r"))) {
@@ -3052,10 +3125,10 @@ void DataServices::RunSendRecvList()
           yyparse(&commOutputStats);
           fclose(yyin);
           commOutputStats.SendRecvList(srMMap);
-        }
+//        }
       }
-    }
-    if(ParallelDescriptor::IOProcessor()) {
+//    }
+
       std::ofstream srlOut("SendRecvList.txt");
       srlOut << std::left << std::setw(16) << "#### Time" << '\t' << "Type    " << '\t'
              << "From" << '\t' << "To" << '\t' << "Size" << '\t'
@@ -3074,7 +3147,12 @@ void DataServices::RunSendRecvList()
         if(srp.fromProc < 0) {
           unpairedSR.push_back(srp);
         }
-        std::set<int> whichRegions(blProfStats_H.WhichRegions(srp.fromProc, it->first));
+        int timedProc;
+        if ( commOutputStats_H.IsSend(srp.unmatchedCFType) )
+        { timedProc = srp.fromProc; }
+        else
+        { timedProc = srp.toProc; }
+        std::set<int> whichRegions(blProfStats_H.WhichRegions(timedProc, it->first));
         if(srp.fromProc >= 0) {
           srlOut << it->first << '\t'
                  << BLProfiler::CommStats::CFTToString(srp.unmatchedCFType) << '\t'
@@ -3107,7 +3185,7 @@ void DataServices::RunSendRecvList()
         upSROut.close();
       }
     }
-    ParallelDescriptor::Barrier();
+//    ParallelDescriptor::Barrier();
 }
 
 

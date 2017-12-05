@@ -83,6 +83,17 @@ class BLProfStats {
       bool Contains(Real t) const {
         return(t >= startTime && t <= stopTime);
       }
+      bool operator==(const TimeRange &rhs) const {
+        return((startTime == rhs.startTime) && (stopTime == rhs.stopTime));
+      }
+      bool operator!=(const TimeRange &rhs) const {
+        return((startTime != rhs.startTime) || (stopTime != rhs.stopTime));
+      }
+      std::ostream& operator<<(std::ostream& os) {
+        os << startTime << " - " << stopTime;
+        if (os.fail()) { amrex::Error("output for TimeRange failed"); }
+        return os;
+      }
     };
 
     struct TimeRangeCompare {
@@ -118,6 +129,8 @@ class BLProfStats {
 
     void SetRegionTimeRanges(const amrex::Vector<amrex::Vector<amrex::Vector<TimeRange> > > &rtr)
                                              { regionTimeRanges = rtr; }
+    void SetRegionTimeRanges(const TimeRange &tr, const int n, const int r, const int t)
+                                             { regionTimeRanges[n][r][t] = tr; }
     const amrex::Vector<amrex::Vector<amrex::Vector<TimeRange> > > &GetRegionTimeRanges()
                                              { return regionTimeRanges; }
 

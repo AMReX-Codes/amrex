@@ -267,15 +267,17 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
 
   if(bWriteTraceSummary) {
     bool writeAverage(false), useTrace(true), graphTopPct(true);
-    if(bIOP) { cout << "Writing summary." << endl; }
+    if(bIOP) { cout << "Writing trace summary." << endl; }
     if(bUseDispatch) {
       if(bIOP) {
+        DataServices::Dispatch(DataServices::InitTimeRanges, &pdServices);
         DataServices::Dispatch(DataServices::WriteSummaryRequest, &pdServices,
                                    (void *) &(cout),
 				   &writeAverage, whichProc, &useTrace,
 				   &graphTopPct);
       }
     } else {
+      pdServices.InitRegionTimeRanges();
       pdServices.WriteSummary(cout, writeAverage, whichProc, useTrace,
                               graphTopPct);
     }
@@ -378,6 +380,7 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
 
 
   if(runSendRecvList) {
+    pdServices.InitRegionTimeRanges();
     pdServices.RunSendRecvList();
   }
 

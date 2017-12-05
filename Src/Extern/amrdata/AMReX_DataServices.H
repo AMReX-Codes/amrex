@@ -51,6 +51,7 @@ class DataServices {
       PointValueRequest,
       LineValuesRequest,
 #ifdef BL_USE_PROFPARSER 
+      InitTimeRanges,
       WriteSummaryRequest,
       CheckProfDataRequest,
       RunStatsRequest,
@@ -66,6 +67,7 @@ class DataServices {
     ~DataServices();
 
     void Init(const string &filename, const Amrvis::FileType &filetype);
+    void InitRegionTimeRanges();
 
     static void SetBatchMode();
     static void Dispatch(DSRequestType requestType, DataServices *ds, ...);
