@@ -95,7 +95,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 
-<p>This class is meant to hold all information needed to completely describe the "Real" floating-point type on a machine. By "Real" here we mean either the "float" or "double" type that this version of BoxLib was built with, which corresponds to whether BL_USE_FLOAT or BL_USE_DOUBLE was used to build the version of the library.  
+<p>This class is meant to hold all information needed to completely describe the "Real" floating-point type on a machine. By "Real" here we mean either the "float" or "double" type that this version of AMReX was built with, which corresponds to whether BL_USE_FLOAT or BL_USE_DOUBLE was used to build the version of the library.  
  <a href="classamrex_1_1_real_descriptor.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="_a_m_re_x___fab_conv_8_h_source.html">AMReX_FabConv.H</a>&gt;</code></p>
@@ -158,7 +158,7 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:a2ef2cf488b706a11674fe3be527147bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert nitems in <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format to native Real format. The out array is assumed to be large enough to hold the resulting output.  <a href="#a2ef2cf488b706a11674fe3be527147bc">More...</a><br/></td></tr>
 <tr class="separator:a2ef2cf488b706a11674fe3be527147bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a72d5b0bcc86c85cbed16e52b0bff6673"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_real_descriptor.html#a72d5b0bcc86c85cbed16e52b0bff6673">convertToNativeFormat</a> (Real *out, long nitems, std::istream &amp;is, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;id)</td></tr>
-<tr class="memdesc:a72d5b0bcc86c85cbed16e52b0bff6673"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read nitems from istream in ReadDescriptor format and convert them to the native Real format. The out array is assumed to be large enough to hold the resulting output.  <a href="#a72d5b0bcc86c85cbed16e52b0bff6673">More...</a><br/></td></tr>
+<tr class="memdesc:a72d5b0bcc86c85cbed16e52b0bff6673"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read nitems from istream in <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and convert them to the native Real format. The out array is assumed to be large enough to hold the resulting output.  <a href="#a72d5b0bcc86c85cbed16e52b0bff6673">More...</a><br/></td></tr>
 <tr class="separator:a72d5b0bcc86c85cbed16e52b0bff6673"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a40602b230f592243c9392bcc4f5f97f5"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_real_descriptor.html#a40602b230f592243c9392bcc4f5f97f5">convertFromNativeFormat</a> (std::ostream &amp;os, long nitems, const Real *in, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;od)</td></tr>
 <tr class="memdesc:a40602b230f592243c9392bcc4f5f97f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert nitems Reals in native format to <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and write them to the ostream.  <a href="#a40602b230f592243c9392bcc4f5f97f5">More...</a><br/></td></tr>
@@ -168,7 +168,7 @@ Static Public Member Functions</h2></td></tr>
 <tr class="separator:a66dfc40b6fe503f7f634c715f20f67d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>This class is meant to hold all information needed to completely describe the "Real" floating-point type on a machine. By "Real" here we mean either the "float" or "double" type that this version of BoxLib was built with, which corresponds to whether BL_USE_FLOAT or BL_USE_DOUBLE was used to build the version of the library. </p>
+<div class="textblock"><p>This class is meant to hold all information needed to completely describe the "Real" floating-point type on a machine. By "Real" here we mean either the "float" or "double" type that this version of AMReX was built with, which corresponds to whether BL_USE_FLOAT or BL_USE_DOUBLE was used to build the version of the library. </p>
 <p>To describe a "Real" type two arrays are needed: one detailing the ordering of the bytes in the Real, relative to the canonical ordering 1 .. sizeof(Real) and the other detailing the format of the floating-point number.</p>
 <p>The array detailing the format of a floating-point number is an eight-element array of longs containing the following information: </p>
 <pre class="fragment">    format[0] = number of bits per number
@@ -438,7 +438,7 @@ Static Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Read nitems from istream in ReadDescriptor format and convert them to the native Real format. The out array is assumed to be large enough to hold the resulting output. </p>
+<p>Read nitems from istream in <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and convert them to the native Real format. The out array is assumed to be large enough to hold the resulting output. </p>
 
 </div>
 </div>

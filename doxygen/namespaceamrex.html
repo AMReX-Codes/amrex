@@ -179,7 +179,7 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This class is meant to hold all information needed to completely describe the "Real" floating-point type on a machine. By "Real" here we mean either the "float" or "double" type that this version of BoxLib was built with, which corresponds to whether BL_USE_FLOAT or BL_USE_DOUBLE was used to build the version of the library.  <a href="classamrex_1_1_real_descriptor.html#details">More...</a><br/></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This class is meant to hold all information needed to completely describe the "Real" floating-point type on a machine. By "Real" here we mean either the "float" or "double" type that this version of AMReX was built with, which corresponds to whether BL_USE_FLOAT or BL_USE_DOUBLE was used to build the version of the library.  <a href="classamrex_1_1_real_descriptor.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_fab_info.html">FabInfo</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -921,6 +921,10 @@ Functions</h2></td></tr>
 <tr class="separator:a2a1640fc2ba97306ea4b3546daa1e6b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a049702dd862399b25a2acf1c140bf4bb"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a049702dd862399b25a2acf1c140bf4bb">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="structamrex_1_1_fab_array_base_1_1_b_d_key.html">FabArrayBase::BDKey</a> &amp;id)</td></tr>
 <tr class="separator:a049702dd862399b25a2acf1c140bf4bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac185c39750011cc24fb8c1a0b872a34d"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ac185c39750011cc24fb8c1a0b872a34d">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id)</td></tr>
+<tr class="separator:ac185c39750011cc24fb8c1a0b872a34d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0ed9b6ea967b3a6cebc43973e1440e06"><td class="memItemLeft" align="right" valign="top">std::istream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a0ed9b6ea967b3a6cebc43973e1440e06">operator&gt;&gt;</a> (std::istream &amp;is, <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id)</td></tr>
+<tr class="separator:a0ed9b6ea967b3a6cebc43973e1440e06"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae1c839b11e4a1bcb2586d8aedab4f59e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ae1c839b11e4a1bcb2586d8aedab4f59e">ONES_COMP_NEG</a> (long &amp;<a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a54f6ce0fb55c5e079b66b7ac9b865843">n</a>, int nb, long incr)</td></tr>
 <tr class="separator:ae1c839b11e4a1bcb2586d8aedab4f59e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae59d387db41e0a212cc803bf4c72cf3b"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ae59d387db41e0a212cc803bf4c72cf3b">_pd_get_bit</a> (char *base, int offs, int nby, const int *ord)</td></tr>
@@ -931,14 +935,10 @@ Functions</h2></td></tr>
 <tr class="separator:ac3daae71af784ea861908589aa58b9e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2cbc645bf853e3fd5b0ce829f5f032ed"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a2cbc645bf853e3fd5b0ce829f5f032ed">PD_fconvert</a> (void *out, const void *in, long nitems, int boffs, const long *outfor, const int *outord, const long *infor, const int *inord, int l_order, int l_bytes, int onescmp)</td></tr>
 <tr class="separator:a2cbc645bf853e3fd5b0ce829f5f032ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab2876ac91dea475d91e6fbcdc0d32f06"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ab2876ac91dea475d91e6fbcdc0d32f06">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;id)</td></tr>
-<tr class="separator:ab2876ac91dea475d91e6fbcdc0d32f06"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a571e81ef7e9fdb96f23e2691c59e1b0b"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a571e81ef7e9fdb96f23e2691c59e1b0b">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd)</td></tr>
+<tr class="separator:a571e81ef7e9fdb96f23e2691c59e1b0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a543f68ea96151adca9c24601b7f472e1"><td class="memItemLeft" align="right" valign="top">std::istream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a543f68ea96151adca9c24601b7f472e1">operator&gt;&gt;</a> (std::istream &amp;is, <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd)</td></tr>
 <tr class="separator:a543f68ea96151adca9c24601b7f472e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af22e5059084ef558cd84ef4623e0e6ae"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af22e5059084ef558cd84ef4623e0e6ae">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id)</td></tr>
-<tr class="separator:af22e5059084ef558cd84ef4623e0e6ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad4c48dc3e464d715b983581c4634a65c"><td class="memItemLeft" align="right" valign="top">std::istream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ad4c48dc3e464d715b983581c4634a65c">operator&gt;&gt;</a> (std::istream &amp;is, <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id)</td></tr>
-<tr class="separator:ad4c48dc3e464d715b983581c4634a65c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6013bb90a6872541127823fe4e6d8d93"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a6013bb90a6872541127823fe4e6d8d93">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="classamrex_1_1_f_array_box.html">FArrayBox</a> &amp;f)</td></tr>
 <tr class="separator:a6013bb90a6872541127823fe4e6d8d93"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ff574ad6dd00e11abbe7b34c9233e0b"><td class="memItemLeft" align="right" valign="top">std::istream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a9ff574ad6dd00e11abbe7b34c9233e0b">operator&gt;&gt;</a> (std::istream &amp;is, <a class="el" href="classamrex_1_1_f_array_box.html">FArrayBox</a> &amp;f)</td></tr>
@@ -955,6 +955,15 @@ Functions</h2></td></tr>
 <tr class="memitem:ab982b91919e6fa7eed439d20fc794c41"><td class="memItemLeft" align="right" valign="top">std::istream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ab982b91919e6fa7eed439d20fc794c41">operator&gt;&gt;</a> (std::istream &amp;is, <a class="el" href="classamrex_1_1_index_type.html">IndexType</a> &amp;itype)</td></tr>
 <tr class="memdesc:ab982b91919e6fa7eed439d20fc794c41"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read an <a class="el" href="classamrex_1_1_index_type.html" title="Cell-Based or Node-Based Indices. ">IndexType</a> from an istream.  <a href="#ab982b91919e6fa7eed439d20fc794c41">More...</a><br/></td></tr>
 <tr class="separator:ab982b91919e6fa7eed439d20fc794c41"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a2785d392b7596b9be728c09f7f29ae"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a4a2785d392b7596b9be728c09f7f29ae"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a4a2785d392b7596b9be728c09f7f29ae">swapBytes</a> (T value)</td></tr>
+<tr class="separator:a4a2785d392b7596b9be728c09f7f29ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0718da697f64bda3be2152538b70d4c5"><td class="memTemplParams" colspan="2">template&lt;typename To , typename From &gt; </td></tr>
+<tr class="memitem:a0718da697f64bda3be2152538b70d4c5"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a0718da697f64bda3be2152538b70d4c5">writeIntData</a> (const From *data, std::size_t size, std::ostream &amp;os, const <a class="el" href="classamrex_1_1_int_descriptor.html">amrex::IntDescriptor</a> &amp;id)</td></tr>
+<tr class="separator:a0718da697f64bda3be2152538b70d4c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af8ec915a2cffc7c342e1f15e52cbd697"><td class="memTemplParams" colspan="2">template&lt;typename To , typename From &gt; </td></tr>
+<tr class="memitem:af8ec915a2cffc7c342e1f15e52cbd697"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af8ec915a2cffc7c342e1f15e52cbd697">readIntData</a> (To *data, std::size_t size, std::istream &amp;is, const <a class="el" href="classamrex_1_1_int_descriptor.html">amrex::IntDescriptor</a> &amp;id)</td></tr>
+<tr class="separator:af8ec915a2cffc7c342e1f15e52cbd697"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae79501364b5617d85255a267082276db"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_int_vect.html">IntVect</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ae79501364b5617d85255a267082276db">min</a> (const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;p1, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;p2)</td></tr>
 <tr class="memdesc:ae79501364b5617d85255a267082276db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> that is the component-wise minimum of two argument IntVects.  <a href="#ae79501364b5617d85255a267082276db">More...</a><br/></td></tr>
 <tr class="separator:ae79501364b5617d85255a267082276db"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1550,6 +1559,19 @@ Functions</h2></td></tr>
 <tr class="memitem:adc731523d4241d981e7279b29c5d7a6d"><td class="memTemplParams" colspan="2">template&lt;class T &gt; </td></tr>
 <tr class="memitem:adc731523d4241d981e7279b29c5d7a6d"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#adc731523d4241d981e7279b29c5d7a6d">RemoveDuplicates</a> (<a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; T &gt; &amp;vec)</td></tr>
 <tr class="separator:adc731523d4241d981e7279b29c5d7a6d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aefc8755fb6847a4dc04d7de6a11bb9ef"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#aefc8755fb6847a4dc04d7de6a11bb9ef">writeIntData</a> (const int *data, std::size_t size, std::ostream &amp;os, const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id=<a class="el" href="classamrex_1_1_f_p_c.html#a9cad45e259106beaa8e4dc56f613bd06">FPC::NativeIntDescriptor</a>())</td></tr>
+<tr class="memdesc:aefc8755fb6847a4dc04d7de6a11bb9ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Functions for writing integer data to disk in a portable, self-describing manner.  <a href="#aefc8755fb6847a4dc04d7de6a11bb9ef">More...</a><br/></td></tr>
+<tr class="separator:aefc8755fb6847a4dc04d7de6a11bb9ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a69bf266cc5fefb0b385d84f685dd0df6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a69bf266cc5fefb0b385d84f685dd0df6">readIntData</a> (int *data, std::size_t size, std::istream &amp;is, const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id)</td></tr>
+<tr class="separator:a69bf266cc5fefb0b385d84f685dd0df6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89e2fbb8fe2b7488d791a48affc4f5b9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a89e2fbb8fe2b7488d791a48affc4f5b9">writeLongData</a> (const long *data, std::size_t size, std::ostream &amp;os, const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id=<a class="el" href="classamrex_1_1_f_p_c.html#a6f67a43bd516bcc9547cb3b76424b2b8">FPC::NativeLongDescriptor</a>())</td></tr>
+<tr class="separator:a89e2fbb8fe2b7488d791a48affc4f5b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae6fd22ad663e9cad373c721f38d30ede"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ae6fd22ad663e9cad373c721f38d30ede">readLongData</a> (long *data, std::size_t size, std::istream &amp;is, const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id)</td></tr>
+<tr class="separator:ae6fd22ad663e9cad373c721f38d30ede"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af9790d1f61a6d21ce4e9f92c58ac0600"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af9790d1f61a6d21ce4e9f92c58ac0600">writeRealData</a> (const Real *data, std::size_t size, std::ostream &amp;os, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd=<a class="el" href="classamrex_1_1_f_p_c.html#ab470772000cfb5f507edc5f294383bbc">FPC::NativeRealDescriptor</a>())</td></tr>
+<tr class="separator:af9790d1f61a6d21ce4e9f92c58ac0600"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa6f624229959bee80f1444371bb5babc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#aa6f624229959bee80f1444371bb5babc">readRealData</a> (Real *data, std::size_t size, std::istream &amp;is, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd)</td></tr>
+<tr class="separator:aa6f624229959bee80f1444371bb5babc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af58b88f2bf12a834f4885dcf327fbeba"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af58b88f2bf12a834f4885dcf327fbeba">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="structamrex_1_1_vis_m_f_1_1_fab_on_disk.html">VisMF::FabOnDisk</a> &amp;fod)</td></tr>
 <tr class="memdesc:af58b88f2bf12a834f4885dcf327fbeba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write a FabOnDisk to an ostream in ASCII.  <a href="#af58b88f2bf12a834f4885dcf327fbeba">More...</a><br/></td></tr>
 <tr class="separator:af58b88f2bf12a834f4885dcf327fbeba"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1901,6 +1923,7 @@ const int *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <div class="textblock"><p>A Real vector in SpaceDim-dimensional space. </p>
 <p>bunch of functions to call from the debugger</p>
 <p>Factory class to produce EBCellFABs.</p>
+<p>Set up endian-ness macros</p>
 <p>The class <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> is an implementation of a Real vector in a SpaceDim-dimensional space. <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> values are accessed using the operator[] function, as for a normal C++ array. In addition, the basic arithmetic operators have been overloaded to implement scaling and translation operations.</p>
 <p>This makes a set of grids from a set of tags. This is not as general as Chombo's meshrefine&ndash;it is useful for writing tests, however.</p>
 <p>This is the base class for an implicit function specification of geometry. All that is needed is a constructor/destructor, a method to give the value of the function at any point in space (in 2D or 3D), and a factory method (these will probably all be very similar).</p>
@@ -11102,12 +11125,12 @@ template&lt;&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="af22e5059084ef558cd84ef4623e0e6ae"></a>
+<a class="anchor" id="ac185c39750011cc24fb8c1a0b872a34d"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">std::ostream&amp; amrex::operator&lt;&lt; </td>
+          <td class="memname">std::ostream &amp; amrex::operator&lt;&lt; </td>
           <td>(</td>
           <td class="paramtype">std::ostream &amp;&#160;</td>
           <td class="paramname"><em>os</em>, </td>
@@ -11208,32 +11231,6 @@ template&lt;&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a02c8cd4ab79d54be6c0e34f436679048"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::ostream&amp; amrex::operator&lt;&lt; </td>
-          <td>(</td>
-          <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const VolIndex &amp;&#160;</td>
-          <td class="paramname"><em>iv</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a class="anchor" id="a99b5e66ea694e5ca5a50ee2c335e8678"></a>
 <div class="memitem">
 <div class="memproto">
@@ -11249,6 +11246,32 @@ template&lt;&gt; </div>
           <td></td>
           <td class="paramtype">const ParmParse::PP_entry &amp;&#160;</td>
           <td class="paramname"><em>pp</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a02c8cd4ab79d54be6c0e34f436679048"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::ostream&amp; amrex::operator&lt;&lt; </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const VolIndex &amp;&#160;</td>
+          <td class="paramname"><em>iv</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -11695,7 +11718,7 @@ template&lt;int NReal, int NInt&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="ab2876ac91dea475d91e6fbcdc0d32f06"></a>
+<a class="anchor" id="a571e81ef7e9fdb96f23e2691c59e1b0b"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -11709,7 +11732,7 @@ template&lt;int NReal, int NInt&gt; </div>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">const RealDescriptor &amp;&#160;</td>
-          <td class="paramname"><em>id</em>&#160;</td>
+          <td class="paramname"><em>rd</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -11989,12 +12012,12 @@ template&lt;int NReal, int NInt&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="ad4c48dc3e464d715b983581c4634a65c"></a>
+<a class="anchor" id="a0ed9b6ea967b3a6cebc43973e1440e06"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">std::istream&amp; amrex::operator&gt;&gt; </td>
+          <td class="memname">std::istream &amp; amrex::operator&gt;&gt; </td>
           <td>(</td>
           <td class="paramtype">std::istream &amp;&#160;</td>
           <td class="paramname"><em>is</em>, </td>
@@ -12780,6 +12803,163 @@ template&lt;class T &gt; </div>
 </div><div class="memdoc">
 
 <p>Read a <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> from a stream. If b is true, read in a special way. </p>
+
+</div>
+</div>
+<a class="anchor" id="af8ec915a2cffc7c342e1f15e52cbd697"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename To , typename From &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::readIntData </td>
+          <td>(</td>
+          <td class="paramtype">To *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">amrex::IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a69bf266cc5fefb0b385d84f685dd0df6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::readIntData </td>
+          <td>(</td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read int data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and an <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' integers, and it is the user's reponsiblity to allocate this data. </p>
+
+</div>
+</div>
+<a class="anchor" id="ae6fd22ad663e9cad373c721f38d30ede"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::readLongData </td>
+          <td>(</td>
+          <td class="paramtype">long *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read int data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and an <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' longs, and it is the user's reponsiblity to allocate this data. </p>
+
+</div>
+</div>
+<a class="anchor" id="aa6f624229959bee80f1444371bb5babc"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::readRealData </td>
+          <td>(</td>
+          <td class="paramtype">Real *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>rd</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read Real data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and a <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' Reals, and it is the user's reponsiblity to allocate this data. </p>
 
 </div>
 </div>
@@ -13681,6 +13861,24 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="a4a2785d392b7596b9be728c09f7f29ae"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">T amrex::swapBytes </td>
+          <td>(</td>
+          <td class="paramtype">T&#160;</td>
+          <td class="paramname"><em>value</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="a09ef310468cc24552cfc73abfc282b72"></a>
 <div class="memitem">
 <div class="memproto">
@@ -14306,6 +14504,126 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="a0718da697f64bda3be2152538b70d4c5"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename To , typename From &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::writeIntData </td>
+          <td>(</td>
+          <td class="paramtype">const From *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">amrex::IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="aefc8755fb6847a4dc04d7de6a11bb9ef"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::writeIntData </td>
+          <td>(</td>
+          <td class="paramtype">const int *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em> = <code>FPC::NativeIntDescriptor()</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Functions for writing integer data to disk in a portable, self-describing manner. </p>
+<p>Write int data to the ostream. The arguments are a pointer to data to write, the size of the data buffer, the ostream, and an optional <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the data format to use for writing. If no <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> is provided, the data will be written using the native format for your machine. </p>
+
+</div>
+</div>
+<a class="anchor" id="a89e2fbb8fe2b7488d791a48affc4f5b9"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::writeLongData </td>
+          <td>(</td>
+          <td class="paramtype">const long *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em> = <code>FPC::NativeLongDescriptor()</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Write long data to the ostream. The arguments are a pointer to data to write, the size of the data buffer, the ostream, and an optional <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the data format to use for writing. If no <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> is provided, the data will be written using the native format for your machine. </p>
+
+</div>
+</div>
 <a class="anchor" id="ab16f5968ad28ec7664abd985a11e9c20"></a>
 <div class="memitem">
 <div class="memproto">
@@ -14389,6 +14707,45 @@ template&lt;class T &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="af9790d1f61a6d21ce4e9f92c58ac0600"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::writeRealData </td>
+          <td>(</td>
+          <td class="paramtype">const Real *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>rd</em> = <code>FPC::NativeRealDescriptor()</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Write Real data to the ostream. The arguments are a pointer to data to write, the size of the data buffer, the ostream, and an optional <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> that describes the data format to use for writing. If no <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> is provided, the data will be written using the native format for your machine. </p>
 
 </div>
 </div>

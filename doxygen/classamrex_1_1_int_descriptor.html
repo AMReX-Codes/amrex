@@ -89,6 +89,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#friends">Friends</a> &#124;
 <a href="classamrex_1_1_int_descriptor-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">amrex::IntDescriptor Class Reference</div>  </div>
@@ -102,7 +103,7 @@ Public Types</h2></td></tr>
 <tr class="memitem:a330214b8c0c3e224aecd2d2d95c0a839"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_int_descriptor.html#a330214b8c0c3e224aecd2d2d95c0a839">Ordering</a> { <a class="el" href="classamrex_1_1_int_descriptor.html#a330214b8c0c3e224aecd2d2d95c0a839afc3cb7bc0cd89dcb5af02cce5baa23cd">NormalOrder</a> = 1, 
 <a class="el" href="classamrex_1_1_int_descriptor.html#a330214b8c0c3e224aecd2d2d95c0a839a4df03ba7689cd2d0b2bceb929c949b61">ReverseOrder</a> = 2
  }</td></tr>
-<tr class="memdesc:a330214b8c0c3e224aecd2d2d95c0a839"><td class="mdescLeft">&#160;</td><td class="mdescRight">An enumeration describing the two ordering of a "long" that we currently support: NormalOrder and ReverseOrder. Other ordering may be added as BoxLib is ported to run on machines with non-standard "long" orderings.  <a href="classamrex_1_1_int_descriptor.html#a330214b8c0c3e224aecd2d2d95c0a839">More...</a><br/></td></tr>
+<tr class="memdesc:a330214b8c0c3e224aecd2d2d95c0a839"><td class="mdescLeft">&#160;</td><td class="mdescRight">An enumeration describing the two orderings that we currently support: NormalOrder and ReverseOrder. Other orderings may be added as AMReX is ported to run on machines with non-standard orderings.  <a href="classamrex_1_1_int_descriptor.html#a330214b8c0c3e224aecd2d2d95c0a839">More...</a><br/></td></tr>
 <tr class="separator:a330214b8c0c3e224aecd2d2d95c0a839"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
@@ -114,10 +115,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:add84d9b481802ad8418b456ee61a2179"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a specific <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a>.  <a href="#add84d9b481802ad8418b456ee61a2179">More...</a><br/></td></tr>
 <tr class="separator:add84d9b481802ad8418b456ee61a2179"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab644daa5bafda0f056709b339b87e2c7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_int_descriptor.html#a330214b8c0c3e224aecd2d2d95c0a839">Ordering</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_int_descriptor.html#ab644daa5bafda0f056709b339b87e2c7">order</a> () const </td></tr>
-<tr class="memdesc:ab644daa5bafda0f056709b339b87e2c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the ordering of the "long".  <a href="#ab644daa5bafda0f056709b339b87e2c7">More...</a><br/></td></tr>
+<tr class="memdesc:ab644daa5bafda0f056709b339b87e2c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the ordering.  <a href="#ab644daa5bafda0f056709b339b87e2c7">More...</a><br/></td></tr>
 <tr class="separator:ab644daa5bafda0f056709b339b87e2c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1c1e96ec68c0fe88921cc8e5ed321e39"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_int_descriptor.html#a1c1e96ec68c0fe88921cc8e5ed321e39">numBytes</a> () const </td></tr>
-<tr class="memdesc:a1c1e96ec68c0fe88921cc8e5ed321e39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of bytes in a "long".  <a href="#a1c1e96ec68c0fe88921cc8e5ed321e39">More...</a><br/></td></tr>
+<tr class="memdesc:a1c1e96ec68c0fe88921cc8e5ed321e39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of bytes.  <a href="#a1c1e96ec68c0fe88921cc8e5ed321e39">More...</a><br/></td></tr>
 <tr class="separator:a1c1e96ec68c0fe88921cc8e5ed321e39"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2d846fa853c3d183ade656f266b92992"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_int_descriptor.html#a2d846fa853c3d183ade656f266b92992">operator==</a> (const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id) const </td></tr>
 <tr class="memdesc:a2d846fa853c3d183ade656f266b92992"><td class="mdescLeft">&#160;</td><td class="mdescRight">The equality operator.  <a href="#a2d846fa853c3d183ade656f266b92992">More...</a><br/></td></tr>
@@ -125,9 +126,14 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1c358efe06679a21911617d9e552f5e7"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_int_descriptor.html#a1c358efe06679a21911617d9e552f5e7">operator!=</a> (const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id) const </td></tr>
 <tr class="memdesc:a1c358efe06679a21911617d9e552f5e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">The inequality operator.  <a href="#a1c358efe06679a21911617d9e552f5e7">More...</a><br/></td></tr>
 <tr class="separator:a1c358efe06679a21911617d9e552f5e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
+Friends</h2></td></tr>
+<tr class="memitem:ae68dd8dc7268d4b438f79b8f499bc0d6"><td class="memItemLeft" align="right" valign="top">std::istream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_int_descriptor.html#ae68dd8dc7268d4b438f79b8f499bc0d6">operator&gt;&gt;</a> (std::istream &amp;is, <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;id)</td></tr>
+<tr class="separator:ae68dd8dc7268d4b438f79b8f499bc0d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>This class is meant to hold all information needed to completely describe the "long" type on a machine. To describe a "long" both the number of bytes in the long and their ordering, relative to canonical ordering 1 .. sizeof(long), needs to be specified. This allows us to write out "long"s in the native format on a machine, and then by also saving the <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a>, we can read them back in on another machine and have enough information to construct the exact same "long" values. </p>
+<div class="textblock"><p>This class is meant to hold all information needed to completely describe the "int" or "long" type on a machine. To describe an integer both the number of bytes and their ordering, relative to canonical ordering 1 .. sizeof(long), needs to be specified. This allows us to write out integers in the native format on a machine, and then by also saving the <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a>, we can read them back in on another machine and have enough information to construct the exact same values. </p>
 </div><h2 class="groupheader">Member Enumeration Documentation</h2>
 <a class="anchor" id="a330214b8c0c3e224aecd2d2d95c0a839"></a>
 <div class="memitem">
@@ -139,7 +145,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>An enumeration describing the two ordering of a "long" that we currently support: NormalOrder and ReverseOrder. Other ordering may be added as BoxLib is ported to run on machines with non-standard "long" orderings. </p>
+<p>An enumeration describing the two orderings that we currently support: NormalOrder and ReverseOrder. Other orderings may be added as AMReX is ported to run on machines with non-standard orderings. </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><em><a class="anchor" id="a330214b8c0c3e224aecd2d2d95c0a839afc3cb7bc0cd89dcb5af02cce5baa23cd"></a>NormalOrder</em>&#160;</td><td class="fielddoc">
 </td></tr>
@@ -209,7 +215,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Returns the number of bytes in a "long". </p>
+<p>Returns the number of bytes. </p>
 
 </div>
 </div>
@@ -262,7 +268,42 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Returns the ordering of the "long". </p>
+<p>Returns the ordering. </p>
+
+</div>
+</div>
+<h2 class="groupheader">Friends And Related Function Documentation</h2>
+<a class="anchor" id="ae68dd8dc7268d4b438f79b8f499bc0d6"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::istream&amp; operator&gt;&gt; </td>
+          <td>(</td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">friend</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
 
 </div>
 </div>
