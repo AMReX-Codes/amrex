@@ -278,8 +278,6 @@ BLProfStats::TimeRange RegionsProfStats::MakeRegionPlt(FArrayBox &rFab, int nore
 void RegionsProfStats::FillRegionTimeRanges(Vector<Vector<TimeRange>> &rtr,
                                             int whichProc)
 {
-  BL_PROFILE("RegionsProfStats::FillRegionTimeRanges()");
-
   int nRegions(maxRNumber + 1);
   Vector<Real> rStartTime(nRegions, -1.0);
 
@@ -290,7 +288,7 @@ void RegionsProfStats::FillRegionTimeRanges(Vector<Vector<TimeRange>> &rtr,
     if(dBlock.proc != whichProc) {
       continue;
     }
-    ReadBlock(dBlock, true, false);  // dont need to read the trace data
+    ReadBlock(dBlock, true, false);        // dont need to read the trace data
 
     for(int i(0); i < dBlock.rStartStop.size(); ++i) {
       BLProfiler::RStartStop &rss = dBlock.rStartStop[i];
@@ -354,6 +352,8 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
   if(bIOP) cout << "Finished serial InitRegionTimeRanges." << endl;
 #endif
 
+  cout << myProc << " InitRegionTimeRanges Box = " << procBox << endl;
+
   BL_PROFILE_VAR("RegionsProfStats::InitRegionTimeRanges_Parallel()", RPSIRTR_P);
   regionTimeRanges.resize(dataNProcs);
   for(int p(0); p < regionTimeRanges.size(); ++p) {
@@ -407,13 +407,14 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
   for(int p(0); p < regionTimeRanges.size(); ++p) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
       if( ! (p >= smallY && p <= bigY)) {    // ---- not within myproc range
-        if(regionTimeRanges[p][r].size() > 0) {
-	  amrex::Abort("regionTimeRanges size error 0");
-	}
+//        if(regionTimeRanges[p][r].size() > 0) {
+//	  amrex::Abort("regionTimeRanges size error 0");
+//	}
 	regionTimeRanges[p][r].resize(nRanges[r]);
       }
     }
   }
+
   Vector<Real> gAllRanges(dataNProcs * (maxRNumber + 1) * totalRanges * 2);
   for(int p(0); p < regionTimeRanges.size(); ++p) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
@@ -478,8 +479,6 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     }
   }
 #endif
-
-
 
   // have to remove the last noRegion
   for(int p(0); p < regionTimeRanges.size(); ++p) {

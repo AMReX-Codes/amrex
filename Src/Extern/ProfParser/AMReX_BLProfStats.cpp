@@ -314,13 +314,14 @@ void BLProfStats::InitFilterTimeRanges() {
 
 // ----------------------------------------------------------------------
 bool BLProfStats::InTimeRange(int proc, Real calltime) {
-  if( ! bTimeRangeInitialized) {
-    return true;
-  }
+//  if( ! bTimeRangeInitialized) {
+//    return true;
+//  }
   if(filterTimeRanges.empty()) {
 #ifdef DEBUG
   static int count(0);
   if(count++ < 4) {
+    amrex::BLBackTrace::print_backtrace_info("InTimeRange");
     cout << "**** BLProfStats::InTimeRange:  init true but range empty." << endl;
   }
 #endif
