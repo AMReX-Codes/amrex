@@ -7,23 +7,6 @@
 extern "C" {
 #endif
 
-    void amrex_mlndlap_sigma_cctoedge (const int* xlo, const int *xhi,
-#if (AMREX_SPACEDIM >= 2)
-                                       const int* ylo, const int* yhi,
-#if (AMREX_SPACEDIM == 3)
-                                       const int* zlo, const int* zhi,
-#endif
-#endif
-                                       amrex_real* sigx, const int* sxlo, const int* sxhi,
-#if (AMREX_SPACEDIM >= 2)
-                                       amrex_real* sigy, const int* sylo, const int* syhi,
-#if (AMREX_SPACEDIM == 3)
-                                       amrex_real* sigz, const int* szlo, const int* szhi,
-#endif
-#endif
-                                       const amrex_real* sigcc, const int* clo, const int* chi);
-
-
     void amrex_mlndlap_avgdown_coeff (const int* lo, const int* hi,
                                       amrex_real* crse, const int* clo, const int* chi,
                                       const amrex_real* fine, const int* flo, const int* fhi,
@@ -45,6 +28,7 @@ extern "C" {
                               const amrex_real* sz, const int* szlo, const int* szhi,
 #endif
 #endif
+                              amrex_real* dg, const int* dlo, const int* dhi,
                               const amrex_real* dxinv);
 
 

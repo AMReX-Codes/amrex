@@ -50,7 +50,7 @@ protected:
 
 private:
 
-    Vector<Vector<std::array<MultiFab,AMREX_SPACEDIM> > > m_sigma;
+    Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
 
     //
     // functions
