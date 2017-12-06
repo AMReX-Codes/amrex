@@ -1,11 +1,10 @@
-"""
-Controller operations
+"""call back operations
 =====================
 
 These are the functions which allow installing user created functions so that
 they are called at various places along the time step.
 
-For each controller, the following three functions are defined.
+For each call back type, the following three functions are defined.
  - install___: Installs a function to be called at that specified time
  - uninstall___: Uninstalls the function (so it won't be called anymore)
  - isinstalled___: Checks if the function is installed
@@ -16,21 +15,21 @@ if an instance method is used, an extra reference to the method's object is save
 The install can be done using a decorator, which has the prefix "callfrom". See example below.
 
 Functions can be called at the following times:
- - :py:func:`afterinit <installafterinit>`: immediately after the init is complete
- - :py:func:`beforeEsolve <installbeforeEsolve>`: before the solve for E fields
- - :py:func:`afterEsolve <installafterEsolve>`: after the solve for E fields
- - :py:func:`beforedeposition <installbeforedeposition>`: before the particle deposition (for charge and/or current)
- - :py:func:`afterdeposition <installafterdeposition>`: after particle deposition (for charge and/or current)
- - :py:func:`beforestep <installbeforestep>`: before the time step
- - :py:func:`afterstep <installafterstep>`: after the time step
- - :py:func:`particlescraper <installparticlescraper>`: just after the particle boundary conditions are applied
-                                                        but before lost particles are processed
- - :py:func:`particleloader <installparticleloader>`: at the time that the standard particle loader is called
- - :py:func:`particleinjection <installparticleinjection>`: called when particle injection happens, after the position
-                                                            advance and before deposition is called, allowing a user defined
-                                                            particle distribution to be injected each time step
- - :py:func:`appliedfields <installappliedfields>`: allows directly specifying any fields to be applied to the particles
-                                                    during the advance
+ - afterinit <installafterinit>: immediately after the init is complete
+ - beforeEsolve <installbeforeEsolve>: before the solve for E fields
+ - afterEsolve <installafterEsolve>: after the solve for E fields
+ - beforedeposition <installbeforedeposition>: before the particle deposition (for charge and/or current)
+ - afterdeposition <installafterdeposition>: after particle deposition (for charge and/or current)
+ - beforestep <installbeforestep>: before the time step
+ - afterstep <installafterstep>: after the time step
+ - particlescraper <installparticlescraper>: just after the particle boundary conditions are applied
+                                             but before lost particles are processed
+ - particleloader <installparticleloader>: at the time that the standard particle loader is called
+ - particleinjection <installparticleinjection>: called when particle injection happens, after the position
+                                                  advance and before deposition is called, allowing a user defined
+                                                  particle distribution to be injected each time step
+ - appliedfields <installappliedfields>: allows directly specifying any fields to be applied to the particles
+                                         during the advance
 
 To use a decorator, the syntax is as follows. This will install the function myplots to be called after each step.
 
@@ -56,9 +55,9 @@ import numpy
 
 from ._libwarpx import libwarpx
 
-class ControllerFunction:
+class CallbackFunctions(object):
     """
-    Class to handle the function lists.
+    Class to handle call back function lists.
 
     Note that for functions passed in that are methods of a class instance,
     a full reference of the instance is saved. This extra reference means
@@ -67,7 +66,7 @@ class ControllerFunction:
     the reference to the object (for example it can be created using a local
     variable in a function). It may be bad if the user thinks an object was
     deleted, but it actually isn't since it had (unkown to the user)
-    installed a method in one of the controllers.
+    installed a method in one of the call back lists
     """
 
     def __init__(self,name=None,lcallonce=0):
@@ -87,10 +86,11 @@ class ControllerFunction:
         self.funcs = []
 
     def __nonzero__(self):
-        "Returns True of functions are installed, otherwise false"
+        "Returns True if functions are installed, otherwise False"
         return self.hasfuncsinstalled()
 
     def __len__(self):
+        "Returns number of functions installed"
         return len(self.funcs)
 
     def hasfuncsinstalled(self):
@@ -98,9 +98,11 @@ class ControllerFunction:
         return len(self.funcs) > 0
 
     def _getmethodobject(self,func):
+        "For call backs that are methods, returns the method's instance"
         return func[0]
 
-    def controllerfunclist(self):
+    def callbackfunclist(self):
+        "Generator returning callable functions from the list"
         funclistcopy = copy.copy(self.funcs)
         for f in funclistcopy:
             if isinstance(f,list):
@@ -121,7 +123,7 @@ class ControllerFunction:
             else:
                 result = f
             if not callable(result):
-                print("\n\nWarning: a controller was found that is not callable.")
+                print("\n\nWarning: a call back was found that is not callable.")
                 if self.name is not None:
                     print("For %s"%self.name)
                 print("Only callable objects can be installed.")
@@ -130,12 +132,13 @@ class ControllerFunction:
                 print("if a function name had later been used as a variable name.")
                 print(self.name)
                 if isinstance(f,basestring):
-                    print("The name of the controller is %s"%f)
+                    print("The name of the call back is %s"%f)
                 print("\n\n")
                 continue
             yield result
 
     def installfuncinlist(self,f):
+        "Check if the specified function is installed"
         if isinstance(f,types.MethodType):
             # --- If the function is a method of a class instance, then save a full
             # --- reference to that instance and the method name.
@@ -157,6 +160,7 @@ class ControllerFunction:
             self.funcs.append(f)
 
     def uninstallfuncinlist(self,f):
+        "Uninstall the specified function"
         # --- An element by element search is needed
         # --- f can be a function or method object, or a name (string).
         # --- Note that method objects can not be removed by name.
@@ -184,6 +188,7 @@ class ControllerFunction:
         raise Exception('Warning: no such function had been installed')
 
     def isinstalledfuncinlist(self,f):
+        "Checks if the specified function is installed"
         # --- An element by element search is needed
         funclistcopy = copy.copy(self.funcs)
         for func in funclistcopy:
@@ -199,38 +204,36 @@ class ControllerFunction:
         return 0
 
     def callfuncsinlist(self,*args,**kw):
-        #printentering(self.name, 2)
+        "Call the functions in the list"
         bb = time.time()
-        for f in self.controllerfunclist():
+        for f in self.callbackfunclist():
             #barrier()
             t1 = time.time()
-            #printentering(str(f), 3)
             f(*args,**kw)
-            #printexiting(str(f), 3)
             #barrier()
             t2 = time.time()
             # --- For the timers, use the function (or method) name as the key.
             self.timers[f.__name__] = self.timers.get(f.__name__,0.) + (t2 - t1)
         aa = time.time()
-        #printexiting(self.name, 2)
         return aa - bb
 
 #=============================================================================
 
 # --- Now create the actual instances.
-_afterinit = ControllerFunction('afterinit')
-_beforeEsolve = ControllerFunction('beforeEsolve')
-_afterEsolve = ControllerFunction('afterEsolve')
-_beforedeposition = ControllerFunction('beforedeposition')
-_afterdeposition = ControllerFunction('afterdeposition')
-_particlescraper = ControllerFunction('particlescraper')
-_particleloader = ControllerFunction('particleloader')
-_beforestep = ControllerFunction('beforestep')
-_afterstep = ControllerFunction('afterstep')
-_afterrestart = ControllerFunction('afterrestart',lcallonce=1)
-_particleinjection = ControllerFunction('particleinjection')
-_appliedfields = ControllerFunction('appliedfields')
+_afterinit = CallbackFunctions('afterinit')
+_beforeEsolve = CallbackFunctions('beforeEsolve')
+_afterEsolve = CallbackFunctions('afterEsolve')
+_beforedeposition = CallbackFunctions('beforedeposition')
+_afterdeposition = CallbackFunctions('afterdeposition')
+_particlescraper = CallbackFunctions('particlescraper')
+_particleloader = CallbackFunctions('particleloader')
+_beforestep = CallbackFunctions('beforestep')
+_afterstep = CallbackFunctions('afterstep')
+_afterrestart = CallbackFunctions('afterrestart',lcallonce=1)
+_particleinjection = CallbackFunctions('particleinjection')
+_appliedfields = CallbackFunctions('appliedfields')
 
+# --- Create the objects that can be called from C.
 # --- Note that each of the CFUNCTYPE instances need to be saved
 _CALLBACK_FUNC_0 = ctypes.CFUNCTYPE(None)
 _c_afterinit = _CALLBACK_FUNC_0(_afterinit)
@@ -259,9 +262,11 @@ _c_appliedfields = _CALLBACK_FUNC_0(_appliedfields)
 libwarpx.warpx_set_callback_py_appliedfields(_c_appliedfields)
 
 #=============================================================================
-def printcontrollertimers(tmin=1.,lminmax=0.,ff=None):
-    """Prints timings of install functions.
+def printcallbacktimers(tmin=1.,lminmax=False,ff=None):
+    """Prints timings of installed functions.
     - tmin=1.: only functions with time greater than tmin will be printed
+    - lminmax=False: If True, prints the min and max times over all processors
+    - ff=None: If given, timings will be written to the file object instead of stdout
     """
     if ff is None: ff = sys.stdout
     for c in [_afterinit,_beforeEsolve,_afterEsolve,
@@ -310,13 +315,13 @@ def callfrombeforeEsolve(f):
     installbeforeEsolve(f)
     return f
 def installbeforeEsolve(f):
-    "Adds a function to the list of functions called before a field-solve"
+    "Adds a function to the list of functions called before an E solve"
     _beforeEsolve.installfuncinlist(f)
 def uninstallbeforeEsolve(f):
-    "Removes the function from the list of functions called before a field-solve"
+    "Removes the function from the list of functions called before an E solve"
     _beforeEsolve.uninstallfuncinlist(f)
 def isinstalledbeforeEsolve(f):
-    "Checks if the function is called before a field-solve"
+    "Checks if the function is called before an E solve"
     return _beforeEsolve.isinstalledfuncinlist(f)
 
 # ----------------------------------------------------------------------------
@@ -324,13 +329,13 @@ def callfromafterEsolve(f):
     installafterEsolve(f)
     return f
 def installafterEsolve(f):
-    "Adds a function to the list of functions called after a field-solve"
+    "Adds a function to the list of functions called after an E solve"
     _afterEsolve.installfuncinlist(f)
 def uninstallafterEsolve(f):
-    "Removes the function from the list of functions called after a field-solve"
+    "Removes the function from the list of functions called after an E solve"
     _afterEsolve.uninstallfuncinlist(f)
 def isinstalledafterEsolve(f):
-    "Checks if the function is called after a field-solve"
+    "Checks if the function is called after an E solve"
     return _afterEsolve.isinstalledfuncinlist(f)
 
 # ----------------------------------------------------------------------------
@@ -338,13 +343,13 @@ def callfrombeforedeposition(f):
     installbeforedeposition(f)
     return f
 def installbeforedeposition(f):
-    "Adds a function to the list of functions called before a load j"
+    "Adds a function to the list of functions called before a particle deposition"
     _beforedeposition.installfuncinlist(f)
 def uninstallbeforedeposition(f):
-    "Removes the function from the list of functions called before a load j"
+    "Removes the function from the list of functions called before a particle deposition"
     _beforedeposition.uninstallfuncinlist(f)
 def isinstalledbeforedeposition(f):
-    "Checks if the function is called before a load j"
+    "Checks if the function is called before a particle deposition"
     return _beforedeposition.isinstalledfuncinlist(f)
 
 # ----------------------------------------------------------------------------
@@ -352,13 +357,13 @@ def callfromafterdeposition(f):
     installafterdeposition(f)
     return f
 def installafterdeposition(f):
-    "Adds a function to the list of functions called after a load j"
+    "Adds a function to the list of functions called after a particle deposition"
     _afterdeposition.installfuncinlist(f)
 def uninstallafterdeposition(f):
-    "Removes the function from the list of functions called after a load j"
+    "Removes the function from the list of functions called after a particle deposition"
     _afterdeposition.uninstallfuncinlist(f)
 def isinstalledafterdeposition(f):
-    "Checks if the function is called after a load j"
+    "Checks if the function is called after a particle deposition"
     return _afterdeposition.isinstalledfuncinlist(f)
 
 # ----------------------------------------------------------------------------
@@ -419,20 +424,20 @@ def isinstalledafterstep(f):
 
 # ----------------------------------------------------------------------------
 def callfromafterrestart(f):
-    raise Exception('restart controller not implemented yet')
+    raise Exception('restart call back not implemented yet')
     installafterrestart(f)
     return f
 def installafterrestart(f):
     "Adds a function to the list of functions called immediately after a restart"
-    raise Exception('restart controller not implemented yet')
+    raise Exception('restart call back not implemented yet')
     _afterrestart.installfuncinlist(f)
 def uninstallafterrestart(f):
     "Removes the function from the list of functions called immediately after a restart"
-    raise Exception('restart controller not implemented yet')
+    raise Exception('restart call back not implemented yet')
     _afterrestart.uninstallfuncinlist(f)
 def isinstalledafterrestart(f):
     "Checks if the function is called immediately after a restart"
-    raise Exception('restart controller not implemented yet')
+    raise Exception('restart call back not implemented yet')
     return _afterrestart.isinstalledfuncinlist(f)
 
 # ----------------------------------------------------------------------------
@@ -455,7 +460,7 @@ def isinstalledparticleinjection(f):
 
 # ----------------------------------------------------------------------------
 def callfromappliedfields(f):
-    raise Exception('applied fields controller not implemented yet')
+    raise Exception('applied fields call back not implemented yet')
     installappliedfields(f)
     return f
 def installappliedfields(f):
@@ -463,14 +468,14 @@ def installappliedfields(f):
     Adds a user defined function which can specify E and B fields which are applied
     to the particles during the particle advance.
     """
-    raise Exception('applied fields controller not implemented yet')
+    raise Exception('applied fields call back not implemented yet')
     _appliedfields.installfuncinlist(f)
 def uninstallappliedfields(f):
     "Removes the function installed by installappliedfields"
-    raise Exception('applied fields controller not implemented yet')
+    raise Exception('applied fields call back not implemented yet')
     _appliedfields.uninstallfuncinlist(f)
 def isinstalledappliedfields(f):
     "Checks if the function is called when which applies fields"
-    raise Exception('applied fields controller not implemented yet')
+    raise Exception('applied fields call back not implemented yet')
     return _appliedfields.isinstalledfuncinlist(f)
 

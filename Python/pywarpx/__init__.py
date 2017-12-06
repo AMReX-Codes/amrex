@@ -16,4 +16,4 @@ from .WarpXPIC import WarpXPIC
 
 from ._libwarpx import add_particles
 
-from .controllers import *
+from .callbacks import *

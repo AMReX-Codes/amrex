@@ -1,5 +1,5 @@
 from ._libwarpx import libwarpx
-import .controllers
+import .callbacks
 
 class TimeStepper(object):
 
@@ -9,7 +9,7 @@ class TimeStepper(object):
 
     def onestep(self):
 
-        controllers._beforestep()
+        callbacks._beforestep()
 
         self.cur_time = libwarpx.warpx_gett_new(0)
         self.istep = libwarpx.warpx_getistep(0)
@@ -32,11 +32,11 @@ class TimeStepper(object):
 
         # --- Evolve particles to p^{n+1/2} and x^{n+1}
         # --- Depose current, j^{n+1/2}
-        controllers._particleinjection()
-        controllers._particlescraper()
-        controllers._beforedeposition()
+        callbacks._particleinjection()
+        callbacks._particlescraper()
+        callbacks._beforedeposition()
         libwarpx.warpx_PushParticlesandDepose(self.cur_time)
-        controllers._afterdeposition()
+        callbacks._afterdeposition()
 
         libwarpx.mypc_Redistribute() # Redistribute particles
 
@@ -46,9 +46,9 @@ class TimeStepper(object):
         libwarpx.warpx_SyncCurrent()
 
         libwarpx.warpx_FillBoundaryB()
-        controllers._beforeEsolve()
+        callbacks._beforeEsolve()
         libwarpx.warpx_EvolveE(dt,0) # We now have E^{n+1}
-        controllers._afterEsolve()
+        callbacks._afterEsolve()
 
         self.istep += 1
 
@@ -72,4 +72,4 @@ class TimeStepper(object):
         if libwarpx.warpx_checkInt() > 0 and (self.istep+1)%libwarpx.warpx_plotInt() == 0 or max_time_reached:
             libwarpx.warpx_WriteCheckPointFile()
 
-        controllers._afterstep()
+        callbacks._afterstep()
