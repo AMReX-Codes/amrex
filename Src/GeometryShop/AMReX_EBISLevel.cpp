@@ -23,11 +23,12 @@
 #include "AMReX_FabArrayIO.H"
 #include "AMReX_Utility.H"
 #include "AMReX_ParmParse.H"
+#include "AMReX_NFiles.H"
 
 
 namespace amrex
 {
-  static bool build_eb_surface_DEF = false;
+  static std::string eb_surface_filename;
 
   static const IntVect   ebl_debiv(D_DECL(994,213,7));
   static const IntVect   ebl_debivlo(D_DECL(190,15,0));
@@ -200,8 +201,13 @@ namespace amrex
     BL_PROFILE("EBISLevel::EBISLevel_geoserver_domain");
 
     ParmParse pp("ebis");
-    m_build_eb_surface = build_eb_surface_DEF;
-    pp.query("build_eb_surface",m_build_eb_surface);
+    m_build_eb_surface = false;
+
+    int n_name = pp.countval("eb_surface_filename");
+    if (n_name > 0) {
+      m_build_eb_surface = true;
+      pp.get("eb_surface_filename",eb_surface_filename);
+    }
 
     defineFromGeometryService(a_geoserver);
 
@@ -227,12 +233,14 @@ namespace amrex
   void
   EBISLevel::buildEBSurface(const GeometryService & a_geoserver)
   {
+
+    Vector<Vector<Triangle>> triangles;
+
     for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
     {
-      EBGraph& eb_graph = m_graph[mfi];
-      IntVectSet ivsirreg = eb_graph.getIrregCells(eb_graph.getRegion());
-
-      NodeMap& intersections = m_intersections[mfi];
+      auto& eb_graph = m_graph[mfi];
+      auto ivsirreg = eb_graph.getIrregCells(eb_graph.getRegion());
+      auto& intersections = m_intersections[mfi];
 
 #if BL_SPACEDIM==2
       std::vector<IntVect> pt(4);
@@ -311,14 +319,14 @@ namespace amrex
         cLines.back().push_back(segments.front());
         segments.pop_front();
 
-        NodeMapIt idx = cLines.back().back().ID_r();
+        auto idx = cLines.back().back().ID_r();
         while (segments.begin() != segments.end())
         {
-          list<Segment>::iterator segIt = FindMySeg(segments,idx);
+          auto segIt = FindMySeg(segments,idx);
           if (segIt != segments.end())
           {
-            const NodeMapIt& idx_l = (*segIt).ID_l();
-            const NodeMapIt& idx_r = (*segIt).ID_r();
+            const auto& idx_l = (*segIt).ID_l();
+            const auto& idx_r = (*segIt).ID_r();
 
             if ( idx_l == idx )
             {
@@ -353,8 +361,8 @@ namespace amrex
           {
             if (!it->empty())
             {
-              const NodeMapIt& idx_l = it->front().ID_l();
-              const NodeMapIt& idx_r = it->back().ID_r();
+              const auto& idx_l = it->front().ID_l();
+              const auto& idx_r = it->back().ID_r();
               for (std::list<list<Segment>>::iterator it1 = cLines.begin(); it1!=cLines.end(); ++it1)
               {
                 if (!it1->empty() && it!=it1)
@@ -395,23 +403,26 @@ namespace amrex
             it++;
         }
 
-        int nGrid = m_intersections.size();
-        int nDigits = std::log10(nGrid) + 1;
-        std::string cfile_name = nGrid == 1 ? "contourLines" : Concatenate("contourLines_",mfi.index(),nDigits);
-        cfile_name += ".dat";
+        std::string FullDataPath = eb_surface_filename;
+        if (!FullDataPath.empty() && FullDataPath[FullPath.size()-1] != '/')
+          FullDataPath += '/';
+        FullDataPath += "Data";
+
+#if 0
         std::ofstream ofs(cfile_name.c_str());
         for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end(); ++it)
         {
-          list<Segment>::const_iterator slit=it->begin();
-          const RealVect& pt0 = slit->ID_l()->second;
+          auto slit=it->begin();
+          const auto& pt0 = slit->ID_l()->second;
           ofs << pt0[0] << " " << pt0[1] << std::endl;
           for (  ; slit!=it->end(); ++slit)
           {
-            const RealVect& pt = slit->ID_r()->second;
+            const auto& pt = slit->ID_r()->second;
             ofs << pt[0] << " " << pt[1] << std::endl;
           }
         }
         ofs.close();
+#endif
       }
 
 #else
@@ -711,7 +722,8 @@ namespace amrex
       std::vector<RealVect> x(8);
       std::vector<bool> v(8);
 
-      Vector<Triangle> triangles;
+      triangles.push_back(Vector<Triangle>());
+
       for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
       {
         pt[0] = ivsit();
@@ -779,8 +791,9 @@ namespace amrex
 
         for (int j=0; j<nTriang; ++j)
         {
-          triangles.push_back(Triangle());
-          Triangle& tri = triangles.back();
+          auto& triangleVec = triangles.back();
+          triangleVec.push_back(Triangle());
+          auto& tri = triangleVec.back();
           int j3 = 3*j;
           tri[0] = vertlist[triTable[cubeindex][j3  ]];
           tri[1] = vertlist[triTable[cubeindex][j3+1]];
@@ -788,7 +801,35 @@ namespace amrex
         }
       }
 
-      if (triangles.size() > 0)
+#endif
+    }
+
+    if (ParallelDescriptor::IOProcessor())
+        if (!amrex::UtilCreateDirectory(eb_surface_filename, 0755))
+            amrex::CreateDirectoryFailed(eb_surface_filename);
+
+    //
+    // Force other processors to wait till directory is built.
+    //
+    amrex::Print() << "EBISLevel: Writing EB surface file to: " << eb_surface_filename << '\n';
+
+    ParallelDescriptor::Barrier();
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+      std::string FullHeaderPath = eb_surface_filename;
+      if (!FullHeaderPath.empty() && FullHeaderPath[FullHeaderPath.size()-1] != '/')
+        FullHeaderPath += '/';
+      FullHeaderPath += "Header";
+
+      // Write header info
+    }
+
+    for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
+    {
+      auto& intersections = m_intersections[mfi];
+      auto& triangleVec = triangles[mfi.LocalIndex()];
+      if (triangleVec.size() > 0)
       {
         Vector<NodeMapIt> orderedNodes(intersections.size());
         for (NodeMapIt it=intersections.begin(); it!=intersections.end(); ++it)
@@ -796,21 +837,27 @@ namespace amrex
           orderedNodes[it->first.ID] = it;
         }
 
-        int nGrid = m_intersections.size();
-        int nDigits = std::log10(nGrid) + 1;
-        std::string cfile_name = nGrid == 1 ? "contourSurfaces" : Concatenate("contourSurfaces_",mfi.index(),nDigits);
-        cfile_name += ".dat";
-        std::ofstream ofs(cfile_name.c_str());
+        auto FullDataPath = eb_surface_filename;
+        if (!FullDataPath.empty() && FullDataPath[FullDataPath.size()-1] != '/')
+          FullDataPath += '/';
+        FullDataPath += "Data";
+
+        auto nGrid = m_intersections.size();
+        auto nDigits = std::log10(nGrid) + 1;
+        FullDataPath += Concatenate("_",mfi.index(),nDigits);
+
+        std::ofstream ofs(FullDataPath.c_str());
         ofs << orderedNodes.size() << " " << triangles.size() << std::endl;
+
         for (int i=0; i<orderedNodes.size(); ++i)
         {
-          const RealVect& vec = orderedNodes[i]->second;
+          const auto& vec = orderedNodes[i]->second;
           ofs << vec[0] << " " << vec[1] << " " << vec[2] << std::endl;
         }
 
-        for (int i=0; i<triangles.size(); ++i)
+        for (int i=0; i<triangleVec.size(); ++i)
         {
-          const Triangle& tri = triangles[i];
+          const auto& tri = triangleVec[i];
           for (int j=0; j<3; ++j)
           {
             ofs << tri[j]->first.ID + 1 << " ";
@@ -819,7 +866,6 @@ namespace amrex
         }
         ofs.close();
       }
-#endif
     }
   }
 
