@@ -34,9 +34,7 @@ protected:
                         const MLMGBndry* bndry=nullptr) const final;
 
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                         bool skip_fillboundary=false) const final {
-        amrex::Abort("TODO: smooth");
-    }
+                         bool skip_fillboundary=false) const final;
 
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) final;
@@ -65,7 +63,7 @@ protected:
     virtual void prepareForSolve () override {}
 
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, const int face_only=0) const = 0;

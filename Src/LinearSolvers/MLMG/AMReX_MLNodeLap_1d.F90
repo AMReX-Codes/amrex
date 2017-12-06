@@ -5,7 +5,7 @@ module amrex_mlnodelap_1d_module
 
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_divu, &
-       amrex_mlndlap_adotx
+       amrex_mlndlap_adotx, amrex_mlndlap_jacobi
 
 contains
 
@@ -40,5 +40,17 @@ contains
 !    real(amrex_real) :: dhx, dhy
 
   end subroutine amrex_mlndlap_adotx  
+
+
+  subroutine amrex_mlndlap_jacobi (lo, hi, sol, slo, shi, Ax, alo, ahi, rhs, rlo, rhi, &
+       sx, sxlo, sxhi, dxinv) bind(c,name='amrex_mlndlap_jacobi')
+    integer, dimension(1),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,sxlo,sxhi
+    real(amrex_real), intent(in) :: dxinv(1)
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1))
+    real(amrex_real), intent(in   ) :: Ax ( alo(1): ahi(1))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1))
+    real(amrex_real), intent(in   ) :: sx (sxlo(1):sxhi(1))
+    
+  end subroutine amrex_mlndlap_jacobi
 
 end module amrex_mlnodelap_1d_module
