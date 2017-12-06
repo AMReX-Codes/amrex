@@ -15,20 +15,7 @@ USE_MPI       = FALSE
 #
 # Base name of the executable.
 #
-#EBASE = Add
-### this has no main EBASE = ComputeAmrDataNorms
-#EBASE = DiffFab
-#EBASE = DiffSameDomainRefined
-#EBASE = DiffSameDomainRefinedComposite
-#EBASE = DiffSameDomainRefinedStag
-#EBASE = DiffSameGrid2
-#EBASE = DiffSameGrid
-#EBASE = DiffSameGridRefined
-#EBASE = DiffUniform
-#EBASE = PltFileNormB
-#EBASE = PltFileNorm
-#EBASE = PltFileScalConvRate
-EBASE  = RichardsonConvergenceTest
+EBASE  = sphere
 
 CEXE_sources += $(EBASE).cpp
 
@@ -36,34 +23,50 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 DEFINES += -DBL_NOLINEVALUES -DBL_PARALLEL_IO
 
-include Make.package
-#include ../Make.package
+
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
-#include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/EB/Make.package
+include $(AMREX_HOME)/Src/GeometryShop/Make.package
+include $(AMREX_HOME)/Src/Amr/Make.package
+include $(AMREX_HOME)/Src/AmrCore/Make.package
+
 include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
+include $(AMREX_HOME)/Tools/C_util/Make.package
+include ../src/Make.package
 
 INCLUDE_LOCATIONS += .
-INCLUDE_LOCATIONS += ..
-vpathdir += ..
+vpathdir += .
+
+INCLUDE_LOCATIONS += ../src
+vpathdir += ../src
 
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 vpathdir += $(AMREX_HOME)/Src/Base
 
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_util
+vpathdir += $(AMREX_HOME)/Tools/C_util
+
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Boundary
 vpathdir += $(AMREX_HOME)/Src/Boundary
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/EB
+vpathdir += $(AMREX_HOME)/Src/EB
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/GeometryShop
+vpathdir += $(AMREX_HOME)/Src/GeometryShop
 
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Amr
 vpathdir += $(AMREX_HOME)/Src/Amr
 
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrCore
+vpathdir += $(AMREX_HOME)/Src/AmrCore
+
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
 vpathdir += $(AMREX_HOME)/Src/Extern/amrdata
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/ProfParser
-vpathdir += $(AMREX_HOME)/Src/Extern/ProfParser
-
-CEXE_sources += AMReX_BCRec.cpp
-CEXE_headers += AMReX_BCRec.H AMReX_BC_TYPES.H
 
 vpath %.c   : . $(vpathdir)
 vpath %.h   : . $(vpathdir)
