@@ -234,9 +234,32 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 }
 
 void
-MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const
+MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const
 {
-    amrex::Abort("MLNodeLaplacian::Fsmooth to be implemented");
+    MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
+    Fapply(amrlev, mglev, Ax, sol);
+
+    const auto& sigma = m_sigma[amrlev][mglev];
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(sol,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                     const FArrayBox& syfab = (*sigma[1])[mfi];,
+                     const FArrayBox& szfab = (*sigma[2])[mfi];);
+        amrex_mlndlap_jacobi(BL_TO_FORTRAN_BOX(bx),
+                             BL_TO_FORTRAN_ANYD(sol[mfi]),
+                             BL_TO_FORTRAN_ANYD(Ax[mfi]),
+                             BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                          BL_TO_FORTRAN_ANYD(syfab),
+                                          BL_TO_FORTRAN_ANYD(szfab)),
+                             dxinv);
+    }
 }
 
 void
