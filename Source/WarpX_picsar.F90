@@ -320,13 +320,11 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
     !! Vay pusher -- Full push
     CASE (1_c_long)
-!#if (BL_SPACEDIM == 3)
+      CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
+
       CALL pxr_ebcancelpush3d(np,uxp,uyp,uzp,gaminv, &
                                  ex,ey,ez,  &
                                  bx,by,bz,q,m,dt,0_c_long)
-!#else
-!      call bl_error("Is there a 2d Vay pusher implemented?")
-!#endif
     CASE DEFAULT
 
       ! Momentum pusher in a single loop
@@ -335,27 +333,6 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
                                      ex,ey,ez, &
                                      bx,by,bz, &
                                      q,m,dt)
-
-      ! Momentum pusher by block
-!       CALL pxr_boris_push_u_3d_block(np,uxp,uyp,uzp,&
-!                                      gaminv, &
-!                                      ex,ey,ez, &
-!                                      bx,by,bz, &
-!                                      q,m,dt,lvect)
-
-      !! --- Push velocity with E half step
-!       CALL pxr_epush_v(np,uxp,uyp,uzp,      &
-!                       ex,ey,ez,q,m,dt*0.5_amrex_real)
-      !! --- Set gamma of particles
-!       CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
-      !! --- Push velocity with B
-!       CALL pxr_bpush_v(np,uxp,uyp,uzp,gaminv,      &
-!                       bx,by,bz,q,m,dt)
-      !!! --- Push velocity with E half step
-!       CALL pxr_epush_v(np,uxp,uyp,uzp,      &
-!                       ex,ey,ez,q,m,dt*0.5_amrex_real)
-      !! --- Set gamma of particles
-!       CALL pxr_set_gamma(np,uxp,uyp,uzp,gaminv)
 
     END SELECT
 

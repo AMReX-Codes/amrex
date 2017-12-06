@@ -201,7 +201,7 @@ WarpX::ReadParameters ()
 	    }
     }
 
-    pp.queryarr("B_external", B_external);
+        pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
@@ -299,6 +299,28 @@ WarpX::ReadParameters ()
             pp.query("plot_crsepatch", plot_crsepatch);
         }
 
+        {
+            bool plotfile_min_max = true;
+            pp.query("plotfile_min_max", plotfile_min_max);
+            if (plotfile_min_max) {
+                plotfile_headerversion = amrex::VisMF::Header::Version_v1;
+            } else {
+                plotfile_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
+            }
+            pp.query("usesingleread", use_single_read);
+            pp.query("usesinglewrite", use_single_write);
+            ParmParse ppv("vismf");
+            ppv.add("usesingleread", use_single_read);
+            ppv.add("usesinglewrite", use_single_write);
+            pp.query("mffile_nstreams", mffile_nstreams);
+            VisMF::SetMFFileInStreams(mffile_nstreams);
+            pp.query("field_io_nfiles", field_io_nfiles);
+            VisMF::SetNOutFiles(field_io_nfiles);
+            pp.query("particle_io_nfiles", particle_io_nfiles);
+            ParmParse ppp("particles");
+            ppp.add("particles_nfiles", particle_io_nfiles);
+        }
+
         if (maxLevel() > 0) {
             Vector<Real> lo, hi;
             pp.getarr("fine_tag_lo", lo);
@@ -369,7 +391,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngE   = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
     int ngJ = ngE;
     int ngRho = ngE;
-
+    int ngF = (do_moving_window) ? 2 : 0;
+    
     //
     // The fine patch
     //
@@ -387,7 +410,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
     if (do_dive_cleaning)
     {
-        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, 0));
+        F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1,ngRho));
     }
 
@@ -440,7 +463,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 
         if (do_dive_cleaning)
         {
-            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, 0));
+            F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, ngF));
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1,ngRho));
         }
     }
