@@ -62,6 +62,7 @@ WarpX::EvolveES(int numsteps) {
 
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
+        if (warpx_py_beforestep) warpx_py_beforestep();
 
         // At initialization, particles have p^{n-1/2} and x^{n-1/2}.
         // Beyond one step, particles have p^{n-1/2} and x^{n}.
@@ -85,10 +86,16 @@ WarpX::EvolveES(int numsteps) {
         // Evolve particles to p^{n+1/2} and x^{n+1}
         mypc->EvolveES(eFieldNodal, rhoNodal, cur_time, dt[lev]);
 
+        if (warpx_py_particleinjection) warpx_py_particleinjection();
+        if (warpx_py_particlescraper) warpx_py_particlescraper();
+        if (warpx_py_beforedeposition) warpx_py_beforedeposition();
         mypc->DepositCharge(rhoNodal);
+        if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 
+        if (warpx_py_beforeEsolve) warpx_py_beforeEsolve();
         computePhi(rhoNodal, phiNodal);
         computeE(eFieldNodal, phiNodal);
+        if (warpx_py_afterEsolve) warpx_py_afterEsolve();
 
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
@@ -134,6 +141,7 @@ WarpX::EvolveES(int numsteps) {
 	    break;
 	}
 
+        if (warpx_py_afterstep) warpx_py_afterstep();
 	// End loop on time steps
     }
 
@@ -165,12 +173,10 @@ WarpX::EvolveEM (int numsteps)
     bool max_time_reached = false;
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
-        if (warpx_py_print_step) {
-            warpx_py_print_step(step);
-        }
 
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
+        if (warpx_py_beforestep) warpx_py_beforestep();
 
         if (costs[0] != nullptr)
         {
@@ -212,7 +218,11 @@ WarpX::EvolveEM (int numsteps)
         // Push particle from x^{n} to x{n+1}
         // Deposit current j^{n+1/2}
         // Deposit charge density rho^{n}
+        if (warpx_py_particleinjection) warpx_py_particleinjection();
+        if (warpx_py_particlescraper) warpx_py_particlescraper();
+        if (warpx_py_beforedeposition) warpx_py_beforedeposition();
         PushParticlesandDepose(cur_time);
+        if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 
         EvolveB(0.5*dt[0], DtType::SecondHalf); // We now B^{n+1/2}
 
@@ -225,6 +235,7 @@ WarpX::EvolveEM (int numsteps)
         // Fill B's ghost cells because of the next step of evolving E.
         FillBoundaryB();
 
+        if (warpx_py_beforeEsolve) warpx_py_beforeEsolve();
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
             EvolveE(0.5*dt[0], DtType::FirstHalf); // We now have E^{n+1/2}
@@ -234,6 +245,7 @@ WarpX::EvolveEM (int numsteps)
         } else {
             EvolveE(dt[0], DtType::Full); // We now have E^{n+1}
         }
+        if (warpx_py_afterEsolve) warpx_py_afterEsolve();
 
          for (int lev = 0; lev <= max_level; ++lev) {
             ++istep[lev];
@@ -289,6 +301,7 @@ WarpX::EvolveEM (int numsteps)
 	    break;
 	}
 
+        if (warpx_py_afterstep) warpx_py_afterstep();
 	// End loop on time steps
     }
 

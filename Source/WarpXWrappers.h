@@ -27,9 +27,21 @@ extern "C" {
     
     void warpx_finalize ();
 
-    typedef void(*WARPX_CALLBACK_PY_FUNC_1)(int);
-    void warpx_set_callback_py_funcs (WARPX_CALLBACK_PY_FUNC_1);
-    
+    typedef void(*WARPX_CALLBACK_PY_FUNC_0)();
+
+    void warpx_set_callback_py_afterinit (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_beforeEsolve (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_afterEsolve (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_beforedeposition (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_afterdeposition (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_particlescraper (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_particleloader (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_beforestep (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_afterstep (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_afterrestart (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_particleinjection (WARPX_CALLBACK_PY_FUNC_0);
+    void warpx_set_callback_py_appliedfields (WARPX_CALLBACK_PY_FUNC_0);
+
     void warpx_evolve (int numsteps);  // -1 means the inputs parameter will be used.
     
     void warpx_addNParticles(int speciesnumber, int lenx,

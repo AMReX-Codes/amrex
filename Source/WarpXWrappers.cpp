@@ -85,6 +85,8 @@ extern "C"
     {
 	WarpX& warpx = WarpX::GetInstance();
 	warpx.InitData();
+        if (warpx_py_afterinit) warpx_py_afterinit();
+        if (warpx_py_particleloader) warpx_py_particleloader();
     }
 
     void warpx_finalize ()
@@ -92,9 +94,53 @@ extern "C"
 	WarpX::ResetInstance();
     }
 
-    void warpx_set_callback_py_funcs (WARPX_CALLBACK_PY_FUNC_1 print_step)
+    void warpx_set_callback_py_afterinit (WARPX_CALLBACK_PY_FUNC_0 callback)
     {
-        warpx_py_print_step = print_step;
+        warpx_py_afterinit = callback;
+    }
+    void warpx_set_callback_py_beforeEsolve (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_beforeEsolve = callback;
+    }
+    void warpx_set_callback_py_afterEsolve (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_afterEsolve = callback;
+    }
+    void warpx_set_callback_py_beforedeposition (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_beforedeposition = callback;
+    }
+    void warpx_set_callback_py_afterdeposition (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_afterdeposition = callback;
+    }
+    void warpx_set_callback_py_particlescraper (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_particlescraper = callback;
+    }
+    void warpx_set_callback_py_particleloader (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_particleloader = callback;
+    }
+    void warpx_set_callback_py_beforestep (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_beforestep = callback;
+    }
+    void warpx_set_callback_py_afterstep (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_afterstep = callback;
+    }
+    void warpx_set_callback_py_afterrestart (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_afterrestart = callback;
+    }
+    void warpx_set_callback_py_particleinjection (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_particleinjection = callback;
+    }
+    void warpx_set_callback_py_appliedfields (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_appliedfields = callback;
     }
 
     void warpx_evolve (int numsteps)
