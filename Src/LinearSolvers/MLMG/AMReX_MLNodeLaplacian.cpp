@@ -52,7 +52,6 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                 int idim = 0;
                 m_sigma[amrlev][mglev][idim].reset
                     (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
-                m_sigma[amrlev][mglev][idim]->setVal(0.0);
                 for (idim = 1; idim < AMREX_SPACEDIM; ++idim)
                 {
                     m_sigma[amrlev][mglev][idim].reset
@@ -63,7 +62,6 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
                 {
                     m_sigma[amrlev][mglev][idim].reset
                         (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
-                    m_sigma[amrlev][mglev][idim]->setVal(0.0);
                 }                
             }
         }
@@ -127,11 +125,11 @@ MLNodeLaplacian::averageDownCoeffs ()
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         int mglev = 0;
-        m_sigma[amrlev][mglev][0]->FillBoundary(m_geom[amrlev][mglev].periodicity());
+        FillBoundaryCoeff(*m_sigma[amrlev][mglev][0], m_geom[amrlev][mglev]);
         for (mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                m_sigma[amrlev][mglev][idim]->FillBoundary(m_geom[amrlev][mglev].periodicity());
+                FillBoundaryCoeff(*m_sigma[amrlev][mglev][idim], m_geom[amrlev][mglev]);
             }
         }
     }
@@ -187,6 +185,26 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
                 }
                 crse.ParallelCopy(tmp);
             }
+        }
+    }
+}
+
+void
+MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
+{
+    sigma.FillBoundary(geom.periodicity());
+
+    const Box& domain = geom.Domain();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(sigma); mfi.isValid(); ++mfi)
+    {
+        if (!domain.contains(mfi.fabbox()))
+        {
+            amrex_mlndlap_fillbc_coeff(BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                       BL_TO_FORTRAN_BOX(domain));
         }
     }
 }

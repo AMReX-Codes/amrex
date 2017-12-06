@@ -4,7 +4,7 @@ module amrex_mlnodelap_1d_module
   implicit none
 
   private
-  public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_divu, &
+  public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
        amrex_mlndlap_adotx, amrex_mlndlap_jacobi
 
 contains
@@ -16,6 +16,14 @@ contains
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
   end subroutine amrex_mlndlap_avgdown_coeff
+
+
+  subroutine amrex_mlndlap_fillbc_coeff (sigma, slo, shi, dlo, dhi) &
+       bind(c, name='amrex_mlndlap_fillbc_coeff')
+    integer, dimension(2), intent(in) :: slo, shi, dlo, dhi
+    real(amrex_real), intent(inout) :: sigma(slo(1):shi(1),slo(2):shi(2))
+    
+  end subroutine amrex_mlndlap_fillbc_coeff
 
 
   subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, dxinv) &

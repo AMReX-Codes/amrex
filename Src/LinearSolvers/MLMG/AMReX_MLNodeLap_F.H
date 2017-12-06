@@ -12,6 +12,9 @@ extern "C" {
                                       const amrex_real* fine, const int* flo, const int* fhi,
                                       const int* idim);
 
+    void amrex_mlndlap_fillbc_coeff (amrex_real* sigma, const int* slo, const int* shi,
+                                     const int* dlo, const int* dhi);
+
     void amrex_mlndlap_divu (const int* lo, const int* hi,
                              amrex_real* rhs, const int* rlo, const int* rhi,
                              const amrex_real* vel, const int* vlo, const int* vhi,

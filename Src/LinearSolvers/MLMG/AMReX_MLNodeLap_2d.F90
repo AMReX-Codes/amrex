@@ -5,7 +5,7 @@ module amrex_mlnodelap_2d_module
   implicit none
 
   private
-  public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_divu, &
+  public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
        amrex_mlndlap_adotx, amrex_mlndlap_jacobi
 
 contains
@@ -35,6 +35,53 @@ contains
        end do
     end if
   end subroutine amrex_mlndlap_avgdown_coeff
+
+
+  subroutine amrex_mlndlap_fillbc_coeff (sigma, slo, shi, dlo, dhi) &
+       bind(c, name='amrex_mlndlap_fillbc_coeff')
+    integer, dimension(2), intent(in) :: slo, shi, dlo, dhi
+    real(amrex_real), intent(inout) :: sigma(slo(1):shi(1),slo(2):shi(2))
+
+    integer :: ilo, ihi, jlo, jhi
+
+    ilo = max(dlo(1), slo(1))
+    ihi = min(dhi(1), shi(1))
+    jlo = max(dlo(2), slo(2))
+    jhi = min(dhi(2), shi(2))
+
+    if (slo(1) .lt. dlo(1)) then
+       sigma(dlo(1)-1,jlo:jhi) = sigma(dlo(1),jlo:jhi)
+    end if
+    
+    if (shi(1) .gt. dhi(1)) then
+       sigma(dhi(1)+1,jlo:jhi) = sigma(dhi(1),jlo:jhi)
+    end if
+
+    if (slo(2) .lt. dlo(2)) then
+       sigma(ilo:ihi,dlo(2)-1) = sigma(ilo:ihi,dlo(2))
+    end if
+
+    if (shi(2) .gt. dhi(2)) then
+       sigma(ilo:ihi,dhi(2)+1) = sigma(ilo:ihi,dhi(2))
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. slo(2) .lt. dlo(2)) then
+       sigma(dlo(1)-1,dlo(2)-1) = sigma(dlo(1),dlo(2))
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. slo(2) .lt. dlo(2)) then
+       sigma(dhi(1)+1,dlo(2)-1) = sigma(dhi(1),dlo(2))
+    end if
+
+    if (slo(1) .lt. dlo(1) .and. shi(2) .gt. dhi(2)) then
+       sigma(dlo(1)-1,dhi(2)+1) = sigma(dlo(1),dhi(2))
+    end if
+
+    if (shi(1) .gt. dhi(1) .and. shi(2) .gt. dhi(2)) then
+       sigma(dhi(1)+1,dhi(2)+1) = sigma(dhi(1),dhi(2))
+    end if
+
+  end subroutine amrex_mlndlap_fillbc_coeff
 
 
   subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, dxinv, ndlo, ndhi, bclo, bchi) &
