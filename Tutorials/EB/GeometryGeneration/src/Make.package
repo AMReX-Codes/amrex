@@ -1,0 +1,3 @@
+CEXE_sources += CommonCode.cpp WriteEBPlotFile.cpp
+CEXE_headers += CommonCode.H   WriteEBPlotFile.H  
+
