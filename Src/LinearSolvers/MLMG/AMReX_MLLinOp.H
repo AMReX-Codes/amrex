@@ -20,7 +20,7 @@ struct LPInfo
     bool has_metric_term = true;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
-    LPInfo& setConsolidation (bool x) { do_agglomeration = x; return *this; }
+    LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
