@@ -701,6 +701,10 @@ public:
                         const Vector<std::string>& real_comp_names = Vector<std::string>(),
                         const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
 
+    void WritePlotFilePre ();
+
+    void WritePlotFilePost ();
+
     void WriteAsciiFile (const std::string& file);
 
     void WriteCoarsenedAsciiFile (const std::string& filename);
