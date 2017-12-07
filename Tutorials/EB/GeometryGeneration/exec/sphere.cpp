@@ -14,6 +14,7 @@
 #include "AMReX_VoFIterator.H"
 #include "AMReX_SphereIF.H"
 #include "CommonCode.H"
+#include "DebugDump.H"
 #include "WriteEBPlotFile.H"
 #include "AMReX_RealVect.H"
 
@@ -66,7 +67,7 @@ namespace amrex
     setDataToSomething(data, eblg);
     
     std::string filename = string("spheredata.") + convertInt(SpaceDim) + "d.plt";
-    //WriteSingleLevelEBPlotFile(filename, data, eblg);
+    WriteSingleLevelEBPlotFile(filename, data, eblg, Vector<string>());
 
   }
 }
