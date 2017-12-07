@@ -103,7 +103,7 @@ protected:
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                   const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
 
-    virtual void restriction (MultiFab& crse, const MultiFab& fine) const;
+    virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const;
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         const MLMGBndry* bndry=nullptr) const final;

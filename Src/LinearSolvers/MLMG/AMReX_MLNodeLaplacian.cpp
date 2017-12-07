@@ -153,37 +153,29 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
         {
             const MultiFab& fine = *m_sigma[amrlev][mglev-1][idim];
             MultiFab& crse = *m_sigma[amrlev][mglev][idim];
-            if (amrex::isMFIterSafe(crse, fine))
-            {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-                for (MFIter mfi(crse, true); mfi.isValid(); ++mfi)
-                {
-                    const Box& bx = mfi.tilebox();
-                    amrex_mlndlap_avgdown_coeff(BL_TO_FORTRAN_BOX(bx),
-                                                BL_TO_FORTRAN_ANYD(crse[mfi]),
-                                                BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                                &idim);
-                }
+            bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
+            MultiFab cfine;
+            if (need_parallel_copy) {
+                const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+                cfine.define(ba, fine.DistributionMap(), 1, 0);
             }
-            else
-            {
-                BoxArray ba = fine.boxArray();
-                ba.coarsen(2);
-                MultiFab tmp(ba, fine.DistributionMap(), 1, 0);
+
+            MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-                for (MFIter mfi(tmp, true); mfi.isValid(); ++mfi)
-                {
-                    const Box& bx = mfi.tilebox();
-                    amrex_mlndlap_avgdown_coeff(BL_TO_FORTRAN_BOX(bx),
-                                                BL_TO_FORTRAN_ANYD(tmp[mfi]),
-                                                BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                                &idim);
-                }
-                crse.ParallelCopy(tmp);
+            for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                amrex_mlndlap_avgdown_coeff(BL_TO_FORTRAN_BOX(bx),
+                                            BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                            BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                            &idim);
+            }
+
+            if (need_parallel_copy) {
+                crse.ParallelCopy(cfine);
             }
         }
     }
@@ -220,9 +212,37 @@ MLNodeLaplacian::prepareForSolve ()
 }
 
 void
-MLNodeLaplacian::restriction (MultiFab& crse, const MultiFab& fine) const
+MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
-    amrex::Abort("MLNodeLinOp::restriction not implemented");
+    applyBC(amrlev, cmglev-1, fine);
+
+    const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][cmglev].Domain());
+
+    bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
+    MultiFab cfine;
+    if (need_parallel_copy) {
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        cfine.define(ba, fine.DistributionMap(), 1, 0);
+    }
+
+    MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*pcrse, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
+                                  BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                  BL_TO_FORTRAN_BOX(nd_domain),
+                                  m_lobc.data(), m_hibc.data());
+    }
+
+    if (need_parallel_copy) {
+        crse.ParallelCopy(cfine);
+    }
 }
 
 void

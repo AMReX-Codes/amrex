@@ -53,6 +53,12 @@ extern "C" {
                                const amrex_real* dxinv);
                                
 
+    void amrex_mlndlap_restriction (const int* lo, const int* hi,
+                                    amrex_real* crse, const int* clo, const int* chi,
+                                    const amrex_real* fine, const int* flo, const int* fhi,
+                                    const int* dlo, const int* dhi,
+                                    const void* bclo, const void* bchi);
+
 #ifdef __cplusplus
 }
 #endif
