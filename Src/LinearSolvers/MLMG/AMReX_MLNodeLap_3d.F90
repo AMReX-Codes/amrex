@@ -6,7 +6,7 @@ module amrex_mlnodelap_3d_module
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
        amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, &
-       amrex_mlndlap_restriction
+       amrex_mlndlap_restriction, amrex_mlndlap_interpolation
 
 contains
 
@@ -79,5 +79,16 @@ contains
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
   end subroutine amrex_mlndlap_restriction
+
+
+  subroutine amrex_mlndlap_interpolation (clo, chi, flo, fhi, fine, fflo, ffhi, crse, cflo, cfhi, &
+       sx, sxlo, sxhi, sy, sylo, syhi) bind(c,name='amrex_mlndlap_interpolation')
+    integer, dimension(2), intent(in) :: clo,chi,flo,fhi,fflo,ffhi,cflo,cfhi,sxlo,sxhi,sylo,syhi
+    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
+    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
+    real(amrex_real), intent(in   ) :: sx  (sxlo(1):sxhi(1),sxlo(2):sxhi(2))
+    real(amrex_real), intent(in   ) :: sy  (sylo(1):syhi(1),sylo(2):syhi(2))
+
+  end subroutine amrex_mlndlap_interpolation
 
 end module amrex_mlnodelap_3d_module

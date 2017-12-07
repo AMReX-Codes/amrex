@@ -8,7 +8,7 @@ module amrex_mlnodelap_2d_module
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
        amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, &
-       amrex_mlndlap_restriction
+       amrex_mlndlap_restriction, amrex_mlndlap_interpolation
 
 contains
 
@@ -336,5 +336,60 @@ contains
        crse(lo(1):hi(1),hi(2)) = 0.d0
     end if
   end subroutine amrex_mlndlap_restriction
+
+
+  subroutine amrex_mlndlap_interpolation (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
+       sigx, sxlo, sxhi, sigy, sylo, syhi) bind(c,name='amrex_mlndlap_interpolation')
+    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,sxlo,sxhi,sylo,syhi
+    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
+    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
+    real(amrex_real), intent(in   ) :: sigx(sxlo(1):sxhi(1),sxlo(2):sxhi(2))
+    real(amrex_real), intent(in   ) :: sigy(sylo(1):syhi(1),sylo(2):syhi(2))
+
+    integer :: flo(2), fhi(2), i,j
+    logical :: interpx
+    real(amrex_real) :: wxm, wxp, wym, wyp
+
+    flo = 2*clo
+    fhi = 2*chi
+
+    do    j = clo(2), chi(2)
+       do i = clo(1), chi(1)
+          fine(2*i,2*j) = crse(i,j)
+       end do
+    end do
+
+    interpx = .false.
+    do j = flo(2), fhi(2)
+       interpx = .not.interpx
+       if (interpx) then
+          ! interp in x-direction
+          do i = flo(1)+1, fhi(1), 2
+             wxm = sigx(i-1,j-1) + sigx(i-1,j)
+             wxp = sigx(i  ,j-1) + sigx(i  ,j)
+             fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp)
+          end do
+       else
+          ! interp in y-direction
+          do i = flo(1), fhi(1), 2
+             wym = sigy(i-1,j-1) + sigy(i,j-1)
+             wyp = sigy(i-1,j  ) + sigy(i,j  )
+             fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp)
+          end do
+       end if
+    end do
+
+    do    j = flo(2)+1, fhi(2), 2
+       do i = flo(1)+1, fhi(1), 2
+          wxm = sigx(i-1,j-1) + sigx(i-1,j  )
+          wxp = sigx(i  ,j-1) + sigx(i  ,j  )
+          wym = sigy(i-1,j-1) + sigy(i  ,j-1)
+          wyp = sigy(i-1,j  ) + sigy(i  ,j  )
+          fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j) + wym*fine(i,j-1) + wyp*fine(i,j+1)) &
+               / (wxm+wxp+wym+wyp)
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_interpolation
 
 end module amrex_mlnodelap_2d_module
