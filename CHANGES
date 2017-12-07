@@ -1,5 +1,13 @@
 # changes since the last release
 
+  -- New linear solver MLMG at Src/LinearSolvers/MLMG/.  Currently it
+     supports cell-centered single level and multi-level composite
+     solve.  Fortran interface is also available at
+     Src/F_Interfaces/LinearSolvers/.  See Tutorials/LinearSolvers for
+     tutorials.
+
+# 17.12
+
   -- Ported more features (including dynamic scheduling and explicit
      tile size) of MFIter from C++ to Fortran.
 
