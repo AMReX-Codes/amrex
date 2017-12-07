@@ -21,6 +21,17 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const LPInfo& a_info)
 {
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
+    m_owner_mask.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
+        m_owner_mask[amrlev].resize(m_num_mg_levels[amrlev]);
+        // Currently only the bottom solver needs it
+        {
+            const int mglev = m_num_mg_levels[amrlev] - 1;
+            MultiFab foo(amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
+                         m_dmap[amrlev][mglev], 1, 0, MFInfo().SetAlloc(false));
+            m_owner_mask[amrlev][mglev] = foo.OwnerMask(m_geom[amrlev][mglev].periodicity());
+        }
+    }
 }
 
 void

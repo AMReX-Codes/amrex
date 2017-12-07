@@ -186,6 +186,8 @@ protected:
     virtual Real Anorm (int amrlev, int mglev) const = 0;
     virtual Real getBScalar () const = 0;
 
+    virtual iMultiFab const* getOwnerMask (int amrlev, int mglev) const { return nullptr; }
+
 private:
 
     void defineGrids (const Vector<Geometry>& a_geom,
