@@ -59,6 +59,18 @@ extern "C" {
                                     const int* dlo, const int* dhi,
                                     const void* bclo, const void* bchi);
 
+    void amrex_mlndlap_interpolation (const int* clo, const int* chi,
+                                      amrex_real* fine, const int* fflo, const int* ffhi,
+                                      const amrex_real* crse, const int* cflo, const int* cfhi,
+                                      const amrex_real* sx, const int* sxlo, const int* sxhi
+#if (AMREX_SPACEDIM >= 2)
+                                      , const amrex_real* sy, const int* sylo, const int* syhi
+#if (AMREX_SPACEDIM == 3)
+                                      , const amrex_real* sz, const int* szlo, const int* szhi
+#endif
+#endif
+        );
+
 #ifdef __cplusplus
 }
 #endif

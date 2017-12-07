@@ -248,7 +248,41 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 void
 MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
 {
-    amrex::Abort("MLNodeLaplacian:interpolation: todo");
+    const auto& sigma = m_sigma[amrlev][fmglev];
+
+    bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
+    MultiFab cfine;
+    const MultiFab* cmf = &crse;
+    if (need_parallel_copy) {
+        const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
+        cfine.define(ba, fine.DistributionMap(), 1, 0);
+        cfine.ParallelCopy(crse);
+        cmf = &cfine;
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox tmpfab;
+        for (MFIter mfi(fine, true); mfi.isValid(); ++mfi)
+        {
+            const Box& fbx = mfi.tilebox();
+            const Box& cbx = amrex::coarsen(fbx,2);
+            const Box& tmpbx = amrex::refine(cbx,2);
+            tmpfab.resize(tmpbx);
+            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                         const FArrayBox& syfab = (*sigma[1])[mfi];,
+                         const FArrayBox& szfab = (*sigma[2])[mfi];);
+            amrex_mlndlap_interpolation(BL_TO_FORTRAN_BOX(cbx),
+                                        BL_TO_FORTRAN_ANYD(tmpfab),
+                                        BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                     BL_TO_FORTRAN_ANYD(syfab),
+                                                     BL_TO_FORTRAN_ANYD(szfab)));
+            fine[mfi].plus(tmpfab,fbx,fbx,0,0,1);
+        }
+    }
 }
 
 void
