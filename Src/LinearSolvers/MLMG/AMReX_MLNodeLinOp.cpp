@@ -1,6 +1,10 @@
 
 #include <AMReX_MLNodeLinOp.H>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace amrex {
 
 MLNodeLinOp::MLNodeLinOp ()
@@ -35,7 +39,7 @@ void
 MLNodeLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                     const MLMGBndry*) const
 {
-    in.FillBoundary(m_geom[amrlev][mglev].periodicity());
+    applyBC(amrlev, mglev, in);
     Fapply(amrlev, mglev, out, in);
 }
 
@@ -44,7 +48,7 @@ MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                      bool skip_fillboundary) const
 {
     if (skip_fillboundary) {
-        sol.FillBoundary(m_geom[amrlev][mglev].periodicity());
+        applyBC(amrlev, mglev, sol);
     }
     Fsmooth(amrlev, mglev, sol, rhs);
 }

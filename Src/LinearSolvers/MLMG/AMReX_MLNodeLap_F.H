@@ -21,6 +21,10 @@ extern "C" {
                              const amrex_real* dxinv, const int* ndlo, const int* ndhi,
                              const void* bclo, const void* bchi);
 
+    void amrex_mlndlap_applybc (amrex_real* phi, const int* hlo, const int* hhi,
+                                const int* dlo, const int* dhi,
+                                const void* bclo, const void* bchi);
+
     void amrex_mlndlap_adotx (const int* lo, const int* hi,
                               amrex_real* y, const int* ylo, const int* yhi,
                               const amrex_real* x, const int* xlo, const int* xhi,

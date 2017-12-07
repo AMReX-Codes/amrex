@@ -220,6 +220,28 @@ MLNodeLaplacian::prepareForSolve ()
 }
 
 void
+MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi) const
+{
+    const Geometry& geom = m_geom[amrlev][mglev];
+    const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
+
+    phi.FillBoundary(geom.periodicity());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(phi); mfi.isValid(); ++mfi)
+    {
+        if (!nd_domain.contains(mfi.fabbox()))
+        {
+            amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                  BL_TO_FORTRAN_BOX(nd_domain),
+                                  m_lobc.data(), m_hibc.data());
+        }
+    }
+}
+
+void
 MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
     const auto& sigma = m_sigma[amrlev][mglev];

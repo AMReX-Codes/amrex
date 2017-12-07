@@ -5,7 +5,7 @@ module amrex_mlnodelap_3d_module
 
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
-       amrex_mlndlap_adotx, amrex_mlndlap_jacobi
+       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi
 
 contains
 
@@ -33,6 +33,14 @@ contains
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
   end subroutine amrex_mlndlap_divu
+
+
+  subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_applybc')
+    integer, dimension(2) :: hlo, hhi, dlo, dhi, bclo, bchi
+    real(amrex_real), intent(inout) :: phi(hlo(1):hhi(1),hlo(2):hhi(2))
+    
+  end subroutine amrex_mlndlap_applybc
 
 
   subroutine amrex_mlndlap_adotx (lo, hi, y, ylo, yhi, x, xlo, xhi, &
