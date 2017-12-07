@@ -421,7 +421,10 @@ MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
 {
     const int ncomp = 1;
     const int nghost = 0;
-    Real result = MultiFab::Dot(r,0,z,0,ncomp,nghost,true);
+    const iMultiFab* mask = Lp.getOwnerMask(amrlev,mglev);
+    Real result = mask ?
+        MultiFab::Dot(*mask,r,0,z,0,ncomp,nghost,true) :
+        MultiFab::Dot(      r,0,z,0,ncomp,nghost,true);
     if (!local) {
         ParallelAllReduce::Sum(result, Lp.BottomCommunicator());
     }
