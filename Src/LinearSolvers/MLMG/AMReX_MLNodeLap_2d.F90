@@ -172,7 +172,7 @@ contains
     end if
 
     if (bchi(2) .eq. amrex_lo_dirichlet .and. hhi(2) .gt. dhi(2)) then
-       phi(ilo:ihi,dhi(2)+1) = phi(ilo:ihi,dhi(2)-1) 
+       phi(ilo:ihi,dhi(2):dhi(2)+1) = 0.d0
     end if
 
     ! neumann
