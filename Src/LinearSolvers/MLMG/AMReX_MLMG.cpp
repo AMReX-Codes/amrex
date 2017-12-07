@@ -2,7 +2,6 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_MG_F.H>
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_MLMG_F.H>
@@ -359,7 +358,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         }
     }
     BL_PROFILE_VAR_STOP(blp_bottom);
-    
+
     BL_PROFILE_VAR_START(blp_up);
     for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
@@ -516,22 +515,7 @@ MLMG::addInterpCorrection (int alev, int mglev)
         cmf = &cfine;
     }
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(*cmf,true); mfi.isValid(); ++mfi)
-    {
-        const Box&         bx = mfi.tilebox();
-        const int          nc = fine_cor.nComp();
-        const FArrayBox& cfab =   (*cmf)[mfi];
-        FArrayBox&       ffab = fine_cor[mfi];
-
-        FORT_INTERP(ffab.dataPtr(),
-                    ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
-                    cfab.dataPtr(),
-                    ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
-                    bx.loVect(), bx.hiVect(), &nc);
-    }    
+    linop.interpolation(alev, mglev, fine_cor, *cmf);
 }
 
 // Compute rescor = res - L(cor)

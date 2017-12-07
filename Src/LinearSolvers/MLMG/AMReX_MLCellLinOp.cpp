@@ -1,6 +1,7 @@
 
 #include <AMReX_MLCellLinOp.H>
 #include <AMReX_MLLinOp_F.H>
+#include <AMReX_MG_F.H>
 #include <AMReX_MultiFabUtil.H>
 
 namespace amrex {
@@ -229,6 +230,27 @@ void
 MLCellLinOp::restriction (int, int, MultiFab& crse, MultiFab& fine) const
 {
     amrex::average_down(fine, crse, 0, 1, 2);
+}
+
+void
+MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
+    {
+        const Box&         bx = mfi.tilebox();
+        const int          nc = 1;
+        const FArrayBox& cfab = crse[mfi];
+        FArrayBox&       ffab = fine[mfi];
+
+        FORT_INTERP(ffab.dataPtr(),
+                    ARLIM(ffab.loVect()), ARLIM(ffab.hiVect()),
+                    cfab.dataPtr(),
+                    ARLIM(cfab.loVect()), ARLIM(cfab.hiVect()),
+                    bx.loVect(), bx.hiVect(), &nc);
+    }    
 }
 
 void
