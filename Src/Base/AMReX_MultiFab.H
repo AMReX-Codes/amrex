@@ -401,6 +401,11 @@ public:
     static Real Dot (const MultiFab& x, int xcomp,
 		     const MultiFab& y, int ycomp,
 		     int num_comp, int nghost, bool local = false);
+
+    static Real Dot (const iMultiFab& mask,
+                     const MultiFab& x, int xcomp,
+		     const MultiFab& y, int ycomp,
+		     int num_comp, int nghost, bool local = false);
     /**
     * \brief Add src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
