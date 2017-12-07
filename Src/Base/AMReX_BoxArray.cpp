@@ -1429,14 +1429,32 @@ BoxArray
 convert (const BoxArray& ba, IndexType typ)
 {
     BoxArray ba2 = ba;
-    return ba2.convert(typ);
+    ba2.convert(typ);
+    return ba2;
 }
 
 BoxArray
 convert (const BoxArray& ba, const IntVect& typ)
 {
     BoxArray ba2 = ba;
-    return ba2.convert(IndexType(typ));
+    ba2.convert(IndexType(typ));
+    return ba2;
+}
+
+BoxArray
+coarsen (const BoxArray& ba, int ratio)
+{
+    BoxArray ba2 = ba;
+    ba2.coarsen(ratio);
+    return ba2;
+}
+
+BoxArray
+coarsen (const BoxArray& ba, const IntVect& ratio)
+{
+    BoxArray ba2 = ba;
+    ba2.coarsen(ratio);
+    return ba2;
 }
 
 BoxList
