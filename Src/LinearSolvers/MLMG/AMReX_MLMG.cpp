@@ -339,8 +339,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         computeResOfCorrection(amrlev, mglev);
 
         // res_crse = R(rescor_fine); this provides res/b to the level below
-        const int ratio = 2;
-        amrex::average_down(rescor[amrlev][mglev], res[amrlev][mglev+1], 0, 1, ratio);
+        linop.restriction(res[amrlev][mglev+1], rescor[amrlev][mglev]);
     }
     BL_PROFILE_VAR_STOP(blp_down);
 

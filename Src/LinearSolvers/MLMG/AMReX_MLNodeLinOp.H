@@ -39,10 +39,7 @@ protected:
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) final;
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final {
-        amrex::Abort("TODO: correctionResidual");
-    }
-
+                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final;
     virtual void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const final {
         amrex::Abort("TODO: reflux");
     }
