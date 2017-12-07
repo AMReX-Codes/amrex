@@ -805,14 +805,11 @@ Amr::writePlotFile ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
+      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       if (verbose > 0) {
           amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  precreating directories for " << pltfileTemp << "\n";
       }
-      amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
-      for(int i(0); i <= finest_level; ++i) {
-        amr_level[i]->CreateLevelDirectory(pltfileTemp);
-      }
+      amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
     } else {
       if (verbose > 0) {
           amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  creating directory:  " << pltfileTemp << "\n";
@@ -844,7 +841,15 @@ Amr::writePlotFile ()
     }
 
     for (int k(0); k <= finest_level; ++k) {
+        amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
+    }
+
+    for (int k(0); k <= finest_level; ++k) {
         amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
+    }
+
+    for (int k(0); k <= finest_level; ++k) {
+        amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {

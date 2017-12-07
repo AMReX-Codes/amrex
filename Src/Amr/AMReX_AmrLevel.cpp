@@ -292,6 +292,22 @@ AmrLevel::writePlotFile (const std::string& dir,
 
 
 void
+AmrLevel::writePlotFilePre (const std::string& dir,
+                            std::ostream&      os)
+{
+    amrex::Print() << "NCNCNCNC:  _in AmrLevel::writePlotFilePre:  dir = " << dir << std::endl;
+}
+
+
+void
+AmrLevel::writePlotFilePost (const std::string& dir,
+                             std::ostream&      os)
+{
+    amrex::Print() << "NCNCNCNC:  _in AmrLevel::writePlotFilePost:  dir = " << dir << std::endl;
+}
+
+
+void
 AmrLevel::restart (Amr&          papa,
                    std::istream& is,
 		   bool          bReadSpecial)

@@ -80,6 +80,15 @@ public:
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
                                 VisMF::How         how = VisMF::NFiles);
+
+    //! Do pre-plotfile work to avoid synchronizations while writing the amr hierarchy
+    virtual void writePlotFilePre (const std::string& dir,
+                                   std::ostream&      os);
+
+    //! Do post-plotfile work to avoid synchronizations while writing the amr hierarchy
+    virtual void writePlotFilePost (const std::string& dir,
+                                    std::ostream&      os);
+
     /**
     * \brief Write small plot file stuff to specified directory.  
     * Unlike writePlotFile, this is NOT a pure virtual function 
