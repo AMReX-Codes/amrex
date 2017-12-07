@@ -440,6 +440,31 @@ contains
     end do
   end function fort_fab_dot
 
+  ! dot_product
+  function fort_fab_dot_mask(lo, hi, x, xlo, xhi, y, ylo, yhi, yblo, m, mlo, mhi, ncomp) result(dp) &
+       bind(c,name='fort_fab_dot_mask')
+    integer, intent(in) :: lo(3), hi(3), xlo(3), xhi(3), ylo(3), yhi(3), yblo(3), mlo(3), mhi(3), ncomp
+    real(amrex_real), intent(in) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3),ncomp)
+    real(amrex_real), intent(in) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3),ncomp)
+    integer         , intent(in) :: m(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+    real(amrex_real) :: dp
+
+    integer :: i,j,k,n, off(3)
+
+    dp = 0.0_amrex_real
+
+    off = yblo - lo
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                dp = dp + x(i,j,k,n)*y(i+off(1),j+off(2),k+off(3),n)*m(i,j,k)
+             end do
+          end do
+       end do
+    end do
+  end function fort_fab_dot_mask
 
   ! dst = src
   subroutine fort_ifab_copy(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, ncomp) &
