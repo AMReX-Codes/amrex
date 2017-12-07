@@ -105,6 +105,8 @@ protected:
 
     virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const;
 
+    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const;
+
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         const MLMGBndry* bndry=nullptr) const final;
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,

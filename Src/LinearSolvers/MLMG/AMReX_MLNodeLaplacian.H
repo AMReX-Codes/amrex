@@ -39,6 +39,7 @@ public :
 protected:
 
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
+    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return false; }

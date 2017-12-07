@@ -246,6 +246,12 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 }
 
 void
+MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
+{
+    amrex::Abort("MLNodeLaplacian:interpolation: todo");
+}
+
+void
 MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi) const
 {
     const Geometry& geom = m_geom[amrlev][mglev];
