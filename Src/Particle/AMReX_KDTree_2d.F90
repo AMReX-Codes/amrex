@@ -55,3 +55,29 @@ subroutine amrex_compute_best_partition(cost, clo, chi, &
   end if
   
 end subroutine amrex_compute_best_partition
+
+subroutine amrex_set_box_cost(cost, clo, chi, &
+                              lo, hi, box_cost) &
+
+  bind(c,name='amrex_set_box_cost')
+    
+  use iso_c_binding
+  use amrex_fort_module, only : amrex_real
+  
+  integer              :: clo(2)
+  integer              :: chi(2)    
+  real(amrex_real)     :: cost(clo(1):chi(1), clo(2):chi(2))
+  integer              :: lo(2)
+  integer              :: hi(2)
+  real(amrex_real)     :: box_cost
+  
+  integer i,j
+  box_cost = 0.d0
+
+  do j = lo(2), hi(2)
+     do i = lo(1), hi(1) 
+        box_cost = box_cost + cost(i,j)
+     end do
+  end do
+
+end subroutine amrex_set_box_cost
