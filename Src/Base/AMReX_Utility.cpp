@@ -1304,3 +1304,13 @@ void amrex::USleep(double sleepsec) {
   usleep(sleepsec * msps);
 }
 
+
+namespace {
+    static auto clock_time_begin = amrex::MaxResSteadyClock::now();
+}
+
+double amrex::second ()
+{
+    return std::chrono::duration_cast<std::chrono::duration<double> >
+        (amrex::MaxResSteadyClock::now() - clock_time_begin).count();
+}

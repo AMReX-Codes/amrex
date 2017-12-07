@@ -23,11 +23,13 @@ class MFGhostIter;
 class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
+class AmrTask;
 
 class FabArrayBase
 {
     friend class MFIter;
     friend class MFGhostIter;
+    friend class AmrTask;
 
 public:
 

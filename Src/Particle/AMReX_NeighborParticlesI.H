@@ -120,12 +120,13 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
             const Box& box = mfi.growntilebox();
             for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
                 const int grid = (*mask_ptr)[mfi](iv, 0);
-                const int tile = (*mask_ptr)[mfi](iv, 1);
-                const int proc = this->ParticleDistributionMap(lev)[grid];
-                NeighborCommTag comm_tag(proc, grid, tile);
-                local_neighbors.push_back(comm_tag);
-                if (proc != ParallelDescriptor::MyProc() and grid >= 0) {
-                    neighbor_procs.push_back(proc);
+                if (grid >= 0) {
+                   const int tile = (*mask_ptr)[mfi](iv, 1);
+                   const int proc = this->ParticleDistributionMap(lev)[grid];
+                   NeighborCommTag comm_tag(proc, grid, tile);
+                   local_neighbors.push_back(comm_tag);
+                   if (proc != ParallelDescriptor::MyProc())  
+                       neighbor_procs.push_back(proc);
                 }
             }
         }
@@ -148,7 +149,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     const int MyProc = ParallelDescriptor::MyProc();
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
     const Periodicity& periodicity = this->Geom(lev).periodicity();
-    const RealBox& prob_domain = this->Geom(lev).ProbDomain();
     const Box& domain = this->Geom(lev).Domain();
     const IntVect& lo = domain.smallEnd();
     const IntVect& hi = domain.bigEnd();
@@ -317,16 +317,6 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
         }
     }
 
-    // remove any empty map entries from the remote_map
-    for (auto pmap_it = remote_map.begin(); pmap_it != remote_map.end(); /* no ++ */) {
-        if (pmap_it->second.empty()) {
-            remote_map.erase(pmap_it++);
-        }
-        else {
-            ++pmap_it;
-        }
-    }
-
     // now for the local neighbors, allocate buffers and cache
     for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
         const int grid = mfi.index();
@@ -362,12 +352,14 @@ NeighborParticleContainer<NStructReal, NStructInt, NNeighborReal>
     }
     
     for (const auto& kv: remote_map) {
+        if (kv.first.proc_id == MyProc) continue;
         Vector<char>& buffer = send_data[kv.first.proc_id];
         buffer.resize(sizeof(int));
         std::memcpy(&buffer[0], &tile_counts[kv.first.proc_id], sizeof(int));
     }
     
     for (auto& kv : remote_map) {
+        if (kv.first.proc_id == MyProc) continue;
         int np = kv.second.size();
         int data_size = np * cdata_size;
         Vector<char>& buffer = send_data[kv.first.proc_id];
@@ -506,7 +498,9 @@ getRcvCountsMPI() {
     // each proc figures out how many bytes it will send, and how
     // many it will receive
     Vector<long> snds(NProcs, 0);
-    rcvs.resize(NProcs, 0);
+    rcvs.resize(NProcs);
+    for (int i = 0; i < NProcs; ++i)
+        rcvs[i] = 0;
 
     num_snds = 0;
     for (const auto& kv : send_data) {
@@ -521,7 +515,7 @@ getRcvCountsMPI() {
     Vector<MPI_Request> rreqs(num_rcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
-    
+
     // Post receives
     for (int i = 0; i < num_rcvs; ++i) {
         const int Who = neighbor_procs[i];
@@ -583,7 +577,7 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
     
     // Allocate data for rcvs as one big chunk.
     Vector<char> recvdata(TotRcvBytes);
-    
+
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];

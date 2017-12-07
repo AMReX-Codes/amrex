@@ -23,7 +23,8 @@ namespace amrex
   void
   AmrLevelAdv::
   fillGhostCellsRK3 (MultiFab & a_phi, //phi on the this level
-                     const int& a_stage) //rk4 stage to fill ghost for
+                     const int& a_stage,
+                     const int& a_iteration) //rk4 stage to fill ghost for
   {
     if(level > 0)
     {
@@ -63,17 +64,20 @@ namespace amrex
       MultiFab & k2  = getLevel(level-1).m_k2;
       BoxArray bak1 = k1.boxArray();
       BoxArray bak2 = k2.boxArray();
+      IntVect refrat  = parent->refRatio(level-1);
       for (MFIter mfi(phiC); mfi.isValid(); ++mfi)
       {
         const Box& box     = mfi.validbox();
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
+        int nref = refrat[0];
 
-        timeinterpolaterk3(xi, ARLIM_3D(lo), ARLIM_3D(hi),
-                           BL_TO_FORTRAN_3D(  phiC[mfi]),
-                           BL_TO_FORTRAN_3D(  oldC[mfi]),
-                           BL_TO_FORTRAN_3D(    k1[mfi]),
-                           BL_TO_FORTRAN_3D(    k2[mfi]));
+        timeinterprk3_simplepoly(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+                          BL_TO_FORTRAN_3D(  phiC[mfi]),
+                          BL_TO_FORTRAN_3D(  oldC[mfi]),
+                          BL_TO_FORTRAN_3D(    k1[mfi]),
+                          BL_TO_FORTRAN_3D(    k2[mfi]),
+                          &tf, &tc_old, &dt_c, &dt_f, &a_iteration, &nref);
       }
       //debug turn off time interp
       //phiC.copy(oldC);
@@ -100,7 +104,6 @@ namespace amrex
       //I have no idea why this needs to be here for periodic
       PhysBCFunct cphysbc(geomC,bcs,BndryFunctBase());
       PhysBCFunct fphysbc(geom ,bcs,BndryFunctBase());
-      IntVect refrat  = parent->refRatio(level-1);
       Interpolater* mapper = &quartic_interp;
       FillPatchTwoLevels(a_phi, tf, 
                          coarmf, timevec,
@@ -118,8 +121,9 @@ namespace amrex
   /////
   void
   AmrLevelAdv::
-  fillGhostCellsRK4 (MultiFab & a_phi, //phi on the this level
-                     const int& a_stage) //rk4 stage to fill ghost for
+  fillGhostCellsRK4 (MultiFab  & a_phi, //phi on the this level
+                     const int & a_stage, //rk4 stage to fill ghost for
+                     const int & a_iteration)
   {
     if(level > 0)
     {
@@ -137,23 +141,6 @@ namespace amrex
       Real tc_old  = getLevel(level-1).state[Phi_Type].prevTime();
       BL_ASSERT(tf >= tc_old);
       BL_ASSERT(tf <  tc_new);
-      Real xi;//coefficient from mccorquodale
-      if(a_stage == 0)
-      {
-        xi = (tf - tc_old)/dt_c;
-      }
-      else if(a_stage == 1)
-      {
-        xi = (tf + 0.5*dt_f - tc_old)/dt_c;
-      }
-      else if(a_stage == 2)
-      {
-        xi = (tf + 0.5*dt_f - tc_old)/dt_c; //why, yes, this *is* the same as stage 1
-      }
-      else
-      {
-        xi = (tf + dt_f - tc_old)/dt_c;
-      }
 
       MultiFab & k1  = getLevel(level-1).m_k1;
       MultiFab & k2  = getLevel(level-1).m_k2;
@@ -163,19 +150,22 @@ namespace amrex
       BoxArray bak2 = k2.boxArray();
       BoxArray bak3 = k3.boxArray();
       BoxArray bak4 = k4.boxArray();
+      IntVect refrat  = parent->refRatio(level-1);
       for (MFIter mfi(phiC); mfi.isValid(); ++mfi)
       {
         const Box& box     = mfi.validbox();
         const int* lo      = box.loVect();
         const int* hi      = box.hiVect();
-
-        timeinterpolaterk4(xi, ARLIM_3D(lo), ARLIM_3D(hi),
-                           BL_TO_FORTRAN_3D(  phiC[mfi]),
-                           BL_TO_FORTRAN_3D(  oldC[mfi]),
-                           BL_TO_FORTRAN_3D(    k1[mfi]),
-                           BL_TO_FORTRAN_3D(    k2[mfi]),
-                           BL_TO_FORTRAN_3D(    k3[mfi]),
-                           BL_TO_FORTRAN_3D(    k4[mfi]));
+        int nref = refrat[0];
+        timeinterprk4_jbb(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+                          BL_TO_FORTRAN_3D(  phiC[mfi]),
+                          BL_TO_FORTRAN_3D(  oldC[mfi]),
+                          BL_TO_FORTRAN_3D(    k1[mfi]),
+                          BL_TO_FORTRAN_3D(    k2[mfi]),
+                          BL_TO_FORTRAN_3D(    k3[mfi]),
+                          BL_TO_FORTRAN_3D(    k4[mfi]),
+                          &tf, &tc_old, &dt_c, &dt_f, 
+                          &a_iteration, &nref);
       }
       //debug turn off time interp
       //phiC.copy(oldC);
@@ -202,7 +192,6 @@ namespace amrex
       //I have no idea why this needs to be here for periodic
       PhysBCFunct cphysbc(geomC,bcs,BndryFunctBase());
       PhysBCFunct fphysbc(geom ,bcs,BndryFunctBase());
-      IntVect refrat  = parent->refRatio(level-1);
       Interpolater* mapper = &quartic_interp;
       FillPatchTwoLevels(a_phi, tf, 
                          coarmf, timevec,
@@ -385,7 +374,7 @@ namespace amrex
   initSwitches()
   {
     string algorithm("rk3");
-    ParmParse pp;
+    ParmParse pp("adv");
     pp.query("algorithm", algorithm);
     static bool printedstuff = false;
     bool use_limiting = true;
@@ -637,7 +626,7 @@ namespace amrex
     // RK3 stage 1
     //FillPatch(*this, Sborder, NUM_GROW, time, Phi_Type, 0, NUM_STATE);
     u1.copy(S_old);
-    fillGhostCellsRK3(u1, 0);
+    fillGhostCellsRK3(u1, 0, iteration);
     //the dt/6 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u1, k1, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
@@ -653,7 +642,7 @@ namespace amrex
     MultiFab::Saxpy(u1, dt, k1, 0, 0, NUM_STATE, 0);
     k1.mult(dt);
 
-    fillGhostCellsRK3(u1, 1);
+    fillGhostCellsRK3(u1, 1, iteration);
     compute_dPhiDt_MOL4thOrd(u1, k2, time, dt/6., fr_as_crse, fr_as_fine, iteration);
     //           u2 = 3/4 U^n + 1/4 U^1 + 1/4 dPhiDt^1
     //this makes u2 = 3/4 u^n + 1/4 u^1
@@ -662,7 +651,7 @@ namespace amrex
     MultiFab::Saxpy(u2, 0.25*dt, k2, 0, 0, NUM_STATE, 0);
     k2.mult(dt);
 
-    fillGhostCellsRK3(u2, 2);
+    fillGhostCellsRK3(u2, 2, iteration);
     //the 2*dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u2, k3, time, 2.*dt/3., fr_as_crse, fr_as_fine, iteration);
 
@@ -700,6 +689,13 @@ namespace amrex
     bool truncationErrorTest = false;
     ParmParse pp;
     pp.query("truncation_error_only", truncationErrorTest);
+    int truncationStage = 1;
+    pp.query("truncation_error_stage", truncationStage);
+    if(truncationErrorTest &&((truncationStage < 1) || truncationStage > 4))
+    {
+      amrex::Error("bogus truncation error stage");
+    }
+
     if(truncationErrorTest && (iteration > 1))
     {
       return dt;
@@ -743,11 +739,11 @@ namespace amrex
     //phi^1 = phi^n + dt*F(phi^n)
     // RK3 stage 1
     u1.copy(S_old);
-    fillGhostCellsRK4(u1, 0);
+    fillGhostCellsRK4(u1, 0, iteration);
     //the dt/6 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u1, k1, time, dt/6., fr_as_crse, fr_as_fine, iteration);
 
-    if(truncationErrorTest)
+    if(truncationErrorTest && (truncationStage==1))
     {
       S_new.copy(k1);
       //cannot just return here because we still need the k coefs for finer levels
@@ -758,25 +754,49 @@ namespace amrex
     // this sets U1 = U^n + dt*dPhiDt^n 
     k1.mult(dt);
     MultiFab::LinComb(u1, 1., S_old, 0, 0.5, k1, 0, 0, NUM_STATE, 0);
-    fillGhostCellsRK4(u1, 1);
+    fillGhostCellsRK4(u1, 1, iteration);
 
     //phi^2 = phi^n + dt/2*dPhiDt(phi^1)
     //the dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u1, k2, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+
+    if(truncationErrorTest && (truncationStage==2))
+    {
+      S_new.copy(k2);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
+
     k2.mult(dt);
     MultiFab::LinComb(u2, 1., S_old, 0, 0.5, k2, 0, 0, NUM_STATE, 0);
-    fillGhostCellsRK4(u2, 2);
+    fillGhostCellsRK4(u2, 2, iteration);
 
     //phi^3 = phi^n + dt*dPhiDt(phi^2)
     //the dt/3 is for the flux register.
     compute_dPhiDt_MOL4thOrd(u2, k3, time, dt/3., fr_as_crse, fr_as_fine, iteration);
+
+    if(truncationErrorTest && (truncationStage==3))
+    {
+      S_new.copy(k3);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
+
     k3.mult(dt);
     MultiFab::LinComb(u3, 1., S_old, 0, 1.0, k3, 0, 0, NUM_STATE, 0);
-    fillGhostCellsRK4(u3, 3);
+    fillGhostCellsRK4(u3, 3, iteration);
 
     //phi^4 = phi^n + dt*F(phi^3)
     //the dt/6. is for the flux register.
     compute_dPhiDt_MOL4thOrd(u3, k4, time, dt/6., fr_as_crse, fr_as_fine, iteration);
+
+
+    if(truncationErrorTest && (truncationStage==4))
+    {
+      S_new.copy(k3);
+      //cannot just return here because we still need the k coefs for finer levels
+      //return dt;
+    }
     k4.mult(dt);
 
     //phi^n+1  = 1/6(phi1 +  2 phi2  + 2phi3  + phi4)
