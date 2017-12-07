@@ -739,7 +739,91 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
                               vCallStatsAllOneProc, writeAvg, writeInclusive);
   }
 }
+// ----------------------------------------------------------------------
+void RegionsProfStats::CheckRegionsData()
+{
+  bool bIOP(ParallelDescriptor::IOProcessor());
+  int myProc(ParallelDescriptor::MyProc());
+  cout << myProc << ":  " << "---------------------- checking regions data." << endl;
+  SHOWVAL(dataNProcs);
+  SHOWVAL(dataBlocks.size());
+  SHOWVAL(maxRNumber);
+  cout << myProc << ":  " << "----" << endl;
 
+  Vector<Vector<Vector<TimeRange> > > checkRegionTimeRanges;  // [proc][rnum][range]
+  Vector<Vector<int>> regionTimeRangesCount;                  // [region][proc] = count
+  checkRegionTimeRanges.resize(dataNProcs);
+  regionTimeRangesCount.resize(maxRNumber+1);
+  for(int p(0); p < checkRegionTimeRanges.size(); ++p) {
+    checkRegionTimeRanges[p].resize(maxRNumber + 1);
+  }
+  for(int p(0); p < regionTimeRangesCount.size(); ++p) {
+    regionTimeRangesCount[p].resize(dataNProcs, 0);
+  }
+ 
+  for(int idb(0); idb < dataBlocks.size(); ++idb) {
+    DataBlock &dBlock = dataBlocks[idb];
+    if(verbose) {
+      cout << myProc << ":  " << "RegionsProfProc  " << dBlock.proc << "  nTraceStats  "
+           << dBlock.nTraceStats << " nRSS " << dBlock.nRSS << " fileName "
+           << dBlock.fileName << "  seekpos  "
+	   << dBlock.seekpos << endl;
+    }
+    ReadBlock(dBlock, true, false); // dont need to read the trace data
+
+    for(int i(0); i < dBlock.rStartStop.size(); ++i) {
+      BLProfiler::RStartStop &rss = dBlock.rStartStop[i];
+      if(rss.rssRNumber > (maxRNumber + 1))
+        if(bIOP)
+        {
+          cerr << "***RegionsProfStats::CheckRegionsData: region number is greater than max number: "
+               << rss.rssRNumber << " > " << maxRNumber + 1 << endl; 
+        }
+      if(rss.rssStart) {     // start region
+        regionTimeRangesCount[rss.rssRNumber][dBlock.proc]++;
+        checkRegionTimeRanges[dBlock.proc][rss.rssRNumber].push_back(TimeRange(rss.rssTime, -1.0));
+      } else {            // stop region
+        regionTimeRangesCount[rss.rssRNumber][dBlock.proc]++;
+        checkRegionTimeRanges[dBlock.proc][rss.rssRNumber].back().stopTime = rss.rssTime;
+      }
+    }
+    ClearBlock(dBlock);
+  }
+
+  cout << myProc << ":  " << "---------------------- checking regions consistency." << endl;
+ 
+  for (int r(0); r<regionTimeRangesCount.size(); ++r) {
+    if (verbose)
+    {
+      cout << "Region # " << r << " has " << regionTimeRangesCount[r][0] << " piece(s) of time data. " << endl;
+    }
+    for (int n(0); n<regionTimeRangesCount[r].size(); ++n) {
+      if (regionTimeRangesCount[r][0] != regionTimeRangesCount[r][n])
+      {
+        cerr << "***Region " << r << " was called a different number of times on processor " << n << " : "
+             << regionTimeRangesCount[r][0] << " != " << regionTimeRangesCount[r][n] << endl;
+      }
+    } 
+  }
+
+  cout << myProc << ":  " << "---------------------- checking time range consistency." << endl;
+
+  for (int n(0); n<checkRegionTimeRanges.size(); ++n) {
+    for (int r(0); r<checkRegionTimeRanges[n].size(); ++r) {
+      for (int t(0); t<checkRegionTimeRanges[n][r].size()-1; ++t) {
+        if ((verbose) && (n == 0))
+        {
+          cout << "RTR[" << n << "][" << r << "][" << t << "] = " << checkRegionTimeRanges[n][r][t] << endl;
+        }
+        if (checkRegionTimeRanges[n][r][t].startTime > checkRegionTimeRanges[n][r][t].stopTime)
+        {
+          cerr << "***Start time for RTR[" << n << "][" << r << "][" << t << "] is greater than stop time "
+               << checkRegionTimeRanges[n][r][t] << endl;
+        }
+      }
+    }
+  }
+}
 
 // ----------------------------------------------------------------------
 void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,

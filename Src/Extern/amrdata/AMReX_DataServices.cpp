@@ -1704,6 +1704,43 @@ void DataServices::CheckProfData()
         }
       }
     }
+
+    if(bRegionDataAvailable) {
+      if(bIOP) { cout << endl << "---------------- checking regions data." << endl; }
+
+      const Vector<string> &regionsHeaderFileNames = RegionsProfStats::GetHeaderFileNames();
+      cout << "# of RegionFiles: " << regionsHeaderFileNames.size() << endl;
+      RegionsProfStats regionsOutputStats;
+
+      string regPrefix_H("bl_call_stats_H");
+      std::string regFileName_H(fileName + '/' + regPrefix_H);
+      if((yyin = fopen(regFileName_H.c_str(), "r"))) {
+        yyparse(&regionsOutputStats);
+        fclose(yyin);
+      } 
+      else {
+        cerr << "DataServices::CheckProfData: Cannot open file  " << regPrefix_H << endl;
+      }
+
+      if(myProc < regionsHeaderFileNames.size()) {
+        for(int hfnI(0); hfnI < regionsHeaderFileNames.size(); ++hfnI) {
+          if(myProc == hfnI % nProcs) {
+            std::string regionsFileName_H_nnnn(fileName + '/' + regionsHeaderFileNames[hfnI]);
+            if( ! ( yyin = fopen(regionsFileName_H_nnnn.c_str(), "r"))) {
+              if(bIOP) {
+                cerr << "DataServices::CheckProfData:  Cannot open file:  " << regionsFileName_H_nnnn
+                     << "  continuing ...." << endl;
+                continue;
+              }
+            }
+            yyparse(&regionsOutputStats);
+            fclose(yyin);
+          }
+        }
+      }
+      cout << "Number of regions = " << regionsOutputStats.RegionNumbers().size() << endl;
+      regionsOutputStats.CheckRegionsData();
+    }
                    
     ParallelDescriptor::Barrier();
     if(bIOP) { cout << "---------------- finished checking profiling data." << endl << endl; }
