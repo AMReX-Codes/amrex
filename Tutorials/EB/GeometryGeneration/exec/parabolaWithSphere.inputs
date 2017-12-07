@@ -1,0 +1,12 @@
+# n_cell = 40 40 40 
+max_grid_size = 16
+# n_cell = 32 32 32
+n_cell = 64 64 64
+# n_cell = 128 128 128
+
+domain_length = 1.0 
+insideRegular = true 
+#some mysterious code needs these
+geometry.prob_lo = 0.0 0.0 0.0 
+geometry.prob_hi = 1.0 1.0 1.0 
+

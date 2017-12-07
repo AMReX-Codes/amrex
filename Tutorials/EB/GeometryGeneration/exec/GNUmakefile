@@ -28,6 +28,8 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 #
 _progs  += sphere
 _progs  += interiorBox
+_progs  += surfaceOfRevolution
+_progs  += parabolaWithSphere
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
