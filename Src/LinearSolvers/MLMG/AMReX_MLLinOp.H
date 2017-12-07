@@ -161,6 +161,8 @@ protected:
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 
+    virtual void restriction (MultiFab& crse, const MultiFab& fine) const = 0;
+    
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         const MLMGBndry* bndry=nullptr) const = 0;
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,

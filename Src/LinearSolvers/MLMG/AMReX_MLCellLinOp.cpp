@@ -1,6 +1,7 @@
 
 #include <AMReX_MLCellLinOp.H>
 #include <AMReX_MLLinOp_F.H>
+#include <AMReX_MultiFabUtil.H>
 
 namespace amrex {
 
@@ -222,6 +223,12 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
         m_bcondloc[amrlev][mglev]->setLOBndryConds(m_geom[amrlev][mglev], dx,
                                                    m_lobc, m_hibc, br_ref_ratio);
     }
+}
+
+void
+MLCellLinOp::restriction (MultiFab& crse, const MultiFab& fine) const
+{
+    amrex::average_down(fine, crse, 0, 1, 2);
 }
 
 void

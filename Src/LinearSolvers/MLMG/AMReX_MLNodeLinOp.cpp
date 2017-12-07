@@ -36,6 +36,16 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
 }
 
 void
+MLNodeLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                                 BCMode bc_mode, const MultiFab* crse_bcdata)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(crse_bcdata == nullptr, "correctionResidual not fully implemented");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amrlev == 0, "correctionResidual not fully implemented");
+    apply(amrlev, mglev, resid, x, BCMode::Homogeneous);
+    MultiFab::Xpay(resid, -1.0, b, 0, 0, 1, 0);
+}
+
+void
 MLNodeLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                     const MLMGBndry*) const
 {
@@ -47,7 +57,7 @@ void
 MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                      bool skip_fillboundary) const
 {
-    if (skip_fillboundary) {
+    if (!skip_fillboundary) {
         applyBC(amrlev, mglev, sol);
     }
     Fsmooth(amrlev, mglev, sol, rhs);

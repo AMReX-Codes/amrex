@@ -38,6 +38,8 @@ public :
 
 protected:
 
+    virtual void restriction (MultiFab& crse, const MultiFab& fine) const final;
+
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return false; }
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi) const final;

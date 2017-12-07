@@ -220,6 +220,12 @@ MLNodeLaplacian::prepareForSolve ()
 }
 
 void
+MLNodeLaplacian::restriction (MultiFab& crse, const MultiFab& fine) const
+{
+    amrex::Abort("MLNodeLinOp::restriction not implemented");
+}
+
+void
 MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi) const
 {
     const Geometry& geom = m_geom[amrlev][mglev];
