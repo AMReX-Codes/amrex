@@ -4,6 +4,11 @@ ifneq ($(firstword $(sort 2.7 $(my_python_version))), 2.7)
   $(error Python >= 2.7 required! Your version is $(my_python_version))
 endif
 
+ifneq (,$(findstring ~,$(AMREX_HOME)))
+  $(warning *** AMREX_HOME string constains ~ and make will not like it. So it is replaced.)
+  AMREX_HOME := $(shell echo $(AMREX_HOME))
+endif
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.machines
 
 ifdef PRECISION
