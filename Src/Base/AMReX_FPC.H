@@ -60,6 +60,13 @@ public:
     static const IntDescriptor&  NativeLongDescriptor ();
 
     /**
+    * \brief Returns a constant reference to an IntDescriptor describing
+    * the native "int" under which BoxLib was compiled.  Each
+    * BoxLib library will have exactly one of these compiled into it.
+    */
+    static const IntDescriptor&  NativeIntDescriptor ();
+
+    /**
     * \brief Returns a constant reference to a RealDescriptor describing
     * the native Real under which BoxLib was compiled.  Each BoxLib
     * library will have exactly one of these compiled into it.

@@ -2462,16 +2462,10 @@ void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
 
 void ParallelDescriptor::Bcast(void *, int, MPI_Datatype, int, MPI_Comm) {}
 
-namespace {
-    static auto clock_time_begin = std::chrono::steady_clock::now();
-}
-
 double
 ParallelDescriptor::second ()
 {
-    auto t = std::chrono::steady_clock::now();
-    using ds = std::chrono::duration<double>;
-    return std::chrono::duration_cast<ds>(t-clock_time_begin).count();
+    return amrex::second();
 }
 
 void
