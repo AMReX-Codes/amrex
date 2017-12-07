@@ -56,6 +56,28 @@ subroutine amrex_compute_best_partition(cost, clo, chi, &
   
 end subroutine amrex_compute_best_partition
 
+subroutine amrex_compute_cost(pcounts, cost, lo, hi, cell_weight) &
+     bind(c,name='amrex_compute_cost')
+
+  use iso_c_binding
+  use amrex_fort_module, only : amrex_real
+
+  integer                       :: lo(2)
+  integer                       :: hi(2)
+  real(amrex_real)              :: pcounts(lo(1):hi(1), lo(2):hi(2))
+  real(amrex_real)              :: cost(lo(1):hi(1), lo(2):hi(2))
+  real(amrex_real), value       :: cell_weight
+  
+  integer i, j
+  
+  do j = lo(2), hi(2)
+     do i = lo(1), hi(1)
+        cost(i,j) = pcounts(i,j)*pcounts(i,j) + cell_weight
+     end do
+  end do
+  
+end subroutine amrex_compute_cost
+
 subroutine amrex_set_box_cost(cost, clo, chi, &
                               lo, hi, box_cost) &
 
