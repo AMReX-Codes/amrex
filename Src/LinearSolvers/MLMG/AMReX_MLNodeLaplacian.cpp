@@ -298,7 +298,7 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi) const
 #endif
     for (MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
-        if (!nd_domain.contains(mfi.fabbox()))
+        if (!nd_domain.strictly_contains(mfi.fabbox()))
         {
             amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
                                   BL_TO_FORTRAN_BOX(nd_domain),
@@ -312,6 +312,9 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 {
     const auto& sigma = m_sigma[amrlev][mglev];
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+    const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -334,7 +337,8 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                                              BL_TO_FORTRAN_ANYD(syfab),
                                              BL_TO_FORTRAN_ANYD(szfab)),
                                 BL_TO_FORTRAN_ANYD(dg),
-                                dxinv);
+                                dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                m_lobc.data(), m_hibc.data());
         }
     }
 }
@@ -347,6 +351,8 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
     const auto& sigma = m_sigma[amrlev][mglev];
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+    const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -364,7 +370,8 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
                                           BL_TO_FORTRAN_ANYD(syfab),
                                           BL_TO_FORTRAN_ANYD(szfab)),
-                             dxinv);
+                             dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                             m_lobc.data(), m_hibc.data());
     }
 }
 
