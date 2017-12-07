@@ -1839,19 +1839,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     
     for (int lev = 0; lev <= finestLevel(); lev++)
       {
-        //const bool gotsome = (usePrePost ? (gotsomePrePost[lev]) : (NumberOfParticlesAtLevel(lev) > 0));
-        //const bool gotsome = (usePrePost ? (true) : (NumberOfParticlesAtLevel(lev) > 0));
         bool gotsome;
 	if(usePrePost) {
-	  //const bool gs(gotsomePrePost[lev]);
-          //gotsome = gs;
-          //gotsome = gotsomePrePost[lev];
           gotsome = (nParticlesAtLevelPrePost[lev] > 0);
 	} else {
           gotsome = (NumberOfParticlesAtLevel(lev) > 0);
 	}
-	/*
-	*/
         //
         // We store the particles at each level in their own subdirectory.
         //
@@ -1909,7 +1902,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 	std::string filePrefix(LevelDir);
 	filePrefix += '/';
 	filePrefix += ParticleType::DataPrefix();
-	filePrefixPrePost[lev] = filePrefix;
+	if(usePrePost) {
+	  filePrefixPrePost[lev] = filePrefix;
+	}
 	bool groupSets(false), setBuf(true);
 
         if (gotsome)
@@ -2007,6 +2002,10 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CheckpointPre ()
 {
+    if( ! usePrePost) {
+      return;
+    }
+
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPre()");
     amrex::Print() << "NCNCNCNC:  _in PC<NNNN>::checkPointPre:  " << std::endl;
 
@@ -2036,15 +2035,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     nparticlesPrePost = nparticles;
     maxnextidPrePost  = maxnextid;
 
+    nParticlesAtLevelPrePost.clear();
     nParticlesAtLevelPrePost.resize(finestLevel() + 1, 0);
     for(int lev(0); lev <= finestLevel(); ++lev) {
       nParticlesAtLevelPrePost[lev] = NumberOfParticlesAtLevel(lev);
     }
 
+    whichPrePost.clear();
     whichPrePost.resize(finestLevel() + 1);
+    countPrePost.clear();
     countPrePost.resize(finestLevel() + 1);
+    wherePrePost.clear();
     wherePrePost.resize(finestLevel() + 1);
 
+    filePrefixPrePost.clear();
     filePrefixPrePost.resize(finestLevel() + 1);
 }
 
@@ -2054,6 +2058,10 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::CheckpointPost ()
 {
+    if( ! usePrePost) {
+      return;
+    }
+
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPost()");
     amrex::Print() << "NCNCNCNC:  _in PC<NNNN>::checkPointPost:  " << std::endl;
 
@@ -2123,6 +2131,25 @@ WritePlotFile ( const std::string&        dir,
     // is_checkpoint = true; 
     Checkpoint(dir,name,is_checkpoint,real_comp_names,int_comp_names);
 }
+
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::WritePlotFilePre ()
+{
+  CheckpointPre();
+}
+
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::WritePlotFilePost ()
+{
+  CheckpointPost();
+}
+
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
