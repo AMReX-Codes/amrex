@@ -59,14 +59,20 @@ namespace amrex
                      const EBLevelGrid& a_eblg)
   {
     a_data.setVal(-1.0);
-    Real val  = 0.0;
+    Real pi = 4.*atan(1.0);
     for(MFIter mfi(a_data); mfi.isValid(); ++mfi)
     {
-      const EBGraph& ebgraph = a_eblg.getEBISL()[mfi].getEBGraph();
+      EBISBox ebisBox = a_eblg.getEBISL()[mfi];
+      EBGraph ebgraph = ebisBox.getEBGraph();
       Box valid              = a_eblg.getDBL()  [mfi];
       IntVectSet ivs(valid);
+      Real dx = ebisBox.getDomain().size()[0];
+      dx = 1.0/dx;
       for(VoFIterator vofit(ivs, ebgraph); vofit.ok(); ++vofit)
       {
+        Real x = vofit().gridIndex()[0]*dx;
+        Real y = vofit().gridIndex()[1]*dx;
+        Real val  = 10*sin(pi*x)*sin(pi*y);
         a_data[mfi](vofit().gridIndex(), 0) = val;
         ++val;
       }

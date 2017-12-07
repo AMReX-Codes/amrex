@@ -10,12 +10,6 @@
 
 namespace amrex
 {
-  string convertIntA(int number)
-  {
-    stringstream ss;//create a stringstream
-    ss << number;//add number to the stream
-    return ss.str();//return a string with the contents of the stream
-  }
 
 
 ///write a single level plot file with an extra variable called vfrac which holds volume fractions
@@ -35,7 +29,7 @@ namespace amrex
       allnames.resize(a_mf.nComp());
       for(int icomp = 0; icomp < a_mf.nComp(); icomp++)
       {
-        allnames[icomp] = string("var") + convertIntA(icomp);
+        allnames[icomp] = string("var") + convertInt(icomp);
       }
     }
     allnames.push_back(string("vfrac"));

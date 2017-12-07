@@ -11,3 +11,5 @@ sphere_center = 0.5 0.5 0.5
 sphere_radius = 0.4
 domain_length = 1.0 
 insideRegular = true 
+geometry.prob_lo = 0.0 0.0 0.0 
+geometry.prob_hi = 1.0 1.0 1.0 
