@@ -1,0 +1,38 @@
+# n_cell = 40 40 40 
+max_grid_size = 16
+# n_cell = 32 32 32
+n_cell = 64 64 64
+# n_cell = 128 128 128
+
+#the test will fail (properly) if the sphere is not contained in the domain
+#the exact values assume the whole sphere is inside the domain
+verbosity = 10;
+
+domain_length = 1.0 
+insideRegular = true 
+#some mysterious code needs these
+geometry.prob_lo = 0.0 0.0 0.0 
+geometry.prob_hi = 1.0 1.0 1.0 
+
+num_poly = 3
+#far wall (all these polys are done as fractions of the domain)
+poly_0_num_pts  = 4
+poly_0_point_0  = 0.45  -1.0 0.0
+poly_0_point_1  = 2.0    -1.0 0.0
+poly_0_point_2  = 2.0     2.0 0.0
+poly_0_point_3  = 0.45   2.0 0.0
+
+#ramping bit
+poly_1_num_pts  = 5
+poly_1_point_0  = 0.1    -1.0 0.0
+poly_1_point_1  = 2.0    -1.0 0.0
+poly_1_point_2  = 2.0     0.6 0.0
+poly_1_point_3  = 0.25    0.6 0.0
+poly_1_point_4  = 0.1     0.1 0.0
+
+#pipe
+poly_2_num_pts  = 4
+poly_2_point_0  = 0.06 -1.0 0.0
+poly_2_point_1  = 0.08    -1.0 0.0
+poly_2_point_2  = 0.08    0.35 0.0
+poly_2_point_3  = 0.06   0.35 0.0
