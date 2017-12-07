@@ -231,8 +231,10 @@ contains
 
 
   subroutine amrex_mlndlap_adotx (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sx, sxlo, sxhi, sy, sylo, syhi, dg, dlo, dhi, dxinv) bind(c,name='amrex_mlndlap_adotx')
-    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, sylo, syhi, dlo, dhi
+       sx, sxlo, sxhi, sy, sylo, syhi, dg, dlo, dhi, dxinv, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_adotx')
+    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, sylo, syhi, dlo, dhi, &
+         domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) ::  y( ylo(1): yhi(1), ylo(2): yhi(2))
     real(amrex_real), intent(in   ) ::  x( xlo(1): xhi(1), xlo(2): xhi(2))
@@ -271,12 +273,30 @@ contains
        end do
     end do
 
+    if (lo(1) .eq. domlo(1) .and. bclo(1) .eq. amrex_lo_dirichlet) then
+       y(lo(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    if (hi(1) .eq. domhi(1) .and. bchi(1) .eq. amrex_lo_dirichlet) then
+       y(hi(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    if (lo(2) .eq. domlo(2) .and. bclo(2) .eq. amrex_lo_dirichlet) then
+       y(lo(1):hi(1),lo(2)) = 0.d0
+    end if
+
+    if (hi(2) .eq. domhi(2) .and. bchi(2) .eq. amrex_lo_dirichlet) then
+       y(lo(1):hi(1),hi(2)) = 0.d0
+    end if
+
   end subroutine amrex_mlndlap_adotx  
 
 
   subroutine amrex_mlndlap_jacobi (lo, hi, sol, slo, shi, Ax, alo, ahi, rhs, rlo, rhi, &
-       sx, sxlo, sxhi, sy, sylo, syhi, dxinv) bind(c,name='amrex_mlndlap_jacobi')
-    integer, dimension(2),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,sxlo,sxhi,sylo,syhi
+       sx, sxlo, sxhi, sy, sylo, syhi, dxinv, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_jacobi')
+    integer, dimension(2),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,sxlo,sxhi,sylo,syhi, &
+         domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
     real(amrex_real), intent(in   ) :: Ax ( alo(1): ahi(1), alo(2): ahi(2))
@@ -298,6 +318,22 @@ contains
                +  facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
        end do
     end do
+
+    if (lo(1) .eq. domlo(1) .and. bclo(1) .eq. amrex_lo_dirichlet) then
+       sol(lo(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    if (hi(1) .eq. domhi(1) .and. bchi(1) .eq. amrex_lo_dirichlet) then
+       sol(hi(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    if (lo(2) .eq. domlo(2) .and. bclo(2) .eq. amrex_lo_dirichlet) then
+       sol(lo(1):hi(1),lo(2)) = 0.d0
+    end if
+
+    if (hi(2) .eq. domhi(2) .and. bchi(2) .eq. amrex_lo_dirichlet) then
+       sol(lo(1):hi(1),hi(2)) = 0.d0
+    end if
   end subroutine amrex_mlndlap_jacobi
 
 

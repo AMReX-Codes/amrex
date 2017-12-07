@@ -36,7 +36,8 @@ extern "C" {
 #endif
 #endif
                               amrex_real* dg, const int* dlo, const int* dhi,
-                              const amrex_real* dxinv);
+                              const amrex_real* dxinv, const int* domlo, const int* domhi,
+                              const void* bclo, const void* bchi);
 
 
     void amrex_mlndlap_jacobi (const int* lo, const int* hi,
@@ -50,7 +51,8 @@ extern "C" {
                                const amrex_real* sz, const int* szlo, const int* szhi,
 #endif
 #endif
-                               const amrex_real* dxinv);
+                               const amrex_real* dxinv, const int* domlo, const int* domhi,
+                               const void* bclo, const void* bchi);
                                
 
     void amrex_mlndlap_restriction (const int* lo, const int* hi,
