@@ -5,7 +5,8 @@ module amrex_mlnodelap_1d_module
 
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
-       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi
+       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, &
+       amrex_mlndlap_restriction
 
 contains
 
@@ -68,5 +69,13 @@ contains
     real(amrex_real), intent(in   ) :: sx (sxlo(1):sxhi(1))
     
   end subroutine amrex_mlndlap_jacobi
+
+
+  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, dlo, dhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_restriction')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, dlo, dhi, bclo, bchi
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
+  end subroutine amrex_mlndlap_restriction
 
 end module amrex_mlnodelap_1d_module

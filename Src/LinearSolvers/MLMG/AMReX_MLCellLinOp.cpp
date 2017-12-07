@@ -226,7 +226,7 @@ MLCellLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
 }
 
 void
-MLCellLinOp::restriction (MultiFab& crse, const MultiFab& fine) const
+MLCellLinOp::restriction (int, int, MultiFab& crse, MultiFab& fine) const
 {
     amrex::average_down(fine, crse, 0, 1, 2);
 }

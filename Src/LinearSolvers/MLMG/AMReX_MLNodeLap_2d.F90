@@ -7,7 +7,8 @@ module amrex_mlnodelap_2d_module
 
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
-       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi
+       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, &
+       amrex_mlndlap_restriction
 
 contains
 
@@ -285,17 +286,55 @@ contains
 
     integer :: i,j
     real(amrex_real) :: facx, facy
+    real(amrex_real), parameter :: omega = 2.d0/3.d0
 
     facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          sol(i,j) = (rhs(i,j) - Ax(i,j)) &
+          sol(i,j) = (1.d0-omega)*sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
                / (facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
-               +  facy*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)))
+               +  facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
        end do
     end do
   end subroutine amrex_mlndlap_jacobi
+
+
+  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, dlo, dhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_restriction')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, dlo, dhi, bclo, bchi
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
+
+    integer :: i,j, ii, jj
+    real(amrex_real), parameter :: fac = 1.d0/16.d0
+
+    do    j = lo(2), hi(2)
+       jj = 2*j
+       do i = lo(1), hi(1)
+          ii = 2*i
+          crse(i,j) = fac*(fine(ii-1,jj-1) + 2.d0*fine(ii  ,jj-1) +      fine(ii+1,jj-1) &
+               +      2.d0*fine(ii-1,jj  ) + 4.d0*fine(ii  ,jj  ) + 2.d0*fine(ii+1,jj  ) &
+               +           fine(ii-1,jj+1) + 2.d0*fine(ii  ,jj+1) +      fine(ii+1,jj+1))
+       end do
+    end do
+
+    if (bclo(1) .eq. amrex_lo_dirichlet .and. lo(1) .eq. dlo(1)) then
+       crse(lo(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    if (bchi(1) .eq. amrex_lo_dirichlet .and. hi(1) .eq. dhi(1)) then
+       crse(hi(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    if (bclo(2) .eq. amrex_lo_dirichlet .and. lo(2) .eq. dlo(2)) then
+       crse(lo(1):hi(1),lo(2)) = 0.d0
+    end if
+
+    if (bchi(2) .eq. amrex_lo_dirichlet .and. hi(2) .eq. dhi(2)) then
+       crse(lo(1):hi(1),hi(2)) = 0.d0
+    end if
+  end subroutine amrex_mlndlap_restriction
 
 end module amrex_mlnodelap_2d_module

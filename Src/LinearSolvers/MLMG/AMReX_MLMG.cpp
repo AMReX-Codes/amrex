@@ -339,7 +339,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         computeResOfCorrection(amrlev, mglev);
 
         // res_crse = R(rescor_fine); this provides res/b to the level below
-        linop.restriction(res[amrlev][mglev+1], rescor[amrlev][mglev]);
+        linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev]);
     }
     BL_PROFILE_VAR_STOP(blp_down);
 
@@ -739,7 +739,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     }
 
     const int nc = 1;
-    int ng = 0;
+    int ng = linop.isCellCentered() ? 0 : 1;
     linop.make(res, nc, ng);
     linop.make(rescor, nc, ng);
 
