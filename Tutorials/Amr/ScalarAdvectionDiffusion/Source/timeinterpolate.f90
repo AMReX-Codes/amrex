@@ -343,7 +343,7 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
 
   integer          :: i,j,k
   double precision :: k_1, k_2, k_3, k_4, squcoef, cubcoef, u0,  utemp(0:3)
-  double precision  :: xi, fn, fnfprime, fnsqfdouble, dt2, dt3, fprimsqfn
+  double precision  :: xi, fn, fnfprime, fnsqfdouble, dtc2, dtc3, dtf2, dtf3, fprimsqfn
 
   !this gets us to un
   xi = (tf - tc_old)/dt_c
@@ -362,8 +362,10 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
 
 
   !print*, "*************IN JBB VERSION****************"
-  dt2 = dt_f*dt_f
-  dt3 = dt_f*dt_f*dt_f
+  dtf2 = dt_f*dt_f
+  dtf3 = dt_f*dt_f*dt_f
+  dtc2 = dt_c*dt_c
+  dtc3 = dt_c*dt_c*dt_c
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
      do j=lo(2),hi(2)
@@ -380,15 +382,15 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
 
            u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef + xi*xi*xi*cubcoef
 
-           fn = k_1/dt_f
-           fnfprime  = (1.0d0/dt2)*(4.0d0*k_3 - k_4 - 3.0d0*k_1)
-           fnsqfdouble = (2.0d0/dt3)*(2.0d0*k_4 + 2.0d0*k_1 + 4.0d0*k_2 - 8.0d0*k_3)
-           fprimsqfn = (4.0d0/dt3)*(k_3 - k_2)
+           fn = k_1/dt_c
+           fnfprime    = (1.0d0/dtc2)*(-3.0d0*k_1 + 2.0d0*k_2 + 2.0d0*k_3 - k_4 )
+           fnsqfdouble = (1.0d0/dtc3)*( 4.0d0*k_1 - 8.0d0*k_3 + 4.0d0*k_4)
+           fprimsqfn   = (4.0d0/dtc3)*(k_3 - k_2)
 
            utemp(0) =  u0
            utemp(1) =  u0 + 0.5d0*dt_f*fn
-           utemp(2) =  u0 + 0.5d0*dt_f*fn + 0.25d0*dt2*fnfprime + 0.0625d0*dt3*fnsqfdouble
-           utemp(3) =  u0 +       dt_f*fn +  0.5d0*dt2*fnfprime + 0.1250d0*dt3*fnsqfdouble + 0.25d0*dt3*fprimsqfn
+           utemp(2) =  u0 + 0.5d0*dt_f*fn + 0.25d0*dtf2*fnfprime + 0.0625d0*dtf3*fnsqfdouble
+           utemp(3) =  u0 +       dt_f*fn +  0.5d0*dtf2*fnfprime + 0.1250d0*dtf3*fnsqfdouble + 0.25d0*dtf3*fprimsqfn
 
 ! here we let the polynomial get us to the right u (so just taking out the first deriv terms.
 !           utemp(0) =  u0
@@ -463,12 +465,12 @@ subroutine timeinterprk3_jbb(stage, lo, hi, &
 
            u0 = old(i,j,k) + xi*k_1 + xi*xi*squcoef 
 
-           fn       = k_1/dt_f
-           fnfprime = (k_2 - k_1)/dt_f
+           fn       = k_1/dt_c
+           fnfprime = (k_2 - k_1)/dt_c
 
            utemp(0) = u0
            utemp(1) = u0 +       dt_f*fn
-           utemp(2) = u0 + 0.5d0*dt_f*fn + 0.25d0*fnfprime
+           utemp(2) = u0 + 0.5d0*dt_f*fn + 0.25d0*dt_f*dt_f*fnfprime
 
            phi(i,j,k) = utemp(stage)
 
