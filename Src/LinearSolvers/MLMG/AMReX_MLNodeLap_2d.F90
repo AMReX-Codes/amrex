@@ -273,21 +273,7 @@ contains
        end do
     end do
 
-    if (lo(1) .eq. domlo(1) .and. bclo(1) .eq. amrex_lo_dirichlet) then
-       y(lo(1),lo(2):hi(2)) = 0.d0
-    end if
-
-    if (hi(1) .eq. domhi(1) .and. bchi(1) .eq. amrex_lo_dirichlet) then
-       y(hi(1),lo(2):hi(2)) = 0.d0
-    end if
-
-    if (lo(2) .eq. domlo(2) .and. bclo(2) .eq. amrex_lo_dirichlet) then
-       y(lo(1):hi(1),lo(2)) = 0.d0
-    end if
-
-    if (hi(2) .eq. domhi(2) .and. bchi(2) .eq. amrex_lo_dirichlet) then
-       y(lo(1):hi(1),hi(2)) = 0.d0
-    end if
+    call amrex_mlndlap_apply_dirichlet(lo, hi, y, ylo, yhi, domlo, domhi, bclo, bchi)
 
   end subroutine amrex_mlndlap_adotx  
 
@@ -319,27 +305,14 @@ contains
        end do
     end do
 
-    if (lo(1) .eq. domlo(1) .and. bclo(1) .eq. amrex_lo_dirichlet) then
-       sol(lo(1),lo(2):hi(2)) = 0.d0
-    end if
+    call amrex_mlndlap_apply_dirichlet(lo, hi, sol, slo, shi, domlo, domhi, bclo, bchi)
 
-    if (hi(1) .eq. domhi(1) .and. bchi(1) .eq. amrex_lo_dirichlet) then
-       sol(hi(1),lo(2):hi(2)) = 0.d0
-    end if
-
-    if (lo(2) .eq. domlo(2) .and. bclo(2) .eq. amrex_lo_dirichlet) then
-       sol(lo(1):hi(1),lo(2)) = 0.d0
-    end if
-
-    if (hi(2) .eq. domhi(2) .and. bchi(2) .eq. amrex_lo_dirichlet) then
-       sol(lo(1):hi(1),hi(2)) = 0.d0
-    end if
   end subroutine amrex_mlndlap_jacobi
 
 
-  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, dlo, dhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_restriction')
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, dlo, dhi, bclo, bchi
+  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, &
+       domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_restriction')
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi, domlo, domhi, bclo, bchi
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
 
@@ -356,27 +329,16 @@ contains
        end do
     end do
 
-    if (bclo(1) .eq. amrex_lo_dirichlet .and. lo(1) .eq. dlo(1)) then
-       crse(lo(1),lo(2):hi(2)) = 0.d0
-    end if
+    call amrex_mlndlap_apply_dirichlet(lo, hi, crse, clo, chi, domlo, domhi, bclo, bchi)
 
-    if (bchi(1) .eq. amrex_lo_dirichlet .and. hi(1) .eq. dhi(1)) then
-       crse(hi(1),lo(2):hi(2)) = 0.d0
-    end if
-
-    if (bclo(2) .eq. amrex_lo_dirichlet .and. lo(2) .eq. dlo(2)) then
-       crse(lo(1):hi(1),lo(2)) = 0.d0
-    end if
-
-    if (bchi(2) .eq. amrex_lo_dirichlet .and. hi(2) .eq. dhi(2)) then
-       crse(lo(1):hi(1),hi(2)) = 0.d0
-    end if
   end subroutine amrex_mlndlap_restriction
 
 
   subroutine amrex_mlndlap_interpolation (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sigx, sxlo, sxhi, sigy, sylo, syhi) bind(c,name='amrex_mlndlap_interpolation')
-    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,sxlo,sxhi,sylo,syhi
+       sigx, sxlo, sxhi, sigy, sylo, syhi, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_interpolation')
+    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,sxlo,sxhi,sylo,syhi, &
+         domlo, domhi, bclo, bchi
     real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
     real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
     real(amrex_real), intent(in   ) :: sigx(sxlo(1):sxhi(1),sxlo(2):sxhi(2))
@@ -426,6 +388,29 @@ contains
        end do
     end do
 
+    call amrex_mlndlap_apply_dirichlet(flo, fhi, fine, fflo, ffhi, domlo, domhi, bclo, bchi)
+
   end subroutine amrex_mlndlap_interpolation
+
+  subroutine amrex_mlndlap_apply_dirichlet (lo, hi, phi, philo, phihi, domlo, domhi, bclo, bchi)
+    integer, dimension(2) :: lo, hi, philo, phihi, domlo, domhi, bclo, bchi
+    real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
+
+    if (bclo(1) .eq. amrex_lo_dirichlet .and. lo(1) .eq. domlo(1)) then
+       phi(lo(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    if (bchi(1) .eq. amrex_lo_dirichlet .and. hi(1) .eq. domhi(1)) then
+       phi(hi(1),lo(2):hi(2)) = 0.d0
+    end if
+
+    if (bclo(2) .eq. amrex_lo_dirichlet .and. lo(2) .eq. domlo(2)) then
+       phi(lo(1):hi(1),lo(2)) = 0.d0
+    end if
+
+    if (bchi(2) .eq. amrex_lo_dirichlet .and. hi(2) .eq. domhi(2)) then
+       phi(lo(1):hi(1),hi(2)) = 0.d0
+    end if
+  end subroutine amrex_mlndlap_apply_dirichlet
 
 end module amrex_mlnodelap_2d_module
