@@ -124,8 +124,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a645af4ed5d24e78894408e2024babf90"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1226032361bc7b29bb943d75310afe68"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_flat_plate_geom.html#a1226032361bc7b29bb943d75310afe68">addIrregularNodes</a> (<a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_irreg_node.html">IrregNode</a> &gt; &amp;a_nodes, const <a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a>&lt; int &gt; &amp;a_numVolumes, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;a_iv, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const </td></tr>
 <tr class="separator:a1226032361bc7b29bb943d75310afe68"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aadd524db9a6d3a2f4a26e2ec7df55f15"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_flat_plate_geom.html#aadd524db9a6d3a2f4a26e2ec7df55f15">fillGraph</a> (<a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a>&lt; int &gt; &amp;a_regIrregCovered, <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_irreg_node.html">IrregNode</a> &gt; &amp;a_nodes, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_validRegion, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_ghostRegion, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const </td></tr>
-<tr class="separator:aadd524db9a6d3a2f4a26e2ec7df55f15"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab46037ed4eac68d541c440963f2083ef"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_flat_plate_geom.html#ab46037ed4eac68d541c440963f2083ef">fillGraph</a> (<a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a>&lt; int &gt; &amp;a_regIrregCovered, <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_irreg_node.html">IrregNode</a> &gt; &amp;a_nodes, <a class="el" href="namespaceamrex.html#a805f8f0e43748ef1196245ca72f9fb8d">NodeMap</a> &amp;a_intersections, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_validRegion, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_ghostRegion, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const override</td></tr>
+<tr class="separator:ab46037ed4eac68d541c440963f2083ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classamrex_1_1_geometry_service"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classamrex_1_1_geometry_service')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classamrex_1_1_geometry_service.html">amrex::GeometryService</a></td></tr>
 <tr class="memitem:a77a7a8a9571a37d6aebc0a3a2fbfa09c inherit pub_methods_classamrex_1_1_geometry_service"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#a77a7a8a9571a37d6aebc0a3a2fbfa09c">GeometryService</a> ()</td></tr>
 <tr class="separator:a77a7a8a9571a37d6aebc0a3a2fbfa09c inherit pub_methods_classamrex_1_1_geometry_service"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -137,6 +137,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:aa467e9e18ad27c7bb0d42336d183de69 inherit pub_methods_classamrex_1_1_geometry_service"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6c5065c429214160c238b59e4da601b3 inherit pub_methods_classamrex_1_1_geometry_service"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="classamrex_1_1_geometry_service.html#ab6546708b1e12c188511a708769040d0">InOut</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#a6c5065c429214160c238b59e4da601b3">InsideOutside</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_region, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const </td></tr>
 <tr class="separator:a6c5065c429214160c238b59e4da601b3 inherit pub_methods_classamrex_1_1_geometry_service"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa6ab512e1d82f0030fd9eaf4f3d9431 inherit pub_methods_classamrex_1_1_geometry_service"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#afa6ab512e1d82f0030fd9eaf4f3d9431">pointOutside</a> (const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_pt) const </td></tr>
+<tr class="separator:afa6ab512e1d82f0030fd9eaf4f3d9431 inherit pub_methods_classamrex_1_1_geometry_service"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
@@ -276,7 +278,7 @@ Additional Inherited Members</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="aadd524db9a6d3a2f4a26e2ec7df55f15"></a>
+<a class="anchor" id="ab46037ed4eac68d541c440963f2083ef"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -294,6 +296,12 @@ Additional Inherited Members</h2></td></tr>
           <td></td>
           <td class="paramtype"><a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_irreg_node.html">IrregNode</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_nodes</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="namespaceamrex.html#a805f8f0e43748ef1196245ca72f9fb8d">NodeMap</a> &amp;&#160;</td>
+          <td class="paramname"><em>a_intersections</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -333,13 +341,13 @@ Additional Inherited Members</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 <p>irregGraph contains a complete list of irregular vofs. \ validRegion is the the region of the graph \ domain is the domain of compuation \ regIrregCovered = 1 for regular, 0 for irregular, -1 for covered. regIrregCovered must contain the valid region grown by 1. \ In chombospeak, \ ghostregion = (grow(validRegion, 1) &amp; domain); </p>
 
-<p>Implements <a class="el" href="classamrex_1_1_geometry_service.html#a73bfd222a9171ffddad02ac8720d0c13">amrex::GeometryService</a>.</p>
+<p>Implements <a class="el" href="classamrex_1_1_geometry_service.html#a405f0f179f44d4ed8fd8de06cb330be8">amrex::GeometryService</a>.</p>
 
 </div>
 </div>

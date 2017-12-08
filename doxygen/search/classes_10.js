@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['segment',['Segment',['../structamrex_1_1_segment.html',1,'amrex']]],
   ['sendinfo',['SendInfo',['../structamrex_1_1_b_l_pgas_1_1_send_info.html',1,'amrex::BLPgas']]],
   ['serialtask',['SerialTask',['../classamrex_1_1_serial_task.html',1,'amrex']]],
   ['shift_5fhasher',['shift_hasher',['../classamrex_1_1_int_vect_1_1shift__hasher.html',1,'amrex::IntVect']]],

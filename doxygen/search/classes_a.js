@@ -10,6 +10,7 @@ var searchData=
   ['layoutdata_3c_20amrex_3a_3avector_3c_20amrex_3a_3avofstencil_20_3e_20_3e',['LayoutData&lt; amrex::Vector&lt; amrex::VoFStencil &gt; &gt;',['../classamrex_1_1_layout_data.html',1,'amrex']]],
   ['layoutdata_3c_20amrex_3a_3avector_3c_20amrex_3a_3avolindex_20_3e_20_3e',['LayoutData&lt; amrex::Vector&lt; amrex::VolIndex &gt; &gt;',['../classamrex_1_1_layout_data.html',1,'amrex']]],
   ['layoutdata_3c_20amrex_3a_3avofiterator_20_3e',['LayoutData&lt; amrex::VoFIterator &gt;',['../classamrex_1_1_layout_data.html',1,'amrex']]],
+  ['layoutdata_3c_20nodemap_20_3e',['LayoutData&lt; NodeMap &gt;',['../classamrex_1_1_layout_data.html',1,'amrex']]],
   ['layoutdata_3c_20realtuple_20_3e',['LayoutData&lt; RealTuple &gt;',['../classamrex_1_1_layout_data.html',1,'amrex']]],
   ['layoutdata_3c_20shared_5fptr_3c_20amrex_3a_3aaggstencil_3c_20amrex_3a_3aebcellfab_2c_20amrex_3a_3aebcellfab_20_3e_20_3e_20_3e',['LayoutData&lt; shared_ptr&lt; amrex::AggStencil&lt; amrex::EBCellFAB, amrex::EBCellFAB &gt; &gt; &gt;',['../classamrex_1_1_layout_data.html',1,'amrex']]],
   ['layoutdata_3c_20shared_5fptr_3c_20amrex_3a_3aaggstencil_3c_20amrex_3a_3aebcellfab_2c_20amrex_3a_3airregfab_20_3e_20_3e_20_3e',['LayoutData&lt; shared_ptr&lt; amrex::AggStencil&lt; amrex::EBCellFAB, amrex::IrregFAB &gt; &gt; &gt;',['../classamrex_1_1_layout_data.html',1,'amrex']]],

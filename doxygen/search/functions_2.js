@@ -121,6 +121,7 @@ var searchData=
   ['broadcastdistributionmapping',['BroadcastDistributionMapping',['../namespaceamrex.html#a4b0e217dfd7d0701976fc22ff1d4a1ca',1,'amrex']]],
   ['buffer',['buffer',['../classamrex_1_1_tag_box.html#a8d71127c0db513db10048aa16cac0c85',1,'amrex::TagBox::buffer()'],['../classamrex_1_1_tag_box_array.html#a86171fa502b627476702d33a0e7adb3c',1,'amrex::TagBoxArray::buffer()']]],
   ['buildbc',['buildBC',['../classamrex_1_1_derive_rec.html#a3b07b7cec32b864ae58f09942234421e',1,'amrex::DeriveRec']]],
+  ['buildebsurface',['buildEBSurface',['../classamrex_1_1_e_b_i_s_level.html#a1764a6ad7c7b018243dd4ef11311e077',1,'amrex::EBISLevel']]],
   ['buildfirstlevel',['buildFirstLevel',['../classamrex_1_1_e_b_index_space.html#a6c90deecedbcaf8b5b41b97769c3e95c',1,'amrex::EBIndexSpace']]],
   ['buildgraph',['buildGraph',['../classamrex_1_1_e_b_graph_implem.html#a8446d906383de254134646ca3641a37e',1,'amrex::EBGraphImplem::buildGraph()'],['../classamrex_1_1_e_b_graph.html#a1542e3b9e7392d9a2570cc80685d5f1f',1,'amrex::EBGraph::buildGraph()']]],
   ['buildlevelmask',['BuildLevelMask',['../classamrex_1_1_neighbor_particle_container.html#a8a6c9e773897f51d5f9a10e8373446c0',1,'amrex::NeighborParticleContainer']]],

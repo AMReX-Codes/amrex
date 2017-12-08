@@ -45,6 +45,7 @@ var searchData=
   ['initval',['initVal',['../classamrex_1_1_f_array_box.html#a157b2eaa0dca6da7104046416721fe6d',1,'amrex::FArrayBox::initVal()'],['../classamrex_1_1_multi_fab.html#aa4f9b9a2a37baa29e7767a80f6856dcd',1,'amrex::MultiFab::initVal()']]],
   ['inrange',['inRange',['../classamrex_1_1_state_descriptor.html#afd6d503f39cb5ec2761dfff65528e154',1,'amrex::StateDescriptor']]],
   ['insert',['insert',['../classamrex_1_1_array_of_structs.html#a1f9436f03c6b9dc6e4b9051452547650',1,'amrex::ArrayOfStructs']]],
+  ['insertnode',['InsertNode',['../namespaceamrex.html#af31f39f19d9a241258150db579f072c6',1,'amrex']]],
   ['insidecargroup',['InSidecarGroup',['../namespaceamrex_1_1_parallel_descriptor.html#a116eeaf690e53b1aafb513b9927e244b',1,'amrex::ParallelDescriptor']]],
   ['insideoutside',['InsideOutside',['../classamrex_1_1_geometry_service.html#a6c5065c429214160c238b59e4da601b3',1,'amrex::GeometryService::InsideOutside()'],['../classamrex_1_1_geometry_shop.html#acb3b91d00c8f38596e0c393bad4029b3',1,'amrex::GeometryShop::InsideOutside()'],['../class_slab_service.html#a674ffe4a8963943e28f062627993c26b',1,'SlabService::InsideOutside()']]],
   ['installnewdistributionmap',['InstallNewDistributionMap',['../classamrex_1_1_amr.html#ac3e662f31f9e418725c27e5c55577202',1,'amrex::Amr']]],

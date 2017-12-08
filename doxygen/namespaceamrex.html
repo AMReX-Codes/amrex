@@ -545,6 +545,16 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_shop.html">GeometryShop</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_edge.html">Edge</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_contour_fragment.html">ContourFragment</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_triangle.html">Triangle</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_segment.html">Segment</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structamrex_1_1_geom_intersect_utils.html">GeomIntersectUtils</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_graph_node_implem.html">GraphNodeImplem</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_graph_node.html">GraphNode</a></td></tr>
@@ -636,6 +646,14 @@ Typedefs</h2></td></tr>
 <tr class="separator:a8ffd900db646020685b37acf03d06464"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a042e8014dbfc4905aac0c32c745df7ac"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a042e8014dbfc4905aac0c32c745df7ac">TracerParIter</a> = <a class="el" href="classamrex_1_1_par_iter.html">ParIter</a>&lt; <a class="el" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a> &gt;</td></tr>
 <tr class="separator:a042e8014dbfc4905aac0c32c745df7ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11ed263afe50d0e2f5669331c0c82772"><td class="memItemLeft" align="right" valign="top">typedef std::pair&lt; <a class="el" href="structamrex_1_1_edge.html">Edge</a>, <br class="typebreak"/>
+<a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; amrex::Real &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a11ed263afe50d0e2f5669331c0c82772">Node</a></td></tr>
+<tr class="separator:a11ed263afe50d0e2f5669331c0c82772"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a805f8f0e43748ef1196245ca72f9fb8d"><td class="memItemLeft" align="right" valign="top">typedef std::map&lt; <a class="el" href="structamrex_1_1_edge.html">Edge</a>, <br class="typebreak"/>
+<a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt; amrex::Real &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a805f8f0e43748ef1196245ca72f9fb8d">NodeMap</a></td></tr>
+<tr class="separator:a805f8f0e43748ef1196245ca72f9fb8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf623417d472ae8e7b47fadec0bec351"><td class="memItemLeft" align="right" valign="top">typedef NodeMap::iterator&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#aaf623417d472ae8e7b47fadec0bec351">NodeMapIt</a></td></tr>
+<tr class="separator:aaf623417d472ae8e7b47fadec0bec351"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -1787,6 +1805,10 @@ Functions</h2></td></tr>
 <tr class="separator:a48c95b8167154e5d77053ac305f101bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae7c03059b676d9c502a3b24f8cbafdb1"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ae7c03059b676d9c502a3b24f8cbafdb1">operator&lt;</a> (const <a class="el" href="classamrex_1_1_face_index.html">FaceIndex</a> &amp;f1, const <a class="el" href="classamrex_1_1_face_index.html">FaceIndex</a> &amp;f2)</td></tr>
 <tr class="separator:ae7c03059b676d9c502a3b24f8cbafdb1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af31f39f19d9a241258150db579f072c6"><td class="memItemLeft" align="right" valign="top">std::pair&lt; bool, <a class="el" href="namespaceamrex.html#aaf623417d472ae8e7b47fadec0bec351">NodeMapIt</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af31f39f19d9a241258150db579f072c6">InsertNode</a> (const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;p1, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;p2, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;<a class="el" href="namespaceamrex.html#a31f38031bc51519297d88d3234115277">intersect</a>, <a class="el" href="namespaceamrex.html#a805f8f0e43748ef1196245ca72f9fb8d">NodeMap</a> &amp;intersects)</td></tr>
+<tr class="separator:af31f39f19d9a241258150db579f072c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a278d29305ff011d6ff824a4abc371371"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a278d29305ff011d6ff824a4abc371371">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="structamrex_1_1_edge.html">Edge</a> &amp;e)</td></tr>
+<tr class="separator:a278d29305ff011d6ff824a4abc371371"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a14f5d90f760df88f98b7e40312c7ce34"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_int_vect_set.html">IntVectSet</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a14f5d90f760df88f98b7e40312c7ce34">intersect</a> (const <a class="el" href="classamrex_1_1_int_vect_set.html">IntVectSet</a> &amp;a, const <a class="el" href="classamrex_1_1_int_vect_set.html">IntVectSet</a> &amp;b, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;bx)</td></tr>
 <tr class="separator:a14f5d90f760df88f98b7e40312c7ce34"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab44c253b9a4ca1653ef187bcb01cb667"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_int_vect_set.html">IntVectSet</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ab44c253b9a4ca1653ef187bcb01cb667">intersect</a> (const <a class="el" href="classamrex_1_1_int_vect_set.html">IntVectSet</a> &amp;ivs, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;bx)</td></tr>
@@ -2015,6 +2037,42 @@ template&lt;class T &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">typedef <a class="el" href="classamrex_1_1_fab_array_id.html">FabArrayId</a> <a class="el" href="namespaceamrex.html#a270e267cbd0e472dd8297d46a9c76854">amrex::MultiFabId</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a11ed263afe50d0e2f5669331c0c82772"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef std::pair&lt;<a class="el" href="structamrex_1_1_edge.html">Edge</a>, <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt;amrex::Real&gt; &gt; <a class="el" href="namespaceamrex.html#a11ed263afe50d0e2f5669331c0c82772">amrex::Node</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a805f8f0e43748ef1196245ca72f9fb8d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef std::map&lt;<a class="el" href="structamrex_1_1_edge.html">Edge</a>, <a class="el" href="classamrex_1_1_vector.html">amrex::Vector</a>&lt;amrex::Real&gt; &gt; <a class="el" href="namespaceamrex.html#a805f8f0e43748ef1196245ca72f9fb8d">amrex::NodeMap</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="aaf623417d472ae8e7b47fadec0bec351"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef NodeMap::iterator <a class="el" href="namespaceamrex.html#aaf623417d472ae8e7b47fadec0bec351">amrex::NodeMapIt</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -7183,6 +7241,44 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="af31f39f19d9a241258150db579f072c6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::pair&lt;bool,<a class="el" href="namespaceamrex.html#aaf623417d472ae8e7b47fadec0bec351">NodeMapIt</a>&gt; amrex::InsertNode </td>
+          <td>(</td>
+          <td class="paramtype">const IntVect &amp;&#160;</td>
+          <td class="paramname"><em>p1</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const IntVect &amp;&#160;</td>
+          <td class="paramname"><em>p2</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const RealVect &amp;&#160;</td>
+          <td class="paramname"><em>intersect</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">NodeMap &amp;&#160;</td>
+          <td class="paramname"><em>intersects</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="a4b0d01afec5218e25096773af48821bb"></a>
 <div class="memitem">
 <div class="memproto">
@@ -11115,6 +11211,32 @@ template&lt;&gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="a278d29305ff011d6ff824a4abc371371"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::ostream &amp; amrex::operator&lt;&lt; </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const Edge &amp;&#160;</td>
+          <td class="paramname"><em>e</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="a73fb53c873d555a7a3cc7b33e88a5f33"></a>
 <div class="memitem">
 <div class="memproto">
@@ -11249,32 +11371,6 @@ template&lt;&gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a02c8cd4ab79d54be6c0e34f436679048"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::ostream&amp; amrex::operator&lt;&lt; </td>
-          <td>(</td>
-          <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>os</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const VolIndex &amp;&#160;</td>
-          <td class="paramname"><em>iv</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a class="anchor" id="a99b5e66ea694e5ca5a50ee2c335e8678"></a>
 <div class="memitem">
 <div class="memproto">
@@ -11290,6 +11386,32 @@ template&lt;&gt; </div>
           <td></td>
           <td class="paramtype">const ParmParse::PP_entry &amp;&#160;</td>
           <td class="paramname"><em>pp</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a02c8cd4ab79d54be6c0e34f436679048"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::ostream&amp; amrex::operator&lt;&lt; </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const VolIndex &amp;&#160;</td>
+          <td class="paramname"><em>iv</em>&#160;</td>
         </tr>
         <tr>
           <td></td>

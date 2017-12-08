@@ -9,7 +9,7 @@ var searchData=
   ['sc',['sc',['../structamrex_1_1_derive_rec_1_1_state_range.html#ae011fd687383f2ecfa3e40ad6fdf7501',1,'amrex::DeriveRec::StateRange']]],
   ['send_5fcounter',['send_counter',['../structamrex_1_1_b_l_pgas_1_1_send_info.html#a1e25e68e8b714e694b162ce10632a726',1,'amrex::BLPgas::SendInfo']]],
   ['send_5fdata',['send_data',['../classamrex_1_1_neighbor_particle_container.html#a39e2ea9fe34f8cdfc4f2a15f9ae755e3',1,'amrex::NeighborParticleContainer']]],
-  ['seqnum',['SeqNum',['../structamrex_1_1_b_l_pgas_1_1_send_info.html#a0f87ec5b6df454be7bcd4298afbf362b',1,'amrex::BLPgas::SendInfo::SeqNum()'],['../structamrex_1_1_fab_array_1_1_f_a_b_moves.html#a9c320c40929b76f969d155e03cc1e925',1,'amrex::FabArray::FABMoves::seqNum()']]],
+  ['seqnum',['seqNum',['../structamrex_1_1_fab_array_1_1_f_a_b_moves.html#a9c320c40929b76f969d155e03cc1e925',1,'amrex::FabArray::FABMoves::seqNum()'],['../structamrex_1_1_b_l_pgas_1_1_send_info.html#a0f87ec5b6df454be7bcd4298afbf362b',1,'amrex::BLPgas::SendInfo::SeqNum()']]],
   ['seven',['seven',['../classamrex__constants__module.html#adcf19334126a0c0621bb1a5d277f513e',1,'amrex_constants_module']]],
   ['seven12th',['seven12th',['../classamrex__constants__module.html#a9da77625a7b0670eb8278879579f82f4',1,'amrex_constants_module']]],
   ['seventh',['seventh',['../classamrex__constants__module.html#a0b5112227b87f2cc4d60b17991780f73',1,'amrex_constants_module']]],

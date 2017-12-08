@@ -129,12 +129,14 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a04217c00e3a4229954f24ad72227892b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeb09f560e2058e95037514f55a2966ef"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#aeb09f560e2058e95037514f55a2966ef">isIrregular</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_region, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const </td></tr>
 <tr class="separator:aeb09f560e2058e95037514f55a2966ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a73bfd222a9171ffddad02ac8720d0c13"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#a73bfd222a9171ffddad02ac8720d0c13">fillGraph</a> (<a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a>&lt; int &gt; &amp;a_regIrregCovered, <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_irreg_node.html">IrregNode</a> &gt; &amp;a_nodes, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_validRegion, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_ghostRegion, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const =0</td></tr>
-<tr class="separator:a73bfd222a9171ffddad02ac8720d0c13"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a405f0f179f44d4ed8fd8de06cb330be8"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#a405f0f179f44d4ed8fd8de06cb330be8">fillGraph</a> (<a class="el" href="classamrex_1_1_base_fab.html">BaseFab</a>&lt; int &gt; &amp;a_regIrregCovered, <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_irreg_node.html">IrregNode</a> &gt; &amp;a_nodes, <a class="el" href="namespaceamrex.html#a805f8f0e43748ef1196245ca72f9fb8d">NodeMap</a> &amp;a_intersections, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_validRegion, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_ghostRegion, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const =0</td></tr>
+<tr class="separator:a405f0f179f44d4ed8fd8de06cb330be8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa467e9e18ad27c7bb0d42336d183de69"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#aa467e9e18ad27c7bb0d42336d183de69">canGenerateMultiCells</a> () const </td></tr>
 <tr class="separator:aa467e9e18ad27c7bb0d42336d183de69"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6c5065c429214160c238b59e4da601b3"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="classamrex_1_1_geometry_service.html#ab6546708b1e12c188511a708769040d0">InOut</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#a6c5065c429214160c238b59e4da601b3">InsideOutside</a> (const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_region, const <a class="el" href="classamrex_1_1_box.html">Box</a> &amp;a_domain, const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_origin, const Real &amp;a_dx) const </td></tr>
 <tr class="separator:a6c5065c429214160c238b59e4da601b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa6ab512e1d82f0030fd9eaf4f3d9431"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_geometry_service.html#afa6ab512e1d82f0030fd9eaf4f3d9431">pointOutside</a> (const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;a_pt) const </td></tr>
+<tr class="separator:afa6ab512e1d82f0030fd9eaf4f3d9431"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -230,7 +232,7 @@ Static Public Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a class="anchor" id="a73bfd222a9171ffddad02ac8720d0c13"></a>
+<a class="anchor" id="a405f0f179f44d4ed8fd8de06cb330be8"></a>
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
@@ -248,6 +250,12 @@ Static Public Member Functions</h2></td></tr>
           <td></td>
           <td class="paramtype"><a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; <a class="el" href="classamrex_1_1_irreg_node.html">IrregNode</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>a_nodes</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="namespaceamrex.html#a805f8f0e43748ef1196245ca72f9fb8d">NodeMap</a> &amp;&#160;</td>
+          <td class="paramname"><em>a_intersections</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -293,7 +301,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>irregGraph contains a complete list of irregular vofs. \ validRegion is the the region of the graph \ domain is the domain of compuation \ regIrregCovered = 1 for regular, 0 for irregular, -1 for covered. regIrregCovered must contain the valid region grown by 1. \ In chombospeak, \ ghostregion = (grow(validRegion, 1) &amp; domain); </p>
 
-<p>Implemented in <a class="el" href="classamrex_1_1_flat_plate_geom.html#aadd524db9a6d3a2f4a26e2ec7df55f15">amrex::FlatPlateGeom</a>, <a class="el" href="classamrex_1_1_geometry_shop.html#a93d5e4189fab0ba64152228a4a0c0f96">amrex::GeometryShop</a>, and <a class="el" href="classamrex_1_1_all_regular_service.html#aa8aa83378840c97d6c57e8dfd576a685">amrex::AllRegularService</a>.</p>
+<p>Implemented in <a class="el" href="classamrex_1_1_flat_plate_geom.html#ab46037ed4eac68d541c440963f2083ef">amrex::FlatPlateGeom</a>, <a class="el" href="classamrex_1_1_geometry_shop.html#a8046777ce66ee5db998b1091bb048e8a">amrex::GeometryShop</a>, and <a class="el" href="classamrex_1_1_all_regular_service.html#a67a0df53c8d27abccc4f9c049ebed374">amrex::AllRegularService</a>.</p>
 
 </div>
 </div>
@@ -586,6 +594,32 @@ Static Public Member Functions</h2></td></tr>
 <p>Return true if every cell in region is regular at the refinement described by dx. </p>
 
 <p>Implemented in <a class="el" href="classamrex_1_1_geometry_shop.html#ac89a95153592ae716ebc6f3a060dbdee">amrex::GeometryShop</a>, <a class="el" href="classamrex_1_1_flat_plate_geom.html#a5d1aa3ae41d5916b727db8fde1008bbc">amrex::FlatPlateGeom</a>, and <a class="el" href="classamrex_1_1_all_regular_service.html#a412bacd4a1f9019eb3100bb48fa048c0">amrex::AllRegularService</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="afa6ab512e1d82f0030fd9eaf4f3d9431"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool GeometryService::pointOutside </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_vect.html">RealVect</a> &amp;&#160;</td>
+          <td class="paramname"><em>a_pt</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Reimplemented in <a class="el" href="classamrex_1_1_geometry_shop.html#ac85b3da8014a368c88cdb41f26524aae">amrex::GeometryShop</a>.</p>
 
 </div>
 </div>
