@@ -36,6 +36,8 @@ public :
                   const Vector<const MultiFab*>& rhnd,
                   const Vector<const MultiFab*>& rhcc) const;
 
+    void updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const;
+
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
 
 protected:
