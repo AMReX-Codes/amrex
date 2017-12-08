@@ -5,8 +5,8 @@ module amrex_mlnodelap_3d_module
 
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
-       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, &
-       amrex_mlndlap_restriction, amrex_mlndlap_interpolation
+       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, amrex_mlndlap_gauss_seidel, &
+       amrex_mlndlap_restriction, amrex_mlndlap_interpolation, amrex_mlndlap_mknewu
 
 contains
 
@@ -34,6 +34,16 @@ contains
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
   end subroutine amrex_mlndlap_divu
+
+
+  subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &
+       bind(c,name='amrex_mlndlap_mknewu')
+    integer, dimension(2), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),2)
+    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
+  end subroutine amrex_mlndlap_mknewu
 
 
   subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &
@@ -71,6 +81,19 @@ contains
     real(amrex_real), intent(in   ) :: sz (szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3))
     
   end subroutine amrex_mlndlap_jacobi
+
+
+  subroutine amrex_mlndlap_gauss_seidel (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
+       sx, sxlo, sxhi, sy, sylo, syhi, dxinv, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_gauss_seidel')
+    integer, dimension(2),intent(in) :: lo,hi,slo,shi,rlo,rhi,sxlo,sxhi,sylo,syhi, &
+         domlo, domhi, bclo, bchi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) :: sx (sxlo(1):sxhi(1),sxlo(2):sxhi(2))
+    real(amrex_real), intent(in   ) :: sy (sylo(1):syhi(1),sylo(2):syhi(2))
+  end subroutine amrex_mlndlap_gauss_seidel
 
 
   subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, dlo, dhi, bclo, bchi) &

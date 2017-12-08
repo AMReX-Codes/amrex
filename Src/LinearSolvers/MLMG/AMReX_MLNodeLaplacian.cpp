@@ -110,6 +110,28 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 }
 
 void
+MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        const auto& sigma = *m_sigma[amrlev][0][0];
+        const Real* dxinv = m_geom[amrlev][0].InvCellSize();
+        for (MFIter mfi(*vel[amrlev], true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_mlndlap_mknewu(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD((*vel[amrlev])[mfi]),
+                                 BL_TO_FORTRAN_ANYD((*sol[amrlev])[mfi]),
+                                 BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                 dxinv);
+        }
+    }
+}
+
+void
 MLNodeLaplacian::averageDownCoeffs ()
 {
     BL_PROFILE("MLNodeLaplacian::averageDownCoeffs()");

@@ -8,7 +8,7 @@ module amrex_mlnodelap_2d_module
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
        amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, amrex_mlndlap_gauss_seidel, &
-       amrex_mlndlap_restriction, amrex_mlndlap_interpolation
+       amrex_mlndlap_restriction, amrex_mlndlap_interpolation, amrex_mlndlap_mknewu
 
 contains
 
@@ -152,6 +152,29 @@ contains
     end if
 
   end subroutine amrex_mlndlap_divu
+
+
+  subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &
+       bind(c,name='amrex_mlndlap_mknewu')
+    integer, dimension(2), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),2)
+    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
+
+    integer :: i, j
+    real(amrex_real) :: facx, facy
+
+    facx = 0.5d0*dxinv(1)
+    facy = 0.5d0*dxinv(2)
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          u(i,j,1) = u(i,j,1) - sig(i,j)*facx*(-p(i,j)+p(i+1,j)-p(i,j+1)+p(i+1,j+1))
+          u(i,j,2) = u(i,j,2) - sig(i,j)*facy*(-p(i,j)-p(i+1,j)+p(i,j+1)+p(i+1,j+1))
+       end do
+    end do
+  end subroutine amrex_mlndlap_mknewu
 
 
   subroutine amrex_mlndlap_applybc (phi, hlo, hhi, dlo, dhi, bclo, bchi) &
@@ -527,5 +550,6 @@ contains
     end if
 
   end subroutine amrex_mlndlap_bounds
+
 
 end module amrex_mlnodelap_2d_module
