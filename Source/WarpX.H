@@ -13,6 +13,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
+#include <AMReX_VisMF.H>
 
 #include <ParticleContainer.H>
 #include <WarpXPML.H>
@@ -381,6 +382,15 @@ private:
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
     bool plot_raw_fields_guards = false;
+
+    amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
+//    amrex::VisMF::Header::Version plotfile_headerversion   = amrex::VisMF::Header::NoFabHeader_v1;
+    amrex::VisMF::Header::Version plotfile_headerversion  = amrex::VisMF::Header::Version_v1;
+    bool use_single_read = true;
+    bool use_single_write = true;
+    int mffile_nstreams = 4;
+    int field_io_nfiles = 1024;
+    int particle_io_nfiles = 1024;
 
     amrex::RealVect fine_tag_lo;
     amrex::RealVect fine_tag_hi;

@@ -97,12 +97,12 @@ WarpX::WriteCheckPointFile() const
 {
     BL_PROFILE("WarpX::WriteCheckPointFile()");
 
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(checkpoint_headerversion);
+
     const std::string& checkpointname = amrex::Concatenate(check_file,istep[0]);
 
     amrex::Print() << "  Writing checkpoint " << checkpointname << "\n";
-
-    const int checkpoint_nfiles = 64;  // could make this parameter
-    VisMF::SetNOutFiles(checkpoint_nfiles);
 
     const int nlevels = finestLevel()+1;
     amrex::PreBuildDirectorHierarchy(checkpointname, level_prefix, nlevels, true);
@@ -171,6 +171,8 @@ WarpX::WriteCheckPointFile() const
     }
 
     mypc->Checkpoint(checkpointname, "particle", true);
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 
@@ -180,9 +182,6 @@ WarpX::InitFromCheckpoint ()
     BL_PROFILE("WarpX::InitFromCheckpoint()");
 
     amrex::Print() << "  Restart from checkpoint " << restart_chkfile << "\n";
-
-    const int checkpoint_nfiles = 64;  // could make this parameter
-    VisMF::SetNOutFiles(checkpoint_nfiles);
 
     // Header
     {
@@ -446,6 +445,9 @@ WarpX::WritePlotFile () const
 {
     BL_PROFILE("WarpX::WritePlotFile()");
 
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(plotfile_headerversion);
+
     const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
 
     amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
@@ -661,23 +663,23 @@ WarpX::WritePlotFile () const
         }
 #endif
 
+        Vector<std::string> rfs;
+        if (plot_raw_fields) rfs.emplace_back("raw_fields"); // pre-build raw_fields/
 	amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1,
                                        amrex::GetVecOfConstPtrs(mf),
-                                       varnames, Geom(), t_new[0], istep, refRatio());
+                                       varnames, Geom(), t_new[0], istep, refRatio(),
+                                       "HyperCLaw-V1.1",
+                                       "Level_",
+                                       "Cell",
+                                       rfs);
     }
 
     if (plot_raw_fields)
     {
-        const int raw_plot_nfiles = 64;  // could make this parameter
-        VisMF::SetNOutFiles(raw_plot_nfiles);
-
         const int nlevels = finestLevel()+1;
-        const std::string raw_plotfilename = plotfilename + "/raw_fields";
-        amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
-
         for (int lev = 0; lev < nlevels; ++lev)
         {
-
+            const std::string raw_plotfilename = plotfilename + "/raw_fields";
             // Plot auxilary patch
             if (plot_raw_fields_guards) {
                 VisMF::Write(*Efield_aux[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_aux"));
@@ -811,6 +813,8 @@ WarpX::WritePlotFile () const
     WriteJobInfo(plotfilename);
 
     WriteWarpXHeader(plotfilename);
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 void
@@ -821,13 +825,14 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
 {
     BL_PROFILE("WarpX::WritePlotFileES()");
 
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(plotfile_headerversion);
+
     const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
 
     amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
 
     const int nlevels = finestLevel()+1;
-    const std::string raw_plotfilename = plotfilename + "/raw_fields";
-    amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
 
     {
 	Vector<std::string> varnames;
@@ -863,19 +868,19 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
             dcomp += 1;
         }
 
+        Vector<std::string> rfs(1,"raw_fields"); // pre-build raw_fields/
         amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1,
                                        amrex::GetVecOfConstPtrs(mf),
-                                       varnames, Geom(), t_new[0], istep, refRatio());
+                                       varnames, Geom(), t_new[0], istep, refRatio(),
+                                       "HyperCLaw-V1.1",
+                                       "Level_",
+                                       "Cell",
+                                       rfs);
     }
 
     {
-        const int raw_plot_nfiles = 64;  // could make this parameter
-        VisMF::SetNOutFiles(raw_plot_nfiles);
-
-        const int nlevels = finestLevel()+1;
         const std::string raw_plotfilename = plotfilename + "/raw_fields";
-        amrex::PreBuildDirectorHierarchy(raw_plotfilename, level_prefix, nlevels, true);
-
+        const int nlevels = finestLevel()+1;
         for (int lev = 0; lev < nlevels; ++lev) {
             const DistributionMapping& dm = DistributionMap(lev);
 
@@ -919,6 +924,8 @@ WritePlotFileES (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
     WriteJobInfo(plotfilename);
 
     WriteWarpXHeader(plotfilename);
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 void
