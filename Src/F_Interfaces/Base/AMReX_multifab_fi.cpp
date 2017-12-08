@@ -77,6 +77,11 @@ extern "C" {
 	return mf->max(comp,nghost);
     }
 
+    Real amrex_fi_multifab_sum (const MultiFab* mf, int comp)
+    {
+	return mf->sum(comp);
+    }
+
     Real amrex_fi_multifab_norm0 (const MultiFab* mf, int comp)
     {
 	return mf->norm0(comp);
@@ -95,6 +100,16 @@ extern "C" {
     void amrex_fi_multifab_setval (MultiFab* mf, Real val, int ic, int nc, int ng)
     {
         mf->setVal(val, ic, nc, ng);
+    }
+
+    void amrex_fi_multifab_plus (MultiFab* mf, Real val, int ic, int nc, int ng)
+    {
+        mf->plus(val, ic, nc, ng);
+    }
+
+    void amrex_fi_multifab_mult (MultiFab* mf, Real val, int ic, int nc, int ng)
+    {
+        mf->mult(val, ic, nc, ng);
     }
 
     void amrex_fi_multifab_add (MultiFab* dstmf, const MultiFab* srcmf,

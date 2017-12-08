@@ -89,12 +89,29 @@ fabio_open_str(int* fdp, const int* ifilename, const int* flagp)
  */
 static const char* str_ieee_d = "64 11 52 0 1 12 0 1023";
 static const char* str_ieee_f = "32 8 23 0 1 9 0 127";
-#if defined(BL_AIX) || defined(BL_Darwin)
+#if defined(__sgi) || \
+    defined(__sun) || \
+    defined(_AIX)  || \
+    defined(__ppc__) || \
+    defined(__ppc64__) || \
+    defined(_SX)   || \
+    defined(__hpux)
+#if !defined(__LITTLE_ENDIAN__)
 static const int norder_d[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
 static const char* str_norder_d = "1 2 3 4 5 6 7 8";
 static const int norder_f[4] = { 1, 2, 3, 4};
 static const char* str_norder_f = "1 2 3 4";
-#else
+#endif
+#endif
+
+#if defined(__i486__) || \
+    defined(i386) || \
+    defined(__i386__) || \
+    defined(__x86_64) || \
+    defined(__amd64__) || \
+    defined(__LITTLE_ENDIAN__) || \
+    defined(__powerpc__) || \
+    defined(powerpc)
 static const int norder_d[8] = { 8, 7, 6, 5, 4, 3, 2, 1};
 static const char* str_norder_d = "8 7 6 5 4 3 2 1";
 static const int norder_f[4] = { 4, 3, 2, 1 };
