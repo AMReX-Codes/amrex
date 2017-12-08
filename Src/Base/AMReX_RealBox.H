@@ -64,6 +64,9 @@ public:
     void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM); xhi[dir] = a_hi; }
     //! Is the RealBox OK; i.e. does it have non-negative volume?
     bool ok () const;
+    //! Returns the volume of the RealBox. If this RealBox is invalid, 
+    //! it's volume is considered to be zero.
+    Real volume () const;
     //! Is the specified point contained in the RealBox?
     bool contains (const Real* point, Real eps=0.0) const;
     bool contains (const RealVect& rv, Real eps=0.0) const { return contains(rv.dataPtr(), eps); }
