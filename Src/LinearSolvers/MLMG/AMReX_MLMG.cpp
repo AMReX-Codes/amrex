@@ -587,9 +587,12 @@ MLMG::bottomSolve ()
 
         const Real cg_rtol = 1.e-4;
         const Real cg_atol = -1.0;
-        cg_solver.solve(x, b, cg_rtol, cg_atol);
-
-        for (int i = 0; i < nub; ++i) {
+        int ret = cg_solver.solve(x, b, cg_rtol, cg_atol);
+        if (ret != 0 && verbose >= 1) {
+            amrex::Print() << "MLMG: Bottom solve failed.\n";
+        }
+        const int n = ret==0 ? nub : nuf;
+        for (int i = 0; i < n; ++i) {
             linop.smooth(amrlev, mglev, x, b);
         }
     }

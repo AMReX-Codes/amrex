@@ -260,6 +260,8 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
         cmf = &cfine;
     }
 
+    const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][fmglev].Domain());
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -279,7 +281,9 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
                                         BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
                                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
                                                      BL_TO_FORTRAN_ANYD(syfab),
-                                                     BL_TO_FORTRAN_ANYD(szfab)));
+                                                     BL_TO_FORTRAN_ANYD(szfab)),
+                                        BL_TO_FORTRAN_BOX(nd_domain),
+                                        m_lobc.data(), m_hibc.data());
             fine[mfi].plus(tmpfab,fbx,fbx,0,0,1);
         }
     }
