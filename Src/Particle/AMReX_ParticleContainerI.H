@@ -1409,7 +1409,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                                                                                     int lev_min, int lev_max, int nGrow)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::RedistributeMPI()");
+    BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();

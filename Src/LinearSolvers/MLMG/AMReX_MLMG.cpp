@@ -42,7 +42,7 @@ Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_rela, Real a_tol_abs)
 {
-    BL_PROFILE("MLMG::solve()");
+    BL_PROFILE_REGION("MLMG::solve()");
 
     Real solve_start_time = ParallelDescriptor::second();
 

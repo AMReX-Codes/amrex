@@ -5,7 +5,7 @@ module amrex_ebcellflag_module
   private
   public :: is_regular_cell, is_single_valued_cell, is_multi_valued_cell, &
        is_covered_cell, get_neighbor_cells, num_neighbor_cells, &
-       set_regular_cell, amrex_ebcellflag_count
+       set_regular_cell, amrex_ebcellflag_count, get_neighbor_cells_int_single
   
   integer, parameter :: w_type      = 2
   integer, parameter :: w_numvofs   = 3
@@ -25,6 +25,18 @@ module amrex_ebcellflag_module
   end interface get_neighbor_cells
 
 contains
+
+  elemental function get_neighbor_cells_int_single (flag,i,j,k)
+    integer, intent(in) :: flag
+    integer, intent(in) :: i, j, k
+    integer :: get_neighbor_cells_int_single
+
+    if (btest(flag,pos_ngbr(i,j,k))) then
+      get_neighbor_cells_int_single = 1
+    else
+      get_neighbor_cells_int_single = 0
+    end if
+  end function get_neighbor_cells_int_single
   
   elemental logical function is_regular_cell (flag)
     integer, intent(in) :: flag
@@ -50,7 +62,7 @@ contains
 
   pure subroutine get_neighbor_cells_int (flag, ngbr)
     integer, intent(in) :: flag
-    integer, intent(inout) :: ngbr(-1:1,-1:1)
+    integer, intent(out) :: ngbr(-1:1,-1:1)
     integer :: i, j
     do j = -1,1
        do i = -1,1
@@ -65,7 +77,7 @@ contains
 
   pure subroutine get_neighbor_cells_real (flag, ngbr)
     integer, intent(in) :: flag
-    real(amrex_real), intent(inout) :: ngbr(-1:1,-1:1)
+    real(amrex_real), intent(out) :: ngbr(-1:1,-1:1)
     integer :: i, j
     do j = -1,1
        do i = -1,1
@@ -89,7 +101,7 @@ contains
 
   pure subroutine get_neighbor_cells_int (flag, ngbr)
     integer, intent(in) :: flag
-    integer, intent(inout) :: ngbr(-1:1,-1:1,-1:1)
+    integer, intent(out) :: ngbr(-1:1,-1:1,-1:1)
     integer :: i, j, k
     do k = -1,1
        do j = -1,1
@@ -106,7 +118,7 @@ contains
 
   pure subroutine get_neighbor_cells_real (flag, ngbr)
     integer, intent(in) :: flag
-    real(amrex_real), intent(inout) :: ngbr(-1:1,-1:1,-1:1)
+    real(amrex_real), intent(out) :: ngbr(-1:1,-1:1,-1:1)
     integer :: i, j, k
     do k = -1,1
        do j = -1,1

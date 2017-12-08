@@ -289,6 +289,21 @@ class BLProfiler
 };
 
 
+class BLProfileRegion
+{
+public:
+    BLProfileRegion (const std::string& a_regname)
+        : regname(a_regname)
+    {
+        BLProfiler::RegionStart(regname);
+    }
+
+    ~BLProfileRegion () { BLProfiler::RegionStop(regname); }
+private:
+    std::string regname;
+};
+
+
 namespace BLProfilerUtils {
   void WriteHeader(std::ostream &os, const int colWidth,
                    const Real maxlen, const bool bwriteavg);
@@ -389,6 +404,8 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_ADD_STEP(snum)  amrex::BLProfiler::AddStep(snum);
 #define BL_PROFILE_SET_RUN_TIME(rtime)  amrex::BLProfiler::SetRunTime(rtime);
 
+#define BL_PROFILE_REGION(rname) amrex::BLProfileRegion bl_profile_region__##vname((rname));
+
 #define BL_PROFILE_REGION_START(rname) amrex::BLProfiler::RegionStart(rname);
 #define BL_PROFILE_REGION_STOP(rname)  amrex::BLProfiler::RegionStop(rname);
 
@@ -454,8 +471,11 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
+#define BL_PROFILE_REGION(rname)          amrex::TinyProfileRegion tiny_profile_region__##vname((rname));
 #define BL_PROFILE_REGION_START(rname)
 #define BL_PROFILE_REGION_STOP(rname)
+//#define BL_PROFILE_REGION_START(rname)    amrex::TinyProfiler::StartRegion(rname);
+//#define BL_PROFILE_REGION_STOP(rname)     amrex::TinyProfiler::StopRegion(rname);
 #define BL_PROFILE_REGION_VAR(fname, rvname)
 #define BL_PROFILE_REGION_VAR_START(fname, rvname)
 #define BL_PROFILE_REGION_VAR_STOP(fname, rvname)
@@ -508,6 +528,7 @@ class BLProfiler
 #define BL_PROFILE_INIT_PARAMS(ptl,wall,wfabs)
 #define BL_PROFILE_ADD_STEP(snum)
 #define BL_PROFILE_SET_RUN_TIME(rtime)
+#define BL_PROFILE_REGION(rname)
 #define BL_PROFILE_REGION_START(rname)
 #define BL_PROFILE_REGION_STOP(rname)
 #define BL_PROFILE_REGION_VAR(fname, rvname)
