@@ -1969,7 +1969,7 @@ template&lt;int NStructReal, int NStructInt, int NArrayReal, int NArrayInt&gt; <
         </tr>
       </table>
 </div><div class="memdoc">
-<p>This initializes the particle container with icount randomly distributed particles. If serialize is true, then the particles will all be generated on the IO Process, and the particle positions will be broadcast to all other process. If serialize is false, then the particle positions will be randomly generated in parallel, which each process using the random seed iseed + MyProc. The particles can be constrained to lie within the <a class="el" href="classamrex_1_1_real_box.html" title="A Box with real dimensions. A RealBox is OK iff volume &gt; 0. ">RealBox</a> bx, if so desired. The default is the full domain. </p>
+<p>This initializes the particle container with icount randomly distributed particles. If serialize is true, then the particles will all be generated on the IO Process, and the particle positions will be broadcast to all other process. If serialize is false, then the particle positions will be randomly generated in parallel, which each process using the random seed iseed + MyProc. The particles can be constrained to lie within the <a class="el" href="classamrex_1_1_real_box.html" title="A Box with real dimensions. A RealBox is OK iff volume &gt;= 0. ">RealBox</a> bx, if so desired. The default is the full domain. </p>
 
 </div>
 </div>
