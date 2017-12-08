@@ -115,12 +115,12 @@ void getIrregularStencil(VoFStencil           & a_stencil,
 }
 ////////////
 void 
-defineGeometry(BaseFab<int>           & a_regIrregCovered,
-               std::vector<IrregNode> & a_nodes,
-               const Real             & a_radius,
-               const RealVect         & a_center,
-               const Box              & a_domain,
-               const Real             & a_dx)
+defineGeometry(BaseFab<int>      & a_regIrregCovered,
+               Vector<IrregNode> & a_nodes,
+               const Real        & a_radius,
+               const RealVect    & a_center,
+               const Box         & a_domain,
+               const Real        & a_dx)
 {
   //inside regular tells whether domain is inside or outside the sphere
   //bool insideRegular = true;
@@ -297,8 +297,9 @@ applyStencilAllFortran(EBCellFAB                       & a_dst,
 			     &(bndry_normals[0]), &(bndry_centroids[0]), &(ivs[0]), &num_tileNodes, &a_dx);
 
       gtmp.resize(num_tileNodes);
+      const BaseFab<Real> &  rega_src = a_src.getSingleValuedFAB();
       apply_bndry_grad_stencil(&(gtmp[0]), &(bndry_values[0]),
-                               BL_TO_FORTRAN_N(a_src,0),
+                               BL_TO_FORTRAN_N(rega_src,0),
                                &(stencilData[tid][0]), &(stencilBData[tid][0]), &(stencilBase[tid][0]),
                                &num_tileNodes);
     }
@@ -337,7 +338,7 @@ int testStuff()
   Vector<Real> probLo(SpaceDim,0);
 
   BaseFab<int> regIrregCovered;
-  std::vector<IrregNode>  nodes;
+  Vector<IrregNode>  nodes;
   RealVect center;
   for(int idir = 0; idir < SpaceDim; idir++)
   {
@@ -348,10 +349,11 @@ int testStuff()
   BL_PROFILE_VAR("define_geometry",dg);
   defineGeometry(regIrregCovered, nodes, radius, center, domain, dx[0]); 
   BL_PROFILE_VAR_STOP(dg);
-  
+#if 0  
   EBCellFAB src(grow(domain, 1), 1); //for a ghost cell
   BL_PROFILE_VAR("init_data",init);
-  init_phi(BL_TO_FORTRAN_N(src,0),
+  BaseFab<Real> &  regsrc = src.getSingleValuedFAB();
+  init_phi(BL_TO_FORTRAN_N(regsrc,0),
            src.box().loVect(), src.box().hiVect(),
            &(probLo[0]), &(dx[0]));
   BL_PROFILE_VAR_STOP(init);
@@ -368,7 +370,7 @@ int testStuff()
   BL_PROFILE_VAR("fortran_everywhere",fe);
   applyStencilAllFortran(dst, src, stencils, regIrregCovered, nodes, domain, dx[0]);
   BL_PROFILE_VAR_STOP(fe);
-  
+#endif
   return eekflag;
 }
 

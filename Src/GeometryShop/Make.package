@@ -5,9 +5,8 @@ ifeq ($(LBASE),GeometryShop)
 endif
 
 
-C$(GEOMETRYSHOP_BASE)_headers += AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H
-C$(GEOMETRYSHOP_BASE)_sources +=                 AMReX_GeometryShop.cpp AMReX_Moments.cpp 
-
+C$(GEOMETRYSHOP_BASE)_headers += AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H   AMReX_GeomIntersectUtils.H
+C$(GEOMETRYSHOP_BASE)_sources +=                 AMReX_GeometryShop.cpp AMReX_Moments.cpp AMReX_GeomIntersectUtils.cpp
 C$(GEOMETRYSHOP_BASE)_headers +=  AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_PlaneIF.H    AMReX_IrregNode.H   AMReX_LoHiSide.H 
 C$(GEOMETRYSHOP_BASE)_sources +=  AMReX_LSquares.cpp AMReX_SphereIF.cpp  AMReX_PlaneIF.cpp  AMReX_IrregNode.cpp AMReX_LoHiSide.cpp
 

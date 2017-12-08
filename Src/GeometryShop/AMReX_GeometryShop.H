@@ -54,7 +54,8 @@ namespace amrex
        Define the internals of the input ebisRegion.
     */
     virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                           Vector<IrregNode>&    a_nodes,
+                           Vector<IrregNode>&   a_nodes,
+                           NodeMap&             a_intersects,
                            const Box&           a_validRegion,
                            const Box&           a_ghostRegion,
                            const Box&           a_domain,
@@ -65,6 +66,9 @@ namespace amrex
                                                  const Box&           a_domain,
                                                  const RealVect&      a_origin,
                                                  const Real&          a_dx) const override;
+
+    virtual bool pointOutside(const RealVect& a_pt) const override;
+
     /**
      */
     void computeVoFInternals(Real&                a_volFrac,
@@ -78,6 +82,7 @@ namespace amrex
                              RealVect&            a_bndryCentroid,
                              std::array<Vector<RealVect>,SpaceDim>& a_loFaceCentroid,
                              std::array<Vector<RealVect>,SpaceDim>& a_hiFaceCentroid,
+                             NodeMap&             a_intersects,
                              const BaseFab<int>&  a_regIrregCovered,
                              const Box&           a_domain,
                              const RealVect&      a_origin,
@@ -134,6 +139,7 @@ namespace amrex
 
 
     void edgeData3D(edgeMo               a_edges[4],
+                    NodeMap&             a_intersections,
                     bool&                a_faceCovered,
                     bool&                a_faceRegular,
                     bool&                a_faceDontKnow,
@@ -144,14 +150,15 @@ namespace amrex
                     const Box&           a_domain,
                     const RealVect&      a_origin) const;
 
-    void edgeData2D(edgeMo               a_edges[4],
-                    bool&                a_faceCovered,
-                    bool&                a_faceRegular,
-                    bool&                a_faceDontKnow,
-                    const Real&          a_dx,
-                    const IntVect&       a_coord,
-                    const Box&           a_domain,
-                    const RealVect&      a_origin) const;
+    void edgeData2D(edgeMo          a_edges[4],
+                    NodeMap&        a_intersections,
+                    bool&           a_faceCovered,
+                    bool&           a_faceRegular,
+                    bool&           a_faceDontKnow,
+                    const Real&     a_dx,
+                    const IntVect&  a_iv,
+                    const Box&      a_domain,
+                    const RealVect& a_origin) const;
 
     void edgeType(bool& a_regular,
                   bool& a_covered,

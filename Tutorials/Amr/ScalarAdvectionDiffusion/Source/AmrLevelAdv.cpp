@@ -72,7 +72,7 @@ namespace amrex
         const int* hi      = box.hiVect();
         int nref = refrat[0];
 
-        timeinterprk3_simplepoly(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+        timeinterprk3_jbb(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
                           BL_TO_FORTRAN_3D(  phiC[mfi]),
                           BL_TO_FORTRAN_3D(  oldC[mfi]),
                           BL_TO_FORTRAN_3D(    k1[mfi]),
