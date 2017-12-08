@@ -1,8 +1,8 @@
 #ifndef _GeomIntersectUtils_H_
 #define _GeomIntersectUtils_H_
 
-#include <AMReX_RealVect.H>
 #include <AMReX_IntVect.H>
+#include <AMReX_Print.H>
 #include <list>
 #include <map>
 
@@ -28,10 +28,23 @@ namespace amrex
   std::ostream& operator<<(std::ostream& os, const Edge& e);
 
   /*
-    Data (a node) on a set of edges
+    A data set on edges
    */
-  typedef std::map<Edge, RealVect> NodeMap;
+  typedef std::pair<Edge, amrex::Vector<amrex::Real>> Node;
+  typedef std::map<Edge, amrex::Vector<amrex::Real>> NodeMap;
   typedef NodeMap::iterator NodeMapIt;
+
+  struct ContourFragment
+  {
+    ContourFragment()  {}
+    ContourFragment(size_t len) : m_pts(len) {}
+    const NodeMapIt& operator[] (int n) const { return m_pts[n]; }
+    NodeMapIt& operator[] (int n) { return m_pts[n]; }
+    size_t size() const {return m_pts.size();}
+
+  protected:
+    Vector<NodeMapIt> m_pts;
+  };
 
   /*
     Connects three nodes from the above map in order to form a 
@@ -40,12 +53,15 @@ namespace amrex
     surface.
    */
   struct Triangle
+    : public ContourFragment
   {
-    Triangle() : p(3) {}
-    Real Area();
-    const NodeMapIt& operator[] (int n) const { return p[n]; }
-    NodeMapIt& operator[] (int n) { return p[n]; }
-    Array<NodeMapIt> p;
+    Triangle() : ContourFragment(3) {}
+    Triangle(const NodeMapIt& p0, const NodeMapIt& p1, const NodeMapIt& p2) : ContourFragment(3)
+    {
+      (*this)[0] = p0;
+      (*this)[1] = p1;
+      (*this)[2] = p2;
+    }
   };
 
   /*
@@ -54,16 +70,14 @@ namespace amrex
     representing an isocontour or embedded boundary surface.
    */
   struct Segment
+    : public ContourFragment
   {
-    Segment() {}
-    Segment(const NodeMapIt& p1, const NodeMapIt& p2) : p({p1, p2}) {}
-    const NodeMapIt& ID_l() const {return p[0];}
-    const NodeMapIt& ID_r() const {return p[1];}
-    const NodeMapIt& operator[] (int n) const { return p[n]; }
-    NodeMapIt& operator[] (int n) { return p[n]; }
-    void flip ();
-  protected:
-    std::array<NodeMapIt,2> p;
+    Segment() : ContourFragment(2) {}
+    Segment(const NodeMapIt& p0, const NodeMapIt& p1) : ContourFragment(2)
+    {
+      (*this)[0] = p0;
+      (*this)[1] = p1;
+    }
   };
 }
 #endif

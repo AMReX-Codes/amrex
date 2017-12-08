@@ -34,12 +34,4 @@ namespace amrex
     os << e.IV_l << " " << e.IV_r << " " << e.ID;
     return os;
   }
-
-  void
-  Segment::flip()
-  {
-    NodeMapIt ptmp = p[0];
-    p[0] = p[1];
-    p[1] = ptmp;
-  }
 }

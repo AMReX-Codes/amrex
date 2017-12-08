@@ -204,8 +204,8 @@ namespace amrex
       if (rev == intersects.end())
       {
 	edge.ID = intersects.size(); // Number this edge
-	std::pair<Edge,RealVect> ent(edge,intersect);
-	std::pair<NodeMapIt,bool> it = intersects.insert(ent);
+        Vector<Real> node = {D_DECL(intersect[0],intersect[1],intersect[2])};
+	auto it = intersects.insert(make_pair(edge,node));
 	BL_ASSERT(it.second);
 	return make_pair(true,it.first);
       }
@@ -1907,7 +1907,7 @@ namespace amrex
                     {
                       const NodeMapIt& pmit = bpit.second;
                       IntVect diff = p2 - p1;
-                      RealVect& intersect = pmit->second;
+                      auto& intersect = pmit->second;
 
                       intersect[a_faceNormal] = a_origin[a_faceNormal]+
                         (a_iv[a_faceNormal]+a_hiLoFace)*a_dx;
@@ -2059,9 +2059,7 @@ namespace amrex
                 a_faceDontKnow = true;
 
                 // find where the surface intersects the edge
-                Real intercept;
-
-                intercept = BrentRootFinder(LoPt, HiPt, range);
+                auto intercept = BrentRootFinder(LoPt, HiPt, range);
 
                 // choose the midpoint for an ill-conditioned problem
                 if (intercept<LoPt[range] || intercept>HiPt[range])
@@ -2085,16 +2083,16 @@ namespace amrex
                     amrex::Error("Bogus intersection calculated");
                   }
 
-		IntVect p1 = a_iv + lohi*BASISV(domain);
-		IntVect p2 = p1   + BASISV(range);
+		auto p1 = a_iv + lohi*BASISV(domain);
+		auto p2 = p1   + BASISV(range);
 		RealVect iPoint;
 		iPoint[range] = intercept;
-		pair<bool,NodeMapIt> bpit = InsertNode(p1,p2,iPoint,a_intersections);
+		auto bpit = InsertNode(p1,p2,iPoint,a_intersections);
 		if (bpit.first)
 		{
-		  const NodeMapIt& pmit = bpit.second;
-		  IntVect diff = p2 - p1;
-		  RealVect& intersect = pmit->second;
+		  const auto& pmit = bpit.second;
+		  auto diff = p2 - p1;
+		  auto& intersect = pmit->second;
                   intersect[domain] = a_origin[domain] + p1[domain]*a_dx;
                   intersect[range] = intercept;
 		}
