@@ -938,23 +938,24 @@ void CommProfStats::ReportStats(long &totalSentData, long &totalNCommStats,
 
 
 // ----------------------------------------------------------------------
-void CommProfStats::FindTimeRange(Real &timeMin, Real &timeMax) {
+void CommProfStats::FindTimeRange(BLProfStats::TimeRange& tr) {
   for(int idb(0); idb < dataBlocks.size(); ++idb) {  // ---- go through dataBlocks
     DataBlock &dBlock = dataBlocks[idb];
-    timeMin = std::min(timeMin, dBlock.timeMin);
-    timeMax = std::max(timeMax, dBlock.timeMax);
+    tr.startTime = std::min(tr.startTime, dBlock.timeMin);
+    tr.stopTime  = std::max(tr.stopTime,  dBlock.timeMax);
   }
 }
 
-
 // ----------------------------------------------------------------------
 void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
-                                const double tlo, const double thi,
+                                const BLProfStats::TimeRange tr,
                                 const int rankMin, const int rankMax,
 			        const int rankStride,
 				const Real ntnMultiplier, const Vector<Real> &ntnNumbers,
 				const Real bnMultiplier, const Vector<Real> &bnNumbers)
 {
+  Real tlo = tr.startTime;
+  Real thi = tr.stopTime;
   Real timeRangeAll(thi - tlo);
   //Real ooTimeRangeAll(1.0 / timeRangeAll);
   Real dt(timeRangeAll / probDomain.length(XDIR));

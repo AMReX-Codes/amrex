@@ -341,16 +341,18 @@ bool ProfParserBatchFunctions(int argc, char *argv[], bool runDefault,
     }
     if(bUseDispatch) {
       if(bIOP) {
-        DataServices::Dispatch(DataServices::RunTimelinePFRequest, &pdServices,
+        cout << "Dispatched batch timelinepf currently unavailable." << endl;
+/*        DataServices::Dispatch(DataServices::RunTimelinePFRequest, &pdServices,
                                    (void *) &(mpiFuncNames),
                                    (void *) &(plotfileName),
 				   maxSmallImageLength,
 				   refRatioAll,
 				   nTimeSlots,
-				   &proxMap);
+				   &statsCollected);*/
       }
     } else {
-      pdServices.RunTimelinePF(mpiFuncNames, plotfileName,
+      BLProfStats::TimeRange subTimeRange = pdServices.FindCalcTimeRange();
+      pdServices.RunTimelinePF(mpiFuncNames, plotfileName, subTimeRange, 
 			       maxSmallImageLength, refRatioAll,
 			       nTimeSlots, statsCollected);
     }

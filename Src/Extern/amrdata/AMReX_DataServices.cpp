@@ -116,17 +116,14 @@ DataServices::DataServices(const string &filename, const Amrvis::FileType &filet
 {
   numberOfUsers = 0;  // the user must do all incrementing and decrementing
   bAmrDataOk = amrData.ReadData(fileName, fileType);
-  cout << "bAmrDataOk: " << bAmrDataOk << endl;
   profiler = (fileType == Amrvis::PROFDATA);
 
-//  if( ! profiler) {
-    if((bAmrDataOk)||(profiler)) {
-      dsArrayIndex = DataServices::dsArrayIndexCounter;
-      ++DataServices::dsArrayIndexCounter;
-      DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
-      DataServices::dsArray[dsArrayIndex] = this;
-    }
-//  }
+  if((bAmrDataOk)||(profiler)) {
+    dsArrayIndex = DataServices::dsArrayIndexCounter;
+    ++DataServices::dsArrayIndexCounter;
+    DataServices::dsArray.resize(DataServices::dsArrayIndexCounter);
+    DataServices::dsArray[dsArrayIndex] = this;
+  }
 
 #ifdef BL_USE_PROFPARSER
   bProfDataAvailable = false;
@@ -997,7 +994,7 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     }
     break;
 
-   case CheckProfDataRequest:
+    case CheckProfDataRequest:
     {
       std::cout << "Dispatch::---- CheckProfDataRequest" << std::endl;
       ds->CheckProfData();
@@ -1063,17 +1060,19 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
 
       std::map<int, std::string> *mpiFuncNamesPtr;
       std::string *plotfileNamePtr;
+      BLProfStats::TimeRange *subTimeRange;
       int maxSmallImageLength, refRatioAll, nTimeSlots;
       bool *statsCollectedPtr;
 
       mpiFuncNamesPtr = (std::map<int, std::string> *) va_arg(ap, void *);
       plotfileNamePtr =  (std::string *) va_arg(ap, void *);
+      subTimeRange = (BLProfStats::TimeRange *) va_arg(ap, void *); 
       maxSmallImageLength = va_arg(ap, int);
       refRatioAll = va_arg(ap, int);
       nTimeSlots = va_arg(ap, int);
       statsCollectedPtr = (bool *) va_arg(ap, bool *);
 
-      ds->RunTimelinePF(*mpiFuncNamesPtr, *plotfileNamePtr, maxSmallImageLength,
+      ds->RunTimelinePF(*mpiFuncNamesPtr, *plotfileNamePtr, *subTimeRange, maxSmallImageLength,
                          refRatioAll, nTimeSlots, *statsCollectedPtr);
     }
     break;
@@ -2264,11 +2263,52 @@ void DataServices::RunSendsPF(std::string &plotfileName,
 #endif
 }
 
+// ----------------------------------------------------------------------
+BLProfStats::TimeRange DataServices::FindCalcTimeRange()
+{
+    BL_PROFILE("DataServices::FindCalcTimeRange()");
+
+    bool bIOP(ParallelDescriptor::IOProcessor());
+    int  myProc(ParallelDescriptor::MyProc());
+    int  nProcs(ParallelDescriptor::NProcs());
+ 
+    const Vector<string> &commHeaderFileNames = CommProfStats::GetHeaderFileNames();
+    BLProfStats::TimeRange calcTimeRange(std::numeric_limits<Real>::max(), -std::numeric_limits<Real>::max());
+
+    // find the calc's min and max times.  the user could set these, too.
+    if(myProc < commHeaderFileNames.size()) {
+      for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
+        if(myProc == hfnI % nProcs) {
+          CommProfStats commOutputStats;
+          std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
+
+          if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
+            if(bIOP) {
+              cerr << "DataServices::RunTimelinePF:  1:  Cannot open file:  " << commDataHeaderFileName
+                   << " ... continuing." << endl;
+            }
+            continue;
+          }
+          yyparse(&commOutputStats);
+          fclose(yyin);
+          commOutputStats.FindTimeRange(calcTimeRange);
+        }
+      }
+    }
+    ParallelDescriptor::ReduceRealMin(calcTimeRange.startTime);
+    ParallelDescriptor::ReduceRealMax(calcTimeRange.stopTime);
+    if(bIOP) {
+      cout << "++++ calcTimeRange = " << calcTimeRange << endl;
+    }
+
+    return calcTimeRange;
+}
 
 // ----------------------------------------------------------------------
 void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
                                      std::string &plotfileName,
-                                     int  maxSmallImageLength,
+                                     BLProfStats::TimeRange &subTimeRange,
+                                     int maxSmallImageLength,
                                      int refRatioAll, int nTimeSlots,
 	                             bool &statsCollected)
 {
@@ -2278,7 +2318,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
   cout << "**** Error:  DataServices::RunTimelinePF is only supported for 2D" << endl;
 #else
     bool bIOP(ParallelDescriptor::IOProcessor());
-    int  myProc(ParallelDescriptor::MyProc());
     int  nProcs(ParallelDescriptor::NProcs());
     int dataNProcs(BLProfStats::GetNProcs());
 
@@ -2302,37 +2341,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     }
 
     double dstart(ParallelDescriptor::second());
-
-    Real calcTimeMin( std::numeric_limits<Real>::max());
-    Real calcTimeMax(-std::numeric_limits<Real>::max());
-
-    // find the calc's min and max times.  the user could set these, too.
-    if(myProc < commHeaderFileNames.size()) {
-      for(int hfnI(0); hfnI < commHeaderFileNames.size(); ++hfnI) {
-        if(myProc == hfnI % nProcs) {
-          CommProfStats commOutputStats;
-          std::string commDataHeaderFileName(fileName + '/' + commHeaderFileNames[hfnI]);
-
-          if( ! ( yyin = fopen(commDataHeaderFileName.c_str(), "r"))) {
-            if(bIOP) {
-              cerr << "DataServices::RunTimelinePF:  1:  Cannot open file:  " << commDataHeaderFileName
-                   << " ... continuing." << endl;
-            }
-            continue;
-          }
-          yyparse(&commOutputStats);
-          fclose(yyin);
-          commOutputStats.FindTimeRange(calcTimeMin, calcTimeMax);
-        }
-      }
-    }
-    ParallelDescriptor::ReduceRealMin(calcTimeMin);
-    ParallelDescriptor::ReduceRealMax(calcTimeMax);
-    if(bIOP) {
-      cout << "++++ calcTimeMin calcTimeMax = " << calcTimeMin
-           << "  " << calcTimeMax << endl;
-    }
-
 
     int rankMin(0), rankMax(dataNProcs - 1), rankStride(1);
 
@@ -2382,6 +2390,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
       if(bIOP) cout << "************ dnpBoxArray = " << dnpBoxArray << endl;
       const DistributionMapping dnpDM(dnpBoxArray);
       state[iLevel].define(dnpBoxArray, dnpDM, numState, nGrow);
+
       MultiFab &timelineMF = state[iLevel];
       timelineMF.setVal(-1.0, 0, 1);       // Timeline initialization
       timelineMF.setVal(0.0, 1, 1);        // MPI count initialization
@@ -2390,7 +2399,6 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
         // everyone reads all headers
         //int hfnI((hfnI_I + myProc) % commHeaderFileNames.size());  // cycle reads
         int hfnI(hfnI_I);
-
 
         CommProfStats commOutputStats;
         if(bRegionDataAvailable) {
@@ -2410,7 +2418,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
         yyparse(&commOutputStats);
         fclose(yyin);
-
+ 
         if(hfnI_I == 0) {  // this assumes all headers have the same nametag and barrier names
           // ---- this part encodes the name tag name into the NameTag cfType value
           nameTagNames = commOutputStats.NameTagNames();
@@ -2441,10 +2449,9 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
 
         for(MFIter mfi(timelineMF); mfi.isValid(); ++mfi) {
           FArrayBox &timelineFAB = timelineMF[mfi.index()];
-
           commOutputStats.TimelineFAB(timelineFAB, probDomain[iLevel],
-                                  calcTimeMin, calcTimeMax,
-                                  rankMin, rankMax, rankStride * cRR[YDIR],
+                                  subTimeRange, rankMin, rankMax,
+                                  rankStride * cRR[YDIR],
                                   ntnMultiplier, ntnNumbers, bnMultiplier, bnNumbers);
         }
       }
@@ -2472,7 +2479,7 @@ void DataServices::RunTimelinePF(std::map<int, string> &mpiFuncNames,
     if(bIOP) { cout << "Writing plotfile:  " << plotfileName << endl; }
 
     std::string plotFileVersion("CommProfTimeline-V1.0");
-    Real time(calcTimeMax);
+    Real time(subTimeRange.stopTime);
     Vector<Real> probLo(BL_SPACEDIM, 0.0);
     Vector<Real> probHi(BL_SPACEDIM, 1.0);
     Vector<int>  refRatioPerLevel(sqState.size() - 1);

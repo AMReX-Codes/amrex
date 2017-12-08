@@ -89,6 +89,14 @@ class BLProfStats {
       bool operator!=(const TimeRange &rhs) const {
         return((startTime != rhs.startTime) || (stopTime != rhs.stopTime));
       }
+      TimeRange operator=(const TimeRange &rhs) {
+        if (rhs != *this)
+        {
+          startTime = rhs.startTime;
+          stopTime = rhs.stopTime;
+        }
+        return *this;
+      }
       std::ostream& operator<<(std::ostream& os) {
         os << startTime << " - " << stopTime;
         if (os.fail()) { amrex::Error("output for TimeRange failed"); }

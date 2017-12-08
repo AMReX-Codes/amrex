@@ -171,6 +171,7 @@ class DataServices {
 
     void RunTimelinePF(std::map<int, string> &mpiFuncNames,
                        std::string &plotfileName,
+                       BLProfStats::TimeRange& subTimeRange,
                        int maxSmallImageLength,
                        int refRatioAll,
                        int nTimeSlots,
@@ -185,6 +186,7 @@ class DataServices {
     void RunSendRecvList();
     void RunSendRecv();
 
+    BLProfStats::TimeRange FindCalcTimeRange();
     void MakeRegionPlt(std::string &plotfileName);
     void MakeFilterFile(std::string &fFileName);
 
