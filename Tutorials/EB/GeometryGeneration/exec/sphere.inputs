@@ -1,9 +1,8 @@
 # n_cell = 40 40 40 
+max_grid_size = 16
 # n_cell = 32 32 32
-# n_cell = 64 64 64
- n_cell = 128 128 128
-# n_cell = 256 256 256
-# n_cell = 512 512 512
+n_cell = 64 64 64
+# n_cell = 128 128 128
 
 #the test will fail (properly) if the sphere is not contained in the domain
 #the exact values assume the whole sphere is inside the domain
@@ -11,3 +10,6 @@ verbosity = 10;
 sphere_center = 0.5 0.5 0.5
 sphere_radius = 0.4
 domain_length = 1.0 
+insideRegular = true 
+geometry.prob_lo = 0.0 0.0 0.0 
+geometry.prob_hi = 1.0 1.0 1.0 
