@@ -126,7 +126,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             {
                 if (verbose >= 1) {
                     amrex::Print() << "MLMG: Final Iter. " << iter+1
-                                   << " resid/" << norm_name << " = "
+                                   << " resid, resid/" << norm_name << " = "
+                                   << composite_norminf << ", "
                                    << composite_norminf/max_norm << "\n";
                 }
                 break;
@@ -134,7 +135,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         }
         if (!converged) {
             amrex::Print() << "MLMG: Failed to converge after " << max_iters << " iterations."
-                           << " resid/" << norm_name << " = "
+                           << " resid, resid/" << norm_name << " = "
+                           << composite_norminf << ", "
                            << composite_norminf/max_norm << "\n";
             amrex::Abort("MLMG failed");
         }
