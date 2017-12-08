@@ -20,6 +20,7 @@
 #include "AMReX_RealVect.H"
 #include "AMReX_Box.H"
 #include "AMReX_IrregNode.H"
+#include "AMReX_GeomIntersectUtils.H"
 
 
 namespace amrex
@@ -79,7 +80,8 @@ namespace amrex
        ghostregion = (grow(validRegion, 1) & domain);
     */
     virtual void fillGraph(BaseFab<int>&        a_regIrregCovered,
-                           Vector<IrregNode>&    a_nodes,
+                           Vector<IrregNode>&   a_nodes,
+                           NodeMap&             a_intersections,
                            const Box&           a_validRegion,
                            const Box&           a_ghostRegion,
                            const Box&           a_domain,
@@ -89,12 +91,14 @@ namespace amrex
       
       
     virtual bool canGenerateMultiCells() const;
-      
+
     virtual InOut InsideOutside(const Box&           a_region,
                                 const Box&           a_domain,
                                 const RealVect&      a_origin,
-                                const Real&          a_dx) const ;
-      
+                                const Real&          a_dx) const;
+
+    virtual bool pointOutside(const RealVect& a_pt) const;
+
       
     ///handy functions to do rectangle intersections in real space
     static bool intersection(const RealVect& a_lo1, const RealVect& a_hi1,
@@ -105,7 +109,7 @@ namespace amrex
                              const Real&          a_dx,
                              const RealVect&      a_lower,
                              const RealVect&      a_upper);
-      
+
   };
 }
 
