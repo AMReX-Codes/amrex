@@ -228,7 +228,6 @@ namespace amrex
 #else
     amrex::Abort("buildEBSurface not applicable to 1D");
 #endif
-    Vector<list<list<Segment>>> contourLines;
 
     for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
     {

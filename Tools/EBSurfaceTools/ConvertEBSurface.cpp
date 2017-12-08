@@ -122,7 +122,6 @@ main (int   argc,
         Edge e(L,R);
         e.ID = j;
         auto p = make_pair(e,data);
-        AMREX_ASSERT(ret.second);
 
         auto res = nodeMap.find(e);
         if (res == nodeMap.end()) {
