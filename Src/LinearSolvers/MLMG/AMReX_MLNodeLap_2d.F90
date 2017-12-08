@@ -7,7 +7,7 @@ module amrex_mlnodelap_2d_module
 
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
-       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, &
+       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, amrex_mlndlap_gauss_seidel, &
        amrex_mlndlap_restriction, amrex_mlndlap_interpolation
 
 contains
@@ -20,6 +20,16 @@ contains
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
 
     integer :: i,j
+
+#ifdef MATCH_F90MG_MODE
+
+    do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          crse(i,j) = 0.25d0*(fine(2*i,2*j)+fine(2*i+1,2*j)+fine(2*i,2*j+1)+fine(2*i+1,2*j+1))
+       end do
+    end do
+
+#else
 
     if (idim .eq. 0) then
        do j = lo(2), hi(2)
@@ -36,6 +46,9 @@ contains
           end do
        end do
     end if
+
+#endif
+
   end subroutine amrex_mlndlap_avgdown_coeff
 
 
@@ -290,24 +303,85 @@ contains
     real(amrex_real), intent(in   ) :: sx (sxlo(1):sxhi(1),sxlo(2):sxhi(2))
     real(amrex_real), intent(in   ) :: sy (sylo(1):syhi(1),sylo(2):syhi(2))
 
-    integer :: i,j
+    integer :: i,j, inlo(2), inhi(2)
     real(amrex_real) :: facx, facy
     real(amrex_real), parameter :: omega = 2.d0/3.d0
 
     facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
 
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          sol(i,j) = (1.d0-omega)*sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
+    inlo = lo
+    inhi = hi
+    call amrex_mlndlap_bounds(inlo, inhi, domlo, domhi, bclo, bchi)
+
+    do    j = inlo(2), inhi(2)
+       do i = inlo(1), inhi(1)
+          sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
                / (facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
                +  facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
        end do
     end do
 
-    call amrex_mlndlap_apply_dirichlet(lo, hi, sol, slo, shi, domlo, domhi, bclo, bchi)
+!    call amrex_mlndlap_apply_dirichlet(lo, hi, sol, slo, shi, domlo, domhi, bclo, bchi)
 
   end subroutine amrex_mlndlap_jacobi
+
+
+  subroutine amrex_mlndlap_gauss_seidel (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
+       sx, sxlo, sxhi, sy, sylo, syhi, dxinv, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_gauss_seidel')
+    integer, dimension(2),intent(in) :: lo,hi,slo,shi,rlo,rhi,sxlo,sxhi,sylo,syhi, &
+         domlo, domhi, bclo, bchi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) :: sx (sxlo(1):sxhi(1),sxlo(2):sxhi(2))
+    real(amrex_real), intent(in   ) :: sy (sylo(1):syhi(1),sylo(2):syhi(2))
+
+    integer :: i,j, inlo(2), inhi(2)
+    real(amrex_real) :: facx, facy, Ax
+    real(amrex_real) :: dgx_mm, dgx_m0, dgx_mp, dgx_0m, dgx_00, dgx_0p
+    real(amrex_real) :: dgy_mm, dgy_m0, dgy_0m, dgy_00, dgy_pm, dgy_p0
+
+    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
+
+    inlo = lo
+    inhi = hi
+    call amrex_mlndlap_bounds(inlo, inhi, domlo, domhi, bclo, bchi)
+
+    do    j = inlo(2), inhi(2)
+       do i = inlo(1), inhi(1)
+          dgx_mm = sol(i  ,j-1) - sol(i-1,j-1)
+          dgx_m0 = sol(i  ,j  ) - sol(i-1,j  )
+          dgx_mp = sol(i  ,j+1) - sol(i-1,j+1)
+          dgx_0m = sol(i+1,j-1) - sol(i  ,j-1)
+          dgx_00 = sol(i+1,j  ) - sol(i  ,j  )
+          dgx_0p = sol(i+1,j+1) - sol(i  ,j+1)
+
+          dgy_mm = sol(i-1,j  ) - sol(i-1,j-1)
+          dgy_m0 = sol(i-1,j+1) - sol(i-1,j  )
+          dgy_0m = sol(i  ,j  ) - sol(i  ,j-1)
+          dgy_00 = sol(i  ,j+1) - sol(i  ,j  )
+          dgy_pm = sol(i+1,j  ) - sol(i+1,j-1)
+          dgy_p0 = sol(i+1,j+1) - sol(i+1,j  )
+
+          Ax =   facx*(-sx(i-1,j-1)*(dgx_mm + 2.d0*dgx_m0) &
+               &       +sx(i  ,j-1)*(dgx_0m + 2.d0*dgx_00) &
+               &       -sx(i-1,j  )*(dgx_mp + 2.d0*dgx_m0) &
+               &       +sx(i  ,j  )*(dgx_0p + 2.d0*dgx_00)) &
+               + facy*(-sy(i-1,j-1)*(dgy_mm + 2.d0*dgy_0m) &
+               &       -sy(i  ,j-1)*(dgy_pm + 2.d0*dgy_0m) &
+               &       +sy(i-1,j  )*(dgy_m0 + 2.d0*dgy_00) &
+               &       +sy(i  ,j  )*(dgy_p0 + 2.d0*dgy_00))
+
+          sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) * (-0.5d0) &
+               / (facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
+               +  facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_gauss_seidel
 
 
   subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, &
@@ -363,15 +437,25 @@ contains
        if (interpx) then
           ! interp in x-direction
           do i = flo(1)+1, fhi(1), 2
+#ifdef MATCH_F90MG_MODE
+             wxm = 1.d0
+             wxp = 1.d0
+#else
              wxm = sigx(i-1,j-1) + sigx(i-1,j)
              wxp = sigx(i  ,j-1) + sigx(i  ,j)
+#endif
              fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp)
           end do
        else
           ! interp in y-direction
           do i = flo(1), fhi(1), 2
+#ifdef MATCH_F90MG_MODE
+             wym = 1.d0
+             wyp = 1.d0
+#else
              wym = sigy(i-1,j-1) + sigy(i,j-1)
              wyp = sigy(i-1,j  ) + sigy(i,j  )
+#endif
              fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp)
           end do
        end if
@@ -379,10 +463,17 @@ contains
 
     do    j = flo(2)+1, fhi(2), 2
        do i = flo(1)+1, fhi(1), 2
+#ifdef MATCH_F90MG_MODE
+          wxm = 1.d0
+          wxp = 1.d0
+          wym = 1.d0
+          wyp = 1.d0
+#else
           wxm = sigx(i-1,j-1) + sigx(i-1,j  )
           wxp = sigx(i  ,j-1) + sigx(i  ,j  )
           wym = sigy(i-1,j-1) + sigy(i  ,j-1)
           wyp = sigy(i-1,j  ) + sigy(i  ,j  )
+#endif
           fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j) + wym*fine(i,j-1) + wyp*fine(i,j+1)) &
                / (wxm+wxp+wym+wyp)
        end do
@@ -392,8 +483,9 @@ contains
 
   end subroutine amrex_mlndlap_interpolation
 
+
   subroutine amrex_mlndlap_apply_dirichlet (lo, hi, phi, philo, phihi, domlo, domhi, bclo, bchi)
-    integer, dimension(2) :: lo, hi, philo, phihi, domlo, domhi, bclo, bchi
+    integer, dimension(2), intent(in) :: lo, hi, philo, phihi, domlo, domhi, bclo, bchi
     real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
 
     if (bclo(1) .eq. amrex_lo_dirichlet .and. lo(1) .eq. domlo(1)) then
@@ -412,5 +504,28 @@ contains
        phi(lo(1):hi(1),hi(2)) = 0.d0
     end if
   end subroutine amrex_mlndlap_apply_dirichlet
+
+
+  subroutine amrex_mlndlap_bounds (lo, hi, domlo, domhi, bclo, bchi)
+    integer, dimension(2), intent(inout) :: lo, hi
+    integer, dimension(2), intent(in) :: domlo, domhi, bclo, bchi
+
+    if (bclo(1) .eq. amrex_lo_dirichlet .and. lo(1) .eq. domlo(1)) then
+       lo(1) = lo(1)+1
+    end if
+
+    if (bchi(1) .eq. amrex_lo_dirichlet .and. hi(1) .eq. domhi(1)) then
+       hi(1) = hi(1)-1
+    end if
+
+    if (bclo(2) .eq. amrex_lo_dirichlet .and. lo(2) .eq. domlo(2)) then
+       lo(2) = lo(2)+1
+    end if
+
+    if (bchi(2) .eq. amrex_lo_dirichlet .and. hi(2) .eq. domhi(2)) then
+       hi(2) = hi(2)-1
+    end if
+
+  end subroutine amrex_mlndlap_bounds
 
 end module amrex_mlnodelap_2d_module

@@ -36,6 +36,8 @@ public :
                   const Vector<const MultiFab*>& rhnd,
                   const Vector<const MultiFab*>& rhcc) const;
 
+    void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
+
 protected:
 
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
@@ -55,6 +57,7 @@ protected:
 private:
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
+    bool m_use_gauss_seidel = false;
 
     //
     // functions

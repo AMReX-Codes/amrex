@@ -350,32 +350,61 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 void
 MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const
 {
-    MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
-    Fapply(amrlev, mglev, Ax, sol);
+    if (m_use_gauss_seidel)
+    {
+        const auto& sigma = m_sigma[amrlev][mglev];
+        const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    const auto& sigma = m_sigma[amrlev][mglev];
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-
-    const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
+        const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(sol,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.validbox();
+            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                         const FArrayBox& syfab = (*sigma[1])[mfi];,
+                         const FArrayBox& szfab = (*sigma[2])[mfi];);
+            amrex_mlndlap_gauss_seidel(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                       BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                       AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                    BL_TO_FORTRAN_ANYD(syfab),
+                                                    BL_TO_FORTRAN_ANYD(szfab)),
+                                       dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                       m_lobc.data(), m_hibc.data());
+        }
+    }
+    else
     {
-        const Box& bx = mfi.tilebox();
-        AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                     const FArrayBox& syfab = (*sigma[1])[mfi];,
-                     const FArrayBox& szfab = (*sigma[2])[mfi];);
-        amrex_mlndlap_jacobi(BL_TO_FORTRAN_BOX(bx),
-                             BL_TO_FORTRAN_ANYD(sol[mfi]),
-                             BL_TO_FORTRAN_ANYD(Ax[mfi]),
-                             BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                          BL_TO_FORTRAN_ANYD(syfab),
-                                          BL_TO_FORTRAN_ANYD(szfab)),
-                             dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                             m_lobc.data(), m_hibc.data());
+        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
+        Fapply(amrlev, mglev, Ax, sol);
+
+        const auto& sigma = m_sigma[amrlev][mglev];
+        const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+        const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(sol,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                         const FArrayBox& syfab = (*sigma[1])[mfi];,
+                         const FArrayBox& szfab = (*sigma[2])[mfi];);
+            amrex_mlndlap_jacobi(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                 BL_TO_FORTRAN_ANYD(Ax[mfi]),
+                                 BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                              BL_TO_FORTRAN_ANYD(syfab),
+                                              BL_TO_FORTRAN_ANYD(szfab)),
+                                 dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                 m_lobc.data(), m_hibc.data());
+        }
     }
 }
 
