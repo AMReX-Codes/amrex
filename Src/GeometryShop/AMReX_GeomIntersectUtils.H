@@ -34,6 +34,8 @@ namespace amrex
   typedef std::map<Edge, amrex::Vector<amrex::Real>> NodeMap;
   typedef NodeMap::iterator NodeMapIt;
 
+
+
   struct ContourFragment
   {
     ContourFragment()  {}
@@ -78,6 +80,12 @@ namespace amrex
       (*this)[0] = p0;
       (*this)[1] = p1;
     }
+  };
+
+  struct GeomIntersectUtils
+  {
+    static int MarchingCubesEdgeTable[256];
+    static int MarchingCubesTriTable[256][16];
   };
 }
 #endif
