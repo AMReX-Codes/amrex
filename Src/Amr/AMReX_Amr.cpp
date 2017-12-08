@@ -97,6 +97,12 @@ namespace
     VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
 //}
 
+bool
+Amr::UsingPrecreateDirectories()
+{
+    return precreateDirectories;
+}
+
 void
 Amr::Initialize ()
 {
