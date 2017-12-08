@@ -217,25 +217,17 @@ namespace amrex
     }
   }
 
-#if AMREX_SPACEDIM==2
-  static
-  std::list<Segment>::iterator FindMySeg(std::list<Segment>& segs, const NodeMapIt& idx)
-  {
-    for (std::list<Segment>::iterator it=segs.begin(); it!=segs.end(); ++it)
-    {
-      AMREX_ASSERT(it->size() == 2);
-      if ( ((*it)[0] == idx) || ((*it)[1] == idx) )
-	return it;
-    }
-    return segs.end();
-  }
-#endif
-  
   void
   EBISLevel::buildEBSurface(const GeometryService & a_geoserver)
   {
 
-    Vector<Vector<Triangle>> triangles;
+#if AMREX_SPACEDIM==2
+    Vector<Vector<Segment>> surfaceFragmentsG;
+#elif AMREX_SPACEDIM==3
+    Vector<Vector<Triangle>> surfaceFragmentsG;
+#else
+    amrex::Abort("buildEBSurface not applicable to 1D");
+#endif
     Vector<list<list<Segment>>> contourLines;
 
     for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
@@ -250,6 +242,9 @@ namespace amrex
       std::vector<IntVect> pt(4);
       std::vector<RealVect> x(4);
       std::vector<bool> v(4);
+
+      surfaceFragmentsG.push_back(Vector<Segment>());
+      auto& segVec = surfaceFragmentsG.back();
 
       for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
       {
@@ -277,150 +272,50 @@ namespace amrex
         {
         case 1:
         case 14:
-          segments.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
-                                     intersections.find(Edge(pt[0],pt[3]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
+                                   intersections.find(Edge(pt[0],pt[3]))));
           break;
         case 2:
         case 13:
-          segments.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
-                                     intersections.find(Edge(pt[1],pt[2]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
+                                   intersections.find(Edge(pt[1],pt[2]))));
           break;
         case 3:
         case 12:
-          segments.push_back(Segment(intersections.find(Edge(pt[1],pt[2])),
-                                     intersections.find(Edge(pt[0],pt[3]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[1],pt[2])),
+                                   intersections.find(Edge(pt[0],pt[3]))));
           break;
         case 4:
         case 11:
-          segments.push_back(Segment(intersections.find(Edge(pt[1],pt[2])),
-                                     intersections.find(Edge(pt[2],pt[3]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[1],pt[2])),
+                                   intersections.find(Edge(pt[2],pt[3]))));
           break;
         case 6:
         case 9:
-          segments.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
-                                     intersections.find(Edge(pt[2],pt[3]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
+                                   intersections.find(Edge(pt[2],pt[3]))));
           break;
         case 7:
         case 8:
-          segments.push_back(Segment(intersections.find(Edge(pt[2],pt[3])),
-                                     intersections.find(Edge(pt[0],pt[3]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[2],pt[3])),
+                                   intersections.find(Edge(pt[0],pt[3]))));
           break;
         case 5:
         case 10:
-          segments.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
-                                     intersections.find(Edge(pt[1],pt[2]))));
-          segments.push_back(Segment(intersections.find(Edge(pt[2],pt[3])),
-                                     intersections.find(Edge(pt[0],pt[3]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
+                                   intersections.find(Edge(pt[1],pt[2]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[2],pt[3])),
+                                   intersections.find(Edge(pt[0],pt[3]))));
           break;
         }
+
       }
-
-      contourLines.push_back(list<list<Segment>>());
-      auto& cLines = contourLines.back();
-      if (segments.size() > 0)
-      {
-        cLines.push_back(list<Segment>());
-        cLines.back().push_back(segments.front());
-        segments.pop_front();
-
-        auto idx = cLines.back().back()[1];
-        while (segments.begin() != segments.end())
-        {
-          auto segIt = FindMySeg(segments,idx);
-          if (segIt != segments.end())
-          {
-            const auto& idx_l = (*segIt)[0];
-            const auto& idx_r = (*segIt)[1];
-
-            if ( idx_l == idx )
-            {
-              idx = idx_r;
-              cLines.back().push_back(*segIt);
-            }
-            else
-            {
-              idx = idx_l;
-              cLines.back().push_back(Segment(idx_r,idx_l));
-            }
-
-            segments.erase(segIt);
-          }
-          else
-          {
-            cLines.push_back(list<Segment>());
-            cLines.back().push_back(segments.front());
-            segments.pop_front();
-
-            idx = cLines.back().back()[1];
-          }
-        }
-
-        // Connect up the line segments as much as possible
-        bool changed;
-        do
-        {
-          changed = false;
-          for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end(); ++it)
-          {
-            if (!it->empty())
-            {
-              const auto& idx_l = it->front()[0];
-              const auto& idx_r = it->back()[1];
-              for (std::list<list<Segment>>::iterator it1 = cLines.begin(); it1!=cLines.end(); ++it1)
-              {
-                if (!it1->empty() && it!=it1)
-                {
-                  if (idx_r == it1->front()[0])
-                  {
-                    it->splice(it->end(),*it1);
-                    changed = true;
-                  }
-                  else if (idx_r == it1->back()[1])
-                  {
-                    it1->reverse();
-                    for (list<Segment>::iterator it2=it1->begin(); it2!=it1->end(); ++it2)
-                    {
-                      const auto tmp = (*it2)[0];
-                      (*it2)[0] = (*it2)[1];
-                      (*it2)[1] = tmp;
-                    }
-                    it->splice(it->end(),*it1);
-                    changed = true;
-                  }
-                  else if (idx_l == it1->front()[0])
-                  {
-                    it1->reverse();
-                    for (list<Segment>::iterator it2=it1->begin(); it2!=it1->end(); ++it2)
-                    {
-                      const auto tmp = (*it2)[0];
-                      (*it2)[0] = (*it2)[1];
-                      (*it2)[1] = tmp;
-                    }
-                    it->splice(it->begin(),*it1);
-                    changed = true;
-                  }
-                }
-              }
-            }
-          }
-        } while(changed);
-
-        // Clear out empty placeholders for lines we connected up to others.
-        for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end();)
-        {
-          if (it->empty())
-            cLines.erase(it++);
-          else
-            it++;
-        }
-      }
-
 #else
       std::vector<IntVect> pt(8);
       std::vector<RealVect> x(8);
       std::vector<bool> v(8);
 
-      triangles.push_back(Vector<Triangle>());
+      surfaceFragmentsG.push_back(Vector<Triangle>());
 
       for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
       {
@@ -489,17 +384,17 @@ namespace amrex
 
         for (int j=0; j<nTriang; ++j)
         {
-          auto& triangleVec = triangles.back();
+          auto& triangleVec = surfaceFragmentsG.back();
           int j3 = 3*j;
           triangleVec.push_back(Triangle(vertlist[GeomIntersectUtils::MarchingCubesTriTable[cubeindex][j3  ]],
                                          vertlist[GeomIntersectUtils::MarchingCubesTriTable[cubeindex][j3+1]],
                                          vertlist[GeomIntersectUtils::MarchingCubesTriTable[cubeindex][j3+2]]));
         }
       }
-
 #endif
     }
 
+    // Write contour fragments to surface file
     amrex::Print() << "EBISLevel: Writing EB surface to: " << eb_surface_filename << '\n';
 
     if (ParallelDescriptor::IOProcessor())
@@ -511,46 +406,10 @@ namespace amrex
     ParallelDescriptor::Barrier();
 
 
-#if AMREX_SPACEDIM==2
-    // TODO: Convert this ASCII, per-box format into something like EBsurfaceFormat-V1
     for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
     {
       auto& intersections = m_intersections[mfi];
-      auto& cLines = contourLines[mfi.LocalIndex()];
-
-      if (cLines.size() > 0)
-      {
-        std::string FullDataPath = eb_surface_filename;
-        if (!FullDataPath.empty() && FullDataPath[FullDataPath.size()-1] != '/')
-          FullDataPath += '/';
-        FullDataPath += "Data";
-
-        auto nGrid = m_intersections.size();
-        auto nDigits = std::log10(nGrid) + 1;
-        FullDataPath += Concatenate("_",mfi.index(),nDigits);
-
-        std::ofstream ofs(FullDataPath.c_str());
-        ofs << cLines.size() << '\n';
-        for (std::list<list<Segment>>::iterator it = cLines.begin(); it!=cLines.end(); ++it)
-        {
-          ofs << it->size() + 1 << '\n';
-          auto slit=it->begin();
-          const auto& pt0 = (*slit)[0]->second;
-          ofs << pt0[0] << " " << pt0[1] << '\n';
-          for (  ; slit!=it->end(); ++slit)
-          {
-            const auto& pt = (*slit)[1]->second;
-            ofs << pt[0] << " " << pt[1] << '\n';
-          }
-        }
-        ofs.close();
-      }
-    }
-#else
-    for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
-    {
-      auto& intersections = m_intersections[mfi];
-      auto& fragVec = triangles[mfi.LocalIndex()];
+      auto& fragVec = surfaceFragmentsG[mfi.LocalIndex()];
       if (fragVec.size() > 0)
       {
         Vector<NodeMapIt> orderedNodes(intersections.size());
@@ -625,7 +484,7 @@ namespace amrex
     for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
     {
       nNodes[mfi.index()] = m_intersections[mfi].size();
-      nElts[mfi.index()] = triangles[mfi.LocalIndex()].size();
+      nElts[mfi.index()] = surfaceFragmentsG[mfi.LocalIndex()].size();
     }
 
     ParallelDescriptor::ReduceLongSum(nNodes.dataPtr(), nNodes.size(), ioProc);
@@ -667,7 +526,6 @@ namespace amrex
       ofs << FPC::NativeLongDescriptor() << '\n';
       ofs.close();
     }
-#endif
   }
 
   ///
