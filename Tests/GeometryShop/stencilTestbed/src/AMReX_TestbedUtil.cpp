@@ -54,8 +54,8 @@ namespace amrex
                          const Box                       & a_domain,
                          const Real                      & a_dx)
   { 
-    std::vector<std::shared_ptr<BaseIndex  > > dstVoFs;
-    std::vector<std::shared_ptr<BaseStencil> > vofStencils;
+    Vector<std::shared_ptr<BaseIndex  > > dstVoFs;
+    Vector<std::shared_ptr<BaseStencil> > vofStencils;
 
     BL_PROFILE_VAR("all aggsten prep",aap);
     for(BoxIterator boxit(a_domain); boxit.ok(); ++boxit)
@@ -145,8 +145,8 @@ namespace amrex
                      ARLIM_3D(a_domain.hiVect()), &a_dx);
     BL_PROFILE_VAR_STOP(fpar);
 
-    std::vector<std::shared_ptr<BaseIndex  > > dstVoFs;
-    std::vector<std::shared_ptr<BaseStencil> > vofStencils;
+    Vector<std::shared_ptr<BaseIndex  > > dstVoFs;
+    Vector<std::shared_ptr<BaseStencil> > vofStencils;
 
     BL_PROFILE_VAR("fortran plus aggsten agg prep",fpaap);
     for(BoxIterator boxit(a_domain); boxit.ok(); ++boxit)
