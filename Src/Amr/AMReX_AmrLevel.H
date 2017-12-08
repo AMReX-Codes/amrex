@@ -26,6 +26,8 @@ namespace amrex {
 
 class TagBox;
 class TagBoxArray;
+template <class T>
+class MFGraph;
 
 /**
 * \brief Virtual base class for managing individual levels.
@@ -37,6 +39,8 @@ class AmrLevel
 {
   friend class FillPatchIterator;
   friend class FillPatchIteratorHelper;
+  template <class T>
+  friend class MFGraph;
 
 public:
     //! What time are we at?

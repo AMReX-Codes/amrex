@@ -1,0 +1,9 @@
+AMRLIB_BASE=EXE
+
+C$(AMRLIB_BASE)_sources += AMReX_AmrAsync.cpp AMReX_AmrLevelAsync.cpp
+
+C$(AMRLIB_BASE)_headers += AMReX_Amr.H AMReX_AmrLevel.H AMReX_AmrLevelAsync.H AMReX_Derive.H AMReX_LevelBld.H AMReX_StateData.H \
+                AMReX_StateDescriptor.H AMReX_PROB_AMR_F.H AMReX_AuxBoundaryData.H AMReX_Extrapolater.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Amr $(AMREX_HOME)/Src/AmrTask/Amr
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Amr $(AMREX_HOME)/Src/AmrTask/Amr
