@@ -500,6 +500,17 @@ namespace amrex
 #endif
     }
 
+    amrex::Print() << "EBISLevel: Writing EB surface to: " << eb_surface_filename << '\n';
+
+    if (ParallelDescriptor::IOProcessor())
+        if (!amrex::UtilCreateDirectory(eb_surface_filename, 0755))
+            amrex::CreateDirectoryFailed(eb_surface_filename);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Barrier();
+
+
 #if AMREX_SPACEDIM==2
     // TODO: Convert this ASCII, per-box format into something like EBsurfaceFormat-V1
     for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
@@ -605,15 +616,6 @@ namespace amrex
       }
     }
 
-    if (ParallelDescriptor::IOProcessor())
-        if (!amrex::UtilCreateDirectory(eb_surface_filename, 0755))
-            amrex::CreateDirectoryFailed(eb_surface_filename);
-    //
-    // Force other processors to wait till directory is built.
-    //
-    ParallelDescriptor::Barrier();
-
-    amrex::Print() << "EBISLevel: Writing EB surface to: " << eb_surface_filename << '\n';
     int nGrids = m_intersections.size();
     int ioProc = ParallelDescriptor::IOProcessorNumber();
 
