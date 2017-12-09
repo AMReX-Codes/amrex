@@ -60,7 +60,7 @@ private:
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     bool m_use_gauss_seidel = false;
-
+    mutable Vector<Vector<std::unique_ptr<MultiFab> > > m_sync_weight;
     //
     // functions
     //

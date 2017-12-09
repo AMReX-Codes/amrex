@@ -70,7 +70,7 @@ protected:
         return m_owner_mask[amrlev][mglev].get();
     }
 
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask; 
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;
 };
 
 }
