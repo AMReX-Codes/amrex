@@ -227,7 +227,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox )
                             Real v_boost = WarpX::beta_boost*PhysConst::c;
                             Real z_lab = WarpX::gamma_boost*( z - v_boost*t );
                             plasma_injector->getMomentum(u, x, y, z_lab);
-                            dens = plasma_injector->getDensity(x, y, z);
+                            dens = plasma_injector->getDensity(x, y, z_lab);
                             // Perform Lorentz transform
                             // (Assumes that the plasma has a low velocity)
                             u[2] = WarpX::gamma_boost * ( u[2] - v_boost );
