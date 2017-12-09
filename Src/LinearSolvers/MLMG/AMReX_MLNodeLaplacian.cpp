@@ -43,9 +43,11 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info);
 
     m_sigma.resize(m_num_amr_levels);
+    m_sync_weight.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_sigma[amrlev].resize(m_num_mg_levels[amrlev]);
+        m_sync_weight[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             if (mglev == 0) {
@@ -397,6 +399,12 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                        dxinv, BL_TO_FORTRAN_BOX(domain_box),
                                        m_lobc.data(), m_hibc.data());
         }
+
+        if (m_sync_weight[amrlev][mglev] == nullptr) {
+            m_sync_weight[amrlev][mglev] = sol.OverlapMask(m_geom[amrlev][mglev].periodicity());
+            m_sync_weight[amrlev][mglev]->invert(1.0, 0, 1);
+        }
+        sol.WeightedSync(*m_sync_weight[amrlev][mglev], m_geom[amrlev][mglev].periodicity());
     }
     else
     {
