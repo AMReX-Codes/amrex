@@ -39,6 +39,7 @@ public :
     void updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const;
 
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
+    void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
 
 protected:
 
@@ -59,8 +60,9 @@ protected:
 private:
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
-    bool m_use_gauss_seidel = false;
     mutable Vector<Vector<std::unique_ptr<MultiFab> > > m_sync_weight;
+    bool m_use_gauss_seidel = true;
+    bool m_use_harmonic_average = true;
     //
     // functions
     //

@@ -50,22 +50,9 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         m_sync_weight[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            if (mglev == 0) {
-                int idim = 0;
-                m_sigma[amrlev][mglev][idim].reset
-                    (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
-                for (idim = 1; idim < AMREX_SPACEDIM; ++idim)
-                {
-                    m_sigma[amrlev][mglev][idim].reset
-                        (new MultiFab(*m_sigma[amrlev][mglev][0], amrex::make_alias, 0, 1));
-                }
-            } else {
-                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-                {
-                    m_sigma[amrlev][mglev][idim].reset
-                        (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
-                }                
-            }
+            int idim = 0;
+            m_sigma[amrlev][mglev][idim].reset
+                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
         }
     }
 }
@@ -138,6 +125,28 @@ MLNodeLaplacian::averageDownCoeffs ()
 {
     BL_PROFILE("MLNodeLaplacian::averageDownCoeffs()");
 
+    if (m_use_harmonic_average)
+    {
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+        {
+            for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+            {
+                for (int idim = 1; idim < AMREX_SPACEDIM; ++idim)
+                {
+                    if (m_sigma[amrlev][mglev][idim] == nullptr) {
+                        if (mglev == 0) {
+                            m_sigma[amrlev][mglev][idim].reset
+                                (new MultiFab(*m_sigma[amrlev][mglev][0], amrex::make_alias, 0, 1));
+                        } else {
+                            m_sigma[amrlev][mglev][idim].reset
+                                (new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 1, 1));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
         averageDownCoeffsSameAmrLevel(amrlev);
@@ -148,11 +157,19 @@ MLNodeLaplacian::averageDownCoeffs ()
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
-        int mglev = 0;
-        FillBoundaryCoeff(*m_sigma[amrlev][mglev][0], m_geom[amrlev][mglev]);
-        for (mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
-        {
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (m_use_harmonic_average) {
+            int mglev = 0;
+            FillBoundaryCoeff(*m_sigma[amrlev][mglev][0], m_geom[amrlev][mglev]);
+            for (mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
+            {
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    FillBoundaryCoeff(*m_sigma[amrlev][mglev][idim], m_geom[amrlev][mglev]);
+                }
+            }
+        } else {
+            int idim = 0;
+            for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+            {
                 FillBoundaryCoeff(*m_sigma[amrlev][mglev][idim], m_geom[amrlev][mglev]);
             }
         }
@@ -171,9 +188,11 @@ MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 void
 MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 {
+    const int nsigma = (m_use_harmonic_average) ? AMREX_SPACEDIM : 1;
+
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        for (int idim = 0; idim < nsigma; ++idim)
         {
             const MultiFab& fine = *m_sigma[amrlev][mglev-1][idim];
             MultiFab& crse = *m_sigma[amrlev][mglev][idim];
@@ -297,17 +316,30 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             const Box& cbx = amrex::coarsen(fbx,2);
             const Box& tmpbx = amrex::refine(cbx,2);
             tmpfab.resize(tmpbx);
-            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                         const FArrayBox& syfab = (*sigma[1])[mfi];,
-                         const FArrayBox& szfab = (*sigma[2])[mfi];);
-            amrex_mlndlap_interpolation(BL_TO_FORTRAN_BOX(cbx),
-                                        BL_TO_FORTRAN_ANYD(tmpfab),
-                                        BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
-                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                     BL_TO_FORTRAN_ANYD(syfab),
-                                                     BL_TO_FORTRAN_ANYD(szfab)),
-                                        BL_TO_FORTRAN_BOX(nd_domain),
-                                        m_lobc.data(), m_hibc.data());
+            if (m_use_harmonic_average)
+            {
+                AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                             const FArrayBox& syfab = (*sigma[1])[mfi];,
+                             const FArrayBox& szfab = (*sigma[2])[mfi];);
+                amrex_mlndlap_interpolation_ha(BL_TO_FORTRAN_BOX(cbx),
+                                               BL_TO_FORTRAN_ANYD(tmpfab),
+                                               BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+                                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                            BL_TO_FORTRAN_ANYD(syfab),
+                                                            BL_TO_FORTRAN_ANYD(szfab)),
+                                               BL_TO_FORTRAN_BOX(nd_domain),
+                                               m_lobc.data(), m_hibc.data());
+            }
+            else
+            {
+                const FArrayBox& sfab = (*sigma[0])[mfi];
+                amrex_mlndlap_interpolation_aa(BL_TO_FORTRAN_BOX(cbx),
+                                               BL_TO_FORTRAN_ANYD(tmpfab),
+                                               BL_TO_FORTRAN_ANYD((*cmf)[mfi]),
+                                               BL_TO_FORTRAN_ANYD(sfab),
+                                               BL_TO_FORTRAN_BOX(nd_domain),
+                                               m_lobc.data(), m_hibc.data());
+            }
             fine[mfi].plus(tmpfab,fbx,fbx,0,0,1);
         }
     }
@@ -355,18 +387,32 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
             FArrayBox& yfab = out[mfi];
             const Box& bxg1 = amrex::grow(bx,1);
             dg.resize(bxg1,AMREX_SPACEDIM);
-            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                         const FArrayBox& syfab = (*sigma[1])[mfi];,
-                         const FArrayBox& szfab = (*sigma[2])[mfi];);
-            amrex_mlndlap_adotx(BL_TO_FORTRAN_BOX(bx),
-                                BL_TO_FORTRAN_ANYD(yfab),
-                                BL_TO_FORTRAN_ANYD(xfab),
-                                AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                             BL_TO_FORTRAN_ANYD(syfab),
-                                             BL_TO_FORTRAN_ANYD(szfab)),
-                                BL_TO_FORTRAN_ANYD(dg),
-                                dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                m_lobc.data(), m_hibc.data());
+            if (m_use_harmonic_average)
+            {
+                AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                             const FArrayBox& syfab = (*sigma[1])[mfi];,
+                             const FArrayBox& szfab = (*sigma[2])[mfi];);
+                amrex_mlndlap_adotx_ha(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(yfab),
+                                       BL_TO_FORTRAN_ANYD(xfab),
+                                       AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                    BL_TO_FORTRAN_ANYD(syfab),
+                                                    BL_TO_FORTRAN_ANYD(szfab)),
+                                       BL_TO_FORTRAN_ANYD(dg),
+                                       dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                       m_lobc.data(), m_hibc.data());
+            }
+            else
+            {
+                const FArrayBox& sfab = (*sigma[0])[mfi];
+                amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(yfab),
+                                       BL_TO_FORTRAN_ANYD(xfab),
+                                       BL_TO_FORTRAN_ANYD(sfab),
+                                       BL_TO_FORTRAN_ANYD(dg),
+                                       dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                       m_lobc.data(), m_hibc.data());
+            }
         }
     }
 }
@@ -381,23 +427,43 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
         const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 
+        if (m_use_harmonic_average)
+        {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.validbox();
+                AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                             const FArrayBox& syfab = (*sigma[1])[mfi];,
+                             const FArrayBox& szfab = (*sigma[2])[mfi];);
+                amrex_mlndlap_gauss_seidel_ha(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                              BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                           BL_TO_FORTRAN_ANYD(syfab),
+                                                           BL_TO_FORTRAN_ANYD(szfab)),
+                                              dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                              m_lobc.data(), m_hibc.data());
+            }
+        }
+        else
         {
-            const Box& bx = mfi.validbox();
-            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                         const FArrayBox& syfab = (*sigma[1])[mfi];,
-                         const FArrayBox& szfab = (*sigma[2])[mfi];);
-            amrex_mlndlap_gauss_seidel(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                       BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                       AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                    BL_TO_FORTRAN_ANYD(syfab),
-                                                    BL_TO_FORTRAN_ANYD(szfab)),
-                                       dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                       m_lobc.data(), m_hibc.data());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(sol); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.validbox();
+                const FArrayBox& sfab = (*sigma[0])[mfi];
+                amrex_mlndlap_gauss_seidel_aa(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                              BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                              BL_TO_FORTRAN_ANYD(sfab),
+                                              dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                              m_lobc.data(), m_hibc.data());
+            }
         }
 
         if (m_sync_weight[amrlev][mglev] == nullptr) {
@@ -416,24 +482,45 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
         const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 
+        if (m_use_harmonic_average)
+        {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(sol,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(sol,true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                             const FArrayBox& syfab = (*sigma[1])[mfi];,
+                             const FArrayBox& szfab = (*sigma[2])[mfi];);
+                amrex_mlndlap_jacobi_ha(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                        BL_TO_FORTRAN_ANYD(Ax[mfi]),
+                                        BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                     BL_TO_FORTRAN_ANYD(syfab),
+                                                     BL_TO_FORTRAN_ANYD(szfab)),
+                                        dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                        m_lobc.data(), m_hibc.data());
+            }
+        }
+        else
         {
-            const Box& bx = mfi.tilebox();
-            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                         const FArrayBox& syfab = (*sigma[1])[mfi];,
-                         const FArrayBox& szfab = (*sigma[2])[mfi];);
-            amrex_mlndlap_jacobi(BL_TO_FORTRAN_BOX(bx),
-                                 BL_TO_FORTRAN_ANYD(sol[mfi]),
-                                 BL_TO_FORTRAN_ANYD(Ax[mfi]),
-                                 BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                              BL_TO_FORTRAN_ANYD(syfab),
-                                              BL_TO_FORTRAN_ANYD(szfab)),
-                                 dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                 m_lobc.data(), m_hibc.data());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(sol,true); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.tilebox();
+                const FArrayBox& sfab = (*sigma[0])[mfi];
+                amrex_mlndlap_jacobi_aa(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(sol[mfi]),
+                                        BL_TO_FORTRAN_ANYD(Ax[mfi]),
+                                        BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                        BL_TO_FORTRAN_ANYD(sfab),
+                                        dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                        m_lobc.data(), m_hibc.data());
+            }
         }
     }
 }
@@ -449,6 +536,7 @@ MLNodeLaplacian::FFlux (int amrlev, const MFIter& mfi,
 Real
 MLNodeLaplacian::Anorm (int amrlev, int mglev) const
 {
+    // remove cg
     amrex::Abort("MLNodeLaplacian::Anorm to be implemented");
 }
 

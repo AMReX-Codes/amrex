@@ -7,8 +7,11 @@ module amrex_mlnodelap_2d_module
 
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
-       amrex_mlndlap_applybc, amrex_mlndlap_adotx, amrex_mlndlap_jacobi, amrex_mlndlap_gauss_seidel, &
-       amrex_mlndlap_restriction, amrex_mlndlap_interpolation, amrex_mlndlap_mknewu
+       amrex_mlndlap_applybc, amrex_mlndlap_restriction, amrex_mlndlap_mknewu, &
+       amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
+       amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
+       amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
+       amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa
 
 contains
 
@@ -20,16 +23,6 @@ contains
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
 
     integer :: i,j
-
-#ifdef MATCH_F90MG_MODE
-
-    do j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          crse(i,j) = 0.25d0*(fine(2*i,2*j)+fine(2*i+1,2*j)+fine(2*i,2*j+1)+fine(2*i+1,2*j+1))
-       end do
-    end do
-
-#else
 
     if (idim .eq. 0) then
        do j = lo(2), hi(2)
@@ -46,8 +39,6 @@ contains
           end do
        end do
     end if
-
-#endif
 
   end subroutine amrex_mlndlap_avgdown_coeff
 
@@ -274,9 +265,9 @@ contains
   end subroutine amrex_mlndlap_applybc
 
 
-  subroutine amrex_mlndlap_adotx (lo, hi, y, ylo, yhi, x, xlo, xhi, &
+  subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
        sx, sxlo, sxhi, sy, sylo, syhi, dg, dlo, dhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_adotx')
+       bind(c,name='amrex_mlndlap_adotx_ha')
     integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, sylo, syhi, dlo, dhi, &
          domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
@@ -319,12 +310,59 @@ contains
 
     call amrex_mlndlap_apply_dirichlet(lo, hi, y, ylo, yhi, domlo, domhi, bclo, bchi)
 
-  end subroutine amrex_mlndlap_adotx  
+  end subroutine amrex_mlndlap_adotx_ha
 
 
-  subroutine amrex_mlndlap_jacobi (lo, hi, sol, slo, shi, Ax, alo, ahi, rhs, rlo, rhi, &
+  subroutine amrex_mlndlap_adotx_aa (lo, hi, y, ylo, yhi, x, xlo, xhi, &
+       sig, slo, shi, dg, dlo, dhi, dxinv, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_adotx_aa')
+    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, dlo, dhi, &
+         domlo, domhi, bclo, bchi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2))
+    real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
+    real(amrex_real)                ::  dg(dlo(1):dhi(1),dlo(2):dhi(2), 2)
+    
+    integer :: i,j
+    real(amrex_real) :: facx, facy
+
+    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
+
+    do    j = lo(2)-1, hi(2)+1
+       do i = lo(1)-1, hi(1)
+          dg(i,j,1) = x(i+1,j) - x(i,j)
+       end do
+    end do
+
+    do    j = lo(2)-1, hi(2)
+       do i = lo(1)-1, hi(1)+1
+          dg(i,j,2) = x(i,j+1) - x(i,j)
+       end do
+    end do
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          y(i,j) = facx*(-sig(i-1,j-1)*(dg(i-1,j-1,1)+2.d0*dg(i-1,j  ,1)) &
+               &         +sig(i  ,j-1)*(dg(i  ,j-1,1)+2.d0*dg(i  ,j  ,1)) &
+               &         -sig(i-1,j  )*(dg(i-1,j+1,1)+2.d0*dg(i-1,j  ,1)) &
+               &         +sig(i  ,j  )*(dg(i  ,j+1,1)+2.d0*dg(i  ,j  ,1))) &
+               +   facy*(-sig(i-1,j-1)*(dg(i-1,j-1,2)+2.d0*dg(i  ,j-1,2)) &
+               &         -sig(i  ,j-1)*(dg(i+1,j-1,2)+2.d0*dg(i  ,j-1,2)) &
+               &         +sig(i-1,j  )*(dg(i-1,j  ,2)+2.d0*dg(i  ,j  ,2)) &
+               &         +sig(i  ,j  )*(dg(i+1,j  ,2)+2.d0*dg(i  ,j  ,2)))
+       end do
+    end do
+
+    call amrex_mlndlap_apply_dirichlet(lo, hi, y, ylo, yhi, domlo, domhi, bclo, bchi)
+
+  end subroutine amrex_mlndlap_adotx_aa
+
+
+  subroutine amrex_mlndlap_jacobi_ha (lo, hi, sol, slo, shi, Ax, alo, ahi, rhs, rlo, rhi, &
        sx, sxlo, sxhi, sy, sylo, syhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_jacobi')
+       bind(c,name='amrex_mlndlap_jacobi_ha')
     integer, dimension(2),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,sxlo,sxhi,sylo,syhi, &
          domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
@@ -355,12 +393,47 @@ contains
 
 !    call amrex_mlndlap_apply_dirichlet(lo, hi, sol, slo, shi, domlo, domhi, bclo, bchi)
 
-  end subroutine amrex_mlndlap_jacobi
+  end subroutine amrex_mlndlap_jacobi_ha
 
 
-  subroutine amrex_mlndlap_gauss_seidel (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
+  subroutine amrex_mlndlap_jacobi_aa (lo, hi, sol, slo, shi, Ax, alo, ahi, rhs, rlo, rhi, &
+       sig, sglo, sghi, dxinv, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_jacobi_aa')
+    integer, dimension(2),intent(in) :: lo,hi,slo,shi,alo,ahi,rlo,rhi,sglo,sghi, &
+         domlo, domhi, bclo, bchi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
+    real(amrex_real), intent(in   ) :: Ax ( alo(1): ahi(1), alo(2): ahi(2))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) :: sig(sglo(1):sghi(1),sglo(2):sghi(2))
+
+    integer :: i,j, inlo(2), inhi(2)
+    real(amrex_real) :: facx, facy, fac
+    real(amrex_real), parameter :: omega = 2.d0/3.d0
+
+    facx = -2.d0 * (1.d0/6.d0)*dxinv(1)*dxinv(1)
+    facy = -2.d0 * (1.d0/6.d0)*dxinv(2)*dxinv(2)
+    fac = facx + facy
+
+    inlo = lo
+    inhi = hi
+    call amrex_mlndlap_bounds(inlo, inhi, domlo, domhi, bclo, bchi)
+
+    do    j = inlo(2), inhi(2)
+       do i = inlo(1), inhi(1)
+          sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
+               / (fac*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j)))
+       end do
+    end do
+
+!    call amrex_mlndlap_apply_dirichlet(lo, hi, sol, slo, shi, domlo, domhi, bclo, bchi)
+
+  end subroutine amrex_mlndlap_jacobi_aa
+
+
+  subroutine amrex_mlndlap_gauss_seidel_ha (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
        sx, sxlo, sxhi, sy, sylo, syhi, dxinv, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_gauss_seidel')
+       bind(c,name='amrex_mlndlap_gauss_seidel_ha')
     integer, dimension(2),intent(in) :: lo,hi,slo,shi,rlo,rhi,sxlo,sxhi,sylo,syhi, &
          domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
@@ -412,7 +485,63 @@ contains
        end do
     end do
 
-  end subroutine amrex_mlndlap_gauss_seidel
+  end subroutine amrex_mlndlap_gauss_seidel_ha
+
+
+  subroutine amrex_mlndlap_gauss_seidel_aa (lo, hi, sol, slo, shi, rhs, rlo, rhi, &
+       sig, sglo, sghi, dxinv, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_gauss_seidel_aa')
+    integer, dimension(2),intent(in) :: lo,hi,slo,shi,rlo,rhi,sglo,sghi, &
+         domlo, domhi, bclo, bchi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) :: sol( slo(1): shi(1), slo(2): shi(2))
+    real(amrex_real), intent(in   ) :: rhs( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) :: sig(sglo(1):sghi(1),sglo(2):sghi(2))
+
+    integer :: i,j, inlo(2), inhi(2)
+    real(amrex_real) :: facx, facy, Ax, fac
+    real(amrex_real) :: dgx_mm, dgx_m0, dgx_mp, dgx_0m, dgx_00, dgx_0p
+    real(amrex_real) :: dgy_mm, dgy_m0, dgy_0m, dgy_00, dgy_pm, dgy_p0
+
+    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
+    fac = facx + facy
+
+    inlo = lo
+    inhi = hi
+    call amrex_mlndlap_bounds(inlo, inhi, domlo, domhi, bclo, bchi)
+
+    do    j = inlo(2), inhi(2)
+       do i = inlo(1), inhi(1)
+          dgx_mm = sol(i  ,j-1) - sol(i-1,j-1)
+          dgx_m0 = sol(i  ,j  ) - sol(i-1,j  )
+          dgx_mp = sol(i  ,j+1) - sol(i-1,j+1)
+          dgx_0m = sol(i+1,j-1) - sol(i  ,j-1)
+          dgx_00 = sol(i+1,j  ) - sol(i  ,j  )
+          dgx_0p = sol(i+1,j+1) - sol(i  ,j+1)
+
+          dgy_mm = sol(i-1,j  ) - sol(i-1,j-1)
+          dgy_m0 = sol(i-1,j+1) - sol(i-1,j  )
+          dgy_0m = sol(i  ,j  ) - sol(i  ,j-1)
+          dgy_00 = sol(i  ,j+1) - sol(i  ,j  )
+          dgy_pm = sol(i+1,j  ) - sol(i+1,j-1)
+          dgy_p0 = sol(i+1,j+1) - sol(i+1,j  )
+
+          Ax =   facx*(-sig(i-1,j-1)*(dgx_mm + 2.d0*dgx_m0) &
+               &       +sig(i  ,j-1)*(dgx_0m + 2.d0*dgx_00) &
+               &       -sig(i-1,j  )*(dgx_mp + 2.d0*dgx_m0) &
+               &       +sig(i  ,j  )*(dgx_0p + 2.d0*dgx_00)) &
+               + facy*(-sig(i-1,j-1)*(dgy_mm + 2.d0*dgy_0m) &
+               &       -sig(i  ,j-1)*(dgy_pm + 2.d0*dgy_0m) &
+               &       +sig(i-1,j  )*(dgy_m0 + 2.d0*dgy_00) &
+               &       +sig(i  ,j  )*(dgy_p0 + 2.d0*dgy_00))
+
+          sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) * (-0.5d0) &
+               / (fac*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j)))
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_gauss_seidel_aa
 
 
   subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, &
@@ -439,9 +568,9 @@ contains
   end subroutine amrex_mlndlap_restriction
 
 
-  subroutine amrex_mlndlap_interpolation (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
+  subroutine amrex_mlndlap_interpolation_ha (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
        sigx, sxlo, sxhi, sigy, sylo, syhi, domlo, domhi, bclo, bchi) &
-       bind(c,name='amrex_mlndlap_interpolation')
+       bind(c,name='amrex_mlndlap_interpolation_ha')
     integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,sxlo,sxhi,sylo,syhi, &
          domlo, domhi, bclo, bchi
     real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
@@ -468,25 +597,15 @@ contains
        if (interpx) then
           ! interp in x-direction
           do i = flo(1)+1, fhi(1), 2
-#ifdef MATCH_F90MG_MODE
-             wxm = 1.d0
-             wxp = 1.d0
-#else
              wxm = sigx(i-1,j-1) + sigx(i-1,j)
              wxp = sigx(i  ,j-1) + sigx(i  ,j)
-#endif
              fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp)
           end do
        else
           ! interp in y-direction
           do i = flo(1), fhi(1), 2
-#ifdef MATCH_F90MG_MODE
-             wym = 1.d0
-             wyp = 1.d0
-#else
              wym = sigy(i-1,j-1) + sigy(i,j-1)
              wyp = sigy(i-1,j  ) + sigy(i,j  )
-#endif
              fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp)
           end do
        end if
@@ -494,25 +613,76 @@ contains
 
     do    j = flo(2)+1, fhi(2), 2
        do i = flo(1)+1, fhi(1), 2
-#ifdef MATCH_F90MG_MODE
-          wxm = 1.d0
-          wxp = 1.d0
-          wym = 1.d0
-          wyp = 1.d0
-#else
           wxm = sigx(i-1,j-1) + sigx(i-1,j  )
           wxp = sigx(i  ,j-1) + sigx(i  ,j  )
           wym = sigy(i-1,j-1) + sigy(i  ,j-1)
           wyp = sigy(i-1,j  ) + sigy(i  ,j  )
-#endif
           fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j) + wym*fine(i,j-1) + wyp*fine(i,j+1)) &
                / (wxm+wxp+wym+wyp)
        end do
     end do
 
     call amrex_mlndlap_apply_dirichlet(flo, fhi, fine, fflo, ffhi, domlo, domhi, bclo, bchi)
+    
+  end subroutine amrex_mlndlap_interpolation_ha
 
-  end subroutine amrex_mlndlap_interpolation
+
+  subroutine amrex_mlndlap_interpolation_aa (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
+       sig, sglo, sghi, domlo, domhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_interpolation_aa')
+    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,sglo,sghi, &
+         domlo, domhi, bclo, bchi
+    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
+    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
+    real(amrex_real), intent(in   ) :: sig (sglo(1):sghi(1),sglo(2):sghi(2))
+
+    integer :: flo(2), fhi(2), i,j
+    logical :: interpx
+    real(amrex_real) :: wxm, wxp, wym, wyp
+
+    flo = 2*clo
+    fhi = 2*chi
+
+    do    j = clo(2), chi(2)
+       do i = clo(1), chi(1)
+          fine(2*i,2*j) = crse(i,j)
+       end do
+    end do
+
+    interpx = .false.
+    do j = flo(2), fhi(2)
+       interpx = .not.interpx
+       if (interpx) then
+          ! interp in x-direction
+          do i = flo(1)+1, fhi(1), 2
+             wxm = sig(i-1,j-1) + sig(i-1,j)
+             wxp = sig(i  ,j-1) + sig(i  ,j)
+             fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp)
+          end do
+       else
+          ! interp in y-direction
+          do i = flo(1), fhi(1), 2
+             wym = sig(i-1,j-1) + sig(i,j-1)
+             wyp = sig(i-1,j  ) + sig(i,j  )
+             fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp)
+          end do
+       end if
+    end do
+
+    do    j = flo(2)+1, fhi(2), 2
+       do i = flo(1)+1, fhi(1), 2
+          wxm = sig(i-1,j-1) + sig(i-1,j  )
+          wxp = sig(i  ,j-1) + sig(i  ,j  )
+          wym = sig(i-1,j-1) + sig(i  ,j-1)
+          wyp = sig(i-1,j  ) + sig(i  ,j  )
+          fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j) + wym*fine(i,j-1) + wyp*fine(i,j+1)) &
+               / (wxm+wxp+wym+wyp)
+       end do
+    end do
+
+    call amrex_mlndlap_apply_dirichlet(flo, fhi, fine, fflo, ffhi, domlo, domhi, bclo, bchi)
+    
+  end subroutine amrex_mlndlap_interpolation_aa
 
 
   subroutine amrex_mlndlap_apply_dirichlet (lo, hi, phi, philo, phihi, domlo, domhi, bclo, bchi)
