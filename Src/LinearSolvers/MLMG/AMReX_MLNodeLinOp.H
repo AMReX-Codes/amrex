@@ -2,6 +2,7 @@
 #define AMREX_ML_NODE_LINOP_H_H
 
 #include <AMReX_MLLinOp.H>
+#include <AMReX_iMultiFab.H>
 
 namespace amrex {
 
@@ -70,7 +71,13 @@ protected:
         return m_owner_mask[amrlev][mglev].get();
     }
 
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;
+    void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
+
+    static std::unique_ptr<iMultiFab> makeOwnerMask (const BoxArray& ba,
+                                                     const DistributionMapping& dm,
+                                                     const Geometry& geom);
+
+    mutable Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;
 };
 
 }
