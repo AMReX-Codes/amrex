@@ -60,7 +60,6 @@ protected:
 private:
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
-    mutable Vector<Vector<std::unique_ptr<MultiFab> > > m_sync_weight;
     bool m_use_gauss_seidel = true;
     bool m_use_harmonic_average = true;
     //
