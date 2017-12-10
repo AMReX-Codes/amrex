@@ -31,7 +31,7 @@ extern "C" {
                                 const int* dlo, const int* dhi,
                                 const void* bclo, const void* bchi);
 
-    void amrex_mlndlap_adotx (const int* lo, const int* hi,
+    void amrex_mlndlap_adotx_ha (const int* lo, const int* hi,
                               amrex_real* y, const int* ylo, const int* yhi,
                               const amrex_real* x, const int* xlo, const int* xhi,
                               const amrex_real* sx, const int* sxlo, const int* sxhi,
@@ -46,7 +46,16 @@ extern "C" {
                               const void* bclo, const void* bchi);
 
 
-    void amrex_mlndlap_gauss_seidel (const int* lo, const int* hi,
+    void amrex_mlndlap_adotx_aa (const int* lo, const int* hi,
+                              amrex_real* y, const int* ylo, const int* yhi,
+                              const amrex_real* x, const int* xlo, const int* xhi,
+                              const amrex_real* sig, const int* slo, const int* shi,
+                              amrex_real* dg, const int* dlo, const int* dhi,
+                              const amrex_real* dxinv, const int* domlo, const int* domhi,
+                              const void* bclo, const void* bchi);
+
+
+    void amrex_mlndlap_gauss_seidel_ha (const int* lo, const int* hi,
                                      amrex_real* sol, const int* slo, const int* shi,
                                      const amrex_real* rhs, const int* rlo, const int* rhi,
                                      const amrex_real* sx, const int* sxlo, const int* sxhi,
@@ -60,7 +69,15 @@ extern "C" {
                                      const void* bclo, const void* bchi);
 
 
-    void amrex_mlndlap_jacobi (const int* lo, const int* hi,
+    void amrex_mlndlap_gauss_seidel_aa (const int* lo, const int* hi,
+                                     amrex_real* sol, const int* slo, const int* shi,
+                                     const amrex_real* rhs, const int* rlo, const int* rhi,
+                                     const amrex_real* sig, const int* sglo, const int* sghi,
+                                     const amrex_real* dxinv, const int* domlo, const int* domhi,
+                                     const void* bclo, const void* bchi);
+
+
+    void amrex_mlndlap_jacobi_ha (const int* lo, const int* hi,
                                amrex_real* sol, const int* slo, const int* shi,
                                const amrex_real* Ax, const int* alo, const int* ahi,
                                const amrex_real* rhs, const int* rlo, const int* rhi,
@@ -75,13 +92,22 @@ extern "C" {
                                const void* bclo, const void* bchi);
                                
 
+    void amrex_mlndlap_jacobi_aa (const int* lo, const int* hi,
+                               amrex_real* sol, const int* slo, const int* shi,
+                               const amrex_real* Ax, const int* alo, const int* ahi,
+                               const amrex_real* rhs, const int* rlo, const int* rhi,
+                               const amrex_real* sig, const int* sglo, const int* sghi,
+                               const amrex_real* dxinv, const int* domlo, const int* domhi,
+                               const void* bclo, const void* bchi);
+                               
+
     void amrex_mlndlap_restriction (const int* lo, const int* hi,
                                     amrex_real* crse, const int* clo, const int* chi,
                                     const amrex_real* fine, const int* flo, const int* fhi,
                                     const int* dlo, const int* dhi,
                                     const void* bclo, const void* bchi);
 
-    void amrex_mlndlap_interpolation (const int* clo, const int* chi,
+    void amrex_mlndlap_interpolation_ha (const int* clo, const int* chi,
                                       amrex_real* fine, const int* fflo, const int* ffhi,
                                       const amrex_real* crse, const int* cflo, const int* cfhi,
                                       const amrex_real* sx, const int* sxlo, const int* sxhi,
@@ -91,6 +117,14 @@ extern "C" {
                                       const amrex_real* sz, const int* szlo, const int* szhi,
 #endif
 #endif
+                                      const int* domlo, const int* domhi,
+                                      const void* bclo, const void* bchi);
+
+
+    void amrex_mlndlap_interpolation_aa (const int* clo, const int* chi,
+                                      amrex_real* fine, const int* fflo, const int* ffhi,
+                                      const amrex_real* crse, const int* cflo, const int* cfhi,
+                                      const amrex_real* sig, const int* siglo, const int* sighi,
                                       const int* domlo, const int* domhi,
                                       const void* bclo, const void* bchi);
 
