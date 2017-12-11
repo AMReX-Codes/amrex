@@ -68,6 +68,7 @@ AmrLevel::AmrLevel ()
 {
    parent = 0;
    level = -1;
+   levelDirectoryCreated = false;
 }
 
 AmrLevel::AmrLevel (Amr&            papa,
@@ -84,6 +85,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
     level  = lev;
     parent = &papa;
+    levelDirectoryCreated = false;
 
     fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
     crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
@@ -295,7 +297,6 @@ void
 AmrLevel::writePlotFilePre (const std::string& dir,
                             std::ostream&      os)
 {
-    amrex::Print() << "NCNCNCNC:  _in AmrLevel::writePlotFilePre:  dir = " << dir << std::endl;
 }
 
 
@@ -303,7 +304,6 @@ void
 AmrLevel::writePlotFilePost (const std::string& dir,
                              std::ostream&      os)
 {
-    amrex::Print() << "NCNCNCNC:  _in AmrLevel::writePlotFilePost:  dir = " << dir << std::endl;
 }
 
 
@@ -2191,8 +2191,6 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
 
     std::string LevelDir, FullPath;
     LevelDirectoryNames(dir, LevelDir, FullPath);
-    amrex::Print() << "IOIOIOIO:  AmrLevel::CreateLevelDirectory:  dir LevelDir FullPath = "
-                   << dir << "  " << LevelDir << "  " << FullPath << '\n';
 
     if(ParallelDescriptor::IOProcessor()) {
       amrex::Print() << "IOIOIOIO:CD  AmrLevel::CreateLevelDirectory:  " << FullPath << "\n";
