@@ -2007,7 +2007,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPre()");
-    amrex::Print() << "NCNCNCNC:  _in PC<NNNN>::checkPointPre:  " << std::endl;
 
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     long nparticles = 0;
@@ -2063,7 +2062,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::CheckpointPost()");
-    amrex::Print() << "NCNCNCNC:  _in PC<NNNN>::checkPointPost:  " << std::endl;
 
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     std::ofstream HdrFile;
