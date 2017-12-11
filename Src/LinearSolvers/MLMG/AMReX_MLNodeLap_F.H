@@ -130,6 +130,18 @@ extern "C" {
                                       const void* bclo, const void* bchi);
 
 
+    void amrex_mlndlap_zero_fine (const int* lo, const int* hi,
+                                  amrex_real* phi, const int* philo, const int* phihi,
+                                  const int* msk, const int* mlo, const int* mhi);
+
+    void amrex_mlndlap_crse_resid (const int* lo, const int* hi,
+                                   amrex_real* resid, const int* rslo, const int* rshi,
+                                   const amrex_real* rhs, const int* rhlo, const int* rhhi,
+                                   const int* msk, const int* mlo, const int* mhi);
+
+    int amrex_mlndlap_any_zero (const int* lo, const int* hi,
+                                const int* msk, const int* mlo, const int* mhi);
+
 #ifdef __cplusplus
 }
 #endif

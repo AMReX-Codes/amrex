@@ -1393,12 +1393,13 @@ MultiFab::OverlapMask (const Periodicity& period) const
     std::unique_ptr<MultiFab> p{new MultiFab(ba,dm,1,0, MFInfo(), Factory())};
     p->setVal(0.0);
 
+    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
-        const std::vector<IntVect>& pshifts = period.shiftIntVect();
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
@@ -1431,12 +1432,13 @@ MultiFab::OwnerMask (const Periodicity& period) const
                                                DefaultFabFactory<IArrayBox>())};
     p->setVal(owner);
 
+    const std::vector<IntVect>& pshifts = period.shiftIntVect();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         std::vector< std::pair<int,Box> > isects;
-        const std::vector<IntVect>& pshifts = period.shiftIntVect();
         
         for (MFIter mfi(*p); mfi.isValid(); ++mfi)
         {
