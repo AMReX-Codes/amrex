@@ -4,6 +4,7 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_BaseFab_f.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -521,19 +522,133 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 }
 
 void
-MLNodeLaplacian::FFlux (int amrlev, const MFIter& mfi,
-                        const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only) const
+MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a_phi,
+                                         const MultiFab& vold, const BoxArray& fine_grids,
+                                         const IntVect& ref_ratio)
 {
-    amrex::Abort("MLNodeLaplacian::FFlux to be implemented");
-}
+    sync_resid.setVal(0.0);
 
-Real
-MLNodeLaplacian::Anorm (int amrlev, int mglev) const
-{
-    // remove cg
-    amrex::Abort("MLNodeLaplacian::Anorm to be implemented");
-    return 0;
+    const Geometry& geom = m_geom[0][0];
+    const DistributionMapping& dmap = m_dmap[0][0];
+    const BoxArray& ccba = m_grids[0][0];
+    const BoxArray& ndba = amrex::convert(ccba, IntVect::TheNodeVector());
+    const BoxArray& cc_fba = amrex::coarsen(fine_grids, ref_ratio);
+
+    iMultiFab crse_cc_mask(ccba, dmap, 1, 1); // cell-center, 1: coarse; 0: covered by fine
+
+    const int owner = 1;
+    const int nonowner = 0;
+
+    crse_cc_mask.setVal(owner);
+
+    const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        std::vector< std::pair<int,Box> > isects;
+        
+        for (MFIter mfi(crse_cc_mask); mfi.isValid(); ++mfi)
+        {
+            IArrayBox& fab = crse_cc_mask[mfi];
+            const Box& bx = fab.box();
+            for (const auto& iv: pshifts)
+            {
+                cc_fba.intersections(bx+iv, isects);
+                for (const auto& is : isects)
+                {
+                    fab.setVal(nonowner, is.second-iv, 0, 1);
+                }
+            }
+        }
+
+    }
+
+    MultiFab phi(ndba, dmap, 1, 1);
+    MultiFab::Copy(phi, a_phi, 0, 0, 1, 1);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(phi, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        amrex_mlndlap_zero_fine(BL_TO_FORTRAN_BOX(bx),
+                                BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]));
+    }
+
+    applyBC(0, 0, phi);
+
+    MultiFab u(ccba, dmap, AMREX_SPACEDIM, 1);
+    MultiFab::Copy(u, vold, 0, 0, AMREX_SPACEDIM, 1);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(u,true); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& fab = u[mfi];
+        const IArrayBox& ifab = crse_cc_mask[mfi];
+        const Box& bx = mfi.tilebox();
+        amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
+                                BL_TO_FORTRAN_FAB(fab),
+                                BL_TO_FORTRAN_ANYD(ifab),
+                                0.0);
+    }
+    
+    u.FillBoundary(geom.periodicity());
+
+    const Real* dxinv = geom.InvCellSize();
+    const auto& nddom = amrex::surroundingNodes(geom.Domain());
+
+    const MultiFab& sigma_orig = *m_sigma[0][0][0];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox rhs;
+        FArrayBox sigma;
+        FArrayBox dg;
+        for (MFIter mfi(sync_resid, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const Box& bxg1 = amrex::grow(bx,1);
+            const Box& ccbxg1 = amrex::enclosedCells(bxg1);
+            if (amrex_mlndlap_any_zero(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi])))
+            {
+                rhs.resize(bx);
+                amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
+                                   BL_TO_FORTRAN_ANYD(rhs),
+                                   BL_TO_FORTRAN_ANYD(u[mfi]),
+                                   dxinv, BL_TO_FORTRAN_BOX(nddom),
+                                   m_lobc.data(), m_hibc.data());
+
+                sigma.resize(ccbxg1);
+                sigma.copy(sigma_orig[mfi], ccbxg1, 0, ccbxg1, 0, 1);
+                amrex_fab_setval_ifnot(BL_TO_FORTRAN_BOX(ccbxg1),
+                                       BL_TO_FORTRAN_FAB(sigma),
+                                       BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
+                                       0.0);
+
+                dg.resize(bxg1,AMREX_SPACEDIM);
+                amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
+                                       BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                       BL_TO_FORTRAN_ANYD(sigma),
+                                       BL_TO_FORTRAN_ANYD(dg),
+                                       dxinv, BL_TO_FORTRAN_BOX(nddom),
+                                       m_lobc.data(), m_hibc.data());
+
+                amrex_mlndlap_crse_resid(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
+                                         BL_TO_FORTRAN_ANYD(rhs),
+                                         BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]));
+            }
+        }
+    }
 }
 
 }

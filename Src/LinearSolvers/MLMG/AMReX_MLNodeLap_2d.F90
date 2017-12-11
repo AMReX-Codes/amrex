@@ -11,7 +11,8 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
        amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
-       amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa
+       amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
+       amrex_mlndlap_zero_fine, amrex_mlndlap_crse_resid, amrex_mlndlap_any_zero
 
 contains
 
@@ -745,5 +746,63 @@ contains
 
   end subroutine amrex_mlndlap_bounds
 
+
+  subroutine amrex_mlndlap_zero_fine (lo, hi, phi, philo, phihi, msk, mlo, mhi) &
+       bind(c, name='amrex_mlndlap_zero_fine')
+    integer, dimension(2), intent(in) :: lo, hi, philo, phihi, mlo, mhi
+    real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
+    integer         , intent(in   ) :: msk(  mlo(1):  mhi(1),  mlo(2):  mhi(2))
+
+    integer :: i,j
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (all(msk(i-1:i,j-1:j).eq.0)) then
+             phi(i,j) = 0.d0
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_zero_fine
+
+
+  subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi) &
+       bind(c, name='amrex_mlndlap_crse_resid')
+    integer, dimension(2), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi
+    real(amrex_real), intent(inout) :: resid(rslo(1):rshi(1),rslo(2):rshi(2))
+    real(amrex_real), intent(in   ) :: rhs  (rhlo(1):rhhi(1),rhlo(2):rhhi(2))
+    integer         , intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
+
+    integer :: i,j
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (any(msk(i-1:i,j-1:j).eq.0) .and. any(msk(i-1:i,j-1:j).eq.1)) then
+             resid(i,j) = rhs(i,j) - resid(i,j)
+          else
+             resid(i,j) = 0.d0
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_crse_resid
+
+  
+  function amrex_mlndlap_any_zero (lo, hi, msk, mlo, mhi) result(r) &
+       bind(c,name='amrex_mlndlap_any_zero')
+    integer, dimension(2), intent(in) :: lo, hi, mlo, mhi
+    integer, intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
+    integer :: r
+
+    integer :: i,j
+
+    r = 0
+
+    do j = lo(2), hi(2)
+       if (r.eq.1) exit
+       do i = lo(1), hi(1)
+          if (r.eq.1) exit
+          if (msk(i,j) .eq. 0) r = 1
+       end do
+    end do
+  end function amrex_mlndlap_any_zero
 
 end module amrex_mlnodelap_2d_module
