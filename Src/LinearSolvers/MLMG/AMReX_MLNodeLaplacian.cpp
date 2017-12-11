@@ -533,6 +533,7 @@ MLNodeLaplacian::Anorm (int amrlev, int mglev) const
 {
     // remove cg
     amrex::Abort("MLNodeLaplacian::Anorm to be implemented");
+    return 0;
 }
 
 }
