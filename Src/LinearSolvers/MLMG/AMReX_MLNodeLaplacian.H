@@ -69,7 +69,7 @@ private:
     void averageDownCoeffsToCoarseAmrLevel (int flev);
     void averageDownCoeffsSameAmrLevel (int amrlev);
 
-    static void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
+    void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
 };
 
 }

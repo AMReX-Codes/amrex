@@ -237,7 +237,8 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
         if (!domain.contains(mfi.fabbox()))
         {
             amrex_mlndlap_fillbc_coeff(BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                       BL_TO_FORTRAN_BOX(domain));
+                                       BL_TO_FORTRAN_BOX(domain),
+                                       m_lobc.data(), m_hibc.data());
         }
     }
 }
