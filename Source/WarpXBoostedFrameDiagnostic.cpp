@@ -167,7 +167,7 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
     current_z_boost = 0.0;
     file_name = Concatenate("lab_frame_data/snapshot", file_num, 5);
     
-    if (ParallelDescriptor::MyProc() == ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor()) {
 
         const int nlevels = 1;
         const std::string level_prefix = "Level_";
@@ -183,7 +183,7 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
     
     ParallelDescriptor::Barrier();
 
-    if (ParallelDescriptor::MyProc() == ParallelDescriptor::IOProcessor()) writeSnapShotHeader();
+    if (ParallelDescriptor::IOProcessor()) writeSnapShotHeader();
 }
 
 void
