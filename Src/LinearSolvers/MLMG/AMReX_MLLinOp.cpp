@@ -248,6 +248,16 @@ MLLinOp::setDomainBC (const std::array<BCType,AMREX_SPACEDIM>& a_lobc,
 {
     m_lobc = a_lobc;
     m_hibc = a_hibc;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            AMREX_ALWAYS_ASSERT(m_lobc[idim] == BCType::Periodic);
+            AMREX_ALWAYS_ASSERT(m_hibc[idim] == BCType::Periodic);
+        }
+        if (m_lobc[idim] == BCType::Periodic or
+            m_hibc[idim] == BCType::Periodic) {
+            AMREX_ALWAYS_ASSERT(Geometry::isPeriodic(idim));
+        }
+    }
 }
 
 void
