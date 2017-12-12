@@ -468,12 +468,12 @@ contains
          
          
     double precision :: diffflux, phicctemp, debtemp, mono1, mono2, signd2, d2wlim, &
-         d2wc1, d2wc2, d2wc3, d2wf1, rho, d3wmin, d3wmax, dwthresh, maxw, &
+         d2wc1, d2wc2, d2wc3, d2wf1, rho, d3wmin, d3wmax, dwthresh, maxw
     logical :: applylim
     integer :: i, j
     integer :: imax(2), imin(2), blo(2), bhi(2);
     double precision ::     maxval, minval
-    double precision :: phitot
+!    double precision :: phitot
 !    integer ::  numphi
 
 

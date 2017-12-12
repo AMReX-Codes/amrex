@@ -33,7 +33,7 @@ subroutine timeinterprk4_pwm(stage, lo, hi, &
   double precision, intent(in)    :: k1(k1_lo(1):k1_hi(1), &
                                         k1_lo(2):k1_hi(2), &
                                         k1_lo(3):k1_hi(3))
-  double precision, intent(in)    :: k2(k2_lo(2):k2_hi(2), &
+  double precision, intent(in)    :: k2(k2_lo(1):k2_hi(1), &
                                         k2_lo(2):k2_hi(2), &
                                         k2_lo(3):k2_hi(3))
   double precision, intent(in)    :: k3(k3_lo(1):k3_hi(1), &
@@ -136,7 +136,7 @@ subroutine timeinterprk3_pwm(stage, lo, hi, &
   double precision, intent(in)    :: k1(k1_lo(1):k1_hi(1), &
                                         k1_lo(2):k1_hi(2), &
                                         k1_lo(3):k1_hi(3))
-  double precision, intent(in)    :: k2(k2_lo(2):k2_hi(2), &
+  double precision, intent(in)    :: k2(k2_lo(1):k2_hi(1), &
                                         k2_lo(2):k2_hi(2), &
                                         k2_lo(3):k2_hi(3))
 
@@ -222,7 +222,7 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
   double precision, intent(in)    :: k1(k1_lo(1):k1_hi(1), &
                                         k1_lo(2):k1_hi(2), &
                                         k1_lo(3):k1_hi(3))
-  double precision, intent(in)    :: k2(k2_lo(2):k2_hi(2), &
+  double precision, intent(in)    :: k2(k2_lo(1):k2_hi(1), &
                                         k2_lo(2):k2_hi(2), &
                                         k2_lo(3):k2_hi(3))
   double precision, intent(in)    :: k3(k3_lo(1):k3_hi(1), &
@@ -332,7 +332,7 @@ subroutine timeinterprk3_jbb(stage, lo, hi, &
   double precision, intent(in)    :: k1(k1_lo(1):k1_hi(1), &
                                         k1_lo(2):k1_hi(2), &
                                         k1_lo(3):k1_hi(3))
-  double precision, intent(in)    :: k2(k2_lo(2):k2_hi(2), &
+  double precision, intent(in)    :: k2(k2_lo(1):k2_hi(1), &
                                         k2_lo(2):k2_hi(2), &
                                         k2_lo(3):k2_hi(3))
 
@@ -421,7 +421,7 @@ subroutine timeinterprk4_simplepoly(stage, lo, hi, &
   double precision, intent(in)    :: k1(k1_lo(1):k1_hi(1), &
                                         k1_lo(2):k1_hi(2), &
                                         k1_lo(3):k1_hi(3))
-  double precision, intent(in)    :: k2(k2_lo(2):k2_hi(2), &
+  double precision, intent(in)    :: k2(k2_lo(1):k2_hi(1), &
                                         k2_lo(2):k2_hi(2), &
                                         k2_lo(3):k2_hi(3))
   double precision, intent(in)    :: k3(k3_lo(1):k3_hi(1), &
@@ -508,7 +508,7 @@ subroutine timeinterprk3_simplepoly(stage, lo, hi, &
   double precision, intent(in)    :: k1(k1_lo(1):k1_hi(1), &
                                         k1_lo(2):k1_hi(2), &
                                         k1_lo(3):k1_hi(3))
-  double precision, intent(in)    :: k2(k2_lo(2):k2_hi(2), &
+  double precision, intent(in)    :: k2(k2_lo(1):k2_hi(1), &
                                         k2_lo(2):k2_hi(2), &
                                         k2_lo(3):k2_hi(3))
 
