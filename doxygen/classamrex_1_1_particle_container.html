@@ -233,6 +233,10 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a4a1c44fdf3e109f0ef2707a00810f0a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae81d42996a0794aaca5e198f7b1179f6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_particle_container.html#ae81d42996a0794aaca5e198f7b1179f6">AddParticlesAtLevel</a> (<a class="el" href="classamrex_1_1_particle_container.html#a34292c05dc95e39064c392382af0f4cd">AoS</a> &amp;particles, int level, int nGrow=0)</td></tr>
 <tr class="separator:ae81d42996a0794aaca5e198f7b1179f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a812c8380cdc8d37bdb318c85fc88e04e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_particle_container.html#a812c8380cdc8d37bdb318c85fc88e04e">WriteParticleRealData</a> (void *data, size_t size, std::ostream &amp;os, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd) const </td></tr>
+<tr class="separator:a812c8380cdc8d37bdb318c85fc88e04e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad556fa72e0f22533d5f90f641f4f2bce"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_particle_container.html#ad556fa72e0f22533d5f90f641f4f2bce">ReadParticleRealData</a> (void *data, size_t size, std::istream &amp;is, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd)</td></tr>
+<tr class="separator:ad556fa72e0f22533d5f90f641f4f2bce"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67a6c26a67cf5dbe2c7aefc69aa72ce2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_particle_container.html#a67a6c26a67cf5dbe2c7aefc69aa72ce2">Checkpoint</a> (const std::string &amp;dir, const std::string &amp;name, bool is_checkpoint=true, const <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; std::string &gt; &amp;real_comp_names=<a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; std::string &gt;(), const <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; std::string &gt; &amp;int_comp_names=<a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; std::string &gt;()) const </td></tr>
 <tr class="separator:a67a6c26a67cf5dbe2c7aefc69aa72ce2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac9860d8333c8b88dfd3df60cec2351df"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_particle_container.html#ac9860d8333c8b88dfd3df60cec2351df">Restart</a> (const std::string &amp;dir, const std::string &amp;file, bool is_checkpoint=true)</td></tr>
@@ -299,6 +303,8 @@ Public Member Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
+<tr class="memitem:a3745cc53b964fc08052fe340d1fd42b2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_particle_container.html#a3745cc53b964fc08052fe340d1fd42b2">ParticleRealDescriptor</a> = <a class="el" href="classamrex_1_1_f_p_c.html#ab470772000cfb5f507edc5f294383bbc">FPC::NativeRealDescriptor</a>()</td></tr>
+<tr class="separator:a3745cc53b964fc08052fe340d1fd42b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab9f454ac348d292cb7834eb189d45f76"><td class="memItemLeft" align="right" valign="top">std::vector&lt; bool &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_particle_container.html#ab9f454ac348d292cb7834eb189d45f76">communicate_real_comp</a></td></tr>
 <tr class="separator:ab9f454ac348d292cb7834eb189d45f76"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6b59c2f3c8342b421deeb74380a46175"><td class="memItemLeft" align="right" valign="top">std::vector&lt; bool &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_particle_container.html#a6b59c2f3c8342b421deeb74380a46175">communicate_int_comp</a></td></tr>
@@ -2609,6 +2615,46 @@ template&lt;int NStructReal, int NStructInt, int NArrayReal, int NArrayInt&gt; <
 
 </div>
 </div>
+<a class="anchor" id="ad556fa72e0f22533d5f90f641f4f2bce"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int NStructReal, int NStructInt, int NArrayReal, int NArrayInt&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classamrex_1_1_particle_container.html">amrex::ParticleContainer</a>&lt; NStructReal, NStructInt, NArrayReal, NArrayInt &gt;::ReadParticleRealData </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>rd</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="ae05584f96f7bb0e422b3ff89c2bf8879"></a>
 <div class="memitem">
 <div class="memproto">
@@ -3213,6 +3259,46 @@ template&lt;int NStructReal, int NStructInt, int NArrayReal, int NArrayInt&gt; <
 
 </div>
 </div>
+<a class="anchor" id="a812c8380cdc8d37bdb318c85fc88e04e"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int NStructReal, int NStructInt, int NArrayReal, int NArrayInt&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classamrex_1_1_particle_container.html">amrex::ParticleContainer</a>&lt; NStructReal, NStructInt, NArrayReal, NArrayInt &gt;::WriteParticleRealData </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>rd</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="a673880c545396d58ef54973fb5d71191"></a>
 <div class="memitem">
 <div class="memproto">
@@ -3525,6 +3611,20 @@ template&lt;int NStructReal, int NStructInt = 0, int NArrayReal = 0, int NArrayI
       <table class="memname">
         <tr>
           <td class="memname">int <a class="el" href="classamrex_1_1_particle_container.html">amrex::ParticleContainer</a>&lt; NStructReal, NStructInt, NArrayReal, NArrayInt &gt;::num_real_soa_comps</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a3745cc53b964fc08052fe340d1fd42b2"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;int NStructReal, int NStructInt = 0, int NArrayReal = 0, int NArrayInt = 0&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> <a class="el" href="classamrex_1_1_particle_container.html">amrex::ParticleContainer</a>&lt; NStructReal, NStructInt, NArrayReal, NArrayInt &gt;::ParticleRealDescriptor = <a class="el" href="classamrex_1_1_f_p_c.html#ab470772000cfb5f507edc5f294383bbc">FPC::NativeRealDescriptor</a>()</td>
         </tr>
       </table>
 </div><div class="memdoc">

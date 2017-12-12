@@ -166,6 +166,18 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a66dfc40b6fe503f7f634c715f20f67d6"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_real_descriptor.html#a66dfc40b6fe503f7f634c715f20f67d6">convertFromNativeFormat</a> (void *out, long nitems, const Real *in, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;od)</td></tr>
 <tr class="memdesc:a66dfc40b6fe503f7f634c715f20f67d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert nitems Reals in native format to <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format. The out array is assumed to be large enough to hold the resulting output.  <a href="#a66dfc40b6fe503f7f634c715f20f67d6">More...</a><br/></td></tr>
 <tr class="separator:a66dfc40b6fe503f7f634c715f20f67d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9132ce91c407d7dbe4cd0c1c14e21cd5"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_real_descriptor.html#a9132ce91c407d7dbe4cd0c1c14e21cd5">convertFromNativeFloatFormat</a> (std::ostream &amp;os, long nitems, const float *in, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;od)</td></tr>
+<tr class="memdesc:a9132ce91c407d7dbe4cd0c1c14e21cd5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert nitems floats in native format to <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and write them to the ostream.  <a href="#a9132ce91c407d7dbe4cd0c1c14e21cd5">More...</a><br/></td></tr>
+<tr class="separator:a9132ce91c407d7dbe4cd0c1c14e21cd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a789c3c7a96be258b4dc86b4c699facb8"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_real_descriptor.html#a789c3c7a96be258b4dc86b4c699facb8">convertFromNativeDoubleFormat</a> (std::ostream &amp;os, long nitems, const double *in, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;od)</td></tr>
+<tr class="memdesc:a789c3c7a96be258b4dc86b4c699facb8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert nitems doubles in native format to <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and write them to the ostream.  <a href="#a789c3c7a96be258b4dc86b4c699facb8">More...</a><br/></td></tr>
+<tr class="separator:a789c3c7a96be258b4dc86b4c699facb8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac8bca714afe5a0214a63bd6542fe397f"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_real_descriptor.html#ac8bca714afe5a0214a63bd6542fe397f">convertToNativeFloatFormat</a> (float *out, long nitems, std::istream &amp;is, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;id)</td></tr>
+<tr class="memdesc:ac8bca714afe5a0214a63bd6542fe397f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read nitems from istream in <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and convert them to the native float format. The out array is assumed to be large enough to hold the resulting output.  <a href="#ac8bca714afe5a0214a63bd6542fe397f">More...</a><br/></td></tr>
+<tr class="separator:ac8bca714afe5a0214a63bd6542fe397f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afef04947c2c0148954b4ba9161343a71"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_real_descriptor.html#afef04947c2c0148954b4ba9161343a71">convertToNativeDoubleFormat</a> (double *out, long nitems, std::istream &amp;is, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;id)</td></tr>
+<tr class="memdesc:afef04947c2c0148954b4ba9161343a71"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read nitems from istream in <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and convert them to the native double format. The out array is assumed to be large enough to hold the resulting output.  <a href="#afef04947c2c0148954b4ba9161343a71">More...</a><br/></td></tr>
+<tr class="separator:afef04947c2c0148954b4ba9161343a71"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This class is meant to hold all information needed to completely describe the "Real" floating-point type on a machine. By "Real" here we mean either the "float" or "double" type that this version of AMReX was built with, which corresponds to whether BL_USE_FLOAT or BL_USE_DOUBLE was used to build the version of the library. </p>
@@ -247,6 +259,102 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Returns a copy of this <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> on the heap. The user is responsible for deletion. </p>
+
+</div>
+</div>
+<a class="anchor" id="a789c3c7a96be258b4dc86b4c699facb8"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::RealDescriptor::convertFromNativeDoubleFormat </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">long&#160;</td>
+          <td class="paramname"><em>nitems</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const double *&#160;</td>
+          <td class="paramname"><em>in</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>od</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Convert nitems doubles in native format to <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and write them to the ostream. </p>
+
+</div>
+</div>
+<a class="anchor" id="a9132ce91c407d7dbe4cd0c1c14e21cd5"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::RealDescriptor::convertFromNativeFloatFormat </td>
+          <td>(</td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">long&#160;</td>
+          <td class="paramname"><em>nitems</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const float *&#160;</td>
+          <td class="paramname"><em>in</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>od</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Convert nitems floats in native format to <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and write them to the ostream. </p>
 
 </div>
 </div>
@@ -343,6 +451,102 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Convert nitems Reals in native format to <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format. The out array is assumed to be large enough to hold the resulting output. </p>
+
+</div>
+</div>
+<a class="anchor" id="afef04947c2c0148954b4ba9161343a71"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::RealDescriptor::convertToNativeDoubleFormat </td>
+          <td>(</td>
+          <td class="paramtype">double *&#160;</td>
+          <td class="paramname"><em>out</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">long&#160;</td>
+          <td class="paramname"><em>nitems</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Read nitems from istream in <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and convert them to the native double format. The out array is assumed to be large enough to hold the resulting output. </p>
+
+</div>
+</div>
+<a class="anchor" id="ac8bca714afe5a0214a63bd6542fe397f"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::RealDescriptor::convertToNativeFloatFormat </td>
+          <td>(</td>
+          <td class="paramtype">float *&#160;</td>
+          <td class="paramname"><em>out</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">long&#160;</td>
+          <td class="paramname"><em>nitems</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Read nitems from istream in <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> format and convert them to the native float format. The out array is assumed to be large enough to hold the resulting output. </p>
 
 </div>
 </div>

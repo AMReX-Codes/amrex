@@ -1608,6 +1608,14 @@ Functions</h2></td></tr>
 <tr class="separator:af9790d1f61a6d21ce4e9f92c58ac0600"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa6f624229959bee80f1444371bb5babc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#aa6f624229959bee80f1444371bb5babc">readRealData</a> (Real *data, std::size_t size, std::istream &amp;is, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd)</td></tr>
 <tr class="separator:aa6f624229959bee80f1444371bb5babc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4f9c3dd444d301063e6190234413bda4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a4f9c3dd444d301063e6190234413bda4">writeFloatData</a> (const float *data, std::size_t size, std::ostream &amp;os, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd=<a class="el" href="classamrex_1_1_f_p_c.html#a56bb549e278ccc2611fd389c3d2b6bdb">FPC::Native32RealDescriptor</a>())</td></tr>
+<tr class="separator:a4f9c3dd444d301063e6190234413bda4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4c085d3b27d107f62bdb36f5ecc0f326"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a4c085d3b27d107f62bdb36f5ecc0f326">readFloatData</a> (float *data, std::size_t size, std::istream &amp;is, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd)</td></tr>
+<tr class="separator:a4c085d3b27d107f62bdb36f5ecc0f326"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a583a444879c864fcc03845f637a122c9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a583a444879c864fcc03845f637a122c9">writeDoubleData</a> (const double *data, std::size_t size, std::ostream &amp;os, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd=<a class="el" href="classamrex_1_1_f_p_c.html#ab470772000cfb5f507edc5f294383bbc">FPC::NativeRealDescriptor</a>())</td></tr>
+<tr class="separator:a583a444879c864fcc03845f637a122c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac590394599f7ea721cf8999331d0436e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#ac590394599f7ea721cf8999331d0436e">readDoubleData</a> (double *data, std::size_t size, std::istream &amp;is, const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;rd)</td></tr>
+<tr class="separator:ac590394599f7ea721cf8999331d0436e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af58b88f2bf12a834f4885dcf327fbeba"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#af58b88f2bf12a834f4885dcf327fbeba">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="structamrex_1_1_vis_m_f_1_1_fab_on_disk.html">VisMF::FabOnDisk</a> &amp;fod)</td></tr>
 <tr class="memdesc:af58b88f2bf12a834f4885dcf327fbeba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write a FabOnDisk to an ostream in ASCII.  <a href="#af58b88f2bf12a834f4885dcf327fbeba">More...</a><br/></td></tr>
 <tr class="separator:af58b88f2bf12a834f4885dcf327fbeba"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -12946,14 +12954,14 @@ template&lt;class T &gt; </div>
 
 </div>
 </div>
-<a class="anchor" id="a69bf266cc5fefb0b385d84f685dd0df6"></a>
+<a class="anchor" id="ac590394599f7ea721cf8999331d0436e"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void amrex::readIntData </td>
+          <td class="memname">void amrex::readDoubleData </td>
           <td>(</td>
-          <td class="paramtype">int *&#160;</td>
+          <td class="paramtype">double *&#160;</td>
           <td class="paramname"><em>data</em>, </td>
         </tr>
         <tr>
@@ -12971,8 +12979,8 @@ template&lt;class T &gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
-          <td class="paramname"><em>id</em>&#160;</td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>rd</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -12981,7 +12989,46 @@ template&lt;class T &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Read int data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and an <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' integers, and it is the user's reponsiblity to allocate this data. </p>
+<p>Read double data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and a <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' Reals, and it is the user's reponsiblity to allocate this data. </p>
+
+</div>
+</div>
+<a class="anchor" id="a4c085d3b27d107f62bdb36f5ecc0f326"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::readFloatData </td>
+          <td>(</td>
+          <td class="paramtype">float *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>rd</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read float data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and a <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' Reals, and it is the user's reponsiblity to allocate this data. </p>
 
 </div>
 </div>
@@ -13022,6 +13069,45 @@ template&lt;typename To , typename From &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a69bf266cc5fefb0b385d84f685dd0df6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::readIntData </td>
+          <td>(</td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::istream &amp;&#160;</td>
+          <td class="paramname"><em>is</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read int data from the istream. The arguments are a pointer to data buffer to read into, the size of that buffer, the istream, and an <a class="el" href="classamrex_1_1_int_descriptor.html">IntDescriptor</a> that describes the format of the data on disk. The buffer is assumed to be large enough to store 'size' integers, and it is the user's reponsiblity to allocate this data. </p>
 
 </div>
 </div>
@@ -14669,6 +14755,84 @@ template&lt;&gt; </div>
 </div><div class="memdoc">
 
 <p>This is used by <a class="el" href="namespaceamrex.html#ac0e2e23df625040ded95611ceae98352" title="Print out message to cerr and exit via amrex::Abort(). ">amrex::Error()</a>, <a class="el" href="namespaceamrex.html#aea69993eec3c9ca497cd0e47522b2ec6" title="Print out message to cerr and exit via abort(). ">amrex::Abort()</a>, and <a class="el" href="namespaceamrex.html#ab6a2e5010fd3fcf597991b9d1a251c0d" title="Prints assertion failed messages to cerr and exits via abort(). Intended for use by the BL_ASSERT() m...">amrex::Assert()</a> to ensure that when writing the message to stderr, that no additional heap-based memory is allocated. </p>
+
+</div>
+</div>
+<a class="anchor" id="a583a444879c864fcc03845f637a122c9"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::writeDoubleData </td>
+          <td>(</td>
+          <td class="paramtype">const double *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>rd</em> = <code>FPC::NativeRealDescriptor()</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Write double data to the ostream. The arguments are a pointer to data to write, the size of the data buffer, the ostream, and an optional <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> that describes the data format to use for writing. If no <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> is provided, the data will be written using the native format for your machine. </p>
+
+</div>
+</div>
+<a class="anchor" id="a4f9c3dd444d301063e6190234413bda4"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::writeFloatData </td>
+          <td>(</td>
+          <td class="paramtype">const float *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_real_descriptor.html">RealDescriptor</a> &amp;&#160;</td>
+          <td class="paramname"><em>rd</em> = <code>FPC::Native32RealDescriptor()</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Write float data to the ostream. The arguments are a pointer to data to write, the size of the data buffer, the ostream, and an optional <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> that describes the data format to use for writing. If no <a class="el" href="classamrex_1_1_real_descriptor.html" title="This class is meant to hold all information needed to completely describe the &quot;Real&quot; floating-point t...">RealDescriptor</a> is provided, the data will be written using the native format for your machine. </p>
 
 </div>
 </div>
