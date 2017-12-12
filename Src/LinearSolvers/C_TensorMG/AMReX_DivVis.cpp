@@ -164,14 +164,14 @@ DivVis::initCoefficients (const BoxArray &_ba, const DistributionMapping& _dm)
     // In 2D, need 2 components for "a" to handle r-z properly (will need three
     // for r-theta-phi, but allowing only 3D cartesian for now).
     //
-    const int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
+    const int nCompA = (BL_SPACEDIM == 2  ?  2  :  1);
 
 #ifndef NDEBUG
     if (BL_SPACEDIM == 3)
 	BL_ASSERT(geomarray[level].IsCartesian());
 #endif
 
-    acoefs[level] = new MultiFab(_ba, _dm, nComp, nGrow);
+    acoefs[level] = new MultiFab(_ba, _dm, nCompA, nGrow);
     acoefs[level]->setVal(a_def);
     a_valid.resize(1);
     a_valid[level] = true;
@@ -215,10 +215,10 @@ DivVis::aCoefficients (const MultiFab& _a)
 {
     BL_ASSERT(_a.ok());
     BL_ASSERT(_a.boxArray() == (acoefs[0])->boxArray());
-    const int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
-    BL_ASSERT(_a.nComp() == nComp);
+    const int nCompA = (BL_SPACEDIM == 2  ?  2  :  1);
+    BL_ASSERT(_a.nComp() == nCompA);
     invalidate_a_to_level(0);
-    (*acoefs[0]).copy(_a,0,0,nComp);
+    (*acoefs[0]).copy(_a,0,0,nCompA);
 }
 
 void
