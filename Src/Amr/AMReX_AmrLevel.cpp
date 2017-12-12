@@ -880,30 +880,11 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_fabs.define(m_leveldata.boxArray(),m_leveldata.DistributionMap(),
 		  m_ncomp,boxGrow,MFInfo(),m_leveldata.Factory());
 
-    const IndexType& boxType = m_leveldata.boxArray().ixType();
     const Geometry& geom = m_amrlevel.Geom();
-    Box domainbox = amrex::convert(geom.Domain(), boxType);
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
-            domainbox.grow(idim, boxGrow);
-        }
-    }
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
-    {
-        const Box& fbx = mfi.fabbox();
-        if (!domainbox.contains(fbx))
-        {
-            FArrayBox& fab = m_fabs[mfi];
-            const auto& bl = amrex::boxDiff(fbx, domainbox);
-            for (auto const& b: bl) {
-                fab.setVal(std::numeric_limits<Real>::quiet_NaN(), b, 0, m_ncomp);
-            }
-        }
-    }
 
+    m_fabs.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), geom);
+
+    const IndexType& boxType = m_leveldata.boxArray().ixType();
     const int level = m_amrlevel.level;
 
     for (int i = 0, DComp = 0; i < static_cast<int>(m_range.size()); i++)
@@ -1182,10 +1163,19 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         CrseFabs.resize(NC);
 
+        Box domain_box = amrex::convert(amrLevels[l]->Geom().Domain(), fab.box().ixType());
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (Geometry::isPeriodic(idim)) {
+                int n = domain_box.length(idim);
+                domain_box.grow(idim, n);
+            }
+        }
+
         for (int i = 0; i < NC; i++)
         {
             BL_ASSERT(CrseBoxes[i].ok());
             CrseFabs[i].reset(new FArrayBox(CrseBoxes[i],m_ncomp));
+            CrseFabs[i]->setComplement(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
 	}
 
         for (int i = 0; i < NC; i++)
