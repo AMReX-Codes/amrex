@@ -5,8 +5,8 @@ set (ALLHEADERS "")
 set (ALLSRC "")
 
 
-list ( APPEND ALLHEADERS AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H )
-list ( APPEND CXXSRC     AMReX_GeometryShop.cpp AMReX_Moments.cpp )
+list ( APPEND ALLHEADERS AMReX_BaseIF.H  AMReX_GeometryShop.H   AMReX_Moments.H AMReX_GeomIntersectUtils.H )
+list ( APPEND CXXSRC     AMReX_GeometryShop.cpp AMReX_Moments.cpp AMReX_GeomIntersectUtils.cpp )
 
 list ( APPEND ALLHEADERS AMReX_LSquares.H   AMReX_SphereIF.H    AMReX_AnisotropicIF.H	AMReX_PlaneIF.H	AMReX_AnisotropicDxPlaneIF.H )
 list ( APPEND ALLHEADERS AMReX_IrregNode.H   AMReX_LoHiSide.H )
