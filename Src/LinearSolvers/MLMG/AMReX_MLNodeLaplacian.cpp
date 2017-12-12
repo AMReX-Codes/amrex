@@ -562,26 +562,40 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 }
             }
         }
-
     }
 
     MultiFab phi(ndba, dmap, 1, 1);
-    MultiFab::Copy(phi, a_phi, 0, 0, 1, 1);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(phi, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+        const Box& gbx = mfi.growntilebox();
+        FArrayBox& fab = phi[mfi];
+        fab.setVal(0.0, gbx);
+        fab.copy(a_phi[mfi], bx, 0, bx, 0, 1);
         amrex_mlndlap_zero_fine(BL_TO_FORTRAN_BOX(bx),
-                                BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                BL_TO_FORTRAN_ANYD(fab),
                                 BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]));
     }
 
-    applyBC(0, 0, phi);
+    const auto& nddom = amrex::surroundingNodes(geom.Domain());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(phi); mfi.isValid(); ++mfi)
+    {
+        if (!nddom.strictly_contains(mfi.fabbox()))
+        {
+            amrex_mlndlap_applybc(BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                  BL_TO_FORTRAN_BOX(nddom),
+                                  m_lobc.data(), m_hibc.data());
+        }
+    }
 
     MultiFab u(ccba, dmap, AMREX_SPACEDIM, 1);
-    MultiFab::Copy(u, vold, 0, 0, AMREX_SPACEDIM, 1);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -591,16 +605,15 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
         FArrayBox& fab = u[mfi];
         const IArrayBox& ifab = crse_cc_mask[mfi];
         const Box& bx = mfi.tilebox();
+        const Box& gbx = mfi.growntilebox();
+        fab.copy(vold[mfi], gbx, 0, gbx, 0, AMREX_SPACEDIM);
         amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
                                 BL_TO_FORTRAN_FAB(fab),
                                 BL_TO_FORTRAN_ANYD(ifab),
                                 0.0);
     }
     
-    u.FillBoundary(geom.periodicity());
-
     const Real* dxinv = geom.InvCellSize();
-    const auto& nddom = amrex::surroundingNodes(geom.Domain());
 
     const MultiFab& sigma_orig = *m_sigma[0][0][0];
 
@@ -627,7 +640,9 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                    m_lobc.data(), m_hibc.data());
 
                 sigma.resize(ccbxg1);
-                sigma.copy(sigma_orig[mfi], ccbxg1, 0, ccbxg1, 0, 1);
+                sigma.setVal(0, ccbxg1, 0, 1);
+                const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
+                sigma.copy(sigma_orig[mfi], ibx, 0, ibx, 0, 1);
                 amrex_fab_setval_ifnot(BL_TO_FORTRAN_BOX(ccbxg1),
                                        BL_TO_FORTRAN_FAB(sigma),
                                        BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
