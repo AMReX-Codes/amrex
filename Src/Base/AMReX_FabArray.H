@@ -1307,16 +1307,19 @@ FabArray<FAB>::setDomainBndry (value_type val,
                                int        ncomp,
                                const Geometry& geom)
 {
-    if (n_grow > 0)
-    {
-        const Box& domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
+    Box domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            int n = domain_box.length(idim);
+            domain_box.grow(idim, n);
+        }
+    }
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter fai(*this); fai.isValid(); ++fai)
-        {
-            get(fai).setComplement(val, domain_box, strt_comp, ncomp);
-        }
+    for (MFIter fai(*this); fai.isValid(); ++fai)
+    {
+        get(fai).setComplement(val, domain_box, strt_comp, ncomp);
     }
 }
 

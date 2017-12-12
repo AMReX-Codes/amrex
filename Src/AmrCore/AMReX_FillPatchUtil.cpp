@@ -2,6 +2,7 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_FillPatchUtil_F.H>
 #include <cmath>
+#include <limits>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -165,6 +166,8 @@ namespace amrex
 		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
                                        *fpc.fact_crse_patch);
 		
+                mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
 		
 		int idummy1=0, idummy2=0;
@@ -257,6 +260,8 @@ namespace amrex
 #endif
 
 	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(), factory);
+
+        mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 
 	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
