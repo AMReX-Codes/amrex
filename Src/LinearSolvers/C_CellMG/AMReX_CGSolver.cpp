@@ -718,14 +718,14 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
         if ( verbose > 1 )
         {
-            Real tmp[2] = { atime, gtime };
+            Real tmp1[2] = { atime, gtime };
 
-            ParallelDescriptor::ReduceRealMax(tmp,2,color());
+            ParallelDescriptor::ReduceRealMax(tmp1,2,color());
 
             if ( ParallelDescriptor::IOProcessor(color()) )
             {
                 Spacer(std::cout, lev);
-                std::cout << "CGSolver_CABiCGStab apply time: " << tmp[0] << ", gram time: " << tmp[1] << '\n';
+                std::cout << "CGSolver_CABiCGStab apply time: " << tmp1[0] << ", gram time: " << tmp1[1] << '\n';
             }
         }
     }
@@ -1241,13 +1241,12 @@ CGSolver::solve_cg (MultiFab&       sol,
 int
 CGSolver::jbb_precond (MultiFab&       sol,
 		       const MultiFab& rhs,
-                       int             lev,
-		       LinOp&          Lp)
+                       int             lev_loc,
+		       LinOp&          Lp_jbb)
 {
     //
     // This is a local routine.  No parallel is allowed to happen here.
     //
-    int                  lev_loc = lev;
     const Real           eps_rel = 1.e-2;
     const Real           eps_abs = 1.e-16;
     const int            nghost  = sol.nGrow();
@@ -1256,8 +1255,8 @@ CGSolver::jbb_precond (MultiFab&       sol,
     const LinOp::BC_Mode bc_mode = LinOp::Homogeneous_BC;
 
     BL_ASSERT(ncomp == 1 );
-    BL_ASSERT(sol.boxArray() == Lp.boxArray(lev_loc));
-    BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev_loc));
+    BL_ASSERT(sol.boxArray() == Lp_jbb.boxArray(lev_loc));
+    BL_ASSERT(rhs.boxArray() == Lp_jbb.boxArray(lev_loc));
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
@@ -1271,7 +1270,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
 
     sorig.copy(sol);
 
-    Lp.residual(r, rhs, sorig, lev_loc, LinOp::Homogeneous_BC, local);
+    Lp_jbb.residual(r, rhs, sorig, lev_loc, LinOp::Homogeneous_BC, local);
 
     sol.setVal(0);
 
@@ -1285,7 +1284,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
         std::cout << "     jbb_precond: Initial error :        " << rnorm0 << '\n';
     }
 
-    const Real Lp_norm = Lp.norm(0, lev_loc, local);
+    const Real Lp_norm = Lp_jbb.norm(0, lev_loc, local);
     Real sol_norm = 0;
     int  ret      = 0;			// will return this value if all goes well
     Real rho_1    = 0;
@@ -1318,7 +1317,7 @@ CGSolver::jbb_precond (MultiFab&       sol,
             sxay(p, z, beta, p);
         }
 
-        Lp.apply(q, p, lev_loc, bc_mode, local);
+        Lp_jbb.apply(q, p, lev_loc, bc_mode, local);
 
         Real alpha;
         if ( Real pw = dotxy(p,q,local) )
