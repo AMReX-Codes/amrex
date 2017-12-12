@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <memory>
+#include <limits>
 
 #include <AMReX_AmrLevel.H>
 #include <AMReX_Derive.H>
@@ -880,6 +881,29 @@ FillPatchIterator::Initialize (int  boxGrow,
 		  m_ncomp,boxGrow,MFInfo(),m_leveldata.Factory());
 
     const IndexType& boxType = m_leveldata.boxArray().ixType();
+    const Geometry& geom = m_amrlevel.Geom();
+    Box domainbox = amrex::convert(geom.Domain(), boxType);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            domainbox.grow(idim, boxGrow);
+        }
+    }
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
+    {
+        const Box& fbx = mfi.fabbox();
+        if (!domainbox.contains(fbx))
+        {
+            FArrayBox& fab = m_fabs[mfi];
+            const auto& bl = amrex::boxDiff(fbx, domainbox);
+            for (auto const& b: bl) {
+                fab.setVal(std::numeric_limits<Real>::quiet_NaN(), b, 0, m_ncomp);
+            }
+        }
+    }
+
     const int level = m_amrlevel.level;
 
     for (int i = 0, DComp = 0; i < static_cast<int>(m_range.size()); i++)

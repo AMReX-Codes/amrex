@@ -1042,7 +1042,6 @@ MultiFab::norm1 (int comp, const Periodicity& period) const
 Real
 MultiFab::norm1 (int comp, int ngrow, bool local) const
 {
-    BL_ASSERT(ixType().cellCentered());
     
     Real nm1 = 0.e0;
 

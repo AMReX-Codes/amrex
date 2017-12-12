@@ -287,7 +287,7 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
      ) bind(C, name="advectDiffMOL4thOrd")
   
   use mempool_module, only : bl_allocate, bl_deallocate
-  use compute_flux_module, only : mol4thord_flux_3d
+  use compute_flux_module, only : mol4thord_flux_3d_nolimit, mol4thord_flux_3d_limited
   implicit none
 
   integer, intent(in) :: lo(3), hi(3), printstuff, uselimit
@@ -358,21 +358,41 @@ subroutine advectDiffMOL4thOrd(time, lo, hi, &
   end if
 
   ! call a function to compute flux
-  call mol4thord_flux_3d(lo, hi, dt, dx, &
-       uin, ui_lo, ui_hi, &
-       vx, vx_lo, vx_hi, &
-       vy, vy_lo, vy_hi, &
-       vz, vz_lo, vz_hi, &
-       flxx, fx_lo, fx_hi, &
-       flxy, fy_lo, fy_hi, &
-       flxz, fz_lo, fz_hi, &
-       fluxptx, phiptx, phiavex,&
-       fluxpty, phipty, phiavey,&
-       fluxptz, phiptz, phiavez,&
-       phiptcc, glo, ghi,nu, &
-       deblocell, debhicell, &
-       hisidedebfacelo, hisidedebfacehi,&
-       losidedebfacelo, losidedebfacehi, printstuff, uselimit)
+  if(uselimit.eq.1) then
+     call mol4thord_flux_3d_limited(&
+          lo, hi, dt, dx, &
+          uin, ui_lo, ui_hi, &
+          vx, vx_lo, vx_hi, &
+          vy, vy_lo, vy_hi, &
+          vz, vz_lo, vz_hi, &
+          flxx, fx_lo, fx_hi, &
+          flxy, fy_lo, fy_hi, &
+          flxz, fz_lo, fz_hi, &
+          fluxptx, phiptx, phiavex,&
+          fluxpty, phipty, phiavey,&
+          fluxptz, phiptz, phiavez,&
+          phiptcc, glo, ghi,nu, &
+          deblocell, debhicell, &
+          hisidedebfacelo, hisidedebfacehi,&
+          losidedebfacelo, losidedebfacehi, printstuff)
+  else
+     call mol4thord_flux_3d_nolimit(&
+          lo, hi, dt, dx, &
+          uin, ui_lo, ui_hi, &
+          vx, vx_lo, vx_hi, &
+          vy, vy_lo, vy_hi, &
+          vz, vz_lo, vz_hi, &
+          flxx, fx_lo, fx_hi, &
+          flxy, fy_lo, fy_hi, &
+          flxz, fz_lo, fz_hi, &
+          fluxptx, phiptx, phiavex,&
+          fluxpty, phipty, phiavey,&
+          fluxptz, phiptz, phiavez,&
+          phiptcc, glo, ghi,nu, &
+          deblocell, debhicell, &
+          hisidedebfacelo, hisidedebfacehi,&
+          losidedebfacelo, losidedebfacehi, printstuff)
+  endif
   ! Do a conservative update
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)

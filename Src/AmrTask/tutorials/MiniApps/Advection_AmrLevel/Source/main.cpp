@@ -14,14 +14,18 @@ using namespace amrex;
 
 class MyAction :public AmrTask{
     public:
-	virtual Real advanceTask (Real time,
-		Real dt,
-		int  iteration,
-		int  ncycle){}
+	virtual Real advanceTask (Real time, Real dt, int iteration, int ncycle){
+		TaskName name= MyName();
+		cout << "Task "<<name[0] <<" " <<name[1]<<" " <<name[2]<<" computes advance"<< endl;
+	        return dt;
+	}
+        virtual void post_timestepTask(int  iteration){
+		TaskName name= MyName();
+	}
 };
 
 
-int main (int   argc, char* argv[])
+int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
