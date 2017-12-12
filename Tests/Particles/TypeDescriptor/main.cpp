@@ -128,6 +128,90 @@ void testRealIO(const RealDescriptor& rd_out) {
     }
 }
 
+void testFloatIO(const RealDescriptor& rd_out) {
+
+    std::string data_file_name   = "float_data.dat";
+    std::string header_file_name = "float_header_H";
+    
+    amrex::Vector<float> rdata_out;
+    for (int i = -99; i <= 100; ++i) {
+        rdata_out.push_back(amrex::Random());
+    }
+
+    std::ofstream ofs;
+    ofs.open(data_file_name.c_str(), std::ios::out|std::ios::binary);
+    writeFloatData(rdata_out.data(), rdata_out.size(), ofs, rd_out);
+    ofs.close();
+    
+    ofs.open(header_file_name.c_str(), std::ios::out);
+    ofs << rd_out << "\n";
+    ofs.close();
+    
+    RealDescriptor rd_in;
+    std::ifstream ifs;
+    ifs.open(header_file_name.c_str(), std::ios::in);
+    ifs >> rd_in;
+    ifs.close();
+    
+    AMREX_ALWAYS_ASSERT(rd_out == rd_in);
+    
+    amrex::Vector<float> rdata_in(rdata_out.size());
+    ifs.open(data_file_name.c_str(), std::ios::in|std::ios::binary);
+    readFloatData(rdata_in.data(), rdata_in.size(), ifs, rd_in);
+    ifs.close();
+    
+    for (int i = 0; i < static_cast<int>(rdata_in.size()); ++i) {
+        if (rd_in == FPC::Native32RealDescriptor() || 
+            rd_in == FPC::Ieee32NormalRealDescriptor()) {
+            AMREX_ALWAYS_ASSERT(std::abs(rdata_in[i] - rdata_out[i]) <= 1e-7);
+        } else{
+            AMREX_ALWAYS_ASSERT(rdata_in[i] == rdata_out[i]);
+        }
+    }
+}
+
+void testDoubleIO(const RealDescriptor& rd_out) {
+
+    std::string data_file_name   = "double_data.dat";
+    std::string header_file_name = "double_header_H";
+    
+    amrex::Vector<double> rdata_out;
+    for (int i = -99; i <= 100; ++i) {
+        rdata_out.push_back(amrex::Random());
+    }
+
+    std::ofstream ofs;
+    ofs.open(data_file_name.c_str(), std::ios::out|std::ios::binary);
+    writeDoubleData(rdata_out.data(), rdata_out.size(), ofs, rd_out);
+    ofs.close();
+    
+    ofs.open(header_file_name.c_str(), std::ios::out);
+    ofs << rd_out << "\n";
+    ofs.close();
+    
+    RealDescriptor rd_in;
+    std::ifstream ifs;
+    ifs.open(header_file_name.c_str(), std::ios::in);
+    ifs >> rd_in;
+    ifs.close();
+    
+    AMREX_ALWAYS_ASSERT(rd_out == rd_in);
+    
+    amrex::Vector<double> rdata_in(rdata_out.size());
+    ifs.open(data_file_name.c_str(), std::ios::in|std::ios::binary);
+    readDoubleData(rdata_in.data(), rdata_in.size(), ifs, rd_in);
+    ifs.close();
+    
+    for (int i = 0; i < static_cast<int>(rdata_in.size()); ++i) {
+        if (rd_in == FPC::Native32RealDescriptor() || 
+            rd_in == FPC::Ieee32NormalRealDescriptor()) {
+            AMREX_ALWAYS_ASSERT(std::abs(rdata_in[i] - rdata_out[i]) <= 1e-7);
+        } else{
+            AMREX_ALWAYS_ASSERT(rdata_in[i] == rdata_out[i]);
+        }
+    }
+}
+
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -160,6 +244,16 @@ int main(int argc, char* argv[])
     testRealIO(FPC::Native32RealDescriptor());
     testRealIO(FPC::Ieee32NormalRealDescriptor());
     testRealIO(FPC::Ieee64NormalRealDescriptor());
+
+    testFloatIO(FPC::Native32RealDescriptor());
+    testFloatIO(FPC::NativeRealDescriptor());
+    testFloatIO(FPC::Ieee32NormalRealDescriptor());
+    testFloatIO(FPC::Ieee64NormalRealDescriptor());
+
+    testDoubleIO(FPC::Native32RealDescriptor());
+    testDoubleIO(FPC::NativeRealDescriptor());
+    testDoubleIO(FPC::Ieee32NormalRealDescriptor());
+    testDoubleIO(FPC::Ieee64NormalRealDescriptor());
 
     amrex::Print() << "passed!" << std::endl;
     
