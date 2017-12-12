@@ -1458,6 +1458,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
 	    StateDataPhysBCFunct physbcf(statedata,SComp,cgeom);
 
+            crseMF.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 	    amrex::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf);
 	}
 	else
