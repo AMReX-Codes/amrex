@@ -23,7 +23,7 @@ amr.v              = 1       # verbosity in Amr
 
 #this can be godunov, rk2, rk3, rk4
 adv.algorithm = "rk3"
-adv.use_limiting = false
+adv.use_limiting = true
 adv.do_reflux= 1
 adv.use_fixed_dt = false
 
