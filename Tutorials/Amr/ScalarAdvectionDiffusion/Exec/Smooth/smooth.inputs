@@ -52,4 +52,4 @@ amr.probin_file = probin
 adv.do_tracers = 0
 amrex.fpe_trap_invalid=1 
 
-truncation_error_stage = 1
+truncation_error_stage = 2

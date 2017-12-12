@@ -883,7 +883,7 @@ AmrMesh::checkInput ()
         }
     }
 
-    if( ! Geometry::ProbDomain().ok()) {
+    if( ! (Geometry::ProbDomain().volume() > 0.0) ) {
         amrex::Error("Amr::checkInput: bad physical problem size"); 
     }
 
