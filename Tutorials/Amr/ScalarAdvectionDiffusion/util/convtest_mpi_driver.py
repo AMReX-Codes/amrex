@@ -16,13 +16,13 @@ def main(argv):
     trunconly =  ""
     numproc = 0
     try:
-        opts, args = getopt.getopt(argv,"e:i:s:n:m:t:q:H")
+        opts, args = getopt.getopt(argv,"e:i:s:n:p:m:t:q:H")
     except getopt.GetoptError:
-        print 'usage: convtest_serial_driver.py  -e execfile -i inputfile -s coarse_steps -n coarse_cells -m max_grid_cells_coar -t trunconly -q richardsontestloc -p numproc'
+        print 'usage1: convtest_serial_driver.py  -e execfile -i inputfile -s coarse_steps -n coarse_cells -m max_grid_cells_coar -t trunconly -q richardsontestloc -p numproc'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-H':
-            print 'usage: convtest_serial_driver.py  -e execfile -i inputfile -s coarse_steps -n coarse_cells -m max_grid_cells_coar -t trunconly  -q richardsontestloc -p numproc'
+            print 'usage2: convtest_serial_driver.py  -e execfile -i inputfile -s coarse_steps -n coarse_cells -m max_grid_cells_coar -t trunconly  -q richardsontestloc -p numproc'
             sys.exit()
         elif opt in ("-e"):
             execname = arg
@@ -48,7 +48,7 @@ def main(argv):
     print "max_grid coarse is  "   + str(coarmaxgrid)
     print "truncation only is  "   + str(trunconly)
     print "richardson test is  "   + richardsontestloc
-    print "number pf procs is  "   + numproc
+    print "number pf procs is  "   + str(numproc)
 
 
     medisteps = 2*coarsteps
@@ -106,9 +106,9 @@ def main(argv):
     
     print "coar plot file = " + pltfilecoar + ", medi plot file = " + pltfilemedi+ ", fine plot file = " + pltfilefine
 
-    commandcoar = "mpirun -np " + numproc + " "execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=1 " + ncellcoarstr + " " + maxgridcoarstr + " " + maxstepcoarstr + " " + truncstr + " | tee screen.out.coar"
-    commandmedi = "mpirun -np " + numproc + " "execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=2 " + ncellmedistr + " " + maxgridmedistr + " " + maxstepmedistr + " " + truncstr + " | tee screen.out.medi"
-    commandfine = "mpirun -np " + numproc + " "execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=4 " + ncellfinestr + " " + maxgridfinestr + " " + maxstepfinestr + " " + truncstr + " | tee screen.out.fine"
+    commandcoar = "mpirun -np " + str(numproc) + " " + execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=1 " + ncellcoarstr + " " + maxgridcoarstr + " " + maxstepcoarstr + " " + truncstr + " | tee screen.out.coar"
+    commandmedi = "mpirun -np " + str(numproc) + " " + execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=2 " + ncellmedistr + " " + maxgridmedistr + " " + maxstepmedistr + " " + truncstr + " | tee screen.out.medi"
+    commandfine = "mpirun -np " + str(numproc) + " " + execname + " "  + inputname + " amr.plot_int=100000  ref_to_coarsest=4 " + ncellfinestr + " " + maxgridfinestr + " " + maxstepfinestr + " " + truncstr + " | tee screen.out.fine"
 
     cleanupcoar = "mv " + pltfilecoar + " _plt.coar"
     cleanupmedi = "mv " + pltfilemedi + " _plt.medi"
@@ -135,7 +135,7 @@ def main(argv):
     os.system(commandfine)
     print cleanupfine
     os.system(cleanupfine)
-    
+   
     actualtest = richardsontestloc + " coarFile=_plt.coar mediFile=_plt.medi fineFile=_plt.fine coarError=_err.coar mediError=_err.medi | tee richardson.out"
     print actualtest
     os.system(actualtest)
