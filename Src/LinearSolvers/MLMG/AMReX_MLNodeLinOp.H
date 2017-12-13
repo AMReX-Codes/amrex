@@ -77,7 +77,9 @@ protected:
                                                      const DistributionMapping& dm,
                                                      const Geometry& geom);
 
-    mutable Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask_2;
 };
 
 }

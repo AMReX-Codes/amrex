@@ -22,14 +22,29 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
 {
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
     m_owner_mask.resize(m_num_amr_levels);
+    m_dirichlet_mask.resize(m_num_amr_levels);
+    m_dirichlet_mask_2.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         m_owner_mask[amrlev].resize(m_num_mg_levels[amrlev]);
-        // Currently only the bottom solver needs it
+        m_dirichlet_mask[amrlev].resize(m_num_mg_levels[amrlev]);
+        m_dirichlet_mask_2[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
-            const int mglev = m_num_mg_levels[amrlev] - 1;
             m_owner_mask[amrlev][mglev] = makeOwnerMask(m_grids[amrlev][mglev],
                                                         m_dmap[amrlev][mglev],
                                                         m_geom[amrlev][mglev]);
+            m_dirichlet_mask[amrlev][mglev].reset
+                (new iMultiFab(amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
+                               m_dmap[amrlev][mglev], 1, 0));
+            if (mglev > 0 && 
+                (m_dmap[amrlev][mglev] != m_dmap[amrlev][mglev-1]
+                 || !BoxArray::SameRefs(m_grids[amrlev][mglev], m_grids[amrlev][mglev-1])))
+            {
+                m_dirichlet_mask_2[amrlev][mglev].reset
+                    (new iMultiFab(amrex::coarsen(m_dirichlet_mask[amrlev][mglev-1]->boxArray(),2),
+                                   m_dirichlet_mask[amrlev][mglev-1]->DistributionMap(),
+                                   1, 0));
+            }
         }
     }
 }
@@ -97,11 +112,6 @@ MLNodeLinOp::makeOwnerMask (const BoxArray& a_ba, const DistributionMapping& dm,
 void
 MLNodeLinOp::nodalSync (int amrlev, int mglev, MultiFab& mf) const
 {
-    if (m_owner_mask[amrlev][mglev] == nullptr) {
-        m_owner_mask[amrlev][mglev] = makeOwnerMask(m_grids[amrlev][mglev],
-                                                    m_dmap[amrlev][mglev],
-                                                    m_geom[amrlev][mglev]);
-    }
     mf.OverrideSync(*m_owner_mask[amrlev][mglev], m_geom[amrlev][mglev].periodicity());
 }
 
