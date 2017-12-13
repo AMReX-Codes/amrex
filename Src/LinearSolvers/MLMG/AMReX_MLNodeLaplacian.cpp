@@ -739,9 +739,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #pragma omp parallel
 #endif
     {
-        FArrayBox rhs;
-        FArrayBox sigma;
-        FArrayBox dg;
+        FArrayBox rhs, sigma, dg;
         for (MFIter mfi(sync_resid, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
@@ -782,6 +780,74 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                          BL_TO_FORTRAN_ANYD(rhs),
                                          BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]));
             }
+        }
+    }
+}
+
+void
+MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold)
+{
+    const MultiFab& sigma_orig = *m_sigma[0][0][0];
+    const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
+
+    const Geometry& geom = m_geom[0][0];
+    const auto& nddom = amrex::surroundingNodes(geom.Domain());
+    const auto& fake_nddom = amrex::grow(nddom, 1);
+
+    const Real* dxinv = geom.InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox rhs, u, sigma, dg;
+        IArrayBox tmpmask;
+
+        for (MFIter mfi(sync_resid, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const Box& gbx = mfi.growntilebox();
+            const Box& vbx = mfi.validbox();
+            const Box& ccvbx = amrex::enclosedCells(vbx);
+            const Box& bxg1 = amrex::grow(bx,1);
+            const Box& ccbxg1 = amrex::enclosedCells(bxg1);
+
+            u.resize(ccbxg1, AMREX_SPACEDIM);
+            u.setVal(0.0, ccbxg1, 0, AMREX_SPACEDIM);
+            const Box& ovlp = ccvbx & ccbxg1;
+            u.copy(vold[mfi], ovlp, 0, ovlp, 0, AMREX_SPACEDIM);
+
+            tmpmask.resize(bx);
+            tmpmask.copy(dmsk[mfi], bx, 0, bx, 0, 1);
+            tmpmask -= 1;
+
+            rhs.resize(bx);
+            amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
+                               BL_TO_FORTRAN_ANYD(rhs),
+                               BL_TO_FORTRAN_ANYD(u),
+                               BL_TO_FORTRAN_ANYD(tmpmask),
+                               dxinv, BL_TO_FORTRAN_BOX(fake_nddom),
+                               m_lobc.data(), m_hibc.data());
+
+            sigma.resize(ccbxg1);
+            sigma.setVal(0.0, ccbxg1, 0, 1);
+            sigma.copy(sigma_orig[mfi], ovlp, 0, ovlp, 0, 1);
+
+            dg.resize(bxg1, AMREX_SPACEDIM);
+
+            sync_resid[mfi].setVal(0.0, gbx, 0, 1);
+
+            // What do we do at physical boundary?
+            amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
+                                   BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
+                                   BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                   BL_TO_FORTRAN_ANYD(sigma),
+                                   BL_TO_FORTRAN_ANYD(dg),
+                                   BL_TO_FORTRAN_ANYD(tmpmask),
+                                   dxinv, BL_TO_FORTRAN_BOX(nddom),
+                                   m_lobc.data(), m_hibc.data());
+
+            sync_resid[mfi].xpay(-1.0, rhs, bx, bx, 0, 0, 1);
         }
     }
 }
