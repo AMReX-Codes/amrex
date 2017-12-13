@@ -34,7 +34,7 @@ public :
 
     void compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
                   const Vector<const MultiFab*>& rhnd,
-                  const Vector<const MultiFab*>& rhcc) const;
+                  const Vector<const MultiFab*>& rhcc);
 
     void updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const;
 
@@ -52,7 +52,8 @@ protected:
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return false; }
-    virtual void applyBC (int amrlev, int mglev, MultiFab& phi) const final;
+    virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
+                          bool skip_fillboundary=false) const final;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
     virtual void FFlux (int amrlev, const MFIter& mfi,
@@ -68,6 +69,8 @@ private:
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
     bool m_use_gauss_seidel = true;
     bool m_use_harmonic_average = false;
+
+    bool m_dirichlet_mask_built = false;
     //
     // functions
     //

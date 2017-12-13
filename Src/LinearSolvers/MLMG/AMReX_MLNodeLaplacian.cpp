@@ -65,10 +65,12 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 void
 MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
                           const Vector<const MultiFab*>& rhnd,
-                          const Vector<const MultiFab*>& rhcc) const
+                          const Vector<const MultiFab*>& rhcc)
 {
     AMREX_ALWAYS_ASSERT(rhs.size() == 1);
     AMREX_ALWAYS_ASSERT(rhcc[0] == nullptr);
+
+    if (!m_dirichlet_mask_built) buildDirichletMask();
 
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
     {
@@ -250,6 +252,10 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 void
 MLNodeLaplacian::buildDirichletMask ()
 {
+    if (m_dirichlet_mask_built) return;
+
+    m_dirichlet_mask_built = true;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -346,7 +352,7 @@ MLNodeLaplacian::prepareForSolve ()
 void
 MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
-    applyBC(amrlev, cmglev-1, fine);
+    applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous);
 
     const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][cmglev].Domain());
 
@@ -443,12 +449,17 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 }
 
 void
-MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi) const
+MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
+                          bool skip_fillboundary) const
 {
     const Geometry& geom = m_geom[amrlev][mglev];
     const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
 
-    phi.FillBoundary(geom.periodicity());
+    if (!skip_fillboundary) {
+        phi.FillBoundary(geom.periodicity());
+    }
+
+    int inhom = (bc_mode == BCMode::Inhomogeneous);
 
 #ifdef _OPENMP
 #pragma omp parallel
