@@ -32,7 +32,7 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_NFiles.H>
-
+#include <AMReX_VectorIO.H>
 #include <AMReX_Particles_F.H>
 
 #ifdef BL_LAZY
@@ -448,6 +448,12 @@ public:
     using ParticleType = Particle<NStructReal, NStructInt>;
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
 
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+    RealDescriptor ParticleRealDescriptor = FPC::Native32RealDescriptor();
+#else
+    RealDescriptor ParticleRealDescriptor = FPC::NativeRealDescriptor();
+#endif
+    
     using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -686,6 +692,12 @@ public:
     // Add particles from a pbox to the grid at this level
     //
     void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
+
+    void WriteParticleRealData (void* data, size_t size,
+                                std::ostream& os, const RealDescriptor& rd) const;
+
+    void ReadParticleRealData (void* data, size_t size,
+                               std::istream& is, const RealDescriptor& rd);
 
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
