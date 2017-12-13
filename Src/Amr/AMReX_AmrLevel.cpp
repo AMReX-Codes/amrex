@@ -3,6 +3,7 @@
 
 #include <unistd.h>
 #include <memory>
+#include <limits>
 
 #include <AMReX_AmrLevel.H>
 #include <AMReX_Derive.H>
@@ -892,6 +893,10 @@ FillPatchIterator::Initialize (int  boxGrow,
     m_fabs.define(m_leveldata.boxArray(),m_leveldata.DistributionMap(),
 		  m_ncomp,boxGrow,MFInfo(),m_leveldata.Factory());
 
+    const Geometry& geom = m_amrlevel.Geom();
+
+    m_fabs.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), geom);
+
     const IndexType& boxType = m_leveldata.boxArray().ixType();
     const int level = m_amrlevel.level;
 
@@ -1171,10 +1176,19 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
         CrseFabs.resize(NC);
 
+        Box domain_box = amrex::convert(amrLevels[l]->Geom().Domain(), fab.box().ixType());
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (Geometry::isPeriodic(idim)) {
+                int n = domain_box.length(idim);
+                domain_box.grow(idim, n);
+            }
+        }
+
         for (int i = 0; i < NC; i++)
         {
             BL_ASSERT(CrseBoxes[i].ok());
             CrseFabs[i].reset(new FArrayBox(CrseBoxes[i],m_ncomp));
+            CrseFabs[i]->setComplement(std::numeric_limits<Real>::quiet_NaN(), domain_box, 0, m_ncomp);
 	}
 
         for (int i = 0; i < NC; i++)
@@ -1457,6 +1471,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 
 	    StateDataPhysBCFunct physbcf(statedata,SComp,cgeom);
 
+            crseMF.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 	    amrex::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf);
 	}
 	else
@@ -2047,6 +2062,23 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();
     MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
+}
+
+void
+AmrLevel::FillPatchAdd(AmrLevel& amrlevel,
+		       MultiFab& leveldata,
+                       int       boxGrow,
+                       Real      time,
+                       int       index,
+                       int       scomp,
+                       int       ncomp,
+                       int       dcomp)
+{
+    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(boxGrow <= leveldata.nGrow());
+    FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
+    const MultiFab& mf_fillpatched = fpi.get_mf();
+    MultiFab::Add(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
 
 

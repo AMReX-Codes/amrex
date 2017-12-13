@@ -141,6 +141,13 @@ public:
 					  domain.length(2) * is_periodic[2])));
     }
 
+    static Periodicity periodicity (const Box& b) {
+        AMREX_ASSERT(b.cellCentered());
+	return Periodicity(IntVect(AMREX_D_DECL(b.length(0) * is_periodic[0],
+                                                b.length(1) * is_periodic[1],
+                                                b.length(2) * is_periodic[2])));
+    }
+
     /**
     * \brief Compute Array of shifts which will translate src so that it will
     * intersect target with non-zero intersection.  the array will be

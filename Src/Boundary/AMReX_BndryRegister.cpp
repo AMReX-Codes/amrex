@@ -48,6 +48,15 @@ BndryRegister::define (const BoxArray& grids_,
 }
 
 void
+BndryRegister::clear ()
+{
+    for (int i = 0; i <= 2*BL_SPACEDIM; ++i) {
+        bndry[i].clear();
+    }
+    grids.clear();
+}
+
+void
 BndryRegister::init (const BndryRegister& src)
 {
     grids = src.grids;
@@ -260,11 +269,12 @@ BndryRegister::copyFrom (const MultiFab& src,
                          int             nghost,
                          int             src_comp,
                          int             dest_comp,
-                         int             num_comp)
+                         int             num_comp,
+                         const Periodicity& period)
 {
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].copyFrom(src,nghost,src_comp,dest_comp,num_comp);
+        bndry[face()].copyFrom(src,nghost,src_comp,dest_comp,num_comp,period);
     }
     return *this;
 }
@@ -274,11 +284,12 @@ BndryRegister::plusFrom (const MultiFab& src,
                          int             nghost,
                          int             src_comp,
                          int             dest_comp,
-                         int             num_comp)
+                         int             num_comp,
+                         const Periodicity& period)
 {
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].plusFrom(src,nghost,src_comp,dest_comp,num_comp);
+        bndry[face()].plusFrom(src,nghost,src_comp,dest_comp,num_comp,period);
     }
     return *this;
 }

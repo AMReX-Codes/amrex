@@ -78,7 +78,7 @@ public:
     //
     virtual void setBndryConds (const BCRec&   phys_bc,
                                 const IntVect& ratio,
-				int            comp = 0) = 0;
+				int            comp = 0) {}
     //
     // set bndry values at coarse level (non interpolation performed)
     //

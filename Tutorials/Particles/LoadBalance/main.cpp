@@ -46,7 +46,13 @@ int main(int argc, char* argv[])
     myPC.InitFromBinaryFile("binary_particle_file.dat", 0);
 
     BoxArray new_ba;
-    loadBalanceKD::balance<MyParticleContainer>(myPC, new_ba, num_procs);
+    Vector<Real> costs;
+    loadBalanceKD::balance<MyParticleContainer>(myPC, new_ba, num_procs, 0.0, costs);
+
+    std::cout << new_ba << std::endl;    
+    for (int i = 0; i < new_ba.size(); ++i) {
+        std::cout << costs[i] << std::endl;
+    }
 
     Vector<int> new_pmap;
     for (int i = 0; i < new_ba.size(); ++i) {
@@ -61,7 +67,7 @@ int main(int argc, char* argv[])
     myPC.Redistribute();
     MultiFab new_local_cost;
     MultiFab new_global_cost;    
-    loadBalanceKD::computeCost<MyParticleContainer>(myPC, new_local_cost, new_global_cost, domain);
+    loadBalanceKD::computeCost<MyParticleContainer>(myPC, new_local_cost, new_global_cost, domain, 0.0);
 
     WriteSingleLevelPlotfile("plt00000", new_local_cost, {"cost"},
                              geom, 0.0, 0);

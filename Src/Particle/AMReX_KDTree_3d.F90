@@ -21,7 +21,7 @@ subroutine amrex_compute_best_partition(cost, clo, chi, &
   real(amrex_real) target_cost, cost_sum
   target_cost = 0.5d0 * total_cost
   cost_sum = 0.d0
-  
+
   if (dir .eq. 0) then
      
      split = lo(1)
@@ -100,3 +100,31 @@ subroutine amrex_compute_cost(pcounts, cost, lo, hi, cell_weight) &
   end do
   
 end subroutine amrex_compute_cost
+
+subroutine amrex_set_box_cost(cost, clo, chi, &
+                               lo, hi, box_cost) &
+
+  bind(c,name='amrex_set_box_cost')
+    
+  use iso_c_binding
+  use amrex_fort_module, only : amrex_real
+  
+  integer              :: clo(3)
+  integer              :: chi(3)    
+  real(amrex_real)     :: cost(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  integer              :: lo(3)
+  integer              :: hi(3)
+  real(amrex_real)     :: box_cost
+  
+  integer i,j,k
+  box_cost = 0.d0
+
+  do k = lo(3), hi(3)
+     do j = lo(2), hi(2)
+        do i = lo(1), hi(1) 
+           box_cost = box_cost + cost(i,j,k)
+        end do
+     end do
+  end do
+
+end subroutine amrex_set_box_cost

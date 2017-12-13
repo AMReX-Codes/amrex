@@ -19,6 +19,7 @@ list ( APPEND ALLHEADERS AMReX_YAFluxRegister.H   AMReX_YAFluxRegister_F.H )
 list ( APPEND CXXSRC     AMReX_YAFluxRegister.cpp )
 list ( APPEND F90SRC     AMReX_YAFluxRegister_${DIM}d.F90 AMReX_YAFluxRegister_nd.F90 )
 
+list ( APPEND F90SRC     AMReX_lo_bctypes_mod.F90 )
 # 
 # Accumulate sources
 # 

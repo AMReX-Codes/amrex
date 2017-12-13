@@ -10,7 +10,7 @@ CLINK		= $(C++)
 
 COPTIMIZATION	= -O3
 
-C++FLAGS        += -std=c++11 $(COPTIMIZATION) #$(DEBUG)
+C++FLAGS        += -std=c++11 $(COPTIMIZATION) -fopenmp -openmp #$(DEBUG)
 
 LDFLAGS		+= $(C++FLAGS)
 LDLIBS          = -lpthread 

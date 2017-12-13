@@ -5,18 +5,20 @@ namespace amrex {
 
 MLPoisson::MLPoisson (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
-                      const Vector<DistributionMapping>& a_dmap)
+                      const Vector<DistributionMapping>& a_dmap,
+                      const LPInfo& a_info)
 {
-    define(a_geom, a_grids, a_dmap);
+    define(a_geom, a_grids, a_dmap, a_info);
 }
 
 void
 MLPoisson::define (const Vector<Geometry>& a_geom,
                    const Vector<BoxArray>& a_grids,
-                   const Vector<DistributionMapping>& a_dmap)
+                   const Vector<DistributionMapping>& a_dmap,
+                   const LPInfo& a_info)
 {
     BL_PROFILE("MLPoisson::define()");
-    MLLinOp::define(a_geom, a_grids, a_dmap);
+    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
 }
 
 MLPoisson::~MLPoisson ()

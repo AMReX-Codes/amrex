@@ -1474,7 +1474,7 @@ void RegionsProfStats::OpenAllStreams(const std::string &dirname) {
 
 // ----------------------------------------------------------------------
 void RegionsProfStats::CloseAllStreams() {
-  BL_PROFILE_VAR("BLProfStats::ClosellStreams", regsclosellstreams);
+  BL_PROFILE_VAR("RegionProfStats::CloseAllStreams", regsclosellstreams);
   for(int i(0); i < regDataStreams.size(); ++i) {
     if (regDataStreams[i] != nullptr)
     {

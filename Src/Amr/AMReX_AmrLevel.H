@@ -26,6 +26,8 @@ namespace amrex {
 
 class TagBox;
 class TagBoxArray;
+template <class T>
+class MFGraph;
 
 /**
 * \brief Virtual base class for managing individual levels.
@@ -37,6 +39,8 @@ class AmrLevel
 {
   friend class FillPatchIterator;
   friend class FillPatchIteratorHelper;
+  template <class T>
+  friend class MFGraph;
 
 public:
     //! What time are we at?
@@ -216,6 +220,8 @@ public:
     const FabFactory<FArrayBox>& Factory () const { return *m_factory; }
     //! Number of grids at this level.
     int numGrids () const { return grids.size(); }
+    //! Number of states at this level.
+    int numStates () const { return state.size(); }
     //! Returns the indices defining physical domain.
     const Box& Domain () const { return geom.Domain(); }
     //! Timestep n at this level.
@@ -360,6 +366,15 @@ public:
 			  int       scomp,
 			  int       ncomp,
 	                  int       dcomp=0);
+
+    static void FillPatchAdd(AmrLevel& amrlevel,
+                             MultiFab& leveldata,
+                             int       boxGrow,
+                             Real      time,
+                             int       index,
+                             int       scomp,
+                             int       ncomp,
+                             int       dcomp=0);
     
     virtual void AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
                                 int ioProcNumSCS, int ioProcNumAll, int scsMyId,

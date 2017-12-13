@@ -30,9 +30,15 @@ void dontCallThisFunctionEver2()
 
   printBox(NULL);
 
+  printMF(NULL);
+
   viewMF(NULL);
 
   maxMinMF(NULL);
+
+ printMFEdge(NULL);
+
+ printFABEdge(NULL);
 }
   
 

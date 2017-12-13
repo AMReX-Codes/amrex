@@ -127,8 +127,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const 
   BL_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
 
   std::vector< std::pair<int, Box> > isects;
-  
-  for (int lev = lev_max; lev >= lev_min; lev--) {
+
+  for (int lev = lev_max; lev >= lev_min; lev--) {      
       const IntVect& iv = Index(p, lev);
       if (lev == pld.m_lev) {
           // The fact that we are here means this particle does not belong to any finer grids.
@@ -1197,55 +1197,56 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
               if (npart != 0) {
                   for (unsigned pindex = 0; pindex < npart; ++pindex) {
                       ParticleType& p = aos[pindex];
-                      if (p.m_idata.id > 0) {
-
-                          locateParticle(p, pld, lev_min, lev_max, nGrow);
-                          // The owner of the particle is the CPU owning the finest grid
-                          // in state data that contains the particle.
-                          const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
-                          if (who == MyProc) {
-                              if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
-                                  // We own it but must shift it to another place.
-                                  auto index = std::make_pair(pld.m_grid, pld.m_tile);
-                                  BL_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
-                                  tmp_local[pld.m_lev][index][thread_num].push_back(p);
-                                  for (int comp = 0; comp < NArrayReal; ++comp) {
-                                      Vector<Real>& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
-                                      arr.push_back(soa.GetRealData(comp)[pindex]);
-                                  }
-                                  for (int comp = 0; comp < NArrayInt; ++comp) {
-                                      Vector<int>& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
-                                      arr.push_back(soa.GetIntData(comp)[pindex]);
-                                  }
-                                  
-                                  // Invalidate the particle so we can reclaim its space.
-                                  p.m_idata.id = -p.m_idata.id;
+                      
+                      if (p.m_idata.id < 0) continue;                      
+                      locateParticle(p, pld, lev_min, lev_max, nGrow);
+                      if (p.m_idata.id < 0) continue;                      
+                      
+                      // The owner of the particle is the CPU owning the finest grid
+                      // in state data that contains the particle.
+                      const int who = ParticleDistributionMap(pld.m_lev)[pld.m_grid];
+                      if (who == MyProc) {
+                          if (pld.m_lev != lev || pld.m_grid != grid || pld.m_tile != tile) {
+                              // We own it but must shift it to another place.
+                              auto index = std::make_pair(pld.m_grid, pld.m_tile);
+                              BL_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
+                              tmp_local[pld.m_lev][index][thread_num].push_back(p);
+                              for (int comp = 0; comp < NArrayReal; ++comp) {
+                                  Vector<Real>& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
+                                  arr.push_back(soa.GetRealData(comp)[pindex]);
                               }
-                          }
-                          else {
-                              auto& particles_to_send = tmp_remote[who][thread_num];
-                              auto old_size = particles_to_send.size();
-                              auto new_size = old_size + superparticle_size;
-                              particles_to_send.resize(new_size);
-                              std::memcpy(&particles_to_send[old_size], &p, particle_size);
-                              char* dst = &particles_to_send[old_size] + particle_size;
-                              for (int comp = 0; comp < NArrayReal; comp++) {
-                                  if (communicate_real_comp[comp]) {
-                                      std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(Real));
-                                      dst += sizeof(Real);
-                                  }
+                              for (int comp = 0; comp < NArrayInt; ++comp) {
+                                  Vector<int>& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
+                                  arr.push_back(soa.GetIntData(comp)[pindex]);
                               }
-                              for (int comp = 0; comp < NArrayInt; comp++) {
-                                  if (communicate_int_comp[comp]) {
-                                      std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
-                                      dst += sizeof(int);
-                                  }
-                              }
+                              
                               // Invalidate the particle so we can reclaim its space.
                               p.m_idata.id = -p.m_idata.id;
                           }
                       }
-
+                      else {
+                          auto& particles_to_send = tmp_remote[who][thread_num];
+                          auto old_size = particles_to_send.size();
+                          auto new_size = old_size + superparticle_size;
+                          particles_to_send.resize(new_size);
+                          std::memcpy(&particles_to_send[old_size], &p, particle_size);
+                          char* dst = &particles_to_send[old_size] + particle_size;
+                          for (int comp = 0; comp < NArrayReal; comp++) {
+                              if (communicate_real_comp[comp]) {
+                                  std::memcpy(dst, &soa.GetRealData(comp)[pindex], sizeof(Real));
+                                  dst += sizeof(Real);
+                              }
+                          }
+                          for (int comp = 0; comp < NArrayInt; comp++) {
+                              if (communicate_int_comp[comp]) {
+                                  std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
+                                  dst += sizeof(int);
+                              }
+                          }
+                          // Invalidate the particle so we can reclaim its space.
+                          p.m_idata.id = -p.m_idata.id;
+                      }
+                      
                       // this is a valid particle
                       if (p.m_idata.id > 0) {
                           if (pindex != first) {
@@ -1347,7 +1348,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
           int who = it->first;
           Vector<Vector<char> >& tmp = it->second;
           for (int i = 0; i < num_threads; ++i) {
-              not_ours[who].insert(not_ours[who].begin(), tmp[i].begin(), tmp[i].end());
+              not_ours[who].insert(not_ours[who].end(), tmp[i].begin(), tmp[i].end());
               tmp[i].erase(tmp[i].begin(), tmp[i].end());
           }
       }
@@ -1404,7 +1405,7 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                                                                                     int lev_min, int lev_max, int nGrow)
 {
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::RedistributeMPI()");
+    BL_PROFILE("ParticleContainer::RedistributeMPI()");
 #if BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
@@ -1645,6 +1646,34 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
         particles.pop_back();
     }
     Redistribute(level, level, nGrow);
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::WriteParticleRealData (void* data, size_t size,
+                         std::ostream& os, const RealDescriptor& rd) const
+{
+    if (sizeof(typename ParticleType::RealType) == 4) {
+        writeFloatData((float*) data, size, os, ParticleRealDescriptor);
+    } 
+    else if (sizeof(typename ParticleType::RealType) == 8) {
+        writeDoubleData((double*) data, size, os, ParticleRealDescriptor);
+    }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::ReadParticleRealData (void* data, size_t size,
+                         std::istream& is, const RealDescriptor& rd)
+{
+    if (sizeof(typename ParticleType::RealType) == 4) {
+        readFloatData((float*) data, size, is, ParticleRealDescriptor);
+    } 
+    else if (sizeof(typename ParticleType::RealType) == 8) {
+        readDoubleData((double*) data, size, is, ParticleRealDescriptor);
+    }
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -2054,7 +2083,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                 ++pindex;
             }
 	}
-	ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+        writeIntData(istuff.dataPtr(), istuff.size(), ofs);
       }
       
       // Write the Real data in binary.
@@ -2080,8 +2109,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
               ++pindex;
           }
       }
-      
-      ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(typename ParticleType::RealType));
+      WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
     }
 }
 
@@ -2277,12 +2305,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
     const int iChunkSize = 2 + NStructInt + NArrayInt;
     Vector<int> istuff(cnt*iChunkSize);
     if (is_checkpoint)
-        ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+        readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
 
     // Then the real data in binary.
     const int rChunkSize = BL_SPACEDIM + NStructReal + NArrayReal;
     Vector<RTYPE> rstuff(cnt*rChunkSize);
-    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(RTYPE));
+    ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs, ParticleRealDescriptor);
 
     // Now reassemble the particles.
     int*   iptr = istuff.dataPtr();

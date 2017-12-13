@@ -15,7 +15,7 @@ INCLUDE += -DBL_USE_MPI -DBL_USE_OMP -DBL_SPACEDIM=3 -DAMREX_SPACEDIM=3 -DBL_FOR
 all: $(OBJECTS)
   
 AMReX_AsyncMFIter.o: AMReX_AsyncMFIter.cpp AMReX_AsyncMFIter.H
-	$(C++) $(C++FLAGS) -I./ -I../../Base -I../graph -I$(INCLUDE) -c AMReX_AsyncMFIter.cpp -o AMReX_AsyncMFIter.o
+	$(C++) $(C++FLAGS) -I./ -I../../Base -I../../Amr -I../../AmrCore -I../graph -I$(INCLUDE) -c AMReX_AsyncMFIter.cpp -o AMReX_AsyncMFIter.o
 
 .PHONY: clean
 

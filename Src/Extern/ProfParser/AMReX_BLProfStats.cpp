@@ -394,7 +394,7 @@ void BLProfStats::OpenAllStreams(const std::string &dirname) {
 
 // ----------------------------------------------------------------------
 void BLProfStats::CloseAllStreams() {
-  BL_PROFILE_VAR("BLProfStats::ClosellStreams", blpsclosellstreams);
+  BL_PROFILE_VAR("BLProfStats::CloseAllStreams", blpsclosellstreams);
   for(int i(0); i < blpDataStreams.size(); ++i) {
     blpDataStreams[i]->close();
     delete blpDataStreams[i];

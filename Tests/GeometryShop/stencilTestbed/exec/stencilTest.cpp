@@ -126,12 +126,12 @@ void getIrregularStencil(VoFStencil           & a_stencil,
 }
 ////////////
 void 
-defineGeometry(BaseFab<int>           & a_regIrregCovered,
-               std::vector<IrregNode> & a_nodes,
-               const Real             & a_radius,
-               const RealVect         & a_center,
-               const Box              & a_domain,
-               const Real             & a_dx)
+defineGeometry(BaseFab<int>      & a_regIrregCovered,
+               Vector<IrregNode> & a_nodes,
+               const Real        & a_radius,
+               const RealVect    & a_center,
+               const Box         & a_domain,
+               const Real        & a_dx)
 {
   //inside regular tells whether domain is inside or outside the sphere
   //bool insideRegular = true;
@@ -336,7 +336,7 @@ int testStuff()
   Vector<Real> probLo(SpaceDim,0);
 
   BaseFab<int> regIrregCovered;
-  std::vector<IrregNode>  nodes;
+  Vector<IrregNode>  nodes;
   RealVect center;
   for(int idir = 0; idir < SpaceDim; idir++)
   {
