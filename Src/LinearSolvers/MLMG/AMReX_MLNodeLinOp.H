@@ -60,7 +60,8 @@ protected:
 
     virtual void prepareForSolve () override {}
 
-    virtual void applyBC (int amrlev, int mglev, MultiFab& phi) const = 0;
+    virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
+                          bool skip_fillboundary=false) const = 0;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
