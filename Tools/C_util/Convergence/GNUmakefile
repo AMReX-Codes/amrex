@@ -37,7 +37,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 DEFINES += -DBL_NOLINEVALUES -DBL_PARALLEL_IO
 
 include Make.package
-include ../Make.package
+#include ../Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 #include $(AMREX_HOME)/Src/Amr/Make.package

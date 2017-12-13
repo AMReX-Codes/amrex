@@ -207,6 +207,45 @@ public:
                                          long                  nitems,
                                          const Real*           in,
                                          const RealDescriptor& od);
+
+    /**
+    * \brief Convert nitems floats in native format to RealDescriptor format
+    * and write them to the ostream.
+    */
+    static void convertFromNativeFloatFormat (std::ostream&         os,
+                                              long                  nitems,
+                                              const float*          in,
+                                              const RealDescriptor& od);
+
+    /**
+    * \brief Convert nitems doubles in native format to RealDescriptor format
+    * and write them to the ostream.
+    */
+    static void convertFromNativeDoubleFormat (std::ostream&         os,
+                                               long                  nitems,
+                                               const double*         in,
+                                               const RealDescriptor& od);
+
+    /**
+    * \brief Read nitems from istream in RealDescriptor format and
+    * convert them to the native float format.  The out array is
+    * assumed to be large enough to hold the resulting output.
+    */
+    static void convertToNativeFloatFormat (float*                out,
+                                            long                  nitems,
+                                            std::istream&         is,
+                                            const RealDescriptor& id);
+
+    /**
+    * \brief Read nitems from istream in RealDescriptor format and
+    * convert them to the native double format.  The out array is
+    * assumed to be large enough to hold the resulting output.
+    */
+    static void convertToNativeDoubleFormat (double*               out,
+                                             long                  nitems,
+                                             std::istream&         is,
+                                             const RealDescriptor& id);
+
 private:
 
     Vector<long> fr;

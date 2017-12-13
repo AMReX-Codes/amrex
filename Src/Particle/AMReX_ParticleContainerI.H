@@ -1655,6 +1655,34 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::WriteParticleRealData (void* data, size_t size,
+                         std::ostream& os, const RealDescriptor& rd) const
+{
+    if (sizeof(typename ParticleType::RealType) == 4) {
+        writeFloatData((float*) data, size, os, ParticleRealDescriptor);
+    } 
+    else if (sizeof(typename ParticleType::RealType) == 8) {
+        writeDoubleData((double*) data, size, os, ParticleRealDescriptor);
+    }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::ReadParticleRealData (void* data, size_t size,
+                         std::istream& is, const RealDescriptor& rd)
+{
+    if (sizeof(typename ParticleType::RealType) == 4) {
+        readFloatData((float*) data, size, is, ParticleRealDescriptor);
+    } 
+    else if (sizeof(typename ParticleType::RealType) == 8) {
+        readDoubleData((double*) data, size, is, ParticleRealDescriptor);
+    }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Checkpoint (const std::string&        dir,
               const std::string&        name,
               bool                      is_checkpoint,
@@ -2221,7 +2249,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                 ++pindex;
             }
 	}
-	ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+        writeIntData(istuff.dataPtr(), istuff.size(), ofs);
       }
       
       // Write the Real data in binary.
@@ -2247,8 +2275,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
               ++pindex;
           }
       }
-      
-      ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(typename ParticleType::RealType));
+      WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
     }
 }
 
@@ -2444,12 +2471,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ReadParticles
     const int iChunkSize = 2 + NStructInt + NArrayInt;
     Vector<int> istuff(cnt*iChunkSize);
     if (is_checkpoint)
-        ifs.read((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+        readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
 
     // Then the real data in binary.
     const int rChunkSize = BL_SPACEDIM + NStructReal + NArrayReal;
     Vector<RTYPE> rstuff(cnt*rChunkSize);
-    ifs.read((char*)rstuff.dataPtr(),rstuff.size()*sizeof(RTYPE));
+    ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs, ParticleRealDescriptor);
 
     // Now reassemble the particles.
     int*   iptr = istuff.dataPtr();

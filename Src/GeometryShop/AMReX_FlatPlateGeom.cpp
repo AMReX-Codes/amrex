@@ -182,7 +182,7 @@ namespace amrex
   ////////////
   void
   FlatPlateGeom::
-  addIrregularNodes(Vector<IrregNode>   & a_nodes,
+  addIrregularNodes(Vector<IrregNode>        & a_nodes,
                     const BaseFab<int>       & a_numVolumes,
                     const IntVect            & a_iv,
                     const Box                & a_domain,
@@ -348,7 +348,8 @@ namespace amrex
   void
   FlatPlateGeom::
   fillGraph(BaseFab<int>             & a_regIrregCovered,
-            Vector<IrregNode>   & a_nodes,
+            Vector<IrregNode>        & a_nodes,
+            NodeMap                  & a_intersections,
             const Box                & a_validRegion,
             const Box                & a_ghostRegion,
             const Box                & a_domain,
@@ -389,6 +390,9 @@ namespace amrex
         {
           a_regIrregCovered(iv, 0) = 0;
           numVolumes(iv, 0) =  numVol;
+          // TODO: Add intersections here
+          // ...this will break the node map data structure, since there is currently only one intersection
+          // allowed per edge.
           numIrreg++;
         }
 

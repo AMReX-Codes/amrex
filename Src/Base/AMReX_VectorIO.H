@@ -59,6 +59,38 @@ namespace amrex {
     void readRealData(Real* data, std::size_t size, std::istream& is,
                       const RealDescriptor& rd);
 
+    //! Write float data to the ostream. The arguments are a pointer to data
+    //! to write, the size of the data buffer, the ostream, and an optional
+    //! RealDescriptor that describes the data format to use for writing. If no
+    //! RealDescriptor is provided, the data will be written using the native
+    //! format for your machine.
+    void writeFloatData(const float* data, std::size_t size, std::ostream& os,
+                        const RealDescriptor& rd = FPC::Native32RealDescriptor());
+
+    //! Read float data from the istream. The arguments are a pointer to data buffer
+    //! to read into, the size of that buffer, the istream, and a RealDescriptor
+    //! that describes the format of the data on disk.
+    //! The buffer is assumed to be large enough to store 'size' Reals, and it is
+    //! the user's reponsiblity to allocate this data.
+    void readFloatData(float* data, std::size_t size, std::istream& is,
+                       const RealDescriptor& rd);
+
+    //! Write double data to the ostream. The arguments are a pointer to data
+    //! to write, the size of the data buffer, the ostream, and an optional
+    //! RealDescriptor that describes the data format to use for writing. If no
+    //! RealDescriptor is provided, the data will be written using the native
+    //! format for your machine.
+    void writeDoubleData(const double* data, std::size_t size, std::ostream& os,
+                         const RealDescriptor& rd = FPC::NativeRealDescriptor());
+
+    //! Read double data from the istream. The arguments are a pointer to data buffer
+    //! to read into, the size of that buffer, the istream, and a RealDescriptor
+    //! that describes the format of the data on disk.
+    //! The buffer is assumed to be large enough to store 'size' Reals, and it is
+    //! the user's reponsiblity to allocate this data.
+    void readDoubleData(double* data, std::size_t size, std::istream& is,
+                        const RealDescriptor& rd);
+
 }
 
 #endif 
