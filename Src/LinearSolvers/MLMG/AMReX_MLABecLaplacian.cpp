@@ -9,19 +9,21 @@ namespace amrex {
 
 MLABecLaplacian::MLABecLaplacian (const Vector<Geometry>& a_geom,
                                   const Vector<BoxArray>& a_grids,
-                                  const Vector<DistributionMapping>& a_dmap)
+                                  const Vector<DistributionMapping>& a_dmap,
+                                  const LPInfo& a_info)
 {
-    define(a_geom, a_grids, a_dmap);
+    define(a_geom, a_grids, a_dmap, a_info);
 }
 
 void
 MLABecLaplacian::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
-                         const Vector<DistributionMapping>& a_dmap)
+                         const Vector<DistributionMapping>& a_dmap,
+                         const LPInfo& a_info)
 {
     BL_PROFILE("MLABecLaplacian::define()");
 
-    MLLinOp::define(a_geom, a_grids, a_dmap);
+    MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
@@ -49,6 +51,20 @@ MLABecLaplacian::~MLABecLaplacian ()
 {}
 
 void
+MLABecLaplacian::setScalars (Real a, Real b)
+{
+    m_a_scalar = a;
+    m_b_scalar = b;
+    if (a == 0.0)
+    {
+        for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+        {
+            m_a_coeffs[amrlev][0].setVal(0.0);
+        }
+    }
+}
+
+void
 MLABecLaplacian::setACoeffs (int amrlev, const MultiFab& alpha)
 {
     MultiFab::Copy(m_a_coeffs[amrlev][0], alpha, 0, 0, 1, 0);
@@ -66,6 +82,8 @@ MLABecLaplacian::setBCoeffs (int amrlev,
 void
 MLABecLaplacian::averageDownCoeffs ()
 {
+    BL_PROFILE("MLABecLaplacian::averageDownCoeffs()");
+
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
@@ -85,7 +103,14 @@ MLABecLaplacian::averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
     int nmglevs = a.size();
     for (int mglev = 1; mglev < nmglevs; ++mglev)
     {
-        amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
+        if (m_a_scalar == 0.0)
+        {
+            a[mglev].setVal(0.0);
+        }
+        else
+        {
+            amrex::average_down(a[mglev-1], a[mglev], 0, 1, mg_coarsen_ratio);
+        }
         
         Vector<const MultiFab*> fine {AMREX_D_DECL(&(b[mglev-1][0]),
                                                    &(b[mglev-1][1]),
@@ -107,7 +132,9 @@ MLABecLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
     auto& crse_b_coeffs = m_b_coeffs[flev-1].front();
     auto& crse_geom     = m_geom    [flev-1][0];
 
-    amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
+    if (m_a_scalar != 0.0) {
+        amrex::average_down(fine_a_coeffs, crse_a_coeffs, 0, 1, mg_coarsen_ratio);
+    }
      
     std::array<MultiFab,AMREX_SPACEDIM> bb;
     Vector<MultiFab*> crse(AMREX_SPACEDIM);
@@ -180,8 +207,8 @@ MLABecLaplacian::prepareForSolve ()
                 }
                 else
                 {
-                    Real asum = m_a_coeffs[alev][0].sum();
-                    Real amax = m_a_coeffs[alev][0].norm0();
+                    Real asum = m_a_coeffs[alev].back().sum();
+                    Real amax = m_a_coeffs[alev].back().norm0();
                     m_is_singular[alev] = (asum <= amax * 1.e-12);
                 }
             }

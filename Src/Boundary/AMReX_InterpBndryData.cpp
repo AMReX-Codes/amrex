@@ -233,6 +233,9 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+        {
+        Vector<Real> derives;
+
         for (MFIter mfi(foo,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             BL_ASSERT(grids[mfi.index()] == mfi.validbox());
@@ -257,7 +260,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                     //
                     // Internal or periodic edge, interpolate from crse data.
                     //
-                    Vector<Real> derives(AMREX_D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
+                    derives.resize(AMREX_D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
 
                     const Mask&      mask           = masks[face][mfi];
                     const int*       mlo            = mask.loVect();
@@ -302,6 +305,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                     bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
                 }
             }
+        }
         }
     }
     else

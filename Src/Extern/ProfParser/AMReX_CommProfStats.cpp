@@ -409,7 +409,7 @@ void CommProfStats::OpenAllStreams(const std::string &dirname) {
 
 // ----------------------------------------------------------------------
 void CommProfStats::CloseAllStreams() {
-  BL_PROFILE_VAR("BLProfStats::ClosellStreams", cpsclosellstreams);
+  BL_PROFILE_VAR("CommProfStats::CloseAllStreams", cpsclosellstreams);
   for(int i(0); i < commDataStreams.size(); ++i) {
     if (commDataStreams[i] != nullptr)
     {
@@ -954,6 +954,8 @@ void CommProfStats::TimelineFAB(FArrayBox &timelineFAB, const Box &probDomain,
 				const Real ntnMultiplier, const Vector<Real> &ntnNumbers,
 				const Real bnMultiplier, const Vector<Real> &bnNumbers)
 {
+  BL_PROFILE("CommProfStats::TimelineFAB()");
+
   Real tlo = tr.startTime;
   Real thi = tr.stopTime;
   Real timeRangeAll(thi - tlo);

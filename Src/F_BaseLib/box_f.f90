@@ -366,7 +366,7 @@ contains
     integer, intent(in) :: cv(:)
     logical, intent(in) :: nodal(:)
     type(box) :: r
-    integer :: i, off
+    integer :: i
     r%dim = bx%dim
     r%lo(1:r%dim) = int_coarsen(bx%lo(1:bx%dim), cv)
     if (any(nodal)) then

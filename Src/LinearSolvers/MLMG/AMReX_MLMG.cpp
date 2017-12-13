@@ -42,7 +42,7 @@ Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_rela, Real a_tol_abs)
 {
-    BL_PROFILE("MLMG::solve()");
+    BL_PROFILE_REGION("MLMG::solve()");
 
     Real solve_start_time = ParallelDescriptor::second();
 
@@ -141,6 +141,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         }
         timer[iter_time] = ParallelDescriptor::second() - iter_start_time;
     }
+
+    if (final_fill_bc) fillSolutionBC();
 
     timer[solve_time] = ParallelDescriptor::second() - solve_start_time;
     if (verbose >= 1) {
@@ -789,13 +791,17 @@ MLMG::getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_gr
 }
 
 void
-MLMG::getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
+MLMG::getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_flux)
 {
     BL_PROFILE("MLMG::getFluxes()");
+    const Real betainv = 1.0 / linop.getBScalar();
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compFlux (alev, a_grad_sol[alev], *sol[alev]);
+        linop.compFlux(alev, a_flux[alev], *sol[alev]);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            linop.unapplyMetricTerm(alev, 0, *a_grad_sol[alev][idim]);
+            linop.unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+            if (betainv != 1.0) {
+                a_flux[alev][idim]->mult(betainv);
+            }
         }
     }
 }
@@ -832,6 +838,18 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.unapplyMetricTerm(alev, 0, *a_res[alev]);
     }
 #endif
+}
+
+void
+MLMG::fillSolutionBC ()
+{
+    BL_PROFILE("MLMG::fillSolutionBC()");
+
+    for (int alev = 0; alev <= finest_amr_lev; ++alev)
+    {
+        const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
+        linop.fillSolutionBC(alev, *sol[alev], crse_bcdata);
+    }
 }
 
 }

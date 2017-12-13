@@ -11,6 +11,7 @@ using namespace amrex;
 
 namespace {
     static bool composite_solve = true;
+    static bool fine_leve_solve_only = false;
     static int max_iter = 100;
     static int max_fmg_iter = 20;
     static int verbose  = 2;
@@ -23,13 +24,14 @@ namespace {
 void solve_with_mlmg (const Vector<Geometry>& geom, int ref_ratio,
                       Vector<MultiFab>& soln,
                       const Vector<MultiFab>& alpha, const Vector<MultiFab>& beta,
-                      Vector<MultiFab>& rhs)
+                      Vector<MultiFab>& rhs, const Vector<MultiFab>& exact)
 {
     BL_PROFILE("solve_with_mlmg");
 
     {
         ParmParse pp;
         pp.query("composite_solve", composite_solve);
+        pp.query("fine_leve_solve_only", fine_leve_solve_only);
         pp.query("max_iter", max_iter);
         pp.query("max_fmg_iter", max_fmg_iter);
         pp.query("verbose", verbose);
@@ -39,8 +41,9 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int ref_ratio,
         pp.query("consolidation", consolidation);
     }
 
-    MLLinOp::setAgglomeration(agglomeration);
-    MLLinOp::setConsolidation(consolidation);
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
 
     const Real tol_rel = 1.e-10;
     const Real tol_abs = 0.0;
@@ -63,7 +66,7 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int ref_ratio,
             prhs.push_back(&(rhs[ilev]));
         }
         
-        MLABecLaplacian mlabec(geom, grids, dmap);
+        MLABecLaplacian mlabec(geom, grids, dmap, info);
 
         mlabec.setMaxOrder(linop_maxorder);
         
@@ -103,7 +106,13 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int ref_ratio,
     }
     else
     {
-        for (int ilev = 0; ilev < nlevels; ++ilev)
+        const int levbegin = (fine_leve_solve_only) ? nlevels-1 : 0;
+        for (int ilev = 0; ilev < levbegin; ++ilev)
+        {
+            MultiFab::Copy(soln[ilev], exact[ilev], 0, 0, 1, 0);
+        }
+
+        for (int ilev = levbegin; ilev < nlevels; ++ilev)
         {
             MLABecLaplacian mlabec({geom[ilev]},
                                    {soln[ilev].boxArray()},
@@ -116,7 +125,7 @@ void solve_with_mlmg (const Vector<Geometry>& geom, int ref_ratio,
             const int solver_level = 0; // 0 even though ilev may be > 0
             if (ilev > 0)
             {
-                mlabec.setBCWithCoarseData(&soln[ilev-1], ref_ratio);
+                mlabec.setCoarseFineBC(&soln[ilev-1], ref_ratio);
             }
             mlabec.setLevelBC(solver_level, &soln[ilev]); 
             
