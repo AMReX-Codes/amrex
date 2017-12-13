@@ -449,7 +449,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
 }
 
 void
-MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
+MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
                           bool skip_fillboundary) const
 {
     const Geometry& geom = m_geom[amrlev][mglev];
@@ -459,7 +459,7 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
         phi.FillBoundary(geom.periodicity());
     }
 
-    int inhom = (bc_mode == BCMode::Inhomogeneous);
+//    int inhom = (bc_mode == BCMode::Inhomogeneous);
 
 #ifdef _OPENMP
 #pragma omp parallel
