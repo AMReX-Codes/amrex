@@ -200,24 +200,6 @@ contains
     jlo = max(dlo(2), hlo(2))
     jhi = min(dhi(2), hhi(2))
 
-    ! dirichlet
-
-    if (bclo(1) .eq. amrex_lo_dirichlet .and. hlo(1) .lt. dlo(1)) then
-       phi(dlo(1)-1:dlo(1),jlo:jhi) = 0.d0
-    end if
-
-    if (bchi(1) .eq. amrex_lo_dirichlet .and. hhi(1) .gt. dhi(1)) then
-       phi(dhi(1):dhi(1)+1,jlo:jhi) = 0.d0
-    end if
-
-    if (bclo(2) .eq. amrex_lo_dirichlet .and. hlo(2) .lt. dlo(2)) then
-       phi(ilo:ihi,dlo(2)-1:dlo(2)) = 0.d0
-    end if
-
-    if (bchi(2) .eq. amrex_lo_dirichlet .and. hhi(2) .gt. dhi(2)) then
-       phi(ilo:ihi,dhi(2):dhi(2)+1) = 0.d0
-    end if
-
     ! neumann
 
     if (bclo(1) .eq. amrex_lo_neumann .and. hlo(1) .lt. dlo(1)) then
@@ -239,9 +221,7 @@ contains
     ! corners
 
     if (hlo(1) .lt. dlo(1) .and. hlo(2) .lt. dlo(2)) then
-       if (bclo(1) .eq. amrex_lo_dirichlet .or. bclo(2) .eq. amrex_lo_dirichlet) then
-          phi(dlo(1)-1,dlo(2)-1) = 0.d0
-       else if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
+       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
           phi(dlo(1)-1,dlo(2)-1) = phi(dlo(1)+1,dlo(2)-1)
        else if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
           phi(dlo(1)-1,dlo(2)-1) = phi(dlo(1)-1,dlo(2)+1)
@@ -249,9 +229,7 @@ contains
     end if
 
     if (hhi(1) .gt. dhi(1) .and. hlo(2) .lt. dlo(2)) then
-       if (bchi(1) .eq. amrex_lo_dirichlet .or. bclo(2) .eq. amrex_lo_dirichlet) then
-          phi(dhi(1)+1,dlo(2)-1) = 0.d0
-       else if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
+       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
           phi(dhi(1)+1,dlo(2)-1) = phi(dhi(1)-1,dlo(2)-1)
        else if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
           phi(dhi(1)+1,dlo(2)-1) = phi(dhi(1)+1,dlo(2)+1)
@@ -259,9 +237,7 @@ contains
     end if
 
     if (hlo(1) .lt. dlo(1) .and. hhi(2) .gt. dhi(2)) then
-       if (bclo(1) .eq. amrex_lo_dirichlet .or. bchi(2) .eq. amrex_lo_dirichlet) then
-          phi(dlo(1)-1,dhi(2)+1) = 0.d0
-       else if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
+       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
           phi(dlo(1)-1,dhi(2)+1) = phi(dlo(1)+1,dhi(2)+1)
        else if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
           phi(dlo(1)-1,dhi(2)+1) = phi(dlo(1)-1,dhi(2)-1)
@@ -269,9 +245,7 @@ contains
     end if
 
     if (hhi(1) .gt. dhi(1) .and. hhi(2) .gt. dhi(2)) then
-       if (bchi(1) .eq. amrex_lo_dirichlet .or. bchi(2) .eq. amrex_lo_dirichlet) then
-          phi(dhi(1)+1,dhi(2)+1) = 0.d0
-       else if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
+       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
           phi(dhi(1)+1,dhi(2)+1) = phi(dhi(1)-1,dhi(2)+1)
        else  if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
           phi(dhi(1)+1,dhi(2)+1) = phi(dhi(1)+1,dhi(2)-1)

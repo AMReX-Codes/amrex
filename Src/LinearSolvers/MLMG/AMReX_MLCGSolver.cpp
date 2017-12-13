@@ -93,6 +93,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
     MultiFab ph(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
     MultiFab sh(ba, dm, ncomp, nghost, MFInfo(), FArrayBoxFactory());
+    ph.setVal(0.0);
+    sh.setVal(0.0);
 
     MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
     MultiFab p    (ba, dm, ncomp, 0, MFInfo(), FArrayBoxFactory());
