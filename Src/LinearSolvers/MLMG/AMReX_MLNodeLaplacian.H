@@ -76,6 +76,8 @@ private:
     void averageDownCoeffsSameAmrLevel (int amrlev);
 
     void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
+
+    void buildDirichletMask ();
 };
 
 }

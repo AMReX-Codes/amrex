@@ -19,6 +19,7 @@ extern "C" {
     void amrex_mlndlap_divu (const int* lo, const int* hi,
                              amrex_real* rhs, const int* rlo, const int* rhi,
                              const amrex_real* vel, const int* vlo, const int* vhi,
+                             const int* dmsk, const int* dmlo, const int* dmhi,
                              const amrex_real* dxinv, const int* ndlo, const int* ndhi,
                              const void* bclo, const void* bchi);
 
@@ -43,6 +44,7 @@ extern "C" {
 #endif
 #endif
                               amrex_real* dg, const int* dlo, const int* dhi,
+                              const int* dmsk, const int* dmlo, const int* dmhi,
                               const amrex_real* dxinv, const int* domlo, const int* domhi,
                               const void* bclo, const void* bchi);
 
@@ -52,6 +54,7 @@ extern "C" {
                               const amrex_real* x, const int* xlo, const int* xhi,
                               const amrex_real* sig, const int* slo, const int* shi,
                               amrex_real* dg, const int* dlo, const int* dhi,
+                              const int* dmsk, const int* dmlo, const int* dmhi,
                               const amrex_real* dxinv, const int* domlo, const int* domhi,
                               const void* bclo, const void* bchi);
 
@@ -66,6 +69,7 @@ extern "C" {
                                      const amrex_real* sz, const int* szlo, const int* szhi,
 #endif
 #endif
+                                     const int* dmsk, const int* dmlo, const int* dmhi,
                                      const amrex_real* dxinv, const int* domlo, const int* domhi,
                                      const void* bclo, const void* bchi);
 
@@ -74,6 +78,7 @@ extern "C" {
                                      amrex_real* sol, const int* slo, const int* shi,
                                      const amrex_real* rhs, const int* rlo, const int* rhi,
                                      const amrex_real* sig, const int* sglo, const int* sghi,
+                                     const int* dmsk, const int* dmlo, const int* dmhi,
                                      const amrex_real* dxinv, const int* domlo, const int* domhi,
                                      const void* bclo, const void* bchi);
 
@@ -89,6 +94,7 @@ extern "C" {
                                const amrex_real* sz, const int* szlo, const int* szhi,
 #endif
 #endif
+                               const int* dmsk, const int* dmlo, const int* dmhi,
                                const amrex_real* dxinv, const int* domlo, const int* domhi,
                                const void* bclo, const void* bchi);
                                
@@ -98,6 +104,7 @@ extern "C" {
                                const amrex_real* Ax, const int* alo, const int* ahi,
                                const amrex_real* rhs, const int* rlo, const int* rhi,
                                const amrex_real* sig, const int* sglo, const int* sghi,
+                               const int* dmsk, const int* dmlo, const int* dmhi,
                                const amrex_real* dxinv, const int* domlo, const int* domhi,
                                const void* bclo, const void* bchi);
                                
@@ -105,6 +112,7 @@ extern "C" {
     void amrex_mlndlap_restriction (const int* lo, const int* hi,
                                     amrex_real* crse, const int* clo, const int* chi,
                                     const amrex_real* fine, const int* flo, const int* fhi,
+                                    const int* dmsk, const int* dmlo, const int* dmhi,
                                     const int* dlo, const int* dhi,
                                     const void* bclo, const void* bchi);
 
@@ -118,6 +126,7 @@ extern "C" {
                                       const amrex_real* sz, const int* szlo, const int* szhi,
 #endif
 #endif
+                                      const int* dmsk, const int* dmlo, const int* dmhi,
                                       const int* domlo, const int* domhi,
                                       const void* bclo, const void* bchi);
 
@@ -126,6 +135,7 @@ extern "C" {
                                       amrex_real* fine, const int* fflo, const int* ffhi,
                                       const amrex_real* crse, const int* cflo, const int* cfhi,
                                       const amrex_real* sig, const int* siglo, const int* sighi,
+                                      const int* dmsk, const int* dmlo, const int* dmhi,
                                       const int* domlo, const int* domhi,
                                       const void* bclo, const void* bchi);
 
@@ -141,6 +151,11 @@ extern "C" {
 
     int amrex_mlndlap_any_zero (const int* lo, const int* hi,
                                 const int* msk, const int* mlo, const int* mhi);
+
+    void amrex_mlndlap_set_dirichlet_mask (int* dmsk, const int* dlo, const int* dhi,
+                                           const int* omsk, const int* olo, const int* ohi,
+                                           const int* domlo, const int* domhi,
+                                           const void* bclo, const void* bchi);
 
 #ifdef __cplusplus
 }
