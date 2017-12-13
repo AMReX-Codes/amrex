@@ -46,7 +46,10 @@ BoostedFrameDiagnostic::
 writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real t_boost) {
 
     BL_PROFILE("BoostedFrameDiagnostic::writeLabFrameData");
-    
+
+    VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
+    VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
+
     const RealBox& domain_z_boost = geom.ProbDomain();
     const Real zlo_boost = domain_z_boost.lo(boost_direction_);
     const Real zhi_boost = domain_z_boost.hi(boost_direction_);
@@ -119,6 +122,8 @@ writeLabFrameData(const MultiFab& cell_centered_data, const Geometry& geom, Real
             buff_counter_[i] = 0;
         }
     }
+
+    VisMF::SetHeaderVersion(current_version);
 }
 
 void
