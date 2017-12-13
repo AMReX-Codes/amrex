@@ -8,7 +8,8 @@ module compute_flux_module
        godunov_flux_2d, &
        mol2ndord_flux_2d, &
        mol4thord_flux_2d_limited, &
-       mol4thord_flux_2d_nolimit
+       mol4thord_flux_2d_nolimit, &
+       getmaxmin_bounds
 
 contains
 
@@ -397,6 +398,35 @@ contains
  
  end subroutine mol4thord_flux_2d_nolimit
 
+  subroutine getmaxmin_bounds(lo, hi, glo, ghi, phi, maxval, minval, imax, imin)
+
+    integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
+    double precision, intent(in   ) :: phi (glo(1):ghi(1),glo(2):ghi(2))
+    double precision, intent(out   ) :: maxval, minval
+    integer, intent(out) :: imax(2), imin(2)
+    integer :: i, j
+
+    maxval = -1.0d30
+    minval =  1.0d30
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if(phi(i,j) .gt. maxval) then
+             maxval = phi(i,j)
+             imax(1) = i
+             imax(2) = j
+          endif
+          if(phi(i,j) .lt. minval) then
+             minval = phi(i,j)
+             imin(1) = i
+             imin(2) = j
+          endif
+       enddo
+    enddo
+
+    return
+  end subroutine getmaxmin_bounds
+
   !phi coming in is assumed to be cell-averaged
   !velocity is pointwise on faces---this is the more complicated one that does limiting.
   subroutine mol4thord_flux_2d_limited(lo, hi, dt, dx, &
@@ -441,8 +471,10 @@ contains
          d2wc1, d2wc2, d2wc3, d2wf1, rho, d3wmin, d3wmax, dwthresh, maxw
     logical :: applylim
     integer :: i, j
-!    integer ::  numphi
+    integer :: imax(2), imin(2), blo(2), bhi(2);
+    double precision ::     maxval, minval
 !    double precision :: phitot
+!    integer ::  numphi
 
 
     call bl_allocate(dwfplusx,glo(1), ghi(1), glo(2), ghi(2))
@@ -452,6 +484,7 @@ contains
     call bl_allocate(d2wfx   ,glo(1), ghi(1), glo(2), ghi(2))
     call bl_allocate(d2wcx   ,glo(1), ghi(1), glo(2), ghi(2))
     call bl_allocate(d3wx    ,glo(1), ghi(1), glo(2), ghi(2))
+    call bl_allocate(d3wy    ,glo(1), ghi(1), glo(2), ghi(2))
     call bl_allocate(d2wfy   ,glo(1), ghi(1), glo(2), ghi(2))
     call bl_allocate(d2wcy   ,glo(1), ghi(1), glo(2), ghi(2))
 
@@ -477,7 +510,8 @@ contains
 
     !STEP 0 
     ! 2.1 get cell-centered phi so we can compute a pointwise, fourth order gradient at faces
-    ! needed  for diffusive fluxes
+    ! needed  for diffusive fluxes (eqn 16 of m + c)
+
 
     do    j = lo(2)-3, hi(2)+3
        do i = lo(1)-3, hi(1)+3
@@ -486,8 +520,15 @@ contains
                +phi(i  ,j+1)+phi(i  ,j-1)&
                -4.d0*phi(i,j))
           phiptcc(i,j)  = phicctemp
+          
        end do
     end do
+
+    blo(1) = lo(1)-3
+    bhi(1) = hi(1)+3
+    blo(2) = lo(2)-3
+    bhi(2) = hi(2)+3
+    call getmaxmin_bounds(blo, bhi, glo, ghi, phiptcc, maxval, minval, imax, imin)
 
     ! STEP ONE--- HYPERBOLIC FLUXES
     ! compute face average phi on x faces via eqn 17 of mccorquodale, colella
@@ -500,9 +541,15 @@ contains
                -(1.d0/12.d0)*(phi(i-2,j) + phi(i+1,j))
 
           phiavex(i,j)  = debtemp
+
        end do
     end do
 
+    blo(2) = lo(2)-2
+    bhi(2) = hi(2)+2
+    blo(1) = lo(1)-1
+    bhi(1) = hi(1)+2
+    call getmaxmin_bounds(blo, bhi, glo, ghi, phiavex, maxval, minval, imax, imin)
     
     !same for y faces
     do    j = lo(2)-1, hi(2)+2
@@ -516,6 +563,12 @@ contains
        end do
     end do
 
+    blo(2) = lo(2)-1
+    bhi(2) = hi(2)+2
+    blo(1) = lo(1)-2
+    bhi(1) = hi(1)+2
+    call getmaxmin_bounds(blo, bhi, glo, ghi, phiavey, maxval, minval, imax, imin)
+
     !this stuff is for limiting 
     !The variable names are from mccorquodale & colella.   I could not come
     ! up with anything more sensible.   This is from section 2.4.1.
@@ -525,49 +578,95 @@ contains
           dwfplusx(i,j) = phiavex(i+1,j) -     phi(i,j)
        enddo
     enddo
+
+    blo(2) = lo(2)-2
+    bhi(2) = hi(2)+2
+    blo(1) = lo(1)
+    bhi(1) = hi(1)
+    call getmaxmin_bounds(blo, bhi, glo, ghi, dwfminux, maxval, minval, imax, imin)
+    call getmaxmin_bounds(blo, bhi, glo, ghi, dwfplusx, maxval, minval, imax, imin)
+
     do    j = lo(2)    , hi(2)
        do i = lo(1)-2  , hi(1)+2
           dwfminuy(i,j) =     phi(i,j  ) - phiavey(i,j)
           dwfplusy(i,j) = phiavey(i,j+1) -     phi(i,j)
+
        enddo
     enddo
+
+    blo(2) = lo(2)
+    bhi(2) = hi(2)
+    blo(1) = lo(1)-2
+    bhi(1) = hi(1)+2
+    call getmaxmin_bounds(blo, bhi, glo, ghi, dwfminuy, maxval, minval, imax, imin)
+    call getmaxmin_bounds(blo, bhi, glo, ghi, dwfplusy, maxval, minval, imax, imin)
 
     do    j = lo(2)-2, hi(2)+2
        do i = lo(1)-1, hi(1)+1
           d2wfx(i,j) = 6.0d0*(phiavex(i  ,j) + phiavex(i+1,j) - 2.0d0*phi(i,j))
           d2wcx(i,j) =       (    phi(i-1,j) +     phi(i+1,j) - 2.0d0*phi(i,j))
+
        enddo
     enddo
+
+
+    blo(2) = lo(2)-2
+    bhi(2) = hi(2)+2
+    blo(1) = lo(1)-1
+    bhi(1) = hi(1)+1
+    call getmaxmin_bounds(blo, bhi, glo, ghi, d2wfx, maxval, minval, imax, imin)
+    call getmaxmin_bounds(blo, bhi, glo, ghi, d2wcx, maxval, minval, imax, imin)
 
     do    j = lo(2)-1, hi(2)+1
        do i = lo(1)-2, hi(1)+2
           d2wfy(i,j) = 6.0d0*(phiavey(i,j  ) + phiavey(i,j+1) - 2.0d0*phi(i,j))
           d2wcy(i,j) =       (    phi(i,j-1) +     phi(i,j+1) - 2.0d0*phi(i,j))
+
        enddo
     enddo
+
+    blo(2) = lo(2)-1
+    bhi(2) = hi(2)+1
+    blo(1) = lo(1)-2
+    bhi(1) = hi(1)+2
+    call getmaxmin_bounds(blo, bhi, glo, ghi, d2wfy, maxval, minval, imax, imin)
+    call getmaxmin_bounds(blo, bhi, glo, ghi, d2wcy, maxval, minval, imax, imin)
+
 
     do    j = lo(2)-2, hi(2)+2
        do i = lo(1),   hi(1)+1
           d3wx(i,j) = d2wcx(i,j) - d2wcx(i-1,j)
        enddo
     enddo
-    do    j = lo(2)  , hi(2)+1
-       do i = lo(1)-2, hi(1)+2
-          d3wy(i,j) = d2wcy(i,j) - d2wcx(i,j-1)
-       enddo
-    enddo
+
+
+    blo(2) = lo(2)-2
+    bhi(2) = hi(2)+2
+    blo(1) = lo(1)
+    bhi(1) = hi(1)+1
+    call getmaxmin_bounds(blo, bhi, glo, ghi, d3wx, maxval, minval, imax, imin)
+
 
     do    j = lo(2)  , hi(2)+1
        do i = lo(1)-2, hi(1)+2
-          d3wy(i,j) = d2wcy(i,j) - d2wcx(i,j-1)
+          d3wy(i,j) = d2wcy(i,j) - d2wcy(i,j-1)
        enddo
     enddo
+
+
+    blo(2) = lo(2)
+    bhi(2) = hi(2)+1
+    blo(1) = lo(1)-2
+    bhi(1) = hi(1)+2
+    call getmaxmin_bounds(blo, bhi, glo, ghi, d3wy, maxval, minval, imax, imin)
+
 
     !initialize left and right states
     do    j = lo(2)-2, hi(2)+2
        do i = lo(1)  , hi(1)+1
           wleftx(i,j) = phiavex(i,j)
           wrighx(i,j) = phiavex(i,j)
+
        enddo
     enddo
     do    j = lo(2)  , hi(2)+1
@@ -838,6 +937,7 @@ contains
     call bl_deallocate(d2wfx   )
     call bl_deallocate(d2wcx   )
     call bl_deallocate(d3wx    )
+    call bl_deallocate(d3wy    )
     call bl_deallocate(d2wfy   )
     call bl_deallocate(d2wcy   )
     call bl_deallocate(d3wy    )
