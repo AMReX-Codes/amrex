@@ -42,6 +42,8 @@ public :
                                  const MultiFab& vold, const BoxArray& fine_grids,
                                  const IntVect& ref_ratio);
 
+    void compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold);
+
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
 
