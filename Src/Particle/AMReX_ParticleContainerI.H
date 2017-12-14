@@ -1832,12 +1832,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // We'll allow up to nOutFiles active writers at a time.
     //
     int nOutFiles(64);
+    int DATA_Digits_Write(5);
     ParmParse pp("particles");
     pp.query("particles_nfiles",nOutFiles);
     if(nOutFiles == -1) {
       nOutFiles = NProcs;
     }
     nOutFiles = std::max(1, std::min(nOutFiles,NProcs));
+
+    pp.query("datadigits_write",DATA_Digits_Write);
     
     for (int lev = 0; lev <= finestLevel(); lev++)
       {
@@ -1896,8 +1899,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             FullFileName += '/';
             FullFileName += ParticleType::DataPrefix();
-            FullFileName += amrex::Concatenate("", FileNumber, 4);
-
+            FullFileName += amrex::Concatenate("", FileNumber, DATA_Digits_Write);
             std::ofstream ParticleFile;
 
             VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -2000,7 +2002,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
                         FullFileName += '/';
                         FullFileName += ParticleType::DataPrefix();
-                        FullFileName += amrex::Concatenate("", i, 4);
+                        FullFileName += amrex::Concatenate("", i, DATA_Digits_Write);
 
                         amrex::UnlinkFile(FullFileName.c_str());
                     }
@@ -2159,6 +2161,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   
   const Real strttime = ParallelDescriptor::second();
   
+  int DATA_Digits_Read(5);
+  ParmParse pp("particles");
+  pp.query("datadigits_read",DATA_Digits_Read);
+
   std::string fullname = dir;
   if (!fullname.empty() && fullname[fullname.size()-1] != '/')
     fullname += '/';
@@ -2278,7 +2284,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
       name += amrex::Concatenate("", lev, 1);
       name += '/';
       name += ParticleType::DataPrefix();
-      name += amrex::Concatenate("", which[grid], 4);
+      name += amrex::Concatenate("", which[grid], DATA_Digits_Read);
       
       std::ifstream ParticleFile;
       
