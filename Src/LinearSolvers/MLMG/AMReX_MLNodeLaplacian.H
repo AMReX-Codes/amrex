@@ -34,7 +34,7 @@ public :
 
     void compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
                   const Vector<const MultiFab*>& rhnd,
-                  const Vector<const MultiFab*>& rhcc);
+                  const Vector<MultiFab*>& rhcc);
 
     void updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const;
 

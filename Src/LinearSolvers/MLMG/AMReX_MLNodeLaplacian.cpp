@@ -65,20 +65,37 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 void
 MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
                           const Vector<const MultiFab*>& rhnd,
-                          const Vector<const MultiFab*>& rhcc)
+                          const Vector<MultiFab*>& rhcc)
 {
-    AMREX_ALWAYS_ASSERT(rhs.size() == 1);
-    AMREX_ALWAYS_ASSERT(rhcc[0] == nullptr);
-
     if (!m_dirichlet_mask_built) buildDirichletMask();
 
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
     {
         vel[ilev]->FillBoundary(m_geom[ilev][0].periodicity());
 
+        const Box& ccdom = m_geom[ilev][0].Domain();
+
+        if (rhcc[ilev])
+        {
+            rhcc[ilev]->FillBoundary(m_geom[ilev][0].periodicity());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(*rhcc[ilev], MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+            {
+                if (!ccdom.contains(mfi.fabbox()))
+                {
+                    amrex_mlndlap_fillbc_cc(BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
+                                            BL_TO_FORTRAN_BOX(ccdom),
+                                            m_lobc.data(), m_hibc.data());
+                }
+            }
+        }
+
         const Real* dxinv = m_geom[ilev][0].InvCellSize();
 
-        const Box& nddom = amrex::surroundingNodes(m_geom[ilev][0].Domain());
+        const Box& nddom = amrex::surroundingNodes(ccdom);
 
         const iMultiFab& dmsk = *m_dirichlet_mask[ilev][0];
 
@@ -94,10 +111,17 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                dxinv, BL_TO_FORTRAN_BOX(nddom),
                                m_lobc.data(), m_hibc.data());
+            if (rhcc[ilev])
+            {
+                amrex_mlndlap_add_rhcc(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                       BL_TO_FORTRAN_ANYD((*rhcc[ilev])[mfi]),
+                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]));
+            }
         }
 
         if (rhnd[ilev]) {
-            MultiFab::Copy(*rhs[ilev], *rhnd[ilev], 0, 0, 1, 0);
+            MultiFab::Add(*rhs[ilev], *rhnd[ilev], 0, 0, 1, 0);
         }
     }
 }
@@ -238,13 +262,13 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(sigma); mfi.isValid(); ++mfi)
+    for (MFIter mfi(sigma, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
         if (!domain.contains(mfi.fabbox()))
         {
-            amrex_mlndlap_fillbc_coeff(BL_TO_FORTRAN_ANYD(sigma[mfi]),
-                                       BL_TO_FORTRAN_BOX(domain),
-                                       m_lobc.data(), m_hibc.data());
+            amrex_mlndlap_fillbc_cc(BL_TO_FORTRAN_ANYD(sigma[mfi]),
+                                    BL_TO_FORTRAN_BOX(domain),
+                                    m_lobc.data(), m_hibc.data());
         }
     }
 }

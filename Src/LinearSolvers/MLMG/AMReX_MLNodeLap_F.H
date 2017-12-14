@@ -12,9 +12,9 @@ extern "C" {
                                       const amrex_real* fine, const int* flo, const int* fhi,
                                       const int* idim);
 
-    void amrex_mlndlap_fillbc_coeff (amrex_real* sigma, const int* slo, const int* shi,
-                                     const int* dlo, const int* dhi,
-                                     const void* bclo, const void* bchi);
+    void amrex_mlndlap_fillbc_cc (amrex_real* sigma, const int* slo, const int* shi,
+                                  const int* dlo, const int* dhi,
+                                  const void* bclo, const void* bchi);
 
     void amrex_mlndlap_divu (const int* lo, const int* hi,
                              amrex_real* rhs, const int* rlo, const int* rhi,
@@ -22,6 +22,11 @@ extern "C" {
                              const int* dmsk, const int* dmlo, const int* dmhi,
                              const amrex_real* dxinv, const int* ndlo, const int* ndhi,
                              const void* bclo, const void* bchi);
+
+    void amrex_mlndlap_add_rhcc (const int* lo, const int* hi,
+                                 amrex_real* rhs, const int* rlo, const int* rhi,
+                                 const amrex_real* rhcc, const int* clo, const int* chi,
+                                 const int* dmsk, const int* mlo, const int* mhi);
 
     void amrex_mlndlap_mknewu (const int* lo, const int* hi,
                                amrex_real* u, const int* ulo, const int* uhi,
