@@ -285,7 +285,6 @@ namespace amrex
                  std::ostream&      os,
                  VisMF::How         how)
   {
-
     AmrLevel::writePlotFile (dir,os,how);
   }
 
@@ -391,11 +390,11 @@ namespace amrex
       amrex::Print() << "**** using the " << algorithm << " algorithm ";
       if(use_limiting)
       {
-        amrex::Print() << "with limting ON ****" << endl;
+        amrex::Print() << "with limiting ON ****" << endl;
       }
       else
       {
-        amrex::Print() << "with limting OFF ****" << endl;
+        amrex::Print() << "with limiting OFF ****" << endl;
       }
       if(m_use_fixed_dt)
       {
