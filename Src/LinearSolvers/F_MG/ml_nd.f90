@@ -153,6 +153,8 @@ contains
        if ( parallel_IOProcessor() .and. mgt(nlevs)%verbose > 0 ) &
             write(unit=*, fmt='("F90mg: No iterations needed ")')
 
+       n_mg_iters = 0
+
     else   ! Not already converged
 
      do iter = 1, mgt(nlevs)%max_iter
@@ -445,6 +447,8 @@ contains
            t1(3) = bottom_solve_time
 
            call parallel_reduce(t2, t1, MPI_MAX, proc = parallel_IOProcessorNode())
+
+           n_mg_iters = iter
 
            if ( parallel_IOProcessor() ) then
               if ( tres0 .gt. ZERO) then
