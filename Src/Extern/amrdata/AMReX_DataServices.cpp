@@ -1058,22 +1058,73 @@ void DataServices::Dispatch(DSRequestType requestType, DataServices *ds, ...) {
     {
       if(ParallelDescriptor::IOProcessor()) { std::cout << "Dispatch::---- RunTimelinePFRequest:" << std::endl; }
 
-      std::map<int, std::string> *mpiFuncNamesPtr;
-      std::string *plotfileNamePtr;
-      BLProfStats::TimeRange *subTimeRange;
-      int maxSmallImageLength, refRatioAll, nTimeSlots;
-      bool *statsCollectedPtr;
+      std::map<int, std::string> mpiFuncNames;
+      std::string plotfileName;
+      BLProfStats::TimeRange subTimeRange;
+      Real start, stop;
+      int maxSmallImageLength, refRatioAll, nTimeSlots, bStats;
+      bool statsCollected;
 
-      mpiFuncNamesPtr = (std::map<int, std::string> *) va_arg(ap, void *);
-      plotfileNamePtr =  (std::string *) va_arg(ap, void *);
-      subTimeRange = (BLProfStats::TimeRange *) va_arg(ap, void *); 
-      maxSmallImageLength = va_arg(ap, int);
-      refRatioAll = va_arg(ap, int);
-      nTimeSlots = va_arg(ap, int);
-      statsCollectedPtr = (bool *) va_arg(ap, bool *);
+      // Storage of broken down map.
+      Vector<int> mapFirst;
+      Vector<std::string> fileNameAndmapSecond;
+      Vector<char> serialSecond;
 
-      ds->RunTimelinePF(*mpiFuncNamesPtr, *plotfileNamePtr, *subTimeRange, maxSmallImageLength,
-                         refRatioAll, nTimeSlots, *statsCollectedPtr);
+      if (ParallelDescriptor::IOProcessor())
+      {
+        // Get passed data
+        mpiFuncNames = *((std::map<int, std::string> *) va_arg(ap, void *));
+        plotfileName = *((std::string *) va_arg(ap, void *));
+        subTimeRange = *((BLProfStats::TimeRange *) va_arg(ap, void *)); 
+        maxSmallImageLength = va_arg(ap, int);
+        refRatioAll = va_arg(ap, int);
+        nTimeSlots = va_arg(ap, int);
+        bStats = *((bool *) va_arg(ap, bool *));
+
+        // Prep data for broadcast
+        start = subTimeRange.startTime;
+        stop = subTimeRange.stopTime;
+        fileNameAndmapSecond.push_back(plotfileName);
+
+        std::map<int, std::string>::iterator it;
+        for(it = mpiFuncNames.begin(); it != mpiFuncNames.end(); ++it)
+        {
+          mapFirst.push_back(it->first);
+          fileNameAndmapSecond.push_back(it->second);
+        }
+        serialSecond = amrex::SerializeStringArray(fileNameAndmapSecond);
+      }
+
+      // --- Broadcast Ints
+      ParallelDescriptor::Bcast(&maxSmallImageLength, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&refRatioAll, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&nTimeSlots, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&bStats, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+
+      // --- Broadcast Reals
+      ParallelDescriptor::Bcast(&start, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+      ParallelDescriptor::Bcast(&stop, 1, ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator()); 
+
+      // --- Broadcast Map as 2 Arrays
+      amrex::BroadcastArray(mapFirst, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+      amrex::BroadcastArray(serialSecond, ParallelDescriptor::MyProc(), ParallelDescriptor::IOProcessorNumber(), ParallelDescriptor::Communicator());
+
+      if(!ParallelDescriptor::IOProcessor())
+      {
+        subTimeRange = BLProfStats::TimeRange(start, stop);
+        statsCollected = bStats;
+
+        fileNameAndmapSecond = amrex::UnSerializeStringArray(serialSecond);
+        plotfileName = fileNameAndmapSecond.front();
+        for(int i(0); i<mapFirst.size(); ++i)
+        {
+          mpiFuncNames.insert(std::pair<int, std::string>(mapFirst[i+1], fileNameAndmapSecond[i])); 
+        }
+      }        
+
+      ds->RunTimelinePF(mpiFuncNames, plotfileName, subTimeRange, maxSmallImageLength,
+                         refRatioAll, nTimeSlots, statsCollected);
+
     }
     break;
 
