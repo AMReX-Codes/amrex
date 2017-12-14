@@ -1857,6 +1857,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // We'll allow up to nOutFiles active writers at a time.
     //
     int nOutFiles(256);
+
     ParmParse pp("particles");
     pp.query("particles_nfiles",nOutFiles);
     if(nOutFiles == -1) {
@@ -1864,7 +1865,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
     nOutFiles = std::max(1, std::min(nOutFiles,NProcs));
     nOutFilesPrePost = nOutFiles;
-    
+
     for (int lev = 0; lev <= finestLevel(); lev++)
       {
         bool gotsome;
@@ -2291,6 +2292,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
   
   const Real strttime = ParallelDescriptor::second();
   
+  int DATA_Digits_Read(5);
+  ParmParse pp("particles");
+  pp.query("datadigits_read",DATA_Digits_Read);
+
   std::string fullname = dir;
   if (!fullname.empty() && fullname[fullname.size()-1] != '/')
     fullname += '/';
@@ -2410,7 +2415,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Restart (cons
       name += amrex::Concatenate("", lev, 1);
       name += '/';
       name += ParticleType::DataPrefix();
-      name += amrex::Concatenate("", which[grid], 5);
+      name += amrex::Concatenate("", which[grid], DATA_Digits_Read);
       
       std::ifstream ParticleFile;
       
