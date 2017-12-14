@@ -6,7 +6,7 @@ module amrex_mlnodelap_2d_module
   implicit none
 
   private
-  public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_coeff, amrex_mlndlap_divu, &
+  public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_divu, &
        amrex_mlndlap_applybc, amrex_mlndlap_restriction, amrex_mlndlap_mknewu, &
        amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
@@ -45,8 +45,8 @@ contains
   end subroutine amrex_mlndlap_avgdown_coeff
 
 
-  subroutine amrex_mlndlap_fillbc_coeff (sigma, slo, shi, dlo, dhi, bclo, bchi) &
-       bind(c, name='amrex_mlndlap_fillbc_coeff')
+  subroutine amrex_mlndlap_fillbc_cc (sigma, slo, shi, dlo, dhi, bclo, bchi) &
+       bind(c, name='amrex_mlndlap_fillbc_cc')
     integer, dimension(2), intent(in) :: slo, shi, dlo, dhi, bclo, bchi
     real(amrex_real), intent(inout) :: sigma(slo(1):shi(1),slo(2):shi(2))
 
@@ -105,7 +105,7 @@ contains
        end if
     end if
 
-  end subroutine amrex_mlndlap_fillbc_coeff
+  end subroutine amrex_mlndlap_fillbc_cc
 
 
   subroutine amrex_mlndlap_divu (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, msk, mlo, mhi, &
@@ -159,6 +159,25 @@ contains
     end if
 
   end subroutine amrex_mlndlap_divu
+
+
+  subroutine amrex_mlndlap_add_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_add_rhcc')
+    integer, dimension(2) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi
+    real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1),clo(2):chi(2))
+    integer,          intent(in   ) :: msk (mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: i,j
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (msk(i,j) .eq. 0) then
+             rhs(i,j) = rhs(i,j) + 0.25d0*(rhcc(i-1,j-1)+rhcc(i,j-1)+rhcc(i-1,j)+rhcc(i,j))
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_add_rhcc
 
 
   subroutine amrex_mlndlap_mknewu (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, dxinv) &
