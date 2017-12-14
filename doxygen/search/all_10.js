@@ -136,7 +136,7 @@ var searchData=
   ['private_5ftotal_5fcells_5fallocated_5fin_5ffabs',['private_total_cells_allocated_in_fabs',['../namespaceamrex.html#a583d878122b14b28a3ba6bc38f5e770e',1,'amrex']]],
   ['private_5ftotal_5fcells_5fallocated_5fin_5ffabs_5fhwm',['private_total_cells_allocated_in_fabs_hwm',['../namespaceamrex.html#a8b2e74e23eb671db74129bdc374b9d73',1,'amrex']]],
   ['probdomain',['ProbDomain',['../classamrex_1_1_geometry.html#a5049084bde4fcdef07be09d317684a40',1,'amrex::Geometry::ProbDomain()'],['../classamrex_1_1_geometry.html#a89fc88836fb0e2c87a60891baa357a29',1,'amrex::Geometry::ProbDomain(const RealBox &amp;rb)']]],
-  ['probhi',['ProbHi',['../classamrex_1_1_geometry.html#a98091e22b9e88c2f16dab3c7465b58d6',1,'amrex::Geometry::ProbHi()'],['../classamrex_1_1_geometry.html#a9e0fcd9c7eee4824aebebdee9e106a99',1,'amrex::Geometry::ProbHi(int dir)'],['../classamrex_1_1_grid_parameters.html#a1895d2c8ee8fc720899c943702da3652',1,'amrex::GridParameters::probHi()']]],
+  ['probhi',['probHi',['../classamrex_1_1_grid_parameters.html#a1895d2c8ee8fc720899c943702da3652',1,'amrex::GridParameters::probHi()'],['../classamrex_1_1_geometry.html#a98091e22b9e88c2f16dab3c7465b58d6',1,'amrex::Geometry::ProbHi()'],['../classamrex_1_1_geometry.html#a9e0fcd9c7eee4824aebebdee9e106a99',1,'amrex::Geometry::ProbHi(int dir)']]],
   ['probin_5ffile',['probin_file',['../classamrex_1_1_amr.html#a015dec6a04940644e63848d6afd6e7c8',1,'amrex::Amr']]],
   ['probinit_5fnatonce',['probinit_natonce',['../namespaceamrex.html#aee298693c19108f120311352e1404a77',1,'amrex']]],
   ['problength',['ProbLength',['../classamrex_1_1_geometry.html#ade48b3a2213074be30f9e182f7067405',1,'amrex::Geometry']]],

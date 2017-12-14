@@ -23,6 +23,7 @@ var searchData=
   ['upperindex',['UpperIndex',['../classamrex_1_1_coord_sys.html#a963f59d99a41920b77dc7464f15b09bd',1,'amrex::CoordSys']]],
   ['usefixedcoarsegrids',['useFixedCoarseGrids',['../classamrex_1_1_amr_mesh.html#ae2cad7cb8252ec6d3512afc904a9e7e9',1,'amrex::AmrMesh']]],
   ['usefixeduptolevel',['useFixedUpToLevel',['../classamrex_1_1_amr_mesh.html#a6da8eed8962368ecd9b7b62fb38c283a',1,'amrex::AmrMesh']]],
+  ['usingprecreatedirectories',['UsingPrecreateDirectories',['../classamrex_1_1_amr.html#aab1d9e9bbbff4d4bf9b3b57896574364',1,'amrex::Amr']]],
   ['usleep',['USleep',['../namespaceamrex.html#af353083e449d736188c80257c096f518',1,'amrex']]],
   ['utilcreatecleandirectory',['UtilCreateCleanDirectory',['../namespaceamrex.html#a832f4ad883cbc470d76cde70a099e912',1,'amrex']]],
   ['utilcreatedirectory',['UtilCreateDirectory',['../namespaceamrex.html#a913fd7ccf7cab45bc7d8e2a09ddd2824',1,'amrex']]],

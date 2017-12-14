@@ -908,7 +908,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00823"></a><span class="lineno">  823</span>&#160;    }</div>
 <div class="line"><a name="l00824"></a><span class="lineno">  824</span>&#160;</div>
 <div class="line"><a name="l00825"></a><span class="lineno">  825</span>&#160;        {</div>
-<div class="line"><a name="l00826"></a><span class="lineno">  826</span>&#160;            <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#a548fbd9b2cd72a927f463003f4adb0b1">BL_PROFILE</a>(<span class="stringliteral">&quot;CollectData_Alltoall()&quot;</span>);</div>
+<div class="line"><a name="l00826"></a><span class="lineno">  826</span>&#160;            <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#aa23714eb98f31ba71d565390dae2a7d2">BL_PROFILE_VAR</a>(<span class="stringliteral">&quot;CollectData_Alltoall()&quot;</span>, blpvCDATA);</div>
 <div class="line"><a name="l00827"></a><span class="lineno">  827</span>&#160;        <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#a5e661a1af9130dd8449e7f730864271c">BL_COMM_PROFILE</a>(BLProfiler::Alltoall, <span class="keyword">sizeof</span>(<span class="keywordtype">int</span>), <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a3deabb4447125ee364f9ca1c5a07c1e4">ParallelDescriptor::MyProc</a>(),</div>
 <div class="line"><a name="l00828"></a><span class="lineno">  828</span>&#160;                        BLProfiler::BeforeCall());</div>
 <div class="line"><a name="l00829"></a><span class="lineno">  829</span>&#160;</div>
@@ -923,339 +923,340 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00838"></a><span class="lineno">  838</span>&#160;        <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#a5e661a1af9130dd8449e7f730864271c">BL_COMM_PROFILE</a>(BLProfiler::Alltoall, <span class="keyword">sizeof</span>(<span class="keywordtype">int</span>), <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a3deabb4447125ee364f9ca1c5a07c1e4">ParallelDescriptor::MyProc</a>(),</div>
 <div class="line"><a name="l00839"></a><span class="lineno">  839</span>&#160;                        BLProfiler::AfterCall());</div>
 <div class="line"><a name="l00840"></a><span class="lineno">  840</span>&#160;</div>
-<div class="line"><a name="l00841"></a><span class="lineno">  841</span>&#160;        }</div>
-<div class="line"><a name="l00842"></a><span class="lineno">  842</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(SndsArray[MyProc] == 0);</div>
-<div class="line"><a name="l00843"></a><span class="lineno">  843</span>&#160;</div>
-<div class="line"><a name="l00844"></a><span class="lineno">  844</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a0455b3ad4f2a4c13b57d33e4c6325dca">NProcs</a>; i++)</div>
-<div class="line"><a name="l00845"></a><span class="lineno">  845</span>&#160;            <span class="keywordflow">if</span> (SndsArray[i] &gt; 0)</div>
-<div class="line"><a name="l00846"></a><span class="lineno">  846</span>&#160;                Snds[i] = SndsArray[i];</div>
-<div class="line"><a name="l00847"></a><span class="lineno">  847</span>&#160;    }</div>
-<div class="line"><a name="l00848"></a><span class="lineno">  848</span>&#160;</div>
-<div class="line"><a name="l00849"></a><span class="lineno">  849</span>&#160;    <span class="comment">// There are two rounds of send and recv.</span></div>
-<div class="line"><a name="l00850"></a><span class="lineno">  850</span>&#160;    <span class="comment">// First, the data receivers need to send the data senders meta-data (e.g., boxes).</span></div>
-<div class="line"><a name="l00851"></a><span class="lineno">  851</span>&#160;    <span class="comment">// Then, the senders know what data to send and perform send.</span></div>
-<div class="line"><a name="l00852"></a><span class="lineno">  852</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> SeqNum_md   = <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#adc1ee2d527e98fe750f038480efc439c">ParallelDescriptor::SeqNum</a>();</div>
-<div class="line"><a name="l00853"></a><span class="lineno">  853</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> SeqNum_data = <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#adc1ee2d527e98fe750f038480efc439c">ParallelDescriptor::SeqNum</a>();</div>
-<div class="line"><a name="l00854"></a><span class="lineno">  854</span>&#160;</div>
-<div class="line"><a name="l00855"></a><span class="lineno">  855</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> N_snds = Snds.size();</div>
-<div class="line"><a name="l00856"></a><span class="lineno">  856</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> N_rcvs = Rcvs.size();</div>
-<div class="line"><a name="l00857"></a><span class="lineno">  857</span>&#160;</div>
-<div class="line"><a name="l00858"></a><span class="lineno">  858</span>&#160;    <span class="keywordflow">if</span> ( N_snds == 0 &amp;&amp; N_rcvs == 0 ) <span class="keywordflow">return</span>;</div>
-<div class="line"><a name="l00859"></a><span class="lineno">  859</span>&#160;</div>
-<div class="line"><a name="l00860"></a><span class="lineno">  860</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> Nints = 4 + 3*<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>;  <span class="comment">// # of ints in a meta-data</span></div>
-<div class="line"><a name="l00861"></a><span class="lineno">  861</span>&#160;</div>
-<div class="line"><a name="l00862"></a><span class="lineno">  862</span>&#160;    <span class="comment">// for meta-data</span></div>
-<div class="line"><a name="l00863"></a><span class="lineno">  863</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> md_sender, md_offset, md_icnts, md_bcnts;</div>
-<div class="line"><a name="l00864"></a><span class="lineno">  864</span>&#160;    <span class="keywordtype">int</span>* md_recv_data;</div>
-<div class="line"><a name="l00865"></a><span class="lineno">  865</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int*&gt;</a> md_send_data;</div>
-<div class="line"><a name="l00866"></a><span class="lineno">  866</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;MPI_Request&gt;</a> md_recv_reqs, md_send_reqs;</div>
-<div class="line"><a name="l00867"></a><span class="lineno">  867</span>&#160;</div>
-<div class="line"><a name="l00868"></a><span class="lineno">  868</span>&#160;    <span class="comment">// for data</span></div>
-<div class="line"><a name="l00869"></a><span class="lineno">  869</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> data_sender, data_offset;</div>
-<div class="line"><a name="l00870"></a><span class="lineno">  870</span>&#160;    value_type* recv_data;</div>
-<div class="line"><a name="l00871"></a><span class="lineno">  871</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;value_type*&gt;</a> send_data;</div>
-<div class="line"><a name="l00872"></a><span class="lineno">  872</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;MPI_Request&gt;</a> data_recv_reqs, data_send_reqs;</div>
-<div class="line"><a name="l00873"></a><span class="lineno">  873</span>&#160;</div>
-<div class="line"><a name="l00874"></a><span class="lineno">  874</span>&#160;    <span class="keywordflow">if</span> (N_snds &gt; 0)</div>
-<div class="line"><a name="l00875"></a><span class="lineno">  875</span>&#160;    {</div>
-<div class="line"><a name="l00876"></a><span class="lineno">  876</span>&#160;    <span class="comment">// Recv meta-data</span></div>
-<div class="line"><a name="l00877"></a><span class="lineno">  877</span>&#160;</div>
-<div class="line"><a name="l00878"></a><span class="lineno">  878</span>&#160;    <span class="keywordtype">int</span> N = 0;</div>
-<div class="line"><a name="l00879"></a><span class="lineno">  879</span>&#160;        <span class="keywordflow">for</span> (std::map&lt;int,int&gt;::const_iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)</div>
-<div class="line"><a name="l00880"></a><span class="lineno">  880</span>&#160;        {</div>
-<div class="line"><a name="l00881"></a><span class="lineno">  881</span>&#160;        md_sender.push_back(it-&gt;first);</div>
-<div class="line"><a name="l00882"></a><span class="lineno">  882</span>&#160;        md_bcnts.push_back(it-&gt;second);</div>
-<div class="line"><a name="l00883"></a><span class="lineno">  883</span>&#160;        <span class="keywordtype">int</span> cnt = it-&gt;second * Nints;</div>
-<div class="line"><a name="l00884"></a><span class="lineno">  884</span>&#160;        md_icnts.push_back(cnt);</div>
-<div class="line"><a name="l00885"></a><span class="lineno">  885</span>&#160;            md_offset.push_back(N);</div>
-<div class="line"><a name="l00886"></a><span class="lineno">  886</span>&#160;            N += cnt; </div>
-<div class="line"><a name="l00887"></a><span class="lineno">  887</span>&#160;        }</div>
-<div class="line"><a name="l00888"></a><span class="lineno">  888</span>&#160;</div>
-<div class="line"><a name="l00889"></a><span class="lineno">  889</span>&#160;    md_recv_data = <span class="keyword">static_cast&lt;</span><span class="keywordtype">int</span>*<span class="keyword">&gt;</span>(<a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a46ce2cd5cfc039cec64548b031fbde2e">alloc</a>(N*<span class="keyword">sizeof</span>(<span class="keywordtype">int</span>)));</div>
-<div class="line"><a name="l00890"></a><span class="lineno">  890</span>&#160;</div>
-<div class="line"><a name="l00891"></a><span class="lineno">  891</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N_snds; ++i)</div>
-<div class="line"><a name="l00892"></a><span class="lineno">  892</span>&#160;    {</div>
-<div class="line"><a name="l00893"></a><span class="lineno">  893</span>&#160;        md_recv_reqs.push_back(<a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#af5ed8a597f21464e9f2803f0e2afc0be">ParallelDescriptor::Arecv</a>(&amp;md_recv_data[md_offset[i]],</div>
-<div class="line"><a name="l00894"></a><span class="lineno">  894</span>&#160;                                 md_icnts[i], md_sender[i],</div>
-<div class="line"><a name="l00895"></a><span class="lineno">  895</span>&#160;                                 SeqNum_md).req());</div>
-<div class="line"><a name="l00896"></a><span class="lineno">  896</span>&#160;    }   </div>
-<div class="line"><a name="l00897"></a><span class="lineno">  897</span>&#160;    }</div>
-<div class="line"><a name="l00898"></a><span class="lineno">  898</span>&#160;</div>
-<div class="line"><a name="l00899"></a><span class="lineno">  899</span>&#160;    <span class="keywordflow">if</span> (N_rcvs &gt; 0)</div>
-<div class="line"><a name="l00900"></a><span class="lineno">  900</span>&#160;    {</div>
-<div class="line"><a name="l00901"></a><span class="lineno">  901</span>&#160;    <span class="comment">// Send meta-data</span></div>
-<div class="line"><a name="l00902"></a><span class="lineno">  902</span>&#160;        <span class="keywordflow">for</span> (std::map&lt;int,int&gt;::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)</div>
-<div class="line"><a name="l00903"></a><span class="lineno">  903</span>&#160;        {</div>
-<div class="line"><a name="l00904"></a><span class="lineno">  904</span>&#160;        <span class="keywordtype">int</span> rank = it-&gt;first;</div>
-<div class="line"><a name="l00905"></a><span class="lineno">  905</span>&#160;        <span class="keywordtype">int</span> Nmds = it-&gt;second;</div>
-<div class="line"><a name="l00906"></a><span class="lineno">  906</span>&#160;        <span class="keywordtype">int</span> cnt = Nmds * Nints;</div>
-<div class="line"><a name="l00907"></a><span class="lineno">  907</span>&#160;</div>
-<div class="line"><a name="l00908"></a><span class="lineno">  908</span>&#160;        <span class="keywordtype">int</span>* p = <span class="keyword">static_cast&lt;</span><span class="keywordtype">int</span>*<span class="keyword">&gt;</span>(<a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a46ce2cd5cfc039cec64548b031fbde2e">alloc</a>(cnt*<span class="keyword">sizeof</span>(<span class="keywordtype">int</span>)));</div>
-<div class="line"><a name="l00909"></a><span class="lineno">  909</span>&#160;        md_send_data.push_back(p);</div>
-<div class="line"><a name="l00910"></a><span class="lineno">  910</span>&#160;</div>
-<div class="line"><a name="l00911"></a><span class="lineno">  911</span>&#160;        <span class="keyword">const</span> FabComTagIterContainer&amp; tags = RcvTags[rank];</div>
-<div class="line"><a name="l00912"></a><span class="lineno">  912</span>&#160;</div>
-<div class="line"><a name="l00913"></a><span class="lineno">  913</span>&#160;        <span class="comment">// initialized the data</span></div>
-<div class="line"><a name="l00914"></a><span class="lineno">  914</span>&#160;        <span class="keywordtype">int</span> * md = p;</div>
-<div class="line"><a name="l00915"></a><span class="lineno">  915</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; Nmds; ++i, md += Nints)</div>
-<div class="line"><a name="l00916"></a><span class="lineno">  916</span>&#160;        {</div>
-<div class="line"><a name="l00917"></a><span class="lineno">  917</span>&#160;        md[0] = tags[i]-&gt;fabArrayId;</div>
-<div class="line"><a name="l00918"></a><span class="lineno">  918</span>&#160;        md[1] = tags[i]-&gt;fabIndex;</div>
-<div class="line"><a name="l00919"></a><span class="lineno">  919</span>&#160;        md[2] = tags[i]-&gt;srcComp;</div>
-<div class="line"><a name="l00920"></a><span class="lineno">  920</span>&#160;        md[3] = tags[i]-&gt;nComp;</div>
-<div class="line"><a name="l00921"></a><span class="lineno">  921</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>* lo = tags[i]-&gt;box.loVect();</div>
-<div class="line"><a name="l00922"></a><span class="lineno">  922</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>* hi = tags[i]-&gt;box.hiVect();</div>
-<div class="line"><a name="l00923"></a><span class="lineno">  923</span>&#160;        <span class="keyword">const</span> <a class="code" href="classamrex_1_1_int_vect.html">IntVect</a>&amp; bxtyp = tags[i]-&gt;box.type();</div>
-<div class="line"><a name="l00924"></a><span class="lineno">  924</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>* tp = bxtyp.<a class="code" href="classamrex_1_1_int_vect.html#a137f5f8468c6d7de3a1c75da93b321ff">getVect</a>();</div>
-<div class="line"><a name="l00925"></a><span class="lineno">  925</span>&#160;        AMREX_D_EXPR(md[4] = lo[0],</div>
-<div class="line"><a name="l00926"></a><span class="lineno">  926</span>&#160;               md[5] = lo[1],</div>
-<div class="line"><a name="l00927"></a><span class="lineno">  927</span>&#160;               md[6] = lo[2]);</div>
-<div class="line"><a name="l00928"></a><span class="lineno">  928</span>&#160;        AMREX_D_EXPR(md[4+  <a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = hi[0],</div>
-<div class="line"><a name="l00929"></a><span class="lineno">  929</span>&#160;               md[5+  <a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = hi[1],</div>
-<div class="line"><a name="l00930"></a><span class="lineno">  930</span>&#160;               md[6+  <a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = hi[2]);</div>
-<div class="line"><a name="l00931"></a><span class="lineno">  931</span>&#160;        AMREX_D_EXPR(md[4+2*<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = tp[0],</div>
-<div class="line"><a name="l00932"></a><span class="lineno">  932</span>&#160;               md[5+2*<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = tp[1],</div>
-<div class="line"><a name="l00933"></a><span class="lineno">  933</span>&#160;               md[6+2*<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = tp[2]);</div>
-<div class="line"><a name="l00934"></a><span class="lineno">  934</span>&#160;        }</div>
-<div class="line"><a name="l00935"></a><span class="lineno">  935</span>&#160;</div>
-<div class="line"><a name="l00936"></a><span class="lineno">  936</span>&#160;        md_send_reqs.push_back(<a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a0903eb5194f11fcf386f79e6ff3c02f7">ParallelDescriptor::Asend</a>(p,cnt,rank,SeqNum_md).req());</div>
-<div class="line"><a name="l00937"></a><span class="lineno">  937</span>&#160;    }</div>
+<div class="line"><a name="l00841"></a><span class="lineno">  841</span>&#160;            <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#a82c334c787872a6bbacabe9a38389224">BL_PROFILE_VAR_STOP</a>(blpvCDATA);</div>
+<div class="line"><a name="l00842"></a><span class="lineno">  842</span>&#160;        }</div>
+<div class="line"><a name="l00843"></a><span class="lineno">  843</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(SndsArray[MyProc] == 0);</div>
+<div class="line"><a name="l00844"></a><span class="lineno">  844</span>&#160;</div>
+<div class="line"><a name="l00845"></a><span class="lineno">  845</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a0455b3ad4f2a4c13b57d33e4c6325dca">NProcs</a>; i++)</div>
+<div class="line"><a name="l00846"></a><span class="lineno">  846</span>&#160;            <span class="keywordflow">if</span> (SndsArray[i] &gt; 0)</div>
+<div class="line"><a name="l00847"></a><span class="lineno">  847</span>&#160;                Snds[i] = SndsArray[i];</div>
+<div class="line"><a name="l00848"></a><span class="lineno">  848</span>&#160;    }</div>
+<div class="line"><a name="l00849"></a><span class="lineno">  849</span>&#160;</div>
+<div class="line"><a name="l00850"></a><span class="lineno">  850</span>&#160;    <span class="comment">// There are two rounds of send and recv.</span></div>
+<div class="line"><a name="l00851"></a><span class="lineno">  851</span>&#160;    <span class="comment">// First, the data receivers need to send the data senders meta-data (e.g., boxes).</span></div>
+<div class="line"><a name="l00852"></a><span class="lineno">  852</span>&#160;    <span class="comment">// Then, the senders know what data to send and perform send.</span></div>
+<div class="line"><a name="l00853"></a><span class="lineno">  853</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> SeqNum_md   = <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#adc1ee2d527e98fe750f038480efc439c">ParallelDescriptor::SeqNum</a>();</div>
+<div class="line"><a name="l00854"></a><span class="lineno">  854</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> SeqNum_data = <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#adc1ee2d527e98fe750f038480efc439c">ParallelDescriptor::SeqNum</a>();</div>
+<div class="line"><a name="l00855"></a><span class="lineno">  855</span>&#160;</div>
+<div class="line"><a name="l00856"></a><span class="lineno">  856</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> N_snds = Snds.size();</div>
+<div class="line"><a name="l00857"></a><span class="lineno">  857</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> N_rcvs = Rcvs.size();</div>
+<div class="line"><a name="l00858"></a><span class="lineno">  858</span>&#160;</div>
+<div class="line"><a name="l00859"></a><span class="lineno">  859</span>&#160;    <span class="keywordflow">if</span> ( N_snds == 0 &amp;&amp; N_rcvs == 0 ) <span class="keywordflow">return</span>;</div>
+<div class="line"><a name="l00860"></a><span class="lineno">  860</span>&#160;</div>
+<div class="line"><a name="l00861"></a><span class="lineno">  861</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> Nints = 4 + 3*<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>;  <span class="comment">// # of ints in a meta-data</span></div>
+<div class="line"><a name="l00862"></a><span class="lineno">  862</span>&#160;</div>
+<div class="line"><a name="l00863"></a><span class="lineno">  863</span>&#160;    <span class="comment">// for meta-data</span></div>
+<div class="line"><a name="l00864"></a><span class="lineno">  864</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> md_sender, md_offset, md_icnts, md_bcnts;</div>
+<div class="line"><a name="l00865"></a><span class="lineno">  865</span>&#160;    <span class="keywordtype">int</span>* md_recv_data;</div>
+<div class="line"><a name="l00866"></a><span class="lineno">  866</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int*&gt;</a> md_send_data;</div>
+<div class="line"><a name="l00867"></a><span class="lineno">  867</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;MPI_Request&gt;</a> md_recv_reqs, md_send_reqs;</div>
+<div class="line"><a name="l00868"></a><span class="lineno">  868</span>&#160;</div>
+<div class="line"><a name="l00869"></a><span class="lineno">  869</span>&#160;    <span class="comment">// for data</span></div>
+<div class="line"><a name="l00870"></a><span class="lineno">  870</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> data_sender, data_offset;</div>
+<div class="line"><a name="l00871"></a><span class="lineno">  871</span>&#160;    value_type* recv_data;</div>
+<div class="line"><a name="l00872"></a><span class="lineno">  872</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;value_type*&gt;</a> send_data;</div>
+<div class="line"><a name="l00873"></a><span class="lineno">  873</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;MPI_Request&gt;</a> data_recv_reqs, data_send_reqs;</div>
+<div class="line"><a name="l00874"></a><span class="lineno">  874</span>&#160;</div>
+<div class="line"><a name="l00875"></a><span class="lineno">  875</span>&#160;    <span class="keywordflow">if</span> (N_snds &gt; 0)</div>
+<div class="line"><a name="l00876"></a><span class="lineno">  876</span>&#160;    {</div>
+<div class="line"><a name="l00877"></a><span class="lineno">  877</span>&#160;    <span class="comment">// Recv meta-data</span></div>
+<div class="line"><a name="l00878"></a><span class="lineno">  878</span>&#160;</div>
+<div class="line"><a name="l00879"></a><span class="lineno">  879</span>&#160;    <span class="keywordtype">int</span> N = 0;</div>
+<div class="line"><a name="l00880"></a><span class="lineno">  880</span>&#160;        <span class="keywordflow">for</span> (std::map&lt;int,int&gt;::const_iterator it = Snds.begin(), End = Snds.end(); it != End; ++it)</div>
+<div class="line"><a name="l00881"></a><span class="lineno">  881</span>&#160;        {</div>
+<div class="line"><a name="l00882"></a><span class="lineno">  882</span>&#160;        md_sender.push_back(it-&gt;first);</div>
+<div class="line"><a name="l00883"></a><span class="lineno">  883</span>&#160;        md_bcnts.push_back(it-&gt;second);</div>
+<div class="line"><a name="l00884"></a><span class="lineno">  884</span>&#160;        <span class="keywordtype">int</span> cnt = it-&gt;second * Nints;</div>
+<div class="line"><a name="l00885"></a><span class="lineno">  885</span>&#160;        md_icnts.push_back(cnt);</div>
+<div class="line"><a name="l00886"></a><span class="lineno">  886</span>&#160;            md_offset.push_back(N);</div>
+<div class="line"><a name="l00887"></a><span class="lineno">  887</span>&#160;            N += cnt; </div>
+<div class="line"><a name="l00888"></a><span class="lineno">  888</span>&#160;        }</div>
+<div class="line"><a name="l00889"></a><span class="lineno">  889</span>&#160;</div>
+<div class="line"><a name="l00890"></a><span class="lineno">  890</span>&#160;    md_recv_data = <span class="keyword">static_cast&lt;</span><span class="keywordtype">int</span>*<span class="keyword">&gt;</span>(<a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a46ce2cd5cfc039cec64548b031fbde2e">alloc</a>(N*<span class="keyword">sizeof</span>(<span class="keywordtype">int</span>)));</div>
+<div class="line"><a name="l00891"></a><span class="lineno">  891</span>&#160;</div>
+<div class="line"><a name="l00892"></a><span class="lineno">  892</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N_snds; ++i)</div>
+<div class="line"><a name="l00893"></a><span class="lineno">  893</span>&#160;    {</div>
+<div class="line"><a name="l00894"></a><span class="lineno">  894</span>&#160;        md_recv_reqs.push_back(<a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#af5ed8a597f21464e9f2803f0e2afc0be">ParallelDescriptor::Arecv</a>(&amp;md_recv_data[md_offset[i]],</div>
+<div class="line"><a name="l00895"></a><span class="lineno">  895</span>&#160;                                 md_icnts[i], md_sender[i],</div>
+<div class="line"><a name="l00896"></a><span class="lineno">  896</span>&#160;                                 SeqNum_md).req());</div>
+<div class="line"><a name="l00897"></a><span class="lineno">  897</span>&#160;    }   </div>
+<div class="line"><a name="l00898"></a><span class="lineno">  898</span>&#160;    }</div>
+<div class="line"><a name="l00899"></a><span class="lineno">  899</span>&#160;</div>
+<div class="line"><a name="l00900"></a><span class="lineno">  900</span>&#160;    <span class="keywordflow">if</span> (N_rcvs &gt; 0)</div>
+<div class="line"><a name="l00901"></a><span class="lineno">  901</span>&#160;    {</div>
+<div class="line"><a name="l00902"></a><span class="lineno">  902</span>&#160;    <span class="comment">// Send meta-data</span></div>
+<div class="line"><a name="l00903"></a><span class="lineno">  903</span>&#160;        <span class="keywordflow">for</span> (std::map&lt;int,int&gt;::const_iterator it = Rcvs.begin(), End = Rcvs.end(); it != End; ++it)</div>
+<div class="line"><a name="l00904"></a><span class="lineno">  904</span>&#160;        {</div>
+<div class="line"><a name="l00905"></a><span class="lineno">  905</span>&#160;        <span class="keywordtype">int</span> rank = it-&gt;first;</div>
+<div class="line"><a name="l00906"></a><span class="lineno">  906</span>&#160;        <span class="keywordtype">int</span> Nmds = it-&gt;second;</div>
+<div class="line"><a name="l00907"></a><span class="lineno">  907</span>&#160;        <span class="keywordtype">int</span> cnt = Nmds * Nints;</div>
+<div class="line"><a name="l00908"></a><span class="lineno">  908</span>&#160;</div>
+<div class="line"><a name="l00909"></a><span class="lineno">  909</span>&#160;        <span class="keywordtype">int</span>* p = <span class="keyword">static_cast&lt;</span><span class="keywordtype">int</span>*<span class="keyword">&gt;</span>(<a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a46ce2cd5cfc039cec64548b031fbde2e">alloc</a>(cnt*<span class="keyword">sizeof</span>(<span class="keywordtype">int</span>)));</div>
+<div class="line"><a name="l00910"></a><span class="lineno">  910</span>&#160;        md_send_data.push_back(p);</div>
+<div class="line"><a name="l00911"></a><span class="lineno">  911</span>&#160;</div>
+<div class="line"><a name="l00912"></a><span class="lineno">  912</span>&#160;        <span class="keyword">const</span> FabComTagIterContainer&amp; tags = RcvTags[rank];</div>
+<div class="line"><a name="l00913"></a><span class="lineno">  913</span>&#160;</div>
+<div class="line"><a name="l00914"></a><span class="lineno">  914</span>&#160;        <span class="comment">// initialized the data</span></div>
+<div class="line"><a name="l00915"></a><span class="lineno">  915</span>&#160;        <span class="keywordtype">int</span> * md = p;</div>
+<div class="line"><a name="l00916"></a><span class="lineno">  916</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; Nmds; ++i, md += Nints)</div>
+<div class="line"><a name="l00917"></a><span class="lineno">  917</span>&#160;        {</div>
+<div class="line"><a name="l00918"></a><span class="lineno">  918</span>&#160;        md[0] = tags[i]-&gt;fabArrayId;</div>
+<div class="line"><a name="l00919"></a><span class="lineno">  919</span>&#160;        md[1] = tags[i]-&gt;fabIndex;</div>
+<div class="line"><a name="l00920"></a><span class="lineno">  920</span>&#160;        md[2] = tags[i]-&gt;srcComp;</div>
+<div class="line"><a name="l00921"></a><span class="lineno">  921</span>&#160;        md[3] = tags[i]-&gt;nComp;</div>
+<div class="line"><a name="l00922"></a><span class="lineno">  922</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>* lo = tags[i]-&gt;box.loVect();</div>
+<div class="line"><a name="l00923"></a><span class="lineno">  923</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>* hi = tags[i]-&gt;box.hiVect();</div>
+<div class="line"><a name="l00924"></a><span class="lineno">  924</span>&#160;        <span class="keyword">const</span> <a class="code" href="classamrex_1_1_int_vect.html">IntVect</a>&amp; bxtyp = tags[i]-&gt;box.type();</div>
+<div class="line"><a name="l00925"></a><span class="lineno">  925</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>* tp = bxtyp.<a class="code" href="classamrex_1_1_int_vect.html#a137f5f8468c6d7de3a1c75da93b321ff">getVect</a>();</div>
+<div class="line"><a name="l00926"></a><span class="lineno">  926</span>&#160;        AMREX_D_EXPR(md[4] = lo[0],</div>
+<div class="line"><a name="l00927"></a><span class="lineno">  927</span>&#160;               md[5] = lo[1],</div>
+<div class="line"><a name="l00928"></a><span class="lineno">  928</span>&#160;               md[6] = lo[2]);</div>
+<div class="line"><a name="l00929"></a><span class="lineno">  929</span>&#160;        AMREX_D_EXPR(md[4+  <a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = hi[0],</div>
+<div class="line"><a name="l00930"></a><span class="lineno">  930</span>&#160;               md[5+  <a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = hi[1],</div>
+<div class="line"><a name="l00931"></a><span class="lineno">  931</span>&#160;               md[6+  <a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = hi[2]);</div>
+<div class="line"><a name="l00932"></a><span class="lineno">  932</span>&#160;        AMREX_D_EXPR(md[4+2*<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = tp[0],</div>
+<div class="line"><a name="l00933"></a><span class="lineno">  933</span>&#160;               md[5+2*<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = tp[1],</div>
+<div class="line"><a name="l00934"></a><span class="lineno">  934</span>&#160;               md[6+2*<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>] = tp[2]);</div>
+<div class="line"><a name="l00935"></a><span class="lineno">  935</span>&#160;        }</div>
+<div class="line"><a name="l00936"></a><span class="lineno">  936</span>&#160;</div>
+<div class="line"><a name="l00937"></a><span class="lineno">  937</span>&#160;        md_send_reqs.push_back(<a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a0903eb5194f11fcf386f79e6ff3c02f7">ParallelDescriptor::Asend</a>(p,cnt,rank,SeqNum_md).req());</div>
 <div class="line"><a name="l00938"></a><span class="lineno">  938</span>&#160;    }</div>
-<div class="line"><a name="l00939"></a><span class="lineno">  939</span>&#160;</div>
-<div class="line"><a name="l00940"></a><span class="lineno">  940</span>&#160;    <span class="keywordflow">if</span> (N_rcvs &gt; 0)</div>
-<div class="line"><a name="l00941"></a><span class="lineno">  941</span>&#160;    {</div>
-<div class="line"><a name="l00942"></a><span class="lineno">  942</span>&#160;    recv_data = <span class="keyword">static_cast&lt;</span>value_type*<span class="keyword">&gt;</span>(<a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a46ce2cd5cfc039cec64548b031fbde2e">alloc</a>(Total_Rcvs_Size*<span class="keyword">sizeof</span>(value_type)));</div>
-<div class="line"><a name="l00943"></a><span class="lineno">  943</span>&#160;</div>
-<div class="line"><a name="l00944"></a><span class="lineno">  944</span>&#160;    <span class="comment">// Post receives for data</span></div>
-<div class="line"><a name="l00945"></a><span class="lineno">  945</span>&#160;    <span class="keywordtype">int</span> Idx = 0;</div>
-<div class="line"><a name="l00946"></a><span class="lineno">  946</span>&#160;    <span class="keywordflow">for</span> (std::map&lt;int,int&gt;::const_iterator it = Npts.begin(); it != Npts.end(); ++it)</div>
-<div class="line"><a name="l00947"></a><span class="lineno">  947</span>&#160;    {</div>
-<div class="line"><a name="l00948"></a><span class="lineno">  948</span>&#160;        <span class="keywordtype">int</span> Who = it-&gt;first;</div>
-<div class="line"><a name="l00949"></a><span class="lineno">  949</span>&#160;        <span class="keywordtype">int</span> Cnt = it-&gt;second;</div>
-<div class="line"><a name="l00950"></a><span class="lineno">  950</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(Cnt &gt; 0);</div>
-<div class="line"><a name="l00951"></a><span class="lineno">  951</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(Cnt &lt; <a class="code" href="namespaceamrex.html#a870c2407ed885451a76f66f8a0d7a892">std::numeric_limits&lt;int&gt;::max</a>());</div>
-<div class="line"><a name="l00952"></a><span class="lineno">  952</span>&#160;        data_sender.push_back(Who);</div>
-<div class="line"><a name="l00953"></a><span class="lineno">  953</span>&#160;        data_recv_reqs.push_back(<a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#af5ed8a597f21464e9f2803f0e2afc0be">ParallelDescriptor::Arecv</a>(&amp;recv_data[Idx],</div>
-<div class="line"><a name="l00954"></a><span class="lineno">  954</span>&#160;                                   Cnt,Who,SeqNum_data).req());</div>
-<div class="line"><a name="l00955"></a><span class="lineno">  955</span>&#160;        data_offset.push_back(Idx);</div>
-<div class="line"><a name="l00956"></a><span class="lineno">  956</span>&#160;        Idx += Cnt;</div>
-<div class="line"><a name="l00957"></a><span class="lineno">  957</span>&#160;    }</div>
+<div class="line"><a name="l00939"></a><span class="lineno">  939</span>&#160;    }</div>
+<div class="line"><a name="l00940"></a><span class="lineno">  940</span>&#160;</div>
+<div class="line"><a name="l00941"></a><span class="lineno">  941</span>&#160;    <span class="keywordflow">if</span> (N_rcvs &gt; 0)</div>
+<div class="line"><a name="l00942"></a><span class="lineno">  942</span>&#160;    {</div>
+<div class="line"><a name="l00943"></a><span class="lineno">  943</span>&#160;    recv_data = <span class="keyword">static_cast&lt;</span>value_type*<span class="keyword">&gt;</span>(<a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a46ce2cd5cfc039cec64548b031fbde2e">alloc</a>(Total_Rcvs_Size*<span class="keyword">sizeof</span>(value_type)));</div>
+<div class="line"><a name="l00944"></a><span class="lineno">  944</span>&#160;</div>
+<div class="line"><a name="l00945"></a><span class="lineno">  945</span>&#160;    <span class="comment">// Post receives for data</span></div>
+<div class="line"><a name="l00946"></a><span class="lineno">  946</span>&#160;    <span class="keywordtype">int</span> Idx = 0;</div>
+<div class="line"><a name="l00947"></a><span class="lineno">  947</span>&#160;    <span class="keywordflow">for</span> (std::map&lt;int,int&gt;::const_iterator it = Npts.begin(); it != Npts.end(); ++it)</div>
+<div class="line"><a name="l00948"></a><span class="lineno">  948</span>&#160;    {</div>
+<div class="line"><a name="l00949"></a><span class="lineno">  949</span>&#160;        <span class="keywordtype">int</span> Who = it-&gt;first;</div>
+<div class="line"><a name="l00950"></a><span class="lineno">  950</span>&#160;        <span class="keywordtype">int</span> Cnt = it-&gt;second;</div>
+<div class="line"><a name="l00951"></a><span class="lineno">  951</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(Cnt &gt; 0);</div>
+<div class="line"><a name="l00952"></a><span class="lineno">  952</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(Cnt &lt; <a class="code" href="namespaceamrex.html#a870c2407ed885451a76f66f8a0d7a892">std::numeric_limits&lt;int&gt;::max</a>());</div>
+<div class="line"><a name="l00953"></a><span class="lineno">  953</span>&#160;        data_sender.push_back(Who);</div>
+<div class="line"><a name="l00954"></a><span class="lineno">  954</span>&#160;        data_recv_reqs.push_back(<a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#af5ed8a597f21464e9f2803f0e2afc0be">ParallelDescriptor::Arecv</a>(&amp;recv_data[Idx],</div>
+<div class="line"><a name="l00955"></a><span class="lineno">  955</span>&#160;                                   Cnt,Who,SeqNum_data).req());</div>
+<div class="line"><a name="l00956"></a><span class="lineno">  956</span>&#160;        data_offset.push_back(Idx);</div>
+<div class="line"><a name="l00957"></a><span class="lineno">  957</span>&#160;        Idx += Cnt;</div>
 <div class="line"><a name="l00958"></a><span class="lineno">  958</span>&#160;    }</div>
-<div class="line"><a name="l00959"></a><span class="lineno">  959</span>&#160;</div>
-<div class="line"><a name="l00960"></a><span class="lineno">  960</span>&#160;    <span class="comment">// Wait on meta-data and do send</span></div>
-<div class="line"><a name="l00961"></a><span class="lineno">  961</span>&#160;    <span class="keywordflow">if</span> (N_snds &gt; 0) </div>
-<div class="line"><a name="l00962"></a><span class="lineno">  962</span>&#160;    {</div>
-<div class="line"><a name="l00963"></a><span class="lineno">  963</span>&#160;    <span class="keywordtype">int</span> send_counter = 0;</div>
-<div class="line"><a name="l00964"></a><span class="lineno">  964</span>&#160;    <span class="keywordflow">while</span> (send_counter++ &lt; N_snds)</div>
-<div class="line"><a name="l00965"></a><span class="lineno">  965</span>&#160;    {</div>
-<div class="line"><a name="l00966"></a><span class="lineno">  966</span>&#160;        <a class="code" href="struct_m_p_i___status.html">MPI_Status</a> status;</div>
-<div class="line"><a name="l00967"></a><span class="lineno">  967</span>&#160;        <span class="keywordtype">int</span> index;</div>
-<div class="line"><a name="l00968"></a><span class="lineno">  968</span>&#160;        MPI_Waitany(N_snds, md_recv_reqs.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(), &amp;index, &amp;status);</div>
-<div class="line"><a name="l00969"></a><span class="lineno">  969</span>&#160;</div>
-<div class="line"><a name="l00970"></a><span class="lineno">  970</span>&#160;        <span class="keywordtype">int</span> rank = status.MPI_SOURCE;</div>
-<div class="line"><a name="l00971"></a><span class="lineno">  971</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(status.MPI_TAG == SeqNum_md);</div>
-<div class="line"><a name="l00972"></a><span class="lineno">  972</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(rank == md_sender[index]);</div>
-<div class="line"><a name="l00973"></a><span class="lineno">  973</span>&#160;</div>
-<div class="line"><a name="l00974"></a><span class="lineno">  974</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>* p = &amp;md_recv_data[md_offset[index]];</div>
-<div class="line"><a name="l00975"></a><span class="lineno">  975</span>&#160;        <span class="keywordtype">int</span> numboxes = md_bcnts[index];</div>
-<div class="line"><a name="l00976"></a><span class="lineno">  976</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> faid(numboxes);</div>
-<div class="line"><a name="l00977"></a><span class="lineno">  977</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> fidx(numboxes);</div>
-<div class="line"><a name="l00978"></a><span class="lineno">  978</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> scomp(numboxes);</div>
-<div class="line"><a name="l00979"></a><span class="lineno">  979</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> <a class="code" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>(numboxes);</div>
-<div class="line"><a name="l00980"></a><span class="lineno">  980</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> npts(numboxes);</div>
-<div class="line"><a name="l00981"></a><span class="lineno">  981</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;Box&gt;</a> bxs;</div>
-<div class="line"><a name="l00982"></a><span class="lineno">  982</span>&#160;        <span class="keywordtype">int</span> N = 0;</div>
-<div class="line"><a name="l00983"></a><span class="lineno">  983</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span> * md = p;</div>
-<div class="line"><a name="l00984"></a><span class="lineno">  984</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; numboxes; ++i, md += Nints)</div>
-<div class="line"><a name="l00985"></a><span class="lineno">  985</span>&#160;        {</div>
-<div class="line"><a name="l00986"></a><span class="lineno">  986</span>&#160;        faid[i] = md[0];</div>
-<div class="line"><a name="l00987"></a><span class="lineno">  987</span>&#160;        fidx[i] = md[1];</div>
-<div class="line"><a name="l00988"></a><span class="lineno">  988</span>&#160;        scomp[i] = md[2];</div>
-<div class="line"><a name="l00989"></a><span class="lineno">  989</span>&#160;        ncomp[i] = md[3];</div>
-<div class="line"><a name="l00990"></a><span class="lineno">  990</span>&#160;        bxs.push_back(<a class="code" href="classamrex_1_1_box.html">Box</a>(<a class="code" href="classamrex_1_1_int_vect.html">IntVect</a>(&amp;md[4]),</div>
-<div class="line"><a name="l00991"></a><span class="lineno">  991</span>&#160;                  <a class="code" href="classamrex_1_1_int_vect.html">IntVect</a>(&amp;md[4+<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>]), </div>
-<div class="line"><a name="l00992"></a><span class="lineno">  992</span>&#160;                  <a class="code" href="classamrex_1_1_int_vect.html">IntVect</a>(&amp;md[4+<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>*2]))); </div>
-<div class="line"><a name="l00993"></a><span class="lineno">  993</span>&#160;        npts[i] = bxs.back().numPts()*ncomp[i];</div>
-<div class="line"><a name="l00994"></a><span class="lineno">  994</span>&#160;        N += npts[i];</div>
-<div class="line"><a name="l00995"></a><span class="lineno">  995</span>&#160;        }</div>
-<div class="line"><a name="l00996"></a><span class="lineno">  996</span>&#160;</div>
-<div class="line"><a name="l00997"></a><span class="lineno">  997</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(N &lt; <a class="code" href="namespaceamrex.html#a870c2407ed885451a76f66f8a0d7a892">std::numeric_limits&lt;int&gt;::max</a>());</div>
-<div class="line"><a name="l00998"></a><span class="lineno">  998</span>&#160;        </div>
-<div class="line"><a name="l00999"></a><span class="lineno">  999</span>&#160;        value_type* data = <span class="keyword">static_cast&lt;</span>value_type*<span class="keyword">&gt;</span>(<a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a46ce2cd5cfc039cec64548b031fbde2e">alloc</a>(N*<span class="keyword">sizeof</span>(value_type)));</div>
-<div class="line"><a name="l01000"></a><span class="lineno"> 1000</span>&#160;        value_type* dptr = data;</div>
-<div class="line"><a name="l01001"></a><span class="lineno"> 1001</span>&#160;        send_data.push_back(data);</div>
-<div class="line"><a name="l01002"></a><span class="lineno"> 1002</span>&#160;</div>
-<div class="line"><a name="l01003"></a><span class="lineno"> 1003</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; numboxes; ++i)</div>
-<div class="line"><a name="l01004"></a><span class="lineno"> 1004</span>&#160;        {</div>
-<div class="line"><a name="l01005"></a><span class="lineno"> 1005</span>&#160;        (*fabArrays[faid[i]])[fidx[i]].copyToMem(bxs[i],scomp[i],ncomp[i],dptr);</div>
-<div class="line"><a name="l01006"></a><span class="lineno"> 1006</span>&#160;        dptr += npts[i];</div>
-<div class="line"><a name="l01007"></a><span class="lineno"> 1007</span>&#160;        }       </div>
-<div class="line"><a name="l01008"></a><span class="lineno"> 1008</span>&#160;</div>
-<div class="line"><a name="l01009"></a><span class="lineno"> 1009</span>&#160;        data_send_reqs.push_back(<a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a0903eb5194f11fcf386f79e6ff3c02f7">ParallelDescriptor::Asend</a>(data,N,rank,SeqNum_data).req());</div>
-<div class="line"><a name="l01010"></a><span class="lineno"> 1010</span>&#160;    }</div>
-<div class="line"><a name="l01011"></a><span class="lineno"> 1011</span>&#160;</div>
-<div class="line"><a name="l01012"></a><span class="lineno"> 1012</span>&#160;    <a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a0c7e0730574c98febb6ddca2712cb515">free</a>(md_recv_data);</div>
-<div class="line"><a name="l01013"></a><span class="lineno"> 1013</span>&#160;    }</div>
-<div class="line"><a name="l01014"></a><span class="lineno"> 1014</span>&#160;</div>
-<div class="line"><a name="l01015"></a><span class="lineno"> 1015</span>&#160;    <span class="comment">// Wait and upack data</span></div>
-<div class="line"><a name="l01016"></a><span class="lineno"> 1016</span>&#160;    <span class="keywordflow">if</span> (N_rcvs &gt; 0)</div>
-<div class="line"><a name="l01017"></a><span class="lineno"> 1017</span>&#160;    {</div>
-<div class="line"><a name="l01018"></a><span class="lineno"> 1018</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;MPI_Status&gt;</a> stats(N_rcvs);</div>
-<div class="line"><a name="l01019"></a><span class="lineno"> 1019</span>&#160;</div>
-<div class="line"><a name="l01020"></a><span class="lineno"> 1020</span>&#160;    <a class="code" href="_a_m_re_x___parallel_descriptor_8_h.html#aa5c7a9db9f965eb95c975e7635e55c24">BL_MPI_REQUIRE</a> (MPI_Waitall(N_rcvs, md_send_reqs.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(), stats.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>()) );</div>
-<div class="line"><a name="l01021"></a><span class="lineno"> 1021</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N_rcvs; ++i) {</div>
-<div class="line"><a name="l01022"></a><span class="lineno"> 1022</span>&#160;            <a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a0c7e0730574c98febb6ddca2712cb515">free</a>(md_send_data[i]);      </div>
-<div class="line"><a name="l01023"></a><span class="lineno"> 1023</span>&#160;    }</div>
-<div class="line"><a name="l01024"></a><span class="lineno"> 1024</span>&#160;</div>
-<div class="line"><a name="l01025"></a><span class="lineno"> 1025</span>&#160;    <a class="code" href="_a_m_re_x___parallel_descriptor_8_h.html#aa5c7a9db9f965eb95c975e7635e55c24">BL_MPI_REQUIRE</a>( MPI_Waitall(N_rcvs, data_recv_reqs.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(), stats.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>()) );</div>
-<div class="line"><a name="l01026"></a><span class="lineno"> 1026</span>&#160;</div>
-<div class="line"><a name="l01027"></a><span class="lineno"> 1027</span>&#160;    std::pair&lt;FCDMapIter,FCDMapIter&gt; <a class="code" href="namespaceamrex.html#a89eb9459b4109c4f9a9b3225abae29f8">match</a>;</div>
-<div class="line"><a name="l01028"></a><span class="lineno"> 1028</span>&#160;    std::map&lt; int,FabComTagIterContainer &gt;::const_iterator found;</div>
-<div class="line"><a name="l01029"></a><span class="lineno"> 1029</span>&#160;</div>
-<div class="line"><a name="l01030"></a><span class="lineno"> 1030</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> k = 0; k &lt; N_rcvs; k++)</div>
-<div class="line"><a name="l01031"></a><span class="lineno"> 1031</span>&#160;    {</div>
-<div class="line"><a name="l01032"></a><span class="lineno"> 1032</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>         Who  = data_sender[k];</div>
-<div class="line"><a name="l01033"></a><span class="lineno"> 1033</span>&#160;        <span class="keyword">const</span> value_type* dptr = &amp;recv_data[data_offset[k]];</div>
-<div class="line"><a name="l01034"></a><span class="lineno"> 1034</span>&#160;        </div>
-<div class="line"><a name="l01035"></a><span class="lineno"> 1035</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(dptr != 0);</div>
-<div class="line"><a name="l01036"></a><span class="lineno"> 1036</span>&#160;        </div>
-<div class="line"><a name="l01037"></a><span class="lineno"> 1037</span>&#160;        found = RcvTags.find(Who);</div>
-<div class="line"><a name="l01038"></a><span class="lineno"> 1038</span>&#160;        </div>
-<div class="line"><a name="l01039"></a><span class="lineno"> 1039</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(found != RcvTags.end());</div>
-<div class="line"><a name="l01040"></a><span class="lineno"> 1040</span>&#160;        </div>
-<div class="line"><a name="l01041"></a><span class="lineno"> 1041</span>&#160;        <span class="keyword">const</span> FabComTagIterContainer&amp; tags = found-&gt;second;</div>
-<div class="line"><a name="l01042"></a><span class="lineno"> 1042</span>&#160;        </div>
-<div class="line"><a name="l01043"></a><span class="lineno"> 1043</span>&#160;        <span class="keywordflow">for</span> (FabComTagIterContainer::const_iterator it = tags.begin(), End = tags.end();</div>
-<div class="line"><a name="l01044"></a><span class="lineno"> 1044</span>&#160;         it != End;</div>
-<div class="line"><a name="l01045"></a><span class="lineno"> 1045</span>&#160;         ++it)</div>
-<div class="line"><a name="l01046"></a><span class="lineno"> 1046</span>&#160;        {</div>
-<div class="line"><a name="l01047"></a><span class="lineno"> 1047</span>&#160;        <span class="keyword">const</span> <a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html">FabArrayBase::FabComTag</a>&amp; tag = **it;                  </div>
-<div class="line"><a name="l01048"></a><span class="lineno"> 1048</span>&#160;        </div>
-<div class="line"><a name="l01049"></a><span class="lineno"> 1049</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a5ded8154e0acf04de6c1d60f985a7069">procThatHasData</a> == Who);</div>
-<div class="line"><a name="l01050"></a><span class="lineno"> 1050</span>&#160;        </div>
-<div class="line"><a name="l01051"></a><span class="lineno"> 1051</span>&#160;        match = fabCopyDescList[tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a5c3201e1c74a8355f405987ac3c77678">fabArrayId</a>].equal_range(tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#af506bfcebba0efde3dc8f5dbf9244191">fillBoxId</a>);</div>
-<div class="line"><a name="l01052"></a><span class="lineno"> 1052</span>&#160;        </div>
-<div class="line"><a name="l01053"></a><span class="lineno"> 1053</span>&#160;        <span class="keywordflow">for</span> (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)</div>
-<div class="line"><a name="l01054"></a><span class="lineno"> 1054</span>&#160;        {</div>
-<div class="line"><a name="l01055"></a><span class="lineno"> 1055</span>&#160;            <a class="code" href="structamrex_1_1_fab_copy_descriptor.html">FabCopyDescriptor&lt;FAB&gt;</a>* fcdp = (*fmi).second;</div>
-<div class="line"><a name="l01056"></a><span class="lineno"> 1056</span>&#160;            </div>
-<div class="line"><a name="l01057"></a><span class="lineno"> 1057</span>&#160;            <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#abe60f2cf30aac61d68454a6823d1e3a4">fillBoxId</a> == tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#af506bfcebba0efde3dc8f5dbf9244191">fillBoxId</a>);</div>
-<div class="line"><a name="l01058"></a><span class="lineno"> 1058</span>&#160;            </div>
-<div class="line"><a name="l01059"></a><span class="lineno"> 1059</span>&#160;            <span class="keywordflow">if</span> (fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a799a901c3f374cb4499799fce9b67d2e">subBox</a> == tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a88162269ca5cd1c4e7ffe7259f526b92">box</a>)</div>
-<div class="line"><a name="l01060"></a><span class="lineno"> 1060</span>&#160;            {</div>
-<div class="line"><a name="l01061"></a><span class="lineno"> 1061</span>&#160;            <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a49a660fc34d5de5bbd5d8fb8b49580e8">localFabSource</a>-&gt;dataPtr() != 0);</div>
-<div class="line"><a name="l01062"></a><span class="lineno"> 1062</span>&#160;            <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a49a660fc34d5de5bbd5d8fb8b49580e8">localFabSource</a>-&gt;box() == tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a88162269ca5cd1c4e7ffe7259f526b92">box</a>);</div>
-<div class="line"><a name="l01063"></a><span class="lineno"> 1063</span>&#160;            <span class="keyword">const</span> <span class="keywordtype">int</span> Cnt = tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a88162269ca5cd1c4e7ffe7259f526b92">box</a>.<a class="code" href="classamrex_1_1_box.html#a599a302b2d78d7fbdf2fc27cb5c54682">numPts</a>()*tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#ad679841ea96302c513ad625560efb23d">nComp</a>;</div>
-<div class="line"><a name="l01064"></a><span class="lineno"> 1064</span>&#160;            fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a49a660fc34d5de5bbd5d8fb8b49580e8">localFabSource</a>-&gt;copyFromMem(tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a88162269ca5cd1c4e7ffe7259f526b92">box</a>,0,tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#ad679841ea96302c513ad625560efb23d">nComp</a>,dptr);</div>
-<div class="line"><a name="l01065"></a><span class="lineno"> 1065</span>&#160;            dptr += Cnt;</div>
-<div class="line"><a name="l01066"></a><span class="lineno"> 1066</span>&#160;            <span class="keywordflow">break</span>;</div>
-<div class="line"><a name="l01067"></a><span class="lineno"> 1067</span>&#160;            }</div>
-<div class="line"><a name="l01068"></a><span class="lineno"> 1068</span>&#160;        }</div>
+<div class="line"><a name="l00959"></a><span class="lineno">  959</span>&#160;    }</div>
+<div class="line"><a name="l00960"></a><span class="lineno">  960</span>&#160;</div>
+<div class="line"><a name="l00961"></a><span class="lineno">  961</span>&#160;    <span class="comment">// Wait on meta-data and do send</span></div>
+<div class="line"><a name="l00962"></a><span class="lineno">  962</span>&#160;    <span class="keywordflow">if</span> (N_snds &gt; 0) </div>
+<div class="line"><a name="l00963"></a><span class="lineno">  963</span>&#160;    {</div>
+<div class="line"><a name="l00964"></a><span class="lineno">  964</span>&#160;    <span class="keywordtype">int</span> send_counter = 0;</div>
+<div class="line"><a name="l00965"></a><span class="lineno">  965</span>&#160;    <span class="keywordflow">while</span> (send_counter++ &lt; N_snds)</div>
+<div class="line"><a name="l00966"></a><span class="lineno">  966</span>&#160;    {</div>
+<div class="line"><a name="l00967"></a><span class="lineno">  967</span>&#160;        <a class="code" href="struct_m_p_i___status.html">MPI_Status</a> status;</div>
+<div class="line"><a name="l00968"></a><span class="lineno">  968</span>&#160;        <span class="keywordtype">int</span> index;</div>
+<div class="line"><a name="l00969"></a><span class="lineno">  969</span>&#160;        MPI_Waitany(N_snds, md_recv_reqs.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(), &amp;index, &amp;status);</div>
+<div class="line"><a name="l00970"></a><span class="lineno">  970</span>&#160;</div>
+<div class="line"><a name="l00971"></a><span class="lineno">  971</span>&#160;        <span class="keywordtype">int</span> rank = status.MPI_SOURCE;</div>
+<div class="line"><a name="l00972"></a><span class="lineno">  972</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(status.MPI_TAG == SeqNum_md);</div>
+<div class="line"><a name="l00973"></a><span class="lineno">  973</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(rank == md_sender[index]);</div>
+<div class="line"><a name="l00974"></a><span class="lineno">  974</span>&#160;</div>
+<div class="line"><a name="l00975"></a><span class="lineno">  975</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>* p = &amp;md_recv_data[md_offset[index]];</div>
+<div class="line"><a name="l00976"></a><span class="lineno">  976</span>&#160;        <span class="keywordtype">int</span> numboxes = md_bcnts[index];</div>
+<div class="line"><a name="l00977"></a><span class="lineno">  977</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> faid(numboxes);</div>
+<div class="line"><a name="l00978"></a><span class="lineno">  978</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> fidx(numboxes);</div>
+<div class="line"><a name="l00979"></a><span class="lineno">  979</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> scomp(numboxes);</div>
+<div class="line"><a name="l00980"></a><span class="lineno">  980</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> <a class="code" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>(numboxes);</div>
+<div class="line"><a name="l00981"></a><span class="lineno">  981</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;int&gt;</a> npts(numboxes);</div>
+<div class="line"><a name="l00982"></a><span class="lineno">  982</span>&#160;        <a class="code" href="classamrex_1_1_vector.html">Vector&lt;Box&gt;</a> bxs;</div>
+<div class="line"><a name="l00983"></a><span class="lineno">  983</span>&#160;        <span class="keywordtype">int</span> N = 0;</div>
+<div class="line"><a name="l00984"></a><span class="lineno">  984</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span> * md = p;</div>
+<div class="line"><a name="l00985"></a><span class="lineno">  985</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; numboxes; ++i, md += Nints)</div>
+<div class="line"><a name="l00986"></a><span class="lineno">  986</span>&#160;        {</div>
+<div class="line"><a name="l00987"></a><span class="lineno">  987</span>&#160;        faid[i] = md[0];</div>
+<div class="line"><a name="l00988"></a><span class="lineno">  988</span>&#160;        fidx[i] = md[1];</div>
+<div class="line"><a name="l00989"></a><span class="lineno">  989</span>&#160;        scomp[i] = md[2];</div>
+<div class="line"><a name="l00990"></a><span class="lineno">  990</span>&#160;        ncomp[i] = md[3];</div>
+<div class="line"><a name="l00991"></a><span class="lineno">  991</span>&#160;        bxs.push_back(<a class="code" href="classamrex_1_1_box.html">Box</a>(<a class="code" href="classamrex_1_1_int_vect.html">IntVect</a>(&amp;md[4]),</div>
+<div class="line"><a name="l00992"></a><span class="lineno">  992</span>&#160;                  <a class="code" href="classamrex_1_1_int_vect.html">IntVect</a>(&amp;md[4+<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>]), </div>
+<div class="line"><a name="l00993"></a><span class="lineno">  993</span>&#160;                  <a class="code" href="classamrex_1_1_int_vect.html">IntVect</a>(&amp;md[4+<a class="code" href="_a_m_re_x___s_p_a_c_e_8_h.html#af66ac7d7c04dad9fd54778fe5a4e816f">BL_SPACEDIM</a>*2]))); </div>
+<div class="line"><a name="l00994"></a><span class="lineno">  994</span>&#160;        npts[i] = bxs.back().numPts()*ncomp[i];</div>
+<div class="line"><a name="l00995"></a><span class="lineno">  995</span>&#160;        N += npts[i];</div>
+<div class="line"><a name="l00996"></a><span class="lineno">  996</span>&#160;        }</div>
+<div class="line"><a name="l00997"></a><span class="lineno">  997</span>&#160;</div>
+<div class="line"><a name="l00998"></a><span class="lineno">  998</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(N &lt; <a class="code" href="namespaceamrex.html#a870c2407ed885451a76f66f8a0d7a892">std::numeric_limits&lt;int&gt;::max</a>());</div>
+<div class="line"><a name="l00999"></a><span class="lineno">  999</span>&#160;        </div>
+<div class="line"><a name="l01000"></a><span class="lineno"> 1000</span>&#160;        value_type* data = <span class="keyword">static_cast&lt;</span>value_type*<span class="keyword">&gt;</span>(<a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a46ce2cd5cfc039cec64548b031fbde2e">alloc</a>(N*<span class="keyword">sizeof</span>(value_type)));</div>
+<div class="line"><a name="l01001"></a><span class="lineno"> 1001</span>&#160;        value_type* dptr = data;</div>
+<div class="line"><a name="l01002"></a><span class="lineno"> 1002</span>&#160;        send_data.push_back(data);</div>
+<div class="line"><a name="l01003"></a><span class="lineno"> 1003</span>&#160;</div>
+<div class="line"><a name="l01004"></a><span class="lineno"> 1004</span>&#160;        <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; numboxes; ++i)</div>
+<div class="line"><a name="l01005"></a><span class="lineno"> 1005</span>&#160;        {</div>
+<div class="line"><a name="l01006"></a><span class="lineno"> 1006</span>&#160;        (*fabArrays[faid[i]])[fidx[i]].copyToMem(bxs[i],scomp[i],ncomp[i],dptr);</div>
+<div class="line"><a name="l01007"></a><span class="lineno"> 1007</span>&#160;        dptr += npts[i];</div>
+<div class="line"><a name="l01008"></a><span class="lineno"> 1008</span>&#160;        }       </div>
+<div class="line"><a name="l01009"></a><span class="lineno"> 1009</span>&#160;</div>
+<div class="line"><a name="l01010"></a><span class="lineno"> 1010</span>&#160;        data_send_reqs.push_back(<a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a0903eb5194f11fcf386f79e6ff3c02f7">ParallelDescriptor::Asend</a>(data,N,rank,SeqNum_data).req());</div>
+<div class="line"><a name="l01011"></a><span class="lineno"> 1011</span>&#160;    }</div>
+<div class="line"><a name="l01012"></a><span class="lineno"> 1012</span>&#160;</div>
+<div class="line"><a name="l01013"></a><span class="lineno"> 1013</span>&#160;    <a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a0c7e0730574c98febb6ddca2712cb515">free</a>(md_recv_data);</div>
+<div class="line"><a name="l01014"></a><span class="lineno"> 1014</span>&#160;    }</div>
+<div class="line"><a name="l01015"></a><span class="lineno"> 1015</span>&#160;</div>
+<div class="line"><a name="l01016"></a><span class="lineno"> 1016</span>&#160;    <span class="comment">// Wait and upack data</span></div>
+<div class="line"><a name="l01017"></a><span class="lineno"> 1017</span>&#160;    <span class="keywordflow">if</span> (N_rcvs &gt; 0)</div>
+<div class="line"><a name="l01018"></a><span class="lineno"> 1018</span>&#160;    {</div>
+<div class="line"><a name="l01019"></a><span class="lineno"> 1019</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;MPI_Status&gt;</a> stats(N_rcvs);</div>
+<div class="line"><a name="l01020"></a><span class="lineno"> 1020</span>&#160;</div>
+<div class="line"><a name="l01021"></a><span class="lineno"> 1021</span>&#160;    <a class="code" href="_a_m_re_x___parallel_descriptor_8_h.html#aa5c7a9db9f965eb95c975e7635e55c24">BL_MPI_REQUIRE</a> (MPI_Waitall(N_rcvs, md_send_reqs.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(), stats.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>()) );</div>
+<div class="line"><a name="l01022"></a><span class="lineno"> 1022</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N_rcvs; ++i) {</div>
+<div class="line"><a name="l01023"></a><span class="lineno"> 1023</span>&#160;            <a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a0c7e0730574c98febb6ddca2712cb515">free</a>(md_send_data[i]);      </div>
+<div class="line"><a name="l01024"></a><span class="lineno"> 1024</span>&#160;    }</div>
+<div class="line"><a name="l01025"></a><span class="lineno"> 1025</span>&#160;</div>
+<div class="line"><a name="l01026"></a><span class="lineno"> 1026</span>&#160;    <a class="code" href="_a_m_re_x___parallel_descriptor_8_h.html#aa5c7a9db9f965eb95c975e7635e55c24">BL_MPI_REQUIRE</a>( MPI_Waitall(N_rcvs, data_recv_reqs.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(), stats.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>()) );</div>
+<div class="line"><a name="l01027"></a><span class="lineno"> 1027</span>&#160;</div>
+<div class="line"><a name="l01028"></a><span class="lineno"> 1028</span>&#160;    std::pair&lt;FCDMapIter,FCDMapIter&gt; <a class="code" href="namespaceamrex.html#a89eb9459b4109c4f9a9b3225abae29f8">match</a>;</div>
+<div class="line"><a name="l01029"></a><span class="lineno"> 1029</span>&#160;    std::map&lt; int,FabComTagIterContainer &gt;::const_iterator found;</div>
+<div class="line"><a name="l01030"></a><span class="lineno"> 1030</span>&#160;</div>
+<div class="line"><a name="l01031"></a><span class="lineno"> 1031</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> k = 0; k &lt; N_rcvs; k++)</div>
+<div class="line"><a name="l01032"></a><span class="lineno"> 1032</span>&#160;    {</div>
+<div class="line"><a name="l01033"></a><span class="lineno"> 1033</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">int</span>         Who  = data_sender[k];</div>
+<div class="line"><a name="l01034"></a><span class="lineno"> 1034</span>&#160;        <span class="keyword">const</span> value_type* dptr = &amp;recv_data[data_offset[k]];</div>
+<div class="line"><a name="l01035"></a><span class="lineno"> 1035</span>&#160;        </div>
+<div class="line"><a name="l01036"></a><span class="lineno"> 1036</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(dptr != 0);</div>
+<div class="line"><a name="l01037"></a><span class="lineno"> 1037</span>&#160;        </div>
+<div class="line"><a name="l01038"></a><span class="lineno"> 1038</span>&#160;        found = RcvTags.find(Who);</div>
+<div class="line"><a name="l01039"></a><span class="lineno"> 1039</span>&#160;        </div>
+<div class="line"><a name="l01040"></a><span class="lineno"> 1040</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(found != RcvTags.end());</div>
+<div class="line"><a name="l01041"></a><span class="lineno"> 1041</span>&#160;        </div>
+<div class="line"><a name="l01042"></a><span class="lineno"> 1042</span>&#160;        <span class="keyword">const</span> FabComTagIterContainer&amp; tags = found-&gt;second;</div>
+<div class="line"><a name="l01043"></a><span class="lineno"> 1043</span>&#160;        </div>
+<div class="line"><a name="l01044"></a><span class="lineno"> 1044</span>&#160;        <span class="keywordflow">for</span> (FabComTagIterContainer::const_iterator it = tags.begin(), End = tags.end();</div>
+<div class="line"><a name="l01045"></a><span class="lineno"> 1045</span>&#160;         it != End;</div>
+<div class="line"><a name="l01046"></a><span class="lineno"> 1046</span>&#160;         ++it)</div>
+<div class="line"><a name="l01047"></a><span class="lineno"> 1047</span>&#160;        {</div>
+<div class="line"><a name="l01048"></a><span class="lineno"> 1048</span>&#160;        <span class="keyword">const</span> <a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html">FabArrayBase::FabComTag</a>&amp; tag = **it;                  </div>
+<div class="line"><a name="l01049"></a><span class="lineno"> 1049</span>&#160;        </div>
+<div class="line"><a name="l01050"></a><span class="lineno"> 1050</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a5ded8154e0acf04de6c1d60f985a7069">procThatHasData</a> == Who);</div>
+<div class="line"><a name="l01051"></a><span class="lineno"> 1051</span>&#160;        </div>
+<div class="line"><a name="l01052"></a><span class="lineno"> 1052</span>&#160;        match = fabCopyDescList[tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a5c3201e1c74a8355f405987ac3c77678">fabArrayId</a>].equal_range(tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#af506bfcebba0efde3dc8f5dbf9244191">fillBoxId</a>);</div>
+<div class="line"><a name="l01053"></a><span class="lineno"> 1053</span>&#160;        </div>
+<div class="line"><a name="l01054"></a><span class="lineno"> 1054</span>&#160;        <span class="keywordflow">for</span> (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)</div>
+<div class="line"><a name="l01055"></a><span class="lineno"> 1055</span>&#160;        {</div>
+<div class="line"><a name="l01056"></a><span class="lineno"> 1056</span>&#160;            <a class="code" href="structamrex_1_1_fab_copy_descriptor.html">FabCopyDescriptor&lt;FAB&gt;</a>* fcdp = (*fmi).second;</div>
+<div class="line"><a name="l01057"></a><span class="lineno"> 1057</span>&#160;            </div>
+<div class="line"><a name="l01058"></a><span class="lineno"> 1058</span>&#160;            <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#abe60f2cf30aac61d68454a6823d1e3a4">fillBoxId</a> == tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#af506bfcebba0efde3dc8f5dbf9244191">fillBoxId</a>);</div>
+<div class="line"><a name="l01059"></a><span class="lineno"> 1059</span>&#160;            </div>
+<div class="line"><a name="l01060"></a><span class="lineno"> 1060</span>&#160;            <span class="keywordflow">if</span> (fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a799a901c3f374cb4499799fce9b67d2e">subBox</a> == tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a88162269ca5cd1c4e7ffe7259f526b92">box</a>)</div>
+<div class="line"><a name="l01061"></a><span class="lineno"> 1061</span>&#160;            {</div>
+<div class="line"><a name="l01062"></a><span class="lineno"> 1062</span>&#160;            <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a49a660fc34d5de5bbd5d8fb8b49580e8">localFabSource</a>-&gt;dataPtr() != 0);</div>
+<div class="line"><a name="l01063"></a><span class="lineno"> 1063</span>&#160;            <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a49a660fc34d5de5bbd5d8fb8b49580e8">localFabSource</a>-&gt;box() == tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a88162269ca5cd1c4e7ffe7259f526b92">box</a>);</div>
+<div class="line"><a name="l01064"></a><span class="lineno"> 1064</span>&#160;            <span class="keyword">const</span> <span class="keywordtype">int</span> Cnt = tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a88162269ca5cd1c4e7ffe7259f526b92">box</a>.<a class="code" href="classamrex_1_1_box.html#a599a302b2d78d7fbdf2fc27cb5c54682">numPts</a>()*tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#ad679841ea96302c513ad625560efb23d">nComp</a>;</div>
+<div class="line"><a name="l01065"></a><span class="lineno"> 1065</span>&#160;            fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a49a660fc34d5de5bbd5d8fb8b49580e8">localFabSource</a>-&gt;copyFromMem(tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#a88162269ca5cd1c4e7ffe7259f526b92">box</a>,0,tag.<a class="code" href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#ad679841ea96302c513ad625560efb23d">nComp</a>,dptr);</div>
+<div class="line"><a name="l01066"></a><span class="lineno"> 1066</span>&#160;            dptr += Cnt;</div>
+<div class="line"><a name="l01067"></a><span class="lineno"> 1067</span>&#160;            <span class="keywordflow">break</span>;</div>
+<div class="line"><a name="l01068"></a><span class="lineno"> 1068</span>&#160;            }</div>
 <div class="line"><a name="l01069"></a><span class="lineno"> 1069</span>&#160;        }</div>
-<div class="line"><a name="l01070"></a><span class="lineno"> 1070</span>&#160;    }</div>
-<div class="line"><a name="l01071"></a><span class="lineno"> 1071</span>&#160;</div>
-<div class="line"><a name="l01072"></a><span class="lineno"> 1072</span>&#160;    <a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a0c7e0730574c98febb6ddca2712cb515">free</a>(recv_data);</div>
-<div class="line"><a name="l01073"></a><span class="lineno"> 1073</span>&#160;    }</div>
-<div class="line"><a name="l01074"></a><span class="lineno"> 1074</span>&#160;</div>
-<div class="line"><a name="l01075"></a><span class="lineno"> 1075</span>&#160;    <span class="comment">// Finished send</span></div>
-<div class="line"><a name="l01076"></a><span class="lineno"> 1076</span>&#160;    <span class="keywordflow">if</span> (N_snds &gt; 0)</div>
-<div class="line"><a name="l01077"></a><span class="lineno"> 1077</span>&#160;    {</div>
-<div class="line"><a name="l01078"></a><span class="lineno"> 1078</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;MPI_Status&gt;</a> stats(N_snds);</div>
-<div class="line"><a name="l01079"></a><span class="lineno"> 1079</span>&#160;        <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#a5e661a1af9130dd8449e7f730864271c">BL_COMM_PROFILE</a>(BLProfiler::Waitall, <span class="keyword">sizeof</span>(value_type), BLProfiler::BeforeCall(), N_snds);</div>
-<div class="line"><a name="l01080"></a><span class="lineno"> 1080</span>&#160;    <a class="code" href="_a_m_re_x___parallel_descriptor_8_h.html#aa5c7a9db9f965eb95c975e7635e55c24">BL_MPI_REQUIRE</a>( MPI_Waitall(N_snds, data_send_reqs.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(), stats.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>()) );</div>
-<div class="line"><a name="l01081"></a><span class="lineno"> 1081</span>&#160;        <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#a5e661a1af9130dd8449e7f730864271c">BL_COMM_PROFILE</a>(BLProfiler::Waitall, <span class="keyword">sizeof</span>(value_type), BLProfiler::AfterCall(), N_snds);</div>
-<div class="line"><a name="l01082"></a><span class="lineno"> 1082</span>&#160;</div>
-<div class="line"><a name="l01083"></a><span class="lineno"> 1083</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N_snds; ++i) {</div>
-<div class="line"><a name="l01084"></a><span class="lineno"> 1084</span>&#160;            <a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a0c7e0730574c98febb6ddca2712cb515">free</a>(send_data[i]);</div>
-<div class="line"><a name="l01085"></a><span class="lineno"> 1085</span>&#160;    }</div>
+<div class="line"><a name="l01070"></a><span class="lineno"> 1070</span>&#160;        }</div>
+<div class="line"><a name="l01071"></a><span class="lineno"> 1071</span>&#160;    }</div>
+<div class="line"><a name="l01072"></a><span class="lineno"> 1072</span>&#160;</div>
+<div class="line"><a name="l01073"></a><span class="lineno"> 1073</span>&#160;    <a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a0c7e0730574c98febb6ddca2712cb515">free</a>(recv_data);</div>
+<div class="line"><a name="l01074"></a><span class="lineno"> 1074</span>&#160;    }</div>
+<div class="line"><a name="l01075"></a><span class="lineno"> 1075</span>&#160;</div>
+<div class="line"><a name="l01076"></a><span class="lineno"> 1076</span>&#160;    <span class="comment">// Finished send</span></div>
+<div class="line"><a name="l01077"></a><span class="lineno"> 1077</span>&#160;    <span class="keywordflow">if</span> (N_snds &gt; 0)</div>
+<div class="line"><a name="l01078"></a><span class="lineno"> 1078</span>&#160;    {</div>
+<div class="line"><a name="l01079"></a><span class="lineno"> 1079</span>&#160;    <a class="code" href="classamrex_1_1_vector.html">Vector&lt;MPI_Status&gt;</a> stats(N_snds);</div>
+<div class="line"><a name="l01080"></a><span class="lineno"> 1080</span>&#160;        <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#a5e661a1af9130dd8449e7f730864271c">BL_COMM_PROFILE</a>(BLProfiler::Waitall, <span class="keyword">sizeof</span>(value_type), BLProfiler::BeforeCall(), N_snds);</div>
+<div class="line"><a name="l01081"></a><span class="lineno"> 1081</span>&#160;    <a class="code" href="_a_m_re_x___parallel_descriptor_8_h.html#aa5c7a9db9f965eb95c975e7635e55c24">BL_MPI_REQUIRE</a>( MPI_Waitall(N_snds, data_send_reqs.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>(), stats.<a class="code" href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">dataPtr</a>()) );</div>
+<div class="line"><a name="l01082"></a><span class="lineno"> 1082</span>&#160;        <a class="code" href="_a_m_re_x___b_l_profiler_8_h.html#a5e661a1af9130dd8449e7f730864271c">BL_COMM_PROFILE</a>(BLProfiler::Waitall, <span class="keyword">sizeof</span>(value_type), BLProfiler::AfterCall(), N_snds);</div>
+<div class="line"><a name="l01083"></a><span class="lineno"> 1083</span>&#160;</div>
+<div class="line"><a name="l01084"></a><span class="lineno"> 1084</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; N_snds; ++i) {</div>
+<div class="line"><a name="l01085"></a><span class="lineno"> 1085</span>&#160;            <a class="code" href="namespaceamrex.html#ae3d1414946b992f39ca41f135f12a0d1">amrex::The_Arena</a>()-&gt;<a class="code" href="classamrex_1_1_arena.html#a0c7e0730574c98febb6ddca2712cb515">free</a>(send_data[i]);</div>
 <div class="line"><a name="l01086"></a><span class="lineno"> 1086</span>&#160;    }</div>
-<div class="line"><a name="l01087"></a><span class="lineno"> 1087</span>&#160;</div>
-<div class="line"><a name="l01088"></a><span class="lineno"> 1088</span>&#160;<span class="preprocessor">#endif </span><span class="comment">/*BL_USE_MPI*/</span><span class="preprocessor"></span></div>
-<div class="line"><a name="l01089"></a><span class="lineno"> 1089</span>&#160;<span class="preprocessor"></span>}</div>
-<div class="line"><a name="l01090"></a><span class="lineno"> 1090</span>&#160;<span class="preprocessor">#endif // end of !BL_USE_UPCXX</span></div>
-<div class="line"><a name="l01091"></a><span class="lineno"> 1091</span>&#160;<span class="preprocessor"></span></div>
-<div class="line"><a name="l01092"></a><span class="lineno"> 1092</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> FAB&gt;</div>
-<div class="line"><a name="l01093"></a><span class="lineno"> 1093</span>&#160;<span class="keywordtype">void</span></div>
-<div class="line"><a name="l01094"></a><span class="lineno"><a class="line" href="classamrex_1_1_fab_array_copy_descriptor.html#a27f21e944b5789480163044fee5b3a57"> 1094</a></span>&#160;<a class="code" href="classamrex_1_1_fab_array_copy_descriptor.html#a27f21e944b5789480163044fee5b3a57">FabArrayCopyDescriptor&lt;FAB&gt;::FillFab</a> (<a class="code" href="classamrex_1_1_fab_array_id.html">FabArrayId</a>       faid,</div>
-<div class="line"><a name="l01095"></a><span class="lineno"> 1095</span>&#160;                                      <span class="keyword">const</span> <a class="code" href="classamrex_1_1_fill_box_id.html">FillBoxId</a>&amp; fillboxid,</div>
-<div class="line"><a name="l01096"></a><span class="lineno"> 1096</span>&#160;                                      FAB&amp;             destFab)</div>
-<div class="line"><a name="l01097"></a><span class="lineno"> 1097</span>&#160;{</div>
-<div class="line"><a name="l01098"></a><span class="lineno"> 1098</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(dataAvailable);</div>
-<div class="line"><a name="l01099"></a><span class="lineno"> 1099</span>&#160;</div>
-<div class="line"><a name="l01100"></a><span class="lineno"> 1100</span>&#160;    std::pair&lt;FCDMapIter,FCDMapIter&gt; match = fabCopyDescList[faid.<a class="code" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">Id</a>()].equal_range(fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>());</div>
-<div class="line"><a name="l01101"></a><span class="lineno"> 1101</span>&#160;</div>
-<div class="line"><a name="l01102"></a><span class="lineno"> 1102</span>&#160;    <span class="keywordflow">for</span> (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)</div>
-<div class="line"><a name="l01103"></a><span class="lineno"> 1103</span>&#160;    {</div>
-<div class="line"><a name="l01104"></a><span class="lineno"> 1104</span>&#160;        <a class="code" href="structamrex_1_1_fab_copy_descriptor.html">FabCopyDescriptor&lt;FAB&gt;</a>* fcdp = (*fmi).second;</div>
-<div class="line"><a name="l01105"></a><span class="lineno"> 1105</span>&#160;</div>
-<div class="line"><a name="l01106"></a><span class="lineno"> 1106</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#abe60f2cf30aac61d68454a6823d1e3a4">fillBoxId</a> == fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>());</div>
-<div class="line"><a name="l01107"></a><span class="lineno"> 1107</span>&#160;</div>
-<div class="line"><a name="l01108"></a><span class="lineno"> 1108</span>&#160;        destFab.copy(*fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a49a660fc34d5de5bbd5d8fb8b49580e8">localFabSource</a>,</div>
-<div class="line"><a name="l01109"></a><span class="lineno"> 1109</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a799a901c3f374cb4499799fce9b67d2e">subBox</a>,</div>
-<div class="line"><a name="l01110"></a><span class="lineno"> 1110</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#acbfb910d7582f3e32b2e263e1581e382">fillType</a> == <a class="code" href="namespaceamrex.html#a9f13be15ca764e94680df68d8b9505d6a3de07fb14bde47411225509d67e0bda1">FillLocally</a> ? fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#abf33adc9a73450887814df15429e64ac">srcComp</a> : 0,</div>
-<div class="line"><a name="l01111"></a><span class="lineno"> 1111</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a799a901c3f374cb4499799fce9b67d2e">subBox</a>,</div>
-<div class="line"><a name="l01112"></a><span class="lineno"> 1112</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a164510f57c480c98b19458a1516ba6dd">destComp</a>,</div>
-<div class="line"><a name="l01113"></a><span class="lineno"> 1113</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#aaa865db7c42ae26183110932425ab7a6">nComp</a>);</div>
-<div class="line"><a name="l01114"></a><span class="lineno"> 1114</span>&#160;    }</div>
-<div class="line"><a name="l01115"></a><span class="lineno"> 1115</span>&#160;}</div>
-<div class="line"><a name="l01116"></a><span class="lineno"> 1116</span>&#160;</div>
-<div class="line"><a name="l01117"></a><span class="lineno"> 1117</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> FAB&gt;</div>
-<div class="line"><a name="l01118"></a><span class="lineno"> 1118</span>&#160;<span class="keywordtype">void</span></div>
-<div class="line"><a name="l01119"></a><span class="lineno"><a class="line" href="classamrex_1_1_fab_array_copy_descriptor.html#ad5e9f195c56167ebd30d9d7c1a6d0c34"> 1119</a></span>&#160;<a class="code" href="classamrex_1_1_fab_array_copy_descriptor.html#a27f21e944b5789480163044fee5b3a57">FabArrayCopyDescriptor&lt;FAB&gt;::FillFab</a> (<a class="code" href="classamrex_1_1_fab_array_id.html">FabArrayId</a>       faid,</div>
-<div class="line"><a name="l01120"></a><span class="lineno"> 1120</span>&#160;                                        <span class="keyword">const</span> <a class="code" href="classamrex_1_1_fill_box_id.html">FillBoxId</a>&amp; fillboxid,</div>
-<div class="line"><a name="l01121"></a><span class="lineno"> 1121</span>&#160;                                        FAB&amp;             destFab,</div>
-<div class="line"><a name="l01122"></a><span class="lineno"> 1122</span>&#160;                                        <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">Box</a>&amp;       destBox)</div>
-<div class="line"><a name="l01123"></a><span class="lineno"> 1123</span>&#160;{</div>
-<div class="line"><a name="l01124"></a><span class="lineno"> 1124</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(dataAvailable);</div>
-<div class="line"><a name="l01125"></a><span class="lineno"> 1125</span>&#160;</div>
-<div class="line"><a name="l01126"></a><span class="lineno"> 1126</span>&#160;    FCDMapIter fmi = fabCopyDescList[faid.<a class="code" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">Id</a>()].lower_bound(fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>());</div>
-<div class="line"><a name="l01127"></a><span class="lineno"> 1127</span>&#160;</div>
-<div class="line"><a name="l01128"></a><span class="lineno"> 1128</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fmi != fabCopyDescList[faid.<a class="code" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">Id</a>()].end());</div>
-<div class="line"><a name="l01129"></a><span class="lineno"> 1129</span>&#160;</div>
-<div class="line"><a name="l01130"></a><span class="lineno"> 1130</span>&#160;    <a class="code" href="structamrex_1_1_fab_copy_descriptor.html">FabCopyDescriptor&lt;FAB&gt;</a>* fcdp = (*fmi).second;</div>
-<div class="line"><a name="l01131"></a><span class="lineno"> 1131</span>&#160;</div>
-<div class="line"><a name="l01132"></a><span class="lineno"> 1132</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;fillBoxId == fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>());</div>
-<div class="line"><a name="l01133"></a><span class="lineno"> 1133</span>&#160;</div>
-<div class="line"><a name="l01134"></a><span class="lineno"> 1134</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;subBox.sameSize(destBox));</div>
-<div class="line"><a name="l01135"></a><span class="lineno"> 1135</span>&#160;</div>
-<div class="line"><a name="l01136"></a><span class="lineno"> 1136</span>&#160;    destFab.copy(*fcdp-&gt;localFabSource,</div>
-<div class="line"><a name="l01137"></a><span class="lineno"> 1137</span>&#160;                 fcdp-&gt;subBox,</div>
-<div class="line"><a name="l01138"></a><span class="lineno"> 1138</span>&#160;                 fcdp-&gt;fillType == <a class="code" href="namespaceamrex.html#a9f13be15ca764e94680df68d8b9505d6a3de07fb14bde47411225509d67e0bda1">FillLocally</a> ? fcdp-&gt;srcComp : 0,</div>
-<div class="line"><a name="l01139"></a><span class="lineno"> 1139</span>&#160;                 destBox,</div>
-<div class="line"><a name="l01140"></a><span class="lineno"> 1140</span>&#160;                 fcdp-&gt;destComp,</div>
-<div class="line"><a name="l01141"></a><span class="lineno"> 1141</span>&#160;                 fcdp-&gt;nComp);</div>
-<div class="line"><a name="l01142"></a><span class="lineno"> 1142</span>&#160;</div>
-<div class="line"><a name="l01143"></a><span class="lineno"> 1143</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(++fmi == fabCopyDescList[faid.<a class="code" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">Id</a>()].upper_bound(fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>()));</div>
-<div class="line"><a name="l01144"></a><span class="lineno"> 1144</span>&#160;}</div>
-<div class="line"><a name="l01145"></a><span class="lineno"> 1145</span>&#160;</div>
-<div class="line"><a name="l01146"></a><span class="lineno"> 1146</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> FAB&gt;</div>
-<div class="line"><a name="l01147"></a><span class="lineno"> 1147</span>&#160;<span class="keywordtype">void</span></div>
-<div class="line"><a name="l01148"></a><span class="lineno"><a class="line" href="classamrex_1_1_fab_array_copy_descriptor.html#a2e73413fe6fce98d2577baa88827193c"> 1148</a></span>&#160;<a class="code" href="classamrex_1_1_fab_array_copy_descriptor.html#a2e73413fe6fce98d2577baa88827193c">FabArrayCopyDescriptor&lt;FAB&gt;::PrintStats</a> ()<span class="keyword"> const</span></div>
-<div class="line"><a name="l01149"></a><span class="lineno"> 1149</span>&#160;<span class="keyword"></span>{</div>
-<div class="line"><a name="l01150"></a><span class="lineno"> 1150</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> MyProc = <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a3deabb4447125ee364f9ca1c5a07c1e4">ParallelDescriptor::MyProc</a>();</div>
-<div class="line"><a name="l01151"></a><span class="lineno"> 1151</span>&#160;</div>
-<div class="line"><a name="l01152"></a><span class="lineno"> 1152</span>&#160;    std::cout &lt;&lt; <span class="stringliteral">&quot;----- &quot;</span></div>
-<div class="line"><a name="l01153"></a><span class="lineno"> 1153</span>&#160;         &lt;&lt; MyProc</div>
-<div class="line"><a name="l01154"></a><span class="lineno"> 1154</span>&#160;         &lt;&lt; <span class="stringliteral">&quot;:  Parallel stats for FabArrayCopyDescriptor:&quot;</span> &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
-<div class="line"><a name="l01155"></a><span class="lineno"> 1155</span>&#160;</div>
-<div class="line"><a name="l01156"></a><span class="lineno"> 1156</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> fa = 0; fa &lt; fabArrays.size(); ++fa)</div>
-<div class="line"><a name="l01157"></a><span class="lineno"> 1157</span>&#160;    {</div>
-<div class="line"><a name="l01158"></a><span class="lineno"> 1158</span>&#160;      std::cout &lt;&lt; <span class="stringliteral">&quot;fabArrays[&quot;</span></div>
-<div class="line"><a name="l01159"></a><span class="lineno"> 1159</span>&#160;             &lt;&lt; fa</div>
-<div class="line"><a name="l01160"></a><span class="lineno"> 1160</span>&#160;             &lt;&lt; <span class="stringliteral">&quot;]-&gt;boxArray() = &quot;</span></div>
-<div class="line"><a name="l01161"></a><span class="lineno"> 1161</span>&#160;             &lt;&lt; fabArrays[fa]-&gt;boxArray()</div>
-<div class="line"><a name="l01162"></a><span class="lineno"> 1162</span>&#160;             &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
-<div class="line"><a name="l01163"></a><span class="lineno"> 1163</span>&#160;    }</div>
-<div class="line"><a name="l01164"></a><span class="lineno"> 1164</span>&#160;}</div>
-<div class="line"><a name="l01165"></a><span class="lineno"> 1165</span>&#160;</div>
-<div class="line"><a name="l01166"></a><span class="lineno"> 1166</span>&#160;}</div>
-<div class="line"><a name="l01167"></a><span class="lineno"> 1167</span>&#160;</div>
-<div class="line"><a name="l01168"></a><span class="lineno"> 1168</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l01087"></a><span class="lineno"> 1087</span>&#160;    }</div>
+<div class="line"><a name="l01088"></a><span class="lineno"> 1088</span>&#160;</div>
+<div class="line"><a name="l01089"></a><span class="lineno"> 1089</span>&#160;<span class="preprocessor">#endif </span><span class="comment">/*BL_USE_MPI*/</span><span class="preprocessor"></span></div>
+<div class="line"><a name="l01090"></a><span class="lineno"> 1090</span>&#160;<span class="preprocessor"></span>}</div>
+<div class="line"><a name="l01091"></a><span class="lineno"> 1091</span>&#160;<span class="preprocessor">#endif // end of !BL_USE_UPCXX</span></div>
+<div class="line"><a name="l01092"></a><span class="lineno"> 1092</span>&#160;<span class="preprocessor"></span></div>
+<div class="line"><a name="l01093"></a><span class="lineno"> 1093</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> FAB&gt;</div>
+<div class="line"><a name="l01094"></a><span class="lineno"> 1094</span>&#160;<span class="keywordtype">void</span></div>
+<div class="line"><a name="l01095"></a><span class="lineno"><a class="line" href="classamrex_1_1_fab_array_copy_descriptor.html#a27f21e944b5789480163044fee5b3a57"> 1095</a></span>&#160;<a class="code" href="classamrex_1_1_fab_array_copy_descriptor.html#a27f21e944b5789480163044fee5b3a57">FabArrayCopyDescriptor&lt;FAB&gt;::FillFab</a> (<a class="code" href="classamrex_1_1_fab_array_id.html">FabArrayId</a>       faid,</div>
+<div class="line"><a name="l01096"></a><span class="lineno"> 1096</span>&#160;                                      <span class="keyword">const</span> <a class="code" href="classamrex_1_1_fill_box_id.html">FillBoxId</a>&amp; fillboxid,</div>
+<div class="line"><a name="l01097"></a><span class="lineno"> 1097</span>&#160;                                      FAB&amp;             destFab)</div>
+<div class="line"><a name="l01098"></a><span class="lineno"> 1098</span>&#160;{</div>
+<div class="line"><a name="l01099"></a><span class="lineno"> 1099</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(dataAvailable);</div>
+<div class="line"><a name="l01100"></a><span class="lineno"> 1100</span>&#160;</div>
+<div class="line"><a name="l01101"></a><span class="lineno"> 1101</span>&#160;    std::pair&lt;FCDMapIter,FCDMapIter&gt; match = fabCopyDescList[faid.<a class="code" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">Id</a>()].equal_range(fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>());</div>
+<div class="line"><a name="l01102"></a><span class="lineno"> 1102</span>&#160;</div>
+<div class="line"><a name="l01103"></a><span class="lineno"> 1103</span>&#160;    <span class="keywordflow">for</span> (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)</div>
+<div class="line"><a name="l01104"></a><span class="lineno"> 1104</span>&#160;    {</div>
+<div class="line"><a name="l01105"></a><span class="lineno"> 1105</span>&#160;        <a class="code" href="structamrex_1_1_fab_copy_descriptor.html">FabCopyDescriptor&lt;FAB&gt;</a>* fcdp = (*fmi).second;</div>
+<div class="line"><a name="l01106"></a><span class="lineno"> 1106</span>&#160;</div>
+<div class="line"><a name="l01107"></a><span class="lineno"> 1107</span>&#160;        <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#abe60f2cf30aac61d68454a6823d1e3a4">fillBoxId</a> == fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>());</div>
+<div class="line"><a name="l01108"></a><span class="lineno"> 1108</span>&#160;</div>
+<div class="line"><a name="l01109"></a><span class="lineno"> 1109</span>&#160;        destFab.copy(*fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a49a660fc34d5de5bbd5d8fb8b49580e8">localFabSource</a>,</div>
+<div class="line"><a name="l01110"></a><span class="lineno"> 1110</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a799a901c3f374cb4499799fce9b67d2e">subBox</a>,</div>
+<div class="line"><a name="l01111"></a><span class="lineno"> 1111</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#acbfb910d7582f3e32b2e263e1581e382">fillType</a> == <a class="code" href="namespaceamrex.html#a9f13be15ca764e94680df68d8b9505d6a3de07fb14bde47411225509d67e0bda1">FillLocally</a> ? fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#abf33adc9a73450887814df15429e64ac">srcComp</a> : 0,</div>
+<div class="line"><a name="l01112"></a><span class="lineno"> 1112</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a799a901c3f374cb4499799fce9b67d2e">subBox</a>,</div>
+<div class="line"><a name="l01113"></a><span class="lineno"> 1113</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#a164510f57c480c98b19458a1516ba6dd">destComp</a>,</div>
+<div class="line"><a name="l01114"></a><span class="lineno"> 1114</span>&#160;                     fcdp-&gt;<a class="code" href="structamrex_1_1_fab_copy_descriptor.html#aaa865db7c42ae26183110932425ab7a6">nComp</a>);</div>
+<div class="line"><a name="l01115"></a><span class="lineno"> 1115</span>&#160;    }</div>
+<div class="line"><a name="l01116"></a><span class="lineno"> 1116</span>&#160;}</div>
+<div class="line"><a name="l01117"></a><span class="lineno"> 1117</span>&#160;</div>
+<div class="line"><a name="l01118"></a><span class="lineno"> 1118</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> FAB&gt;</div>
+<div class="line"><a name="l01119"></a><span class="lineno"> 1119</span>&#160;<span class="keywordtype">void</span></div>
+<div class="line"><a name="l01120"></a><span class="lineno"><a class="line" href="classamrex_1_1_fab_array_copy_descriptor.html#ad5e9f195c56167ebd30d9d7c1a6d0c34"> 1120</a></span>&#160;<a class="code" href="classamrex_1_1_fab_array_copy_descriptor.html#a27f21e944b5789480163044fee5b3a57">FabArrayCopyDescriptor&lt;FAB&gt;::FillFab</a> (<a class="code" href="classamrex_1_1_fab_array_id.html">FabArrayId</a>       faid,</div>
+<div class="line"><a name="l01121"></a><span class="lineno"> 1121</span>&#160;                                        <span class="keyword">const</span> <a class="code" href="classamrex_1_1_fill_box_id.html">FillBoxId</a>&amp; fillboxid,</div>
+<div class="line"><a name="l01122"></a><span class="lineno"> 1122</span>&#160;                                        FAB&amp;             destFab,</div>
+<div class="line"><a name="l01123"></a><span class="lineno"> 1123</span>&#160;                                        <span class="keyword">const</span> <a class="code" href="classamrex_1_1_box.html">Box</a>&amp;       destBox)</div>
+<div class="line"><a name="l01124"></a><span class="lineno"> 1124</span>&#160;{</div>
+<div class="line"><a name="l01125"></a><span class="lineno"> 1125</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(dataAvailable);</div>
+<div class="line"><a name="l01126"></a><span class="lineno"> 1126</span>&#160;</div>
+<div class="line"><a name="l01127"></a><span class="lineno"> 1127</span>&#160;    FCDMapIter fmi = fabCopyDescList[faid.<a class="code" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">Id</a>()].lower_bound(fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>());</div>
+<div class="line"><a name="l01128"></a><span class="lineno"> 1128</span>&#160;</div>
+<div class="line"><a name="l01129"></a><span class="lineno"> 1129</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fmi != fabCopyDescList[faid.<a class="code" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">Id</a>()].end());</div>
+<div class="line"><a name="l01130"></a><span class="lineno"> 1130</span>&#160;</div>
+<div class="line"><a name="l01131"></a><span class="lineno"> 1131</span>&#160;    <a class="code" href="structamrex_1_1_fab_copy_descriptor.html">FabCopyDescriptor&lt;FAB&gt;</a>* fcdp = (*fmi).second;</div>
+<div class="line"><a name="l01132"></a><span class="lineno"> 1132</span>&#160;</div>
+<div class="line"><a name="l01133"></a><span class="lineno"> 1133</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;fillBoxId == fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>());</div>
+<div class="line"><a name="l01134"></a><span class="lineno"> 1134</span>&#160;</div>
+<div class="line"><a name="l01135"></a><span class="lineno"> 1135</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(fcdp-&gt;subBox.sameSize(destBox));</div>
+<div class="line"><a name="l01136"></a><span class="lineno"> 1136</span>&#160;</div>
+<div class="line"><a name="l01137"></a><span class="lineno"> 1137</span>&#160;    destFab.copy(*fcdp-&gt;localFabSource,</div>
+<div class="line"><a name="l01138"></a><span class="lineno"> 1138</span>&#160;                 fcdp-&gt;subBox,</div>
+<div class="line"><a name="l01139"></a><span class="lineno"> 1139</span>&#160;                 fcdp-&gt;fillType == <a class="code" href="namespaceamrex.html#a9f13be15ca764e94680df68d8b9505d6a3de07fb14bde47411225509d67e0bda1">FillLocally</a> ? fcdp-&gt;srcComp : 0,</div>
+<div class="line"><a name="l01140"></a><span class="lineno"> 1140</span>&#160;                 destBox,</div>
+<div class="line"><a name="l01141"></a><span class="lineno"> 1141</span>&#160;                 fcdp-&gt;destComp,</div>
+<div class="line"><a name="l01142"></a><span class="lineno"> 1142</span>&#160;                 fcdp-&gt;nComp);</div>
+<div class="line"><a name="l01143"></a><span class="lineno"> 1143</span>&#160;</div>
+<div class="line"><a name="l01144"></a><span class="lineno"> 1144</span>&#160;    <a class="code" href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a>(++fmi == fabCopyDescList[faid.<a class="code" href="classamrex_1_1_fab_array_id.html#a3030c352611dc779b2cd618b7b3193fb">Id</a>()].upper_bound(fillboxid.<a class="code" href="classamrex_1_1_fill_box_id.html#abe528fd3a4abea6c800a9f27776173a4">Id</a>()));</div>
+<div class="line"><a name="l01145"></a><span class="lineno"> 1145</span>&#160;}</div>
+<div class="line"><a name="l01146"></a><span class="lineno"> 1146</span>&#160;</div>
+<div class="line"><a name="l01147"></a><span class="lineno"> 1147</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> FAB&gt;</div>
+<div class="line"><a name="l01148"></a><span class="lineno"> 1148</span>&#160;<span class="keywordtype">void</span></div>
+<div class="line"><a name="l01149"></a><span class="lineno"><a class="line" href="classamrex_1_1_fab_array_copy_descriptor.html#a2e73413fe6fce98d2577baa88827193c"> 1149</a></span>&#160;<a class="code" href="classamrex_1_1_fab_array_copy_descriptor.html#a2e73413fe6fce98d2577baa88827193c">FabArrayCopyDescriptor&lt;FAB&gt;::PrintStats</a> ()<span class="keyword"> const</span></div>
+<div class="line"><a name="l01150"></a><span class="lineno"> 1150</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l01151"></a><span class="lineno"> 1151</span>&#160;    <span class="keyword">const</span> <span class="keywordtype">int</span> MyProc = <a class="code" href="namespaceamrex_1_1_parallel_descriptor.html#a3deabb4447125ee364f9ca1c5a07c1e4">ParallelDescriptor::MyProc</a>();</div>
+<div class="line"><a name="l01152"></a><span class="lineno"> 1152</span>&#160;</div>
+<div class="line"><a name="l01153"></a><span class="lineno"> 1153</span>&#160;    std::cout &lt;&lt; <span class="stringliteral">&quot;----- &quot;</span></div>
+<div class="line"><a name="l01154"></a><span class="lineno"> 1154</span>&#160;         &lt;&lt; MyProc</div>
+<div class="line"><a name="l01155"></a><span class="lineno"> 1155</span>&#160;         &lt;&lt; <span class="stringliteral">&quot;:  Parallel stats for FabArrayCopyDescriptor:&quot;</span> &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line"><a name="l01156"></a><span class="lineno"> 1156</span>&#160;</div>
+<div class="line"><a name="l01157"></a><span class="lineno"> 1157</span>&#160;    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> fa = 0; fa &lt; fabArrays.size(); ++fa)</div>
+<div class="line"><a name="l01158"></a><span class="lineno"> 1158</span>&#160;    {</div>
+<div class="line"><a name="l01159"></a><span class="lineno"> 1159</span>&#160;      std::cout &lt;&lt; <span class="stringliteral">&quot;fabArrays[&quot;</span></div>
+<div class="line"><a name="l01160"></a><span class="lineno"> 1160</span>&#160;             &lt;&lt; fa</div>
+<div class="line"><a name="l01161"></a><span class="lineno"> 1161</span>&#160;             &lt;&lt; <span class="stringliteral">&quot;]-&gt;boxArray() = &quot;</span></div>
+<div class="line"><a name="l01162"></a><span class="lineno"> 1162</span>&#160;             &lt;&lt; fabArrays[fa]-&gt;boxArray()</div>
+<div class="line"><a name="l01163"></a><span class="lineno"> 1163</span>&#160;             &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line"><a name="l01164"></a><span class="lineno"> 1164</span>&#160;    }</div>
+<div class="line"><a name="l01165"></a><span class="lineno"> 1165</span>&#160;}</div>
+<div class="line"><a name="l01166"></a><span class="lineno"> 1166</span>&#160;</div>
+<div class="line"><a name="l01167"></a><span class="lineno"> 1167</span>&#160;}</div>
+<div class="line"><a name="l01168"></a><span class="lineno"> 1168</span>&#160;</div>
+<div class="line"><a name="l01169"></a><span class="lineno"> 1169</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="ttc" id="namespaceamrex_html_a856d024e72f88d93d1cb13e67a4fcd10"><div class="ttname"><a href="namespaceamrex.html#a856d024e72f88d93d1cb13e67a4fcd10">amrex::barrier</a></div><div class="ttdeci">void barrier(void)</div><div class="ttdoc">all ranks wait here to sync-up </div><div class="ttdef"><b>Definition:</b> AMReX_SPMDI.H:218</div></div>
-<div class="ttc" id="_a_m_re_x___b_l_profiler_8_h_html_a548fbd9b2cd72a927f463003f4adb0b1"><div class="ttname"><a href="_a_m_re_x___b_l_profiler_8_h.html#a548fbd9b2cd72a927f463003f4adb0b1">BL_PROFILE</a></div><div class="ttdeci">#define BL_PROFILE(a)</div><div class="ttdef"><b>Definition:</b> AMReX_BLProfiler.H:498</div></div>
+<div class="ttc" id="_a_m_re_x___b_l_profiler_8_h_html_a548fbd9b2cd72a927f463003f4adb0b1"><div class="ttname"><a href="_a_m_re_x___b_l_profiler_8_h.html#a548fbd9b2cd72a927f463003f4adb0b1">BL_PROFILE</a></div><div class="ttdeci">#define BL_PROFILE(a)</div><div class="ttdef"><b>Definition:</b> AMReX_BLProfiler.H:515</div></div>
 <div class="ttc" id="classamrex_1_1_box_html_ac3eb066c1eb494c80c7f1bcd2a8300fa"><div class="ttname"><a href="classamrex_1_1_box.html#ac3eb066c1eb494c80c7f1bcd2a8300fa">amrex::Box::ixType</a></div><div class="ttdeci">IndexType ixType() const </div><div class="ttdoc">Returns the indexing type. </div><div class="ttdef"><b>Definition:</b> AMReX_Box.H:231</div></div>
 <div class="ttc" id="_a_m_re_x___parallel_descriptor_8_h_html_aa5c7a9db9f965eb95c975e7635e55c24"><div class="ttname"><a href="_a_m_re_x___parallel_descriptor_8_h.html#aa5c7a9db9f965eb95c975e7635e55c24">BL_MPI_REQUIRE</a></div><div class="ttdeci">#define BL_MPI_REQUIRE(x)</div><div class="ttdef"><b>Definition:</b> AMReX_ParallelDescriptor.H:865</div></div>
-<div class="ttc" id="classamrex_1_1_fab_array_copy_descriptor_html_a2e73413fe6fce98d2577baa88827193c"><div class="ttname"><a href="classamrex_1_1_fab_array_copy_descriptor.html#a2e73413fe6fce98d2577baa88827193c">amrex::FabArrayCopyDescriptor::PrintStats</a></div><div class="ttdeci">void PrintStats() const </div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:1148</div></div>
+<div class="ttc" id="classamrex_1_1_fab_array_copy_descriptor_html_a2e73413fe6fce98d2577baa88827193c"><div class="ttname"><a href="classamrex_1_1_fab_array_copy_descriptor.html#a2e73413fe6fce98d2577baa88827193c">amrex::FabArrayCopyDescriptor::PrintStats</a></div><div class="ttdeci">void PrintStats() const </div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:1149</div></div>
 <div class="ttc" id="namespaceamrex_html_a89eb9459b4109c4f9a9b3225abae29f8"><div class="ttname"><a href="namespaceamrex.html#a89eb9459b4109c4f9a9b3225abae29f8">amrex::match</a></div><div class="ttdeci">bool match(const BoxArray &amp;x, const BoxArray &amp;y)</div><div class="ttdoc">Note that two BoxArrays that match are not necessarily equal. </div><div class="ttdef"><b>Definition:</b> AMReX_BoxArray.cpp:1558</div></div>
 <div class="ttc" id="struct_m_p_i___status_html"><div class="ttname"><a href="struct_m_p_i___status.html">MPI_Status</a></div><div class="ttdef"><b>Definition:</b> AMReX_ccse-mpi.H:46</div></div>
 <div class="ttc" id="namespaceamrex_html_a9f13be15ca764e94680df68d8b9505d6"><div class="ttname"><a href="namespaceamrex.html#a9f13be15ca764e94680df68d8b9505d6">amrex::FillType</a></div><div class="ttdeci">FillType</div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:14</div></div>
@@ -1264,11 +1265,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="ttc" id="classamrex_1_1_box_domain_html_afe56e5629c6f85bd01429ac8469eb038"><div class="ttname"><a href="classamrex_1_1_box_domain.html#afe56e5629c6f85bd01429ac8469eb038">amrex::BoxDomain::add</a></div><div class="ttdeci">void add(const Box &amp;b)</div><div class="ttdoc">Add a Box to the domain. </div><div class="ttdef"><b>Definition:</b> AMReX_BoxDomain.cpp:115</div></div>
 <div class="ttc" id="classamrex_1_1_box_domain_html_abddeb640bf5c234f503cdf1523831217"><div class="ttname"><a href="classamrex_1_1_box_domain.html#abddeb640bf5c234f503cdf1523831217">amrex::BoxDomain::boxList</a></div><div class="ttdeci">const BoxList &amp; boxList() const </div><div class="ttdoc">Return a const reference to the underlying BoxList of this BoxDomain. </div><div class="ttdef"><b>Definition:</b> AMReX_BoxDomain.cpp:81</div></div>
 <div class="ttc" id="_a_m_re_x___b_lassert_8_h_html_a53ebc8b227de416f458800faa44c619e"><div class="ttname"><a href="_a_m_re_x___b_lassert_8_h.html#a53ebc8b227de416f458800faa44c619e">BL_ASSERT</a></div><div class="ttdeci">#define BL_ASSERT(EX)</div><div class="ttdef"><b>Definition:</b> AMReX_BLassert.H:49</div></div>
-<div class="ttc" id="classamrex_1_1_fab_array_copy_descriptor_html_a27f21e944b5789480163044fee5b3a57"><div class="ttname"><a href="classamrex_1_1_fab_array_copy_descriptor.html#a27f21e944b5789480163044fee5b3a57">amrex::FabArrayCopyDescriptor::FillFab</a></div><div class="ttdeci">void FillFab(FabArrayId fabarrayid, const FillBoxId &amp;fillboxid, FAB &amp;destFab)</div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:1094</div></div>
+<div class="ttc" id="classamrex_1_1_fab_array_copy_descriptor_html_a27f21e944b5789480163044fee5b3a57"><div class="ttname"><a href="classamrex_1_1_fab_array_copy_descriptor.html#a27f21e944b5789480163044fee5b3a57">amrex::FabArrayCopyDescriptor::FillFab</a></div><div class="ttdeci">void FillFab(FabArrayId fabarrayid, const FillBoxId &amp;fillboxid, FAB &amp;destFab)</div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:1095</div></div>
 <div class="ttc" id="structamrex_1_1_fab_array_base_1_1_fab_com_tag_html_ad679841ea96302c513ad625560efb23d"><div class="ttname"><a href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html#ad679841ea96302c513ad625560efb23d">amrex::FabArrayBase::FabComTag::nComp</a></div><div class="ttdeci">int nComp</div><div class="ttdef"><b>Definition:</b> AMReX_FabArrayBase.H:232</div></div>
 <div class="ttc" id="structamrex_1_1_fab_copy_descriptor_html_abe60f2cf30aac61d68454a6823d1e3a4"><div class="ttname"><a href="structamrex_1_1_fab_copy_descriptor.html#abe60f2cf30aac61d68454a6823d1e3a4">amrex::FabCopyDescriptor::fillBoxId</a></div><div class="ttdeci">int fillBoxId</div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:76</div></div>
 <div class="ttc" id="structamrex_1_1_fab_copy_descriptor_html_aee8abd3f91100c694b40a498142c1891"><div class="ttname"><a href="structamrex_1_1_fab_copy_descriptor.html#aee8abd3f91100c694b40a498142c1891">amrex::FabCopyDescriptor::copyFromProc</a></div><div class="ttdeci">int copyFromProc</div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:74</div></div>
 <div class="ttc" id="namespaceamrex_html_aea69993eec3c9ca497cd0e47522b2ec6"><div class="ttname"><a href="namespaceamrex.html#aea69993eec3c9ca497cd0e47522b2ec6">amrex::Abort</a></div><div class="ttdeci">void Abort(const char *msg=0)</div><div class="ttdoc">Print out message to cerr and exit via abort(). </div><div class="ttdef"><b>Definition:</b> AMReX.cpp:186</div></div>
+<div class="ttc" id="_a_m_re_x___b_l_profiler_8_h_html_aa23714eb98f31ba71d565390dae2a7d2"><div class="ttname"><a href="_a_m_re_x___b_l_profiler_8_h.html#aa23714eb98f31ba71d565390dae2a7d2">BL_PROFILE_VAR</a></div><div class="ttdeci">#define BL_PROFILE_VAR(fname, vname)</div><div class="ttdef"><b>Definition:</b> AMReX_BLProfiler.H:524</div></div>
 <div class="ttc" id="namespaceamrex_html_a9f13be15ca764e94680df68d8b9505d6a86e193c43ac00a14b0943baf3433c6d0"><div class="ttname"><a href="namespaceamrex.html#a9f13be15ca764e94680df68d8b9505d6a86e193c43ac00a14b0943baf3433c6d0">amrex::Unfillable</a></div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:14</div></div>
 <div class="ttc" id="classamrex_1_1_print_html_ac54860bd8ad68a5551e588ff8e01aa3b"><div class="ttname"><a href="classamrex_1_1_print.html#ac54860bd8ad68a5551e588ff8e01aa3b">amrex::Print::AllProcs</a></div><div class="ttdeci">static constexpr int AllProcs</div><div class="ttdef"><b>Definition:</b> AMReX_Print.H:17</div></div>
 <div class="ttc" id="structamrex_1_1_fab_copy_descriptor_html"><div class="ttname"><a href="structamrex_1_1_fab_copy_descriptor.html">amrex::FabCopyDescriptor</a></div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:65</div></div>
@@ -1319,6 +1321,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="ttc" id="classamrex_1_1_fab_array_base_html_a9eecb871b30ae6ab32fadf9965e4de03"><div class="ttname"><a href="classamrex_1_1_fab_array_base.html#a9eecb871b30ae6ab32fadf9965e4de03">amrex::FabArrayBase::box</a></div><div class="ttdeci">Box box(int K) const </div><div class="ttdoc">Return the Kth Box in the BoxArray. That is, the valid region of the Kth grid. </div><div class="ttdef"><b>Definition:</b> AMReX_FabArrayBase.H:75</div></div>
 <div class="ttc" id="classamrex_1_1_fab_array_id_html"><div class="ttname"><a href="classamrex_1_1_fab_array_id.html">amrex::FabArrayId</a></div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:44</div></div>
 <div class="ttc" id="structamrex_1_1_fab_copy_descriptor_html_acbfb910d7582f3e32b2e263e1581e382"><div class="ttname"><a href="structamrex_1_1_fab_copy_descriptor.html#acbfb910d7582f3e32b2e263e1581e382">amrex::FabCopyDescriptor::fillType</a></div><div class="ttdeci">FillType fillType</div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:80</div></div>
+<div class="ttc" id="_a_m_re_x___b_l_profiler_8_h_html_a82c334c787872a6bbacabe9a38389224"><div class="ttname"><a href="_a_m_re_x___b_l_profiler_8_h.html#a82c334c787872a6bbacabe9a38389224">BL_PROFILE_VAR_STOP</a></div><div class="ttdeci">#define BL_PROFILE_VAR_STOP(vname)</div><div class="ttdef"><b>Definition:</b> AMReX_BLProfiler.H:527</div></div>
 <div class="ttc" id="classamrex_1_1_distribution_mapping_html_a882db2077f63d8cd073dc37479e1eb44"><div class="ttname"><a href="classamrex_1_1_distribution_mapping.html#a882db2077f63d8cd073dc37479e1eb44">amrex::DistributionMapping::Check</a></div><div class="ttdeci">bool Check() const </div><div class="ttdef"><b>Definition:</b> AMReX_DistributionMapping.cpp:2577</div></div>
 <div class="ttc" id="classamrex_1_1_fill_box_id_html_a079fca47ac12e3c5d67f78141e971015"><div class="ttname"><a href="classamrex_1_1_fill_box_id.html#a079fca47ac12e3c5d67f78141e971015">amrex::FillBoxId::box</a></div><div class="ttdeci">const Box &amp; box() const </div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:35</div></div>
 <div class="ttc" id="structamrex_1_1_fab_array_base_1_1_fab_com_tag_html"><div class="ttname"><a href="structamrex_1_1_fab_array_base_1_1_fab_com_tag.html">amrex::FabArrayBase::FabComTag</a></div><div class="ttdef"><b>Definition:</b> AMReX_FabArrayBase.H:224</div></div>
@@ -1339,7 +1342,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="ttc" id="classamrex_1_1_vector_html_a6a70bd3c70b04dd1008736d9545c18ce"><div class="ttname"><a href="classamrex_1_1_vector.html#a6a70bd3c70b04dd1008736d9545c18ce">amrex::Vector::dataPtr</a></div><div class="ttdeci">T * dataPtr()</div><div class="ttdoc">get access to the underlying data pointer </div><div class="ttdef"><b>Definition:</b> AMReX_Vector.H:39</div></div>
 <div class="ttc" id="classamrex_1_1_fab_array_base_html_a91b9b8d89859dcf641c0d42348b3f0ff"><div class="ttname"><a href="classamrex_1_1_fab_array_base.html#a91b9b8d89859dcf641c0d42348b3f0ff">amrex::FabArrayBase::DistributionMap</a></div><div class="ttdeci">const DistributionMapping &amp; DistributionMap() const </div><div class="ttdoc">Return constant reference to associated DistributionMapping. </div><div class="ttdef"><b>Definition:</b> AMReX_FabArrayBase.H:105</div></div>
 <div class="ttc" id="classamrex_1_1_box_list_html_a1b546c6d1a623b0335f40983e1d46b8a"><div class="ttname"><a href="classamrex_1_1_box_list.html#a1b546c6d1a623b0335f40983e1d46b8a">amrex::BoxList::clear</a></div><div class="ttdeci">void clear()</div><div class="ttdoc">Remove all Boxes from this BoxList. </div><div class="ttdef"><b>Definition:</b> AMReX_BoxList.cpp:17</div></div>
-<div class="ttc" id="_a_m_re_x___b_l_profiler_8_h_html_a5e661a1af9130dd8449e7f730864271c"><div class="ttname"><a href="_a_m_re_x___b_l_profiler_8_h.html#a5e661a1af9130dd8449e7f730864271c">BL_COMM_PROFILE</a></div><div class="ttdeci">#define BL_COMM_PROFILE(cft, size, pid, tag)</div><div class="ttdef"><b>Definition:</b> AMReX_BLProfiler.H:529</div></div>
+<div class="ttc" id="_a_m_re_x___b_l_profiler_8_h_html_a5e661a1af9130dd8449e7f730864271c"><div class="ttname"><a href="_a_m_re_x___b_l_profiler_8_h.html#a5e661a1af9130dd8449e7f730864271c">BL_COMM_PROFILE</a></div><div class="ttdeci">#define BL_COMM_PROFILE(cft, size, pid, tag)</div><div class="ttdef"><b>Definition:</b> AMReX_BLProfiler.H:547</div></div>
 <div class="ttc" id="classamrex_1_1_fab_array_copy_descriptor_html_a763b6b17ed0232092aa0a7d18e74dcc7"><div class="ttname"><a href="classamrex_1_1_fab_array_copy_descriptor.html#a763b6b17ed0232092aa0a7d18e74dcc7">amrex::FabArrayCopyDescriptor::nFabComTags</a></div><div class="ttdeci">int nFabComTags() const </div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:188</div></div>
 <div class="ttc" id="classamrex_1_1_fab_array_id_html_a2d0c51349f086493d639ac46be3098ff"><div class="ttname"><a href="classamrex_1_1_fab_array_id.html#a2d0c51349f086493d639ac46be3098ff">amrex::FabArrayId::operator==</a></div><div class="ttdeci">bool operator==(const FabArrayId &amp;rhs) const </div><div class="ttdef"><b>Definition:</b> AMReX_FACopyDescriptor.H:54</div></div>
 <div class="ttc" id="namespaceamrex_1_1_b_l_pgas_html_a792f3198bcb515c10dbe41077ce83ce7"><div class="ttname"><a href="namespaceamrex_1_1_b_l_pgas.html#a792f3198bcb515c10dbe41077ce83ce7">amrex::BLPgas::alloc</a></div><div class="ttdeci">void * alloc(std::size_t _sz)</div><div class="ttdoc">Allocate _sz bytes in the global memory address space. </div><div class="ttdef"><b>Definition:</b> AMReX_BLPgas.cpp:177</div></div>

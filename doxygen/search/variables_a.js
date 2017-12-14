@@ -8,6 +8,7 @@ var searchData=
   ['level_5fcount',['level_count',['../classamrex_1_1_amr.html#a1a1d9a33774055f267ad5297b2846ecc',1,'amrex::Amr']]],
   ['level_5fsteps',['level_steps',['../classamrex_1_1_amr.html#a38fbd17db8a050b5bf3302427b9285ea',1,'amrex::Amr']]],
   ['levelbld',['levelbld',['../classamrex_1_1_amr.html#a99ffc00c495183894b2ee7e11a79685e',1,'amrex::Amr']]],
+  ['leveldirectoriescreated',['levelDirectoriesCreated',['../classamrex_1_1_particle_container.html#a03b2c956029810b305eea345617ad6f7',1,'amrex::ParticleContainer']]],
   ['leveldirectorycreated',['levelDirectoryCreated',['../classamrex_1_1_amr_level.html#a7a90e201ef6ef11f2c42fc9a0de76939',1,'amrex::AmrLevel']]],
   ['lincc_5finterp',['lincc_interp',['../namespaceamrex.html#acdf3882926f66513ad7885b4cd468233',1,'amrex']]],
   ['lo',['lo',['../_a_m_re_x___multi_fab_util___f_8_h.html#a54267e9174e171df90d3594f0c32e114',1,'AMReX_MultiFabUtil_F.H']]],

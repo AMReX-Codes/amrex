@@ -289,6 +289,7 @@ var searchData=
   ['maxcomp',['MaxComp',['../classamrex_1_1_fab_array_base.html#ae4f336f53eda93074deacddef4d22055',1,'amrex::FabArrayBase']]],
   ['maxgridsize',['maxGridSize',['../classamrex_1_1_grid_parameters.html#a8e93f394a1c90fd5b6486fbc8b830e5f',1,'amrex::GridParameters']]],
   ['maxlevel',['maxLevel',['../classamrex_1_1_grid_parameters.html#a469bd013ff221deaf1e076183b80a041',1,'amrex::GridParameters']]],
+  ['maxnextidprepost',['maxnextidPrePost',['../classamrex_1_1_particle_container.html#a90b5037a7968afc7d25bcecf94463900',1,'amrex::ParticleContainer']]],
   ['maxsize',['maxsize',['../structamrex_1_1_fab_array_base_1_1_cache_stats.html#a3ecc000d62df91bdbdd6ee43745cb2d0',1,'amrex::FabArrayBase::CacheStats']]],
   ['maxuse',['maxuse',['../structamrex_1_1_fab_array_base_1_1_cache_stats.html#a12603fe9f0ebd8dadb43060b0a189f60',1,'amrex::FabArrayBase::CacheStats']]],
   ['message_5fint',['message_int',['../classamrex_1_1_amr.html#a37d45dad31dd3b070c0a14578937365b',1,'amrex::Amr']]],

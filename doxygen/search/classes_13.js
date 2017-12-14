@@ -30,6 +30,7 @@ var searchData=
   ['vector_3c_20amrex_3a_3avector_3c_20amrex_3a_3avofstencil_20_3e_20_3e',['Vector&lt; amrex::Vector&lt; amrex::VoFStencil &gt; &gt;',['../classamrex_1_1_vector.html',1,'amrex']]],
   ['vector_3c_20amrex_3a_3avector_3c_20amrex_3a_3avolindex_20_3e_20_3e',['Vector&lt; amrex::Vector&lt; amrex::VolIndex &gt; &gt;',['../classamrex_1_1_vector.html',1,'amrex']]],
   ['vector_3c_20amrex_3a_3avector_3c_20int_20_3e_20_3e',['Vector&lt; amrex::Vector&lt; int &gt; &gt;',['../classamrex_1_1_vector.html',1,'amrex']]],
+  ['vector_3c_20amrex_3a_3avector_3c_20long_20_3e_20_3e',['Vector&lt; amrex::Vector&lt; long &gt; &gt;',['../classamrex_1_1_vector.html',1,'amrex']]],
   ['vector_3c_20amrex_3a_3avector_3c_20real_20_3e_20_3e',['Vector&lt; amrex::Vector&lt; Real &gt; &gt;',['../classamrex_1_1_vector.html',1,'amrex']]],
   ['vector_3c_20amrex_3a_3avismf_3a_3afabondisk_20_3e',['Vector&lt; amrex::VisMF::FabOnDisk &gt;',['../classamrex_1_1_vector.html',1,'amrex']]],
   ['vector_3c_20amrex_3a_3avofiterator_20_3e',['Vector&lt; amrex::VoFIterator &gt;',['../classamrex_1_1_vector.html',1,'amrex']]],

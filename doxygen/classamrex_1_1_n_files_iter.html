@@ -103,6 +103,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ae897aacaf05af5ff9c575a345315be88"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afaabf4f7bbf8f45e425237a5116fffda"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_n_files_iter.html#afaabf4f7bbf8f45e425237a5116fffda">SetDynamic</a> (int deciderproc=-1)</td></tr>
 <tr class="separator:afaabf4f7bbf8f45e425237a5116fffda"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3d067784807ec260a253c8b4339fbab4"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_n_files_iter.html#a3d067784807ec260a253c8b4339fbab4">GetDynamic</a> ()</td></tr>
+<tr class="separator:a3d067784807ec260a253c8b4339fbab4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4502510b5b15f7e87226e43367e1923a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_n_files_iter.html#a4502510b5b15f7e87226e43367e1923a">SetSparseFPP</a> (const <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; int &gt; &amp;ranksToWrite)</td></tr>
+<tr class="separator:a4502510b5b15f7e87226e43367e1923a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3db7a0389068810daacebd8e51349b35"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_n_files_iter.html#a3db7a0389068810daacebd8e51349b35">GetSparseFPP</a> () const </td></tr>
+<tr class="separator:a3db7a0389068810daacebd8e51349b35"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:add24fee333e89cdcbc0cd9890a6f2b34"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_n_files_iter.html#add24fee333e89cdcbc0cd9890a6f2b34">NFilesIter</a> (const std::string &amp;fileName, const <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; int &gt; &amp;readRanks, bool setBuf=false)</td></tr>
 <tr class="separator:add24fee333e89cdcbc0cd9890a6f2b34"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4f9a9917a9842e888fbdf9d45f5de52e"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_n_files_iter.html#a4f9a9917a9842e888fbdf9d45f5de52e">~NFilesIter</a> ()</td></tr>
@@ -544,6 +550,29 @@ Static Public Member Functions</h2></td></tr>
 
 </div>
 </div>
+<a class="anchor" id="a3d067784807ec260a253c8b4339fbab4"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool amrex::NFilesIter::GetDynamic </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a class="anchor" id="a3d957684f758d55f7060078a5f49b08f"></a>
 <div class="memitem">
 <div class="memproto">
@@ -561,6 +590,29 @@ Static Public Member Functions</h2></td></tr>
   </td>
   <td class="mlabels-right">
 <span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a3db7a0389068810daacebd8e51349b35"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool amrex::NFilesIter::GetSparseFPP </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -698,6 +750,22 @@ Static Public Member Functions</h2></td></tr>
 <span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span></span>  </td>
   </tr>
 </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a4502510b5b15f7e87226e43367e1923a"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::NFilesIter::SetSparseFPP </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_vector.html">Vector</a>&lt; int &gt; &amp;&#160;</td>
+          <td class="paramname"><em>ranksToWrite</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
 </div><div class="memdoc">
 
 </div>

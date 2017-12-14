@@ -35,7 +35,7 @@ var searchData=
   ['initializeinit',['InitializeInit',['../classamrex_1_1_amr.html#a96d263aac2bf01c26faa2e9e6247e002',1,'amrex::Amr']]],
   ['initnrandompercell',['InitNRandomPerCell',['../classamrex_1_1_particle_container.html#a43c257d811d31372ec9aeb183a04831b',1,'amrex::ParticleContainer']]],
   ['initonepercell',['InitOnePerCell',['../classamrex_1_1_particle_container.html#a23fef3ef39243107d38903a067b38bc7',1,'amrex::ParticleContainer']]],
-  ['initparams',['InitParams',['../classamrex_1_1_b_l_profiler.html#a51c6c0088e1e40e1db8ed8e165c2314f',1,'amrex::BLProfiler']]],
+  ['initparams',['InitParams',['../classamrex_1_1_b_l_profiler.html#af6d5560f2938564e691ec706ef87b5f3',1,'amrex::BLProfiler::InitParams()'],['../classamrex_1_1_b_l_profiler.html#a51c6c0088e1e40e1db8ed8e165c2314f',1,'amrex::BLProfiler::InitParams(const Real ptl, const bool writeall, const bool writefabs)']]],
   ['initpltandchk',['initPltAndChk',['../classamrex_1_1_amr.html#a210649d50f9f052bcaf38336ce97f986',1,'amrex::Amr']]],
   ['initproximitymap',['InitProximityMap',['../classamrex_1_1_distribution_mapping.html#ad2c25bbb27657cfea22652420700ae75',1,'amrex::DistributionMapping']]],
   ['initrandom',['InitRandom',['../classamrex_1_1_particle_container.html#ab625b5a4a0f0b861281f75c797c6787d',1,'amrex::ParticleContainer::InitRandom()'],['../namespaceamrex.html#a93de6099718f1f212f72153934643512',1,'amrex::InitRandom(unsigned long seed)'],['../namespaceamrex.html#a037cb7f1eaa6b38d10d36424e8218a6b',1,'amrex::InitRandom(unsigned long seed, int nprocs)']]],

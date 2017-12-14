@@ -27,6 +27,7 @@ var searchData=
   ['coord_5ftype',['coord_type',['../_a_m_re_x___multi_fab_util___f_8_h.html#a63e1674d943c5df695b5e07fc53168bb',1,'AMReX_MultiFabUtil_F.H']]],
   ['copyfromindex',['copyFromIndex',['../structamrex_1_1_fab_copy_descriptor.html#a339ecf32165d5528efe85cd26bdcb9ff',1,'amrex::FabCopyDescriptor']]],
   ['copyfromproc',['copyFromProc',['../structamrex_1_1_fab_copy_descriptor.html#aee8abd3f91100c694b40a498142c1891',1,'amrex::FabCopyDescriptor']]],
+  ['countprepost',['countPrePost',['../classamrex_1_1_particle_container.html#a20f76f3abbc086a48f21791a386aaf8a',1,'amrex::ParticleContainer']]],
   ['cp_5frecv_5fevent',['cp_recv_event',['../namespaceamrex_1_1_b_l_pgas.html#af28d723ceea6075a8c0cc70fb1cb0336',1,'amrex::BLPgas']]],
   ['cp_5fsend_5fcounter',['cp_send_counter',['../namespaceamrex_1_1_b_l_pgas.html#a006a6e9402010787ee8cb2fb2b75a144',1,'amrex::BLPgas']]],
   ['cp_5fsend_5fevent',['cp_send_event',['../namespaceamrex_1_1_b_l_pgas.html#a670380fc0263565e4a2d453e158fb7e1',1,'amrex::BLPgas']]],

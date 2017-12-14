@@ -125,7 +125,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:af651bb170ec4a1a93a4eed118dead881"><td class="memItemLeft" align="right" valign="top">virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#af651bb170ec4a1a93a4eed118dead881">~AmrLevel</a> ()</td></tr>
 <tr class="memdesc:af651bb170ec4a1a93a4eed118dead881"><td class="mdescLeft">&#160;</td><td class="mdescRight">The destructor.  <a href="#af651bb170ec4a1a93a4eed118dead881">More...</a><br/></td></tr>
 <tr class="separator:af651bb170ec4a1a93a4eed118dead881"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7cec3a532b1d9bc6f36417ecb33b4287"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a7cec3a532b1d9bc6f36417ecb33b4287">LevelDirectoryNames</a> (const std::string &amp;dir, std::string &amp;LevelDir, std::string &amp;FullPath)</td></tr>
+<tr class="memitem:a7cec3a532b1d9bc6f36417ecb33b4287"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a7cec3a532b1d9bc6f36417ecb33b4287">LevelDirectoryNames</a> (const std::string &amp;dir, std::string &amp;LevelDir, std::string &amp;FullPath)</td></tr>
 <tr class="memdesc:a7cec3a532b1d9bc6f36417ecb33b4287"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the level directory names.  <a href="#a7cec3a532b1d9bc6f36417ecb33b4287">More...</a><br/></td></tr>
 <tr class="separator:a7cec3a532b1d9bc6f36417ecb33b4287"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a962f9d201153832198014fba04698410"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a962f9d201153832198014fba04698410">CreateLevelDirectory</a> (const std::string &amp;dir)</td></tr>
@@ -140,12 +140,24 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:aac3f74f8caafcc7b7cf0d3b33480e5d7"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#aac3f74f8caafcc7b7cf0d3b33480e5d7">writePlotFile</a> (const std::string &amp;dir, std::ostream &amp;os, <a class="el" href="classamrex_1_1_vis_m_f.html#aa50a3ce471ac0bdf8f78134f0004e156">VisMF::How</a> how=<a class="el" href="classamrex_1_1_vis_m_f.html#aa50a3ce471ac0bdf8f78134f0004e156a167fa24b841257fa58af35b658f5d6c1">VisMF::NFiles</a>)</td></tr>
 <tr class="memdesc:aac3f74f8caafcc7b7cf0d3b33480e5d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write plot file stuff to specified directory. This is a pure virtual function and hence MUST be implemented by derived classes.  <a href="#aac3f74f8caafcc7b7cf0d3b33480e5d7">More...</a><br/></td></tr>
 <tr class="separator:aac3f74f8caafcc7b7cf0d3b33480e5d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a186555902c913a437e6676f5cec90ae8"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a186555902c913a437e6676f5cec90ae8">writePlotFilePre</a> (const std::string &amp;dir, std::ostream &amp;os)</td></tr>
+<tr class="memdesc:a186555902c913a437e6676f5cec90ae8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do pre-plotfile work to avoid synchronizations while writing the amr hierarchy.  <a href="#a186555902c913a437e6676f5cec90ae8">More...</a><br/></td></tr>
+<tr class="separator:a186555902c913a437e6676f5cec90ae8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3e2abd422506f2fb1ee6f55a47433f42"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a3e2abd422506f2fb1ee6f55a47433f42">writePlotFilePost</a> (const std::string &amp;dir, std::ostream &amp;os)</td></tr>
+<tr class="memdesc:a3e2abd422506f2fb1ee6f55a47433f42"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do post-plotfile work to avoid synchronizations while writing the amr hierarchy.  <a href="#a3e2abd422506f2fb1ee6f55a47433f42">More...</a><br/></td></tr>
+<tr class="separator:a3e2abd422506f2fb1ee6f55a47433f42"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a07867b18a6a1ad47aabf71d2de09f57c"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a07867b18a6a1ad47aabf71d2de09f57c">writeSmallPlotFile</a> (const std::string &amp;dir, std::ostream &amp;os, <a class="el" href="classamrex_1_1_vis_m_f.html#aa50a3ce471ac0bdf8f78134f0004e156">VisMF::How</a> how=<a class="el" href="classamrex_1_1_vis_m_f.html#aa50a3ce471ac0bdf8f78134f0004e156a167fa24b841257fa58af35b658f5d6c1">VisMF::NFiles</a>)</td></tr>
 <tr class="memdesc:a07867b18a6a1ad47aabf71d2de09f57c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write small plot file stuff to specified directory. Unlike writePlotFile, this is NOT a pure virtual function so implementation by derived classes is optional.  <a href="#a07867b18a6a1ad47aabf71d2de09f57c">More...</a><br/></td></tr>
 <tr class="separator:a07867b18a6a1ad47aabf71d2de09f57c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a169bef0169afefe32db1d994d2600c69"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a169bef0169afefe32db1d994d2600c69">checkPoint</a> (const std::string &amp;dir, std::ostream &amp;os, <a class="el" href="classamrex_1_1_vis_m_f.html#aa50a3ce471ac0bdf8f78134f0004e156">VisMF::How</a> how=<a class="el" href="classamrex_1_1_vis_m_f.html#aa50a3ce471ac0bdf8f78134f0004e156a167fa24b841257fa58af35b658f5d6c1">VisMF::NFiles</a>, bool dump_old=true)</td></tr>
 <tr class="memdesc:a169bef0169afefe32db1d994d2600c69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write current state to checkpoint file.  <a href="#a169bef0169afefe32db1d994d2600c69">More...</a><br/></td></tr>
 <tr class="separator:a169bef0169afefe32db1d994d2600c69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa8953b789fe7af91082c2fefcced1a16"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#aa8953b789fe7af91082c2fefcced1a16">checkPointPre</a> (const std::string &amp;dir, std::ostream &amp;os)</td></tr>
+<tr class="memdesc:aa8953b789fe7af91082c2fefcced1a16"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do pre-checkpoint work to avoid synchronizations while writing the amr hierarchy.  <a href="#aa8953b789fe7af91082c2fefcced1a16">More...</a><br/></td></tr>
+<tr class="separator:aa8953b789fe7af91082c2fefcced1a16"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a91b3bc1707aa307c5eeb73d9e2bfdd80"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a91b3bc1707aa307c5eeb73d9e2bfdd80">checkPointPost</a> (const std::string &amp;dir, std::ostream &amp;os)</td></tr>
+<tr class="memdesc:a91b3bc1707aa307c5eeb73d9e2bfdd80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Do post-checkpoint work to avoid synchronizations while writing the amr hierarchy.  <a href="#a91b3bc1707aa307c5eeb73d9e2bfdd80">More...</a><br/></td></tr>
+<tr class="separator:a91b3bc1707aa307c5eeb73d9e2bfdd80"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a05899e47b34be116fa7a9a40ecaa74ca"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_amr_level.html#a05899e47b34be116fa7a9a40ecaa74ca">restart</a> (<a class="el" href="classamrex_1_1_amr.html">Amr</a> &amp;papa, std::istream &amp;is, bool bReadSpecial=false)</td></tr>
 <tr class="memdesc:a05899e47b34be116fa7a9a40ecaa74ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Restart from a checkpoint file.  <a href="#a05899e47b34be116fa7a9a40ecaa74ca">More...</a><br/></td></tr>
 <tr class="separator:a05899e47b34be116fa7a9a40ecaa74ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -791,6 +803,78 @@ Friends</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Write current state to checkpoint file. </p>
+
+</div>
+</div>
+<a class="anchor" id="a91b3bc1707aa307c5eeb73d9e2bfdd80"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::AmrLevel::checkPointPost </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>dir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Do post-checkpoint work to avoid synchronizations while writing the amr hierarchy. </p>
+
+</div>
+</div>
+<a class="anchor" id="aa8953b789fe7af91082c2fefcced1a16"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::AmrLevel::checkPointPre </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>dir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Do pre-checkpoint work to avoid synchronizations while writing the amr hierarchy. </p>
 
 </div>
 </div>
@@ -1982,9 +2066,6 @@ Friends</h2></td></tr>
 <a class="anchor" id="a7cec3a532b1d9bc6f36417ecb33b4287"></a>
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void amrex::AmrLevel::LevelDirectoryNames </td>
@@ -2010,11 +2091,6 @@ Friends</h2></td></tr>
           <td></td><td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Get the level directory names. </p>
@@ -2897,6 +2973,78 @@ Friends</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Write plot file stuff to specified directory. This is a pure virtual function and hence MUST be implemented by derived classes. </p>
+
+</div>
+</div>
+<a class="anchor" id="a3e2abd422506f2fb1ee6f55a47433f42"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::AmrLevel::writePlotFilePost </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>dir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Do post-plotfile work to avoid synchronizations while writing the amr hierarchy. </p>
+
+</div>
+</div>
+<a class="anchor" id="a186555902c913a437e6676f5cec90ae8"></a>
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void amrex::AmrLevel::writePlotFilePre </td>
+          <td>(</td>
+          <td class="paramtype">const std::string &amp;&#160;</td>
+          <td class="paramname"><em>dir</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::ostream &amp;&#160;</td>
+          <td class="paramname"><em>os</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Do pre-plotfile work to avoid synchronizations while writing the amr hierarchy. </p>
 
 </div>
 </div>
