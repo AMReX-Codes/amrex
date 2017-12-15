@@ -127,6 +127,8 @@ std::list<BLProfStats::TimeRange> BLProfStats::RangeIntersection(
 bool BLProfStats::RemovePiece(std::list<TimeRange> &removeFromHere,
                               const TimeRange &pieceToRemove)
 {
+  
+
   bool piecesRemoved(false);
   std::list<TimeRange>::iterator it;
   std::list<std::list<TimeRange>::iterator> eraseThese;
@@ -141,11 +143,13 @@ bool BLProfStats::RemovePiece(std::list<TimeRange> &removeFromHere,
     bool covered((pieceToRemove.startTime < tRangeFrom.startTime) &&
                  (pieceToRemove.stopTime  > tRangeFrom.stopTime));
     bool bothHigh(pieceToRemove.startTime > tRangeFrom.stopTime);
-
+    bool equalLow(pieceToRemove.startTime == tRangeFrom.startTime);
+    bool equalHigh(pieceToRemove.stopTime == tRangeFrom.stopTime);
+    // Warning! equal tests may require an epsilon in future
+    //    implementations.
 
     // ---- there are six cases
     if(bothLow) {                            // ---- do nothing
-
     } else if( ! loInRange && hiInRange) {   // ---- remove low end piece
       tRangeFrom.startTime = pieceToRemove.stopTime;
       piecesRemoved = true;
@@ -165,8 +169,10 @@ bool BLProfStats::RemovePiece(std::list<TimeRange> &removeFromHere,
       piecesRemoved = true;
 
     } else if(bothHigh) {                    // ---- do nothing
+    } else if(equalLow && equalHigh) {
+      eraseThese.push_back(it);
     }
-
+    
   }
   std::list<std::list<TimeRange>::iterator >::iterator eit;
   for(eit = eraseThese.begin(); eit != eraseThese.end(); ++eit) {
