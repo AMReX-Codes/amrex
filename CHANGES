@@ -1,5 +1,39 @@
 # changes since the last release
 
+  -- New linear solver MLMG at Src/LinearSolvers/MLMG/.  Currently it
+     supports cell-centered single level and multi-level composite
+     solve.  Fortran interface is also available at
+     Src/F_Interfaces/LinearSolvers/.  See Tutorials/LinearSolvers for
+     tutorials.
+
+# 17.12
+
+  -- Ported more features (including dynamic scheduling and explicit
+     tile size) of MFIter from C++ to Fortran.
+
+  -- Added procedures to Fortran amrex_multifab_module to add,
+     subtract, multiply, divide, saxpy and lincomb (linear
+     combination).  Note that we call it saxpy, but it doesn't mean
+     single precision.
+
+  -- The `configure; make; make install` build approach enables linear
+     solvers by default now.
+
+  -- MultiFab and iMultiFab now support move assignment operator.
+     This allows for swapping two MultiFabs without deep copying.  For
+     instance, std::swap(mf1, mf2);
+
+  -- Tutorials/Amr/Advection_AmrCore changes from using
+     `Vector<unique_ptr<MultiFab>>` to `Vector<MultiFab>`.
+
+# 17.11
+
+  -- AMREX_ASSERT_WITH_MESSAGE and AMREX_ALWAYS_ASSERT_WITH_MESSAGE
+     are new macros for assertion when it fails additional message
+     will be printed.   For example:
+
+         AMREX_ASSERT_WITH_MESSAGE(x > y, "reason why x > y must be true");
+
   -- amrex::Array is deprecated and replaced by amrex::Vector.
      Currently Array is an alias to Vector.  So this should not break
      any codes.  In the future, we will remove Array completely.

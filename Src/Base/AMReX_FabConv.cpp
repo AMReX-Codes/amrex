@@ -49,6 +49,45 @@ IntDescriptor::operator!= (const IntDescriptor& id) const
     return !operator==(id);
 }
 
+std::ostream&
+operator<< (std::ostream& os,
+            const IntDescriptor& id)
+{
+    amrex::StreamRetry sr(os, "opRD", 4);
+
+    while(sr.TryOutput()) {
+        os << "(";
+        os << id.numBytes();
+        os << ',';
+        os << id.order();
+        os << ")";
+    }
+    return os;
+}
+
+std::istream&
+operator>> (std::istream& is,
+            IntDescriptor& id)
+{
+    char c;
+    is >> c;
+    if (c != '(')
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
+    int numbytes;
+    is >> numbytes;
+    id.numbytes = numbytes;
+    is >> c;
+    if (c != ',')
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \',\'");
+    int ord;
+    is >> ord;
+    id.ord = (IntDescriptor::Ordering) ord;
+    is >> c;
+    if (c != ')')
+        amrex::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
+    return is;
+}
+
 RealDescriptor::RealDescriptor ()
 {}
 
@@ -482,10 +521,10 @@ permute_real_word_order (void*       out,
                          const void* in,
                          long        nitems,
                          const int*  outord,
-                         const int*  inord)
+                         const int*  inord, 
+                         int         REALSIZE)
 {
     BL_PROFILE("permute_real_word_order");
-    const int REALSIZE = sizeof(Real);
     
     char* pin  = (char*) in;
     char* pout = (char*) out;
@@ -829,15 +868,15 @@ PUTARRAY(long)
 
 std::ostream&
 operator<< (std::ostream&         os,
-            const RealDescriptor& id)
+            const RealDescriptor& rd)
 {
   amrex::StreamRetry sr(os, "opRD", 4);
 
   while(sr.TryOutput()) {
     os << "(";
-    putarray(os, id.formatarray());
+    putarray(os, rd.formatarray());
     os << ',';
-    putarray(os, id.orderarray());
+    putarray(os, rd.orderarray());
     os << ")";
   }
   return os;
@@ -884,7 +923,8 @@ PD_convert (void*                 out,
         memcpy(out, in, n*ord.numBytes());
     }
     else if (ord.formatarray() == ird.formatarray() && boffs == 0 && ! onescmp) {
-        permute_real_word_order(out, in, nitems, ord.order(), ird.order());
+        permute_real_word_order(out, in, nitems,
+                                ord.order(), ird.order(), ord.numBytes());
     }
     else if (ird == FPC::NativeRealDescriptor() && ord == FPC::Native32RealDescriptor()) {
       const Real *rIn = static_cast<const Real *>(in);
@@ -929,7 +969,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 }
 
 //
-// Read nitems from istream in ReadDescriptor format to native Real format.
+// Read nitems from istream in RealDescriptor format to native Real format.
 //
 
 void
@@ -1030,6 +1070,174 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
 
     delete [] bufr;
   }
+}
+
+//
+// Convert nitems floats in native format to RealDescriptor format
+// and write them to the ostream.
+//
+
+void
+RealDescriptor::convertFromNativeFloatFormat (std::ostream&         os,
+                                              long                  nitems,
+                                              const float*          in,
+                                              const RealDescriptor& od)
+{
+  BL_PROFILE("RD:convertFromNativeFloatFormat");
+  long nitemsSave(nitems);
+  long buffSize(std::min(long(writeBufferSize), nitems));
+  const float *inSave(in);
+  amrex::StreamRetry sr(os, "RD_cFNF", 4);
+
+  while(sr.TryOutput()) {
+    nitems = nitemsSave;
+    in = inSave;
+
+    char *bufr = new char[buffSize * od.numBytes()];
+
+    while (nitems > 0)
+    {
+        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
+        PD_convert(bufr,
+                   in,
+                   put,
+                   0,
+                   od,
+                   FPC::Native32RealDescriptor(),
+                   FPC::NativeLongDescriptor());
+        os.write(bufr, od.numBytes()*put);
+        nitems -= put;
+        in     += put;
+    }
+
+    delete [] bufr;
+  }
+}
+
+//
+// Convert nitems doubles in native format to RealDescriptor format
+// and write them to the ostream.
+//
+
+void
+RealDescriptor::convertFromNativeDoubleFormat (std::ostream&         os,
+                                               long                  nitems,
+                                               const double*         in,
+                                               const RealDescriptor& od)
+{
+  BL_PROFILE("RD:convertFromNativeDoubleFormat");
+  long nitemsSave(nitems);
+  long buffSize(std::min(long(writeBufferSize), nitems));
+  const double *inSave(in);
+  amrex::StreamRetry sr(os, "RD_cFNF", 4);
+
+  while(sr.TryOutput()) {
+    nitems = nitemsSave;
+    in = inSave;
+
+    char *bufr = new char[buffSize * od.numBytes()];
+
+    while (nitems > 0)
+    {
+        int put = int(nitems) > writeBufferSize ? writeBufferSize : int(nitems);
+        PD_convert(bufr,
+                   in,
+                   put,
+                   0,
+                   od,
+                   FPC::NativeRealDescriptor(),
+                   FPC::NativeLongDescriptor());
+        os.write(bufr, od.numBytes()*put);
+        nitems -= put;
+        in     += put;
+    }
+
+    delete [] bufr;
+  }
+}
+
+//
+// Read nitems from istream in RealDescriptor format to native float format.
+//
+
+void
+RealDescriptor::convertToNativeFloatFormat (float*                out,
+                                            long                  nitems,
+                                            std::istream&         is,
+                                            const RealDescriptor& id)
+{
+    BL_PROFILE("RD:convertToNativeFloatFormat");
+
+    long buffSize(std::min(long(readBufferSize), nitems));
+    char *bufr = new char[buffSize * id.numBytes()];
+
+    while (nitems > 0)
+    {
+        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        is.read(bufr, id.numBytes()*get);
+        PD_convert(out,
+                   bufr,
+                   get,
+                   0,
+                   FPC::Native32RealDescriptor(),
+                   id,
+                   FPC::NativeLongDescriptor());
+
+        if(bAlwaysFixDenormals) {
+          PD_fixdenormals(out, get, FPC::Native32RealDescriptor().format(),
+			  FPC::NativeRealDescriptor().order());
+        }
+        nitems -= get;
+        out    += get;
+    }
+
+    if(is.fail()) {
+      amrex::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
+    }
+
+    delete [] bufr;
+}
+
+//
+// Read nitems from istream in RealDescriptor format to native double format.
+//
+
+void
+RealDescriptor::convertToNativeDoubleFormat (double*               out,
+                                             long                  nitems,
+                                             std::istream&         is,
+                                             const RealDescriptor& id)
+{
+    BL_PROFILE("RD:convertToNativeDoubleFormat");
+
+    long buffSize(std::min(long(readBufferSize), nitems));
+    char *bufr = new char[buffSize * id.numBytes()];
+
+    while (nitems > 0)
+    {
+        int get = int(nitems) > readBufferSize ? readBufferSize : int(nitems);
+        is.read(bufr, id.numBytes()*get);
+        PD_convert(out,
+                   bufr,
+                   get,
+                   0,
+                   FPC::NativeRealDescriptor(),
+                   id,
+                   FPC::NativeLongDescriptor());
+
+        if(bAlwaysFixDenormals) {
+          PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
+			  FPC::NativeRealDescriptor().order());
+        }
+        nitems -= get;
+        out    += get;
+    }
+
+    if(is.fail()) {
+      amrex::Error("convert(Real*,long,istream&,RealDescriptor&) failed");
+    }
+
+    delete [] bufr;
 }
 
 }

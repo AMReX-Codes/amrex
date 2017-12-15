@@ -2,10 +2,10 @@
 #include <AMReX_MLMG.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_Interpolater.H>
 #include <AMReX_MG_F.H>
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_BC_TYPES.H>
+#include <AMReX_MLMG_F.H>
 
 // sol: full solution
 // rhs: rhs of the original equation L(sol) = rhs
@@ -38,16 +38,19 @@ MLMG::MLMG (MLLinOp& a_lp)
 MLMG::~MLMG ()
 {}
 
-void
+Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-             Real a_tol_real, Real a_tol_abs)
+             Real a_tol_rela, Real a_tol_abs)
 {
+    BL_PROFILE_REGION("MLMG::solve()");
+
     Real solve_start_time = ParallelDescriptor::second();
+
+    Real composite_norminf;
 
     prepareForSolve(a_sol, a_rhs);
 
-    bool bndryregister_updated = true;  // We did that when setBC.
-    computeMLResidual(finest_amr_lev, bndryregister_updated);
+    computeMLResidual(finest_amr_lev);
 
     bool local = true;
     Real resnorm0 = MLResNormInf(finest_amr_lev, local); 
@@ -69,10 +72,11 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         norm_name = "resid0";
         max_norm = resnorm0;
     }
-    const Real res_target = std::max(a_tol_abs, a_tol_real*max_norm);
+    const Real res_target = std::max(a_tol_abs, std::max(a_tol_rela,1.e-13)*max_norm);
 
     if (resnorm0 <= res_target)
     {
+        composite_norminf = resnorm0;
         if (verbose >= 1) {
             amrex::Print() << "MLMG: No iterations needed\n";
         }
@@ -80,12 +84,12 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
     else
     {
         Real iter_start_time = ParallelDescriptor::second();
+        bool converged = false;
         for (int iter = 0; iter < max_iters; ++iter)
         {
             oneIter(iter);
 
-            bool converged = false;
-            Real composite_norminf;
+            converged = false;
 
             // Test convergence on the fine amr level
             computeResidual(finest_amr_lev);
@@ -123,15 +127,22 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
             {
                 if (verbose >= 1) {
                     amrex::Print() << "MLMG: Final Iter. " << iter+1
-                                   << " composite resid/" << norm_name << " = "
+                                   << " resid/" << norm_name << " = "
                                    << composite_norminf/max_norm << "\n";
                 }
-
                 break;
             }
         }
+        if (!converged) {
+            amrex::Print() << "MLMG: Failed to converge after " << max_iters << " iterations."
+                           << " resid/" << norm_name << " = "
+                           << composite_norminf/max_norm << "\n";
+            amrex::Abort("MLMG failed");
+        }
         timer[iter_time] = ParallelDescriptor::second() - iter_start_time;
     }
+
+    if (final_fill_bc) fillSolutionBC();
 
     timer[solve_time] = ParallelDescriptor::second() - solve_start_time;
     if (verbose >= 1) {
@@ -140,6 +151,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                        << " Iter = " << timer[iter_time]
                        << " Bottom = " << timer[bottom_time] << "\n";
     }
+
+    return composite_norminf;
 }
 
 // in  : Residual (res) on the finest AMR level
@@ -147,6 +160,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 void
 MLMG::oneIter (int iter)
 {
+    BL_PROFILE("MLMG::oneIter()");
+
     for (int alev = finest_amr_lev; alev > 0; --alev)
     {
         miniCycle(alev);
@@ -162,8 +177,12 @@ MLMG::oneIter (int iter)
     }
 
     // coarest amr level
-    {    
+    {
         // enforce solvability if appropriate
+        if (linop.isSingular(0)) {
+            Real offset = res[0][0].sum() / linop.Geom(0,0).Domain().d_numPts();
+            res[0][0].plus(-offset, 0, 1);
+        }
 
         if (iter < max_fmg_iters) {
             mgFcycle ();
@@ -206,14 +225,13 @@ MLMG::oneIter (int iter)
 
 // Compute multi-level Residual (res) up to amrlevmax.
 void
-MLMG::computeMLResidual (int amrlevmax, bool bndryregister_updated)
+MLMG::computeMLResidual (int amrlevmax)
 {
+    BL_PROFILE("MLMG::computeMLResidual()");
+
     const int mglev = 0;
     for (int alev = amrlevmax; alev >= 0; --alev) {
-        const MultiFab* crse_bcdata = nullptr;
-        if (alev > 0 && !bndryregister_updated) {
-            crse_bcdata = sol[alev-1];
-        }
+        const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         linop.solutionResidual(alev, res[alev][mglev], *sol[alev], rhs[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, res[alev][mglev], *sol[alev], *sol[alev+1]);
@@ -225,6 +243,8 @@ MLMG::computeMLResidual (int amrlevmax, bool bndryregister_updated)
 void
 MLMG::computeResidual (int alev)
 {
+    BL_PROFILE("MLMG::computeResidual()");
+
     MultiFab& x = *sol[alev];
     const MultiFab& b = rhs[alev];
     MultiFab& r = res[alev][0];
@@ -240,6 +260,8 @@ MLMG::computeResidual (int alev)
 void
 MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 {
+    BL_PROFILE("MLMG::computeResWithCrseSolFineCor()");
+
     MultiFab& crse_sol = *sol[calev];
     const MultiFab& crse_rhs = rhs[calev];
     MultiFab& crse_res = res[calev][0];
@@ -268,6 +290,8 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 void
 MLMG::computeResWithCrseCorFineCor (int falev)
 {
+    BL_PROFILE("MLMG::computeResWithCrseCorFineCor()");
+
     const MultiFab& crse_cor = *cor[falev-1][0];
 
     MultiFab& fine_cor = *cor[falev][0];
@@ -283,6 +307,7 @@ MLMG::computeResWithCrseCorFineCor (int falev)
 void
 MLMG::miniCycle (int amrlev)
 {
+    BL_PROFILE("MLMG::miniCycle()");
     const int mglev = 0;
     mgVcycle(amrlev, mglev);
 }
@@ -292,15 +317,21 @@ MLMG::miniCycle (int amrlev)
 void
 MLMG::mgVcycle (int amrlev, int mglev_top)
 {
+    BL_PROFILE("MLMG::mgVcycle()");
+    BL_PROFILE_VAR_NS("MLMG::mgVcycle_up", blp_up);
+    BL_PROFILE_VAR_NS("MLMG::mgVcycle_bottom", blp_bottom);
+    BL_PROFILE_VAR_NS("MLMG::mgVcycle_down", blp_down);
+
     const int mglev_bottom = linop.NMGLevels(amrlev) - 1;
 
+    BL_PROFILE_VAR_START(blp_down);
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
         cor[amrlev][mglev]->setVal(0.0);
         bool skip_fillboundary = true;
         for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev],
-                         BCMode::Homogeneous, skip_fillboundary);
+                         skip_fillboundary);
             skip_fillboundary = false;
         }
 
@@ -311,7 +342,9 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         const int ratio = 2;
         amrex::average_down(rescor[amrlev][mglev], res[amrlev][mglev+1], 0, 1, ratio);
     }
+    BL_PROFILE_VAR_STOP(blp_down);
 
+    BL_PROFILE_VAR_START(blp_bottom);
     if (amrlev == 0)
     {
         bottomSolve();
@@ -320,14 +353,16 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     {
         cor[amrlev][mglev_bottom]->setVal(0.0);
         bool skip_fillboundary = true;
-        for (int i = 0; i < nuf; ++i) {
+        for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom],
-                         BCMode::Homogeneous, skip_fillboundary);
+                         skip_fillboundary);
             skip_fillboundary = false;
         }
     }
+    BL_PROFILE_VAR_STOP(blp_bottom);
     
-    for (int mglev = mglev_bottom-1; mglev >= 0; --mglev)
+    BL_PROFILE_VAR_START(blp_up);
+    for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
@@ -335,6 +370,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
         }
     }
+    BL_PROFILE_VAR_STOP(blp_up);
 }
 
 // FMG cycle on the coarest AMR level.
@@ -343,6 +379,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
 void
 MLMG::mgFcycle ()
 {
+    BL_PROFILE("MLMG::mgFcycle()");
+
     const int amrlev = 0;
     const int ratio = 2;
     const int mg_bottom_lev = linop.NMGLevels(amrlev) - 1;
@@ -375,6 +413,8 @@ MLMG::mgFcycle ()
 void
 MLMG::interpCorrection (int alev)
 {
+    BL_PROFILE("MLMG::interpCorrection_1");
+
     const MultiFab& crse_cor = *cor[alev-1][0];
     MultiFab& fine_cor = *cor[alev][0];
 
@@ -382,20 +422,23 @@ MLMG::interpCorrection (int alev)
     const int amrrr = linop.AMRRefRatio(alev-1);
     IntVect refratio{amrrr};
     ba.coarsen(refratio);
-    
-    MultiFab cfine(ba, fine_cor.DistributionMap(), 1, 0);
-    cfine.copy(crse_cor);
 
-    Geometry g1, g2;
-    Vector<BCRec> bcr;
+    const Geometry& crse_geom = linop.Geom(alev-1,0);
+    
+    MultiFab cfine(ba, fine_cor.DistributionMap(), 1, 1);
+    cfine.setVal(0.0);
+    cfine.ParallelCopy(crse_cor, 0, 0, 1, 0, 1, crse_geom.periodicity());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(fine_cor, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
-        amrex::pc_interp.interp(cfine[mfi], 0, fine_cor[mfi], 0, 1,
-                                mfi.tilebox(), refratio, g1, g2, bcr, 0, 0);
+        const Box& bx = mfi.tilebox();
+        amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                 BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                 &refratio[0]);
     }
 }
 
@@ -405,47 +448,83 @@ MLMG::interpCorrection (int alev)
 void
 MLMG::interpCorrection (int alev, int mglev)
 {
+    BL_PROFILE("MLMG::interpCorrection_2");
+
     MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab& fine_cor = *cor[alev][mglev  ];
+
     const Geometry& crse_geom = linop.Geom(alev,mglev+1);
-    const Geometry& fine_geom = linop.Geom(alev,mglev  );
-    crse_cor.FillBoundary(crse_geom.periodicity());
-    Vector<BCRec> bcr(1);
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (crse_geom.isPeriodic(idim)) {
-            bcr[0].setLo(idim,BCType::int_dir);
-            bcr[0].setHi(idim,BCType::int_dir);
-        } else {
-            bcr[0].setLo(idim,BCType::ext_dir);
-            bcr[0].setHi(idim,BCType::ext_dir);
-        }
+    const int refratio = 2;
+
+    MultiFab cfine;
+    const MultiFab* cmf;
+    
+    if (amrex::isMFIterSafe(crse_cor, fine_cor))
+    {
+        crse_cor.FillBoundary(crse_geom.periodicity());
+        cmf = &crse_cor;
     }
-    IntVect refratio{2};
+    else
+    {
+        BoxArray cba = fine_cor.boxArray();
+        cba.coarsen(refratio);
+        const int nc = crse_cor.nComp();
+        const int ng = crse_cor.nGrow();
+        cfine.define(cba, fine_cor.DistributionMap(), nc, ng);
+        cfine.setVal(0.0);
+        cfine.ParallelCopy(crse_cor, 0, 0, nc, 0, ng, crse_geom.periodicity());
+        cmf = & cfine;
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(fine_cor, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
-        amrex::cell_cons_interp.interp(crse_cor[mfi], 0, fine_cor[mfi], 0, 1,
-                                       mfi.tilebox(), refratio, crse_geom, fine_geom,
-                                       bcr, 0, 0);
-    }    
+        const Box& bx = mfi.tilebox();
+        amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                 BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
+                                 &refratio);
+    }
 }
 
 // (Fine MG level correction) += I(Coarse MG level correction)
 void
 MLMG::addInterpCorrection (int alev, int mglev)
 {
+    BL_PROFILE("MLMG::addInterpCorrection()");
+
     const MultiFab& crse_cor = *cor[alev][mglev+1];
     MultiFab&       fine_cor = *cor[alev][mglev  ];
+
+    const int refratio = 2;
+    MultiFab cfine;
+    const MultiFab* cmf;
+
+    if (amrex::isMFIterSafe(crse_cor, fine_cor))
+    {
+        cmf = &crse_cor;
+    }
+    else
+    {
+        BoxArray cba = fine_cor.boxArray();
+        cba.coarsen(refratio);
+        const int nc = crse_cor.nComp();
+        const int ng = 0;
+        cfine.define(cba, fine_cor.DistributionMap(), nc, ng);
+        cfine.ParallelCopy(crse_cor);
+        cmf = &cfine;
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(crse_cor,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*cmf,true); mfi.isValid(); ++mfi)
     {
         const Box&         bx = mfi.tilebox();
         const int          nc = fine_cor.nComp();
-        const FArrayBox& cfab = crse_cor[mfi];
+        const FArrayBox& cfab =   (*cmf)[mfi];
         FArrayBox&       ffab = fine_cor[mfi];
 
         FORT_INTERP(ffab.dataPtr(),
@@ -463,6 +542,7 @@ MLMG::addInterpCorrection (int alev, int mglev)
 void
 MLMG::computeResOfCorrection (int amrlev, int mglev)
 {
+    BL_PROFILE("MLMG:computeResOfCorrection()");
     MultiFab& x = *cor[amrlev][mglev];
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
@@ -475,20 +555,34 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
 void
 MLMG::bottomSolve ()
 {
+    BL_PROFILE("MLMG::bottomSolve()");
+
+    if (!linop.isBottomActive()) return;
+
     Real bottom_start_time = ParallelDescriptor::second();
 
+    int old_sn = ParallelDescriptor::SeqNum(3);
+    
     const int amrlev = 0;
     const int mglev = linop.NMGLevels(amrlev) - 1;
     MultiFab& x = *cor[amrlev][mglev];
     MultiFab& b = res[amrlev][mglev];
-    
+
+    if (linop.isSingular(amrlev)) {
+        const bool local = true;
+        Real offset = b.sum(0,local) / linop.Geom(amrlev,mglev).Domain().d_numPts();
+        ParallelAllReduce::Sum(offset, linop.BottomCommunicator());
+        b.plus(-offset, 0, 1);
+    }
+
     x.setVal(0.0);
 
     if (bottom_solver == BottomSolver::smoother)
     {
         bool skip_fillboundary = true;
         for (int i = 0; i < nuf; ++i) {
-            linop.smooth(amrlev, mglev, x, b, BCMode::Homogeneous, skip_fillboundary);
+            linop.smooth(amrlev, mglev, x, b, skip_fillboundary);
+            skip_fillboundary = false;
         }
     }
     else
@@ -516,6 +610,9 @@ MLMG::bottomSolve ()
             linop.smooth(amrlev, mglev, x, b);
         }
     }
+
+    ParallelDescriptor::SeqNum(2, old_sn);
+
     timer[bottom_time] += ParallelDescriptor::second() - bottom_start_time;
 }
 
@@ -523,6 +620,7 @@ MLMG::bottomSolve ()
 Real
 MLMG::ResNormInf (int alev, bool local)
 {
+    BL_PROFILE("MLMG::ResNormInf()");
     const int mglev = 0;
     if (alev < finest_amr_lev) {
         return res[alev][mglev].norm0(fine_mask[alev],0,0,local);
@@ -535,7 +633,7 @@ MLMG::ResNormInf (int alev, bool local)
 Real
 MLMG::MLResNormInf (int alevmax, bool local)
 {
-    const int mglev = 0;
+    BL_PROFILE("MLMG::MLResNormInf()");
     Real r = 0.0;
     for (int alev = 0; alev <= alevmax; ++alev)
     {
@@ -549,6 +647,7 @@ MLMG::MLResNormInf (int alevmax, bool local)
 Real
 MLMG::MLRhsNormInf (bool local)
 {
+    BL_PROFILE("MLMG::MLRhsNormInf()");
     Real r = 0.0;
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
@@ -564,6 +663,8 @@ MLMG::MLRhsNormInf (bool local)
 void
 MLMG::buildFineMask ()
 {
+    BL_PROFILE("MLMG::buildFineMask()");
+
     fine_mask.clear();
     fine_mask.resize(namrlevs-1);
     
@@ -596,6 +697,8 @@ MLMG::buildFineMask ()
 void
 MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs)
 {
+    BL_PROFILE("MLMG::prepareForSolve()");
+
     AMREX_ASSERT(a_sol[0]->nGrow() > 0);
     AMREX_ASSERT(namrlevs <= a_sol.size());
     AMREX_ASSERT(namrlevs <= a_rhs.size());
@@ -610,7 +713,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     for (int alev = 0; alev < namrlevs; ++alev)
     {
         rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), 1, 0);
-        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, 1, 0);        
+        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, 1, 0);
+        linop.applyMetricTerm(alev, 0, rhs[alev]);
     }
 
     const auto& amrrr = linop.AMRRefRatio();
@@ -618,6 +722,18 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     {
         amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
         amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
+    }
+
+    // enforce solvability if appropriate
+    if (linop.isSingular(0))
+    {
+        Real offset = rhs[0].sum() / linop.Geom(0,0).Domain().d_numPts();
+        if (verbose >= 4) {
+            amrex::Print() << "MLMG: Subtracting " << offset << " from rhs\n";
+        }
+        for (int alev = 0; alev < namrlevs; ++alev) {
+            rhs[alev].plus(-offset, 0, 1);
+        }
     }
 
     const int nc = 1;
@@ -663,6 +779,77 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     }
 
     buildFineMask();
+}
+
+void
+MLMG::getGradSolution (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
+{
+    BL_PROFILE("MLMG::getGradSolution()");
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        linop.compGrad(alev, a_grad_sol[alev], *sol[alev]);
+    }
+}
+
+void
+MLMG::getFluxes (const Vector<std::array<MultiFab*,AMREX_SPACEDIM> >& a_flux)
+{
+    BL_PROFILE("MLMG::getFluxes()");
+    const Real betainv = 1.0 / linop.getBScalar();
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        linop.compFlux(alev, a_flux[alev], *sol[alev]);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            linop.unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+            if (betainv != 1.0) {
+                a_flux[alev][idim]->mult(betainv);
+            }
+        }
+    }
+}
+
+void
+MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
+                    const Vector<MultiFab const*>& a_rhs)
+{
+    BL_PROFILE("MLMG::compResidual()");
+
+    linop.prepareForSolve();
+    
+    const auto& amrrr = linop.AMRRefRatio();
+
+    for (int alev = finest_amr_lev; alev >= 0; --alev) {
+        const MultiFab* crse_bcdata = (alev > 0) ? a_sol[alev-1] : nullptr;
+        const MultiFab* prhs = a_rhs[alev];
+#if (AMREX_SPACEDIM != 3)
+        MultiFab rhstmp(prhs->boxArray(), prhs->DistributionMap(), 1, 0);
+        MultiFab::Copy(rhstmp, *prhs, 0, 0, 1, 0);
+        linop.applyMetricTerm(alev, 0, rhstmp);
+        prhs = &rhstmp;
+#endif
+        linop.solutionResidual(alev, *a_res[alev], *a_sol[alev], *prhs, crse_bcdata);
+        if (alev < finest_amr_lev) {
+            linop.reflux(alev, *a_res[alev], *a_sol[alev], *a_sol[alev+1]);
+            amrex::average_down(*a_res[alev+1], *a_res[alev], 0, 1, amrrr[alev]); 
+        }
+    }
+
+
+#if (AMREX_SPACEDIM != 3)
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        linop.unapplyMetricTerm(alev, 0, *a_res[alev]);
+    }
+#endif
+}
+
+void
+MLMG::fillSolutionBC ()
+{
+    BL_PROFILE("MLMG::fillSolutionBC()");
+
+    for (int alev = 0; alev <= finest_amr_lev; ++alev)
+    {
+        const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
+        linop.fillSolutionBC(alev, *sol[alev], crse_bcdata);
+    }
 }
 
 }

@@ -2,7 +2,7 @@
 module amrex_box_module
 
   use iso_c_binding
-  use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real
+  use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real, amrex_coarsen_intvect
 
   implicit none
 
@@ -17,9 +17,13 @@ module amrex_box_module
      procedure :: nodalize    => amrex_box_nodalize
      procedure :: cellize     => amrex_box_cellize
      procedure :: convert     => amrex_box_convert
+     procedure :: refine      => amrex_box_refine
+     procedure :: coarsen     => amrex_box_coarsen
      generic   :: grow        => amrex_box_grow_s, amrex_box_grow_v
      generic   :: intersects  => amrex_box_intersects_box, amrex_box_intersects_fp
      generic   :: contains    => amrex_box_contains_box, amrex_box_contains_fp, amrex_box_contains_pt
+     procedure, private :: amrex_box_refine
+     procedure, private :: amrex_box_coarsen
      procedure, private :: amrex_box_grow_s
      procedure, private :: amrex_box_grow_v
      procedure, private :: amrex_box_intersects_box
@@ -106,6 +110,36 @@ contains
        end if
     end do
   end subroutine amrex_box_convert
+
+  subroutine amrex_box_refine (this, rr)
+    class(amrex_box), intent(inout) :: this
+    integer, intent(in) :: rr
+    integer :: i
+    this%lo(1:ndims) = this%lo(1:ndims) * rr
+    do i = 1, ndims
+       if (this%nodal(i)) then
+          this%hi(i) = this%hi(i)*rr
+       else
+          this%hi(i) = (this%hi(i)+1)*rr-1
+       end if
+    end do
+  end subroutine amrex_box_refine
+
+  subroutine amrex_box_coarsen (this, rr)
+    class(amrex_box), intent(inout) :: this
+    integer, intent(in) :: rr
+    integer :: i, off(ndims)
+    this%lo(1:ndims) = amrex_coarsen_intvect(ndims, this%lo(1:ndims), rr)
+    off = 0
+    do i = 1, ndims
+       if (this%nodal(i)) then
+          if (mod(this%hi(i),rr) .ne. 0) then
+             off(i) = 1
+          end if
+       end if
+    end do
+    this%hi(1:ndims) = amrex_coarsen_intvect(ndims, this%hi(1:ndims), rr) + off
+  end subroutine amrex_box_coarsen
 
   subroutine amrex_box_grow_s (this, i)
     class(amrex_box), intent(inout) :: this

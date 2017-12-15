@@ -2,6 +2,7 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_FillPatchUtil_F.H>
 #include <cmath>
+#include <limits>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -165,6 +166,8 @@ namespace amrex
 		MultiFab mf_crse_patch(fpc.ba_crse_patch, fpc.dm_crse_patch, ncomp, 0, MFInfo(),
                                        *fpc.fact_crse_patch);
 		
+                mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+
 		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
 		
 		int idummy1=0, idummy2=0;
@@ -258,6 +261,8 @@ namespace amrex
 
 	MultiFab mf_crse_patch(ba_crse_patch, dm, ncomp, 0, MFInfo(), factory);
 
+        mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
+
 	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
 	cbc.FillBoundary(mf_crse_patch, 0, ncomp, time);
@@ -267,25 +272,28 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
-	{
-	    FArrayBox& dfab = mf[mfi];
-	    const Box& dbx = dfab.box() & fdomain_g;
-
+        {
 	    Vector<BCRec> bcr(ncomp);
-	    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
-	    
-	    mapper->interp(mf_crse_patch[mfi],
-			   0,
-			   mf[mfi],
-			   dcomp,
-			   ncomp,
-			   dbx,
-			   ratio,
-			   cgeom,
-			   fgeom,
-			   bcr,
-			   idummy1, idummy2);	    
+
+            for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+            {
+                FArrayBox& dfab = mf[mfi];
+                const Box& dbx = dfab.box() & fdomain_g;
+                
+                amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+                
+                mapper->interp(mf_crse_patch[mfi],
+                               0,
+                               mf[mfi],
+                               dcomp,
+                               ncomp,
+                               dbx,
+                               ratio,
+                               cgeom,
+                               fgeom,
+                               bcr,
+                               idummy1, idummy2);	    
+            }
 	}
 
 	fbc.FillBoundary(mf, dcomp, ncomp, time);

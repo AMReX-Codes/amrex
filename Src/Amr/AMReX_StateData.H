@@ -96,12 +96,24 @@ public:
     void swapTimeLevels (Real dt);
     //
     // Swaps old data with a new MultiFab.
+    // Deletes the previous old data.
     //
     void replaceOldData ( MultiFab* mf );
     //
+    // Swaps old data with another StateData.
+    // Does not delete the previous old data.
+    //
+    void replaceOldData ( StateData& s );
+    //
     // Swaps new data with a new MultiFab.
+    // Deletes the previous new data.
     //
     void replaceNewData ( MultiFab* mf );
+    //
+    // Swaps new data with another StateData.
+    // Does not delete the previous new data.
+    //
+    void replaceNewData ( StateData& s );
 
     //
     // Sets time of old and new data.

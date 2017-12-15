@@ -52,4 +52,9 @@ extern void viewMF(const MultiFab* a_data);
 ///
 extern void maxMinMF(const MultiFab* a_data);
 
+extern void printMF(const MultiFab* a_data);
+
+extern void printMFEdge(const MultiFab* a_data);
+
+extern void printFABEdge(const FArrayBox* a_data, const Box* bx = NULL);
 #endif

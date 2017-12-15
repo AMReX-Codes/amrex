@@ -20,6 +20,9 @@ namespace amrex {
 class AmrLevel;
 class LevelBld;
 class BoxDomain;
+template <class T>
+class MFGraph;
+class AmrTask;
 
 /**
 * \brief Manage hierarchy of levels for time-dependent AMR computations.
@@ -32,7 +35,10 @@ class BoxDomain;
 class Amr
     : public AmrCore
 {
-    typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
+  template <class T>
+  friend class MFGraph;
+  friend class AmrTask;
+  typedef std::multimap< std::pair<int, int>, double >  BoundaryPointList;
 
 public:
     //! The constructor.
@@ -196,6 +202,7 @@ public:
     static int initialBaLevels () { return initial_ba.size(); }
     //! Do a complete integration cycle.
     virtual void coarseTimeStep (Real stop_time);
+
     //! Do a complete integration cycle and return the coarse dt.
     Real coarseTimeStepDt (Real stop_time);
     //! Retrieve derived data. User is responsible for deleting pointer.
@@ -315,6 +322,8 @@ public:
     void PrintData(std::ostream& os);
     static void BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm);
     void UpdateStateDataDistributionMaps(DistributionMapping& new_dmap);
+
+    bool UsingPrecreateDirectories();
 
 protected:
 

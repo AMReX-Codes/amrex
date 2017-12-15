@@ -113,17 +113,37 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
                                  int             num_comp,
                                  const BCRec&    bc)
 {
+    setBndryValues(mf, mf_start, bnd_start, num_comp, IntVect::TheUnitVector(), bc);
+}
+
+void
+InterpBndryData::setBndryValues (const MultiFab& mf,
+                                 int             mf_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 int             ref_ratio,
+                                 const BCRec&    bc)
+{
+    setBndryValues(mf, mf_start, bnd_start, num_comp, IntVect{ref_ratio}, bc);
+}
+
+void
+InterpBndryData::setBndryValues (const MultiFab& mf,
+                                 int             mf_start,
+                                 int             bnd_start,
+                                 int             num_comp,
+                                 const IntVect&  ref_ratio,
+                                 const BCRec&    bc)
+{
     //
     // Check that boxarrays are identical.
     //
     BL_ASSERT(grids.size());
     BL_ASSERT(grids == mf.boxArray());
 
-    IntVect ref_ratio = IntVect::TheUnitVector();
-
-    for (int n = bnd_start; n < bnd_start+num_comp; ++n)
+    for (int n = bnd_start; n < bnd_start+num_comp; ++n) {
 	setBndryConds(bc, ref_ratio, n);
-
+    }
 
     // TODO: tiling - wqz
 #ifdef _OPENMP
@@ -213,6 +233,9 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+        {
+        Vector<Real> derives;
+
         for (MFIter mfi(foo,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             BL_ASSERT(grids[mfi.index()] == mfi.validbox());
@@ -237,7 +260,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                     //
                     // Internal or periodic edge, interpolate from crse data.
                     //
-                    Vector<Real> derives(AMREX_D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
+                    derives.resize(AMREX_D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
 
                     const Mask&      mask           = masks[face][mfi];
                     const int*       mlo            = mask.loVect();
@@ -282,6 +305,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                     bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
                 }
             }
+        }
         }
     }
     else

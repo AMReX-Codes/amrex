@@ -823,7 +823,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	}
 
         {
-            BL_PROFILE("CollectData_Alltoall()");
+            BL_PROFILE_VAR("CollectData_Alltoall()", blpvCDATA);
 	    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int), ParallelDescriptor::MyProc(),
 	                    BLProfiler::BeforeCall());
 
@@ -838,6 +838,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(int), ParallelDescriptor::MyProc(),
 	                    BLProfiler::AfterCall());
 
+            BL_PROFILE_VAR_STOP(blpvCDATA);
         }
         BL_ASSERT(SndsArray[MyProc] == 0);
 

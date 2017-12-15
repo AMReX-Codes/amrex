@@ -69,12 +69,16 @@ extern void amrex::GraphTopPct(const std::map<std::string, BLProfiler::ProfStats
 
 
 #define PRINTCS(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
-                 << CS.totalTime << " :: " << CS.stackTime << " :: " \
+                 << CS.totalTime << " :: " << CS.stackTime << " :: " << \
+                 ((CS.totalTime > 0.0) ? (( 1.0 - (CS.stackTime / CS.totalTime)) * 100.0) :  ( 0.0 )) \
+		 << " % :: " \
 		 << CS.nCSCalls  << " :: " << CS.callStackDepth << " :: " \
 		 << CS.callTime
 
 #define PRINTCSNC(CS) CS.csFNameNumber << " :: " << fNumberNames[CS.csFNameNumber] << " :: " \
-                   << CS.totalTime << " :: " << CS.stackTime << " :: " \
+                   << CS.totalTime << " :: " << CS.stackTime << " :: " << \
+                   ((CS.totalTime > 0.0) ? (( 1.0 - (CS.stackTime / CS.totalTime)) * 100.0) :  ( 0.0 )) \
+		   << " % :: " \
 		   << CS.nCSCalls  << " :: " << CS.callStackDepth
 
 
@@ -344,7 +348,6 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
   if(bIOP) cout << "Finished serial InitRegionTimeRanges." << endl;
 #endif
 
-
   BL_PROFILE_VAR("RegionsProfStats::InitRegionTimeRanges_Parallel()", RPSIRTR_P);
   regionTimeRanges.resize(dataNProcs);
   for(int p(0); p < regionTimeRanges.size(); ++p) {
@@ -359,9 +362,13 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
       for(int i(0); i < dBlock.rStartStop.size(); ++i) {
         BLProfiler::RStartStop &rss = dBlock.rStartStop[i];
         if(rss.rssStart) {     // start region
-          regionTimeRanges[dBlock.proc][rss.rssRNumber].push_back(TimeRange(rss.rssTime, -1.0));
+	  if(rss.rssRNumber >= 0) {
+            regionTimeRanges[dBlock.proc][rss.rssRNumber].push_back(TimeRange(rss.rssTime, -1.0));
+	  }
         } else {            // stop region
-          regionTimeRanges[dBlock.proc][rss.rssRNumber].back().stopTime = rss.rssTime;
+	  if(rss.rssRNumber >= 0) {
+            regionTimeRanges[dBlock.proc][rss.rssRNumber].back().stopTime = rss.rssTime;
+	  }
         }
       }
       ClearBlock(dBlock);
@@ -639,7 +646,6 @@ void RegionsProfStats::WriteSummary(std::ostream &ios, bool bwriteavg,
   for(int i(0); i < fNames.size(); ++i) {
     if(i >= 0) {
       fNames[i] = numbersToFName[i];
-      std::cout << "------------------:: fNames[" << i << "] = " << fNames[i] << std::endl;
     }
   }
 
@@ -767,7 +773,7 @@ void RegionsProfStats::WriteHTML(std::ostream &csHTMLFile,
   csHTMLFile << '\n';
 
   csHTMLFile << "<h3>Function call times  "
-             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth :: call time)</h3>"
+             << "(function number :: function name :: inclusive time :: exclusive time :: 1-e/i % :: ncalls :: callstackdepth :: call time)</h3>"
 	     << '\n';
 
   csHTMLFile << "<ul>" << '\n';
@@ -1008,7 +1014,7 @@ void RegionsProfStats::WriteHTMLNC(std::ostream &csHTMLFile, int whichProc)
   csHTMLFile << '\n';
 
   csHTMLFile << "<h3>Function calls "
-             << "(function number :: function name :: inclusive time :: exclusive time :: ncalls :: callstackdepth)</h3>"
+             << "(function number :: function name :: inclusive time :: exclusive time :: 1-e/i % :: ncalls :: callstackdepth)</h3>"
 	     << '\n';
 
   csHTMLFile << "<ul>" << '\n';
@@ -1351,7 +1357,7 @@ void RegionsProfStats::OpenAllStreams(const std::string &dirname) {
 
 // ----------------------------------------------------------------------
 void RegionsProfStats::CloseAllStreams() {
-  BL_PROFILE_VAR("BLProfStats::ClosellStreams", regsclosellstreams);
+  BL_PROFILE_VAR("RegionProfStats::CloseAllStreams", regsclosellstreams);
   for(int i(0); i < regDataStreams.size(); ++i) {
     regDataStreams[i]->close();
     delete regDataStreams[i];

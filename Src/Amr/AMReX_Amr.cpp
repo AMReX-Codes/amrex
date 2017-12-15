@@ -74,8 +74,9 @@ namespace
     bool initialized = false;
 }
 
-namespace
-{
+//Tan Nov 24, 2017 : I removed this anonymous namespace so I could access the inner variables from other source files 
+//namespace   
+//{
     //
     // These are all ParmParse'd in.  Set defaults in Initialize()!!!
     //
@@ -94,7 +95,12 @@ namespace
     bool prereadFAHeaders;
     VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
     VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
+//}
 
+bool
+Amr::UsingPrecreateDirectories()
+{
+    return precreateDirectories;
 }
 
 void
@@ -806,11 +812,14 @@ Amr::writePlotFile ()
 
     if(precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      if (verbose > 1) {
-          amrex::Print() << "IOIOIOIO:  precreating directories for " << pltfileTemp << "\n";
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  precreating directories for " << pltfileTemp << "\n";
       }
       amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  creating directory:  " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
@@ -838,7 +847,15 @@ Amr::writePlotFile ()
     }
 
     for (int k(0); k <= finest_level; ++k) {
+        amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
+    }
+
+    for (int k(0); k <= finest_level; ++k) {
         amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
+    }
+
+    for (int k(0); k <= finest_level; ++k) {
+        amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -928,6 +945,9 @@ Amr::writeSmallPlotFile ()
     //  it to a bad suffix if there were stream errors.
     //
     if(precreateDirectories) {    // ---- make all directories at once
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writeSmallPlotFile:  precreating directories for " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
@@ -935,6 +955,9 @@ Amr::writeSmallPlotFile ()
       }
       ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writeSmallPlotFile:  creating directory:  " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
@@ -1670,13 +1693,22 @@ Amr::checkPoint ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
+      if (verbose > 0) {
+        amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint:  precreating directories for "
+	               << ckfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
+        amrex::Print() << "IOIOIOIO:  Amr::checkPoint:  precreating directories for "
+	               << ckfileTemp << "  for level " << i << "\n";
         amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint:  creating directory:  " << ckfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
     }
@@ -1730,7 +1762,15 @@ Amr::checkPoint ()
     }
 
     for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPointPre(ckfileTemp, HeaderFile);
+    }
+
+    for (int i = 0; i <= finest_level; ++i) {
         amr_level[i]->checkPoint(ckfileTemp, HeaderFile);
+    }
+
+    for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPointPost(ckfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -1937,7 +1977,6 @@ Amr::timeStep (int  level,
 		dt_level[k] = dt_level[k-1] / n_cycle[k];
 	    }
 	}
-
     }
 
     //
@@ -2073,8 +2112,9 @@ Amr::coarseTimeStep (Real stop_time)
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
     BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
-    BL_TRACE_PROFILE_FLUSH();
     BL_COMM_PROFILE_NAMETAG(stepName.str());
+    //BL_PROFILE_FLUSH();
+    BL_TRACE_PROFILE_FLUSH();
     BL_COMM_PROFILE_FLUSH();
 
     if (verbose > 0)
@@ -2451,14 +2491,10 @@ Amr::regrid (int  lbase,
 	}
         Vector<Vector<int> > mLDM;
 	if(rebalance_grids == 1) {
-          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0)[0]);
-	} else if(rebalance_grids == 2) {
           mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0]);
-	} else if(rebalance_grids == 3) {
+	} else if(rebalance_grids == 2) {
           mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0)[0]);
-	} else if(rebalance_grids == 4) {  // ---- move all grids to proc zero
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0], 0);
-	} else {
+        } else {
 	}
 
         for(int iMap(0); iMap < mLDM.size(); ++iMap) {
@@ -3713,15 +3749,9 @@ Amr::RedistributeGrids(int how) {
         }
         Vector<Vector<int> > mLDM;
         if(how == 1) {
-          mLDM = DistributionMapping::MultiLevelMapPFC(ref_ratio, allBoxes, maxGridSize(0)[0]);
-        } else if(how == 2) {
           mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0]);
-        } else if(how == 3) {
+        } else if(how == 2) {
           mLDM = DistributionMapping::MultiLevelMapKnapSack(ref_ratio, allBoxes, maxGridSize(0)[0]);
-        } else if(how == 0) {   // ---- move all grids to proc zero
-	  int minRank(0), maxRank(0);
-          mLDM = DistributionMapping::MultiLevelMapRandom(ref_ratio, allBoxes, maxGridSize(0)[0],
-	                                                  maxRank, minRank);
         } else {
 	  return;
         }

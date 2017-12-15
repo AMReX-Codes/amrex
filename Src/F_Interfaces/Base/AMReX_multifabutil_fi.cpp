@@ -10,4 +10,10 @@ extern "C"
     {
 	amrex::average_down(*S_fine, *S_crse, *fgeom, *cgeom, scomp, ncomp, rr);
     }
+
+    void amrex_fi_average_cellcenter_to_face (MultiFab* fc[], const MultiFab* cc, const Geometry* geom)
+    {
+        Vector<MultiFab*> fcv {AMREX_D_DECL(fc[0], fc[1], fc[2])};
+        amrex::average_cellcenter_to_face(fcv, *cc, *geom);
+    }
 }

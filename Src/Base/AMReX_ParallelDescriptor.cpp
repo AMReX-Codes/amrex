@@ -2462,16 +2462,10 @@ void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
 
 void ParallelDescriptor::Bcast(void *, int, MPI_Datatype, int, MPI_Comm) {}
 
-namespace {
-    static auto clock_time_begin = std::chrono::steady_clock::now();
-}
-
 double
 ParallelDescriptor::second ()
 {
-    auto t = std::chrono::steady_clock::now();
-    using ds = std::chrono::duration<double>;
-    return std::chrono::duration_cast<ds>(t-clock_time_begin).count();
+    return amrex::second();
 }
 
 void
@@ -2510,6 +2504,11 @@ ParallelDescriptor::SeqNum (int getsetinc, int newvalue)
       {
 	seqno = newvalue;
         result = seqno;
+      }
+      break;
+      case 3:  // ---- jump 
+      {
+          seqno += (m_MaxTag-m_MinTag) / 2;
       }
       break;
       default:  // ---- error

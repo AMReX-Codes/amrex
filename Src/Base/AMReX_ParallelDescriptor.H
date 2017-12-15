@@ -806,6 +806,7 @@ namespace ParallelDescriptor
     * 0:  return the current sequence number and increment
     * 1:  return the current sequence number
     * 2:  set the current sequence number to newvalue
+    * 3:  jump the current sequence number and return the sequence number before the call.
     */
     int SeqNum (int getsetinc = 0, int newvalue = 0);
     int SubSeqNum (int getsetinc = 0, int newvalue = 0);
@@ -866,7 +867,7 @@ do									\
 {									\
   if ( int l_status_ = (x) )						\
     {									\
-      ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x, l_status_);   \
+        amrex::ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x, l_status_); \
     }									\
 }									\
 while ( false )

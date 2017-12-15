@@ -33,21 +33,25 @@
   a null statement in the code, which will be eliminated by the code
   optimizer.
 */
+#define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) ((void)0)
 #define AMREX_ASSERT(EX) ((void)0)
 #define    BL_ASSERT(EX) ((void)0)
 
 #else
 
 #if defined(FORTRAN_BOXLIB)
+#define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) ((void)0)
 #define AMREX_ASSERT(EX) ((void)0)
 #define    BL_ASSERT(EX) ((void)0)
 #else
+#define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__ , # MSG)
 #define AMREX_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 #define    BL_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 #endif
 
 #endif
 
+#define AMREX_ALWAYS_ASSERT_WITH_MESSAGE(EX,MSG) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__ , # MSG)
 #define AMREX_ALWAYS_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 
 #endif /*BL_BL_ASSERT_H*/

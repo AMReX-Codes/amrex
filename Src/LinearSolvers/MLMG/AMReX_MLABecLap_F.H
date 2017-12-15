@@ -29,8 +29,8 @@ extern "C" {
 #if (AMREX_SPACEDIM == 3)
                                amrex_real* fz, const int* fzlo, const int* fzhi,
 #endif
-                               const amrex_real* sol, const int* slo, const int* shi,
 #endif
+                               const amrex_real* sol, const int* slo, const int* shi,
                                const amrex_real* bx, const int* bxlo, const int* bxhi,
 #if (AMREX_SPACEDIM >= 2)
                                const amrex_real* by, const int* bylo, const int* byhi,
