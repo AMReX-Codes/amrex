@@ -170,6 +170,16 @@ extern "C" {
                                           const amrex_real* dxinv, const int* domlo, const int* domhi,
                                           const void* bclo, const void* bchi);
 
+    void amrex_mlndlap_divu_cf_contrib (const int* lo, const int* hi,
+                                        amrex_real* rhs, const int* rlo, const int* rhi,
+                                        const amrex_real* vel, const int* vlo, const int* vhi,
+                                        const int* dmsk, const int* dmlo, const int* dmhi,
+                                        const int* fmsk, const int* fmlo, const int* fmhi,
+                                        const amrex_real* wgt, const int* wlo, const int* whi,
+                                        const amrex_real* cc, const int* clo, const int* chi,
+                                        const amrex_real* dxinv, const int* ndlo, const int* ndhi,
+                                        const void* bclo, const void* bchi);
+
 #ifdef __cplusplus
 }
 #endif
