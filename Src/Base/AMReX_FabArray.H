@@ -308,6 +308,9 @@ public:
     * is performed on the region of intersection.  The intersection
     * is restricted to the valid regions.
     */
+    void ParallelAdd (const FabArray<FAB>& fa,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(fa,period,FabArray::ADD); }
     void ParallelCopy (const FabArray<FAB>& fa,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY);
@@ -324,6 +327,12 @@ public:
     * in the FabArray src, with the destination components in this
     * FabArray starting at dest_comp.
     */
+    void ParallelAdd (const FabArray<FAB>& src,
+                      int                  src_comp,
+                      int                  dest_comp,
+                      int                  num_comp,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(src,src_comp,dest_comp,num_comp, period, FabArrayBase::ADD); }
     void ParallelCopy (const FabArray<FAB>& src,
                        int                  src_comp,
                        int                  dest_comp,
@@ -339,6 +348,14 @@ public:
         { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively 
+    void ParallelAdd (const FabArray<FAB>& src,
+                      int                  src_comp,
+                      int                  dest_comp,
+                      int                  num_comp,
+                      int                  src_nghost,
+                      int                  dst_nghost,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,FabArrayBase::ADD); }
     void ParallelCopy (const FabArray<FAB>& src,
                        int                  src_comp,
                        int                  dest_comp,

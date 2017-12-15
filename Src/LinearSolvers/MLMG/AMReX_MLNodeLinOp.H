@@ -78,10 +78,11 @@ protected:
                                                      const DistributionMapping& dm,
                                                      const Geometry& geom);
 
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;
-    Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask_2;
-    Vector<std::unique_ptr<iMultiFab> > m_crsefine_mask;
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
+    Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask_2; // this is on fine mg level layout
+    Vector<std::unique_ptr<iMultiFab> > m_crsefine_mask; // cell-cenetered mask for crse(0)/fine(1)
+    Vector<std::unique_ptr<LayoutData<int> > > m_has_crsefine_bndry; // does this fab contains c/f boundary?
 };
 
 }

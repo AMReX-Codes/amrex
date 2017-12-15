@@ -83,16 +83,24 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
     for (int ilev = m_num_amr_levels-1; ilev >=0; --ilev)
     {
-        const Box& ccdom = m_geom[ilev][0].Domain();
-        const Real* dxinv = m_geom[ilev][0].InvCellSize();
+        const Geometry& geom = m_geom[ilev][0];
+        const Box& ccdom = geom.Domain();
+        const Real* dxinv = geom.InvCellSize();
         const Box& nddom = amrex::surroundingNodes(ccdom);
 
         const iMultiFab& dmsk = *m_dirichlet_mask[ilev][0];
-        const iMultiFab* cfmask = (ilev < m_num_amr_levels-1) ? m_crsefine_mask[ilev].get() : nullptr;
+        const auto& cfmask = m_crsefine_mask[ilev];
+        const auto& cfhas = m_has_crsefine_bndry[ilev];
 
-        MultiFab crse_weight;
+        MultiFab fine_weight_on_crse;
+        MultiFab fine_contrib_on_crse;
         if (ilev < m_num_amr_levels-1) {
-            crse_weight.define(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
+            fine_weight_on_crse.define(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
+            fine_contrib_on_crse.define(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
+            fine_weight_on_crse.setVal(0.0);
+            fine_contrib_on_crse.setVal(0.0);
+            fine_weight_on_crse.ParallelAdd(*fine_weight, geom.periodicity());
+            fine_contrib_on_crse.ParallelAdd(*fine_contrib, geom.periodicity());
         }
 
         if (ilev > 0) {
@@ -108,7 +116,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         {
             const Box& bx = mfi.tilebox();
 
-            if (ilev == m_num_amr_levels-1) // or this fab doesn't have crse/fine boundary
+            if (ilev == m_num_amr_levels-1 or (cfhas and !(*cfhas)[mfi]))
             {
                 amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
                                    BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
@@ -119,7 +127,15 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
             }
             else
             {
-                // compute divu and crse_contrib 2.
+                amrex_mlndlap_divu_cf_contrib(BL_TO_FORTRAN_BOX(bx),
+                                              BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
+                                              BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
+                                              BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                              BL_TO_FORTRAN_ANYD((*cfmask)[mfi]),
+                                              BL_TO_FORTRAN_ANYD(fine_weight_on_crse[mfi]),
+                                              BL_TO_FORTRAN_ANYD(fine_contrib_on_crse[mfi]),
+                                              dxinv, BL_TO_FORTRAN_BOX(nddom),
+                                              m_lobc.data(), m_hibc.data());
             }
         }
 
@@ -144,11 +160,6 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                                 dxinv, BL_TO_FORTRAN_BOX(nddom),
                                                 m_lobc.data(), m_hibc.data());
             }
-        }
-
-        if (ilev < m_num_amr_levels-1)
-        {
-            // communicate fine_contrib to this level and add
         }
     }
 
@@ -428,6 +439,7 @@ MLNodeLaplacian::buildMasks ()
     for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev)
     {
         iMultiFab& mask = *m_crsefine_mask[amrlev];
+        LayoutData<int>& has_cf = *m_has_crsefine_bndry[amrlev];
         const BoxArray& fba = m_grids[amrlev+1][0];
         const BoxArray& cfba = amrex::coarsen(fba, AMRRefRatio(amrlev));
 
@@ -445,6 +457,7 @@ MLNodeLaplacian::buildMasks ()
 
             for (MFIter mfi(mask); mfi.isValid(); ++mfi)
             {
+                has_cf[mfi] = 0;
                 IArrayBox& fab = mask[mfi];
                 const Box& bx = fab.box();
                 for (const auto& iv : pshifts)
@@ -454,6 +467,7 @@ MLNodeLaplacian::buildMasks ()
                     {
                         fab.setVal(1, is.second-iv, 0, 1);
                     }
+                    if (!isects.empty()) has_cf[mfi] = 1;
                 }
             }
         }
