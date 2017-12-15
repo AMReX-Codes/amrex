@@ -67,6 +67,7 @@ AmrLevel::manual_tags_placement (TagBoxArray&    tags,
 
 AmrLevel::AmrLevel ()
 {
+   BL_PROFILE("AmrLevel::AmrLevel()");
    parent = 0;
    level = -1;
    levelDirectoryCreated = false;
