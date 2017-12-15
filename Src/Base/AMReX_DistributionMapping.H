@@ -87,6 +87,12 @@ class DistributionMapping
     */
     void define (const Vector<int>& pmap);
     /**
+    * \brief Build mapping out of an Array of ints. You need to call this if you
+    * built your DistributionMapping with the default constructor.
+    */
+    void define (const Vector<int>& pmap,
+                 ParallelDescriptor::Color a_color);
+    /**
     * \brief Returns a constant reference to the mapping of boxes in the
     * underlying BoxArray to the CPU that holds the FAB on that Box.
     * ProcessorMap()[i] is an integer in the interval [0, NCPU) where
@@ -178,6 +184,9 @@ class DistributionMapping
 				     Vector<IntVect>  &refRatio,
                                      Vector<BoxArray> &allBoxes);
 #endif
+    /* The proximity mapping options (PFC) were designed for Hopper. It
+       needs to be reconfigured before it can be applied to other systems.
+       Will currently see undefined behavior on any system. */
     static void PFCMultiLevelMap(const Vector<IntVect>  &refRatio,
                                  const Vector<BoxArray> &allBoxes);
 
@@ -209,6 +218,8 @@ class DistributionMapping
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
+
+    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba);
 
 private:
 

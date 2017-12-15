@@ -1,11 +1,22 @@
+# Cray provides SUNDIALS (including CVODE) as part of their "Third Party
+# Scientific Library" system module "cray-tpsl". If the module is loaded, just
+# use that version of SUNDIALS. Otherwise, look for a home-cooked version.
+
+CPPFLAGS += -DUSE_CVODE
 include $(AMREX_HOME)/Src/Extern/CVODE/Make.package
+
+ifeq ($(findstring CRAY_TPSL, $(PE_PRODUCT_LIST)), CRAY_TPSL)
+  $(info Found Cray TPSL)
+  INCLUDE_LOCATIONS += $(CRAY_TPSL_PREFIX_DIR)
+  # If you loaded the cray-tpsl module, chances are you meant to use the Cray
+  # version of SUNDIALS, even if you have CVODE_LIB_DIR defined.
+  CVODE_LIB_DIR := $(CRAY_TPSL_PREFIX_DIR)/lib
+else
+  CVODE_LIB_DIR ?= $(HOME)/cvode/lib
+endif
 
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/CVODE
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/CVODE
-
-CPPFLAGS += -DUSE_CVODE
-
-CVODE_LIB_DIR ?= $(HOME)/cvode/lib
 
 LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
 LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nvecserial

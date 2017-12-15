@@ -33,6 +33,9 @@ endif
 ifdef ACC
   acc_suffix 	:= .acc
 endif
+ifdef CUDA
+  cuda_suffix   := .cuda
+endif
 ifndef NDEBUG
   debug_suffix 	:= .debug
 endif
@@ -57,7 +60,7 @@ ifdef HDF
   hdf_suffix := .hdf
 endif
 
-suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(acc_suffix)$(mic_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
+suf=$(ARCH).$(COMP)$(rose_suffix)$(debug_suffix)$(prof_suffix)$(mpi_suffix)$(omp_suffix)$(acc_suffix)$(cuda_suffix)$(mic_suffix)$(sdc_suffix)$(zmq_suffix)$(hdf_suffix)
 
 sources     =
 fsources    =
@@ -87,6 +90,7 @@ else
 endif
 
 CPPFLAGS += -DFORTRAN_BOXLIB
+FPPFLAGS += -DFORTRAN_BOXLIB
 
 ifdef TEST
   CPPFLAGS += -DBL_TESTING
@@ -94,6 +98,15 @@ endif
 
 ifndef NDEBUG
   CPPFLAGS += -DDEBUG
+endif
+
+ifdef CUDA
+  CPPFLAGS += -DCUDA
+  FPPFLAGS += -DCUDA
+
+  ifndef CUDA_VERSION
+    CUDA_VERSION := 8.0
+  endif
 endif
 
 F_C_LINK := UNDERSCORE
@@ -167,7 +180,7 @@ ifeq ($(ARCH),Linux)
     include $(AMREX_HOME)/Tools/F_mk/comps/Linux_lahey.mak
   endif
 
-  ifeq ($(findstring summit, $(HOST)), summit)
+  ifeq ($(findstring summitdev, $(HOST)), summitdev)
     override CPP_ARGS := -E
   endif
 endif

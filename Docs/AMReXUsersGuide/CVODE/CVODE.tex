@@ -11,10 +11,13 @@ When compiling \cvode, one need not build the \cvode\ library with the \fcvode\ 
 Rather, the Fortran 2003 interface to \cvode\ is provided within \amrex\ itself.
 The \cvode\ tutorials provided in \amrex\ use this new interface.
 
-\section{Compiling \cvode}
+\section{Compiling \amrex\ with \cvode}
 
-To use \cvode\ in an \amrex\ application, follow these steps:
+The following steps describe how to compile an \amrex\ application with \cvode\ support.
+On Cray systems (e.g., Cori or Edison at NERSC), Cray provides a system module called \texttt{cray-tpsl} (``Cray Third-Party Scientific Libraries'') which contains the latest version of the \sundials\ solver suite (including \cvode).
+Simply type \texttt{module load cray-tpsl} and set \texttt{USE\_CVODE=TRUE} in the \texttt{GNUmakefile}, and \amrex\ will automatically link the \sundials\ libraries.
 
+On systems which are not Cray:
 \begin{enumerate}
 
   \item Obtain the \cvode\ source code, which is hosted here: \url{https://computation.llnl.gov/projects/sundials/sundials-software}.

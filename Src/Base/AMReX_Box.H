@@ -600,16 +600,20 @@ public:
 
     bool isSquare() const;
 
-    bool coarsenable(int refrat) const {
-        return coarsenable(IntVect(AMREX_D_DECL(refrat,refrat,refrat)));
+    bool coarsenable(int refrat, int min_width=1) const {
+        return coarsenable(IntVect(refrat),min_width);
     }
 
-    bool coarsenable(const IntVect& refrat) const
+    bool coarsenable(const IntVect& refrat, int min_width=1) const
     {
-      Box testBox = *this;
-      testBox.coarsen(refrat);
-      testBox.refine (refrat);
-      return (*this == testBox);
+        if (!size().allGE(refrat*min_width)) {
+            return false;
+        } else {
+            Box testBox = *this;
+            testBox.coarsen(refrat);
+            testBox.refine (refrat);
+            return (*this == testBox);
+        }
     }
 
     void normalize ()

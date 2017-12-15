@@ -12,6 +12,7 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParallelReduce.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
 
@@ -22,11 +23,13 @@ class MFGhostIter;
 class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
+class AmrTask;
 
 class FabArrayBase
 {
     friend class MFIter;
     friend class MFGhostIter;
+    friend class AmrTask;
 
 public:
 
@@ -37,7 +40,7 @@ public:
     FabArrayBase (FabArrayBase&& rhs) noexcept = default;    
     FabArrayBase (const FabArrayBase& rhs) = default;
     FabArrayBase& operator= (const FabArrayBase& rhs) = default;
-    FabArrayBase& operator= (FabArrayBase&& rhs) = default;    
+    FabArrayBase& operator= (FabArrayBase&& rhs) = default;
 
     void define (const BoxArray&            bxs,
                  const DistributionMapping& dm,
@@ -399,6 +402,8 @@ public:
 
 protected:
 
+    void clear ();
+
     DistributionMapping& ModifyDistributionMap () { return distributionMap; }
 
     /**
@@ -414,14 +419,13 @@ protected:
     //
     mutable BoxArray    boxarray;
     DistributionMapping distributionMap;
-    Vector<int>          indexArray;
+    Vector<int>         indexArray;
     std::vector<bool>   ownership;
     int                 n_grow;
     int                 n_comp;
     int                 aFAPId;      // ---- id of currently allocated fab array pointers
     int                 aFAPIdLock;  // ---- lock for resizing sidecars
-
-    mutable BDKey m_bdkey;
+    mutable BDKey       m_bdkey;
 
     //
     // Tiling

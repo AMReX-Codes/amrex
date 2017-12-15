@@ -45,6 +45,14 @@ ifeq ($(USE_MPI),TRUE)
     mpif90_link_flags := $(shell $(F90) -showme:link)
     LIBRARIES += $(mpif90_link_flags)
 
+  else ifneq ($(findstring Spectrum MPI, $(shell $(F90) -showme:version 2>&1)),1)
+
+    #
+    # Spectrum MPI
+    #
+    mpif90_link_flags := $(shell $(F90) -showme:link)
+    LIBRARIES += $(mpif90_link_flags)
+
   else
 
     $(error Unknown mpi implementation.  You can try setting MPI stuff in amrex/Tools/GNUMake/Make.local and then compile with NO_MPI_CHECKING=TRUE.)

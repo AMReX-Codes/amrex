@@ -13,16 +13,11 @@
 #include <omp.h>
 #endif
 
+#define CG_USE_OLD_CONVERGENCE_CRITERIA 1
+
 namespace amrex {
 
 namespace {
-
-static
-Real
-norm_inf (const MultiFab& res, bool local=false)
-{
-    return res.norm0(0,0,local);
-}
 
 static
 void
@@ -50,16 +45,6 @@ sxay (MultiFab&       ss,
     sxay(ss,xx,a,yy,0);
 }
 
-static
-Real
-dotxy (const MultiFab& r,
-       const MultiFab& z)
-{
-    const int ncomp = 1;
-    const int nghost = 0;
-    return MultiFab::Dot(r,0,z,0,ncomp,nghost);
-}
-
 }
 
 MLCGSolver::MLCGSolver (MLLinOp& _lp, Solver _solver)
@@ -80,6 +65,7 @@ MLCGSolver::solve (MultiFab&       sol,
                    Real            eps_rel,
                    Real            eps_abs)
 {
+    BL_PROFILE_REGION("MLCGSolver::solve()");
     switch (cg_solver)
     {
     case Solver::CG:
@@ -204,9 +190,9 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         // in the following two dotxy()s.  We do that by calculating the "local"
         // values and then reducing the two local values at the same time.
         //
-        Real tvals[2] = { dotxy(t,t), dotxy(t,s) };
+        Real tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
 
-        ParallelDescriptor::ReduceRealSum(tvals,2,p.color());
+        ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
 
         if ( tvals[0] )
 	{
@@ -371,8 +357,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         sxay(  r,   r,-alpha, q);
         rnorm = norm_inf(r,true);
         sol_norm = norm_inf(sol,true);
-
-        ParallelDescriptor::ReduceRealMax ({rnorm, sol_norm}, r.color());
+        ParallelAllReduce::Max<Real>({rnorm, sol_norm}, Lp.BottomCommunicator());
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor(p.color()) )
         {
@@ -430,5 +415,28 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     return ret;
 }
+
+Real
+MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
+{
+    const int ncomp = 1;
+    const int nghost = 0;
+    Real result = MultiFab::Dot(r,0,z,0,ncomp,nghost,true);
+    if (!local) {
+        ParallelAllReduce::Sum(result, Lp.BottomCommunicator());
+    }
+    return result;
+}
+
+Real
+MLCGSolver::norm_inf (const MultiFab& res, bool local)
+{
+    Real result = res.norm0(0,0,true);
+    if (!local) {
+        ParallelAllReduce::Max(result, Lp.BottomCommunicator());
+    }
+    return result;
+}
+
 
 }
