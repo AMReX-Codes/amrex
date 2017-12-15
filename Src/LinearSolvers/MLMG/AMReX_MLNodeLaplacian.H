@@ -72,7 +72,7 @@ private:
     bool m_use_gauss_seidel = true;
     bool m_use_harmonic_average = false;
 
-    bool m_dirichlet_mask_built = false;
+    bool m_masks_built = false;
     //
     // functions
     //
@@ -82,7 +82,7 @@ private:
 
     void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
 
-    void buildDirichletMask ();
+    void buildMasks ();
 };
 
 }

@@ -24,6 +24,7 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);
     m_dirichlet_mask_2.resize(m_num_amr_levels);
+    m_crsefine_mask.resize(m_num_amr_levels-1);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         m_owner_mask[amrlev].resize(m_num_mg_levels[amrlev]);
         m_dirichlet_mask[amrlev].resize(m_num_mg_levels[amrlev]);
@@ -36,7 +37,8 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
             m_dirichlet_mask[amrlev][mglev].reset
                 (new iMultiFab(amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
                                m_dmap[amrlev][mglev], 1, 0));
-            if (mglev > 0 && 
+
+            if (mglev > 0 && amrlev == 0 &&
                 (m_dmap[amrlev][mglev] != m_dmap[amrlev][mglev-1]
                  || !BoxArray::SameRefs(m_grids[amrlev][mglev], m_grids[amrlev][mglev-1])))
             {
@@ -45,6 +47,11 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                                    m_dirichlet_mask[amrlev][mglev-1]->DistributionMap(),
                                    1, 0));
             }
+        }
+
+        if (amrlev < m_num_amr_levels-1)
+        {
+            m_crsefine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
         }
     }
 }
