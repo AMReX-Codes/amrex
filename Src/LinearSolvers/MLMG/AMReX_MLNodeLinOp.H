@@ -81,6 +81,7 @@ protected:
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask_2;
+    Vector<std::unique_ptr<iMultiFab> > m_crsefine_mask;
 };
 
 }

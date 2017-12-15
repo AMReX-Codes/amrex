@@ -13,7 +13,7 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        amrex_mlndlap_zero_fine, amrex_mlndlap_crse_resid, amrex_mlndlap_any_zero, &
-       amrex_mlndlap_set_dirichlet_mask
+       amrex_mlndlap_set_dirichlet_mask, amrex_mlndlap_divu_fine_contrib
 
 contains
 
@@ -850,5 +850,126 @@ contains
     end if
     
   end subroutine amrex_mlndlap_set_dirichlet_mask
+
+
+  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, lo, hi, wgt, wlo, whi, rhs, rlo, rhi, &
+       vel, vlo, vhi, msk, mlo, mhi, dxinv, ndlo, ndhi, bclo, bchi) &
+       bind(c,name='amrex_mlndlap_divu_fine_contrib')
+    integer, dimension(2) :: clo, chi, lo, hi, wlo, whi, rlo, rhi, vlo, vhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) :: wgt(wlo(1):whi(1),wlo(2):whi(2))
+    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+
+    integer :: i, j, ii, jj, s
+    real(amrex_real) :: facx, facy, facx_s, facy_s
+    real(amrex_real) :: Dfx(lo(1):hi(1))
+    real(amrex_real) :: Dfy(lo(2):hi(2))
+    real(amrex_real), parameter :: w1 = 1.d0/16.d0
+    real(amrex_real), parameter :: w2 = 1.d0/32.d0
+    real(amrex_real), parameter :: r1 = 0.25d0
+    real(amrex_real), parameter :: r2 = 0.125d0
+
+    facx = 0.5d0*dxinv(1)
+    facy = 0.5d0*dxinv(2)
+
+    ! note that lo = 2*clo and hi = 2*chi
+    ! msk .ne. 0 means coarse/fine or external dirichlet boundary
+
+    do i = clo(1), chi(1), chi(1)-clo(1)
+       ii = 2*i
+       if (i .eq. clo(1)) then
+          s = 0
+          facx_s = facx
+          facy_s = facy
+       else
+          s = 1
+          facx_s = -facx
+          facy_s =  facy
+       end if
+
+       do jj = lo(2), hi(2)
+          Dfy(jj) = 0.d0
+          if (msk(ii,jj) .ne. 0) then
+             if (jj .lt. hi(2)) then
+                Dfy(jj) = Dfy(jj) + facx_s*vel(ii-s,jj,1) + facy_s*vel(ii-s,jj,2)
+             end if
+             if (jj .gt. lo(2)) then
+                Dfy(jj) = Dfy(jj) + facx_s*vel(ii-s,jj-1,1) - facy_s*vel(ii-s,jj-1,2)                
+             end if
+          end if
+       end do
+       
+       do j = clo(2), chi(2)
+          jj = 2*j
+          if (msk(ii,jj) .ne. 0) then
+             if (j .gt. clo(2)) then
+                if (msk(ii,jj-1) .ne. 0) then
+                   wgt(i,j) = wgt(i,j) + w2
+                   rhs(i,j) = rhs(i,j) + r2*Dfy(jj-1)
+                end if
+             end if
+             wgt(i,j) = wgt(i,j) + w1
+             rhs(i,j) = rhs(i,j) + r1*Dfy(jj)             
+             if (j .lt. chi(2)) then
+                if (msk(ii,jj+1) .ne. 0) then
+                   wgt(i,j) = wgt(i,j) + w2
+                   rhs(i,j) = rhs(i,j) + r2*Dfy(jj+1)
+                end if
+             end if
+          end if
+       end do
+    end do
+
+    do j = clo(2), chi(2), chi(2)-clo(2)
+       jj = 2*j
+       if (j .eq. clo(2)) then
+          s = 0
+          facx_s = facx
+          facy_s = facy
+       else
+          s =1
+          facx_s =  facx
+          facy_s = -facy
+       end if
+
+       ! the corners have been taken care
+       do ii = lo(1)+1, hi(1)-1
+          Dfx(ii) = 0.d0
+          if (msk(ii,jj) .ne. 0) then
+             Dfx(ii) = Dfx(ii) + facx_s*(-vel(ii-1,jj-s,1)+vel(ii,jj-s,1)) &
+                  &            + facy_s*( vel(ii-1,jj-s,2)+vel(ii,jj-s,2))
+          end if
+       end do
+
+       if (msk(lo(1),jj) .ne. 0) then
+          wgt(clo(1),j) = wgt(clo(1),j) + w2
+          rhs(clo(1),j) = rhs(clo(1),j) + r2*Dfx(lo(1)+1)
+       end if
+       do i = clo(1)+1, chi(1)-1
+          ii = 2*i
+          if (msk(ii,jj) .ne. 0) then
+             if (msk(ii-1,jj) .eq. 0) then
+                wgt(i,j) = wgt(i,j) + w2
+                rhs(i,j) = rhs(i,j) + r2*Dfx(ii-1)
+             end if
+             wgt(i,j) = wgt(i,j) + w1
+             rhs(i,j) = rhs(i,j) + r1*Dfx(ii)
+             if (msk(ii+1,jj) .eq. 0) then
+                wgt(i,j) = wgt(i,j) + w2
+                rhs(i,j) = rhs(i,j) + r2*Dfx(ii+1)
+             end if
+          end if
+       end do
+       if (msk(hi(1),jj) .ne. 0) then
+          wgt(chi(1),j) = wgt(chi(1),j) + w2
+          rhs(chi(1),j) = rhs(chi(1),j) + r2*Dfx(hi(1)-1)
+       end if
+    end do
+
+    ! xxxxx what do we do at physical boundaries?
+
+  end subroutine amrex_mlndlap_divu_fine_contrib
 
 end module amrex_mlnodelap_2d_module
