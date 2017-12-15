@@ -198,7 +198,7 @@ namespace amrex
         m_dx       (a_dx)
   {
     // this is the method called by EBIndexSpace::buildFirstLevel
-    BL_PROFILE("EBISLevel::EBISLevel_geoserver_domain");
+    BL_PROFILE("EBISLevel::EBISLevel()");
 
     ParmParse pp("ebis");
     m_build_eb_surface = false;
@@ -531,7 +531,9 @@ namespace amrex
   void
   EBISLevel::defineFromGeometryService(const GeometryService & a_geoserver)
   {
-    
+
+    BL_PROFILE("EBISLevel::defineFromGeometryService()");   
+ 
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     m_dm.define(m_grids);
