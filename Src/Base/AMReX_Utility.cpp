@@ -1200,8 +1200,6 @@ void amrex::SyncStrings(const Vector<std::string> &localStrings,
 
 }
 
-
-
 amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &stringArray)
 {
   std::ostringstream stringStream;
@@ -1214,10 +1212,6 @@ amrex::Vector<char> amrex::SerializeStringArray(const Vector<std::string> &strin
 
   return charArray;
 }
-
-
-
-
 
 amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &charArray)
 {
@@ -1234,6 +1228,35 @@ amrex::Vector<std::string> amrex::UnSerializeStringArray(const Vector<char> &cha
   return stringArray;
 }
 
+void amrex::BroadcastString(std::string &bStr, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  Vector<std::string> vecString(1, bStr);
+  Vector<char> serialString;
+  if(myLocalId == rootId) {
+    serialString = amrex::SerializeStringArray(vecString);
+  }
+
+  amrex::BroadcastArray(serialString, myLocalId, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    vecString = amrex::UnSerializeStringArray(serialString);
+    bStr = vecString[0];
+  }
+}
+
+void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm)
+{
+  Vector<char> serialStringArray;
+  if(myLocalId == rootId) {
+    serialStringArray = amrex::SerializeStringArray(bSA);
+  }
+
+  amrex::BroadcastArray(serialStringArray, myLocalId, rootId, localComm);
+
+  if(myLocalId != rootId) {
+    bSA = amrex::UnSerializeStringArray(serialStringArray);
+  }
+}
 
 void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
 {
