@@ -283,7 +283,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Reset (Partic
                                                                           bool          update,
                                                                           bool          verbose) const
 {
-    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Reset()");
+//    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Reset()");
     BL_ASSERT(m_gdb != 0);
 
     ParticleLocData pld;
@@ -2065,6 +2065,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
       where[grid] = VisMF::FileOffset(ofs);
       
       if (count[grid] == 0) continue;
+
+      amrex::AllPrintToFile("is_checkpoint.out") << is_checkpoint << std::endl;
       
       if (is_checkpoint) {
 	// First write out the integer data in binary.
@@ -2090,6 +2092,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
             }
 	}
 	ofs.write((char*)istuff.dataPtr(),istuff.size()*sizeof(int));
+        ofs.flush();
+        if (ofs.bad()) {
+            amrex::Error("Writing the idata to disk failed.");
+        }
       }
       
       // Write the Real data in binary.
@@ -2117,6 +2123,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
       }
       
       ofs.write((char*)rstuff.dataPtr(),rstuff.size()*sizeof(typename ParticleType::RealType));
+      ofs.flush();
+      if (ofs.bad()) {
+          amrex::Error("Writing the rdata to disk failed.");
+      }
     }
 }
 
