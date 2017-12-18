@@ -22,10 +22,14 @@
 #include "AMReX_FaceIterator.H"
 #include "AMReX_FabArrayIO.H"
 #include "AMReX_Utility.H"
+#include "AMReX_ParmParse.H"
+#include "AMReX_VectorIO.H"
 
 
 namespace amrex
 {
+  static std::string eb_surface_filename;
+
   static const IntVect   ebl_debiv(D_DECL(994,213,7));
   static const IntVect   ebl_debivlo(D_DECL(190,15,0));
   static const IntVect   ebl_debivhi(D_DECL(191,15,0));
@@ -194,7 +198,16 @@ namespace amrex
         m_dx       (a_dx)
   {
     // this is the method called by EBIndexSpace::buildFirstLevel
-    BL_PROFILE("EBISLevel::EBISLevel_geoserver_domain");
+    BL_PROFILE("EBISLevel::EBISLevel()");
+
+    ParmParse pp("ebis");
+    m_build_eb_surface = false;
+
+    int n_name = pp.countval("eb_surface_filename");
+    if (n_name > 0) {
+      m_build_eb_surface = true;
+      pp.get("eb_surface_filename",eb_surface_filename);
+    }
 
     defineFromGeometryService(a_geoserver);
 
@@ -203,17 +216,332 @@ namespace amrex
       fixRegularNextToMultiValued();
     }
   }
+
+  void
+  EBISLevel::buildEBSurface(const GeometryService & a_geoserver)
+  {
+
+#if AMREX_SPACEDIM==2
+    Vector<Vector<Segment>> surfaceFragmentsG;
+#elif AMREX_SPACEDIM==3
+    Vector<Vector<Triangle>> surfaceFragmentsG;
+#else
+    amrex::Abort("buildEBSurface not applicable to 1D");
+#endif
+
+    for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
+    {
+      auto& eb_graph = m_graph[mfi];
+      auto ivsirreg = eb_graph.getIrregCells(eb_graph.getRegion());
+      auto& intersections = m_intersections[mfi];
+
+#if AMREX_SPACEDIM==2
+      list<Segment> segments;
+
+      std::vector<IntVect> pt(4);
+      std::vector<RealVect> x(4);
+      std::vector<bool> v(4);
+
+      surfaceFragmentsG.push_back(Vector<Segment>());
+      auto& segVec = surfaceFragmentsG.back();
+
+      for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
+      {
+        pt[0] = ivsit();
+        pt[1] = pt[0] + BASISV(0);
+        pt[2] = pt[1] + BASISV(1);
+        pt[3] = pt[0] + BASISV(1);
+
+        for (int i=0; i<4; ++i)
+        {
+          for (int idir=0; idir<SpaceDim; ++idir)
+          {
+            x[i][idir] = m_origin[idir] + pt[i][idir]*m_dx;
+          }
+          v[i] = a_geoserver.pointOutside(x[i]);
+        }
+
+        int segCase = 0;
+        if (v[0]) segCase |= 1;
+        if (v[1]) segCase |= 2;
+        if (v[2]) segCase |= 4;
+        if (v[3]) segCase |= 8;
+
+        switch (segCase)
+        {
+        case 1:
+        case 14:
+          segVec.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
+                                   intersections.find(Edge(pt[0],pt[3]))));
+          break;
+        case 2:
+        case 13:
+          segVec.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
+                                   intersections.find(Edge(pt[1],pt[2]))));
+          break;
+        case 3:
+        case 12:
+          segVec.push_back(Segment(intersections.find(Edge(pt[1],pt[2])),
+                                   intersections.find(Edge(pt[0],pt[3]))));
+          break;
+        case 4:
+        case 11:
+          segVec.push_back(Segment(intersections.find(Edge(pt[1],pt[2])),
+                                   intersections.find(Edge(pt[2],pt[3]))));
+          break;
+        case 6:
+        case 9:
+          segVec.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
+                                   intersections.find(Edge(pt[2],pt[3]))));
+          break;
+        case 7:
+        case 8:
+          segVec.push_back(Segment(intersections.find(Edge(pt[2],pt[3])),
+                                   intersections.find(Edge(pt[0],pt[3]))));
+          break;
+        case 5:
+        case 10:
+          segVec.push_back(Segment(intersections.find(Edge(pt[0],pt[1])),
+                                   intersections.find(Edge(pt[1],pt[2]))));
+          segVec.push_back(Segment(intersections.find(Edge(pt[2],pt[3])),
+                                   intersections.find(Edge(pt[0],pt[3]))));
+          break;
+        }
+
+      }
+#else
+      std::vector<IntVect> pt(8);
+      std::vector<RealVect> x(8);
+      std::vector<bool> v(8);
+
+      surfaceFragmentsG.push_back(Vector<Triangle>());
+
+      for(IVSIterator ivsit(ivsirreg); ivsit.ok(); ++ivsit)
+      {
+        pt[0] = ivsit();
+        pt[1] = pt[0] + BASISV(0);
+        pt[2] = pt[1] + BASISV(1);
+        pt[3] = pt[0] + BASISV(1);
+        pt[4] = pt[0] + BASISV(2);
+        pt[5] = pt[4] + BASISV(0);
+        pt[6] = pt[5] + BASISV(1);
+        pt[7] = pt[4] + BASISV(1);
+
+        for (int i=0; i<8; ++i)
+        {
+          for (int idir=0; idir<SpaceDim; ++idir)
+          {
+            x[i][idir] = m_origin[idir] + pt[i][idir]*m_dx;
+          }
+          v[i] = a_geoserver.pointOutside(x[i]);
+        }
+
+        int cubeindex = 0;
+        if (v[0]) cubeindex |= 1;
+        if (v[1]) cubeindex |= 2;
+        if (v[2]) cubeindex |= 4;
+        if (v[3]) cubeindex |= 8;
+        if (v[4]) cubeindex |= 16;
+        if (v[5]) cubeindex |= 32;
+        if (v[6]) cubeindex |= 64;
+        if (v[7]) cubeindex |= 128;
+      
+        /* Cube is entirely in/out of the surface */
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] == 0) break;
+
+        std::array<NodeMapIt,12> vertlist;
+
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 1)
+          vertlist[0]  = intersections.find(Edge(pt[0],pt[1]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 2)
+          vertlist[1]  = intersections.find(Edge(pt[1],pt[2]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 4)
+          vertlist[2]  = intersections.find(Edge(pt[2],pt[3]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 8)
+          vertlist[3]  = intersections.find(Edge(pt[3],pt[0]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 16)
+          vertlist[4]  = intersections.find(Edge(pt[4],pt[5]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 32)
+          vertlist[5]  = intersections.find(Edge(pt[5],pt[6]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 64)
+          vertlist[6]  = intersections.find(Edge(pt[6],pt[7]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 128)
+          vertlist[7]  = intersections.find(Edge(pt[7],pt[4]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 256)
+          vertlist[8]  = intersections.find(Edge(pt[0],pt[4]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 512)
+          vertlist[9]  = intersections.find(Edge(pt[1],pt[5]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 1024)
+          vertlist[10]  = intersections.find(Edge(pt[2],pt[6]));
+        if (GeomIntersectUtils::MarchingCubesEdgeTable[cubeindex] & 2048)
+          vertlist[11]  = intersections.find(Edge(pt[3],pt[7]));
+
+        /* Create the triangles */
+        int nTriang = 0;
+        for (int i=0;GeomIntersectUtils::MarchingCubesTriTable[cubeindex][i]!=-1;i+=3)
+          nTriang++;
+
+        for (int j=0; j<nTriang; ++j)
+        {
+          auto& triangleVec = surfaceFragmentsG.back();
+          int j3 = 3*j;
+          triangleVec.push_back(Triangle(vertlist[GeomIntersectUtils::MarchingCubesTriTable[cubeindex][j3  ]],
+                                         vertlist[GeomIntersectUtils::MarchingCubesTriTable[cubeindex][j3+1]],
+                                         vertlist[GeomIntersectUtils::MarchingCubesTriTable[cubeindex][j3+2]]));
+        }
+      }
+#endif
+    }
+
+    // Write contour fragments to surface file
+    amrex::Print() << "EBISLevel: Writing EB surface to: " << eb_surface_filename << '\n';
+
+    if (ParallelDescriptor::IOProcessor())
+        if (!amrex::UtilCreateDirectory(eb_surface_filename, 0755))
+            amrex::CreateDirectoryFailed(eb_surface_filename);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Barrier();
+
+
+    for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
+    {
+      auto& intersections = m_intersections[mfi];
+      auto& fragVec = surfaceFragmentsG[mfi.LocalIndex()];
+      if (fragVec.size() > 0)
+      {
+        Vector<NodeMapIt> orderedNodes(intersections.size());
+        for (NodeMapIt it=intersections.begin(); it!=intersections.end(); ++it)
+        {
+          orderedNodes[it->first.ID] = it;
+        }
+
+        int SizeOfEdgeData = 2 * AMREX_SPACEDIM;
+        int SizeOfNodeData = AMREX_SPACEDIM;
+        int SizeOfFragData = AMREX_SPACEDIM;
+
+        Vector<int>  flattenedEdges(SizeOfEdgeData * orderedNodes.size());
+        Vector<Real> flattenedNodes(SizeOfNodeData * orderedNodes.size());
+        Vector<long> flattenedFrags(SizeOfFragData * fragVec.size());
+
+        int*  feptr = flattenedEdges.dataPtr();
+        Real* fnptr = flattenedNodes.dataPtr();
+        long* ffptr = flattenedFrags.dataPtr();
+
+        for (int i=0; i<orderedNodes.size(); ++i)
+        {
+          auto eoffset = i*SizeOfEdgeData;
+          auto noffset = i*SizeOfNodeData;
+          const auto& edge = orderedNodes[i]->first;
+          const auto& node = orderedNodes[i]->second;
+          AMREX_ASSERT(node.size() == SizeOfNodeData);
+          auto& L = edge.IV_l;
+          auto& R = edge.IV_r;
+          for (int d=0; d<AMREX_SPACEDIM; ++d)
+          {
+            feptr[eoffset+d               ] = L[d];
+            feptr[eoffset+d+AMREX_SPACEDIM] = R[d];
+            fnptr[noffset+d] = node[d];
+          }
+        }
+        for (int i=0; i<fragVec.size(); ++i)
+        {
+          auto foffset = i*SizeOfFragData;
+          auto frag = fragVec[i];
+          AMREX_ASSERT(frag.size() == SizeOfFragData);
+          for (int d=0; d<SizeOfFragData; ++d)
+          {
+            ffptr[foffset+d] = frag[d]->first.ID;
+          }
+        }
+
+        auto FullDataPath = eb_surface_filename;
+        if (!FullDataPath.empty() && FullDataPath[FullDataPath.size()-1] != '/')
+          FullDataPath += '/';
+        FullDataPath += "Data";
+
+        auto nGrid = m_intersections.size();
+        auto nDigits = std::log10(nGrid) + 1;
+        FullDataPath += Concatenate("_",mfi.index(),nDigits);
+
+        std::ofstream ofs(FullDataPath.c_str(),std::ios::binary);
+        writeIntData( flattenedEdges.dataPtr(), flattenedEdges.size(), ofs);
+        writeRealData(flattenedNodes.dataPtr(), flattenedNodes.size(), ofs);
+        writeLongData(flattenedFrags.dataPtr(), flattenedFrags.size(), ofs);
+
+        ofs.close();
+      }
+    }
+
+    int nGrids = m_intersections.size();
+    int ioProc = ParallelDescriptor::IOProcessorNumber();
+
+    Vector<long> nNodes(nGrids,0);
+    Vector<long> nElts(nGrids,0);
+
+    for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
+    {
+      nNodes[mfi.index()] = m_intersections[mfi].size();
+      nElts[mfi.index()] = surfaceFragmentsG[mfi.LocalIndex()].size();
+    }
+
+    ParallelDescriptor::ReduceLongSum(nNodes.dataPtr(), nNodes.size(), ioProc);
+    ParallelDescriptor::ReduceLongSum(nElts.dataPtr(),  nElts.size(),  ioProc);
+
+    std::string FullHeaderPath = eb_surface_filename;
+    if (ParallelDescriptor::IOProcessor())
+    {
+      //std::string FullHeaderPath = eb_surface_filename;
+      if (!FullHeaderPath.empty() && FullHeaderPath[FullHeaderPath.size()-1] != '/')
+        FullHeaderPath += '/';
+      FullHeaderPath += "Header";
+
+      // Write header info
+      std::ofstream ofs(FullHeaderPath.c_str());
+      ofs << "EBsurfaceFormat-V1" << '\n';
+      ofs << AMREX_SPACEDIM << '\n'; // number of nodes per element
+      ofs << AMREX_SPACEDIM << '\n'; // number of components of floating point data at each node
+
+      long nDataFiles = 0;
+      for (int i=0; i<nGrids; ++i) {
+        if (nElts[i] != 0) nDataFiles++;
+      }
+      ofs << nDataFiles << '\n';
+      for (int i=0; i<nGrids; ++i) {
+        if (nElts[i] != 0) ofs << i<< " ";
+      }
+      ofs << '\n';
+      for (int i=0; i<nGrids; ++i) {
+        if (nElts[i] != 0) ofs << nNodes[i] << " ";
+      }
+      ofs << '\n';
+      for (int i=0; i<nGrids; ++i) {
+        if (nElts[i] != 0) ofs << nElts[i] << " ";
+      }
+      ofs << '\n';
+      ofs << FPC::NativeIntDescriptor() << '\n';
+      ofs << FPC::NativeRealDescriptor() << '\n';
+      ofs << FPC::NativeLongDescriptor() << '\n';
+      ofs.close();
+    }
+  }
+
   ///
   void
   EBISLevel::defineFromGeometryService(const GeometryService & a_geoserver)
   {
-    
+
+    BL_PROFILE("EBISLevel::defineFromGeometryService()");   
+ 
     m_grids.define(m_domain);
     m_grids.maxSize(m_nCellMax);
     m_dm.define(m_grids);
     int ngrowGraph =2;
     int ngrowData =0;
     m_graph.define(m_grids, m_dm, 1, ngrowGraph, MFInfo(), DefaultFabFactory<EBGraph>());
+
+    m_intersections.define(m_grids, m_dm);
 
     LayoutData<Vector<IrregNode> > allNodes(m_grids, m_dm);
 
@@ -241,15 +569,30 @@ namespace amrex
       else
       {
         BaseFab<int>             regIrregCovered;
-
         Vector<IrregNode>&   nodes = allNodes[mfi];
+        NodeMap&        intersects = m_intersections[mfi];
 
-        a_geoserver.fillGraph(regIrregCovered, nodes, valid,
+        a_geoserver.fillGraph(regIrregCovered, nodes, intersects, valid,
                               ghostRegionInt, m_domain,
                               m_origin, m_dx);
 
+        if (!m_build_eb_surface)
+        {
+          intersects.clear();
+        }
+
         ebgraph.buildGraph(regIrregCovered, nodes, ghostRegion, m_domain);
 
+      }
+    }
+
+    if (m_build_eb_surface)
+    {
+      buildEBSurface(a_geoserver);
+
+      for (MFIter mfi(m_intersections); mfi.isValid(); ++mfi)
+      {
+        m_intersections[mfi].clear();
       }
     }
 

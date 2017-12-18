@@ -60,9 +60,9 @@ const Real* fabdat = (fab).dataPtr();
 MCInterpBndryData::MCInterpBndryData (const BoxArray& _grids,
 				      const DistributionMapping& _dmap,
 				      int             _ncomp,
-				      const Geometry& geom)
+				      const Geometry& _geom)
     :
-    BndryData(_grids,_dmap,MCLinOp::bcComponentsNeeded(_ncomp),geom)
+    BndryData(_grids,_dmap,MCLinOp::bcComponentsNeeded(_ncomp),_geom)
 {}
 
 //
