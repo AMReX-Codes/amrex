@@ -78,7 +78,6 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         }
     }
 
-    std::unique_ptr<MultiFab> fine_weight;
     std::unique_ptr<MultiFab> fine_contrib;
 
     for (int ilev = m_num_amr_levels-1; ilev >=0; --ilev)
@@ -90,23 +89,20 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
         const iMultiFab& dmsk = *m_dirichlet_mask[ilev][0];
         const auto& cfmask = m_crsefine_mask[ilev];
-        const auto& cfhas = m_has_crsefine_bndry[ilev];
+        const auto& cfweight = m_crsefine_weight[ilev];
+        const auto& has_fine_bndry = m_has_fine_bndry[ilev];
 
-        MultiFab fine_weight_on_crse;
         MultiFab fine_contrib_on_crse;
         if (ilev < m_num_amr_levels-1) {
-            fine_weight_on_crse.define(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
             fine_contrib_on_crse.define(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
-            fine_weight_on_crse.setVal(0.0);
             fine_contrib_on_crse.setVal(0.0);
-            fine_weight_on_crse.ParallelAdd(*fine_weight, geom.periodicity());
             fine_contrib_on_crse.ParallelAdd(*fine_contrib, geom.periodicity());
         }
 
         if (ilev > 0) {
             const BoxArray& ba = amrex::coarsen(rhs[ilev]->boxArray(), 2);
-            fine_weight.reset(new MultiFab(ba, rhs[ilev]->DistributionMap(), 1, 0));
             fine_contrib.reset(new MultiFab(ba, rhs[ilev]->DistributionMap(), 1, 0));
+            fine_contrib->setVal(0.0);
         }
 
 #ifdef _OPENMP
@@ -116,7 +112,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         {
             const Box& bx = mfi.tilebox();
 
-            if (ilev == m_num_amr_levels-1 or (cfhas and !(*cfhas)[mfi]))
+            if (!(*has_fine_bndry)[mfi])
             {
                 amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
                                    BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
@@ -132,7 +128,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                               BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
                                               BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                               BL_TO_FORTRAN_ANYD((*cfmask)[mfi]),
-                                              BL_TO_FORTRAN_ANYD(fine_weight_on_crse[mfi]),
+                                              BL_TO_FORTRAN_ANYD((*cfweight)[mfi]),
                                               BL_TO_FORTRAN_ANYD(fine_contrib_on_crse[mfi]),
                                               dxinv, BL_TO_FORTRAN_BOX(nddom),
                                               m_lobc.data(), m_hibc.data());
@@ -148,12 +144,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
             {
                 const Box& cbx = mfi.validbox();
                 const Box& fbx = amrex::refine(cbx,2);
-                (*fine_weight)[mfi].setVal(0.0);
-                (*fine_contrib)[mfi].setVal(0.0);
-
                 amrex_mlndlap_divu_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
                                                 BL_TO_FORTRAN_BOX(fbx),
-                                                BL_TO_FORTRAN_ANYD((*fine_weight)[mfi]),
                                                 BL_TO_FORTRAN_ANYD((*fine_contrib)[mfi]),
                                                 BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
                                                 BL_TO_FORTRAN_ANYD(dmsk[mfi]),
@@ -439,7 +431,8 @@ MLNodeLaplacian::buildMasks ()
     for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev)
     {
         iMultiFab& mask = *m_crsefine_mask[amrlev];
-        LayoutData<int>& has_cf = *m_has_crsefine_bndry[amrlev];
+        MultiFab& weight = *m_crsefine_weight[amrlev];
+        LayoutData<int>& has_cf = *m_has_fine_bndry[amrlev];
         const BoxArray& fba = m_grids[amrlev+1][0];
         const BoxArray& cfba = amrex::coarsen(fba, AMRRefRatio(amrlev));
 
@@ -471,6 +464,26 @@ MLNodeLaplacian::buildMasks ()
                 }
             }
         }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(weight,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_mlndlap_set_cf_weight(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(weight[mfi]),
+                                        BL_TO_FORTRAN_ANYD(mask[mfi]));
+        }
+    }
+
+    auto& has_cf = *m_has_fine_bndry[m_num_amr_levels-1];
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(has_cf); mfi.isValid(); ++mfi)
+    {
+        has_cf[mfi] = 0;
     }
 }
 

@@ -14,7 +14,7 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        amrex_mlndlap_zero_fine, amrex_mlndlap_crse_resid, amrex_mlndlap_any_zero, &
        amrex_mlndlap_set_dirichlet_mask, amrex_mlndlap_divu_fine_contrib, &
-       amrex_mlndlap_divu_cf_contrib
+       amrex_mlndlap_divu_cf_contrib, amrex_mlndlap_set_cf_weight
 
 contains
 
@@ -853,24 +853,24 @@ contains
   end subroutine amrex_mlndlap_set_dirichlet_mask
 
 
-  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, lo, hi, wgt, wlo, whi, rhs, rlo, rhi, &
+  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, lo, hi, rhs, rlo, rhi, &
        vel, vlo, vhi, msk, mlo, mhi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_divu_fine_contrib')
-    integer, dimension(2) :: clo, chi, lo, hi, wlo, whi, rlo, rhi, vlo, vhi, mlo, mhi, ndlo, ndhi, bclo, bchi
+    integer, dimension(2), intent(in) :: clo, chi, lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, &
+         ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: wgt(wlo(1):whi(1),wlo(2):whi(2))
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i, j, ii, jj, side
     real(amrex_real) :: facx, facy, facx_s, facy_s
-    real(amrex_real), parameter :: w = 0.125d0
-    real(amrex_real), parameter :: xtrfac = 3.d0
+    real(amrex_real), parameter :: rf0 = 0.25d0
+    real(amrex_real), parameter :: chip = 0.5d0
 
     ! note that dxinv is fine dxinv
-    facx = 0.25d0*dxinv(1)
-    facy = 0.25d0*dxinv(2)
+    facx = 0.5d0*dxinv(1) * rf0
+    facy = 0.5d0*dxinv(2) * rf0
 
     ! note that lo = 2*clo and hi = 2*chi
     ! msk .ne. 0 means coarse/fine or external dirichlet boundary
@@ -886,26 +886,41 @@ contains
           facy_s = -facy
        end if
 
-       do i = clo(1), chi(1)
+       i = clo(1)
+       ii = lo(1)
+       if (msk(ii,jj) .ne. 0) then
+          rhs(i,j) = rhs(i,j) + facx*vel(ii,jj-side,1) + facy_s*vel(ii,jj-side,2)
+          if (msk(ii+1,jj) .ne. 0) then
+             rhs(i,j) = rhs(i,j) + chip*(facx  *(vel(ii+1,jj-side,1)-vel(ii,jj-side,1)) &
+                  &                    + facy_s*(vel(ii+1,jj-side,2)+vel(ii,jj-side,2)))
+          end if
+       end if
+
+       do i = clo(1)+1, chi(1)-1
           ii = 2*i
           if (msk(ii,jj) .ne. 0) then
-             if (i.gt.clo(1)) then
-                if (msk(ii-1,jj) .ne. 0) then
-                   wgt(i,j) = wgt(i,j) + w
-                   rhs(i,j) = rhs(i,j) - facx   * (       vel(ii-1,jj,1) + vel(ii-2,jj,1)) &
-                        &              + facy_s * (xtrfac*vel(ii-1,jj,2) + vel(ii-2,jj,2))
-                end if
+             rhs(i,j) = rhs(i,j) + facx  *(vel(ii,jj-side,1)-vel(ii-1,jj-side,1)) &
+                  &              + facy_s*(vel(ii,jj-side,2)+vel(ii-1,jj-side,2))
+             if (msk(ii-1,jj) .ne. 0) then
+                rhs(i,j) = rhs(i,j) + chip*(facx  *(vel(ii-1,jj-side,1)-vel(ii-2,jj-side,1)) &
+                     &                    + facy_s*(vel(ii-1,jj-side,2)+vel(ii-2,jj-side,2)))
              end if
-             
-             if (i.lt.chi(1)) then
-                if (msk(ii+1,jj) .ne. 0) then
-                   wgt(i,j) = wgt(i,j) + w
-                   rhs(i,j) = rhs(i,j) + facx   * (       vel(ii,jj,1) + vel(ii+1,jj,1)) &
-                        &              + facy_s * (xtrfac*vel(ii,jj,2) + vel(ii+1,jj,2))
-                end if
+             if (msk(ii+1,jj) .ne. 0) then
+                rhs(i,j) = rhs(i,j) + chip*(facx  *(vel(ii+1,jj-side,1)-vel(ii,jj-side,1)) &
+                     &                    + facy_s*(vel(ii+1,jj-side,2)+vel(ii,jj-side,2)))
              end if
           end if
        end do
+
+       i = chi(1)
+       ii = hi(1)
+       if (msk(ii,jj) .ne. 0) then
+          rhs(i,j) = rhs(i,j) - facx*vel(ii-1,jj-side,1) + facy_s*vel(ii-1,jj-side,2)
+          if (msk(ii-1,jj) .ne. 0) then
+             rhs(i,j) = rhs(i,j) + chip*(facx  *(vel(ii-1,jj-side,1)-vel(ii-2,jj-side,1)) &
+                  &                    + facy_s*(vel(ii-1,jj-side,2)+vel(ii-2,jj-side,2)))
+          end if
+       end if
     end do
 
     do side = 0, 1
@@ -919,26 +934,41 @@ contains
           facx_s = -facx
        end if
 
-       do j = clo(2), chi(2)
+       j = clo(2)
+       jj = lo(2)
+       if (msk(ii,jj) .ne. 0) then
+         ! done already rhs(i,j) = rhs(i,j) + facx_s*vel(ii-side,jj,1) + facy*vel(ii-side,jj,2)
+          if (msk(ii,jj+1) .ne. 0) then
+             rhs(i,j) = rhs(i,j) + chip*(facx_s*(vel(ii-side,jj+1,1)+vel(ii-side,jj,1)) &
+                  &                    + facy  *(vel(ii-side,jj+1,2)-vel(ii-side,jj,2)))
+          end if
+       end if
+
+       do j = clo(2)+1, chi(2)-1
           jj = 2*j
           if (msk(ii,jj) .ne. 0) then
-             if (j.gt.clo(2)) then
-                if (msk(ii,jj-1) .ne. 0) then
-                   wgt(i,j) = wgt(i,j) + w
-                   rhs(i,j) = rhs(i,j) + facx_s * (xtrfac*vel(ii,jj-1,1) + vel(ii,jj-2,1)) &
-                        &              - facy   * (       vel(ii,jj-1,2) + vel(ii,jj-2,2))
-                end if
+             rhs(i,j) = rhs(i,j) + facx_s*(vel(ii-side,jj,1)+vel(ii-side,jj-1,1)) &
+                  &              + facy  *(vel(ii-side,jj,2)-vel(ii-side,jj-1,2))
+             if (msk(ii,jj-1) .ne. 0) then
+                rhs(i,j) = rhs(i,j) + chip*(facx_s*(vel(ii-side,jj-1,1)+vel(ii-side,jj-2,1)) &
+                     &                    + facy  *(vel(ii-side,jj-1,2)-vel(ii-side,jj-2,2)))
              end if
-             
-             if (j.lt.chi(2)) then
-                if (msk(ii,jj+1) .ne. 0) then
-                   wgt(i,j) = wgt(i,j) + w
-                   rhs(i,j) = rhs(i,j) + facx_s * (xtrfac*vel(ii,jj,1) + vel(ii,jj+1,1)) &
-                        &              + facy   * (       vel(ii,jj,2) + vel(ii,jj+1,2))
-                end if
+             if (msk(ii,jj+1) .ne. 0) then
+             rhs(i,j) = rhs(i,j) + chip*(facx_s*(vel(ii-side,jj+1,1)+vel(ii-side,jj,1)) &
+                  &                    + facy  *(vel(ii-side,jj+1,2)-vel(ii-side,jj,2)))
              end if
           end if
        end do
+
+       j = chi(2)
+       jj = hi(2)
+       if (msk(ii,jj) .ne. 0) then
+          ! done already rhs(i,j) = rhs(i,j) + facx_s*vel(ii-side,jj-1,1) - facy*vel(ii-side,jj-1,2)
+          if (msk(ii,jj-1) .ne. 0) then
+             rhs(i,j) = rhs(i,j) + chip*(facx_s*(vel(ii-side,jj-1,1)+vel(ii-side,jj-2,1)) &
+                  &                    + facy  *(vel(ii-side,jj-1,2)-vel(ii-side,jj-2,2)))
+          end if
+       end if
     end do
 
     ! xxxxx what do we do at physical boundaries?
@@ -954,13 +984,13 @@ contains
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
-    real(amrex_real), intent(inout) :: wgt(wlo(1):whi(1),wlo(2):whi(2))
+    real(amrex_real), intent(in   ) :: wgt(wlo(1):whi(1),wlo(2):whi(2))
     real(amrex_real), intent(inout) :: fc (clo(1):chi(1),clo(2):chi(2))
     integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
     integer, intent(in) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, w, r
+    real(amrex_real) :: facx, facy
 
     facx = 0.5d0*dxinv(1)
     facy = 0.5d0*dxinv(2)
@@ -968,29 +998,15 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (dmsk(i,j) .eq. 0) then
-             if (any(fmsk(i-1:i,j-1:j).ne.1) .and. any(fmsk(i-1:i,j-1:j).eq.0)) then
-                w = wgt(i,j)
-                r = fc(i,j)
-                if (fmsk(i-1,j-1) .eq. 0) then
-                   w = w + 0.25d0
-                   r = r - facx*vel(i-1,j-1,1) - facy*vel(i-1,j-1,2)
-                end if
-                if (fmsk(i,j-1) .eq. 0) then
-                   w = w + 0.25d0
-                   r = r + facx*vel(i,j-1,1) - facy*vel(i,j-1,2)
-                end if
-                if (fmsk(i-1,j) .eq. 0) then
-                   w = w + 0.25d0
-                   r = r - facx*vel(i-1,j,1) + facy*vel(i-1,j,2)
-                end if
-                if (fmsk(i,j) .eq. 0) then
-                   w = w + 0.25d0
-                   r = r + facx*vel(i,j,1) + facy*vel(i,j,2)
-                end if
-                rhs(i,j) = r / w
-             else
+             if (all(fmsk(i-1:i,j-1:j).eq.1) .or. all(fmsk(i-1:i,j-1:j).eq.0)) then
                 rhs(i,j) = facx*(-vel(i-1,j-1,1)+vel(i,j-1,1)-vel(i-1,j,1)+vel(i,j,1)) &
                      &   + facy*(-vel(i-1,j-1,2)-vel(i,j-1,2)+vel(i-1,j,2)+vel(i,j,2))
+             else
+                rhs(i,j) = wgt(i,j) * (fc(i,j) &
+                     + (1.d0-fmsk(i-1,j-1)) * (-facx*vel(i-1,j-1,1) - facy*vel(i-1,j-1,2)) &
+                     + (1.d0-fmsk(i  ,j-1)) * ( facx*vel(i  ,j-1,1) - facy*vel(i  ,j-1,2)) &
+                     + (1.d0-fmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
+                     + (1.d0-fmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2)))
              end if
           else
              rhs(i,j) = 0.d0
@@ -1024,5 +1040,40 @@ contains
 
   end subroutine amrex_mlndlap_divu_cf_contrib
 
+
+  subroutine amrex_mlndlap_set_cf_weight (lo, hi, wgt, wlo, whi, fmsk, flo, fhi) &
+       bind(c,name='amrex_mlndlap_set_cf_weight')
+    integer, dimension(2), intent(in) :: lo, hi, wlo, whi, flo, fhi
+    real(amrex_real), intent(inout) :: wgt (wlo(1):whi(1),wlo(2):whi(2))
+    integer         , intent(in   ) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
+    
+    integer :: i,j, ctot, np
+    real(amrex_real), parameter :: w0 = 1.d0/16.d0
+    real(amrex_real), parameter :: w1 = 1.d0/32.d0
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          ctot = 4 - sum(fmsk(i-1:i,j-1:j))
+          if (ctot .eq. 4 .or. ctot .eq. 0) then
+             wgt(i,j) = 1.d0
+          else
+             np = 0
+             if(fmsk(i-1,j-1)+fmsk(i-1,j) .eq. 1) then
+                np = np + 1
+             end if
+             if (fmsk(i-1,j-1)+fmsk(i,j-1) .eq. 1) then
+                np = np + 1
+             end if
+             if(fmsk(i,j)+fmsk(i-1,j) .eq. 1) then
+                np = np + 1
+             end if
+             if (fmsk(i,j)+fmsk(i,j-1) .eq. 1) then
+                np = np + 1
+             end if
+             wgt(i,j) = 1.d0 / (0.25d0*ctot + w0 + np*w1)
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_set_cf_weight
 
 end module amrex_mlnodelap_2d_module
