@@ -41,9 +41,6 @@ protected:
                                    const MultiFab* crse_bcdata=nullptr) final;
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final;
-    virtual void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const final {
-        amrex::Abort("TODO: reflux");
-    }
     virtual void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const final {
         amrex::Abort("TODO: compFlux");
     }
@@ -82,7 +79,8 @@ protected:
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask_2; // this is on fine mg level layout
     Vector<std::unique_ptr<iMultiFab> > m_crsefine_mask; // cell-cenetered mask for crse(0)/fine(1)
-    Vector<std::unique_ptr<LayoutData<int> > > m_has_crsefine_bndry; // does this fab contains c/f boundary?
+    Vector<std::unique_ptr<MultiFab> > m_crsefine_weight; // nodal mf for div operator
+    Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contains c/f boundary?
 };
 
 }

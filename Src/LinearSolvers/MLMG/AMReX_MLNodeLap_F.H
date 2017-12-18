@@ -163,7 +163,6 @@ extern "C" {
                                            const void* bclo, const void* bchi);
 
     void amrex_mlndlap_divu_fine_contrib (const int* clo, const int* chi, const int* lo, const int* hi,
-                                          amrex_real* wgt, const int* wlo, const int* whi,
                                           amrex_real* rhs, const int* rlo, const int* rhi,
                                           const amrex_real* vel, const int* vlo, const int* vhi,
                                           const int* dmsk, const int* mlo, const int* mhi,
@@ -179,6 +178,11 @@ extern "C" {
                                         const amrex_real* cc, const int* clo, const int* chi,
                                         const amrex_real* dxinv, const int* ndlo, const int* ndhi,
                                         const void* bclo, const void* bchi);
+
+    void amrex_mlndlap_set_cf_weight (const int* lo, const int* hi,
+                                      amrex_real* weight, const int* wlo, const int* whi,
+                                      const int* fmsk, const int* flo, const int* fhi);
+
 
 #ifdef __cplusplus
 }

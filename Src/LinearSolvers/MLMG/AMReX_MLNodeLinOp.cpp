@@ -21,11 +21,10 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                      const LPInfo& a_info)
 {
     MLLinOp::define(a_geom, a_grids, a_dmap, a_info);
+
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);
     m_dirichlet_mask_2.resize(m_num_amr_levels);
-    m_crsefine_mask.resize(m_num_amr_levels);
-    m_has_crsefine_bndry.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         m_owner_mask[amrlev].resize(m_num_mg_levels[amrlev]);
         m_dirichlet_mask[amrlev].resize(m_num_mg_levels[amrlev]);
@@ -49,12 +48,22 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                                    1, 0));
             }
         }
+    }
 
+
+    m_crsefine_mask.resize(m_num_amr_levels);
+    m_crsefine_weight.resize(m_num_amr_levels);
+    m_has_fine_bndry.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
         if (amrlev < m_num_amr_levels-1)
         {
             m_crsefine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
-            m_has_crsefine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
+            m_crsefine_weight[amrlev].reset
+                (new MultiFab(amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
+                              m_dmap[amrlev][0], 1, 0));
         }
+        m_has_fine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
     }
 }
 
@@ -128,9 +137,6 @@ void
 MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                const MultiFab* crse_bcdata)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(crse_bcdata == nullptr, "solutionResidual not fully implemented");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amrlev == 0, "solutionResidual not fully implemented");
-
     const int mglev = 0;
     apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous);
     MultiFab::Xpay(resid, -1.0, b, 0, 0, 1, 0);
@@ -140,8 +146,6 @@ void
 MLNodeLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                  BCMode bc_mode, const MultiFab* crse_bcdata)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(crse_bcdata == nullptr, "correctionResidual not fully implemented");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(amrlev == 0, "correctionResidual not fully implemented");
     apply(amrlev, mglev, resid, x, BCMode::Homogeneous);
     MultiFab::Xpay(resid, -1.0, b, 0, 0, 1, 0);
 }
