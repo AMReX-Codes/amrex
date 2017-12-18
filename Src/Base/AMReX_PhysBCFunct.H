@@ -44,6 +44,8 @@ protected:
 
 class PhysBCFunctBase {
 public:
+    // note this is pure virtual and must be implemented in a derived class
+    // (see PhysBCFunct below for an example)
     virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time) = 0;
     virtual void FillBoundary (MultiFab& mf, Real time)
 	{ FillBoundary(mf, 0, mf.nComp(), time); }
@@ -52,6 +54,12 @@ public:
 
 inline PhysBCFunctBase::~PhysBCFunctBase () {}
 
+// PhyBCFunct is an example of how to derive from PhysBCFunctBase and is
+// not meant to be a base class. PhysBCFunctBase is the base class.
+// PhysBCFunctBase is designed for users to derive and extend. 
+// You could/should write your own class derived from PhysBCFuncBase.
+// There you can make modifications such as storing a vector of BCRecs for, e.g.,
+// multiple component MultiFabs.
 class PhysBCFunct
     : public PhysBCFunctBase
 {
