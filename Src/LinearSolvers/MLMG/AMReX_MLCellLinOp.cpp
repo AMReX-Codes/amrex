@@ -400,8 +400,8 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
 }
 
 void
-MLCellLinOp::reflux (int crse_amrlev, MultiFab& res,
-                     const MultiFab& crse_sol, MultiFab& fine_sol) const
+MLCellLinOp::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol,
+                     const MultiFab&, MultiFab& fine_sol) const
 {
     BL_PROFILE("MLCellLinOp::reflux()");
     YAFluxRegister& fluxreg = m_fluxreg[crse_amrlev];

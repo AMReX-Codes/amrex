@@ -140,7 +140,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(*fine_contrib); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*fine_contrib, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
             {
                 const Box& cbx = mfi.validbox();
                 const Box& fbx = amrex::refine(cbx,2);
@@ -567,7 +567,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
             const Box& cbx = amrex::coarsen(fbx,2);
             const Box& tmpbx = amrex::refine(cbx,2);
             tmpfab.resize(tmpbx);
-            if (m_use_harmonic_average)
+            if (m_use_harmonic_average && fmglev > 0)
             {
                 AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                              const FArrayBox& syfab = (*sigma[1])[mfi];,
@@ -646,7 +646,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
             FArrayBox& yfab = out[mfi];
             const Box& bxg1 = amrex::grow(bx,1);
             dg.resize(bxg1,AMREX_SPACEDIM);
-            if (m_use_harmonic_average)
+            if (m_use_harmonic_average && mglev > 0)
             {
                 AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
                              const FArrayBox& syfab = (*sigma[1])[mfi];,
@@ -690,7 +690,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
         const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 
-        if (m_use_harmonic_average)
+        if (m_use_harmonic_average && mglev > 0)
         {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -743,7 +743,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
         const Box& domain_box = amrex::surroundingNodes(m_geom[amrlev][mglev].Domain());
 
-        if (m_use_harmonic_average)
+        if (m_use_harmonic_average && mglev > 0)
         {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1000,6 +1000,70 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
             sync_resid[mfi].xpay(-1.0, rhs, bx, bx, 0, 0, 1);
         }
     }
+}
+
+void
+MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol,
+                         const MultiFab& crse_rhs, MultiFab& fine_sol) const
+{
+    const Geometry& cgeom = m_geom[crse_amrlev  ][0];
+    const Geometry& fgeom = m_geom[crse_amrlev+1][0];
+    const Real* cdxinv = cgeom.InvCellSize();
+    const Real* fdxinv = fgeom.InvCellSize();
+
+    const BoxArray& fba = fine_sol.boxArray();
+    const DistributionMapping& fdm = fine_sol.DistributionMap();
+    MultiFab fine_contrib(amrex::coarsen(fba, 2), fdm, 1, 0);
+    fine_contrib.setVal(0.0);
+
+    const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
+    const auto& fsigma = *m_sigma[crse_amrlev+1][0][0];
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(fine_contrib, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        const Box& cbx = mfi.validbox();
+        const Box& fbx = amrex::refine(cbx,2);
+        amrex_mlndlap_adotx_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
+                                         BL_TO_FORTRAN_BOX(fbx),
+                                         BL_TO_FORTRAN_ANYD(fine_contrib[mfi]),
+                                         BL_TO_FORTRAN_ANYD(fine_sol[mfi]),
+                                         BL_TO_FORTRAN_ANYD(fsigma[mfi]),
+                                         BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
+                                         fdxinv);
+    }
+
+    MultiFab fine_contrib_on_crse(crse_sol.boxArray(), crse_sol.DistributionMap(), 1, 0);
+    fine_contrib_on_crse.setVal(0.0);
+    fine_contrib_on_crse.ParallelAdd(fine_contrib, cgeom.periodicity());
+
+    const iMultiFab& cdmsk = *m_dirichlet_mask[crse_amrlev][0];
+    const auto& cfmask     = m_crsefine_mask[crse_amrlev];
+    const auto& cfweight   = m_crsefine_weight[crse_amrlev];
+    const auto& has_fine_bndry = m_has_fine_bndry[crse_amrlev];
+
+    const auto& csigma = *m_sigma[crse_amrlev][0][0];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(res, true); mfi.isValid(); ++mfi)
+    {
+        if ((*has_fine_bndry)[mfi])
+        {
+            const Box& bx = mfi.tilebox();
+
+        }
+    }
+
+    amrex::VisMF::Write(fine_contrib, "origfine");
+    amrex::VisMF::Write(fine_contrib_on_crse, "fromfine");
+    amrex::VisMF::Write(res, "res");
+
+    // xxxxx
+    amrex::Abort("end of computeResWithCrseSolFineCor");
 }
 
 }
