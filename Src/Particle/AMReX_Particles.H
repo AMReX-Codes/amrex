@@ -773,8 +773,9 @@ public:
     // that have left the domain. May need work (see inline comments)
     //
 
-    ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true) const; 
-
+    ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true,
+                           ParticleLocData& pld = ParticleLocData()) const; 
+    
     //
     // Returns true if the particle was shifted.
     //
