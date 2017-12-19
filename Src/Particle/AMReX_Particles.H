@@ -774,7 +774,7 @@ public:
     //
 
     ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true,
-                           ParticleLocData& pld = ParticleLocData()) const; 
+                           ParticleLocData pld = ParticleLocData()) const; 
     
     //
     // Returns true if the particle was shifted.

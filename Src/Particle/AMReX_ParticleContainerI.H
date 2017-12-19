@@ -290,7 +290,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 Reset (ParticleType& p,
        bool          update,
        bool          verbose,
-       ParticleLocData& pld) const
+       ParticleLocData pld) const
 {
     //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::Reset()");
     BL_ASSERT(m_gdb != 0);
