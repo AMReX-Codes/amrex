@@ -286,14 +286,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 ParticleLocData
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Reset (ParticleType& p,
-                                                                          bool          update,
-                                                                          bool          verbose) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+Reset (ParticleType& p,
+       bool          update,
+       bool          verbose,
+       ParticleLocData& pld) const
 {
-        //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::Reset()");
+    //    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::Reset()");
     BL_ASSERT(m_gdb != 0);
 
-    ParticleLocData pld;
     bool ok = Where(p, pld);
 
     if (!ok && Geom(0).isAnyPeriodic())
