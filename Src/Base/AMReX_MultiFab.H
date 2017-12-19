@@ -524,6 +524,10 @@ public:
     * \brief This tests on whether the MultiFab is fully nodal.
     */
     bool is_nodal () const;
+    /**
+    * \brief This tests on whether the MultiFab is cell-centered.
+    */
+    bool is_cell_centered () const;
 
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     /**

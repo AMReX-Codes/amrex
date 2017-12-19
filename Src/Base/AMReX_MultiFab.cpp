@@ -561,6 +561,11 @@ MultiFab::is_nodal () const
     return boxArray().ixType().nodeCentered();
 }
 
+bool 
+MultiFab::is_cell_centered () const
+{
+    return boxArray().ixType().cellCentered();
+}
 
 Real
 MultiFab::min (int comp,
