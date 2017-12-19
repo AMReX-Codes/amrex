@@ -1004,7 +1004,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
 void
 MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol,
-                         const MultiFab& crse_rhs, MultiFab& fine_sol) const
+                         const MultiFab& crse_rhs, const MultiFab& fine_res, MultiFab& fine_sol) const
 {
     const Geometry& cgeom = m_geom[crse_amrlev  ][0];
     const Geometry& fgeom = m_geom[crse_amrlev+1][0];
@@ -1015,6 +1015,7 @@ MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_so
     const DistributionMapping& fdm = fine_sol.DistributionMap();
     MultiFab fine_contrib(amrex::coarsen(fba, 2), fdm, 1, 0);
     fine_contrib.setVal(0.0);
+//    amrex::average_down(fine_res, fine_contrib, 0, 1, 2);
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
     const auto& fsigma = *m_sigma[crse_amrlev+1][0][0];
