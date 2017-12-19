@@ -119,7 +119,8 @@ protected:
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final;
 
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
-    virtual void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, MultiFab& fine_sol) const final;
+    virtual void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol,
+                         const MultiFab&, MultiFab& fine_sol) const final;
     virtual void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const final;
     virtual void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const final;
 

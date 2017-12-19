@@ -184,6 +184,13 @@ extern "C" {
                                       const int* fmsk, const int* flo, const int* fhi);
 
 
+    void amrex_mlndlap_adotx_fine_contrib (const int* clo, const int* chi, const int* lo, const int* hi,
+                                           amrex_real* res, const int* rlo, const int* rhi,
+                                           const amrex_real* phi, const int* phlo, const int* phhi,
+                                           const amrex_real* sig, const int* slo, const int* shi,
+                                           const int* dmsk, const int* dmlo, const int* dmhi,
+                                           const amrex_real* dxinv);
+
 #ifdef __cplusplus
 }
 #endif

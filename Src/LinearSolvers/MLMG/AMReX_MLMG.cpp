@@ -172,6 +172,9 @@ MLMG::oneIter (int iter)
         // compute residual for the coarse AMR level
         computeResWithCrseSolFineCor(alev-1,alev);
 
+        // xxxxx
+        amrex::Abort("after computeResWithCrseSolFineCor");
+
         if (alev != finest_amr_lev) {
             std::swap(cor_hold[alev][0], cor[alev][0]); // save it for the up cycle
         }
@@ -235,7 +238,7 @@ MLMG::computeMLResidual (int amrlevmax)
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         linop.solutionResidual(alev, res[alev][mglev], *sol[alev], rhs[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
-            linop.reflux(alev, res[alev][mglev], *sol[alev], *sol[alev+1]);
+            linop.reflux(alev, res[alev][mglev], *sol[alev], rhs[alev], *sol[alev+1]);
         }
     }
 }
@@ -281,10 +284,13 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, 1, 0);
 
-    linop.reflux(calev, crse_res, crse_sol, fine_sol);
+    linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_sol);
 
     const int amrrr = linop.AMRRefRatio(calev);
     amrex::average_down(fine_res, crse_res, 0, 1, amrrr);
+
+    // xxxxx
+    amrex::Abort("end of computeResWithCrseSolFineCor");
 }
 
 // Compute fine AMR level residual fine_res = fine_res - L(fine_cor) with coarse providing BC.
@@ -818,7 +824,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
 #endif
         linop.solutionResidual(alev, *a_res[alev], *a_sol[alev], *prhs, crse_bcdata);
         if (alev < finest_amr_lev) {
-            linop.reflux(alev, *a_res[alev], *a_sol[alev], *a_sol[alev+1]);
+            linop.reflux(alev, *a_res[alev], *a_sol[alev], *prhs, *a_sol[alev+1]);
             amrex::average_down(*a_res[alev+1], *a_res[alev], 0, 1, amrrr[alev]); 
         }
     }
