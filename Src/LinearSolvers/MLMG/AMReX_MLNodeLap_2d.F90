@@ -15,7 +15,7 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_zero_fine, amrex_mlndlap_crse_resid, amrex_mlndlap_any_zero, &
        amrex_mlndlap_set_dirichlet_mask, amrex_mlndlap_divu_fine_contrib, &
        amrex_mlndlap_divu_cf_contrib, amrex_mlndlap_set_cf_weight, &
-       amrex_mlndlap_adotx_fine_contrib
+       amrex_mlndlap_adotx_fine_contrib, amrex_mlndlap_res_cf_contrib
 
 contains
 
@@ -986,7 +986,7 @@ contains
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
     real(amrex_real), intent(in   ) :: wgt(wlo(1):whi(1),wlo(2):whi(2))
-    real(amrex_real), intent(inout) :: fc (clo(1):chi(1),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fc (clo(1):chi(1),clo(2):chi(2))
     integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
     integer, intent(in) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
 
@@ -1302,5 +1302,64 @@ contains
     end do
 
   end subroutine amrex_mlndlap_adotx_fine_contrib
+
+
+  subroutine amrex_mlndlap_res_cf_contrib (lo, hi, res, rlo, rhi, phi, phlo, phhi, &
+       rhs, rhlo, rhhi, sig, slo, shi, dmsk, mlo, mhi, fmsk, flo, fhi, wgt, wlo, whi, &
+       fc, clo, chi, dxinv) &
+       bind(c,name='amrex_mlndlap_res_cf_contrib')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, phlo, phhi, rhlo, rhhi, slo, shi, &
+         mlo, mhi, flo, fhi, wlo, whi, clo, chi
+    real(amrex_real), intent(in) :: dxinv(2)
+    real(amrex_real), intent(inout) :: res( rlo(1): rhi(1), rlo(2): rhi(2))
+    real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2))
+    real(amrex_real), intent(in   ) :: rhs(rhlo(1):rhhi(1),rhlo(2):rhhi(2))
+    real(amrex_real), intent(in   ) :: sig( slo(1): shi(1), slo(2): shi(2))
+    real(amrex_real), intent(in   ) :: wgt( wlo(1): whi(1), wlo(2): whi(2))
+    real(amrex_real), intent(inout) :: fc ( clo(1): chi(1), clo(2): chi(2))
+    integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
+    integer, intent(in) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
+
+    integer :: i,j
+    real(amrex_real) :: Ax, facx, facy
+
+    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (dmsk(i,j) .eq. 0) then
+             if (any(fmsk(i-1:i,j-1:j).eq.0) .and. any(fmsk(i-1:i,j-1:j).eq.1)) then
+                Ax = fc(i,j)
+                if (fmsk(i-1,j-1) .eq. 0) then
+                   Ax = Ax + sig(i-1,j-1)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
+                        &                       +     (phi(i-1,j-1)-phi(i  ,j-1))) &
+                        &                + facy*(2.d0*(phi(i  ,j-1)-phi(i  ,j  )) &
+                        &                       +     (phi(i-1,j-1)-phi(i-1,j  ))))
+                end if
+                if (fmsk(i,j-1) .eq. 0) then
+                   Ax = Ax + sig(i,j-1)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
+                        &                     +     (phi(i+1,j-1)-phi(i  ,j-1))) &
+                        &              + facy*(2.d0*(phi(i  ,j-1)-phi(i  ,j  )) &
+                        &                     +     (phi(i+1,j-1)-phi(i+1,j  ))))
+                end if
+                if (fmsk(i-1,j) .eq. 0) then
+                   Ax = Ax + sig(i-1,j)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
+                        &                     +     (phi(i-1,j+1)-phi(i  ,j+1))) &
+                        &              + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
+                        &                     +     (phi(i-1,j+1)-phi(i-1,j  ))))
+                end if
+                if (fmsk(i,j) .eq. 0) then
+                   Ax = Ax + sig(i,j)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
+                        &                  +      (phi(i+1,j+1)-phi(i  ,j+1))) &
+                        &            + facy*(2.d0*(phi(i-1,j+1)-phi(i-1,j  )) &
+                        &                  +      (phi(i  ,j+1)-phi(i  ,j  ))))
+                end if
+                res(i,j) = rhs(i,j) - Ax*wgt(i,j)
+             end if
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_res_cf_contrib
 
 end module amrex_mlnodelap_2d_module

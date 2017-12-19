@@ -1049,21 +1049,23 @@ MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_so
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(res, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(res, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
         if ((*has_fine_bndry)[mfi])
         {
             const Box& bx = mfi.tilebox();
-
+            amrex_mlndlap_res_cf_contrib(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(res[mfi]),
+                                         BL_TO_FORTRAN_ANYD(crse_sol[mfi]),
+                                         BL_TO_FORTRAN_ANYD(crse_rhs[mfi]),
+                                         BL_TO_FORTRAN_ANYD(csigma[mfi]),
+                                         BL_TO_FORTRAN_ANYD(cdmsk[mfi]),
+                                         BL_TO_FORTRAN_ANYD((*cfmask)[mfi]),
+                                         BL_TO_FORTRAN_ANYD((*cfweight)[mfi]),
+                                         BL_TO_FORTRAN_ANYD(fine_contrib_on_crse[mfi]),
+                                         cdxinv);
         }
     }
-
-    amrex::VisMF::Write(fine_contrib, "origfine");
-    amrex::VisMF::Write(fine_contrib_on_crse, "fromfine");
-    amrex::VisMF::Write(res, "res");
-
-    // xxxxx
-    amrex::Abort("end of computeResWithCrseSolFineCor");
 }
 
 }
