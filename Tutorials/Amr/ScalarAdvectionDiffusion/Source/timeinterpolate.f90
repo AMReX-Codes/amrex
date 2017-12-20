@@ -239,19 +239,6 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
   !this gets us to un
   xi = (tf - tc_old)/dt_c
 
-! this is to use  the polynomial to get to the right time level.
-!  if(stage .eq. 0) then
-!     xi = (tf              - tc_old)/dt_c
-!  else if(stage .eq. 1) then
-!     xi = (tf + 0.5d0*dt_f - tc_old)/dt_c
-!  else if(stage .eq. 2) then
-!     xi = (tf + 0.5d0*dt_f - tc_old)/dt_c !why, yes, this *is* the same as stage 1
-!  else
-!     xi = (tf + dt_f       - tc_old)/dt_c;
-!  endif
-
-
-
   !print*, "*************IN JBB VERSION****************"
   dtf2 = dt_f*dt_f
   dtf3 = dt_f*dt_f*dt_f
@@ -262,7 +249,7 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
      do j=lo(2),hi(2)
         do i=lo(1),hi(1)
 
-           !the ks get multiplied by dt in the code
+           !the ks get multiplied by dtc in the code
            k_1 = k1(i,j,k)
            k_2 = k2(i,j,k)
            k_3 = k3(i,j,k)
@@ -283,11 +270,6 @@ subroutine timeinterprk4_jbb(stage, lo, hi, &
            utemp(2) =  u0 + 0.5d0*dt_f*fn + 0.25d0*dtf2*fnfprime + 0.0625d0*dtf3*fnsqfdouble
            utemp(3) =  u0 +       dt_f*fn +  0.5d0*dtf2*fnfprime + 0.1250d0*dtf3*fnsqfdouble + 0.25d0*dtf3*fprimsqfn
 
-! here we let the polynomial get us to the right u (so just taking out the first deriv terms.
-!           utemp(0) =  u0
-!           utemp(1) =  u0 
-!           utemp(2) =  u0 + 0.25d0*dt2*fnfprime + 0.0625d0*dt3*fnsqfdouble
-!           utemp(3) =  u0 +  0.5d0*dt2*fnfprime + 0.1250d0*dt3*fnsqfdouble + 0.25d0*dt3*fprimsqfn
 
            phi(i,j,k) = utemp(stage)
 
