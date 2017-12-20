@@ -2575,7 +2575,7 @@ Amr::makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) con
             dmtmp.define(ba);
         }
 
-        MultiFab workest(ba, dmtmp, 1, 0);
+        MultiFab workest(ba, dmtmp, 1, 0, MFInfo(), FArrayBoxFactory());
         AmrLevel::FillPatch(*amr_level[lev], workest, 0, time, work_est_type, 0, 1, 0);
 
         Real navg = static_cast<Real>(ba.size()) / static_cast<Real>(ParallelDescriptor::NProcs());
