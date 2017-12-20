@@ -53,7 +53,7 @@ protected:
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
 
     virtual void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol,
-                         const MultiFab& crse_rhs, const MultiFab& fine_res,
+                         const MultiFab& crse_rhs, MultiFab& fine_res,
                          MultiFab& fine_sol) const final;
 
     virtual void prepareForSolve () final;

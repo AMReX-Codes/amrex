@@ -24,11 +24,9 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
 
     m_owner_mask.resize(m_num_amr_levels);
     m_dirichlet_mask.resize(m_num_amr_levels);
-    m_dirichlet_mask_2.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         m_owner_mask[amrlev].resize(m_num_mg_levels[amrlev]);
         m_dirichlet_mask[amrlev].resize(m_num_mg_levels[amrlev]);
-        m_dirichlet_mask_2[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             m_owner_mask[amrlev][mglev] = makeOwnerMask(m_grids[amrlev][mglev],
@@ -37,16 +35,6 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
             m_dirichlet_mask[amrlev][mglev].reset
                 (new iMultiFab(amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
                                m_dmap[amrlev][mglev], 1, 0));
-
-            if (mglev > 0 && amrlev == 0 &&
-                (m_dmap[amrlev][mglev] != m_dmap[amrlev][mglev-1]
-                 || !BoxArray::SameRefs(m_grids[amrlev][mglev], m_grids[amrlev][mglev-1])))
-            {
-                m_dirichlet_mask_2[amrlev][mglev].reset
-                    (new iMultiFab(amrex::coarsen(m_dirichlet_mask[amrlev][mglev-1]->boxArray(),2),
-                                   m_dirichlet_mask[amrlev][mglev-1]->DistributionMap(),
-                                   1, 0));
-            }
         }
     }
 
@@ -54,6 +42,7 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
     m_crsefine_mask.resize(m_num_amr_levels);
     m_crsefine_weight.resize(m_num_amr_levels);
     m_has_fine_bndry.resize(m_num_amr_levels);
+    m_overlap_mask.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         if (amrlev < m_num_amr_levels-1)
@@ -64,6 +53,12 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
                               m_dmap[amrlev][0], 1, 0));
         }
         m_has_fine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
+        if (amrlev > 0) {
+            MultiFab foo(amrex::convert(m_grids[amrlev][0], IntVect::TheNodeVector()),
+                         m_dmap[amrlev][0], 1, 0, MFInfo().SetAlloc(false));
+            m_overlap_mask[amrlev] = foo.OverlapMask(m_geom[amrlev][0].periodicity());
+            m_overlap_mask[amrlev]->invert(1.0, 0, 1);
+        }
     }
 }
 

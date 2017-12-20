@@ -172,9 +172,6 @@ MLMG::oneIter (int iter)
         // compute residual for the coarse AMR level
         computeResWithCrseSolFineCor(alev-1,alev);
 
-        // xxxxx
-        amrex::Abort("after computeResWithCrseSolFineCor");
-
         if (alev != finest_amr_lev) {
             std::swap(cor_hold[alev][0], cor[alev][0]); // save it for the up cycle
         }
