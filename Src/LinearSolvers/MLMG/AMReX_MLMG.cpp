@@ -217,10 +217,13 @@ MLMG::oneIter (int iter)
         }
     }
 
-    const auto& amrrr = linop.AMRRefRatio();
-    for (int falev = finest_amr_lev; falev > 0; --falev)
+    if (linop.isCellCentered())
     {
-        amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
+        const auto& amrrr = linop.AMRRefRatio();
+        for (int falev = finest_amr_lev; falev > 0; --falev)
+        {
+            amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
+        }
     }
 }
 
