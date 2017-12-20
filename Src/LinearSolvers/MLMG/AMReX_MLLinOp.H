@@ -174,8 +174,8 @@ protected:
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) = 0;
 
-    virtual void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol,
-                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const = 0;
+    virtual void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
+                         MultiFab& fine_res, MultiFab& fine_sol) const = 0;
     virtual void compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const = 0;
     virtual void compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const = 0;
     

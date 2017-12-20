@@ -970,8 +970,8 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 }
 
 void
-MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol,
-                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
+MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
+                         MultiFab& fine_res, MultiFab& fine_sol) const
 {
     const Geometry& cgeom = m_geom[crse_amrlev  ][0];
     const Geometry& fgeom = m_geom[crse_amrlev+1][0];
@@ -1004,8 +1004,6 @@ MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_so
 
     MultiFab fine_contrib(amrex::coarsen(fba, 2), fdm, 1, 0);
     fine_contrib.setVal(0.0);
-    MultiFab fine_contrib_rhs(amrex::coarsen(fba, 2), fdm, 1, 0);
-    amrex::average_down_nodal(fine_rhs,fine_contrib_rhs, IntVect{AMREX_D_DECL(2,2,2)});
 
     const auto& fsigma = *m_sigma[crse_amrlev+1][0][0];
     const auto& ovmsk  = *m_overlap_mask[crse_amrlev+1];
@@ -1032,9 +1030,6 @@ MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_so
     fine_contrib_on_crse.setVal(0.0);
     fine_contrib_on_crse.ParallelAdd(fine_contrib, cgeom.periodicity());
 
-    MultiFab fine_rhs_on_crse(crse_sol.boxArray(), crse_sol.DistributionMap(), 1, 0);
-    fine_rhs_on_crse.ParallelCopy(fine_contrib_rhs, cgeom.periodicity());
-
     const iMultiFab& cdmsk = *m_dirichlet_mask[crse_amrlev][0];
     const auto& cfmask     = m_crsefine_mask[crse_amrlev];
     const auto& cfweight   = m_crsefine_weight[crse_amrlev];
@@ -1053,7 +1048,7 @@ MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_so
             amrex_mlndlap_res_cf_contrib(BL_TO_FORTRAN_BOX(bx),
                                          BL_TO_FORTRAN_ANYD(res[mfi]),
                                          BL_TO_FORTRAN_ANYD(crse_sol[mfi]),
-                                         BL_TO_FORTRAN_ANYD(fine_rhs_on_crse[mfi]),
+                                         BL_TO_FORTRAN_ANYD(crse_rhs[mfi]),
                                          BL_TO_FORTRAN_ANYD(csigma[mfi]),
                                          BL_TO_FORTRAN_ANYD(cdmsk[mfi]),
                                          BL_TO_FORTRAN_ANYD((*cfmask)[mfi]),
