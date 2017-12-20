@@ -215,14 +215,15 @@ class ArrayOfStructs {
 public:
     using ParticleType  = Particle<NReal, NInt>;
     using RealType      = typename ParticleType::RealType;
-    using Iterator      = typename Vector<ParticleType>::iterator;
-    using ConstIterator = typename Vector<ParticleType>::const_iterator;
 
 #if CUDA
     using ParticleVector = Vector<ParticleType, CudaManagedAllocator<ParticleType> >;
 #else
     using ParticleVector = Vector<ParticleType>;
 #endif
+
+    using Iterator      = typename ParticleVector::iterator;
+    using ConstIterator = typename ParticleVector::const_iterator;
 
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
 
