@@ -72,7 +72,7 @@ reformulate the equation as
 $$
 \frac{\partial \phi}{\partial t} =  -\nabla \cdot \Fbold, 
 $$
-where $\Fbold = \vbold \phi - \nu \nabla phi$.
+where $\Fbold = \vbold \phi - \nu \nabla \phi$.
 The algorithms here are implemented in finite volume form:
 $$
 D(F)_\ibold = \frac{1}{\dx} \sum^D_{d = 1} (F_{\iph} - F_\imh)
@@ -88,7 +88,7 @@ In second-order Godunov, we extrapolate in space and time to get a
 flux at the half time step.   I will not go into great detail here
 because this is fairly old hat to my audience.
 $$
-\phi_{i+1/2} = \phi_i + \half\dx \partial{\phi}{\partial x} + \half\dt \partial{\phi}{\partial t}
+\phi_{i+1/2} = \phi_i + \half\dx \frac{\partial \phi}{\partial x} + \half\dt \frac{\partial\phi}{\partial t}
 $$
 We use the equation of motion to substitute spatial derivatives for
 the time derivative and we get.   We use  limited van Leer slopes to
@@ -123,15 +123,14 @@ the $x$ direction.   To compute the flux at the face, we pick the
 upwind state then multiply by the normal velocity at the face.   
  For coarse-fine interpolation,  this algorithm just uses FillPatch.
 
-\subsection{Higher order integration}
+\subsection{Fourth order spatial discretization}
 
 For higher order methods, we use fourth order spatial integration and
 allow the user to choose between third order TVD time integration and
 standard fourth order Runge-Kutte integration.    The time
 interpolation used for subcycling is different for the two time
-integration schemes.
+integration schemes.   This interpolation is discussed in \S \ref{sec::highordertime}
 
-\subsubsection{Fourth order spatial discretization}
 Our spatial discretization is discribed by McCorquodale and Colella
 \cite{mccorquodale_collela} and is fourth order in space. Both the
 versions with and without limiting are implemented and we switch
@@ -160,7 +159,7 @@ face (what McCorquodale refers to as the ``transverse Laplacian'').
 
 \item Compute pointwise fluxes $F$ (including diffusion fluxes).
 $$
-F_{i+1/2} = u_{i+1/2} \phi_{i+1/2}  - nu G^x(phi)_{i+1/2}
+F_{i+1/2} = u_{i+1/2} \phi_{i+1/2}  - \nu G^x(phi)_{i+1/2}
 $$
 where the normal gradient $G^x$ is computed using fourth order finite
 differences  of the pointwise cell-centered scalar $\phi$.
@@ -175,58 +174,114 @@ $$
 <F> = F - (1/24) L^T(F).
 $$    
 \end{itemize}
-For coarse-fine interpolation, we use FillPatchUtil
+For coarse-fine interpolation, we use {\tt FillPatchUtil}
 quartic interpolation for spatial interplation.   For time
 interpolation,   the form of the interpolation depends on the order of
 the scheme we use.
 
-\subsection{Time integration and time interpolation}
+\section{Higher Order Time Integration and Interpolation}
+\label{sec::highordertime}
 
 Within a single level advance, we use standard time interpolation
 schemes (which are described below).  Define $t_f$ to be the fine
-level time and $t_c$ to be the coarse old time.  We use a polynomial
+level time and $t_c$ to be the coarse old time.  Define $\phi_c$ to be
+the interpolated solution at the coarse old time.   We use a polynomial
 expansion to get us to $t_f$ but we also need to use a Taylor
 expansion to get us to the particular Runge-Kutta stage we are
 filling.   The derivation of the polynomial is given in Fok and
-Rosales.   
+Rosales.   For simplicity of notation, from here on, $f(\phi) \equiv -D(F(\phi))$.
 
-\subsubsection{RK3 (TVD) time integration and time interpolation}
+\subsection{RK3 (TVD)}
 
 For our third-order RK3 TVD  integrator, we  use what Gottlieb and Shu
 \cite{gottlieb_shu} cite as the optimal third order TVD RK3
-
 integrator.
 $$
 \begin{array}{l}
-\phi^1 = \phi^n - \dt D(F(\phi^n)) \\
-\phi^2 = \frac{3}{4} \phi^n + \frac{1}{4} (\phi^1 - \dt D(F(\phi^1)))\\
-\phi^{n+1} = \frac{1}{3} \phi^n +  \frac{2}{3}(\phi^2 - dt D(F(\phi^2)))
+\phi^1 = \phi^n + \dt f\phi^n) \\
+\phi^2    = \frac{3}{4} \phi^n +  \frac{1}{4}(\phi^1 + \dt f(\phi^1))\\
+\phi^{n+1} = \frac{1}{3} \phi^n +  \frac{2}{3}(\phi^2 + \dt f(\phi^2))\\
 \end{array}
 $$
-
-The time interpolation used to fill ghost cells in subcycling.
-Define
+Time interpolation must be used to fill used to fill ghost cells in
+$phi^n, phi^1, phi^2$ over the coarse-fine interface.  We define
 $$
 \begin{array}{l}
-k^1 =  D(F(\phi^n)\\
-k^2 =  D(F(\phi^1)\\
+k^1 =  \dt_c f(\phi^n)\\
+k^2 =  \dt_c f(\phi^1).\\
 \end{array}
 $$
+After we interpolate spatially, the time interpolation scheme is given
+by 
+$$
+\begin{array}{l}
+\phi^n = \phi_c + \xi k^1 + \frac{1}{2}(k^2 - k^1)*xi^2 \\
+\phi^1 = \phi^n + \dt_f f_n
+\phi^2 = \phi^n + \frac{\dt_f}{2} f_n + \frac{\dt_f^2}{4}f_nf'
+\end{array}
+$$
+where $\xi = (t_f- t_c)/dt_c$, $f_n = k_1/dt_c$ and $f_nf' =
+(k_2-k_1)/dt_c$.  
+The derivation of these formulae is given in \S \ref{sec::rk3deriv}.
 
 \subsection{RK4}
 
 Fourth order time integration is done via standard RK4 integration.
 $$
 \begin{array}{l}
-k^1 = D(F(\phi^n)) \\
-k^2 = D(F(\phi^1+ \frac{\dt k^1}{2})) \\
-k^3 = D(F(\phi^2) \frac{\dt k^2}{2})) \\
-k^4 = D(F(\phi^3) \dt k^3)) \\
-\phi^{n+1} = \phi^n + \frac{\dt}{6}(k^1 + 2 k^2 + 2 k^3 + k^4) \\
+\phi^1 = \phi^n + \frac{\dt}{2} f(\phi^n) \\
+\phi^2 = \phi^n + \frac{\dt}{2} f(\phi^1) \\
+\phi^3 = \phi^n + \dt f(\phi^2) \\
+\phi^4 = \phi^n + \dt f(\phi^3) \\
+\phi^{n+1} = \frac{\dt}{6}(\phi^1 + 2 \phi^2 + 2 \phi^3 + \phi^4) \\
 \end{array}
 $$
+Time interpolation must be used to fill used to fill ghost cells in
+$phi^n, phi^1, phi^2$ over the coarse-fine interface.  We define
+$$
+\begin{array}{l}
+k^1 =  \dt_c f(\phi^n),\\
+k^2 =  \dt_c f(\phi^1),\\
+k^3 =  \dt_c f(\phi^2), \mbox{and}\\
+k^4 =  \dt_c f(\phi^3).\\
+\end{array}
+$$
+After we interpolate spatially, the time interpolation scheme is given
+by 
+$$
+\begin{array}{l}
+\phi^n = \phi_c + \xi k^1 + S \xi^2 + C \xi^3, \\
+\phi^1 = \phi^n + \frac{\dt_f}{2} f_n, \\
+\phi^2 = \phi^n + \frac{\dt_f}{2} f_n + \frac{\dt_f^2}{4}f_nf' +\frac{\dt_f^3}{16}f_n^2f'', \mbox{and} \\
+\phi^3 = \phi^n + \dt_f f_n + \frac{\dt_f^2}{2}f_nf' 
++\frac{\dt_f^3}{8}f_n^2f''  +  \frac{\dt_f^3}{4}f'^2f_n.   \\
+\end{array}
+$$
+where 
+$$
+\begin{array}{l}
+\xi = (t_f- t_c)/dt_c, \\
+S = \frac{-3}{2} k^1 + k^2 + k^3 - frac{1}{2} k^4, \\
+C = \frac{2}{3}(k^1 - k^2 - k^3 + k^4), \\
+f_n =  \frac{k_1}{\dt_c}, \\
+f_nf' =  \frac{1}{\dt_c^2} (-3 k^1 + 2 k^2 + 2 k^3 - k^4),\\
+f_n^2f'' =  \frac{1}{\dt_c^3} (4 k^1 - 8 k^3 +4 k^4), \mbox{and}\\
+f'^2f_n' =  \frac{1}{\dt_c^3} (8 k^3 - k^2). \\
+\end{array}
+$$
+
+In both the the third and fourth order cases, the $\phi^n$ equation
+comes from the polynomial expansion derived in Fok and Rosales.   The
+rest follow from a detailed Taylor expansion of the terms.
+For RK4, this derivation of in \S \ref{sec::rk4deriv}.
+
+\section{Appendix: time interpolation derivation}
+\subsection{RK3}
+\label{sec::rk3deriv}
+\subsection{RK4}
+\label{sec::rk4deriv}
 
 \bibliography{references}
 
 \end{document}
-
+ 
