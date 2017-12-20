@@ -761,9 +761,9 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     else
     {
         const auto& amrrr = linop.AMRRefRatio();
-        AMREX_ALWAYS_ASSERT(amrrr[0] == 2);
         for (int falev = finest_amr_lev; falev > 0; --falev)
         {
+            AMREX_ALWAYS_ASSERT(amrrr[0] == 2);
             amrex::average_down(rhs[falev],  rhs[falev-1], 0, 1, 2);
         }        
     }
