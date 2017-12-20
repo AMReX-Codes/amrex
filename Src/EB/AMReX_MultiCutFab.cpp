@@ -41,7 +41,7 @@ MultiCutFab::MultiCutFab ()
 
 MultiCutFab::MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
                           int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags)
-    : m_data(ba,dm,ncomp,ngrow),
+    : m_data(ba,dm,ncomp,ngrow,MFInfo(),DefaultFabFactory<CutFab>()),
       m_cellflags(&cellflags)
 {
     remove();
@@ -54,7 +54,7 @@ void
 MultiCutFab::define (const BoxArray& ba, const DistributionMapping& dm,
                      int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags)
 {
-    m_data.define(ba,dm,ncomp,ngrow);
+    m_data.define(ba,dm,ncomp,ngrow,MFInfo(),DefaultFabFactory<CutFab>()),
     m_cellflags = &cellflags;
     remove();
 }
