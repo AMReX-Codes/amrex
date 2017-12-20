@@ -40,7 +40,7 @@ public:
     //! get access to the underlying data pointer
     const T* dataPtr () const { return this->data(); }
 
-    long size() const {return static_cast<long>(std::vector<T>::size());}
+    long size() const {return static_cast<long>(std::vector<T, Allocator>::size());}
 
 };
 

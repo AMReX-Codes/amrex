@@ -219,15 +219,15 @@ public:
     using ConstIterator = typename Vector<ParticleType>::const_iterator;
 
 #if CUDA
-    using ParticleArray = Vector<ParticleType, CudaManagedAllocator<ParticleType> >;
+    using ParticleVector = Vector<ParticleType, CudaManagedAllocator<ParticleType> >;
 #else
-    using ParticleArray = Vector<ParticleType>;
+    using ParticleVector = Vector<ParticleType>;
 #endif
 
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
 
-    const ParticleArray& operator()() const { return m_data; }
-          ParticleArray& operator()()       { return m_data; }
+    const ParticleVector& operator()() const { return m_data; }
+          ParticleVector& operator()()       { return m_data; }
 
     std::size_t size () const { return m_data.size(); }
     int numParticles () const { return m_data.size(); }
@@ -274,20 +274,20 @@ template <int NReal, int NInt>
 struct StructOfArrays {
   
 #if CUDA
-    using RealArray = Vector<Real, CudaManagedAllocator<Real>>;
-    using  IntArray = Vector<int , CudaManagedAllocator<int >>;
+    using RealVector = Vector<Real, CudaManagedAllocator<Real>>;
+    using  IntVector = Vector<int , CudaManagedAllocator<int >>;
 #else
-    using RealArray = Vector<Real>;
-    using  IntArray = Vector<int >;
+    using RealVector = Vector<Real>;
+    using  IntVector = Vector<int >;
 #endif
 
-    std::array<RealArray, NReal>& GetRealData () { return m_rdata; }
-    std::array< IntArray,   NInt>& GetIntData  () { return m_idata; }
+    std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
+    std::array< IntVector,   NInt>& GetIntData  () { return m_idata; }
 
-    const std::array<RealArray, NReal>& GetRealData () const { return m_rdata; }
-    const std::array< IntArray,  NInt>& GetIntData  () const { return m_idata; }
+    const std::array<RealVector, NReal>& GetRealData () const { return m_rdata; }
+    const std::array< IntVector,  NInt>& GetIntData  () const { return m_idata; }
 
-    RealArray& GetRealData (const int index) {
+    RealVector& GetRealData (const int index) {
         BL_ASSERT(index < NReal);
         return m_rdata[index];
     }
@@ -297,12 +297,12 @@ struct StructOfArrays {
         return m_rdata[index];
     }
 
-    IntArray& GetIntData (const int index) {
+    IntVector& GetIntData (const int index) {
         BL_ASSERT(index < NInt);
         return m_idata[index];
     }
     
-    const IntArray& GetIntData (const int index) const {
+    const IntVector& GetIntData (const int index) const {
         BL_ASSERT(index < NInt);
         return m_idata[index];
     }
@@ -317,8 +317,8 @@ struct StructOfArrays {
     }
 
 private:
-    std::array<RealArray, NReal> m_rdata;
-    std::array< IntArray,  NInt> m_idata;    
+    std::array<RealVector, NReal> m_rdata;
+    std::array< IntVector,  NInt> m_idata;    
 };
 
 
@@ -469,9 +469,9 @@ public:
     using AoS = typename ParticleTileType::AoS;
     using SoA = typename ParticleTileType::SoA;
 
-    using RealArray     = typename SoA::RealArray;
-    using  IntArray     = typename SoA::IntArray;
-    using ParticleArray = typename AoS::ParticleArray;
+    using RealVector     = typename SoA::RealVector;
+    using IntVector      = typename SoA::IntVector;
+    using ParticleVector = typename AoS::ParticleVector;
 
 
     ParticleContainer ()
