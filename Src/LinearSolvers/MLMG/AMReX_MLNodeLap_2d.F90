@@ -1354,7 +1354,7 @@ contains
        do i = lo(1), hi(1)
           if (dmsk(i,j) .eq. 0) then
              if (any(fmsk(i-1:i,j-1:j).eq.0) .and. any(fmsk(i-1:i,j-1:j).eq.1)) then
-                Ax = fc(i,j)
+                Ax = 0.d0
                 if (fmsk(i-1,j-1) .eq. 0) then
                    Ax = Ax + sig(i-1,j-1)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
                         &                       +     (phi(i-1,j-1)-phi(i  ,j-1))) &
@@ -1379,7 +1379,7 @@ contains
                         &            + facy*(2.d0*(phi(i-1,j+1)-phi(i-1,j  )) &
                         &                  +      (phi(i  ,j+1)-phi(i  ,j  ))))
                 end if
-                res(i,j) = rhs(i,j) - Ax*wgt(i,j)
+                res(i,j) = wgt(i,j)*rhs(i,j) - Ax + fc(i,j)
              end if
           end if
        end do
