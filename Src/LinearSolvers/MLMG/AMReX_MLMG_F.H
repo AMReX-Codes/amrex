@@ -12,6 +12,11 @@ extern "C" {
                                    const amrex_real* crse, const int* cdlo, const int* cdhi,
                                    const int* ratio);
 
+    void amrex_mlmg_lin_nd_interp (const int* clo, const int* chi,
+                                   const int* flo, const int* fhi,
+                                   amrex_real* fine, const int* fdlo, const int* fdhi,
+                                   const amrex_real* crse, const int* cdlo, const int* cdhi);
+
 #ifdef __cplusplus
 }
 #endif

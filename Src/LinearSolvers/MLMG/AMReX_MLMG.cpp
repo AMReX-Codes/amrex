@@ -428,21 +428,47 @@ MLMG::interpCorrection (int alev)
     ba.coarsen(refratio);
 
     const Geometry& crse_geom = linop.Geom(alev-1,0);
-    
-    MultiFab cfine(ba, fine_cor.DistributionMap(), 1, 1);
-    cfine.setVal(0.0);
-    cfine.ParallelCopy(crse_cor, 0, 0, 1, 0, 1, crse_geom.periodicity());
 
+    const int ng = linop.isCellCentered() ? 1 : 0;
+    MultiFab cfine(ba, fine_cor.DistributionMap(), 1, ng);
+    cfine.setVal(0.0);
+    cfine.ParallelCopy(crse_cor, 0, 0, 1, 0, ng, crse_geom.periodicity());
+
+    if (linop.isCellCentered())
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
+                                     BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
+                                     BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                     &refratio[0]);
+        }
+    }
+    else
     {
-        const Box& bx = mfi.tilebox();
-        amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                 BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                 BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                 &refratio[0]);
+        AMREX_ALWAYS_ASSERT(amrrr == 2);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            FArrayBox tmpfab;
+            for (MFIter mfi(fine_cor, true); mfi.isValid(); ++mfi)
+            {
+                const Box& fbx = mfi.tilebox();
+                const Box& cbx = amrex::coarsen(fbx,2);
+                const Box& tmpbx = amrex::refine(cbx,2);
+                tmpfab.resize(tmpbx);
+                amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
+                                         BL_TO_FORTRAN_BOX(tmpbx),
+                                         BL_TO_FORTRAN_ANYD(tmpfab),
+                                         BL_TO_FORTRAN_ANYD(cfine[mfi]));
+                fine_cor[mfi].copy(tmpfab, fbx, 0, fbx, 0, 1);
+            }
+        }
     }
 }
 
