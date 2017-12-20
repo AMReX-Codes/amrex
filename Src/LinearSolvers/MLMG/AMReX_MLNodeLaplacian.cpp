@@ -393,37 +393,6 @@ MLNodeLaplacian::buildMasks ()
                                                          m_lobc.data(), m_hibc.data());
                     }
                 }
-
-                if (m_dirichlet_mask_2[amrlev][mglev])
-                {
-                    auto& dmask = *m_dirichlet_mask_2[amrlev][mglev];
-                    const BoxArray& ccba = amrex::convert(dmask.boxArray(), IntVect::TheCellVector());
-
-                    for (MFIter mfi(dmask, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
-                    {
-                        const Box& ndbx = mfi.validbox();
-                        const Box& ccbx = amrex::enclosedCells(ndbx);
-                        const Box& ccbxg1 = amrex::grow(ccbx,1);
-                        IArrayBox& mskfab = dmask[mfi];
-                        
-                        ccfab.resize(ccbxg1);
-                        ccfab.setVal(1);
-                        
-                        for (const auto& iv : pshifts)
-                        {
-                            ccba.intersections(ccbxg1+iv, isects);
-                            for (const auto& is : isects)
-                            {
-                                ccfab.setVal(0, is.second-iv, 0, 1);
-                            }
-                        }
-                        
-                        amrex_mlndlap_set_dirichlet_mask(BL_TO_FORTRAN_ANYD(mskfab),
-                                                         BL_TO_FORTRAN_ANYD(ccfab),
-                                                         BL_TO_FORTRAN_BOX(nddomain),
-                                                         m_lobc.data(), m_hibc.data());
-                    }
-                }
             }
         }
     }
@@ -514,9 +483,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     }
 
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
-    const iMultiFab& dmsk = (need_parallel_copy)
-        ? *m_dirichlet_mask_2[amrlev][cmglev]
-        : *m_dirichlet_mask  [amrlev][cmglev];
+    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1004,22 +971,43 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
 void
 MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol,
-                         const MultiFab& crse_rhs, const MultiFab& fine_res, MultiFab& fine_sol) const
+                         const MultiFab& crse_rhs, MultiFab& fine_res, MultiFab& fine_sol) const
 {
     const Geometry& cgeom = m_geom[crse_amrlev  ][0];
     const Geometry& fgeom = m_geom[crse_amrlev+1][0];
     const Real* cdxinv = cgeom.InvCellSize();
     const Real* fdxinv = fgeom.InvCellSize();
+    const Box& c_nd_domain = amrex::surroundingNodes(cgeom.Domain());
 
     const BoxArray& fba = fine_sol.boxArray();
     const DistributionMapping& fdm = fine_sol.DistributionMap();
-    MultiFab fine_contrib(amrex::coarsen(fba, 2), fdm, 1, 0);
-    fine_contrib.setVal(0.0);
-//    amrex::average_down(fine_res, fine_contrib, 0, 1, 2);
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
+
+    MultiFab fine_res_for_coarse(amrex::coarsen(fba, 2), fdm, 1, 0);
+    fine_res.FillBoundary(fgeom.periodicity());
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(fine_res_for_coarse, true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                  BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
+                                  BL_TO_FORTRAN_ANYD(fine_res[mfi]),
+                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
+                                  BL_TO_FORTRAN_BOX(c_nd_domain),
+                                  m_lobc.data(), m_hibc.data());
+    }
+    res.ParallelCopy(fine_res_for_coarse, cgeom.periodicity());
+
+    MultiFab fine_contrib(amrex::coarsen(fba, 2), fdm, 1, 0);
+    fine_contrib.setVal(0.0);
+
     const auto& fsigma = *m_sigma[crse_amrlev+1][0][0];
-    
+    const auto& ovmsk  = *m_overlap_mask[crse_amrlev+1];
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1027,13 +1015,15 @@ MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_so
     {
         const Box& cbx = mfi.validbox();
         const Box& fbx = amrex::refine(cbx,2);
-        amrex_mlndlap_adotx_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
-                                         BL_TO_FORTRAN_BOX(fbx),
-                                         BL_TO_FORTRAN_ANYD(fine_contrib[mfi]),
-                                         BL_TO_FORTRAN_ANYD(fine_sol[mfi]),
-                                         BL_TO_FORTRAN_ANYD(fsigma[mfi]),
-                                         BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                         fdxinv);
+        amrex_mlndlap_res_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
+                                       BL_TO_FORTRAN_BOX(fbx),
+                                       BL_TO_FORTRAN_ANYD(fine_contrib[mfi]),
+                                       BL_TO_FORTRAN_ANYD(fine_sol[mfi]),
+                                       BL_TO_FORTRAN_ANYD(fsigma[mfi]),
+                                       BL_TO_FORTRAN_ANYD(fine_res[mfi]),
+                                       BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
+                                       BL_TO_FORTRAN_ANYD(ovmsk[mfi]),
+                                       fdxinv);
     }
 
     MultiFab fine_contrib_on_crse(crse_sol.boxArray(), crse_sol.DistributionMap(), 1, 0);
