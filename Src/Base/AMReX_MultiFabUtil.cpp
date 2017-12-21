@@ -48,7 +48,8 @@ namespace {
         }
         BoxArray slice_ba(&boxes[0], boxes.size());
         DistributionMapping slice_dmap(procs);
-        std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, ncomp, 0));
+        std::unique_ptr<MultiFab> slice(new MultiFab(slice_ba, slice_dmap, ncomp, 0,
+                                                     MFInfo(), cell_centered_data.Factory()));
         return slice;
     }
 }
@@ -223,7 +224,7 @@ namespace amrex
         BoxArray crse_S_fine_BA = fine_BA; 
 	crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0);
+        MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
 
 	MultiFab fvolume;
 	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
@@ -277,7 +278,7 @@ namespace amrex
         //
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
 
-        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow);
+        MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow, MFInfo(), FArrayBoxFactory());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -327,7 +328,7 @@ namespace amrex
         }
         else
         {
-            MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp,0);
+            MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, 0, MFInfo(), FArrayBoxFactory());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -390,7 +391,7 @@ namespace amrex
             {
                 BoxArray cba = fine[idim]->boxArray();
                 cba.coarsen(ratio);
-                ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse);
+                ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
                 vctmp[idim] = &ctmp[idim];
             }
             average_down_faces(fine, vctmp, ratio, ngcrse);
@@ -499,7 +500,8 @@ namespace amrex
 
     MultiFab ToMultiFab (const iMultiFab& imf)
     {
-        MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow());
+        MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow(),
+                    MFInfo(), FArrayBoxFactory());
 
         const int ncomp = imf.nComp();
 #ifdef _OPENMP
