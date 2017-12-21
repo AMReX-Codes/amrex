@@ -47,9 +47,9 @@ solve_for_accel(const Array<MultiFab*>& rhs,
     // ***************************************************
     for (int lev = base_level; lev <= finest_level; lev++) {
 	Real n0 = rhs[lev]->norm0();
-	// if (ParallelDescriptor::IOProcessor())
-	//     std::cout << "Max of rhs in solve_for_phi before correction at level  " 
-        //             << lev << " " << n0 << std::endl;
+	if (ParallelDescriptor::IOProcessor())
+	    std::cout << "Max of rhs in solve_for_phi before correction at level  " 
+                    << lev << " " << n0 << std::endl;
     }
 
     for (int lev = base_level; lev <= finest_level; lev++)
@@ -57,9 +57,9 @@ solve_for_accel(const Array<MultiFab*>& rhs,
 
     for (int lev = base_level; lev <= finest_level; lev++) {
 	Real n0 = rhs[lev]->norm0();
-	// if (ParallelDescriptor::IOProcessor())
-	//     std::cout << "Max of rhs in solve_for_phi  after correction at level  " 
-        //             << lev << " " << n0 << std::endl;
+	if (ParallelDescriptor::IOProcessor())
+	    std::cout << "Max of rhs in solve_for_phi  after correction at level  " 
+                    << lev << " " << n0 << std::endl;
     }
 
     // ***************************************************

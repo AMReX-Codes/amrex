@@ -33,7 +33,7 @@ subroutine cuda_push_particles(particles, ns, np) &
   
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
-  use cudafor
+  use cudafor, only: dim3, cudaMemcpy, cudaMemcpyHostToDevice
   
   implicit none
   
@@ -117,7 +117,7 @@ subroutine cuda_deposit_cic(particles, ns, np, gid, &
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
   use cudafor
-  use cuda_module
+  use cuda_module, only: cuda_streams, max_cuda_streams
 
   implicit none
   
@@ -223,7 +223,7 @@ subroutine cuda_interpolate_cic(particles, ns, np, gid, &
   use iso_c_binding
   use amrex_fort_module, only : amrex_real
   use cudafor
-  use cuda_module
+  use cuda_module, only: cuda_streams, max_cuda_streams
   
   implicit none
   
