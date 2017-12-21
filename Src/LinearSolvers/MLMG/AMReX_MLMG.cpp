@@ -734,11 +734,9 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         linop.applyMetricTerm(alev, 0, rhs[alev]);
     }
 
-    const auto& amrrr = linop.AMRRefRatio();
     for (int falev = finest_amr_lev; falev > 0; --falev)
     {
-        amrex::average_down(*sol[falev], *sol[falev-1], 0, 1, amrrr[falev-1]);
-        amrex::average_down( rhs[falev],  rhs[falev-1], 0, 1, amrrr[falev-1]);
+        linop.averageDownSolutionRHS(falev-1, *sol[falev-1], rhs[falev-1], *sol[falev], rhs[falev]);
     }
     
     // enforce solvability if appropriate

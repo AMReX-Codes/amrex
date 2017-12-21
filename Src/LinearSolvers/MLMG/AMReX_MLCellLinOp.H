@@ -103,9 +103,12 @@ protected:
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
                   const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
 
-    virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const;
+    virtual void restriction (int, int, MultiFab& crse, MultiFab& fine) const final;
 
-    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const;
+    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
+
+    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
+                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) final;
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         const MLMGBndry* bndry=nullptr) const final;

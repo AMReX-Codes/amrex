@@ -254,6 +254,15 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 }
 
 void
+MLCellLinOp::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
+                                     const MultiFab& fine_sol, const MultiFab& fine_rhs)
+{
+    const auto amrrr = AMRRefRatio(camrlev);
+    amrex::average_down(fine_sol, crse_sol, 0, 1, amrrr);
+    amrex::average_down(fine_rhs, crse_rhs, 0, 1, amrrr);
+}
+
+void
 MLCellLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                     const MLMGBndry* bndry) const
 {
