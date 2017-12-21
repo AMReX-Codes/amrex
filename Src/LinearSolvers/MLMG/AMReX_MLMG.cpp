@@ -710,6 +710,12 @@ MLMG::buildFineMask ()
             }
         }
     }
+
+    if (!linop.isCellCentered()) {
+        for (int alev = 0; alev < finest_amr_lev; ++alev) {
+            linop.fixUpResidualMask(alev, fine_mask[alev]);
+        }
+    }
 }
 
 void

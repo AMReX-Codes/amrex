@@ -205,6 +205,10 @@ extern "C" {
                                        const amrex_real* cc, const int* clo, const int* chi,
                                        const amrex_real* dxinv);
 
+    void amrex_mlndlap_fixup_res_mask (const int* lo, const int* hi,
+                                       int* rmsk, const int* rlo, const int* rhi,
+                                       const int* cfmsk, const int* flo, const int* fhi);
+
 #ifdef __cplusplus
 }
 #endif
