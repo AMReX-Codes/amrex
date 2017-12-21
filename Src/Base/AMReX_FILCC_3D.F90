@@ -25,7 +25,7 @@
 ! :::       reasonable values for arithmetic to live
 ! ::: -----------------------------------------------------------
 
-AMREX_DEVICE subroutine filcc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo,bc)
+subroutine filcc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo,bc)
 
   use amrex_fort_module, only: rt => amrex_real
   use amrex_filcc_module, only: filccn
