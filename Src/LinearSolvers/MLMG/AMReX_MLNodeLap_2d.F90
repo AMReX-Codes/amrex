@@ -1003,11 +1003,12 @@ contains
                 rhs(i,j) = facx*(-vel(i-1,j-1,1)+vel(i,j-1,1)-vel(i-1,j,1)+vel(i,j,1)) &
                      &   + facy*(-vel(i-1,j-1,2)-vel(i,j-1,2)+vel(i-1,j,2)+vel(i,j,2))
              else
-                rhs(i,j) = wgt(i,j) * (fc(i,j) &
+                rhs(i,j) = (fc(i,j) &
                      + (1.d0-fmsk(i-1,j-1)) * (-facx*vel(i-1,j-1,1) - facy*vel(i-1,j-1,2)) &
                      + (1.d0-fmsk(i  ,j-1)) * ( facx*vel(i  ,j-1,1) - facy*vel(i  ,j-1,2)) &
                      + (1.d0-fmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
-                     + (1.d0-fmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2)))
+                     + (1.d0-fmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2))) &
+                     / wgt(i,j)
              end if
           else
              rhs(i,j) = 0.d0
@@ -1071,7 +1072,7 @@ contains
              if (fmsk(i,j)+fmsk(i,j-1) .eq. 1) then
                 np = np + 1
              end if
-             wgt(i,j) = 1.d0 / (0.25d0*ctot + w0 + np*w1)
+             wgt(i,j) = 0.25d0*ctot + w0 + np*w1
           end if
        end do
     end do
