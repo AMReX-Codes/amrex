@@ -15,7 +15,8 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_zero_fine, amrex_mlndlap_crse_resid, amrex_mlndlap_any_zero, &
        amrex_mlndlap_set_dirichlet_mask, amrex_mlndlap_divu_fine_contrib, &
        amrex_mlndlap_divu_cf_contrib, amrex_mlndlap_set_cf_weight, &
-       amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib
+       amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
+       amrex_mlndlap_fixup_res_mask
 
 contains
 
@@ -1289,5 +1290,23 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_res_cf_contrib
+
+
+  subroutine amrex_mlndlap_fixup_res_mask (lo, hi, rmsk, rlo, rhi, fmsk, flo, fhi) &
+       bind(c,name='amrex_mlndlap_fixup_res_mask')
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, flo, fhi
+    integer, intent(inout) :: rmsk(rlo(1):rhi(1),rlo(2):rhi(2))
+    integer, intent(in   ) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
+
+    integer :: i,j
+    
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (any(fmsk(i-1:i,j-1:j).eq.0) .and. any(fmsk(i-1:i,j-1:j).eq.1)) then
+             rmsk(i,j) = 1
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_fixup_res_mask
 
 end module amrex_mlnodelap_2d_module

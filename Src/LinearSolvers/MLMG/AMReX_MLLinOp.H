@@ -193,6 +193,8 @@ protected:
 
     virtual iMultiFab const* getOwnerMask (int amrlev, int mglev) const { return nullptr; }
 
+    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
+
 private:
 
     void defineGrids (const Vector<Geometry>& a_geom,

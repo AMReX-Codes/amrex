@@ -95,6 +95,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         }
     }
 
+    // no need to do this
+#if 0
     for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
     {
         const Geometry& fgeom = m_geom[ilev+1][0];
@@ -125,6 +127,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 
         rhs[ilev]->ParallelCopy(crhs, cgeom.periodicity());
     }
+#endif
 
     for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
     {
@@ -487,6 +490,25 @@ MLNodeLaplacian::buildMasks ()
     for (MFIter mfi(has_cf); mfi.isValid(); ++mfi)
     {
         has_cf[mfi] = 0;
+    }
+}
+
+void
+MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
+{
+    if (!m_masks_built) buildMasks();
+
+    const iMultiFab& cfmask = *m_crsefine_mask[amrlev];
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(resmsk,true); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        amrex_mlndlap_fixup_res_mask(BL_TO_FORTRAN_BOX(bx),
+                                     BL_TO_FORTRAN_ANYD(resmsk[mfi]),
+                                     BL_TO_FORTRAN_ANYD(cfmask[mfi]));
     }
 }
 

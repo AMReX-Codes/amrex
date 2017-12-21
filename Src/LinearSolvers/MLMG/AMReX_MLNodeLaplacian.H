@@ -72,6 +72,8 @@ protected:
         { amrex::Abort("MLNodeLaplacian::Anorm should not be called");  return 0; }
     virtual Real getBScalar () const final { return 1.0; }
 
+    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
+
 private:
 
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
