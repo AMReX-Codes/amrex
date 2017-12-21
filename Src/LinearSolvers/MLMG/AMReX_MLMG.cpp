@@ -236,7 +236,7 @@ MLMG::computeMLResidual (int amrlevmax)
         linop.solutionResidual(alev, res[alev][mglev], *sol[alev], rhs[alev], crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, res[alev][mglev], *sol[alev], rhs[alev],
-                         res[alev+1][mglev], *sol[alev+1]);
+                         res[alev+1][mglev], *sol[alev+1], rhs[alev+1]);
         }
     }
 }
@@ -269,6 +269,7 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     MultiFab& crse_res = res[calev][0];
 
     MultiFab& fine_sol = *sol[falev];
+    const MultiFab& fine_rhs = rhs[falev];
     MultiFab& fine_cor = *cor[falev][0];
     MultiFab& fine_res = res[falev][0];
     MultiFab& fine_rescor = rescor[falev][0];
@@ -282,7 +283,7 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, 1, 0);
 
-    linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol);
+    linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
     if (linop.isCellCentered()) {
         const int amrrr = linop.AMRRefRatio(calev);
@@ -843,7 +844,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.solutionResidual(alev, *a_res[alev], *a_sol[alev], *prhs, crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, *a_res[alev], *a_sol[alev], *prhs,
-                         *a_res[alev+1], *a_sol[alev+1]);
+                         *a_res[alev+1], *a_sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
                 amrex::average_down(*a_res[alev+1], *a_res[alev], 0, 1, amrrr[alev]);
             }

@@ -189,6 +189,7 @@ extern "C" {
                                          const amrex_real* phi, const int* phlo, const int* phhi,
                                          const amrex_real* sig, const int* slo, const int* shi,
                                          const amrex_real* res, const int* rlo, const int* rhi,
+                                         const amrex_real* rhs, const int* rhlo, const int* rhhi,
                                          const int* dmsk, const int* dmlo, const int* dmhi,
                                          const amrex_real* omsk, const int* olo, const int* ohi,
                                          const amrex_real* dxinv);

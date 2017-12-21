@@ -1012,8 +1012,9 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 }
 
 void
-MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& fine_res, MultiFab& fine_sol) const
+MLNodeLaplacian::reflux (int crse_amrlev,
+                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
+                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
 {
     const Geometry& cgeom = m_geom[crse_amrlev  ][0];
     const Geometry& fgeom = m_geom[crse_amrlev+1][0];
@@ -1063,6 +1064,7 @@ MLNodeLaplacian::reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_so
                                        BL_TO_FORTRAN_ANYD(fine_sol[mfi]),
                                        BL_TO_FORTRAN_ANYD(fsigma[mfi]),
                                        BL_TO_FORTRAN_ANYD(fine_res[mfi]),
+                                       BL_TO_FORTRAN_ANYD(fine_rhs[mfi]),
                                        BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
                                        BL_TO_FORTRAN_ANYD(ovmsk[mfi]),
                                        fdxinv);

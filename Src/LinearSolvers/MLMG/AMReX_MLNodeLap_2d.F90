@@ -1046,14 +1046,15 @@ contains
 
 
   subroutine amrex_mlndlap_res_fine_contrib (clo, chi, lo, hi, f, flo, fhi, x, xlo, xhi, &
-       sig, slo, shi, res, rlo, rhi, msk, mlo, mhi, ovp, olo, ohi, dxinv) &
+       sig, slo, shi, res, rlo, rhi, rhs, hlo, hhi, msk, mlo, mhi, ovp, olo, ohi, dxinv) &
        bind(c,name='amrex_mlndlap_res_fine_contrib')
     integer, dimension(2), intent(in) :: clo, chi, lo, hi, flo, fhi, xlo, xhi, slo, shi, &
-         rlo, rhi, mlo, mhi, olo, ohi
+         rlo, rhi, hlo, hhi, mlo, mhi, olo, ohi
     real(amrex_real), intent(inout) :: f  (flo(1):fhi(1),flo(2):fhi(2))
     real(amrex_real), intent(in   ) :: x  (xlo(1):xhi(1),xlo(2):xhi(2))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
     real(amrex_real), intent(in   ) :: res(rlo(1):rhi(1),rlo(2):rhi(2))
+    real(amrex_real), intent(in   ) :: rhs(hlo(1):hhi(1),hlo(2):hhi(2))
     real(amrex_real), intent(in   ) :: ovp(olo(1):ohi(1),olo(2):ohi(2))
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
     real(amrex_real), intent(in) :: dxinv(2)
@@ -1086,104 +1087,70 @@ contains
        i = clo(1)
        ii = lo(1)
        if (msk(ii,jj) .ne. 0) then
-          !b
-          f(i,j) = f(i,j) - sig(ii,jc)*(facx*(2.d0*(x(ii+1,jj)-x(ii  ,jj))  &
+          f(i,j) = f(i,j) + sig(ii,jc)*(facx*(2.d0*(x(ii+1,jj)-x(ii  ,jj))  &
                &                             +     (x(ii+1,jd)-x(ii  ,jd))) &
                &                      + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
-               &                             +     (x(ii+1,jd)-x(ii+1,jj))))
-          f(i,j) = f(i,j) + chip2*res(ii+1,jd)
-          !d
-          if (msk(ii+1,jj) .ne. 0) then
-             f(i,j) = f(i,j) &
-                  !a+1
-                  &          - chip*sig(ii  ,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii+1,jj))  &
-                  &                                    +     (x(ii  ,jd)-x(ii+1,jd))) &
-                  &                             + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
-                  &                                    +     (x(ii  ,jd)-x(ii  ,jj)))) &
-                  !b+1
-                  &          - chip*sig(ii+1,jc)*(facx*(2.d0*(x(ii+2,jj)-x(ii+1,jj))  &
-                  &                                    +     (x(ii+2,jd)-x(ii+1,jd))) &
-                  &                             + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
-                  &                                    +     (x(ii+2,jd)-x(ii+2,jj))))
-          else
-             f(i,j) = f(i,j) + ovp(ii+1,jj)*chip*res(ii+1,jj)
-          end if
+               &                             +     (x(ii+1,jd)-x(ii+1,jj)))) &
+               + chip * sig(ii  ,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii+1,jj))  &
+               &                           +     (x(ii  ,jd)-x(ii+1,jd))) &
+               &                    + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
+               &                           +     (x(ii  ,jd)-x(ii  ,jj)))) &
+               + chip * sig(ii+1,jc)*(facx*(2.d0*(x(ii+2,jj)-x(ii+1,jj))  &
+               &                           +     (x(ii+2,jd)-x(ii+1,jd))) &
+               &                    + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
+               &                           +     (x(ii+2,jd)-x(ii+2,jj)))) &
+               + rfd*chip2*(rhs(ii+1,jd)-res(ii+1,jd))
        end if
 
        do i = clo(1)+1, chi(1)-1
           ii = 2*i
           if (msk(ii,jj) .ne. 0) then
-             !a
-             f(i,j) = f(i,j) - sig(ii-1,jc)*(facx*(2.d0*(x(ii-1,jj)-x(ii  ,jj))  &
+             f(i,j) = f(i,j) + sig(ii-1,jc)*(facx*(2.d0*(x(ii-1,jj)-x(ii  ,jj))  &
                   &                               +     (x(ii-1,jd)-x(ii  ,jd))) &
                   &                        + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
-                  &                               +     (x(ii-1,jd)-x(ii-1,jj))))
-             !b
-             f(i,j) = f(i,j) - sig(ii,jc)*(facx*(2.d0*(x(ii+1,jj)-x(ii  ,jj))  &
-                  &                             +     (x(ii+1,jd)-x(ii  ,jd))) &
-                  &                      + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
-                  &                             +     (x(ii+1,jd)-x(ii+1,jj))))
-             f(i,j) = f(i,j) + chip2*res(ii-1,jd)+chip*res(ii,jd)+chip2*res(ii+1,jd)
-             !c
-             if (msk(ii-1,jj) .ne. 0) then
-                f(i,j) = f(i,j) &
-                     !a-1
-                     &          - chip*sig(ii-2,jc)*(facx*(2.d0*(x(ii-2,jj)-x(ii-1,jj))  &
-                     &                                    +     (x(ii-2,jd)-x(ii-1,jd))) &
-                     &                             + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
-                     &                                    +     (x(ii-2,jd)-x(ii-2,jj)))) &
-                     !b-1
-                     &          - chip*sig(ii-1,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii-1,jj))  &
-                     &                                    +     (x(ii  ,jd)-x(ii-1,jd))) &
-                     &                             + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
-                     &                                    +     (x(ii  ,jd)-x(ii  ,jj))))
-             else
-                f(i,j) = f(i,j) + ovp(ii-1,jj)*chip*res(ii-1,jj)
-             end if
-             !d
-             if (msk(ii+1,jj) .ne. 0) then
-                f(i,j) = f(i,j) &
-                     !a+1
-                     &          - chip*sig(ii  ,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii+1,jj))  &
-                     &                                    +     (x(ii  ,jd)-x(ii+1,jd))) &
-                     &                             + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
-                     &                                    +     (x(ii  ,jd)-x(ii  ,jj)))) &
-                     !b+1
-                     &          - chip*sig(ii+1,jc)*(facx*(2.d0*(x(ii+2,jj)-x(ii+1,jj))  &
-                     &                                    +     (x(ii+2,jd)-x(ii+1,jd))) &
-                     &                             + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
-                     &                                    +     (x(ii+2,jd)-x(ii+2,jj))))
-             else
-                f(i,j) = f(i,j) + ovp(ii+1,jj)*chip*res(ii+1,jj)
-             end if
+                  &                               +     (x(ii-1,jd)-x(ii-1,jj)))) &
+                  &          + sig(ii  ,jc)*(facx*(2.d0*(x(ii+1,jj)-x(ii  ,jj))  &
+                  &                               +     (x(ii+1,jd)-x(ii  ,jd))) &
+                  &                        + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
+                  &                               +     (x(ii+1,jd)-x(ii+1,jj)))) &
+                  + chip * sig(ii-2,jc)*(facx*(2.d0*(x(ii-2,jj)-x(ii-1,jj))  &
+                  &                           +     (x(ii-2,jd)-x(ii-1,jd))) &
+                  &                    + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
+                  &                           +     (x(ii-2,jd)-x(ii-2,jj)))) &
+                  + chip * sig(ii-1,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii-1,jj))  &
+                  &                           +     (x(ii  ,jd)-x(ii-1,jd))) &
+                  &                    + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
+                  &                           +     (x(ii  ,jd)-x(ii  ,jj)))) &
+                  + chip * sig(ii  ,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii+1,jj))  &
+                  &                           +     (x(ii  ,jd)-x(ii+1,jd))) &
+                  &                    + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
+                  &                           +     (x(ii  ,jd)-x(ii  ,jj)))) &
+                  + chip * sig(ii+1,jc)*(facx*(2.d0*(x(ii+2,jj)-x(ii+1,jj))  &
+                  &                           +     (x(ii+2,jd)-x(ii+1,jd))) &
+                  &                    + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
+                  &                           +     (x(ii+2,jd)-x(ii+2,jj)))) &
+                  + rfd*(chip2*(rhs(ii-1,jd)-res(ii-1,jd))  &
+                  &     +chip *(rhs(ii  ,jd)-res(ii  ,jd))  &
+                  &     +chip2*(rhs(ii+1,jd)-res(ii+1,jd)))
           end if
        end do
 
        i = chi(1)
        ii = hi(1)
        if (msk(ii,jj) .ne. 0) then
-          !a
-          f(i,j) = f(i,j) - sig(ii-1,jc)*(facx*(2.d0*(x(ii-1,jj)-x(ii  ,jj))  &
+          f(i,j) = f(i,j) + sig(ii-1,jc)*(facx*(2.d0*(x(ii-1,jj)-x(ii  ,jj))  &
                &                               +     (x(ii-1,jd)-x(ii  ,jd))) &
                &                        + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
-               &                               +     (x(ii-1,jd)-x(ii-1,jj))))
-          f(i,j) = f(i,j) + chip2*res(ii-1,jd)
-          !c
-          if (msk(ii-1,jj) .ne. 0) then
-             f(i,j) = f(i,j) &
-                  !a-1
-                  &          - chip*sig(ii-2,jc)*(facx*(2.d0*(x(ii-2,jj)-x(ii-1,jj))  &
-                  &                                    +     (x(ii-2,jd)-x(ii-1,jd))) &
-                  &                             + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
-                  &                                    +     (x(ii-2,jd)-x(ii-2,jj)))) &
-                  !b-1
-                  &          - chip*sig(ii-1,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii-1,jj))  &
-                  &                                    +     (x(ii  ,jd)-x(ii-1,jd))) &
-                  &                             + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
-                  &                                    +     (x(ii  ,jd)-x(ii  ,jj))))
-          else
-             f(i,j) = f(i,j) + ovp(ii-1,jj)*chip*res(ii-1,jj)
-          end if
+               &                               +     (x(ii-1,jd)-x(ii-1,jj)))) &
+               + chip * sig(ii-2,jc)*(facx*(2.d0*(x(ii-2,jj)-x(ii-1,jj))  &
+               &                           +     (x(ii-2,jd)-x(ii-1,jd))) &
+               &                    + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
+               &                           +     (x(ii-2,jd)-x(ii-2,jj)))) &
+               + chip * sig(ii-1,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii-1,jj))  &
+               &                           +     (x(ii  ,jd)-x(ii-1,jd))) &
+               &                    + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
+               &                           +     (x(ii  ,jd)-x(ii  ,jj)))) &
+               + rfd*chip2*(rhs(ii-1,jd)-res(ii-1,jd))
        end if
     end do
 
@@ -1203,92 +1170,62 @@ contains
        j = clo(2)
        jj = lo(2)
        if (msk(ii,jj) .ne. 0) then
-          !d
-          if (msk(ii,jj+1) .ne. 0) then
-             f(i,j) = f(i,j) &
-                  !a+1
-                  &     - chip*sig(ic,jj)*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
-                  &                             +     (x(id,jj  )-x(ii,jj  ))) &
-                  &                      + facy*(2.d0*(x(ii,jj  )-x(ii,jj+1))  &
-                  &                             +     (x(id,jj  )-x(id,jj+1)))) &
-                  !b+1
-                  &    - chip*sig(ic,jj+1)*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
-                  &                              +     (x(id,jj+2)-x(ii,jj+2))) &
-                  &                       + facy*(2.d0*(x(ii,jj+2)-x(ii,jj+1))  &
-                  &                              +     (x(id,jj+2)-x(id,jj+1))))
-          else
-             f(i,j) = f(i,j) + ovp(ii,jj+1)*chip*res(ii,jj+1)
-          end if
+          f(i,j) = f(i,j)  &
+               + chip * sig(ic,jj  )*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
+               &                           +     (x(id,jj  )-x(ii,jj  ))) &
+               &                    + facy*(2.d0*(x(ii,jj  )-x(ii,jj+1))  &
+               &                           +     (x(id,jj  )-x(id,jj+1)))) &
+               + chip * sig(ic,jj+1)*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
+               &                           +     (x(id,jj+2)-x(ii,jj+2))) &
+               &                    + facy*(2.d0*(x(ii,jj+2)-x(ii,jj+1))  &
+               &                           +     (x(id,jj+2)-x(id,jj+1))))
        end if
 
        do j = clo(2)+1, chi(2)-1
           jj = 2*j
           if (msk(ii,jj) .ne. 0) then
-             !a
-             f(i,j) = f(i,j) - sig(ic,jj-1)*(facx*(2.d0*(x(id,jj  )-x(ii,jj  ))  &
+             f(i,j) = f(i,j) + sig(ic,jj-1)*(facx*(2.d0*(x(id,jj  )-x(ii,jj  ))  &
                   &                               +     (x(id,jj-1)-x(ii,jj-1))) &
                   &                        + facy*(2.d0*(x(ii,jj-1)-x(ii,jj  ))  &
-                  &                               +     (x(id,jj-1)-x(id,jj  ))))
-             !b
-             f(i,j) = f(i,j) - sig(ic,jj)*(facx*(2.d0*(x(id,jj  )-x(ii,jj  ))  &
-                  &                             +     (x(id,jj+1)-x(ii,jj+1))) &
-                  &                      + facy*(2.d0*(x(ii,jj+1)-x(ii,jj  ))  &
-                  &                             +     (x(id,jj+1)-x(id,jj  ))))
-             f(i,j) = f(i,j) + chip2*res(id,jj-1)+chip*res(id,jj)+chip2*res(id,jj+1)
-             !c
-             if (msk(ii,jj-1) .ne. 0) then
-                f(i,j) = f(i,j) &
-                     !a-1
-                     &     - chip*sig(ic,jj-2)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
-                     &                               +     (x(id,jj-2)-x(ii,jj-2))) &
-                     &                        + facy*(2.d0*(x(ii,jj-2)-x(ii,jj-1))  &
-                     &                               +     (x(id,jj-2)-x(id,jj-1)))) &
-                     !b-1
-                     &     + chip*sig(ic,jj-1)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
-                     &                               +     (x(id,jj  )-x(ii,jj  ))) &
-                     &                        + facy*(2.d0*(x(ii,jj  )-x(ii,jj-1))  &
-                     &                               +     (x(id,jj  )-x(id,jj-1))))
-             else
-                f(i,j) = f(i,j) + ovp(ii,jj-1)*chip*res(ii,jj-1)
-             end if
-             !d
-             if (msk(ii,jj+1) .ne. 0) then
-                f(i,j) = f(i,j) &
-                     !a+1
-                     &     - chip*sig(ic,jj)*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
-                     &                             +     (x(id,jj  )-x(ii,jj  ))) &
-                     &                      + facy*(2.d0*(x(ii,jj  )-x(ii,jj+1))  &
-                     &                             +     (x(id,jj  )-x(id,jj+1)))) &
-                     !b+1
-                     &    - chip*sig(ic,jj+1)*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
-                     &                              +     (x(id,jj+2)-x(ii,jj+2))) &
-                     &                       + facy*(2.d0*(x(ii,jj+2)-x(ii,jj+1))  &
-                     &                              +     (x(id,jj+2)-x(id,jj+1))))
-             else
-                f(i,j) = f(i,j) + ovp(ii,jj+1)*chip*res(ii,jj+1)
-             end if
+                  &                               +     (x(id,jj-1)-x(id,jj  )))) &
+                  &          + sig(ic,jj  )*(facx*(2.d0*(x(id,jj  )-x(ii,jj  ))  &
+                  &                               +     (x(id,jj+1)-x(ii,jj+1))) &
+                  &                        + facy*(2.d0*(x(ii,jj+1)-x(ii,jj  ))  &
+                  &                               +     (x(id,jj+1)-x(id,jj  )))) &
+                  + chip * sig(ic,jj-2)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
+                  &                           +     (x(id,jj-2)-x(ii,jj-2))) &
+                  &                    + facy*(2.d0*(x(ii,jj-2)-x(ii,jj-1))  &
+                  &                           +     (x(id,jj-2)-x(id,jj-1)))) &
+                  + chip * sig(ic,jj-1)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
+                  &                           +     (x(id,jj  )-x(ii,jj  ))) &
+                  &                    + facy*(2.d0*(x(ii,jj  )-x(ii,jj-1))  &
+                  &                           +     (x(id,jj  )-x(id,jj-1)))) &
+                  + chip * sig(ic,jj  )*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
+                  &                           +     (x(id,jj  )-x(ii,jj  ))) &
+                  &                    + facy*(2.d0*(x(ii,jj  )-x(ii,jj+1))  &
+                  &                           +     (x(id,jj  )-x(id,jj+1)))) &
+                  + chip * sig(ic,jj+1)*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
+                  &                           +     (x(id,jj+2)-x(ii,jj+2))) &
+                  &                    + facy*(2.d0*(x(ii,jj+2)-x(ii,jj+1))  &
+                  &                           +     (x(id,jj+2)-x(id,jj+1)))) &
+                  + rfd*(chip2*(rhs(id,jj-1)-res(id,jj-1)) &
+                  &     +chip *(rhs(id,jj  )-res(id,jj  )) &
+                  &     +chip2*(rhs(id,jj+1)-res(id,jj+1)))
           end if
        end do
 
        j = chi(2)
        jj = hi(2)
        if (msk(ii,jj) .ne. 0) then
-          !c
-          if (msk(ii,jj-1) .ne. 0) then
-             f(i,j) = f(i,j) &
-                  !a-1
-                  &     - chip*sig(ic,jj-2)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
-                  &                               +     (x(id,jj-2)-x(ii,jj-2))) &
-                  &                        + facy*(2.d0*(x(ii,jj-2)-x(ii,jj-1))  &
-                  &                               +     (x(id,jj-2)-x(id,jj-1)))) &
-                  !b-1
-                  &     - chip*sig(ic,jj-1)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
-                  &                               +     (x(id,jj  )-x(ii,jj  ))) &
-                  &                        + facy*(2.d0*(x(ii,jj  )-x(ii,jj-1))  &
-                  &                               +     (x(id,jj  )-x(id,jj-1))))
-          else
-             f(i,j) = f(i,j) + ovp(ii,jj-1)*chip*res(ii,jj-1)
-          end if
+          f(i,j) = f(i,j) &
+               + chip*sig(ic,jj-2)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
+               &                         +     (x(id,jj-2)-x(ii,jj-2))) &
+               &                  + facy*(2.d0*(x(ii,jj-2)-x(ii,jj-1))  &
+               &                         +     (x(id,jj-2)-x(id,jj-1)))) &
+               + chip*sig(ic,jj-1)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
+               &                         +     (x(id,jj  )-x(ii,jj  ))) &
+               &                  + facy*(2.d0*(x(ii,jj  )-x(ii,jj-1))  &
+               &                         +     (x(id,jj  )-x(id,jj-1))))
        end if
     end do
 
@@ -1346,7 +1283,7 @@ contains
                         &            + facy*(2.d0*(phi(i-1,j+1)-phi(i-1,j  )) &
                         &                  +      (phi(i  ,j+1)-phi(i  ,j  ))))
                 end if
-                res(i,j) = wgt(i,j)*rhs(i,j) - Ax + fc(i,j)
+                res(i,j) = rhs(i,j) - Ax - fc(i,j)
              end if
           end if
        end do

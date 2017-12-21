@@ -54,8 +54,9 @@ protected:
     virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
                                          const MultiFab& fine_sol, const MultiFab& fine_rhs) final;
 
-    virtual void reflux (int crse_amrlev, MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& fine_res, MultiFab& fine_sol) const final;
+    virtual void reflux (int crse_amrlev,
+                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
+                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final;
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return false; }
