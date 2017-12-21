@@ -7,7 +7,9 @@
 #include <AMReX.H>
 
 #ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_NVML
 #include <nvml.h>
+#endif
 #endif
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
@@ -33,6 +35,7 @@ inline void ActualCudaAPICheck(cudaError_t err) {
     }
 }
 
+#ifdef AMREX_USE_NVML
 #define NvmlAPICheck(error) ActualNvmlAPICheck(error)
 
 inline void ActualNvmlAPICheck(nvmlReturn_t err) {
@@ -42,6 +45,7 @@ inline void ActualNvmlAPICheck(nvmlReturn_t err) {
         amrex::Abort(errStr);
         }
 }
+#endif
 
 #endif
 
