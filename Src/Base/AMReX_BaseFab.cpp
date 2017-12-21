@@ -318,10 +318,12 @@ BaseFab<Real>::norm (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-#ifdef AMREX_USE_CUDA
-    Real* nrm_f = Device::create_device_pointer<Real>().get();
-#else
     Real nrm = 0.0;
+    
+#ifdef AMREX_USE_CUDA
+    std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
+    Real* nrm_f = sptr.get();
+#else
     Real* nrm_f = &nrm;
 #endif
 
@@ -337,7 +339,11 @@ BaseFab<Real>::norm (const Box& bx,
         amrex::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
     }
 
-    return *nrm_f;
+#ifdef AMREX_USE_CUDA
+    cudaMemcpy(&nrm, nrm_f, sizeof(Real), cudaMemcpyDeviceToHost);
+#endif
+
+    return nrm;
 }
 
 template<>
@@ -349,16 +355,22 @@ BaseFab<Real>::sum (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
+    Real sm = 0.0;
+    
 #ifdef AMREX_USE_CUDA
-    Real* sm_f = Device::create_device_pointer<Real>().get();
+    std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
+    Real* sm_f = sptr.get();
 #else
-    Real sm;
     Real* sm_f = &sm;
 #endif
 
     FORT_LAUNCH(bx, fort_fab_sum, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
 
-    return *sm_f;
+#ifdef AMREX_USE_CUDA
+    cudaMemcpy(&sm, sm_f, sizeof(Real), cudaMemcpyDeviceToHost);
+#endif
+
+    return sm;
 }
 
 template<>
@@ -607,10 +619,12 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
+    Real dp = 0.0;
+
 #ifdef AMREX_USE_CUDA
-    Real* dp_f = Device::create_device_pointer<Real>().get();
+    std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
+    Real* dp_f = sptr.get();
 #else
-    Real dp;
     Real* dp_f = &dp;
 #endif
 
@@ -620,7 +634,11 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
                 BL_TO_FORTRAN_N_ANYD(y,ycomp), ARLIM_3D(ybx.loVect()),
                 numcomp, dp_f);
 
-    return *dp_f;
+#ifdef AMREX_USE_CUDA
+    cudaMemcpy(&dp, dp_f, sizeof(Real), cudaMemcpyDeviceToHost);
+#endif
+
+    return dp;
 }
 
 template<>
