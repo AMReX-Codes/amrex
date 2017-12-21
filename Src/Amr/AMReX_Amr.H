@@ -323,6 +323,8 @@ public:
     static void BroadcastBCRec(BCRec &bcrec, int myLocalId, int rootId, MPI_Comm localComm);
     void UpdateStateDataDistributionMaps(DistributionMapping& new_dmap);
 
+    bool UsingPrecreateDirectories();
+
 protected:
 
     //! Initialize grid hierarchy -- called by Amr::init.
