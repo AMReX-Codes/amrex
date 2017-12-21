@@ -1280,8 +1280,8 @@ contains
                 if (fmsk(i,j) .eq. 0) then
                    Ax = Ax + sig(i,j)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
                         &                  +      (phi(i+1,j+1)-phi(i  ,j+1))) &
-                        &            + facy*(2.d0*(phi(i-1,j+1)-phi(i-1,j  )) &
-                        &                  +      (phi(i  ,j+1)-phi(i  ,j  ))))
+                        &            + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
+                        &                  +      (phi(i+1,j+1)-phi(i+1,j  ))))
                 end if
                 res(i,j) = rhs(i,j) - Ax - fc(i,j)
              end if
