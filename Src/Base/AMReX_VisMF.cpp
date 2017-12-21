@@ -32,6 +32,7 @@ bool VisMF::checkFilePositions(false);
 bool VisMF::usePersistentIFStreams(false);
 bool VisMF::useSynchronousReads(false);
 bool VisMF::useDynamicSetSelection(true);
+bool VisMF::allowSparseWrites(true);
 
 long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
 
@@ -39,8 +40,8 @@ long VisMF::ioBufferSize(VisMF::IO_Buffer_Size);
 //
 // Set these in Initialize().
 //
-int VisMF::nOutFiles(64);
-int VisMF::nMFFileInStreams(1);
+int VisMF::nOutFiles(256);
+int VisMF::nMFFileInStreams(4);
 
 namespace
 {
@@ -82,6 +83,7 @@ VisMF::Initialize ()
     pp.query("usesynchronousreads", useSynchronousReads);
     pp.query("usedynamicsetselection", useDynamicSetSelection);
     pp.query("iobuffersize", ioBufferSize);
+    pp.query("allowsparsewrites", allowSparseWrites);
 
     initialized = true;
 }
@@ -929,7 +931,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     for(int i(0); i < pmap.size(); ++i) {
       procsWithData.insert(pmap[i]);
     }
-    if(procsWithData.size() < nOutFiles) {
+    if(allowSparseWrites && (procsWithData.size() < nOutFiles)) {
       useSparseFPP = true;
       amrex::Print() << "SSSSSSSS:  in VisMF::Write:  useSparseFPP for:  " << mf_name << '\n';
       for(std::set<int>::iterator it = procsWithData.begin(); it != procsWithData.end(); ++it) {
@@ -1036,7 +1038,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       }
 
 
-    if(useDynamicSetSelection) {
+    if(nfi.GetDynamic()) {
       coordinatorProc = nfi.CoordinatorProc();
     }
 
@@ -1046,8 +1048,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
       hdr.CalculateMinMax(mf, coordinatorProc);
     }
 
-    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion,
-		       useDynamicSetSelection, nfi);
+    VisMF::FindOffsets(mf, filePrefix, hdr, groupSets, currentVersion, nfi);
 
     bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
 
@@ -1063,7 +1064,6 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
                     VisMF::Header &hdr,
 		    bool groupSets,
 		    VisMF::Header::Version whichVersion,
-		    bool useDynamicSetSelection,
 		    NFilesIter &nfi)
 {
     BL_PROFILE("VisMF::FindOffsets");
@@ -1071,7 +1071,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
     const int myProc(ParallelDescriptor::MyProc());
     const int nProcs(ParallelDescriptor::NProcs());
     int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
-    if(useDynamicSetSelection) {
+    if(nfi.GetDynamic()) {
       coordinatorProc = nfi.CoordinatorProc();
     }
 
@@ -1181,7 +1181,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 	}
 
 	Vector<int> fileNumbers;
-        if(useDynamicSetSelection) {
+        if(nfi.GetDynamic()) {
 	  fileNumbers = nfi.FileNumbersWritten();
         } else {
 	  fileNumbers.resize(nProcs);

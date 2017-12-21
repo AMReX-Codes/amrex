@@ -67,8 +67,10 @@ AmrLevel::manual_tags_placement (TagBoxArray&    tags,
 
 AmrLevel::AmrLevel ()
 {
+   BL_PROFILE("AmrLevel::AmrLevel()");
    parent = 0;
    level = -1;
+   levelDirectoryCreated = false;
 }
 
 AmrLevel::AmrLevel (Amr&            papa,
@@ -85,6 +87,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     BL_PROFILE("AmrLevel::AmrLevel(dm)");
     level  = lev;
     parent = &papa;
+    levelDirectoryCreated = false;
 
     fine_ratio = IntVect::TheUnitVector(); fine_ratio.scale(-1);
     crse_ratio = IntVect::TheUnitVector(); crse_ratio.scale(-1);
@@ -293,6 +296,20 @@ AmrLevel::writePlotFile (const std::string& dir,
 
 
 void
+AmrLevel::writePlotFilePre (const std::string& dir,
+                            std::ostream&      os)
+{
+}
+
+
+void
+AmrLevel::writePlotFilePost (const std::string& dir,
+                             std::ostream&      os)
+{
+}
+
+
+void
 AmrLevel::restart (Amr&          papa,
                    std::istream& is,
 		   bool          bReadSpecial)
@@ -465,6 +482,23 @@ AmrLevel::checkPoint (const std::string& dir,
 
     levelDirectoryCreated = false;  // ---- now that the checkpoint is finished
 }
+
+
+void
+AmrLevel::checkPointPre (const std::string& dir,
+                         std::ostream&      os)
+{
+    BL_PROFILE("AmrLevel::checkPointPre()");
+}
+
+
+void
+AmrLevel::checkPointPost (const std::string& dir,
+                          std::ostream&      os)
+{
+    BL_PROFILE("AmrLevel::checkPointPost()");
+}
+
 
 AmrLevel::~AmrLevel ()
 {
@@ -2173,8 +2207,6 @@ AmrLevel::CreateLevelDirectory (const std::string &dir)
 
     std::string LevelDir, FullPath;
     LevelDirectoryNames(dir, LevelDir, FullPath);
-    amrex::Print() << "IOIOIOIO:  AmrLevel::CreateLevelDirectory:  dir LevelDir FullPath = "
-                   << dir << "  " << LevelDir << "  " << FullPath << '\n';
 
     if(ParallelDescriptor::IOProcessor()) {
       amrex::Print() << "IOIOIOIO:CD  AmrLevel::CreateLevelDirectory:  " << FullPath << "\n";

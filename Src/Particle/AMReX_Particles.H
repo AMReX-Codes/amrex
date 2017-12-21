@@ -703,11 +703,19 @@ public:
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
                      const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
 
+    void CheckpointPre ();
+
+    void CheckpointPost ();
+
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
 
     void WritePlotFile (const std::string& dir, const std::string& name, 
                         const Vector<std::string>& real_comp_names = Vector<std::string>(),
                         const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
+
+    void WritePlotFilePre ();
+
+    void WritePlotFilePost ();
 
     void WriteAsciiFile (const std::string& file);
 
@@ -765,8 +773,9 @@ public:
     // that have left the domain. May need work (see inline comments)
     //
 
-    ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true) const; 
-
+    ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true,
+                           ParticleLocData pld = ParticleLocData()) const; 
+    
     //
     // Returns true if the particle was shifted.
     //
@@ -825,6 +834,21 @@ public:
       levelDirectoriesCreated = tf;
     }
 
+    void SetUsePrePost(bool tf) {
+      usePrePost = tf;
+    }
+    bool GetUsePrePost() {
+      return usePrePost;
+    }
+
+    void SetUseUnlink(bool tf) {
+      doUnlink = tf;
+    }
+    bool GetUseUnlink() {
+      return doUnlink;
+    }
+
+
 protected:
 
     //
@@ -869,7 +893,21 @@ protected:
     ParGDBBase* m_gdb;
     bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
-    bool        levelDirectoriesCreated;
+
+    // ---- variables for i/o optimization saved for pre and post checkpoint
+    bool         levelDirectoriesCreated;
+    bool         usePrePost;
+    bool         doUnlink;
+    int maxnextidPrePost;
+    mutable int nOutFilesPrePost;
+    long nparticlesPrePost;
+    Vector<long> nParticlesAtLevelPrePost;  // ---- [level]
+    mutable Vector<Vector<int>>  whichPrePost;  // ---- [level]
+    mutable Vector<Vector<int>>  countPrePost;  // ---- [level]
+    mutable Vector<Vector<long>> wherePrePost;  // ---- [level]
+    mutable std::string HdrFileNamePrePost;
+    mutable Vector<std::string> filePrefixPrePost;
+
     
 private:
     void AssignDensityDoit (int rho_index, 

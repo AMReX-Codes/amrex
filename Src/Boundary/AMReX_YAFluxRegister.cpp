@@ -28,9 +28,9 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     m_fine_level = fine_lev;
     m_ncomp = nvar;
 
-    m_crse_data.define(cba, cdm, nvar, 0);
+    m_crse_data.define(cba, cdm, nvar, 0, MFInfo(), FArrayBoxFactory());
 
-    m_crse_flag.define(cba, cdm, 1, 1);
+    m_crse_flag.define(cba, cdm, 1, 1, MFInfo(), DefaultFabFactory<IArrayBox>());
 
     const auto& cperiod = m_crse_geom.periodicity();
     const std::vector<IntVect>& pshifts = cperiod.shiftIntVect();
@@ -119,7 +119,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
     BoxArray cfp_ba(std::move(cfp_bl));
     DistributionMapping cfp_dm(cfp_procmap);
-    m_cfpatch.define(cfp_ba, cfp_dm, nvar, 0);
+    m_cfpatch.define(cfp_ba, cfp_dm, nvar, 0, MFInfo(), FArrayBoxFactory());
 
     m_cfp_fab.resize(nlocal);
     for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
@@ -132,7 +132,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
     bool is_periodic = m_fine_geom.isAnyPeriodic();
     if (is_periodic) {
-        m_cfp_mask.define(cfp_ba, cfp_dm, 1, 0);
+        m_cfp_mask.define(cfp_ba, cfp_dm, 1, 0, MFInfo(), FArrayBoxFactory());
 
         const Box& domainbox = m_crse_geom.Domain();
 

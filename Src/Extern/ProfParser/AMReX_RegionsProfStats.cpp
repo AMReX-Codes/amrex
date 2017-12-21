@@ -374,9 +374,13 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
       for(int i(0); i < dBlock.rStartStop.size(); ++i) {
         BLProfiler::RStartStop &rss = dBlock.rStartStop[i];
         if(rss.rssStart) {     // start region
-          regionTimeRanges[dBlock.proc][rss.rssRNumber].push_back(TimeRange(rss.rssTime, -1.0));
+	  if(rss.rssRNumber >= 0) {
+            regionTimeRanges[dBlock.proc][rss.rssRNumber].push_back(TimeRange(rss.rssTime, -1.0));
+	  }
         } else {            // stop region
-          regionTimeRanges[dBlock.proc][rss.rssRNumber].back().stopTime = rss.rssTime;
+	  if(rss.rssRNumber >= 0) {
+            regionTimeRanges[dBlock.proc][rss.rssRNumber].back().stopTime = rss.rssTime;
+	  }
         }
       }
       ClearBlock(dBlock);
