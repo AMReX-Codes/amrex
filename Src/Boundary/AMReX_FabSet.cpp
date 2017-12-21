@@ -40,10 +40,11 @@ FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 }
 
 FabSet&
-FabSet::copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp)
+FabSet::copyFrom (const MultiFab& src, int ngrow, int scomp, int dcomp, int ncomp,
+		  const Periodicity& period)
 {
     BL_ASSERT(boxArray() != src.boxArray());
-    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0);
+    m_mf.copy(src,scomp,dcomp,ncomp,ngrow,0,period);
     return *this;
 }
 

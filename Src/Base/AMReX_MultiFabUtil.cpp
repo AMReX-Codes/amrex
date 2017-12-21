@@ -517,6 +517,8 @@ namespace amrex
     }
 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp) {
+
+        BL_PROFILE("amrex::get_slice_data");
         
         Array<int> slice_to_full_ba_map;
         std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);

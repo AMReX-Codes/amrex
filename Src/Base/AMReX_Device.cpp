@@ -51,6 +51,8 @@ amrex::Device::initialize_device() {
     const int my_rank = ParallelDescriptor::MyProc();
     const int ioproc  = ParallelDescriptor::IOProcessorNumber();
 
+#ifdef AMREX_USE_NVML
+
     // Temporary character buffer for CUDA/NVML APIs.
     unsigned int char_length = 256;
     char c[char_length];
@@ -204,6 +206,24 @@ amrex::Device::initialize_device() {
     ParallelDescriptor::ReduceRealSum(count);
 
     int total_count = (int) count;
+
+#else
+
+    // If we don't have NVML, assign every processor to device 0.
+    // The user will be on their own for ensuring that their process
+    // only sees the GPU it wants in CUDA_VISIBLE_DEVICES.
+
+    int cuda_device_count;
+    CudaAPICheck(cudaGetDeviceCount(&cuda_device_count));
+
+    if (cuda_device_count <= 0)
+        return;
+
+    device_id = 0;
+
+    int total_count = n_procs;
+
+#endif
 
     initialize_cuda(&device_id, &my_rank, &total_count, &n_procs, &ioproc, &verbose);
 

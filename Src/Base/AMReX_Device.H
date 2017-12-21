@@ -7,7 +7,9 @@
 #include <AMReX.H>
 
 #ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_NVML
 #include <nvml.h>
+#endif
 #endif
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
@@ -33,6 +35,7 @@ inline void ActualCudaAPICheck(cudaError_t err) {
     }
 }
 
+#ifdef AMREX_USE_NVML
 #define NvmlAPICheck(error) ActualNvmlAPICheck(error)
 
 inline void ActualNvmlAPICheck(nvmlReturn_t err) {
@@ -42,6 +45,7 @@ inline void ActualNvmlAPICheck(nvmlReturn_t err) {
         amrex::Abort(errStr);
         }
 }
+#endif
 
 #endif
 
@@ -67,6 +71,7 @@ extern "C" {
     void get_threads_and_blocks(const int* lo, const int* hi,
                                 int* bx, int* by, int* bz, int* tx, int* ty, int* tz,
                                 const int* txmin, const int* tymin, const int* tzmin);
+    void get_loop_bounds(int* blo, int* bhi, const int* lo, const int* hi);
     void gpu_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t* sz, const int* idx);
     void gpu_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t* sz, const int* idx);
     void gpu_htod_memprefetch_async(void* p, const std::size_t* sz, const int* idx);

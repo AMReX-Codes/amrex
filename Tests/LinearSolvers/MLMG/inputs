@@ -10,8 +10,10 @@ prob.bc_type = Dirichlet
 #prob.bc_type = Periodic
 
 
+composite_solve = 1   # Do composite solve?
+
 # Grids
-max_level = 2
+max_level = 1
 ref_ratio = 2
 n_cell = 128
 max_grid_size = 64
@@ -20,5 +22,7 @@ max_grid_size = 64
 verbose = 2
 cg_verbose = 0
 max_iter = 100
-max_fmg_iter = 20
+max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle, set to 0
 linop_maxorder = 2
+agglomeration = 1    # Do agglomeration on AMR Level 0?
+consolidation = 1    # Do consolidation?
