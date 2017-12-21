@@ -11,15 +11,24 @@ module amrex_filcc_module
 
   implicit none
 
+#ifndef AMREX_USE_CUDA
   interface amrex_filcc
      module procedure amrex_filcc_1
      module procedure amrex_filcc_n
   end interface amrex_filcc
+#endif
 
   private
-  public :: amrex_filcc, amrex_fab_filcc, filccn
+#ifndef AMREX_USE_CUDA
+  public :: amrex_filcc
+#endif
+  public :: amrex_fab_filcc, filccn
 
 contains
+
+  ! Old interfaces to filcc are unsupported with CUDA.
+
+#ifndef AMREX_USE_CUDA
 
   subroutine amrex_filcc_n(q,qlo,qhi,domlo,domhi,dx,xlo,bclo,bchi)
     integer, intent(in) :: qlo(4), qhi(4)
@@ -81,6 +90,8 @@ contains
     real(amrex_real), intent(inout) :: q(qlo1:qhi1)
     call filcc(q,qlo1,qhi1,domlo,domhi,dx,xlo,bc)
   end subroutine amrex_filcc_1
+
+#endif
 
 #endif
 
