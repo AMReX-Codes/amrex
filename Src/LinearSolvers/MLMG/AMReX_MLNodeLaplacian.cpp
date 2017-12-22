@@ -437,7 +437,6 @@ MLNodeLaplacian::buildMasks ()
     for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev)
     {
         iMultiFab& mask = *m_crsefine_mask[amrlev];
-        MultiFab& weight = *m_crsefine_weight[amrlev];
         LayoutData<int>& has_cf = *m_has_fine_bndry[amrlev];
         const BoxArray& fba = m_grids[amrlev+1][0];
         const BoxArray& cfba = amrex::coarsen(fba, AMRRefRatio(amrlev));
@@ -469,17 +468,6 @@ MLNodeLaplacian::buildMasks ()
                     if (!isects.empty()) has_cf[mfi] = 1;
                 }
             }
-        }
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(weight,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            amrex_mlndlap_set_cf_weight(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(weight[mfi]),
-                                        BL_TO_FORTRAN_ANYD(mask[mfi]));
         }
     }
 
@@ -1098,7 +1086,6 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
     const iMultiFab& cdmsk = *m_dirichlet_mask[crse_amrlev][0];
     const auto& cfmask     = m_crsefine_mask[crse_amrlev];
-    const auto& cfweight   = m_crsefine_weight[crse_amrlev];
     const auto& has_fine_bndry = m_has_fine_bndry[crse_amrlev];
 
     const auto& csigma = *m_sigma[crse_amrlev][0][0];
@@ -1118,7 +1105,6 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                          BL_TO_FORTRAN_ANYD(csigma[mfi]),
                                          BL_TO_FORTRAN_ANYD(cdmsk[mfi]),
                                          BL_TO_FORTRAN_ANYD((*cfmask)[mfi]),
-                                         BL_TO_FORTRAN_ANYD((*cfweight)[mfi]),
                                          BL_TO_FORTRAN_ANYD(fine_contrib_on_crse[mfi]),
                                          cdxinv);
         }

@@ -14,9 +14,8 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
        amrex_mlndlap_zero_fine, amrex_mlndlap_crse_resid, amrex_mlndlap_any_zero, &
        amrex_mlndlap_set_dirichlet_mask, amrex_mlndlap_divu_fine_contrib, &
-       amrex_mlndlap_divu_cf_contrib, amrex_mlndlap_set_cf_weight, &
-       amrex_mlndlap_res_fine_contrib, amrex_mlndlap_res_cf_contrib, &
-       amrex_mlndlap_fixup_res_mask
+       amrex_mlndlap_divu_cf_contrib, amrex_mlndlap_res_fine_contrib, &
+       amrex_mlndlap_res_cf_contrib, amrex_mlndlap_fixup_res_mask
 
 contains
 
@@ -1010,42 +1009,6 @@ contains
   end subroutine amrex_mlndlap_divu_cf_contrib
 
 
-  subroutine amrex_mlndlap_set_cf_weight (lo, hi, wgt, wlo, whi, fmsk, flo, fhi) &
-       bind(c,name='amrex_mlndlap_set_cf_weight')
-    integer, dimension(2), intent(in) :: lo, hi, wlo, whi, flo, fhi
-    real(amrex_real), intent(inout) :: wgt (wlo(1):whi(1),wlo(2):whi(2))
-    integer         , intent(in   ) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
-    
-    integer :: i,j, ctot, np
-    real(amrex_real), parameter :: w0 = 1.d0/16.d0
-    real(amrex_real), parameter :: w1 = 1.d0/32.d0
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          ctot = 4 - sum(fmsk(i-1:i,j-1:j))
-          if (ctot .eq. 4 .or. ctot .eq. 0) then
-             wgt(i,j) = 1.d0
-          else
-             np = 0
-             if(fmsk(i-1,j-1)+fmsk(i-1,j) .eq. 1) then
-                np = np + 1
-             end if
-             if (fmsk(i-1,j-1)+fmsk(i,j-1) .eq. 1) then
-                np = np + 1
-             end if
-             if(fmsk(i,j)+fmsk(i-1,j) .eq. 1) then
-                np = np + 1
-             end if
-             if (fmsk(i,j)+fmsk(i,j-1) .eq. 1) then
-                np = np + 1
-             end if
-             wgt(i,j) = 0.25d0*ctot + w0 + np*w1
-          end if
-       end do
-    end do
-  end subroutine amrex_mlndlap_set_cf_weight
-
-
   subroutine amrex_mlndlap_res_fine_contrib (clo, chi, lo, hi, f, flo, fhi, x, xlo, xhi, &
        sig, slo, shi, res, rlo, rhi, rhs, hlo, hhi, msk, mlo, mhi, ovp, olo, ohi, dxinv) &
        bind(c,name='amrex_mlndlap_res_fine_contrib')
@@ -1234,17 +1197,16 @@ contains
 
 
   subroutine amrex_mlndlap_res_cf_contrib (lo, hi, res, rlo, rhi, phi, phlo, phhi, &
-       rhs, rhlo, rhhi, sig, slo, shi, dmsk, mlo, mhi, fmsk, flo, fhi, wgt, wlo, whi, &
+       rhs, rhlo, rhhi, sig, slo, shi, dmsk, mlo, mhi, fmsk, flo, fhi, &
        fc, clo, chi, dxinv) &
        bind(c,name='amrex_mlndlap_res_cf_contrib')
     integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, phlo, phhi, rhlo, rhhi, slo, shi, &
-         mlo, mhi, flo, fhi, wlo, whi, clo, chi
+         mlo, mhi, flo, fhi, clo, chi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: res( rlo(1): rhi(1), rlo(2): rhi(2))
     real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2))
     real(amrex_real), intent(in   ) :: rhs(rhlo(1):rhhi(1),rhlo(2):rhhi(2))
     real(amrex_real), intent(in   ) :: sig( slo(1): shi(1), slo(2): shi(2))
-    real(amrex_real), intent(in   ) :: wgt( wlo(1): whi(1), wlo(2): whi(2))
     real(amrex_real), intent(inout) :: fc ( clo(1): chi(1), clo(2): chi(2))
     integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
     integer, intent(in) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
