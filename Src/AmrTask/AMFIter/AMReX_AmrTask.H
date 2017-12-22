@@ -19,6 +19,9 @@
 #include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_AmrCore.H>
+
+#include <AMReX_AmrLevelTask.H>
+#include <AMReX_StateDataTask.H>
 bool verbose=false;
 
 namespace amrex {
@@ -37,7 +40,6 @@ namespace amrex {
     extern bool precreateDirectories;
     extern bool prereadFAHeaders;
 
-    class AmrLevelTask;
     enum task_states{
 	_coarseTimeStep=0,
 	_post_coarseTimeStep,
@@ -49,18 +51,18 @@ namespace amrex {
 
     /**** State transition diagrams of tasks on the coarse level (lower part) and fine level (upper part)
      *
-     *							   	     _timeStep -> _timeStep_advance  -> _post_timestep	
-     *							  	      ^\            ^\              |                 |   \\
-     * 									\             \_____________|                 |    \\
-     *								    //	 \                                            |	    \\ (signal)
-     *							    	   // 	  \____________(subcycling)___________________|      \\
-     *								  //							      \\
-     *						        	 // 	                     			                            			        fine task
-     *			-------------------------------------------------------------------------------------------------------------------------------------------------------------
-     *							       // (signal)	
-     *	_coarseTimeStep -> _timeStep  -> _timeStep_advance     ---> _post_timestep    			----------------------->          _post_coarseTimeStep 		coarsest task
-     *	 |^\		  	        ^\		  |                      				  					      |
-     *	 |  \		     	          \_______________|		         				  					      |
+     *			       _timeStep -> _timeStep_advance  -> _post_timestep	
+     *		  	      ^\            ^\              |                 |   \\
+     * 			        \             \_____________|                 |    \\
+     *			    //	 \                                            |	    \\ (signal)
+     *			   // 	  \____________(subcycling)___________________|      \\
+     *			  //							      \\
+     *		       	 // 	                     			                            			        					(fine task)
+     *			-------------------------------------------------------------------------------------------------------------------------------------------
+     *			// (signal)	
+     *	_coarseTimeStep -> _timeStep  -------> _timeStep_advance           -------------> _post_timestep    	-------------->          _post_coarseTimeStep 		(coarsest task)
+     *	 |^\		  	             ^\		       |                      				  					      |
+     *	 |  \		     	               \_______________|		         				  				      |
      *	 |   \ 		     						         				  					      |
      *	 |    \	              											  					      |
      *	 |     \									 				  				      |
@@ -85,6 +87,110 @@ namespace amrex {
 
 	public:
 	AmrTask(){}
+	Amr* originalAmr(){return _amr;}
+	AmrLevel& originalAmrLevel(int lev){return _amr->getLevel(lev);}
+
+
+	size_t tagGen(int src, int dest, int amrlevels, int fabs)
+	{
+	    return (src*fabs + dest%fabs)*amrlevels;
+	}
+
+        void multifabCopyPush(amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int dstcomp, int srccomp, int nc, int ng, int ngsrc, amrex::FabArrayBase::CPC *cpc)
+        {
+        }
+
+
+	void FillBoundaryPush(){
+	    for(int i=0; i<l_con.nscpy; i++)
+	    {
+		Data* msg= new Data(TaskName(l_con.scpy[i].ns), TaskName(l_con.scpy[i].nd), l_con.scpy[i].sz);
+		msg->SetTag(i); //this is local copy so the recipient will have the matching tag
+		msg->SetDestRank(ParallelDescriptor::MyProc());
+		_fab->copyToMem(l_con.scpy[i].sbx, 0, _mf->nComp(), msg->GetBuffer()); //pack box to the message
+		_outputs.push(msg);//let the runtime know that the output is available
+	    }
+	    int np = ParallelDescriptor::NProcsAll();
+	    if (np==1) return;
+	    for(int i=0; i<r_con.nsnd; i++)
+	    {
+		Data* msg= new Data(TaskName(r_con.snd[i].ns), TaskName(r_con.snd[i].nd), r_con.snd[i].sz);
+		msg->SetTag(tagGen(r_con.snd[i].ns, r_con.snd[i].nd, 1, _mf->size()));
+		msg->SetDestRank(r_con.snd[i].pr);
+		_fab->copyToMem(r_con.snd[i].sbx, 0, _mf->nComp(), msg->GetBuffer());
+		_outputs.push(msg);
+	    }
+	}
+
+	void FillPatchSingleLevelPush (MultiFab& mf, MultiFab *dmf, Real time,
+		const Vector<MultiFab*>& smf, const Vector<Real>& stime,
+		int scomp, int dcomp, int ncomp,
+		const Geometry& geom, PhysBCFunctBase& physbcf)
+	{
+	    BL_ASSERT(scomp+ncomp <= smf[0]->nComp());
+	    BL_ASSERT(dcomp+ncomp <= mf.nComp());
+	    BL_ASSERT(smf.size() == stime.size());
+	    BL_ASSERT(smf.size() != 0);
+
+	    if (smf.size() == 1)
+	    {
+		multifabCopyPush(*smf[0], _lIdx, dcomp, scomp, ncomp, _mf.nGrow(), 0);
+	    }
+	    else if (smf.size() == 2)
+	    {
+		const Box& bx = validbox(mf);
+		if (mf.boxArray() == smf[0]->boxArray())
+		{
+		    int s_idx = smf[0]->IndexArray()[_lIdx];
+		    int d_idx = mf.IndexArray()[_lIdx];
+		    FArrayBox& fab= validFab(*_mf);
+
+		    fab.linInterp(smf[0]->get(s_idx),
+			    scomp,
+			    smf[1]->get(s_idx),
+			    scomp,
+			    stime[0],
+			    stime[1],
+			    time,
+			    bx,
+			    dcomp,
+			    ncomp);
+		    FillBoundaryPush();
+		}else{
+		    int s_idx = smf[0]->IndexArray()[_lIdx];
+		    int d_idx = dmf->IndexArray()[_lIdx];
+		    FArrayBox& fab= validFab(*dmf);
+		    fab.linInterp(smf[0]->get(s_idx),
+			    scomp,
+			    smf[1]->get(s_idx),
+			    scomp,
+			    stime[0],
+			    stime[1],
+			    time,
+			    bx,
+			    0,
+			    ncomp);
+                    //multifabCopyPush(dmf, _lIdx, dcomp, 0, ncomp, _mf.nGrow(), 0);
+		}
+	    }
+	    //physbcf.FillBoundary(mf, dcomp, ncomp, time);
+	}
+
+        void FillPatchTwoLevelsPush (Real time,
+                                 Array<MultiFab*>& cmf, const Array<Real>& ct,
+                                 Array<MultiFab*>& fmf, const Array<Real>& ft,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Array<BCRec>& bcs)
+         {
+
+
+
+	 }
+
+
 	void InitAmrTask (const void* amr, int m_step, Real st_time){
 	    assert(_amr);
 	    TaskName name= MyName();
@@ -106,7 +212,7 @@ namespace amrex {
 	    which_level_being_advanced= _amr->which_level_being_advanced;
 	    sub_cycle= _amr->sub_cycle;
 	    subcycling_iteration =0;
-            parent_subcycling_iteration=0;
+	    parent_subcycling_iteration=0;
 	    if(name[0]<_amr->finest_level){
 		MultiFab& mfSrc = _amr->amr_level[name[0]]->get_new_data(0);
 		MultiFab& mfDst = _amr->amr_level[name[0]+1]->get_new_data(0);
@@ -119,7 +225,6 @@ namespace amrex {
 	    if(name[0]>0){
 		MultiFab& mfSrc1 = _amr->amr_level[name[0]-1]->get_new_data(0);
 		MultiFab& mfDst1 = _amr->amr_level[name[0]]->get_new_data(0);
-
 		const BoxArray& fine_BA = mfDst1.boxArray();
 		BoxArray crse_S_fine_BA = fine_BA;
 		crse_S_fine_BA.coarsen(_amr->refRatio(1));
@@ -127,19 +232,29 @@ namespace amrex {
 		TheCPC_pullup= (amrex::FabArrayBase::CPC*)&(crse_S_fine->getCPC(0, mfSrc1, 0, Periodicity::NonPeriodic()));
 	    }
 	}
+	void CreateLevelTask(int level){
+	    TaskName name= MyName();
+	    levelTask= new AmrLevelTask(this, level);
+	    nStates= _amr->amr_level[level]->numStates();
+	    state.resize(nStates);
+	    for(int i=0; i<nStates; i++){
+		state[i].define(_amr->amr_level[level]->get_state_data(i));
+	    }
+	}
 
-	void Signal(TaskName dest, int tag){
+	void Signal(TaskName dest, int tag=0){
 	    Data* data= new Data(_id, dest, 1);
 	    data->SetTag(tag);
 	    _outputs.push(data);
 	}
 
-	bool DependSignal(TaskName src, int tag){
+	bool DependSignal(TaskName src, int tag=0){
 	    bool arrived= Depend_on(src, tag);
 	    if(!arrived) return false;
 	    return true;
 	}
-	void DependSignal_reset(TaskName src, int tag){
+
+	void DependSignal_reset(TaskName src, int tag=0){
 	    Data* msg= _neighbors_in.pop_front(src, tag);
 	    msg->Free();
 	}
@@ -159,41 +274,57 @@ namespace amrex {
 			}else{ 
 			    //_final:
 			    coarseTimeStepTask_end(stop_time);
+			    delete levelTask;
 			    SelfDestroy();
 			    break;
 			}
 		    case _timeStep: 
 			timeStepTask_init(0,cumtime,1,1,stop_time);
-			_taskState= _timeStep_advance;
-
-			//advanceObj= new advanceTask(cumtime, dt_level[0], 1, 1);
-		    case _timeStep_advance:
-			dt_new= dt_level[0];//advanceObj->Job();
-			//if(advance->state()!=advance->finalState()){
-			//    delete advanceObj;
-			//    break; //keep doing advance
-			//}
-			//else continue the main control flow
+			amr_level= &originalAmrLevel(name[0]);
+			advanceTask_init(cumtime, dt_level[0], 1, stop_time);
+			cout<<"Task (Level) " <<name[0] <<" (StateData) "<<name[1] <<" (FabIdx) "<<name[2]<< " (SubcyclingIter) "<<name[3]<< " is running a time step"<<endl;
 			if (_amr->finest_level >0)
 			{
 			    const int nloc_cpAsc = TheCPC_sendup->m_LocTags->size();
-			    const int nsnds_cpAsc = TheCPC_sendup->m_SndTags->size();
-			    const int nrcvs_cpAsc = TheCPC_sendup->m_RcvTags->size();
 			    for(int i=0; i<nloc_cpAsc; i++)
 			    {
 				const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_sendup->m_LocTags)[i];
 				if(name[2] == tag.srcIndex){
-				    Signal(TaskName(name[0]+1, name[1], tag.dstIndex), subcycling_iteration);
+				    Signal(TaskName(name[0]+1, name[1], tag.dstIndex, name[3]*_amr->n_cycle[1]), 0);
 				}
 			    }
 			}
-			_taskState= _post_timeStep;
+			_taskState= _timeStep_advance;
 			break;
+		    case _timeStep_advance:
+			if(advanceTask())
+			{
+			    dt_new= post_advanceTask();
+			    _taskState= _post_timeStep;
+			    if (_amr->finest_level >0)
+			    {
+				for(int d=name[3]*_amr->n_cycle[1]+1; d< (name[3]+1)*_amr->n_cycle[1]; d++){
+				    const int nloc_cpAsc = TheCPC_sendup->m_LocTags->size();
+				    for(int i=0; i<nloc_cpAsc; i++)
+				    {
+					const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_sendup->m_LocTags)[i];
+					if(name[2] == tag.srcIndex){
+					    Signal(TaskName(name[0]+1, name[1], tag.dstIndex, d), 0);
+					}
+				    }
+				}
+			    }
+			}else{
+			    _taskState= _timeStep_advance;
+			}
+			break; 
 		    case _post_timeStep: 
 			dt_level[0] = dt_new;
 			level_steps[0]++;
 			level_count[0]++;
 			post_timestepTask(1);
+			//enable next advance iteration if any
+			if((name[3]+1)%_amr->n_cycle[0]!=0) Signal(TaskName(name[0], name[1],name[2], name[3]+1), 0);
 			_taskState= _post_coarseTimeStep;
 			break;
 		    case _post_coarseTimeStep: 
@@ -209,44 +340,74 @@ namespace amrex {
 		int lev= name[0];
 		switch(_taskState){
 		    case _timeStep:
-			timeStepTask_init(lev, cumtime+ (subcycling_iteration-1)*dt_level[lev], subcycling_iteration, _amr->n_cycle[lev], stop_time);
-			_taskState= _timeStep_advance;
-			//advanceObj= new advanceTask(cumtime+ (subcycling_iteration-1)*dt_level[lev], dt_level[lev], subcycling_iteration, _amr->n_cycle[lev]);
-		    case _timeStep_advance:
-			dt_new= dt_level[lev];//advanceObj->Job();
-			//if(advance->state()!=advance->finalState()){
-			//    delete advanceObj;
-			//    break; //keep doing advance
-			//}
+			cout<<"Task (Level) " <<name[0] <<" (StateData) "<<name[1] <<" (FabIdx) "<<name[2]<< " (SubcyclingIter) "<<name[3]<< " is running a time step"<<endl;
+			timeStepTask_init(lev, cumtime+ (name[3]-1)*dt_level[lev], name[3], _amr->n_cycle[lev], stop_time);
 			if (lev < _amr->finest_level)
 			{
 			    const int nloc_cpAsc = TheCPC_sendup->m_LocTags->size();
-			    const int nsnds_cpAsc = TheCPC_sendup->m_SndTags->size();
-			    const int nrcvs_cpAsc = TheCPC_sendup->m_RcvTags->size();
 			    for(int i=0; i<nloc_cpAsc; i++)
 			    {
 				const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_sendup->m_LocTags)[i];
 				if(name[2] == tag.srcIndex){
-				    Signal(TaskName(name[0]+1, name[1], tag.dstIndex), subcycling_iteration);
+				    Signal(TaskName(name[0]+1, name[1], tag.dstIndex, name[3]*_amr->n_cycle[lev+1]), 0);
 				}
 			    }
 			}
-			_taskState= _post_timeStep;
+			_taskState= _timeStep_advance;
+			//advanceObj= new advanceTask(cumtime+ (subcycling_iteration-1)*dt_level[lev], dt_level[lev], subcycling_iteration, _amr->n_cycle[lev]);
+		    case _timeStep_advance:
+			if(advanceTask())
+			{
+			    dt_new= post_advanceTask();
+			    _taskState= _post_timeStep;
+			    if (lev < _amr->finest_level)
+			    {
+				for(int d=name[3]*_amr->n_cycle[lev+1]+1; d< (name[3]+1)*_amr->n_cycle[lev+1]; d++){
+				    const int nloc_cpAsc = TheCPC_sendup->m_LocTags->size();
+				    for(int i=0; i<nloc_cpAsc; i++)
+				    {
+					const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_sendup->m_LocTags)[i];
+					if(name[2] == tag.srcIndex){
+					    Signal(TaskName(name[0]+1, name[1], tag.dstIndex, d), 0);
+					}
+				    }
+				}
+			    }
+			}else{
+			    _taskState= _timeStep_advance;
+			    //if(name[3]<_amr->n_cycle[lev]-1) Signal(TaskName(name[0], name[1],name[2], name[3]+1), 0);
+			}
 			break;
+			//dt_new= advanceTask(cumtime+ (subcycling_iteration-1)*dt_level[lev], dt_level[lev], subcycling_iteration, _amr->n_cycle[lev]);
+			//if(advance->state()!=advance->finalState()){
+			//    delete advanceObj;
+			//    break; //keep doing advance
+			//}
+			//_taskState= _post_timeStep;
 		    case _post_timeStep:
 			cumtime += dt_level[lev];
-			subcycling_iteration++;
-			if(subcycling_iteration < _amr->n_cycle[lev]){
-			    _taskState= _timeStep;
+			dt_level[lev] = dt_new;
+			level_steps[lev]++;
+			level_count[lev]++;
+			post_timestepTask(lev);
+			if((name[3]+1)%_amr->n_cycle[lev]==0) {
+			    //now we already synced all subcycling iteration before and at lower AMR levels, it's time to enable the parent to move on
+			    const int nloc_cpAsc = TheCPC_pullup->m_LocTags->size();
+			    for(int i=0; i<nloc_cpAsc; i++)
+			    {
+				const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_pullup->m_LocTags)[i];
+				if(name[2] == tag.dstIndex){
+				    Signal(TaskName(lev-1, name[1], tag.srcIndex, name[3]/_amr->n_cycle[lev]), 0);
+				}
+			    }
 			}else{
-			    parent_subcycling_iteration++;
-			    subcycling_iteration=0;
-			    if(parent_subcycling_iteration== _amr->n_cycle[lev-1]){
-			         SelfDestroy();
-			    }else _taskState= _timeStep;
+			    //enable next subcycling iteration if any
+			    Signal(TaskName(name[0], name[1],name[2], name[3]+1), 0);
 			}
-			//_amr->amr_level[lev]->postCoarseTimeStep(cumtime);
+			SelfDestroy();
+			delete levelTask;
 			break;
+			//_amr->amr_level[lev]->postTimeStep(cumtime);
 		    default:
 			cout<<"Error state"<<endl;
 			exit(0);
@@ -273,14 +434,37 @@ namespace amrex {
 
 	bool Dependency(){
 	    TaskName name= MyName();
+	    int my_level=name[0];
 	    switch(_taskState){
 		case _coarseTimeStep:
-		    assert(name[0]==0);
+		    assert(my_level==0);
 		    return true; 
 		case _timeStep:
-		    if(name[0]==0) return true; //at this state, coarse tasks just need to perform the initialization of the timestep
-		    else { //waiting for signals from tasks at the coarser level
-		        if(subcycling_iteration>0) return true;
+		    if(my_level==0) return true; //at this state, coarse tasks just need to perform the initialization of the timestep
+		    else { 
+			if(name[3]%_amr->n_cycle[my_level] !=0){//depend on previous subcycling iteration and the parent
+			    if(DependSignal(TaskName(name[0], name[1], name[2], name[3]-1))==false) return false;
+			    //check if the signal from parent arrived
+			    const int nloc_cpAsc = TheCPC_pullup->m_LocTags->size();
+			    for(int i=0; i<nloc_cpAsc; i++)
+			    {
+				const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_pullup->m_LocTags)[i];
+				if(name[2] == tag.dstIndex){
+				    if(DependSignal(TaskName(my_level-1, name[1], tag.srcIndex, name[3]/_amr->n_cycle[my_level]))==false) return false;
+				}
+			    }
+			    //all messages arrived, consume them now
+			    DependSignal_reset(TaskName(name[0], name[1], name[2], name[3]-1));
+			    for(int i=0; i<nloc_cpAsc; i++)
+			    {
+				const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_pullup->m_LocTags)[i];
+				if(name[2] == tag.dstIndex){
+				    DependSignal_reset(TaskName(my_level-1, name[1], tag.srcIndex, name[3]/_amr->n_cycle[my_level]));
+				}
+			    }
+			    return true;
+			}
+			//waiting for signals from tasks at the coarser level
 			const int nloc_cpAsc = TheCPC_pullup->m_LocTags->size();
 			const int nsnds_cpAsc = TheCPC_pullup->m_SndTags->size();
 			const int nrcvs_cpAsc = TheCPC_pullup->m_RcvTags->size();
@@ -288,7 +472,7 @@ namespace amrex {
 			{
 			    const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_pullup->m_LocTags)[i];
 			    if(name[2] == tag.dstIndex){
-				if(DependSignal(TaskName(name[0]-1, name[1], tag.srcIndex), parent_subcycling_iteration)==false) return false;
+				if(DependSignal(TaskName(my_level-1, name[1], tag.srcIndex, name[3]/_amr->n_cycle[my_level]), 0)==false) return false;
 			    }
 			}
 
@@ -297,17 +481,34 @@ namespace amrex {
 			{
 			    const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_pullup->m_LocTags)[i];
 			    if(name[2] == tag.dstIndex){
-				DependSignal_reset(TaskName(name[0]-1, name[1], tag.srcIndex), parent_subcycling_iteration);
+				DependSignal_reset(TaskName(my_level-1, name[1], tag.srcIndex, name[3]/_amr->n_cycle[my_level]), 0);
 			    }
 			}
 			return true;
 		    }
 		case _timeStep_advance:
-		    return true;//advanceObj->Dependency();
+		    return advanceTaskDependency();
 		case _post_timeStep:
-		    if(name[0]==0) return true; //just for now
+		    if(my_level == _amr->finest_level) return true; 
 		    else{
-			return true; //just for now
+			//sync with tasks of the last subcycle iteration
+			const int nloc_cpAsc = TheCPC_sendup->m_LocTags->size();
+			for(int i=0; i<nloc_cpAsc; i++)
+			{
+			    const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_sendup->m_LocTags)[i];
+			    if(name[2] == tag.srcIndex){
+				if(DependSignal(TaskName(name[0]+1, name[1], tag.dstIndex, (name[3]+1)*_amr->n_cycle[1]-1), 0)==false) return false;
+			    }
+			}
+
+			for(int i=0; i<nloc_cpAsc; i++)
+			{
+			    const amrex::FabArrayBase::CopyComTag& tag = (*TheCPC_sendup->m_LocTags)[i];
+			    if(name[2] == tag.srcIndex){
+				DependSignal_reset(TaskName(name[0]+1, name[1], tag.dstIndex, (name[3]+1)*_amr->n_cycle[1]-1), 0);
+			    }
+			}
+			return true;
 		    }
 		case _post_coarseTimeStep:
 		    return true;
@@ -315,6 +516,15 @@ namespace amrex {
 	}
 
 	void PostCompletion(){
+	}
+
+	//! Return the Fab associated with this task
+	FArrayBox& validFab(const FabArray<FArrayBox> &mf){
+	    return *(mf.m_fabs_v[_lIdx]);
+	}
+	//! Return the local index of the Fab associated with this task. It can then be used to locate corresponding Fabs on other multifabs that have the same layout.
+	int localFabIdx(){
+	    return _lIdx;
 	}
 
 	void SetFab(FArrayBox* fab){_fab= fab;}
@@ -333,6 +543,10 @@ namespace amrex {
 
 	Box validbox() const{
 	    return _mf->box(_idx);
+	}
+
+	Box validbox(const FabArray<FArrayBox> &mf) const{
+	    return mf.box(_idx);
 	}
 
 	void generateTileArray(const IntVect& tileSize){
@@ -568,7 +782,10 @@ namespace amrex {
 	    }
 	}
 
-	virtual Real advanceTask (Real time, Real dt, int iteration, int ncycle) = 0;
+	virtual void advanceTask_init (Real time, Real dt, int iteration, int ncycle) = 0;
+	virtual bool advanceTask ()=0;
+	virtual bool advanceTaskDependency (){return true;}
+	virtual Real post_advanceTask()=0;
 
 	void timeStepTask_init (int level, Real time, int iteration, int niter, Real stop_time){
 	    which_level_being_advanced = level;	    
@@ -674,9 +891,10 @@ namespace amrex {
 	amrex::FabArrayBase::CPC *TheCPC_pullup;
 	amrex::FabArrayBase::CPC *TheCPC_senddown;
 	amrex::FabArrayBase::CPC *TheCPC_pulldown;
+
 	protected:
 	int subcycling_iteration;
-        int parent_subcycling_iteration;
+	int parent_subcycling_iteration;
 	int _taskState;
 	// The data that need to be privatized
 	Real             cumtime;      // Physical time variable.
@@ -687,7 +905,14 @@ namespace amrex {
 	Array<int>       level_steps;  // Number of time steps at this level.
 	int              which_level_being_advanced; // Only >=0 if we are in Amr::timeStep(level,...)
 	int              sub_cycle;
-	//advanceTask 	 *advanceObj;
+
+	//for an AMR level
+	AmrLevel *amr_level;
+	AmrLevelTask     *levelTask;
+	int nStates;
+	Vector<StateDataTask> state;        // Array of state data.
+	MultiFab& get_old_data (int state_indx) { return state[state_indx].oldDataTask(); }
+	MultiFab& get_new_data (int state_indx) { return state[state_indx].newDataTask(); }
     };
 }//end namespace
 #endif /*_Amr_H_*/

@@ -189,6 +189,7 @@ namespace amrex{
 	    bool _isMasterTask;
 	public:
 	    Task():_isPersistent(true),_isMasterTask(false){}
+	    Task(TaskName name):_isPersistent(true),_isMasterTask(false){_id= name;}
 	    //Describe Data Dependency
 	    virtual bool Dependency()=0;
 	    //! What the task is supposed to do
