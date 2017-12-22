@@ -107,6 +107,14 @@ The class {\tt PhysBCFunct} in {\tt Src/Base/AMReX\_PhysBCFunct.cpp}
 is derived from {\tt PhysBCFunctBase} and contains a {\tt BCRec}, {\tt Geometry},
 and a pointer to a {\tt BndryFunctBase} function.
 
-The function {\tt FillBoundary} fills physical ghost cells (so it has a different
-functionality from the single-level case described above, where {\tt FillDomainBoundary}
-fills the physical ghost cells).
+Note that {\tt PhyBCFunct} is an example of how to derive from {\tt PhysBCFunctBase} and is
+not meant to be a base class. {\tt PhysBCFunctBase} is the base class.
+{\tt PhysBCFunctBase} is designed for users to derive and extend. 
+You could/should write your own class derived from {\tt PhysBCFuncBase}.
+There you can make modifications such as storing a vector of {\tt BCRec}s for, e.g.,
+multiple component {\tt MultiFab}s.
+
+The function {\tt FillBoundary} fills physical ghost cells and has a similar functionality
+to the single-level case described above, where {\tt FillDomainBoundary}
+fills the physical ghost cells.  In fact you can have your {\tt BndryFunctBase}
+point to the same {\tt filcc} routines called by the single-level routines.

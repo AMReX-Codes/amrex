@@ -158,6 +158,8 @@ program fcompare
   zone_info = .false.
   zone_info_var_name = ""
 
+  global_error = 0.d0
+
   allocate(plot_names(1))
 
   farg = 1
@@ -247,19 +249,20 @@ program fcompare
      call bl_error("ERROR: plotfiles have different numbers of spatial dimensions")
   endif
 
-
   ! check if they have the same number of levels
   if (pf_a%flevel /= pf_b%flevel) then
      call bl_error("ERROR: number of levels do not match")
   endif
 
-  ! check if the finest domains are the same size
-  bx_a = plotfile_get_pd_box(pf_a, pf_a%flevel)
-  bx_b = plotfile_get_pd_box(pf_b, pf_b%flevel)
-
-  if (.not. box_equal(bx_a, bx_b)) then
-     call bl_error("ERROR: grids do not match")
-  endif
+  if (pf_a%flevel /= 0) then
+     ! check if the finest domains are the same size
+     bx_a = plotfile_get_pd_box(pf_a, pf_a%flevel)
+     bx_b = plotfile_get_pd_box(pf_b, pf_b%flevel)
+     
+     if (.not. box_equal(bx_a, bx_b)) then
+        call bl_error("ERROR: grids do not match")
+     endif
+  end if
 
   ! check if they have the same number of variables
   if (pf_a%nvars /= pf_b%nvars) then

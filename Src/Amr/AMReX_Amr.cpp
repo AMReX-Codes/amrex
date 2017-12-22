@@ -97,6 +97,12 @@ namespace
     VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
 //}
 
+bool
+Amr::UsingPrecreateDirectories()
+{
+    return precreateDirectories;
+}
+
 void
 Amr::Initialize ()
 {
@@ -806,11 +812,14 @@ Amr::writePlotFile ()
 
     if(precreateDirectories) {    // ---- make all directories at once
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
-      if (verbose > 1) {
-          amrex::Print() << "IOIOIOIO:  precreating directories for " << pltfileTemp << "\n";
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  precreating directories for " << pltfileTemp << "\n";
       }
       amrex::PreBuildDirectorHierarchy(pltfileTemp, "Level_", finest_level + 1, true);  // call barrier
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writePlotFile:  creating directory:  " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
@@ -838,7 +847,15 @@ Amr::writePlotFile ()
     }
 
     for (int k(0); k <= finest_level; ++k) {
+        amr_level[k]->writePlotFilePre(pltfileTemp, HeaderFile);
+    }
+
+    for (int k(0); k <= finest_level; ++k) {
         amr_level[k]->writePlotFile(pltfileTemp, HeaderFile);
+    }
+
+    for (int k(0); k <= finest_level; ++k) {
+        amr_level[k]->writePlotFilePost(pltfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -928,6 +945,9 @@ Amr::writeSmallPlotFile ()
     //  it to a bad suffix if there were stream errors.
     //
     if(precreateDirectories) {    // ---- make all directories at once
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writeSmallPlotFile:  precreating directories for " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
@@ -935,6 +955,9 @@ Amr::writeSmallPlotFile ()
       }
       ParallelDescriptor::Barrier("Amr::precreate smallplotfile Directories");
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::writeSmallPlotFile:  creating directory:  " << pltfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(pltfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(pltfileTemp, true);  // call barrier
     }
@@ -1670,13 +1693,22 @@ Amr::checkPoint ()
     //
 
     if(precreateDirectories) {    // ---- make all directories at once
+      if (verbose > 0) {
+        amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint:  precreating directories for "
+	               << ckfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(ckfile, false);      // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, false);  // dont call barrier
       for(int i(0); i <= finest_level; ++i) {
+        amrex::Print() << "IOIOIOIO:  Amr::checkPoint:  precreating directories for "
+	               << ckfileTemp << "  for level " << i << "\n";
         amr_level[i]->CreateLevelDirectory(ckfileTemp);
       }
       ParallelDescriptor::Barrier("Amr::precreateDirectories");
     } else {
+      if (verbose > 0) {
+          amrex::Print() << "IOIOIOIO:CD  Amr::checkPoint:  creating directory:  " << ckfileTemp << "\n";
+      }
       amrex::UtilRenameDirectoryToOld(ckfile, false);     // dont call barrier
       amrex::UtilCreateCleanDirectory(ckfileTemp, true);  // call barrier
     }
@@ -1730,7 +1762,15 @@ Amr::checkPoint ()
     }
 
     for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPointPre(ckfileTemp, HeaderFile);
+    }
+
+    for (int i = 0; i <= finest_level; ++i) {
         amr_level[i]->checkPoint(ckfileTemp, HeaderFile);
+    }
+
+    for (int i = 0; i <= finest_level; ++i) {
+        amr_level[i]->checkPointPost(ckfileTemp, HeaderFile);
     }
 
     if (ParallelDescriptor::IOProcessor()) {
@@ -2072,8 +2112,9 @@ Amr::coarseTimeStep (Real stop_time)
 
     BL_PROFILE_ADD_STEP(level_steps[0]);
     BL_PROFILE_REGION_STOP("Amr::coarseTimeStep()");
-    BL_TRACE_PROFILE_FLUSH();
     BL_COMM_PROFILE_NAMETAG(stepName.str());
+    //BL_PROFILE_FLUSH();
+    BL_TRACE_PROFILE_FLUSH();
     BL_COMM_PROFILE_FLUSH();
 
     if (verbose > 0)
@@ -2534,7 +2575,7 @@ Amr::makeLoadBalanceDistributionMap (int lev, Real time, const BoxArray& ba) con
             dmtmp.define(ba);
         }
 
-        MultiFab workest(ba, dmtmp, 1, 0);
+        MultiFab workest(ba, dmtmp, 1, 0, MFInfo(), FArrayBoxFactory());
         AmrLevel::FillPatch(*amr_level[lev], workest, 0, time, work_est_type, 0, 1, 0);
 
         Real navg = static_cast<Real>(ba.size()) / static_cast<Real>(ParallelDescriptor::NProcs());

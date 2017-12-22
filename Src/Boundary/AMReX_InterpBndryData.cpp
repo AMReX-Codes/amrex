@@ -228,7 +228,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
     //
     if (max_order==3 || max_order==1)
     {
-        MultiFab foo(grids,bndry[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
+        MultiFab foo(grids,bndry[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false), FArrayBoxFactory());
 
 #ifdef _OPENMP
 #pragma omp parallel
