@@ -41,7 +41,6 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
 
     m_crsefine_mask.resize(m_num_amr_levels);
     m_has_fine_bndry.resize(m_num_amr_levels);
-    m_overlap_mask.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         if (amrlev < m_num_amr_levels-1)
@@ -49,12 +48,6 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
             m_crsefine_mask[amrlev].reset(new iMultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1));
         }
         m_has_fine_bndry[amrlev].reset(new LayoutData<int>(m_grids[amrlev][0], m_dmap[amrlev][0]));
-        if (amrlev > 0) {
-            MultiFab foo(amrex::convert(m_grids[amrlev][0], IntVect::TheNodeVector()),
-                         m_dmap[amrlev][0], 1, 0, MFInfo().SetAlloc(false));
-            m_overlap_mask[amrlev] = foo.OverlapMask(m_geom[amrlev][0].periodicity());
-            m_overlap_mask[amrlev]->invert(1.0, 0, 1);
-        }
     }
 }
 
