@@ -131,7 +131,6 @@ contains
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
-    nrm = 0.0_amrex_real
     if (p .eq. 0) then ! max norm
        do n = 1, ncomp
           do       k = blo(3), bhi(3)
@@ -193,7 +192,6 @@ contains
 
     call get_loop_bounds(blo, bhi, lo, hi)
 
-    sm = 0.0_amrex_real
     do n = 1, ncomp
        do       k = blo(3), bhi(3)
           do    j = blo(2), bhi(2)
@@ -485,8 +483,6 @@ contains
     integer :: blo(3), bhi(3)
 
     call get_loop_bounds(blo, bhi, lo, hi)
-
-    dp = 0.0_amrex_real
 
     off = yblo - lo
 
