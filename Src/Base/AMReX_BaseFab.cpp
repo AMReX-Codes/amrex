@@ -323,7 +323,7 @@ BaseFab<Real>::norm (const Box& bx,
 #ifdef AMREX_USE_CUDA
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* nrm_f = sptr.get();
-    cudaMemset(nrm_f, 0, sizeof(Real));
+    CudaAPICheck(cudaMemset(nrm_f, 0, sizeof(Real)));
 #else
     Real* nrm_f = &nrm;
 #endif
@@ -341,7 +341,7 @@ BaseFab<Real>::norm (const Box& bx,
         }
     
 #ifdef AMREX_USE_CUDA
-    cudaMemcpy(&nrm, nrm_f, sizeof(Real), cudaMemcpyDeviceToHost);
+    CudaAPICheck(cudaMemcpy(&nrm, nrm_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
     return nrm;
@@ -361,7 +361,7 @@ BaseFab<Real>::sum (const Box& bx,
 #ifdef AMREX_USE_CUDA
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* sm_f = sptr.get();
-    cudaMemset(sm_f, 0, sizeof(Real));
+    CudaAPICheck(cudaMemset(sm_f, 0, sizeof(Real)));
 #else
     Real* sm_f = &sm;
 #endif
@@ -369,7 +369,7 @@ BaseFab<Real>::sum (const Box& bx,
     FORT_LAUNCH(bx, fort_fab_sum, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
     
 #ifdef AMREX_USE_CUDA
-    cudaMemcpy(&sm, sm_f, sizeof(Real), cudaMemcpyDeviceToHost);
+    CudaAPICheck(cudaMemcpy(&sm, sm_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
     return sm;
@@ -626,7 +626,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
 #ifdef AMREX_USE_CUDA
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* dp_f = sptr.get();
-    cudaMemset(dp_f, 0, sizeof(Real));
+    CudaAPICheck(cudaMemset(dp_f, 0, sizeof(Real)));
 #else
     Real* dp_f = &dp;
 #endif
@@ -638,7 +638,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
                 numcomp, dp_f);
     
 #ifdef AMREX_USE_CUDA
-    cudaMemcpy(&dp, dp_f, sizeof(Real), cudaMemcpyDeviceToHost);
+    CudaAPICheck(cudaMemcpy(&dp, dp_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
     return dp;
