@@ -1059,7 +1059,6 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     fine_contrib.setVal(0.0);
 
     const auto& fsigma = *m_sigma[crse_amrlev+1][0][0];
-    const auto& ovmsk  = *m_overlap_mask[crse_amrlev+1];
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1076,7 +1075,6 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                        BL_TO_FORTRAN_ANYD(fine_res[mfi]),
                                        BL_TO_FORTRAN_ANYD(fine_rhs[mfi]),
                                        BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                       BL_TO_FORTRAN_ANYD(ovmsk[mfi]),
                                        fdxinv);
     }
 
