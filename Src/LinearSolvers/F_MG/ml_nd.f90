@@ -120,6 +120,37 @@ contains
                            mgt(n)%stencil_type, mgt(n)%lcross, mgt(n)%uniform_dh)
     end do
 
+    do n = nlevs,2,-1
+       !  Restrict the finer residual onto the coarser grid
+       mglev      = mgt(n  )%nlevels
+       mglev_crse = mgt(n-1)%nlevels
+       if ( dm .eq. 3 ) then
+          fac = EIGHT**(mla%mba%rr(n-1,1)/2)
+          call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
+       else if ( dm .eq. 2 ) then
+          fac = FOUR**(mla%mba%rr(n-1,1)/2)
+          call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
+       end if
+       call ml_nodal_restriction(res(n-1), res(n), mgt(n)%mm(mglev),&
+            mgt(n-1)%mm(mglev_crse), mla%mba%rr(n-1,:))
+       
+       !  Compute the coarse-fine residual at coarse-fine nodes
+       pdc = layout_get_pd(mla%la(n-1))
+       call crse_fine_residual_nodal(n,mgt,brs_flx(n),res(n-1), &
+            zero_rh(n),temp_res(n),temp_res(n-1), &
+            full_soln(n-1),full_soln(n),mla%mba%rr(n-1,:),pdc)
+       if ( dm .eq. 3 ) then
+          fac = ONE / EIGHT**(mla%mba%rr(n-1,1)/2)
+          call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
+       else if ( dm .eq. 2 ) then
+          fac = ONE / FOUR**(mla%mba%rr(n-1,1)/2)
+          call multifab_mult_mult_s(res(n-1),fac,nghost(res(n-1)))
+       end if
+
+       call setval(temp_res(n), ZERO,all=.true.)
+       call setval(zero_rh(n), ZERO,all=.true.)
+    end do
+    
     do n = 1,nlevs
        call multifab_copy(rh(n),res(n),ng=nghost(rh(n)))
     end do
