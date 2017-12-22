@@ -54,7 +54,7 @@ ifeq ($(USE_OMP),TRUE)
 endif
 
 ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -Minfo=acc -ta=nvidia -lcudart -mcmodel=medium
+  GENERIC_PGI_FLAGS += -acc -Minfo=acc -ta=nvidia -mcmodel=medium
 else
   GENERIC_PGI_FLAGS += -noacc
 endif
