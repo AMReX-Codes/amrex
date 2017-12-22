@@ -280,7 +280,6 @@ private:
                              VisMF::Header &hdr,
 			     bool groupSets,
 			     VisMF::Header::Version whichVersion,
-			     bool useDynamicSetSelection,
 			     NFilesIter &nfi);
     /**
     * \brief Make a new FAB from a fab in a FabArray<FArrayBox> on disk.
@@ -328,6 +327,7 @@ private:
     static bool usePersistentIFStreams;
     static bool useSynchronousReads;
     static bool useDynamicSetSelection;
+    static bool allowSparseWrites;
     
     static long ioBufferSize;   // ---- the settable buffer size
 };

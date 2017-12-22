@@ -109,3 +109,27 @@ void amrex::readRealData(Real* data, std::size_t size, std::istream& is,
 {
     RealDescriptor::convertToNativeFormat(data, static_cast<long>(size), is, rd);
 }
+
+void amrex::writeFloatData(const float* data, std::size_t size, std::ostream& os,
+                           const RealDescriptor& rd)
+{
+    RealDescriptor::convertFromNativeFloatFormat(os, static_cast<long>(size), data, rd);
+}
+
+void amrex::readFloatData(float* data, std::size_t size, std::istream& is,
+                          const RealDescriptor& rd)
+{
+    RealDescriptor::convertToNativeFloatFormat(data, static_cast<long>(size), is, rd);
+}
+
+void amrex::writeDoubleData(const double* data, std::size_t size, std::ostream& os,
+                            const RealDescriptor& rd)
+{
+    RealDescriptor::convertFromNativeDoubleFormat(os, static_cast<long>(size), data, rd);
+}
+
+void amrex::readDoubleData(double* data, std::size_t size, std::istream& is,
+                           const RealDescriptor& rd)
+{
+    RealDescriptor::convertToNativeDoubleFormat(data, static_cast<long>(size), is, rd);
+}
