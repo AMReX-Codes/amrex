@@ -78,7 +78,6 @@ protected:
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
     Vector<std::unique_ptr<iMultiFab> > m_crsefine_mask; // cell-cenetered mask for crse(0)/fine(1)
-    Vector<std::unique_ptr<MultiFab> > m_crsefine_weight; // nodal mf for div operator
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contains c/f boundary?
     Vector<std::unique_ptr<MultiFab> > m_overlap_mask; // not needed for coarest amr level
 };
