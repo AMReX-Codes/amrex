@@ -166,7 +166,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const Box& cnddom = amrex::surroundingNodes(cgeom.Domain());
         const Real* cdxinv = cgeom.InvCellSize();
         const iMultiFab& cdmsk = *m_dirichlet_mask[ilev][0];
-        const iMultiFab& cfmask = *m_cc_fine_mask[ilev];
+        const iMultiFab& c_nd_mask = *m_nd_fine_mask[ilev];
+        const iMultiFab& c_cc_mask = *m_cc_fine_mask[ilev];
         const auto& has_fine_bndry = *m_has_fine_bndry[ilev];
 
 #ifdef _OPENMP
@@ -182,7 +183,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                                               BL_TO_FORTRAN_ANYD((*rhs[ilev])[mfi]),
                                               BL_TO_FORTRAN_ANYD((*vel[ilev])[mfi]),
                                               BL_TO_FORTRAN_ANYD(cdmsk[mfi]),
-                                              BL_TO_FORTRAN_ANYD(cfmask[mfi]),
+                                              BL_TO_FORTRAN_ANYD(c_nd_mask[mfi]),
+                                              BL_TO_FORTRAN_ANYD(c_cc_mask[mfi]),
                                               BL_TO_FORTRAN_ANYD(crhs[mfi]),
                                               cdxinv, BL_TO_FORTRAN_BOX(cnddom),
                                               m_lobc.data(), m_hibc.data());
@@ -498,7 +500,7 @@ MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 {
     if (!m_masks_built) buildMasks();
 
-    const iMultiFab& cfmask = *m_cc_fine_mask[amrlev];
+    const iMultiFab& cfmask = *m_nd_fine_mask[amrlev];
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1095,7 +1097,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     fine_contrib_on_crse.ParallelAdd(fine_contrib, cgeom.periodicity());
 
     const iMultiFab& cdmsk = *m_dirichlet_mask[crse_amrlev][0];
-    const auto& cfmask     = m_cc_fine_mask[crse_amrlev];
+    const auto& nd_mask     = m_nd_fine_mask[crse_amrlev];
+    const auto& cc_mask     = m_cc_fine_mask[crse_amrlev];
     const auto& has_fine_bndry = m_has_fine_bndry[crse_amrlev];
 
     const auto& csigma = *m_sigma[crse_amrlev][0][0];
@@ -1114,7 +1117,8 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                          BL_TO_FORTRAN_ANYD(crse_rhs[mfi]),
                                          BL_TO_FORTRAN_ANYD(csigma[mfi]),
                                          BL_TO_FORTRAN_ANYD(cdmsk[mfi]),
-                                         BL_TO_FORTRAN_ANYD((*cfmask)[mfi]),
+                                         BL_TO_FORTRAN_ANYD((*nd_mask)[mfi]),
+                                         BL_TO_FORTRAN_ANYD((*cc_mask)[mfi]),
                                          BL_TO_FORTRAN_ANYD(fine_contrib_on_crse[mfi]),
                                          cdxinv);
         }
