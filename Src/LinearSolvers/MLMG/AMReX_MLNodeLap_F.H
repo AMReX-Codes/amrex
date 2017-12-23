@@ -174,7 +174,8 @@ extern "C" {
                                         amrex_real* rhs, const int* rlo, const int* rhi,
                                         const amrex_real* vel, const int* vlo, const int* vhi,
                                         const int* dmsk, const int* dmlo, const int* dmhi,
-                                        const int* fmsk, const int* fmlo, const int* fmhi,
+                                        const int* ndmsk, const int* ndmlo, const int* ndmhi,
+                                        const int* ccmsk, const int* ccmlo, const int* ccmhi,
                                         const amrex_real* cc, const int* clo, const int* chi,
                                         const amrex_real* dxinv, const int* ndlo, const int* ndhi,
                                         const void* bclo, const void* bchi);
@@ -194,7 +195,8 @@ extern "C" {
                                        const amrex_real* rhs, const int* rhlo, const int* rhhi,
                                        const amrex_real* sig, const int* slo, const int* shi,
                                        const int* dmsk, const int* mlo, const int* mhi,
-                                       const int* fmsk, const int* fmlo, const int* fmhi,
+                                       const int* ndmsk, const int* ndmlo, const int* ndmhi,
+                                       const int* ccmsk, const int* ccmlo, const int* ccmhi,
                                        const amrex_real* cc, const int* clo, const int* chi,
                                        const amrex_real* dxinv);
 

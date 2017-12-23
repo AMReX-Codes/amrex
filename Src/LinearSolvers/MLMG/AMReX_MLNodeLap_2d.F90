@@ -1005,16 +1005,17 @@ contains
 
 
   subroutine amrex_mlndlap_divu_cf_contrib (lo, hi,  rhs, rlo, rhi, vel, vlo, vhi, dmsk, mlo, mhi, &
-       fmsk, flo, fhi, fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
+       ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_divu_cf_contrib')
-    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, flo, fhi, &
-         clo, chi, ndlo, ndhi, bclo, bchi
+    integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, &
+         nmlo, nmhi, cmlo, cmhi, clo, chi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
     real(amrex_real), intent(in   ) :: fc (clo(1):chi(1),clo(2):chi(2))
     integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
-    integer, intent(in) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
+    integer, intent(in) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
+    integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
     real(amrex_real) :: facx, facy
@@ -1025,12 +1026,12 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (dmsk(i,j) .ne. dirichlet) then
-             if (any(fmsk(i-1:i,j-1:j).eq.1) .and. any(fmsk(i-1:i,j-1:j).eq.0)) then
+             if (ndmsk(i,j) .eq. crse_fine_node) then
                 rhs(i,j) = fc(i,j) &
-                     + (1.d0-fmsk(i-1,j-1)) * (-facx*vel(i-1,j-1,1) - facy*vel(i-1,j-1,2)) &
-                     + (1.d0-fmsk(i  ,j-1)) * ( facx*vel(i  ,j-1,1) - facy*vel(i  ,j-1,2)) &
-                     + (1.d0-fmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
-                     + (1.d0-fmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2))
+                     + (1.d0-ccmsk(i-1,j-1)) * (-facx*vel(i-1,j-1,1) - facy*vel(i-1,j-1,2)) &
+                     + (1.d0-ccmsk(i  ,j-1)) * ( facx*vel(i  ,j-1,1) - facy*vel(i  ,j-1,2)) &
+                     + (1.d0-ccmsk(i-1,j  )) * (-facx*vel(i-1,j  ,1) + facy*vel(i-1,j  ,2)) &
+                     + (1.d0-ccmsk(i  ,j  )) * ( facx*vel(i  ,j  ,1) + facy*vel(i  ,j  ,2))
              end if
           end if
        end do
@@ -1226,11 +1227,11 @@ contains
 
 
   subroutine amrex_mlndlap_res_cf_contrib (lo, hi, res, rlo, rhi, phi, phlo, phhi, &
-       rhs, rhlo, rhhi, sig, slo, shi, dmsk, mlo, mhi, fmsk, flo, fhi, &
+       rhs, rhlo, rhhi, sig, slo, shi, dmsk, mlo, mhi, ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, &
        fc, clo, chi, dxinv) &
        bind(c,name='amrex_mlndlap_res_cf_contrib')
     integer, dimension(2), intent(in) :: lo, hi, rlo, rhi, phlo, phhi, rhlo, rhhi, slo, shi, &
-         mlo, mhi, flo, fhi, clo, chi
+         mlo, mhi, nmlo, nmhi, cmlo, cmhi, clo, chi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: res( rlo(1): rhi(1), rlo(2): rhi(2))
     real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2))
@@ -1238,7 +1239,8 @@ contains
     real(amrex_real), intent(in   ) :: sig( slo(1): shi(1), slo(2): shi(2))
     real(amrex_real), intent(inout) :: fc ( clo(1): chi(1), clo(2): chi(2))
     integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
-    integer, intent(in) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
+    integer, intent(in) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
+    integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
     integer :: i,j
     real(amrex_real) :: Ax, facx, facy
@@ -1249,27 +1251,27 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (dmsk(i,j) .ne. dirichlet) then
-             if (any(fmsk(i-1:i,j-1:j).eq.0) .and. any(fmsk(i-1:i,j-1:j).eq.1)) then
+             if (ndmsk(i,j) .eq. crse_fine_node) then
                 Ax = 0.d0
-                if (fmsk(i-1,j-1) .eq. 0) then
+                if (ccmsk(i-1,j-1) .eq. crse_cell) then
                    Ax = Ax + sig(i-1,j-1)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
                         &                       +     (phi(i-1,j-1)-phi(i  ,j-1))) &
                         &                + facy*(2.d0*(phi(i  ,j-1)-phi(i  ,j  )) &
                         &                       +     (phi(i-1,j-1)-phi(i-1,j  ))))
                 end if
-                if (fmsk(i,j-1) .eq. 0) then
+                if (ccmsk(i,j-1) .eq. crse_cell) then
                    Ax = Ax + sig(i,j-1)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
                         &                     +     (phi(i+1,j-1)-phi(i  ,j-1))) &
                         &              + facy*(2.d0*(phi(i  ,j-1)-phi(i  ,j  )) &
                         &                     +     (phi(i+1,j-1)-phi(i+1,j  ))))
                 end if
-                if (fmsk(i-1,j) .eq. 0) then
+                if (ccmsk(i-1,j) .eq. crse_cell) then
                    Ax = Ax + sig(i-1,j)*(facx*(2.d0*(phi(i-1,j  )-phi(i  ,j  )) &
                         &                     +     (phi(i-1,j+1)-phi(i  ,j+1))) &
                         &              + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
                         &                     +     (phi(i-1,j+1)-phi(i-1,j  ))))
                 end if
-                if (fmsk(i,j) .eq. 0) then
+                if (ccmsk(i,j) .eq. crse_cell) then
                    Ax = Ax + sig(i,j)*(facx*(2.d0*(phi(i+1,j  )-phi(i  ,j  )) &
                         &                  +      (phi(i+1,j+1)-phi(i  ,j+1))) &
                         &            + facy*(2.d0*(phi(i  ,j+1)-phi(i  ,j  )) &
@@ -1293,7 +1295,7 @@ contains
     
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (any(fmsk(i-1:i,j-1:j).eq.0) .and. any(fmsk(i-1:i,j-1:j).eq.1)) then
+          if (fmsk(i,j) .eq. crse_fine_node) then
              rmsk(i,j) = 1
           end if
        end do
