@@ -151,9 +151,9 @@ contains
 
   function amrex_mlndlap_any_crse_cells (lo, hi, msk, mlo, mhi) result(r) &
        bind(c,name='amrex_mlndlap_any_crse_cells')
+    integer :: r
     integer, dimension(2), intent(in) :: lo, hi, mlo, mhi
     integer, intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
-    integer :: r
 
     integer :: i,j
 
@@ -1314,9 +1314,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_zero_fine
-
-
-  
 
 
 end module amrex_mlnodelap_2d_module
