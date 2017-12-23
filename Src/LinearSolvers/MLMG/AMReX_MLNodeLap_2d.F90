@@ -8,8 +8,17 @@ module amrex_mlnodelap_2d_module
   ! external dirichlet at physical boundary or internal dirichlet at crse/fine boundary
   integer, parameter :: dirichlet = 1
 
+  integer, parameter :: crse_cell = 0
+  integer, parameter :: fine_cell = 1
+  integer, parameter :: crse_node = 0
+  integer, parameter :: crse_fine_node = 1
+  integer, parameter :: fine_node = 2
+
+  ! we should rename amrex_mlndlap_any_zero
+
   private
-  public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_divu, &
+  public :: amrex_mlndlap_set_nodal_mask, &
+       amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_divu, &
        amrex_mlndlap_applybc, amrex_mlndlap_restriction, amrex_mlndlap_mknewu, &
        amrex_mlndlap_adotx_ha, amrex_mlndlap_adotx_aa, &
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
@@ -21,6 +30,26 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_res_cf_contrib, amrex_mlndlap_fixup_res_mask
 
 contains
+
+  subroutine amrex_mlndlap_set_nodal_mask (lo, hi, nmsk, nlo, nhi, cmsk, clo, chi) &
+       bind(c,name='amrex_mlndlap_set_nodal_mask')
+    integer, dimension(2), intent(in) :: lo, hi, nlo, nhi, clo, chi
+    integer, intent(inout) :: nmsk(nlo(1):nhi(1),nlo(2):nhi(2))
+    integer, intent(in   ) :: cmsk(clo(1):chi(1),clo(2):chi(2))
+    integer :: i,j
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (all(cmsk(i-1:i,j-1:j) .eq. crse_cell)) then
+             nmsk(i,j) = crse_node
+          else if (all(cmsk(i-1:i,j-1:j) .eq. fine_cell)) then
+             nmsk(i,j) = fine_node
+          else
+             nmsk(i,j) = crse_fine_node
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_set_nodal_mask
+
 
   subroutine amrex_mlndlap_avgdown_coeff (lo, hi, crse, clo, chi, fine, flo, fhi, idim) &
        bind(c,name='amrex_mlndlap_avgdown_coeff')
