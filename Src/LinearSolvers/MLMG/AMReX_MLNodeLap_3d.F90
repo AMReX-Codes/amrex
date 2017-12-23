@@ -207,8 +207,43 @@ contains
        bind(c,name='amrex_mlndlap_avgdown_coeff')
     integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi
     integer, intent(in) :: idim
-    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
-    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(2):chi(2))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(2):fhi(2))
+
+    integer :: i,j,k
+    real(amrex_real) :: cl,cr
+
+    if (idim .eq. 0) then
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                cl = 0.25d0*(fine(i,j,k)+fine(i,j+1,k)+fine(i,j,k+1)+fine(i,j+1,k+1))
+                cr = 0.25d0*(fine(i+1,j,k)+fine(i+1,j+1,k)+fine(i+1,j,k+1)+fine(i+1,j+1,k+1))
+                crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
+             end do
+          end do
+       end do
+    else if (idim .eq. 1) then
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                cl = 0.25d0*(fine(i,j,k)+fine(i+1,j,k)+fine(i,j,k+1)+fine(i+1,j,k+1))
+                cl = 0.25d0*(fine(i,j+1,k)+fine(i+1,j+1,k)+fine(i,j+1,k+1)+fine(i+1,j+1,k+1))
+                crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
+             end do
+          end do
+       end do
+    else
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                cl = 0.25d0*(fine(i,j,k)+fine(i+1,j,k)+fine(i,j+1,k)+fine(i+1,j+1,k))
+                cr = 0.25d0*(fine(i,j,k+1)+fine(i+1,j,k+1)+fine(i,j+1,k+1)+fine(i+1,j+1,k+1))
+                crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
+             end do
+          end do
+       end do
+    end if
   end subroutine amrex_mlndlap_avgdown_coeff
 
 
