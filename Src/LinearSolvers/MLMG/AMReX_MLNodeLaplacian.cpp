@@ -928,8 +928,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
             const Box& bx = mfi.tilebox();
             const Box& bxg1 = amrex::grow(bx,1);
             const Box& ccbxg1 = amrex::enclosedCells(bxg1);
-            if (amrex_mlndlap_any_zero(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi])))
+            if (amrex_mlndlap_any_crse_cells(BL_TO_FORTRAN_BOX(bx),
+                                             BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi])))
             {
                 rhs.resize(bx);
                 amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
