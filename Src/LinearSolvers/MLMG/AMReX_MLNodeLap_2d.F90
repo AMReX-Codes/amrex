@@ -5,6 +5,9 @@ module amrex_mlnodelap_2d_module
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann, amrex_lo_inflow, amrex_lo_periodic
   implicit none
 
+  ! external dirichlet at physical boundary or internal dirichlet at crse/fine boundary
+  integer, parameter :: dirichlet = 1
+
   private
   public :: amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_divu, &
        amrex_mlndlap_applybc, amrex_mlndlap_restriction, amrex_mlndlap_mknewu, &
@@ -127,7 +130,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .eq. 0) then
+          if (msk(i,j) .ne. dirichlet) then
              rhs(i,j) = facx*(-vel(i-1,j-1,1)+vel(i,j-1,1)-vel(i-1,j,1)+vel(i,j,1)) &
                   &   + facy*(-vel(i-1,j-1,2)-vel(i,j-1,2)+vel(i-1,j,2)+vel(i,j,2))
           else
@@ -174,7 +177,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .eq. 0) then
+          if (msk(i,j) .ne. dirichlet) then
              rhs(i,j) = rhs(i,j) + 0.25d0*(rhcc(i-1,j-1)+rhcc(i,j-1)+rhcc(i-1,j)+rhcc(i,j))
           end if
        end do
@@ -309,7 +312,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .eq. 0) then
+          if (msk(i,j) .ne. dirichlet) then
              y(i,j) = facx*(-sx(i-1,j-1)*(dg(i-1,j-1,1)+2.d0*dg(i-1,j  ,1)) &
                   &         +sx(i  ,j-1)*(dg(i  ,j-1,1)+2.d0*dg(i  ,j  ,1)) &
                   &         -sx(i-1,j  )*(dg(i-1,j+1,1)+2.d0*dg(i-1,j  ,1)) &
@@ -359,7 +362,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .eq. 0) then
+          if (msk(i,j) .ne. dirichlet) then
              y(i,j) = facx*(-sig(i-1,j-1)*(dg(i-1,j-1,1)+2.d0*dg(i-1,j  ,1)) &
                   &         +sig(i  ,j-1)*(dg(i  ,j-1,1)+2.d0*dg(i  ,j  ,1)) &
                   &         -sig(i-1,j  )*(dg(i-1,j+1,1)+2.d0*dg(i-1,j  ,1)) &
@@ -399,7 +402,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .eq. 0) then
+          if (msk(i,j) .ne. dirichlet) then
              sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
                   / (facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
                   +  facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
@@ -434,7 +437,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .eq. 0) then
+          if (msk(i,j) .ne. dirichlet) then
              sol(i,j) = sol(i,j) + omega * (rhs(i,j) - Ax(i,j)) &
                   / (fac*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j)))
           else
@@ -468,7 +471,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .eq. 0) then
+          if (msk(i,j) .ne. dirichlet) then
              dgx_mm = sol(i  ,j-1) - sol(i-1,j-1)
              dgx_m0 = sol(i  ,j  ) - sol(i-1,j  )
              dgx_mp = sol(i  ,j+1) - sol(i-1,j+1)
@@ -526,7 +529,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (msk(i,j) .eq. 0) then
+          if (msk(i,j) .ne. dirichlet) then
              dgx_mm = sol(i  ,j-1) - sol(i-1,j-1)
              dgx_m0 = sol(i  ,j  ) - sol(i-1,j  )
              dgx_mp = sol(i  ,j+1) - sol(i-1,j+1)
@@ -575,7 +578,7 @@ contains
        jj = 2*j
        do i = lo(1), hi(1)
           ii = 2*i
-          if (msk(ii,jj) .eq. 0) then
+          if (msk(ii,jj) .ne. dirichlet) then
              crse(i,j) = fac*(fine(ii-1,jj-1) + 2.d0*fine(ii  ,jj-1) +      fine(ii+1,jj-1) &
                   +      2.d0*fine(ii-1,jj  ) + 4.d0*fine(ii  ,jj  ) + 2.d0*fine(ii+1,jj  ) &
                   +           fine(ii-1,jj+1) + 2.d0*fine(ii  ,jj+1) +      fine(ii+1,jj+1))
@@ -607,7 +610,7 @@ contains
 
     do    j = clo(2), chi(2)
        do i = clo(1), chi(1)
-          if (msk(2*i,2*j) .eq. 0) then
+          if (msk(2*i,2*j) .ne. dirichlet) then
              fine(2*i,2*j) = crse(i,j)
           else
              fine(2*i,2*j) = 0.d0
@@ -621,7 +624,7 @@ contains
        if (interpx) then
           ! interp in x-direction
           do i = flo(1)+1, fhi(1), 2
-             if (msk(i,j) .eq. 0) then
+             if (msk(i,j) .ne. dirichlet) then
                 wxm = sigx(i-1,j-1) + sigx(i-1,j)
                 wxp = sigx(i  ,j-1) + sigx(i  ,j)
                 fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp)
@@ -632,7 +635,7 @@ contains
        else
           ! interp in y-direction
           do i = flo(1), fhi(1), 2
-             if (msk(i,j) .eq. 0) then
+             if (msk(i,j) .ne. dirichlet) then
                 wym = sigy(i-1,j-1) + sigy(i,j-1)
                 wyp = sigy(i-1,j  ) + sigy(i,j  )
                 fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp)
@@ -676,7 +679,7 @@ contains
 
     do    j = clo(2), chi(2)
        do i = clo(1), chi(1)
-          if (msk(2*i,2*j) .eq. 0) then
+          if (msk(2*i,2*j) .ne. dirichlet) then
              fine(2*i,2*j) = crse(i,j)
           else
              fine(2*i,2*j) = 0.d0
@@ -690,7 +693,7 @@ contains
        if (interpx) then
           ! interp in x-direction
           do i = flo(1)+1, fhi(1), 2
-             if (msk(i,j) .eq. 0) then
+             if (msk(i,j) .ne. dirichlet) then
                 wxm = sig(i-1,j-1) + sig(i-1,j)
                 wxp = sig(i  ,j-1) + sig(i  ,j)
                 fine(i,j) = (wxm*fine(i-1,j) + wxp*fine(i+1,j)) / (wxm+wxp)
@@ -701,7 +704,7 @@ contains
        else
           ! interp in y-direction
           do i = flo(1), fhi(1), 2
-             if (msk(i,j) .eq. 0) then
+             if (msk(i,j) .ne. dirichlet) then
                 wym = sig(i-1,j-1) + sig(i,j-1)
                 wyp = sig(i-1,j  ) + sig(i,j  )
                 fine(i,j) = (wym*fine(i,j-1) + wyp*fine(i,j+1)) / (wym+wyp)
@@ -796,7 +799,7 @@ contains
     do j = dlo(2), dhi(2)
        do i = dlo(1), dhi(1)
           if (any(omsk(i-1:i,j-1:j).eq.1)) then
-             dmsk(i,j) = 1
+             dmsk(i,j) = dirichlet
           else
              dmsk(i,j) = 0
           end if
@@ -829,25 +832,25 @@ contains
     
     if (dlo(1) .eq. domlo(1)) then
        if (bclo(1) .eq. amrex_lo_dirichlet) then
-          dmsk(dlo(1),:) = 1
+          dmsk(dlo(1),:) = dirichlet
        end if
     end if
 
     if (dhi(1) .eq. domhi(1)) then
        if (bchi(1) .eq. amrex_lo_dirichlet) then
-          dmsk(dhi(1),:) = 1
+          dmsk(dhi(1),:) = dirichlet
        end if
     end if
 
     if (dlo(2) .eq. domlo(2)) then
        if (bclo(2) .eq. amrex_lo_dirichlet) then
-          dmsk(:,dlo(2)) = 1
+          dmsk(:,dlo(2)) = dirichlet
        end if
     end if
 
     if (dhi(2) .eq. domhi(2)) then
        if (bchi(2) .eq. amrex_lo_dirichlet) then
-          dmsk(:,dhi(2)) = 1
+          dmsk(:,dhi(2)) = dirichlet
        end if
     end if
     
@@ -876,7 +879,6 @@ contains
     facy = 0.5d0*dxinv(2) * rfd
 
     ! note that lo = 2*clo and hi = 2*chi
-    ! msk .ne. 0 means coarse/fine or external dirichlet boundary
 
     do side = 0, 1
        if (side .eq. 0) then
@@ -895,7 +897,7 @@ contains
 
        i = clo(1)
        ii = lo(1)
-       if (msk(ii,jj) .ne. 0) then
+       if (msk(ii,jj) .eq. dirichlet) then
           rhs(i,j) = rhs(i,j) + facx*vel(ii,jc,1) + facy_s*vel(ii,jc,2) &
                + chip * (facx  *(vel(ii+1,jc,1)-vel(ii,jc,1)) &
                &       + facy_s*(vel(ii+1,jc,2)+vel(ii,jc,2))) &
@@ -904,7 +906,7 @@ contains
 
        do i = clo(1)+1, chi(1)-1
           ii = 2*i
-          if (msk(ii,jj) .ne. 0) then
+          if (msk(ii,jj) .eq. dirichlet) then
              rhs(i,j) = rhs(i,j) + facx  *(vel(ii,jc,1)-vel(ii-1,jc,1)) &
                   &              + facy_s*(vel(ii,jc,2)+vel(ii-1,jc,2)) &
                   + chip * (facx  *(vel(ii-1,jc,1)-vel(ii-2,jc,1)) &
@@ -917,7 +919,7 @@ contains
 
        i = chi(1)
        ii = hi(1)
-       if (msk(ii,jj) .ne. 0) then
+       if (msk(ii,jj) .eq. dirichlet) then
           rhs(i,j) = rhs(i,j) - facx*vel(ii-1,jc,1) + facy_s*vel(ii-1,jc,2) &
                + chip * (facx  *(vel(ii-1,jc,1)-vel(ii-2,jc,1)) &
                &       + facy_s*(vel(ii-1,jc,2)+vel(ii-2,jc,2))) &
@@ -942,14 +944,14 @@ contains
 
        j = clo(2)
        jj = lo(2)
-       if (msk(ii,jj) .ne. 0) then
+       if (msk(ii,jj) .eq. dirichlet) then
           rhs(i,j) = rhs(i,j) + chip * (facx_s*(vel(ic,jj+1,1)+vel(ic,jj,1)) &
                &                      + facy  *(vel(ic,jj+1,2)-vel(ic,jj,2)))
        end if
 
        do j = clo(2)+1, chi(2)-1
           jj = 2*j
-          if (msk(ii,jj) .ne. 0) then
+          if (msk(ii,jj) .eq. dirichlet) then
              rhs(i,j) = rhs(i,j) + facx_s*(vel(ic,jj,1)+vel(ic,jj-1,1)) &
                   &              + facy  *(vel(ic,jj,2)-vel(ic,jj-1,2)) &
                   + chip * (facx_s*(vel(ic,jj-1,1)+vel(ic,jj-2,1)) &
@@ -962,7 +964,7 @@ contains
 
        j = chi(2)
        jj = hi(2)
-       if (msk(ii,jj) .ne. 0) then
+       if (msk(ii,jj) .eq. dirichlet) then
           rhs(i,j) = rhs(i,j) + chip * (facx_s*(vel(ic,jj-1,1)+vel(ic,jj-2,1)) &
                &                      + facy  *(vel(ic,jj-1,2)-vel(ic,jj-2,2)))
        end if
@@ -993,7 +995,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (dmsk(i,j) .eq. 0) then
+          if (dmsk(i,j) .ne. dirichlet) then
              if (any(fmsk(i-1:i,j-1:j).eq.1) .and. any(fmsk(i-1:i,j-1:j).eq.0)) then
                 rhs(i,j) = fc(i,j) &
                      + (1.d0-fmsk(i-1,j-1)) * (-facx*vel(i-1,j-1,1) - facy*vel(i-1,j-1,2)) &
@@ -1032,7 +1034,6 @@ contains
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2) * rfd
 
     ! note that lo = 2*clo and hi = 2*chi
-    ! msk .ne. 0 means coarse/fine or external dirichlet boundary
 
     do side = 0, 1
        if (side .eq. 0) then
@@ -1049,7 +1050,7 @@ contains
 
        i = clo(1)
        ii = lo(1)
-       if (msk(ii,jj) .ne. 0) then
+       if (msk(ii,jj) .eq. dirichlet) then
           f(i,j) = f(i,j) + sig(ii,jc)*(facx*(2.d0*(x(ii+1,jj)-x(ii  ,jj))  &
                &                             +     (x(ii+1,jd)-x(ii  ,jd))) &
                &                      + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
@@ -1067,7 +1068,7 @@ contains
 
        do i = clo(1)+1, chi(1)-1
           ii = 2*i
-          if (msk(ii,jj) .ne. 0) then
+          if (msk(ii,jj) .eq. dirichlet) then
              f(i,j) = f(i,j) + sig(ii-1,jc)*(facx*(2.d0*(x(ii-1,jj)-x(ii  ,jj))  &
                   &                               +     (x(ii-1,jd)-x(ii  ,jd))) &
                   &                        + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
@@ -1100,7 +1101,7 @@ contains
 
        i = chi(1)
        ii = hi(1)
-       if (msk(ii,jj) .ne. 0) then
+       if (msk(ii,jj) .eq. dirichlet) then
           f(i,j) = f(i,j) + sig(ii-1,jc)*(facx*(2.d0*(x(ii-1,jj)-x(ii  ,jj))  &
                &                               +     (x(ii-1,jd)-x(ii  ,jd))) &
                &                        + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
@@ -1132,7 +1133,7 @@ contains
 
        j = clo(2)
        jj = lo(2)
-       if (msk(ii,jj) .ne. 0) then
+       if (msk(ii,jj) .eq. dirichlet) then
           f(i,j) = f(i,j)  &
                + chip * sig(ic,jj  )*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
                &                           +     (x(id,jj  )-x(ii,jj  ))) &
@@ -1146,7 +1147,7 @@ contains
 
        do j = clo(2)+1, chi(2)-1
           jj = 2*j
-          if (msk(ii,jj) .ne. 0) then
+          if (msk(ii,jj) .eq. dirichlet) then
              f(i,j) = f(i,j) + sig(ic,jj-1)*(facx*(2.d0*(x(id,jj  )-x(ii,jj  ))  &
                   &                               +     (x(id,jj-1)-x(ii,jj-1))) &
                   &                        + facy*(2.d0*(x(ii,jj-1)-x(ii,jj  ))  &
@@ -1179,7 +1180,7 @@ contains
 
        j = chi(2)
        jj = hi(2)
-       if (msk(ii,jj) .ne. 0) then
+       if (msk(ii,jj) .eq. dirichlet) then
           f(i,j) = f(i,j) &
                + chip*sig(ic,jj-2)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
                &                         +     (x(id,jj-2)-x(ii,jj-2))) &
@@ -1218,7 +1219,7 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          if (dmsk(i,j) .eq. 0) then
+          if (dmsk(i,j) .ne. dirichlet) then
              if (any(fmsk(i-1:i,j-1:j).eq.0) .and. any(fmsk(i-1:i,j-1:j).eq.1)) then
                 Ax = 0.d0
                 if (fmsk(i-1,j-1) .eq. 0) then
