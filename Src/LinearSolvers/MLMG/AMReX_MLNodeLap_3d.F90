@@ -45,24 +45,137 @@ contains
   subroutine amrex_mlndlap_set_nodal_mask (lo, hi, nmsk, nlo, nhi, cmsk, clo, chi) &
        bind(c,name='amrex_mlndlap_set_nodal_mask')
     integer, dimension(3), intent(in) :: lo, hi, nlo, nhi, clo, chi
-    integer, intent(inout) :: nmsk(nlo(1):nhi(1),nlo(2):nhi(2))
-    integer, intent(in   ) :: cmsk(clo(1):chi(1),clo(2):chi(2))
+    integer, intent(inout) :: nmsk(nlo(1):nhi(1),nlo(2):nhi(2),nlo(3):nhi(3))
+    integer, intent(in   ) :: cmsk(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    integer :: i,j,k
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (all(cmsk(i-1:i,j-1:j,k-1:k) .eq. crse_cell)) then
+                nmsk(i,j,k) = crse_node
+             else if (all(cmsk(i-1:i,j-1:j,k-1:k) .eq. fine_cell)) then
+                nmsk(i,j,k) = fine_node
+             else
+                nmsk(i,j,k) = crse_fine_node
+             end if
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_set_nodal_mask
 
 
   subroutine amrex_mlndlap_set_dirichlet_mask (dmsk, dlo, dhi, omsk, olo, ohi, &
        domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_set_dirichlet_mask')
     integer, dimension(3) :: dlo, dhi, olo, ohi, domlo, domhi, bclo, bchi
-    integer, intent(inout) :: dmsk(dlo(1):dhi(1),dlo(2):dhi(2))
-    integer, intent(in   ) :: omsk(olo(1):ohi(1),olo(2):ohi(2))
+    integer, intent(inout) :: dmsk(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+    integer, intent(in   ) :: omsk(olo(1):ohi(1),olo(2):ohi(2),olo(3):ohi(3))
+
+    integer :: i,j,k
+    
+    do       k = dlo(3), dhi(3)
+       do    j = dlo(2), dhi(2)
+          do i = dlo(1), dhi(1)
+             if (any(omsk(i-1:i,j-1:j,k-1:k).eq.1)) then
+                dmsk(i,j,k) = dirichlet
+             else
+                dmsk(i,j,k) = 0
+             end if
+          end do
+       end do
+    end do
+
+    if (dlo(1) .eq. domlo(1)) then
+       if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
+          dmsk(dlo(1),:,:) = 0
+       end if
+    end if
+
+    if (dhi(1) .eq. domhi(1)) then
+       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
+          dmsk(dhi(1),:,:) = 0
+       end if
+    end if
+
+    if (dlo(2) .eq. domlo(2)) then
+       if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
+          dmsk(:,dlo(2),:) = 0
+       end if
+    end if
+
+    if (dhi(2) .eq. domhi(2)) then
+       if (bchi(2) .eq. amrex_lo_neumann .or. bchi(2) .eq. amrex_lo_inflow) then
+          dmsk(:,dhi(2),:) = 0
+       end if
+    end if
+
+    if (dlo(3) .eq. domlo(3)) then
+       if (bclo(3) .eq. amrex_lo_neumann .or. bclo(3) .eq. amrex_lo_inflow) then
+          dmsk(:,:,dlo(3)) = 0
+       end if
+    end if
+
+    if (dhi(3) .eq. domhi(3)) then
+       if (bchi(3) .eq. amrex_lo_neumann .or. bchi(3) .eq. amrex_lo_inflow) then
+          dmsk(:,:,dhi(3)) = 0
+       end if
+    end if
+
+    if (dlo(1) .eq. domlo(1)) then
+       if (bclo(1) .eq. amrex_lo_dirichlet) then
+          dmsk(dlo(1),:,:) = dirichlet
+       end if
+    end if
+
+    if (dhi(1) .eq. domhi(1)) then
+       if (bchi(1) .eq. amrex_lo_dirichlet) then
+          dmsk(dhi(1),:,:) = dirichlet
+       end if
+    end if
+
+    if (dlo(2) .eq. domlo(2)) then
+       if (bclo(2) .eq. amrex_lo_dirichlet) then
+          dmsk(:,dlo(2),:) = dirichlet
+       end if
+    end if
+
+    if (dhi(2) .eq. domhi(2)) then
+       if (bchi(2) .eq. amrex_lo_dirichlet) then
+          dmsk(:,dhi(2),:) = dirichlet
+       end if
+    end if
+
+    if (dlo(3) .eq. domlo(3)) then
+       if (bclo(3) .eq. amrex_lo_dirichlet) then
+          dmsk(:,:,dlo(3)) = dirichlet
+       end if
+    end if
+
+    if (dhi(3) .eq. domhi(3)) then
+       if (bchi(3) .eq. amrex_lo_dirichlet) then
+          dmsk(:,:,dhi(3)) = dirichlet
+       end if
+    end if
+    
   end subroutine amrex_mlndlap_set_dirichlet_mask
 
 
   subroutine amrex_mlndlap_fixup_res_mask (lo, hi, rmsk, rlo, rhi, fmsk, flo, fhi) &
        bind(c,name='amrex_mlndlap_fixup_res_mask')
     integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, flo, fhi
-    integer, intent(inout) :: rmsk(rlo(1):rhi(1),rlo(2):rhi(2))
-    integer, intent(in   ) :: fmsk(flo(1):fhi(1),flo(2):fhi(2))
+    integer, intent(inout) :: rmsk(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
+    integer, intent(in   ) :: fmsk(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+
+    integer :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (fmsk(i,j,k) .eq. crse_fine_node) then
+                rmsk(i,j,k) = 1
+             end if
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_fixup_res_mask
 
 
@@ -70,7 +183,23 @@ contains
        bind(c,name='amrex_mlndlap_any_crse_cells')
     integer :: r
     integer, dimension(3), intent(in) :: lo, hi, mlo, mhi
-    integer, intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+
+    integer :: i,j,k
+
+    r = 0
+
+    do k = lo(3), hi(3)
+       do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (msk(i,j,k) .eq. crse_cell) then
+                r = 1
+                goto 100
+             end if
+          end do
+       end do
+    end do
+100 continue
   end function amrex_mlndlap_any_crse_cells
 
 
