@@ -14,8 +14,6 @@ module amrex_mlnodelap_2d_module
   integer, parameter :: crse_fine_node = 1
   integer, parameter :: fine_node = 2
 
-  ! we should rename amrex_mlndlap_any_zero
-
   private
   public :: amrex_mlndlap_set_nodal_mask, &
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, amrex_mlndlap_divu, &
@@ -24,7 +22,7 @@ module amrex_mlnodelap_2d_module
        amrex_mlndlap_jacobi_ha, amrex_mlndlap_jacobi_aa, &
        amrex_mlndlap_gauss_seidel_ha, amrex_mlndlap_gauss_seidel_aa, &
        amrex_mlndlap_interpolation_ha, amrex_mlndlap_interpolation_aa, &
-       amrex_mlndlap_zero_fine, amrex_mlndlap_crse_resid, amrex_mlndlap_any_zero, &
+       amrex_mlndlap_zero_fine, amrex_mlndlap_crse_resid, amrex_mlndlap_any_crse_cells, &
        amrex_mlndlap_set_dirichlet_mask, amrex_mlndlap_divu_fine_contrib, &
        amrex_mlndlap_divu_cf_contrib, amrex_mlndlap_res_fine_contrib, &
        amrex_mlndlap_res_cf_contrib, amrex_mlndlap_fixup_res_mask
@@ -797,8 +795,8 @@ contains
   end subroutine amrex_mlndlap_crse_resid
 
   
-  function amrex_mlndlap_any_zero (lo, hi, msk, mlo, mhi) result(r) &
-       bind(c,name='amrex_mlndlap_any_zero')
+  function amrex_mlndlap_any_crse_cells (lo, hi, msk, mlo, mhi) result(r) &
+       bind(c,name='amrex_mlndlap_any_crse_cells')
     integer, dimension(2), intent(in) :: lo, hi, mlo, mhi
     integer, intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
     integer :: r
@@ -811,10 +809,10 @@ contains
        if (r.eq.1) exit
        do i = lo(1), hi(1)
           if (r.eq.1) exit
-          if (msk(i,j) .eq. 0) r = 1
+          if (msk(i,j) .eq. crse_cell) r = 1
        end do
     end do
-  end function amrex_mlndlap_any_zero
+  end function amrex_mlndlap_any_crse_cells
 
 
   subroutine amrex_mlndlap_set_dirichlet_mask (dmsk, dlo, dhi, omsk, olo, ohi, &

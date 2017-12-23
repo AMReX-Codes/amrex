@@ -154,8 +154,8 @@ extern "C" {
                                    const amrex_real* rhs, const int* rhlo, const int* rhhi,
                                    const int* msk, const int* mlo, const int* mhi);
 
-    int amrex_mlndlap_any_zero (const int* lo, const int* hi,
-                                const int* msk, const int* mlo, const int* mhi);
+    int amrex_mlndlap_any_crse_cells (const int* lo, const int* hi,
+                                      const int* msk, const int* mlo, const int* mhi);
 
     void amrex_mlndlap_set_dirichlet_mask (int* dmsk, const int* dlo, const int* dhi,
                                            const int* omsk, const int* olo, const int* ohi,
