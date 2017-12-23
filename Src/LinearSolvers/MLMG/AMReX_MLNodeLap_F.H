@@ -202,6 +202,10 @@ extern "C" {
                                        int* rmsk, const int* rlo, const int* rhi,
                                        const int* cfmsk, const int* flo, const int* fhi);
 
+    void amrex_mlndlap_set_nodal_mask (const int* lo, const int* hi,
+                                       int* nmsk, const int* nlo, const int* nhi,
+                                       const int* cmsk, const int* clo, const int* chi);
+
 #ifdef __cplusplus
 }
 #endif

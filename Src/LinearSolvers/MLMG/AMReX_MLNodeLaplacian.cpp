@@ -166,7 +166,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
         const Box& cnddom = amrex::surroundingNodes(cgeom.Domain());
         const Real* cdxinv = cgeom.InvCellSize();
         const iMultiFab& cdmsk = *m_dirichlet_mask[ilev][0];
-        const iMultiFab& cfmask = *m_crsefine_mask[ilev];
+        const iMultiFab& cfmask = *m_cc_fine_mask[ilev];
         const auto& has_fine_bndry = *m_has_fine_bndry[ilev];
 
 #ifdef _OPENMP
@@ -436,14 +436,15 @@ MLNodeLaplacian::buildMasks ()
 
     for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev)
     {
-        iMultiFab& mask = *m_crsefine_mask[amrlev];
+        iMultiFab& cc_mask = *m_cc_fine_mask[amrlev];
+        iMultiFab& nd_mask = *m_nd_fine_mask[amrlev];
         LayoutData<int>& has_cf = *m_has_fine_bndry[amrlev];
         const BoxArray& fba = m_grids[amrlev+1][0];
         const BoxArray& cfba = amrex::coarsen(fba, AMRRefRatio(amrlev));
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMRRefRatio(amrlev) == 2, "ref_ratio != 0 not supported");
 
-        mask.setVal(0);  // coarse by default
+        cc_mask.setVal(0);  // coarse by default
 
         const std::vector<IntVect>& pshifts = m_geom[amrlev][0].periodicity().shiftIntVect();
 
@@ -453,10 +454,10 @@ MLNodeLaplacian::buildMasks ()
         {
             std::vector< std::pair<int,Box> > isects;
 
-            for (MFIter mfi(mask); mfi.isValid(); ++mfi)
+            for (MFIter mfi(cc_mask); mfi.isValid(); ++mfi)
             {
                 has_cf[mfi] = 0;
-                IArrayBox& fab = mask[mfi];
+                IArrayBox& fab = cc_mask[mfi];
                 const Box& bx = fab.box();
                 for (const auto& iv : pshifts)
                 {
@@ -468,6 +469,17 @@ MLNodeLaplacian::buildMasks ()
                     if (!isects.empty()) has_cf[mfi] = 1;
                 }
             }
+        }
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(nd_mask,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            amrex_mlndlap_set_nodal_mask(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(nd_mask[mfi]),
+                                         BL_TO_FORTRAN_ANYD(cc_mask[mfi]));
         }
     }
 
@@ -486,7 +498,7 @@ MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 {
     if (!m_masks_built) buildMasks();
 
-    const iMultiFab& cfmask = *m_crsefine_mask[amrlev];
+    const iMultiFab& cfmask = *m_cc_fine_mask[amrlev];
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1083,7 +1095,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     fine_contrib_on_crse.ParallelAdd(fine_contrib, cgeom.periodicity());
 
     const iMultiFab& cdmsk = *m_dirichlet_mask[crse_amrlev][0];
-    const auto& cfmask     = m_crsefine_mask[crse_amrlev];
+    const auto& cfmask     = m_cc_fine_mask[crse_amrlev];
     const auto& has_fine_bndry = m_has_fine_bndry[crse_amrlev];
 
     const auto& csigma = *m_sigma[crse_amrlev][0][0];
