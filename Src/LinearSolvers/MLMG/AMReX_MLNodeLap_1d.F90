@@ -98,29 +98,27 @@ contains
 
 
   subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sx, sxlo, sxhi, dg, dlo, dhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
+       sx, sxlo, sxhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_adotx_ha')
-    integer, dimension(1), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, dlo, dhi, &
+    integer, dimension(1), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, &
          mlo, mhi, domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(1)
     real(amrex_real), intent(inout) ::  y( ylo(1): yhi(1))
     real(amrex_real), intent(in   ) ::  x( xlo(1): xhi(1))
     real(amrex_real), intent(in   ) :: sx(sxlo(1):sxhi(1))
-    real(amrex_real)                :: dg( dlo(1): dhi(1))
     integer, intent(in) :: msk(mlo(1):mhi(1))
   end subroutine amrex_mlndlap_adotx_ha
 
 
   subroutine amrex_mlndlap_adotx_aa (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sig, slo, shi, dg, dlo, dhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
+       sig, slo, shi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_adotx_aa')
-    integer, dimension(1), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, dlo, dhi, &
+    integer, dimension(1), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, &
          mlo, mhi, domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(1)
     real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1))
     real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1))
-    real(amrex_real)                ::  dg(dlo(1):dhi(1))
     integer, intent(in) :: msk(mlo(1):mhi(1))
   end subroutine amrex_mlndlap_adotx_aa
 

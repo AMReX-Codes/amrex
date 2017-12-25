@@ -697,17 +697,16 @@ contains
 
 
   subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sx, sxlo, sxhi, sy, sylo, syhi, sz, szlo, szhi, dg, dlo, dhi, msk, mlo, mhi, &
+       sx, sxlo, sxhi, sy, sylo, syhi, sz, szlo, szhi, msk, mlo, mhi, &
        dxinv, domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_adotx_ha')
     integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, &
-         sylo, syhi, szlo, szhi, dlo, dhi, mlo, mhi, domlo, domhi, bclo, bchi
+         sylo, syhi, szlo, szhi, mlo, mhi, domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), intent(inout) ::  y( ylo(1): yhi(1), ylo(2): yhi(2), ylo(3): yhi(3))
     real(amrex_real), intent(in   ) ::  x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3))
     real(amrex_real), intent(in   ) :: sx(sxlo(1):sxhi(1),sxlo(2):sxhi(2),sxlo(3):sxhi(3))
     real(amrex_real), intent(in   ) :: sy(sylo(1):syhi(1),sylo(2):syhi(2),sylo(3):syhi(3))
     real(amrex_real), intent(in   ) :: sz(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3))
-    real(amrex_real)                :: dg( dlo(1): dhi(1), dlo(2): dhi(2), dlo(3): dhi(3),3)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
     integer :: i,j,k
@@ -717,130 +716,10 @@ contains
     facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
     facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
 
-    do       k = lo(3)-1, hi(3)+1
-       do    j = lo(2)-1, hi(2)+1
-          do i = lo(1)-1, hi(1)
-             dg(i,j,k,1) = x(i+1,j,k) - x(i,j,k)
-          end do
-       end do
-    end do
-
-    do       k = lo(3)-1, hi(3)+1
-       do    j = lo(2)-1, hi(2)
-          do i = lo(1)-1, hi(1)+1
-             dg(i,j,k,2) = x(i,j+1,k) - x(i,j,k)
-          end do
-       end do
-    end do
-
-    do       k = lo(3)-1, hi(3)
-       do    j = lo(2)-1, hi(2)+1
-          do i = lo(1)-1, hi(1)+1
-             dg(i,j,k,3) = x(i,j,k+1) - x(i,j,k)
-          end do
-       end do
-    end do
-
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
              if (msk(i,j,k) .ne. dirichlet) then
-                y(i,j,k) = facx*(-sx(i-1,j-1,k-1)*(     dg(i-1,j-1,k-1,1) &
-                     &                            +2.d0*dg(i-1,j  ,k-1,1) &
-                     &                            +2.d0*dg(i-1,j-1,k  ,1) &
-                     &                            +4.d0*dg(i-1,j  ,k  ,1)) &
-                     &           +sx(i  ,j-1,k-1)*(     dg(i  ,j-1,k-1,1) &
-                     &                            +2.d0*dg(i  ,j  ,k-1,1) &
-                     &                            +2.d0*dg(i  ,j-1,k  ,1) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,1)) &
-                     &           -sx(i-1,j  ,k-1)*(2.d0*dg(i-1,j  ,k-1,1) &
-                     &                            +     dg(i-1,j+1,k-1,1) &
-                     &                            +4.d0*dg(i-1,j  ,k  ,1) &
-                     &                            +2.d0*dg(i-1,j+1,k  ,1)) &
-                     &           +sx(i  ,j  ,k-1)*(2.d0*dg(i  ,j  ,k-1,1) &
-                     &                            +     dg(i  ,j+1,k-1,1) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,1) &
-                     &                            +2.d0*dg(i  ,j+1,k  ,1)) &
-                     &           -sx(i-1,j-1,k  )*(2.d0*dg(i-1,j-1,k  ,1) &
-                     &                            +4.d0*dg(i-1,j  ,k  ,1) &
-                     &                            +     dg(i-1,j-1,k+1,1) &
-                     &                            +2.d0*dg(i-1,j  ,k+1,1)) &
-                     &           +sx(i  ,j-1,k  )*(2.d0*dg(i  ,j-1,k  ,1) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,1) &
-                     &                            +     dg(i  ,j-1,k+1,1) &
-                     &                            +2.d0*dg(i  ,j  ,k+1,1)) &
-                     &           -sx(i-1,j  ,k  )*(4.d0*dg(i-1,j  ,k  ,1) &
-                     &                            +2.d0*dg(i-1,j+1,k  ,1) &
-                     &                            +2.d0*dg(i-1,j  ,k+1,1) &
-                     &                            +     dg(i-1,j+1,k+1,1)) &
-                     &           +sx(i  ,j  ,k  )*(4.d0*dg(i  ,j  ,k  ,1) &
-                     &                            +2.d0*dg(i  ,j+1,k  ,1) &
-                     &                            +2.d0*dg(i  ,j  ,k+1,1) &
-                     &                            +     dg(i  ,j+1,k+1,1))) &
-                     +     facy*(-sy(i-1,j-1,k-1)*(     dg(i-1,j-1,k-1,2) &
-                     &                            +2.d0*dg(i  ,j-1,k-1,2) &
-                     &                            +2.d0*dg(i-1,j-1,k  ,2) &
-                     &                            +4.d0*dg(i  ,j-1,k  ,2)) &
-                     &           -sy(i  ,j-1,k-1)*(2.d0*dg(i  ,j-1,k-1,2) &
-                     &                            +     dg(i+1,j-1,k-1,2) &
-                     &                            +4.d0*dg(i  ,j-1,k  ,2) &
-                     &                            +2.d0*dg(i+1,j-1,k  ,2)) &
-                     &           +sy(i-1,j  ,k-1)*(     dg(i-1,j  ,k-1,2) &
-                     &                            +2.d0*dg(i  ,j  ,k-1,2) &
-                     &                            +2.d0*dg(i-1,j  ,k  ,2) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,2)) &
-                     &           +sy(i  ,j  ,k-1)*(2.d0*dg(i  ,j  ,k-1,2) &
-                     &                            +     dg(i+1,j  ,k-1,2) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,2) &
-                     &                            +2.d0*dg(i+1,j  ,k  ,2)) &
-                     &           -sy(i-1,j-1,k  )*(2.d0*dg(i-1,j-1,k  ,2) &
-                     &                            +4.d0*dg(i  ,j-1,k  ,2) &
-                     &                            +     dg(i-1,j-1,k+1,2) &
-                     &                            +2.d0*dg(i  ,j-1,k+1,2)) &
-                     &           -sy(i  ,j-1,k  )*(4.d0*dg(i  ,j-1,k  ,2) &
-                     &                            +2.d0*dg(i+1,j-1,k  ,2) &
-                     &                            +2.d0*dg(i  ,j-1,k+1,2) &
-                     &                            +     dg(i+1,j-1,k+1,2)) &
-                     &           +sy(i-1,j  ,k  )*(2.d0*dg(i-1,j  ,k  ,2) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,2) &
-                     &                            +     dg(i-1,j  ,k+1,2) &
-                     &                            +2.d0*dg(i  ,j  ,k+1,2)) &
-                     &           +sy(i  ,j  ,k  )*(4.d0*dg(i  ,j  ,k  ,2) &
-                     &                            +2.d0*dg(i+1,j  ,k  ,2) &
-                     &                            +2.d0*dg(i  ,j  ,k+1,2) &
-                     &                            +     dg(i+1,j  ,k+1,2))) &
-                     +     facz*(-sz(i-1,j-1,k-1)*(     dg(i-1,j-1,k-1,3) &
-                     &                            +2.d0*dg(i  ,j-1,k-1,3) &
-                     &                            +2.d0*dg(i-1,j  ,k-1,3) &
-                     &                            +4.d0*dg(i  ,j  ,k-1,3)) &
-                     &           -sz(i  ,j-1,k-1)*(2.d0*dg(i  ,j-1,k-1,3) &
-                     &                            +     dg(i+1,j-1,k-1,3) &
-                     &                            +4.d0*dg(i  ,j  ,k-1,3) &
-                     &                            +2.d0*dg(i+1,j  ,k-1,3)) &
-                     &           -sz(i-1,j  ,k-1)*(2.d0*dg(i-1,j  ,k-1,3) &
-                     &                            +4.d0*dg(i  ,j  ,k-1,3) &
-                     &                            +     dg(i-1,j+1,k-1,3) &
-                     &                            +2.d0*dg(i  ,j+1,k-1,3)) &
-                     &           -sz(i  ,j  ,k-1)*(4.d0*dg(i  ,j  ,k-1,3) &
-                     &                            +2.d0*dg(i+1,j  ,k-1,3) &
-                     &                            +2.d0*dg(i  ,j+1,k-1,3) &
-                     &                            +     dg(i+1,j+1,k-1,3)) &
-                     &           +sz(i-1,j-1,k  )*(     dg(i-1,j-1,k  ,3) &
-                     &                            +2.d0*dg(i  ,j-1,k  ,3) &
-                     &                            +2.d0*dg(i-1,j  ,k  ,3) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,3)) &
-                     &           +sz(i  ,j-1,k  )*(2.d0*dg(i  ,j-1,k  ,3) &
-                     &                            +     dg(i+1,j-1,k  ,3) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,3) &
-                     &                            +2.d0*dg(i+1,j  ,k  ,3)) &
-                     &           +sz(i-1,j  ,k  )*(2.d0*dg(i-1,j  ,k  ,3) &
-                     &                            +4.d0*dg(i  ,j  ,k  ,3) &
-                     &                            +     dg(i-1,j+1,k  ,3) &
-                     &                            +2.d0*dg(i  ,j+1,k  ,3)) &
-                     &           +sz(i  ,j  ,k  )*(4.d0*dg(i  ,j  ,k  ,3) &
-                     &                            +2.d0*dg(i+1,j  ,k  ,3) &
-                     &                            +2.d0*dg(i  ,j+1,k  ,3) &
-                     &                            +     dg(i+1,j+1,k  ,3)))
              else
                 y(i,j,k) = 0.d0
              end if
@@ -852,15 +731,14 @@ contains
 
 
   subroutine amrex_mlndlap_adotx_aa (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sig, slo, shi, dg, dlo, dhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
+       sig, slo, shi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_adotx_aa')
-    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, dlo, dhi, &
+    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, &
          mlo, mhi, domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2))
     real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
-    real(amrex_real)                ::  dg(dlo(1):dhi(1),dlo(2):dhi(2),3)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
   end subroutine amrex_mlndlap_adotx_aa
 
