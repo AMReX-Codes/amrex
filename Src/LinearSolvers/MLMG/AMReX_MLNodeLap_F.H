@@ -47,7 +47,6 @@ extern "C" {
                               const amrex_real* sz, const int* szlo, const int* szhi,
 #endif
 #endif
-                              amrex_real* dg, const int* dlo, const int* dhi,
                               const int* dmsk, const int* dmlo, const int* dmhi,
                               const amrex_real* dxinv, const int* domlo, const int* domhi,
                               const void* bclo, const void* bchi);
@@ -57,7 +56,6 @@ extern "C" {
                               amrex_real* y, const int* ylo, const int* yhi,
                               const amrex_real* x, const int* xlo, const int* xhi,
                               const amrex_real* sig, const int* slo, const int* shi,
-                              amrex_real* dg, const int* dlo, const int* dhi,
                               const int* dmsk, const int* dmlo, const int* dmhi,
                               const amrex_real* dxinv, const int* domlo, const int* domhi,
                               const void* bclo, const void* bchi);

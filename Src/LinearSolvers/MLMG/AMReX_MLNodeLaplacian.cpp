@@ -670,43 +670,36 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    for (MFIter mfi(out,true); mfi.isValid(); ++mfi)
     {
-        FArrayBox dg;
-        for (MFIter mfi(out,true); mfi.isValid(); ++mfi)
+        const Box& bx = mfi.tilebox();
+        const FArrayBox& xfab = in[mfi];
+        FArrayBox& yfab = out[mfi];
+        if (m_use_harmonic_average && mglev > 0)
         {
-            const Box& bx = mfi.tilebox();
-            const FArrayBox& xfab = in[mfi];
-            FArrayBox& yfab = out[mfi];
-            const Box& bxg1 = amrex::grow(bx,1);
-            dg.resize(bxg1,AMREX_SPACEDIM);
-            if (m_use_harmonic_average && mglev > 0)
-            {
-                AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
-                             const FArrayBox& syfab = (*sigma[1])[mfi];,
-                             const FArrayBox& szfab = (*sigma[2])[mfi];);
-                amrex_mlndlap_adotx_ha(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(yfab),
-                                       BL_TO_FORTRAN_ANYD(xfab),
-                                       AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
-                                                    BL_TO_FORTRAN_ANYD(syfab),
-                                                    BL_TO_FORTRAN_ANYD(szfab)),
-                                       BL_TO_FORTRAN_ANYD(dg),
-                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                       dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                       m_lobc.data(), m_hibc.data());
-            }
-            else
-            {
-                const FArrayBox& sfab = (*sigma[0])[mfi];
-                amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
-                                       BL_TO_FORTRAN_ANYD(yfab),
-                                       BL_TO_FORTRAN_ANYD(xfab),
-                                       BL_TO_FORTRAN_ANYD(sfab),
-                                       BL_TO_FORTRAN_ANYD(dg),
-                                       BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                       dxinv, BL_TO_FORTRAN_BOX(domain_box),
-                                       m_lobc.data(), m_hibc.data());
-            }
+            AMREX_D_TERM(const FArrayBox& sxfab = (*sigma[0])[mfi];,
+                         const FArrayBox& syfab = (*sigma[1])[mfi];,
+                         const FArrayBox& szfab = (*sigma[2])[mfi];);
+            amrex_mlndlap_adotx_ha(BL_TO_FORTRAN_BOX(bx),
+                                   BL_TO_FORTRAN_ANYD(yfab),
+                                   BL_TO_FORTRAN_ANYD(xfab),
+                                   AMREX_D_DECL(BL_TO_FORTRAN_ANYD(sxfab),
+                                                BL_TO_FORTRAN_ANYD(syfab),
+                                                BL_TO_FORTRAN_ANYD(szfab)),
+                                   BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                   dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                   m_lobc.data(), m_hibc.data());
+        }
+        else
+        {
+            const FArrayBox& sfab = (*sigma[0])[mfi];
+            amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
+                                   BL_TO_FORTRAN_ANYD(yfab),
+                                   BL_TO_FORTRAN_ANYD(xfab),
+                                   BL_TO_FORTRAN_ANYD(sfab),
+                                   BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+                                   dxinv, BL_TO_FORTRAN_BOX(domain_box),
+                                   m_lobc.data(), m_hibc.data());
         }
     }
 }
@@ -922,7 +915,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #pragma omp parallel
 #endif
     {
-        FArrayBox rhs, sigma, dg;
+        FArrayBox rhs, sigma;
         for (MFIter mfi(sync_resid, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
@@ -948,12 +941,10 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                        BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
                                        0.0);
 
-                dg.resize(bxg1,AMREX_SPACEDIM);
                 amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
                                        BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
                                        BL_TO_FORTRAN_ANYD(phi[mfi]),
                                        BL_TO_FORTRAN_ANYD(sigma),
-                                       BL_TO_FORTRAN_ANYD(dg),
                                        BL_TO_FORTRAN_ANYD(dmsk[mfi]),
                                        dxinv, BL_TO_FORTRAN_BOX(nddom),
                                        m_lobc.data(), m_hibc.data());
@@ -983,7 +974,7 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #pragma omp parallel
 #endif
     {
-        FArrayBox rhs, u, sigma, dg;
+        FArrayBox rhs, u, sigma;
         IArrayBox tmpmask;
 
         for (MFIter mfi(sync_resid, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
@@ -1016,8 +1007,6 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
             sigma.setVal(0.0, ccbxg1, 0, 1);
             sigma.copy(sigma_orig[mfi], ovlp, 0, ovlp, 0, 1);
 
-            dg.resize(bxg1, AMREX_SPACEDIM);
-
             sync_resid[mfi].setVal(0.0, gbx, 0, 1);
 
             // What do we do at physical boundary?
@@ -1025,7 +1014,6 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                                    BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
                                    BL_TO_FORTRAN_ANYD(phi[mfi]),
                                    BL_TO_FORTRAN_ANYD(sigma),
-                                   BL_TO_FORTRAN_ANYD(dg),
                                    BL_TO_FORTRAN_ANYD(tmpmask),
                                    dxinv, BL_TO_FORTRAN_BOX(nddom),
                                    m_lobc.data(), m_hibc.data());

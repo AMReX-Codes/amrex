@@ -332,16 +332,15 @@ contains
 
 
   subroutine amrex_mlndlap_adotx_ha (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sx, sxlo, sxhi, sy, sylo, syhi, dg, dlo, dhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
+       sx, sxlo, sxhi, sy, sylo, syhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_adotx_ha')
-    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, sylo, syhi, dlo, dhi, &
+    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, sxlo, sxhi, sylo, syhi, &
          mlo, mhi, domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) ::  y( ylo(1): yhi(1), ylo(2): yhi(2))
     real(amrex_real), intent(in   ) ::  x( xlo(1): xhi(1), xlo(2): xhi(2))
     real(amrex_real), intent(in   ) :: sx(sxlo(1):sxhi(1),sxlo(2):sxhi(2))
     real(amrex_real), intent(in   ) :: sy(sylo(1):syhi(1),sylo(2):syhi(2))
-    real(amrex_real)                :: dg( dlo(1): dhi(1), dlo(2): dhi(2), 2)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
  
     integer :: i,j
@@ -350,29 +349,23 @@ contains
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
 
-    do    j = lo(2)-1, hi(2)+1
-       do i = lo(1)-1, hi(1)
-          dg(i,j,1) = x(i+1,j) - x(i,j)
-       end do
-    end do
-
-    do    j = lo(2)-1, hi(2)
-       do i = lo(1)-1, hi(1)+1
-          dg(i,j,2) = x(i,j+1) - x(i,j)
-       end do
-    end do
-
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             y(i,j) = facx*(-sx(i-1,j-1)*(dg(i-1,j-1,1)+2.d0*dg(i-1,j  ,1)) &
-                  &         +sx(i  ,j-1)*(dg(i  ,j-1,1)+2.d0*dg(i  ,j  ,1)) &
-                  &         -sx(i-1,j  )*(dg(i-1,j+1,1)+2.d0*dg(i-1,j  ,1)) &
-                  &         +sx(i  ,j  )*(dg(i  ,j+1,1)+2.d0*dg(i  ,j  ,1))) &
-                  +   facy*(-sy(i-1,j-1)*(dg(i-1,j-1,2)+2.d0*dg(i  ,j-1,2)) &
-                  &         -sy(i  ,j-1)*(dg(i+1,j-1,2)+2.d0*dg(i  ,j-1,2)) &
-                  &         +sy(i-1,j  )*(dg(i-1,j  ,2)+2.d0*dg(i  ,j  ,2)) &
-                  &         +sy(i  ,j  )*(dg(i+1,j  ,2)+2.d0*dg(i  ,j  ,2)))
+             y(i,j) = x(i-1,j-1)*(facx*sx(i-1,j-1)+facy*sy(i-1,j-1)) &
+                  +   x(i+1,j-1)*(facx*sx(i  ,j-1)+facy*sy(i  ,j-1)) &
+                  +   x(i-1,j+1)*(facx*sx(i-1,j  )+facy*sy(i-1,j  )) &
+                  +   x(i+1,j+1)*(facx*sx(i  ,j  )+facy*sy(i  ,j  )) &
+                  +   x(i-1,j)*(2.d0*facx*(sx(i-1,j-1)+sx(i-1,j)) &
+                  &            -     facy*(sy(i-1,j-1)+sx(i-1,j))) &
+                  +   x(i+1,j)*(2.d0*facx*(sx(i  ,j-1)+sx(i  ,j)) &
+                  &            -     facy*(sy(i  ,j-1)+sx(i  ,j))) &
+                  +   x(i,j-1)*(    -facx*(sx(i-1,j-1)+sx(i,j-1)) &
+                  &            +2.d0*facy*(sy(i-1,j-1)+sy(i,j-1))) &
+                  +   x(i,j+1)*(    -facx*(sx(i-1,j  )+sx(i,j  )) &
+                  &            +2.d0*facy*(sy(i-1,j  )+sy(i,j  ))) &
+                  +   x(i,j)*(-2.d0)*(facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
+                  &                  +facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
           else
              y(i,j) = 0.d0
           end if
@@ -383,46 +376,37 @@ contains
 
 
   subroutine amrex_mlndlap_adotx_aa (lo, hi, y, ylo, yhi, x, xlo, xhi, &
-       sig, slo, shi, dg, dlo, dhi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
+       sig, slo, shi, msk, mlo, mhi, dxinv, domlo, domhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_adotx_aa')
-    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, dlo, dhi, &
+    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, slo, shi, &
          mlo, mhi, domlo, domhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) ::   y(ylo(1):yhi(1),ylo(2):yhi(2))
     real(amrex_real), intent(in   ) ::   x(xlo(1):xhi(1),xlo(2):xhi(2))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
-    real(amrex_real)                ::  dg(dlo(1):dhi(1),dlo(2):dhi(2), 2)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
-
-    do    j = lo(2)-1, hi(2)+1
-       do i = lo(1)-1, hi(1)
-          dg(i,j,1) = x(i+1,j) - x(i,j)
-       end do
-    end do
-
-    do    j = lo(2)-1, hi(2)
-       do i = lo(1)-1, hi(1)+1
-          dg(i,j,2) = x(i,j+1) - x(i,j)
-       end do
-    end do
+    fxy = facx + facy
+    f2xmy = 2.d0*facx - facy
+    fmx2y = 2.d0*facy - facx
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             y(i,j) = facx*(-sig(i-1,j-1)*(dg(i-1,j-1,1)+2.d0*dg(i-1,j  ,1)) &
-                  &         +sig(i  ,j-1)*(dg(i  ,j-1,1)+2.d0*dg(i  ,j  ,1)) &
-                  &         -sig(i-1,j  )*(dg(i-1,j+1,1)+2.d0*dg(i-1,j  ,1)) &
-                  &         +sig(i  ,j  )*(dg(i  ,j+1,1)+2.d0*dg(i  ,j  ,1))) &
-                  +   facy*(-sig(i-1,j-1)*(dg(i-1,j-1,2)+2.d0*dg(i  ,j-1,2)) &
-                  &         -sig(i  ,j-1)*(dg(i+1,j-1,2)+2.d0*dg(i  ,j-1,2)) &
-                  &         +sig(i-1,j  )*(dg(i-1,j  ,2)+2.d0*dg(i  ,j  ,2)) &
-                  &         +sig(i  ,j  )*(dg(i+1,j  ,2)+2.d0*dg(i  ,j  ,2)))
+             y(i,j) = x(i-1,j-1)*fxy*sig(i-1,j-1) &
+                  +   x(i+1,j-1)*fxy*sig(i  ,j-1) &
+                  +   x(i-1,j+1)*fxy*sig(i-1,j  ) &
+                  +   x(i+1,j+1)*fxy*sig(i  ,j  ) &
+                  +   x(i-1,j)*f2xmy*(sig(i-1,j-1)+sig(i-1,j)) &
+                  +   x(i+1,j)*f2xmy*(sig(i  ,j-1)+sig(i  ,j)) &
+                  +   x(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
+                  +   x(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
+                  +   x(i,j)*(-2.d0)*fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
           else
              y(i,j) = 0.d0
           end if
