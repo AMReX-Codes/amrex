@@ -499,8 +499,6 @@ contains
 
     integer :: i,j
     real(amrex_real) :: facx, facy, Ax
-    real(amrex_real) :: dgx_mm, dgx_m0, dgx_mp, dgx_0m, dgx_00, dgx_0p
-    real(amrex_real) :: dgy_mm, dgy_m0, dgy_0m, dgy_00, dgy_pm, dgy_p0
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -508,28 +506,20 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             dgx_mm = sol(i  ,j-1) - sol(i-1,j-1)
-             dgx_m0 = sol(i  ,j  ) - sol(i-1,j  )
-             dgx_mp = sol(i  ,j+1) - sol(i-1,j+1)
-             dgx_0m = sol(i+1,j-1) - sol(i  ,j-1)
-             dgx_00 = sol(i+1,j  ) - sol(i  ,j  )
-             dgx_0p = sol(i+1,j+1) - sol(i  ,j+1)
-
-             dgy_mm = sol(i-1,j  ) - sol(i-1,j-1)
-             dgy_m0 = sol(i-1,j+1) - sol(i-1,j  )
-             dgy_0m = sol(i  ,j  ) - sol(i  ,j-1)
-             dgy_00 = sol(i  ,j+1) - sol(i  ,j  )
-             dgy_pm = sol(i+1,j  ) - sol(i+1,j-1)
-             dgy_p0 = sol(i+1,j+1) - sol(i+1,j  )
-
-             Ax =   facx*(-sx(i-1,j-1)*(dgx_mm + 2.d0*dgx_m0) &
-                  &       +sx(i  ,j-1)*(dgx_0m + 2.d0*dgx_00) &
-                  &       -sx(i-1,j  )*(dgx_mp + 2.d0*dgx_m0) &
-                  &       +sx(i  ,j  )*(dgx_0p + 2.d0*dgx_00)) &
-                  + facy*(-sy(i-1,j-1)*(dgy_mm + 2.d0*dgy_0m) &
-                  &       -sy(i  ,j-1)*(dgy_pm + 2.d0*dgy_0m) &
-                  &       +sy(i-1,j  )*(dgy_m0 + 2.d0*dgy_00) &
-                  &       +sy(i  ,j  )*(dgy_p0 + 2.d0*dgy_00))
+             Ax =   sol(i-1,j-1)*(facx*sx(i-1,j-1)+facy*sy(i-1,j-1)) &
+                  + sol(i+1,j-1)*(facx*sx(i  ,j-1)+facy*sy(i  ,j-1)) &
+                  + sol(i-1,j+1)*(facx*sx(i-1,j  )+facy*sy(i-1,j  )) &
+                  + sol(i+1,j+1)*(facx*sx(i  ,j  )+facy*sy(i  ,j  )) &
+                  + sol(i-1,j)*(2.d0*facx*(sx(i-1,j-1)+sx(i-1,j)) &
+                  &            -     facy*(sy(i-1,j-1)+sx(i-1,j))) &
+                  + sol(i+1,j)*(2.d0*facx*(sx(i  ,j-1)+sx(i  ,j)) &
+                  &            -     facy*(sy(i  ,j-1)+sx(i  ,j))) &
+                  + sol(i,j-1)*(    -facx*(sx(i-1,j-1)+sx(i,j-1)) &
+                  &            +2.d0*facy*(sy(i-1,j-1)+sy(i,j-1))) &
+                  + sol(i,j+1)*(    -facx*(sx(i-1,j  )+sx(i,j  )) &
+                  &            +2.d0*facy*(sy(i-1,j  )+sy(i,j  ))) &
+                  + sol(i,j)*(-2.d0)*(facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
+                  &                  +facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
              
              sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) * (-0.5d0) &
                   / (facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
@@ -555,42 +545,29 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, Ax, fac
-    real(amrex_real) :: dgx_mm, dgx_m0, dgx_mp, dgx_0m, dgx_00, dgx_0p
-    real(amrex_real) :: dgy_mm, dgy_m0, dgy_0m, dgy_00, dgy_pm, dgy_p0
+    real(amrex_real) :: facx, facy, Ax, fxy, f2xmy, fmx2y, s0
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
-    fac = facx + facy
+    fxy = facx + facy
+    f2xmy = 2.d0*facx - facy
+    fmx2y = 2.d0*facy - facx
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             dgx_mm = sol(i  ,j-1) - sol(i-1,j-1)
-             dgx_m0 = sol(i  ,j  ) - sol(i-1,j  )
-             dgx_mp = sol(i  ,j+1) - sol(i-1,j+1)
-             dgx_0m = sol(i+1,j-1) - sol(i  ,j-1)
-             dgx_00 = sol(i+1,j  ) - sol(i  ,j  )
-             dgx_0p = sol(i+1,j+1) - sol(i  ,j+1)
+             s0 = fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
+             Ax =   sol(i-1,j-1)*fxy*sig(i-1,j-1) &
+                  + sol(i+1,j-1)*fxy*sig(i  ,j-1) &
+                  + sol(i-1,j+1)*fxy*sig(i-1,j  ) &
+                  + sol(i+1,j+1)*fxy*sig(i  ,j  ) &
+                  + sol(i-1,j)*f2xmy*(sig(i-1,j-1)+sig(i-1,j)) &
+                  + sol(i+1,j)*f2xmy*(sig(i  ,j-1)+sig(i  ,j)) &
+                  + sol(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
+                  + sol(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
+                  + sol(i,j)*(-2.d0)*s0
              
-             dgy_mm = sol(i-1,j  ) - sol(i-1,j-1)
-             dgy_m0 = sol(i-1,j+1) - sol(i-1,j  )
-             dgy_0m = sol(i  ,j  ) - sol(i  ,j-1)
-             dgy_00 = sol(i  ,j+1) - sol(i  ,j  )
-             dgy_pm = sol(i+1,j  ) - sol(i+1,j-1)
-             dgy_p0 = sol(i+1,j+1) - sol(i+1,j  )
-             
-             Ax =   facx*(-sig(i-1,j-1)*(dgx_mm + 2.d0*dgx_m0) &
-                  &       +sig(i  ,j-1)*(dgx_0m + 2.d0*dgx_00) &
-                  &       -sig(i-1,j  )*(dgx_mp + 2.d0*dgx_m0) &
-                  &       +sig(i  ,j  )*(dgx_0p + 2.d0*dgx_00)) &
-                  + facy*(-sig(i-1,j-1)*(dgy_mm + 2.d0*dgy_0m) &
-                  &       -sig(i  ,j-1)*(dgy_pm + 2.d0*dgy_0m) &
-                  &       +sig(i-1,j  )*(dgy_m0 + 2.d0*dgy_00) &
-                  &       +sig(i  ,j  )*(dgy_p0 + 2.d0*dgy_00))
-             
-             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) * (-0.5d0) &
-                  / (fac*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j)))
+             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) * (-0.5d0) / s0
           else
              sol(i,j) = 0.d0
           end if
