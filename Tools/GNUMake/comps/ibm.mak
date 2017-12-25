@@ -97,6 +97,8 @@ F90FLAGS += -qlanglvl=extended -qxlf2003=polymorphic
 FFLAGS   += -WF,-C!
 F90FLAGS += -WF,-C!
 
+FFLAGS   += -qfixed=72
+
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
