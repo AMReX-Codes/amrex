@@ -1176,9 +1176,45 @@ contains
   subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, msk, mlo, mhi, &
        domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_restriction')
     integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2))
-    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+
+    integer :: i, j, k, ii, jj, kk
+    real(amrex_real), parameter :: fac1 = 1.d0/64.d0
+    real(amrex_real), parameter :: fac2 = 1.d0/32.d0
+    real(amrex_real), parameter :: fac3 = 1.d0/16.d0
+    real(amrex_real), parameter :: fac4 = 1.d0/8.d0
+
+    do k = lo(3), hi(3)
+       kk = 2*k
+       do j = lo(2), hi(2)
+          jj = 2*j
+          do i = lo(1), hi(1)
+             ii = 2*i
+             if (msk(ii,jj,kk) .ne. dirichlet) then
+                crse(i,j,k) = fac1*(fine(ii-1,jj-1,kk-1)+fine(ii+1,jj-1,kk-1) &
+                     &             +fine(ii-1,jj+1,kk-1)+fine(ii+1,jj+1,kk-1) &
+                     &             +fine(ii-1,jj-1,kk+1)+fine(ii+1,jj-1,kk+1) &
+                     &             +fine(ii-1,jj+1,kk+1)+fine(ii+1,jj+1,kk+1)) &
+                     !
+                     &      + fac2*(fine(ii  ,jj-1,kk-1)+fine(ii  ,jj+1,kk-1) &
+                     &             +fine(ii  ,jj-1,kk+1)+fine(ii  ,jj+1,kk+1) &
+                     &             +fine(ii-1,jj  ,kk-1)+fine(ii+1,jj  ,kk-1) &
+                     &             +fine(ii-1,jj  ,kk+1)+fine(ii+1,jj  ,kk+1) &
+                     &             +fine(ii-1,jj-1,kk  )+fine(ii+1,jj-1,kk  ) &
+                     &             +fine(ii-1,jj+1,kk  )+fine(ii+1,jj+1,kk  )) &
+                     !
+                     &      + fac3*(fine(ii-1,jj,kk)+fine(ii+1,jj,kk) &
+                     &             +fine(ii,jj-1,kk)+fine(ii,jj+1,kk) &
+                     &             +fine(ii,jj,kk-1)+fine(ii,jj,kk+1)) &
+                     &      + fac4*fine(ii,jj,kk)
+             else
+                crse(i,j,k) = 0.d0
+             end if
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_restriction
 
 
