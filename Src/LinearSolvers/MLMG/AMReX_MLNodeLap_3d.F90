@@ -1243,24 +1243,40 @@ contains
           do i = clo(1), chi(1)
              ii = 2*i
 
-             fine(ii,jj,kk) = crse(i,j,k)
+             if (msk(ii,jj,kk) .ne. dirichlet) then
+                fine(ii,jj,kk) = crse(i,j,k)
+             else
+                fine(ii,jj,kk) = 0.d0
+             end if
 
              if (ii+1 .le. flo(1)) then
-                w1 = sigx(ii  ,jj-1,kk-1)+sigx(ii  ,jj,kk-1)+sigx(ii  ,jj-1,kk)+sigx(ii  ,jj,kk)
-                w2 = sigx(ii+1,jj-1,kk-1)+sigx(ii+1,jj,kk-1)+sigx(ii+1,jj-1,kk)+sigx(ii+1,jj,kk)
-                fine(ii+1,jj,kk) = (w1*crse(i,j,k)+w2*crse(i+1,j,k))/(w1+w2)
+                if (msk(ii+1,jj,kk) .ne. dirichlet) then
+                   w1 = sum(sigx(ii  ,jj-1:jj,kk-1:kk))
+                   w2 = sum(sigx(ii+1,jj-1:jj,kk-1:kk))
+                   fine(ii+1,jj,kk) = (w1*crse(i,j,k)+w2*crse(i+1,j,k))/(w1+w2)
+                else
+                   fine(ii+1,jj,kk) = 0.d0
+                end if
              end if
 
              if (jj+1 .lt. flo(2)) then
-                w1 = sigy(ii-1,jj  ,kk-1)+sigy(ii,jj  ,kk-1)+sigy(ii-1,jj  ,kk)+sigy(ii,jj  ,kk)
-                w2 = sigy(ii-1,jj+1,kk-1)+sigy(ii,jj+1,kk-1)+sigy(ii-1,jj+1,kk)+sigy(ii,jj+1,kk)
-                fine(ii,jj+1,kk) = (w1*crse(i,j,k)+w2*crse(i,j+1,k))/(w1+w2)
+                if (msk(ii,jj+1,kk) .ne. dirichlet) then
+                   w1 = sum(sigy(ii-1:ii,jj  ,kk-1:kk))
+                   w2 = sum(sigy(ii-1:ii,jj+1,kk-1:kk))
+                   fine(ii,jj+1,kk) = (w1*crse(i,j,k)+w2*crse(i,j+1,k))/(w1+w2)
+                else
+                   fine(ii,jj+1,kk) = 0.d0
+                end if
              end if
 
              if (kk+1 .lt. flo(3)) then
-                w1 = sigz(ii-1,jj-1,kk  )+sigz(ii,jj-1,kk  )+sigz(ii-1,jj,kk  )+sigz(ii,jj,kk  )
-                w2 = sigz(ii-1,jj-1,kk+1)+sigz(ii,jj-1,kk+1)+sigz(ii-1,jj,kk+1)+sigz(ii,jj,kk+1)
-                fine(ii,jj,kk+1) = (w1*crse(i,j,k)+w2*crse(i,j,k+1))/(w1+w2)
+                if (msk(ii,jj,kk+1) .ne. dirichlet) then
+                   w1 = sum(sigz(ii-1:ii,jj-1:jj,kk  ))
+                   w2 = sum(sigz(ii-1:ii,jj-1:jj,kk+1))
+                   fine(ii,jj,kk+1) = (w1*crse(i,j,k)+w2*crse(i,j,k+1))/(w1+w2)
+                else
+                   fine(ii,jj,kk+1) = 0.d0
+                end if
              end if
           end do
        end do
@@ -1274,30 +1290,42 @@ contains
              ii = 2*i
 
              if (ii+1 .le. flo(1) .and. jj+1 .le. flo(2)) then
-                w1 = sum(sigx(ii     ,jj:jj+1,kk-1:kk))
-                w2 = sum(sigx(ii+1   ,jj:jj+1,kk-1:kk))
-                w3 = sum(sigy(ii:ii+1,jj     ,kk-1:kk))
-                w4 = sum(sigy(ii:ii+1,jj+1   ,kk-1:kk))
-                fine(ii+1,jj+1,kk) = (w1*fine(ii,jj+1,kk) + w2*fine(ii+2,jj+1,kk) &
-                     + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj+2,kk)) / (w1+w2+w3+w4)
+                if (msk(ii+1,jj+1,kk) .ne. dirichlet) then
+                   w1 = sum(sigx(ii     ,jj:jj+1,kk-1:kk))
+                   w2 = sum(sigx(ii+1   ,jj:jj+1,kk-1:kk))
+                   w3 = sum(sigy(ii:ii+1,jj     ,kk-1:kk))
+                   w4 = sum(sigy(ii:ii+1,jj+1   ,kk-1:kk))
+                   fine(ii+1,jj+1,kk) = (w1*fine(ii,jj+1,kk) + w2*fine(ii+2,jj+1,kk) &
+                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj+2,kk)) / (w1+w2+w3+w4)
+                else
+                   fine(ii+1,jj+1,kk) = 0.d0
+                end if
              end if
 
              if (ii+1 .le. flo(1) .and. kk+1 .le. flo(3)) then
-                w1 = sum(sigx(ii     ,jj-1:jj,kk:kk+1))
-                w2 = sum(sigx(ii+1   ,jj-1:jj,kk:kk+1))
-                w3 = sum(sigz(ii:ii+1,jj-1:jj,kk     ))
-                w4 = sum(sigz(ii:ii+1,jj-1:jj,kk+1   ))
-                fine(ii+1,jj,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii+2,jj,kk+1) &
-                     + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj,kk+2)) / (w1+w2+w3+w4)
+                if (msk(ii+1,jj,kk+1) .ne. dirichlet) then
+                   w1 = sum(sigx(ii     ,jj-1:jj,kk:kk+1))
+                   w2 = sum(sigx(ii+1   ,jj-1:jj,kk:kk+1))
+                   w3 = sum(sigz(ii:ii+1,jj-1:jj,kk     ))
+                   w4 = sum(sigz(ii:ii+1,jj-1:jj,kk+1   ))
+                   fine(ii+1,jj,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii+2,jj,kk+1) &
+                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj,kk+2)) / (w1+w2+w3+w4)
+                else
+                   fine(ii+1,jj,kk+1) = 0.d0
+                end if
              end if
 
              if (jj+1 .le. flo(2) .and. kk+1 .lt. flo(3)) then
-                w1 = sum(sigy(ii-1:ii,jj     ,kk:kk+1))
-                w2 = sum(sigy(ii-1:ii,jj+1   ,kk:kk+1))
-                w3 = sum(sigz(ii-1:ii,jj:jj+1,kk     ))
-                w4 = sum(sigz(ii-1:ii,jj:jj+1,kk+1   ))
-                fine(ii,jj+1,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii,jj+2,kk+1) &
-                     + w3*fine(ii,jj+1,kk) + w4*fine(ii,jj+1,kk+2)) / (w1+w2+w3+w4)
+                if (msk(ii,jj+1,kk+1) .ne. dirichlet) then
+                   w1 = sum(sigy(ii-1:ii,jj     ,kk:kk+1))
+                   w2 = sum(sigy(ii-1:ii,jj+1   ,kk:kk+1))
+                   w3 = sum(sigz(ii-1:ii,jj:jj+1,kk     ))
+                   w4 = sum(sigz(ii-1:ii,jj:jj+1,kk+1   ))
+                   fine(ii,jj+1,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii,jj+2,kk+1) &
+                        + w3*fine(ii,jj+1,kk) + w4*fine(ii,jj+1,kk+2)) / (w1+w2+w3+w4)
+                else
+                   fine(ii,jj+1,kk+1) = 0.d0
+                end if
              end if
           end do
        end do
@@ -1328,10 +1356,129 @@ contains
        bind(c,name='amrex_mlndlap_interpolation_aa')
     integer, dimension(3), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,sglo,sghi, &
          mlo, mhi, domlo, domhi, bclo, bchi
-    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
-    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
-    real(amrex_real), intent(in   ) :: sig (sglo(1):sghi(1),sglo(2):sghi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2),cflo(3):cfhi(3))
+    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2),fflo(3):ffhi(3))
+    real(amrex_real), intent(in   ) :: sig (sglo(1):sghi(1),sglo(2):sghi(2),sglo(3):sghi(3))
+    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+
+    integer :: flo(3), fhi(3), i, j, k, ii, jj, kk
+    real(amrex_real) :: w1, w2, w3, w4, w5, w6
+
+    flo = 2*clo
+    fhi = 2*chi
+
+    do k = clo(3), chi(3)
+       kk = 2*k
+       do j = clo(2), chi(2)
+          jj = 2*j
+          do i = clo(1), chi(1)
+             ii = 2*i
+
+             if (msk(ii,jj,kk) .ne. dirichlet) then
+                fine(ii,jj,kk) = crse(i,j,k)
+             else
+                fine(ii,jj,kk) = 0.d0
+             end if
+
+             if (ii+1 .le. flo(1)) then
+                if (msk(ii+1,jj,kk) .ne. dirichlet) then
+                   w1 = sum(sig(ii  ,jj-1:jj,kk-1:kk))
+                   w2 = sum(sig(ii+1,jj-1:jj,kk-1:kk))
+                   fine(ii+1,jj,kk) = (w1*crse(i,j,k)+w2*crse(i+1,j,k))/(w1+w2)
+                else
+                   fine(ii+1,jj,kk) = 0.d0
+                end if
+             end if
+
+             if (jj+1 .lt. flo(2)) then
+                if (msk(ii,jj+1,kk) .ne. dirichlet) then
+                   w1 = sum(sig(ii-1:ii,jj  ,kk-1:kk))
+                   w2 = sum(sig(ii-1:ii,jj+1,kk-1:kk))
+                   fine(ii,jj+1,kk) = (w1*crse(i,j,k)+w2*crse(i,j+1,k))/(w1+w2)
+                else
+                   fine(ii,jj+1,kk) = 0.d0
+                end if
+             end if
+
+             if (kk+1 .lt. flo(3)) then
+                if (msk(ii,jj,kk+1) .ne. dirichlet) then
+                   w1 = sum(sig(ii-1:ii,jj-1:jj,kk  ))
+                   w2 = sum(sig(ii-1:ii,jj-1:jj,kk+1))
+                   fine(ii,jj,kk+1) = (w1*crse(i,j,k)+w2*crse(i,j,k+1))/(w1+w2)
+                else
+                   fine(ii,jj,kk+1) = 0.d0
+                end if
+             end if
+          end do
+       end do
+    end do
+
+    do k = clo(3), chi(3)
+       kk = 2*k
+       do j = clo(2), chi(2)
+          jj = 2*j
+          do i = clo(1), chi(1)
+             ii = 2*i
+
+             if (ii+1 .le. flo(1) .and. jj+1 .le. flo(2)) then
+                if (msk(ii+1,jj+1,kk) .ne. dirichlet) then
+                   w1 = sum(sig(ii     ,jj:jj+1,kk-1:kk))
+                   w2 = sum(sig(ii+1   ,jj:jj+1,kk-1:kk))
+                   w3 = sum(sig(ii:ii+1,jj     ,kk-1:kk))
+                   w4 = sum(sig(ii:ii+1,jj+1   ,kk-1:kk))
+                   fine(ii+1,jj+1,kk) = (w1*fine(ii,jj+1,kk) + w2*fine(ii+2,jj+1,kk) &
+                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj+2,kk)) / (w1+w2+w3+w4)
+                else
+                   fine(ii+1,jj+1,kk) = 0.d0
+                end if
+             end if
+
+             if (ii+1 .le. flo(1) .and. kk+1 .le. flo(3)) then
+                if (msk(ii+1,jj,kk+1) .ne. dirichlet) then
+                   w1 = sum(sig(ii     ,jj-1:jj,kk:kk+1))
+                   w2 = sum(sig(ii+1   ,jj-1:jj,kk:kk+1))
+                   w3 = sum(sig(ii:ii+1,jj-1:jj,kk     ))
+                   w4 = sum(sig(ii:ii+1,jj-1:jj,kk+1   ))
+                   fine(ii+1,jj,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii+2,jj,kk+1) &
+                        + w3*fine(ii+1,jj,kk) + w4*fine(ii+1,jj,kk+2)) / (w1+w2+w3+w4)
+                else
+                   fine(ii+1,jj,kk+1) = 0.d0
+                end if
+             end if
+
+             if (jj+1 .le. flo(2) .and. kk+1 .lt. flo(3)) then
+                if (msk(ii,jj+1,kk+1) .ne. dirichlet) then
+                   w1 = sum(sig(ii-1:ii,jj     ,kk:kk+1))
+                   w2 = sum(sig(ii-1:ii,jj+1   ,kk:kk+1))
+                   w3 = sum(sig(ii-1:ii,jj:jj+1,kk     ))
+                   w4 = sum(sig(ii-1:ii,jj:jj+1,kk+1   ))
+                   fine(ii,jj+1,kk+1) = (w1*fine(ii,jj,kk+1) + w2*fine(ii,jj+2,kk+1) &
+                        + w3*fine(ii,jj+1,kk) + w4*fine(ii,jj+1,kk+2)) / (w1+w2+w3+w4)
+                else
+                   fine(ii,jj+1,kk+1) = 0.d0
+                end if
+             end if
+          end do
+       end do
+    end do
+    
+    do       kk = flo(3)+1, fhi(3)-1, 2
+       do    jj = flo(2)+1, fhi(2)-1, 2
+          do ii = flo(1)+1, fhi(1)-1, 2
+             w1 = sum(sig(ii-1,jj-1:jj,kk-1:kk))
+             w2 = sum(sig(ii  ,jj-1:jj,kk-1:kk))
+             w3 = sum(sig(ii-1:ii,jj-1,kk-1:kk))
+             w4 = sum(sig(ii-1:ii,jj  ,kk-1:kk))
+             w5 = sum(sig(ii-1:ii,jj-1:jj,kk-1))
+             w5 = sum(sig(ii-1:ii,jj-1:jj,kk  ))
+             fine(ii,jj,kk) = (w1*fine(ii-1,jj,kk) + w2*fine(ii+1,jj,kk) &
+                  + w3*fine(ii,jj-1,kk) + w4*fine(ii,jj+1,kk) &
+                  + w5*fine(ii,jj,kk-1) + w6*fine(ii,jj,kk+1)) &
+                  / (w1+w2+w3+w4+w5+w6)
+          end do
+       end do
+    end do
+
   end subroutine amrex_mlndlap_interpolation_aa
 
 
