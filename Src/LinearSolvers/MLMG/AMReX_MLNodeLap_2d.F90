@@ -498,7 +498,7 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
     integer :: i,j
-    real(amrex_real) :: facx, facy, Ax
+    real(amrex_real) :: facx, facy, Ax, s0
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -506,6 +506,9 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
+             s0 = (-2.d0)*(facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
+                  &       +facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
+
              Ax =   sol(i-1,j-1)*(facx*sx(i-1,j-1)+facy*sy(i-1,j-1)) &
                   + sol(i+1,j-1)*(facx*sx(i  ,j-1)+facy*sy(i  ,j-1)) &
                   + sol(i-1,j+1)*(facx*sx(i-1,j  )+facy*sy(i-1,j  )) &
@@ -518,12 +521,9 @@ contains
                   &            +2.d0*facy*(sy(i-1,j-1)+sy(i,j-1))) &
                   + sol(i,j+1)*(    -facx*(sx(i-1,j  )+sx(i,j  )) &
                   &            +2.d0*facy*(sy(i-1,j  )+sy(i,j  ))) &
-                  + sol(i,j)*(-2.d0)*(facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
-                  &                  +facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
+                  + sol(i,j)*s0
              
-             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) * (-0.5d0) &
-                  / (facx*(sx(i-1,j-1)+sx(i,j-1)+sx(i-1,j)+sx(i,j)) &
-                  +  facy*(sy(i-1,j-1)+sy(i,j-1)+sy(i-1,j)+sy(i,j)))
+             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
           else
              sol(i,j) = 0.d0
           end if
@@ -556,7 +556,7 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (msk(i,j) .ne. dirichlet) then
-             s0 = fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
+             s0 = (-2.d0)*fxy*(sig(i-1,j-1)+sig(i,j-1)+sig(i-1,j)+sig(i,j))
              Ax =   sol(i-1,j-1)*fxy*sig(i-1,j-1) &
                   + sol(i+1,j-1)*fxy*sig(i  ,j-1) &
                   + sol(i-1,j+1)*fxy*sig(i-1,j  ) &
@@ -565,9 +565,9 @@ contains
                   + sol(i+1,j)*f2xmy*(sig(i  ,j-1)+sig(i  ,j)) &
                   + sol(i,j-1)*fmx2y*(sig(i-1,j-1)+sig(i,j-1)) &
                   + sol(i,j+1)*fmx2y*(sig(i-1,j  )+sig(i,j  )) &
-                  + sol(i,j)*(-2.d0)*s0
+                  + sol(i,j)*s0
              
-             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) * (-0.5d0) / s0
+             sol(i,j) = sol(i,j) + (rhs(i,j) - Ax) / s0
           else
              sol(i,j) = 0.d0
           end if
