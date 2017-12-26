@@ -831,8 +831,64 @@ contains
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
     integer :: i,j,k
-    real(amrex_real) :: facx, facy, facz
+    real(amrex_real) :: facx, facy, facz, fxyz, fmx2y2z, f2xmy2z, f2x2ymz
+    real(amrex_real) :: f4xm2ym2z, fm2x4ym2z, fm2xm2y4z
     
+    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
+    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
+    fxyz = facx + facy + facz
+    fmx2y2z = -facx + 2.d0*facy + 2.d0*facz
+    f2xmy2z = 2.d0*facx - facy + 2.d0*facz
+    f2x2ymz = 2.d0*facx + 2.d0*facy - facz
+    f4xm2ym2z = 4.d0*facx - 2.d0*facy - 2.d0*facz
+    fm2x4ym2z = -2.d0*facx + 4.d0*facy - 2.d0*facz
+    fm2xm2y4z = -2.d0*facx - 2.d0*facy + 4.d0*facz
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (msk(i,j,k) .ne. dirichlet) then
+                y(i,j,k) = x(i,j,k)*(-4.d0)*fxyz* &
+                     (sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1) &
+                     +sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )) &
+                     !
+                     + fxyz*(x(i-1,j-1,k-1)*sig(i-1,j-1,k-1) &
+                     &     + x(i+1,j-1,k-1)*sig(i  ,j-1,k-1) &
+                     &     + x(i-1,j+1,k-1)*sig(i-1,j  ,k-1) &
+                     &     + x(i+1,j+1,k-1)*sig(i  ,j  ,k-1) &
+                     &     + x(i-1,j-1,k+1)*sig(i-1,j-1,k  ) &
+                     &     + x(i+1,j-1,k+1)*sig(i  ,j-1,k  ) &
+                     &     + x(i-1,j+1,k+1)*sig(i-1,j  ,k  ) &
+                     &     + x(i+1,j+1,k+1)*sig(i  ,j  ,k  )) &
+                     !
+                     + fmx2y2z*(x(i  ,j-1,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)) &
+                     &        + x(i  ,j+1,k-1)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)) &
+                     &        + x(i  ,j-1,k+1)*(sig(i-1,j-1,k  )+sig(i,j-1,k  )) &
+                     &        + x(i  ,j+1,k+1)*(sig(i-1,j  ,k  )+sig(i,j  ,k  ))) &
+                     !
+                     + f2xmy2z*(x(i-1,j  ,k-1)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)) &
+                     &        + x(i+1,j  ,k-1)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)) &
+                     &        + x(i-1,j  ,k+1)*(sig(i-1,j-1,k  )+sig(i-1,j,k  )) &
+                     &        + x(i+1,j  ,k+1)*(sig(i  ,j-1,k  )+sig(i  ,j,k  ))) &
+                     !
+                     + f2x2ymz*(x(i-1,j-1,k  )*(sig(i-1,j-1,k-1)+sig(i-1,j-1,k)) &
+                     &        + x(i+1,j-1,k  )*(sig(i  ,j-1,k-1)+sig(i  ,j-1,k)) &
+                     &        + x(i-1,j+1,k  )*(sig(i-1,j  ,k-1)+sig(i-1,j  ,k)) &
+                     &        + x(i+1,j+1,k  )*(sig(i  ,j  ,k-1)+sig(i  ,j  ,k))) &
+                     !
+                     + f4xm2ym2z*(x(i-1,j,k)*(sig(i-1,j-1,k-1)+sig(i-1,j,k-1)+sig(i-1,j-1,k)+sig(i-1,j,k)) &
+                     &          + x(i  ,j,k)*(sig(i  ,j-1,k-1)+sig(i  ,j,k-1)+sig(i  ,j-1,k)+sig(i  ,j,k))) &
+                     + fm2x4ym2z*(x(i,j-1,k)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j-1,k)+sig(i,j-1,k)) &
+                     &          + x(i,j  ,k)*(sig(i-1,j  ,k-1)+sig(i,j  ,k-1)+sig(i-1,j  ,k)+sig(i,j  ,k))) &
+                     + fm2xm2y4z*(x(i,j,k-1)*(sig(i-1,j-1,k-1)+sig(i,j-1,k-1)+sig(i-1,j,k-1)+sig(i,j,k-1)) &
+                     &          + x(i,j,k  )*(sig(i-1,j-1,k  )+sig(i,j-1,k  )+sig(i-1,j,k  )+sig(i,j,k  )))
+             else
+                y(i,j,k) = 0.d0
+             end if
+          end do
+       end do
+    end do
 
   end subroutine amrex_mlndlap_adotx_aa
 
