@@ -1563,9 +1563,23 @@ contains
   subroutine amrex_mlndlap_add_rhcc (lo, hi, rhs, rlo, rhi, rhcc, clo, chi, msk, mlo, mhi) &
        bind(c,name='amrex_mlndlap_add_rhcc')
     integer, dimension(3) :: lo, hi, rlo, rhi, clo, chi, mlo, mhi
-    real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1),clo(2):chi(2))
-    integer,          intent(in   ) :: msk (mlo(1):mhi(1),mlo(2):mhi(2))
+    real(amrex_real), intent(inout) :: rhs (rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
+    real(amrex_real), intent(in   ) :: rhcc(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
+    integer,          intent(in   ) :: msk (mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+
+    integer :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (msk(i,j,k) .ne. dirichlet) then
+                rhs(i,j,k) = rhs(i,j,k) + 0.125d0* &
+                     (rhcc(i-1,j-1,k-1)+rhcc(i,j-1,k-1)+rhcc(i-1,j,k-1)+rhcc(i,j,k-1) &
+                     +rhcc(i-1,j-1,k  )+rhcc(i,j-1,k  )+rhcc(i-1,j,k  )+rhcc(i,j,k  ))
+             end if
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_add_rhcc
 
 
@@ -1573,9 +1587,33 @@ contains
        bind(c,name='amrex_mlndlap_mknewu')
     integer, dimension(3), intent(in) :: lo, hi, ulo, uhi, plo, phi, slo, shi
     real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),3)
-    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2))
-    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
+    real(amrex_real), intent(inout) ::   u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),3)
+    real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
+
+    integer :: i, j, k
+    real(amrex_real) :: facx, facy, facz
+
+    facx = 0.25d0*dxinv(1)
+    facy = 0.25d0*dxinv(2)
+    facz = 0.25d0*dxinv(3)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             u(i,j,k,1) = u(i,j,k,1) - sig(i,j,k)*facx &
+                  * (-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  ) &
+                  &  -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1))
+             u(i,j,k,2) = u(i,j,k,2) - sig(i,j,k)*facy &
+                  * (-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  ) &
+                  &  -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
+             u(i,j,k,3) = u(i,j,k,3) - sig(i,j,k)*facy &
+                  * (-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  ) &
+                  &  +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
+          end do
+       end do
+    end do
+
   end subroutine amrex_mlndlap_mknewu
 
 
