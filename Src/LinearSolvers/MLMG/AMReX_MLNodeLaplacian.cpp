@@ -72,6 +72,8 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     for (int ilev = 0; ilev < m_num_amr_levels; ++ilev)
     {
         const Geometry& geom = m_geom[ilev][0];
+        AMREX_ASSERT(vel[ilev]->nComp() >= AMREX_SPACEDIM);
+        AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
         vel[ilev]->FillBoundary(geom.periodicity());
 
         const Real* dxinv = geom.InvCellSize();
@@ -145,18 +147,38 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(frhs, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
         {
-            const Box& cbx = mfi.validbox();
-            const Box& fbx = amrex::refine(cbx,2);
-            amrex_mlndlap_divu_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
-                                            BL_TO_FORTRAN_BOX(fbx),
-                                            BL_TO_FORTRAN_ANYD(frhs[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*vel[ilev+1])[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*rhs[ilev+1])[mfi]),
-                                            BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                            fdxinv, BL_TO_FORTRAN_BOX(fnddom),
-                                            m_lobc.data(), m_hibc.data());
+            FArrayBox vfab;
+            FArrayBox rfab;
+            for (MFIter mfi(frhs, MFItInfo().EnableTiling().SetDynamic(true));
+                 mfi.isValid(); ++mfi)
+            {
+                const Box& cvbx = mfi.validbox();
+                const Box& fvbx = amrex::refine(cvbx,2);
+                const Box& cbx = mfi.tilebox();
+                const Box& fbx = amrex::refine(cbx,2);
+
+                const Box& bx_vel = amrex::grow(amrex::enclosedCells(fbx),1);
+                const Box& b = bx_vel & amrex::enclosedCells(fvbx);
+                vfab.resize(bx_vel, AMREX_SPACEDIM);
+                vfab.setVal(0.0);
+                vfab.copy((*vel[ilev+1])[mfi], b, 0, b, 0, AMREX_SPACEDIM);
+
+                const Box& bx_rhs = amrex::grow(fbx,1);
+                const Box& b2 = bx_rhs & amrex::grow(fvbx,-1);
+                rfab.resize(bx_rhs);
+                rfab.setVal(0.0);
+                rfab.copy((*rhs[ilev+1])[mfi], b2, 0, b2, 0, 1);
+
+                amrex_mlndlap_divu_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
+                                                BL_TO_FORTRAN_BOX(cvbx),
+                                                BL_TO_FORTRAN_ANYD(frhs[mfi]),
+                                                BL_TO_FORTRAN_ANYD(vfab),
+                                                BL_TO_FORTRAN_ANYD(rfab),
+                                                BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
+                                                fdxinv, BL_TO_FORTRAN_BOX(fnddom),
+                                                m_lobc.data(), m_hibc.data());
+            }
         }
 
         MultiFab crhs(rhs[ilev]->boxArray(), rhs[ilev]->DistributionMap(), 1, 0);
