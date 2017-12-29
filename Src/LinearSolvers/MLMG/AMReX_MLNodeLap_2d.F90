@@ -837,117 +837,62 @@ contains
   end subroutine amrex_mlndlap_mknewu
 
 
-  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, lo, hi, rhs, rlo, rhi, &
+  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
        vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_divu_fine_contrib')
-    integer, dimension(2), intent(in) :: clo, chi, lo, hi, rlo, rhi, vlo, vhi, flo, fhi, mlo, mhi, &
-         ndlo, ndhi, bclo, bchi
+    integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
+         flo, fhi, mlo, mhi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(2)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),2)
-    real(amrex_real), intent(in   ) :: frh(flo(1):fhi(1),flo(2):fhi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    real(amrex_real), intent(inout) :: frh(flo(1):fhi(1),flo(2):fhi(2))
+    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
-    integer :: i, j, ii, jj, side, id, jd, ic, jc
-    real(amrex_real) :: facx, facy, facx_s, facy_s
+    integer, dimension(2) :: lo, hi, glo, ghi
+    integer :: i, j, ii, jj, step
+    real(amrex_real) :: facx, facy
     real(amrex_real), parameter :: rfd = 0.25d0
     real(amrex_real), parameter :: chip = 0.5d0
     real(amrex_real), parameter :: chip2 = 0.25d0
 
     ! note that dxinv is fine dxinv
-    facx = 0.5d0*dxinv(1) * rfd
-    facy = 0.5d0*dxinv(2) * rfd
+    facx = 0.5d0*dxinv(1)
+    facy = 0.5d0*dxinv(2)
 
-    ! note that lo = 2*clo and hi = 2*chi
+    lo = 2*clo
+    hi = 2*chi
+    glo = 2*cglo
+    ghi = 2*cghi
 
-    do side = 0, 1
-       if (side .eq. 0) then
-          j = clo(2)
-          jj = lo(2)
-          facy_s = facy
-          jd = jj+1
-          jc = jj
+    do jj = lo(2), hi(2)
+       if (jj .eq. glo(2) .or. jj .eq. ghi(2)) then
+          step = 1
        else
-          j = chi(2)
-          jj = hi(2)
-          facy_s = -facy
-          jd = jj-1
-          jc = jj-1
+          step = hi(1)-lo(1)
        end if
-
-       i = clo(1)
-       ii = lo(1)
-       if (msk(ii,jj) .eq. dirichlet) then
-          rhs(i,j) = rhs(i,j) + facx*vel(ii,jc,1) + facy_s*vel(ii,jc,2) &
-               + chip * (facx  *(vel(ii+1,jc,1)-vel(ii,jc,1)) &
-               &       + facy_s*(vel(ii+1,jc,2)+vel(ii,jc,2))) &
-               + rfd*chip2*frh(ii+1,jd)
-       end if
-
-       do i = clo(1)+1, chi(1)-1
-          ii = 2*i
-          if (msk(ii,jj) .eq. dirichlet) then
-             rhs(i,j) = rhs(i,j) + facx  *(vel(ii,jc,1)-vel(ii-1,jc,1)) &
-                  &              + facy_s*(vel(ii,jc,2)+vel(ii-1,jc,2)) &
-                  + chip * (facx  *(vel(ii-1,jc,1)-vel(ii-2,jc,1)) &
-                  &       + facy_s*(vel(ii-1,jc,2)+vel(ii-2,jc,2))) &
-                  + chip * (facx  *(vel(ii+1,jc,1)-vel(ii,jc,1)) &
-                  &       + facy_s*(vel(ii+1,jc,2)+vel(ii,jc,2))) &
-                  + rfd*(chip2*frh(ii-1,jd) + chip*frh(ii,jd) + chip2*frh(ii+1,jd))
+       do ii = lo(1), hi(1), step
+          if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. jj.eq.glo(2) .or. jj.eq.ghi(2)) then
+             frh(ii,jj) = facx*(-vel(ii-1,jj-1,1)+vel(ii,jj-1,1)-vel(ii-1,jj,1)+vel(ii,jj,1)) &
+                    &   + facy*(-vel(ii-1,jj-1,2)-vel(ii,jj-1,2)+vel(ii-1,jj,2)+vel(ii,jj,2))
           end if
        end do
-
-       i = chi(1)
-       ii = hi(1)
-       if (msk(ii,jj) .eq. dirichlet) then
-          rhs(i,j) = rhs(i,j) - facx*vel(ii-1,jc,1) + facy_s*vel(ii-1,jc,2) &
-               + chip * (facx  *(vel(ii-1,jc,1)-vel(ii-2,jc,1)) &
-               &       + facy_s*(vel(ii-1,jc,2)+vel(ii-2,jc,2))) &
-               + rfd*chip2*frh(ii-1,jd)
-       end if
     end do
 
-    do side = 0, 1
-       if (side .eq. 0) then
-          i = clo(1)
-          ii = lo(1)
-          facx_s = facx
-          id = ii+1
-          ic = ii
+    do j = clo(2), chi(2)
+       jj = 2*j
+       if (j .eq. cglo(2) .or. j .eq. cghi(2)) then
+          step = 1
        else
-          i = chi(1)
-          ii = hi(1)
-          facx_s = -facx
-          id = ii-1
-          ic = ii-1
+          step = chi(1)-clo(1)
        end if
-
-       j = clo(2)
-       jj = lo(2)
-       if (msk(ii,jj) .eq. dirichlet) then
-          rhs(i,j) = rhs(i,j) + chip * (facx_s*(vel(ic,jj+1,1)+vel(ic,jj,1)) &
-               &                      + facy  *(vel(ic,jj+1,2)-vel(ic,jj,2)))
-       end if
-
-       do j = clo(2)+1, chi(2)-1
-          jj = 2*j
+       do i = clo(1), chi(1), step
+          ii = 2*i
           if (msk(ii,jj) .eq. dirichlet) then
-             rhs(i,j) = rhs(i,j) + facx_s*(vel(ic,jj,1)+vel(ic,jj-1,1)) &
-                  &              + facy  *(vel(ic,jj,2)-vel(ic,jj-1,2)) &
-                  + chip * (facx_s*(vel(ic,jj-1,1)+vel(ic,jj-2,1)) &
-                  &       + facy  *(vel(ic,jj-1,2)-vel(ic,jj-2,2))) &
-                  + chip * (facx_s*(vel(ic,jj+1,1)+vel(ic,jj,1)) &
-                  &       + facy  *(vel(ic,jj+1,2)-vel(ic,jj,2))) &
-                  + rfd*(chip2*frh(id,jj-1) + chip*frh(id,jj) + chip2*frh(id,jj+1))
+             rhs(i,j) = rhs(i,j) + rfd*(frh(ii,jj) &
+                  + chip*(frh(ii-1,jj)+frh(ii+1,jj)+frh(ii,jj-1)+frh(ii,jj+1)) &
+                  + chip2*(frh(ii-1,jj-1)+frh(ii+1,jj-1)+frh(ii-1,jj+1)+frh(ii+1,jj+1)))
           end if
        end do
-
-       j = chi(2)
-       jj = hi(2)
-       if (msk(ii,jj) .eq. dirichlet) then
-          rhs(i,j) = rhs(i,j) + chip * (facx_s*(vel(ic,jj-1,1)+vel(ic,jj-2,1)) &
-               &                      + facy  *(vel(ic,jj-1,2)-vel(ic,jj-2,2)))
-       end if
     end do
 
     ! xxxxx what do we do at physical boundaries?

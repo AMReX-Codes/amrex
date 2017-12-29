@@ -1617,305 +1617,90 @@ contains
   end subroutine amrex_mlndlap_mknewu
 
 
-  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, lo, hi, rhs, rlo, rhi, &
+  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
        vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_divu_fine_contrib')
-    integer, dimension(3), intent(in) :: clo, chi, lo, hi, rlo, rhi, vlo, vhi, flo, fhi, mlo, mhi, &
-         ndlo, ndhi, bclo, bchi
+    integer, dimension(3), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
+         flo, fhi, mlo, mhi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
-    real(amrex_real), intent(in   ) :: frh(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    real(amrex_real), intent(inout) :: frh(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
     integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
-    integer :: i,j,k,ii,jj,kk,id,jd,kd,ic,jc,kc, side
-    real(amrex_real) :: facx,facy,facz,facx_s,facy_s,facz_s
+    integer, dimension(3) :: lo, hi, glo, ghi
+    integer :: i, j, k, ii, jj, kk, step
+    real(amrex_real) :: facx, facy, facz
     real(amrex_real), parameter :: rfd = 0.125d0
     real(amrex_real), parameter :: chip = 0.5d0
     real(amrex_real), parameter :: chip2 = 0.25d0
     real(amrex_real), parameter :: chip3 = 0.125d0
 
-    ! Note that this function computes the fine contribution to
-    ! crse/fine divu for fine nodes and it also does average-down to
-    ! coarse nodes.  This is why there are no explicit weighting
-    ! factors.
-
     ! note that dxinv is fine dxinv
-    facx = 0.25d0*dxinv(1) * rfd
-    facy = 0.25d0*dxinv(2) * rfd
-    facz = 0.25d0*dxinv(3) * rfd
+    facx = 0.25d0*dxinv(1)
+    facy = 0.25d0*dxinv(2)
+    facz = 0.25d0*dxinv(3)
 
-    ! note that lo = 2*clo and hi = 2chi
+    lo = 2*clo
+    hi = 2*chi
+    glo = 2*cglo
+    ghi = 2*cghi
 
-    ! k-lo and k-hi faces
-    do side = 0, 1
-       if (side .eq. 0) then
-          k = clo(3)
-          kk = lo(3)
-          kd = kk+1
-          kc = kk
-          facz_s = facz
-       else
-          k = chi(3)
-          kk = hi(3)
-          kd = kk-1
-          kc = kk-1
-          facz_s = -facz
-       end if
+    do    kk = lo(3), hi(3)
+       do jj = lo(2), hi(2)
+          if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
+             step = 1
+          else
+             step = hi(1)-lo(1)
+          end if
+          do ii = lo(1), hi(1), step
+             if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step.eq.1) then
+                rhs(i,j,k) = facx*(-vel(ii-1,jj-1,kk-1,1)+vel(ii,jj-1,kk-1,1) &
+                     &             -vel(ii-1,jj  ,kk-1,1)+vel(ii,jj  ,kk-1,1) &
+                     &             -vel(ii-1,jj-1,kk  ,1)+vel(ii,jj-1,kk  ,1) &
+                     &             -vel(ii-1,jj  ,kk  ,1)+vel(ii,jj  ,kk  ,1)) &
+                     &     + facy*(-vel(ii-1,jj-1,kk-1,2)-vel(ii,jj-1,kk-1,2) &
+                     &             +vel(ii-1,jj  ,kk-1,2)+vel(ii,jj  ,kk-1,2) &
+                     &             -vel(ii-1,jj-1,kk  ,2)-vel(ii,jj-1,kk  ,2) &
+                     &             +vel(ii-1,jj  ,kk  ,2)+vel(ii,jj  ,kk  ,2)) &
+                     &     + facy*(-vel(ii-1,jj-1,kk-1,3)-vel(ii,jj-1,kk-1,3) &
+                     &             -vel(ii-1,jj  ,kk-1,3)-vel(ii,jj  ,kk-1,3) &
+                     &             +vel(ii-1,jj-1,kk  ,3)+vel(ii,jj-1,kk  ,3) &
+                     &             +vel(ii-1,jj  ,kk  ,3)+vel(ii,jj  ,kk  ,3))
+             end if
+          end do
+       end do
+    end do
 
-       do    j = clo(2)+1, chi(2)-1
-          do i = clo(1)+1, chi(1)-1
-             jj = 2*j
+    do k = clo(3), chi(3)
+       kk = 2*k
+       do j = clo(2), chi(2)
+          jj = 2*j
+          if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
+             step = 1
+          else
+             step = chi(1)-clo(1)
+          end if
+          do i = clo(1), chi(1), step
              ii = 2*i
              if (msk(ii,jj,kk) .eq. dirichlet) then
-                rhs(i,j,k) = rhs(i,j,k) + facx  *(-vel(ii-1,jj-1,kc,1)+vel(ii  ,jj-1,kc,1) &
-                     &                            -vel(ii-1,jj  ,kc,1)+vel(ii  ,jj  ,kc,1)) &
-                     &                  + facy  *(-vel(ii-1,jj-1,kc,2)-vel(ii  ,jj-1,kc,2) &
-                     &                            +vel(ii-1,jj  ,kc,2)+vel(ii  ,jj  ,kc,2)) &
-                     &                  + facx_s*( vel(ii-1,jj-1,kc,3)+vel(ii  ,jj-1,kc,3) &
-                     &                            +vel(ii-1,jj  ,kc,3)+vel(ii,jj  ,kc,3)) &
-                     & + chip *(facx  *(-vel(ii-2,jj-1,kc,1)+vel(ii-1,jj-1,kc,1) &
-                     &                  -vel(ii-2,jj  ,kc,1)+vel(ii-1,jj  ,kc,1)) &
-                     &        + facy  *(-vel(ii-2,jj-1,kc,2)-vel(ii-1,jj-1,kc,2) &
-                     &                  +vel(ii-2,jj  ,kc,2)+vel(ii-1,jj  ,kc,2)) &
-                     &        + facx_s*( vel(ii-2,jj-1,kc,3)+vel(ii-1,jj-1,kc,3) &
-                     &                  +vel(ii-2,jj  ,kc,3)+vel(ii-1,jj  ,kc,3))) &
-                     !
-                     & + chip *(facx  *(-vel(ii  ,jj-1,kc,1)+vel(ii+1,jj-1,kc,1) &
-                     &                  -vel(ii  ,jj  ,kc,1)+vel(ii+1,jj  ,kc,1)) &
-                     &        + facy  *(-vel(ii  ,jj-1,kc,2)-vel(ii+1,jj-1,kc,2) &
-                     &                  +vel(ii  ,jj  ,kc,2)+vel(ii+1,jj  ,kc,2)) &
-                     &        + facx_s*( vel(ii  ,jj-1,kc,3)+vel(ii+1,jj-1,kc,3) &
-                     &                  +vel(ii  ,jj  ,kc,3)+vel(ii+1,jj  ,kc,3))) &
-                     !
-                     & + chip *(facx  *(-vel(ii-1,jj-2,kc,1)+vel(ii  ,jj-2,kc,1) &
-                     &                  -vel(ii-1,jj-1,kc,1)+vel(ii  ,jj-1,kc,1)) &
-                     &        + facy  *(-vel(ii-1,jj-2,kc,2)-vel(ii  ,jj-2,kc,2) &
-                     &                  +vel(ii-1,jj-1,kc,2)+vel(ii  ,jj-1,kc,2)) &
-                     &        + facx_s*( vel(ii-1,jj-2,kc,3)+vel(ii  ,jj-2,kc,3) &
-                     &                  +vel(ii-1,jj-1,kc,3)+vel(ii  ,jj-1,kc,3))) &
-                     !
-                     & + chip *(facx  *(-vel(ii-1,jj  ,kc,1)+vel(ii  ,jj  ,kc,1) &
-                     &                  -vel(ii-1,jj+1,kc,1)+vel(ii  ,jj+1,kc,1)) &
-                     &        + facy  *(-vel(ii-1,jj  ,kc,2)-vel(ii  ,jj  ,kc,2) &
-                     &                  +vel(ii-1,jj+1,kc,2)+vel(ii  ,jj+1,kc,2)) &
-                     &        + facx_s*( vel(ii-1,jj  ,kc,3)+vel(ii  ,jj  ,kc,3) &
-                     &                  +vel(ii-1,jj+1,kc,3)+vel(ii  ,jj+1,kc,3))) &
-                     !
-                     & + chip2*(facx  *(-vel(ii-2,jj-2,kc,1)+vel(ii-1,jj-2,kc,1) &
-                     &                  -vel(ii-2,jj-1,kc,1)+vel(ii-1,jj-1,kc,1)) &
-                     &        + facy  *(-vel(ii-2,jj-2,kc,2)-vel(ii-1,jj-2,kc,2) &
-                     &                  +vel(ii-2,jj-1,kc,2)+vel(ii-1,jj-1,kc,2)) &
-                     &        + facx_s*( vel(ii-2,jj-2,kc,3)+vel(ii-1,jj-2,kc,3) &
-                     &                  +vel(ii-2,jj-1,kc,3)+vel(ii-1,jj-1,kc,3))) &
-                     !
-                     & + chip2*(facx  *(-vel(ii  ,jj-2,kc,1)+vel(ii+1,jj-2,kc,1) &
-                     &                  -vel(ii  ,jj-1,kc,1)+vel(ii+1,jj-1,kc,1)) &
-                     &        + facy  *(-vel(ii  ,jj-2,kc,2)-vel(ii+1,jj-2,kc,2) &
-                     &                  +vel(ii  ,jj-1,kc,2)+vel(ii+1,jj-1,kc,2)) &
-                     &        + facx_s*( vel(ii  ,jj-2,kc,3)+vel(ii+1,jj-2,kc,3) &
-                     &                  +vel(ii  ,jj-1,kc,3)+vel(ii+1,jj-1,kc,3))) &
-                     !
-                     & + chip2*(facx  *(-vel(ii-2,jj  ,kc,1)+vel(ii-1,jj  ,kc,1) &
-                     &                  -vel(ii-2,jj+1,kc,1)+vel(ii-1,jj+1,kc,1)) &
-                     &        + facy  *(-vel(ii-2,jj  ,kc,2)-vel(ii-1,jj  ,kc,2) &
-                     &                  +vel(ii-2,jj+1,kc,2)+vel(ii-1,jj+1,kc,2)) &
-                     &        + facx_s*( vel(ii-2,jj  ,kc,3)+vel(ii-1,jj  ,kc,3) &
-                     &                  +vel(ii-2,jj+1,kc,3)+vel(ii-1,jj+1,kc,3))) &
-                     !
-                     & + chip2*(facx  *(-vel(ii  ,jj  ,kc,1)+vel(ii+1,jj  ,kc,1) &
-                     &                  -vel(ii  ,jj+1,kc,1)+vel(ii+1,jj+1,kc,1)) &
-                     &        + facy  *(-vel(ii  ,jj  ,kc,2)-vel(ii+1,jj  ,kc,2) &
-                     &                  +vel(ii  ,jj+1,kc,2)+vel(ii+1,jj+1,kc,2)) &
-                     &        + facx_s*( vel(ii  ,jj  ,kc,3)+vel(ii+1,jj  ,kc,3) &
-                     &                  +vel(ii  ,jj+1,kc,3)+vel(ii+1,jj+1,kc,3)))
-                rhs(i,j,k) = rhs(i,j,k) + rfd*(chip*frh(ii,jj,kd) &
-                     + chip2*(frh(ii-1,jj,kd)+frh(ii+1,jj,kd)+frh(ii,jj-1,kd)+frh(ii,jj+1,kd)) &
-                     + chip3*(frh(ii-1,jj-1,kd)+frh(ii+1,jj-1,kd)+frh(ii-1,jj+1,kd)+frh(ii+1,jj+1,kd)))
+                rhs(i,j,k) = rhs(i,j,k) + rfd*(frh(ii,jj,kk) &
+                     + chip*(frh(ii,jj,kk-1)+frh(ii,jj,kk+1) &
+                     &      +frh(ii,jj-1,kk)+frh(ii,jj+1,kk) &
+                     &      +frh(ii-1,jj,kk)+frh(ii+1,jj,kk)) &
+                     + chip2*(frh(ii,jj-1,kk-1)+frh(ii,jj+1,kk-1)+frh(ii,jj-1,kk+1)+frh(ii,jj+1,kk+1) &
+                     &       +frh(ii-1,jj,kk-1)+frh(ii+1,jj,kk-1)+frh(ii-1,jj,kk+1)+frh(ii+1,jj,kk+1) &
+                     &       +frh(ii-1,jj-1,kk)+frh(ii+1,jj-1,kk)+frh(ii-1,jj+1,kk)+frh(ii+1,jj+1,kk)) &
+                     + chip3*(frh(ii-1,jj-1,kk-1)+frh(ii+1,jj-1,kk-1) &
+                     &       +frh(ii-1,jj+1,kk-1)+frh(ii+1,jj+1,kk-1) &
+                     &       +frh(ii-1,jj-1,kk+1)+frh(ii+1,jj-1,kk+1) &
+                     &       +frh(ii-1,jj+1,kk+1)+frh(ii+1,jj+1,kk+1)))
              end if
           end do
        end do
     end do
 
-    ! j-lo and j-hi faces
-    do side = 0, 1
-       if (side .eq. 0) then
-          j = clo(2)
-          jj = lo(2)
-          jd = jj+1
-          jc = jj
-          facy_s = facy
-       else
-          j = chi(2)
-          jj = hi(2)
-          jd = jj-1
-          jc = jj-1
-          facy_s = -facy
-       end if
-
-       do    k = clo(3)+1, chi(3)-1
-          do i = clo(1)+1, chi(1)-1
-             kk = 2*k
-             ii = 2*i
-             if (msk(ii,jj,kk) .eq. dirichlet) then
-                rhs(i,j,k) = rhs(i,j,k) + facx  *(-vel(ii-1,jc,kk-1,1)+vel(ii  ,jc,kk-1,1) &
-                     &                            -vel(ii-1,jc,kk  ,1)+vel(ii  ,jc,kk  ,1)) &
-                     &                  + facy_s*( vel(ii-1,jc,kk-1,2)+vel(ii  ,jc,kk-1,2) &
-                     &                            +vel(ii-1,jc,kk  ,2)+vel(ii  ,jc,kk  ,2)) &
-                     &                  + facz  *(-vel(ii-1,jc,kk-1,3)-vel(ii  ,jc,kk-1,3) &
-                     &                            +vel(ii-1,jc,kk  ,3)+vel(ii  ,jc,kk  ,3)) &
-                     & + chip *(facx  *(-vel(ii-2,jc,kk-1,1)+vel(ii-1,jc,kk-1,1) &
-                     &                  -vel(ii-2,jc,kk  ,1)+vel(ii-1,jc,kk  ,1)) &
-                     &         +facy_s*( vel(ii-2,jc,kk-1,2)+vel(ii-1,jc,kk-1,2) &
-                     &                  +vel(ii-2,jc,kk  ,2)+vel(ii-1,jc,kk  ,2)) &
-                     &         +facz  *(-vel(ii-2,jc,kk-1,3)-vel(ii-1,jc,kk-1,3) &
-                     &                  +vel(ii-2,jc,kk  ,3)+vel(ii-1,jc,kk  ,3))) &
-                     !
-                     & + chip *(facx  *(-vel(ii  ,jc,kk-1,1)+vel(ii+1,jc,kk-1,1) &
-                     &                  -vel(ii  ,jc,kk  ,1)+vel(ii+1,jc,kk  ,1)) &
-                     &         +facy_s*( vel(ii  ,jc,kk-1,2)+vel(ii+1,jc,kk-1,2) &
-                     &                  +vel(ii  ,jc,kk  ,2)+vel(ii+1,jc,kk  ,2)) &
-                     &         +facz  *(-vel(ii  ,jc,kk-1,3)-vel(ii+1,jc,kk-1,3) &
-                     &                  +vel(ii  ,jc,kk  ,3)+vel(ii+1,jc,kk  ,3))) &
-                     !
-                     & + chip *(facx  *(-vel(ii-1,jc,kk-2,1)+vel(ii  ,jc,kk-2,1) &
-                     &                  -vel(ii-1,jc,kk-1,1)+vel(ii  ,jc,kk-1,1)) &
-                     &        + facy_s*( vel(ii-1,jc,kk-2,2)+vel(ii  ,jc,kk-2,2) &
-                     &                  +vel(ii-1,jc,kk-1,2)+vel(ii  ,jc,kk-1,2)) &
-                     &        + facz  *(-vel(ii-1,jc,kk-2,3)-vel(ii  ,jc,kk-2,3) &
-                     &                  +vel(ii-1,jc,kk-1,3)+vel(ii  ,jc,kk-1,3))) &
-                     !
-                     & + chip *(facx  *(-vel(ii-1,jc,kk  ,1)+vel(ii  ,jc,kk  ,1) &
-                     &                  -vel(ii-1,jc,kk+1,1)+vel(ii  ,jc,kk+1,1)) &
-                     &        + facy_s*( vel(ii-1,jc,kk  ,2)+vel(ii  ,jc,kk  ,2) &
-                     &                  +vel(ii-1,jc,kk+1,2)+vel(ii  ,jc,kk+1,2)) &
-                     &        + facz  *(-vel(ii-1,jc,kk  ,3)-vel(ii  ,jc,kk  ,3) &
-                     &                  +vel(ii-1,jc,kk+1,3)+vel(ii  ,jc,kk+1,3))) &
-                     !
-                     & + chip2*(facx  *(-vel(ii-2,jc,kk-2,1)+vel(ii-1,jc,kk-2,1) &
-                     &                  -vel(ii-2,jc,kk-1,1)+vel(ii-1,jc,kk-1,1)) &
-                     &        + facy_s*( vel(ii-2,jc,kk-2,2)+vel(ii-1,jc,kk-2,2) &
-                     &                  +vel(ii-2,jc,kk-1,2)+vel(ii-1,jc,kk-1,2)) &
-                     &        + facz  *(-vel(ii-2,jc,kk-2,3)-vel(ii-1,jc,kk-2,3) &
-                     &                  +vel(ii-2,jc,kk-1,3)+vel(ii-1,jc,kk-1,3))) &
-                     !
-                     & + chip2*(facx  *(-vel(ii  ,jc,kk-2,1)+vel(ii+1,jc,kk-2,1) &
-                     &                  -vel(ii  ,jc,kk-1,1)+vel(ii+1,jc,kk-1,1)) &
-                     &        + facy_s*( vel(ii  ,jc,kk-2,2)+vel(ii+1,jc,kk-2,2) &
-                     &                  +vel(ii  ,jc,kk-1,2)+vel(ii+1,jc,kk-1,2)) &
-                     &        + facz  *(-vel(ii  ,jc,kk-2,3)-vel(ii+1,jc,kk-2,3) &
-                     &                  +vel(ii  ,jc,kk-1,3)+vel(ii+1,jc,kk-1,3))) &
-                     !
-                     & + chip2*(facx  *(-vel(ii-2,jc,kk  ,1)+vel(ii-1,jc,kk  ,1) &
-                     &                  -vel(ii-2,jc,kk+1,1)+vel(ii-1,jc,kk+1,1)) &
-                     &        + facy_s*( vel(ii-2,jc,kk  ,2)+vel(ii-1,jc,kk  ,2) &
-                     &                  +vel(ii-2,jc,kk+1,2)+vel(ii-1,jc,kk+1,2)) &
-                     &        + facz  *(-vel(ii-2,jc,kk  ,3)-vel(ii-1,jc,kk  ,3) &
-                     &                  +vel(ii-2,jc,kk+1,3)+vel(ii-1,jc,kk+1,3))) &
-                     !
-                     & + chip2*(facx  *(-vel(ii  ,jc,kk  ,1)+vel(ii+1,jc,kk  ,1) &
-                     &                  -vel(ii  ,jc,kk+1,1)+vel(ii+1,jc,kk+1,1)) &
-                     &        + facy_s*( vel(ii  ,jc,kk  ,2)+vel(ii+1,jc,kk  ,2) &
-                     &                  +vel(ii  ,jc,kk+1,2)+vel(ii+1,jc,kk+1,2)) &
-                     &        + facz  *(-vel(ii  ,jc,kk  ,3)-vel(ii+1,jc,kk  ,3) &
-                     &                  +vel(ii  ,jc,kk+1,3)+vel(ii+1,jc,kk+1,3)))
-                rhs(i,j,k) = rhs(i,j,k) + rfd*(chip*frh(ii,jd,kk) &
-                     + chip2*(frh(ii-1,jd,kk)+frh(ii+1,jd,kk)+frh(ii,jd,kk-1)+frh(ii,jd,kk+1)) &
-                     + chip3*(frh(ii-1,jd,kk-1)+frh(ii+1,jd,kk-1)+frh(ii-1,jd,kk+1)+frh(ii+1,jd,kk+1)))
-             end if
-          end do
-       end do
-    end do
-
-    ! i-lo and i-hi faces
-    do side = 0, 1
-       if (side .eq. 0) then
-          i = clo(1)
-          ii = lo(1)
-          id = ii+1
-          ic = ii
-          facx_s = facx
-       else
-          i = chi(1)
-          ii = hi(1)
-          id = ii-1
-          ic = ii-1
-          facx_s = -facx
-       end if
-
-       do    k = clO(3)+1, chi(3)-1
-          do j = clo(2)+1, chi(2)-1
-             kk = 2*k
-             jj = 2*j
-             if (msk(ii,jj,kk) .eq. dirichlet) then
-                rhs(i,j,k) = rhs(i,j,k) + facx_s*( vel(ic,jj-1,kk-1,1)+vel(ic,jj  ,kk-1,1) &
-                     &                            +vel(ic,jj-1,kk  ,1)+vel(ic,jj  ,kk  ,1)) &
-                     &                  + facy  *(-vel(ic,jj-1,kk-1,2)+vel(ic,jj  ,kk-1,2) &
-                     &                            -vel(ic,jj-1,kk  ,2)+vel(ic,jj  ,kk  ,2)) &
-                     &                  + facz  *(-vel(ic,jj-1,kk-1,3)-vel(ic,jj  ,kk-1,3) &
-                     &                            +vel(ic,jj-1,kk  ,3)+vel(ic,jj  ,kk  ,3)) &
-                     & + chip *(facx_s*( vel(ic,jj-2,kk-1,1)+vel(ic,jj-1,kk-1,1) &
-                     &                  +vel(ic,jj-2,kk  ,1)+vel(ic,jj-1,kk  ,1)) &
-                     &         +facy  *(-vel(ic,jj-2,kk-1,2)+vel(ic,jj-1,kk-1,2) &
-                     &                  -vel(ic,jj-2,kk  ,2)+vel(ic,jj-1,kk  ,2)) &
-                     &         +facz  *(-vel(ic,jj-2,kk-1,3)-vel(ic,jj-1,kk-1,3) &
-                     &                  +vel(ic,jj-2,kk  ,3)+vel(ic,jj-1,kk  ,3))) &
-                     !
-                     & + chip *(facx_s*( vel(ic,jj  ,kk-1,1)+vel(ic,jj+1,kk-1,1) &
-                     &                  +vel(ic,jj  ,kk  ,1)+vel(ic,jj+1,kk  ,1)) &
-                     &         +facy  *(-vel(ic,jj  ,kk-1,2)+vel(ic,jj+1,kk-1,2) &
-                     &                  -vel(ic,jj  ,kk  ,2)+vel(ic,jj+1,kk  ,2)) &
-                     &         +facz  *(-vel(ic,jj  ,kk-1,3)-vel(ic,jj+1,kk-1,3) &
-                     &                  +vel(ic,jj  ,kk  ,3)+vel(ic,jj+1,kk  ,3))) &
-                     !
-                     & + chip *(facx_s*( vel(ic,jj-1,kk-1,1)+vel(ic,jj  ,kk-2,1) &
-                     &                  +vel(ic,jj-1,kk-1,1)+vel(ic,jj  ,kk-1,1)) &
-                     &         +facy  *(-vel(ic,jj-1,kk-2,2)+vel(ic,jj  ,kk-2,2) &
-                     &                  -vel(ic,jj-1,kk-1,2)+vel(ic,jj  ,kk-1,2)) &
-                     &         +facz  *(-vel(ic,jj-1,kk-2,3)-vel(ic,jj  ,kk-2,3) &
-                     &                  +vel(ic,jj-1,kk-1,3)+vel(ic,jj  ,kk-1,3))) &
-                     !
-                     & + chip *(facx_s*( vel(ic,jj-1,kk  ,1)+vel(ic,jj  ,kk  ,1) &
-                     &                  +vel(ic,jj-1,kk+1,1)+vel(ic,jj  ,kk+1,1)) &
-                     &         +facy  *(-vel(ic,jj-1,kk  ,2)+vel(ic,jj  ,kk  ,2) &
-                     &                  -vel(ic,jj-1,kk+1,2)+vel(ic,jj  ,kk+1,2)) &
-                     &         +facz  *(-vel(ic,jj-1,kk  ,3)-vel(ic,jj  ,kk  ,3) &
-                     &                  +vel(ic,jj-1,kk+1,3)+vel(ic,jj  ,kk+1,3))) &
-                     !
-                     & + chip2*(facx_s*( vel(ic,jj-2,kk-2,1)+vel(ic,jj-1,kk-2,1) &
-                     &                  +vel(ic,jj-2,kk-1,1)+vel(ic,jj-1,kk-1,1)) &
-                     +          facy  *(-vel(ic,jj-2,kk-2,2)+vel(ic,jj-1,kk-2,2) &
-                     &                  -vel(ic,jj-2,kk-1,2)+vel(ic,jj-1,kk-1,2)) &
-                     +          facz  *(-vel(ic,jj-2,kk-2,3)-vel(ic,jj-1,kk-2,3) &
-                     &                  +vel(ic,jj-2,kk-1,3)+vel(ic,jj-1,kk-1,3))) &
-                     !
-                     & + chip2*(facx_s*( vel(ic,jj  ,kk-2,1)+vel(ic,jj+1,kk-2,1) &
-                     &                  +vel(ic,jj  ,kk-1,1)+vel(ic,jj+1,kk-1,1)) &
-                     +          facy  *(-vel(ic,jj  ,kk-2,2)+vel(ic,jj+1,kk-2,2) &
-                     &                  -vel(ic,jj  ,kk-1,2)+vel(ic,jj+1,kk-1,2)) &
-                     +          facz  *(-vel(ic,jj  ,kk-2,3)-vel(ic,jj+1,kk-2,3) &
-                     &                  +vel(ic,jj  ,kk-1,3)+vel(ic,jj+1,kk-1,3))) &
-                     !
-                     & + chip2*(facx_s*( vel(ic,jj-2,kk  ,1)+vel(ic,jj-1,kk  ,1) &
-                     &                  +vel(ic,jj-2,kk+1,1)+vel(ic,jj-1,kk+1,1)) &
-                     +          facy  *(-vel(ic,jj-2,kk  ,2)+vel(ic,jj-1,kk  ,2) &
-                     &                  -vel(ic,jj-2,kk+1,2)+vel(ic,jj-1,kk+1,2)) &
-                     +          facz  *(-vel(ic,jj-2,kk  ,3)-vel(ic,jj-1,kk  ,3) &
-                     &                  +vel(ic,jj-2,kk+1,3)+vel(ic,jj-1,kk+1,3))) &
-                     !
-                     & + chip2*(facx_s*( vel(ic,jj  ,kk  ,1)+vel(ic,jj+1,kk  ,1) &
-                     &                  +vel(ic,jj  ,kk+1,1)+vel(ic,jj+1,kk+1,1)) &
-                     +          facy  *(-vel(ic,jj  ,kk  ,2)+vel(ic,jj+1,kk  ,2) &
-                     &                  -vel(ic,jj  ,kk+1,2)+vel(ic,jj+1,kk+1,2)) &
-                     +          facz  *(-vel(ic,jj  ,kk  ,3)-vel(ic,jj+1,kk  ,3) &
-                     &                  +vel(ic,jj  ,kk+1,3)+vel(ic,jj+1,kk+1,3)))
-                rhs(i,j,k) = rhs(i,j,k) + rfd*(chip*frh(id,jj,kk) &
-                     + chip2*(frh(id,jj-1,kk)+frh(id,jj+1,kk)+frh(id,jj,kk-1)+frh(id,jj,kk+1)) &
-                     + chip3*(frh(id,jj-1,kk-1)+frh(id,jj+1,kk-1)+frh(id,jj-1,kk+1)+frh(id,jj+1,kk+1)))
-             end if
-          end do
-       end do
-    end do
+    ! xxxxx what do we do at physical boundaries?
 
   end subroutine amrex_mlndlap_divu_fine_contrib
 

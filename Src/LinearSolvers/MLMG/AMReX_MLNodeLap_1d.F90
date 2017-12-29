@@ -240,15 +240,15 @@ contains
   end subroutine amrex_mlndlap_mknewu
 
 
-  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, lo, hi, rhs, rlo, rhi, &
+  subroutine amrex_mlndlap_divu_fine_contrib (clo, chi, cglo, cghi, rhs, rlo, rhi, &
        vel, vlo, vhi, frh, flo, fhi, msk, mlo, mhi, dxinv, ndlo, ndhi, bclo, bchi) &
        bind(c,name='amrex_mlndlap_divu_fine_contrib')
-    integer, dimension(1), intent(in) :: clo, chi, lo, hi, rlo, rhi, vlo, vhi, flo, fhi, mlo, mhi, &
-         ndlo, ndhi, bclo, bchi
+    integer, dimension(1), intent(in) :: clo, chi, cglo, cghi, rlo, rhi, vlo, vhi, &
+         flo, fhi, mlo, mhi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(1)
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1))
-    real(amrex_real), intent(in   ) :: frh(flo(1):fhi(1))
+    real(amrex_real), intent(inout) :: frh(flo(1):fhi(1))
     integer, intent(in) :: msk(mlo(1):mhi(1))
   end subroutine amrex_mlndlap_divu_fine_contrib
 
