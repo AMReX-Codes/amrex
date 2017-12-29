@@ -1711,12 +1711,58 @@ contains
     integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, vlo, vhi, mlo, mhi, &
          nmlo, nmhi, cmlo, cmhi, clo, chi, ndlo, ndhi, bclo, bchi
     real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),3)
-    real(amrex_real), intent(in   ) :: fc (clo(1):chi(1),clo(2):chi(2))
-    integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
-    integer, intent(in) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
-    integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
+    real(amrex_real), intent(inout) :: rhs  ( rlo(1): rhi(1), rlo(2): rhi(2), rlo(3): rhi(3))
+    real(amrex_real), intent(in   ) :: vel  ( vlo(1): vhi(1), vlo(2): vhi(2), vlo(3): vhi(3),3)
+    real(amrex_real), intent(in   ) :: fc   ( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))
+    integer         , intent(in   ) :: dmsk ( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3))
+    integer         , intent(in   ) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2),nmlo(3):nmhi(3))
+    integer         , intent(in   ) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3))
+
+    integer :: i,j,k
+    real(amrex_real) :: facx, facy, facz
+
+    facx = 0.25d0*dxinv(1)
+    facy = 0.25d0*dxinv(2)
+    facz = 0.25d0*dxinv(3)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (dmsk(i,j,k) .ne. dirichlet) then
+                if (ndmsk(i,j,k) .eq. crse_fine_node) then
+                   rhs(i,j,k) = fc(i,j,k) &
+                        + (1.d0-ccmsk(i-1,j-1,k-1)) * (-facx*vel(i-1,j-1,k-1,1) &
+                        &                              -facy*vel(i-1,j-1,k-1,2) &
+                        &                              -facz*vel(i-1,j-1,k-1,3)) &
+                        + (1.d0-ccmsk(i  ,j-1,k-1)) * ( facx*vel(i  ,j-1,k-1,1) &
+                        &                              -facy*vel(i  ,j-1,k-1,2) &
+                        &                              -facz*vel(i  ,j-1,k-1,3)) &
+                        + (1.d0-ccmsk(i-1,j  ,k-1)) * (-facx*vel(i-1,j  ,k-1,1) &
+                        &                              +facy*vel(i-1,j  ,k-1,2) &
+                        &                              -facz*vel(i-1,j  ,k-1,3)) &
+                        + (1.d0-ccmsk(i  ,j  ,k-1)) * ( facx*vel(i  ,j  ,k-1,1) &
+                        &                              +facy*vel(i  ,j  ,k-1,2) &
+                        &                              -facz*vel(i  ,j  ,k-1,3)) &
+                        + (1.d0-ccmsk(i-1,j-1,k  )) * (-facx*vel(i-1,j-1,k  ,1) &
+                        &                              -facy*vel(i-1,j-1,k  ,2) &
+                        &                              +facz*vel(i-1,j-1,k  ,3)) &
+                        + (1.d0-ccmsk(i  ,j-1,k  )) * ( facx*vel(i  ,j-1,k  ,1) &
+                        &                              -facy*vel(i  ,j-1,k  ,2) &
+                        &                              +facz*vel(i  ,j-1,k  ,3)) &
+                        + (1.d0-ccmsk(i-1,j  ,k  )) * (-facx*vel(i-1,j  ,k  ,1) &
+                        &                              +facy*vel(i-1,j  ,k  ,2) &
+                        &                              +facz*vel(i-1,j  ,k  ,3)) &
+                        + (1.d0-ccmsk(i  ,j  ,k  )) * ( facx*vel(i  ,j  ,k  ,1) &
+                        &                              +facy*vel(i  ,j  ,k  ,2) &
+                        &                              +facz*vel(i  ,j  ,k  ,3))
+                end if
+             end if
+          end do
+       end do
+    end do
+
+    ! xxxxx what do we do at physical boundaries?
+
   end subroutine amrex_mlndlap_divu_cf_contrib
 
 
