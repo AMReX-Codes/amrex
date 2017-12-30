@@ -1090,7 +1090,7 @@ contains
                      + 2.d0*sol(i,j,k-1)*(    -facx*(sx(i-1,j-1,k-1)+sx(i,j-1,k-1)+sx(i-1,j,k-1)+sx(i,j,k-1)) &
                      &                        -facy*(sy(i-1,j-1,k-1)+sy(i,j-1,k-1)+sy(i-1,j,k-1)+sy(i,j,k-1)) &
                      &                   +2.d0*facz*(sz(i-1,j-1,k-1)+sz(i,j-1,k-1)+sz(i-1,j,k-1)+sz(i,j,k-1))) &
-                     + 2.d0*sol (i,j,k  )*(    -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  )) &
+                     + 2.d0*sol (i,j,k  )*(   -facx*(sx(i-1,j-1,k  )+sx(i,j-1,k  )+sx(i-1,j,k  )+sx(i,j,k  )) &
                      &                        -facy*(sy(i-1,j-1,k  )+sy(i,j-1,k  )+sy(i-1,j,k  )+sy(i,j,k  )) &
                      &                   +2.d0*facz*(sz(i-1,j-1,k  )+sz(i,j-1,k  )+sz(i-1,j,k  )+sz(i,j,k  )))
                 
@@ -1517,7 +1517,7 @@ contains
                      &             +vel(i-1,j  ,k-1,2)+vel(i,j  ,k-1,2) &
                      &             -vel(i-1,j-1,k  ,2)-vel(i,j-1,k  ,2) &
                      &             +vel(i-1,j  ,k  ,2)+vel(i,j  ,k  ,2)) &
-                     &     + facy*(-vel(i-1,j-1,k-1,3)-vel(i,j-1,k-1,3) &
+                     &     + facz*(-vel(i-1,j-1,k-1,3)-vel(i,j-1,k-1,3) &
                      &             -vel(i-1,j  ,k-1,3)-vel(i,j  ,k-1,3) &
                      &             +vel(i-1,j-1,k  ,3)+vel(i,j-1,k  ,3) &
                      &             +vel(i-1,j  ,k  ,3)+vel(i,j  ,k  ,3))
@@ -1614,7 +1614,7 @@ contains
              u(i,j,k,2) = u(i,j,k,2) - sig(i,j,k)*facy &
                   * (-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  ) &
                   &  -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
-             u(i,j,k,3) = u(i,j,k,3) - sig(i,j,k)*facy &
+             u(i,j,k,3) = u(i,j,k,3) - sig(i,j,k)*facz &
                   * (-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  ) &
                   &  +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
           end do
@@ -1670,7 +1670,7 @@ contains
                      &                +vel(ii-1,jj  ,kk-1,2)+vel(ii,jj  ,kk-1,2) &
                      &                -vel(ii-1,jj-1,kk  ,2)-vel(ii,jj-1,kk  ,2) &
                      &                +vel(ii-1,jj  ,kk  ,2)+vel(ii,jj  ,kk  ,2)) &
-                     &        + facy*(-vel(ii-1,jj-1,kk-1,3)-vel(ii,jj-1,kk-1,3) &
+                     &        + facz*(-vel(ii-1,jj-1,kk-1,3)-vel(ii,jj-1,kk-1,3) &
                      &                -vel(ii-1,jj  ,kk-1,3)-vel(ii,jj  ,kk-1,3) &
                      &                +vel(ii-1,jj-1,kk  ,3)+vel(ii,jj-1,kk  ,3) &
                      &                +vel(ii-1,jj  ,kk  ,3)+vel(ii,jj  ,kk  ,3))
