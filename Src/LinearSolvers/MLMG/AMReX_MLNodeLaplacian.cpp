@@ -892,7 +892,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
         fab.copy(a_phi[mfi], bx, 0, bx, 0, 1);
         amrex_mlndlap_zero_fine(BL_TO_FORTRAN_BOX(bx),
                                 BL_TO_FORTRAN_ANYD(fab),
-                                BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]));
+                                BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
+                                &nonowner);
     }
 
     const auto& nddom = amrex::surroundingNodes(geom.Domain());
@@ -943,8 +944,9 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
             const Box& bx = mfi.tilebox();
             const Box& bxg1 = amrex::grow(bx,1);
             const Box& ccbxg1 = amrex::enclosedCells(bxg1);
-            if (amrex_mlndlap_any_crse_cells(BL_TO_FORTRAN_BOX(bx),
-                                             BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi])))
+            if (amrex_mlndlap_any_fine_sync_cells(BL_TO_FORTRAN_BOX(bx),
+                                                  BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
+                                                  &nonowner))
             {
                 rhs.resize(bx);
                 amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
