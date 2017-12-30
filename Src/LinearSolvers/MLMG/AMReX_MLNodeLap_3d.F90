@@ -1731,31 +1731,47 @@ contains
           do i = lo(1), hi(1)
              if (dmsk(i,j,k) .ne. dirichlet) then
                 if (ndmsk(i,j,k) .eq. crse_fine_node) then
-                   rhs(i,j,k) = fc(i,j,k) &
-                        + (1.d0-ccmsk(i-1,j-1,k-1)) * (-facx*vel(i-1,j-1,k-1,1) &
-                        &                              -facy*vel(i-1,j-1,k-1,2) &
-                        &                              -facz*vel(i-1,j-1,k-1,3)) &
-                        + (1.d0-ccmsk(i  ,j-1,k-1)) * ( facx*vel(i  ,j-1,k-1,1) &
-                        &                              -facy*vel(i  ,j-1,k-1,2) &
-                        &                              -facz*vel(i  ,j-1,k-1,3)) &
-                        + (1.d0-ccmsk(i-1,j  ,k-1)) * (-facx*vel(i-1,j  ,k-1,1) &
-                        &                              +facy*vel(i-1,j  ,k-1,2) &
-                        &                              -facz*vel(i-1,j  ,k-1,3)) &
-                        + (1.d0-ccmsk(i  ,j  ,k-1)) * ( facx*vel(i  ,j  ,k-1,1) &
-                        &                              +facy*vel(i  ,j  ,k-1,2) &
-                        &                              -facz*vel(i  ,j  ,k-1,3)) &
-                        + (1.d0-ccmsk(i-1,j-1,k  )) * (-facx*vel(i-1,j-1,k  ,1) &
-                        &                              -facy*vel(i-1,j-1,k  ,2) &
-                        &                              +facz*vel(i-1,j-1,k  ,3)) &
-                        + (1.d0-ccmsk(i  ,j-1,k  )) * ( facx*vel(i  ,j-1,k  ,1) &
-                        &                              -facy*vel(i  ,j-1,k  ,2) &
-                        &                              +facz*vel(i  ,j-1,k  ,3)) &
-                        + (1.d0-ccmsk(i-1,j  ,k  )) * (-facx*vel(i-1,j  ,k  ,1) &
-                        &                              +facy*vel(i-1,j  ,k  ,2) &
-                        &                              +facz*vel(i-1,j  ,k  ,3)) &
-                        + (1.d0-ccmsk(i  ,j  ,k  )) * ( facx*vel(i  ,j  ,k  ,1) &
-                        &                              +facy*vel(i  ,j  ,k  ,2) &
-                        &                              +facz*vel(i  ,j  ,k  ,3))
+                   rhs(i,j,k) = fc(i,j,k)
+                   if (ccmsk(i-1,j-1,k-1) .eq. crse_cell) then
+                      rhs(i,j,k) = rhs(i,j,k) - facx*vel(i-1,j-1,k-1,1) &
+                           &                  - facy*vel(i-1,j-1,k-1,2) &
+                           &                  - facz*vel(i-1,j-1,k-1,3)
+                   end if
+                   if (ccmsk(i,j-1,k-1) .eq. crse_cell) then
+                      rhs(i,j,k) = rhs(i,j,k) + facx*vel(i  ,j-1,k-1,1) &
+                           &                  - facy*vel(i  ,j-1,k-1,2) &
+                           &                  - facz*vel(i  ,j-1,k-1,3)
+                   end if
+                   if (ccmsk(i-1,j,k-1) .eq. crse_cell) then
+                      rhs(i,j,k) = rhs(i,j,k) - facx*vel(i-1,j  ,k-1,1) &
+                           &                  + facy*vel(i-1,j  ,k-1,2) &
+                           &                  - facz*vel(i-1,j  ,k-1,3)
+                   end if
+                   if (ccmsk(i,j,k-1) .eq. crse_cell) then
+                      rhs(i,j,k) = rhs(i,j,k) + facx*vel(i  ,j  ,k-1,1) &
+                           &                  + facy*vel(i  ,j  ,k-1,2) &
+                           &                  - facz*vel(i  ,j  ,k-1,3)
+                   end if
+                   if (ccmsk(i-1,j-1,k) .eq. crse_cell) then
+                      rhs(i,j,k) = rhs(i,j,k) - facx*vel(i-1,j-1,k  ,1) &
+                           &                  - facy*vel(i-1,j-1,k  ,2) &
+                        &                     + facz*vel(i-1,j-1,k  ,3)
+                   end if
+                   if (ccmsk(i,j-1,k) .eq. crse_cell) then
+                      rhs(i,j,k) = rhs(i,j,k) + facx*vel(i  ,j-1,k  ,1) &
+                           &                  - facy*vel(i  ,j-1,k  ,2) &
+                           &                  + facz*vel(i  ,j-1,k  ,3)
+                   end if
+                   if (ccmsk(i-1,j,k) .eq. crse_cell) then
+                      rhs(i,j,k) = rhs(i,j,k) - facx*vel(i-1,j  ,k  ,1) &
+                           &                  + facy*vel(i-1,j  ,k  ,2) &
+                           &                  + facz*vel(i-1,j  ,k  ,3)
+                   end if
+                   if (ccmsk(i,j,k) .eq. crse_cell) then
+                      rhs(i,j,k) = rhs(i,j,k) + facx*vel(i  ,j  ,k  ,1) &
+                           &                  + facy*vel(i  ,j  ,k  ,2) &
+                           &                  + facz*vel(i  ,j  ,k  ,3)
+                   end if
                 end if
              end if
           end do
@@ -1916,24 +1932,170 @@ contains
     integer, dimension(3), intent(in) :: lo, hi, rlo, rhi, phlo, phhi, rhlo, rhhi, slo, shi, &
          mlo, mhi, nmlo, nmhi, cmlo, cmhi, clo, chi
     real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) :: res( rlo(1): rhi(1), rlo(2): rhi(2))
-    real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2))
-    real(amrex_real), intent(in   ) :: rhs(rhlo(1):rhhi(1),rhlo(2):rhhi(2))
-    real(amrex_real), intent(in   ) :: sig( slo(1): shi(1), slo(2): shi(2))
-    real(amrex_real), intent(inout) :: fc ( clo(1): chi(1), clo(2): chi(2))
-    integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
-    integer, intent(in) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
-    integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
+    real(amrex_real), intent(inout) :: res( rlo(1): rhi(1), rlo(2): rhi(2), rlo(3): rhi(3))
+    real(amrex_real), intent(in   ) :: phi(phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+    real(amrex_real), intent(in   ) :: rhs(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3))
+    real(amrex_real), intent(in   ) :: sig( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))
+    real(amrex_real), intent(inout) :: fc ( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))
+    integer, intent(in) ::  dmsk( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3))
+    integer, intent(in) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2),nmlo(3):nmhi(3))
+    integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3))
+
+    integer :: i,j,k
+    real(amrex_real) :: Ax, facx, facy, facz
+
+    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
+    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (dmsk(i,j,k) .ne. dirichlet) then
+                if (ndmsk(i,j,k) .eq. crse_fine_node) then
+                   Ax = 0.d0
+                   if (1.d0-ccmsk(i-1,j-1,k-1) .eq. crse_cell) then
+                      Ax = Ax + sig(i-1,j-1,k-1)*(facx*(4.d0*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  )) &
+                           &                           +2.d0*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  )) &
+                           &                           +2.d0*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1)) &
+                           &                           +     (phi(i-1,j-1,k-1)-phi(i  ,j-1,k-1))) &
+                           &                    + facy*(4.d0*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  )) &
+                           &                           +2.d0*(phi(i-1,j-1,k  )-phi(i-1,j  ,k  )) &
+                           &                           +2.d0*(phi(i  ,j-1,k-1)-phi(i  ,j  ,k-1)) &
+                           &                           +     (phi(i-1,j-1,k-1)-phi(i-1,j  ,k-1))) &
+                           &                    + facz*(4.d0*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  )) &
+                           &                           +2.d0*(phi(i-1,j  ,k-1)-phi(i-1,j  ,k  )) &
+                           &                           +2.d0*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  )) &
+                           &                           +     (phi(i-1,j-1,k-1)-phi(i-1,j-1,k  ))))
+                   end if
+                   if (1.d0-ccmsk(i,j-1,k-1) .eq. crse_cell) then
+                      Ax = Ax + sig(i,j-1,k-1)*(facx*(4.d0*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  )) &
+                           &                         +2.d0*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1)) &
+                           &                         +     (phi(i+1,j-1,k-1)-phi(i  ,j-1,k-1))) &
+                           &                  + facy*(4.d0*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i+1,j-1,k  )-phi(i+1,j  ,k  )) &
+                           &                         +2.d0*(phi(i  ,j-1,k-1)-phi(i  ,j  ,k-1)) &
+                           &                         +     (phi(i+1,j-1,k-1)-phi(i+1,j  ,k-1))) &
+                           &                  + facz*(4.d0*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i+1,j  ,k-1)-phi(i+1,j  ,k  )) &
+                           &                         +2.d0*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  )) &
+                           &                         +     (phi(i+1,j-1,k-1)-phi(i+1,j-1,k  ))))
+                   end if
+                   if (1.d0-ccmsk(i-1,j,k-1) .eq. crse_cell) then
+                      Ax = Ax + sig(i-1,j,k-1)*(facx*(4.d0*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  )) &
+                           &                         +2.d0*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1)) &
+                           &                         +     (phi(i-1,j+1,k-1)-phi(i  ,j+1,k-1))) &
+                           &                  + facy*(4.d0*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i-1,j+1,k  )-phi(i-1,j  ,k  )) &
+                           &                         +2.d0*(phi(i  ,j+1,k-1)-phi(i  ,j  ,k-1)) &
+                           &                         +     (phi(i-1,j+1,k-1)-phi(i-1,j  ,k-1))) &
+                           &                  + facz*(4.d0*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i-1,j  ,k-1)-phi(i-1,j  ,k  )) &
+                           &                         +2.d0*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  )) &
+                           &                         +     (phi(i-1,j+1,k-1)-phi(i-1,j+1,k  ))))
+                   end if
+                   if (1.d0-ccmsk(i,j,k-1) .eq. crse_cell) then
+                      Ax = Ax + sig(i,j,k-1)*(facx*(4.d0*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  )) &
+                           &                       +2.d0*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1)) &
+                           &                       +     (phi(i+1,j+1,k-1)-phi(i  ,j+1,k-1))) &
+                           &                + facy*(4.d0*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i+1,j+1,k  )-phi(i+1,j  ,k  )) &
+                           &                       +2.d0*(phi(i  ,j+1,k-1)-phi(i  ,j  ,k-1)) &
+                           &                       +     (phi(i+1,j+1,k-1)-phi(i+1,j  ,k-1))) &
+                           &                + facz*(4.d0*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i+1,j  ,k-1)-phi(i+1,j  ,k  )) &
+                           &                       +2.d0*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  )) &
+                           &                       +     (phi(i+1,j+1,k-1)-phi(i+1,j+1,k  ))))
+                   end if
+                   if (1.d0-ccmsk(i-1,j-1,k) .eq. crse_cell) then
+                      Ax = Ax + sig(i-1,j-1,k)*(facx*(4.d0*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  )) &
+                           &                         +2.d0*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1)) &
+                           &                         +     (phi(i-1,j-1,k+1)-phi(i  ,j-1,k+1))) &
+                           &                  + facy*(4.d0*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i-1,j-1,k  )-phi(i-1,j  ,k  )) &
+                           &                         +2.d0*(phi(i  ,j-1,k+1)-phi(i  ,j  ,k+1)) &
+                           &                         +     (phi(i-1,j-1,k+1)-phi(i-1,j  ,k+1))) &
+                           &                  + facz*(4.d0*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  )) &
+                           &                         +2.d0*(phi(i-1,j  ,k+1)-phi(i-1,j  ,k  )) &
+                           &                         +2.d0*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  )) &
+                           &                         +     (phi(i-1,j-1,k+1)-phi(i-1,j-1,k  ))))
+                   end if
+                   if (1.d0-ccmsk(i,j-1,k) .eq. crse_cell) then
+                      Ax = Ax + sig(i,j-1,k)*(facx*(4.d0*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  )) &
+                           &                       +2.d0*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1)) &
+                           &                       +     (phi(i+1,j-1,k+1)-phi(i  ,j-1,k+1))) &
+                           &                + facy*(4.d0*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i+1,j-1,k  )-phi(i+1,j  ,k  )) &
+                           &                       +2.d0*(phi(i  ,j-1,k+1)-phi(i  ,j  ,k+1)) &
+                           &                       +     (phi(i+1,j-1,k+1)-phi(i+1,j  ,k+1))) &
+                           &                + facz*(4.d0*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i+1,j  ,k+1)-phi(i+1,j  ,k  )) &
+                           &                       +2.d0*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  )) &
+                           &                       +     (phi(i+1,j-1,k+1)-phi(i+1,j-1,k  ))))
+                   end if
+                   if (1.d0-ccmsk(i-1,j,k) .eq. crse_cell) then
+                      Ax = Ax + sig(i-1,j,k)*(facx*(4.d0*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  )) &
+                           &                       +2.d0*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1)) &
+                           &                       +     (phi(i-1,j+1,k+1)-phi(i  ,j+1,k+1))) &
+                           &                + facy*(4.d0*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i-1,j+1,k  )-phi(i-1,j  ,k  )) &
+                           &                       +2.d0*(phi(i  ,j+1,k+1)-phi(i  ,j  ,k+1)) &
+                           &                       +     (phi(i-1,j+1,k+1)-phi(i-1,j  ,k+1))) &
+                           &                + facz*(4.d0*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  )) &
+                           &                       +2.d0*(phi(i-1,j  ,k+1)-phi(i-1,j  ,k  )) &
+                           &                       +2.d0*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  )) &
+                           &                       +     (phi(i-1,j+1,k+1)-phi(i-1,j+1,k  ))))
+                   end if
+                   if (1.d0-ccmsk(i,j,k) .eq. crse_cell) then
+                      Ax = Ax + sig(i,j,k)*(facx*(4.d0*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  )) &
+                           &                     +2.d0*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  )) &
+                           &                     +2.d0*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1)) &
+                           &                     +     (phi(i+1,j+1,k+1)-phi(i  ,j+1,k+1))) &
+                           &              + facy*(4.d0*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  )) &
+                           &                     +2.d0*(phi(i+1,j+1,k  )-phi(i+1,j  ,k  )) &
+                           &                     +2.d0*(phi(i  ,j+1,k+1)-phi(i  ,j  ,k+1)) &
+                           &                     +     (phi(i+1,j+1,k+1)-phi(i+1,j  ,k+1))) &
+                           &              + facz*(4.d0*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  )) &
+                           &                     +2.d0*(phi(i+1,j  ,k+1)-phi(i+1,j  ,k  )) &
+                           &                     +2.d0*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  )) &
+                           &                     +     (phi(i+1,j+1,k+1)-phi(i+1,j+1,k  ))))
+                   end if
+                   res(i,j,k) = rhs(i,j,k) - Ax - fc(i,j,k)
+                end if
+             end if
+          end do
+       end do
+    end do
+
   end subroutine amrex_mlndlap_res_cf_contrib
 
 
   subroutine amrex_mlndlap_zero_fine (lo, hi, phi, dlo, dhi, msk, mlo, mhi, fine_flag) &
        bind(c, name='amrex_mlndlap_zero_fine')
     integer, dimension(3), intent(in) :: lo, hi, dlo, dhi, mlo, mhi
-    real(amrex_real), intent(inout) :: phi(dlo(1):dhi(1),dlo(2):dhi(2))
-    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    real(amrex_real), intent(inout) :: phi(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
     integer, intent(in) :: fine_flag
 
+    integer :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             ! Testing if the node is covered by a fine level in computing
+             ! coarse sync residual
+             if (all(msk(i-1:i,j-1:j,k-1:k).eq.fine_flag)) then
+                phi(i,j,k) = 0.d0
+             end if
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_zero_fine
 
 end module amrex_mlnodelap_3d_module
