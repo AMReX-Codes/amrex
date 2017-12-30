@@ -1044,7 +1044,7 @@ contains
     real(amrex_real), intent(in   ) :: rhs(rhlo(1):rhhi(1),rhlo(2):rhhi(2))
     real(amrex_real), intent(in   ) :: sig( slo(1): shi(1), slo(2): shi(2))
     real(amrex_real), intent(inout) :: fc ( clo(1): chi(1), clo(2): chi(2))
-    integer, intent(in) :: dmsk(mlo(1):mhi(1),mlo(2):mhi(2))
+    integer, intent(in) ::  dmsk( mlo(1): mhi(1), mlo(2): mhi(2))
     integer, intent(in) :: ndmsk(nmlo(1):nmhi(1),nmlo(2):nmhi(2))
     integer, intent(in) :: ccmsk(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
 
