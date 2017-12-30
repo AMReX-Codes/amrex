@@ -1087,19 +1087,39 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(fine_contrib, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
-        const Box& cbx = mfi.validbox();
-        const Box& fbx = amrex::refine(cbx,2);
-        amrex_mlndlap_res_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
-                                       BL_TO_FORTRAN_BOX(fbx),
-                                       BL_TO_FORTRAN_ANYD(fine_contrib[mfi]),
-                                       BL_TO_FORTRAN_ANYD(fine_sol[mfi]),
-                                       BL_TO_FORTRAN_ANYD(fsigma[mfi]),
-                                       BL_TO_FORTRAN_ANYD(fine_res[mfi]),
-                                       BL_TO_FORTRAN_ANYD(fine_rhs[mfi]),
-                                       BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                       fdxinv);
+        FArrayBox sigfab;
+        FArrayBox Axfab;
+        for (MFIter mfi(fine_contrib, MFItInfo().EnableTiling().SetDynamic(true));
+             mfi.isValid(); ++mfi)
+        {
+            const Box& cvbx = mfi.validbox();
+            const Box& fvbx = amrex::refine(cvbx,2);
+            const Box& cbx = mfi.tilebox();
+            const Box& fbx = amrex::refine(cbx,2);
+
+            const Box& bx_sig = amrex::grow(amrex::enclosedCells(fbx),1);
+            const Box& b = bx_sig & amrex::enclosedCells(fvbx);
+            sigfab.resize(bx_sig, 1);
+            sigfab.setVal(0.0);
+            sigfab.copy(fsigma[mfi], b, 0, b, 0, 1);
+
+            const Box& bx_Ax = amrex::grow(fbx,1);
+            const Box& b2 = bx_Ax & amrex::grow(fvbx,-1);
+            Axfab.resize(bx_Ax);
+            Axfab.setVal(0.0);
+            Axfab.copy(fine_rhs[mfi], b2, 0, b2, 0, 1);
+            Axfab.minus(fine_res[mfi], b2, 0, 0, 1);
+
+            amrex_mlndlap_res_fine_contrib(BL_TO_FORTRAN_BOX(cbx),
+                                           BL_TO_FORTRAN_BOX(cvbx),
+                                           BL_TO_FORTRAN_ANYD(fine_contrib[mfi]),
+                                           BL_TO_FORTRAN_ANYD(fine_sol[mfi]),
+                                           BL_TO_FORTRAN_ANYD(sigfab),
+                                           BL_TO_FORTRAN_ANYD(Axfab),
+                                           BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
+                                           fdxinv);
+        }
     }
 
     MultiFab fine_contrib_on_crse(crse_sol.boxArray(), crse_sol.DistributionMap(), 1, 0);

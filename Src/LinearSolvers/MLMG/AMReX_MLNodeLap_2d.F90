@@ -871,7 +871,7 @@ contains
           step = hi(1)-lo(1)
        end if
        do ii = lo(1), hi(1), step
-          if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. jj.eq.glo(2) .or. jj.eq.ghi(2)) then
+          if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step .eq. 1) then
              frh(ii,jj) = facx*(-vel(ii-1,jj-1,1)+vel(ii,jj-1,1)-vel(ii-1,jj,1)+vel(ii,jj,1)) &
                     &   + facy*(-vel(ii-1,jj-1,2)-vel(ii,jj-1,2)+vel(ii-1,jj,2)+vel(ii,jj,2))
           end if
@@ -958,187 +958,75 @@ contains
   end subroutine amrex_mlndlap_crse_resid
 
 
-  subroutine amrex_mlndlap_res_fine_contrib (clo, chi, lo, hi, f, flo, fhi, x, xlo, xhi, &
-       sig, slo, shi, res, rlo, rhi, rhs, hlo, hhi, msk, mlo, mhi, dxinv) &
+  subroutine amrex_mlndlap_res_fine_contrib (clo, chi, cglo, cghi, f, flo, fhi, &
+       x, xlo, xhi, sig, slo, shi, Ax, alo, ahi, msk, mlo, mhi, dxinv) &
        bind(c,name='amrex_mlndlap_res_fine_contrib')
-    integer, dimension(2), intent(in) :: clo, chi, lo, hi, flo, fhi, xlo, xhi, slo, shi, &
-         rlo, rhi, hlo, hhi, mlo, mhi
+    integer, dimension(2), intent(in) :: clo, chi, cglo, cghi, flo, fhi, xlo, xhi, &
+         slo, shi, alo, ahi, mlo, mhi
     real(amrex_real), intent(inout) :: f  (flo(1):fhi(1),flo(2):fhi(2))
     real(amrex_real), intent(in   ) :: x  (xlo(1):xhi(1),xlo(2):xhi(2))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
-    real(amrex_real), intent(in   ) :: res(rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: rhs(hlo(1):hhi(1),hlo(2):hhi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    real(amrex_real), intent(inout) :: Ax (alo(1):ahi(1),alo(2):ahi(2))
+    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
     real(amrex_real), intent(in) :: dxinv(2)
 
-    integer :: i, j, ii, jj, side, jd, jc, id, ic
-    real(amrex_real) :: facx, facy
+    integer, dimension(2) :: lo, hi, glo, ghi
+    integer :: i, j, ii, jj, step
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
     real(amrex_real), parameter :: rfd = 0.25d0
     real(amrex_real), parameter :: chip = 0.5d0
     real(amrex_real), parameter :: chip2 = 0.25d0
 
-    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1) * rfd
-    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2) * rfd
+    facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
+    fxy = facx + facy
+    f2xmy = 2.d0*facx - facy
+    fmx2y = 2.d0*facy - facx
 
-    ! note that lo = 2*clo and hi = 2*chi
+    lo = 2*clo
+    hi = 2*chi
+    glo = 2*cglo
+    ghi = 2*cghi
 
-    do side = 0, 1
-       if (side .eq. 0) then
-          j = clo(2)
-          jj = lo(2)
-          jd = jj+1
-          jc = jj
+    do jj = lo(2), hi(2)
+       if (jj .eq. glo(2) .or. jj .eq. ghi(2)) then
+          step = 1
        else
-          j = chi(2)
-          jj = hi(2)
-          jd = jj-1
-          jc = jj-1
+          step = hi(1)-lo(1)
        end if
+       do ii = lo(1), hi(1), step
+          if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step .eq. 1) then
+             Ax(ii,jj) = x(ii-1,jj-1)*fxy*sig(ii-1,jj-1) &
+                  +      x(ii+1,jj-1)*fxy*sig(ii  ,jj-1) &
+                  +      x(ii-1,jj+1)*fxy*sig(ii-1,jj  ) &
+                  +      x(ii+1,jj+1)*fxy*sig(ii  ,jj  ) &
+                  +      x(ii-1,jj)*f2xmy*(sig(ii-1,jj-1)+sig(ii-1,jj  )) &
+                  +      x(ii+1,jj)*f2xmy*(sig(ii  ,jj-1)+sig(ii  ,jj  )) &
+                  +      x(ii,jj-1)*fmx2y*(sig(ii-1,jj-1)+sig(ii  ,jj-1)) &
+                  +      x(ii,jj+1)*fmx2y*(sig(ii-1,jj  )+sig(ii  ,jj  )) &
+                  +      x(ii,jj)*(-2.d0)*fxy*(sig(ii-1,jj-1)+sig(ii,jj-1)+sig(ii-1,jj)+sig(ii,jj))
+          end if
+       end do
+    end do
 
-       i = clo(1)
-       ii = lo(1)
-       if (msk(ii,jj) .eq. dirichlet) then
-          f(i,j) = f(i,j) + sig(ii,jc)*(facx*(2.d0*(x(ii+1,jj)-x(ii  ,jj))  &
-               &                             +     (x(ii+1,jd)-x(ii  ,jd))) &
-               &                      + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
-               &                             +     (x(ii+1,jd)-x(ii+1,jj)))) &
-               + chip * sig(ii  ,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii+1,jj))  &
-               &                           +     (x(ii  ,jd)-x(ii+1,jd))) &
-               &                    + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
-               &                           +     (x(ii  ,jd)-x(ii  ,jj)))) &
-               + chip * sig(ii+1,jc)*(facx*(2.d0*(x(ii+2,jj)-x(ii+1,jj))  &
-               &                           +     (x(ii+2,jd)-x(ii+1,jd))) &
-               &                    + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
-               &                           +     (x(ii+2,jd)-x(ii+2,jj)))) &
-               + rfd*chip2*(rhs(ii+1,jd)-res(ii+1,jd))
+    do j = clo(2), chi(2)
+       jj = 2*j
+       if (j .eq. cglo(2) .or. j .eq. cghi(2)) then
+          step = 1
+       else
+          step = chi(1)-clo(1)
        end if
-
-       do i = clo(1)+1, chi(1)-1
+       do i = clo(1), chi(1), step
           ii = 2*i
           if (msk(ii,jj) .eq. dirichlet) then
-             f(i,j) = f(i,j) + sig(ii-1,jc)*(facx*(2.d0*(x(ii-1,jj)-x(ii  ,jj))  &
-                  &                               +     (x(ii-1,jd)-x(ii  ,jd))) &
-                  &                        + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
-                  &                               +     (x(ii-1,jd)-x(ii-1,jj)))) &
-                  &          + sig(ii  ,jc)*(facx*(2.d0*(x(ii+1,jj)-x(ii  ,jj))  &
-                  &                               +     (x(ii+1,jd)-x(ii  ,jd))) &
-                  &                        + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
-                  &                               +     (x(ii+1,jd)-x(ii+1,jj)))) &
-                  + chip * sig(ii-2,jc)*(facx*(2.d0*(x(ii-2,jj)-x(ii-1,jj))  &
-                  &                           +     (x(ii-2,jd)-x(ii-1,jd))) &
-                  &                    + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
-                  &                           +     (x(ii-2,jd)-x(ii-2,jj)))) &
-                  + chip * sig(ii-1,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii-1,jj))  &
-                  &                           +     (x(ii  ,jd)-x(ii-1,jd))) &
-                  &                    + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
-                  &                           +     (x(ii  ,jd)-x(ii  ,jj)))) &
-                  + chip * sig(ii  ,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii+1,jj))  &
-                  &                           +     (x(ii  ,jd)-x(ii+1,jd))) &
-                  &                    + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
-                  &                           +     (x(ii  ,jd)-x(ii  ,jj)))) &
-                  + chip * sig(ii+1,jc)*(facx*(2.d0*(x(ii+2,jj)-x(ii+1,jj))  &
-                  &                           +     (x(ii+2,jd)-x(ii+1,jd))) &
-                  &                    + facy*(2.d0*(x(ii+1,jd)-x(ii+1,jj))  &
-                  &                           +     (x(ii+2,jd)-x(ii+2,jj)))) &
-                  + rfd*(chip2*(rhs(ii-1,jd)-res(ii-1,jd))  &
-                  &     +chip *(rhs(ii  ,jd)-res(ii  ,jd))  &
-                  &     +chip2*(rhs(ii+1,jd)-res(ii+1,jd)))
+             f(i,j) = f(i,j) + rfd*(Ax(ii,jj) &
+                  + chip*(Ax(ii-1,jj)+Ax(ii+1,jj)+Ax(ii,jj-1)+Ax(ii,jj+1)) &
+                  + chip2*(Ax(ii-1,jj-1)+Ax(ii+1,jj-1)+Ax(ii-1,jj+1)+Ax(ii+1,jj+1)))
           end if
        end do
-
-       i = chi(1)
-       ii = hi(1)
-       if (msk(ii,jj) .eq. dirichlet) then
-          f(i,j) = f(i,j) + sig(ii-1,jc)*(facx*(2.d0*(x(ii-1,jj)-x(ii  ,jj))  &
-               &                               +     (x(ii-1,jd)-x(ii  ,jd))) &
-               &                        + facy*(2.d0*(x(ii  ,jd)-x(ii  ,jj))  &
-               &                               +     (x(ii-1,jd)-x(ii-1,jj)))) &
-               + chip * sig(ii-2,jc)*(facx*(2.d0*(x(ii-2,jj)-x(ii-1,jj))  &
-               &                           +     (x(ii-2,jd)-x(ii-1,jd))) &
-               &                    + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
-               &                           +     (x(ii-2,jd)-x(ii-2,jj)))) &
-               + chip * sig(ii-1,jc)*(facx*(2.d0*(x(ii  ,jj)-x(ii-1,jj))  &
-               &                           +     (x(ii  ,jd)-x(ii-1,jd))) &
-               &                    + facy*(2.d0*(x(ii-1,jd)-x(ii-1,jj))  &
-               &                           +     (x(ii  ,jd)-x(ii  ,jj)))) &
-               + rfd*chip2*(rhs(ii-1,jd)-res(ii-1,jd))
-       end if
     end do
 
-    do side = 0, 1
-       if (side .eq. 0) then
-          i = clo(1)
-          ii = lo(1)
-          id = ii+1
-          ic = ii
-       else
-          i = chi(1)
-          ii = hi(1)
-          id = ii-1
-          ic = ii-1
-       end if
-
-       j = clo(2)
-       jj = lo(2)
-       if (msk(ii,jj) .eq. dirichlet) then
-          f(i,j) = f(i,j)  &
-               + chip * sig(ic,jj  )*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
-               &                           +     (x(id,jj  )-x(ii,jj  ))) &
-               &                    + facy*(2.d0*(x(ii,jj  )-x(ii,jj+1))  &
-               &                           +     (x(id,jj  )-x(id,jj+1)))) &
-               + chip * sig(ic,jj+1)*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
-               &                           +     (x(id,jj+2)-x(ii,jj+2))) &
-               &                    + facy*(2.d0*(x(ii,jj+2)-x(ii,jj+1))  &
-               &                           +     (x(id,jj+2)-x(id,jj+1))))
-       end if
-
-       do j = clo(2)+1, chi(2)-1
-          jj = 2*j
-          if (msk(ii,jj) .eq. dirichlet) then
-             f(i,j) = f(i,j) + sig(ic,jj-1)*(facx*(2.d0*(x(id,jj  )-x(ii,jj  ))  &
-                  &                               +     (x(id,jj-1)-x(ii,jj-1))) &
-                  &                        + facy*(2.d0*(x(ii,jj-1)-x(ii,jj  ))  &
-                  &                               +     (x(id,jj-1)-x(id,jj  )))) &
-                  &          + sig(ic,jj  )*(facx*(2.d0*(x(id,jj  )-x(ii,jj  ))  &
-                  &                               +     (x(id,jj+1)-x(ii,jj+1))) &
-                  &                        + facy*(2.d0*(x(ii,jj+1)-x(ii,jj  ))  &
-                  &                               +     (x(id,jj+1)-x(id,jj  )))) &
-                  + chip * sig(ic,jj-2)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
-                  &                           +     (x(id,jj-2)-x(ii,jj-2))) &
-                  &                    + facy*(2.d0*(x(ii,jj-2)-x(ii,jj-1))  &
-                  &                           +     (x(id,jj-2)-x(id,jj-1)))) &
-                  + chip * sig(ic,jj-1)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
-                  &                           +     (x(id,jj  )-x(ii,jj  ))) &
-                  &                    + facy*(2.d0*(x(ii,jj  )-x(ii,jj-1))  &
-                  &                           +     (x(id,jj  )-x(id,jj-1)))) &
-                  + chip * sig(ic,jj  )*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
-                  &                           +     (x(id,jj  )-x(ii,jj  ))) &
-                  &                    + facy*(2.d0*(x(ii,jj  )-x(ii,jj+1))  &
-                  &                           +     (x(id,jj  )-x(id,jj+1)))) &
-                  + chip * sig(ic,jj+1)*(facx*(2.d0*(x(id,jj+1)-x(ii,jj+1))  &
-                  &                           +     (x(id,jj+2)-x(ii,jj+2))) &
-                  &                    + facy*(2.d0*(x(ii,jj+2)-x(ii,jj+1))  &
-                  &                           +     (x(id,jj+2)-x(id,jj+1)))) &
-                  + rfd*(chip2*(rhs(id,jj-1)-res(id,jj-1)) &
-                  &     +chip *(rhs(id,jj  )-res(id,jj  )) &
-                  &     +chip2*(rhs(id,jj+1)-res(id,jj+1)))
-          end if
-       end do
-
-       j = chi(2)
-       jj = hi(2)
-       if (msk(ii,jj) .eq. dirichlet) then
-          f(i,j) = f(i,j) &
-               + chip*sig(ic,jj-2)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
-               &                         +     (x(id,jj-2)-x(ii,jj-2))) &
-               &                  + facy*(2.d0*(x(ii,jj-2)-x(ii,jj-1))  &
-               &                         +     (x(id,jj-2)-x(id,jj-1)))) &
-               + chip*sig(ic,jj-1)*(facx*(2.d0*(x(id,jj-1)-x(ii,jj-1))  &
-               &                         +     (x(id,jj  )-x(ii,jj  ))) &
-               &                  + facy*(2.d0*(x(ii,jj  )-x(ii,jj-1))  &
-               &                         +     (x(id,jj  )-x(id,jj-1))))
-       end if
-    end do
+    ! xxxxx what do we do at physical boundaries?
 
   end subroutine amrex_mlndlap_res_fine_contrib
 
