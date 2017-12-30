@@ -1477,7 +1477,7 @@ contains
              w3 = sum(sig(ii-1:ii,jj-1,kk-1:kk))
              w4 = sum(sig(ii-1:ii,jj  ,kk-1:kk))
              w5 = sum(sig(ii-1:ii,jj-1:jj,kk-1))
-             w5 = sum(sig(ii-1:ii,jj-1:jj,kk  ))
+             w6 = sum(sig(ii-1:ii,jj-1:jj,kk  ))
              fine(ii,jj,kk) = (w1*fine(ii-1,jj,kk) + w2*fine(ii+1,jj,kk) &
                   + w3*fine(ii,jj-1,kk) + w4*fine(ii,jj+1,kk) &
                   + w5*fine(ii,jj,kk-1) + w6*fine(ii,jj,kk+1)) &
