@@ -1775,17 +1775,16 @@ contains
   end subroutine amrex_mlndlap_crse_resid
 
 
-  subroutine amrex_mlndlap_res_fine_contrib (clo, chi, lo, hi, f, flo, fhi, x, xlo, xhi, &
-       sig, slo, shi, res, rlo, rhi, rhs, hlo, hhi, msk, mlo, mhi, dxinv) &
+  subroutine amrex_mlndlap_res_fine_contrib (clo, chi, cglo, cghi, f, flo, fhi, &
+       x, xlo, xhi, sig, slo, shi, Ax, alo, ahi, msk, mlo, mhi, dxinv) &
        bind(c,name='amrex_mlndlap_res_fine_contrib')
-    integer, dimension(3), intent(in) :: clo, chi, lo, hi, flo, fhi, xlo, xhi, slo, shi, &
-         rlo, rhi, hlo, hhi, mlo, mhi
-    real(amrex_real), intent(inout) :: f  (flo(1):fhi(1),flo(2):fhi(2))
-    real(amrex_real), intent(in   ) :: x  (xlo(1):xhi(1),xlo(2):xhi(2))
-    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2))
-    real(amrex_real), intent(in   ) :: res(rlo(1):rhi(1),rlo(2):rhi(2))
-    real(amrex_real), intent(in   ) :: rhs(hlo(1):hhi(1),hlo(2):hhi(2))
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    integer, dimension(3), intent(in) :: clo, chi, cglo, cghi, flo, fhi, xlo, xhi, &
+         slo, shi, alo, ahi, mlo, mhi
+    real(amrex_real), intent(inout) :: f  (flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
+    real(amrex_real), intent(in   ) :: x  (xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
+    real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
+    real(amrex_real), intent(inout) :: Ax (alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
+    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
     real(amrex_real), intent(in) :: dxinv(3)
   end subroutine amrex_mlndlap_res_fine_contrib
 
