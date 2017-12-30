@@ -232,7 +232,7 @@ contains
              do i = lo(1), hi(1)
                 cl = 0.25d0*(fine(2*i,2*j  ,2*k  )+fine(2*i+1,2*j  ,2*k  ) &
                      &      +fine(2*i,2*j  ,2*k+1)+fine(2*i+1,2*j  ,2*k+1))
-                cl = 0.25d0*(fine(2*i,2*j+1,2*k  )+fine(2*i+1,2*j+1,2*k  ) &
+                cr = 0.25d0*(fine(2*i,2*j+1,2*k  )+fine(2*i+1,2*j+1,2*k  ) &
                      &      +fine(2*i,2*j+1,2*k+1)+fine(2*i+1,2*j+1,2*k+1))
                 crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
              end do
@@ -1346,7 +1346,7 @@ contains
              w3 = sum(sigy(ii-1:ii,jj-1,kk-1:kk))
              w4 = sum(sigy(ii-1:ii,jj  ,kk-1:kk))
              w5 = sum(sigz(ii-1:ii,jj-1:jj,kk-1))
-             w5 = sum(sigz(ii-1:ii,jj-1:jj,kk  ))
+             w6 = sum(sigz(ii-1:ii,jj-1:jj,kk  ))
              fine(ii,jj,kk) = (w1*fine(ii-1,jj,kk) + w2*fine(ii+1,jj,kk) &
                   + w3*fine(ii,jj-1,kk) + w4*fine(ii,jj+1,kk) &
                   + w5*fine(ii,jj,kk-1) + w6*fine(ii,jj,kk+1)) &
