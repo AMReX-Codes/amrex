@@ -218,8 +218,10 @@ contains
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                cl = 0.25d0*(fine(i  ,j,k)+fine(i  ,j+1,k)+fine(i  ,j,k+1)+fine(i  ,j+1,k+1))
-                cr = 0.25d0*(fine(i+1,j,k)+fine(i+1,j+1,k)+fine(i+1,j,k+1)+fine(i+1,j+1,k+1))
+                cl = 0.25d0*(fine(2*i  ,2*j,2*k  )+fine(2*i  ,2*j+1,2*k  ) &
+                     &      +fine(2*i  ,2*j,2*k+1)+fine(2*i  ,2*j+1,2*k+1))
+                cr = 0.25d0*(fine(2*i+1,2*j,2*k  )+fine(2*i+1,2*j+1,2*k  ) &
+                     &      +fine(2*i+1,2*j,2*k+1)+fine(2*i+1,2*j+1,2*k+1))
                 crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
              end do
           end do
@@ -228,8 +230,10 @@ contains
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                cl = 0.25d0*(fine(i,j  ,k)+fine(i+1,j  ,k)+fine(i,j  ,k+1)+fine(i+1,j  ,k+1))
-                cl = 0.25d0*(fine(i,j+1,k)+fine(i+1,j+1,k)+fine(i,j+1,k+1)+fine(i+1,j+1,k+1))
+                cl = 0.25d0*(fine(2*i,2*j  ,2*k  )+fine(2*i+1,2*j  ,2*k  ) &
+                     &      +fine(2*i,2*j  ,2*k+1)+fine(2*i+1,2*j  ,2*k+1))
+                cl = 0.25d0*(fine(2*i,2*j+1,2*k  )+fine(2*i+1,2*j+1,2*k  ) &
+                     &      +fine(2*i,2*j+1,2*k+1)+fine(2*i+1,2*j+1,2*k+1))
                 crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
              end do
           end do
@@ -238,8 +242,10 @@ contains
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)
              do i = lo(1), hi(1)
-                cl = 0.25d0*(fine(i,j,k  )+fine(i+1,j,k  )+fine(i,j+1,k  )+fine(i+1,j+1,k  ))
-                cr = 0.25d0*(fine(i,j,k+1)+fine(i+1,j,k+1)+fine(i,j+1,k+1)+fine(i+1,j+1,k+1))
+                cl = 0.25d0*(fine(2*i,2*j  ,2*k  )+fine(2*i+1,2*j  ,2*k  ) &
+                     &      +fine(2*i,2*j+1,2*k  )+fine(2*i+1,2*j+1,2*k  ))
+                cr = 0.25d0*(fine(2*i,2*j  ,2*k+1)+fine(2*i+1,2*j  ,2*k+1) &
+                     &      +fine(2*i,2*j+1,2*k+1)+fine(2*i+1,2*j+1,2*k+1))
                 crse(i,j,k) = 2.d0*cl*cr/(cl+cr)
              end do
           end do
@@ -1656,18 +1662,18 @@ contains
           end if
           do ii = lo(1), hi(1), step
              if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step.eq.1) then
-                rhs(i,j,k) = facx*(-vel(ii-1,jj-1,kk-1,1)+vel(ii,jj-1,kk-1,1) &
-                     &             -vel(ii-1,jj  ,kk-1,1)+vel(ii,jj  ,kk-1,1) &
-                     &             -vel(ii-1,jj-1,kk  ,1)+vel(ii,jj-1,kk  ,1) &
-                     &             -vel(ii-1,jj  ,kk  ,1)+vel(ii,jj  ,kk  ,1)) &
-                     &     + facy*(-vel(ii-1,jj-1,kk-1,2)-vel(ii,jj-1,kk-1,2) &
-                     &             +vel(ii-1,jj  ,kk-1,2)+vel(ii,jj  ,kk-1,2) &
-                     &             -vel(ii-1,jj-1,kk  ,2)-vel(ii,jj-1,kk  ,2) &
-                     &             +vel(ii-1,jj  ,kk  ,2)+vel(ii,jj  ,kk  ,2)) &
-                     &     + facy*(-vel(ii-1,jj-1,kk-1,3)-vel(ii,jj-1,kk-1,3) &
-                     &             -vel(ii-1,jj  ,kk-1,3)-vel(ii,jj  ,kk-1,3) &
-                     &             +vel(ii-1,jj-1,kk  ,3)+vel(ii,jj-1,kk  ,3) &
-                     &             +vel(ii-1,jj  ,kk  ,3)+vel(ii,jj  ,kk  ,3))
+                frh(ii,jj,kk) = facx*(-vel(ii-1,jj-1,kk-1,1)+vel(ii,jj-1,kk-1,1) &
+                     &                -vel(ii-1,jj  ,kk-1,1)+vel(ii,jj  ,kk-1,1) &
+                     &                -vel(ii-1,jj-1,kk  ,1)+vel(ii,jj-1,kk  ,1) &
+                     &                -vel(ii-1,jj  ,kk  ,1)+vel(ii,jj  ,kk  ,1)) &
+                     &        + facy*(-vel(ii-1,jj-1,kk-1,2)-vel(ii,jj-1,kk-1,2) &
+                     &                +vel(ii-1,jj  ,kk-1,2)+vel(ii,jj  ,kk-1,2) &
+                     &                -vel(ii-1,jj-1,kk  ,2)-vel(ii,jj-1,kk  ,2) &
+                     &                +vel(ii-1,jj  ,kk  ,2)+vel(ii,jj  ,kk  ,2)) &
+                     &        + facy*(-vel(ii-1,jj-1,kk-1,3)-vel(ii,jj-1,kk-1,3) &
+                     &                -vel(ii-1,jj  ,kk-1,3)-vel(ii,jj  ,kk-1,3) &
+                     &                +vel(ii-1,jj-1,kk  ,3)+vel(ii,jj-1,kk  ,3) &
+                     &                +vel(ii-1,jj  ,kk  ,3)+vel(ii,jj  ,kk  ,3))
              end if
           end do
        end do
