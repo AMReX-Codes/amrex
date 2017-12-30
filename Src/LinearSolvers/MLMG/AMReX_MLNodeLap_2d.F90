@@ -18,7 +18,7 @@ module amrex_mlnodelap_2d_module
   public :: &
        ! masks
        amrex_mlndlap_set_nodal_mask, amrex_mlndlap_set_dirichlet_mask, &
-       amrex_mlndlap_fixup_res_mask, amrex_mlndlap_any_crse_cells, &
+       amrex_mlndlap_fixup_res_mask, amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, &
        ! bc
@@ -149,11 +149,12 @@ contains
   end subroutine amrex_mlndlap_fixup_res_mask
 
 
-  function amrex_mlndlap_any_crse_cells (lo, hi, msk, mlo, mhi) result(r) &
-       bind(c,name='amrex_mlndlap_any_crse_cells')
+  function amrex_mlndlap_any_fine_sync_cells (lo, hi, msk, mlo, mhi, fine_flag) result(r) &
+       bind(c,name='amrex_mlndlap_any_fine_sync_cells')
     integer :: r
     integer, dimension(2), intent(in) :: lo, hi, mlo, mhi
     integer, intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
+    integer, intent(in) :: fine_flag
 
     integer :: i,j
 
@@ -163,10 +164,10 @@ contains
        if (r.eq.1) exit
        do i = lo(1), hi(1)
           if (r.eq.1) exit
-          if (msk(i,j) .eq. crse_cell) r = 1
+          if (msk(i,j) .eq. fine_flag) r = 1
        end do
     end do
-  end function amrex_mlndlap_any_crse_cells
+  end function amrex_mlndlap_any_fine_sync_cells
 
 
   subroutine amrex_mlndlap_avgdown_coeff (lo, hi, crse, clo, chi, fine, flo, fhi, idim) &
@@ -1090,19 +1091,20 @@ contains
   end subroutine amrex_mlndlap_res_cf_contrib
 
 
-  subroutine amrex_mlndlap_zero_fine (lo, hi, phi, dlo, dhi, msk, mlo, mhi) &
+  subroutine amrex_mlndlap_zero_fine (lo, hi, phi, dlo, dhi, msk, mlo, mhi, fine_flag) &
        bind(c, name='amrex_mlndlap_zero_fine')
     integer, dimension(2), intent(in) :: lo, hi, dlo, dhi, mlo, mhi
     real(amrex_real), intent(inout) :: phi(dlo(1):dhi(1),dlo(2):dhi(2))
     integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    integer, intent(in) :: fine_flag
 
     integer :: i,j
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          ! Note that 0 in this mask means this is covered by fine level in computing
+          ! Testing if the node is covered by a fine level in computing
           ! coarse sync residual
-          if (all(msk(i-1:i,j-1:j).eq.0)) then
+          if (all(msk(i-1:i,j-1:j).eq.fine_flag)) then
              phi(i,j) = 0.d0
           end if
        end do

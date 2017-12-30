@@ -18,7 +18,7 @@ module amrex_mlnodelap_3d_module
   public :: &
        ! masks
        amrex_mlndlap_set_nodal_mask, amrex_mlndlap_set_dirichlet_mask, &
-       amrex_mlndlap_fixup_res_mask, amrex_mlndlap_any_crse_cells, &
+       amrex_mlndlap_fixup_res_mask, amrex_mlndlap_any_fine_sync_cells, &
        ! coeffs
        amrex_mlndlap_avgdown_coeff, amrex_mlndlap_fillbc_cc, &
        ! bc
@@ -179,11 +179,12 @@ contains
   end subroutine amrex_mlndlap_fixup_res_mask
 
 
-  function amrex_mlndlap_any_crse_cells (lo, hi, msk, mlo, mhi) result(r) &
-       bind(c,name='amrex_mlndlap_any_crse_cells')
+  function amrex_mlndlap_any_fine_sync_cells (lo, hi, msk, mlo, mhi, fine_flag) result(r) &
+       bind(c,name='amrex_mlndlap_any_fine_sync_cells')
     integer :: r
     integer, dimension(3), intent(in) :: lo, hi, mlo, mhi
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+    integer, intent(in) :: fine_flag
 
     integer :: i,j,k
 
@@ -192,7 +193,7 @@ contains
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             if (msk(i,j,k) .eq. crse_cell) then
+             if (msk(i,j,k) .eq. fine_flag) then
                 r = 1
                 goto 100
              end if
@@ -200,7 +201,7 @@ contains
        end do
     end do
 100 continue
-  end function amrex_mlndlap_any_crse_cells
+  end function amrex_mlndlap_any_fine_sync_cells
 
 
   subroutine amrex_mlndlap_avgdown_coeff (lo, hi, crse, clo, chi, fine, flo, fhi, idim) &
@@ -1769,9 +1770,23 @@ contains
   subroutine amrex_mlndlap_crse_resid (lo, hi, resid, rslo, rshi, rhs, rhlo, rhhi, msk, mlo, mhi) &
        bind(c, name='amrex_mlndlap_crse_resid')
     integer, dimension(3), intent(in) :: lo, hi, rslo, rshi, rhlo, rhhi, mlo, mhi
-    real(amrex_real), intent(inout) :: resid(rslo(1):rshi(1),rslo(2):rshi(2))
-    real(amrex_real), intent(in   ) :: rhs  (rhlo(1):rhhi(1),rhlo(2):rhhi(2))
-    integer         , intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2))
+    real(amrex_real), intent(inout) :: resid(rslo(1):rshi(1),rslo(2):rshi(2),rslo(3):rshi(3))
+    real(amrex_real), intent(in   ) :: rhs  (rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3))
+    integer         , intent(in   ) :: msk  ( mlo(1): mhi(1), mlo(2): mhi(2), mlo(3): mhi(3))
+
+    integer :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (any(msk(i-1:i,j-1:j,k-1:k).eq.0) .and. any(msk(i-1:i,j-1:j,k-1:k).eq.1)) then
+                resid(i,j,k) = rhs(i,j,k) - resid(i,j,k)
+             else
+                resid(i,j,k) = 0.d0
+             end if
+          end do
+       end do
+    end do
   end subroutine amrex_mlndlap_crse_resid
 
 
@@ -1786,6 +1801,111 @@ contains
     real(amrex_real), intent(inout) :: Ax (alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3))
     integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
     real(amrex_real), intent(in) :: dxinv(3)
+
+    integer, dimension(3) :: lo, hi, glo, ghi
+    integer :: i, j, k, ii, jj, kk, step
+    real(amrex_real) :: facx, facy, facz, fxyz, fmx2y2z, f2xmy2z, f2x2ymz
+    real(amrex_real) :: f4xm2ym2z, fm2x4ym2z, fm2xm2y4z
+    real(amrex_real), parameter :: rfd = 0.125d0
+    real(amrex_real), parameter :: chip = 0.5d0
+    real(amrex_real), parameter :: chip2 = 0.25d0
+    real(amrex_real), parameter :: chip3 = 0.125d0
+
+    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
+    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
+    fxyz = facx + facy + facz
+    fmx2y2z = -facx + 2.d0*facy + 2.d0*facz
+    f2xmy2z = 2.d0*facx - facy + 2.d0*facz
+    f2x2ymz = 2.d0*facx + 2.d0*facy - facz
+    f4xm2ym2z = 4.d0*facx - 2.d0*facy - 2.d0*facz
+    fm2x4ym2z = -2.d0*facx + 4.d0*facy - 2.d0*facz
+    fm2xm2y4z = -2.d0*facx - 2.d0*facy + 4.d0*facz
+
+    lo = 2*clo
+    hi = 2*chi
+    glo = 2*cglo
+    ghi = 2*cghi
+
+    do    kk = lo(3), hi(3)
+       do jj = lo(2), hi(2)
+          if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
+             step = 1
+          else
+             step = hi(1)-lo(1)
+          end if
+          do ii = lo(1), hi(1), step
+             if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step.eq.1) then
+                Ax(ii,jj,kk) = x(ii,jj,kk)*(-4.d0)*fxyz* &
+                     (sig(ii-1,jj-1,kk-1)+sig(ii,jj-1,kk-1)+sig(ii-1,jj,kk-1)+sig(ii,jj,kk-1) &
+                     +sig(ii-1,jj-1,kk  )+sig(ii,jj-1,kk  )+sig(ii-1,jj,kk  )+sig(ii,jj,kk  )) &
+                     !
+                     + fxyz*(x(ii-1,jj-1,kk-1)*sig(ii-1,jj-1,kk-1) &
+                     &     + x(ii+1,jj-1,kk-1)*sig(ii  ,jj-1,kk-1) &
+                     &     + x(ii-1,jj+1,kk-1)*sig(ii-1,jj  ,kk-1) &
+                     &     + x(ii+1,jj+1,kk-1)*sig(ii  ,jj  ,kk-1) &
+                     &     + x(ii-1,jj-1,kk+1)*sig(ii-1,jj-1,kk  ) &
+                     &     + x(ii+1,jj-1,kk+1)*sig(ii  ,jj-1,kk  ) &
+                     &     + x(ii-1,jj+1,kk+1)*sig(ii-1,jj  ,kk  ) &
+                     &     + x(ii+1,jj+1,kk+1)*sig(ii  ,jj  ,kk  )) &
+                     !
+                     + fmx2y2z*(x(ii  ,jj-1,kk-1)*(sig(ii-1,jj-1,kk-1)+sig(ii,jj-1,kk-1)) &
+                     &        + x(ii  ,jj+1,kk-1)*(sig(ii-1,jj  ,kk-1)+sig(ii,jj  ,kk-1)) &
+                     &        + x(ii  ,jj-1,kk+1)*(sig(ii-1,jj-1,kk  )+sig(ii,jj-1,kk  )) &
+                     &        + x(ii  ,jj+1,kk+1)*(sig(ii-1,jj  ,kk  )+sig(ii,jj  ,kk  ))) &
+                     !
+                     + f2xmy2z*(x(ii-1,jj  ,kk-1)*(sig(ii-1,jj-1,kk-1)+sig(ii-1,jj,kk-1)) &
+                     &        + x(ii+1,jj  ,kk-1)*(sig(ii  ,jj-1,kk-1)+sig(ii  ,jj,kk-1)) &
+                     &        + x(ii-1,jj  ,kk+1)*(sig(ii-1,jj-1,kk  )+sig(ii-1,jj,kk  )) &
+                     &        + x(ii+1,jj  ,kk+1)*(sig(ii  ,jj-1,kk  )+sig(ii  ,jj,kk  ))) &
+                     !
+                     + f2x2ymz*(x(ii-1,jj-1,kk  )*(sig(ii-1,jj-1,kk-1)+sig(ii-1,jj-1,kk)) &
+                     &        + x(ii+1,jj-1,kk  )*(sig(ii  ,jj-1,kk-1)+sig(ii  ,jj-1,kk)) &
+                     &        + x(ii-1,jj+1,kk  )*(sig(ii-1,jj  ,kk-1)+sig(ii-1,jj  ,kk)) &
+                     &        + x(ii+1,jj+1,kk  )*(sig(ii  ,jj  ,kk-1)+sig(ii  ,jj  ,kk))) &
+                     !
+                     + f4xm2ym2z*(x(ii-1,jj,kk)*(sig(ii-1,jj-1,kk-1)+sig(ii-1,jj,kk-1)+sig(ii-1,jj-1,kk)+sig(ii-1,jj,kk)) &
+                     &          + x(ii  ,jj,kk)*(sig(ii  ,jj-1,kk-1)+sig(ii  ,jj,kk-1)+sig(ii  ,jj-1,kk)+sig(ii  ,jj,kk))) &
+                     + fm2x4ym2z*(x(ii,jj-1,kk)*(sig(ii-1,jj-1,kk-1)+sig(ii,jj-1,kk-1)+sig(ii-1,jj-1,kk)+sig(ii,jj-1,kk)) &
+                     &          + x(ii,jj  ,kk)*(sig(ii-1,jj  ,kk-1)+sig(ii,jj  ,kk-1)+sig(ii-1,jj  ,kk)+sig(ii,jj  ,kk))) &
+                     + fm2xm2y4z*(x(ii,jj,kk-1)*(sig(ii-1,jj-1,kk-1)+sig(ii,jj-1,kk-1)+sig(ii-1,jj,kk-1)+sig(ii,jj,kk-1)) &
+                     &          + x(ii,jj,kk  )*(sig(ii-1,jj-1,kk  )+sig(ii,jj-1,kk  )+sig(ii-1,jj,kk  )+sig(ii,jj,kk  )))
+
+             end if
+          end do
+       end do
+    end do
+
+    do k = clo(3), chi(3)
+       kk = 2*k
+       do j = clo(2), chi(2)
+          jj = 2*j
+          if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
+             step = 1
+          else
+             step = chi(1)-clo(1)
+          end if
+          do i = clo(1), chi(1), step
+             ii = 2*i
+             if (msk(ii,jj,kk) .eq. dirichlet) then
+                f(i,j,k) = f(i,j,k) + rfd*(Ax(ii,jj,kk) &
+                     + chip*(Ax(ii,jj,kk-1)+Ax(ii,jj,kk+1) &
+                     &      +Ax(ii,jj-1,kk)+Ax(ii,jj+1,kk) &
+                     &      +Ax(ii-1,jj,kk)+Ax(ii+1,jj,kk)) &
+                     + chip2*(Ax(ii,jj-1,kk-1)+Ax(ii,jj+1,kk-1)+Ax(ii,jj-1,kk+1)+Ax(ii,jj+1,kk+1) &
+                     &       +Ax(ii-1,jj,kk-1)+Ax(ii+1,jj,kk-1)+Ax(ii-1,jj,kk+1)+Ax(ii+1,jj,kk+1) &
+                     &       +Ax(ii-1,jj-1,kk)+Ax(ii+1,jj-1,kk)+Ax(ii-1,jj+1,kk)+Ax(ii+1,jj+1,kk)) &
+                     + chip3*(Ax(ii-1,jj-1,kk-1)+Ax(ii+1,jj-1,kk-1) &
+                     &       +Ax(ii-1,jj+1,kk-1)+Ax(ii+1,jj+1,kk-1) &
+                     &       +Ax(ii-1,jj-1,kk+1)+Ax(ii+1,jj-1,kk+1) &
+                     &       +Ax(ii-1,jj+1,kk+1)+Ax(ii+1,jj+1,kk+1)))
+             end if
+          end do
+       end do
+    end do
+
+    ! xxxxx what do we do at physical boundaries?
+
   end subroutine amrex_mlndlap_res_fine_contrib
 
 
@@ -1807,11 +1927,13 @@ contains
   end subroutine amrex_mlndlap_res_cf_contrib
 
 
-  subroutine amrex_mlndlap_zero_fine (lo, hi, phi, dlo, dhi, msk, mlo, mhi) &
+  subroutine amrex_mlndlap_zero_fine (lo, hi, phi, dlo, dhi, msk, mlo, mhi, fine_flag) &
        bind(c, name='amrex_mlndlap_zero_fine')
     integer, dimension(3), intent(in) :: lo, hi, dlo, dhi, mlo, mhi
     real(amrex_real), intent(inout) :: phi(dlo(1):dhi(1),dlo(2):dhi(2))
     integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
+    integer, intent(in) :: fine_flag
+
   end subroutine amrex_mlndlap_zero_fine
 
 end module amrex_mlnodelap_3d_module

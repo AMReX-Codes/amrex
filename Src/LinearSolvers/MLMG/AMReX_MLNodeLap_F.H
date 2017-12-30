@@ -20,9 +20,9 @@ extern "C" {
                                        int* rmsk, const int* rlo, const int* rhi,
                                        const int* cfmsk, const int* flo, const int* fhi);
 
-    int amrex_mlndlap_any_crse_cells (const int* lo, const int* hi,
-                                      const int* msk, const int* mlo, const int* mhi);
-
+    int amrex_mlndlap_any_fine_sync_cells (const int* lo, const int* hi,
+                                           const int* msk, const int* mlo, const int* mhi,
+                                           const int* fine_flag);
 
     void amrex_mlndlap_avgdown_coeff (const int* lo, const int* hi,
                                       amrex_real* crse, const int* clo, const int* chi,
@@ -203,7 +203,8 @@ extern "C" {
 
     void amrex_mlndlap_zero_fine (const int* lo, const int* hi,
                                   amrex_real* phi, const int* philo, const int* phihi,
-                                  const int* msk, const int* mlo, const int* mhi);
+                                  const int* msk, const int* mlo, const int* mhi,
+                                  const int* fine_flag);
 
 
 #ifdef __cplusplus
