@@ -558,7 +558,7 @@ contains
     if (hlo(1) .lt. dlo(1) .and. hlo(3) .lt. dlo(3)) then
        if (bclo(1) .eq. amrex_lo_neumann .or. bclo(1) .eq. amrex_lo_inflow) then
           phi(dlo(1)-1,jlo:jhi,dlo(3)-1) = phi(dlo(1)+1,jlo:jhi,dlo(3)-1)
-       else if (bclo(3) .ne. amrex_lo_neumann .or. bclo(3) .eq. amrex_lo_inflow) then
+       else if (bclo(3) .eq. amrex_lo_neumann .or. bclo(3) .eq. amrex_lo_inflow) then
           phi(dlo(1)-1,jlo:jhi,dlo(3)-1) = phi(dlo(1)-1,jlo:jhi,dlo(3)+1)
        end if
     end if
@@ -631,7 +631,7 @@ contains
     end if
 
     if (hhi(1) .gt. dhi(1) .and. hlo(2) .lt. dlo(2) .and. hlo(3) .lt. dlo(3)) then
-       if (bchi(1) .ne. amrex_lo_neumann .or. bchi(1) .ne. amrex_lo_inflow) then
+       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
           phi(dhi(1)+1,dlo(2)-1,dlo(3)-1) = phi(dhi(1)-1,dlo(2)-1,dlo(3)-1)
        else if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
           phi(dhi(1)+1,dlo(2)-1,dlo(3)-1) = phi(dhi(1)+1,dlo(2)+1,dlo(3)-1)
@@ -671,7 +671,7 @@ contains
     end if
 
     if (hhi(1) .gt. dhi(1) .and. hlo(2) .lt. dlo(2) .and. hhi(3) .gt. dhi(3)) then
-       if (bchi(1) .ne. amrex_lo_neumann .or. bchi(1) .ne. amrex_lo_inflow) then
+       if (bchi(1) .eq. amrex_lo_neumann .or. bchi(1) .eq. amrex_lo_inflow) then
           phi(dhi(1)+1,dlo(2)-1,dhi(3)+1) = phi(dhi(1)-1,dlo(2)-1,dhi(3)+1)
        else if (bclo(2) .eq. amrex_lo_neumann .or. bclo(2) .eq. amrex_lo_inflow) then
           phi(dhi(1)+1,dlo(2)-1,dhi(3)+1) = phi(dhi(1)+1,dlo(2)+1,dhi(3)+1)
