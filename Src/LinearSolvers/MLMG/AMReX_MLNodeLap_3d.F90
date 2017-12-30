@@ -1256,7 +1256,7 @@ contains
                 fine(ii,jj,kk) = 0.d0
              end if
 
-             if (ii+1 .le. flo(1)) then
+             if (ii+1 .lt. fhi(1)) then
                 if (msk(ii+1,jj,kk) .ne. dirichlet) then
                    w1 = sum(sigx(ii  ,jj-1:jj,kk-1:kk))
                    w2 = sum(sigx(ii+1,jj-1:jj,kk-1:kk))
@@ -1266,7 +1266,7 @@ contains
                 end if
              end if
 
-             if (jj+1 .lt. flo(2)) then
+             if (jj+1 .lt. fhi(2)) then
                 if (msk(ii,jj+1,kk) .ne. dirichlet) then
                    w1 = sum(sigy(ii-1:ii,jj  ,kk-1:kk))
                    w2 = sum(sigy(ii-1:ii,jj+1,kk-1:kk))
@@ -1276,7 +1276,7 @@ contains
                 end if
              end if
 
-             if (kk+1 .lt. flo(3)) then
+             if (kk+1 .lt. fhi(3)) then
                 if (msk(ii,jj,kk+1) .ne. dirichlet) then
                    w1 = sum(sigz(ii-1:ii,jj-1:jj,kk  ))
                    w2 = sum(sigz(ii-1:ii,jj-1:jj,kk+1))
@@ -1296,7 +1296,7 @@ contains
           do i = clo(1), chi(1)
              ii = 2*i
 
-             if (ii+1 .le. flo(1) .and. jj+1 .le. flo(2)) then
+             if (ii+1 .lt. fhi(1) .and. jj+1 .lt. fhi(2)) then
                 if (msk(ii+1,jj+1,kk) .ne. dirichlet) then
                    w1 = sum(sigx(ii     ,jj:jj+1,kk-1:kk))
                    w2 = sum(sigx(ii+1   ,jj:jj+1,kk-1:kk))
@@ -1309,7 +1309,7 @@ contains
                 end if
              end if
 
-             if (ii+1 .le. flo(1) .and. kk+1 .le. flo(3)) then
+             if (ii+1 .lt. fhi(1) .and. kk+1 .lt. fhi(3)) then
                 if (msk(ii+1,jj,kk+1) .ne. dirichlet) then
                    w1 = sum(sigx(ii     ,jj-1:jj,kk:kk+1))
                    w2 = sum(sigx(ii+1   ,jj-1:jj,kk:kk+1))
@@ -1322,7 +1322,7 @@ contains
                 end if
              end if
 
-             if (jj+1 .le. flo(2) .and. kk+1 .lt. flo(3)) then
+             if (jj+1 .lt. fhi(2) .and. kk+1 .lt. fhi(3)) then
                 if (msk(ii,jj+1,kk+1) .ne. dirichlet) then
                    w1 = sum(sigy(ii-1:ii,jj     ,kk:kk+1))
                    w2 = sum(sigy(ii-1:ii,jj+1   ,kk:kk+1))
@@ -1387,7 +1387,7 @@ contains
                 fine(ii,jj,kk) = 0.d0
              end if
 
-             if (ii+1 .le. flo(1)) then
+             if (ii+1 .lt. fhi(1)) then
                 if (msk(ii+1,jj,kk) .ne. dirichlet) then
                    w1 = sum(sig(ii  ,jj-1:jj,kk-1:kk))
                    w2 = sum(sig(ii+1,jj-1:jj,kk-1:kk))
@@ -1397,7 +1397,7 @@ contains
                 end if
              end if
 
-             if (jj+1 .lt. flo(2)) then
+             if (jj+1 .lt. fhi(2)) then
                 if (msk(ii,jj+1,kk) .ne. dirichlet) then
                    w1 = sum(sig(ii-1:ii,jj  ,kk-1:kk))
                    w2 = sum(sig(ii-1:ii,jj+1,kk-1:kk))
@@ -1407,7 +1407,7 @@ contains
                 end if
              end if
 
-             if (kk+1 .lt. flo(3)) then
+             if (kk+1 .lt. fhi(3)) then
                 if (msk(ii,jj,kk+1) .ne. dirichlet) then
                    w1 = sum(sig(ii-1:ii,jj-1:jj,kk  ))
                    w2 = sum(sig(ii-1:ii,jj-1:jj,kk+1))
@@ -1427,7 +1427,7 @@ contains
           do i = clo(1), chi(1)
              ii = 2*i
 
-             if (ii+1 .le. flo(1) .and. jj+1 .le. flo(2)) then
+             if (ii+1 .lt. fhi(1) .and. jj+1 .lt. fhi(2)) then
                 if (msk(ii+1,jj+1,kk) .ne. dirichlet) then
                    w1 = sum(sig(ii     ,jj:jj+1,kk-1:kk))
                    w2 = sum(sig(ii+1   ,jj:jj+1,kk-1:kk))
@@ -1440,7 +1440,7 @@ contains
                 end if
              end if
 
-             if (ii+1 .le. flo(1) .and. kk+1 .le. flo(3)) then
+             if (ii+1 .lt. fhi(1) .and. kk+1 .lt. fhi(3)) then
                 if (msk(ii+1,jj,kk+1) .ne. dirichlet) then
                    w1 = sum(sig(ii     ,jj-1:jj,kk:kk+1))
                    w2 = sum(sig(ii+1   ,jj-1:jj,kk:kk+1))
@@ -1453,7 +1453,7 @@ contains
                 end if
              end if
 
-             if (jj+1 .le. flo(2) .and. kk+1 .lt. flo(3)) then
+             if (jj+1 .lt. fhi(2) .and. kk+1 .lt. fhi(3)) then
                 if (msk(ii,jj+1,kk+1) .ne. dirichlet) then
                    w1 = sum(sig(ii-1:ii,jj     ,kk:kk+1))
                    w2 = sum(sig(ii-1:ii,jj+1   ,kk:kk+1))
