@@ -126,10 +126,9 @@ private:
     amrex::Vector<amrex::Real> dt;
 
     // array of multifabs to store the solution at each level of refinement
-    // after advancing a level we use "swap" to change pointers to old/new
-    // to avoid a copy
-    amrex::Vector<std::unique_ptr<amrex::MultiFab> > phi_new;
-    amrex::Vector<std::unique_ptr<amrex::MultiFab> > phi_old;
+    // after advancing a level we use "swap".
+    amrex::Vector<amrex::MultiFab> phi_new;
+    amrex::Vector<amrex::MultiFab> phi_old;
 
     // this is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction

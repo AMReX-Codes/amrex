@@ -4,6 +4,7 @@
 #include <string>
 #include <stack>
 #include <map>
+#include <vector>
 #include <utility>
 #include <limits>
 
@@ -19,8 +20,10 @@ namespace amrex {
 class TinyProfiler
 {
 public:
-    TinyProfiler (const std::string &funcname);
-    TinyProfiler (const std::string &funcname, bool start_);
+    TinyProfiler (std::string funcname);
+    TinyProfiler (std::string funcname, bool start_);
+    TinyProfiler (const char* funcname);
+    TinyProfiler (const char* funcname, bool start_);
     ~TinyProfiler ();
 
     void start ();
@@ -28,6 +31,9 @@ public:
 
     static void Initialize ();
     static void Finalize ();
+
+    static void StartRegion (std::string regname);
+    static void StopRegion (const std::string& regname);
 
 private:
     //! stats on a single process
@@ -62,16 +68,30 @@ private:
     };
 
     std::string fname;
-    bool running;
     int global_depth;
+    std::vector<Stats*> stats;
 
+    static std::vector<std::string> regionstack;
     static std::stack<std::pair<Real,Real> > ttstack;
-    static std::map<std::string, Stats> statsmap;
+    static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static Real t_init;
 
 #ifdef AMREX_USE_CUDA
     nvtxRangeId_t nvtx_id;
 #endif
+
+    static void PrintStats(std::map<std::string,Stats>& regstats, Real dt_max);
+};
+
+class TinyProfileRegion
+{
+public:
+    TinyProfileRegion (std::string a_regname);
+    TinyProfileRegion (const char* a_regname);
+    ~TinyProfileRegion ();
+private:
+    std::string regname;
+    TinyProfiler tprof;
 };
 
 }

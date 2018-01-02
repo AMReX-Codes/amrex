@@ -4,8 +4,9 @@
 #include <AMReX_SPACE.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_MacBndry.H>
+#include <AMReX_BndryRegister.H>
 #include <AMReX_YAFluxRegister.H>
+#include <AMReX_MLMGBndry.H>
 
 namespace amrex {
 
@@ -18,7 +19,7 @@ struct LPInfo
     bool has_metric_term = true;
 
     LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
-    LPInfo& setConsolidation (bool x) { do_agglomeration = x; return *this; }
+    LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
     LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
     LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
     LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
@@ -32,7 +33,7 @@ public:
     friend class MLCGSolver;
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
-    enum struct BCType { Dirichlet, Neumann, ReflectOdd, Periodic, Bogus };
+    using BCType = LinOpBCType;
 
     MLLinOp () {}
     MLLinOp (const Vector<Geometry>& a_geom,
@@ -67,7 +68,7 @@ public:
     // resolution.  If this is called, it *MUST* be called before
     // `setLevelBC`.  If crse is nullptr, then bc value is assumed to
     // be zero.
-    void setBCWithCoarseData (const MultiFab* crse, int crse_ratio);
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio);
 
     // Must be called for each level.  Argument `levelbcdata` is used
     // to supply Dirichlet bc at the physical domain.  However, even
@@ -125,17 +126,17 @@ protected:
     std::unique_ptr<CommContainer> m_raii_comm;
 
     // BC
-    std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
-    std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::Bogus,BCType::Bogus,BCType::Bogus)}};
+    std::array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
+    std::array<BCType, AMREX_SPACEDIM> m_hibc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};
 
     bool m_needs_coarse_data_for_bc;
     int m_coarse_data_crse_ratio;
     const MultiFab* m_coarse_data_for_bc = nullptr;
 
-    Vector<std::unique_ptr<MacBndry> >   m_bndry_sol;
+    Vector<std::unique_ptr<MLMGBndry> >   m_bndry_sol;
     Vector<std::unique_ptr<BndryRegister> > m_crse_sol_br;
 
-    Vector<std::unique_ptr<MacBndry> > m_bndry_cor;
+    Vector<std::unique_ptr<MLMGBndry> > m_bndry_cor;
     Vector<std::unique_ptr<BndryRegister> > m_crse_cor_br;
 
     // In case of agglomeration, coarse MG grids on amr level 0 are
@@ -147,8 +148,10 @@ protected:
     {
     public:
         BndryCondLoc (const BoxArray& ba, const DistributionMapping& dm);
-        void setBndryConds (const Geometry& geom, const Real* dx,
-                            const BCRec& phys_bc, int ratio);
+        void setLOBndryConds (const Geometry& geom, const Real* dx,
+                              const std::array<BCType,AMREX_SPACEDIM>& lobc,
+                              const std::array<BCType,AMREX_SPACEDIM>& hibc,
+                              int ratio);
         const BCTuple& bndryConds (const MFIter& mfi) const {
             return bcond[mfi];
         }
@@ -228,9 +231,9 @@ protected:
     void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                              BCMode bc_mode, const MultiFab* crse_bcdata=nullptr);
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                const MacBndry* bndry=nullptr) const;
+                const MLMGBndry* bndry=nullptr) const;
     void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
-                  const MacBndry* bndry=nullptr, bool skip_fillboundary=false) const;
+                  const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const;
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                  bool skip_fillboundary=false) const;
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
@@ -260,8 +263,9 @@ private:
                       const Vector<DistributionMapping>& a_dmap);
     void defineAuxData ();
     void defineBC ();
-    static DistributionMapping makeConsolidatedDMap (const BoxArray& ba);
-    static DistributionMapping makeConsolidatedDMap (const DistributionMapping& fdm);
+    static void makeAgglomeratedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm);
+    static void makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm,
+                                      int ratio, int strategy);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
 };
 

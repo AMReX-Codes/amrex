@@ -19,6 +19,7 @@ using std::ios;
 #include <AMReX_VisMF.H>
 #include <AMReX_AVGDOWN_F.H>
 #include "AMReX_ArrayLim.H"
+#include "DebugDump.H"
 #include <iomanip>
 
 #ifndef NDEBUG
@@ -477,7 +478,7 @@ main (int   argc,
       Real order;
       Real finenorm = normsMedi[icomp];
       Real coarnorm = normsCoar[icomp];
-      if(std::abs(finenorm) > 1.0e-12)
+      if(std::abs(finenorm) > 1.0e-40)
       {
         order = log(std::abs(coarnorm/finenorm))/log(2.0);
         printOrder = true;

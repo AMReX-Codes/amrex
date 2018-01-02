@@ -122,6 +122,7 @@ class FabArray
 {
 public:
     friend class Action;
+    friend class AmrTask;
     template <class T>
     friend class MFGraph;
 
@@ -168,10 +169,10 @@ public:
     virtual ~FabArray ();
 
     FabArray (FabArray<FAB>&& rhs) noexcept;
+    FabArray<FAB>& operator= (FabArray<FAB>&& rhs) noexcept;
 
     FabArray (const FabArray<FAB>& rhs) = delete;
     FabArray<FAB>& operator= (const FabArray<FAB>& rhs) = delete;
-    FabArray<FAB>& operator= (FabArray<FAB>&& rhs) = delete;
 
     /**
     * \brief Define this FabArray identically to that performed by
@@ -533,9 +534,24 @@ protected:
 	    rhs.win = MPI_WIN_NULL;
 #endif
 	}
+	ShMem& operator= (ShMem&& rhs) noexcept {
+            if (&rhs != this) {
+                alloc = rhs.alloc;
+                n_values = rhs.n_values;
+                n_points = rhs.n_points;
+                rhs.alloc = false;
+#ifdef BL_USE_UPCXX
+                p = rhs.p;
+                rhs.p = nullptr;
+#elif defined(BL_USE_MPI3)
+                win = rhs.win;
+                rhs.win = MPI_WIN_NULL;
+#endif                
+            }
+            return *this;
+        }
 	ShMem (const ShMem&) = delete;
 	ShMem& operator= (const ShMem&) = delete;
-	ShMem& operator= (ShMem&&) = delete;
 	bool  alloc;
 	long  n_values;
 	long  n_points;
@@ -605,7 +621,7 @@ public:
     Periodicity fb_period;
 
     //
-    char*              fb_the_recv_data;
+    char*               fb_the_recv_data;
     Vector<int>         fb_recv_from;
     Vector<char*>       fb_recv_data;
     Vector<int>         fb_recv_size;
@@ -616,7 +632,7 @@ public:
     //
     Vector<char*>       fb_send_data;
     Vector<MPI_Request> fb_send_reqs;
-    int                fb_tag;
+    int                 fb_tag;
 };
 
 #ifdef BL_USE_MPI
@@ -845,16 +861,43 @@ FabArray<FAB>::clear ()
 {
     if (define_function_called)
     {
+        define_function_called = false;
         clearThisBD();  // addThisBD is called in define
+
+	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
+	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
+	if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
+#ifdef DEBUG_AFAP
+	    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
+		std::cout << "**** In FabArray::clear():: map not found:  size = "
+			  << distributionMap.size() << std::endl;
+	    }
+#endif
+	} else {
+	    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
+	    faPtrCachedMap.erase(aFAPId);
+#ifdef DEBUG_AFAP
+	    if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
+		std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
+			  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
+	    }
+#endif
+	    if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
+		FabArray<FAB>::allocatedFAPointers.erase(afapIter);
+	    }
+	}
+
+	noallocFAPIds.erase(aFAPId);
     }
 
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
         delete *it;
     }
-
     m_fabs_v.clear();
-    boxarray.clear();
     m_factory.reset();
+    // no need to clear the non-blocking fillboundary stuff
+
+    FabArrayBase::clear();
 }
 
 template <class FAB>
@@ -941,49 +984,42 @@ template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (std::move(rhs))
     , m_factory    (std::move(rhs.m_factory))
+    , define_function_called(rhs.define_function_called)
     , m_fabs_v     (std::move(rhs.m_fabs_v))
     , shmem        (std::move(rhs.shmem))
     // no need to worry about the data used in non-blocking FillBoundary.
 {
     m_FA_stats.recordBuild();
-    rhs.m_fabs_v.clear();
-    rhs.boxarray.clear();
-    rhs.m_factory.reset();
+    rhs.define_function_called = false; // the responsibility of clear BD has been transferred.
+    rhs.m_fabs_v.clear(); // clear the data pointers so that rhs.clear does delete them.
+    rhs.clear();
+}
+
+template <class FAB>
+FabArray<FAB>&
+FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
+{
+    if (&rhs != this)
+    {
+        clear();
+
+        FabArrayBase::operator=(std::move(rhs));
+        m_factory = std::move(rhs.m_factory);
+        define_function_called = rhs.define_function_called;
+        std::swap(m_fabs_v,rhs.m_fabs_v);
+        shmem = std::move(rhs.shmem);
+
+        rhs.define_function_called = false;
+        rhs.m_fabs_v.clear();
+        rhs.clear();
+    }
+    return *this;
 }
 
 template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
     m_FA_stats.recordDelete();
-
-    if (define_function_called)
-    {
-	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
-	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-	if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-#ifdef DEBUG_AFAP
-	    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
-		std::cout << "**** In FabArray::clear():: map not found:  size = "
-			  << distributionMap.size() << std::endl;
-	    }
-#endif
-	} else {
-	    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
-	    faPtrCachedMap.erase(aFAPId);
-#ifdef DEBUG_AFAP
-	    if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
-		std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
-			  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
-	    }
-#endif
-	    if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
-		FabArray<FAB>::allocatedFAPointers.erase(afapIter);
-	    }
-	}
-
-	noallocFAPIds.erase(aFAPId);
-    }
-
     clear();
 }
 
@@ -1020,8 +1056,14 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 		       int                        nvar,
 		       int                        ngrow,
 		       const MFInfo&              info,
-                       const FabFactory<FAB>&     factory)
+                       const FabFactory<FAB>&     a_factory)
 {
+    std::unique_ptr<FabFactory<FAB> > factory(a_factory.clone());
+
+    clear();
+
+    m_factory = std::move(factory);
+
     define_function_called = true;
 
     BL_ASSERT(ngrow >= 0);
@@ -1031,7 +1073,7 @@ FabArray<FAB>::define (const BoxArray&            bxs,
     addThisBD();
 
     if(info.alloc) {
-        AllocFabs(factory);
+        AllocFabs(*m_factory);
     }
 
     typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
@@ -1071,15 +1113,13 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
     FabInfo fab_info;
     fab_info.SetAlloc(alloc).SetShared(shmem.alloc);
 
-    m_factory.reset(factory.clone());    
-
     m_fabs_v.reserve(n);
 
     for (int i = 0; i < n; ++i)
     {
 	int K = indexArray[i];
         const Box& tmpbox = fabbox(K);
-        m_fabs_v.push_back(m_factory->create(tmpbox, n_comp, fab_info, K));
+        m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
     }
     
 #ifdef BL_USE_TEAM
@@ -1268,16 +1308,19 @@ FabArray<FAB>::setDomainBndry (value_type val,
                                int        ncomp,
                                const Geometry& geom)
 {
-    if (n_grow > 0)
-    {
-        const Box& domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
+    Box domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            int n = domain_box.length(idim);
+            domain_box.grow(idim, n);
+        }
+    }
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter fai(*this); fai.isValid(); ++fai)
-        {
-            get(fai).setComplement(val, domain_box, strt_comp, ncomp);
-        }
+    for (MFIter fai(*this); fai.isValid(); ++fai)
+    {
+        get(fai).setComplement(val, domain_box, strt_comp, ncomp);
     }
 }
 

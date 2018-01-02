@@ -186,8 +186,10 @@ namespace amrex{
 	    std::queue<Data*> _outputs;
 	    std::queue<Task*> _newTasks;
 	    bool _isPersistent;
+	    bool _isMasterTask;
 	public:
-	    Task():_isPersistent(false){}
+	    Task():_isPersistent(true),_isMasterTask(false){}
+	    Task(TaskName name):_isPersistent(true),_isMasterTask(false){_id= name;}
 	    //Describe Data Dependency
 	    virtual bool Dependency()=0;
 	    //! What the task is supposed to do
@@ -196,6 +198,7 @@ namespace amrex{
 	    virtual void PostCompletion()=0;
 	    TaskName MyName(){return _id;}
 	    void SetName(TaskName id){ _id=id;}
+	    void SetMaster(){_isMasterTask=true;}
 
 	    bool TestDependencies(){return Dependency();}
 	    void RunJob(){Job();}
@@ -211,12 +214,16 @@ namespace amrex{
 	    void KeepTaskAlive(){_isPersistent=true;}
 	    void SelfDestroy(){_isPersistent=false;}
 	    bool isPersistent(){return _isPersistent;}
+	    bool isMasterTask(){return _isMasterTask;}
 
 	    template<typename T> void LocalAtomicAdd(T *addr, T val){
 		LocalAtomicAdd_impl(addr, val);
 	    }
 	    template<typename T> void GlobalAtomicAdd(T *addr, T val){
 		GlobalAtomicAdd_impl(addr, val);
+	    }
+	    void barrierTask(){
+		//BarrierTask_impl();
 	    }
 	    void RegisterTask(Task* t){
 		_newTasks.push(t);

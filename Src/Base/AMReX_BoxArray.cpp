@@ -10,6 +10,10 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace amrex {
 
 #ifdef BL_MEM_PROFILING
@@ -628,6 +632,38 @@ BoxArray::grow (int dir,
 }
 
 BoxArray&
+BoxArray::growLo (int dir,
+                  int n_cell)
+{
+    uniqify();
+
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++) {
+        m_ref->m_abox[i].growLo(dir, n_cell);
+    }
+    return *this;
+}
+
+BoxArray&
+BoxArray::growHi (int dir,
+                  int n_cell)
+{
+    uniqify();
+
+    const int N = m_ref->m_abox.size();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < N; i++) {
+        m_ref->m_abox[i].growHi(dir, n_cell);
+    }
+    return *this;
+}
+
+BoxArray&
 BoxArray::surroundingNodes ()
 {
     
@@ -883,10 +919,42 @@ BoxArray::minimalBox () const
     const int N = size();
     if (N > 0)
     {
-        minbox = m_ref->m_abox[0];
-	for (int i = 1; i < N; ++i) {
-            minbox.minBox(m_ref->m_abox[i]);
-        }
+#ifdef _OPENMP
+	bool use_single_thread = omp_in_parallel();
+	const int nthreads = use_single_thread ? 1 : omp_get_max_threads();
+#else
+	bool use_single_thread = true;
+	const int nthreads = 1;
+#endif
+	if (use_single_thread)
+	{
+	    minbox = m_ref->m_abox[0];
+	    for (int i = 1; i < N; ++i) {
+		minbox.minBox(m_ref->m_abox[i]);
+	    }
+	}
+	else
+	{
+	    Vector<Box> bxs(nthreads, m_ref->m_abox[0]);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+	    {
+#ifndef _OPENMP
+		int tid = 0;
+#else
+		int tid = omp_get_thread_num();
+#pragma omp for
+#endif
+		for (int i = 0; i < N; ++i) {
+		    bxs[tid].minBox(m_ref->m_abox[i]);
+		}
+	    }
+	    minbox = bxs[0];
+	    for (int i = 1; i < nthreads; ++i) {
+		minbox.minBox(bxs[i]);
+	    }
+	}
     }
     minbox.coarsen(m_crse_ratio).convert(ixType());
     return minbox;
@@ -986,7 +1054,16 @@ BoxArray::intersections (const Box&                         bx,
 BoxList
 BoxArray::complementIn (const Box& bx) const
 {
-    BoxList bl(bx);
+    BoxList bl(bx.ixType());
+    complementIn(bl, bx);
+    return bl;
+}
+
+void
+BoxArray::complementIn (BoxList& bl, const Box& bx) const
+{
+    bl.clear();
+    bl.push_back(bx);
 
     if (!empty()) 
     {
@@ -1010,7 +1087,7 @@ BoxArray::complementIn (const Box& bx) const
         Box cbx(sm,bg);
         cbx.normalize();
 
-	if (!cbx.intersects(m_ref->bbox)) return bl;
+	if (!cbx.intersects(m_ref->bbox)) return;
 
 	auto TheEnd = BoxHashMap.cend();
 
@@ -1035,14 +1112,12 @@ BoxArray::complementIn (const Box& bx) const
                             const BoxList& diff = amrex::boxDiff(b, isect);
                             newbl.join(diff);
                         }
-                        std::swap(bl,newbl);
+                        bl.swap(newbl);
                     }
                 }
             }
         }
     }
-
-    return bl;
 }
 
 void

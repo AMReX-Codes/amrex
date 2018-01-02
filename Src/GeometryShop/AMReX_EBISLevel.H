@@ -26,6 +26,8 @@
 #include "AMReX_EBISLayout.H"
 #include "AMReX_EBIndexSpace.H"
 #include "AMReX_GeometryService.H"
+#include "AMReX_LayoutData.H"
+#include "AMReX_GeomIntersectUtils.H"
 
 namespace amrex
 {
@@ -139,6 +141,10 @@ namespace amrex
 
     const FabArray<EBGraph>& getGraph () const { return m_graph; }
 
+  protected:
+
+    void buildEBSurface(const GeometryService & a_geoserver);
+
   private:
     int m_nCellMax;
      
@@ -161,6 +167,11 @@ namespace amrex
     ///
     FabArray<EBData>  m_data;
 
+    ///
+    LayoutData<NodeMap> m_intersections;
+
+    ///
+    bool m_build_eb_surface;
 
     void defineFromGeometryService(const GeometryService &  a_geoserver);
     void coarsenVoFsAndFaces(EBISLevel& a_fineEBIS);

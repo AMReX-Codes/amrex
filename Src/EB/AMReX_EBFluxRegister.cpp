@@ -34,8 +34,7 @@ EBFluxRegister::defineExtra (const BoxArray& fba, const DistributionMapping& fdm
 {
     BoxArray cfba = fba;
     cfba.coarsen(m_ratio);
-    m_cfp_inside_mask.define(cfba, fdm, 1, 0);
-
+    m_cfp_inside_mask.define(cfba, fdm, 1, 0, MFInfo(),DefaultFabFactory<IArrayBox>());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -213,7 +212,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
 
     {
         MultiFab grown_crse_data(m_crse_data.boxArray(), m_crse_data.DistributionMap(),
-                                 m_ncomp, 1);
+                                 m_ncomp, 1, MFInfo(), FArrayBoxFactory());
         MultiFab::Copy(grown_crse_data, m_crse_data, 0, 0, m_ncomp, 0);
         grown_crse_data.FillBoundary(m_crse_geom.periodicity());
         
@@ -264,7 +263,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
     // The fine-covered cells of m_crse_data contain the data that should go to the fine level
     BoxArray ba = fine_state.boxArray();
     ba.coarsen(m_ratio);
-    MultiFab cf(ba, fine_state.DistributionMap(), m_ncomp, 0);
+    MultiFab cf(ba, fine_state.DistributionMap(), m_ncomp, 0, MFInfo(), FArrayBoxFactory());
     cf.ParallelCopy(m_crse_data);
 
 #ifdef _OPENMP

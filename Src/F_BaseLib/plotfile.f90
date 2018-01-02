@@ -59,8 +59,8 @@ module plotfile_module
      integer :: flevel = 0
      real(kind=dp_t) :: tm
      integer, pointer :: refrat(:,:) => Null()
-     real(kind=dp_t), pointer :: phi(:)
-     real(kind=dp_t), pointer :: plo(:)
+     real(kind=dp_t), pointer :: phi(:) => Null()
+     real(kind=dp_t), pointer :: plo(:) => Null()
   end type plotfile
 
   interface nboxes
@@ -359,6 +359,10 @@ contains
       read(unit=lun, fmt=*) pf%flevel
       pf%flevel = pf%flevel + 1
 
+      if (pf%flevel .eq. 0) then
+         return
+      end if
+
       allocate(pf%grids(pf%flevel), pf%plo(pf%dim), pf%phi(pf%dim))
 
       read(unit=lun, fmt=*) pf%plo, pf%phi
@@ -456,10 +460,21 @@ contains
        end do
        deallocate(pf%grids(i)%fabs)
     end do
-    deallocate(pf%refrat)
-    deallocate(pf%names)
-    deallocate(pf%grids)
-    deallocate(pf%plo, pf%phi)
+    if (associated(pf%refrat)) then
+       deallocate(pf%refrat)
+    end if
+    if (associated(pf%names)) then
+       deallocate(pf%names)
+    end if
+    if (associated(pf%grids)) then
+       deallocate(pf%grids)
+    end if
+    if (associated(pf%plo)) then
+       deallocate(pf%plo)
+    end if
+    if (associated(pf%phi)) then
+       deallocate(pf%phi)
+    end if
   end subroutine plotfile_destroy
 
   subroutine fab_bind_level_comp(pf, i, c)

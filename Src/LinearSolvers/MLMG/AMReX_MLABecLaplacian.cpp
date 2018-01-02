@@ -82,6 +82,8 @@ MLABecLaplacian::setBCoeffs (int amrlev,
 void
 MLABecLaplacian::averageDownCoeffs ()
 {
+    BL_PROFILE("MLABecLaplacian::averageDownCoeffs()");
+
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
     {
         auto& fine_a_coeffs = m_a_coeffs[amrlev];
@@ -205,8 +207,8 @@ MLABecLaplacian::prepareForSolve ()
                 }
                 else
                 {
-                    Real asum = m_a_coeffs[alev][0].sum();
-                    Real amax = m_a_coeffs[alev][0].norm0();
+                    Real asum = m_a_coeffs[alev].back().sum();
+                    Real amax = m_a_coeffs[alev].back().norm0();
                     m_is_singular[alev] = (asum <= amax * 1.e-12);
                 }
             }

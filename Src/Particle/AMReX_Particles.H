@@ -32,7 +32,7 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_NFiles.H>
-
+#include <AMReX_VectorIO.H>
 #include <AMReX_Particles_F.H>
 
 #ifdef BL_LAZY
@@ -466,6 +466,12 @@ public:
     using ParticleType = Particle<NStructReal, NStructInt>;
     using RealType = typename Particle<NStructReal, NStructInt>::RealType;
 
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+    RealDescriptor ParticleRealDescriptor = FPC::Native32RealDescriptor();
+#else
+    RealDescriptor ParticleRealDescriptor = FPC::NativeRealDescriptor();
+#endif
+    
     using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -710,15 +716,29 @@ public:
     //
     void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
 
+    void WriteParticleRealData (void* data, size_t size,
+                                std::ostream& os, const RealDescriptor& rd) const;
+
+    void ReadParticleRealData (void* data, size_t size,
+                               std::istream& is, const RealDescriptor& rd);
+
     void Checkpoint (const std::string& dir, const std::string& name, bool is_checkpoint = true,
                      const Vector<std::string>& real_comp_names = Vector<std::string>(),
                      const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
+
+    void CheckpointPre ();
+
+    void CheckpointPost ();
 
     void Restart (const std::string& dir, const std::string& file, bool is_checkpoint = true);
 
     void WritePlotFile (const std::string& dir, const std::string& name, 
                         const Vector<std::string>& real_comp_names = Vector<std::string>(),
                         const Vector<std::string>&  int_comp_names = Vector<std::string>()) const;
+
+    void WritePlotFilePre ();
+
+    void WritePlotFilePost ();
 
     void WriteAsciiFile (const std::string& file);
 
@@ -776,8 +796,9 @@ public:
     // that have left the domain. May need work (see inline comments)
     //
 
-    ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true) const; 
-
+    ParticleLocData Reset (ParticleType& prt, bool update, bool verbose=true,
+                           ParticleLocData pld = ParticleLocData()) const; 
+    
     //
     // Returns true if the particle was shifted.
     //
@@ -831,6 +852,25 @@ public:
 
     static bool do_tiling;
     static IntVect tile_size;
+    
+    void SetLevelDirectoriesCreated(bool tf) {
+      levelDirectoriesCreated = tf;
+    }
+
+    void SetUsePrePost(bool tf) {
+      usePrePost = tf;
+    }
+    bool GetUsePrePost() {
+      return usePrePost;
+    }
+
+    void SetUseUnlink(bool tf) {
+      doUnlink = tf;
+    }
+    bool GetUseUnlink() {
+      return doUnlink;
+    }
+
 
 protected:
 
@@ -876,6 +916,21 @@ protected:
     ParGDBBase* m_gdb;
     bool        allow_particles_near_boundary;
     ParGDB      m_gdb_object;
+
+    // ---- variables for i/o optimization saved for pre and post checkpoint
+    bool         levelDirectoriesCreated;
+    bool         usePrePost;
+    bool         doUnlink;
+    int maxnextidPrePost;
+    mutable int nOutFilesPrePost;
+    long nparticlesPrePost;
+    Vector<long> nParticlesAtLevelPrePost;  // ---- [level]
+    mutable Vector<Vector<int>>  whichPrePost;  // ---- [level]
+    mutable Vector<Vector<int>>  countPrePost;  // ---- [level]
+    mutable Vector<Vector<long>> wherePrePost;  // ---- [level]
+    mutable std::string HdrFileNamePrePost;
+    mutable Vector<std::string> filePrefixPrePost;
+
     
 private:
     void AssignDensityDoit (int rho_index, 

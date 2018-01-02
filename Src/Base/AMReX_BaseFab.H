@@ -2756,9 +2756,19 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
                        int               comp,
                        int               numcomp)
 {
+  Real tol = 1.0e-16;
+  if(std::abs(t2-t1) > tol)
+  {
     Real alpha = (t2-t)/(t2-t1);
     Real beta = (t-t1)/(t2-t1);
+
     return linComb(f1,b,comp1,f2,b,comp2,alpha,beta,b,comp,numcomp);
+  }
+  else
+  {
+    copy(f1);
+  }
+  return *this;
 }
 
 //

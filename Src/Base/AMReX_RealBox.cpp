@@ -180,6 +180,13 @@ RealBox::ok () const
    ;
 }
 
+Real
+RealBox::volume () const
+{
+    if (ok()) return AMREX_D_TERM(length(0), *length(1), *length(2));
+    return 0.0;
+}
+
 bool
 RealBox::contains (const Real* point, Real eps) const
 {

@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <chrono>
+#include <type_traits>
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -305,6 +307,11 @@ namespace amrex
                                       int myLocalId, int rootId, const MPI_Comm &localComm);
     void USleep(double sleepsec);
 
+
+    using MaxResSteadyClock = std::conditional<std::chrono::high_resolution_clock::is_steady,
+                                               std::chrono::high_resolution_clock,
+                                               std::chrono::steady_clock>::type;
+    double second ();
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)

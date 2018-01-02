@@ -42,7 +42,7 @@ Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_rela, Real a_tol_abs)
 {
-    BL_PROFILE("MLMG::solve()");
+    BL_PROFILE_REGION("MLMG::solve()");
 
     Real solve_start_time = ParallelDescriptor::second();
 
@@ -843,6 +843,8 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
 void
 MLMG::fillSolutionBC ()
 {
+    BL_PROFILE("MLMG::fillSolutionBC()");
+
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;

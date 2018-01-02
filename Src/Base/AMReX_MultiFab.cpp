@@ -438,6 +438,15 @@ MultiFab::MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp
 #endif
 }
 
+MultiFab::MultiFab (MultiFab&& rhs) noexcept
+    : FabArray<FArrayBox>(std::move(rhs))
+{
+#ifdef BL_MEM_PROFILING
+    ++num_multifabs;
+    num_multifabs_hwm = std::max(num_multifabs_hwm, num_multifabs);
+#endif
+}
+
 MultiFab::~MultiFab()
 {
 #ifdef BL_MEM_PROFILING
@@ -1034,7 +1043,6 @@ MultiFab::norm1 (int comp, const Periodicity& period) const
 Real
 MultiFab::norm1 (int comp, int ngrow, bool local) const
 {
-    BL_ASSERT(ixType().cellCentered());
     
     Real nm1 = 0.e0;
 
