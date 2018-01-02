@@ -1,6 +1,6 @@
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-bool 
+bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = false;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -125,46 +125,40 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Where (const 
   BL_ASSERT(lev_max <= finestLevel());
 
   BL_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
-  
+
   std::vector< std::pair<int, Box> > isects;
   
-  for (int lev = lev_max; lev >= lev_min; lev--)
-    {
-        const IntVect& iv = Index(p, lev);
-        const BoxArray& ba = ParticleBoxArray(lev);
-        BL_ASSERT(ba.ixType().cellCentered());
+  for (int lev = lev_max; lev >= lev_min; lev--) {
+      const IntVect& iv = Index(p, lev);
+      if (lev == pld.m_lev) {
+          // The fact that we are here means this particle does not belong to any finer grids.
+          if (pld.m_grid >= 0) {
+              if (pld.m_grown_gridbox.contains(iv)) {
+                  pld.m_cell = iv;
+                  if (!pld.m_tilebox.contains(iv)) {
+                      pld.m_tile = getTileIndex(iv, pld.m_gridbox, pld.m_tilebox);
+                  }
+                  return true;
+              }
+          }
+      }
 
-        if (lev == pld.m_lev) {
-            // The fact that we are here means this particle does not belong to any finer grids.
-            if (0 <= pld.m_grid && pld.m_grid < ba.size())
-            {
-                const Box& bx = ba.getCellCenteredBox(pld.m_grid);
-                const Box& gbx = amrex::grow(bx,nGrow);
-                if (gbx.contains(iv))
-                {
-                    pld.m_cell = iv;
-                    if (bx != pld.m_gridbox || !pld.m_tilebox.contains(iv)) {
-                        pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
-                        pld.m_gridbox = bx;
-                    }
-                    return true;
-                }
-            }
-        }
-
-        ba.intersections(Box(iv, iv), isects, true, nGrow);
-
-        if (!isects.empty())
-        {
-	  const Box& bx = ba.getCellCenteredBox(isects[0].first);
+      const BoxArray& ba = ParticleBoxArray(lev);
+      BL_ASSERT(ba.ixType().cellCentered());      
+      ba.intersections(Box(iv, iv), isects, true, nGrow);
+      
+      if (!isects.empty()) {
+          const Box& bx = ba.getCellCenteredBox(isects[0].first);
 	  pld.m_lev  = lev;
 	  pld.m_grid = isects[0].first;
 	  pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
 	  pld.m_cell = iv;
 	  pld.m_gridbox = bx;
+          pld.m_grown_gridbox = amrex::grow(bx, nGrow);
 	  return true;
-        }
-    }
+      }
+  }
+
   return false;
 }
 
@@ -184,42 +178,35 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::EnforcePeriod
 
     BL_ASSERT(lev_max <= finestLevel());
 
-    //
     // Create a copy "dummy" particle to check for periodic outs.
-    //
     ParticleType p_prime = p;
-
-    if (PeriodicShift(p_prime))
-    {
+    if (PeriodicShift(p_prime)) {
         std::vector< std::pair<int,Box> > isects;
-
-        for (int lev = lev_max; lev >= lev_min; lev--)
-        {
+        for (int lev = lev_max; lev >= lev_min; lev--) {
             const IntVect& iv = Index(p_prime, lev);
             const BoxArray& ba = ParticleBoxArray(lev);
             BL_ASSERT(ba.ixType().cellCentered());
-
+            
             ba.intersections(Box(iv,iv),isects,true,0);
-
-            if (!isects.empty())
-            {
+            
+            if (!isects.empty()) {
                 AMREX_D_TERM(p.m_rdata.pos[0] = p_prime.m_rdata.pos[0];,
-                       p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
-                       p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
-
+                             p.m_rdata.pos[1] = p_prime.m_rdata.pos[1];,
+                             p.m_rdata.pos[2] = p_prime.m_rdata.pos[2];);
+                
                 const Box& bx = ba.getCellCenteredBox(isects[0].first);
-
+                
                 pld.m_lev  = lev;
                 pld.m_grid = isects[0].first;
 		pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
                 pld.m_cell = iv;
                 pld.m_gridbox = bx;
-
+                pld.m_grown_gridbox = bx;
                 return true;
             }
         }
     }
-
+    
     return false;
 }
 
@@ -228,26 +215,19 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift (ParticleType& p) const
 {
-    //    BL_PROFILE("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift()");
-
-    //
     // This routine should only be called when Where() returns false.
-    //
     BL_ASSERT(m_gdb != 0);
-    //
+
     // We'll use level 0 stuff since ProbLo/ProbHi are the same for every level.
-    //
     const Geometry& geom    = Geom(0);
     const Box&      dmn     = geom.Domain();
     const IntVect&  iv      = Index(p, 0);
     bool            shifted = false;  
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
-    {
+    for (int i = 0; i < BL_SPACEDIM; i++) {
         if (!geom.isPeriodic(i)) continue;
 
-        if (iv[i] > dmn.bigEnd(i))
-        {
+        if (iv[i] > dmn.bigEnd(i)) {
             if (p.m_rdata.pos[i] == geom.ProbHi(i))
                 //
                 // Don't let particles lie exactly on the domain face.
@@ -255,21 +235,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift
                 // periodic shift will bring it back inside.
                 //
                 p.m_rdata.pos[i] += .125*geom.CellSize(i);
-
+            
             p.m_rdata.pos[i] -= geom.ProbLength(i);
-
+            
             if (p.m_rdata.pos[i] <= geom.ProbLo(i))
                 //
                 // This can happen due to precision issues.
                 //
                 p.m_rdata.pos[i] += .125*geom.CellSize(i);
-
+            
             BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));
-
+            
             shifted = true;
         }
-        else if (iv[i] < dmn.smallEnd(i))
-        {
+        else if (iv[i] < dmn.smallEnd(i)) {
             if (p.m_rdata.pos[i] == geom.ProbLo(i))
                 //
                 // Don't let particles lie exactly on the domain face.
@@ -277,17 +256,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::PeriodicShift
                 // periodic shift will bring it back inside.
                 //
                 p.m_rdata.pos[i] -= .125*geom.CellSize(i);
-
+            
             p.m_rdata.pos[i] += geom.ProbLength(i);
-
+            
             if (p.m_rdata.pos[i] >= geom.ProbHi(i))
                 //
                 // This can happen due to precision issues.
                 //
                 p.m_rdata.pos[i] -= .125*geom.CellSize(i);
-
+            
             BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
-
+            
             shifted = true;
         }
     }
@@ -403,6 +382,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticl
     if (!success)
     {
         success = (nGrow > 0) && Where(p, pld, lev_min, lev_min, nGrow);
+        pld.m_grown_gridbox = pld.m_gridbox; // reset grown box for subsequent calls.
     }
 
     if (!success)
@@ -1144,7 +1124,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
   
   // It is important to do this even if we don't have more levels because we may have changed the 
   // grids at this level in a regrid.
-  for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev) 
+  for (int lev = 0; lev < theEffectiveFinestLevel+1; ++lev)
       RedefineDummyMF(lev);
   
   int nlevs_particles;
@@ -1209,13 +1189,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
               auto& aos = pmap_it->second.GetArrayOfStructs();
               auto& soa = pmap_it->second.GetStructOfArrays();
               unsigned first = 0;
-              unsigned npart = aos.numParticles();
+              unsigned npart = aos.numParticles();              
               ParticleLocData pld;
               if (npart != 0) {
                   for (unsigned pindex = 0; pindex < npart; ++pindex) {
                       ParticleType& p = aos[pindex];
                       if (p.m_idata.id > 0) {
-                      
+
                           locateParticle(p, pld, lev_min, lev_max, nGrow);
                       
                           if (p.m_idata.id > 0) {
@@ -1240,8 +1220,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                                       // Invalidate the particle so we can reclaim its space.
                                       p.m_idata.id = -p.m_idata.id;
                                   }
-                               }
-
+                              }
                               else {
                                   auto& particles_to_send = tmp_remote[who][thread_num];
                                   auto old_size = particles_to_send.size();
@@ -1260,39 +1239,37 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                                           std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
                                           dst += sizeof(int);
                                       }
-                                   }
+                                  }
                                   // Invalidate the particle so we can reclaim its space.
                                   p.m_idata.id = -p.m_idata.id;
                               }
-                          }
-                      }
 
-                      // this is a valid particle
-                      if (p.m_idata.id > 0) {
-                          if (pindex != first) {
-                              aos[first] = p;
-                              for (int comp = 0; comp < NArrayReal; comp++)
-                                  soa.GetRealData(comp)[first] = soa.GetRealData(comp)[pindex];
-                              for (int comp = 0; comp < NArrayInt; comp++)
-                                  soa.GetIntData(comp)[first] = soa.GetIntData(comp)[pindex];
+                              // this is a valid particle
+                              if (p.m_idata.id > 0) {
+                                  if (pindex != first) {
+                                      aos[first] = p;
+                                      for (int comp = 0; comp < NArrayReal; comp++)
+                                          soa.GetRealData(comp)[first] = soa.GetRealData(comp)[pindex];
+                                      for (int comp = 0; comp < NArrayInt; comp++)
+                                          soa.GetIntData(comp)[first] = soa.GetIntData(comp)[pindex];
+                                  }
+                                  ++first;
+                              }
                           }
-                          ++first;
+                          
+                          aos().erase(aos().begin() + first, aos().begin() + npart);
+                          for (int comp = 0; comp < NArrayReal; comp++) {
+                              RealVector& rdata = soa.GetRealData(comp);
+                              rdata.erase(rdata.begin() + first, rdata.begin() + npart);
+                          }
+                          for (int comp = 0; comp < NArrayInt; comp++) {
+                              IntVector& idata = soa.GetIntData(comp);
+                              idata.erase(idata.begin() + first, idata.begin() + npart);
+                          }
                       }
-                  }
-              
-                  aos().erase(aos().begin() + first, aos().begin() + npart);
-                  for (int comp = 0; comp < NArrayReal; comp++) {
-                      RealVector& rdata = soa.GetRealData(comp);
-                      rdata.erase(rdata.begin() + first, rdata.begin() + npart);
-                  }
-                  for (int comp = 0; comp < NArrayInt; comp++) {
-                      IntVector& idata = soa.GetIntData(comp);
-                      idata.erase(idata.begin() + first, idata.begin() + npart);
                   }
               }
-           }
-        }
-    }
+          }
 
     for (int lev = lev_min; lev <= lev_max; lev++) {
         auto& pmap = m_particles[lev];

@@ -11,17 +11,20 @@ constexpr int MLLinOp::mg_box_min_width;
 
 MLLinOp::MLLinOp (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
-                  const Vector<DistributionMapping>& a_dmap)
+                  const Vector<DistributionMapping>& a_dmap,
+                  const LPInfo& a_info)
 {
-    define(a_geom, a_grids, a_dmap);
+    define(a_geom, a_grids, a_dmap, a_info);
 }
 
 void
 MLLinOp::define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
-                 const Vector<DistributionMapping>& a_dmap)
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info)
 {
     BL_PROFILE("MLLinOp::define()");
+    info = a_info;
     defineGrids(a_geom, a_grids, a_dmap);
     defineAuxData();
     defineBC();
@@ -40,6 +43,8 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     m_geom.resize(m_num_amr_levels);
     m_grids.resize(m_num_amr_levels);
     m_dmap.resize(m_num_amr_levels);
+
+    m_default_comm = ParallelDescriptor::Communicator();
 
     // fine amr levels
     for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev)
@@ -88,12 +93,14 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         m_domain_covered[amrlev] = (m_grids[amrlev][0].numPts() == m_geom[amrlev][0].Domain().numPts());
     }
 
-    if (do_agglomeration && m_domain_covered[0])
+    if (info.do_agglomeration && m_domain_covered[0])
     {
         Vector<Box> domainboxes;
         Box dbx = m_geom[0][0].Domain();
         Real nbxs = static_cast<Real>(m_grids[0][0].size());
-        Real threshold_npts = static_cast<Real>(AMREX_D_TERM(agg_grid_size,*agg_grid_size,*agg_grid_size));
+        Real threshold_npts = static_cast<Real>(AMREX_D_TERM(info.agg_grid_size,
+                                                             *info.agg_grid_size,
+                                                             *info.agg_grid_size));
         Vector<int> agg_flag;
         domainboxes.push_back(dbx);
         agg_flag.push_back(false);
@@ -116,10 +123,10 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 m_geom[0].emplace_back(domainboxes[lev]);
             
                 m_grids[0].emplace_back(domainboxes[lev]);
-                m_grids[0].back().maxSize(agg_grid_size);
+                m_grids[0].back().maxSize(info.agg_grid_size);
 
-                // no consolidation yet
-                m_dmap[0].emplace_back(m_grids[0].back());
+                const auto& dm = makeConsolidatedDMap(m_grids[0].back());
+                m_dmap[0].push_back(dm);
             }
             else
             {
@@ -138,6 +145,13 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
+        Real avg_npts, threshold_npts;
+        if (info.do_consolidation) {
+            avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelDescriptor::NProcs());
+            threshold_npts = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
+                                                            *info.con_grid_size,
+                                                            *info.con_grid_size));
+        }
         while (a_geom[0].Domain().coarsenable(rr)
                and a_grids[0].coarsenable(rr, mg_box_min_width))
         {
@@ -145,12 +159,37 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
             
             m_grids[0].push_back(a_grids[0]);
             m_grids[0].back().coarsen(rr);
-            
-            m_dmap[0].push_back(a_dmap[0]);
+
+            if (info.do_consolidation)
+            {
+                if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
+                {
+                    const auto& dm = makeConsolidatedDMap(m_dmap[0].back());
+                    m_dmap[0].push_back(dm);
+                }
+                else
+                {
+                    auto dm = m_dmap[0].back();
+                    m_dmap[0].push_back(dm);
+                }
+            }
+            else
+            {
+                m_dmap[0].push_back(a_dmap[0]);
+            }
             
             ++(m_num_mg_levels[0]);
             rr *= mg_coarsen_ratio;
         }
+    }
+
+    if (info.do_agglomeration || info.do_consolidation)
+    {
+        m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
+    }
+    else
+    {
+        m_bottom_comm = m_default_comm;
     }
 }
 
@@ -197,6 +236,22 @@ MLLinOp::defineAuxData ()
                                  m_geom[amrlev+1][0], m_geom[amrlev][0],
                                  ratio, amrlev+1, 1);
     }
+
+#if (AMREX_SPACEDIM != 3)
+    bool no_metric_term = Geometry::IsCartesian() || !info.has_metric_term;
+    m_metric_factor.resize(m_num_amr_levels);
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        m_metric_factor[amrlev].resize(m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        {
+            m_metric_factor[amrlev][mglev].reset(new MetricFactor(m_grids[amrlev][mglev],
+                                                                  m_dmap[amrlev][mglev],
+                                                                  m_geom[amrlev][mglev],
+                                                                  no_metric_term));
+        }
+    }
+#endif
 }
 
 void
@@ -354,7 +409,9 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
                                                               extent_rad, ncomp));
             }
             if (m_coarse_data_for_bc != nullptr) {
-                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1);
+                const Box& cbx = amrex::coarsen(m_geom[0][0].Domain(), m_coarse_data_crse_ratio);
+                m_crse_sol_br[amrlev]->copyFrom(*m_coarse_data_for_bc, 0, 0, 0, 1,
+                                                Geometry::periodicity(cbx));
             } else {
                 m_crse_sol_br[amrlev]->setVal(0.0);
             }
@@ -375,9 +432,11 @@ MLLinOp::setLevelBC (int amrlev, const MultiFab* a_levelbcdata)
         br_ref_ratio = m_amr_ref_ratio[amrlev-1];
     }
 
+    const Real* dx = m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
-        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], phys_bc, br_ref_ratio);
+        m_bcondloc[amrlev][mglev]->setBndryConds(m_geom[amrlev][mglev], dx,
+                                                 phys_bc, br_ref_ratio);
     }
 }
 
@@ -387,7 +446,7 @@ MLLinOp::updateSolBC (int amrlev, const MultiFab& crse_bcdata) const
     BL_PROFILE("MLLinOp::updateSolBC()");
 
     AMREX_ALWAYS_ASSERT(amrlev > 0);
-    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1, m_geom[amrlev-1][0].periodicity());
     m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
 }
 
@@ -396,7 +455,7 @@ MLLinOp::updateCorBC (int amrlev, const MultiFab& crse_bcdata) const
 {
     BL_PROFILE("MLLinOp::updateCorBC()");
     AMREX_ALWAYS_ASSERT(amrlev > 0);
-    m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1);
+    m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, 1, m_geom[amrlev-1][0].periodicity());
     m_bndry_cor[amrlev]->updateBndryValues(*m_crse_cor_br[amrlev], 0, 0, 1, m_amr_ref_ratio[amrlev-1]);
 }
 
@@ -411,6 +470,17 @@ MLLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const Multi
     const int mglev = 0;
     apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
     MultiFab::Xpay(resid, -1.0, b, 0, 0, resid.nComp(), 0);
+}
+
+void
+MLLinOp::fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata)
+{
+    BL_PROFILE("MLLinOp::fillSolutionBC()");
+    if (crse_bcdata != nullptr) {
+        updateSolBC(amrlev, *crse_bcdata);
+    }
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());    
 }
 
 void
@@ -607,6 +677,35 @@ MLLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxe
 }
 
 void
+MLLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
+{
+    BL_PROFILE("MLLinOp::compGrad()");
+
+    const int mglev = 0;
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+
+    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+    {
+        AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                     const Box& ybx = mfi.nodaltilebox(1);,
+                     const Box& zbx = mfi.nodaltilebox(2););
+        amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
+                                        BL_TO_FORTRAN_BOX(ybx),
+                                        BL_TO_FORTRAN_BOX(zbx)),
+                           BL_TO_FORTRAN_ANYD(sol[mfi]),
+                           AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
+                                        BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
+                           dxinv);
+    }
+}
+
+void
 MLLinOp::prepareForSolve ()
 {
     for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
@@ -657,11 +756,11 @@ MLLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionMappi
 }
 
 void
-MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc, int ratio)
+MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const Real* dx,
+                                      const BCRec& phys_bc, int ratio)
 {
     // Same as MacBndry::setBndryConds
 
-    const Real* dx     = geom.CellSize();
     const Box&  domain = geom.Domain();
 
 #ifdef _OPENMP
@@ -701,5 +800,203 @@ MLLinOp::BndryCondLoc::setBndryConds (const Geometry& geom, const BCRec& phys_bc
         }
     }
 }
+
+DistributionMapping
+MLLinOp::makeConsolidatedDMap (const BoxArray& ba)
+{
+    const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba);
+
+    const int nprocs = ParallelDescriptor::NProcs();
+    AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
+    const int nboxes = ba.size();
+
+    Vector<int> pmap(ba.size());
+    if (nboxes >= nprocs)
+    {
+        for (int iproc = 0; iproc < nprocs; ++iproc) {
+            for (int ibox : sfc[iproc]) {
+                pmap[ibox] = iproc;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < nboxes; ++i) { // after nboxes sfc[i] is empty
+            for (int ibox : sfc[i]) {
+                const int iproc = i;
+                pmap[ibox] = iproc;
+            }
+        }
+    }
+
+    return DistributionMapping{pmap};
+}
+
+DistributionMapping
+MLLinOp::makeConsolidatedDMap (const DistributionMapping& fdm)
+{
+    Vector<int> pmap = fdm.ProcessorMap();
+    for (auto& x: pmap) {
+        x /= 2;
+    }
+    return DistributionMapping{pmap};
+}
+
+MPI_Comm
+MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
+{
+#ifdef BL_USE_MPI
+    MPI_Comm newcomm;
+    MPI_Group defgrp, newgrp;
+
+    MPI_Comm_group(m_default_comm, &defgrp);
+
+    Array<int> newgrp_ranks = dm.ProcessorMap();
+    std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
+    auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
+    newgrp_ranks.erase(last, newgrp_ranks.end());
+    
+    MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+
+    MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
+    m_raii_comm.reset(new CommContainer(newcomm));
+
+    MPI_Group_free(&defgrp);
+    MPI_Group_free(&newgrp);
+
+    return newcomm;
+#else
+    return m_default_comm;
+#endif
+}
+
+void
+MLLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
+{
+#if (AMREX_SPACEDIM != 3)
+    
+    if (Geometry::IsCartesian() || !info.has_metric_term) return;
+
+    const auto& mfac = *m_metric_factor[amrlev][mglev];
+
+    int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.tilebox();
+        const Vector<Real>& r = (nextra==0) ? mfac.cellCenters(mfi) : mfac.cellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        const int rlo = vbx.loVect()[0];
+        const int rhi = vbx.hiVect()[0] + nextra;
+        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
+                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                   r.data(), &rlo, &rhi);
+    }
+#endif
+}
+
+void
+MLLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
+{
+#if (AMREX_SPACEDIM != 3)
+
+    if (Geometry::IsCartesian() || !info.has_metric_term) return;
+
+    const auto& mfac = *m_metric_factor[amrlev][mglev];
+
+    int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    {
+        const Box& tbx = mfi.tilebox();
+        const Vector<Real>& r = (nextra==0) ? mfac.invCellCenters(mfi) : mfac.invCellEdges(mfi);
+        const Box& vbx = mfi.validbox();
+        const int rlo = vbx.loVect()[0];
+        const int rhi = vbx.hiVect()[0] + nextra;
+        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
+                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
+                                   r.data(), &rlo, &rhi);
+    }
+#endif
+}
+
+#if (AMREX_SPACEDIM != 3)
+
+MLLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionMapping& dm,
+                                     const Geometry& geom, bool null_metric)
+    : r_cellcenter(ba,dm),
+      r_celledge(ba,dm),
+      inv_r_cellcenter(ba,dm),
+      inv_r_celledge(ba,dm)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(r_cellcenter); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+
+        if (null_metric)
+        {
+            const int N = bx.length(0);
+            auto& rcc = r_cellcenter[mfi];
+            rcc.resize(N, 1.0);
+            auto& rce = r_celledge[mfi];
+            rce.resize(N+1, 1.0);
+            auto& ircc = inv_r_cellcenter[mfi];
+            ircc.resize(N, 1.0);
+            auto& irce = inv_r_celledge[mfi];
+            irce.resize(N+1, 1.0);
+        }
+        else
+        {
+            auto& rcc = r_cellcenter[mfi];
+            geom.GetCellLoc(rcc, bx, 0);
+            
+            auto& rce = r_celledge[mfi];
+            geom.GetEdgeLoc(rce, bx, 0);
+            
+            auto& ircc = inv_r_cellcenter[mfi];
+            const int N = rcc.size();
+            ircc.resize(N);
+            for (int i = 0; i < N; ++i) {
+                ircc[i] = 1.0/rcc[i];
+            }
+            
+            auto& irce = inv_r_celledge[mfi];
+            irce.resize(N+1);
+            if (rce[0] == 0.0) {
+                irce[0] = 0.0;
+            } else {
+                irce[0] = 1.0/rce[0];
+            }
+            for (int i = 1; i < N+1; ++i) {
+                irce[i] = 1.0/rce[i];
+            }
+
+            if (Geometry::IsSPHERICAL()) {
+                for (auto& x : rcc) {
+                    x = x*x;
+                }
+                for (auto& x : rce) {
+                    x = x*x;
+                }
+                for (auto& x : ircc) {
+                    x = x*x;
+                }
+                for (auto& x : irce) {
+                    x = x*x;
+                }                    
+            }
+        }
+    }
+}
+
+#endif
 
 }

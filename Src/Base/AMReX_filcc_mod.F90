@@ -1,25 +1,34 @@
 
 #include "AMReX_BC_TYPES.H"
-#include "AMReX_CONSTANTS.H"
 
 module amrex_filcc_module
 
   use amrex_fort_module, only : amrex_real, amrex_spacedim, get_loop_bounds
+  use amrex_constants_module
 #ifdef AMREX_USE_CUDA
   use cuda_module, only: numBlocks, numThreads, cuda_stream
 #endif
 
   implicit none
 
+#ifndef AMREX_USE_CUDA
   interface amrex_filcc
      module procedure amrex_filcc_1
      module procedure amrex_filcc_n
   end interface amrex_filcc
+#endif
 
   private
-  public :: amrex_filcc, amrex_fab_filcc, filccn
+#ifndef AMREX_USE_CUDA
+  public :: amrex_filcc
+#endif
+  public :: amrex_fab_filcc, filccn
 
 contains
+
+  ! Old interfaces to filcc are unsupported with CUDA.
+
+#ifndef AMREX_USE_CUDA
 
   subroutine amrex_filcc_n(q,qlo,qhi,domlo,domhi,dx,xlo,bclo,bchi)
     integer, intent(in) :: qlo(4), qhi(4)
@@ -84,6 +93,8 @@ contains
 
 #endif
 
+#endif
+
   AMREX_LAUNCH subroutine amrex_fab_filcc (q, qlo, qhi, nq, domlo, domhi, dx, xlo, bc) &
        bind(c, name='amrex_fab_filcc')
 
@@ -111,11 +122,11 @@ contains
 
     integer,          intent(in   ) :: lo(3), hi(3)
     integer,          intent(in   ) :: q_lo(3), q_hi(3)
+    integer,          intent(in   ) :: ncomp
     integer,          intent(in   ) :: domlo(amrex_spacedim), domhi(amrex_spacedim)
     real(amrex_real), intent(in   ) :: xlo(amrex_spacedim), dx(amrex_spacedim)
     real(amrex_real), intent(inout) :: q(q_lo(1):q_hi(1),q_lo(2):q_hi(2),q_lo(3):q_hi(3),ncomp)
     integer,          intent(in   ) :: bc(amrex_spacedim,2,ncomp)
-    integer,          intent(in   ) :: ncomp
 
     integer :: ilo, ihi, jlo, jhi, klo, khi
     integer :: is, ie, js, je, ks, ke
@@ -124,17 +135,22 @@ contains
 
     is = max(q_lo(1), domlo(1))
     ie = min(q_hi(1), domhi(1))
-    js = max(q_lo(2), domlo(2))
-    je = min(q_hi(2), domhi(2))
-    ks = max(q_lo(3), domlo(3))
-    ke = min(q_hi(3), domhi(3))
-
     ilo = domlo(1)
     ihi = domhi(1)
+
+#if AMREX_SPACEDIM >= 2
+    js = max(q_lo(2), domlo(2))
+    je = min(q_hi(2), domhi(2))
     jlo = domlo(2)
     jhi = domhi(2)
+#endif
+
+#if AMREX_SPACEDIM == 3
+    ks = max(q_lo(3), domlo(3))
+    ke = min(q_hi(3), domhi(3))
     klo = domlo(3)
     khi = domhi(3)
+#endif
 
     do n = 1, ncomp
 
