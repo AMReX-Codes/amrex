@@ -237,6 +237,10 @@ class CommProfStats : public BLProfStats {
                               int cab, int row, int cage, int slot,
                               int cpu, int pid);
 
+    bool IsSend(const amrex::BLProfiler::CommFuncType &cft);
+    bool IsRecv(const amrex::BLProfiler::CommFuncType &cft);
+    bool IsBlockingRecv(const amrex::BLProfiler::CommFuncType &cft);
+
   private:
     int currentDataBlock;
     static int cpVersion, csSize, finestLevel, maxLevel;
@@ -262,9 +266,6 @@ class CommProfStats : public BLProfStats {
     void ReadCommStatsNoOpen(DataBlock &dBlock);  // files must be open already
     bool ReadCommStats(DataBlock &dBlock, const int nmessages);  // reads nmessages
     void ClearCommStats(DataBlock &dBlock);
-    bool IsSend(const amrex::BLProfiler::CommFuncType &cft);
-    bool IsRecv(const amrex::BLProfiler::CommFuncType &cft);
-    bool IsBlockingRecv(const amrex::BLProfiler::CommFuncType &cft);
 
     // ---- Edison support
     amrex::Vector<Real> edisonNodeFab;  // ---- not a fab yet

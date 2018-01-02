@@ -402,6 +402,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     MultiFab::Initialize();
     iMultiFab::Initialize();
     VisMF::Initialize();
+    BL_PROFILE_INITPARAMS();
 #endif
 
     std::cout << std::setprecision(10);

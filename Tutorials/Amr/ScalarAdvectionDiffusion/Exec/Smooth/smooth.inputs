@@ -1,6 +1,6 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
 max_step = 1000000
-max_step = 1
+max_step = 10
 
 stop_time = 7.0
 
@@ -22,8 +22,8 @@ amr.v              = 1       # verbosity in Amr
 #amr.grid_log         = grdlog  # name of grid logging file
 
 #this can be godunov, rk2, rk3, rk4
-adv.algorithm = "rk3"
-adv.use_limiting = false
+adv.algorithm = "rk4"
+adv.use_limiting = true
 adv.do_reflux= 1
 adv.use_fixed_dt = false
 
@@ -33,7 +33,7 @@ amr.max_level       = 1       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2000000 # how often to regrid
 amr.blocking_factor = 8       # block factor in grid generation
-amr.max_grid_size   = 1024
+amr.max_grid_size   = 16
 tag_domain_middle = 1
 # CHECKPOINT FILES
 amr.checkpoint_files_output = 0     # 0 will disable checkpoint files
