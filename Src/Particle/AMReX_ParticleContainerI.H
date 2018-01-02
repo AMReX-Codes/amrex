@@ -1269,7 +1269,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Redistribute 
                       }
                   }
               }
-          }
+           }
+       }
+    }
 
     for (int lev = lev_min; lev <= lev_max; lev++) {
         auto& pmap = m_particles[lev];
