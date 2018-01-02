@@ -870,6 +870,10 @@ Functions</h2></td></tr>
 <tr class="separator:af37f380f72af598af4865070235664c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a911442fbfdd591235baf90cac01d9856"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_box_array.html">BoxArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a911442fbfdd591235baf90cac01d9856">convert</a> (const <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> &amp;ba, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;typ)</td></tr>
 <tr class="separator:a911442fbfdd591235baf90cac01d9856"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a22ce5ec6a27aa7bce43ca708cec77023"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_box_array.html">BoxArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a22ce5ec6a27aa7bce43ca708cec77023">coarsen</a> (const <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> &amp;ba, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a3a6ea573223fb7730509e32b93601c15">ratio</a>)</td></tr>
+<tr class="separator:a22ce5ec6a27aa7bce43ca708cec77023"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a255709aafea190412cf8a963f450ebc9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_box_array.html">BoxArray</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a255709aafea190412cf8a963f450ebc9">coarsen</a> (const <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> &amp;ba, const <a class="el" href="classamrex_1_1_int_vect.html">IntVect</a> &amp;<a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#a3a6ea573223fb7730509e32b93601c15">ratio</a>)</td></tr>
+<tr class="separator:a255709aafea190412cf8a963f450ebc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a719e505b04b336141e1a9a6ab52ecbcd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classamrex_1_1_box_list.html">BoxList</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceamrex.html#a719e505b04b336141e1a9a6ab52ecbcd">GetBndryCells</a> (const <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> &amp;ba, int ngrow)</td></tr>
 <tr class="memdesc:a719e505b04b336141e1a9a6ab52ecbcd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the ghost cells of a given <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a>.  <a href="#a719e505b04b336141e1a9a6ab52ecbcd">More...</a><br/></td></tr>
 <tr class="separator:a719e505b04b336141e1a9a6ab52ecbcd"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -3299,7 +3303,7 @@ template&lt;class T , std::size_t N&gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Average fine cell-based <a class="el" href="classamrex_1_1_multi_fab.html" title="A collection (stored as an array) of FArrayBox objects. This class is useful for storing floating poi...">MultiFab</a> onto crse cell-centered <a class="el" href="classamrex_1_1_multi_fab.html" title="A collection (stored as an array) of FArrayBox objects. This class is useful for storing floating poi...">MultiFab</a> without volume weighting. This routine DOES NOT assume that the crse <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> is a coarsened version of the fine <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a>. </p>
+<p>Average <a class="el" href="classamrex_1_1_multi_fab.html" title="A collection (stored as an array) of FArrayBox objects. This class is useful for storing floating poi...">MultiFab</a> onto crse <a class="el" href="classamrex_1_1_multi_fab.html" title="A collection (stored as an array) of FArrayBox objects. This class is useful for storing floating poi...">MultiFab</a> without volume weighting. This routine DOES NOT assume that the crse <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> is a coarsened version of the fine <a class="el" href="classamrex_1_1_box_array.html">BoxArray</a>. Work for both cell-centered and nodal MultiFabs. </p>
 
 </div>
 </div>
@@ -4901,6 +4905,58 @@ template&lt;typename Key , typename T , class Compare &gt; </div>
 </div><div class="memdoc">
 
 <p>Coarsen <a class="el" href="classamrex_1_1_box.html" title="A Rectangular Domain on an Integer Lattice. ">Box</a> by given (positive) refinement ratio. NOTE: if type(dir) = CELL centered: lo &lt;- lo/ratio and hi &lt;- hi/ratio. NOTE: if type(dir) = NODE centered: lo &lt;- lo/ratio and hi &lt;- hi/ratio + ((hiratio)==0 ? 0 : 1). That is, refinement of coarsened <a class="el" href="classamrex_1_1_box.html" title="A Rectangular Domain on an Integer Lattice. ">Box</a> must contain the original <a class="el" href="classamrex_1_1_box.html" title="A Rectangular Domain on an Integer Lattice. ">Box</a>. </p>
+
+</div>
+</div>
+<a class="anchor" id="a22ce5ec6a27aa7bce43ca708cec77023"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> amrex::coarsen </td>
+          <td>(</td>
+          <td class="paramtype">const BoxArray &amp;&#160;</td>
+          <td class="paramname"><em>ba</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>ratio</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a255709aafea190412cf8a963f450ebc9"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classamrex_1_1_box_array.html">BoxArray</a> amrex::coarsen </td>
+          <td>(</td>
+          <td class="paramtype">const BoxArray &amp;&#160;</td>
+          <td class="paramname"><em>ba</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const IntVect &amp;&#160;</td>
+          <td class="paramname"><em>ratio</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>

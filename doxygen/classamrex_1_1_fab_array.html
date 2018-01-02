@@ -254,18 +254,24 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a3f6fba8a6ebf81524378226bc99cdd73"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#a3f6fba8a6ebf81524378226bc99cdd73">setDomainBndry</a> (<a class="el" href="classamrex_1_1_fab_array.html#a33f5bacc0aa27398623bc9cfa4dc3322">value_type</a> <a class="el" href="namespaceamrex.html#a3c8a8d58f461ec4ae855c3d602174082">val</a>, int strt_comp, int <a class="el" href="_a_m_re_x___multi_fab_util___f_8_h.html#ae7f492c36edb37372dc71617ff955fc7">ncomp</a>, const <a class="el" href="classamrex_1_1_geometry.html">Geometry</a> &amp;goem)</td></tr>
 <tr class="memdesc:a3f6fba8a6ebf81524378226bc99cdd73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set ncomp values outside the <a class="el" href="classamrex_1_1_geometry.html">Geometry</a> domain to val, starting at start_comp.  <a href="#a3f6fba8a6ebf81524378226bc99cdd73">More...</a><br/></td></tr>
 <tr class="separator:a3f6fba8a6ebf81524378226bc99cdd73"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a084fba4a0462665810a8dd5f5253b0fb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#a084fba4a0462665810a8dd5f5253b0fb">ParallelAdd</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;fa, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>())</td></tr>
+<tr class="memdesc:a084fba4a0462665810a8dd5f5253b0fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function copies data from fa to this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>. Each FAB in fa is intersected with all FABs in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> and a copy is performed on the region of intersection. The intersection is restricted to the valid regions.  <a href="#a084fba4a0462665810a8dd5f5253b0fb">More...</a><br/></td></tr>
+<tr class="separator:a084fba4a0462665810a8dd5f5253b0fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4d5c152276e1e70438c9d7072cb7c6f0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#a4d5c152276e1e70438c9d7072cb7c6f0">ParallelCopy</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;fa, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>(), <a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cff">CpOp</a> op=<a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cffa30d7d89f4f6df2117a0c88fcec1a65cb">FabArrayBase::COPY</a>)</td></tr>
-<tr class="memdesc:a4d5c152276e1e70438c9d7072cb7c6f0"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function copies data from fa to this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>. Each FAB in fa is intersected with all FABs in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> and a copy is performed on the region of intersection. The intersection is restricted to the valid regions.  <a href="#a4d5c152276e1e70438c9d7072cb7c6f0">More...</a><br/></td></tr>
 <tr class="separator:a4d5c152276e1e70438c9d7072cb7c6f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa9b8434579afa8f9c0ec62305b04d463"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#aa9b8434579afa8f9c0ec62305b04d463">copy</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;fa, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>(), <a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cff">CpOp</a> op=<a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cffa30d7d89f4f6df2117a0c88fcec1a65cb">FabArrayBase::COPY</a>)</td></tr>
 <tr class="separator:aa9b8434579afa8f9c0ec62305b04d463"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a26958f691e66d47d0d9dc9ffde78ad62"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#a26958f691e66d47d0d9dc9ffde78ad62">ParallelAdd</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;src, int src_comp, int dest_comp, int num_comp, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>())</td></tr>
+<tr class="memdesc:a26958f691e66d47d0d9dc9ffde78ad62"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function copies data from src to this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>. Each FAB in src is intersected with all FABs in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> and a copy is performed on the region of intersection. The intersection is restricted to the num_comp components starting at src_comp in the <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> src, with the destination components in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> starting at dest_comp.  <a href="#a26958f691e66d47d0d9dc9ffde78ad62">More...</a><br/></td></tr>
+<tr class="separator:a26958f691e66d47d0d9dc9ffde78ad62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac31d070f29eef2523b0af2d858b3e56d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#ac31d070f29eef2523b0af2d858b3e56d">ParallelCopy</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;src, int src_comp, int dest_comp, int num_comp, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>(), <a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cff">CpOp</a> op=<a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cffa30d7d89f4f6df2117a0c88fcec1a65cb">FabArrayBase::COPY</a>)</td></tr>
-<tr class="memdesc:ac31d070f29eef2523b0af2d858b3e56d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function copies data from src to this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>. Each FAB in src is intersected with all FABs in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> and a copy is performed on the region of intersection. The intersection is restricted to the num_comp components starting at src_comp in the <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> src, with the destination components in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> starting at dest_comp.  <a href="#ac31d070f29eef2523b0af2d858b3e56d">More...</a><br/></td></tr>
 <tr class="separator:ac31d070f29eef2523b0af2d858b3e56d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a750ed96b0152380b2e400ce0aac9ee46"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#a750ed96b0152380b2e400ce0aac9ee46">copy</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;src, int src_comp, int dest_comp, int num_comp, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>(), <a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cff">CpOp</a> op=<a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cffa30d7d89f4f6df2117a0c88fcec1a65cb">FabArrayBase::COPY</a>)</td></tr>
 <tr class="separator:a750ed96b0152380b2e400ce0aac9ee46"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad98dd18472bc28d60040642a8efd0fb0"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#ad98dd18472bc28d60040642a8efd0fb0">ParallelAdd</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;src, int src_comp, int dest_comp, int num_comp, int src_nghost, int dst_nghost, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>())</td></tr>
+<tr class="memdesc:ad98dd18472bc28d60040642a8efd0fb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively.  <a href="#ad98dd18472bc28d60040642a8efd0fb0">More...</a><br/></td></tr>
+<tr class="separator:ad98dd18472bc28d60040642a8efd0fb0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3d58cf8a0ddfeba8a8b52aa73fed2113"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#a3d58cf8a0ddfeba8a8b52aa73fed2113">ParallelCopy</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;src, int src_comp, int dest_comp, int num_comp, int src_nghost, int dst_nghost, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>(), <a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cff">CpOp</a> op=<a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cffa30d7d89f4f6df2117a0c88fcec1a65cb">FabArrayBase::COPY</a>)</td></tr>
-<tr class="memdesc:a3d58cf8a0ddfeba8a8b52aa73fed2113"><td class="mdescLeft">&#160;</td><td class="mdescRight">Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively.  <a href="#a3d58cf8a0ddfeba8a8b52aa73fed2113">More...</a><br/></td></tr>
 <tr class="separator:a3d58cf8a0ddfeba8a8b52aa73fed2113"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a670b214978a1e6d3425e43f91ea006f5"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classamrex_1_1_fab_array.html#a670b214978a1e6d3425e43f91ea006f5">copy</a> (const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;src, int src_comp, int dest_comp, int num_comp, int src_nghost, int dst_nghost, const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;period=<a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>(), <a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cff">CpOp</a> op=<a class="el" href="classamrex_1_1_fab_array_base.html#ac86e93bfc13df1bdcfb0ebbafb6a1cffa30d7d89f4f6df2117a0c88fcec1a65cb">FabArrayBase::COPY</a>)</td></tr>
 <tr class="separator:a670b214978a1e6d3425e43f91ea006f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -2292,6 +2298,168 @@ template&lt;class FAB &gt; </div>
 
 </div>
 </div>
+<a class="anchor" id="a084fba4a0462665810a8dd5f5253b0fb"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classamrex_1_1_fab_array.html">amrex::FabArray</a>&lt; T &gt;::ParallelAdd </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;&#160;</td>
+          <td class="paramname"><em>fa</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;&#160;</td>
+          <td class="paramname"><em>period</em> = <code><a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>()</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>This function copies data from fa to this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>. Each FAB in fa is intersected with all FABs in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> and a copy is performed on the region of intersection. The intersection is restricted to the valid regions. </p>
+
+</div>
+</div>
+<a class="anchor" id="a26958f691e66d47d0d9dc9ffde78ad62"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classamrex_1_1_fab_array.html">amrex::FabArray</a>&lt; T &gt;::ParallelAdd </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;&#160;</td>
+          <td class="paramname"><em>src</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>src_comp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>dest_comp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>num_comp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;&#160;</td>
+          <td class="paramname"><em>period</em> = <code><a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>()</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>This function copies data from src to this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>. Each FAB in src is intersected with all FABs in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> and a copy is performed on the region of intersection. The intersection is restricted to the num_comp components starting at src_comp in the <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> src, with the destination components in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> starting at dest_comp. </p>
+
+</div>
+</div>
+<a class="anchor" id="ad98dd18472bc28d60040642a8efd0fb0"></a>
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classamrex_1_1_fab_array.html">amrex::FabArray</a>&lt; T &gt;::ParallelAdd </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>&lt; FAB &gt; &amp;&#160;</td>
+          <td class="paramname"><em>src</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>src_comp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>dest_comp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>num_comp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>src_nghost</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>dst_nghost</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="classamrex_1_1_periodicity.html">Periodicity</a> &amp;&#160;</td>
+          <td class="paramname"><em>period</em> = <code><a class="el" href="classamrex_1_1_periodicity.html#a38c75cba56d022201b4e1970534d5823">Periodicity::NonPeriodic</a>()</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively. </p>
+
+</div>
+</div>
 <a class="anchor" id="a4d5c152276e1e70438c9d7072cb7c6f0"></a>
 <div class="memitem">
 <div class="memproto">
@@ -2323,8 +2491,6 @@ template&lt;class FAB &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>This function copies data from fa to this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>. Each FAB in fa is intersected with all FABs in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> and a copy is performed on the region of intersection. The intersection is restricted to the valid regions. </p>
 
 </div>
 </div>
@@ -2377,8 +2543,6 @@ template&lt;class FAB &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>This function copies data from src to this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a>. Each FAB in src is intersected with all FABs in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> and a copy is performed on the region of intersection. The intersection is restricted to the num_comp components starting at src_comp in the <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> src, with the destination components in this <a class="el" href="classamrex_1_1_fab_array.html">FabArray</a> starting at dest_comp. </p>
 
 </div>
 </div>
@@ -2443,8 +2607,6 @@ template&lt;class FAB &gt; </div>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively. </p>
 
 </div>
 </div>

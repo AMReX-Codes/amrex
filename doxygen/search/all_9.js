@@ -137,6 +137,7 @@ var searchData=
   ['irregnode',['IrregNode',['../classamrex_1_1_irreg_node.html#aeca9058c6caf7a628350dac530178adc',1,'amrex::IrregNode']]],
   ['irregnode',['IrregNode',['../classamrex_1_1_irreg_node.html',1,'amrex']]],
   ['irregular',['Irregular',['../classamrex_1_1_geometry_service.html#ab6546708b1e12c188511a708769040d0a7ebe932393c0359efe05824c86ecf2a3',1,'amrex::GeometryService']]],
+  ['is_5fcell_5fcentered',['is_cell_centered',['../classamrex_1_1_multi_fab.html#a61a5f26b3df9a3c1f616796d077f2204',1,'amrex::MultiFab']]],
   ['is_5finteger',['is_integer',['../namespaceamrex.html#a107cab62d5043f039671cf5b68068ddc',1,'amrex']]],
   ['is_5fnodal',['is_nodal',['../classamrex_1_1_multi_fab.html#a2c222f6e65f9089ba9cf1e7af58f6ad0',1,'amrex::MultiFab']]],
   ['isactive',['isActive',['../namespaceamrex_1_1_parallel_descriptor.html#a967a8b951b0cbf77db3b91c3ac1ef08a',1,'amrex::ParallelDescriptor']]],
@@ -189,8 +190,8 @@ var searchData=
   ['ivs_5fce',['ivs_ce',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1coar__logic__t.html#a71d824751053007091a3563d4398199c',1,'amrex::AggEBPWLFillPatch::coar_logic_t']]],
   ['ivs_5fhi',['ivs_hi',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1coar__logic__t.html#ae8ec937ca7e81c1408ace91447032db8',1,'amrex::AggEBPWLFillPatch::coar_logic_t']]],
   ['ivs_5flo',['ivs_lo',['../structamrex_1_1_agg_e_b_p_w_l_fill_patch_1_1coar__logic__t.html#a32b45cbd45394e603da3f6fe3993c897',1,'amrex::AggEBPWLFillPatch::coar_logic_t']]],
-  ['ivsiterator',['IVSIterator',['../classamrex_1_1_i_v_s_iterator.html',1,'amrex']]],
   ['ivsiterator',['IVSIterator',['../classamrex_1_1_int_vect_set.html#af9afa526d9070bee02708e026b5c8ac1',1,'amrex::IntVectSet::IVSIterator()'],['../classamrex_1_1_i_v_s_iterator.html#a66ac12de62a8e099bd21421ce61ca498',1,'amrex::IVSIterator::IVSIterator()'],['../classamrex_1_1_i_v_s_iterator.html#a2cb77cf55cb86ad6d232fbc0f4814423',1,'amrex::IVSIterator::IVSIterator(const IntVectSet &amp;ivs)']]],
+  ['ivsiterator',['IVSIterator',['../classamrex_1_1_i_v_s_iterator.html',1,'amrex']]],
   ['ix_5fproj',['IX_PROJ',['../_a_m_re_x___i_n_t_e_r_p__1_d_8_f.html#ac6d456c82be9ffbed6023148a80674ae',1,'IX_PROJ():&#160;AMReX_INTERP_1D.F'],['../_a_m_re_x___i_n_t_e_r_p__2_d_8_f.html#ac6d456c82be9ffbed6023148a80674ae',1,'IX_PROJ():&#160;AMReX_INTERP_2D.F'],['../_a_m_re_x___i_n_t_e_r_p__3_d_8_f.html#ac6d456c82be9ffbed6023148a80674ae',1,'IX_PROJ():&#160;AMReX_INTERP_3D.F']]],
   ['ixproj',['IXPROJ',['../_a_m_re_x___tag_box_8cpp.html#a76327dc9df7f54aa2900f4ee5509616c',1,'AMReX_TagBox.cpp']]],
   ['ixtype',['ixType',['../classamrex_1_1_box.html#ac3eb066c1eb494c80c7f1bcd2a8300fa',1,'amrex::Box::ixType()'],['../classamrex_1_1_box_array.html#ab0def4ab9990fbe6880e98067e27acd5',1,'amrex::BoxArray::ixType()'],['../classamrex_1_1_box_list.html#a37b73e4946690f82d85e8cd447c7f34c',1,'amrex::BoxList::ixType()'],['../classamrex_1_1_fab_array_base.html#a865e0dd2792f99689596854979d22a75',1,'amrex::FabArrayBase::ixType()'],['../classamrex_1_1_index_type.html#afaa6d341496be6986f20af945922af5b',1,'amrex::IndexType::ixType(int dir) const '],['../classamrex_1_1_index_type.html#a941e515dadf4a6d7b8b6906f23b01817',1,'amrex::IndexType::ixType() const ']]]
