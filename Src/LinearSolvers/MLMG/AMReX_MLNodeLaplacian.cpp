@@ -98,38 +98,36 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     }
 
     // no need to do this
-#if 0
-    for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
-    {
-        const Geometry& fgeom = m_geom[ilev+1][0];
-        const Geometry& cgeom = m_geom[ilev  ][0];
+//     for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
+//     {
+//         const Geometry& fgeom = m_geom[ilev+1][0];
+//         const Geometry& cgeom = m_geom[ilev  ][0];
 
-        MultiFab frhs(rhs[ilev+1]->boxArray(), rhs[ilev+1]->DistributionMap(), 1, 1);
-        frhs.setVal(0.0);
-        MultiFab::Copy(frhs, *rhs[ilev+1], 0, 0, 1, 0);
-        frhs.FillBoundary(fgeom.periodicity());
+//         MultiFab frhs(rhs[ilev+1]->boxArray(), rhs[ilev+1]->DistributionMap(), 1, 1);
+//         frhs.setVal(0.0);
+//         MultiFab::Copy(frhs, *rhs[ilev+1], 0, 0, 1, 0);
+//         frhs.FillBoundary(fgeom.periodicity());
 
-        MultiFab crhs(amrex::coarsen(frhs.boxArray(),2), frhs.DistributionMap(), 1, 0);
+//         MultiFab crhs(amrex::coarsen(frhs.boxArray(),2), frhs.DistributionMap(), 1, 0);
 
-        const iMultiFab& fdmsk = *m_dirichlet_mask[ilev+1][0];
-        const Box& cnddom = amrex::surroundingNodes(cgeom.Domain());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(crhs, true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.tilebox();
-            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(crhs[mfi]),
-                                      BL_TO_FORTRAN_ANYD(frhs[mfi]),
-                                      BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                      BL_TO_FORTRAN_BOX(cnddom),
-                                      m_lobc.data(), m_hibc.data());
-        }
+//         const iMultiFab& fdmsk = *m_dirichlet_mask[ilev+1][0];
+//         const Box& cnddom = amrex::surroundingNodes(cgeom.Domain());
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//         for (MFIter mfi(crhs, true); mfi.isValid(); ++mfi)
+//         {
+//             const Box& bx = mfi.tilebox();
+//             amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+//                                       BL_TO_FORTRAN_ANYD(crhs[mfi]),
+//                                       BL_TO_FORTRAN_ANYD(frhs[mfi]),
+//                                       BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
+//                                       BL_TO_FORTRAN_BOX(cnddom),
+//                                       m_lobc.data(), m_hibc.data());
+//         }
 
-        rhs[ilev]->ParallelCopy(crhs, cgeom.periodicity());
-    }
-#endif
+//         rhs[ilev]->ParallelCopy(crhs, cgeom.periodicity());
+//     }
 
     for (int ilev = m_num_amr_levels-2; ilev >= 0; --ilev)
     {
@@ -158,8 +156,11 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                 const Box& cbx = mfi.tilebox();
                 const Box& fbx = amrex::refine(cbx,2);
 
-                const Box& bx_vel = amrex::grow(amrex::enclosedCells(fbx),1);
-                const Box& b = bx_vel & amrex::enclosedCells(fvbx);
+                const Box& cc_fbx = amrex::enclosedCells(fbx);
+                const Box& cc_fvbx = amrex::enclosedCells(fvbx);
+
+                const Box& bx_vel = amrex::grow(cc_fbx,2) & amrex::grow(cc_fvbx,1);
+                const Box& b = bx_vel & cc_fvbx;
                 vfab.resize(bx_vel, AMREX_SPACEDIM);
                 vfab.setVal(0.0);
                 vfab.copy((*vel[ilev+1])[mfi], b, 0, b, 0, AMREX_SPACEDIM);
@@ -1131,8 +1132,10 @@ MLNodeLaplacian::reflux (int crse_amrlev,
             const Box& cbx = mfi.tilebox();
             const Box& fbx = amrex::refine(cbx,2);
 
-            const Box& bx_sig = amrex::grow(amrex::enclosedCells(fbx),1);
-            const Box& b = bx_sig & amrex::enclosedCells(fvbx);
+            const Box& cc_fbx = amrex::enclosedCells(fbx);
+            const Box& cc_fvbx = amrex::enclosedCells(fvbx);
+            const Box& bx_sig = amrex::grow(cc_fbx,2) & amrex::grow(cc_fvbx,1);
+            const Box& b = bx_sig & cc_fvbx;
             sigfab.resize(bx_sig, 1);
             sigfab.setVal(0.0);
             sigfab.copy(fsigma[mfi], b, 0, b, 0, 1);
