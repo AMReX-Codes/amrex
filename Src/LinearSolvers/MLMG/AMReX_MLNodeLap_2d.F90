@@ -891,7 +891,7 @@ contains
     real(amrex_real), intent(inout) :: frh(flo(1):fhi(1),flo(2):fhi(2))
     integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
 
-    integer, dimension(2) :: lo, hi, glo, ghi
+    integer, dimension(2) :: lo, hi, glo, ghi, gtlo, gthi
     integer :: i, j, ii, jj, step
     real(amrex_real) :: facx, facy
     real(amrex_real), parameter :: rfd = 0.25d0
@@ -907,13 +907,16 @@ contains
     glo = 2*cglo
     ghi = 2*cghi
 
-    do jj = lo(2), hi(2)
+    gtlo = max(lo-1,glo)
+    gthi = min(hi+1,ghi)
+
+    do jj = gtlo(2), gthi(2)
        if (jj .eq. glo(2) .or. jj .eq. ghi(2)) then
           step = 1
        else
-          step = hi(1)-lo(1)
+          step = gthi(1)-gtlo(1)
        end if
-       do ii = lo(1), hi(1), step
+       do ii = gtlo(1), gthi(1), step
           if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step .eq. 1) then
              frh(ii,jj) = facx*(-vel(ii-1,jj-1,1)+vel(ii,jj-1,1)-vel(ii-1,jj,1)+vel(ii,jj,1)) &
                     &   + facy*(-vel(ii-1,jj-1,2)-vel(ii,jj-1,2)+vel(ii-1,jj,2)+vel(ii,jj,2))
@@ -1013,7 +1016,7 @@ contains
     integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
     real(amrex_real), intent(in) :: dxinv(2)
 
-    integer, dimension(2) :: lo, hi, glo, ghi
+    integer, dimension(2) :: lo, hi, glo, ghi, gtlo, gthi
     integer :: i, j, ii, jj, step
     real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
     real(amrex_real), parameter :: rfd = 0.25d0
@@ -1031,13 +1034,16 @@ contains
     glo = 2*cglo
     ghi = 2*cghi
 
-    do jj = lo(2), hi(2)
+    gtlo = max(lo-1,glo)
+    gthi = min(hi+1,ghi)
+
+    do jj = gtlo(2), gthi(2)
        if (jj .eq. glo(2) .or. jj .eq. ghi(2)) then
           step = 1
        else
-          step = hi(1)-lo(1)
+          step = gthi(1)-gtlo(1)
        end if
-       do ii = lo(1), hi(1), step
+       do ii = gtlo(1), gthi(1), step
           if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step .eq. 1) then
              Ax(ii,jj) = x(ii-1,jj-1)*fxy*sig(ii-1,jj-1) &
                   +      x(ii+1,jj-1)*fxy*sig(ii  ,jj-1) &

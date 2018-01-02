@@ -1691,7 +1691,7 @@ contains
     real(amrex_real), intent(inout) :: frh(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
     integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
-    integer, dimension(3) :: lo, hi, glo, ghi
+    integer, dimension(3) :: lo, hi, glo, ghi, gtlo, gthi
     integer :: i, j, k, ii, jj, kk, step
     real(amrex_real) :: facx, facy, facz
     real(amrex_real), parameter :: rfd = 0.125d0
@@ -1709,14 +1709,17 @@ contains
     glo = 2*cglo
     ghi = 2*cghi
 
-    do    kk = lo(3), hi(3)
-       do jj = lo(2), hi(2)
+    gtlo = max(lo-1,glo)
+    gthi = min(hi+1,ghi)
+
+    do    kk = gtlo(3), gthi(3)
+       do jj = gtlo(2), gthi(2)
           if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
              step = 1
           else
-             step = hi(1)-lo(1)
+             step = gthi(1)-gtlo(1)
           end if
-          do ii = lo(1), hi(1), step
+          do ii = gtlo(1), gthi(1), step
              if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step.eq.1) then
                 frh(ii,jj,kk) = facx*(-vel(ii-1,jj-1,kk-1,1)+vel(ii,jj-1,kk-1,1) &
                      &                -vel(ii-1,jj  ,kk-1,1)+vel(ii,jj  ,kk-1,1) &
@@ -1880,7 +1883,7 @@ contains
     integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
     real(amrex_real), intent(in) :: dxinv(3)
 
-    integer, dimension(3) :: lo, hi, glo, ghi
+    integer, dimension(3) :: lo, hi, glo, ghi, gtlo, gthi
     integer :: i, j, k, ii, jj, kk, step
     real(amrex_real) :: facx, facy, facz, fxyz, fmx2y2z, f2xmy2z, f2x2ymz
     real(amrex_real) :: f4xm2ym2z, fm2x4ym2z, fm2xm2y4z
@@ -1905,14 +1908,17 @@ contains
     glo = 2*cglo
     ghi = 2*cghi
 
-    do    kk = lo(3), hi(3)
-       do jj = lo(2), hi(2)
+    gtlo = max(lo-1,glo)
+    gthi = min(hi+1,ghi)
+
+    do    kk = gtlo(3), gthi(3)
+       do jj = gtlo(2), gthi(2)
           if (jj.eq.glo(2) .or. jj.eq.ghi(2) .or. kk.eq.glo(3) .or. kk.eq.ghi(3)) then
              step = 1
           else
-             step = hi(1)-lo(1)
+             step = gthi(1)-gtlo(1)
           end if
-          do ii = lo(1), hi(1), step
+          do ii = gtlo(1), gthi(1), step
              if (ii.eq.glo(1) .or. ii.eq.ghi(1) .or. step.eq.1) then
                 Ax(ii,jj,kk) = x(ii,jj,kk)*(-4.d0)*fxyz* &
                      (sig(ii-1,jj-1,kk-1)+sig(ii,jj-1,kk-1)+sig(ii-1,jj,kk-1)+sig(ii,jj,kk-1) &
