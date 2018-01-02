@@ -122,6 +122,7 @@ class FabArray
 {
 public:
     friend class Action;
+    friend class AmrTask;
     template <class T>
     friend class MFGraph;
 

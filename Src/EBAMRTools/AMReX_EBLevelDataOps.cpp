@@ -114,7 +114,7 @@ namespace amrex
     BoxArray            ba = a_ebdata.boxArray();
     int ngrow = 0; //simplifies setting vfrac
     int ncomp = a_ebdata.nComp() + 1 ; // + 1 for vol fraction
-    a_mfdata.define(ba, dm, ncomp, ngrow);
+    a_mfdata.define(ba, dm, ncomp, ngrow, MFInfo(), FArrayBoxFactory());
     
     for(MFIter mfi(ba, dm); mfi.isValid(); ++mfi)
     {

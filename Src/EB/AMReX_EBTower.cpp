@@ -85,10 +85,10 @@ EBTower::EBTower ()
             DistributionMapping dm {ba};
             EBLevelGrid eblg(ba, dm, m_domains[lev], 1);
 
-            m_cellflags[lev].define(ba, dm, 1, 0);
+            m_cellflags[lev].define(ba, dm, 1, 0, MFInfo(), DefaultFabFactory<EBCellFlagFab>());
             initCellFlags(lev, eblg);
 
-            m_volfrac[lev].define(ba, dm, 1, 0);
+            m_volfrac[lev].define(ba, dm, 1, 0, MFInfo(), FArrayBoxFactory());
             initVolFrac(lev, eblg);
 
             m_bndrycent[lev].define(ba, dm, 3, 0, m_cellflags[lev]);
